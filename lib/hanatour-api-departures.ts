@@ -49,6 +49,19 @@ export type HanatourPkgProdListRow = {
   saleProdNm?: string | null
   bkngStatCd?: string | null
   remaSeatCnt?: number | null
+  seatCnt?: number | null
+  minDepNop?: number | null
+  depFixYn?: string | null
+}
+
+export function hanatourStatusRawFromProdListRow(row: HanatourPkgProdListRow): string {
+  if (String(row.depFixYn ?? '').trim().toUpperCase() === 'Y') return '출발확정'
+  const rem = row.remaSeatCnt
+  if (rem != null && rem <= 0) return '예약마감'
+  const cd = String(row.bkngStatCd ?? '').trim()
+  if (cd === '1' || cd === '4') return '출발확정'
+  if (cd === '3' || cd === '9') return '예약마감'
+  return '예약가능'
 }
 
 function hanatourGwHeaders(): HeadersInit {
@@ -139,6 +152,9 @@ export function hanatourProdListRowToDepartureInput(row: HanatourPkgProdListRow 
   const adultPrice = adultPriceFromProdListRow(row)
   if (!departureDate || adultPrice == null) return null
   const saleProdCd = String(row.saleProdCd ?? '').trim()
+  const remaSeatCnt =
+    row.remaSeatCnt != null && Number.isFinite(Number(row.remaSeatCnt)) ? Math.trunc(Number(row.remaSeatCnt)) : null
+  const statusRaw = hanatourStatusRawFromProdListRow(row)
   return {
     departureDate,
     adultPrice,
@@ -148,6 +164,13 @@ export function hanatourProdListRowToDepartureInput(row: HanatourPkgProdListRow 
     outboundFlightNo: row.depFlgtCd ? `${row.depAirCd ?? ''}${row.depFlgtCd}`.trim() || null : null,
     supplierDepartureCodeCandidate: saleProdCd ? `hanatour:${saleProdCd}` : null,
     localPriceText: saleProdCd ? `hanatour:pkgCd=${saleProdCd}`.slice(0, 200) : null,
+    statusRaw,
+    seatsStatusRaw: remaSeatCnt != null ? `잔여${remaSeatCnt}석` : null,
+    seatCount: remaSeatCnt,
+    minPax:
+      row.minDepNop != null && Number.isFinite(Number(row.minDepNop)) && Number(row.minDepNop) > 0
+        ? Math.trunc(Number(row.minDepNop))
+        : null,
   }
 }
 

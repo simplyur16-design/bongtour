@@ -4,17 +4,21 @@
  * REGRESSION-FREEZE[register-facts-foundation]: getPkgProdInfo·getPkgProdItnrInfo — manifest
  */
 import {
+  collectHanatourApiDepartureInputsForMonths,
   fetchHanatourPkgProdInfo,
-  hanatourProdInfoToDepartureInput,
   parseHanatourPkgCdFromUrl,
 } from '@/lib/hanatour-api-departures'
+import { buildHanatourKstTargetMonths } from '@/lib/hanatour-departures'
 import {
   fetchHanatourPkgProdItnr,
   formatHanatourTrvlExpnBullet,
   hanatourItnrSchdToFactDays,
   type HanatourTrvlExpnRow,
 } from '@/lib/hanatour-register-api-detail'
+import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -33,7 +37,24 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
 
   if (!info) return null
 
-  const depInput = hanatourProdInfoToDepartureInput(info)
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const monthYms = buildHanatourKstTargetMonths(6)
+  const cal = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+  const priceRows = cal.inputs
+    .filter((x) => {
+      const d = departureInputToYmd(x.departureDate)
+      return d != null && d >= fromYmd && d <= toYmd && (x.adultPrice ?? 0) > 0
+    })
+    .map((dep) =>
+      registerDepartureLikeToFactPriceRow({
+        ...dep,
+        supplierDepartureCode: dep.supplierDepartureCodeCandidate ?? null,
+      }),
+    )
+    .filter((row): row is NonNullable<typeof row> => row != null)
+
+  const firstInput = cal.inputs[0]
   const incl = (info as { trvlExpnInclList?: HanatourTrvlExpnRow[] }).trvlExpnInclList ?? []
   const excl = (info as { trvlExpnNoneInclList?: HanatourTrvlExpnRow[] }).trvlExpnNoneInclList ?? []
   const shopping = (info as { shpnInfoList?: Array<{ shpnPlcNm?: string }> }).shpnInfoList ?? []
@@ -58,30 +79,20 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
     excludedBullets: excl.map((x) => formatHanatourTrvlExpnBullet(x)).filter(Boolean),
     shoppingPlaces: shopping.map((x) => String(x.shpnPlcNm ?? '').trim()).filter(Boolean),
     scheduleDays: hanatourItnrSchdToFactDays(schdInfoList),
-    flights: depInput?.carrierName
+    flights: firstInput?.carrierName
       ? [
           {
             direction: 'outbound' as const,
-            carrier: depInput.carrierName,
-            flightNo: depInput.outboundFlightNo ?? null,
+            carrier: firstInput.carrierName,
+            flightNo: firstInput.outboundFlightNo ?? null,
             departureCity: null,
-            departureAt: depInput.departureDate ? String(depInput.departureDate) : null,
+            departureAt: departureInputToYmd(firstInput.departureDate),
             arrivalCity: null,
             arrivalAt: null,
           },
         ]
       : [],
-    priceRows: depInput
-      ? [
-          {
-            departureDate: depInput.departureDate ? String(depInput.departureDate).slice(0, 10) : null,
-            adultPrice: depInput.adultPrice ?? null,
-            childPrice: depInput.childBedPrice ?? null,
-            infantPrice: depInput.infantPrice ?? null,
-            supplierDepartureCode: depInput.supplierDepartureCodeCandidate ?? null,
-          },
-        ]
-      : [],
-    notes: ['source=hanatour_gw_api', `pkgCd=${pkgCd}`],
+    priceRows,
+    notes: ['source=hanatour_gw_api', `pkgCd=${pkgCd}`, `calendar_rows=${priceRows.length}`],
   }
 }
