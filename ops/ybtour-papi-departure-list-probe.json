@@ -1,0 +1,560 @@
+{
+  "cases": [
+    {
+      "label": "pkg-evCd",
+      "url": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAB001&evCd=AVP4484-260711RS00&goodsCd=AVP4484",
+      "goodsCd": "AVP4484",
+      "evCd": "AVP4484-260711RS00",
+      "modalPapiHits": [
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/common/contents/GORV",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.478\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/price",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"adtPrice\":458900,\"chdPrice\":458900,\"infPrice\":200000,\"bafAdtCost\":251000,\"bafChdCost\":251000,\"bafInfCost\":0,\"airTaxAdtCost\":0,\"airTaxChdCost\":0,\"airTaxInfCost\":0,\"expCurrCd\":\"KRW\",\"guideExpAmt\":0.0,\"driverAmt\":0.0,\"depositDivi\":\"PE\",\"depositDiviNm\":\"인당\",\"depositAmt\":200000.0},\"timestamp\":\"2026-06-20 01:32:30.487\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/product/AVP4484/review/summary",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"reviewCnt\":422,\"scoreAvg\":4.6,\"companion\":\"F\",\"companionNm\":\"가족\",\"companionAttr1\":\"가족과 가기 좋은 여행\",\"companionAttr2\":\"가족과 가기 좋은 호텔\",\"keywordList\":[{\"keywordTitleId\":2,\"keywordSubId\":4,\"keyword\":\"일정이 알차요\",\"keywordCnt\":138},{\"keywordTitleId\":3,\"keywordSubId\":2,\"keyword\":\"음식이 맛있어요\",\"keywordCnt\":126},{\"keywordTitleId\":1,\"keywordSubId\":1,\"keyword\":\"가이드가 열정이 넘쳐요 \",\"keywordCnt\":115},{\"keywordTitleId\":1,\"keywordSubId\":6,\"keyword\":\"가이드가 친절해요 \",\"keywordCnt\":112},{\"keywordTitleId\":1,\"keywordSubId\":7,\"keyword\":\"가이드가 배려심이 깊어요\",\"keywordCnt\":99},{\"keywordTitleId\":1,\"keywordSubId\":5,\"keyword\":\"가이드가 전문적이에요 \",\"keywordCnt\":93},{\"keywordTitleId\":1,\"keywordSubId\":9,\"keyword\":\"가이드가 유쾌하고 재밌어요\",\"keywordCnt\":73},{\"keywordTitleId\":4,\"keywordSubId\":17,\"keyword\":\"객실이 깨끗해요\",\"keywordCnt\":71},{\"keywordTitleId\":4,\"keywordSubId\":19,\"keyword\":\"호텔 위치가 좋아요\",\"keywordCnt\":69},{\"keywordTitleId\":2,\"keywordSubId\":10,\"keyword\":\"특별한 추억을 제공해요 \",\"keywordCnt\":39},{\"keywordTitleId\":2,\"keywordSubId\":12,\"keyword\":\"여유를 즐길 수 있어요 \",\"keywordCnt\":38},{\"keywordTitleId\":2,\"keywordSubId\":8,\"keyword\":\"즐길 거리가 많아요\",\"keywordCnt\":37},{\"keywordTitleId\":2,\"keywordSubId\":11,\"keyword\":\"가격 대비 가치 있어요 \",\"keyw"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/expect-mileage",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"compId\":\"1\",\"evCd\":\"AVP4484-260711RS00\",\"mlgDivi\":\"GNL\",\"mlgGb\":\"기본 적립\",\"promotionNm\":\"기본지급\",\"promotionNo\":\"FIX00001\",\"mlgStartDt\":\"20170101\",\"mlgEndDt\":\"99991231\",\"mlgSaveKindCd\":\"R1\",\"mlgSaveKindNm\":\"정률\",\"mlgPoint\":1,\"mlgUnit\":\"%\",\"mlgSaveDtCd\":\"S1\",\"mlgSaveDtNm\":\"기준\",\"evArriveDt\":\"20260715\",\"stdYear\":0,\"stdMonth\":0,\"stdDay\":7,\"fixSaveDt\":null,\"evStartDt\":\"20260711\",\"mlgDeadlineDtCd\":\"S1\",\"mlgDeadlineDtNm\":\"기준\",\"stdDeadlineYear\":3,\"stdDeadlineMonth\":0,\"stdDeadlineDay\":0,\"fixDeadlineDt\":\"0\",\"adtPrice\":458900,\"chdPrice\":458900,\"infPrice\":200000,\"bafAdtCost\":251000,\"bafChdCost\":251000,\"bafInfCost\":0,\"airtaxAdtCost\":0,\"airtaxChdCost\":0,\"airtaxInfCost\":0,\"bnrLink\":null,\"webBannerLink\":null,\"bnrMstNo\":null}],\"timestamp\":\"2026-06-20 01:32:30.493\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/common/contents/GOPM",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.499\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/first-display",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"evCd\":\"AVP4484-260711RS00\",\"evNm\":\"다낭/호이안 5일 #5성 #NO옵션NO팁 #호이안야간투어 #마사지2회 #럭셔리크루즈 RS511\",\"dspSid1\":\"AA00000\",\"dspSid2\":\"AAB0000\",\"dspSid3\":\"AABF000\",\"dspSid4\":\"AABF011\"},\"timestamp\":\"2026-06-20 01:32:30.499\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event-schedule/AVP4484-260711RS00/tour-detail",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"goodsCd\":\"AVP4484\",\"daySeq\":157735,\"dayNoSeq\":310254500,\"tmSeq\":1098339495,\"trvSeq\":621832017,\"trvInfoId\":\"E1005211\",\"trvInfoYn\":\"Y\",\"trvCd\":\"50\",\"tempCd\":\"2\",\"image1Url\":\"https://dimgcdn.ybtour.co.kr/TN/5a/5a119570683de8d4e828740b28fff4d4.tn.410x280.JPG\",\"image2Url\":\"https://dimgcdn.ybtour.co.kr/TN/37/377100ab813e98d839a739d016ae965c.tn.410x280.jpg\",\"image3Url\":null,\"image4Url\":null,\"imageNm1\":null,\"imageNm2\":null,\"imageNm3\":null,\"imageNm4\":null,\"refeNote\":\"※현지 사정에 의해서 선택관광 진행 시간은 유동적으로 변동될 수 있습니다※\",\"optCost\":null,\"useTm\":null,\"infoNote\":null,\"roomViewYn\":null,\"trvInfoNm\":\"바구니배\",\"trvContent\":\"베트남 전통적인 배로 대나무를 얶어 바구니처럼 만든 배를 타고 즐겨보세요 ~ 자연과 하나되어 휴식하는 경험을 하실 수 있습니다.\",\"locNm\":null,\"infoApiUrl\":\"/api/event-info/E1005211/fun\"},{\"goodsCd\":\"AVP4484\",\"daySeq\":157735,\"dayNoSeq\":310254500,\"tmSeq\":1098339502,\"trvSeq\":621832024,\"trvInfoId\":\"T1000124\",\"trvInfoYn\":\"Y\",\"trvCd\":\"30\",\"tempCd\":\"2\",\"image1Url\":\"https://dimgcdn.ybtour.co.kr/TN/05/0512fdccbb55d4102d6bfc8ce093b273.tn.410x280.jpg\",\"image2Url\":\"https://dimgcdn.ybtour.co.kr/TN/f7/f7eef62874fc6e7ff083da69451aa120.tn.410x280.jpg\",\"image3Url\":null,\"image4Url\":null,\"imageNm1\":null,\"imageNm2\":null,\"i"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event-schedule/AVP4484-260711RS00/AVP4484",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"scheduleDetail\":[{\"scheTmCnt\":0,\"optCnt\":0,\"trv70Cnt\":0,\"trv20Cnt\":0,\"shopInfoCnt\":0,\"scheTrvCnt\":0,\"shopCnt\":0,\"insuSeq\":0,\"optInfo\":null,\"atteInfo\":null,\"insuTempNm\":null,\"rewordId\":null,\"evStartDt\":\"20260711\",\"goodsCd\":\"AVP4484\",\"evCd\":\"AVP4484-260711RS00\",\"daySeq\":157735,\"dayNoSeq\":310254499,\"dayNo\":1,\"accommCd\":\"VNDADH0043\",\"accommNm\":null,\"accommNote\":\"※ 본 여행상품의 호텔은 출발 1~2일 전 확정되며, 현지 사정상 예정호텔 외 동급호텔로 배정 될 수 있습니다.\",\"accommYn\":null,\"foodB\":null,\"foodL\":null,\"foodD\":null,\"foodBYn\":null,\"foodLYn\":\"N\",\"foodDYn\":\"N\",\"accommInfoId\":\"A12491\",\"hotelCnt\":0,\"dayNote\":null},{\"scheTmCnt\":0,\"optCnt\":0,\"trv70Cnt\":0,\"trv20Cnt\":0,\"shopInfoCnt\":0,\"scheTrvCnt\":0,\"shopCnt\":0,\"insuSeq\":0,\"optInfo\":null,\"atteInfo\":null,\"insuTempNm\":null,\"rewordId\":null,\"evStartDt\":\"20260711\",\"goodsCd\":\"AVP4484\",\"evCd\":\"AVP4484-260711RS00\",\"daySeq\":157735,\"dayNoSeq\":310254500,\"dayNo\":2,\"accommCd\":null,\"accommNm\":null,\"accommNote\":\"※ 본 여행상품의 호텔은 출발 1~2일 전 확정되며, 현지 사정상 예정호텔 외 동급호텔로 배정 될 수 있습니다.\",\"accommYn\":null,\"foodB\":\"호텔식\",\"foodL\":\"소불고기 전골\",\"foodD\":\"호이안 레스토랑\",\"foodBYn\":\"Y\",\"foodLYn\":\"Y\",\"foodDYn\":\"Y\",\"accommInfoId\":null,\"hotelCnt\":0,\"dayNote\":null},{\"scheTmCnt\":0,\"optCnt"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/coupon/by-event/AVP4484-260711RS00",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.504\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/goods/banner/deal?goodsCd=AVP4484",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.510\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/goods/banner/pick?goodsCd=AVP4484",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.529\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/product/AVP4484/review",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"reviewList\":[{\"reviewId\":126243,\"custNm\":\"강*영\",\"reviewDt\":\"2026-05-25 08:26:19\",\"companion\":\"D\",\"companionNm\":\"친구들과\",\"companionAttr1\":\"친구와 가기 좋은 여행\",\"companionAttr2\":\"친구와 가기 좋은 호텔\",\"age\":\"60\",\"ageNm\":\"60대\",\"score\":4.0,\"detail\":\"친구들과 환갑여행으로 행복한 여행이었어요.\\n가이드님이 친절하고 하나라도 더 보여주고 싶어하느라 노력하시는 모습이 좋았어요.\\n아쉬운점은 쇼핑시간이 너무 지루학고 싫었습니다.\",\"roomType\":null,\"likeCnt\":0,\"keywords\":\"가이드가 친절해요 ,여유를 즐길 수 있어요 ,음식이 맛있어요,호텔 직원 응대가 친절해요 ,객실이 깨끗해요\",\"reportYn\":\"N\",\"recCnt\":4},{\"reviewId\":126108,\"custNm\":\"서*희\",\"reviewDt\":\"2026-05-20 17:51:18\",\"companion\":\"P\",\"companionNm\":\"부모님과 함께\",\"companionAttr1\":\"부모님과 가기 좋은 여행\",\"companionAttr2\":\"부모님과 가기 좋은 호텔\",\"age\":\"40\",\"ageNm\":\"40대\",\"score\":5.0,\"detail\":\"가이드님이 친절하게 베트남의 역사 전통 문화에대해서 상세하고 친절하게 설명해주셔서 견학온거같은 느낌이였어요~  열정있고 패기가 넘치는 가이드님 덕분에 여행이 더욱 더 알찼어요! 그리고 호텔 뷰와 수영장이 너무 멋지고, 조식도 가격대비 너무 맛있고 , 먹거리가 다양했습니다!\",\"roomType\":null,\"likeCnt\":0,\"keywords\":\"가이드가 유쾌하고 재밌어요,일정이 알차요,가격 대비 가치 있어요 ,음식이 맛있어요,객실 뷰가 멋져요\",\"reportYn\":\"N\",\"recCnt\":5},{\"reviewId\":125981,\"custNm\":\"이*현\",\"reviewDt\":\"2026-05-17 10:12:18\",\"companion\":\"F\",\"companionNm\":\"가족\",\"companionAttr1\":\"가족과 가기 좋은 여행\",\"companionAttr2\":\"가족과 가기 좋은 호텔\",\"age\":\"40\",\"ageNm\":\"40대\",\"score\":5.0,\""
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/promotion",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"mstNm\":\"Big Sale, <br>동남아 특가\",\"mstLink\":\"/promotion/promotionDetail.yb?mstNo=20000031768\"}],\"timestamp\":\"2026-06-20 01:32:30.542\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/notice",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"evCd\":\"AVP4484-260711RS00\",\"singleTypeCd\":\"G\",\"trTp\":\"A\",\"goodsCd\":\"AVP4484\",\"goodsTp\":\"P\",\"daySeq\":157735,\"shopCnt\":0,\"inclInfo\":\"<p>&middot; 교통 : 왕복 항공료,전용 차량비<br />\\n&middot; 제세공과금 : 유류할증료, 전쟁보험료, 관광진흥개발기금, 현지공항세, 국내공항세<br />\\n&middot; 유류할증료 : 발권일에 따라 변동될 수 있습니다.<br />\\n&middot; 숙박,식사,입장료 : 일정표 상 표기된 포함 조건에 대한 비용<br />\\n&middot; 여행자보험 : 1억원 여행자 보험</p>\\n\",\"notinclInfo\":\"<p>&middot; 개인 여행경비(물값, 자유시간시 개인비용 및 자유식비용 등)<br />\\n&middot; 각종 매너팁(테이블팁, 객실팁, 포터비, 마사지팁 등)<br />\\n&middot; 매너팁은 소비자의 자율적 선택으로 지불여부에 따른 불이익은 없습니다.</p>\\n\\n<p>&nbsp;</p>\\n\\n<p><span style=\\\"color:rgb(0, 0, 128)\\\">▷ 호텔 써차지 (성수기 추가비용)&amp;갈라디너</span><span style=\\\"color:rgb(85, 85, 85)\\\">&nbsp;<strong><span style=\\\"background-color:rgb(255, 255, 0)\\\">※ <span style=\\\"color:rgb(0, 0, 0)\\\">룸당/박당</span>이며, <span style=\\\"color:rgb(0, 0, 0)\\\">투숙일 기준 - 50,000원</span></span></strong></span><br />\\n- 2026년 2월 14일 ~ 2026년 2월 21일 뗏기간<br />\\n- 2026년 4월 26일 ~ 2026년 5월 2일 흥왕기념일&amp;독립기념일&amp;노동절<br />\\n- 2026년 5월 30일, 6월 6일,13일,20일,27일, 7월 11일 불꽃놀이<br />\\n- 2026년 8월 28일 ~ 9월 2일 광복절 - 날짜미정<br />\\n- 2026년 12월 23일 ~ 12월 26일 크리스마스 - 날짜미정<br />\\n- 2026년 12월 29일 ~ 2027년 1월 1일 연말연시 - 날짜미정<br />\\"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event-schedule/AVP4484-260711RS00/hotel-resort",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.790\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event-schedule/AVP4484-260711RS00/flight",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:30.792\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/available-date/day",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"evCd\":\"AVP4484-2606217C00\",\"evStartDt\":\"20260621\",\"eventMonthList\":{\"minOutStartDt\":\"20260621\",\"maxOutStartDt\":\"20270630\",\"minPrice\":609900,\"maxPrice\":2409900,\"minPriceDate\":\"20260830\",\"maxPriceDate\":\"20261002\"}},\"timestamp\":\"2026-06-20 01:32:33.367\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/goods/join-event/AVP4484",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"goodsCd\":\"AVP4484\",\"goodsNm\":\"다낭/호이안 4/5/6일 #5성 #NO옵션NO팁 #호이안야간투어 #마사지2회 #럭셔리크루즈\",\"tourPatInfo\":\"인천-다낭-호이안-인천\",\"minPrice\":609900,\"maxPrice\":2409900,\"minPriceDate\":\"20260830\",\"maxPriceDate\":\"20261002\",\"epiCnt\":34,\"rvwAvgScore\":4.6,\"rvwCnt\":422,\"goodsTp\":\"P\",\"goodsBrandCd\":\"30\",\"goodTravelYn\":\"N\",\"goodsContents\":\"# 전신마사지 120분 # 발마사지 90분 # 가이드+기사팁 포함\\r\\n# 럭셔리 디너크루즈 # 바나힐스 관광 \\r\\n# 바구니배 포함 # 야경투어+씨클로 체험 포함 # 안방비치 자유시간\",\"webDisplayCls\":\"A\",\"goodsTpointContents\":\"# 전신마사지 120분 # 발마사지 90분 # 가이드+기사팁 포함\\r\\n# 럭셔리 디너크루즈 # 바나힐스 관광 \\r\\n# 바구니배 포함 # 야경투어+씨클로 체험 포함 # 안방비치 자유시간\",\"goodsFeaturesList\":\"NO옵션/NO팁,베스트셀러,4명이상 출발가능\",\"goodsTmember\":\"GRO,단체여행\",\"continentCd\":\"A\",\"continentNm\":\"아시아\",\"countryCd\":\"AV\",\"countryNm\":\"베트남\",\"budgetDiviCd\":null,\"budgetDiviNm\":null,\"scheduleDiviCd\":null,\"scheduleDiviNm\":null},\"timestamp\":\"2026-06-20 01:32:33.412\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/common/contents/GOST",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:33.460\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/common/holiday/2026",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"calDt\":\"20260525\",\"calDtType\":\"S\",\"content\":\"부처님 오신 날 대체휴일\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260505\",\"calDtType\":\"L\",\"content\":\"어린이날\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260817\",\"calDtType\":\"S\",\"content\":\"광복절 대체휴일\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260924\",\"calDtType\":\"L\",\"content\":\"추석 연휴\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20261005\",\"calDtType\":\"S\",\"content\":\"개천절 대체휴일\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20261225\",\"calDtType\":\"L\",\"content\":\"성탄절\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260501\",\"calDtType\":\"L\",\"content\":\"노동절\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260101\",\"calDtType\":\"L\",\"content\":\"신정\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260217\",\"calDtType\":\"L\",\"content\":\"설날\",\"holiYn\":\"Y\",\"lunaYn\":\"Y\"},{\"calDt\":\"20260216\",\"calDtType\":\"L\",\"content\":\"구정 연휴\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260218\",\"calDtType\":\"L\",\"content\":\"구정 연휴\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260302\",\"calDtType\":\"S\",\"content\":\"삼일절 대체휴일\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260603\",\"calDtType\":\"L\",\"content\":\"2026 지방선거일\",\"holiYn\":\"Y\",\"lunaYn\":\"N\"},{\"calDt\":\"20260925\",\"calDtType\":\"L\",\"content\":\"추석\",\"holiYn\":\"Y\",\"lunaYn\":\"Y\"},{\"calDt\":\"20261"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/option",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"trafficList\":[{\"trCompanyNm\":\"티웨이항공\",\"trCompanySnm\":\"TW\",\"trTp\":\"A\"},{\"trCompanyNm\":\"베트남항공\",\"trCompanySnm\":\"VN\",\"trTp\":\"A\"},{\"trCompanyNm\":\"대한항공\",\"trCompanySnm\":\"KE\",\"trTp\":\"A\"},{\"trCompanyNm\":\"제주항공\",\"trCompanySnm\":\"7C\",\"trTp\":\"A\"},{\"trCompanyNm\":\"파라타항공\",\"trCompanySnm\":\"WE\",\"trTp\":\"A\"},{\"trCompanyNm\":\"진에어\",\"trCompanySnm\":\"LJ\",\"trTp\":\"A\"},{\"trCompanyNm\":\"에어프레미아\",\"trCompanySnm\":\"YP\",\"trTp\":\"A\"},{\"trCompanyNm\":\"이스타항공\",\"trCompanySnm\":\"ZE\",\"trTp\":\"A\"},{\"trCompanyNm\":\"비엣젯항공\",\"trCompanySnm\":\"VJ\",\"trTp\":\"A\"},{\"trCompanyNm\":\"에어서울\",\"trCompanySnm\":\"RS\",\"trTp\":\"A\"},{\"trCompanyNm\":\"아시아나항공\",\"trCompanySnm\":\"OZ\",\"trTp\":\"A\"}],\"accommodationList\":[]},\"timestamp\":\"2026-06-20 01:32:33.517\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/event/by-goods/AVP4484/AAAB000/202607",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:33.555\"}"
+        }
+      ],
+      "modalPapiAllCount": 22,
+      "directHits": [
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/events",
+          "status": 500,
+          "code": "9999",
+          "len": 150,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/AVP4484/events.\",\"timestamp\":\"2026-06-20 01:32:43.398\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/event-list",
+          "status": 500,
+          "code": "9999",
+          "len": 154,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/AVP4484/event-list.\",\"timestamp\":\"2026-06-20 01:32:43.409\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/departures",
+          "status": 500,
+          "code": "9999",
+          "len": 154,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/AVP4484/departures.\",\"timestamp\":\"2026-06-20 01:32:43.420\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/calendar",
+          "status": 500,
+          "code": "9999",
+          "len": 152,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/AVP4484/calendar.\",\"timestamp\":\"2026-06-20 01:32:43.429\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/price-calendar",
+          "status": 500,
+          "code": "9999",
+          "len": 158,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/AVP4484/price-calendar.\",\"timestamp\":\"2026-06-20 01:32:43.440\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/event-list?goodsCd=AVP4484",
+          "status": 200,
+          "code": "9991",
+          "len": 92,
+          "preview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:43.485\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/AVP4484/events?menu=PKG",
+          "status": 500,
+          "code": "9999",
+          "len": 150,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/AVP4484/events.\",\"timestamp\":\"2026-06-20 01:32:43.496\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/list?goodsCd=AVP4484",
+          "status": 200,
+          "code": "9991",
+          "len": 92,
+          "preview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:43.507\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/goods/AVP4484",
+          "status": 500,
+          "code": "9999",
+          "len": 149,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event/goods/AVP4484.\",\"timestamp\":\"2026-06-20 01:32:43.515\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/calendar/goods/AVP4484",
+          "status": 500,
+          "code": "9999",
+          "len": 152,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource calendar/goods/AVP4484.\",\"timestamp\":\"2026-06-20 01:32:43.524\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/calendar?goodsCd=AVP4484",
+          "status": 500,
+          "code": "9999",
+          "len": 138,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource calendar.\",\"timestamp\":\"2026-06-20 01:32:43.535\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/departure/goods/AVP4484",
+          "status": 500,
+          "code": "9999",
+          "len": 153,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource departure/goods/AVP4484.\",\"timestamp\":\"2026-06-20 01:32:43.545\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/departure/list?goodsCd=AVP4484",
+          "status": 500,
+          "code": "9999",
+          "len": 144,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource departure/list.\",\"timestamp\":\"2026-06-20 01:32:43.556\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/portal/product/AVP4484/departures",
+          "status": 500,
+          "code": "9999",
+          "len": 156,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource product/AVP4484/departures.\",\"timestamp\":\"2026-06-20 01:32:43.567\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/portal/product/AVP4484/events",
+          "status": 500,
+          "code": "9999",
+          "len": 152,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource product/AVP4484/events.\",\"timestamp\":\"2026-06-20 01:32:43.577\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/departures",
+          "status": 500,
+          "code": "9999",
+          "len": 165,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event/AVP4484-260711RS00/departures.\",\"timestamp\":\"2026-06-20 01:32:43.586\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/calendar",
+          "status": 500,
+          "code": "9999",
+          "len": 163,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event/AVP4484-260711RS00/calendar.\",\"timestamp\":\"2026-06-20 01:32:43.595\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/siblings",
+          "status": 500,
+          "code": "9999",
+          "len": 163,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event/AVP4484-260711RS00/siblings.\",\"timestamp\":\"2026-06-20 01:32:43.604\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/related-events",
+          "status": 500,
+          "code": "9999",
+          "len": 169,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event/AVP4484-260711RS00/related-events.\",\"timestamp\":\"2026-06-20 01:32:43.613\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event-schedule/AVP4484-260711RS00/AVP4484/departures",
+          "status": 500,
+          "code": "9999",
+          "len": 182,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event-schedule/AVP4484-260711RS00/AVP4484/departures.\",\"timestamp\":\"2026-06-20 01:32:43.623\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/price",
+          "status": 200,
+          "code": "0000",
+          "baseline": true,
+          "preview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"adtPrice\":458900,\"chdPrice\":458900,\"infPrice\":200000,\"bafAdtCost\":251000,\"bafChdCost\":251000,\"bafInfCost\":0,\"airTaxAdtCost\":0,\"airTaxChdCost\":0,\"airTaxInfCost\":0,\"expCurrCd\":\"KRW\",\"guideExpAmt\":0.0,\"driverAmt\":0.0,\"depositDivi\":\"PE\",\"depositDiviNm\":\"인당\",\"d"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/AVP4484-260711RS00/first-display",
+          "status": 200,
+          "code": "0000",
+          "baseline": true,
+          "preview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"evCd\":\"AVP4484-260711RS00\",\"evNm\":\"다낭/호이안 5일 #5성 #NO옵션NO팁 #호이안야간투어 #마사지2회 #럭셔리크루즈 RS511\",\"dspSid1\":\"AA00000\",\"dspSid2\":\"AAB0000\",\"dspSid3\":\"AABF000\",\"dspSid4\":\"AABF011\"},\"timestamp\":\"2026-06-20 01:32:43.641\"}"
+        }
+      ],
+      "directPromisingCount": 2
+    },
+    {
+      "label": "fit-goodsCd-only",
+      "url": "https://prdt.ybtour.co.kr/product/detailPackage?menu=FIT&dspSid=ABAP000&goodsCd=ATF1143-260625FD00",
+      "goodsCd": "ATF1143-260625FD00",
+      "evCd": null,
+      "modalPapiHits": [
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme?commCdId=OPT_THEMA_1&deviceType=PC&dspDivi=MAIN&dspType=MAIN_TYPE",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"seq\":\"1003160\",\"codeNm\":\"OPT_THEMA_1\",\"title\":\"<em>가볍게 떠나는 단거리 베스트셀러</em>\",\"subYn\":\"N\",\"pcImageUrl\":\"/theme/202606111208092322304013001059.jpg\",\"pcAlt\":\"지역_몽골기획전_260615\",\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000031623\",\"pcNewWindowYn\":\"N\"},\"timestamp\":\"2026-06-20 01:32:45.487\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme?commCdId=OPT_THEMA_3&deviceType=PC&dspDivi=MAIN&dspType=MAIN_TYPE",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"seq\":\"1003120\",\"codeNm\":\"OPT_THEMA_3\",\"title\":\"<em>여름 감성 힐링 여행지, 북해도vs마츠야마</em>\",\"subYn\":\"Y\",\"pcImageUrl\":\"/theme/202606011232106612304013002070.jpg\",\"pcAlt\":\"옐로Pick_6월_북해도마츠야마\",\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000032166\",\"pcNewWindowYn\":\"N\"},\"timestamp\":\"2026-06-20 01:32:45.488\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/hot-spot?dspDivi=MAIN&dspType=MAIN_TYPE&deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"pcTitle\":\"<em>에메랄드빛 바다가 기다리는 휴양지</em>\",\"moTitle\":\"<em>에메랄드빛 바다가 기다리는 휴양지</em>\",\"bgColor\":null,\"popBnrList\":[{\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABY000&goodsCd=APP1027\",\"pcAlt\":\"보라카이\",\"pcNewWindowYn\":\"N\",\"pcImageDir\":\"https://dimgcdn.ybtour.co.kr/TN/28/28b2d6553771c90b26c936f90f011933.tn.410x280.jpg\",\"pcTitle\":null,\"moUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage.m?menu=PKG&dspSid=AABY000&goodsCd=APP1027\",\"moAlt\":\"보라카이\",\"moNewWindowYn\":\"N\",\"moImageDir\":\"https://dimgcdn.ybtour.co.kr/TN/28/28b2d6553771c90b26c936f90f011933.tn.410x280.jpg\",\"moTitle\":null,\"title\":\"보라카이\"},{\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAFA000&goodsCd=PGF3048\",\"pcAlt\":\"괌\",\"pcNewWindowYn\":\"N\",\"pcImageDir\":\"https://dimgcdn.ybtour.co.kr/TN/3e/3e14b87372489cae254a231f027dc681.tn.410x280.jpg\",\"pcTitle\":null,\"moUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage.m?menu=PKG&dspSid=AAFA000&goodsCd=PGF3048\",\"moAlt\":\"괌\",\"moNewWindowYn\":\"N\",\"moImageDir\":\"https://dimgcdn.ybtour.co.kr/TN/3e/3e14b87372489cae254a231f027dc681.tn.410x280.jpg\",\"moTitle\":null,\"title\":\"괌\"},{\"pcUrl\":\"https://prdt.ybtour.co.kr"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/banner?commCdId=MEM_BENEFIT&dspDivi=MEM_BNF_MAIN_DIVI&dspType=MEM_BNF_MAIN_TYPE&deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"dspArea\":\"PCMO\",\"bgColor\":\"#d2eeff\",\"title\":\"이벤트_숙박세일페스타_0611\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/ktostay.yb?mstNo=20000032171\",\"pcAlt\":\"이벤트_숙박세일페스타_0611\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/common/202606110123424551205004003024.jpg\",\"pcMainCopy\":null,\"pcSubCopy\":null,\"pcOverCopy\":null},{\"dspArea\":\"PCMO\",\"bgColor\":\"#204adc\",\"title\":\"이달의 혜택\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/eventDetail.yb?mstNo=20000027836\",\"pcAlt\":\"이달의 혜택\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/common/202409110656045101410002004094.jpg\",\"pcMainCopy\":null,\"pcSubCopy\":null,\"pcOverCopy\":null},{\"dspArea\":\"PCMO\",\"bgColor\":\"#6778fd\",\"title\":\"이벤트_CS지원 리뷰 작성 이벤트_260311\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000031135\",\"pcAlt\":\"이벤트_CS지원 리뷰 작성 이벤트_260311\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/common/202603110723433702505007001043.jpg\",\"pcMainCopy\":null,\"pcSubCopy\":null,\"pcOverCopy\":null}],\"timestamp\":\"2026-06-20 01:32:45.495\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/goods/benefit?deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"pcMainTitle\":\"<EM>동남아 여행 찬스<br>시원한 할인과 함께</EM>\",\"pcSubTitle\":\"오직 노랑풍선 회원만\",\"mobileMainTitle\":\"<EM>동남아 여행 찬스<br>시원한 할인과 함께</EM>\",\"memberBnrList\":[{\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABF000&goodsCd=AVP4600\",\"pcNewWindowYn\":\"N\",\"mobileUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage.m?menu=PKG&dspSid=AABF000&goodsCd=AVP4600\",\"mobileNewWindowYn\":\"N\",\"title\":\"다낭/호이안 4/5/6일\",\"bnrFlag\":\"할인\",\"bnrType\":\"PKG\",\"benefit\":\"-미카즈키리조트 숙박<br>-자유시간 포함\",\"benefitPrice\":\"1029900\",\"timerYn\":\"Y\",\"price\":\"1079900\",\"imgUrl\":\"https://dimgcdn.ybtour.co.kr/TN/97/977a5e2a396a3da560eeb64c45c182a9.tn.410x280.jpg\",\"bnrTypeNm\":\"패키지\",\"endDt\":\"2026-06-22 23:59:00\",\"pkgTag\":\"P\",\"couponYn\":\"Y\",\"couponDiscAmt\":50000,\"couponDiscRate\":0,\"couponOptTy\":\"M\"},{\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABE000&goodsCd=AVP7283\",\"pcNewWindowYn\":\"N\",\"mobileUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage.m?menu=PKG&dspSid=AABE000&goodsCd=AVP7283\",\"mobileNewWindowYn\":\"N\",\"title\":\"나트랑/달랏 5/6일\",\"bnrFlag\":\"할인\",\"bnrType\":\"PKG\",\"benefit\":\"-전일정 5성급 호텔<br>-랍스터 무제한\",\"benefitPrice\":\"609900\",\"timerYn\":\"Y\",\"price\":\"639"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/promotion/yellow-live?webCustNo=&dspYn=Y&deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"liveId\":1630,\"title\":\"[패키지]<br>시드니/케언즈 7/9일\",\"subTitle\":\"시드니 감성부터 <br>케언즈 대자연까지!\",\"dspYn\":\"Y\",\"liveDt\":\"2026-05-20 14:00:00\",\"liveTime\":\"70\",\"liveUrl\":\"https://front-commerce.kollus.com/ybtour/typeB?id=1630\",\"liveBenefit\":\"시드니/케언즈 7/9일 라이브 특가<BR>\\n선착순 10명 10만원 할인!<BR>\\n라이브 전용 특가&혜택으로 떠나보세요!\",\"pcImageUrl\":\"/yblive/202605070159140892509002001059.jpg\",\"pcAlt\":\"[방송예정]<br>시드니/케언즈 7/9일\",\"moImageUrl\":\"/yblive/202605070159141192509002001040.jpg\",\"moAlt\":\"[방송예정]<br>시드니/케언즈 7/9일\",\"watchNo\":37056,\"likeNo\":16675,\"airTime\":\"01:00:58\",\"newWindowYn\":\"Y\",\"applyYn\":\"N\"},{\"liveId\":1656,\"title\":\"[방송예정] <BR> 이탈리아 9일\",\"subTitle\":\"단 1시간! 라이브에서만<BR> 만나는 초특가 찬스\",\"dspYn\":\"Y\",\"liveDt\":\"2026-06-24 14:00:00\",\"liveTime\":\"70\",\"liveUrl\":\"https://front-commerce.kollus.com/ybtour/typeB?id=1656\",\"liveBenefit\":\"이탈리아 9일 라이브 특가<BR>\\n로마·피렌체·베네치아 인기 도시 완전정복<BR>\\n라이브 전용 특가&혜택으로 떠나보세요!\",\"pcImageUrl\":\"/yblive/202606100110303562509002002031.jpg\",\"pcAlt\":\"[방송예정] <BR> 이탈리아 9일\",\"moImageUrl\":\"/yblive/202606100110304532509002002066.jpg\",\"moAlt\":\"[방송예정] <BR> 이탈리아 9일\",\"watchNo\":null,\"likeNo\":null,\"airTime\":null,\"newWindowYn\":\"Y\",\"applyYn\":\"N\"},{\"liveId\":1638,\"title\":\"[롯데리조트 특가]<br>속초/부여"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme?commCdId=OPT_THEMA_2&deviceType=PC&dspDivi=MAIN&dspType=MAIN_TYPE",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"seq\":\"1003180\",\"codeNm\":\"OPT_THEMA_2\",\"title\":\"<em>여유롭게 떠나는 장거리 베스트셀러</em>\",\"subYn\":\"N\",\"pcImageUrl\":\"/theme/202606111223408502304013001073.jpg\",\"pcAlt\":\"통합_크루즈 기획전_260615\",\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000032104&subDspMenu=\",\"pcNewWindowYn\":\"N\"},\"timestamp\":\"2026-06-20 01:32:45.503\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/banner?commCdId=SERIES_BNR&dspDivi=SERIES_MAIN_DIVI&dspType=SERIES_MAIN_TYPE&deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"dspArea\":\"PCMO\",\"bgColor\":\"#56a9a0\",\"title\":\"유럽_문학기행투어_260605\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000032288\",\"pcAlt\":\"유럽_문학기행투어_260605\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/system/202606041149524812304013001075.jpg\",\"pcMainCopy\":\"예술가들의 발자취를 따라<br>프랑스 문학 기행 일주 12일\",\"pcSubCopy\":\"<br>이춘건 도슨트&정여울 작가와 함께\",\"pcOverCopy\":\"10/13 단 1회차 진행<br>완벽한 프랑스 일주\"},{\"dspArea\":\"PCMO\",\"bgColor\":\"#4d75b2\",\"title\":\"클럽메드_카비라&푸켓_260609\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000032146\",\"pcAlt\":\"클럽메드_카비라&푸켓_260609\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/system/202606091206429662304013001058.jpg\",\"pcMainCopy\":\"온가족이 즐거운<BR>클럽메드 카비라VS푸켓\",\"pcSubCopy\":\"프리미엄 올인클루시브로 떠나는 가족여행\",\"pcOverCopy\":\"판매량 1,2위<BR>카비라VS푸켓\"},{\"dspArea\":\"PCMO\",\"bgColor\":\"#9d5ca3\",\"title\":\"지역_골프 여름 기획전\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/promotionDetail.yb?mstNo=20000032169&subDspMenu=&tabId=tab_04\",\"pcAlt\":\"지역_골프 여름 기획전\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/system/202606080219455062304013001080.jpg\",\"p"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/pkg/common/code/GOODS_TMEMBER_CD",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"commGrpId\":null,\"commCdId\":\"FAM\",\"commCdNm\":\"가족여행\",\"commCdIdHi\":null,\"commCdIdHiExpl\":null,\"commCdExpl\":null,\"commCdAttr1\":null,\"commCdExpl1\":null,\"commCdAttr2\":null,\"commCdExpl2\":null,\"commCdAttr3\":null,\"commCdExpl3\":null,\"commCdAttr4\":null,\"commCdExpl4\":null,\"commCdAttr5\":null,\"commCdExpl5\":null,\"commCdAttr6\":null,\"commCdExpl6\":null,\"commCdAttr7\":null,\"commCdExpl7\":null,\"commCdAttr8\":null,\"commCdExpl8\":null},{\"commGrpId\":null,\"commCdId\":\"INF\",\"commCdNm\":\"아동동반여행\",\"commCdIdHi\":null,\"commCdIdHiExpl\":null,\"commCdExpl\":null,\"commCdAttr1\":null,\"commCdExpl1\":null,\"commCdAttr2\":null,\"commCdExpl2\":null,\"commCdAttr3\":null,\"commCdExpl3\":null,\"commCdAttr4\":null,\"commCdExpl4\":null,\"commCdAttr5\":null,\"commCdExpl5\":null,\"commCdAttr6\":null,\"commCdExpl6\":null,\"commCdAttr7\":null,\"commCdExpl7\":null,\"commCdAttr8\":null,\"commCdExpl8\":null},{\"commGrpId\":null,\"commCdId\":\"CHD\",\"commCdNm\":\"자녀동반여행\",\"commCdIdHi\":null,\"commCdIdHiExpl\":null,\"commCdExpl\":null,\"commCdAttr1\":null,\"commCdExpl1\":null,\"commCdAttr2\":null,\"commCdExpl2\":null,\"commCdAttr3\":null,\"commCdExpl3\":null,\"commCdAttr4\":null,\"commCdExpl4\":null,\"commCdAttr5\":null,\"commCdExpl5\":null,\"commCdAttr6\":null,\""
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/banner?commCdId=PART_EVT_BNR&dspDivi=EVT_MAIN_DIVI&dspType=EVT_MAIN_TYPE&deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"dspArea\":\"PCMO\",\"bgColor\":\"#d6434a\",\"title\":\"롯데면세점 상시 혜택\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://pkg.ybtour.co.kr/promotion/eventDetail.yb?mstNo=20000030280\",\"pcAlt\":\"롯데면세점 상시 혜택\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/system/202503110250505022304013001059.png\",\"pcMainCopy\":\"롯데면세점<BR>상시 혜택\",\"pcSubCopy\":\"쉽고 편한 쇼핑<BR>오프라인 할인혜택\",\"pcOverCopy\":null},{\"dspArea\":\"PCMO\",\"bgColor\":\"#ab8930\",\"title\":\"KB두근두근 여행 적금\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://obank.kbstar.com/quics?page=C016613&cc=b061496:b061645&isNew=N&prcode=DP01001495#loading\",\"pcAlt\":\"KB두근두근 여행 적금\",\"pcNewWindowYn\":\"Y\",\"pcImageUrl\":\"/banner/system/202409090528151252311015001077.png\",\"pcMainCopy\":\"KB두근두근<br>여행 적금\",\"pcSubCopy\":\"최대 3만원 &<br>4% 할인 혜택까지!\",\"pcOverCopy\":null},{\"dspArea\":\"PCMO\",\"bgColor\":\"#f36c4f\",\"title\":\"와이파이도시락\",\"pcFullImageUrl\":\"/\",\"pcFullAlt\":null,\"pcUrl\":\"https://ap.wifidosirak.com/ApIntro.aspx?ybtour-air\",\"pcAlt\":\"와이파이도시락\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/banner/system/202409090531164492311015001017.png\",\"pcMainCopy\":\"와이파이도시락<BR>하나면 준비 끝\",\"pcSubCopy\":\"eSIM/USIM도<br>판매중!\",\"pcOverCopy\":null},{\"dspArea\":\"PCMO\",\"bgColor\":\"#905739\",\"tit"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/promotion/yellow-live/title?deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":{\"titleId\":1,\"pcMainTitle\":null,\"moMainTitle\":null},\"timestamp\":\"2026-06-20 01:32:45.718\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme/tab/1003120",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"subSeq\":\"2010853\",\"title\":\"시원한 북해도\",\"regId\":\"11399\",\"regDt\":\"2026-06-01 09:14:13\",\"updId\":\"11399\",\"updDt\":\"2026-06-01 10:49:05\"},{\"subSeq\":\"2010854\",\"title\":\"소도시 마츠야마\",\"regId\":\"11399\",\"regDt\":\"2026-06-01 09:14:13\",\"updId\":\"11399\",\"updDt\":\"2026-06-01 10:49:05\"},{\"subSeq\":\"2010855\",\"title\":\"부산에서 출발\",\"regId\":\"11399\",\"regDt\":\"2026-06-01 09:14:13\",\"updId\":\"11399\",\"updDt\":\"2026-06-01 10:49:05\"},{\"subSeq\":\"2010856\",\"title\":\"내맘대로 자유\",\"regId\":\"11399\",\"regDt\":\"2026-06-01 09:14:13\",\"updId\":\"11399\",\"updDt\":\"2026-06-01 10:49:05\"}],\"timestamp\":\"2026-06-20 01:32:45.821\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme/tab/1003160",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"subSeq\":\"2011092\",\"title\":\"일본\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:08:09\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:44:56\"},{\"subSeq\":\"2011093\",\"title\":\"중국\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:08:09\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:44:56\"},{\"subSeq\":\"2011094\",\"title\":\"동남아\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:08:09\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:44:56\"},{\"subSeq\":\"2011095\",\"title\":\"부산·지방출발\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:08:09\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:44:56\"}],\"timestamp\":\"2026-06-20 01:32:45.821\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme/tab/1003180",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"subSeq\":\"2011096\",\"title\":\"유럽\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:23:40\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:43:16\"},{\"subSeq\":\"2011097\",\"title\":\"호주·남태평양\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:23:40\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:43:16\"},{\"subSeq\":\"2011098\",\"title\":\"미주·캐나다\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:23:40\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:43:16\"},{\"subSeq\":\"2011099\",\"title\":\"신상품\",\"regId\":\"11399\",\"regDt\":\"2026-06-11 09:23:40\",\"updId\":\"11399\",\"updDt\":\"2026-06-15 08:43:16\"}],\"timestamp\":\"2026-06-20 01:32:45.822\"}"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme/goods/1003120/2010853?deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"secType\":\"PKG\",\"secTypeNm\":\"패키지\",\"goodsCd\":\"JHP1263\",\"goodsPrice\":\"1049000\",\"goodsPriceDsp\":\"Y\",\"benefitComment\":\"#~8/14 100%출발확정\",\"departuresCity\":null,\"arrivalsCity\":null,\"airline\":null,\"seatClass\":null,\"airWayFg\":null,\"airWayFgNm\":null,\"startDt\":null,\"endDt\":null,\"cityNm\":null,\"checkinDt\":null,\"checkoutDt\":null,\"couponYn\":\"Y\",\"couponStartDt\":null,\"couponEndDt\":null,\"thumbImgUrl\":\"https://dimgcdn.ybtour.co.kr/TN/40/40bb6fb3deb3cd3d88c5a2d3fda9e9b4.tn.410x280.jpg\",\"pkgTag\":\"P\",\"pkgStartDt\":\"2026-06-21 00:00:00\",\"pkgEndDt\":\"2026-11-30 00:00:00\",\"pcMainCopy\":null,\"moMainCopy\":null,\"bgColor\":null,\"hotelNights\":null,\"couponDiscAmt\":50000,\"couponDiscRate\":0,\"couponOptTy\":\"M\",\"goodsBrandCd\":null,\"goodsBrandNm\":null,\"goodsEmphasisDivi\":\"H\",\"goodsEmphasisDiviNm\":\"담당자추천\",\"pcNm\":\"[옐로Pick] 북해도 4일\",\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAEA000&goodsCd=JHP1263\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/\",\"pcAlt\":null},{\"secType\":\"PKG\",\"secTypeNm\":\"패키지\",\"goodsCd\":\"JHP1228\",\"goodsPrice\":\"1099000\",\"goodsPriceDsp\":\"Y\",\"benefitComment\":\"# 룸당화과자, 간식1종 제공\",\"departuresCity\":null,\"arrivalsCity\":null,\"airline\":null,\"seatClass\":null"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme/goods/1003160/2011092?deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"secType\":\"PKG\",\"secTypeNm\":\"패키지\",\"goodsCd\":\"JHP1263\",\"goodsPrice\":\"1049000\",\"goodsPriceDsp\":\"Y\",\"benefitComment\":\"#특급온천호텔 #대게뷔페포함\",\"departuresCity\":null,\"arrivalsCity\":null,\"airline\":null,\"seatClass\":null,\"airWayFg\":null,\"airWayFgNm\":null,\"startDt\":null,\"endDt\":null,\"cityNm\":null,\"checkinDt\":null,\"checkoutDt\":null,\"couponYn\":\"Y\",\"couponStartDt\":null,\"couponEndDt\":null,\"thumbImgUrl\":\"https://dimgcdn.ybtour.co.kr/TN/40/40bb6fb3deb3cd3d88c5a2d3fda9e9b4.tn.410x280.jpg\",\"pkgTag\":\"P\",\"pkgStartDt\":\"2026-06-21 00:00:00\",\"pkgEndDt\":\"2026-11-30 00:00:00\",\"pcMainCopy\":null,\"moMainCopy\":null,\"bgColor\":null,\"hotelNights\":null,\"couponDiscAmt\":50000,\"couponDiscRate\":0,\"couponOptTy\":\"M\",\"goodsBrandCd\":null,\"goodsBrandNm\":null,\"goodsEmphasisDivi\":\"H\",\"goodsEmphasisDiviNm\":\"담당자추천\",\"pcNm\":\"북해도 4일\",\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAEA000&goodsCd=JHP1263\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/\",\"pcAlt\":null},{\"secType\":\"PKG\",\"secTypeNm\":\"패키지\",\"goodsCd\":\"JCP4098\",\"goodsPrice\":\"179000\",\"goodsPriceDsp\":\"Y\",\"benefitComment\":\"#쓰시마링크호 #오션뷰호텔\",\"departuresCity\":null,\"arrivalsCity\":null,\"airline\":null,\"seatClass\":null,\"airWayFg\":"
+        },
+        {
+          "status": 200,
+          "method": "GET",
+          "url": "https://papi.ybtour.co.kr/portal/index/theme/goods/1003180/2011096?deviceType=PC",
+          "contentType": "application/json",
+          "bodyPreview": "{\"code\":\"0000\",\"message\":\"Success\",\"body\":[{\"secType\":\"PKG\",\"secTypeNm\":\"패키지\",\"goodsCd\":\"EWP4036\",\"goodsPrice\":\"5741000\",\"goodsPriceDsp\":\"Y\",\"benefitComment\":\"#융프라우 #바젤미술관\",\"departuresCity\":null,\"arrivalsCity\":null,\"airline\":null,\"seatClass\":null,\"airWayFg\":null,\"airWayFgNm\":null,\"startDt\":null,\"endDt\":null,\"cityNm\":null,\"checkinDt\":null,\"checkoutDt\":null,\"couponYn\":\"N\",\"couponStartDt\":null,\"couponEndDt\":null,\"thumbImgUrl\":\"https://dimgcdn.ybtour.co.kr/TN/30/3078c3f3eb4c64680c6cf5b407523b13.tn.410x280.jpg\",\"pkgTag\":\"P\",\"pkgStartDt\":\"2026-06-22 00:00:00\",\"pkgEndDt\":\"2026-12-28 00:00:00\",\"pcMainCopy\":null,\"moMainCopy\":null,\"bgColor\":null,\"hotelNights\":null,\"couponDiscAmt\":0,\"couponDiscRate\":0,\"couponOptTy\":null,\"goodsBrandCd\":\"30\",\"goodsBrandNm\":\"TOP PICK\",\"goodsEmphasisDivi\":\"I\",\"goodsEmphasisDiviNm\":\"노쇼핑\",\"pcNm\":\"스위스 일주 9일\",\"pcUrl\":\"https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAA000&goodsCd=EWP4036\",\"pcNewWindowYn\":\"N\",\"pcImageUrl\":\"/\",\"pcAlt\":null},{\"secType\":\"PKG\",\"secTypeNm\":\"패키지\",\"goodsCd\":\"ETP1188\",\"goodsPrice\":\"1699000\",\"goodsPriceDsp\":\"Y\",\"benefitComment\":\"#국내선1회 #특급호텔\",\"departuresCity\":null,\"arrivalsCity\":null,\"airline\":null,\"seatClass\":null,\"airWayFg\":"
+        }
+      ],
+      "modalPapiAllCount": 17,
+      "directHits": [
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/ATF1143-260625FD00/events",
+          "status": 500,
+          "code": "9999",
+          "len": 161,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/ATF1143-260625FD00/events.\",\"timestamp\":\"2026-06-20 01:32:52.696\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/ATF1143-260625FD00/event-list",
+          "status": 500,
+          "code": "9999",
+          "len": 165,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/ATF1143-260625FD00/event-list.\",\"timestamp\":\"2026-06-20 01:32:52.707\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/ATF1143-260625FD00/departures",
+          "status": 500,
+          "code": "9999",
+          "len": 165,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/ATF1143-260625FD00/departures.\",\"timestamp\":\"2026-06-20 01:32:52.718\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/ATF1143-260625FD00/calendar",
+          "status": 500,
+          "code": "9999",
+          "len": 163,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/ATF1143-260625FD00/calendar.\",\"timestamp\":\"2026-06-20 01:32:52.729\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/ATF1143-260625FD00/price-calendar",
+          "status": 500,
+          "code": "9999",
+          "len": 169,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/ATF1143-260625FD00/price-calendar.\",\"timestamp\":\"2026-06-20 01:32:52.739\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/event-list?goodsCd=ATF1143-260625FD00",
+          "status": 200,
+          "code": "9991",
+          "len": 92,
+          "preview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:52.749\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/goods/ATF1143-260625FD00/events?menu=PKG",
+          "status": 500,
+          "code": "9999",
+          "len": 161,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource goods/ATF1143-260625FD00/events.\",\"timestamp\":\"2026-06-20 01:32:52.759\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/list?goodsCd=ATF1143-260625FD00",
+          "status": 200,
+          "code": "9991",
+          "len": 92,
+          "preview": "{\"code\":\"9991\",\"message\":\"조회된 데이터가 없습니다.\",\"body\":null,\"timestamp\":\"2026-06-20 01:32:52.770\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/event/goods/ATF1143-260625FD00",
+          "status": 500,
+          "code": "9999",
+          "len": 160,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource event/goods/ATF1143-260625FD00.\",\"timestamp\":\"2026-06-20 01:32:52.779\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/calendar/goods/ATF1143-260625FD00",
+          "status": 500,
+          "code": "9999",
+          "len": 163,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource calendar/goods/ATF1143-260625FD00.\",\"timestamp\":\"2026-06-20 01:32:52.788\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/calendar?goodsCd=ATF1143-260625FD00",
+          "status": 500,
+          "code": "9999",
+          "len": 138,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource calendar.\",\"timestamp\":\"2026-06-20 01:32:52.797\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/departure/goods/ATF1143-260625FD00",
+          "status": 500,
+          "code": "9999",
+          "len": 164,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource departure/goods/ATF1143-260625FD00.\",\"timestamp\":\"2026-06-20 01:32:52.807\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/pkg/departure/list?goodsCd=ATF1143-260625FD00",
+          "status": 500,
+          "code": "9999",
+          "len": 144,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource departure/list.\",\"timestamp\":\"2026-06-20 01:32:52.817\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/portal/product/ATF1143-260625FD00/departures",
+          "status": 500,
+          "code": "9999",
+          "len": 167,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource product/ATF1143-260625FD00/departures.\",\"timestamp\":\"2026-06-20 01:32:52.828\"}"
+        },
+        {
+          "url": "https://papi.ybtour.co.kr/portal/product/ATF1143-260625FD00/events",
+          "status": 500,
+          "code": "9999",
+          "len": 163,
+          "preview": "{\"code\":\"9999\",\"message\":\"An unexpected problem has occurred\",\"body\":\"No static resource product/ATF1143-260625FD00/events.\",\"timestamp\":\"2026-06-20 01:32:52.838\"}"
+        }
+      ],
+      "directPromisingCount": 0
+    }
+  ]
+}

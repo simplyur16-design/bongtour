@@ -1,0 +1,280 @@
+{
+  "startedAt": "2026-06-20T12:48:26.756Z",
+  "fromYmd": "2026-06-20",
+  "toYmd": "2026-12-17",
+  "horizonDays": 180,
+  "summary": {
+    "cases": 4,
+    "with_rows": 4,
+    "total_rows": 5370,
+    "price_match": 20,
+    "price_mismatch": 0,
+    "price_check_errors": 0
+  },
+  "results": [
+    {
+      "label": "pkg-evCd",
+      "slug": null,
+      "detailUrl": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAB001&evCd=AVP4484-260711RS00&goodsCd=AVP4484",
+      "goodsCd": "AVP4484",
+      "dspSid": "AABF011",
+      "seedEvCd": "AVP4484-260711RS00",
+      "rowCount": 1680,
+      "rawRowCount": 1774,
+      "monthKeys": [
+        "202606",
+        "202607",
+        "202608",
+        "202609",
+        "202610",
+        "202611",
+        "202612"
+      ],
+      "apiError": null,
+      "priceChecks": [
+        {
+          "evCd": "AVP4484-260711RS00",
+          "departureYmd": "2026-07-11",
+          "listAdultPrice": 709900,
+          "priceApiAdultPrice": 709900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260621VJ02",
+          "departureYmd": "2026-06-21",
+          "listAdultPrice": 719900,
+          "priceApiAdultPrice": 719900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260731TW01",
+          "departureYmd": "2026-07-31",
+          "listAdultPrice": 909900,
+          "priceApiAdultPrice": 909900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260824ZE00",
+          "departureYmd": "2026-08-24",
+          "listAdultPrice": 749900,
+          "priceApiAdultPrice": 749900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260910KE00",
+          "departureYmd": "2026-09-10",
+          "listAdultPrice": 899900,
+          "priceApiAdultPrice": 899900,
+          "delta": 0,
+          "match": true
+        }
+      ],
+      "priceMatchCount": 5,
+      "priceMismatchCount": 0,
+      "priceCheckErrors": 0,
+      "elapsedMs": 1001
+    },
+    {
+      "label": "pkg-goods-only",
+      "slug": null,
+      "detailUrl": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABF000&goodsCd=AVP4484",
+      "goodsCd": "AVP4484",
+      "dspSid": "AABF011",
+      "seedEvCd": "AVP4484-2606217C00",
+      "rowCount": 1680,
+      "rawRowCount": 1774,
+      "monthKeys": [
+        "202606",
+        "202607",
+        "202608",
+        "202609",
+        "202610",
+        "202611",
+        "202612"
+      ],
+      "apiError": null,
+      "priceChecks": [
+        {
+          "evCd": "AVP4484-260621VJ02",
+          "departureYmd": "2026-06-21",
+          "listAdultPrice": 719900,
+          "priceApiAdultPrice": 719900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260726LJ00",
+          "departureYmd": "2026-07-26",
+          "listAdultPrice": 1019900,
+          "priceApiAdultPrice": 1019900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260910KE00",
+          "departureYmd": "2026-09-10",
+          "listAdultPrice": 899900,
+          "priceApiAdultPrice": 899900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-261126LJ00",
+          "departureYmd": "2026-11-26",
+          "listAdultPrice": 789900,
+          "priceApiAdultPrice": 789900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-261217RS00",
+          "departureYmd": "2026-12-17",
+          "listAdultPrice": 1019900,
+          "priceApiAdultPrice": 1019900,
+          "delta": 0,
+          "match": true
+        }
+      ],
+      "priceMatchCount": 5,
+      "priceMismatchCount": 0,
+      "priceCheckErrors": 0,
+      "elapsedMs": 584
+    },
+    {
+      "label": "fit-no-evCd",
+      "slug": null,
+      "detailUrl": "https://prdt.ybtour.co.kr/product/detailPackage?menu=FIT&dspSid=ABBM000&goodsCd=ATF1143",
+      "goodsCd": "ATF1143",
+      "dspSid": "ABBM007",
+      "seedEvCd": "ATF1143-2606257C00",
+      "rowCount": 330,
+      "rawRowCount": 330,
+      "monthKeys": [
+        "202606",
+        "202607",
+        "202608",
+        "202609",
+        "202610",
+        "202611",
+        "202612"
+      ],
+      "apiError": null,
+      "priceChecks": [
+        {
+          "evCd": "ATF1143-260627FD00",
+          "departureYmd": "2026-06-27",
+          "listAdultPrice": 539000,
+          "priceApiAdultPrice": 539000,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "ATF1143-260715TW00",
+          "departureYmd": "2026-07-15",
+          "listAdultPrice": 849900,
+          "priceApiAdultPrice": 849900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "ATF1143-260821TW00",
+          "departureYmd": "2026-08-21",
+          "listAdultPrice": 659900,
+          "priceApiAdultPrice": 659900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "ATF1143-260903TW00",
+          "departureYmd": "2026-09-03",
+          "listAdultPrice": 619900,
+          "priceApiAdultPrice": 619900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "ATF1143-2610317C00",
+          "departureYmd": "2026-10-31",
+          "listAdultPrice": 769000,
+          "priceApiAdultPrice": 769000,
+          "delta": 0,
+          "match": true
+        }
+      ],
+      "priceMatchCount": 5,
+      "priceMismatchCount": 0,
+      "priceCheckErrors": 0,
+      "elapsedMs": 246
+    },
+    {
+      "label": "pkg-evCd-as-goodsCd",
+      "slug": null,
+      "detailUrl": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&goodsCd=AVP4484-260711RS00&evCd=AVP4484-260711RS00",
+      "goodsCd": "AVP4484",
+      "dspSid": "AABF011",
+      "seedEvCd": "AVP4484-260711RS00",
+      "rowCount": 1680,
+      "rawRowCount": 1774,
+      "monthKeys": [
+        "202606",
+        "202607",
+        "202608",
+        "202609",
+        "202610",
+        "202611",
+        "202612"
+      ],
+      "apiError": null,
+      "priceChecks": [
+        {
+          "evCd": "AVP4484-260711RS00",
+          "departureYmd": "2026-07-11",
+          "listAdultPrice": 709900,
+          "priceApiAdultPrice": 709900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260621VJ02",
+          "departureYmd": "2026-06-21",
+          "listAdultPrice": 719900,
+          "priceApiAdultPrice": 719900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-260910KE00",
+          "departureYmd": "2026-09-10",
+          "listAdultPrice": 899900,
+          "priceApiAdultPrice": 899900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-261011ZE00",
+          "departureYmd": "2026-10-11",
+          "listAdultPrice": 909900,
+          "priceApiAdultPrice": 909900,
+          "delta": 0,
+          "match": true
+        },
+        {
+          "evCd": "AVP4484-261209TW00",
+          "departureYmd": "2026-12-09",
+          "listAdultPrice": 1099900,
+          "priceApiAdultPrice": 1099900,
+          "delta": 0,
+          "match": true
+        }
+      ],
+      "priceMatchCount": 5,
+      "priceMismatchCount": 0,
+      "priceCheckErrors": 0,
+      "elapsedMs": 545
+    }
+  ]
+}

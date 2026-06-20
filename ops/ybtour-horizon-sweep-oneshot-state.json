@@ -1,0 +1,818 @@
+{
+  "startedAt": "2026-06-19T17:04:45.695Z",
+  "updatedAt": "2026-06-19T17:21:34.187Z",
+  "horizonDays": 180,
+  "total": 44,
+  "cursor": 44,
+  "completed": 44,
+  "skippedNoUrl": 0,
+  "log": [
+    {
+      "at": "2026-06-19T17:04:46.864Z",
+      "index": 0,
+      "slug": "fim-yb-0001",
+      "evCd": "EEP1284-260703LO01",
+      "title": "동유럽 4국 9일 (폴란드, 체코, 오스트리아, 헝가리)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:05:35.343Z",
+      "index": 1,
+      "slug": "fim-yb-0002",
+      "evCd": "ASP1072-260712TW00",
+      "title": "싱가포르 5일 #TOP PICK #프리미엄 #특급호텔 #전일관광 #NO팁NO옵션NO쇼핑",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:05:45.294Z",
+      "index": 2,
+      "slug": "fim-yb-0003",
+      "evCd": "PAP1189-260701TW00",
+      "title": "시드니 7일 #세미패키지 #자유일정 포함 #시드니중심 준특급호텔",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:05:54.655Z",
+      "index": 3,
+      "slug": "fim-yb-0004",
+      "evCd": "CUP1041-260602OZ00",
+      "title": "프리미엄 황산+항주 4일 #아시아나항공 #노옵션 #태평+운곡케이블카",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:06:45.913Z",
+      "index": 4,
+      "slug": "fim-yb-0005",
+      "evCd": "ASP1077-260601SQ00",
+      "title": "★유류할증료 인상 없는 특가★싱가포르 5일 #TOP PICK #프리미엄 #특급호텔 #1일자유 #낮출발 #NO팁NO옵션NO쇼핑",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:06:49.997Z",
+      "index": 5,
+      "slug": "fit-yb-0001",
+      "evCd": null,
+      "title": "프라하/잘츠부르크/비엔나 8일 KE #반자유 #공항픽업 #반일투어",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:07:06.730Z",
+      "index": 6,
+      "slug": "fit-yb-0002",
+      "evCd": null,
+      "title": "방콕5일 #자유여행 #실속호텔 #호텔선택가능 #가성비호텔 #합리적여행 #편도픽업포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:07:40.812Z",
+      "index": 7,
+      "slug": "fit-yb-0003",
+      "evCd": null,
+      "title": "싱가포르 5일 #자유여행 #센토사빌리지 #감각적인 오션뷰 수영장 #조식+여행자보험 포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T17:07:45.387Z",
+      "index": 8,
+      "slug": "fit-yb-0004",
+      "evCd": "JBF1003-2606227C01",
+      "title": "나고야 자유여행 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:08:13.611Z",
+      "index": 9,
+      "slug": "fit-yb-0005",
+      "evCd": null,
+      "title": "세부 아일랜드 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:08:16.115Z",
+      "index": 10,
+      "slug": "pkg-yb-0001",
+      "evCd": "EWP2079-260715SK00",
+      "title": "서유럽 3개국 10일 SK #밤출발 #베스트루트 #융프라우 #루브르 #나/폼/소",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:08:22.054Z",
+      "index": 11,
+      "slug": "pkg-yb-0002",
+      "evCd": null,
+      "title": "★황금연휴기간★ 스위스/이탈리아 9일 TW #스위스 3days #융프라우 #리기 #스위스 속 이탈리아 #토스카나",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:08:39.251Z",
+      "index": 12,
+      "slug": "pkg-yb-0003",
+      "evCd": "ATP6184-260701OZ00",
+      "title": "푸켓 5일 #초특급 #라마다플라자차오파 #팡아만 #산호섬 #마사지",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:09:55.107Z",
+      "index": 13,
+      "slug": "pkg-yb-0004",
+      "evCd": "AVP4484-260711RS00",
+      "title": "다낭/호이안 5일 #5성 #NO옵션NO팁 #호이안야간투어 #마사지2회 #럭셔리크루즈 RS511",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:11:19.871Z",
+      "index": 14,
+      "slug": "pkg-yb-0005",
+      "evCd": "ATP1347-260713YP00",
+      "title": "방콕/파타야 5일 #카오키여우 동물원 #아로마스파+소아마사지 #5대특식",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:12:39.536Z",
+      "index": 15,
+      "slug": "pkg-yb-0006",
+      "evCd": "CIP1239-260705LJ00",
+      "title": "대만5일 #밤출발 #노팁노옵션 #특식4회 #B777대형기종 #LJ",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:14:17.337Z",
+      "index": 16,
+      "slug": "pkg-yb-0007",
+      "evCd": "CHP1128-2607227C01",
+      "title": "[저녁출발/7C] 홍콩 4일 # 반나절자유",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:14:19.659Z",
+      "index": 17,
+      "slug": "pkg-yb-0008",
+      "evCd": "EWS8000-260605KE00",
+      "title": "산티아고 순례길+포르투갈 16일 #대한항공직항 #포르투갈관광 #전문인솔자동행",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:15:14.187Z",
+      "index": 18,
+      "slug": "pkg-yb-0009",
+      "evCd": "CEP1002-260723KE02",
+      "title": "[대한항공/오전출발] 칭다오 3일 #노팁노옵션노쇼핑 #특급호텔 #가족여행BEST",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:15:16.884Z",
+      "index": 19,
+      "slug": "pkg-yb-0010",
+      "evCd": "JBP3012-260715RS00",
+      "title": "요나고3일 #황금연휴특선 #가족여행 #전일정 온천호텔 #돗토리사구 #풀패키지",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:15:19.905Z",
+      "index": 20,
+      "slug": "pkg-yb-0011",
+      "evCd": "EWS4000-260702KE00",
+      "title": "[런트립] 스위스 7일 #루체른 #러닝 #리기산 #필라투스 #트래킹 #산악열차 포함",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:16:31.845Z",
+      "index": 21,
+      "slug": "pkg-yb-0012",
+      "evCd": "AVP4539-260712RS00",
+      "title": "다낭/호이안 5일 #5성#그랜드머큐어#SNS맛집#호텔딤섬무제한#미식투어#오전자유시간 RS511",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T17:16:35.609Z",
+      "index": 22,
+      "slug": "pkg-yb-0013",
+      "evCd": "EMP1282-260720EK00",
+      "title": "포르투갈 9일 #slow패키지#노쇼핑#리스본/포르토 자유시간#페냐성 내부관람#렐루서점#3대특식#인솔자동행",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:16:41.266Z",
+      "index": 23,
+      "slug": "pkg-yb-0014",
+      "evCd": "EEP1366-260701OZ01",
+      "title": "동유럽 3국8일 #짧지만알찬여행 #부다페스트IN-프라하OUT #자유시간 #부다페스트유람선",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:16:43.969Z",
+      "index": 24,
+      "slug": "pkg-yb-0015",
+      "evCd": "ETP6006-260603KE00",
+      "title": "코카서스 3국 10일 KE #두바이관광 #인솔자동행 #10대특전 #와이너리 #꼬냑시음",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 2,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:16:51.780Z",
+      "index": 25,
+      "slug": "pkg-yb-0016",
+      "evCd": null,
+      "title": "미서부 9일 #3대도시 #5대캐년 #노쇼핑 #인솔자동행 #핵심완전정복",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:16:56.223Z",
+      "index": 26,
+      "slug": "pkg-yb-0017",
+      "evCd": null,
+      "title": "미동부, 캐나다 9일 #에어프레미아 #워싱턴신규취항 #기획특가",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:05.981Z",
+      "index": 27,
+      "slug": "pkg-yb-0018",
+      "evCd": "NCP1050-260514KE00",
+      "title": "밴쿠버, 로키 7일 #2인이상 #5대호수 #3대국립공원 #밴프숙박",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:21.708Z",
+      "index": 28,
+      "slug": "pkg-yb-0019",
+      "evCd": null,
+      "title": "하와이 6일 #와이키키리조트 #시티뷰 #쿠알로아랜치 #빅아일랜드",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:24.715Z",
+      "index": 29,
+      "slug": "pkg-yb-0020",
+      "evCd": null,
+      "title": "미서부8일 # LA 다져스직관 # 2대도시 # 3대캐년 # 4인이상출발확정",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:29.298Z",
+      "index": 30,
+      "slug": "pkg-yb-0021",
+      "evCd": null,
+      "title": "프라하/비엔나/부다페스트 9일 KE #반자유 #공항픽업 #투어",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:46.364Z",
+      "index": 31,
+      "slug": "pkg-yb-0022",
+      "evCd": null,
+      "title": "파리 6일 KE #반자유 #픽업샌딩 #가이드투어",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 11,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:50.579Z",
+      "index": 32,
+      "slug": "pkg-yb-0023",
+      "evCd": "ETP6004-260602HY00",
+      "title": "코카서스 3국 12일 HY #전일정4성호텔 #11대특식 #와인+브랜디시음 #노쇼핑",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:17:56.205Z",
+      "index": 33,
+      "slug": "pkg-yb-0024",
+      "evCd": "CPP1063-260701OZ00",
+      "title": "아시아나/인천출발] 상해/오진 4일 #TOP PICK #노팁노옵션노쇼핑 #4명부터단독",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T17:19:41.010Z",
+      "index": 34,
+      "slug": "pkg-yb-0026",
+      "evCd": null,
+      "title": "홍콩 4일 # 반나절자유",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:19:43.342Z",
+      "index": 35,
+      "slug": "pkg-yb-0027",
+      "evCd": "SZP5255-261017LA00",
+      "title": "아르헨티나·칠레 12일 #파타고니아 #빙하투어 #토레스델파이네",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:20:42.801Z",
+      "index": 36,
+      "slug": "pkg-yb-0028",
+      "evCd": null,
+      "title": "홍콩 4일 #핵심관광 #자유일정 #CX",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:20:51.502Z",
+      "index": 37,
+      "slug": "pkg-yb-0029",
+      "evCd": null,
+      "title": "대련 3일 #대한항공 #인터컨티넨탈호텔 #여순일정포함 #2명부터출발가능",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:20:54.583Z",
+      "index": 38,
+      "slug": "pkg-yb-0030",
+      "evCd": null,
+      "title": "방콕미식5일#1DAY자유#미슐랭특식#호텔씨푸드",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:20:58.822Z",
+      "index": 39,
+      "slug": "pkg-yb-0031",
+      "evCd": "CXP2511-260610KN00",
+      "title": "내몽골(오르도스) 4일 #TOP PICK #노팁노옵션노쇼핑 #현대식게르",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T17:21:04.253Z",
+      "index": 40,
+      "slug": "pkg-yb-0032",
+      "evCd": null,
+      "title": "동유럽/발칸 5국 11일 OZ #프라하직항 #부다페스트야간유람선 #프라하맛집 #벨베데레",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:21:07.050Z",
+      "index": 41,
+      "slug": "pkg-yb-0034",
+      "evCd": null,
+      "title": "이집트 일주 10일 EK #국내선1회 #후르가다 2박3일 #나일크루즈 #월드체인호텔 #인솔자동행",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:21:14.956Z",
+      "index": 42,
+      "slug": "pkg-yb-0035",
+      "evCd": null,
+      "title": "동유럽 3국 OZ 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T17:21:34.186Z",
+      "index": 43,
+      "slug": "pkg-yb-0036",
+      "evCd": null,
+      "title": "미동부, 캐나다 PICK 7박 10일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "horizonSoldOut": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    }
+  ],
+  "last": {
+    "slug": "pkg-yb-0036",
+    "evCd": null,
+    "result": {
+      "processed": 1,
+      "updated": 1,
+      "skipped": 0,
+      "pruned": 0,
+      "e2eCollected": 0,
+      "e2eAttempted": 0,
+      "horizonSoldOut": 0,
+      "urgentDealOn": 0,
+      "urgentDealOff": 0
+    }
+  }
+}
