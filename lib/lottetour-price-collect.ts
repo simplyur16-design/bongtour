@@ -11,6 +11,7 @@ import {
   mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
+import { lottetourMonthCountInclusive } from '@/lib/lottetour-price-recheck-meta'
 import {
   departureInputToYmd,
   filterDepartureInputsOnOrAfterCalendarToday,
@@ -44,26 +45,7 @@ export type LottetourHxrOnlyCollectResult = {
   warnings: string[]
 }
 
-/** 180일 창에 걸치는 달 수(포함, 최대 36). */
-export function lottetourMonthCountInclusive(fromYmd: string, toYmd: string): number {
-  const lo = fromYmd <= toYmd ? fromYmd : toYmd
-  const hi = fromYmd <= toYmd ? toYmd : fromYmd
-  let y = Number(lo.slice(0, 4))
-  let m = Number(lo.slice(5, 7))
-  const ey = Number(hi.slice(0, 4))
-  const em = Number(hi.slice(5, 7))
-  let count = 0
-  for (let guard = 0; guard < 48; guard += 1) {
-    count += 1
-    if (y === ey && m === em) break
-    m += 1
-    if (m > 12) {
-      m = 1
-      y += 1
-    }
-  }
-  return Math.max(1, Math.min(36, count))
-}
+export { lottetourMonthCountInclusive } from '@/lib/lottetour-price-recheck-meta'
 
 function filterPricedInputsInWindow(
   inputs: DepartureInput[],

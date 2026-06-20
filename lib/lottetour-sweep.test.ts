@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { lottetourMonthCountInclusive } from '@/lib/lottetour-price-collect'
 import {
   computeLottetourNextPriceRecheckYmd,
   isLottetourPriceRecheckDue,
+  lottetourMonthCountInclusive,
   mergeLottetourPriceRecheckIntoRawMeta,
 } from '@/lib/lottetour-price-recheck-meta'
 
