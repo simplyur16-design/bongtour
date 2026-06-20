@@ -1,4 +1,8 @@
 # Playwright install-deps: apt mirror swap + retry (archive.ubuntu.com occasional Packages.gz size mismatch during sync).
+[variables]
+# Railway Nixpacks next build OOM 방지 (default ~4GB heap 한계)
+NODE_OPTIONS = "--max-old-space-size=6144"
+
 [phases.setup]
 # Nix python3는 PEP 668(externally-managed) + ensurepip이 /nix/store 수정 불가 → virtualenv로 .venv에만 pip/패키지 설치
 nixPkgs = ["nodejs", "python3", "python3Packages.virtualenv", "curl"]
