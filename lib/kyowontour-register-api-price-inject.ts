@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[kyowontour-register-api-price-inject]: injectKyowontourApiDeparturePricesIfMissing — manifest
  */
 import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
+import { enrichKyowontourCalendarRowsWithTourCodeDetail } from '@/lib/kyowontour-tourcode-detail-meta'
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
 import { extractKyowontourHiddenFieldsFromDetailHtml } from '@/lib/kyowontour-tour-event-tab-data'
@@ -33,7 +34,9 @@ function calendarRowsToDepartureInputs(
   return out
 }
 
-async function resolveKyowontourMasterCode(originUrl: string): Promise<{ masterCode: string; tourCode: string } | null> {
+async function resolveKyowontourMasterCode(
+  originUrl: string,
+): Promise<{ masterCode: string; tourCode: string; menuCode: string } | null> {
   const res = await fetch(originUrl, {
     headers: {
       accept: 'text/html,application/xhtml+xml',
@@ -45,7 +48,7 @@ async function resolveKyowontourMasterCode(originUrl: string): Promise<{ masterC
   const html = await res.text()
   const hidden = extractKyowontourHiddenFieldsFromDetailHtml(html)
   if (!hidden) return null
-  return { masterCode: hidden.masterCode, tourCode: hidden.tourCode }
+  return { masterCode: hidden.masterCode, tourCode: hidden.tourCode, menuCode: hidden.menuCode }
 }
 
 export async function injectKyowontourApiDeparturePricesIfMissing(
@@ -69,9 +72,11 @@ export async function injectKyowontourApiDeparturePricesIfMissing(
   })
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const inputs = calendarRowsToDepartureInputs(
+  const enrichedRows = await enrichKyowontourCalendarRowsWithTourCodeDetail(
     cal.rows.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd),
+    { menuCode: keys.menuCode, refererUrl: url },
   )
+  const inputs = calendarRowsToDepartureInputs(enrichedRows)
   if (inputs.length === 0) return parsed
 
   const first = inputs[0]!
