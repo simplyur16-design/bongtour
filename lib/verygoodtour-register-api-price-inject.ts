@@ -6,7 +6,7 @@
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import type { RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
 import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
-import { collectVerygoodHxrOnlyForDateRange } from '@/lib/verygoodtour-price-collect'
+import { collectVerygoodtourPriceInputsWithProCodeDetail } from '@/lib/verygoodtour-price-collect'
 
 export async function injectVerygoodtourApiDeparturePricesIfMissing(
   parsed: RegisterParsed,
@@ -18,7 +18,7 @@ export async function injectVerygoodtourApiDeparturePricesIfMissing(
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const hxr = await collectVerygoodHxrOnlyForDateRange(url, fromYmd, toYmd)
+  const hxr = await collectVerygoodtourPriceInputsWithProCodeDetail(url, fromYmd, toYmd)
   const priced = hxr.inputs.filter((r) => (r.adultPrice ?? 0) > 0)
   if (priced.length === 0) return parsed
 
@@ -30,7 +30,7 @@ export async function injectVerygoodtourApiDeparturePricesIfMissing(
   }
 
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
-  const note = `verygoodtour HXR 출발·가격 주입: ${priced.length}행`
+  const note = `verygoodtour HXR+ProCode 출발·가격 주입: ${priced.length}행`
   if (!notes.includes(note)) notes.push(note)
 
   const prices = registerDepartureInputsToParsedPrices(priced)

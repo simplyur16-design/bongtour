@@ -55,7 +55,16 @@ export type YbtourByGoodsEventRow = {
   airTaxAdtPrice?: number
   evCd?: string
   evNm?: string
+  trCompanyNm?: string | null
   trCompanySnm?: string | null
+  evProgDiviNm?: string | null
+  avlilBlockQty?: number | null
+  startFixOpenYn?: string | null
+}
+
+export type YbtourGoodsJoinEventBody = {
+  goodsCd?: string
+  goodsFeaturesList?: string | null
 }
 
 function ybtourPapiHeaders(referer: string): HeadersInit {
@@ -215,6 +224,41 @@ export async function fetchYbtourGoodsAvailableDateDay(
   )
 }
 
+/** goodsCd 상품 특성(최소 출발 인원 등) — `/pkg/goods/join-event/{goodsCd}`. */
+export async function fetchYbtourGoodsJoinEvent(
+  goodsCd: string,
+  referer: string,
+): Promise<YbtourGoodsJoinEventBody | null> {
+  return fetchYbtourPapiJson<YbtourGoodsJoinEventBody>(
+    `/pkg/goods/join-event/${encodeURIComponent(goodsCd)}`,
+    referer,
+  )
+}
+
+export function parseYbtourMinPaxFromGoodsFeaturesList(features: string | null | undefined): number | null {
+  const m = String(features ?? '').match(/(\d+)\s*명\s*이상\s*출발/)
+  if (!m?.[1]) return null
+  const n = Number(m[1])
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null
+}
+
+function ybtourStatusRawFromByGoodsRow(row: YbtourByGoodsEventRow): string | null {
+  const nm = String(row.evProgDiviNm ?? '').trim()
+  if (nm) return nm
+  if (String(row.startFixOpenYn ?? '').toUpperCase() === 'Y') return '출발확정'
+  return null
+}
+
+function ybtourSeatFieldsFromByGoodsRow(row: YbtourByGoodsEventRow): {
+  seatCount: number | null
+  seatsStatusRaw: string | null
+} {
+  const qty = Number(row.avlilBlockQty ?? NaN)
+  if (!Number.isFinite(qty) || qty <= 0) return { seatCount: null, seatsStatusRaw: null }
+  const seatCount = Math.trunc(qty)
+  return { seatCount, seatsStatusRaw: `잔여${seatCount}석` }
+}
+
 export async function fetchYbtourEventByGoodsMonth(
   goodsCd: string,
   dspSid: string,
@@ -252,12 +296,18 @@ export function ybtourByGoodsRowToDepartureInput(row: YbtourByGoodsEventRow | nu
   const departureDate = ybtourYmdFromEvStartDt(row.outStartDt)
   const adultPrice = ybtourByGoodsRowToAdultPrice(row)
   if (!evCd || !departureDate || adultPrice == null) return null
+  const { seatCount, seatsStatusRaw } = ybtourSeatFieldsFromByGoodsRow(row)
+  const carrier =
+    String(row.trCompanyNm ?? '').trim() || String(row.trCompanySnm ?? '').trim() || null
   return {
     departureDate,
     adultPrice,
     childBedPrice: null,
     infantPrice: null,
-    carrierName: row.trCompanySnm?.trim() || null,
+    statusRaw: ybtourStatusRawFromByGoodsRow(row),
+    seatsStatusRaw,
+    seatCount,
+    carrierName: carrier,
     supplierDepartureCodeCandidate: `ybtour:${evCd}`,
     localPriceText: `ybtour:by-goods evCd=${evCd}`.slice(0, 200),
   }
@@ -540,6 +590,16 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
   let inputs = filterYbtourInputsInYmdWindow(dedupeYbtourInputsByEvCd(merged), fromYmd, toYmd)
   const enrichEvCdPrice = options?.enrichEvCdPrice !== false
   let evCdPriceEnriched = false
+  if (inputs.length > 0) {
+    const joinEvent = await fetchYbtourGoodsJoinEvent(goodsCd, referer)
+    const goodsMinPax = parseYbtourMinPaxFromGoodsFeaturesList(joinEvent?.goodsFeaturesList)
+    if (goodsMinPax != null) {
+      inputs = inputs.map((row) => ({
+        ...row,
+        minPax: row.minPax ?? goodsMinPax,
+      }))
+    }
+  }
   if (enrichEvCdPrice && inputs.length > 0) {
     inputs = await enrichYbtourDepartureInputsWithEvCdPrice(inputs, referer)
     evCdPriceEnriched = true

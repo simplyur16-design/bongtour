@@ -4,7 +4,7 @@
  * REGRESSION-FREEZE[register-facts-foundation]: PackageDetail fetch·메타 추출 — manifest
  */
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
-import { collectVerygoodtourPriceInputsWithE2eFallback } from '@/lib/verygoodtour-price-collect'
+import { collectVerygoodtourPriceInputsWithProCodeDetail } from '@/lib/verygoodtour-price-collect'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 
@@ -103,7 +103,7 @@ export async function collectVerygoodtourRegisterFacts(originUrl: string): Promi
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const collected = await collectVerygoodtourPriceInputsWithE2eFallback(url, fromYmd, toYmd)
+  const collected = await collectVerygoodtourPriceInputsWithProCodeDetail(url, fromYmd, toYmd)
   const priceRows = collected.inputs
     .filter((x) => (x.adultPrice ?? 0) > 0)
     .map((dep) =>
@@ -120,7 +120,8 @@ export async function collectVerygoodtourRegisterFacts(originUrl: string): Promi
     notes: [
       ...base.notes,
       `calendar_rows=${priceRows.length}`,
-      `calendar_source=${collected.source ?? 'none'}`,
+      'calendar_source=hxr+procode_detail',
+      collected.seedProCode ? `seed_pro_code=${collected.seedProCode}` : 'seed_pro_code=missing',
     ],
   }
 }

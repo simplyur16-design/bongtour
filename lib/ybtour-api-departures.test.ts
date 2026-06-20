@@ -152,6 +152,24 @@ describe('ybtourByGoodsRowToDepartureInput', () => {
     expect(input?.adultPrice).toBe(719900)
     expect(input?.supplierDepartureCodeCandidate).toBe('ybtour:AVP4484-260621VJ02')
   })
+
+  it('maps status·seats·carrier from by-goods metadata fields', () => {
+    const input = ybtourByGoodsRowToDepartureInput({
+      evCd: 'ALP1122-260706QV00',
+      outStartDt: '20260706',
+      adtPrice: 504000,
+      bafAdtPrice: 0,
+      airTaxAdtPrice: 0,
+      trCompanyNm: '라오항공',
+      trCompanySnm: 'QV',
+      evProgDiviNm: '예약진행',
+      avlilBlockQty: 10,
+    })
+    expect(input?.statusRaw).toBe('예약진행')
+    expect(input?.seatCount).toBe(10)
+    expect(input?.seatsStatusRaw).toBe('잔여10석')
+    expect(input?.carrierName).toBe('라오항공')
+  })
 })
 
 describe('parseYbtourDepartureYmdFromEvCd', () => {

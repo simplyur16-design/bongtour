@@ -15,6 +15,7 @@ import {
   parseVerygoodModalDomHtml,
   parseVerygoodProCodeMasterCode,
 } from '@/lib/verygoodtour-calendar-hxr'
+import { enrichVerygoodDepartureInputsWithProCodeDetail } from '@/lib/verygoodtour-procode-detail-meta'
 import { parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
 import type { DepartureInput } from '@/lib/upsert-product-departures-verygoodtour'
 
@@ -213,6 +214,26 @@ export async function collectVerygoodHxrOnlyForDateRange(
     leftWithPriceCount,
     hxrError: null,
     warnings,
+  }
+}
+
+/** HXR + 출발일별 ProCode PackageDetail 메타 — E2E 없음(register·inject·facts용). */
+export async function collectVerygoodtourPriceInputsWithProCodeDetail(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<VerygoodHxrOnlyCollectResult & { seedProCode: string | null }> {
+  const normalized = normalizeVerygoodtourDetailUrlForCollect(detailUrl)
+  const seedProCode = parseVerygoodProCodeFromUrl(normalized)
+  const hxr = await collectVerygoodHxrOnlyForDateRange(normalized, fromYmd, toYmd)
+  if (!seedProCode || hxr.inputs.length === 0) {
+    return { ...hxr, seedProCode }
+  }
+  const enriched = await enrichVerygoodDepartureInputsWithProCodeDetail(hxr.inputs, seedProCode, normalized)
+  return {
+    ...hxr,
+    inputs: filterPricedInputsInWindow(enriched, fromYmd, toYmd),
+    seedProCode,
   }
 }
 

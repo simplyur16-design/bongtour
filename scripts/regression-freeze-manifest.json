@@ -1327,14 +1327,14 @@
     {
       "id": "verygoodtour-register-api-price-inject",
       "tier": ["prebuild", "ci"],
-      "summary": "verygoodtour confirm — HXR 출발가 parsed 주입(E2E 없음)",
+      "summary": "verygoodtour confirm — HXR+ProCode 출발가 parsed 주입(E2E 없음)",
       "checks": [
         {
           "file": "lib/verygoodtour-register-api-price-inject.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[verygoodtour-register-api-price-inject]",
             "injectVerygoodtourApiDeparturePricesIfMissing",
-            "collectVerygoodHxrOnlyForDateRange"
+            "collectVerygoodtourPriceInputsWithProCodeDetail"
           ]
         },
         {
@@ -1543,6 +1543,8 @@
             "collectYbtourByGoodsApiDepartureInputsForUrl",
             "normalizeYbtourGoodsCdForApi",
             "enrichYbtourDepartureInputsWithEvCdPrice",
+            "fetchYbtourGoodsJoinEvent",
+            "evProgDiviNm",
             "/pkg/event/by-goods/"
           ]
         },
@@ -1791,10 +1793,23 @@
           "mustInclude": [
             "REGRESSION-FREEZE[verygoodtour-hxr-departure-collect]",
             "collectVerygoodtourPriceInputsWithE2eFallback",
+            "collectVerygoodtourPriceInputsWithProCodeDetail",
             "collectVerygoodHxrOnlyForDateRange",
             "horizonSoldOut",
             "normalizeVerygoodtourDetailUrlForCollect"
           ]
+        },
+        {
+          "file": "lib/verygoodtour-procode-detail-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hxr-departure-collect]",
+            "enrichVerygoodDepartureInputsWithProCodeDetail",
+            "buildVerygoodProCodeForYmd"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-procode-detail-meta.test.ts",
+          "mustInclude": ["buildVerygoodProCodeForYmd", "parseVerygoodProCodeDetailMetaFromHtml"]
         },
         {
           "file": "lib/verygoodtour-detail-url-health.ts",
@@ -1814,7 +1829,8 @@
       ],
       "vitestSuites": [
         "lib/verygoodtour-price-collect.test.ts",
-        "lib/verygoodtour-detail-url-health.test.ts"
+        "lib/verygoodtour-detail-url-health.test.ts",
+        "lib/verygoodtour-procode-detail-meta.test.ts"
       ]
     },
     {
