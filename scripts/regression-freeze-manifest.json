@@ -372,6 +372,44 @@
       ]
     },
     {
+      "id": "overseas-hub-geo-tag-filter",
+      "tier": ["prebuild", "ci"],
+      "summary": "해외 허브 클라이언트 필터 — ProductCityTag 기반 geo",
+      "checks": [
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-geo-tag-filter]",
+            "productMatchesBrowseUrlGeo",
+            "filterItemsByMenuGroupCityKeys"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/overseas-hub-client-catalog-filter.test.ts"]
+    },
+    {
+      "id": "japan-mega-menu-browse-cluster-keys",
+      "tier": ["prebuild", "ci"],
+      "summary": "일본 메가메뉴 leaf browse — cluster slug→cityKey 확장",
+      "checks": [
+        {
+          "file": "lib/cluster-city-expansions.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[japan-mega-menu-browse-cluster-keys]",
+            "expandBrowseCityFilterKeys"
+          ]
+        },
+        {
+          "file": "lib/browse-country-url-resolve.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[japan-mega-menu-browse-cluster-keys]",
+            "expandBrowseCityFilterKeys",
+            "raw === 'japan'"
+          ]
+        }
+      ]
+    },
+    {
       "id": "cebu-island-geo-priority",
       "tier": [
         "prebuild",
@@ -1227,6 +1265,42 @@
       "vitestSuites": [
         "lib/modetour-price-collect.test.ts",
         "lib/modetour-sd1-policy.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-register-air-hotel-departures",
+      "tier": ["prebuild", "ci"],
+      "summary": "modetour FIT confirm — skipBaselineMatch로 출발일 수집",
+      "checks": [
+        {
+          "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-air-hotel-departures]",
+            "isModetourAirHotel",
+            "skipBaselineMatch: true"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hanatour-register-api-price-inject",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 confirm — gw API 출발·기본가 parsed 주입",
+      "checks": [
+        {
+          "file": "lib/hanatour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-api-price-inject]",
+            "injectHanatourApiDeparturePricesIfMissing",
+            "hanatourProdInfoToDepartureInput"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-handler.ts",
+          "mustInclude": [
+            "injectHanatourApiDeparturePricesIfMissing"
+          ]
+        }
       ]
     },
     {
@@ -2175,6 +2249,7 @@
         "tests/modetour-schedule-image-keyword.test.ts",
         "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
         "lib/geo-haystack-match.test.ts",
+        "lib/japan-mega-menu-browse-city-keys.test.ts",
         "lib/hanatour-origin-code-from-paste.test.ts",
         "lib/calendar-price-horizon.test.ts",
         "lib/modetour-price-collect.test.ts",

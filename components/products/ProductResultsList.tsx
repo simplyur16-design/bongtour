@@ -93,6 +93,9 @@ export type ResultItem = {
   browseCountry?: string | null
   /** browse API — `Product.sportsThemeTag` (종목별 섹션 그룹용) */
   sportsThemeTags?: SportsThemeTag[]
+  /** 해외 허브 클라이언트 geo 필터 — ProductCountryTag / ProductCityTag */
+  countryTags?: Array<{ countryKey: string; nodeKey?: string | null }>
+  cityTags?: Array<{ cityKey: string }>
 }
 
 /** 해외 목록: 상품 카드 N개마다 eSIM 네이티브 카드 1개 */

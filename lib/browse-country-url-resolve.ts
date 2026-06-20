@@ -3,6 +3,7 @@
  * 클라이언트 안전(Prisma 없음). DB 카드 키 조회는 `browse-master-geo.ts`.
  */
 import { citySlugFromTermsAndLabel, countrySlugFromLabel, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import { expandBrowseCityFilterKeys } from '@/lib/cluster-city-expansions'
 import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
 import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
 import { collectLeafTerms } from '@/lib/unified-location-tree'
@@ -388,7 +389,31 @@ const BROWSE_CITY_SLUG_TO_DB_CITY: Record<string, string> = {
   miyazaki: '미야자키',
   noboribetsu: '노보리베츠',
   asahikawa: '아사히카와',
+  kyoto: '교토',
+  nara: '나라',
+  kobe: '고베',
+  otaru: '오타루',
+  furano: '후라노',
+  toya: '도야',
+  sendai: '센다이',
   akita: '아키타',
+  biei: '비에이',
+  jozankei: '죠잔케이',
+  nagoya: '나고야',
+  hiroshima: '히로시마',
+  kanazawa: '가나자와',
+  takayama: '다카야마',
+  aomori: '아오모리',
+  yokohama: '요코하마',
+  shizuoka: '시즈오카',
+  izu: '이즈',
+  naha: '나하',
+  beppu: '벳부',
+  yufuin: '유후인',
+  matsuyama: '마츠야마',
+  tokushima: '도쿠시마',
+  tottori: '돗토리',
+  yonago: '요나고',
   miyakojima: '미야코지마',
   ishigaki: '이시가키',
   brisbane: '브리즈번',
@@ -921,6 +946,7 @@ export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null 
   const raw = trimmed.toLowerCase()
   const out = new Set<string>()
   if (raw) out.add(raw)
+  if (raw === 'japan' || trimmed === '일본') out.add('jp')
   const saKey = SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[raw] ?? SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[trimmed]
   if (saKey) out.add(saKey)
   const dbCountries = resolveBrowseCountryParamToDbCountries(param)
@@ -1127,6 +1153,7 @@ export function resolveChinaSubregionDbCityKeywords(
 }
 
 /** browse city URL → `ProductCityTag.cityKey` 후보 */
+// REGRESSION-FREEZE[japan-mega-menu-browse-cluster-keys]: expand cluster slugs for Japan leaves — manifest
 export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefined): string[] {
   const keys = new Set<string>()
   for (const nk of resolveBrowseCityParamToCountryTagNodeKeys(cityParam)) {
@@ -1134,5 +1161,5 @@ export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefi
   }
   const ct = (cityParam ?? '').trim().toLowerCase()
   if (ct && /^[a-z0-9-]+$/.test(ct)) keys.add(ct)
-  return [...keys]
+  return expandBrowseCityFilterKeys(keys)
 }

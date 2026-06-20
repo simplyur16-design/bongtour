@@ -4,6 +4,7 @@
  * 일정 표현층: `parse-and-register-hanatour-schedule`.
  */
 import { augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
+import { injectHanatourApiDeparturePricesIfMissing } from '@/lib/hanatour-register-api-price-inject'
 import { applyHanatourSyntheticPriceRowIfNeeded } from '@/lib/register-hanatour-confirm-fallback-prices'
 import { parseForRegisterHanatour } from '@/lib/register-parse-hanatour'
 import { runParseAndRegisterFlow } from '@/lib/parse-and-register-hanatour-orchestration'
@@ -25,6 +26,7 @@ export async function handleParseAndRegisterHanatourRequest(request: Request) {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
       })
+      next = await injectHanatourApiDeparturePricesIfMissing(next, ctx?.originUrl)
       next = applyHanatourSyntheticPriceRowIfNeeded(next, pastedText, 'hanatour')
       return next
     },

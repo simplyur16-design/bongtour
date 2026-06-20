@@ -718,6 +718,15 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         p.departures[0]?.departureDate?.toISOString() ??
         null,
       browseFilterMeta: buildBrowseItemFilterMeta(p),
+      ...(isHubFullCatalog
+        ? {
+            countryTags: (p.countryTags ?? []).map((t) => ({
+              countryKey: t.countryKey,
+              nodeKey: t.nodeKey ?? null,
+            })),
+            cityTags: (p.cityTags ?? []).map((t) => ({ cityKey: t.cityKey })),
+          }
+        : {}),
       sportsThemeTags: normalizeSportsThemeTagsForBrowse(p.sportsThemeTag),
       ...(p.hasUrgentDeal
         ? (() => {

@@ -933,9 +933,14 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         itineraryDayDrafts = []
       } else {
         const scrapeWindow = pickModetourScrapeWindowFromParsedAndText(parsed, text)
-        const collectOpts = scrapeWindow
-          ? { dateRangeYmd: scrapeWindow }
-          : { monthsForward: MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD }
+        const isModetourAirHotel = travelScope === 'air_hotel_free'
+        // REGRESSION-FREEZE[modetour-register-air-hotel-departures]: FIT confirm skipBaselineMatch — manifest
+        const collectOpts = {
+          ...(scrapeWindow
+            ? { dateRangeYmd: scrapeWindow }
+            : { monthsForward: MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD }),
+          ...(isModetourAirHotel ? { skipBaselineMatch: true } : {}),
+        }
         console.info('[parse-and-register-modetour][confirm-scrape-window]', {
           picked: scrapeWindow ? 'date-range' : 'months-forward',
           from: scrapeWindow?.from ?? null,

@@ -151,3 +151,32 @@ export function clusterCityKeysForNode(nodeKey: string | null | undefined): stri
 export function isClusterExpansionNode(nodeKey: string | null | undefined): boolean {
   return CLUSTER_CITY_EXPANSION_NODE_KEYS.has((nodeKey ?? '').trim())
 }
+
+/** cityKey → 소속 cluster nodeKey (browse leaf 필터용). */
+const CITY_KEY_TO_CLUSTER_NODE: Record<string, string> = {}
+for (const [clusterNode, rows] of Object.entries(CLUSTER_CITY_EXPANSIONS)) {
+  for (const row of rows) {
+    CITY_KEY_TO_CLUSTER_NODE[row.cityKey] = clusterNode
+  }
+}
+
+/** browse `city` 슬러그·cityKey → ProductCityTag·ProductCountryTag 매칭 후보 확장. */
+// REGRESSION-FREEZE[japan-mega-menu-browse-cluster-keys]: cluster leaf browse keys — manifest
+export function expandBrowseCityFilterKeys(slugsOrKeys: Iterable<string>): string[] {
+  const out = new Set<string>()
+  for (const raw of slugsOrKeys) {
+    const k = raw.trim().toLowerCase()
+    if (!k) continue
+    out.add(k)
+    const clusterFromCity = CITY_KEY_TO_CLUSTER_NODE[k]
+    if (clusterFromCity) {
+      out.add(clusterFromCity)
+      for (const row of CLUSTER_CITY_EXPANSIONS[clusterFromCity] ?? []) out.add(row.cityKey)
+    }
+    const clusterRows = CLUSTER_CITY_EXPANSIONS[k]
+    if (clusterRows) {
+      for (const row of clusterRows) out.add(row.cityKey)
+    }
+  }
+  return [...out]
+}
