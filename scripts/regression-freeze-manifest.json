@@ -1353,13 +1353,39 @@
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-register-api-price-inject]",
             "injectKyowontourApiDeparturePricesIfMissing",
-            "collectKyowontourCalendarRange"
+            "collectKyowontourCalendarRange",
+            "enrichKyowontourCalendarRowsWithTourCodeDetail"
           ]
         },
         {
           "file": "lib/parse-and-register-kyowontour-handler.ts",
           "mustInclude": ["injectKyowontourApiDeparturePricesIfMissing"]
         }
+      ]
+    },
+    {
+      "id": "kyowontour-tourcode-detail-meta",
+      "tier": ["prebuild", "ci"],
+      "summary": "kyowontour tourCode별 goodsEventDetail SSR — 예약·최소·잔여석 보강",
+      "checks": [
+        {
+          "file": "lib/kyowontour-tourcode-detail-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]",
+            "parseKyowontourTourCodeDetailMetaFromHtml",
+            "enrichKyowontourCalendarRowsWithTourCodeDetail",
+            "fetchKyowontourTourCodeDetailMeta"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-price-collect.ts",
+          "mustInclude": [
+            "enrichKyowontourCalendarRowsWithTourCodeDetail"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-tourcode-detail-meta.test.ts"
       ]
     },
     {
@@ -1466,7 +1492,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectKyowontourRegisterFacts",
-            "tourEventTabData"
+            "tourEventTabData",
+            "enrichKyowontourCalendarRowsWithTourCodeDetail"
           ]
         },
         {
