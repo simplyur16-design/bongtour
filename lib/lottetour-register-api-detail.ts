@@ -12,6 +12,8 @@ import {
 } from '@/lib/lottetour-departures'
 import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
+import { filterOptionalTourRows, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-lottetour'
+import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 
 const LOTTETOUR_BASE = process.env.LOTTETOUR_BASE_URL ?? 'https://www.lottetour.com'
 /** 등록 상세카드 HTTP 호출 간격 — lottetour 전용(공용 스크래퍼 설정과 분리). */
@@ -20,9 +22,18 @@ const LOTTETOUR_REGISTER_DETAIL_PACE_MS = 220
 export type LottetourRegisterDetailBundle = {
   basicAjaxHtml: string | null
   coreInfoHtml: string | null
+  scheduleAjaxHtml: string | null
+  spotListAjaxHtml: string | null
   evtListRow: LottetourCalendarRow | null
   evtCd: string | null
   godId: string | null
+  godScheId: string | null
+}
+
+export type LottetourMeetingExtract = {
+  meetingPlaceRaw: string | null
+  meetingInfoRaw: string | null
+  meetingNoticeRaw: string | null
 }
 
 function lottetourRegisterHeaders(referer: string): HeadersInit {
@@ -209,6 +220,246 @@ function buildEvtListAjaxUrl(args: {
   return u.toString()
 }
 
+/** basicAjax·headInfo 스크립트에서 행사별 godScheId 추출 — godId와 다름. */
+export function extractLottetourGodScheIdFromBasicAjax(
+  html: string | null,
+  evtCd: string,
+): string | null {
+  if (!html || !evtCd.trim()) return null
+  const esc = evtCd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const fromCall = html.match(
+    new RegExp(
+      `callEvtDetailScheBasDetlLisAjax\\s*\\(\\s*['"]${esc}['"]\\s*,\\s*['"](\\d+)['"]`,
+      'i',
+    ),
+  )?.[1]
+  if (fromCall) return fromCall
+  const fromSchedule = html.match(
+    new RegExp(`callScheduleListAjax\\s*\\(\\s*['"]${esc}['"]\\s*,\\s*['"](\\d+)['"]`, 'i'),
+  )?.[1]
+  if (fromSchedule) return fromSchedule
+  const fromPdf = html.match(/GOD_SCHE_ID\^(\d+)/i)?.[1]
+  return fromPdf ?? null
+}
+
+export async function fetchLottetourScheduleAjaxHtml(
+  evtCd: string,
+  referer: string,
+): Promise<string | null> {
+  const cd = evtCd.trim()
+  if (!cd) return null
+  const q = new URLSearchParams({ evtCd: cd, viewType: 'basic' })
+  // viewType=basic — evtDetailScheduleAjax SSOT param (godId·godScheId 불필요)
+  return fetchLottetourRegisterHtml(`/evtDetailScheduleAjax?${q}`, referer)
+}
+
+export async function fetchLottetourSpotListAjaxHtml(
+  evtCd: string,
+  godScheId: string,
+  referer: string,
+): Promise<string | null> {
+  const cd = evtCd.trim()
+  const sid = godScheId.trim()
+  if (!cd || !sid) return null
+  const q = new URLSearchParams({ evtCd: cd, godScheId: sid, viewType: 'basic' })
+  // evtSpotListAjax viewType=basic + godScheId from basicAjax
+  return fetchLottetourRegisterHtml(`/evtSpotListAjax?${q}`, referer)
+}
+
+function stripLottetourScheduleHtml(raw: string): string {
+  return raw
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&middot;/gi, '·')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function lottetourScheduleDayBlocks(html: string): Array<{ day: number; block: string }> {
+  const out: Array<{ day: number; block: string }> = []
+  const re =
+    /<dl[^>]*id\s*=\s*"sche_plan_(\d+)"[^>]*class="day_plan"[^>]*>([\s\S]*?)<!--\s*\/\/day_plan\s*-->/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) !== null) {
+    const day = Number(m[1])
+    if (!Number.isFinite(day) || day <= 0) continue
+    out.push({ day, block: m[2] ?? '' })
+  }
+  return out.sort((a, b) => a.day - b.day)
+}
+
+function lottetourMealFromBlock(block: string, label: '조식' | '중식' | '석식'): string | null {
+  const m = block.match(new RegExp(`\\[${label}\\]\\s*([^\\[<\\n]+)`, 'i'))
+  const text = m?.[1]?.trim()
+  if (!text || /불포함|^-$/i.test(text)) return null
+  return text.slice(0, 120)
+}
+
+function lottetourCitiesFromDayBlock(block: string): string[] {
+  const timeline = block.match(
+    /<div class="timeline">([\s\S]*?)(?:<\/div>\s*<!--\s*\/\/timeline|<div class="table_in")/i,
+  )?.[1]
+  if (!timeline) return []
+  return [...timeline.matchAll(/<strong>([^<]+)<\/strong>/gi)]
+    .map((m) => stripLottetourScheduleHtml(m[1] ?? ''))
+    .filter((c) => c.length > 1 && c.length < 80 && !/\d+\s*일차/.test(c))
+}
+
+export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null): RegisterScheduleDay[] {
+  if (!html?.trim()) return []
+  const days: RegisterScheduleDay[] = []
+  for (const { day, block } of lottetourScheduleDayBlocks(html)) {
+    const uniqueCities = [...new Set(lottetourCitiesFromDayBlock(block))]
+    const planParts = [
+      ...block.matchAll(/<p class="plan_info">([\s\S]*?)<\/p>/gi),
+    ].map((m) => stripLottetourScheduleHtml(m[1] ?? '')).filter(Boolean)
+    const hotelMatch = block.match(/class="txt_link"[^>]*>([^<]+)</i)?.[1]
+    const hotelText = hotelMatch ? stripLottetourScheduleHtml(hotelMatch).slice(0, 200) : null
+    const title =
+      uniqueCities[0] ??
+      block.match(/<strong>\s*(\d+)일차\s*<\/strong>/i)?.[0]?.replace(/<[^>]+>/g, '').trim() ??
+      `${day}일차`
+    const description = planParts.join('\n').slice(0, 1200) || title
+    const routeText = uniqueCities.length > 0 ? uniqueCities.join(' - ') : null
+    const breakfastText = lottetourMealFromBlock(block, '조식')
+    const lunchText = lottetourMealFromBlock(block, '중식')
+    const dinnerText = lottetourMealFromBlock(block, '석식')
+    const mealParts = [breakfastText, lunchText, dinnerText].filter(Boolean) as string[]
+    days.push({
+      day,
+      title,
+      description,
+      routeText,
+      imageKeyword: (uniqueCities[0] ?? title).slice(0, 80),
+      hotelText,
+      breakfastText,
+      lunchText,
+      dinnerText,
+      mealSummaryText: mealParts.length > 0 ? mealParts.join(' / ') : null,
+    })
+  }
+  return days
+}
+
+export function extractLottetourMeetingFromScheduleAjax(html: string | null): LottetourMeetingExtract {
+  if (!html?.trim()) {
+    return { meetingPlaceRaw: null, meetingInfoRaw: null, meetingNoticeRaw: null }
+  }
+  const meetBlock = html.match(/<dl class="meet_area">[\s\S]*?<\/dl>/i)?.[0]
+  if (!meetBlock) {
+    return { meetingPlaceRaw: null, meetingInfoRaw: null, meetingNoticeRaw: null }
+  }
+  const dd = meetBlock.match(/<dd>([\s\S]*?)<\/dd>/i)?.[1] ?? ''
+  const lines = stripLottetourScheduleHtml(dd)
+    .split(/(?=▣)|\n/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 2)
+  const placeLine =
+    lines.find((l) => /공항|터미널|미팅|집결|카운터/i.test(l) && l.length < 120) ??
+    lines[0] ??
+    null
+  const noticeRaw = dd.match(/<p>([\s\S]*?)<\/p>/i)?.[1]
+  return {
+    meetingPlaceRaw: placeLine,
+    meetingInfoRaw: stripLottetourScheduleHtml(dd).slice(0, 800) || null,
+    meetingNoticeRaw: noticeRaw ? stripLottetourScheduleHtml(noticeRaw).slice(0, 600) : null,
+  }
+}
+
+function lottetourOptionalSectionHtml(html: string): string | null {
+  const m = html.match(
+    /<div class="travel_info_cont on">\s*<!--\s*선택관광\s*-->[\s\S]*?<\/div>\s*<!--\s*\/\/travel_info_cont\s*:\s*선택관광\s*-->/i,
+  )
+  return m?.[0] ?? null
+}
+
+function parseLottetourOptionalPrice(text: string): {
+  currency: string | null
+  adultPrice: number | null
+  priceText: string | null
+} {
+  const usd = text.match(/(?:USD|\$)\s*([0-9]+(?:[.,][0-9]+)?)/i)
+  if (usd) {
+    const adultPrice = Number(usd[1]!.replace(/,/g, ''))
+    return {
+      currency: 'USD',
+      adultPrice: Number.isFinite(adultPrice) ? adultPrice : null,
+      priceText: `USD ${usd[1]}`,
+    }
+  }
+  const krw = text.match(/([0-9]{1,3}(?:,[0-9]{3})+)\s*원/)
+  if (krw) {
+    const adultPrice = Number(krw[1]!.replace(/,/g, ''))
+    return {
+      currency: 'KRW',
+      adultPrice: Number.isFinite(adultPrice) ? adultPrice : null,
+      priceText: `${krw[1]}원`,
+    }
+  }
+  return { currency: null, adultPrice: null, priceText: null }
+}
+
+export function extractLottetourOptionalFromSpotListAjax(html: string | null): OptionalTourRowFields[] {
+  if (!html?.trim()) return []
+  const section = lottetourOptionalSectionHtml(html)
+  if (!section) return []
+  const out: OptionalTourRowFields[] = []
+  const seen = new Set<string>()
+  for (const dl of section.matchAll(/<dl class="dl_box type03">([\s\S]*?)<\/dl>/gi)) {
+    const block = dl[1] ?? ''
+    const label = block.match(/<dt>[\s\S]*?\[선택관광\]\s*([^<\[]+)/i)?.[1]
+    const name = stripLottetourScheduleHtml(label ?? '')
+    if (!name || seen.has(name)) continue
+    const body = stripLottetourScheduleHtml(block.match(/<dd>([\s\S]*?)<\/dd>/i)?.[1] ?? '')
+    const priceHay = stripLottetourScheduleHtml(
+      block.match(/<table[\s\S]*?<\/table>/i)?.[0] ?? body,
+    )
+    const price = parseLottetourOptionalPrice(priceHay)
+    const row: OptionalTourRowFields = {
+      name,
+      currency: price.currency,
+      adultPrice: price.adultPrice,
+      childPrice: null,
+      durationText: body.match(/(?:소요|약)\s*[0-9]{1,2}\s*(?:분|시간)/i)?.[0]?.slice(0, 40) ?? null,
+      minPaxText: null,
+      guide同行Text: null,
+      waitingPlaceText: null,
+      raw: [name, body].filter(Boolean).join(' ').slice(0, 500),
+      priceText: price.priceText,
+    }
+    if (!name) continue
+    seen.add(name)
+    out.push(row)
+  }
+  return filterOptionalTourRows(out)
+}
+
+export function lottetourOptionalRowsToStructuredJson(rows: OptionalTourRowFields[]): string | null {
+  if (rows.length === 0) return null
+  return JSON.stringify(
+    rows.map((r) => ({
+      tourName: r.name,
+      currency: r.currency ?? '',
+      adultPrice: r.adultPrice ?? null,
+      childPrice: r.childPrice ?? null,
+      durationText: r.durationText ?? '',
+      minPaxText: r.minPaxText ?? '',
+      guide同行Text: r.guide同行Text ?? '',
+      waitingPlaceText: r.waitingPlaceText ?? '',
+      raw: r.raw,
+      priceText: r.priceText ?? null,
+      alternateScheduleText: r.alternateScheduleText ?? null,
+    })),
+  )
+}
+
+export function lottetourHaystackDeclaresNoOptional(haystack: string | null | undefined): boolean {
+  const t = (haystack ?? '').trim()
+  return /NO\s*옵션|노옵션|无选项|선택관광\s*없음/i.test(t)
+}
+
 async function fetchMatchingEvtListRow(
   evtCd: string,
   godId: string,
@@ -264,6 +515,28 @@ export async function fetchLottetourRegisterDetailBundle(
     evtListRow = await fetchMatchingEvtListRow(evtCd, godId, hints.menuNos, referer)
   }
 
-  if (!basicAjaxHtml && !coreInfoHtml && !evtListRow) return null
-  return { basicAjaxHtml, coreInfoHtml, evtListRow, evtCd, godId }
+  const godScheId = extractLottetourGodScheIdFromBasicAjax(basicAjaxHtml, evtCd)
+  await paceBetweenLottetourRegisterFetches()
+
+  const scheduleAjaxHtml = await fetchLottetourScheduleAjaxHtml(evtCd, referer)
+  await paceBetweenLottetourRegisterFetches()
+
+  let spotListAjaxHtml: string | null = null
+  if (godScheId) {
+    spotListAjaxHtml = await fetchLottetourSpotListAjaxHtml(evtCd, godScheId, referer)
+  }
+
+  if (!basicAjaxHtml && !coreInfoHtml && !evtListRow && !scheduleAjaxHtml && !spotListAjaxHtml) {
+    return null
+  }
+  return {
+    basicAjaxHtml,
+    coreInfoHtml,
+    scheduleAjaxHtml,
+    spotListAjaxHtml,
+    evtListRow,
+    evtCd,
+    godId,
+    godScheId,
+  }
 }

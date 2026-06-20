@@ -1,6 +1,6 @@
 /**
- * 롯데관광 등록 — evtDetailBasicAjax·coreInfo로 상세카드 축 자동 수집.
- * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음. 일정표는 v1 미수집(브라우저·godScheId 후속).
+ * 롯데관광 등록 — evtDetailBasicAjax·coreInfo·scheduleAjax·spotListAjax 상세카드 자동 수집.
+ * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[lottetour-register-detail-collect]: augmentLottetourParsedWithDetailCollect — manifest
  */
@@ -9,21 +9,41 @@ import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-lottet
 import {
   extractLottetourFeesFromExcluded,
   extractLottetourIncludedExcludedFromBasicAjax,
+  extractLottetourMeetingFromScheduleAjax,
   extractLottetourMustKnowFromBasicAjax,
+  extractLottetourOptionalFromSpotListAjax,
   extractLottetourShoppingVisitCountFromCoreInfo,
   fetchLottetourRegisterDetailBundle,
   lottetourCalendarRowToFlightStructured,
+  lottetourHaystackDeclaresNoOptional,
+  lottetourOptionalRowsToStructuredJson,
+  parseLottetourScheduleDaysFromScheduleAjax,
 } from '@/lib/lottetour-register-api-detail'
 import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetour-shopping'
 import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 
 export type LottetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
-  pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'shopping'>> | null
+  pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'shopping' | 'optionalTour'>> | null
 }
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
   const raw = parsed.shoppingStops
+  if (!raw?.trim()) return false
+  try {
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) && arr.length > 0
+  } catch {
+    return false
+  }
+}
+
+function hasOptionalPaste(ctx?: LottetourRegisterDetailAugmentCtx): boolean {
+  return Boolean(ctx?.pastedBlocks?.optionalTour?.trim())
+}
+
+function hasStructuredOptional(parsed: RegisterParsed): boolean {
+  const raw = parsed.optionalToursStructured
   if (!raw?.trim()) return false
   try {
     const arr = JSON.parse(raw) as unknown
@@ -63,6 +83,17 @@ function needsLottetourFlightCollect(parsed: RegisterParsed): boolean {
   return !hasFlat && !hasStructured
 }
 
+function needsLottetourMeetingCollect(parsed: RegisterParsed): boolean {
+  return !Boolean(parsed.meetingInfoRaw?.trim() || parsed.meetingPlaceRaw?.trim())
+}
+
+function needsLottetourOptionalCollect(parsed: RegisterParsed, ctx?: LottetourRegisterDetailAugmentCtx): boolean {
+  if (hasOptionalPaste(ctx) || hasStructuredOptional(parsed)) return false
+  const titleHay = [parsed.title, parsed.rawTitle, parsed.comparisonTitle].filter(Boolean).join(' ')
+  if (lottetourHaystackDeclaresNoOptional(titleHay)) return false
+  return parsed.hasOptionalTour !== false && (parsed.optionalTourCount ?? 0) === 0
+}
+
 export async function augmentLottetourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: LottetourRegisterDetailAugmentCtx,
@@ -74,28 +105,56 @@ export async function augmentLottetourParsedWithDetailCollect(
   const needInclExcl = needsLottetourIncludedExcludedCollect(parsed)
   const needMustKnow = needsLottetourMustKnowCollect(parsed)
   const needFlight = needsLottetourFlightCollect(parsed)
+  const needMeeting = needsLottetourMeetingCollect(parsed)
+  const needOpt = needsLottetourOptionalCollect(parsed, ctx)
   const needShop =
     !Boolean(ctx?.pastedBlocks?.shopping?.trim()) &&
     !hasStructuredShopping(parsed) &&
     parsed.shoppingVisitCount == null
 
-  // v1: 일정·선택관광은 브라우저/godScheId 후속 — 붙여넣기·LLM 우선
-  if (!needInclExcl && !needMustKnow && !needFlight && !needShop) {
-    if (!needSchedule) return parsed
+  if (!needSchedule && !needInclExcl && !needMustKnow && !needFlight && !needMeeting && !needOpt && !needShop) {
+    return parsed
   }
 
   const bundle = await fetchLottetourRegisterDetailBundle(originUrl)
-  if (!bundle?.basicAjaxHtml && !bundle?.coreInfoHtml && !bundle?.evtListRow) {
+  if (
+    !bundle?.basicAjaxHtml &&
+    !bundle?.coreInfoHtml &&
+    !bundle?.evtListRow &&
+    !bundle?.scheduleAjaxHtml &&
+    !bundle?.spotListAjaxHtml
+  ) {
     return {
       ...parsed,
       lottetourDetailCollectRan: false,
-      lottetourDetailCollectSummary: '자동수집 스킵: basicAjax·coreInfo 응답 없음',
+      lottetourDetailCollectSummary: '자동수집 스킵: basicAjax·schedule·spotList 응답 없음',
     }
   }
 
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
-  const { basicAjaxHtml, coreInfoHtml, evtListRow } = bundle
+  const { basicAjaxHtml, coreInfoHtml, evtListRow, scheduleAjaxHtml, spotListAjaxHtml } = bundle
+
+  if (needSchedule && scheduleAjaxHtml) {
+    const scheduleDays = parseLottetourScheduleDaysFromScheduleAjax(scheduleAjaxHtml)
+    if (scheduleDays.length > 0) {
+      next = { ...next, schedule: scheduleDays }
+      summaryParts.push(`일정 ${scheduleDays.length}일차`)
+    }
+  }
+
+  if (needMeeting && scheduleAjaxHtml) {
+    const meeting = extractLottetourMeetingFromScheduleAjax(scheduleAjaxHtml)
+    if (meeting.meetingInfoRaw) {
+      next = {
+        ...next,
+        meetingPlaceRaw: meeting.meetingPlaceRaw,
+        meetingInfoRaw: meeting.meetingInfoRaw,
+        meetingNoticeRaw: meeting.meetingNoticeRaw,
+      }
+      summaryParts.push('미팅/집결')
+    }
+  }
 
   if (needInclExcl && basicAjaxHtml) {
     const { includedItems, excludedItems } = extractLottetourIncludedExcludedFromBasicAjax(basicAjaxHtml)
@@ -172,6 +231,21 @@ export async function augmentLottetourParsedWithDetailCollect(
     }
   }
 
+  if (needOpt && spotListAjaxHtml) {
+    const optRows = extractLottetourOptionalFromSpotListAjax(spotListAjaxHtml)
+    if (optRows.length > 0) {
+      next = {
+        ...next,
+        optionalToursStructured: lottetourOptionalRowsToStructuredJson(optRows),
+        optionalTourCount: optRows.length,
+        hasOptionalTour: true,
+        optionalTourSummaryText:
+          optRows.length > 1 ? `현지옵션 ${optRows.length}개` : '현지옵션 있음',
+      }
+      summaryParts.push(`선택관광 ${optRows.length}건`)
+    }
+  }
+
   if (needShop) {
     const visitCount = extractLottetourShoppingVisitCountFromCoreInfo(coreInfoHtml)
     if (visitCount != null) {
@@ -186,17 +260,11 @@ export async function augmentLottetourParsedWithDetailCollect(
     }
   }
 
-  if (needSchedule && needInclExcl && summaryParts.length === 0) {
-    /* 일정 API 미연결 — 붙여넣기·LLM 유지 */
-  }
-
   const notes = [...(next.registerPreviewPolicyNotes ?? [])]
   const note =
     summaryParts.length > 0
-      ? `롯데관광 상세카드 자동수집: ${summaryParts.join(' · ')} (evtDetailBasicAjax+coreInfo)`
-      : needSchedule
-        ? '롯데관광 상세카드 자동수집: 일정 API 미연결·붙여넣기·LLM 우선'
-        : '롯데관광 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
+      ? `롯데관광 상세카드 자동수집: ${summaryParts.join(' · ')} (basicAjax+scheduleAjax+spotList)`
+      : '롯데관광 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 
   return {

@@ -80,13 +80,14 @@ npm run db:lottetour-sweep-oneshot -- --dry-run
 | 엔드포인트 | plain GET | 비고 |
 |-----------|-----------|------|
 | `evtListAjax` | ✅ 가격·출발 | sweep SSOT (`lib/lottetour-departures.ts`) |
-| `evtDetailScheduleAjax` | ❌ 500 | 상세 탭 클릭·세션·파라미터 조합 필요 |
-| `evtDetailScheBasDetlLisAjax` | ⚠️ `godScheId` 필수 | 200이나 일차 본문 아님(약관 HTML) — **godScheId ≠ godId** |
-| `evtScheEtcList` | ⚠️ JSON 200 | `scheList` 메타만, POI/일차 문구 없음 |
-| `evtDetailBasicAjax` | ✅ HTML | 행사·출발 메타; 일차별 관광지 아님 |
-| evtDetail SSR | — | **일차 텍스트 0** — 탭 lazy-load |
+| `evtDetailScheduleAjax?evtCd=&viewType=basic` | ✅ HTML 200 | 일정·미팅 SSOT (`godId`/`godScheId` 불필요) |
+| `evtSpotListAjax?evtCd=&godScheId=&viewType=basic` | ✅ HTML 200 | 선택관광 목록 — `godScheId`는 basicAjax `callEvtDetailScheBasDetlLisAjax`에서 추출 |
+| `evtDetailScheBasDetlLisAjax` | ⚠️ `godScheId` 필수 | 약관 HTML — 일정 본문 아님 |
+| `evtScheEtcList` | ⚠️ JSON 200 | `scheList` 메타만(행사별 godScheId 미매칭) |
+| `evtDetailBasicAjax` | ✅ HTML | 행사·포함/불포함·godScheId 힌트 |
+| evtDetail SSR | — | 일차 텍스트 0 — scheduleAjax lazy-load |
 
-**결론:** 롯데 일정은 **ybtour/hanatour gw처럼 단독 HXR JSON으로 바로 못 가져옴**. 등록은 기존 **본문 붙여넣기 + LLM** (`detail-body-parser-lottetour`) 유지. 향후 `godScheId` 추출·탭 시퀀스 브라우저 수집은 register-facts tier.
+**등록 상세카드:** `lib/lottetour-register-api-detail.ts` + `lib/lottetour-register-detail-collect.ts` — basicAjax·coreInfo·scheduleAjax·spotListAjax augment.
 
 Probe artifacts: `ops/lottetour-schedule-api-probe.json`, `ops/lottetour-schedule-endpoint-live.json`, `ops/lottetour-schedule-godScheId-probe.json`
 

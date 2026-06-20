@@ -8,8 +8,11 @@ import { fetchLottetourRegisterDetailBundle } from '@/lib/lottetour-register-api
 import { fetchYbtourRegisterDetailBundle } from '@/lib/ybtour-register-api-detail'
 import {
   extractLottetourIncludedExcludedFromBasicAjax,
+  extractLottetourMeetingFromScheduleAjax,
   extractLottetourMustKnowFromBasicAjax,
+  extractLottetourOptionalFromSpotListAjax,
   extractLottetourShoppingVisitCountFromCoreInfo,
+  parseLottetourScheduleDaysFromScheduleAjax,
 } from '@/lib/lottetour-register-api-detail'
 import {
   extractYbtourIncludedExcluded,
@@ -214,15 +217,14 @@ async function probeLottetour(url: string): Promise<AxisResult[]> {
   )
   const shop = extractLottetourShoppingVisitCountFromCoreInfo(bundle.coreInfoHtml)
   const must = extractLottetourMustKnowFromBasicAjax(bundle.basicAjaxHtml)
-  const scheduleProbe = await fetch(
-    `https://www.lottetour.com/evtDetailScheduleAjax?evtCd=${encodeURIComponent(bundle.evtCd ?? '')}&godId=${encodeURIComponent(bundle.godId ?? '')}`,
-    { headers: { 'User-Agent': 'Mozilla/5.0' } },
-  ).catch(() => null)
+  const scheduleDays = parseLottetourScheduleDaysFromScheduleAjax(bundle.scheduleAjaxHtml)
+  const meeting = extractLottetourMeetingFromScheduleAjax(bundle.scheduleAjaxHtml)
+  const opt = extractLottetourOptionalFromSpotListAjax(bundle.spotListAjaxHtml)
   return [
     {
       axis: 'schedule',
-      ok: false,
-      detail: `evtDetailScheduleAjax status=${scheduleProbe?.status ?? 'err'} (v1 미연결)`,
+      ok: scheduleDays.length > 0,
+      detail: `scheduleAjax viewType=basic days=${scheduleDays.length} godScheId=${bundle.godScheId ?? 'null'}`,
     },
     {
       axis: 'included/excluded',
@@ -236,8 +238,16 @@ async function probeLottetour(url: string): Promise<AxisResult[]> {
       ok: Boolean(bundle.evtListRow?.carrierText),
       detail: bundle.evtListRow?.carrierText?.slice(0, 40) ?? 'evtList row missing',
     },
-    { axis: 'optional', ok: false, detail: 'v1 미연결(붙여넣기 SSOT)' },
-    { axis: 'meeting', ok: false, detail: 'v1 미연결' },
+    {
+      axis: 'optional',
+      ok: opt.length > 0 || Boolean(bundle.spotListAjaxHtml?.includes('선택관광')),
+      detail: `spotList rows=${opt.length} (NO옵션 상품은 0건 정상)`,
+    },
+    {
+      axis: 'meeting',
+      ok: Boolean(meeting.meetingInfoRaw),
+      detail: meeting.meetingPlaceRaw?.slice(0, 60) ?? meeting.meetingInfoRaw?.slice(0, 60) ?? 'none',
+    },
   ]
 }
 
