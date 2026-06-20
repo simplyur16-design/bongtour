@@ -14,7 +14,9 @@ import {
   parseKyowontourCoreTabDetail,
   parseKyowontourScheduleTabDetail,
 } from '@/lib/kyowontour-tour-event-tab-data'
+import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
@@ -94,16 +96,12 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     refererUrl: url,
   })
 
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const priceRows = cal.rows
-    .filter((r) => r.adultPriceFromCalendar > 0 && r.departDate)
-    .slice(0, 24)
-    .map((r) => ({
-      departureDate: r.departDate,
-      adultPrice: r.adultPriceFromCalendar,
-      childPrice: null,
-      infantPrice: null,
-      supplierDepartureCode: hidden.tourCode,
-    }))
+    .filter((r) => r.adultPriceFromCalendar > 0 && r.departDate && r.departDate >= fromYmd && r.departDate <= toYmd)
+    .map((r) => kyowontourCalendarRowToFactPriceRow(r))
+    .filter((row): row is NonNullable<typeof row> => row != null)
 
   const nightsDays = html.match(/(\d+)\s*박\s*(\d+)\s*일/)
 

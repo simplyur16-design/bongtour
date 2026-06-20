@@ -4,44 +4,33 @@
  * REGRESSION-FREEZE[kyowontour-register-api-price-inject]: injectKyowontourApiDeparturePricesIfMissing — manifest
  */
 import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
-import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
-import { departureInputToYmd } from '@/lib/scrape-date-bounds'
+import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
 import { extractKyowontourHiddenFieldsFromDetailHtml } from '@/lib/kyowontour-tour-event-tab-data'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
-
-function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice | null {
-  const date = departureInputToYmd(dep.departureDate)
-  if (!date) return null
-  return {
-    date,
-    adultBase: dep.adultPrice ?? 0,
-    adultFuel: 0,
-    childBedBase: dep.childBedPrice ?? undefined,
-    childFuel: 0,
-    infantBase: dep.infantPrice ?? undefined,
-    infantFuel: 0,
-    status: '예약가능',
-    availableSeats: 0,
-    carrierName: dep.carrierName ?? null,
-    outboundFlightNo: dep.outboundFlightNo ?? null,
-  }
-}
 
 function calendarRowsToDepartureInputs(
   rows: Awaited<ReturnType<typeof collectKyowontourCalendarRange>>['rows'],
 ): DepartureInput[] {
   return rows
-    .filter((r) => r.adultPriceFromCalendar > 0 && r.departDate)
-    .map((r) => ({
-      departureDate: r.departDate,
-      adultPrice: r.adultPriceFromCalendar,
-      statusRaw: r.status === 'available' ? '예약가능' : r.status,
-      seatsStatusRaw: null,
-      carrierName: r.airline || null,
-    }))
+    .map((r) => {
+      const fact = kyowontourCalendarRowToFactPriceRow(r)
+      if (!fact?.departureDate || (fact.adultPrice ?? 0) <= 0) return null
+      return {
+        departureDate: fact.departureDate,
+        adultPrice: fact.adultPrice,
+        statusRaw: fact.statusRaw ?? undefined,
+        seatsStatusRaw: fact.seatsStatusRaw ?? undefined,
+        seatCount: fact.seatCount ?? undefined,
+        minPax: fact.minPax ?? undefined,
+        carrierName: fact.carrierName ?? null,
+      } satisfies DepartureInput
+    })
+    .filter((x): x is DepartureInput => x != null)
 }
 
 async function resolveKyowontourMasterCode(originUrl: string): Promise<{ masterCode: string; tourCode: string } | null> {
@@ -78,7 +67,11 @@ export async function injectKyowontourApiDeparturePricesIfMissing(
     log: process.env.DEV_REGISTER_PERF_LOG === '1',
     logLabel: 'register-api-price-inject',
   })
-  const inputs = calendarRowsToDepartureInputs(cal.rows)
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const inputs = calendarRowsToDepartureInputs(
+    cal.rows.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd),
+  )
   if (inputs.length === 0) return parsed
 
   const first = inputs[0]!
@@ -89,13 +82,16 @@ export async function injectKyowontourApiDeparturePricesIfMissing(
   }
 
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
-  const note = `kyowontour calendar AJAX 출발가 주입: ${inputs.length}행`
+  const note = `kyowontour calendar AJAX 출발·가격 주입: ${inputs.length}행`
   if (!notes.includes(note)) notes.push(note)
+
+  const prices = registerDepartureInputsToParsedPrices(inputs)
+  if (prices.length === 0) return parsed
 
   return {
     ...parsed,
     productPriceTable,
-    prices: inputs.map(departureInputToPriceRow).filter((row): row is ParsedProductPrice => row != null),
+    prices,
     registerPreviewPolicyNotes: notes,
   }
 }
