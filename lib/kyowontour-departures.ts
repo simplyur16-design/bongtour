@@ -9,6 +9,7 @@ import path from 'path'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import { buildCommonMatchingTrace, buildDepartureTitleLayers, type DepartureTitleLayers } from '@/lib/departure-option-kyowontour'
+import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-kyowontour'
@@ -578,6 +579,8 @@ export function mapKyowontourCalendarToDepartureInputs(
 ): DepartureInput[] {
   const out: DepartureInput[] = []
   for (const r of rows) {
+    const fact = kyowontourCalendarRowToFactPriceRow(r)
+    if (!fact?.departureDate) continue
     const layers = titleLayersFromTourCode(r.tourCode)
     const trace = buildCommonMatchingTrace({
       source: 'kyowontour_differentDepartDate',
@@ -586,10 +589,13 @@ export function mapKyowontourCalendarToDepartureInputs(
       notes: [`productId=${productId}`, `tourCode=${r.tourCode}`, `status=${r.status}`],
     })
     out.push({
-      departureDate: r.departDate,
-      adultPrice: r.adultPriceFromCalendar > 0 ? r.adultPriceFromCalendar : null,
-      carrierName: r.airline || null,
-      statusRaw: r.status,
+      departureDate: fact.departureDate,
+      adultPrice: fact.adultPrice,
+      carrierName: fact.carrierName,
+      statusRaw: fact.statusRaw,
+      seatsStatusRaw: fact.seatsStatusRaw,
+      seatCount: fact.seatCount,
+      minPax: fact.minPax,
       supplierDepartureCodeCandidate: r.tourCode || null,
       matchingTraceRaw: trace,
     })
