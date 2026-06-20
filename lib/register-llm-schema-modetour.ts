@@ -315,12 +315,25 @@ export type RegisterParsed = {
   registerFitItineraryGeminiJson?: string | null
   /** 관리자 등록 분석 DB용 LLM 병합 객체 JSON (API 응답에서 제외) */
   registerAdminPersistedLlmParsedJson?: string | null
+  /** 내부: B2C+HTML 상세카드 자동수집(미리보기 adapterPrefetchRan) */
+  modetourDetailCollectRan?: boolean
+  modetourDetailCollectSummary?: string | null
 }
 
 /** API·클라이언트 응답용: 내부 감사·관리자 저장 전용 필드 제거 */
 export function stripRegisterInternalArtifacts(p: RegisterParsed): RegisterParsed {
-  const x = p as RegisterParsed & { registerAdminPersistedLlmParsedJson?: string | null }
-  const { registerParseAudit: _a, registerAdminPersistedLlmParsedJson: _p, ...rest } = x
+  const x = p as RegisterParsed & {
+    registerAdminPersistedLlmParsedJson?: string | null
+    modetourDetailCollectRan?: boolean
+    modetourDetailCollectSummary?: string | null
+  }
+  const {
+    registerParseAudit: _a,
+    registerAdminPersistedLlmParsedJson: _p,
+    modetourDetailCollectRan: _c,
+    modetourDetailCollectSummary: _s,
+    ...rest
+  } = x
   return rest as RegisterParsed
 }
 

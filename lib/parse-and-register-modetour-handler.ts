@@ -81,6 +81,7 @@ import {
   resolveModetourRegisterProductTitleForConfirm,
 } from '@/lib/modetour-register-product-title-ssot'
 import { collectModetourItineraryInputs } from '@/lib/modetour-itinerary-collector'
+import { augmentModetourParsedWithDetailCollect } from '@/lib/modetour-register-detail-collect'
 import {
   normalizeModetourHotelSummaryComposeBlock,
   normalizeModetourRegisterAdminTextareas,
@@ -803,6 +804,11 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       parsed = supplementModetourScheduleFromPastedBody(parsed, text)
     }
 
+    parsed = await augmentModetourParsedWithDetailCollect(parsed, {
+      originUrl,
+      pastedBlocks,
+    })
+
     if (!parsed.originCode || parsed.originCode === '미지정') {
       return NextResponse.json(
         { error: '상품코드(originCode)를 추출할 수 없습니다.' },
@@ -1502,10 +1508,14 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     const autoExtracted = {
       supplierLabel: earlySource,
       originUrl,
-      adapterPrefetchRan: false,
+      adapterPrefetchRan: Boolean(parsed.modetourDetailCollectRan),
       departureRowCount: departureInputs.length,
       urlSeed: null as { originCode: string; titleHint: string | null } | null,
-      adapterSummaryPreview: '공통 등록 본류는 URL·어댑터 자동수집을 사용하지 않습니다.',
+      adapterSummaryPreview:
+        parsed.modetourDetailCollectSummary ??
+        (parsed.modetourDetailCollectRan === false
+          ? '상세카드 자동수집 미실행(붙여넣기 우선 또는 URL/응답 없음).'
+          : '공통 등록 본류는 URL·어댑터 자동수집을 사용하지 않습니다.'),
       pricePromotionFromAdapterDom: null,
     }
 
