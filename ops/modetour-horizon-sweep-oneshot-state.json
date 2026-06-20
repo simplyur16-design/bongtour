@@ -1,0 +1,2649 @@
+{
+  "startedAt": "2026-06-19T14:07:33.681Z",
+  "updatedAt": "2026-06-19T15:03:29.628Z",
+  "horizonDays": 180,
+  "total": 138,
+  "cursor": 138,
+  "completed": 138,
+  "skippedNoProductNo": 0,
+  "log": [
+    {
+      "at": "2026-06-19T14:07:35.895Z",
+      "index": 0,
+      "slug": "fit-mt-0004",
+      "productNo": "100225719",
+      "title": "[오사카 자유4일] 씨티루트 호텔급 (더블룸/도심위치)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:09:24.487Z",
+      "index": 1,
+      "slug": "fit-mt-0005",
+      "productNo": "105183749",
+      "title": "[도쿄 자유3일] 도미인 코라쿠엔 호텔급 (온천욕/트윈or더블룸)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:09:26.539Z",
+      "index": 2,
+      "slug": "fit-mt-0006",
+      "productNo": "100137318",
+      "title": "[올인ONEday][후쿠오카 자유3일+1DAY투어] 시내호텔급(세미더블룸/하카타역근처)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:11:08.986Z",
+      "index": 3,
+      "slug": "fit-mt-0008",
+      "productNo": "103643430",
+      "title": "[모두의렌트카] 오키나와 퍼시픽호텔 자유 4일 (항공+호텔+렌트카)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:12:50.526Z",
+      "index": 4,
+      "slug": "fit-mt-0010",
+      "productNo": "102323383",
+      "title": "[4성급/가오슝시내] 대만 남부 가오슝 에어텔 4일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:13:56.729Z",
+      "index": 5,
+      "slug": "fit-mt-0011",
+      "productNo": "101516646",
+      "title": "[에어텔] 이비스 노베나 싱가포르 자유여행 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:15:40.543Z",
+      "index": 6,
+      "slug": "fit-mt-0012",
+      "productNo": "101516779",
+      "title": "[에어텔] 싱가포르 자유여행 3박 5일 (준특급 2박 + 마리나베이샌즈 1박)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:17:24.150Z",
+      "index": 7,
+      "slug": "fit-mt-0013",
+      "productNo": "103961756",
+      "title": "[저녁출발/에어텔]사이판 PIC 슈페리어룸 3박5일<레이트체크아웃/전일정호텔식(골드패스)>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:19:06.208Z",
+      "index": 8,
+      "slug": "fit-mt-0014",
+      "productNo": "105641662",
+      "title": "[홍콩에어텔] 알렉산드라 호텔 2박4일 <트윈룸/홍콩섬위치/포트리스힐역도보5분>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:19:09.005Z",
+      "index": 9,
+      "slug": "fit-mt-0015",
+      "productNo": "105145350",
+      "title": "[4인가족전용] [안다즈2박] 마카오 에어텔 3일 (5성)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:19:11.339Z",
+      "index": 10,
+      "slug": "fit-mt-0016",
+      "productNo": "103726692",
+      "title": "[요나고 자유3일] 하베스트 인 요나고 호텔급 [세미더블/JR요나고역]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:19:13.214Z",
+      "index": 11,
+      "slug": "fit-mt-0017",
+      "productNo": "100739303",
+      "title": "[UP][풀커버 자유여행] 초특급 힐튼 하와이언 빌리지 <리조트뷰->오션뷰> 하와이 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:19:15.104Z",
+      "index": 12,
+      "slug": "fit-mt-0018",
+      "productNo": "100739298",
+      "title": "[풀커버 자유여행] 특급 애스톤 와이키키 선셋 <원 베드룸 스탠다드> 하와이 6일 <4인가족 전용>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:20:57.133Z",
+      "index": 13,
+      "slug": "fit-mt-0019",
+      "productNo": "104886099",
+      "title": "스마일 호텔 시즈오카 4일 ●호텔 1박 포함●(3성/세미더블/조식불포함/1박만 포함)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:22:02.204Z",
+      "index": 14,
+      "slug": "fit-mt-0023",
+      "productNo": "106813923",
+      "title": "도미인 코라쿠엔 호텔급 (온천욕♨/트윈or더블룸/최적의위치)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:22:31.908Z",
+      "index": 15,
+      "slug": "fit-mt-0024",
+      "productNo": "107758490",
+      "title": "펄 스프링 호텔급 (시내호텔/트윈룸)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:22:34.983Z",
+      "index": 16,
+      "slug": "fit-mt-0025",
+      "productNo": "101994710",
+      "title": "더 비(THE B) 하카타 호텔급 (더블룸/하카타역도보5분)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:22:38.106Z",
+      "index": 17,
+      "slug": "fit-mt-0026",
+      "productNo": "106383757",
+      "title": "코코 호텔 나고야 사카에 사우스급 (더블룸/나고야중심부)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:23:07.348Z",
+      "index": 18,
+      "slug": "fit-mt-0027",
+      "productNo": "105739695",
+      "title": "<시내4성>타이중 자유여행 4일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:23:37.068Z",
+      "index": 19,
+      "slug": "fit-mt-0028",
+      "productNo": "101445060",
+      "title": "<시내4성/참참호텔>타이베이 자유여행 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:23:41.062Z",
+      "index": 20,
+      "slug": "fit-mt-0029",
+      "productNo": "106515068",
+      "title": "솔레아 슈페리어룸 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T14:23:44.565Z",
+      "index": 21,
+      "slug": "fit-mt-0030",
+      "productNo": "103858569",
+      "title": "세부 솔레아 프리미어씨티뷰 3박5일 [리조트디너1회/워터파크]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:24:13.855Z",
+      "index": 22,
+      "slug": "fit-mt-0031",
+      "productNo": "104629478",
+      "title": "보라카이 헤난 라군 프리미어 4박5일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:24:17.724Z",
+      "index": 23,
+      "slug": "fit-mt-0032",
+      "productNo": "108660650",
+      "title": "MOM편한 자유여행 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:24:22.452Z",
+      "index": 24,
+      "slug": "fit-mt-0033",
+      "productNo": "104846081",
+      "title": "푸꾸옥 자유여행 3박5일 [노보텔 푸꾸옥]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:24:26.414Z",
+      "index": 25,
+      "slug": "fit-mt-0034",
+      "productNo": "101410328",
+      "title": "나트랑 MOM편한 자유여행 3박5일 [하바나 호텔(디럭스 오션뷰)]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 1
+      }
+    },
+    {
+      "at": "2026-06-19T14:26:08.391Z",
+      "index": 26,
+      "slug": "fit-mt-0035",
+      "productNo": "99895567",
+      "title": "사파 MOM편한 자유여행 5일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:27:51.368Z",
+      "index": 27,
+      "slug": "fit-mt-0036",
+      "productNo": "105894834",
+      "title": "호치민 MOM편한 자유여행 3박5일[다이남 부티크 시그니처룸]",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:28:44.146Z",
+      "index": 28,
+      "slug": "fit-mt-0037",
+      "productNo": "109107855",
+      "title": "레갈라 스카이시티 호텔 2박4일 <별빛든든투어 포함/조식포함/디즈니랜드셔틀>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:28:47.015Z",
+      "index": 29,
+      "slug": "fit-mt-0038",
+      "productNo": "108458749",
+      "title": "<스튜디오시티2박> 마카오 자유여행 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:30:29.130Z",
+      "index": 30,
+      "slug": "fit-mt-0039",
+      "productNo": "107174970",
+      "title": "상해 쑤닝 노보텔 호텔 3박4일 (준5성급)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:32:06.186Z",
+      "index": 31,
+      "slug": "fit-mt-0040",
+      "productNo": "104750129",
+      "title": "괌 닛코 오션프론트룸 3박5일<레이트체크아웃>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:32:08.495Z",
+      "index": 32,
+      "slug": "fit-mt-0041",
+      "productNo": "108516998",
+      "title": "괌 두짓타니/츠바키 믹스 자유여행 4박5일 <디럭스 오션프론트룸 2박+카멜리아 로우룸 2박>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:32:10.395Z",
+      "index": 33,
+      "slug": "fit-mt-0042",
+      "productNo": "106146743",
+      "title": "사이판 아쿠아리조트 디럭스오션뷰룸 5일<호텔조식/레이트체크아웃>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:32:12.531Z",
+      "index": 34,
+      "slug": "fit-mt-0043",
+      "productNo": "104098955",
+      "title": "초특급 힐튼 하와이언 빌리지 <리조트뷰->오션뷰> 하와이 6일 <3인 전용>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:32:14.666Z",
+      "index": 35,
+      "slug": "fit-mt-0044",
+      "productNo": "99246305",
+      "title": "준특급 애스톤 와이키키 반얀 <원 베드룸 스탠다드> 하와이 6일 <4인 전용>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:32:16.436Z",
+      "index": 36,
+      "slug": "pkg-mt-0004",
+      "productNo": "105776978",
+      "title": "[보랏빛 후라노/비에이 숙박] 오타루, 삿포로, 북해도 4일 (3대게/노옵션)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:35:08.822Z",
+      "index": 37,
+      "slug": "pkg-mt-0005",
+      "productNo": "103187765",
+      "title": "[홈쇼핑따라잡기X오키프리미엄] 오키나와 힐튼슈리+더비치 4일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 180,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:36:52.830Z",
+      "index": 38,
+      "slug": "pkg-mt-0009",
+      "productNo": "105885678",
+      "title": "[출발확정] 스위스/이탈리아 2국 9일 <노쇼핑/융프라우/루체른/관광열차/피사/폼페이/콜로세움내부>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 5,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:36:54.750Z",
+      "index": 39,
+      "slug": "pkg-mt-0011",
+      "productNo": "103244375",
+      "title": "[성지순례 | 사도바울 전도여행] 튀르키예 완전 일주 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:36:58.158Z",
+      "index": 40,
+      "slug": "pkg-mt-0013",
+      "productNo": "106487373",
+      "title": "[BEST]<전일관광/노쇼핑>[월드체인호텔] 싱가포르 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:39:50.284Z",
+      "index": 41,
+      "slug": "pkg-mt-0016",
+      "productNo": "104197181",
+      "title": "[골프텔/뉴아시아CC/무제한] 클락 골프 5일 <전일정석식/2인단독라운딩/22시레이트체크아웃>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 180,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:41:35.011Z",
+      "index": 42,
+      "slug": "pkg-mt-0017",
+      "productNo": "106239383",
+      "title": "[골프텔/힐튼니세코빌리지] 북해도 골프 4일 (36홀/온천/2인가능)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 53,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:44:27.982Z",
+      "index": 43,
+      "slug": "pkg-mt-0018",
+      "productNo": "105511684",
+      "title": "[골프텔/무제한] 라오스/태국 골프 5일 <2인OK/카지노호텔/로얄크릭골프텔/전식포함>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 180,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:44:30.054Z",
+      "index": 44,
+      "slug": "pkg-mt-0026",
+      "productNo": "105770751",
+      "title": "코카서스 3국/타슈켄트 11일 코카서스 3국 11일 <노쇼핑/5성호텔2박/아르메니아브랜디시음/조지아와이너리>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:44:32.258Z",
+      "index": 45,
+      "slug": "pkg-mt-0034",
+      "productNo": "104552197",
+      "title": "나트랑 패키지 3박5일[4성]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:44:34.237Z",
+      "index": 46,
+      "slug": "pkg-mt-0035",
+      "productNo": "107761976",
+      "title": "다낭/호이안/바나힐/스톤마사지90분 4박6일 [미케비치 4성]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:44:37.331Z",
+      "index": 47,
+      "slug": "pkg-mt-0037",
+      "productNo": "103706768",
+      "title": "방콕/파타야 5일 (4성급호텔/왕궁/농눅빌리지)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:44:40.421Z",
+      "index": 48,
+      "slug": "pkg-mt-0038",
+      "productNo": "103706449",
+      "title": "방콕/파타야 5일 (5성급호텔/돌고래쇼/워터파크/5대특식)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:46:22.456Z",
+      "index": 49,
+      "slug": "pkg-mt-0040",
+      "productNo": "106291414",
+      "title": "후쿠오카/유후인/벳부/히타/다자이후 3일 (온천호텔1박+시내호텔1박)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 11,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:48:05.816Z",
+      "index": 50,
+      "slug": "pkg-mt-0041",
+      "productNo": "102629399",
+      "title": "오사카/고베/교토+아라시야마 3일 (교토관광VS유니버셜스튜디오)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 56,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:49:51.287Z",
+      "index": 51,
+      "slug": "pkg-mt-0042",
+      "productNo": "102630283",
+      "title": "오사카/고베/교토/아라시야마 3일(공중정원/3대특식)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 55,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:49:53.365Z",
+      "index": 52,
+      "slug": "pkg-mt-0046",
+      "productNo": "104313798",
+      "title": "장가계 원가계+천문산 4일 (준5성/케이블카)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:49:55.321Z",
+      "index": 53,
+      "slug": "pkg-mt-0047",
+      "productNo": "106174296",
+      "title": "윈청/서안/병마용 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:49:57.566Z",
+      "index": 54,
+      "slug": "pkg-mt-0048",
+      "productNo": "105146422",
+      "title": "청도 4일 (지묵고성/3대특식)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:51:40.640Z",
+      "index": 55,
+      "slug": "pkg-mt-0049",
+      "productNo": "102639096",
+      "title": "상해/항주/주가각 4일 (준4성/서호유람선/나룻배)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 60,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:51:42.696Z",
+      "index": 56,
+      "slug": "pkg-mt-0050",
+      "productNo": "102564046",
+      "title": "테를지 3박5일 (5성호텔1박+VIP게르2박)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:51:44.580Z",
+      "index": 57,
+      "slug": "pkg-mt-0051",
+      "productNo": "102934389",
+      "title": "연길/백두산(북파)/용정/두만강 3일 (준5성급호텔+발맛사지)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:51:46.387Z",
+      "index": 58,
+      "slug": "pkg-mt-0053",
+      "productNo": "106174319",
+      "title": "윈청/황애동/태항산 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:51:48.098Z",
+      "index": 59,
+      "slug": "pkg-mt-0057",
+      "productNo": "106148415",
+      "title": "북중미 2경기 참관+멕시코 일주 13일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:51:50.306Z",
+      "index": 60,
+      "slug": "pkg-mt-0059",
+      "productNo": "106266078",
+      "title": "나트랑X달랏 3박5일[나트랑 5성UP]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 5,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:53:34.398Z",
+      "index": 61,
+      "slug": "pkg-mt-0060",
+      "productNo": "104231125",
+      "title": "시애틀/알래스카 8박 10일<시애틀/인사이드 패시지>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 13,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:55:17.803Z",
+      "index": 62,
+      "slug": "pkg-mt-0062",
+      "productNo": "101580840",
+      "title": "대만/단수이/예류/스펀/지우펀 4일 (4성호텔/천등체험/특식3회)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 16,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:58:11.670Z",
+      "index": 63,
+      "slug": "pkg-mt-0063",
+      "productNo": "106491192",
+      "title": "대만/단수이/예류/스펀/지우펀 4일 (4성호텔/천등체험/특식3회)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 126,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:58:14.197Z",
+      "index": 64,
+      "slug": "pkg-mt-0064",
+      "productNo": "103516238",
+      "title": "[이웃섬투어][관광3일+자유1일] 와이키키 리조트 룸 업그레이드 하와이 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:59:53.737Z",
+      "index": 65,
+      "slug": "pkg-mt-0065",
+      "productNo": "104174528",
+      "title": "대만/단수이/예류/스펀/지우펀 3박5일 (4성호텔/천등체험/특식3회)",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 1,
+        "skipped": 0,
+        "pruned": 34,
+        "e2eCollected": 0,
+        "e2eAttempted": 1,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:59:57.767Z",
+      "index": 66,
+      "slug": "pkg-mt-0069",
+      "productNo": "103136209",
+      "title": "오사카/교토/난젠지 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 13,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T14:59:59.832Z",
+      "index": 67,
+      "slug": "pkg-mt-0072",
+      "productNo": "104908429",
+      "title": "히로시마/미야지마/오카야마 4일(1일자유/노쇼핑)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:03.935Z",
+      "index": 68,
+      "slug": "pkg-mt-0074",
+      "productNo": "96551217",
+      "title": "장사 장가계/원가계 3박5일 [월드체인5성/칠성산/VIP(백룡+보봉호)]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:06.467Z",
+      "index": 69,
+      "slug": "pkg-mt-0075",
+      "productNo": "96551499",
+      "title": "장사 장가계/원가계 3박5일 [칠성산/유리다리/황룡동굴/72기루]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:10.618Z",
+      "index": 70,
+      "slug": "pkg-mt-0076",
+      "productNo": "101685898",
+      "title": "상해/주가각 4일<황포강유람선/뱃놀이/시티버스/준5성호텔>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:13.847Z",
+      "index": 71,
+      "slug": "pkg-mt-0077",
+      "productNo": "104643705",
+      "title": "내몽고 적봉 울란부통초원+ 옥룡사막 5일<노팁노옵션노쇼핑>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:17.367Z",
+      "index": 72,
+      "slug": "pkg-mt-0078",
+      "productNo": "109360069",
+      "title": "항주/황산 4일 (NO쇼핑/준5성급호텔/특식3회)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:20.855Z",
+      "index": 73,
+      "slug": "pkg-mt-0079",
+      "productNo": "107994583",
+      "title": "항주/황산 4일 (NO쇼핑/준5성급호텔/특식3회)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:24.774Z",
+      "index": 74,
+      "slug": "pkg-mt-0080",
+      "productNo": "107854733",
+      "title": "서안/화산 핵심코스 4일 <북봉트레킹/진시황릉/서안시티투어>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:29.117Z",
+      "index": 75,
+      "slug": "pkg-mt-0081",
+      "productNo": "102848455",
+      "title": "서안/진시황릉/종루광장 5일 <4대특식/5성급호텔/전신마사지/실크로드쇼/대당부용원전통카포함>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:31.465Z",
+      "index": 76,
+      "slug": "pkg-mt-0082",
+      "productNo": "106297519",
+      "title": "<노쇼핑/노팁>정주 소림사/운대산 품격 도시투어 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:34.143Z",
+      "index": 77,
+      "slug": "pkg-mt-0083",
+      "productNo": "106303807",
+      "title": "<노옵션/노쇼핑/노팁> 제남 태항대협곡/보천대협곡/천계산/팔리구 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:36.068Z",
+      "index": 78,
+      "slug": "pkg-mt-0084",
+      "productNo": "109414073",
+      "title": "미서부 완전일주 10일 <3대도시/5대캐년/라스2박>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:38.133Z",
+      "index": 79,
+      "slug": "pkg-mt-0085",
+      "productNo": "104681454",
+      "title": "미서부 완전일주 10일 <3대도시/4대캐년/홀스슈밴드/모뉴먼트밸리/요세미티>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:40.673Z",
+      "index": 80,
+      "slug": "pkg-mt-0086",
+      "productNo": "101247758",
+      "title": "미동부 캐나다10일 <힐튼나이아가라20층이상폭포뷰/올드퀘벡숙박/뉴욕/워싱턴/몬트리올>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 4,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:42.737Z",
+      "index": 81,
+      "slug": "pkg-mt-0087",
+      "productNo": "103609703",
+      "title": "캐나다 완전일주 10일 <밴프/재스퍼/캘거리/나이아가라/퀘벡/몬트리올>",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 2,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:44.429Z",
+      "index": 82,
+      "slug": "pkg-mt-0088",
+      "productNo": "105519080",
+      "title": "호주/뉴질랜드 남북섬 8박 11일",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:46.798Z",
+      "index": 83,
+      "slug": "pkg-mt-0089",
+      "productNo": "104191921",
+      "title": "샤먼 고랑서 남정토루 푸저우 <고랑서전동카> 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:49.300Z",
+      "index": 84,
+      "slug": "pkg-mt-0090",
+      "productNo": "104189433",
+      "title": "오감이 쉬어가는 힐링도시 푸저우 핵심 <노팁/노쇼핑/정5성호텔> 2박 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:51.515Z",
+      "index": 85,
+      "slug": "pkg-mt-0091",
+      "productNo": "104201103",
+      "title": "샤먼 고랑서 남정토루 일월곡온천 시그니처 핵심 <시내중심 정5성호텔_복주 IN-OUT> 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:54.914Z",
+      "index": 86,
+      "slug": "pkg-mt-0092",
+      "productNo": "106257377",
+      "title": "중경/귀양 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:00:58.390Z",
+      "index": 87,
+      "slug": "pkg-mt-0093",
+      "productNo": "107359689",
+      "title": "중경/무산/신녀계풍경구 2박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:00.526Z",
+      "index": 88,
+      "slug": "pkg-mt-0094",
+      "productNo": "107610545",
+      "title": "리장 호도협 대리 곤명 <리무진버스투어/5성급> 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:02.214Z",
+      "index": 89,
+      "slug": "pkg-mt-0095",
+      "productNo": "109311802",
+      "title": "[후지산 런트립]싱글룸전용",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:06.251Z",
+      "index": 90,
+      "slug": "pkg-mt-0096",
+      "productNo": "101431652",
+      "title": "푸켓 인기 4성급 호텔 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 9,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:10.105Z",
+      "index": 91,
+      "slug": "pkg-mt-0097",
+      "productNo": "106895639",
+      "title": "치앙마이 품격호텔 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:12.846Z",
+      "index": 92,
+      "slug": "pkg-mt-0098",
+      "productNo": "99818900",
+      "title": "파타야/방콕 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:16.608Z",
+      "index": 93,
+      "slug": "pkg-mt-0099",
+      "productNo": "99796071",
+      "title": "치앙마이 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:20.752Z",
+      "index": 94,
+      "slug": "pkg-mt-0100",
+      "productNo": "99815071",
+      "title": "방콕파타야 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:23.659Z",
+      "index": 95,
+      "slug": "pkg-mt-0101",
+      "productNo": "106690577",
+      "title": "방콕 4성 · 파타야 5성 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:27.865Z",
+      "index": 96,
+      "slug": "pkg-mt-0103",
+      "productNo": "106270635",
+      "title": "푸켓 4성 베스트웨스턴 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 9,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:31.928Z",
+      "index": 97,
+      "slug": "pkg-mt-0104",
+      "productNo": "106635692",
+      "title": "푸켓 인기4성급 호텔 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 9,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:35.777Z",
+      "index": 98,
+      "slug": "pkg-mt-0105",
+      "productNo": "105951907",
+      "title": "< 자유/시내4성호텔>대만/예류/스펀/지우펀 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:39.560Z",
+      "index": 99,
+      "slug": "pkg-mt-0106",
+      "productNo": "105312744",
+      "title": "대만/타이중/일월담/구족문화촌/심계신촌 3박 4일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 21,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:43.725Z",
+      "index": 100,
+      "slug": "pkg-mt-0107",
+      "productNo": "101454021",
+      "title": "<양명산 티엔라이 온천>대만/베이터우/예류/스펀/지우펀 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:46.670Z",
+      "index": 101,
+      "slug": "pkg-mt-0108",
+      "productNo": "108106881",
+      "title": "발리 아야나 세가라 리조트뷰룸 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:50.754Z",
+      "index": 102,
+      "slug": "pkg-mt-0109",
+      "productNo": "105832081",
+      "title": "[발리][$180상당특전/남부+우붓/씨푸드/마사지] 준특급 패키지 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:54.919Z",
+      "index": 103,
+      "slug": "pkg-mt-0110",
+      "productNo": "105832079",
+      "title": "[발리][$180상당특전/남부+우붓/씨푸드/마사지] 준특급 패키지 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:57.178Z",
+      "index": 104,
+      "slug": "pkg-mt-0111",
+      "productNo": "104953267",
+      "title": "준특급 북인도 골든트라이앵글 <노쇼핑/3대특식> 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:01:59.366Z",
+      "index": 105,
+      "slug": "pkg-mt-0112",
+      "productNo": "104291270",
+      "title": "지상 낙원 힐링 남인도 핵심일주 스라바나벨라 골라 · 마드라스 외 7도시 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 30,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:01.569Z",
+      "index": 106,
+      "slug": "pkg-mt-0113",
+      "productNo": "104301818",
+      "title": "준특급 서인도 라자스탄 일주 조드푸르 · 자이푸르 외 5도시 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 16,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:04.131Z",
+      "index": 107,
+      "slug": "pkg-mt-0114",
+      "productNo": "104125481",
+      "title": "준특급 스리랑카 완전일주 <노쇼핑/노옵션> 6박 8일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:06.443Z",
+      "index": 108,
+      "slug": "pkg-mt-0115",
+      "productNo": "103758443",
+      "title": "준특급 북인도 완전일주 <노쇼핑/국내선1회/열차1회/특식3회/타지마할/19금사원> 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 47,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:08.810Z",
+      "index": 109,
+      "slug": "pkg-mt-0116",
+      "productNo": "105792861",
+      "title": "네팔 미니트레킹 · 문화탐방 <준특급 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:10.950Z",
+      "index": 110,
+      "slug": "pkg-mt-0117",
+      "productNo": "104291758",
+      "title": "행복의 나라 부탄 항공 일주 <노쇼핑/부탄비자포함/국내선이동2회> 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 16,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:13.434Z",
+      "index": 111,
+      "slug": "pkg-mt-0118",
+      "productNo": "105787494",
+      "title": "히말라야 네팔 트레킹 - 안나푸르나 베이스캠프 ABC 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:15.561Z",
+      "index": 112,
+      "slug": "pkg-mt-0119",
+      "productNo": "105776028",
+      "title": "준특급 네팔 문화탐방 <준특급,노쇼핑,노옵션> 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:17.537Z",
+      "index": 113,
+      "slug": "pkg-mt-0121",
+      "productNo": "106525361",
+      "title": "레 라다크 일주 <인도안에 티벳 / 노쇼핑> 7박 9일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 10,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:21.126Z",
+      "index": 114,
+      "slug": "pkg-mt-0122",
+      "productNo": "104689531",
+      "title": "라오스 비엔티엔/방비엥 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:24.735Z",
+      "index": 115,
+      "slug": "pkg-mt-0123",
+      "productNo": "104689912",
+      "title": "라오스 비엔티엔/방비엥 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:28.304Z",
+      "index": 116,
+      "slug": "pkg-mt-0124",
+      "productNo": "104690240",
+      "title": "비엔티엔/루앙프라방/방비엥 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:31.257Z",
+      "index": 117,
+      "slug": "pkg-mt-0125",
+      "productNo": "104690399",
+      "title": "라오스 비엔티엔/루앙프라방/방비엥 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:34.924Z",
+      "index": 118,
+      "slug": "pkg-mt-0126",
+      "productNo": "107855004",
+      "title": "라오스 비엔티엔/루앙프라방/방비엥 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:37.830Z",
+      "index": 119,
+      "slug": "pkg-mt-0127",
+      "productNo": "107951742",
+      "title": "코타키나발루 그란디스 슈페리어룸 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:41.187Z",
+      "index": 120,
+      "slug": "pkg-mt-0128",
+      "productNo": "102105017",
+      "title": "코타키나발루 밍가든 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:44.581Z",
+      "index": 121,
+      "slug": "pkg-mt-0129",
+      "productNo": "102107753",
+      "title": "코타키나발루 수트라하버 마젤란 씨뷰 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:46.643Z",
+      "index": 122,
+      "slug": "pkg-mt-0130",
+      "productNo": "107569693",
+      "title": "[브루나이][노쇼핑+노팁+시내관광+나이트투어] 일급호텔 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:50.858Z",
+      "index": 123,
+      "slug": "pkg-mt-0131",
+      "productNo": "101440019",
+      "title": "쿠알라룸푸르/말라카 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:55.152Z",
+      "index": 124,
+      "slug": "pkg-mt-0132",
+      "productNo": "103952114",
+      "title": "쿠알라룸푸르/말라카/싱가포르 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:02:57.482Z",
+      "index": 125,
+      "slug": "pkg-mt-0133",
+      "productNo": "106156169",
+      "title": "사이판 크라운플라자 오션프론트룸 <전일정호텔식/레이트체크아웃/아일랜드관광/마나가하섬/별빛크루즈> 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 8,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:01.694Z",
+      "index": 126,
+      "slug": "pkg-mt-0134",
+      "productNo": "103340034",
+      "title": "괌 리가로얄라구나 오션뷰룸 <아일랜드관광/음료쿠폰/미니바1회/레이트체크아웃> 3박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:04.676Z",
+      "index": 127,
+      "slug": "pkg-mt-0135",
+      "productNo": "100006779",
+      "title": "시드니 일주 포트스테판 · 시드니 · 블루마운틴 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 3,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:08.154Z",
+      "index": 128,
+      "slug": "pkg-mt-0136",
+      "productNo": "99959906",
+      "title": "호주/뉴질랜드 남북섬 8박 10일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 7,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:11.020Z",
+      "index": 129,
+      "slug": "pkg-mt-0138",
+      "productNo": "100007799",
+      "title": "시드니/멜버른/그레이트오션로드/헌터밸리 5박 7일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 7,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:12.989Z",
+      "index": 130,
+      "slug": "pkg-mt-0139",
+      "productNo": "106288742",
+      "title": "호화호특 시라무런 초원 · 쿠부치사막 <시내준5성/게르숙박> 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 2,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:14.793Z",
+      "index": 131,
+      "slug": "pkg-mt-0140",
+      "productNo": "104935531",
+      "title": "싱가포르 디즈니 크루즈 <오션 베란다> 4박 6일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:16.850Z",
+      "index": 132,
+      "slug": "pkg-mt-0141",
+      "productNo": "104507141",
+      "title": "오사카 럭셔리 크루즈 <4인출발> 4박 5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:20.110Z",
+      "index": 133,
+      "slug": "pkg-mt-0142",
+      "productNo": "108216224",
+      "title": "연태 2박 3일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:22.208Z",
+      "index": 134,
+      "slug": "pkg-mt-0143",
+      "productNo": "109692601",
+      "title": "[마츠야마 자유3일] 스마일 호텔 마츠야마급 [세미더블룸/왕복무료송영/관광지쿠폰]",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:24.177Z",
+      "index": 135,
+      "slug": "pkg-mt-0144",
+      "productNo": "107759392",
+      "title": "[출발확정][후라노 소울트립] 북해도/도야/삿포로 4일(무제한대게/노미호다이/시내중심 2연박/노옵션)",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 1,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:27.943Z",
+      "index": 136,
+      "slug": "pkg-mt-0145",
+      "productNo": "107070907",
+      "title": "[혼똠섬케이블카포함][최저가PICK][3대야경/키스브릿지/바구니배/전신마사지] 푸꾸옥 패키지 3박5일",
+      "result": {
+        "processed": 1,
+        "updated": 1,
+        "retired": 0,
+        "skipped": 0,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 1,
+        "urgentDealOff": 0
+      }
+    },
+    {
+      "at": "2026-06-19T15:03:29.627Z",
+      "index": 137,
+      "slug": "pkg-mt-0146",
+      "productNo": "109317452",
+      "title": "[F1 그랑프리 관람] 미국 라스베이거스 F1 여행 7일<라스베이거스 그랑프리 3일 관람>",
+      "result": {
+        "processed": 1,
+        "updated": 0,
+        "retired": 0,
+        "skipped": 1,
+        "pruned": 0,
+        "e2eCollected": 0,
+        "e2eAttempted": 0,
+        "e2eModalOpenFailed": 0,
+        "urgentDealOn": 0,
+        "urgentDealOff": 0
+      }
+    }
+  ],
+  "last": {
+    "slug": "pkg-mt-0146",
+    "productNo": "109317452",
+    "result": {
+      "processed": 1,
+      "updated": 0,
+      "retired": 0,
+      "skipped": 1,
+      "pruned": 0,
+      "e2eCollected": 0,
+      "e2eAttempted": 0,
+      "e2eModalOpenFailed": 0,
+      "urgentDealOn": 0,
+      "urgentDealOff": 0
+    }
+  }
+}
