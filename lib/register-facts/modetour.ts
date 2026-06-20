@@ -3,12 +3,14 @@
  *
  * REGRESSION-FREEZE[register-facts-foundation]: GetProductDetailInfo·GetScheduleList — manifest
  */
-import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import { parseModetourPackageProductNoFromUrl, collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
+import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import type {
   RegisterFactFlightLeg,
   RegisterFactScheduleDay,
   SupplierRegisterFactBundle,
 } from '@/lib/register-facts/types'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 
 const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
 const MODETOUR_WEB_API_REQ_HEADER =
@@ -158,8 +160,36 @@ export async function collectModetourRegisterFacts(
   const scheduleItems = scheduleJson?.result?.scheduleItemList ?? []
   const flights = modetourFlightRoutesToFactLegs(flightJson?.result ?? [])
 
-  const departureDate = ymdFromIso(String(detail.departureDate ?? ''))
-  const adultPrice = Number(detail.sellingPriceAdultTotalAmount ?? detail.sellingPrice ?? 0)
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const calInputs = await collectModetourDepartureInputsForDateRange(referer, fromYmd, toYmd, {
+    skipBaselineMatch: true,
+  })
+  const priceRows = calInputs
+    .map((dep) =>
+      registerDepartureLikeToFactPriceRow({
+        ...dep,
+        supplierDepartureCode: dep.supplierDepartureCodeCandidate ?? `modetour:${productNo}`,
+      }),
+    )
+    .filter((row): row is NonNullable<typeof row> => row != null)
+
+  const fallbackDate = ymdFromIso(String(detail.departureDate ?? ''))
+  const fallbackAdult = Number(detail.sellingPriceAdultTotalAmount ?? detail.sellingPrice ?? 0)
+  const resolvedPriceRows =
+    priceRows.length > 0
+      ? priceRows
+      : fallbackDate && Number.isFinite(fallbackAdult) && fallbackAdult > 0
+        ? [
+            {
+              departureDate: fallbackDate,
+              adultPrice: fallbackAdult,
+              childPrice: null,
+              infantPrice: null,
+              supplierDepartureCode: `modetour:${productNo}`,
+            },
+          ]
+        : []
 
   return {
     supplier: 'modetour',
@@ -175,18 +205,7 @@ export async function collectModetourRegisterFacts(
     shoppingPlaces: [],
     scheduleDays: modetourScheduleItemsToFactDays(scheduleItems),
     flights,
-    priceRows:
-      departureDate && Number.isFinite(adultPrice) && adultPrice > 0
-        ? [
-            {
-              departureDate,
-              adultPrice,
-              childPrice: null,
-              infantPrice: null,
-              supplierDepartureCode: `modetour:${productNo}`,
-            },
-          ]
-        : [],
-    notes: ['source=modetour_b2c_api', `productNo=${productNo}`],
+    priceRows: resolvedPriceRows,
+    notes: ['source=modetour_b2c_api', `productNo=${productNo}`, `calendar_rows=${resolvedPriceRows.length}`],
   }
 }
