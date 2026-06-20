@@ -1867,6 +1867,43 @@
       "vitestSuites": [
         "lib/modetour-register-detail-collect.test.ts"
       ]
+    },
+    {
+      "id": "hanatour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 등록 — gw API 상세카드(일정·포함/불포함·쇼핑·선택관광·핵심포인트) augment",
+      "checks": [
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-detail-collect]",
+            "augmentHanatourParsedWithDetailCollect",
+            "getPkgProdInfo",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-detail-collect]",
+            "formatHanatourTrvlExpnBullet",
+            "extractHanatourIncludedExcluded"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-handler.ts",
+          "mustInclude": [
+            "augmentHanatourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-register-detail-collect.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
