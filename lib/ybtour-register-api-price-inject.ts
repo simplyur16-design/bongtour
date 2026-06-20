@@ -5,19 +5,22 @@
  */
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { collectYbtourApiDepartureInputsForUrl } from '@/lib/ybtour-api-departures'
 import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
 
-function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice {
+function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice | null {
+  const date = departureInputToYmd(dep.departureDate)
+  if (!date) return null
   return {
-    date: dep.departureDate,
+    date,
     adultBase: dep.adultPrice ?? 0,
     adultFuel: 0,
     childBedBase: dep.childBedPrice ?? undefined,
     childFuel: 0,
     infantBase: dep.infantPrice ?? undefined,
     infantFuel: 0,
-    status: dep.statusRaw ?? '예약가능',
+    status: '예약가능',
     availableSeats: 0,
     carrierName: dep.carrierName ?? null,
     outboundFlightNo: dep.outboundFlightNo ?? null,
@@ -49,8 +52,7 @@ export async function injectYbtourApiDeparturePricesIfMissing(
   return {
     ...parsed,
     productPriceTable,
-    prices: hit.inputs.map(departureInputToPriceRow),
+    prices: hit.inputs.map(departureInputToPriceRow).filter((row): row is ParsedProductPrice => row != null),
     registerPreviewPolicyNotes: notes,
-    ybtourApiPriceInjectRan: true,
   }
 }

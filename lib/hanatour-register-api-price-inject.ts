@@ -11,10 +11,13 @@ import {
   hanatourProdInfoToDepartureInput,
   parseHanatourPkgCdFromUrl,
 } from '@/lib/hanatour-api-departures'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 
-function departureInputToPriceRow(dep: NonNullable<ReturnType<typeof hanatourProdInfoToDepartureInput>>): ParsedProductPrice {
+function departureInputToPriceRow(dep: NonNullable<ReturnType<typeof hanatourProdInfoToDepartureInput>>): ParsedProductPrice | null {
+  const date = departureInputToYmd(dep.departureDate)
+  if (!date) return null
   return {
-    date: dep.departureDate,
+    date,
     adultBase: dep.adultPrice ?? 0,
     adultFuel: 0,
     childBedBase: dep.childBedPrice ?? undefined,
@@ -48,14 +51,16 @@ export async function injectHanatourApiDeparturePricesIfMissing(
   }
 
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
-  const note = `하나투어 gw API 출발·기본가 주입: ${dep.departureDate} 성인 ${dep.adultPrice.toLocaleString('ko-KR')}원`
+  const note = `하나투어 gw API 출발·기본가 주입: ${departureInputToYmd(dep.departureDate) ?? ''} 성인 ${dep.adultPrice.toLocaleString('ko-KR')}원`
   if (!notes.includes(note)) notes.push(note)
+
+  const priceRow = departureInputToPriceRow(dep)
+  if (!priceRow) return parsed
 
   return {
     ...parsed,
     productPriceTable,
-    prices: [departureInputToPriceRow(dep)],
+    prices: [priceRow],
     registerPreviewPolicyNotes: notes,
-    hanatourApiPriceInjectRan: true,
   }
 }

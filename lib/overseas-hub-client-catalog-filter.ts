@@ -51,7 +51,10 @@ function resultItemToGeoMatchInput(item: ResultItem): OverseasProductMatchInput 
     originSource: item.originSource,
     primaryDestination: item.primaryDestination,
     primaryRegion: item.primaryRegion,
-    countryTags: item.countryTags,
+    countryTags: item.countryTags?.map((t) => ({
+      countryKey: t.countryKey,
+      nodeKey: t.nodeKey ?? null,
+    })),
     cityTags: item.cityTags,
   }
 }

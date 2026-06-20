@@ -6,16 +6,15 @@
 import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { extractKyowontourHiddenFieldsFromDetailHtml } from '@/lib/kyowontour-tour-event-tab-data'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
 
-function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice {
-  const date =
-    dep.departureDate instanceof Date
-      ? dep.departureDate.toISOString().slice(0, 10)
-      : String(dep.departureDate ?? '').slice(0, 10)
+function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice | null {
+  const date = departureInputToYmd(dep.departureDate)
+  if (!date) return null
   return {
     date,
     adultBase: dep.adultPrice ?? 0,
@@ -24,7 +23,7 @@ function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice {
     childFuel: 0,
     infantBase: dep.infantPrice ?? undefined,
     infantFuel: 0,
-    status: dep.statusRaw ?? '예약가능',
+    status: '예약가능',
     availableSeats: 0,
     carrierName: dep.carrierName ?? null,
     outboundFlightNo: dep.outboundFlightNo ?? null,
@@ -96,8 +95,7 @@ export async function injectKyowontourApiDeparturePricesIfMissing(
   return {
     ...parsed,
     productPriceTable,
-    prices: inputs.map(departureInputToPriceRow),
+    prices: inputs.map(departureInputToPriceRow).filter((row): row is ParsedProductPrice => row != null),
     registerPreviewPolicyNotes: notes,
-    kyowontourApiPriceInjectRan: true,
   }
 }

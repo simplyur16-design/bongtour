@@ -24,7 +24,9 @@ function calendarRowToPriceRow(row: {
     date: row.departDate,
     adultBase: row.adultPrice,
     adultFuel: 0,
-    status: row.statusRaw ?? '예약가능',
+    childFuel: 0,
+    infantFuel: 0,
+    status: '예약가능',
     availableSeats: row.seatCount ?? 0,
     carrierName: row.carrierText,
   }
@@ -54,7 +56,6 @@ export async function injectLottetourApiDeparturePricesIfMissing(
       productPriceTable: { adultPrice: row.adultPrice, childExtraBedPrice: null, infantPrice: null },
       prices: [calendarRowToPriceRow(row)],
       registerPreviewPolicyNotes: notes,
-      lottetourApiPriceInjectRan: true,
     }
   }
 
@@ -95,6 +96,5 @@ export async function injectLottetourApiDeparturePricesIfMissing(
     },
     prices: rows.map(calendarRowToPriceRow),
     registerPreviewPolicyNotes: notes,
-    lottetourApiPriceInjectRan: true,
   }
 }

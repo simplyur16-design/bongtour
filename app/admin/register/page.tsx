@@ -99,6 +99,8 @@ const REGISTER_FACT_FETCH_SUPPLIERS = new Set<CanonicalOverseasSupplierKey>([
   'hanatour',
   'ybtour',
   'verygoodtour',
+  'lottetour',
+  'kyowontour',
 ])
 
 function formatRegisterFactBundleSummary(bundle: SupplierRegisterFactBundle): string {

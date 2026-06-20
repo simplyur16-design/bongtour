@@ -6,14 +6,13 @@
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
+import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { collectVerygoodHxrOnlyForDateRange } from '@/lib/verygoodtour-price-collect'
 import type { DepartureInput } from '@/lib/upsert-product-departures-verygoodtour'
 
-function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice {
-  const date =
-    dep.departureDate instanceof Date
-      ? dep.departureDate.toISOString().slice(0, 10)
-      : String(dep.departureDate ?? '').slice(0, 10)
+function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice | null {
+  const date = departureInputToYmd(dep.departureDate)
+  if (!date) return null
   return {
     date,
     adultBase: dep.adultPrice ?? 0,
@@ -22,7 +21,7 @@ function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice {
     childFuel: 0,
     infantBase: dep.infantPrice ?? undefined,
     infantFuel: 0,
-    status: dep.statusRaw ?? '예약가능',
+    status: '예약가능',
     availableSeats: 0,
     carrierName: dep.carrierName ?? null,
     outboundFlightNo: dep.outboundFlightNo ?? null,
@@ -57,8 +56,7 @@ export async function injectVerygoodtourApiDeparturePricesIfMissing(
   return {
     ...parsed,
     productPriceTable,
-    prices: priced.map(departureInputToPriceRow),
+    prices: priced.map(departureInputToPriceRow).filter((row): row is ParsedProductPrice => row != null),
     registerPreviewPolicyNotes: notes,
-    verygoodtourApiPriceInjectRan: true,
   }
 }
