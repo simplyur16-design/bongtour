@@ -36,7 +36,6 @@ const LOGO_BOOST_SUBTLE = 'max-h-full w-auto origin-center scale-[1.1] sm:scale-
 const partnerOrganizations: PartnerOrg[] = [
   { name: '경기관광공사', src: '/images/org-logos/gyeonggi-tourism-org.webp', wrapperClassName: LOGO_RAIL_WRAPPER_BOOSTED },
   { name: '안양시', src: '/images/org-logos/anyang.webp', logoClassName: LOGO_BOOST_CITY },
-  { name: '한국관광공사', src: '/images/org-logos/korea-tourism-org.webp', logoClassName: LOGO_BOOST_SUBTLE },
   { name: '김포시', src: '/images/org-logos/gimpo.webp' },
   { name: '수원도시재단', src: '/images/org-logos/suwon-urban-foundation.webp' },
   { name: '고양시', src: '/images/org-logos/goyang.webp', logoClassName: LOGO_SHRINK_CITY },
