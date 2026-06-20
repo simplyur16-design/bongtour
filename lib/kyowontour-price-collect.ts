@@ -7,6 +7,7 @@ import {
   collectKyowontourCalendarRange,
   mapKyowontourCalendarToDepartureInputs,
 } from '@/lib/kyowontour-departures'
+import { enrichKyowontourCalendarRowsWithTourCodeDetail } from '@/lib/kyowontour-tourcode-detail-meta'
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 import type { KyowontourPriceCollectSource } from '@/lib/kyowontour-price-recheck-meta'
@@ -26,7 +27,7 @@ const MASTER_CODE_RE = /^[A-Z]{3}\d{3}$/
 export function resolveKyowontourSweepCollectKeys(product: {
   originCode: string | null
   originUrl: string | null
-}): { masterCode: string; tourCodeHint: string; detailUrl: string | null } | null {
+}): { masterCode: string; tourCodeHint: string; menuCode: string; detailUrl: string | null } | null {
   const url = (product.originUrl ?? '').trim()
   let tourCode = ''
   let menuCode = ''
@@ -51,7 +52,7 @@ export function resolveKyowontourSweepCollectKeys(product: {
       : tourCode
         ? `${base}/goods/goodsEventDetail?tourCode=${encodeURIComponent(tourCode)}&menuCode=${encodeURIComponent(menuCode || 'M5204')}&brandId=3`
         : null
-  return { masterCode, tourCodeHint, detailUrl }
+  return { masterCode, tourCodeHint, menuCode: menuCode || 'M5204', detailUrl }
 }
 
 function filterPricedInputsInWindow(
@@ -104,8 +105,16 @@ export async function collectKyowontourPriceInputsWithE2eFallback(
     refererUrl: keys.detailUrl,
   })
 
+  const enrichedRows =
+    keys.detailUrl != null
+      ? await enrichKyowontourCalendarRowsWithTourCodeDetail(rows, {
+          menuCode: keys.menuCode,
+          refererUrl: keys.detailUrl,
+        })
+      : rows
+
   const mapped = filterDepartureInputsOnOrAfterCalendarToday(
-    mapKyowontourCalendarToDepartureInputs(rows, product.id),
+    mapKyowontourCalendarToDepartureInputs(enrichedRows, product.id),
   )
   const inWindow = filterPricedInputsInWindow(mapped, fromYmd, toYmd)
   const source: KyowontourPriceCollectSource | null =
