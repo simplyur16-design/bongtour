@@ -6,31 +6,13 @@
 import {
   collectLottetourCalendarRange,
   enrichLottetourEvtListCollectionHintsFromDetailPage,
+  mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import { fetchLottetourRegisterDetailBundle } from '@/lib/lottetour-register-api-detail'
-import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
-
-function calendarRowToPriceRow(row: {
-  departDate: string
-  adultPrice: number
-  statusRaw: string | null
-  seatCount: number | null
-  carrierText: string | null
-}): ParsedProductPrice {
-  return {
-    date: row.departDate,
-    adultBase: row.adultPrice,
-    adultFuel: 0,
-    childFuel: 0,
-    infantFuel: 0,
-    status: '예약가능',
-    availableSeats: row.seatCount ?? 0,
-    carrierName: row.carrierText,
-  }
-}
+import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
 
 export async function injectLottetourApiDeparturePricesIfMissing(
   parsed: RegisterParsed,
@@ -48,13 +30,16 @@ export async function injectLottetourApiDeparturePricesIfMissing(
     const bundle = await fetchLottetourRegisterDetailBundle(url)
     const row = bundle?.evtListRow
     if (!row || row.adultPrice <= 0 || !row.departDate) return parsed
+    const inputs = mapLottetourCalendarToDepartureInputs([row], 'register-inject')
+    const prices = registerDepartureInputsToParsedPrices(inputs)
+    if (prices.length === 0) return parsed
     const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
     const note = `lottetour evtListAjax 출발·기본가 주입(단일): ${row.departDate}`
     if (!notes.includes(note)) notes.push(note)
     return {
       ...parsed,
       productPriceTable: { adultPrice: row.adultPrice, childExtraBedPrice: null, infantPrice: null },
-      prices: [calendarRowToPriceRow(row)],
+      prices,
       registerPreviewPolicyNotes: notes,
     }
   }
@@ -82,10 +67,14 @@ export async function injectLottetourApiDeparturePricesIfMissing(
   rows = rows.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
   if (rows.length === 0) return parsed
 
+  const inputs = mapLottetourCalendarToDepartureInputs(rows, 'register-inject')
   const first = rows[0]!
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
-  const note = `lottetour evtListAjax 출발·기본가 주입: ${rows.length}행`
+  const note = `lottetour evtListAjax 출발·가격 주입: ${rows.length}행`
   if (!notes.includes(note)) notes.push(note)
+
+  const prices = registerDepartureInputsToParsedPrices(inputs)
+  if (prices.length === 0) return parsed
 
   return {
     ...parsed,
@@ -94,7 +83,7 @@ export async function injectLottetourApiDeparturePricesIfMissing(
       childExtraBedPrice: null,
       infantPrice: null,
     },
-    prices: rows.map(calendarRowToPriceRow),
+    prices,
     registerPreviewPolicyNotes: notes,
   }
 }

@@ -13,8 +13,10 @@ import {
   fetchLottetourRegisterDetailBundle,
   parseLottetourScheduleDaysFromScheduleAjax,
 } from '@/lib/lottetour-register-api-detail'
+import { lottetourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 
 function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactScheduleDay[] {
   return days.map((d) => {
@@ -76,23 +78,15 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
       evtPrefix.length >= 4
         ? filtered.filter((r) => r.evtCd.startsWith(evtPrefix.slice(0, 4)))
         : filtered
-    priceRows = (scoped.length > 0 ? scoped : filtered).slice(0, 24).map((r) => ({
-      departureDate: r.departDate,
-      adultPrice: r.adultPrice,
-      childPrice: null,
-      infantPrice: null,
-      supplierDepartureCode: r.evtCd,
-    }))
+    const fromYmd = kstTodayYmd()
+    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+    priceRows = (scoped.length > 0 ? scoped : filtered)
+      .filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
+      .map((r) => lottetourCalendarRowToFactPriceRow(r))
+      .filter((row): row is NonNullable<typeof row> => row != null)
   } else if (row && row.adultPrice > 0 && row.departDate) {
-    priceRows = [
-      {
-        departureDate: row.departDate,
-        adultPrice: row.adultPrice,
-        childPrice: null,
-        infantPrice: null,
-        supplierDepartureCode: bundle.evtCd,
-      },
-    ]
+    const fact = lottetourCalendarRowToFactPriceRow(row)
+    priceRows = fact ? [fact] : []
   }
 
   return {
