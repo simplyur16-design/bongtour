@@ -212,6 +212,15 @@
       ],
       "script": "verify:verygoodtour-e2e-expired-url",
       "summary": "참좋은여행 E2E — 판매종료 URL 선검사·product-expired phase"
+    },
+    {
+      "id": "kyowontour-tour-event-tab-opt-shop",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:kyowontour-tour-event-tab-opt-shop",
+      "summary": "교원이지 goodsEvtTab_7 — etcTour·shopping_list 파싱 SSOT"
     }
   ],
   "staticGuards": [
@@ -1932,6 +1941,91 @@
       ],
       "vitestSuites": [
         "lib/verygoodtour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "kyowontour-tour-event-tab-opt-shop",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 goodsEvtTab_1/2/3/7 — 핵심·포함/불포함·일정·etcTour·shopping_list 파싱·probe 탭 SSOT",
+      "checks": [
+        {
+          "file": "lib/kyowontour-tour-event-tab-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "KYOWONTOUR_TAB_CORE_ID",
+            "KYOWONTOUR_TAB_SCHEDULE_ID",
+            "KYOWONTOUR_TAB_OPT_SHOP_ID",
+            "goodsEvtTab_1",
+            "goodsEvtTab_2",
+            "goodsEvtTab_3",
+            "goodsEvtTab_7",
+            "parseKyowontourCoreTabDetail",
+            "parseKyowontourReservationTabDetail",
+            "parseKyowontourScheduleTabDetail",
+            "parseKyowontourOptShopTabDetail",
+            "parseKyowontourEtcTourRow",
+            "extractKyowontourShoppingListFromEvtType",
+            "shopping_list",
+            "etcTour",
+            "CSP302_CORE_TAB1_DETAIL_FIXTURE",
+            "CSP302_SCHEDULE_TAB2_DETAIL_FIXTURE"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-tab-data-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "augmentKyowontourParsedWithTabDataCollect",
+            "goodsEvtTab_1",
+            "goodsEvtTab_2",
+            "goodsEvtTab_3",
+            "goodsEvtTab_7",
+            "needsKyowontourIncludedExcludedCollect",
+            "singleRoomSurchargeRaw"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-schedule-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "scheduleTabParsedToRegisterDays",
+            "needsKyowontourScheduleCollect"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-handler.ts",
+          "mustInclude": [
+            "augmentKyowontourParsedWithTabDataCollect"
+          ]
+        },
+        {
+          "file": "scripts/_tmp-probe-kyowontour-tab-data.ts",
+          "mustInclude": [
+            "KYOWONTOUR_TAB_PROBE_IDS",
+            "goodsEvtTab_7",
+            "parseKyowontourOptShopTabDetail"
+          ],
+          "mustNotInclude": [
+            "goodsEvtTab_4"
+          ]
+        },
+        {
+          "file": "scripts/verify-kyowontour-tour-event-tab-opt-shop.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "CSP302_OPT_SHOP_TAB7_DETAIL_FIXTURE",
+            "CSP302_SCHEDULE_TAB2_DETAIL_FIXTURE",
+            "CSP302_CORE_TAB1_DETAIL_FIXTURE"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-tour-event-tab-data.test.ts",
+        "lib/kyowontour-register-schedule-collect.test.ts",
+        "lib/kyowontour-register-tab-data-collect.test.ts"
       ]
     }
   ],

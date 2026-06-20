@@ -10,6 +10,7 @@ import {
   finalizeKyowontourItineraryDayDraftsFromSchedule,
   kyowontourConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-kyowontour-schedule'
+import { augmentKyowontourParsedWithTabDataCollect } from '@/lib/kyowontour-register-tab-data-collect'
 
 export async function handleParseAndRegisterKyowontourRequest(request: Request) {
   return runParseAndRegisterFlow(request, {
@@ -21,6 +22,11 @@ export async function handleParseAndRegisterKyowontourRequest(request: Request) 
       sanitizeKyowontourRegisterParsedStrings(
         augmentKyowontourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
       ),
+    patchParsedAfterAugment: (parsed, _text, ctx) =>
+      augmentKyowontourParsedWithTabDataCollect(parsed, {
+        originUrl: ctx?.originUrl,
+        pastedBlocks: ctx?.pastedBlocks,
+      }),
     finalizeItineraryDayDraftsFromSchedule: finalizeKyowontourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       kyowontourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,
