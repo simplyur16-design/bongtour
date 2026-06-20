@@ -56,3 +56,25 @@
 2. live URL로 `originUrl` 갱신 (`--apply`)
 3. `db:verygoodtour-hxr-coverage` — HXR 우측 0건 비율 확인
 4. `db:verygoodtour-sweep-oneshot` — 전량 1회 sweep
+5. `db:verygoodtour-sweep-expired-cleanup` — inventory `expired=true` horizonSoldOut prune
+6. `db:verygoodtour-hxr-e2e-cross-verify` — HXR·E2E 교차 검증 리포트
+
+## Python 3h cron vs TS 08:00 sweep (역할 분리)
+
+| 러너 | 주기 | SSOT | 역할 |
+|------|------|------|------|
+| `calendar_price_scheduler.py` → `calendar_e2e_scraper_verygoodtour` | **3시간** | Python Playwright | 레거시 달력 E2E — 등록 직후·수동 rescrape·HXR 0건 상품 **보조** 갱신 |
+| `instrumentation-verygoodtour-sweep-cron.ts` | **KST 08:00** | `lib/verygoodtour-sweep.ts` | 등록 전량 **180일 Rule A** — HXR→E2E·7일 recheck-meta·horizonSoldOut prune·urgentDeal |
+
+**원칙:** TS sweep이 가격·출발 SSOT. Python 3h는 sweep 미실행 구간·rescrape 폴백용으로 유지하되, 동일 상품에 **고속 연속** 이중 upsert 하지 않는다 (`lastSalesPolicyCheckedAt`·recheck-meta로 TS가 당일 처리한 상품은 Python 쪽에서 skip 권장 — scheduler 쪽은 별도 정리 대상).
+
+**운영 순서:** URL inventory `--apply` → expired cleanup → oneshot 1회 → 이후 TS cron만으로 일1회 유지. Python 3h는 `DISABLE_INSTRUMENTATION_VERYGOODTOUR_SWEEP_CRON=1`이 **아닐 때** 병행.
+
+## 교원이지(kyowontour) 참고 probe
+
+사용자 제공 live URL 3건 — `ops/kyowontour-horizon-probe.json`. AJAX `POST /goods/differentDepartDate` 수집은 `lib/kyowontour-departures.ts` 기존 모듈. sweep 골격은 **미구현** — probe만:
+
+```bash
+npx tsx scripts/run-kyowontour-horizon-probe.ts
+```
+
