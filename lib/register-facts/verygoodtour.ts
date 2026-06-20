@@ -4,6 +4,9 @@
  * REGRESSION-FREEZE[register-facts-foundation]: PackageDetail fetch·메타 추출 — manifest
  */
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import { collectVerygoodtourPriceInputsWithE2eFallback } from '@/lib/verygoodtour-price-collect'
+import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
 
@@ -95,5 +98,29 @@ export async function collectVerygoodtourRegisterFacts(originUrl: string): Promi
   })
   if (!res.ok) return null
   const html = await res.text()
-  return extractVerygoodRegisterFactsFromHtml(url, html)
+  const base = extractVerygoodRegisterFactsFromHtml(url, html)
+  if (!base) return null
+
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const collected = await collectVerygoodtourPriceInputsWithE2eFallback(url, fromYmd, toYmd)
+  const priceRows = collected.inputs
+    .filter((x) => (x.adultPrice ?? 0) > 0)
+    .map((dep) =>
+      registerDepartureLikeToFactPriceRow({
+        ...dep,
+        supplierDepartureCode: dep.supplierDepartureCodeCandidate ?? proCode,
+      }),
+    )
+    .filter((row): row is NonNullable<typeof row> => row != null)
+
+  return {
+    ...base,
+    priceRows,
+    notes: [
+      ...base.notes,
+      `calendar_rows=${priceRows.length}`,
+      `calendar_source=${collected.source ?? 'none'}`,
+    ],
+  }
 }

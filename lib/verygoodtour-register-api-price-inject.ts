@@ -4,29 +4,9 @@
  * REGRESSION-FREEZE[verygoodtour-register-api-price-inject]: injectVerygoodtourApiDeparturePricesIfMissing — manifest
  */
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
-import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
-import { departureInputToYmd } from '@/lib/scrape-date-bounds'
+import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
 import { collectVerygoodHxrOnlyForDateRange } from '@/lib/verygoodtour-price-collect'
-import type { DepartureInput } from '@/lib/upsert-product-departures-verygoodtour'
-
-function departureInputToPriceRow(dep: DepartureInput): ParsedProductPrice | null {
-  const date = departureInputToYmd(dep.departureDate)
-  if (!date) return null
-  return {
-    date,
-    adultBase: dep.adultPrice ?? 0,
-    adultFuel: 0,
-    childBedBase: dep.childBedPrice ?? undefined,
-    childFuel: 0,
-    infantBase: dep.infantPrice ?? undefined,
-    infantFuel: 0,
-    status: '예약가능',
-    availableSeats: 0,
-    carrierName: dep.carrierName ?? null,
-    outboundFlightNo: dep.outboundFlightNo ?? null,
-  }
-}
 
 export async function injectVerygoodtourApiDeparturePricesIfMissing(
   parsed: RegisterParsed,
@@ -50,13 +30,16 @@ export async function injectVerygoodtourApiDeparturePricesIfMissing(
   }
 
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
-  const note = `verygoodtour HXR 출발가 주입: ${priced.length}행`
+  const note = `verygoodtour HXR 출발·가격 주입: ${priced.length}행`
   if (!notes.includes(note)) notes.push(note)
+
+  const prices = registerDepartureInputsToParsedPrices(priced)
+  if (prices.length === 0) return parsed
 
   return {
     ...parsed,
     productPriceTable,
-    prices: priced.map(departureInputToPriceRow).filter((row): row is ParsedProductPrice => row != null),
+    prices,
     registerPreviewPolicyNotes: notes,
   }
 }

@@ -427,6 +427,7 @@ export function parsedPricesToDepartureInputs(prices: Array<{
   infantFuel?: number
   status?: string
   availableSeats?: number
+  minPax?: number
   seatsStatusRaw?: string | null
   localPrice?: string | null
   carrierName?: string | null
@@ -477,6 +478,7 @@ export function parsedPricesToDepartureInputs(prices: Array<{
       statusRaw: statusRaw ?? undefined,
       seatsStatusRaw: seatsStatusRawStr ?? undefined,
       ...(seatCountResolved !== undefined ? { seatCount: seatCountResolved } : {}),
+      ...(p.minPax != null && p.minPax > 0 ? { minPax: p.minPax } : {}),
       carrierName: p.carrierName ?? undefined,
       outboundFlightNo: p.outboundFlightNo ?? undefined,
       outboundDepartureAirport: p.outboundDepartureAirport ?? undefined,

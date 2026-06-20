@@ -102,13 +102,19 @@ function mapVerygoodLeftCellsToInputs(
 function mapVerygoodRightRowsToInputs(rows: ReturnType<typeof parseVerygoodCalendarRightRows>): DepartureInput[] {
   return rows
     .filter((r) => r.adultPrice > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
-    .map((r) => ({
-      departureDate: r.date,
-      adultPrice: r.adultPrice,
-      statusRaw: r.statusRaw,
-      seatsStatusRaw: r.seatsRaw,
-      carrierName: r.carrierText,
-    }))
+    .map((r) => {
+      const seatM = r.seatsRaw?.match(/(\d+)/)
+      const minM = r.rawText.match(/최소\s*출발\s*인원\s*[:：]?\s*(\d+)\s*명/)
+      return {
+        departureDate: r.date,
+        adultPrice: r.adultPrice,
+        statusRaw: r.statusRaw,
+        seatsStatusRaw: r.seatsRaw,
+        seatCount: seatM ? Number(seatM[1]) : null,
+        minPax: minM?.[1] ? Number(minM[1]) : null,
+        carrierName: r.carrierText,
+      }
+    })
 }
 
 async function fetchDetailHtml(detailUrl: string): Promise<{ html: string; error: string | null }> {
