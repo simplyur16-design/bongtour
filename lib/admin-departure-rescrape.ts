@@ -514,6 +514,47 @@ export async function collectYbtourDepartureInputsForDateRange(
   return collected.inputs
 }
 
+/** verygoodtour on-demand: ProductCalendarSearch HXR 우선, 0건 시 달력 E2E. */
+export async function collectVerygoodtourDepartureInputsForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const { collectVerygoodtourPriceInputsWithE2eFallback } = await import('@/lib/verygoodtour-price-collect')
+  const collected = await collectVerygoodtourPriceInputsWithE2eFallback(detailUrl, fromYmd, toYmd)
+  return collected.inputs
+}
+
+/** verygoodtour 달력 E2E only — HXR 우측 0건 시 Playwright 모달 수집. */
+export async function collectVerygoodE2eDepartureInputsForDateRange(
+  detailUrl: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<DepartureInput[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
+  const lo = fromYmd <= toYmd ? fromYmd : toYmd
+  const hi = fromYmd <= toYmd ? toYmd : fromYmd
+  const { normalizeVerygoodtourDetailUrlForCollect } = await import('@/lib/verygoodtour-detail-url-health')
+  const u = normalizeVerygoodtourDetailUrlForCollect(detailUrl)
+  const statusByDate = new Map<string, { statusRaw: string | null; seatsStatusRaw: string | null }>()
+  try {
+    const cal = await scrapeLiveCalendar(u, 'verygoodtour')
+    const inputs = filterDepartureInputsOnOrAfterCalendarToday(
+      mapScrapedRowsToInputs(cal.rows, statusByDate),
+    )
+    return inputs.filter((x) => {
+      const dk =
+        x.departureDate instanceof Date
+          ? x.departureDate.toISOString().slice(0, 10)
+          : String(x.departureDate ?? '').trim().slice(0, 10)
+      return dk >= lo && dk <= hi && (x.adultPrice ?? 0) > 0
+    })
+  } catch {
+    return []
+  }
+}
+
 export async function collectDepartureInputsForAdminRescrape(
   prisma: PrismaClient,
   product: { id: string; originSource: string; originCode: string; originUrl: string | null },
@@ -544,6 +585,67 @@ export async function collectDepartureInputsForAdminRescrape(
   })()
   let liveError: string | null = null
   let attemptedLive = false
+
+  if (site === 'verygoodtour') {
+    attemptedLive = true
+    const { normalizeVerygoodtourDetailUrlForCollect } = await import('@/lib/verygoodtour-detail-url-health')
+    const { kstTodayYmd, addDaysUtcYmd, RULE_A_WINDOW_DAYS } = await import('@/lib/product-sales-policy')
+    const detailUrlResolved = normalizeVerygoodtourDetailUrlForCollect(detailUrlForTrace)
+    const fromYmd = kstTodayYmd()
+    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+    try {
+      const inputs = await collectVerygoodtourDepartureInputsForDateRange(detailUrlResolved, fromYmd, toYmd)
+      const filtered = filterDepartureInputsOnOrAfterCalendarToday(inputs)
+      if (filtered.length > 0) {
+        const fillMeta = deriveFillMeta(filtered)
+        return {
+          mode: 'live-rescrape',
+          source: 'verygoodtour-live-calendar',
+          inputs: filtered,
+          attemptedLive,
+          liveError: null,
+          filledFields: fillMeta.filledFields,
+          missingFields: fillMeta.missingFields,
+          mappingStatus: 'per-date-confirmed',
+          site,
+          detailUrl: detailUrlResolved,
+          detailUrlSummary,
+          collectorStatus: null,
+        }
+      }
+      const fillMeta = deriveFillMeta([])
+      return {
+        mode: 'live-rescrape',
+        source: 'verygoodtour-live-calendar',
+        inputs: [],
+        attemptedLive,
+        liveError: 'verygoodtour: HXR·E2E 모두 유효 출발일 0건',
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        site,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary,
+        collectorStatus: null,
+      }
+    } catch (e) {
+      const fillMeta = deriveFillMeta([])
+      return {
+        mode: 'live-rescrape',
+        source: 'verygoodtour-live-calendar',
+        inputs: [],
+        attemptedLive,
+        liveError: e instanceof Error ? e.message.slice(0, 400) : 'verygoodtour-collect-failed',
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        site,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary,
+        collectorStatus: null,
+      }
+    }
+  }
 
   if (site === 'lottetour') {
     attemptedLive = true

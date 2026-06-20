@@ -57,6 +57,7 @@ export type HanatourSweepResult = {
   pruned: number
   e2eCollected: number
   e2eAttempted: number
+  horizonSoldOut: number
   urgentDealOn: number
   urgentDealOff: number
 }
@@ -167,6 +168,24 @@ async function findSweepProducts(
   return rows.filter((p) => isHanatourPriceRecheckDue(p.rawMeta, today)).slice(0, limit)
 }
 
+async function pruneAllDeparturesInHorizonWindow(
+  prisma: PrismaClient,
+  productId: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<number> {
+  const deleted = await prisma.productDeparture.deleteMany({
+    where: {
+      productId,
+      departureDate: {
+        gte: ymdToUtcMidnight(fromYmd),
+        lte: ymdToUtcMidnight(toYmd),
+      },
+    },
+  })
+  return deleted.count
+}
+
 async function pruneDeparturesOutsideSourceDates(
   prisma: PrismaClient,
   productId: string,
@@ -207,6 +226,7 @@ export async function sweepDueHanatourProducts(
     pruned: 0,
     e2eCollected: 0,
     e2eAttempted: 0,
+    horizonSoldOut: 0,
     urgentDealOn: 0,
     urgentDealOff: 0,
   }
@@ -252,6 +272,39 @@ export async function sweepDueHanatourProducts(
       }
 
       if (collected.inputs.length === 0) {
+        if (collected.horizonSoldOut) {
+          const liveMarkers = computeRuleAMarkersFromDepartureInputs([], todayYmd)
+          const markers = await reconcileRuleAMarkersWithDbFutureDepartures(
+            prisma,
+            product.id,
+            todayYmd,
+            liveMarkers,
+          )
+          const prunedCount = await pruneAllDeparturesInHorizonWindow(
+            prisma,
+            product.id,
+            fromYmd,
+            toYmd,
+          )
+          result.pruned += prunedCount
+          console.warn('[hanatour-sweep] horizon-sold-out', {
+            productId: product.id,
+            prunedCount,
+          })
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt ?? now,
+              lastFutureDepartureDate: markers.lastFutureDepartureDate,
+              priceFrom: null,
+              lastSalesPolicyCheckedAt: now,
+              rawMeta: clearHanatourPriceRecheckFromRawMeta(product.rawMeta),
+            },
+          })
+          result.horizonSoldOut += 1
+          continue
+        }
+
         console.warn('[hanatour-sweep] collect-empty', {
           productId: product.id,
           e2eAttempted: collected.e2eAttempted,

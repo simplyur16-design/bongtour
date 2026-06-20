@@ -4,179 +4,272 @@
   "npmScripts": [
     {
       "id": "register-supplier-cross-import",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "check:register-supplier-imports",
       "summary": "6공급사 등록 파서 상호 import 금지"
     },
     {
       "id": "modetour-register-title",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:modetour-register-title",
       "summary": "모두투어 등록 상품명 — 출발일 구간 오염·로직 복제 금지",
       "doc": "docs/ops/modetour-register-title-contract.md"
     },
     {
       "id": "schedule-image-keyword-dual-slot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:schedule-image-keyword-dual-slot",
       "summary": "6공급사 일정 imageKeyword+imageKeyword2 — 관광 일차 2슬롯·dedupe 후 reconcile"
     },
     {
       "id": "modetour-lib-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:modetour-lib",
       "summary": "모두투어 lib 허브·geo·digest SSOT"
     },
     {
       "id": "hanatour-lib-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:hanatour-lib",
       "summary": "하나투어 lib 허브 SSOT"
     },
     {
       "id": "ybtour-lib-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:ybtour-lib",
       "summary": "노랑풍선 lib 허브 SSOT"
     },
     {
       "id": "ybtour-by-goods-departure-list",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:ybtour-by-goods-price",
-      "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증"
+      "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증",
+      "requiresDatabase": true
     },
     {
       "id": "verygoodtour-lib-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:verygoodtour-lib",
       "summary": "참좋은여행 lib 허브 SSOT"
     },
     {
       "id": "verygoodtour-listing-title",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:verygoodtour-title",
       "summary": "참좋은여행 붙여넣기 상품명 — 항공 안내 줄 오염 금지"
     },
     {
       "id": "mega-menu-register-alignment",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:mega-menu-register-alignment",
       "summary": "등록 geo ↔ 메가메뉴 정합"
     },
     {
       "id": "register-detail-final-chain",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:register-detail-final-chain",
       "summary": "등록→저장 체인(항공·옵션·쇼핑·가격 4슬롯)"
     },
     {
       "id": "supplier-pipeline-alignment",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:supplier-pipeline",
       "summary": "4공급사 등록 파이프라인 정렬 — CI는 DATABASE_URL 없으면 정적 구간만, DB 있으면 실측"
     },
     {
       "id": "bongtour-product-title-r5",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:bongtour-product-title-r5",
       "summary": "봉투어 톤 상품명 R-5·마케팅 opt-in confirm"
     },
     {
       "id": "supplier-product-title-plan-b",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:supplier-product-title-plan-b",
       "summary": "Plan B 원문 노출 상품명·SEO 메타·confirm 기본 저장"
     },
     {
       "id": "image-keywords-by-supplier",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:image-keywords-by-supplier:ci",
       "requiresDatabase": true,
       "summary": "일정 imageKeyword 공급사별 규칙 (DB 필요 — CI는 DATABASE_URL 없으면 skip)"
     },
     {
       "id": "public-api-leaks",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:public-leaks",
       "summary": "공개 API 민감정보 유출 가드"
     },
     {
       "id": "prisma-runtime-policy",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:prisma-runtime-policy",
       "summary": "Prisma 런타임 정책"
     },
     {
       "id": "modetour-avp603-fixture",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:modetour-avp603",
       "summary": "모두투어 AVP603 fixture 회귀"
     },
     {
       "id": "hanatour-atp207-fixture",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:hanatour-atp207",
       "summary": "하나투어 ATP207 fixture 회귀"
     },
     {
       "id": "mega-menu-ssot-browse",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:mega-menu-browse",
       "requiresDatabase": true,
       "summary": "메가메뉴 browse SSOT — CI는 DATABASE_URL 없으면 skip (정적 URL은 browse-master-geo→prisma 의존)"
     },
     {
       "id": "sticky-quotation-total",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "script": "verify:sticky-quotation-total",
       "summary": "스티키 카드 공급사별 합계·만원 절삭 금지"
     },
     {
       "id": "calendar-price-horizon-180d",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:calendar-price-horizon",
       "summary": "6개월(180일) 달력·출발일 지평선 — modetour API 배치·E2E 6개월·cursor 정책",
       "doc": "docs/ops/calendar-price-horizon-contract.md"
     },
     {
       "id": "hanatour-e2e-airtel-same-product",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:hanatour-e2e-airtel-same-product",
       "summary": "하나투어 E2E 자유여행 — 동일상품 anchor(방콕 자유여행 N일) 매칭"
     },
     {
       "id": "verygoodtour-e2e-expired-url-guard",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "script": "verify:verygoodtour-e2e-expired-url",
       "summary": "참좋은여행 E2E — 판매종료 URL 선검사·product-expired phase"
+    },
+    {
+      "id": "kyowontour-tour-event-tab-opt-shop",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:kyowontour-tour-event-tab-opt-shop",
+      "summary": "교원이지 goodsEvtTab_7 — etcTour·shopping_list 파싱 SSOT"
     }
   ],
   "staticGuards": [
     {
       "id": "card-price-exact-krw",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "갤러리·해외 목록 카드 — 만원 floor 절삭 금지, 원 단위 표기",
       "checks": [
         {
           "file": "app/components/gallery/AgentCard.tsx",
-          "mustInclude": ["Math.trunc(krw)"],
-          "mustNotInclude": ["Math.floor(krw / 10000)", "Math.floor(krw/10000)", "Math.floor(krw / 10_000)"]
+          "mustInclude": [
+            "Math.trunc(krw)"
+          ],
+          "mustNotInclude": [
+            "Math.floor(krw / 10000)",
+            "Math.floor(krw/10000)",
+            "Math.floor(krw / 10_000)"
+          ]
         },
         {
           "file": "app/components/travel/overseas/OverseasCompareCard.tsx",
-          "mustInclude": ["Math.trunc(krw)"],
-          "mustNotInclude": ["Math.floor(krw / 10000)", "Math.floor(krw/10000)", "Math.floor(krw / 10_000)"]
+          "mustInclude": [
+            "Math.trunc(krw)"
+          ],
+          "mustNotInclude": [
+            "Math.floor(krw / 10000)",
+            "Math.floor(krw/10000)",
+            "Math.floor(krw / 10_000)"
+          ]
         }
       ]
     },
     {
       "id": "modetour-title-no-inline-extract",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "모두투어 제목 추출 SSOT 외 인라인 금지",
       "checks": [
         {
           "file": "lib/register-from-llm-modetour.ts",
-          "mustInclude": ["modetour-register-product-title-ssot"],
+          "mustInclude": [
+            "modetour-register-product-title-ssot"
+          ],
           "mustNotInclude": [
             "extractModetourVerbatimListingTitleRawFromPasteLocal",
             "function extractModetourVerbatimListingTitleRawFromPaste"
@@ -186,7 +279,10 @@
     },
     {
       "id": "supplier-product-title-plan-b-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Plan B 등록 title — supplier-product-title-display SSOT·R-5 자동 저장 금지",
       "checks": [
         {
@@ -212,7 +308,10 @@
     },
     {
       "id": "eastern-europe-menu-group-country-keys",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "동유럽 menuGroup — LC leaf countryKey 합집합 (poland 단일 폴백 금지)",
       "checks": [
         {
@@ -226,17 +325,26 @@
         },
         {
           "file": "lib/browse-master-geo.ts",
-          "mustInclude": ["resolveMegaMenuMenuGroupSlugToCountryKeySlugs"]
+          "mustInclude": [
+            "resolveMegaMenuMenuGroupSlugToCountryKeySlugs"
+          ]
         },
         {
           "file": "lib/location-url-slugs.ts",
-          "mustInclude": ["폴란드: 'poland'", "크로아티아: 'croatia'", "슬로베니아: 'slovenia'"]
+          "mustInclude": [
+            "폴란드: 'poland'",
+            "크로아티아: 'croatia'",
+            "슬로베니아: 'slovenia'"
+          ]
         }
       ]
     },
     {
       "id": "europe-western-eastern-exclusive",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "서유럽·동유럽 menuGroup 상호 배제 + 오스트리아 레거시 동유럽 버킷 금지",
       "checks": [
         {
@@ -255,13 +363,20 @@
         },
         {
           "file": "lib/browse-country-url-resolve.ts",
-          "mustInclude": ["austria: ['오스트리아']", "czech: ['체코']", "KOREAN_REGION_BUCKET_LABELS"]
+          "mustInclude": [
+            "austria: ['오스트리아']",
+            "czech: ['체코']",
+            "KOREAN_REGION_BUCKET_LABELS"
+          ]
         }
       ]
     },
     {
       "id": "cebu-island-geo-priority",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "세부 아일랜드 상품 — EU ireland 오매칭 방지 (philippines/cebu 우선)",
       "checks": [
         {
@@ -276,18 +391,29 @@
     },
     {
       "id": "airtel-fit-per-day-keywords",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "에어텔 일정 imageKeyword — 단일 키워드 전일차 강제 금지",
       "checks": [
         {
           "file": "lib/register-airtel-fit-enrich.ts",
-          "mustInclude": ["mergeScheduleWithFitKeywords"],
-          "mustNotInclude": ["mergeScheduleWithSingleAirtelFitKeyword"]
+          "mustInclude": [
+            "mergeScheduleWithFitKeywords"
+          ],
+          "mustNotInclude": [
+            "mergeScheduleWithSingleAirtelFitKeyword"
+          ]
         },
         {
           "file": "lib/fit-itinerary-sync-schedule-image-keywords.ts",
-          "mustInclude": ["mergeScheduleWithFitKeywords"],
-          "mustNotInclude": ["mergeScheduleWithSingleAirtelFitKeyword"]
+          "mustInclude": [
+            "mergeScheduleWithFitKeywords"
+          ],
+          "mustNotInclude": [
+            "mergeScheduleWithSingleAirtelFitKeyword"
+          ]
         },
         {
           "file": "lib/register-airtel-pexels-ui-rows.ts",
@@ -296,36 +422,55 @@
             "areScheduleImageKeywordsDistinct",
             "buildAirtelRegisterScheduleRowsFromFitParsed"
           ],
-          "mustNotInclude": ["hasRouteText"]
+          "mustNotInclude": [
+            "hasRouteText"
+          ]
         },
         {
           "file": "app/api/travel/process-images/route.ts",
-          "mustInclude": ["areScheduleImageKeywordsDistinct", "!areScheduleImageKeywordsDistinct(scheduleArr)"]
+          "mustInclude": [
+            "areScheduleImageKeywordsDistinct",
+            "!areScheduleImageKeywordsDistinct(scheduleArr)"
+          ]
         }
       ]
     },
     {
       "id": "product-image-source-attribution",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Pexels 이미지 — PhotoPool 저장이어도 공개 출처 Pexels 표기(사진풀 오표기 금지)",
       "checks": [
         {
           "file": "lib/product-image-source-attribution.ts",
-          "mustInclude": ["REGRESSION-FREEZE[product-image-source-attribution]", "resolveCanonicalImageSourceForDisplay"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-source-attribution]",
+            "resolveCanonicalImageSourceForDisplay"
+          ]
         },
         {
           "file": "lib/public-image-overlay-ssot.ts",
-          "mustInclude": ["resolveCanonicalImageSourceForDisplay", "사진풀"]
+          "mustInclude": [
+            "resolveCanonicalImageSourceForDisplay",
+            "사진풀"
+          ]
         },
         {
           "file": "app/api/travel/process-images/route.ts",
-          "mustInclude": ["resolveProductBgImageFieldsFromPhoto"]
+          "mustInclude": [
+            "resolveProductBgImageFieldsFromPhoto"
+          ]
         }
       ]
     },
     {
       "id": "hanatour-schedule-image-keyword-landmark",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 자유여행 imageKeyword — 식당·카페 금지, 랜드마크만",
       "checks": [
         {
@@ -347,22 +492,36 @@
         },
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
-          "mustInclude": ["applyHanatourScheduleImageKeywordsToRows", "applyAirtelRouteTextImageKeywordsToSchedule"]
+          "mustInclude": [
+            "applyHanatourScheduleImageKeywordsToRows",
+            "applyAirtelRouteTextImageKeywordsToSchedule"
+          ]
         },
         {
           "file": "lib/register-airtel-route-image-keyword.ts",
-          "mustInclude": ["isScheduleImageKeywordLandmarkEligible"]
+          "mustInclude": [
+            "isScheduleImageKeywordLandmarkEligible"
+          ]
         },
         {
           "file": "lib/parse-and-register-hanatour-schedule.ts",
-          "mustInclude": ["Bondi Beach", "Federation Square"],
-          "mustNotInclude": ["laneway cafes", "ramen street"]
+          "mustInclude": [
+            "Bondi Beach",
+            "Federation Square"
+          ],
+          "mustNotInclude": [
+            "laneway cafes",
+            "ramen street"
+          ]
         }
       ]
     },
     {
       "id": "ybtour-schedule-image-keyword-distinct",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "노랑풍선 imageKeyword — 동일 랜드마크 전일차 반복 금지",
       "checks": [
         {
@@ -375,14 +534,21 @@
         },
         {
           "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
-          "mustInclude": ["resolveTourismKeywordPreferDistinctPerDay"],
-          "mustNotInclude": ["primaryCand && normKeywordKey(primaryCand) === llmKey"]
+          "mustInclude": [
+            "resolveTourismKeywordPreferDistinctPerDay"
+          ],
+          "mustNotInclude": [
+            "primaryCand && normKeywordKey(primaryCand) === llmKey"
+          ]
         }
       ]
     },
     {
       "id": "modetour-schedule-image-keyword-ko-route",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "모두투어 imageKeyword — 한글 routeText·랜드마크 우선·귀국일 키워드 비움",
       "checks": [
         {
@@ -404,13 +570,18 @@
         },
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
-          "mustInclude": ["applyModetourScheduleImageKeywordsToRows"]
+          "mustInclude": [
+            "applyModetourScheduleImageKeywordsToRows"
+          ]
         }
       ]
     },
     {
       "id": "schedule-image-keyword-dual-slot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "6공급사 일정 imageKeyword+imageKeyword2 — 관광 일차 2슬롯·dedupe 후 reconcile·일괄 계약 테스트",
       "checks": [
         {
@@ -581,7 +752,10 @@
     },
     {
       "id": "hanatour-e2e-airtel-same-product-guard",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 E2E 자유여행 동일상품 anchor·URL type=H01 가드",
       "checks": [
         {
@@ -595,17 +769,27 @@
         },
         {
           "file": "scripts/calendar_e2e_scraper_hanatour/calendar_price_scraper.py",
-          "mustInclude": ["pre_page", "d[\"type\"] = \"H01\""]
+          "mustInclude": [
+            "pre_page",
+            "d[\"type\"] = \"H01\""
+          ]
         },
         {
           "file": "scripts/calendar_e2e_scraper_hanatour/test_utils_airtel_same_product.py",
-          "mustInclude": ["BANGKOK_REGISTERED", "AAB261260706FDB", "sameProductMatch"]
+          "mustInclude": [
+            "BANGKOK_REGISTERED",
+            "AAB261260706FDB",
+            "sameProductMatch"
+          ]
         }
       ]
     },
     {
       "id": "hanatour-api-departure-collect",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 gw API 우선 수집·0건 시 E2E 폴백",
       "checks": [
         {
@@ -623,7 +807,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-api-departure-collect]",
             "collectHanatourPriceInputsWithE2eFallback",
-            "collectHanatourApiDepartureInputsForMonths"
+            "collectHanatourApiDepartureInputsForMonths",
+            "horizonSoldOut"
           ]
         },
         {
@@ -641,27 +826,43 @@
     },
     {
       "id": "hanatour-origin-code-from-paste",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 originCode — LLM 미지정 시 본문 상품코드 SSOT 덮어쓰기",
       "checks": [
         {
           "file": "lib/hanatour-origin-code-from-paste.ts",
-          "mustInclude": ["isUnsetRegisterOriginCode", "applyHanatourOriginCodeFromPaste", "REGRESSION-FREEZE[hanatour-origin-code-from-paste]"]
+          "mustInclude": [
+            "isUnsetRegisterOriginCode",
+            "applyHanatourOriginCodeFromPaste",
+            "REGRESSION-FREEZE[hanatour-origin-code-from-paste]"
+          ]
         },
         {
           "file": "lib/register-parse-hanatour.ts",
-          "mustInclude": ["applyHanatourOriginCodeFromPaste"],
-          "mustNotInclude": ["extractHanatourOriginProductCodeFromBlob"]
+          "mustInclude": [
+            "applyHanatourOriginCodeFromPaste"
+          ],
+          "mustNotInclude": [
+            "extractHanatourOriginProductCodeFromBlob"
+          ]
         },
         {
           "file": "lib/parse-and-register-hanatour-orchestration.ts",
-          "mustInclude": ["applyHanatourOriginCodeFromPaste"]
+          "mustInclude": [
+            "applyHanatourOriginCodeFromPaste"
+          ]
         }
       ]
     },
     {
       "id": "hub-product-row-compact-scroll",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "해외·자유여행 허브 — compact 가로 스크롤 SSOT, 그리드·90%·2×2 페이지 회귀 금지",
       "checks": [
         {
@@ -689,7 +890,10 @@
     },
     {
       "id": "product-detail-payload-slim-persist",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "상품 상세 payload — slim 행 live persist·자정 전 slim cache 금지",
       "checks": [
         {
@@ -700,17 +904,25 @@
             "canPersistPayload",
             "isProductDetailSlimRow"
           ],
-          "mustNotInclude": ["travelProduct as ProductDetailViewRow,\n    fitMaster"]
+          "mustNotInclude": [
+            "travelProduct as ProductDetailViewRow,\n    fitMaster"
+          ]
         },
         {
           "file": "lib/product-detail-page-cache.ts",
-          "mustInclude": ["product-detail-public-v4", "bookableMinDateYmdForPayload"]
+          "mustInclude": [
+            "product-detail-public-v4",
+            "bookableMinDateYmdForPayload"
+          ]
         }
       ]
     },
     {
       "id": "welcomepay-esim-payment",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "웰컴페이 eSIM 결제 — wcard URL·P_SIGNATURE·P_NEXT_URL path-only·charset",
       "checks": [
         {
@@ -721,7 +933,9 @@
             "/smart/${segment}/",
             "welcomepayMobileNextCallbackUrlRegistered"
           ],
-          "mustNotInclude": ["/smart/welpay/"]
+          "mustNotInclude": [
+            "/smart/welpay/"
+          ]
         },
         {
           "file": "lib/bongsim/welcomepay-payment-methods.ts",
@@ -730,7 +944,9 @@
             "mobilePath: \"wcard\"",
             "WELCOMEPAY_MOBILE_P_RESERVED_BASE = \"centerCd=Y\""
           ],
-          "mustNotInclude": ["mobilePath: \"welpay\""]
+          "mustNotInclude": [
+            "mobilePath: \"welpay\""
+          ]
         },
         {
           "file": "app/api/bongsim/checkout/welcomepay-prepare/route.ts",
@@ -739,11 +955,15 @@
             "welcomepayMobileNextCallbackUrlRegistered",
             "pSignature: mobilePSignature"
           ],
-          "mustNotInclude": ["welcomepayMobileNextCallbackUrl(orderNumber)"]
+          "mustNotInclude": [
+            "welcomepayMobileNextCallbackUrl(orderNumber)"
+          ]
         },
         {
           "file": "app/travel/esim/checkout/payment/welcomepay/WelcomepayPaymentClient.tsx",
-          "mustInclude": ["name=\"P_SIGNATURE\""]
+          "mustInclude": [
+            "name=\"P_SIGNATURE\""
+          ]
         },
         {
           "file": "lib/bongsim/welcomepay-pg-text-decode.ts",
@@ -752,13 +972,18 @@
             "pCharset: \"utf8\"",
             "pCharset: null"
           ],
-          "mustNotInclude": ["pCharset: \"EUC-KR\""]
+          "mustNotInclude": [
+            "pCharset: \"EUC-KR\""
+          ]
         }
       ]
     },
     {
       "id": "calendar-price-horizon-180d",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "180일 지평·modetour 배치 API·실패 시 cursor 미전진",
       "checks": [
         {
@@ -776,12 +1001,19 @@
             "CALENDAR_PRICE_HORIZON_DAYS",
             "calendar-price-horizon-constants"
           ],
-          "mustNotInclude": ["calendar-batch-seq-state"]
+          "mustNotInclude": [
+            "calendar-batch-seq-state"
+          ]
         },
         {
           "file": "lib/scrape-date-bounds.ts",
-          "mustInclude": ["calendar-price-horizon-constants"],
-          "mustNotInclude": ["from '@/lib/calendar-price-horizon'", "calendar-batch-seq-state"]
+          "mustInclude": [
+            "calendar-price-horizon-constants"
+          ],
+          "mustNotInclude": [
+            "from '@/lib/calendar-price-horizon'",
+            "calendar-batch-seq-state"
+          ]
         },
         {
           "file": "scripts/calendar_price_scheduler.py",
@@ -802,13 +1034,18 @@
         },
         {
           "file": "scripts/calendar_e2e_common/horizon.py",
-          "mustInclude": ["CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"]
+          "mustInclude": [
+            "CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"
+          ]
         }
       ]
     },
     {
       "id": "modetour-sweep-e2e-recheck",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "modetour sweep — API SD1·0건 시 E2E 6개월 검증·7일 재확인·stale 미래출발 정리",
       "checks": [
         {
@@ -843,7 +1080,9 @@
             "resolveModetourDetailByOriginCode",
             "/package/"
           ],
-          "mustNotInclude": ["pkgCd="]
+          "mustNotInclude": [
+            "pkgCd="
+          ]
         },
         {
           "file": "lib/modetour-price-recheck-meta.ts",
@@ -867,7 +1106,9 @@
             "origin-url-refresh",
             "originCode"
           ],
-          "mustNotInclude": ["modetourProductHasFuturePricedDeparture"]
+          "mustNotInclude": [
+            "modetourProductHasFuturePricedDeparture"
+          ]
         },
         {
           "file": "scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py",
@@ -881,14 +1122,23 @@
         },
         {
           "file": "lib/modetour-sd1-policy.ts",
-          "mustInclude": ["isModetourSd1AutoUnpublishEligible", "isSingleDepartureProduct", "[SD2]"],
-          "mustNotInclude": ["if (options?.hasFuturePricedDeparture) return false"]
+          "mustInclude": [
+            "isModetourSd1AutoUnpublishEligible",
+            "isSingleDepartureProduct",
+            "[SD2]"
+          ],
+          "mustNotInclude": [
+            "if (options?.hasFuturePricedDeparture) return false"
+          ]
         }
       ]
     },
     {
       "id": "single-departure-product-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "단일 출발 상품 — 관리자 체크 SSOT·등록 confirm 반영",
       "checks": [
         {
@@ -904,34 +1154,58 @@
         },
         {
           "file": "prisma/schema.prisma",
-          "mustInclude": ["singleDepartureOnly Boolean @default(false)"]
+          "mustInclude": [
+            "singleDepartureOnly Boolean @default(false)"
+          ]
         },
         {
           "file": "app/admin/register/page.tsx",
-          "mustInclude": ["singleDepartureOnly", "단일 출발 상품", "isSingleDepartureAdminCheckboxDisabled"]
+          "mustInclude": [
+            "singleDepartureOnly",
+            "단일 출발 상품",
+            "isSingleDepartureAdminCheckboxDisabled"
+          ]
         },
         {
           "file": "app/admin/products/[id]/page.tsx",
-          "mustInclude": ["singleDepartureOnlyDraft", "단일 출발 상품", "isSingleDepartureAdminCheckboxDisabled"]
+          "mustInclude": [
+            "singleDepartureOnlyDraft",
+            "단일 출발 상품",
+            "isSingleDepartureAdminCheckboxDisabled"
+          ]
         },
         {
           "file": "app/api/admin/products/[id]/route.ts",
-          "mustInclude": ["resolveSingleDepartureOnlyForAdminWrite", "singleDepartureOnly"]
+          "mustInclude": [
+            "resolveSingleDepartureOnlyForAdminWrite",
+            "singleDepartureOnly"
+          ]
         },
         {
           "file": "lib/parse-and-register-modetour-handler.ts",
-          "mustInclude": ["parseSingleDepartureOnlyFromAdminBody", "singleDepartureOnly"]
+          "mustInclude": [
+            "parseSingleDepartureOnlyFromAdminBody",
+            "singleDepartureOnly"
+          ]
         },
         {
           "file": "lib/parse-and-register-hanatour-orchestration.ts",
-          "mustInclude": ["parseSingleDepartureOnlyFromAdminBody", "singleDepartureOnly"]
+          "mustInclude": [
+            "parseSingleDepartureOnlyFromAdminBody",
+            "singleDepartureOnly"
+          ]
         }
       ],
-      "vitestSuites": ["lib/single-departure-product-ssot.test.ts"]
+      "vitestSuites": [
+        "lib/single-departure-product-ssot.test.ts"
+      ]
     },
     {
       "id": "single-departure-modetour-collect",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "modetour 단일출발 — 달력 API 생략·GetProductDetailInfo 우선·SD1 auto-unpublish 면제",
       "checks": [
         {
@@ -945,19 +1219,30 @@
         },
         {
           "file": "lib/modetour-sd1-policy.ts",
-          "mustInclude": ["isSingleDepartureProduct"]
+          "mustInclude": [
+            "isSingleDepartureProduct"
+          ]
         }
       ],
-      "vitestSuites": ["lib/modetour-price-collect.test.ts", "lib/modetour-sd1-policy.test.ts"]
+      "vitestSuites": [
+        "lib/modetour-price-collect.test.ts",
+        "lib/modetour-sd1-policy.test.ts"
+      ]
     },
     {
       "id": "register-facts-foundation",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "등록 사실 번들 — modetour/hanatour/ybtour/verygoodtour API·HTML 구조화 수집 기반",
       "checks": [
         {
           "file": "lib/register-facts/types.ts",
-          "mustInclude": ["SupplierRegisterFactBundle", "RegisterFactScheduleDay"]
+          "mustInclude": [
+            "SupplierRegisterFactBundle",
+            "RegisterFactScheduleDay"
+          ]
         },
         {
           "file": "lib/register-facts/collect.ts",
@@ -1008,11 +1293,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/register-facts/modetour.test.ts"]
+      "vitestSuites": [
+        "lib/register-facts/modetour.test.ts"
+      ]
     },
     {
       "id": "ybtour-api-departure-collect",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour papi by-goods 월 API 우선 수집·0건 시 E2E 폴백",
       "checks": [
         {
@@ -1042,11 +1332,17 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/ybtour-api-departures.test.ts", "lib/ybtour-price-collect.test.ts"]
+      "vitestSuites": [
+        "lib/ybtour-api-departures.test.ts",
+        "lib/ybtour-price-collect.test.ts"
+      ]
     },
     {
       "id": "ybtour-by-goods-departure-list",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour by-goods 월 API 다출발·/price 교차 검증",
       "checks": [
         {
@@ -1068,14 +1364,22 @@
         },
         {
           "file": "scripts/run-ybtour-by-goods-price-verify.ts",
-          "mustInclude": ["collectYbtourByGoodsApiOnlyForDateRange", "priceApiAdultPrice"]
+          "mustInclude": [
+            "collectYbtourByGoodsApiOnlyForDateRange",
+            "priceApiAdultPrice"
+          ]
         }
       ],
-      "vitestSuites": ["lib/ybtour-api-departures.test.ts"]
+      "vitestSuites": [
+        "lib/ybtour-api-departures.test.ts"
+      ]
     },
     {
       "id": "supplier-urgent-deal-baseline",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공급사 긴급모객 — baselineAdultPrice 최초 고정·hasUrgentDeal 캐시 SSOT",
       "checks": [
         {
@@ -1111,11 +1415,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/supplier-urgent-deal.test.ts"]
+      "vitestSuites": [
+        "lib/supplier-urgent-deal.test.ts"
+      ]
     },
     {
       "id": "hanatour-sweep-e2e-recheck",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "hanatour sweep — API 0건 시 E2E 6개월 검증·7일 재확인·stale 미래출발 정리",
       "checks": [
         {
@@ -1123,7 +1432,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
             "collectHanatourPriceInputsWithE2eFallback",
-            "collectHanatourApiOnlyForDateRange"
+            "horizonSoldOut"
           ]
         },
         {
@@ -1139,6 +1448,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]",
             "collectHanatourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "pruneAllDeparturesInHorizonWindow",
             "isHanatourPriceRecheckDue",
             "syncSupplierUrgentDealForProduct",
             "upsertProductDepartures"
@@ -1146,14 +1457,22 @@
         },
         {
           "file": "lib/instrumentation-hanatour-sweep-cron.ts",
-          "mustInclude": ["sweepDueHanatourProducts", "DISABLE_INSTRUMENTATION_HANATOUR_SWEEP_CRON"]
+          "mustInclude": [
+            "sweepDueHanatourProducts",
+            "DISABLE_INSTRUMENTATION_HANATOUR_SWEEP_CRON"
+          ]
         }
       ],
-      "vitestSuites": ["lib/hanatour-sweep.test.ts"]
+      "vitestSuites": [
+        "lib/hanatour-sweep.test.ts"
+      ]
     },
     {
       "id": "ybtour-sweep-e2e-recheck",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour sweep — papi by-goods 월 API·0건 시 E2E 6개월·7일 재확인·stale 출발 정리",
       "checks": [
         {
@@ -1187,21 +1506,164 @@
         },
         {
           "file": "lib/instrumentation-ybtour-sweep-cron.ts",
-          "mustInclude": ["sweepDueYbtourProducts", "DISABLE_INSTRUMENTATION_YBTOUR_SWEEP_CRON"]
+          "mustInclude": [
+            "sweepDueYbtourProducts",
+            "DISABLE_INSTRUMENTATION_YBTOUR_SWEEP_CRON"
+          ]
         }
       ],
-      "vitestSuites": ["lib/ybtour-sweep.test.ts"]
+      "vitestSuites": [
+        "lib/ybtour-sweep.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-hxr-departure-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "lottetour evtListAjax HXR·0건 시 Python E2E·horizonSoldOut",
+      "checks": [
+        {
+          "file": "lib/lottetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-hxr-departure-collect]",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "collectLottetourHxrOnlyForDateRange",
+            "horizonSoldOut",
+            "collectLottetourCalendarRange"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-sweep.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-sweep-e2e-recheck",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "lottetour sweep — evtListAjax HXR·0건 시 E2E 180일·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/lottetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "horizonSoldOut"
+          ]
+        },
+        {
+          "file": "lib/lottetour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]",
+            "LOTTETOUR_HORIZON_RECHECK_DAYS = 7",
+            "lottetourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/lottetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
+            "isLottetourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-lottetour-sweep-cron.ts",
+          "mustInclude": [
+            "sweepDueLottetourProducts",
+            "DISABLE_INSTRUMENTATION_LOTTETOUR_SWEEP_CRON"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-sweep.test.ts"
+      ]
+    },
+    {
+      "id": "verygoodtour-hxr-departure-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "verygoodtour ProductCalendarSearch HXR→E2E·horizonSoldOut·URL GET 폴백",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hxr-departure-collect]",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "collectVerygoodHxrOnlyForDateRange",
+            "horizonSoldOut",
+            "normalizeVerygoodtourDetailUrlForCollect"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-detail-url-health.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-e2e-expired-url-guard]",
+            "normalizeVerygoodtourDetailUrlForCollect",
+            "probeVerygoodDetailWithGet"
+          ]
+        },
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "collectVerygoodtourDepartureInputsForDateRange",
+            "verygoodtour: HXR·E2E"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-price-collect.test.ts",
+        "lib/verygoodtour-detail-url-health.test.ts"
+      ]
+    },
+    {
+      "id": "verygoodtour-hxr-calendar-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "verygoodtour ProductCalendarSearch·모달 dep_left/dep_right HXR 파서",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-calendar-hxr.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]",
+            "parseVerygoodModalDomHtml",
+            "parseVerygoodCalendarRightRows",
+            "dep_right_wrap",
+            "jq_cl_detailViewBtn"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-calendar-hxr.test.ts"
+      ]
     },
     {
       "id": "verygoodtour-e2e-expired-url-guard",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "참좋은여행 E2E — stale URL HEAD skip·Playwright product-expired phase",
       "checks": [
         {
           "file": "lib/verygoodtour-detail-url-health.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[verygoodtour-e2e-expired-url-guard]",
-            "isVerygoodtourDetailUrlExpired"
+            "isVerygoodtourDetailUrlExpired",
+            "normalizeVerygoodtourDetailUrlForCollect",
+            "verygoodtourDetailHtmlLooksExpired"
           ]
         },
         {
@@ -1221,8 +1683,134 @@
       ]
     },
     {
+      "id": "verygoodtour-sweep-e2e-recheck",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "verygoodtour sweep — ProductCalendarSearch HXR·0건 시 E2E 180일·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "horizonSoldOut"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]",
+            "VERYGOODTOUR_HORIZON_RECHECK_DAYS = 7",
+            "verygoodtourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
+            "isVerygoodtourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-verygoodtour-sweep-cron.ts",
+          "mustInclude": [
+            "sweepDueVerygoodtourProducts",
+            "DISABLE_INSTRUMENTATION_VERYGOODTOUR_SWEEP_CRON"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-sweep.test.ts"
+      ]
+    },
+    {
+      "id": "kyowontour-sweep-e2e-recheck",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "kyowontour sweep — differentDepartDate AJAX·0건 시 E2E 180일·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/kyowontour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]",
+            "collectKyowontourPriceInputsWithE2eFallback",
+            "horizonSoldOut"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]",
+            "KYOWONTOUR_HORIZON_RECHECK_DAYS = 7",
+            "kyowontourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]",
+            "collectKyowontourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
+            "isKyowontourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-kyowontour-sweep-cron.ts",
+          "mustInclude": [
+            "sweepDueKyowontourProducts",
+            "DISABLE_INSTRUMENTATION_KYOWONTOUR_SWEEP_CRON"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-sweep.test.ts",
+        "lib/kyowontour-departures.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-sd1-inventory",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "modetour SD1/SD2 inventory — 등록 상품 API 분류·ops JSON",
+      "checks": [
+        {
+          "file": "scripts/run-modetour-sd1-inventory.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-sd1-inventory]",
+            "collectModetourApiDepartureInputs",
+            "modetour-sd1-inventory.json",
+            "sd1WithDbDepartures"
+          ]
+        },
+        {
+          "file": "docs/ops/modetour-sd1-airtel-policy.md",
+          "mustInclude": [
+            "isModetourSd1AutoUnpublishEligible",
+            "air_hotel_free"
+          ]
+        }
+      ]
+    },
+    {
       "id": "trip-rec-curation-event-city-match",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "추천 카드 🌐 — CurationEvent city prefer 매칭 (전국+해당 도시만)",
       "checks": [
         {
@@ -1251,7 +1839,10 @@
     },
     {
       "id": "trip-recommend-event-slots",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "PR (가)-6.2 — 기후 5 + 이벤트 슬롯 2 (Product∩CurationEvent, festival/holiday)",
       "checks": [
         {
@@ -1282,7 +1873,10 @@
     },
     {
       "id": "curation-event-collect-efficiency",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "PR (가)-6.3 — 핵심 2개국 배치 + skipRecent 30일",
       "checks": [
         {
@@ -1302,12 +1896,276 @@
           ]
         }
       ]
+    },
+    {
+      "id": "modetour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 등록 — B2C+HTML 상세카드(일정·포함/불포함·쇼핑횟수·핵심포인트) augment",
+      "checks": [
+        {
+          "file": "lib/modetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-detail-collect]",
+            "augmentModetourParsedWithDetailCollect",
+            "GetScheduleList",
+            "GetProductDetailInfo",
+            "GetProductKeyPointInfo",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-detail-collect]",
+            "includedNote",
+            "unincludedNote",
+            "specialBenefits",
+            "fetchModetourRegisterDetailBundle"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": [
+            "augmentModetourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/modetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "hanatour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 등록 — gw API 상세카드(일정·포함/불포함·쇼핑·선택관광·핵심포인트) augment",
+      "checks": [
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-detail-collect]",
+            "augmentHanatourParsedWithDetailCollect",
+            "getPkgProdInfo",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-detail-collect]",
+            "formatHanatourTrvlExpnBullet",
+            "extractHanatourIncludedExcluded"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-handler.ts",
+          "mustInclude": [
+            "augmentHanatourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "verygoodtour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 등록 — PackageDetail HTML 상세카드(일정·포함/불포함·쇼핑·선택관광) augment",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-detail-collect]",
+            "augmentVerygoodtourParsedWithDetailCollect",
+            "PackageDetail",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-departures.ts",
+          "mustInclude": [
+            "extractVerygoodIncludedExcludedFromDetailHtml",
+            "include_state"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "mustInclude": [
+            "augmentVerygoodtourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour 등록 — papi notice·event-schedule 상세카드(일정·포함/불포함·쇼핑·선택관광·핵심포인트) augment",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "augmentYbtourParsedWithDetailCollect",
+            "papi notice",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "extractYbtourIncludedExcluded",
+            "ybtourScheduleBundleToRegisterSchedule"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-handler.ts",
+          "mustInclude": [
+            "augmentYbtourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 등록 — evtDetailBasicAjax·coreInfo 상세카드(포함/불포함·쇼핑·유의사항) augment",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-detail-collect]",
+            "augmentLottetourParsedWithDetailCollect",
+            "evtDetailBasicAjax",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-detail-collect]",
+            "extractLottetourIncludedExcludedFromBasicAjax",
+            "extractLottetourShoppingVisitCountFromCoreInfo"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-handler.ts",
+          "mustInclude": [
+            "augmentLottetourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "kyowontour-tour-event-tab-opt-shop",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 goodsEvtTab_1/2/3/7 — 핵심·포함/불포함·일정·etcTour·shopping_list 파싱·probe 탭 SSOT",
+      "checks": [
+        {
+          "file": "lib/kyowontour-tour-event-tab-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "KYOWONTOUR_TAB_CORE_ID",
+            "KYOWONTOUR_TAB_SCHEDULE_ID",
+            "KYOWONTOUR_TAB_OPT_SHOP_ID",
+            "goodsEvtTab_1",
+            "goodsEvtTab_2",
+            "goodsEvtTab_3",
+            "goodsEvtTab_7",
+            "parseKyowontourCoreTabDetail",
+            "parseKyowontourReservationTabDetail",
+            "parseKyowontourScheduleTabDetail",
+            "parseKyowontourOptShopTabDetail",
+            "parseKyowontourEtcTourRow",
+            "extractKyowontourShoppingListFromEvtType",
+            "shopping_list",
+            "etcTour",
+            "CSP302_CORE_TAB1_DETAIL_FIXTURE",
+            "CSP302_SCHEDULE_TAB2_DETAIL_FIXTURE"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-tab-data-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "augmentKyowontourParsedWithTabDataCollect",
+            "goodsEvtTab_1",
+            "goodsEvtTab_2",
+            "goodsEvtTab_3",
+            "goodsEvtTab_7",
+            "needsKyowontourIncludedExcludedCollect",
+            "singleRoomSurchargeRaw"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-schedule-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "scheduleTabParsedToRegisterDays",
+            "needsKyowontourScheduleCollect"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-handler.ts",
+          "mustInclude": [
+            "augmentKyowontourParsedWithTabDataCollect"
+          ]
+        },
+        {
+          "file": "scripts/verify-kyowontour-tour-event-tab-opt-shop.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "CSP302_OPT_SHOP_TAB7_DETAIL_FIXTURE",
+            "CSP302_SCHEDULE_TAB2_DETAIL_FIXTURE",
+            "CSP302_CORE_TAB1_DETAIL_FIXTURE"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-tour-event-tab-data.test.ts",
+        "lib/kyowontour-register-schedule-collect.test.ts",
+        "lib/kyowontour-register-tab-data-collect.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
     {
       "id": "vitest-regression-core",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "summary": "핵심 vitest 회귀(제목·키워드·가드) — devDep 필요, prebuild/Docker 제외",
       "files": [
         "lib/modetour-listing-title-from-paste.test.ts",
@@ -1329,6 +2187,7 @@
         "lib/modetour-sweep.test.ts",
         "lib/hanatour-sweep.test.ts",
         "lib/ybtour-sweep.test.ts",
+        "lib/lottetour-sweep.test.ts",
         "lib/product-image-source-attribution.test.ts",
         "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
         "lib/supplier-product-title-display.test.ts",
@@ -1347,7 +2206,9 @@
     },
     {
       "id": "product-detail-payload-slim-persist",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "summary": "상품 상세 slim persist 가드 vitest",
       "files": [
         "lib/product-public-detail/get-or-build-model.test.ts",
@@ -1357,7 +2218,9 @@
     },
     {
       "id": "welcomepay-esim-payment",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "summary": "웰컴페이 eSIM 결제 vitest — URL·해시·charset·콜백",
       "files": [
         "lib/bongsim/welcomepay-env.test.ts",
@@ -1373,7 +2236,9 @@
     },
     {
       "id": "browse-mega-menu-geo",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "summary": "동유럽 menuGroup countryKey·세부 아일랜드 geo 매칭 vitest",
       "files": [
         "lib/mega-menu-eastern-europe-browse.test.ts",

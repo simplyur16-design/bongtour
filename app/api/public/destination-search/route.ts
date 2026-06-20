@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
 const MAX_Q = 48
 const TAKE_EACH = 10
+const CTX = 'public.destination-search'
 
 /**
  * GET /api/public/destination-search?q=
@@ -13,7 +14,7 @@ const TAKE_EACH = 10
 export async function GET(request: Request) {
   const raw = new URL(request.url).searchParams.get('q')?.trim() ?? ''
   if (!raw) {
-    return NextResponse.json({ cities: [], countries: [] })
+    return jsonWithLeakGuard({ cities: [], countries: [] }, CTX)
   }
   const q = raw.slice(0, MAX_Q)
 
@@ -50,17 +51,20 @@ export async function GET(request: Request) {
       }),
     ])
 
-    return NextResponse.json({
-      cities: cities.map((c) => ({
-        cityKey: c.cityKey,
-        koreanLabel: c.koreanLabel,
-        countryLabel: c.country.koreanLabel,
-        countryKey: c.country.countryKey,
-      })),
-      countries: countries.map((c) => ({ countryKey: c.countryKey, koreanLabel: c.koreanLabel })),
-    })
+    return jsonWithLeakGuard(
+      {
+        cities: cities.map((c) => ({
+          cityKey: c.cityKey,
+          koreanLabel: c.koreanLabel,
+          countryLabel: c.country.koreanLabel,
+          countryKey: c.country.countryKey,
+        })),
+        countries: countries.map((c) => ({ countryKey: c.countryKey, koreanLabel: c.koreanLabel })),
+      },
+      CTX,
+    )
   } catch (e) {
     console.error('[destination-search]', e)
-    return NextResponse.json({ error: 'search_failed' }, { status: 500 })
+    return jsonWithLeakGuard({ error: 'search_failed' }, CTX, { status: 500 })
   }
 }

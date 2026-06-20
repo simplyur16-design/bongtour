@@ -49,6 +49,46 @@ function stripTags(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+/** table.include_state 두 칸(포함·불포함) HTML 파싱. */
+export function extractVerygoodIncludedExcludedFromDetailHtml(html: string): {
+  includedText: string | null
+  excludedText: string | null
+} {
+  const tableMatch = html.match(/<table[^>]*class="[^"]*include_state[^"]*"[^>]*>([\s\S]*?)<\/table>/i)
+  if (tableMatch) {
+    const cells = [...tableMatch[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) =>
+      decodeBasicHtmlEntities(m[1]!)
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\u00a0/g, ' ')
+        .split('\n')
+        .map((l) => l.replace(/^\d+[.)]\s*/, '').trim())
+        .filter((l) => l.length > 1)
+        .join('\n')
+        .trim(),
+    )
+    if (cells[0] || cells[1]) {
+      return { includedText: cells[0] || null, excludedText: cells[1] || null }
+    }
+  }
+
+  const text = stripTags(html)
+  const includedText =
+    text.match(/포함\s*사항\s*([\s\S]*?)(?=불포함\s*사항|예약\s*안내|유의\s*사항|선택관광|쇼핑\s*\d|$)/i)?.[1]?.trim() ?? null
+  const excludedText =
+    text.match(/불포함\s*사항\s*([\s\S]*?)(?=예약\s*안내|유의\s*사항|선택관광|쇼핑|고객\s*후기|$)/i)?.[1]?.trim() ?? null
+  return { includedText, excludedText }
+}
+
+function decodeBasicHtmlEntities(raw: string): string {
+  return raw
+    .replace(/&gt;/g, '>')
+    .replace(/&lt;/g, '<')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
 function parseVerygoodParams(originUrl: string): { proCode: string; menuCode: string; masterCode: string } | null {
   try {
     const u = new URL(originUrl)
@@ -114,15 +154,16 @@ function extractSharedMeta(detailHtml: string): {
 }
 
 /** 상세 HTML만 fetch·파싱 (달력/모달 경로 없음). */
-export async function collectVerygoodProductCore(detailUrl: string): Promise<{ product: VerygoodProductCore | null; notes: string[] }> {
+export function buildVerygoodProductCoreFromDetailHtml(
+  detailUrl: string,
+  detailHtml: string,
+): { product: VerygoodProductCore | null; notes: string[] } {
   const notes: string[] = []
   const parsed = parseVerygoodParams(detailUrl)
   if (!parsed) return { product: null, notes: ['invalid verygood url'] }
-  const detailRes = await fetch(detailUrl, { method: 'GET' })
-  if (!detailRes.ok) return { product: null, notes: [`detail fetch failed: ${detailRes.status}`] }
-  const detailHtml = await detailRes.text()
   const text = stripTags(detailHtml)
   const shared = extractSharedMeta(detailHtml)
+  const { includedText, excludedText } = extractVerygoodIncludedExcludedFromDetailHtml(detailHtml)
   const nightsDays = text.match(/(\d+)\s*박\s*(\d+)\s*일/)
   const tripNights = nightsDays?.[1] ? Number(nightsDays[1]) : null
   const tripDays = nightsDays?.[2] ? Number(nightsDays[2]) : null
@@ -159,8 +200,8 @@ export async function collectVerygoodProductCore(detailUrl: string): Promise<{ p
     noTipFlag,
     optionalTourSummaryRaw,
     hasOptionalTours: optionalTourSummaryRaw ? !/없음|노옵션|미포함/.test(optionalTourSummaryRaw) : null,
-    includedText: text.match(/(?:포함사항|포함내역)\s*[:：]?\s*([\s\S]{0,420})(?:불포함|예약안내|유의사항)/i)?.[1]?.trim() ?? null,
-    excludedText: text.match(/(?:불포함사항|불포함내역)\s*[:：]?\s*([\s\S]{0,420})(?:예약안내|유의사항|선택관광)/i)?.[1]?.trim() ?? null,
+    includedText,
+    excludedText,
     meetingInfoRaw:
       buildDepartureTerminalInfo(normalizeDepartureAirportCode(shared.outboundDepartureAirport), shared.carrierName) ??
       null,
@@ -181,4 +222,15 @@ export async function collectVerygoodProductCore(detailUrl: string): Promise<{ p
     `[VG_DETAIL_HTML_BASELINE] raw_title=${product.rawTitle} pre_hash_title=${product.preHashTitle} comparison_title=${product.comparisonTitle} comparison_title_no_space=${product.comparisonTitleNoSpace} carrier_name=${product.airline ?? ''} trip_nights=${product.tripNights ?? ''} trip_days=${product.tripDays ?? ''}`
   )
   return { product, notes }
+}
+
+export async function collectVerygoodProductCore(
+  detailUrl: string,
+): Promise<{ product: VerygoodProductCore | null; notes: string[] }> {
+  const parsed = parseVerygoodParams(detailUrl)
+  if (!parsed) return { product: null, notes: ['invalid verygood url'] }
+  const detailRes = await fetch(detailUrl, { method: 'GET' })
+  if (!detailRes.ok) return { product: null, notes: [`detail fetch failed: ${detailRes.status}`] }
+  const detailHtml = await detailRes.text()
+  return buildVerygoodProductCoreFromDetailHtml(detailUrl, detailHtml)
 }

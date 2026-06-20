@@ -24,6 +24,9 @@ assert(
   'detail-url-health marker missing',
 )
 assert(health.includes('isVerygoodtourDetailUrlExpired'), 'health helper missing')
+assert(health.includes('normalizeVerygoodtourDetailUrlForCollect'), 'MenuCode normalize missing')
+assert(health.includes('verygoodtourDetailHtmlLooksExpired'), 'GET body expired probe missing')
+assert(health.includes('probeVerygoodDetailWithGet') || health.includes('method: \'GET\''), 'GET fallback missing')
 
 const scraper = read('scripts/calendar_e2e_scraper_verygoodtour/calendar_price_scraper.py')
 assert(scraper.includes('_verygood_page_is_product_expired'), 'scraper expired probe missing')

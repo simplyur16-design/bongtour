@@ -318,12 +318,39 @@ export type RegisterParsed = {
   registerFitItineraryGeminiJson?: string | null
   /** 관리자 등록 분석 DB용 LLM 병합 객체 JSON (공개 HTTP·클라이언트 직렬화에서 제외) */
   registerAdminPersistedLlmParsedJson?: string | null
+  /** 내부: goodsEvtTab_7 AJAX 수집(미리보기 adapterPrefetchRan) */
+  kyowontourOptShopCollectRan?: boolean
+  kyowontourOptShopCollectSummary?: string | null
+  /** 내부: goodsEvtTab_2 AJAX 일정 수집 */
+  kyowontourScheduleCollectRan?: boolean
+  kyowontourScheduleCollectSummary?: string | null
+  /** 내부: goodsEvtTab_1/3 AJAX 핵심·포함/불포함 수집 */
+  kyowontourCoreCollectRan?: boolean
+  kyowontourCoreCollectSummary?: string | null
 }
 
 /** 클라이언트 전달용: 내부 감사·관리자 저장 전용 필드 제거 */
 export function stripRegisterInternalArtifacts(p: RegisterParsed): RegisterParsed {
-  const x = p as RegisterParsed & { registerAdminPersistedLlmParsedJson?: string | null }
-  const { registerParseAudit: _a, registerAdminPersistedLlmParsedJson: _p, ...rest } = x
+  const x = p as RegisterParsed & {
+    registerAdminPersistedLlmParsedJson?: string | null
+    kyowontourOptShopCollectRan?: boolean
+    kyowontourOptShopCollectSummary?: string | null
+    kyowontourScheduleCollectRan?: boolean
+    kyowontourScheduleCollectSummary?: string | null
+    kyowontourCoreCollectRan?: boolean
+    kyowontourCoreCollectSummary?: string | null
+  }
+  const {
+    registerParseAudit: _a,
+    registerAdminPersistedLlmParsedJson: _p,
+    kyowontourOptShopCollectRan: _c,
+    kyowontourOptShopCollectSummary: _s,
+    kyowontourScheduleCollectRan: _sc,
+    kyowontourScheduleCollectSummary: _ss,
+    kyowontourCoreCollectRan: _cc,
+    kyowontourCoreCollectSummary: _cs,
+    ...rest
+  } = x
   return rest as RegisterParsed
 }
 

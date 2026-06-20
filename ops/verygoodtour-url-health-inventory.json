@@ -1,0 +1,165 @@
+{
+  "finishedAt": "2026-06-19T18:29:42.046Z",
+  "apply": false,
+  "summary": {
+    "total": 17,
+    "live": 13,
+    "expired": 4,
+    "applied": 0
+  },
+  "items": [
+    {
+      "slug": "fim-vg-0001",
+      "id": "cmnzwlwjx000682e27y7ts18v",
+      "originCode": "EPP013-260420SK",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP013-260420SK&PriceSeq=1&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP013-260420SK&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "fim-vg-0002",
+      "id": "cmo02mdny0009b0kumt2xh7gy",
+      "originCode": "EPP0113-260424SK",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP0113-260424SK&PriceSeq=1&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP0113-260424SK&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "fim-vg-0003",
+      "id": "cmp8r0z6903ug3t9y20wwfocq",
+      "originCode": "APP0671-260524KE",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP0671-260524KE&PriceSeq=9&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP0671-260524KE&PriceSeq=9",
+      "expired": true,
+      "applied": false
+    },
+    {
+      "slug": "fit-vg-0001",
+      "id": "cmpz32eft000o10koi6jfiqhk",
+      "originCode": "UPF133-260610YP5",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=UPF133-260610YP5&PriceSeq=1&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=UPF133-260610YP5&PriceSeq=1",
+      "expired": true,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0001",
+      "id": "cmnyjq3l00006beru39hkjjc3",
+      "originCode": "EPP4557-260429BUD",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP4557-260429BUD&PriceSeq=1",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP4557-260429BUD&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0002",
+      "id": "cmnztuesu000610y0510bnm5p",
+      "originCode": "MPP900-260416KE",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=MPP900-260416KE&PriceSeq=1&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=MPP900-260416KE&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0003",
+      "id": "cmnzu1nmw003310y0ccp8fx7e",
+      "originCode": "MPP301-260426AI8",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=MPP301-260426AI8&PriceSeq=1&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=MPP301-260426AI8&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0004",
+      "id": "cmnzudz2q005l10y0milccwan",
+      "originCode": "MPP115-260429",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=MPP115-260429&PriceSeq=17&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=MPP115-260429&PriceSeq=17",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0005",
+      "id": "cmopgb98g0006ojd5p6bkb42q",
+      "originCode": "CPP218-260610MU",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP218-260610MU&PriceSeq=1",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP218-260610MU&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0006",
+      "id": "cmopmxrmk000un5go8cn5qzx0",
+      "originCode": "CPP1008-260526H",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP1008-260526H&PriceSeq=3",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP1008-260526H&PriceSeq=3",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0007",
+      "id": "cmp8qnrst039f3t9yxepbi2yc",
+      "originCode": "APP7450-260615AK35",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP7450-260615AK35&PriceSeq=1",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP7450-260615AK35&PriceSeq=1",
+      "expired": true,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0008",
+      "id": "cmp8qtvyf03ma3t9yn8jfkpfq",
+      "originCode": "APP7483-260519BI5",
+      "storedUrl": null,
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP7483-260519BI5&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0010",
+      "id": "cmpd19l3g0006w34hsn0684dd",
+      "originCode": "APP0005-260521ZE35",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP0005-260521ZE35&PriceSeq=1&MenuCode=leaveLayer#close",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP0005-260521ZE35&PriceSeq=1#close",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0011",
+      "id": "cmpdkp31b004ng6b5h1uesyup",
+      "originCode": "APP0075-260521OZ",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP0075-260521OZ&PriceSeq=2&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP0075-260521OZ&PriceSeq=2",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0012",
+      "id": "cmpp8qpa90006e7jf3713ig99",
+      "originCode": "FPP155-260604EY",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=FPP155-260604EY&PriceSeq=2&MenuCode=101220302",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=FPP155-260604EY&PriceSeq=2",
+      "expired": false,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0013",
+      "id": "cmpz3gvbf019o10kovxawiywr",
+      "originCode": "UPP245-260612WYP",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=UPP245-260612WYP&PriceSeq=17&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=UPP245-260612WYP&PriceSeq=17",
+      "expired": true,
+      "applied": false
+    },
+    {
+      "slug": "pkg-vg-0014",
+      "id": "cmq0rpk4f001lkaw0p4rtn6hz",
+      "originCode": "PPP809-260612BA",
+      "storedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=PPP809-260612BA&PriceSeq=1&MenuCode=leaveLayer",
+      "normalizedUrl": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=PPP809-260612BA&PriceSeq=1",
+      "expired": false,
+      "applied": false
+    }
+  ]
+}

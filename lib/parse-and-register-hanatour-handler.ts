@@ -3,6 +3,7 @@
  * 가격 행 합성·확정 게이트는 핸들러 옵션으로 오케스트레이션에 주입.
  * 일정 표현층: `parse-and-register-hanatour-schedule`.
  */
+import { augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { applyHanatourSyntheticPriceRowIfNeeded } from '@/lib/register-hanatour-confirm-fallback-prices'
 import { parseForRegisterHanatour } from '@/lib/register-parse-hanatour'
 import { runParseAndRegisterFlow } from '@/lib/parse-and-register-hanatour-orchestration'
@@ -19,7 +20,14 @@ export async function handleParseAndRegisterHanatourRequest(request: Request) {
     savePersistedParsedOnly: true,
     recoverEmptyScheduleWithFullParse: true,
     augmentParsed: augmentHanatourScheduleExpressionParsed,
-    patchParsedAfterAugment: (p, t) => applyHanatourSyntheticPriceRowIfNeeded(p, t, 'hanatour'),
+    patchParsedAfterAugment: async (parsed, pastedText, ctx) => {
+      let next = await augmentHanatourParsedWithDetailCollect(parsed, {
+        originUrl: ctx?.originUrl,
+        pastedBlocks: ctx?.pastedBlocks,
+      })
+      next = applyHanatourSyntheticPriceRowIfNeeded(next, pastedText, 'hanatour')
+      return next
+    },
     finalizeItineraryDayDraftsFromSchedule: finalizeHanatourItineraryDayDraftsFromSchedule,
     strictConfirmDeparturePriceRows: true,
     reservationNoticeRawForProductSave: () => null,

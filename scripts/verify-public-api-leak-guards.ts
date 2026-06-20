@@ -73,6 +73,8 @@ function run() {
   mustContainAny('app/api/featured/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
   mustContainAny('app/api/products/[id]/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
   mustContainAny('app/api/bookings/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
+  mustContainAny('app/api/public/destination-search/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
+  mustContainAny('app/api/public/page-hero-editorial-lines/route.ts', ['assertNoInternalMetaLeak', 'jsonWithLeakGuard'])
   mustContain('lib/product-public-detail/build-render-model.ts', 'assertNoInternalMetaLeak')
   mustContain('app/api/agent/reports/route.ts', 'requireAdmin')
   mustContain('app/api/analyze/route.ts', 'requireAdmin')

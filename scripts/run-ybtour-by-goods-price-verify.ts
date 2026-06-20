@@ -14,7 +14,6 @@ import path from 'path'
 
 import { PrismaClient } from '@prisma/client'
 
-import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
 import {
   fetchYbtourEventFirstDisplay,
   fetchYbtourEventPrice,
@@ -86,13 +85,21 @@ function readIntArg(flag: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback
 }
 
+function buildYbtourDetailUrl(originCode: string): string {
+  const code = encodeURIComponent(originCode.trim())
+  const detailBase =
+    process.env.YBTOUR_PRDT_BASE_URL?.replace(/\/$/, '') ??
+    process.env.YELLOWBALLOON_PRDT_BASE_URL?.replace(/\/$/, '') ??
+    'https://prdt.ybtour.co.kr'
+  return `${detailBase}/product/detailPackage?goodsCd=${code}&menu=PKG`
+}
+
 function resolveDetailUrl(originUrl: string | null, originCode: string | null): string | null {
   const stored = (originUrl ?? '').trim()
   if (stored.startsWith('http')) return stored
   const code = (originCode ?? '').trim()
   if (!code) return null
-  const built = buildDetailUrl('ybtour', code)
-  return built.startsWith('http') ? built : null
+  return buildYbtourDetailUrl(code)
 }
 
 function pickSampleIndices(length: number, maxSamples: number): number[] {

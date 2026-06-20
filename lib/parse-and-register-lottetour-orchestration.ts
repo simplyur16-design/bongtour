@@ -311,9 +311,18 @@ export type ParseAndRegisterFlowOptions = {
     ctx?: { pastedBodyText?: string; travelScope?: string }
   ) => RegisterParsed
   /**
-   * augmentParsed 이후 한 번 더 패치(예: 하나투어 가격 행 합성). 브랜드 문자열 분기 없음 — 핸들러가 구현을 넘긴다.
+   * augmentParsed 이후 한 번 더 패치(예: 롯데관광 basicAjax 상세카드). 브랜드 문자열 분기 없음 — 핸들러가 구현을 넘긴다.
    */
-  patchParsedAfterAugment?: (parsed: RegisterParsed, pastedText: string) => RegisterParsed
+  patchParsedAfterAugment?: (
+    parsed: RegisterParsed,
+    pastedText: string,
+    ctx?: {
+      originUrl?: string | null
+      pastedBlocks?: Partial<
+        Pick<import('@/lib/register-llm-blocks-lottetour').RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>
+      > | null
+    },
+  ) => RegisterParsed | Promise<RegisterParsed>
   /**
    * true인 진입에서만 적용. confirm 시 raw 재파스·보강 LLM 금지는 각 핸들러가 이 플래그로 켠다.
    */
@@ -1021,7 +1030,9 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       parsed = augmentParsed(parsed, { pastedBodyText: text, travelScope })
     }
     if (patchParsedAfterAugment) {
-      parsed = patchParsedAfterAugment(parsed, text)
+      parsed = await Promise.resolve(
+        patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks }),
+      )
     }
     parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
       travelScope,
@@ -1426,10 +1437,14 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const autoExtracted = {
       supplierLabel: earlySource,
       originUrl,
-      adapterPrefetchRan: false,
+      adapterPrefetchRan: Boolean(parsed.lottetourDetailCollectRan),
       departureRowCount: departureInputs.length,
       urlSeed: null as { originCode: string; titleHint: string | null } | null,
-      adapterSummaryPreview: '공통 등록 본류는 URL·어댑터 자동수집을 사용하지 않습니다.',
+      adapterSummaryPreview:
+        parsed.lottetourDetailCollectSummary ??
+        (parsed.lottetourDetailCollectRan === false
+          ? '상세카드 자동수집 미실행(붙여넣기 우선 또는 URL/응답 없음).'
+          : '공통 등록 본류는 URL·어댑터 자동수집을 사용하지 않습니다.'),
       pricePromotionFromAdapterDom: null,
     }
 

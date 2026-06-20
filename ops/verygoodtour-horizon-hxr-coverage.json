@@ -1,0 +1,75 @@
+{
+  "finishedAt": "2026-06-19T18:28:49.598Z",
+  "fromYmd": "2026-06-20",
+  "toYmd": "2026-12-17",
+  "horizonDays": 180,
+  "summary": {
+    "total": 3,
+    "hxr_ok": 0,
+    "hxr_left_only": 3,
+    "hxr_empty": 0,
+    "hxr_error": 0
+  },
+  "results": [
+    {
+      "label": "EPP0113-live",
+      "slug": null,
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=EPP0113-260424SK&PriceSeq=1",
+      "status": "hxr_left_only",
+      "pricedRowCount": 0,
+      "rightRowCount": 0,
+      "leftWithPriceCount": 14,
+      "hxrError": null,
+      "warnings": [
+        "2026-6:right_rows_empty",
+        "2026-7:right_rows_empty",
+        "2026-8:right_rows_empty",
+        "2026-9:right_rows_empty",
+        "2026-10:right_rows_empty",
+        "2026-11:right_rows_empty",
+        "2026-12:right_rows_empty"
+      ],
+      "elapsedMs": 528
+    },
+    {
+      "label": "APP1100-leaveLayer",
+      "slug": null,
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=APP1100-260621KE1&PriceSeq=3",
+      "status": "hxr_left_only",
+      "pricedRowCount": 0,
+      "rightRowCount": 0,
+      "leftWithPriceCount": 194,
+      "hxrError": null,
+      "warnings": [
+        "2026-6:right_rows_empty",
+        "2026-7:right_rows_empty",
+        "2026-8:right_rows_empty",
+        "2026-9:right_rows_empty",
+        "2026-10:right_rows_empty",
+        "2026-11:right_rows_empty",
+        "2026-12:right_rows_empty"
+      ],
+      "elapsedMs": 2629
+    },
+    {
+      "label": "CPP332-leaveLayer",
+      "slug": null,
+      "url": "https://www.verygoodtour.com/Product/PackageDetail?ProCode=CPP332-260621KE1&PriceSeq=1",
+      "status": "hxr_left_only",
+      "pricedRowCount": 0,
+      "rightRowCount": 0,
+      "leftWithPriceCount": 111,
+      "hxrError": null,
+      "warnings": [
+        "2026-6:right_rows_empty",
+        "2026-7:right_rows_empty",
+        "2026-8:right_rows_empty",
+        "2026-9:right_rows_empty",
+        "2026-10:right_rows_empty",
+        "2026-11:right_rows_empty",
+        "2026-12:right_rows_empty"
+      ],
+      "elapsedMs": 483
+    }
+  ]
+}
