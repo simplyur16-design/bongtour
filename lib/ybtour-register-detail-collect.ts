@@ -111,9 +111,9 @@ export async function augmentYbtourParsedWithDetailCollect(
   const needMustKnow = needsYbtourMustKnowCollect(parsed)
   const needMeeting = needsYbtourMeetingCollect(parsed)
   const needFlight = needsYbtourFlightCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx?.pastedBlocks) && !hasStructuredOptional(parsed)
+  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
   const needShop =
-    !hasShoppingPaste(ctx?.pastedBlocks) &&
+    !hasShoppingPaste(ctx) &&
     !hasStructuredShopping(parsed) &&
     parsed.shoppingVisitCount == null
 

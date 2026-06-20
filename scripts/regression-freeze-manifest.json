@@ -1730,6 +1730,55 @@
       ]
     },
     {
+      "id": "kyowontour-sweep-e2e-recheck",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "kyowontour sweep — differentDepartDate AJAX·0건 시 E2E 180일·7일 재확인·stale 출발 정리",
+      "checks": [
+        {
+          "file": "lib/kyowontour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]",
+            "collectKyowontourPriceInputsWithE2eFallback",
+            "horizonSoldOut"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-price-recheck-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]",
+            "KYOWONTOUR_HORIZON_RECHECK_DAYS = 7",
+            "kyowontourNextPriceRecheckYmd"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]",
+            "collectKyowontourPriceInputsWithE2eFallback",
+            "horizonSoldOut",
+            "noFutureDepartureConfirmedAt",
+            "isKyowontourPriceRecheckDue",
+            "syncSupplierUrgentDealForProduct",
+            "upsertProductDepartures"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-kyowontour-sweep-cron.ts",
+          "mustInclude": [
+            "sweepDueKyowontourProducts",
+            "DISABLE_INSTRUMENTATION_KYOWONTOUR_SWEEP_CRON"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-sweep.test.ts",
+        "lib/kyowontour-departures.test.ts"
+      ]
+    },
+    {
       "id": "modetour-sd1-inventory",
       "tier": [
         "prebuild",
@@ -2091,17 +2140,6 @@
           "file": "lib/parse-and-register-kyowontour-handler.ts",
           "mustInclude": [
             "augmentKyowontourParsedWithTabDataCollect"
-          ]
-        },
-        {
-          "file": "scripts/_tmp-probe-kyowontour-tab-data.ts",
-          "mustInclude": [
-            "KYOWONTOUR_TAB_PROBE_IDS",
-            "goodsEvtTab_7",
-            "parseKyowontourOptShopTabDetail"
-          ],
-          "mustNotInclude": [
-            "goodsEvtTab_4"
           ]
         },
         {

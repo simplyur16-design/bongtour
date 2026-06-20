@@ -3,7 +3,6 @@
  * UI 「선택관광/쇼핑」 탭은 `goodsEvtTab_7`.
  *
  * REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]: goodsEvtTab_1/2/3/7 tourEventTabData 파싱 — manifest
- * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: register augment는 kyowontour-register-tab-data-collect — manifest
  */
 import type {
   KyowontourOptionalTourFromBody,

@@ -162,9 +162,9 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
   const needSchedule = needsVerygoodtourScheduleCollect(parsed)
   const needInclExcl = needsVerygoodtourIncludedExcludedCollect(parsed)
   const needMustKnow = needsVerygoodtourMustKnowCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx?.pastedBlocks) && !hasStructuredOptional(parsed)
+  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
   const needShop =
-    !hasShoppingPaste(ctx?.pastedBlocks) &&
+    !hasShoppingPaste(ctx) &&
     !hasStructuredShopping(parsed) &&
     parsed.shoppingVisitCount == null
 

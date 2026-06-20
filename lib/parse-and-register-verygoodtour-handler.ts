@@ -28,6 +28,10 @@ import {
   type RegisterScheduleDay,
 } from '@/lib/register-llm-schema-verygoodtour'
 import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
+import {
+  parseForRegisterVerygoodtour,
+  VERYGOOD_PRICE_SLOT_SSOT_NOTE,
+} from '@/lib/register-parse-verygoodtour'
 import { finalizeVerygoodRegisterParsedPricing } from '@/lib/register-verygoodtour-price'
 import { testGeminiConnection } from '@/lib/gemini-client'
 import {

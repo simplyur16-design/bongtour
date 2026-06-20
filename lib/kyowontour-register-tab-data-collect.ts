@@ -2,7 +2,6 @@
  * 교원이지 등록 — goodsEventDetail HTML 1회 + tourEventTabData(goodsEvtTab_1·goodsEvtTab_2·goodsEvtTab_3·goodsEvtTab_7) 배치 자동 수집.
  *
  * REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]: register tab augment — manifest
- * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: augmentKyowontourParsedWithTabDataCollect — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-kyowontour'

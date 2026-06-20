@@ -148,9 +148,9 @@ export async function augmentModetourParsedWithDetailCollect(
   const needSchedule = needsModetourScheduleCollect(parsed)
   const needInclExcl = needsModetourIncludedExcludedCollect(parsed)
   const needMustKnow = needsModetourMustKnowCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx?.pastedBlocks) && !hasStructuredOptional(parsed)
+  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
   const needShop =
-    !hasShoppingPaste(ctx?.pastedBlocks) &&
+    !hasShoppingPaste(ctx) &&
     !hasStructuredShopping(parsed) &&
     parsed.shoppingVisitCount == null
 

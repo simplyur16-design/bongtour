@@ -120,19 +120,21 @@ export function extractModetourMustKnowFromKeyPointInfo(
     items.push({ category, title, body: b, raw: b })
   }
 
-  for (const row of keyPoint.specialBenefits ?? []) {
+  const asRows = (v: unknown): unknown[] => (Array.isArray(v) ? v : [])
+
+  for (const row of asRows(keyPoint.specialBenefits)) {
     const b = String(row ?? '').trim()
     if (b) push('현지준비', '특별 혜택', b)
   }
-  for (const row of keyPoint.sightseeings ?? []) {
+  for (const row of asRows(keyPoint.sightseeings)) {
     const b = String(row ?? '').trim()
     if (b) push('현지준비', '관광 포인트', b)
   }
-  for (const row of keyPoint.hotels ?? []) {
+  for (const row of asRows(keyPoint.hotels)) {
     const b = String(row ?? '').trim()
     if (b) push('현지준비', '숙소', b)
   }
-  for (const row of keyPoint.meals ?? []) {
+  for (const row of asRows(keyPoint.meals)) {
     const b = String(row ?? '').trim()
     if (b) push('현지준비', '식사', b)
   }

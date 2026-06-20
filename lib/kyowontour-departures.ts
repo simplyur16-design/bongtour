@@ -1,7 +1,6 @@
 /**
  * 교원이지(kyowontour) 출발일 캘린더 — 사이트 내부 AJAX `POST /goods/differentDepartDate` (공개 HTTP, 인증 없음).
- * DOM 캘린더 클릭 대신 월별 JSON(`dayAirList`) 수집.
- * HTTP만으로 `dayAirList`가 비는 경우 `tourCodeForE2EFallback`이 있으면 Python E2E(Selenium+requests)를 한 번 시도한다.
+ * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: departDateYmd·E2E 폴백 메타 — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -15,6 +14,17 @@ import { upsertProductDepartures } from '@/lib/upsert-product-departures-kyowont
 
 const execFileAsync = promisify(execFile)
 const KYOWONTOUR_CALENDAR_PY_MODULE = 'scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper'
+
+export type KyowontourCalendarCollectMeta = {
+  e2eAttempted: boolean
+  collectSource: 'ajax' | 'e2e' | null
+}
+
+export type KyowontourCalendarRangeResult = {
+  rows: KyowontourCalendarRow[]
+  warnings: string[]
+  meta: KyowontourCalendarCollectMeta
+}
 
 export type KyowontourCalendarRow = {
   departDate: string
@@ -234,13 +244,28 @@ async function collectKyowontourCalendarViaPythonE2eOnce(args: {
   return { rows, stderr }
 }
 
+/** dayAirList 행 → 캘린더 행 (vitest·회귀 검증용 export) */
+export function parseKyowontourCalendarDayAirRow(
+  item: Record<string, unknown>,
+  tourCodeFallback: string,
+  warnings: string[] = [],
+): KyowontourCalendarRow | null {
+  return dayAirToRow(item, tourCodeFallback, warnings)
+}
+
 function dayAirToRow(
   item: Record<string, unknown>,
   tourCodeFallback: string,
   warnings: string[]
 ): KyowontourCalendarRow | null {
   const dep = normalizeYmd(
-    item.departDate ?? item.depDate ?? item.startDate ?? item.goDate ?? item.START_DATE ?? ''
+    item.departDateYmd ??
+      item.departDate ??
+      item.depDate ??
+      item.startDate ??
+      item.goDate ??
+      item.START_DATE ??
+      ''
   )
   if (!dep) {
     warnings.push(`행 스킵: 출발일 없음 keys=${Object.keys(item).slice(0, 8).join(',')}`)
@@ -254,7 +279,8 @@ function dayAirToRow(
     item.tourCode ?? item.goodsCode ?? item.pkgCode ?? item.TOUR_CD ?? tourCodeFallback ?? ''
   ).trim()
   const airline = String(
-    item.airline ??
+    item.preferredAirlineNm ??
+      item.airline ??
       item.korAirline ??
       item.airLineName ??
       item.carrierName ??
@@ -268,7 +294,13 @@ function dayAirToRow(
     warnings.push(`adultPrice 0/누락: ${dep} tourCode=${tc}`)
   }
   const stRaw = String(
-    item.status ?? item.reserveStatus ?? item.statCd ?? item.rsvStatNm ?? item.goodsStat ?? ''
+    item.statusName ??
+      item.status ??
+      item.reserveStatus ??
+      item.statCd ??
+      item.rsvStatNm ??
+      item.goodsStat ??
+      ''
   )
   return {
     departDate: dep,
@@ -356,10 +388,16 @@ async function postDifferentDepartDateMonth(args: {
 export async function collectKyowontourCalendarRange(
   masterCode: string,
   options?: KyowontourCalendarRangeOptions
-): Promise<{ rows: KyowontourCalendarRow[]; warnings: string[] }> {
+): Promise<KyowontourCalendarRangeResult> {
   const code = (masterCode ?? '').trim()
   const warnings: string[] = []
-  if (!code) return { rows: [], warnings: ['masterCode 비어 있음'] }
+  if (!code) {
+    return {
+      rows: [],
+      warnings: ['masterCode 비어 있음'],
+      meta: { e2eAttempted: false, collectSource: null },
+    }
+  }
 
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const maxRetries = Math.max(1, Math.min(6, options?.maxRetries ?? 3))
@@ -398,6 +436,8 @@ export async function collectKyowontourCalendarRange(
   }
 
   let rows = [...byDate.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+  let collectSource: 'ajax' | 'e2e' | null = rows.length > 0 ? 'ajax' : null
+  let e2eAttempted = false
 
   const e2eTour = (options?.tourCodeForE2EFallback ?? '').trim()
   if (
@@ -406,6 +446,7 @@ export async function collectKyowontourCalendarRange(
     !options?.disableE2EFallback &&
     kyowontourE2eFallbackEnabled()
   ) {
+    e2eAttempted = true
     const e2eMs = Math.max(
       30_000,
       Math.min(600_000, Number(process.env.KYOWONTOUR_E2E_TIMEOUT_MS ?? '120000') || 120_000)
@@ -424,6 +465,7 @@ export async function collectKyowontourCalendarRange(
       const merged = new Map<string, KyowontourCalendarRow>()
       for (const r of py.rows) merged.set(r.departDate, r)
       rows = [...merged.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+      collectSource = 'e2e'
       warnings.push(
         `Python E2E(Selenium+requests) 폴백으로 ${rows.length}건 수집(서버 fetch만으로는 0건)`
       )
@@ -443,7 +485,7 @@ export async function collectKyowontourCalendarRange(
     warnings.push('E2E 폴백 생략: disableE2EFallback')
   }
 
-  return { rows, warnings }
+  return { rows, warnings, meta: { e2eAttempted, collectSource: rows.length > 0 ? collectSource : null } }
 }
 
 function titleLayersFromTourCode(tourCode: string): DepartureTitleLayers {

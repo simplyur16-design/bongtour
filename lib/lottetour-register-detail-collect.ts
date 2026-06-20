@@ -89,7 +89,7 @@ function needsLottetourMeetingCollect(parsed: RegisterParsed): boolean {
 
 function needsLottetourOptionalCollect(parsed: RegisterParsed, ctx?: LottetourRegisterDetailAugmentCtx): boolean {
   if (hasOptionalPaste(ctx) || hasStructuredOptional(parsed)) return false
-  const titleHay = [parsed.title, parsed.rawTitle, parsed.comparisonTitle].filter(Boolean).join(' ')
+  const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
   if (lottetourHaystackDeclaresNoOptional(titleHay)) return false
   return parsed.hasOptionalTour !== false && (parsed.optionalTourCount ?? 0) === 0
 }

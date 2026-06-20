@@ -111,6 +111,10 @@ export async function register() {
         '@/lib/instrumentation-verygoodtour-sweep-cron'
       )
       startInstrumentationVerygoodtourSweepCron()
+      const { startInstrumentationKyowontourSweepCron } = await import(
+        '@/lib/instrumentation-kyowontour-sweep-cron'
+      )
+      startInstrumentationKyowontourSweepCron()
       const { startInstrumentationMonthlyPublishCron } = await import(
         '@/lib/instrumentation-monthly-publish-cron'
       )
