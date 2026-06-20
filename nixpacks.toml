@@ -1,7 +1,7 @@
 # Playwright install-deps: apt mirror swap + retry (archive.ubuntu.com occasional Packages.gz size mismatch during sync).
 [variables]
 # Railway Nixpacks next build OOM 방지 (default ~4GB heap 한계)
-NODE_OPTIONS = "--max-old-space-size=6144"
+NODE_OPTIONS = "--max-old-space-size=8192"
 
 [phases.setup]
 # Nix python3는 PEP 668(externally-managed) + ensurepip이 /nix/store 수정 불가 → virtualenv로 .venv에만 pip/패키지 설치
@@ -16,6 +16,8 @@ cmds = [
   ".venv/bin/pip install -r scripts/calendar_e2e_scraper_hanatour/requirements.txt",
   ".venv/bin/pip install -r scripts/calendar_e2e_scraper_ybtour/requirements.txt",
   ".venv/bin/pip install -r scripts/calendar_e2e_scraper_verygoodtour/requirements.txt",
+  ".venv/bin/pip install -r scripts/calendar_e2e_scraper_kyowontour/requirements.txt",
+  ".venv/bin/pip install -r scripts/calendar_e2e_scraper_lottetour/requirements.txt",
   ".venv/bin/playwright install chromium",
   "bash -c 'for f in /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do if [ -f \"$f\" ]; then sed -i \"s|http://archive.ubuntu.com|http://mirror.kakao.com|g; s|https://archive.ubuntu.com|http://mirror.kakao.com|g\" \"$f\"; fi; done; true'",
   "(apt-get update -o Acquire::Retries=5 --fix-missing && .venv/bin/python -m playwright install-deps chromium) || (sleep 35 && apt-get update -o Acquire::Retries=5 --fix-missing && .venv/bin/python -m playwright install-deps chromium)"

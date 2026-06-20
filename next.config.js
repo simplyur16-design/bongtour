@@ -65,6 +65,8 @@ const nextConfig = {
     'prisma',
   ],
   experimental: {
+    /** Railway/Nixpacks next build peak RSS 완화 (Next 15+) */
+    webpackMemoryOptimizations: true,
     /** lucide named import 시 서버 vendor chunk 분절 완화(개발 중 ENOENT 완화에 도움) */
     optimizePackageImports: ['lucide-react'],
     /**

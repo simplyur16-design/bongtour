@@ -13,7 +13,7 @@
     "clean:next": "node scripts/clean-next.js",
     "dev:clean": "npm run clean:next && next dev -p 3000",
     "build:clean": "npm run clean:next && npm run build",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && node --max-old-space-size=8192 ./node_modules/next/dist/bin/next build",
     "start": "next start -p ${PORT:-3000}",
     "test": "vitest run",
     "test:watch": "vitest",
