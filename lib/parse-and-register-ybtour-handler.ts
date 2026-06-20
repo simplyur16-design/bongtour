@@ -10,6 +10,7 @@ import {
   finalizeYbtourItineraryDayDraftsFromSchedule,
   ybtourConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-ybtour-schedule'
+import { augmentYbtourParsedWithDetailCollect } from '@/lib/ybtour-register-detail-collect'
 export async function handleParseAndRegisterYbtourRequest(request: Request) {
   return runParseAndRegisterFlow(request, {
     forcedBrandKey: 'ybtour',
@@ -20,6 +21,11 @@ export async function handleParseAndRegisterYbtourRequest(request: Request) {
       sanitizeYbtourRegisterParsedStrings(
         augmentYbtourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),
       ),
+    patchParsedAfterAugment: async (parsed, _text, ctx) =>
+      augmentYbtourParsedWithDetailCollect(parsed, {
+        originUrl: ctx?.originUrl,
+        pastedBlocks: ctx?.pastedBlocks,
+      }),
     finalizeItineraryDayDraftsFromSchedule: finalizeYbtourItineraryDayDraftsFromSchedule,
     getHeroTripDatesSupplement: (p) => ({
       ybtourFlightStructured: p.detailBodyStructured?.flightStructured ?? null,

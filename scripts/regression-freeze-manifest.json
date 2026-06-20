@@ -1944,6 +1944,43 @@
       ]
     },
     {
+      "id": "ybtour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour 등록 — papi notice·event-schedule 상세카드(일정·포함/불포함·쇼핑·선택관광·핵심포인트) augment",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "augmentYbtourParsedWithDetailCollect",
+            "papi notice",
+            "singleRoomSurchargeRaw",
+            "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "extractYbtourIncludedExcluded",
+            "ybtourScheduleBundleToRegisterSchedule"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-handler.ts",
+          "mustInclude": [
+            "augmentYbtourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-detail-collect.test.ts"
+      ]
+    },
+    {
       "id": "kyowontour-tour-event-tab-opt-shop",
       "tier": [
         "prebuild",
