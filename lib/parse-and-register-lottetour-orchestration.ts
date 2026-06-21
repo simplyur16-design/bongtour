@@ -137,6 +137,12 @@ import type {
   LottetourShoppingItemFromBody,
 } from '@/lib/lottetour-admin-preview-card-types'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import {
+  buildRegisterFlightInferHaystack,
+  parseRegisterFactFlightsFromAdminBody,
+  resolveRegisterProductDepartureAirportFields,
+  scheduleRowsToInferHaystack,
+} from '@/lib/register-product-departure-airport-save'
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
@@ -1683,6 +1689,15 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       console.warn('[lottetour] highlight LLM', e instanceof Error ? e.message : e)
       return null
     })
+    const departureAirportFields = resolveRegisterProductDepartureAirportFields({
+      manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
+      inferHaystack: buildRegisterFlightInferHaystack({
+        airline: parsed.airline,
+        includedText: parsed.includedText ?? null,
+        scheduleText: scheduleRowsToInferHaystack(schedule),
+      }),
+      factFlights: parseRegisterFactFlightsFromAdminBody(body),
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1753,7 +1768,8 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
           : null,
       ...registerListingMeta,
       ...geo,
-      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      localDepartureTag: departureAirportFields.localDepartureTag,
+      departureAirportLabel: departureAirportFields.departureAirportLabel,
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
       singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }

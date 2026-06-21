@@ -40,6 +40,8 @@ export type PackageProductHeroInfoPanelProps = {
   productMetaChips: ProductMetaChip[]
   listingKind?: string | null
   airportTransferType?: string | null
+  /** 인천·김포(서울권)는 null — 부산·청주·대구·제주만 표기 */
+  departureAirportLabelDisplay?: string | null
   onChangeDepartureDate: () => void
   showChangeDepartureCta?: boolean
   modetourStickyLocalPayLine?: string | null
@@ -70,6 +72,7 @@ export default function PackageProductHeroInfoPanel({
   productMetaChips,
   listingKind,
   airportTransferType,
+  departureAirportLabelDisplay,
   onChangeDepartureDate,
   showChangeDepartureCta = true,
   modetourStickyLocalPayLine,
@@ -101,6 +104,12 @@ export default function PackageProductHeroInfoPanel({
           <>
             <span className="text-bt-disabled">·</span>
             <span className="text-bt-muted">{airline.trim()}</span>
+          </>
+        ) : null}
+        {departureAirportLabelDisplay?.trim() ? (
+          <>
+            <span className="text-bt-disabled">·</span>
+            <span className="font-medium text-teal-800">{departureAirportLabelDisplay.trim()}</span>
           </>
         ) : null}
       </p>

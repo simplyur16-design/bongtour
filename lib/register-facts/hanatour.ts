@@ -10,13 +10,18 @@ import {
 } from '@/lib/hanatour-api-departures'
 import { buildHanatourKstTargetMonths } from '@/lib/hanatour-departures'
 import {
+  extractHanatourIncludedExcluded,
+  extractHanatourShoppingFromProdInfo,
   fetchHanatourPkgProdItnr,
-  formatHanatourTrvlExpnBullet,
   hanatourItnrSchdToFactDays,
-  type HanatourTrvlExpnRow,
+  type HanatourProdInfoExtended,
 } from '@/lib/hanatour-register-api-detail'
+import {
+  inferHanatourRegisterFactProductKind,
+  registerFactProductKindNote,
+} from '@/lib/register-facts/product-kind'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
-import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import type { RegisterFactScheduleDay, RegisterFactFlightLeg, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 
@@ -55,9 +60,10 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
     .filter((row): row is NonNullable<typeof row> => row != null)
 
   const firstInput = cal.inputs[0]
-  const incl = (info as { trvlExpnInclList?: HanatourTrvlExpnRow[] }).trvlExpnInclList ?? []
-  const excl = (info as { trvlExpnNoneInclList?: HanatourTrvlExpnRow[] }).trvlExpnNoneInclList ?? []
-  const shopping = (info as { shpnInfoList?: Array<{ shpnPlcNm?: string }> }).shpnInfoList ?? []
+  const prodInfo = info as HanatourProdInfoExtended
+  const { includedItems, excludedItems } = extractHanatourIncludedExcluded(prodInfo)
+  const shoppingExtract = extractHanatourShoppingFromProdInfo(prodInfo)
+  const productKind = inferHanatourRegisterFactProductKind(prodInfo, originUrl)
 
   const meetRaw = itnr?.data?.meetInfoBcVo?.fstMeetCont ?? null
   const schdInfoList = itnr?.data?.schdInfoList ?? []
@@ -75,24 +81,49 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
       ? Number((info as { trvlDayCnt?: number }).trvlDayCnt)
       : null,
     meetingInfo: meetRaw ? stripHtml(String(meetRaw)).slice(0, 500) : null,
-    includedBullets: incl.map((x) => formatHanatourTrvlExpnBullet(x)).filter(Boolean),
-    excludedBullets: excl.map((x) => formatHanatourTrvlExpnBullet(x)).filter(Boolean),
-    shoppingPlaces: shopping.map((x) => String(x.shpnPlcNm ?? '').trim()).filter(Boolean),
+    includedBullets: includedItems,
+    excludedBullets: excludedItems,
+    shoppingPlaces: shoppingExtract.rows
+      .map((r) => String(r.shoppingPlace ?? r.shoppingItem ?? '').trim())
+      .filter(Boolean),
     scheduleDays: hanatourItnrSchdToFactDays(schdInfoList),
-    flights: firstInput?.carrierName
-      ? [
-          {
-            direction: 'outbound' as const,
-            carrier: firstInput.carrierName,
-            flightNo: firstInput.outboundFlightNo ?? null,
-            departureCity: null,
-            departureAt: departureInputToYmd(firstInput.departureDate),
-            arrivalCity: null,
-            arrivalAt: null,
-          },
-        ]
-      : [],
+    flights: (() => {
+      const legs: RegisterFactFlightLeg[] = []
+      if (!firstInput) return legs
+      if (
+        firstInput.carrierName ||
+        firstInput.outboundFlightNo ||
+        firstInput.outboundDepartureAirport
+      ) {
+        legs.push({
+          direction: 'outbound',
+          carrier: firstInput.carrierName ?? null,
+          flightNo: firstInput.outboundFlightNo ?? null,
+          departureCity: firstInput.outboundDepartureAirport ?? null,
+          departureAt: departureInputToYmd(firstInput.departureDate),
+          arrivalCity: firstInput.outboundArrivalAirport ?? null,
+          arrivalAt: null,
+        })
+      }
+      if (firstInput.inboundDepartureAirport || firstInput.inboundFlightNo) {
+        legs.push({
+          direction: 'inbound',
+          carrier: firstInput.carrierName ?? null,
+          flightNo: firstInput.inboundFlightNo ?? null,
+          departureCity: firstInput.inboundDepartureAirport ?? null,
+          departureAt: null,
+          arrivalCity: firstInput.inboundArrivalAirport ?? null,
+          arrivalAt: null,
+        })
+      }
+      return legs
+    })(),
     priceRows,
-    notes: ['source=hanatour_gw_api', `pkgCd=${pkgCd}`, `calendar_rows=${priceRows.length}`],
+    notes: [
+      'source=hanatour_gw_api',
+      `pkgCd=${pkgCd}`,
+      `calendar_rows=${priceRows.length}`,
+      registerFactProductKindNote(productKind),
+    ],
   }
 }

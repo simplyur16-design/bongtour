@@ -142,4 +142,6 @@ export type TravelProduct = {
   modetourStickyLocalPayLine?: string | null
   listingKind?: string | null
   flightAdminJson?: string | null
+  /** 인천·김포(서울권)는 null — 부산·청주·대구·제주만 표기 */
+  departureAirportLabelDisplay?: string | null
 }

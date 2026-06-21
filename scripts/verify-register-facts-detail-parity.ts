@@ -1,20 +1,22 @@
 /**
- * 6공급사 register-facts URL live 검증 (패키지 + 자유여행).
+ * register-facts ↔ detail-collect live 교차검증.
  *
- *   npx tsx scripts/verify-register-facts-live.ts
- *   npx tsx scripts/verify-register-facts-live.ts --only=kyowontour
+ *   npx tsx scripts/verify-register-facts-detail-parity.ts
+ *   npx tsx scripts/verify-register-facts-detail-parity.ts --only=hanatour
  */
 import './load-env-for-scripts'
 
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { collectSupplierRegisterFacts, registerFactsSupportedSuppliers } from '@/lib/register-facts/collect'
 import { auditRegisterFactBundleCompleteness } from '@/lib/register-facts/completeness'
+import { auditRegisterFactDetailParity } from '@/lib/register-facts/detail-parity'
+import { fetchRegisterFactDetailParityMetrics } from '@/lib/register-facts/detail-parity-metrics'
 import { parseRegisterFactProductKind } from '@/lib/register-facts/product-kind'
 
 type LiveCase = {
   supplier: CanonicalOverseasSupplierKey
-  url: string
   label: string
+  url: string
   travelScope: 'overseas' | 'air_hotel_free'
 }
 
@@ -111,24 +113,33 @@ async function main() {
       failed += 1
       continue
     }
-    const rows = bundle.priceRows.filter((r) => (r.adultPrice ?? 0) > 0 && r.departureDate)
+
     const productKind = parseRegisterFactProductKind(bundle)
     const completeness = auditRegisterFactBundleCompleteness(bundle)
+    const metrics = await fetchRegisterFactDetailParityMetrics(c.supplier, c.url)
+    if (!metrics) {
+      console.log('FAIL (null detail metrics)')
+      failed += 1
+      continue
+    }
+
+    const parity = auditRegisterFactDetailParity({ bundle, ...metrics })
     const scopeOk = c.travelScope === 'overseas' ? productKind === 'package' : productKind === 'air_hotel_free'
-    const ok = rows.length > 0 && bundle.title?.trim() && completeness.ok && scopeOk
+    const ok = completeness.ok && parity.ok && scopeOk
+
     console.log(
       ok
-        ? `OK kind=${productKind} title=${JSON.stringify(bundle.title?.slice(0, 40))} prices=${rows.length} schedule=${completeness.counts.scheduleDays} incl=${completeness.counts.includedBullets} flights=${completeness.counts.flights}`
-        : `FAIL kind=${productKind} expected=${c.travelScope} rows=${rows.length} title=${bundle.title ?? 'null'} missing=${completeness.missing.join(',') || 'price/title/scope'}`,
+        ? `OK kind=${productKind} completeness=${completeness.missing.join('-') || 'ok'} parity=ok`
+        : `FAIL kind=${productKind} expected=${c.travelScope} completeness=${completeness.missing.join(',') || 'ok'} parity=${parity.mismatches.map((m) => `${m.field}:${m.facts}≠${m.detail}`).join('; ') || 'ok'}`,
     )
     if (!ok) failed += 1
   }
 
   if (failed > 0) {
-    console.error(`\nverify-register-facts-live: ${failed} failure(s)`)
+    console.error(`\nverify-register-facts-detail-parity: ${failed} failure(s)`)
     process.exit(1)
   }
-  console.log('\nverify-register-facts-live: all suppliers OK')
+  console.log('\nverify-register-facts-detail-parity: all cases OK')
 }
 
 main().catch((err) => {

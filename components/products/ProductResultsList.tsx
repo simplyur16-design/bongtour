@@ -93,6 +93,8 @@ export type ResultItem = {
   browseCountry?: string | null
   /** browse API — `Product.sportsThemeTag` (종목별 섹션 그룹용) */
   sportsThemeTags?: SportsThemeTag[]
+  /** browse API — 지방·제주 출발 공항 라벨 (인천·김포는 null) */
+  departureAirportLabelDisplay?: string | null
   /** 해외 허브 클라이언트 geo 필터 — ProductCountryTag / ProductCityTag */
   countryTags?: Array<{ countryKey: string; nodeKey?: string | null }>
   cityTags?: Array<{ cityKey: string }>
@@ -919,6 +921,9 @@ export function ProductResultCard({
         </div>
         {!compact && !hubSquareSmall && item.primaryDestination ? (
           <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>
+        ) : null}
+        {!compact && !hubSquareSmall && item.departureAirportLabelDisplay ? (
+          <p className="mt-0.5 text-xs font-medium text-teal-700">{item.departureAirportLabelDisplay}</p>
         ) : null}
         {!compact &&
         !hubSquareSmall &&

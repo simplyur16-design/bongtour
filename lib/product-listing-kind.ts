@@ -34,13 +34,14 @@ export function parseTravelScope(raw: string | null | undefined): ProductTravelS
 }
 
 /** 관리자 수동 지정 — 지방 출발 메가 메뉴·browse 필터용 (`Product.localDepartureTag`). */
-export const LOCAL_DEPARTURE_TAG_VALUES = ['busan', 'cheongju', 'daegu'] as const
+export const LOCAL_DEPARTURE_TAG_VALUES = ['busan', 'cheongju', 'daegu', 'jeju'] as const
 export type LocalDepartureTag = (typeof LOCAL_DEPARTURE_TAG_VALUES)[number]
 
 export const LOCAL_DEPARTURE_TAG_LABELS: Record<LocalDepartureTag, string> = {
   busan: '부산출발',
   cheongju: '청주출발',
   daegu: '대구출발',
+  jeju: '제주출발',
 }
 
 const LOCAL_DEPARTURE_TAG_SET = new Set<string>(LOCAL_DEPARTURE_TAG_VALUES)

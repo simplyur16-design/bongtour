@@ -16,8 +16,12 @@ import {
   parseKyowontourScheduleTabDetail,
 } from '@/lib/kyowontour-tour-event-tab-data'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
-import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import {
+  inferRegisterFactProductKindFromOriginUrl,
+  registerFactProductKindNote,
+} from '@/lib/register-facts/product-kind'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
@@ -108,6 +112,21 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     .map((r) => kyowontourCalendarRowToFactPriceRow(r))
     .filter((row): row is NonNullable<typeof row> => row != null)
 
+  const firstAirline = enrichedRows.map((r) => r.airline?.trim()).find(Boolean) ?? null
+  const flights: RegisterFactFlightLeg[] = firstAirline
+    ? [
+        {
+          direction: 'outbound',
+          carrier: firstAirline,
+          flightNo: null,
+          departureCity: null,
+          departureAt: enrichedRows[0]?.departDate ?? null,
+          arrivalCity: null,
+          arrivalAt: enrichedRows[0]?.returnDate ?? null,
+        },
+      ]
+    : []
+
   const nightsDays = html.match(/(\d+)\s*박\s*(\d+)\s*일/)
 
   return {
@@ -123,7 +142,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     excludedBullets: core.excludedItems.slice(0, 24),
     shoppingPlaces: [],
     scheduleDays,
-    flights: [],
+    flights,
     priceRows,
     notes: [
       'source=kyowontour_tab_data_and_calendar_ajax',
@@ -131,6 +150,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
       `masterCode=${hidden.masterCode}`,
       `calendar_rows=${enrichedRows.length}`,
       'tourcode_detail_enrich=goodsEventDetail_ssr',
+      registerFactProductKindNote(inferRegisterFactProductKindFromOriginUrl('kyowontour', url)),
     ],
   }
 }

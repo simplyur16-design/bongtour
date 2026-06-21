@@ -78,6 +78,7 @@ import {
   parseAirHotelBrowseTypeParam,
 } from '@/lib/air-hotel-product-ssot'
 import { parseListingKind } from '@/lib/product-listing-kind'
+import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
 import {
   domesticDisplayCategoryIsSpecialTheme,
   domesticNavRegionProductMatches,
@@ -729,6 +730,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           }
         : {}),
       sportsThemeTags: normalizeSportsThemeTagsForBrowse(p.sportsThemeTag),
+      departureAirportLabelDisplay: homeDepartureAirportDisplayText(p.departureAirportLabel),
       ...(p.hasUrgentDeal
         ? (() => {
             const ymd = p.urgentDealNextDate

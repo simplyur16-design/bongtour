@@ -46,6 +46,7 @@ export function buildProductBrowseListSelect() {
     includedText: true,
     excludedText: true,
     localDepartureTag: true,
+    departureAirportLabel: true,
     sportsThemeTag: true,
     hasUrgentDeal: true,
     urgentDealNextDate: true,

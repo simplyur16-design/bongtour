@@ -33,3 +33,5 @@ export {
   collectSupplierRegisterFacts,
   registerFactsSupportedSuppliers,
 } from '@/lib/register-facts/collect'
+
+export { auditRegisterFactBundleCompleteness } from '@/lib/register-facts/completeness'

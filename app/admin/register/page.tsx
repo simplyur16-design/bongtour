@@ -91,6 +91,9 @@ import {
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
+import { inferCanonicalSupplierFromOriginUrl } from '@/lib/infer-supplier-from-origin-url'
+import { inferDepartureAirportFromRegisterFactFlights } from '@/lib/infer-home-departure-airport'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 import type { KyowontourFinalParsed } from '@/lib/kyowontour-admin-preview-card-types'
 
@@ -120,7 +123,7 @@ function formatRegisterFactBundleSummary(bundle: SupplierRegisterFactBundle): st
   return parts.join(' · ') || '구조화 사실 수집 완료'
 }
 
-const LOADING_STATUS = '분석 중…' as const
+const LOADING_STATUS = '봉투어 형식으로 변환 중…' as const
 
 function draftPrimaryRegionKr(
   d: { primaryDestination?: string | null; destinationRaw?: string | null; title?: string | null } | null | undefined,
@@ -909,6 +912,18 @@ export default function AdminRegisterPage() {
     }
   }
 
+  async function applyRegisterFactBundle(bundle: SupplierRegisterFactBundle) {
+    setRegisterFactBundle(bundle)
+    setRawText(registerFactBundleToPasteText(bundle))
+    const airportMeta = inferDepartureAirportFromRegisterFactFlights(bundle.flights)
+    if (airportMeta.localDepartureTags.length > 0) {
+      setLocalDepartureTag(airportMeta.localDepartureTags)
+    }
+    resetRegisterPreviewSession({ clearPreview: true, clearCorrection: true, resetOriginCodeRef: false })
+    setSavedProductId(null)
+    setError('')
+  }
+
   async function fetchRegisterFacts() {
     const normalized = normalizeUrl(originUrl)
     if (!normalized || !REGISTER_FACT_FETCH_SUPPLIERS.has(selectedBrandKey)) return
@@ -933,8 +948,10 @@ export default function AdminRegisterPage() {
         setRegisterFactFetchError(data.error ?? '사실 가져오기에 실패했습니다.')
         return
       }
-      setRegisterFactBundle(data.bundle)
-      setStatusText(formatRegisterFactBundleSummary(data.bundle))
+      await applyRegisterFactBundle(data.bundle)
+      setStatusText(
+        `${formatRegisterFactBundleSummary(data.bundle)} — 아래 [봉투어 형식으로 변환]을 누르면 미리보기·저장까지 진행할 수 있습니다.`,
+      )
     } catch {
       setRegisterFactFetchError('사실 가져오기 요청 중 오류가 발생했습니다.')
     } finally {
@@ -942,12 +959,20 @@ export default function AdminRegisterPage() {
     }
   }
 
+  function resolveRegisterPasteText(): string {
+    const trimmed = rawText.trim()
+    if (trimmed) return trimmed
+    if (registerFactBundle) return registerFactBundleToPasteText(registerFactBundle)
+    return ''
+  }
+
   async function handleSubmit() {
     const urlToCheck = normalizeUrl(originUrl)
     /** 전용 등록 API·route guard SSOT — `normalizeSupplierOrigin` 기대 키와 동일한 문자열 */
     const originSource = selectedBrandKey
-    if (!rawText.trim()) {
-      setError('공급사 상세 본문을 붙여넣어 주세요.')
+    const pasteText = resolveRegisterPasteText()
+    if (!pasteText) {
+      setError('상품 URL로 [사실 가져오기]를 먼저 실행하거나, 공급사 상세 본문을 붙여넣어 주세요.')
       return
     }
     setError('')
@@ -971,7 +996,7 @@ export default function AdminRegisterPage() {
       const ttl = setTimeout(() => controller.abort(), REGISTER_PREVIEW_FETCH_TIMEOUT_MS)
       let res: Response
       try {
-        const trimmedBody = rawText.trim()
+        const trimmedBody = pasteText
         res = await fetch(parseRegisterApiPath(selectedBrandKey), {
           method: 'POST',
           credentials: 'include',
@@ -1103,14 +1128,14 @@ export default function AdminRegisterPage() {
       return
     }
     if (!preview.previewContentDigest?.trim()) {
-      setError('미리보기 콘텐츠 지문이 없습니다. [AI 실시간 분석 시작]으로 다시 분석한 뒤 저장하세요.')
+      setError('미리보기 콘텐츠 지문이 없습니다. [봉투어 형식으로 변환]을 다시 실행한 뒤 저장하세요.')
       return
     }
     if (
       previewContentFingerprintRef.current != null &&
       currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current
     ) {
-      setError('미리보기 이후 본문·붙여넣기 블록·여행사·URL·카테고리가 변경되었습니다. [AI 실시간 분석 시작]으로 다시 분석한 뒤 저장하세요.')
+      setError('미리보기 이후 본문·붙여넣기 블록·여행사·URL·카테고리가 변경되었습니다. [봉투어 형식으로 변환]을 다시 실행한 뒤 저장하세요.')
       return
     }
     setConfirming(true)
@@ -1144,10 +1169,11 @@ export default function AdminRegisterPage() {
       const originSource = selectedBrandKey
       const urlToCheck = normalizeUrl(originUrl)
       const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
+      const confirmPasteText = resolveRegisterPasteText()
       const confirmPrimaryText =
         selectedBrandKey === 'kyowontour'
-          ? buildKyowontourBodyTextWithStructuredBlocks(rawText.trim(), pastedBlocks)
-          : rawText.trim()
+          ? buildKyowontourBodyTextWithStructuredBlocks(confirmPasteText, pastedBlocks)
+          : confirmPasteText
       const snap = preview as AdminRegisterPreviewPayload & {
         registerSnapshotId?: string | null
         registerAnalysisId?: string | null
@@ -1176,6 +1202,9 @@ export default function AdminRegisterPage() {
             localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
             sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
             singleDepartureOnly,
+            ...(registerFactBundle?.flights?.length
+              ? { registerFactFlights: registerFactBundle.flights }
+              : {}),
             ...(typeof snap.registerSnapshotId === 'string' &&
               snap.registerSnapshotId.trim() && { registerSnapshotId: snap.registerSnapshotId.trim() }),
             ...(typeof snap.registerAnalysisId === 'string' &&
@@ -1279,7 +1308,7 @@ export default function AdminRegisterPage() {
                 setError('')
                 setDuplicateResult(null)
                 setLastCheckedOriginUrl('')
-                setStatusText('여행사가 변경되어 이전 미리보기·검수 교정 내용을 초기화했습니다. [AI 실시간 분석 시작]으로 다시 분석하세요.')
+                setStatusText('여행사가 변경되어 이전 미리보기·검수 교정 내용을 초기화했습니다. [봉투어 형식으로 변환]으로 다시 분석하세요.')
               }}
               className="mt-2 w-full border border-slate-300 bg-white px-3 py-2 text-sm text-[#0f172a] focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
               disabled={loading}
@@ -1315,7 +1344,7 @@ export default function AdminRegisterPage() {
                 setDuplicateResult(null)
                 setLastCheckedOriginUrl('')
                 setStatusText(
-                  '상품 유형이 변경되어 이전 미리보기·키워드 입력을 초기화했습니다. [AI 실시간 분석 시작]으로 다시 분석하세요.',
+                  '상품 유형이 변경되어 이전 미리보기·키워드 입력을 초기화했습니다. [봉투어 형식으로 변환]으로 다시 분석하세요.',
                 )
               }}
               className="mt-2 w-full border border-slate-300 bg-white px-3 py-2 text-sm text-[#0f172a] focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
@@ -1335,8 +1364,8 @@ export default function AdminRegisterPage() {
             상품 URL
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            출처·reference 메타와 API 사실 수집에 사용합니다. 본문 붙여넣기는 그대로 필요하며, LLM은 사실 번들·붙여넣기를
-            바탕으로 미리보기를 만듭니다.
+            URL 호스트로 공급사가 자동 선택됩니다. [사실 가져오기] 후 [봉투어 형식으로 변환]으로 미리보기·저장까지 진행합니다.
+            modetour 등은 쿠폰·혜택 보강이 필요할 때만 아래 추가 본문을 붙여넣으세요.
           </p>
           <input
             id="admin-register-origin-url"
@@ -1350,7 +1379,21 @@ export default function AdminRegisterPage() {
               setRegisterFactBundle(null)
               setRegisterFactFetchError(null)
             }}
-            onBlur={() => void checkOriginUrlDuplicate()}
+            onBlur={() => {
+              void checkOriginUrlDuplicate()
+              const inferred = inferCanonicalSupplierFromOriginUrl(originUrl)
+              if (inferred && inferred !== selectedBrandKey) {
+                setSelectedBrandKey(inferred)
+                setRegisterFactBundle(null)
+                setRegisterFactFetchError(null)
+                resetRegisterPreviewSession({
+                  clearPreview: true,
+                  clearCorrection: true,
+                  resetOriginCodeRef: true,
+                })
+                setStatusText('URL에서 공급사를 자동 선택했습니다. [사실 가져오기] 후 [봉투어 형식으로 변환]을 진행하세요.')
+              }
+            }}
             placeholder="상품 URL을 입력하세요 (출처/reference용)"
             className="mt-2 w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-[#0f172a] placeholder:text-slate-400 focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
             disabled={loading}
@@ -1624,18 +1667,18 @@ export default function AdminRegisterPage() {
           />
         </div>
 
-        {/* G. AI 실시간 분석 — 붙여넣은 본문 SSOT, 보조 블록 병합, URL은 메타만 */}
+        {/* G. 사실 → 봉투어 형식 변환 (LLM 재서술·구조화, 원문 HTML 재크롤링 아님) */}
         <div className="mt-8 border-l-4 border-[#0f172a] pl-6">
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading || confirming}
+            disabled={loading || confirming || !resolveRegisterPasteText()}
             className="w-full bg-[#10b981] px-6 py-4 text-base font-bold tracking-wide text-white transition hover:bg-[#0d9668] disabled:opacity-70 sm:w-auto sm:max-w-xl"
           >
-            {loading ? '분석 중…' : 'AI 실시간 분석 시작'}
+            {loading ? LOADING_STATUS : '봉투어 형식으로 변환'}
           </button>
           <p className="mt-2 text-xs text-slate-500">
-            본문(pasted raw)이 주 입력이며, 표·원문·구조값이 LLM보다 우선합니다. URL은 출처 기록용이며 HTML 자동수집은 하지 않습니다.
+            [사실 가져오기]로 채운 구조화 사실(또는 선택적 추가 붙여넣기)을 봉투어 등록 형식으로 변환합니다. modetour 쿠폰·혜택은 필요 시 추가 본문으로 보강하세요.
           </p>
         </div>
 
@@ -1683,7 +1726,7 @@ export default function AdminRegisterPage() {
           <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <p className="font-semibold">입력이 미리보기 이후 변경되었습니다.</p>
             <p className="mt-1 text-xs text-amber-900/90">
-              저장하려면 <strong>[AI 실시간 분석 시작]</strong>으로 다시 미리보기를 받아 주세요.
+              저장하려면 <strong>[봉투어 형식으로 변환]</strong>으로 다시 미리보기를 받아 주세요.
             </p>
           </div>
         ) : null}

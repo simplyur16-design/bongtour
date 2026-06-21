@@ -105,6 +105,12 @@ import {
   verygoodConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-verygoodtour-schedule'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import {
+  buildRegisterFlightInferHaystack,
+  parseRegisterFactFlightsFromAdminBody,
+  resolveRegisterProductDepartureAirportFields,
+  scheduleRowsToInferHaystack,
+} from '@/lib/register-product-departure-airport-save'
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
@@ -1378,6 +1384,15 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       parsed.airlineName?.trim() ||
       departureInputs.map((d) => d.carrierName?.trim()).find(Boolean) ||
       null
+    const departureAirportFields = resolveRegisterProductDepartureAirportFields({
+      manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
+      inferHaystack: buildRegisterFlightInferHaystack({
+        airline: airlineForProduct,
+        includedText: parsed.includedText ?? null,
+        scheduleText: scheduleRowsToInferHaystack(schedule),
+      }),
+      factFlights: parseRegisterFactFlightsFromAdminBody(body),
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1448,7 +1463,8 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
           : null,
       ...registerListingMeta,
       ...geo,
-      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      localDepartureTag: departureAirportFields.localDepartureTag,
+      departureAirportLabel: departureAirportFields.departureAirportLabel,
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
       singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }

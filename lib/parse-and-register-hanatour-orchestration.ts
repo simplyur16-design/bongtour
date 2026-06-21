@@ -134,6 +134,12 @@ import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-s
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-hanatour'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import {
+  buildRegisterFlightInferHaystack,
+  parseRegisterFactFlightsFromAdminBody,
+  resolveRegisterProductDepartureAirportFields,
+  scheduleRowsToInferHaystack,
+} from '@/lib/register-product-departure-airport-save'
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
@@ -1491,6 +1497,15 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       console.warn('[hanatour] highlight LLM', e instanceof Error ? e.message : e)
       return null
     })
+    const departureAirportFields = resolveRegisterProductDepartureAirportFields({
+      manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
+      inferHaystack: buildRegisterFlightInferHaystack({
+        airline: parsed.airline,
+        includedText: parsed.includedText ?? null,
+        scheduleText: scheduleRowsToInferHaystack(schedule),
+      }),
+      factFlights: parseRegisterFactFlightsFromAdminBody(body),
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1561,7 +1576,8 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
           : null,
       ...registerListingMeta,
       ...geo,
-      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      localDepartureTag: departureAirportFields.localDepartureTag,
+      departureAirportLabel: departureAirportFields.departureAirportLabel,
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
       singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }

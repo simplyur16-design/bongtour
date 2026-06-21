@@ -116,6 +116,7 @@ import type {
   ProductPublicDetailSeoBundle,
 } from '@/lib/product-public-detail/types'
 import { absoluteUrl, buildPublicProductDescription } from '@/lib/site-metadata'
+import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
 
 export type ProductDetailViewRow = Prisma.ProductGetPayload<{
   select: ReturnType<typeof buildProductDetailPageSelect>
@@ -842,6 +843,7 @@ export async function buildProductPublicDetailRenderModel(
     ),
     primaryDestination: travelProduct.primaryDestination ?? null,
     listingKind: travelProduct.listingKind ?? null,
+    departureAirportLabelDisplay: homeDepartureAirportDisplayText(travelProduct.departureAirportLabel),
     infantAgeRuleText: structured?.infantAgeRuleText ?? null,
     childAgeRuleText: structured?.childAgeRuleText ?? null,
     bgImageSource: travelProduct.bgImageSource ?? null,

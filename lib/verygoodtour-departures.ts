@@ -153,6 +153,28 @@ function extractSharedMeta(detailHtml: string): {
   }
 }
 
+/** PackageDetail HTML — register-facts·confirm 공항 추론 SSOT (extractSharedMeta 래핑). */
+export type VerygoodDetailFlightFacts = {
+  carrierName: string | null
+  outboundDepartureAirport: string | null
+  outboundArrivalAirport: string | null
+  inboundDepartureAirport: string | null
+  inboundArrivalAirport: string | null
+  meetingInfoRaw: string | null
+}
+
+export function extractVerygoodDetailFlightFactsFromHtml(html: string): VerygoodDetailFlightFacts {
+  const shared = extractSharedMeta(html)
+  return {
+    carrierName: shared.carrierName,
+    outboundDepartureAirport: shared.outboundDepartureAirport,
+    outboundArrivalAirport: shared.outboundArrivalAirport,
+    inboundDepartureAirport: shared.inboundDepartureAirport,
+    inboundArrivalAirport: shared.inboundArrivalAirport,
+    meetingInfoRaw: shared.meetingInfoRaw,
+  }
+}
+
 /** 상세 HTML만 fetch·파싱 (달력/모달 경로 없음). */
 export function buildVerygoodProductCoreFromDetailHtml(
   detailUrl: string,

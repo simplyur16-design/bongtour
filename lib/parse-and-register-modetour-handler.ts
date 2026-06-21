@@ -20,7 +20,12 @@ import {
   productTitlePairForRegisterConfirm,
   supplierTitleHaystackForHeroSeo,
 } from '@/lib/bongtour-product-title-register-bridge'
-import { findExistingProductForRegister } from '@/lib/register-product-duplicate-guard'
+import {
+  buildRegisterFlightInferHaystack,
+  parseRegisterFactFlightsFromAdminBody,
+  resolveRegisterProductDepartureAirportFields,
+  scheduleRowsToInferHaystack,
+} from '@/lib/register-product-departure-airport-save'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   stripRegisterInternalArtifacts,
@@ -1766,6 +1771,15 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       console.warn('[modetour] highlight LLM', e instanceof Error ? e.message : e)
       return null
     })
+    const departureAirportFields = resolveRegisterProductDepartureAirportFields({
+      manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
+      inferHaystack: buildRegisterFlightInferHaystack({
+        airline: parsed.airline,
+        includedText: parsedWithFinalNotice.includedText ?? parsedWithFinalNotice.includedRaw,
+        scheduleText: scheduleRowsToInferHaystack(parsedWithFinalNotice.schedule),
+      }),
+      factFlights: parseRegisterFactFlightsFromAdminBody(body),
+    })
     const productData = {
       originSource: effectiveOriginSource,
       originUrl,
@@ -1836,7 +1850,8 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
           : null,
       ...registerListingMeta,
       ...geo,
-      localDepartureTag: parseLocalDepartureTagArrayFromAdminBody(body),
+      localDepartureTag: departureAirportFields.localDepartureTag,
+      departureAirportLabel: departureAirportFields.departureAirportLabel,
       sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
       singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }

@@ -128,6 +128,30 @@ function adultPriceFromProdListRow(row: HanatourPkgProdListRow): number | null {
   return null
 }
 
+/** IATA·하나투어 depCityCd → 출발 공항 표기 (register-facts·departureInput SSOT) */
+export function hanatourDepartureAirportLabelFromCodes(
+  depAirCd: string | null | undefined,
+  depCityCd?: string | null | undefined,
+): string | null {
+  const air = String(depAirCd ?? '')
+    .trim()
+    .toUpperCase()
+  const city = String(depCityCd ?? '')
+    .trim()
+    .toUpperCase()
+  const code = air || city
+  const map: Record<string, string> = {
+    ICN: '인천국제공항',
+    GMP: '김포국제공항',
+    PUS: '부산',
+    TAE: '대구',
+    CJJ: '청주',
+    CJU: '제주',
+    JCN: '인천국제공항',
+  }
+  return map[code] ?? null
+}
+
 export function hanatourProdInfoToDepartureInput(info: HanatourPkgProdInfo | null | undefined): DepartureInput | null {
   if (!info) return null
   const departureDate = hanatourYmdFromDepDay(info.depDay)
@@ -141,6 +165,7 @@ export function hanatourProdInfoToDepartureInput(info: HanatourPkgProdInfo | nul
     infantPrice: Number.isFinite(Number(info.infAmt)) ? Number(info.infAmt) : null,
     carrierName: info.airlNm ?? null,
     outboundFlightNo: info.depFlgtCd ? `${info.depAirCd ?? ''}${info.depFlgtCd}`.trim() || null : null,
+    outboundDepartureAirport: hanatourDepartureAirportLabelFromCodes(info.depAirCd, info.depCityCd),
     supplierDepartureCodeCandidate: saleProdCd ? `hanatour:${saleProdCd}` : null,
     localPriceText: saleProdCd ? `hanatour:pkgCd=${saleProdCd}`.slice(0, 200) : null,
   }
@@ -162,6 +187,7 @@ export function hanatourProdListRowToDepartureInput(row: HanatourPkgProdListRow 
     infantPrice: Number.isFinite(Number(row.infAmt)) ? Number(row.infAmt) : null,
     carrierName: row.airlNm ?? null,
     outboundFlightNo: row.depFlgtCd ? `${row.depAirCd ?? ''}${row.depFlgtCd}`.trim() || null : null,
+    outboundDepartureAirport: hanatourDepartureAirportLabelFromCodes(row.depAirCd),
     supplierDepartureCodeCandidate: saleProdCd ? `hanatour:${saleProdCd}` : null,
     localPriceText: saleProdCd ? `hanatour:pkgCd=${saleProdCd}`.slice(0, 200) : null,
     statusRaw,

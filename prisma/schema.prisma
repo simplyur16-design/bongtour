@@ -215,9 +215,11 @@ model Product {
   /// 국외연수 여행준비·체크 JSON [{ title, items[] }]
   prepChecklistJson     String? @db.Text
 
-  /// 관리자 수동: 지방 출발 허브 태그 (예: busan, cheongju, daegu). 인천·김포 등 기본 출발은 빈 배열.
+  /// 관리자 수동: 지방 출발 허브 태그 (예: busan, cheongju, daegu, jeju). 인천·김포(서울권) 등 기본 출발은 빈 배열.
   localDepartureTag String[] @default([])
 
+  /// 목록·히어로 표기용 국내 출발 공항 (busan|cheongju|daegu|jeju). 인천·김포(서울권)는 null.
+  departureAirportLabel String?
   /// 관리자 수동: 스포츠 테마 허브·browse 필터용 (running, trekking, diving, spectator, golf). 해당 없으면 빈 배열.
   sportsThemeTag String[] @default([])
 

@@ -10,13 +10,16 @@ import {
 } from '@/lib/lottetour-departures'
 import {
   extractLottetourIncludedExcludedFromBasicAjax,
+  extractLottetourMeetingFromScheduleAjax,
+  extractLottetourShoppingVisitCountFromCoreInfo,
   fetchLottetourRegisterDetailBundle,
   parseLottetourScheduleDaysFromScheduleAjax,
 } from '@/lib/lottetour-register-api-detail'
 import { lottetourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
-import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { registerFactProductKindNote } from '@/lib/register-facts/product-kind'
 
 function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactScheduleDay[] {
   return days.map((d) => {
@@ -50,6 +53,22 @@ function parseNightsDays(durationText: string | null | undefined): { nights: num
   }
 }
 
+function lottetourMeetingToFlights(meetingPlaceRaw: string | null): RegisterFactFlightLeg[] {
+  const place = meetingPlaceRaw?.trim()
+  if (!place) return []
+  return [
+    {
+      direction: 'outbound',
+      carrier: null,
+      flightNo: null,
+      departureCity: place,
+      departureAt: null,
+      arrivalCity: null,
+      arrivalAt: null,
+    },
+  ]
+}
+
 export async function collectLottetourRegisterFacts(originUrl: string): Promise<SupplierRegisterFactBundle | null> {
   const url = originUrl.trim()
   if (!url || !/lottetour\.com/i.test(url)) return null
@@ -59,6 +78,10 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
 
   const scheduleDays = scheduleDaysToFactDays(parseLottetourScheduleDaysFromScheduleAjax(bundle.scheduleAjaxHtml))
   const { includedItems, excludedItems } = extractLottetourIncludedExcludedFromBasicAjax(bundle.basicAjaxHtml)
+  const meeting = extractLottetourMeetingFromScheduleAjax(bundle.scheduleAjaxHtml)
+  const shopCount = extractLottetourShoppingVisitCountFromCoreInfo(bundle.basicAjaxHtml)
+  const shoppingPlaces =
+    shopCount != null && shopCount > 0 ? [`쇼핑 ${shopCount}회`] : shopCount === 0 ? ['노쇼핑'] : []
   const row = bundle.evtListRow
   const { nights, days } = parseNightsDays(row?.durationText ?? row?.tourTitleRaw)
 
@@ -97,18 +120,19 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
     title: row?.tourTitleRaw?.trim() || null,
     nights,
     days,
-    meetingInfo: null,
+    meetingInfo: meeting.meetingInfoRaw,
     includedBullets: includedItems.slice(0, 24),
     excludedBullets: excludedItems.slice(0, 24),
-    shoppingPlaces: [],
+    shoppingPlaces,
     scheduleDays,
-    flights: [],
+    flights: lottetourMeetingToFlights(meeting.meetingPlaceRaw),
     priceRows,
     notes: [
       'source=lottetour_register_detail_bundle',
       `evtCd=${bundle.evtCd ?? '-'}`,
       `godId=${bundle.godId ?? '-'}`,
       `priceRows=${priceRows.length}`,
+      registerFactProductKindNote('package'),
     ],
   }
 }

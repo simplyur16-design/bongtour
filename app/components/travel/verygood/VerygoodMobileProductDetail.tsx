@@ -590,6 +590,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
           productMetaChips,
           listingKind: product.listingKind,
           airportTransferType: product.airportTransferType,
+          departureAirportLabelDisplay: product.departureAirportLabelDisplay ?? null,
           outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
           inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}

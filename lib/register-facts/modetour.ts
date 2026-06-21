@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[register-facts-foundation]: GetProductDetailInfo·GetScheduleList — manifest
  */
 import { parseModetourPackageProductNoFromUrl, collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
+import { extractModetourIncludedExcludedFromDetailInfo, extractModetourShoppingFromDetailBundle } from '@/lib/modetour-register-api-detail'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import type {
   RegisterFactFlightLeg,
@@ -11,6 +12,10 @@ import type {
   SupplierRegisterFactBundle,
 } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import {
+  inferModetourRegisterFactProductKind,
+  registerFactProductKindNote,
+} from '@/lib/register-facts/product-kind'
 
 const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
 const MODETOUR_WEB_API_REQ_HEADER =
@@ -157,6 +162,14 @@ export async function collectModetourRegisterFacts(
   ])
 
   const detail = detailJson?.result ?? {}
+  const inclExcl = extractModetourIncludedExcludedFromDetailInfo(detail)
+  const shoppingMeta = extractModetourShoppingFromDetailBundle(detail, detail)
+  const shoppingPlaces =
+    shoppingMeta.noShoppingFlag === true
+      ? ['노쇼핑']
+      : shoppingMeta.shoppingVisitCount != null && shoppingMeta.shoppingVisitCount > 0
+        ? [`쇼핑 ${shoppingMeta.shoppingVisitCount}회`]
+        : []
   const scheduleItems = scheduleJson?.result?.scheduleItemList ?? []
   const flights = modetourFlightRoutesToFactLegs(flightJson?.result ?? [])
 
@@ -200,12 +213,17 @@ export async function collectModetourRegisterFacts(
     nights: Number.isFinite(Number(detail.nightCount)) ? Number(detail.nightCount) : null,
     days: Number.isFinite(Number(detail.dayCount)) ? Number(detail.dayCount) : null,
     meetingInfo: null,
-    includedBullets: [],
-    excludedBullets: [],
-    shoppingPlaces: [],
+    includedBullets: inclExcl.includedItems,
+    excludedBullets: inclExcl.excludedItems,
+    shoppingPlaces,
     scheduleDays: modetourScheduleItemsToFactDays(scheduleItems),
     flights,
     priceRows: resolvedPriceRows,
-    notes: ['source=modetour_b2c_api', `productNo=${productNo}`, `calendar_rows=${resolvedPriceRows.length}`],
+    notes: [
+      'source=modetour_b2c_api',
+      `productNo=${productNo}`,
+      `calendar_rows=${resolvedPriceRows.length}`,
+      registerFactProductKindNote(inferModetourRegisterFactProductKind(detail)),
+    ],
   }
 }

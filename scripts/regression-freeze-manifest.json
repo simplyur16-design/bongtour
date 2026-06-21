@@ -1570,6 +1570,167 @@
       ]
     },
     {
+      "id": "register-facts-completeness",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "register-facts 번들 — 상품상세 5축(title·price·schedule·incl/excl·flights) completeness·자유여행 분기 SSOT",
+      "checks": [
+        {
+          "file": "lib/register-facts/completeness.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-completeness]",
+            "auditRegisterFactBundleCompleteness",
+            "scheduleDays",
+            "includedExcluded",
+            "flights",
+            "parseRegisterFactProductKind"
+          ]
+        },
+        {
+          "file": "lib/register-facts/product-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-completeness]",
+            "RegisterFactProductKind",
+            "inferRegisterFactProductKindFromOriginUrl"
+          ]
+        },
+        {
+          "file": "lib/register-facts/detail-parity.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-completeness]",
+            "auditRegisterFactDetailParity"
+          ]
+        },
+        {
+          "file": "scripts/verify-register-facts-live.ts",
+          "mustInclude": [
+            "auditRegisterFactBundleCompleteness",
+            "verify-register-facts-live",
+            "air_hotel_free"
+          ]
+        },
+        {
+          "file": "scripts/verify-register-facts-detail-parity.ts",
+          "mustInclude": [
+            "auditRegisterFactDetailParity",
+            "verify-register-facts-detail-parity"
+          ]
+        }
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:register-facts-live",
+          "tier": ["ci"]
+        },
+        {
+          "script": "verify:register-facts-detail-parity",
+          "tier": ["ci"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-facts/completeness.test.ts",
+        "lib/register-facts/product-kind.test.ts",
+        "lib/register-facts/detail-parity.test.ts"
+      ]
+    },
+    {
+      "id": "infer-home-departure-airport",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "출발공항 추론 — 김포·인천=서울권(라벨 없음), 제주·지방=표기",
+      "checks": [
+        {
+          "file": "lib/infer-home-departure-airport.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[infer-home-departure-airport]",
+            "inferDepartureAirportFromRegisterFactFlights",
+            "inferHomeDepartureAirportFromFlightText",
+            "homeDepartureAirportDisplayText"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/infer-home-departure-airport.test.ts"
+      ]
+    },
+    {
+      "id": "infer-supplier-from-origin-url",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 URL → canonical 공급사 키 자동 선택",
+      "checks": [
+        {
+          "file": "lib/infer-supplier-from-origin-url.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[infer-supplier-from-origin-url]",
+            "inferCanonicalSupplierFromOriginUrl"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/infer-supplier-from-origin-url.test.ts"
+      ]
+    },
+    {
+      "id": "product-departure-airport-label",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "출발공항 라벨 — confirm 저장·browse·히어로 표기 (김포·인천=라벨 없음, 제주=지방출발)",
+      "checks": [
+        {
+          "file": "lib/register-product-departure-airport-save.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-departure-airport-label]",
+            "resolveRegisterProductDepartureAirportFields",
+            "parseRegisterFactFlightsFromAdminBody"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "departureAirportLabelDisplay",
+            "homeDepartureAirportDisplayText"
+          ]
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "mustInclude": [
+            "departureAirportLabel"
+          ]
+        },
+        {
+          "file": "prisma/migrations/20260627140000_product_departure_airport_label/migration.sql",
+          "mustInclude": [
+            "departureAirportLabel"
+          ]
+        },
+        {
+          "file": "scripts/verify-product-departure-airport-migration.ts",
+          "mustInclude": [
+            "verify-product-departure-airport-migration",
+            "departureAirportLabel"
+          ]
+        }
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:product-departure-airport-migration",
+          "tier": ["prebuild"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-product-departure-airport-save.test.ts"
+      ]
+    },
+    {
       "id": "ybtour-api-departure-collect",
       "tier": [
         "prebuild",
@@ -2548,6 +2709,10 @@
         "lib/modetour-sd1-policy.test.ts",
         "lib/single-departure-product-ssot.test.ts",
         "lib/register-facts/modetour.test.ts",
+        "lib/register-facts/completeness.test.ts",
+        "lib/infer-home-departure-airport.test.ts",
+        "lib/infer-supplier-from-origin-url.test.ts",
+        "lib/register-product-departure-airport-save.test.ts",
         "lib/modetour-sweep.test.ts",
         "lib/hanatour-sweep.test.ts",
         "lib/ybtour-sweep.test.ts",
