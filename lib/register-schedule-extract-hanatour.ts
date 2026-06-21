@@ -442,17 +442,22 @@ export async function runScheduleExtractLlm(
   expectedDays: number,
   opts: { logLabel: string; hintScheduleJson?: string | null; scheduleExtractAddendum?: string | null }
 ): Promise<ScheduleExtractLlmResult> {
-  if (expectedDays >= SCHEDULE_CHUNK_DAY_THRESHOLD) {
-    const dayMap = splitPastedBodyByDayHeaders(pastedBody)
-    if (dayMap && dayMapCoversExpectedRange(dayMap, expectedDays)) {
-      return runScheduleExtractLlmChunkedByDay(model, pastedBody, expectedDays, dayMap, opts)
-    }
-    console.info(`[register-schedule-extract] ${opts.logLabel} chunked skip`, {
-      reason: dayMap ? 'day_map_incomplete' : 'no_day_headers',
-      expectedDays,
-    })
+  const dayMap = splitPastedBodyByDayHeaders(pastedBody)
+  const canChunk = Boolean(dayMap && dayMapCoversExpectedRange(dayMap, expectedDays))
+  if (expectedDays >= SCHEDULE_CHUNK_DAY_THRESHOLD && canChunk && dayMap) {
+    return runScheduleExtractLlmChunkedByDay(model, pastedBody, expectedDays, dayMap, opts)
   }
-  return runScheduleExtractLlmMonolithic(model, pastedBody, expectedDays, opts)
+  try {
+    return await runScheduleExtractLlmMonolithic(model, pastedBody, expectedDays, opts)
+  } catch (monolithicErr) {
+    if (!canChunk || !dayMap) throw monolithicErr
+    // monolithic JSON 실패 시 일차별 fallback (hanatour-register-detail-collect manifest)
+    console.warn(`[register-schedule-extract] ${opts.logLabel} monolithic failed, fallback chunked`, {
+      expectedDays,
+      err: monolithicErr instanceof Error ? monolithicErr.message : String(monolithicErr),
+    })
+    return runScheduleExtractLlmChunkedByDay(model, pastedBody, expectedDays, dayMap, opts)
+  }
 }
 
 /**

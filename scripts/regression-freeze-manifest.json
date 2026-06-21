@@ -1352,14 +1352,26 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-api-price-inject]",
             "injectYbtourApiDeparturePricesIfMissing",
+            "dedupeYbtourProductPriceCreateRows",
             "collectYbtourByGoodsApiDepartureInputsForUrl",
             "registerDepartureInputsToParsedPrices"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "mustInclude": [
+            "dedupeYbtourProductPriceCreateRows",
+            "productPrice.deleteMany",
+            "skipDuplicates: true"
           ]
         },
         {
           "file": "lib/parse-and-register-ybtour-handler.ts",
           "mustInclude": ["injectYbtourApiDeparturePricesIfMissing"]
         }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-api-price-inject.test.ts"
       ]
     },
     {
@@ -1730,6 +1742,21 @@
           "mustInclude": [
             "departureAirportLabelDisplay"
           ]
+        },
+        {
+          "file": "lib/backfill-product-departure-airport.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-departure-airport-label]",
+            "inferDepartureAirportFieldsFromStoredProduct",
+            "flightStructuredToRegisterFactLegs"
+          ]
+        },
+        {
+          "file": "scripts/backfill-product-departure-airport-label.ts",
+          "mustInclude": [
+            "backfill-product-departure-airport-label",
+            "departureAirportLabel"
+          ]
         }
       ],
       "npmScripts": [
@@ -1739,7 +1766,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-product-departure-airport-save.test.ts"
+        "lib/register-product-departure-airport-save.test.ts",
+        "lib/backfill-product-departure-airport.test.ts"
       ]
     },
     {
@@ -2510,6 +2538,12 @@
           "file": "lib/parse-and-register-hanatour-handler.ts",
           "mustInclude": [
             "augmentHanatourParsedWithDetailCollect"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-extract-hanatour.ts",
+          "mustInclude": [
+            "monolithic failed, fallback chunked"
           ]
         }
       ],

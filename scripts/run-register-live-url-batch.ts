@@ -9,12 +9,16 @@
  */
 import './load-env-for-scripts'
 
+import { PrismaClient } from '@prisma/client'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
 import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
+import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
 
 const BASE = (process.env.REGISTER_BATCH_BASE_URL ?? 'http://127.0.0.1:3000').replace(/\/$/, '')
 const COOKIE = `admin_bypass=${process.env.ADMIN_BYPASS_SECRET ?? ''}`
+const prisma = new PrismaClient()
 
 type RegisterRoute =
   | '/api/travel/parse-and-register-modetour'
@@ -160,23 +164,28 @@ async function postJson<T>(path: string, body: unknown): Promise<{ status: numbe
   return { status: res.status, json }
 }
 
-async function buildPasteText(c: Case): Promise<{ text: string; factsOk: boolean }> {
+async function buildPasteText(
+  c: Case,
+): Promise<{ text: string; factsOk: boolean; bundle: SupplierRegisterFactBundle | null }> {
   if (c.factsSupplier) {
     const bundle = await collectSupplierRegisterFacts(c.factsSupplier, c.originUrl)
     if (bundle) {
-      return { text: registerFactBundleToPasteText(bundle), factsOk: true }
+      return { text: registerFactBundleToPasteText(bundle), factsOk: true, bundle }
     }
   }
   return {
     text: [`출처 URL: ${c.originUrl}`, `공급사: ${c.originSource}`].join('\n'),
     factsOk: false,
+    bundle: null,
   }
 }
 
-async function registerOne(c: Case, dryRun: boolean): Promise<void> {
+type RegisterBatchResult = { ok: boolean; reason?: string }
+
+async function registerOne(c: Case, dryRun: boolean): Promise<RegisterBatchResult> {
   const t0 = Date.now()
   console.log(`\n=== ${c.label} ===`)
-  const { text, factsOk } = await buildPasteText(c)
+  const { text, factsOk, bundle } = await buildPasteText(c)
   const factsMs = Date.now() - t0
   if (!factsOk) {
     console.warn('WARN: register-facts collector missing — URL-only paste (detail-collect on confirm)')
@@ -185,7 +194,7 @@ async function registerOne(c: Case, dryRun: boolean): Promise<void> {
 
   if (dryRun) {
     console.log('dry-run: skip preview/confirm')
-    return
+    return { ok: factsOk }
   }
 
   const brandKey = c.originSource
@@ -211,7 +220,7 @@ async function registerOne(c: Case, dryRun: boolean): Promise<void> {
   if (!preview.json.success || !preview.json.previewToken) {
     console.log(JSON.stringify(preview.json, null, 2))
     console.log(`totalMs=${Date.now() - t0}`)
-    return
+    return { ok: false, reason: 'preview_failed' }
   }
 
   const confirmT0 = Date.now()
@@ -223,16 +232,42 @@ async function registerOne(c: Case, dryRun: boolean): Promise<void> {
       previewToken: preview.json.previewToken,
       previewContentDigest: preview.json.previewContentDigest,
       parsed: preview.json.parsed,
+      ...(bundle?.flights?.length ? { registerFactFlights: bundle.flights } : {}),
     },
   )
   const confirmMs = Date.now() - confirmT0
   console.log('confirm http', confirm.status, confirm.json.success ? 'ok' : confirm.json.error ?? 'fail', `confirmMs=${confirmMs}`)
-  if (confirm.json.success) {
-    console.log('productId', confirm.json.productId, 'slug', confirm.json.slug, '→ registrationStatus pending')
-  } else {
+  if (!confirm.json.success || !confirm.json.productId) {
     console.log(JSON.stringify(confirm.json, null, 2))
+    console.log(`totalMs=${Date.now() - t0}`)
+    return { ok: false, reason: 'confirm_failed' }
   }
+
+  const saved = await prisma.product.findUnique({
+    where: { id: confirm.json.productId },
+    select: {
+      departureAirportLabel: true,
+      localDepartureTag: true,
+      registrationStatus: true,
+    },
+  })
+  const labelDisplay = homeDepartureAirportDisplayText(saved?.departureAirportLabel)
+  console.log(
+    'productId',
+    confirm.json.productId,
+    'slug',
+    confirm.json.slug,
+    'status',
+    saved?.registrationStatus ?? '?',
+    'departureAirportLabel',
+    saved?.departureAirportLabel ?? 'null',
+    'display',
+    labelDisplay ?? '-',
+    'localDepartureTag',
+    JSON.stringify(saved?.localDepartureTag ?? []),
+  )
   console.log(`totalMs=${Date.now() - t0} (facts=${factsMs} preview=${previewMs} confirm=${confirmMs})`)
+  return { ok: true }
 }
 
 async function main() {
@@ -259,12 +294,24 @@ async function main() {
     process.exit(1)
   }
 
+  let failed = 0
   for (const c of cases) {
-    await registerOne(c, dryRun)
+    const result = await registerOne(c, dryRun)
+    if (!result.ok) failed += 1
   }
+
+  if (failed > 0) {
+    console.error(`\nrun-register-live-url-batch: ${failed} failure(s) / ${cases.length} case(s)`)
+    process.exit(1)
+  }
+  console.log(`\nrun-register-live-url-batch: all ${cases.length} case(s) OK`)
 }
 
-main().catch((e) => {
-  console.error(e)
-  process.exit(1)
-})
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

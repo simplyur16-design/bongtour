@@ -125,6 +125,8 @@ export function parseHomeDepartureAirportLabel(
 ): HomeDepartureAirportLabel | null {
   if (!raw?.trim()) return null
   const t = raw.trim()
+  // 김포·인천=서울권 — DB에 legacy 값이 있어도 표기·추론 SSOT는 null
+  if (t === 'gimpo') return null
   if (t in HOME_DEPARTURE_AIRPORT_DISPLAY) {
     return t as HomeDepartureAirportLabel
   }

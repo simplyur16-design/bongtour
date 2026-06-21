@@ -93,6 +93,7 @@ import {
 } from '@/lib/price-promotion-ybtour'
 import { issuePreviewToken, verifyPreviewToken } from '@/lib/registration-preview-token'
 import { departureInputsToProductPriceCreateMany } from '@/lib/product-departure-to-price-rows-ybtour'
+import { dedupeYbtourProductPriceCreateRows } from '@/lib/ybtour-register-api-price-inject'
 import { buildPriceDisplaySsot, validatePriceDisplaySsot } from '@/lib/price-display-ssot'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
 import {
@@ -1665,7 +1666,10 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       ]
     }
     if (priceRows.length > 0) {
-      await prisma.productPrice.createMany({ data: priceRows })
+      // REGRESSION-FREEZE[ybtour-register-api-price-inject]: dedupe ProductPrice by date — manifest
+      priceRows = dedupeYbtourProductPriceCreateRows(priceRows)
+      await prisma.productPrice.deleteMany({ where: { productId } })
+      await prisma.productPrice.createMany({ data: priceRows, skipDuplicates: true })
       await updateLastPriceObservedAt(prisma, productId)
     }
     timing.mark('after-prices-save')
