@@ -1407,7 +1407,23 @@
         {
           "file": "lib/parse-and-register-lottetour-handler.ts",
           "mustInclude": ["injectLottetourApiDeparturePricesIfMissing"]
+        },
+        {
+          "file": "lib/lottetour-product-price-create-rows.ts",
+          "mustInclude": [
+            "dedupeLottetourProductPriceCreateRows"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-orchestration.ts",
+          "mustInclude": [
+            "dedupeLottetourProductPriceCreateRows",
+            "skipDuplicates: true"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-product-price-create-rows.test.ts"
       ]
     },
     {
