@@ -1,4 +1,12 @@
 import { AIR_HOTEL_LISTING_KIND, AIR_HOTEL_PRODUCT_TYPE } from '@/lib/air-hotel-product-ssot'
+import {
+  inferRegisterFactProductKindFromOriginUrl,
+  type RegisterFactProductKind,
+} from '@/lib/register-facts/product-kind'
+import type { SupplierRegisterFactSource } from '@/lib/register-facts/types'
+import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+
+export type AdminRegisterTravelScopeSelection = 'overseas' | 'domestic' | 'air_hotel_free'
 
 /**
  * 관리자 상품 등록(/admin/register)에서 선택한 상품 유형 → Product.travelScope + Product.listingKind + productType(자유여행).
@@ -14,6 +22,52 @@ export type AdminRegisterCategoryMeta = {
   listingKind: string
   /** admin UI travelScope 선택값 → productType SSOT (regex fallback 없음) */
   productType: string
+}
+
+const AIRTEL_TITLE_HINT_RE = /에어텔|자유\s*여행|항공\s*\+\s*호텔|\bair\s*hotel\b/i
+
+function registerFactSourceFromOriginSource(originSource: string): SupplierRegisterFactSource | null {
+  const key = normalizeSupplierOrigin(originSource.trim())
+  if (
+    key === 'hanatour' ||
+    key === 'modetour' ||
+    key === 'ybtour' ||
+    key === 'verygoodtour' ||
+    key === 'lottetour' ||
+    key === 'kyowontour'
+  ) {
+    return key
+  }
+  return null
+}
+
+function inferAirHotelFreeFromListingHint(hint: string | null | undefined): boolean {
+  const t = String(hint ?? '').trim()
+  if (!t) return false
+  return AIRTEL_TITLE_HINT_RE.test(t)
+}
+
+/** REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: URL·제목 신호로 자유여행 강제 — manifest */
+export function resolveRegisterTravelScopeFromRequest(args: {
+  bodyTravelScope?: string | null
+  originSource: string
+  originUrl?: string | null
+  listingTitleHint?: string | null
+}): AdminRegisterTravelScopeSelection {
+  const raw = String(args.bodyTravelScope ?? '').trim()
+  if (raw === 'air_hotel_free') return 'air_hotel_free'
+  if (raw === 'domestic') return 'domestic'
+
+  const supplier = registerFactSourceFromOriginSource(args.originSource)
+  const url = String(args.originUrl ?? '').trim()
+  if (supplier && url) {
+    const fromUrl: RegisterFactProductKind = inferRegisterFactProductKindFromOriginUrl(supplier, url)
+    if (fromUrl === 'air_hotel_free') return 'air_hotel_free'
+  }
+
+  if (inferAirHotelFreeFromListingHint(args.listingTitleHint)) return 'air_hotel_free'
+
+  return raw === 'domestic' ? 'domestic' : 'overseas'
 }
 
 export function travelScopeAndListingKindFromAdminRegister(

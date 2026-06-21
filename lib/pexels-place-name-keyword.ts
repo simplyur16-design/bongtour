@@ -585,6 +585,19 @@ export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boo
   return NON_LANDMARK_SPA_SHOPPING_LOUNGE_RE.test(n)
 }
 
+/** 항공사·캐리어 브랜드 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
+const AIRLINE_CARRIER_RE =
+  /\b(?:airlines?|airways|air\s*line|항공(?:사)?)\b|singapore\s+airlines|korean\s+air|asiana\s+air|jeju\s+air|t\s*way|eastar\s+jet|air\s+canada|westjet|vietjet|vietnam\s+airlines|eva\s+air|china\s+airlines|china\s+eastern|china\s+southern|united\s+airlines|delta\s+air|american\s+airlines|british\s+airways|lufthansa|emirates|qatar\s+airways|turkish\s+airlines|air\s+france|klm|jal|ana\b|peach\s+aviation|spring\s+airlines|hainan\s+airlines|malaysia\s+airlines|garuda|philippine\s+airlines|scoot\b|jetstar|airasia|finnair|sas\b|swiss\s+air|iberia|alitalia|ryanair|easyjet/i
+
+export function isAirlineCarrierImageKeyword(keyword: string): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  if (/항공(?:사)?|에어라인|직항\s*노선/u.test(raw)) return true
+  const n = normalizeToPlaceName(raw).toLowerCase()
+  if (!n) return false
+  return AIRLINE_CARRIER_RE.test(n)
+}
+
 /** 역사 수용·억압 시설 — Pexels 관광 이미지 검색에 부적합 */
 const NON_LANDMARK_HISTORICAL_PRISON_RE = /\b(prison|concentration\s+camp|detention\s+camp)\b/i
 
@@ -670,6 +683,7 @@ export function isNonLandmarkRouteTextSegment(seg: string): boolean {
 export function isScheduleImageKeywordLandmarkEligible(keyword: string): boolean {
   const n = normalizeToPlaceName(keyword)
   if (!n || n.length < 3) return false
+  if (isAirlineCarrierImageKeyword(n)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
   if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return false

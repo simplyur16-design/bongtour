@@ -714,7 +714,9 @@
         {
           "file": "lib/kyowontour-schedule-image-keyword.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]"
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "isKyowontourRejectedImageKeywordCandidate",
+            "kyowontourLandmarkFromHaystack"
           ]
         },
         {
@@ -767,7 +769,9 @@
           "file": "tests/kyowontour-schedule-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "Leh Palace"
+            "Leh Palace",
+            "Maldives",
+            "Singapore Airlines"
           ]
         },
         {
@@ -821,7 +825,9 @@
           "file": "lib/schedule-image-keyword-blocklist.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "isBlockedScheduleImageKeyword"
+            "isBlockedScheduleImageKeyword",
+            "^home$",
+            "singapore\\s+airlines"
           ]
         },
         {
@@ -1881,6 +1887,33 @@
         "lib/register-facts/detail-parity.test.ts",
         "lib/register-facts/lottetour-register-fact-flights.test.ts",
         "lib/register-facts/kyowontour-register-fact-flights.test.ts"
+      ]
+    },
+    {
+      "id": "register-travel-scope-origin-url-fit",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 travelScope — FIT URL(menu=FIT 등)·#자유여행 제목 신호로 air_hotel_free 강제",
+      "checks": [
+        {
+          "file": "lib/register-admin-travel-category.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-travel-scope-origin-url-fit]",
+            "resolveRegisterTravelScopeFromRequest",
+            "inferRegisterFactProductKindFromOriginUrl"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "mustInclude": [
+            "resolveRegisterTravelScopeFromRequest"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-admin-travel-category.test.ts"
       ]
     },
     {
@@ -3023,6 +3056,7 @@
         "lib/single-departure-product-ssot.test.ts",
         "lib/register-facts/modetour.test.ts",
         "lib/register-facts/completeness.test.ts",
+        "lib/register-admin-travel-category.test.ts",
         "lib/infer-home-departure-airport.test.ts",
         "lib/infer-supplier-from-origin-url.test.ts",
         "lib/register-product-departure-airport-save.test.ts",

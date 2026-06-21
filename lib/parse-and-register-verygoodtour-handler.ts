@@ -114,6 +114,7 @@ import {
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
+  resolveRegisterTravelScopeFromRequest,
   travelScopeAndListingKindFromAdminRegister,
 } from '@/lib/register-admin-travel-category'
 import { airportTransferTypeForListingKind } from '@/lib/airport-transfer-infer'
@@ -431,7 +432,6 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       route: '/api/travel/parse-and-register-verygoodtour',
     })
     const text = typeof body.text === 'string' ? body.text.trim() : ''
-    const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
     const brandKey = forcedBrandKey
     const incomingOriginSource = (body.originSource as string).trim()
     const originSource = normalizeOriginSource(incomingOriginSource, brandKey)
@@ -444,6 +444,13 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
         { status: 400 }
       )
     }
+
+    const travelScope = resolveRegisterTravelScopeFromRequest({
+      bodyTravelScope: body.travelScope,
+      originSource,
+      originUrl,
+      listingTitleHint: text.slice(0, 800),
+    })
 
     const modeRaw = typeof body.mode === 'string' ? body.mode.trim().toLowerCase() : ''
     const mode = modeRaw === 'confirm' ? 'confirm' : 'preview'

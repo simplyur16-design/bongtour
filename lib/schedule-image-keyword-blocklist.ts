@@ -2,6 +2,13 @@
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: generic regional·공항 키워드 차단 — manifest
  */
 const BLOCKED_PATTERNS: RegExp[] = [
+  /^home$/i,
+  /^incheon$/i,
+  /^male$/i,
+  /^leh$/i,
+  /^singapore\s+airlines$/i,
+  /\bairlines?\b/i,
+  /\bairways\b/i,
   /^international$/i,
   /^international\s+city\b/i,
   /international\s+city\s+travel\s+destination/i,

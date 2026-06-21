@@ -146,6 +146,7 @@ import {
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
+  resolveRegisterTravelScopeFromRequest,
   travelScopeAndListingKindFromAdminRegister,
 } from '@/lib/register-admin-travel-category'
 import { airportTransferTypeForListingKind } from '@/lib/airport-transfer-infer'
@@ -649,7 +650,6 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
       route: '/api/travel/parse-and-register-lottetour',
     })
     const text = typeof body.text === 'string' ? body.text.trim() : ''
-    const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
     const brandKeyFromBody = typeof body.brandKey === 'string' ? body.brandKey.trim() || null : null
     if (forcedBrandKey !== 'lottetour') {
       return NextResponse.json({ error: '내부 설정 오류: lottetour 전용 오케스트레이션입니다.' }, { status: 500 })
@@ -677,6 +677,13 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
         { status: 400 }
       )
     }
+
+    const travelScope = resolveRegisterTravelScopeFromRequest({
+      bodyTravelScope: body.travelScope,
+      originSource,
+      originUrl,
+      listingTitleHint: text.slice(0, 800),
+    })
 
     const modeRaw = typeof body.mode === 'string' ? body.mode.trim().toLowerCase() : ''
     const mode = modeRaw === 'confirm' ? 'confirm' : 'preview'

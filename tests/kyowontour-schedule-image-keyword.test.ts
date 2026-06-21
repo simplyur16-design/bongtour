@@ -82,6 +82,79 @@ describe('applyKyowontourScheduleImageKeywordsToRows', () => {
     assert.doesNotMatch(out[0]!.imageKeyword!, /International|Seoul/i)
   })
 
+  it('Maldives — movement day1 destination not airline; day2 not Leh; return not Incheon', () => {
+    const out = applyKyowontourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '출발',
+          description: '인천 국제공항에서 싱가포르항공을 이용하여 몰디브로',
+          routeText: '인천',
+          imageKeyword: 'Singapore Airlines',
+        },
+        {
+          day: 2,
+          title: '입성',
+          description: '수상비행기로 몰디브 리조트 이동',
+          routeText: '말레 - 르메르디앙 몰디브 리조트&스파',
+          imageKeyword: 'Leh',
+        },
+        {
+          day: 3,
+          title: '스노클링',
+          description: '하우스 리프 스노클링',
+          routeText: '르메르디앙 몰디브 리조트&스파',
+          imageKeyword: 'House Reef',
+        },
+        {
+          day: 7,
+          title: '귀국',
+          description: '인천 국제공항 도착',
+          routeText: '싱가포르 - 인천',
+          imageKeyword: 'Incheon',
+        },
+      ],
+      { productDestination: '몰디브' },
+    )
+    assert.match(out[0]!.imageKeyword!, /Maldives/i)
+    assert.doesNotMatch(out[0]!.imageKeyword!, /Singapore|Airlines|Incheon/i)
+    assert.match(out[1]!.imageKeyword!, /Maldives|Meridien/i)
+    assert.doesNotMatch(out[1]!.imageKeyword!, /Leh/i)
+    assert.match(out[3]!.imageKeyword!, /Maldives|House Reef|Meridien|Reef/i)
+    assert.doesNotMatch(out[3]!.imageKeyword!, /Incheon|home/i)
+  })
+
+  it('Canada return day — last foreign landmark not Calgary Tower bleed', () => {
+    const out = applyKyowontourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '캘거리',
+          description: '캘거리 다운타운',
+          routeText: '인천 - 캘거리 - 캘거리 다운타운',
+          imageKeyword: 'Calgary Tower',
+        },
+        {
+          day: 4,
+          title: '레이크 루이스',
+          description: '모레인 호수',
+          routeText: '밴프 - 보우 폭포 - 레이크 루이스 - 모레인 호수 - 캘거리',
+          imageKeyword: 'Lake Louise',
+        },
+        {
+          day: 6,
+          title: '인천 도착',
+          description: '인천 국제공항 도착',
+          routeText: '인천',
+          imageKeyword: 'Calgary Tower',
+        },
+      ],
+      { productDestination: '캐나다' },
+    )
+    assert.match(out[2]!.imageKeyword!, /Lake Louise|Banff|Moraine|Athabasca|Rocky/i)
+    assert.doesNotMatch(out[2]!.imageKeyword!, /Calgary Tower|Incheon|home/i)
+  })
+
   it('dedupe·route 폴백 없이도 관광 2일차 각각 kw2 채움', () => {
     const out = applyKyowontourScheduleImageKeywordsToRows(
       [

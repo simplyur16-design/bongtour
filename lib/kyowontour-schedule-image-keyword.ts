@@ -4,7 +4,13 @@
  */
 
 import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
-import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  finalizeScheduleImageKeyword,
+  isBareCityOrCountryKeyword,
+  isAirlineCarrierImageKeyword,
+  isNonLandmarkRouteTextSegment,
+  isScheduleImageKeywordLandmarkEligible,
+} from '@/lib/pexels-place-name-keyword'
 import {
   inferEnglishPlaceKeywordFromDayContent,
   normScheduleImageKeywordKey,
@@ -75,7 +81,9 @@ const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /지우펀|九份/u, en: 'Jiufen old street Taiwan night' },
   { re: /백두산/u, en: 'Changbai Mountain scenic view' },
   { re: /이도백하/u, en: 'Erdaobaihe river town Changbai' },
-  { re: /(?:^|\s)(?:레|Leh)(?:\s|$)/u, en: 'Leh Palace Ladakh' },
+  { re: /(?:^|\s)레(?:\s|$|-)(?=.*(?:왕궁|시장|Palace|Ladakh|라다크))/u, en: 'Leh Palace Ladakh' },
+  { re: /^(?:레|Leh)$/iu, en: 'Leh Palace Ladakh' },
+  { re: /\bLeh(?:\s+Palace|\s+Ladakh)?\b/i, en: 'Leh Palace Ladakh' },
   { re: /금강\s*대?\s*협곡/u, en: 'Mount Geumgang gorge scenic' },
   { re: /요호|Yoho/i, en: 'Yoho National Park / Emerald Lake / wide angle' },
   { re: /페이토|Peyto/i, en: 'Peyto Lake / turquoise water / overlook view' },
@@ -86,6 +94,18 @@ const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /미네완카|Minnewanka/i, en: 'Lake Minnewanka Banff / mountain lake / wide angle' },
   { re: /캘거리|Calgary/i, en: 'Calgary Tower / downtown skyline / wide angle' },
   { re: /밴프|Banff/i, en: 'Banff townsite / Rocky Mountains / street view' },
+  { re: /몰디브|Maldives/i, en: 'Maldives overwater villa turquoise lagoon aerial' },
+  { re: /(?:르메르디앙|Le\s*Meridien|Meridien)/i, en: 'Maldives overwater bungalow resort aerial' },
+  { re: /하우스\s*리프|House\s*Reef/i, en: 'Maldives house reef snorkeling turquoise water' },
+  { re: /Bodu\s*Finolhu|보두\s*피놀후/i, en: 'Maldives white sand beach palm trees aerial' },
+  { re: /포나가르|Po Nagar|Cham Towers/i, en: 'Po Nagar Cham Towers Nha Trang' },
+  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland pine forest city' },
+  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam turquoise sea' },
+  { re: /비엔티안|Vientiane/i, en: 'Pha That Luang Vientiane golden stupa' },
+  { re: /방비엥|Vang Vieng/i, en: 'Vang Vieng Nam Song river karst mountains' },
+  { re: /블루\s*라군|Blue Lagoon/i, en: 'Blue Lagoon Vang Vieng emerald water' },
+  { re: /파투싸이|Patuxai/i, en: 'Patuxai Victory Monument Vientiane' },
+  { re: /타틀루앙|Pha That Luang/i, en: 'Pha That Luang Vientiane golden stupa front view' },
   { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo / historic center / wide angle' },
   { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal / gondolas / wide angle' },
   { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers / historic center / front view' },
@@ -131,6 +151,9 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
   { re: /캘거리|Calgary/i, en: 'Calgary Tower downtown skyline' },
   { re: /밴프|Banff/i, en: 'Banff townsite Rocky Mountains' },
+  { re: /몰디브|Maldives/i, en: 'Maldives overwater villa lagoon sunset' },
+  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam' },
+  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland city' },
 ]
 
 const KYOWONTOUR_DOMESTIC_HUB_RE =
@@ -148,8 +171,36 @@ function kyowontourRouteTextSegments(routeText: string | null | undefined): stri
     .filter((s) => s.length >= 2 || /[\uAC00-\uD7AF]/u.test(s))
 }
 
+/** REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 항공사·허브·home 등 — manifest */
+function isKyowontourRejectedImageKeywordCandidate(kw: string | null | undefined): boolean {
+  const t = String(kw ?? '').trim()
+  if (!t) return true
+  if (isBlockedScheduleImageKeyword(t)) return true
+  if (isAirlineCarrierImageKeyword(t)) return true
+  if (isKyowontourPlaceholderImageKeyword(t)) return true
+  if (!isScheduleImageKeywordLandmarkEligible(t)) return true
+  return false
+}
+
+function kyowontourLandmarkFromHaystack(ctx: KyowontourImageKeywordContext): string | null {
+  const h = hay(ctx)
+  const spot = firstMatchingEn(SPOT_RULES, h)
+  if (spot) return spot
+  const city = firstMatchingEn(CITY_RULES, h)
+  if (city && !isBlockedScheduleImageKeyword(city)) return city
+  return null
+}
+
+function kyowontourUsableRouteSegments(routeText: string | null | undefined): string[] {
+  return kyowontourRouteTextSegments(routeText).filter((s) => {
+    if (isKyowontourDomesticHubToken(s)) return false
+    if (firstMatchingEn(SPOT_RULES, s)) return true
+    return !isNonLandmarkRouteTextSegment(s)
+  })
+}
+
 function landmarkFromKyowontourRouteText(routeText: string | null | undefined): string | null {
-  const segs = kyowontourRouteTextSegments(routeText).filter((s) => !isKyowontourDomesticHubToken(s))
+  const segs = kyowontourUsableRouteSegments(routeText)
   if (!segs.length) return null
   let lastSpot: string | null = null
   let lastCity: string | null = null
@@ -163,7 +214,7 @@ function landmarkFromKyowontourRouteText(routeText: string | null | undefined): 
 }
 
 function firstLandmarkFromKyowontourRouteText(routeText: string | null | undefined): string | null {
-  const segs = kyowontourRouteTextSegments(routeText).filter((s) => !isKyowontourDomesticHubToken(s))
+  const segs = kyowontourUsableRouteSegments(routeText)
   for (const seg of segs) {
     const spot = firstMatchingEn(SPOT_RULES, seg)
     if (spot) return spot
@@ -499,7 +550,10 @@ export function polishKyowontourImageKeyword(raw: string, ctx: KyowontourImageKe
   }
   if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
     let chosen = cleaned
-    if (isBlockedScheduleImageKeyword(cleaned) || isKyowontourPexelsTooGeneric(cleaned)) {
+    if (
+      isKyowontourRejectedImageKeywordCandidate(cleaned) ||
+      isKyowontourPexelsTooGeneric(cleaned)
+    ) {
       const d = deriveKyowontourImageKeyword(ctx)
       if (d.trim()) chosen = d
       else chosen = ''
@@ -569,6 +623,14 @@ function classifyKyowontourScheduleDayKind(
   }
   if (day === 1 && /(?:출발|도착|공항|입국)/u.test(h) && spotSegCount <= 1) return 'movement'
   if (day === 1 && foreignSegs.length <= 1) return 'movement'
+  if (
+    day !== maxDay &&
+    /(?:출발|귀국|귀국길|공항(?:으로)?\s*이동|출국\s*준비)/u.test(h) &&
+    spotSegCount === 0 &&
+    foreignSegs.length <= 2
+  ) {
+    return 'movement'
+  }
   return 'tourism'
 }
 
@@ -586,10 +648,12 @@ function lastForeignLandmarkFromPriorKyowontourRows<
     if (day <= 0 || day >= currentDay) continue
     const kind = classifyKyowontourScheduleDayKind(day, maxDay, row)
     if (kind === 'return_home') continue
-    const fromRoute = landmarkFromKyowontourRouteText(row.routeText)
-    if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) return fromRoute
     const pk = String(row.imageKeyword ?? '').trim()
-    if (pk && !isBlockedScheduleImageKeyword(pk) && !isKyowontourPexelsTooGeneric(pk)) return pk
+    if (pk && !isKyowontourRejectedImageKeywordCandidate(pk)) return pk
+    const fromRoute = firstLandmarkFromKyowontourRouteText(row.routeText)
+    if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) return fromRoute
+    const fromRouteLast = landmarkFromKyowontourRouteText(row.routeText)
+    if (fromRouteLast && !isBlockedScheduleImageKeyword(fromRouteLast)) return fromRouteLast
   }
   return null
 }
@@ -607,28 +671,23 @@ function resolveKyowontourPrimaryKeyword(
   priorRows: ReadonlyArray<{ day: number; routeText?: string | null; imageKeyword?: string | null }>,
   maxDay: number,
 ): string {
-  if (dayKind === 'movement' || dayKind === 'return_home') {
-    const fromRoute = landmarkFromKyowontourRouteText(row.routeText)
+  if (dayKind === 'return_home') {
+    const fromPrior = lastForeignLandmarkFromPriorKyowontourRows(priorRows, row, maxDay)
+    if (fromPrior) return exitKyowontourLandmark(fromPrior, ctx)
+    return ''
+  }
+
+  if (dayKind === 'movement') {
+    const fromRoute = landmarkFromKyowontourRouteText(row.routeText) ?? firstLandmarkFromKyowontourRouteText(row.routeText)
     if (fromRoute) return exitKyowontourLandmark(fromRoute, ctx)
-    if (dayKind === 'movement') {
-      const cleaned = stripDatesAndNoise(String(row.imageKeyword ?? '').trim())
-      if (
-        cleaned &&
-        isAcceptableEnglishKeyword(cleaned) &&
-        !isBlockedScheduleImageKeyword(cleaned)
-      ) {
-        const kw = finishKyowontourImageKeyword(cleaned)
-        if (kw) return kw
-      }
-      const inferred = inferEnglishPlaceKeywordFromDayContent(row, ctx.productDestination)
-      if (inferred && !isBlockedScheduleImageKeyword(inferred)) {
-        return exitKyowontourLandmark(inferred, ctx)
-      }
+    const fromHay = kyowontourLandmarkFromHaystack(ctx)
+    if (fromHay) return exitKyowontourLandmark(fromHay, ctx)
+    const inferred = inferEnglishPlaceKeywordFromDayContent(row, ctx.productDestination)
+    if (inferred && !isKyowontourRejectedImageKeywordCandidate(inferred)) {
+      return exitKyowontourLandmark(inferred, ctx)
     }
-    if (dayKind === 'return_home') {
-      const fromPrior = lastForeignLandmarkFromPriorKyowontourRows(priorRows, row, maxDay)
-      if (fromPrior) return exitKyowontourLandmark(fromPrior, ctx)
-    }
+    const derived = deriveKyowontourImageKeyword(ctx)
+    if (derived.trim()) return exitKyowontourLandmark(derived, ctx)
     return ''
   }
 
@@ -650,7 +709,7 @@ function resolveKyowontourPrimaryKeyword(
   if (fromRouteFirst) return exitKyowontourLandmark(fromRouteFirst, ctx)
 
   const inferred = inferEnglishPlaceKeywordFromDayContent(row, ctx.productDestination)
-  if (inferred && !isBlockedScheduleImageKeyword(inferred)) {
+  if (inferred && !isKyowontourRejectedImageKeywordCandidate(inferred)) {
     return exitKyowontourLandmark(inferred, ctx)
   }
   return ''
@@ -678,7 +737,7 @@ function resolveKyowontourSecondaryKeyword(
   }
 
   const routeSegLandmarks: string[] = []
-  for (const seg of kyowontourRouteTextSegments(row.routeText)) {
+  for (const seg of kyowontourUsableRouteSegments(row.routeText)) {
     const spot = firstMatchingEn(SPOT_RULES, seg)
     if (spot) routeSegLandmarks.push(spot)
     const city = firstMatchingEn(CITY_RULES, seg)
@@ -693,6 +752,23 @@ function resolveKyowontourSecondaryKeyword(
     return exitKyowontourLandmark(secondEn, ctx)
   }
   return null
+}
+
+function collectKyowontourRouteLandmarkCandidates(routeText: string | null | undefined): string[] {
+  const out: string[] = []
+  const push = (raw: string | null) => {
+    const t = String(raw ?? '').trim()
+    if (!t || isBlockedScheduleImageKeyword(t)) return
+    if (out.some((x) => normKyowontourKwKey(x) === normKyowontourKwKey(t))) return
+    out.push(t)
+  }
+  for (const seg of kyowontourUsableRouteSegments(routeText)) {
+    push(firstMatchingEn(SPOT_RULES, seg))
+    push(firstMatchingEn(CITY_RULES, seg))
+  }
+  push(firstLandmarkFromKyowontourRouteText(routeText))
+  push(landmarkFromKyowontourRouteText(routeText))
+  return out
 }
 
 export function applyKyowontourScheduleImageKeywordsToRows<
@@ -721,11 +797,18 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     let kw = resolveKyowontourPrimaryKeyword(row, dayKind, ctx, rows.slice(0, idx), maxDay)
     const kwKey = normKyowontourKwKey(kw)
     if (kw && used.has(kwKey) && dayKind === 'tourism') {
-      const alt = pickDistinctSecondScheduleImageKeyword(
-        kw,
-        findAllMappedKoreanPoisInText([row.routeText, row.title, row.description].filter(Boolean).join('\n')),
-      )
-      if (alt && !used.has(normKyowontourKwKey(alt))) kw = exitKyowontourLandmark(alt, ctx)
+      const routeCands = collectKyowontourRouteLandmarkCandidates(row.routeText)
+      const alt =
+        pickDistinctSecondScheduleImageKeyword(kw, routeCands) ??
+        pickDistinctSecondScheduleImageKeyword(
+          kw,
+          findAllMappedKoreanPoisInText([row.routeText, row.title, row.description].filter(Boolean).join('\n')),
+        )
+      const altUnused =
+        alt && !used.has(normKyowontourKwKey(alt))
+          ? alt
+          : routeCands.find((c) => !used.has(normKyowontourKwKey(c)))
+      if (altUnused) kw = exitKyowontourLandmark(altUnused, ctx)
       else kw = ''
     }
     if (kw) used.add(normKyowontourKwKey(kw))

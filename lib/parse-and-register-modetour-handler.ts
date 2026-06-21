@@ -154,6 +154,7 @@ import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromA
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
 import {
   resolveRegisterProductType,
+  resolveRegisterTravelScopeFromRequest,
   travelScopeAndListingKindFromAdminRegister,
 } from '@/lib/register-admin-travel-category'
 import { airportTransferTypeForListingKind } from '@/lib/airport-transfer-infer'
@@ -591,7 +592,6 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       route: '/api/travel/parse-and-register-modetour',
     })
     const text = typeof body.text === 'string' ? body.text.trim() : ''
-    const travelScope = typeof body.travelScope === 'string' ? body.travelScope.trim() : ''
     const clientDeclaredBrand = typeof body.brandKey === 'string' ? body.brandKey.trim() : ''
     if (clientDeclaredBrand && clientDeclaredBrand !== forcedBrandKey) {
       return NextResponse.json(
@@ -614,6 +614,13 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         { status: 400 }
       )
     }
+
+    const travelScope = resolveRegisterTravelScopeFromRequest({
+      bodyTravelScope: body.travelScope,
+      originSource,
+      originUrl,
+      listingTitleHint: text.slice(0, 800),
+    })
 
     const modeRaw = typeof body.mode === 'string' ? body.mode.trim().toLowerCase() : ''
     const mode = modeRaw === 'confirm' ? 'confirm' : 'preview'
