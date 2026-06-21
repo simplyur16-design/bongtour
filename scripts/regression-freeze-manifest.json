@@ -301,7 +301,8 @@
           "file": "lib/supplier-product-title-display.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-product-title-plan-b]",
-            "SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION"
+            "SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION",
+            "stripSupplierTitlePromoBadges"
           ]
         }
       ]
