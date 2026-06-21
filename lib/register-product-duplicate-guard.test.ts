@@ -21,6 +21,22 @@ describe('extractRegisterProductDedupeKeys', () => {
     )
     expect(keys.some((k) => k.kind === 'supplierCode' && k.value.includes('12345'))).toBe(true)
   })
+
+  it('extracts kyowontour tourCode from URL', () => {
+    const keys = extractRegisterProductDedupeKeys(
+      'kyowontour',
+      'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=MCP160260622WS01&menuCode=M510602',
+    )
+    expect(keys.some((k) => k.kind === 'supplierCode' && k.value.includes('MCP160260622WS01'))).toBe(true)
+  })
+
+  it('extracts ybtour evCd from URL', () => {
+    const keys = extractRegisterProductDedupeKeys(
+      'ybtour',
+      'https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&evCd=ALP1122-260706QV00',
+    )
+    expect(keys.some((k) => k.kind === 'supplierCode' && k.value.includes('ALP1122'))).toBe(true)
+  })
 })
 
 describe('groupProductsByRegisterDedupeKey', () => {

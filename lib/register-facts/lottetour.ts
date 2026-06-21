@@ -7,6 +7,7 @@ import {
   collectLottetourCalendarRange,
   enrichLottetourEvtListCollectionHintsFromDetailPage,
   parseLottetourEvtListCollectionHints,
+  type LottetourCalendarRow,
 } from '@/lib/lottetour-departures'
 import {
   extractLottetourIncludedExcludedFromBasicAjax,
@@ -19,6 +20,7 @@ import { lottetourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-ro
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { lottetourCalendarRowToRegisterFactFlights } from '@/lib/register-facts/lottetour-register-fact-flights'
 import { registerFactProductKindNote } from '@/lib/register-facts/product-kind'
 
 function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactScheduleDay[] {
@@ -53,20 +55,11 @@ function parseNightsDays(durationText: string | null | undefined): { nights: num
   }
 }
 
-function lottetourMeetingToFlights(meetingPlaceRaw: string | null): RegisterFactFlightLeg[] {
-  const place = meetingPlaceRaw?.trim()
-  if (!place) return []
-  return [
-    {
-      direction: 'outbound',
-      carrier: null,
-      flightNo: null,
-      departureCity: place,
-      departureAt: null,
-      arrivalCity: null,
-      arrivalAt: null,
-    },
-  ]
+function lottetourMeetingToFlights(
+  calendarRow: LottetourCalendarRow | null | undefined,
+  meetingPlaceRaw: string | null,
+): RegisterFactFlightLeg[] {
+  return lottetourCalendarRowToRegisterFactFlights(calendarRow, meetingPlaceRaw)
 }
 
 export async function collectLottetourRegisterFacts(originUrl: string): Promise<SupplierRegisterFactBundle | null> {
@@ -86,6 +79,7 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
   const { nights, days } = parseNightsDays(row?.durationText ?? row?.tourTitleRaw)
 
   let priceRows: SupplierRegisterFactBundle['priceRows'] = []
+  let flightSourceRow: LottetourCalendarRow | null = null
   let hints = parseLottetourEvtListCollectionHints({ rawMeta: null, originUrl: url })
   if (!hints.godId || !hints.menuNos) {
     hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
@@ -103,14 +97,20 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
         : filtered
     const fromYmd = kstTodayYmd()
     const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-    priceRows = (scoped.length > 0 ? scoped : filtered)
-      .filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
+    const pricedRows = (scoped.length > 0 ? scoped : filtered).filter(
+      (r) => r.departDate >= fromYmd && r.departDate <= toYmd,
+    )
+    flightSourceRow = pricedRows[0] ?? scoped[0] ?? filtered[0] ?? null
+    priceRows = pricedRows
       .map((r) => lottetourCalendarRowToFactPriceRow(r))
       .filter((row): row is NonNullable<typeof row> => row != null)
   } else if (row && row.adultPrice > 0 && row.departDate) {
+    flightSourceRow = row
     const fact = lottetourCalendarRowToFactPriceRow(row)
     priceRows = fact ? [fact] : []
   }
+
+  const flights = lottetourMeetingToFlights(flightSourceRow ?? row, meeting.meetingPlaceRaw)
 
   return {
     supplier: 'lottetour',
@@ -125,7 +125,7 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
     excludedBullets: excludedItems.slice(0, 24),
     shoppingPlaces,
     scheduleDays,
-    flights: lottetourMeetingToFlights(meeting.meetingPlaceRaw),
+    flights,
     priceRows,
     notes: [
       'source=lottetour_register_detail_bundle',

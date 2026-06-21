@@ -55,6 +55,9 @@ export function extractRegisterProductDedupeKeys(
     const ids = extractLottetourMasterIdsFromBlob(url)
     if (ids.evtCd) keys.push({ kind: 'supplierCode', value: `lottetour:evtCd:${ids.evtCd}` })
     if (ids.godId) keys.push({ kind: 'supplierCode', value: `lottetour:godId:${ids.godId}` })
+  } else if (supplier === 'kyowontour') {
+    const tourCode = url.match(/[?&]tourCode=([^&]+)/i)?.[1]?.trim()
+    if (tourCode) keys.push({ kind: 'supplierCode', value: `kyowontour:tourCode:${tourCode}` })
   }
 
   const seen = new Set<string>()

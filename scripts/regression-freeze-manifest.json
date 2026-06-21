@@ -1637,6 +1637,20 @@
             "auditRegisterFactDetailParity",
             "verify-register-facts-detail-parity"
           ]
+        },
+        {
+          "file": "lib/register-facts/lottetour-register-fact-flights.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-completeness]",
+            "lottetourCalendarRowToRegisterFactFlights"
+          ]
+        },
+        {
+          "file": "lib/register-facts/kyowontour-register-fact-flights.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-completeness]",
+            "kyowontourCalendarRowsToRegisterFactFlights"
+          ]
         }
       ],
       "npmScripts": [
@@ -1652,7 +1666,9 @@
       "vitestSuites": [
         "lib/register-facts/completeness.test.ts",
         "lib/register-facts/product-kind.test.ts",
-        "lib/register-facts/detail-parity.test.ts"
+        "lib/register-facts/detail-parity.test.ts",
+        "lib/register-facts/lottetour-register-fact-flights.test.ts",
+        "lib/register-facts/kyowontour-register-fact-flights.test.ts"
       ]
     },
     {
@@ -1963,7 +1979,8 @@
             "REGRESSION-FREEZE[register-product-duplicate-guard]",
             "findExistingProductForRegister",
             "extractRegisterProductDedupeKeys",
-            "shouldWarnRegisterOriginUrlDuplicate"
+            "shouldWarnRegisterOriginUrlDuplicate",
+            "kyowontour:tourCode"
           ]
         },
         {
@@ -1974,6 +1991,30 @@
         },
         {
           "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": [
+            "findExistingProductForRegister"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "mustInclude": [
+            "findExistingProductForRegister"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "mustInclude": [
+            "findExistingProductForRegister"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-orchestration.ts",
+          "mustInclude": [
+            "findExistingProductForRegister"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-orchestration.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]

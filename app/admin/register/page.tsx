@@ -93,7 +93,11 @@ import {
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
 import { inferCanonicalSupplierFromOriginUrl } from '@/lib/infer-supplier-from-origin-url'
-import { inferDepartureAirportFromRegisterFactFlights } from '@/lib/infer-home-departure-airport'
+import {
+  homeDepartureAirportDisplayText,
+  inferDepartureAirportFromRegisterFactFlights,
+  type HomeDepartureAirportLabel,
+} from '@/lib/infer-home-departure-airport'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 import type { KyowontourFinalParsed } from '@/lib/kyowontour-admin-preview-card-types'
 
@@ -659,6 +663,9 @@ export default function AdminRegisterPage() {
   const [travelScope, setTravelScope] = useState<'overseas' | 'domestic' | 'air_hotel_free'>('overseas')
   /** 지방 출발 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.localDepartureTag`만 반영 */
   const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])
+  /** register-facts·confirm SSOT — 인천/김포= null 표시 */
+  const [inferredDepartureAirportLabel, setInferredDepartureAirportLabel] =
+    useState<HomeDepartureAirportLabel | null>(null)
   /** 스포츠 테마 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.sportsThemeTag`만 반영 */
   const [sportsThemeTag, setSportsThemeTag] = useState<SportsThemeTag[]>([])
   /** 단일 출발(F1·이벤트 등) — LLM 비사용, 확정 시 DB `Product.singleDepartureOnly`만 반영 */
@@ -916,6 +923,7 @@ export default function AdminRegisterPage() {
     setRegisterFactBundle(bundle)
     setRawText(registerFactBundleToPasteText(bundle))
     const airportMeta = inferDepartureAirportFromRegisterFactFlights(bundle.flights)
+    setInferredDepartureAirportLabel(airportMeta.airportLabel)
     if (airportMeta.localDepartureTags.length > 0) {
       setLocalDepartureTag(airportMeta.localDepartureTags)
     }
@@ -930,6 +938,7 @@ export default function AdminRegisterPage() {
     setRegisterFactFetchLoading(true)
     setRegisterFactFetchError(null)
     setRegisterFactBundle(null)
+    setInferredDepartureAirportLabel(null)
     try {
       const res = await fetch('/api/admin/register/fetch-facts', {
         method: 'POST',
@@ -1773,6 +1782,20 @@ export default function AdminRegisterPage() {
                       : '본문 자동 추출 사용'}
                   </li>
                 </ul>
+              </div>
+
+              <div className="rounded border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950">
+                <p className="font-semibold text-violet-900">출발 공항 (register-facts·confirm)</p>
+                <p className="mt-1 text-violet-900/90">
+                  {inferredDepartureAirportLabel
+                    ? (homeDepartureAirportDisplayText(inferredDepartureAirportLabel) ??
+                      inferredDepartureAirportLabel)
+                    : '없음 (인천/김포·서울권 기본)'}
+                </p>
+                <p className="mt-1 text-[11px] text-violet-800/80">
+                  사실 가져오기 항공에서 추론. 확정 시 DB{' '}
+                  <code className="text-[11px]">departureAirportLabel</code>에 저장됩니다.
+                </p>
               </div>
 
               <div className="rounded border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950">

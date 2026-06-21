@@ -22,6 +22,7 @@ import {
   inferRegisterFactProductKindFromOriginUrl,
   registerFactProductKindNote,
 } from '@/lib/register-facts/product-kind'
+import { kyowontourCalendarRowsToRegisterFactFlights } from '@/lib/register-facts/kyowontour-register-fact-flights'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
@@ -112,20 +113,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     .map((r) => kyowontourCalendarRowToFactPriceRow(r))
     .filter((row): row is NonNullable<typeof row> => row != null)
 
-  const firstAirline = enrichedRows.map((r) => r.airline?.trim()).find(Boolean) ?? null
-  const flights: RegisterFactFlightLeg[] = firstAirline
-    ? [
-        {
-          direction: 'outbound',
-          carrier: firstAirline,
-          flightNo: null,
-          departureCity: null,
-          departureAt: enrichedRows[0]?.departDate ?? null,
-          arrivalCity: null,
-          arrivalAt: enrichedRows[0]?.returnDate ?? null,
-        },
-      ]
-    : []
+  const flights = kyowontourCalendarRowsToRegisterFactFlights(enrichedRows, scheduleTab.meetingText)
 
   const nightsDays = html.match(/(\d+)\s*박\s*(\d+)\s*일/)
 
