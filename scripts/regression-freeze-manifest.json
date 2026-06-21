@@ -775,7 +775,41 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "resolveLottetourSecondaryKeyword",
-            "collectLottetourLandmarkKeywordsFromRoute"
+            "collectLottetourLandmarkKeywordsFromRoute",
+            "resolveLottetourPrimaryKeyword",
+            "isBlockedScheduleImageKeyword"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-augment-image-keywords.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "applyAugmentScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-keyword-blocklist.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "isBlockedScheduleImageKeyword"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-schedule.ts",
+          "mustInclude": [
+            "applyAugmentScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-schedule.ts",
+          "mustInclude": [
+            "applyAugmentScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-schedule.ts",
+          "mustInclude": [
+            "applyAugmentScheduleImageKeywordsBySupplier"
           ]
         },
         {
@@ -2502,6 +2536,7 @@
         "tests/hanatour-schedule-image-keyword-prebuild.test.ts",
         "tests/ybtour-schedule-image-keyword.test.ts",
         "tests/lottetour-schedule-image-keyword-turkey.test.ts",
+        "lib/lottetour-schedule-image-keyword-nhatrang.test.ts",
         "tests/verygoodtour-schedule-image-keyword.test.ts",
         "tests/kyowontour-schedule-image-keyword.test.ts"
       ]

@@ -96,8 +96,8 @@ describe('lottetour schedule imageKeyword — Turkey complete tour', () => {
     assert.match(out[6]!.imageKeyword!, /Balat|Topkapi|Hagia Sophia/i, `day7: ${out[6]!.imageKeyword}`)
     assert.match(out[7]!.imageKeyword!, /Bosphorus|Pierre Loti|Istanbul/i, `day8: ${out[7]!.imageKeyword}`)
     assert.doesNotMatch(out[7]!.imageKeyword!, /Seoul/i)
-    assert.match(out[8]!.imageKeyword!, /Istanbul|Incheon/i, `day9: ${out[8]!.imageKeyword}`)
-    assert.doesNotMatch(out[8]!.imageKeyword!, /\bSeoul\b/i)
+    assert.match(out[8]!.imageKeyword!, /Istanbul/i, `day9: ${out[8]!.imageKeyword}`)
+    assert.doesNotMatch(out[8]!.imageKeyword!, /\bSeoul\b|Incheon/i)
   })
 
   it('fills imageKeyword2 from routeText on tourism days; movement/return days stay null', () => {

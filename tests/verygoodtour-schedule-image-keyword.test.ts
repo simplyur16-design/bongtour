@@ -111,7 +111,7 @@ describe('classifyVerygoodDayKind', () => {
   })
 })
 
-describe('resolveVerygoodPrimaryKeyword — LLM only', () => {
+describe('resolveVerygoodPrimaryKeyword — LLM + infer', () => {
   it('LLM 영문 키워드를 수용한다', () => {
     const kw = resolveVerygoodPrimaryKeyword(
       { day: 2, imageKeyword: '  Lazienki Park  ' },
@@ -129,7 +129,7 @@ describe('resolveVerygoodPrimaryKeyword — LLM only', () => {
     assert.equal(resolveVerygoodPrimaryKeyword({ day: 2, imageKeyword: 'Paris' }, 'touring', 'Japan'), '')
   })
 
-  it('LLM 빈값 — det 폴백 없음', () => {
+  it('LLM 빈값 — 본문 infer 없으면 빈 문자열', () => {
     const d1 = detRow(1, "#### 인천\nSeat Pitch\n#### 바르샤바\n도착", '인천-바르샤바')
     const out = applyVerygoodScheduleImageKeywordsToRows(
       [{ day: 1, title: d1.title, description: d1.description, imageKeyword: '', imageKeyword2: null }],
@@ -251,5 +251,48 @@ describe('applyVerygoodScheduleImageKeywordsToRows — Plan A', () => {
     )
     assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
     assert.match(out[0]!.imageKeyword2!, /Agra Fort/i)
+  })
+
+  it('Inner Mongolia — Hailar 반복 dedupe, route 명소 우선', () => {
+    const out = applyVerygoodScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '인천 출발',
+          description: '하이라얼 도착',
+          routeText: '인천 - 하이라얼',
+          imageKeyword: 'Hailar',
+        },
+        {
+          day: 2,
+          title: '후룬베이얼 대초원',
+          description: '모리거러강 조망',
+          routeText: '하이라얼 - 후룬베이얼 대초원 - 모리거러강(조망)',
+          imageKeyword: 'Hulunbuir Grassland',
+        },
+        {
+          day: 3,
+          title: '만주리',
+          description: '마트료시카 광장',
+          routeText: '후룬베이얼 대초원 - 만주리 - 마트료시카 광장(외부관람)',
+          imageKeyword: 'Manzhouli',
+        },
+        {
+          day: 5,
+          title: '인천 도착',
+          description: '인천 국제공항 도착',
+          routeText: '하이라얼 - 인천',
+          imageKeyword: 'Hailar',
+        },
+      ],
+      { productDestination: '내몽골', totalDays: 5 },
+    )
+    assert.match(out[0]!.imageKeyword!, /Hailar/i)
+    assert.match(out[1]!.imageKeyword!, /Hulunbuir|Morigele/i)
+    assert.match(out[2]!.imageKeyword!, /Manzhouli|Matryoshka/i)
+    assert.notEqual(out[0]!.imageKeyword!.toLowerCase(), out[1]!.imageKeyword!.toLowerCase())
+    assert.notEqual(out[1]!.imageKeyword!.toLowerCase(), out[2]!.imageKeyword!.toLowerCase())
+    assert.match(out[3]!.imageKeyword!, /Hulunbuir|Manzhouli|Matryoshka|Hailar/i)
+    assert.doesNotMatch(out[3]!.imageKeyword!, /Incheon/i)
   })
 })

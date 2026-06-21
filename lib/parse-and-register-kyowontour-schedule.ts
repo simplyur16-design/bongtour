@@ -17,9 +17,7 @@ import {
   deriveKyowontourScheduleDayHeaderTitle,
   shouldReplaceKyowontourScheduleDayTitle,
 } from '@/lib/kyowontour-schedule-day-header-title'
-import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
-import { buildEnglishPlaceTripartiteImageKeyword } from '@/lib/register-schedule-english-place-image-keyword'
-import { polishKyowontourImageKeyword } from '@/lib/kyowontour-schedule-image-keyword'
+import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
@@ -163,15 +161,11 @@ function extractMealsFromKyowontourBlock(block: string): Partial<RegisterSchedul
   return out
 }
 
-/** 일차 표현층·붙여넣기 병합에서 imageKeyword 보강 시 사용 (교원이지 SSOT). */
+/** @deprecated augment·apply SSOT 사용 — 붙여넣기 병합 시 빈 키워드로 두고 apply가 채움 */
 export function keywordFromTitleDescription(title: string, description: string): string {
-  return finalizeScheduleImageKeyword(
-    buildEnglishPlaceTripartiteImageKeyword({
-      title,
-      description,
-      rawDayBody: '',
-    }),
-  ).slice(0, 180)
+  void title
+  void description
+  return ''
 }
 
 function extractKyowontourDayDateIso(block: string): string | null {
@@ -324,23 +318,19 @@ export function augmentKyowontourScheduleExpressionParsed(
     if (!nextTitle) return r
     return { ...r, title: nextTitle.slice(0, 200) }
   })
-  const pasteBlob = pastedBodyText?.trim() ? pastedBodyText.trim().slice(0, 24_000) : undefined
   const skipPackageImageKw = isRegisterAirtelListing(opts?.travelScope, next.productType)
+  const scheduleRows = skipPackageImageKw
+    ? titled
+    : applyAugmentScheduleImageKeywordsBySupplier(titled, {
+        supplierKey: 'kyowontour',
+        productTitle: next.title,
+        productDestination: next.destination,
+        travelScope: opts?.travelScope,
+        productType: next.productType,
+      })
   return {
     ...next,
-    schedule: titled.map((r) => {
-      if (skipPackageImageKw) return r
-      const title = String(r.title ?? '').trim()
-      const description = String(r.description ?? '').trim()
-      const kw = polishKyowontourImageKeyword(String(r.imageKeyword ?? ''), {
-        day: r.day,
-        title,
-        description,
-        blob: pasteBlob,
-        airtelFreeTravelImageKw: 'off',
-      })
-      return { ...r, imageKeyword: kw.slice(0, 180) }
-    }),
+    schedule: scheduleRows,
   }
 }
 

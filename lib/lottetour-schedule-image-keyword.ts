@@ -5,7 +5,13 @@
  */
 
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
-import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  inferEnglishPlaceKeywordFromDayContent,
+  pickDistinctSecondScheduleImageKeyword,
+  shouldReconcileScheduleImageKeyword2,
+  splitRouteTextPlaceSegments,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 
 export type LottetourImageKeywordContext = {
   day: number
@@ -70,6 +76,10 @@ const TURKEY_SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
 /** 최소 한글→영문 관광지 (롯데관광 일정 본문에서 자주 쓰이는 표기만) */
 const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   ...TURKEY_SPOT_RULES,
+  { re: /포나가르|Po Nagar|Cham Towers/i, en: 'Po Nagar Cham Towers Nha Trang' },
+  { re: /달랏\s*꽃\s*정원|Dalat Flower|Da Lat Flower/i, en: 'Da Lat Flower Garden Vietnam' },
+  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland city' },
+  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam' },
   { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
   { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
   { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
@@ -95,6 +105,31 @@ const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /백두산/u, en: 'Changbai Mountain scenic view' },
   { re: /이도백하/u, en: 'Erdaobaihe river town Changbai' },
   { re: /금강\s*대?\s*협곡/u, en: 'Mount Geumgang gorge scenic' },
+  { re: /수안\s*후엉|Xuan\s*Huong/i, en: 'Xuan Huong Lake Da Lat / pine forest shore / wide angle' },
+  { re: /두오모|Duomo|피렌체\s*성당/i, en: 'Florence Cathedral Duomo / red dome plaza / front view' },
+  { re: /시뇨리아|Signoria/i, en: 'Piazza della Signoria Florence / Palazzo Vecchio / daytime' },
+  { re: /베키오|Ponte Vecchio/i, en: 'Ponte Vecchio Florence / Arno River / wide angle' },
+  { re: /우피치|Uffizi/i, en: 'Uffizi Gallery Florence / courtyard / front view' },
+  { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo / historic center / wide angle' },
+  { re: /산\s*지미냐노|San Gimignano/i, en: 'San Gimignano medieval towers / Tuscany hills / wide angle' },
+  { re: /베로나|Verona/i, en: 'Verona Arena / Roman amphitheater / front view' },
+  { re: /오르티세이|Ortisei/i, en: 'Ortisei Dolomites / alpine village / wide angle' },
+  { re: /볼차노|Bolzano/i, en: 'Bolzano South Tyrol / Dolomites gateway / street view' },
+  { re: /코르티나|Cortina/i, en: 'Cortina d Ampezzo Dolomites / mountain peaks / wide angle' },
+  { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal / gondolas / wide angle' },
+  { re: /산\s*마리노|San Marino/i, en: 'San Marino historic fortress / hilltop view / wide angle' },
+  { re: /몬테카티니|Montecatini/i, en: 'Montecatini Terme spa town / Tuscany / street view' },
+  { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers / historic center / front view' },
+  { re: /마르쿠스|St\.?\s*Mark|산\s*마르코/i, en: "St Mark's Basilica Venice / Piazza San Marco / front view" },
+  { re: /요호|Yoho/i, en: 'Yoho National Park / Emerald Lake / wide angle' },
+  { re: /페이토|Peyto/i, en: 'Peyto Lake / turquoise water / overlook view' },
+  { re: /아사바스카|Athabasca/i, en: 'Athabasca Falls / Rocky Mountains / wide angle' },
+  { re: /레이크\s*루이스|Lake Louise/i, en: 'Lake Louise / turquoise lake / mountain backdrop' },
+  { re: /모레인|Moraine/i, en: 'Moraine Lake / Valley of Ten Peaks / wide angle' },
+  { re: /보우\s*폭포|Bow Falls/i, en: 'Bow Falls Banff / river cascade / wide angle' },
+  { re: /미네완카|Minnewanka/i, en: 'Lake Minnewanka Banff / mountain lake / wide angle' },
+  { re: /캘거리|Calgary/i, en: 'Calgary Tower / downtown skyline / wide angle' },
+  { re: /밴프|Banff/i, en: 'Banff townsite / Rocky Mountains / street view' },
 ]
 
 const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
@@ -121,8 +156,6 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /뉴욕/u, en: 'New York Manhattan skyline' },
   { re: /연길/u, en: 'Yanji Korean quarter winter street' },
   { re: /제주/u, en: 'Jeju coast view' },
-  { re: /서울/u, en: 'Seoul city skyline night' },
-  { re: /인천/u, en: 'Incheon International Airport departure terminal' },
   { re: /부산/u, en: 'Busan Gamcheon village' },
   { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
   { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
@@ -142,6 +175,11 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /하와이|호놀룰루|Honolulu/i, en: 'Honolulu Waikiki beach' },
   { re: /괌|Guam/i, en: 'Guam Tumon beach' },
   { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
+  { re: /캘거리|Calgary/i, en: 'Calgary Tower downtown skyline' },
+  { re: /밴프|Banff/i, en: 'Banff townsite Rocky Mountains' },
+  { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo historic center' },
+  { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal gondolas' },
+  { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers historic center' },
 ]
 
 const LOTTETOUR_DOMESTIC_HUB_RE =
@@ -161,10 +199,17 @@ function stripLottetourRouteSegmentNoise(seg: string): string {
     .trim()
 }
 
+function isLottetourRouteSegmentUsable(seg: string): boolean {
+  const t = stripLottetourRouteSegmentNoise(seg)
+  if (!t) return false
+  if (t.length >= 2) return true
+  return /[\uAC00-\uD7AF]/u.test(t)
+}
+
 function lottetourRouteTextSegments(routeText: string | null | undefined): string[] {
   return splitRouteTextPlaceSegments(routeText)
     .map(stripLottetourRouteSegmentNoise)
-    .filter((s) => s.length >= 2)
+    .filter(isLottetourRouteSegmentUsable)
 }
 
 /** routeText 해외 구간 — 이동 순서상 마지막 랜드마크(또는 도시) 우선 */
@@ -178,9 +223,21 @@ function landmarkFromRouteText(routeText: string | null | undefined): string | n
     const spot = firstMatchingEn(SPOT_RULES, seg)
     if (spot) lastSpot = spot
     const city = firstMatchingEn(CITY_RULES, seg)
-    if (city) lastCity = city
+    if (city && !isBlockedScheduleImageKeyword(city)) lastCity = city
   }
   return lastSpot ?? lastCity
+}
+
+/** routeText 해외 구간 — 이동 순서상 첫 랜드마크(관광 일차 1순위) */
+function firstLandmarkFromRouteText(routeText: string | null | undefined): string | null {
+  const segs = lottetourRouteTextSegments(routeText).filter((s) => !isLottetourDomesticHubToken(s))
+  for (const seg of segs) {
+    const spot = firstMatchingEn(SPOT_RULES, seg)
+    if (spot) return spot
+    const city = firstMatchingEn(CITY_RULES, seg)
+    if (city && !isBlockedScheduleImageKeyword(city)) return city
+  }
+  return null
 }
 
 const IATA_IMAGE: Readonly<Record<string, string>> = {
@@ -296,10 +353,6 @@ const LOTTETOUR_DESC_TRIPLE: ReadonlyArray<{ re: RegExp; en: string }> = [
     en: 'Linh Ung Pagoda Da Nang / Lady Buddha statue sea view / front view',
   },
   {
-    re: /(인천\s*공항|ICN\b|Incheon\s*International)/iu,
-    en: 'Incheon International Airport / departure terminal / front view',
-  },
-  {
     re: /(미케|My\s*Khe|마블\s*마운틴|Marble\s*Mountain|논\s*누옥)/iu,
     en: 'Marble Mountains Da Nang / stone peaks pagodas / wide angle',
   },
@@ -314,6 +367,7 @@ const PEXELS_GENERIC_CITY_EN =
 export function isLottetourPexelsTooGeneric(s: string): boolean {
   const t = stripDatesAndNoise(String(s ?? '').trim())
   if (!t) return true
+  if (isBlockedScheduleImageKeyword(t)) return true
   if (isBareCityOrCountryKeyword(t)) return true
   if (t.includes('/')) return false
   if (PEXELS_GENERIC_CITY_EN.test(t)) return true
@@ -499,21 +553,18 @@ export function deriveLottetourImageKeyword(ctx: LottetourImageKeywordContext): 
   const arrival = arrivalCityFromHay(h)
   if (arrival) return arrival
 
-  const iata = iataHintsFromHay(h)
-  if (iata) return iata
-
   const cityHit = firstMatchingEn(CITY_RULES, h)
-  if (cityHit) return cityHit
+  if (cityHit && !isBlockedScheduleImageKeyword(cityHit)) return cityHit
 
-  if (/(?:공항|출발|도착|항공|귀국|입국|출국)/u.test(h)) {
-    return 'International flight airport window'
+  if (ctx.airtelFreeTravelImageKw === 'force-city') {
+    return lottetourAirtelFreeTravelRegionalFallbackLocal(h)
   }
-
-  return lottetourAirtelFreeTravelRegionalFallbackLocal(h)
+  return ''
 }
 
 function finishLottetourImageKeyword(s: string): string {
   const t = clampWords(normalizeSlashSpacing(s), IMAGE_KEYWORD_MAX_WORDS).slice(0, 180)
+  if (isBlockedScheduleImageKeyword(t)) return ''
   return finalizeScheduleImageKeyword(t) || ''
 }
 
@@ -533,9 +584,24 @@ export function polishLottetourImageKeyword(raw: string, ctx: LottetourImageKeyw
   }
   if (cleaned && isAcceptableEnglishKeyword(cleaned)) {
     let chosen = cleaned
-    if (isLottetourPexelsTooGeneric(cleaned) || isLottetourCrossRegionKeywordMismatch(cleaned, ctx)) {
+    if (
+      isBlockedScheduleImageKeyword(cleaned) ||
+      isLottetourPexelsTooGeneric(cleaned) ||
+      isLottetourCrossRegionKeywordMismatch(cleaned, ctx)
+    ) {
       const d = deriveLottetourImageKeyword(ctx)
       if (d.trim()) chosen = d
+      else chosen = ''
+    }
+    if (!chosen.trim()) {
+      const fromRoute = firstLandmarkFromRouteText(ctx.routeText)
+      if (fromRoute) return exitLottetourLandmark(fromRoute, ctx)
+      const inferred = inferEnglishPlaceKeywordFromDayContent(
+        { title: ctx.title, description: ctx.description, routeText: ctx.routeText },
+        ctx.productDestination,
+      )
+      if (inferred) return exitLottetourLandmark(inferred, ctx)
+      return ''
     }
     return exitLottetourLandmark(chosen, ctx)
   }
@@ -620,11 +686,140 @@ function classifyLottetourScheduleDayKind(
   const foreignSegs = lottetourRouteTextSegments(row.routeText).filter((s) => !isLottetourDomesticHubToken(s))
   const spotSegCount = foreignSegs.filter((s) => firstMatchingEn(SPOT_RULES, s)).length
 
-  if (day === maxDay && /(?:도착|해산|귀국|출국)/u.test(h)) return 'return_home'
-  if (day === maxDay && foreignSegs.length <= 1) return 'return_home'
+  if (day === maxDay && /(?:도착|해산|귀국|출국)/u.test(h)) {
+    const allDomestic =
+      lottetourRouteTextSegments(row.routeText).length > 0 &&
+      lottetourRouteTextSegments(row.routeText).every((s) => isLottetourDomesticHubToken(s))
+    if (allDomestic || foreignSegs.length === 0) return 'return_home'
+  }
+  if (
+    day === maxDay &&
+    foreignSegs.length <= 1 &&
+    spotSegCount === 0 &&
+    /(?:인천|김포|ICN|GMP|귀국|입국)/u.test(h)
+  ) {
+    return 'return_home'
+  }
   if (day === 1 && /(?:출발|도착|공항|입국)/u.test(h) && spotSegCount <= 1) return 'movement'
   if (day === 1 && foreignSegs.length <= 1) return 'movement'
   return 'tourism'
+}
+
+function resolveLottetourPrimaryKeyword(
+  row: {
+    title?: string
+    description?: string
+    routeText?: string | null
+    imageKeyword?: string | null
+  },
+  dayKind: LottetourScheduleDayKind,
+  ctx: LottetourImageKeywordContext,
+  priorRows: ReadonlyArray<{ day: number; routeText?: string | null; imageKeyword?: string | null }>,
+  maxDay: number,
+): string {
+  if (dayKind === 'movement' || dayKind === 'return_home') {
+    const fromRoute = landmarkFromRouteText(row.routeText)
+    if (fromRoute) return exitLottetourLandmark(fromRoute, ctx)
+    if (dayKind === 'return_home') {
+      const fromPrior = lastForeignLandmarkFromPriorLottetourRows(priorRows, row, maxDay)
+      if (fromPrior) return exitLottetourLandmark(fromPrior, ctx)
+    }
+    return ''
+  }
+
+  const fromRoutePrimary =
+    landmarkFromRouteText(row.routeText) ?? firstLandmarkFromRouteText(row.routeText)
+  if (fromRoutePrimary) {
+    const polished = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), ctx)
+    if (polished && normLottetourKwKey(polished) === normLottetourKwKey(fromRoutePrimary)) {
+      return polished
+    }
+    if (
+      !polished ||
+      isBlockedScheduleImageKeyword(polished) ||
+      isLottetourPexelsTooGeneric(polished)
+    ) {
+      return exitLottetourLandmark(fromRoutePrimary, ctx)
+    }
+  }
+
+  const fromLlm = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), ctx)
+  if (fromLlm) return fromLlm
+
+  if (fromRoutePrimary) return exitLottetourLandmark(fromRoutePrimary, ctx)
+
+  const fromRoute = landmarkFromRouteText(row.routeText)
+  if (fromRoute) return exitLottetourLandmark(fromRoute, ctx)
+
+  const inferred = inferEnglishPlaceKeywordFromDayContent(row, ctx.productDestination)
+  if (inferred) return exitLottetourLandmark(inferred, ctx)
+  return ''
+}
+
+function lastForeignLandmarkFromPriorLottetourRows<
+  T extends { day: number; title?: string; description?: string; routeText?: string | null; imageKeyword?: string | null },
+>(
+  priorRows: ReadonlyArray<T>,
+  current: T,
+  maxDay: number,
+): string | null {
+  const currentDay = Number(current.day) || 0
+  const sorted = [...priorRows].sort((a, b) => Number(b.day) - Number(a.day))
+  for (const row of sorted) {
+    const day = Number(row.day) || 0
+    if (day <= 0 || day >= currentDay) continue
+    const kind = classifyLottetourScheduleDayKind(day, maxDay, row)
+    if (kind === 'return_home') continue
+    const fromRoute = landmarkFromRouteText(row.routeText)
+    if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) return fromRoute
+    const pk = String(row.imageKeyword ?? '').trim()
+    if (pk && !isBlockedScheduleImageKeyword(pk) && !isLottetourPexelsTooGeneric(pk)) return pk
+  }
+  return null
+}
+
+function reconcileLottetourDistinctPrimaryAcrossDays<
+  T extends { day: number; title?: string; description?: string; routeText?: string | null; imageKeyword?: string | null; imageKeyword2?: string | null },
+>(rows: T[], maxDay: number, opts?: LottetourScheduleImageKeywordOpts): T[] {
+  const used = new Set<string>()
+  return rows.map((row, idx) => {
+    const prior = rows.slice(0, idx)
+    let primary = String(row.imageKeyword ?? '').trim()
+    const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
+    const pk = normLottetourKwKey(primary)
+    if (primary && used.has(pk) && dayKind === 'tourism') {
+      const ctx: LottetourImageKeywordContext = {
+        day: row.day,
+        title: String(row.title ?? ''),
+        description: String(row.description ?? ''),
+        routeText: row.routeText ?? null,
+        productTitle: opts?.productTitle,
+        productDestination: opts?.productDestination ?? null,
+        productPrimaryDestination: opts?.productDestination ?? null,
+      }
+      const altCandidates = collectLottetourLandmarkKeywordsFromRoute(row.routeText).filter(
+        (kw) => !used.has(normLottetourKwKey(kw)),
+      )
+      if (altCandidates[0]) {
+        primary = exitLottetourLandmark(altCandidates[0]!, ctx)
+      } else {
+        primary = resolveLottetourPrimaryKeyword(row, dayKind, ctx, prior, maxDay)
+        if (primary && used.has(normLottetourKwKey(primary))) primary = ''
+      }
+    }
+    if (primary) used.add(normLottetourKwKey(primary))
+    const ctx: LottetourImageKeywordContext = {
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      routeText: row.routeText ?? null,
+      productTitle: opts?.productTitle,
+      productDestination: opts?.productDestination ?? null,
+      productPrimaryDestination: opts?.productDestination ?? null,
+    }
+    const kw2 = resolveLottetourSecondaryKeyword(row, primary, dayKind, ctx)
+    return { ...row, imageKeyword: primary, imageKeyword2: kw2 }
+  })
 }
 
 function resolveLottetourSecondaryKeyword(
@@ -649,6 +844,16 @@ function resolveLottetourSecondaryKeyword(
     if (normLottetourKwKey(kw) !== pk) return kw
   }
 
+  const routeSegLandmarks: string[] = []
+  for (const seg of lottetourRouteTextSegments(row.routeText)) {
+    const spot = firstMatchingEn(SPOT_RULES, seg)
+    if (spot) routeSegLandmarks.push(spot)
+    const city = firstMatchingEn(CITY_RULES, seg)
+    if (city && !isBlockedScheduleImageKeyword(city)) routeSegLandmarks.push(city)
+  }
+  const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(primary, routeSegLandmarks)
+  if (fromRouteOrdered && !isBlockedScheduleImageKeyword(fromRouteOrdered)) return fromRouteOrdered
+
   return null
 }
 
@@ -663,7 +868,7 @@ export function applyLottetourScheduleImageKeywordsToRows<
   },
 >(rows: T[], opts?: LottetourScheduleImageKeywordOpts): T[] {
   const maxDay = rows.length ? Math.max(...rows.map((r) => Number(r.day) || 0), 1) : 1
-  return rows.map((row) => {
+  const mapped = rows.map((row, idx) => {
     const ctx: LottetourImageKeywordContext = {
       day: row.day,
       title: String(row.title ?? ''),
@@ -673,13 +878,34 @@ export function applyLottetourScheduleImageKeywordsToRows<
       productDestination: opts?.productDestination ?? null,
       productPrimaryDestination: opts?.productDestination ?? null,
     }
-    const kw = polishLottetourImageKeyword(String(row.imageKeyword ?? '').trim(), ctx)
     const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
+    const kw = resolveLottetourPrimaryKeyword(row, dayKind, ctx, rows.slice(0, idx), maxDay)
     const kw2 = resolveLottetourSecondaryKeyword(row, kw, dayKind, ctx)
     return {
       ...row,
       imageKeyword: kw,
       imageKeyword2: kw2,
     }
+  })
+
+  const deduped = reconcileLottetourDistinctPrimaryAcrossDays(mapped, maxDay, opts)
+
+  return deduped.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
+    const ctx: LottetourImageKeywordContext = {
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      routeText: row.routeText ?? null,
+      productTitle: opts?.productTitle,
+      productDestination: opts?.productDestination ?? null,
+      productPrimaryDestination: opts?.productDestination ?? null,
+    }
+    const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
+    const kw2 = resolveLottetourSecondaryKeyword(row, primary, dayKind, ctx)
+    return { ...row, imageKeyword2: kw2 }
   })
 }

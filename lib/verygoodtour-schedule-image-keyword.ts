@@ -5,8 +5,9 @@
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { findAllMappedKoreanPoisInText, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
-import { pickDistinctSecondScheduleImageKeyword } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import { pickDistinctSecondScheduleImageKeyword, inferEnglishPlaceKeywordFromDayContent } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
+import { finalizeScheduleImageKeyword, normalizeToPlaceName, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type VerygoodScheduleImageKeywordRow = {
   day: number
@@ -38,6 +39,54 @@ const VERYGOOD_TOXIC_IMAGE_KEYWORD_RE =
   /\bscenic\s+asian\s+city\s+travel\s+skyline\s+dusk\b/i
 
 const VERYGOOD_LLM_DAY_TRAVEL_RE = /^day\s*\d+\s*travel$/i
+
+const VERYGOOD_SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /후룬베이얼\s*대초원|Hulunbuir Grassland/i, en: 'Hulunbuir Grassland / rolling green hills / wide angle' },
+  { re: /모리거러|Morigele/i, en: 'Morigele River / grassland valley / wide angle' },
+  { re: /만주리|Manzhouli/i, en: 'Manzhouli border city / Russian architecture / street view' },
+  { re: /마트료시카|Matryoshka/i, en: 'Matryoshka Square Manzhouli / colorful dolls plaza / front view' },
+  { re: /후룬베이얼\s*고성|Hulunbuir Old/i, en: 'Hulunbuir Old Town / Qing dynasty gate / front view' },
+  { re: /하이라얼|Hailar/i, en: 'Hailar city / Inner Mongolia steppe gateway / street view' },
+  { re: /수안\s*후엉|Xuan\s*Huong/i, en: 'Xuan Huong Lake Da Lat / pine forest shore / wide angle' },
+  { re: /포나가르|Po Nagar|Cham Towers/i, en: 'Po Nagar Cham Towers Nha Trang / ancient towers / front view' },
+  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam / turquoise sea / wide angle' },
+  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland / pine hills / wide angle' },
+]
+
+function firstVerygoodSpotMatch(h: string): string | null {
+  for (const { re, en } of VERYGOOD_SPOT_RULES) {
+    if (re.test(h)) return en
+  }
+  return null
+}
+
+function firstVerygoodSpotFromRoute(routeText: string | null | undefined): string | null {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return null
+  for (const seg of raw.split(/\s+-\s+/).map((s) => s.trim()).filter((s) => s.length >= 2)) {
+    if (isVerygoodDomesticHubToken(seg)) continue
+    const spot = firstVerygoodSpotMatch(seg)
+    if (spot) return spot
+  }
+  return null
+}
+
+function lastVerygoodSpotFromRoute(routeText: string | null | undefined): string | null {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return null
+  const segs = raw.split(/\s+-\s+/).map((s) => s.trim()).filter((s) => s.length >= 2)
+  let last: string | null = null
+  for (const seg of segs) {
+    if (isVerygoodDomesticHubToken(seg)) continue
+    const spot = firstVerygoodSpotMatch(seg)
+    if (spot) last = spot
+  }
+  return last
+}
+
+function verygoodHaystackFromRow(row: VerygoodScheduleImageKeywordRow, description: string, title: string): string {
+  return [description, title, row.routeText].filter(Boolean).join('\n')
+}
 
 /** detRows 추출 입력에서 제외할 항공·좌석·수하물 노이즈 줄 */
 const VERYGOOD_AVIATION_LINE_RE =
@@ -131,6 +180,8 @@ function tryAcceptVerygoodLlmImageKeyword(
   if (!isVerygoodLlmImageKeywordFormatOk(candidate)) return ''
   if (VERYGOOD_NON_LANDMARK_EN_RE.test(candidate)) return ''
   if (isVerygoodDomesticHubToken(candidate)) return ''
+  if (isBareCityOrCountryKeyword(candidate)) return ''
+  if (isBlockedScheduleImageKeyword(candidate)) return ''
   if (isVerygoodCrossContinentHallucinationKeyword(candidate, productDestination)) return ''
   try {
     return finalizeScheduleImageKeyword(candidate)
@@ -284,14 +335,86 @@ export function classifyVerygoodDayKind(
   return 'free'
 }
 
-/** LLM imageKeyword only — dayKind 분기. det 생짜 추출 없음. */
+/** LLM 우선 — routeText·본문 infer 폴백(hanatour/ybtour와 동일 계약). */
 export function resolveVerygoodPrimaryKeyword(
   row: VerygoodScheduleImageKeywordRow,
   dayKind: VerygoodDayKind,
   productDestination: string | null | undefined,
+  priorRows?: ReadonlyArray<VerygoodScheduleImageKeywordRow>,
+  totalDays?: number,
 ): string {
-  void dayKind
-  return tryAcceptVerygoodLlmImageKeyword(row.imageKeyword, productDestination)
+  const fromRoutePrimary =
+    lastVerygoodSpotFromRoute(row.routeText) ?? firstVerygoodSpotFromRoute(row.routeText)
+  if (fromRoutePrimary) {
+    const accepted = tryAcceptVerygoodLlmImageKeyword(fromRoutePrimary, productDestination)
+    if (accepted) return accepted
+  }
+
+  const hay = verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? ''))
+  const fromSpot = firstVerygoodSpotMatch(hay)
+  if (fromSpot) {
+    const accepted = tryAcceptVerygoodLlmImageKeyword(fromSpot, productDestination)
+    if (accepted) return accepted
+  }
+
+  const fromLlm = tryAcceptVerygoodLlmImageKeyword(row.imageKeyword, productDestination)
+  if (fromLlm) return fromLlm
+
+  if (dayKind === 'flight') {
+    const fromRoute = inferEnglishPlaceKeywordFromDayContent(
+      { title: '', description: '', routeText: row.routeText ?? null },
+      productDestination,
+    )
+    if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) {
+      return tryAcceptVerygoodLlmImageKeyword(fromRoute, productDestination) || ''
+    }
+    const fromPriorRoute = lastVerygoodSpotFromRoute(
+      priorRows?.length ? priorRows[priorRows.length - 1]?.routeText : null,
+    )
+    if (fromPriorRoute) {
+      const accepted = tryAcceptVerygoodLlmImageKeyword(fromPriorRoute, productDestination)
+      if (accepted) return accepted
+    }
+    const fromPrior = lastForeignVerygoodLandmarkFromPriorRows(priorRows ?? [], row, totalDays ?? 0)
+    if (fromPrior) return fromPrior
+    return ''
+  }
+
+  const inferred = inferEnglishPlaceKeywordFromDayContent(row, productDestination)
+  if (inferred && !isBlockedScheduleImageKeyword(inferred)) {
+    return tryAcceptVerygoodLlmImageKeyword(inferred, productDestination) || ''
+  }
+  return ''
+}
+
+function lastForeignVerygoodLandmarkFromPriorRows(
+  priorRows: ReadonlyArray<VerygoodScheduleImageKeywordRow>,
+  current: VerygoodScheduleImageKeywordRow,
+  totalDays: number,
+): string {
+  const currentDay = Number(current.day) || 0
+  const sorted = [...priorRows].sort((a, b) => Number(b.day) - Number(a.day))
+  for (const row of sorted) {
+    const day = Number(row.day) || 0
+    if (day <= 0 || day >= currentDay) continue
+    const kind = classifyVerygoodDayKind(
+      String(row.description ?? ''),
+      String(row.title ?? ''),
+      day,
+      totalDays,
+      row.routeText,
+    )
+    if (kind === 'flight') continue
+    const hay = verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? ''))
+    const spot = firstVerygoodSpotMatch(hay)
+    if (spot) {
+      const accepted = tryAcceptVerygoodLlmImageKeyword(spot, null)
+      if (accepted) return accepted
+    }
+    const pk = tryAcceptVerygoodLlmImageKeyword(row.imageKeyword, null)
+    if (pk) return pk
+  }
+  return ''
 }
 
 /** LLM imageKeyword2 only — dayKind 분기. det 생짜 추출 없음. */
@@ -306,11 +429,13 @@ export function resolveVerygoodSecondaryKeyword(
   const fromLlm = tryAcceptVerygoodLlmImageKeyword(row.imageKeyword2, productDestination)
   if (fromLlm && primary && !keysEqual(fromLlm, primary)) return fromLlm
 
-  const bodyHaystack = [row.title, row.description].filter(Boolean).join('\n')
+  const bodyHaystack = [row.title, row.description, row.routeText].filter(Boolean).join('\n')
   const pois = findAllMappedKoreanPoisInText(bodyHaystack)
     .map((en) => tryAcceptVerygoodLlmImageKeyword(en, productDestination))
     .filter(Boolean) as string[]
-  return pickDistinctSecondScheduleImageKeyword(primary, pois)
+  const fromRoute = pickDistinctSecondScheduleImageKeyword(primary, pois)
+  if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) return fromRoute
+  return null
 }
 
 export function polishVerygoodRegisterScheduleImageKeywords(
@@ -340,15 +465,47 @@ export function applyVerygoodScheduleImageKeywordsToRows<
       ? opts.totalDays
       : Math.max(...rows.map((r) => Number(r.day) || 0), rows.length)
 
-  return rows.map((row) => {
+  const usedPrimaryKeys = new Set<string>()
+  return rows.map((row, idx) => {
     const day = Number(row.day) || 0
     const det = detByDay.get(day)
     const description = String(det?.description ?? row.description ?? '')
     const title = String(det?.title ?? row.title ?? '').trim()
     const routeText = row.routeText ?? det?.routeText ?? null
     const dayKind = classifyVerygoodDayKind(description, title, day, totalDays, routeText)
-    const primary = resolveVerygoodPrimaryKeyword(row, dayKind, productDestination)
-    const secondary = resolveVerygoodSecondaryKeyword(row, primary, dayKind, productDestination)
+    const prior = rows.slice(0, idx).map((r) => {
+      const d = Number(r.day) || 0
+      const detR = detByDay.get(d)
+      return {
+        ...r,
+        description: String(detR?.description ?? r.description ?? ''),
+        title: String(detR?.title ?? r.title ?? ''),
+        routeText: r.routeText ?? detR?.routeText ?? null,
+      }
+    })
+    let primary = resolveVerygoodPrimaryKeyword(
+      { ...row, description, title, routeText },
+      dayKind,
+      productDestination,
+      prior,
+      totalDays,
+    )
+    if (primary && usedPrimaryKeys.has(normKey(primary))) {
+      const hay = verygoodHaystackFromRow({ ...row, routeText }, description, title)
+      const pois = findAllMappedKoreanPoisInText(hay)
+        .map((en) => tryAcceptVerygoodLlmImageKeyword(en, productDestination))
+        .filter(Boolean) as string[]
+      const alt = pickDistinctSecondScheduleImageKeyword(primary, [...pois, ...VERYGOOD_SPOT_RULES.map((x) => x.en)])
+      if (alt && !usedPrimaryKeys.has(normKey(alt))) primary = alt
+      else primary = ''
+    }
+    if (primary) usedPrimaryKeys.add(normKey(primary))
+    const secondary = resolveVerygoodSecondaryKeyword(
+      { ...row, description, title, routeText },
+      primary,
+      dayKind,
+      productDestination,
+    )
     return {
       ...row,
       imageKeyword: primary,

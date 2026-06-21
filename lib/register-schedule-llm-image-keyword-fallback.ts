@@ -91,7 +91,7 @@ export function splitRouteTextPlaceSegments(routeText: string | null | undefined
   return rt
     .split(/\s*(?:→|->|—|–|,|，|·|\/|\s+-\s+)\s*/u)
     .map((s) => s.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter((s) => s.length >= 2)
+    .filter((s) => s.length >= 2 || /[\uAC00-\uD7AF]/u.test(s))
 }
 
 function routeTextSegments(routeText: string | null | undefined): string[] {
