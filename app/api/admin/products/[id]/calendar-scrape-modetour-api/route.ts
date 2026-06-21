@@ -7,6 +7,8 @@ import {
   CALENDAR_PRICE_HORIZON_DAYS,
 } from '@/lib/calendar-price-horizon'
 import { collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
+import { resolveModetourDetailByOriginCode } from '@/lib/modetour-origin-code-resolve'
+import { isModetourSd1NotFoundError } from '@/lib/modetour-sd1-policy'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-modetour'
 
@@ -79,13 +81,46 @@ export async function POST(
       return NextResponse.json({ error: '유효한 modetour 상세 URL 없음' }, { status: 400 })
     }
 
+    const resolved = await resolveModetourDetailByOriginCode(product.originCode, {
+      storedOriginUrl: detailUrl,
+    })
+    const collectDetailUrl =
+      resolved.detailUrl?.trim().startsWith('http') ? resolved.detailUrl.trim() : detailUrl
+
     const defaultRange = calendarPriceHorizonDateRangeYmd()
     const fromYmd = ymdOk(body.fromYmd) ?? defaultRange.fromYmd
     const toYmd = ymdOk(body.toYmd) ?? defaultRange.toYmd
     const lo = fromYmd <= toYmd ? fromYmd : toYmd
     const hi = fromYmd <= toYmd ? toYmd : fromYmd
 
-    const inputs = await collectModetourDepartureInputsForDateRange(detailUrl, lo, hi)
+    let inputs: DepartureInput[]
+    try {
+      inputs = await collectModetourDepartureInputsForDateRange(collectDetailUrl, lo, hi)
+    } catch (e) {
+      if (isModetourSd1NotFoundError(e)) {
+        console.warn('[calendar-scrape-modetour-api] SD1 — resolve 후에도 modetour B2C API 상품 없음', {
+          productId,
+          originCode: product.originCode,
+          storedDetailUrl: detailUrl,
+          collectDetailUrl,
+          detailResolveSource: resolved.source,
+          resolvedProductNo: resolved.productNo,
+        })
+        return NextResponse.json({
+          ok: true,
+          productId,
+          fromYmd: lo,
+          toYmd: hi,
+          horizonDays: CALENDAR_PRICE_HORIZON_DAYS,
+          source: 'modetour-b2c-api',
+          apiStatus: 'sd1',
+          detailResolveSource: resolved.source,
+          resolvedProductNo: resolved.productNo,
+          items: [],
+        })
+      }
+      throw e
+    }
     const items = inputs
       .map(modetourInputToCalendarItem)
       .filter((x): x is NonNullable<typeof x> => x != null)
@@ -97,6 +132,8 @@ export async function POST(
       toYmd: hi,
       horizonDays: CALENDAR_PRICE_HORIZON_DAYS,
       source: 'modetour-b2c-api',
+      detailResolveSource: resolved.source,
+      resolvedProductNo: resolved.productNo,
       items,
     })
   } catch (e) {

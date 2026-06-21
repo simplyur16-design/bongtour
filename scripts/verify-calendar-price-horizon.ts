@@ -77,6 +77,9 @@ assert(ybtourPy.includes('align-date-from'), 'ybtour must align to YBTOUR_DATE_F
 const modetourApiRoute = read('app/api/admin/products/[id]/calendar-scrape-modetour-api/route.ts')
 assert(modetourApiRoute.includes('collectModetourDepartureInputsForDateRange'), 'modetour API route must use B2C adapter')
 assert(modetourApiRoute.includes('modetour-b2c-api'), 'modetour API route source tag')
+assert(modetourApiRoute.includes('resolveModetourDetailByOriginCode'), 'modetour API route must resolve originCode before B2C API')
+assert(modetourApiRoute.includes('isModetourSd1NotFoundError'), 'modetour API route must handle SD1 without 500')
+assert(modetourApiRoute.includes("apiStatus: 'sd1'"), 'modetour API route must tag SD1 responses')
 
 const modetourScraper = read('scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py')
 assert(modetourScraper.includes('REGRESSION-FREEZE[modetour-sweep-e2e-recheck]'), 'modetour E2E scraper marker missing')

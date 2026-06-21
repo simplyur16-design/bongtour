@@ -1067,7 +1067,10 @@
           "file": "app/api/admin/products/[id]/calendar-scrape-modetour-api/route.ts",
           "mustInclude": [
             "collectModetourDepartureInputsForDateRange",
-            "modetour-b2c-api"
+            "modetour-b2c-api",
+            "resolveModetourDetailByOriginCode",
+            "isModetourSd1NotFoundError",
+            "apiStatus: 'sd1'"
           ]
         },
         {
