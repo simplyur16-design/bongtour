@@ -829,7 +829,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "admin register preview 클라이언트 번들 — gemini-client·fs 금지",
+      "summary": "admin register preview·marketing client — gemini-client·fs 금지",
       "checks": [
         {
           "file": "lib/hanatour-schedule-image-keyword.ts",
@@ -842,21 +842,30 @@
           ]
         },
         {
+          "file": "components/admin/marketing/trip-recommendations/TripRecommendationsClient.tsx",
+          "mustInclude": [
+            "trip-recommender-month-utils"
+          ],
+          "mustNotInclude": [
+            "from '@/lib/bong-marketing/trip-recommender'",
+            "from '@/lib/gemini-client'"
+          ]
+        },
+        {
           "file": "lib/gemini-client.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[gemini-client-client-bundle]",
-            "gemini-env-bootstrap.server"
+            "REGRESSION-FREEZE[gemini-client-client-bundle]"
           ],
           "mustNotInclude": [
             "require('fs')",
-            "require(\"fs\")"
+            "require(\"fs\")",
+            "gemini-env-bootstrap.server"
           ]
         },
         {
           "file": "lib/gemini-env-bootstrap.server.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[gemini-client-client-bundle]",
-            "server-only",
             "bootstrapGeminiEnvFilesWhenKeyMissing"
           ]
         }

@@ -7,7 +7,7 @@ import {
   monthToSeason,
   parseMonthNumber,
   rollingMonthsFrom,
-} from '@/lib/bong-marketing/trip-recommender'
+} from '@/lib/bong-marketing/trip-recommender-month-utils'
 
 interface TripRecommendationEvent {
   name: string

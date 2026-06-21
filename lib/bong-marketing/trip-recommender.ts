@@ -9,6 +9,21 @@ import {
   getGlobalEventsForRecommendationMonth,
 } from '@/lib/bong-marketing/curation-event-repository'
 import { findEventSlotCards, EVENT_SLOT_LIMIT } from '@/lib/bong-marketing/event-slot-finder'
+import {
+  monthLabelFromNumber,
+  monthToSeason,
+  parseMonthNumber,
+  rollingMonthsFrom,
+  type Season,
+} from '@/lib/bong-marketing/trip-recommender-month-utils'
+
+export {
+  monthLabelFromNumber,
+  monthToSeason,
+  parseMonthNumber,
+  rollingMonthsFrom,
+  type Season,
+} from '@/lib/bong-marketing/trip-recommender-month-utils'
 
 const TRIP_RECOMMEND_MODEL = (process.env.CARD_NEWS_GEMINI_MODEL || 'gemini-2.5-pro').trim()
 /** 12개월×다수 카드 JSON — 출력 토큰 한계 회피 */
@@ -21,9 +36,6 @@ const MAX_REASON_CHARS = 100
 const MAX_CITIES_PER_MONTH = 3
 
 export type TripRecommendationSource = 'climate' | 'event'
-
-/** 카드뉴스·블로그 API 호환용 — 추천 분류 기준은 month */
-export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 
 export interface TripRecommendationEvent {
   name: string
@@ -162,53 +174,6 @@ function truncateReason(text: string): string {
 }
 
 const VALID_SEASONS = new Set<Season>(['spring', 'summer', 'autumn', 'winter'])
-
-export function monthLabelFromNumber(month: number): string {
-  return `${month}월`
-}
-
-/** 현재 월부터 12개월 롤링 순서 (예: 6월 시작 → 6,7,...,12,1,...,5) */
-export function rollingMonthsFrom(startMonth: number, count = 12): number[] {
-  const start = Math.min(12, Math.max(1, Math.floor(startMonth)))
-  const out: number[] = []
-  for (let i = 0; i < count; i++) {
-    out.push(((start - 1 + i) % 12) + 1)
-  }
-  return out
-}
-
-/** 월 → 계절 (카드뉴스·블로그 레거시 API용, 추천 UI 분류에는 사용 안 함) */
-export function monthToSeason(month: number): Season {
-  if (month >= 3 && month <= 5) return 'spring'
-  if (month >= 6 && month <= 8) return 'summer'
-  if (month >= 9 && month <= 11) return 'autumn'
-  return 'winter'
-}
-
-export function parseMonthNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    const n = Math.floor(value)
-    if (n >= 1 && n <= 12) return n
-  }
-  if (typeof value === 'string' && value.trim()) {
-    const single = value.trim().match(/^(\d{1,2})\s*월$/)
-    if (single) {
-      const n = parseInt(single[1], 10)
-      if (n >= 1 && n <= 12) return n
-    }
-    const range = value.match(/(\d{1,2})\s*[-~]\s*(\d{1,2})\s*월/)
-    if (range) {
-      const n = parseInt(range[1], 10)
-      if (n >= 1 && n <= 12) return n
-    }
-    const anyMonth = value.match(/(\d{1,2})\s*월/)
-    if (anyMonth) {
-      const n = parseInt(anyMonth[1], 10)
-      if (n >= 1 && n <= 12) return n
-    }
-  }
-  return null
-}
 
 export function extractThemes(themeTagsRaw: string | null, themeLabelsRaw: string | null): string[] {
   const themes: string[] = []

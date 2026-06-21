@@ -1,11 +1,10 @@
-import 'server-only'
 import fs from 'fs'
 import path from 'path'
 
 /**
  * Next.js 외부(node/tsx 등)에서 `.env`만 넘기고 `.env.local`을 안 읽으면 키가 비어 403이 난다.
  * 키가 비어 있을 때만 프로젝트 루트 `.env` → `.env.local` 순으로 파싱해 process.env에 채운다(.env.local이 우선).
- * REGRESSION-FREEZE[gemini-client-client-bundle]: fs는 server-only — manifest
+ * REGRESSION-FREEZE[gemini-client-client-bundle]: tsx env bootstrap — manifest
  */
 export function bootstrapGeminiEnvFilesWhenKeyMissing(): void {
   if (typeof process === 'undefined' || !process.cwd) return

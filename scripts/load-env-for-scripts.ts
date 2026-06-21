@@ -8,6 +8,7 @@
  */
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { bootstrapGeminiEnvFilesWhenKeyMissing } from '@/lib/gemini-env-bootstrap.server'
 
 function parseLine(line: string): { key: string; val: string } | null {
   const trimmed = line.trim()
@@ -39,6 +40,7 @@ export function loadEnvForScripts(): void {
       }
     }
   }
+  bootstrapGeminiEnvFilesWhenKeyMissing()
 }
 
 loadEnvForScripts()

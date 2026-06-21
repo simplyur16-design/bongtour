@@ -4,34 +4,14 @@
  * - API 키: `GEMINI_API_KEY` 우선, 없으면 `GOOGLE_API_KEY` (Google AI Studio / 공식 예시와 동일)
  * - 기본 모델: `gemini-2.5-flash` (일반 키로 호출 가능). `GEMINI_MODEL=gemini-3-flash-preview` 등으로 덮어쓸 수 있음
  * - listModels 엔드포인트: v1 우선, 실패 시 v1beta
- * REGRESSION-FREEZE[gemini-client-client-bundle]: fs bootstrap server-only — manifest
+ * REGRESSION-FREEZE[gemini-client-client-bundle]: fs·client import 금지 — manifest
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const DEBUG = '[Bong투어-DEBUG]'
 
-function readGeminiApiKeyFromEnv(): string {
-  return (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
-}
-
-let envBootstrapped = false
-
-/** tsx 등에서 load-env 없이 import될 때만 server-side env 파일 보조 로드 */
-function ensureGeminiEnvBootstrapped(): void {
-  if (envBootstrapped || typeof window !== 'undefined') return
-  envBootstrapped = true
-  if (readGeminiApiKeyFromEnv()) return
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('./gemini-env-bootstrap.server').bootstrapGeminiEnvFilesWhenKeyMissing()
-  } catch {
-    /* client bundle / edge — server-only module unavailable */
-  }
-}
-
 function getGeminiApiKey(): string {
-  ensureGeminiEnvBootstrapped()
-  return readGeminiApiKeyFromEnv()
+  return (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
 }
 /** 일반 API 키로 호출 가능한 기본 Flash (3-preview는 키/프로그램 제한 시 403 가능) */
 const MODEL_PRIMARY = 'gemini-2.5-flash'
