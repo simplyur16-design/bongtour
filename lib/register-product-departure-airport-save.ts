@@ -9,6 +9,7 @@ import {
 import {
   inferDepartureAirportFromHaystack,
   inferDepartureAirportFromRegisterFactFlights,
+  homeDepartureAirportDisplayText,
   type HomeDepartureAirportLabel,
 } from '@/lib/infer-home-departure-airport'
 import type { RegisterFactFlightLeg } from '@/lib/register-facts/types'
@@ -89,12 +90,5 @@ export function resolveRegisterProductDepartureAirportFields(args: {
 export function departureAirportLabelDisplayText(
   label: string | null | undefined,
 ): string | null {
-  if (!label) return null
-  const map: Record<string, string> = {
-    busan: '부산공항',
-    cheongju: '청주공항',
-    daegu: '대구공항',
-    jeju: '제주공항',
-  }
-  return map[label] ?? null
+  return homeDepartureAirportDisplayText(label)
 }

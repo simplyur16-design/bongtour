@@ -195,7 +195,7 @@ async function fetchYbtourDetailParityMetrics(originUrl: string): Promise<Regist
     }
   }
 
-  const structured = buildYbtourFlightStructuredFromTm(detailBundle.notice?.scheduleDetailTm ?? [])
+  const structured = buildYbtourFlightStructuredFromTm(detailBundle.schedule?.scheduleDetailTm ?? [])
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const cal = await collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd)

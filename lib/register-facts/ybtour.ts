@@ -126,7 +126,7 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     )
     .filter((row): row is NonNullable<typeof row> => row != null)
 
-  const flightsFromNotice = ybtourFlightStructuredToFactLegs(detailBundle?.notice?.scheduleDetailTm ?? [])
+  const flightsFromNotice = ybtourFlightStructuredToFactLegs(detailBundle?.schedule?.scheduleDetailTm ?? [])
   const firstCalCarrier = apiHit.inputs.map((x) => x.carrierName?.trim()).find(Boolean) ?? null
   const flights =
     flightsFromNotice.length > 0

@@ -120,9 +120,21 @@ export function inferDepartureAirportFromHaystack(haystack: string): InferredDep
   }
 }
 
+export function parseHomeDepartureAirportLabel(
+  raw: string | null | undefined,
+): HomeDepartureAirportLabel | null {
+  if (!raw?.trim()) return null
+  const t = raw.trim()
+  if (t in HOME_DEPARTURE_AIRPORT_DISPLAY) {
+    return t as HomeDepartureAirportLabel
+  }
+  return null
+}
+
 export function homeDepartureAirportDisplayText(
-  label: HomeDepartureAirportLabel | null | undefined,
+  label: HomeDepartureAirportLabel | string | null | undefined,
 ): string | null {
-  if (!label) return null
-  return HOME_DEPARTURE_AIRPORT_DISPLAY[label] ?? null
+  const parsed = typeof label === 'string' ? parseHomeDepartureAirportLabel(label) : label
+  if (!parsed) return null
+  return HOME_DEPARTURE_AIRPORT_DISPLAY[parsed] ?? null
 }
