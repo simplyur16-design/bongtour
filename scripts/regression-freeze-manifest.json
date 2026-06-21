@@ -1935,6 +1935,12 @@
           "mustInclude": [
             "findExistingProductForRegister"
           ]
+        },
+        {
+          "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": [
+            "findExistingProductForRegister"
+          ]
         }
       ],
       "vitestSuites": [

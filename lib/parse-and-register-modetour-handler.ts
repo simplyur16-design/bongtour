@@ -26,6 +26,7 @@ import {
   resolveRegisterProductDepartureAirportFields,
   scheduleRowsToInferHaystack,
 } from '@/lib/register-product-departure-airport-save'
+import { findExistingProductForRegister } from '@/lib/register-product-duplicate-guard'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   stripRegisterInternalArtifacts,
