@@ -45,6 +45,7 @@ import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
 import { hasPricedFutureDepartureInput } from '@/lib/product-six-month-price-verification'
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
+import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
 import {
   acquireSupplierLock,
   humanDelayBeforeScrape,
@@ -69,12 +70,7 @@ const SUPPLIER_LOCK_WAIT_CAP_MS = 15_000
 // ---------------------------------------------------------------------------
 
 /** YMD(`YYYY-MM-DD`) ± delta 일. UTC 기준(달력 일자 SSOT). */
-export function addDaysUtcYmd(ymd: string, deltaDays: number): string {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d))
-  dt.setUTCDate(dt.getUTCDate() + deltaDays)
-  return dt.toISOString().slice(0, 10)
-}
+export { addDaysUtcYmd, kstTodayYmd }
 
 /** `fromYmd`~`toYmd` 가 덮는 달 목록 `YYYY-MM` (UTC 날짜 문자열 기준). lottetour 월별 fetch 용. */
 function eachYmBetweenInclusive(fromYmd: string, toYmd: string): string[] {
@@ -97,13 +93,6 @@ function eachYmBetweenInclusive(fromYmd: string, toYmd: string): string[] {
     }
   }
   return out
-}
-
-/** KST 기준 오늘(`YYYY-MM-DD`). 라이브 fetch 의 `fromYmd` 시작점. */
-export function kstTodayYmd(): string {
-  const now = new Date()
-  const kstMs = now.getTime() + 9 * 60 * 60 * 1000
-  return new Date(kstMs).toISOString().slice(0, 10)
 }
 
 /** Rule A 마커 집계 입력 — 출발일·성인가만 필요. */

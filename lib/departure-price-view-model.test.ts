@@ -37,4 +37,28 @@ describe('buildDepartureViewModels', () => {
     expect(vms[0]?.soldOut).toBe(false)
     expect(vms[0]?.isAvailable).toBe(true)
   })
+
+  it('baseline 대비 인하 — 30일 창 안 출발일 isUrgentDeal', () => {
+    const vms = buildDepartureViewModels(
+      [
+        row({
+          id: '1',
+          date: '2026-06-25',
+          adult: 900_000,
+          baselineAdultPrice: 1_000_000,
+          availableSeats: 5,
+        }),
+        row({
+          id: '2',
+          date: '2026-06-26',
+          adult: 950_000,
+          baselineAdultPrice: 950_000,
+          availableSeats: 5,
+        }),
+      ],
+      'modetour',
+    )
+    expect(vms.find((v) => v.departureDate === '2026-06-25')?.isUrgentDeal).toBe(true)
+    expect(vms.find((v) => v.departureDate === '2026-06-26')?.isUrgentDeal).toBe(false)
+  })
 })

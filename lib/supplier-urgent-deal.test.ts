@@ -3,6 +3,7 @@ import {
   computeBaselineAdultPriceOnUpsert,
   isUrgentDealDeparture,
   pickNearestUrgentDealDeparture,
+  urgentDealPricePairForDisplay,
 } from '@/lib/supplier-urgent-deal'
 
 describe('computeBaselineAdultPriceOnUpsert', () => {
@@ -50,5 +51,16 @@ describe('pickNearestUrgentDealDeparture', () => {
         '2026-07-20',
       ),
     ).toBe(false)
+  })
+})
+
+describe('urgentDealPricePairForDisplay', () => {
+  it('returns pair only when baseline is higher', () => {
+    expect(urgentDealPricePairForDisplay(1_000_000, 900_000)).toEqual({
+      baselinePriceKrw: 1_000_000,
+      currentPriceKrw: 900_000,
+    })
+    expect(urgentDealPricePairForDisplay(0, 900_000)).toBeNull()
+    expect(urgentDealPricePairForDisplay(900_000, 900_000)).toBeNull()
   })
 })

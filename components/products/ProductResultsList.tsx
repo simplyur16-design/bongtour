@@ -818,6 +818,7 @@ export function ProductResultCard({
         }
       >
         {item.hasUrgentDeal ? (
+          // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: browse 카드 긴급모객 리본 — manifest
           <span
             className={
               compact
@@ -953,7 +954,8 @@ export function ProductResultCard({
         >
           {item.hasUrgentDeal &&
           item.urgentDealBaselinePriceKrw != null &&
-          item.urgentDealCurrentPriceKrw != null ? (
+          item.urgentDealCurrentPriceKrw != null &&
+          item.urgentDealCurrentPriceKrw < item.urgentDealBaselinePriceKrw ? (
             <div className="flex flex-col items-start gap-0.5">
               {!compact ? (
                 <span className="text-sm font-medium text-red-600 line-through">

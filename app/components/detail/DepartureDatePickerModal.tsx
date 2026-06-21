@@ -71,6 +71,14 @@ export default function DepartureDatePickerModal({
     return m
   }, [viewModels])
 
+  const urgentDealDates = useMemo(() => {
+    const dates = new Set<string>()
+    for (const v of viewModels) {
+      if (v.isUrgentDeal) dates.add(v.departureDate)
+    }
+    return dates
+  }, [viewModels])
+
   const minByMonth = useMemo(() => minBookablePriceByMonth(viewModels), [viewModels])
   const earliestMinDateByMonth = useMemo(
     () => earliestMinBookablePriceDateByMonth(viewModels),
@@ -169,6 +177,7 @@ export default function DepartureDatePickerModal({
       dim={dim}
       leadBlank={leadBlank}
       byDate={byDate}
+      urgentDealDates={urgentDealDates}
       minByMonth={minByMonth}
       earliestMinDateByMonth={earliestMinDateByMonth}
       globalLow={globalLow ?? null}
@@ -243,6 +252,7 @@ function DepartureCalendarBlock({
   dim,
   leadBlank,
   byDate,
+  urgentDealDates,
   minByMonth,
   earliestMinDateByMonth,
   globalLow,
@@ -256,6 +266,7 @@ function DepartureCalendarBlock({
   dim: number
   leadBlank: number
   byDate: Record<string, DeparturePriceViewModel>
+  urgentDealDates: Set<string>
   minByMonth: Record<string, number>
   earliestMinDateByMonth: Record<string, string>
   globalLow: DeparturePriceViewModel | null
@@ -330,6 +341,7 @@ function DepartureCalendarBlock({
             earliestLowIso != null &&
             iso === earliestLowIso
           const isLowGlobal = Boolean(bookable && globalLow && globalLow.departureDate === iso)
+          const isUrgentDeal = urgentDealDates.has(iso)
 
           if (!inData) {
             if (allowUndepartedCalendarPick) {
@@ -386,6 +398,12 @@ function DepartureCalendarBlock({
                 {formatDeparturePrice(vm)}
               </span>
               <span className="mt-0.5 flex flex-wrap justify-center gap-0.5">
+                {isUrgentDeal ? (
+                  // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: 달력 긴급모객 — manifest
+                  <span className="rounded bg-[#d9a81e] px-1 text-[9px] font-bold text-[#1F1B2D] sm:text-[10px]">
+                    긴급모객
+                  </span>
+                ) : null}
                 {isLowMonth ? (
                   <span className="rounded bg-emerald-100 px-1 text-[9px] font-bold text-emerald-900 sm:text-[10px]">
                     이달 최저가
@@ -472,6 +490,9 @@ function DepartureListBlock({
                       </span>
                       {lowMonth && vm.isAvailable ? (
                         <span className="ml-1 text-[10px] font-bold text-emerald-800">이달 최저가</span>
+                      ) : null}
+                      {vm.isUrgentDeal && vm.isAvailable ? (
+                        <span className="ml-1 text-[10px] font-bold text-[#1F1B2D]">긴급모객</span>
                       ) : null}
                     </button>
                     {vm.seatStatus ? <div className="text-[10px] text-bt-meta">{vm.seatStatus}</div> : null}

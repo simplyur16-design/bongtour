@@ -24,6 +24,8 @@ export type ProductPriceRow = {
   status?: string
   availableSeats?: number
   seatsStatusRaw?: string
+  /** 긴급모객 — baseline 대비 인하 판정용 (ProductDeparture.baselineAdultPrice) */
+  baselineAdultPrice?: number | null
 }
 
 export type ProductItinerary = { id: number; day: number; description: string }

@@ -1620,14 +1620,36 @@
         "prebuild",
         "ci"
       ],
-      "summary": "공급사 긴급모객 — baselineAdultPrice 최초 고정·hasUrgentDeal 캐시 SSOT",
+      "summary": "공급사 긴급모객 — baselineAdultPrice·hasUrgentDeal·browse 리본·달력 표기 SSOT",
       "checks": [
         {
           "file": "lib/supplier-urgent-deal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
             "computeBaselineAdultPriceOnUpsert",
-            "syncSupplierUrgentDealForProduct"
+            "syncSupplierUrgentDealForProduct",
+            "urgentDealPricePairForDisplay"
+          ]
+        },
+        {
+          "file": "lib/departure-price-view-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "isUrgentDeal"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "aria-label=\"긴급모객\""
+          ]
+        },
+        {
+          "file": "app/components/detail/DepartureDatePickerModal.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "urgentDealDates"
           ]
         },
         {
@@ -1653,10 +1675,35 @@
             "computeBaselineAdultPriceOnUpsert",
             "baselineAdultPrice"
           ]
+        },
+        {
+          "file": "lib/upsert-product-departures-lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "baselineAdultPrice"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-verygoodtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "baselineAdultPrice"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "computeBaselineAdultPriceOnUpsert",
+            "baselineAdultPrice"
+          ]
         }
       ],
       "vitestSuites": [
-        "lib/supplier-urgent-deal.test.ts"
+        "lib/supplier-urgent-deal.test.ts",
+        "lib/departure-price-view-model.test.ts"
       ]
     },
     {

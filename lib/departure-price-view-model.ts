@@ -12,6 +12,11 @@ import {
 import { formatKRW } from '@/lib/price-utils'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 import { normalizeSupplierOrigin, OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
+import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
+import {
+  isUrgentDealDeparture,
+  SUPPLIER_URGENT_DEAL_WINDOW_DAYS,
+} from '@/lib/supplier-urgent-deal'
 
 export type DeparturePriceCurrency = 'KRW'
 
@@ -30,10 +35,26 @@ export type DeparturePriceViewModel = {
   soldOut: boolean
   /** 원본 행 id (키·앵커) */
   sourceRowId: string
+  /** 30일 창·baseline 대비 인하 — 달력·목록 긴급모객 표기 */
+  isUrgentDeal: boolean
 }
 
 function toDateKey(d: string): string {
   return d.startsWith('20') && d.length >= 10 ? d.slice(0, 10) : d
+}
+
+function urgentDealFlagForPriceRow(row: ProductPriceRow, departureDateYmd: string): boolean {
+  const todayYmd = kstTodayYmd()
+  const windowEndYmd = addDaysUtcYmd(todayYmd, SUPPLIER_URGENT_DEAL_WINDOW_DAYS)
+  return isUrgentDealDeparture(
+    {
+      departureDate: new Date(`${departureDateYmd}T00:00:00.000Z`),
+      adultPrice: departureRowAdultKrw(row),
+      baselineAdultPrice: row.baselineAdultPrice ?? null,
+    },
+    todayYmd,
+    windowEndYmd,
+  )
 }
 
 export function productPriceRowToDepartureView(
@@ -73,6 +94,8 @@ export function productPriceRowToDepartureView(
     note: statusRaw && statusRaw !== statusLabel ? statusRaw : null,
     soldOut,
     sourceRowId: row.id,
+    // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: 달력·목록 긴급모객 — manifest
+    isUrgentDeal: urgentDealFlagForPriceRow(row, departureDate),
   }
 }
 

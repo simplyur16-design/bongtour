@@ -17,6 +17,7 @@ export function buildProductDetailDepartureSelect() {
     productId: true,
     departureDate: true,
     adultPrice: true,
+    baselineAdultPrice: true,
     childBedPrice: true,
     childNoBedPrice: true,
     infantPrice: true,

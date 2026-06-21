@@ -35,6 +35,7 @@ import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ss
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { toSeoulYmd } from '@/lib/public-bookable-date'
 import { departureDateToYmd } from '@/lib/modetour-urgent-deal'
+import { urgentDealPricePairForDisplay } from '@/lib/supplier-urgent-deal'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
@@ -738,13 +739,16 @@ export async function productsBrowseBuildPayload(queryKey: string) {
                 ? (p.departures ?? []).find((d) => departureDateToYmd(d.departureDate) === ymd)
                 : null
             if (!ymd) return { hasUrgentDeal: true as const }
+            const pricePair = dep
+              ? urgentDealPricePairForDisplay(dep.baselineAdultPrice, dep.adultPrice)
+              : null
             return {
               hasUrgentDeal: true as const,
               urgentDealNextDepartureDate: ymd,
-              ...(dep?.baselineAdultPrice != null && dep.adultPrice != null
+              ...(pricePair
                 ? {
-                    urgentDealBaselinePriceKrw: dep.baselineAdultPrice,
-                    urgentDealCurrentPriceKrw: dep.adultPrice,
+                    urgentDealBaselinePriceKrw: pricePair.baselinePriceKrw,
+                    urgentDealCurrentPriceKrw: pricePair.currentPriceKrw,
                   }
                 : {}),
             }

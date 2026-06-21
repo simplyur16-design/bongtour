@@ -287,6 +287,7 @@ export function productDeparturesToProductPriceRows(departures: ProductDeparture
       priceInfant: infant,
       status,
       availableSeats: availableSeatsForPriceRow(d),
+      baselineAdultPrice: d.baselineAdultPrice ?? null,
       /** 출발행 좌석·예약 표기 원문(하나투어 등) — 공개 예약인원 행 보조 */
       seatsStatusRaw,
     }

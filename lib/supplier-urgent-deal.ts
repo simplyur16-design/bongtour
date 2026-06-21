@@ -5,7 +5,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 
-import { addDaysUtcYmd, kstTodayYmd } from '@/lib/product-sales-policy'
+import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
 
 export const SUPPLIER_URGENT_DEAL_WINDOW_DAYS = 30
 export const SUPPLIER_URGENT_DEAL_MIN_PRICE_KRW = 10_000
@@ -24,6 +24,16 @@ export type UrgentDealNearest = {
 
 export function isValidUrgentDealPrice(n: number | null | undefined): n is number {
   return n != null && Number.isFinite(n) && n >= SUPPLIER_URGENT_DEAL_MIN_PRICE_KRW
+}
+
+/** browse·카드 — baseline 취소선 + 현재가. 유효 인하만 노출 */
+export function urgentDealPricePairForDisplay(
+  baseline: number | null | undefined,
+  current: number | null | undefined,
+): { baselinePriceKrw: number; currentPriceKrw: number } | null {
+  if (!isValidUrgentDealPrice(baseline) || !isValidUrgentDealPrice(current)) return null
+  if (current >= baseline) return null
+  return { baselinePriceKrw: baseline, currentPriceKrw: current }
 }
 
 export function departureDateToYmd(d: Date): string {
