@@ -30,7 +30,7 @@ const HORIZON_BATCH_SUPPLIERS = new Set([
 
 /**
  * POST /api/admin/products/[id]/calendar-scrape-horizon
- * 3h 순차 배치 SSOT — API/HXR 우선, 0건 시에만 E2E. Python E2E 직접 호출 금지.
+ * 3h 순차 배치 SSOT — API/HXR만. E2E는 일 1회 sweep(7일 주기)에서만.
  */
 export async function POST(
   request: Request,

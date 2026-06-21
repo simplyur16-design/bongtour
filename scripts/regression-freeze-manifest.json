@@ -203,7 +203,7 @@
         "ci"
       ],
       "script": "verify:calendar-price-horizon",
-      "summary": "3h 배치 — Node API/HXR 우선·0건 시 E2E만. Python E2E 직접 배치 금지",
+      "summary": "3h 배치 API/HXR only — E2E는 sweep(7일) 전용. Python E2E 배치 금지",
       "doc": "docs/ops/calendar-price-horizon-contract.md"
     },
     {
@@ -1183,13 +1183,21 @@
         "prebuild",
         "ci"
       ],
-      "summary": "3h 배치 Node API→E2E — Python E2E 직접 호출 금지",
+      "summary": "3h 배치 Node API/HXR only — E2E 금지(주 1회 sweep 전용)",
       "checks": [
         {
           "file": "lib/calendar-scrape-horizon-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[calendar-batch-api-first]",
             "collectCalendarHorizonPriceInputs",
+            "collectHanatourApiOnlyForDateRange",
+            "collectYbtourByGoodsApiOnlyForDateRange",
+            "collectVerygoodHxrOnlyForDateRange",
+            "collectLottetourHxrOnlyForDateRange",
+            "collectKyowontourApiOnlyForDateRange",
+            "E2E 금지"
+          ],
+          "mustNotInclude": [
             "collectHanatourPriceInputsWithE2eFallback",
             "collectYbtourPriceInputsWithE2eFallback",
             "collectVerygoodtourPriceInputsWithE2eFallback",

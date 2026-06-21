@@ -1,5 +1,5 @@
 /**
- * 3h 달력 배치·관리자 on-demand — 공급사별 API/HXR 우선, 0건 시 E2E 폴백.
+ * 3h 달력 배치 — 공급사별 API/HXR만. E2E 금지(주 1회 sweep에서만 API→E2E).
  *
  * REGRESSION-FREEZE[calendar-batch-api-first]: batch Node collect SSOT — manifest
  */
@@ -12,16 +12,16 @@ import {
   buildHanatourKstTargetMonths,
   validateHanatourAdminMonthYm,
 } from '@/lib/hanatour-departures'
-import { collectHanatourPriceInputsWithE2eFallback } from '@/lib/hanatour-price-collect'
-import { collectKyowontourPriceInputsWithE2eFallback } from '@/lib/kyowontour-price-collect'
+import { collectHanatourApiOnlyForDateRange } from '@/lib/hanatour-price-collect'
+import { collectKyowontourApiOnlyForDateRange } from '@/lib/kyowontour-price-collect'
 import {
-  collectLottetourPriceInputsWithE2eFallback,
+  collectLottetourHxrOnlyForDateRange,
   resolveLottetourCollectContext,
 } from '@/lib/lottetour-price-collect'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolveHanatourAdminE2eMonthsForward } from '@/lib/scrape-date-bounds'
-import { collectVerygoodtourPriceInputsWithE2eFallback } from '@/lib/verygoodtour-price-collect'
-import { collectYbtourPriceInputsWithE2eFallback } from '@/lib/ybtour-price-collect'
+import { collectVerygoodHxrOnlyForDateRange } from '@/lib/verygoodtour-price-collect'
+import { collectYbtourByGoodsApiOnlyForDateRange } from '@/lib/ybtour-price-collect'
 
 export type CalendarHorizonCollectProduct = {
   id: string
@@ -36,7 +36,7 @@ export type CalendarHorizonCollectProduct = {
 export type CalendarHorizonCollectResult = {
   items: CalendarScrapeHorizonItem[]
   source: string | null
-  e2eAttempted: boolean
+  e2eAttempted: false
   horizonSoldOut: boolean
   warnings: string[]
 }
@@ -75,6 +75,7 @@ function inputsToItems(inputs: Parameters<typeof departureInputToCalendarScrapeI
     .filter((x): x is CalendarScrapeHorizonItem => x != null)
 }
 
+/** 3h 순차 배치·calendar-scrape-horizon route — API/HXR only (E2E는 일 1회 sweep·7일 주기). */
 export async function collectCalendarHorizonPriceInputs(
   product: CalendarHorizonCollectProduct,
   fromYmd: string,
@@ -97,43 +98,42 @@ export async function collectCalendarHorizonPriceInputs(
 
   if (supplier === 'hanatour') {
     const monthYms = monthYmsForHorizon(lo, hi)
-    const collected = await collectHanatourPriceInputsWithE2eFallback(detailUrl, lo, hi, {
-      monthYms,
-      registeredRawTitle: product.originalTitle ?? product.title ?? null,
-    })
+    const collected = await collectHanatourApiOnlyForDateRange(detailUrl, lo, hi, monthYms)
+    const warnings = collected.apiError ? [collected.apiError] : []
     return {
       items: inputsToItems(collected.inputs),
-      source: collected.source,
-      e2eAttempted: collected.e2eAttempted,
-      horizonSoldOut: collected.horizonSoldOut,
-      warnings: [],
+      source: collected.inputs.length > 0 ? 'api' : null,
+      e2eAttempted: false,
+      horizonSoldOut: false,
+      warnings,
     }
   }
 
   if (supplier === 'ybtour') {
-    const collected = await collectYbtourPriceInputsWithE2eFallback(
-      detailUrl,
-      product.originCode,
-      lo,
-      hi,
-    )
+    const collected = await collectYbtourByGoodsApiOnlyForDateRange(detailUrl, lo, hi, {
+      originCode: product.originCode,
+      enrichEvCdPrice: process.env.YBTOUR_SKIP_EVCD_PRICE_ENRICH !== '1',
+    })
+    const warnings = collected.apiError ? [collected.apiError] : []
     return {
       items: inputsToItems(collected.inputs),
-      source: collected.source,
-      e2eAttempted: collected.e2eAttempted,
-      horizonSoldOut: collected.horizonSoldOut,
-      warnings: [],
+      source: collected.inputs.length > 0 ? 'api' : null,
+      e2eAttempted: false,
+      horizonSoldOut: false,
+      warnings,
     }
   }
 
   if (supplier === 'verygoodtour') {
-    const collected = await collectVerygoodtourPriceInputsWithE2eFallback(detailUrl, lo, hi)
+    const collected = await collectVerygoodHxrOnlyForDateRange(detailUrl, lo, hi)
+    const warnings = [...collected.warnings]
+    if (collected.hxrError) warnings.push(collected.hxrError)
     return {
       items: inputsToItems(collected.inputs),
-      source: collected.source,
-      e2eAttempted: collected.e2eAttempted,
-      horizonSoldOut: collected.horizonSoldOut,
-      warnings: collected.warnings,
+      source: collected.inputs.length > 0 ? 'hxr' : null,
+      e2eAttempted: false,
+      horizonSoldOut: false,
+      warnings,
     }
   }
 
@@ -152,24 +152,26 @@ export async function collectCalendarHorizonPriceInputs(
         warnings: resolved.warnings,
       }
     }
-    const collected = await collectLottetourPriceInputsWithE2eFallback(
+    const collected = await collectLottetourHxrOnlyForDateRange(
       resolved.ctx,
       product.id,
       lo,
       hi,
       { logLabel: `batch:${product.id}` },
     )
+    const warnings = [...collected.warnings]
+    if (collected.hxrError) warnings.push(collected.hxrError)
     return {
       items: inputsToItems(collected.inputs),
-      source: collected.source,
-      e2eAttempted: collected.e2eAttempted,
-      horizonSoldOut: collected.horizonSoldOut,
-      warnings: collected.warnings,
+      source: collected.inputs.length > 0 ? 'hxr' : null,
+      e2eAttempted: false,
+      horizonSoldOut: false,
+      warnings,
     }
   }
 
   if (supplier === 'kyowontour') {
-    const collected = await collectKyowontourPriceInputsWithE2eFallback(
+    const collected = await collectKyowontourApiOnlyForDateRange(
       {
         id: product.id,
         originCode: product.originCode,
@@ -181,8 +183,8 @@ export async function collectCalendarHorizonPriceInputs(
     return {
       items: inputsToItems(collected.inputs),
       source: collected.source,
-      e2eAttempted: collected.e2eAttempted,
-      horizonSoldOut: collected.horizonSoldOut,
+      e2eAttempted: false,
+      horizonSoldOut: false,
       warnings: collected.warnings,
     }
   }

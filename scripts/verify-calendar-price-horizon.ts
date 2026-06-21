@@ -88,8 +88,10 @@ assert(horizonRoute.includes('calendar-scrape-horizon'), 'horizon route doc path
 
 const horizonCollect = read('lib/calendar-scrape-horizon-collect.ts')
 assert(horizonCollect.includes('REGRESSION-FREEZE[calendar-batch-api-first]'), 'horizon collect marker missing')
-assert(horizonCollect.includes('collectHanatourPriceInputsWithE2eFallback'), 'hanatour API→E2E in batch collect')
-assert(horizonCollect.includes('collectYbtourPriceInputsWithE2eFallback'), 'ybtour API→E2E in batch collect')
+assert(horizonCollect.includes('collectHanatourApiOnlyForDateRange'), 'hanatour API-only in batch collect')
+assert(horizonCollect.includes('collectKyowontourApiOnlyForDateRange'), 'kyowontour API-only in batch collect')
+assert(!horizonCollect.includes('collectHanatourPriceInputsWithE2eFallback'), 'batch collect must not use E2E fallback')
+assert(!horizonCollect.includes('collectYbtourPriceInputsWithE2eFallback'), 'batch collect must not use ybtour E2E fallback')
 
 assert(scheduler.includes('_run_horizon_calendar_api'), 'scheduler must use horizon Node API path')
 assert(scheduler.includes('calendar-scrape-horizon'), 'scheduler must call horizon API route')
@@ -98,6 +100,9 @@ assert(
   /if product and date_rng:\s*\n\s*lo, hi = date_rng/m.test(scheduler),
   'scheduler must route batch windows through Node API first',
 )
+
+const contractDoc = read('docs/ops/calendar-price-horizon-contract.md')
+assert(contractDoc.includes('E2E(브라우저)는 3h 배치에서 돌리지 않는다'), 'contract must forbid batch E2E')
 
 const modetourScraper = read('scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py')
 assert(modetourScraper.includes('REGRESSION-FREEZE[modetour-sweep-e2e-recheck]'), 'modetour E2E scraper marker missing')

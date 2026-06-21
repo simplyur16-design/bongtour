@@ -79,6 +79,74 @@ function horizonMonthCount(fromYmd: string, toYmd: string): number {
   return Math.max(6, Math.min(36, months + 1))
 }
 
+async function mapKyowontourCollectedRows(
+  product: { id: string; originCode: string | null; originUrl: string | null },
+  keys: NonNullable<ReturnType<typeof resolveKyowontourSweepCollectKeys>>,
+  fromYmd: string,
+  toYmd: string,
+  rows: Awaited<ReturnType<typeof collectKyowontourCalendarRange>>['rows'],
+  meta: Awaited<ReturnType<typeof collectKyowontourCalendarRange>>['meta'],
+  warnings: string[],
+): Promise<Pick<KyowontourPriceCollectResult, 'inputs' | 'source' | 'warnings'>> {
+  const enrichedRows =
+    keys.detailUrl != null
+      ? await enrichKyowontourCalendarRowsWithTourCodeDetail(rows, {
+          menuCode: keys.menuCode,
+          refererUrl: keys.detailUrl,
+        })
+      : rows
+
+  const mapped = filterDepartureInputsOnOrAfterCalendarToday(
+    mapKyowontourCalendarToDepartureInputs(enrichedRows, product.id),
+  )
+  const inWindow = filterPricedInputsInWindow(mapped, fromYmd, toYmd)
+  const source: KyowontourPriceCollectSource | null =
+    meta.collectSource === 'e2e' ? 'e2e' : meta.collectSource === 'ajax' ? 'ajax' : null
+
+  return { inputs: inWindow, source, warnings }
+}
+
+/** AJAX only — E2E 없음. 3h 배치·커버리지용. */
+export async function collectKyowontourApiOnlyForDateRange(
+  product: { id: string; originCode: string | null; originUrl: string | null },
+  fromYmd: string,
+  toYmd: string,
+): Promise<
+  Pick<KyowontourPriceCollectResult, 'inputs' | 'source' | 'warnings' | 'masterCode' | 'tourCodeHint'> & {
+    e2eAttempted: false
+  }
+> {
+  const keys = resolveKyowontourSweepCollectKeys(product)
+  if (!keys) {
+    return {
+      inputs: [],
+      source: null,
+      e2eAttempted: false,
+      masterCode: '',
+      tourCodeHint: '',
+      warnings: ['masterCode/tourCode 식별 실패'],
+    }
+  }
+
+  const { rows, warnings, meta } = await collectKyowontourCalendarRange(keys.masterCode, {
+    tourCodeForE2EFallback: keys.tourCodeHint,
+    e2eMasterCodeHint: keys.masterCode,
+    monthCount: horizonMonthCount(fromYmd, toYmd),
+    logLabel: `kyowontour-api-only:${product.id}`,
+    refererUrl: keys.detailUrl,
+    disableE2EFallback: true,
+  })
+
+  const mapped = await mapKyowontourCollectedRows(product, keys, fromYmd, toYmd, rows, meta, warnings)
+
+  return {
+    ...mapped,
+    e2eAttempted: false,
+    masterCode: keys.masterCode,
+    tourCodeHint: keys.tourCodeHint,
+  }
+}
+
 export async function collectKyowontourPriceInputsWithE2eFallback(
   product: { id: string; originCode: string | null; originUrl: string | null },
   fromYmd: string,
@@ -105,30 +173,22 @@ export async function collectKyowontourPriceInputsWithE2eFallback(
     refererUrl: keys.detailUrl,
   })
 
-  const enrichedRows =
-    keys.detailUrl != null
-      ? await enrichKyowontourCalendarRowsWithTourCodeDetail(rows, {
-          menuCode: keys.menuCode,
-          refererUrl: keys.detailUrl,
-        })
-      : rows
-
-  const mapped = filterDepartureInputsOnOrAfterCalendarToday(
-    mapKyowontourCalendarToDepartureInputs(enrichedRows, product.id),
+  const mappedResult = await mapKyowontourCollectedRows(
+    product,
+    keys,
+    fromYmd,
+    toYmd,
+    rows,
+    meta,
+    warnings,
   )
-  const inWindow = filterPricedInputsInWindow(mapped, fromYmd, toYmd)
-  const source: KyowontourPriceCollectSource | null =
-    meta.collectSource === 'e2e' ? 'e2e' : meta.collectSource === 'ajax' ? 'ajax' : null
-
-  const horizonSoldOut = inWindow.length === 0 && meta.e2eAttempted
+  const horizonSoldOut = mappedResult.inputs.length === 0 && meta.e2eAttempted
 
   return {
-    inputs: inWindow,
-    source,
+    ...mappedResult,
     e2eAttempted: meta.e2eAttempted,
     horizonSoldOut,
     masterCode: keys.masterCode,
     tourCodeHint: keys.tourCodeHint,
-    warnings,
   }
 }
