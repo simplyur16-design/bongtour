@@ -81,6 +81,18 @@ export async function register() {
           '[product-detail-payload-cron] web-fallback: worker 없음 — KST 00:05 stale payload rebuild를 web 프로세스에 등록 (DISABLE_INSTRUMENTATION_PRODUCT_DETAIL_PAYLOAD_CRON=1 로 비활성)',
         )
       }
+
+      if (process.env.NODE_ENV === 'production') {
+        const { isWebSupplierSweepCronDisabled, registerSupplierSweepCrons } = await import(
+          '@/lib/instrumentation-supplier-sweep-crontab'
+        )
+        if (!isWebSupplierSweepCronDisabled()) {
+          await registerSupplierSweepCrons()
+          console.log(
+            '[supplier-sweep-cron] web-fallback: worker 없음 — 6공급사 일 1회 API sweep을 web에 등록 (worker 추가 시 web에 DISABLE_WEB_SUPPLIER_SWEEP_CRON=1)',
+          )
+        }
+      }
     }
 
     if (process.env.NODE_ENV === 'production' && hasDb && shouldRunBackgroundCrons()) {
@@ -100,30 +112,8 @@ export async function register() {
       startInstrumentationPriceFreshnessCron()
       const { startInstrumentationCouponCron } = await import('@/lib/instrumentation-coupon-cron')
       startInstrumentationCouponCron()
-      const { startInstrumentationModetourSweepCron } = await import(
-        '@/lib/instrumentation-modetour-sweep-cron'
-      )
-      startInstrumentationModetourSweepCron()
-      const { startInstrumentationHanatourSweepCron } = await import(
-        '@/lib/instrumentation-hanatour-sweep-cron'
-      )
-      startInstrumentationHanatourSweepCron()
-      const { startInstrumentationYbtourSweepCron } = await import(
-        '@/lib/instrumentation-ybtour-sweep-cron'
-      )
-      startInstrumentationYbtourSweepCron()
-      const { startInstrumentationLottetourSweepCron } = await import(
-        '@/lib/instrumentation-lottetour-sweep-cron'
-      )
-      startInstrumentationLottetourSweepCron()
-      const { startInstrumentationVerygoodtourSweepCron } = await import(
-        '@/lib/instrumentation-verygoodtour-sweep-cron'
-      )
-      startInstrumentationVerygoodtourSweepCron()
-      const { startInstrumentationKyowontourSweepCron } = await import(
-        '@/lib/instrumentation-kyowontour-sweep-cron'
-      )
-      startInstrumentationKyowontourSweepCron()
+      const { registerSupplierSweepCrons } = await import('@/lib/instrumentation-supplier-sweep-crontab')
+      await registerSupplierSweepCrons()
       const { startInstrumentationMonthlyPublishCron } = await import(
         '@/lib/instrumentation-monthly-publish-cron'
       )

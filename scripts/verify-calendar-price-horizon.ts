@@ -112,6 +112,12 @@ const contractDoc = read('docs/ops/calendar-price-horizon-contract.md')
 assert(contractDoc.includes('E2E(브라우저)는 3h 배치에서 돌리지 않는다') || contractDoc.includes('3h sequential batch(calendar cron) — 기본 비활성'), 'contract must retire default 3h batch')
 assert(contractDoc.includes('calendar-batch-retired-daily-sweep-ssot'), 'contract must reference retired manifest id')
 
+const prodStability = read('docs/ops/production-stability-root-cause.md')
+assert(prodStability.includes('DISABLE_WEB_SUPPLIER_SWEEP_CRON'), 'prod stability must document web sweep fallback kill switch')
+
+const supplierSweepCrontab = read('lib/instrumentation-supplier-sweep-crontab.ts')
+assert(supplierSweepCrontab.includes('REGRESSION-FREEZE[supplier-sweep-web-fallback]'), 'supplier sweep crontab marker missing')
+
 const modetourScraper = read('scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py')
 assert(modetourScraper.includes('REGRESSION-FREEZE[modetour-sweep-e2e-recheck]'), 'modetour E2E scraper marker missing')
 assert(modetourScraper.includes('다른 출발일 보기'), 'modetour E2E must target 다른 출발일 보기 CTA')

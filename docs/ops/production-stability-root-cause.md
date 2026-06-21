@@ -25,6 +25,8 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 동일 repo·동일 `npm start` 이미지. **코드 배포 1회** 후 Railway에서 worker 서비스만 추가하면 됨.
 
+**worker 미구축( web 단독 ):** `instrumentation.ts` 가 6공급사 **일 1회 sweep** 을 web-fallback 으로 등록한다 (`DISABLE_WEB_SUPPLIER_SWEEP_CRON=1` 로 끔). 3h calendar batch는 기본 OFF.
+
 ---
 
 ## 코드 SSOT

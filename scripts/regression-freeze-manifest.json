@@ -217,6 +217,16 @@
       "doc": "docs/ops/calendar-price-horizon-contract.md"
     },
     {
+      "id": "supplier-sweep-web-fallback",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:calendar-price-horizon",
+      "summary": "worker 없음 — web 단독 Railway에서 6공급사 sweep fallback",
+      "doc": "docs/ops/production-stability-root-cause.md"
+    },
+    {
       "id": "hanatour-e2e-airtel-same-product",
       "tier": [
         "prebuild",
@@ -1280,6 +1290,40 @@
             "calendar-batch-retired-daily-sweep-ssot",
             "기본 비활성",
             "일 1회 sweep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "supplier-sweep-web-fallback",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "web-only Railway — 6공급사 sweep cron fallback",
+      "checks": [
+        {
+          "file": "lib/instrumentation-supplier-sweep-crontab.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-web-fallback]",
+            "registerSupplierSweepCrons",
+            "startInstrumentationModetourSweepCron",
+            "startInstrumentationKyowontourSweepCron"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "registerSupplierSweepCrons",
+            "supplier-sweep-cron] web-fallback",
+            "DISABLE_WEB_SUPPLIER_SWEEP_CRON=1"
+          ]
+        },
+        {
+          "file": "docs/ops/production-stability-root-cause.md",
+          "mustInclude": [
+            "web-fallback",
+            "DISABLE_WEB_SUPPLIER_SWEEP_CRON"
           ]
         }
       ]
