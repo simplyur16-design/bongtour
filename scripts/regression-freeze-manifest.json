@@ -1917,6 +1917,40 @@
       ]
     },
     {
+      "id": "product-listing-cache-revalidate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 후 상품리스트 캐시 — /travel/overseas revalidate·hubCatalog 버전·confirm registered SSOT",
+      "checks": [
+        {
+          "file": "lib/revalidate-product-listing-caches.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-listing-cache-revalidate]",
+            "revalidatePath('/travel/overseas')"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-catalog-version.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-listing-cache-revalidate]",
+            "OVERSEAS_HUB_CATALOG_CLIENT_VERSION"
+          ]
+        },
+        {
+          "file": "lib/register-confirm-registration-status.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-listing-cache-revalidate]",
+            "resolveRegistrationStatusForRegisterConfirm"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-confirm-registration-status.test.ts"
+      ]
+    },
+    {
       "id": "infer-home-departure-airport",
       "tier": [
         "prebuild",

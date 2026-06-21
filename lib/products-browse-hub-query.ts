@@ -1,4 +1,5 @@
 import { parseBrowseQuery } from '@/lib/products-browse-query'
+import { OVERSEAS_HUB_CATALOG_CLIENT_VERSION } from '@/lib/overseas-hub-catalog-version'
 
 /** 허브·메인 그리드 — 등록 풀 전량(인벤토리 규모상 페이지 상한만 둠, 120 컷 없음) */
 export const HUB_BROWSE_FULL_CATALOG_LIMIT = '10000'
@@ -77,7 +78,7 @@ export function buildOverseasHubCatalogFetchQueryKey(): string {
   p.set('scope', 'overseas')
   p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
   /** 클라이언트 sessionStorage 구 캐시 무효화 — API는 무시 */
-  p.set('hubCatalog', '6')
+  p.set('hubCatalog', OVERSEAS_HUB_CATALOG_CLIENT_VERSION)
   return canonicalBrowseQueryKey(p)
 }
 

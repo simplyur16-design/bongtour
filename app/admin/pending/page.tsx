@@ -42,6 +42,7 @@ export default function AdminPendingPage() {
   const [listError, setListError] = useState<ListLoadError | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [registeringId, setRegisteringId] = useState<string | null>(null)
+  const [registerError, setRegisterError] = useState<string | null>(null)
   const [holdingId, setHoldingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [registeredMessage, setRegisteredMessage] = useState<string | null>(null)
@@ -106,6 +107,7 @@ export default function AdminPendingPage() {
   const handleRegister = async (productId: string) => {
     setRegisteringId(productId)
     setRegisteredMessage(null)
+    setRegisterError(null)
     try {
       const res = await fetch(`/api/admin/products/${productId}`, {
         method: 'PATCH',
@@ -116,9 +118,15 @@ export default function AdminPendingPage() {
         setList((prev) => prev.filter((p) => p.id !== productId))
         setRegisteredMessage('등록되었습니다. 상품 목록에서 확인하세요.')
         setSelectedId(null)
+      } else {
+        const json = (await res.json().catch(() => null)) as { error?: string; missing?: { departures?: boolean; itineraryDays?: boolean } } | null
+        const parts = [json?.error?.trim()].filter(Boolean)
+        if (json?.missing?.departures) parts.push('출발일(ProductDeparture) 없음')
+        if (json?.missing?.itineraryDays) parts.push('일정(ItineraryDay) 없음')
+        setRegisterError(parts.join(' · ') || `등록 실패 (${res.status})`)
       }
     } catch {
-      // fail
+      setRegisterError('네트워크 오류로 등록에 실패했습니다.')
     } finally {
       setRegisteringId(null)
     }
@@ -198,6 +206,11 @@ export default function AdminPendingPage() {
             >
               상품 목록으로 이동
             </Link>
+          </div>
+        )}
+        {registerError && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-800">{registerError}</p>
           </div>
         )}
 

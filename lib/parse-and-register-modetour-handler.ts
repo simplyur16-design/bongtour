@@ -5,6 +5,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
+import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
@@ -1770,11 +1771,13 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     }
     const { geo, masterRegistrationOk, needsOperatorReview } =
       await resolveMegaMenuGeoForRegister(prisma, geoInput)
-    const registrationStatusForSave = !masterRegistrationOk || needsOperatorReview
-        ? 'pending'
-        : existing?.registrationStatus === 'registered'
-          ? 'registered'
-          : 'pending'
+    const registrationStatusForSave = resolveRegistrationStatusForRegisterConfirm({
+      masterRegistrationOk,
+      needsOperatorReview,
+      existingRegistrationStatus: existing?.registrationStatus,
+      hasDeparturesToSave: departureInputs.length > 0,
+      hasItineraryDaysToSave: itineraryDayDrafts.length > 0 || schedule.length > 0,
+    })
     const highlightLlm = await extractHighlightFromModetourLLM(text).catch((e) => {
       console.warn('[modetour] highlight LLM', e instanceof Error ? e.message : e)
       return null
