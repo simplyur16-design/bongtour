@@ -1741,6 +1741,33 @@
       ]
     },
     {
+      "id": "register-product-duplicate-guard",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공급사별 동일 상품 중복 등록 방지 — URL·dedupe 키 조회 SSOT",
+      "checks": [
+        {
+          "file": "lib/register-product-duplicate-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-product-duplicate-guard]",
+            "findExistingProductForRegister",
+            "extractRegisterProductDedupeKeys"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-orchestration.ts",
+          "mustInclude": [
+            "findExistingProductForRegister"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-product-duplicate-guard.test.ts"
+      ]
+    },
+    {
       "id": "hanatour-sweep-e2e-recheck",
       "tier": [
         "prebuild",

@@ -20,6 +20,7 @@ import {
   productTitlePairForRegisterConfirm,
   supplierTitleHaystackForHeroSeo,
 } from '@/lib/bongtour-product-title-register-bridge'
+import { findExistingProductForRegister } from '@/lib/register-product-duplicate-guard'
 import { requireAdmin } from '@/lib/require-admin'
 import {
   stripRegisterInternalArtifacts,
@@ -1381,13 +1382,10 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
 
     stage = 'prismaFindProduct'
     ctx.stage = stage
-    const existing = await prisma.product.findUnique({
-      where: {
-        originSource_originCode: {
-          originSource: effectiveOriginSource,
-          originCode: parsed.originCode,
-        },
-      },
+    const existing = await findExistingProductForRegister(prisma, {
+      originSource: effectiveOriginSource,
+      originCode: parsed.originCode,
+      originUrl,
       include: { prices: { orderBy: { date: 'asc' } } },
     })
 
