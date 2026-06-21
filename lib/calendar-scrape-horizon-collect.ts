@@ -5,7 +5,7 @@
  */
 import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
 import {
-  departureInputToCalendarScrapeItem,
+  mapDepartureInputsToCalendarScrapeItems,
   type CalendarScrapeHorizonItem,
 } from '@/lib/calendar-scrape-horizon-items'
 import {
@@ -69,10 +69,10 @@ function resolveDetailUrl(product: CalendarHorizonCollectProduct): string | null
   return built.startsWith('http') ? built : null
 }
 
-function inputsToItems(inputs: Parameters<typeof departureInputToCalendarScrapeItem>[0][]): CalendarScrapeHorizonItem[] {
-  return inputs
-    .map(departureInputToCalendarScrapeItem)
-    .filter((x): x is CalendarScrapeHorizonItem => x != null)
+function inputsToItems(
+  inputs: Parameters<typeof mapDepartureInputsToCalendarScrapeItems>[0],
+): CalendarScrapeHorizonItem[] {
+  return mapDepartureInputsToCalendarScrapeItems(inputs)
 }
 
 /** 3h 순차 배치·calendar-scrape-horizon route — API/HXR only (E2E는 일 1회 sweep·7일 주기). */

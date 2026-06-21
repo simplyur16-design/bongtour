@@ -29,8 +29,10 @@ export type CalendarScrapeHorizonItem = {
   meetingGuideNoticeRaw?: string | null
 }
 
+type Dateish = string | Date | null | undefined
+
 type DepartureInputLike = {
-  departureDate: string | Date | null
+  departureDate: Dateish
   adultPrice?: number | null
   statusRaw?: string | null
   seatsStatusRaw?: string | null
@@ -38,22 +40,29 @@ type DepartureInputLike = {
   carrierName?: string | null
   outboundFlightNo?: string | null
   outboundDepartureAirport?: string | null
-  outboundDepartureAt?: string | null
+  outboundDepartureAt?: Dateish
   outboundArrivalAirport?: string | null
-  outboundArrivalAt?: string | null
+  outboundArrivalAt?: Dateish
   inboundFlightNo?: string | null
   inboundDepartureAirport?: string | null
-  inboundDepartureAt?: string | null
+  inboundDepartureAt?: Dateish
   inboundArrivalAirport?: string | null
-  inboundArrivalAt?: string | null
+  inboundArrivalAt?: Dateish
   meetingInfoRaw?: string | null
   meetingPointRaw?: string | null
   meetingTerminalRaw?: string | null
   meetingGuideNoticeRaw?: string | null
 }
 
+function dateishToIsoString(v: Dateish): string | null {
+  if (v == null) return null
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString()
+  const s = String(v).trim()
+  return s || null
+}
+
 export function departureInputToCalendarScrapeItem(inp: DepartureInputLike): CalendarScrapeHorizonItem | null {
-  const date = departureInputToYmd(inp.departureDate)
+  const date = inp.departureDate == null ? null : departureInputToYmd(inp.departureDate)
   if (!date) return null
   const price = inp.adultPrice != null ? Number(inp.adultPrice) : null
   if (price == null || !Number.isFinite(price) || price <= 0) return null
@@ -67,14 +76,14 @@ export function departureInputToCalendarScrapeItem(inp: DepartureInputLike): Cal
     carrierName: inp.carrierName ?? null,
     outboundFlightNo: inp.outboundFlightNo ?? null,
     outboundDepartureAirport: inp.outboundDepartureAirport ?? null,
-    outboundDepartureAt: inp.outboundDepartureAt ?? null,
+    outboundDepartureAt: dateishToIsoString(inp.outboundDepartureAt),
     outboundArrivalAirport: inp.outboundArrivalAirport ?? null,
-    outboundArrivalAt: inp.outboundArrivalAt ?? null,
+    outboundArrivalAt: dateishToIsoString(inp.outboundArrivalAt),
     inboundFlightNo: inp.inboundFlightNo ?? null,
     inboundDepartureAirport: inp.inboundDepartureAirport ?? null,
-    inboundDepartureAt: inp.inboundDepartureAt ?? null,
+    inboundDepartureAt: dateishToIsoString(inp.inboundDepartureAt),
     inboundArrivalAirport: inp.inboundArrivalAirport ?? null,
-    inboundArrivalAt: inp.inboundArrivalAt ?? null,
+    inboundArrivalAt: dateishToIsoString(inp.inboundArrivalAt),
     meetingInfoRaw: inp.meetingInfoRaw ?? null,
     meetingPointRaw: inp.meetingPointRaw ?? null,
     meetingTerminalRaw: inp.meetingTerminalRaw ?? null,

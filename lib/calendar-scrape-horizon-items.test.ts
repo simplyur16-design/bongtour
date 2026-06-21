@@ -52,4 +52,13 @@ describe('calendar-scrape-horizon-items', () => {
     expect(items).toHaveLength(1)
     expect(items[0]?.date).toBe('2026-07-15')
   })
+
+  it('serializes Date flight timestamps to ISO strings', () => {
+    const item = departureInputToCalendarScrapeItem({
+      departureDate: '2026-07-15',
+      adultPrice: 100,
+      outboundDepartureAt: new Date('2026-07-15T01:30:00.000Z'),
+    })
+    expect(item?.outboundDepartureAt).toBe('2026-07-15T01:30:00.000Z')
+  })
 })
