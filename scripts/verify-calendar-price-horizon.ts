@@ -81,6 +81,24 @@ assert(modetourApiRoute.includes('resolveModetourDetailByOriginCode'), 'modetour
 assert(modetourApiRoute.includes('isModetourSd1NotFoundError'), 'modetour API route must handle SD1 without 500')
 assert(modetourApiRoute.includes("apiStatus: 'sd1'"), 'modetour API route must tag SD1 responses')
 
+const horizonRoute = read('app/api/admin/products/[id]/calendar-scrape-horizon/route.ts')
+assert(horizonRoute.includes('REGRESSION-FREEZE[calendar-batch-api-first]'), 'horizon route marker missing')
+assert(horizonRoute.includes('collectCalendarHorizonPriceInputs'), 'horizon route must use collect helper')
+assert(horizonRoute.includes('calendar-scrape-horizon'), 'horizon route doc path')
+
+const horizonCollect = read('lib/calendar-scrape-horizon-collect.ts')
+assert(horizonCollect.includes('REGRESSION-FREEZE[calendar-batch-api-first]'), 'horizon collect marker missing')
+assert(horizonCollect.includes('collectHanatourPriceInputsWithE2eFallback'), 'hanatour API→E2E in batch collect')
+assert(horizonCollect.includes('collectYbtourPriceInputsWithE2eFallback'), 'ybtour API→E2E in batch collect')
+
+assert(scheduler.includes('_run_horizon_calendar_api'), 'scheduler must use horizon Node API path')
+assert(scheduler.includes('calendar-scrape-horizon'), 'scheduler must call horizon API route')
+assert(scheduler.includes('_HORIZON_BATCH_NODE_SITES'), 'scheduler batch site set missing')
+assert(
+  /if product and date_rng:\s*\n\s*lo, hi = date_rng/m.test(scheduler),
+  'scheduler must route batch windows through Node API first',
+)
+
 const modetourScraper = read('scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py')
 assert(modetourScraper.includes('REGRESSION-FREEZE[modetour-sweep-e2e-recheck]'), 'modetour E2E scraper marker missing')
 assert(modetourScraper.includes('다른 출발일 보기'), 'modetour E2E must target 다른 출발일 보기 CTA')

@@ -13,11 +13,11 @@
 | 공급사 | 운영 배치(3h cron) | 관리자 재수집·on-demand | 비고 |
 |--------|-------------------|-------------------------|------|
 | **modetour** | B2C API `GetOtherDepartureDates` (Node API 경유) | 동일 API (`collectModetourDepartureInputs`) | **Python E2E 배치 사용 금지** — 폴백만 E2E |
-| **hanatour** | Python E2E — `DATE_FROM` 월 정렬 + **6개월** 루프 | E2E / 월 분할 | |
-| **ybtour** | Python E2E — `DATE_FROM` 월 정렬 + **6개월** 루프 | E2E | |
-| **verygoodtour** | Python E2E — 12개월 루프 + `VERYGOOD_DATE_*` 필터 | E2E | |
-| **lottetour** | Python — 월 순회 시작=`DATE_FROM` | 동일 | |
-| **kyowontour** | Python — `_month_iter(date_from, …)` | 동일 | |
+| **hanatour** | Node `calendar-scrape-horizon` — gw API 우선, 0건 시 E2E | E2E / 월 분할 | **Python E2E 배치 직접 호출 금지** |
+| **ybtour** | Node `calendar-scrape-horizon` — by-goods API 우선, 0건 시 E2E | E2E | 동일 |
+| **verygoodtour** | Node `calendar-scrape-horizon` — HXR 우선, 0건 시 E2E | E2E | 동일 |
+| **lottetour** | Node `calendar-scrape-horizon` — evtListAjax HXR 우선, 0건 시 E2E | 동일 | 동일 |
+| **kyowontour** | Node `calendar-scrape-horizon` — AJAX 우선, 0건 시 E2E | 동일 | 동일 |
 
 **modetour 일 1회 sweep** (`lib/modetour-sweep.ts`, KST 04:00): B2C API `GetOtherDepartureDates` 우선. **SD1 또는 지평 내 성인가 0건**이면 Python E2E(6개월)로 재확인 — stale DB 미래출발 방치 금지. 수집 성공 시 `rawMeta.modetourNextPriceRecheckYmd` = KST 오늘 + 7일 후 재검증.
 
@@ -32,5 +32,6 @@
 ## 회귀 얼림
 
 - manifest id: `calendar-price-horizon-180d`
+- manifest id: `calendar-batch-api-first` — 3h batch Node API→E2E (Python E2E 직접 금지)
 - manifest id: `modetour-sweep-e2e-recheck` — sweep API→E2E·7일 재확인
 - `npm run verify:calendar-price-horizon`

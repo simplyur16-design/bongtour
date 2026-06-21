@@ -110,21 +110,55 @@ def _calendar_module_for_site(site: str) -> str:
     return _CALENDAR_MODULE_BY_SITE.get(raw) or _CALENDAR_MODULE_BY_SITE["hanatour"]
 
 
-def _run_modetour_calendar_api(product: Dict[str, Any], lo: str, hi: str) -> List[Dict[str, Any]]:
-    """modetour 배치 SSOT — Node B2C API (Python E2E 금지). REGRESSION-FREEZE[calendar-price-horizon-180d]"""
+# REGRESSION-FREEZE[calendar-batch-api-first]: 3h batch — Node API→E2E, Python E2E 직접 금지
+_HORIZON_BATCH_NODE_SITES = frozenset(
+    {"modetour", "hanatour", "ybtour", "verygoodtour", "lottetour", "kyowontour"}
+)
+
+
+def _run_node_calendar_api(
+    product: Dict[str, Any],
+    lo: str,
+    hi: str,
+    *,
+    route_suffix: str,
+    label: str,
+) -> List[Dict[str, Any]]:
     product_id = str(product.get("id") or "").strip()
     if not product_id:
-        raise ValueError("modetour: product id required for API scrape")
-    url = f"{API_BASE}/api/admin/products/{product_id}/calendar-scrape-modetour-api"
+        raise ValueError(f"{label}: product id required for Node calendar scrape")
+    url = f"{API_BASE}/api/admin/products/{product_id}/{route_suffix}"
     body = json.dumps({"fromYmd": lo, "toYmd": hi}, ensure_ascii=False).encode("utf-8")
     headers = {**_headers(), "Content-Type": "application/json"}
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-    with _urlopen_with_retry(req, timeout=180, label=f"modetour_api:{product_id}") as resp:
+    with _urlopen_with_retry(req, timeout=180, label=f"{label}:{product_id}") as resp:
         data = json.loads(resp.read().decode("utf-8"))
     items = data.get("items") if isinstance(data, dict) else None
     if not isinstance(items, list):
         return []
     return [x for x in items if isinstance(x, dict)]
+
+
+def _run_modetour_calendar_api(product: Dict[str, Any], lo: str, hi: str) -> List[Dict[str, Any]]:
+    """modetour 배치 SSOT — Node B2C API (Python E2E 금지). REGRESSION-FREEZE[calendar-price-horizon-180d]"""
+    return _run_node_calendar_api(
+        product,
+        lo,
+        hi,
+        route_suffix="calendar-scrape-modetour-api",
+        label="modetour_api",
+    )
+
+
+def _run_horizon_calendar_api(product: Dict[str, Any], lo: str, hi: str) -> List[Dict[str, Any]]:
+    """non-modetour 3h batch SSOT — Node API/HXR→E2E 폴백. REGRESSION-FREEZE[calendar-batch-api-first]"""
+    return _run_node_calendar_api(
+        product,
+        lo,
+        hi,
+        route_suffix="calendar-scrape-horizon",
+        label="horizon_api",
+    )
 
 
 def _run_calendar_price_from_url(
@@ -136,11 +170,16 @@ def _run_calendar_price_from_url(
     date_rng: Optional[Tuple[str, str]] = None,
 ) -> Any:
     s = (site or "").strip().lower()
-    if s == "modetour":
-        if not product or not date_rng:
-            raise ValueError("modetour batch requires product and date range (B2C API path)")
+    if s == "yellowballoon":
+        s = "ybtour"
+    if product and date_rng:
         lo, hi = date_rng
-        return _run_modetour_calendar_api(product, lo, hi)
+        if s == "modetour":
+            return _run_modetour_calendar_api(product, lo, hi)
+        if s in _HORIZON_BATCH_NODE_SITES - {"modetour"}:
+            return _run_horizon_calendar_api(product, lo, hi)
+    if s == "modetour":
+        raise ValueError("modetour batch requires product and date range (B2C API path)")
     if s == "lottetour":
         god, menus, evt = _lottetour_ids_from_url(detail_url)
         from scripts.calendar_e2e_scraper_lottetour import config as lcfg
@@ -502,12 +541,13 @@ def _process_one_attempt(
     logger.info("Start id=%s site=%s range=%s", product_id, site, rng or "full")
     try:
         date_rng = (rng[0], rng[1]) if rng else None
+        use_node_batch = bool(rng and site in _HORIZON_BATCH_NODE_SITES)
         raw = _run_calendar_price_from_url(
             detail_url,
             site,
             headless=headless,
-            product=product if site == "modetour" else None,
-            date_rng=date_rng if site == "modetour" else None,
+            product=product if use_node_batch else None,
+            date_rng=date_rng if use_node_batch else None,
         )
         items = _normalize_scraper_payload_to_api_items(raw, site)
         if rng:

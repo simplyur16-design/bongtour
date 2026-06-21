@@ -197,6 +197,16 @@
       "doc": "docs/ops/calendar-price-horizon-contract.md"
     },
     {
+      "id": "calendar-batch-api-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:calendar-price-horizon",
+      "summary": "3h 배치 — Node API/HXR 우선·0건 시 E2E만. Python E2E 직접 배치 금지",
+      "doc": "docs/ops/calendar-price-horizon-contract.md"
+    },
+    {
       "id": "hanatour-e2e-airtel-same-product",
       "tier": [
         "prebuild",
@@ -1165,6 +1175,62 @@
             "CALENDAR_PRICE_HORIZON_MONTHS_FORWARD = 6"
           ]
         }
+      ]
+    },
+    {
+      "id": "calendar-batch-api-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "3h 배치 Node API→E2E — Python E2E 직접 호출 금지",
+      "checks": [
+        {
+          "file": "lib/calendar-scrape-horizon-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-batch-api-first]",
+            "collectCalendarHorizonPriceInputs",
+            "collectHanatourPriceInputsWithE2eFallback",
+            "collectYbtourPriceInputsWithE2eFallback",
+            "collectVerygoodtourPriceInputsWithE2eFallback",
+            "collectLottetourPriceInputsWithE2eFallback",
+            "collectKyowontourPriceInputsWithE2eFallback"
+          ]
+        },
+        {
+          "file": "lib/calendar-scrape-horizon-items.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-batch-api-first]",
+            "departureInputToCalendarScrapeItem"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/calendar-scrape-horizon/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-batch-api-first]",
+            "collectCalendarHorizonPriceInputs",
+            "calendar-scrape-horizon"
+          ]
+        },
+        {
+          "file": "scripts/calendar_price_scheduler.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-batch-api-first]",
+            "_run_horizon_calendar_api",
+            "calendar-scrape-horizon",
+            "_HORIZON_BATCH_NODE_SITES"
+          ]
+        },
+        {
+          "file": "docs/ops/calendar-price-horizon-contract.md",
+          "mustInclude": [
+            "calendar-batch-api-first",
+            "calendar-scrape-horizon"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/calendar-scrape-horizon-items.test.ts"
       ]
     },
     {
