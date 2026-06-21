@@ -1753,7 +1753,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-product-duplicate-guard]",
             "findExistingProductForRegister",
-            "extractRegisterProductDedupeKeys"
+            "extractRegisterProductDedupeKeys",
+            "shouldWarnRegisterOriginUrlDuplicate"
           ]
         },
         {

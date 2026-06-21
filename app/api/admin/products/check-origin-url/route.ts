@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { shouldWarnRegisterOriginUrlDuplicate } from '@/lib/register-product-duplicate-guard'
 
 export type CheckOriginUrlMatch = {
   id: string
@@ -22,7 +23,7 @@ function normalizeOriginUrl(url: string): string {
 
 /**
  * GET /api/admin/products/check-origin-url?originUrl=...
- * 동일 originUrl로 등록된 상품이 있는지 검사. 관리자 전용.
+ * 동일 originUrl로 등록·대기·보류 중인 상품 검사. 반려(rejected)는 재등록 갱신 대상이라 제외. 관리자 전용.
  */
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin()
@@ -53,11 +54,11 @@ export async function GET(req: NextRequest) {
       } satisfies CheckOriginUrlResponse)
     }
 
-    const matches = await prisma.product.findMany({
+    const rows = await prisma.product.findMany({
       where: {
         OR: [{ originUrl: normalized }, { originUrl: normalized + '/' }],
       },
-      take: MAX_MATCHES,
+      take: MAX_MATCHES * 4,
       select: {
         id: true,
         title: true,
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
         registrationStatus: true,
       },
     })
+    const matches = rows.filter((m) => shouldWarnRegisterOriginUrlDuplicate(m.registrationStatus)).slice(0, MAX_MATCHES)
 
     return NextResponse.json({
       ok: true,

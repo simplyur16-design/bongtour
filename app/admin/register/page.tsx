@@ -872,7 +872,7 @@ export default function AdminRegisterPage() {
   }
 
   /**
-   * originUrl 중복 검사. 보조 경고용이며 실패해도 등록을 막지 않음.
+   * originUrl 중복 검사(등록·대기·보류 등). 반려(rejected) 행은 재등록 갱신 대상이라 경고 제외. 실패해도 등록을 막지 않음.
    * @param urlOverride - 제출 직전 재검사 시 현재 URL 문자열만 전달. onBlur는 래핑해 호출 (이벤트 객체 금지).
    */
   async function checkOriginUrlDuplicate(urlOverride?: unknown) {
@@ -1389,7 +1389,7 @@ export default function AdminRegisterPage() {
           {!duplicateCheckLoading && duplicateResult?.exists && duplicateResult.matches.length > 0 && (
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <p className="font-medium">
-                이미 같은 원본 URL로 등록된 상품이 {duplicateResult.matches.length}건 있습니다.
+                같은 원본 URL로 등록·대기·보류 중인 상품이 {duplicateResult.matches.length}건 있습니다.
               </p>
               <ul className="mt-2 space-y-1">
                 {duplicateResult.matches.map((m) => (
