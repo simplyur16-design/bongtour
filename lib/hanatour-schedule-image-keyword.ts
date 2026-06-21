@@ -1,10 +1,11 @@
 /**
  * REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]: 자유여행 imageKeyword — 식당·카페 금지, 랜드마크만 — manifest
+ * REGRESSION-FREEZE[gemini-client-client-bundle]: hanatour 등록 파서 import 금지 — manifest
  */
 import {
   classifyHanatourScheduleCardDayKind,
   type HanatourScheduleCardDayKind,
-} from '@/lib/parse-and-register-hanatour-schedule'
+} from '@/lib/hanatour-schedule-card-day-kind'
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,

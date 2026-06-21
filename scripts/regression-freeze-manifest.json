@@ -824,6 +824,48 @@
       ]
     },
     {
+      "id": "gemini-client-client-bundle",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "admin register preview 클라이언트 번들 — gemini-client·fs 금지",
+      "checks": [
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[gemini-client-client-bundle]",
+            "hanatour-schedule-card-day-kind"
+          ],
+          "mustNotInclude": [
+            "from '@/lib/parse-and-register-hanatour-schedule'"
+          ]
+        },
+        {
+          "file": "lib/gemini-client.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[gemini-client-client-bundle]",
+            "gemini-env-bootstrap.server"
+          ],
+          "mustNotInclude": [
+            "require('fs')",
+            "require(\"fs\")"
+          ]
+        },
+        {
+          "file": "lib/gemini-env-bootstrap.server.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[gemini-client-client-bundle]",
+            "server-only",
+            "bootstrapGeminiEnvFilesWhenKeyMissing"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-schedule-card-day-kind.test.ts"
+      ]
+    },
+    {
       "id": "hanatour-e2e-airtel-same-product-guard",
       "tier": [
         "prebuild",
@@ -2824,6 +2866,7 @@
         "lib/supplier-listing-title-unacceptable.test.ts",
         "lib/product-public-seo-title.test.ts",
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
+        "lib/hanatour-schedule-card-day-kind.test.ts",
         "lib/register-schedule-image-keywords-preview.test.ts",
         "lib/ybtour-schedule-image-keyword.test.ts",
         "lib/schedule-image-keyword-dual-slot-contract.test.ts",

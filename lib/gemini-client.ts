@@ -4,53 +4,35 @@
  * - API 키: `GEMINI_API_KEY` 우선, 없으면 `GOOGLE_API_KEY` (Google AI Studio / 공식 예시와 동일)
  * - 기본 모델: `gemini-2.5-flash` (일반 키로 호출 가능). `GEMINI_MODEL=gemini-3-flash-preview` 등으로 덮어쓸 수 있음
  * - listModels 엔드포인트: v1 우선, 실패 시 v1beta
+ * REGRESSION-FREEZE[gemini-client-client-bundle]: fs bootstrap server-only — manifest
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const DEBUG = '[Bong투어-DEBUG]'
 
-/**
- * Next.js 외부(node/tsx 등)에서 `.env`만 넘기고 `.env.local`을 안 읽으면 키가 비어 403이 난다.
- * 키가 비어 있을 때만 프로젝트 루트 `.env` → `.env.local` 순으로 파싱해 process.env에 채운다(.env.local이 우선).
- */
-function bootstrapEnvFilesWhenKeyMissing(): void {
-  if (typeof process === 'undefined' || !process.cwd) return
-  const hasKey = () =>
-    Boolean((process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim())
-  if (hasKey()) return
+function readGeminiApiKeyFromEnv(): string {
+  return (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
+}
+
+let envBootstrapped = false
+
+/** tsx 등에서 load-env 없이 import될 때만 server-side env 파일 보조 로드 */
+function ensureGeminiEnvBootstrapped(): void {
+  if (envBootstrapped || typeof window !== 'undefined') return
+  envBootstrapped = true
+  if (readGeminiApiKeyFromEnv()) return
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs') as typeof import('fs')
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path') as typeof import('path')
-    const root = process.cwd()
-    for (const name of ['.env', '.env.local'] as const) {
-      const p = path.join(root, name)
-      if (!fs.existsSync(p)) continue
-      const raw = fs.readFileSync(p, 'utf8')
-      for (const line of raw.split('\n')) {
-        const t = line.trim()
-        if (!t || t.startsWith('#')) continue
-        const eq = t.indexOf('=')
-        if (eq <= 0) continue
-        const k = t.slice(0, eq).trim()
-        if (!/^[\w.-]+$/.test(k)) continue
-        let v = t.slice(eq + 1).trim()
-        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-          v = v.slice(1, -1)
-        }
-        if (name === '.env.local') process.env[k] = v
-        else if (process.env[k] === undefined) process.env[k] = v
-      }
-    }
+    require('./gemini-env-bootstrap.server').bootstrapGeminiEnvFilesWhenKeyMissing()
   } catch {
-    /* ignore: Edge 등에서 fs 불가 */
+    /* client bundle / edge — server-only module unavailable */
   }
 }
 
-bootstrapEnvFilesWhenKeyMissing()
-
-const apiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
+function getGeminiApiKey(): string {
+  ensureGeminiEnvBootstrapped()
+  return readGeminiApiKeyFromEnv()
+}
 /** 일반 API 키로 호출 가능한 기본 Flash (3-preview는 키/프로그램 제한 시 403 가능) */
 const MODEL_PRIMARY = 'gemini-2.5-flash'
 /** 2.5 실패 시 */
@@ -96,7 +78,7 @@ export function getGenAI(): InstanceType<typeof GoogleGenerativeAI> {
     if (process.env.NODE_ENV !== 'production') {
       console.log(`${DEBUG} GoogleGenerativeAI 생성자 호출 직전 (정상 로드 확인됨)`)
     }
-    _genAI = new GoogleGenerativeAI(apiKey)
+    _genAI = new GoogleGenerativeAI(getGeminiApiKey())
   }
   return _genAI
 }
@@ -125,12 +107,12 @@ function isModelError(err: string): boolean {
 
 /** listModels(): v1 우선, 실패 시 v1beta. 가용 Flash 모델명 배열 반환 (오토 스위칭용) */
 async function fetchAvailableFlashModels(): Promise<string[]> {
-  if (!apiKey) return []
+  if (!getGeminiApiKey()) return []
   const versions: string[] = [API_VERSION_LIST]
   if (API_VERSION_LIST !== 'v1beta') versions.push('v1beta')
   for (const ver of versions) {
     try {
-      const url = `https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`
+      const url = `https://generativelanguage.googleapis.com/${ver}/models?key=${getGeminiApiKey()}`
       const res = await fetch(url, {
         /** 모델 목록은 자주 바뀌지 않음 — 반복 호출 완화 */
         next: { revalidate: 3600 },
@@ -164,7 +146,7 @@ export async function testGeminiConnection(): Promise<{
     message: undefined as string | undefined,
     error: undefined as string | undefined,
   }
-  if (!apiKey) {
+  if (!getGeminiApiKey()) {
     result.error = 'GEMINI_API_KEY or GOOGLE_API_KEY not set'
     result.model = GEMINI_MODEL
     console.warn(`${DEBUG} 모델 연결 실패:`, result.error)
