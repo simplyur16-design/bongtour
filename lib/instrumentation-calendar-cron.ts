@@ -1,7 +1,6 @@
 /**
- * Next instrumentation: 3시간마다 1회 (Asia/Seoul) 달력 가격 배치 — 5공급사 sequential.
- * 등록 조건: `lib/calendar-batch-env` `canRegisterCalendarCron()` (운영 또는 ENABLE_INSTRUMENTATION_CALENDAR_CRON=1).
- * web 단독 배포: detached spawn (`spawnCalendarPriceBatchDetached`) — worker와 동일 스케줄, HTTP 블로킹 없음.
+ * Next instrumentation: 3시간마다 1회 (Asia/Seoul) 달력 가격 배치 — 기본 비활성.
+ * API/HXR 수집 SSOT: 공급사별 일 1회 sweep. 복구·테스트만 ENABLE_INSTRUMENTATION_CALENDAR_CRON=1.
  */
 export function startInstrumentationCalendarCron(options?: { webFallback?: boolean }): void {
   const webFallback = options?.webFallback === true

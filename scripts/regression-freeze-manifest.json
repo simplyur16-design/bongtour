@@ -207,6 +207,16 @@
       "doc": "docs/ops/calendar-price-horizon-contract.md"
     },
     {
+      "id": "calendar-batch-retired-daily-sweep-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:calendar-price-horizon",
+      "summary": "3h calendar cron 기본 OFF — 일 1회 sweep이 API SSOT",
+      "doc": "docs/ops/calendar-price-horizon-contract.md"
+    },
+    {
       "id": "hanatour-e2e-airtel-same-product",
       "tier": [
         "prebuild",
@@ -1239,6 +1249,39 @@
       ],
       "vitestSuites": [
         "lib/calendar-scrape-horizon-items.test.ts"
+      ]
+    },
+    {
+      "id": "calendar-batch-retired-daily-sweep-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "3h calendar cron default OFF — daily sweep API SSOT",
+      "checks": [
+        {
+          "file": "lib/calendar-batch-env.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-batch-retired-daily-sweep-ssot]",
+            "ENABLE_INSTRUMENTATION_CALENDAR_CRON !== '1'",
+            "일 1회 sweep이 API SSOT"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "daily supplier sweep is API SSOT",
+            "ENABLE_INSTRUMENTATION_CALENDAR_CRON=1 to opt in 3h batch"
+          ]
+        },
+        {
+          "file": "docs/ops/calendar-price-horizon-contract.md",
+          "mustInclude": [
+            "calendar-batch-retired-daily-sweep-ssot",
+            "기본 비활성",
+            "일 1회 sweep"
+          ]
+        }
       ]
     },
     {

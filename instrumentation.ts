@@ -48,18 +48,27 @@ export async function register() {
       )
       startInstrumentationSeasonCurationCron()
 
-      const { canRegisterCalendarCron } = await import('@/lib/calendar-batch-env')
+      const { canRegisterCalendarCron, isCalendarCronDisabled } = await import('@/lib/calendar-batch-env')
       if (canRegisterCalendarCron()) {
         const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
         startInstrumentationCalendarCron()
+      } else if (!isCalendarCronDisabled()) {
+        console.log(
+          '[calendar-cron] not registered: daily supplier sweep is API SSOT (ENABLE_INSTRUMENTATION_CALENDAR_CRON=1 to opt in 3h batch)',
+        )
       }
     } else if (hasDb && shouldRunWebCriticalCrons()) {
-      const { canRegisterCalendarCron, isWebCalendarCronDisabled } = await import('@/lib/calendar-batch-env')
+      const { canRegisterCalendarCron, isWebCalendarCronDisabled, isCalendarCronDisabled } =
+        await import('@/lib/calendar-batch-env')
       if (!isWebCalendarCronDisabled() && canRegisterCalendarCron()) {
         const { startInstrumentationCalendarCron } = await import('@/lib/instrumentation-calendar-cron')
         startInstrumentationCalendarCron({ webFallback: true })
         console.log(
           '[calendar-cron] web-fallback: worker 없음 — 3h 달력 배치를 web 프로세스에 등록 (worker 추가 시 web에 DISABLE_WEB_CALENDAR_CRON=1)',
+        )
+      } else if (!isWebCalendarCronDisabled() && !isCalendarCronDisabled()) {
+        console.log(
+          '[calendar-cron] web-fallback skipped: daily supplier sweep is API SSOT (ENABLE_INSTRUMENTATION_CALENDAR_CRON=1 to opt in 3h batch)',
         )
       }
 

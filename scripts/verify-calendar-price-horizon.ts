@@ -101,8 +101,16 @@ assert(
   'scheduler must route batch windows through Node API first',
 )
 
+const batchEnv = read('lib/calendar-batch-env.ts')
+assert(batchEnv.includes('REGRESSION-FREEZE[calendar-batch-retired-daily-sweep-ssot]'), 'batch env retired marker missing')
+assert(
+  /ENABLE_INSTRUMENTATION_CALENDAR_CRON !== '1'/.test(batchEnv),
+  '3h calendar cron must require ENABLE_INSTRUMENTATION_CALENDAR_CRON=1 (default off)',
+)
+
 const contractDoc = read('docs/ops/calendar-price-horizon-contract.md')
-assert(contractDoc.includes('E2E(브라우저)는 3h 배치에서 돌리지 않는다'), 'contract must forbid batch E2E')
+assert(contractDoc.includes('E2E(브라우저)는 3h 배치에서 돌리지 않는다') || contractDoc.includes('3h sequential batch(calendar cron) — 기본 비활성'), 'contract must retire default 3h batch')
+assert(contractDoc.includes('calendar-batch-retired-daily-sweep-ssot'), 'contract must reference retired manifest id')
 
 const modetourScraper = read('scripts/calendar_e2e_scraper_modetour/calendar_price_scraper.py')
 assert(modetourScraper.includes('REGRESSION-FREEZE[modetour-sweep-e2e-recheck]'), 'modetour E2E scraper marker missing')

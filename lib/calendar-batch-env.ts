@@ -44,14 +44,14 @@ export function hasCalendarBatchCredentials(): boolean {
   return Boolean(getAdminServiceBearerSecret().trim())
 }
 
-/** instrumentation 캘린더 크론(21:00 KST) 등록 가능 여부 */
+/** instrumentation 캘린더 크론(3h) 등록 가능 여부 — 기본 OFF, 일 1회 sweep이 API SSOT. */
 export function canRegisterCalendarCron(): boolean {
   if (isCalendarCronDisabled()) return false
+  // REGRESSION-FREEZE[calendar-batch-retired-daily-sweep-ssot]: 3h batch default OFF — manifest
+  if (process.env.ENABLE_INSTRUMENTATION_CALENDAR_CRON !== '1') return false
   if (!(process.env.DATABASE_URL ?? '').trim()) return false
   if (!hasCalendarBatchCredentials()) return false
   const inProduction = process.env.NODE_ENV === 'production'
-  const devOptIn = process.env.ENABLE_INSTRUMENTATION_CALENDAR_CRON === '1'
-  if (!inProduction && !devOptIn) return false
   if (inProduction && !resolveBongtourApiBase()) return false
   return true
 }
