@@ -38,6 +38,8 @@ describe('buildSupplierProductDisplayTitle', () => {
     expect(title).toContain('베트남 5일')
     expect(title).not.toMatch(/출발\s*확정|긴급\s*모객/)
   })
+
+  it('strips route badges but keeps promo hashtags', () => {
     const title = buildSupplierProductDisplayTitle({
       verbatimOriginal: '일본 도쿄 3일 [직항] #두바이관광',
       brandKey: 'hanatour',

@@ -1522,6 +1522,14 @@
           ]
         },
         {
+          "file": "lib/register-facts/modetour-register-fact-mappers.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "modetourScheduleItemsToFactDays",
+            "modetourFlightRoutesToFactLegs"
+          ]
+        },
+        {
           "file": "lib/register-facts/hanatour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",

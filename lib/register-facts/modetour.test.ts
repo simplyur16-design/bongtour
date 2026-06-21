@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   modetourFlightRoutesToFactLegs,
   modetourScheduleItemsToFactDays,
-} from '@/lib/register-facts/modetour'
+} from '@/lib/register-facts/modetour-register-fact-mappers'
 
 describe('modetourScheduleItemsToFactDays', () => {
   it('maps place headers and hotels per day', () => {
