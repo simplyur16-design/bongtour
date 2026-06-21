@@ -229,6 +229,8 @@ export type TravelProduct = {
   modetourStickyLocalPayLine?: string | null
   /** travel | private_trip | air_hotel_free — 항공권+호텔(자유여행) UI 분기 */
   listingKind?: string | null
+  /** 인천·김포(서울권)는 null — 부산·청주·대구·제주만 표기 */
+  departureAirportLabelDisplay?: string | null
 }
 
 function toDateKey(d: string): string {

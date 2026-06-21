@@ -1718,6 +1718,18 @@
             "verify-product-departure-airport-migration",
             "departureAirportLabel"
           ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "departureAirportLabelDisplay"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "departureAirportLabelDisplay"
+          ]
         }
       ],
       "npmScripts": [
