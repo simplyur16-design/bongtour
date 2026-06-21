@@ -49,12 +49,13 @@ function inferAirHotelFreeFromListingHint(hint: string | null | undefined): bool
 
 /** REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: URL·제목 신호로 자유여행 강제 — manifest */
 export function resolveRegisterTravelScopeFromRequest(args: {
-  bodyTravelScope?: string | null
+  bodyTravelScope?: unknown
   originSource: string
   originUrl?: string | null
   listingTitleHint?: string | null
 }): AdminRegisterTravelScopeSelection {
-  const raw = String(args.bodyTravelScope ?? '').trim()
+  const raw =
+    typeof args.bodyTravelScope === 'string' ? args.bodyTravelScope.trim() : String(args.bodyTravelScope ?? '').trim()
   if (raw === 'air_hotel_free') return 'air_hotel_free'
   if (raw === 'domestic') return 'domestic'
 
