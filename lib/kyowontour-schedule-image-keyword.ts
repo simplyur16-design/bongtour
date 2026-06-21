@@ -596,6 +596,7 @@ function lastForeignLandmarkFromPriorKyowontourRows<
 
 function resolveKyowontourPrimaryKeyword(
   row: {
+    day: number
     title?: string
     description?: string
     routeText?: string | null

@@ -707,6 +707,7 @@ function classifyLottetourScheduleDayKind(
 
 function resolveLottetourPrimaryKeyword(
   row: {
+    day: number
     title?: string
     description?: string
     routeText?: string | null
