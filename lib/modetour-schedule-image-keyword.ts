@@ -7,6 +7,7 @@
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  isRegisterScheduleFreeLeisureDay,
   pickDistinctSecondScheduleImageKeyword,
   resolveTourismKeywordPreferDistinctPerDay,
   shouldReconcileScheduleImageKeyword2,
@@ -515,7 +516,16 @@ function resolveModetourPrimaryKeyword(
     tryAcceptModetourLlmImageKeyword(raw, productDestination)
   const accepted = acceptLlm(row.imageKeyword)
 
-  if (dayKind === 'movement' || dayKind === 'return_home') {
+  if (dayKind === 'return_home') {
+    return ''
+  }
+
+  const haystack = buildModetourDayHaystack(row)
+  if (isRegisterScheduleFreeLeisureDay(haystack)) {
+    return ''
+  }
+
+  if (dayKind === 'movement') {
     return resolveModetourMovementDayKeyword(row, day, maxDay, productDestination, allRows)
   }
 

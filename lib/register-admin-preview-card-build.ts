@@ -93,6 +93,7 @@ export function buildRegisterAdminPreviewCardData(args: {
     excludedText?: string | null
     optionalToursStructured?: string | null
     shoppingStops?: string | null
+    shoppingVisitCount?: number | null
     meetingPlaceRaw?: string | null
     meetingInfoRaw?: string | null
     registerPreviewPolicyNotes?: string[] | null
@@ -132,7 +133,20 @@ export function buildRegisterAdminPreviewCardData(args: {
   }))
 
   const optionalTours = parseOptionalToursFromStructured(parsed.optionalToursStructured)
-  const shoppingItems = parseShoppingFromStructured(parsed.shoppingStops)
+  let shoppingItems = parseShoppingFromStructured(parsed.shoppingStops)
+  if (shoppingItems.length === 0) {
+    const visit = Math.max(0, Math.floor(Number(parsed.shoppingVisitCount ?? 0)))
+    if (visit > 0) {
+      shoppingItems = [
+        {
+          itemName: `쇼핑 ${visit}회`,
+          shopLocation: '',
+          duration: '',
+          refundable: '',
+        },
+      ]
+    }
+  }
   const meetingLoc = (parsed.meetingPlaceRaw ?? parsed.meetingInfoRaw ?? '').trim()
 
   return {

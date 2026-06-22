@@ -3383,6 +3383,32 @@
       "vitestSuites": [
         "lib/register-admin-preview-card-build.test.ts"
       ]
+    },
+    {
+      "id": "register-six-suppliers-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "6공급사 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
+      "npmScripts": [
+        "verify:register-six-suppliers-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-six-suppliers-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-six-suppliers-live-gate]",
+            "gateCollect",
+            "gateImageKeywords"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "htmlBulletsFromYbtourNotice"
+          ]
+        }
+      ]
     }
   ]
 }

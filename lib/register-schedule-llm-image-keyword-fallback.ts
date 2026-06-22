@@ -3,6 +3,7 @@
  * 공급사별 `*-schedule-image-keyword.ts` 에서 공통 사용.
  *
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 imageKeyword + imageKeyword2(1≠2).
+ * REGRESSION-FREEZE[register-six-suppliers-live-gate]: isRegisterScheduleFreeLeisureDay — manifest
  * 공급사별 모듈은 이 파일의 2순위·dedupe 후 reconcile 헬퍼를 공유한다 — 한 공급사만 고치지 말 것.
  */
 import { extractPlaceNameKeyword } from '@/lib/pexels-place-name-keyword'
@@ -50,6 +51,15 @@ export type ScheduleRowTextForKeyword = {
   description?: string | null
   routeText?: string | null
   imageKeyword?: string | null
+}
+
+/** 전일 자유·자유시간 일정 — 대표 랜드마크 키워드 비움(도시명 fallback 금지) */
+export function isRegisterScheduleFreeLeisureDay(haystack: string): boolean {
+  const h = String(haystack ?? '').slice(0, 8_000)
+  if (!h.trim()) return false
+  if (!/전\s*일정\s*자유|자유\s*시간|자유\s*일정|자유일정|free\s*time|at\s+leisure/i.test(h)) return false
+  if (/(관광|방문|탐방|투어|체험|국립|공원|사원|유적|박물관|폭포|섬)/u.test(h)) return false
+  return true
 }
 
 export type AcceptLlmScheduleImageKeywordOpts = {

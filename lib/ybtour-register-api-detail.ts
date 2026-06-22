@@ -2,6 +2,7 @@
  * ybtour 등록 상세카드 — papi notice·event-schedule·tour-detail 파싱 SSOT.
  *
  * REGRESSION-FREEZE[ybtour-register-detail-collect]: papi notice·schedule·tour-detail 매핑 — manifest
+ * REGRESSION-FREEZE[register-six-suppliers-live-gate]: inclInfo 단락 HTML bullet 분리 — manifest
  */
 import {
   parseYbtourEvCdFromUrl,
@@ -119,10 +120,13 @@ export function stripYbtourHtmlText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&middot;/gi, '·')
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/\n[ \t]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
@@ -130,8 +134,8 @@ export function htmlBulletsFromYbtourNotice(html: string | null | undefined): st
   const text = stripYbtourHtmlText(String(html ?? ''))
   if (!text) return []
   return text
-    .split(/\n|(?<=·)\s+/)
-    .map((line) => line.replace(/^[\s·▪▶\-–—]+/, '').trim())
+    .split(/\n+|(?=■\s)|(?=\d+\.\s)/)
+    .map((line) => line.replace(/^[\s·▪▶\-–—■]+/, '').trim())
     .filter((line) => line.length > 2 && line.length < 500)
 }
 

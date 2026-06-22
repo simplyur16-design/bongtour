@@ -52,6 +52,23 @@ describe('ybtour register detail collect', () => {
     expect(bullets.some((b) => /여행자보험/.test(b))).toBe(true)
   })
 
+  it('parses numbered paragraph inclInfo (ALP1122 shape)', () => {
+    const incl =
+      '<p><span style="color:rgb(128, 0, 128)">1.&nbsp;왕복 그룹 항공권</span></p><p>2.&nbsp;전 일정 호텔 숙박</p>'
+    const bullets = htmlBulletsFromYbtourNotice(incl)
+    expect(bullets.some((b) => /왕복 그룹 항공권/.test(b))).toBe(true)
+    expect(bullets.some((b) => /호텔 숙박/.test(b))).toBe(true)
+  })
+
+  it('splits excluded notice on ■ lines', () => {
+    const bullets = htmlBulletsFromYbtourNotice(
+      '<p>■ 가이드 및 기사 경비 : $50</p><p>■ 기타 개인경비</p>',
+    )
+    expect(bullets.length).toBeGreaterThanOrEqual(2)
+    expect(bullets.some((b) => /가이드/.test(b))).toBe(true)
+    expect(bullets.some((b) => /개인경비/.test(b))).toBe(true)
+  })
+
   it('maps schedule detail + tm to RegisterScheduleDay', () => {
     const days = ybtourScheduleBundleToRegisterSchedule(
       [

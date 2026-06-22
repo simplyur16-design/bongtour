@@ -9,6 +9,7 @@ import {
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  isRegisterScheduleFreeLeisureDay,
   resolveTourismKeywordPreferDistinctPerDay,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -352,6 +353,7 @@ function isHanatourDestinationCityDay(day: number, maxDay: number, haystack: str
   if (day === 1) return true
   if (day !== maxDay || maxDay < 2) return false
   const j = haystack.slice(0, 12_000)
+  if (/(?:귀국|인천|ICN|김포|GMP)(?:\s*국제)?\s*공항?\s*도착/u.test(j)) return false
   const hasHub = /(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ|김해)(?:\s*국제)?\s*공항?/u.test(j)
   const hasFlightCue = /(?:출발|도착|귀국|탑승|도착)/u.test(j)
   return hasHub && hasFlightCue
@@ -416,6 +418,15 @@ function resolveHanatourPrimaryKeyword(
   const acceptLlm = (raw: string | null | undefined) =>
     tryAcceptHanatourLlmImageKeyword(raw, productDestination)
   const accepted = acceptLlm(row.imageKeyword)
+
+  if (dayKind === 'return_home') {
+    return ''
+  }
+
+  if (isRegisterScheduleFreeLeisureDay(haystack)) {
+    return ''
+  }
+
   const acceptedIsLandmarkEligible =
     !!accepted &&
     (dayKind === 'tourism'
@@ -427,8 +438,7 @@ function resolveHanatourPrimaryKeyword(
   if (acceptedIsLandmarkEligible) {
     const isHubOrFlight =
       isHanatourDestinationCityDay(day, maxDay, haystack) ||
-      dayKind === 'movement' ||
-      dayKind === 'return_home'
+      dayKind === 'movement'
     if (!isHubOrFlight && isKnownDestinationCityEnglishKeyword(accepted)) {
       const fromPoi = preferPoiOverBareCityLlm(row, accepted, productDestination)
       if (fromPoi !== accepted) return fromPoi
@@ -458,7 +468,7 @@ function resolveHanatourPrimaryKeyword(
     return resolveHanatourDestinationCityDayKeyword(row, day, maxDay, productDestination, allRows)
   }
 
-  if (dayKind === 'movement' || dayKind === 'return_home') {
+  if (dayKind === 'movement') {
     return resolveHanatourMovementDayKeyword(row, day, maxDay, productDestination, allRows)
   }
 

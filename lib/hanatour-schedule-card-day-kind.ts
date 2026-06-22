@@ -102,6 +102,13 @@ export function classifyHanatourScheduleCardDayKind(
   ) {
     return 'return_home'
   }
+  if (
+    day === maxDay &&
+    maxDay >= 2 &&
+    /(?:귀국|인천|ICN|김포|GMP)(?:\s*국제)?\s*공항?\s*도착/u.test(j)
+  ) {
+    return 'return_home'
+  }
   if (inferHanatourMovementTitle(j, day, maxDay) != null || isHanatourMovementPatternDay(j, day, maxDay)) {
     return 'movement'
   }

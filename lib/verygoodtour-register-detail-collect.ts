@@ -295,6 +295,14 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
         shoppingSummaryText: visitCount > 0 ? `쇼핑 ${visitCount}회` : '쇼핑 없음',
       }
       summaryParts.push(`쇼핑 ${visitCount}회`)
+      if (visitCount > 0 && !hasStructuredJsonRows(next.shoppingStops)) {
+        next = {
+          ...next,
+          shoppingStops: JSON.stringify([
+            { itemName: `쇼핑 ${visitCount}회`, shopLocation: '', duration: '', refundable: '' },
+          ]),
+        }
+      }
     } else if (product.noShoppingFlag === true) {
       next = {
         ...next,

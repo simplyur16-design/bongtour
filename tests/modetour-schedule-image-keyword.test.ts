@@ -253,6 +253,54 @@ describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 
     assert.equal(d9.imageKeyword2, null)
   })
 
+  it('푸켓 — LLM Phuket 반복 시 route 명소 우선·귀국일 비움', () => {
+    const phuketOpts = { productDestination: 'Thailand' }
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '인천 출발 및 푸켓 도착',
+          description: '인천 출발 푸켓 도착',
+          routeText: '인천 - 푸켓',
+          imageKeyword: 'Phuket',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '팡아만',
+          description: '팡아만 해상 국립공원 관광',
+          routeText: '푸켓 - 팡아만',
+          imageKeyword: 'Phuket',
+          imageKeyword2: 'James Bond Island',
+        },
+        {
+          day: 3,
+          title: '산호섬',
+          description: '산호섬 휴양 및 칠바 마켓',
+          routeText: '푸켓 - 산호섬 - 칠바 마켓',
+          imageKeyword: 'Phuket',
+          imageKeyword2: 'Chillva Market',
+        },
+        {
+          day: 5,
+          title: '인천 도착',
+          description: '인천 국제공항 도착',
+          routeText: '푸켓 - 인천',
+          imageKeyword: 'Phuket',
+          imageKeyword2: null,
+        },
+      ],
+      phuketOpts,
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    const d5 = out.find((r) => r.day === 5)!
+    assert.match(d2.imageKeyword!, /James Bond/i)
+    assert.match(d3.imageKeyword!, /Coral Island|Chillva/i)
+    assert.equal(d5.imageKeyword, '')
+    assert.equal(d5.imageKeyword2, null)
+  })
+
   it('푸꾸옥 한글 routeText — 도시명 대신 일차별 명소 1·2순위', () => {
     const phuQuocOpts = { productDestination: '푸꾸옥' }
     const out = applyModetourScheduleImageKeywordsToRows(

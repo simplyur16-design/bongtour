@@ -8,6 +8,7 @@
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
+  isRegisterScheduleFreeLeisureDay,
   pickDistinctSecondScheduleImageKeyword,
   resolveTourismKeywordPreferDistinctPerDay,
   shouldReconcileScheduleImageKeyword2,
@@ -269,6 +270,13 @@ export function classifyYbtourScheduleCardDayKind(
   ) {
     return 'return_home'
   }
+  if (
+    day === maxDay &&
+    maxDay >= 2 &&
+    /(?:귀국|인천|ICN|김포|GMP)(?:\s*국제)?\s*공항?\s*도착/u.test(j)
+  ) {
+    return 'return_home'
+  }
   if (day === maxDay && maxDay >= 2 && /(귀국|인천\s*도착|ICN\s*도착|서울\s*도착)/.test(j) && /출발/.test(j)) {
     return 'return_home'
   }
@@ -298,6 +306,14 @@ function resolveYbtourPrimaryKeywordCore(
     tryAcceptYbtourLlmImageKeyword(raw, productDestination)
   const accepted = acceptLlm(row.imageKeyword)
 
+  if (dayKind === 'return_home') {
+    return ''
+  }
+
+  if (isRegisterScheduleFreeLeisureDay(buildYbtourDayHaystack(row))) {
+    return ''
+  }
+
   if (dayKind === 'tourism' && accepted) {
     const fromRouteLast = pickEnglishRouteTextPlace(row.routeText, true)
     const fromRouteFirst = pickEnglishRouteTextPlace(row.routeText, false)
@@ -317,7 +333,7 @@ function resolveYbtourPrimaryKeywordCore(
 
   if (accepted) return accepted
 
-  if (dayKind === 'movement' || dayKind === 'return_home') {
+  if (dayKind === 'movement') {
     const pickLast = day === maxDay && maxDay >= 2
     const fromRoute = pickEnglishRouteTextPlace(row.routeText, pickLast)
     if (fromRoute) return fromRoute
