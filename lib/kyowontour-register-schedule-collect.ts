@@ -7,6 +7,10 @@
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 import type { KyowontourScheduleRowParsed, KyowontourScheduleTabParsed } from '@/lib/kyowontour-tour-event-tab-data'
 import { polishKyowontourImageKeyword } from '@/lib/kyowontour-schedule-image-keyword'
+import {
+  mergeScheduleDaysPreservingExpressionMergingMealHotel,
+  scheduleNeedsMealHotelCollect,
+} from '@/lib/register-schedule-meal-hotel-merge'
 
 function stripScheduleNameKo(name: string): string {
   return name.replace(/^[\s▶■◎●]+/, '').replace(/\s+/g, ' ').trim()
@@ -59,9 +63,14 @@ function buildDescription(rows: KyowontourScheduleRowParsed[]): string {
 }
 
 export function needsKyowontourScheduleCollect(parsed: RegisterParsed): boolean {
-  if (parsed.kyowontourScheduleExtractFilled) return false
+  if (parsed.kyowontourScheduleExtractFilled) {
+    const rows = parsed.schedule ?? []
+    if (rows.length > 0 && scheduleNeedsMealHotelCollect(rows)) return true
+    return false
+  }
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
+  if (scheduleNeedsMealHotelCollect(rows)) return true
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
 }
 
@@ -112,7 +121,7 @@ export function applyKyowontourScheduleCollectToParsed(
   if (!notes.includes(note)) notes.push(note)
   return {
     ...parsed,
-    schedule: scheduleDays,
+    schedule: mergeScheduleDaysPreservingExpressionMergingMealHotel(parsed.schedule ?? [], scheduleDays),
     kyowontourScheduleCollectRan: true,
     kyowontourScheduleCollectSummary: summary,
     registerPreviewPolicyNotes: notes,

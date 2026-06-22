@@ -1962,6 +1962,41 @@
       ]
     },
     {
+      "id": "register-schedule-meal-hotel-merge",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 일정 — LLM 일차에 본문·탭 조식/중식/석식·호텔 보강",
+      "checks": [
+        {
+          "file": "lib/register-schedule-meal-hotel-merge.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-meal-hotel-merge]",
+            "mergeScheduleMealHotelPatch",
+            "mergeScheduleDaysPreservingExpressionMergingMealHotel"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-schedule.ts",
+          "mustInclude": [
+            "mergeScheduleDaysPreservingExpressionMergingMealHotel"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-schedule-collect.ts",
+          "mustInclude": [
+            "scheduleNeedsMealHotelCollect",
+            "mergeScheduleDaysPreservingExpressionMergingMealHotel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-meal-hotel-merge.test.ts",
+        "lib/kyowontour-register-schedule-collect.test.ts"
+      ]
+    },
+    {
       "id": "infer-home-departure-airport",
       "tier": [
         "prebuild",

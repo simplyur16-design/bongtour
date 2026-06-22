@@ -19,6 +19,7 @@ import {
 } from '@/lib/ybtour-schedule-day-header-title'
 import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import { mergeScheduleDaysPreservingExpressionMergingMealHotel } from '@/lib/register-schedule-meal-hotel-merge'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -263,7 +264,7 @@ export function buildYbtourScheduleFromPastedText(pastedBody: string): RegisterS
   return out
 }
 
-/** LLM `parsed.schedule`에 없는 day만 본문 보조 행으로 추가 후 day 오름차순 */
+/** LLM `parsed.schedule`에 없는 day는 본문 보조 행으로 추가. 기존 day는 식사·호텔만 보강 */
 export function mergeMissingYbtourScheduleDays(
   parsed: RegisterParsed,
   pastedBody: string
@@ -272,15 +273,7 @@ export function mergeMissingYbtourScheduleDays(
   if (!bodyRows.length) return parsed
 
   const existing = parsed.schedule ?? []
-  const byDay = new Map<number, RegisterScheduleDay>()
-  for (const r of existing) {
-    const d = Number(r.day)
-    if (Number.isInteger(d) && d > 0) byDay.set(d, r)
-  }
-  for (const r of bodyRows) {
-    if (!byDay.has(r.day)) byDay.set(r.day, r)
-  }
-  const merged = [...byDay.values()].sort((a, b) => a.day - b.day)
+  const merged = mergeScheduleDaysPreservingExpressionMergingMealHotel(existing, bodyRows)
   return { ...parsed, schedule: merged }
 }
 

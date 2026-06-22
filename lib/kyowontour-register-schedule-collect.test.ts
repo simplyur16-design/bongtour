@@ -19,6 +19,24 @@ describe('kyowontour register schedule collect mapping', () => {
         ...parsed,
         schedule: [{ day: 1, title: '쿤밍', description: '출발', imageKeyword: 'Kunming' }],
       }),
+    ).toBe(true)
+    expect(
+      needsKyowontourScheduleCollect({
+        ...parsed,
+        kyowontourScheduleExtractFilled: true,
+        schedule: [
+          {
+            day: 1,
+            title: '쿤밍',
+            description: '출발',
+            imageKeyword: 'Kunming',
+            breakfastText: '호텔식',
+            lunchText: '현지식',
+            dinnerText: '현지식',
+            hotelText: '호텔A',
+          },
+        ],
+      }),
     ).toBe(false)
   })
 

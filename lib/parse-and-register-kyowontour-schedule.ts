@@ -19,6 +19,9 @@ import {
 } from '@/lib/kyowontour-schedule-day-header-title'
 import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import {
+  mergeScheduleDaysPreservingExpressionMergingMealHotel,
+} from '@/lib/register-schedule-meal-hotel-merge'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -137,17 +140,21 @@ function extractHotelFromKyowontourBlock(block: string): string | null {
 
 function extractMealsFromKyowontourBlock(block: string): Partial<RegisterScheduleDay> {
   const mealSection = block.match(
-    /식사\s*[\n\r]+([\s\S]*?)(?=\n\s*\d{1,2}일차(?:\s|$|\r?\n)|$)/i
+    /식사\s*[\n\r]+([\s\S]*?)(?=\n\s*(?:예정호텔|숙박)\s*[\n\r]|\n\s*\d{1,2}일차(?:\s|$|\r?\n)|$)/i
   )?.[1]?.trim()
   const raw = mealSection ?? block.match(/식사\s*[\n\r]+\s*([^\n\r]+)/i)?.[1]?.trim()
   if (!raw) return {}
   let t = raw.replace(/\s+/g, ' ').replace(/일자\s*$/i, '').trim()
   const out: Partial<RegisterScheduleDay> = { mealSummaryText: t.slice(0, 500) }
-  const bracketTriple = t.match(/\[조식\]\s*([^\[]*?)\s*\[중식\]\s*([^\[]*?)\s*\[석식\]\s*(.+)/i)
+  const bracketTriple = t.match(/\[조식\]\s*([^\[]*?)\s*\[중식\]\s*([^\[]*?)\s*\[석식\]\s*([^\n\[]+)/i)
   if (bracketTriple) {
-    out.breakfastText = bracketTriple[1]!.trim().slice(0, 200)
-    out.lunchText = bracketTriple[2]!.trim().slice(0, 200)
-    out.dinnerText = bracketTriple[3]!.trim().slice(0, 200)
+    const a = bracketTriple[1]!.trim().replace(/^[-–—]+$/, '').trim()
+    const b = bracketTriple[2]!.trim().replace(/^[-–—]+$/, '').trim()
+    const c = bracketTriple[3]!.trim().replace(/^[-–—]+$/, '').trim()
+    if (a) out.breakfastText = a.slice(0, 200)
+    if (b) out.lunchText = b.slice(0, 200)
+    if (c) out.dinnerText = c.slice(0, 200)
+    out.mealSummaryText = [a, b, c].filter(Boolean).join(' · ').slice(0, 500)
     return out
   }
   const triple = t.match(
@@ -263,7 +270,7 @@ export function buildKyowontourScheduleFromPastedText(pastedBody: string): Regis
   return out
 }
 
-/** LLM `parsed.schedule`에 없는 day만 본문 보조 행으로 추가 후 day 오름차순 */
+/** LLM `parsed.schedule`에 없는 day는 본문 보조 행으로 추가. 기존 day는 식사·호텔만 보강 */
 export function mergeMissingKyowontourScheduleDays(
   parsed: RegisterParsed,
   pastedBody: string
@@ -272,15 +279,7 @@ export function mergeMissingKyowontourScheduleDays(
   if (!bodyRows.length) return parsed
 
   const existing = parsed.schedule ?? []
-  const byDay = new Map<number, RegisterScheduleDay>()
-  for (const r of existing) {
-    const d = Number(r.day)
-    if (Number.isInteger(d) && d > 0) byDay.set(d, r)
-  }
-  for (const r of bodyRows) {
-    if (!byDay.has(r.day)) byDay.set(r.day, r)
-  }
-  const merged = [...byDay.values()].sort((a, b) => a.day - b.day)
+  const merged = mergeScheduleDaysPreservingExpressionMergingMealHotel(existing, bodyRows)
   return { ...parsed, schedule: merged }
 }
 

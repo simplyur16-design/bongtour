@@ -11,6 +11,7 @@ import {
   type HanatourScheduleCardDayKind,
 } from '@/lib/hanatour-schedule-card-day-kind'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
+import { mergeScheduleDaysPreservingExpressionMergingMealHotel } from '@/lib/register-schedule-meal-hotel-merge'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
@@ -1673,8 +1674,17 @@ export function sanitizeHanatourScheduleRowExpression(
 }
 
 export function augmentHanatourScheduleExpressionParsed(parsed: RegisterParsed): RegisterParsed {
-  const sched = parsed.schedule
-  if (!sched?.length) return parsed
+  let sched = parsed.schedule ?? []
+  if (parsed.detailBodyStructured) {
+    const bodyRows = buildPreviewHanatourScheduleFromDetailBody(parsed.detailBodyStructured)
+    if (bodyRows.length > 0) {
+      sched =
+        sched.length > 0
+          ? mergeScheduleDaysPreservingExpressionMergingMealHotel(sched, bodyRows)
+          : bodyRows
+    }
+  }
+  if (!sched.length) return parsed
   return {
     ...parsed,
     schedule: sched.map((r) => stripCounselingTermsFromScheduleRow(r)),
