@@ -819,7 +819,10 @@ export function ProductResultCard({
                 : 'relative aspect-video w-full overflow-hidden bg-slate-100'
         }
       >
-        {item.hasUrgentDeal ? (
+        {item.hasUrgentDeal &&
+        item.urgentDealBaselinePriceKrw != null &&
+        item.urgentDealCurrentPriceKrw != null &&
+        item.urgentDealCurrentPriceKrw < item.urgentDealBaselinePriceKrw ? (
           // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: browse 카드 긴급모객 리본 — manifest
           <span
             className={

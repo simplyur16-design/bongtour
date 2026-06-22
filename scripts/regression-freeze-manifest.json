@@ -1922,7 +1922,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "등록 후 상품리스트 캐시 — /travel/overseas revalidate·hubCatalog 버전·confirm registered SSOT",
+      "summary": "등록 후 상품리스트 캐시 — /travel/overseas revalidate·hubCatalog 버전",
       "checks": [
         {
           "file": "lib/revalidate-product-listing-caches.ts",
@@ -1937,12 +1937,23 @@
             "REGRESSION-FREEZE[product-listing-cache-revalidate]",
             "OVERSEAS_HUB_CATALOG_CLIENT_VERSION"
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "register-confirm-pending-status",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 confirm 저장 — 신규는 pending(등록대기), 기등록 registered만 유지",
+      "checks": [
         {
           "file": "lib/register-confirm-registration-status.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[product-listing-cache-revalidate]",
-            "resolveRegistrationStatusForRegisterConfirm"
+            "REGRESSION-FREEZE[register-confirm-pending-status]",
+            "resolveRegistrationStatusForRegisterConfirm",
+            "return 'pending'"
           ]
         }
       ],
@@ -2180,7 +2191,8 @@
           "file": "components/products/ProductResultsList.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
-            "aria-label=\"긴급모객\""
+            "aria-label=\"긴급모객\"",
+            "urgentDealCurrentPriceKrw < item.urgentDealBaselinePriceKrw"
           ]
         },
         {

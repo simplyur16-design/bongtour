@@ -2,12 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
 
 describe('resolveRegistrationStatusForRegisterConfirm', () => {
-  it('geo OK + 출발·일정 있으면 신규도 registered', () => {
+  it('geo OK + 출발·일정 있어도 신규는 pending (등록대기)', () => {
     expect(
       resolveRegistrationStatusForRegisterConfirm({
         masterRegistrationOk: true,
         needsOperatorReview: false,
         existingRegistrationStatus: null,
+        hasDeparturesToSave: true,
+        hasItineraryDaysToSave: true,
+      }),
+    ).toBe('pending')
+  })
+
+  it('이미 registered면 재confirm 시 registered 유지', () => {
+    expect(
+      resolveRegistrationStatusForRegisterConfirm({
+        masterRegistrationOk: true,
+        needsOperatorReview: false,
+        existingRegistrationStatus: 'registered',
         hasDeparturesToSave: true,
         hasItineraryDaysToSave: true,
       }),
