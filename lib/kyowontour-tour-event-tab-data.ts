@@ -8,6 +8,7 @@ import type {
   KyowontourOptionalTourFromBody,
   KyowontourShoppingItemFromBody,
 } from '@/lib/kyowontour-admin-preview-card-types'
+import { normalizeRegisterOptionalTourCurrency } from '@/lib/register-admin-preview-card-build'
 
 export const KYOWONTOUR_TAB_SCHEDULE_ID = 'goodsEvtTab_2' as const
 export const KYOWONTOUR_TAB_OPT_SHOP_ID = 'goodsEvtTab_7' as const
@@ -238,8 +239,8 @@ export function parseKyowontourEtcTourRow(raw: unknown): KyowontourOptionalTourF
   if (!o) return null
   const name = String(o.nameKo ?? o.name ?? '').trim()
   if (!name) return null
-  const curRaw = String(o.currency ?? o.currencyCode ?? 'KRW').toUpperCase()
-  const currency: 'USD' | 'KRW' = curRaw === 'USD' ? 'USD' : 'KRW'
+  const curRaw = String(o.currency ?? o.currencyCode ?? o.currencyName ?? 'KRW')
+  const currency = normalizeRegisterOptionalTourCurrency(curRaw)
   return {
     name,
     description: String(o.description ?? o.descriptionShort ?? '').trim(),

@@ -179,7 +179,7 @@ type RegisterVerificationV1 =
   | RegisterVerificationV1Kw
   | RegisterVerificationV1Lt
 
-/** 교원이지·롯데관광 미리보기 `data` — 응답에 포함될 때만 카드에 사용한다. */
+/** 교원이지·롯데관광·6공급사 공통 미리보기 `data` — 응답에 포함될 때만 카드에 사용한다. */
 function previewFinalParsedSummaryFromPayload(p: AdminRegisterPreviewPayload | null): RegisterAdminFinalParsedSummary | null {
   if (!p) return null
   const d = (p as { data?: RegisterAdminFinalParsedSummary | null }).data

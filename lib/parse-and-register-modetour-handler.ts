@@ -14,6 +14,7 @@ import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
+import { buildRegisterAdminPreviewCardData } from '@/lib/register-admin-preview-card-build'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import {
@@ -1608,12 +1609,20 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
         destination: parsed.destination,
         scheduleDayTitles: scheduleTitlesForBongtour,
       })
+      const data = buildRegisterAdminPreviewCardData({
+        parsed: parsedForPreview,
+        productDraft,
+        schedule,
+        originalBodyText: text,
+        fieldIssues: combinedFieldIssues,
+      })
       const previewPayload = {
         success: true as const,
         mode: 'preview' as const,
         previewToken,
         previewContentDigest,
         productDraft,
+        data,
         departureDrafts: toDeparturePreviewRows(departureInputs),
         itineraryDayDrafts,
         parsed: parsedForPreview,

@@ -16,6 +16,14 @@ import {
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { finalizeModetourRegisterParsedShopping } from '@/lib/register-modetour-shopping'
+import {
+  hasStructuredJsonRows,
+  needsRegisterExcludedCollect,
+  needsRegisterIncludedCollect,
+  needsRegisterIncludedExcludedCollect,
+  needsRegisterOptionalCollect,
+  needsRegisterShoppingCollect,
+} from '@/lib/register-detail-collect-gates'
 
 export type ModetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -100,37 +108,29 @@ function hasShoppingPaste(ctx?: ModetourRegisterDetailAugmentCtx): boolean {
 }
 
 function hasStructuredOptional(parsed: RegisterParsed): boolean {
-  const raw = parsed.optionalToursStructured
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.optionalToursStructured)
 }
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
-  const raw = parsed.shoppingStops
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.shoppingStops)
+}
+
+export function needsModetourIncludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedCollect(parsed)
+}
+
+export function needsModetourExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterExcludedCollect(parsed)
+}
+
+export function needsModetourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedExcludedCollect(parsed)
 }
 
 export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
-}
-
-export function needsModetourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
-  const hasIncl = (parsed.includedItems?.length ?? 0) > 0 || Boolean(parsed.includedText?.trim())
-  const hasExcl = (parsed.excludedItems?.length ?? 0) > 0 || Boolean(parsed.excludedText?.trim())
-  return !hasIncl && !hasExcl
 }
 
 export function needsModetourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -146,13 +146,19 @@ export async function augmentModetourParsedWithDetailCollect(
   if (!originUrl || !productNo || productNo === '0') return parsed
 
   const needSchedule = needsModetourScheduleCollect(parsed)
-  const needInclExcl = needsModetourIncludedExcludedCollect(parsed)
+  const needIncl = needsModetourIncludedCollect(parsed)
+  const needExcl = needsModetourExcludedCollect(parsed)
+  const needInclExcl = needIncl || needExcl
   const needMustKnow = needsModetourMustKnowCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
-  const needShop =
-    !hasShoppingPaste(ctx) &&
-    !hasStructuredShopping(parsed) &&
-    parsed.shoppingVisitCount == null
+  const needOpt = needsRegisterOptionalCollect({
+    hasOptionalPaste: hasOptionalPaste(ctx),
+    optionalToursStructured: parsed.optionalToursStructured,
+    hasOptionalTour: parsed.hasOptionalTour,
+  })
+  const needShop = needsRegisterShoppingCollect({
+    hasShoppingPaste: hasShoppingPaste(ctx),
+    shoppingStops: parsed.shoppingStops,
+  })
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop) return parsed
 
@@ -177,7 +183,7 @@ export async function augmentModetourParsedWithDetailCollect(
   const inclExcl = extractModetourIncludedExcludedFromDetailInfo(detailBundle?.detailInfo)
   if (needInclExcl && (inclExcl.includedItems.length > 0 || inclExcl.excludedItems.length > 0)) {
     const fees = extractFeeLinesFromExcluded(inclExcl.excludedText ?? '')
-    if (inclExcl.includedItems.length > 0 || inclExcl.includedText) {
+    if (needIncl && (inclExcl.includedItems.length > 0 || inclExcl.includedText)) {
       next = {
         ...next,
         includedItems: inclExcl.includedItems.length > 0 ? inclExcl.includedItems : next.includedItems,
@@ -185,7 +191,7 @@ export async function augmentModetourParsedWithDetailCollect(
         includedRaw: inclExcl.includedText ?? next.includedRaw,
       }
     }
-    if (inclExcl.excludedItems.length > 0 || inclExcl.excludedText) {
+    if (needExcl && (inclExcl.excludedItems.length > 0 || inclExcl.excludedText)) {
       const mergedExcl = [...inclExcl.excludedItems]
       for (const extra of [fees.singleRoomSurchargeRaw, fees.guideTipRaw, fees.visaRaw]) {
         if (extra && !mergedExcl.some((x) => x.includes(extra.slice(0, 20)))) mergedExcl.push(extra)

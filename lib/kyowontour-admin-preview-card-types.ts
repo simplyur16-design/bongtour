@@ -20,7 +20,7 @@ export type KyowontourOptionalTourFromBody = {
   priceAdult: number
   priceChild: number
   priceInfant: number
-  currency: 'USD' | 'KRW'
+  currency: string
   duration: string
   alternativeProgram: string
 }

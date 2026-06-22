@@ -391,9 +391,24 @@ export function deriveProductLocationKeyFieldsForPrisma(
 
     if (!m) return empty
 
-    const caucasusHaystack = [title, input.primaryDestination, input.destinationRaw, input.destination, body]
+    const geoHaystack = [title, input.primaryDestination, input.destinationRaw, input.destination, body]
       .filter((x): x is string => Boolean(x && String(x).trim()))
       .join(' ')
+    if (
+      /마츠야마|마쓰야마|matsuyama|다카마츠|takamatsu|도쿠시마|tokushima|시코쿠|四国|shikoku/i.test(geoHaystack) &&
+      m.groupKey !== 'japan'
+    ) {
+      const anchor = matchProductToOverseasNode({
+        title: '일본 마츠야마',
+        originSource: originSource || ' ',
+        primaryDestination: '일본',
+        destinationRaw: '마츠야마',
+        destination: null,
+      })
+      if (anchor?.groupKey === 'japan') m = anchor
+    }
+
+    const caucasusHaystack = geoHaystack
     if (isMiddleEastOrDubaiMatch(m) && detectCaucasusPackageFromHaystack(caucasusHaystack)) {
       m = buildCaucasusPackageTreeMatch()
     }

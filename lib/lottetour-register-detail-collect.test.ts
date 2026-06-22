@@ -9,11 +9,14 @@ import {
   extractLottetourMeetingFromScheduleAjax,
   extractLottetourMustKnowFromBasicAjax,
   extractLottetourOptionalFromSpotListAjax,
+  extractLottetourShoppingFromSpotListAjax,
   extractLottetourShoppingVisitCountFromCoreInfo,
   htmlBulletsFromLottetourBlock,
   parseLottetourScheduleDaysFromScheduleAjax,
 } from './lottetour-register-api-detail'
 import {
+  needsLottetourExcludedCollect,
+  needsLottetourIncludedCollect,
   needsLottetourIncludedExcludedCollect,
   needsLottetourScheduleCollect,
 } from './lottetour-register-detail-collect'
@@ -47,6 +50,30 @@ const CORE_FIXTURE = `
     </tr>
   </tbody>
 </table>
+`
+
+const SHOP_SPOT_FIXTURE = `
+<div class="travel_info_cont"><!-- 쇼핑 -->
+  <dl class="dl_box">
+    <dt>쇼핑정보</dt>
+    <dd>
+      <p>본 상품에는 총 <span class="txt_red" id="shopCnt">2</span>회의 쇼핑센터 방문 일정이 있습니다.</p>
+      <table class="table"><tbody>
+        <tr><td>1</td><td class="tal">침향</td><td class="tac">침향샵</td><td class="tac">1시간</td><td class="tac">Y</td></tr>
+        <tr><td>2</td><td class="tal">커피</td><td class="tac">커피샵</td><td class="tac">1시간</td><td class="tac">Y</td></tr>
+      </tbody></table>
+    </dd>
+  </dl>
+</div><!-- //travel_info_cont : 쇼핑 -->
+`
+
+const OPT_SPOT_FIXTURE = `
+<div class="travel_info_cont on"><!-- 선택관광 -->
+  <dl class="dl_box type03">
+    <dt><label>[선택관광] 달랏 관광열차</label></dt>
+    <dd>소요 2시간<table><tr><td>USD 30</td></tr></table></dd>
+  </dl>
+</div><!-- //travel_info_cont : 선택관광 -->
 `
 
 const MEETING_FIXTURE = `
@@ -98,8 +125,18 @@ describe('lottetour register detail collect', () => {
     ).toBe(false)
   })
 
-  it('needs included/excluded when both missing', () => {
+  it('needs included/excluded when either side missing', () => {
     expect(needsLottetourIncludedExcludedCollect({} as RegisterParsed)).toBe(true)
+    expect(
+      needsLottetourIncludedCollect({
+        excludedItems: ['팁'],
+      } as RegisterParsed),
+    ).toBe(true)
+    expect(
+      needsLottetourExcludedCollect({
+        includedItems: ['항공권'],
+      } as RegisterParsed),
+    ).toBe(true)
     expect(
       needsLottetourIncludedExcludedCollect({
         includedText: '항공권',
@@ -128,6 +165,21 @@ describe('lottetour register detail collect', () => {
 
   it('parses shopping visit count from coreInfo', () => {
     expect(extractLottetourShoppingVisitCountFromCoreInfo(CORE_FIXTURE)).toBe(2)
+  })
+
+  it('parses shopping rows from spotListAjax', () => {
+    const shop = extractLottetourShoppingFromSpotListAjax(SHOP_SPOT_FIXTURE)
+    expect(shop.visitCount).toBe(2)
+    expect(shop.rows).toHaveLength(2)
+    expect(shop.rows[0]?.itemType).toBe('침향')
+    expect(shop.rows[1]?.placeName).toBe('커피샵')
+  })
+
+  it('parses optional row from spotListAjax label', () => {
+    const rows = extractLottetourOptionalFromSpotListAjax(OPT_SPOT_FIXTURE)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.name).toMatch(/달랏 관광열차/)
+    expect(rows[0]?.currency).toBe('USD')
   })
 
   it('htmlBulletsFromLottetourBlock splits ▣ lines', () => {

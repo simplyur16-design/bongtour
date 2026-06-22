@@ -25,6 +25,14 @@ import {
   ybtourHaystackDeclaresNoOptional,
   ybtourHaystackDeclaresNoShopping,
 } from '@/lib/register-ybtour-shopping'
+import {
+  hasStructuredJsonRows,
+  needsRegisterExcludedCollect,
+  needsRegisterIncludedCollect,
+  needsRegisterIncludedExcludedCollect,
+  needsRegisterOptionalCollect,
+  needsRegisterShoppingCollect,
+} from '@/lib/register-detail-collect-gates'
 
 export type YbtourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -40,37 +48,29 @@ function hasShoppingPaste(ctx?: YbtourRegisterDetailAugmentCtx): boolean {
 }
 
 function hasStructuredOptional(parsed: RegisterParsed): boolean {
-  const raw = parsed.optionalToursStructured
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.optionalToursStructured)
 }
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
-  const raw = parsed.shoppingStops
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.shoppingStops)
+}
+
+export function needsYbtourIncludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedCollect(parsed)
+}
+
+export function needsYbtourExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterExcludedCollect(parsed)
+}
+
+export function needsYbtourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedExcludedCollect(parsed)
 }
 
 export function needsYbtourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
-}
-
-export function needsYbtourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
-  const hasIncl = (parsed.includedItems?.length ?? 0) > 0 || Boolean(parsed.includedText?.trim())
-  const hasExcl = (parsed.excludedItems?.length ?? 0) > 0 || Boolean(parsed.excludedText?.trim())
-  return !hasIncl && !hasExcl
 }
 
 export function needsYbtourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -106,16 +106,24 @@ export async function augmentYbtourParsedWithDetailCollect(
   const originUrl = (ctx?.originUrl ?? '').trim()
   if (!originUrl || !parseYbtourEvCdFromUrl(originUrl)) return parsed
 
+  const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
   const needSchedule = needsYbtourScheduleCollect(parsed)
-  const needInclExcl = needsYbtourIncludedExcludedCollect(parsed)
+  const needIncl = needsYbtourIncludedCollect(parsed)
+  const needExcl = needsYbtourExcludedCollect(parsed)
+  const needInclExcl = needIncl || needExcl
   const needMustKnow = needsYbtourMustKnowCollect(parsed)
   const needMeeting = needsYbtourMeetingCollect(parsed)
   const needFlight = needsYbtourFlightCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
-  const needShop =
-    !hasShoppingPaste(ctx) &&
-    !hasStructuredShopping(parsed) &&
-    parsed.shoppingVisitCount == null
+  const needOpt = needsRegisterOptionalCollect({
+    hasOptionalPaste: hasOptionalPaste(ctx),
+    optionalToursStructured: parsed.optionalToursStructured,
+    hasOptionalTour: parsed.hasOptionalTour,
+    declaresNoOptional: ybtourHaystackDeclaresNoOptional(titleHay),
+  })
+  const needShop = needsRegisterShoppingCollect({
+    hasShoppingPaste: hasShoppingPaste(ctx),
+    shoppingStops: parsed.shoppingStops,
+  })
 
   if (
     !needSchedule &&
@@ -143,7 +151,6 @@ export async function augmentYbtourParsedWithDetailCollect(
   const { notice, schedule, tourDetail } = bundle
   const scheduleDetail = schedule?.scheduleDetail ?? []
   const scheduleDetailTm = schedule?.scheduleDetailTm ?? []
-  const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
 
   if (needSchedule && scheduleDetail.length + scheduleDetailTm.length > 0) {
     const scheduleDays = ybtourScheduleBundleToRegisterSchedule(scheduleDetail, scheduleDetailTm)
@@ -153,9 +160,9 @@ export async function augmentYbtourParsedWithDetailCollect(
     }
   }
 
-  if (needInclExcl && notice) {
+  if ((needIncl || needExcl) && notice) {
     const { includedItems, excludedItems } = extractYbtourIncludedExcluded(notice)
-    if (includedItems.length > 0) {
+    if (needIncl && includedItems.length > 0) {
       next = {
         ...next,
         includedItems,
@@ -163,13 +170,15 @@ export async function augmentYbtourParsedWithDetailCollect(
         includedRaw: includedItems.join('\n'),
       }
     }
-    if (excludedItems.length > 0) {
+    if (needExcl && excludedItems.length > 0) {
       next = {
         ...next,
         excludedItems,
         excludedText: excludedItems.join('\n'),
         excludedRaw: excludedItems.join('\n'),
       }
+    }
+    if ((needIncl && includedItems.length > 0) || (needExcl && excludedItems.length > 0)) {
       summaryParts.push(`포함 ${includedItems.length}·불포함 ${excludedItems.length}`)
     }
     const fees = extractYbtourFeesFromNotice(notice)

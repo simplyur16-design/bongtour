@@ -150,6 +150,82 @@ export function extractLottetourShoppingVisitCountFromCoreInfo(html: string | nu
   return Number.isFinite(n) && n >= 0 && n < 100 ? n : null
 }
 
+export type LottetourShoppingRowExtract = {
+  itemType: string
+  placeName: string
+  durationText: string | null
+  refundPolicyText: string | null
+  visitNo: number | null
+  raw: string
+}
+
+function lottetourShoppingSectionHtml(html: string): string | null {
+  const m = html.match(
+    /<div class="travel_info_cont"[^>]*>\s*<!--\s*쇼핑\s*-->[\s\S]*?<\/div>\s*<!--\s*\/\/travel_info_cont\s*:\s*쇼핑\s*-->/i,
+  )
+  return m?.[0] ?? null
+}
+
+export function extractLottetourShoppingVisitCountFromSpotList(html: string | null): number | null {
+  if (!html?.trim()) return null
+  const section = lottetourShoppingSectionHtml(html)
+  if (!section) return null
+  const m =
+    section.match(/id="shopCnt"[^>]*>\s*(\d+)\s*</i) ??
+    section.match(/총\s*<[^>]+>\s*(\d+)\s*<\/span>\s*회의\s*쇼핑/i)
+  if (!m?.[1]) return null
+  const n = Number(m[1])
+  return Number.isFinite(n) && n >= 0 && n < 100 ? n : null
+}
+
+/** evtSpotListAjax — 쇼핑정보 표(품목·장소·소요·환불) */
+export function extractLottetourShoppingFromSpotListAjax(html: string | null): {
+  visitCount: number | null
+  rows: LottetourShoppingRowExtract[]
+} {
+  if (!html?.trim()) return { visitCount: null, rows: [] }
+  const section = lottetourShoppingSectionHtml(html)
+  if (!section) return { visitCount: null, rows: [] }
+  const visitCount = extractLottetourShoppingVisitCountFromSpotList(section)
+  const rows: LottetourShoppingRowExtract[] = []
+  const tbody = section.match(/<tbody>([\s\S]*?)<\/tbody>/i)?.[1] ?? ''
+  for (const tr of tbody.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...(tr[1] ?? '').matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) =>
+      stripLottetourScheduleHtml(m[1] ?? ''),
+    )
+    if (cells.length < 5) continue
+    const visitNo = Number(String(cells[0] ?? '').replace(/[^\d]/g, ''))
+    const itemType = (cells[1] ?? '').trim()
+    const placeName = (cells[2] ?? '').trim()
+    if (!itemType && !placeName) continue
+    rows.push({
+      visitNo: Number.isFinite(visitNo) && visitNo > 0 ? visitNo : null,
+      itemType,
+      placeName,
+      durationText: (cells[3] ?? '').trim() || null,
+      refundPolicyText: (cells[4] ?? '').trim() || null,
+      raw: cells.filter(Boolean).join(' · ').slice(0, 400),
+    })
+  }
+  return {
+    visitCount: visitCount ?? (rows.length > 0 ? rows.length : null),
+    rows,
+  }
+}
+
+export function lottetourShoppingRowsToStructuredJson(rows: LottetourShoppingRowExtract[]): string | null {
+  if (rows.length === 0) return null
+  return JSON.stringify(
+    rows.map((r) => ({
+      itemType: r.itemType,
+      placeName: r.placeName,
+      durationText: r.durationText ?? '',
+      refundPolicyText: r.refundPolicyText ?? '',
+      raw: r.raw,
+    })),
+  )
+}
+
 export function lottetourCalendarRowToFlightStructured(row: LottetourCalendarRow | null): FlightStructured | null {
   if (!row) return null
   const carrier = row.carrierText?.trim() || null

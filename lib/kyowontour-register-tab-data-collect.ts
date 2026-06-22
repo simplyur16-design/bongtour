@@ -28,6 +28,14 @@ import {
   needsKyowontourScheduleCollect,
   scheduleTabParsedToRegisterDays,
 } from '@/lib/kyowontour-register-schedule-collect'
+import {
+  hasStructuredJsonRows,
+  needsRegisterExcludedCollect,
+  needsRegisterIncludedCollect,
+  needsRegisterIncludedExcludedCollect,
+  needsRegisterOptionalCollect,
+  needsRegisterShoppingCollect,
+} from '@/lib/register-detail-collect-gates'
 
 export type KyowontourRegisterTabDataAugmentCtx = {
   originUrl?: string | null
@@ -43,37 +51,36 @@ function hasShoppingPaste(blocks?: KyowontourRegisterTabDataAugmentCtx['pastedBl
 }
 
 function hasStructuredOptionalRows(parsed: RegisterParsed): boolean {
-  const raw = parsed.optionalToursStructured
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.optionalToursStructured)
 }
 
 function hasStructuredShoppingRows(parsed: RegisterParsed): boolean {
-  const raw = parsed.shoppingStops
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.shoppingStops)
 }
 
 function needsOptShopCollect(parsed: RegisterParsed, ctx?: KyowontourRegisterTabDataAugmentCtx): boolean {
-  const needOpt = !hasOptionalPaste(ctx?.pastedBlocks) && !hasStructuredOptionalRows(parsed)
-  const needShop = !hasShoppingPaste(ctx?.pastedBlocks) && !hasStructuredShoppingRows(parsed)
+  const needOpt = needsRegisterOptionalCollect({
+    hasOptionalPaste: hasOptionalPaste(ctx?.pastedBlocks),
+    optionalToursStructured: parsed.optionalToursStructured,
+    hasOptionalTour: parsed.hasOptionalTour,
+  })
+  const needShop = needsRegisterShoppingCollect({
+    hasShoppingPaste: hasShoppingPaste(ctx?.pastedBlocks),
+    shoppingStops: parsed.shoppingStops,
+  })
   return needOpt || needShop
 }
 
+export function needsKyowontourIncludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedCollect(parsed)
+}
+
+export function needsKyowontourExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterExcludedCollect(parsed)
+}
+
 export function needsKyowontourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
-  const hasIncl = (parsed.includedItems?.length ?? 0) > 0 || Boolean(parsed.includedText?.trim())
-  const hasExcl = (parsed.excludedItems?.length ?? 0) > 0 || Boolean(parsed.excludedText?.trim())
-  return !hasIncl && !hasExcl
+  return needsRegisterIncludedExcludedCollect(parsed)
 }
 
 export function needsKyowontourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -120,12 +127,13 @@ function applyKyowontourCoreTabToParsed(
   summaryParts: string[],
 ): RegisterParsed {
   let next = parsed
-  const needInclExcl = needsKyowontourIncludedExcludedCollect(next)
+  const needIncl = needsKyowontourIncludedCollect(next)
+  const needExcl = needsKyowontourExcludedCollect(next)
   const needMustKnow = needsKyowontourMustKnowCollect(next)
   const core = parseKyowontourCoreTabDetail(coreDetail)
 
-  if (needInclExcl) {
-    if (core.includedItems.length > 0) {
+  if (needIncl || needExcl) {
+    if (needIncl && core.includedItems.length > 0) {
       next = {
         ...next,
         includedItems: core.includedItems,
@@ -133,7 +141,7 @@ function applyKyowontourCoreTabToParsed(
         includedRaw: core.includedItems.join('\n'),
       }
     }
-    if (core.excludedItems.length > 0) {
+    if (needExcl && core.excludedItems.length > 0) {
       next = {
         ...next,
         excludedItems: core.excludedItems,
@@ -141,7 +149,7 @@ function applyKyowontourCoreTabToParsed(
         excludedRaw: core.excludedItems.join('\n'),
       }
     }
-    if (core.includedItems.length > 0 || core.excludedItems.length > 0) {
+    if ((needIncl && core.includedItems.length > 0) || (needExcl && core.excludedItems.length > 0)) {
       summaryParts.push(`포함 ${core.includedItems.length}·불포함 ${core.excludedItems.length}`)
     }
     if (core.singleRoomSurchargeRaw) {
@@ -165,7 +173,7 @@ function applyKyowontourCoreTabToParsed(
         mandatoryCurrency: core.mandatoryCurrency ?? next.mandatoryCurrency,
       }
     }
-    if (core.visaNoteRaw && !core.excludedItems.some((x) => /비자/i.test(x))) {
+    if (core.visaNoteRaw && needExcl && !core.excludedItems.some((x) => /비자/i.test(x))) {
       const excl = [...(next.excludedItems ?? []), core.visaNoteRaw]
       next = {
         ...next,

@@ -8,6 +8,8 @@ import {
   extractHanatourIncludedExcluded,
 } from './hanatour-register-api-detail'
 import {
+  needsHanatourExcludedCollect,
+  needsHanatourIncludedCollect,
   needsHanatourIncludedExcludedCollect,
   needsHanatourScheduleCollect,
 } from './hanatour-register-detail-collect'
@@ -36,6 +38,19 @@ describe('hanatour register detail collect', () => {
         excludedText: '팁',
       } as RegisterParsed),
     ).toBe(false)
+  })
+
+  it('포함만 있어도 불포함 수집 필요', () => {
+    expect(
+      needsHanatourIncludedCollect({
+        includedText: '항공권',
+      } as RegisterParsed),
+    ).toBe(false)
+    expect(
+      needsHanatourExcludedCollect({
+        includedText: '항공권',
+      } as RegisterParsed),
+    ).toBe(true)
   })
 
   it('formats trvlExpnDesc with cluster prefix', () => {

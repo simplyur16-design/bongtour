@@ -204,6 +204,25 @@ const RE_US_WEST_TRAVEL = new RegExp(
   'i',
 )
 
+/** 시코쿠·마츠야마 등 — 자유여행·호텔명만 있을 때 `other`(그외) 보정 */
+const RE_JAPAN_SHIKOKU_TRAVEL = new RegExp(
+  [
+    '마츠야마',
+    '마쓰야마',
+    'matsuyama',
+    '다카마츠',
+    'takamatsu',
+    '도쿠시마',
+    'tokushima',
+    '고치',
+    'kochi',
+    '시코쿠',
+    '四国',
+    'shikoku',
+  ].join('|'),
+  'i',
+)
+
 /**
  * `/api/products/browse` 전용: 트리 매칭 후 **상품 문자열**로 미주 오분류를 덮어쓴다.
  */
@@ -225,6 +244,9 @@ export function resolveOverseasDisplayBucketForBrowse(
   }
   if (base === 'other' && RE_US_WEST_TRAVEL.test(h)) {
     return 'americas'
+  }
+  if (base === 'other' && RE_JAPAN_SHIKOKU_TRAVEL.test(h)) {
+    return 'japan'
   }
   if (base !== 'americas') return base
 

@@ -21,6 +21,14 @@ import {
 } from '@/lib/hanatour-register-api-detail'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
 import { parseHanatourPkgCdFromUrl } from '@/lib/hanatour-api-departures'
+import {
+  hasStructuredJsonRows,
+  needsRegisterExcludedCollect,
+  needsRegisterIncludedCollect,
+  needsRegisterIncludedExcludedCollect,
+  needsRegisterOptionalCollect,
+  needsRegisterShoppingCollect,
+} from '@/lib/register-detail-collect-gates'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -36,25 +44,11 @@ function hasShoppingPaste(ctx?: HanatourRegisterDetailAugmentCtx): boolean {
 }
 
 function hasStructuredOptional(parsed: RegisterParsed): boolean {
-  const raw = parsed.optionalToursStructured
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.optionalToursStructured)
 }
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
-  const raw = parsed.shoppingStops
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.shoppingStops)
 }
 
 export function needsHanatourScheduleCollect(parsed: RegisterParsed): boolean {
@@ -63,10 +57,16 @@ export function needsHanatourScheduleCollect(parsed: RegisterParsed): boolean {
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
 }
 
+export function needsHanatourIncludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedCollect(parsed)
+}
+
+export function needsHanatourExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterExcludedCollect(parsed)
+}
+
 export function needsHanatourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
-  const hasIncl = (parsed.includedItems?.length ?? 0) > 0 || Boolean(parsed.includedText?.trim())
-  const hasExcl = (parsed.excludedItems?.length ?? 0) > 0 || Boolean(parsed.excludedText?.trim())
-  return !hasIncl && !hasExcl
+  return needsRegisterIncludedExcludedCollect(parsed)
 }
 
 export function needsHanatourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -81,7 +81,9 @@ function applyProdInfoFields(
   let next = parsed
 
   const { includedItems, excludedItems } = extractHanatourIncludedExcluded(info)
-  if (includedItems.length > 0) {
+  const needIncl = needsHanatourIncludedCollect(next)
+  const needExcl = needsHanatourExcludedCollect(next)
+  if (needIncl && includedItems.length > 0) {
     next = {
       ...next,
       includedItems,
@@ -89,13 +91,15 @@ function applyProdInfoFields(
       includedRaw: includedItems.join('\n'),
     }
   }
-  if (excludedItems.length > 0) {
+  if (needExcl && excludedItems.length > 0) {
     next = {
       ...next,
       excludedItems,
       excludedText: excludedItems.join('\n'),
       excludedRaw: excludedItems.join('\n'),
     }
+  }
+  if ((needIncl && includedItems.length > 0) || (needExcl && excludedItems.length > 0)) {
     summaryParts.push(`포함 ${includedItems.length}·불포함 ${excludedItems.length}`)
   }
 
@@ -150,11 +154,15 @@ export async function augmentHanatourParsedWithDetailCollect(
   const needSchedule = needsHanatourScheduleCollect(parsed)
   const needInclExcl = needsHanatourIncludedExcludedCollect(parsed)
   const needMustKnow = needsHanatourMustKnowCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
-  const needShop =
-    !hasShoppingPaste(ctx) &&
-    !hasStructuredShopping(parsed) &&
-    parsed.shoppingVisitCount == null
+  const needOpt = needsRegisterOptionalCollect({
+    hasOptionalPaste: hasOptionalPaste(ctx),
+    optionalToursStructured: parsed.optionalToursStructured,
+    hasOptionalTour: parsed.hasOptionalTour,
+  })
+  const needShop = needsRegisterShoppingCollect({
+    hasShoppingPaste: hasShoppingPaste(ctx),
+    shoppingStops: parsed.shoppingStops,
+  })
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop) return parsed
 

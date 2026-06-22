@@ -120,8 +120,8 @@ describe('applyKyowontourScheduleImageKeywordsToRows', () => {
     assert.doesNotMatch(out[0]!.imageKeyword!, /Singapore|Airlines|Incheon/i)
     assert.match(out[1]!.imageKeyword!, /Maldives|Meridien/i)
     assert.doesNotMatch(out[1]!.imageKeyword!, /Leh/i)
-    assert.match(out[3]!.imageKeyword!, /Maldives|House Reef|Meridien|Reef/i)
-    assert.doesNotMatch(out[3]!.imageKeyword!, /Incheon|home/i)
+    assert.equal(out[3]!.imageKeyword?.trim() ?? '', '')
+    assert.equal(out[3]!.imageKeyword2, null)
   })
 
   it('Canada return day — last foreign landmark not Calgary Tower bleed', () => {
@@ -151,8 +151,8 @@ describe('applyKyowontourScheduleImageKeywordsToRows', () => {
       ],
       { productDestination: '캐나다' },
     )
-    assert.match(out[2]!.imageKeyword!, /Lake Louise|Banff|Moraine|Athabasca|Rocky/i)
-    assert.doesNotMatch(out[2]!.imageKeyword!, /Calgary Tower|Incheon|home/i)
+    assert.equal(out[2]!.imageKeyword?.trim() ?? '', '')
+    assert.equal(out[2]!.imageKeyword2, null)
   })
 
   it('dedupe·route 폴백 없이도 관광 2일차 각각 kw2 채움', () => {

@@ -12,6 +12,14 @@ import { parseVerygoodItineraryFromDetailHtml } from '@/lib/verygoodtour-itinera
 import type { ItineraryDayInput } from '@/lib/upsert-itinerary-days-verygoodtour'
 import { parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
 import { finalizeVerygoodRegisterParsedShopping } from '@/lib/register-verygoodtour-shopping'
+import {
+  hasStructuredJsonRows,
+  needsRegisterExcludedCollect,
+  needsRegisterIncludedCollect,
+  needsRegisterIncludedExcludedCollect,
+  needsRegisterOptionalCollect,
+  needsRegisterShoppingCollect,
+} from '@/lib/register-detail-collect-gates'
 
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
 
@@ -43,37 +51,29 @@ function hasShoppingPaste(ctx?: VerygoodtourRegisterDetailAugmentCtx): boolean {
 }
 
 function hasStructuredOptional(parsed: RegisterParsed): boolean {
-  const raw = parsed.optionalToursStructured
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.optionalToursStructured)
 }
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
-  const raw = parsed.shoppingStops
-  if (!raw?.trim()) return false
-  try {
-    const arr = JSON.parse(raw) as unknown
-    return Array.isArray(arr) && arr.length > 0
-  } catch {
-    return false
-  }
+  return hasStructuredJsonRows(parsed.shoppingStops)
+}
+
+export function needsVerygoodtourIncludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedCollect(parsed)
+}
+
+export function needsVerygoodtourExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterExcludedCollect(parsed)
+}
+
+export function needsVerygoodtourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
+  return needsRegisterIncludedExcludedCollect(parsed)
 }
 
 export function needsVerygoodtourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
-}
-
-export function needsVerygoodtourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
-  const hasIncl = (parsed.includedItems?.length ?? 0) > 0 || Boolean(parsed.includedText?.trim())
-  const hasExcl = (parsed.excludedItems?.length ?? 0) > 0 || Boolean(parsed.excludedText?.trim())
-  return !hasIncl && !hasExcl
 }
 
 export function needsVerygoodtourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -168,13 +168,19 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
   if (!originUrl || !parseVerygoodProCodeFromUrl(originUrl)) return parsed
 
   const needSchedule = needsVerygoodtourScheduleCollect(parsed)
-  const needInclExcl = needsVerygoodtourIncludedExcludedCollect(parsed)
+  const needIncl = needsVerygoodtourIncludedCollect(parsed)
+  const needExcl = needsVerygoodtourExcludedCollect(parsed)
+  const needInclExcl = needIncl || needExcl
   const needMustKnow = needsVerygoodtourMustKnowCollect(parsed)
-  const needOpt = !hasOptionalPaste(ctx) && !hasStructuredOptional(parsed)
-  const needShop =
-    !hasShoppingPaste(ctx) &&
-    !hasStructuredShopping(parsed) &&
-    parsed.shoppingVisitCount == null
+  const needOpt = needsRegisterOptionalCollect({
+    hasOptionalPaste: hasOptionalPaste(ctx),
+    optionalToursStructured: parsed.optionalToursStructured,
+    hasOptionalTour: parsed.hasOptionalTour,
+  })
+  const needShop = needsRegisterShoppingCollect({
+    hasShoppingPaste: hasShoppingPaste(ctx),
+    shoppingStops: parsed.shoppingStops,
+  })
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop) return parsed
 
@@ -211,7 +217,7 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
     if (fees.visaRaw && !excludedItems.some((x) => /비자/i.test(x))) {
       excludedItems.push(fees.visaRaw)
     }
-    if (includedItems.length > 0) {
+    if (needIncl && includedItems.length > 0) {
       next = {
         ...next,
         includedItems,
@@ -219,13 +225,15 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
         includedRaw: includedItems.join('\n'),
       }
     }
-    if (excludedItems.length > 0) {
+    if (needExcl && excludedItems.length > 0) {
       next = {
         ...next,
         excludedItems,
         excludedText: excludedItems.join('\n'),
         excludedRaw: excludedItems.join('\n'),
       }
+    }
+    if ((needIncl && includedItems.length > 0) || (needExcl && excludedItems.length > 0)) {
       summaryParts.push(`포함 ${includedItems.length}·불포함 ${excludedItems.length}`)
     }
     if (fees.singleRoomSurchargeRaw) {

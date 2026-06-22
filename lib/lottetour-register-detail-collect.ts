@@ -12,11 +12,14 @@ import {
   extractLottetourMeetingFromScheduleAjax,
   extractLottetourMustKnowFromBasicAjax,
   extractLottetourOptionalFromSpotListAjax,
+  extractLottetourShoppingFromSpotListAjax,
   extractLottetourShoppingVisitCountFromCoreInfo,
+  extractLottetourShoppingVisitCountFromSpotList,
   fetchLottetourRegisterDetailBundle,
   lottetourCalendarRowToFlightStructured,
   lottetourHaystackDeclaresNoOptional,
   lottetourOptionalRowsToStructuredJson,
+  lottetourShoppingRowsToStructuredJson,
   parseLottetourScheduleDaysFromScheduleAjax,
 } from '@/lib/lottetour-register-api-detail'
 import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetour-shopping'
@@ -59,10 +62,20 @@ export function needsLottetourScheduleCollect(parsed: RegisterParsed): boolean {
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
 }
 
+function substantiveBulletItems(items?: string[] | null): string[] {
+  return (items ?? []).map((x) => String(x).trim()).filter((x) => x.length > 2)
+}
+
+export function needsLottetourIncludedCollect(parsed: RegisterParsed): boolean {
+  return substantiveBulletItems(parsed.includedItems).length === 0 && !parsed.includedText?.trim()
+}
+
+export function needsLottetourExcludedCollect(parsed: RegisterParsed): boolean {
+  return substantiveBulletItems(parsed.excludedItems).length === 0 && !parsed.excludedText?.trim()
+}
+
 export function needsLottetourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
-  const hasIncl = (parsed.includedItems?.length ?? 0) > 0 || Boolean(parsed.includedText?.trim())
-  const hasExcl = (parsed.excludedItems?.length ?? 0) > 0 || Boolean(parsed.excludedText?.trim())
-  return !hasIncl && !hasExcl
+  return needsLottetourIncludedCollect(parsed) || needsLottetourExcludedCollect(parsed)
 }
 
 export function needsLottetourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -91,7 +104,8 @@ function needsLottetourOptionalCollect(parsed: RegisterParsed, ctx?: LottetourRe
   if (hasOptionalPaste(ctx) || hasStructuredOptional(parsed)) return false
   const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
   if (lottetourHaystackDeclaresNoOptional(titleHay)) return false
-  return parsed.hasOptionalTour !== false && (parsed.optionalTourCount ?? 0) === 0
+  if (parsed.hasOptionalTour === false) return false
+  return true
 }
 
 export async function augmentLottetourParsedWithDetailCollect(
@@ -102,17 +116,25 @@ export async function augmentLottetourParsedWithDetailCollect(
   if (!originUrl || !extractLottetourMasterIdsFromBlob(originUrl).evtCd) return parsed
 
   const needSchedule = needsLottetourScheduleCollect(parsed)
-  const needInclExcl = needsLottetourIncludedExcludedCollect(parsed)
+  const needIncl = needsLottetourIncludedCollect(parsed)
+  const needExcl = needsLottetourExcludedCollect(parsed)
   const needMustKnow = needsLottetourMustKnowCollect(parsed)
   const needFlight = needsLottetourFlightCollect(parsed)
   const needMeeting = needsLottetourMeetingCollect(parsed)
   const needOpt = needsLottetourOptionalCollect(parsed, ctx)
   const needShop =
-    !Boolean(ctx?.pastedBlocks?.shopping?.trim()) &&
-    !hasStructuredShopping(parsed) &&
-    parsed.shoppingVisitCount == null
+    !Boolean(ctx?.pastedBlocks?.shopping?.trim()) && !hasStructuredShopping(parsed)
 
-  if (!needSchedule && !needInclExcl && !needMustKnow && !needFlight && !needMeeting && !needOpt && !needShop) {
+  if (
+    !needSchedule &&
+    !needIncl &&
+    !needExcl &&
+    !needMustKnow &&
+    !needFlight &&
+    !needMeeting &&
+    !needOpt &&
+    !needShop
+  ) {
     return parsed
   }
 
@@ -156,9 +178,9 @@ export async function augmentLottetourParsedWithDetailCollect(
     }
   }
 
-  if (needInclExcl && basicAjaxHtml) {
+  if ((needIncl || needExcl) && basicAjaxHtml) {
     const { includedItems, excludedItems } = extractLottetourIncludedExcludedFromBasicAjax(basicAjaxHtml)
-    if (includedItems.length > 0) {
+    if (needIncl && includedItems.length > 0) {
       next = {
         ...next,
         includedItems,
@@ -166,7 +188,7 @@ export async function augmentLottetourParsedWithDetailCollect(
         includedRaw: includedItems.join('\n'),
       }
     }
-    if (excludedItems.length > 0) {
+    if (needExcl && excludedItems.length > 0) {
       const fees = extractLottetourFeesFromExcluded(excludedItems)
       const exclWithFees = [...excludedItems]
       if (fees.singleRoomSurchargeRaw && !exclWithFees.some((x) => /싱글|써차지/i.test(x))) {
@@ -178,7 +200,6 @@ export async function augmentLottetourParsedWithDetailCollect(
         excludedText: exclWithFees.join('\n'),
         excludedRaw: exclWithFees.join('\n'),
       }
-      summaryParts.push(`포함 ${includedItems.length}·불포함 ${exclWithFees.length}`)
       if (fees.singleRoomSurchargeRaw || fees.singleRoomSurchargeAmount != null) {
         next = {
           ...next,
@@ -193,8 +214,28 @@ export async function augmentLottetourParsedWithDetailCollect(
             : {}),
         }
       }
-    } else if (includedItems.length > 0) {
-      summaryParts.push(`포함 ${includedItems.length}건`)
+    }
+    const inclN = next.includedItems?.length ?? 0
+    const exclN = next.excludedItems?.length ?? 0
+    if (inclN > 0 || exclN > 0) {
+      summaryParts.push(`포함 ${inclN}·불포함 ${exclN}`)
+    }
+    if (next.detailBodyStructured) {
+      const ie = next.detailBodyStructured.includedExcludedStructured
+      next = {
+        ...next,
+        detailBodyStructured: {
+          ...next.detailBodyStructured,
+          includedExcludedStructured: {
+            ...ie,
+            includedItems: next.includedItems ?? ie.includedItems ?? [],
+            excludedItems: next.excludedItems ?? ie.excludedItems ?? [],
+            noteText: ie?.noteText ?? '',
+            reviewNeeded: ie?.reviewNeeded ?? false,
+            reviewReasons: ie?.reviewReasons ?? [],
+          },
+        },
+      }
     }
   }
 
@@ -246,9 +287,48 @@ export async function augmentLottetourParsedWithDetailCollect(
     }
   }
 
-  if (needShop) {
-    const visitCount = extractLottetourShoppingVisitCountFromCoreInfo(coreInfoHtml)
-    if (visitCount != null) {
+  if (needShop && spotListAjaxHtml) {
+    const shop = extractLottetourShoppingFromSpotListAjax(spotListAjaxHtml)
+    const visitCount =
+      shop.visitCount ??
+      extractLottetourShoppingVisitCountFromSpotList(spotListAjaxHtml) ??
+      extractLottetourShoppingVisitCountFromCoreInfo(coreInfoHtml)
+    if (shop.rows.length > 0) {
+      next = {
+        ...next,
+        shoppingStops: lottetourShoppingRowsToStructuredJson(shop.rows),
+        shoppingVisitCount: visitCount ?? shop.rows.length,
+        hasShopping: true,
+        shoppingSummaryText:
+          visitCount != null && visitCount > 0 ? `쇼핑 ${visitCount}회` : `쇼핑 ${shop.rows.length}회`,
+      }
+      summaryParts.push(`쇼핑 ${shop.rows.length}행`)
+      if (next.detailBodyStructured) {
+        const st = next.detailBodyStructured.shoppingStructured
+        next = {
+          ...next,
+          detailBodyStructured: {
+            ...next.detailBodyStructured,
+            shoppingStructured: {
+              ...st,
+              rows: shop.rows.map((r) => ({
+                shoppingItem: r.itemType,
+                shoppingPlace: r.placeName,
+                durationText: r.durationText ?? '',
+                refundPolicyText: r.refundPolicyText ?? '',
+                visitNo: r.visitNo,
+                candidateOnly: false,
+              })),
+              shoppingCountText:
+                visitCount != null && visitCount > 0 ? `쇼핑 ${visitCount}회` : st?.shoppingCountText ?? '',
+              reviewNeeded: false,
+              reviewReasons: [],
+            },
+          },
+        }
+      }
+      next = finalizeLottetourRegisterParsedShopping(next)
+    } else if (visitCount != null) {
       next = {
         ...next,
         shoppingVisitCount: visitCount,

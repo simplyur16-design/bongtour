@@ -1,9 +1,9 @@
 'use client'
 
-import type { KyowontourFinalParsed } from '@/lib/kyowontour-admin-preview-card-types'
-import type { LottetourFinalParsed } from '@/lib/lottetour-admin-preview-card-types'
+import type { RegisterAdminFinalParsed } from '@/lib/register-admin-preview-card-types'
+import { formatRegisterOptionalTourPrice } from '@/lib/register-admin-preview-card-build'
 
-export type RegisterAdminFinalParsedSummary = KyowontourFinalParsed | LottetourFinalParsed
+export type RegisterAdminFinalParsedSummary = RegisterAdminFinalParsed
 
 function fmtWon(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return '—'
@@ -14,7 +14,7 @@ type Props = {
   data: RegisterAdminFinalParsedSummary
 }
 
-/** 교원이지·롯데관광 미리보기 `data` — 구조화 요약과 별도로 카드용 요약을 보여 준다. */
+/** 6공급사 미리보기 `data` — 구조화 요약과 별도로 카드용 요약을 보여 준다. */
 export default function RegisterAdminFinalParsedSummaryCard({ data }: Props) {
   return (
     <div className="rounded-lg border border-emerald-300 bg-emerald-50/90 p-3 text-xs text-emerald-950 shadow-sm">
@@ -130,7 +130,8 @@ export default function RegisterAdminFinalParsedSummaryCard({ data }: Props) {
           <ul className="mt-1 space-y-1 text-[10px]">
             {data.optionalTours.slice(0, 8).map((o, i) => (
               <li key={`opt_${i}`}>
-                <span className="font-medium">{o.name}</span> · 성인 {fmtWon(o.priceAdult)} · {o.duration || '—'}
+                <span className="font-medium">{o.name}</span> · 성인 {formatRegisterOptionalTourPrice(o.priceAdult, o.currency)}
+                {o.priceChild > 0 ? ` · 아동 ${formatRegisterOptionalTourPrice(o.priceChild, o.currency)}` : ''} · {o.duration || '—'}
               </li>
             ))}
           </ul>

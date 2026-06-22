@@ -672,8 +672,6 @@ function resolveKyowontourPrimaryKeyword(
   maxDay: number,
 ): string {
   if (dayKind === 'return_home') {
-    const fromPrior = lastForeignLandmarkFromPriorKyowontourRows(priorRows, row, maxDay)
-    if (fromPrior) return exitKyowontourLandmark(fromPrior, ctx)
     return ''
   }
 
