@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[verygoodtour-register-detail-collect]: augmentVerygoodtourParsedWithDetailCollect — manifest
  */
+import { enrichScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-verygoodtour'
 import { buildVerygoodProductCoreFromDetailHtml } from '@/lib/verygoodtour-departures'
@@ -127,6 +128,10 @@ export function verygoodItineraryToRegisterSchedule(days: ItineraryDayInput[]): 
       (d.summaryTextRaw ?? '').trim().split('\n')[0]?.slice(0, 80) ||
       `${d.day}일차`
     const description = (d.summaryTextRaw ?? d.rawBlock ?? title).trim().slice(0, 2000)
+    const mealEnriched = enrichScheduleMealFieldsFromText(
+      { mealSummaryText: d.meals?.trim() || null },
+      [d.meals, description],
+    )
     return {
       day: d.day,
       title,
@@ -134,7 +139,10 @@ export function verygoodItineraryToRegisterSchedule(days: ItineraryDayInput[]): 
       imageKeyword: title.slice(0, 80),
       routeText: d.poiNamesRaw?.trim().slice(0, 200) || null,
       hotelText: d.accommodation?.trim() || null,
-      mealSummaryText: d.meals?.trim() || null,
+      breakfastText: mealEnriched.breakfastText ?? null,
+      lunchText: mealEnriched.lunchText ?? null,
+      dinnerText: mealEnriched.dinnerText ?? null,
+      mealSummaryText: mealEnriched.mealSummaryText ?? null,
     }
   })
 }

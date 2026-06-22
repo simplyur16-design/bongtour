@@ -2,6 +2,7 @@
  * 교원이지(kyowontour) 출발일 캘린더 — 사이트 내부 AJAX `POST /goods/differentDepartDate` (공개 HTTP, 인증 없음).
  * monthEvtList 날짜별 2차 호출로 dayAirList·가격 확정(API-only, E2E 보조).
  * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: departDateYmd·monthEvtList·E2E 폴백 메타 — manifest
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: skipPerDateDayAirFetch — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -52,6 +53,8 @@ export type KyowontourCalendarRangeOptions = {
   tourCodeForE2EFallback?: string
   disableE2EFallback?: boolean
   e2eMasterCodeHint?: string | null
+  /** true면 monthEvtList 날짜별 dayAirList 추가 조회 생략(등록 사실 등 경량 수집). */
+  skipPerDateDayAirFetch?: boolean
 }
 
 export type KyowontourDepartureUpsertResult = {
@@ -483,11 +486,13 @@ export async function collectKyowontourCalendarRange(
       mergeDayAirList(seed.dayAirList, ym, seed.httpStatus)
 
       const datesToFetch =
-        seed.monthEvtYmds.length > 0
-          ? seed.monthEvtYmds
-          : seed.dayAirList.length === 0
-            ? []
-            : []
+        options?.skipPerDateDayAirFetch
+          ? []
+          : seed.monthEvtYmds.length > 0
+            ? seed.monthEvtYmds
+            : seed.dayAirList.length === 0
+              ? []
+              : []
 
       if (seed.dayAirList.length === 0 && datesToFetch.length === 0) {
         warnings.push(`${ym}: dayAirList·monthEvtList 모두 비어 있음(masterCode·응답 구조 확인)`)

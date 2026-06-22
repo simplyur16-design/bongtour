@@ -35,10 +35,14 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
   const pkgCd = parseHanatourPkgCdFromUrl(originUrl)
   if (!pkgCd) return null
 
-  const [info, itnr] = await Promise.all([
-    fetchHanatourPkgProdInfo(pkgCd),
-    fetchHanatourPkgProdItnr(pkgCd),
-  ])
+  let info: Awaited<ReturnType<typeof fetchHanatourPkgProdInfo>> = null
+  let itnr: Awaited<ReturnType<typeof fetchHanatourPkgProdItnr>> = null
+  try {
+    ;[info, itnr] = await Promise.all([fetchHanatourPkgProdInfo(pkgCd), fetchHanatourPkgProdItnr(pkgCd)])
+  } catch (err) {
+    console.error('[register-facts/hanatour] fetch failed', err)
+    return null
+  }
 
   if (!info) return null
 

@@ -6,11 +6,12 @@
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 import type { KyowontourScheduleRowParsed, KyowontourScheduleTabParsed } from '@/lib/kyowontour-tour-event-tab-data'
-import { polishKyowontourImageKeyword } from '@/lib/kyowontour-schedule-image-keyword'
+import { polishKyowontourImageKeyword, applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
 import {
   mergeScheduleDaysPreservingExpressionMergingMealHotel,
   scheduleNeedsMealHotelCollect,
 } from '@/lib/register-schedule-meal-hotel-merge'
+import { enrichScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 
 function stripScheduleNameKo(name: string): string {
   return name.replace(/^[\s▶■◎●]+/, '').replace(/\s+/g, ' ').trim()
@@ -93,6 +94,17 @@ export function scheduleTabParsedToRegisterDays(parsed: KyowontourScheduleTabPar
     const routeText = buildRouteText(rows)
     const hotelText = buildHotelText(rows)
     const meal = mealByDay.get(day)
+    const mealEnriched = enrichScheduleMealFieldsFromText(
+      {
+        breakfastText: meal?.breakfast ?? null,
+        lunchText: meal?.lunch ?? null,
+        dinnerText: meal?.dinner ?? null,
+        mealSummaryText: meal
+          ? [meal.breakfast, meal.lunch, meal.dinner].filter(Boolean).join(' / ') || null
+          : null,
+      },
+      [description],
+    )
     const ctx = { day, title, description }
     const imageKeyword = polishKyowontourImageKeyword(title || routeText || description.slice(0, 40), ctx)
     out.push({
@@ -102,13 +114,16 @@ export function scheduleTabParsedToRegisterDays(parsed: KyowontourScheduleTabPar
       routeText,
       imageKeyword,
       hotelText,
-      breakfastText: meal?.breakfast ?? null,
-      lunchText: meal?.lunch ?? null,
-      dinnerText: meal?.dinner ?? null,
-      mealSummaryText: [meal?.breakfast, meal?.lunch, meal?.dinner].filter(Boolean).join(' / ') || null,
+      breakfastText: mealEnriched.breakfastText ?? null,
+      lunchText: mealEnriched.lunchText ?? null,
+      dinnerText: mealEnriched.dinnerText ?? null,
+      mealSummaryText: mealEnriched.mealSummaryText ?? null,
     })
   }
-  return out
+  return applyKyowontourScheduleImageKeywordsToRows(out, {
+    productTitle: undefined,
+    productDestination: undefined,
+  })
 }
 
 export function applyKyowontourScheduleCollectToParsed(
@@ -119,9 +134,14 @@ export function applyKyowontourScheduleCollectToParsed(
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
   const note = `교원이지 여행일정표: ${summary} (tourEventTabData goodsEvtTab_2)`
   if (!notes.includes(note)) notes.push(note)
+  const merged = mergeScheduleDaysPreservingExpressionMergingMealHotel(parsed.schedule ?? [], scheduleDays)
+  const withKeywords = applyKyowontourScheduleImageKeywordsToRows(merged, {
+    productTitle: parsed.title,
+    productDestination: parsed.destination,
+  })
   return {
     ...parsed,
-    schedule: mergeScheduleDaysPreservingExpressionMergingMealHotel(parsed.schedule ?? [], scheduleDays),
+    schedule: withKeywords,
     kyowontourScheduleCollectRan: true,
     kyowontourScheduleCollectSummary: summary,
     registerPreviewPolicyNotes: notes,

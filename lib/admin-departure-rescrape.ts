@@ -1,3 +1,7 @@
+/**
+ * 관리자 출발일 live-rescrape — 공급사별 수집·ProductDeparture upsert 입력.
+ * REGRESSION-FREEZE[ybtour-admin-rescrape-api-first]: ybtour papi by-goods API 우선 — manifest
+ */
 import { execFile } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -45,6 +49,7 @@ export type DepartureRescrapeResult = {
     | 'modetour-adapter'
     | 'hanatour-adapter'
     | 'ybtour-calendar-scraper'
+    | 'ybtour-api-by-goods'
     | 'product-price-rebuild'
     | 'kyowontour-differentDepartDate'
     | 'lottetour-evtListAjax-html'
@@ -1031,6 +1036,49 @@ export async function collectDepartureInputsForAdminRescrape(
         collectorStatus: hanatour.meta.collectorStatus ?? null,
         hanatourPythonDiagnostics: hanatour.pythonDiagnostics,
         hanatourPythonMonthDiagnostics: hanatour.pythonMonthDiagnostics,
+      }
+    }
+
+    if (site === 'ybtour') {
+      attemptedLive = true
+      const detailUrlForApi = withYbtourPrdtGoodsCdParam(detailUrlForTrace, product.originCode)
+      const { kstTodayYmd, addDaysUtcYmd, RULE_A_WINDOW_DAYS } = await import('@/lib/product-sales-policy')
+      const fromYmd = kstTodayYmd()
+      const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+      try {
+        const { collectYbtourByGoodsApiDepartureInputsForUrl } = await import('@/lib/ybtour-api-departures')
+        const apiHit = await collectYbtourByGoodsApiDepartureInputsForUrl(detailUrlForApi, fromYmd, toYmd, {
+          originCode: product.originCode,
+        })
+        const apiInputs = filterDepartureInputsOnOrAfterCalendarToday(apiHit.inputs)
+        if (apiInputs.length > 0) {
+          const fillMeta = deriveFillMeta(apiInputs)
+          ybtourRescrapeLog(
+            'api-by-goods-hit',
+            `inputs=${apiInputs.length} goodsCd=${apiHit.goodsCd ?? 'n/a'} months=${apiHit.monthKeys.length}`,
+          )
+          return {
+            mode: 'live-rescrape',
+            source: 'ybtour-api-by-goods',
+            inputs: apiInputs,
+            attemptedLive,
+            liveError: null,
+            filledFields: fillMeta.filledFields,
+            missingFields: fillMeta.missingFields,
+            mappingStatus: 'per-date-confirmed',
+            site,
+            detailUrl: detailUrlForTrace,
+            detailUrlSummary,
+            collectorStatus: 'api-by-goods',
+            notes: [`ybtour api-by-goods rows=${apiInputs.length}`, `raw_rows=${apiHit.rawRowCount}`],
+          }
+        }
+        ybtourRescrapeLog('api-by-goods-zero', 'falling back to python calendar e2e')
+      } catch (e) {
+        ybtourRescrapeLog(
+          'api-by-goods-failed',
+          e instanceof Error ? e.message.slice(0, 200) : 'unknown',
+        )
       }
     }
 

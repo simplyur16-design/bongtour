@@ -309,7 +309,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         '시코쿠 · 주고쿠',
         [
           L('takamatsu-naoshima', '다카마츠 · 나오시마', { aliases: ['takamatsu', '다카마츠', 'naoshima', '나오시마'] }),
-          L('matsuyama', '마츠야마', { aliases: ['matsuyama', '마츠야마'] }),
+          L('matsuyama', '마츠야마', { aliases: ['matsuyama', '마츠야마', '마쓰야마'] }),
           L('tokushima', '도쿠시마', { aliases: ['tokushima', '도쿠시마'] }),
           L('tottori', '돗토리', { aliases: ['tottori', '돗토리'] }),
           L('yonago', '요나고', { aliases: ['yonago', '요나고'] }),

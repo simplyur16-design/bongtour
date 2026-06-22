@@ -12,6 +12,7 @@ import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-hanatour'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
+import { stripMealTypeLabelPrefix } from '@/lib/register-schedule-meal-parse'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 
 const HANATOUR_GW_BASE = process.env.HANATOUR_GW_BASE_URL ?? 'https://gw.hanatour.com'
@@ -123,9 +124,9 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       routeText,
       imageKeyword: (d.places[0] ?? title).slice(0, 80),
       hotelText,
-      breakfastText: breakfast,
-      lunchText: lunch,
-      dinnerText: dinner,
+      breakfastText: stripMealTypeLabelPrefix(breakfast),
+      lunchText: stripMealTypeLabelPrefix(lunch),
+      dinnerText: stripMealTypeLabelPrefix(dinner),
       mealSummaryText: d.meals.length > 0 ? d.meals.join(' / ') : null,
     }
   })

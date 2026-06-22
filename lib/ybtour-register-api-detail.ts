@@ -10,6 +10,7 @@ import {
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
+import { enrichScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-ybtour'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 
@@ -193,7 +194,11 @@ export function ybtourScheduleBundleToRegisterSchedule(
     const breakfast = detail?.foodB?.trim() || null
     const lunch = detail?.foodL?.trim() || null
     const dinner = detail?.foodD?.trim() || null
-    const meals = [breakfast, lunch, dinner].filter(Boolean) as string[]
+    const mealBlob = [breakfast, lunch, dinner].filter(Boolean).join(' ')
+    const mealEnriched = enrichScheduleMealFieldsFromText(
+      { breakfastText: breakfast, lunchText: lunch, dinnerText: dinner },
+      [mealBlob, breakfast, lunch, dinner],
+    )
     out.push({
       day,
       title,
@@ -201,10 +206,10 @@ export function ybtourScheduleBundleToRegisterSchedule(
       routeText,
       imageKeyword: (cities[0] ?? title).slice(0, 80),
       hotelText,
-      breakfastText: breakfast,
-      lunchText: lunch,
-      dinnerText: dinner,
-      mealSummaryText: meals.length > 0 ? meals.join(' / ') : null,
+      breakfastText: mealEnriched.breakfastText ?? null,
+      lunchText: mealEnriched.lunchText ?? null,
+      dinnerText: mealEnriched.dinnerText ?? null,
+      mealSummaryText: mealEnriched.mealSummaryText ?? null,
     })
   }
   return out

@@ -12,6 +12,7 @@ import {
 } from '@/lib/hanatour-schedule-card-day-kind'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
 import { mergeScheduleDaysPreservingExpressionMergingMealHotel } from '@/lib/register-schedule-meal-hotel-merge'
+import { parseScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
@@ -508,7 +509,10 @@ function extractHanatourMealsFromScheduleBlock(t: string): Partial<
   if (dp?.[1]) out.dinnerText = dp[1].trim().slice(0, 200)
   if (out.breakfastText || out.lunchText || out.dinnerText) {
     out.mealSummaryText = [out.breakfastText, out.lunchText, out.dinnerText].filter(Boolean).join(' · ').slice(0, 500)
+    return out
   }
+  const ssot = parseScheduleMealFieldsFromText(t)
+  if (ssot.breakfastText || ssot.lunchText || ssot.dinnerText) return ssot
   return out
 }
 

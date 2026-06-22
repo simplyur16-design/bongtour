@@ -3,6 +3,25 @@ import {
   modetourFlightRoutesToFactLegs,
   modetourScheduleItemsToFactDays,
 } from '@/lib/register-facts/modetour-register-fact-mappers'
+import { modetourOtherDepartureRowsToRegisterFactPriceRows } from '@/lib/register-facts/modetour'
+
+describe('modetourOtherDepartureRowsToRegisterFactPriceRows', () => {
+  it('maps in-window priced rows and skips invalid', () => {
+    const rows = modetourOtherDepartureRowsToRegisterFactPriceRows(
+      [
+        { departureDate: '2026-06-01', minPrice: 0, pId: '1' },
+        { departureDate: '2026-07-10', minPrice: 890000, pId: '99' },
+        { departureDate: '2027-01-01', minPrice: 500000, pId: '2' },
+      ],
+      '105896067',
+      '2026-06-16',
+      '2026-12-13',
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.departureDate).toBe('2026-07-10')
+    expect(rows[0]?.supplierDepartureCode).toBe('modetour:99')
+  })
+})
 
 describe('modetourScheduleItemsToFactDays', () => {
   it('maps place headers and hotels per day', () => {

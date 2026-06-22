@@ -1785,7 +1785,7 @@
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectKyowontourRegisterFacts",
             "tourEventTabData",
-            "enrichKyowontourCalendarRowsWithTourCodeDetail"
+            "tourcode_detail_enrich=skipped_register_facts"
           ]
         },
         {
@@ -1805,6 +1805,49 @@
           "script": "verify:register-facts-live",
           "tier": ["ci"]
         }
+      ]
+    },
+    {
+      "id": "register-facts-fetch-resilience",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 사실 가져오기 — 타임아웃·API throw·교원 N×enrich 방지",
+      "checks": [
+        {
+          "file": "app/api/admin/register/fetch-facts/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "maxDuration = 300"
+          ]
+        },
+        {
+          "file": "lib/register-facts/modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "GetOtherDepartureDates_lite",
+            "modetourOtherDepartureRowsToRegisterFactPriceRows"
+          ]
+        },
+        {
+          "file": "lib/register-facts/kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "tourcode_detail_enrich=skipped_register_facts",
+            "skipPerDateDayAirFetch: true"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "skipPerDateDayAirFetch"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-facts/modetour.test.ts"
       ]
     },
     {
@@ -1987,13 +2030,84 @@
           "file": "lib/kyowontour-register-schedule-collect.ts",
           "mustInclude": [
             "scheduleNeedsMealHotelCollect",
-            "mergeScheduleDaysPreservingExpressionMergingMealHotel"
+            "mergeScheduleDaysPreservingExpressionMergingMealHotel",
+            "applyKyowontourScheduleImageKeywordsToRows"
           ]
         }
       ],
       "vitestSuites": [
         "lib/register-schedule-meal-hotel-merge.test.ts",
         "lib/kyowontour-register-schedule-collect.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-meal-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 일정 식사 파싱 SSOT — [조식]·쉼표·슬래시 형식",
+      "checks": [
+        {
+          "file": "lib/register-schedule-meal-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-meal-parse]",
+            "parseScheduleMealFieldsFromText",
+            "stripMealTypeLabelPrefix"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-schedule.ts",
+          "mustInclude": [
+            "parseScheduleMealFieldsFromText"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-schedule.ts",
+          "mustInclude": [
+            "parseScheduleMealFieldsFromText"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "enrichScheduleMealFieldsFromText"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "matsuyama",
+            "마쓰야마"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-meal-parse.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-admin-rescrape-api-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour 관리자 재스크랩 — papi by-goods API 우선, E2E 폴백",
+      "checks": [
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-admin-rescrape-api-first]",
+            "ybtour-api-by-goods",
+            "collectYbtourByGoodsApiDepartureInputsForUrl"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/departures/route.ts",
+          "mustInclude": [
+            "maxDuration = 300"
+          ]
+        }
       ]
     },
     {

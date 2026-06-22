@@ -20,6 +20,7 @@ import {
 import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { mergeScheduleDaysPreservingExpressionMergingMealHotel } from '@/lib/register-schedule-meal-hotel-merge'
+import { parseScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -142,28 +143,11 @@ function extractHotelFromLottetourBlock(block: string): string | null {
 
 function extractMealsFromLottetourBlock(block: string): Partial<RegisterScheduleDay> {
   const mealSection = block.match(
-    /식사\s*[\n\r]+([\s\S]*?)(?=\n\s*\d{1,2}일차(?:\s|$|\r?\n)|$)/i
+    /식사\s*[\n\r]+([\s\S]*?)(?=\n\s*\d{1,2}일차(?:\s|$|\r?\n)|$)/i,
   )?.[1]?.trim()
   const raw = mealSection ?? block.match(/식사\s*[\n\r]+\s*([^\n\r]+)/i)?.[1]?.trim()
   if (!raw) return {}
-  let t = raw.replace(/\s+/g, ' ').replace(/일자\s*$/i, '').trim()
-  const out: Partial<RegisterScheduleDay> = { mealSummaryText: t.slice(0, 500) }
-  const bracketTriple = t.match(/\[조식\]\s*([^\[]*?)\s*\[중식\]\s*([^\[]*?)\s*\[석식\]\s*(.+)/i)
-  if (bracketTriple) {
-    out.breakfastText = bracketTriple[1]!.trim().slice(0, 200)
-    out.lunchText = bracketTriple[2]!.trim().slice(0, 200)
-    out.dinnerText = bracketTriple[3]!.trim().slice(0, 200)
-    return out
-  }
-  const triple = t.match(
-    /조식\s*[-–:]\s*([^,，]+)\s*[,，]\s*중식\s*[-–:]\s*([^,，]+)\s*[,，]\s*석식\s*[-–:]\s*(.+)/i
-  )
-  if (triple) {
-    out.breakfastText = triple[1]!.trim().slice(0, 200)
-    out.lunchText = triple[2]!.trim().slice(0, 200)
-    out.dinnerText = triple[3]!.trim().slice(0, 200)
-  }
-  return out
+  return parseScheduleMealFieldsFromText(raw)
 }
 
 /** @deprecated augment·apply SSOT 사용 — 붙여넣기 병합 시 빈 키워드로 두고 apply가 채움 */

@@ -9,6 +9,8 @@ import {
 } from '@/lib/register-facts/collect'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 
+export const maxDuration = 300
+
 export type RegisterFetchFactsResponse =
   | { ok: true; bundle: SupplierRegisterFactBundle; supported: CanonicalOverseasSupplierKey[] }
   | { ok: false; error: string; supported?: CanonicalOverseasSupplierKey[] }
@@ -16,6 +18,7 @@ export type RegisterFetchFactsResponse =
 /**
  * POST /api/admin/register/fetch-facts
  * REGRESSION-FREEZE[register-facts-foundation]: admin register fact prefetch — manifest
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: maxDuration·수집 경량화 — manifest
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -61,9 +64,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, bundle, supported } satisfies RegisterFetchFactsResponse)
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
     console.error('[register/fetch-facts]', err)
-    return NextResponse.json({ ok: false, error: '처리 중 오류가 발생했습니다.' } satisfies RegisterFetchFactsResponse, {
-      status: 500,
-    })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message ? `처리 중 오류: ${message.slice(0, 240)}` : '처리 중 오류가 발생했습니다.',
+      } satisfies RegisterFetchFactsResponse,
+      { status: 500 },
+    )
   }
 }

@@ -2,11 +2,11 @@
  * modetour 등록 사실 수집 — b2c-api 구조화 응답만 사용.
  *
  * REGRESSION-FREEZE[register-facts-foundation]: GetProductDetailInfo·GetScheduleList — manifest
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: GetOtherDepartureDates_lite — manifest
  */
-import { parseModetourPackageProductNoFromUrl, collectModetourDepartureInputsForDateRange } from '@/lib/modetour-departures'
+import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { extractModetourIncludedExcludedFromDetailInfo, extractModetourShoppingFromDetailBundle } from '@/lib/modetour-register-api-detail'
-import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
-import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import type { RegisterFactPriceRow, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import {
   inferModetourRegisterFactProductKind,
@@ -51,6 +51,68 @@ function ymdFromIso(raw: string | null | undefined): string | null {
   return m?.[1] ?? null
 }
 
+type ModetourOtherDepartureRow = {
+  departureDate?: string
+  minPrice?: number
+  pId?: string
+}
+
+/** GetOtherDepartureDates 행 → RegisterFactPriceRow (등록 사실 경량). */
+export function modetourOtherDepartureRowsToRegisterFactPriceRows(
+  rows: ModetourOtherDepartureRow[],
+  productNo: string,
+  fromYmd: string,
+  toYmd: string,
+): RegisterFactPriceRow[] {
+  return rows
+    .map((r) => {
+      const departureDate = String(r.departureDate ?? '').trim()
+      const adultPrice = Number(r.minPrice ?? 0)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate) || !Number.isFinite(adultPrice) || adultPrice <= 0) {
+        return null
+      }
+      if (departureDate < fromYmd || departureDate > toYmd) return null
+      const pid = String(r.pId ?? '').trim()
+      return {
+        departureDate,
+        adultPrice,
+        childPrice: null,
+        infantPrice: null,
+        supplierDepartureCode: pid ? `modetour:${pid}` : `modetour:${productNo}`,
+        statusRaw: null,
+        seatsStatusRaw: null,
+        seatCount: null,
+        minPax: null,
+        carrierName: null,
+      } satisfies RegisterFactPriceRow
+    })
+    .filter((row): row is RegisterFactPriceRow => row != null)
+}
+
+/** 등록 사실 — GetOtherDepartureDates만 사용(pId prefetch·baseline match 생략). */
+async function fetchModetourRegisterFactPriceRows(
+  productNo: string,
+  referer: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<RegisterFactPriceRow[]> {
+  try {
+    const base = MODETOUR_API_BASE.replace(/\/$/, '')
+    const apiUrl = `${base}/Package/GetOtherDepartureDates?productNo=${encodeURIComponent(productNo)}&searchFrom=${encodeURIComponent(fromYmd)}&searchTo=${encodeURIComponent(toYmd)}`
+    const res = await fetch(apiUrl, {
+      method: 'GET',
+      headers: modetourHeaders(referer, productNo),
+      signal: AbortSignal.timeout(45_000),
+    })
+    if (!res.ok) return []
+    const json = (await res.json()) as { result?: ModetourOtherDepartureRow[] }
+    const rows = Array.isArray(json?.result) ? json.result : []
+    return modetourOtherDepartureRowsToRegisterFactPriceRows(rows, productNo, fromYmd, toYmd)
+  } catch {
+    return []
+  }
+}
+
 export async function collectModetourRegisterFacts(
   originUrl: string,
   options?: { originCode?: string | null },
@@ -91,17 +153,8 @@ export async function collectModetourRegisterFacts(
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const calInputs = await collectModetourDepartureInputsForDateRange(referer, fromYmd, toYmd, {
-    skipBaselineMatch: true,
-  })
-  const priceRows = calInputs
-    .map((dep) =>
-      registerDepartureLikeToFactPriceRow({
-        ...dep,
-        supplierDepartureCode: dep.supplierDepartureCodeCandidate ?? `modetour:${productNo}`,
-      }),
-    )
-    .filter((row): row is NonNullable<typeof row> => row != null)
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: pId prefetch 생략 — manifest
+  const priceRows = await fetchModetourRegisterFactPriceRows(productNo, referer, fromYmd, toYmd)
 
   const fallbackDate = ymdFromIso(String(detail.departureDate ?? ''))
   const fallbackAdult = Number(detail.sellingPriceAdultTotalAmount ?? detail.sellingPrice ?? 0)
@@ -137,6 +190,7 @@ export async function collectModetourRegisterFacts(
     priceRows: resolvedPriceRows,
     notes: [
       'source=modetour_b2c_api',
+      'calendar_source=GetOtherDepartureDates_lite',
       `productNo=${productNo}`,
       `calendar_rows=${resolvedPriceRows.length}`,
       registerFactProductKindNote(inferModetourRegisterFactProductKind(detail)),

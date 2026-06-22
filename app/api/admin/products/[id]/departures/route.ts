@@ -10,6 +10,8 @@ import type {
   AdminDeparturesRescrapeStage,
 } from '@/lib/admin-departures-rescrape-types'
 
+export const maxDuration = 300
+
 export type { AdminDeparturesRescrapeResponseBody, AdminDeparturesRescrapeStage }
 
 type RouteParams = { params: Promise<{ id: string }> }

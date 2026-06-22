@@ -2,9 +2,9 @@
  * kyowontour 등록 사실 수집 — goodsEventDetail + tourEventTabData + differentDepartDate AJAX.
  *
  * REGRESSION-FREEZE[register-facts-foundation]: tourEventTabData·calendar AJAX·tourCode detail enrich — manifest
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: tourCode SSR enrich 생략 — manifest
  */
 import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
-import { enrichKyowontourCalendarRowsWithTourCodeDetail } from '@/lib/kyowontour-tourcode-detail-meta'
 import { scheduleTabParsedToRegisterDays } from '@/lib/kyowontour-register-schedule-collect'
 import {
   KYOWONTOUR_TAB_CORE_ID,
@@ -98,13 +98,13 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
   const cal = await collectKyowontourCalendarRange(hidden.masterCode, {
     monthCount: 6,
     disableE2EFallback: true,
+    skipPerDateDayAirFetch: true,
     tourCodeForE2EFallback: hidden.tourCode,
     refererUrl: url,
+    logLabel: 'register-facts-kyowontour',
   })
-  const enrichedRows = await enrichKyowontourCalendarRowsWithTourCodeDetail(cal.rows, {
-    menuCode: hidden.menuCode,
-    refererUrl: url,
-  })
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: tourCode SSR enrich 생략 — N×fetch 타임아웃 방지 — manifest
+  const enrichedRows = cal.rows
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
@@ -137,7 +137,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
       `tourCode=${hidden.tourCode}`,
       `masterCode=${hidden.masterCode}`,
       `calendar_rows=${enrichedRows.length}`,
-      'tourcode_detail_enrich=goodsEventDetail_ssr',
+      'tourcode_detail_enrich=skipped_register_facts',
       registerFactProductKindNote(inferRegisterFactProductKindFromOriginUrl('kyowontour', url)),
     ],
   }
