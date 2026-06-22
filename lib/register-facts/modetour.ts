@@ -64,29 +64,29 @@ export function modetourOtherDepartureRowsToRegisterFactPriceRows(
   fromYmd: string,
   toYmd: string,
 ): RegisterFactPriceRow[] {
-  return rows
-    .map((r) => {
-      const departureDate = String(r.departureDate ?? '').trim()
-      const adultPrice = Number(r.minPrice ?? 0)
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate) || !Number.isFinite(adultPrice) || adultPrice <= 0) {
-        return null
-      }
-      if (departureDate < fromYmd || departureDate > toYmd) return null
-      const pid = String(r.pId ?? '').trim()
-      return {
-        departureDate,
-        adultPrice,
-        childPrice: null,
-        infantPrice: null,
-        supplierDepartureCode: pid ? `modetour:${pid}` : `modetour:${productNo}`,
-        statusRaw: null,
-        seatsStatusRaw: null,
-        seatCount: null,
-        minPax: null,
-        carrierName: null,
-      } satisfies RegisterFactPriceRow
+  const out: RegisterFactPriceRow[] = []
+  for (const r of rows) {
+    const departureDate = String(r.departureDate ?? '').trim()
+    const adultPrice = Number(r.minPrice ?? 0)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(departureDate) || !Number.isFinite(adultPrice) || adultPrice <= 0) {
+      continue
+    }
+    if (departureDate < fromYmd || departureDate > toYmd) continue
+    const pid = String(r.pId ?? '').trim()
+    out.push({
+      departureDate,
+      adultPrice,
+      childPrice: null,
+      infantPrice: null,
+      supplierDepartureCode: pid ? `modetour:${pid}` : `modetour:${productNo}`,
+      statusRaw: null,
+      seatsStatusRaw: null,
+      seatCount: null,
+      minPax: null,
+      carrierName: null,
     })
-    .filter((row): row is RegisterFactPriceRow => row != null)
+  }
+  return out
 }
 
 /** 등록 사실 — GetOtherDepartureDates만 사용(pId prefetch·baseline match 생략). */

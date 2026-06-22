@@ -138,11 +138,11 @@ export function parseScheduleMealFieldsFromText(raw: string | null | undefined):
 }
 
 /** 개별 필드가 비었을 때 mealSummaryText·description에서 보강 */
-export function enrichScheduleMealFieldsFromText<T extends ParsedScheduleMealFields>(
-  row: T,
+export function enrichScheduleMealFieldsFromText(
+  row: ParsedScheduleMealFields,
   sources: Array<string | null | undefined>,
-): T {
-  const out = { ...row }
+): ParsedScheduleMealFields {
+  const out: ParsedScheduleMealFields = { ...row }
   const needs =
     isEmptyMealHotelField(out.breakfastText) &&
     isEmptyMealHotelField(out.lunchText) &&
