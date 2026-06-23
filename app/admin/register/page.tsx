@@ -899,6 +899,7 @@ export default function AdminRegisterPage() {
       brandKey: selectedBrandKey || null,
       originUrl: normalizeUrl(originUrl) || null,
       travelScope,
+      pastedBlocks: null,
     })
   /** onBlur에 실수로 이벤트가 넘어와도 현재 입력값으로 검사 */
   const coerceUrlInput = (urlOverride: unknown, currentField: unknown): string => {

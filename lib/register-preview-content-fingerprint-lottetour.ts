@@ -15,7 +15,7 @@ export type RegisterPreviewFingerprintInput = {
   brandKey: string | null | undefined
   originUrl: string | null | undefined
   travelScope: string
-  pastedBlocks: RegisterPreviewFingerprintBlocks | null | undefined
+  pastedBlocks?: RegisterPreviewFingerprintBlocks | null
 }
 
 const BLOCK_KEYS = ['airlineTransport', 'hotel', 'optionalTour', 'shopping'] as const
