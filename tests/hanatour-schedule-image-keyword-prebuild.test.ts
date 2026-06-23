@@ -6,6 +6,10 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyHanatourScheduleImageKeywordsToRows } from '../lib/hanatour-schedule-image-keyword'
 import { applyRegisterScheduleImageKeywordsForPreview } from '../lib/register-schedule-image-keywords-preview'
+import {
+  gatherHanatourScheduleSectionBodiesByDay,
+  resolveHanatourRegisterScheduleSectionByDay,
+} from '../lib/hanatour-schedule-section-by-day'
 import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-keyword-fallback'
 
 describe('hanatour prebuild — imageKeyword dual slot', () => {
@@ -292,5 +296,43 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
       assert.equal(viaPreview.find((r) => r.day === d)!.imageKeyword, viaAugment.find((r) => r.day === d)!.imageKeyword)
       assert.notEqual(normScheduleImageKeywordKey(viaPreview.find((r) => r.day === d)!.imageKeyword), normScheduleImageKeywordKey('Hong Kong'))
     }
+  })
+
+  it('thin schedule_section + normalizedRaw — POI 명소 줄 복구 후 SoHo·웡타이신', () => {
+    const normalizedRaw = `1일차
+07/01(수) 인천, 홍콩
+소호 거리(SoHo), 타이쿤, 빅토리아 피크, 피크트램
+2일차
+07/02(목) 홍콩, 마카오
+성 바울 성당 유적, 세나두 광장
+3일차
+07/03(금) 홍콩, 인천
+웡타이신 사원`
+    const detailBody = {
+      normalizedRaw,
+      sections: [
+        {
+          type: 'schedule_section' as const,
+          text: `1일차\n07/01(수) 인천, 홍콩\n2일차\n07/02(목) 홍콩, 마카오\n3일차\n07/03(금) 홍콩, 인천`,
+        },
+      ],
+    }
+    const byDay = gatherHanatourScheduleSectionBodiesByDay(detailBody as never)
+    assert.match(byDay.get(1) ?? '', /SoHo|소호/)
+    assert.match(byDay.get(3) ?? '', /웡타이신|Wong/i)
+
+    const schedule = [
+      { day: 1, title: '인천 - 홍콩', description: '인천 - 홍콩', routeText: '인천 - 홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
+      { day: 2, title: '홍콩 - 마카오', description: '홍콩 - 마카오 - 홍콩', routeText: '홍콩 - 마카오 - 홍콩', imageKeyword: "Ruins of St. Paul's", imageKeyword2: 'Hong Kong' },
+      { day: 3, title: '귀국', description: '홍콩 - 인천', routeText: '홍콩 - 인천', imageKeyword: 'Hong Kong', imageKeyword2: null },
+    ]
+    const sectionMap = resolveHanatourRegisterScheduleSectionByDay({ parsed: { detailBodyStructured: detailBody as never } })
+    const out = applyRegisterScheduleImageKeywordsForPreview(schedule, {
+      supplierKey: 'hanatour',
+      productDestination: '홍콩',
+      scheduleSectionByDay: sectionMap,
+    })
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'SoHo Hong Kong')
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Wong Tai Sin Temple')
   })
 })
