@@ -169,7 +169,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       title,
       description,
       routeText,
-      imageKeyword: (d.places[0] ?? title).slice(0, 80),
+      imageKeyword: null,
       hotelText,
       breakfastText: meals.breakfastText ?? null,
       lunchText: meals.lunchText ?? null,

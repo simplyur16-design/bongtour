@@ -508,6 +508,16 @@ export function isKnownDestinationCityEnglishKeyword(kw: string): boolean {
   return false
 }
 
+/** `DESTINATION_MAP` 영문 값과 동일 — Hong Kong·Kota Kinabalu 등 복합 허브 도시명 */
+export function isDestinationMapEnglishHubKeyword(kw: string): boolean {
+  const nk = normalizeSemanticPoiKey(kw)
+  if (!nk) return false
+  for (const en of Object.values(DESTINATION_MAP)) {
+    if (normalizeSemanticPoiKey(en) === nk) return true
+  }
+  return false
+}
+
 /** 상품 목적지와 동일한 허브 도시·지역(Phu Quoc 등 복합 지명 포함) */
 export function isDestinationHubEnglishKeyword(
   kw: string,

@@ -39,6 +39,7 @@ import {
   reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch,
   hanatourOptionalTourNamesFromParsed,
 } from '@/lib/register-parse-hanatour'
+import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 
 export type HanatourRegisterDetailAugmentCtx = {
@@ -213,6 +214,9 @@ export async function augmentHanatourParsedWithDetailCollect(
         productTitle: next.title ?? null,
         productType: next.productType ?? null,
         optionalTourNames: hanatourOptionalTourNamesFromParsed(next),
+        scheduleSectionByDay: next.detailBodyStructured
+          ? gatherHanatourScheduleSectionBodiesByDay(next.detailBodyStructured)
+          : null,
       })
       next = { ...next, schedule: withKeywords }
       summaryParts.push(`일정 ${withKeywords.length}일차`)

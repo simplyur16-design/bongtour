@@ -125,6 +125,7 @@ import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from '
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
 import {
   buildPreviewHanatourScheduleFromDetailBody,
+  gatherHanatourScheduleSectionBodiesByDay,
   polishHanatourScheduleRowsGeminiCardTextIfNeeded,
   polishHanatourScheduleRowsPreferDetailBody,
 } from '@/lib/parse-and-register-hanatour-schedule'
@@ -1786,9 +1787,13 @@ ${text.slice(0, 16000)}`
     destResolved.primaryDestination ||
     destResolved.destination ||
     extractDestinationFromTitle(String(raw.title ?? '').trim())
+  const scheduleSectionByDay = gatherHanatourScheduleSectionBodiesByDay(detailBody)
   let schedule: RegisterScheduleDay[] = applyHanatourScheduleImageKeywordsToRows(
     scheduleBase.map(supplementScheduleDayFromDescription),
-    { productDestination: preliminaryDestination || finalDestination || null },
+    {
+      productDestination: preliminaryDestination || finalDestination || null,
+      scheduleSectionByDay,
+    },
   )
   schedule = polishHanatourScheduleRowsPreferDetailBody(schedule, detailBody)
   schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
@@ -1796,6 +1801,7 @@ ${text.slice(0, 16000)}`
   })
   schedule = applyHanatourScheduleImageKeywordsToRows(schedule, {
     productDestination: finalDestination || null,
+    scheduleSectionByDay,
   })
 
   const mustKnowFromLlm = forPreview

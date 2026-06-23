@@ -28,6 +28,10 @@ import {
   extractPlaceNameKeyword,
   finalizeScheduleImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
+import { isKnownDestinationCityEnglishKeyword } from '@/lib/pexels-keyword'
+import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
+
+export { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 
 export {
   classifyHanatourScheduleCardDayKind,
@@ -1354,81 +1358,6 @@ export function polishHanatourScheduleDaysForItinerary(schedule: RegisterSchedul
   return schedule.map((r) => polishHanatourScheduleDayForItinerary(r, maxDay))
 }
 
-function scoreHanatourScheduleChunkBody(body: string): number {
-  const t = body.trim()
-  if (!t) return 0
-  const ls = t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-  const head = [ls[0] ?? '', ls[1] ?? '', ls[2] ?? ''].join('\n').slice(0, 200)
-  const dateLike = /\d{1,2}\/\d{1,2}\s*\([월화수목금토일]\)/.test(head)
-  return (dateLike ? 100_000 : 0) + Math.min(t.length, 50_000)
-}
-
-/**
- * `schedule_section`에서 일차별로 가장 신뢰도 높은 원문 블록(점수 최고)만 모은다.
- */
-export function gatherHanatourScheduleSectionBodiesByDay(detailBody: DetailBodyParseSnapshot): Map<number, string> {
-  const parts = detailBody.sections
-    .filter((s) => s.type === 'schedule_section')
-    .map((s) => s.text.trim())
-    .filter(Boolean)
-  if (!parts.length) return new Map()
-
-  const lines = parts.join('\n\n').split(/\r?\n/)
-  const stripDayHeader = (line: string): string =>
-    line
-      .replace(/^\s*\d{1,2}\s*일차\s*/i, '')
-      .replace(/^\s*DAY\s*\d{1,2}\s*/i, '')
-      .trim()
-  const startDayFromLine = (line: string): number | null => {
-    const m1 = line.match(/^\s*(\d{1,2})\s*일차/i)
-    if (m1) {
-      const rest = stripDayHeader(line)
-      if (isHanatourScheduleMetaSectionHead(rest)) return null
-      return parseInt(m1[1]!, 10)
-    }
-    const m2 = line.match(/^\s*DAY\s*(\d{1,2})\b/i)
-    if (m2) {
-      const rest = stripDayHeader(line)
-      if (isHanatourScheduleMetaSectionHead(rest)) return null
-      return parseInt(m2[1]!, 10)
-    }
-    return null
-  }
-
-  let currentDay = 0
-  const buf: string[] = []
-  const chunks: { day: number; body: string }[] = []
-
-  for (const line of lines) {
-    const d = startDayFromLine(line)
-    if (d != null && d >= 1) {
-      if (currentDay > 0) {
-        chunks.push({ day: currentDay, body: buf.join('\n').trim() })
-      }
-      currentDay = d
-      buf.length = 0
-      const rest = stripDayHeader(line)
-      if (rest && !isHanatourScheduleMetaSectionHead(rest)) buf.push(rest)
-    } else if (currentDay > 0) {
-      if (isHanatourStandaloneMetaScheduleLine(line)) continue
-      buf.push(line)
-    }
-  }
-  if (currentDay > 0) {
-    chunks.push({ day: currentDay, body: buf.join('\n').trim() })
-  }
-
-  const bestByDay = new Map<number, { day: number; body: string; score: number }>()
-  for (const ch of chunks) {
-    const score = scoreHanatourScheduleChunkBody(ch.body)
-    const prev = bestByDay.get(ch.day)
-    if (!prev || score > prev.score) bestByDay.set(ch.day, { day: ch.day, body: ch.body, score })
-  }
-  const out = new Map<number, string>()
-  for (const v of bestByDay.values()) out.set(v.day, v.body)
-  return out
-}
-
 /**
  * LLM 일정 행에 대해, 같은 일차의 `schedule_section` 원문이 있으면 그 본문으로 카드 title·description을 다시 만든다.
  */
@@ -1448,8 +1377,12 @@ export function polishHanatourScheduleRowsPreferDetailBody(
       // LLM imageKeyword가 유효(비어 있지 않고 "Day N travel" 폴백이 아님)하면 보존, 아니면 polished 추론값
       const llmKw = (row.imageKeyword ?? '').trim()
       const llmKwIsFallback = DAY_N_TRAVEL_RE.test(llmKw)
+      const llmKwIsBareCity =
+        !!llmKw &&
+        !llmKwIsFallback &&
+        isKnownDestinationCityEnglishKeyword(finalizeScheduleImageKeyword(llmKw))
       const preservedImageKeyword = finalizeScheduleImageKeyword(
-        llmKw && !llmKwIsFallback ? llmKw : polished.imageKeyword,
+        llmKw && !llmKwIsFallback && !llmKwIsBareCity ? llmKw : polished.imageKeyword,
       ).slice(0, 120)
       const llmDescRaw = (row.description ?? '').trim()
       const chunkLines = stripHanatourScheduleNoiseLines(chunk)
@@ -1696,6 +1629,9 @@ export function augmentHanatourScheduleExpressionParsed(
   }
   if (!sched.length) return parsed
   const stripped = sched.map((r) => stripCounselingTermsFromScheduleRow(r))
+  const scheduleSectionByDay = parsed.detailBodyStructured
+    ? gatherHanatourScheduleSectionBodiesByDay(parsed.detailBodyStructured)
+    : null
   // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 등록 augment — imageKeyword SSOT 재적용 — manifest
   const skipPackageImageKw = isRegisterAirtelListing(ctx?.travelScope, parsed.productType)
   const scheduleRows = skipPackageImageKw
@@ -1707,6 +1643,7 @@ export function augmentHanatourScheduleExpressionParsed(
         travelScope: ctx?.travelScope,
         productType: parsed.productType,
         optionalTourNames: hanatourOptionalTourNamesFromParsed(parsed),
+        scheduleSectionByDay,
       })
   return {
     ...parsed,

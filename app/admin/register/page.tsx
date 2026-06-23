@@ -39,6 +39,8 @@ import {
   applyRegisterScheduleImageKeywordsForPreview,
   overlayPreviewScheduleImageKeywords,
 } from '@/lib/register-schedule-image-keywords-preview'
+import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
+import { resolveHanatourRegisterScheduleSectionByDay } from '@/lib/hanatour-schedule-section-by-day'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
@@ -333,6 +335,22 @@ function scheduleRowsHaveUniformImageKeyword(
   return new Set(kws).size === 1
 }
 
+function hanatourPreviewScheduleSectionByDay(
+  parsed: RegisterParsed | null,
+  preview: AdminRegisterPreviewPayload | null,
+  supplierKey: AdminRegisterSupplierKey | null,
+): ReadonlyMap<number, string> | null {
+  if (supplierKey !== 'hanatour') return null
+  return resolveHanatourRegisterScheduleSectionByDay({
+    parsed: parsed as HanatourScheduleSectionDetailSource | null,
+    previewProductDraft: preview?.productDraft as HanatourScheduleSectionDetailSource | undefined,
+  })
+}
+
+type HanatourScheduleSectionDetailSource = {
+  detailBodyStructured?: DetailBodyParseSnapshot | null
+}
+
 /** 미리보기 패널용: 유효한 schedule 행이 없으면 itineraryDayDrafts로 일차별 SSOT 입력 행을 만든다 */
 function buildRegisterPexelsUiRows(
   parsed: RegisterParsed | null,
@@ -390,6 +408,7 @@ function buildRegisterPexelsUiRows(
       const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
         String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
       )
+      const scheduleSectionByDay = hanatourPreviewScheduleSectionByDay(parsed, preview, supplierKey)
       const augmented = applyRegisterScheduleImageKeywordsForPreview(rawRows, {
         supplierKey,
         productDestination: destHint,
@@ -397,6 +416,7 @@ function buildRegisterPexelsUiRows(
         travelScope,
         productType,
         optionalTourNames,
+        scheduleSectionByDay,
       })
       return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
         day: row.day,
@@ -449,6 +469,7 @@ function buildRegisterPexelsUiRows(
   const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
     String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
   )
+  const scheduleSectionByDay = hanatourPreviewScheduleSectionByDay(parsed, preview, supplierKey)
   try {
     const augmented = applyRegisterScheduleImageKeywordsForPreview(draftRows, {
       supplierKey,
@@ -457,6 +478,7 @@ function buildRegisterPexelsUiRows(
       travelScope,
       productType,
       optionalTourNames,
+      scheduleSectionByDay,
     })
     return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
       day: row.day,

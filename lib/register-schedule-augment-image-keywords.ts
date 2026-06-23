@@ -26,6 +26,8 @@ export function applyAugmentScheduleImageKeywordsBySupplier<
   productType?: string | null
   /** 패키지 자유관광일 예시 imageKeyword — optionalToursStructured 행명 */
   optionalTourNames?: readonly string[]
+  /** detailBody schedule_section 일차별 원문(명소 추출 SSOT) */
+  scheduleSectionByDay?: ReadonlyMap<number, string> | null
 }): T[] {
   if (!rows.length) return rows
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) return rows

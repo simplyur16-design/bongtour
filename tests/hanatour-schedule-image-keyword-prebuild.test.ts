@@ -5,6 +5,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyHanatourScheduleImageKeywordsToRows } from '../lib/hanatour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsForPreview } from '../lib/register-schedule-image-keywords-preview'
 import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-keyword-fallback'
 
 describe('hanatour prebuild — imageKeyword dual slot', () => {
@@ -200,5 +201,96 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     )
     assert.equal(new Set(tourismPrimaries).size, tourismPrimaries.length)
     assert.equal(out.find((r) => r.day === 4)!.imageKeyword, out.find((r) => r.day === 3)!.imageKeyword)
+  })
+
+  it('홍콩 3일 — schedule_section 원문에서 SoHo·성당·웡타이신, Hong Kong 단독 1순위 금지', () => {
+    const scheduleSectionByDay = new Map<number, string>([
+      [
+        1,
+        `1일차
+07/01(수) 인천, 홍콩
+소호 거리(SoHo), 타이쿤, 헐리우드 로드, 미드-레벨 에스컬레이터, 리퉁 애비뉴, 빅토리아 피크, 피크트램
+08:45 서울 ICN 출발 11:55 홍콩 HKG 도착`,
+      ],
+      [
+        2,
+        `2일차
+07/02(목) 홍콩, 마카오
+침사추이 해변 산책로, 성 바울 성당 유적, 세나두 광장, 육포 및 쿠키 거리, 베네시안 마카오 리조트
+홍콩-마카오로 이동`,
+      ],
+      [
+        3,
+        `3일차
+07/03(금) 홍콩, 인천
+웡타이신 사원
+13:15 홍콩 HKG 출발 18:05 서울 ICN 도착`,
+      ],
+    ])
+    const schedule = [
+      {
+        day: 1,
+        title: '인천 - 홍콩',
+        description: '인천 - 홍콩',
+        routeText: '인천 - 홍콩',
+        imageKeyword: 'Hong Kong',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '홍콩 및 마카오 핵심 관광',
+        description: '홍콩 - 마카오 - 홍콩',
+        routeText: '홍콩 - 마카오 - 홍콩',
+        imageKeyword: 'Ruins of St. Paul\'s',
+        imageKeyword2: 'Hong Kong',
+      },
+      {
+        day: 3,
+        title: '홍콩 - 국제공항',
+        description: '홍콩 - 인천',
+        routeText: '홍콩 - 인천',
+        imageKeyword: 'Hong Kong',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
+      productDestination: '홍콩',
+      scheduleSectionByDay,
+    })
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'SoHo Hong Kong')
+    const d2kw = out.find((r) => r.day === 2)!.imageKeyword ?? ''
+    assert.ok(d2kw.length > 0)
+    assert.notEqual(normScheduleImageKeywordKey(d2kw), normScheduleImageKeywordKey('Hong Kong'))
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Wong Tai Sin Temple')
+    const primaries = [1, 2, 3].map((d) =>
+      normScheduleImageKeywordKey(out.find((r) => r.day === d)!.imageKeyword),
+    )
+    assert.equal(new Set(primaries).size, primaries.length)
+    const d2kw2 = out.find((r) => r.day === 2)!.imageKeyword2 ?? ''
+    assert.ok(d2kw2.length > 0)
+    assert.notEqual(normScheduleImageKeywordKey(d2kw2), normScheduleImageKeywordKey('Hong Kong'))
+  })
+
+  it('신규 등록 미리보기 경로 — thin schedule + scheduleSectionByDay = augment와 동일', () => {
+    const scheduleSectionByDay = new Map<number, string>([
+      [1, '1일차 소호 거리(SoHo), 빅토리아 피크, ICN 출발 HKG 도착'],
+      [2, '2일차 성 바울 성당 유적, 세나두 광장'],
+      [3, '3일차 웡타이신 사원, HKG 출발 ICN 도착'],
+    ])
+    const thinRows = [
+      { day: 1, title: '인천 - 홍콩', description: '인천 - 홍콩', routeText: '인천 - 홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
+      { day: 2, title: '홍콩 - 마카오', description: '홍콩 - 마카오 - 홍콩', routeText: '홍콩 - 마카오 - 홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
+      { day: 3, title: '귀국', description: '홍콩 - 인천', routeText: '홍콩 - 인천', imageKeyword: 'Hong Kong', imageKeyword2: null },
+    ]
+    const opts = { supplierKey: 'hanatour', productDestination: '홍콩', scheduleSectionByDay }
+    const viaPreview = applyRegisterScheduleImageKeywordsForPreview(thinRows, opts)
+    const viaAugment = applyHanatourScheduleImageKeywordsToRows(thinRows, {
+      productDestination: '홍콩',
+      scheduleSectionByDay,
+    })
+    for (let d = 1; d <= 3; d++) {
+      assert.equal(viaPreview.find((r) => r.day === d)!.imageKeyword, viaAugment.find((r) => r.day === d)!.imageKeyword)
+      assert.notEqual(normScheduleImageKeywordKey(viaPreview.find((r) => r.day === d)!.imageKeyword), normScheduleImageKeywordKey('Hong Kong'))
+    }
   })
 })
