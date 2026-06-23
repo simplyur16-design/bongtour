@@ -7,13 +7,13 @@
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { parseHanatourRegisterFromApi, type HanatourRegisterApiParseOptions } from '@/lib/hanatour-register-api-parse'
-import type { RegisterExtractionFieldIssue, RegisterParsed } from '@/lib/register-llm-schema-hanatour'
+import type { RegisterExtractionFieldIssue, RegisterLlmParseOptionsCommon, RegisterParsed } from '@/lib/register-llm-schema-hanatour'
 import {
   buildDetailReviewPolicyHanatour,
   filterRegisterExtractionIssuesShoppingGeminiNoise,
 } from '@/lib/review-policy-hanatour'
 
-export type ParseForRegisterHanatourOptions = HanatourRegisterApiParseOptions
+export type ParseForRegisterHanatourOptions = RegisterLlmParseOptionsCommon
 
 export const HANATOUR_PRICE_SLOT_SSOT_NOTE =
   '하나투어 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=미사용(null), infantPrice=유아. 유류·제세·기본상품가 안내·잔여석 등 메타 줄은 슬롯에 넣지 않습니다.'

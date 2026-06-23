@@ -13,7 +13,7 @@ import { collectHanatourRegisterFacts } from '@/lib/register-facts/hanatour'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
-import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
+import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-hanatour'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
 
@@ -23,12 +23,10 @@ const HANATOUR_PRICE_SLOT_SSOT_NOTE =
 const HANATOUR_FLIGHT_PREVIEW_NOTE =
   '하나투어 항공: originUrl detail-collect(pkgAirSeqList) SSOT. 본문 flightRaw는 보조이며 API 수집이 구조화 필드를 덮어쓴다.'
 
-export type HanatourRegisterApiParseOptions = {
-  originUrl?: string | null
-  /** confirm 재파싱 등 — 호환용, API parse에서는 무시 */
-  forPreview?: boolean
-  pastedBodyForInference?: string
-}
+export type HanatourRegisterApiParseOptions = Pick<
+  RegisterLlmParseOptionsCommon,
+  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+>
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
   return rows
@@ -86,8 +84,8 @@ export async function parseHanatourRegisterFromApi(
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'hanatour',
     originCode: bundle.originCode ?? pkgCd,
-    originUrl,
     title: bundle.title?.trim() || '',
+    destination: bundle.title?.trim() || '',
     duration: buildDuration(bundle.nights, bundle.days),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
