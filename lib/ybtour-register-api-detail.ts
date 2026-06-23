@@ -13,6 +13,7 @@ import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { enrichScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-ybtour'
+import { parseYbtourShoppingVisitCount } from '@/lib/register-ybtour-shopping'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 
 const YBTOUR_PAPI_BASE = process.env.YBTOUR_PAPI_BASE_URL ?? 'https://papi.ybtour.co.kr'
@@ -83,10 +84,31 @@ export type YbtourTourDetailRow = {
   useTm?: string | null
 }
 
+export type YbtourOptionListRow = {
+  title?: string | null
+  intro?: string | null
+  useTm?: string | null
+  cost?: string | null
+  note?: string | null
+}
+
+export type YbtourShopListRow = {
+  shopNm?: string | null
+  shopPlace?: string | null
+  shopTm?: string | null
+  refundNote?: string | null
+}
+
+export type YbtourOptionalTourDetailBody = {
+  shopList?: YbtourShopListRow[] | null
+  optionList?: YbtourOptionListRow[] | null
+}
+
 export type YbtourRegisterDetailBundle = {
   notice: YbtourNoticeBody | null
   schedule: YbtourScheduleBody | null
   tourDetail: YbtourTourDetailRow[] | null
+  optionalTourDetail: YbtourOptionalTourDetailBody | null
 }
 
 function ybtourRegisterPapiHeaders(referer: string): HeadersInit {
@@ -362,6 +384,82 @@ export function buildYbtourFlightStructuredFromTm(
   }
 }
 
+function parseYbtourOptionCostText(cost: string | null | undefined): {
+  adultPrice: number | null
+  currency: string | null
+  priceText: string | null
+} {
+  const priceText = String(cost ?? '').trim() || null
+  if (!priceText) return { adultPrice: null, currency: null, priceText: null }
+  const usd = priceText.match(/\$\s*([\d,]+(?:\.\d+)?)/)
+  if (usd?.[1]) {
+    const n = Number(usd[1].replace(/,/g, ''))
+    return {
+      adultPrice: Number.isFinite(n) ? n : null,
+      currency: 'USD',
+      priceText,
+    }
+  }
+  return { adultPrice: null, currency: null, priceText }
+}
+
+/** optional-tour-detail.optionList — CIP1107 등 tour-detail에 없는 현지옵션 SSOT */
+export function extractYbtourOptionalFromOptionList(
+  rows: YbtourOptionListRow[],
+): OptionalTourRowFields[] {
+  const out: OptionalTourRowFields[] = []
+  const seen = new Set<string>()
+  for (const row of rows) {
+    const name = String(row.title ?? '').trim()
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    const body = [row.intro, row.note].filter(Boolean).join(' ').trim()
+    const price = parseYbtourOptionCostText(row.cost)
+    out.push({
+      name,
+      currency: price.currency,
+      adultPrice: price.adultPrice,
+      childPrice: null,
+      durationText: row.useTm?.trim() || null,
+      minPaxText: null,
+      guide同行Text: null,
+      waitingPlaceText: null,
+      raw: [name, body, row.cost].filter(Boolean).join(' ').slice(0, 500) || name,
+      priceText: price.priceText,
+      alternateScheduleText: row.note?.trim() || null,
+    })
+  }
+  return out
+}
+
+/** optional-tour-detail.shopList — notice.shopInfo가 비어 있어도 쇼핑 행 복원 */
+export function extractYbtourShoppingFromShopList(rows: YbtourShopListRow[]): {
+  visitCount: number | null
+  rows: ShoppingStructured['rows']
+  notice: string | null
+} {
+  const parsed: ShoppingStructured['rows'] = []
+  let idx = 0
+  for (const row of rows) {
+    const item = String(row.shopNm ?? '').trim()
+    if (!item) continue
+    idx += 1
+    parsed.push({
+      shoppingItem: item,
+      shoppingPlace: String(row.shopPlace ?? '').trim(),
+      durationText: String(row.shopTm ?? '').trim(),
+      refundPolicyText: String(row.refundNote ?? '').trim(),
+      visitNo: idx,
+      candidateOnly: false,
+    })
+  }
+  return {
+    visitCount: parsed.length > 0 ? parsed.length : null,
+    rows: parsed,
+    notice: parsed.length > 0 ? `쇼핑 ${parsed.length}회` : null,
+  }
+}
+
 export function extractYbtourOptionalFromTourDetail(rows: YbtourTourDetailRow[]): OptionalTourRowFields[] {
   const out: OptionalTourRowFields[] = []
   const seen = new Set<string>()
@@ -391,15 +489,55 @@ export function extractYbtourOptionalFromTourDetail(rows: YbtourTourDetailRow[])
   return out
 }
 
+/** notice.shopInfo HTML 표 — 회차·쇼핑 품목·장소·소요시간·환불여부 */
+export function extractYbtourShoppingRowsFromShopInfoHtml(
+  shopInfoHtml: string | null | undefined,
+): ShoppingStructured['rows'] {
+  const html = String(shopInfoHtml ?? '').trim()
+  if (!html) return []
+  const rows: ShoppingStructured['rows'] = []
+  const allRows: string[][] = []
+  for (const tr of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...tr[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)]
+      .map((c) => stripYbtourHtmlText(c[1]).trim())
+      .filter(Boolean)
+    if (cells.length >= 3) allRows.push(cells)
+  }
+  let dataStart = 0
+  for (let i = 0; i < allRows.length; i++) {
+    const head = allRows[i]!.join(' ')
+    if (/회차/.test(head) && /쇼핑\s*품목|품목/.test(head)) {
+      dataStart = i + 1
+      break
+    }
+  }
+  for (let i = dataStart; i < allRows.length; i++) {
+    const cols = allRows[i]!
+    if (cols.length < 4) continue
+    const visitNo = Number(String(cols[0]).replace(/[^\d]/g, '') || NaN)
+    if (!Number.isFinite(visitNo) || visitNo < 1 || visitNo > 99) continue
+    rows.push({
+      shoppingItem: cols[1] ?? '',
+      shoppingPlace: cols[2] ?? '',
+      durationText: cols[3] ?? '',
+      refundPolicyText: cols.slice(4).join(' ').trim(),
+      visitNo,
+      candidateOnly: false,
+    })
+  }
+  return rows
+}
+
 export function extractYbtourShoppingFromNoticeAndSchedule(
   notice: YbtourNoticeBody | null,
   scheduleDetailTm: YbtourScheduleTmRow[],
 ): { visitCount: number | null; rows: ShoppingStructured['rows']; notice: string | null } {
   const shopCnt = Number(notice?.shopCnt)
   let visitCount = Number.isFinite(shopCnt) && shopCnt >= 0 ? shopCnt : null
-  const rows: ShoppingStructured['rows'] = []
-  let idx = 0
+  const rows: ShoppingStructured['rows'] = extractYbtourShoppingRowsFromShopInfoHtml(notice?.shopInfo)
+  let idx = rows.length
   for (const tm of scheduleDetailTm) {
+    if (rows.length > 0) break
     const hay = `${tm.tmTitle ?? ''} ${stripYbtourHtmlText(String(tm.tmContent ?? ''))}`
     if (!/쇼핑\s*센터|쇼핑센터/i.test(hay)) continue
     idx += 1
@@ -412,8 +550,13 @@ export function extractYbtourShoppingFromNoticeAndSchedule(
       candidateOnly: false,
     })
   }
+  const shopInfoText = stripYbtourHtmlText(String(notice?.shopInfo ?? ''))
+  if (visitCount == null) {
+    const fromInfo = parseYbtourShoppingVisitCount(shopInfoText)
+    if (fromInfo != null) visitCount = fromInfo
+  }
   if (visitCount == null && rows.length > 0) visitCount = rows.length
-  const shopNotice = notice?.shopInfo ? stripYbtourHtmlText(notice.shopInfo).slice(0, 400) : null
+  const shopNotice = notice?.shopInfo ? shopInfoText.slice(0, 400) : null
   return { visitCount, rows, notice: shopNotice }
 }
 
@@ -443,6 +586,7 @@ export function shoppingRowsToStopsJson(rows: ShoppingStructured['rows']): strin
 
 export async function fetchYbtourRegisterDetailBundle(
   originUrl: string,
+  opts?: { includeOptShop?: boolean },
 ): Promise<YbtourRegisterDetailBundle | null> {
   const evCd = parseYbtourEvCdFromUrl(originUrl)
   if (!evCd) return null
@@ -469,6 +613,15 @@ export async function fetchYbtourRegisterDetailBundle(
     referer,
   )
 
-  if (!notice && !schedule && !tourDetail) return null
-  return { notice, schedule, tourDetail }
+  let optionalTourDetail: YbtourOptionalTourDetailBody | null = null
+  if (opts?.includeOptShop) {
+    await paceBetweenRegisterDetailFetches()
+    optionalTourDetail = await fetchYbtourRegisterPapiJson<YbtourOptionalTourDetailBody>(
+      `/pkg/event-schedule/${encodeURIComponent(evCd)}/optional-tour-detail`,
+      referer,
+    )
+  }
+
+  if (!notice && !schedule && !tourDetail && !optionalTourDetail) return null
+  return { notice, schedule, tourDetail, optionalTourDetail }
 }

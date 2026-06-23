@@ -150,7 +150,22 @@ export function extractYbtourMetaShoppingVisitCountFromBody(normalizedRaw: strin
 export function finalizeYbtourRegisterParsedShopping(parsed: RegisterParsed): RegisterParsed {
   const paste = parsed.detailBodyStructured?.raw?.shoppingPasteRaw?.trim()
   const hay = parsed.detailBodyStructured?.normalizedRaw ?? ''
-  if (!paste && ybtourHaystackDeclaresNoShopping(hay)) {
+  const apiShoppingRows = (() => {
+    if (!parsed.shoppingStops?.trim()) return 0
+    try {
+      const arr = JSON.parse(parsed.shoppingStops) as unknown
+      return Array.isArray(arr) ? arr.length : 0
+    } catch {
+      return 0
+    }
+  })()
+  const apiVisitCount = Number(parsed.shoppingVisitCount ?? 0)
+  if (
+    !paste &&
+    ybtourHaystackDeclaresNoShopping(hay) &&
+    apiShoppingRows === 0 &&
+    !(Number.isFinite(apiVisitCount) && apiVisitCount > 0)
+  ) {
     return {
       ...parsed,
       shoppingStops: undefined,

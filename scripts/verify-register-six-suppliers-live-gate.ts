@@ -1,12 +1,11 @@
 /**
- * 5공급사 등록 상세 수집 + 미리보기 + imageKeyword 게이트 (운영 URL 실측).
- * 하나투어는 verify-register-hanatour-kk-live-gate 로 분리·얼림.
- * REGRESSION-FREEZE[register-six-suppliers-live-gate]: 5사 포함·불포함·옵션·쇼핑·키워드 — manifest
+ * 4공급사 등록 상세 수집 + 미리보기 + imageKeyword 게이트 (운영 URL 실측).
+ * 하나투어·모두투어는 전용 live gate로 분리·얼림.
+ * REGRESSION-FREEZE[register-six-suppliers-live-gate]: 4사 포함·불포함·옵션·쇼핑·키워드 — manifest
  *
  * 실행: npm run verify:register-six-suppliers-live-gate
  */
 import assert from 'node:assert/strict'
-import { augmentModetourParsedWithDetailCollect } from '@/lib/modetour-register-detail-collect'
 import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
 import { augmentYbtourParsedWithDetailCollect } from '@/lib/ybtour-register-detail-collect'
 import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
@@ -17,7 +16,6 @@ import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-sch
 type ParsedLike = Record<string, unknown>
 
 const URLS = {
-  modetour: 'https://www.modetour.com/package/106270678',
   kyowontour:
     'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=MCP160260622WS01&menuCode=M510602&brandId=0',
   ybtour:
@@ -45,13 +43,6 @@ function exclN(p: ParsedLike): number {
 }
 
 async function gateCollect() {
-  const modetour = (await augmentModetourParsedWithDetailCollect(
-    { originUrl: URLS.modetour } as ParsedLike,
-    { originUrl: URLS.modetour },
-  )) as ParsedLike
-  assert.ok(inclN(modetour) >= 5, `modetour included`)
-  assert.ok(exclN(modetour) >= 5, `modetour excluded`)
-
   const kyowontour = (await augmentKyowontourParsedWithTabDataCollect(
     { originUrl: URLS.kyowontour } as ParsedLike,
     { originUrl: URLS.kyowontour },
@@ -118,16 +109,6 @@ async function gateCollect() {
 }
 
 function gateImageKeywords() {
-  const modetourRows = applyRegisterScheduleImageKeywordsBySupplier(
-    [
-      { day: 2, title: '팡아만', description: '팡아만 해상 국립공원', routeText: '푸켓 - 팡아만', imageKeyword: 'Phuket', imageKeyword2: 'James Bond Island' },
-      { day: 5, title: '귀국', description: '인천 국제공항 도착', routeText: '푸켓 - 인천', imageKeyword: 'Phuket' },
-    ],
-    { supplierKey: 'modetour', productDestination: 'Thailand' },
-  )
-  assert.match(String(modetourRows.find((r) => r.day === 2)?.imageKeyword), /James Bond/i)
-  assert.equal(modetourRows.find((r) => r.day === 5)?.imageKeyword, '')
-
   const ybtourRows = applyRegisterScheduleImageKeywordsBySupplier(
     [
       { day: 4, title: '비엔티안', description: '파탓루앙', routeText: '방비엥 - 비엔티안 - 파탓루앙 - 빠뚜사이', imageKeyword: 'Pha That Luang', imageKeyword2: 'Patuxai' },

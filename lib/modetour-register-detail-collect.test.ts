@@ -5,11 +5,14 @@ import { describe, expect, it } from 'vitest'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourMustKnowFromKeyPointInfo,
+  extractModetourOptionalToursFromApiList,
+  extractModetourShoppingStopsFromApiList,
   modetourHtmlNoteToPlainText,
 } from './modetour-register-api-detail'
 import {
   modetourFactDaysToRegisterSchedule,
   needsModetourIncludedExcludedCollect,
+  needsModetourOptionalCollect,
   needsModetourScheduleCollect,
 } from './modetour-register-detail-collect'
 import type { RegisterParsed } from './register-llm-schema-modetour'
@@ -49,6 +52,48 @@ describe('modetour register detail collect', () => {
     expect(days[0]?.routeText).toBe('인천 - 구마모토')
     expect(days[0]?.hotelText).toContain('구마모토')
     expect(days[0]?.dinnerText).toContain('석식')
+  })
+
+  it('LLM hasOptionalTour=false여도 structured 없으면 선택관광 수집', () => {
+    expect(
+      needsModetourOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+      }),
+    ).toBe(true)
+  })
+
+  it('maps GetOptionalTourList API rows to structured optional JSON', () => {
+    const rows = extractModetourOptionalToursFromApiList([
+      {
+        name: '#[선택관광] 바나힐',
+        currency: '$',
+        priceAdult: 70,
+        priceChild: 60,
+        durationTime: '180분',
+        readyPlace: '호텔 또는 자유시간',
+        isWithGuide: true,
+        minUserCount: 4,
+      },
+    ])
+    expect(rows[0]?.tourName).toBe('바나힐')
+    expect(rows[0]?.currency).toBe('USD')
+    expect(rows[0]?.adultPrice).toBe(70)
+  })
+
+  it('maps GetShoppingList API rows to shoppingStops JSON', () => {
+    const rows = extractModetourShoppingStopsFromApiList([
+      {
+        itemName: '노니&침향',
+        contentsPlaceInfos: ['BEST노니', '퍼스트'],
+        durationTime: '60분',
+        isRefundEnabled: true,
+      },
+    ])
+    expect(rows[0]?.shoppingItem).toBe('노니&침향')
+    expect(rows[0]?.placeName).toBe('BEST노니')
+    expect(rows[0]?.candidateOnly).toBe(true)
+    expect(rows[0]?.refundPolicyText).toBe('환불가능')
   })
 
   it('parses GetProductDetailInfo includedNote/unincludedNote HTML', () => {

@@ -5,13 +5,17 @@ import { describe, expect, it } from 'vitest'
 import {
   extractYbtourIncludedExcluded,
   extractYbtourMeetingFromScheduleTm,
+  extractYbtourOptionalFromOptionList,
   extractYbtourOptionalFromTourDetail,
+  extractYbtourShoppingFromNoticeAndSchedule,
+  extractYbtourShoppingFromShopList,
   htmlBulletsFromYbtourNotice,
   ybtourScheduleBundleToRegisterSchedule,
   buildYbtourFlightStructuredFromTm,
 } from './ybtour-register-api-detail'
 import {
   needsYbtourIncludedExcludedCollect,
+  needsYbtourOptionalCollect,
   needsYbtourScheduleCollect,
 } from './ybtour-register-detail-collect'
 import type { RegisterParsed } from './register-llm-schema-ybtour'
@@ -43,6 +47,22 @@ describe('ybtour register detail collect', () => {
         includedText: '항공권',
         excludedText: '팁',
       } as RegisterParsed),
+    ).toBe(false)
+  })
+
+  it('needs optional collect even when LLM hasOptionalTour=false', () => {
+    expect(
+      needsYbtourOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+      }),
+    ).toBe(true)
+    expect(
+      needsYbtourOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+        declaresNoOptional: true,
+      }),
     ).toBe(false)
   })
 
@@ -129,6 +149,21 @@ describe('ybtour register detail collect', () => {
     expect(fs?.outbound.departureTime).toBe('20:55')
   })
 
+  it('parses shopInfo HTML shopping table', () => {
+    const html = `<p>총 2번의 쇼핑센터 방문</p><table>
+      <tr><td>회차</td><td>쇼핑 품목</td><td>쇼핑 장소</td><td>소요시간</td><td>환불여부</td></tr>
+      <tr><td>1</td><td>파인애플 과자점</td><td>펑왕, 펑리</td><td>50분</td><td>불가능</td></tr>
+      <tr><td>2</td><td>게르마늄 상점</td><td>문창</td><td>50분</td><td>불가능</td></tr>
+    </table>`
+    const shop = extractYbtourShoppingFromNoticeAndSchedule(
+      { shopCnt: 2, shopInfo: html },
+      [],
+    )
+    expect(shop.visitCount).toBe(2)
+    expect(shop.rows).toHaveLength(2)
+    expect(shop.rows[0]?.shoppingItem).toContain('파인애플')
+  })
+
   it('extracts optional tours when trvInfoYn is N', () => {
     const rows = extractYbtourOptionalFromTourDetail([
       { trvInfoNm: '포함 관광', trvInfoYn: 'Y', trvContent: 'included' },
@@ -136,5 +171,20 @@ describe('ybtour register detail collect', () => {
     ])
     expect(rows).toHaveLength(1)
     expect(rows[0]?.name).toContain('시클로')
+  })
+
+  it('extracts optional-tour-detail optionList and shopList', () => {
+    const opt = extractYbtourOptionalFromOptionList([
+      { title: '101 빌딩', cost: '$35/인', useTm: '약 1시간 30분', note: '전망대' },
+      { title: '발 마사지', cost: '$30/인', useTm: '약 1시간' },
+    ])
+    expect(opt).toHaveLength(2)
+    expect(opt[0]?.adultPrice).toBe(35)
+    const shop = extractYbtourShoppingFromShopList([
+      { shopNm: '파인애플 과자점', shopPlace: '펑왕, 펑리', shopTm: '50분', refundNote: '불가능' },
+      { shopNm: '게르마늄 상점', shopPlace: '문창', shopTm: '50분', refundNote: '불가능' },
+    ])
+    expect(shop.visitCount).toBe(2)
+    expect(shop.rows[1]?.shoppingItem).toContain('게르마늄')
   })
 })

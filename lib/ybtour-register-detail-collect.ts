@@ -12,8 +12,10 @@ import {
   extractYbtourFeesFromNotice,
   extractYbtourIncludedExcluded,
   extractYbtourMeetingFromScheduleTm,
+  extractYbtourOptionalFromOptionList,
   extractYbtourOptionalFromTourDetail,
   extractYbtourShoppingFromNoticeAndSchedule,
+  extractYbtourShoppingFromShopList,
   fetchYbtourRegisterDetailBundle,
   optionalRowsToStructuredJson,
   shoppingRowsToStopsJson,
@@ -30,7 +32,6 @@ import {
   needsRegisterExcludedCollect,
   needsRegisterIncludedCollect,
   needsRegisterIncludedExcludedCollect,
-  needsRegisterOptionalCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
 
@@ -99,6 +100,17 @@ function needsYbtourFlightCollect(parsed: RegisterParsed): boolean {
   return !hasFlat && !hasStructured
 }
 
+/** ybtour — LLM hasOptionalTour=false여도 tour-detail papi 수집 시도 */
+export function needsYbtourOptionalCollect(args: {
+  hasOptionalPaste: boolean
+  optionalToursStructured: string | null | undefined
+  declaresNoOptional?: boolean
+}): boolean {
+  if (args.hasOptionalPaste || hasStructuredJsonRows(args.optionalToursStructured)) return false
+  if (args.declaresNoOptional) return false
+  return true
+}
+
 export async function augmentYbtourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: YbtourRegisterDetailAugmentCtx,
@@ -114,10 +126,9 @@ export async function augmentYbtourParsedWithDetailCollect(
   const needMustKnow = needsYbtourMustKnowCollect(parsed)
   const needMeeting = needsYbtourMeetingCollect(parsed)
   const needFlight = needsYbtourFlightCollect(parsed)
-  const needOpt = needsRegisterOptionalCollect({
+  const needOpt = needsYbtourOptionalCollect({
     hasOptionalPaste: hasOptionalPaste(ctx),
     optionalToursStructured: parsed.optionalToursStructured,
-    hasOptionalTour: parsed.hasOptionalTour,
     declaresNoOptional: ybtourHaystackDeclaresNoOptional(titleHay),
   })
   const needShop = needsRegisterShoppingCollect({
@@ -137,8 +148,10 @@ export async function augmentYbtourParsedWithDetailCollect(
     return parsed
   }
 
-  const bundle = await fetchYbtourRegisterDetailBundle(originUrl)
-  if (!bundle?.notice && !bundle?.schedule && !bundle?.tourDetail) {
+  const bundle = await fetchYbtourRegisterDetailBundle(originUrl, {
+    includeOptShop: needOpt || needShop,
+  })
+  if (!bundle?.notice && !bundle?.schedule && !bundle?.tourDetail && !bundle?.optionalTourDetail) {
     return {
       ...parsed,
       ybtourDetailCollectRan: false,
@@ -258,25 +271,30 @@ export async function augmentYbtourParsedWithDetailCollect(
     }
   }
 
-  if (needOpt && tourDetail && tourDetail.length > 0) {
-    if (!ybtourHaystackDeclaresNoOptional(titleHay)) {
-      const optRows = extractYbtourOptionalFromTourDetail(tourDetail)
-      if (optRows.length > 0) {
-        next = {
-          ...next,
-          optionalToursStructured: optionalRowsToStructuredJson(optRows),
-          optionalTourCount: optRows.length,
-          hasOptionalTour: true,
-          optionalTourSummaryText:
-            optRows.length > 1 ? `현지옵션 ${optRows.length}개` : '현지옵션 있음',
-        }
-        summaryParts.push(`선택관광 ${optRows.length}건`)
+  if (needOpt) {
+    const optFromList = extractYbtourOptionalFromOptionList(bundle.optionalTourDetail?.optionList ?? [])
+    const optFromTour =
+      tourDetail && tourDetail.length > 0 ? extractYbtourOptionalFromTourDetail(tourDetail) : []
+    const optRows = optFromList.length > 0 ? optFromList : optFromTour
+    if (!ybtourHaystackDeclaresNoOptional(titleHay) && optRows.length > 0) {
+      next = {
+        ...next,
+        optionalToursStructured: optionalRowsToStructuredJson(optRows),
+        optionalTourCount: optRows.length,
+        hasOptionalTour: true,
+        optionalTourSummaryText:
+          optRows.length > 1 ? `현지옵션 ${optRows.length}개` : '현지옵션 있음',
       }
+      summaryParts.push(`선택관광 ${optRows.length}건`)
     }
   }
 
   if (needShop) {
-    const shop = extractYbtourShoppingFromNoticeAndSchedule(notice, scheduleDetailTm)
+    const shopFromList = extractYbtourShoppingFromShopList(bundle.optionalTourDetail?.shopList ?? [])
+    const shop =
+      shopFromList.rows.length > 0
+        ? shopFromList
+        : extractYbtourShoppingFromNoticeAndSchedule(notice, scheduleDetailTm)
     const declaresNoShop = ybtourHaystackDeclaresNoShopping(titleHay)
     if (!declaresNoShop) {
       if (shop.visitCount != null) {

@@ -3,25 +3,31 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[modetour-register-detail-collect]: B2C+HTML register augment — manifest
+ * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-modetour'
-import { collectModetourProductCore, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourMustKnowFromKeyPointInfo,
+  extractModetourOptionalToursFromApiList,
   extractModetourShoppingFromDetailBundle,
+  extractModetourShoppingStopsFromApiList,
   fetchModetourRegisterDetailBundle,
 } from '@/lib/modetour-register-api-detail'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
-import { finalizeModetourRegisterParsedShopping } from '@/lib/register-modetour-shopping'
+import { filterModetourOptionalTourRows } from '@/lib/register-modetour-options'
+import {
+  finalizeModetourRegisterParsedShopping,
+  reconcileModetourShoppingVisitCountWithStops,
+} from '@/lib/register-modetour-shopping'
 import {
   hasStructuredJsonRows,
   needsRegisterExcludedCollect,
   needsRegisterIncludedCollect,
   needsRegisterIncludedExcludedCollect,
-  needsRegisterOptionalCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
 
@@ -107,12 +113,19 @@ function hasShoppingPaste(ctx?: ModetourRegisterDetailAugmentCtx): boolean {
   return Boolean(ctx?.pastedBlocks?.shopping?.trim())
 }
 
-function hasStructuredOptional(parsed: RegisterParsed): boolean {
-  return hasStructuredJsonRows(parsed.optionalToursStructured)
-}
-
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
   return hasStructuredJsonRows(parsed.shoppingStops)
+}
+
+/** 모두투어 — LLM hasOptionalTour=false여도 GetOptionalTourList 수집 시도 */
+export function needsModetourOptionalCollect(args: {
+  hasOptionalPaste: boolean
+  optionalToursStructured: string | null | undefined
+  declaresNoOptional?: boolean
+}): boolean {
+  if (args.hasOptionalPaste || hasStructuredJsonRows(args.optionalToursStructured)) return false
+  if (args.declaresNoOptional) return false
+  return true
 }
 
 export function needsModetourIncludedCollect(parsed: RegisterParsed): boolean {
@@ -150,10 +163,9 @@ export async function augmentModetourParsedWithDetailCollect(
   const needExcl = needsModetourExcludedCollect(parsed)
   const needInclExcl = needIncl || needExcl
   const needMustKnow = needsModetourMustKnowCollect(parsed)
-  const needOpt = needsRegisterOptionalCollect({
+  const needOpt = needsModetourOptionalCollect({
     hasOptionalPaste: hasOptionalPaste(ctx),
     optionalToursStructured: parsed.optionalToursStructured,
-    hasOptionalTour: parsed.hasOptionalTour,
   })
   const needShop = needsRegisterShoppingCollect({
     hasShoppingPaste: hasShoppingPaste(ctx),
@@ -165,11 +177,12 @@ export async function augmentModetourParsedWithDetailCollect(
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
 
-  const needDetailBundle = needInclExcl || needShop || needMustKnow
-  const [facts, detailBundle, core] = await Promise.all([
+  const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt
+  const [facts, detailBundle] = await Promise.all([
     needSchedule ? collectModetourRegisterFacts(originUrl) : Promise.resolve(null),
-    needDetailBundle ? fetchModetourRegisterDetailBundle(originUrl) : Promise.resolve(null),
-    needOpt ? collectModetourProductCore(originUrl) : Promise.resolve(null),
+    needDetailBundle
+      ? fetchModetourRegisterDetailBundle(originUrl, { includeOptShop: needOpt || needShop })
+      : Promise.resolve(null),
   ])
 
   if (needSchedule && facts?.scheduleDays.length) {
@@ -221,28 +234,53 @@ export async function augmentModetourParsedWithDetailCollect(
   }
 
   const shopping = extractModetourShoppingFromDetailBundle(detailBundle?.detailInfo, detailBundle?.packageInfo)
-  if (needShop && shopping.shoppingVisitCount != null) {
-    next = {
-      ...next,
-      shoppingVisitCount: shopping.shoppingVisitCount,
-      hasShopping: shopping.noShoppingFlag === true ? false : shopping.shoppingVisitCount > 0,
-      ...(shopping.noShoppingFlag === true ? { shoppingVisitCount: 0 } : {}),
+  if (needShop) {
+    const apiShopRows = extractModetourShoppingStopsFromApiList(detailBundle?.shoppingList ?? [])
+    if (apiShopRows.length > 0) {
+      const shopJson = JSON.stringify(apiShopRows)
+      next = {
+        ...next,
+        shoppingStops: shopJson,
+        hasShopping: true,
+        shoppingVisitCount:
+          shopping.shoppingVisitCount != null && shopping.shoppingVisitCount > 0
+            ? shopping.shoppingVisitCount
+            : apiShopRows.length,
+      }
+      next = reconcileModetourShoppingVisitCountWithStops(next)
+      summaryParts.push(
+        `GetShoppingList: 쇼핑 ${next.shoppingVisitCount ?? apiShopRows.length}회 · 행 ${apiShopRows.length}`,
+      )
+    } else if (shopping.shoppingVisitCount != null) {
+      next = {
+        ...next,
+        shoppingVisitCount: shopping.shoppingVisitCount,
+        hasShopping: shopping.noShoppingFlag === true ? false : shopping.shoppingVisitCount > 0,
+        ...(shopping.noShoppingFlag === true ? { shoppingVisitCount: 0 } : {}),
+      }
+      next = finalizeModetourRegisterParsedShopping(next)
+      summaryParts.push(`GetPackageInfo: 쇼핑 ${shopping.shoppingVisitCount}회`)
     }
-    next = finalizeModetourRegisterParsedShopping(next)
-    summaryParts.push(`GetPackageInfo: 쇼핑 ${shopping.shoppingVisitCount}회`)
   }
 
-  const product = core?.product
-  if (needOpt && product) {
-    if (product.hasOptionalTours === true && product.optionalTourSummaryRaw) {
+  if (needOpt && (detailBundle?.optionalTourList?.length ?? 0) > 0) {
+    const optRows = filterModetourOptionalTourRows(
+      extractModetourOptionalToursFromApiList(detailBundle!.optionalTourList) as {
+        tourName: string
+        descriptionText?: string
+        noteText?: string
+      }[],
+    )
+    if (optRows.length > 0) {
       next = {
         ...next,
         hasOptionalTour: true,
-        optionalTourSummaryText: product.optionalTourSummaryRaw.slice(0, 280),
+        optionalTourCount: optRows.length,
+        optionalToursStructured: JSON.stringify(optRows),
+        optionalTourSummaryText:
+          optRows.length === 1 ? '선택관광 1건' : `선택관광 ${optRows.length}건`,
       }
-      summaryParts.push('상세HTML: 선택관광 요약')
-    } else if (product.noOptionFlag === true || product.hasOptionalTours === false) {
-      next = { ...next, hasOptionalTour: false, optionalTourCount: 0 }
+      summaryParts.push(`GetOptionalTourList: 선택관광 ${optRows.length}건`)
     }
   }
 

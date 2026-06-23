@@ -2,6 +2,7 @@
  * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
  * LLM 영문 우선 + 한글·라틴 routeText 명소 보완(하나투어·노랑풍선 SSOT 패턴).
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: 한글 routeText·도시명 반복 분산 — manifest
+ * REGRESSION-FREEZE[modetour-register-danang-live-gate]: 베트남 POI 오매핑 차단 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
  */
 import {
@@ -102,6 +103,16 @@ function stripRouteSegmentNoise(seg: string): string {
     .trim()
 }
 
+/** 모두투어 routeText 한글 구간 — 공용 POI 사전보다 우선(베트남 오매핑 차단) */
+const MODETOUR_ROUTE_POI_OVERRIDES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /내원교/u, en: 'Japanese Covered Bridge' },
+  { re: /호이안\s*고대\s*도시|호이안\s*올드\s*타운|호이안\s*고성/u, en: 'Hoi An Ancient Town' },
+  { re: /^호이안$/u, en: 'Hoi An Ancient Town' },
+  { re: /영흥사|손짜/u, en: 'Linh Ung Pagoda' },
+  { re: /다낭\s*대성당/u, en: 'Da Nang Cathedral' },
+  { re: /미케\s*비치/u, en: 'My Khe Beach' },
+]
+
 export function isModetourDomesticHubToken(token: string): boolean {
   const t = stripRouteSegmentNoise(token)
   if (!t) return true
@@ -193,6 +204,15 @@ function extractLatinEnglishFromRouteSegment(seg: string): string {
 function englishFromKoreanRouteSegment(seg: string): string {
   const t = stripRouteSegmentNoise(seg)
   if (!t || isModetourDomesticHubToken(t)) return ''
+  for (const { re, en } of MODETOUR_ROUTE_POI_OVERRIDES) {
+    if (re.test(t)) {
+      try {
+        return finalizeScheduleImageKeyword(en)
+      } catch {
+        return en
+      }
+    }
+  }
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     try {
@@ -304,6 +324,30 @@ function pickFirstTourismPoiFromRouteText(
   routeText: string | null | undefined,
   productDestination: string | null | undefined,
 ): string {
+  for (const seg of routeTextSegments(routeText)) {
+    if (isModetourDomesticHubToken(seg)) continue
+    if (isNonLandmarkRouteTextSegment(seg)) continue
+    const t = stripRouteSegmentNoise(seg)
+    for (const { re, en } of MODETOUR_ROUTE_POI_OVERRIDES) {
+      if (re.test(t)) {
+        try {
+          const fin = finalizeScheduleImageKeyword(en)
+          return fin.length >= en.length - 4 ? fin : en
+        } catch {
+          return en
+        }
+      }
+    }
+    const kw = segmentToAcceptedModetourKeyword(seg, productDestination)
+    if (
+      kw &&
+      !isDestinationHubEnglishKeyword(kw, productDestination) &&
+      isScheduleImageKeywordLandmarkEligible(kw)
+    ) {
+      return kw
+    }
+  }
+
   const hay = String(routeText ?? '').trim()
   for (const { en } of findMappedKoreanPoisInTextByMentionOrder(hay)) {
     const accepted = tryAcceptModetourLlmImageKeyword(en, productDestination)

@@ -2,19 +2,41 @@
  * 모두투어 등록 상세카드 — GetProductDetailInfo·GetPackageInfo·GetProductKeyPointInfo B2C API.
  *
  * REGRESSION-FREEZE[modetour-register-detail-collect]: includedNote·unincludedNote·specialBenefits — manifest
+ * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
  */
 import { decodeBasicHtmlEntities } from '@/lib/departure-option-modetour'
 import { fetchModetourGroupDetailInfo, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
 
 const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
 const MODETOUR_WEB_API_REQ_HEADER =
   process.env.MODETOUR_WEB_API_REQ_HEADER ??
   '{"WebSiteNo":2,"CompanyNo":81202,"DeviceType":"DVTPC","ApiKey":"jm9i5RUzKPMPdklHzDKqNzwZYy0IGV5hTyKkCcpxO0IGIgVS+8Z7NnbzbARv5w7Bn90KT13Gq79XZMow6TYvwQ=="}'
 
+export type ModetourOptionalTourApiRow = {
+  name?: string | null
+  currency?: string | null
+  priceAdult?: number | null
+  priceChild?: number | null
+  durationTime?: string | null
+  readyPlace?: string | null
+  isWithGuide?: boolean | null
+  minUserCount?: number | null
+}
+
+export type ModetourShoppingApiRow = {
+  itemName?: string | null
+  contentsPlaceInfos?: string[] | null
+  durationTime?: string | null
+  isRefundEnabled?: boolean | null
+}
+
 export type ModetourRegisterDetailBundle = {
   detailInfo: Record<string, unknown> | null
   packageInfo: Record<string, unknown> | null
   keyPointInfo: Record<string, unknown> | null
+  optionalTourList: ModetourOptionalTourApiRow[]
+  shoppingList: ModetourShoppingApiRow[]
 }
 
 function modetourB2cHeaders(referer: string, productNo: string): HeadersInit {
@@ -157,7 +179,91 @@ export function extractModetourMustKnowFromKeyPointInfo(
   return items
 }
 
-export async function fetchModetourRegisterDetailBundle(originUrl: string): Promise<ModetourRegisterDetailBundle | null> {
+function normalizeModetourApiCurrency(raw: string | null | undefined): string {
+  const s = String(raw ?? '').trim().toUpperCase()
+  if (!s || s === '$') return 'USD'
+  if (s === '원' || s === '￦') return 'KRW'
+  if (/^[A-Z]{3}$/.test(s)) return s
+  return s.slice(0, 3) || 'USD'
+}
+
+/** GetOptionalTourList → 등록 optionalToursStructured 행 */
+export function extractModetourOptionalToursFromApiList(
+  rows: readonly ModetourOptionalTourApiRow[],
+): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = []
+  for (const row of rows) {
+    const rawName = String(row.name ?? '').trim()
+    if (!rawName) continue
+    const tourName = normalizeModetourOptionalTourDisplayName(rawName)
+    const currency = normalizeModetourApiCurrency(row.currency)
+    const adult = Number(row.priceAdult)
+    const child = Number(row.priceChild)
+    const durationText = String(row.durationTime ?? '').trim() || null
+    const minPeopleText =
+      row.minUserCount != null && Number.isFinite(Number(row.minUserCount))
+        ? `${Number(row.minUserCount)}명`
+        : null
+    const guide同行Text =
+      row.isWithGuide === true ? '동행' : row.isWithGuide === false ? '동행안함' : null
+    const waitingPlaceText = String(row.readyPlace ?? '').trim() || null
+    const childPart = Number.isFinite(child) ? ` / 아동 ${currency} ${child}` : ''
+    const priceText = Number.isFinite(adult) ? `성인 ${currency} ${adult}${childPart}` : ''
+    out.push({
+      name: tourName,
+      tourName,
+      currency,
+      adultPrice: Number.isFinite(adult) ? adult : null,
+      childPrice: Number.isFinite(child) ? child : null,
+      durationText,
+      minPeopleText,
+      guide同行Text,
+      waitingPlaceText,
+      alternateScheduleText: waitingPlaceText ?? undefined,
+      descriptionText: '',
+      priceText,
+      raw: rawName,
+    })
+  }
+  return out
+}
+
+/** GetShoppingList → 등록 shoppingStops JSON 행(모두투어 후보 그룹 형식) */
+export function extractModetourShoppingStopsFromApiList(
+  rows: readonly ModetourShoppingApiRow[],
+): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = []
+  rows.forEach((row, idx) => {
+    const item = String(row.itemName ?? '').trim()
+    if (!item) return
+    const places = (row.contentsPlaceInfos ?? [])
+      .map((p) => String(p).trim())
+      .filter((p) => p.length > 0)
+    const shop = places[0] ?? item
+    const durationText = String(row.durationTime ?? '').trim() || null
+    const refundPolicyText =
+      row.isRefundEnabled === true ? '환불가능' : row.isRefundEnabled === false ? '환불불가' : null
+    out.push({
+      shoppingItem: item,
+      itemType: item,
+      shoppingPlace: shop,
+      placeName: shop,
+      shopName: shop,
+      durationText,
+      refundPolicyText,
+      noteText: places.length > 1 ? places.join(', ') : undefined,
+      candidateOnly: places.length > 1 ? true : undefined,
+      candidateGroupKey: places.length > 1 ? `modetour:api:g${idx}` : undefined,
+      raw: item,
+    })
+  })
+  return out
+}
+
+export async function fetchModetourRegisterDetailBundle(
+  originUrl: string,
+  opts?: { includeOptShop?: boolean },
+): Promise<ModetourRegisterDetailBundle | null> {
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
   if (!productNo || productNo === '0') return null
 
@@ -165,7 +271,8 @@ export async function fetchModetourRegisterDetailBundle(originUrl: string): Prom
   const headers = modetourB2cHeaders(referer, productNo)
   const base = MODETOUR_API_BASE.replace(/\/$/, '')
 
-  const [detailInfo, packageJson, keyPointJson] = await Promise.all([
+  const includeOptShop = opts?.includeOptShop === true
+  const [detailInfo, packageJson, keyPointJson, optionalJson, shoppingJson] = await Promise.all([
     fetchModetourGroupDetailInfo(originUrl),
     fetchModetourJson<{ result?: Record<string, unknown> }>(
       `${base}/Package/GetPackageInfo?productNo=${encodeURIComponent(productNo)}`,
@@ -175,11 +282,25 @@ export async function fetchModetourRegisterDetailBundle(originUrl: string): Prom
       `${base}/Package/GetProductKeyPointInfo?productNo=${encodeURIComponent(productNo)}`,
       headers,
     ),
+    includeOptShop
+      ? fetchModetourJson<{ result?: ModetourOptionalTourApiRow[] }>(
+          `${base}/Package/GetOptionalTourList?productNo=${encodeURIComponent(productNo)}`,
+          headers,
+        )
+      : Promise.resolve(null),
+    includeOptShop
+      ? fetchModetourJson<{ result?: ModetourShoppingApiRow[] }>(
+          `${base}/Package/GetShoppingList?productNo=${encodeURIComponent(productNo)}`,
+          headers,
+        )
+      : Promise.resolve(null),
   ])
 
   return {
     detailInfo,
     packageInfo: packageJson?.result ?? null,
     keyPointInfo: keyPointJson?.result ?? null,
+    optionalTourList: Array.isArray(optionalJson?.result) ? optionalJson.result : [],
+    shoppingList: Array.isArray(shoppingJson?.result) ? shoppingJson.result : [],
   }
 }

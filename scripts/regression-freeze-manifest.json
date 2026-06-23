@@ -2972,6 +2972,7 @@
             "GetScheduleList",
             "GetProductDetailInfo",
             "GetProductKeyPointInfo",
+            "needsModetourOptionalCollect",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
           ]
@@ -2983,7 +2984,10 @@
             "includedNote",
             "unincludedNote",
             "specialBenefits",
-            "fetchModetourRegisterDetailBundle"
+            "fetchModetourRegisterDetailBundle",
+            "extractModetourOptionalToursFromApiList",
+            "extractModetourShoppingStopsFromApiList",
+            "GetOptionalTourList"
           ]
         },
         {
@@ -2995,6 +2999,34 @@
       ],
       "vitestSuites": [
         "lib/modetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-register-danang-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "모두투어 103887821 다낭 — GetOptionalTourList·GetShoppingList·미리보기 live",
+      "npmScripts": [
+        "verify:register-modetour-danang-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-modetour-danang-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-danang-live-gate]",
+            "103887821",
+            "optionalToursStructured",
+            "shoppingStops"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "MODETOUR_ROUTE_POI_OVERRIDES",
+            "Japanese Covered Bridge"
+          ]
+        }
       ]
     },
     {
@@ -3134,6 +3166,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-detail-collect]",
             "augmentYbtourParsedWithDetailCollect",
+            "needsYbtourOptionalCollect",
             "papi notice",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
@@ -3144,6 +3177,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-detail-collect]",
             "extractYbtourIncludedExcluded",
+            "extractYbtourShoppingRowsFromShopInfoHtml",
+            "optional-tour-detail",
             "ybtourScheduleBundleToRegisterSchedule"
           ]
         },
@@ -3156,6 +3191,41 @@
       ],
       "vitestSuites": [
         "lib/ybtour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-register-taiwan-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "ybtour CIP1107 대만 — tour-detail 선택관광·shopInfo 쇼핑·미리보기 live",
+      "npmScripts": [
+        "verify:register-ybtour-taiwan-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-ybtour-taiwan-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-taiwan-live-gate]",
+            "CIP1107",
+            "optionalToursStructured",
+            "shoppingStops"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-detail-collect.ts",
+          "mustInclude": [
+            "needsYbtourOptionalCollect"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "extractYbtourShoppingRowsFromShopInfoHtml",
+            "extractYbtourOptionalFromOptionList",
+            "extractYbtourShoppingFromShopList"
+          ]
+        }
       ]
     },
     {
@@ -3434,7 +3504,7 @@
       "tier": [
         "ci"
       ],
-      "summary": "5공급사(하나투어 제외) 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
+      "summary": "4공급사(하나투어·모두투어 제외) 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
       "npmScripts": [
         "verify:register-six-suppliers-live-gate"
       ],
