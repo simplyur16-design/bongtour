@@ -1,7 +1,7 @@
 /**
  * 하나투어 등록 상세카드 — gw API 응답 파싱 SSOT.
  *
- * REGRESSION-FREEZE[hanatour-register-detail-collect]: getPkgProdInfo·getPkgProdItnrInfo 매핑 — manifest
+ * REGRESSION-FREEZE[hanatour-register-detail-collect]: getPkgProdInfo·getPkgProdItnrInfo·getPkgProdChcStsngInfo 매핑 — manifest
  */
 import {
   fetchHanatourPkgProdInfo,
@@ -63,6 +63,28 @@ export type HanatourItnrResponse = {
   data?: {
     meetInfoBcVo?: { fstMeetCont?: string | null }
     schdInfoList?: HanatourItnrSchdDay[]
+  }
+}
+
+export type HanatourChcStsngRow = {
+  koCntryNm?: string | null
+  koCityNm?: string | null
+  chcStsngCd?: string | null
+  spclStsngYn?: string | null
+  chcStsngNm?: string | null
+  currCd?: string | null
+  adtAmt?: number | null
+  chdAmt?: number | null
+  rqrmTmInfo?: string | null
+  chcStsngCont?: string | null
+  sbstSchdCont?: string | null
+  mrchRcmnYn?: string | null
+}
+
+export type HanatourChcStsngResponse = {
+  data?: {
+    chcInfoList?: HanatourChcStsngRow[]
+    bestChcTourYn?: string | null
   }
 }
 
@@ -153,6 +175,50 @@ function parseCardOptionalFields(card: HanatourItnrSchdMain): Partial<OptionalTo
   }
 }
 
+function normalizeHanatourOptionalTourDisplayName(raw: string): string {
+  let name = String(raw ?? '').trim()
+  while (/^\s*\[[^\]]+\]\s*/.test(name)) {
+    name = name.replace(/^\s*\[[^\]]+\]\s*/, '')
+  }
+  name = name.replace(/^\s*(MD추천|스페셜포함)\s*/i, '').trim()
+  return name
+}
+
+export function extractHanatourOptionalToursFromChcStsng(
+  chc: HanatourChcStsngResponse | null,
+): OptionalTourRowFields[] {
+  const out: OptionalTourRowFields[] = []
+  const seen = new Set<string>()
+  for (const row of chc?.data?.chcInfoList ?? []) {
+    const name = normalizeHanatourOptionalTourDisplayName(String(row.chcStsngNm ?? ''))
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    const currency = String(row.currCd ?? '').trim().toUpperCase() || null
+    const adultPrice = Number.isFinite(Number(row.adtAmt)) ? Number(row.adtAmt) : null
+    const childPrice = Number.isFinite(Number(row.chdAmt)) ? Number(row.chdAmt) : null
+    const tags: string[] = []
+    if (String(row.spclStsngYn ?? '').toUpperCase() === 'Y') tags.push('스페셜포함')
+    if (String(row.mrchRcmnYn ?? '').toUpperCase() === 'Y') tags.push('MD추천')
+    out.push({
+      name,
+      currency,
+      adultPrice,
+      childPrice,
+      durationText: String(row.rqrmTmInfo ?? '').trim() || null,
+      minPaxText: null,
+      guide同行Text: null,
+      waitingPlaceText: null,
+      raw: stripHanatourHtmlText(String(row.chcStsngCont ?? row.chcStsngNm ?? '')).slice(0, 500) || name,
+      priceText:
+        adultPrice != null && currency ? `성인 ${adultPrice}${currency}` : null,
+      alternateScheduleText: String(row.sbstSchdCont ?? '').trim() || null,
+      supplierTags: tags.length > 0 ? tags : null,
+      includedNoExtraCharge: String(row.spclStsngYn ?? '').toUpperCase() === 'Y' ? true : null,
+    })
+  }
+  return out
+}
+
 export function extractHanatourOptionalToursFromItnr(itnr: HanatourItnrResponse | null): OptionalTourRowFields[] {
   const out: OptionalTourRowFields[] = []
   const seen = new Set<string>()
@@ -161,7 +227,7 @@ export function extractHanatourOptionalToursFromItnr(itnr: HanatourItnrResponse 
       const cat = String(main.schdCatgNm ?? '')
       if (!cat.includes('선택관광')) continue
       const fields = parseCardOptionalFields(main)
-      const name = fields.name?.trim()
+      const name = normalizeHanatourOptionalTourDisplayName(fields.name ?? '')
       if (!name || seen.has(name)) continue
       seen.add(name)
       out.push({
@@ -180,6 +246,16 @@ export function extractHanatourOptionalToursFromItnr(itnr: HanatourItnrResponse 
     }
   }
   return out
+}
+
+/** 선택관광 SSOT: chcInfoList(전체 카탈로그) 우선, 없으면 itnr 일정 카드 */
+export function extractHanatourOptionalTours(bundle: {
+  itnr: HanatourItnrResponse | null
+  chcStsng: HanatourChcStsngResponse | null
+}): OptionalTourRowFields[] {
+  const fromChc = extractHanatourOptionalToursFromChcStsng(bundle.chcStsng)
+  if (fromChc.length > 0) return fromChc
+  return extractHanatourOptionalToursFromItnr(bundle.itnr)
 }
 
 export function extractHanatourShoppingFromProdInfo(info: HanatourProdInfoExtended): {
@@ -371,6 +447,13 @@ export function hanatourItnrToFactDays(itnr: HanatourItnrResponse | null): Regis
   return hanatourItnrSchdToFactDays(itnr?.data?.schdInfoList ?? [])
 }
 
+export async function fetchHanatourPkgProdChcStsngInfo(pkgCd: string): Promise<HanatourChcStsngResponse | null> {
+  return postHanatourGw<HanatourChcStsngResponse>(
+    '/package/pkg/api/common/pkgcomprod/getPkgProdChcStsngInfo/v1.00',
+    { pkgCd },
+  )
+}
+
 export async function fetchHanatourPkgProdItnr(pkgCd: string): Promise<HanatourItnrResponse | null> {
   return postHanatourGw<HanatourItnrResponse>('/package/pkg/api/common/pkgcomprod/getPkgProdItnrInfo/v1.00', {
     pkgCd,
@@ -381,12 +464,14 @@ export async function fetchHanatourRegisterDetailBundle(originUrl: string): Prom
   pkgCd: string
   prodInfo: HanatourProdInfoExtended | null
   itnr: HanatourItnrResponse | null
+  chcStsng: HanatourChcStsngResponse | null
 } | null> {
   const pkgCd = parseHanatourPkgCdFromUrl(originUrl)
   if (!pkgCd) return null
-  const [prodInfo, itnr] = await Promise.all([
+  const [prodInfo, itnr, chcStsng] = await Promise.all([
     fetchHanatourPkgProdInfo(pkgCd) as Promise<HanatourProdInfoExtended | null>,
     fetchHanatourPkgProdItnr(pkgCd),
+    fetchHanatourPkgProdChcStsngInfo(pkgCd),
   ])
-  return { pkgCd, prodInfo, itnr }
+  return { pkgCd, prodInfo, itnr, chcStsng }
 }

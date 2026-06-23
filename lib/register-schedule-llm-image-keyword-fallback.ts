@@ -3,11 +3,16 @@
  * 공급사별 `*-schedule-image-keyword.ts` 에서 공통 사용.
  *
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 imageKeyword + imageKeyword2(1≠2).
- * REGRESSION-FREEZE[register-six-suppliers-live-gate]: isRegisterScheduleFreeLeisureDay — manifest
+ * REGRESSION-FREEZE[hanatour-register-kk-live-gate]: return_home·free-day example keyword — manifest
  * 공급사별 모듈은 이 파일의 2순위·dedupe 후 reconcile 헬퍼를 공유한다 — 한 공급사만 고치지 말 것.
  */
 import { extractPlaceNameKeyword } from '@/lib/pexels-place-name-keyword'
-import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import {
+  extractEnglishPoiFromLabel,
+  mapDestination,
+  mapKoreanPoiSegment,
+  normalizeSemanticPoiKey,
+} from '@/lib/pexels-keyword'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 function normKeywordKey(s: string): string {
@@ -53,13 +58,31 @@ export type ScheduleRowTextForKeyword = {
   imageKeyword?: string | null
 }
 
-/** 전일 자유·자유시간 일정 — 대표 랜드마크 키워드 비움(도시명 fallback 금지) */
+/** 전일 자유·자유시간 일정 — 선택관광 예시 키워드 후보 대상(도시명만 넣지 않음) */
 export function isRegisterScheduleFreeLeisureDay(haystack: string): boolean {
   const h = String(haystack ?? '').slice(0, 8_000)
   if (!h.trim()) return false
   if (!/전\s*일정\s*자유|자유\s*시간|자유\s*일정|자유일정|free\s*time|at\s+leisure/i.test(h)) return false
   if (/(관광|방문|탐방|투어|체험|국립|공원|사원|유적|박물관|폭포|섬)/u.test(h)) return false
   return true
+}
+
+/** optionalToursStructured JSON → 선택관광명 목록 */
+export function parseOptionalTourNamesFromStructuredJson(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return []
+  try {
+    const arr = JSON.parse(raw) as unknown
+    if (!Array.isArray(arr)) return []
+    return arr
+      .map((x) => {
+        if (!x || typeof x !== 'object' || Array.isArray(x)) return ''
+        const o = x as Record<string, unknown>
+        return String(o.name ?? o.tourName ?? o.title ?? '').trim()
+      })
+      .filter((n) => n.length > 1)
+  } catch {
+    return []
+  }
 }
 
 export type AcceptLlmScheduleImageKeywordOpts = {

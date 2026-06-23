@@ -10,7 +10,7 @@ import {
   extractHanatourCorePoints,
   extractHanatourFeesFromProdInfo,
   extractHanatourIncludedExcluded,
-  extractHanatourOptionalToursFromItnr,
+  extractHanatourOptionalTours,
   extractHanatourShoppingFromProdInfo,
   fetchHanatourRegisterDetailBundle,
   hanatourFactDaysToRegisterSchedule,
@@ -26,7 +26,6 @@ import {
   needsRegisterExcludedCollect,
   needsRegisterIncludedCollect,
   needsRegisterIncludedExcludedCollect,
-  needsRegisterOptionalCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
 
@@ -41,6 +40,17 @@ function hasOptionalPaste(ctx?: HanatourRegisterDetailAugmentCtx): boolean {
 
 function hasShoppingPaste(ctx?: HanatourRegisterDetailAugmentCtx): boolean {
   return Boolean(ctx?.pastedBlocks?.shopping?.trim())
+}
+
+/** 하나투어 — LLM hasOptionalTour=false여도 chcStsng 전체 카탈로그 수집 시도 */
+export function needsHanatourOptionalCollect(args: {
+  hasOptionalPaste: boolean
+  optionalToursStructured: string | null | undefined
+  declaresNoOptional?: boolean
+}): boolean {
+  if (args.hasOptionalPaste || hasStructuredJsonRows(args.optionalToursStructured)) return false
+  if (args.declaresNoOptional) return false
+  return true
 }
 
 function hasStructuredOptional(parsed: RegisterParsed): boolean {
@@ -154,10 +164,9 @@ export async function augmentHanatourParsedWithDetailCollect(
   const needSchedule = needsHanatourScheduleCollect(parsed)
   const needInclExcl = needsHanatourIncludedExcludedCollect(parsed)
   const needMustKnow = needsHanatourMustKnowCollect(parsed)
-  const needOpt = needsRegisterOptionalCollect({
+  const needOpt = needsHanatourOptionalCollect({
     hasOptionalPaste: hasOptionalPaste(ctx),
     optionalToursStructured: parsed.optionalToursStructured,
-    hasOptionalTour: parsed.hasOptionalTour,
   })
   const needShop = needsRegisterShoppingCollect({
     hasShoppingPaste: hasShoppingPaste(ctx),
@@ -177,7 +186,7 @@ export async function augmentHanatourParsedWithDetailCollect(
 
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
-  const { prodInfo, itnr } = bundle
+  const { prodInfo, itnr, chcStsng } = bundle
 
   if (needSchedule) {
     const factDays = hanatourItnrToFactDays(itnr)
@@ -193,7 +202,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   }
 
   if (needOpt) {
-    const optRows = extractHanatourOptionalToursFromItnr(itnr)
+    const optRows = extractHanatourOptionalTours({ itnr, chcStsng: bundle.chcStsng })
     const nopt = String(prodInfo.noptYn ?? '').toUpperCase() === 'Y'
     if (optRows.length > 0) {
       const json = optionalRowsToStructuredJson(optRows)
@@ -237,7 +246,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   const notes = [...(next.registerPreviewPolicyNotes ?? [])]
   const note =
     summaryParts.length > 0
-      ? `하나투어 상세카드 자동수집: ${summaryParts.join(' · ')} (gw getPkgProdInfo+itnr)`
+      ? `하나투어 상세카드 자동수집: ${summaryParts.join(' · ')} (gw getPkgProdInfo+itnr+chcStsng)`
       : '하나투어 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 

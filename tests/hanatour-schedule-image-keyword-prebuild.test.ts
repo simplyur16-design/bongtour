@@ -5,6 +5,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyHanatourScheduleImageKeywordsToRows } from '../lib/hanatour-schedule-image-keyword'
+import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-keyword-fallback'
 
 describe('hanatour prebuild — imageKeyword dual slot', () => {
   const indiaOpts = { productDestination: 'India' }
@@ -87,5 +88,68 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     )
     assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
     assert.notEqual(out[0]!.imageKeyword, out[0]!.imageKeyword2)
+  })
+
+  it('코타키나발루 — 자유일 예시 선택관광, 귀국일 직전 관광명소', () => {
+    const optionalTourNames = [
+      'KK 스타 라운지',
+      'MD추천 선셋 반딧불이 투어',
+      '스페셜포함 툰구압둘라만 해양국립공원 아일랜드 투어',
+    ]
+    const schedule = [
+      {
+        day: 1,
+        title: '인천 - 국제공항',
+        description: '인천 출발 코타키나발루 도착',
+        routeText: '인천 - 코타키나발루',
+        imageKeyword: 'Kota Kinabalu',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '아일랜드 투어 및 선셋 반딧불 투어',
+        description: '스노클링과 반딧불 투어',
+        routeText: '코타키나발루 - 아일랜드 투어 - 선셋 반딧불 투어',
+        imageKeyword: 'Kota Kinabalu',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '전 일정 자유 시간',
+        description: '전 일정 자유 시간으로 시내를 자유롭게 관광할 수 있습니다',
+        routeText: '코타키나발루',
+        imageKeyword: 'Kota Kinabalu',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        title: '시내 관광 및 KK 스타라운지',
+        description: '이슬람 사원 등 시내 관광',
+        routeText: '코타키나발루 - 시내 관광 - KK 스타라운지',
+        imageKeyword: 'Kota Kinabalu City Mosque',
+        imageKeyword2: null,
+      },
+      {
+        day: 5,
+        title: '인천 국제공항 도착',
+        description: '코타키나발루 출발 인천 도착',
+        routeText: '코타키나발루 - 인천',
+        imageKeyword: 'Kota Kinabalu',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
+      productDestination: '말레이시아 코타키나발루',
+      optionalTourNames,
+    })
+    assert.ok((out.find((r) => r.day === 3)!.imageKeyword ?? '').length > 0)
+    const d4kw = out.find((r) => r.day === 4)!.imageKeyword ?? ''
+    const d5kw = out.find((r) => r.day === 5)!.imageKeyword ?? ''
+    assert.ok(d4kw.length > 0)
+    assert.equal(d5kw, d4kw)
+    const d2 = out.find((r) => r.day === 2)!
+    assert.ok(d2.imageKeyword.length > 0)
+    assert.ok(d2.imageKeyword2 && d2.imageKeyword2.length > 0)
+    assert.notEqual(normScheduleImageKeywordKey(d2.imageKeyword), normScheduleImageKeywordKey(d2.imageKeyword2!))
   })
 })

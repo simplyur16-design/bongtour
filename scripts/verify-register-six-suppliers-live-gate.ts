@@ -1,11 +1,11 @@
 /**
- * 6공급사 등록 상세 수집 + 미리보기 + imageKeyword 게이트 (운영 URL 실측).
- * REGRESSION-FREEZE[register-six-suppliers-live-gate]: 6사 포함·불포함·옵션·쇼핑·키워드 — manifest
+ * 5공급사 등록 상세 수집 + 미리보기 + imageKeyword 게이트 (운영 URL 실측).
+ * 하나투어는 verify-register-hanatour-kk-live-gate 로 분리·얼림.
+ * REGRESSION-FREEZE[register-six-suppliers-live-gate]: 5사 포함·불포함·옵션·쇼핑·키워드 — manifest
  *
  * 실행: npm run verify:register-six-suppliers-live-gate
  */
 import assert from 'node:assert/strict'
-import { augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { augmentModetourParsedWithDetailCollect } from '@/lib/modetour-register-detail-collect'
 import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
 import { augmentYbtourParsedWithDetailCollect } from '@/lib/ybtour-register-detail-collect'
@@ -17,8 +17,6 @@ import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-sch
 type ParsedLike = Record<string, unknown>
 
 const URLS = {
-  hanatour:
-    'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=ADP281260716ZEA&prePage=major-products',
   modetour: 'https://www.modetour.com/package/106270678',
   kyowontour:
     'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=MCP160260622WS01&menuCode=M510602&brandId=0',
@@ -47,14 +45,6 @@ function exclN(p: ParsedLike): number {
 }
 
 async function gateCollect() {
-  const hanatour = (await augmentHanatourParsedWithDetailCollect(
-    { originUrl: URLS.hanatour } as ParsedLike,
-    { originUrl: URLS.hanatour },
-  )) as ParsedLike
-  assert.ok(inclN(hanatour) >= 5, `hanatour included ${inclN(hanatour)}`)
-  assert.ok(exclN(hanatour) >= 3, `hanatour excluded ${exclN(hanatour)}`)
-  assert.ok(countJsonRows(hanatour.optionalToursStructured) >= 1, 'hanatour optional')
-
   const modetour = (await augmentModetourParsedWithDetailCollect(
     { originUrl: URLS.modetour } as ParsedLike,
     { originUrl: URLS.modetour },
@@ -128,18 +118,6 @@ async function gateCollect() {
 }
 
 function gateImageKeywords() {
-  const hanatourRows = applyRegisterScheduleImageKeywordsBySupplier(
-    [
-      { day: 2, title: '부나켄', description: '부나켄 국립해양공원', routeText: '마나도 - 부나켄 국립해양공원 - 마나도', imageKeyword: 'Bunaken National Marine Park' },
-      { day: 3, title: '자유', description: '전 일정 자유 시간', routeText: '마나도', imageKeyword: '' },
-      { day: 5, title: '귀국', description: '인천 국제공항 도착', routeText: '마나도 - 인천', imageKeyword: '' },
-    ],
-    { supplierKey: 'hanatour', productDestination: 'Indonesia' },
-  )
-  assert.match(String(hanatourRows.find((r) => r.day === 2)?.imageKeyword), /Bunaken/i)
-  assert.equal(hanatourRows.find((r) => r.day === 3)?.imageKeyword, '')
-  assert.equal(hanatourRows.find((r) => r.day === 5)?.imageKeyword, '')
-
   const modetourRows = applyRegisterScheduleImageKeywordsBySupplier(
     [
       { day: 2, title: '팡아만', description: '팡아만 해상 국립공원', routeText: '푸켓 - 팡아만', imageKeyword: 'Phuket', imageKeyword2: 'James Bond Island' },

@@ -39,6 +39,7 @@ import {
   applyRegisterScheduleImageKeywordsForPreview,
   overlayPreviewScheduleImageKeywords,
 } from '@/lib/register-schedule-image-keywords-preview'
+import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
@@ -386,12 +387,16 @@ function buildRegisterPexelsUiRows(
         (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
         null
       const titleHint = (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null
+      const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
+        String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
+      )
       const augmented = applyRegisterScheduleImageKeywordsForPreview(rawRows, {
         supplierKey,
         productDestination: destHint,
         productTitle: titleHint,
         travelScope,
         productType,
+        optionalTourNames,
       })
       return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
         day: row.day,
@@ -441,6 +446,9 @@ function buildRegisterPexelsUiRows(
     }
   })
   const titleHint = (d.title ?? '').trim() || null
+  const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
+    String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
+  )
   try {
     const augmented = applyRegisterScheduleImageKeywordsForPreview(draftRows, {
       supplierKey,
@@ -448,6 +456,7 @@ function buildRegisterPexelsUiRows(
       productTitle: titleHint,
       travelScope,
       productType,
+      optionalTourNames,
     })
     return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
       day: row.day,

@@ -137,6 +137,7 @@
     "verify:register-detail-final-chain": "npx tsx scripts/verify-register-detail-final-chain.ts",
     "verify:register-facts-live": "npx tsx scripts/verify-register-facts-live.ts",
     "verify:register-six-suppliers-live-gate": "npx tsx scripts/verify-register-six-suppliers-live-gate.ts",
+    "verify:register-hanatour-kk-live-gate": "npx tsx scripts/verify-register-hanatour-kk-live-gate.ts",
     "verify:register-facts-detail-parity": "npx tsx scripts/verify-register-facts-detail-parity.ts",
     "verify:product-departure-airport-migration": "npx tsx scripts/verify-product-departure-airport-migration.ts",
     "db:backfill-departure-airport-label": "npx tsx scripts/backfill-product-departure-airport-label.ts",

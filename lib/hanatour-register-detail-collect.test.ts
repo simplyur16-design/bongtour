@@ -6,11 +6,13 @@ import {
   formatHanatourTrvlExpnBullet,
   hanatourFactDaysToRegisterSchedule,
   extractHanatourIncludedExcluded,
+  extractHanatourOptionalToursFromChcStsng,
 } from './hanatour-register-api-detail'
 import {
   needsHanatourExcludedCollect,
   needsHanatourIncludedCollect,
   needsHanatourIncludedExcludedCollect,
+  needsHanatourOptionalCollect,
   needsHanatourScheduleCollect,
 } from './hanatour-register-detail-collect'
 import type { RegisterParsed } from './register-llm-schema-hanatour'
@@ -38,6 +40,15 @@ describe('hanatour register detail collect', () => {
         excludedText: '팁',
       } as RegisterParsed),
     ).toBe(false)
+  })
+
+  it('LLM hasOptionalTour=false여도 structured 없으면 선택관광 수집', () => {
+    expect(
+      needsHanatourOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+      }),
+    ).toBe(true)
   })
 
   it('포함만 있어도 불포함 수집 필요', () => {
@@ -93,5 +104,33 @@ describe('hanatour register detail collect', () => {
     expect(excludedItems.some((x) => /개인 경비/.test(x))).toBe(true)
     expect(excludedItems.some((x) => /1인실|객실/i.test(x))).toBe(true)
     expect(excludedItems.some((x) => /가이드|기사/.test(x))).toBe(true)
+  })
+
+  it('extractHanatourOptionalToursFromChcStsng — chcInfoList 카탈로그', () => {
+    const rows = extractHanatourOptionalToursFromChcStsng({
+      data: {
+        chcInfoList: [
+          {
+            chcStsngNm: 'KK 스타 라운지',
+            currCd: 'USD',
+            adtAmt: 15,
+            chdAmt: 15,
+            rqrmTmInfo: '약 2시간',
+            spclStsngYn: 'N',
+          },
+          {
+            chcStsngNm: 'MD추천 선셋 반딧불이 투어',
+            currCd: 'USD',
+            adtAmt: 40,
+            mrchRcmnYn: 'Y',
+          },
+        ],
+      },
+    })
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.name).toBe('KK 스타 라운지')
+    expect(rows[0]?.adultPrice).toBe(15)
+    expect(rows[1]?.name).toBe('선셋 반딧불이 투어')
+    expect(rows[1]?.supplierTags).toContain('MD추천')
   })
 })

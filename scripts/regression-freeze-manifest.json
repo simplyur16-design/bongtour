@@ -3020,7 +3020,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-detail-collect]",
             "formatHanatourTrvlExpnBullet",
-            "extractHanatourIncludedExcluded"
+            "extractHanatourIncludedExcluded",
+            "getPkgProdChcStsngInfo",
+            "extractHanatourOptionalToursFromChcStsng"
           ]
         },
         {
@@ -3038,6 +3040,49 @@
       ],
       "vitestSuites": [
         "lib/hanatour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "hanatour-register-kk-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "하나투어 AYP295 코타키나발루 — chcStsng 선택관광 20+·자유일 예시·귀국일 직전 관광명소 live",
+      "npmScripts": [
+        "verify:register-hanatour-kk-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-hanatour-kk-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-kk-live-gate]",
+            "getPkgProdChcStsngInfo",
+            "optionalToursStructured"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "extractHanatourOptionalToursFromChcStsng",
+            "getPkgProdChcStsngInfo"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "pickHanatourFreeDayExampleImageKeyword",
+            "isHanatourScheduleFreeLeisureDay"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "needsHanatourOptionalCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "tests/hanatour-schedule-image-keyword-prebuild.test.ts"
       ]
     },
     {
@@ -3389,7 +3434,7 @@
       "tier": [
         "ci"
       ],
-      "summary": "6공급사 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
+      "summary": "5공급사(하나투어 제외) 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
       "npmScripts": [
         "verify:register-six-suppliers-live-gate"
       ],

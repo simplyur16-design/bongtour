@@ -29,6 +29,8 @@ export type ApplyRegisterScheduleImageKeywordsOpts = {
   productTitle?: string | null
   travelScope?: string | null
   productType?: string | null
+  /** 패키지 자유관광일 예시 imageKeyword — optionalToursStructured 행명 */
+  optionalTourNames?: readonly string[]
 }
 
 export function applyRegisterScheduleImageKeywordsBySupplier<
@@ -45,7 +47,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
 
   switch (supplier) {
     case 'hanatour':
-      return applyHanatourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+      return applyHanatourScheduleImageKeywordsToRows(rows, {
+        productDestination: dest,
+        optionalTourNames: opts.optionalTourNames,
+      })
     case 'modetour':
       return applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
     case 'ybtour':

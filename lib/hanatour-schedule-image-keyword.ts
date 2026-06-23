@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]: 자유여행 imageKeyword — 식당·카페 금지, 랜드마크만 — manifest
+ * REGRESSION-FREEZE[hanatour-register-kk-live-gate]: dedupe·imageKeyword2 reconcile — manifest
  * REGRESSION-FREEZE[gemini-client-client-bundle]: hanatour 등록 파서 import 금지 — manifest
  */
 import {
@@ -9,11 +10,13 @@ import {
 import {
   acceptLlmScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
-  isRegisterScheduleFreeLeisureDay,
+  pickDistinctSecondScheduleImageKeyword,
   resolveTourismKeywordPreferDistinctPerDay,
+  shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
+  extractEnglishPoiFromLabel,
   findAllMappedKoreanPoisInText,
   findMappedKoreanPoisInTextByMentionOrder,
   isKnownDestinationCityEnglishKeyword,
@@ -33,6 +36,8 @@ import {
 
 export type HanatourScheduleImageKeywordOpts = {
   productDestination?: string | null
+  /** 패키지 자유관광일 — 선택관광 카탈로그에서 예시 imageKeyword */
+  optionalTourNames?: readonly string[]
 }
 
 export type HanatourScheduleImageKeywordRow = {
@@ -87,6 +92,56 @@ function normKey(s: string): string {
 
 function buildHanatourDayHaystack(row: HanatourScheduleImageKeywordRow): string {
   return [row.title, row.description, row.routeText].filter(Boolean).join('\n').replace(/\r/g, '')
+}
+
+/** 하나투어 자유관광일 — "자유롭게 관광" 등 본문 패턴 포함 */
+export function isHanatourScheduleFreeLeisureDay(haystack: string): boolean {
+  const h = String(haystack ?? '').slice(0, 8_000)
+  if (!h.trim()) return false
+  if (!/전\s*일정\s*자유|자유\s*시간|자유\s*일정|자유일정|free\s*time|at\s+leisure/i.test(h)) return false
+  if (/자유(?:롭게|롭게)?\s*관광|자유\s*관광/u.test(h)) return true
+  if (/(방문|탐방|투어|체험|국립|공원|사원|유적|박물관|폭포|섬)/u.test(h)) return false
+  if (/관광/u.test(h)) return false
+  return true
+}
+
+function scoreHanatourOptionalTourNameForExampleKeyword(name: string): number {
+  let score = 0
+  if (/MD추천|스페셜포함/.test(name)) score += 2
+  if (mapKoreanPoiSegment(name) || extractEnglishPoiFromLabel(name)) score += 3
+  if (/섬|아일랜드|공원|투어|폭포|크루즈|사원|유적|폭포/.test(name)) score += 1
+  if (/마사지|발마사지|라운지|골프|쇼핑/.test(name) && !/(섬|아일랜드|공원)/.test(name)) score -= 2
+  return score
+}
+
+/** 하나투어 자유관광일 — 선택관광 카탈로그에서 예시 랜드마크 1개 */
+export function pickHanatourFreeDayExampleImageKeyword(args: {
+  optionalTourNames: readonly string[]
+  freeDayIndex: number
+  usedKeys?: ReadonlySet<string>
+  toKeyword: (name: string) => string
+}): string {
+  const used = args.usedKeys ?? new Set<string>()
+  const sorted = [...args.optionalTourNames]
+    .map((n) => String(n).trim())
+    .filter((n) => n.length > 1)
+    .sort(
+      (a, b) =>
+        scoreHanatourOptionalTourNameForExampleKeyword(b) -
+        scoreHanatourOptionalTourNameForExampleKeyword(a),
+    )
+
+  const candidates: string[] = []
+  for (const name of sorted) {
+    const kw = args.toKeyword(name)
+    if (!kw) continue
+    const nk = normKey(kw)
+    if (used.has(nk)) continue
+    candidates.push(kw)
+  }
+  if (!candidates.length) return ''
+  const idx = Math.max(0, Math.min(args.freeDayIndex, candidates.length - 1))
+  return candidates[idx]!
 }
 
 function stripRouteSegmentNoise(seg: string): string {
@@ -406,6 +461,38 @@ function resolveHanatourMovementDayKeyword(
   return inferHanatourKeywordFromDayContent(row, productDestination)
 }
 
+function countPriorHanatourFreeLeisureDays(
+  allRows: HanatourScheduleImageKeywordRow[],
+  beforeDay: number,
+): number {
+  let n = 0
+  for (const row of allRows) {
+    const day = Number(row.day)
+    if (day <= 0 || day >= beforeDay) continue
+    if (isHanatourScheduleFreeLeisureDay(buildHanatourDayHaystack(row))) n++
+  }
+  return n
+}
+
+/** 귀국일 — 직전 관광 일차에 이미 확정된 imageKeyword */
+function findLastResolvedHanatourTourismKeywordBeforeDay<
+  T extends HanatourScheduleImageKeywordRow,
+>(mapped: T[], beforeDay: number, maxDay: number): string {
+  const sorted = mapped
+    .filter((r) => Number(r.day) > 0 && Number(r.day) < beforeDay)
+    .sort((a, b) => Number(b.day) - Number(a.day))
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
+    if (dayKind === 'return_home') continue
+    if (isHanatourScheduleFreeLeisureDay(haystack)) continue
+    const kw = String(row.imageKeyword ?? '').trim()
+    if (kw) return kw
+  }
+  return ''
+}
+
 function resolveHanatourPrimaryKeyword(
   row: HanatourScheduleImageKeywordRow,
   dayKind: HanatourScheduleCardDayKind,
@@ -413,6 +500,7 @@ function resolveHanatourPrimaryKeyword(
   maxDay: number,
   productDestination: string | null | undefined,
   allRows: HanatourScheduleImageKeywordRow[],
+  opts?: HanatourScheduleImageKeywordOpts,
 ): string {
   const haystack = buildHanatourDayHaystack(row)
   const acceptLlm = (raw: string | null | undefined) =>
@@ -423,7 +511,16 @@ function resolveHanatourPrimaryKeyword(
     return ''
   }
 
-  if (isRegisterScheduleFreeLeisureDay(haystack)) {
+  if (isHanatourScheduleFreeLeisureDay(haystack)) {
+    const example = pickHanatourFreeDayExampleImageKeyword({
+      optionalTourNames: opts?.optionalTourNames ?? [],
+      freeDayIndex: countPriorHanatourFreeLeisureDays(allRows, day),
+      toKeyword: (name) => {
+        const mapped = extractEnglishPoiFromLabel(name) || mapKoreanPoiSegment(name)
+        return tryAcceptHanatourLlmImageKeyword(mapped || name, productDestination)
+      },
+    })
+    if (example) return example
     return ''
   }
 
@@ -512,6 +609,14 @@ function resolveHanatourSecondaryKeyword(
     if (kw && normKey(kw) !== normKey(primary)) return kw
   }
 
+  const rawLandmarks = collectHanatourLandmarkKeywords(row, productDestination)
+  const fromOrdered = pickDistinctSecondScheduleImageKeyword(primary, rawLandmarks)
+  if (fromOrdered) {
+    const accepted = tryAcceptHanatourLlmImageKeyword(fromOrdered, productDestination)
+    if (accepted && normKey(accepted) !== normKey(primary)) return accepted
+    if (normKey(fromOrdered) !== normKey(primary)) return fromOrdered
+  }
+
   if (fromRoute) return fromRoute
 
   const landmarkCandidates = collectHanatourLandmarkKeywords(row, productDestination)
@@ -527,6 +632,87 @@ function resolveHanatourSecondaryKeyword(
   return null
 }
 
+function collectHanatourDayPrimaryCandidates(
+  row: HanatourScheduleImageKeywordRow,
+  dayKind: HanatourScheduleCardDayKind,
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  const push = (raw: string | null | undefined) => {
+    const kw = String(raw ?? '').trim()
+    if (!kw) return
+    if (out.some((x) => normKey(x) === normKey(kw))) return
+    out.push(kw)
+  }
+  if (dayKind === 'tourism') {
+    for (const kw of collectHanatourLandmarkKeywords(row, productDestination)) push(kw)
+    push(pickForeignPlaceFromRouteText(row.routeText, true, productDestination))
+    push(pickForeignPlaceFromRouteText(row.routeText, false, productDestination))
+    push(inferHanatourKeywordFromDayContent(row, productDestination))
+  }
+  push(row.imageKeyword)
+  return out
+}
+
+/** LLM·도시명이 여러 관광 일차에 반복될 때 route·본문 명소로 일차별 분산 */
+function dedupeHanatourTourismPrimaryKeywordsAcrossDays<T extends HanatourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const used = new Set<string>()
+  const tripLandmarks: string[] = []
+
+  const sorted = rows
+    .filter((r) => Number(r.day) > 0)
+    .sort((a, b) => Number(a.day) - Number(b.day))
+
+  for (const row of sorted) {
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(Number(row.day), maxDay, haystack)
+    if (dayKind !== 'tourism') continue
+    for (const kw of collectHanatourDayPrimaryCandidates(row, dayKind, productDestination)) {
+      if (!tripLandmarks.some((x) => normKey(x) === normKey(kw))) tripLandmarks.push(kw)
+    }
+  }
+
+  const pickUnused = (cands: string[]): string | null => {
+    for (const kw of cands) {
+      const nk = normKey(kw)
+      if (!nk || used.has(nk)) continue
+      used.add(nk)
+      return kw
+    }
+    return null
+  }
+
+  return rows.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
+    if (dayKind !== 'tourism') return row
+
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!primary) return row
+
+    const nk = normKey(primary)
+    if (!used.has(nk)) {
+      used.add(nk)
+      return row
+    }
+
+    const fromDay = pickUnused(collectHanatourDayPrimaryCandidates(row, dayKind, productDestination))
+    if (fromDay) return { ...row, imageKeyword: fromDay }
+
+    const fromTrip = pickUnused(tripLandmarks)
+    if (fromTrip) return { ...row, imageKeyword: fromTrip }
+
+    return row
+  })
+}
+
 export function applyHanatourScheduleImageKeywordsToRows<
   T extends HanatourScheduleImageKeywordRow,
 >(rows: T[], opts?: HanatourScheduleImageKeywordOpts): T[] {
@@ -534,7 +720,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
   const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
   const productDestination = opts?.productDestination ?? null
 
-  return rows.map((row) => {
+  const mapped = rows.map((row) => {
     const day = Number(row.day)
     if (day <= 0) {
       return {
@@ -546,7 +732,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
 
     const haystack = buildHanatourDayHaystack(row)
     const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveHanatourPrimaryKeyword(row, dayKind, day, maxDay, productDestination, rows)
+    const primary = resolveHanatourPrimaryKeyword(row, dayKind, day, maxDay, productDestination, rows, opts)
     const secondary = resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination)
 
     return {
@@ -554,5 +740,28 @@ export function applyHanatourScheduleImageKeywordsToRows<
       imageKeyword: primary,
       imageKeyword2: secondary,
     }
+  })
+
+  const deduped = dedupeHanatourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
+
+  const withReturnHome = deduped.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
+    if (dayKind !== 'return_home') return row
+    const fromLast = findLastResolvedHanatourTourismKeywordBeforeDay(deduped, day, maxDay)
+    return fromLast ? { ...row, imageKeyword: fromLast } : row
+  })
+
+  return withReturnHome.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
+    const secondary = resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination)
+    return { ...row, imageKeyword2: secondary }
   })
 }
