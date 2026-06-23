@@ -130,6 +130,10 @@ const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /미네완카|Minnewanka/i, en: 'Lake Minnewanka Banff / mountain lake / wide angle' },
   { re: /캘거리|Calgary/i, en: 'Calgary Tower / downtown skyline / wide angle' },
   { re: /밴프|Banff/i, en: 'Banff townsite / Rocky Mountains / street view' },
+  { re: /고랑서|鼓浪屿|Gulangyu/i, en: 'Gulangyu Island' },
+  { re: /남정토루|Nanjing Tulou/i, en: 'Nanjing Tulou Fujian' },
+  { re: /남포타사|Nanputuo/i, en: 'Nanputuo Temple' },
+  { re: /중산로|Zhongshan Road/i, en: 'Zhongshan Road Xiamen' },
 ]
 
 const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
@@ -180,6 +184,8 @@ const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo historic center' },
   { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal gondolas' },
   { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers historic center' },
+  { re: /하문|샤먼|Xiamen|厦门/u, en: 'Xiamen harbor skyline' },
+  { re: /복주|푸저우|福州|Fuzhou/u, en: 'Fuzhou skyline' },
 ]
 
 const LOTTETOUR_DOMESTIC_HUB_RE =

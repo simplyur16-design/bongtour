@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-06-20T12:31:40.177Z",
+  "verifiedAt": "2026-06-23T07:14:33.756Z",
   "cases": [
     {
       "supplier": "modetour",
@@ -107,7 +107,7 @@
         {
           "axis": "included/excluded",
           "ok": true,
-          "detail": "in=5 ex=4"
+          "detail": "in=5 ex=14"
         },
         {
           "axis": "meeting",
@@ -157,8 +157,8 @@
         },
         {
           "axis": "flight",
-          "ok": true,
-          "detail": "대한항공"
+          "ok": false,
+          "detail": "evtList row missing"
         },
         {
           "axis": "optional",

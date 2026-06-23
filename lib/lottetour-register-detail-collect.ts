@@ -15,8 +15,8 @@ import {
   extractLottetourShoppingFromSpotListAjax,
   extractLottetourShoppingVisitCountFromCoreInfo,
   extractLottetourShoppingVisitCountFromSpotList,
+  buildLottetourFlightStructuredFromRegisterSources,
   fetchLottetourRegisterDetailBundle,
-  lottetourCalendarRowToFlightStructured,
   lottetourHaystackDeclaresNoOptional,
   lottetourOptionalRowsToStructuredJson,
   lottetourShoppingRowsToStructuredJson,
@@ -24,6 +24,11 @@ import {
 } from '@/lib/lottetour-register-api-detail'
 import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetour-shopping'
 import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
+import {
+  applyRegisterCollectedFlightStructured,
+  needsRegisterFlightApiCollect,
+} from '@/lib/register-detail-collect-flight-apply'
+import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 
 export type LottetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -83,29 +88,44 @@ export function needsLottetourMustKnowCollect(parsed: RegisterParsed): boolean {
 }
 
 function needsLottetourFlightCollect(parsed: RegisterParsed): boolean {
-  const fs = parsed.detailBodyStructured?.flightStructured
-  const hasFlat =
-    Boolean(parsed.airlineName?.trim()) ||
-    Boolean(parsed.outboundFlightNo?.trim()) ||
-    Boolean(parsed.departureSegmentText?.trim())
-  const hasStructured =
-    Boolean(fs?.outbound?.flightNo?.trim()) ||
-    Boolean(fs?.outbound?.departureTime?.trim()) ||
-    fs?.debug?.status === 'success' ||
-    fs?.debug?.status === 'partial'
-  return !hasFlat && !hasStructured
+  return needsRegisterFlightApiCollect(parsed)
 }
 
 function needsLottetourMeetingCollect(parsed: RegisterParsed): boolean {
   return !Boolean(parsed.meetingInfoRaw?.trim() || parsed.meetingPlaceRaw?.trim())
 }
 
-function needsLottetourOptionalCollect(parsed: RegisterParsed, ctx?: LottetourRegisterDetailAugmentCtx): boolean {
-  if (hasOptionalPaste(ctx) || hasStructuredOptional(parsed)) return false
-  const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
-  if (lottetourHaystackDeclaresNoOptional(titleHay)) return false
-  if (parsed.hasOptionalTour === false) return false
+/** 롯데관광 — LLM hasOptionalTour=false여도 spotList 수집 시도 */
+export function needsLottetourOptionalCollect(args: {
+  hasOptionalPaste: boolean
+  optionalToursStructured: string | null | undefined
+  declaresNoOptional?: boolean
+}): boolean {
+  if (args.hasOptionalPaste || hasStructuredOptionalFromRaw(args.optionalToursStructured)) return false
+  if (args.declaresNoOptional) return false
   return true
+}
+
+function hasStructuredOptionalFromRaw(raw: string | null | undefined): boolean {
+  if (!raw?.trim()) return false
+  try {
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) && arr.length > 0
+  } catch {
+    return false
+  }
+}
+
+function needsLottetourOptionalCollectInternal(
+  parsed: RegisterParsed,
+  ctx?: LottetourRegisterDetailAugmentCtx,
+): boolean {
+  const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
+  return needsLottetourOptionalCollect({
+    hasOptionalPaste: hasOptionalPaste(ctx),
+    optionalToursStructured: parsed.optionalToursStructured,
+    declaresNoOptional: lottetourHaystackDeclaresNoOptional(titleHay),
+  })
 }
 
 export async function augmentLottetourParsedWithDetailCollect(
@@ -121,7 +141,7 @@ export async function augmentLottetourParsedWithDetailCollect(
   const needMustKnow = needsLottetourMustKnowCollect(parsed)
   const needFlight = needsLottetourFlightCollect(parsed)
   const needMeeting = needsLottetourMeetingCollect(parsed)
-  const needOpt = needsLottetourOptionalCollect(parsed, ctx)
+  const needOpt = needsLottetourOptionalCollectInternal(parsed, ctx)
   const needShop =
     !Boolean(ctx?.pastedBlocks?.shopping?.trim()) && !hasStructuredShopping(parsed)
 
@@ -160,7 +180,13 @@ export async function augmentLottetourParsedWithDetailCollect(
   if (needSchedule && scheduleAjaxHtml) {
     const scheduleDays = parseLottetourScheduleDaysFromScheduleAjax(scheduleAjaxHtml)
     if (scheduleDays.length > 0) {
-      next = { ...next, schedule: scheduleDays }
+      next = {
+        ...next,
+        schedule: applyAugmentScheduleImageKeywordsBySupplier(scheduleDays, {
+          supplierKey: 'lottetour',
+          productTitle: next.title ?? next.supplierListingTitleRaw ?? '',
+        }),
+      }
       summaryParts.push(`일정 ${scheduleDays.length}일차`)
     }
   }
@@ -256,32 +282,59 @@ export async function augmentLottetourParsedWithDetailCollect(
     }
   }
 
-  if (needFlight && evtListRow) {
-    const flightStructured = lottetourCalendarRowToFlightStructured(evtListRow)
+  if (needFlight && (scheduleAjaxHtml || evtListRow)) {
+    const flightStructured = buildLottetourFlightStructuredFromRegisterSources({
+      scheduleAjaxHtml,
+      evtListRow,
+    })
+    next = applyRegisterCollectedFlightStructured(next, flightStructured)
     if (flightStructured) {
       next = {
         ...next,
-        airlineName: flightStructured.airlineName ?? next.airlineName,
-        departureSegmentText: evtListRow.departTimeText ?? next.departureSegmentText,
-        returnSegmentText: evtListRow.returnTimeText ?? next.returnSegmentText,
-        ...(next.detailBodyStructured
-          ? { detailBodyStructured: { ...next.detailBodyStructured, flightStructured } }
-          : {}),
+        departureSegmentText: evtListRow?.departTimeText ?? next.departureSegmentText,
+        returnSegmentText: evtListRow?.returnTimeText ?? next.returnSegmentText,
       }
-      summaryParts.push('교통편 힌트')
+      summaryParts.push('교통편 scheduleAjax+evtList')
     }
   }
 
   if (needOpt && spotListAjaxHtml) {
     const optRows = extractLottetourOptionalFromSpotListAjax(spotListAjaxHtml)
     if (optRows.length > 0) {
+      const optJson = lottetourOptionalRowsToStructuredJson(optRows)
       next = {
         ...next,
-        optionalToursStructured: lottetourOptionalRowsToStructuredJson(optRows),
+        optionalToursStructured: optJson,
         optionalTourCount: optRows.length,
         hasOptionalTour: true,
         optionalTourSummaryText:
           optRows.length > 1 ? `현지옵션 ${optRows.length}개` : '현지옵션 있음',
+      }
+      if (optJson) {
+        const parsedRows = JSON.parse(optJson) as Array<Record<string, unknown>>
+        next = {
+          ...next,
+          detailBodyStructured: {
+            ...(next.detailBodyStructured ?? {}),
+            optionalToursStructured: {
+              rows: parsedRows.map((r) => ({
+                tourName: String(r.tourName ?? ''),
+                currency: String(r.currency ?? ''),
+                adultPrice: (r.adultPrice as number | null) ?? null,
+                childPrice: (r.childPrice as number | null) ?? null,
+                durationText: String(r.durationText ?? ''),
+                minPaxText: String(r.minPaxText ?? ''),
+                guide同行Text: String(r.guide同行Text ?? ''),
+                waitingPlaceText: String(r.waitingPlaceText ?? ''),
+                raw: String(r.raw ?? ''),
+                priceText: (r.priceText as string | null) ?? null,
+                alternateScheduleText: (r.alternateScheduleText as string | null) ?? null,
+              })),
+              reviewNeeded: false,
+              reviewReasons: [],
+            },
+          },
+        }
       }
       summaryParts.push(`선택관광 ${optRows.length}건`)
     }
@@ -326,6 +379,27 @@ export async function augmentLottetourParsedWithDetailCollect(
             },
           },
         }
+      } else if (shop.rows.length > 0) {
+        next = {
+          ...next,
+          detailBodyStructured: {
+            ...(next.detailBodyStructured ?? {}),
+            shoppingStructured: {
+              rows: shop.rows.map((r) => ({
+                shoppingItem: r.itemType,
+                shoppingPlace: r.placeName,
+                durationText: r.durationText ?? '',
+                refundPolicyText: r.refundPolicyText ?? '',
+                visitNo: r.visitNo,
+                candidateOnly: false,
+              })),
+              shoppingCountText:
+                visitCount != null && visitCount > 0 ? `쇼핑 ${visitCount}회` : `쇼핑 ${shop.rows.length}회`,
+              reviewNeeded: false,
+              reviewReasons: [],
+            },
+          },
+        }
       }
       next = finalizeLottetourRegisterParsedShopping(next)
     } else if (visitCount != null) {
@@ -337,6 +411,19 @@ export async function augmentLottetourParsedWithDetailCollect(
       }
       summaryParts.push(`쇼핑 ${visitCount}회`)
       next = finalizeLottetourRegisterParsedShopping(next)
+    }
+  }
+
+  if (
+    (next.schedule?.length ?? 0) > 0 &&
+    next.schedule!.some((d) => !d.imageKeyword2?.trim())
+  ) {
+    next = {
+      ...next,
+      schedule: applyAugmentScheduleImageKeywordsBySupplier(next.schedule ?? [], {
+        supplierKey: 'lottetour',
+        productTitle: next.title ?? next.supplierListingTitleRaw ?? '',
+      }),
     }
   }
 

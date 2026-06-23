@@ -227,49 +227,187 @@ export function lottetourShoppingRowsToStructuredJson(rows: LottetourShoppingRow
 }
 
 export function lottetourCalendarRowToFlightStructured(row: LottetourCalendarRow | null): FlightStructured | null {
-  if (!row) return null
-  const carrier = row.carrierText?.trim() || null
-  const depParts = row.departTimeText?.split(/\s*~\s*|\s+/) ?? []
-  const retParts = row.returnTimeText?.split(/\s*~\s*|\s+/) ?? []
+  return buildLottetourFlightStructuredFromRegisterSources({ scheduleAjaxHtml: null, evtListRow: row })
+}
+
+function lottetourFlightNoFromText(text: string | null | undefined): string | null {
+  const m = String(text ?? '').match(/\b([A-Z]{2}\d{2,4})\b/i)
+  return m?.[1]?.toUpperCase() ?? null
+}
+
+function lottetourTimeTokenFromText(text: string | null | undefined): string | null {
+  const raw = String(text ?? '').trim()
+  if (!raw) return null
+  const times = raw.match(/\d{1,2}:\d{2}/g)
+  return times?.[0] ?? null
+}
+
+function lottetourSecondTimeTokenFromText(text: string | null | undefined): string | null {
+  const raw = String(text ?? '').trim()
+  if (!raw) return null
+  const times = raw.match(/\d{1,2}:\d{2}/g)
+  return times && times.length > 1 ? times[1]! : null
+}
+
+function parseLottetourAirPlanCityHtml(html: string): {
+  mmdd: string | null
+  time: string | null
+  place: string | null
+} {
+  const flat = stripLottetourScheduleHtml(html.replace(/<br\s*\/?>/gi, ' '))
+  const m =
+    flat.match(/(\d{2})\/(\d{2})\s*\(([가-힣])\s*\)\s*(\d{1,2}:\d{2})/) ??
+    flat.match(/(\d{2})\/(\d{2})\s*\(([가-힣])\)\s*(\d{1,2}:\d{2})/)
+  const place = html.match(/<span>([^<]+)<\/span>/i)?.[1]?.trim() ?? null
+  return {
+    mmdd: m ? `${m[1]}/${m[2]}` : null,
+    time: m?.[4] ?? null,
+    place,
+  }
+}
+
+function ymdFromBaseYmdAndMmDd(baseYmd: string | null | undefined, mmdd: string | null): string | null {
+  if (!baseYmd || !mmdd) return null
+  const [mm, dd] = mmdd.split('/')
+  if (!mm || !dd) return null
+  return `${baseYmd.slice(0, 4)}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+}
+
+type LottetourScheduleAirPlan = {
+  flightNo: string | null
+  depMmdd: string | null
+  depTime: string | null
+  depPlace: string | null
+  arrMmdd: string | null
+  arrTime: string | null
+  arrPlace: string | null
+  legKind: 'outbound' | 'inbound' | 'unknown'
+}
+
+/** evtDetailScheduleAjax — air_plan 편명·공항·일시 (REGRESSION-FREEZE[lottetour-register-detail-collect]) */
+export function extractLottetourAirPlansFromScheduleAjax(html: string | null): LottetourScheduleAirPlan[] {
+  if (!html?.trim()) return []
+  const plans: LottetourScheduleAirPlan[] = []
+  for (const m of html.matchAll(/<div class="air_plan">([\s\S]*?)<\/div>\s*<\/div>/gi)) {
+    const block = m[1] ?? ''
+    const flightNo =
+      lottetourFlightNoFromText(block.match(/<div class="info">([^<]+)</i)?.[1]) ?? null
+    const dep = parseLottetourAirPlanCityHtml(block.match(/<div class="city_s">([\s\S]*?)<\/div>/i)?.[1] ?? '')
+    const arr = parseLottetourAirPlanCityHtml(block.match(/<div class="city_a">([\s\S]*?)<\/div>/i)?.[1] ?? '')
+    const legKind: LottetourScheduleAirPlan['legKind'] = /한국[\s\S]{0,48}출발/i.test(block)
+      ? 'outbound'
+      : /한국[\s\S]{0,48}도착/i.test(block)
+        ? 'inbound'
+        : 'unknown'
+    plans.push({
+      flightNo,
+      depMmdd: dep.mmdd,
+      depTime: dep.time,
+      depPlace: dep.place,
+      arrMmdd: arr.mmdd,
+      arrTime: arr.time,
+      arrPlace: arr.place,
+      legKind,
+    })
+  }
+  return plans
+}
+
+/** scheduleAjax air_plan + evtListAjax — 편명·항공사·일시 SSOT (REGRESSION-FREEZE[lottetour-register-detail-collect]) */
+export function buildLottetourFlightStructuredFromRegisterSources(args: {
+  scheduleAjaxHtml: string | null
+  evtListRow: LottetourCalendarRow | null
+}): FlightStructured | null {
+  const { scheduleAjaxHtml, evtListRow } = args
+  const plans = extractLottetourAirPlansFromScheduleAjax(scheduleAjaxHtml)
+  const obPlan = plans.find((p) => p.legKind === 'outbound') ?? plans[0] ?? null
+  const ibPlan =
+    plans.find((p) => p.legKind === 'inbound') ??
+    (plans.length > 1 ? plans[plans.length - 1]! : null)
+
+  const carrierRaw = evtListRow?.carrierText?.trim() || null
+  const airlineName =
+    carrierRaw && !lottetourFlightNoFromText(carrierRaw) ? carrierRaw : carrierRaw
+
+  const obFlightNo =
+    obPlan?.flightNo ??
+    lottetourFlightNoFromText(evtListRow?.departTimeText) ??
+    lottetourFlightNoFromText(carrierRaw)
+  const ibFlightNo =
+    ibPlan?.flightNo ??
+    lottetourFlightNoFromText(evtListRow?.returnTimeText) ??
+    obFlightNo
+
+  const obDepTime =
+    obPlan?.depTime ?? lottetourTimeTokenFromText(evtListRow?.departTimeText)
+  const obArrTime =
+    obPlan?.arrTime ?? lottetourSecondTimeTokenFromText(evtListRow?.departTimeText)
+  const ibDepTime =
+    ibPlan?.depTime ?? lottetourTimeTokenFromText(evtListRow?.returnTimeText)
+  const ibArrTime =
+    ibPlan?.arrTime ?? lottetourSecondTimeTokenFromText(evtListRow?.returnTimeText)
+
+  const obDepDate =
+    ymdFromBaseYmdAndMmDd(obPlan?.depMmdd ? evtListRow?.departDate : null, obPlan?.depMmdd ?? null) ??
+    evtListRow?.departDate ??
+    null
+  const obArrDate =
+    ymdFromBaseYmdAndMmDd(obPlan?.arrMmdd ? evtListRow?.departDate : null, obPlan?.arrMmdd ?? null) ??
+    obDepDate
+  const ibDepDate =
+    ymdFromBaseYmdAndMmDd(ibPlan?.depMmdd ? evtListRow?.returnDate ?? evtListRow?.departDate : null, ibPlan?.depMmdd ?? null) ??
+    evtListRow?.returnDate ??
+    evtListRow?.departDate ??
+    null
+  const ibArrDate =
+    ymdFromBaseYmdAndMmDd(ibPlan?.arrMmdd ? evtListRow?.returnDate ?? evtListRow?.departDate : null, ibPlan?.arrMmdd ?? null) ??
+    ibDepDate
+
   const outbound = {
-    departureAirport: null,
+    departureAirport: obPlan?.depPlace,
     departureAirportCode: null,
-    departureDate: row.departDate,
-    departureTime: depParts[0]?.trim() || null,
-    arrivalAirport: null,
+    departureDate: obDepDate,
+    departureTime: obDepTime,
+    arrivalAirport: obPlan?.arrPlace,
     arrivalAirportCode: null,
-    arrivalDate: row.departDate,
-    arrivalTime: depParts[1]?.trim() || null,
-    flightNo: carrier,
-    durationText: row.durationText,
+    arrivalDate: obArrDate,
+    arrivalTime: obArrTime,
+    flightNo: obFlightNo,
+    durationText: evtListRow?.durationText ?? null,
   }
   const inbound = {
-    departureAirport: null,
+    departureAirport: ibPlan?.depPlace,
     departureAirportCode: null,
-    departureDate: row.returnDate ?? row.departDate,
-    departureTime: retParts[0]?.trim() || null,
-    arrivalAirport: null,
+    departureDate: ibDepDate,
+    departureTime: ibDepTime,
+    arrivalAirport: ibPlan?.arrPlace,
     arrivalAirportCode: null,
-    arrivalDate: row.returnDate ?? row.departDate,
-    arrivalTime: retParts[1]?.trim() || null,
-    flightNo: carrier,
-    durationText: row.durationText,
+    arrivalDate: ibArrDate,
+    arrivalTime: ibArrTime,
+    flightNo: ibFlightNo,
+    durationText: evtListRow?.durationText ?? null,
   }
-  if (!outbound.flightNo && !outbound.departureTime && !inbound.departureTime) return null
+
+  const hasOb = Boolean(outbound.flightNo || outbound.departureTime)
+  const hasIb = Boolean(inbound.flightNo || inbound.departureTime)
+  if (!hasOb && !hasIb) return null
+
   return {
-    airlineName: carrier,
+    airlineName,
     outbound,
     inbound,
-    rawFlightLines: [row.departTimeText, row.returnTimeText, row.carrierText].filter(Boolean) as string[],
+    rawFlightLines: [evtListRow?.departTimeText, evtListRow?.returnTimeText, carrierRaw].filter(
+      Boolean,
+    ) as string[],
     debug: {
-      candidateCount: 1,
-      selectedOutRaw: row.departTimeText,
-      selectedInRaw: row.returnTimeText,
-      partialStructured: true,
-      status: 'partial',
-      exposurePolicy: 'public_limited',
+      candidateCount: plans.length || 1,
+      selectedOutRaw: obFlightNo ?? evtListRow?.departTimeText ?? null,
+      selectedInRaw: ibFlightNo ?? evtListRow?.returnTimeText ?? null,
+      partialStructured: !(hasOb && hasIb && airlineName && obFlightNo && ibFlightNo),
+      status: hasOb && hasIb && airlineName && obFlightNo && ibFlightNo ? 'success' : 'partial',
+      exposurePolicy: 'public_full',
       supplierBrandKey: 'lottetour',
-      expectFlightNumber: false,
+      expectFlightNumber: true,
     },
     reviewNeeded: false,
     reviewReasons: [],
@@ -508,6 +646,34 @@ export function extractLottetourOptionalFromSpotListAjax(html: string | null): O
     if (!name) continue
     seen.add(name)
     out.push(row)
+  }
+  const tableDl = section.match(/<dl class="dl_box">\s*<dt>\s*선택관광\s*<\/dt>[\s\S]*?<\/dl>/i)?.[0]
+  if (tableDl) {
+    const tbody = tableDl.match(/<tbody>([\s\S]*?)<\/tbody>/i)?.[1] ?? ''
+    for (const tr of tbody.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+      const cells = [...(tr[1] ?? '').matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) =>
+        stripLottetourScheduleHtml(c[1] ?? ''),
+      )
+      if (cells.length < 2) continue
+      const name = (cells[0] ?? '').trim()
+      if (!name || seen.has(name) || /선택\s*관광명/i.test(name)) continue
+      const priceHay = [cells[1], cells[2], cells[3]].filter(Boolean).join(' ')
+      const price = parseLottetourOptionalPrice(priceHay)
+      const row: OptionalTourRowFields = {
+        name,
+        currency: price.currency,
+        adultPrice: price.adultPrice,
+        childPrice: null,
+        durationText: (cells[2] ?? '').trim().slice(0, 40) || null,
+        minPaxText: null,
+        guide同行Text: cells[4] === 'X' ? '인솔자 동행 없음' : cells[4] ?? null,
+        waitingPlaceText: (cells[3] ?? '').trim() || null,
+        raw: cells.filter(Boolean).join(' · ').slice(0, 500),
+        priceText: price.priceText,
+      }
+      seen.add(name)
+      out.push(row)
+    }
   }
   return filterOptionalTourRows(out)
 }

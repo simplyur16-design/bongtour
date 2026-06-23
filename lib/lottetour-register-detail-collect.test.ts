@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  buildLottetourFlightStructuredFromRegisterSources,
   extractLottetourFeesFromExcluded,
   extractLottetourGodScheIdFromBasicAjax,
   extractLottetourIncludedExcludedFromBasicAjax,
@@ -18,8 +19,10 @@ import {
   needsLottetourExcludedCollect,
   needsLottetourIncludedCollect,
   needsLottetourIncludedExcludedCollect,
+  needsLottetourOptionalCollect,
   needsLottetourScheduleCollect,
 } from './lottetour-register-detail-collect'
+import { applyLottetourScheduleImageKeywordsToRows } from './lottetour-schedule-image-keyword'
 import type { RegisterParsed } from './register-llm-schema-lottetour'
 
 const BASIC_FIXTURE = `
@@ -74,6 +77,40 @@ const OPT_SPOT_FIXTURE = `
     <dd>소요 2시간<table><tr><td>USD 30</td></tr></table></dd>
   </dl>
 </div><!-- //travel_info_cont : 선택관광 -->
+`
+
+const OPT_TABLE_FIXTURE = `
+<div class="travel_info_cont on"><!-- 선택관광 -->
+  <dl class="dl_box type03"><dt>예약 시 유의 사항</dt><dd><ul><li>선택관광은 상품가격에 불포함</li></ul></dd></dl>
+  <dl class="dl_box">
+    <dt>선택관광</dt>
+    <dd>
+      <table class="table"><tbody>
+        <tr><td class="tal">서커스</td><td>US$50</td><td>70분</td><td>주변에서 대기</td><td>X</td></tr>
+        <tr><td class="tal">발+전신마사지</td><td>US $60</td><td>90분</td><td>근처 자유시간</td><td>X</td></tr>
+      </tbody></table>
+    </dd>
+  </dl>
+</div><!-- //travel_info_cont : 선택관광 -->
+`
+
+const FLIGHT_SCHEDULE_FIXTURE = `
+<div class="departure_info">
+  <div class="air_plan">
+    <div class="info">KE127</div>
+    <div class="air_box blue st">한국<br />출발</div>
+    <div class="city_s">07/07 (화) 08:10 <br /><span>인천국제공항 출발</span></div>
+    <div class="city_a">07/07 (화) 09:55<br /><span>복주 도착</span></div>
+  </div>
+</div>
+<div class="departure_info">
+  <div class="air_plan">
+    <div class="info">KE128</div>
+    <div class="air_box blue st">한국<br />도착</div>
+    <div class="city_s">07/11 (토) 10:55 <br /><span>복주 출발</span></div>
+    <div class="city_a">07/11 (토) 14:55<br /><span>인천국제공항 도착</span></div>
+  </div>
+</div>
 `
 
 const MEETING_FIXTURE = `
@@ -207,5 +244,67 @@ describe('lottetour register detail collect', () => {
       <dl class="dl_box type03"><dt>예약 시 유의 사항</dt><dd><ul><li>선택관광은 상품가격에 불포함</li></ul></dd></dl>
     </div><!-- //travel_info_cont : 선택관광 -->`
     expect(extractLottetourOptionalFromSpotListAjax(html)).toEqual([])
+  })
+
+  it('parses optional table rows from spotListAjax', () => {
+    const rows = extractLottetourOptionalFromSpotListAjax(OPT_TABLE_FIXTURE)
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.name).toBe('서커스')
+    expect(rows[0]?.currency).toBe('USD')
+    expect(rows[1]?.name).toContain('마사지')
+  })
+
+  it('LLM hasOptionalTour=false여도 structured 없으면 선택관광 수집', () => {
+    expect(
+      needsLottetourOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+      }),
+    ).toBe(true)
+  })
+
+  it('builds flight structured from schedule air_plan and evtList row', () => {
+    const fs = buildLottetourFlightStructuredFromRegisterSources({
+      scheduleAjaxHtml: FLIGHT_SCHEDULE_FIXTURE,
+      evtListRow: {
+        depYm: '202607',
+        godId: '65715',
+        evtCd: 'C11A260707KE015',
+        departDate: '2026-07-07',
+        returnDate: '2026-07-11',
+        departTimeText: '07/07 08:10',
+        returnTimeText: '07/11 14:55',
+        carrierText: '대한항공',
+        gradeText: '정통',
+        tourTitleRaw: 'test',
+        durationText: '4박5일',
+        adultPrice: 809000,
+        statusRaw: '예약가능',
+        seatsStatusRaw: '16',
+        seatCount: 16,
+      },
+    })
+    expect(fs?.airlineName).toBe('대한항공')
+    expect(fs?.outbound.flightNo).toBe('KE127')
+    expect(fs?.inbound.flightNo).toBe('KE128')
+    expect(fs?.outbound.departureTime).toBe('08:10')
+    expect(fs?.inbound.departureTime).toBe('10:55')
+  })
+
+  it('fills imageKeyword2 for 하문-고랑서 route (Gulangyu primary)', () => {
+    const rows = applyLottetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '고랑서',
+          description: '고랑서 관광',
+          imageKeyword: 'Gulangyu Island',
+          routeText: '하문 - 고랑서',
+        },
+      ],
+      { productTitle: 'Y2627 하문(샤먼),고랑서 4박 5일' },
+    )
+    expect(rows[0]?.imageKeyword).toBe('Gulangyu Island')
+    expect(rows[0]?.imageKeyword2).toMatch(/Xiamen/i)
   })
 })

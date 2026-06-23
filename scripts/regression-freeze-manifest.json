@@ -3279,6 +3279,10 @@
             "REGRESSION-FREEZE[lottetour-register-detail-collect]",
             "augmentLottetourParsedWithDetailCollect",
             "evtDetailBasicAjax",
+            "buildLottetourFlightStructuredFromRegisterSources",
+            "needsRegisterFlightApiCollect",
+            "needsLottetourOptionalCollect",
+            "applyAugmentScheduleImageKeywordsBySupplier",
             "extractLottetourShoppingFromSpotListAjax",
             "singleRoomSurchargeRaw",
             "shoppingStops"
@@ -3290,6 +3294,8 @@
             "REGRESSION-FREEZE[lottetour-register-detail-collect]",
             "extractLottetourIncludedExcludedFromBasicAjax",
             "extractLottetourShoppingFromSpotListAjax",
+            "buildLottetourFlightStructuredFromRegisterSources",
+            "extractLottetourAirPlansFromScheduleAjax",
             "extractLottetourShoppingVisitCountFromCoreInfo"
           ]
         },
@@ -3302,6 +3308,35 @@
       ],
       "vitestSuites": [
         "lib/lottetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-register-xiamen-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "롯데관광 C11A260707KE015 하문 — 항공 KE127/128·선택관광 표·쇼핑·imageKeyword2 live",
+      "npmScripts": [
+        "verify:register-lottetour-xiamen-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-lottetour-xiamen-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-xiamen-live-gate]",
+            "C11A260707KE015",
+            "registerFlightCollectLooksComplete",
+            "optionalToursStructured",
+            "imageKeyword2"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-detail-collect.ts",
+          "mustInclude": [
+            "needsLottetourOptionalCollect",
+            "buildLottetourFlightStructuredFromRegisterSources"
+          ]
+        }
       ]
     },
     {
