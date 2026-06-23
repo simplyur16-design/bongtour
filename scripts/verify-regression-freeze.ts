@@ -154,15 +154,19 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
     }
     const guardVitestFiles = guard.vitestSuites ?? []
     if (guardVitestFiles.length > 0) {
-      if (!vitestInstalled()) {
+      // Railway prebuild: NODE_ENV=production → vitest devDep 없음. static mustInclude만 prebuild.
+      if (runTier === 'prebuild') {
+        console.log(`[regression-freeze] ⊘ skip vitest ${guard.id} (prebuild tier — ci only)`)
+      } else if (!vitestInstalled()) {
         throw new Error(
           'vitest devDependency not installed — run npm install (with devDeps) before verify:regression-freeze:ci',
         )
-      }
-      for (const file of guardVitestFiles) {
-        const full = path.join(ROOT, file).replace(/\\/g, '/')
-        console.log(`\n[regression-freeze] ▶ vitest ${guard.id} → ${file}`)
-        execSync(`npx vitest run ${full}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+      } else {
+        for (const file of guardVitestFiles) {
+          const full = path.join(ROOT, file).replace(/\\/g, '/')
+          console.log(`\n[regression-freeze] ▶ vitest ${guard.id} → ${file}`)
+          execSync(`npx vitest run ${full}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+        }
       }
     }
   }
