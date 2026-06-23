@@ -1,2 +1,1 @@
-playwright>=1.40.0
-APScheduler>=3.10.0
+-r ../calendar_e2e_scraper_requirements.txt

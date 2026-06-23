@@ -78,7 +78,6 @@ import type { RegisterVerificationV1 as RegisterVerificationV1Lt } from '@/lib/a
 import {
   getRegisterPastePlaceholders,
   getSupplierInputFrameSpec,
-  REGISTER_INPUT_PRIORITY_RULES,
 } from '@/lib/admin-register-supplier-input-frames'
 import {
   LOCAL_DEPARTURE_TAG_LABELS,
@@ -598,33 +597,6 @@ function scheduleKeywordOpts(
   return { productDestination: d || null }
 }
 
-/** 교원이지(kyowontour) 등록 경로는 단일 bodyText만 수신 — 정형칸을 본문 뒤에 덧붙여 site-parser·LLM 입력으로 쓴다. */
-function buildKyowontourBodyTextWithStructuredBlocks(
-  raw: string,
-  b: { optionalTour: string; shopping: string; hotel: string; airlineTransport: string }
-): string {
-  const parts = [raw.trim()]
-  if (b.airlineTransport.trim()) parts.push(`\n\n[항공 정형 입력]\n${b.airlineTransport.trim()}`)
-  if (b.hotel.trim()) parts.push(`\n\n[호텔 정형 입력]\n${b.hotel.trim()}`)
-  if (b.optionalTour.trim()) parts.push(`\n\n[선택관광 정형 입력]\n${b.optionalTour.trim()}`)
-  if (b.shopping.trim()) parts.push(`\n\n[쇼핑 정형 입력]\n${b.shopping.trim()}`)
-  return parts.join('')
-}
-
-function buildPastedBlocksPayload(b: {
-  optionalTour: string
-  shopping: string
-  hotel: string
-  airlineTransport: string
-}): Record<string, string> | undefined {
-  const o: Record<string, string> = {}
-  if (b.optionalTour.trim()) o.optionalTour = b.optionalTour.trim()
-  if (b.shopping.trim()) o.shopping = b.shopping.trim()
-  if (b.hotel.trim()) o.hotel = b.hotel.trim()
-  if (b.airlineTransport.trim()) o.airlineTransport = b.airlineTransport.trim()
-  return Object.keys(o).length > 0 ? o : undefined
-}
-
 function effectiveShoppingVisitCount(
   draft: { shoppingVisitCount?: number | null },
   overlay: RegisterCorrectionOverlayV1 | null
@@ -746,13 +718,6 @@ export default function AdminRegisterPage() {
   const [selectedBrandKey, setSelectedBrandKey] = useState<AdminRegisterSupplierKey>(
     () => REGISTER_SUPPLIER_OPTIONS[0]!.brandKey as AdminRegisterSupplierKey
   )
-  const [pastedBlocks, setPastedBlocks] = useState({
-    optionalTour: '',
-    shopping: '',
-    hotel: '',
-    airlineTransport: '',
-  })
-
   const supplierFrameSpec = useMemo(
     () => getSupplierInputFrameSpec(selectedBrandKey, travelScope),
     [selectedBrandKey, travelScope]
@@ -897,7 +862,7 @@ export default function AdminRegisterPage() {
   /** 자동 추출과 별도: 재분석 시 originCode가 바뀌면 초기화 */
   const [correctionOverlay, setCorrectionOverlay] = useState<RegisterCorrectionOverlayV1 | null>(null)
   const lastPreviewOriginCodeRef = useRef<string | null>(null)
-  /** 미리보기 직후 입력 스냅샷 — 본문·블록 변경 시 confirm 차단 */
+  /** 미리보기 직후 입력 스냅샷 — 본문·URL 변경 시 confirm 차단 */
   const previewContentFingerprintRef = useRef<string | null>(null)
   /** 실검증: 미리보기 structuredFingerprint — confirm 패널과 비교 */
   const previewStructuredFingerprintRef = useRef<string | null>(null)
@@ -934,7 +899,6 @@ export default function AdminRegisterPage() {
       brandKey: selectedBrandKey || null,
       originUrl: normalizeUrl(originUrl) || null,
       travelScope,
-      pastedBlocks,
     })
   /** onBlur에 실수로 이벤트가 넘어와도 현재 입력값으로 검사 */
   const coerceUrlInput = (urlOverride: unknown, currentField: unknown): string => {
@@ -1062,7 +1026,6 @@ export default function AdminRegisterPage() {
       }
 
       setStatusText(LOADING_STATUS)
-      const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
       const controller = new AbortController()
       const ttl = setTimeout(() => controller.abort(), REGISTER_PREVIEW_FETCH_TIMEOUT_MS)
       let res: Response
@@ -1076,7 +1039,7 @@ export default function AdminRegisterPage() {
             selectedBrandKey === 'kyowontour'
               ? {
                   mode: 'preview',
-                  bodyText: buildKyowontourBodyTextWithStructuredBlocks(trimmedBody, pastedBlocks),
+                  bodyText: trimmedBody,
                   originSource,
                   travelScope,
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
@@ -1084,7 +1047,6 @@ export default function AdminRegisterPage() {
                   singleDepartureOnly,
                   ...(selectedBrandKey && { brandKey: selectedBrandKey }),
                   ...(urlToCheck && { originUrl: urlToCheck }),
-                  ...(blocksPayload && { pastedBlocks: blocksPayload }),
                 }
               : {
                   mode: 'preview',
@@ -1092,7 +1054,6 @@ export default function AdminRegisterPage() {
                   originSource,
                   ...(selectedBrandKey && { brandKey: selectedBrandKey }),
                   ...(urlToCheck && { originUrl: urlToCheck }),
-                  ...(blocksPayload && { pastedBlocks: blocksPayload }),
                   travelScope,
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
                   sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
@@ -1206,7 +1167,7 @@ export default function AdminRegisterPage() {
       previewContentFingerprintRef.current != null &&
       currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current
     ) {
-      setError('미리보기 이후 본문·붙여넣기 블록·여행사·URL·카테고리가 변경되었습니다. [봉투어 형식으로 변환]을 다시 실행한 뒤 저장하세요.')
+      setError('미리보기 이후 본문·여행사·URL·카테고리가 변경되었습니다. [봉투어 형식으로 변환]을 다시 실행한 뒤 저장하세요.')
       return
     }
     setConfirming(true)
@@ -1239,12 +1200,8 @@ export default function AdminRegisterPage() {
       }
       const originSource = selectedBrandKey
       const urlToCheck = normalizeUrl(originUrl)
-      const blocksPayload = buildPastedBlocksPayload(pastedBlocks)
       const confirmPasteText = resolveRegisterPasteText()
-      const confirmPrimaryText =
-        selectedBrandKey === 'kyowontour'
-          ? buildKyowontourBodyTextWithStructuredBlocks(confirmPasteText, pastedBlocks)
-          : confirmPasteText
+      const confirmPrimaryText = confirmPasteText
       const snap = preview as AdminRegisterPreviewPayload & {
         registerSnapshotId?: string | null
         registerAnalysisId?: string | null
@@ -1266,7 +1223,6 @@ export default function AdminRegisterPage() {
             originSource,
             ...(selectedBrandKey && { brandKey: selectedBrandKey }),
             ...(urlToCheck && { originUrl: urlToCheck }),
-            ...(blocksPayload && { pastedBlocks: blocksPayload }),
             travelScope,
             ...(correctionOverlay && { correctionOverlay }),
             previewContentDigest: preview.previewContentDigest,
@@ -1435,8 +1391,7 @@ export default function AdminRegisterPage() {
             상품 URL
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            URL 호스트로 공급사가 자동 선택됩니다. [사실 가져오기] 후 [봉투어 형식으로 변환]으로 미리보기·저장까지 진행합니다.
-            modetour 등은 쿠폰·혜택 보강이 필요할 때만 아래 추가 본문을 붙여넣으세요.
+            상품 URL 입력 후 [사실 가져오기]로 API에서 항공·옵션·쇼핑·일정·포함 등을 수집합니다. 아래 본문은 선택(모두투어 쿠폰·혜택 보강 등)이며, 항공·옵션·쇼핑은 <strong>API SSOT</strong>입니다.
           </p>
           <input
             id="admin-register-origin-url"
@@ -1594,7 +1549,7 @@ export default function AdminRegisterPage() {
             <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">권장 / 기본 입력</span>
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            상세페이지 본문 전체를 붙여넣으세요. 기본정보·일정·포함/불포함 등 <strong>서술·LLM 추출</strong>에 쓰이며, 항공·호텔·옵션·쇼핑은 아래 정형칸이 있으면 그쪽이 우선입니다.
+            [사실 가져오기] 결과 또는 선택적 추가 서술(쿠폰·혜택 등). 일정·포함/불포함·특징 추출에 쓰입니다. 항공·옵션·쇼핑 표는 URL API가 채웁니다.
           </p>
           <p className="mt-1 text-xs font-medium text-slate-600">
             현재 여행사 입력 프레임: <span className="text-[#0f172a]">{supplierFrameSpec.displayName}</span>
@@ -1611,133 +1566,6 @@ export default function AdminRegisterPage() {
           />
         </div>
 
-        <div className="mt-8 rounded-lg border border-emerald-200 bg-emerald-50/40 px-4 py-3">
-          <p className="text-sm font-bold text-emerald-900">B. 구조화 우선 입력 (정형칸)</p>
-          <p className="mt-1 text-xs text-emerald-800">
-            항공·호텔·선택관광·쇼핑은 <strong>선택 입력</strong>이며, 값이 있으면 해당 영역은 본문 LLM 추출보다 <strong>항상 우선</strong>합니다. placeholder는 위에서 고른 여행사 프레임에 맞게 바뀝니다.
-          </p>
-          <details className="mt-2 rounded border border-emerald-300/60 bg-white/80 px-3 py-2 text-xs text-emerald-900">
-            <summary className="cursor-pointer font-semibold text-emerald-950">입력 우선순위 · {supplierFrameSpec.displayName} 축 요약</summary>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-emerald-900/90">
-              {REGISTER_INPUT_PRIORITY_RULES.map((rule, i) => (
-                <li key={i}>{rule}</li>
-              ))}
-            </ul>
-            <div className="mt-3 overflow-x-auto border-t border-emerald-100 pt-2">
-              <table className="w-full min-w-[520px] border-collapse text-left text-[11px] text-slate-700">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="px-2 py-1 font-semibold">축</th>
-                    <th className="px-2 py-1 font-semibold">기본 형태</th>
-                    <th className="px-2 py-1 font-semibold">슬롯·비고</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {supplierFrameSpec.axes.map((row) => (
-                    <tr key={row.axis} className="border-b border-slate-100 align-top">
-                      <td className="px-2 py-1.5 font-medium text-slate-800">{row.axis}</td>
-                      <td className="px-2 py-1.5">{row.shape}</td>
-                      <td className="px-2 py-1.5 text-slate-600">{row.slots}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </div>
-
-        {/* B-1. 선택관광 표 */}
-        <div className="mt-6 border-l-4 border-emerald-600 pl-6">
-          <label htmlFor="admin-register-optional-tour" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <span>선택관광 표 붙여넣기 (있으면 본문보다 우선)</span>
-            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">우선 적용</span>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">선택 입력</span>
-          </label>
-          <p className="mt-1 text-xs text-slate-500">워드/웹의 선택관광 표를 그대로 붙여넣으세요.</p>
-          <p className="mt-1 text-xs text-slate-500">입력 시 본문 전체 자동 추출보다 우선 적용됩니다.</p>
-          <textarea
-            id="admin-register-optional-tour"
-            value={pastedBlocks.optionalTour}
-            onChange={(e) => setPastedBlocks((b) => ({ ...b, optionalTour: e.target.value }))}
-            rows={6}
-            disabled={loading}
-            placeholder={pastePh.optionalTour}
-            className="mt-2 min-h-[120px] w-full resize-y border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
-          />
-        </div>
-
-        {/* B-2. 쇼핑 표 */}
-        <div className="mt-6 border-l-4 border-emerald-600 pl-6">
-          <label htmlFor="admin-register-shopping" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <span>쇼핑 표 붙여넣기 (있으면 본문보다 우선)</span>
-            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">우선 적용</span>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">선택 입력</span>
-          </label>
-          {selectedBrandKey === 'hanatour' ? (
-            <p className="mt-1 text-xs text-slate-600">
-              <strong>쇼핑 후보지(방문 후보 매장·면세·몰)</strong>를 적는 칸입니다. <strong>쇼핑 N회</strong> 같은 횟수는 본문
-              상단·일정 문구에서 따로 읽습니다 — 여기에 &quot;1회&quot;만 넣는 용도가 아닙니다.
-            </p>
-          ) : null}
-          <p className="mt-1 text-xs text-slate-500">워드/웹의 쇼핑 표를 그대로 붙여넣으세요.</p>
-          <p className="mt-1 text-xs text-slate-500">입력 시 본문 전체 자동 추출보다 우선 적용됩니다.</p>
-          <textarea
-            id="admin-register-shopping"
-            value={pastedBlocks.shopping}
-            onChange={(e) => setPastedBlocks((b) => ({ ...b, shopping: e.target.value }))}
-            rows={6}
-            disabled={loading}
-            placeholder={pastePh.shopping}
-            className="mt-2 min-h-[120px] w-full resize-y border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
-          />
-        </div>
-
-        {/* B-3. 호텔 표 */}
-        <div className="mt-6 border-l-4 border-emerald-600 pl-6">
-          <label htmlFor="admin-register-hotel" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <span>호텔/숙소 표 붙여넣기 (있으면 본문보다 우선)</span>
-            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">우선 적용</span>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">선택 입력</span>
-          </label>
-          <p className="mt-1 text-xs text-slate-500">워드/웹의 호텔 표를 그대로 붙여넣으세요.</p>
-          <p className="mt-1 text-xs text-slate-500">입력 시 본문 전체 자동 추출보다 우선 적용됩니다.</p>
-          <textarea
-            id="admin-register-hotel"
-            value={pastedBlocks.hotel}
-            onChange={(e) => setPastedBlocks((b) => ({ ...b, hotel: e.target.value }))}
-            rows={6}
-            disabled={loading}
-            placeholder={pastePh.hotel}
-            className="mt-2 min-h-[120px] w-full resize-y border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
-          />
-        </div>
-
-        {/* B-4. 항공 구간 원문 (선택 — 국내·모두투어일 때만 버스·기차 안내·placeholder 확장) */}
-        <div className="mt-6 border-l-4 border-emerald-600 pl-6">
-          <label htmlFor="admin-register-airline-transport" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <span>
-              {travelScope === 'domestic' && selectedBrandKey === 'modetour'
-                ? '항공·이동(버스·기차) 구간 붙여넣기 (있으면 본문 추출 보조)'
-                : '항공 구간 붙여넣기 (있으면 본문 항공 추출 보조)'}
-            </span>
-            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">선택 입력</span>
-          </label>
-          <p className="mt-1 text-xs text-slate-500">
-            {selectedBrandKey === 'modetour' && travelScope === 'domestic'
-              ? '공급사 상세에서 항공 또는 국내 버스·기차 일정 블록을 따로 붙여넣을 수 있습니다. 모두투어는 항공과 동일한 출발/도착 행 형식입니다. 비우면 본문 전체에서만 추출합니다.'
-              : '공급사 상세에서 항공 블록만 따로 붙여넣을 수 있습니다. 비우면 본문 전체에서만 추출합니다.'}
-          </p>
-          <textarea
-            id="admin-register-airline-transport"
-            value={pastedBlocks.airlineTransport}
-            onChange={(e) => setPastedBlocks((b) => ({ ...b, airlineTransport: e.target.value }))}
-            rows={5}
-            disabled={loading}
-            placeholder={pastePh.airlineTransport}
-            className="mt-2 min-h-[100px] w-full resize-y border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
-          />
-        </div>
-
         {/* G. 사실 → 봉투어 형식 변환 (LLM 재서술·구조화, 원문 HTML 재크롤링 아님) */}
         <div className="mt-8 border-l-4 border-[#0f172a] pl-6">
           <button
@@ -1749,7 +1577,7 @@ export default function AdminRegisterPage() {
             {loading ? LOADING_STATUS : '봉투어 형식으로 변환'}
           </button>
           <p className="mt-2 text-xs text-slate-500">
-            [사실 가져오기]로 채운 구조화 사실(또는 선택적 추가 붙여넣기)을 봉투어 등록 형식으로 변환합니다. modetour 쿠폰·혜택은 필요 시 추가 본문으로 보강하세요.
+            [사실 가져오기] API + 선택적 추가 본문을 봉투어 등록 형식으로 변환합니다. 항공·옵션·쇼핑은 originUrl detail-collect가 SSOT입니다.
           </p>
         </div>
 
@@ -1828,21 +1656,8 @@ export default function AdminRegisterPage() {
               <div className="rounded border border-sky-200 bg-sky-50/70 p-3 text-xs text-sky-950">
                 <p className="font-semibold text-sky-900">입력 출처</p>
                 <ul className="mt-1 space-y-0.5">
-                  <li>
-                    선택관광: {pastedBlocks.optionalTour.trim() ? '별도 입력 우선 적용' : '본문 자동 추출 사용'}
-                  </li>
-                  <li>
-                    쇼핑: {pastedBlocks.shopping.trim() ? '별도 입력 우선 적용' : '본문 자동 추출 사용'}
-                  </li>
-                  <li>
-                    호텔: {pastedBlocks.hotel.trim() ? '별도 입력 우선 적용' : '본문 자동 추출 사용'}
-                  </li>
-                  <li>
-                    {travelScope === 'domestic' && selectedBrandKey === 'modetour' ? '항공·이동' : '항공'}:{' '}
-                    {pastedBlocks.airlineTransport.trim()
-                      ? '별도 입력 병합(본문과 함께 구조화)'
-                      : '본문 자동 추출 사용'}
-                  </li>
+                  <li>항공·옵션·쇼핑·호텔 표: originUrl detail-collect API (정형칸 없음)</li>
+                  <li>일정·포함/불포함·특징: register-facts + LLM 표현층</li>
                 </ul>
               </div>
 
@@ -1893,17 +1708,12 @@ export default function AdminRegisterPage() {
                 const repairLog = detail.geminiRepairLog ?? {}
                 const sectionReview = detail.sectionReview ?? {}
                 const sectionSource = (section: 'hotel_section' | 'optional_tour_section' | 'shopping_section' | 'flight_section' | 'included_excluded_section') => {
-                  const pastedMap: Record<string, string> = {
-                    hotel_section: pastedBlocks.hotel,
-                    optional_tour_section: pastedBlocks.optionalTour,
-                    shopping_section: pastedBlocks.shopping,
-                    flight_section: pastedBlocks.airlineTransport,
-                    included_excluded_section: '',
-                  }
-                  if ((pastedMap[section] ?? '').trim()) {
-                    const repaired = !!repairLog?.[section]?.applied
-                    return repaired ? '별도 입력 우선 적용 + Gemini 보정' : '별도 입력 우선 적용'
-                  }
+                  const apiSections = new Set([
+                    'hotel_section',
+                    'optional_tour_section',
+                    'shopping_section',
+                    'flight_section',
+                  ])
                   const repaired = !!repairLog?.[section]?.applied
                   const hasAuto =
                     section === 'hotel_section'
@@ -1913,10 +1723,16 @@ export default function AdminRegisterPage() {
                         : section === 'shopping_section'
                           ? (detail.shoppingStructured?.rows?.length ?? 0) > 0
                           : section === 'included_excluded_section'
-                            ? (detail.includedExcludedStructured?.includedItems?.length ?? 0) + (detail.includedExcludedStructured?.excludedItems?.length ?? 0) > 0
-                            : true
+                            ? (detail.includedExcludedStructured?.includedItems?.length ?? 0) +
+                                (detail.includedExcludedStructured?.excludedItems?.length ?? 0) >
+                              0
+                            : Boolean(detail.flightStructured?.airlineName?.trim())
+                  if (apiSections.has(section)) {
+                    if (!hasAuto) return 'API 수집 대기/없음'
+                    return repaired ? 'detail-collect API + Gemini 보정' : 'detail-collect API'
+                  }
                   if (!hasAuto) return '입력 없음'
-                  return repaired ? '본문 자동 추출 + Gemini 보정' : '본문 자동 추출 사용'
+                  return repaired ? '본문 추출 + Gemini 보정' : '본문 추출'
                 }
                 const badgeSummary = (section: 'hotel_section' | 'optional_tour_section' | 'shopping_section' | 'flight_section' | 'included_excluded_section') => {
                   const r = sectionReview?.[section] ?? { required: [], warning: [], info: [] }
@@ -2711,7 +2527,7 @@ export default function AdminRegisterPage() {
               ) : previewContentFingerprintRef.current != null &&
                 currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current ? (
                 <p className="mt-2 text-xs text-red-600">
-                  본문·블록·여행사·URL·카테고리가 바뀌었습니다. 다시 분석한 뒤 저장하세요.
+                  본문·여행사·URL·카테고리가 바뀌었습니다. 다시 분석한 뒤 저장하세요.
                 </p>
               ) : null}
             </div>

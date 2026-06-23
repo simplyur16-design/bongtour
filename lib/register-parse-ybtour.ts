@@ -85,7 +85,7 @@ export const YBTOUR_PRICE_SLOT_SSOT_NOTE =
   '노랑풍선 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
 
 export const YBTOUR_FLIGHT_PREVIEW_NOTE =
-  '노랑풍선 항공: 정형칸 병합 후 flightStructured를 재계산합니다. 출발/도착 블록에서 항공사(첫 줄)·편명·도시·일시를 구조화합니다.'
+  '노랑풍선 항공: originUrl detail-collect(papi) SSOT. 본문 flightRaw는 보조이며 API 수집이 구조화 필드를 덮어쓴다.'
 
 export async function parseForRegisterYbtour(
   rawText: string,
@@ -96,30 +96,23 @@ export async function parseForRegisterYbtour(
   console.log(
     `[ybtour] phase=parse-for-register entry fn=parseForRegisterYbtour originSource_preview=${JSON.stringify(osPrev)} rawText_len=${rawText?.length ?? 0}`
   )
+  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
   let detailBody = parseDetailBodyStructuredYbtour({
     rawText,
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: options?.pastedBlocks?.shopping ?? null,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
-  detailBody = mergeAirlineTransportPaste(detailBody, options?.pastedBlocks?.airlineTransport?.trim())
-  const airlinePasteOnly = options?.pastedBlocks?.airlineTransport?.trim()
-  if (airlinePasteOnly) {
-    detailBody = withYbtourFlightStructured(detailBody, parseYbtourFlightInput(airlinePasteOnly, null))
-  } else {
-    detailBody = applyYbtourMergedFlightRawToStructured(detailBody)
-  }
-  const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
-  const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
+  detailBody = applyYbtourMergedFlightRawToStructured(detailBody)
   const { shoppingSection } = sliceDetailBodySections(detailBody.normalizedRaw, detailBody.sections, {
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: shopPaste,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
   detailBody = refreshYbtourDetailBodyPolicy({
     ...detailBody,
-    optionalToursStructured: parseYbtourOptionalInput(optPaste),
-    shoppingStructured: parseYbtourShoppingInput(shoppingSection, shopPaste),
+    optionalToursStructured: parseYbtourOptionalInput(''),
+    shoppingStructured: parseYbtourShoppingInput(shoppingSection, null),
   })
   logYbtourBasicDetailBody(detailBody, rawText?.length ?? 0)
 

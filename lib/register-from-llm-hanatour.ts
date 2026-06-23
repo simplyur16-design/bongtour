@@ -149,22 +149,12 @@ function normalizeRegisterPasteNewlines(s: string): string {
 function buildRegisterSignalsHaystack(
   rawText: string,
   pastedBodyForInference: string | null | undefined,
-  pastedBlocks: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null | undefined
+  _pastedBlocks: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null | undefined
 ): string {
   const primary = normalizeRegisterPasteNewlines(
     (pastedBodyForInference?.trim() || rawText.trim()).slice(0, REGISTER_PASTE_MAX_CHARS)
   )
-  const parts: string[] = []
-  if (primary) parts.push(primary)
-  const appendIfExtra = (block: string | null | undefined) => {
-    const b = normalizeRegisterPasteNewlines((block ?? '').trim())
-    if (b.length < 8) return
-    if (primary.includes(b)) return
-    parts.push(b)
-  }
-  appendIfExtra(pastedBlocks?.optionalTour ?? null)
-  appendIfExtra(pastedBlocks?.shopping ?? null)
-  return parts.join('\n\n\n').slice(0, REGISTER_PASTE_MAX_CHARS)
+  return primary
 }
 
 /** 전용 입력란 비어 있을 때 본문·regex·LLM 해당 축 미사용 — 하나투어 이 파일 전용 */
@@ -1381,20 +1371,6 @@ export async function parseForRegisterLlmHanatour(
         reason: plan.reason,
       }
       if (plan.mode === 'skip') continue
-      if (
-        (target === 'hotel_section' && !!options?.pastedBlocks?.hotel?.trim()) ||
-        (target === 'flight_section' && !!options?.pastedBlocks?.airlineTransport?.trim()) ||
-        (target === 'optional_tour_section' && !!options?.pastedBlocks?.optionalTour?.trim()) ||
-        (target === 'shopping_section' && !!options?.pastedBlocks?.shopping?.trim())
-      ) {
-        repairLog[target] = {
-          ...repairLog[target]!,
-          triggered: false,
-          applied: false,
-          reason: '별도 입력 우선 적용 섹션이라 Gemini repair 생략',
-        }
-        continue
-      }
       const sectionText = sectionByType.get(target) ?? ''
       if (!sectionText.trim()) continue
       if (sectionRepairsUsed >= maxSectionRepairs) {
@@ -1888,16 +1864,11 @@ ${text.slice(0, 16000)}`
   prices = applyProductLevelFlightMeeting(raw, prices)
   prices = mergeProductLevelFlightSegments(raw, prices)
   const segAirline = segmentSupplierPasteForLlm(rawText.slice(0, REGISTER_PASTE_MAX_CHARS)).airlineMeeting
-  const flightSources = [
-    rawText.trim(),
-    (options?.pastedBlocks?.airlineTransport ?? '').trim(),
-    segAirline,
-  ]
+  const flightSources = [rawText.trim(), segAirline]
   const flightEnriched = enrichParsedProductPricesWithFlightHeuristics(prices, flightSources)
   prices = flightEnriched.prices
   const rawReturnBlobForInbound = [
     rawText.trim(),
-    (options?.pastedBlocks?.airlineTransport ?? '').trim(),
     strOrNull(raw.arrivalDateTimeRaw),
     strOrNull(raw.returnSegmentText),
     strOrNull(raw.routeRaw),

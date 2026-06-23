@@ -294,7 +294,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   const note =
     summaryParts.length > 0
       ? `하나투어 상세카드 자동수집: ${summaryParts.join(' · ')} (gw getPkgProdInfo+itnr+chcStsng)`
-      : '하나투어 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
+      : '하나투어 상세카드 자동수집: 해당 축 데이터 없음(originUrl·API 확인)'
   if (!notes.includes(note)) notes.push(note)
 
   return {

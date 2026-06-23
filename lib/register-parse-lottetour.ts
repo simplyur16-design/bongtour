@@ -98,25 +98,18 @@ export async function parseForRegisterLottetour(
   console.log(
     `[lottetour] phase=parse-for-register entry fn=parseForRegisterLottetour originSource_preview=${JSON.stringify(osPrev)} rawText_len=${rawText?.length ?? 0}`
   )
+  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
   let detailBody = parseDetailBodyStructuredLottetour({
     rawText,
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: options?.pastedBlocks?.shopping ?? null,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
-  detailBody = mergeAirlineTransportPaste(detailBody, options?.pastedBlocks?.airlineTransport?.trim())
-  const airlinePasteOnly = options?.pastedBlocks?.airlineTransport?.trim()
-  if (airlinePasteOnly) {
-    detailBody = withLottetourFlightStructured(detailBody, parseLottetourFlightInput(airlinePasteOnly, null))
-  } else {
-    detailBody = applyLottetourMergedFlightRawToStructured(detailBody)
-  }
-  const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
-  const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
+  detailBody = applyLottetourMergedFlightRawToStructured(detailBody)
   detailBody = refreshLottetourDetailBodyPolicy({
     ...detailBody,
-    optionalToursStructured: parseLottetourOptionalInput(optPaste),
-    shoppingStructured: parseLottetourShoppingInput('', shopPaste),
+    optionalToursStructured: parseLottetourOptionalInput(''),
+    shoppingStructured: parseLottetourShoppingInput('', null),
   })
   logLottetourBasicDetailBody(detailBody, rawText?.length ?? 0)
 

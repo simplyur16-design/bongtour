@@ -92,7 +92,7 @@ function withVerygoodFlightStructured(
 export const VERYGOOD_PRICE_SLOT_SSOT_NOTE =
   '참좋은 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가(엑베·노베 미분리), childNoBedPrice=미사용(null), infantPrice=유아. 가이드경비·잔여석·쿠폰 줄은 본가 슬롯에 넣지 않습니다.'
 const VG_FLIGHT_PREVIEW_NOTE =
-  '참좋은 항공 구조화 SSOT: 관리자 항공·교통 정형 입력란(airlineTransport)만. 본문에서 잘라낸 항공 구간(raw.flightRaw)은 경계·검수 참고용이며 flightStructured를 채우지 않습니다. 옵션·쇼핑도 각 정형칸만.'
+  '참좋은 항공: PackageDetail HTML/detail-collect SSOT. 정형 항공칸 폐기 — API·HTML 수집이 구조화 필드를 덮어쓴다.'
 
 export async function parseForRegisterVerygoodtour(
   rawText: string,
@@ -102,31 +102,17 @@ export async function parseForRegisterVerygoodtour(
   const bodyForParse = rawText.trim()
     ? clipVerygoodMarketingTailFromPaste(normalizeVerygoodRegisterPasteLineEndings(rawText.trim())).clipped
     : ''
+  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
   let detailBody = parseDetailBodyStructuredVerygoodtour({
     rawText: bodyForParse || rawText.trim(),
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: options?.pastedBlocks?.shopping ?? null,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
-  detailBody = mergeAirlineTransportPaste(detailBody, options?.pastedBlocks?.airlineTransport?.trim())
-  const airlinePasteOnly = options?.pastedBlocks?.airlineTransport?.trim()
-  if (airlinePasteOnly) {
-    const fr =
-      normalizeVerygoodFlightSectionDecorators(airlinePasteOnly).trim() || airlinePasteOnly.trim()
-    detailBody = withVerygoodFlightStructured(
-      detailBody,
-      parseVerygoodtourFlightInput(fr, null),
-      detailBody.raw.flightRaw
-    )
-  }
-  /** 항공 정형칸이 비면 `flightStructured`는 빈 스냅샷 유지 — 본문 슬라이스로 구조화하지 않음 */
-
-  const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
-  const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
   detailBody = refreshVerygoodDetailBodyPolicy({
     ...detailBody,
-    optionalToursStructured: parseVerygoodtourOptionalInput(optPaste),
-    shoppingStructured: parseVerygoodtourShoppingInput('', shopPaste),
+    optionalToursStructured: parseVerygoodtourOptionalInput(''),
+    shoppingStructured: parseVerygoodtourShoppingInput('', null),
   })
 
   let parsed = await parseForRegisterLlmVerygoodtour(bodyForParse || rawText.trim(), originSource, {

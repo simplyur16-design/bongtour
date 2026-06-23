@@ -1,8 +1,8 @@
 /**
  * 등록 상세카드 자동수집 — 축별 need* 게이트 SSOT (6공급사 공통).
- * LLM이 횟수·플래그만 채워도 structured 행이 없으면 API 수집을 시도한다.
  *
  * REGRESSION-FREEZE[register-detail-collect-gates]: split incl/excl/opt/shop gates — manifest
+ * REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 정형칸·LLM structured 무시 — originUrl detail-collect API 우선
  */
 
 export function substantiveRegisterBulletItems(items?: string[] | null): string[] {
@@ -43,19 +43,22 @@ export function hasStructuredJsonRows(raw: string | null | undefined): boolean {
 }
 
 export function needsRegisterShoppingCollect(args: {
-  hasShoppingPaste: boolean
-  shoppingStops: string | null | undefined
+  hasShoppingPaste?: boolean
+  shoppingStops?: string | null | undefined
 }): boolean {
-  return !args.hasShoppingPaste && !hasStructuredJsonRows(args.shoppingStops)
+  void args.hasShoppingPaste
+  void args.shoppingStops
+  return true
 }
 
 export function needsRegisterOptionalCollect(args: {
-  hasOptionalPaste: boolean
-  optionalToursStructured: string | null | undefined
+  hasOptionalPaste?: boolean
+  optionalToursStructured?: string | null | undefined
   hasOptionalTour?: boolean | null
   declaresNoOptional?: boolean
 }): boolean {
-  if (args.hasOptionalPaste || hasStructuredJsonRows(args.optionalToursStructured)) return false
+  void args.hasOptionalPaste
+  void args.optionalToursStructured
   if (args.declaresNoOptional) return false
   if (args.hasOptionalTour === false) return false
   return true

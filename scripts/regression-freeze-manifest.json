@@ -3469,6 +3469,7 @@
           "file": "lib/register-detail-collect-gates.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-detail-collect-gates]",
+            "REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]",
             "needsRegisterIncludedCollect",
             "needsRegisterExcludedCollect",
             "needsRegisterOptionalCollect",
@@ -3476,10 +3477,43 @@
           ]
         },
         {
+          "file": "lib/register-admin-core-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]",
+            "parseHanatourRegisterPastedBlocksFromBody"
+          ]
+        },
+        {
           "file": "lib/hanatour-register-detail-collect.ts",
           "mustInclude": [
             "needsRegisterIncludedCollect",
             "needsRegisterShoppingCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-detail-collect-gates.test.ts"
+      ]
+    },
+    {
+      "id": "register-admin-no-pasted-blocks-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 정형칸(항공·옵션·쇼핑·호텔) 폐기 — originUrl detail-collect API SSOT",
+      "checks": [
+        {
+          "file": "lib/register-admin-core-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]",
+            "parseHanatourRegisterPastedBlocksFromBody"
+          ]
+        },
+        {
+          "file": "lib/register-parse-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]"
           ]
         }
       ],

@@ -1,7 +1,7 @@
 # 등록 파이프 — 일정 표현층 SSOT
 
 > 상태: **실전 고정(4공급사)**. 모두투어·하나투어·참좋은여행(`verygoodtour`)·`ybtour` 등록 경로에서 확인된 표현층 계약을 반영한다.  
-> 관련: `lib/schedule-from-product.ts`, `lib/upsert-itinerary-days.ts`, `lib/parse-and-register-hanatour-schedule.ts`, `lib/parse-and-register-verygoodtour-schedule.ts`, `lib/parse-and-register-ybtour-schedule.ts`, `scripts/verify-hanatour-register-schedule-e2e.ts`, `scripts/verify-verygoodtour-register-schedule-e2e.ts`, `scripts/verify-ybtour-register-schedule-e2e.ts`, `docs/LEGACY-AND-SCHEDULE-SSOT.md`, `docs/SCHEDULE-SSOT-DECISION.md`
+> 관련: `lib/schedule-from-product.ts`, `lib/upsert-itinerary-days.ts`, `lib/parse-and-register-hanatour-schedule.ts`, `lib/parse-and-register-verygoodtour-schedule.ts`, `lib/parse-and-register-ybtour-schedule.ts`, `npm run verify:regression-freeze:prebuild`, `docs/LEGACY-AND-SCHEDULE-SSOT.md`, `docs/SCHEDULE-SSOT-DECISION.md`
 
 > **본문 섹션 분리 SSOT:** 붙여넣기 본문을 `flight_section`·`hotel_section` 등으로 **줄 단위로 자르는 규칙**은 공급사별 `docs/body-parser-{hanatour|modetour|verygoodtour|ybtour}-ssot.md`가 1급이다. 본 문서는 **표현층**(§2.1)·저장 매핑만 규정하며, §2.2에 따라 본문 추출 알고리즘은 범위 밖이다.
 
@@ -113,7 +113,7 @@
 - 일정 요약에 섞이면 안 되는 토큰/구간: 유의사항·개요·더보기/크게보기·이미지 플레이스홀더·하단 표 등.  
   - **모두투어**: `lib/register-modetour-pasted-schedule.ts`에서 처리.  
   - **하나투어**: 상세 노이즈 컷은 LLM·정형 본문 파서(`detail-body-parser-hanatour` 등) 측; 일정 행 표현은 `parsed.schedule` 채운 뒤 위 규칙·후처리로 마감.  
-  - **ybtour**: 붙여넣기 본문의 **`N일차` 블록 경계**·마지막 일차 **꼬리 구간**은 `lib/parse-and-register-ybtour-schedule.ts`에서 다루며, 실본문 E2E(`tmp_ybtour_body.txt`)에서는 Day4 `description`에 선택관광·옵션 목록류 꼬리가 끼지 않았음을 스크립트가 assert한다 (`scripts/verify-ybtour-register-schedule-e2e.ts`).
+  - **ybtour**: 붙여넣기 본문의 **`N일차` 블록 경계**·마지막 일차 **꼬리 구간**은 `lib/parse-and-register-ybtour-schedule.ts`에서 다루며, Day4 `description` 꼬리 오염은 회귀 얼림(`scripts/regression-freeze-manifest.json` · prebuild vitest)으로 고정한다.
 
 ### 4.9 fallback 금지 규칙
 
@@ -297,7 +297,7 @@
 ### 9.1 검증 입력·방법
 
 - **본문 출처**: `하나투어.docx`에서 추출한 평문(실상품 본문; 검증 시점 기준 상품코드 **JKP130260501TW5** 등 포함).  
-- **재현 스크립트**: `scripts/verify-hanatour-register-schedule-e2e.ts` — `.env.local`/`.env` 로드 후 `lib` 동적 import, **미리보기 `forPreview: true` → `schedule.length === 0` → 풀 파싱 `forPreview: false` 복구**(오케스트레이션 `recoverHanatourEmptyScheduleWithFullParse`와 동일 취지) → `augmentHanatourScheduleExpressionParsed` → `registerScheduleToDayInputs` → `finalizeHanatourItineraryDayDraftsFromSchedule` → `buildScheduleJson` 형태로 일치 검사.  
+- **회귀**: `tests/hanatour-schedule-image-keyword-prebuild.test.ts` · `npm run verify:register-facts-live` (manifest `register-facts-live` 등) — 미리보기·확정 파이프(`applyHanatourRegisterSchedulePipeline` → `registerScheduleToDayInputs` → `finalizeHanatourItineraryDayDraftsFromSchedule`) 동치.  
 - **코드 진입**: `lib/parse-and-register-hanatour-handler.ts`가 `recoverHanatourEmptyScheduleWithFullParse`, `augmentParsed`, `finalizeHanatourItineraryDayDraftsFromSchedule`를 `runParseAndRegisterFlow`에 넘김.
 
 ### 9.2 확인된 결과 (해당 E2E 실행 기준)
@@ -321,7 +321,7 @@
 ### 10.1 검증 입력·방법
 
 - **본문 출처**: 저장소 루트 `tmp_verygoodtour_body.txt` (실본문 추출물; 스크립트 주석 기준 참좋은여행.docx → 평문).  
-- **재현 스크립트**: `scripts/verify-verygoodtour-register-schedule-e2e.ts` — `.env.local`/`.env` 로드, **`GEMINI_API_KEY` 필요**, 미리보기 `forPreview: true` → `schedule.length === 0`이면 **풀 파싱 복구**(`forPreview: false`, `skipDetailSectionGeminiRepairs: true` 등 핸들러와 동일 취지) → **`augmentVerygoodtourScheduleExpressionParsed`** → **`registerScheduleToDayInputs`** → **`finalizeVerygoodtourItineraryDayDraftsFromSchedule`** → `buildScheduleJson`과의 행 동치, `summaryTextRaw`/`rawBlock`/`hotelText`↔`accommodation`, augment 후 **`Day N travel` 0건**, **`verygoodConfirmHasScheduleExpressionLayer`**.  
+- **회귀**: `npm run verify:register-facts-live` · manifest live gate — **`augmentVerygoodtourScheduleExpressionParsed`** → **`registerScheduleToDayInputs`** → **`finalizeVerygoodtourItineraryDayDraftsFromSchedule`** · **`verygoodConfirmHasScheduleExpressionLayer`**.  
 - **코드 진입**: `lib/parse-and-register-verygoodtour-handler.ts`가 위 augment·finalize·게이트를 **오케스트레이션 `runParseAndRegisterFlow`가 아닌 전용 핸들러 본문**에서 수행한다.
 
 ### 10.2 확인된 계약 (스크립트가 검증하는 범위)
@@ -340,7 +340,7 @@
 ### 11.1 검증 입력·방법
 
 - **본문 출처**: 저장소 루트 `tmp_ybtour_body.txt`.  
-- **재현 스크립트**: `scripts/verify-ybtour-register-schedule-e2e.ts` — preview `parseForRegisterYbtour`(`forPreview: true`) → `schedule` 비면 **풀 파싱 복구**(`forPreview: false`, `skipDetailSectionGeminiRepairs: true` 등 오케스트레이션 `recoverYbtourEmptyScheduleWithFullParse`와 동일 취지) → **`sanitizeYbtourRegisterParsedStrings(augmentYbtourScheduleExpressionParsed(merged, text))`** → **`registerScheduleToDayInputs`** → **`finalizeYbtourItineraryDayDraftsFromSchedule`** → `buildScheduleJson` 동치·**`ybtourConfirmHasScheduleExpressionLayer`**.  
+- **회귀**: `npm run verify:register-facts-live` · manifest live gate — **`sanitizeYbtourRegisterParsedStrings(augmentYbtourScheduleExpressionParsed(...))`** → **`registerScheduleToDayInputs`** → **`finalizeYbtourItineraryDayDraftsFromSchedule`** · **`ybtourConfirmHasScheduleExpressionLayer`**.  
 - **코드 진입**: `lib/parse-and-register-ybtour-handler.ts` → **`runParseAndRegisterFlow`** (`recoverYbtourEmptyScheduleWithFullParse`, `augmentParsed`에 붙여넣기 본문, `finalizeYbtourItineraryDayDraftsFromSchedule`, **`confirmScheduleExpressionLayerOk: ybtourConfirmHasScheduleExpressionLayer`**). 일정 보강·키워드 정리: `lib/parse-and-register-ybtour-schedule.ts`, 문자열 sanitize: `lib/register-ybtour-text-sanitize.ts`.
 
 ### 11.2 확인된 결과 (`tmp_ybtour_body.txt` 고정 E2E, 스크립트 assertion 기준)

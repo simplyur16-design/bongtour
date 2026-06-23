@@ -145,66 +145,26 @@ export const HANATOUR_PRICE_SLOT_SSOT_NOTE =
   '하나투어 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=미사용(null), infantPrice=유아. 유류·제세·기본상품가 안내·잔여석 등 메타 줄은 슬롯에 넣지 않습니다.'
 
 export const HANATOUR_FLIGHT_PREVIEW_NOTE =
-  '하나투어 항공: 항공 입력란이 있으면 그 값만으로 flightStructured를 만듭니다(본문 캠페인 문구와 분리). 입력란이 없을 때만 본문 flightRaw로 구조화합니다.'
+  '하나투어 항공: originUrl detail-collect(pkgAirSeqList) SSOT. 본문 flightRaw는 보조이며 API 수집이 구조화 필드를 덮어쓴다.'
 
 export async function parseForRegisterHanatour(
   rawText: string,
   originSource?: string,
   options?: ParseOpts
 ): Promise<RegisterParsed> {
+  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
   let detailBody = parseDetailBodyStructuredHanatour({
     rawText,
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: options?.pastedBlocks?.shopping ?? null,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
-  detailBody = mergeAirlineTransportPaste(detailBody, options?.pastedBlocks?.airlineTransport?.trim())
-  const airlinePasteOnly = options?.pastedBlocks?.airlineTransport?.trim()
-  if (airlinePasteOnly) {
-    /** 항공 입력란만으로 구조화 — 본문 캠페인·요약이 항공사명을 가리지 않게 */
-    detailBody = withHanatourFlightStructured(
-      detailBody,
-      parseHanatourFlightInput(airlinePasteOnly, null)
-    )
-  } else {
-    detailBody = applyHanatourMergedFlightRawToStructured(detailBody)
-  }
-
-  const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
-  const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
+  detailBody = applyHanatourMergedFlightRawToStructured(detailBody)
   detailBody = refreshHanatourDetailBodyPolicy({
     ...detailBody,
-    optionalToursStructured: parseHanatourOptionalInput(optPaste),
-    shoppingStructured: parseHanatourShoppingInput('', shopPaste),
+    optionalToursStructured: parseHanatourOptionalInput(''),
+    shoppingStructured: parseHanatourShoppingInput('', null),
   })
-  if (/선택관광\s*없음/i.test(detailBody.normalizedRaw) && detailBody.optionalToursStructured.rows.length > 0) {
-    detailBody = {
-      ...detailBody,
-      review: {
-        ...detailBody.review,
-        info: [
-          ...detailBody.review.info,
-          '상단 선택관광없음 표기와 옵션 입력란 구조화가 불일치할 수 있음',
-        ],
-      },
-    }
-  }
-  if (
-    /쇼핑\s*1\s*회|쇼핑\s*\d+\s*회/i.test(detailBody.normalizedRaw.split('\n').slice(0, 12).join('\n')) &&
-    detailBody.shoppingStructured.rows.length > 1
-  ) {
-    detailBody = {
-      ...detailBody,
-      review: {
-        ...detailBody.review,
-        info: [
-          ...detailBody.review.info,
-          '상단 쇼핑 횟수 요약과 쇼핑 입력란 행 수가 다를 수 있음(입력란·표 우선)',
-        ],
-      },
-    }
-  }
-
   let parsed = await parseForRegisterLlmHanatour(rawText, originSource, {
     ...options,
     presetDetailBody: detailBody,

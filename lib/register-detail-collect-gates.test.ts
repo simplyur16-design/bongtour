@@ -22,21 +22,38 @@ describe('register-detail-collect-gates', () => {
     ).toBe(true)
   })
 
-  it('optionalTourCount만 있어도 structured 없으면 선택관광 수집', () => {
+  it('정형칸 paste·LLM structured가 있어도 선택관광 API 수집 시도', () => {
     expect(
       needsRegisterOptionalCollect({
-        hasOptionalPaste: false,
-        optionalToursStructured: null,
+        hasOptionalPaste: true,
+        optionalToursStructured: JSON.stringify([{ name: '옵션' }]),
         hasOptionalTour: true,
       }),
     ).toBe(true)
   })
 
-  it('shoppingVisitCount만 있어도 structured 없으면 쇼핑 수집', () => {
+  it('선택관광 없음 선언·hasOptionalTour false면 수집 스킵', () => {
+    expect(
+      needsRegisterOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+        declaresNoOptional: true,
+      }),
+    ).toBe(false)
+    expect(
+      needsRegisterOptionalCollect({
+        hasOptionalPaste: false,
+        optionalToursStructured: null,
+        hasOptionalTour: false,
+      }),
+    ).toBe(false)
+  })
+
+  it('정형칸 paste·shoppingStops JSON이 있어도 쇼핑 API 수집 시도', () => {
     expect(
       needsRegisterShoppingCollect({
-        hasShoppingPaste: false,
-        shoppingStops: null,
+        hasShoppingPaste: true,
+        shoppingStops: JSON.stringify([{ itemName: '면세' }]),
       }),
     ).toBe(true)
   })

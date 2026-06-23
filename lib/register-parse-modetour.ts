@@ -85,27 +85,19 @@ export async function parseForRegisterModetour(
   originSource?: string,
   options?: ParseOpts
 ): Promise<RegisterParsed> {
+  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
   let detailBody = parseDetailBodyStructuredModetour({
     rawText,
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: options?.pastedBlocks?.shopping ?? null,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
   detailBody = expandModetourFlightRawForDirectedParse(detailBody)
-  detailBody = mergeAirlineTransportPaste(detailBody, options?.pastedBlocks?.airlineTransport?.trim())
-  const airlinePasteOnly = options?.pastedBlocks?.airlineTransport?.trim()
-  if (airlinePasteOnly) {
-    detailBody = withModetourFlightStructured(detailBody, parseModetourFlightInput(airlinePasteOnly, null))
-  } else {
-    detailBody = applyModetourMergedFlightRawToStructured(detailBody)
-  }
-
-  const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
-  const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
+  detailBody = applyModetourMergedFlightRawToStructured(detailBody)
   detailBody = refreshModetourDetailBodyPolicy({
     ...detailBody,
-    optionalToursStructured: parseModetourOptionalInput(optPaste),
-    shoppingStructured: parseModetourShoppingInput('', shopPaste),
+    optionalToursStructured: parseModetourOptionalInput(''),
+    shoppingStructured: parseModetourShoppingInput('', null),
   })
 
   const parsed = await parseForRegisterLlmModetour(rawText, originSource, {

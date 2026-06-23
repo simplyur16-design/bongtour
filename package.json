@@ -35,7 +35,6 @@
     "db:verygoodtour-sweep-oneshot": "tsx scripts/run-verygoodtour-horizon-sweep-oneshot.ts",
     "db:verygoodtour-hxr-coverage": "tsx scripts/run-verygoodtour-horizon-hxr-coverage.ts",
     "db:verygoodtour-sweep-expired-cleanup": "tsx scripts/run-verygoodtour-sweep-expired-cleanup.ts",
-    "db:verygoodtour-hxr-e2e-cross-verify": "tsx scripts/run-verygoodtour-hxr-e2e-cross-verify.ts",
     "db:kyowontour-horizon-probe": "tsx scripts/run-kyowontour-horizon-probe.ts",
     "db:kyowontour-sweep-oneshot": "tsx scripts/run-kyowontour-horizon-sweep-oneshot.ts",
     "db:backfill-detail-payload": "tsx scripts/backfill-product-public-detail-payload.ts --after-backup",

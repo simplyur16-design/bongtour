@@ -169,6 +169,13 @@ docs/ops/welcomepay-guide.zi
 
 # scripts 임시 스크래치
 scripts/.tmp-*
+scripts/_tmp-*
+
+# ops 운영 진단·일회성 스크래치 (실수 커밋 방지)
+ops/_tmp*
+ops/*-baseline/
+ops/verygood-e2e-debug/
+ops/*.bak-*
 
 # 구 prisma generator output 폴더 (7e83c0e 이후 미사용)
 prisma-gen-runtime/

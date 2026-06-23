@@ -23,25 +23,11 @@ export type HanatourRegisterAdminPastedBlocksPartial = Partial<
   Pick<RegisterPastedBlocksInput, HanatourRegisterAdminPastedBlockKey>
 >
 
-/** parse-and-register 라우트·digest·스냅샷 저장 공통 — `body.pastedBlocks` 4칸만 */
+/** REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 정형칸 폐기 — detail-collect API만 */
 export function parseHanatourRegisterPastedBlocksFromBody(
-  body: Record<string, unknown>
+  _body: Record<string, unknown>
 ): HanatourRegisterAdminPastedBlocksPartial | null {
-  const b = body.pastedBlocks
-  if (!b || typeof b !== 'object' || Array.isArray(b)) return null
-  const o = b as Record<string, unknown>
-  const pick = (key: HanatourRegisterAdminPastedBlockKey) => {
-    const v = o[key]
-    return typeof v === 'string' && v.trim()
-      ? v.trim().slice(0, HANATOUR_REGISTER_PASTED_BLOCK_MAX_CHARS)
-      : undefined
-  }
-  const out: HanatourRegisterAdminPastedBlocksPartial = {}
-  for (const key of HANATOUR_REGISTER_ADMIN_PASTED_BLOCK_KEYS) {
-    const v = pick(key)
-    if (v) out[key] = v
-  }
-  return Object.keys(out).length > 0 ? out : null
+  return null
 }
 
 /** fingerprint canonical·digest 입력 정규화 (길이 상한 동일) */

@@ -421,27 +421,11 @@ function mergeRawMetaWithStructuredSignals(
   })
 }
 
-/** 관리자 분리 붙여넣기 블록(선택) */
-function parsePastedBlocksFromBody(body: Record<string, unknown>): Partial<
+/** REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 정형칸 폐기 — detail-collect API만 */
+function parsePastedBlocksFromBody(_body: Record<string, unknown>): Partial<
   Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>
 > | null {
-  const b = body.pastedBlocks
-  if (!b || typeof b !== 'object' || Array.isArray(b)) return null
-  const o = b as Record<string, unknown>
-  const pick = (key: string) => {
-    const v = o[key]
-    return typeof v === 'string' && v.trim() ? v.trim().slice(0, 32000) : undefined
-  }
-  const out: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>> = {}
-  const ot = pick('optionalTour')
-  if (ot) out.optionalTour = ot
-  const sh = pick('shopping')
-  if (sh) out.shopping = sh
-  const ho = pick('hotel')
-  if (ho) out.hotel = ho
-  const air = pick('airlineTransport')
-  if (air) out.airlineTransport = air
-  return Object.keys(out).length > 0 ? out : null
+  return null
 }
 
 function computePreviewContentDigestForBody(body: Record<string, unknown>): string {

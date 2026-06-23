@@ -96,25 +96,18 @@ export async function parseForRegisterKyowontour(
   console.log(
     `[kyowontour] phase=parse-for-register entry fn=parseForRegisterKyowontour originSource_preview=${JSON.stringify(osPrev)} rawText_len=${rawText?.length ?? 0}`
   )
+  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
   let detailBody = parseDetailBodyStructuredKyowontour({
     rawText,
-    hotelRaw: options?.pastedBlocks?.hotel ?? null,
-    optionalRaw: options?.pastedBlocks?.optionalTour ?? null,
-    shoppingRaw: options?.pastedBlocks?.shopping ?? null,
+    hotelRaw: null,
+    optionalRaw: null,
+    shoppingRaw: null,
   })
-  detailBody = mergeAirlineTransportPaste(detailBody, options?.pastedBlocks?.airlineTransport?.trim())
-  const airlinePasteOnly = options?.pastedBlocks?.airlineTransport?.trim()
-  if (airlinePasteOnly) {
-    detailBody = withKyowontourFlightStructured(detailBody, parseKyowontourFlightInput(airlinePasteOnly, null))
-  } else {
-    detailBody = applyKyowontourMergedFlightRawToStructured(detailBody)
-  }
-  const optPaste = options?.pastedBlocks?.optionalTour?.trim() ?? ''
-  const shopPaste = options?.pastedBlocks?.shopping?.trim() || null
+  detailBody = applyKyowontourMergedFlightRawToStructured(detailBody)
   detailBody = refreshKyowontourDetailBodyPolicy({
     ...detailBody,
-    optionalToursStructured: parseKyowontourOptionalInput(optPaste),
-    shoppingStructured: parseKyowontourShoppingInput('', shopPaste),
+    optionalToursStructured: parseKyowontourOptionalInput(''),
+    shoppingStructured: parseKyowontourShoppingInput('', null),
   })
   logKyowontourBasicDetailBody(detailBody, rawText?.length ?? 0)
 
