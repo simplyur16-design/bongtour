@@ -153,7 +153,7 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     assert.notEqual(normScheduleImageKeywordKey(d2.imageKeyword), normScheduleImageKeywordKey(d2.imageKeyword2!))
   })
 
-  it('홋카이도 — 1일차 공항 LLM(New Chitose) 대신 죠잔케이, 3일차 오타루 운하', () => {
+  it('홋카이도 — 1일차 공항 LLM(New Chitose) 대신 죠잔케이, 3일차 오타루 운하·관광일 중복 없음', () => {
     const schedule = [
       {
         day: 1,
@@ -193,7 +193,12 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
       productDestination: '일본 홋카이도',
     })
     assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'Jozankei')
-    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Otaru')
+    assert.equal(out.find((r) => r.day === 2)!.imageKeyword, 'Noboribetsu Jigokudani')
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Otaru Canal')
+    const tourismPrimaries = [1, 2, 3].map((d) =>
+      normScheduleImageKeywordKey(out.find((r) => r.day === d)!.imageKeyword),
+    )
+    assert.equal(new Set(tourismPrimaries).size, tourismPrimaries.length)
     assert.equal(out.find((r) => r.day === 4)!.imageKeyword, out.find((r) => r.day === 3)!.imageKeyword)
   })
 })

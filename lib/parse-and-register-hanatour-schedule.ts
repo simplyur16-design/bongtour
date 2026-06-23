@@ -21,6 +21,9 @@ import {
   registerScheduleToDayInputs,
   type ItineraryDayInput,
 } from '@/lib/upsert-itinerary-days-hanatour'
+import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
+import { hanatourOptionalTourNamesFromParsed } from '@/lib/register-parse-hanatour'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import {
   extractPlaceNameKeyword,
   finalizeScheduleImageKeyword,
@@ -1677,7 +1680,10 @@ export function sanitizeHanatourScheduleRowExpression(
   return { ...row }
 }
 
-export function augmentHanatourScheduleExpressionParsed(parsed: RegisterParsed): RegisterParsed {
+export function augmentHanatourScheduleExpressionParsed(
+  parsed: RegisterParsed,
+  ctx?: { pastedBodyText?: string; travelScope?: string },
+): RegisterParsed {
   let sched = parsed.schedule ?? []
   if (parsed.detailBodyStructured) {
     const bodyRows = buildPreviewHanatourScheduleFromDetailBody(parsed.detailBodyStructured)
@@ -1689,9 +1695,22 @@ export function augmentHanatourScheduleExpressionParsed(parsed: RegisterParsed):
     }
   }
   if (!sched.length) return parsed
+  const stripped = sched.map((r) => stripCounselingTermsFromScheduleRow(r))
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 등록 augment — imageKeyword SSOT 재적용 — manifest
+  const skipPackageImageKw = isRegisterAirtelListing(ctx?.travelScope, parsed.productType)
+  const scheduleRows = skipPackageImageKw
+    ? stripped
+    : applyAugmentScheduleImageKeywordsBySupplier(stripped, {
+        supplierKey: 'hanatour',
+        productTitle: parsed.title,
+        productDestination: parsed.destination,
+        travelScope: ctx?.travelScope,
+        productType: parsed.productType,
+        optionalTourNames: hanatourOptionalTourNamesFromParsed(parsed),
+      })
   return {
     ...parsed,
-    schedule: sched.map((r) => stripCounselingTermsFromScheduleRow(r)),
+    schedule: scheduleRows,
   }
 }
 

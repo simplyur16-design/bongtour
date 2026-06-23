@@ -3176,6 +3176,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-samples-live-gate]",
             "refreshHanatourDetailBodyPolicy",
+            "reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch",
             "needsRegisterFlightApiCollect"
           ]
         },
@@ -3183,9 +3184,13 @@
           "file": "lib/register-parse-hanatour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-samples-live-gate]",
-            "refreshHanatourDetailBodyPolicy"
+            "refreshHanatourDetailBodyPolicy",
+            "reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch"
           ]
         }
+      ],
+      "vitestSuites": [
+        "lib/register-parse-hanatour-reconcile.test.ts"
       ]
     },
     {

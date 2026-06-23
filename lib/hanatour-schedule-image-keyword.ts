@@ -106,6 +106,14 @@ function normKey(s: string): string {
   return normalizeSemanticPoiKey(s)
 }
 
+const HANATOUR_SSOT_POI_EN_KEYS = new Set(
+  HANATOUR_KO_POI_RULES.map(({ en }) => normKey(en)),
+)
+
+function isHanatourSsotPoiEnglishKeyword(kw: string): boolean {
+  return HANATOUR_SSOT_POI_EN_KEYS.has(normKey(String(kw ?? '').trim()))
+}
+
 function buildHanatourDayHaystack(row: HanatourScheduleImageKeywordRow): string {
   return [row.title, row.description, row.routeText].filter(Boolean).join('\n').replace(/\r/g, '')
 }
@@ -318,6 +326,102 @@ function pickDistinctPlaceFromRouteText(
   return ''
 }
 
+function isHanatourBareCityKeyword(kw: string): boolean {
+  const k = String(kw ?? '').trim()
+  if (!k) return true
+  if (isHanatourSsotPoiEnglishKeyword(k)) return false
+  if (isHanatourForeignAirportImageKeyword(k)) return true
+  if (isKnownDestinationCityEnglishKeyword(k)) return true
+  return false
+}
+
+/** 본문·routeText에서 관광명소만 일정 등장 순(본문 POI → route 구간) */
+function collectHanatourOrderedScheduleLandmarks(
+  row: HanatourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  const haystack = buildHanatourDayHaystack(row)
+  const push = (raw: string | null | undefined) => {
+    const kw = String(raw ?? '').trim()
+    if (!kw || isHanatourBareCityKeyword(kw)) return
+    if (out.some((x) => normKey(x) === normKey(kw))) return
+    out.push(kw)
+  }
+
+  for (const { en } of findMappedKoreanPoisInTextByMentionOrder(haystack)) {
+    push(tryAcceptHanatourMappedPoiKeyword(en, productDestination))
+  }
+  for (const { re, en } of HANATOUR_KO_POI_RULES) {
+    if (!re.test(haystack)) continue
+    push(tryAcceptHanatourMappedPoiKeyword(en, productDestination))
+  }
+
+  for (const seg of routeTextSegments(row.routeText)) {
+    if (isHanatourDomesticHubToken(seg)) continue
+    if (isHanatourForeignAirportRouteSegment(seg)) continue
+    push(hanatourLandmarkFromRouteSegment(seg, haystack, productDestination))
+  }
+
+  return out
+}
+
+function hanatourLandmarkFromRouteSegment(
+  seg: string,
+  haystack: string,
+  productDestination: string | null | undefined,
+): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || isHanatourDomesticHubToken(t) || isHanatourForeignAirportRouteSegment(t)) return ''
+
+  for (const { re, en } of HANATOUR_KO_POI_RULES) {
+    if (!re.test(haystack)) continue
+    if (re.test(t) || re.test(seg) || (t.length >= 2 && haystack.includes(t))) {
+      const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
+      if (kw && !isHanatourBareCityKeyword(kw)) return kw
+    }
+  }
+
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    const kw = tryAcceptHanatourMappedPoiKeyword(fromPoi, productDestination)
+    if (kw && !isHanatourBareCityKeyword(kw)) return kw
+  }
+
+  const latin = extractLatinEnglishFromRouteSegment(t)
+  if (latin) {
+    const kw = tryAcceptHanatourLlmImageKeyword(latin, productDestination)
+    if (kw && !isHanatourBareCityKeyword(kw)) return kw
+  }
+
+  return ''
+}
+
+function pickFirstUnusedHanatourScheduleLandmark(
+  row: HanatourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+  usedPrimary?: Set<string>,
+): string {
+  for (const kw of collectHanatourOrderedScheduleLandmarks(row, productDestination)) {
+    const nk = normKey(kw)
+    if (usedPrimary?.has(nk)) continue
+    usedPrimary?.add(nk)
+    return kw
+  }
+  return ''
+}
+
+function commitHanatourPrimaryKeyword(
+  kw: string,
+  dayKind: HanatourScheduleCardDayKind,
+  usedPrimary?: Set<string>,
+): string {
+  const k = String(kw ?? '').trim()
+  if (!k) return ''
+  if (dayKind !== 'return_home' && usedPrimary) usedPrimary.add(normKey(k))
+  return k
+}
+
 function pushUniqueHanatourLandmark(
   list: string[],
   raw: string,
@@ -392,6 +496,10 @@ function tryAcceptHanatourMappedPoiKeyword(
   if (accepted) return accepted
   const fin = String(raw ?? '').trim()
   if (!fin) return ''
+  if (isHanatourSsotPoiEnglishKeyword(fin)) {
+    if (isHanatourCrossContinentHallucinationKeyword(fin, productDestination)) return ''
+    return fin
+  }
   try {
     const kw = finalizeScheduleImageKeyword(fin)
     if (!kw || isHanatourDomesticHubToken(kw)) return ''
@@ -580,11 +688,13 @@ function resolveHanatourPrimaryKeyword(
   productDestination: string | null | undefined,
   allRows: HanatourScheduleImageKeywordRow[],
   opts?: HanatourScheduleImageKeywordOpts,
+  usedPrimary?: Set<string>,
 ): string {
   const haystack = buildHanatourDayHaystack(row)
   const acceptLlm = (raw: string | null | undefined) =>
     tryAcceptHanatourLlmImageKeyword(raw, productDestination)
   const accepted = acceptLlm(row.imageKeyword)
+  const finish = (kw: string) => commitHanatourPrimaryKeyword(kw, dayKind, usedPrimary)
 
   if (dayKind === 'return_home') {
     return ''
@@ -599,7 +709,7 @@ function resolveHanatourPrimaryKeyword(
         return tryAcceptHanatourLlmImageKeyword(mapped || name, productDestination)
       },
     })
-    if (example) return example
+    if (example) return finish(example)
     return ''
   }
 
@@ -609,11 +719,13 @@ function resolveHanatourPrimaryKeyword(
       isHanatourForeignAirportImageKeyword(String(row.imageKeyword ?? '')))
   ) {
     const fromRoute = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
-    if (fromRoute && !isHanatourForeignAirportImageKeyword(fromRoute)) return fromRoute
+    if (fromRoute && !isHanatourForeignAirportImageKeyword(fromRoute) && !isHanatourBareCityKeyword(fromRoute)) {
+      return finish(fromRoute)
+    }
     for (const { re, en } of HANATOUR_KO_POI_RULES) {
       if (!re.test(haystack)) continue
       const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
-      if (kw && !isHanatourForeignAirportImageKeyword(kw)) return kw
+      if (kw && !isHanatourForeignAirportImageKeyword(kw)) return finish(kw)
     }
     const resolved = resolveHanatourDestinationCityDayKeyword(
       row,
@@ -622,27 +734,23 @@ function resolveHanatourPrimaryKeyword(
       productDestination,
       allRows,
     )
-    if (resolved && !isHanatourForeignAirportImageKeyword(resolved)) return resolved
+    if (resolved && !isHanatourForeignAirportImageKeyword(resolved)) return finish(resolved)
   }
 
   if (dayKind === 'tourism') {
-    for (const { re, en } of HANATOUR_KO_POI_RULES) {
-      if (!re.test(haystack)) continue
-      const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
-      if (!kw) continue
-      if (!accepted || normKey(kw) !== normKey(accepted)) return kw
-    }
+    const fromSchedule = pickFirstUnusedHanatourScheduleLandmark(row, productDestination, usedPrimary)
+    if (fromSchedule) return fromSchedule
   }
 
   if (dayKind === 'tourism' && accepted && isKnownDestinationCityEnglishKeyword(accepted)) {
     const fromPoi = preferPoiOverBareCityLlm(row, accepted, productDestination)
-    if (fromPoi !== accepted) return fromPoi
+    if (fromPoi !== accepted && !isHanatourBareCityKeyword(fromPoi)) return finish(fromPoi)
   }
 
   const acceptedIsLandmarkEligible =
     !!accepted &&
     (dayKind === 'tourism'
-      ? isScheduleImageKeywordLandmarkEligible(accepted) || isKnownDestinationCityEnglishKeyword(accepted)
+      ? isScheduleImageKeywordLandmarkEligible(accepted) && !isHanatourBareCityKeyword(accepted)
       : !isNonLandmarkFoodOrDiningImageKeyword(accepted) &&
         !isNonLandmarkSpaShoppingLoungeImageKeyword(accepted) &&
         !isWeakOpaqueImageKeyword(accepted) &&
@@ -651,51 +759,51 @@ function resolveHanatourPrimaryKeyword(
     const isHubOrFlight =
       isHanatourDestinationCityDay(day, maxDay, haystack) ||
       dayKind === 'movement'
-    if (!isHubOrFlight && isKnownDestinationCityEnglishKeyword(accepted)) {
+    if (!isHubOrFlight && dayKind === 'tourism' && isKnownDestinationCityEnglishKeyword(accepted)) {
       const fromPoi = preferPoiOverBareCityLlm(row, accepted, productDestination)
-      if (fromPoi !== accepted) return fromPoi
+      if (fromPoi !== accepted && !isHanatourBareCityKeyword(fromPoi)) return finish(fromPoi)
     }
     if (dayKind === 'tourism') {
-      const landmarks = collectHanatourLandmarkKeywords(row, productDestination)
-      const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
-      const fromRoute = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
-      const dayCands = [
-        ...landmarks.filter((kw) => !isKnownDestinationCityEnglishKeyword(kw)),
-        fromRouteLast,
-        fromRoute,
-      ].filter(Boolean)
+      const landmarks = collectHanatourOrderedScheduleLandmarks(row, productDestination)
       const resolved = resolveTourismKeywordPreferDistinctPerDay({
         row,
         acceptedLlm: accepted,
         allRows,
         acceptLlm,
-        daySpecificCandidates: dayCands,
+        daySpecificCandidates: landmarks,
       })
-      if (resolved) return resolved
+      if (resolved && !isHanatourBareCityKeyword(resolved)) {
+        const nk = normKey(resolved)
+        if (!usedPrimary?.has(nk)) return finish(resolved)
+      }
     }
-    return accepted
+    if (dayKind !== 'tourism' || !isHanatourBareCityKeyword(accepted)) return finish(accepted)
   }
 
   if (isHanatourDestinationCityDay(day, maxDay, haystack)) {
-    return resolveHanatourDestinationCityDayKeyword(row, day, maxDay, productDestination, allRows)
+    return finish(resolveHanatourDestinationCityDayKeyword(row, day, maxDay, productDestination, allRows))
   }
 
   if (dayKind === 'movement') {
-    return resolveHanatourMovementDayKeyword(row, day, maxDay, productDestination, allRows)
+    return finish(resolveHanatourMovementDayKeyword(row, day, maxDay, productDestination, allRows))
   }
 
-  const landmarks = collectHanatourLandmarkKeywords(row, productDestination)
-  const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
-  if (fromRouteLast && !isKnownDestinationCityEnglishKeyword(fromRouteLast)) return fromRouteLast
+  for (const kw of collectHanatourOrderedScheduleLandmarks(row, productDestination)) {
+    const nk = normKey(kw)
+    if (usedPrimary?.has(nk)) continue
+    return finish(kw)
+  }
 
-  const fromLandmark =
-    landmarks.find((kw) => !isKnownDestinationCityEnglishKeyword(kw)) ?? landmarks[0]
-  if (fromLandmark) return fromLandmark
+  const fromRouteLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
+  if (fromRouteLast && !isHanatourBareCityKeyword(fromRouteLast)) return finish(fromRouteLast)
 
   const fromRoute = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
-  if (fromRoute) return fromRoute
+  if (fromRoute && !isHanatourBareCityKeyword(fromRoute)) return finish(fromRoute)
 
-  return inferHanatourKeywordFromDayContent(row, productDestination)
+  const inferred = inferHanatourKeywordFromDayContent(row, productDestination)
+  if (inferred && !isHanatourBareCityKeyword(inferred)) return finish(inferred)
+
+  return ''
 }
 
 function resolveHanatourSecondaryKeyword(
@@ -724,7 +832,7 @@ function resolveHanatourSecondaryKeyword(
     if (kw && normKey(kw) !== normKey(primary)) return kw
   }
 
-  const rawLandmarks = collectHanatourLandmarkKeywords(row, productDestination)
+  const rawLandmarks = collectHanatourOrderedScheduleLandmarks(row, productDestination)
   const fromOrdered = pickDistinctSecondScheduleImageKeyword(primary, rawLandmarks)
   if (fromOrdered) {
     const accepted = tryAcceptHanatourLlmImageKeyword(fromOrdered, productDestination)
@@ -734,7 +842,7 @@ function resolveHanatourSecondaryKeyword(
 
   if (fromRoute) return fromRoute
 
-  const landmarkCandidates = collectHanatourLandmarkKeywords(row, productDestination)
+  const landmarkCandidates = collectHanatourOrderedScheduleLandmarks(row, productDestination)
   for (const kw of landmarkCandidates) {
     if (normKey(kw) === normKey(primary)) continue
     if (!isKnownDestinationCityEnglishKeyword(kw)) return kw
@@ -760,10 +868,7 @@ function collectHanatourDayPrimaryCandidates(
     out.push(kw)
   }
   if (dayKind === 'tourism') {
-    for (const kw of collectHanatourLandmarkKeywords(row, productDestination)) push(kw)
-    push(pickForeignPlaceFromRouteText(row.routeText, true, productDestination))
-    push(pickForeignPlaceFromRouteText(row.routeText, false, productDestination))
-    push(inferHanatourKeywordFromDayContent(row, productDestination))
+    for (const kw of collectHanatourOrderedScheduleLandmarks(row, productDestination)) push(kw)
   }
   push(row.imageKeyword)
   return out
@@ -834,6 +939,27 @@ export function applyHanatourScheduleImageKeywordsToRows<
   const sorted = rows.filter((r) => Number(r.day) > 0)
   const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
   const productDestination = opts?.productDestination ?? null
+  const usedPrimary = new Set<string>()
+  const sortedByDay = [...sorted].sort((a, b) => Number(a.day) - Number(b.day))
+  const assignedByDay = new Map<number, { primary: string; secondary: string | null }>()
+
+  for (const row of sortedByDay) {
+    const day = Number(row.day)
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
+    const primary = resolveHanatourPrimaryKeyword(
+      row,
+      dayKind,
+      day,
+      maxDay,
+      productDestination,
+      rows,
+      opts,
+      usedPrimary,
+    )
+    const secondary = resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination)
+    assignedByDay.set(day, { primary, secondary })
+  }
 
   const mapped = rows.map((row) => {
     const day = Number(row.day)
@@ -845,15 +971,11 @@ export function applyHanatourScheduleImageKeywordsToRows<
       }
     }
 
-    const haystack = buildHanatourDayHaystack(row)
-    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveHanatourPrimaryKeyword(row, dayKind, day, maxDay, productDestination, rows, opts)
-    const secondary = resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination)
-
+    const assigned = assignedByDay.get(day)
     return {
       ...row,
-      imageKeyword: primary,
-      imageKeyword2: secondary,
+      imageKeyword: assigned?.primary ?? '',
+      imageKeyword2: assigned?.secondary ?? null,
     }
   })
 

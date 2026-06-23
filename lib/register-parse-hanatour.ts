@@ -14,14 +14,17 @@
 import { parseDetailBodyStructuredHanatour } from '@/lib/detail-body-parser-hanatour'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { parseForRegisterLlmHanatour } from '@/lib/register-from-llm-hanatour'
-import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
+import type { RegisterExtractionFieldIssue, RegisterParsed } from '@/lib/register-llm-schema-hanatour'
 import { resolveDirectedFlightLinesHanatour } from '@/lib/register-flight-hanatour'
 import {
   parseHanatourFlightInput,
   parseHanatourOptionalInput,
   parseHanatourShoppingInput,
 } from '@/lib/register-input-parse-hanatour'
-import { buildDetailReviewPolicyHanatour } from '@/lib/review-policy-hanatour'
+import {
+  buildDetailReviewPolicyHanatour,
+  filterRegisterExtractionIssuesShoppingGeminiNoise,
+} from '@/lib/review-policy-hanatour'
 import { applyHanatourBasicInfoBodyExtract } from '@/lib/hanatour-basic-info-body-extract'
 import { sanitizeHanatourRegisterParsedDepartureFields } from '@/lib/hanatour-departure-flight-display'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
@@ -46,6 +49,63 @@ function mergeAirlineTransportPaste(
 
 /** API·정형칸 병합 후 flightStructured가 바뀌면 review·sectionReview를 재계산한다. */
 /** REGRESSION-FREEZE[hanatour-register-samples-live-gate]: pkgAirSeqList 후 review 재계산 — manifest */
+function isHanatourFlightExtractionIssue(issue: RegisterExtractionFieldIssue): boolean {
+  if (issue.field === 'flight_info') return true
+  return /항공|편명|구조화|출발\/도착/.test(issue.reason)
+}
+
+function appendHanatourSectionReviewExtractionIssues(
+  out: RegisterExtractionFieldIssue[],
+  field: string,
+  block: { required?: string[]; warning?: string[]; info?: string[] } | undefined,
+): void {
+  if (!block) return
+  for (const reason of block.required ?? []) {
+    out.push({
+      field,
+      reason: `[REVIEW REQUIRED] ${reason}`,
+      source: 'auto',
+      severity: 'warn',
+    })
+  }
+  for (const reason of block.warning ?? []) {
+    out.push({ field, reason, source: 'auto', severity: 'warn' })
+  }
+  for (const reason of block.info ?? []) {
+    out.push({ field, reason, source: 'auto', severity: 'info' })
+  }
+}
+
+/** pkgAirSeqList·정형칸 패치 후 sectionReview ↔ extractionFieldIssues 항공 축 재동기화 */
+/** REGRESSION-FREEZE[hanatour-register-samples-live-gate]: reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch — manifest */
+export function reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch(
+  parsed: RegisterParsed,
+): RegisterParsed {
+  const db = parsed.detailBodyStructured
+  if (!db) return parsed
+  const kept = (parsed.extractionFieldIssues ?? []).filter((i) => !isHanatourFlightExtractionIssue(i))
+  const flightIssues: RegisterExtractionFieldIssue[] = []
+  appendHanatourSectionReviewExtractionIssues(flightIssues, 'flight_info', db.sectionReview?.flight_section)
+  return {
+    ...parsed,
+    extractionFieldIssues: filterRegisterExtractionIssuesShoppingGeminiNoise([...kept, ...flightIssues]),
+  }
+}
+
+export function hanatourOptionalTourNamesFromParsed(parsed: RegisterParsed): string[] {
+  const raw = parsed.optionalToursStructured
+  if (!raw?.trim()) return []
+  try {
+    const arr = JSON.parse(raw) as Array<{ name?: string; title?: string; chcStsngNm?: string }>
+    if (!Array.isArray(arr)) return []
+    return arr
+      .map((r) => String(r.name ?? r.title ?? r.chcStsngNm ?? '').trim())
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 export function refreshHanatourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
   const policy = buildDetailReviewPolicyHanatour({
     sections: detailBody.sections,
@@ -172,4 +232,3 @@ export async function parseForRegisterHanatour(
   return parsed
 }
 
-export type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'

@@ -24,6 +24,8 @@ export function applyAugmentScheduleImageKeywordsBySupplier<
   productDestination?: string | null
   travelScope?: string | null
   productType?: string | null
+  /** 패키지 자유관광일 예시 imageKeyword — optionalToursStructured 행명 */
+  optionalTourNames?: readonly string[]
 }): T[] {
   if (!rows.length) return rows
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) return rows
@@ -36,5 +38,6 @@ export function applyAugmentScheduleImageKeywordsBySupplier<
     productTitle: opts.productTitle ?? null,
     travelScope: opts.travelScope,
     productType: opts.productType,
+    optionalTourNames: opts.optionalTourNames,
   })
 }

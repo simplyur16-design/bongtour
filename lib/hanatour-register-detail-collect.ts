@@ -34,7 +34,12 @@ import {
   applyRegisterCollectedFlightStructured,
   needsRegisterFlightApiCollect,
 } from '@/lib/register-detail-collect-flight-apply'
-import { refreshHanatourDetailBodyPolicy } from '@/lib/register-parse-hanatour'
+import {
+  refreshHanatourDetailBodyPolicy,
+  reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch,
+  hanatourOptionalTourNamesFromParsed,
+} from '@/lib/register-parse-hanatour'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -202,8 +207,15 @@ export async function augmentHanatourParsedWithDetailCollect(
     const factDays = hanatourItnrToFactDays(itnr)
     const scheduleDays = hanatourFactDaysToRegisterSchedule(factDays)
     if (scheduleDays.length > 0) {
-      next = { ...next, schedule: scheduleDays }
-      summaryParts.push(`일정 ${scheduleDays.length}일차`)
+      const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
+        supplierKey: 'hanatour',
+        productDestination: next.destination ?? null,
+        productTitle: next.title ?? null,
+        productType: next.productType ?? null,
+        optionalTourNames: hanatourOptionalTourNamesFromParsed(next),
+      })
+      next = { ...next, schedule: withKeywords }
+      summaryParts.push(`일정 ${withKeywords.length}일차`)
     }
   }
 
@@ -256,7 +268,11 @@ export async function augmentHanatourParsedWithDetailCollect(
   if (needFlight) {
     const flightStructured = buildHanatourFlightStructuredFromProdInfo(prodInfo)
     next = applyRegisterCollectedFlightStructured(next, flightStructured)
-    if (flightStructured && next.detailBodyStructured?.sections) {
+    if (
+      flightStructured &&
+      next.detailBodyStructured &&
+      Array.isArray(next.detailBodyStructured.sections)
+    ) {
       next = {
         ...next,
         detailBodyStructured: refreshHanatourDetailBodyPolicy({
@@ -264,6 +280,8 @@ export async function augmentHanatourParsedWithDetailCollect(
           flightStructured,
         }),
       }
+      // REGRESSION-FREEZE[hanatour-register-samples-live-gate]: pkgAirSeqList 후 extractionFieldIssues 재동기화 — manifest
+      next = reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch(next)
     }
     if (flightStructured) summaryParts.push('항공 pkgAirSeqList')
   }
