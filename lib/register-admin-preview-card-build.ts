@@ -104,6 +104,8 @@ export function buildRegisterAdminPreviewCardData(args: {
     airlineName?: string | null
     outboundFlightNo?: string | null
     inboundFlightNo?: string | null
+    departureDateTimeRaw?: string | null
+    arrivalDateTimeRaw?: string | null
   }
   productDraft: RegisterPreviewProductDraft
   schedule: RegisterScheduleDay[]

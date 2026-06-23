@@ -5,7 +5,7 @@
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: augmentHanatourParsedWithDetailCollect — manifest
  * REGRESSION-FREEZE[hanatour-register-samples-live-gate]: SSOT 7샘플 live gate — manifest
  */
-import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
+import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-hanatour'
 import {
   extractHanatourCorePoints,
