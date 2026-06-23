@@ -1,0 +1,77 @@
+/**
+ * REGRESSION-FREEZE[modetour-register-api-schedule]
+ */
+import { describe, expect, it } from 'vitest'
+import {
+  composeModetourScheduleVibeDescription,
+  modetourFactDaysToRegisterSchedule,
+  selectModetourScheduleHighlights,
+} from '@/lib/modetour-register-api-schedule'
+
+describe('modetour register api schedule', () => {
+  it('몰디브 — 준비사항은 title/description에 넣지 않고 휴양·이동 흐름으로', () => {
+    const days = modetourFactDaysToRegisterSchedule(
+      [
+        {
+          day: 1,
+          places: ['인천', '몰디브 출발 전 준비사항'],
+          hotels: ['해당 일의 숙박은 기내박 입니다. 변동이 있을 경우 홈페이지'],
+          meals: [],
+          transportNote: '인천 국제공항 출발',
+        },
+        {
+          day: 2,
+          places: ['몰디브', '스피드 보트 이동'],
+          hotels: ['총 1개의 예정 호텔이 있습니다. 확정 되는대로'],
+          meals: [],
+          transportNote: null,
+        },
+        {
+          day: 3,
+          places: ['몰디브'],
+          hotels: ['총 1개의 예정 호텔이 있습니다.'],
+          meals: [],
+          transportNote: null,
+        },
+      ],
+      { productTitle: '[가족여행] 몰디브 조이아일랜드 비치빌라 4박7일 <AI/스피드보트>' },
+    )
+    expect(days[0]?.title).toMatch(/인천/)
+    expect(days[0]?.title).not.toMatch(/준비사항|수하물/)
+    expect(days[0]?.description).not.toMatch(/출발 3시간|탑승권/)
+    expect(days[0]?.hotelText).toBe('기내박')
+    expect(days[1]?.title).toMatch(/스피드\s*보트|몰디브/)
+    expect(days[1]?.description).not.toMatch(/▶|홈페이지/)
+    expect(days[1]?.hotelText).toMatch(/조이아|출발 전 확정/)
+    expect(days[2]?.description.length).toBeGreaterThan(20)
+    expect(days[2]?.description).not.toMatch(/몰디브\s*$/m)
+  })
+
+  it('하이라이트 — 최대 7개·준비 안내 제외', () => {
+    const highlights = selectModetourScheduleHighlights([
+      '인천',
+      '몰디브 출발 전 준비사항',
+      '스피드 보트 이동',
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+    ])
+    expect(highlights.length).toBeLessThanOrEqual(7)
+    expect(highlights.some((h) => /준비사항/.test(h))).toBe(false)
+  })
+
+  it('vibe description — 장소 나열 대신 2문장 이내', () => {
+    const desc = composeModetourScheduleVibeDescription(
+      { day: 2, places: ['몰디브'], hotels: [], meals: [], transportNote: '스피드 보트' },
+      7,
+      ['몰디브', '스피드 보트 이동'],
+    )
+    expect(desc.split(/[.!?]/).filter((s) => s.trim().length > 8).length).toBeLessThanOrEqual(3)
+    expect(desc).not.toMatch(/▶/)
+  })
+})

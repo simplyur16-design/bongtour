@@ -17,8 +17,8 @@ import {
   extractModetourShoppingStopsFromApiList,
   fetchModetourRegisterDetailBundle,
 } from '@/lib/modetour-register-api-detail'
-import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
-import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
+export { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 import { filterModetourOptionalTourRows } from '@/lib/register-modetour-options'
 import {
   finalizeModetourRegisterParsedShopping,
@@ -36,38 +36,11 @@ import {
   needsRegisterFlightApiCollect,
 } from '@/lib/register-detail-collect-flight-apply'
 
+import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
+
 export type ModetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
-}
-
-function stripScheduleLabel(name: string): string {
-  return name.replace(/^[\s▶■◎●#]+/, '').replace(/\s+/g, ' ').trim()
-}
-
-export function modetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
-  return days.map((d) => {
-    const title = stripScheduleLabel(d.places[0] ?? d.hotels[0] ?? '') || `${d.day}일차`
-    const descParts = [...d.places, d.transportNote].filter(Boolean) as string[]
-    const description = descParts.map(stripScheduleLabel).join('\n') || title
-    const routeText = d.places.length > 0 ? d.places.map(stripScheduleLabel).join(' - ') : null
-    const hotelText = d.hotels.length > 0 ? d.hotels.join(' / ') : null
-    const breakfast = d.meals.find((m) => /조식|아침/.test(m)) ?? null
-    const lunch = d.meals.find((m) => /중식|점심/.test(m)) ?? null
-    const dinner = d.meals.find((m) => /석식|저녁/.test(m)) ?? null
-    return {
-      day: d.day,
-      title,
-      description,
-      routeText,
-      imageKeyword: stripScheduleLabel(d.places[0] ?? title).slice(0, 80) || `${d.day}일차`,
-      hotelText,
-      breakfastText: breakfast,
-      lunchText: lunch,
-      dinnerText: dinner,
-      mealSummaryText: d.meals.length > 0 ? d.meals.join(' / ') : null,
-    }
-  })
 }
 
 function bulletLinesFromText(raw: string | null | undefined): string[] {
@@ -197,7 +170,9 @@ export async function augmentModetourParsedWithDetailCollect(
   ])
 
   if (needSchedule && facts?.scheduleDays.length) {
-    const scheduleDays = modetourFactDaysToRegisterSchedule(facts.scheduleDays)
+    const scheduleDays = modetourFactDaysToRegisterSchedule(facts.scheduleDays, {
+      productTitle: next.title ?? facts.title,
+    })
     if (scheduleDays.length > 0) {
       next = { ...next, schedule: scheduleDays }
       summaryParts.push(`GetScheduleList: 일정 ${scheduleDays.length}일차`)

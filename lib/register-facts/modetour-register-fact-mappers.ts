@@ -90,6 +90,21 @@ function ymdFromIso(raw: string | null | undefined): string | null {
   return m?.[1] ?? null
 }
 
+function modetourStripHtmlFromText(s: string): string {
+  return String(s ?? '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const MODETOUR_PREP_PLACE_RE =
+  /출발\s*전\s*준비|준비\s*사항|변동이\s*있을\s*경우|출발\s*\d+\s*시간\s*전|수하물|탑승권|연결\s*수속|홈페이지|알림톡/i
+
+function isModetourPrepOrNoticePlace(name: string): boolean {
+  return MODETOUR_PREP_PLACE_RE.test(name) || name.length > 56
+}
+
 export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): RegisterFactScheduleDay[] {
   const byDay = new Map<number, RegisterFactScheduleDay>()
   for (const item of items) {
@@ -106,22 +121,31 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
       } satisfies RegisterFactScheduleDay)
 
     for (const p of item.placeHeader ?? []) {
-      const t = String(p).trim()
-      if (t && !row.places.includes(t)) row.places.push(t)
+      const t = modetourStripHtmlFromText(String(p))
+      if (t && !row.places.includes(t) && !isModetourPrepOrNoticePlace(t)) row.places.push(t)
     }
-    const hotel = String(item.scheduleHotel ?? '').trim()
+    const hotel = modetourStripHtmlFromText(String(item.scheduleHotel ?? ''))
     if (hotel && !row.hotels.includes(hotel)) row.hotels.push(hotel)
 
     for (const act of item.ortherActions ?? []) {
-      const svc = String(act.itiServiceName ?? '').trim()
-      const place = String(act.itiPlaceName ?? '').trim()
-      const summary = String(act.itiSummaryDes ?? '').trim()
-      if (/식사|조식|중식|석식/.test(svc) && summary && !row.meals.includes(summary)) {
-        row.meals.push(summary)
-      } else if (place && !row.places.includes(place)) {
+      const svc = modetourStripHtmlFromText(String(act.itiServiceName ?? ''))
+      const place = modetourStripHtmlFromText(String(act.itiPlaceName ?? ''))
+      const summary = modetourStripHtmlFromText(String(act.itiSummaryDes ?? ''))
+      if (/숙박|호텔|숙소|리조트/i.test(svc) && summary && !row.hotels.includes(summary)) {
+        row.hotels.push(summary)
+      } else if (/식사|조식|중식|석식|기내식/.test(svc) || /조식|중식|석식|기내식|호텔식|현지식/.test(summary)) {
+        const mealLine = summary || svc
+        if (mealLine && !row.meals.includes(mealLine)) row.meals.push(mealLine)
+      } else if (place && !isModetourPrepOrNoticePlace(place) && !row.places.includes(place)) {
+        row.places.push(place)
+      } else if (place && isModetourPrepOrNoticePlace(place) && summary) {
+        row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
+      } else if (/관광|체험|투어/i.test(svc) && place && !isModetourPrepOrNoticePlace(place) && !row.places.includes(place)) {
         row.places.push(place)
       }
-      if (/이동|항공|국제선|국내선/.test(svc) && summary) {
+      if (/이동|항공|국제선|국내선|보트|스피드/i.test(svc) && summary) {
+        row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
+      } else if (summary && isModetourPrepOrNoticePlace(place || summary)) {
         row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
       }
     }

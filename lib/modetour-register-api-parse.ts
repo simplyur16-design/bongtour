@@ -4,7 +4,7 @@
  * REGRESSION-FREEZE[modetour-register-api-parse]: collectModetourRegisterFacts → RegisterParsed — manifest
  */
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
-import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-detail-collect'
+import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
 import { resolveModetourRegisterProductTitle } from '@/lib/modetour-register-product-title-ssot'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
@@ -125,7 +125,9 @@ export async function parseModetourRegisterFromApi(
     includedText: bundle.includedBullets.join('\n'),
     excludedText: bundle.excludedBullets.join('\n'),
     meetingInfoRaw: bundle.meetingInfo,
-    schedule: modetourFactDaysToRegisterSchedule(bundle.scheduleDays),
+    schedule: modetourFactDaysToRegisterSchedule(bundle.scheduleDays, {
+      productTitle: titleRes.title,
+    }),
     prices,
     productPriceTable,
     hasShopping: bundle.shoppingPlaces.some((p) => /쇼핑/.test(p)),

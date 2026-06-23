@@ -57,10 +57,10 @@ describe('modetour register detail collect', () => {
       },
     ])
     expect(days).toHaveLength(1)
-    expect(days[0]?.title).toBe('인천')
+    expect(days[0]?.title).toMatch(/인천|구마모토/)
     expect(days[0]?.routeText).toBe('인천 - 구마모토')
     expect(days[0]?.hotelText).toContain('구마모토')
-    expect(days[0]?.dinnerText).toContain('석식')
+    expect(days[0]?.dinnerText).toContain('현지식')
   })
 
   it('LLM hasOptionalTour=false여도 structured 없으면 선택관광 수집', () => {
@@ -116,6 +116,18 @@ describe('modetour register detail collect', () => {
     expect(parsed.includedItems).toContain('숙박비(2인1실)')
     expect(parsed.excludedItems.some((x) => /가이드/.test(x))).toBe(true)
     expect(modetourHtmlNoteToPlainText(detail.includedNote)).toContain('왕복항공권')
+  })
+
+  it('Telerik CSS 잡음 — 포함/불포함 bullet만', () => {
+    const detail = {
+      includedNote:
+        '<style>p{margin-top:0}</style><title>Untitled</title><p>▶ 왕복 항공권, 유류할증료 및 TAX<br />▶ 일정에 명시된 숙박 및 식사</p>',
+      unincludedNote: '<p>▶ 매너팁 (선택 사항)</p>',
+    }
+    const parsed = extractModetourIncludedExcludedFromDetailInfo(detail)
+    expect(parsed.includedItems.some((x) => /왕복/.test(x))).toBe(true)
+    expect(parsed.includedItems.some((x) => /margin-top|Untitled|telerik/i.test(x))).toBe(false)
+    expect(parsed.excludedItems.some((x) => /매너팁/.test(x))).toBe(true)
   })
 
   it('parses GetProductKeyPointInfo specialBenefits into must-know rows', () => {

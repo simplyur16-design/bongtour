@@ -1592,7 +1592,8 @@
             "REGRESSION-FREEZE[modetour-register-api-parse]",
             "collectModetourRegisterFacts",
             "parseModetourRegisterFromApi",
-            "resolveModetourRegisterDestination"
+            "resolveModetourRegisterDestination",
+            "modetour-register-api-schedule"
           ],
           "mustNotInclude": [
             "parseForRegisterLlmModetour",
@@ -1628,7 +1629,33 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/modetour-register-detail-collect.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
+      "vitestSuites": ["lib/modetour-register-detail-collect.test.ts", "lib/modetour-register-api-schedule.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
+    },
+    {
+      "id": "modetour-register-api-schedule",
+      "tier": ["prebuild", "ci"],
+      "summary": "모두투어 GetScheduleList → RegisterScheduleDay — B2C 전용 일정 SSOT",
+      "checks": [
+        {
+          "file": "lib/modetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-api-schedule]",
+            "modetourFactDaysToRegisterSchedule",
+            "composeModetourScheduleVibeDescription"
+          ],
+          "mustNotInclude": [
+            "hanatourFactDaysToRegisterSchedule",
+            "composeHanatourScheduleVibeDescription"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": [
+            "modetour-register-api-schedule"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/modetour-register-api-schedule.test.ts"]
     },
     {
       "id": "modetour-register-samples-live-gate",

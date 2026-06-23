@@ -38,6 +38,7 @@ import { parseForRegisterModetour } from '@/lib/register-parse-modetour'
 import { upsertProductDepartures, type DepartureInput } from '@/lib/upsert-product-departures-modetour'
 import { toDeparturePreviewRows } from '@/lib/departure-preview'
 import { stripCounselingTermsFromItineraryDayDraft } from '@/lib/itinerary-counseling-terms-strip'
+import { finalizeModetourItineraryDayDraftsFromSchedule } from '@/lib/parse-and-register-modetour-schedule'
 import {
   upsertItineraryDays,
   registerScheduleToDayInputs,
@@ -1003,6 +1004,10 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
 
     if (mode === 'confirm' && itineraryDayDrafts.length === 0 && (schedule?.length ?? 0) > 0) {
       itineraryDayDrafts = registerScheduleToDayInputs(schedule ?? [])
+    }
+
+    if ((schedule?.length ?? 0) > 0) {
+      itineraryDayDrafts = finalizeModetourItineraryDayDraftsFromSchedule(itineraryDayDrafts, schedule ?? [])
     }
 
     if (itineraryDayDrafts.length > 0) {

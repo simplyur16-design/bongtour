@@ -7,6 +7,7 @@
 import { decodeBasicHtmlEntities } from '@/lib/departure-option-modetour'
 import { fetchModetourGroupDetailInfo, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
+import { sanitizeIncludedExcludedItemsLines } from '@/lib/included-excluded-postprocess'
 import {
   buildModetourFlightStructuredFromRoutes,
   type ModetourFlightRouteItem,
@@ -73,6 +74,8 @@ export function modetourHtmlNoteToPlainText(html: string | null | undefined): st
   const raw = String(html ?? '').trim()
   if (!raw) return null
   const text = decodeBasicHtmlEntities(raw)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, ' ')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<\/li>/gi, '\n')
@@ -81,23 +84,39 @@ export function modetourHtmlNoteToPlainText(html: string | null | undefined): st
     .replace(/\r/g, '')
   const lines = text
     .split('\n')
-    .map((l) => l.replace(/^[\s\-•·▪–—]+/, '').replace(/^\d+[.)]\s*/, '').trim())
-    .filter((l) => l.length > 1)
+    .map((l) => l.replace(/^[\s\-•·▪–—▶]+/, '').replace(/^\d+[.)]\s*/, '').trim())
+    .filter((l) => l.length > 1 && !isModetourIncludedExcludedJunkLine(l))
   return lines.length > 0 ? lines.join('\n') : null
+}
+
+function isModetourIncludedExcludedJunkLine(line: string): boolean {
+  const t = line.replace(/\s+/g, ' ').trim()
+  if (!t || /^untitled$/i.test(t)) return true
+  if (/telerik-style|font-family|margin-top|margin-bottom|border-collapse|line-height\s*:/i.test(t)) return true
+  if (/^\.(?:Normal|TableNormal|NormalWeb|s_[A-F0-9]+)\b/i.test(t)) return true
+  if (/^body\s*\{|^p\s*\{/i.test(t)) return true
+  return false
 }
 
 export function modetourPlainTextToBullets(raw: string | null | undefined): string[] {
   const t = (raw ?? '').trim()
   if (!t) return []
-  return t
-    .split(/\n/)
-    .flatMap((line) => {
-      const trimmed = line.trim()
-      if (!trimmed) return []
-      const numbered = trimmed.split(/(?=\d+[.)]\s)/).map((p) => p.replace(/^\d+[.)]\s*/, '').trim()).filter(Boolean)
-      return numbered.length > 1 ? numbered : [trimmed.replace(/^[\s\-•·▪–—]+/, '').trim()]
-    })
-    .filter((l) => l.length > 1 && l.length < 400)
+  const normalized = t.replace(/\r/g, '').replace(/▶/g, '\n▶ ')
+  return sanitizeIncludedExcludedItemsLines(
+    normalized
+      .split(/\n/)
+      .flatMap((line) => {
+        const trimmed = line.trim()
+        if (!trimmed) return []
+        const numbered = trimmed
+          .split(/(?=\d+[.)]\s)/)
+          .map((p) => p.replace(/^\d+[.)]\s*/, '').trim())
+          .filter(Boolean)
+        const parts = numbered.length > 1 ? numbered : [trimmed.replace(/^[\s\-•·▪–—▶]+/, '').trim()]
+        return parts.filter((p) => p.length > 1 && !isModetourIncludedExcludedJunkLine(p))
+      })
+      .filter((l) => l.length > 1 && l.length < 400),
+  )
 }
 
 export function extractModetourIncludedExcludedFromDetailInfo(detail: Record<string, unknown> | null | undefined): {
