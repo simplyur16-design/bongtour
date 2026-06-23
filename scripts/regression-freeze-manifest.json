@@ -1003,14 +1003,16 @@
         {
           "file": "lib/register-parse-hanatour.ts",
           "mustInclude": [
-            "applyHanatourOriginCodeFromPaste"
+            "parseHanatourRegisterFromApi",
+            "REGRESSION-FREEZE[hanatour-register-api-parse]"
           ],
           "mustNotInclude": [
+            "parseForRegisterLlmHanatour",
             "extractHanatourOriginProductCodeFromBlob"
           ]
         },
         {
-          "file": "lib/parse-and-register-hanatour-orchestration.ts",
+          "file": "lib/hanatour-register-flow.ts",
           "mustInclude": [
             "applyHanatourOriginCodeFromPaste"
           ]
@@ -1483,7 +1485,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-hanatour-orchestration.ts",
+          "file": "lib/hanatour-register-flow.ts",
           "mustInclude": [
             "parseSingleDepartureOnlyFromAdminBody",
             "singleDepartureOnly"
@@ -1537,6 +1539,44 @@
           ]
         }
       ]
+    },
+    {
+      "id": "hanatour-register-api-parse",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 등록 parseFn — register-facts API SSOT, Gemini overlay 없음",
+      "npmScripts": ["verify:hanatour-lib"],
+      "checks": [
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-api-parse]",
+            "collectHanatourRegisterFacts",
+            "parseHanatourRegisterFromApi"
+          ],
+          "mustNotInclude": [
+            "parseForRegisterLlmHanatour",
+            "GEMINI"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-handler.ts",
+          "mustInclude": [
+            "runHanatourRegisterFlow",
+            "recoverEmptyScheduleWithFullParse: false"
+          ],
+          "mustNotInclude": [
+            "parse-and-register-hanatour-orchestration"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustNotInclude": [
+            "extractHighlightFromHanatourLLM",
+            "missingGeminiKey"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/hanatour-register-detail-collect.test.ts"]
     },
     {
       "id": "hanatour-register-api-price-inject",
@@ -2425,7 +2465,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-hanatour-orchestration.ts",
+          "file": "lib/hanatour-register-flow.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]

@@ -23,11 +23,13 @@ import {
 const root = process.cwd()
 
 function main() {
-  const llmSrc = fs.readFileSync(path.join(root, 'lib/register-from-llm-hanatour.ts'), 'utf8')
-  assert.ok(!llmSrc.includes('resolveDirectedFlightLinesDefault'), 'P1b: default flight resolver removed')
-  assert.ok(llmSrc.includes('requireDirectedFlightLineResolver'), 'P1b: requireDirectedFlightLineResolver')
-  assert.ok(!llmSrc.includes('REGISTER_PROMPT_HANATOUR_COMPACT'), 'P1b: compact prompt removed')
-  assert.match(llmSrc, /shoppingVisitCount.*LLM|shoppingVisitCount.*본문/, 'P1b: shoppingVisitCount stays in LLM prompt')
+  const apiParseSrc = fs.readFileSync(path.join(root, 'lib/hanatour-register-api-parse.ts'), 'utf8')
+  assert.ok(apiParseSrc.includes('collectHanatourRegisterFacts'), 'api-parse uses register-facts')
+  assert.ok(!apiParseSrc.includes('parseForRegisterLlmHanatour'), 'api-parse must not use LLM overlay')
+  assert.ok(
+    !fs.existsSync(path.join(root, 'lib/register-from-llm-hanatour.ts')),
+    'register-from-llm-hanatour removed',
+  )
 
   const flight = parseHanatourFlightInput(HANATOUR_ATP207_FLIGHT_PASTE, HANATOUR_ATP207_FLIGHT_PASTE)
   assert.equal(flight.outbound.flightNo, 'TW0669')
