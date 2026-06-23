@@ -1718,7 +1718,29 @@ export function augmentHanatourScheduleExpressionParsed(
   parsed: RegisterParsed,
   ctx?: { pastedBodyText?: string; travelScope?: string },
 ): RegisterParsed {
-  let sched = composeHanatourRegisterScheduleRows(parsed.detailBodyStructured, parsed.schedule ?? [])
+  const sched0 = parsed.schedule ?? []
+  if (!sched0.length) return parsed
+  const hasDetailBody =
+    Boolean(parsed.detailBodyStructured?.normalizedRaw?.trim()) ||
+    (parsed.detailBodyStructured?.sections?.length ?? 0) > 0
+  // API-only(붙여넣기 detailBody 없음): LLM compose/polish 생략 — itnr SSOT 일정을 일차 동선 placeholder로 망가뜨리지 않음
+  if (!hasDetailBody) {
+    const skipPackageImageKw = isRegisterAirtelListing(ctx?.travelScope, parsed.productType)
+    const scheduleRows = skipPackageImageKw
+      ? sched0
+      : applyAugmentScheduleImageKeywordsBySupplier(sched0, {
+          supplierKey: 'hanatour',
+          productTitle: parsed.title,
+          productDestination: parsed.destination,
+          travelScope: ctx?.travelScope,
+          productType: parsed.productType,
+          optionalTourNames: hanatourOptionalTourNamesFromParsed(parsed),
+          scheduleSectionByDay: null,
+        })
+    return { ...parsed, schedule: scheduleRows }
+  }
+
+  let sched = composeHanatourRegisterScheduleRows(parsed.detailBodyStructured, sched0)
   if (!sched.length) return parsed
   sched = polishHanatourScheduleRowsPreferDetailBody(sched, parsed.detailBodyStructured)
   const scheduleSectionByDay = parsed.detailBodyStructured

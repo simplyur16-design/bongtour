@@ -48,6 +48,11 @@ export type HanatourTrvlExpnRow = {
   trvlExpnNm?: string | null
 }
 
+export type HanatourItnrCmsInfoRow = {
+  cmsCntntNm?: string | null
+  cmsCntntCont?: string | null
+}
+
 export type HanatourItnrSchdMain = {
   schdCatgNm?: string | null
   schdCont?: string | null
@@ -56,6 +61,12 @@ export type HanatourItnrSchdMain = {
   cardCntntPc?: string | null
   cardCntntMbl?: string | null
   schdRqrmHm?: string | null
+  depCityNm?: string | null
+  arriveCityNm?: string | null
+  trfcMensNm?: string | null
+  dtlMealDvNm?: string | null
+  mealCont?: string | null
+  cmsInfoList?: HanatourItnrCmsInfoRow[] | null
 }
 
 export type HanatourItnrSchdDay = {
@@ -159,9 +170,21 @@ export function formatHanatourTrvlExpnBullet(row: HanatourTrvlExpnRow): string {
 
 export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   return days.map((d) => {
-    const title = (d.places[0] ?? d.hotels[0] ?? '').trim() || `${d.day}일차`
-    const description = [...d.places, d.transportNote].filter(Boolean).join('\n') || title
-    const routeText = d.places.length > 0 ? d.places.join(' - ') : null
+    const firstPlace = (d.places[0] ?? '').trim()
+    const firstTransport = (d.transportNote ?? '').split(';').map((s) => s.trim()).find(Boolean) ?? ''
+    const title =
+      firstPlace ||
+      firstTransport ||
+      (d.hotels[0] ?? '').trim() ||
+      `${d.day}일차`
+    const description =
+      [d.transportNote, ...d.places].filter(Boolean).join('\n') || title
+    const routeText =
+      d.places.length > 0
+        ? d.places.join(' - ')
+        : firstTransport.includes(' - ')
+          ? firstTransport
+          : null
     const hotelText = d.hotels.length > 0 ? d.hotels.join(' / ') : null
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
@@ -438,6 +461,60 @@ export function shoppingRowsToStopsJson(rows: ShoppingStructured['rows']): strin
   return JSON.stringify(rows.map((r) => shoppingStructuredRowToPersistStop(r)))
 }
 
+const HANATOUR_ITNR_PLACE_NOISE_RE =
+  /주의사항|여행\s*정보|여행\s*주의|자유식\s*추천|추천식당|^HELLO[\s,]/i
+
+function isHanatourItnrNoisePlaceLabel(label: string): boolean {
+  const t = label.trim()
+  if (!t || t.length < 2) return true
+  if (HANATOUR_ITNR_PLACE_NOISE_RE.test(t)) return true
+  if (/^Hong Kong$/i.test(t)) return true
+  return false
+}
+
+function pushHanatourItnrUniqueLabel(out: string[], raw: string | null | undefined): void {
+  const t = String(raw ?? '').trim()
+  if (!t || isHanatourItnrNoisePlaceLabel(t)) return
+  if (out.some((x) => x === t)) return
+  out.push(t.slice(0, 200))
+}
+
+/** getPkgProdItnrInfo — schdTitlNm 비어 있어도 cardNm·cmsInfoList·mealCont·도시 이동에서 추출.
+ * REGRESSION-FREEZE[hanatour-register-detail-collect]: itnr card field mapping — manifest */
+export function hanatourItnrMealLine(main: HanatourItnrSchdMain): string | null {
+  const slot = String(main.dtlMealDvNm ?? '').trim()
+  const cont = String(main.mealCont ?? '').trim()
+  if (slot && cont) return `${slot} ${cont}`.slice(0, 160)
+  return slot || cont || null
+}
+
+export function hanatourItnrTransportLine(main: HanatourItnrSchdMain): string | null {
+  const dep = String(main.depCityNm ?? '').trim()
+  const arr = String(main.arriveCityNm ?? '').trim()
+  if (dep && arr && dep !== arr) return `${dep} - ${arr}`.slice(0, 120)
+  if (dep) return dep.slice(0, 120)
+  if (arr) return arr.slice(0, 120)
+  const trfc = String(main.trfcMensNm ?? '').trim()
+  return trfc || null
+}
+
+export function hanatourItnrPlaceLabels(main: HanatourItnrSchdMain): string[] {
+  const out: string[] = []
+  pushHanatourItnrUniqueLabel(out, stripHanatourHtmlText(String(main.schdTitlNm ?? main.schdCont ?? '')))
+  pushHanatourItnrUniqueLabel(out, String(main.cardNm ?? ''))
+  for (const cms of main.cmsInfoList ?? []) {
+    pushHanatourItnrUniqueLabel(out, String(cms.cmsCntntNm ?? ''))
+  }
+  const html = String(main.cardCntntPc ?? main.cardCntntMbl ?? '')
+  for (const m of html.matchAll(/alt="([^"]{2,48})"/gi)) {
+    pushHanatourItnrUniqueLabel(out, m[1])
+  }
+  for (const m of html.matchAll(/<strong[^>]*>([^<]{2,80})<\/strong>/gi)) {
+    pushHanatourItnrUniqueLabel(out, stripHanatourHtmlText(m[1]!))
+  }
+  return out
+}
+
 export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]): RegisterFactScheduleDay[] {
   const rows: RegisterFactScheduleDay[] = []
   for (const dayRow of schdInfoList) {
@@ -452,16 +529,25 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
     }
     for (const main of dayRow.schdMainInfoList ?? []) {
       const cat = String(main.schdCatgNm ?? '').trim()
-      const title = stripHanatourHtmlText(String(main.schdTitlNm ?? main.schdCont ?? '')).slice(0, 200)
-      if (!title) continue
-      if (cat.includes('관광')) fact.places.push(title)
-      else if (cat.includes('숙박') || cat.includes('호텔')) fact.hotels.push(title)
-      else if (cat.includes('식사')) fact.meals.push(title)
-      else if (cat.includes('이동') || cat.includes('항공')) {
-        fact.transportNote = fact.transportNote ? `${fact.transportNote}; ${title}` : title
-      } else {
-        fact.places.push(title)
+      if (cat.includes('식사')) {
+        const meal = hanatourItnrMealLine(main)
+        if (meal) fact.meals.push(meal)
+        continue
       }
+      if (cat.includes('선택관광')) continue
+      if (cat.includes('이동') || cat.includes('항공') || cat.includes('도시')) {
+        const transport = hanatourItnrTransportLine(main)
+        if (transport) {
+          fact.transportNote = fact.transportNote ? `${fact.transportNote}; ${transport}` : transport
+        }
+        continue
+      }
+      const labels = hanatourItnrPlaceLabels(main)
+      if (cat.includes('숙박') || cat.includes('호텔')) {
+        for (const label of labels) fact.hotels.push(label)
+        continue
+      }
+      for (const label of labels) fact.places.push(label)
     }
     rows.push(fact)
   }

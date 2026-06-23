@@ -100,6 +100,10 @@ export function buildRegisterAdminPreviewCardData(args: {
     prices?: Array<{ adultFuel?: number | null }> | null
     priceFrom?: number | null
     productPriceTable?: { adultPrice?: number | null; childExtraBedPrice?: number | null; infantPrice?: number | null } | null
+    detailBodyStructured?: { flightStructured?: import('@/lib/detail-body-parser-types').FlightStructured | null } | null
+    airlineName?: string | null
+    outboundFlightNo?: string | null
+    inboundFlightNo?: string | null
   }
   productDraft: RegisterPreviewProductDraft
   schedule: RegisterScheduleDay[]
@@ -149,6 +153,38 @@ export function buildRegisterAdminPreviewCardData(args: {
   }
   const meetingLoc = (parsed.meetingPlaceRaw ?? parsed.meetingInfoRaw ?? '').trim()
 
+  const fs = parsed.detailBodyStructured?.flightStructured ?? null
+  const flightPreview =
+    fs?.airlineName?.trim() && fs.outbound?.flightNo?.trim() && fs.inbound?.flightNo?.trim()
+      ? {
+          airline: fs.airlineName.trim(),
+          outbound: {
+            flightNo: fs.outbound.flightNo?.trim() || parsed.outboundFlightNo?.trim() || '—',
+            departureDateTime: [fs.outbound.departureDate, fs.outbound.departureTime].filter(Boolean).join(' ').trim() || '—',
+            arrivalDateTime: [fs.outbound.arrivalDate, fs.outbound.arrivalTime].filter(Boolean).join(' ').trim() || '—',
+          },
+          inbound: {
+            flightNo: fs.inbound.flightNo?.trim() || parsed.inboundFlightNo?.trim() || '—',
+            departureDateTime: [fs.inbound.departureDate, fs.inbound.departureTime].filter(Boolean).join(' ').trim() || '—',
+            arrivalDateTime: [fs.inbound.arrivalDate, fs.inbound.arrivalTime].filter(Boolean).join(' ').trim() || '—',
+          },
+        }
+      : parsed.airlineName?.trim() && parsed.outboundFlightNo?.trim() && parsed.inboundFlightNo?.trim()
+        ? {
+            airline: parsed.airlineName.trim(),
+            outbound: {
+              flightNo: parsed.outboundFlightNo.trim(),
+              departureDateTime: parsed.departureDateTimeRaw?.trim() || '—',
+              arrivalDateTime: '—',
+            },
+            inbound: {
+              flightNo: parsed.inboundFlightNo.trim(),
+              departureDateTime: '—',
+              arrivalDateTime: parsed.arrivalDateTimeRaw?.trim() || '—',
+            },
+          }
+        : null
+
   return {
     productCode: (parsed.originCode ?? '').trim(),
     title: (parsed.title || productDraft.title || '').trim() || '(제목 없음)',
@@ -159,7 +195,7 @@ export function buildRegisterAdminPreviewCardData(args: {
     priceInfant,
     fuelSurcharge: fuel,
     currency: 'KRW',
-    flight: null,
+    flight: flightPreview,
     schedule: scheduleFinal,
     meetingInfo: meetingLoc ? { location: meetingLoc.slice(0, 500), time: '' } : undefined,
     hotelGradeLabel: undefined,

@@ -6,6 +6,7 @@ import {
   formatHanatourTrvlExpnBullet,
   buildHanatourFlightStructuredFromProdInfo,
   hanatourFactDaysToRegisterSchedule,
+  hanatourItnrSchdToFactDays,
   extractHanatourIncludedExcluded,
   extractHanatourOptionalToursFromChcStsng,
 } from './hanatour-register-api-detail'
@@ -15,6 +16,7 @@ import {
   needsHanatourIncludedExcludedCollect,
   needsHanatourOptionalCollect,
   needsHanatourScheduleCollect,
+  isHanatourPlaceholderScheduleRow,
 } from './hanatour-register-detail-collect'
 import type { RegisterParsed } from './register-llm-schema-hanatour'
 
@@ -31,6 +33,49 @@ describe('hanatour register detail collect', () => {
         schedule: [{ day: 1, title: '오사카', description: '관광', imageKeyword: 'Osaka' }],
       } as RegisterParsed),
     ).toBe(false)
+    expect(
+      needsHanatourScheduleCollect({
+        schedule: [{ day: 1, title: '1일차', description: '1일차', imageKeyword: '' }],
+      } as RegisterParsed),
+    ).toBe(true)
+    expect(
+      isHanatourPlaceholderScheduleRow({
+        day: 1,
+        title: '일차 동선',
+        description: '1일차',
+        imageKeyword: 'Hong Kong',
+      }),
+    ).toBe(true)
+  })
+
+  it('itnr schd cards — cardNm·mealCont·cmsInfoList에서 일정·식사 추출', () => {
+    const facts = hanatourItnrSchdToFactDays([
+      {
+        schdDay: 1,
+        schdMainInfoList: [
+          {
+            schdCatgNm: '관광지',
+            cardNm: '홍콩의 전망을 한눈에!',
+            cmsInfoList: [{ cmsCntntNm: '빅토리아 피크' }, { cmsCntntNm: '피크트램' }],
+          },
+          { schdCatgNm: '도시간이동', depCityNm: '인천', arriveCityNm: '홍콩' },
+          {
+            schdCatgNm: '식사',
+            dtlMealDvNm: '조식',
+            mealCont: '기내-불포함(유료제공)',
+          },
+        ],
+      },
+    ])
+    expect(facts).toHaveLength(1)
+    expect(facts[0]?.places).toEqual(
+      expect.arrayContaining(['홍콩의 전망을 한눈에!', '빅토리아 피크', '피크트램']),
+    )
+    expect(facts[0]?.transportNote).toBe('인천 - 홍콩')
+    expect(facts[0]?.meals[0]).toMatch(/조식/)
+    const sched = hanatourFactDaysToRegisterSchedule(facts)
+    expect(sched[0]?.breakfastText).toMatch(/기내/)
+    expect(sched[0]?.routeText).toContain('빅토리아')
   })
 
   it('needs included/excluded when both missing', () => {

@@ -74,10 +74,34 @@ function hasStructuredShopping(parsed: RegisterParsed): boolean {
   return hasStructuredJsonRows(parsed.shoppingStops)
 }
 
+export function isHanatourPlaceholderScheduleRow(row: RegisterScheduleDay): boolean {
+  const title = String(row.title ?? '').trim()
+  const desc = String(row.description ?? '').trim()
+  if (!title && !desc) return true
+  if (title === '일차 동선' || desc === '일차 동선') return true
+  if (/^\d+\s*일차$/.test(title) && (!desc || desc === title || /^\d+\s*일차$/.test(desc))) return true
+
+  const hasMeals = [row.breakfastText, row.lunchText, row.dinnerText].some((m) => {
+    const s = String(m ?? '').trim()
+    return s.length > 0 && !/^[-—–]$/.test(s)
+  })
+  if (hasMeals) return false
+
+  const route = String(row.routeText ?? '').trim()
+  if (route && route !== '일차 동선' && route.includes('-')) return false
+
+  if (title && !/^\d+\s*일차$/.test(title) && title !== '일차 동선') {
+    if (desc && desc !== title) return false
+    if (route.length > 0) return false
+  }
+
+  return true
+}
+
 export function needsHanatourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
-  return rows.every((d) => !d.title?.trim() && !d.description?.trim())
+  return rows.every(isHanatourPlaceholderScheduleRow)
 }
 
 export function needsHanatourIncludedCollect(parsed: RegisterParsed): boolean {
