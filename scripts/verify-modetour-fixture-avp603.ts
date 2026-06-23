@@ -64,11 +64,11 @@ function main() {
     { productDestination: dest },
   )
   const kwDay1 = kwApplied.find((r) => r.day === 1)!.imageKeyword
-  const kwDay5 = kwApplied.find((r) => r.day === 5)!.imageKeyword
+  const kwDay5 = kwApplied.find((r) => r.day === 5)!
   assert.match(kwDay1, /Da(?:\s*Nang)?/i, 'day1 movement → overseas city from routeText')
   assert.ok(!/airport/i.test(kwDay1), 'day1 no airport keyword')
-  assert.match(kwDay5, /Da(?:\s*Nang)?/i, 'day5 return → overseas city from routeText')
-  assert.ok(!/airport/i.test(kwDay5), 'day5 no airport keyword')
+  assert.equal(kwDay5.imageKeyword, '', 'day5 return_home → imageKeyword 비움 (인천 도착)')
+  assert.equal(kwDay5.imageKeyword2, null, 'day5 return_home → imageKeyword2 null')
 
   const kwDay2Applied = applyModetourScheduleImageKeywordsToRows(
     [
@@ -87,7 +87,7 @@ function main() {
   assert.match(kwHoiAn, /Hoi(?:\s*An)?/i, 'day2 hoian LLM keyword')
   const kwBanahill = kwApplied.find((r) => r.day === 3)!.imageKeyword
   assert.match(kwBanahill, /Ba Na|My Khe|Da Nang/i, 'day3 keyword from LLM or route')
-  console.log('  imageKeyword day1/5:', kwDay1, '|', kwDay5)
+  console.log('  imageKeyword day1/5:', kwDay1, '|', kwDay5.imageKeyword || '(empty return_home)')
   console.log('  imageKeyword spots:', kwBanahill, '|', kwHoiAn)
 }
 
