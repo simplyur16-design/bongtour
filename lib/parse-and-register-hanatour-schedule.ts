@@ -1207,6 +1207,22 @@ function composeHanatourScheduleDescriptionSentence(
   return hanatourTrimDescriptionMax(desc, HANATOUR_CARD_DESCRIPTION_MAX)
 }
 
+/** itnr fact·API 일정 — 붙여넣기와 동일 compose 경로( Gemini 없음 ). REGRESSION-FREEZE[hanatour-register-detail-collect] */
+export function composeHanatourScheduleDescriptionFromRawBody(
+  day: number,
+  maxDay: number,
+  rawBody: string,
+  cardTitle?: string | null,
+): string {
+  const lines = stripHanatourScheduleNoiseLines(rawBody)
+  const joined = lines.join('\n')
+  const movementTitle = inferHanatourMovementTitle(joined, day, maxDay)
+  const title =
+    cardTitle?.trim() ||
+    buildHanatourCardPlaceTitle(day, maxDay, lines, joined)
+  return composeHanatourScheduleDescriptionSentence(lines, joined, day, maxDay, movementTitle, title)
+}
+
 function inferHanatourImageKeyword(_day: number, _maxDay: number, _rawBlob: string): string {
   return ''
 }

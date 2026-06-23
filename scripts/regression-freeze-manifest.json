@@ -3128,8 +3128,15 @@
             "buildHanatourFlightStructuredFromProdInfo",
             "extractHanatourOptionalToursFromChcStsng",
             "selectHanatourScheduleHighlights",
-            "composeHanatourFactDayDescription",
+            "composeHanatourScheduleVibeDescription",
             "applyHanatourProdInfoHotelsToFactDays"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-schedule.ts",
+          "mustInclude": [
+            "composeHanatourScheduleDescriptionFromRawBody",
+            "composeHanatourScheduleDescriptionSentence"
           ]
         },
         {

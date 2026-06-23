@@ -8,7 +8,6 @@ import {
   hanatourFactDaysToRegisterSchedule,
   hanatourItnrSchdToFactDays,
   applyHanatourProdInfoHotelsToFactDays,
-  composeHanatourFactDayDescription,
   selectHanatourScheduleHighlights,
   extractHanatourIncludedExcluded,
   extractHanatourOptionalToursFromChcStsng,
@@ -124,10 +123,16 @@ describe('hanatour register detail collect', () => {
     expect(selectHanatourScheduleHighlights(facts[0]!.places).length).toBeLessThanOrEqual(7)
     expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
     expect(sched[0]?.description).not.toMatch(/\n/)
-    expect(composeHanatourFactDayDescription(facts[0]!, 3, selectHanatourScheduleHighlights(facts[0]!.places))).toMatch(
-      /인천|홍콩|둘러/,
-    )
+    expect(sched[0]?.description).not.toBe(sched[0]?.title)
+    expect(sched[0]?.description).not.toMatch(/추가로 .* 등도 포함됩니다/)
+    expect(sched[0]?.description).toContain('세련된 번화가')
+    expect(sched[0]?.description).toContain('걷는 즐거움이')
+    expect(sched[0]?.description).not.toMatch(/소호|피크|완차이|미드|빅토리아/)
+    expect((sched[0]?.description?.match(/[.!?…]/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect((sched[0]?.description?.match(/[.!?…]/g) ?? []).length).toBeLessThanOrEqual(3)
     expect(sched[0]?.hotelText).toMatch(/4성호텔/)
+    expect(sched[1]?.description).toMatch(/마무리|귀국|여운/)
+    expect(sched[1]?.description).not.toMatch(/럭키|웡타이/)
     expect(sched[1]?.hotelText).toMatch(/숙박 없음/)
   })
 
