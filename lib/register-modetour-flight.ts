@@ -1,7 +1,7 @@
 /**
  * [모두투어 항공 스택 P2] 등록 파이프라인 — flightRaw·directed·출발행 항공 필드 병합.
  *
- * 역할: `register-from-llm-modetour` / `register-parse-modetour` 이후 flightRaw 확장, directed 한 줄,
+ * 역할: `register-parse-modetour` 이후 flightRaw 확장, directed 한 줄,
  *       `resolveDirectedFlightLinesDeterministicOnly`(LLM resolver 보조), ProductDeparture 항공 컬럼.
  * 호출: `register-parse-modetour`, handler 확정 저장.
  * 하지 않음: 본문 첫 파싱(`flight-parser-modetour`), 공개 상세 leg 카드·달력 일자 보정, FMC 오버레이.

@@ -296,7 +296,7 @@
       "summary": "모두투어 제목 추출 SSOT 외 인라인 금지",
       "checks": [
         {
-          "file": "lib/register-from-llm-modetour.ts",
+          "file": "lib/modetour-register-api-parse.ts",
           "mustInclude": [
             "modetour-register-product-title-ssot"
           ],
@@ -1478,7 +1478,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-modetour-handler.ts",
+          "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
             "parseSingleDepartureOnlyFromAdminBody",
             "singleDepartureOnly"
@@ -1531,7 +1531,7 @@
       "summary": "modetour FIT confirm — skipBaselineMatch로 출발일 수집",
       "checks": [
         {
-          "file": "lib/parse-and-register-modetour-handler.ts",
+          "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-air-hotel-departures]",
             "isModetourAirHotel",
@@ -1577,6 +1577,61 @@
         }
       ],
       "vitestSuites": ["lib/hanatour-register-detail-collect.test.ts"]
+    },
+    {
+      "id": "modetour-register-api-parse",
+      "tier": ["prebuild", "ci"],
+      "summary": "모두투어 등록 parseFn — register-facts API SSOT, Gemini overlay 없음",
+      "npmScripts": ["verify:modetour-lib"],
+      "checks": [
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-api-parse]",
+            "collectModetourRegisterFacts",
+            "parseModetourRegisterFromApi"
+          ],
+          "mustNotInclude": [
+            "parseForRegisterLlmModetour",
+            "GEMINI"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": [
+            "runModetourRegisterFlow"
+          ],
+          "mustNotInclude": [
+            "testGeminiConnection",
+            "register-from-llm-modetour"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustNotInclude": [
+            "extractHighlightFromModetourLLM",
+            "missingGeminiKey",
+            "modetourItineraryDraftsApplyParsedScheduleOverlay"
+          ]
+        },
+        {
+          "file": "lib/register-parse-modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-api-parse]",
+            "parseModetourRegisterFromApi"
+          ],
+          "mustNotInclude": [
+            "parseForRegisterLlmModetour"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/modetour-register-detail-collect.test.ts"]
+    },
+    {
+      "id": "modetour-register-samples-live-gate",
+      "tier": ["ci"],
+      "summary": "모두투어 SSOT 9샘플 — API parse + detail-collect live gate",
+      "npmScripts": ["verify:register-modetour-samples-live-gate"]
     },
     {
       "id": "hanatour-register-api-price-inject",
@@ -2471,7 +2526,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-modetour-handler.ts",
+          "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]
@@ -3038,6 +3093,13 @@
         },
         {
           "file": "lib/parse-and-register-modetour-handler.ts",
+          "mustInclude": [
+            "augmentModetourParsedWithDetailCollect",
+            "runModetourRegisterFlow"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
             "augmentModetourParsedWithDetailCollect"
           ]

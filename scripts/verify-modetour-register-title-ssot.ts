@@ -86,26 +86,18 @@ assert(
 assert(MODETOUR_REGISTER_TITLE_SSOT_VERSION.length > 3, 'ssot version present')
 
 // --- 정적 회귀 가드 (로직 복제 금지) ---
-const registerLlm = fs.readFileSync(path.join(root, 'lib/register-from-llm-modetour.ts'), 'utf8')
+const apiParse = fs.readFileSync(path.join(root, 'lib/modetour-register-api-parse.ts'), 'utf8')
 assert(
-  registerLlm.includes('modetour-register-product-title-ssot'),
-  'register-from-llm-modetour must import title SSOT'
+  apiParse.includes('modetour-register-product-title-ssot'),
+  'modetour-register-api-parse must import title SSOT'
 )
 assert(
-  !registerLlm.includes('function extractModetourVerbatimListingTitleRawFromPaste'),
-  'inline paste title extract forbidden in register-from-llm-modetour'
-)
-assert(
-  !registerLlm.includes('extractModetourVerbatimListingTitleRawFromPasteLocal'),
-  'legacy PasteLocal extract forbidden'
+  !apiParse.includes('function extractModetourVerbatimListingTitleRawFromPaste'),
+  'inline paste title extract forbidden in modetour-register-api-parse'
 )
 
-const handler = fs.readFileSync(path.join(root, 'lib/parse-and-register-modetour-handler.ts'), 'utf8')
-assert(handler.includes('modetour-register-product-title-ssot'), 'handler must import title SSOT')
-assert(
-  handler.includes('modetourRegisterTitleBlocksConfirmSave'),
-  'handler must call confirm title save gate'
-)
+const flow = fs.readFileSync(path.join(root, 'lib/modetour-register-flow.ts'), 'utf8')
+assert(flow.includes('modetourRegisterTitleBlocksConfirmSave'), 'flow must call confirm title save gate')
 
 if (failures.length) {
   console.error('[FAIL] verify-modetour-register-title-ssot')

@@ -18,6 +18,14 @@ import {
 } from './modetour-register-detail-collect'
 import type { RegisterParsed } from './register-llm-schema-modetour'
 
+import { parseModetourRegisterFromApi } from './modetour-register-api-parse'
+
+describe('modetour register api parse', () => {
+  it('requires originUrl productNo', async () => {
+    await expect(parseModetourRegisterFromApi('', 'modetour', { originUrl: '' })).rejects.toThrow(/originUrl/)
+  })
+})
+
 describe('modetour register detail collect', () => {
   it('needs schedule collect when empty', () => {
     expect(needsModetourScheduleCollect({ schedule: [] } as RegisterParsed)).toBe(true)

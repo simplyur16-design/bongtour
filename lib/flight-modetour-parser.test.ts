@@ -5,7 +5,7 @@ import {
   parseLegBodyFlexible,
   tryParseModetourFlightLines,
 } from '@/lib/flight-modetour-parser'
-import { capModetourLlmPriceField } from '@/lib/register-from-llm-modetour'
+import { capModetourLlmPriceField } from '@/lib/flight-modetour-parser'
 
 describe('flight-modetour-parser jam caps', () => {
   it('parseLegBodyFlexible truncates oversized arrivalAirport from strict leg body', () => {

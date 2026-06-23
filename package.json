@@ -127,7 +127,7 @@
     "verify:rate-limit-store": "npx tsx scripts/verify-rate-limit-store.ts",
     "verify:departure-price-collect-ui": "npx tsx tools/verify-departure-price-collect-ui.ts",
     "verify:hotel-meal-display": "npx tsx scripts/verify-hotel-meal-display.ts",
-    "verify:modetour-schedule-overlay": "npx tsx scripts/verify-modetour-schedule-overlay.ts",
+    "verify:register-modetour-samples-live-gate": "npx tsx scripts/verify-register-modetour-samples-live-gate.ts",
     "verify:auth-split": "npx tsx scripts/verify-auth-split.ts",
     "verify:naver-unlink": "npx tsx tools/verify-naver-unlink-local.ts",
     "verify:manual-flight-hanatour": "npx tsx scripts/verify-manual-flight-hanatour.ts",

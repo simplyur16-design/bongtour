@@ -53,6 +53,31 @@ export function capModetourPersistString(
   return t.slice(0, maxLen)
 }
 
+const MODETOUR_LLM_PRICE_FIELD_MAX: Partial<Record<string, number>> = {
+  carrierName: 80,
+  outboundFlightNo: MODETOUR_PERSIST_FLIGHT_NO_MAX,
+  inboundFlightNo: MODETOUR_PERSIST_FLIGHT_NO_MAX,
+  outboundDepartureAirport: MODETOUR_PERSIST_AIRPORT_MAX,
+  outboundArrivalAirport: MODETOUR_PERSIST_AIRPORT_MAX,
+  inboundDepartureAirport: MODETOUR_PERSIST_AIRPORT_MAX,
+  inboundArrivalAirport: MODETOUR_PERSIST_AIRPORT_MAX,
+  outboundDepartureAt: 50,
+  outboundArrivalAt: 50,
+  inboundDepartureAt: 50,
+  inboundArrivalAt: 50,
+  meetingInfoRaw: 2000,
+  meetingPointRaw: 500,
+  meetingTerminalRaw: 200,
+  meetingGuideNoticeRaw: 2000,
+}
+
+/** LLM prices[] 문자열 상한 — upsert-product-departures-modetour trimRaw와 동일 */
+export function capModetourLlmPriceField(key: string, value: unknown): string | undefined {
+  if (value == null || !String(value).trim()) return undefined
+  const max = MODETOUR_LLM_PRICE_FIELD_MAX[key] ?? 120
+  return capModetourPersistString(String(value), max, `llm.prices.${key}`) ?? undefined
+}
+
 function sanitizeModetourFlightLeg(leg: ModetourFlightLeg): ModetourFlightLeg {
   return {
     ...leg,
