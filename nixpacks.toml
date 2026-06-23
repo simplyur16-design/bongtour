@@ -11,7 +11,7 @@ nixPkgs = ["nodejs", "python3", "python3Packages.virtualenv", "curl"]
 cmds = [
   "npm install",
   "virtualenv .venv",
-  ".venv/bin/pip install -U pip wheel",
+  "bash -c 'set -e; for attempt in 1 2 3 4 5; do .venv/bin/pip install --retries 10 --timeout 120 -U pip wheel && exit 0; echo \"[pip bootstrap] attempt ${attempt} failed (PyPI flake), retrying...\"; sleep $((attempt * 15)); done; exit 1'",
   "bash -c 'set -e; for attempt in 1 2 3 4 5; do .venv/bin/pip install --retries 10 --timeout 120 -r scripts/calendar_e2e_scraper_requirements.txt && exit 0; echo \"[pip] attempt ${attempt} failed (PyPI flake), retrying...\"; sleep $((attempt * 15)); done; exit 1'",
   ".venv/bin/playwright install chromium",
   "bash -c 'for f in /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do if [ -f \"$f\" ]; then sed -i \"s|http://archive.ubuntu.com|http://mirror.kakao.com|g; s|https://archive.ubuntu.com|http://mirror.kakao.com|g\" \"$f\"; fi; done; true'",
