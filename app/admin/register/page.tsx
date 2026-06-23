@@ -40,7 +40,7 @@ import {
   overlayPreviewScheduleImageKeywords,
 } from '@/lib/register-schedule-image-keywords-preview'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
-import { resolveHanatourRegisterScheduleSectionByDay } from '@/lib/hanatour-schedule-section-by-day'
+import { resolveHanatourRegisterScheduleSectionByDay, enrichHanatourRegisterPreviewScheduleRowsFromSection } from '@/lib/hanatour-schedule-section-by-day'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
@@ -335,6 +335,27 @@ function scheduleRowsHaveUniformImageKeyword(
   return new Set(kws).size === 1
 }
 
+function hanatourPreviewDetailBody(
+  parsed: RegisterParsed | null,
+  preview: AdminRegisterPreviewPayload | null,
+): DetailBodyParseSnapshot | null {
+  return (
+    (parsed as HanatourScheduleSectionDetailSource | null)?.detailBodyStructured ??
+    (preview?.productDraft as HanatourScheduleSectionDetailSource | undefined)?.detailBodyStructured ??
+    null
+  )
+}
+
+function prepareHanatourRegisterPexelsRawRows(
+  rows: RegisterScheduleDay[],
+  parsed: RegisterParsed | null,
+  preview: AdminRegisterPreviewPayload | null,
+  supplierKey: AdminRegisterSupplierKey | null,
+): RegisterScheduleDay[] {
+  if (supplierKey !== 'hanatour') return rows
+  return enrichHanatourRegisterPreviewScheduleRowsFromSection(rows, hanatourPreviewDetailBody(parsed, preview))
+}
+
 function hanatourPreviewScheduleSectionByDay(
   parsed: RegisterParsed | null,
   preview: AdminRegisterPreviewPayload | null,
@@ -388,7 +409,8 @@ function buildRegisterPexelsUiRows(
       const airtelRows = buildAirtelRegisterPexelsUiScheduleRows(parsed, destHint)
       if (airtelRows?.length) return airtelRows
     }
-    const rawRows = validFromParsed.map((row) => {
+    const rawRows = prepareHanatourRegisterPexelsRawRows(
+      validFromParsed.map((row) => {
       const day = Number(row.day)
       return {
         day,
@@ -398,7 +420,11 @@ function buildRegisterPexelsUiRows(
         imageKeyword: String(row.imageKeyword ?? '').trim(),
         imageKeyword2: String(row.imageKeyword2 ?? '').trim() || null,
       }
-    })
+    }),
+      parsed,
+      preview,
+      supplierKey,
+    )
     try {
       const destHint =
         (parsed?.destination ?? '').trim() ||
@@ -444,7 +470,8 @@ function buildRegisterPexelsUiRows(
     (parsed?.destination ?? '').trim() ||
     (d.primaryDestination ?? d.destinationRaw ?? '').trim() ||
     null
-  const draftRows = it.map((raw) => {
+  const draftRows = prepareHanatourRegisterPexelsRawRows(
+    it.map((raw) => {
     const day = typeof raw.day === 'number' && raw.day > 0 ? raw.day : 1
     const autoKwRaw =
       buildPexelsKeyword({
@@ -464,7 +491,11 @@ function buildRegisterPexelsUiRows(
       imageKeyword: autoKw.ok ? autoKw.value : '',
       imageKeyword2: null as string | null,
     }
-  })
+  }),
+    parsed,
+    preview,
+    supplierKey,
+  )
   const titleHint = (d.title ?? '').trim() || null
   const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
     String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),

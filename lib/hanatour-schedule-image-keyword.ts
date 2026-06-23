@@ -376,8 +376,13 @@ function collectHanatourOrderedScheduleLandmarks(
   for (const { en } of findMappedKoreanPoisInTextByMentionOrder(haystack)) {
     push(tryAcceptHanatourMappedPoiKeyword(en, productDestination))
   }
+  const koPoiHits: { index: number; en: string }[] = []
   for (const { re, en } of HANATOUR_KO_POI_RULES) {
-    if (!re.test(haystack)) continue
+    const m = haystack.match(re)
+    if (m && m.index != null) koPoiHits.push({ index: m.index, en })
+  }
+  koPoiHits.sort((a, b) => a.index - b.index)
+  for (const { en } of koPoiHits) {
     push(tryAcceptHanatourMappedPoiKeyword(en, productDestination))
   }
 
@@ -480,13 +485,13 @@ function collectHanatourLandmarkKeywords(
   return out
 }
 
-/** 본문·제목에 매핑된 명소가 있으면 도시명만인 LLM 1순위보다 우선(본문 등장 순) */
+/** 본문·제목·schedule_section에 매핑된 명소가 있으면 도시명만인 LLM 1순위보다 우선(본문 등장 순) */
 function preferPoiOverBareCityLlm(
   row: HanatourScheduleImageKeywordRow,
   acceptedCity: string,
   productDestination: string | null | undefined,
 ): string {
-  const bodyHaystack = [row.title, row.description].filter(Boolean).join('\n')
+  const bodyHaystack = buildHanatourDayHaystack(row)
   for (const { re, en } of HANATOUR_KO_POI_RULES) {
     if (!re.test(bodyHaystack)) continue
     const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
@@ -739,6 +744,10 @@ function resolveHanatourPrimaryKeyword(
     return ''
   }
 
+  // REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]: 일정 본문 명소 등장 순 — LLM·route 도시명보다 우선
+  const fromScheduleOrdered = pickFirstUnusedHanatourScheduleLandmark(row, productDestination, usedPrimary)
+  if (fromScheduleOrdered) return fromScheduleOrdered
+
   if (
     day === 1 &&
     (isHanatourForeignAirportImageKeyword(accepted) ||
@@ -762,11 +771,6 @@ function resolveHanatourPrimaryKeyword(
       allRows,
     )
     if (resolved && !isHanatourForeignAirportImageKeyword(resolved)) return finish(resolved)
-  }
-
-  if (dayKind === 'tourism') {
-    const fromSchedule = pickFirstUnusedHanatourScheduleLandmark(row, productDestination, usedPrimary)
-    if (fromSchedule) return fromSchedule
   }
 
   if (dayKind === 'tourism' && accepted && isKnownDestinationCityEnglishKeyword(accepted)) {
@@ -812,8 +816,6 @@ function resolveHanatourPrimaryKeyword(
   }
 
   if (dayKind === 'movement') {
-    const fromSchedule = pickFirstUnusedHanatourScheduleLandmark(row, productDestination, usedPrimary)
-    if (fromSchedule) return fromSchedule
     return finish(resolveHanatourMovementDayKeyword(row, day, maxDay, productDestination, allRows))
   }
 
@@ -1031,18 +1033,25 @@ export function applyHanatourScheduleImageKeywordsToRows<
     const haystack = buildHanatourDayHaystack(row)
     const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
     if (dayKind !== 'return_home') return row
-    const primary = String(row.imageKeyword ?? '').trim()
     const sectionBody =
       activeHanatourScheduleSectionByDay && day > 0
         ? String(activeHanatourScheduleSectionByDay.get(day) ?? '').trim()
         : ''
-    const primaryFromThisDayScheduleSection =
-      primary.length > 0 &&
-      sectionBody.length >= 20 &&
-      collectHanatourOrderedScheduleLandmarks(row, productDestination).some(
-        (kw) => normKey(kw) === normKey(primary),
+    if (sectionBody.length >= 20) {
+      const landmarks = collectHanatourOrderedScheduleLandmarks(row, productDestination).filter(
+        (kw) => !isHanatourBareCityKeyword(kw),
       )
-    if (primaryFromThisDayScheduleSection) return row
+      if (landmarks.length > 0) {
+        const first = landmarks[0]!
+        const primary = String(row.imageKeyword ?? '').trim()
+        if (!primary || normKey(primary) !== normKey(first)) {
+          return { ...row, imageKeyword: first }
+        }
+        return row
+      }
+    }
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (primary) return row
     const fromLast = findLastResolvedHanatourTourismKeywordBeforeDay(deduped, day, maxDay)
     return fromLast ? { ...row, imageKeyword: fromLast } : row
   })

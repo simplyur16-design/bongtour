@@ -159,3 +159,51 @@ export function resolveHanatourRegisterScheduleSectionByDay(args: {
   const map = gatherHanatourScheduleSectionBodiesByDay(structured)
   return map.size ? map : null
 }
+
+/** LLM 일정 title에 가격표(기본상품 N원)가 섞인 경우 — schedule_section으로 복구 대상 */
+export function isHanatourScheduleRowTitlePriceGarbage(title: string): boolean {
+  const t = String(title ?? '').trim()
+  if (!t) return false
+  return /기본상품|성인\s*\d|아동\s*\d|유아\s*\d|[\d,]+\s*원/.test(t)
+}
+
+type HanatourRegisterPreviewScheduleRow = {
+  day: number
+  title?: string
+  description?: string
+  routeText?: string | null
+}
+
+/**
+ * 등록 미리보기 — LLM schedule[]가 빈약·오염(가격표 title)일 때 schedule_section/normalizedRaw로 title·description 보강.
+ * parse augment·imageKeyword SSOT와 동일 입력을 맞춘다.
+ */
+export function enrichHanatourRegisterPreviewScheduleRowsFromSection<T extends HanatourRegisterPreviewScheduleRow>(
+  rows: T[],
+  detailBody: DetailBodyParseSnapshot | null | undefined,
+): T[] {
+  if (!detailBody || !rows.length) return rows
+  const byDay = gatherHanatourScheduleSectionBodiesByDay(detailBody)
+  if (!byDay.size) return rows
+  return rows.map((row) => {
+    const day = Number(row.day)
+    if (!Number.isFinite(day) || day < 1) return row
+    const chunk = byDay.get(day)?.trim() ?? ''
+    if (chunk.length < 12) return row
+    const titleBad = isHanatourScheduleRowTitlePriceGarbage(String(row.title ?? ''))
+    const descThin = String(row.description ?? '').trim().length < 24
+    if (!titleBad && !descThin) return row
+    const lines = chunk.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    const movementLine =
+      lines.find((l) => /\d{1,2}\/\d{1,2}\s*\([월화수목금토일]\)/.test(l)) ??
+      lines.find((l) => / - /.test(l) && !/출발|도착/.test(l)) ??
+      lines[0] ??
+      ''
+    return {
+      ...row,
+      title: titleBad && movementLine ? movementLine.slice(0, 120) : row.title,
+      description:
+        chunk.length > String(row.description ?? '').trim().length ? chunk.slice(0, 4000) : row.description,
+    }
+  })
+}

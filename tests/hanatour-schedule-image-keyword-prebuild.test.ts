@@ -9,6 +9,7 @@ import { applyRegisterScheduleImageKeywordsForPreview } from '../lib/register-sc
 import {
   gatherHanatourScheduleSectionBodiesByDay,
   resolveHanatourRegisterScheduleSectionByDay,
+  enrichHanatourRegisterPreviewScheduleRowsFromSection,
 } from '../lib/hanatour-schedule-section-by-day'
 import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-keyword-fallback'
 
@@ -334,5 +335,66 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     })
     assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'SoHo Hong Kong')
     assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Wong Tai Sin Temple')
+  })
+
+  it('LLM Victoria Peak — schedule_section 명소 등장 순이 LLM보다 우선', () => {
+    const scheduleSectionByDay = new Map<number, string>([
+      [
+        2,
+        `2일차
+07/02(목) 홍콩, 마카오
+침사추이 해변, 성 바울 성당 유적, 세나두 광장`,
+      ],
+    ])
+    const schedule = [
+      {
+        day: 2,
+        title: '홍콩 및 마카오 핵심 관광',
+        description: '홍콩 - 마카오 - 홍콩',
+        routeText: '홍콩 - 마카오 - 홍콩',
+        imageKeyword: 'Victoria Peak',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
+      productDestination: '홍콩',
+      scheduleSectionByDay,
+    })
+    assert.notEqual(normScheduleImageKeywordKey(out[0]!.imageKeyword), normScheduleImageKeywordKey('Victoria Peak'))
+    assert.notEqual(normScheduleImageKeywordKey(out[0]!.imageKeyword), normScheduleImageKeywordKey('Hong Kong'))
+  })
+
+  it('가격표 title 오염 + normalizedRaw — enrich 후 귀국일 웡타이신', () => {
+    const normalizedRaw = `3일차
+07/03(금) 홍콩, 인천
+웡타이신 사원`
+    const detailBody = {
+      normalizedRaw,
+      sections: [
+        {
+          type: 'schedule_section' as const,
+          text: `3일차\n07/03(금) 홍콩, 인천\n웡타이신 사원`,
+        },
+      ],
+    }
+    const polluted = [
+      {
+        day: 3,
+        title: '기본상품 성인 1 - 156 - 200원 아동 949',
+        description: '홍콩 - 인천',
+        routeText: '홍콩 - 인천',
+        imageKeyword: 'Victoria Peak',
+        imageKeyword2: null,
+      },
+    ]
+    const enriched = enrichHanatourRegisterPreviewScheduleRowsFromSection(polluted, detailBody as never)
+    assert.match(enriched[0]!.title ?? '', /홍콩|07\/03/)
+    const sectionMap = resolveHanatourRegisterScheduleSectionByDay({ parsed: { detailBodyStructured: detailBody as never } })
+    const out = applyRegisterScheduleImageKeywordsForPreview(enriched, {
+      supplierKey: 'hanatour',
+      productDestination: '홍콩',
+      scheduleSectionByDay: sectionMap,
+    })
+    assert.equal(out[0]!.imageKeyword, 'Wong Tai Sin Temple')
   })
 })

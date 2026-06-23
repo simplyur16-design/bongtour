@@ -117,6 +117,17 @@ export function classifyHanatourScheduleCardDayKind(
   ) {
     return 'return_home'
   }
+  /** 마지막 일차 routeText·본문에 국내 허브(인천 등)만 있어도 귀국일 — LLM title 가격 오염 시에도 웡타이신 등 당일 POI 우선 */
+  if (
+    day === maxDay &&
+    maxDay >= 2 &&
+    /(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ|김해)/u.test(j) &&
+    /(?:홍콩|마카오|Macau|Hong\s*Kong|방콕|Bangkok|오사카|Osaka|도쿄|Tokyo|타이베이|Taipei|싱가포르|Singapore|다낭|Da\s*Nang|푸켓|Phuket)/iu.test(
+      j,
+    )
+  ) {
+    return 'return_home'
+  }
   if (inferHanatourMovementTitle(j, day, maxDay) != null || isHanatourMovementPatternDay(j, day, maxDay)) {
     return 'movement'
   }
