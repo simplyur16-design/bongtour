@@ -5,6 +5,8 @@
  * REGRESSION-FREEZE[lottetour-register-detail-collect]: augmentLottetourParsedWithDetailCollect — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
+import type { OptionalToursStructured, ShoppingStructured } from '@/lib/detail-body-parser-types'
+import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-lottetour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-lottetour'
 import {
   extractLottetourFeesFromExcluded,
@@ -59,6 +61,37 @@ function hasStructuredOptional(parsed: RegisterParsed): boolean {
   } catch {
     return false
   }
+}
+
+function lottetourApiOptionalToDetailBodyRows(
+  rows: OptionalTourRowFields[],
+): OptionalToursStructured['rows'] {
+  return rows.map((r) => ({
+    tourName: r.name,
+    currency: r.currency ?? '',
+    adultPrice: r.adultPrice ?? null,
+    childPrice: r.childPrice ?? null,
+    durationText: r.durationText ?? '',
+    minPeopleText: r.minPaxText ?? '',
+    guide同行Text: r.guide同行Text ?? '',
+    waitingPlaceText: r.waitingPlaceText ?? '',
+    descriptionText: r.alternateScheduleText ?? '',
+    priceText: r.priceText ?? undefined,
+    alternateScheduleText: r.alternateScheduleText ?? undefined,
+  }))
+}
+
+function lottetourApiShoppingToDetailBodyRows(
+  rows: ReturnType<typeof extractLottetourShoppingFromSpotListAjax>['rows'],
+): ShoppingStructured['rows'] {
+  return rows.map((r) => ({
+    shoppingItem: r.itemType,
+    shoppingPlace: r.placeName,
+    durationText: r.durationText ?? '',
+    refundPolicyText: r.refundPolicyText ?? '',
+    visitNo: r.visitNo,
+    candidateOnly: false as const,
+  }))
 }
 
 export function needsLottetourScheduleCollect(parsed: RegisterParsed): boolean {
@@ -310,26 +343,13 @@ export async function augmentLottetourParsedWithDetailCollect(
         optionalTourSummaryText:
           optRows.length > 1 ? `현지옵션 ${optRows.length}개` : '현지옵션 있음',
       }
-      if (optJson) {
-        const parsedRows = JSON.parse(optJson) as Array<Record<string, unknown>>
+      if (next.detailBodyStructured) {
         next = {
           ...next,
           detailBodyStructured: {
-            ...(next.detailBodyStructured ?? {}),
+            ...next.detailBodyStructured,
             optionalToursStructured: {
-              rows: parsedRows.map((r) => ({
-                tourName: String(r.tourName ?? ''),
-                currency: String(r.currency ?? ''),
-                adultPrice: (r.adultPrice as number | null) ?? null,
-                childPrice: (r.childPrice as number | null) ?? null,
-                durationText: String(r.durationText ?? ''),
-                minPaxText: String(r.minPaxText ?? ''),
-                guide同行Text: String(r.guide同行Text ?? ''),
-                waitingPlaceText: String(r.waitingPlaceText ?? ''),
-                raw: String(r.raw ?? ''),
-                priceText: (r.priceText as string | null) ?? null,
-                alternateScheduleText: (r.alternateScheduleText as string | null) ?? null,
-              })),
+              rows: lottetourApiOptionalToDetailBodyRows(optRows),
               reviewNeeded: false,
               reviewReasons: [],
             },
@@ -357,44 +377,15 @@ export async function augmentLottetourParsedWithDetailCollect(
       }
       summaryParts.push(`쇼핑 ${shop.rows.length}행`)
       if (next.detailBodyStructured) {
-        const st = next.detailBodyStructured.shoppingStructured
+        const shoppingCountText =
+          visitCount != null && visitCount > 0 ? `쇼핑 ${visitCount}회` : `쇼핑 ${shop.rows.length}회`
         next = {
           ...next,
           detailBodyStructured: {
             ...next.detailBodyStructured,
             shoppingStructured: {
-              ...st,
-              rows: shop.rows.map((r) => ({
-                shoppingItem: r.itemType,
-                shoppingPlace: r.placeName,
-                durationText: r.durationText ?? '',
-                refundPolicyText: r.refundPolicyText ?? '',
-                visitNo: r.visitNo,
-                candidateOnly: false,
-              })),
-              shoppingCountText:
-                visitCount != null && visitCount > 0 ? `쇼핑 ${visitCount}회` : st?.shoppingCountText ?? '',
-              reviewNeeded: false,
-              reviewReasons: [],
-            },
-          },
-        }
-      } else if (shop.rows.length > 0) {
-        next = {
-          ...next,
-          detailBodyStructured: {
-            ...(next.detailBodyStructured ?? {}),
-            shoppingStructured: {
-              rows: shop.rows.map((r) => ({
-                shoppingItem: r.itemType,
-                shoppingPlace: r.placeName,
-                durationText: r.durationText ?? '',
-                refundPolicyText: r.refundPolicyText ?? '',
-                visitNo: r.visitNo,
-                candidateOnly: false,
-              })),
-              shoppingCountText:
-                visitCount != null && visitCount > 0 ? `쇼핑 ${visitCount}회` : `쇼핑 ${shop.rows.length}회`,
+              rows: lottetourApiShoppingToDetailBodyRows(shop.rows),
+              shoppingCountText,
               reviewNeeded: false,
               reviewReasons: [],
             },

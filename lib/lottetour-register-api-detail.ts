@@ -363,28 +363,28 @@ export function buildLottetourFlightStructuredFromRegisterSources(args: {
     ymdFromBaseYmdAndMmDd(ibPlan?.arrMmdd ? evtListRow?.returnDate ?? evtListRow?.departDate : null, ibPlan?.arrMmdd ?? null) ??
     ibDepDate
 
-  const outbound = {
-    departureAirport: obPlan?.depPlace,
+  const outbound: FlightStructured['outbound'] = {
+    departureAirport: obPlan?.depPlace ?? null,
     departureAirportCode: null,
-    departureDate: obDepDate,
-    departureTime: obDepTime,
-    arrivalAirport: obPlan?.arrPlace,
+    departureDate: obDepDate ?? null,
+    departureTime: obDepTime ?? null,
+    arrivalAirport: obPlan?.arrPlace ?? null,
     arrivalAirportCode: null,
-    arrivalDate: obArrDate,
-    arrivalTime: obArrTime,
-    flightNo: obFlightNo,
+    arrivalDate: obArrDate ?? null,
+    arrivalTime: obArrTime ?? null,
+    flightNo: obFlightNo ?? null,
     durationText: evtListRow?.durationText ?? null,
   }
-  const inbound = {
-    departureAirport: ibPlan?.depPlace,
+  const inbound: FlightStructured['inbound'] = {
+    departureAirport: ibPlan?.depPlace ?? null,
     departureAirportCode: null,
-    departureDate: ibDepDate,
-    departureTime: ibDepTime,
-    arrivalAirport: ibPlan?.arrPlace,
+    departureDate: ibDepDate ?? null,
+    departureTime: ibDepTime ?? null,
+    arrivalAirport: ibPlan?.arrPlace ?? null,
     arrivalAirportCode: null,
-    arrivalDate: ibArrDate,
-    arrivalTime: ibArrTime,
-    flightNo: ibFlightNo,
+    arrivalDate: ibArrDate ?? null,
+    arrivalTime: ibArrTime ?? null,
+    flightNo: ibFlightNo ?? null,
     durationText: evtListRow?.durationText ?? null,
   }
 
