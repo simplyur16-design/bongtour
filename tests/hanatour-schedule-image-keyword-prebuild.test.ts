@@ -463,4 +463,26 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     assert.notEqual(d3.title, '상품가격')
     assert.equal(d3.breakfastText, '호텔식')
   })
+
+  it('flight-only detailBodyStructured stub (sections missing) — gather/enrich do not throw', () => {
+    const stub = {
+      flightStructured: {
+        airlineName: '아시아나항공',
+        outbound: { flightNo: 'OZ202' },
+        inbound: { flightNo: 'OZ203' },
+      },
+    }
+    const byDay = gatherHanatourScheduleSectionBodiesByDay(stub as never)
+    assert.equal(byDay.size, 0)
+    const sectionMap = resolveHanatourRegisterScheduleSectionByDay({
+      parsed: { detailBodyStructured: stub as never },
+    })
+    assert.equal(sectionMap, null)
+    const rows = enrichHanatourRegisterPreviewScheduleRowsFromSection(
+      [{ day: 1, title: 'Day 1', description: '관광', routeText: null }],
+      stub as never,
+    )
+    assert.equal(rows.length, 1)
+    assert.equal(rows[0]!.title, 'Day 1')
+  })
 })

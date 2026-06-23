@@ -127,7 +127,8 @@ function mergeHanatourScheduleSectionByDayPreferRicher(
 export function gatherHanatourScheduleSectionBodiesByDay(
   detailBody: DetailBodyParseSnapshot,
 ): Map<number, string> {
-  const parts = detailBody.sections
+  // API flight collect may stub detailBodyStructured with flightStructured only (no sections).
+  const parts = (detailBody.sections ?? [])
     .filter((s) => s.type === 'schedule_section')
     .map((s) => s.text.trim())
     .filter(Boolean)
