@@ -96,6 +96,14 @@ export function classifyHanatourScheduleCardDayKind(
   if (
     day === maxDay &&
     maxDay >= 2 &&
+    /(?:귀국|귀국편)/u.test(j) &&
+    /(?:출발|공항|ICN|인천|김포|GMP|신치토세|Chitose|CTS)/u.test(j)
+  ) {
+    return 'return_home'
+  }
+  if (
+    day === maxDay &&
+    maxDay >= 2 &&
     /(인천|ICN|김포|GMP)/.test(j) &&
     /(출발|귀국|탑승)/.test(j) &&
     /(상해|PVG|푸동|연길|YNJ)/.test(j)

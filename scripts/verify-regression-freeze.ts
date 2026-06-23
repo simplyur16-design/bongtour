@@ -35,6 +35,10 @@ type Manifest = {
       mustInclude?: string[]
       mustNotInclude?: string[]
     }>
+    /** static guard 직후 실행할 npm script (live gate 등) — 문자열 또는 { script, tier } */
+    npmScripts?: Array<string | { script: string; tier?: Tier[] }>
+    /** static guard에 묶인 vitest 파일 — manifest staticGuards[].vitestSuites 레거시 키도 허용 */
+    vitestSuites?: string[]
   }>
   vitestSuites: Array<{
     id: string
@@ -101,6 +105,23 @@ function databaseUrlConfigured(): boolean {
   return Boolean((process.env.DATABASE_URL ?? '').trim())
 }
 
+function guardNpmScriptsForTier(
+  guard: { npmScripts?: Array<string | { script: string; tier?: Tier[] }> },
+  runTier: Tier,
+): string[] {
+  const out: string[] = []
+  for (const entry of guard.npmScripts ?? []) {
+    if (typeof entry === 'string') {
+      out.push(entry)
+      continue
+    }
+    const script = entry?.script?.trim()
+    if (!script) continue
+    if (tierMatch(entry.tier ?? ['ci'], runTier)) out.push(script)
+  }
+  return out
+}
+
 function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]): void {
   const guards = manifest.staticGuards.filter((g) => tierMatch(g.tier, runTier))
   for (const guard of guards) {
@@ -123,6 +144,27 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
       }
     }
     console.log(`[regression-freeze] ✓ static ${guard.id}`)
+    for (const script of guardNpmScriptsForTier(guard, runTier)) {
+      try {
+        runNpmScript(script, `${guard.id} → npm run ${script}`)
+      } catch {
+        console.error(`\n[FAIL] regression-freeze nested npm: ${guard.id} (${script})`)
+        process.exit(1)
+      }
+    }
+    const guardVitestFiles = guard.vitestSuites ?? []
+    if (guardVitestFiles.length > 0) {
+      if (!vitestInstalled()) {
+        throw new Error(
+          'vitest devDependency not installed — run npm install (with devDeps) before verify:regression-freeze:ci',
+        )
+      }
+      for (const file of guardVitestFiles) {
+        const full = path.join(ROOT, file).replace(/\\/g, '/')
+        console.log(`\n[regression-freeze] ▶ vitest ${guard.id} → ${file}`)
+        execSync(`npx vitest run ${full}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+      }
+    }
   }
 }
 
@@ -148,6 +190,10 @@ function runVitestSuites(manifest: Manifest, runTier: Tier): number {
     )
   }
   for (const suite of suites) {
+    if (!Array.isArray(suite.files) || suite.files.length === 0) {
+      console.warn(`[regression-freeze] ⊘ skip vitest suite ${suite.id} (no files — move to staticGuards?)`)
+      continue
+    }
     const args = suite.files.map((f) => path.join(ROOT, f).replace(/\\/g, '/')).join(' ')
     console.log(`\n[regression-freeze] ▶ vitest ${suite.id}`)
     execSync(`npx vitest run ${args}`, { cwd: ROOT, stdio: 'inherit', env: process.env })

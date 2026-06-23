@@ -55,6 +55,22 @@ const DOMESTIC_HUB_KO_RE =
 const DOMESTIC_HUB_EN_RE =
   /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i
 
+/** 하나투어 일정·routeText 한글 명소 — pexels POI 맵에 없는 홋카이도·지역 랜드마크 */
+const HANATOUR_KO_POI_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /죠잔케이|Jozankei|定山渓/u, en: 'Jozankei' },
+  { re: /노보리베츠.*지옥|지옥\s*계곡|Jigokudani/u, en: 'Noboribetsu Jigokudani' },
+  { re: /오타루\s*운하|Otaru\s*Canal/u, en: 'Otaru Canal' },
+  { re: /오르골|Music\s*Box/u, en: 'Otaru Music Box Museum' },
+  { re: /오도리\s*공원|Odori\s*Park/u, en: 'Odori Park' },
+  { re: /도야\s*호수|Lake\s*Toya/u, en: 'Lake Toya' },
+]
+
+const FOREIGN_AIRPORT_KW_RE =
+  /^(?:New\s+Chitose|Chitose|Narita|Haneda|Kansai|Nagoya|Fukuoka|Naha|CTS|NRT|HND|KIX|NGO|FUK|OKA)(?:\s+[Aa]irport)?$/i
+
+const FOREIGN_AIRPORT_ROUTE_RE =
+  /신치토세|新千歲|Chitose|나리타|Narita|간사이|Kansai|하네다|Haneda|나고야\s*공항|Nagoya\s*Airport|후쿠오카\s*공항|Fukuoka\s*Airport|那覇|Naha|CTS|NRT|HND|KIX/i
+
 /** 아시아·태평양 목적지 — 타대륙 유명 랜드마크 환각 차단 대상 */
 const ASIA_PACIFIC_PRODUCT_DEST_RE =
   /인도|India|일본|Japan|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii/i
@@ -166,6 +182,31 @@ export function isHanatourDomesticHubToken(token: string): boolean {
   return false
 }
 
+/** 해외 공항·허브 — 관광 imageKeyword 1순위로 쓰지 않음(당일 숙박·관광지 우선) */
+export function isHanatourForeignAirportImageKeyword(keyword: string): boolean {
+  const k = String(keyword ?? '').trim()
+  if (!k) return false
+  if (FOREIGN_AIRPORT_KW_RE.test(k)) return true
+  return /\bairport\b/i.test(k)
+}
+
+function isHanatourForeignAirportRouteSegment(seg: string): boolean {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t || isHanatourDomesticHubToken(t)) return false
+  if (FOREIGN_AIRPORT_ROUTE_RE.test(t)) return true
+  if (/(?:국제)?\s*공항$/u.test(t)) return true
+  return false
+}
+
+function findHanatourKoPoiEn(text: string): string {
+  const t = String(text ?? '').trim()
+  if (!t) return ''
+  for (const { re, en } of HANATOUR_KO_POI_RULES) {
+    if (re.test(t)) return en
+  }
+  return ''
+}
+
 function routeTextSegments(routeText: string | null | undefined): string[] {
   return splitRouteTextPlaceSegments(routeText).map(stripRouteSegmentNoise).filter((s) => s.length >= 2)
 }
@@ -234,6 +275,14 @@ function extractLatinEnglishFromRouteSegment(seg: string): string {
 function englishFromKoreanRouteSegment(seg: string): string {
   const t = stripRouteSegmentNoise(seg)
   if (!t || isHanatourDomesticHubToken(t)) return ''
+  const fromHanatourPoi = findHanatourKoPoiEn(t)
+  if (fromHanatourPoi) {
+    try {
+      return finalizeScheduleImageKeyword(fromHanatourPoi)
+    } catch {
+      /* continue */
+    }
+  }
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     try {
@@ -274,7 +323,7 @@ function pushUniqueHanatourLandmark(
   raw: string,
   productDestination: string | null | undefined,
 ): void {
-  const kw = tryAcceptHanatourLlmImageKeyword(raw, productDestination)
+  const kw = tryAcceptHanatourMappedPoiKeyword(raw, productDestination)
   if (!kw) return
   const nk = normKey(kw)
   if (list.some((x) => normKey(x) === nk)) return
@@ -297,6 +346,9 @@ function collectHanatourLandmarkKeywords(
   for (const en of findAllMappedKoreanPoisInText(haystack)) {
     pushUniqueHanatourLandmark(out, en, productDestination)
   }
+  for (const { re, en } of HANATOUR_KO_POI_RULES) {
+    if (re.test(haystack)) pushUniqueHanatourLandmark(out, en, productDestination)
+  }
   return out
 }
 
@@ -307,8 +359,13 @@ function preferPoiOverBareCityLlm(
   productDestination: string | null | undefined,
 ): string {
   const bodyHaystack = [row.title, row.description].filter(Boolean).join('\n')
+  for (const { re, en } of HANATOUR_KO_POI_RULES) {
+    if (!re.test(bodyHaystack)) continue
+    const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
+    if (kw && normKey(kw) !== normKey(acceptedCity)) return kw
+  }
   for (const { en } of findMappedKoreanPoisInTextByMentionOrder(bodyHaystack)) {
-    const kw = tryAcceptHanatourLlmImageKeyword(en, productDestination)
+    const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
     if (kw && normKey(kw) !== normKey(acceptedCity)) return kw
   }
   return acceptedCity
@@ -324,6 +381,26 @@ function tryAcceptHanatourLlmImageKeyword(
     isDomesticHub: isHanatourDomesticHubToken,
     isCrossContinentHallucination: isHanatourCrossContinentHallucinationKeyword,
   })
+}
+
+/** HANATOUR_KO_POI_RULES 등 SSOT 매핑 — 짧은 도시명(Otaru 등) weak-opaque 우회 */
+function tryAcceptHanatourMappedPoiKeyword(
+  raw: string | null | undefined,
+  productDestination: string | null | undefined,
+): string {
+  const accepted = tryAcceptHanatourLlmImageKeyword(raw, productDestination)
+  if (accepted) return accepted
+  const fin = String(raw ?? '').trim()
+  if (!fin) return ''
+  try {
+    const kw = finalizeScheduleImageKeyword(fin)
+    if (!kw || isHanatourDomesticHubToken(kw)) return ''
+    if (isHanatourCrossContinentHallucinationKeyword(kw, productDestination)) return ''
+    if (isHanatourForeignAirportImageKeyword(kw)) return ''
+    return kw
+  } catch {
+    return ''
+  }
 }
 
 function inferHanatourKeywordFromDayContent(
@@ -360,7 +437,9 @@ function pickForeignPlaceFromRouteText(
 ): string {
   const segs = routeTextSegments(routeText).filter((s) => !isHanatourDomesticHubToken(s))
   if (!segs.length) return ''
-  const ordered = pickLast ? [...segs].reverse() : segs
+  const nonAirport = segs.filter((s) => !isHanatourForeignAirportRouteSegment(s))
+  const useSegs = nonAirport.length > 0 ? nonAirport : segs
+  const ordered = pickLast ? [...useSegs].reverse() : useSegs
   for (const seg of ordered) {
     const kw = segmentToAcceptedHanatourKeyword(seg, productDestination)
     if (kw) return kw
@@ -422,7 +501,7 @@ function resolveHanatourDestinationCityDayKeyword(
   allRows: HanatourScheduleImageKeywordRow[],
 ): string {
   const tripPlaces = collectTripForeignPlaceKeywordsInDayOrder(allRows, productDestination)
-  const pickLast = day === maxDay && maxDay >= 2 && day !== 1
+  const pickLast = day === 1 || (day === maxDay && maxDay >= 2 && day !== 1)
   const fromRoute = pickForeignPlaceFromRouteText(row.routeText, pickLast, productDestination)
 
   if (day === 1) {
@@ -522,6 +601,42 @@ function resolveHanatourPrimaryKeyword(
     })
     if (example) return example
     return ''
+  }
+
+  if (
+    day === 1 &&
+    (isHanatourForeignAirportImageKeyword(accepted) ||
+      isHanatourForeignAirportImageKeyword(String(row.imageKeyword ?? '')))
+  ) {
+    const fromRoute = pickForeignPlaceFromRouteText(row.routeText, true, productDestination)
+    if (fromRoute && !isHanatourForeignAirportImageKeyword(fromRoute)) return fromRoute
+    for (const { re, en } of HANATOUR_KO_POI_RULES) {
+      if (!re.test(haystack)) continue
+      const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
+      if (kw && !isHanatourForeignAirportImageKeyword(kw)) return kw
+    }
+    const resolved = resolveHanatourDestinationCityDayKeyword(
+      row,
+      day,
+      maxDay,
+      productDestination,
+      allRows,
+    )
+    if (resolved && !isHanatourForeignAirportImageKeyword(resolved)) return resolved
+  }
+
+  if (dayKind === 'tourism') {
+    for (const { re, en } of HANATOUR_KO_POI_RULES) {
+      if (!re.test(haystack)) continue
+      const kw = tryAcceptHanatourMappedPoiKeyword(en, productDestination)
+      if (!kw) continue
+      if (!accepted || normKey(kw) !== normKey(accepted)) return kw
+    }
+  }
+
+  if (dayKind === 'tourism' && accepted && isKnownDestinationCityEnglishKeyword(accepted)) {
+    const fromPoi = preferPoiOverBareCityLlm(row, accepted, productDestination)
+    if (fromPoi !== accepted) return fromPoi
   }
 
   const acceptedIsLandmarkEligible =

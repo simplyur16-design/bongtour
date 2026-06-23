@@ -24,7 +24,7 @@ const CASES: LiveCase[] = [
   {
     supplier: 'modetour',
     label: 'modetour-package',
-    url: 'https://www.modetour.com/package/110029935',
+    url: 'https://www.modetour.com/package/103887821',
     travelScope: 'overseas',
   },
   {
@@ -36,13 +36,13 @@ const CASES: LiveCase[] = [
   {
     supplier: 'hanatour',
     label: 'hanatour-package',
-    url: 'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=EEP133260701KEY&prePage=major-products',
+    url: 'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CHP101260701TWW&prePage=major-products',
     travelScope: 'overseas',
   },
   {
     supplier: 'hanatour',
     label: 'hanatour-fit',
-    url: 'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=JMB331260701BXF&prePage=major-products',
+    url: 'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CMB1952607057CH&prePage=major-products',
     travelScope: 'air_hotel_free',
   },
   {
@@ -78,7 +78,7 @@ const CASES: LiveCase[] = [
   {
     supplier: 'kyowontour',
     label: 'kyowontour-package',
-    url: 'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=MCP160260622WS01&menuCode=M510602&brandId=0',
+    url: 'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CSP302260621KE01&menuCode=M5204&brandId=3',
     travelScope: 'overseas',
   },
   {

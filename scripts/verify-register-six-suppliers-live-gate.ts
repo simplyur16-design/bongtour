@@ -17,7 +17,7 @@ type ParsedLike = Record<string, unknown>
 
 const URLS = {
   kyowontour:
-    'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=MCP160260622WS01&menuCode=M510602&brandId=0',
+    'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CSP302260621KE01&menuCode=M5204&brandId=3',
   ybtour:
     'https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABW002&evCd=ALP1122-260706QV00',
   lottetour: 'https://www.lottetour.com/evtDetail/826/857/1063/2333?evtCd=B30A260707BX016',

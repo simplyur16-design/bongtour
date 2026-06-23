@@ -44,7 +44,9 @@ function mergeAirlineTransportPaste(
   }
 }
 
-function refreshHanatourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
+/** API·정형칸 병합 후 flightStructured가 바뀌면 review·sectionReview를 재계산한다. */
+/** REGRESSION-FREEZE[hanatour-register-samples-live-gate]: pkgAirSeqList 후 review 재계산 — manifest */
+export function refreshHanatourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
   const policy = buildDetailReviewPolicyHanatour({
     sections: detailBody.sections,
     flightStructured: detailBody.flightStructured,
@@ -52,8 +54,8 @@ function refreshHanatourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): D
     optionalToursStructured: detailBody.optionalToursStructured,
     shoppingStructured: detailBody.shoppingStructured,
     includedExcludedStructured: detailBody.includedExcludedStructured,
-    optionalPasteRaw: detailBody.raw.optionalToursPasteRaw,
-    shoppingPasteRaw: detailBody.raw.shoppingPasteRaw,
+    optionalPasteRaw: detailBody.raw?.optionalToursPasteRaw ?? null,
+    shoppingPasteRaw: detailBody.raw?.shoppingPasteRaw ?? null,
   })
   return {
     ...detailBody,

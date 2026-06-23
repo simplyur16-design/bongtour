@@ -21,12 +21,73 @@ export function normalizeScheduleMealCapture(s: string): string {
     .trim()
 }
 
-/** API·fact 매퍼 — `석식 현지식` → `현지식` */
+/**
+ * 식사 **시간대(슬롯)** 접두(조식·중식·석식)만 제거하고 **식사 내용**(기내식·현지식·호텔식 등)만 남긴다.
+ * 조식/중식/석식은 식사 종류가 아니라 아침·점심·저녁 슬롯 표기다.
+ * @example `석식 현지식` → `현지식`
+ */
 export function stripMealTypeLabelPrefix(text: string | null | undefined): string | null {
   const t = String(text ?? '').trim()
   if (!t) return null
   const stripped = t.replace(/^(?:조식|아침|중식|점심|석식|저녁)\s*[-–—:：]?\s*/i, '').trim()
   return stripped || t
+}
+
+const MEAL_SLOT_KEYS = ['breakfastText', 'lunchText', 'dinnerText'] as const
+type MealSlotKey = (typeof MEAL_SLOT_KEYS)[number]
+
+function mealSlotKeyFromLabel(text: string): MealSlotKey | null {
+  if (/^(?:조식|아침)/i.test(text)) return 'breakfastText'
+  if (/^(?:중식|점심)/i.test(text)) return 'lunchText'
+  if (/^(?:석식|저녁)/i.test(text)) return 'dinnerText'
+  return null
+}
+
+function nextEmptyMealSlot(out: ParsedScheduleMealFields): MealSlotKey | null {
+  return MEAL_SLOT_KEYS.find((k) => isEmptyMealHotelField(out[k])) ?? null
+}
+
+/**
+ * 하나투어 itnr fact `meals[]` — 슬롯 표기(조·중·석)와 식사 내용(기내식 등)이 카드별로 올 때 매핑.
+ * 슬롯 접두가 없는 항목은 빈 칸에 순서대로 채우되, 석식이 이미 있으면 남은 1건은 중식 칸 우선.
+ */
+export function parseFactMealsListToScheduleFields(meals: string[]): ParsedScheduleMealFields {
+  const out: ParsedScheduleMealFields = {}
+  const unattributed: string[] = []
+
+  for (const raw of meals) {
+    const t = String(raw ?? '').trim()
+    if (!t || isEmptyMealHotelField(t)) continue
+    const slot = mealSlotKeyFromLabel(t)
+    if (slot) {
+      assignMealField(out, slot, stripMealTypeLabelPrefix(t))
+    } else {
+      unattributed.push(t)
+    }
+  }
+
+  for (const content of unattributed) {
+    let slot = nextEmptyMealSlot(out)
+    if (
+      unattributed.length === 1 &&
+      out.dinnerText &&
+      isEmptyMealHotelField(out.lunchText) &&
+      isEmptyMealHotelField(out.breakfastText)
+    ) {
+      slot = 'lunchText'
+    }
+    if (!slot) break
+    assignMealField(out, slot, content)
+  }
+
+  if (meals.length > 0) {
+    out.mealSummaryText = meals
+      .map((m) => String(m ?? '').trim())
+      .filter(Boolean)
+      .join(' / ')
+      .slice(0, 500)
+  }
+  return out
 }
 
 function assignMealField(

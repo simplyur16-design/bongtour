@@ -2053,6 +2053,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-meal-parse]",
             "parseScheduleMealFieldsFromText",
+            "parseFactMealsListToScheduleFields",
             "stripMealTypeLabelPrefix"
           ]
         },
@@ -3150,6 +3151,44 @@
       ]
     },
     {
+      "id": "hanatour-register-samples-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "하나투어 SSOT 7샘플(패키지3·자유4) — pkgAirSeqList 항공·일정·선택관광 live",
+      "npmScripts": [
+        "verify:register-hanatour-samples-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-hanatour-samples-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-samples-live-gate]",
+            "CHP101260701TWW",
+            "CMB1952607057CH",
+            "PGB245260627LJ9",
+            "registerFlightCollectLooksComplete",
+            "refreshHanatourDetailBodyPolicy"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-samples-live-gate]",
+            "refreshHanatourDetailBodyPolicy",
+            "needsRegisterFlightApiCollect"
+          ]
+        },
+        {
+          "file": "lib/register-parse-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-samples-live-gate]",
+            "refreshHanatourDetailBodyPolicy"
+          ]
+        }
+      ]
+    },
+    {
       "id": "verygoodtour-register-detail-collect",
       "tier": [
         "prebuild",
@@ -3412,6 +3451,96 @@
         "lib/kyowontour-register-schedule-collect.test.ts",
         "lib/kyowontour-register-tab-data-collect.test.ts"
       ]
+    },
+    {
+      "id": "register-detail-collect-gates",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "6공급사 등록 상세카드 — 포함/불포함·옵션·쇼핑 수집 게이트 SSOT",
+      "checks": [
+        {
+          "file": "lib/register-detail-collect-gates.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-detail-collect-gates]",
+            "needsRegisterIncludedCollect",
+            "needsRegisterExcludedCollect",
+            "needsRegisterOptionalCollect",
+            "needsRegisterShoppingCollect"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "needsRegisterIncludedCollect",
+            "needsRegisterShoppingCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-detail-collect-gates.test.ts"
+      ]
+    },
+    {
+      "id": "register-admin-preview-card-build",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "6공급사 등록 미리보기 data — 옵션 외화·쇼핑·포함/불포함 SSOT",
+      "checks": [
+        {
+          "file": "lib/register-admin-preview-card-build.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-preview-card-build]",
+            "buildRegisterAdminPreviewCardData",
+            "normalizeRegisterOptionalTourCurrency",
+            "formatRegisterOptionalTourPrice"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-tour-event-tab-data.ts",
+          "mustInclude": [
+            "normalizeRegisterOptionalTourCurrency"
+          ]
+        },
+        {
+          "file": "app/admin/register/components/RegisterAdminFinalParsedSummaryCard.tsx",
+          "mustInclude": [
+            "formatRegisterOptionalTourPrice"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-admin-preview-card-build.test.ts"
+      ]
+    },
+    {
+      "id": "register-six-suppliers-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "4공급사(하나투어·모두투어 제외) 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
+      "npmScripts": [
+        "verify:register-six-suppliers-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-six-suppliers-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-six-suppliers-live-gate]",
+            "gateCollect",
+            "gateImageKeywords"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "htmlBulletsFromYbtourNotice"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -3505,96 +3634,6 @@
       "files": [
         "lib/mega-menu-eastern-europe-browse.test.ts",
         "lib/match-overseas-product-cebu-island.test.ts"
-      ]
-    },
-    {
-      "id": "register-detail-collect-gates",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "6공급사 등록 상세카드 — 포함/불포함·옵션·쇼핑 수집 게이트 SSOT",
-      "checks": [
-        {
-          "file": "lib/register-detail-collect-gates.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[register-detail-collect-gates]",
-            "needsRegisterIncludedCollect",
-            "needsRegisterExcludedCollect",
-            "needsRegisterOptionalCollect",
-            "needsRegisterShoppingCollect"
-          ]
-        },
-        {
-          "file": "lib/hanatour-register-detail-collect.ts",
-          "mustInclude": [
-            "needsRegisterIncludedCollect",
-            "needsRegisterShoppingCollect"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/register-detail-collect-gates.test.ts"
-      ]
-    },
-    {
-      "id": "register-admin-preview-card-build",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "6공급사 등록 미리보기 data — 옵션 외화·쇼핑·포함/불포함 SSOT",
-      "checks": [
-        {
-          "file": "lib/register-admin-preview-card-build.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[register-admin-preview-card-build]",
-            "buildRegisterAdminPreviewCardData",
-            "normalizeRegisterOptionalTourCurrency",
-            "formatRegisterOptionalTourPrice"
-          ]
-        },
-        {
-          "file": "lib/kyowontour-tour-event-tab-data.ts",
-          "mustInclude": [
-            "normalizeRegisterOptionalTourCurrency"
-          ]
-        },
-        {
-          "file": "app/admin/register/components/RegisterAdminFinalParsedSummaryCard.tsx",
-          "mustInclude": [
-            "formatRegisterOptionalTourPrice"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/register-admin-preview-card-build.test.ts"
-      ]
-    },
-    {
-      "id": "register-six-suppliers-live-gate",
-      "tier": [
-        "ci"
-      ],
-      "summary": "4공급사(하나투어·모두투어 제외) 운영 URL — 포함·불포함·옵션·쇼핑·imageKeyword live 게이트",
-      "npmScripts": [
-        "verify:register-six-suppliers-live-gate"
-      ],
-      "checks": [
-        {
-          "file": "scripts/verify-register-six-suppliers-live-gate.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[register-six-suppliers-live-gate]",
-            "gateCollect",
-            "gateImageKeywords"
-          ]
-        },
-        {
-          "file": "lib/ybtour-register-api-detail.ts",
-          "mustInclude": [
-            "htmlBulletsFromYbtourNotice"
-          ]
-        }
       ]
     }
   ]

@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: augmentHanatourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[hanatour-register-samples-live-gate]: SSOT 7샘플 live gate — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-hanatour'
@@ -33,6 +34,7 @@ import {
   applyRegisterCollectedFlightStructured,
   needsRegisterFlightApiCollect,
 } from '@/lib/register-detail-collect-flight-apply'
+import { refreshHanatourDetailBodyPolicy } from '@/lib/register-parse-hanatour'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -254,6 +256,15 @@ export async function augmentHanatourParsedWithDetailCollect(
   if (needFlight) {
     const flightStructured = buildHanatourFlightStructuredFromProdInfo(prodInfo)
     next = applyRegisterCollectedFlightStructured(next, flightStructured)
+    if (flightStructured && next.detailBodyStructured?.sections) {
+      next = {
+        ...next,
+        detailBodyStructured: refreshHanatourDetailBodyPolicy({
+          ...next.detailBodyStructured,
+          flightStructured,
+        }),
+      }
+    }
     if (flightStructured) summaryParts.push('항공 pkgAirSeqList')
   }
 

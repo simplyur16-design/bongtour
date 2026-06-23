@@ -89,7 +89,9 @@ describe('hanatour register detail collect', () => {
     expect(days[0]?.title).toBe('인천')
     expect(days[0]?.routeText).toBe('인천 - 오사카')
     expect(days[0]?.hotelText).toContain('오사카')
-    expect(days[0]?.dinnerText).toContain('석식')
+    expect(days[0]?.lunchText).toBe('기내식')
+    expect(days[0]?.dinnerText).toBe('현지식')
+    expect(days[0]?.mealSummaryText).toContain('석식')
   })
 
   it('merges fees into excluded items', () => {

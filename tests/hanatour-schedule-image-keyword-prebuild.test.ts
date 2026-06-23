@@ -152,4 +152,48 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     assert.ok(d2.imageKeyword2 && d2.imageKeyword2.length > 0)
     assert.notEqual(normScheduleImageKeywordKey(d2.imageKeyword), normScheduleImageKeywordKey(d2.imageKeyword2!))
   })
+
+  it('홋카이도 — 1일차 공항 LLM(New Chitose) 대신 죠잔케이, 3일차 오타루 운하', () => {
+    const schedule = [
+      {
+        day: 1,
+        title: '-',
+        description:
+          '청주 국제공항에서 출발하여 신치토세 공항에 도착합니다. 죠잔케이로 이동하여 온천욕과 함께 휴식을 취합니다. 죠잔케이 네이처 루미나리에 일루미네이션을 감상합니다.',
+        routeText: '청주 - 신치토세 - 죠잔케이',
+        imageKeyword: 'New Chitose',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '-',
+        description: '노보리베츠의 지옥계곡을 방문합니다.',
+        routeText: '죠잔케이 - 노보리베츠 - 도야',
+        imageKeyword: 'Noboribetsu Jigokudani',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '-',
+        description: '오타루 운하 산책과 삿포로 시내 관광.',
+        routeText: '도야 - 오타루 - 삿포로',
+        imageKeyword: 'Sapporo',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        title: '-',
+        description: '삿포로 시내 관광 후 신치토세 공항 경유 귀국',
+        routeText: '삿포로 - 신치토세 - 청주',
+        imageKeyword: 'Sapporo',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
+      productDestination: '일본 홋카이도',
+    })
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'Jozankei')
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Otaru')
+    assert.equal(out.find((r) => r.day === 4)!.imageKeyword, out.find((r) => r.day === 3)!.imageKeyword)
+  })
 })

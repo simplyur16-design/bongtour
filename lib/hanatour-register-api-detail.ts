@@ -15,7 +15,7 @@ import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-hanatour'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
-import { stripMealTypeLabelPrefix } from '@/lib/register-schedule-meal-parse'
+import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { addDaysUtcYmd } from '@/lib/calendar-ymd'
 
@@ -163,9 +163,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
     const description = [...d.places, d.transportNote].filter(Boolean).join('\n') || title
     const routeText = d.places.length > 0 ? d.places.join(' - ') : null
     const hotelText = d.hotels.length > 0 ? d.hotels.join(' / ') : null
-    const breakfast = d.meals.find((m) => /조식|아침/.test(m)) ?? null
-    const lunch = d.meals.find((m) => /중식|점심/.test(m)) ?? null
-    const dinner = d.meals.find((m) => /석식|저녁/.test(m)) ?? null
+    const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
       day: d.day,
       title,
@@ -173,10 +171,10 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       routeText,
       imageKeyword: (d.places[0] ?? title).slice(0, 80),
       hotelText,
-      breakfastText: stripMealTypeLabelPrefix(breakfast),
-      lunchText: stripMealTypeLabelPrefix(lunch),
-      dinnerText: stripMealTypeLabelPrefix(dinner),
-      mealSummaryText: d.meals.length > 0 ? d.meals.join(' / ') : null,
+      breakfastText: meals.breakfastText ?? null,
+      lunchText: meals.lunchText ?? null,
+      dinnerText: meals.dinnerText ?? null,
+      mealSummaryText: meals.mealSummaryText ?? null,
     }
   })
 }
