@@ -5,9 +5,10 @@
  */
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-detail-collect'
+import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
 import { resolveModetourRegisterProductTitle } from '@/lib/modetour-register-product-title-ssot'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
-import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
+import type { RegisterFactPriceRow, RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-modetour'
@@ -49,6 +50,27 @@ function buildDuration(nights: number | null, days: number | null): string {
   return ''
 }
 
+function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): string | null {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const day of days) {
+    for (const raw of day.places) {
+      const label = String(raw ?? '')
+        .replace(/\s*\([^)]*\)\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (label.length < 2 || label.length > 40) continue
+      if (/^(?:인천|ICN|서울|김포|공항|출발|도착)$/i.test(label)) continue
+      if (/조식|중식|석식|기내/i.test(label)) continue
+      const key = label.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(label)
+    }
+  }
+  return out.length > 0 ? out.slice(0, 15).join(', ') : null
+}
+
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseModetourRegisterFromApi(
   rawText: string,
@@ -70,6 +92,12 @@ export async function parseModetourRegisterFromApi(
     pasteBlob: rawText.trim(),
     llmTitleRaw: bundle.title?.trim() ?? '',
   })
+  const paste = rawText.trim()
+  const dest = resolveModetourRegisterDestination({
+    pastedBody: paste,
+    title: titleRes.title,
+    travelCitiesRaw: factSchedulePlacesToTravelCitiesRaw(bundle.scheduleDays),
+  })
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const firstPrice = bundle.priceRows[0]
@@ -89,7 +117,9 @@ export async function parseModetourRegisterFromApi(
     originUrl,
     title: titleRes.title,
     supplierListingTitleRaw: titleRes.supplierListingTitleRaw,
-    destination: bundle.title?.trim() || titleRes.title,
+    destination: dest.destination || '미지정',
+    destinationRaw: dest.destinationRaw,
+    primaryDestination: dest.primaryDestination,
     duration: buildDuration(bundle.nights, bundle.days),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,

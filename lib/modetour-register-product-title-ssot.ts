@@ -8,6 +8,7 @@ import {
   type ModetourBaselineTrace,
 } from '@/lib/modetour-departures'
 import { extractModetourVerbatimListingTitleRawFromPaste } from '@/lib/modetour-listing-title-from-paste'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-modetour'
 
 export const MODETOUR_REGISTER_TITLE_SSOT_VERSION = 'v1-2026-06-03'
@@ -21,13 +22,9 @@ export type ModetourRegisterTitleResolution = {
   unacceptable: boolean
 }
 
-/** 모두투어 등록 전용: 맨 앞 `[배지]`·공백만 정리(요약·해시 제거 금지). */
+/** 모두투어 등록 전용: [출발확정] 등 마케팅 []·#만 제거 — [지역]·일반 해시 유지. */
 export function normalizeModetourRegisterTitleMinimal(s: string): string {
-  let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
-  t = t.replace(/^(\[[^\]\n]{1,120}\]\s*)+/, '')
-  t = t.replace(/[\u00a0\u3000]+/g, ' ')
-  t = t.replace(/\s+/g, ' ').trim()
-  return t
+  return normalizeSupplierRegisterListingTitle(s)
 }
 
 function pickAcceptableTitle(

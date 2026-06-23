@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildSupplierProductDisplayTitle,
+  normalizeSupplierRegisterListingTitle,
   resolveSupplierVerbatimOriginalTitle,
   stripSupplierTitlePromoBadges,
   stripSupplierTitleUiNoise,
@@ -37,6 +38,19 @@ describe('buildSupplierProductDisplayTitle', () => {
     })
     expect(title).toContain('베트남 5일')
     expect(title).not.toMatch(/출발\s*확정|긴급\s*모객/)
+  })
+
+  it('strips hanatour/modetour promo brackets but keeps region', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle('[출발확정] 홍콩/마카오 3일 #베스트셀러'),
+    ).toBe('홍콩/마카오 3일')
+    expect(normalizeSupplierRegisterListingTitle('[스테디셀러] 홍콩+마카오 핵심투어 2박4일')).toBe(
+      '홍콩+마카오 핵심투어 2박4일',
+    )
+    expect(normalizeSupplierRegisterListingTitle('[다낭] #바나힐 3박 5일')).toBe('[다낭] #바나힐 3박 5일')
+    expect(normalizeSupplierRegisterListingTitle('[오전출발-휴양형] 다낭/호이안 3박5일')).toBe(
+      '다낭/호이안 3박5일',
+    )
   })
 
   it('strips route badges but keeps promo hashtags', () => {

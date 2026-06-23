@@ -1551,7 +1551,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-api-parse]",
             "collectHanatourRegisterFacts",
-            "parseHanatourRegisterFromApi"
+            "parseHanatourRegisterFromApi",
+            "normalizeSupplierRegisterListingTitle",
+            "resolveHanatourRegisterDestination"
           ],
           "mustNotInclude": [
             "parseForRegisterLlmHanatour",
@@ -1576,7 +1578,7 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/hanatour-register-detail-collect.test.ts"]
+      "vitestSuites": ["lib/hanatour-register-detail-collect.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
     },
     {
       "id": "modetour-register-api-parse",
@@ -1589,7 +1591,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-api-parse]",
             "collectModetourRegisterFacts",
-            "parseModetourRegisterFromApi"
+            "parseModetourRegisterFromApi",
+            "resolveModetourRegisterDestination"
           ],
           "mustNotInclude": [
             "parseForRegisterLlmModetour",
@@ -1625,7 +1628,7 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/modetour-register-detail-collect.test.ts"]
+      "vitestSuites": ["lib/modetour-register-detail-collect.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
     },
     {
       "id": "modetour-register-samples-live-gate",

@@ -11,6 +11,7 @@ import {
   decodeBasicHtmlEntities,
   type DepartureTitleLayers,
 } from '@/lib/departure-option-modetour'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { extractPricePromotionFromHtml, type PricePromotionSnapshot } from '@/lib/price-promotion-modetour'
 import {
   departureInputToYmd,
@@ -740,7 +741,9 @@ function extractBaselineFromDetailHtml(html: string | null, productNo: string | 
       )
       continue
     }
-    const cleaned = cleanModetourBaselineTitleSource(raw, productNo)
+    const cleaned = normalizeSupplierRegisterListingTitle(
+      cleanModetourBaselineTitleSource(raw, productNo),
+    )
     console.info(`[MODETOUR_BASELINE_CLEAN] source=${c.source} text=${JSON.stringify(cleaned.slice(0, 240))}`)
     if (isModetourWeakBaselineTitleText(cleaned)) {
       console.info(

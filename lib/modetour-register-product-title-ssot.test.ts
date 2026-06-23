@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   modetourRegisterTitleBlocksConfirmSave,
+  normalizeModetourRegisterTitleMinimal,
   resolveModetourRegisterProductTitle,
   resolveModetourRegisterProductTitleForConfirm,
 } from '@/lib/modetour-register-product-title-ssot'
@@ -11,6 +12,15 @@ const BAD = '2026.12.12~2026.12.14 2박 3일'
 const BAD_HOTEL = '일급호텔 3박 5일'
 
 describe('modetour-register-product-title-ssot', () => {
+  it('strips promo brackets like 출발확정 from api title', () => {
+    expect(normalizeModetourRegisterTitleMinimal('[출발확정] 홍콩+마카오 2박4일')).toBe('홍콩+마카오 2박4일')
+    const r = resolveModetourRegisterProductTitle({
+      pasteBlob: '',
+      llmTitleRaw: '[스테디셀러] 홍콩+마카오 핵심투어 2박4일',
+    })
+    expect(r.title).toBe('홍콩+마카오 핵심투어 2박4일')
+  })
+
   it('resolver rejects departure window when no hash title in paste', () => {
     const r = resolveModetourRegisterProductTitle({
       pasteBlob: `${BAD}\n이스타항공`,

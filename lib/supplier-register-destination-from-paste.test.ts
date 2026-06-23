@@ -70,6 +70,26 @@ describe('supplier register destination from paste', () => {
     expect(r.destination).toMatch(/로스앤젤레스|샌디에이고/)
   })
 
+  it('hanatour: URL-only — title slash cities, not full product title', () => {
+    const r = resolveHanatourRegisterDestination({
+      pastedBody: '',
+      title: '홍콩/마카오 3일',
+    })
+    expect(r.destination).toMatch(/홍콩/)
+    expect(r.destination).not.toMatch(/3일|베스트/)
+    expect(r.destinationRaw).toMatch(/홍콩/)
+    expect(r.destinationRaw).toMatch(/마카오/)
+  })
+
+  it('modetour: URL-only — bracket region from title', () => {
+    const r = resolveModetourRegisterDestination({
+      pastedBody: '',
+      title: '[다낭] #바나힐 #호이안 3박 4일',
+    })
+    expect(r.destination).toMatch(/다낭/)
+    expect(r.destination).not.toMatch(/바나힐|3박/)
+  })
+
   it('verygoodtour: 여행여정 + LLM 특전 거부', () => {
     const r = resolveVerygoodtourRegisterDestination({
       pastedBody: VERYGOOD_SNIPPET,

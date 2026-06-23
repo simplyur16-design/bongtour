@@ -52,14 +52,30 @@ export function stripSupplierTitleUiNoise(s: string): string {
   return t.replace(/\s+/g, ' ').trim()
 }
 
+/** `[출발확정]`·`[오전출발]` 등 마케팅/상태 대괄호 — [지역]·[항공사]는 제외 */
+const SUPPLIER_TITLE_PROMO_BADGE_INNER =
+  /(?:출발\s*확정|긴급\s*모객|오전\s*출발|저녁\s*출발|오후\s*출발|선착\s*순|스테디\s*셀러|베스트\s*셀러|홈\s*쇼핑|품격|유류\s*할증|연휴\s*좌석|추석\s*연휴|설\s*연휴|휴양형|\bHIT\b|\bBEST\b|\bNEW\b|\bHOT\b)/i
+
 function isPromoOnlyBadgeText(raw: string): boolean {
-  let t = raw.trim().replace(/\s/g, '').replace(/^#/, '')
-  if (!t) return true
-  t = t.replace(/^노팁/, '')
-  if (!t) return true
-  return /^(?:무(?:쇼핑|옵션)|노(?:쇼핑|옵션)|직항|출발\s*확정|긴급\s*모객|nooption|noshopping)$/i.test(
-    t.replace(/\s/g, ''),
-  )
+  const spaced = raw.trim()
+  if (!spaced) return true
+  let compact = spaced.replace(/\s/g, '').replace(/^#/, '')
+  compact = compact.replace(/^노팁/, '')
+  if (!compact) return true
+  if (/^(?:무(?:쇼핑|옵션)|노(?:쇼핑|옵션|팁)|직항|출발확정|긴급모객|nooption|noshopping)$/i.test(compact)) {
+    return true
+  }
+  if (SUPPLIER_TITLE_PROMO_BADGE_INNER.test(spaced)) return true
+  if (/^(?:오전|오후|저녁)출발/i.test(compact)) return true
+  return false
+}
+
+/**
+ * 등록 parse·preview 상품명 — UI 노이즈 + [출발확정] 등 마케팅 []·# 제거.
+ * [다낭]·[동유럽]·#바나힐 등 지역·일반 해시는 유지.
+ */
+export function normalizeSupplierRegisterListingTitle(s: string): string {
+  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(s))
 }
 
 /** 무쇼핑·무옵션·직항 등 마케팅 배지만 제거 — [지역]·[항공사]·일반 #태그는 유지 */

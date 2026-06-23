@@ -14,7 +14,53 @@ const MARKETING_DEST_RE =
   /(?:숙박|폭포\s*뷰|폭포뷰|특급|전일정|식사\s*포함|게릴라|품격|노쇼핑|VIP|리무진|버스\s*탑승|이상\s*객실|뷰\s*객실|나이아가라\s*\d+층)/i
 
 const REGION_TITLE_RE =
-  /미동부|미서부|미남부|미국\s*일주|캐나다|미국|동부|서부|남부|유럽|일본|중국|동남아|호주|괌|하와이|싱가포르|태국|베트남|필리핀|대만/i
+  /미동부|미서부|미남부|미국\s*일주|캐나다|미국|동부|서부|남부|유럽|일본|중국|동남아|호주|괌|하와이|싱가포르|태국|베트남|필리핀|대만|홍콩|마카오|다낭|북해도|오사카|도쿄|방콕/i
+
+const TITLE_PROMO_BRACKET_RE =
+  /출발\s*확정|노옵션|노쇼핑|게릴라|품격|스테디|베스트|홈\s*쇼핑|HIT|오전\s*출발|저녁\s*출발|휴양형/i
+
+const TITLE_DURATION_RE = /\d+\s*(?:박\s*\d+\s*)?일(?:\s|$)/i
+const TITLE_DURATION_TOKEN_RE = /^\d+\s*(?:박\s*\d+\s*)?일$/i
+
+function stripTitleDurationSuffix(s: string): string {
+  return String(s ?? '')
+    .replace(TITLE_DURATION_RE, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isTitleDurationToken(s: string): boolean {
+  return TITLE_DURATION_TOKEN_RE.test(String(s ?? '').trim())
+}
+
+/** API-only·붙여넣기 없을 때 — `[다낭]`·`홍콩/마카오` 등 제목 힌트 */
+export function extractModetourTravelCitiesHintFromTitle(title: string): string | null {
+  const bracketParts: string[] = []
+  for (const m of String(title ?? '').matchAll(/\[([^\]]{2,32})\]/g)) {
+    const inner = m[1]?.trim() ?? ''
+    if (!inner || TITLE_PROMO_BRACKET_RE.test(inner)) continue
+    bracketParts.push(inner)
+  }
+  let t = String(title ?? '')
+    .replace(/\[[^\]]+\]/g, ' ')
+    .replace(/#[^\s]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  t = stripTitleDurationSuffix(t)
+  const slashParts = t
+    .split(/[/／·+]/)
+    .map((p) => stripTitleDurationSuffix(p.replace(/\([^)]*\)/g, ' ')))
+    .filter(
+      (p) =>
+        p.length >= 2 &&
+        p.length <= 20 &&
+        !/^\d+$/.test(p) &&
+        !isTitleDurationToken(p) &&
+        !TITLE_PROMO_BRACKET_RE.test(p),
+    )
+  const merged = [...new Set([...bracketParts, ...slashParts])]
+  return merged.length > 0 ? merged.join(', ') : null
+}
 
 function isModetourMarketingDestination(s: string): boolean {
   const t = String(s ?? '').trim()
@@ -58,7 +104,8 @@ function buildRepresentative(title: string, citiesRaw: string | null): string {
   const lead = cities.slice(0, 2)
   if (regions.length > 0) {
     const region = regions.slice(0, 2).join(' · ')
-    if (lead.length > 0) return `${region} (${lead.join(' · ')})`.slice(0, 96)
+    const leadDistinct = lead.filter((c) => !regions.some((r) => r.includes(c) || c.includes(r)))
+    if (leadDistinct.length > 0) return `${region} (${leadDistinct.join(' · ')})`.slice(0, 96)
     return region.slice(0, 96)
   }
   if (cities.length > 0) {
@@ -74,10 +121,15 @@ export function resolveModetourRegisterDestination(input: {
   pastedBody?: string | null
   title: string
   llmDestination?: string | null
+  travelCitiesRaw?: string | null
 }): ModetourRegisterDestinationResolved {
   const title = String(input.title ?? '').trim()
   const paste = String(input.pastedBody ?? '').slice(0, 12_000)
-  const citiesRaw = extractModetourTravelCitiesRawFromPaste(paste)
+  const citiesRaw =
+    extractModetourTravelCitiesRawFromPaste(paste) ||
+    String(input.travelCitiesRaw ?? '').trim() ||
+    extractModetourTravelCitiesHintFromTitle(title) ||
+    null
   const fromPaste = buildRepresentative(title, citiesRaw)
   const llm = String(input.llmDestination ?? '').trim()
   const fromLlm = llm && !isModetourMarketingDestination(llm) ? llm : ''

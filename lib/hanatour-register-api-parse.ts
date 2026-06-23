@@ -16,6 +16,9 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-hanatour'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
+import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
+import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 
 const HANATOUR_PRICE_SLOT_SSOT_NOTE =
   '하나투어 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=미사용(null), infantPrice=유아. 유류·제세·기본상품가 안내·잔여석 등 메타 줄은 슬롯에 넣지 않습니다.'
@@ -52,6 +55,27 @@ function buildDuration(nights: number | null, days: number | null): string {
   return ''
 }
 
+function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): string | null {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const day of days) {
+    for (const raw of day.places) {
+      const label = String(raw ?? '')
+        .replace(/\s*\([^)]*\)\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (label.length < 2 || label.length > 40) continue
+      if (/^(?:인천|ICN|서울|김포|공항|출발|도착)$/i.test(label)) continue
+      if (/조식|중식|석식|기내/i.test(label)) continue
+      const key = label.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(label)
+    }
+  }
+  return out.length > 0 ? out.slice(0, 15).join(', ') : null
+}
+
 /** originUrl + 선택 붙여넣기(혜택·쿠폰 등) → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseHanatourRegisterFromApi(
   rawText: string,
@@ -81,11 +105,21 @@ export async function parseHanatourRegisterFromApi(
         }
       : undefined
 
+  const listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
+  const paste = rawText.trim()
+  const dest = resolveHanatourRegisterDestination({
+    pastedBody: paste,
+    title: listingTitle,
+    travelCitiesRaw: factSchedulePlacesToTravelCitiesRaw(bundle.scheduleDays),
+  })
+
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'hanatour',
     originCode: bundle.originCode ?? pkgCd,
-    title: bundle.title?.trim() || '',
-    destination: bundle.title?.trim() || '',
+    title: listingTitle,
+    destination: dest.destination || '미지정',
+    destinationRaw: dest.destinationRaw,
+    primaryDestination: dest.primaryDestination,
     duration: buildDuration(bundle.nights, bundle.days),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
@@ -102,7 +136,6 @@ export async function parseHanatourRegisterFromApi(
     ],
   }
 
-  const paste = rawText.trim()
   if (paste) {
     const detailBody = parseDetailBodyStructuredHanatour({
       rawText: paste,
