@@ -114,7 +114,6 @@ export async function parseModetourRegisterFromApi(
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'modetour',
     originCode: productNo,
-    originUrl,
     title: titleRes.title,
     supplierListingTitleRaw: titleRes.supplierListingTitleRaw,
     destination: dest.destination || '미지정',
