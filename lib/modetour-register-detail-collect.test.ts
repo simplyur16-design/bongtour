@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourMustKnowFromKeyPointInfo,
+  buildModetourFlightStructuredFromRoutes,
   extractModetourOptionalToursFromApiList,
   extractModetourShoppingStopsFromApiList,
   modetourHtmlNoteToPlainText,
@@ -118,5 +119,49 @@ describe('modetour register detail collect', () => {
     expect(rows.some((r) => r.body.includes('F1'))).toBe(true)
     expect(rows.some((r) => r.title.includes('보험'))).toBe(true)
     expect(rows.some((r) => r.body === '상품 핵심 포인트')).toBe(false)
+  })
+
+  it('builds flight structured from ItineraryDlgFlightRoute split items', () => {
+    const fs = buildModetourFlightStructuredFromRoutes([
+      {
+        flightTypeName: 'DEPARTURE',
+        item: [
+          {
+            departureCityName: '인천',
+            departureDate: '2026-06-28T00:00:00',
+            departureTime: '07:00',
+          },
+          {
+            transportName: '비엣젯항공',
+            arrivalCityName: '다낭',
+            arrivalDate: '2026-06-28T00:00:00',
+            arrivalTime: '09:40',
+            departureFlight: 'VJ879',
+          },
+        ],
+      },
+      {
+        flightTypeName: 'ARRIVAL',
+        item: [
+          {
+            departureCityName: '다낭',
+            departureDate: '2026-07-01T00:00:00',
+            departureTime: '23:45',
+          },
+          {
+            transportName: '비엣젯항공',
+            arrivalCityName: '인천',
+            arrivalDate: '2026-07-02T00:00:00',
+            arrivalTime: '06:00',
+            departureFlight: 'VJ878',
+          },
+        ],
+      },
+    ])
+    expect(fs?.airlineName).toBe('비엣젯항공')
+    expect(fs?.outbound.flightNo).toBe('VJ879')
+    expect(fs?.inbound.flightNo).toBe('VJ878')
+    expect(fs?.outbound.departureTime).toBe('07:00')
+    expect(fs?.inbound.departureTime).toBe('23:45')
   })
 })

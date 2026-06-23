@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict'
 import { augmentYbtourParsedWithDetailCollect } from '@/lib/ybtour-register-detail-collect'
 import { buildRegisterAdminPreviewCardData } from '@/lib/register-admin-preview-card-build'
+import { registerFlightCollectLooksComplete } from '@/lib/register-detail-collect-flight-apply'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 
 const URL =
@@ -38,6 +39,10 @@ async function main() {
   } as RegisterParsed
 
   const parsed = await augmentYbtourParsedWithDetailCollect(base, { originUrl: URL })
+  assert.ok(registerFlightCollectLooksComplete(parsed), 'ybtour flight: airline·편명·시간')
+  assert.ok(parsed.airlineName?.trim(), 'ybtour airline name')
+  assert.ok(parsed.outboundFlightNo?.trim(), 'ybtour outbound flight no')
+  assert.ok(parsed.inboundFlightNo?.trim(), 'ybtour inbound flight no')
   const optN = countJsonRows(parsed.optionalToursStructured)
   const shopN = countJsonRows(parsed.shoppingStops)
   assert.ok(optN >= 2, `ybtour optional rows >= 2 (got ${optN})`)
@@ -58,6 +63,9 @@ async function main() {
   assert.ok(card.shoppingItems.some((s) => /파인애플|과자/i.test(s.itemName)), '파인애플 shopping in preview')
 
   console.log('OK ybtour CIP1107 Taiwan live gate', {
+    airlineName: parsed.airlineName,
+    outboundFlightNo: parsed.outboundFlightNo,
+    inboundFlightNo: parsed.inboundFlightNo,
     optionalRows: optN,
     shoppingRows: shopN,
     previewOptional: card.optionalTours.length,

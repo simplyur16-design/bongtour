@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict'
 import { augmentModetourParsedWithDetailCollect } from '@/lib/modetour-register-detail-collect'
 import { buildRegisterAdminPreviewCardData } from '@/lib/register-admin-preview-card-build'
+import { registerFlightCollectLooksComplete } from '@/lib/register-detail-collect-flight-apply'
 import type { RegisterParsed } from '@/lib/register-llm-schema-modetour'
 
 const URL = 'https://www.modetour.com/package/103887821'
@@ -30,6 +31,10 @@ async function main() {
   } as RegisterParsed
 
   const parsed = await augmentModetourParsedWithDetailCollect(base, { originUrl: URL })
+  assert.ok(registerFlightCollectLooksComplete(parsed), 'modetour flight: airline·편명·시간')
+  assert.ok(parsed.airlineName?.trim(), 'modetour airline name')
+  assert.match(parsed.outboundFlightNo ?? '', /VJ879/i, 'modetour outbound flight no')
+  assert.match(parsed.inboundFlightNo ?? '', /VJ878/i, 'modetour inbound flight no')
   const optN = countJsonRows(parsed.optionalToursStructured)
   const shopN = countJsonRows(parsed.shoppingStops)
   assert.ok(optN >= 15, `modetour optional rows >= 15 (got ${optN})`)
@@ -50,6 +55,9 @@ async function main() {
   assert.ok(card.shoppingItems.some((s) => /노니/i.test(s.itemName)), '노니 shopping in preview')
 
   console.log('OK modetour 103887821 Danang live gate', {
+    airlineName: parsed.airlineName,
+    outboundFlightNo: parsed.outboundFlightNo,
+    inboundFlightNo: parsed.inboundFlightNo,
     optionalRows: optN,
     shoppingRows: shopN,
     previewOptional: card.optionalTours.length,

@@ -10,6 +10,7 @@ import {
   extractHanatourCorePoints,
   extractHanatourFeesFromProdInfo,
   extractHanatourIncludedExcluded,
+  buildHanatourFlightStructuredFromProdInfo,
   extractHanatourOptionalTours,
   extractHanatourShoppingFromProdInfo,
   fetchHanatourRegisterDetailBundle,
@@ -28,6 +29,10 @@ import {
   needsRegisterIncludedExcludedCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
+import {
+  applyRegisterCollectedFlightStructured,
+  needsRegisterFlightApiCollect,
+} from '@/lib/register-detail-collect-flight-apply'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -172,8 +177,11 @@ export async function augmentHanatourParsedWithDetailCollect(
     hasShoppingPaste: hasShoppingPaste(ctx),
     shoppingStops: parsed.shoppingStops,
   })
+  const needFlight = needsRegisterFlightApiCollect(parsed)
 
-  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop) return parsed
+  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
+    return parsed
+  }
 
   const bundle = await fetchHanatourRegisterDetailBundle(originUrl)
   if (!bundle?.prodInfo) {
@@ -241,6 +249,12 @@ export async function augmentHanatourParsedWithDetailCollect(
       next = { ...next, shoppingNoticeRaw: shop.notice }
     }
     next = finalizeHanatourRegisterParsedShopping(next)
+  }
+
+  if (needFlight) {
+    const flightStructured = buildHanatourFlightStructuredFromProdInfo(prodInfo)
+    next = applyRegisterCollectedFlightStructured(next, flightStructured)
+    if (flightStructured) summaryParts.push('항공 pkgAirSeqList')
   }
 
   const notes = [...(next.registerPreviewPolicyNotes ?? [])]

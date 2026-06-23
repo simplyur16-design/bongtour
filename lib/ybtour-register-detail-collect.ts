@@ -18,6 +18,7 @@ import {
   extractYbtourShoppingFromShopList,
   fetchYbtourRegisterDetailBundle,
   optionalRowsToStructuredJson,
+  resolveYbtourCarrierNameForUrl,
   shoppingRowsToStopsJson,
   ybtourScheduleBundleToRegisterSchedule,
 } from '@/lib/ybtour-register-api-detail'
@@ -34,6 +35,10 @@ import {
   needsRegisterIncludedExcludedCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
+import {
+  applyRegisterCollectedFlightStructured,
+  needsRegisterFlightApiCollect,
+} from '@/lib/register-detail-collect-flight-apply'
 
 export type YbtourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -86,20 +91,6 @@ function needsYbtourMeetingCollect(parsed: RegisterParsed): boolean {
   )
 }
 
-function needsYbtourFlightCollect(parsed: RegisterParsed): boolean {
-  const fs = parsed.detailBodyStructured?.flightStructured
-  const hasFlat =
-    Boolean(parsed.airlineName?.trim()) ||
-    Boolean(parsed.outboundFlightNo?.trim()) ||
-    Boolean(parsed.inboundFlightNo?.trim())
-  const hasStructured =
-    Boolean(fs?.outbound?.flightNo?.trim()) ||
-    Boolean(fs?.inbound?.flightNo?.trim()) ||
-    fs?.debug?.status === 'success' ||
-    fs?.debug?.status === 'partial'
-  return !hasFlat && !hasStructured
-}
-
 /** ybtour — LLM hasOptionalTour=false여도 tour-detail papi 수집 시도 */
 export function needsYbtourOptionalCollect(args: {
   hasOptionalPaste: boolean
@@ -125,7 +116,7 @@ export async function augmentYbtourParsedWithDetailCollect(
   const needInclExcl = needIncl || needExcl
   const needMustKnow = needsYbtourMustKnowCollect(parsed)
   const needMeeting = needsYbtourMeetingCollect(parsed)
-  const needFlight = needsYbtourFlightCollect(parsed)
+  const needFlight = needsRegisterFlightApiCollect(parsed)
   const needOpt = needsYbtourOptionalCollect({
     hasOptionalPaste: hasOptionalPaste(ctx),
     optionalToursStructured: parsed.optionalToursStructured,
@@ -242,33 +233,12 @@ export async function augmentYbtourParsedWithDetailCollect(
   }
 
   if (needFlight && scheduleDetailTm.length > 0) {
-    const flightStructured = buildYbtourFlightStructuredFromTm(scheduleDetailTm)
-    if (flightStructured) {
-      const ob = flightStructured.outbound
-      const ib = flightStructured.inbound
-      next = {
-        ...next,
-        outboundFlightNo: ob.flightNo ?? next.outboundFlightNo,
-        inboundFlightNo: ib.flightNo ?? next.inboundFlightNo,
-        departureDateTimeRaw:
-          ob.departureDate && ob.departureTime
-            ? `${ob.departureDate} ${ob.departureTime}`
-            : next.departureDateTimeRaw,
-        arrivalDateTimeRaw:
-          ib.arrivalDate && ib.arrivalTime
-            ? `${ib.arrivalDate} ${ib.arrivalTime}`
-            : next.arrivalDateTimeRaw,
-        ...(next.detailBodyStructured
-          ? {
-              detailBodyStructured: {
-                ...next.detailBodyStructured,
-                flightStructured,
-              },
-            }
-          : {}),
-      }
-      summaryParts.push('항공 구조')
-    }
+    const carrierName = await resolveYbtourCarrierNameForUrl(originUrl)
+    const flightStructured = buildYbtourFlightStructuredFromTm(scheduleDetailTm, {
+      airlineName: carrierName,
+    })
+    next = applyRegisterCollectedFlightStructured(next, flightStructured)
+    if (flightStructured) summaryParts.push('항공 event-schedule')
   }
 
   if (needOpt) {

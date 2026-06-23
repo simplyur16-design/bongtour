@@ -5,9 +5,11 @@
  * REGRESSION-FREEZE[register-six-suppliers-live-gate]: inclInfo 단락 HTML bullet 분리 — manifest
  */
 import {
+  collectYbtourByGoodsApiDepartureInputsForUrl,
   parseYbtourEvCdFromUrl,
   resolveYbtourGoodsCdForApi,
 } from '@/lib/ybtour-api-departures'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
@@ -332,6 +334,7 @@ export function extractYbtourMeetingFromScheduleTm(
 
 export function buildYbtourFlightStructuredFromTm(
   scheduleDetailTm: YbtourScheduleTmRow[],
+  opts?: { airlineName?: string | null },
 ): FlightStructured | null {
   const row = scheduleDetailTm.find((r) => r.outFlightNm?.trim() || r.inFlightNm?.trim())
   if (!row) return null
@@ -364,8 +367,9 @@ export function buildYbtourFlightStructuredFromTm(
   const hasOb = Boolean(outbound.flightNo || outbound.departureTime)
   const hasIb = Boolean(inbound.flightNo || inbound.departureTime)
   if (!hasOb && !hasIb) return null
+  const airlineName = opts?.airlineName?.trim() || null
   return {
-    airlineName: null,
+    airlineName,
     outbound,
     inbound,
     rawFlightLines: [],
@@ -374,7 +378,7 @@ export function buildYbtourFlightStructuredFromTm(
       selectedOutRaw: outbound.flightNo,
       selectedInRaw: inbound.flightNo,
       partialStructured: true,
-      status: hasOb && hasIb ? 'success' : 'partial',
+      status: hasOb && hasIb && airlineName ? 'success' : hasOb && hasIb ? 'partial' : 'partial',
       exposurePolicy: 'public_full',
       supplierBrandKey: 'ybtour',
       expectFlightNumber: true,
@@ -624,4 +628,16 @@ export async function fetchYbtourRegisterDetailBundle(
 
   if (!notice && !schedule && !tourDetail && !optionalTourDetail) return null
   return { notice, schedule, tourDetail, optionalTourDetail }
+}
+
+/** papi by-goods — URL evCd 행의 항공사명 */
+export async function resolveYbtourCarrierNameForUrl(originUrl: string): Promise<string | null> {
+  const evCd = parseYbtourEvCdFromUrl(originUrl)
+  if (!evCd) return null
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd)
+  const row =
+    hit.inputs.find((x) => String(x.supplierDepartureCodeCandidate ?? '').includes(evCd)) ?? hit.inputs[0]
+  return row?.carrierName?.trim() || null
 }

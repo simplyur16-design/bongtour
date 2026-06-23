@@ -7,6 +7,12 @@
 import { decodeBasicHtmlEntities } from '@/lib/departure-option-modetour'
 import { fetchModetourGroupDetailInfo, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { normalizeModetourOptionalTourDisplayName } from '@/lib/modetour-optional-tour-name'
+import {
+  buildModetourFlightStructuredFromRoutes,
+  type ModetourFlightRouteItem,
+} from '@/lib/register-facts/modetour-register-fact-mappers'
+
+export { buildModetourFlightStructuredFromRoutes }
 
 const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
 const MODETOUR_WEB_API_REQ_HEADER =
@@ -37,6 +43,7 @@ export type ModetourRegisterDetailBundle = {
   keyPointInfo: Record<string, unknown> | null
   optionalTourList: ModetourOptionalTourApiRow[]
   shoppingList: ModetourShoppingApiRow[]
+  flightRoutes: ModetourFlightRouteItem[]
 }
 
 function modetourB2cHeaders(referer: string, productNo: string): HeadersInit {
@@ -262,7 +269,7 @@ export function extractModetourShoppingStopsFromApiList(
 
 export async function fetchModetourRegisterDetailBundle(
   originUrl: string,
-  opts?: { includeOptShop?: boolean },
+  opts?: { includeOptShop?: boolean; includeFlight?: boolean },
 ): Promise<ModetourRegisterDetailBundle | null> {
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
   if (!productNo || productNo === '0') return null
@@ -272,7 +279,8 @@ export async function fetchModetourRegisterDetailBundle(
   const base = MODETOUR_API_BASE.replace(/\/$/, '')
 
   const includeOptShop = opts?.includeOptShop === true
-  const [detailInfo, packageJson, keyPointJson, optionalJson, shoppingJson] = await Promise.all([
+  const includeFlight = opts?.includeFlight === true
+  const [detailInfo, packageJson, keyPointJson, optionalJson, shoppingJson, flightJson] = await Promise.all([
     fetchModetourGroupDetailInfo(originUrl),
     fetchModetourJson<{ result?: Record<string, unknown> }>(
       `${base}/Package/GetPackageInfo?productNo=${encodeURIComponent(productNo)}`,
@@ -294,6 +302,12 @@ export async function fetchModetourRegisterDetailBundle(
           headers,
         )
       : Promise.resolve(null),
+    includeFlight
+      ? fetchModetourJson<{ result?: ModetourFlightRouteItem[] }>(
+          `${base}/Package/ItineraryDlgFlightRoute?productNo=${encodeURIComponent(productNo)}`,
+          headers,
+        )
+      : Promise.resolve(null),
   ])
 
   return {
@@ -302,5 +316,6 @@ export async function fetchModetourRegisterDetailBundle(
     keyPointInfo: keyPointJson?.result ?? null,
     optionalTourList: Array.isArray(optionalJson?.result) ? optionalJson.result : [],
     shoppingList: Array.isArray(shoppingJson?.result) ? shoppingJson.result : [],
+    flightRoutes: Array.isArray(flightJson?.result) ? flightJson.result : [],
   }
 }

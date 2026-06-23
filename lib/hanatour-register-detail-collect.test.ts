@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatHanatourTrvlExpnBullet,
+  buildHanatourFlightStructuredFromProdInfo,
   hanatourFactDaysToRegisterSchedule,
   extractHanatourIncludedExcluded,
   extractHanatourOptionalToursFromChcStsng,
@@ -132,5 +133,46 @@ describe('hanatour register detail collect', () => {
     expect(rows[0]?.adultPrice).toBe(15)
     expect(rows[1]?.name).toBe('선셋 반딧불이 투어')
     expect(rows[1]?.supplierTags).toContain('MD추천')
+  })
+
+  it('builds flight structured from pkgAirSeqList', () => {
+    const fs = buildHanatourFlightStructuredFromProdInfo({
+      depDay: '20260628',
+      pkgAirSeqList: [
+        {
+          segSeq: '1',
+          airlCd: 'AK',
+          airlNm: '에어아시아',
+          flgtNm: '1624',
+          depHm: '0920',
+          arrHm: '1330',
+          depAptCd: 'ICN',
+          depAptNm: '인천 국제공항',
+          arrAptCd: 'BKI',
+          arrAptNm: '코타키나발루 국제공항',
+          depBassFlxbDt: '0',
+          arrBassFlxbDt: '0',
+        },
+        {
+          segSeq: '2',
+          airlCd: 'AK',
+          airlNm: '에어아시아',
+          flgtNm: '1623',
+          depHm: '0155',
+          arrHm: '0820',
+          depAptCd: 'BKI',
+          depAptNm: '코타키나발루 국제공항',
+          arrAptCd: 'ICN',
+          arrAptNm: '인천 국제공항',
+          depBassFlxbDt: '4',
+          arrBassFlxbDt: '4',
+        },
+      ],
+    })
+    expect(fs?.airlineName).toContain('에어아시아')
+    expect(fs?.outbound.flightNo).toBe('AK1624')
+    expect(fs?.inbound.flightNo).toBe('AK1623')
+    expect(fs?.outbound.departureTime).toBe('09:20')
+    expect(fs?.inbound.departureTime).toBe('01:55')
   })
 })

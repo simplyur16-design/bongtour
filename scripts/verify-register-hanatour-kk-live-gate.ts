@@ -9,6 +9,7 @@ import { augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-
 import { buildRegisterAdminPreviewCardData } from '@/lib/register-admin-preview-card-build'
 import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { registerFlightCollectLooksComplete } from '@/lib/register-detail-collect-flight-apply'
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
 
 const URL =
@@ -70,6 +71,9 @@ async function main() {
   } as RegisterParsed
 
   const parsed = await augmentHanatourParsedWithDetailCollect(base, { originUrl: URL })
+  assert.ok(registerFlightCollectLooksComplete(parsed), 'hanatour flight: airline·편명·시간')
+  assert.match(parsed.outboundFlightNo ?? '', /AK1624/i, 'hanatour outbound flight no')
+  assert.match(parsed.inboundFlightNo ?? '', /AK1623/i, 'hanatour inbound flight no')
   const optN = countJsonRows(parsed.optionalToursStructured)
   assert.ok(optN >= 20, `hanatour optional rows >= 20 (got ${optN})`)
   assert.equal(parsed.hasOptionalTour, true)
@@ -102,6 +106,9 @@ async function main() {
   assert.ok(card.optionalTours.some((o) => /KK 스타 라운지/i.test(o.name)), 'KK 스타 라운지 in preview')
 
   console.log('OK hanatour AYP295 KK live gate', {
+    airlineName: parsed.airlineName,
+    outboundFlightNo: parsed.outboundFlightNo,
+    inboundFlightNo: parsed.inboundFlightNo,
     optionalRows: optN,
     previewOptional: card.optionalTours.length,
     day2: { kw1: d2?.imageKeyword, kw2: d2?.imageKeyword2 },

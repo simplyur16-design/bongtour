@@ -149,6 +149,22 @@ describe('ybtour register detail collect', () => {
     expect(fs?.outbound.departureTime).toBe('20:55')
   })
 
+  it('accepts airlineName from by-goods carrier', () => {
+    const fs = buildYbtourFlightStructuredFromTm(
+      [
+        {
+          outFlightNm: 'ZE601',
+          inFlightNm: 'ZE602',
+          outDeprtTm: '0855',
+          inDeprtTm: '1940',
+        },
+      ],
+      { airlineName: '이스타항공' },
+    )
+    expect(fs?.airlineName).toBe('이스타항공')
+    expect(fs?.outbound.flightNo).toBe('ZE601')
+  })
+
   it('parses shopInfo HTML shopping table', () => {
     const html = `<p>총 2번의 쇼핑센터 방문</p><table>
       <tr><td>회차</td><td>쇼핑 품목</td><td>쇼핑 장소</td><td>소요시간</td><td>환불여부</td></tr>

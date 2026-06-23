@@ -2973,6 +2973,9 @@
             "GetProductDetailInfo",
             "GetProductKeyPointInfo",
             "needsModetourOptionalCollect",
+            "buildModetourFlightStructuredFromRoutes",
+            "needsRegisterFlightApiCollect",
+            "ItineraryDlgFlightRoute",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
           ]
@@ -2987,7 +2990,9 @@
             "fetchModetourRegisterDetailBundle",
             "extractModetourOptionalToursFromApiList",
             "extractModetourShoppingStopsFromApiList",
-            "GetOptionalTourList"
+            "GetOptionalTourList",
+            "buildModetourFlightStructuredFromRoutes",
+            "includeFlight"
           ]
         },
         {
@@ -3016,6 +3021,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-danang-live-gate]",
             "103887821",
+            "registerFlightCollectLooksComplete",
             "optionalToursStructured",
             "shoppingStops"
           ]
@@ -3027,6 +3033,28 @@
             "Japanese Covered Bridge"
           ]
         }
+      ]
+    },
+    {
+      "id": "register-detail-collect-flight-apply",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 상세 수집 — API flightStructured → parsed 평탄 필드·detailBodyStructured 병합",
+      "checks": [
+        {
+          "file": "lib/register-detail-collect-flight-apply.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-detail-collect-flight-apply]",
+            "applyRegisterCollectedFlightStructured",
+            "needsRegisterFlightApiCollect",
+            "registerFlightCollectLooksComplete"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-detail-collect-flight-apply.test.ts"
       ]
     },
     {
@@ -3043,6 +3071,8 @@
             "REGRESSION-FREEZE[hanatour-register-detail-collect]",
             "augmentHanatourParsedWithDetailCollect",
             "getPkgProdInfo",
+            "buildHanatourFlightStructuredFromProdInfo",
+            "needsRegisterFlightApiCollect",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
           ]
@@ -3054,6 +3084,7 @@
             "formatHanatourTrvlExpnBullet",
             "extractHanatourIncludedExcluded",
             "getPkgProdChcStsngInfo",
+            "buildHanatourFlightStructuredFromProdInfo",
             "extractHanatourOptionalToursFromChcStsng"
           ]
         },
@@ -3088,7 +3119,7 @@
           "file": "scripts/verify-register-hanatour-kk-live-gate.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-kk-live-gate]",
-            "getPkgProdChcStsngInfo",
+            "registerFlightCollectLooksComplete",
             "optionalToursStructured"
           ]
         },
@@ -3109,7 +3140,8 @@
         {
           "file": "lib/hanatour-register-detail-collect.ts",
           "mustInclude": [
-            "needsHanatourOptionalCollect"
+            "needsHanatourOptionalCollect",
+            "needsRegisterFlightApiCollect"
           ]
         }
       ],
@@ -3167,6 +3199,8 @@
             "REGRESSION-FREEZE[ybtour-register-detail-collect]",
             "augmentYbtourParsedWithDetailCollect",
             "needsYbtourOptionalCollect",
+            "needsRegisterFlightApiCollect",
+            "resolveYbtourCarrierNameForUrl",
             "papi notice",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
@@ -3179,6 +3213,8 @@
             "extractYbtourIncludedExcluded",
             "extractYbtourShoppingRowsFromShopInfoHtml",
             "optional-tour-detail",
+            "buildYbtourFlightStructuredFromTm",
+            "resolveYbtourCarrierNameForUrl",
             "ybtourScheduleBundleToRegisterSchedule"
           ]
         },
@@ -3208,6 +3244,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-taiwan-live-gate]",
             "CIP1107",
+            "registerFlightCollectLooksComplete",
             "optionalToursStructured",
             "shoppingStops"
           ]

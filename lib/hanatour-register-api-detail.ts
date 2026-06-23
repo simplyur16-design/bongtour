@@ -5,15 +5,19 @@
  */
 import {
   fetchHanatourPkgProdInfo,
+  hanatourDepartureAirportLabelFromCodes,
+  hanatourYmdFromDepDay,
   parseHanatourPkgCdFromUrl,
   type HanatourPkgProdInfo,
 } from '@/lib/hanatour-api-departures'
+import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-hanatour'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import { stripMealTypeLabelPrefix } from '@/lib/register-schedule-meal-parse'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
+import { addDaysUtcYmd } from '@/lib/calendar-ymd'
 
 const HANATOUR_GW_BASE = process.env.HANATOUR_GW_BASE_URL ?? 'https://gw.hanatour.com'
 const HANATOUR_TRP_PRG_MID = 'CHPC0PKG0200M200'
@@ -95,6 +99,24 @@ export type HanatourCorePointRow = {
   corePntCont?: string | null
 }
 
+export type HanatourPkgAirSeqRow = {
+  schdSeq?: number
+  segSeq?: string | null
+  airlCd?: string | null
+  airlNm?: string | null
+  flgtNm?: string | null
+  depHm?: string | null
+  arrHm?: string | null
+  depAptCd?: string | null
+  depAptNm?: string | null
+  depAptCityNm?: string | null
+  arrAptCd?: string | null
+  arrAptNm?: string | null
+  arrAptCityNm?: string | null
+  depBassFlxbDt?: string | null
+  arrBassFlxbDt?: string | null
+}
+
 export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
   trvlExpnInclList?: HanatourTrvlExpnRow[]
   trvlExpnNoneInclList?: HanatourTrvlExpnRow[]
@@ -111,6 +133,11 @@ export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
   rppdCntntInfoList?: HanatourCorePointRow[]
   agtRmkCont?: string | null
   noptYn?: string | null
+  pkgAirSeqList?: HanatourPkgAirSeqRow[]
+  depAirCd?: string | null
+  arrFlgtCd?: string | null
+  depCityNm?: string | null
+  arrCityNm?: string | null
 }
 
 export function stripHanatourHtmlText(html: string): string {
@@ -452,6 +479,123 @@ export async function fetchHanatourPkgProdChcStsngInfo(pkgCd: string): Promise<H
     '/package/pkg/api/common/pkgcomprod/getPkgProdChcStsngInfo/v1.00',
     { pkgCd },
   )
+}
+
+function hanatourHmToDisplay(hm: string | null | undefined): string | null {
+  const s = String(hm ?? '').trim()
+  if (!/^\d{4}$/.test(s)) return s || null
+  return `${s.slice(0, 2)}:${s.slice(2, 4)}`
+}
+
+function hanatourFlightNo(airlCd?: string | null, flgtNm?: string | null): string | null {
+  const cd = String(airlCd ?? '').trim()
+  const nm = String(flgtNm ?? '').trim()
+  if (!cd && !nm) return null
+  if (cd && nm) return `${cd}${nm}`
+  return cd || nm
+}
+
+function hanatourLegDate(baseYmd: string | null, offsetRaw: string | null | undefined): string | null {
+  if (!baseYmd) return null
+  const off = Number(String(offsetRaw ?? '0').trim())
+  if (!Number.isFinite(off) || off === 0) return baseYmd
+  return addDaysUtcYmd(baseYmd, off)
+}
+
+/** getPkgProdInfo.pkgAirSeqList — 편명·항공사·공항·일시 SSOT (REGRESSION-FREEZE[register-detail-collect-flight-apply]) */
+export function buildHanatourFlightStructuredFromProdInfo(
+  info: HanatourProdInfoExtended | null | undefined,
+): FlightStructured | null {
+  if (!info) return null
+  const baseYmd = hanatourYmdFromDepDay(info.depDay)
+  const rows = info.pkgAirSeqList ?? []
+  const outboundRow = rows.find((r) => String(r.segSeq) === '1') ?? rows[0]
+  const inboundRow = rows.find((r) => String(r.segSeq) === '2') ?? rows[rows.length - 1]
+  const airlCd = outboundRow?.airlCd ?? inboundRow?.airlCd ?? info.depAirCd ?? null
+
+  const outbound = outboundRow
+    ? {
+        departureAirport: outboundRow.depAptNm?.trim() || outboundRow.depAptCityNm?.trim() || null,
+        departureAirportCode: outboundRow.depAptCd?.trim() || null,
+        departureDate: hanatourLegDate(baseYmd, outboundRow.depBassFlxbDt),
+        departureTime: hanatourHmToDisplay(outboundRow.depHm),
+        arrivalAirport: outboundRow.arrAptNm?.trim() || outboundRow.arrAptCityNm?.trim() || null,
+        arrivalAirportCode: outboundRow.arrAptCd?.trim() || null,
+        arrivalDate: hanatourLegDate(baseYmd, outboundRow.arrBassFlxbDt),
+        arrivalTime: hanatourHmToDisplay(outboundRow.arrHm),
+        flightNo: hanatourFlightNo(outboundRow.airlCd, outboundRow.flgtNm),
+        durationText: null,
+      }
+    : {
+        departureAirport:
+          hanatourDepartureAirportLabelFromCodes(info.depAirCd, info.depCityCd) ||
+          info.depCityNm?.trim() ||
+          null,
+        departureAirportCode: info.depAirCd?.trim() || null,
+        departureDate: baseYmd,
+        departureTime: hanatourHmToDisplay(info.depTm),
+        arrivalAirport: info.arrCityNm?.trim() || null,
+        arrivalAirportCode: null,
+        arrivalDate: hanatourYmdFromDepDay(info.arrDay),
+        arrivalTime: hanatourHmToDisplay(info.arrTm),
+        flightNo: hanatourFlightNo(airlCd, info.depFlgtCd),
+        durationText: null,
+      }
+
+  const inbound = inboundRow
+    ? {
+        departureAirport: inboundRow.depAptNm?.trim() || inboundRow.depAptCityNm?.trim() || null,
+        departureAirportCode: inboundRow.depAptCd?.trim() || null,
+        departureDate: hanatourLegDate(baseYmd, inboundRow.depBassFlxbDt),
+        departureTime: hanatourHmToDisplay(inboundRow.depHm),
+        arrivalAirport: inboundRow.arrAptNm?.trim() || inboundRow.arrAptCityNm?.trim() || null,
+        arrivalAirportCode: inboundRow.arrAptCd?.trim() || null,
+        arrivalDate: hanatourLegDate(baseYmd, inboundRow.arrBassFlxbDt),
+        arrivalTime: hanatourHmToDisplay(inboundRow.arrHm),
+        flightNo: hanatourFlightNo(inboundRow.airlCd, inboundRow.flgtNm),
+        durationText: null,
+      }
+    : {
+        departureAirport: info.arrCityNm?.trim() || null,
+        departureAirportCode: null,
+        departureDate: hanatourYmdFromDepDay(info.arrDay),
+        departureTime: hanatourHmToDisplay(info.arrTm),
+        arrivalAirport:
+          hanatourDepartureAirportLabelFromCodes(info.depAirCd, info.depCityCd) || '인천국제공항',
+        arrivalAirportCode: info.depAirCd?.trim() || null,
+        arrivalDate: hanatourYmdFromDepDay(info.arrDay),
+        arrivalTime: hanatourHmToDisplay(info.arrTm),
+        flightNo: hanatourFlightNo(airlCd, info.arrFlgtCd),
+        durationText: null,
+      }
+
+  const airlineName =
+    outboundRow?.airlNm?.trim() ||
+    inboundRow?.airlNm?.trim() ||
+    String(info.airlNm ?? '').trim() ||
+    null
+  const hasOb = Boolean(outbound.flightNo || outbound.departureTime)
+  const hasIb = Boolean(inbound.flightNo || inbound.departureTime)
+  if (!hasOb && !hasIb) return null
+
+  return {
+    airlineName,
+    outbound,
+    inbound,
+    rawFlightLines: [],
+    debug: {
+      candidateCount: rows.length || 1,
+      selectedOutRaw: outbound.flightNo,
+      selectedInRaw: inbound.flightNo,
+      partialStructured: !(hasOb && hasIb && airlineName),
+      status: hasOb && hasIb && airlineName ? 'success' : 'partial',
+      exposurePolicy: 'public_full',
+      supplierBrandKey: 'hanatour',
+      expectFlightNumber: true,
+    },
+    reviewNeeded: false,
+    reviewReasons: [],
+  }
 }
 
 export async function fetchHanatourPkgProdItnr(pkgCd: string): Promise<HanatourItnrResponse | null> {

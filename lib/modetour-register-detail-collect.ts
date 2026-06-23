@@ -11,6 +11,7 @@ import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourMustKnowFromKeyPointInfo,
+  buildModetourFlightStructuredFromRoutes,
   extractModetourOptionalToursFromApiList,
   extractModetourShoppingFromDetailBundle,
   extractModetourShoppingStopsFromApiList,
@@ -30,6 +31,10 @@ import {
   needsRegisterIncludedExcludedCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
+import {
+  applyRegisterCollectedFlightStructured,
+  needsRegisterFlightApiCollect,
+} from '@/lib/register-detail-collect-flight-apply'
 
 export type ModetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -171,17 +176,23 @@ export async function augmentModetourParsedWithDetailCollect(
     hasShoppingPaste: hasShoppingPaste(ctx),
     shoppingStops: parsed.shoppingStops,
   })
+  const needFlight = needsRegisterFlightApiCollect(parsed)
 
-  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop) return parsed
+  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
+    return parsed
+  }
 
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
 
-  const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt
+  const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt || needFlight
   const [facts, detailBundle] = await Promise.all([
     needSchedule ? collectModetourRegisterFacts(originUrl) : Promise.resolve(null),
     needDetailBundle
-      ? fetchModetourRegisterDetailBundle(originUrl, { includeOptShop: needOpt || needShop })
+      ? fetchModetourRegisterDetailBundle(originUrl, {
+          includeOptShop: needOpt || needShop,
+          includeFlight: needFlight,
+        })
       : Promise.resolve(null),
   ])
 
@@ -294,6 +305,12 @@ export async function augmentModetourParsedWithDetailCollect(
       }
       summaryParts.push(`GetProductKeyPointInfo: 핵심포인트 ${mustKnowItems.length}건`)
     }
+  }
+
+  if (needFlight && (detailBundle?.flightRoutes?.length ?? 0) > 0) {
+    const flightStructured = buildModetourFlightStructuredFromRoutes(detailBundle!.flightRoutes)
+    next = applyRegisterCollectedFlightStructured(next, flightStructured)
+    if (flightStructured) summaryParts.push('ItineraryDlgFlightRoute: 항공')
   }
 
   const notes = [...(next.registerPreviewPolicyNotes ?? [])]

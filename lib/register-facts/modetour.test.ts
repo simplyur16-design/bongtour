@@ -64,4 +64,50 @@ describe('modetourFlightRoutesToFactLegs', () => {
     expect(legs[0]?.carrier).toBe('에어서울')
     expect(legs[0]?.departureAt).toBe('2026-06-21T08:10')
   })
+
+  it('merges split departure/arrival items and maps ARRIVAL as inbound', () => {
+    const legs = modetourFlightRoutesToFactLegs([
+      {
+        flightTypeName: 'DEPARTURE',
+        item: [
+          {
+            departureCityName: '인천',
+            departureDate: '2026-06-28T00:00:00',
+            departureTime: '07:00',
+          },
+          {
+            transportName: '비엣젯항공',
+            arrivalCityName: '다낭',
+            arrivalDate: '2026-06-28T00:00:00',
+            arrivalTime: '09:40',
+            departureFlight: 'VJ879',
+          },
+        ],
+      },
+      {
+        flightTypeName: 'ARRIVAL',
+        item: [
+          {
+            departureCityName: '다낭',
+            departureDate: '2026-07-01T00:00:00',
+            departureTime: '23:45',
+          },
+          {
+            transportName: '비엣젯항공',
+            arrivalCityName: '인천',
+            arrivalDate: '2026-07-02T00:00:00',
+            arrivalTime: '06:00',
+            departureFlight: 'VJ878',
+          },
+        ],
+      },
+    ])
+    expect(legs).toHaveLength(2)
+    expect(legs[0]?.direction).toBe('outbound')
+    expect(legs[0]?.flightNo).toBe('VJ879')
+    expect(legs[0]?.departureAt).toBe('2026-06-28T07:00')
+    expect(legs[1]?.direction).toBe('inbound')
+    expect(legs[1]?.flightNo).toBe('VJ878')
+    expect(legs[1]?.departureAt).toBe('2026-07-01T23:45')
+  })
 })
