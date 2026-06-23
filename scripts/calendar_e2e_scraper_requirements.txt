@@ -1,0 +1,7 @@
+# Railway/Nixpacks SSOT — 6공급사 calendar e2e scraper venv (한 번에 설치·재시도)
+playwright>=1.40.0
+APScheduler>=3.10.0
+selenium>=4.15.0
+requests>=2.31.0
+urllib3>=2.0.0
+beautifulsoup4>=4.12.0
