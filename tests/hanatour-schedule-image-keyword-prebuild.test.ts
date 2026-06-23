@@ -397,4 +397,70 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     })
     assert.equal(out[0]!.imageKeyword, 'Wong Tai Sin Temple')
   })
+
+  it('본문 일정 SSOT — LLM generic·가격 title 대신 schedule_section 표현·식사 유지', async () => {
+    const { mergeHanatourBodyFirstScheduleRows } = await import('../lib/parse-and-register-hanatour-schedule')
+    const bodyRows = [
+      {
+        day: 1,
+        title: '07/01(수) 인천, 홍콩',
+        description: '소호 거리(SoHo), 타이쿤, 빅토리아 피크',
+        routeText: '인천 - 홍콩',
+        imageKeyword: '',
+        breakfastText: null,
+        lunchText: '기내식',
+        dinnerText: '호텔식',
+        mealSummaryText: '조: - / 중: 기내식 / 석: 호텔식',
+        hotelText: '홍콩 호텔',
+      },
+      {
+        day: 3,
+        title: '07/03(금) 홍콩, 인천',
+        description: '웡타이신 사원',
+        routeText: '홍콩 - 인천',
+        imageKeyword: '',
+        breakfastText: '호텔식',
+        lunchText: null,
+        dinnerText: '기내식',
+        mealSummaryText: null,
+        hotelText: null,
+      },
+    ]
+    const llmRows = [
+      {
+        day: 1,
+        title: '인천 - 국제공항',
+        description: '인천 국제공항에서 출발하여 홍콩으로 이동합니다. 숙소에서 휴식.',
+        routeText: '인천 - 홍콩',
+        imageKeyword: 'Hong Kong',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '홍콩 및 마카오 핵심 관광',
+        description: '홍콩과 마카오의 주요 명소를 둘러봅니다.',
+        routeText: '홍콩 - 마카오 - 홍콩',
+        imageKeyword: 'Victoria Peak',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '상품가격',
+        description: '귀국을 위해 공항으로 이동합니다.',
+        routeText: '홍콩 - 인천',
+        imageKeyword: 'Victoria Peak',
+        imageKeyword2: null,
+      },
+    ]
+    const merged = mergeHanatourBodyFirstScheduleRows(bodyRows as never, llmRows as never)
+    const d1 = merged.find((r) => r.day === 1)!
+    assert.match(d1.description, /SoHo|소호/)
+    assert.equal(d1.lunchText, '기내식')
+    assert.equal(d1.dinnerText, '호텔식')
+    assert.notEqual(d1.title, '인천 - 국제공항')
+    const d3 = merged.find((r) => r.day === 3)!
+    assert.match(d3.description, /웡타이신/)
+    assert.notEqual(d3.title, '상품가격')
+    assert.equal(d3.breakfastText, '호텔식')
+  })
 })

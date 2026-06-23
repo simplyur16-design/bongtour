@@ -3,8 +3,6 @@
  */
 import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
-import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
-import { overlayScheduleImageKeywordsFromFallbackSchedule } from '@/lib/register-preview-schedule-image-keyword-overlay'
 import {
   inferExpectedScheduleDayCountFromPaste,
   mergeScheduleWithFirstPassPreferExtractRows,
@@ -124,10 +122,10 @@ import {
 import { parsePricePromotionFromGeminiJson, type PricePromotionSnapshot } from './price-promotion-hanatour'
 import { buildSingleRoomExcludedLine } from '@/lib/product-excluded-display'
 import {
+  applyHanatourRegisterSchedulePipeline,
   buildPreviewHanatourScheduleFromDetailBody,
-  gatherHanatourScheduleSectionBodiesByDay,
-  polishHanatourScheduleRowsGeminiCardTextIfNeeded,
-  polishHanatourScheduleRowsPreferDetailBody,
+  mergeHanatourBodyFirstScheduleRows,
+  normalizeHanatourRegisterScheduleDayRows,
 } from '@/lib/parse-and-register-hanatour-schedule'
 
 /** parse/route TEXT_LIMIT(26k)보다 넉넉히 — 등록 프롬프트가 더 길어 32k. 초과분은 잘라 입력 토큰·지연을 줄임 */
@@ -1198,9 +1196,7 @@ function isEmptyRegisterPreviewSlot(v: unknown): boolean {
   return false
 }
 
-/** 미리보기: deterministic이 LLM을 덮어쓰되, schedule만 LLM이 비어 있지 않으면 LLM 우선(단편 본문 추출에 밀리지 않게). */
-const SCHEDULE_LLM_PRIORITY_KEYS = new Set(['schedule'])
-
+/** 미리보기: deterministic(본문 schedule_section) 우선, LLM은 식사·호텔 빈 칸 보강만 */
 function mergePreviewDeterministicWithLlm(
   deterministic: Partial<RegisterGeminiLlmJson>,
   llm: Record<string, unknown>
@@ -1208,26 +1204,15 @@ function mergePreviewDeterministicWithLlm(
   const merged: Record<string, unknown> = { ...llm }
   for (const [key, detVal] of Object.entries(deterministic)) {
     if (detVal === undefined) continue
-    if (SCHEDULE_LLM_PRIORITY_KEYS.has(key)) {
-      const llmVal = llm[key]
-      if (llmVal !== undefined && !isEmptyRegisterPreviewSlot(llmVal)) {
-        continue
-      }
-      if (!isEmptyRegisterPreviewSlot(detVal)) {
-        merged[key] = detVal
-      }
-    } else if (!isEmptyRegisterPreviewSlot(detVal)) {
+    if (key === 'schedule') continue
+    if (!isEmptyRegisterPreviewSlot(detVal)) {
       merged[key] = detVal
     }
   }
-  const out = merged as RegisterGeminiLlmJson
-  if (out.schedule && deterministic.schedule) {
-    out.schedule = overlayScheduleImageKeywordsFromFallbackSchedule(
-      out.schedule,
-      deterministic.schedule,
-    ) as RegisterGeminiLlmJson['schedule']
-  }
-  return out
+  const detSched = normalizeHanatourRegisterScheduleDayRows(deterministic.schedule)
+  const llmSched = normalizeHanatourRegisterScheduleDayRows(llm.schedule)
+  merged.schedule = mergeHanatourBodyFirstScheduleRows(detSched, llmSched)
+  return merged as RegisterGeminiLlmJson
 }
 
 /** 미리보기: 서술형·장문 키 제거·표 고정(LLM이 넘겨도 무시) */
@@ -1746,27 +1731,9 @@ ${text.slice(0, 16000)}`
     registerAdminPersistedLlmParsedJson = null
   }
   const rawScheduleRows = raw.schedule ?? []
-  const scheduleBase: RegisterScheduleDay[] = rawScheduleRows
-    .map((s) => {
-      const rec = s as Record<string, unknown>
-      const day = Number(s?.day) || 0
-      const title = String(s?.title ?? '').trim()
-      const description = String(s?.description ?? '').trim()
-      return {
-        day,
-        title,
-        description,
-        routeText: strOrNull(rec.routeText),
-        imageKeyword: String(s?.imageKeyword ?? '').trim(),
-        imageKeyword2: String(s?.imageKeyword2 ?? '').trim() || null,
-        hotelText: strOrNull(rec.hotelText),
-        breakfastText: strOrNull(rec.breakfastText),
-        lunchText: strOrNull(rec.lunchText),
-        dinnerText: strOrNull(rec.dinnerText),
-        mealSummaryText: strOrNull(rec.mealSummaryText),
-      }
-    })
-    .filter((s) => s.day > 0)
+  const scheduleBase: RegisterScheduleDay[] = normalizeHanatourRegisterScheduleDayRows(rawScheduleRows).map(
+    supplementScheduleDayFromDescription,
+  )
   const pastedBlobForTitle = (options?.pastedBodyForInference ?? rawText).slice(0, REGISTER_PASTE_MAX_CHARS)
   const supplierListingTitleRaw = extractHanatourVerbatimListingTitleRawFromPasteLocal(pastedBlobForTitle)
   const llmTitleNormalized = normalizeHanatourRegisterTitleMinimalLocal(String(raw.title ?? '').trim())
@@ -1787,21 +1754,11 @@ ${text.slice(0, 16000)}`
     destResolved.primaryDestination ||
     destResolved.destination ||
     extractDestinationFromTitle(String(raw.title ?? '').trim())
-  const scheduleSectionByDay = gatherHanatourScheduleSectionBodiesByDay(detailBody)
-  let schedule: RegisterScheduleDay[] = applyHanatourScheduleImageKeywordsToRows(
-    scheduleBase.map(supplementScheduleDayFromDescription),
-    {
-      productDestination: preliminaryDestination || finalDestination || null,
-      scheduleSectionByDay,
-    },
-  )
-  schedule = polishHanatourScheduleRowsPreferDetailBody(schedule, detailBody)
-  schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, detailBody, {
+  const schedule: RegisterScheduleDay[] = await applyHanatourRegisterSchedulePipeline(scheduleBase, {
+    detailBody,
+    productDestination: finalDestination || preliminaryDestination || null,
+    skipGeminiPolish: forPreview,
     onTiming: options?.onTiming,
-  })
-  schedule = applyHanatourScheduleImageKeywordsToRows(schedule, {
-    productDestination: finalDestination || null,
-    scheduleSectionByDay,
   })
 
   const mustKnowFromLlm = forPreview
@@ -2526,7 +2483,7 @@ ${text.slice(0, 16000)}`
       ? {
           registerPreviewPolicyNotes: [
             '미리보기: 출발일별 달력(prices[])는 확정(전체) 파싱에서 채웁니다. 항공·호텔·옵션·쇼핑·가격표 표는 결정적 파서·병합이 우선입니다.',
-            '미리보기: 일정(schedule[])은 일정 선추출 LLM·본문 `schedule_section`·imageKeyword 규칙으로 채웁니다. 달력 행(prices[])만 비어 있을 수 있습니다.',
+            '미리보기: 일정(schedule[])은 본문 schedule_section 결정적 파싱 우선·LLM은 식사·호텔 빈 칸 보강만. Gemini 카드 문장 polish는 미리보기에서 생략.',
           ],
         }
       : {}),

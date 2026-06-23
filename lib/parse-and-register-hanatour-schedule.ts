@@ -32,6 +32,7 @@ import { isKnownDestinationCityEnglishKeyword } from '@/lib/pexels-keyword'
 import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 
 export { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
+import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
 
 export {
   classifyHanatourScheduleCardDayKind,
@@ -1426,6 +1427,106 @@ export function buildPreviewHanatourScheduleFromDetailBody(detailBody: DetailBod
   return orderedDays.map((d) => polishHanatourScheduleDayFromRawBody(d, maxDay, byDay.get(d)!))
 }
 
+/** LLM·API 일정 행 → RegisterScheduleDay (등록 파이프 공통) */
+export function normalizeHanatourRegisterScheduleDayRows(schedule: unknown): RegisterScheduleDay[] {
+  if (!Array.isArray(schedule)) return []
+  const out: RegisterScheduleDay[] = []
+  for (const s of schedule) {
+    const rec = s as Record<string, unknown>
+    const day = Number(rec.day) || 0
+    if (day < 1) continue
+    out.push({
+      day,
+      title: String(rec.title ?? '').trim(),
+      description: String(rec.description ?? '').trim(),
+      routeText: typeof rec.routeText === 'string' ? rec.routeText.trim() || null : null,
+      imageKeyword: String(rec.imageKeyword ?? '').trim(),
+      imageKeyword2: typeof rec.imageKeyword2 === 'string' ? rec.imageKeyword2.trim() || null : null,
+      hotelText: typeof rec.hotelText === 'string' ? rec.hotelText.trim() || null : null,
+      breakfastText: typeof rec.breakfastText === 'string' ? rec.breakfastText.trim() || null : null,
+      lunchText: typeof rec.lunchText === 'string' ? rec.lunchText.trim() || null : null,
+      dinnerText: typeof rec.dinnerText === 'string' ? rec.dinnerText.trim() || null : null,
+      mealSummaryText: typeof rec.mealSummaryText === 'string' ? rec.mealSummaryText.trim() || null : null,
+    })
+  }
+  return out
+}
+
+/** detailBody `schedule_section`·normalizedRaw에 일차별 본문이 있는지 */
+export function detailBodyHasHanatourScheduleSection(
+  detailBody: DetailBodyParseSnapshot | null | undefined,
+): boolean {
+  if (!detailBody) return false
+  return gatherHanatourScheduleSectionBodiesByDay(detailBody).size > 0
+}
+
+/**
+ * REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]: 등록 일정 SSOT — manifest
+ * 본문(schedule_section) 표현·식사·호텔 우선, LLM은 빈 칸 보강만.
+ */
+export function mergeHanatourBodyFirstScheduleRows(
+  bodyRows: RegisterScheduleDay[],
+  llmRows: RegisterScheduleDay[],
+): RegisterScheduleDay[] {
+  const body = bodyRows.filter((r) => Number(r.day) > 0)
+  const llm = llmRows.filter((r) => Number(r.day) > 0)
+  let merged: RegisterScheduleDay[]
+  if (body.length > 0) {
+    merged = llm.length > 0 ? mergeScheduleDaysPreservingExpressionMergingMealHotel(body, llm) : body
+  } else {
+    merged = llm
+  }
+  if (!merged.length) return []
+  return merged.map(stripCounselingTermsFromScheduleRow)
+}
+
+export function composeHanatourRegisterScheduleRows(
+  detailBody: DetailBodyParseSnapshot | null | undefined,
+  llmSchedule: RegisterScheduleDay[] | unknown,
+): RegisterScheduleDay[] {
+  const llmRows = normalizeHanatourRegisterScheduleDayRows(llmSchedule)
+  const bodyRows = detailBody ? buildPreviewHanatourScheduleFromDetailBody(detailBody) : []
+  return mergeHanatourBodyFirstScheduleRows(bodyRows, llmRows)
+}
+
+export type ApplyHanatourRegisterSchedulePipelineOpts = {
+  detailBody: DetailBodyParseSnapshot | null | undefined
+  productDestination?: string | null
+  optionalTourNames?: readonly string[]
+  scheduleSectionByDay?: ReadonlyMap<number, string> | null
+  skipImageKeywords?: boolean
+  /** true면 Gemini 카드 polish 생략(미리보기+본문 일정 있을 때 기본) */
+  skipGeminiPolish?: boolean
+  onTiming?: (label: string) => void
+}
+
+/** 등록 parse·augment·confirm 공통 — 본문 일정 → polish → (선택) Gemini → imageKeyword */
+export async function applyHanatourRegisterSchedulePipeline(
+  llmSchedule: RegisterScheduleDay[] | unknown,
+  opts: ApplyHanatourRegisterSchedulePipelineOpts,
+): Promise<RegisterScheduleDay[]> {
+  let schedule = composeHanatourRegisterScheduleRows(opts.detailBody, llmSchedule)
+  if (!schedule.length) return []
+  schedule = polishHanatourScheduleRowsPreferDetailBody(schedule, opts.detailBody)
+  const skipPolish =
+    opts.skipGeminiPolish === true ||
+    (opts.skipGeminiPolish !== false && detailBodyHasHanatourScheduleSection(opts.detailBody))
+  if (!skipPolish) {
+    schedule = await polishHanatourScheduleRowsGeminiCardTextIfNeeded(schedule, opts.detailBody, {
+      onTiming: opts.onTiming,
+    })
+  }
+  if (opts.skipImageKeywords) return schedule
+  const sectionByDay =
+    opts.scheduleSectionByDay ??
+    (opts.detailBody ? gatherHanatourScheduleSectionBodiesByDay(opts.detailBody) : null)
+  return applyHanatourScheduleImageKeywordsToRows(schedule, {
+    productDestination: opts.productDestination ?? null,
+    optionalTourNames: opts.optionalTourNames,
+    scheduleSectionByDay: sectionByDay?.size ? sectionByDay : null,
+  })
+}
+
 function isPlaceholderHotel(ht: string): boolean {
   const t = ht.trim()
   return !t || t === '-' || t === '—' || t === '–'
@@ -1617,26 +1718,17 @@ export function augmentHanatourScheduleExpressionParsed(
   parsed: RegisterParsed,
   ctx?: { pastedBodyText?: string; travelScope?: string },
 ): RegisterParsed {
-  let sched = parsed.schedule ?? []
-  if (parsed.detailBodyStructured) {
-    const bodyRows = buildPreviewHanatourScheduleFromDetailBody(parsed.detailBodyStructured)
-    if (bodyRows.length > 0) {
-      sched =
-        sched.length > 0
-          ? mergeScheduleDaysPreservingExpressionMergingMealHotel(sched, bodyRows)
-          : bodyRows
-    }
-  }
+  let sched = composeHanatourRegisterScheduleRows(parsed.detailBodyStructured, parsed.schedule ?? [])
   if (!sched.length) return parsed
-  const stripped = sched.map((r) => stripCounselingTermsFromScheduleRow(r))
+  sched = polishHanatourScheduleRowsPreferDetailBody(sched, parsed.detailBodyStructured)
   const scheduleSectionByDay = parsed.detailBodyStructured
     ? gatherHanatourScheduleSectionBodiesByDay(parsed.detailBodyStructured)
     : null
   // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 등록 augment — imageKeyword SSOT 재적용 — manifest
   const skipPackageImageKw = isRegisterAirtelListing(ctx?.travelScope, parsed.productType)
   const scheduleRows = skipPackageImageKw
-    ? stripped
-    : applyAugmentScheduleImageKeywordsBySupplier(stripped, {
+    ? sched
+    : applyAugmentScheduleImageKeywordsBySupplier(sched, {
         supplierKey: 'hanatour',
         productTitle: parsed.title,
         productDestination: parsed.destination,
