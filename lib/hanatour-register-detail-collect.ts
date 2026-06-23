@@ -11,6 +11,7 @@ import {
   extractHanatourCorePoints,
   extractHanatourFeesFromProdInfo,
   extractHanatourIncludedExcluded,
+  applyHanatourProdInfoHotelsToFactDays,
   buildHanatourFlightStructuredFromProdInfo,
   extractHanatourOptionalTours,
   extractHanatourShoppingFromProdInfo,
@@ -229,7 +230,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   const { prodInfo, itnr, chcStsng } = bundle
 
   if (needSchedule) {
-    const factDays = hanatourItnrToFactDays(itnr)
+    const factDays = applyHanatourProdInfoHotelsToFactDays(hanatourItnrToFactDays(itnr), prodInfo)
     const scheduleDays = hanatourFactDaysToRegisterSchedule(factDays)
     if (scheduleDays.length > 0) {
       const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {

@@ -129,6 +129,9 @@ export type HanatourPkgAirSeqRow = {
 }
 
 export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
+  trvlDayCnt?: number | null
+  trvlNgtCnt?: number | null
+  smplSchdCont?: string | null
   trvlExpnInclList?: HanatourTrvlExpnRow[]
   trvlExpnNoneInclList?: HanatourTrvlExpnRow[]
   trvlChcExpnList?: HanatourTrvlExpnRow[]
@@ -141,6 +144,7 @@ export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
   guideExpnCurrCd?: string | null
   pntCont?: string | null
   exprWrdngCont2?: string | null
+  bnftInfoList?: HanatourCorePointRow[]
   rppdCntntInfoList?: HanatourCorePointRow[]
   agtRmkCont?: string | null
   noptYn?: string | null
@@ -149,6 +153,188 @@ export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
   arrFlgtCd?: string | null
   depCityNm?: string | null
   arrCityNm?: string | null
+}
+
+const HANATOUR_SCHEDULE_HIGHLIGHT_MAX = 7
+const HANATOUR_FACT_DESCRIPTION_MAX = 320
+const HANATOUR_FACT_DESCRIPTION_MIN_SENTENCES = 2
+const HANATOUR_FACT_DESCRIPTION_MAX_SENTENCES = 4
+
+const HANATOUR_HIGHLIGHT_NOISE_RE =
+  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$/i
+
+function normalizeHanatourHighlightKey(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/\s*\(new\)\s*/gi, '')
+    .replace(/[^a-z0-9가-힣]/g, '')
+}
+
+function isHanatourHighlightNoise(label: string): boolean {
+  const t = label.trim()
+  if (!t || t.length < 2) return true
+  if (HANATOUR_HIGHLIGHT_NOISE_RE.test(t)) return true
+  if (/^HELLO[\s,]/i.test(t)) return true
+  if (/^Hong Kong$/i.test(t)) return true
+  return false
+}
+
+function cleanHanatourHighlightLabel(label: string): string {
+  return label
+    .replace(/\s*\(NEW\)\s*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function scoreHanatourHighlight(label: string): number {
+  const t = cleanHanatourHighlightLabel(label)
+  if (t.length < 3) return -10
+  if (/^(?:마카오|홍콩)$/i.test(t)) return -5
+  if (t.length <= 6) return 1
+  if (t.length <= 36) return 6
+  return 4
+}
+
+/** itnr places — 중복·에셋명 제거 후 순서 유지. routeText·하이라이트 SSOT. */
+export function dedupeHanatourFactDayPlaces(places: string[]): string[] {
+  const out: string[] = []
+  const keys: string[] = []
+  for (const raw of places) {
+    const label = cleanHanatourHighlightLabel(String(raw ?? ''))
+    if (!label || isHanatourHighlightNoise(label)) continue
+    const key = normalizeHanatourHighlightKey(label)
+    if (!key) continue
+    const dupIdx = keys.findIndex(
+      (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
+    )
+    if (dupIdx >= 0) {
+      if (label.length > out[dupIdx]!.length) out[dupIdx] = label
+      continue
+    }
+    keys.push(key)
+    out.push(label)
+  }
+  return out
+}
+
+/** 일정 요약·title — 핵심 관광지 최대 7개. REGRESSION-FREEZE[hanatour-register-detail-collect] */
+export function selectHanatourScheduleHighlights(places: string[], max = HANATOUR_SCHEDULE_HIGHLIGHT_MAX): string[] {
+  const deduped = dedupeHanatourFactDayPlaces(places)
+  return [...deduped]
+    .map((label, idx) => ({ label, idx, score: scoreHanatourHighlight(label) }))
+    .sort((a, b) => b.score - a.score || a.idx - b.idx)
+    .slice(0, max)
+    .sort((a, b) => a.idx - b.idx)
+    .map((x) => x.label)
+}
+
+function hanatourCountKrSentences(text: string): number {
+  const t = text.replace(/\r/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!t) return 0
+  const parts = t.split(/(?<=[.!?…])\s+/).filter(Boolean)
+  return parts.length > 0 ? parts.length : 1
+}
+
+function joinHanatourHighlightPhrase(highlights: string[], from: number, to: number): string {
+  return highlights
+    .slice(from, to)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
+/** fact day → 2~4문장 일정 설명(장문 dump·식사·호텔명 제외). REGRESSION-FREEZE[hanatour-register-detail-collect] */
+export function composeHanatourFactDayDescription(
+  day: RegisterFactScheduleDay,
+  maxDay: number,
+  highlights: string[],
+): string {
+  const transport = String(day.transportNote ?? '')
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const joined = [transport.join(' '), ...highlights].join(' ')
+  const lead = highlights[0] ?? transport[0] ?? `${day.day}일차`
+  const mid = joinHanatourHighlightPhrase(highlights, 1, 4)
+  const tail = joinHanatourHighlightPhrase(highlights, 4, HANATOUR_SCHEDULE_HIGHLIGHT_MAX)
+  const sentences: string[] = []
+
+  if (day.day === 1 && /인천|ICN/.test(joined) && /홍콩|HKG|마카오|MFM|현지/.test(joined)) {
+    sentences.push(
+      `인천에서 출발해 현지에 도착한 뒤 ${lead}${mid ? `, ${mid}` : ''} 등 핵심 코스를 순서대로 둘러봅니다.`,
+    )
+  } else if (day.day === maxDay && maxDay >= 2 && /인천|ICN|귀국|출국/.test(joined)) {
+    sentences.push(`${lead}${mid ? `·${mid}` : ''} 일정을 마친 뒤 인천으로 귀국합니다.`)
+  } else if (/마카오|MFM/.test(joined) && /홍콩|HKG/.test(joined)) {
+    sentences.push(
+      `홍콩에서 마카오로 이동해 ${joinHanatourHighlightPhrase(highlights, 0, 3) || lead} 등을 둘러본 뒤 홍콩으로 복귀합니다.`,
+    )
+    if (mid) sentences.push(`오후에는 ${mid} 등 홍콩 시내 일정을 이어갑니다.`)
+  } else if (transport.length > 0) {
+    sentences.push(`${transport.join(' → ')} 구간을 중심으로 ${lead}${mid ? `, ${mid}` : ''} 등을 방문합니다.`)
+  } else {
+    sentences.push(`${lead}${mid ? `, ${mid}` : ''} 등 주요 명소를 순서대로 둘러보는 관광 일정입니다.`)
+  }
+
+  if (tail && sentences.length < HANATOUR_FACT_DESCRIPTION_MAX_SENTENCES) {
+    sentences.push(`추가로 ${tail} 등도 포함됩니다.`)
+  }
+
+  let out = sentences.slice(0, HANATOUR_FACT_DESCRIPTION_MAX_SENTENCES).join(' ')
+  if (hanatourCountKrSentences(out) < HANATOUR_FACT_DESCRIPTION_MIN_SENTENCES && highlights.length >= 2) {
+    out = `${out} ${lead}와 ${highlights[1]}를 중심으로 당일 동선을 마무리합니다.`.trim()
+  }
+  return out.replace(/\s+/g, ' ').trim().slice(0, HANATOUR_FACT_DESCRIPTION_MAX)
+}
+
+function hanatourProdInfoCorePointRows(info: HanatourProdInfoExtended): HanatourCorePointRow[] {
+  const bnft = info.bnftInfoList ?? []
+  if (bnft.length > 0) return bnft
+  return info.rppdCntntInfoList ?? []
+}
+
+function extractHanatourHotelSummaryFromProdInfo(info: HanatourProdInfoExtended): string | null {
+  for (const row of hanatourProdInfoCorePointRows(info)) {
+    const body = stripHanatourHtmlText(String(row.corePntCont ?? ''))
+    const m = body.match(/([가-힣]{2,14}\s*\d\s*성\s*호텔)/i)
+      ?? body.match(/([가-힣][가-힣A-Za-z0-9+\s]{1,24}(?:\d\s*성\s*)?호텔)/i)
+    if (m?.[1]) return m[1].replace(/\s+/g, ' ').trim()
+  }
+  const title = String(info.saleProdNm ?? '')
+  const hashParts = [...title.matchAll(/#([^#]+)/g)]
+    .map((m) => m[1]?.trim())
+    .filter((x) => x && /호텔|리조트|숙박/i.test(x))
+  if (hashParts.length > 0) return hashParts[0]!.slice(0, 120)
+  const smpl = String(info.smplSchdCont ?? '').trim()
+  if (smpl && /홍콩|마카오|오사카|도쿄|방콕|다낭/.test(smpl)) {
+    const city = smpl.match(/^([가-힣A-Za-z]+)/)?.[1]
+    if (city) return `${city} 예정 호텔(동급 가능)`
+  }
+  return null
+}
+
+function isHanatourReturnDayWithoutHotel(day: RegisterFactScheduleDay, maxDay: number): boolean {
+  if (day.day !== maxDay || maxDay < 2) return false
+  const blob = `${day.transportNote ?? ''} ${day.places.join(' ')}`
+  return /인천|ICN|김포|GMP|귀국|출국/.test(blob)
+}
+
+/** itnr에 숙박 행이 없을 때 prodInfo 핵심포인트·제목 해시로 일차 hotelText 보강. */
+export function applyHanatourProdInfoHotelsToFactDays(
+  days: RegisterFactScheduleDay[],
+  info: HanatourProdInfoExtended | null | undefined,
+): RegisterFactScheduleDay[] {
+  if (!days.length || !info) return days
+  const summary = extractHanatourHotelSummaryFromProdInfo(info)
+  if (!summary) return days
+  const maxDay = Math.max(...days.map((d) => d.day))
+  return days.map((d) => {
+    if (d.hotels.length > 0) return d
+    if (isHanatourReturnDayWithoutHotel(d, maxDay)) {
+      return { ...d, hotels: ['숙박 없음(귀국)'] }
+    }
+    return { ...d, hotels: [summary] }
+  })
 }
 
 export function stripHanatourHtmlText(html: string): string {
@@ -169,19 +355,22 @@ export function formatHanatourTrvlExpnBullet(row: HanatourTrvlExpnRow): string {
 }
 
 export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
+  const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
   return days.map((d) => {
-    const firstPlace = (d.places[0] ?? '').trim()
+    const places = dedupeHanatourFactDayPlaces(d.places)
+    const highlights = selectHanatourScheduleHighlights(places)
     const firstTransport = (d.transportNote ?? '').split(';').map((s) => s.trim()).find(Boolean) ?? ''
     const title =
-      firstPlace ||
+      (highlights.length > 0 ? highlights.join(' - ') : '') ||
       firstTransport ||
       (d.hotels[0] ?? '').trim() ||
       `${d.day}일차`
     const description =
-      [d.transportNote, ...d.places].filter(Boolean).join('\n') || title
+      composeHanatourFactDayDescription(d, maxDay, highlights) ||
+      title
     const routeText =
-      d.places.length > 0
-        ? d.places.join(' - ')
+      places.length > 0
+        ? places.join(' - ')
         : firstTransport.includes(' - ')
           ? firstTransport
           : null
@@ -428,7 +617,7 @@ export function extractHanatourCorePoints(info: HanatourProdInfoExtended): Array
     if (!b) return
     out.push({ category, title: title.trim() || category, body: b })
   }
-  for (const row of info.rppdCntntInfoList ?? []) {
+  for (const row of hanatourProdInfoCorePointRows(info)) {
     const title = String(row.corePntTitlNm ?? row.corePntType ?? '핵심포인트').trim()
     const body = String(row.corePntCont ?? '').trim()
     if (!body) continue

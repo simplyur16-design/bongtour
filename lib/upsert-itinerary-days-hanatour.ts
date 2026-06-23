@@ -132,8 +132,8 @@ export function registerScheduleToDayInputs(
     return [
       {
         day,
-        city: routeText || title || null,
-        poiNamesRaw: routeText || null,
+        city: title || routeText || null,
+        poiNamesRaw: title || routeText || null,
         summaryTextRaw: summaryTextRaw || null,
         rawBlock,
         hotelText,

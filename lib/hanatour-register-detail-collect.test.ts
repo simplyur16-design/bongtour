@@ -7,6 +7,9 @@ import {
   buildHanatourFlightStructuredFromProdInfo,
   hanatourFactDaysToRegisterSchedule,
   hanatourItnrSchdToFactDays,
+  applyHanatourProdInfoHotelsToFactDays,
+  composeHanatourFactDayDescription,
+  selectHanatourScheduleHighlights,
   extractHanatourIncludedExcluded,
   extractHanatourOptionalToursFromChcStsng,
 } from './hanatour-register-api-detail'
@@ -76,6 +79,56 @@ describe('hanatour register detail collect', () => {
     const sched = hanatourFactDaysToRegisterSchedule(facts)
     expect(sched[0]?.breakfastText).toMatch(/기내/)
     expect(sched[0]?.routeText).toContain('빅토리아')
+    expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
+    expect(sched[0]?.description).not.toContain('\n')
+    expect((sched[0]?.description?.match(/[.!?…]/g) ?? []).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('CHP101-style — highlights ≤7, prose description, prodInfo hotel fallback', () => {
+    const facts = applyHanatourProdInfoHotelsToFactDays(
+      [
+        {
+          day: 1,
+          places: [
+            '홍콩',
+            '피크트램',
+            '빅토리아 피크',
+            '피크트램 (NEW)',
+            '빅토리아피크',
+            '소호 거리(SoHo)',
+            '미드-레벨 에스컬레이터',
+            '소호거리_벽화',
+            '홍콩섬 완차이, 컬러풀 홍콩 즐기기',
+          ],
+          hotels: [],
+          meals: ['조식 기내-불포함(유료제공)'],
+          transportNote: '인천; 홍콩',
+        },
+        {
+          day: 3,
+          places: ['행운을 빌어요, 럭키 홍콩', '웡타이신 사원'],
+          hotels: [],
+          meals: ['조식'],
+          transportNote: '홍콩; 인천',
+        },
+      ],
+      {
+        saleProdNm: '[출발확정] 홍콩/마카오 3일 #베스트셀러',
+        smplSchdCont: '홍콩(1)-마카오(0)-홍콩(1)',
+        bnftInfoList: [
+          { corePntCont: '② 가성비+가심비 홍콩 4성호텔 숙박<br/>③ 홍콩 하이라이트 투어' },
+        ],
+      },
+    )
+    const sched = hanatourFactDaysToRegisterSchedule(facts)
+    expect(selectHanatourScheduleHighlights(facts[0]!.places).length).toBeLessThanOrEqual(7)
+    expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
+    expect(sched[0]?.description).not.toMatch(/\n/)
+    expect(composeHanatourFactDayDescription(facts[0]!, 3, selectHanatourScheduleHighlights(facts[0]!.places))).toMatch(
+      /인천|홍콩|둘러/,
+    )
+    expect(sched[0]?.hotelText).toMatch(/4성호텔/)
+    expect(sched[1]?.hotelText).toMatch(/숙박 없음/)
   })
 
   it('needs included/excluded when both missing', () => {
@@ -131,9 +184,10 @@ describe('hanatour register detail collect', () => {
       },
     ])
     expect(days).toHaveLength(1)
-    expect(days[0]?.title).toBe('인천')
+    expect(days[0]?.title).toBe('인천 - 오사카')
     expect(days[0]?.routeText).toBe('인천 - 오사카')
     expect(days[0]?.hotelText).toContain('오사카')
+    expect(days[0]?.description).not.toContain('\n')
     expect(days[0]?.lunchText).toBe('기내식')
     expect(days[0]?.dinnerText).toBe('현지식')
     expect(days[0]?.mealSummaryText).toContain('석식')

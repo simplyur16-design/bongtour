@@ -13,6 +13,7 @@ import {
   extractHanatourIncludedExcluded,
   extractHanatourShoppingFromProdInfo,
   fetchHanatourPkgProdItnr,
+  applyHanatourProdInfoHotelsToFactDays,
   hanatourItnrSchdToFactDays,
   type HanatourProdInfoExtended,
 } from '@/lib/hanatour-register-api-detail'
@@ -90,7 +91,10 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
     shoppingPlaces: shoppingExtract.rows
       .map((r) => String(r.shoppingPlace ?? r.shoppingItem ?? '').trim())
       .filter(Boolean),
-    scheduleDays: hanatourItnrSchdToFactDays(schdInfoList),
+    scheduleDays: applyHanatourProdInfoHotelsToFactDays(
+      hanatourItnrSchdToFactDays(schdInfoList),
+      info as HanatourProdInfoExtended,
+    ),
     flights: (() => {
       const legs: RegisterFactFlightLeg[] = []
       if (!firstInput) return legs

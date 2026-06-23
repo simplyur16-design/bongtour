@@ -3126,7 +3126,10 @@
             "extractHanatourIncludedExcluded",
             "getPkgProdChcStsngInfo",
             "buildHanatourFlightStructuredFromProdInfo",
-            "extractHanatourOptionalToursFromChcStsng"
+            "extractHanatourOptionalToursFromChcStsng",
+            "selectHanatourScheduleHighlights",
+            "composeHanatourFactDayDescription",
+            "applyHanatourProdInfoHotelsToFactDays"
           ]
         },
         {
