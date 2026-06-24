@@ -105,6 +105,34 @@ describe('modetour register detail collect', () => {
     expect(rows[0]?.refundPolicyText).toBe('환불가능')
   })
 
+  it('splits Taiwan 잡화점+DFS API 1건 into 2 shopping visit groups', () => {
+    const rows = extractModetourShoppingStopsFromApiList([
+      {
+        itemName: '잡화점(기념품&토산품)',
+        contentsPlaceInfos: [
+          '펑리(鳳澧)',
+          '모공주(毛公主)',
+          '아이이창(艾伊昶百貨)',
+          '문창(台灣文創藝術館)',
+          '정영차관(​定迎有限公司)',
+          '벽해풍수(碧海風水)',
+          '미림각(美霖閣文物舘)',
+          '야미(YAMI)',
+          'DFS에버리치(EVERRICH昇恆昌內湖旗艦店)',
+        ],
+        durationTime: '60분',
+        isRefundEnabled: true,
+      },
+    ])
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.shoppingItem).toBe('잡화점(기념품&토산품)')
+    expect(rows[0]?.placeName).toBe('펑리(鳳澧)')
+    expect(rows[0]?.candidateOnly).toBe(true)
+    expect(String(rows[0]?.noteText ?? '')).toMatch(/모공주/)
+    expect(rows[1]?.shoppingItem).toMatch(/DFS|에버리치/i)
+    expect(String(rows[1]?.placeName ?? '')).toMatch(/DFS|에버리치/i)
+  })
+
   it('parses GetProductDetailInfo includedNote/unincludedNote HTML', () => {
     const detail = {
       includedNote:

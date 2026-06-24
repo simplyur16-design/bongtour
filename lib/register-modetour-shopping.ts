@@ -95,7 +95,7 @@ export function modetourShoppingRowLooksPlausible(r: ShoppingStructured['rows'][
   const ref = (r.refundPolicyText ?? '').trim()
   const hay = `${item} ${place} ${dur} ${ref}`
   const strong =
-    /(인삼|홍삼|화장품|건강식품|특산|면세|아울렛|마트|백화점|쇼핑센터|기념품|보석|시계|골드|은협|레드\s*샌드|남대문|동대문|사파이어|루비|라텍스|전통차|진주|침향|발사믹|올리브)/i.test(
+    /(인삼|홍삼|화장품|건강식품|특산|면세|DFS|에버리치|아울렛|마트|백화점|쇼핑센터|기념품|보석|시계|골드|은협|레드\s*샌드|남대문|동대문|사파이어|루비|라텍스|전통차|진주|침향|발사믹|올리브|잡화)/i.test(
       hay
     )
 

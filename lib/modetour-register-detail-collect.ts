@@ -239,6 +239,7 @@ export async function augmentModetourParsedWithDetailCollect(
             : apiShopRows.length,
       }
       next = reconcileModetourShoppingVisitCountWithStops(next)
+      next = finalizeModetourRegisterParsedShopping(next)
       summaryParts.push(
         `GetShoppingList: 쇼핑 ${next.shoppingVisitCount ?? apiShopRows.length}회 · 행 ${apiShopRows.length}`,
       )

@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[modetour-register-detail-collect]: includedNote·unincludedNote·specialBenefits — manifest
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
+ * REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]: DFS·잡화점 쇼핑 2그룹 분리 — manifest
  */
 import { decodeBasicHtmlEntities } from '@/lib/departure-option-modetour'
 import { fetchModetourGroupDetailInfo, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
@@ -255,6 +256,35 @@ export function extractModetourOptionalToursFromApiList(
 }
 
 /** GetShoppingList → 등록 shoppingStops JSON 행(모두투어 후보 그룹 형식) */
+const MODETOUR_DFS_SHOP_RE = /DFS|에버리치|Duty\s*Free|면세점|昇恆昌/i
+
+function modetourShoppingItemLabelFromPlace(place: string, fallbackItem: string): string {
+  const t = String(place ?? '').trim()
+  if (!t) return fallbackItem
+  const head = t.replace(/\([^)]*\)/g, ' ').trim().split(/\s+/)[0] ?? t
+  if (MODETOUR_DFS_SHOP_RE.test(t)) return head.includes('DFS') ? head : 'DFS에버리치'
+  return fallbackItem
+}
+
+/** 잡화점 후보 목록 끝에 DFS·면세가 붙은 API 1건 → 방문 2회(2그룹)로 분리 */
+export function splitModetourShoppingPlacesByVisitGroup(places: readonly string[]): string[][] {
+  const cleaned = places.map((p) => String(p).trim()).filter((p) => p.length > 0)
+  if (cleaned.length <= 1) return cleaned.length ? [cleaned] : []
+  const groups: string[][] = []
+  let current: string[] = []
+  for (const p of cleaned) {
+    const isDfsLike = MODETOUR_DFS_SHOP_RE.test(p)
+    if (isDfsLike && current.length > 0) {
+      groups.push(current)
+      current = [p]
+      continue
+    }
+    current.push(p)
+  }
+  if (current.length) groups.push(current)
+  return groups.length > 0 ? groups : [cleaned]
+}
+
 export function extractModetourShoppingStopsFromApiList(
   rows: readonly ModetourShoppingApiRow[],
 ): Array<Record<string, unknown>> {
@@ -265,22 +295,37 @@ export function extractModetourShoppingStopsFromApiList(
     const places = (row.contentsPlaceInfos ?? [])
       .map((p) => String(p).trim())
       .filter((p) => p.length > 0)
-    const shop = places[0] ?? item
     const durationText = String(row.durationTime ?? '').trim() || null
     const refundPolicyText =
       row.isRefundEnabled === true ? '환불가능' : row.isRefundEnabled === false ? '환불불가' : null
-    out.push({
-      shoppingItem: item,
-      itemType: item,
-      shoppingPlace: shop,
-      placeName: shop,
-      shopName: shop,
-      durationText,
-      refundPolicyText,
-      noteText: places.length > 1 ? places.join(', ') : undefined,
-      candidateOnly: places.length > 1 ? true : undefined,
-      candidateGroupKey: places.length > 1 ? `modetour:api:g${idx}` : undefined,
-      raw: item,
+    const placeGroups =
+      places.length > 1 ? splitModetourShoppingPlacesByVisitGroup(places) : places.length === 1 ? [places] : [[]]
+
+    placeGroups.forEach((groupPlaces, gIdx) => {
+      const shop = groupPlaces[0] ?? item
+      const shoppingItem =
+        placeGroups.length > 1 && MODETOUR_DFS_SHOP_RE.test(shop)
+          ? modetourShoppingItemLabelFromPlace(shop, item)
+          : item
+      const groupDuration =
+        gIdx > 0 && MODETOUR_DFS_SHOP_RE.test(shop) && placeGroups.length > 1 ? null : durationText
+      const multi = groupPlaces.length > 1
+      out.push({
+        shoppingItem,
+        itemType: shoppingItem,
+        shoppingPlace: shop,
+        placeName: shop,
+        shopName: shop,
+        durationText: groupDuration,
+        refundPolicyText: gIdx === 0 ? refundPolicyText : null,
+        noteText: multi ? groupPlaces.join(', ') : undefined,
+        candidateOnly: multi ? true : undefined,
+        candidateGroupKey:
+          multi || placeGroups.length > 1
+            ? `modetour:api:g${idx}${gIdx > 0 ? `:${gIdx}` : ''}`
+            : undefined,
+        raw: shoppingItem,
+      })
     })
   })
   return out

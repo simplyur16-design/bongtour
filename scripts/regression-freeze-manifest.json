@@ -3140,6 +3140,36 @@
       ]
     },
     {
+      "id": "modetour-register-taiwan-meal-shop",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 대만형 — 조·중·석 ortherActions·잡화점+DFS 쇼핑 2그룹",
+      "checks": [
+        {
+          "file": "lib/register-facts/modetour-register-fact-mappers.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]",
+            "modetourExtractMealLinesFromAction",
+            "otherActions"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]",
+            "splitModetourShoppingPlacesByVisitGroup",
+            "extractModetourShoppingStopsFromApiList"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-facts/modetour.test.ts",
+        "lib/modetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
       "id": "modetour-register-danang-live-gate",
       "tier": [
         "ci"
