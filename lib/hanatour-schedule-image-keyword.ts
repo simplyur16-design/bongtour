@@ -78,6 +78,11 @@ const HANATOUR_KO_POI_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /성\s*바울\s*성당|Ruins\s*of\s*St\.?\s*Paul|St\.?\s*Paul'?s?/iu, en: "Ruins of St. Paul's" },
   { re: /세나두\s*광장|Senado\s*Square/u, en: 'Senado Square' },
   { re: /침사추이\s*해변|연인의\s*거리|스타의\s*거리|Avenue\s*of\s*Stars/u, en: 'Avenue of Stars Hong Kong' },
+  { re: /천주교당|성미카엘/u, en: "St Michael's Cathedral" },
+  { re: /잔교/u, en: 'Zhanqiao Pier' },
+  { re: /54광장|5\.4광장/u, en: 'May Fourth Square' },
+  { re: /올림픽\s*요트|요트\s*경기장/u, en: 'Qingdao Olympic Sailing Center' },
+  { re: /지모루|찌모루/u, en: 'Jimo Road Market' },
 ]
 
 const FOREIGN_AIRPORT_KW_RE =
@@ -485,6 +490,22 @@ function collectHanatourLandmarkKeywords(
   return out
 }
 
+function collectHanatourTripLandmarkCandidates(
+  rows: HanatourScheduleImageKeywordRow[],
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  const sorted = [...rows].filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  for (const row of sorted) {
+    for (const kw of collectHanatourOrderedScheduleLandmarks(row, productDestination)) {
+      const nk = normKey(kw)
+      if (!nk || out.some((x) => normKey(x) === nk)) continue
+      out.push(kw)
+    }
+  }
+  return out
+}
+
 /** 본문·제목·schedule_section에 매핑된 명소가 있으면 도시명만인 LLM 1순위보다 우선(본문 등장 순) */
 function preferPoiOverBareCityLlm(
   row: HanatourScheduleImageKeywordRow,
@@ -837,6 +858,14 @@ function resolveHanatourPrimaryKeyword(
 
   const inferred = inferHanatourKeywordFromDayContent(row, productDestination)
   if (inferred && !isHanatourBareCityKeyword(inferred)) return finish(inferred)
+
+  if (dayKind === 'tourism') {
+    for (const kw of [...collectHanatourTripLandmarkCandidates(allRows, productDestination)].reverse()) {
+      const nk = normKey(kw)
+      if (!nk || usedPrimary?.has(nk) || isHanatourBareCityKeyword(kw)) continue
+      return finish(kw)
+    }
+  }
 
   return ''
 }

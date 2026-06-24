@@ -84,6 +84,7 @@ export function isHanatourMovementPatternDay(joined: string, day: number, maxDay
   )
     return true
   if (day === 1 && hanatourMovementSignalsStrong(j, 1) && !hanatourJoinedHasTourismEvidence(j)) return true
+  if (day === 1 && /출입국/u.test(j) && !/(귀국|출국)/u.test(j)) return true
   return false
 }
 

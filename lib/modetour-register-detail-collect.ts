@@ -31,10 +31,10 @@ import {
   needsRegisterIncludedExcludedCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
-import {
-  applyRegisterCollectedFlightStructured,
+import { applyRegisterCollectedFlightStructured,
   needsRegisterFlightApiCollect,
 } from '@/lib/register-detail-collect-flight-apply'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 
@@ -174,8 +174,13 @@ export async function augmentModetourParsedWithDetailCollect(
       productTitle: next.title ?? facts.title,
     })
     if (scheduleDays.length > 0) {
-      next = { ...next, schedule: scheduleDays }
-      summaryParts.push(`GetScheduleList: 일정 ${scheduleDays.length}일차`)
+      const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
+        supplierKey: 'modetour',
+        productDestination: next.destination ?? null,
+        productTitle: next.title ?? null,
+      })
+      next = { ...next, schedule: withKeywords }
+      summaryParts.push(`GetScheduleList: 일정 ${withKeywords.length}일차`)
     }
   }
 

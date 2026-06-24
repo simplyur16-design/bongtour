@@ -111,6 +111,11 @@ const MODETOUR_ROUTE_POI_OVERRIDES: ReadonlyArray<{ re: RegExp; en: string }> = 
   { re: /영흥사|손짜/u, en: 'Linh Ung Pagoda' },
   { re: /다낭\s*대성당/u, en: 'Da Nang Cathedral' },
   { re: /미케\s*비치/u, en: 'My Khe Beach' },
+  { re: /천주교당|성미카엘/u, en: "St Michael's Cathedral" },
+  { re: /잔교/u, en: 'Zhanqiao Pier' },
+  { re: /54광장|5\.4광장/u, en: 'May Fourth Square' },
+  { re: /올림픽\s*요트|요트\s*경기장/u, en: 'Qingdao Olympic Sailing Center' },
+  { re: /지모루|찌모루/u, en: 'Jimo Road Market' },
 ]
 
 export function isModetourDomesticHubToken(token: string): boolean {
@@ -482,6 +487,9 @@ export function classifyModetourScheduleCardDayKind(
   if (day === 1 && /출발/.test(j) && /(도착|입국)/.test(j) && /(공항|ICN|PVG|GMP|김포|인천|부산|PUS|대구|TAE|청주|CJJ)/.test(j)) {
     return 'movement'
   }
+  if (day === 1 && /출입국/.test(j) && !/(귀국|출국)/.test(j)) {
+    return 'movement'
+  }
   if (
     day === 1 &&
     /(입국|도착|공항|피켓|미팅)/.test(j) &&
@@ -713,6 +721,117 @@ function collectModetourDayPrimaryCandidates(
   return out
 }
 
+function collectModetourTripLandmarkCandidates(
+  rows: ModetourScheduleImageKeywordRow[],
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  const sorted = [...rows].filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  for (const row of sorted) {
+    for (const kw of collectModetourLandmarkKeywords(row, productDestination)) {
+      if (!out.some((x) => keysEqual(x, kw))) out.push(kw)
+    }
+  }
+  return out
+}
+
+/** 일차 순서대로 1·2순위 중복 제거 — 출발·귀국일은 1순위만, 도시명만이면 미사용 명소로 교체 */
+function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const used = new Set<string>()
+  const tripLandmarks = collectModetourTripLandmarkCandidates(rows, productDestination)
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const byDay = new Map<number, T>()
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const haystack = buildModetourDayHaystack(row)
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    const pickUnused = (cands: readonly string[]): string => {
+      for (const kw of cands) {
+        if (
+          !kw ||
+          isKnownDestinationCityEnglishKeyword(kw) ||
+          isDestinationHubEnglishKeyword(kw, productDestination)
+        ) {
+          continue
+        }
+        const nk = normKey(kw)
+        if (!nk || used.has(nk)) continue
+        used.add(nk)
+        return kw
+      }
+      return ''
+    }
+
+    if (dayKind === 'movement' || dayKind === 'return_home') {
+      if (!primary || used.has(normKey(primary))) {
+        const fromDay = collectModetourDayPrimaryCandidates(row, dayKind, productDestination)
+        primary = pickUnused(fromDay)
+      } else {
+        used.add(normKey(primary))
+      }
+      secondary = ''
+    } else {
+      if (
+        !primary ||
+        used.has(normKey(primary)) ||
+        isKnownDestinationCityEnglishKeyword(primary) ||
+        isDestinationHubEnglishKeyword(primary, productDestination)
+      ) {
+        const fromDay = collectModetourDayPrimaryCandidates(row, dayKind, productDestination)
+        primary = pickUnused(fromDay) || pickUnused(tripLandmarks)
+      } else {
+        used.add(normKey(primary))
+      }
+
+      if (secondary) {
+        if (
+          normKey(secondary) === normKey(primary) ||
+          used.has(normKey(secondary)) ||
+          isKnownDestinationCityEnglishKeyword(secondary)
+        ) {
+          secondary = ''
+        } else {
+          used.add(normKey(secondary))
+        }
+      }
+
+      if (!secondary) {
+        const routeLandmarks = filterTourismRouteLandmarkCandidates(
+          collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
+          productDestination,
+        )
+        const secCand = routeLandmarks.find(
+          (kw) => normKey(kw) !== normKey(primary) && !used.has(normKey(kw)),
+        )
+        if (secCand) {
+          secondary = secCand
+          used.add(normKey(secondary))
+        }
+      }
+    }
+
+    byDay.set(day, {
+      ...row,
+      imageKeyword: primary,
+      imageKeyword2: secondary ? secondary : null,
+    })
+  }
+
+  return rows.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    return byDay.get(day) ?? row
+  })
+}
+
 /** 관광 일차 — 동일 1순위가 여러 day에 남으면 route·본문 명소로 분산 */
 function dedupeModetourTourismPrimaryKeywordsAcrossDays<T extends ModetourScheduleImageKeywordRow>(
   rows: T[],
@@ -802,9 +921,10 @@ export function applyModetourScheduleImageKeywordsToRows<
   })
 
   const deduped = dedupeModetourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
+  const reconciled = reconcileModetourTripWideImageKeywords(deduped, maxDay, productDestination)
 
   // dedupe가 1순위만 바꾸므로 2순위 null·중복이면 최종 primary 기준으로 재산출
-  return deduped.map((row) => {
+  return reconciled.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
     const primary = String(row.imageKeyword ?? '').trim()

@@ -412,6 +412,51 @@ describe('applyHanatourScheduleImageKeywordsToRows — 인도 일정', () => {
   })
 })
 
+describe('applyHanatourScheduleImageKeywordsToRows — 칭다오 한글 routeText', () => {
+  const qingdaoOpts = { productDestination: '칭다오' }
+
+  it('출입국·관광·마지막 일차 — routeText 명소 자동 추천', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '출입국',
+          description: '출입국 정보',
+          routeText: '천주교당(성미카엘성당) - 잔교',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '칭다오',
+          description: '관광',
+          routeText: '지모루 시장 - 칭다오 올림픽 요트경기장 - 청도 54광장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '청도',
+          description: '청도',
+          routeText: null,
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      qingdaoOpts,
+    )
+    const d1 = out.find((r) => r.day === 1)!
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    assert.match(d1.imageKeyword!, /Michael|Zhanqiao/i)
+    assert.equal(d1.imageKeyword2, null)
+    assert.match(d2.imageKeyword!, /Jimo/i)
+    assert.ok(d2.imageKeyword2?.trim())
+    assert.match(d3.imageKeyword!, /Zhanqiao|May Fourth|Olympic/i)
+    assert.notEqual(d3.imageKeyword, 'Qingdao')
+  })
+})
+
 describe('applyHanatourScheduleImageKeywordsToRows — 부산 출발', () => {
   it('Busan LLM은 국내허브로 거부, routeText 해외 도시(마츠야마)로 폴백', () => {
     const out = applyHanatourScheduleImageKeywordsToRows([

@@ -66,4 +66,33 @@ describe('overlayPreviewScheduleImageKeywords', () => {
     expect(preview[0]!.imageKeyword).not.toMatch(/spa|restaurant|lounge/i)
     expect(preview[0]!.imageKeyword).toMatch(/Ho Quoc|Starfish|Sao Beach/i)
   })
+
+  it('칭다오 한글 routeText — modetour·hanatour 미리보기 자동 추천', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '출입국',
+        description: '출입국 정보',
+        routeText: '천주교당(성미카엘성당) - 잔교',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '칭다오',
+        description: '관광',
+        routeText: '지모루 시장 - 청도 54광장',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+    ]
+    for (const supplierKey of ['modetour', 'hanatour'] as const) {
+      const preview = applyRegisterScheduleImageKeywordsForPreview(rows, {
+        supplierKey,
+        productDestination: '칭다오',
+      })
+      expect(preview[0]!.imageKeyword).toMatch(/Michael|Zhanqiao/i)
+      expect(preview[1]!.imageKeyword).toMatch(/Jimo|May Fourth/i)
+    }
+  })
 })

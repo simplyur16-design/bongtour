@@ -102,6 +102,8 @@ const DESTINATION_MAP: Record<string, string> = {
   코타키나발루: 'Kota Kinabalu',
   '코타 키나발루': 'Kota Kinabalu',
   말레이시아: 'Malaysia',
+  칭다오: 'Qingdao',
+  청도: 'Qingdao',
 }
 
 /** 대표 지역(primaryRegion) → 영어 */
@@ -390,6 +392,19 @@ const POI_KO_TO_EN: Record<string, string> = {
   독립기념탑: 'Patuxai',
   왓시사켓: 'Wat Sisaket',
   '왓 시사켓': 'Wat Sisaket',
+  성미카엘성당: "St Michael's Cathedral",
+  천주교당: "St Michael's Cathedral",
+  잔교: 'Zhanqiao Pier',
+  칭다오잔교: 'Zhanqiao Pier',
+  청도54광장: 'May Fourth Square',
+  '54광장': 'May Fourth Square',
+  '5.4광장': 'May Fourth Square',
+  칭다오올림픽요트경기장: 'Qingdao Olympic Sailing Center',
+  올림픽요트경기장: 'Qingdao Olympic Sailing Center',
+  지모루시장: 'Jimo Road Market',
+  찌모루시장: 'Jimo Road Market',
+  지모루: 'Jimo Road Market',
+  극지해양: 'Polar Ocean World',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */
