@@ -216,15 +216,28 @@ export function sanitizeModetourShoppingStructured(
 /**
  * detail-body 쇼핑 근거가 없으면 LLM 쇼핑 JSON·횟수도 비움(오탐 루프 차단).
  * 쇼핑 정형 붙여넣기가 있으면 LLM 값 유지.
+ * GetShoppingList API로 채운 shoppingStops는 본문 근거 없어도 유지(SSOT).
  */
+// REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]: API 쇼핑 행 finalize 시 보존 — manifest
 export function finalizeModetourRegisterParsedShopping(parsed: RegisterParsed): RegisterParsed {
   const pasted = parsed.detailBodyStructured?.raw?.shoppingPasteRaw?.trim()
   const plausible =
     (parsed.detailBodyStructured?.shoppingStructured?.rows ?? []).filter(modetourShoppingRowLooksPlausible)
+  const filteredApiJson = modetourFilterShoppingStopsJsonString(parsed.shoppingStops)
+  const apiRowCount = countModetourShoppingStopsJsonRows(filteredApiJson ?? parsed.shoppingStops)
+
   if (pasted) {
     return reconcileModetourShoppingVisitCountWithStops(parsed)
   }
   if (plausible.length === 0) {
+    if (apiRowCount > 0) {
+      const next: RegisterParsed = {
+        ...parsed,
+        hasShopping: true,
+        shoppingStops: filteredApiJson ?? parsed.shoppingStops,
+      }
+      return reconcileModetourShoppingVisitCountWithStops(next)
+    }
     return {
       ...parsed,
       shoppingStops: undefined,

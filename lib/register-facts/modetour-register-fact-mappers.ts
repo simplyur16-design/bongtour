@@ -2,7 +2,7 @@
  * modetour register-facts — schedule·flight 순수 매퍼 (DB·fetch 의존 없음, vitest CI용).
  *
  * REGRESSION-FREEZE[register-facts-foundation]: modetourScheduleItemsToFactDays — manifest
- * REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]: 조·중·석 ortherActions·placeHeader — manifest
+ * REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]: listMealPlace·ortherActions·placeHeader — manifest
  */
 import type { RegisterFactFlightLeg, RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
@@ -19,6 +19,13 @@ export type ModetourScheduleItem = {
   }>
   /** B2C API 일부 응답 철자 */
   otherActions?: ModetourScheduleItem['ortherActions']
+  /** GetScheduleList 일차별 조·중·석 — ortherActions와 별도 배열(SSCML1/2/3) */
+  listMealPlace?: Array<{
+    itiServiceName?: string | null
+    itiPlaceName?: string | null
+    itiSummaryDes?: string | null
+    itiServiceCode?: string | null
+  }>
 }
 
 export type ModetourFlightRouteItem = {
@@ -214,6 +221,15 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
       }
     }
+
+    for (const meal of item.listMealPlace ?? []) {
+      const svc = modetourStripHtmlFromText(String(meal.itiServiceName ?? ''))
+      const place = modetourStripHtmlFromText(String(meal.itiPlaceName ?? ''))
+      const summary = modetourStripHtmlFromText(String(meal.itiSummaryDes ?? ''))
+      const mealLines = modetourExtractMealLinesFromAction(svc, place, summary)
+      if (mealLines.length > 0) modetourPushMealLines(row, mealLines)
+    }
+
     byDay.set(day, row)
   }
   return [...byDay.values()].sort((a, b) => a.day - b.day)

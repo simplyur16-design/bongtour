@@ -3152,6 +3152,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]",
             "modetourExtractMealLinesFromAction",
+            "listMealPlace",
             "otherActions"
           ]
         },
@@ -3161,6 +3162,13 @@
             "REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]",
             "splitModetourShoppingPlacesByVisitGroup",
             "extractModetourShoppingStopsFromApiList"
+          ]
+        },
+        {
+          "file": "lib/register-modetour-shopping.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]",
+            "GetShoppingList API로 채운 shoppingStops"
           ]
         }
       ],

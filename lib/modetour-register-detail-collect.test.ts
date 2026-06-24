@@ -16,6 +16,7 @@ import {
   needsModetourOptionalCollect,
   needsModetourScheduleCollect,
 } from './modetour-register-detail-collect'
+import { finalizeModetourRegisterParsedShopping } from './register-modetour-shopping'
 import type { RegisterParsed } from './register-llm-schema-modetour'
 
 import { parseModetourRegisterFromApi } from './modetour-register-api-parse'
@@ -131,6 +132,31 @@ describe('modetour register detail collect', () => {
     expect(String(rows[0]?.noteText ?? '')).toMatch(/모공주/)
     expect(rows[1]?.shoppingItem).toMatch(/DFS|에버리치/i)
     expect(String(rows[1]?.placeName ?? '')).toMatch(/DFS|에버리치/i)
+  })
+
+  it('keeps GetShoppingList API shoppingStops after finalize without body paste', () => {
+    const apiJson = JSON.stringify([
+      {
+        itemType: '잡화점(기념품&토산품)',
+        placeName: '펑리(鳳澧)',
+        durationText: '60분',
+        refundPolicyText: '환불가능',
+        candidateOnly: true,
+      },
+      {
+        itemType: 'DFS에버리치',
+        placeName: 'DFS에버리치(EVERRICH昇恆昌內湖旗艦店)',
+      },
+    ])
+    const out = finalizeModetourRegisterParsedShopping({
+      shoppingStops: apiJson,
+      shoppingVisitCount: 2,
+      hasShopping: true,
+    } as RegisterParsed)
+    expect(out.hasShopping).toBe(true)
+    expect(out.shoppingVisitCount).toBe(2)
+    const kept = JSON.parse(String(out.shoppingStops)) as unknown[]
+    expect(kept).toHaveLength(2)
   })
 
   it('parses GetProductDetailInfo includedNote/unincludedNote HTML', () => {

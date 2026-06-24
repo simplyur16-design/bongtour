@@ -80,6 +80,45 @@ describe('modetourScheduleItemsToFactDays', () => {
     expect(sched[0]?.lunchText).toMatch(/현지식/)
     expect(sched[0]?.dinnerText).toMatch(/특식/)
   })
+
+  it('maps GetScheduleList listMealPlace (Taiwan 105126585 shape)', () => {
+    const days = modetourScheduleItemsToFactDays([
+      {
+        first: 1,
+        listMealPlace: [
+          { itiServiceName: '중식', itiSummaryDes: '기내식', itiServiceCode: 'SSCML2' },
+          { itiServiceName: '석식', itiSummaryDes: '딤섬특식(딘타이펑)', itiServiceCode: 'SSCML3' },
+        ],
+      },
+      {
+        first: 2,
+        listMealPlace: [
+          { itiServiceName: '조식', itiSummaryDes: '호텔식', itiServiceCode: 'SSCML1' },
+          { itiServiceName: '중식', itiSummaryDes: '현지식', itiServiceCode: 'SSCML2' },
+          { itiServiceName: '석식', itiSummaryDes: '불고기(한식)', itiServiceCode: 'SSCML3' },
+        ],
+      },
+      {
+        first: 4,
+        listMealPlace: [
+          { itiServiceName: '조식', itiSummaryDes: '호텔식', itiServiceCode: 'SSCML1' },
+          { itiServiceName: '중식', itiSummaryDes: '기내식', itiServiceCode: 'SSCML2' },
+        ],
+      },
+    ])
+    const d1 = modetourFactDaysToRegisterSchedule(days.filter((d) => d.day === 1))
+    expect(d1[0]?.breakfastText).toBeNull()
+    expect(d1[0]?.lunchText).toMatch(/기내식/)
+    expect(d1[0]?.dinnerText).toMatch(/딤섬|딘타이펑/)
+    const d2 = modetourFactDaysToRegisterSchedule(days.filter((d) => d.day === 2))
+    expect(d2[0]?.breakfastText).toMatch(/호텔식/)
+    expect(d2[0]?.lunchText).toMatch(/현지식/)
+    expect(d2[0]?.dinnerText).toMatch(/불고기/)
+    const d4 = modetourFactDaysToRegisterSchedule(days.filter((d) => d.day === 4))
+    expect(d4[0]?.breakfastText).toMatch(/호텔식/)
+    expect(d4[0]?.lunchText).toMatch(/기내식/)
+    expect(d4[0]?.dinnerText).toBeNull()
+  })
 })
 
 describe('modetourFlightRoutesToFactLegs', () => {
