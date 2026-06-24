@@ -4,6 +4,7 @@ import {
   modetourScheduleItemsToFactDays,
 } from '@/lib/register-facts/modetour-register-fact-mappers'
 import { modetourOtherDepartureRowsToRegisterFactPriceRows } from '@/lib/register-facts/modetour'
+import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 
 describe('modetourOtherDepartureRowsToRegisterFactPriceRows', () => {
   it('maps in-window priced rows and skips invalid', () => {
@@ -40,6 +41,44 @@ describe('modetourScheduleItemsToFactDays', () => {
     expect(days[0]?.places).toEqual(expect.arrayContaining(['청주', '구마모토', '아소산']))
     expect(days[0]?.hotels).toEqual(['루트인 오무타'])
     expect(days[0]?.meals).toEqual(['기내식'])
+  })
+
+  it('maps 조식·중식·석식 ortherActions and otherActions alias', () => {
+    const days = modetourScheduleItemsToFactDays([
+      {
+        first: 2,
+        placeHeader: ['타이베이'],
+        scheduleHotel: '호텔',
+        otherActions: [
+          { itiServiceName: '조식', itiSummaryDes: '호텔식' },
+          { itiServiceName: '중식', itiSummaryDes: '현지식' },
+          { itiServiceName: '석식', itiSummaryDes: '특식' },
+        ],
+      },
+    ])
+    const sched = modetourFactDaysToRegisterSchedule(days)
+    expect(sched[0]?.breakfastText).toMatch(/호텔식/)
+    expect(sched[0]?.lunchText).toMatch(/현지식/)
+    expect(sched[0]?.dinnerText).toMatch(/특식/)
+  })
+
+  it('maps combined meal summary in ortherActions', () => {
+    const days = modetourScheduleItemsToFactDays([
+      {
+        first: 3,
+        placeHeader: [],
+        otherActions: [
+          {
+            itiServiceName: '식사',
+            itiSummaryDes: '조식 호텔식, 중식 현지식, 석식 특식',
+          },
+        ],
+      },
+    ])
+    const sched = modetourFactDaysToRegisterSchedule(days)
+    expect(sched[0]?.breakfastText).toMatch(/호텔식/)
+    expect(sched[0]?.lunchText).toMatch(/현지식/)
+    expect(sched[0]?.dinnerText).toMatch(/특식/)
   })
 })
 
