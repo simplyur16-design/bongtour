@@ -157,6 +157,7 @@ import {
 } from '@/lib/register-public-image-hero-seo-line-candidate'
 import { mergeYbtourDeterministicFieldsFromPaste } from '@/lib/ybtour-paste-deterministic-patch-ybtour'
 import { extractYbtourTripAnchorsFromPaste } from '@/lib/ybtour-trip-anchors-from-paste-ybtour'
+import { parseYbtourEvCdFromUrl } from '@/lib/ybtour-api-departures'
 import { ybtourBuildMinimalDepartureInputs } from '@/lib/ybtour-synthetic-departure-ybtour'
 
 type HeroTripDatesSupplement = Partial<Pick<Parameters<typeof resolveYbtourHeroTripDates>[0], 'ybtourFlightStructured'>>
@@ -953,7 +954,17 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
     const heroTripDatesExtra = getHeroTripDatesSupplement?.(parsed) ?? {}
 
     const departurePreviewRows = toDeparturePreviewRows(departureInputs)
-    const selectedDepartureRow = departurePreviewRows.find((r) => r.isBookable === true) ?? departurePreviewRows[0] ?? null
+    const urlEvCd = parseYbtourEvCdFromUrl(originUrl)
+    const urlAnchoredRow = urlEvCd
+      ? departurePreviewRows.find((r) =>
+          String(r.supplierDepartureCodeCandidate ?? '').includes(urlEvCd),
+        )
+      : null
+    const selectedDepartureRow =
+      urlAnchoredRow ??
+      departurePreviewRows.find((r) => r.isBookable === true) ??
+      departurePreviewRows[0] ??
+      null
     const calendarDep = selectedDepartureRow?.departureDate?.slice(0, 10) ?? null
     const factsFromRow = departurePreviewRowToKeyFacts(selectedDepartureRow)
     const heroResolvedPreview = resolveYbtourHeroTripDates({

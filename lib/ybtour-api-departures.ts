@@ -327,6 +327,19 @@ function dedupeYbtourInputsByEvCd(inputs: DepartureInput[]): DepartureInput[] {
   return out
 }
 
+/** URL evCd 출발 행 우선 — productPriceTable·히어로 앵커 SSOT */
+export function pickYbtourAnchorDepartureInput(
+  inputs: DepartureInput[],
+  urlEvCd: string | null | undefined,
+): DepartureInput | null {
+  const ev = String(urlEvCd ?? '').trim()
+  if (ev) {
+    const hit = inputs.find((x) => String(x.supplierDepartureCodeCandidate ?? '').includes(ev))
+    if (hit) return hit
+  }
+  return inputs[0] ?? null
+}
+
 /** URL evCd first-display 실패(9991 등) 시 available-date/day evCd로 by-goods dspSid seed. */
 export function pickYbtourSeedEvCdForByGoods(params: {
   urlEvCd: string | null

@@ -136,14 +136,17 @@ export async function parseYbtourRegisterFromApi(
     scheduleFromDetail.length > 0 ? scheduleFromDetail : factDaysToRegisterSchedule(bundle.scheduleDays)
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
-  const firstPrice = bundle.priceRows[0]
+  const urlEvCd = parseYbtourEvCdFromUrl(originUrl) ?? resolved.evCd
+  const anchorFactRow =
+    bundle.priceRows.find((row) => String(row.supplierDepartureCode ?? '').includes(urlEvCd)) ??
+    bundle.priceRows[0]
   const productPriceTable =
-    firstPrice != null
+    anchorFactRow != null
       ? {
-          adultPrice: firstPrice.adultPrice ?? null,
-          childExtraBedPrice: firstPrice.childPrice ?? null,
+          adultPrice: anchorFactRow.adultPrice ?? null,
+          childExtraBedPrice: anchorFactRow.childPrice ?? null,
           childNoBedPrice: null,
-          infantPrice: firstPrice.infantPrice ?? null,
+          infantPrice: anchorFactRow.infantPrice ?? null,
         }
       : undefined
 
