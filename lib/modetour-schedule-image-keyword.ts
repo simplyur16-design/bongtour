@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: 한글 routeText·도시명 반복 분산 — manifest
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: 베트남 POI 오매핑 차단 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
+ * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
  */
 import {
   acceptLlmScheduleImageKeyword,
@@ -14,6 +15,7 @@ import {
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import {
   findAllMappedKoreanPoisInText,
   findMappedKoreanPoisInTextByMentionOrder,
@@ -102,21 +104,6 @@ function stripRouteSegmentNoise(seg: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 }
-
-/** 모두투어 routeText 한글 구간 — 공용 POI 사전보다 우선(베트남 오매핑 차단) */
-const MODETOUR_ROUTE_POI_OVERRIDES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /내원교/u, en: 'Japanese Covered Bridge' },
-  { re: /호이안\s*고대\s*도시|호이안\s*올드\s*타운|호이안\s*고성/u, en: 'Hoi An Ancient Town' },
-  { re: /^호이안$/u, en: 'Hoi An Ancient Town' },
-  { re: /영흥사|손짜/u, en: 'Linh Ung Pagoda' },
-  { re: /다낭\s*대성당/u, en: 'Da Nang Cathedral' },
-  { re: /미케\s*비치/u, en: 'My Khe Beach' },
-  { re: /천주교당|성미카엘/u, en: "St Michael's Cathedral" },
-  { re: /잔교/u, en: 'Zhanqiao Pier' },
-  { re: /54광장|5\.4광장/u, en: 'May Fourth Square' },
-  { re: /올림픽\s*요트|요트\s*경기장/u, en: 'Qingdao Olympic Sailing Center' },
-  { re: /지모루|찌모루/u, en: 'Jimo Road Market' },
-]
 
 export function isModetourDomesticHubToken(token: string): boolean {
   const t = stripRouteSegmentNoise(token)
@@ -209,13 +196,12 @@ function extractLatinEnglishFromRouteSegment(seg: string): string {
 function englishFromKoreanRouteSegment(seg: string): string {
   const t = stripRouteSegmentNoise(seg)
   if (!t || isModetourDomesticHubToken(t)) return ''
-  for (const { re, en } of MODETOUR_ROUTE_POI_OVERRIDES) {
-    if (re.test(t)) {
-      try {
-        return finalizeScheduleImageKeyword(en)
-      } catch {
-        return en
-      }
+  const spotEn = firstMatchingScheduleSpotEn(t)
+  if (spotEn) {
+    try {
+      return finalizeScheduleImageKeyword(spotEn)
+    } catch {
+      return spotEn
     }
   }
   const fromPoi = mapKoreanPoiSegment(t)
@@ -333,14 +319,13 @@ function pickFirstTourismPoiFromRouteText(
     if (isModetourDomesticHubToken(seg)) continue
     if (isNonLandmarkRouteTextSegment(seg)) continue
     const t = stripRouteSegmentNoise(seg)
-    for (const { re, en } of MODETOUR_ROUTE_POI_OVERRIDES) {
-      if (re.test(t)) {
-        try {
-          const fin = finalizeScheduleImageKeyword(en)
-          return fin.length >= en.length - 4 ? fin : en
-        } catch {
-          return en
-        }
+    const spotEn = firstMatchingScheduleSpotEn(t)
+    if (spotEn) {
+      try {
+        const fin = finalizeScheduleImageKeyword(spotEn)
+        return fin.length >= spotEn.length - 4 ? fin : spotEn
+      } catch {
+        return spotEn
       }
     }
     const kw = segmentToAcceptedModetourKeyword(seg, productDestination)
@@ -772,7 +757,10 @@ function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageK
       return ''
     }
 
-    if (dayKind === 'movement' || dayKind === 'return_home') {
+    if (dayKind === 'return_home') {
+      primary = ''
+      secondary = ''
+    } else if (dayKind === 'movement') {
       if (!primary || used.has(normKey(primary))) {
         const fromDay = collectModetourDayPrimaryCandidates(row, dayKind, productDestination)
         primary = pickUnused(fromDay)

@@ -694,6 +694,7 @@
           "mustInclude": [
             "runScheduleImageKeywordDualSlotContract",
             "check-schedule-image-keyword-routing-parity",
+            "check-schedule-poi-regex-ssot-no-supplier-dup",
             "SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS",
             "applyRegisterScheduleImageKeywordsBySupplier"
           ]
@@ -3263,6 +3264,80 @@
       ],
       "npmScripts": [
         "verify:schedule-image-keyword-dual-slot"
+      ]
+    },
+    {
+      "id": "schedule-poi-regex-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "전 공급사 imageKeyword — POI/CITY regex SSOT 단일화, 공급사별 지역 ROI 테이블 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "SCHEDULE_SPOT_KO_REGEX_RULES",
+            "SCHEDULE_CITY_KO_REGEX_RULES",
+            "firstMatchingScheduleSpotEn"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
+          "mustInclude": [
+            "firstMatchingScheduleSpotEn",
+            "firstMatchingScheduleCityEn"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "schedule-poi-regex-ssot",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "schedule-poi-regex-ssot",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]"
+          ]
+        },
+        {
+          "file": "lib/lottetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "schedule-poi-regex-ssot",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "schedule-poi-regex-ssot",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "schedule-poi-regex-ssot",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]"
+          ]
+        },
+        {
+          "file": "scripts/check-schedule-poi-regex-ssot-no-supplier-dup.mjs",
+          "mustInclude": [
+            "schedule-poi-regex-ssot",
+            "POI_RULES"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:schedule-image-keyword-dual-slot"
+      ],
+      "vitestSuites": [
+        "tests/schedule-poi-regex-ssot.test.ts"
       ]
     },
     {

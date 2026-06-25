@@ -2,9 +2,11 @@
  * 참좋은여행(verygoodtour): 일차 imageKeyword(1순위)·imageKeyword2(2순위) — Pexels용 영문.
  * LLM 영문 우선; touring 일차 2순위는 본문 한글 명소 매핑 폴백.
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 2순위 — manifest
+ * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { findAllMappedKoreanPoisInText, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { pickDistinctSecondScheduleImageKeyword, inferEnglishPlaceKeywordFromDayContent } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
@@ -40,24 +42,8 @@ const VERYGOOD_TOXIC_IMAGE_KEYWORD_RE =
 
 const VERYGOOD_LLM_DAY_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
-const VERYGOOD_SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /후룬베이얼\s*대초원|Hulunbuir Grassland/i, en: 'Hulunbuir Grassland / rolling green hills / wide angle' },
-  { re: /모리거러|Morigele/i, en: 'Morigele River / grassland valley / wide angle' },
-  { re: /만주리|Manzhouli/i, en: 'Manzhouli border city / Russian architecture / street view' },
-  { re: /마트료시카|Matryoshka/i, en: 'Matryoshka Square Manzhouli / colorful dolls plaza / front view' },
-  { re: /후룬베이얼\s*고성|Hulunbuir Old/i, en: 'Hulunbuir Old Town / Qing dynasty gate / front view' },
-  { re: /하이라얼|Hailar/i, en: 'Hailar city / Inner Mongolia steppe gateway / street view' },
-  { re: /수안\s*후엉|Xuan\s*Huong/i, en: 'Xuan Huong Lake Da Lat / pine forest shore / wide angle' },
-  { re: /포나가르|Po Nagar|Cham Towers/i, en: 'Po Nagar Cham Towers Nha Trang / ancient towers / front view' },
-  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam / turquoise sea / wide angle' },
-  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland / pine hills / wide angle' },
-]
-
 function firstVerygoodSpotMatch(h: string): string | null {
-  for (const { re, en } of VERYGOOD_SPOT_RULES) {
-    if (re.test(h)) return en
-  }
-  return null
+  return firstMatchingScheduleSpotEn(h)
 }
 
 function firstVerygoodSpotFromRoute(routeText: string | null | undefined): string | null {
@@ -495,7 +481,11 @@ export function applyVerygoodScheduleImageKeywordsToRows<
       const pois = findAllMappedKoreanPoisInText(hay)
         .map((en) => tryAcceptVerygoodLlmImageKeyword(en, productDestination))
         .filter(Boolean) as string[]
-      const alt = pickDistinctSecondScheduleImageKeyword(primary, [...pois, ...VERYGOOD_SPOT_RULES.map((x) => x.en)])
+      const spotEn = firstMatchingScheduleSpotEn(hay)
+      const alt = pickDistinctSecondScheduleImageKeyword(
+        primary,
+        spotEn ? [...pois, spotEn] : pois,
+      )
       if (alt && !usedPrimaryKeys.has(normKey(alt))) primary = alt
       else primary = ''
     }

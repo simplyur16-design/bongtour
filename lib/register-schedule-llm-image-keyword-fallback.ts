@@ -13,6 +13,7 @@ import {
   mapKoreanPoiSegment,
   normalizeSemanticPoiKey,
 } from '@/lib/pexels-keyword'
+import { firstMatchingScheduleCityEn, firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 function normKeywordKey(s: string): string {
@@ -134,6 +135,14 @@ function routeTextSegments(routeText: string | null | undefined): string[] {
 function englishFromKoreanSegment(seg: string): string {
   const t = seg.trim()
   if (!t) return ''
+  const fromSpotRegex = firstMatchingScheduleSpotEn(t)
+  if (fromSpotRegex) {
+    try {
+      return finalizeScheduleImageKeyword(fromSpotRegex)
+    } catch {
+      return fromSpotRegex
+    }
+  }
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     try {
@@ -148,6 +157,14 @@ function englishFromKoreanSegment(seg: string): string {
       return finalizeScheduleImageKeyword(fromDest)
     } catch {
       /* continue */
+    }
+  }
+  const fromCityRegex = firstMatchingScheduleCityEn(t)
+  if (fromCityRegex) {
+    try {
+      return finalizeScheduleImageKeyword(fromCityRegex)
+    } catch {
+      return fromCityRegex
     }
   }
   return ''

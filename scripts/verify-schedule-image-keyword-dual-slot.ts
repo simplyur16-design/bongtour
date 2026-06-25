@@ -34,6 +34,16 @@ try {
   failures.push('routing parity script failed')
 }
 
+try {
+  execSync('node scripts/check-schedule-poi-regex-ssot-no-supplier-dup.mjs', {
+    cwd: ROOT,
+    stdio: 'inherit',
+  })
+  console.log('[poi-ssot] no per-supplier regional POI regex tables')
+} catch {
+  failures.push('schedule-poi-regex-ssot supplier dup check failed')
+}
+
 let step = 0
 const total = SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS.length
 for (const { supplier, nodeTest } of SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS) {

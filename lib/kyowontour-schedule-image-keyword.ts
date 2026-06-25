@@ -1,6 +1,7 @@
 /**
  * 교원이지(kyowontour) 전용: `Product.schedule[].imageKeyword`·`imageKeyword2` Pexels 검색용 영문.
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 2순위 — manifest
+ * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
  */
 
 import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
@@ -19,6 +20,11 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
+import {
+  findAllScheduleSpotMatchesInText,
+  firstMatchingScheduleCityEn,
+  firstMatchingScheduleSpotEn,
+} from '@/lib/schedule-poi-regex-ssot'
 
 export type KyowontourImageKeywordContext = {
   day: number
@@ -55,107 +61,6 @@ const TRAVEL_STANDALONE_KO = /^(?:출발|도착|귀국|입국|출국|공항\s*�
 
 const GENERIC_EN = /^(?:travel|tour|city\s*tour|day\s*\d+\s*travel)$/i
 
-/** 최소 한글→영문 관광지 (교원이지 일정 본문에서 자주 쓰이는 표기만) */
-const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
-  { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
-  { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
-  { re: /송성|宋城|송가무|가무쇼/u, en: 'Songcheng Park Hangzhou' },
-  { re: /청황|城隍/u, en: 'City God Temple of Shanghai' },
-  { re: /동방명주|东方明珠/u, en: 'Oriental Pearl Tower Shanghai' },
-  { re: /주가각|朱家角/u, en: 'Zhujiajiao water town canal bridge' },
-  { re: /우캉\s*루|武康路/u, en: 'Wukang Road Shanghai' },
-  { re: /남경\s*로|南京路/u, en: 'Nanjing Road Shanghai' },
-  { re: /에펠\s*탑|에펠탑|Eiffel/i, en: 'Eiffel Tower Paris' },
-  { re: /개선문/u, en: 'Arc de Triomphe Paris' },
-  { re: /몽생미셸|Mont\s*Saint\s*Michel/i, en: 'Mont Saint Michel abbey' },
-  { re: /시부야|渋谷/u, en: 'Shibuya crossing Tokyo night' },
-  { re: /하라주쿠|原宿/u, en: 'Harajuku Takeshita street Tokyo' },
-  { re: /금각사|金閣寺/u, en: 'Kinkakuji golden pavilion Kyoto' },
-  { re: /은각사|銀閣寺/u, en: 'Ginkakuji temple Kyoto' },
-  { re: /후시미\s*이나리|伏見稲荷/u, en: 'Fushimi Inari Shrine / thousand vermilion torii gates / eye-level front view' },
-  { re: /도톤보리|道頓堀/u, en: 'Dotonbori Osaka night' },
-  { re: /(?:유|우)니버설|USJ/u, en: 'Universal Studios Japan Osaka' },
-  { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: 'Tokyo Disneyland castle' },
-  { re: /타이페이\s*101|台北\s*101|타이편\s*101/u, en: 'Taipei 101 tower night' },
-  { re: /지우펀|九份/u, en: 'Jiufen old street Taiwan night' },
-  { re: /백두산/u, en: 'Changbai Mountain scenic view' },
-  { re: /이도백하/u, en: 'Erdaobaihe river town Changbai' },
-  { re: /(?:^|\s)레(?:\s|$|-)(?=.*(?:왕궁|시장|Palace|Ladakh|라다크))/u, en: 'Leh Palace Ladakh' },
-  { re: /^(?:레|Leh)$/iu, en: 'Leh Palace Ladakh' },
-  { re: /\bLeh(?:\s+Palace|\s+Ladakh)?\b/i, en: 'Leh Palace Ladakh' },
-  { re: /금강\s*대?\s*협곡/u, en: 'Mount Geumgang gorge scenic' },
-  { re: /요호|Yoho/i, en: 'Yoho National Park / Emerald Lake / wide angle' },
-  { re: /페이토|Peyto/i, en: 'Peyto Lake / turquoise water / overlook view' },
-  { re: /아사바스카|Athabasca/i, en: 'Athabasca Falls / Rocky Mountains / wide angle' },
-  { re: /레이크\s*루이스|Lake Louise/i, en: 'Lake Louise / turquoise lake / mountain backdrop' },
-  { re: /모레인|Moraine/i, en: 'Moraine Lake / Valley of Ten Peaks / wide angle' },
-  { re: /보우\s*폭포|Bow Falls/i, en: 'Bow Falls Banff / river cascade / wide angle' },
-  { re: /미네완카|Minnewanka/i, en: 'Lake Minnewanka Banff / mountain lake / wide angle' },
-  { re: /캘거리|Calgary/i, en: 'Calgary Tower / downtown skyline / wide angle' },
-  { re: /밴프|Banff/i, en: 'Banff townsite / Rocky Mountains / street view' },
-  { re: /몰디브|Maldives/i, en: 'Maldives overwater villa turquoise lagoon aerial' },
-  { re: /(?:르메르디앙|Le\s*Meridien|Meridien)/i, en: 'Maldives overwater bungalow resort aerial' },
-  { re: /하우스\s*리프|House\s*Reef/i, en: 'Maldives house reef snorkeling turquoise water' },
-  { re: /Bodu\s*Finolhu|보두\s*피놀후/i, en: 'Maldives white sand beach palm trees aerial' },
-  { re: /포나가르|Po Nagar|Cham Towers/i, en: 'Po Nagar Cham Towers Nha Trang' },
-  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland pine forest city' },
-  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam turquoise sea' },
-  { re: /비엔티안|Vientiane/i, en: 'Pha That Luang Vientiane golden stupa' },
-  { re: /방비엥|Vang Vieng/i, en: 'Vang Vieng Nam Song river karst mountains' },
-  { re: /블루\s*라군|Blue Lagoon/i, en: 'Blue Lagoon Vang Vieng emerald water' },
-  { re: /파투싸이|Patuxai/i, en: 'Patuxai Victory Monument Vientiane' },
-  { re: /타틀루앙|Pha That Luang/i, en: 'Pha That Luang Vientiane golden stupa front view' },
-  { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo / historic center / wide angle' },
-  { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal / gondolas / wide angle' },
-  { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers / historic center / front view' },
-]
-
-const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /상해|사해|上海/u, en: 'Shanghai skyline night' },
-  { re: /북경|베이징|北京/u, en: 'Beijing Forbidden City view' },
-  { re: /광저우|광주|广州/u, en: 'Guangzhou skyline night' },
-  { re: /심천|深圳/u, en: 'Shenzhen skyline night' },
-  { re: /도쿄|東京/u, en: 'Tokyo street night' },
-  { re: /오사카|大阪/u, en: 'Osaka Dotonbori night' },
-  { re: /교토|京都/u, en: 'Kyoto temple street' },
-  { re: /후쿠오카|福岡/u, en: 'Fukuoka city night' },
-  { re: /삿포로|札幌/u, en: 'Sapporo snow city street' },
-  { re: /나고야|名古屋/u, en: 'Nagoya castle view' },
-  { re: /요코하마|横浜/u, en: 'Yokohama bay night' },
-  { re: /파리/u, en: 'Paris city skyline' },
-  { re: /로마/u, en: 'Rome Colosseum view' },
-  { re: /바르셀로나/u, en: 'Barcelona Sagrada Familia exterior' },
-  { re: /런던/u, en: 'London Thames skyline' },
-  { re: /뉴욕/u, en: 'New York Manhattan skyline' },
-  { re: /연길/u, en: 'Yanji Korean quarter winter street' },
-  { re: /제주/u, en: 'Jeju coast view' },
-  { re: /부산/u, en: 'Busan Gamcheon village' },
-  { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
-  { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
-  { re: /파타야/u, en: 'Pattaya beach sunset' },
-  { re: /호이안|會安|Hoi\s*An/u, en: 'Hoi An Ancient Town / lantern-lit street / eye-level' },
-  { re: /다낭/u, en: 'Da Nang Han River / Dragon Bridge waterfront skyline / wide angle' },
-  { re: /하노이/u, en: 'Hanoi Old Quarter street' },
-  { re: /호치민/u, en: 'Ho Chi Minh city skyline' },
-  { re: /세부/u, en: 'Cebu tropical beach' },
-  { re: /보라카이/u, en: 'Boracay white beach' },
-  { re: /발리/u, en: 'Bali rice terrace view' },
-  { re: /시드니|悉尼/u, en: 'Sydney Opera House harbour' },
-  { re: /멜버른|멜번/u, en: 'Melbourne laneway street' },
-  { re: /홍콩|香港/u, en: 'Hong Kong Victoria Harbour night' },
-  { re: /마카오|澳門/u, en: 'Macau Senado square' },
-  { re: /타이페이|台北/u, en: 'Taipei night market street' },
-  { re: /하와이|호놀룰루|Honolulu/i, en: 'Honolulu Waikiki beach' },
-  { re: /괌|Guam/i, en: 'Guam Tumon beach' },
-  { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
-  { re: /캘거리|Calgary/i, en: 'Calgary Tower downtown skyline' },
-  { re: /밴프|Banff/i, en: 'Banff townsite Rocky Mountains' },
-  { re: /몰디브|Maldives/i, en: 'Maldives overwater villa lagoon sunset' },
-  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam' },
-  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland city' },
-]
-
 const KYOWONTOUR_DOMESTIC_HUB_RE =
   /^(?:인천|서울|한국|김포|부산|대구|청주|제주|인천국제공항|김포국제공항|인천공항|김포공항|ICN|GMP|PUS|CJU)$/iu
 
@@ -184,9 +89,9 @@ function isKyowontourRejectedImageKeywordCandidate(kw: string | null | undefined
 
 function kyowontourLandmarkFromHaystack(ctx: KyowontourImageKeywordContext): string | null {
   const h = hay(ctx)
-  const spot = firstMatchingEn(SPOT_RULES, h)
+  const spot = firstMatchingScheduleSpotEn( h)
   if (spot) return spot
-  const city = firstMatchingEn(CITY_RULES, h)
+  const city = firstMatchingScheduleCityEn( h)
   if (city && !isBlockedScheduleImageKeyword(city)) return city
   return null
 }
@@ -194,7 +99,7 @@ function kyowontourLandmarkFromHaystack(ctx: KyowontourImageKeywordContext): str
 function kyowontourUsableRouteSegments(routeText: string | null | undefined): string[] {
   return kyowontourRouteTextSegments(routeText).filter((s) => {
     if (isKyowontourDomesticHubToken(s)) return false
-    if (firstMatchingEn(SPOT_RULES, s)) return true
+    if (firstMatchingScheduleSpotEn( s)) return true
     return !isNonLandmarkRouteTextSegment(s)
   })
 }
@@ -205,9 +110,9 @@ function landmarkFromKyowontourRouteText(routeText: string | null | undefined): 
   let lastSpot: string | null = null
   let lastCity: string | null = null
   for (const seg of segs) {
-    const spot = firstMatchingEn(SPOT_RULES, seg)
+    const spot = firstMatchingScheduleSpotEn( seg)
     if (spot) lastSpot = spot
-    const city = firstMatchingEn(CITY_RULES, seg)
+    const city = firstMatchingScheduleCityEn( seg)
     if (city && !isBlockedScheduleImageKeyword(city)) lastCity = city
   }
   return lastSpot ?? lastCity
@@ -216,9 +121,9 @@ function landmarkFromKyowontourRouteText(routeText: string | null | undefined): 
 function firstLandmarkFromKyowontourRouteText(routeText: string | null | undefined): string | null {
   const segs = kyowontourUsableRouteSegments(routeText)
   for (const seg of segs) {
-    const spot = firstMatchingEn(SPOT_RULES, seg)
+    const spot = firstMatchingScheduleSpotEn( seg)
     if (spot) return spot
-    const city = firstMatchingEn(CITY_RULES, seg)
+    const city = firstMatchingScheduleCityEn( seg)
     if (city && !isBlockedScheduleImageKeyword(city)) return city
   }
   return null
@@ -510,7 +415,7 @@ export function deriveKyowontourImageKeyword(ctx: KyowontourImageKeywordContext)
   const descTriple = firstMatchingEn(KYOWONTOUR_DESC_TRIPLE, h)
   if (descTriple) return descTriple
 
-  const spot = firstMatchingEn(SPOT_RULES, h)
+  const spot = firstMatchingScheduleSpotEn( h)
   if (spot) return spot
 
   const arrival = arrivalCityFromHay(h)
@@ -519,7 +424,7 @@ export function deriveKyowontourImageKeyword(ctx: KyowontourImageKeywordContext)
   const iata = iataHintsFromHay(h)
   if (iata) return iata
 
-  const cityHit = firstMatchingEn(CITY_RULES, h)
+  const cityHit = firstMatchingScheduleCityEn( h)
   if (cityHit && !isBlockedScheduleImageKeyword(cityHit)) return cityHit
 
   if (ctx.airtelFreeTravelImageKw === 'force-city') {
@@ -605,7 +510,7 @@ function classifyKyowontourScheduleDayKind(
   }
   const h = hay(ctx)
   const foreignSegs = kyowontourRouteTextSegments(row.routeText).filter((s) => !isKyowontourDomesticHubToken(s))
-  const spotSegCount = foreignSegs.filter((s) => firstMatchingEn(SPOT_RULES, s)).length
+  const spotSegCount = foreignSegs.filter((s) => firstMatchingScheduleSpotEn( s)).length
 
   if (day === maxDay && /(?:도착|해산|귀국|출국)/u.test(h)) {
     const allDomestic =
@@ -736,9 +641,9 @@ function resolveKyowontourSecondaryKeyword(
 
   const routeSegLandmarks: string[] = []
   for (const seg of kyowontourUsableRouteSegments(row.routeText)) {
-    const spot = firstMatchingEn(SPOT_RULES, seg)
+    const spot = firstMatchingScheduleSpotEn( seg)
     if (spot) routeSegLandmarks.push(spot)
-    const city = firstMatchingEn(CITY_RULES, seg)
+    const city = firstMatchingScheduleCityEn( seg)
     if (city && !isBlockedScheduleImageKeyword(city)) routeSegLandmarks.push(city)
   }
   const fromRoute = pickDistinctSecondScheduleImageKeyword(primary, routeSegLandmarks)
@@ -761,8 +666,8 @@ function collectKyowontourRouteLandmarkCandidates(routeText: string | null | und
     out.push(t)
   }
   for (const seg of kyowontourUsableRouteSegments(routeText)) {
-    push(firstMatchingEn(SPOT_RULES, seg))
-    push(firstMatchingEn(CITY_RULES, seg))
+    push(firstMatchingScheduleSpotEn( seg))
+    push(firstMatchingScheduleCityEn( seg))
   }
   push(firstLandmarkFromKyowontourRouteText(routeText))
   push(landmarkFromKyowontourRouteText(routeText))

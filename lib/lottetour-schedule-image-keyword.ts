@@ -1,6 +1,7 @@
 /**
  * 롯데관광(lottetour) 전용: `Product.schedule[].imageKeyword`·`imageKeyword2` Pexels 검색용 영문 관광지 고유명.
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 routeText 2순위 — manifest
+ * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
 
@@ -12,6 +13,11 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
+import {
+  findAllScheduleSpotMatchesInText,
+  firstMatchingScheduleCityEn,
+  firstMatchingScheduleSpotEn,
+} from '@/lib/schedule-poi-regex-ssot'
 
 export type LottetourImageKeywordContext = {
   day: number
@@ -48,145 +54,6 @@ const MEAL_HOTEL_KO = /호텔|예정\s*호텔|호텔식|조식|중식|석식|점
 const TRAVEL_STANDALONE_KO = /^(?:출발|도착|귀국|입국|출국|공항\s*이동|이동)$/u
 
 const GENERIC_EN = /^(?:travel|tour|city\s*tour|day\s*\d+\s*travel)$/i
-
-/** 튀르키예(터키) — routeText·본문 우선 매칭 */
-const TURKEY_SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /술탄\s*아흐메트|블루\s*모스크|Sultan\s*Ahmed/i, en: 'Sultan Ahmed Mosque Istanbul' },
-  { re: /그랜드\s*바자르|Grand\s*Bazaar/i, en: 'Grand Bazaar Istanbul' },
-  { re: /투즈괼|소금\s*호수|Lake\s*Tuz/i, en: 'Lake Tuz salt lake Turkey' },
-  { re: /데린쿠유|지하\s*도시|Derinkuyu/i, en: 'Derinkuyu Underground City Cappadocia' },
-  { re: /괴레메|Goreme|Göreme/i, en: 'Goreme Cappadocia fairy chimneys' },
-  { re: /우치히사르|Uchisar/i, en: 'Uchisar Castle Cappadocia' },
-  { re: /데브란트|Devrent/i, en: 'Devrent Valley Cappadocia' },
-  { re: /카파도키아|카파토키아|Cappadocia/i, en: 'Cappadocia hot air balloons sunrise' },
-  { re: /오브룩|담수호|Obruk/i, en: 'Obruk Lake Turkey sinkhole' },
-  { re: /이블리\s*미나레|Yivli\s*Minaret/i, en: 'Yivli Minaret Antalya' },
-  { re: /하드리아누스|Hadrian/i, en: "Hadrian's Gate Antalya" },
-  { re: /히에라폴리스|Hierapolis/i, en: 'Hierapolis ancient ruins Pamukkale' },
-  { re: /석회붕|파묵칼레|Pamukkale/i, en: 'Pamukkale travertine terraces Turkey' },
-  { re: /쉬린제|Sirince|Şirince/i, en: 'Sirince village Turkey wine houses' },
-  { re: /에페수스|Ephesus/i, en: 'Ephesus ancient library ruins Turkey' },
-  { re: /성\s*소피아|아야\s*소피아|Hagia\s*Sophia/i, en: 'Hagia Sophia Istanbul interior dome' },
-  { re: /톱카프|Topkapi|Topkapı/i, en: 'Topkapi Palace Istanbul courtyard' },
-  { re: /발랏|Balat/i, en: 'Balat Istanbul colorful houses street' },
-  { re: /보스포러스|Bosphorus|Bosporus/i, en: 'Bosphorus Strait Istanbul cruise view' },
-  { re: /피엘로티|Pierre\s*Loti/i, en: 'Pierre Loti Hill Istanbul cable car view' },
-]
-
-/** 최소 한글→영문 관광지 (롯데관광 일정 본문에서 자주 쓰이는 표기만) */
-const SPOT_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  ...TURKEY_SPOT_RULES,
-  { re: /포나가르|Po Nagar|Cham Towers/i, en: 'Po Nagar Cham Towers Nha Trang' },
-  { re: /달랏\s*꽃\s*정원|Dalat Flower|Da Lat Flower/i, en: 'Da Lat Flower Garden Vietnam' },
-  { re: /달랏|Da Lat|Dalat/i, en: 'Da Lat Vietnam highland city' },
-  { re: /나트랑|Nha Trang/i, en: 'Nha Trang beach Vietnam' },
-  { re: /(?:유|우)원|豫园|예원/u, en: 'Yu Garden Shanghai' },
-  { re: /외탄|外灘|外滩|와탄/u, en: 'Shanghai Bund skyline' },
-  { re: /항주|杭州|서호|西湖/u, en: 'West Lake Hangzhou' },
-  { re: /송성|宋城|송가무|가무쇼/u, en: 'Songcheng Park Hangzhou' },
-  { re: /청황|城隍/u, en: 'City God Temple of Shanghai' },
-  { re: /동방명주|东方明珠/u, en: 'Oriental Pearl Tower Shanghai' },
-  { re: /주가각|朱家角/u, en: 'Zhujiajiao water town canal bridge' },
-  { re: /우캉\s*루|武康路/u, en: 'Wukang Road Shanghai' },
-  { re: /남경\s*로|南京路/u, en: 'Nanjing Road Shanghai' },
-  { re: /에펠\s*탑|에펠탑|Eiffel/i, en: 'Eiffel Tower Paris' },
-  { re: /개선문/u, en: 'Arc de Triomphe Paris' },
-  { re: /몽생미셸|Mont\s*Saint\s*Michel/i, en: 'Mont Saint Michel abbey' },
-  { re: /시부야|渋谷/u, en: 'Shibuya crossing Tokyo night' },
-  { re: /하라주쿠|原宿/u, en: 'Harajuku Takeshita street Tokyo' },
-  { re: /금각사|金閣寺/u, en: 'Kinkakuji golden pavilion Kyoto' },
-  { re: /은각사|銀閣寺/u, en: 'Ginkakuji temple Kyoto' },
-  { re: /후시미\s*이나리|伏見稲荷/u, en: 'Fushimi Inari Shrine / thousand vermilion torii gates / eye-level front view' },
-  { re: /도톤보리|道頓堀/u, en: 'Dotonbori Osaka night' },
-  { re: /(?:유|우)니버설|USJ/u, en: 'Universal Studios Japan Osaka' },
-  { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: 'Tokyo Disneyland castle' },
-  { re: /타이페이\s*101|台北\s*101|타이편\s*101/u, en: 'Taipei 101 tower night' },
-  { re: /지우펀|九份/u, en: 'Jiufen old street Taiwan night' },
-  { re: /백두산/u, en: 'Changbai Mountain scenic view' },
-  { re: /이도백하/u, en: 'Erdaobaihe river town Changbai' },
-  { re: /금강\s*대?\s*협곡/u, en: 'Mount Geumgang gorge scenic' },
-  { re: /수안\s*후엉|Xuan\s*Huong/i, en: 'Xuan Huong Lake Da Lat / pine forest shore / wide angle' },
-  { re: /두오모|Duomo|피렌체\s*성당/i, en: 'Florence Cathedral Duomo / red dome plaza / front view' },
-  { re: /시뇨리아|Signoria/i, en: 'Piazza della Signoria Florence / Palazzo Vecchio / daytime' },
-  { re: /베키오|Ponte Vecchio/i, en: 'Ponte Vecchio Florence / Arno River / wide angle' },
-  { re: /우피치|Uffizi/i, en: 'Uffizi Gallery Florence / courtyard / front view' },
-  { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo / historic center / wide angle' },
-  { re: /산\s*지미냐노|San Gimignano/i, en: 'San Gimignano medieval towers / Tuscany hills / wide angle' },
-  { re: /베로나|Verona/i, en: 'Verona Arena / Roman amphitheater / front view' },
-  { re: /오르티세이|Ortisei/i, en: 'Ortisei Dolomites / alpine village / wide angle' },
-  { re: /볼차노|Bolzano/i, en: 'Bolzano South Tyrol / Dolomites gateway / street view' },
-  { re: /코르티나|Cortina/i, en: 'Cortina d Ampezzo Dolomites / mountain peaks / wide angle' },
-  { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal / gondolas / wide angle' },
-  { re: /산\s*마리노|San Marino/i, en: 'San Marino historic fortress / hilltop view / wide angle' },
-  { re: /몬테카티니|Montecatini/i, en: 'Montecatini Terme spa town / Tuscany / street view' },
-  { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers / historic center / front view' },
-  { re: /마르쿠스|St\.?\s*Mark|산\s*마르코/i, en: "St Mark's Basilica Venice / Piazza San Marco / front view" },
-  { re: /요호|Yoho/i, en: 'Yoho National Park / Emerald Lake / wide angle' },
-  { re: /페이토|Peyto/i, en: 'Peyto Lake / turquoise water / overlook view' },
-  { re: /아사바스카|Athabasca/i, en: 'Athabasca Falls / Rocky Mountains / wide angle' },
-  { re: /레이크\s*루이스|Lake Louise/i, en: 'Lake Louise / turquoise lake / mountain backdrop' },
-  { re: /모레인|Moraine/i, en: 'Moraine Lake / Valley of Ten Peaks / wide angle' },
-  { re: /보우\s*폭포|Bow Falls/i, en: 'Bow Falls Banff / river cascade / wide angle' },
-  { re: /미네완카|Minnewanka/i, en: 'Lake Minnewanka Banff / mountain lake / wide angle' },
-  { re: /캘거리|Calgary/i, en: 'Calgary Tower / downtown skyline / wide angle' },
-  { re: /밴프|Banff/i, en: 'Banff townsite / Rocky Mountains / street view' },
-  { re: /고랑서|鼓浪屿|Gulangyu/i, en: 'Gulangyu Island' },
-  { re: /남정토루|Nanjing Tulou/i, en: 'Nanjing Tulou Fujian' },
-  { re: /남포타사|Nanputuo/i, en: 'Nanputuo Temple' },
-  { re: /중산로|Zhongshan Road/i, en: 'Zhongshan Road Xiamen' },
-]
-
-const CITY_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
-  { re: /이스탄불|Istanbul|İstanbul/i, en: 'Istanbul Bosporus mosque skyline sunset' },
-  { re: /앙카라|Ankara/i, en: 'Ankara city skyline Turkey' },
-  { re: /안탈리아|Antalya/i, en: 'Antalya old town harbour Turkey' },
-  { re: /아이발릭|Ayvalik|Ayvalık/i, en: 'Ayvalik Aegean coast Turkey' },
-  { re: /튀르키예|터키|Turkey/i, en: 'Istanbul Bosporus mosque skyline sunset' },
-  { re: /상해|사해|上海/u, en: 'Shanghai skyline night' },
-  { re: /북경|베이징|北京/u, en: 'Beijing Forbidden City view' },
-  { re: /광저우|광주|广州/u, en: 'Guangzhou skyline night' },
-  { re: /심천|深圳/u, en: 'Shenzhen skyline night' },
-  { re: /도쿄|東京/u, en: 'Tokyo street night' },
-  { re: /오사카|大阪/u, en: 'Osaka Dotonbori night' },
-  { re: /교토|京都/u, en: 'Kyoto temple street' },
-  { re: /후쿠오카|福岡/u, en: 'Fukuoka city night' },
-  { re: /삿포로|札幌/u, en: 'Sapporo snow city street' },
-  { re: /나고야|名古屋/u, en: 'Nagoya castle view' },
-  { re: /요코하마|横浜/u, en: 'Yokohama bay night' },
-  { re: /파리/u, en: 'Paris city skyline' },
-  { re: /(?<![가-힣])로마(?!시대)/u, en: 'Rome Colosseum view' },
-  { re: /바르셀로나/u, en: 'Barcelona Sagrada Familia exterior' },
-  { re: /런던/u, en: 'London Thames skyline' },
-  { re: /뉴욕/u, en: 'New York Manhattan skyline' },
-  { re: /연길/u, en: 'Yanji Korean quarter winter street' },
-  { re: /제주/u, en: 'Jeju coast view' },
-  { re: /부산/u, en: 'Busan Gamcheon village' },
-  { re: /방콕/u, en: 'Bangkok Wat Arun temple' },
-  { re: /치앙마이/u, en: 'Chiang Mai old city temple' },
-  { re: /파타야/u, en: 'Pattaya beach sunset' },
-  { re: /호이안|會安|Hoi\s*An/u, en: 'Hoi An Ancient Town / lantern-lit street / eye-level' },
-  { re: /다낭/u, en: 'Da Nang Han River / Dragon Bridge waterfront skyline / wide angle' },
-  { re: /하노이/u, en: 'Hanoi Old Quarter street' },
-  { re: /호치민/u, en: 'Ho Chi Minh city skyline' },
-  { re: /세부/u, en: 'Cebu tropical beach' },
-  { re: /보라카이/u, en: 'Boracay white beach' },
-  { re: /발리/u, en: 'Bali rice terrace view' },
-  { re: /시드니|悉尼/u, en: 'Sydney Opera House harbour' },
-  { re: /멜버른|멜번/u, en: 'Melbourne laneway street' },
-  { re: /홍콩|香港/u, en: 'Hong Kong Victoria Harbour night' },
-  { re: /마카오|澳門/u, en: 'Macau Senado square' },
-  { re: /타이페이|台北/u, en: 'Taipei night market street' },
-  { re: /하와이|호놀룰루|Honolulu/i, en: 'Honolulu Waikiki beach' },
-  { re: /괌|Guam/i, en: 'Guam Tumon beach' },
-  { re: /사이판|Saipan/i, en: 'Saipan Managaha lagoon' },
-  { re: /캘거리|Calgary/i, en: 'Calgary Tower downtown skyline' },
-  { re: /밴프|Banff/i, en: 'Banff townsite Rocky Mountains' },
-  { re: /피렌체|Florence|Firenze/i, en: 'Florence Duomo historic center' },
-  { re: /베니스|Venice|Venezia/i, en: 'Venice Grand Canal gondolas' },
-  { re: /볼로냐|Bologna/i, en: 'Bologna Two Towers historic center' },
-  { re: /하문|샤먼|Xiamen|厦门/u, en: 'Xiamen harbor skyline' },
-  { re: /복주|푸저우|福州|Fuzhou/u, en: 'Fuzhou skyline' },
-]
 
 const LOTTETOUR_DOMESTIC_HUB_RE =
   /^(?:인천|서울|한국|김포|부산|대구|청주|제주|인천국제공항|김포국제공항|인천공항|김포공항|ICN|GMP|PUS|CJU)$/iu
@@ -226,9 +93,9 @@ function landmarkFromRouteText(routeText: string | null | undefined): string | n
   let lastSpot: string | null = null
   let lastCity: string | null = null
   for (const seg of segs) {
-    const spot = firstMatchingEn(SPOT_RULES, seg)
+    const spot = firstMatchingScheduleSpotEn( seg)
     if (spot) lastSpot = spot
-    const city = firstMatchingEn(CITY_RULES, seg)
+    const city = firstMatchingScheduleCityEn( seg)
     if (city && !isBlockedScheduleImageKeyword(city)) lastCity = city
   }
   return lastSpot ?? lastCity
@@ -238,9 +105,9 @@ function landmarkFromRouteText(routeText: string | null | undefined): string | n
 function firstLandmarkFromRouteText(routeText: string | null | undefined): string | null {
   const segs = lottetourRouteTextSegments(routeText).filter((s) => !isLottetourDomesticHubToken(s))
   for (const seg of segs) {
-    const spot = firstMatchingEn(SPOT_RULES, seg)
+    const spot = firstMatchingScheduleSpotEn( seg)
     if (spot) return spot
-    const city = firstMatchingEn(CITY_RULES, seg)
+    const city = firstMatchingScheduleCityEn( seg)
     if (city && !isBlockedScheduleImageKeyword(city)) return city
   }
   return null
@@ -553,13 +420,13 @@ export function deriveLottetourImageKeyword(ctx: LottetourImageKeywordContext): 
   const descTriple = firstMatchingEn(LOTTETOUR_DESC_TRIPLE, h)
   if (descTriple) return descTriple
 
-  const spot = firstMatchingEn(SPOT_RULES, h)
+  const spot = firstMatchingScheduleSpotEn( h)
   if (spot) return spot
 
   const arrival = arrivalCityFromHay(h)
   if (arrival) return arrival
 
-  const cityHit = firstMatchingEn(CITY_RULES, h)
+  const cityHit = firstMatchingScheduleCityEn( h)
   if (cityHit && !isBlockedScheduleImageKeyword(cityHit)) return cityHit
 
   if (ctx.airtelFreeTravelImageKw === 'force-city') {
@@ -667,13 +534,7 @@ function collectLottetourLandmarkKeywordsFromRoute(routeText: string | null | un
   const rt = String(routeText ?? '').trim()
   if (!rt) return landmarks
 
-  const ordered: Array<{ idx: number; en: string }> = []
-  for (const { re, en } of SPOT_RULES) {
-    const m = rt.match(re)
-    if (m && m.index != null) ordered.push({ idx: m.index, en })
-  }
-  ordered.sort((a, b) => a.idx - b.idx)
-  for (const { en } of ordered) pushSafe(en)
+  for (const { en } of findAllScheduleSpotMatchesInText(rt)) pushSafe(en)
   return landmarks
 }
 
@@ -690,7 +551,7 @@ function classifyLottetourScheduleDayKind(
   }
   const h = hay(ctx)
   const foreignSegs = lottetourRouteTextSegments(row.routeText).filter((s) => !isLottetourDomesticHubToken(s))
-  const spotSegCount = foreignSegs.filter((s) => firstMatchingEn(SPOT_RULES, s)).length
+  const spotSegCount = foreignSegs.filter((s) => firstMatchingScheduleSpotEn( s)).length
 
   if (day === maxDay && /(?:도착|해산|귀국|출국)/u.test(h)) {
     const allDomestic =
@@ -853,9 +714,9 @@ function resolveLottetourSecondaryKeyword(
 
   const routeSegLandmarks: string[] = []
   for (const seg of lottetourRouteTextSegments(row.routeText)) {
-    const spot = firstMatchingEn(SPOT_RULES, seg)
+    const spot = firstMatchingScheduleSpotEn( seg)
     if (spot) routeSegLandmarks.push(spot)
-    const city = firstMatchingEn(CITY_RULES, seg)
+    const city = firstMatchingScheduleCityEn( seg)
     if (city && !isBlockedScheduleImageKeyword(city)) routeSegLandmarks.push(city)
   }
   const fromRouteOrdered = pickDistinctSecondScheduleImageKeyword(primary, routeSegLandmarks)
