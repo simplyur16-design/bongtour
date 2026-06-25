@@ -1,8 +1,10 @@
 /**
  * 등록 상품 `publicDetailPayloadJson` 일괄 재빌드 — instrumentation cron·HTTP cron 공통.
  * SSOT: `rebuildProductPublicDetailPayload` (`lib/product-public-detail/persist-payload.ts`).
+ *
+ * REGRESSION-FREEZE[product-detail-payload-cron-revalidate-safe]: cron revalidateTag safe skip — manifest
  */
-import { revalidateTag } from 'next/cache'
+import { safeRevalidateProductDetailTags } from '@/lib/safe-next-cache-revalidate'
 import { productDetailPayloadDtoHit } from '@/lib/product-detail-payload-hit'
 import { rebuildProductPublicDetailPayload } from '@/lib/product-public-detail/persist-payload'
 
@@ -223,7 +225,7 @@ export async function runProductDetailPayloadDailyRebuild(options?: {
         const rebuilt = await rebuildProductPublicDetailPayload(productId)
         if (rebuilt) {
           ok += 1
-          revalidateTag(`product-detail-${productId}`)
+          safeRevalidateProductDetailTags(productId)
         } else {
           skipped += 1
           console.warn('[product-detail-payload-daily-rebuild] skip (not registered or build null)', productId)
@@ -243,7 +245,7 @@ export async function runProductDetailPayloadDailyRebuild(options?: {
   }
 
   if (ok > 0) {
-    revalidateTag('product-detail')
+    safeRevalidateProductDetailTags()
   }
 
   const endedAt = new Date()

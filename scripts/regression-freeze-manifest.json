@@ -1051,6 +1051,34 @@
       ]
     },
     {
+      "id": "product-detail-payload-cron-revalidate-safe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 payload 야간 cron — instrumentation에서 revalidateTag invariant skip",
+      "checks": [
+        {
+          "file": "lib/product-detail-payload-daily-rebuild.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-detail-payload-cron-revalidate-safe]",
+            "safeRevalidateProductDetailTags"
+          ]
+        },
+        {
+          "file": "lib/safe-next-cache-revalidate.ts",
+          "mustInclude": [
+            "static generation store missing",
+            "safeRevalidateTag"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/safe-next-cache-revalidate.test.ts",
+        "lib/product-detail-payload-daily-rebuild.test.ts"
+      ]
+    },
+    {
       "id": "product-detail-payload-slim-persist",
       "tier": [
         "prebuild",

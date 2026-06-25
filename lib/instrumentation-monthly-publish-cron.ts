@@ -6,7 +6,7 @@
  *
  * Dry-run: `MONTHLY_CURATION_PUBLISH_CRON_DRY_RUN=1` (DB 쓰기·revalidateTag 생략, 로그만)
  */
-import { revalidateTag } from 'next/cache'
+import { safeRevalidateTag } from '@/lib/safe-next-cache-revalidate'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import {
   monthlyCurationRowPassesLinkedProductIntegrity,
@@ -101,8 +101,8 @@ async function tickMonthlyPublishCron() {
           ).count
 
     if (!dryRun) {
-      revalidateTag(SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG)
-      revalidateTag(SEASON_CURATION_HERO_CACHE_TAG)
+      safeRevalidateTag(SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG, 'monthly-publish-cron')
+      safeRevalidateTag(SEASON_CURATION_HERO_CACHE_TAG, 'monthly-publish-cron')
     }
 
     console.log('[monthly-publish-cron] tick', {
