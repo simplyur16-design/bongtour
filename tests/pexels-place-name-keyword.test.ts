@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   assertCleanPlaceKeyword,
   finalizeScheduleImageKeyword,
+  isScheduleImageKeywordLandmarkEligible,
   normalizeToPlaceName,
 } from '../lib/pexels-place-name-keyword'
 
@@ -48,5 +49,10 @@ describe('finalizeScheduleImageKeyword', () => {
   it('Nha Trang 도시명은 Nha 로 잘리지 않음', () => {
     assert.equal(finalizeScheduleImageKeyword('Nha Trang'), 'Nha Trang')
     assert.equal(normalizeToPlaceName('Nha Trang'), 'Nha Trang')
+  })
+
+  it('Forbidden City — City 보조어 제거로 Forbidden 단독이 되지 않음', () => {
+    assert.equal(finalizeScheduleImageKeyword('Forbidden City'), 'Forbidden City')
+    assert.equal(isScheduleImageKeywordLandmarkEligible('Forbidden City'), true)
   })
 })

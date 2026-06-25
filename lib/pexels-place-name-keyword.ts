@@ -45,6 +45,11 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'ginkakuji temple kyoto': 'Ginkaku-ji',
   'osaka dotonbori night': 'Dotonbori',
   'beijing forbidden city view': 'Forbidden City',
+  'forbidden city': 'Forbidden City',
+  'summer palace': 'Summer Palace',
+  'tiananmen square': 'Tiananmen Square',
+  'great wall of china': 'Great Wall of China',
+  '798 art district': '798 Art District',
   'shanghai skyline night': 'The Bund',
   'shanghai skyline': 'The Bund',
   'yu garden shanghai': 'Yu Garden',
@@ -431,6 +436,12 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'los angeles': 'Los Angeles',
   'san francisco': 'San Francisco',
   'las vegas': 'Las Vegas',
+  'forbidden city': 'Forbidden City',
+  'summer palace': 'Summer Palace',
+  'tiananmen square': 'Tiananmen Square',
+  'great wall of china': 'Great Wall of China',
+  'great wall': 'Great Wall of China',
+  '798 art district': '798 Art District',
 }
 
 function resolveCompoundLandmarkPhrase(s: string): string | null {
@@ -658,7 +669,7 @@ export function isWeakOpaqueImageKeyword(keyword: string): boolean {
 }
 
 function isNonLandmarkRouteTextSegmentKo(t: string): boolean {
-  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙/u.test(
+  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$/u.test(
     t,
   )
 }

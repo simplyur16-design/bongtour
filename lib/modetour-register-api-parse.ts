@@ -149,6 +149,6 @@ export async function parseModetourRegisterFromApi(
 
   parsed = finalizeModetourRegisterParsedPricing(parsed)
   parsed = finalizeModetourRegisterParsedShopping(parsed)
-  parsed = ensureModetourRegisterScheduleImageKeywords(parsed)
+  parsed = await ensureModetourRegisterScheduleImageKeywords(parsed)
   return parsed
 }

@@ -4,7 +4,7 @@
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: 공급사 모듈에 POI/CITY regex 중복 금지 — manifest
  */
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
-import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 
 export type SchedulePoiRegexRule = { re: RegExp; en: string }
 
@@ -250,6 +250,22 @@ export function englishFromScheduleKoreanSegmentWithRegex(seg: string): string {
       return finalizeScheduleImageKeyword(spot)
     } catch {
       return spot
+    }
+  }
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    try {
+      return finalizeScheduleImageKeyword(fromPoi)
+    } catch {
+      /* continue */
+    }
+  }
+  const fromDest = mapDestination(t)
+  if (fromDest && fromDest !== t && !/[\uAC00-\uD7AF]/u.test(fromDest)) {
+    try {
+      return finalizeScheduleImageKeyword(fromDest)
+    } catch {
+      /* continue */
     }
   }
   const city = firstMatchingScheduleCityEn(t)

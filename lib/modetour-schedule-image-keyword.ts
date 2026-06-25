@@ -8,6 +8,7 @@
  */
 import {
   acceptLlmScheduleImageKeyword,
+  englishFromScheduleKoreanSegment,
   inferEnglishPlaceKeywordFromDayContent,
   isRegisterScheduleFreeLeisureDay,
   pickDistinctSecondScheduleImageKeyword,
@@ -21,7 +22,6 @@ import {
   findMappedKoreanPoisInTextByMentionOrder,
   isDestinationHubEnglishKeyword,
   isKnownDestinationCityEnglishKeyword,
-  mapDestination,
   mapKoreanPoiSegment,
   normalizeSemanticPoiKey,
 } from '@/lib/pexels-keyword'
@@ -70,7 +70,6 @@ const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /Notre\s*Dame/i,
   /\bColosseum\b/i,
   /\bRome\b/i,
-  /Forbidden(\s*City)?/i,
   /Big\s*Ben/i,
   /London\s*Eye/i,
   /Tower\s*of\s*London/i,
@@ -136,6 +135,13 @@ function isDomesticOnlyRouteText(routeText: string | null | undefined): boolean 
   return segs.every((s) => isModetourDomesticHubToken(s))
 }
 
+/** 마지막 귀국일 — routeText에 인천·김포 등 국내 허브가 있으면 2순위 없음(당일 관광 1곳만). */
+function isModetourReturnLegWithDomesticHub(row: ModetourScheduleImageKeywordRow): boolean {
+  const hay = buildModetourDayHaystack(row)
+  if (!/(?:귀국|인천\s*도착|ICN\s*도착|서울\s*도착|김포\s*도착)/u.test(hay)) return false
+  return routeTextSegments(row.routeText).some((s) => isModetourDomesticHubToken(s))
+}
+
 /** LLM/파서 placeholder·불량 패턴 */
 export function isModetourPlaceholderImageKeyword(s: string): boolean {
   const t = s.replace(/\s+/g, ' ').trim()
@@ -194,33 +200,30 @@ function extractLatinEnglishFromRouteSegment(seg: string): string {
 }
 
 function englishFromKoreanRouteSegment(seg: string): string {
-  const t = stripRouteSegmentNoise(seg)
-  if (!t || isModetourDomesticHubToken(t)) return ''
-  const spotEn = firstMatchingScheduleSpotEn(t)
-  if (spotEn) {
-    try {
-      return finalizeScheduleImageKeyword(spotEn)
-    } catch {
-      return spotEn
-    }
+  return englishFromScheduleKoreanSegment(seg)
+}
+
+function tryAcceptMappedPoiKeyword(
+  seg: string,
+  productDestination: string | null | undefined,
+): string {
+  const fromPoi = mapKoreanPoiSegment(stripRouteSegmentNoise(seg))
+  if (!fromPoi) return ''
+  let fin = fromPoi
+  try {
+    fin = finalizeScheduleImageKeyword(fromPoi)
+  } catch {
+    /* keep fromPoi */
   }
-  const fromPoi = mapKoreanPoiSegment(t)
-  if (fromPoi) {
-    try {
-      return finalizeScheduleImageKeyword(fromPoi)
-    } catch {
-      /* continue */
-    }
+  const accepted = tryAcceptModetourLlmImageKeyword(fin, productDestination)
+  if (
+    !accepted ||
+    isDestinationHubEnglishKeyword(accepted, productDestination) ||
+    !isScheduleImageKeywordLandmarkEligible(accepted)
+  ) {
+    return ''
   }
-  const fromDest = mapDestination(t)
-  if (fromDest && fromDest !== t && !/[\uAC00-\uD7AF]/.test(fromDest)) {
-    try {
-      return finalizeScheduleImageKeyword(fromDest)
-    } catch {
-      /* continue */
-    }
-  }
-  return ''
+  return accepted
 }
 
 function tryAcceptSegmentKeywordCandidates(
@@ -319,6 +322,8 @@ function pickFirstTourismPoiFromRouteText(
     if (isModetourDomesticHubToken(seg)) continue
     if (isNonLandmarkRouteTextSegment(seg)) continue
     const t = stripRouteSegmentNoise(seg)
+    const fromDict = tryAcceptMappedPoiKeyword(seg, productDestination)
+    if (fromDict) return fromDict
     const spotEn = firstMatchingScheduleSpotEn(t)
     if (spotEn) {
       try {
@@ -630,6 +635,7 @@ function resolveModetourSecondaryKeyword(
   productDestination: string | null | undefined,
 ): string | null {
   if (!primary) return null
+  if (isModetourReturnLegWithDomesticHub(row)) return null
   if (dayKind === 'movement' || dayKind === 'return_home') return null
 
   const pk = normKey(primary)
@@ -794,16 +800,20 @@ function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageK
       }
 
       if (!secondary) {
-        const routeLandmarks = filterTourismRouteLandmarkCandidates(
-          collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
-          productDestination,
-        )
-        const secCand = routeLandmarks.find(
-          (kw) => normKey(kw) !== normKey(primary) && !used.has(normKey(kw)),
-        )
-        if (secCand) {
-          secondary = secCand
-          used.add(normKey(secondary))
+        if (isModetourReturnLegWithDomesticHub(row)) {
+          secondary = ''
+        } else {
+          const routeLandmarks = filterTourismRouteLandmarkCandidates(
+            collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
+            productDestination,
+          )
+          const secCand = routeLandmarks.find(
+            (kw) => normKey(kw) !== normKey(primary) && !used.has(normKey(kw)),
+          )
+          if (secCand) {
+            secondary = secCand
+            used.add(normKey(secondary))
+          }
         }
       }
     }

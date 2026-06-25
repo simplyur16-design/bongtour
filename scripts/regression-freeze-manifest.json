@@ -3182,8 +3182,10 @@
           "file": "lib/modetour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]",
+            "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
             "ensureModetourRegisterScheduleImageKeywords",
-            "applyRegisterScheduleImageKeywordsBySupplier"
+            "applyRegisterScheduleImageKeywordsBySupplier",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ]
         },
         {
@@ -3196,6 +3198,28 @@
       ],
       "vitestSuites": [
         "lib/modetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-image-keyword-gemini-fill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 일정 imageKeyword — 규칙·POI 후 빈 일차 Gemini routeText 순서 1·2순위",
+      "checks": [
+        {
+          "file": "lib/register-schedule-image-keyword-gemini-fill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
+            "scheduleDaysMissingImageKeywordAfterRules",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
+            "REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-image-keyword-gemini-fill.test.ts"
       ]
     },
     {

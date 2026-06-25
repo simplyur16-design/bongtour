@@ -38,8 +38,8 @@ describe('modetour register detail collect', () => {
     ).toBe(false)
   })
 
-  it('ensureModetourRegisterScheduleImageKeywords fills routeText-only rows (preview SSOT)', () => {
-    const out = ensureModetourRegisterScheduleImageKeywords({
+  it('ensureModetourRegisterScheduleImageKeywords fills routeText-only rows (preview SSOT)', async () => {
+    const out = await ensureModetourRegisterScheduleImageKeywords({
       destination: '대만',
       title: '대만 4일',
       schedule: [

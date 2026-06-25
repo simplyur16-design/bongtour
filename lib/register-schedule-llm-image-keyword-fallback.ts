@@ -132,7 +132,8 @@ function routeTextSegments(routeText: string | null | undefined): string[] {
   return splitRouteTextPlaceSegments(routeText)
 }
 
-function englishFromKoreanSegment(seg: string): string {
+/** routeText 세그먼트 한글 → 영문: 일정에 나온 지명을 POI 사전·도시 사전으로만 변환(지역 ROI 테이블 없음). */
+export function englishFromScheduleKoreanSegment(seg: string): string {
   const t = seg.trim()
   if (!t) return ''
   const fromSpotRegex = firstMatchingScheduleSpotEn(t)
@@ -205,12 +206,12 @@ export function inferEnglishPlaceKeywordFromDayContent(
         /* continue */
       }
     }
-    const ko = englishFromKoreanSegment(seg)
+    const ko = englishFromScheduleKoreanSegment(seg)
     if (ko) return ko
   }
 
   for (const seg of [row.title, row.description].map((s) => String(s ?? '').trim()).filter(Boolean)) {
-    const ko = englishFromKoreanSegment(seg)
+    const ko = englishFromScheduleKoreanSegment(seg)
     if (ko) return ko
   }
 

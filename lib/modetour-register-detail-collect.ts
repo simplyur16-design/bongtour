@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[modetour-register-detail-collect]: B2C+HTML register augment — manifest
  * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: parse·augment 후 schedule imageKeyword — manifest
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: 규칙 후 빈 kw → Gemini — manifest
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
@@ -36,6 +37,7 @@ import { applyRegisterCollectedFlightStructured,
   needsRegisterFlightApiCollect,
 } from '@/lib/register-detail-collect-flight-apply'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 
@@ -126,22 +128,28 @@ export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
 }
 
 /** API·붙여넣기 schedule에 routeText는 있는데 imageKeyword 규칙이 아직 안 탄 경우(미리보기 공통). */
-export function ensureModetourRegisterScheduleImageKeywords(parsed: RegisterParsed): RegisterParsed {
+export async function ensureModetourRegisterScheduleImageKeywords(
+  parsed: RegisterParsed,
+): Promise<RegisterParsed> {
   const schedule = parsed.schedule ?? []
   if (schedule.length === 0) return parsed
-  const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(
-    schedule.map((row) => ({
-      ...row,
-      imageKeyword: String(row.imageKeyword ?? '').trim(),
-      imageKeyword2: row.imageKeyword2 ?? null,
-    })),
-    {
-      supplierKey: 'modetour',
-      productDestination: parsed.destination ?? null,
-      productTitle: parsed.title ?? null,
-    },
-  )
-  return { ...parsed, schedule: withKeywords }
+  const normalized = schedule.map((row) => ({
+    ...row,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: row.imageKeyword2 ?? null,
+  }))
+  const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(normalized, {
+    supplierKey: 'modetour',
+    productDestination: parsed.destination ?? null,
+    productTitle: parsed.title ?? null,
+  })
+  const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(withKeywords, {
+    supplierKey: 'modetour',
+    productDestination: parsed.destination ?? null,
+    productTitle: parsed.title ?? null,
+    logLabel: 'modetour-register-schedule-image-keyword',
+  })
+  return { ...parsed, schedule: withGemini }
 }
 
 export function needsModetourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -172,7 +180,7 @@ export async function augmentModetourParsedWithDetailCollect(
   const needFlight = needsRegisterFlightApiCollect(parsed)
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
-    return ensureModetourRegisterScheduleImageKeywords(parsed)
+    return await ensureModetourRegisterScheduleImageKeywords(parsed)
   }
 
   const summaryParts: string[] = []
@@ -321,7 +329,7 @@ export async function augmentModetourParsedWithDetailCollect(
       : '모두투어 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 
-  return ensureModetourRegisterScheduleImageKeywords({
+  return await ensureModetourRegisterScheduleImageKeywords({
     ...next,
     modetourDetailCollectRan: summaryParts.length > 0,
     modetourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',

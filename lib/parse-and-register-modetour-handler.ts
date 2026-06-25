@@ -7,7 +7,7 @@ import { runModetourRegisterFlow } from '@/lib/modetour-register-flow'
 
 export async function handleParseAndRegisterModetourRequest(request: Request) {
   return runModetourRegisterFlow(request, {
-    forcedBrandKey: 'modetour',
+      forcedBrandKey: 'modetour',
     parseFn: parseForRegisterModetour,
     logPrefix: '[modetour-register]',
     savePersistedParsedOnly: true,

@@ -498,6 +498,59 @@ describe('applyModetourScheduleImageKeywordsToRows — 대만 한글 routeText (
   })
 })
 
+describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText', () => {
+  const beijingOpts = { productDestination: '중국' }
+  const beijingRows = [
+    {
+      day: 1,
+      title: '1일차',
+      description: '인천 출발 북경 입국',
+      routeText:
+        '인천 - 북경 - 중국 입국 유의사항/온라인 입국신고서 작성 안내사항 - 입국 도시(북경) - 북경 자금성 안내사항 - 북경 서커스',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 2,
+      title: '2일차',
+      description: '북경 관광',
+      routeText: '북경 - 천안문광장 - 자금성 - 십찰해 - 전문대가 - 세무천계',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 3,
+      title: '3일차',
+      description: '이화원 만리장성',
+      routeText: '북경 - 이화원 - 용경협[선택관광용] $60/인(성인&아동동일) - 만리장성(야경)',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 4,
+      title: '4일차',
+      description: '귀국',
+      routeText: '북경 - 인천 - 798예술구',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+  ]
+
+  it('routeText 명소 — 일정 세그먼트·POI 사전(지역 regex 없음) 1·2순위', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(beijingRows, beijingOpts)
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    const d4 = out.find((r) => r.day === 4)!
+    assert.match(d2.imageKeyword!, /Tiananmen|Forbidden/i)
+    assert.ok(d2.imageKeyword2?.trim())
+    assert.notEqual(normLoose(d2.imageKeyword!), normLoose(d2.imageKeyword2!))
+    assert.match(d3.imageKeyword!, /Summer Palace|Great Wall/i)
+    assert.ok(d3.imageKeyword2?.trim())
+    assert.match(d4.imageKeyword!, /798/i)
+    assert.equal(d4.imageKeyword2, null)
+  })
+})
+
 function normLoose(s: string): string {
   return s.trim().toLowerCase()
 }
