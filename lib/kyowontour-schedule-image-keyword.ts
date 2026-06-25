@@ -400,7 +400,7 @@ function kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx: KyowontourImage
     { re: /괌|Guam/i, en: 'Guam Tumon beach lagoon' },
     { re: /발리|Bali/i, en: 'Bali rice terraces jungle sunrise' },
     { re: /연길|延吉|Yanji/i, en: 'Yanji Korean quarter winter street' },
-    { re: /북경|베이징|北京/i, en: 'Beijing Forbidden City view' },
+    { re: /북경|베이징|北京/i, en: 'Beijing' },
     { re: /광저우|广州/i, en: 'Guangzhou skyline night' },
   ]
   for (const { re, en } of cityRules) {

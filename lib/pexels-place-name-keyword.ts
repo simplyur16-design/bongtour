@@ -44,7 +44,7 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'kinkakuji golden pavilion kyoto': 'Kinkaku-ji',
   'ginkakuji temple kyoto': 'Ginkaku-ji',
   'osaka dotonbori night': 'Dotonbori',
-  'beijing forbidden city view': 'Forbidden City',
+  'beijing forbidden city view': 'Beijing',
   'forbidden city': 'Forbidden City',
   'summer palace': 'Summer Palace',
   'tiananmen square': 'Tiananmen Square',

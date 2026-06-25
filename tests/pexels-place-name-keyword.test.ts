@@ -55,4 +55,8 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(finalizeScheduleImageKeyword('Forbidden City'), 'Forbidden City')
     assert.equal(isScheduleImageKeywordLandmarkEligible('Forbidden City'), true)
   })
+
+  it('Beijing Forbidden City view — 도시 세그먼트는 Beijing(랜드마크 아님)', () => {
+    assert.equal(finalizeScheduleImageKeyword('Beijing Forbidden City view'), 'Beijing')
+  })
 })

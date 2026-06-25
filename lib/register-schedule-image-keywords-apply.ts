@@ -2,6 +2,7 @@
  * 등록 imageKeyword 규칙 — 6공급사 switch SSOT.
  * preview(클라이언트)·admin UI(서버) 모두 이 모듈만 호출한다. 스위치 복제 금지.
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]
+ * REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: Forbidden City — route literal만 허용
  */
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
@@ -13,6 +14,7 @@ import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-sch
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
+import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
 
 export type RegisterScheduleImageKeywordApplyRow = {
   day: number
@@ -42,39 +44,48 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
-  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    return applyAirtelRouteTextImageKeywordsToSchedule(rows)
-  }
   const title = opts.productTitle ?? null
 
-  switch (supplier) {
-    case 'hanatour':
-      return applyHanatourScheduleImageKeywordsToRows(rows, {
-        productDestination: dest,
-        optionalTourNames: opts.optionalTourNames,
-        scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
-      })
-    case 'modetour':
-      return applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
-    case 'ybtour':
-      return applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
-    case 'verygoodtour':
-      return applyVerygoodScheduleImageKeywordsToRows(rows, {
-        detRows: rows as VerygoodRegisterScheduleDay[],
-        productDestination: dest,
-        totalDays: rows.length,
-      })
-    case 'lottetour':
-      return applyLottetourScheduleImageKeywordsToRows(rows, {
-        productDestination: dest,
-        productTitle: title ?? undefined,
-      })
-    case 'kyowontour':
-      return applyKyowontourScheduleImageKeywordsToRows(rows, {
-        productDestination: dest,
-        productTitle: title ?? undefined,
-      })
-    default:
-      return rows
+  let out: T[]
+  if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
+    out = applyAirtelRouteTextImageKeywordsToSchedule(rows)
+  } else {
+    switch (supplier) {
+      case 'hanatour':
+        out = applyHanatourScheduleImageKeywordsToRows(rows, {
+          productDestination: dest,
+          optionalTourNames: opts.optionalTourNames,
+          scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
+        })
+        break
+      case 'modetour':
+        out = applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+        break
+      case 'ybtour':
+        out = applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+        break
+      case 'verygoodtour':
+        out = applyVerygoodScheduleImageKeywordsToRows(rows, {
+          detRows: rows as VerygoodRegisterScheduleDay[],
+          productDestination: dest,
+          totalDays: rows.length,
+        })
+        break
+      case 'lottetour':
+        out = applyLottetourScheduleImageKeywordsToRows(rows, {
+          productDestination: dest,
+          productTitle: title ?? undefined,
+        })
+        break
+      case 'kyowontour':
+        out = applyKyowontourScheduleImageKeywordsToRows(rows, {
+          productDestination: dest,
+          productTitle: title ?? undefined,
+        })
+        break
+      default:
+        out = rows
+    }
   }
+  return sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(out)
 }

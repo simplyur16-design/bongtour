@@ -782,6 +782,8 @@
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]",
+            "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence",
             "applyRegisterScheduleImageKeywordsBySupplier",
             "applyHanatourScheduleImageKeywordsToRows",
             "applyModetourScheduleImageKeywordsToRows",
@@ -3223,6 +3225,39 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-image-keyword-gemini-fill.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-forbidden-city-route-evidence",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 imageKeyword — Forbidden City는 일정 영문 literal 없으면 6공급사 공통 차단",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-evidence-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]",
+            "registerScheduleKeywordPassesRouteEvidence",
+            "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "'beijing forbidden city view': 'Beijing'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-evidence-keyword.test.ts"
       ]
     },
     {
