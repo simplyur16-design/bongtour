@@ -493,18 +493,19 @@ function mergeRawMetaWithStructuredSignals(
     isDepartureGuaranteed: parsed.isDepartureGuaranteed ?? null,
     currentBookedCount: parsed.currentBookedCount ?? null,
     departureStatusText: parsed.departureStatusText ?? null,
-    hotelPasteRaw: parsed.detailBodyStructured?.raw.hotelPasteRaw ?? null,
+    // REGRESSION-FREEZE[register-detail-body-raw-optional]: detailBodyStructured.raw 없을 때 등록 크래시 방지 — manifest
+    hotelPasteRaw: parsed.detailBodyStructured?.raw?.hotelPasteRaw ?? null,
     hotelStructured: parsed.detailBodyStructured?.hotelStructured ?? null,
-    optionalToursPasteRaw: parsed.detailBodyStructured?.raw.optionalToursPasteRaw ?? null,
+    optionalToursPasteRaw: parsed.detailBodyStructured?.raw?.optionalToursPasteRaw ?? null,
     optionalToursStructuredCanonical: (() => {
       const o = parsed.detailBodyStructured?.optionalToursStructured
       if (!o) return null
       const rows = o.rows?.length ? filterModetourOptionalTourRows(o.rows) : o.rows
       return rows === o.rows ? o : { ...o, rows }
     })(),
-    shoppingPasteRaw: parsed.detailBodyStructured?.raw.shoppingPasteRaw ?? null,
+    shoppingPasteRaw: parsed.detailBodyStructured?.raw?.shoppingPasteRaw ?? null,
     shoppingStructured: parsed.detailBodyStructured?.shoppingStructured ?? null,
-    flightRaw: parsed.detailBodyStructured?.raw.flightRaw ?? null,
+    flightRaw: parsed.detailBodyStructured?.raw?.flightRaw ?? null,
     flightStructured: parsed.detailBodyStructured?.flightStructured ?? null,
     includedExcludedStructured: parsed.detailBodyStructured?.includedExcludedStructured ?? null,
     detailBodySections: parsed.detailBodyStructured?.sections ?? null,

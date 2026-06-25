@@ -4031,6 +4031,71 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-detail-body-raw-optional",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 structuredSignals — detailBodyStructured.raw 없을 때 optional chaining",
+      "checks": [
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-detail-body-raw-optional]",
+            "detailBodyStructured?.raw?.hotelPasteRaw"
+          ],
+          "mustNotInclude": [
+            "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "detailBodyStructured?.raw?.hotelPasteRaw"
+          ],
+          "mustNotInclude": [
+            "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-orchestration.ts",
+          "mustInclude": [
+            "detailBodyStructured?.raw?.hotelPasteRaw"
+          ],
+          "mustNotInclude": [
+            "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "mustInclude": [
+            "detailBodyStructured?.raw?.hotelPasteRaw"
+          ],
+          "mustNotInclude": [
+            "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-orchestration.ts",
+          "mustInclude": [
+            "detailBodyStructured?.raw?.hotelPasteRaw"
+          ],
+          "mustNotInclude": [
+            "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "mustInclude": [
+            "detailBodyStructured?.raw?.hotelPasteRaw"
+          ],
+          "mustNotInclude": [
+            "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
