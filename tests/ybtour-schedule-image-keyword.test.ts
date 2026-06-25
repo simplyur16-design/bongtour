@@ -83,8 +83,8 @@ describe('classifyYbtourScheduleCardDayKind', () => {
   })
 })
 
-describe('applyYbtourScheduleImageKeywordsToRows', () => {
-  it('홍콩 — LLM 1·2순위 우선, movement/return imageKeyword2 null', () => {
+describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', () => {
+  it('홍콩 — 1일차 목적지 1순위, 중간일 1·2순위, movement/return kw2 null', () => {
     const out = applyYbtourScheduleImageKeywordsToRows(
       [
         {
@@ -92,7 +92,7 @@ describe('applyYbtourScheduleImageKeywordsToRows', () => {
           title: '인천 출발 및 홍콩 도착',
           description: '인천 국제공항에서 출발하여 홍콩 국제공항 도착',
           routeText: '인천 - 홍콩',
-          imageKeyword: 'Hong Kong',
+          imageKeyword: 'Harbour City Hong Kong',
           imageKeyword2: null,
         },
         {
@@ -100,8 +100,8 @@ describe('applyYbtourScheduleImageKeywordsToRows', () => {
           title: '홍콩 시내 핵심 관광',
           description: '하버 시티와 소호 거리, 빅토리아 피크 관광',
           routeText: '홍콩 - 하버 시티 - 소호 거리 - 빅토리아 피크',
-          imageKeyword: 'Harbour City Hong Kong',
-          imageKeyword2: 'SoHo Hong Kong',
+          imageKeyword: 'Victoria Peak',
+          imageKeyword2: 'Peak Tram',
         },
         {
           day: 4,
@@ -122,7 +122,7 @@ describe('applyYbtourScheduleImageKeywordsToRows', () => {
     assert.equal(out.find((r) => r.day === 4)!.imageKeyword2, null)
   })
 
-  it('이집트 — 환각 LLM 거부, routeText·본문 추론', () => {
+  it('이집트 — LLM 무시, routeText 순서 1·2순위', () => {
     const out = applyYbtourScheduleImageKeywordsToRows(
       [
         {
@@ -133,24 +133,16 @@ describe('applyYbtourScheduleImageKeywordsToRows', () => {
           imageKeyword: 'Osaka Castle',
           imageKeyword2: 'Forbidden City',
         },
-        {
-          day: 7,
-          title: '후르가다 홍해 리조트 자유 휴양',
-          description: '후르가다 리조트에서 전일 자유',
-          routeText: '후르가다',
-          imageKeyword: '',
-          imageKeyword2: null,
-        },
       ],
       { productDestination: '이집트' },
     )
 
     assert.equal(out.find((r) => r.day === 6)!.imageKeyword, 'Luxor')
     assert.equal(out.find((r) => r.day === 6)!.imageKeyword2, 'Hurghada')
-    assert.equal(out.find((r) => r.day === 7)!.imageKeyword, 'Hurghada')
   })
 
-  it('LLM 동일 랜드마크 반복 → dedupe 후 관광 일차 kw2 유지 (회귀)', () => {
+  it('routeText 슬롯 — trip-wide 재사용 금지 (회귀)', () => {
+    const norm = (s: string) => s.trim().toLowerCase()
     const out = applyYbtourScheduleImageKeywordsToRows(
       [
         {
@@ -175,30 +167,26 @@ describe('applyYbtourScheduleImageKeywordsToRows', () => {
     const d2 = out.find((r) => r.day === 2)!
     const d3 = out.find((r) => r.day === 3)!
     assert.ok(d2.imageKeyword2?.trim(), `day2 kw2 empty: ${d2.imageKeyword2}`)
-    assert.ok(d3.imageKeyword2?.trim(), `day3 kw2 empty: ${d3.imageKeyword2}`)
-    assert.notEqual(
-      norm(d2.imageKeyword!),
-      norm(d2.imageKeyword2!),
-      'day2 kw1 must differ from kw2',
-    )
+    assert.equal(norm(d2.imageKeyword!), norm('Da'))
+    assert.equal(norm(d3.imageKeyword!), norm('Hoi'))
+    assert.equal(d3.imageKeyword2, null)
   })
 })
 
-function norm(s: string): string {
-  return s.replace(/\s+/g, ' ').trim().toLowerCase()
-}
-
-describe('resolveYbtourPrimaryKeyword / resolveYbtourSecondaryKeyword', () => {
+describe('resolveYbtourPrimaryKeyword / resolveYbtourSecondaryKeyword (레거시 디버그)', () => {
   it('tourism — LLM 1·2순위', () => {
     const row = {
       day: 2,
+      title: '홍콩',
+      description: '관광',
       routeText: '홍콩 - 하버 시티 - 소호 거리',
       imageKeyword: 'Harbour City Hong Kong',
       imageKeyword2: 'SoHo Hong Kong',
     }
-    const primary = resolveYbtourPrimaryKeyword(row, 'tourism', 'Hong Kong')
-    const secondary = resolveYbtourSecondaryKeyword(row, primary, 'tourism', 'Hong Kong')
-    assert.equal(primary, 'Harbour City Hong Kong')
-    assert.equal(secondary, 'SoHo Hong Kong')
+    assert.equal(resolveYbtourPrimaryKeyword(row, 'tourism', 'Hong Kong'), 'Harbour City Hong Kong')
+    assert.equal(
+      resolveYbtourSecondaryKeyword(row, 'Harbour City Hong Kong', 'tourism', 'Hong Kong'),
+      'SoHo Hong Kong',
+    )
   })
 })

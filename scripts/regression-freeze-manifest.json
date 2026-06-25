@@ -618,14 +618,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "노랑풍선 imageKeyword — 동일 랜드마크 전일차 반복 금지",
+      "summary": "노랑풍선 imageKeyword — routeText a–g 순서 + 일차 슬롯, trip-wide 재사용 금지",
       "checks": [
         {
           "file": "lib/ybtour-schedule-image-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]",
-            "dedupeYbtourTourismPrimaryKeywordsAcrossDays",
-            "collectYbtourDayPrimaryCandidates"
+            "allocateYbtourImageKeywordsByScheduleRules",
+            "collectYbtourRouteOrderedSegmentKeywords"
           ]
         },
         {
@@ -757,17 +757,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]",
-            "shouldReconcileScheduleImageKeyword2",
-            "resolveYbtourSecondaryKeyword",
-            "dedupeYbtourTourismPrimaryKeywordsAcrossDays",
-            "dedupe가 1순위만 바꾸므로"
+            "allocateYbtourImageKeywordsByScheduleRules",
+            "applyYbtourScheduleImageKeywordsToRows"
           ]
         },
         {
           "file": "tests/ybtour-schedule-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "dedupe 후 관광 일차 kw2 유지"
+            "routeText 슬롯 — trip-wide 재사용 금지"
           ]
         },
         {
@@ -2295,7 +2293,9 @@
         {
           "file": "lib/parse-and-register-ybtour-schedule.ts",
           "mustInclude": [
-            "parseScheduleMealFieldsFromText"
+            "parseScheduleMealFieldsFromText",
+            "REGRESSION-FREEZE[ybtour-schedule-expression]",
+            "applyYbtourScheduleExpressionToRows"
           ]
         },
         {
@@ -3844,7 +3844,18 @@
             "optional-tour-detail",
             "buildYbtourFlightStructuredFromTm",
             "resolveYbtourCarrierNameForUrl",
-            "ybtourScheduleBundleToRegisterSchedule"
+            "ybtourScheduleBundleToRegisterSchedule",
+            "composeYbtourScheduleDescription",
+            "extractYbtourSchedulePlacesFromTmRows"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "composeYbtourScheduleDescription",
+            "joinYbtourScheduleRouteText",
+            "applyYbtourScheduleExpressionToRows"
           ]
         },
         {
@@ -3857,7 +3868,37 @@
         }
       ],
       "vitestSuites": [
-        "lib/ybtour-register-detail-collect.test.ts"
+        "lib/ybtour-register-detail-collect.test.ts",
+        "lib/ybtour-register-api-schedule.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-schedule-expression",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour 일정표현 — routeText a–g + description 분위기 2~3문장",
+      "checks": [
+        {
+          "file": "lib/parse-and-register-ybtour-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-schedule-expression]",
+            "applyYbtourScheduleExpressionToRows",
+            "composeYbtourScheduleDescription"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "composeYbtourScheduleDescription",
+            "joinYbtourScheduleRouteText",
+            "extractYbtourSchedulePlacesFromTmRows"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-api-schedule.test.ts"
       ]
     },
     {

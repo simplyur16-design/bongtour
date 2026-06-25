@@ -22,6 +22,7 @@ import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/regist
 import { finalizeYbtourRegisterParsedPricing } from '@/lib/register-ybtour-price'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { ybtourFactDaysToRegisterSchedule } from '@/lib/ybtour-register-api-schedule'
 
 export const YBTOUR_PRICE_SLOT_SSOT_NOTE =
   '노랑풍선 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -79,21 +80,6 @@ function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): s
   return out.length > 0 ? out.slice(0, 15).join(', ') : null
 }
 
-function factDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterParsed['schedule'] {
-  return days.map((day) => ({
-    day: day.day,
-    title: `${day.day}일차`,
-    description: day.places.join(' · ') || `${day.day}일차`,
-    routeText: day.places.length > 0 ? day.places.join(' - ') : null,
-    imageKeyword: '',
-    imageKeyword2: null,
-    hotelText: day.hotels[0] ?? null,
-    breakfastText: day.meals[0] ?? null,
-    lunchText: day.meals[1] ?? null,
-    dinnerText: day.meals[2] ?? null,
-  }))
-}
-
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseYbtourRegisterFromApi(
   rawText: string,
@@ -133,7 +119,7 @@ export async function parseYbtourRegisterFromApi(
         )
       : []
   const schedule =
-    scheduleFromDetail.length > 0 ? scheduleFromDetail : factDaysToRegisterSchedule(bundle.scheduleDays)
+    scheduleFromDetail.length > 0 ? scheduleFromDetail : ybtourFactDaysToRegisterSchedule(bundle.scheduleDays)
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const urlEvCd = parseYbtourEvCdFromUrl(originUrl) ?? resolved.evCd

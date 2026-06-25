@@ -1,8 +1,6 @@
 /**
  * 노랑풍선(ybtour): 일차 imageKeyword / imageKeyword2 — Pexels 검색용 영문.
- * 모두투어와 동일 우선순위: LLM → routeText 라틴 세그먼트 → 본문 추론;
- * 2순위: LLM2 → routeText 2번째 라틴; movement/return_home 일차는 imageKeyword2 null.
- * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]: 동일 랜드마크 전일차 반복 금지 — manifest
+ * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]: routeText a–g 순서 + 일차 슬롯 — allocateYbtourImageKeywordsByScheduleRules — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — prebuild tests/ybtour-schedule-image-keyword.test.ts
  */
 import {
@@ -44,8 +42,9 @@ export type YbtourScheduleImageKeywordOpts = {
 }
 
 export const YBTOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM =
-  '- **imageKeyword / imageKeyword2**: 공통 [schedule[].imageKeyword / imageKeyword2] 규칙 + 서버는 **LLM 영문 우선**, 없으면 routeText **라틴(영문) 세그먼트**, 본문 추론 순. **imageKeyword2** = LLM 2순위 또는 routeText **두 번째 세그먼트의 라틴 표기**(1순위와 다른 명소). 출발·귀국·이동(movement/return) 일차는 imageKeyword2 **null**.\n' +
-  '- **routeText**: 한국어로 작성(이동 순서 ` - `). imageKeyword는 routeText 한글을 **직접** 영문으로 바꾸지 말고 **영문 관광지·랜드마크 고유명**을 채운다(서버가 라틴·본문으로 보완).\n'
+  '- **routeText(일정요약)**: 방문지를 a–g 순서로 ` - ` 연결(한국어·괄호 영문 병기 가능).\n' +
+  '- **imageKeyword / imageKeyword2**: 일정요약 routeText 순서만 입력. 1일차=1순위 1개, 2~(N-1)일차=1·2순위 각 1개, N일차=(N-1)일차 미사용 1개. trip-wide 재사용·일정 외 명소·추측 금지. 서버가 동일 규칙으로 확정.\n' +
+  '- **description(일정설명)**: 1줄 routeText + 분위기·흐름 2~3문장(장소 디테일 금지).\n'
 
 const DOMESTIC_HUB_KO_RE =
   /^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u
@@ -527,8 +526,231 @@ export function applyYbtourScheduleImageKeywordsToRows<
   const sorted = rows.filter((r) => Number(r.day) > 0)
   const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
   const productDestination = opts?.productDestination ?? null
+  return allocateYbtourImageKeywordsByScheduleRules(rows, maxDay, productDestination)
+}
 
-  const mapped = rows.map((row) => {
+type YbtourKeywordSlotKind = 'departure' | 'middle' | 'return' | 'skip'
+
+function ybtourKeywordKeysOverlap(a: string, b: string): boolean {
+  const ak = normKey(a)
+  const bk = normKey(b)
+  if (!ak || !bk) return false
+  if (ak === bk) return true
+  return ak.includes(bk) || bk.includes(ak)
+}
+
+function isDomesticOnlyYbtourRouteText(routeText: string | null | undefined): boolean {
+  const segs = routeTextSegments(routeText)
+  if (!segs.length) return false
+  return segs.every((s) => isYbtourDomesticHubToken(s))
+}
+
+function countYbtourForeignRouteSegments(routeText: string | null | undefined): number {
+  let count = 0
+  for (const seg of routeTextSegments(routeText)) {
+    if (isYbtourDomesticHubToken(seg)) continue
+    count++
+  }
+  return count
+}
+
+function isYbtourMovementDestinationCityKeyword(
+  kw: string,
+  productDestination: string | null | undefined,
+): boolean {
+  const destEn = mapDestination(String(productDestination ?? '').trim())
+  if (!destEn) return false
+  const fin = mapDestination(kw) || kw
+  return keysEqual(fin, destEn)
+}
+
+function collectYbtourRouteOrderedSegmentKeywords(
+  routeText: string | null | undefined,
+  dayKind: YbtourScheduleCardDayKind,
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  for (const seg of routeTextSegments(routeText)) {
+    if (isYbtourDomesticHubToken(seg)) continue
+    if (isYbtourRouteResortOrHotelSegment(seg)) continue
+    if (dayKind === 'tourism' && isNonLandmarkRouteTextSegment(seg)) continue
+
+    const en = englishFromRouteSegment(seg)
+    if (!en) continue
+
+    const destCity = isYbtourMovementDestinationCityKeyword(en, productDestination)
+    if (isBareCityOrCountryKeyword(en) && !(dayKind === 'movement' && destCity)) {
+      continue
+    }
+
+    const accepted = tryAcceptYbtourLlmImageKeyword(en, productDestination) || en
+    if (!accepted) continue
+    if (out.some((x) => keysEqual(x, accepted))) continue
+    out.push(accepted)
+  }
+  return out
+}
+
+function pickFirstUnusedYbtourRouteKeyword(
+  ordered: readonly string[],
+  used: ReadonlySet<string>,
+  excludePrimary?: string,
+): string {
+  for (const kw of ordered) {
+    if (!kw) continue
+    if (excludePrimary && ybtourKeywordKeysOverlap(kw, excludePrimary)) continue
+    const nk = normKey(kw)
+    if (!nk || used.has(nk)) continue
+    return kw
+  }
+  return ''
+}
+
+function pickYbtourMovementForeignCityKeyword(
+  routeText: string | null | undefined,
+  productDestination: string | null | undefined,
+): string {
+  for (const seg of routeTextSegments(routeText)) {
+    if (isYbtourDomesticHubToken(seg)) continue
+    if (isNonLandmarkRouteTextSegment(seg)) continue
+    const en = englishFromRouteSegment(seg)
+    if (
+      en &&
+      (!isBareCityOrCountryKeyword(en) ||
+        isYbtourMovementDestinationCityKeyword(en, productDestination))
+    ) {
+      const accepted = tryAcceptYbtourLlmImageKeyword(en, productDestination)
+      if (accepted) return accepted
+    }
+    const t = stripRouteSegmentNoise(seg)
+    const fromDest = mapDestination(t)
+    if (fromDest && fromDest !== t && !/[\uAC00-\uD7AF]/.test(fromDest)) {
+      const accepted = tryAcceptYbtourLlmImageKeyword(fromDest, productDestination)
+      if (accepted && isYbtourMovementDestinationCityKeyword(accepted, productDestination)) {
+        return accepted
+      }
+    }
+  }
+  return ''
+}
+
+function resolveYbtourKeywordSlotKind(
+  day: number,
+  maxDay: number,
+  row: YbtourScheduleImageKeywordRow,
+  dayKind: YbtourScheduleCardDayKind,
+): YbtourKeywordSlotKind {
+  if (isRegisterScheduleFreeLeisureDay(buildYbtourDayHaystack(row))) return 'skip'
+  if (day === 1) return 'departure'
+
+  if (day === maxDay && maxDay >= 2) {
+    if (dayKind === 'return_home' || isDomesticOnlyYbtourRouteText(row.routeText)) return 'return'
+    if (!String(row.routeText ?? '').trim()) return 'return'
+    if (dayKind === 'tourism' && countYbtourForeignRouteSegments(row.routeText) >= 1) {
+      return 'middle'
+    }
+    return 'return'
+  }
+
+  if (dayKind === 'return_home') return 'return'
+  return 'middle'
+}
+
+function findPrevYbtourScheduledRow<T extends YbtourScheduleImageKeywordRow>(
+  sorted: readonly T[],
+  day: number,
+): T | undefined {
+  let prev: T | undefined
+  for (const row of sorted) {
+    const d = Number(row.day)
+    if (d >= day) break
+    prev = row
+  }
+  return prev
+}
+
+/** 일정요약 routeText 순서 + 일차 슬롯 규칙 SSOT (이 상품 1건만, trip-wide used) */
+function allocateYbtourImageKeywordsByScheduleRules<T extends YbtourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const used = new Set<string>()
+  const byDay = new Map<number, { primary: string; secondary: string | null }>()
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const haystack = buildYbtourDayHaystack(row)
+    const dayKind = classifyYbtourScheduleCardDayKind(day, maxDay, haystack)
+    const slotKind = resolveYbtourKeywordSlotKind(day, maxDay, row, dayKind)
+
+    if (slotKind === 'skip') {
+      byDay.set(day, { primary: '', secondary: null })
+      continue
+    }
+
+    if (slotKind === 'departure') {
+      const routeDayKind = dayKind === 'movement' ? 'movement' : 'tourism'
+      const ordered = collectYbtourRouteOrderedSegmentKeywords(
+        row.routeText,
+        routeDayKind,
+        productDestination,
+      )
+      let primary = pickFirstUnusedYbtourRouteKeyword(ordered, used)
+      if (!primary && routeDayKind === 'movement') {
+        primary = pickYbtourMovementForeignCityKeyword(row.routeText, productDestination) || ''
+      }
+      if (primary) used.add(normKey(primary))
+      byDay.set(day, { primary, secondary: null })
+      continue
+    }
+
+    if (slotKind === 'return') {
+      if (isDomesticOnlyYbtourRouteText(row.routeText)) {
+        byDay.set(day, { primary: '', secondary: null })
+        continue
+      }
+      const prev = findPrevYbtourScheduledRow(sorted, day)
+      if (!prev) {
+        byDay.set(day, { primary: '', secondary: null })
+        continue
+      }
+      const prevAlloc = byDay.get(Number(prev.day))
+      const prevOrdered = collectYbtourRouteOrderedSegmentKeywords(
+        prev.routeText,
+        'tourism',
+        productDestination,
+      )
+      let primary = ''
+      for (const kw of prevOrdered) {
+        if (prevAlloc && keysEqual(kw, prevAlloc.primary)) continue
+        if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
+        if (used.has(normKey(kw))) continue
+        primary = kw
+        break
+      }
+      if (primary) used.add(normKey(primary))
+      byDay.set(day, { primary, secondary: null })
+      continue
+    }
+
+    const routeDayKind = dayKind === 'movement' ? 'movement' : 'tourism'
+    const ordered = collectYbtourRouteOrderedSegmentKeywords(
+      row.routeText,
+      routeDayKind,
+      productDestination,
+    )
+    const primary = pickFirstUnusedYbtourRouteKeyword(ordered, used)
+    if (primary) used.add(normKey(primary))
+    const secondary = primary
+      ? pickFirstUnusedYbtourRouteKeyword(ordered, used, primary) || ''
+      : ''
+    if (secondary) used.add(normKey(secondary))
+    byDay.set(day, { primary, secondary: secondary || null })
+  }
+
+  return rows.map((row) => {
     const day = Number(row.day)
     if (day <= 0) {
       return {
@@ -537,35 +759,19 @@ export function applyYbtourScheduleImageKeywordsToRows<
         imageKeyword2: row.imageKeyword2 ?? null,
       }
     }
-
-    const haystack = buildYbtourDayHaystack(row)
-    const dayKind = classifyYbtourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveYbtourPrimaryKeywordCore(row, dayKind, day, maxDay, productDestination, sorted)
-    const secondary = resolveYbtourSecondaryKeywordCore(row, primary, dayKind, productDestination)
-
+    const alloc = byDay.get(day)
+    if (!alloc) {
+      return { ...row, imageKeyword: '', imageKeyword2: null }
+    }
     return {
       ...row,
-      imageKeyword: primary,
-      imageKeyword2: secondary,
+      imageKeyword: alloc.primary,
+      imageKeyword2: alloc.secondary,
     }
-  })
-
-  const deduped = dedupeYbtourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
-
-  // dedupe가 1순위만 바꾸므로 2순위 null·중복이면 최종 primary 기준으로 재산출
-  return deduped.map((row) => {
-    const day = Number(row.day)
-    if (day <= 0) return row
-    const primary = String(row.imageKeyword ?? '').trim()
-    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
-    const haystack = buildYbtourDayHaystack(row)
-    const dayKind = classifyYbtourScheduleCardDayKind(day, maxDay, haystack)
-    const secondary = resolveYbtourSecondaryKeywordCore(row, primary, dayKind, productDestination)
-    return { ...row, imageKeyword2: secondary }
   })
 }
 
-/* ——— 레거시·에어텔 routeText KO→EN 헬퍼 (apply SSOT와 분리) ——— */
+/* ——— 레거시·디버그·에어텔 routeText KO→EN (apply SSOT와 분리) ——— */
 
 function englishFromRouteSegment(seg: string): string {
   const t = stripRouteSegmentNoise(seg)

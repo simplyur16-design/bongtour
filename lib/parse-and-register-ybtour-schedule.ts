@@ -1,5 +1,6 @@
 /**
  * 노랑풍선(ybtour) 등록 파이프: 일정 표현층만 보정.
+ * REGRESSION-FREEZE[ybtour-schedule-expression]: routeText a–g + description 분위기 — applyYbtourScheduleExpressionToRows — manifest
  * 누락 일차: 붙여넣기 본문의 `N일차` 블록으로만 보충 (LLM 행은 덮어쓰지 않음).
  * @see docs/register_schedule_expression_ssot.md
  */
@@ -21,6 +22,12 @@ import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-sche
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { mergeScheduleDaysPreservingExpressionMergingMealHotel } from '@/lib/register-schedule-meal-hotel-merge'
 import { parseScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
+import {
+  applyYbtourScheduleExpressionToRows,
+  composeYbtourScheduleDescription,
+  extractYbtourSchedulePlacesFromPastedBlock,
+  joinYbtourScheduleRouteText,
+} from '@/lib/ybtour-register-api-schedule'
 
 const DAY_N_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 
@@ -197,7 +204,17 @@ export function ybtourScheduleDayFromPastedBlock(day: number, block: string): Re
     ) ?? useful[0] ?? `${day}일차`
   if (title.length > 80) title = title.slice(0, 80)
 
-  const descFinal = (description || title).trim().slice(0, 400)
+  const routePlaces = extractYbtourSchedulePlacesFromPastedBlock(block)
+  const routeText = joinYbtourScheduleRouteText(routePlaces)
+  const descFinal =
+    routePlaces.length > 0
+      ? composeYbtourScheduleDescription({
+          day,
+          maxDay: day,
+          routePlaces,
+          joinedBlob: block,
+        })
+      : (description || title).trim().slice(0, 400)
   if (shouldReplaceYbtourScheduleDayTitle(title, descFinal)) {
     const derived = deriveYbtourScheduleDayHeaderTitle({
       day,
@@ -214,6 +231,7 @@ export function ybtourScheduleDayFromPastedBlock(day: number, block: string): Re
     day,
     title: title.trim().slice(0, 200),
     description: descFinal,
+    routeText,
     imageKeyword: keywordFromTitleDescription(title, descFinal).slice(0, 180),
     dateText,
     hotelText,
@@ -245,7 +263,7 @@ export function buildYbtourScheduleFromPastedText(pastedBody: string): RegisterS
     const block = full.slice(bodyStart, end)
     out.push(ybtourScheduleDayFromPastedBlock(day, block))
   }
-  return out
+  return applyYbtourScheduleExpressionToRows(out)
 }
 
 /** LLM `parsed.schedule`에 없는 day는 본문 보조 행으로 추가. 기존 day는 식사·호텔만 보강 */

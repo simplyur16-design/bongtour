@@ -103,7 +103,7 @@ describe('ybtour register detail collect', () => {
     expect(days[0]?.day).toBe(2)
     expect(days[0]?.title).toContain('호텔 조식')
     expect(days[0]?.lunchText).toContain('소불고기')
-    expect(days[0]?.routeText).toBe('다낭')
+    expect(days[0]?.routeText).toBe('호이안 옛도시')
   })
 
   it('extracts included/excluded from notice', () => {

@@ -19,6 +19,11 @@ import {
 } from '@/lib/optional-tour-row-gate-ybtour'
 import { parseYbtourShoppingVisitCount } from '@/lib/register-ybtour-shopping'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
+import {
+  composeYbtourScheduleDescription,
+  extractYbtourSchedulePlacesFromTmRows,
+  joinYbtourScheduleRouteText,
+} from '@/lib/ybtour-register-api-schedule'
 
 const YBTOUR_PAPI_BASE = process.env.YBTOUR_PAPI_BASE_URL ?? 'https://papi.ybtour.co.kr'
 /** 등록 상세카드 papi 호출 간격 — ybtour 전용(공용 스크래퍼 설정과 분리). */
@@ -198,12 +203,13 @@ export function ybtourScheduleBundleToRegisterSchedule(
   }
 
   const days = [...new Set([...detailByDay.keys(), ...tmByDay.keys()])].sort((a, b) => a - b)
+  const maxDay = days.length ? Math.max(...days) : 1
   const out: RegisterScheduleDay[] = []
 
   for (const day of days) {
     const detail = detailByDay.get(day)
     const tmRows = (tmByDay.get(day) ?? []).sort((a, b) => Number(a.tmNo ?? 0) - Number(b.tmNo ?? 0))
-    const cities = [...new Set(tmRows.map((r) => String(r.cityNm ?? '').trim()).filter(Boolean))]
+    const routePlaces = extractYbtourSchedulePlacesFromTmRows(tmRows)
     const descParts: string[] = []
     for (const tm of tmRows) {
       const title = String(tm.tmTitle ?? '').trim()
@@ -212,11 +218,20 @@ export function ybtourScheduleBundleToRegisterSchedule(
       if (content) descParts.push(content)
     }
     const title =
+      joinYbtourScheduleRouteText(routePlaces)?.split(' - ')[0]?.trim() ??
       tmRows.map((r) => String(r.tmTitle ?? '').trim()).find((t) => t && t !== ' ') ??
-      cities[0] ??
+      routePlaces[0] ??
       `${day}일차`
-    const description = descParts.join('\n') || title
-    const routeText = cities.length > 0 ? cities.join(' - ') : null
+    const maxDayForDay = maxDay
+    const joinedBlob = [descParts.join('\n'), joinYbtourScheduleRouteText(routePlaces)].filter(Boolean).join('\n')
+    const description =
+      composeYbtourScheduleDescription({
+        day,
+        maxDay: maxDayForDay,
+        routePlaces,
+        joinedBlob,
+      }) || title
+    const routeText = joinYbtourScheduleRouteText(routePlaces)
     const hotelText =
       String(detail?.accommNm ?? '').trim() ||
       (detail?.accommNote ? stripYbtourHtmlText(detail.accommNote).slice(0, 120) : null) ||
@@ -234,7 +249,7 @@ export function ybtourScheduleBundleToRegisterSchedule(
       title,
       description,
       routeText,
-      imageKeyword: (cities[0] ?? title).slice(0, 80),
+      imageKeyword: '',
       hotelText,
       breakfastText: mealEnriched.breakfastText ?? null,
       lunchText: mealEnriched.lunchText ?? null,
