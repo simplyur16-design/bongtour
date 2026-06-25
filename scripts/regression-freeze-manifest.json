@@ -647,26 +647,23 @@
         "prebuild",
         "ci"
       ],
-      "summary": "모두투어 imageKeyword — 한글 routeText·랜드마크 우선·귀국일 키워드 비움",
+      "summary": "모두투어 imageKeyword — routeText 세그먼트 순서·일차 슬롯(1/N-1/N)·trip-wide used",
       "checks": [
         {
           "file": "lib/modetour-schedule-image-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]",
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "collectRouteLandmarkKeywordsFromRouteText",
-            "routeText 세그먼트 순서만",
+            "allocateModetourImageKeywordsByScheduleRules",
+            "routeText 세그먼트 순서",
+            "collectModetourRouteOrderedSegmentKeywords",
             "pickModetourMovementForeignCityKeyword",
-            "enforceModetourTripWideKeywordUniqueness",
-            "englishFromKoreanRouteSegment",
-            "dedupeModetourTourismPrimaryKeywordsAcrossDays",
-            "dedupe가 1순위만 바꾸므로",
-            "shouldReconcileScheduleImageKeyword2",
-            "resolveModetourSecondaryKeyword",
+            "pickFirstUnusedModetourRouteKeyword",
+            "resolveModetourKeywordSlotKind",
+            "findPrevScheduledRow",
             "isDomesticOnlyRouteText",
-            "routeOverLlm",
-            "pickModetourRouteOrderedSecondKeyword",
-            "!String(row.routeText ?? '').trim() ? pickUnused(tripLandmarks)"
+            "collectRouteLandmarkKeywordsFromRouteText",
+            "englishFromKoreanRouteSegment"
           ],
           "mustNotInclude": [
             "routeText 라틴 세그먼트 폴백만"

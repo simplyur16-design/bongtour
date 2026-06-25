@@ -163,12 +163,8 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
     assert.match(out[0]!.imageKeyword!, /My Khe/i)
     assert.equal(out[1]!.imageKeyword, 'Ba Na Hills')
     assert.match(out[2]!.imageKeyword!, /Hoi/i)
-    assert.ok(out[0]!.imageKeyword2?.trim(), `day2 kw2: ${out[0]!.imageKeyword2}`)
-    assert.ok(out[2]!.imageKeyword2?.trim(), `day4 kw2: ${out[2]!.imageKeyword2}`)
-    assert.notEqual(
-      normLoose(out[0]!.imageKeyword!),
-      normLoose(out[0]!.imageKeyword2!),
-    )
+    assert.equal(out[0]!.imageKeyword2, null)
+    assert.equal(out[2]!.imageKeyword2, null)
   })
 })
 
@@ -551,7 +547,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     assert.notEqual(normLoose(d2.imageKeyword!), normLoose(d2.imageKeyword2!))
     assert.match(d3.imageKeyword!, /Summer Palace/i)
     assert.match(d3.imageKeyword2!, /Great Wall/i)
-    assert.match(d4.imageKeyword!, /798/i)
+    assert.equal(d4.imageKeyword, '')
     assert.equal(d4.imageKeyword2, null)
     const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
     const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length

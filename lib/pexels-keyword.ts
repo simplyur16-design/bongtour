@@ -60,6 +60,9 @@ const DESTINATION_MAP: Record<string, string> = {
   홍콩: 'Hong Kong',
   마카오: 'Macau',
   상하이: 'Shanghai',
+  /** modetour routeText 허브 — POI 아님, movement 1일차 도시명 SSOT */
+  상해: 'Shanghai',
+  사해: 'Shanghai',
   베이징: 'Beijing',
   북경: 'Beijing',
   하와이: 'Hawaii',
@@ -505,8 +508,10 @@ export function normalizeSemanticPoiKey(s: string): string {
 export function mapKoreanPoiSegment(segment: string): string {
   const t = segment.trim()
   if (!t) return ''
+  const compact = t.replace(/\s+/g, '')
   for (const ko of POI_KO_KEYS_SORTED) {
-    if (t.includes(ko)) return POI_KO_TO_EN[ko] ?? ''
+    const koCompact = ko.replace(/\s+/g, '')
+    if (t.includes(ko) || compact.includes(koCompact)) return POI_KO_TO_EN[ko] ?? ''
   }
   return ''
 }

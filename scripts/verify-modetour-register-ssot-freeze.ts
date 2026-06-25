@@ -78,7 +78,7 @@ assert(
 )
 assert(/Summer Palace/i.test(String(d3.imageKeyword ?? '')), 'day3 imageKeyword must be Summer Palace')
 assert(/Great Wall/i.test(String(d3.imageKeyword2 ?? '')), 'day3 imageKeyword2 must be Great Wall')
-assert(/798/i.test(String(d4.imageKeyword ?? '')), 'day4 imageKeyword must be 798')
+assert(String(d4.imageKeyword ?? '') === '', 'day4 return — (N-1)일차 미사용 명소 없으면 빈 값')
 assert(d4.imageKeyword2 == null, 'day4 imageKeyword2 must be null')
 const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
 const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length

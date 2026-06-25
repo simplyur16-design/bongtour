@@ -1,8 +1,8 @@
 /**
  * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
- * LLM 영문 우선 + 한글·라틴 routeText 명소 보완(하나투어·노랑풍선 SSOT 패턴).
- * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: 한글 routeText·도시명 반복 분산 — manifest
- * routeText 세그먼트 순서만 — 본문·routeText 전체 POI 스캔으로 키워드 끌어오지 않음(안내사항 오염 방지).
+ * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: routeText 세그먼트 순서만 — allocateModetourImageKeywordsByScheduleRules — manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 일차 슬롯 1·2·귀국 — manifest
+ * 일정요약(routeText) a→g 순서만 — LLM·타일 본문·타상품 후보 스캔 없음.
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: 베트남 POI 오매핑 차단 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
@@ -22,6 +22,7 @@ import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import {
   findMappedKoreanPoisInTextByMentionOrder,
   isDestinationHubEnglishKeyword,
+  isDestinationMapEnglishHubKeyword,
   isKnownDestinationCityEnglishKeyword,
   mapKoreanPoiSegment,
   normalizeSemanticPoiKey,
@@ -29,10 +30,16 @@ import {
 } from '@/lib/pexels-keyword'
 import {
   finalizeScheduleImageKeyword,
+  isAirlineCarrierImageKeyword,
+  isHotelLodgingImageKeyword,
+  isNonLandmarkFoodOrDiningImageKeyword,
+  isNonLandmarkHistoricalPrisonImageKeyword,
   isNonLandmarkRouteTextSegment,
+  isNonLandmarkSpaShoppingLoungeImageKeyword,
   isScheduleImageKeywordLandmarkEligible,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
+import { slugify as transliterateSlugify } from 'transliteration'
 
 export type ModetourScheduleImageKeywordOpts = {
   productDestination?: string | null
@@ -125,6 +132,260 @@ function routeTextSegments(routeText: string | null | undefined): string[] {
 
 function countModetourForeignRouteSegments(routeText: string | null | undefined): number {
   return routeTextSegments(routeText).filter((s) => !isModetourDomesticHubToken(s)).length
+}
+
+/** routeText 세그먼트가 목적지 허브 도시만(상해·북경 등)인지 — 관광 1순위에서 스킵 */
+function isModetourDestinationHubOnlySegment(seg: string): boolean {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t) return false
+  if (mapKoreanPoiSegment(t)) return false
+  const cityEn = mapDestination(t)
+  if (!cityEn || cityEn === t || /[\uAC00-\uD7AF]/.test(cityEn)) return false
+  if (!isKnownDestinationCityEnglishKeyword(cityEn) && !isDestinationMapEnglishHubKeyword(cityEn)) {
+    return false
+  }
+  if (/공원|기념|사|묘|궁|탑|거리|광장|유람|전망|선택|관광|호텔|리조트|박물|청사|옛|성|교|시장|마트|카페|스타벅스/u.test(t)) {
+    return false
+  }
+  return true
+}
+
+/** 이동·경유 구간 라벨(누브라 밸리 등) — routeText 순서에서 관광 1순위 스킵 */
+function isModetourRouteCorridorValleySegment(seg: string): boolean {
+  const t = stripRouteSegmentNoise(seg)
+  if (!t) return false
+  return /밸리$/u.test(t) || /\bvalley$/i.test(t)
+}
+
+function isModetourRouteMovementCityKeyword(kw: string): boolean {
+  return isKnownDestinationCityEnglishKeyword(kw) || isDestinationMapEnglishHubKeyword(kw)
+}
+
+/** 관광 일차 — routeText 선행 목적지 허브(상해·Da Nang 등) 스킵 */
+function isModetourForeignDestinationCitySegment(
+  seg: string,
+  productDestination: string | null | undefined,
+): boolean {
+  const t = stripRouteSegmentNoise(seg)
+  if (mapKoreanPoiSegment(t)) return false
+  if (isModetourDestinationHubOnlySegment(seg)) return true
+  if (!t) return false
+  if (isDestinationMapEnglishHubKeyword(t)) return true
+  const destEn = mapDestination(String(productDestination ?? '').trim())
+  if (destEn && !/[\uAC00-\uD7AF]/.test(destEn) && keysEqual(t, destEn)) return true
+  return false
+}
+
+function modetourTransliteratePlacePhrase(ko: string): string {
+  const raw = transliterateSlugify(String(ko ?? '').trim(), {
+    lowercase: false,
+    separator: ' ',
+    trim: true,
+  })
+  return raw
+    .replace(/[^A-Za-z0-9\s'-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
+
+/** POI 사전·regex에 없을 때 — 공원·기념관·공묘 등 접미사 규칙(도시·상품별 ROI 아님) */
+function modetourKoreanPlaceSuffixEnglishFallback(seg: string): string {
+  let t = stripRouteSegmentNoise(seg)
+  t = t.replace(/^추천\s*선택관광[ㅣ|｜·]\s*/u, '').replace(/\(\$[^)]*\)/g, '').trim()
+  if (!t || t.length < 2) return ''
+
+  const memorial = t.match(/^(.+?)(?:\s*의사)?\s*기념관/u)
+  if (memorial?.[1]) {
+    const core = memorial[1].replace(/\s+/g, ' ').trim()
+    if (core.length >= 2) return `${modetourTransliteratePlacePhrase(core)} Memorial Hall`
+  }
+  const park = t.match(/^(.+?)공원/u)
+  if (park?.[1] && park[1].trim().length >= 2) {
+    return `${modetourTransliteratePlacePhrase(park[1].trim())} Park`
+  }
+  const temple = t.match(/^(.+?)공묘/u)
+  if (temple?.[1] && temple[1].trim().length >= 2) {
+    return `${modetourTransliteratePlacePhrase(temple[1].trim())} Temple`
+  }
+  const oldStreet = t.match(/^(.+?)옛\s*거리/u)
+  if (oldStreet?.[1]) {
+    const stem = oldStreet[1].trim()
+    if (stem.length >= 2 && !isModetourDestinationHubOnlySegment(stem)) {
+      return `${modetourTransliteratePlacePhrase(stem)} Old Street`
+    }
+  }
+  return ''
+}
+
+function isModetourRouteOrderKeywordBlocked(kw: string): boolean {
+  const n = normalizeToPlaceName(kw)
+  if (!n || n.length < 2) return true
+  if (isAirlineCarrierImageKeyword(n)) return true
+  if (isNonLandmarkFoodOrDiningImageKeyword(n)) return true
+  if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return true
+  if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return true
+  if (isHotelLodgingImageKeyword(n)) return true
+  return false
+}
+
+function tryAcceptModetourRouteSegmentKeyword(
+  raw: string,
+  productDestination: string | null | undefined,
+  opts?: { allowDestinationCity?: boolean; trustRouteMappedPoi?: boolean },
+): string {
+  const accepted = tryAcceptModetourLlmImageKeyword(raw, productDestination)
+
+  if (opts?.allowDestinationCity) {
+    return accepted && isModetourRouteMovementCityKeyword(accepted) ? accepted : ''
+  }
+
+  if (opts?.trustRouteMappedPoi) {
+    if (
+      accepted &&
+      !isKnownDestinationCityEnglishKeyword(accepted) &&
+      !isDestinationHubEnglishKeyword(accepted, productDestination) &&
+      !isModetourRouteOrderKeywordBlocked(accepted)
+    ) {
+      return accepted
+    }
+    const bare = String(raw ?? '').trim()
+    if (bare.length >= 2 && /^[A-Za-z0-9\s,.'-]+$/.test(bare) && !/[\uAC00-\uD7AF]/.test(bare)) {
+      if (isKnownDestinationCityEnglishKeyword(bare) || isDestinationHubEnglishKeyword(bare, productDestination)) {
+        return ''
+      }
+      return isModetourRouteOrderKeywordBlocked(bare) ? '' : bare
+    }
+    return ''
+  }
+
+  if (!accepted) return ''
+  if (
+    isKnownDestinationCityEnglishKeyword(accepted) ||
+    isDestinationHubEnglishKeyword(accepted, productDestination)
+  ) {
+    return ''
+  }
+  return isScheduleImageKeywordLandmarkEligible(accepted) ? accepted : ''
+}
+
+/** routeText 한 세그먼트 → 영문 imageKeyword 후보 (일정 순서 SSOT) */
+function modetourRouteSegmentToImageKeyword(
+  seg: string,
+  dayKind: ModetourScheduleCardDayKind,
+  productDestination: string | null | undefined,
+): string {
+  if (isModetourDomesticHubToken(seg)) return ''
+  if (isNonLandmarkRouteTextSegment(seg)) return ''
+
+  if (dayKind === 'tourism' && isModetourRouteCorridorValleySegment(seg)) return ''
+
+  const tSeg = stripRouteSegmentNoise(seg)
+  const isLatinSeg = isLatinRoutePlaceSegment(tSeg)
+  if (isModetourForeignDestinationCitySegment(seg, productDestination)) {
+    const destEn = mapDestination(String(productDestination ?? '').trim())
+    const keepLatinRouteOrder =
+      dayKind === 'tourism' &&
+      isLatinSeg &&
+      destEn &&
+      !keysEqual(tSeg, destEn) &&
+      !keysEqual(mapDestination(tSeg), destEn)
+    if (!keepLatinRouteOrder) return ''
+  }
+
+  if (dayKind === 'movement') {
+    const t = stripRouteSegmentNoise(seg)
+    const cityEn = mapDestination(t)
+    if (cityEn && cityEn !== t && !/[\uAC00-\uD7AF]/.test(cityEn)) {
+      return tryAcceptModetourRouteSegmentKeyword(cityEn, productDestination, { allowDestinationCity: true })
+    }
+    const fromLatin = tryAcceptModetourRouteLatinSegment(seg, productDestination)
+    if (fromLatin) return fromLatin
+    return ''
+  }
+
+  const fromLatinRoute = tryAcceptModetourRouteLatinSegment(seg, productDestination)
+  if (fromLatinRoute) {
+    return fromLatinRoute
+  }
+
+  const latin = extractLatinEnglishFromRouteSegment(seg)
+  if (latin) {
+    return latin
+  }
+
+  const t = stripRouteSegmentNoise(seg)
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    let fin = fromPoi
+    try {
+      fin = finalizeScheduleImageKeyword(fromPoi)
+    } catch {
+      /* keep */
+    }
+    const fromDict = tryAcceptModetourRouteSegmentKeyword(fin, productDestination, {
+      trustRouteMappedPoi: true,
+    })
+    if (fromDict) return fromDict
+  }
+
+  const fromSpot = firstMatchingScheduleSpotEn(t)
+  if (fromSpot) {
+    let fin = fromSpot
+    try {
+      fin = finalizeScheduleImageKeyword(fromSpot)
+    } catch {
+      /* keep */
+    }
+    const fromRegex = tryAcceptModetourRouteSegmentKeyword(fin, productDestination, {
+      trustRouteMappedPoi: true,
+    })
+    if (fromRegex) return fromRegex
+  }
+
+  const fromSuffix = modetourKoreanPlaceSuffixEnglishFallback(seg)
+  if (fromSuffix) {
+    const fromFallback = tryAcceptModetourRouteSegmentKeyword(fromSuffix, productDestination, {
+      trustRouteMappedPoi: true,
+    })
+    if (fromFallback) return fromFallback
+  }
+
+  return ''
+}
+
+/** 일정 routeText 세그먼트 순서대로 imageKeyword 후보(중복 제거, 순서 유지) */
+export function collectModetourRouteOrderedSegmentKeywords(
+  routeText: string | null | undefined,
+  dayKind: ModetourScheduleCardDayKind,
+  productDestination: string | null | undefined,
+): string[] {
+  const out: string[] = []
+  for (const seg of routeTextSegments(routeText)) {
+    const kw = modetourRouteSegmentToImageKeyword(seg, dayKind, productDestination)
+    if (!kw) continue
+    if (out.some((x) => keysEqual(x, kw))) continue
+    out.push(kw)
+  }
+  return out
+}
+
+function pickFirstUnusedModetourRouteKeyword(
+  ordered: readonly string[],
+  used: ReadonlySet<string>,
+  excludePrimary?: string,
+): string {
+  for (const kw of ordered) {
+    if (!kw) continue
+    if (excludePrimary && modetourKeywordKeysOverlap(kw, excludePrimary)) continue
+    const nk = normKey(kw)
+    if (!nk || used.has(nk)) continue
+    return kw
+  }
+  return ''
 }
 
 function isLatinRoutePlaceSegment(seg: string): boolean {
@@ -388,12 +649,45 @@ function tryAcceptModetourLlmImageKeyword(
   raw: string | null | undefined,
   productDestination: string | null | undefined,
 ): string {
-  return acceptLlmScheduleImageKeyword(raw, {
+  const fromBase = acceptLlmScheduleImageKeyword(raw, {
     productDestination,
     isFormatOk: isModetourLlmImageKeywordFormatOk,
     isDomesticHub: isModetourDomesticHubToken,
     isCrossContinentHallucination: isModetourCrossContinentHallucinationKeyword,
   })
+  if (fromBase) return fromBase
+  const t = String(raw ?? '').trim()
+  if (!/^[A-Za-z][A-Za-z0-9\s,.'-]{2,}$/.test(t) || /[\uAC00-\uD7AF]/.test(t)) return ''
+  let fin = t
+  try {
+    fin = finalizeScheduleImageKeyword(t)
+  } catch {
+    /* keep t */
+  }
+  if (!fin || fin.length < 2) return ''
+  if (isModetourCrossContinentHallucinationKeyword(fin, productDestination)) return ''
+  if (isModetourDomesticHubToken(fin)) return ''
+  if (t.split(/\s+/).filter(Boolean).length >= 2) return fin
+  return ''
+}
+
+/** routeText 라틴 세그먼트(Da Nang, Hoi An) — finalize·짧은 토큰 허용 */
+function tryAcceptModetourRouteLatinSegment(
+  seg: string,
+  productDestination: string | null | undefined,
+): string {
+  const t = stripRouteSegmentNoise(seg)
+  if (!isLatinRoutePlaceSegment(t)) return ''
+  let fin = t
+  try {
+    fin = finalizeScheduleImageKeyword(t)
+  } catch {
+    /* keep t */
+  }
+  if (!fin || fin.length < 2) return ''
+  if (isModetourCrossContinentHallucinationKeyword(fin, productDestination)) return ''
+  if (isModetourDomesticHubToken(fin)) return ''
+  return fin
 }
 
 function inferModetourKeywordFromDayContent(
@@ -443,6 +737,9 @@ export function classifyModetourScheduleCardDayKind(
   ) {
     return 'return_home'
   }
+  if (day === maxDay && maxDay >= 2 && /(?:귀국|출국)/u.test(j)) {
+    return 'return_home'
+  }
   if (
     day === maxDay &&
     maxDay >= 2 &&
@@ -457,7 +754,9 @@ export function classifyModetourScheduleCardDayKind(
     return 'movement'
   }
   if (day === 1 && /출입국/.test(j) && !/(귀국|출국)/.test(j)) {
-    return 'movement'
+    if (/(?:인천|김포|ICN|GMP|부산|PUS|청주|CJJ|대구|TAE)/.test(j)) {
+      return 'movement'
+    }
   }
   if (
     day === 1 &&
@@ -489,12 +788,14 @@ function pickModetourMovementForeignCityKeyword(
     const fromDest = mapDestination(t)
     if (fromDest && fromDest !== t && !/[\uAC00-\uD7AF]/.test(fromDest)) {
       const accepted = tryAcceptModetourLlmImageKeyword(fromDest, productDestination)
-      if (accepted && isKnownDestinationCityEnglishKeyword(accepted)) return accepted
+      if (accepted && isModetourRouteMovementCityKeyword(accepted)) return accepted
     }
     if (/^[A-Za-z][A-Za-z\s-]{2,}$/.test(t)) {
       const accepted = tryAcceptModetourLlmImageKeyword(t, productDestination)
-      if (accepted && isKnownDestinationCityEnglishKeyword(accepted)) return accepted
+      if (accepted && isModetourRouteMovementCityKeyword(accepted)) return accepted
     }
+    const fromLatin = tryAcceptModetourRouteLatinSegment(seg, productDestination)
+    if (fromLatin) return fromLatin
   }
   return ''
 }
@@ -504,34 +805,10 @@ function resolveModetourMovementDayKeyword(
   day: number,
   maxDay: number,
   productDestination: string | null | undefined,
-  allRows: ModetourScheduleImageKeywordRow[],
+  _allRows: ModetourScheduleImageKeywordRow[],
 ): string {
   if (dayKindIsReturnOnlyDomestic(row, day, maxDay)) return ''
-
-  if (day === 1) {
-    const city = pickModetourMovementForeignCityKeyword(row.routeText, productDestination)
-    if (city) return city
-    const tripPlaces = collectTripForeignPlaceKeywordsInDayOrder(allRows, productDestination)
-    const tripCity = tripPlaces.find((kw) => isKnownDestinationCityEnglishKeyword(kw))
-    if (tripCity) return tripCity
-  }
-
-  if (day === maxDay && maxDay >= 2 && isModetourReturnLegWithDomesticHub(row)) {
-    const fromLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination, {
-      skipDestinationCity: true,
-    })
-    if (fromLast) return fromLast
-  }
-
-  const pickLast = day === maxDay && maxDay >= 2
-  const fromRoute = pickForeignPlaceFromRouteText(row.routeText, pickLast, productDestination)
-  if (fromRoute) return fromRoute
-
-  const tripPlaces = collectTripForeignPlaceKeywordsInDayOrder(allRows, productDestination)
-  if (day === 1 && tripPlaces[0]) return tripPlaces[0]!
-  if (day === maxDay && tripPlaces.length) return tripPlaces[tripPlaces.length - 1]!
-
-  return inferModetourKeywordFromDayContent(row, productDestination)
+  return pickModetourMovementForeignCityKeyword(row.routeText, productDestination) || ''
 }
 
 function dayKindIsReturnOnlyDomestic(
@@ -575,24 +852,41 @@ function resolveModetourPrimaryKeyword(
   const acceptLlm = (raw: string | null | undefined) =>
     tryAcceptModetourLlmImageKeyword(raw, productDestination)
   const accepted = acceptLlm(row.imageKeyword)
-
-  if (dayKind === 'return_home') {
-    return ''
-  }
+  const routeOrdered = collectModetourRouteOrderedSegmentKeywords(
+    row.routeText,
+    dayKind,
+    productDestination,
+  )
 
   const haystack = buildModetourDayHaystack(row)
   if (isRegisterScheduleFreeLeisureDay(haystack)) {
     return ''
   }
 
+  if (dayKind === 'return_home') {
+    return isDomesticOnlyRouteText(row.routeText) ? '' : routeOrdered[0] || ''
+  }
+
   if (dayKind === 'movement') {
     return resolveModetourMovementDayKeyword(row, day, maxDay, productDestination, allRows)
   }
 
+  if (
+    accepted &&
+    routeOrdered[0] &&
+    (isKnownDestinationCityEnglishKeyword(accepted) ||
+      isDestinationHubEnglishKeyword(accepted, productDestination)) &&
+    !keysEqual(accepted, routeOrdered[0]!)
+  ) {
+    return routeOrdered[0]!
+  }
+
+  if (!accepted && routeOrdered[0]) {
+    return routeOrdered[0]
+  }
+
   const routeTextPresent = Boolean(String(row.routeText ?? '').trim())
-  const fromRouteOrderedFirst = routeTextPresent
-    ? pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
-    : ''
+  const fromRouteOrderedFirst = routeTextPresent ? routeOrdered[0] || '' : ''
 
   if (accepted) {
     if (isKnownDestinationCityEnglishKeyword(accepted)) {
@@ -656,7 +950,7 @@ function resolveModetourPrimaryKeyword(
     return accepted
   }
 
-  const fromRouteFirst = pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
+  const fromRouteFirst = routeOrdered[0] || pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
   if (fromRouteFirst) return fromRouteFirst
 
   const landmarks = collectModetourLandmarkKeywords(row, productDestination)
@@ -679,26 +973,29 @@ function modetourKeywordKeysOverlap(a: string, b: string): boolean {
   return ak.includes(bk) || bk.includes(ak)
 }
 
-/** routeText 명소 목록에서 1순위 다음 세그먼트(Leh Palace Ladakh → Leh Market) */
+/** routeText 일정 순서 — 1순위 다음 세그먼트 */
 function pickModetourRouteOrderedSecondKeyword(
   primary: string,
   routeText: string | null | undefined,
+  dayKind: ModetourScheduleCardDayKind,
   productDestination: string | null | undefined,
 ): string | null {
-  const landmarks = filterTourismRouteLandmarkCandidates(
-    collectRouteLandmarkKeywordsFromRouteText(routeText, productDestination),
-    productDestination,
-  )
-  if (!landmarks.length) return null
-  let passedPrimary = false
-  for (const kw of landmarks) {
-    if (!passedPrimary) {
-      if (modetourKeywordKeysOverlap(primary, kw)) passedPrimary = true
-      continue
-    }
+  const ordered = collectModetourRouteOrderedSegmentKeywords(routeText, dayKind, productDestination)
+  for (const kw of ordered) {
     if (!modetourKeywordKeysOverlap(primary, kw)) return kw
   }
-  return pickDistinctSecondScheduleImageKeyword(primary, landmarks)
+  return null
+}
+
+function isModetourLocalImmigrationTourismDay(
+  row: ModetourScheduleImageKeywordRow,
+  day: number,
+  dayKind: ModetourScheduleCardDayKind,
+): boolean {
+  if (day !== 1 || dayKind !== 'tourism') return false
+  const hay = buildModetourDayHaystack(row)
+  if (!/(?:출입국|입국\s*정보)/u.test(hay)) return false
+  return !routeTextSegments(row.routeText).some((s) => isModetourDomesticHubToken(s))
 }
 
 function resolveModetourSecondaryKeyword(
@@ -706,15 +1003,26 @@ function resolveModetourSecondaryKeyword(
   primary: string,
   dayKind: ModetourScheduleCardDayKind,
   productDestination: string | null | undefined,
+  day?: number,
 ): string | null {
   if (!primary) return null
+  if (day === 1 && isModetourLocalImmigrationTourismDay(row, day, dayKind)) return null
   if (isModetourReturnLegWithDomesticHub(row)) return null
   if (dayKind === 'movement' || dayKind === 'return_home') return null
 
   const pk = normKey(primary)
 
+  const routeOrdered = collectModetourRouteOrderedSegmentKeywords(
+    row.routeText,
+    dayKind,
+    productDestination,
+  )
+  for (const kw of routeOrdered) {
+    if (!modetourKeywordKeysOverlap(kw, primary)) return kw
+  }
+
   const fromRouteOrdered =
-    pickModetourRouteOrderedSecondKeyword(primary, row.routeText, productDestination) ||
+    pickModetourRouteOrderedSecondKeyword(primary, row.routeText, dayKind, productDestination) ||
     pickDistinctSecondScheduleImageKeyword(
       primary,
       filterTourismRouteLandmarkCandidates(
@@ -787,6 +1095,9 @@ function collectModetourDayPrimaryCandidates(
     return out
   }
 
+  for (const kw of collectModetourRouteOrderedSegmentKeywords(row.routeText, dayKind, productDestination)) {
+    push(kw)
+  }
   for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination)) push(kw)
   push(pickForeignPlaceFromRouteText(row.routeText, true, productDestination))
   push(pickFirstTourismPoiFromRouteText(row.routeText, productDestination))
@@ -816,7 +1127,6 @@ function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageK
   productDestination: string | null | undefined,
 ): T[] {
   const used = new Set<string>()
-  const tripLandmarks = collectModetourTripLandmarkCandidates(rows, productDestination)
   const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
   const byDay = new Map<number, T>()
 
@@ -827,46 +1137,37 @@ function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageK
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()
 
-    const pickUnused = (cands: readonly string[]): string => {
-      for (const kw of cands) {
-        if (
-          !kw ||
-          isKnownDestinationCityEnglishKeyword(kw) ||
-          isDestinationHubEnglishKeyword(kw, productDestination)
-        ) {
-          continue
-        }
-        const nk = normKey(kw)
-        if (!nk || used.has(nk)) continue
-        used.add(nk)
-        return kw
-      }
-      return ''
-    }
-
     if (dayKind === 'return_home') {
-      primary = ''
+      primary = isDomesticOnlyRouteText(row.routeText)
+        ? ''
+        : pickFirstUnusedModetourRouteKeyword(
+            collectModetourRouteOrderedSegmentKeywords(row.routeText, dayKind, productDestination),
+            used,
+          )
       secondary = ''
     } else if (dayKind === 'movement') {
-      if (!primary || used.has(normKey(primary))) {
-        primary =
-          pickModetourMovementForeignCityKeyword(row.routeText, productDestination) ||
-          pickForeignPlaceFromRouteText(row.routeText, false, productDestination) ||
-          ''
+      if (
+        !primary ||
+        used.has(normKey(primary)) ||
+        !isModetourRouteMovementCityKeyword(primary)
+      ) {
+        primary = pickModetourMovementForeignCityKeyword(row.routeText, productDestination) || ''
       }
       if (primary) used.add(normKey(primary))
       secondary = ''
     } else {
+      const routeOrdered = collectModetourRouteOrderedSegmentKeywords(
+        row.routeText,
+        dayKind,
+        productDestination,
+      )
       if (
         !primary ||
         used.has(normKey(primary)) ||
         isKnownDestinationCityEnglishKeyword(primary) ||
         isDestinationHubEnglishKeyword(primary, productDestination)
       ) {
-        const fromDay = collectModetourDayPrimaryCandidates(row, dayKind, productDestination)
-        primary =
-          pickUnused(fromDay) ||
-          (!String(row.routeText ?? '').trim() ? pickUnused(tripLandmarks) : '')
+        primary = pickFirstUnusedModetourRouteKeyword(routeOrdered, used)
       } else {
         used.add(normKey(primary))
       }
@@ -887,16 +1188,7 @@ function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageK
         if (isModetourReturnLegWithDomesticHub(row)) {
           secondary = ''
         } else {
-          const routeLandmarks = filterTourismRouteLandmarkCandidates(
-            collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
-            productDestination,
-          )
-          const secCand =
-            pickModetourRouteOrderedSecondKeyword(primary, row.routeText, productDestination) ||
-            routeLandmarks.find(
-              (kw) =>
-                !modetourKeywordKeysOverlap(kw, primary) && !used.has(normKey(kw)),
-            )
+          const secCand = pickFirstUnusedModetourRouteKeyword(routeOrdered, used, primary)
           if (secCand) {
             secondary = secCand
             used.add(normKey(secondary))
@@ -931,18 +1223,15 @@ function enforceModetourTripWideKeywordUniqueness<T extends ModetourScheduleImag
 
   const pickUnusedFromRoute = (
     row: ModetourScheduleImageKeywordRow,
+    dayKind: ModetourScheduleCardDayKind,
     excludePrimary: string,
   ): string => {
-    const ordered =
-      pickModetourRouteOrderedSecondKeyword(excludePrimary, row.routeText, productDestination) || ''
-    if (ordered && !used.has(normKey(ordered))) return ordered
-    for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination)) {
-      if (!kw || modetourKeywordKeysOverlap(kw, excludePrimary) || used.has(normKey(kw))) continue
-      if (isDestinationHubEnglishKeyword(kw, productDestination)) continue
-      if (!isScheduleImageKeywordLandmarkEligible(kw)) continue
-      return kw
-    }
-    return ''
+    const ordered = collectModetourRouteOrderedSegmentKeywords(
+      row.routeText,
+      dayKind,
+      productDestination,
+    )
+    return pickFirstUnusedModetourRouteKeyword(ordered, used, excludePrimary || undefined)
   }
 
   for (const row of sorted) {
@@ -959,12 +1248,9 @@ function enforceModetourTripWideKeywordUniqueness<T extends ModetourScheduleImag
 
     if (primary && used.has(normKey(primary))) {
       if (dayKind === 'movement') {
-        primary =
-          pickModetourMovementForeignCityKeyword(row.routeText, productDestination) ||
-          pickForeignPlaceFromRouteText(row.routeText, false, productDestination) ||
-          ''
+        primary = pickModetourMovementForeignCityKeyword(row.routeText, productDestination) || ''
       } else {
-        primary = pickUnusedFromRoute(row, '')
+        primary = pickUnusedFromRoute(row, dayKind, '')
       }
     }
     if (primary) used.add(normKey(primary))
@@ -981,7 +1267,7 @@ function enforceModetourTripWideKeywordUniqueness<T extends ModetourScheduleImag
       primary &&
       shouldReconcileScheduleImageKeyword2(primary, null)
     ) {
-      secondary = pickUnusedFromRoute(row, primary)
+      secondary = pickUnusedFromRoute(row, dayKind, primary)
     }
     if (secondary) used.add(normKey(secondary))
 
@@ -1048,7 +1334,12 @@ function dedupeModetourTourismPrimaryKeywordsAcrossDays<T extends ModetourSchedu
       return row
     }
 
-    const fromDay = pickUnused(collectModetourDayPrimaryCandidates(row, dayKind, productDestination))
+    const routeOrdered = collectModetourRouteOrderedSegmentKeywords(
+      row.routeText,
+      dayKind,
+      productDestination,
+    )
+    const fromDay = pickFirstUnusedModetourRouteKeyword(routeOrdered, used)
     if (fromDay) return { ...row, imageKeyword: fromDay }
 
     if (!String(row.routeText ?? '').trim()) {
@@ -1060,14 +1351,125 @@ function dedupeModetourTourismPrimaryKeywordsAcrossDays<T extends ModetourSchedu
   })
 }
 
-export function applyModetourScheduleImageKeywordsToRows<
-  T extends ModetourScheduleImageKeywordRow,
->(rows: T[], opts?: ModetourScheduleImageKeywordOpts): T[] {
-  const sorted = rows.filter((r) => Number(r.day) > 0)
-  const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
-  const productDestination = opts?.productDestination ?? null
+type ModetourKeywordSlotKind = 'departure' | 'middle' | 'return' | 'skip'
 
-  const mapped = rows.map((row) => {
+function resolveModetourKeywordSlotKind(
+  day: number,
+  maxDay: number,
+  row: ModetourScheduleImageKeywordRow,
+  dayKind: ModetourScheduleCardDayKind,
+): ModetourKeywordSlotKind {
+  if (isRegisterScheduleFreeLeisureDay(buildModetourDayHaystack(row))) return 'skip'
+  if (day === 1) return 'departure'
+
+  if (day === maxDay && maxDay >= 2) {
+    if (dayKind === 'return_home' || isDomesticOnlyRouteText(row.routeText)) return 'return'
+    if (!String(row.routeText ?? '').trim()) return 'return'
+    if (dayKind === 'tourism' && countModetourForeignRouteSegments(row.routeText) >= 1) {
+      return 'middle'
+    }
+    return 'return'
+  }
+
+  if (dayKind === 'return_home') return 'return'
+  return 'middle'
+}
+
+function findPrevScheduledRow<T extends ModetourScheduleImageKeywordRow>(
+  sorted: readonly T[],
+  day: number,
+): T | undefined {
+  let prev: T | undefined
+  for (const row of sorted) {
+    const d = Number(row.day)
+    if (d >= day) break
+    prev = row
+  }
+  return prev
+}
+
+/** 일정요약 routeText 순서 + 일차 슬롯 규칙 SSOT (이 상품 1건만, trip-wide used) */
+function allocateModetourImageKeywordsByScheduleRules<T extends ModetourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const used = new Set<string>()
+  const byDay = new Map<number, { primary: string; secondary: string | null }>()
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const haystack = buildModetourDayHaystack(row)
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    const slotKind = resolveModetourKeywordSlotKind(day, maxDay, row, dayKind)
+
+    if (slotKind === 'skip') {
+      byDay.set(day, { primary: '', secondary: null })
+      continue
+    }
+
+    if (slotKind === 'departure') {
+      const routeDayKind = dayKind === 'movement' ? 'movement' : 'tourism'
+      const ordered = collectModetourRouteOrderedSegmentKeywords(
+        row.routeText,
+        routeDayKind,
+        productDestination,
+      )
+      let primary = pickFirstUnusedModetourRouteKeyword(ordered, used)
+      if (!primary && routeDayKind === 'movement') {
+        primary = pickModetourMovementForeignCityKeyword(row.routeText, productDestination) || ''
+      }
+      if (primary) used.add(normKey(primary))
+      byDay.set(day, { primary, secondary: null })
+      continue
+    }
+
+    if (slotKind === 'return') {
+      if (isDomesticOnlyRouteText(row.routeText)) {
+        byDay.set(day, { primary: '', secondary: null })
+        continue
+      }
+      const prev = findPrevScheduledRow(sorted, day)
+      if (!prev) {
+        byDay.set(day, { primary: '', secondary: null })
+        continue
+      }
+      const prevAlloc = byDay.get(Number(prev.day))
+      const prevOrdered = collectModetourRouteOrderedSegmentKeywords(
+        prev.routeText,
+        'tourism',
+        productDestination,
+      )
+      let primary = ''
+      for (const kw of prevOrdered) {
+        if (prevAlloc && keysEqual(kw, prevAlloc.primary)) continue
+        if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
+        if (used.has(normKey(kw))) continue
+        primary = kw
+        break
+      }
+      if (primary) used.add(normKey(primary))
+      byDay.set(day, { primary, secondary: null })
+      continue
+    }
+
+    const routeDayKind = dayKind === 'movement' ? 'movement' : 'tourism'
+    const ordered = collectModetourRouteOrderedSegmentKeywords(
+      row.routeText,
+      routeDayKind,
+      productDestination,
+    )
+    const primary = pickFirstUnusedModetourRouteKeyword(ordered, used)
+    if (primary) used.add(normKey(primary))
+    const secondary = primary
+      ? pickFirstUnusedModetourRouteKeyword(ordered, used, primary) || ''
+      : ''
+    if (secondary) used.add(normKey(secondary))
+    byDay.set(day, { primary, secondary: secondary || null })
+  }
+
+  return rows.map((row) => {
     const day = Number(row.day)
     if (day <= 0) {
       return {
@@ -1076,51 +1478,23 @@ export function applyModetourScheduleImageKeywordsToRows<
         imageKeyword2: row.imageKeyword2 ?? null,
       }
     }
-
-    const haystack = buildModetourDayHaystack(row)
-    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
-    const primary = resolveModetourPrimaryKeyword(row, dayKind, day, maxDay, productDestination, sorted)
-    const secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
-
+    const alloc = byDay.get(day)
+    if (!alloc) {
+      return { ...row, imageKeyword: '', imageKeyword2: null }
+    }
     return {
       ...row,
-      imageKeyword: primary,
-      imageKeyword2: secondary,
+      imageKeyword: alloc.primary,
+      imageKeyword2: alloc.secondary,
     }
   })
+}
 
-  const deduped = dedupeModetourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
-  const reconciled = reconcileModetourTripWideImageKeywords(deduped, maxDay, productDestination)
-  const unique = enforceModetourTripWideKeywordUniqueness(reconciled, maxDay, productDestination)
-
-  // dedupe가 1순위만 바꾸므로 2순위 null·중복이면 최종 primary 기준으로 재산출
-  return unique.map((row) => {
-    const day = Number(row.day)
-    if (day <= 0) return row
-    const haystack = buildModetourDayHaystack(row)
-    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
-    if (
-      dayKind === 'movement' ||
-      dayKind === 'return_home' ||
-      isModetourReturnLegWithDomesticHub(row)
-    ) {
-      return { ...row, imageKeyword2: null }
-    }
-    const primary = String(row.imageKeyword ?? '').trim()
-    if (!primary) return row
-    let secondary = row.imageKeyword2
-    if (
-      dayKind === 'tourism' &&
-      !isModetourReturnLegWithDomesticHub(row) &&
-      countModetourForeignRouteSegments(row.routeText) >= 2 &&
-      !String(row.imageKeyword2 ?? '').trim()
-    ) {
-      secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
-    } else if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) {
-      return row
-    } else {
-      secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
-    }
-    return { ...row, imageKeyword2: secondary }
-  })
+export function applyModetourScheduleImageKeywordsToRows<
+  T extends ModetourScheduleImageKeywordRow,
+>(rows: T[], opts?: ModetourScheduleImageKeywordOpts): T[] {
+  const sorted = rows.filter((r) => Number(r.day) > 0)
+  const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
+  const productDestination = opts?.productDestination ?? null
+  return allocateModetourImageKeywordsByScheduleRules(rows, maxDay, productDestination)
 }

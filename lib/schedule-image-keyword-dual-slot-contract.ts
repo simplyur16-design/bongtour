@@ -97,18 +97,14 @@ function assertModetourBaNaHillsRegression(failures: string[], label: string, ou
     return
   }
   const kw2 = String(d2.imageKeyword ?? '').trim()
-  const kw2b = String(d2.imageKeyword2 ?? '').trim()
   const kw4 = String(d4.imageKeyword ?? '').trim()
-  const kw4b = String(d4.imageKeyword2 ?? '').trim()
   if (!/My Khe/i.test(kw2)) failures.push(`${label}: day2 imageKeyword expected My Khe, got ${kw2}`)
-  if (!kw2b) failures.push(`${label}: day2 imageKeyword2 empty after dedupe (regression)`)
-  if (!/Hoi/i.test(kw4)) failures.push(`${label}: day4 imageKeyword expected Hoi An, got ${kw4}`)
-  if (!kw4b) failures.push(`${label}: day4 imageKeyword2 empty after dedupe (regression)`)
-  if (kw2b && normScheduleImageKeywordKey(kw2b) === normScheduleImageKeywordKey(kw2)) {
-    failures.push(`${label}: day2 imageKeyword2 equals imageKeyword`)
+  if (d2.imageKeyword2 != null && String(d2.imageKeyword2).trim() !== '') {
+    failures.push(`${label}: day2 imageKeyword2 must be null (route POI 1개)`)
   }
-  if (kw4b && normScheduleImageKeywordKey(kw4b) === normScheduleImageKeywordKey(kw4)) {
-    failures.push(`${label}: day4 imageKeyword2 equals imageKeyword`)
+  if (!/Hoi/i.test(kw4)) failures.push(`${label}: day4 imageKeyword expected Hoi An, got ${kw4}`)
+  if (d4.imageKeyword2 != null && String(d4.imageKeyword2).trim() !== '') {
+    failures.push(`${label}: day4 imageKeyword2 must be null (route POI 1개)`)
   }
 }
 
@@ -166,25 +162,25 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
     [
       {
         day: 2,
-        title: '미케',
-        description: '미케 비치',
-        routeText: 'Da Nang - My Khe Beach',
+        title: '다낭',
+        description: '다낭과 호이안',
+        routeText: 'Da Nang - Hoi An',
         imageKeyword: 'Ba Na Hills',
         imageKeyword2: null,
       },
       {
         day: 3,
-        title: '호이안',
-        description: '호이안',
-        routeText: 'Da Nang - Hoi An Ancient Town',
-        imageKeyword: 'Ba Na Hills',
+        title: '귀국',
+        description: '인천 도착',
+        routeText: '인천',
+        imageKeyword: '',
         imageKeyword2: null,
       },
     ],
     'Vietnam',
   )
   assertTourismDualSlot(failures, 'modetour day2', modetour, 2)
-  assertTourismDualSlot(failures, 'modetour day3', modetour, 3)
+  assertMovementKw2Null(failures, 'modetour return', modetour, 3)
 
   const ybtour = apply(
     'ybtour',
