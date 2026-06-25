@@ -4,7 +4,11 @@
  * REGRESSION-FREEZE[ybtour-register-api-parse]: collectYbtourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: API-only register parse — manifest
  */
-import { parseYbtourEvCdFromUrl } from '@/lib/ybtour-api-departures'
+import {
+  parseYbtourEvCdFromUrl,
+  parseYbtourGoodsCdFromUrl,
+  resolveYbtourEvCdForRegisterUrl,
+} from '@/lib/ybtour-api-departures'
 import {
   fetchYbtourRegisterDetailBundle,
   ybtourScheduleBundleToRegisterSchedule,
@@ -97,14 +101,18 @@ export async function parseYbtourRegisterFromApi(
   options?: YbtourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
-  const evCd = parseYbtourEvCdFromUrl(originUrl)
-  if (!originUrl || !evCd) {
-    throw new Error('노랑풍선 등록에는 유효한 originUrl(evCd)이 필요합니다.')
+  if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {
+    throw new Error('노랑풍선 등록에는 유효한 originUrl(evCd 또는 goodsCd)이 필요합니다.')
+  }
+
+  const resolved = await resolveYbtourEvCdForRegisterUrl(originUrl)
+  if (!resolved) {
+    throw new Error('register-facts 수집에 실패했습니다. URL·evCd/goodsCd를 확인하세요.')
   }
 
   const bundle = await collectYbtourRegisterFacts(originUrl)
   if (!bundle) {
-    throw new Error('register-facts 수집에 실패했습니다. URL·evCd를 확인하세요.')
+    throw new Error('register-facts 수집에 실패했습니다. URL·evCd/goodsCd를 확인하세요.')
   }
 
   const paste = rawText.trim()

@@ -7,6 +7,7 @@ import {
   parseYbtourBaseSeriesFromEvCdShape,
   pickYbtourSeedEvCdForByGoods,
   resolveYbtourByGoodsDspSid,
+  resolveYbtourEvCdForRegisterUrl,
   resolveYbtourGoodsCdForApi,
   ybtourByGoodsRowToAdultPrice,
   ybtourByGoodsRowToDepartureInput,
@@ -201,5 +202,11 @@ describe('ybtourEventPriceToDepartureInput', () => {
     expect(input?.adultPrice).toBe(2740000)
     expect(input?.childBedPrice).toBe(2821000)
     expect(input?.supplierDepartureCodeCandidate).toBe('ybtour:EEP1284-260703LO01')
+  })
+})
+
+describe('resolveYbtourEvCdForRegisterUrl', () => {
+  it('is exported for goodsCd-only register URLs', () => {
+    expect(typeof resolveYbtourEvCdForRegisterUrl).toBe('function')
   })
 })

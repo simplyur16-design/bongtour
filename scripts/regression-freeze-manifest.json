@@ -3875,6 +3875,25 @@
       ],
       "checks": [
         {
+          "file": "lib/ybtour-api-departures.ts",
+          "mustInclude": [
+            "resolveYbtourEvCdForRegisterUrl",
+            "pickYbtourSeedEvCdForByGoods"
+          ]
+        },
+        {
+          "file": "lib/register-facts/ybtour.ts",
+          "mustInclude": [
+            "resolveYbtourEvCdForRegisterUrl"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "resolveYbtourEvCdForRegisterUrl"
+          ]
+        },
+        {
           "file": "lib/ybtour-register-api-parse.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-api-parse]",
@@ -3882,7 +3901,8 @@
             "collectYbtourRegisterFacts",
             "parseYbtourRegisterFromApi",
             "ybtourScheduleBundleToRegisterSchedule",
-            "applyRegisterScheduleImageKeywordsBySupplier"
+            "applyRegisterScheduleImageKeywordsBySupplier",
+            "resolveYbtourEvCdForRegisterUrl"
           ],
           "mustNotInclude": [
             "parseForRegisterLlmYbtour",

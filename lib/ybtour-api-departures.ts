@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[ybtour-api-departure-collect]: papi.ybtour.co.kr pkg/event — manifest
  * REGRESSION-FREEZE[ybtour-by-goods-departure-list]: by-goods 월별 다출발 — manifest
+ * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: goodsCd-only URL → resolveYbtourEvCdForRegisterUrl — manifest
  */
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
@@ -355,6 +356,42 @@ async function resolveYbtourSeedEvCd(detailUrl: string, goodsCd: string, referer
     dayEvCd: fromDay,
     urlEvCdDspSid,
   })
+}
+
+export type YbtourRegisterUrlResolved = {
+  evCd: string
+  goodsCd: string
+  referer: string
+}
+
+/** 등록·register-facts — URL evCd 또는 goodsCd(+available-date seed) → papi evCd. */
+export async function resolveYbtourEvCdForRegisterUrl(
+  detailUrl: string,
+  originCode?: string | null,
+): Promise<YbtourRegisterUrlResolved | null> {
+  const trimmed = String(detailUrl ?? '').trim()
+  const urlEvCd = parseYbtourEvCdFromUrl(trimmed)
+
+  if (urlEvCd) {
+    const goodsCd =
+      resolveYbtourGoodsCdForApi(trimmed, originCode) ??
+      parseYbtourBaseSeriesFromEvCdShape(urlEvCd) ??
+      urlEvCd.split('-')[0] ??
+      urlEvCd
+    const referer =
+      trimmed || `https://prdt.ybtour.co.kr/product/detailPackage?evCd=${encodeURIComponent(urlEvCd)}`
+    return { evCd: urlEvCd, goodsCd, referer }
+  }
+
+  const goodsCd = resolveYbtourGoodsCdForApi(trimmed, originCode)
+  if (!goodsCd) return null
+
+  const referer =
+    trimmed || `https://prdt.ybtour.co.kr/product/detailPackage?goodsCd=${encodeURIComponent(goodsCd)}`
+  const seedEvCd = await resolveYbtourSeedEvCd(trimmed, goodsCd, referer)
+  if (!seedEvCd) return null
+
+  return { evCd: seedEvCd, goodsCd, referer }
 }
 
 function ybtourEvCdFromDepartureInput(input: DepartureInput): string | null {

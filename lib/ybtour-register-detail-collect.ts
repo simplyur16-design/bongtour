@@ -25,7 +25,7 @@ import {
 } from '@/lib/ybtour-register-api-detail'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
-import { parseYbtourEvCdFromUrl } from '@/lib/ybtour-api-departures'
+import { parseYbtourEvCdFromUrl, parseYbtourGoodsCdFromUrl } from '@/lib/ybtour-api-departures'
 import {
   ybtourHaystackDeclaresNoOptional,
   ybtourHaystackDeclaresNoShopping,
@@ -109,7 +109,9 @@ export async function augmentYbtourParsedWithDetailCollect(
   ctx?: YbtourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
   const originUrl = (ctx?.originUrl ?? '').trim()
-  if (!originUrl || !parseYbtourEvCdFromUrl(originUrl)) return parsed
+  if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {
+    return parsed
+  }
 
   const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
   const needSchedule = needsYbtourScheduleCollect(parsed)

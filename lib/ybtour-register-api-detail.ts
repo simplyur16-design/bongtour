@@ -6,8 +6,7 @@
  */
 import {
   collectYbtourByGoodsApiDepartureInputsForUrl,
-  parseYbtourEvCdFromUrl,
-  resolveYbtourGoodsCdForApi,
+  resolveYbtourEvCdForRegisterUrl,
 } from '@/lib/ybtour-api-departures'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
@@ -590,15 +589,11 @@ export function shoppingRowsToStopsJson(rows: ShoppingStructured['rows']): strin
 
 export async function fetchYbtourRegisterDetailBundle(
   originUrl: string,
-  opts?: { includeOptShop?: boolean },
+  opts?: { includeOptShop?: boolean; originCode?: string | null },
 ): Promise<YbtourRegisterDetailBundle | null> {
-  const evCd = parseYbtourEvCdFromUrl(originUrl)
-  if (!evCd) return null
-  const goodsCd = resolveYbtourGoodsCdForApi(originUrl) ?? parseYbtourEvCdFromUrl(originUrl)?.split('-')[0]
-  if (!goodsCd) return null
-
-  const referer =
-    originUrl.trim() || `https://prdt.ybtour.co.kr/product/detailPackage?evCd=${encodeURIComponent(evCd)}`
+  const resolved = await resolveYbtourEvCdForRegisterUrl(originUrl, opts?.originCode)
+  if (!resolved) return null
+  const { evCd, goodsCd, referer } = resolved
 
   const notice = await fetchYbtourRegisterPapiJson<YbtourNoticeBody>(
     `/pkg/event/${encodeURIComponent(evCd)}/notice`,
@@ -632,8 +627,9 @@ export async function fetchYbtourRegisterDetailBundle(
 
 /** papi by-goods — URL evCd 행의 항공사명 */
 export async function resolveYbtourCarrierNameForUrl(originUrl: string): Promise<string | null> {
-  const evCd = parseYbtourEvCdFromUrl(originUrl)
-  if (!evCd) return null
+  const resolved = await resolveYbtourEvCdForRegisterUrl(originUrl)
+  if (!resolved) return null
+  const { evCd } = resolved
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd)

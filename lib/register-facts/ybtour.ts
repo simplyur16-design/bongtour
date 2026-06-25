@@ -6,7 +6,7 @@
 import {
   collectYbtourByGoodsApiDepartureInputsForUrl,
   fetchYbtourEventFirstDisplay,
-  parseYbtourEvCdFromUrl,
+  resolveYbtourEvCdForRegisterUrl,
 } from '@/lib/ybtour-api-departures'
 import {
   extractYbtourIncludedExcluded,
@@ -33,8 +33,12 @@ type YbtourScheduleDayRow = {
   trvInfo?: string | null
 }
 
-async function fetchYbtourScheduleDays(evCd: string, referer: string): Promise<RegisterFactScheduleDay[]> {
-  const url = `${YBTOUR_PAPI_BASE.replace(/\/$/, '')}/pkg/event-schedule/${encodeURIComponent(evCd)}/${encodeURIComponent(evCd.split('-')[0] ?? evCd)}`
+async function fetchYbtourScheduleDays(
+  evCd: string,
+  goodsCd: string,
+  referer: string,
+): Promise<RegisterFactScheduleDay[]> {
+  const url = `${YBTOUR_PAPI_BASE.replace(/\/$/, '')}/pkg/event-schedule/${encodeURIComponent(evCd)}/${encodeURIComponent(goodsCd)}`
   const res = await fetch(url, {
     headers: {
       accept: 'application/json',
@@ -94,16 +98,16 @@ function ybtourFlightStructuredToFactLegs(
 }
 
 export async function collectYbtourRegisterFacts(originUrl: string): Promise<SupplierRegisterFactBundle | null> {
-  const evCd = parseYbtourEvCdFromUrl(originUrl)
-  if (!evCd) return null
+  const resolved = await resolveYbtourEvCdForRegisterUrl(originUrl)
+  if (!resolved) return null
 
-  const referer = originUrl.trim() || `https://prdt.ybtour.co.kr/product/detailPackage?evCd=${evCd}`
+  const { evCd, goodsCd, referer } = resolved
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const [apiHit, display, scheduleDays, detailBundle] = await Promise.all([
     collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd),
     fetchYbtourEventFirstDisplay(evCd, referer),
-    fetchYbtourScheduleDays(evCd, referer),
+    fetchYbtourScheduleDays(evCd, goodsCd, referer),
     fetchYbtourRegisterDetailBundle(originUrl),
   ])
 
