@@ -149,7 +149,7 @@ export async function parseYbtourRegisterFromApi(
 
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'ybtour',
-    originCode: bundle.originCode ?? evCd.split('-')[0] ?? evCd,
+    originCode: bundle.originCode ?? resolved.goodsCd ?? resolved.evCd.split('-')[0] ?? resolved.evCd,
     title: listingTitle || '미지정',
     supplierListingTitleRaw: listingTitle || null,
     destination: dest.destination || '미지정',
