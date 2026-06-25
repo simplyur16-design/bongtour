@@ -337,7 +337,6 @@ const POI_KO_TO_EN: Record<string, string> = {
   서호: 'West Lake',
   청황: 'City God Temple of Shanghai',
   청황묘: 'City God Temple of Shanghai',
-  자금성: 'Forbidden City',
   천안문광장: 'Tiananmen Square',
   천안문: 'Tiananmen Square',
   이화원: 'Summer Palace',

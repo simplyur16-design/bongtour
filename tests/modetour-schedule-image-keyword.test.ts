@@ -545,16 +545,15 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     const d4 = out.find((r) => r.day === 4)!
     assert.match(d1.imageKeyword!, /Beijing/i)
     assert.equal(d1.imageKeyword2, null)
-    assert.match(d2.imageKeyword!, /Tiananmen|Forbidden/i)
-    assert.ok(d2.imageKeyword2?.trim())
-    assert.notEqual(normLoose(d2.imageKeyword!), normLoose(d2.imageKeyword2!))
+    assert.match(d2.imageKeyword!, /Tiananmen/i)
+    assert.equal(d2.imageKeyword2, null)
     assert.match(d3.imageKeyword!, /Summer Palace|Great Wall/i)
     assert.ok(d3.imageKeyword2?.trim())
     assert.match(d4.imageKeyword!, /798/i)
     assert.equal(d4.imageKeyword2, null)
     const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
     const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length
-    assert.equal(forbiddenCount, 1, `Forbidden City must appear once: ${allKw.join(', ')}`)
+    assert.equal(forbiddenCount, 0, `Forbidden City must not appear: ${allKw.join(', ')}`)
   })
 })
 

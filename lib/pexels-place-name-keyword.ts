@@ -669,7 +669,7 @@ export function isWeakOpaqueImageKeyword(keyword: string): boolean {
 }
 
 function isNonLandmarkRouteTextSegmentKo(t: string): boolean {
-  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$/u.test(
+  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$|자금성\s*안내/u.test(
     t,
   )
 }

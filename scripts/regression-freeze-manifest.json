@@ -625,6 +625,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]",
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "collectRouteLandmarkKeywordsFromRouteText",
+            "routeText 세그먼트 순서만",
             "pickModetourMovementForeignCityKeyword",
             "enforceModetourTripWideKeywordUniqueness",
             "englishFromKoreanRouteSegment",

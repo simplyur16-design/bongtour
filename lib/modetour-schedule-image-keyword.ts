@@ -2,6 +2,7 @@
  * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
  * LLM 영문 우선 + 한글·라틴 routeText 명소 보완(하나투어·노랑풍선 SSOT 패턴).
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: 한글 routeText·도시명 반복 분산 — manifest
+ * routeText 세그먼트 순서만 — 본문·routeText 전체 POI 스캔으로 키워드 끌어오지 않음(안내사항 오염 방지).
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: 베트남 POI 오매핑 차단 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
@@ -18,7 +19,6 @@ import {
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import {
-  findAllMappedKoreanPoisInText,
   findMappedKoreanPoisInTextByMentionOrder,
   isDestinationHubEnglishKeyword,
   isKnownDestinationCityEnglishKeyword,
@@ -279,16 +279,6 @@ function collectRouteLandmarkKeywordsFromRouteText(
     if (isNonLandmarkRouteTextSegment(seg)) continue
     pushUniqueLandmark(landmarks, segmentToAcceptedModetourKeyword(seg, productDestination))
   }
-  if (!landmarks.length) {
-    const rt = String(routeText ?? '').trim()
-    for (const en of findAllMappedKoreanPoisInText(rt)) {
-      try {
-        pushUniqueLandmark(landmarks, finalizeScheduleImageKeyword(en))
-      } catch {
-        pushUniqueLandmark(landmarks, en)
-      }
-    }
-  }
   return landmarks
 }
 
@@ -344,18 +334,6 @@ function pickFirstTourismPoiFromRouteText(
     }
   }
 
-  const hay = String(routeText ?? '').trim()
-  for (const { en } of findMappedKoreanPoisInTextByMentionOrder(hay)) {
-    const accepted = tryAcceptModetourLlmImageKeyword(en, productDestination)
-    if (
-      accepted &&
-      !isDestinationHubEnglishKeyword(accepted, productDestination) &&
-      isScheduleImageKeywordLandmarkEligible(accepted)
-    ) {
-      return accepted
-    }
-  }
-
   const landmarks = collectRouteLandmarkKeywordsFromRouteText(routeText, productDestination)
   const poi = landmarks.find(
     (kw) =>
@@ -389,11 +367,6 @@ function collectModetourLandmarkKeywords(
     if (isNonLandmarkRouteTextSegment(seg)) continue
     const kw = segmentToAcceptedModetourKeyword(seg, productDestination)
     if (kw) pushUniqueLandmark(out, kw)
-  }
-  const haystack = buildModetourDayHaystack(row)
-  for (const en of findAllMappedKoreanPoisInText(haystack)) {
-    const accepted = tryAcceptModetourLlmImageKeyword(en, productDestination)
-    if (accepted) pushUniqueLandmark(out, accepted)
   }
   return out
 }
@@ -736,7 +709,6 @@ function collectModetourDayPrimaryCandidates(
   }
 
   for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination)) push(kw)
-  for (const en of findAllMappedKoreanPoisInText(buildModetourDayHaystack(row))) push(en)
   push(pickForeignPlaceFromRouteText(row.routeText, true, productDestination))
   push(pickFirstTourismPoiFromRouteText(row.routeText, productDestination))
   push(inferModetourKeywordFromDayContent(row, productDestination))
