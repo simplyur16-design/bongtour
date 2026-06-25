@@ -13,7 +13,10 @@ import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { enrichScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
-import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-ybtour'
+import {
+  filterOptionalTourRows,
+  type OptionalTourRowFields,
+} from '@/lib/optional-tour-row-gate-ybtour'
 import { parseYbtourShoppingVisitCount } from '@/lib/register-ybtour-shopping'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 
@@ -242,14 +245,36 @@ export function ybtourScheduleBundleToRegisterSchedule(
   return out
 }
 
+/** inclInfo에 섞인 1인실·가이드/기사 경비 — 불포함 축으로 이동 */
+const YBTOUR_INCL_BULLET_TO_EXCL_RE =
+  /(?:1인\s*여행|싱글|독실|1인\s*실|룸\s*사용).*(?:추가|300,?000)|가이드\/기사\s*경비|(?:가이드|기사).*(?:경비|팁).*(?:엔|￥|유로|USD|\$)/i
+
+function partitionYbtourIncExcBullets(
+  includedItems: string[],
+  excludedItems: string[],
+): { includedItems: string[]; excludedItems: string[] } {
+  const moved: string[] = []
+  const keptIncluded = includedItems.filter((line) => {
+    if (!YBTOUR_INCL_BULLET_TO_EXCL_RE.test(line)) return true
+    moved.push(line)
+    return false
+  })
+  const outExcluded = [...excludedItems]
+  for (const line of moved) {
+    if (outExcluded.some((x) => x.includes(line.slice(0, 24)) || line.includes(x.slice(0, 24)))) continue
+    outExcluded.push(line)
+  }
+  return { includedItems: keptIncluded, excludedItems: outExcluded }
+}
+
 export function extractYbtourIncludedExcluded(notice: YbtourNoticeBody | null): {
   includedItems: string[]
   excludedItems: string[]
 } {
-  const includedItems = htmlBulletsFromYbtourNotice(notice?.inclInfo)
+  const includedRaw = htmlBulletsFromYbtourNotice(notice?.inclInfo)
   const excludedBase = htmlBulletsFromYbtourNotice(notice?.notinclInfo)
   const fees = extractYbtourFeesFromNotice(notice)
-  const excludedItems = [...excludedBase]
+  let excludedItems = [...excludedBase]
   if (fees.singleRoomSurchargeRaw && !excludedItems.some((x) => /싱글|1인\s*객실|써차지/i.test(x))) {
     excludedItems.push(fees.singleRoomSurchargeRaw)
   }
@@ -259,7 +284,8 @@ export function extractYbtourIncludedExcluded(notice: YbtourNoticeBody | null): 
   if (fees.visaNoteRaw && !excludedItems.some((x) => /비자/i.test(x))) {
     excludedItems.push(fees.visaNoteRaw)
   }
-  return { includedItems, excludedItems }
+  const partitioned = partitionYbtourIncExcBullets(includedRaw, excludedItems)
+  return { includedItems: partitioned.includedItems, excludedItems: partitioned.excludedItems }
 }
 
 export type YbtourFeeExtract = {
@@ -432,7 +458,7 @@ export function extractYbtourOptionalFromOptionList(
       alternateScheduleText: row.note?.trim() || null,
     })
   }
-  return out
+  return filterOptionalTourRows(out)
 }
 
 /** optional-tour-detail.shopList — notice.shopInfo가 비어 있어도 쇼핑 행 복원 */
@@ -473,12 +499,12 @@ export function extractYbtourOptionalFromTourDetail(rows: YbtourTourDetailRow[])
     if (!name || seen.has(name)) continue
     seen.add(name)
     const body = String(row.trvContent ?? '').trim()
-    const priceText =
-      row.optCost != null && Number.isFinite(Number(row.optCost)) ? `USD ${row.optCost}` : null
+    const optCost = row.optCost != null && Number.isFinite(Number(row.optCost)) ? Number(row.optCost) : null
+    const priceText = optCost != null && optCost > 0 ? `USD ${optCost}` : null
     out.push({
       name,
       currency: priceText?.startsWith('USD') ? 'USD' : null,
-      adultPrice: row.optCost != null ? Number(row.optCost) : null,
+      adultPrice: optCost,
       childPrice: null,
       durationText: row.useTm?.trim() || null,
       minPaxText: null,
@@ -489,7 +515,7 @@ export function extractYbtourOptionalFromTourDetail(rows: YbtourTourDetailRow[])
       alternateScheduleText: row.refeNote?.trim() || null,
     })
   }
-  return out
+  return filterOptionalTourRows(out)
 }
 
 /** notice.shopInfo HTML 표 — 회차·쇼핑 품목·장소·소요시간·환불여부 */

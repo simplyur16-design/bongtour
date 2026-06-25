@@ -189,6 +189,26 @@ describe('ybtour register detail collect', () => {
     expect(rows[0]?.name).toContain('시클로')
   })
 
+  it('filters trvInfoYn N rows without paid optional signals (JHP1109 amenities)', () => {
+    const rows = extractYbtourOptionalFromTourDetail([
+      { trvInfoNm: '조잔케이 온천', trvInfoYn: 'N', trvContent: 'included onsen' },
+      { trvInfoNm: '호텔석식', trvInfoYn: 'N', trvContent: 'buffet' },
+      { trvInfoNm: '대게+샤브샤브 + 음주류무제한', trvInfoYn: 'N', trvContent: 'dinner' },
+    ])
+    expect(rows).toHaveLength(0)
+  })
+
+  it('moves single-room and guide-tip lines from incl to excl', () => {
+    const ie = extractYbtourIncludedExcluded({
+      inclInfo:
+        '▣ 왕복항공료<br/>1인 여행 시 독실(싱글룸) 사용 하셔야 하며, 300,000원(전일정) 추가<br/>▣ 가이드/기사 경비 :1인당 ￥4,000엔 (성인/소아 동일적용)',
+      notinclInfo: '▣ 개인경비',
+    })
+    expect(ie.includedItems.some((x) => /싱글|가이드\/기사/.test(x))).toBe(false)
+    expect(ie.excludedItems.some((x) => /싱글|300,000/.test(x))).toBe(true)
+    expect(ie.excludedItems.some((x) => /가이드\/기사\s*경비/.test(x))).toBe(true)
+  })
+
   it('extracts optional-tour-detail optionList and shopList', () => {
     const opt = extractYbtourOptionalFromOptionList([
       { title: '101 빌딩', cost: '$35/인', useTm: '약 1시간 30분', note: '전망대' },

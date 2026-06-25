@@ -268,6 +268,14 @@ export async function augmentYbtourParsedWithDetailCollect(
           optRows.length > 1 ? `현지옵션 ${optRows.length}개` : '현지옵션 있음',
       }
       summaryParts.push(`선택관광 ${optRows.length}건`)
+    } else if (optFromList.length > 0 || optFromTour.length > 0 || tourDetail?.length) {
+      next = {
+        ...next,
+        optionalToursStructured: null,
+        optionalTourCount: 0,
+        hasOptionalTour: false,
+        optionalTourSummaryText: '현지옵션 없음',
+      }
     }
   }
 
