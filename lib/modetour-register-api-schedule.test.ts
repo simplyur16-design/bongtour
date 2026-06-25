@@ -74,4 +74,26 @@ describe('modetour register api schedule', () => {
     expect(desc.split(/[.!?]/).filter((s) => s.trim().length > 8).length).toBeLessThanOrEqual(3)
     expect(desc).not.toMatch(/▶/)
   })
+
+  it('상해 1일차 — 입국신고·미팅 안내는 routeText/title에서 제거, 입국 도시는 상해만', () => {
+    const days = modetourFactDaysToRegisterSchedule([
+      {
+        day: 1,
+        places: [
+          '인천',
+          '중국 모바일 사전 입국신고서 등록 방법',
+          '입국 도시(상해-푸동)',
+          '상해 패키지 개별 일정 불가 안내 및 현지 미팅 안내',
+        ],
+        hotels: ['상해유적지/준4성호텔(출발 전 확정)'],
+        meals: ['기내식'],
+        transportNote: null,
+      },
+    ])
+    expect(days[0]?.routeText).toBe('인천 - 상해')
+    expect(days[0]?.title).toBe('인천 - 상해')
+    expect(days[0]?.title).not.toMatch(/입국신고|미팅|개별\s*일정/)
+    expect(days[0]?.description).toMatch(/입국·이동/)
+    expect(days[0]?.description).not.toMatch(/입국신고|미팅/)
+  })
 })

@@ -6,6 +6,7 @@
  */
 import type { RegisterFactFlightLeg, RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
+import { normalizeModetourFactPlaceLabel } from '@/lib/modetour-register-api-schedule'
 
 export type ModetourScheduleItem = {
   first?: number
@@ -108,11 +109,8 @@ function modetourStripHtmlFromText(s: string): string {
     .trim()
 }
 
-const MODETOUR_PREP_PLACE_RE =
-  /출발\s*전\s*준비|준비\s*사항|변동이\s*있을\s*경우|출발\s*\d+\s*시간\s*전|수하물|탑승권|연결\s*수속|홈페이지|알림톡/i
-
 function isModetourPrepOrNoticePlace(name: string): boolean {
-  return MODETOUR_PREP_PLACE_RE.test(name) || name.length > 56
+  return normalizeModetourFactPlaceLabel(name) == null
 }
 
 const MODETOUR_MEAL_SLOT_SVC_RE = /^(?:조식|중식|석식|아침|점심|저녁)$/i
@@ -187,12 +185,13 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
 
     for (const p of item.placeHeader ?? []) {
       const t = modetourStripHtmlFromText(String(p))
-      if (!t || isModetourPrepOrNoticePlace(t)) continue
-      if (MODETOUR_MEAL_CONTENT_RE.test(t) && /^(?:조식|중식|석식|식사)\b/i.test(t)) {
-        modetourPushMealLines(row, modetourExtractMealLinesFromAction('식사', t, t))
+      const placeLabel = t ? normalizeModetourFactPlaceLabel(t) : null
+      if (!placeLabel) continue
+      if (MODETOUR_MEAL_CONTENT_RE.test(placeLabel) && /^(?:조식|중식|석식|식사)\b/i.test(placeLabel)) {
+        modetourPushMealLines(row, modetourExtractMealLinesFromAction('식사', placeLabel, placeLabel))
         continue
       }
-      if (!row.places.includes(t)) row.places.push(t)
+      if (!row.places.includes(placeLabel)) row.places.push(placeLabel)
     }
     const hotel = modetourStripHtmlFromText(String(item.scheduleHotel ?? ''))
     if (hotel && !row.hotels.includes(hotel)) row.hotels.push(hotel)
@@ -208,12 +207,12 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
       }
       if (/숙박|호텔|숙소|리조트/i.test(svc) && summary && !row.hotels.includes(summary)) {
         row.hotels.push(summary)
-      } else if (place && !isModetourPrepOrNoticePlace(place) && !row.places.includes(place)) {
-        row.places.push(place)
-      } else if (place && isModetourPrepOrNoticePlace(place) && summary) {
-        row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
-      } else if (/관광|체험|투어/i.test(svc) && place && !isModetourPrepOrNoticePlace(place) && !row.places.includes(place)) {
-        row.places.push(place)
+      } else if (place) {
+        const placeLabel = normalizeModetourFactPlaceLabel(place)
+        if (placeLabel && !row.places.includes(placeLabel)) row.places.push(placeLabel)
+        else if (!placeLabel && summary) {
+          row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
+        }
       }
       if (/이동|항공|국제선|국내선|보트|스피드/i.test(svc) && summary) {
         row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary

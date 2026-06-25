@@ -119,6 +119,24 @@ describe('modetourScheduleItemsToFactDays', () => {
     expect(d4[0]?.lunchText).toMatch(/기내식/)
     expect(d4[0]?.dinnerText).toBeNull()
   })
+
+  it('placeHeader — 입국신고·미팅 안내 제거, 입국 도시 괄호는 도시명만', () => {
+    const days = modetourScheduleItemsToFactDays([
+      {
+        first: 1,
+        placeHeader: [
+          '인천',
+          '중국 모바일 사전 입국신고서 등록 방법',
+          '입국 도시(상해-푸동)',
+          '상해 패키지 개별 일정 불가 안내 및 현지 미팅 안내',
+        ],
+        scheduleHotel: '상해유적지/준4성호텔',
+      },
+    ])
+    expect(days[0]?.places).toEqual(['인천', '상해'])
+    const sched = modetourFactDaysToRegisterSchedule(days)
+    expect(sched[0]?.routeText).toBe('인천 - 상해')
+  })
 })
 
 describe('modetourFlightRoutesToFactLegs', () => {

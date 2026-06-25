@@ -12,7 +12,7 @@ import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 const MODETOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
 const MODETOUR_HIGHLIGHT_NOISE_RE =
-  /출발\s*전\s*준비|준비\s*사항|변동이\s*있을\s*경우|홈페이지|이메일|알림톡|기내박|총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|출발\s*\d+\s*시간\s*전|수하물|탑승권|터미널|연결\s*수속/i
+  /출발\s*전\s*준비|준비\s*사항|변동이\s*있을\s*경우|홈페이지|이메일|알림톡|기내박|총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|출발\s*\d+\s*시간\s*전|수하물|탑승권|터미널|연결\s*수속|입국신고|사전\s*입국|온라인\s*입국|입국\s*유의|등록\s*방법|작성\s*(?:안내|요령)|패키지\s*개별\s*일정|개별\s*일정\s*불가|현지\s*미팅|미팅\s*안내|안내\s*사항|유의\s*사항|QR\s*코드|이민국\s*신청|대행으로\s*진행|모바일\s*.*입국/i
 
 const MODETOUR_PLACEHOLDER_HOTEL_RE =
   /총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|변동이\s*있을\s*경우|홈페이지|이메일|알림톡/i
@@ -49,13 +49,35 @@ function isModetourHighlightNoise(label: string): boolean {
   return false
 }
 
+/** `입국 도시(상해-푸동)` → `상해` — admin 괄호에서 입국 도시만 추출 */
+function extractModetourEntryCityFromLabel(label: string): string | null {
+  const m = label.match(/입국\s*도시\s*\(([^)]+)\)/i)
+  if (!m?.[1]) return null
+  const city = m[1]
+    .split(/[-–—,/·]/)
+    .map((s) => s.trim())
+    .find((s) => s.length >= 2)
+  if (!city || isModetourHighlightNoise(city)) return null
+  return city
+}
+
+/** fact place 한 줄 — 준비·입국신고·미팅 안내 제거, 입국 도시 괄호는 도시명만. */
+export function normalizeModetourFactPlaceLabel(raw: string): string | null {
+  const label = cleanModetourHighlightLabel(String(raw ?? ''))
+  if (!label) return null
+  const entryCity = extractModetourEntryCityFromLabel(label)
+  if (entryCity) return entryCity
+  if (isModetourHighlightNoise(label)) return null
+  return label
+}
+
 /** fact places — 준비·안내·HTML 잡음 제거. routeText·하이라이트 SSOT. */
 export function dedupeModetourFactDayPlaces(places: string[]): string[] {
   const out: string[] = []
   const keys: string[] = []
   for (const raw of places) {
-    const label = cleanModetourHighlightLabel(String(raw ?? ''))
-    if (!label || isModetourHighlightNoise(label)) continue
+    const label = normalizeModetourFactPlaceLabel(String(raw ?? ''))
+    if (!label) continue
     const key = normalizeModetourHighlightKey(label)
     if (!key) continue
     const dupIdx = keys.findIndex(
@@ -140,11 +162,22 @@ function inferModetourScheduleVibeProfile(
     return 'return_calm'
   }
   if (kind === 'movement' && day.day === 1) return 'arrival'
+  if (day.day === 1 && isModetourDay1DomesticHubToForeignDestination(joinedBlob)) return 'arrival'
   if (/스피드\s*보트|보트\s*이동|공항\s*↔|리조트\s*입장/i.test(joinedBlob)) return 'island_transfer'
   if (/몰디브|Maldives|리조트|비치\s*빌라|조이아/i.test(joinedBlob) && day.day > 1 && day.day < maxDay) {
     return 'resort_leisure'
   }
   return 'generic_tourism'
+}
+
+/** 1일차 국내 허브 → 해외 목적지 (입국신고 안내 제거 후에도 arrival 요약 유지) */
+function isModetourDay1DomesticHubToForeignDestination(joinedBlob: string): boolean {
+  return (
+    /(?:인천|김포|부산|청주|대구|ICN|GMP|PUS|TAE|CJJ)(?:\s|$|-)/u.test(joinedBlob) &&
+    /(?:상해|Shanghai|북경|Beijing|방콕|Bangkok|다낭|Da\s*Nang|홍콩|Hong\s*Kong|타이페이|Taipei|도쿄|Tokyo|오사카|Osaka|연길|YNJ|싱가포르|Singapore|발리|Bali|푸켓|Phuket|세부|Cebu|호치민|Hanoi|하노이|쿠알라룸푸르)/i.test(
+      joinedBlob,
+    )
+  )
 }
 
 function modetourHighlightLeakChunks(label: string): string[] {
