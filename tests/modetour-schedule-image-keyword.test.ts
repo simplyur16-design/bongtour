@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — modetour prebuild
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]
+ * REGRESSION-FREEZE[modetour-register-ssot-freeze]: 북경 dual-slot·Forbidden City 차단 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'

@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: 베트남 POI 오매핑 차단 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: dedupe 후 imageKeyword2 reconcile — manifest
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
+ * REGRESSION-FREEZE[modetour-register-ssot-freeze]: 등록 imageKeyword·북경 dual-slot 스냅샷 — manifest
  */
 import {
   acceptLlmScheduleImageKeyword,

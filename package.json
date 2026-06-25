@@ -92,6 +92,7 @@
     "verify:supplier-pipeline": "npx tsx scripts/verify-supplier-pipeline-alignment.ts",
     "verify:modetour-lib": "npx tsx scripts/verify-modetour-lib-ssot.ts",
     "verify:modetour-register-title": "npx tsx scripts/verify-modetour-register-title-ssot.ts",
+    "verify:modetour-register-ssot-freeze": "npx tsx scripts/verify-modetour-register-ssot-freeze.ts",
     "verify:schedule-image-keyword-dual-slot": "npx tsx scripts/verify-schedule-image-keyword-dual-slot.ts",
     "check:schedule-image-keyword-routing-parity": "node scripts/check-schedule-image-keyword-routing-parity.mjs",
     "verify:bongtour-product-title-r5": "npx tsx scripts/verify-bongtour-product-title-r5.ts",

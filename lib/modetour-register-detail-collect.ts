@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[modetour-register-detail-collect]: B2C+HTML register augment — manifest
  * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: parse·augment 후 schedule imageKeyword — manifest
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: 규칙 후 빈 kw → Gemini — manifest
+ * REGRESSION-FREEZE[modetour-register-ssot-freeze]: preview=confirm imageKeyword SSOT — manifest
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'

@@ -22,6 +22,15 @@
       "doc": "docs/ops/modetour-register-title-contract.md"
     },
     {
+      "id": "modetour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:modetour-register-ssot-freeze",
+      "summary": "모두투어 등록 SSOT 스냅샷 — 북경 dual-slot·미리보기=서버·Forbidden City 차단"
+    },
+    {
       "id": "schedule-image-keyword-dual-slot",
       "tier": [
         "prebuild",
@@ -3208,6 +3217,69 @@
       ],
       "vitestSuites": [
         "lib/modetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 등록 SSOT 스냅샷 — routeText imageKeyword·미리보기=서버·북경 회귀",
+      "checks": [
+        {
+          "file": "scripts/verify-modetour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
+            "applyModetourScheduleImageKeywordsToRows",
+            "Shichahai",
+            "Forbidden City must not appear",
+            "ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
+            "countModetourForeignRouteSegments",
+            "pickModetourRouteOrderedSecondKeyword",
+            "enforceModetourTripWideKeywordUniqueness"
+          ]
+        },
+        {
+          "file": "app/admin/register/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
+            "supplierKey === 'modetour'",
+            "ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
+            "ensureModetourRegisterScheduleImageKeywords",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
+            "십찰해: 'Shichahai'"
+          ],
+          "mustNotInclude": [
+            "자금성: 'Forbidden City'"
+          ]
+        },
+        {
+          "file": "tests/modetour-schedule-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
+            "Shichahai",
+            "Forbidden City must not appear"
+          ]
+        }
       ]
     },
     {

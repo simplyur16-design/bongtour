@@ -401,7 +401,7 @@ function buildRegisterPexelsUiRows(
       (parsed?.destination ?? '').trim() ||
       (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
       null
-    /** modetour — preview API `ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT. 클라이언트 재규칙은 Gemini kw2를 지움. */
+    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: modetour — preview API `ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT. 클라이언트 재규칙은 Gemini kw2를 지움. */
     if (
       supplierKey === 'modetour' &&
       validFromParsed.every((row) => String(row.imageKeyword ?? '').trim())
