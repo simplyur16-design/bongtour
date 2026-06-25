@@ -61,6 +61,7 @@ const DESTINATION_MAP: Record<string, string> = {
   마카오: 'Macau',
   상하이: 'Shanghai',
   베이징: 'Beijing',
+  북경: 'Beijing',
   하와이: 'Hawaii',
   괌: 'Guam',
   사이판: 'Saipan',

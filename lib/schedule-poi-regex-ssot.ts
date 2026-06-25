@@ -149,7 +149,7 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /아이발릭|Ayvalik|Ayvalık/i, en: "Ayvalik Aegean coast Turkey" },
   { re: /튀르키예|터키|Turkey/i, en: "Istanbul Bosporus mosque skyline sunset" },
   { re: /상해|사해|上海/u, en: "Shanghai skyline night" },
-  { re: /북경|베이징|北京/u, en: "Beijing Forbidden City view" },
+  { re: /북경|베이징|北京/u, en: 'Beijing' },
   { re: /광저우|광주|广州/u, en: "Guangzhou skyline night" },
   { re: /심천|深圳/u, en: "Shenzhen skyline night" },
   { re: /도쿄|東京/u, en: "Tokyo street night" },

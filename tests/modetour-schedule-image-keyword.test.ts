@@ -485,7 +485,8 @@ describe('applyModetourScheduleImageKeywordsToRows — 대만 한글 routeText (
     const d2 = out.find((r) => r.day === 2)!
     const d3 = out.find((r) => r.day === 3)!
     const d4 = out.find((r) => r.day === 4)!
-    assert.match(d1.imageKeyword!, /Palace|101/i)
+    assert.match(d1.imageKeyword!, /Taipei/i)
+    assert.equal(d1.imageKeyword2, null)
     assert.match(d2.imageKeyword!, /Yehliu|Jiufen|Shifen/i)
     assert.match(d2.imageKeyword2!, /Yehliu|Jiufen|Shifen/i)
     assert.notEqual(
@@ -538,9 +539,12 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
 
   it('routeText 명소 — 일정 세그먼트·POI 사전(지역 regex 없음) 1·2순위', () => {
     const out = applyModetourScheduleImageKeywordsToRows(beijingRows, beijingOpts)
+    const d1 = out.find((r) => r.day === 1)!
     const d2 = out.find((r) => r.day === 2)!
     const d3 = out.find((r) => r.day === 3)!
     const d4 = out.find((r) => r.day === 4)!
+    assert.match(d1.imageKeyword!, /Beijing/i)
+    assert.equal(d1.imageKeyword2, null)
     assert.match(d2.imageKeyword!, /Tiananmen|Forbidden/i)
     assert.ok(d2.imageKeyword2?.trim())
     assert.notEqual(normLoose(d2.imageKeyword!), normLoose(d2.imageKeyword2!))
@@ -548,6 +552,9 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     assert.ok(d3.imageKeyword2?.trim())
     assert.match(d4.imageKeyword!, /798/i)
     assert.equal(d4.imageKeyword2, null)
+    const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
+    const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length
+    assert.equal(forbiddenCount, 1, `Forbidden City must appear once: ${allKw.join(', ')}`)
   })
 })
 

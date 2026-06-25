@@ -625,7 +625,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]",
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "pickForeignPlaceFromRouteText",
+            "pickModetourMovementForeignCityKeyword",
+            "enforceModetourTripWideKeywordUniqueness",
             "englishFromKoreanRouteSegment",
             "dedupeModetourTourismPrimaryKeywordsAcrossDays",
             "dedupe가 1순위만 바꾸므로",

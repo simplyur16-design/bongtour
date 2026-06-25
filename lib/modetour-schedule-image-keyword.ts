@@ -24,6 +24,7 @@ import {
   isKnownDestinationCityEnglishKeyword,
   mapKoreanPoiSegment,
   normalizeSemanticPoiKey,
+  mapDestination,
 } from '@/lib/pexels-keyword'
 import {
   finalizeScheduleImageKeyword,
@@ -491,6 +492,27 @@ export function classifyModetourScheduleCardDayKind(
   return 'tourism'
 }
 
+function pickModetourMovementForeignCityKeyword(
+  routeText: string | null | undefined,
+  productDestination: string | null | undefined,
+): string {
+  for (const seg of routeTextSegments(routeText)) {
+    if (isModetourDomesticHubToken(seg)) continue
+    if (isNonLandmarkRouteTextSegment(seg)) continue
+    const t = stripRouteSegmentNoise(seg)
+    const fromDest = mapDestination(t)
+    if (fromDest && fromDest !== t && !/[\uAC00-\uD7AF]/.test(fromDest)) {
+      const accepted = tryAcceptModetourLlmImageKeyword(fromDest, productDestination)
+      if (accepted && isKnownDestinationCityEnglishKeyword(accepted)) return accepted
+    }
+    if (/^[A-Za-z][A-Za-z\s-]{2,}$/.test(t)) {
+      const accepted = tryAcceptModetourLlmImageKeyword(t, productDestination)
+      if (accepted && isKnownDestinationCityEnglishKeyword(accepted)) return accepted
+    }
+  }
+  return ''
+}
+
 function resolveModetourMovementDayKeyword(
   row: ModetourScheduleImageKeywordRow,
   day: number,
@@ -501,10 +523,18 @@ function resolveModetourMovementDayKeyword(
   if (dayKindIsReturnOnlyDomestic(row, day, maxDay)) return ''
 
   if (day === 1) {
-    const fromPoi = pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
-    if (fromPoi) return fromPoi
-    const fromFirst = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
-    if (fromFirst) return fromFirst
+    const city = pickModetourMovementForeignCityKeyword(row.routeText, productDestination)
+    if (city) return city
+    const tripPlaces = collectTripForeignPlaceKeywordsInDayOrder(allRows, productDestination)
+    const tripCity = tripPlaces.find((kw) => isKnownDestinationCityEnglishKeyword(kw))
+    if (tripCity) return tripCity
+  }
+
+  if (day === maxDay && maxDay >= 2 && isModetourReturnLegWithDomesticHub(row)) {
+    const fromLast = pickForeignPlaceFromRouteText(row.routeText, true, productDestination, {
+      skipDestinationCity: true,
+    })
+    if (fromLast) return fromLast
   }
 
   const pickLast = day === maxDay && maxDay >= 2
@@ -832,6 +862,83 @@ function reconcileModetourTripWideImageKeywords<T extends ModetourScheduleImageK
   })
 }
 
+/** 여행 전체 — 동일 랜드마크가 여러 일차·슬롯에 반복되지 않도록 routeText 순서로 재배치 */
+function enforceModetourTripWideKeywordUniqueness<T extends ModetourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const used = new Set<string>()
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const byDay = new Map<number, T>()
+
+  const pickUnusedFromRoute = (
+    row: ModetourScheduleImageKeywordRow,
+    excludePrimary: string,
+  ): string => {
+    for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination)) {
+      if (!kw || normKey(kw) === normKey(excludePrimary) || used.has(normKey(kw))) continue
+      if (isDestinationHubEnglishKeyword(kw, productDestination)) continue
+      if (!isScheduleImageKeywordLandmarkEligible(kw)) continue
+      return kw
+    }
+    return ''
+  }
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const haystack = buildModetourDayHaystack(row)
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    const returnLeg = isModetourReturnLegWithDomesticHub(row)
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (dayKind === 'movement' || dayKind === 'return_home' || returnLeg) {
+      secondary = ''
+    }
+
+    if (primary && used.has(normKey(primary))) {
+      if (dayKind === 'movement') {
+        primary =
+          pickModetourMovementForeignCityKeyword(row.routeText, productDestination) ||
+          pickForeignPlaceFromRouteText(row.routeText, false, productDestination) ||
+          ''
+      } else {
+        primary = pickUnusedFromRoute(row, '')
+      }
+    }
+    if (primary) used.add(normKey(primary))
+
+    if (secondary) {
+      if (normKey(secondary) === normKey(primary) || used.has(normKey(secondary))) {
+        secondary = ''
+      }
+    }
+    if (
+      !secondary &&
+      dayKind === 'tourism' &&
+      !returnLeg &&
+      primary &&
+      shouldReconcileScheduleImageKeyword2(primary, null)
+    ) {
+      secondary = pickUnusedFromRoute(row, primary)
+    }
+    if (secondary) used.add(normKey(secondary))
+
+    byDay.set(day, {
+      ...row,
+      imageKeyword: primary,
+      imageKeyword2: secondary ? secondary : null,
+    })
+  }
+
+  return rows.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    return byDay.get(day) ?? row
+  })
+}
+
 /** 관광 일차 — 동일 1순위가 여러 day에 남으면 route·본문 명소로 분산 */
 function dedupeModetourTourismPrimaryKeywordsAcrossDays<T extends ModetourScheduleImageKeywordRow>(
   rows: T[],
@@ -922,15 +1029,23 @@ export function applyModetourScheduleImageKeywordsToRows<
 
   const deduped = dedupeModetourTourismPrimaryKeywordsAcrossDays(mapped, maxDay, productDestination)
   const reconciled = reconcileModetourTripWideImageKeywords(deduped, maxDay, productDestination)
+  const unique = enforceModetourTripWideKeywordUniqueness(reconciled, maxDay, productDestination)
 
   // dedupe가 1순위만 바꾸므로 2순위 null·중복이면 최종 primary 기준으로 재산출
-  return reconciled.map((row) => {
+  return unique.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
-    const primary = String(row.imageKeyword ?? '').trim()
-    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
     const haystack = buildModetourDayHaystack(row)
     const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    if (
+      dayKind === 'movement' ||
+      dayKind === 'return_home' ||
+      isModetourReturnLegWithDomesticHub(row)
+    ) {
+      return { ...row, imageKeyword2: null }
+    }
+    const primary = String(row.imageKeyword ?? '').trim()
+    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
     const secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
     return { ...row, imageKeyword2: secondary }
   })
