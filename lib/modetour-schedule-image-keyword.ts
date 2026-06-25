@@ -468,7 +468,7 @@ export function classifyModetourScheduleCardDayKind(
     maxDay >= 2 &&
     /(인천|ICN|김포|GMP)/.test(j) &&
     /(출발|귀국|탑승)/.test(j) &&
-    /(상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|호치민|방콕|Bangkok|Tokyo|Osaka|델리|Delhi|홍콩|Hong\s*Kong)/i.test(
+    /(상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|호치민|방콕|Bangkok|Tokyo|Osaka|델리|Delhi|홍콩|Hong\s*Kong|타이페이|Taipei|타오위uan|桃園|Taoyuan|대만|Taiwan)/i.test(
       j,
     )
   ) {
@@ -493,7 +493,7 @@ export function classifyModetourScheduleCardDayKind(
   if (
     day === 1 &&
     /(입국|도착|공항|피켓|미팅)/.test(j) &&
-    /(상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|김포|인천|부산|델리|Delhi)/i.test(j) &&
+    /(상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|김포|인천|부산|델리|Delhi|타이페이|Taipei|타오위uan|桃園|Taoyuan|대만)/i.test(j) &&
     /(가이드|호텔|공항|출발|탑승)/.test(j)
   ) {
     return 'movement'
@@ -511,6 +511,8 @@ function resolveModetourMovementDayKeyword(
   if (dayKindIsReturnOnlyDomestic(row, day, maxDay)) return ''
 
   if (day === 1) {
+    const fromPoi = pickFirstTourismPoiFromRouteText(row.routeText, productDestination)
+    if (fromPoi) return fromPoi
     const fromFirst = pickForeignPlaceFromRouteText(row.routeText, false, productDestination)
     if (fromFirst) return fromFirst
   }

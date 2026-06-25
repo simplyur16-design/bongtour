@@ -1,6 +1,7 @@
 /**
  * Pexels 검색 키워드 생성 — 관광지(명소) 우선, 규칙 기반 + 최소 보정.
  * 한국어 상품 메타를 Pexels에서 의미 있는 영어 검색어로 변환.
+ * REGRESSION-FREEZE[pexels-keyword-taiwan-poi]: 대만·타이페이 routeText 한글 명소 — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -104,6 +105,12 @@ const DESTINATION_MAP: Record<string, string> = {
   말레이시아: 'Malaysia',
   칭다오: 'Qingdao',
   청도: 'Qingdao',
+  대만: 'Taipei',
+  타이페이: 'Taipei',
+  타이베이: 'Taipei',
+  타오위uan: 'Taoyuan',
+  桃園: 'Taoyuan',
+  기룽: 'Keelung',
 }
 
 /** 대표 지역(primaryRegion) → 영어 */
@@ -256,6 +263,20 @@ const POI_KO_TO_EN: Record<string, string> = {
   내원교: 'Japanese Covered Bridge',
   용다리: 'Dragon Bridge Da Nang',
   드래곤브릿지: 'Dragon Bridge Da Nang',
+  타이페이101: 'Taipei 101 tower night',
+  타이베이101: 'Taipei 101 tower night',
+  국립고궁박물관: 'National Palace Museum Taipei',
+  고궁박물관: 'National Palace Museum Taipei',
+  예류지질공원: 'Yehliu Geopark',
+  예류: 'Yehliu Geopark',
+  지우펀: 'Jiufen old street Taiwan night',
+  스펀천등: 'Shifen Old Street',
+  스펀골목: 'Shifen Old Street',
+  스펀: 'Shifen Old Street',
+  우라이마을: 'Wulai Hot Spring',
+  우라이: 'Wulai Hot Spring',
+  솽바오: 'Sun Moon Lake',
+  중정기념堂: 'Chiang Kai-shek Memorial Hall',
   청담: 'Cheongdam',
   하코네신사: 'Hakone Shrine',
   하코네: 'Hakone',

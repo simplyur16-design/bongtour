@@ -3206,6 +3206,36 @@
       ]
     },
     {
+      "id": "pexels-keyword-taiwan-poi",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공용 POI 사전 — 대만 routeText(예류·지우펀·스펀·101·우라이) → modetour·6공급사 imageKeyword",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-keyword-taiwan-poi]",
+            "예류지질공원",
+            "지우펀",
+            "스펀",
+            "타이페이101"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "pickFirstTourismPoiFromRouteText(row.routeText, productDestination)",
+            "mapKoreanPoiSegment"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:schedule-image-keyword-dual-slot"
+      ]
+    },
+    {
       "id": "modetour-register-danang-live-gate",
       "tier": [
         "ci"

@@ -441,6 +441,63 @@ describe('applyModetourScheduleImageKeywordsToRows — 칭다오 한글 routeTex
   })
 })
 
+describe('applyModetourScheduleImageKeywordsToRows — 대만 한글 routeText (공용 POI 사전)', () => {
+  const taiwanOpts = { productDestination: '대만' }
+  const taiwanRows = [
+    {
+      day: 1,
+      title: '입국',
+      description: '타이페이 도착',
+      routeText:
+        '인천 - 타이페이(桃園)국제공항 - 대만입국수속 - 국립 고궁박물관 - 용문 - 타이베이 101전망대[선택관광]',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 2,
+      title: '북부',
+      description: '예류·지우펀',
+      routeText: '기룽 - 타이페이 - 예류지질공원 - 지우펀 - 스펀 - 스펀 천등 체험',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 3,
+      title: '우라이',
+      description: '우라이 마을',
+      routeText: '우라이 - 타이페이 - 우라이 마을 - 야산 산책로',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 4,
+      title: '귀국',
+      description: '인천 도착',
+      routeText: '인천 - 타이페이(桃園)국제공항 - 대만팁',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+  ]
+
+  it('routeText만으로 일차별 명소 1·2순위 — modetour 전용 ROI 목록 불필요', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(taiwanRows, taiwanOpts)
+    const d1 = out.find((r) => r.day === 1)!
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    const d4 = out.find((r) => r.day === 4)!
+    assert.match(d1.imageKeyword!, /Palace|101/i)
+    assert.match(d2.imageKeyword!, /Yehliu|Jiufen|Shifen/i)
+    assert.match(d2.imageKeyword2!, /Yehliu|Jiufen|Shifen/i)
+    assert.notEqual(
+      normLoose(d2.imageKeyword!),
+      normLoose(d2.imageKeyword2!),
+    )
+    assert.match(d3.imageKeyword!, /Wulai/i)
+    assert.equal(d4.imageKeyword, '')
+    assert.equal(d4.imageKeyword2, null)
+  })
+})
+
 function normLoose(s: string): string {
   return s.trim().toLowerCase()
 }
