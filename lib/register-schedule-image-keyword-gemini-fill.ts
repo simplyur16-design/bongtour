@@ -6,16 +6,12 @@
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-prompt'
-import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import {
+  applyRegisterScheduleImageKeywordsBySupplier,
+  type RegisterScheduleImageKeywordApplyRow,
+} from '@/lib/register-schedule-image-keywords-apply'
 
-export type ScheduleImageKeywordGeminiRow = {
-  day: number
-  title?: string | null
-  description?: string | null
-  routeText?: string | null
-  imageKeyword?: string | null
-  imageKeyword2?: string | null
-}
+export type ScheduleImageKeywordGeminiRow = RegisterScheduleImageKeywordApplyRow
 
 const GEMINI_FILL_TIMEOUT_MS = Math.max(
   12_000,
@@ -101,7 +97,7 @@ function parseGeminiScheduleKeywordRows(raw: unknown): Map<number, { kw: string;
  * 규칙 후 빈 imageKeyword 일차만 Gemini로 채운 뒤 공급사 규칙을 다시 적용(검증·reconcile).
  */
 export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
-  T extends ScheduleImageKeywordGeminiRow,
+  T extends RegisterScheduleImageKeywordApplyRow,
 >(
   rows: T[],
   opts: {
@@ -148,7 +144,7 @@ export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
       }
     })
 
-    return applyRegisterScheduleImageKeywordsBySupplier(merged, {
+    return applyRegisterScheduleImageKeywordsBySupplier<T>(merged, {
       supplierKey: opts.supplierKey,
       productDestination: opts.productDestination ?? null,
       productTitle: opts.productTitle ?? null,
