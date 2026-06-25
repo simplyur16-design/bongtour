@@ -105,4 +105,54 @@ describe('applyYbtourScheduleImageKeywordsToRows — modetour 우선순위', () 
     expect(rows[0]?.imageKeyword2).toBeNull()
     expect(rows[1]?.imageKeyword2).toBeNull()
   })
+
+  it('북해도 4일 — 온천·호텔 route 세그먼트가 아닌 일차별 명소 (JHP1109 패턴)', () => {
+    const rows = applyYbtourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '▣ 인천 국제공항 미팅 ▣',
+          description:
+            '인천 국제공항 출발\n치토세 국제공항 도착\n▶ 미츠이 아울렛 파크 삿포로\n▶ 오쿠라야마 스키 점프대(리프트 탑승)',
+          routeText: '인천 - 치토세 - 죠잔케이',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '호텔 조식 후',
+          description:
+            '▶ 후라노 와인하우스\n▶ 팜도미타 농원\n▶ 시키사이노오카\n▶ 청의 호수',
+          routeText: '죠잔케이 - 후라노 - 비에이 - 소운쿄',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '호텔 조식 후',
+          description: '▶ 오타루 운하\n▶ 오타루 오르골당',
+          routeText: '소운쿄 - 오타루 - 삿포로',
+          imageKeyword: 'Otaru',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '호텔 조식 후',
+          description: '▶ 삿포로시계탑 (차창관광)\n치토세 국제공항 출발\n인천 국제공항 도착',
+          routeText: '삿포로 - 치토세 - 인천',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '일본' },
+    )
+
+    expect(rows[0]?.imageKeyword).toMatch(/Okurayama|Mitsui/i)
+    expect(rows[0]?.imageKeyword2).toBeNull()
+    expect(rows[1]?.imageKeyword).not.toMatch(/Jozankei/i)
+    expect(rows[1]?.imageKeyword).toMatch(/Farm Tomita|Furano|Shikisai|Blue Pond/i)
+    expect(rows[2]?.imageKeyword).toMatch(/Otaru/i)
+    expect(rows[3]?.imageKeyword).toMatch(/Sapporo Clock/i)
+    expect(rows[3]?.imageKeyword2).toBeNull()
+  })
 })

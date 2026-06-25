@@ -22,6 +22,7 @@ import {
   isNonLandmarkRouteTextSegment,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
+import { findAllScheduleSpotMatchesInText, firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 
 export type YbtourScheduleImageKeywordRow = {
   day: number
@@ -266,7 +267,7 @@ export function classifyYbtourScheduleCardDayKind(
     maxDay >= 2 &&
     /(인천|ICN|김포|GMP)/.test(j) &&
     /(출발|귀국|탑승)/.test(j) &&
-    /(홍콩|Hong\s*Kong|두바이|Dubai|카이로|Cairo|상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|호치민|방콕|Bangkok|Tokyo|Osaka)/i.test(j)
+    /(홍콩|Hong\s*Kong|두바이|Dubai|카이로|Cairo|상해|PVG|푸동|연길|YNJ|다낭|Da\s*Nang|호치민|방콕|Bangkok|Tokyo|Osaka|치토세|Chitose|삿포로|Sapporo|북해도|Hokkaido)/i.test(j)
   ) {
     return 'return_home'
   }
@@ -280,18 +281,65 @@ export function classifyYbtourScheduleCardDayKind(
   if (day === maxDay && maxDay >= 2 && /(귀국|인천\s*도착|ICN\s*도착|서울\s*도착)/.test(j) && /출발/.test(j)) {
     return 'return_home'
   }
-  if (day === 1 && /출발/.test(j) && /(도착|입국)/.test(j) && /(공항|ICN|PVG|GMP|김포|인천|부산|PUS|대구|TAE|청주|CJJ)/.test(j)) {
+  if (day === 1 && /출발/.test(j) && /(도착|입국)/.test(j) && /(공항|ICN|PVG|GMP|김포|인천|부산|PUS|대구|TAE|청주|CJJ|치토세|Chitose|삿포로|Sapporo)/.test(j)) {
     return 'movement'
   }
   if (
     day === 1 &&
     /(입국|도착|공항|피켓|미팅)/.test(j) &&
-    /(홍콩|Hong\s*Kong|두바이|Dubai|카이로|Cairo|상해|PVG|김포|인천|부산)/i.test(j) &&
+    /(홍콩|Hong\s*Kong|두바이|Dubai|카이로|Cairo|상해|PVG|김포|인천|부산|치토세|Chitose|삿포로|Sapporo|북해도|Hokkaido)/i.test(j) &&
     /(가이드|호텔|공항|출발|탑승)/.test(j)
   ) {
     return 'movement'
   }
   return 'tourism'
+}
+
+function isYbtourRouteResortOrHotelSegment(seg: string): boolean {
+  return /(?:온천|호텔|Hotel|Resort|뷔페|석식|조식)/i.test(stripRouteSegmentNoise(seg))
+}
+
+/** movement 일차 — 본문 명소 우선, routeText는 온천·호텔 세그먼트 제외 */
+function buildYbtourDayBodyHaystack(row: YbtourScheduleImageKeywordRow): string {
+  return [row.title, row.description].filter(Boolean).join('\n').replace(/\r/g, '')
+}
+
+function pickFirstScheduleSpotFromDayBody(
+  row: YbtourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+): string {
+  const body = buildYbtourDayBodyHaystack(row)
+  if (!body.trim()) return ''
+  const matches = findAllScheduleSpotMatchesInText(body).sort((a, b) => a.index - b.index)
+  for (const { en } of matches) {
+    const accepted = tryAcceptYbtourLlmImageKeyword(en, productDestination)
+    if (accepted && !isBareCityOrCountryKeyword(accepted)) return accepted
+  }
+  return ''
+}
+
+function pickYbtourMovementForeignPlaceKeyword(
+  row: YbtourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+): string {
+  const fromBody = pickFirstScheduleSpotFromDayBody(row, productDestination)
+  if (fromBody) return fromBody
+  const haystack = buildYbtourDayHaystack(row)
+  const fromSpot = firstMatchingScheduleSpotEn(haystack)
+  if (fromSpot) {
+    const accepted = tryAcceptYbtourLlmImageKeyword(fromSpot, productDestination)
+    if (accepted && !isBareCityOrCountryKeyword(accepted)) return accepted
+  }
+  for (const en of findAllMappedKoreanPoisInText(haystack)) {
+    const accepted = tryAcceptYbtourLlmImageKeyword(en, productDestination)
+    if (accepted && !isBareCityOrCountryKeyword(accepted)) return accepted
+  }
+  for (const seg of routeTextSegments(row.routeText)) {
+    if (isYbtourDomesticHubToken(seg) || isYbtourRouteResortOrHotelSegment(seg)) continue
+    const en = englishFromRouteSegment(seg)
+    if (en && !isBareCityOrCountryKeyword(en)) return en
+  }
+  return inferYbtourKeywordFromDayContent(row, productDestination)
 }
 
 function resolveYbtourPrimaryKeywordCore(
@@ -307,11 +355,18 @@ function resolveYbtourPrimaryKeywordCore(
   const accepted = acceptLlm(row.imageKeyword)
 
   if (dayKind === 'return_home') {
-    return ''
+    return (
+      pickFirstScheduleSpotFromDayBody(row, productDestination) ||
+      inferYbtourKeywordFromDayContent(row, productDestination)
+    )
   }
 
   if (isRegisterScheduleFreeLeisureDay(buildYbtourDayHaystack(row))) {
     return ''
+  }
+
+  if (dayKind === 'movement') {
+    return pickYbtourMovementForeignPlaceKeyword(row, productDestination)
   }
 
   if (dayKind === 'tourism' && accepted) {
@@ -333,20 +388,8 @@ function resolveYbtourPrimaryKeywordCore(
 
   if (accepted) return accepted
 
-  if (dayKind === 'movement') {
-    const pickLast = day === maxDay && maxDay >= 2
-    const fromRoute = pickEnglishRouteTextPlace(row.routeText, pickLast)
-    if (fromRoute) return fromRoute
-    const fromRouteKo = pickFirstAcceptedFromRouteKoreanSegments(row, productDestination)
-    if (fromRouteKo) return fromRouteKo
-    return inferYbtourKeywordFromDayContent(row, productDestination)
-  }
-
-  const fromRoute = pickEnglishRouteTextPlace(row.routeText, false)
-  if (fromRoute) return fromRoute
-
-  const fromRouteKo = pickFirstAcceptedFromRouteKoreanSegments(row, productDestination)
-  if (fromRouteKo) return fromRouteKo
+  const tourismCandidates = collectYbtourDayPrimaryCandidates(row, dayKind, productDestination)
+  if (tourismCandidates[0]) return tourismCandidates[0]
 
   return inferYbtourKeywordFromDayContent(row, productDestination)
 }
@@ -374,6 +417,12 @@ function collectYbtourDayPrimaryCandidates(
     return out
   }
 
+  const bodyHay = buildYbtourDayBodyHaystack(row)
+  if (/▶/.test(bodyHay)) {
+    for (const { en } of findAllScheduleSpotMatchesInText(bodyHay).sort((a, b) => a.index - b.index)) {
+      push(en)
+    }
+  }
   for (const kw of collectRouteLandmarkKeywordsFromRouteText(row.routeText)) push(kw)
   for (const en of findAllMappedKoreanPoisInText(buildYbtourDayHaystack(row))) push(en)
   push(pickEnglishRouteTextPlace(row.routeText, true))
