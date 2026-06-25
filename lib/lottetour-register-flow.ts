@@ -1515,7 +1515,7 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       hasDeparturesToSave: departureInputs.length > 0,
       hasItineraryDaysToSave: itineraryDayDrafts.length > 0 || schedule.length > 0,
     })
-    const highlightLlm = null
+    const highlightPointsRaw = extractHighlightFromLottetour(text) ?? null
     const departureAirportFields = resolveRegisterProductDepartureAirportFields({
       manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
       inferHaystack: buildRegisterFlightInferHaystack({
@@ -1559,9 +1559,8 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
-      highlightPointsRaw:
-        highlightLlm?.highlightPointsRaw ?? extractHighlightFromLottetour(text) ?? null,
-      highlightPoints: highlightLlm?.highlightPoints ?? null,
+      highlightPointsRaw,
+      highlightPoints: null,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
