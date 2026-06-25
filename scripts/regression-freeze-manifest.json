@@ -3223,6 +3223,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
             "scheduleDaysMissingImageKeywordAfterRules",
+            "scheduleDaysMissingImageKeyword2AfterRules",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
             "REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK"
           ]

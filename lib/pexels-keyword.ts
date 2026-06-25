@@ -339,6 +339,8 @@ const POI_KO_TO_EN: Record<string, string> = {
   청황묘: 'City God Temple of Shanghai',
   천안문광장: 'Tiananmen Square',
   천안문: 'Tiananmen Square',
+  십찰해: 'Shichahai',
+  '十刹海': 'Shichahai',
   이화원: 'Summer Palace',
   만리장성: 'Great Wall of China',
   '798예술구': '798 Art District',

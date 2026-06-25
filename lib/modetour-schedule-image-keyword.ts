@@ -122,6 +122,10 @@ function routeTextSegments(routeText: string | null | undefined): string[] {
   return splitRouteTextPlaceSegments(routeText).map(stripRouteSegmentNoise).filter((s) => s.length >= 2)
 }
 
+function countModetourForeignRouteSegments(routeText: string | null | undefined): number {
+  return routeTextSegments(routeText).filter((s) => !isModetourDomesticHubToken(s)).length
+}
+
 function isLatinRoutePlaceSegment(seg: string): boolean {
   const t = stripRouteSegmentNoise(seg)
   if (!t || t.length < 2) return false
@@ -724,11 +728,7 @@ function resolveModetourSecondaryKeyword(
     fromLlm &&
     normKey(fromLlm) !== pk &&
     !isKnownDestinationCityEnglishKeyword(fromLlm) &&
-    !isDestinationHubEnglishKeyword(fromLlm, productDestination) &&
-    (!String(row.routeText ?? '').trim() ||
-      collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination).some(
-        (kw) => normKey(kw) === normKey(fromLlm),
-      ))
+    !isDestinationHubEnglishKeyword(fromLlm, productDestination)
   ) {
     return fromLlm
   }
@@ -1106,8 +1106,20 @@ export function applyModetourScheduleImageKeywordsToRows<
       return { ...row, imageKeyword2: null }
     }
     const primary = String(row.imageKeyword ?? '').trim()
-    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
-    const secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
+    if (!primary) return row
+    let secondary = row.imageKeyword2
+    if (
+      dayKind === 'tourism' &&
+      !isModetourReturnLegWithDomesticHub(row) &&
+      countModetourForeignRouteSegments(row.routeText) >= 2 &&
+      !String(row.imageKeyword2 ?? '').trim()
+    ) {
+      secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
+    } else if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) {
+      return row
+    } else {
+      secondary = resolveModetourSecondaryKeyword(row, primary, dayKind, productDestination)
+    }
     return { ...row, imageKeyword2: secondary }
   })
 }

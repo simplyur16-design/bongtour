@@ -397,6 +397,38 @@ function buildRegisterPexelsUiRows(
     return Number.isFinite(day) && day >= 1
   })
   if (validFromParsed.length > 0) {
+    const destHintEarly =
+      (parsed?.destination ?? '').trim() ||
+      (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
+      null
+    /** modetour — preview API `ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT. 클라이언트 재규칙은 Gemini kw2를 지움. */
+    if (
+      supplierKey === 'modetour' &&
+      validFromParsed.every((row) => String(row.imageKeyword ?? '').trim())
+    ) {
+      return finalizeRegisterScheduleImageKeywords(
+        validFromParsed.map((row) => {
+          const day = Number(row.day)
+          return {
+            day,
+            title: String(row.title ?? ''),
+            description: String(row.description ?? ''),
+            routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
+            imageKeyword: String(row.imageKeyword ?? '').trim(),
+            imageKeyword2: String(row.imageKeyword2 ?? '').trim() || null,
+          }
+        }),
+        { productDestination: destHintEarly },
+      ).map((row) => ({
+        day: row.day,
+        title: String(row.title ?? ''),
+        description: String(row.description ?? ''),
+        routeText: row.routeText ?? null,
+        imageKeyword: String(row.imageKeyword ?? '').trim(),
+        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+      }))
+    }
+
     const useFitRowsInstead =
       isRegisterAirtelListing(travelScope, productType) &&
       scheduleRowsHaveUniformImageKeyword(validFromParsed)

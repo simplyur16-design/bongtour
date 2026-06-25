@@ -5,7 +5,9 @@
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
+import { classifyModetourScheduleCardDayKind, isModetourDomesticHubToken } from '@/lib/modetour-schedule-image-keyword'
 import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-prompt'
+import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
   applyRegisterScheduleImageKeywordsBySupplier,
   type RegisterScheduleImageKeywordApplyRow,
@@ -33,6 +35,37 @@ export function scheduleDaysMissingImageKeywordAfterRules(
       .join('\n')
     if (!hay.trim()) continue
     if (!String(row.routeText ?? '').trim()) continue
+    out.push(day)
+  }
+  return out
+}
+
+function countForeignRouteTextSegments(routeText: string | null | undefined): number {
+  return splitRouteTextPlaceSegments(routeText)
+    .map((s) => String(s ?? '').trim())
+    .filter((s) => s.length >= 2 && !isModetourDomesticHubToken(s)).length
+}
+
+/**
+ * 관광 일차 — kw1은 있는데 kw2만 비었고 routeText에 2+ 해외 세그먼트(사전 미매핑 포함).
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: manifest
+ */
+export function scheduleDaysMissingImageKeyword2AfterRules(
+  rows: readonly ScheduleImageKeywordGeminiRow[],
+): number[] {
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
+  const out: number[] = []
+  for (const row of sorted) {
+    const day = Number(row.day)
+    if (!Number.isFinite(day) || day < 1) continue
+    if (!String(row.imageKeyword ?? '').trim()) continue
+    if (String(row.imageKeyword2 ?? '').trim()) continue
+    if (!String(row.routeText ?? '').trim()) continue
+    if (countForeignRouteTextSegments(row.routeText) < 2) continue
+    const haystack = [row.title, row.description, row.routeText].filter(Boolean).join('\n')
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
+    if (dayKind !== 'tourism') continue
     out.push(day)
   }
   return out
@@ -84,10 +117,10 @@ function parseGeminiScheduleKeywordRows(raw: unknown): Map<number, { kw: string;
     const day = Number(o.day)
     if (!Number.isFinite(day) || day < 1) continue
     const kw = String(o.imageKeyword ?? '').trim()
-    if (!kw) continue
     const kw2raw = o.imageKeyword2
     const kw2 =
       kw2raw == null || String(kw2raw).trim() === '' ? null : String(kw2raw).trim()
+    if (!kw && !kw2) continue
     out.set(day, { kw, kw2 })
   }
   return out
@@ -110,7 +143,12 @@ export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
   if (!rows.length) return rows
   if (process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1') return rows
 
-  const daysToFill = scheduleDaysMissingImageKeywordAfterRules(rows)
+  const daysToFill = [
+    ...new Set([
+      ...scheduleDaysMissingImageKeywordAfterRules(rows),
+      ...scheduleDaysMissingImageKeyword2AfterRules(rows),
+    ]),
+  ]
   if (!daysToFill.length) return rows
 
   const logLabel = opts.logLabel ?? 'register-schedule-image-keyword-gemini'
