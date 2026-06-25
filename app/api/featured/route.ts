@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { getPexelsImage } from '@/lib/pexels-service'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
@@ -16,6 +17,19 @@ export const revalidate = 60
  */
 export async function GET() {
   try {
+    if (shouldSkipDbAtBuild()) {
+      const defaultCover = await getPexelsImage('tropical beach travel')
+      return jsonWithLeakGuard(
+        {
+          title: null,
+          departureDate: null,
+          priceKrw: null,
+          counselingPoints: null,
+          coverImageUrl: defaultCover,
+        },
+        'api.featured.build-skip',
+      )
+    }
     const product = await prisma.product.findFirst({
       where: {
         registrationStatus: 'registered',

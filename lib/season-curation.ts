@@ -16,6 +16,7 @@ import {
   resolveHeroCityKeysWithProductFallback,
 } from '@/lib/season-hero-city-keys'
 import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 
 const SEASON_MODEL = process.env.GEMINI_SEASON_CURATION_MODEL?.trim() || getModelName()
 
@@ -180,6 +181,7 @@ export async function ensureSeasonDestinationCyclesForMonthOffsets(
 }
 
 export async function getCurrentCycle(now = new Date()): Promise<SeasonCurationCycle> {
+  if (shouldSkipDbAtBuild()) return null
   return prisma.seasonalDestinationCuration.findFirst({
     where: {
       cycleStartDate: { lte: now },

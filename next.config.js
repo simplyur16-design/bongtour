@@ -77,6 +77,8 @@ const nextConfig = {
       dynamic: 60,
       static: 300,
     },
+    /** Railway Docker build — SSG worker 병렬 Prisma 연결로 Supabase pool(15) 초과 방지 */
+    staticGenerationMaxConcurrency: 2,
   },
   async headers() {
     const base = [

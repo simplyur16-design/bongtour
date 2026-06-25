@@ -2,6 +2,7 @@
  * 메인 시즌 큐레이션(+1/+2/+3월 MonthlyCurationContent) — 6h 캐시.
  */
 import { unstable_cache } from 'next/cache'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
@@ -17,6 +18,7 @@ export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): str
 }
 
 async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
+  if (shouldSkipDbAtBuild()) return []
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
@@ -38,6 +40,7 @@ const HERO_MAX_PER_MONTH = 5
 
 /** PC 히어로: +1·+2·+3월 각 최대 5건(최대 15장). */
 async function loadHeroSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
+  if (shouldSkipDbAtBuild()) return []
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
@@ -67,6 +70,7 @@ export const getCachedSeasonCurationNextThreeMonthsSlides = unstable_cache(
 )
 
 async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {
+  if (shouldSkipDbAtBuild()) return []
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)

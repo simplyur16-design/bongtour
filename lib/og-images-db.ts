@@ -3,6 +3,7 @@
  */
 
 import type { PageOgImage } from '@prisma/client'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { prisma } from '@/lib/prisma'
 import { isObjectStorageConfigured, removeStorageObject, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 
@@ -31,6 +32,10 @@ function staticPathForPage(pageKey: string): string {
  */
 export async function getOgImageForPage(pageKey: string): Promise<string> {
   const key = (pageKey ?? '').trim()
+  if (shouldSkipDbAtBuild()) {
+    if (key && VALID_SET.has(key)) return staticPathForPage(key)
+    return '/og/default.webp'
+  }
   try {
     if (key && VALID_SET.has(key)) {
       const row = await prisma.pageOgImage.findUnique({ where: { pageKey: key } })

@@ -4,6 +4,7 @@
  * 노출 상품: registered + `publicProductWhereClause` (메모리 #25 룰 B).
  */
 import { unstable_cache } from 'next/cache'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { type SeasonCurationCycle } from '@/lib/season-curation'
@@ -250,6 +251,13 @@ async function loadPersonaCuratedDestinationsUncached(
 export async function getPersonaCuratedDestinationsPayload(
   cycle: SeasonCurationCycle,
 ): Promise<PersonaCuratedDestinationsPayload> {
+  if (shouldSkipDbAtBuild()) {
+    return {
+      cycle: null,
+      cards: [],
+      tabCityCounts: { all: 0, 'with-parents': 0, 'with-kids': 0, couple: 0 },
+    }
+  }
   const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v9-country-level-title']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, { revalidate: 21_600 })
   return run()

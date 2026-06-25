@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache'
 import type { HubFourCardKey } from '@/lib/main-hub-copy'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
@@ -79,6 +80,14 @@ async function pickPrivateTripHeroFirstUrl(): Promise<string | null> {
 }
 
 async function loadHubFourPhotoBundleUncached(): Promise<HubFourPhotoBundle> {
+  if (shouldSkipDbAtBuild()) {
+    return {
+      package: null,
+      'free-travel': null,
+      'private-trip': null,
+      business: '/images/home-hub/base/training.webp',
+    }
+  }
   const [pkg, airHotel, heroFirst] = await Promise.all([
     pickOverseasPackageCoverUrl(),
     pickAirHotelCoverUrl(),

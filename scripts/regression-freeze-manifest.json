@@ -3341,6 +3341,52 @@
       ]
     },
     {
+      "id": "build-ssg-skip-db",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "next build SSG — Supabase pool 초과 방지, 빌드 시 Prisma 미조회·connection_limit=1",
+      "checks": [
+        {
+          "file": "lib/build-time-db.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[build-ssg-skip-db]",
+            "shouldSkipDbAtBuild",
+            "phase-production-build"
+          ]
+        },
+        {
+          "file": "lib/sitemap-build.ts",
+          "mustInclude": [
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
+          "file": "lib/prisma-connection-limit.ts",
+          "mustInclude": [
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
+          "file": "lib/overseas-training-program-query.ts",
+          "mustInclude": [
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
+          "file": "next.config.js",
+          "mustInclude": [
+            "staticGenerationMaxConcurrency"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/build-time-db.test.ts",
+        "lib/sitemap-build.test.ts"
+      ]
+    },
+    {
       "id": "modetour-register-danang-live-gate",
       "tier": [
         "ci"

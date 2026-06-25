@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { getHomeHubCoverImageUrl } from '@/lib/final-image-selection'
 import { homeHubCardImageSrc } from '@/lib/home-hub-images'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
@@ -41,6 +42,7 @@ function preferStaticHubCoverOverSlowCdNs(url: string, scope: HomeHubTravelCardC
 export async function pickHomeHubTravelCardCover(
   scope: HomeHubTravelCardCoverScope,
 ): Promise<HomeHubTravelCardCoverPick | null> {
+  if (shouldSkipDbAtBuild()) return null
   try {
     const rows = await prisma.product.findMany({
       where: {

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import {
   parseTrainingAudience,
   parseTrainingCategory,
@@ -68,6 +69,7 @@ export async function listPublishedTrainingPrograms(args?: {
   audience?: TrainingAudience | null
   category?: TrainingCategory | null
 }): Promise<TrainingProgramPublicRow[]> {
+  if (shouldSkipDbAtBuild()) return []
   const limit = args?.limit ?? 50
   const poolCap = 100
   const rows = await prisma.product.findMany({
@@ -100,6 +102,7 @@ export async function getPublishedTrainingProgramBySlugOrId(
 ): Promise<TrainingProgramPublicRow | null> {
   const key = slugOrId.trim()
   if (!key) return null
+  if (shouldSkipDbAtBuild()) return null
 
   const bySlug = await prisma.product.findFirst({
     where: {

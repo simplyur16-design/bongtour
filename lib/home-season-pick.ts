@@ -1,4 +1,5 @@
 import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
@@ -139,6 +140,7 @@ export async function resolveValidMonthlyCurationLinkedProductIds(
 
 /** 해외 허브 상단 — 서울 기준 `monthKey` 월의 발행 큐레이션만 */
 export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: string): Promise<HomeSeasonPickDTO[]> {
+  if (shouldSkipDbAtBuild()) return []
   try {
     const rows = await prisma.monthlyCurationContent.findMany({
       where: { pageScope: 'overseas', isPublished: true, monthKey },
