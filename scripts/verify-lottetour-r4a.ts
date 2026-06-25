@@ -3,7 +3,7 @@
  * 실행: npx tsx scripts/verify-lottetour-r4a.ts
  */
 import assert from 'node:assert/strict'
-import { inferExpectedScheduleDayCountFromPaste } from '../lib/register-schedule-extract-lottetour'
+import { inferExpectedScheduleDayCountFromPaste } from '@/lib/parse-and-register-lottetour-schedule'
 import type { LottetourHotelListRow, RegisterGeminiLlmJson } from '../lib/register-llm-schema-lottetour'
 
 const veniceLike = `

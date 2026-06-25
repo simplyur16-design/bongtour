@@ -218,6 +218,7 @@ export async function augmentLottetourParsedWithDetailCollect(
         schedule: applyAugmentScheduleImageKeywordsBySupplier(scheduleDays, {
           supplierKey: 'lottetour',
           productTitle: next.title ?? next.supplierListingTitleRaw ?? '',
+          productDestination: next.primaryDestination ?? next.destination ?? null,
         }),
       }
       summaryParts.push(`일정 ${scheduleDays.length}일차`)

@@ -108,6 +108,7 @@
     "verify:hanatour-register-ssot-freeze": "npx tsx scripts/verify-hanatour-register-ssot-freeze.ts",
     "verify:ybtour-lib": "npx tsx scripts/verify-ybtour-lib-ssot.ts",
     "verify:ybtour-register-ssot-freeze": "npx tsx scripts/verify-ybtour-register-ssot-freeze.ts",
+    "verify:lottetour-register-ssot-freeze": "npx tsx scripts/verify-lottetour-register-ssot-freeze.ts",
     "verify:ybtour-by-goods-price": "tsx scripts/run-ybtour-by-goods-price-verify.ts",
     "verify:verygoodtour-lib": "npx tsx scripts/verify-verygoodtour-lib-ssot.ts",
     "verify:verygoodtour-title": "npx tsx scripts/verify-verygoodtour-listing-title-from-paste.ts",

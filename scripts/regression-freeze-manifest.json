@@ -85,6 +85,15 @@
       "summary": "노랑풍선 등록 SSOT 스냅샷 — API parse·orchestration/LLM 제거·URL-only preview"
     },
     {
+      "id": "lottetour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:lottetour-register-ssot-freeze",
+      "summary": "롯데관광 등록 SSOT 스냅샷 — API parse·orchestration/LLM 제거·URL-only preview"
+    },
+    {
       "id": "ybtour-by-goods-departure-list",
       "tier": [
         "ci"
@@ -673,6 +682,26 @@
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
             "applyModetourScheduleImageKeywordsToRows"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lottetour-schedule-image-keyword-ko-route",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 imageKeyword — routeText a–g·일차 슬롯·trip-wide dedupe",
+      "checks": [
+        {
+          "file": "lib/lottetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-image-keyword-ko-route]",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "applyLottetourScheduleImageKeywordsToRows",
+            "resolveLottetourPrimaryKeyword",
+            "lottetourRouteTextSegments"
           ]
         }
       ]
@@ -1907,7 +1936,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-lottetour-orchestration.ts",
+          "file": "lib/lottetour-register-flow.ts",
           "mustInclude": [
             "dedupeLottetourProductPriceCreateRows",
             "skipDuplicates: true"
@@ -2678,7 +2707,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-lottetour-orchestration.ts",
+          "file": "lib/lottetour-register-flow.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]
@@ -4008,6 +4037,87 @@
       ]
     },
     {
+      "id": "lottetour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 등록 SSOT 스냅샷 — orchestration/LLM 제거·URL-only preview",
+      "checks": [
+        {
+          "file": "scripts/verify-lottetour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-ssot-freeze]",
+            "runLottetourRegisterFlow",
+            "collectLottetourRegisterFacts",
+            "!text && !hasParsed && !originUrl"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-ssot-freeze]",
+            "runLottetourRegisterFlow"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-handler.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-ssot-freeze]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lottetour-register-api-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 등록 parseFn — collectLottetourRegisterFacts API SSOT",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-api-parse]",
+            "parseLottetourRegisterFromApi",
+            "collectLottetourRegisterFacts"
+          ]
+        },
+        {
+          "file": "lib/register-parse-lottetour.ts",
+          "mustInclude": [
+            "parseLottetourRegisterFromApi"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lottetour-schedule-expression",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 일정 routeText a–g + description 분위기 SSOT",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-expression]",
+            "applyLottetourScheduleExpressionToRows",
+            "composeLottetourScheduleDescription"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-lottetour-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-expression]",
+            "applyLottetourScheduleExpressionToRows"
+          ]
+        }
+      ]
+    },
+    {
       "id": "ybtour-register-taiwan-live-gate",
       "tier": [
         "ci"
@@ -4343,7 +4453,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-lottetour-orchestration.ts",
+          "file": "lib/lottetour-register-flow.ts",
           "mustInclude": [
             "detailBodyStructured?.raw?.hotelPasteRaw"
           ],

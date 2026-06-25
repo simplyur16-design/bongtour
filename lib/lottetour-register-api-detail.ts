@@ -13,6 +13,12 @@ import {
 import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { filterOptionalTourRows, type OptionalTourRowFields } from '@/lib/optional-tour-row-gate-lottetour'
+import {
+  applyLottetourScheduleExpressionToRows,
+  composeLottetourScheduleDescription,
+  extractLottetourSchedulePlacesFromCityLabels,
+  joinLottetourScheduleRouteText,
+} from '@/lib/lottetour-register-api-schedule'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 
 const LOTTETOUR_BASE = process.env.LOTTETOUR_BASE_URL ?? 'https://www.lottetour.com'
@@ -523,20 +529,26 @@ function lottetourCitiesFromDayBlock(block: string): string[] {
 
 export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null): RegisterScheduleDay[] {
   if (!html?.trim()) return []
+  const blocks = lottetourScheduleDayBlocks(html)
+  const maxDay = blocks.reduce((m, b) => Math.max(m, b.day), 0)
   const days: RegisterScheduleDay[] = []
-  for (const { day, block } of lottetourScheduleDayBlocks(html)) {
+  for (const { day, block } of blocks) {
     const uniqueCities = [...new Set(lottetourCitiesFromDayBlock(block))]
     const planParts = [
       ...block.matchAll(/<p class="plan_info">([\s\S]*?)<\/p>/gi),
     ].map((m) => stripLottetourScheduleHtml(m[1] ?? '')).filter(Boolean)
+    const routePlaces = extractLottetourSchedulePlacesFromCityLabels(uniqueCities)
+    const routeText = joinLottetourScheduleRouteText(routePlaces)
     const hotelMatch = block.match(/class="txt_link"[^>]*>([^<]+)</i)?.[1]
     const hotelText = hotelMatch ? stripLottetourScheduleHtml(hotelMatch).slice(0, 200) : null
-    const title =
-      uniqueCities[0] ??
-      block.match(/<strong>\s*(\d+)일차\s*<\/strong>/i)?.[0]?.replace(/<[^>]+>/g, '').trim() ??
-      `${day}일차`
-    const description = planParts.join('\n').slice(0, 1200) || title
-    const routeText = uniqueCities.length > 0 ? uniqueCities.join(' - ') : null
+    const title = routePlaces[0] ?? uniqueCities[0] ?? `${day}일차`
+    const joinedBlob = [routeText, ...planParts, ...uniqueCities].filter(Boolean).join(' ')
+    const description = composeLottetourScheduleDescription({
+      day,
+      maxDay,
+      routePlaces,
+      joinedBlob,
+    })
     const breakfastText = lottetourMealFromBlock(block, '조식')
     const lunchText = lottetourMealFromBlock(block, '중식')
     const dinnerText = lottetourMealFromBlock(block, '석식')
@@ -546,7 +558,8 @@ export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null):
       title,
       description,
       routeText,
-      imageKeyword: (uniqueCities[0] ?? title).slice(0, 80),
+      imageKeyword: '',
+      imageKeyword2: null,
       hotelText,
       breakfastText,
       lunchText,
@@ -554,7 +567,7 @@ export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null):
       mealSummaryText: mealParts.length > 0 ? mealParts.join(' / ') : null,
     })
   }
-  return days
+  return applyLottetourScheduleExpressionToRows(days)
 }
 
 export function extractLottetourMeetingFromScheduleAjax(html: string | null): LottetourMeetingExtract {

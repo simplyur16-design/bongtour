@@ -1,9 +1,10 @@
 /**
  * 롯데관광(lottetour) 등록 파이프: 일정 표현층만 보정.
- * 누락 일차: 붙여넣기 본문의 `N일차` 블록으로만 보충 (LLM 행은 덮어쓰지 않음).
+ * REGRESSION-FREEZE[lottetour-schedule-expression]: routeText a–g + description 분위기 — applyLottetourScheduleExpressionToRows — manifest
  * @see docs/register_schedule_expression_ssot.md
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
+import { applyLottetourScheduleExpressionToRows } from '@/lib/lottetour-register-api-schedule'
 import {
   normalizeLottetourPasteForScheduleExtract,
   sliceLottetourItineraryBodyForDayMarkers,
@@ -249,7 +250,7 @@ export function buildLottetourScheduleFromPastedText(pastedBody: string): Regist
     const block = full.slice(bodyStart, end)
     out.push(lottetourScheduleDayFromPastedBlock(day, block))
   }
-  return out
+  return applyLottetourScheduleExpressionToRows(out)
 }
 
 /** LLM `parsed.schedule`에 없는 day는 본문 보조 행으로 추가. 기존 day는 식사·호텔만 보강 */
@@ -299,10 +300,11 @@ export function augmentLottetourScheduleExpressionParsed(
     if (!nextTitle) return r
     return { ...r, title: nextTitle.slice(0, 200) }
   })
+  const expressed = applyLottetourScheduleExpressionToRows(titled)
   const skipPackageImageKw = isRegisterAirtelListing(opts?.travelScope, next.productType)
   const scheduleRows = skipPackageImageKw
-    ? titled
-    : applyAugmentScheduleImageKeywordsBySupplier(titled, {
+    ? expressed
+    : applyAugmentScheduleImageKeywordsBySupplier(expressed, {
         supplierKey: 'lottetour',
         productTitle: next.title,
         productDestination: next.destination,
@@ -347,4 +349,32 @@ export function lottetourConfirmHasScheduleExpressionLayer(
     if (m.length > 0) return true
     return false
   })
+}
+
+const INFER_DAY_COUNT_SCAN_MAX = 120_000
+
+/** 본문 `N일차` 최댓값과 `N박 M일`의 M(여행일 수) 중 더 큰 값 */
+export function inferExpectedScheduleDayCountFromPaste(pastedBody: string, durationStr: string): number | null {
+  const blob = pastedBody.slice(0, Math.min(pastedBody.length, INFER_DAY_COUNT_SCAN_MAX))
+  let maxDay = 0
+  for (const m of blob.matchAll(/(\d+)일차/g)) {
+    const d = Number(m[1])
+    if (d > 0 && d <= 31) maxDay = Math.max(maxDay, d)
+  }
+  for (const m of blob.matchAll(/(?:^|\n)\s*DAY\s*0?(\d{1,2})\b(?!\d)/gi)) {
+    const d = Number(m[1])
+    if (d > 0 && d <= 31) maxDay = Math.max(maxDay, d)
+  }
+  const combined = `${durationStr}\n${blob}`
+  const dm = combined.match(/(\d+)\s*박\s*(\d+)\s*일/)
+  let fromDuration: number | null = null
+  if (dm) {
+    const n = Number(dm[2])
+    fromDuration = Number.isFinite(n) && n > 0 ? n : null
+  }
+  const parts: number[] = []
+  if (maxDay >= 1) parts.push(maxDay)
+  if (fromDuration != null) parts.push(fromDuration)
+  if (parts.length === 0) return null
+  return Math.max(...parts)
 }
