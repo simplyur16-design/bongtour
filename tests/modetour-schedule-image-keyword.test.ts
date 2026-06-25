@@ -555,6 +555,41 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length
     assert.equal(forbiddenCount, 0, `Forbidden City must not appear: ${allKw.join(', ')}`)
   })
+
+  it('1일차 description에 출발 없어도 인천→북경 routeText면 movement·LLM hint 무시', () => {
+    const rows = beijingRows.map((r) =>
+      r.day === 1
+        ? {
+            ...r,
+            description: '북경 도시 관광 및 자유시간',
+            imageKeyword: 'Tiananmen Square',
+            imageKeyword2: 'Beijing',
+          }
+        : {
+            ...r,
+            imageKeyword:
+              r.day === 2
+                ? 'Summer Palace'
+                : r.day === 3
+                  ? 'Great Wall of China'
+                  : '798 Art District',
+            imageKeyword2:
+              r.day === 2 ? 'Tiananmen Square' : r.day === 3 ? 'Summer Palace' : null,
+          },
+    )
+    const out = applyModetourScheduleImageKeywordsToRows(rows, beijingOpts)
+    const d1 = out.find((r) => r.day === 1)!
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    assert.match(d1.imageKeyword!, /Beijing/i)
+    assert.equal(d1.imageKeyword2, null)
+    assert.match(d2.imageKeyword!, /Tiananmen/i)
+    assert.equal(d2.imageKeyword2, null)
+    assert.match(d3.imageKeyword!, /Summer Palace/i)
+    assert.match(d3.imageKeyword2!, /Great Wall/i)
+    const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
+    assert.equal(new Set(allKw.map((k) => k.toLowerCase())).size, allKw.length, `trip-wide dup: ${allKw.join(', ')}`)
+  })
 })
 
 function normLoose(s: string): string {

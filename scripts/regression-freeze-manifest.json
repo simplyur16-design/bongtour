@@ -604,7 +604,9 @@
         {
           "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
           "mustInclude": [
-            "resolveTourismKeywordPreferDistinctPerDay"
+            "REGRESSION-FREEZE[schedule-korean-segment-poi-before-regex]",
+            "resolveTourismKeywordPreferDistinctPerDay",
+            "mapKoreanPoiSegment(t)"
           ],
           "mustNotInclude": [
             "primaryCand && normKeywordKey(primaryCand) === llmKey"
@@ -634,7 +636,10 @@
             "dedupe가 1순위만 바꾸므로",
             "shouldReconcileScheduleImageKeyword2",
             "resolveModetourSecondaryKeyword",
-            "isDomesticOnlyRouteText"
+            "isDomesticOnlyRouteText",
+            "routeOverLlm",
+            "pickModetourRouteOrderedSecondKeyword",
+            "!String(row.routeText ?? '').trim() ? pickUnused(tripLandmarks)"
           ],
           "mustNotInclude": [
             "routeText 라틴 세그먼트 폴백만"
@@ -4093,6 +4098,24 @@
           ],
           "mustNotInclude": [
             "detailBodyStructured?.raw.hotelPasteRaw"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "schedule-korean-segment-poi-before-regex",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "한글 routeText 세그먼트 — POI 사전 우선(regex 레 시장→Leh Palace 오매핑 방지)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-korean-segment-poi-before-regex]",
+            "mapKoreanPoiSegment(t)",
+            "firstMatchingScheduleSpotEn(t)"
           ]
         }
       ]

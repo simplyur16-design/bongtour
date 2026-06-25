@@ -136,20 +136,21 @@ function routeTextSegments(routeText: string | null | undefined): string[] {
 export function englishFromScheduleKoreanSegment(seg: string): string {
   const t = seg.trim()
   if (!t) return ''
+  // REGRESSION-FREEZE[schedule-korean-segment-poi-before-regex]: POI 사전 우선 — regex 오매핑(레 시장→Leh Palace) 방지 — manifest
+  const fromPoi = mapKoreanPoiSegment(t)
+  if (fromPoi) {
+    try {
+      return finalizeScheduleImageKeyword(fromPoi)
+    } catch {
+      return fromPoi
+    }
+  }
   const fromSpotRegex = firstMatchingScheduleSpotEn(t)
   if (fromSpotRegex) {
     try {
       return finalizeScheduleImageKeyword(fromSpotRegex)
     } catch {
       return fromSpotRegex
-    }
-  }
-  const fromPoi = mapKoreanPoiSegment(t)
-  if (fromPoi) {
-    try {
-      return finalizeScheduleImageKeyword(fromPoi)
-    } catch {
-      /* continue */
     }
   }
   const fromDest = mapDestination(t)
