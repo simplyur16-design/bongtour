@@ -1,146 +1,23 @@
 /**
- * 노랑풍선 전용 등록 파싱 orchestration.
+ * 노랑풍선 등록 parseFn — API SSOT + 붙여넣기 보조(방문도시·혜택 등)만.
  *
- * **책임 분리:** `parseDetailBodyStructuredYbtour`는 본문 슬라이스·호텔·포함불포함만 책운다.
- * 항공·옵션·쇼핑 **구조화**는 이 파일에서 `register-input-parse-ybtour`로, **정형 입력란**(`pastedBlocks`) 기준으로만 수행한다.
- * 본문에 같은 표가 있어도 입력란이 비어 있으면 해당 축은 비어 있을 수 있다.
- *
- * @see docs/body-parser-ybtour-ssot.md
- *
- * 상위 규약: `docs/admin-register-supplier-precise-spec.md` §4. 일정 표현: `docs/register_schedule_expression_ssot.md`.
+ * REGRESSION-FREEZE[ybtour-register-api-parse]: parseForRegisterYbtour → parseYbtourRegisterFromApi — manifest
+ * REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 정형칸 폐기 — detail-collect API SSOT
+ * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: Gemini overlay 없음 — manifest
  */
-import { parseDetailBodyStructuredYbtour } from '@/lib/detail-body-parser-ybtour'
-import { sliceDetailBodySections } from '@/lib/detail-body-parser-utils-ybtour'
-import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
-import { parseForRegisterLlmYbtour } from '@/lib/register-from-llm-ybtour'
-import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
-import { resolveDirectedFlightLinesYbtour } from '@/lib/register-flight-ybtour'
-import {
-  parseYbtourFlightInput,
-  parseYbtourOptionalInput,
-  parseYbtourShoppingInput,
-} from '@/lib/register-input-parse-ybtour'
-import { buildDetailReviewPolicyYbtour } from '@/lib/review-policy-ybtour'
-import { finalizeYbtourRegisterParsedPricing } from '@/lib/register-ybtour-price'
-import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
-import {
-  applyYbtourStructuredPreviewFields,
-  extractYbtourProductCodeFromBlob,
-  logYbtourBasicDetailBody,
-  logYbtourBasicRegisterFinal,
-} from '@/lib/register-ybtour-basic'
-import { sanitizeYbtourRegisterParsedStrings } from '@/lib/register-ybtour-text-sanitize'
+import { parseYbtourRegisterFromApi, type YbtourRegisterApiParseOptions } from '@/lib/ybtour-register-api-parse'
+import type { RegisterLlmParseOptionsCommon, RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 
-type ParseOpts = NonNullable<Parameters<typeof parseForRegisterLlmYbtour>[2]>
+export type ParseForRegisterYbtourOptions = RegisterLlmParseOptionsCommon
 
-function mergeAirlineTransportPaste(
-  detailBody: DetailBodyParseSnapshot,
-  airlinePaste: string | undefined
-): DetailBodyParseSnapshot {
-  if (!airlinePaste) return detailBody
-  return {
-    ...detailBody,
-    raw: {
-      ...detailBody.raw,
-      flightRaw: [detailBody.raw.flightRaw, airlinePaste].filter(Boolean).join('\n\n'),
-    },
-  }
-}
-
-function refreshYbtourDetailBodyPolicy(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
-  const policy = buildDetailReviewPolicyYbtour({
-    sections: detailBody.sections,
-    flightStructured: detailBody.flightStructured,
-    hotelStructured: detailBody.hotelStructured,
-    optionalToursStructured: detailBody.optionalToursStructured,
-    shoppingStructured: detailBody.shoppingStructured,
-    includedExcludedStructured: detailBody.includedExcludedStructured,
-    optionalPasteRaw: detailBody.raw.optionalToursPasteRaw,
-    shoppingPasteRaw: detailBody.raw.shoppingPasteRaw,
-  })
-  return {
-    ...detailBody,
-    review: policy.review,
-    sectionReview: policy.sectionReview,
-    qualityScores: policy.qualityScores,
-    failurePatterns: policy.failurePatterns,
-  }
-}
-
-function withYbtourFlightStructured(
-  detailBody: DetailBodyParseSnapshot,
-  flightStructured: DetailBodyParseSnapshot['flightStructured']
-): DetailBodyParseSnapshot {
-  return refreshYbtourDetailBodyPolicy({ ...detailBody, flightStructured })
-}
-
-function applyYbtourMergedFlightRawToStructured(detailBody: DetailBodyParseSnapshot): DetailBodyParseSnapshot {
-  const fr = detailBody.raw.flightRaw?.trim()
-  if (!fr) return detailBody
-  const flightStructured = parseYbtourFlightInput(fr, detailBody.normalizedRaw)
-  return withYbtourFlightStructured(detailBody, flightStructured)
-}
-
-export const YBTOUR_PRICE_SLOT_SSOT_NOTE =
-  '노랑풍선 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
-
-export const YBTOUR_FLIGHT_PREVIEW_NOTE =
-  '노랑풍선 항공: originUrl detail-collect(papi) SSOT. 본문 flightRaw는 보조이며 API 수집이 구조화 필드를 덮어쓴다.'
+export { YBTOUR_FLIGHT_PREVIEW_NOTE, YBTOUR_PRICE_SLOT_SSOT_NOTE } from '@/lib/ybtour-register-api-parse'
 
 export async function parseForRegisterYbtour(
   rawText: string,
   originSource?: string,
-  options?: ParseOpts
+  options?: ParseForRegisterYbtourOptions,
 ): Promise<RegisterParsed> {
-  const osPrev = (originSource ?? '').trim().slice(0, 100)
-  console.log(
-    `[ybtour] phase=parse-for-register entry fn=parseForRegisterYbtour originSource_preview=${JSON.stringify(osPrev)} rawText_len=${rawText?.length ?? 0}`
-  )
-  // REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 항공·옵션·쇼핑·호텔 정형칸 폐기 — detail-collect API SSOT
-  let detailBody = parseDetailBodyStructuredYbtour({
-    rawText,
-    hotelRaw: null,
-    optionalRaw: null,
-    shoppingRaw: null,
-  })
-  detailBody = applyYbtourMergedFlightRawToStructured(detailBody)
-  const { shoppingSection } = sliceDetailBodySections(detailBody.normalizedRaw, detailBody.sections, {
-    hotelRaw: null,
-    optionalRaw: null,
-    shoppingRaw: null,
-  })
-  detailBody = refreshYbtourDetailBodyPolicy({
-    ...detailBody,
-    optionalToursStructured: parseYbtourOptionalInput(''),
-    shoppingStructured: parseYbtourShoppingInput(shoppingSection, null),
-  })
-  logYbtourBasicDetailBody(detailBody, rawText?.length ?? 0)
-
-  let parsed = await parseForRegisterLlmYbtour(rawText, originSource, {
-    ...options,
-    presetDetailBody: detailBody,
-    resolveDirectedFlightLines: resolveDirectedFlightLinesYbtour,
-  })
-  parsed = finalizeYbtourRegisterParsedPricing(parsed)
-  parsed = finalizeYbtourRegisterParsedShopping(parsed)
-  parsed = applyYbtourStructuredPreviewFields(parsed)
-
-  const ybCode = extractYbtourProductCodeFromBlob(rawText)
-  if (ybCode && !(parsed.originCode ?? '').trim()) {
-    parsed = { ...parsed, originCode: ybCode }
-  }
-  logYbtourBasicRegisterFinal(parsed, rawText?.length ?? 0)
-
-  const prevNotes = parsed.registerPreviewPolicyNotes ?? []
-  const extra: string[] = []
-  if (!prevNotes.some((n) => n.includes('노랑풍선 가격(3슬롯)'))) extra.push(YBTOUR_PRICE_SLOT_SSOT_NOTE)
-  if (!prevNotes.some((n) => n.includes('노랑풍선 항공:'))) extra.push(YBTOUR_FLIGHT_PREVIEW_NOTE)
-  if (extra.length) {
-    parsed = { ...parsed, registerPreviewPolicyNotes: [...prevNotes, ...extra] }
-  }
-
-  parsed = sanitizeYbtourRegisterParsedStrings(parsed)
-  return parsed
+  return parseYbtourRegisterFromApi(rawText, originSource, options as YbtourRegisterApiParseOptions)
 }
 
 export type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'

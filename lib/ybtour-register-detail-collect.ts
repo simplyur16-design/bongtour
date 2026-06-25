@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[ybtour-register-detail-collect]: augmentYbtourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: preview=confirm API SSOT — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-ybtour'
@@ -22,6 +23,7 @@ import {
   shoppingRowsToStopsJson,
   ybtourScheduleBundleToRegisterSchedule,
 } from '@/lib/ybtour-register-api-detail'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
 import { parseYbtourEvCdFromUrl } from '@/lib/ybtour-api-departures'
 import {
@@ -159,7 +161,15 @@ export async function augmentYbtourParsedWithDetailCollect(
   if (needSchedule && scheduleDetail.length + scheduleDetailTm.length > 0) {
     const scheduleDays = ybtourScheduleBundleToRegisterSchedule(scheduleDetail, scheduleDetailTm)
     if (scheduleDays.length > 0) {
-      next = { ...next, schedule: scheduleDays }
+      const destHint = next.primaryDestination ?? next.destination ?? null
+      next = {
+        ...next,
+        schedule: applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
+          supplierKey: 'ybtour',
+          productDestination: destHint,
+          productTitle: next.title,
+        }),
+      }
       summaryParts.push(`일정 ${scheduleDays.length}일차`)
     }
   }

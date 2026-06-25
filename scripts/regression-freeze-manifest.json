@@ -58,6 +58,15 @@
       "summary": "하나투어 lib 허브 SSOT"
     },
     {
+      "id": "hanatour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:hanatour-register-ssot-freeze",
+      "summary": "하나투어 등록 SSOT 스냅샷 — API parse·handler·Gemini overlay 없음"
+    },
+    {
       "id": "ybtour-lib-ssot",
       "tier": [
         "prebuild",
@@ -65,6 +74,15 @@
       ],
       "script": "verify:ybtour-lib",
       "summary": "노랑풍선 lib 허브 SSOT"
+    },
+    {
+      "id": "ybtour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:ybtour-register-ssot-freeze",
+      "summary": "노랑풍선 등록 SSOT 스냅샷 — API parse·orchestration/LLM 제거·URL-only preview"
     },
     {
       "id": "ybtour-by-goods-departure-list",
@@ -1629,6 +1647,47 @@
       "vitestSuites": ["lib/hanatour-register-detail-collect.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
     },
     {
+      "id": "hanatour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 등록 SSOT 스냅샷 — API parse·handler·Gemini overlay 없음",
+      "checks": [
+        {
+          "file": "scripts/verify-hanatour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-ssot-freeze]",
+            "runHanatourRegisterFlow",
+            "collectHanatourRegisterFacts",
+            "parseHanatourRegisterFromApi"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-handler.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-ssot-freeze]",
+            "runHanatourRegisterFlow",
+            "parseForRegisterHanatour"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-ssot-freeze]",
+            "collectHanatourRegisterFacts"
+          ]
+        },
+        {
+          "file": "lib/register-parse-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-ssot-freeze]",
+            "parseHanatourRegisterFromApi"
+          ]
+        }
+      ]
+    },
+    {
       "id": "modetour-register-api-parse",
       "tier": ["prebuild", "ci"],
       "summary": "모두투어 등록 parseFn — register-facts API SSOT, Gemini overlay 없음",
@@ -1749,7 +1808,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "file": "lib/ybtour-register-flow.ts",
           "mustInclude": [
             "dedupeYbtourProductPriceCreateRows",
             "productPrice.deleteMany",
@@ -2122,7 +2181,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "file": "lib/ybtour-register-flow.ts",
           "mustInclude": [
             "resolveRegisterTravelScopeFromRequest"
           ]
@@ -2610,7 +2669,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "file": "lib/ybtour-register-flow.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]
@@ -3794,12 +3853,100 @@
         {
           "file": "lib/parse-and-register-ybtour-handler.ts",
           "mustInclude": [
-            "augmentYbtourParsedWithDetailCollect"
+            "augmentYbtourParsedWithDetailCollect",
+            "runYbtourRegisterFlow",
+            "parseForRegisterYbtour"
           ]
         }
       ],
       "vitestSuites": [
         "lib/ybtour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-register-api-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "노랑풍선 등록 parseFn — register-facts API SSOT, Gemini overlay 없음",
+      "npmScripts": [
+        "verify:ybtour-lib"
+      ],
+      "checks": [
+        {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-api-parse]",
+            "REGRESSION-FREEZE[ybtour-register-ssot-freeze]",
+            "collectYbtourRegisterFacts",
+            "parseYbtourRegisterFromApi",
+            "ybtourScheduleBundleToRegisterSchedule",
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ],
+          "mustNotInclude": [
+            "parseForRegisterLlmYbtour",
+            "GEMINI"
+          ]
+        },
+        {
+          "file": "lib/register-parse-ybtour.ts",
+          "mustInclude": [
+            "parseYbtourRegisterFromApi"
+          ],
+          "mustNotInclude": [
+            "parseForRegisterLlmYbtour"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-handler.ts",
+          "mustInclude": [
+            "runYbtourRegisterFlow"
+          ],
+          "mustNotInclude": [
+            "parse-and-register-ybtour-orchestration"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustNotInclude": [
+            "testGeminiConnection",
+            "missingGeminiKey",
+            "extractHighlightFromYbtourLLM"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ybtour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "노랑풍선 등록 SSOT 스냅샷 — orchestration/LLM 제거·URL-only preview",
+      "checks": [
+        {
+          "file": "scripts/verify-ybtour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-ssot-freeze]",
+            "runYbtourRegisterFlow",
+            "collectYbtourRegisterFacts",
+            "!text && !hasParsed && !originUrl"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-ssot-freeze]",
+            "runYbtourRegisterFlow"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-ybtour-handler.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-ssot-freeze]"
+          ]
+        }
       ]
     },
     {
@@ -4147,7 +4294,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-ybtour-orchestration.ts",
+          "file": "lib/ybtour-register-flow.ts",
           "mustInclude": [
             "detailBodyStructured?.raw?.hotelPasteRaw"
           ],
