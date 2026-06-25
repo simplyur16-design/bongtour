@@ -15,6 +15,7 @@ import {
   needsModetourIncludedExcludedCollect,
   needsModetourOptionalCollect,
   needsModetourScheduleCollect,
+  ensureModetourRegisterScheduleImageKeywords,
 } from './modetour-register-detail-collect'
 import { finalizeModetourRegisterParsedShopping } from './register-modetour-shopping'
 import type { RegisterParsed } from './register-llm-schema-modetour'
@@ -35,6 +36,23 @@ describe('modetour register detail collect', () => {
         schedule: [{ day: 1, title: '오사카', description: '관광', imageKeyword: 'Osaka' }],
       } as RegisterParsed),
     ).toBe(false)
+  })
+
+  it('ensureModetourRegisterScheduleImageKeywords fills routeText-only rows (preview SSOT)', () => {
+    const out = ensureModetourRegisterScheduleImageKeywords({
+      destination: '대만',
+      title: '대만 4일',
+      schedule: [
+        {
+          day: 2,
+          title: '예류·지우펀',
+          description: '관광',
+          routeText: '타이페이 - 예류지질공원 - 지우펀 - 스펀',
+          imageKeyword: '',
+        },
+      ],
+    } as RegisterParsed)
+    expect(out.schedule?.[0]?.imageKeyword).toMatch(/Yehliu|Jiufen|Shifen/i)
   })
 
   it('needs included/excluded when both missing', () => {

@@ -3122,7 +3122,9 @@
           "file": "lib/modetour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-detail-collect]",
+            "REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]",
             "augmentModetourParsedWithDetailCollect",
+            "ensureModetourRegisterScheduleImageKeywords",
             "GetScheduleList",
             "GetProductDetailInfo",
             "GetProductKeyPointInfo",
@@ -3160,6 +3162,34 @@
           "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
             "augmentModetourParsedWithDetailCollect"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/modetour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-register-schedule-image-keyword-apply",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 등록 — parse·augment 후 schedule routeText → imageKeyword(미리보기 SSOT)",
+      "checks": [
+        {
+          "file": "lib/modetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]",
+            "ensureModetourRegisterScheduleImageKeywords",
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]",
+            "ensureModetourRegisterScheduleImageKeywords"
           ]
         }
       ],

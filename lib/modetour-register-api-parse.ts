@@ -2,6 +2,7 @@
  * 모두투어 등록 parseFn — URL register-facts SSOT (Gemini overlay 없음).
  *
  * REGRESSION-FREEZE[modetour-register-api-parse]: collectModetourRegisterFacts → RegisterParsed — manifest
+ * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: schedule imageKeyword 규칙 — manifest
  */
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
@@ -14,6 +15,7 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-modetour'
 import { finalizeModetourRegisterParsedPricing } from '@/lib/register-modetour-price'
 import { finalizeModetourRegisterParsedShopping } from '@/lib/register-modetour-shopping'
+import { ensureModetourRegisterScheduleImageKeywords } from '@/lib/modetour-register-detail-collect'
 
 const MODETOUR_PRICE_SLOT_SSOT_NOTE =
   '모두투어 가격표: adultPrice=성인, childExtraBedPrice=아동, childNoBedPrice=아동(무침대), infantPrice=유아. 달력은 GetOtherDepartureDates_lite SSOT.'
@@ -147,5 +149,6 @@ export async function parseModetourRegisterFromApi(
 
   parsed = finalizeModetourRegisterParsedPricing(parsed)
   parsed = finalizeModetourRegisterParsedShopping(parsed)
+  parsed = ensureModetourRegisterScheduleImageKeywords(parsed)
   return parsed
 }

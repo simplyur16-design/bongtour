@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[modetour-register-detail-collect]: B2C+HTML register augment — manifest
+ * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: parse·augment 후 schedule imageKeyword — manifest
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
@@ -124,6 +125,25 @@ export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
 }
 
+/** API·붙여넣기 schedule에 routeText는 있는데 imageKeyword 규칙이 아직 안 탄 경우(미리보기 공통). */
+export function ensureModetourRegisterScheduleImageKeywords(parsed: RegisterParsed): RegisterParsed {
+  const schedule = parsed.schedule ?? []
+  if (schedule.length === 0) return parsed
+  const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(
+    schedule.map((row) => ({
+      ...row,
+      imageKeyword: String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: row.imageKeyword2 ?? null,
+    })),
+    {
+      supplierKey: 'modetour',
+      productDestination: parsed.destination ?? null,
+      productTitle: parsed.title ?? null,
+    },
+  )
+  return { ...parsed, schedule: withKeywords }
+}
+
 export function needsModetourMustKnowCollect(parsed: RegisterParsed): boolean {
   return (parsed.mustKnowItems?.length ?? 0) === 0 && !parsed.mustKnowRaw?.trim()
 }
@@ -152,7 +172,7 @@ export async function augmentModetourParsedWithDetailCollect(
   const needFlight = needsRegisterFlightApiCollect(parsed)
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
-    return parsed
+    return ensureModetourRegisterScheduleImageKeywords(parsed)
   }
 
   const summaryParts: string[] = []
@@ -301,10 +321,10 @@ export async function augmentModetourParsedWithDetailCollect(
       : '모두투어 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 
-  return {
+  return ensureModetourRegisterScheduleImageKeywords({
     ...next,
     modetourDetailCollectRan: summaryParts.length > 0,
     modetourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
     registerPreviewPolicyNotes: notes,
-  }
+  })
 }
