@@ -1,5 +1,7 @@
 /**
  * 하나투어 등록 POST — URL register-facts + detail-collect SSOT (Gemini overlay 없음).
+ *
+ * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: manifest
  */
 import { augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { injectHanatourApiDeparturePricesIfMissing } from '@/lib/hanatour-register-api-price-inject'

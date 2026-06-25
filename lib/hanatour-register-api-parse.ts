@@ -2,6 +2,7 @@
  * 하나투어 등록 parseFn — URL register-facts SSOT (Gemini overlay 없음).
  *
  * REGRESSION-FREEZE[hanatour-register-api-parse]: collectHanatourRegisterFacts → RegisterParsed — manifest
+ * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: API-only register parse — manifest
  */
 import { parseDetailBodyStructuredHanatour } from '@/lib/detail-body-parser-hanatour'
 import { applyHanatourBasicInfoBodyExtract } from '@/lib/hanatour-basic-info-body-extract'

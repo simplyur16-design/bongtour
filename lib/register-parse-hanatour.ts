@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[hanatour-register-api-parse]: parseForRegisterHanatour → parseHanatourRegisterFromApi — manifest
  * REGRESSION-FREEZE[register-admin-no-pasted-blocks-ssot]: 정형칸 폐기 — detail-collect API SSOT
  * REGRESSION-FREEZE[hanatour-register-samples-live-gate]: reconcileHanatourExtractionFieldIssuesAfterDetailBodyPatch — manifest
+ * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: Gemini overlay 없음 — manifest
  */
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser'
 import { parseHanatourRegisterFromApi, type HanatourRegisterApiParseOptions } from '@/lib/hanatour-register-api-parse'
