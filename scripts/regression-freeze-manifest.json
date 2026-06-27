@@ -431,7 +431,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-product-title-plan-b]",
             "SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION",
-            "stripSupplierTitlePromoBadges"
+            "stripSupplierTitlePromoBadges",
+            "isSupplierTitlePromoBadgeText"
           ]
         }
       ]
@@ -4279,7 +4280,17 @@
             "parseLottetourRegisterFromApi",
             "collectLottetourRegisterFacts",
             "resolveLottetourRegisterOriginIdsFromUrl",
+            "resolveLottetourRegisterDestination",
+            "normalizeSupplierRegisterListingTitle",
             "godId 또는 evtCd"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-destination]",
+            "resolveLottetourRegisterDestination",
+            "extractLottetourTravelCitiesRawFromPaste"
           ]
         },
         {
@@ -4290,7 +4301,45 @@
         }
       ],
       "vitestSuites": [
-        "lib/lottetour-register-api-parse.test.ts"
+        "lib/lottetour-register-api-parse.test.ts",
+        "lib/lottetour-register-destination-from-paste.test.ts",
+        "lib/supplier-register-destination-forbidden.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-register-destination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 목적지 — 여행일정 UI 라벨·마케팅 뱃지 금지",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-destination]",
+            "resolveLottetourRegisterDestination",
+            "normalizeSupplierRegisterListingTitle"
+          ]
+        },
+        {
+          "file": "lib/supplier-register-destination-forbidden.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-destination]",
+            "isSupplierRegisterDestinationUiLabel"
+          ]
+        },
+        {
+          "file": "lib/supplier-product-title-display.ts",
+          "mustInclude": [
+            "isSupplierTitlePromoBadgeText",
+            "매진"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-register-destination-from-paste.test.ts",
+        "lib/supplier-register-destination-forbidden.test.ts"
       ]
     },
     {

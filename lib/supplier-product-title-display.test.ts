@@ -40,6 +40,10 @@ describe('buildSupplierProductDisplayTitle', () => {
     expect(title).not.toMatch(/출발\s*확정|긴급\s*모객/)
   })
 
+  it('strips 매진임박 and best badges for all suppliers', () => {
+    expect(normalizeSupplierRegisterListingTitle('[매진임박][best] 나트랑 5박6일')).toBe('나트랑 5박6일')
+  })
+
   it('strips hanatour/modetour promo brackets but keeps region', () => {
     expect(
       normalizeSupplierRegisterListingTitle('[출발확정] 홍콩/마카오 3일 #베스트셀러'),

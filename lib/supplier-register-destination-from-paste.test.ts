@@ -3,6 +3,7 @@ import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-dest
 import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
 import { resolveYbtourRegisterDestination } from '@/lib/ybtour-register-destination-from-paste'
 import { resolveVerygoodtourRegisterDestination } from '@/lib/verygoodtour-register-destination-from-paste'
+import { resolveLottetourRegisterDestination } from '@/lib/lottetour-register-destination-from-paste'
 
 const MODETOUR_SNIPPET = `
 [게릴라특가][품격/노쇼핑/VIP버스] 미동부 캐나다10일 <힐튼나이아가라20층이상폭포뷰/올드퀘벡숙박/뉴욕/워싱턴/몬트리올>
@@ -99,5 +100,14 @@ describe('supplier register destination from paste', () => {
     expect(r.destinationRaw).toMatch(/로스앤젤레스/)
     expect(r.destination).toMatch(/미서부|미동부|캐나다/)
     expect(r.destination).not.toMatch(/세도나|숙박/)
+  })
+
+  it('lottetour: paste 여행일정 tab label must not become destination', () => {
+    const r = resolveLottetourRegisterDestination({
+      pastedBody: '여행일정 5박 6일',
+      title: '[출발확정] 나트랑 5박6일',
+    })
+    expect(r.destination).toMatch(/나트랑/)
+    expect(r.destination).not.toBe('여행일정')
   })
 })

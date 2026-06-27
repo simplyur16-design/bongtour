@@ -17,6 +17,8 @@ import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetou
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { lottetourFactDaysToRegisterSchedule } from '@/lib/lottetour-register-api-schedule'
 import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
+import { resolveLottetourRegisterDestination } from '@/lib/lottetour-register-destination-from-paste'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 
 export const LOTTETOUR_PRICE_SLOT_SSOT_NOTE =
   '롯데관광 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -53,23 +55,6 @@ function buildDuration(nights: number | null, days: number | null): string {
   return ''
 }
 
-function resolveLottetourRegisterDestination(title: string, paste: string): {
-  destination: string
-  primaryDestination: string | null
-  destinationRaw: string | null
-} {
-  const hay = [title, paste].filter(Boolean).join(' ')
-  const m = hay.match(
-    /(?:^|[\s#])([가-힣A-Za-z]{2,16}(?:\s*[·/]\s*[가-힣A-Za-z]{2,12})?)\s*(?:\d+\s*박|\d+\s*일|#)/u,
-  )
-  const dest = (m?.[1] ?? title.split(/\s+/)[0] ?? '미지정').trim()
-  return {
-    destination: dest || '미지정',
-    primaryDestination: dest || null,
-    destinationRaw: dest || null,
-  }
-}
-
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseLottetourRegisterFromApi(
   rawText: string,
@@ -92,8 +77,11 @@ export async function parseLottetourRegisterFromApi(
   const resolvedGodId = ids.godId ?? godFromNotes ?? null
 
   const paste = rawText.trim()
-  const listingTitle = bundle.title?.trim() || ''
-  const dest = resolveLottetourRegisterDestination(listingTitle, paste)
+  const listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
+  const dest = resolveLottetourRegisterDestination({
+    pastedBody: paste,
+    title: listingTitle,
+  })
   const schedule = lottetourFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const anchorRow = bundle.priceRows[0]
@@ -113,7 +101,7 @@ export async function parseLottetourRegisterFromApi(
     godId: resolvedGodId,
     evtCd: resolvedEvtCd,
     title: listingTitle || '미지정',
-    supplierListingTitleRaw: listingTitle || null,
+    supplierListingTitleRaw: bundle.title?.trim() || null,
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,

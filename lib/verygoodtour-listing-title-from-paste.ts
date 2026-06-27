@@ -4,6 +4,7 @@
  */
 
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { isSupplierRegisterDestinationUiLabel } from '@/lib/supplier-register-destination-forbidden'
 
 const SKIP_LINE_RE =
   /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험|여행\s*주요)/i
@@ -168,6 +169,7 @@ export function resolveProductListDestinationLabel(input: {
     .map((s) => (s ?? '').trim())
     .filter(Boolean)
   for (const c of candidates) {
+    if (isSupplierRegisterDestinationUiLabel(c)) continue
     const usable = extractNonPolicyDestinationFragment(c)
     if (usable) return usable
   }
