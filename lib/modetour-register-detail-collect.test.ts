@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourMustKnowFromKeyPointInfo,
+  extractModetourFeesFromDetailInfo,
   buildModetourFlightStructuredFromRoutes,
   extractModetourOptionalToursFromApiList,
   extractModetourShoppingStopsFromApiList,
@@ -12,6 +13,7 @@ import {
 } from './modetour-register-api-detail'
 import {
   modetourFactDaysToRegisterSchedule,
+  needsModetourFeeSupplementCollect,
   needsModetourIncludedExcludedCollect,
   needsModetourOptionalCollect,
   needsModetourScheduleCollect,
@@ -63,6 +65,19 @@ describe('modetour register detail collect', () => {
       needsModetourIncludedExcludedCollect({
         includedText: '항공권',
         excludedText: '팁',
+      } as RegisterParsed),
+    ).toBe(false)
+  })
+
+  it('needsModetourFeeSupplementCollect — 불포함 있어도 1인실 없으면 보강', () => {
+    expect(
+      needsModetourFeeSupplementCollect({
+        excludedItems: ['개인경비', '팁'],
+      } as RegisterParsed),
+    ).toBe(true)
+    expect(
+      needsModetourFeeSupplementCollect({
+        excludedItems: ['1인실 사용 시 추가 500,000원'],
       } as RegisterParsed),
     ).toBe(false)
   })
@@ -190,6 +205,20 @@ describe('modetour register detail collect', () => {
     expect(parsed.includedItems).toContain('숙박비(2인1실)')
     expect(parsed.excludedItems.some((x) => /가이드/.test(x))).toBe(true)
     expect(modetourHtmlNoteToPlainText(detail.includedNote)).toContain('왕복항공권')
+  })
+
+  it('1인실 추가비용 — 포함 오배치 시 불포함으로 이동', () => {
+    const detail = {
+      includedNote:
+        '<p><span>- 왕복항공권</span><br /><span>- 1인실 사용 시 추가 500,000원 발생</span></p>',
+      unincludedNote: '<p><span>- 개인경비</span></p>',
+      singleRoomCharge: 500000,
+    }
+    const parsed = extractModetourIncludedExcludedFromDetailInfo(detail)
+    expect(parsed.includedItems.some((x) => /1인실/.test(x))).toBe(false)
+    expect(parsed.excludedItems.some((x) => /1인\s*객실|1인실|500,000/.test(x))).toBe(true)
+    const fees = extractModetourFeesFromDetailInfo(detail)
+    expect(fees.singleRoomSurchargeAmount).toBe(500000)
   })
 
   it('Telerik CSS 잡음 — 포함/불포함 bullet만', () => {

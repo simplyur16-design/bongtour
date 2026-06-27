@@ -1,7 +1,7 @@
 /**
  * 모두투어 등록 상세카드 — GetProductDetailInfo·GetPackageInfo·GetProductKeyPointInfo B2C API.
  *
- * REGRESSION-FREEZE[modetour-register-detail-collect]: includedNote·unincludedNote·specialBenefits — manifest
+ * REGRESSION-FREEZE[modetour-register-detail-collect]: includedNote·unincludedNote·specialBenefits·1인실 불포함 — manifest
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: GetOptionalTourList·GetShoppingList — manifest
  * REGRESSION-FREEZE[modetour-register-taiwan-meal-shop]: DFS·잡화점 쇼핑 2그룹 분리 — manifest
  */
@@ -128,11 +128,115 @@ export function extractModetourIncludedExcludedFromDetailInfo(detail: Record<str
 } {
   const includedText = modetourHtmlNoteToPlainText(String(detail?.includedNote ?? ''))
   const excludedText = modetourHtmlNoteToPlainText(String(detail?.unincludedNote ?? ''))
+  let includedItems = modetourPlainTextToBullets(includedText)
+  let excludedItems = modetourPlainTextToBullets(excludedText)
+  const fees = extractModetourFeesFromDetailInfo(detail, includedText, excludedText)
+  if (fees.singleRoomSurchargeRaw && !excludedItems.some((x) => /1인\s*객실|1인실|싱글|독실|객실\s*추가/i.test(x))) {
+    excludedItems.push(fees.singleRoomSurchargeRaw)
+  }
+  if (fees.guideTipRaw && !excludedItems.some((x) => /가이드|기사|팁/i.test(x))) {
+    excludedItems.push(fees.guideTipRaw)
+  }
+  if (fees.visaRaw && !excludedItems.some((x) => /비자/i.test(x))) {
+    excludedItems.push(fees.visaRaw)
+  }
+  const partitioned = partitionModetourIncExcBullets(includedItems, excludedItems)
+  includedItems = partitioned.includedItems
+  excludedItems = partitioned.excludedItems
   return {
     includedText,
     excludedText,
-    includedItems: modetourPlainTextToBullets(includedText),
-    excludedItems: modetourPlainTextToBullets(excludedText),
+    includedItems,
+    excludedItems,
+  }
+}
+
+const MODETOUR_INCL_BULLET_TO_EXCL_RE =
+  /(?:1인\s*여행|1인\s*실|1인실|싱글|독실|1인\s*객실|객실\s*1인|룸\s*사용|객실\s*추가).*(?:추가|별도|발생)|가이드\/기사\s*경비|(?:가이드|기사).*(?:경비|팁).*(?:USD|\$|원|엔|￥)/i
+
+export type ModetourFeeExtract = {
+  singleRoomSurchargeRaw: string | null
+  singleRoomSurchargeAmount: number | null
+  guideTipRaw: string | null
+  visaRaw: string | null
+}
+
+function partitionModetourIncExcBullets(
+  includedItems: string[],
+  excludedItems: string[],
+): { includedItems: string[]; excludedItems: string[] } {
+  const moved: string[] = []
+  const keptIncluded = includedItems.filter((line) => {
+    if (!MODETOUR_INCL_BULLET_TO_EXCL_RE.test(line)) return true
+    moved.push(line)
+    return false
+  })
+  const outExcluded = [...excludedItems]
+  for (const line of moved) {
+    if (outExcluded.some((x) => x.includes(line.slice(0, 24)) || line.includes(x.slice(0, 24)))) continue
+    outExcluded.push(line)
+  }
+  return { includedItems: keptIncluded, excludedItems: outExcluded }
+}
+
+/** GetProductDetailInfo — 1인실·가이드경비 등 불포함 SSOT (includedNote 오배치 → excluded 이동). */
+export function extractModetourFeesFromDetailInfo(
+  detail: Record<string, unknown> | null | undefined,
+  includedText?: string | null,
+  excludedText?: string | null,
+): ModetourFeeExtract {
+  const hay = [includedText, excludedText, String(detail?.notesWhenShopping ?? ''), String(detail?.productNotice ?? '')]
+    .filter(Boolean)
+    .join('\n')
+  const lines = [
+    ...modetourPlainTextToBullets(modetourHtmlNoteToPlainText(String(detail?.unincludedNote ?? ''))),
+    ...modetourPlainTextToBullets(modetourHtmlNoteToPlainText(String(detail?.includedNote ?? ''))),
+    ...modetourPlainTextToBullets(hay),
+  ]
+
+  let singleRoomSurchargeRaw: string | null = null
+  let singleRoomSurchargeAmount: number | null = null
+  let guideTipRaw: string | null = null
+  let visaRaw: string | null = null
+
+  const singleRoomAmt = Number(detail?.singleRoomCharge ?? detail?.singleRoomAmount ?? detail?.roomChargeAmount)
+  if (Number.isFinite(singleRoomAmt) && singleRoomAmt > 0) {
+    singleRoomSurchargeAmount = singleRoomAmt
+    singleRoomSurchargeRaw = `1인 객실 추가 사용료 ${singleRoomAmt.toLocaleString('ko-KR')}원`
+  }
+
+  for (const line of lines) {
+    if (!singleRoomSurchargeRaw && /(1인\s*객실|1인실|싱글|독실|객실\s*1인|싱글룸|룸\s*사용|객실\s*추가)/i.test(line)) {
+      singleRoomSurchargeRaw = line
+      const m = line.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*원/)
+      if (m) singleRoomSurchargeAmount = Number(m[1]!.replace(/,/g, ''))
+    }
+    if (!guideTipRaw && /(가이드|기사).*(경비|팁|비용)/i.test(line)) guideTipRaw = line
+    if (!visaRaw && /(비자|visa)/i.test(line)) visaRaw = line
+  }
+
+  return { singleRoomSurchargeRaw, singleRoomSurchargeAmount, guideTipRaw, visaRaw }
+}
+
+export function applyModetourSingleRoomFieldsFromFees<T extends {
+  singleRoomSurchargeRaw?: string | null
+  singleRoomSurchargeDisplayText?: string | null
+  singleRoomSurchargeAmount?: number | null
+  singleRoomSurchargeCurrency?: string | null
+  hasSingleRoomSurcharge?: boolean | null
+}>(parsed: T, fees: ModetourFeeExtract): T {
+  if (!fees.singleRoomSurchargeRaw) return parsed
+  return {
+    ...parsed,
+    singleRoomSurchargeRaw: fees.singleRoomSurchargeRaw,
+    singleRoomSurchargeDisplayText: fees.singleRoomSurchargeRaw,
+    hasSingleRoomSurcharge: true,
+    ...(fees.singleRoomSurchargeAmount != null
+      ? {
+          singleRoomSurchargeAmount: fees.singleRoomSurchargeAmount,
+          singleRoomSurchargeCurrency: 'KRW' as const,
+        }
+      : {}),
   }
 }
 

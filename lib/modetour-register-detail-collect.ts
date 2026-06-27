@@ -18,6 +18,8 @@ import {
   extractModetourOptionalToursFromApiList,
   extractModetourShoppingFromDetailBundle,
   extractModetourShoppingStopsFromApiList,
+  applyModetourSingleRoomFieldsFromFees,
+  extractModetourFeesFromDetailInfo,
   fetchModetourRegisterDetailBundle,
 } from '@/lib/modetour-register-api-detail'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
@@ -45,46 +47,6 @@ import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 export type ModetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
-}
-
-function bulletLinesFromText(raw: string | null | undefined): string[] {
-  const t = (raw ?? '').trim()
-  if (!t) return []
-  return t
-    .split(/\r?\n/)
-    .map((l) => l.replace(/^[\s•·▪▶\-–—\d]+[.)]\s*/, '').trim())
-    .filter((l) => l.length > 1 && l.length < 400)
-}
-
-function extractFeeLinesFromExcluded(excludedText: string): {
-  singleRoomSurchargeRaw: string | null
-  guideTipRaw: string | null
-  visaRaw: string | null
-} {
-  const lines = bulletLinesFromText(excludedText)
-  let singleRoomSurchargeRaw: string | null = null
-  let guideTipRaw: string | null = null
-  let visaRaw: string | null = null
-  for (const line of lines) {
-    if (!singleRoomSurchargeRaw && /(싱글|1인\s*객실|객실\s*1인|싱글룸|룸\s*사용)/i.test(line)) {
-      singleRoomSurchargeRaw = line
-    }
-    if (!guideTipRaw && /(가이드|기사).*(경비|팁|비용)/i.test(line)) {
-      guideTipRaw = line
-    }
-    if (!visaRaw && /(비자|visa)/i.test(line)) {
-      visaRaw = line
-    }
-  }
-  return { singleRoomSurchargeRaw, guideTipRaw, visaRaw }
-}
-
-function parseSingleRoomAmount(raw: string | null): number | null {
-  if (!raw) return null
-  const m = raw.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*원/)
-  if (!m) return null
-  const n = Number(m[1]!.replace(/,/g, ''))
-  return Number.isFinite(n) && n > 0 ? n : null
 }
 
 function hasOptionalPaste(ctx?: ModetourRegisterDetailAugmentCtx): boolean {
@@ -120,6 +82,13 @@ export function needsModetourExcludedCollect(parsed: RegisterParsed): boolean {
 
 export function needsModetourIncludedExcludedCollect(parsed: RegisterParsed): boolean {
   return needsRegisterIncludedExcludedCollect(parsed)
+}
+
+export function needsModetourFeeSupplementCollect(parsed: RegisterParsed): boolean {
+  if (parsed.singleRoomSurchargeRaw?.trim() || parsed.singleRoomSurchargeDisplayText?.trim()) return false
+  const excl = (parsed.excludedItems ?? []).map((x) => String(x).trim()).filter((x) => x.length > 2)
+  if (excl.some((x) => /1인\s*객실|1인실|싱글|독실|객실\s*추가/i.test(x))) return false
+  return true
 }
 
 export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
@@ -180,15 +149,16 @@ export async function augmentModetourParsedWithDetailCollect(
     shoppingStops: parsed.shoppingStops,
   })
   const needFlight = needsRegisterFlightApiCollect(parsed)
+  const needFeeSupplement = needsModetourFeeSupplementCollect(parsed)
 
-  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
+  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight && !needFeeSupplement) {
     return await ensureModetourRegisterScheduleImageKeywords(parsed)
   }
 
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
 
-  const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt || needFlight
+  const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt || needFlight || needFeeSupplement
   const [facts, detailBundle] = await Promise.all([
     needSchedule ? collectModetourRegisterFacts(originUrl) : Promise.resolve(null),
     needDetailBundle
@@ -215,8 +185,13 @@ export async function augmentModetourParsedWithDetailCollect(
   }
 
   const inclExcl = extractModetourIncludedExcludedFromDetailInfo(detailBundle?.detailInfo)
-  if (needInclExcl && (inclExcl.includedItems.length > 0 || inclExcl.excludedItems.length > 0)) {
-    const fees = extractFeeLinesFromExcluded(inclExcl.excludedText ?? '')
+  const runInclExclMerge = needInclExcl || needFeeSupplement
+  if (runInclExclMerge && (inclExcl.includedItems.length > 0 || inclExcl.excludedItems.length > 0)) {
+    const fees = extractModetourFeesFromDetailInfo(
+      detailBundle?.detailInfo,
+      inclExcl.includedText,
+      inclExcl.excludedText,
+    )
     if (needIncl && (inclExcl.includedItems.length > 0 || inclExcl.includedText)) {
       next = {
         ...next,
@@ -225,7 +200,7 @@ export async function augmentModetourParsedWithDetailCollect(
         includedRaw: inclExcl.includedText ?? next.includedRaw,
       }
     }
-    if (needExcl && (inclExcl.excludedItems.length > 0 || inclExcl.excludedText)) {
+    if (needExcl || needFeeSupplement) {
       const mergedExcl = [...inclExcl.excludedItems]
       for (const extra of [fees.singleRoomSurchargeRaw, fees.guideTipRaw, fees.visaRaw]) {
         if (extra && !mergedExcl.some((x) => x.includes(extra.slice(0, 20)))) mergedExcl.push(extra)
@@ -237,21 +212,14 @@ export async function augmentModetourParsedWithDetailCollect(
         excludedRaw: inclExcl.excludedText ?? next.excludedText,
       }
     }
-    if (fees.singleRoomSurchargeRaw) {
-      const amt = parseSingleRoomAmount(fees.singleRoomSurchargeRaw)
-      next = {
-        ...next,
-        singleRoomSurchargeRaw: fees.singleRoomSurchargeRaw,
-        singleRoomSurchargeDisplayText: fees.singleRoomSurchargeRaw,
-        hasSingleRoomSurcharge: true,
-        ...(amt != null
-          ? { singleRoomSurchargeAmount: amt, singleRoomSurchargeCurrency: 'KRW' as const }
-          : {}),
-      }
+    next = applyModetourSingleRoomFieldsFromFees(next, fees)
+    if (needInclExcl) {
+      summaryParts.push(
+        `GetProductDetailInfo: 포함 ${inclExcl.includedItems.length}·불포함 ${inclExcl.excludedItems.length}항`,
+      )
+    } else if (needFeeSupplement && fees.singleRoomSurchargeRaw) {
+      summaryParts.push('GetProductDetailInfo: 1인실·부가요금 불포함 보강')
     }
-    summaryParts.push(
-      `GetProductDetailInfo: 포함 ${inclExcl.includedItems.length}·불포함 ${inclExcl.excludedItems.length}항`,
-    )
   }
 
   const shopping = extractModetourShoppingFromDetailBundle(detailBundle?.detailInfo, detailBundle?.packageInfo)

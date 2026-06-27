@@ -18,7 +18,7 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-hanatour'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
-import { ensureHanatourRegisterScheduleImageKeywords } from '@/lib/hanatour-register-detail-collect'
+import { ensureHanatourRegisterScheduleImageKeywords, augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
@@ -153,6 +153,7 @@ export async function parseHanatourRegisterFromApi(
 
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)
+  parsed = await augmentHanatourParsedWithDetailCollect(parsed, { originUrl })
   parsed = await ensureHanatourRegisterScheduleImageKeywords(parsed)
   return parsed
 }

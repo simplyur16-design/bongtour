@@ -15,7 +15,14 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-modetour'
 import { finalizeModetourRegisterParsedPricing } from '@/lib/register-modetour-price'
 import { finalizeModetourRegisterParsedShopping } from '@/lib/register-modetour-shopping'
-import { ensureModetourRegisterScheduleImageKeywords } from '@/lib/modetour-register-detail-collect'
+import {
+  applyModetourSingleRoomFieldsFromFees,
+  extractModetourFeesFromDetailInfo,
+} from '@/lib/modetour-register-api-detail'
+import {
+  augmentModetourParsedWithDetailCollect,
+  ensureModetourRegisterScheduleImageKeywords,
+} from '@/lib/modetour-register-detail-collect'
 
 const MODETOUR_PRICE_SLOT_SSOT_NOTE =
   '모두투어 가격표: adultPrice=성인, childExtraBedPrice=아동, childNoBedPrice=아동(무침대), infantPrice=유아. 달력은 GetOtherDepartureDates_lite SSOT.'
@@ -149,6 +156,11 @@ export async function parseModetourRegisterFromApi(
 
   parsed = finalizeModetourRegisterParsedPricing(parsed)
   parsed = finalizeModetourRegisterParsedShopping(parsed)
+  parsed = applyModetourSingleRoomFieldsFromFees(
+    parsed,
+    extractModetourFeesFromDetailInfo(null, parsed.includedText, parsed.excludedText),
+  )
+  parsed = await augmentModetourParsedWithDetailCollect(parsed, { originUrl })
   parsed = await ensureModetourRegisterScheduleImageKeywords(parsed)
   return parsed
 }
