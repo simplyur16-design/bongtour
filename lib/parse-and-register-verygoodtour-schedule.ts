@@ -4,6 +4,7 @@
  */
 import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import { applyVerygoodtourScheduleExpressionToRows } from '@/lib/verygoodtour-register-api-schedule'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { stripCounselingTermsFromScheduleRow } from '@/lib/itinerary-counseling-terms-strip'
 import {
@@ -41,10 +42,11 @@ export function augmentVerygoodtourScheduleExpressionParsed(
     const d = coerceScheduleDayToOneBased(base.day) ?? normalizeDay(base.day)
     return d != null && d >= 1 ? { ...base, day: d } : base
   })
+  const expressed = applyVerygoodtourScheduleExpressionToRows(cleaned)
   const skipPackageImageKw = isRegisterAirtelListing(opts?.travelScope, parsed.productType)
   const scheduleRows = skipPackageImageKw
-    ? cleaned
-    : applyAugmentScheduleImageKeywordsBySupplier(cleaned, {
+    ? expressed
+    : applyAugmentScheduleImageKeywordsBySupplier(expressed, {
         supplierKey: 'verygoodtour',
         productTitle: parsed.title,
         productDestination: parsed.primaryDestination ?? parsed.destination,

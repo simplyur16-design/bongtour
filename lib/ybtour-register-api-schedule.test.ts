@@ -20,6 +20,17 @@ describe('ybtour register api schedule expression', () => {
     assert.equal(joinYbtourScheduleRouteText(places), '호이안 옛도시')
   })
 
+  it('routeText — blank tmTitle uses cityNm + tmContent 관광/이동', () => {
+    const places = extractYbtourSchedulePlacesFromTmRows([
+      { tmNo: 1, tmTitle: ' ', cityNm: '비엔티안', tmContent: '호텔 조식 후 체크아웃' },
+      { tmNo: 2, tmTitle: ' ', cityNm: '비엔티안', tmContent: '왕궁 박물관 관광' },
+      { tmNo: 5, tmTitle: ' ', cityNm: '방비엥', tmContent: '방비엥으로 이동(약 1시간20분 소요)' },
+    ])
+    assert.equal(places.includes('비엔티안'), true)
+    assert.equal(places.includes('방비엥'), true)
+    assert.match(joinYbtourScheduleRouteText(places) ?? '', /비엔티안.*방비엥/)
+  })
+
   it('routeText — papi tmContent HTML strip before place extract', () => {
     const places = extractYbtourSchedulePlacesFromTmRows([
       {

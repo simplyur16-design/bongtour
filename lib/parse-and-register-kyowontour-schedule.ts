@@ -1,5 +1,6 @@
 /**
  * 교원이지(kyowontour) 등록 파이프: 일정 표현층만 보정.
+ * REGRESSION-FREEZE[kyowontour-schedule-expression]: applyKyowontourScheduleExpressionToRows — manifest
  * 누락 일차: 붙여넣기 본문의 `N일차` 블록으로만 보충 (LLM 행은 덮어쓰지 않음).
  * @see docs/register_schedule_expression_ssot.md
  */
@@ -19,6 +20,7 @@ import {
 } from '@/lib/kyowontour-schedule-day-header-title'
 import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
+import { applyKyowontourScheduleExpressionToRows } from '@/lib/kyowontour-register-api-schedule'
 import {
   mergeScheduleDaysPreservingExpressionMergingMealHotel,
 } from '@/lib/register-schedule-meal-hotel-merge'
@@ -297,10 +299,11 @@ export function augmentKyowontourScheduleExpressionParsed(
     if (!nextTitle) return r
     return { ...r, title: nextTitle.slice(0, 200) }
   })
+  const expressed = applyKyowontourScheduleExpressionToRows(titled)
   const skipPackageImageKw = isRegisterAirtelListing(opts?.travelScope, next.productType)
   const scheduleRows = skipPackageImageKw
-    ? titled
-    : applyAugmentScheduleImageKeywordsBySupplier(titled, {
+    ? expressed
+    : applyAugmentScheduleImageKeywordsBySupplier(expressed, {
         supplierKey: 'kyowontour',
         productTitle: next.title,
         productDestination: next.destination,

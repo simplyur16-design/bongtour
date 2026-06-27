@@ -75,6 +75,13 @@ function assertScheduleRouteAndDescription(
     assert.ok(parts.length >= 1, `day${row.day} routeText empty segments`)
     assert.ok(parts.length <= LOTTETOUR_SCHEDULE_ROUTE_MAX, `day${row.day} routeText > ${LOTTETOUR_SCHEDULE_ROUTE_MAX} places`)
 
+    const maxDay = schedule.reduce((m, r) => Math.max(m, Number(r.day) || 0), 0)
+    const isMiddleTourDay = row.day >= 2 && row.day <= maxDay - 1
+    const hotelOnly = /^(?:호텔|hotel)$/i.test(route)
+    if (isMiddleTourDay && !hotelOnly) {
+      assert.ok(parts.length >= 2, `day${row.day} middle day routeText must be a-b chain (got "${route.slice(0, 80)}")`)
+    }
+
     const desc = String(row.description ?? '').trim()
     assert.ok(desc.length > 0, `day${row.day} description empty`)
     const lines = desc.split(/\n/).map((l) => l.trim()).filter(Boolean)

@@ -7,7 +7,10 @@
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 import type { KyowontourScheduleRowParsed, KyowontourScheduleTabParsed } from '@/lib/kyowontour-tour-event-tab-data'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
-import { kyowontourFactDaysToRegisterSchedule } from '@/lib/kyowontour-register-api-schedule'
+import {
+  buildKyowontourScheduleRouteTextFromTabRows,
+  kyowontourFactDaysToRegisterSchedule,
+} from '@/lib/kyowontour-register-api-schedule'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import {
   mergeScheduleDaysPreservingExpressionMergingMealHotel,
@@ -38,11 +41,7 @@ function pickDayTitle(rows: KyowontourScheduleRowParsed[], day: number): string 
 }
 
 function buildRouteText(rows: KyowontourScheduleRowParsed[]): string | null {
-  const parts = rows
-    .filter((r) => (r.type === '관광지' || r.type === '국가/도시') && stripScheduleNameKo(r.nameKo))
-    .map((r) => stripScheduleNameKo(r.nameKo))
-  if (parts.length === 0) return null
-  return parts.join(' - ')
+  return buildKyowontourScheduleRouteTextFromTabRows(rows)
 }
 
 function buildHotelText(rows: KyowontourScheduleRowParsed[]): string | null {

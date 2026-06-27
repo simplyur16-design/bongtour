@@ -103,6 +103,11 @@ function extractPlaceFromYbtourTmTitle(title: string): string | null {
     const label = cleanYbtourRoutePlaceLabel(afterGuide[1])
     return label && !isYbtourRoutePlaceNoise(label) ? label : null
   }
+  const moveTo = t.match(/^(.{2,32}?)(?:으로|로)\s*이동/u)
+  if (moveTo?.[1]) {
+    const label = cleanYbtourRoutePlaceLabel(moveTo[1])
+    return label && !isYbtourRoutePlaceNoise(label) ? label : null
+  }
   const move = t.match(/(?:에서|후)\s*(.+?)(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|방문|관광|투어|탐방)/u)
   if (move?.[1]) {
     const label = cleanYbtourRoutePlaceLabel(move[1])
@@ -136,18 +141,23 @@ export function extractYbtourSchedulePlacesFromTmRows(rows: readonly YbtourSched
     const fromTitle = extractPlaceFromYbtourTmTitle(titlePlain)
     if (fromTitle) {
       out.push(fromTitle)
-    } else if (!isYbtourTmTitleMealOrNoise(titlePlain)) {
+    } else if (!titlePlain.trim() || !isYbtourTmTitleMealOrNoise(titlePlain)) {
       const city = String(row.cityNm ?? '').trim()
       if (city && !isYbtourRoutePlaceNoise(city)) out.push(city)
     }
     const content = stripYbtourHtmlText(String(row.tmContent ?? ''))
     if (content) {
       for (const line of content.split(/\n+/)) {
-        const arrow = line.match(/(?:▶|●|■)\s*(.+)/)
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        const arrow = trimmed.match(/(?:▶|●|■)\s*(.+)/)
         if (arrow?.[1]) {
           const label = cleanYbtourRoutePlaceLabel(arrow[1])
           if (label && !isYbtourRoutePlaceNoise(label)) out.push(label)
+          continue
         }
+        const fromLine = extractPlaceFromYbtourTmTitle(trimmed)
+        if (fromLine) out.push(fromLine)
       }
     }
   }

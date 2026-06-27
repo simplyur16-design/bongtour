@@ -1,11 +1,15 @@
 import { matchProductToOverseasNode, type OverseasProductMatchInput } from '@/lib/match-overseas-product'
 import {
   isMegaMenuRegionCityGroupTabId,
+  megaMenuGroupToDisplayLabel,
   resolveOverseasMegaMenuSubgroupLabelForBrowse,
 } from '@/lib/overseas-mega-region-city-group'
 import { resolveOverseasCountryRowLabelForBrowse } from '@/lib/overseas-display-buckets'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
 import { continentTabIdForMatch } from '@/lib/unified-location-tree'
+import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherence'
+import { countrySlugFromLabel } from '@/lib/location-url-slugs'
+import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
 
 export type RegisterMegaMenuGeoSummary = {
   /** browse `region=` 탭 id (japan, southeast-asia, …) */
@@ -19,6 +23,7 @@ export type RegisterMegaMenuGeoSummary = {
 
 /**
  * 등록 직후 geo·도시 태그 기준 메가메뉴 대·중·소분류 요약.
+ * REGRESSION-FREEZE[mega-menu-product-alignment]: cityKey placement 우선 — manifest
  * 운영·어드민 confirm 응답·로그용 (browse 노출 전 검수).
  */
 export function megaMenuSummaryNeedsOperatorReview(summary: RegisterMegaMenuGeoSummary): boolean {
@@ -65,14 +70,38 @@ export function buildRegisterMegaMenuGeoSummary(input: {
   }
 
   const match = matchProductToOverseasNode(matchInput)
-  const browseRegionTab = match
-    ? continentTabIdForMatch(match.groupKey, match.countryKey)
-    : null
+
+  const primaryCityKey =
+    input.cityKeys.find(Boolean)?.trim() ||
+    input.geo.cityKey?.trim() ||
+    null
+  const cityPlacement = primaryCityKey ? megaMenuPlacementForCityKey(primaryCityKey) : null
+
+  let browseRegionTab: string | null = null
+  let subgroupLabel: string | null = null
+
+  if (cityPlacement) {
+    browseRegionTab = cityPlacement.regionId
+    const tab = MEGA_MENU_TAB_DEFINITIONS.find((t) => t.id === cityPlacement.regionId)
+    const group = tab?.groups.find(
+      (g) => countrySlugFromLabel(g.countryLabel) === cityPlacement.menuGroupSlug,
+    )
+    subgroupLabel = group
+      ? megaMenuGroupToDisplayLabel(cityPlacement.regionId, group.countryLabel)
+      : null
+  }
+
+  if (!browseRegionTab && match) {
+    browseRegionTab = continentTabIdForMatch(match.groupKey, match.countryKey)
+  }
   if (!browseRegionTab) warnings.push('해외 목적지 트리 매칭 실패 — 권역 탭 분류 불명')
 
   const countryRowLabel = resolveOverseasCountryRowLabelForBrowse(matchInput, match)
-  let subgroupLabel: string | null = null
-  if (browseRegionTab && isMegaMenuRegionCityGroupTabId(browseRegionTab)) {
+  if (
+    browseRegionTab &&
+    isMegaMenuRegionCityGroupTabId(browseRegionTab) &&
+    !subgroupLabel
+  ) {
     subgroupLabel = resolveOverseasMegaMenuSubgroupLabelForBrowse(
       matchInput,
       match,

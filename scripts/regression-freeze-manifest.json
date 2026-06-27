@@ -166,6 +166,15 @@
       "summary": "등록 geo ↔ 메가메뉴 정합"
     },
     {
+      "id": "mega-menu-product-alignment",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:mega-menu-product-alignment",
+      "summary": "registered 해외 상품 ↔ 메가메뉴 대·중·소분류·browse URL 정합"
+    },
+    {
       "id": "register-detail-final-chain",
       "tier": [
         "prebuild",
@@ -315,6 +324,15 @@
       ],
       "script": "verify:verygoodtour-e2e-expired-url",
       "summary": "참좋은여행 E2E — 판매종료 URL 선검사·product-expired phase"
+    },
+    {
+      "id": "suppliers-schedule-route-text-chain",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:suppliers-schedule-route-text-chain",
+      "summary": "7공급사 일정요약 routeText a-b-c 체인 SSOT 점검"
     },
     {
       "id": "kyowontour-tour-event-tab-opt-shop",
@@ -4330,9 +4348,22 @@
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-schedule-expression]",
             "kyowontourFactDaysToRegisterSchedule",
+            "buildKyowontourScheduleRouteTextFromTabRows",
+            "applyKyowontourScheduleExpressionToRows",
             "composeLottetourScheduleDescription"
           ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-schedule-expression]",
+            "applyKyowontourScheduleExpressionToRows"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-register-api-schedule.test.ts",
+        "lib/kyowontour-register-schedule-collect.test.ts"
       ]
     },
     {
@@ -4693,7 +4724,8 @@
         {
           "file": "lib/parse-and-register-verygoodtour-schedule.ts",
           "mustInclude": [
-            "augmentVerygoodtourScheduleExpressionParsed"
+            "augmentVerygoodtourScheduleExpressionParsed",
+            "applyVerygoodtourScheduleExpressionToRows"
           ]
         }
       ]
@@ -5474,6 +5506,34 @@
         "lib/bongsim/welcomepay-vbank-noti.test.ts",
         "lib/bongsim/welcomepay-pg-text-decode.test.ts",
         "lib/bongsim/checkout/welcomepay-pg-auth-fail-message.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-product-alignment",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "cityKey placement 우선 mega menu summary + product browse 정합",
+      "checks": [
+        {
+          "file": "lib/register-mega-menu-geo-summary.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "megaMenuPlacementForCityKey",
+            "buildRegisterMegaMenuGeoSummary"
+          ]
+        },
+        {
+          "file": "scripts/verify-mega-menu-product-alignment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "megaMenuPlacementForCityKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-mega-menu-geo-summary.test.ts"
       ]
     },
     {

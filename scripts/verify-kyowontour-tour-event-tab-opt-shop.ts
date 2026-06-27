@@ -31,6 +31,8 @@ import { scheduleTabParsedToRegisterDays } from '../lib/kyowontour-register-sche
   assert.equal(scheduleTab.dayCount, 2)
   const days = scheduleTabParsedToRegisterDays(scheduleTab)
   assert.equal(days.length, 2)
+  assert.equal(days[0]?.routeText, '인천 - 쿤밍', 'day1 routeText chain')
+  assert.equal(days[1]?.routeText, '여강고성 - 대,소석림', 'day2 routeText chain')
   assert.ok(days[1]?.title.includes('여강고성'))
 }
 

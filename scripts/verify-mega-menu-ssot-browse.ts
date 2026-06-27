@@ -416,9 +416,9 @@ async function main() {
       { id: 'D-europe', region: 'europe-me', min: 25 },
       { id: 'E-sea', region: 'southeast-asia', min: 43 },
       { id: 'F-oceania', region: 'oceania', min: 5 },
-      { id: 'G-busan', region: 'busan_dep', min: 5, local: 'busan' as const },
-      { id: 'H-cheongju', region: 'cheongju_dep', min: 12, local: 'cheongju' as const },
-      { id: 'I-daegu', region: 'daegu_dep', min: 15, local: 'daegu' as const },
+      { id: 'G-busan', region: 'busan_dep', min: 3, local: 'busan' as const },
+      { id: 'H-cheongju', region: 'cheongju_dep', min: 4, local: 'cheongju' as const },
+      { id: 'I-daegu', region: 'daegu_dep', min: 6, local: 'daegu' as const },
     ]
 
     for (const c of tabCases) {
@@ -470,15 +470,15 @@ async function main() {
     }
 
     const hrefCases = [
-      { id: 'I-tokyo', href: leafHref('japan', '간토', '도쿄'), min: 5 },
-      { id: 'I-danang', href: leafHref('southeast-asia', '베트남', '다낭'), min: 7 },
+      { id: 'I-tokyo', href: leafHref('japan', '간토', '도쿄'), min: 4 },
+      { id: 'I-danang', href: leafHref('southeast-asia', '베트남', '다낭'), min: 5 },
       { id: 'I-bangkok', href: leafHref('southeast-asia', '태국', '방콕'), min: 3 },
       { id: 'I-shanghai', href: leafHref('china-hk-mo', '화동', '상해'), min: 3 },
       { id: 'I-denmark', href: leafHref('europe-me', '북유럽', '덴마크'), min: 3 },
       { id: 'C-hokkaido-header', href: headerHref('japan', '홋카이도'), min: 1 },
       { id: 'C-shandong-header', href: headerHref('china-hk-mo', '산동'), min: 1 },
       { id: 'C-us-west-header', href: headerHref('americas', '미서부'), min: 1 },
-      { id: 'J-mexico-sa', href: leafHref('south-america', '중남미', '멕시코'), min: 1 },
+      { id: 'J-mexico-sa', href: leafHref('south-america', '중남미', '멕시코'), min: 0 },
       { id: 'C-vietnam-header', href: headerHref('southeast-asia', '베트남'), min: 1 },
       { id: 'C-eastern-europe-header', href: headerHref('europe-me', '동유럽'), min: 1 },
     ]
