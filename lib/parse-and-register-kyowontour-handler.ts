@@ -1,7 +1,8 @@
 /**
  * 교원이지(kyowontour) 등록 POST — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[kyowontour-register-ssot-freeze]: manifest
- */import { parseForRegisterKyowontour } from '@/lib/register-parse-kyowontour'
+ */
+import { parseForRegisterKyowontour } from '@/lib/register-parse-kyowontour'
 import { runKyowontourRegisterFlow } from '@/lib/kyowontour-register-flow'
 import { sanitizeKyowontourRegisterParsedStrings } from '@/lib/register-kyowontour-text-sanitize'
 import {

@@ -933,7 +933,7 @@ export function applyKyowontourScheduleImageKeywordsToRows<
       primary = refillPrimary() ?? refillFromPriorDay()
     }
     if (!primary && slotKind === 'return' && day > 1) {
-      primary = refillFromPriorDay() || refillPrimary()
+      primary = refillFromPriorDay() || refillPrimary() || ''
     }
     if (primary) tripUsed.add(normKyowontourKwKey(primary))
 
