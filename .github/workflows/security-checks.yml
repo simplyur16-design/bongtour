@@ -11,6 +11,7 @@ jobs:
     env:
       # GitHub: actions/checkout·setup-node 내부 런타임 Node 20 폐기 대비 (경고 완화)
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v5

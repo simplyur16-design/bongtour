@@ -30,7 +30,7 @@ const CASES: LiveCase[] = [
   {
     supplier: 'modetour',
     label: 'modetour-air-hotel',
-    url: 'https://www.modetour.com/package/108826676',
+    url: 'https://www.modetour.com/package/108826753',
     travelScope: 'air_hotel_free',
   },
   {

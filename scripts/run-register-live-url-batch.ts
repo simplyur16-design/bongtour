@@ -57,10 +57,10 @@ const CASES: Case[] = [
     route: '/api/travel/parse-and-register-modetour',
   },
   {
-    label: 'modetour-air-hotel-108826676',
+    label: 'modetour-air-hotel-108826753',
     originSource: 'modetour',
     factsSupplier: 'modetour',
-    originUrl: 'https://www.modetour.com/package/108826676',
+    originUrl: 'https://www.modetour.com/package/108826753',
     travelScope: 'air_hotel_free',
     route: '/api/travel/parse-and-register-modetour',
   },

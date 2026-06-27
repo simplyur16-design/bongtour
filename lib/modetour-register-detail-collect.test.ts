@@ -33,7 +33,9 @@ describe('modetour register detail collect', () => {
     expect(needsModetourScheduleCollect({ schedule: [] } as RegisterParsed)).toBe(true)
     expect(
       needsModetourScheduleCollect({
-        schedule: [{ day: 1, title: '오사카', description: '관광', imageKeyword: 'Osaka' }],
+        schedule: [
+          { day: 1, title: '오사카', description: '관광', routeText: '오사카', imageKeyword: 'Osaka' },
+        ],
       } as RegisterParsed),
     ).toBe(false)
   })

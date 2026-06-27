@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # vitest import chain may touch PrismaClient — CI has no .env; dummy URL is enough for module init
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

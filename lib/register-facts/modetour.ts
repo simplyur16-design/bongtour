@@ -113,6 +113,24 @@ async function fetchModetourRegisterFactPriceRows(
   }
 }
 
+/** register-facts·detail-parity 공용 — GetOtherDepartureDates_lite + detail 단건 폴백 행 수. */
+export async function countModetourRegisterFactPriceRows(
+  originUrl: string,
+  detail?: Record<string, unknown> | null,
+): Promise<number> {
+  const productNo = parseModetourPackageProductNoFromUrl(originUrl)
+  if (!productNo || productNo === '0') return 0
+  const referer = originUrl.trim() || `https://www.modetour.com/package/${productNo}`
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const priceRows = await fetchModetourRegisterFactPriceRows(productNo, referer, fromYmd, toYmd)
+  if (priceRows.length > 0) return priceRows.length
+  const fallbackDate = ymdFromIso(String(detail?.departureDate ?? ''))
+  const fallbackAdult = Number(detail?.sellingPriceAdultTotalAmount ?? detail?.sellingPrice ?? 0)
+  if (fallbackDate && Number.isFinite(fallbackAdult) && fallbackAdult > 0) return 1
+  return 0
+}
+
 export async function collectModetourRegisterFacts(
   originUrl: string,
   options?: { originCode?: string | null },

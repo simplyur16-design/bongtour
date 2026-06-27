@@ -35,7 +35,9 @@ describe('ybtour register detail collect', () => {
     ).toBe(true)
     expect(
       needsYbtourScheduleCollect({
-        schedule: [{ day: 1, title: '다낭', description: '관광', imageKeyword: 'Da Nang' }],
+        schedule: [
+          { day: 1, title: '다낭', description: '관광', routeText: '다낭', imageKeyword: 'Da Nang' },
+        ],
       } as RegisterParsed),
     ).toBe(false)
   })

@@ -1,6 +1,7 @@
 /**
  * register-facts ↔ *-register-api-detail 교차검증 — detail-collect 축 카운트 SSOT.
  * REGRESSION-FREEZE[register-facts-completeness]
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: modetour calendar — GetOtherDepartureDates_lite SSOT
  */
 import {
   collectHanatourApiDepartureInputsForMonths,
@@ -13,13 +14,14 @@ import {
   fetchHanatourRegisterDetailBundle,
   hanatourItnrToFactDays,
 } from '@/lib/hanatour-register-api-detail'
-import { collectModetourDepartureInputsForDateRange, parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourShoppingFromDetailBundle,
   fetchModetourRegisterDetailBundle,
 } from '@/lib/modetour-register-api-detail'
 import {
+  countModetourRegisterFactPriceRows,
   modetourFlightRoutesToFactLegs,
   modetourScheduleItemsToFactDays,
 } from '@/lib/register-facts/modetour'
@@ -131,7 +133,7 @@ async function fetchModetourDetailParityMetrics(originUrl: string): Promise<Regi
   const headers = modetourHeaders(referer, productNo)
   const base = MODETOUR_API_BASE.replace(/\/$/, '')
 
-  const [detailBundle, scheduleJson, flightJson, calInputs] = await Promise.all([
+  const [detailBundle, scheduleJson, flightJson] = await Promise.all([
     fetchModetourRegisterDetailBundle(originUrl),
     fetchModetourJson<{ result?: { scheduleItemList?: Parameters<typeof modetourScheduleItemsToFactDays>[0] } }>(
       `${base}/Package/GetScheduleList?productNo=${encodeURIComponent(productNo)}`,
@@ -141,13 +143,12 @@ async function fetchModetourDetailParityMetrics(originUrl: string): Promise<Regi
       `${base}/Package/ItineraryDlgFlightRoute?productNo=${encodeURIComponent(productNo)}`,
       headers,
     ),
-    collectModetourDepartureInputsForDateRange(
-      referer,
-      kstTodayYmd(),
-      addDaysUtcYmd(kstTodayYmd(), RULE_A_WINDOW_DAYS),
-      { skipBaselineMatch: true },
-    ),
   ])
+
+  const detailPriceRows = await countModetourRegisterFactPriceRows(
+    originUrl,
+    (detailBundle?.detailInfo ?? null) as Record<string, unknown> | null,
+  )
 
   const scheduleItems = scheduleJson?.result?.scheduleItemList ?? []
   const flightRoutes = flightJson?.result ?? []
@@ -163,7 +164,7 @@ async function fetchModetourDetailParityMetrics(originUrl: string): Promise<Regi
     detailExcludedCount: inclExcl.excludedItems.length,
     detailShoppingCount: shopping.shoppingVisitCount != null ? 1 : 0,
     detailFlightSignal: flightLegHasSignal(flights),
-    detailPriceRows: calInputs.length,
+    detailPriceRows,
   }
 }
 

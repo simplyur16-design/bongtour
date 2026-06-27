@@ -125,7 +125,7 @@ function guardNpmScriptsForTier(
 function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]): void {
   const guards = manifest.staticGuards.filter((g) => tierMatch(g.tier, runTier))
   for (const guard of guards) {
-    for (const check of guard.checks) {
+    for (const check of guard.checks ?? []) {
       const full = path.join(ROOT, check.file)
       if (!fs.existsSync(full)) {
         failures.push(`[${guard.id}] missing file: ${check.file}`)

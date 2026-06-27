@@ -1848,7 +1848,18 @@
       "id": "modetour-register-samples-live-gate",
       "tier": ["ci"],
       "summary": "모두투어 SSOT 9샘플 — API parse + detail-collect live gate",
-      "npmScripts": ["verify:register-modetour-samples-live-gate"]
+      "npmScripts": ["verify:register-modetour-samples-live-gate"],
+      "checks": [
+        {
+          "file": "scripts/verify-register-modetour-samples-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-samples-live-gate]",
+            "parseModetourRegisterFromApi",
+            "augmentModetourParsedWithDetailCollect",
+            "registerFlightCollectLooksComplete"
+          ]
+        }
+      ]
     },
     {
       "id": "hanatour-register-api-price-inject",
@@ -2155,6 +2166,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "skipPerDateDayAirFetch"
+          ]
+        },
+        {
+          "file": "lib/register-facts/detail-parity-metrics.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "countModetourRegisterFactPriceRows",
+            "GetOtherDepartureDates_lite"
           ]
         }
       ],
