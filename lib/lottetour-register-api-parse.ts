@@ -4,8 +4,10 @@
  * REGRESSION-FREEZE[lottetour-register-api-parse]: collectLottetourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[lottetour-register-ssot-freeze]: API-only register parse — manifest
  */
-import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 import { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
+import {
+  resolveLottetourRegisterOriginIdsFromUrl,
+} from '@/lib/lottetour-register-api-detail'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
@@ -14,6 +16,7 @@ import { finalizeLottetourRegisterParsedPricing } from '@/lib/register-lottetour
 import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetour-shopping'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { lottetourFactDaysToRegisterSchedule } from '@/lib/lottetour-register-api-schedule'
+import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
 
 export const LOTTETOUR_PRICE_SLOT_SSOT_NOTE =
   '롯데관광 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -74,15 +77,18 @@ export async function parseLottetourRegisterFromApi(
   options?: LottetourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
-  const ids = extractLottetourMasterIdsFromBlob(originUrl || rawText)
-  if (!originUrl || !ids.evtCd) {
-    throw new Error('롯데관광 등록에는 유효한 originUrl(evtCd)이 필요합니다.')
+  const ids = await resolveLottetourRegisterOriginIdsFromUrl(originUrl || rawText)
+  if (!originUrl || (!ids.evtCd && !ids.godId)) {
+    throw new Error('롯데관광 등록에는 유효한 originUrl(godId 또는 evtCd)이 필요합니다.')
   }
 
   const bundle = await collectLottetourRegisterFacts(originUrl)
   if (!bundle) {
-    throw new Error('register-facts 수집에 실패했습니다. URL·evtCd를 확인하세요.')
+    throw new Error('register-facts 수집에 실패했습니다. URL·godId·evtCd를 확인하세요.')
   }
+
+  const resolvedEvtCd = bundle.originCode?.trim() || ids.evtCd
+  const resolvedGodId = ids.godId
 
   const paste = rawText.trim()
   const listingTitle = bundle.title?.trim() || ''
@@ -102,7 +108,9 @@ export async function parseLottetourRegisterFromApi(
 
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'lottetour',
-    originCode: bundle.originCode ?? ids.evtCd,
+    originCode: resolvedEvtCd ?? resolvedGodId ?? '',
+    godId: resolvedGodId,
+    evtCd: resolvedEvtCd,
     title: listingTitle || '미지정',
     supplierListingTitleRaw: listingTitle || null,
     destination: dest.destination,
@@ -134,6 +142,7 @@ export async function parseLottetourRegisterFromApi(
 
   parsed = finalizeLottetourRegisterParsedPricing(parsed)
   parsed = finalizeLottetourRegisterParsedShopping(parsed)
+  parsed = await augmentLottetourParsedWithDetailCollect(parsed, { originUrl })
 
   if ((parsed.schedule?.length ?? 0) > 0) {
     const destHint = parsed.primaryDestination ?? parsed.destination ?? null

@@ -4215,7 +4215,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-register-api-parse]",
             "parseLottetourRegisterFromApi",
-            "collectLottetourRegisterFacts"
+            "collectLottetourRegisterFacts",
+            "resolveLottetourRegisterOriginIdsFromUrl",
+            "godId 또는 evtCd"
           ]
         },
         {
@@ -4224,6 +4226,9 @@
             "parseLottetourRegisterFromApi"
           ]
         }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-register-api-parse.test.ts"
       ]
     },
     {
@@ -4429,6 +4434,33 @@
           "mustInclude": [
             "needsLottetourOptionalCollect",
             "buildLottetourFlightStructuredFromRegisterSources"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lottetour-register-godid-hokkaido-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "롯데관광 evtList godId=66176 — evtCd 자동 resolve·register-facts·parse live",
+      "npmScripts": [
+        "verify:register-lottetour-godid-hokkaido-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-lottetour-godid-hokkaido-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-godid-hokkaido-live-gate]",
+            "godId=66176",
+            "resolveLottetourRegisterOriginIdsFromUrl",
+            "parseLottetourRegisterFromApi"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "resolveLottetourRegisterOriginIdsFromUrl"
           ]
         }
       ]

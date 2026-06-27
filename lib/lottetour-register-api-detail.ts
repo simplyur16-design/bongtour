@@ -1,7 +1,7 @@
 /**
  * 롯데관광 등록 상세카드 — evtDetailBasicAjax·evtDetailCoreInfo 파싱 SSOT.
  *
- * REGRESSION-FREEZE[lottetour-register-detail-collect]: basicAjax·coreInfo 매핑 — manifest
+ * REGRESSION-FREEZE[lottetour-register-detail-collect]: basicAjax·coreInfo 매핑·godId-only evtCd resolve — manifest
  */
 import {
   departDateFromLottetourEvtCd,
@@ -824,5 +824,22 @@ export async function fetchLottetourRegisterDetailBundle(
     evtCd,
     godId,
     godScheId,
+  }
+}
+
+/** evtList(godId만)·evtDetail(evtCd) URL → 등록용 godId·evtCd SSOT. evtCd 없으면 evtListAjax 시드. */
+export async function resolveLottetourRegisterOriginIdsFromUrl(originUrl: string): Promise<{
+  godId: string | null
+  evtCd: string | null
+}> {
+  const url = originUrl.trim()
+  const ids = extractLottetourMasterIdsFromBlob(url)
+  if (ids.evtCd && ids.godId) return ids
+  if (ids.evtCd) return ids
+  if (!ids.godId) return ids
+  const bundle = await fetchLottetourRegisterDetailBundle(url)
+  return {
+    godId: bundle?.godId ?? ids.godId,
+    evtCd: bundle?.evtCd ?? ids.evtCd,
   }
 }

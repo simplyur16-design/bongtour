@@ -146,6 +146,7 @@
     "verify:register-modetour-danang-live-gate": "npx tsx scripts/verify-register-modetour-danang-live-gate.ts",
     "verify:register-ybtour-taiwan-live-gate": "npx tsx scripts/verify-register-ybtour-taiwan-live-gate.ts",
     "verify:register-lottetour-xiamen-live-gate": "npx tsx scripts/verify-register-lottetour-xiamen-live-gate.ts",
+    "verify:register-lottetour-godid-hokkaido-live-gate": "npx tsx scripts/verify-register-lottetour-godid-hokkaido-live-gate.ts",
     "verify:register-facts-detail-parity": "npx tsx scripts/verify-register-facts-detail-parity.ts",
     "verify:product-departure-airport-migration": "npx tsx scripts/verify-product-departure-airport-migration.ts",
     "db:backfill-departure-airport-label": "npx tsx scripts/backfill-product-departure-airport-label.ts",
