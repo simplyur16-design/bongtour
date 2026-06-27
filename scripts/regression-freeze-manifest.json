@@ -94,6 +94,15 @@
       "summary": "롯데관광 등록 SSOT 스냅샷 — API parse·orchestration/LLM 제거·URL-only preview"
     },
     {
+      "id": "kyowontour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:kyowontour-register-ssot-freeze",
+      "summary": "교원이지 등록 SSOT 스냅샷 — API parse·Gemini gate 제거·URL-only preview"
+    },
+    {
       "id": "ybtour-by-goods-departure-list",
       "tier": [
         "ci"
@@ -2760,7 +2769,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-kyowontour-orchestration.ts",
+          "file": "lib/kyowontour-register-flow.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]
@@ -4217,6 +4226,78 @@
       ]
     },
     {
+      "id": "kyowontour-register-api-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 등록 parseFn — collectKyowontourRegisterFacts API SSOT",
+      "checks": [
+        {
+          "file": "lib/kyowontour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-api-parse]",
+            "parseKyowontourRegisterFromApi",
+            "collectKyowontourRegisterFacts"
+          ]
+        },
+        {
+          "file": "lib/register-parse-kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-api-parse]",
+            "parseKyowontourRegisterFromApi"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kyowontour-schedule-expression",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 일정 routeText a–g + description 분위기 SSOT",
+      "checks": [
+        {
+          "file": "lib/kyowontour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-schedule-expression]",
+            "kyowontourFactDaysToRegisterSchedule",
+            "composeLottetourScheduleDescription"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kyowontour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 등록 SSOT — flow·handler·api-parse Gemini overlay 없음",
+      "checks": [
+        {
+          "file": "scripts/verify-kyowontour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-ssot-freeze]"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-ssot-freeze]",
+            "runKyowontourRegisterFlow"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-kyowontour-handler.ts",
+          "mustInclude": [
+            "runKyowontourRegisterFlow"
+          ]
+        }
+      ]
+    },
+    {
       "id": "ybtour-register-taiwan-live-gate",
       "tier": [
         "ci"
@@ -4570,7 +4651,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-kyowontour-orchestration.ts",
+          "file": "lib/kyowontour-register-flow.ts",
           "mustInclude": [
             "detailBodyStructured?.raw?.hotelPasteRaw"
           ],

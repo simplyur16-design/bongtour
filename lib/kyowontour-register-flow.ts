@@ -1,3 +1,7 @@
+/**
+ * 교원이지(kyowontour) 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
+ * REGRESSION-FREEZE[kyowontour-register-ssot-freeze]: manifest
+ */
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 import {
@@ -66,7 +70,6 @@ function registerPersistedHasCalendarDraftSignals(
   const airOk = Boolean(air && !/^항공예정$/i.test(air) && !/^항공\s*미정/i.test(air))
   return airOk || legOk(fs.outbound) || legOk(fs.inbound)
 }
-import { testGeminiConnection } from '@/lib/gemini-client'
 import {
   enrichKyowontourDepartureInputsForConfirmSave,
   loadKyowontourProductInfantFallback,
@@ -460,7 +463,7 @@ function parseOptionalTourDisplayNoticeManualFromBody(body: Record<string, unkno
   return s ? s.slice(0, 2000) : null
 }
 
-export async function runParseAndRegisterFlow(request: Request, flowOptions: ParseAndRegisterFlowOptions) {
+export async function runKyowontourRegisterFlow(request: Request, flowOptions: ParseAndRegisterFlowOptions) {
   currentLogPrefix = flowOptions.logPrefix
   const {
     parseFn,
@@ -558,10 +561,11 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     ctx.hasPreviewToken = typeof body.previewToken === 'string' && body.previewToken.trim().length > 0
     ctx.hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim())
 
-    if (!text && !hasParsed) {
+    if (!text && !hasParsed && !originUrl) {
       return NextResponse.json(
         {
-          error: '공급사 상세 본문을 붙여넣어 주세요. 공통 등록은 복붙 텍스트가 단일 입력(SSOT)이며, URL만으로 미리보기할 수 없습니다.',
+          error:
+            '교원이지 등록에는 공급사 상품 URL 또는 상세 본문 붙여넣기가 필요합니다.',
         },
         { status: 400 }
       )
@@ -570,52 +574,6 @@ export async function runParseAndRegisterFlow(request: Request, flowOptions: Par
     const pastedBlocks = parsePastedBlocksFromBody(body)
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
-
-    stage = 'testGeminiConnection'
-    ctx.stage = stage
-    const connectionTest = await testGeminiConnection()
-    if (!connectionTest.ok && isDev) {
-      console.warn(currentLogPrefix, 'geminiConnectionTest', { ok: false, model: connectionTest.model, error: connectionTest.error })
-    }
-
-    if (!hasParsed && !process.env.GEMINI_API_KEY?.trim()) {
-      stage = 'missingGeminiKey'
-      ctx.stage = stage
-      ctx.hasGeminiKey = false
-      const msg =
-        '등록 파싱에 필요한 GEMINI_API_KEY가 설정되지 않았습니다. .env.local에 키를 추가한 뒤 개발 서버를 재시작하세요.'
-      if (isDev) {
-        console.warn(currentLogPrefix, 'blocked', {
-          stage: 'missingGeminiKey',
-          mode: ctx.mode,
-          hasPastedRaw: ctx.hasPastedRaw,
-          hasPreviewToken: ctx.hasPreviewToken,
-          hasGeminiKey: false,
-          missingEnv: ['GEMINI_API_KEY'],
-        })
-      } else {
-        console.warn(currentLogPrefix, 'blocked', { stage: 'missingGeminiKey', mode: ctx.mode })
-      }
-      return NextResponse.json(
-        {
-          success: false,
-          error: msg,
-          ...(isDev
-            ? {
-                debug: {
-                  stage: 'missingGeminiKey',
-                  mode: ctx.mode,
-                  hasPastedRaw: ctx.hasPastedRaw,
-                  hasPreviewToken: ctx.hasPreviewToken,
-                  hasGeminiKey: false,
-                  missingEnv: ['GEMINI_API_KEY'] as const,
-                },
-              }
-            : {}),
-        },
-        { status: 400 }
-      )
-    }
 
     stage = hasParsed ? 'reuseParsedBody' : 'parseForRegister'
     ctx.stage = stage
