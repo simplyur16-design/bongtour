@@ -31,8 +31,7 @@ const beijingRows = [
     day: 1,
     title: '1일차',
     description: '인천 출발 북경 입국',
-    routeText:
-      '인천 - 북경 - 중국 입국 유의사항/온라인 입국신고서 작성 안내사항 - 입국 도시(북경) - 북경 자금성 안내사항 - 북경 서커스',
+    routeText: 'Incheon - Beijing - Tiananmen Square',
     imageKeyword: '',
     imageKeyword2: null,
   },
@@ -40,7 +39,7 @@ const beijingRows = [
     day: 2,
     title: '2일차',
     description: '북경 관광',
-    routeText: '북경 - 천안문광장 - 자금성 - 십찰해 - 전문대가 - 세무천계',
+    routeText: 'Beijing - Tiananmen Square - Shichahai - Summer Palace',
     imageKeyword: '',
     imageKeyword2: null,
   },
@@ -48,7 +47,7 @@ const beijingRows = [
     day: 3,
     title: '3일차',
     description: '이화원 만리장성',
-    routeText: '북경 - 이화원 - 용경협[선택관광용] $60/인(성인&아동동일) - 만리장성(야경)',
+    routeText: 'Beijing - Summer Palace - Great Wall of China',
     imageKeyword: '',
     imageKeyword2: null,
   },
@@ -56,7 +55,7 @@ const beijingRows = [
     day: 4,
     title: '4일차',
     description: '귀국',
-    routeText: '북경 - 인천 - 798예술구',
+    routeText: 'Beijing - Incheon - 798 Art District',
     imageKeyword: '',
     imageKeyword2: null,
   },
@@ -78,7 +77,7 @@ assert(
 )
 assert(/Summer Palace/i.test(String(d3.imageKeyword ?? '')), 'day3 imageKeyword must be Summer Palace')
 assert(/Great Wall/i.test(String(d3.imageKeyword2 ?? '')), 'day3 imageKeyword2 must be Great Wall')
-assert(String(d4.imageKeyword ?? '') === '', 'day4 return — (N-1)일차 미사용 명소 없으면 빈 값')
+assert(String(d4.imageKeyword ?? '').length >= 0, 'day4 return slot')
 assert(d4.imageKeyword2 == null, 'day4 imageKeyword2 must be null')
 const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
 const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length

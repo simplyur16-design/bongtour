@@ -1,6 +1,7 @@
 /**
  * 노랑풍선(ybtour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(동선 1줄 + 분위기 2~3문장).
  * REGRESSION-FREEZE[ybtour-register-detail-collect]: ybtourScheduleBundleToRegisterSchedule — manifest
+ * REGRESSION-FREEZE[ybtour-register-api-schedule-tm-html-strip]: papi tmContent HTML strip — manifest
  */
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
@@ -8,6 +9,21 @@ import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-k
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
+
+/** papi notice·scheduleDetailTm HTML → plain text (routeText·description SSOT) */
+export function stripYbtourHtmlText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&middot;/gi, '·')
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/\n[ \t]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
 const YBTOUR_ROUTE_PLACE_NOISE_RE =
   /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)/i
@@ -29,6 +45,7 @@ function isYbtourRoutePlaceNoise(label: string): boolean {
   if (!t || t.length < 2 || t.length > 80) return true
   if (YBTOUR_ROUTE_PLACE_NOISE_RE.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
+  if (/차별화\s*POINT|노랑풍선\s*차별화|<\/?\w+/i.test(t)) return true
   if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
   return false
 }
@@ -115,17 +132,18 @@ export function extractYbtourSchedulePlacesFromTmRows(rows: readonly YbtourSched
   const sorted = [...rows].sort((a, b) => Number(a.tmNo ?? 0) - Number(b.tmNo ?? 0))
   const out: string[] = []
   for (const row of sorted) {
-    const fromTitle = extractPlaceFromYbtourTmTitle(String(row.tmTitle ?? ''))
+    const titlePlain = stripYbtourHtmlText(String(row.tmTitle ?? ''))
+    const fromTitle = extractPlaceFromYbtourTmTitle(titlePlain)
     if (fromTitle) {
       out.push(fromTitle)
-    } else if (!isYbtourTmTitleMealOrNoise(String(row.tmTitle ?? ''))) {
+    } else if (!isYbtourTmTitleMealOrNoise(titlePlain)) {
       const city = String(row.cityNm ?? '').trim()
       if (city && !isYbtourRoutePlaceNoise(city)) out.push(city)
     }
-    const content = String(row.tmContent ?? '').trim()
+    const content = stripYbtourHtmlText(String(row.tmContent ?? ''))
     if (content) {
       for (const line of content.split(/\n+/)) {
-        const arrow = line.match(/(?:▶|●)\s*(.+)/)
+        const arrow = line.match(/(?:▶|●|■)\s*(.+)/)
         if (arrow?.[1]) {
           const label = cleanYbtourRoutePlaceLabel(arrow[1])
           if (label && !isYbtourRoutePlaceNoise(label)) out.push(label)
@@ -305,8 +323,7 @@ export function applyYbtourScheduleExpressionToRows<T extends RegisterScheduleDa
     const day = Number(row.day)
     if (day <= 0) return row
     const fromRoute = row.routeText ? dedupeYbtourScheduleRoutePlaces(row.routeText.split(/\s*-\s*/)) : []
-    const fromPaste = extractYbtourSchedulePlacesFromPastedBlock(String(row.description ?? ''))
-    const routePlaces = dedupeYbtourScheduleRoutePlaces([...fromRoute, ...fromPaste])
+    const routePlaces = dedupeYbtourScheduleRoutePlaces(fromRoute)
     const routeText = joinYbtourScheduleRouteText(routePlaces) ?? row.routeText ?? null
     const joinedBlob = [row.title, row.description, routeText].filter(Boolean).join('\n')
     const description = composeYbtourScheduleDescription({

@@ -159,7 +159,11 @@ export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
 const HANATOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
 const HANATOUR_HIGHLIGHT_NOISE_RE =
-  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$/i
+  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$|유의\s*사항|예약\s*시|출입국\s*정보|여행\s*시\s*유의|참고\s*사항/i
+
+/** ITNR meta cards — 유의사항·출입국 안내 등 일정 routeText/title에 넣지 않음. REGRESSION-FREEZE[hanatour-register-detail-collect] */
+const HANATOUR_ITNR_META_CARD_RE =
+  /유의\s*사항|예약\s*시|예약\s*전|참고\s*사항|출입국\s*(?:카드\s*)?정보|여행\s*시\s*유의|두바이\s*및|출입국\s*카드|여행일정\s*변경|사전\s*동의|미팅\s*정보/i
 
 function normalizeHanatourHighlightKey(label: string): string {
   return label
@@ -685,13 +689,35 @@ export function shoppingRowsToStopsJson(rows: ShoppingStructured['rows']): strin
 }
 
 const HANATOUR_ITNR_PLACE_NOISE_RE =
-  /주의사항|여행\s*정보|여행\s*주의|자유식\s*추천|추천식당|^HELLO[\s,]/i
+  /주의\s*사항|유의\s*사항|여행\s*정보|여행\s*주의|자유식\s*추천|추천식당|예약\s*시|출입국|^HELLO[\s,]/i
 
 function isHanatourItnrNoisePlaceLabel(label: string): boolean {
   const t = label.trim()
   if (!t || t.length < 2) return true
   if (HANATOUR_ITNR_PLACE_NOISE_RE.test(t)) return true
+  if (HANATOUR_ITNR_META_CARD_RE.test(t)) return true
   if (/^Hong Kong$/i.test(t)) return true
+  return false
+}
+
+/** getPkgProdItnrInfo 카드 — 관광 POI가 아닌 안내·유의·출입국 메타 */
+export function isHanatourItnrNonRouteCard(main: HanatourItnrSchdMain): boolean {
+  const cat = String(main.schdCatgNm ?? '').trim()
+  const blob = [
+    main.schdTitlNm,
+    main.schdCont,
+    main.cardNm,
+    ...(main.cmsInfoList ?? []).map((c) => c.cmsCntntNm),
+  ]
+    .map((s) => stripHanatourHtmlText(String(s ?? '')))
+    .filter(Boolean)
+    .join(' ')
+  if (!blob.trim()) return false
+  if (HANATOUR_ITNR_META_CARD_RE.test(blob)) return true
+  if (/^(?:안내|유의|참고|공지|정보)$/u.test(cat) && !/관광|이동|항공/.test(cat)) return true
+  if (/유의\s*사항|출입국\s*정보|예약\s*시\s*유의/i.test(blob) && !/(?:섬|공원|사원|유적|박물관|타워|월드)/u.test(blob)) {
+    return true
+  }
   return false
 }
 
@@ -752,6 +778,7 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
     }
     for (const main of dayRow.schdMainInfoList ?? []) {
       const cat = String(main.schdCatgNm ?? '').trim()
+      if (isHanatourItnrNonRouteCard(main)) continue
       if (cat.includes('식사')) {
         const meal = hanatourItnrMealLine(main)
         if (meal) fact.meals.push(meal)

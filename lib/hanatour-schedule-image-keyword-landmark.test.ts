@@ -30,6 +30,7 @@ describe('applyHanatourScheduleImageKeywordsToRows — 랜드마크 우선', () 
   it('LLM이 카페 키워드여도 본문 명소(본다이)로 교정', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', description: '인천 출발', routeText: '인천 - 시드니', imageKeyword: '', imageKeyword2: null },
         {
           day: 3,
           title: '본다이 비치',
@@ -38,17 +39,20 @@ describe('applyHanatourScheduleImageKeywordsToRows — 랜드마크 우선', () 
           imageKeyword: 'Sydney cafe brunch district',
           imageKeyword2: null,
         },
+        { day: 4, title: '귀국', description: '인천 도착', routeText: '시드니 - 인천', imageKeyword: '', imageKeyword2: null },
       ],
       sydneyOpts,
     )
-    expect(out[0]!.imageKeyword).toBe('Bondi Beach')
-    expect(out[0]!.imageKeyword).not.toMatch(/cafe|brunch|restaurant/i)
-    expect(isScheduleImageKeywordLandmarkEligible(out[0]!.imageKeyword!)).toBe(true)
+    const d3 = out.find((r) => r.day === 3)!
+    expect(d3.imageKeyword).toBe('Bondi Beach')
+    expect(d3.imageKeyword).not.toMatch(/cafe|brunch|restaurant/i)
+    expect(isScheduleImageKeywordLandmarkEligible(d3.imageKeyword!)).toBe(true)
   })
 
   it('LLM이 블루마운틴 대신 식당 키워드면 본문 명소 사용', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', description: '인천 출발', routeText: '인천 - 시드니', imageKeyword: '', imageKeyword2: null },
         {
           day: 4,
           title: '블루마운틴',
@@ -57,10 +61,12 @@ describe('applyHanatourScheduleImageKeywordsToRows — 랜드마크 우선', () 
           imageKeyword: 'Blue Mountains restaurant lunch',
           imageKeyword2: null,
         },
+        { day: 5, title: '귀국', description: '인천 도착', routeText: '시드니 - 인천', imageKeyword: '', imageKeyword2: null },
       ],
       sydneyOpts,
     )
-    expect(out[0]!.imageKeyword).toBe('Blue Mountains')
+    const d4 = out.find((r) => r.day === 4)!
+    expect(d4.imageKeyword).toBe('Blue Mountains')
   })
 })
 

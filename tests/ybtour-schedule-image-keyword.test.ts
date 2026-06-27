@@ -126,19 +126,36 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
     const out = applyYbtourScheduleImageKeywordsToRows(
       [
         {
-          day: 6,
+          day: 1,
+          title: '출발',
+          description: '인천 출발',
+          routeText: '인천 - 카이로',
+          imageKeyword: 'Osaka Castle',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
           title: '홍해의 휴양지 후르가다로 이동',
           description: '나일강 크루즈에서 하선하여 후르가다로 이동',
           routeText: '룩소르 - 후르가다',
           imageKeyword: 'Osaka Castle',
           imageKeyword2: 'Forbidden City',
         },
+        {
+          day: 3,
+          title: '귀국',
+          description: '인천 도착',
+          routeText: '카이로 - 인천',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
       ],
       { productDestination: '이집트' },
     )
 
-    assert.equal(out.find((r) => r.day === 6)!.imageKeyword, 'Luxor')
-    assert.equal(out.find((r) => r.day === 6)!.imageKeyword2, 'Hurghada')
+    assert.equal(out.find((r) => r.day === 2)!.imageKeyword, 'Luxor')
+    assert.equal(out.find((r) => r.day === 2)!.imageKeyword2, 'Hurghada')
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword2, null)
   })
 
   it('routeText 슬롯 — trip-wide 재사용 금지 (회귀)', () => {
@@ -146,18 +163,26 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
     const out = applyYbtourScheduleImageKeywordsToRows(
       [
         {
+          day: 1,
+          title: '출발',
+          description: '인천 출발',
+          routeText: '인천 - Hanoi',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
           day: 2,
           title: '다낭',
           description: '미케 비치',
-          routeText: 'Da Nang - My Khe Beach',
+          routeText: 'Da Nang - My Khe Beach - Hoi An Ancient Town',
           imageKeyword: 'Ba Na Hills',
           imageKeyword2: null,
         },
         {
           day: 3,
-          title: '호이안',
-          description: '호이안 올드타운',
-          routeText: 'Da Nang - Hoi An Ancient Town',
+          title: '귀국',
+          description: '호이안 출발',
+          routeText: 'Hoi An - Incheon',
           imageKeyword: 'Ba Na Hills',
           imageKeyword2: null,
         },
@@ -168,8 +193,44 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
     const d3 = out.find((r) => r.day === 3)!
     assert.ok(d2.imageKeyword2?.trim(), `day2 kw2 empty: ${d2.imageKeyword2}`)
     assert.equal(norm(d2.imageKeyword!), norm('Da'))
+    assert.equal(norm(d2.imageKeyword2!), norm('My Khe Beach'))
     assert.equal(norm(d3.imageKeyword!), norm('Hoi'))
     assert.equal(d3.imageKeyword2, null)
+  })
+
+  it('N일차 — 관광 routeText여도 (N-1) 미사용 1개만, kw2 null', () => {
+    const out = applyYbtourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 홍콩',
+          title: '출발',
+          description: '',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '홍콩 - 하버 시티 - 소호 거리 - 빅토리아 피크',
+          title: '관광',
+          description: '',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '홍콩 - 인천',
+          title: '귀국 전 관광',
+          description: '마지막 날도 관광 동선',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: 'Hong Kong' },
+    )
+    const d3 = out.find((r) => r.day === 3)!
+    assert.equal(d3.imageKeyword2, null)
+    assert.equal(d3.imageKeyword, 'Victoria Peak')
   })
 })
 
@@ -188,5 +249,27 @@ describe('resolveYbtourPrimaryKeyword / resolveYbtourSecondaryKeyword (레거시
       resolveYbtourSecondaryKeyword(row, 'Harbour City Hong Kong', 'tourism', 'Hong Kong'),
       'SoHo Hong Kong',
     )
+  })
+})
+
+describe('applyYbtourScheduleImageKeywordsToRows — 남미 Paris 환각 차단', () => {
+  it('Americas 상품 — imageKeyword2 Paris 거부', () => {
+    const out = applyYbtourScheduleImageKeywordsToRows(
+      [
+        { day: 1, title: '출발', routeText: '인천 - 리마', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 9,
+          title: '이과수',
+          routeText: '이과수 폭포 - 악마의 목구멍',
+          imageKeyword: 'Iguazu Falls',
+          imageKeyword2: 'Paris',
+        },
+        { day: 10, title: '귀국', routeText: '리우 - 인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      { productDestination: '남미 12일' },
+    )
+    const d9 = out.find((r) => r.day === 9)!
+    assert.match(d9.imageKeyword!, /Iguazu/i)
+    assert.notEqual(String(d9.imageKeyword2 ?? '').trim().toLowerCase(), 'paris')
   })
 })

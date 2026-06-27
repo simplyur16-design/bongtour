@@ -4,8 +4,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildScheduleImageKeywordGeminiPrompt,
+  buildFreeLeisureDayGeminiPrompt,
   scheduleDaysMissingImageKeyword2AfterRules,
   scheduleDaysMissingImageKeywordAfterRules,
+  scheduleFreeLeisureDaysMissingImageKeyword,
 } from './register-schedule-image-keyword-gemini-fill'
 
 describe('register-schedule-image-keyword-gemini-fill', () => {
@@ -36,6 +38,30 @@ describe('register-schedule-image-keyword-gemini-fill', () => {
       },
     ]
     expect(scheduleDaysMissingImageKeyword2AfterRules(rows)).toEqual([2])
+  })
+
+  it('scheduleFreeLeisureDaysMissingImageKeyword — 자유일정·kw 비면 대상', () => {
+    const days = scheduleFreeLeisureDaysMissingImageKeyword([
+      {
+        day: 6,
+        title: '[추천 프로그램] 야스아일랜드',
+        description: '개별 자유일정',
+        routeText: '야스아일랜드 - 씨월드 - 페라리 월드',
+        imageKeyword: '',
+      },
+      { day: 2, routeText: '두바이 - 버즈 칼리파', imageKeyword: 'Burj Khalifa' },
+    ])
+    expect(days).toEqual([6])
+  })
+
+  it('buildFreeLeisureDayGeminiPrompt — 추천일정·dual-slot 규칙 포함', () => {
+    const prompt = buildFreeLeisureDayGeminiPrompt(
+      [{ day: 6, title: '자유일정', routeText: '야스아일랜드 - 씨월드', description: '개별 자유일정' }],
+      { productDestination: 'UAE', productTitle: '두바이 6일', daysToFill: [6] },
+    )
+    expect(prompt).toMatch(/Free-leisure/)
+    expect(prompt).toMatch(/recommendedRoute/)
+    expect(prompt).toMatch(/imageKeyword2/)
   })
 
   it('buildScheduleImageKeywordGeminiPrompt — routeText 순서·dual-slot 규칙 포함', () => {

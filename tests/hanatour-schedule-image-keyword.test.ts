@@ -307,7 +307,8 @@ describe('applyHanatourScheduleImageKeywordsToRows — LLM 2순위 우선 + rout
       indiaOpts,
     )
     assert.equal(fromLlm[0]!.imageKeyword, 'Taj Mahal')
-    assert.equal(fromLlm[0]!.imageKeyword2, null)
+    assert.notEqual(fromLlm[0]!.imageKeyword2, 'Paris Eiffel Tower')
+    assert.equal(fromLlm[0]!.imageKeyword2, 'Delhi')
   })
 
   it('2순위가 1순위와 중복이면 null', () => {

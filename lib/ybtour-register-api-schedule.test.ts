@@ -20,6 +20,22 @@ describe('ybtour register api schedule expression', () => {
     assert.equal(joinYbtourScheduleRouteText(places), '호이안 옛도시')
   })
 
+  it('routeText — papi tmContent HTML strip before place extract', () => {
+    const places = extractYbtourSchedulePlacesFromTmRows([
+      {
+        tmNo: 1,
+        tmTitle: '로스엔젤레스 도착',
+        tmContent:
+          '<p>■ <strong>리마</strong> 도착</p><p><span>노랑풍선 차별화 POINT</span></p>',
+      },
+    ])
+    assert.equal(places.includes('리마'), true)
+    assert.equal(places.some((p) => /POINT|<\/?\w+/i.test(p)), false)
+    const route = joinYbtourScheduleRouteText(places)
+    assert.ok(route)
+    assert.doesNotMatch(route ?? '', /POINT|<\/?\w+/i)
+  })
+
   it('description — route 1줄 + 분위기 2문장, 장소 디테일 없음', () => {
     const routePlaces = dedupeYbtourScheduleRoutePlaces([
       '홍콩섬 센트럴',

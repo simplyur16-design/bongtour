@@ -1,13 +1,16 @@
 /**
  * routeText 규칙·POI 사전 후에도 imageKeyword가 비는 일차 — Gemini로 영문 랜드마크 1·2순위 생성.
- * 지역별 ROI 테이블 대신 일정 텍스트(A - B - C)를 Gemini에 넘긴다.
+ * 자유일정 일차 — Gemini 추천 일정 생성 후 imageKeyword·imageKeyword2 채움.
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: manifest
  */
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { classifyModetourScheduleCardDayKind, isModetourDomesticHubToken } from '@/lib/modetour-schedule-image-keyword'
 import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-prompt'
-import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  isRegisterScheduleFreeLeisureDay,
+  splitRouteTextPlaceSegments,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
   applyRegisterScheduleImageKeywordsBySupplier,
   type RegisterScheduleImageKeywordApplyRow,
@@ -20,6 +23,30 @@ const GEMINI_FILL_TIMEOUT_MS = Math.max(
   Number(process.env.REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI_TIMEOUT_MS) || 22_000,
 )
 
+function buildScheduleRowHaystack(row: ScheduleImageKeywordGeminiRow): string {
+  return [row.title, row.description, row.routeText]
+    .map((s) => String(s ?? '').trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
+/** 자유일정 일차 — routeText 규칙 후 imageKeyword가 비었을 때 Gemini 대상 */
+export function scheduleFreeLeisureDaysMissingImageKeyword(
+  rows: readonly ScheduleImageKeywordGeminiRow[],
+): number[] {
+  const out: number[] = []
+  for (const row of rows) {
+    const day = Number(row.day)
+    if (!Number.isFinite(day) || day < 1) continue
+    if (String(row.imageKeyword ?? '').trim()) continue
+    const hay = buildScheduleRowHaystack(row)
+    if (!hay.trim()) continue
+    if (!isRegisterScheduleFreeLeisureDay(hay)) continue
+    out.push(day)
+  }
+  return out
+}
+
 /** 규칙 적용 후 imageKeyword가 비었지만 일정 텍스트는 있는 일차 */
 export function scheduleDaysMissingImageKeywordAfterRules(
   rows: readonly ScheduleImageKeywordGeminiRow[],
@@ -29,11 +56,12 @@ export function scheduleDaysMissingImageKeywordAfterRules(
     const day = Number(row.day)
     if (!Number.isFinite(day) || day < 1) continue
     if (String(row.imageKeyword ?? '').trim()) continue
-    const hay = [row.title, row.description, row.routeText]
-      .map((s) => String(s ?? '').trim())
-      .filter(Boolean)
-      .join('\n')
+    const hay = buildScheduleRowHaystack(row)
     if (!hay.trim()) continue
+    if (isRegisterScheduleFreeLeisureDay(hay)) {
+      out.push(day)
+      continue
+    }
     if (!String(row.routeText ?? '').trim()) continue
     out.push(day)
   }
@@ -108,6 +136,99 @@ Return JSON only:
 imageKeyword2 must be a second distinct landmark on tourism days when routeText lists 2+ spots; null on departure/return flight days.`
 }
 
+export function buildFreeLeisureDayGeminiPrompt(
+  rows: readonly ScheduleImageKeywordGeminiRow[],
+  opts: {
+    productDestination?: string | null
+    productTitle?: string | null
+    daysToFill: readonly number[]
+  },
+): string {
+  const daySet = new Set(opts.daysToFill)
+  const lines = [...rows]
+    .filter((r) => daySet.has(Number(r.day)))
+    .sort((a, b) => Number(a.day) - Number(b.day))
+    .map((r) => {
+      const rt = String(r.routeText ?? '').trim() || '(none)'
+      const title = String(r.title ?? '').trim()
+      const desc = String(r.description ?? '').trim().slice(0, 320)
+      return `- Day ${r.day}: title="${title || '(none)'}" routeText="${rt}"${desc ? ` description="${desc}"` : ''}`
+    })
+
+  return `This package tour has free-leisure schedule day(s). For each day below:
+1) Propose a realistic half-day or full-day recommended sightseeing route (2-4 landmark stops in visit order).
+2) Pick Pexels English landmark proper nouns for imageKeyword (1 required) and imageKeyword2 (second distinct landmark when 2+ stops).
+
+Product title: ${opts.productTitle?.trim() || 'unknown'}
+Destination: ${opts.productDestination?.trim() || 'unknown'}
+
+${REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK}
+
+Free-leisure days to fill:
+${lines.join('\n')}
+
+Return JSON only:
+{"schedule":[{"day":6,"recommendedRoute":"Yas Island - Ferrari World - SeaWorld","imageKeyword":"Ferrari World","imageKeyword2":"SeaWorld Abu Dhabi"}]}
+
+recommendedRoute is for operator review only; imageKeyword/imageKeyword2 are required English landmark names.`
+}
+
+async function fillFreeLeisureDaysWithGemini<
+  T extends RegisterScheduleImageKeywordApplyRow,
+>(
+  rows: T[],
+  opts: {
+    supplierKey: string
+    productDestination?: string | null
+    productTitle?: string | null
+    logLabel?: string
+  },
+): Promise<T[]> {
+  const daysToFill = scheduleFreeLeisureDaysMissingImageKeyword(rows)
+  if (!daysToFill.length) return rows
+
+  const logLabel = opts.logLabel ?? 'register-schedule-free-leisure-gemini'
+  try {
+    const genAI = getGenAI()
+    const model = genAI.getGenerativeModel({ model: getModelName() })
+    const prompt = buildFreeLeisureDayGeminiPrompt(rows, {
+      productDestination: opts.productDestination ?? null,
+      productTitle: opts.productTitle ?? null,
+      daysToFill,
+    })
+    const result = await model.generateContent(
+      { contents: [{ role: 'user', parts: [{ text: prompt }] }] },
+      geminiTimeoutOpts(GEMINI_FILL_TIMEOUT_MS),
+    )
+    const text = result.response.text()
+    const parsed = parseLlmJsonObject<{ schedule?: unknown }>(text, { logLabel })
+    const byDay = parseGeminiScheduleKeywordRows(parsed.schedule)
+    if (!byDay.size) return rows
+
+    const merged = rows.map((row) => {
+      const day = Number(row.day)
+      const g = byDay.get(day)
+      if (!g) return row
+      const existingKw = String(row.imageKeyword ?? '').trim()
+      const existingKw2 = String(row.imageKeyword2 ?? '').trim()
+      return {
+        ...row,
+        imageKeyword: existingKw || g.kw,
+        imageKeyword2: existingKw2 || g.kw2,
+      }
+    })
+
+    return applyRegisterScheduleImageKeywordsBySupplier<T>(merged, {
+      supplierKey: opts.supplierKey,
+      productDestination: opts.productDestination ?? null,
+      productTitle: opts.productTitle ?? null,
+    })
+  } catch (e) {
+    console.warn(`[${logLabel}] free-leisure gemini fill failed`, e)
+    return rows
+  }
+}
+
 function parseGeminiScheduleKeywordRows(raw: unknown): Map<number, { kw: string; kw2: string | null }> {
   const out = new Map<number, { kw: string; kw2: string | null }>()
   if (!Array.isArray(raw)) return out
@@ -149,7 +270,9 @@ export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
       ...scheduleDaysMissingImageKeyword2AfterRules(rows),
     ]),
   ]
-  if (!daysToFill.length) return rows
+  if (!daysToFill.length) {
+    return fillFreeLeisureDaysWithGemini(rows, opts)
+  }
 
   const logLabel = opts.logLabel ?? 'register-schedule-image-keyword-gemini'
   try {
@@ -167,7 +290,7 @@ export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
     const text = result.response.text()
     const parsed = parseLlmJsonObject<{ schedule?: unknown }>(text, { logLabel })
     const byDay = parseGeminiScheduleKeywordRows(parsed.schedule)
-    if (!byDay.size) return rows
+    if (!byDay.size) return fillFreeLeisureDaysWithGemini(rows, opts)
 
     const merged = rows.map((row) => {
       const day = Number(row.day)
@@ -182,13 +305,14 @@ export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
       }
     })
 
-    return applyRegisterScheduleImageKeywordsBySupplier<T>(merged, {
+    const withRules = applyRegisterScheduleImageKeywordsBySupplier<T>(merged, {
       supplierKey: opts.supplierKey,
       productDestination: opts.productDestination ?? null,
       productTitle: opts.productTitle ?? null,
     })
+    return fillFreeLeisureDaysWithGemini(withRules, opts)
   } catch (e) {
     console.warn(`[${logLabel}] gemini fill failed`, e)
-    return rows
+    return fillFreeLeisureDaysWithGemini(rows, opts)
   }
 }

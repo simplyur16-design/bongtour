@@ -61,8 +61,16 @@ function assertMovementKw2Null(failures: string[], label: string, out: DualSlotC
   }
 }
 
-/** 모두투어 Ba Na Hills 전일차 반복 → dedupe 후에도 kw2 비는 회귀 재현 픽스처 */
+/** 모두투어 Ba Na Hills 전일차 반복 → dedupe 후에도 kw2 비는 회귀 재현 픽스처 (5일 — day4=middle) */
 export const MODETOUR_BA_NA_HILLS_REGRESSION_ROWS: DualSlotContractRow[] = [
+  {
+    day: 1,
+    title: '출발',
+    description: '인천 출발',
+    routeText: '인천 - Da Nang',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
   {
     day: 2,
     title: '다낭',
@@ -87,6 +95,14 @@ export const MODETOUR_BA_NA_HILLS_REGRESSION_ROWS: DualSlotContractRow[] = [
     imageKeyword: 'Ba Na Hills',
     imageKeyword2: null,
   },
+  {
+    day: 5,
+    title: '귀국',
+    description: '인천 도착',
+    routeText: 'Da Nang - 인천',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
 ]
 
 function assertModetourBaNaHillsRegression(failures: string[], label: string, out: DualSlotContractRow[]) {
@@ -99,12 +115,14 @@ function assertModetourBaNaHillsRegression(failures: string[], label: string, ou
   const kw2 = String(d2.imageKeyword ?? '').trim()
   const kw4 = String(d4.imageKeyword ?? '').trim()
   if (!/My Khe/i.test(kw2)) failures.push(`${label}: day2 imageKeyword expected My Khe, got ${kw2}`)
-  if (d2.imageKeyword2 != null && String(d2.imageKeyword2).trim() !== '') {
-    failures.push(`${label}: day2 imageKeyword2 must be null (route POI 1개)`)
+  const kw2d2 = String(d2.imageKeyword2 ?? '').trim()
+  if (kw2d2.length <= 1) {
+    failures.push(`${label}: day2 imageKeyword2 empty (middle must have kw2)`)
   }
   if (!/Hoi/i.test(kw4)) failures.push(`${label}: day4 imageKeyword expected Hoi An, got ${kw4}`)
-  if (d4.imageKeyword2 != null && String(d4.imageKeyword2).trim() !== '') {
-    failures.push(`${label}: day4 imageKeyword2 must be null (route POI 1개)`)
+  const kw2d4 = String(d4.imageKeyword2 ?? '').trim()
+  if (kw2d4.length <= 1) {
+    failures.push(`${label}: day4 imageKeyword2 empty (middle must have kw2)`)
   }
 }
 
@@ -139,21 +157,37 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
     'hanatour',
     [
       {
+        day: 1,
+        title: '출발',
+        description: '인천 출발',
+        routeText: 'Incheon - Delhi',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
         day: 2,
         title: '아그라',
         description: '타지마할 외부 관람과 아그라 성',
-        routeText: '델리 - 아그라',
+        routeText: 'Taj Mahal - Agra Fort',
         imageKeyword: 'Agra',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '귀국',
+        description: '델리 출발',
+        routeText: 'Delhi - Incheon',
+        imageKeyword: '',
         imageKeyword2: null,
       },
     ],
     'India',
   )
   assertTourismDualSlot(failures, 'hanatour', hanatour, 2)
-  if (!/Taj/i.test(String(hanatour[0]?.imageKeyword ?? ''))) {
+  if (!/Taj/i.test(String(hanatour.find((r) => r.day === 2)?.imageKeyword ?? ''))) {
     failures.push('hanatour: expected Taj in imageKeyword')
   }
-  if (!/Agra Fort/i.test(String(hanatour[0]?.imageKeyword2 ?? ''))) {
+  if (!/Agra Fort/i.test(String(hanatour.find((r) => r.day === 2)?.imageKeyword2 ?? ''))) {
     failures.push('hanatour: expected Agra Fort in imageKeyword2')
   }
 
@@ -186,10 +220,26 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
     'ybtour',
     [
       {
+        day: 1,
+        title: '출발',
+        description: '인천 출발',
+        routeText: 'Incheon - Hanoi',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
         day: 2,
         title: '다낭',
         description: '관광',
-        routeText: 'Da Nang - Hoi An',
+        routeText: 'Da Nang - Hoi An Ancient Town',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '귀국',
+        description: '인천 도착',
+        routeText: 'Hoi An - Incheon',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -269,38 +319,87 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
               imageKeyword2: null,
             },
           ]
-        : supplier === 'kyowontour'
+        : supplier === 'ybtour'
           ? [
               {
+                day: 1,
+                title: '출발',
+                description: '인천 출발',
+                routeText: 'Incheon - Hanoi',
+                imageKeyword: '',
+                imageKeyword2: null,
+              },
+              {
                 day: 2,
-                title: '레',
-                description: '레 왕궁',
-                routeText: '레 - 레 왕궁 - 레 시장',
-                imageKeyword: 'Leh Palace',
+                title: '다낭',
+                description: '관광',
+                routeText: 'Da Nang - Hoi An Ancient Town',
+                imageKeyword: '',
+                imageKeyword2: null,
+              },
+              {
+                day: 3,
+                title: '귀국',
+                description: '인천 도착',
+                routeText: 'Hoi An - Incheon',
+                imageKeyword: '',
                 imageKeyword2: null,
               },
             ]
-          : supplier === 'hanatour'
+          : supplier === 'hanatour' || supplier === 'modetour'
             ? [
                 {
-                  day: 2,
-                  title: '아그라',
-                  description: '타지마할',
-                  routeText: '델리 - 아그라',
-                  imageKeyword: 'Agra',
+                  day: 1,
+                  title: '출발',
+                  description: '인천 출발',
+                  routeText: supplier === 'hanatour' ? 'Incheon - Delhi' : 'Incheon - Da Nang',
+                  imageKeyword: '',
                   imageKeyword2: null,
                 },
-              ]
-            : [
                 {
                   day: 2,
-                  title: '다낭',
+                  title: supplier === 'hanatour' ? '아그라' : '다낭',
                   description: '관광',
-                  routeText: 'Da Nang - Hoi An',
-                  imageKeyword: supplier === 'lottetour' ? 'Sultan Ahmed Mosque' : '',
+                  routeText:
+                    supplier === 'hanatour'
+                      ? 'Taj Mahal - Agra Fort'
+                      : 'Da Nang - Hoi An Ancient Town',
+                  imageKeyword: '',
+                  imageKeyword2: null,
+                },
+                {
+                  day: 3,
+                  title: '귀국',
+                  description: '인천 도착',
+                  routeText: supplier === 'hanatour' ? 'Delhi - Incheon' : 'Da Nang - Incheon',
+                  imageKeyword: '',
                   imageKeyword2: null,
                 },
               ]
+            : supplier === 'kyowontour'
+              ? [
+                  {
+                    day: 2,
+                    title: '레',
+                    description: '레 왕궁',
+                    routeText: '레 - 레 왕궁 - 레 시장',
+                    imageKeyword: 'Leh Palace',
+                    imageKeyword2: null,
+                  },
+                ]
+              : [
+                  {
+                    day: 2,
+                    title: supplier === 'lottetour' ? '이스탄불' : '다낭',
+                    description: '관광',
+                    routeText:
+                      supplier === 'lottetour'
+                        ? '이스탄불 - 술탄 아흐메트 모스크 - 그랜드 바자르'
+                        : 'Da Nang - Hoi An',
+                    imageKeyword: supplier === 'lottetour' ? 'Sultan Ahmed Mosque' : '',
+                    imageKeyword2: null,
+                  },
+                ]
     if (supplier === 'lottetour') {
       rows[0] = {
         day: 2,
@@ -312,7 +411,9 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
       }
     }
     const out = apply(supplier, rows, dest)
-    if (!String(out[0]?.imageKeyword ?? '').trim()) {
+    const probeDay =
+      supplier === 'ybtour' || supplier === 'hanatour' || supplier === 'modetour' ? 2 : rows[0]!.day
+    if (!String(out.find((r) => r.day === probeDay)?.imageKeyword ?? '').trim()) {
       failures.push(`${supplier}: preview switch returned empty imageKeyword`)
     }
   }

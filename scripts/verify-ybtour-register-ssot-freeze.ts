@@ -28,6 +28,8 @@ assert(handler.includes('REGRESSION-FREEZE[ybtour-register-ssot-freeze]'), 'hand
 assert(handler.includes('runYbtourRegisterFlow'), 'handler must use runYbtourRegisterFlow')
 assert(handler.includes('parseForRegisterYbtour'), 'handler must use API parseFn')
 assert(handler.includes('augmentYbtourParsedWithDetailCollect'), 'handler must wire detail-collect')
+assert(handler.includes('augmentYbtourScheduleExpressionParsed'), 'handler must wire schedule expression + routeText imageKeyword')
+assert(handler.includes('finalizeYbtourItineraryDayDraftsFromSchedule'), 'handler must finalize itinerary from schedule')
 assert(handler.includes('injectYbtourApiDeparturePricesIfMissing'), 'handler must wire price inject')
 
 assert(flow.includes('REGRESSION-FREEZE[ybtour-register-ssot-freeze]'), 'flow missing freeze marker')
@@ -36,6 +38,8 @@ assert(!flow.includes('missingGeminiKey'), 'flow must not gate on Gemini key')
 assert(flow.includes('!text && !hasParsed && !originUrl'), 'flow must allow URL-only preview')
 
 assert(apiParse.includes('collectYbtourRegisterFacts'), 'api-parse must use register-facts')
+assert(apiParse.includes('applyYbtourScheduleExpressionToRows'), 'api-parse must normalize routeText before imageKeyword')
+assert(apiParse.includes('ensureYbtourRegisterScheduleImageKeywords'), 'api-parse must apply routeText slot imageKeyword')
 assert(apiParse.includes('parseYbtourRegisterFromApi'), 'api-parse export required')
 assert(!apiParse.includes('parseForRegisterLlmYbtour'), 'api-parse must not use LLM overlay')
 

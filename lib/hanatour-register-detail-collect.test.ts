@@ -241,6 +241,47 @@ describe('hanatour register detail collect', () => {
     expect(rows[1]?.supplierTags).toContain('MD추천')
   })
 
+  it('itnr — 유의사항·출입국 안내 카드는 schedule places에서 제외', () => {
+    const facts = hanatourItnrSchdToFactDays([
+      {
+        schdDay: 1,
+        schdMainInfoList: [
+          {
+            schdCatgNm: '안내',
+            schdTitlNm: '✅ 두바이 상품 예약시 유의사항',
+            schdCont: '두바이 및 아부다비 출입국 정보',
+          },
+          { schdCatgNm: '도시간이동', depCityNm: '인천', arriveCityNm: '두바이' },
+        ],
+      },
+      {
+        schdDay: 6,
+        schdMainInfoList: [
+          {
+            schdCatgNm: '관광지',
+            cardNm: '[추천 프로그램] 야스아일랜드 테마파크',
+            cmsInfoList: [{ cmsCntntNm: '씨월드' }, { cmsCntntNm: '페라리 월드' }],
+          },
+        ],
+      },
+    ])
+    expect(facts[0]?.places).toEqual([])
+    expect(facts[0]?.transportNote).toBe('인천 - 두바이')
+    const sched = hanatourFactDaysToRegisterSchedule(facts)
+    expect(sched[0]?.title).toBe('인천 - 두바이')
+    expect(sched[0]?.routeText).toBe('인천 - 두바이')
+    expect(sched[0]?.title).not.toMatch(/유의사항/)
+    expect(facts[1]?.places.some((p) => /야스|씨월드|페라리/.test(p))).toBe(true)
+    expect(
+      isHanatourPlaceholderScheduleRow({
+        day: 1,
+        title: '두바이 상품 예약시 유의사항',
+        description: '',
+        imageKeyword: '',
+      }),
+    ).toBe(true)
+  })
+
   it('builds flight structured from pkgAirSeqList', () => {
     const fs = buildHanatourFlightStructuredFromProdInfo({
       depDay: '20260628',

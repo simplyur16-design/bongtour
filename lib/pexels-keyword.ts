@@ -29,7 +29,6 @@ const DESTINATION_MAP: Record<string, string> = {
   하노이: 'Hanoi',
   푸꾸옥: 'Phu Quoc',
   델리: 'Delhi',
-  레: 'Leh',
   도쿄: 'Tokyo',
   교토: 'Kyoto',
   오사카: 'Osaka',
@@ -69,7 +68,6 @@ const DESTINATION_MAP: Record<string, string> = {
   괌: 'Guam',
   사이판: 'Saipan',
   시드니: 'Sydney',
-  로마: 'Rome',
   파리: 'Paris',
   스페인: 'Spain',
   산티아고: 'Santiago de Compostela',
@@ -115,7 +113,30 @@ const DESTINATION_MAP: Record<string, string> = {
   타오위uan: 'Taoyuan',
   桃園: 'Taoyuan',
   기룽: 'Keelung',
+  리마: 'Lima',
+  쿠스코: 'Cusco',
+  라파즈: 'La Paz',
+  우유니: 'Uyuni',
+  이과수: 'Iguazu',
+  리오데자네이로: 'Rio de Janeiro',
+  상파울로: 'Sao Paulo',
+  로스엔젤레스: 'Los Angeles',
+  뉴욕: 'New York',
+  워싱턴: 'Washington DC',
+  토론토: 'Toronto',
+  몬트리올: 'Montreal',
+  퀘벡: 'Quebec City',
+  나이아가라: 'Niagara Falls',
+  밴쿠버: 'Vancouver',
+  시애틀: 'Seattle',
+  샌프란시스코: 'San Francisco',
+  라스베가스: 'Las Vegas',
+  시카고: 'Chicago',
+  보스턴: 'Boston',
+  플래츠버그: 'Plattsburgh',
 }
+
+const DESTINATION_MAP_KEYS_SORTED = Object.keys(DESTINATION_MAP).sort((a, b) => b.length - a.length)
 
 /** 대표 지역(primaryRegion) → 영어 */
 const REGION_MAP: Record<string, string> = {
@@ -437,6 +458,31 @@ const POI_KO_TO_EN: Record<string, string> = {
   찌모루시장: 'Jimo Road Market',
   지모루: 'Jimo Road Market',
   극지해양: 'Polar Ocean World',
+  마추픽chu: 'Machu Picchu ancient ruins Peru',
+  '마추 픽chu': 'Machu Picchu ancient ruins Peru',
+  '세계 7대 불가사의 중 하나인 마추픽chu': 'Machu Picchu ancient ruins Peru',
+  우유니사막: 'Salar de Uyuni salt flats Bolivia',
+  '우유니 사막': 'Salar de Uyuni salt flats Bolivia',
+  이과수폭포: 'Iguazu Falls waterfall panorama',
+  '이과수 폭포': 'Iguazu Falls waterfall panorama',
+  '세계 3대 폭포 이과수 폭포': 'Iguazu Falls waterfall panorama',
+  링컨기념관: 'Lincoln Memorial Washington DC',
+  '링컨 기념관': 'Lincoln Memorial Washington DC',
+  제퍼슨기념관: 'Jefferson Memorial Washington DC',
+  '제퍼슨 기념관': 'Jefferson Memorial Washington DC',
+  엠파이어스테이트빌딩: 'Empire State Building New York',
+  '엠파이어 스테이트 빌딩': 'Empire State Building New York',
+  '나이아가라 폭포': 'Niagara Falls waterfall wide angle',
+  스카이론전망대: 'Skylon Tower Niagara Falls',
+  '스카이론 전망대': 'Skylon Tower Niagara Falls',
+  노트르담대성당: 'Notre Dame Basilica Montreal interior',
+  '노트르담 대성당': 'Notre Dame Basilica Montreal interior',
+  몽모랑시폭포: 'Montmorency Falls Quebec',
+  '몽모랑시 폭포': 'Montmorency Falls Quebec',
+  그라운드제로: 'One World Trade Center New York',
+  '그라운드 제로': 'One World Trade Center New York',
+  천섬유람선: 'Thousand Islands St Lawrence River',
+  '천섬 유람선': 'Thousand Islands St Lawrence River',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */
@@ -583,8 +629,8 @@ export function mapDestination(destination: string | null): string {
   if (isLikelyJsonOrWebApiDump(destination)) return ''
   const t = normalize(destination)
   if (!t) return ''
-  for (const [ko, en] of Object.entries(DESTINATION_MAP)) {
-    if (t.includes(ko)) return en
+  for (const ko of DESTINATION_MAP_KEYS_SORTED) {
+    if (t.includes(ko)) return DESTINATION_MAP[ko] ?? ''
   }
   return t
 }

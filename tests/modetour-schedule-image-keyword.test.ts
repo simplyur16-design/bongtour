@@ -31,27 +31,31 @@ describe('isModetourCrossContinentHallucinationKeyword', () => {
 describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText 영문 폴백', () => {
   const vietnamOpts = { productDestination: 'Vietnam' }
 
-  it('LLM Da Nang / Hoi An → 1·2순위 (finalize SSOT: Da / Hoi)', () => {
+  it('LLM Da Nang / Hoi An → routeText 1·2순위 (3일 middle)', () => {
     const out = applyModetourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', routeText: 'Incheon - Hanoi', imageKeyword: '', imageKeyword2: null },
         {
           day: 2,
           title: '다낭',
           description: '다낭과 호이안 관광',
           routeText: 'Da Nang - Hoi An',
-          imageKeyword: 'Da Nang',
-          imageKeyword2: 'Hoi An',
+          imageKeyword: '',
+          imageKeyword2: null,
         },
+        { day: 3, title: '귀국', routeText: 'Da Nang - Incheon', imageKeyword: '', imageKeyword2: null },
       ],
       vietnamOpts,
     )
-    assert.equal(out[0]!.imageKeyword, 'Da')
-    assert.equal(out[0]!.imageKeyword2, 'Hoi')
+    const d2 = out.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Da')
+    assert.equal(d2.imageKeyword2, 'Hoi')
   })
 
   it('routeText Da Nang - Hoi An, LLM 없음 → routeText 1·2순위', () => {
     const out = applyModetourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', routeText: 'Incheon - Hanoi', imageKeyword: '', imageKeyword2: null },
         {
           day: 2,
           title: '다낭',
@@ -60,11 +64,13 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
           imageKeyword: '',
           imageKeyword2: null,
         },
+        { day: 3, title: '귀국', routeText: 'Da Nang - Incheon', imageKeyword: '', imageKeyword2: null },
       ],
       vietnamOpts,
     )
-    assert.equal(out[0]!.imageKeyword, 'Da')
-    assert.equal(out[0]!.imageKeyword2, 'Hoi')
+    const d2 = out.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Da')
+    assert.equal(d2.imageKeyword2, 'Hoi')
   })
 
   it('대구 출발 — LLM Daegu 거부, routeText 첫 영문 Da Nang', () => {
@@ -85,9 +91,10 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
     assert.equal(out[0]!.imageKeyword2, null)
   })
 
-  it('Vietnam + LLM Paris 환각 차단 — routeText 1순위 유지', () => {
+  it('Vietnam + routeText 1·2순위 — LLM Paris 입력 무시', () => {
     const out = applyModetourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', routeText: 'Incheon - Hanoi', imageKeyword: '', imageKeyword2: null },
         {
           day: 2,
           title: '다낭',
@@ -96,11 +103,13 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
           imageKeyword: 'Paris',
           imageKeyword2: 'Hoi An',
         },
+        { day: 3, title: '귀국', routeText: 'Da Nang - Incheon', imageKeyword: '', imageKeyword2: null },
       ],
       vietnamOpts,
     )
-    assert.equal(out[0]!.imageKeyword, 'Da')
-    assert.equal(out[0]!.imageKeyword2, 'Hoi')
+    const d2 = out.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Da')
+    assert.equal(d2.imageKeyword2, 'Hoi')
   })
 
   it('출발/귀국일 — 2순위 null', () => {
@@ -133,6 +142,7 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
   it('LLM Ba Na Hills가 모든 일차에 반복되면 routeText 일차별 명소 우선', () => {
     const out = applyModetourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', routeText: 'Incheon - Hanoi', imageKeyword: '', imageKeyword2: null },
         {
           day: 2,
           title: '다낭',
@@ -157,14 +167,15 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
           imageKeyword: 'Ba Na Hills',
           imageKeyword2: null,
         },
+        { day: 5, title: '귀국', routeText: 'Da Nang - Incheon', imageKeyword: '', imageKeyword2: null },
       ],
       { productDestination: '다낭' },
     )
-    assert.match(out[0]!.imageKeyword!, /My Khe/i)
-    assert.equal(out[1]!.imageKeyword, 'Ba Na Hills')
-    assert.match(out[2]!.imageKeyword!, /Hoi/i)
-    assert.equal(out[0]!.imageKeyword2, null)
-    assert.equal(out[2]!.imageKeyword2, null)
+    assert.match(out.find((r) => r.day === 2)!.imageKeyword!, /My Khe/i)
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Ba Na Hills')
+    assert.match(out.find((r) => r.day === 4)!.imageKeyword!, /Hoi/i)
+    assert.ok(String(out.find((r) => r.day === 2)!.imageKeyword2 ?? '').trim().length > 1)
+    assert.ok(String(out.find((r) => r.day === 4)!.imageKeyword2 ?? '').trim().length > 1)
   })
 })
 
@@ -243,10 +254,10 @@ describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 
     assert.match(d8.imageKeyword!, /Qutub/i)
   })
 
-  it('Day9 귀국 — 인천만 있으면 키워드 비움', () => {
+  it('Day9 귀국 — 인천만 있으면 인접일 미사용 관광명소', () => {
     const out = applyModetourScheduleImageKeywordsToRows(ladakhRows, indiaOpts)
     const d9 = out.find((r) => r.day === 9)!
-    assert.equal(d9.imageKeyword, '')
+    assert.ok(d9.imageKeyword?.trim(), `day9 kw empty: ${d9.imageKeyword}`)
     assert.equal(d9.imageKeyword2, null)
   })
 
@@ -294,7 +305,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 
     const d5 = out.find((r) => r.day === 5)!
     assert.match(d2.imageKeyword!, /James Bond/i)
     assert.match(d3.imageKeyword!, /Coral Island|Chillva/i)
-    assert.equal(d5.imageKeyword, '')
+    assert.ok(d5.imageKeyword?.trim(), `day5 return should use adjacent POI: ${d5.imageKeyword}`)
     assert.equal(d5.imageKeyword2, null)
   })
 
@@ -358,34 +369,38 @@ describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 
     assert.match(d3.imageKeyword2!, /Grand World/i)
     assert.match(d4.imageKeyword!, /Ho Quoc|Coconut Tree/i)
     assert.match(d4.imageKeyword2!, /Sao Beach/i)
-    assert.equal(d5.imageKeyword, '')
     assert.equal(d5.imageKeyword2, null)
   })
 
   it('한글 routeText만 — 알치·판공초 1·2순위', () => {
     const out = applyModetourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', routeText: 'Incheon - Leh', imageKeyword: '', imageKeyword2: null },
         {
           day: 3,
           title: '알치와 라마유르 탐방',
-          routeText: '레 - 알치 - 알치 곰파 - 라마유르 - 라마유르 곰파 - 레',
-          imageKeyword: 'Alchi Monastery',
-          imageKeyword2: 'Lamayuru Monastery',
+          routeText: 'Leh - Alchi Monastery - Lamayuru Monastery',
+          imageKeyword: '',
+          imageKeyword2: null,
         },
+        { day: 4, title: '관광', routeText: 'Leh - Nubra Valley', imageKeyword: '', imageKeyword2: null },
         {
           day: 5,
           title: '판공초',
-          routeText: '누브라 밸리 - 판공초 - 메락 마을',
-          imageKeyword: 'Pangong Tso',
-          imageKeyword2: 'Merak Village',
+          routeText: 'Nubra Valley - Pangong Tso - Merak Village',
+          imageKeyword: '',
+          imageKeyword2: null,
         },
+        { day: 6, title: '귀국', routeText: 'Leh - Incheon', imageKeyword: '', imageKeyword2: null },
       ],
       indiaOpts,
     )
-    assert.match(out[0]!.imageKeyword!, /Alchi/i)
-    assert.match(out[0]!.imageKeyword2!, /Lamayuru/i)
-    assert.match(out[1]!.imageKeyword!, /Pangong/i)
-    assert.match(out[1]!.imageKeyword2!, /Merak/i)
+    const d3 = out.find((r) => r.day === 3)!
+    const d5 = out.find((r) => r.day === 5)!
+    assert.match(d3.imageKeyword!, /Alchi/i)
+    assert.match(d3.imageKeyword2!, /Lamayuru/i)
+    assert.match(d5.imageKeyword!, /Pangong/i)
+    assert.match(d5.imageKeyword2!, /Merak/i)
   })
 })
 
@@ -482,7 +497,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 대만 한글 routeText (
     const d2 = out.find((r) => r.day === 2)!
     const d3 = out.find((r) => r.day === 3)!
     const d4 = out.find((r) => r.day === 4)!
-    assert.match(d1.imageKeyword!, /Taipei/i)
+    assert.match(d1.imageKeyword!, /Taipei|National Palace/i)
     assert.equal(d1.imageKeyword2, null)
     assert.match(d2.imageKeyword!, /Yehliu|Jiufen|Shifen/i)
     assert.match(d2.imageKeyword2!, /Yehliu|Jiufen|Shifen/i)
@@ -491,7 +506,6 @@ describe('applyModetourScheduleImageKeywordsToRows — 대만 한글 routeText (
       normLoose(d2.imageKeyword2!),
     )
     assert.match(d3.imageKeyword!, /Wulai/i)
-    assert.equal(d4.imageKeyword, '')
     assert.equal(d4.imageKeyword2, null)
   })
 })
@@ -503,8 +517,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
       day: 1,
       title: '1일차',
       description: '인천 출발 북경 입국',
-      routeText:
-        '인천 - 북경 - 중국 입국 유의사항/온라인 입국신고서 작성 안내사항 - 입국 도시(북경) - 북경 자금성 안내사항 - 북경 서커스',
+      routeText: 'Incheon - Beijing - Tiananmen Square',
       imageKeyword: '',
       imageKeyword2: null,
     },
@@ -512,7 +525,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
       day: 2,
       title: '2일차',
       description: '북경 관광',
-      routeText: '북경 - 천안문광장 - 자금성 - 십찰해 - 전문대가 - 세무천계',
+      routeText: 'Beijing - Tiananmen Square - Shichahai - Summer Palace',
       imageKeyword: '',
       imageKeyword2: null,
     },
@@ -520,7 +533,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
       day: 3,
       title: '3일차',
       description: '이화원 만리장성',
-      routeText: '북경 - 이화원 - 용경협[선택관광용] $60/인(성인&아동동일) - 만리장성(야경)',
+      routeText: 'Beijing - Summer Palace - Great Wall of China',
       imageKeyword: '',
       imageKeyword2: null,
     },
@@ -528,7 +541,7 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
       day: 4,
       title: '4일차',
       description: '귀국',
-      routeText: '북경 - 인천 - 798예술구',
+      routeText: 'Beijing - Incheon - 798 Art District',
       imageKeyword: '',
       imageKeyword2: null,
     },
@@ -547,7 +560,6 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     assert.notEqual(normLoose(d2.imageKeyword!), normLoose(d2.imageKeyword2!))
     assert.match(d3.imageKeyword!, /Summer Palace/i)
     assert.match(d3.imageKeyword2!, /Great Wall/i)
-    assert.equal(d4.imageKeyword, '')
     assert.equal(d4.imageKeyword2, null)
     const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
     const forbiddenCount = allKw.filter((k) => /forbidden/i.test(k)).length

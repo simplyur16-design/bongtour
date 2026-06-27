@@ -4,6 +4,8 @@
  *
  * REGRESSION-FREEZE[ybtour-register-detail-collect]: augmentYbtourParsedWithDetailCollect — manifest
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: preview=confirm API SSOT — manifest
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: 규칙 후 빈 kw → Gemini — manifest
+ * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: ensureYbtourRegisterScheduleImageKeywords — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-ybtour'
@@ -24,6 +26,8 @@ import {
   ybtourScheduleBundleToRegisterSchedule,
 } from '@/lib/ybtour-register-api-detail'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
+import { applyYbtourScheduleExpressionToRows } from '@/lib/ybtour-register-api-schedule'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
 import { parseYbtourEvCdFromUrl, parseYbtourGoodsCdFromUrl } from '@/lib/ybtour-api-departures'
 import {
@@ -78,11 +82,37 @@ export function needsYbtourIncludedExcludedCollect(parsed: RegisterParsed): bool
 export function needsYbtourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
-  return rows.every((d) => !d.title?.trim() && !d.description?.trim())
+  if (rows.every((d) => !d.title?.trim() && !d.description?.trim())) return true
+  return rows.some((d) => !String(d.routeText ?? '').trim())
 }
 
 export function needsYbtourMustKnowCollect(parsed: RegisterParsed): boolean {
   return (parsed.mustKnowItems?.length ?? 0) === 0 && !parsed.mustKnowRaw?.trim()
+}
+
+/** API·붙여넣기 schedule — routeText 슬롯 규칙 + Gemini(자유일) SSOT. REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply] */
+export async function ensureYbtourRegisterScheduleImageKeywords(
+  parsed: RegisterParsed,
+): Promise<RegisterParsed> {
+  const schedule = parsed.schedule ?? []
+  if (schedule.length === 0) return parsed
+  const normalized = schedule.map((row) => ({
+    ...row,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: row.imageKeyword2 ?? null,
+  }))
+  const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(normalized, {
+    supplierKey: 'ybtour',
+    productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+    productTitle: parsed.title ?? null,
+  })
+  const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(withKeywords, {
+    supplierKey: 'ybtour',
+    productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+    productTitle: parsed.title ?? null,
+    logLabel: 'ybtour-register-schedule-image-keyword',
+  })
+  return { ...parsed, schedule: withGemini }
 }
 
 function needsYbtourMeetingCollect(parsed: RegisterParsed): boolean {
@@ -140,7 +170,7 @@ export async function augmentYbtourParsedWithDetailCollect(
     !needOpt &&
     !needShop
   ) {
-    return parsed
+    return await ensureYbtourRegisterScheduleImageKeywords(parsed)
   }
 
   const bundle = await fetchYbtourRegisterDetailBundle(originUrl, {
@@ -161,7 +191,9 @@ export async function augmentYbtourParsedWithDetailCollect(
   const scheduleDetailTm = schedule?.scheduleDetailTm ?? []
 
   if (needSchedule && scheduleDetail.length + scheduleDetailTm.length > 0) {
-    const scheduleDays = ybtourScheduleBundleToRegisterSchedule(scheduleDetail, scheduleDetailTm)
+    const scheduleDays = applyYbtourScheduleExpressionToRows(
+      ybtourScheduleBundleToRegisterSchedule(scheduleDetail, scheduleDetailTm),
+    )
     if (scheduleDays.length > 0) {
       const destHint = next.primaryDestination ?? next.destination ?? null
       next = {
@@ -324,10 +356,10 @@ export async function augmentYbtourParsedWithDetailCollect(
       : 'ybtour 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 
-  return {
+  return await ensureYbtourRegisterScheduleImageKeywords({
     ...next,
     ybtourDetailCollectRan: summaryParts.length > 0,
     ybtourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
     registerPreviewPolicyNotes: notes,
-  }
+  })
 }

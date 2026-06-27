@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[ybtour-register-api-parse]: collectYbtourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: API-only register parse — manifest
+ * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: ensureYbtourRegisterScheduleImageKeywords — manifest
  */
 import {
   parseYbtourEvCdFromUrl,
@@ -21,8 +22,11 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-ybtour'
 import { finalizeYbtourRegisterParsedPricing } from '@/lib/register-ybtour-price'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
-import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
-import { ybtourFactDaysToRegisterSchedule } from '@/lib/ybtour-register-api-schedule'
+import { ensureYbtourRegisterScheduleImageKeywords } from '@/lib/ybtour-register-detail-collect'
+import {
+  applyYbtourScheduleExpressionToRows,
+  ybtourFactDaysToRegisterSchedule,
+} from '@/lib/ybtour-register-api-schedule'
 
 export const YBTOUR_PRICE_SLOT_SSOT_NOTE =
   '노랑풍선 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -172,15 +176,9 @@ export async function parseYbtourRegisterFromApi(
   parsed = finalizeYbtourRegisterParsedShopping(parsed)
 
   if ((parsed.schedule?.length ?? 0) > 0) {
-    const destHint = parsed.primaryDestination ?? parsed.destination ?? null
-    parsed = {
-      ...parsed,
-      schedule: applyRegisterScheduleImageKeywordsBySupplier(parsed.schedule ?? [], {
-        supplierKey: 'ybtour',
-        productDestination: destHint,
-        productTitle: parsed.title,
-      }),
-    }
+    const scheduleWithRoute = applyYbtourScheduleExpressionToRows(parsed.schedule ?? [])
+    parsed = { ...parsed, schedule: scheduleWithRoute }
+    parsed = await ensureYbtourRegisterScheduleImageKeywords(parsed)
   }
 
   return parsed

@@ -125,6 +125,7 @@ export function needsModetourIncludedExcludedCollect(parsed: RegisterParsed): bo
 export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
+  if (rows.some((d) => !String(d.routeText ?? '').trim())) return true
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
 }
 

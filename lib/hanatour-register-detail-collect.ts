@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: augmentHanatourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: ensureHanatourRegisterScheduleImageKeywords — manifest
  * REGRESSION-FREEZE[hanatour-register-samples-live-gate]: SSOT 7샘플 live gate — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
@@ -42,6 +43,7 @@ import {
 } from '@/lib/register-parse-hanatour'
 import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -75,11 +77,17 @@ function hasStructuredShopping(parsed: RegisterParsed): boolean {
   return hasStructuredJsonRows(parsed.shoppingStops)
 }
 
+const HANATOUR_SCHEDULE_NOTICE_TITLE_RE =
+  /유의\s*사항|예약\s*시|출입국\s*정보|여행\s*시\s*유의|참고\s*사항|여행일정\s*변경|사전\s*동의|미팅\s*정보/i
+
 export function isHanatourPlaceholderScheduleRow(row: RegisterScheduleDay): boolean {
   const title = String(row.title ?? '').trim()
   const desc = String(row.description ?? '').trim()
   if (!title && !desc) return true
   if (title === '일차 동선' || desc === '일차 동선') return true
+  if (HANATOUR_SCHEDULE_NOTICE_TITLE_RE.test(title) || HANATOUR_SCHEDULE_NOTICE_TITLE_RE.test(desc)) {
+    return true
+  }
   if (/^\d+\s*일차$/.test(title) && (!desc || desc === title || /^\d+\s*일차$/.test(desc))) return true
 
   const hasMeals = [row.breakfastText, row.lunchText, row.dinnerText].some((m) => {
@@ -102,7 +110,37 @@ export function isHanatourPlaceholderScheduleRow(row: RegisterScheduleDay): bool
 export function needsHanatourScheduleCollect(parsed: RegisterParsed): boolean {
   const rows = parsed.schedule ?? []
   if (rows.length === 0) return true
+  if (rows.some((d) => !String(d.routeText ?? '').trim())) return true
   return rows.every(isHanatourPlaceholderScheduleRow)
+}
+
+/** API·붙여넣기 schedule — routeText 슬롯 규칙 + Gemini(자유일) SSOT. REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply] */
+export async function ensureHanatourRegisterScheduleImageKeywords(
+  parsed: RegisterParsed,
+): Promise<RegisterParsed> {
+  const schedule = parsed.schedule ?? []
+  if (schedule.length === 0) return parsed
+  const normalized = schedule.map((row) => ({
+    ...row,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: row.imageKeyword2 ?? null,
+  }))
+  const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(normalized, {
+    supplierKey: 'hanatour',
+    productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+    productTitle: parsed.title ?? null,
+    optionalTourNames: hanatourOptionalTourNamesFromParsed(parsed),
+    scheduleSectionByDay: parsed.detailBodyStructured
+      ? gatherHanatourScheduleSectionBodiesByDay(parsed.detailBodyStructured)
+      : null,
+  })
+  const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(withKeywords, {
+    supplierKey: 'hanatour',
+    productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+    productTitle: parsed.title ?? null,
+    logLabel: 'hanatour-register-schedule-image-keyword',
+  })
+  return { ...parsed, schedule: withGemini }
 }
 
 export function needsHanatourIncludedCollect(parsed: RegisterParsed): boolean {
@@ -213,7 +251,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   const needFlight = needsRegisterFlightApiCollect(parsed)
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
-    return parsed
+    return await ensureHanatourRegisterScheduleImageKeywords(parsed)
   }
 
   const bundle = await fetchHanatourRegisterDetailBundle(originUrl)
@@ -322,10 +360,10 @@ export async function augmentHanatourParsedWithDetailCollect(
       : '하나투어 상세카드 자동수집: 해당 축 데이터 없음(originUrl·API 확인)'
   if (!notes.includes(note)) notes.push(note)
 
-  return {
+  return await ensureHanatourRegisterScheduleImageKeywords({
     ...next,
     hanatourDetailCollectRan: summaryParts.length > 0,
     hanatourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
     registerPreviewPolicyNotes: notes,
-  }
+  })
 }

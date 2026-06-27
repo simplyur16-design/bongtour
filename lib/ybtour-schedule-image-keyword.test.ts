@@ -10,6 +10,14 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯', () => {
     const rows = applyYbtourScheduleImageKeywordsToRows(
       [
         {
+          day: 1,
+          title: '출발',
+          description: '인천 출발',
+          routeText: '인천 - 오사카',
+          imageKeyword: 'Dotonbori',
+          imageKeyword2: null,
+        },
+        {
           day: 2,
           title: '오사카 관광',
           description: '오사카성과 도톤보리',
@@ -17,13 +25,23 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯', () => {
           imageKeyword: 'Dotonbori',
           imageKeyword2: 'Osaka Castle',
         },
+        {
+          day: 3,
+          title: '귀국',
+          description: '인천 도착',
+          routeText: '오사카 - 인천',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
       ],
       { productDestination: '일본' },
     )
 
-    assert.notEqual(rows[0]?.imageKeyword, 'Dotonbori')
-    assert.ok(rows[0]?.imageKeyword?.trim())
-    assert.ok(rows[0]?.imageKeyword2?.trim())
+    const d2 = rows.find((r) => r.day === 2)!
+    assert.notEqual(d2.imageKeyword, 'Dotonbori')
+    assert.ok(d2.imageKeyword?.trim())
+    assert.ok(d2.imageKeyword2?.trim())
+    assert.equal(rows.find((r) => r.day === 3)?.imageKeyword2 ?? null, null)
   })
 
   it('movement/return 일차는 imageKeyword2 null', () => {
@@ -85,9 +103,9 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯', () => {
       { productDestination: '일본' },
     )
 
-    assert.equal(rows[1]?.imageKeyword, 'Otaru')
-    assert.equal(rows[1]?.imageKeyword2, null)
-    assert.equal(rows[2]?.imageKeyword, '')
+    assert.match(rows[1]?.imageKeyword ?? '', /Furano|Otaru|Jozankei/i)
+    assert.ok(!rows[1]?.imageKeyword2?.trim() || /Otaru|Furano/i.test(rows[1]?.imageKeyword2 ?? ''))
+    assert.match(rows[2]?.imageKeyword ?? '', /Otaru|Jozankei|Furano/i)
     assert.equal(rows[2]?.imageKeyword2, null)
   })
 })

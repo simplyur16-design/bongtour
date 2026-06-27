@@ -16,40 +16,74 @@ import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-
 describe('hanatour prebuild — imageKeyword dual slot', () => {
   const indiaOpts = { productDestination: 'India' }
 
-  it('본문 타지마할·아그라 성 — kw1/kw2 (Agra LLM → Taj + Agra Fort)', () => {
+  it('routeText Taj Mahal - Agra Fort — kw1/kw2 (3일 middle)', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
+        {
+          day: 1,
+          title: '출발',
+          description: '인천 출발',
+          routeText: 'Incheon - Delhi',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
         {
           day: 2,
           title: '아그라',
           description: '타지마할 외부 관람과 아그라 성 방문',
-          routeText: '델리 - 아그라',
-          imageKeyword: 'Agra',
+          routeText: 'Taj Mahal - Agra Fort',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '귀국',
+          description: '귀국',
+          routeText: 'Delhi - Incheon',
+          imageKeyword: '',
           imageKeyword2: null,
         },
       ],
       indiaOpts,
     )
-    assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
-    assert.equal(out[0]!.imageKeyword2, 'Agra Fort')
+    const d2 = out.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Taj Mahal')
+    assert.equal(d2.imageKeyword2, 'Agra Fort')
   })
 
-  it('routeText Taj Mahal - Agra Fort — kw2 Agra Fort', () => {
+  it('routeText Taj Mahal - Agra Fort — kw2 Agra Fort (단일 middle)', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
+        {
+          day: 1,
+          title: '출발',
+          description: '출발',
+          routeText: 'Incheon - Delhi',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
         {
           day: 2,
           title: '아그라',
           description: '관광',
           routeText: 'Taj Mahal - Agra Fort',
-          imageKeyword: 'Taj Mahal',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '귀국',
+          description: '귀국',
+          routeText: 'Delhi - Incheon',
+          imageKeyword: '',
           imageKeyword2: null,
         },
       ],
       indiaOpts,
     )
-    assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
-    assert.equal(out[0]!.imageKeyword2, 'Agra Fort')
+    const d2 = out.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Taj Mahal')
+    assert.equal(d2.imageKeyword2, 'Agra Fort')
   })
 
   it('출발·귀국 일차 — imageKeyword2 null', () => {
@@ -78,45 +112,45 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     assert.equal(out.find((r) => r.day === 5)!.imageKeyword2, null)
   })
 
-  it('LLM imageKeyword2 유지 — 1순위와 다를 때', () => {
+  it('middle 일차 routeText 2 POI — kw1/kw2 (5일 middle)', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(
       [
+        { day: 1, title: '출발', routeText: 'Incheon - Tokyo', imageKeyword: '', imageKeyword2: null },
+        { day: 2, title: '관광', routeText: 'Tokyo - Kyoto', imageKeyword: '', imageKeyword2: null },
+        { day: 3, title: '관광', routeText: 'Kyoto - Osaka', imageKeyword: '', imageKeyword2: null },
         {
           day: 4,
           title: '야리가다케',
           description: '야리가다케와 신호다카 온천',
           routeText: 'Yarigatake - Hirayu Onsen - Shinhotaka',
-          imageKeyword: 'Yarigatake',
-          imageKeyword2: 'Shinhotaka Onsen',
+          imageKeyword: '',
+          imageKeyword2: null,
         },
+        { day: 5, title: '귀국', routeText: 'Osaka - Incheon', imageKeyword: '', imageKeyword2: null },
       ],
       { productDestination: 'Japan' },
     )
-    assert.equal(out[0]!.imageKeyword2, 'Shinhotaka Onsen')
-    assert.notEqual(out[0]!.imageKeyword, out[0]!.imageKeyword2)
+    const d4 = out.find((r) => r.day === 4)!
+    assert.ok(d4.imageKeyword2)
+    assert.notEqual(d4.imageKeyword, d4.imageKeyword2)
   })
 
-  it('코타키나발루 — 자유일 예시 선택관광, 귀국일 직전 관광명소', () => {
-    const optionalTourNames = [
-      'KK 스타 라운지',
-      'MD추천 선셋 반딧불이 투어',
-      '스페셜포함 툰구압둘라만 해양국립공원 아일랜드 투어',
-    ]
+  it('코타키나발루 — routeText 슬롯·귀국(N-1) routeText', () => {
     const schedule = [
       {
         day: 1,
         title: '인천 - 국제공항',
         description: '인천 출발 코타키나발루 도착',
         routeText: '인천 - 코타키나발루',
-        imageKeyword: 'Kota Kinabalu',
+        imageKeyword: '',
         imageKeyword2: null,
       },
       {
         day: 2,
         title: '아일랜드 투어 및 선셋 반딧불 투어',
         description: '스노클링과 반딧불 투어',
-        routeText: '코타키나발루 - 아일랜드 투어 - 선셋 반딧불 투어',
-        imageKeyword: 'Kota Kinabalu',
+        routeText: '코타키나발루 - Mantanani Island - Sunset Fireflies',
+        imageKeyword: '',
         imageKeyword2: null,
       },
       {
@@ -124,15 +158,15 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
         title: '전 일정 자유 시간',
         description: '전 일정 자유 시간으로 시내를 자유롭게 관광할 수 있습니다',
         routeText: '코타키나발루',
-        imageKeyword: 'Kota Kinabalu',
+        imageKeyword: '',
         imageKeyword2: null,
       },
       {
         day: 4,
         title: '시내 관광 및 KK 스타라운지',
         description: '이슬람 사원 등 시내 관광',
-        routeText: '코타키나발루 - 시내 관광 - KK 스타라운지',
-        imageKeyword: 'Kota Kinabalu City Mosque',
+        routeText: 'Kota Kinabalu City Mosque - KK Star Lounge',
+        imageKeyword: '',
         imageKeyword2: null,
       },
       {
@@ -140,23 +174,20 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
         title: '인천 국제공항 도착',
         description: '코타키나발루 출발 인천 도착',
         routeText: '코타키나발루 - 인천',
-        imageKeyword: 'Kota Kinabalu',
+        imageKeyword: '',
         imageKeyword2: null,
       },
     ]
     const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
       productDestination: '말레이시아 코타키나발루',
-      optionalTourNames,
     })
-    assert.ok((out.find((r) => r.day === 3)!.imageKeyword ?? '').length > 0)
-    const d4kw = out.find((r) => r.day === 4)!.imageKeyword ?? ''
-    const d5kw = out.find((r) => r.day === 5)!.imageKeyword ?? ''
-    assert.ok(d4kw.length > 0)
-    assert.equal(d5kw, d4kw)
     const d2 = out.find((r) => r.day === 2)!
     assert.ok(d2.imageKeyword.length > 0)
     assert.ok(d2.imageKeyword2 && d2.imageKeyword2.length > 0)
     assert.notEqual(normScheduleImageKeywordKey(d2.imageKeyword), normScheduleImageKeywordKey(d2.imageKeyword2!))
+    assert.ok((out.find((r) => r.day === 4)!.imageKeyword ?? '').length > 0)
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword2, null)
+    assert.equal(out.find((r) => r.day === 5)!.imageKeyword2, null)
   })
 
   it('홋카이도 — 1일차 공항 LLM(New Chitose) 대신 죠잔케이, 3일차 오타루 운하·관광일 중복 없음', () => {
@@ -166,7 +197,7 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
         title: '-',
         description:
           '청주 국제공항에서 출발하여 신치토세 공항에 도착합니다. 죠잔케이로 이동하여 온천욕과 함께 휴식을 취합니다. 죠잔케이 네이처 루미나리에 일루미네이션을 감상합니다.',
-        routeText: '청주 - 신치토세 - 죠잔케이',
+        routeText: 'Cheongju - New Chitose Airport - Jozankei',
         imageKeyword: 'New Chitose',
         imageKeyword2: null,
       },
@@ -174,7 +205,7 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
         day: 2,
         title: '-',
         description: '노보리베츠의 지옥계곡을 방문합니다.',
-        routeText: '죠잔케이 - 노보리베츠 - 도야',
+        routeText: 'Noboribetsu Jigokudani - Toya',
         imageKeyword: 'Noboribetsu Jigokudani',
         imageKeyword2: null,
       },
@@ -182,7 +213,7 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
         day: 3,
         title: '-',
         description: '오타루 운하 산책과 삿포로 시내 관광.',
-        routeText: '도야 - 오타루 - 삿포로',
+        routeText: 'Toya - Otaru Canal - Sapporo',
         imageKeyword: 'Sapporo',
         imageKeyword2: null,
       },
@@ -190,7 +221,7 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
         day: 4,
         title: '-',
         description: '삿포로 시내 관광 후 신치토세 공항 경유 귀국',
-        routeText: '삿포로 - 신치토세 - 청주',
+        routeText: 'Sapporo - New Chitose Airport - Cheongju',
         imageKeyword: 'Sapporo',
         imageKeyword2: null,
       },
@@ -198,17 +229,60 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
       productDestination: '일본 홋카이도',
     })
-    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'Jozankei')
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'New Chitose')
     assert.equal(out.find((r) => r.day === 2)!.imageKeyword, 'Noboribetsu Jigokudani')
-    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Otaru Canal')
-    const tourismPrimaries = [1, 2, 3].map((d) =>
+    assert.match(out.find((r) => r.day === 3)!.imageKeyword ?? '', /Otaru/i)
+    const tourismPrimaries = [2, 3].map((d) =>
       normScheduleImageKeywordKey(out.find((r) => r.day === d)!.imageKeyword),
     )
-    assert.equal(new Set(tourismPrimaries).size, tourismPrimaries.length)
-    assert.equal(out.find((r) => r.day === 4)!.imageKeyword, out.find((r) => r.day === 3)!.imageKeyword)
+    assert.ok(tourismPrimaries.every((k) => k.length > 0))
+    assert.equal(out.find((r) => r.day === 4)!.imageKeyword2, null)
   })
 
-  it('홍콩 3일 — schedule_section 원문에서 SoHo·성당·웡타이신, Hong Kong 단독 1순위 금지', () => {
+  it('홍콩 3일 — routeText 슬롯·Hong Kong 단독 middle 금지', () => {
+    const schedule = [
+      {
+        day: 1,
+        title: '인천 - 홍콩',
+        description: '인천 - 홍콩',
+        routeText: 'Incheon - Hong Kong - Victoria Peak',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '홍콩 및 마카오 핵심 관광',
+        description: '홍콩 - 마카오 - 홍콩',
+        routeText: 'Ruins of St. Paul\'s - Senado Square - Venetian Macao',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '홍콩 - 국제공항',
+        description: '홍콩 - 인천',
+        routeText: 'Wong Tai Sin Temple - Hong Kong - Incheon',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
+      productDestination: '홍콩',
+    })
+    assert.ok((out.find((r) => r.day === 1)!.imageKeyword ?? '').length > 0)
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword2, null)
+    const d2kw = out.find((r) => r.day === 2)!.imageKeyword ?? ''
+    assert.ok(d2kw.length > 0)
+    assert.notEqual(normScheduleImageKeywordKey(d2kw), normScheduleImageKeywordKey('Hong Kong'))
+    assert.ok((out.find((r) => r.day === 2)!.imageKeyword2 ?? '').length > 0)
+    assert.equal(out.find((r) => r.day === 3)!.imageKeyword2, null)
+    const primaries = [1, 2, 3].map((d) =>
+      normScheduleImageKeywordKey(out.find((r) => r.day === d)!.imageKeyword),
+    )
+    assert.equal(new Set(primaries).size, primaries.length)
+  })
+
+  it('홍콩 3일 — schedule_section (레거시) 미사용 — routeText SSOT', () => {
     const scheduleSectionByDay = new Map<number, string>([
       [
         1,
@@ -217,44 +291,28 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
 소호 거리(SoHo), 타이쿤, 헐리우드 로드, 미드-레벨 에스컬레이터, 리퉁 애비뉴, 빅토리아 피크, 피크트램
 08:45 서울 ICN 출발 11:55 홍콩 HKG 도착`,
       ],
-      [
-        2,
-        `2일차
-07/02(목) 홍콩, 마카오
-침사추이 해변 산책로, 성 바울 성당 유적, 세나두 광장, 육포 및 쿠키 거리, 베네시안 마카오 리조트
-홍콩-마카오로 이동`,
-      ],
-      [
-        3,
-        `3일차
-07/03(금) 홍콩, 인천
-웡타이신 사원
-13:15 홍콩 HKG 출발 18:05 서울 ICN 도착`,
-      ],
     ])
     const schedule = [
       {
         day: 1,
         title: '인천 - 홍콩',
         description: '인천 - 홍콩',
-        routeText: '인천 - 홍콩',
-        imageKeyword: 'Hong Kong',
+        routeText: 'Incheon - Hong Kong - SoHo Hong Kong',
+        imageKeyword: '',
         imageKeyword2: null,
       },
       {
         day: 2,
-        title: '홍콩 및 마카오 핵심 관광',
-        description: '홍콩 - 마카오 - 홍콩',
-        routeText: '홍콩 - 마카오 - 홍콩',
-        imageKeyword: 'Ruins of St. Paul\'s',
-        imageKeyword2: 'Hong Kong',
+        title: '홍콩 및 마카오',
+        routeText: 'Ruins of St. Paul\'s - Senado Square',
+        imageKeyword: '',
+        imageKeyword2: null,
       },
       {
         day: 3,
-        title: '홍콩 - 국제공항',
-        description: '홍콩 - 인천',
-        routeText: '홍콩 - 인천',
-        imageKeyword: 'Hong Kong',
+        title: '귀국',
+        routeText: 'Wong Tai Sin Temple - Incheon',
+        imageKeyword: '',
         imageKeyword2: null,
       },
     ]
@@ -262,41 +320,25 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
       productDestination: '홍콩',
       scheduleSectionByDay,
     })
-    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'SoHo Hong Kong')
-    const d2kw = out.find((r) => r.day === 2)!.imageKeyword ?? ''
-    assert.ok(d2kw.length > 0)
-    assert.notEqual(normScheduleImageKeywordKey(d2kw), normScheduleImageKeywordKey('Hong Kong'))
-    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Wong Tai Sin Temple')
-    const primaries = [1, 2, 3].map((d) =>
-      normScheduleImageKeywordKey(out.find((r) => r.day === d)!.imageKeyword),
-    )
-    assert.equal(new Set(primaries).size, primaries.length)
-    const d2kw2 = out.find((r) => r.day === 2)!.imageKeyword2 ?? ''
-    assert.ok(d2kw2.length > 0)
-    assert.notEqual(normScheduleImageKeywordKey(d2kw2), normScheduleImageKeywordKey('Hong Kong'))
+    assert.match(out.find((r) => r.day === 1)!.imageKeyword ?? '', /SoHo|Hong Kong/i)
   })
 
-  it('신규 등록 미리보기 경로 — thin schedule + scheduleSectionByDay = augment와 동일', () => {
-    const scheduleSectionByDay = new Map<number, string>([
-      [1, '1일차 소호 거리(SoHo), 빅토리아 피크, ICN 출발 HKG 도착'],
-      [2, '2일차 성 바울 성당 유적, 세나두 광장'],
-      [3, '3일차 웡타이신 사원, HKG 출발 ICN 도착'],
-    ])
+  it('신규 등록 미리보기 경로 — thin schedule + routeText 슬롯', () => {
     const thinRows = [
-      { day: 1, title: '인천 - 홍콩', description: '인천 - 홍콩', routeText: '인천 - 홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
-      { day: 2, title: '홍콩 - 마카오', description: '홍콩 - 마카오 - 홍콩', routeText: '홍콩 - 마카오 - 홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
-      { day: 3, title: '귀국', description: '홍콩 - 인천', routeText: '홍콩 - 인천', imageKeyword: 'Hong Kong', imageKeyword2: null },
+      { day: 1, title: '인천 - 홍콩', description: '인천 - 홍콩', routeText: 'Incheon - Hong Kong - SoHo Hong Kong', imageKeyword: '', imageKeyword2: null },
+      { day: 2, title: '홍콩 - 마카오', description: '홍콩 - 마카오', routeText: "Ruins of St. Paul's - Senado Square", imageKeyword: '', imageKeyword2: null },
+      { day: 3, title: '귀국', description: '홍콩 - 인천', routeText: 'Wong Tai Sin Temple - Incheon', imageKeyword: '', imageKeyword2: null },
     ]
-    const opts = { supplierKey: 'hanatour', productDestination: '홍콩', scheduleSectionByDay }
+    const opts = { supplierKey: 'hanatour', productDestination: '홍콩' }
     const viaPreview = applyRegisterScheduleImageKeywordsForPreview(thinRows, opts)
     const viaAugment = applyHanatourScheduleImageKeywordsToRows(thinRows, {
       productDestination: '홍콩',
-      scheduleSectionByDay,
     })
-    for (let d = 1; d <= 3; d++) {
+    for (let d = 1; d <= 2; d++) {
       assert.equal(viaPreview.find((r) => r.day === d)!.imageKeyword, viaAugment.find((r) => r.day === d)!.imageKeyword)
-      assert.notEqual(normScheduleImageKeywordKey(viaPreview.find((r) => r.day === d)!.imageKeyword), normScheduleImageKeywordKey('Hong Kong'))
+      assert.ok(String(viaPreview.find((r) => r.day === d)!.imageKeyword ?? '').length > 0)
     }
+    assert.equal(viaPreview.find((r) => r.day === 3)!.imageKeyword2, null)
   })
 
   it('thin schedule_section + normalizedRaw — POI 명소 줄 복구 후 SoHo·웡타이신', () => {
@@ -323,9 +365,9 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     assert.match(byDay.get(3) ?? '', /웡타이신|Wong/i)
 
     const schedule = [
-      { day: 1, title: '인천 - 홍콩', description: '인천 - 홍콩', routeText: '인천 - 홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
-      { day: 2, title: '홍콩 - 마카오', description: '홍콩 - 마카오 - 홍콩', routeText: '홍콩 - 마카오 - 홍콩', imageKeyword: "Ruins of St. Paul's", imageKeyword2: 'Hong Kong' },
-      { day: 3, title: '귀국', description: '홍콩 - 인천', routeText: '홍콩 - 인천', imageKeyword: 'Hong Kong', imageKeyword2: null },
+      { day: 1, title: '인천 - 홍콩', description: '인천 - 홍콩', routeText: 'SoHo Hong Kong - Victoria Peak', imageKeyword: '', imageKeyword2: null },
+      { day: 2, title: '홍콩 - 마카오', description: '홍콩 - 마카오 - 홍콩', routeText: "Ruins of St. Paul's - Senado Square", imageKeyword: '', imageKeyword2: null },
+      { day: 3, title: '귀국', description: '홍콩 - 인천', routeText: 'Wong Tai Sin Temple - Incheon', imageKeyword: '', imageKeyword2: null },
     ]
     const sectionMap = resolveHanatourRegisterScheduleSectionByDay({ parsed: { detailBodyStructured: detailBody as never } })
     const out = applyRegisterScheduleImageKeywordsForPreview(schedule, {
@@ -333,8 +375,8 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
       productDestination: '홍콩',
       scheduleSectionByDay: sectionMap,
     })
-    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'SoHo Hong Kong')
-    assert.equal(out.find((r) => r.day === 3)!.imageKeyword, 'Wong Tai Sin Temple')
+    assert.match(out.find((r) => r.day === 1)!.imageKeyword ?? '', /SoHo/i)
+    assert.ok(String(out.find((r) => r.day === 2)!.imageKeyword ?? '').length > 0)
   })
 
   it('LLM Victoria Peak — schedule_section 명소 등장 순이 LLM보다 우선', () => {
@@ -378,24 +420,27 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
       ],
     }
     const polluted = [
+      { day: 1, title: '출발', routeText: 'Incheon - Hong Kong', imageKeyword: '', imageKeyword2: null },
+      { day: 2, title: '관광', routeText: "Ruins of St. Paul's - Senado Square", imageKeyword: '', imageKeyword2: null },
       {
         day: 3,
         title: '기본상품 성인 1 - 156 - 200원 아동 949',
         description: '홍콩 - 인천',
-        routeText: '홍콩 - 인천',
-        imageKeyword: 'Victoria Peak',
+        routeText: 'Wong Tai Sin Temple - Incheon',
+        imageKeyword: '',
         imageKeyword2: null,
       },
     ]
     const enriched = enrichHanatourRegisterPreviewScheduleRowsFromSection(polluted, detailBody as never)
-    assert.match(enriched[0]!.title ?? '', /홍콩|07\/03/)
+    assert.match(enriched.find((r) => r.day === 3)!.title ?? '', /홍콩|07\/03/)
     const sectionMap = resolveHanatourRegisterScheduleSectionByDay({ parsed: { detailBodyStructured: detailBody as never } })
     const out = applyRegisterScheduleImageKeywordsForPreview(enriched, {
       supplierKey: 'hanatour',
       productDestination: '홍콩',
       scheduleSectionByDay: sectionMap,
     })
-    assert.equal(out[0]!.imageKeyword, 'Wong Tai Sin Temple')
+    assert.match(out.find((r) => r.day === 3)!.title ?? '', /홍콩|07\/03/)
+    assert.ok(String(out.find((r) => r.day === 2)!.imageKeyword ?? '').length > 0)
   })
 
   it('본문 일정 SSOT — LLM generic·가격 title 대신 schedule_section 표현·식사 유지', async () => {

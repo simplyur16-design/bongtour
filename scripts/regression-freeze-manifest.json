@@ -634,7 +634,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]",
             "allocateYbtourImageKeywordsByScheduleRules",
-            "collectYbtourRouteOrderedSegmentKeywords"
+            "collectYbtourRouteOrderedSegmentKeywords",
+            "resolveYbtourKeywordSlotKind",
+            "findYbtourRowByDay"
           ]
         },
         {
@@ -666,16 +668,16 @@
             "allocateModetourImageKeywordsByScheduleRules",
             "routeText 세그먼트 순서",
             "collectModetourRouteOrderedSegmentKeywords",
-            "pickModetourMovementForeignCityKeyword",
+            "pickModetourDepartureRepresentativeKeyword",
             "pickFirstUnusedModetourRouteKeyword",
             "resolveModetourKeywordSlotKind",
-            "findPrevScheduledRow",
-            "isDomesticOnlyRouteText",
+            "1일차=departure, 2~(N-1)=middle, N일차=return",
             "collectRouteLandmarkKeywordsFromRouteText",
             "englishFromKoreanRouteSegment"
           ],
           "mustNotInclude": [
-            "routeText 라틴 세그먼트 폴백만"
+            "routeText 라틴 세그먼트 폴백만",
+            "return 'skip'"
           ]
         },
         {
@@ -704,6 +706,50 @@
             "lottetourRouteTextSegments"
           ]
         }
+      ]
+    },
+    {
+      "id": "schedule-image-keyword-adjacent-poi",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "출발·기내박·귀국 — 공항 키워드 금지, 전후일 미사용 관광명소",
+      "checks": [
+        {
+          "file": "lib/schedule-image-keyword-adjacent-poi.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-adjacent-poi]",
+            "pickUnusedScheduleImageKeywordFromAdjacentDays",
+            "isScheduleInFlightOvernightRow",
+            "isScheduleAirportLikeImageKeyword"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-adjacent-poi]",
+            "pickModetourAdjacentUnusedKeyword"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-adjacent-poi]",
+            "pickHanatourAdjacentUnusedKeyword"
+          ]
+        },
+        {
+          "file": "lib/ybtour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-adjacent-poi]",
+            "AMERICAS_PRODUCT_DEST_RE",
+            "pickYbtourAdjacentUnusedKeyword"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-image-keyword-adjacent-poi.test.ts"
       ]
     },
     {
@@ -794,7 +840,8 @@
           "file": "tests/ybtour-schedule-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "routeText 슬롯 — trip-wide 재사용 금지"
+            "routeText 슬롯 — trip-wide 재사용 금지",
+            "N일차 — 관광 routeText여도"
           ]
         },
         {
@@ -3381,6 +3428,8 @@
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
             "scheduleDaysMissingImageKeywordAfterRules",
             "scheduleDaysMissingImageKeyword2AfterRules",
+            "scheduleFreeLeisureDaysMissingImageKeyword",
+            "buildFreeLeisureDayGeminiPrompt",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
             "REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK"
           ]
@@ -3388,6 +3437,48 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-image-keyword-gemini-fill.test.ts"
+      ]
+    },
+    {
+      "id": "hanatour-register-schedule-image-keyword-apply",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 등록 — parse·detail-collect·post-augment routeText 일차 슬롯 imageKeyword",
+      "checks": [
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]",
+            "ensureHanatourRegisterScheduleImageKeywords",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]",
+            "ensureHanatourRegisterScheduleImageKeywords"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]",
+            "allocateHanatourImageKeywordsByScheduleRules"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "applyHanatourScheduleImageKeywordsToRows"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-schedule-image-keyword.test.ts",
+        "lib/hanatour-register-detail-collect.test.ts"
       ]
     },
     {
@@ -3511,7 +3602,7 @@
         {
           "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
           "mustInclude": [
-            "firstMatchingScheduleSpotEn",
+            "findAllScheduleSpotMatchesInText",
             "firstMatchingScheduleCityEn"
           ]
         },
@@ -3693,7 +3784,8 @@
             "extractHanatourOptionalToursFromChcStsng",
             "selectHanatourScheduleHighlights",
             "composeHanatourScheduleVibeDescription",
-            "applyHanatourProdInfoHotelsToFactDays"
+            "applyHanatourProdInfoHotelsToFactDays",
+            "isHanatourItnrNonRouteCard"
           ]
         },
         {
@@ -3882,9 +3974,11 @@
           "file": "lib/ybtour-register-api-schedule.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "REGRESSION-FREEZE[ybtour-register-api-schedule-tm-html-strip]",
             "composeYbtourScheduleDescription",
             "joinYbtourScheduleRouteText",
-            "applyYbtourScheduleExpressionToRows"
+            "applyYbtourScheduleExpressionToRows",
+            "stripYbtourHtmlText"
           ]
         },
         {
@@ -3968,7 +4062,7 @@
             "collectYbtourRegisterFacts",
             "parseYbtourRegisterFromApi",
             "ybtourScheduleBundleToRegisterSchedule",
-            "applyRegisterScheduleImageKeywordsBySupplier",
+            "ensureYbtourRegisterScheduleImageKeywords",
             "resolveYbtourEvCdForRegisterUrl"
           ],
           "mustNotInclude": [
@@ -3988,7 +4082,9 @@
         {
           "file": "lib/parse-and-register-ybtour-handler.ts",
           "mustInclude": [
-            "runYbtourRegisterFlow"
+            "runYbtourRegisterFlow",
+            "augmentYbtourScheduleExpressionParsed",
+            "finalizeYbtourItineraryDayDraftsFromSchedule"
           ],
           "mustNotInclude": [
             "parse-and-register-ybtour-orchestration"
@@ -4018,6 +4114,8 @@
             "REGRESSION-FREEZE[ybtour-register-ssot-freeze]",
             "runYbtourRegisterFlow",
             "collectYbtourRegisterFacts",
+            "augmentYbtourScheduleExpressionParsed",
+            "applyYbtourScheduleExpressionToRows",
             "!text && !hasParsed && !originUrl"
           ]
         },
@@ -4031,7 +4129,8 @@
         {
           "file": "lib/parse-and-register-ybtour-handler.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[ybtour-register-ssot-freeze]"
+            "REGRESSION-FREEZE[ybtour-register-ssot-freeze]",
+            "augmentYbtourScheduleExpressionParsed"
           ]
         }
       ]
@@ -4503,7 +4602,58 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-korean-segment-poi-before-regex]",
             "mapKoreanPoiSegment(t)",
-            "firstMatchingScheduleSpotEn(t)"
+            "findAllScheduleSpotMatchesInText"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ybtour-register-api-schedule-tm-html-strip",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour papi tmContent HTML strip — routeText place extract SSOT",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-api-schedule-tm-html-strip]",
+            "stripYbtourHtmlText",
+            "extractYbtourSchedulePlacesFromTmRows"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-api-schedule.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-register-schedule-image-keyword-apply",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour 등록 schedule imageKeyword — ensure + Gemini + post-augment 보존",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]",
+            "ensureYbtourRegisterScheduleImageKeywords",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": [
+            "ensureYbtourRegisterScheduleImageKeywords"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "mergePostAugmentScheduleImageKeywords"
           ]
         }
       ]

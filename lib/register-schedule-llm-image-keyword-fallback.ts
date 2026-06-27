@@ -13,7 +13,7 @@ import {
   mapKoreanPoiSegment,
   normalizeSemanticPoiKey,
 } from '@/lib/pexels-keyword'
-import { firstMatchingScheduleCityEn, firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
+import { findAllScheduleSpotMatchesInText, firstMatchingScheduleCityEn } from '@/lib/schedule-poi-regex-ssot'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 function normKeywordKey(s: string): string {
@@ -136,7 +136,7 @@ function routeTextSegments(routeText: string | null | undefined): string[] {
 export function englishFromScheduleKoreanSegment(seg: string): string {
   const t = seg.trim()
   if (!t) return ''
-  // REGRESSION-FREEZE[schedule-korean-segment-poi-before-regex]: POI 사전 우선 — regex 오매핑(레 시장→Leh Palace) 방지 — manifest
+  // REGRESSION-FREEZE[schedule-korean-segment-poi-before-regex]: POI 사전 → findAllScheduleSpotMatchesInText 좌→우 — manifest
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     try {
@@ -145,7 +145,8 @@ export function englishFromScheduleKoreanSegment(seg: string): string {
       return fromPoi
     }
   }
-  const fromSpotRegex = firstMatchingScheduleSpotEn(t)
+  const spotHits = findAllScheduleSpotMatchesInText(t)
+  const fromSpotRegex = spotHits[0]?.en ?? ''
   if (fromSpotRegex) {
     try {
       return finalizeScheduleImageKeyword(fromSpotRegex)

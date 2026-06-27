@@ -302,7 +302,8 @@ export function augmentYbtourScheduleExpressionParsed(
   const sched = next.schedule
   if (!sched?.length) return next
   const cleaned = sched.map((r) => sanitizeYbtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r)))
-  const titled = cleaned.map((r) => {
+  const expressed = applyYbtourScheduleExpressionToRows(cleaned)
+  const titled = expressed.map((r) => {
     const title = String(r.title ?? '').trim()
     const description = String(r.description ?? '').trim()
     if (!shouldReplaceYbtourScheduleDayTitle(title, description)) return r
@@ -321,7 +322,7 @@ export function augmentYbtourScheduleExpressionParsed(
     : applyAugmentScheduleImageKeywordsBySupplier(titled, {
         supplierKey: 'ybtour',
         productTitle: next.title,
-        productDestination: next.destination,
+        productDestination: next.primaryDestination ?? next.destination,
         travelScope: opts?.travelScope,
         productType: next.productType,
       })

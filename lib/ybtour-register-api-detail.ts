@@ -23,7 +23,10 @@ import {
   composeYbtourScheduleDescription,
   extractYbtourSchedulePlacesFromTmRows,
   joinYbtourScheduleRouteText,
+  stripYbtourHtmlText,
 } from '@/lib/ybtour-register-api-schedule'
+
+export { stripYbtourHtmlText } from '@/lib/ybtour-register-api-schedule'
 
 const YBTOUR_PAPI_BASE = process.env.YBTOUR_PAPI_BASE_URL ?? 'https://papi.ybtour.co.kr'
 /** 등록 상세카드 papi 호출 간격 — ybtour 전용(공용 스크래퍼 설정과 분리). */
@@ -145,20 +148,6 @@ async function fetchYbtourRegisterPapiJson<T>(path: string, referer: string): Pr
 
 function paceBetweenRegisterDetailFetches(): Promise<void> {
   return new Promise((r) => setTimeout(r, YBTOUR_REGISTER_DETAIL_PACE_MS))
-}
-
-export function stripYbtourHtmlText(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&middot;/gi, '·')
-    .replace(/[ \t\f\v]+/g, ' ')
-    .replace(/\n[ \t]*/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
 }
 
 export function htmlBulletsFromYbtourNotice(html: string | null | undefined): string[] {

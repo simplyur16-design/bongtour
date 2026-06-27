@@ -28,5 +28,14 @@ describe('schedule-poi-regex-ssot', () => {
   it('maps shared city regex for route segments', () => {
     expect(firstMatchingScheduleCityEn('다낭')).toMatch(/Da Nang/i)
     expect(firstMatchingScheduleCityEn('이스탄불')).toMatch(/Istanbul/i)
+    expect(firstMatchingScheduleCityEn('리마')).toMatch(/Lima/i)
+    expect(firstMatchingScheduleSpotEn('링컨 기념관')).toMatch(/Lincoln Memorial/i)
+    expect(firstMatchingScheduleSpotEn('마추픽chu')).toMatch(/Machu Picchu/i)
+    expect(firstMatchingScheduleSpotEn('나이아가라 폭포')).toMatch(/Niagara/i)
+  })
+
+  it('does not map ancient Rome phrase to Rome city when Ephesus present', () => {
+    expect(firstMatchingScheduleCityEn('고대 로마를 만나다')).toBeNull()
+    expect(firstMatchingScheduleSpotEn('에페소')).toMatch(/Ephesus/i)
   })
 })

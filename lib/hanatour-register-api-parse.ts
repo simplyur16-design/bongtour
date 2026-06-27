@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[hanatour-register-api-parse]: collectHanatourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: API-only register parse — manifest
+ * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: parse 후 ensureHanatourRegisterScheduleImageKeywords — manifest
  */
 import { parseDetailBodyStructuredHanatour } from '@/lib/detail-body-parser-hanatour'
 import { applyHanatourBasicInfoBodyExtract } from '@/lib/hanatour-basic-info-body-extract'
@@ -17,6 +18,7 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-hanatour'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
+import { ensureHanatourRegisterScheduleImageKeywords } from '@/lib/hanatour-register-detail-collect'
 import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
@@ -151,5 +153,6 @@ export async function parseHanatourRegisterFromApi(
 
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)
+  parsed = await ensureHanatourRegisterScheduleImageKeywords(parsed)
   return parsed
 }
