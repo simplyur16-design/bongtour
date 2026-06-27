@@ -177,13 +177,134 @@ function normalizeFlightNo(raw: string | null | undefined): string | null {
   return m ? `${m[1]!.toUpperCase()}${m[2]!}` : null
 }
 
+function parseNaeiltourKoreanDateToIso(s: string | null | undefined): string | null {
+  const m = String(s ?? '').match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/)
+  if (!m) return null
+  return `${m[1]}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')}`
+}
+
+type NaeiltourFlightScheduleEntry = {
+  dateText: string | null
+  dateIso: string | null
+  depTime: string | null
+  arrTime: string | null
+  flightNo: string | null
+  raw: string
+  hasDepartureKeyword: boolean
+  hasArrivalKeyword: boolean
+  mentionsKoreaAirport: boolean
+}
+
+function extractNaeiltourAirlineFromHtml(hay: string, flat: string): string | null {
+  const block = hay.match(/class=["']airline["'][^>]*>([\s\S]*?)<\/(?:div|section|article)>/i)?.[1]
+  if (block) {
+    let name = stripNaeiltourHtmlText(block).replace(/^항공사\s*/i, '').trim()
+    name = name.split(/항공\s*여정/i)[0]?.trim() ?? name
+    const short = name.match(/^([가-힣A-Za-z]+항공)/)?.[1] ?? name
+    if (short && short !== '항공사' && /항공/i.test(short)) return short.slice(0, 40)
+  }
+  const known =
+    flat.match(
+      /(?:아시아나|대한항공|진에어|티웨이|에어부산|이스타|제주항공|싱가폴항공|카타르(?:항공)?|에미레이트(?:항공)?|루프트한자|에어프랑스|영국항공|델타(?:항공)?|유나이티드(?:항공)?|일본항공|ANA|JAL)/i,
+    )?.[0] ?? null
+  if (known) return known.replace(/\s+/g, '').slice(0, 40)
+  const line = flat.match(/(?:^|\s)([가-힣A-Za-z]{2,14}항공)(?:\s|$)/m)?.[1]
+  if (line && line !== '항공사') return line
+  return null
+}
+
+function pushUniqueFlightEntry(
+  out: NaeiltourFlightScheduleEntry[],
+  entry: NaeiltourFlightScheduleEntry,
+): void {
+  const key = `${entry.flightNo ?? ''}|${entry.dateIso ?? entry.dateText ?? ''}|${entry.depTime ?? ''}`
+  if (out.some((e) => `${e.flightNo ?? ''}|${e.dateIso ?? e.dateText ?? ''}|${e.depTime ?? ''}` === key)) {
+    return
+  }
+  out.push(entry)
+}
+
+function scanNaeiltourFlightScheduleEntries(hay: string, flat: string): NaeiltourFlightScheduleEntry[] {
+  const out: NaeiltourFlightScheduleEntry[] = []
+
+  for (const m of hay.matchAll(
+    /<strong>\s*(\d{4}년\s*\d{1,2}월\s*\d{1,2}일(?:\([^)]*\))?)\s*<\/strong>\s*\[(\d{1,2}:\d{2})(?:~(\d{1,2}:\d{2}))?\]\s*-\s*([A-Z]{2}\d{3,4})/gi,
+  )) {
+    const raw = stripNaeiltourHtmlText(m[0] ?? '')
+    pushUniqueFlightEntry(out, {
+      dateText: m[1]!.trim(),
+      dateIso: parseNaeiltourKoreanDateToIso(m[1]!),
+      depTime: m[2]!.trim(),
+      arrTime: m[3]?.trim() ?? null,
+      flightNo: normalizeFlightNo(m[4]!),
+      raw,
+      hasDepartureKeyword: /출발/.test(raw),
+      hasArrivalKeyword: /도착/.test(raw),
+      mentionsKoreaAirport: /인천|김포|ICN|GMP/i.test(raw),
+    })
+  }
+
+  for (const m of flat.matchAll(
+    /(\d{4}년\s*\d{1,2}월\s*\d{1,2}일(?:\([^)]*\))?)\s*\[(\d{1,2}:\d{2})(?:~(\d{1,2}:\d{2}))?\]\s*-\s*([A-Z]{2}\d{3,4})/gi,
+  )) {
+    const raw = m[0]!.trim()
+    pushUniqueFlightEntry(out, {
+      dateText: m[1]!.trim(),
+      dateIso: parseNaeiltourKoreanDateToIso(m[1]!),
+      depTime: m[2]!.trim(),
+      arrTime: m[3]?.trim() ?? null,
+      flightNo: normalizeFlightNo(m[4]!),
+      raw,
+      hasDepartureKeyword: /출발/.test(raw),
+      hasArrivalKeyword: /도착/.test(raw),
+      mentionsKoreaAirport: /인천|김포|ICN|GMP/i.test(raw),
+    })
+  }
+
+  for (const m of hay.matchAll(/\[(\d{1,2}:\d{2})\]\s*([A-Z]{2}\s*\d{3,4})[^\n<]{0,120}(?:출발|도착)/gi)) {
+    const raw = stripNaeiltourHtmlText(m[0] ?? '')
+    pushUniqueFlightEntry(out, {
+      dateText: null,
+      dateIso: null,
+      depTime: m[1]!.trim(),
+      arrTime: null,
+      flightNo: normalizeFlightNo(m[2]!),
+      raw,
+      hasDepartureKeyword: /출발/.test(raw),
+      hasArrivalKeyword: /도착/.test(raw),
+      mentionsKoreaAirport: /인천|김포|ICN|GMP/i.test(raw),
+    })
+  }
+
+  if (!out.length) {
+    for (const m of hay.matchAll(/\[(\d{1,2}:\d{2})(?:~(\d{1,2}:\d{2}))?\]\s*-\s*([A-Z]{2}\d{3,4})/gi)) {
+      const raw = stripNaeiltourHtmlText(m[0] ?? '')
+      pushUniqueFlightEntry(out, {
+        dateText: null,
+        dateIso: null,
+        depTime: m[1]!.trim(),
+        arrTime: m[2]?.trim() ?? null,
+        flightNo: normalizeFlightNo(m[3]!),
+        raw,
+        hasDepartureKeyword: false,
+        hasArrivalKeyword: false,
+        mentionsKoreaAirport: false,
+      })
+    }
+  }
+
+  return out
+}
+
 function parseFlightLegFromLine(line: string): Partial<ReturnType<typeof createEmptyFlightLeg>> {
   const leg: Partial<ReturnType<typeof createEmptyFlightLeg>> = {}
   const fn = normalizeFlightNo(line)
   if (fn) leg.flightNo = fn
-  const time = line.match(/\[(\d{1,2}:\d{2})\]/)
+  const timeRange = line.match(/\[(\d{1,2}:\d{2})(?:~(\d{1,2}:\d{2}))?\]/)
+  const time = timeRange ?? line.match(/\[(\d{1,2}:\d{2})\]/)
   if (time?.[1]) {
-    if (/출발/.test(line)) leg.departureTime = time[1]
+    if (/출발/.test(line) || !leg.departureTime) leg.departureTime = time[1]
+    if (timeRange?.[2]) leg.arrivalTime = timeRange[2]
     if (/도착/.test(line)) leg.arrivalTime = time[1]
   }
   const airport =
@@ -204,50 +325,50 @@ export function buildNaeiltourFlightStructuredFromHtml(
 ): FlightStructured | null {
   const hay = [pageHtml, tab0Html, tab1Html].filter(Boolean).join('\n')
   const flat = stripNaeiltourHtmlText(hay)
-  const airline =
-    flat.match(/아시아나|대한항공|진에어|티웨이|에어부산|이스타|제주항공|항공\s*사/)?.[0] ??
-    flat.match(/([가-힣]{2,8}항공)/)?.[1] ??
-    null
+  const airline = extractNaeiltourAirlineFromHtml(hay, flat)
 
-  const flightLines = [...hay.matchAll(/\[(\d{1,2}:\d{2})\]\s*([A-Z]{2}\s*\d{3,4})[^\n<]{0,80}(?:출발|도착)/gi)].map(
-    (m) => ({
-      time: m[1]!,
-      fn: normalizeFlightNo(m[2]!),
-      raw: stripNaeiltourHtmlText(m[0] ?? ''),
-    }),
-  )
-  if (!flightLines.length) {
-    for (const m of hay.matchAll(/\[(\d{1,2}:\d{2})\]\s*([A-Z]{2}\d{3,4})[^\n<]*/gi)) {
-      flightLines.push({
-        time: m[1]!,
-        fn: normalizeFlightNo(m[2]!),
-        raw: stripNaeiltourHtmlText(m[0] ?? ''),
-      })
-    }
-  }
+  const scheduleEntries = scanNaeiltourFlightScheduleEntries(hay, flat)
+  const flightLines = scheduleEntries.map((e) => ({
+    time: e.depTime ?? '',
+    fn: e.flightNo,
+    raw: e.raw,
+    entry: e,
+  }))
 
   const outbound = createEmptyFlightLeg()
   const inbound = createEmptyFlightLeg()
-  const obLine = flightLines.find((l) => /출발/.test(l.raw) && /인천|김포|ICN|GMP/i.test(l.raw)) ?? flightLines[0]
+
+  const obLine =
+    flightLines.find((l) => l.entry.hasDepartureKeyword && l.entry.mentionsKoreaAirport) ??
+    flightLines.find((l) => l.entry.mentionsKoreaAirport && /출발/.test(l.raw)) ??
+    flightLines[0]
   const ibLine =
+    [...flightLines]
+      .reverse()
+      .find((l) => l.entry.hasDepartureKeyword && !l.entry.mentionsKoreaAirport) ??
     [...flightLines].reverse().find((l) => /출발/.test(l.raw) && !/인천|김포|ICN|GMP/i.test(l.raw)) ??
-    flightLines[flightLines.length - 1]
+    (flightLines.length >= 2 ? flightLines[flightLines.length - 1] : undefined)
 
   if (obLine) {
     Object.assign(outbound, parseFlightLegFromLine(obLine.raw))
     if (!outbound.flightNo && obLine.fn) outbound.flightNo = obLine.fn
-    if (!outbound.departureTime) outbound.departureTime = obLine.time
+    if (!outbound.departureTime && obLine.entry.depTime) outbound.departureTime = obLine.entry.depTime
+    if (!outbound.arrivalTime && obLine.entry.arrTime) outbound.arrivalTime = obLine.entry.arrTime
+    if (!outbound.departureDate && obLine.entry.dateIso) outbound.departureDate = obLine.entry.dateIso
   }
   if (ibLine && ibLine !== obLine) {
     Object.assign(inbound, parseFlightLegFromLine(ibLine.raw))
     if (!inbound.flightNo && ibLine.fn) inbound.flightNo = ibLine.fn
-    if (!inbound.departureTime) inbound.departureTime = ibLine.time
+    if (!inbound.departureTime && ibLine.entry.depTime) inbound.departureTime = ibLine.entry.depTime
+    if (!inbound.arrivalTime && ibLine.entry.arrTime) inbound.arrivalTime = ibLine.entry.arrTime
+    if (!inbound.departureDate && ibLine.entry.dateIso) inbound.departureDate = ibLine.entry.dateIso
   }
 
-  const arriveLine = flightLines.find((l) => /도착/.test(l.raw) && /인천|김포|ICN|GMP/i.test(l.raw))
+  const arriveLine = flightLines.find((l) => l.entry.hasArrivalKeyword && l.entry.mentionsKoreaAirport)
   if (arriveLine) {
-    if (!inbound.arrivalTime) inbound.arrivalTime = arriveLine.time
+    if (!inbound.arrivalTime && arriveLine.entry.depTime) inbound.arrivalTime = arriveLine.entry.depTime
     if (!inbound.flightNo && arriveLine.fn) inbound.flightNo = arriveLine.fn
+    if (!inbound.arrivalDate && arriveLine.entry.dateIso) inbound.arrivalDate = arriveLine.entry.dateIso
   }
 
   const dateInHeader =
@@ -266,9 +387,11 @@ export function buildNaeiltourFlightStructuredFromHtml(
 
   if (!outbound.flightNo && !inbound.flightNo && !airline) return null
   const hasCore =
-    Boolean(airline) &&
-    Boolean(outbound.flightNo?.trim() || outbound.departureTime?.trim()) &&
-    Boolean(inbound.flightNo?.trim() || inbound.departureTime?.trim())
+    Boolean(outbound.flightNo?.trim() || inbound.flightNo?.trim()) &&
+    Boolean(
+      (outbound.departureTime?.trim() || outbound.flightNo?.trim()) &&
+        (inbound.departureTime?.trim() || inbound.flightNo?.trim()),
+    )
   return {
     airlineName: airline,
     outbound,
@@ -285,7 +408,7 @@ export function buildNaeiltourFlightStructuredFromHtml(
       expectFlightNumber: true,
     },
     reviewNeeded: !hasCore,
-    reviewReasons: hasCore ? [] : ['내일투어 tab1 항공 추출 불완전'],
+    reviewReasons: hasCore ? [] : ['내일투어 항공 추출 불완전'],
   }
 }
 

@@ -30,10 +30,14 @@ async function main() {
   assert.ok((parsed.excludedItems?.length ?? 0) >= 1, `excluded >= 1 (got ${parsed.excludedItems?.length})`)
   assert.ok(
     registerFlightCollectLooksComplete(parsed) ||
-      Boolean(parsed.outboundFlightNo && parsed.inboundFlightNo) ||
-      Boolean(parsed.includedText?.includes('항공')),
-    'flight or included mentions air ticket',
+      Boolean(parsed.outboundFlightNo && parsed.inboundFlightNo && parsed.airlineName),
+    'flight structured or leg hints',
   )
+  assert.equal(parsed.outboundFlightNo, 'SQ611', 'outbound flight')
+  assert.equal(parsed.inboundFlightNo, 'SQ612', 'inbound flight')
+  assert.match(parsed.airlineName ?? '', /싱가폴/, 'airline name')
+  assert.match(parsed.title ?? '', /마리나베이샌즈/, 'title')
+  assert.ok(!(parsed.title ?? '').includes('금까기'), 'title must omit 금까기')
 
   let next = augmentNaeiltourScheduleExpressionParsed(parsed, '', { travelScope: 'air_hotel_free' })
   assert.equal(next.schedule?.length ?? 0, 0, 'augment must not inject package schedule for airtel')

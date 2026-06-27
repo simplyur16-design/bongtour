@@ -7,6 +7,7 @@
  * - display title: UI 노이즈·무쇼핑/무옵션/직항 배지만 제거, 나머지 원문 유지
  */
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
+import { normalizeNaeiltourRegisterListingTitle } from '@/lib/naeiltour-register-product-title'
 
 export const SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION = 'plan-b-v2-2026-06-19'
 
@@ -86,8 +87,10 @@ export function stripSupplierTitlePromoBadges(s: string): string {
   return t.replace(/\s+/g, ' ').trim()
 }
 
-function normalizeSupplierTitleForDisplay(s: string): string {
-  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(s))
+function normalizeSupplierTitleForDisplay(s: string, brandKey?: string): string {
+  let t = stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(s))
+  if (brandKey === 'naeiltour') t = normalizeNaeiltourRegisterListingTitle(t)
+  return t
 }
 
 export type SupplierProductDisplayTitleInput = {
@@ -99,8 +102,8 @@ export type SupplierProductDisplayTitleInput = {
 /** Plan B 노출명 — 원문 기반 경량 정리. 출발일 구간·박일만 줄은 거부 */
 export function buildSupplierProductDisplayTitle(input: SupplierProductDisplayTitleInput): string {
   const candidates = uniqueTitleCandidates(
-    normalizeSupplierTitleForDisplay(input.verbatimOriginal),
-    normalizeSupplierTitleForDisplay(input.parsedSupplierTitle ?? ''),
+    normalizeSupplierTitleForDisplay(input.verbatimOriginal, input.brandKey),
+    normalizeSupplierTitleForDisplay(input.parsedSupplierTitle ?? '', input.brandKey),
   ).filter((t) => t.length >= 4)
 
   for (const c of candidates) {

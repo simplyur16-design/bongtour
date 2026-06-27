@@ -21,6 +21,7 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-naeiltour'
 import { finalizeNaeiltourRegisterParsedPricing } from '@/lib/register-naeiltour-price'
 import { finalizeNaeiltourRegisterParsedShopping } from '@/lib/register-naeiltour-shopping'
+import { normalizeNaeiltourRegisterListingTitle } from '@/lib/naeiltour-register-product-title'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
@@ -123,7 +124,8 @@ export async function parseNaeiltourRegisterFromApi(
   const englishByDay = naeiltourScheduleEnglishLandmarksByDay(parsedDays)
 
   const paste = rawText.trim()
-  const listingTitle = bundle.title?.trim() || ''
+  const listingTitleRaw = bundle.title?.trim() || ''
+  const listingTitle = normalizeNaeiltourRegisterListingTitle(listingTitleRaw) || listingTitleRaw
   const dest = resolveNaeiltourRegisterDestination(listingTitle, paste)
   const schedule = airtelListing ? [] : naeiltourFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
@@ -150,7 +152,7 @@ export async function parseNaeiltourRegisterFromApi(
     goodCd: detailBundle?.goodCd ?? goodCd,
     eventSeq: detailBundle?.eventSeq ?? null,
     title: listingTitle || '미지정',
-    supplierListingTitleRaw: listingTitle || null,
+    supplierListingTitleRaw: listingTitleRaw || null,
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,

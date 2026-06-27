@@ -121,6 +121,15 @@
       "summary": "내일투어 등록 SSOT 스냅샷 — view.asp tab0/tab1 API parse·Gemini overlay 없음"
     },
     {
+      "id": "naeiltour-register-product-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:naeiltour-register-product-title",
+      "summary": "내일투어 등록 상품명(금까기·진짜 제거) + 자유여행 항공 HTML 추출"
+    },
+    {
       "id": "ybtour-by-goods-departure-list",
       "tier": [
         "ci"
@@ -4509,6 +4518,38 @@
       ]
     },
     {
+      "id": "naeiltour-register-product-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 등록 상품명(금까기·진짜 제거) + 자유여행 항공 HTML 추출",
+      "checks": [
+        {
+          "file": "scripts/verify-naeiltour-register-product-title.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-product-title]",
+            "normalizeNaeiltourRegisterListingTitle",
+            "SQ611"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-product-title.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-product-title]",
+            "normalizeNaeiltourRegisterListingTitle",
+            "금까기"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-parse.ts",
+          "mustInclude": [
+            "normalizeNaeiltourRegisterListingTitle"
+          ]
+        }
+      ]
+    },
+    {
       "id": "naeiltour-schedule-image-keyword",
       "tier": [
         "prebuild",
@@ -4545,7 +4586,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-register-api-detail]",
             "fetchNaeiltourRegisterDetailBundle",
-            "parseNaeiltourScheduleDaysFromTab1"
+            "parseNaeiltourScheduleDaysFromTab1",
+            "scanNaeiltourFlightScheduleEntries",
+            "extractNaeiltourAirlineFromHtml"
           ]
         }
       ]
@@ -4962,7 +5005,9 @@
           "file": "lib/naeiltour-register-api-detail.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-register-api-detail]",
-            "fetchNaeiltourRegisterDetailBundle"
+            "fetchNaeiltourRegisterDetailBundle",
+            "scanNaeiltourFlightScheduleEntries",
+            "extractNaeiltourAirlineFromHtml"
           ]
         }
       ]
