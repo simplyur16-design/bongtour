@@ -15,6 +15,15 @@ import {
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import {
+  fillScheduleMiddleImageKeyword2Gap,
+  isScheduleAirportLikeImageKeyword,
+  isScheduleInFlightOvernightRow,
+  pickUnusedScheduleImageKeywordFromAdjacentDays,
+  resolveScheduleKeywordSlotKind,
+  shouldFillScheduleMiddleKeyword2Gap,
+  type ScheduleAdjacentDayAlloc,
+} from '@/lib/schedule-image-keyword-adjacent-poi'
+import {
   findAllScheduleSpotMatchesInText,
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
@@ -506,6 +515,49 @@ function normLottetourKwKey(s: string): string {
     .toLowerCase()
 }
 
+function lottetourKeywordKeysOverlap(a: string, b: string): boolean {
+  const ka = normLottetourKwKey(a)
+  const kb = normLottetourKwKey(b)
+  if (!ka || !kb) return false
+  if (ka === kb) return true
+  if (ka.length >= 4 && kb.includes(ka)) return true
+  if (kb.length >= 4 && ka.includes(kb)) return true
+  return false
+}
+
+function pickLottetourAdjacentUnusedKeyword<
+  T extends { day: number; title?: string; description?: string; routeText?: string | null },
+>(
+  anchorDay: number,
+  maxDay: number,
+  sorted: readonly T[],
+  used: ReadonlySet<string>,
+  byDay: ReadonlyMap<number, ScheduleAdjacentDayAlloc>,
+  scan: 'forward' | 'backward' | 'both',
+  excludePrimary?: string,
+  allowTripWideReuse = false,
+  ignoreAdjacentDaySlots = false,
+): string {
+  return pickUnusedScheduleImageKeywordFromAdjacentDays({
+    anchorDay,
+    maxDay,
+    sorted,
+    getDay: (r) => Number(r.day),
+    used,
+    normKey: normLottetourKwKey,
+    collectLandmarkCandidates: (r) => collectLottetourLandmarkKeywordsFromRoute(r.routeText),
+    byDayAlloc: byDay,
+    scan,
+    excludePrimary,
+    allowTripWideReuse,
+    ignoreAdjacentDaySlots,
+    rejectKeyword: (kw) =>
+      isBlockedScheduleImageKeyword(kw) ||
+      isScheduleAirportLikeImageKeyword(kw) ||
+      isLottetourPexelsTooGeneric(kw),
+  })
+}
+
 function tryAcceptLottetourSecondaryLlmKeyword(
   raw: string | null | undefined,
   ctx: LottetourImageKeywordContext
@@ -759,11 +811,82 @@ export function applyLottetourScheduleImageKeywordsToRows<
 
   const deduped = reconcileLottetourDistinctPrimaryAcrossDays(mapped, maxDay, opts)
 
+  const sorted = deduped.filter((r) => Number(r.day) > 0)
+  const used = new Set<string>()
+  for (const row of deduped) {
+    const kw = String(row.imageKeyword ?? '').trim()
+    if (kw) used.add(normLottetourKwKey(kw))
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (kw2) used.add(normLottetourKwKey(kw2))
+  }
+
   return deduped.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
-    const primary = String(row.imageKeyword ?? '').trim()
-    if (!shouldReconcileScheduleImageKeyword2(primary, row.imageKeyword2)) return row
+
+    const slotKind = resolveScheduleKeywordSlotKind(day, maxDay, sorted.length)
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (
+      slotKind === 'middle' &&
+      primary &&
+      !secondary &&
+      shouldFillScheduleMiddleKeyword2Gap(
+        row,
+        collectLottetourLandmarkKeywordsFromRoute(row.routeText),
+        primary,
+        lottetourKeywordKeysOverlap,
+        {
+          movementOnly:
+            isScheduleInFlightOvernightRow(row) ||
+            classifyLottetourScheduleDayKind(day, maxDay, row) === 'movement',
+        },
+      )
+    ) {
+      const routeOrdered = collectLottetourLandmarkKeywordsFromRoute(row.routeText)
+      const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
+      for (const r of deduped) {
+        const d = Number(r.day)
+        if (d <= 0) continue
+        byDay.set(d, {
+          primary: String(r.imageKeyword ?? '').trim(),
+          secondary: r.imageKeyword2 ?? null,
+        })
+      }
+      secondary = fillScheduleMiddleImageKeyword2Gap({
+        primary,
+        routeOrdered,
+        extraOrdered: routeOrdered,
+        overlaps: lottetourKeywordKeysOverlap,
+        rejectKeyword: (kw) =>
+          isBlockedScheduleImageKeyword(kw) ||
+          isScheduleAirportLikeImageKeyword(kw) ||
+          isLottetourPexelsTooGeneric(kw),
+        pickAdjacent: (allowTripWideReuse, ignoreAdjacentDaySlots) =>
+          pickLottetourAdjacentUnusedKeyword(
+            day,
+            maxDay,
+            sorted,
+            used,
+            byDay,
+            'both',
+            primary,
+            allowTripWideReuse,
+            ignoreAdjacentDaySlots,
+          ),
+      })
+      if (secondary) used.add(normLottetourKwKey(secondary))
+    }
+
+    if (secondary && lottetourKeywordKeysOverlap(secondary, primary)) {
+      secondary = ''
+    }
+
+    if (!shouldReconcileScheduleImageKeyword2(primary, secondary || null)) {
+      return { ...row, imageKeyword: primary, imageKeyword2: secondary || null }
+    }
+
     const ctx: LottetourImageKeywordContext = {
       day: row.day,
       title: String(row.title ?? ''),
@@ -775,6 +898,6 @@ export function applyLottetourScheduleImageKeywordsToRows<
     }
     const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
     const kw2 = resolveLottetourSecondaryKeyword(row, primary, dayKind, ctx)
-    return { ...row, imageKeyword2: kw2 }
+    return { ...row, imageKeyword: primary, imageKeyword2: kw2 || secondary || null }
   })
 }

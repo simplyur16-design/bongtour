@@ -21,6 +21,15 @@ import {
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import {
+  fillScheduleMiddleImageKeyword2Gap,
+  isScheduleAirportLikeImageKeyword,
+  isScheduleInFlightOvernightRow,
+  pickUnusedScheduleImageKeywordFromAdjacentDays,
+  resolveScheduleKeywordSlotKind,
+  shouldFillScheduleMiddleKeyword2Gap,
+  type ScheduleAdjacentDayAlloc,
+} from '@/lib/schedule-image-keyword-adjacent-poi'
+import {
   findAllScheduleSpotMatchesInText,
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
@@ -497,6 +506,47 @@ function normKyowontourKwKey(s: string): string {
     .toLowerCase()
 }
 
+function kyowontourKeywordKeysOverlap(a: string, b: string): boolean {
+  const ka = normKyowontourKwKey(a)
+  const kb = normKyowontourKwKey(b)
+  if (!ka || !kb) return false
+  if (ka === kb) return true
+  if (ka.length >= 4 && kb.includes(ka)) return true
+  if (kb.length >= 4 && ka.includes(kb)) return true
+  return false
+}
+
+function pickKyowontourAdjacentUnusedKeyword<
+  T extends { day: number; title?: string; description?: string; routeText?: string | null },
+>(
+  anchorDay: number,
+  maxDay: number,
+  sorted: readonly T[],
+  used: ReadonlySet<string>,
+  byDay: ReadonlyMap<number, ScheduleAdjacentDayAlloc>,
+  scan: 'forward' | 'backward' | 'both',
+  excludePrimary?: string,
+  allowTripWideReuse = false,
+  ignoreAdjacentDaySlots = false,
+): string {
+  return pickUnusedScheduleImageKeywordFromAdjacentDays({
+    anchorDay,
+    maxDay,
+    sorted,
+    getDay: (r) => Number(r.day),
+    used,
+    normKey: normKyowontourKwKey,
+    collectLandmarkCandidates: (r) => collectKyowontourRouteLandmarkCandidates(r.routeText),
+    byDayAlloc: byDay,
+    scan,
+    excludePrimary,
+    allowTripWideReuse,
+    ignoreAdjacentDaySlots,
+    rejectKeyword: (kw) =>
+      isKyowontourRejectedImageKeywordCandidate(kw) || isScheduleAirportLikeImageKeyword(kw),
+  })
+}
+
 function classifyKyowontourScheduleDayKind(
   day: number,
   maxDay: number,
@@ -719,7 +769,80 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     return { ...row, imageKeyword: kw, imageKeyword2: kw2 }
   })
 
-  return mapped.map((row) => {
+  const sorted = mapped.filter((r) => Number(r.day) > 0)
+  const gapUsed = new Set<string>()
+  for (const row of mapped) {
+    const kw = String(row.imageKeyword ?? '').trim()
+    if (kw) gapUsed.add(normKyowontourKwKey(kw))
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (kw2) gapUsed.add(normKyowontourKwKey(kw2))
+  }
+
+  const gapFilled = mapped.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+
+    const slotKind = resolveScheduleKeywordSlotKind(day, maxDay, sorted.length)
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (
+      slotKind === 'middle' &&
+      primary &&
+      !secondary &&
+      shouldFillScheduleMiddleKeyword2Gap(
+        row,
+        collectKyowontourRouteLandmarkCandidates(row.routeText),
+        primary,
+        kyowontourKeywordKeysOverlap,
+        {
+          movementOnly:
+            isScheduleInFlightOvernightRow(row) ||
+            classifyKyowontourScheduleDayKind(day, maxDay, row) === 'movement',
+        },
+      )
+    ) {
+      const routeOrdered = collectKyowontourRouteLandmarkCandidates(row.routeText)
+      const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
+      for (const r of mapped) {
+        const d = Number(r.day)
+        if (d <= 0) continue
+        byDay.set(d, {
+          primary: String(r.imageKeyword ?? '').trim(),
+          secondary: r.imageKeyword2 ?? null,
+        })
+      }
+      secondary = fillScheduleMiddleImageKeyword2Gap({
+        primary,
+        routeOrdered,
+        extraOrdered: routeOrdered,
+        overlaps: kyowontourKeywordKeysOverlap,
+        rejectKeyword: (kw) =>
+          isKyowontourRejectedImageKeywordCandidate(kw) || isScheduleAirportLikeImageKeyword(kw),
+        pickAdjacent: (allowTripWideReuse, ignoreAdjacentDaySlots) =>
+          pickKyowontourAdjacentUnusedKeyword(
+            day,
+            maxDay,
+            sorted,
+            gapUsed,
+            byDay,
+            'both',
+            primary,
+            allowTripWideReuse,
+            ignoreAdjacentDaySlots,
+          ),
+      })
+      if (secondary) gapUsed.add(normKyowontourKwKey(secondary))
+    }
+
+    if (secondary && kyowontourKeywordKeysOverlap(secondary, primary)) {
+      secondary = ''
+    }
+
+    return { ...row, imageKeyword: primary, imageKeyword2: secondary || row.imageKeyword2 || null }
+  })
+
+  return gapFilled.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
     const primary = String(row.imageKeyword ?? '').trim()

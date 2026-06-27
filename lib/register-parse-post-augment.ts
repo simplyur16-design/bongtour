@@ -11,6 +11,8 @@ import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enr
 import { applyYbtourScheduleImageKeywordsToRows, inferYbtourEffectiveProductDestination, isYbtourCrossContinentHallucinationKeyword } from '@/lib/ybtour-schedule-image-keyword'
 import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
+import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
+import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
 import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
@@ -106,6 +108,12 @@ function applySupplierScheduleImageKeywords(
   if (supplierKey === 'hanatour') {
     return applyHanatourScheduleImageKeywordsToRows(schedule, { productDestination })
   }
+  if (supplierKey === 'lottetour') {
+    return applyLottetourScheduleImageKeywordsToRows(schedule, { productDestination })
+  }
+  if (supplierKey === 'kyowontour') {
+    return applyKyowontourScheduleImageKeywordsToRows(schedule, { productDestination })
+  }
   return schedule
 }
 
@@ -190,6 +198,40 @@ export async function applyRegisterPostAugmentSchedulePipeline(
       ...parsed,
       schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
         supplierKey: 'hanatour',
+        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+      }),
+    }
+  }
+
+  if (opts.forcedBrandKey === 'lottetour') {
+    const before = parsed.schedule ?? []
+    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
+    const allocated = applySupplierScheduleImageKeywords(
+      'lottetour',
+      schedule,
+      parsed.primaryDestination ?? parsed.destination ?? null,
+    )
+    return {
+      ...parsed,
+      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
+        supplierKey: 'lottetour',
+        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+      }),
+    }
+  }
+
+  if (opts.forcedBrandKey === 'kyowontour') {
+    const before = parsed.schedule ?? []
+    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
+    const allocated = applySupplierScheduleImageKeywords(
+      'kyowontour',
+      schedule,
+      parsed.primaryDestination ?? parsed.destination ?? null,
+    )
+    return {
+      ...parsed,
+      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
+        supplierKey: 'kyowontour',
         productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
       }),
     }
