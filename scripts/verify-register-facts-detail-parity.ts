@@ -12,6 +12,30 @@ import { auditRegisterFactBundleCompleteness } from '@/lib/register-facts/comple
 import { auditRegisterFactDetailParity } from '@/lib/register-facts/detail-parity'
 import { fetchRegisterFactDetailParityMetrics } from '@/lib/register-facts/detail-parity-metrics'
 import { parseRegisterFactProductKind } from '@/lib/register-facts/product-kind'
+import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+
+const LIVE_FETCH_ATTEMPTS = Math.max(1, Number(process.env.REGISTER_FACTS_LIVE_FETCH_ATTEMPTS) || 3)
+const LIVE_FETCH_RETRY_MS = Math.max(1000, Number(process.env.REGISTER_FACTS_LIVE_FETCH_RETRY_MS) || 5000)
+
+async function collectRegisterFactsLiveWithRetry(
+  supplier: CanonicalOverseasSupplierKey,
+  url: string,
+): Promise<SupplierRegisterFactBundle | null> {
+  let lastErr: unknown = null
+  for (let attempt = 1; attempt <= LIVE_FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      const bundle = await collectSupplierRegisterFacts(supplier, url)
+      if (bundle) return bundle
+    } catch (err) {
+      lastErr = err
+    }
+    if (attempt < LIVE_FETCH_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, LIVE_FETCH_RETRY_MS))
+    }
+  }
+  if (lastErr) throw lastErr
+  return null
+}
 
 type LiveCase = {
   supplier: CanonicalOverseasSupplierKey
@@ -107,7 +131,15 @@ async function main() {
 
   for (const c of targets) {
     process.stdout.write(`[${c.supplier}] ${c.label} … `)
-    const bundle = await collectSupplierRegisterFacts(c.supplier, c.url)
+    let bundle: SupplierRegisterFactBundle | null = null
+    try {
+      bundle = await collectRegisterFactsLiveWithRetry(c.supplier, c.url)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.log(`FAIL (fetch error: ${msg.slice(0, 120)})`)
+      failed += 1
+      continue
+    }
     if (!bundle) {
       console.log('FAIL (null bundle)')
       failed += 1

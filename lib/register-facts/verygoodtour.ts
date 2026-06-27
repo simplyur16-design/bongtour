@@ -3,6 +3,7 @@
  * `verygoodtour-register-detail-collect`·`buildVerygoodProductCoreFromDetailHtml` SSOT 재사용.
  *
  * REGRESSION-FREEZE[register-facts-foundation]: PackageDetail fetch·메타 추출 — manifest
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: PackageDetail fetch timeout — manifest
  */
 import type {
   RegisterFactFlightLeg,
@@ -165,8 +166,9 @@ export async function collectVerygoodtourRegisterFacts(originUrl: string): Promi
       'accept-language': 'ko-KR',
       referer: VERYGOODTOUR_BASE,
     },
-  })
-  if (!res.ok) return null
+    signal: AbortSignal.timeout(45_000),
+  }).catch(() => null)
+  if (!res?.ok) return null
   const html = await res.text()
   const base = buildVerygoodRegisterFactsFromDetailHtml(url, html)
   if (!base) return null
