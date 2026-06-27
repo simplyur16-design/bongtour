@@ -2,6 +2,7 @@
  * 내일투어(naeiltour) 등록 파이프: 일정 표현층만 보정.
  * 누락 일차: 붙여넣기 본문의 `N일차` 블록으로만 보충 (LLM 행은 덮어쓰지 않음).
  * REGRESSION-FREEZE[naeiltour-schedule-expression]: augmentNaeiltourScheduleExpressionParsed — manifest
+ * REGRESSION-FREEZE[naeiltour-register-airtel]: 자유여행 일정·confirm 게이트 — manifest
  * @see docs/register_schedule_expression_ssot.md
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-naeiltour'
@@ -278,6 +279,10 @@ export function augmentNaeiltourScheduleExpressionParsed(
   pastedBodyText?: string | null,
   opts?: { travelScope?: string | null },
 ): RegisterParsed {
+  const airtelListing = isRegisterAirtelListing(opts?.travelScope, parsed.productType)
+  if (airtelListing) {
+    return { ...parsed, schedule: [] }
+  }
   let next = parsed
   if (pastedBodyText?.trim()) {
     next = mergeMissingNaeiltourScheduleDays(next, pastedBodyText)
@@ -331,12 +336,21 @@ export function finalizeNaeiltourItineraryDayDraftsFromSchedule(
   })
 }
 
-/** confirm: 가격/항공만이 아니라 일정 표현층(일차 행 또는 실질 draft)이 있어야 함 */
+/** confirm: 가격/항공만이 아니라 일정 표현층(일차 행 또는 실질 draft)이 있어야 함. 자유여행은 Fit JSON·항공+호텔 신호 허용 */
 export function naeiltourConfirmHasScheduleExpressionLayer(
   parsed: RegisterParsed,
-  drafts: ItineraryDayInput[]
+  drafts: ItineraryDayInput[],
 ): boolean {
   if ((parsed.schedule?.length ?? 0) > 0) return true
+  if (parsed.registerFitItineraryGeminiJson?.trim()) return true
+  if (isRegisterAirtelListing(undefined, parsed.productType)) {
+    const hasFlight = Boolean(
+      parsed.outboundFlightNo?.trim() ||
+        parsed.detailBodyStructured?.flightStructured?.outbound?.flightNo?.trim(),
+    )
+    const hasHotel = Boolean(parsed.airtelHotelInfoJson?.trim())
+    if (hasFlight && hasHotel) return true
+  }
   return drafts.some((d) => {
     const s = String(d.summaryTextRaw ?? '').trim()
     if (s.length >= 8) return true

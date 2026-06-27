@@ -55,10 +55,28 @@ assert(
 )
 
 const apiParsePath = path.join(ROOT, 'lib/naeiltour-register-api-parse.ts')
+assert(flow.includes('applyRegisterPostAugmentSchedulePipeline'), 'flow must wire airtel/post-augment schedule pipeline')
+assert(flow.includes('travelScope,'), 'flow must pass travelScope to parse persist')
+
+const scheduleAug = fs.readFileSync(path.join(ROOT, 'lib/parse-and-register-naeiltour-schedule.ts'), 'utf8')
+assert(
+  scheduleAug.includes('REGRESSION-FREEZE[naeiltour-register-airtel]'),
+  'schedule augment missing airtel freeze marker',
+)
+assert(scheduleAug.includes('isRegisterAirtelListing'), 'schedule augment must branch on airtel listing')
+
+const pastePatch = fs.readFileSync(path.join(ROOT, 'lib/naeiltour-paste-deterministic-patch.ts'), 'utf8')
+assert(
+  pastePatch.includes('extractNaeiltourAirtelHotelInfoJsonFromPaste'),
+  'paste patch must extract airtel hotel json',
+)
+
 if (fs.existsSync(apiParsePath)) {
   const apiParse = fs.readFileSync(apiParsePath, 'utf8')
   assert(apiParse.includes('parseNaeiltourRegisterFromApi'), 'api-parse export required')
   assert(!apiParse.includes('parseForRegisterLlmNaeiltour'), 'api-parse must not use LLM overlay')
+  assert(apiParse.includes('NAEILTOUR_AIRTEL_PREVIEW_NOTE'), 'api-parse must document airtel path')
+  assert(apiParse.includes('travelScope'), 'api-parse must accept travelScope')
 } else {
   console.log('[static] naeiltour-register-api-parse.ts not present yet — skipping api-parse guards')
 }

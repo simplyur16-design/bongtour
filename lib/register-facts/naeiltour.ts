@@ -17,6 +17,12 @@ import {
 import { parseNaeiltourGoodCdFromUrl } from '@/lib/naeiltour-http'
 import { inferRegisterFactProductKindFromOriginUrl, registerFactProductKindNote } from '@/lib/register-facts/product-kind'
 
+function inferNaeiltourRegisterFactProductKind(title: string, originUrl: string): ReturnType<typeof inferRegisterFactProductKindFromOriginUrl> {
+  const hay = `${title}\n${originUrl}`
+  if (/에어텔|자유\s*여행|항공\s*\+\s*호텔|air\s*hotel/i.test(hay)) return 'air_hotel_free'
+  return inferRegisterFactProductKindFromOriginUrl('naeiltour', originUrl)
+}
+
 export function parseNaeiltourGoodCdFromUrlExport(originUrl: string | null | undefined): string | null {
   return parseNaeiltourGoodCdFromUrl(originUrl)
 }
@@ -73,7 +79,7 @@ export async function collectNaeiltourRegisterFacts(originUrl: string): Promise<
       seats.remainingSeatsCount != null ? `remainingSeats=${seats.remainingSeatsCount}` : '',
       seats.minimumDepartureCount != null ? `minDeparture=${seats.minimumDepartureCount}` : '',
       optShop.hasOptionalTour ? 'hasOptionalTour=1' : 'hasOptionalTour=0',
-      registerFactProductKindNote(inferRegisterFactProductKindFromOriginUrl('naeiltour', url)),
+      registerFactProductKindNote(inferNaeiltourRegisterFactProductKind(title ?? '', url)),
     ].filter(Boolean),
   }
 }

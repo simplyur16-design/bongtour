@@ -4428,8 +4428,10 @@
           "file": "lib/naeiltour-register-api-parse.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-register-api-parse]",
+            "REGRESSION-FREEZE[naeiltour-register-airtel]",
             "collectNaeiltourRegisterFacts",
-            "parseNaeiltourRegisterFromApi"
+            "parseNaeiltourRegisterFromApi",
+            "NAEILTOUR_AIRTEL_PREVIEW_NOTE"
           ]
         },
         {
@@ -4462,6 +4464,46 @@
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-schedule-expression]",
             "augmentNaeiltourScheduleExpressionParsed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-airtel",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 자유여행(항공+호텔) — travelScope 분기·Fit 일정·호텔 JSON·confirm 게이트",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-airtel]",
+            "isRegisterAirtelListing",
+            "travelScope"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-naeiltour-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-airtel]",
+            "naeiltourConfirmHasScheduleExpressionLayer",
+            "registerFitItineraryGeminiJson"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-paste-deterministic-patch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-airtel]",
+            "extractNaeiltourAirtelHotelInfoJsonFromPaste"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-flow.ts",
+          "mustInclude": [
+            "applyRegisterPostAugmentSchedulePipeline",
+            "mergeNaeiltourDeterministicFieldsFromPaste"
           ]
         }
       ]
@@ -4921,6 +4963,28 @@
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-register-api-detail]",
             "fetchNaeiltourRegisterDetailBundle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-2azz3346-airtel-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "내일투어 2AZZ3346 — 자유여행 air_hotel_free parse·Fit Gemini 일정·imageKeyword live",
+      "npmScripts": [
+        "verify:register-naeiltour-2azz3346-airtel-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-naeiltour-2azz3346-airtel-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-2azz3346-airtel-live-gate]",
+            "2AZZ3346",
+            "air_hotel_free",
+            "parseNaeiltourRegisterFromApi",
+            "applyRegisterPostAugmentSchedulePipeline"
           ]
         }
       ]

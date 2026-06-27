@@ -1,7 +1,9 @@
 /**
- * 내일투어 본문에서 duration·잔여/최소·쇼핑·가격표 보강 (LLM 실패 시 보조).
+ * 내일투어 본문에서 duration·잔여/최소·쇼핑·가격표·자유여행 호텔 JSON 보강 (LLM 실패 시 보조).
+ * REGRESSION-FREEZE[naeiltour-register-airtel]: 자유여행 호텔·공항이송 — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-naeiltour'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { extractNaeiltourThreeSlotPricesFromBlob } from '@/lib/register-naeiltour-price'
 
 function pickDuration(blob: string): string | null {
@@ -66,7 +68,43 @@ export function extractNaeiltourMasterIdsFromBlob(blob: string): {
   return { goodCd, eventSeq }
 }
 
-export function mergeNaeiltourDeterministicFieldsFromPaste(parsed: RegisterParsed, rawText: string): RegisterParsed {
+/** 붙여넣기 본문 — 자유여행 호텔 탭용 JSON (공급사별 regex, 타 공급사와 공유하지 않음) */
+export function extractNaeiltourAirtelHotelInfoJsonFromPaste(rawText: string): string | null {
+  const text = rawText.replace(/\r/g, '')
+  const pick = (re: RegExp): string | null => {
+    const m = text.match(re)
+    return m?.[1]?.trim() ? m[1].trim().slice(0, 300) : null
+  }
+  const info = {
+    hotelName: pick(/(?:호텔명|숙소명)\s*[:：]\s*([^\n]+)/i),
+    hotelGrade: pick(/(?:성급|호텔등급)\s*[:：]\s*([^\n]+)/i),
+    stayNights: pick(/(?:숙박\s*일수|숙박\s*박수)\s*[:：]?\s*([^\n]+)/i),
+    roomType: pick(/(?:객실\s*타입|객실유형)\s*[:：]\s*([^\n]+)/i),
+    breakfastIncluded: pick(/(?:조식\s*포함|조식여부)\s*[:：]?\s*([^\n]+)/i),
+    hotelArea: pick(/(?:호텔\s*위치|위치|지역)\s*[:：]\s*([^\n]+)/i),
+    hotelSummary: pick(/(?:호텔\s*설명|숙소\s*설명|호텔\s*소개)\s*[:：]\s*([^\n]+)/i),
+    hotelImageUrl: pick(/(?:호텔\s*이미지|대표\s*이미지)\s*[:：]\s*(https?:\/\/[^\s]+)/i),
+    hotelDetailUrl: pick(/(?:호텔\s*상세|숙소\s*상세|호텔\s*링크)\s*[:：]\s*(https?:\/\/[^\s]+)/i),
+  }
+  const hasAny = Object.values(info).some((v) => typeof v === 'string' && v.length > 0)
+  return hasAny ? JSON.stringify(info) : null
+}
+
+function inferNaeiltourAirportTransferTypeFromPaste(rawText: string): 'NONE' | 'PICKUP' | 'SENDING' | 'BOTH' {
+  const t = rawText.toLowerCase()
+  const hasPickup = /(공항\s*픽업|픽업\s*포함|pickup)/i.test(t)
+  const hasSending = /(공항\s*샌딩|샌딩\s*포함|sending|drop\s*off|dropoff)/i.test(t)
+  if (hasPickup && hasSending) return 'BOTH'
+  if (hasPickup) return 'PICKUP'
+  if (hasSending) return 'SENDING'
+  return 'NONE'
+}
+
+export function mergeNaeiltourDeterministicFieldsFromPaste(
+  parsed: RegisterParsed,
+  rawText: string,
+  opts?: { travelScope?: string | null },
+): RegisterParsed {
   const blob = rawText.replace(/\r/g, '\n')
   let next = { ...parsed }
   const dur = pickDuration(blob)
@@ -107,6 +145,16 @@ export function mergeNaeiltourDeterministicFieldsFromPaste(parsed: RegisterParse
   }
   if (ids.eventSeq && !(next.eventSeq ?? '').trim()) {
     next = { ...next, eventSeq: ids.eventSeq }
+  }
+  if (isRegisterAirtelListing(opts?.travelScope, next.productType)) {
+    if (!next.airtelHotelInfoJson?.trim()) {
+      const hotelJson = extractNaeiltourAirtelHotelInfoJsonFromPaste(blob)
+      if (hotelJson) next = { ...next, airtelHotelInfoJson: hotelJson }
+    }
+    if (!next.airportTransferType?.trim() || next.airportTransferType === 'NONE') {
+      const xfer = inferNaeiltourAirportTransferTypeFromPaste(blob)
+      if (xfer !== 'NONE') next = { ...next, airportTransferType: xfer }
+    }
   }
   return next
 }

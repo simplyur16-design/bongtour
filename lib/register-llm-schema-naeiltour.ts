@@ -344,6 +344,8 @@ export function stripRegisterInternalArtifacts(p: RegisterParsed): RegisterParse
 /** 공급사별 `parseForRegisterLlm*`에 공통으로 넘기는 옵션(브랜드 문자열·스키마 모드는 각 전용 파일에 고정). */
 export type RegisterLlmParseOptionsCommon = {
   originUrl?: string | null
+  /** 관리자 travelScope — `air_hotel_free` 시 패키지 일정·imageKeyword 수집 생략 */
+  travelScope?: string | null
   /** 상품유형 추론용: 실제 복붙 본문만 (없으면 제목 위주) */
   pastedBodyForInference?: string | null
   /** 관리자가 분리 입력한 붙여넣기 블록(선택) */

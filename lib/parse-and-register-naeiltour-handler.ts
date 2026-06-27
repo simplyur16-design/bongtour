@@ -28,6 +28,7 @@ export async function handleParseAndRegisterNaeiltourRequest(request: Request) {
     patchParsedAfterAugment: async (parsed, _text, ctx) => {
       let next = await augmentNaeiltourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
+        travelScope: ctx?.travelScope,
         pastedBlocks: ctx?.pastedBlocks,
       })
       next = await injectNaeiltourApiDeparturePricesIfMissing(next, ctx?.originUrl)

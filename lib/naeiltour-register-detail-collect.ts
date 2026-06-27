@@ -9,6 +9,7 @@ import { augmentNaeiltourRegisterParsedFromApiCollect } from '@/lib/naeiltour-re
 
 export type NaeiltourRegisterDetailAugmentCtx = {
   originUrl?: string | null
+  travelScope?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
 }
 

@@ -209,6 +209,7 @@ export type ParseAndRegisterFlowOptions = {
     pastedText: string,
     ctx?: {
       originUrl?: string | null
+      travelScope?: string | null
       pastedBlocks?: Partial<
         Pick<import('@/lib/register-llm-blocks-naeiltour').RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>
       > | null
@@ -647,6 +648,7 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
         originSource,
         brandKey,
         originUrl,
+        travelScope,
         pastedBlocks,
         forPreview: mode === 'preview',
         maxDetailSectionRepairs: mode === 'preview' ? 2 : 3,
@@ -804,6 +806,7 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
           originSource,
           brandKey,
           originUrl,
+          travelScope,
           pastedBlocks,
           forPreview: false,
           skipDetailSectionGeminiRepairs: true,
@@ -867,7 +870,7 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
     }
     if (patchParsedAfterAugment) {
       parsed = await Promise.resolve(
-        patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks }),
+        patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }),
       )
     }
     parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
@@ -877,7 +880,7 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
       mode,
       hasPersistedParsed: hasParsed || reusedConfirmAnalysis,
     })
-    parsed = mergeNaeiltourDeterministicFieldsFromPaste(parsed, text)
+    parsed = mergeNaeiltourDeterministicFieldsFromPaste(parsed, text, { travelScope })
 
     stage = 'buildRegisterDrafts'
     ctx.stage = stage

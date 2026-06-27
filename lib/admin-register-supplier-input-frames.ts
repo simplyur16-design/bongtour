@@ -359,7 +359,7 @@ const LOTTETOUR: SupplierInputFrameSpec = {
   },
 }
 
-/** 내일투어(naeiltour) — view.asp + tab0/tab1 API SSOT. */
+/** 내일투어(naeiltour) — view.asp + tab0/tab1 API SSOT. 패키지·자유여행(항공+호텔) 모두 지원. */
 const NAEILTOUR: SupplierInputFrameSpec = {
   displayName: '내일투어',
   axes: [
@@ -367,7 +367,7 @@ const NAEILTOUR: SupplierInputFrameSpec = {
       axis: '본문(LLM)',
       shape: '서술 전용 (일차별 일정·포함/불포함)',
       slots:
-        '담당: 일정·관광·식사·이동·포함/불포함·주의사항. 비담당: 항공·옵션·쇼핑 확정 데이터는 view.asp/tab0/tab1 자동수집이 우선(SSOT). originUrl은 `view.asp?good_cd=…&sub_area_cd=…` 형태.',
+        '담당: 일정·관광·식사·이동·포함/불포함·주의사항. 비담당: 항공·옵션·쇼핑 확정 데이터는 view.asp/tab0/tab1 자동수집이 우선(SSOT). originUrl은 `view.asp?good_cd=…&sub_area_cd=…` 형태. 자유여행은 관리자에서 「항공권+호텔(자유여행)」 선택 — tab1 패키지 일정 대신 Gemini 예시 일정·imageKeyword.',
     },
     {
       axis: '항공',

@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[naeiltour-register-api-parse]: collectNaeiltourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[naeiltour-register-ssot-freeze]: API-only register parse — manifest
+ * REGRESSION-FREEZE[naeiltour-register-airtel]: travelScope=air_hotel_free — 패키지 일정·kw 생략 — manifest
  */
 import { collectNaeiltourRegisterFacts, parseNaeiltourGoodCdFromUrlExport } from '@/lib/register-facts/naeiltour'
 import {
@@ -22,6 +23,7 @@ import { finalizeNaeiltourRegisterParsedPricing } from '@/lib/register-naeiltour
 import { finalizeNaeiltourRegisterParsedShopping } from '@/lib/register-naeiltour-shopping'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import {
   applyNaeiltourScheduleExpressionToRows,
   naeiltourFactDaysToRegisterSchedule,
@@ -40,13 +42,17 @@ export const NAEILTOUR_PRICE_SLOT_SSOT_NOTE =
 export const NAEILTOUR_FLIGHT_PREVIEW_NOTE =
   '내일투어 항공: view.asp + tab0/tab1 SSOT. 편명·시간·잔여석은 상세·일정 탭에서 구조화.'
 
+export const NAEILTOUR_AIRTEL_PREVIEW_NOTE =
+  '내일투어 자유여행(항공+호텔): tab1 패키지 일정·imageKeyword는 사용하지 않습니다. 예시 일정·일차별 imageKeyword는 Gemini(Fit) SSOT.'
+
 export type NaeiltourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
 
 export type NaeiltourRegisterDetailAugmentCtx = {
   originUrl?: string | null
+  travelScope?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
 }
 
@@ -98,6 +104,8 @@ export async function parseNaeiltourRegisterFromApi(
   options?: NaeiltourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airtelListing = isRegisterAirtelListing(travelScope)
   const goodCd = parseNaeiltourGoodCdFromUrlExport(originUrl)
   if (!originUrl || !goodCd || !/naeiltour\.co\.kr/i.test(originUrl)) {
     throw new Error('내일투어 등록에는 유효한 originUrl(good_cd)이 필요합니다.')
@@ -109,13 +117,15 @@ export async function parseNaeiltourRegisterFromApi(
   }
 
   const detailBundle = await fetchNaeiltourRegisterDetailBundle(originUrl)
-  const parsedDays = parseNaeiltourScheduleDaysFromTab1(detailBundle?.tab1Html ?? null)
+  const parsedDays = airtelListing
+    ? []
+    : parseNaeiltourScheduleDaysFromTab1(detailBundle?.tab1Html ?? null)
   const englishByDay = naeiltourScheduleEnglishLandmarksByDay(parsedDays)
 
   const paste = rawText.trim()
   const listingTitle = bundle.title?.trim() || ''
   const dest = resolveNaeiltourRegisterDestination(listingTitle, paste)
-  const schedule = naeiltourFactDaysToRegisterSchedule(bundle.scheduleDays)
+  const schedule = airtelListing ? [] : naeiltourFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
 
   const seats = detailBundle ? extractNaeiltourSeatsFromPage(detailBundle.pageHtml) : null
@@ -170,6 +180,7 @@ export async function parseNaeiltourRegisterFromApi(
       '내일투어 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       NAEILTOUR_PRICE_SLOT_SSOT_NOTE,
       NAEILTOUR_FLIGHT_PREVIEW_NOTE,
+      ...(airtelListing ? [NAEILTOUR_AIRTEL_PREVIEW_NOTE] : []),
     ],
     naeiltourDetailCollectRan: false,
     naeiltourDetailCollectSummary: 'register-facts+view-tabs',
@@ -178,10 +189,12 @@ export async function parseNaeiltourRegisterFromApi(
   parsed = applyRegisterCollectedFlightStructured(parsed, flightStructured)
   parsed = finalizeNaeiltourRegisterParsedPricing(parsed)
   parsed = finalizeNaeiltourRegisterParsedShopping(parsed)
-  const scheduleAfterExpression = applyNaeiltourScheduleExpressionToRows(parsed.schedule ?? [])
-  parsed = { ...parsed, schedule: scheduleAfterExpression }
+  if (!airtelListing) {
+    const scheduleAfterExpression = applyNaeiltourScheduleExpressionToRows(parsed.schedule ?? [])
+    parsed = { ...parsed, schedule: scheduleAfterExpression }
+  }
 
-  if ((parsed.schedule?.length ?? 0) > 0) {
+  if (!airtelListing && (parsed.schedule?.length ?? 0) > 0) {
     const destHint = parsed.primaryDestination ?? parsed.destination ?? null
     parsed = {
       ...parsed,
@@ -202,6 +215,7 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
   ctx?: NaeiltourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
   const originUrl = (ctx?.originUrl ?? '').trim()
+  const skipPackageSchedule = isRegisterAirtelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || !/naeiltour\.co\.kr/i.test(originUrl)) {
     return { ...parsed, naeiltourDetailCollectRan: false, naeiltourDetailCollectSummary: 'no-origin-url' }
   }
@@ -252,9 +266,9 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
     }
   }
 
-  const parsedDays = parseNaeiltourScheduleDaysFromTab1(detail.tab1Html)
+  const parsedDays = skipPackageSchedule ? [] : parseNaeiltourScheduleDaysFromTab1(detail.tab1Html)
   const englishByDay = naeiltourScheduleEnglishLandmarksByDay(parsedDays)
-  if ((next.schedule?.length ?? 0) === 0 && parsedDays.length > 0) {
+  if (!skipPackageSchedule && (next.schedule?.length ?? 0) === 0 && parsedDays.length > 0) {
     const sched = naeiltourFactDaysToRegisterSchedule(
       parsedDays.map(({ englishRouteLandmarks: _e, dateIso: _d, ...rest }) => rest),
     )
