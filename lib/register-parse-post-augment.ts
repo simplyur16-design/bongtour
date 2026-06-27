@@ -27,9 +27,21 @@ export type ApplyRegisterPostAugmentScheduleOpts = {
 type ScheduleRouteRow = {
   day: number
   title?: string | null
+  description?: string | null
   routeText?: string | null
   imageKeyword?: string | null
   imageKeyword2?: string | null
+}
+
+/** supplier imageKeyword apply — `title`/`description` null → undefined (RegisterParsed 호환) */
+function normalizeScheduleRouteRowForImageKeyword<T extends ScheduleRouteRow>(
+  row: T,
+): T & { title?: string; description?: string } {
+  return {
+    ...row,
+    title: row.title ?? undefined,
+    description: row.description ?? undefined,
+  }
 }
 
 type ScheduleKeywordSlotKind = 'departure' | 'middle' | 'return'
@@ -51,7 +63,10 @@ function shouldPreservePreAugmentImageKeyword(
   if (!t) return false
   if (isScheduleAirportLikeImageKeyword(t)) return false
   if (supplierKey === 'ybtour') {
-    const dest = inferYbtourEffectiveProductDestination(productDestination, schedule)
+    const dest = inferYbtourEffectiveProductDestination(
+      productDestination,
+      schedule.map(normalizeScheduleRouteRowForImageKeyword),
+    )
     if (isYbtourCrossContinentHallucinationKeyword(t, dest)) return false
   }
   if (slot === 'return' && supplierKey !== 'ybtour') {
@@ -94,25 +109,26 @@ function mergePostAugmentScheduleImageKeywords<T extends ScheduleRouteRow>(
   })
 }
 
-function applySupplierScheduleImageKeywords(
+function applySupplierScheduleImageKeywords<T extends ScheduleRouteRow>(
   supplierKey: string,
-  schedule: ScheduleRouteRow[],
+  schedule: T[],
   productDestination: string | null,
-): ScheduleRouteRow[] {
+): T[] {
+  const rows = schedule.map(normalizeScheduleRouteRowForImageKeyword)
   if (supplierKey === 'ybtour') {
-    return applyYbtourScheduleImageKeywordsToRows(schedule, { productDestination })
+    return applyYbtourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
   }
   if (supplierKey === 'modetour') {
-    return applyModetourScheduleImageKeywordsToRows(schedule, { productDestination })
+    return applyModetourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
   }
   if (supplierKey === 'hanatour') {
-    return applyHanatourScheduleImageKeywordsToRows(schedule, { productDestination })
+    return applyHanatourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
   }
   if (supplierKey === 'lottetour') {
-    return applyLottetourScheduleImageKeywordsToRows(schedule, { productDestination })
+    return applyLottetourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
   }
   if (supplierKey === 'kyowontour') {
-    return applyKyowontourScheduleImageKeywordsToRows(schedule, { productDestination })
+    return applyKyowontourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
   }
   return schedule
 }
