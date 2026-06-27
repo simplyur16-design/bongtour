@@ -24,6 +24,7 @@ import {
 } from '@/lib/register-facts/product-kind'
 import { kyowontourCalendarRowsToRegisterFactFlights } from '@/lib/register-facts/kyowontour-register-fact-flights'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
+import { extractKyowontourProductTitleFromDetailHtml } from '@/lib/kyowontour-register-api-detail'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
 
@@ -33,11 +34,7 @@ function parseTourCodeFromUrl(originUrl: string): string | null {
 }
 
 function extractTitleFromDetailHtml(html: string): string | null {
-  const og = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i)?.[1]
-  if (og?.trim()) return og.trim()
-  const h1 = html.match(/<h1[^>]*class="[^"]*tit[^"]*"[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
-  if (h1) return h1.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || null
-  return null
+  return extractKyowontourProductTitleFromDetailHtml(html)
 }
 
 function registerScheduleToFactDays(days: RegisterScheduleDay[]): RegisterFactScheduleDay[] {
@@ -70,16 +67,21 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
   const tourCode = parseTourCodeFromUrl(url)
   if (!tourCode) return null
 
-  const res = await fetch(url, {
-    headers: {
-      accept: 'text/html,application/xhtml+xml',
-      'accept-language': 'ko-KR',
-      referer: KYOWONTOUR_BASE,
-    },
-    signal: AbortSignal.timeout(30_000),
-  })
-  if (!res.ok) return null
-  const html = await res.text()
+  let html: string
+  try {
+    const res = await fetch(url, {
+      headers: {
+        accept: 'text/html,application/xhtml+xml',
+        'accept-language': 'ko-KR',
+        referer: KYOWONTOUR_BASE,
+      },
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!res.ok) return null
+    html = await res.text()
+  } catch {
+    return null
+  }
   const hidden = extractKyowontourHiddenFieldsFromDetailHtml(html)
   if (!hidden) return null
 

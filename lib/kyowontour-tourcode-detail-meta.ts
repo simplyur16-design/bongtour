@@ -39,11 +39,14 @@ export function parseKyowontourTourCodeDetailMetaFromHtml(
   const statusM = html.match(/id="statusId"[^>]*value="(\d+)"/i)
   const statusId = statusM?.[1] != null ? positiveInt(statusM[1]) : null
 
-  let seatCount: number | null = null
-  if (maxPaxCount != null && reservationCount != null && maxPaxCount >= reservationCount) {
+  const remainDirect = html.match(/남은\s*좌석\s*(?:<em[^>]*>\s*)?(\d+)\s*(?:<\/em>\s*)?석/i)
+  const remainDirectCount = remainDirect?.[1] != null ? positiveInt(remainDirect[1]) : null
+
+  let seatCount: number | null = remainDirectCount
+  if (seatCount == null && maxPaxCount != null && reservationCount != null && maxPaxCount >= reservationCount) {
     seatCount = maxPaxCount - reservationCount
   }
-  const seatsStatusRaw = seatCount != null && seatCount > 0 ? `잔여${seatCount}석` : null
+  const seatsStatusRaw = seatCount != null && seatCount >= 0 ? `잔여${seatCount}석` : null
 
   if (reservationCount == null && minPax == null && maxPaxCount == null && statusId == null) {
     return null
