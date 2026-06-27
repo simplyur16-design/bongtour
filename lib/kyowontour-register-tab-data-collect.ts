@@ -40,6 +40,8 @@ import {
 export type KyowontourRegisterTabDataAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+  /** detail-collect가 이미 fetch한 HTML — 중복 fetch 방지 */
+  detailHtml?: string | null
 }
 
 function hasOptionalPaste(blocks?: KyowontourRegisterTabDataAugmentCtx['pastedBlocks']): boolean {
@@ -260,26 +262,31 @@ export async function augmentKyowontourParsedWithTabDataCollect(
 
   const tabIds = buildTabIds(needSchedule, needOptShop, needCore, needReservation)
   let html: string
-  try {
-    html = await fetch(originUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BongTour/1.0)' },
-      signal: AbortSignal.timeout(25_000),
-    }).then((r) => r.text())
-  } catch {
-    return {
-      ...parsed,
-      kyowontourScheduleCollectRan: needSchedule ? false : parsed.kyowontourScheduleCollectRan,
-      kyowontourScheduleCollectSummary: needSchedule
-        ? '자동수집 스킵: 상세 HTML fetch 실패'
-        : parsed.kyowontourScheduleCollectSummary,
-      kyowontourOptShopCollectRan: needOptShop ? false : parsed.kyowontourOptShopCollectRan,
-      kyowontourOptShopCollectSummary: needOptShop
-        ? '자동수집 스킵: 상세 HTML fetch 실패'
-        : parsed.kyowontourOptShopCollectSummary,
-      kyowontourCoreCollectRan: needCore ? false : parsed.kyowontourCoreCollectRan,
-      kyowontourCoreCollectSummary: needCore
-        ? '자동수집 스킵: 상세 HTML fetch 실패'
-        : parsed.kyowontourCoreCollectSummary,
+  const prefetched = ctx?.detailHtml?.trim()
+  if (prefetched) {
+    html = prefetched
+  } else {
+    try {
+      html = await fetch(originUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BongTour/1.0)' },
+        signal: AbortSignal.timeout(25_000),
+      }).then((r) => r.text())
+    } catch {
+      return {
+        ...parsed,
+        kyowontourScheduleCollectRan: needSchedule ? false : parsed.kyowontourScheduleCollectRan,
+        kyowontourScheduleCollectSummary: needSchedule
+          ? '자동수집 스킵: 상세 HTML fetch 실패'
+          : parsed.kyowontourScheduleCollectSummary,
+        kyowontourOptShopCollectRan: needOptShop ? false : parsed.kyowontourOptShopCollectRan,
+        kyowontourOptShopCollectSummary: needOptShop
+          ? '자동수집 스킵: 상세 HTML fetch 실패'
+          : parsed.kyowontourOptShopCollectSummary,
+        kyowontourCoreCollectRan: needCore ? false : parsed.kyowontourCoreCollectRan,
+        kyowontourCoreCollectSummary: needCore
+          ? '자동수집 스킵: 상세 HTML fetch 실패'
+          : parsed.kyowontourCoreCollectSummary,
+      }
     }
   }
 

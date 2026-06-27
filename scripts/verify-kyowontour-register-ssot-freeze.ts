@@ -26,7 +26,7 @@ const registerParse = fs.readFileSync(path.join(ROOT, 'lib/register-parse-kyowon
 
 assert(handler.includes('runKyowontourRegisterFlow'), 'handler must use runKyowontourRegisterFlow')
 assert(handler.includes('parseForRegisterKyowontour'), 'handler must use API parseFn')
-assert(handler.includes('augmentKyowontourParsedWithTabDataCollect'), 'handler must wire tab-data-collect')
+assert(handler.includes('augmentKyowontourParsedWithDetailCollect'), 'handler must wire detail-collect')
 assert(handler.includes('injectKyowontourApiDeparturePricesIfMissing'), 'handler must wire price inject')
 
 assert(flow.includes('REGRESSION-FREEZE[kyowontour-register-ssot-freeze]'), 'flow missing freeze marker')
@@ -36,6 +36,7 @@ assert(flow.includes('!text && !hasParsed && !originUrl'), 'flow must allow URL-
 
 assert(apiParse.includes('collectKyowontourRegisterFacts'), 'api-parse must use register-facts')
 assert(apiParse.includes('parseKyowontourRegisterFromApi'), 'api-parse export required')
+assert(apiParse.includes('augmentKyowontourParsedWithDetailCollect'), 'api-parse must run detail-collect')
 assert(!apiParse.includes('parseForRegisterLlmKyowontour'), 'api-parse must not use LLM overlay')
 
 assert(registerParse.includes('parseKyowontourRegisterFromApi'), 'register-parse must delegate to api-parse')

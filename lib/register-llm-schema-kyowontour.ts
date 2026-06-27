@@ -327,6 +327,9 @@ export type RegisterParsed = {
   /** 내부: goodsEvtTab_1/3 AJAX 핵심·포함/불포함 수집 */
   kyowontourCoreCollectRan?: boolean
   kyowontourCoreCollectSummary?: string | null
+  /** 내부: goodsEventDetail HTML detail-collect(항공·잔여석·tab batch) */
+  kyowontourDetailCollectRan?: boolean
+  kyowontourDetailCollectSummary?: string | null
 }
 
 /** 클라이언트 전달용: 내부 감사·관리자 저장 전용 필드 제거 */

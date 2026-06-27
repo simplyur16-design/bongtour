@@ -10,8 +10,8 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-kyowontour'
 import { finalizeKyowontourRegisterParsedPricing } from '@/lib/register-kyowontour-price'
 import { finalizeKyowontourRegisterParsedShopping } from '@/lib/register-kyowontour-shopping'
-import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { kyowontourFactDaysToRegisterSchedule } from '@/lib/kyowontour-register-api-schedule'
+import { augmentKyowontourParsedWithDetailCollect } from '@/lib/kyowontour-register-detail-collect'
 
 export const KYOWONTOUR_PRICE_SLOT_SSOT_NOTE =
   '교원이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -131,18 +131,7 @@ export async function parseKyowontourRegisterFromApi(
 
   parsed = finalizeKyowontourRegisterParsedPricing(parsed)
   parsed = finalizeKyowontourRegisterParsedShopping(parsed)
-
-  if ((parsed.schedule?.length ?? 0) > 0) {
-    const destHint = parsed.primaryDestination ?? parsed.destination ?? null
-    parsed = {
-      ...parsed,
-      schedule: applyRegisterScheduleImageKeywordsBySupplier(parsed.schedule ?? [], {
-        supplierKey: 'kyowontour',
-        productDestination: destHint,
-        productTitle: parsed.title,
-      }),
-    }
-  }
+  parsed = await augmentKyowontourParsedWithDetailCollect(parsed, { originUrl })
 
   return parsed
 }

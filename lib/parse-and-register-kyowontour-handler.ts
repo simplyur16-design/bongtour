@@ -1,8 +1,7 @@
 /**
  * 교원이지(kyowontour) 등록 POST — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[kyowontour-register-ssot-freeze]: manifest
- */
-import { parseForRegisterKyowontour } from '@/lib/register-parse-kyowontour'
+ */import { parseForRegisterKyowontour } from '@/lib/register-parse-kyowontour'
 import { runKyowontourRegisterFlow } from '@/lib/kyowontour-register-flow'
 import { sanitizeKyowontourRegisterParsedStrings } from '@/lib/register-kyowontour-text-sanitize'
 import {
@@ -10,7 +9,7 @@ import {
   finalizeKyowontourItineraryDayDraftsFromSchedule,
   kyowontourConfirmHasScheduleExpressionLayer,
 } from '@/lib/parse-and-register-kyowontour-schedule'
-import { augmentKyowontourParsedWithTabDataCollect } from '@/lib/kyowontour-register-tab-data-collect'
+import { augmentKyowontourParsedWithDetailCollect } from '@/lib/kyowontour-register-detail-collect'
 import { injectKyowontourApiDeparturePricesIfMissing } from '@/lib/kyowontour-register-api-price-inject'
 
 export async function handleParseAndRegisterKyowontourRequest(request: Request) {
@@ -25,7 +24,7 @@ export async function handleParseAndRegisterKyowontourRequest(request: Request) 
       ),
     patchParsedAfterAugment: async (parsed, _text, ctx) => {
       let next = await injectKyowontourApiDeparturePricesIfMissing(parsed, ctx?.originUrl)
-      return augmentKyowontourParsedWithTabDataCollect(next, {
+      return augmentKyowontourParsedWithDetailCollect(next, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
       })
