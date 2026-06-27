@@ -502,7 +502,10 @@ function parseEvtCdFromRow(rowHtml: string): string | null {
 }
 
 function parseSeatCount(text: string): number | null {
-  const m = text.match(/잔여석\s*(\d+)\s*석/)
+  const m =
+    text.match(/잔여\s*(\d+)\s*석/i) ??
+    text.match(/잔여석\s*(\d+)\s*석/i) ??
+    text.match(/남은\s*좌석\s*(\d+)\s*석/i)
   if (m) return parseInt(m[1]!, 10)
   return null
 }
@@ -515,7 +518,7 @@ function parseStatusParts(text: string): { statusRaw: string | null; seatsStatus
   else if (/예약\s*마감|예약마감/i.test(t)) statusRaw = '예약마감'
   else if (/대기\s*예약/i.test(t)) statusRaw = '대기예약'
   else if (/예약\s*가능|예약가능/i.test(t)) statusRaw = '예약가능'
-  const seatsStatusRaw = /잔여석/.test(t) ? t.slice(0, 200) : null
+  const seatsStatusRaw = /(?:잔여|남은)\s*(?:좌석|석)/i.test(t) ? t.slice(0, 200) : null
   return { statusRaw, seatsStatusRaw }
 }
 

@@ -19,4 +19,13 @@ describe('parseLottetourEvtListAjaxHtml — checkbox column + class=price', () =
     expect(rows[0]!.seatCount).toBe(4)
     expect(rows[0]!.statusRaw).toBe('출발확정')
   })
+
+  it('parses 남은좌석 from status cell', () => {
+    const { rows } = parseLottetourEvtListAjaxHtml(
+      `<table><tbody><tr><td><input type="checkbox"/></td><td><a href="/evtDetail/826/858/3604/5603?evtCd=C11A260703KE006">07/03</a> (금) 10:20</td><td>KE</td><td></td><td>title</td><td>3박4일</td><td><strong class="price">899,000원</strong></td><td>출발확정 예약 14명 / 총 14석 남은좌석 0석</td></tr></tbody></table>`,
+      { depYm: '202607', godId: '66176' },
+    )
+    expect(rows[0]?.seatCount).toBe(0)
+    expect(rows[0]?.seatsStatusRaw).toMatch(/남은좌석/)
+  })
 })

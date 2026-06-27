@@ -524,7 +524,27 @@ function lottetourCitiesFromDayBlock(block: string): string[] {
   if (!timeline) return []
   return [...timeline.matchAll(/<strong>([^<]+)<\/strong>/gi)]
     .map((m) => stripLottetourScheduleHtml(m[1] ?? ''))
-    .filter((c) => c.length > 1 && c.length < 80 && !/\d+\s*일차/.test(c))
+    .filter(
+      (c) =>
+        c.length > 1 &&
+        c.length < 80 &&
+        !/\d+\s*일차/.test(c) &&
+        !/^[★☆]|기상\s*악화|결항|대체|불가|→/.test(c),
+    )
+}
+
+function lottetourSpotNamesFromPlanInfo(block: string): string[] {
+  const out: string[] = []
+  for (const m of block.matchAll(/<p class="plan_info">([\s\S]*?)<\/p>/gi)) {
+    const text = stripLottetourScheduleHtml(m[1] ?? '')
+    for (const bracket of text.matchAll(/\[([^\]]{2,36})\]/g)) {
+      const t = bracket[1]?.trim()
+      if (!t) continue
+      if (/조식|중식|석식|특전|시차|국가번호|관광\s*시간|호텔식|제육|된장/i.test(t)) continue
+      out.push(t)
+    }
+  }
+  return out
 }
 
 export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null): RegisterScheduleDay[] {
@@ -534,10 +554,11 @@ export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null):
   const days: RegisterScheduleDay[] = []
   for (const { day, block } of blocks) {
     const uniqueCities = [...new Set(lottetourCitiesFromDayBlock(block))]
+    const planPlaces = lottetourSpotNamesFromPlanInfo(block)
     const planParts = [
       ...block.matchAll(/<p class="plan_info">([\s\S]*?)<\/p>/gi),
     ].map((m) => stripLottetourScheduleHtml(m[1] ?? '')).filter(Boolean)
-    const routePlaces = extractLottetourSchedulePlacesFromCityLabels(uniqueCities)
+    const routePlaces = extractLottetourSchedulePlacesFromCityLabels([...uniqueCities, ...planPlaces])
     const routeText = joinLottetourScheduleRouteText(routePlaces)
     const hotelMatch = block.match(/class="txt_link"[^>]*>([^<]+)</i)?.[1]
     const hotelText = hotelMatch ? stripLottetourScheduleHtml(hotelMatch).slice(0, 200) : null
@@ -835,11 +856,27 @@ export async function resolveLottetourRegisterOriginIdsFromUrl(originUrl: string
   const url = originUrl.trim()
   const ids = extractLottetourMasterIdsFromBlob(url)
   if (ids.evtCd && ids.godId) return ids
-  if (ids.evtCd) return ids
-  if (!ids.godId) return ids
+  if (!ids.evtCd && !ids.godId) return ids
   const bundle = await fetchLottetourRegisterDetailBundle(url)
   return {
     godId: bundle?.godId ?? ids.godId,
     evtCd: bundle?.evtCd ?? ids.evtCd,
+  }
+}
+
+/** evtListAjax 행 — 잔여석·출발상태 SSOT (등록 미리보기·API 연동). */
+export function applyLottetourRegisterEvtListRowMeta<
+  T extends {
+    remainingSeatsCount?: number | null
+    seatsStatusRaw?: string | null
+    departureStatusRaw?: string | null
+  },
+>(parsed: T, row: LottetourCalendarRow | null | undefined): T {
+  if (!row) return parsed
+  return {
+    ...parsed,
+    ...(row.seatCount != null ? { remainingSeatsCount: row.seatCount } : {}),
+    ...(row.seatsStatusRaw?.trim() ? { seatsStatusRaw: row.seatsStatusRaw.trim() } : {}),
+    ...(row.statusRaw?.trim() ? { departureStatusRaw: row.statusRaw.trim() } : {}),
   }
 }

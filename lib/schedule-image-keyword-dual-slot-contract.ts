@@ -267,10 +267,19 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
         imageKeyword: 'Sultan Ahmed Mosque',
         imageKeyword2: null,
       },
+      {
+        day: 3,
+        title: '귀국',
+        description: '이스탄불 출발 인천 도착',
+        routeText: '이스탄불 - 인천',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
     ],
     '튀르키예',
   )
   assertMovementKw2Null(failures, 'lottetour', lottetour, 1)
+  assertMovementKw2Null(failures, 'lottetour', lottetour, 3)
   assertTourismDualSlot(failures, 'lottetour', lottetour, 2)
 
   const verygood = apply(
@@ -387,29 +396,43 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
                     imageKeyword2: null,
                   },
                 ]
-              : [
-                  {
-                    day: 2,
-                    title: supplier === 'lottetour' ? '이스탄불' : '다낭',
-                    description: '관광',
-                    routeText:
-                      supplier === 'lottetour'
-                        ? '이스탄불 - 술탄 아흐메트 모스크 - 그랜드 바자르'
-                        : 'Da Nang - Hoi An',
-                    imageKeyword: supplier === 'lottetour' ? 'Sultan Ahmed Mosque' : '',
-                    imageKeyword2: null,
-                  },
-                ]
-    if (supplier === 'lottetour') {
-      rows[0] = {
-        day: 2,
-        title: '이스탄불',
-        description: '술탄 아흐메트',
-        routeText: '이스탄불 - 술탄 아흐메트 모스크 - 그랜드 바자르',
-        imageKeyword: 'Sultan Ahmed Mosque',
-        imageKeyword2: null,
-      }
-    }
+              : supplier === 'lottetour'
+                ? [
+                    {
+                      day: 1,
+                      title: '출발',
+                      description: '인천 출발',
+                      routeText: '인천 - 이스탄불',
+                      imageKeyword: '',
+                      imageKeyword2: null,
+                    },
+                    {
+                      day: 2,
+                      title: '이스탄불',
+                      description: '술탄 아흐메트',
+                      routeText: '이스탄불 - 술탄 아흐메트 모스크 - 그랜드 바자르',
+                      imageKeyword: 'Sultan Ahmed Mosque',
+                      imageKeyword2: null,
+                    },
+                    {
+                      day: 3,
+                      title: '귀국',
+                      description: '인천 도착',
+                      routeText: '이스탄불 - 인천',
+                      imageKeyword: '',
+                      imageKeyword2: null,
+                    },
+                  ]
+                : [
+                    {
+                      day: 2,
+                      title: '다낭',
+                      description: '관광',
+                      routeText: 'Da Nang - Hoi An',
+                      imageKeyword: '',
+                      imageKeyword2: null,
+                    },
+                  ]
     const out = apply(supplier, rows, dest)
     const probeDay =
       supplier === 'ybtour' || supplier === 'hanatour' || supplier === 'modetour' ? 2 : rows[0]!.day

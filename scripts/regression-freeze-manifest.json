@@ -4439,6 +4439,34 @@
       ]
     },
     {
+      "id": "lottetour-register-xiamen-260703-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "롯데관광 C11A260703KE006 — full parse incl/excl·opt·shop·flight·잔여석·schedule·imageKeyword live",
+      "npmScripts": [
+        "verify:register-lottetour-xiamen-260703-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-lottetour-xiamen-260703-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-xiamen-260703-live-gate]",
+            "C11A260703KE006",
+            "parseLottetourRegisterFromApi",
+            "remainingSeatsCount",
+            "assertScheduleImageKeywordSlots"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "applyLottetourRegisterEvtListRowMeta"
+          ]
+        }
+      ]
+    },
+    {
       "id": "lottetour-register-godid-hokkaido-live-gate",
       "tier": [
         "ci"

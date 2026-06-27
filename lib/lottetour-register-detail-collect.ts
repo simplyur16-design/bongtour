@@ -17,6 +17,7 @@ import {
   extractLottetourShoppingFromSpotListAjax,
   extractLottetourShoppingVisitCountFromCoreInfo,
   extractLottetourShoppingVisitCountFromSpotList,
+  applyLottetourRegisterEvtListRowMeta,
   buildLottetourFlightStructuredFromRegisterSources,
   fetchLottetourRegisterDetailBundle,
   lottetourHaystackDeclaresNoOptional,
@@ -313,6 +314,13 @@ export async function augmentLottetourParsedWithDetailCollect(
         mustKnowSource: 'supplier',
       }
       summaryParts.push(`유의사항 ${bullets.length}건`)
+    }
+  }
+
+  if (evtListRow) {
+    next = applyLottetourRegisterEvtListRowMeta(next, evtListRow)
+    if (evtListRow.seatCount != null || evtListRow.seatsStatusRaw) {
+      summaryParts.push(`잔여석 ${evtListRow.seatCount ?? '-'}석`)
     }
   }
 

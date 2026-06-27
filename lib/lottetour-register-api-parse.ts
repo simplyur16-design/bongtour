@@ -88,7 +88,8 @@ export async function parseLottetourRegisterFromApi(
   }
 
   const resolvedEvtCd = bundle.originCode?.trim() || ids.evtCd
-  const resolvedGodId = ids.godId
+  const godFromNotes = bundle.notes?.find((n) => n.startsWith('godId='))?.slice('godId='.length)?.trim()
+  const resolvedGodId = ids.godId ?? godFromNotes ?? null
 
   const paste = rawText.trim()
   const listingTitle = bundle.title?.trim() || ''

@@ -707,28 +707,7 @@ function reconcileLottetourDistinctPrimaryAcrossDays<
     const prior = rows.slice(0, idx)
     let primary = String(row.imageKeyword ?? '').trim()
     const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
-    const pk = normLottetourKwKey(primary)
-    if (primary && used.has(pk) && dayKind === 'tourism') {
-      const ctx: LottetourImageKeywordContext = {
-        day: row.day,
-        title: String(row.title ?? ''),
-        description: String(row.description ?? ''),
-        routeText: row.routeText ?? null,
-        productTitle: opts?.productTitle,
-        productDestination: opts?.productDestination ?? null,
-        productPrimaryDestination: opts?.productDestination ?? null,
-      }
-      const altCandidates = collectLottetourLandmarkKeywordsFromRoute(row.routeText).filter(
-        (kw) => !used.has(normLottetourKwKey(kw)),
-      )
-      if (altCandidates[0]) {
-        primary = exitLottetourLandmark(altCandidates[0]!, ctx)
-      } else {
-        primary = resolveLottetourPrimaryKeyword(row, dayKind, ctx, prior, maxDay)
-        if (primary && used.has(normLottetourKwKey(primary))) primary = ''
-      }
-    }
-    if (primary) used.add(normLottetourKwKey(primary))
+    const slotKind = resolveScheduleKeywordSlotKind(row.day, maxDay, rows.length)
     const ctx: LottetourImageKeywordContext = {
       day: row.day,
       title: String(row.title ?? ''),
@@ -738,7 +717,68 @@ function reconcileLottetourDistinctPrimaryAcrossDays<
       productDestination: opts?.productDestination ?? null,
       productPrimaryDestination: opts?.productDestination ?? null,
     }
-    const kw2 = resolveLottetourSecondaryKeyword(row, primary, dayKind, ctx)
+    if (slotKind === 'return') {
+      const prev = rows[idx - 1]
+      if (prev) {
+        const usedOnPrev = new Set(
+          [prev.imageKeyword, prev.imageKeyword2]
+            .map((x) => normLottetourKwKey(String(x ?? '')))
+            .filter(Boolean),
+        )
+        for (const kw of collectLottetourLandmarkKeywordsFromRoute(prev.routeText)) {
+          const nk = normLottetourKwKey(kw)
+          if (!usedOnPrev.has(nk) && !used.has(nk)) {
+            primary = exitLottetourLandmark(kw, ctx)
+            break
+          }
+        }
+      }
+      if (!primary) {
+        const fromRoute =
+          landmarkFromRouteText(row.routeText) ?? firstLandmarkFromRouteText(row.routeText)
+        if (fromRoute) primary = exitLottetourLandmark(fromRoute, ctx)
+      }
+    }
+    const pk = normLottetourKwKey(primary)
+    if (primary && used.has(pk) && slotKind !== 'return') {
+      const altCandidates = collectLottetourLandmarkKeywordsFromRoute(row.routeText).filter(
+        (kw) => !used.has(normLottetourKwKey(kw)),
+      )
+      if (altCandidates[0]) {
+        primary = exitLottetourLandmark(altCandidates[0]!, ctx)
+      } else if (dayKind === 'tourism') {
+        primary = resolveLottetourPrimaryKeyword(row, dayKind, ctx, prior, maxDay)
+        if (primary && used.has(normLottetourKwKey(primary))) primary = ''
+      } else {
+        primary = ''
+      }
+    }
+    if (!primary) {
+      for (const kw of collectLottetourLandmarkKeywordsFromRoute(row.routeText)) {
+        const nk = normLottetourKwKey(kw)
+        if (!used.has(nk)) {
+          primary = exitLottetourLandmark(kw, ctx)
+          break
+        }
+      }
+    }
+    if (primary) used.add(normLottetourKwKey(primary))
+
+    let kw2 =
+      dayKind === 'tourism' ? resolveLottetourSecondaryKeyword(row, primary, dayKind, ctx) : null
+    if (kw2 && used.has(normLottetourKwKey(kw2))) {
+      kw2 = null
+      for (const kw of collectLottetourLandmarkKeywordsFromRoute(row.routeText)) {
+        const nk = normLottetourKwKey(kw)
+        if (nk !== normLottetourKwKey(primary) && !used.has(nk)) {
+          kw2 = exitLottetourLandmark(kw, ctx)
+          break
+        }
+      }
+    }
+    if (kw2 && used.has(normLottetourKwKey(kw2))) kw2 = null
+    if (kw2) used.add(normLottetourKwKey(kw2))
+
     return { ...row, imageKeyword: primary, imageKeyword2: kw2 }
   })
 }
@@ -883,8 +923,16 @@ export function applyLottetourScheduleImageKeywordsToRows<
       secondary = ''
     }
 
+    if (slotKind === 'departure' || slotKind === 'return') {
+      secondary = ''
+    }
+
     if (!shouldReconcileScheduleImageKeyword2(primary, secondary || null)) {
-      return { ...row, imageKeyword: primary, imageKeyword2: secondary || null }
+      return {
+        ...row,
+        imageKeyword: primary,
+        imageKeyword2: slotKind === 'middle' ? secondary || null : null,
+      }
     }
 
     const ctx: LottetourImageKeywordContext = {
@@ -898,6 +946,10 @@ export function applyLottetourScheduleImageKeywordsToRows<
     }
     const dayKind = classifyLottetourScheduleDayKind(row.day, maxDay, row)
     const kw2 = resolveLottetourSecondaryKeyword(row, primary, dayKind, ctx)
-    return { ...row, imageKeyword: primary, imageKeyword2: kw2 || secondary || null }
+    return {
+      ...row,
+      imageKeyword: primary,
+      imageKeyword2: slotKind === 'middle' ? kw2 || secondary || null : null,
+    }
   })
 }
