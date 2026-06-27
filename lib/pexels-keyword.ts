@@ -104,6 +104,8 @@ const DESTINATION_MAP: Record<string, string> = {
   자그레브: 'Zagreb',
   코타키나발루: 'Kota Kinabalu',
   '코타 키나발루': 'Kota Kinabalu',
+  쿠알라룸푸르: 'Kuala Lumpur',
+  말라카: 'Malacca',
   말레이시아: 'Malaysia',
   칭다오: 'Qingdao',
   청도: 'Qingdao',

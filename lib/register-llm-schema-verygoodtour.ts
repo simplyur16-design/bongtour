@@ -300,6 +300,8 @@ export type RegisterParsed = {
   minimumDepartureText?: string | null
   isDepartureGuaranteed?: boolean | null
   currentBookedCount?: number | null
+  remainingSeatsCount?: number | null
+  seatsStatusRaw?: string | null
   departureStatusText?: string | null
   /** 본문 구조화 파서 스냅샷(raw/section/canonical/review) */
   detailBodyStructured?: DetailBodyParseSnapshot

@@ -16,6 +16,7 @@ import {
   extractVerygoodIncludedExcludedFromDetailHtml,
 } from '@/lib/verygoodtour-departures'
 import { parseVerygoodItineraryFromDetailHtml } from '@/lib/verygoodtour-itinerary-collector'
+import { dedupeVerygoodtourScheduleRoutePlaces } from '@/lib/verygoodtour-register-api-schedule'
 import { collectVerygoodtourPriceInputsWithProCodeDetail } from '@/lib/verygoodtour-price-collect'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
@@ -43,10 +44,24 @@ function bulletsFromMultilineText(raw: string | null | undefined): string[] {
 
 function itineraryDaysToFactDays(days: ItineraryDayInput[]): RegisterFactScheduleDay[] {
   return days.map((d) => {
-    const places = [
-      ...(d.city?.trim() ? [d.city.trim()] : []),
-      ...(d.poiNamesRaw?.trim() ? [d.poiNamesRaw.trim()] : []),
-    ]
+    const blob = [d.poiNamesRaw, d.summaryTextRaw, d.rawBlock, d.city].filter(Boolean).join('\n')
+    const routeParts = dedupeVerygoodtourScheduleRoutePlaces(
+      d.poiNamesRaw?.trim()
+        ? d.poiNamesRaw
+            .split(/\s*-\s*/)
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [],
+    )
+    const places =
+      routeParts.length > 0
+        ? routeParts
+        : dedupeVerygoodtourScheduleRoutePlaces(
+            blob
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter(Boolean),
+          )
     const meals = d.meals?.trim() ? [d.meals.trim()] : []
     const hotels = d.accommodation?.trim() ? [d.accommodation.trim()] : []
     return {

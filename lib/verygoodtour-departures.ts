@@ -194,7 +194,11 @@ export function buildVerygoodProductCoreFromDetailHtml(
   const noShoppingFlag = /노쇼핑|NO\s*쇼핑/i.test(text) ? true : shoppingVisitCountTotal === 0 ? null : false
   const noOptionFlag = /노옵션|NO\s*옵션/i.test(text) ? true : null
   const noTipFlag = /노팁|NO\s*팁/i.test(text) ? true : null
-  const optionalTourBadge = text.match(/선택관광\s*(?:있음|없음)/i)?.[0]?.trim() ?? null
+  const optionalTourBadge =
+    text.match(/선택관광\s*(?:있음|가능|포함)/i)?.[0]?.trim() ??
+    text.match(/옵션\s*(?:가능|있음)/i)?.[0]?.trim() ??
+    text.match(/선택관광\s*없음/i)?.[0]?.trim() ??
+    null
   const optionalTourSummaryRaw =
     optionalTourBadge ??
     (text.match(/노옵션|NO\s*옵션/i) ? '선택관광 없음' : null)

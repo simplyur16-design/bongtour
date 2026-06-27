@@ -141,6 +141,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /남보타사|Nanputuo/i, en: "Nanputuo Temple" },
   { re: /(?:하문|샤먼|厦門|厦门|Xiamen).{0,20}중산로|중산로.{0,20}(?:하문|샤먼|厦門|厦门|Xiamen)/u, en: "Zhongshan Road Xiamen" },
   { re: /(?:칭다오|청도|Qingdao).{0,20}중산로|중산로.{0,20}(?:칭다오|청도|Qingdao)/u, en: "Zhongshan Road Qingdao" },
+  { re: /코타\s*키나발루|Kota\s*Kinabalu/i, en: 'Kota Kinabalu Malaysia' },
+  { re: /페트로나스|Petronas/i, en: 'Petronas Twin Towers Kuala Lumpur' },
+  { re: /바투\s*동굴|Batu\s*Caves/i, en: 'Batu Caves Kuala Lumpur' },
+  { re: /메르데카\s*광장|Merdeka\s*Square/i, en: 'Merdeka Square Kuala Lumpur' },
+  { re: /쳉훈텡|Cheng\s*Hoon\s*Teng/i, en: 'Cheng Hoon Teng Temple Malacca' },
+  { re: /쿠알라룸푸르\s*왕궁|Istana\s*Negara/i, en: 'Istana Negara Kuala Lumpur' },
+  { re: /겐팅\s*하이랜드|겐팅|Genting/i, en: 'Genting Highlands Malaysia' },
   { re: /(?:^|\s)레(?:\s|$|-)(?=.*(?:왕궁|시장|Palace|Ladakh|라다크))/u, en: "Leh Palace Ladakh" },
   { re: /^(?:레|Leh)$/iu, en: "Leh Palace Ladakh" },
   { re: /\bLeh(?:\s+Palace|\s+Ladakh)?\b/i, en: "Leh Palace Ladakh" },
@@ -259,6 +266,10 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /몰디브|Maldives/i, en: "Maldives overwater villa lagoon sunset" },
   { re: /나트랑|Nha Trang/i, en: "Nha Trang beach Vietnam" },
   { re: /달랏|Da Lat|Dalat/i, en: "Da Lat Vietnam highland city" },
+  { re: /쿠알라룸푸르|Kuala\s*Lumpur/i, en: "Kuala Lumpur Petronas Twin Towers" },
+  { re: /말라카|Malacca|Melaka/i, en: "Malacca historic city Malaysia" },
+  { re: /페낭|Penang|George\s*Town/i, en: "George Town Penang Malaysia" },
+  { re: /랑카위|Langkawi/i, en: "Langkawi island Malaysia" },
 ] as const
 function firstMatchingEn(rules: ReadonlyArray<SchedulePoiRegexRule>, h: string): string | null {
   for (const { re, en } of rules) {

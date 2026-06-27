@@ -37,7 +37,7 @@ describe('verygoodtour register detail collect', () => {
         dateText: null,
         city: '오사카',
         summaryTextRaw: '1일차 오사카 도착\n관광',
-        poiNamesRaw: '오사카성 관광',
+        poiNamesRaw: '오사카 - 오사카성',
         meals: '석식 현지식',
         accommodation: '오사카 호텔',
         transport: '국제선 탑승',

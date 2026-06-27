@@ -5,9 +5,14 @@
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
-import { findAllMappedKoreanPoisInText, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
-import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
-import { pickDistinctSecondScheduleImageKeyword, inferEnglishPlaceKeywordFromDayContent } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { findAllMappedKoreanPoisInText, mapDestination, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { firstMatchingScheduleSpotEn, firstMatchingSchedulePoiEn } from '@/lib/schedule-poi-regex-ssot'
+import {
+  pickDistinctSecondScheduleImageKeyword,
+  inferEnglishPlaceKeywordFromDayContent,
+  englishFromScheduleKoreanSegment,
+  splitRouteTextPlaceSegments,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
@@ -176,6 +181,48 @@ function tryAcceptVerygoodLlmImageKeyword(
   }
 }
 
+/** 한글 productDestination·routeText → 영문 랜드마크/도시 힌트 (mapDestination·POI regex SSOT). */
+function inferVerygoodEnglishDestinationHint(
+  productDestination: string | null | undefined,
+  extraHay?: string | null,
+): string {
+  const hay = [productDestination, extraHay].filter(Boolean).join('\n').trim()
+  if (!hay) return ''
+
+  const mapped = mapDestination(String(productDestination ?? '').trim())
+  if (mapped && mapped !== String(productDestination ?? '').trim()) {
+    const accepted = tryAcceptVerygoodLlmImageKeyword(mapped, productDestination)
+    if (accepted) return accepted
+  }
+
+  const poi = firstMatchingSchedulePoiEn(hay)
+  if (poi) {
+    const accepted = tryAcceptVerygoodLlmImageKeyword(poi, productDestination)
+    if (accepted) return accepted
+  }
+
+  for (const seg of hay.split(/[·/／,，\n\s-]+/).map((s) => s.trim()).filter(Boolean)) {
+    const en = englishFromScheduleKoreanSegment(seg)
+    if (!en) continue
+    const accepted = tryAcceptVerygoodLlmImageKeyword(en, productDestination)
+    if (accepted) return accepted
+  }
+  return ''
+}
+
+function firstVerygoodEnglishFromRouteSegments(
+  routeText: string | null | undefined,
+  productDestination: string | null | undefined,
+): string {
+  for (const seg of splitRouteTextPlaceSegments(routeText)) {
+    const en = englishFromScheduleKoreanSegment(seg)
+    if (!en) continue
+    const accepted = tryAcceptVerygoodLlmImageKeyword(en, productDestination)
+    if (accepted) return accepted
+  }
+  return ''
+}
+
 function isVerygoodAviationSectionHeader(header: string): boolean {
   const h = String(header ?? '').replace(/\s+/g, ' ').trim()
   if (!h) return false
@@ -302,6 +349,25 @@ function countVerygoodNonHubRouteTextSegments(routeText: string | null | undefin
   return count
 }
 
+/** routeText 세그먼트가 도시 연결(튀니스-아부다비)인지, 관광지명(왕궁·동굴 등)인지 구분 */
+function routeTextLooksLikeTouringPlaces(routeText: string | null | undefined): boolean {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return false
+  const segments = raw
+    .split(/\s+-\s+/)
+    .map((p) => p.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length >= 2 && !isVerygoodDomesticHubToken(p))
+  if (segments.length >= 3) return true
+  if (segments.length < 2) return false
+  return segments.some(
+    (seg) =>
+      Boolean(firstVerygoodSpotMatch(seg)) ||
+      /(?:왕궁|사원|교회|광장|동굴|박물관|유적|타워|랜드|월드|리조트|theme|park|투어|촌|거리|시장|성|폭포|해변|섬|하이랜드|night|square|temple|palace|cave|museum)/iu.test(
+        seg,
+      ),
+  )
+}
+
 export function classifyVerygoodDayKind(
   description: string,
   title: string,
@@ -309,6 +375,8 @@ export function classifyVerygoodDayKind(
   totalDays: number,
   routeText?: string | null,
 ): VerygoodDayKind {
+  if (dayIndex === 1 || (totalDays >= 2 && dayIndex === totalDays)) return 'flight'
+
   if (hasVerygoodDomesticHubOrAviationBlock(description, title)) return 'flight'
 
   const pois = extractVerygoodOrderedDayPoi(description, title)
@@ -316,8 +384,8 @@ export function classifyVerygoodDayKind(
 
   if (countVerygoodNonHubRouteTextSegments(routeText) >= 3) return 'touring'
 
-  void dayIndex
-  void totalDays
+  if (routeTextLooksLikeTouringPlaces(routeText)) return 'touring'
+
   return 'free'
 }
 
@@ -347,6 +415,9 @@ export function resolveVerygoodPrimaryKeyword(
   if (fromLlm) return fromLlm
 
   if (dayKind === 'flight') {
+    const fromRouteSeg = firstVerygoodEnglishFromRouteSegments(row.routeText, productDestination)
+    if (fromRouteSeg) return fromRouteSeg
+
     const fromRoute = inferEnglishPlaceKeywordFromDayContent(
       { title: '', description: '', routeText: row.routeText ?? null },
       productDestination,
@@ -354,6 +425,10 @@ export function resolveVerygoodPrimaryKeyword(
     if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) {
       return tryAcceptVerygoodLlmImageKeyword(fromRoute, productDestination) || ''
     }
+    const destHint =
+      inferVerygoodEnglishDestinationHint(productDestination, row.routeText) ||
+      inferVerygoodEnglishDestinationHint(productDestination, verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? '')))
+    if (destHint) return destHint
     const fromPriorRoute = lastVerygoodSpotFromRoute(
       priorRows?.length ? priorRows[priorRows.length - 1]?.routeText : null,
     )
@@ -366,10 +441,15 @@ export function resolveVerygoodPrimaryKeyword(
     return ''
   }
 
+  const fromRouteSeg = firstVerygoodEnglishFromRouteSegments(row.routeText, productDestination)
+  if (fromRouteSeg) return fromRouteSeg
+
   const inferred = inferEnglishPlaceKeywordFromDayContent(row, productDestination)
   if (inferred && !isBlockedScheduleImageKeyword(inferred)) {
     return tryAcceptVerygoodLlmImageKeyword(inferred, productDestination) || ''
   }
+  const destHint = inferVerygoodEnglishDestinationHint(productDestination, row.routeText)
+  if (destHint) return destHint
   return ''
 }
 

@@ -13,6 +13,12 @@ import type { ItineraryDayInput } from '@/lib/upsert-itinerary-days-verygoodtour
 import { parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
 import { finalizeVerygoodRegisterParsedShopping } from '@/lib/register-verygoodtour-shopping'
 import {
+  applyVerygoodScheduleExpressionToRows,
+  dedupeVerygoodtourScheduleRoutePlaces,
+  verygoodFactDaysToRegisterSchedule,
+} from '@/lib/verygoodtour-register-api-schedule'
+import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import {
   hasStructuredJsonRows,
   needsRegisterExcludedCollect,
   needsRegisterIncludedCollect,
@@ -120,29 +126,59 @@ function parseSingleRoomAmount(raw: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-export function verygoodItineraryToRegisterSchedule(days: ItineraryDayInput[]): RegisterScheduleDay[] {
+function itineraryDaysToFactDays(days: ItineraryDayInput[]): RegisterFactScheduleDay[] {
   return days.map((d) => {
-    const title =
-      (d.city ?? '').trim() ||
-      (d.poiNamesRaw ?? '').trim().slice(0, 80) ||
-      (d.summaryTextRaw ?? '').trim().split('\n')[0]?.slice(0, 80) ||
-      `${d.day}일차`
-    const description = (d.summaryTextRaw ?? d.rawBlock ?? title).trim().slice(0, 2000)
-    const mealEnriched = enrichScheduleMealFieldsFromText(
-      { mealSummaryText: d.meals?.trim() || null },
-      [d.meals, description],
+    const blob = [d.poiNamesRaw, d.summaryTextRaw, d.rawBlock, d.city].filter(Boolean).join('\n')
+    const routeParts = dedupeVerygoodtourScheduleRoutePlaces(
+      d.poiNamesRaw?.trim()
+        ? d.poiNamesRaw
+            .split(/\s*-\s*/)
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [],
     )
+    const places =
+      routeParts.length > 0
+        ? routeParts
+        : dedupeVerygoodtourScheduleRoutePlaces(
+            blob
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter(Boolean),
+          )
+    const meals = d.meals?.trim() ? [d.meals.trim()] : []
+    const hotels = d.accommodation?.trim() ? [d.accommodation.trim()] : []
     return {
       day: d.day,
-      title,
-      description,
-      imageKeyword: title.slice(0, 80),
-      routeText: d.poiNamesRaw?.trim().slice(0, 200) || null,
-      hotelText: d.accommodation?.trim() || null,
-      breakfastText: mealEnriched.breakfastText ?? null,
-      lunchText: mealEnriched.lunchText ?? null,
-      dinnerText: mealEnriched.dinnerText ?? null,
-      mealSummaryText: mealEnriched.mealSummaryText ?? null,
+      places,
+      hotels,
+      meals,
+      transportNote: d.transport?.trim() || null,
+    }
+  })
+}
+
+export function verygoodItineraryToRegisterSchedule(days: ItineraryDayInput[]): RegisterScheduleDay[] {
+  const expressed = verygoodFactDaysToRegisterSchedule(itineraryDaysToFactDays(days))
+  return expressed.map((row) => {
+    const dayInput = days.find((d) => d.day === row.day)
+    const mealEnriched = enrichScheduleMealFieldsFromText(
+      {
+        breakfastText: row.breakfastText ?? null,
+        lunchText: row.lunchText ?? null,
+        dinnerText: row.dinnerText ?? null,
+        mealSummaryText: row.mealSummaryText ?? null,
+      },
+      [dayInput?.meals, row.description],
+    )
+    return {
+      ...row,
+      imageKeyword: '',
+      imageKeyword2: null,
+      breakfastText: mealEnriched.breakfastText ?? row.breakfastText ?? null,
+      lunchText: mealEnriched.lunchText ?? row.lunchText ?? null,
+      dinnerText: mealEnriched.dinnerText ?? row.dinnerText ?? null,
+      mealSummaryText: mealEnriched.mealSummaryText ?? row.mealSummaryText ?? null,
     }
   })
 }
@@ -199,7 +235,8 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
   let next: RegisterParsed = { ...parsed }
 
   if (needSchedule && itinerary.days.length > 0) {
-    const scheduleDays = verygoodItineraryToRegisterSchedule(itinerary.days)
+    let scheduleDays = verygoodItineraryToRegisterSchedule(itinerary.days)
+    scheduleDays = applyVerygoodScheduleExpressionToRows(scheduleDays)
     next = { ...next, schedule: scheduleDays }
     summaryParts.push(`일정 ${scheduleDays.length}일차`)
   }
@@ -272,7 +309,7 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
     summaryParts.push('예약안내 1건')
   }
 
-  if (product && needOpt) {
+  if (product && needOpt && !hasStructuredOptional(next)) {
     if (product.hasOptionalTours === true && product.optionalTourSummaryRaw) {
       next = {
         ...next,

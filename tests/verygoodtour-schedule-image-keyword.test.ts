@@ -103,10 +103,10 @@ describe('classifyVerygoodDayKind', () => {
     )
   })
 
-  it('routeText 단일·허브만 → free (산문 POI 없음)', () => {
+  it('routeText 단일·허브만 → flight on day1 (출발일)', () => {
     assert.equal(
       classifyVerygoodDayKind('인천 출발 및 아부다비 경유', '인천 출발', 1, 10, '인천 - 아부다비'),
-      'free',
+      'flight',
     )
   })
 })
@@ -247,7 +247,7 @@ describe('applyVerygoodScheduleImageKeywordsToRows — Plan A', () => {
           imageKeyword2: null,
         },
       ],
-      { productDestination: 'India', totalDays: 2 },
+      { productDestination: 'India', totalDays: 5 },
     )
     assert.equal(out[0]!.imageKeyword, 'Taj Mahal')
     assert.match(out[0]!.imageKeyword2!, /Agra Fort/i)
@@ -294,5 +294,35 @@ describe('applyVerygoodScheduleImageKeywordsToRows — Plan A', () => {
     assert.notEqual(out[1]!.imageKeyword!.toLowerCase(), out[2]!.imageKeyword!.toLowerCase())
     assert.match(out[3]!.imageKeyword!, /Hulunbuir|Manzhouli|Matryoshka|Hailar/i)
     assert.doesNotMatch(out[3]!.imageKeyword!, /Incheon/i)
+  })
+
+  it('Malaysia APP0671 — flight·touring routeText에서 kw 채움', () => {
+    const out = applyVerygoodScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '인천',
+          description: '인천 - 쿠알라룸푸르',
+          routeText: '인천 - 쿠알라룸푸르',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '쿠알라룸푸르',
+          description: '쿠알라룸푸르 왕궁 - 겐팅하이랜드',
+          routeText: '쿠알라룸푸르 왕궁 - 겐팅하이랜드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '말라카 · 겐팅', totalDays: 5 },
+    )
+    assert.ok(out[0]!.imageKeyword!.length > 0, 'day1 departure kw')
+    assert.ok(out[1]!.imageKeyword!.length > 0, 'day2 touring kw')
+    assert.notEqual(
+      out[0]!.imageKeyword!.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      out[1]!.imageKeyword!.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    )
   })
 })

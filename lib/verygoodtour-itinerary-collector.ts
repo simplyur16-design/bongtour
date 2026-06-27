@@ -1,5 +1,8 @@
 import type { ItineraryDayInput } from '@/lib/upsert-itinerary-days-verygoodtour'
 import { normalizeDay } from '@/lib/upsert-itinerary-days-verygoodtour'
+import { extractVerygoodScheduleRowsFromPasteBody } from '@/lib/verygoodtour-schedule-blocks-from-paste'
+import { applyVerygoodScheduleExpressionToRows } from '@/lib/verygoodtour-register-api-schedule'
+import { parseVerygoodScheduleRowsFromDetailHtml } from '@/lib/verygoodtour-register-schedule-item-parse'
 
 export type VerygoodItineraryCollectParams = {
   detailUrl: string
@@ -10,57 +13,77 @@ export type VerygoodItineraryCollectResult = {
   notes: string[]
 }
 
-function stripTags(html: string): string {
-  return html.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '\n')
+/** PackageDetail HTML → 붙여넣기와 동일한 `N일차` 평문 (#### 도시 헤더 유지). */
+export function htmlToVerygoodItineraryPlainText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '\n')
+    .replace(/<style[\s\S]*?<\/style>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<h4[^>]*>/gi, '\n#### ')
+    .replace(/<\/h4>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, '\n')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
-function parseDayBlocks(html: string): Array<{ day: number; rawBlock: string }> {
-  const text = stripTags(html)
-  const chunks = text
-    .split(/(?=(?:^|\n)\s*(?:DAY\s*)?\d+\s*(?:일차|일))/i)
-    .map((x) => x.trim())
-    .filter(Boolean)
-  const out: Array<{ day: number; rawBlock: string }> = []
-  for (const c of chunks) {
-    const m = c.match(/(?:DAY\s*)?(\d+)\s*(?:일차|일)/i)
-    const day = normalizeDay(Number(m?.[1] ?? 0))
-    if (!day) continue
-    out.push({ day, rawBlock: c })
-  }
-  return out
-}
-
-function blockToDayInput(block: { day: number; rawBlock: string }): ItineraryDayInput | null {
-  const raw = block.rawBlock.trim()
-  if (!raw) return null
-  const dateText = raw.match(/(20\d{2}[.\-/]\d{1,2}[.\-/]\d{1,2}|\d{1,2}월\s*\d{1,2}일)/)?.[1] ?? null
-  const city = raw.match(/(도쿄|오사카|후쿠오카|삿포로|부산|서울|제주|타이페이|방콕|다낭|하노이|홍콩)/)?.[1] ?? null
-  const meals = raw.match(/(조식[^\n]{0,80}|중식[^\n]{0,80}|석식[^\n]{0,80})/)?.[1] ?? null
-  const accommodation = raw.match(/(숙박|호텔|리조트)[^\n]{0,120}/)?.[0] ?? null
-  const transport = raw.match(/(이동|탑승|출발|도착)[^\n]{0,160}/)?.[0] ?? null
-  const poiNamesRaw = raw.match(/(관광|방문|체험)[^\n]{0,220}/)?.[0] ?? null
+function scheduleRowToItineraryDay(row: {
+  day: number
+  title: string
+  description: string
+  routeText?: string | null
+  hotelText?: string | null
+  mealSummaryText?: string | null
+  breakfastText?: string | null
+  lunchText?: string | null
+  dinnerText?: string | null
+}): ItineraryDayInput {
+  const meals = [row.breakfastText, row.lunchText, row.dinnerText].filter(Boolean).join(' / ') || row.mealSummaryText
   return {
-    day: block.day,
-    dateText,
-    city,
-    summaryTextRaw: raw.slice(0, 500),
-    poiNamesRaw,
-    meals,
-    accommodation,
-    transport,
-    rawBlock: raw,
+    day: row.day,
+    dateText: null,
+    city: row.title?.trim() || null,
+    summaryTextRaw: row.description?.trim().slice(0, 500) || null,
+    poiNamesRaw: row.routeText?.trim() || null,
+    meals: meals?.trim() || null,
+    accommodation: row.hotelText?.trim() || null,
+    transport: null,
+    rawBlock: row.description?.trim().slice(0, 2000) || null,
   }
 }
 
 export function parseVerygoodItineraryFromDetailHtml(html: string): VerygoodItineraryCollectResult {
   const notes: string[] = []
-  const blocks = parseDayBlocks(html)
-  if (!blocks.length) return { days: [], notes: ['itinerary day blocks not found'] }
+  const scheduleRows = parseVerygoodScheduleRowsFromDetailHtml(html)
+  if (scheduleRows.length > 0) {
+    notes.push(`itinerary scheduleItem panels=${scheduleRows.length}`)
+    const byDay = new Map<number, ItineraryDayInput>()
+    for (const row of scheduleRows) {
+      const day = normalizeDay(Number(row.day))
+      if (!day || byDay.has(day)) continue
+      byDay.set(day, scheduleRowToItineraryDay(row))
+    }
+    const days = [...byDay.values()].sort((a, b) => a.day - b.day)
+    notes.push(`itinerary parsed days=${days.length}`)
+    return { days, notes }
+  }
+
+  const plain = htmlToVerygoodItineraryPlainText(html)
+  const { rows, log } = extractVerygoodScheduleRowsFromPasteBody(plain)
+  notes.push(`itinerary day markers=${log.rawDayBlockCount}`)
+  if (rows.length === 0) {
+    notes.push('itinerary day blocks not found')
+    return { days: [], notes }
+  }
+  const expressed = applyVerygoodScheduleExpressionToRows(rows)
   const byDay = new Map<number, ItineraryDayInput>()
-  for (const b of blocks) {
-    const input = blockToDayInput(b)
-    if (!input) continue
-    if (!byDay.has(input.day)) byDay.set(input.day, input)
+  for (const row of expressed) {
+    const day = normalizeDay(Number(row.day))
+    if (!day || byDay.has(day)) continue
+    byDay.set(day, scheduleRowToItineraryDay(row))
   }
   const days = [...byDay.values()].sort((a, b) => a.day - b.day)
   notes.push(`itinerary parsed days=${days.length}`)
@@ -68,7 +91,7 @@ export function parseVerygoodItineraryFromDetailHtml(html: string): VerygoodItin
 }
 
 export async function collectVerygoodItineraryInputs(
-  params: VerygoodItineraryCollectParams
+  params: VerygoodItineraryCollectParams,
 ): Promise<VerygoodItineraryCollectResult> {
   const notes: string[] = []
   const res = await fetch(params.detailUrl, { method: 'GET' })
@@ -77,4 +100,3 @@ export async function collectVerygoodItineraryInputs(
   const parsed = parseVerygoodItineraryFromDetailHtml(html)
   return { days: parsed.days, notes: [...notes, ...parsed.notes] }
 }
-
