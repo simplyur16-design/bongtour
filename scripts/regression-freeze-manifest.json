@@ -103,6 +103,15 @@
       "summary": "교원이지 등록 SSOT 스냅샷 — API parse·Gemini gate 제거·URL-only preview"
     },
     {
+      "id": "verygoodtour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:verygoodtour-register-ssot-freeze",
+      "summary": "참좋은여행 등록 SSOT 스냅샷 — API parse·orchestration/LLM 제거·URL-only preview"
+    },
+    {
       "id": "ybtour-by-goods-departure-list",
       "tier": [
         "ci"
@@ -2783,7 +2792,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "file": "lib/verygoodtour-register-flow.ts",
           "mustInclude": [
             "findExistingProductForRegister"
           ]
@@ -4331,6 +4340,159 @@
       ]
     },
     {
+      "id": "verygoodtour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 등록 SSOT — flow·handler·api-parse Gemini overlay 없음",
+      "checks": [
+        {
+          "file": "scripts/verify-verygoodtour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-ssot-freeze]"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-ssot-freeze]",
+            "runVerygoodtourRegisterFlow"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "mustInclude": [
+            "runVerygoodtourRegisterFlow",
+            "augmentVerygoodtourParsedWithDetailCollect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verygoodtour-register-api-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 등록 parseFn — collectVerygoodtourRegisterFacts API SSOT",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-api-parse]",
+            "collectVerygoodtourRegisterFacts",
+            "parseVerygoodtourRegisterFromApi",
+            "resolveVerygoodtourRegisterDestination"
+          ]
+        },
+        {
+          "file": "lib/register-parse-verygoodtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-api-parse]",
+            "parseVerygoodtourRegisterFromApi"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verygoodtour-register-destination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 등록 목적지 — hash·route·title SSOT",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-destination]",
+            "resolveVerygoodtourRegisterDestination",
+            "inferVerygoodRegisterDestinationFromScheduleRoutes"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-register-destination-from-paste.test.ts"
+      ]
+    },
+    {
+      "id": "verygoodtour-schedule-expression",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 일정 routeText a–g + description 분위기 SSOT",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-schedule-expression]",
+            "applyVerygoodtourScheduleExpressionToRows",
+            "composeVerygoodtourScheduleDescription"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-verygoodtour-schedule.ts",
+          "mustInclude": [
+            "augmentVerygoodtourScheduleExpressionParsed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verygoodtour-register-api-detail",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 PackageDetail HTML — 항공·잔여석·옵션·쇼핑 SSOT",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-api-detail]",
+            "buildVerygoodFlightStructuredFromDetailHtml",
+            "extractVerygoodOptionalShoppingFromDetailHtml",
+            "parseVerygoodBookingMetaFromDetailHtml",
+            "resolveVerygoodRemainingSeatsFromPriceRows"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verygoodtour-register-schedule-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 PackageDetail HTML 일정표 — routeText·description·imageKeyword",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-schedule-item-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-schedule-collect]",
+            "parseVerygoodScheduleRowsFromDetailHtml"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-itinerary-collector.ts",
+          "mustInclude": [
+            "parseVerygoodScheduleRowsFromDetailHtml",
+            "parseVerygoodItineraryFromDetailHtml"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-schedule-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-schedule-collect]",
+            "collectVerygoodtourScheduleDaysFromDetailHtml",
+            "applyVerygoodtourScheduleCollectToParsed"
+          ]
+        }
+      ]
+    },
+    {
       "id": "ybtour-register-taiwan-live-gate",
       "tier": [
         "ci"
@@ -4535,6 +4697,34 @@
       ]
     },
     {
+      "id": "verygoodtour-register-app0671-260628-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "참좋은여행 APP0671-260628KE — full parse incl/excl·opt·shop·flight·잔여석·schedule·imageKeyword live",
+      "npmScripts": [
+        "verify:register-verygoodtour-app0671-260628-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-verygoodtour-app0671-260628-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-app0671-260628-live-gate]",
+            "APP0671-260628KE",
+            "parseVerygoodtourRegisterFromApi",
+            "remainingSeatsCount",
+            "assertScheduleImageKeywordSlots"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-api-detail.ts",
+          "mustInclude": [
+            "buildVerygoodFlightStructuredFromDetailHtml"
+          ]
+        }
+      ]
+    },
+    {
       "id": "lottetour-register-godid-hokkaido-live-gate",
       "tier": [
         "ci"
@@ -4614,7 +4804,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-kyowontour-handler.ts",
+          "file": "lib/kyowontour-register-detail-collect.ts",
           "mustInclude": [
             "augmentKyowontourParsedWithTabDataCollect"
           ]
@@ -4814,7 +5004,7 @@
           ]
         },
         {
-          "file": "lib/parse-and-register-verygoodtour-handler.ts",
+          "file": "lib/verygoodtour-register-flow.ts",
           "mustInclude": [
             "detailBodyStructured?.raw?.hotelPasteRaw"
           ],

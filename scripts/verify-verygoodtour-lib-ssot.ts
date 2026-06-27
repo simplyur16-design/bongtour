@@ -17,18 +17,17 @@ function assert(cond: boolean, msg: string) {
 }
 
 const handler = read('lib/parse-and-register-verygoodtour-handler.ts')
+const flow = read('lib/verygoodtour-register-flow.ts')
 const llm = read('lib/register-from-llm-verygoodtour.ts')
 
 assert(fs.existsSync(path.join(root, 'lib/register-admin-core-verygoodtour.ts')), 'missing register-admin-core-verygoodtour.ts')
 assert(fs.existsSync(path.join(root, 'docs/ops/verygoodtour-admin-register-stack.md')), 'missing verygoodtour-admin-register-stack.md')
 assert(fs.existsSync(path.join(root, 'docs/ops/verygoodtour-parse-contract.md')), 'missing verygoodtour-parse-contract.md')
 
-assert(!handler.includes('function computePreviewContentDigestForBody'), 'handler digest dup')
-assert(!handler.includes('function parsePastedBlocksFromBody'), 'handler pastedBlocks dup')
-assert(handler.includes('computeRegisterInputDigestFromBody'), 'handler must import digest')
-assert(handler.includes('parseRegisterPastedBlocksPayload'), 'handler must import pasted blocks')
-
-assert(handler.includes('syncProductGeoTags'), 'handler must call syncProductGeoTags')
+assert(handler.includes('runVerygoodtourRegisterFlow'), 'handler must delegate to flow')
+assert(!handler.includes('testGeminiConnection'), 'handler must not test Gemini')
+assert(flow.includes('syncProductGeoTagsForRegister'), 'flow must call syncProductGeoTagsForRegister')
+assert(flow.includes('findExistingProductForRegister'), 'flow must use duplicate guard')
 
 assert(!llm.includes('resolveDirectedFlightLinesDefault'), 'P1b: remove default flight resolver')
 assert(llm.includes('requireDirectedFlightLineResolver'), 'P1b: require directed flight resolver')
