@@ -746,6 +746,16 @@ function registerSupplierDisplayName(brandKey: string | null | undefined): strin
   return REGISTER_SUPPLIER_OPTIONS.find((b) => b.brandKey === k)?.displayName ?? k
 }
 
+/** URL 호스트가 알려진 공급사면 canonical key — 현재 선택과 다를 때만 반환 */
+function inferRegisterSupplierSwitchFromOriginUrl(
+  originUrl: string,
+  currentBrandKey: AdminRegisterSupplierKey,
+): AdminRegisterSupplierKey | null {
+  const inferred = inferCanonicalSupplierFromOriginUrl(originUrl)
+  if (!inferred || inferred === currentBrandKey) return null
+  return inferred
+}
+
 export default function AdminRegisterPage() {
   /** 관리자 상품 상위 유형: 해외 패키지 / 국내 패키지 / 항공권+호텔(자유여행) — API 필드명은 기존 `travelScope` 유지 */
   const [travelScope, setTravelScope] = useState<'overseas' | 'air_hotel_free'>('overseas')
@@ -1373,6 +1383,9 @@ export default function AdminRegisterPage() {
             <label htmlFor="admin-register-brand" className="block text-sm font-semibold text-slate-800">
               여행사
             </label>
+            <p className="mt-1 text-xs text-slate-500">
+              공급사 URL을 붙여넣으면 여행사가 자동 선택됩니다. 수동 변경도 가능합니다.
+            </p>
             <select
               id="admin-register-brand"
               name="brandKey"
@@ -1445,7 +1458,7 @@ export default function AdminRegisterPage() {
             상품 URL
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            상품 URL 입력 후 [사실 가져오기]로 API에서 항공·옵션·쇼핑·일정·포함 등을 수집합니다. 아래 본문은 선택(모두투어 쿠폰·혜택 보강 등)이며, 항공·옵션·쇼핑은 <strong>API SSOT</strong>입니다.
+            상품 URL 입력 시 공급사가 자동 선택됩니다. [사실 가져오기]로 API에서 항공·옵션·쇼핑·일정·포함 등을 수집합니다. 아래 본문은 선택(모두투어 쿠폰·혜택 보강 등)이며, 항공·옵션·쇼핑은 <strong>API SSOT</strong>입니다.
           </p>
           <input
             id="admin-register-origin-url"
@@ -1453,16 +1466,14 @@ export default function AdminRegisterPage() {
             type="url"
             value={originUrl}
             onChange={(e) => {
-              setOriginUrl(e.target.value)
+              const nextUrl = e.target.value
+              setOriginUrl(nextUrl)
               setDuplicateResult(null)
               setLastCheckedOriginUrl('')
               setRegisterFactBundle(null)
               setRegisterFactFetchError(null)
-            }}
-            onBlur={() => {
-              void checkOriginUrlDuplicate()
-              const inferred = inferCanonicalSupplierFromOriginUrl(originUrl)
-              if (inferred && inferred !== selectedBrandKey) {
+              const inferred = inferRegisterSupplierSwitchFromOriginUrl(nextUrl, selectedBrandKey)
+              if (inferred) {
                 setSelectedBrandKey(inferred)
                 setRegisterFactBundle(null)
                 setRegisterFactFetchError(null)
@@ -1473,6 +1484,9 @@ export default function AdminRegisterPage() {
                 })
                 setStatusText('URL에서 공급사를 자동 선택했습니다. [사실 가져오기] 후 [봉투어 형식으로 변환]을 진행하세요.')
               }
+            }}
+            onBlur={() => {
+              void checkOriginUrlDuplicate()
             }}
             placeholder="상품 URL을 입력하세요 (출처/reference용)"
             className="mt-2 w-full border border-slate-300 bg-white px-3 py-2.5 text-sm text-[#0f172a] placeholder:text-slate-400 focus:border-[#0f172a] focus:outline-none focus:ring-1 focus:ring-[#0f172a]"

@@ -13,6 +13,8 @@ import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedul
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
 import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
+import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
+import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
@@ -249,6 +251,40 @@ export async function applyRegisterPostAugmentSchedulePipeline(
       schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
         supplierKey: 'kyowontour',
         productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
+      }),
+    }
+  }
+
+  if (opts.forcedBrandKey === 'verygoodtour') {
+    const before = parsed.schedule ?? []
+    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
+    const dest = parsed.primaryDestination ?? parsed.destination ?? null
+    const allocated = applyVerygoodScheduleImageKeywordsToRows(
+      schedule.map(normalizeScheduleRouteRowForImageKeyword),
+      { detRows: schedule, productDestination: dest, totalDays: schedule.length },
+    ) as typeof schedule
+    return {
+      ...parsed,
+      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
+        supplierKey: 'verygoodtour',
+        productDestination: dest,
+      }),
+    }
+  }
+
+  if (opts.forcedBrandKey === 'naeiltour') {
+    const before = parsed.schedule ?? []
+    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
+    const dest = parsed.primaryDestination ?? parsed.destination ?? null
+    const allocated = applyNaeiltourScheduleImageKeywordsToRows(
+      schedule as NaeiltourScheduleImageKeywordRow[],
+      { productDestination: dest, englishLandmarksByDay: undefined },
+    ) as typeof schedule
+    return {
+      ...parsed,
+      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
+        supplierKey: 'naeiltour',
+        productDestination: dest,
       }),
     }
   }

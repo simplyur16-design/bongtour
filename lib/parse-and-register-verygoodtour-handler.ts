@@ -19,7 +19,10 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
     parseFn: parseForRegisterVerygoodtour,
     logPrefix: '[verygoodtour-register]',
     savePersistedParsedOnly: true,
-    augmentParsed: (parsed) => augmentVerygoodtourScheduleExpressionParsed(parsed),
+    augmentParsed: (parsed, ctx) =>
+      augmentVerygoodtourScheduleExpressionParsed(parsed, ctx?.pastedBodyText, {
+        travelScope: ctx?.travelScope,
+      }),
     patchParsedAfterAugment: async (parsed, _text, ctx) => {
       let next = await augmentVerygoodtourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,

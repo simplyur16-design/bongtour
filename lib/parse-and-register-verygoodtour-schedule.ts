@@ -2,6 +2,8 @@
  * 참좋은여행 등록 파이프: 일정 표현층만 보정.
  * @see docs/register_schedule_expression_ssot.md
  */
+import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-augment-image-keywords'
+import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { stripCounselingTermsFromScheduleRow } from '@/lib/itinerary-counseling-terms-strip'
 import {
@@ -27,16 +29,31 @@ export function sanitizeVerygoodtourScheduleRowExpression(row: RegisterScheduleD
   return { ...row, imageKeyword: '' }
 }
 
-export function augmentVerygoodtourScheduleExpressionParsed(parsed: RegisterParsed): RegisterParsed {
+export function augmentVerygoodtourScheduleExpressionParsed(
+  parsed: RegisterParsed,
+  _pastedBodyText?: string | null,
+  opts?: { travelScope?: string | null },
+): RegisterParsed {
   const sched = parsed.schedule
   if (!sched?.length) return parsed
+  const cleaned = sched.map((r) => {
+    const base = sanitizeVerygoodtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r))
+    const d = coerceScheduleDayToOneBased(base.day) ?? normalizeDay(base.day)
+    return d != null && d >= 1 ? { ...base, day: d } : base
+  })
+  const skipPackageImageKw = isRegisterAirtelListing(opts?.travelScope, parsed.productType)
+  const scheduleRows = skipPackageImageKw
+    ? cleaned
+    : applyAugmentScheduleImageKeywordsBySupplier(cleaned, {
+        supplierKey: 'verygoodtour',
+        productTitle: parsed.title,
+        productDestination: parsed.primaryDestination ?? parsed.destination,
+        travelScope: opts?.travelScope,
+        productType: parsed.productType,
+      })
   return {
     ...parsed,
-    schedule: sched.map((r) => {
-      const base = sanitizeVerygoodtourScheduleRowExpression(stripCounselingTermsFromScheduleRow(r))
-      const d = coerceScheduleDayToOneBased(base.day) ?? normalizeDay(base.day)
-      return d != null && d >= 1 ? { ...base, day: d } : base
-    }),
+    schedule: scheduleRows,
   }
 }
 
