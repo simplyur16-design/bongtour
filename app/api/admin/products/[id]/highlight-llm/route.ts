@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { adminProductJsonWithPromotionRef } from '@/lib/admin-product-reference-prices'
 import { extractHighlightFromHanatourLLM } from '@/lib/llm-extract-highlight-hanatour'
 import { extractHighlightFromLottetourLLM } from '@/lib/llm-extract-highlight-lottetour'
+import { extractHighlightFromNaeiltourLLM } from '@/lib/llm-extract-highlight-naeiltour'
 import { extractHighlightFromModetourLLM } from '@/lib/llm-extract-highlight-modetour'
 import { extractHighlightFromVerygoodtourLLM } from '@/lib/llm-extract-highlight-verygoodtour'
 import { extractHighlightFromYbtourLLM } from '@/lib/llm-extract-highlight-ybtour'
@@ -86,6 +87,8 @@ async function runSupplierHighlightLlm(
       return extractHighlightFromVerygoodtourLLM(blob)
     case 'lottetour':
       return extractHighlightFromLottetourLLM(blob)
+    case 'naeiltour':
+      return extractHighlightFromNaeiltourLLM(blob)
   }
 }
 

@@ -10,6 +10,7 @@ import { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { collectVerygoodtourRegisterFacts } from '@/lib/register-facts/verygoodtour'
+import { collectNaeiltourRegisterFacts } from '@/lib/register-facts/naeiltour'
 import { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
 
 export async function collectSupplierRegisterFacts(
@@ -33,11 +34,13 @@ export async function collectSupplierRegisterFacts(
       return collectLottetourRegisterFacts(url)
     case 'kyowontour':
       return collectKyowontourRegisterFacts(url)
+    case 'naeiltour':
+      return collectNaeiltourRegisterFacts(url)
     default:
       return null
   }
 }
 
 export function registerFactsSupportedSuppliers(): CanonicalOverseasSupplierKey[] {
-  return ['modetour', 'hanatour', 'ybtour', 'verygoodtour', 'lottetour', 'kyowontour']
+  return ['modetour', 'hanatour', 'ybtour', 'verygoodtour', 'lottetour', 'kyowontour', 'naeiltour']
 }

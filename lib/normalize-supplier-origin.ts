@@ -16,6 +16,7 @@ export const OVERSEAS_SUPPLIER_LABEL: Record<OverseasSupplierKey, string> = {
   ybtour: '노랑풍선',
   kyowontour: '교원이지',
   lottetour: '롯데관광',
+  naeiltour: '내일투어',
   etc: '기타 공급사',
 }
 
@@ -64,6 +65,10 @@ const PATTERN_RULES: { key: CanonicalOverseasSupplierKey; patterns: RegExp[] }[]
       /롯데\s*관광/i,
       /lotte\s*tour/i,
     ],
+  },
+  {
+    key: 'naeiltour',
+    patterns: [/내일투어/i, /\bnaeil\s*tour\b/i, /\bnaeiltour\b/i],
   },
 ]
 

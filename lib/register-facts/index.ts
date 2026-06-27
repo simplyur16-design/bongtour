@@ -30,6 +30,11 @@ export { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
 export { collectKyowontourRegisterFacts } from '@/lib/register-facts/kyowontour'
 
 export {
+  collectNaeiltourRegisterFacts,
+  parseNaeiltourGoodCdFromUrlExport,
+} from '@/lib/register-facts/naeiltour'
+
+export {
   collectSupplierRegisterFacts,
   registerFactsSupportedSuppliers,
 } from '@/lib/register-facts/collect'

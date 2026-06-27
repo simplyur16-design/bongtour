@@ -10,6 +10,7 @@ export type SupplierRegisterFactSource =
   | 'verygoodtour'
   | 'lottetour'
   | 'kyowontour'
+  | 'naeiltour'
 
 export type RegisterFactScheduleDay = {
   day: number

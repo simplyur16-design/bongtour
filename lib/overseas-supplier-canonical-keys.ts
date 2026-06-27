@@ -4,16 +4,16 @@
  */
 import canonicalJson from './overseas-supplier-canonical-keys.json'
 
-const EXPECTED = new Set(['hanatour', 'modetour', 'ybtour', 'verygoodtour', 'kyowontour', 'lottetour'])
+const EXPECTED = new Set(['hanatour', 'modetour', 'ybtour', 'verygoodtour', 'kyowontour', 'lottetour', 'naeiltour'])
 
 if (
   !Array.isArray(canonicalJson) ||
-  canonicalJson.length !== 6 ||
+  canonicalJson.length !== 7 ||
   !canonicalJson.every((x): x is string => typeof x === 'string' && EXPECTED.has(x)) ||
-  new Set(canonicalJson).size !== 6
+  new Set(canonicalJson).size !== 7
 ) {
   throw new Error(
-    'lib/overseas-supplier-canonical-keys.json must be a length-6 array of: hanatour, modetour, ybtour, verygoodtour, kyowontour, lottetour (no duplicates).'
+    'lib/overseas-supplier-canonical-keys.json must be a length-7 array of: hanatour, modetour, ybtour, verygoodtour, kyowontour, lottetour, naeiltour (no duplicates).'
   )
 }
 
@@ -24,6 +24,7 @@ export type CanonicalOverseasSupplierKey =
   | 'verygoodtour'
   | 'kyowontour'
   | 'lottetour'
+  | 'naeiltour'
 
 export const CANONICAL_OVERSEAS_SUPPLIER_KEYS = canonicalJson as readonly CanonicalOverseasSupplierKey[]
 
@@ -38,6 +39,7 @@ export const SUPPLIER_ORIGIN_CANONICAL: Record<CanonicalOverseasSupplierKey, Can
   verygoodtour: 'verygoodtour',
   kyowontour: 'kyowontour',
   lottetour: 'lottetour',
+  naeiltour: 'naeiltour',
 }
 
 /**

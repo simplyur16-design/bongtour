@@ -9,24 +9,28 @@ import { buildRegisterPreviewCanonicalString as buildRegisterCanonV } from '@/li
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonY } from '@/lib/register-preview-content-fingerprint-ybtour'
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonKw } from '@/lib/register-preview-content-fingerprint-kyowontour'
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonLt } from '@/lib/register-preview-content-fingerprint-lottetour'
+import { buildRegisterPreviewCanonicalString as buildRegisterCanonNt } from '@/lib/register-preview-content-fingerprint-naeiltour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelH } from '@/lib/register-preview-ssot-hanatour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelM } from '@/lib/register-preview-ssot-modetour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelV } from '@/lib/register-preview-ssot-verygoodtour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelY } from '@/lib/register-preview-ssot-ybtour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelKw } from '@/lib/register-preview-ssot-kyowontour'
 import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelLt } from '@/lib/register-preview-ssot-lottetour'
+import { registerPreviewSsotBadgeLabel as registerPreviewSsotBadgeLabelNt } from '@/lib/register-preview-ssot-naeiltour'
 import type { RegisterParsed as RegisterParsedH, RegisterScheduleDay as RegisterScheduleDayH } from '@/lib/register-llm-schema-hanatour'
 import type { RegisterParsed as RegisterParsedM, RegisterScheduleDay as RegisterScheduleDayM } from '@/lib/register-llm-schema-modetour'
 import type { RegisterParsed as RegisterParsedV, RegisterScheduleDay as RegisterScheduleDayV } from '@/lib/register-llm-schema-verygoodtour'
 import type { RegisterParsed as RegisterParsedY, RegisterScheduleDay as RegisterScheduleDayY } from '@/lib/register-llm-schema-ybtour'
 import type { RegisterParsed as RegisterParsedKw, RegisterScheduleDay as RegisterScheduleDayKw } from '@/lib/register-llm-schema-kyowontour'
 import type { RegisterParsed as RegisterParsedLt, RegisterScheduleDay as RegisterScheduleDayLt } from '@/lib/register-llm-schema-lottetour'
+import type { RegisterParsed as RegisterParsedNt, RegisterScheduleDay as RegisterScheduleDayNt } from '@/lib/register-llm-schema-naeiltour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadH } from '@/lib/register-preview-payload-hanatour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadM } from '@/lib/register-preview-payload-modetour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadV } from '@/lib/register-preview-payload-verygoodtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadY } from '@/lib/register-preview-payload-ybtour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadKw } from '@/lib/register-preview-payload-kyowontour'
 import type { RegisterPreviewPayload as RegisterPreviewPayloadLt } from '@/lib/register-preview-payload-lottetour'
+import type { RegisterPreviewPayload as RegisterPreviewPayloadNt } from '@/lib/register-preview-payload-naeiltour'
 import type { BongtourProductTitlePreviewFields } from '@/lib/bongtour-product-title-register-bridge'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -69,12 +73,14 @@ import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverla
 import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayY } from '@/lib/register-correction-types-ybtour'
 import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayKw } from '@/lib/register-correction-types-kyowontour'
 import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayLt } from '@/lib/register-correction-types-lottetour'
+import { applyRegisterCorrectionOverlayToParsed as applyRegisterCorrectionOverlayNt } from '@/lib/register-correction-types-naeiltour'
 import type { RegisterVerificationV1 as RegisterVerificationV1H } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterVerificationV1 as RegisterVerificationV1M } from '@/lib/admin-register-verification-meta-modetour'
 import type { RegisterVerificationV1 as RegisterVerificationV1V } from '@/lib/admin-register-verification-meta-verygoodtour'
 import type { RegisterVerificationV1 as RegisterVerificationV1Y } from '@/lib/admin-register-verification-meta-ybtour'
 import type { RegisterVerificationV1 as RegisterVerificationV1Kw } from '@/lib/admin-register-verification-meta-kyowontour'
 import type { RegisterVerificationV1 as RegisterVerificationV1Lt } from '@/lib/admin-register-verification-meta-lottetour'
+import type { RegisterVerificationV1 as RegisterVerificationV1Nt } from '@/lib/admin-register-verification-meta-naeiltour'
 import {
   getRegisterPastePlaceholders,
   getSupplierInputFrameSpec,
@@ -110,6 +116,7 @@ const REGISTER_FACT_FETCH_SUPPLIERS = new Set<CanonicalOverseasSupplierKey>([
   'verygoodtour',
   'lottetour',
   'kyowontour',
+  'naeiltour',
 ])
 
 function formatRegisterFactBundleSummary(bundle: SupplierRegisterFactBundle): string {
@@ -156,7 +163,7 @@ type Brand = { id: string; brandKey: CanonicalOverseasSupplierKey; displayName: 
 /** 관리자 상품등록 메뉴에서만 선택 — canonical SSOT와 동일 키만 (`lib/overseas-supplier-canonical-keys.json`). */
 type AdminRegisterSupplierKey = CanonicalOverseasSupplierKey
 
-type RegisterParsed = RegisterParsedH | RegisterParsedM | RegisterParsedV | RegisterParsedY | RegisterParsedKw | RegisterParsedLt
+type RegisterParsed = RegisterParsedH | RegisterParsedM | RegisterParsedV | RegisterParsedY | RegisterParsedKw | RegisterParsedLt | RegisterParsedNt
 type RegisterScheduleDay =
   | RegisterScheduleDayH
   | RegisterScheduleDayM
@@ -164,6 +171,7 @@ type RegisterScheduleDay =
   | RegisterScheduleDayY
   | RegisterScheduleDayKw
   | RegisterScheduleDayLt
+  | RegisterScheduleDayNt
 type AdminRegisterPreviewPayload = (
   | RegisterPreviewPayloadH
   | RegisterPreviewPayloadM
@@ -171,6 +179,7 @@ type AdminRegisterPreviewPayload = (
   | RegisterPreviewPayloadY
   | RegisterPreviewPayloadKw
   | RegisterPreviewPayloadLt
+  | RegisterPreviewPayloadNt
 ) &
   Partial<BongtourProductTitlePreviewFields>
 type RegisterVerificationV1 =
@@ -180,6 +189,7 @@ type RegisterVerificationV1 =
   | RegisterVerificationV1Y
   | RegisterVerificationV1Kw
   | RegisterVerificationV1Lt
+  | RegisterVerificationV1Nt
 
 /** 교원이지·롯데관광·6공급사 공통 미리보기 `data` — 응답에 포함될 때만 카드에 사용한다. */
 function previewFinalParsedSummaryFromPayload(p: AdminRegisterPreviewPayload | null): RegisterAdminFinalParsedSummary | null {
@@ -205,6 +215,8 @@ function buildRegisterCanonForSupplier(
       return buildRegisterCanonKw(input)
     case 'lottetour':
       return buildRegisterCanonLt(input as Parameters<typeof buildRegisterCanonLt>[0])
+    case 'naeiltour':
+      return buildRegisterCanonNt(input as Parameters<typeof buildRegisterCanonNt>[0])
     default: {
       const _e: never = k
       return _e
@@ -229,6 +241,8 @@ function registerPreviewSsotBadgeLabelForSupplier(
       return registerPreviewSsotBadgeLabelKw(b)
     case 'lottetour':
       return registerPreviewSsotBadgeLabelLt(b)
+    case 'naeiltour':
+      return registerPreviewSsotBadgeLabelNt(b)
     default: {
       const _e: never = k
       return _e
@@ -259,6 +273,11 @@ function applyRegisterCorrectionOverlayForSupplier(
       return applyRegisterCorrectionOverlayLt(
         parsed as RegisterParsedLt,
         overlay as Parameters<typeof applyRegisterCorrectionOverlayLt>[1]
+      ) as RegisterParsed
+    case 'naeiltour':
+      return applyRegisterCorrectionOverlayNt(
+        parsed as RegisterParsedNt,
+        overlay as Parameters<typeof applyRegisterCorrectionOverlayNt>[1]
       ) as RegisterParsed
     default: {
       const _e: never = k
@@ -679,6 +698,8 @@ function parseRegisterApiPath(brandKey: AdminRegisterSupplierKey): string {
       return '/api/travel/parse-and-register-kyowontour'
     case 'lottetour':
       return '/api/travel/parse-and-register-lottetour'
+    case 'naeiltour':
+      return '/api/travel/parse-and-register-naeiltour'
     default: {
       const _e: never = brandKey
       throw new Error(`Unexpected register supplier: ${_e}`)
@@ -697,6 +718,7 @@ const REGISTER_SUPPLIER_OPTIONS: Brand[] = [
   { id: '', brandKey: 'hanatour', displayName: '하나투어', sortOrder: 4 },
   { id: '', brandKey: 'kyowontour', displayName: '교원이지', sortOrder: 5 },
   { id: '', brandKey: 'lottetour', displayName: '롯데관광', sortOrder: 6 },
+  { id: '', brandKey: 'naeiltour', displayName: '내일투어', sortOrder: 7 },
 ]
 
 {

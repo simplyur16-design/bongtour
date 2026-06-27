@@ -13,6 +13,11 @@ describe('inferCanonicalSupplierFromOriginUrl', () => {
         'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=x',
       ),
     ).toBe('kyowontour')
+    expect(
+      inferCanonicalSupplierFromOriginUrl(
+        'https://www.naeiltour.co.kr/sub/view.asp?gotp=M&detail=M404&good_cd=MEZZ32069',
+      ),
+    ).toBe('naeiltour')
   })
 
   it('returns null for unknown host', () => {

@@ -12,6 +12,7 @@ export type RegisterSupplierFrameKey =
   | 'ybtour'
   | 'kyowontour'
   | 'lottetour'
+  | 'naeiltour'
 
 export type RegisterPastePlaceholders = {
   body: string
@@ -358,6 +359,55 @@ const LOTTETOUR: SupplierInputFrameSpec = {
   },
 }
 
+/** 내일투어(naeiltour) — view.asp + tab0/tab1 API SSOT. */
+const NAEILTOUR: SupplierInputFrameSpec = {
+  displayName: '내일투어',
+  axes: [
+    {
+      axis: '본문(LLM)',
+      shape: '서술 전용 (일차별 일정·포함/불포함)',
+      slots:
+        '담당: 일정·관광·식사·이동·포함/불포함·주의사항. 비담당: 항공·옵션·쇼핑 확정 데이터는 view.asp/tab0/tab1 자동수집이 우선(SSOT). originUrl은 `view.asp?good_cd=…&sub_area_cd=…` 형태.',
+    },
+    {
+      axis: '항공',
+      shape: 'tab1 일정표 [HH:MM] 편명 블록',
+      slots: '항공사·편명·출발/도착 시각. 정형칸이 있으면 본문 항공 추출보다 우선.',
+    },
+    {
+      axis: '호텔',
+      shape: '일차별 숙박 문구',
+      slots: '일정표 stay 블록·도시별 예정 호텔.',
+    },
+    {
+      axis: '옵션',
+      shape: 'tab0 선택관광 요약',
+      slots: '선택관광명·요금·소요시간·동행 여부.',
+    },
+    {
+      axis: '쇼핑',
+      shape: 'tab0 쇼핑 요약',
+      slots: '쇼핑 횟수·품목·장소·시간·환불.',
+    },
+  ],
+  placeholders: {
+    body: ph([
+      '[내일투어 본문 — LLM·서술]',
+      'originUrl 예: https://www.naeiltour.co.kr/sub/view.asp?good_cd=MEZZ32084&sub_area_cd=#n',
+      '식별: good_cd(마스터), event_seq(행사).',
+      '일차별 일정·포함/불포함 등.',
+    ]),
+    airlineTransport: ph([
+      '항공사: 아시아나',
+      '[10:50] OZ541 인천 출발 → …',
+      '[18:30] OZ542 … 도착 인천',
+    ]),
+    hotel: ph(['도시 | 예정 호텔', '프랑크푸르트 | 시내 호텔 또는 동급']),
+    optionalTour: ph(['선택관광명 | 1인요금 | 소요시간 | 인솔자']),
+    shopping: ph(['쇼핑 횟수(요약)', '품목 | 장소 | 시간 | 환불']),
+  },
+}
+
 const KYOWONTOUR: SupplierInputFrameSpec = {
   displayName: '교원이지',
   axes: [
@@ -430,6 +480,7 @@ const SPECS: Record<RegisterSupplierFrameKey, SupplierInputFrameSpec> = {
   ybtour: YELLOW,
   kyowontour: KYOWONTOUR,
   lottetour: LOTTETOUR,
+  naeiltour: NAEILTOUR,
 }
 
 /** canonical 해외 공급사는 전용 프레임. 그 외·비표준 키는 하나투어 프레임으로 안내 */

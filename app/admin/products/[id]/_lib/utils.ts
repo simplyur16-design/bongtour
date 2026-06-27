@@ -4,6 +4,7 @@ import * as fmcModetour from '@/lib/flight-manual-correction-modetour'
 import * as fmcVerygood from '@/lib/flight-manual-correction-verygoodtour'
 import * as fmcYbtour from '@/lib/flight-manual-correction-ybtour'
 import * as fmcLottetour from '@/lib/flight-manual-correction-lottetour'
+import * as fmcNaeiltour from '@/lib/flight-manual-correction-naeiltour'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
 import {
   resolvePublicConsumptionModuleKey,
@@ -33,6 +34,8 @@ export function fmcModuleForAdminProduct(
       return fmcYbtour
     case 'lottetour':
       return fmcLottetour
+    case 'naeiltour':
+      return fmcNaeiltour
     default:
       return fmcHanatour
   }
@@ -48,6 +51,7 @@ const REGISTER_PUBLIC_PAGE_TRACE_BULLETS_BY_MODULE: Record<
   ybtour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
   kyowontour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
   lottetour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
+  naeiltour: REGISTER_PUBLIC_PAGE_TRACE_BULLETS,
 }
 
 export function registerPublicPageTraceBulletsForProduct(

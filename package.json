@@ -111,6 +111,8 @@
     "verify:lottetour-register-ssot-freeze": "npx tsx scripts/verify-lottetour-register-ssot-freeze.ts",
     "verify:kyowontour-register-ssot-freeze": "npx tsx scripts/verify-kyowontour-register-ssot-freeze.ts",
     "verify:verygoodtour-register-ssot-freeze": "npx tsx scripts/verify-verygoodtour-register-ssot-freeze.ts",
+    "verify:naeiltour-register-ssot-freeze": "npx tsx scripts/verify-naeiltour-register-ssot-freeze.ts",
+    "verify:register-naeiltour-mezz32084-live-gate": "npx tsx scripts/verify-register-naeiltour-mezz32084-live-gate.ts",
     "verify:ybtour-by-goods-price": "tsx scripts/run-ybtour-by-goods-price-verify.ts",
     "verify:verygoodtour-lib": "npx tsx scripts/verify-verygoodtour-lib-ssot.ts",
     "verify:verygoodtour-title": "npx tsx scripts/verify-verygoodtour-listing-title-from-paste.ts",

@@ -112,6 +112,15 @@
       "summary": "참좋은여행 등록 SSOT 스냅샷 — API parse·orchestration/LLM 제거·URL-only preview"
     },
     {
+      "id": "naeiltour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:naeiltour-register-ssot-freeze",
+      "summary": "내일투어 등록 SSOT 스냅샷 — view.asp tab0/tab1 API parse·Gemini overlay 없음"
+    },
+    {
       "id": "ybtour-by-goods-departure-list",
       "tier": [
         "ci"
@@ -2118,6 +2127,14 @@
             "collectKyowontourRegisterFacts",
             "tourEventTabData",
             "tourcode_detail_enrich=skipped_register_facts"
+          ]
+        },
+        {
+          "file": "lib/register-facts/naeiltour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-foundation]",
+            "collectNaeiltourRegisterFacts",
+            "fetchNaeiltourRegisterDetailBundle"
           ]
         },
         {
@@ -4370,6 +4387,162 @@
       ]
     },
     {
+      "id": "naeiltour-register-ssot-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 등록 SSOT — flow·handler·api-parse Gemini overlay 없음",
+      "checks": [
+        {
+          "file": "scripts/verify-naeiltour-register-ssot-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-ssot-freeze]"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-ssot-freeze]",
+            "runNaeiltourRegisterFlow"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-naeiltour-handler.ts",
+          "mustInclude": [
+            "runNaeiltourRegisterFlow",
+            "augmentNaeiltourParsedWithDetailCollect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-api-parse",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 등록 parseFn — collectNaeiltourRegisterFacts API SSOT",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-api-parse]",
+            "collectNaeiltourRegisterFacts",
+            "parseNaeiltourRegisterFromApi"
+          ]
+        },
+        {
+          "file": "lib/register-parse-naeiltour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-api-parse]",
+            "parseNaeiltourRegisterFromApi"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-schedule-expression",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 일정 routeText a–g + description 분위기 SSOT",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-schedule-expression]",
+            "applyNaeiltourScheduleExpressionToRows",
+            "composeNaeiltourScheduleDescription"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-naeiltour-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-schedule-expression]",
+            "augmentNaeiltourScheduleExpressionParsed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-schedule-image-keyword",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 imageKeyword — route a-g 일차 슬롯(출발·중간·귀국)",
+      "checks": [
+        {
+          "file": "lib/naeiltour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-schedule-image-keyword]",
+            "applyNaeiltourScheduleImageKeywordsToRows"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "case 'naeiltour'",
+            "applyNaeiltourScheduleImageKeywordsToRows"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-api-detail",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 view.asp tab0/tab1 상세·항공·일정 SSOT",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-api-detail]",
+            "fetchNaeiltourRegisterDetailBundle",
+            "parseNaeiltourScheduleDaysFromTab1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 detail-collect augment — api-parse SSOT",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-detail-collect]",
+            "augmentNaeiltourRegisterParsedFromApiCollect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-api-price-inject",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 confirm calendar 가격 주입 stub",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-api-price-inject]",
+            "injectNaeiltourApiDeparturePricesIfMissing"
+          ]
+        }
+      ]
+    },
+    {
       "id": "verygoodtour-register-api-parse",
       "tier": [
         "prebuild",
@@ -4720,6 +4893,34 @@
           "file": "lib/verygoodtour-register-api-detail.ts",
           "mustInclude": [
             "buildVerygoodFlightStructuredFromDetailHtml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-register-mezz32084-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "내일투어 MEZZ32084 — full parse incl/excl·opt·shop·flight·잔여석·schedule·imageKeyword live",
+      "npmScripts": [
+        "verify:register-naeiltour-mezz32084-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-naeiltour-mezz32084-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-mezz32084-live-gate]",
+            "MEZZ32084",
+            "parseNaeiltourRegisterFromApi",
+            "assertScheduleImageKeywordSlots"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-api-detail]",
+            "fetchNaeiltourRegisterDetailBundle"
           ]
         }
       ]

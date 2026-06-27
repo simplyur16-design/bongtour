@@ -11,6 +11,7 @@ const HOST_PATTERNS: ReadonlyArray<{ pattern: RegExp; supplier: CanonicalOversea
   { pattern: /(?:^|\.)verygoodtour\.com$/i, supplier: 'verygoodtour' },
   { pattern: /(?:^|\.)lottetour\.com$/i, supplier: 'lottetour' },
   { pattern: /(?:^|\.)kyowontour\.com$/i, supplier: 'kyowontour' },
+  { pattern: /(?:^|\.)naeiltour\.co\.kr$/i, supplier: 'naeiltour' },
 ]
 
 /** URL에서 공급사 canonical key 추론 — 실패 시 null */

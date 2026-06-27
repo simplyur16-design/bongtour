@@ -14,6 +14,7 @@ import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-sch
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
+import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
 
 export type RegisterScheduleImageKeywordApplyRow = {
@@ -35,6 +36,8 @@ export type ApplyRegisterScheduleImageKeywordsOpts = {
   optionalTourNames?: readonly string[]
   /** detailBody schedule_section 일차별 원문(명소 추출 SSOT) */
   scheduleSectionByDay?: ReadonlyMap<number, string> | null
+  /** naeiltour tab1 h3 span 영문 랜드마크 — imageKeyword 슬롯 SSOT */
+  naeiltourEnglishLandmarksByDay?: ReadonlyMap<number, string[]> | null
 }
 
 export function applyRegisterScheduleImageKeywordsBySupplier<
@@ -82,6 +85,12 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
           productDestination: dest,
           productTitle: title ?? undefined,
         })
+        break
+      case 'naeiltour':
+        out = applyNaeiltourScheduleImageKeywordsToRows(rows as NaeiltourScheduleImageKeywordRow[], {
+          productDestination: dest,
+          englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
+        }) as T[]
         break
       default:
         out = rows
