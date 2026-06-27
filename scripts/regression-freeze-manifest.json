@@ -4269,7 +4269,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-register-api-parse]",
             "parseKyowontourRegisterFromApi",
-            "collectKyowontourRegisterFacts"
+            "collectKyowontourRegisterFacts",
+            "augmentKyowontourParsedWithDetailCollect"
           ]
         },
         {
@@ -4323,7 +4324,8 @@
         {
           "file": "lib/parse-and-register-kyowontour-handler.ts",
           "mustInclude": [
-            "runKyowontourRegisterFlow"
+            "runKyowontourRegisterFlow",
+            "augmentKyowontourParsedWithDetailCollect"
           ]
         }
       ]
@@ -4462,6 +4464,72 @@
           "file": "lib/lottetour-register-api-detail.ts",
           "mustInclude": [
             "applyLottetourRegisterEvtListRowMeta"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kyowontour-register-api-detail",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 goodsEventDetail HTML — title·flight·잔여석 extract",
+      "checks": [
+        {
+          "file": "lib/kyowontour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-api-detail]",
+            "buildKyowontourFlightStructuredFromDetailHtml",
+            "parseKyowontourRemainingSeatsFromDetailHtml"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-register-api-detail.test.ts"
+      ]
+    },
+    {
+      "id": "kyowontour-register-detail-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 augmentKyowontourParsedWithDetailCollect — HTML+tab batch SSOT",
+      "checks": [
+        {
+          "file": "lib/kyowontour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-detail-collect]",
+            "augmentKyowontourParsedWithDetailCollect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kyowontour-register-turkey-260627-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "교원이지 ECP102260627OZ01 — full parse incl/excl·opt·shop·flight·잔여석·schedule·imageKeyword live",
+      "npmScripts": [
+        "verify:register-kyowontour-turkey-260627-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-kyowontour-turkey-260627-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-turkey-260627-live-gate]",
+            "ECP102260627OZ01",
+            "parseKyowontourRegisterFromApi",
+            "remainingSeatsCount",
+            "assertScheduleImageKeywordSlots"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-detail.ts",
+          "mustInclude": [
+            "buildKyowontourFlightStructuredFromDetailHtml"
           ]
         }
       ]
