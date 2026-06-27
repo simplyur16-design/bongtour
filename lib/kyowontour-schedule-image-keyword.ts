@@ -500,10 +500,7 @@ export type KyowontourScheduleImageKeywordOpts = {
 type KyowontourScheduleDayKind = 'tourism' | 'movement' | 'return_home'
 
 function normKyowontourKwKey(s: string): string {
-  return String(s ?? '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
+  return normScheduleImageKeywordKey(s)
 }
 
 function kyowontourKeywordKeysOverlap(a: string, b: string): boolean {
@@ -734,9 +731,10 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     imageKeyword2?: string | null
   },
 >(rows: T[], opts?: KyowontourScheduleImageKeywordOpts): T[] {
-  const maxDay = rows.length ? Math.max(...rows.map((r) => Number(r.day) || 0), 1) : 1
+  const ordered = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
+  const maxDay = ordered.length ? Math.max(...ordered.map((r) => Number(r.day) || 0), 1) : 1
   const used = new Set<string>()
-  const mapped = rows.map((row, idx) => {
+  const mapped = ordered.map((row, idx) => {
     const ctx: KyowontourImageKeywordContext = {
       day: row.day,
       title: String(row.title ?? ''),
@@ -747,9 +745,9 @@ export function applyKyowontourScheduleImageKeywordsToRows<
       productPrimaryDestination: opts?.productDestination ?? null,
     }
     const dayKind = classifyKyowontourScheduleDayKind(row.day, maxDay, row)
-    let kw = resolveKyowontourPrimaryKeyword(row, dayKind, ctx, rows.slice(0, idx), maxDay)
+    let kw = resolveKyowontourPrimaryKeyword(row, dayKind, ctx, ordered.slice(0, idx), maxDay)
     const kwKey = normKyowontourKwKey(kw)
-    if (kw && used.has(kwKey) && dayKind === 'tourism') {
+    if (kw && used.has(kwKey)) {
       const routeCands = collectKyowontourRouteLandmarkCandidates(row.routeText)
       const alt =
         pickDistinctSecondScheduleImageKeyword(kw, routeCands) ??
@@ -762,10 +760,24 @@ export function applyKyowontourScheduleImageKeywordsToRows<
           ? alt
           : routeCands.find((c) => !used.has(normKyowontourKwKey(c)))
       if (altUnused) kw = exitKyowontourLandmark(altUnused, ctx)
-      else kw = ''
+      if (kw && used.has(normKyowontourKwKey(kw))) kw = ''
+    }
+    if (!kw) {
+      const haystack = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
+      const freshCandidates = [
+        ...collectKyowontourRouteLandmarkCandidates(row.routeText),
+        ...findAllMappedKoreanPoisInText(haystack),
+      ]
+      const fresh = freshCandidates.find(
+        (c) => !used.has(normKyowontourKwKey(c)) && !isKyowontourRejectedImageKeywordCandidate(c),
+      )
+      if (fresh) kw = exitKyowontourLandmark(fresh, ctx)
+      if (kw && used.has(normKyowontourKwKey(kw))) kw = ''
     }
     if (kw) used.add(normKyowontourKwKey(kw))
-    const kw2 = resolveKyowontourSecondaryKeyword(row, kw, dayKind, ctx)
+    let kw2 = resolveKyowontourSecondaryKeyword(row, kw, dayKind, ctx)
+    if (kw2 && used.has(normKyowontourKwKey(kw2))) kw2 = null
+    if (kw2) used.add(normKyowontourKwKey(kw2))
     return { ...row, imageKeyword: kw, imageKeyword2: kw2 }
   })
 
@@ -785,6 +797,15 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     const slotKind = resolveScheduleKeywordSlotKind(day, maxDay, sorted.length)
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (!primary && slotKind === 'middle') {
+      const routeCands = collectKyowontourRouteLandmarkCandidates(row.routeText)
+      const fresh = routeCands.find(
+        (c) => !gapUsed.has(normKyowontourKwKey(c)) && !isKyowontourRejectedImageKeywordCandidate(c),
+      )
+      if (fresh) primary = fresh
+      if (primary) gapUsed.add(normKyowontourKwKey(primary))
+    }
 
     if (
       slotKind === 'middle' &&
@@ -839,10 +860,10 @@ export function applyKyowontourScheduleImageKeywordsToRows<
       secondary = ''
     }
 
-    return { ...row, imageKeyword: primary, imageKeyword2: secondary || row.imageKeyword2 || null }
+    return { ...row, imageKeyword: primary, imageKeyword2: secondary || null }
   })
 
-  return gapFilled.map((row) => {
+  const reconciled = gapFilled.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
     const primary = String(row.imageKeyword ?? '').trim()
@@ -859,5 +880,94 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     const dayKind = classifyKyowontourScheduleDayKind(row.day, maxDay, row)
     const kw2 = resolveKyowontourSecondaryKeyword(row, primary, dayKind, ctx)
     return { ...row, imageKeyword2: kw2 }
+  })
+
+  const tripUsed = new Set<string>()
+  return reconciled.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const slotKind = resolveScheduleKeywordSlotKind(day, maxDay, sorted.length)
+    const ctx: KyowontourImageKeywordContext = {
+      day: row.day,
+      title: String(row.title ?? ''),
+      description: String(row.description ?? ''),
+      routeText: row.routeText ?? null,
+      productTitle: opts?.productTitle,
+      productDestination: opts?.productDestination ?? null,
+      productPrimaryDestination: opts?.productDestination ?? null,
+    }
+
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    const refillPrimary = () => {
+      const haystack = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
+      const cands = [
+        ...collectKyowontourRouteLandmarkCandidates(row.routeText),
+        ...findAllMappedKoreanPoisInText(haystack),
+      ]
+      return cands.find(
+        (c) => !tripUsed.has(normKyowontourKwKey(c)) && !isKyowontourRejectedImageKeywordCandidate(c),
+      )
+    }
+
+    if (primary && tripUsed.has(normKyowontourKwKey(primary))) {
+      primary = refillPrimary() ?? ''
+    }
+    const refillFromPriorDay = (): string => {
+      const prev = reconciled.find((r) => Number(r.day) === day - 1)
+      if (!prev) return ''
+      const haystack = [prev.routeText, prev.title, prev.description].filter(Boolean).join('\n')
+      const cands = [
+        ...findAllScheduleSpotMatchesInText(haystack).map((h) => h.en),
+        ...collectKyowontourRouteLandmarkCandidates(prev.routeText),
+      ]
+      return (
+        cands.find(
+          (c) => !tripUsed.has(normKyowontourKwKey(c)) && !isKyowontourRejectedImageKeywordCandidate(c),
+        ) ?? ''
+      )
+    }
+
+    if (!primary && (slotKind === 'middle' || slotKind === 'departure')) {
+      primary = refillPrimary() ?? refillFromPriorDay()
+    }
+    if (!primary && slotKind === 'return' && day > 1) {
+      primary = refillFromPriorDay() || refillPrimary()
+    }
+    if (primary) tripUsed.add(normKyowontourKwKey(primary))
+
+    if (secondary && tripUsed.has(normKyowontourKwKey(secondary))) {
+      secondary = ''
+    }
+    if (
+      !secondary &&
+      slotKind === 'middle' &&
+      primary &&
+      shouldFillScheduleMiddleKeyword2Gap(
+        row,
+        collectKyowontourRouteLandmarkCandidates(row.routeText),
+        primary,
+        kyowontourKeywordKeysOverlap,
+        {
+          movementOnly:
+            isScheduleInFlightOvernightRow(row) ||
+            classifyKyowontourScheduleDayKind(day, maxDay, row) === 'movement',
+        },
+      )
+    ) {
+      const routeOrdered = collectKyowontourRouteLandmarkCandidates(row.routeText)
+      secondary =
+        routeOrdered.find(
+          (c) =>
+            !tripUsed.has(normKyowontourKwKey(c)) &&
+            !kyowontourKeywordKeysOverlap(c, primary) &&
+            !isKyowontourRejectedImageKeywordCandidate(c),
+        ) ?? ''
+    }
+    if (secondary && tripUsed.has(normKyowontourKwKey(secondary))) secondary = ''
+    if (secondary) tripUsed.add(normKyowontourKwKey(secondary))
+
+    return { ...row, imageKeyword: primary, imageKeyword2: secondary || null }
   })
 }

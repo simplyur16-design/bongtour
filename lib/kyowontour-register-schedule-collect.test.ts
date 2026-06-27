@@ -46,6 +46,7 @@ describe('kyowontour register schedule collect mapping', () => {
     expect(days[0]?.breakfastText).toBeNull()
     expect(days[0]?.dinnerText).toBe('현지식(중식)')
     expect(days[1]?.breakfastText).toBe('호텔식')
-    expect(days[1]?.description).toContain('소석림')
+    expect(days[1]?.routeText).toContain('소석림')
+    expect(days[1]?.description?.split('\n')[0]).toContain('소석림')
   })
 })

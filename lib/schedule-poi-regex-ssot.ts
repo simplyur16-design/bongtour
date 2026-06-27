@@ -67,8 +67,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /히에라폴리스|Hierapolis/i, en: "Hierapolis ancient ruins Pamukkale" },
   { re: /석회붕|파묵칼레|Pamukkale/i, en: "Pamukkale travertine terraces Turkey" },
   { re: /쉬린제|Sirince|Şirince/i, en: "Sirince village Turkey wine houses" },
+  { re: /에페소|Efes|Ephesus/i, en: "Ephesus ancient ruins Library of Celsus Turkey" },
   { re: /에페수스|Ephesus/i, en: "Ephesus ancient library ruins Turkey" },
+  { re: /(부르사|Bursa)/i, en: "Green Tomb Bursa Turkey" },
   { re: /성\s*소피아|아야\s*소피아|Hagia\s*Sophia/i, en: "Hagia Sophia Istanbul interior dome" },
+  { re: /역사\s*박물관|Archaeological\s*Museum/i, en: "Istanbul Archaeological Museum" },
   { re: /톱카프|Topkapi|Topkapı/i, en: "Topkapi Palace Istanbul courtyard" },
   { re: /발랏|Balat/i, en: "Balat Istanbul colorful houses street" },
   { re: /보스포러스|Bosphorus|Bosporus/i, en: "Bosphorus Strait Istanbul cruise view" },
@@ -190,6 +193,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  { re: /부르사|Bursa/i, en: "Bursa Grand Mosque Turkey" },
   { re: /이스탄불|Istanbul|İstanbul/i, en: "Istanbul Bosporus mosque skyline sunset" },
   { re: /앙카라|Ankara/i, en: "Ankara city skyline Turkey" },
   { re: /안탈리아|Antalya/i, en: "Antalya old town harbour Turkey" },
