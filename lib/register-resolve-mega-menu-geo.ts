@@ -1,6 +1,7 @@
 /**
  * 등록·재처리 공통 — LLM destination 문자열 → 메가메뉴 SSOT geo + 다국가 판정.
- * 4공급사 orchestration은 이 모듈만 호출한다 (공급사별 geo 분기 금지).
+ * REGRESSION-FREEZE[supplier-register-mega-menu-geo]: 전 공급사 orchestration은 이 모듈만 호출 — manifest
+ * 공급사별 geo 분기 금지.
  */
 import type { Prisma } from '@prisma/client'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'

@@ -86,6 +86,7 @@
     "verify:sticky-quotation-total": "npx tsx scripts/verify-sticky-quotation-total.ts",
     "verify:mega-menu-register-alignment": "npx tsx scripts/verify-mega-menu-register-alignment.ts",
     "verify:mega-menu-product-alignment": "npx tsx scripts/verify-mega-menu-product-alignment.ts",
+    "verify:supplier-register-mega-menu-geo": "npx tsx scripts/verify-supplier-register-mega-menu-geo.ts",
     "audit:geo-master-static": "npx tsx scripts/audit-geo-master-static-gap.ts",
     "audit:mega-menu-geo": "npx tsx scripts/audit-mega-menu-product-geo.ts",
     "apply:mega-menu-geo-corrections": "npx tsx scripts/apply-mega-menu-geo-corrections.ts",

@@ -175,6 +175,15 @@
       "summary": "registered 해외 상품 ↔ 메가메뉴 대·중·소분류·browse URL 정합"
     },
     {
+      "id": "supplier-register-mega-menu-geo",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:supplier-register-mega-menu-geo",
+      "summary": "전 공급사 등록 confirm — 메가메뉴 geo SSOT(resolve+sync) 연결"
+    },
+    {
       "id": "register-detail-final-chain",
       "tier": [
         "prebuild",
@@ -5534,6 +5543,39 @@
       ],
       "vitestSuites": [
         "lib/register-mega-menu-geo-summary.test.ts"
+      ]
+    },
+    {
+      "id": "supplier-register-mega-menu-geo",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "전 공급사 register-flow → resolveMegaMenuGeoForRegister + syncProductGeoTagsForRegister",
+      "checks": [
+        {
+          "file": "lib/register-resolve-mega-menu-geo.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-register-mega-menu-geo]",
+            "resolveMegaMenuGeoForRegister"
+          ]
+        },
+        {
+          "file": "lib/sync-product-geo-tags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-register-mega-menu-geo]",
+            "syncProductGeoTagsForRegister",
+            "megaMenuSummaryNeedsOperatorReview"
+          ]
+        },
+        {
+          "file": "scripts/verify-supplier-register-mega-menu-geo.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-register-mega-menu-geo]",
+            "syncProductGeoTagsForRegister",
+            "buildRegisterGeoHaystackFromSchedule"
+          ]
+        }
       ]
     },
     {

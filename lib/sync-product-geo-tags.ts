@@ -1,5 +1,6 @@
 /**
  * 해외 상품 geo 태그 일괄 동기화 — 등록·백필 공통 진입점.
+ * REGRESSION-FREEZE[supplier-register-mega-menu-geo]: confirm은 syncProductGeoTagsForRegister — manifest
  */
 import type { Prisma } from '@prisma/client'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
@@ -67,7 +68,7 @@ export async function syncProductGeoTags(
 
 /**
  * 등록 confirm — geo 태그 동기화 후 메가메뉴 대·중·소분류 미달 시 registered → pending 강등.
- * 4공급사 orchestration은 `syncProductGeoTags` 대신 본 함수만 호출한다.
+ * 전 공급사 orchestration은 `syncProductGeoTags` 대신 본 함수만 호출한다.
  */
 export async function syncProductGeoTagsForRegister(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
