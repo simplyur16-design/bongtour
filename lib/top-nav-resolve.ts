@@ -40,10 +40,14 @@ function appendBrowseTypeParamIfNarrowing(params: URLSearchParams, type: string)
   params.set('type', type.trim())
 }
 
-export type BrowseHrefScope = 'overseas' | 'domestic'
+export type BrowseHrefScope = 'overseas'
 
-function browseBasePath(scope: BrowseHrefScope): string {
+function browseBasePath(_scope: BrowseHrefScope): string {
   return '/travel/overseas'
+}
+
+function appendBrowseScopeParam(params: URLSearchParams): void {
+  params.set('scope', 'overseas')
 }
 
 export function buildProductsHref(opts: {
@@ -53,14 +57,13 @@ export function buildProductsHref(opts: {
   /** 일본·중국 현·도 그룹 — 도시·헤더 URL의 browse `country` SSOT */
   headerBrowseCountryLabel?: string
   leaf: MegaMenuLeaf
-  /** 기본 해외 허브 — 국내 전용 링크만 domestic */
+  /** 기본 해외 허브 */
   scope?: BrowseHrefScope
 }): string {
   const params = new URLSearchParams()
   appendBrowseTypeParamIfNarrowing(params, opts.type)
   const scope = opts.scope ?? 'overseas'
-  if (scope === 'overseas') params.set('scope', 'overseas')
-  else params.set('scope', 'domestic')
+  appendBrowseScopeParam(params)
   params.set('region', opts.regionId)
   params.set(
     'country',
@@ -83,8 +86,7 @@ export function buildProductsHrefSportsTheme(opts: {
   const params = new URLSearchParams()
   appendBrowseTypeParamIfNarrowing(params, opts.type)
   const scope = opts.scope ?? 'overseas'
-  if (scope === 'overseas') params.set('scope', 'overseas')
-  else params.set('scope', 'domestic')
+  appendBrowseScopeParam(params)
   params.set('region', 'sports_theme')
   params.set('sportsTheme', opts.sportsThemeKey.trim().toLowerCase())
   return `${browseBasePath(scope)}?${params.toString()}`
@@ -99,8 +101,7 @@ export function buildProductsHrefRegionOnly(opts: {
   const params = new URLSearchParams()
   appendBrowseTypeParamIfNarrowing(params, opts.type ?? 'travel')
   const scope = opts.scope ?? 'overseas'
-  if (scope === 'overseas') params.set('scope', 'overseas')
-  else params.set('scope', 'domestic')
+  appendBrowseScopeParam(params)
   params.set('region', opts.regionId.trim())
   return `${browseBasePath(scope)}?${params.toString()}`
 }
@@ -135,8 +136,7 @@ export function buildProductsHrefCountryOnly(opts: {
   const params = new URLSearchParams()
   appendBrowseTypeParamIfNarrowing(params, opts.type)
   const scope = opts.scope ?? 'overseas'
-  if (scope === 'overseas') params.set('scope', 'overseas')
-  else params.set('scope', 'domestic')
+  appendBrowseScopeParam(params)
   params.set('region', opts.regionId)
   params.set('country', countrySlugFromLabel(opts.headerBrowseCountryLabel ?? opts.countryLabel))
   appendMenuGroupParam(params, opts.countryLabel)

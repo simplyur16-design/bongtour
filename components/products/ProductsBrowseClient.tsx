@@ -32,7 +32,6 @@ import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import AirHotelRegionChipRow from '@/components/products/AirHotelRegionChipRow'
 import {
   buildAirHotelHubBrowseQueryKey,
-  buildDomesticHubBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
   buildProductsBrowseQueryKey,
   searchParamsRecordToUrlSearchParams,
@@ -58,43 +57,9 @@ type ApiOk = {
   facets: BrowseFacets
 }
 
-/** 국내 허브 browse 1회 요청 상한 */
-const BROWSE_DOMESTIC_HUB_FETCH_LIMIT = '30'
-
-/** 국내 허브(`/travel/domestic`)에서 browse·URL 정리 시 제거(레거시 링크 무시) */
-const DOMESTIC_HUB_QUERY_STRIP_KEYS = [
-  'dmPillar',
-  'dmItem',
-  'regionPref',
-  'domesticTransport',
-  'domesticSpecialTheme',
-  'tripDays',
-  'departMonth',
-  'region',
-  'country',
-  'city',
-  'brand',
-  'brands',
-  'airline',
-  'airlines',
-  'noOptionalTour',
-  'noShopping',
-  'departHour',
-  'departHours',
-  'departDay',
-  'departWeekdays',
-  'budgetPerPerson',
-  'budgetMin',
-  'categories',
-  'category',
-  'type',
-  'page',
-  'listingKind',
-] as const
-
 type Props = {
   basePath?: string
-  defaultScope?: 'overseas' | 'domestic'
+  defaultScope?: 'overseas'
   pageTitle?: string
   /** 히어로가 이미 제목·설명을 쓰는 허브에서만: 상단 헤더 + 모바일 필터 바 옆 건수 문구 생략 */
   hidePageHeading?: boolean
@@ -144,13 +109,10 @@ function syncTypeWithCategories(q: BrowseQueryState): BrowseQueryState {
 function travelConsultInquiryHref(
   basePath: string,
   pathname: string,
-  defaultScope: 'overseas' | 'domestic' | undefined
+  defaultScope: 'overseas' | undefined
 ): string {
   if (basePath === '/travel/air-hotel' || pathname === '/travel/air-hotel') {
     return `/inquiry?type=travel&source=${encodeURIComponent('/travel/air-hotel')}`
-  }
-  if (basePath === '/travel/domestic' || pathname === '/travel/domestic') {
-    return `/inquiry?type=travel&source=${encodeURIComponent('/travel/domestic')}`
   }
   if (basePath === '/travel/overseas' || pathname === '/travel/overseas') {
     return `/inquiry?type=travel&source=${encodeURIComponent('/travel/overseas')}`
@@ -193,11 +155,7 @@ function ProductsBrowseClientCore({
 
   /** hydration 직후 `usePathname()`이 비는 경우가 있어 허브 판별은 `basePath` SSOT */
   const hubPathname =
-    basePath === '/travel/overseas' ||
-    basePath === '/travel/air-hotel' ||
-    basePath === '/travel/domestic'
-      ? basePath
-      : pathname
+    basePath === '/travel/overseas' || basePath === '/travel/air-hotel' ? basePath : pathname
 
   const searchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
@@ -206,20 +164,18 @@ function ProductsBrowseClientCore({
 
   const qs = searchParamsString
 
-  const isDomesticHub = hubPathname === '/travel/domestic' && defaultScope === 'domestic'
   const isAirHotelHub = hubPathname === '/travel/air-hotel'
-  const suppressHeadingToolbarGap = hidePageHeading && isDomesticHub
+  const suppressHeadingToolbarGap = false
 
   /** 항공+호텔: `country` 등은 클라이언트 필터 — 동일 목록 재요청 방지용 fetch 키 */
   const isOverseasProductsHub = hubPathname === '/travel/overseas' && defaultScope === 'overseas'
   const useHubClientSidebarFilter = isOverseasProductsHub || isAirHotelHub
 
   const browseApiQueryKey = useMemo(() => {
-    if (isDomesticHub) return buildDomesticHubBrowseQueryKey(searchParamsString)
     if (isAirHotelHub) return buildAirHotelHubBrowseQueryKey(searchParamsString)
     if (isOverseasProductsHub) return buildOverseasHubBrowseQueryKey(searchParamsString)
     return buildProductsBrowseQueryKey(searchParamsString, defaultScope)
-  }, [isDomesticHub, isAirHotelHub, isOverseasProductsHub, searchParamsString, defaultScope])
+  }, [isAirHotelHub, isOverseasProductsHub, searchParamsString, defaultScope])
 
   const seedFromServer = Boolean(
     initialBrowse?.ok && initialBrowseQueryKey && initialBrowseQueryKey === browseApiQueryKey,
@@ -236,14 +192,7 @@ function ProductsBrowseClientCore({
     [basePath, pathname, defaultScope]
   )
 
-  const q = useMemo(() => {
-    if (isDomesticHub) {
-      const sp = new URLSearchParams(searchParams.toString())
-      for (const k of DOMESTIC_HUB_QUERY_STRIP_KEYS) sp.delete(k)
-      return parseBrowseQuery(sp)
-    }
-    return parseBrowseQuery(new URLSearchParams(searchParams.toString()))
-  }, [isDomesticHub, searchParams])
+  const q = useMemo(() => parseBrowseQuery(new URLSearchParams(searchParams.toString())), [searchParams])
 
   const [data, setData] = useState<ApiOk | null>(
     seedFromServer ? initialBrowse : seedFromClientCache,
@@ -346,15 +295,6 @@ function ProductsBrowseClientCore({
 
   const navigate = useCallback(
     (next: BrowseQueryState) => {
-      if (isDomesticHub) {
-        const params = new URLSearchParams()
-        params.set('scope', 'domestic')
-        params.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
-        const s = syncTypeWithCategories(next).sort
-        if (s && s !== 'popular') params.set('sort', s)
-        commitSearchParams(params)
-        return
-      }
       const synced = syncTypeWithCategories(next)
       const params = new URLSearchParams(serializeBrowseQuery(synced))
       if (defaultScope && !params.get('scope')) params.set('scope', defaultScope)
@@ -364,7 +304,7 @@ function ProductsBrowseClientCore({
       }
       commitSearchParams(params)
     },
-    [basePath, commitSearchParams, defaultScope, hubPathname, isDomesticHub, searchParams]
+    [commitSearchParams, defaultScope, hubPathname, searchParams]
   )
 
   const onPatch = useCallback(
@@ -375,13 +315,6 @@ function ProductsBrowseClientCore({
   )
 
   const clearMegaParams = useCallback(() => {
-    if (isDomesticHub) {
-      const sp = new URLSearchParams()
-      sp.set('scope', 'domestic')
-      sp.set('limit', BROWSE_DOMESTIC_HUB_FETCH_LIMIT)
-      commitSearchParams(sp)
-      return
-    }
     const sp = new URLSearchParams(searchParams.toString())
     ;[
       'confirmed',
@@ -415,7 +348,7 @@ function ProductsBrowseClientCore({
     ].forEach((k) => sp.delete(k))
     if (defaultScope) sp.set('scope', defaultScope)
     commitSearchParams(sp)
-  }, [basePath, commitSearchParams, defaultScope, isDomesticHub, searchParams])
+  }, [commitSearchParams, defaultScope, searchParams])
 
   const clearAllFilters = useCallback(() => {
     clearMegaParams()
@@ -624,7 +557,7 @@ function ProductsBrowseClientCore({
             )}
             {!q.region && (
               <span>
-                {isDomesticHub ? '지역별로 등록된 상품을 확인할 수 있습니다.' : '등록된 상품을 조건에 맞게 찾습니다.'}
+                등록된 상품을 조건에 맞게 찾습니다.
               </span>
             )}
           </p>
@@ -635,7 +568,6 @@ function ProductsBrowseClientCore({
                 data.page > 1 &&
                 !(
                   (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
-                  (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
                   basePath === '/travel/air-hotel'
                 ) && (
                 <span className="text-slate-500">
@@ -820,7 +752,6 @@ function ProductsBrowseClientCore({
                 basePath === '/travel/overseas' && defaultScope === 'overseas' && !hubFocusedResults
               }
               groupAirHotelByCountry={hubPathname === '/travel/air-hotel' && !hubFocusedResults}
-              groupDomesticByRegion={isDomesticHub}
               overseasEditorialBriefing={overseasEditorialBriefing}
               overseasSeasonCurationSlides={
                 showOverseasSeasonCuration ? overseasSeasonCurationSlides : null
@@ -836,7 +767,6 @@ function ProductsBrowseClientCore({
             {data.total > data.limit &&
               !(
                 (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
-                (basePath === '/travel/domestic' && defaultScope === 'domestic') ||
                 basePath === '/travel/air-hotel'
               ) && (
               <div className="mt-10 flex items-center justify-center gap-3">
@@ -905,16 +835,6 @@ function ProductsBrowseClientCore({
     </div>
   )
 
-  if (isDomesticHub) {
-    return (
-      <div className={`${SITE_CONTENT_CLASS} ${hidePageHeading ? 'pt-3 pb-6 sm:pt-4' : 'py-6'}`}>
-        {summary != null ? <div className="mb-4">{summary}</div> : null}
-        {toolbar}
-        {results}
-      </div>
-    )
-  }
-
   if (useHubClientSidebarFilter) {
     return (
       <>
@@ -948,7 +868,7 @@ function ProductsBrowseClientCore({
             onPatch={onPatch}
             airlineShowAll={airlineShowAll}
             setAirlineShowAll={setAirlineShowAll}
-            travelContext={defaultScope === 'domestic' ? 'domestic' : 'overseas'}
+            travelContext="overseas"
           />
         }
         toolbar={toolbar}

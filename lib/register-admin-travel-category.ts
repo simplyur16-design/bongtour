@@ -6,16 +6,15 @@ import {
 import type { SupplierRegisterFactSource } from '@/lib/register-facts/types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 
-export type AdminRegisterTravelScopeSelection = 'overseas' | 'domestic' | 'air_hotel_free'
+export type AdminRegisterTravelScopeSelection = 'overseas' | 'air_hotel_free'
 
 /**
  * 관리자 상품 등록(/admin/register)에서 선택한 상품 유형 → Product.travelScope + Product.listingKind + productType(자유여행).
  * 요청 필드명은 기존과 동일하게 `travelScope` 문자열을 사용한다 (스냅샷·지문 호환).
  *
  * - overseas → 해외 패키지형 (여행상품)
- * - domestic → 국내 패키지형 (여행상품)
  * - air_hotel_free → 항공권+호텔(자유여행). travelScope='overseas' + listingKind='air_hotel_free' + productType='air-hotel' 강제.
- *   국내 자유여행 옵션 추가 시 분기 확장 필요.
+ * - legacy `domestic` 요청값은 overseas 로 처리한다.
  */
 export type AdminRegisterCategoryMeta = {
   travelScope: string | null
@@ -57,7 +56,7 @@ export function resolveRegisterTravelScopeFromRequest(args: {
   const raw =
     typeof args.bodyTravelScope === 'string' ? args.bodyTravelScope.trim() : String(args.bodyTravelScope ?? '').trim()
   if (raw === 'air_hotel_free') return 'air_hotel_free'
-  if (raw === 'domestic') return 'domestic'
+  if (raw === 'domestic') return 'overseas'
 
   const supplier = registerFactSourceFromOriginSource(args.originSource)
   const url = String(args.originUrl ?? '').trim()
@@ -68,7 +67,7 @@ export function resolveRegisterTravelScopeFromRequest(args: {
 
   if (inferAirHotelFreeFromListingHint(args.listingTitleHint)) return 'air_hotel_free'
 
-  return raw === 'domestic' ? 'domestic' : 'overseas'
+  return 'overseas'
 }
 
 export function travelScopeAndListingKindFromAdminRegister(
@@ -81,9 +80,6 @@ export function travelScopeAndListingKindFromAdminRegister(
       listingKind: AIR_HOTEL_LISTING_KIND,
       productType: AIR_HOTEL_PRODUCT_TYPE,
     }
-  }
-  if (t === 'domestic') {
-    return { travelScope: 'domestic', listingKind: 'travel', productType: 'travel' }
   }
   return { travelScope: 'overseas', listingKind: 'travel', productType: 'travel' }
 }

@@ -16,12 +16,6 @@ import {
   MAIN_PRODUCT_PICK_LEAD,
   MAIN_PRODUCT_PICK_TITLE,
 } from '@/lib/main-hub-copy'
-import type { DomesticPillarId } from '@/lib/domestic-landing-nav-data'
-import { domesticScheduleMatchesTerms } from '@/lib/domestic-landing-refine'
-import {
-  productMatchesDomesticDestinationTerms,
-  productThemeTagsMatchTerms,
-} from '@/lib/match-domestic-product'
 import {
   buildOverseasProductMatchHaystack,
   productMatchesOverseasDestinationTerms,
@@ -37,7 +31,7 @@ import { supplierOriginMatchesKey } from '@/lib/normalize-supplier-origin'
 import { productTitleMatchesTerms } from '@/lib/overseas-location-tree'
 import type { OverseasBrowseTabId } from '@/app/components/travel/overseas/OverseasSecondaryTabs'
 
-export type ProductPickMarket = 'all' | 'overseas' | 'domestic'
+export type ProductPickMarket = 'all' | 'overseas'
 
 type GalleryResponse = {
   items: GalleryProduct[]
@@ -48,7 +42,6 @@ type GalleryResponse = {
 }
 
 const TABS_ALL: { tab: ProductPickTab; hashId: string }[] = [
-  { tab: 'domestic', hashId: 'pick-domestic' },
   { tab: 'overseas_package', hashId: 'pick-package' },
   { tab: 'freeform', hashId: 'pick-free' },
 ]
@@ -58,22 +51,17 @@ const TABS_OVERSEAS: { tab: ProductPickTab; hashId: string }[] = [
   { tab: 'freeform', hashId: 'pick-os-free' },
 ]
 
-const TABS_DOMESTIC: { tab: ProductPickTab; hashId: string }[] = [{ tab: 'domestic', hashId: 'pick-dm' }]
-
 function tabsForMarket(market: ProductPickMarket) {
   switch (market) {
     case 'overseas':
       return TABS_OVERSEAS
-    case 'domestic':
-      return TABS_DOMESTIC
     default:
       return TABS_ALL
   }
 }
 
-function defaultTab(market: ProductPickMarket): ProductPickTab {
-  if (market === 'overseas') return 'overseas_package'
-  return 'domestic'
+function defaultTab(_market: ProductPickMarket): ProductPickTab {
+  return 'overseas_package'
 }
 
 function hashToTab(hash: string, tabs: { tab: ProductPickTab; hashId: string }[]): ProductPickTab | null {
@@ -154,16 +142,6 @@ type Props = {
   supplierOriginIncludes?: string[]
   /** 해외 랜딩 탭 — empty state 문구 분기 */
   overseasBrowseTab?: OverseasBrowseTabId
-  /** 국내 랜딩: 테마 칩 → 제목·목적지 haystack 매칭 (지역별과 AND) */
-  themeFilterTerms?: string[]
-  /** 국내 랜딩 1차 축 — empty state 문구 분기 */
-  domesticBrowsePillar?: DomesticPillarId
-  /** 국내: 좌측 정교 필터·특별기획 보조 */
-  domesticRowFilter?: (p: GalleryProduct) => boolean
-  /** 국내: 일정 축(박·주말 등) 엄밀 매칭 AND */
-  domesticScheduleStrictTerms?: string[]
-  /** 국내: 상품 목록 옆 정렬 필터 패널 */
-  aside?: ReactNode
   /** 해외 랜딩 상단 검색 패널 상태 */
   overseasLandingSearch?: OverseasLandingSearchState | null
   /** 해외 랜딩: 여행사형 비교 카드·2열 레이아웃 */
@@ -172,6 +150,16 @@ type Props = {
   galleryFetchLimit?: number
   /** 결과 최대 개수 (기본 6, 해외 비교 시 12 권장) */
   maxResultCards?: number
+  /** @deprecated 국내여행 미운영 — 무시됨 */
+  themeFilterTerms?: string[]
+  /** @deprecated 국내여행 미운영 — 무시됨 */
+  domesticBrowsePillar?: never
+  /** @deprecated 국내여행 미운영 — 무시됨 */
+  domesticRowFilter?: never
+  /** @deprecated 국내여행 미운영 — 무시됨 */
+  domesticScheduleStrictTerms?: never
+  /** 국내: 상품 목록 옆 정렬 필터 패널 */
+  aside?: ReactNode
 }
 
 export default function HomeProductPickSection({
@@ -186,10 +174,6 @@ export default function HomeProductPickSection({
   supplierFilterKey,
   supplierOriginIncludes = [],
   overseasBrowseTab,
-  themeFilterTerms = [],
-  domesticBrowsePillar,
-  domesticRowFilter,
-  domesticScheduleStrictTerms = [],
   aside,
   overseasLandingSearch = null,
   overseasCompareLayout = false,
@@ -270,7 +254,7 @@ export default function HomeProductPickSection({
 
   const partitioned = useMemo(() => partitionGalleryByTab(items), [items])
   const filteredPartitioned = useMemo(() => {
-    const keys: ProductPickTab[] = ['domestic', 'overseas_package', 'freeform']
+    const keys: ProductPickTab[] = ['overseas_package', 'freeform']
     let next = { ...partitioned }
     if (effSupplierFilterKey !== undefined) {
       const bySupplierKey = (p: GalleryProduct) => supplierOriginMatchesKey(p.originSource, effSupplierFilterKey)
@@ -289,8 +273,7 @@ export default function HomeProductPickSection({
       destinationFilterTerms.length > 0 ||
       (market === 'overseas' &&
         overseasLandingSearch &&
-        overseasLandingSearch.quickIds.length > 0) ||
-      (market === 'domestic' && themeFilterTerms.length > 0)
+        overseasLandingSearch.quickIds.length > 0)
 
     if (destOrTheme) {
       for (const k of keys) {
@@ -304,30 +287,7 @@ export default function HomeProductPickSection({
               productMatchesOverseasQuickChipIds(p, overseasLandingSearch.quickIds)
             return destOk && quickOk
           }
-          if (market === 'domestic') {
-            const destOk =
-              destinationFilterTerms.length === 0 ||
-              productMatchesDomesticDestinationTerms(p, destinationFilterTerms)
-            const themeOk =
-              themeFilterTerms.length === 0 ||
-              productMatchesDomesticDestinationTerms(p, themeFilterTerms) ||
-              productThemeTagsMatchTerms(p.themeTags, themeFilterTerms)
-            return destOk && themeOk
-          }
           return productTitleMatchesTerms(p.title, destinationFilterTerms)
-        })
-      }
-    }
-    if (
-      market === 'domestic' &&
-      (domesticRowFilter != null || (domesticScheduleStrictTerms?.length ?? 0) > 0)
-    ) {
-      const strict = domesticScheduleStrictTerms ?? []
-      for (const k of keys) {
-        next[k] = next[k].filter((p) => {
-          if (domesticRowFilter && !domesticRowFilter(p)) return false
-          if (strict.length > 0 && !domesticScheduleMatchesTerms(p, strict)) return false
-          return true
         })
       }
     }
@@ -335,13 +295,10 @@ export default function HomeProductPickSection({
   }, [
     partitioned,
     destinationFilterTerms,
-    themeFilterTerms,
     supplierOriginIncludes,
     effSupplierFilterKey,
     market,
     overseasLandingSearch,
-    domesticRowFilter,
-    domesticScheduleStrictTerms,
   ])
 
   const sliceCap = maxResultCards ?? MAX_CARDS
@@ -387,43 +344,11 @@ export default function HomeProductPickSection({
   const marketFootnote =
     market === 'overseas'
       ? '목적지 매칭: 대표 목적지 → 목적지 원문 → 레거시 목적지 → 상품명 → 출처 문자열 순으로 토큰을 합쳐 비교합니다. 유형(패키지/자유)은 제목 휴리스틱입니다.'
-      : market === 'domestic'
-        ? '국내 매칭: 지역·일정은 상품명·권역 메타를 우선합니다. 버스·기차·선박(크루즈)는 상단 메뉴·교통 필터로 좁힙니다. 특별테마는 displayCategory에 「국내특별테마」가 있을 때만 해당 메뉴에 노출됩니다.'
-        : footnote
+      : footnote
 
   const emptyMessage =
-    market === 'domestic' && !loading && list.length === 0
+    market === 'overseas' && !loading && list.length === 0
       ? (() => {
-          const pillar = domesticBrowsePillar ?? 'region'
-          const hasTheme = themeFilterTerms.length > 0
-          if (hasDestinationFilter && hasTheme && supplierFilterActive) {
-            return '지역·테마·공급사 조건을 동시에 만족하는 일정이 없습니다. 좌측 필터를 넓히거나 지역 트리에서 상위 권역을 선택해 보세요.'
-          }
-          if (hasDestinationFilter && hasTheme) {
-            return '선택한 지역과 테마 키워드를 함께 만족하는 일정이 없습니다. 좌측 필터를 완화하거나 지역을 넓혀 보세요.'
-          }
-          if (supplierFilterActive) {
-            return '선택한 공급사로 노출 가능한 국내 일정이 없습니다. 전체 공급사 또는 지역별 탐색을 병행해 주세요.'
-          }
-          if (hasTheme) {
-            if (!hasDestinationFilter) {
-              return '테마·일정 축만 적용된 상태입니다. 상단 「지역별」 또는 왼쪽 지역에서 목적지를 함께 고르면 더 정확합니다.'
-            }
-            return '선택한 테마 키워드에 맞는 국내 일정이 없습니다. 다른 테마를 고르거나 좌측 필터를 조정해 보세요.'
-          }
-          if (hasDestinationFilter) {
-            return '선택한 지역·목적지에 맞는 일정을 찾지 못했습니다. 권역 전체·지역 전체를 눌러 범위를 넓히거나 상담으로 알려 주세요.'
-          }
-          if (pillar === 'special_theme') {
-            return '특별테마(displayCategory) 표기가 있는 일정이 없습니다. 운영에서 라벨을 붙인 뒤 다시 확인해 주세요.'
-          }
-          if (pillar === 'bus' || pillar === 'train' || pillar === 'ship' || pillar === 'schedule') {
-            return '선택한 분류에 맞는 일정이 없습니다. 지역 트리에서 권역을 함께 지정하거나 좌측 필터를 조정해 보세요.'
-          }
-          return '노출 가능한 국내 일정이 아직 없습니다. 상단 분류·지역 탐색·월별 추천·상담 신청으로 동선을 잡아 주세요.'
-        })()
-      : market === 'overseas' && !loading && list.length === 0
-        ? (() => {
           const tab = overseasBrowseTab ?? 'countries'
           if (hasDestinationFilter && supplierFilterActive) {
             return '선택한 목적지와 출처(공급사)를 동시에 만족하는 일정이 이 탭에 없습니다. 공급사 칩을 「전체」로 넓히거나, 나라별 탭에서 인접 도시·상위 권역을 선택해 보세요. 원하시는 조합은 상담으로 요청해 주시면 공급사 일정을 함께 찾습니다.'
@@ -448,7 +373,7 @@ export default function HomeProductPickSection({
           }
           return '이 유형에 맞는 노출 일정이 아직 없습니다. 나라별 탭에서 목적지를 고른 뒤 다시 확인하시거나, 상담으로 희망 지역·일정을 알려 주시면 공급사 데이터를 함께 찾아 드립니다.'
         })()
-        : null
+      : null
 
   return (
     <section
@@ -496,7 +421,7 @@ export default function HomeProductPickSection({
               )
             })}
           </div>
-        ) : market === 'domestic' ? null : (
+        ) : (
           <p className="mt-6 text-sm font-medium text-bt-ink">{pickTabLabel(active)} 일정</p>
         )}
 

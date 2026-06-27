@@ -26,7 +26,6 @@ export const CACHE_WARM_ROUTES = [
   '/terms',
   '/training',
   '/travel/air-hotel',
-  '/travel/domestic',
   '/travel/esim',
   '/travel/esim/benefits/chatgpt',
   '/travel/esim/benefits/google-maps',

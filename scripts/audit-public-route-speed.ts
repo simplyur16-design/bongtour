@@ -11,7 +11,6 @@ import { productsBrowseBuildPayload } from '../lib/products-browse-build-payload
 import { browsePerfLastPhases } from '../lib/products-browse-build-payload'
 import {
   buildAirHotelHubBrowseQueryKey,
-  buildDomesticHubBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
   buildOverseasHubCatalogFetchQueryKey,
 } from '../lib/products-browse-hub-query'
@@ -39,10 +38,6 @@ const BROWSE_CASES: { label: string; queryKey: string }[] = [
   {
     label: 'browse 항공+호텔 허브 (cold build)',
     queryKey: buildAirHotelHubBrowseQueryKey('scope=overseas&type=air-hotel'),
-  },
-  {
-    label: 'browse 국내 허브 (cold build)',
-    queryKey: buildDomesticHubBrowseQueryKey('scope=domestic'),
   },
 ]
 

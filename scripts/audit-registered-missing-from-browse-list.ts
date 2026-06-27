@@ -1,5 +1,5 @@
 /**
- * 등록(registered) 상품 중 해외·국내 허브 상품리스트(browse 카탈로그)에 없는 건 전수 검사.
+ * 등록(registered) 상품 중 해외 허브 상품리스트(browse 카탈로그)에 없는 건 전수 검사.
  *
  *   npx tsx scripts/audit-registered-missing-from-browse-list.ts
  *   npx tsx scripts/audit-registered-missing-from-browse-list.ts --json
@@ -9,7 +9,6 @@ import { prisma } from '../lib/prisma'
 import { productsBrowseBuildPayload } from '../lib/products-browse-build-payload'
 import { buildOverseasHubCatalogFetchQueryKey } from '../lib/products-browse-hub-query'
 import { filterProductsForOverseasDestinationTree } from '../lib/active-overseas-location-tree'
-import { filterProductsForDomesticDestinationTree } from '../lib/active-domestic-location-tree'
 import { filterPoolByStoredTravelScope } from '../lib/travel-scope-pool-filter'
 import { prismaWhereClausesForBrowseListingSlice } from '../lib/products-browse-db-where'
 import { prismaWhereForBrowseTravelScope } from '../lib/travel-scope-pool-filter'
@@ -57,20 +56,7 @@ function classifyOverseasMissing(p: {
   return reasons
 }
 
-function classifyDomesticMissing(p: {
-  travelScope: string | null
-  listingKind: string | null
-  title: string
-}): MissingReason[] {
-  const reasons: MissingReason[] = []
-  const ts = parseTravelScope(p.travelScope ?? undefined)
-  if (p.listingKind === 'overseas_training') reasons.push('listing_overseas_training')
-  if (ts === 'overseas') reasons.push('travel_scope_overseas_domestic_hub')
-  if (reasons.length === 0) reasons.push('unknown_not_in_catalog')
-  return reasons
-}
-
-async function fetchRegisteredPool(scope: 'overseas' | 'domestic') {
+async function fetchRegisteredPool(scope: 'overseas') {
   const listingSliceWhere = prismaWhereClausesForBrowseListingSlice({
     scope,
     typeParam: null,
@@ -125,22 +111,16 @@ async function main() {
   ])
 
   const overseasKey = buildOverseasHubCatalogFetchQueryKey()
-  const domesticKey = 'scope=domestic&limit=10000'
 
-  const [overseasPayload, domesticPayload, overseasDbPool, domesticDbPool] = await Promise.all([
+  const [overseasPayload, overseasDbPool] = await Promise.all([
     productsBrowseBuildPayload(overseasKey),
-    productsBrowseBuildPayload(domesticKey),
     fetchRegisteredPool('overseas'),
-    fetchRegisteredPool('domestic'),
   ])
 
   const overseasCatalogIds = new Set(overseasPayload.items.map((it) => it.id))
-  const domesticCatalogIds = new Set(domesticPayload.items.map((it) => it.id))
 
   const overseasAfterScope = filterPoolByStoredTravelScope(overseasDbPool, 'overseas')
   const overseasAfterTree = filterProductsForOverseasDestinationTree(overseasAfterScope)
-  const domesticAfterScope = filterPoolByStoredTravelScope(domesticDbPool, 'domestic')
-  const domesticAfterTree = filterProductsForDomesticDestinationTree(domesticAfterScope)
 
   const overseasMissing: Row[] = []
   for (const p of overseasAfterTree) {
@@ -161,22 +141,6 @@ async function main() {
   }
 
   const domesticMissing: Row[] = []
-  for (const p of domesticAfterTree) {
-    if (domesticCatalogIds.has(p.id)) continue
-    domesticMissing.push({
-      id: p.id,
-      slug: p.slug,
-      originCode: p.originCode,
-      title: p.title.slice(0, 100),
-      originSource: p.originSource,
-      supplier: normalizeSupplierOrigin(p.originSource),
-      travelScope: p.travelScope,
-      listingKind: p.listingKind,
-      productType: p.productType,
-      primaryDestination: p.primaryDestination,
-      reasons: classifyDomesticMissing(p),
-    })
-  }
 
   const registeredNotAuto = await prisma.product.findMany({
     where: { registrationStatus: 'registered' },
@@ -193,9 +157,7 @@ async function main() {
     },
   })
 
-  const inNeitherHub = registeredNotAuto.filter(
-    (p) => !overseasCatalogIds.has(p.id) && !domesticCatalogIds.has(p.id),
-  )
+  const inNeitherHub = registeredNotAuto.filter((p) => !overseasCatalogIds.has(p.id))
 
   function countByReason(rows: Row[]): Record<string, number> {
     const acc: Record<string, number> = {}
@@ -231,25 +193,11 @@ async function main() {
       missingByReason: countByReason(overseasMissing),
       missingBySupplier: countBySupplier(overseasMissing),
     },
-    domesticHub: {
-      catalogTotal: domesticPayload.total,
-      catalogItems: domesticPayload.items.length,
-      dbPoolAfterTree: domesticAfterTree.length,
-      missingFromCatalog: domesticMissing.length,
-      missingByReason: countByReason(domesticMissing),
-      missingBySupplier: countBySupplier(domesticMissing),
-    },
     registeredInNeitherHub: inNeitherHub.length,
   }
 
   if (jsonOut) {
-    console.log(
-      JSON.stringify(
-        { summary, overseasMissing, domesticMissing, inNeitherHub },
-        null,
-        2,
-      ),
-    )
+    console.log(JSON.stringify({ summary, overseasMissing, inNeitherHub }, null, 2))
     return
   }
 
@@ -269,15 +217,7 @@ async function main() {
     console.log(`    - ${k}: ${n}`)
   }
 
-  console.log('\n[국내 허브 /travel/domestic 카탈로그]')
-  console.log(`  카탈로그 노출: ${summary.domesticHub.catalogItems}건`)
-  console.log(`  DB registered 풀(트리 통과): ${summary.domesticHub.dbPoolAfterTree}건`)
-  console.log(`  리스트 미노출: ${summary.domesticHub.missingFromCatalog}건`)
-  for (const [k, n] of Object.entries(summary.domesticHub.missingByReason)) {
-    console.log(`    - ${k}: ${n}`)
-  }
-
-  console.log(`\n[양쪽 허브 모두 미노출 registered]: ${summary.registeredInNeitherHub}건`)
+  console.log(`\n[해외 허브 미노출 registered]: ${summary.registeredInNeitherHub}건`)
 
   const printRows = (label: string, rows: Row[]) => {
     if (rows.length === 0) return
@@ -291,10 +231,9 @@ async function main() {
   }
 
   printRows('해외 허브 미노출', overseasMissing)
-  printRows('국내 허브 미노출', domesticMissing)
 
   if (inNeitherHub.length > 0) {
-    console.log(`\n## 양쪽 허브 모두 미노출 (${inNeitherHub.length}건)`)
+    console.log(`\n## 해외 허브 미노출 registered (${inNeitherHub.length}건)`)
     for (const r of inNeitherHub.slice(0, 30)) {
       console.log(
         `  · ${r.originCode ?? r.slug ?? r.id} | ${normalizeSupplierOrigin(r.originSource)} | scope=${r.travelScope ?? '-'} kind=${r.listingKind ?? '-'} | ${r.title.slice(0, 80)}`,

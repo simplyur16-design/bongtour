@@ -16,7 +16,7 @@ describe('resolveRegisterTravelScopeFromRequest', () => {
     ).toBe('air_hotel_free')
   })
 
-  it('keeps explicit air_hotel_free and domestic', () => {
+  it('keeps explicit air_hotel_free and maps legacy domestic to overseas', () => {
     expect(
       resolveRegisterTravelScopeFromRequest({
         bodyTravelScope: 'air_hotel_free',
@@ -30,7 +30,7 @@ describe('resolveRegisterTravelScopeFromRequest', () => {
         originSource: 'modetour',
         originUrl: 'https://www.modetour.com/package/1',
       }),
-    ).toBe('domestic')
+    ).toBe('overseas')
   })
 
   it('title #자유여행 #에어텔 hint upgrades overseas', () => {

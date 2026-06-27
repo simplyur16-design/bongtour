@@ -376,7 +376,7 @@ function buildRegisterPexelsUiRows(
   parsed: RegisterParsed | null,
   preview: AdminRegisterPreviewPayload | null,
   supplierKey: AdminRegisterSupplierKey | null,
-  travelScope: 'overseas' | 'domestic' | 'air_hotel_free',
+  travelScope: 'overseas' | 'air_hotel_free',
 ): RegisterScheduleDay[] {
   const productType =
     preview?.productDraft?.productType ?? parsed?.productType ?? null
@@ -568,7 +568,7 @@ function mergeRegisterParsedScheduleWithManualPexels(
   preview: AdminRegisterPreviewPayload,
   manualByDay: Record<number, string>,
   manualByDay2: Record<number, string> = {},
-  travelScope: 'overseas' | 'domestic' | 'air_hotel_free' = 'overseas',
+  travelScope: 'overseas' | 'air_hotel_free' = 'overseas',
 ): RegisterParsed {
   const uiRows = buildRegisterPexelsUiRows(
     parsed,
@@ -726,7 +726,7 @@ function registerSupplierDisplayName(brandKey: string | null | undefined): strin
 
 export default function AdminRegisterPage() {
   /** 관리자 상품 상위 유형: 해외 패키지 / 국내 패키지 / 항공권+호텔(자유여행) — API 필드명은 기존 `travelScope` 유지 */
-  const [travelScope, setTravelScope] = useState<'overseas' | 'domestic' | 'air_hotel_free'>('overseas')
+  const [travelScope, setTravelScope] = useState<'overseas' | 'air_hotel_free'>('overseas')
   /** 지방 출발 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.localDepartureTag`만 반영 */
   const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])
   /** register-facts·confirm SSOT — 인천/김포= null 표시 */
@@ -1385,13 +1385,13 @@ export default function AdminRegisterPage() {
               상품 유형
             </label>
             <p className="mt-1 text-xs text-slate-500">
-              해외·국내는 패키지형 여행상품, 항공권+호텔(자유여행)은 에어텔·자유여행 유형입니다. 등록 시 필수 선택입니다.
+              해외 패키지형 여행상품과 항공권+호텔(자유여행) 유형 중 선택합니다. 등록 시 필수입니다.
             </p>
             <select
               id="admin-register-scope"
               value={travelScope}
               onChange={(e) => {
-                const next = e.target.value as 'overseas' | 'domestic' | 'air_hotel_free'
+                const next = e.target.value as 'overseas' | 'air_hotel_free'
                 if (next === travelScope) return
                 setTravelScope(next)
                 resetRegisterPreviewSession({
@@ -1412,7 +1412,6 @@ export default function AdminRegisterPage() {
               required
             >
               <option value="overseas">해외여행</option>
-              <option value="domestic">국내여행</option>
               <option value="air_hotel_free">항공권+호텔(자유여행)</option>
             </select>
           </div>
@@ -2130,7 +2129,7 @@ export default function AdminRegisterPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <dt className="text-[11px] text-slate-500">
-                      {travelScope === 'domestic' ? '선택옵션 요약' : '현지옵션 요약'}
+                      현지옵션 요약
                     </dt>
                     <dd className="whitespace-pre-wrap">{preview.productDraft.optionalTourSummaryText ?? '-'}</dd>
                   </div>
@@ -2214,7 +2213,7 @@ export default function AdminRegisterPage() {
               {preview.productDraft.optionalToursStructured ? (
                 <details className="rounded border border-slate-200 bg-slate-50/80 p-3 text-xs">
                   <summary className="cursor-pointer font-semibold text-slate-800">
-                    {travelScope === 'domestic' ? '선택옵션' : '현지옵션'} 구조화 — 표/regex 저장 기준 (접기)
+                    현지옵션 구조화 — 표/regex 저장 기준 (접기)
                   </summary>
                   <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap text-[11px] text-slate-700">
                     {preview.productDraft.optionalToursStructured}

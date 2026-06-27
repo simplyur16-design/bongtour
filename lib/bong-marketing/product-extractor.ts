@@ -2,7 +2,6 @@
  * B-4 마케팅: Product → 도시·시기·키워드 추출 + 월별 후보 매칭 (읽기 전용).
  * 상품 CTA는 `/products/{slug}` + UTM (`lib/bong-marketing/cta-url-builder.ts` SSOT).
  */
-import { DOMESTIC_LOCATION_TREE_CLEAN } from '@/lib/domestic-location-tree'
 import {
   buildProductMarketingCtaRelativePath,
   type MarketingCtaChannel,
@@ -203,7 +202,7 @@ function resolveTravelScope(raw: string | null | undefined, countrySlug: string 
   const p = parseTravelScope(raw ?? undefined)
   if (p) return p
   const c = (countrySlug ?? '').toLowerCase()
-  if (c === 'korea') return 'domestic'
+  if (c === 'korea') return 'overseas'
   return 'overseas'
 }
 
@@ -212,7 +211,7 @@ function resolveCountryKo(
   countrySlug: string | null | undefined,
   primaryDestination: string | null | undefined,
 ): string {
-  if (travelScope === 'domestic') return '대한민국'
+  if (travelScope === 'domestic') return '해외'
   const fromSlug = koreanCountryLabelFromBrowseSlug(countrySlug)
   if (fromSlug) return fromSlug
   const pd = (primaryDestination ?? '').trim()
@@ -231,15 +230,6 @@ function resolveCityKo(input: {
   if (input.travelScope === 'overseas' && input.groupKey && input.countryKey && input.nodeKey) {
     const hit = findLeafInTree(input.groupKey, input.countryKey, input.nodeKey)
     if (hit?.leaf) return hit.leaf.dbCityValue?.trim() || hit.leaf.nodeLabel.trim() || null
-  }
-  if (input.travelScope === 'domestic' && input.nodeKey) {
-    const nk = input.nodeKey.trim()
-    for (const g of DOMESTIC_LOCATION_TREE_CLEAN) {
-      for (const a of g.areas) {
-        const leaf = a.children.find((l) => l.nodeKey === nk)
-        if (leaf) return leaf.nodeLabel.trim()
-      }
-    }
   }
   const pd = (input.primaryDestination ?? '').trim()
   if (pd) {

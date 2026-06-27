@@ -12,7 +12,6 @@ import {
 import { minBrowseBookableAdultPrice } from '@/lib/browse-product-seat-bookable'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
-import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
 import { aggregateAirlineFacets, aggregateBrandFacets } from '@/lib/products-browse-facets'
 import {
   computeFacetFlags,
@@ -79,14 +78,6 @@ import {
 } from '@/lib/air-hotel-product-ssot'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
-import {
-  domesticDisplayCategoryIsSpecialTheme,
-  domesticNavRegionProductMatches,
-  domesticProductMatchesBus,
-  domesticProductMatchesScheduleNavKey,
-  domesticProductMatchesShip,
-  domesticProductMatchesTrain,
-} from '@/lib/domestic-public-browse-match'
 
 function normalizeSportsThemeTagsForBrowse(raw: string[] | null | undefined): SportsThemeTag[] {
   if (!Array.isArray(raw) || raw.length === 0) return []
@@ -136,21 +127,11 @@ function parseSort(raw: string | null): BrowseSort {
 /** 목록 풀 단계에서 출발 행이 필요한 필터만 — 기본 browse는 Product derived 만 사용 */
 function browsePoolNeedsDepartureAttach(opts: {
   paxFilter: number | null
-  domesticLike: boolean
-  dmPillar: string
-  dmItem: string
   departHours: string[]
   departWeekdays: number[]
 }): boolean {
   if (opts.paxFilter != null && !Number.isNaN(opts.paxFilter) && opts.paxFilter > 0) return true
   if (opts.departHours.length > 0 || opts.departWeekdays.length > 0) return true
-  if (
-    opts.domesticLike &&
-    opts.dmPillar === 'schedule' &&
-    (opts.dmItem === 'weekend' || opts.dmItem === 'weekday')
-  ) {
-    return true
-  }
   return false
 }
 
@@ -221,6 +202,37 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     isHubFullCatalog && hubCatalogParam !== null && hubCatalogParam.trim() !== ''
     const q = parseBrowseQuery(searchParams)
 
+    const scopeEarly = (searchParams.get('scope') ?? '').trim().toLowerCase()
+    if (scopeEarly === 'domestic') {
+      const typeParam = searchParams.get('type')
+      const region = searchParams.get('region')
+      const country = searchParams.get('country')
+      const destination = searchParams.get('destination')?.trim() || null
+      const city = searchParams.get('city')?.trim() || destination
+      return {
+        ok: true as const,
+        total: 0,
+        page: q.page,
+        limit: q.limit,
+        items: [],
+        destinationTerms: [],
+        suggestedBudgetMax: null,
+        facets: {
+          brands: [],
+          airlines: [],
+          hasDepartureTimeData: false,
+          hasWeekdayData: false,
+        },
+        queryEcho: {
+          type: typeParam,
+          categories: q.categories,
+          region,
+          country,
+          city,
+        },
+      }
+    }
+
     const typeParam = searchParams.get('type')
     const sort = parseSort(searchParams.get('sort'))
     const region = searchParams.get('region')
@@ -230,9 +242,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const city = searchParams.get('city')?.trim() || destination
     const scope = searchParams.get('scope')
     const sportsThemeParam = searchParams.get('sportsTheme')?.trim() || null
-    const hasOverseasUrlGeo =
-      scope !== 'domestic' &&
-      Boolean(
+    const hasOverseasUrlGeo = Boolean(
         (region ?? '').trim() ||
           (country ?? '').trim() ||
           (city ?? '').trim() ||
@@ -285,7 +295,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           .map((s) => s.trim().toLowerCase())
           .filter(Boolean)
       : []
-    if ((scope ?? '').trim().toLowerCase() !== 'domestic' && seasonCountrySlugs.length > 0) {
+    if (seasonCountrySlugs.length > 0) {
       const seasonDbCountries = [
         ...new Set(seasonCountrySlugs.flatMap((s) => resolveBrowseCountryParamToDbCountries(s))),
       ]
@@ -320,11 +330,6 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const baseTerms = destinationTermsFromQuery(region, country, city, menuGroup)
     const destinationTerms = [...baseTerms, ...extraTerms]
 
-    const dmPillar = (searchParams.get('dmPillar') ?? '').trim()
-    const dmItem = (searchParams.get('dmItem') ?? '').trim()
-    const domesticTransport = (searchParams.get('domesticTransport') ?? '').trim().toLowerCase()
-    const domesticSpecialTheme = searchParams.get('domesticSpecialTheme') === '1'
-
     const tripDaysRaw = searchParams.get('tripDays')
     const tripDaysFilter =
       tripDaysRaw != null && tripDaysRaw !== '' ? parseInt(tripDaysRaw, 10) : null
@@ -338,8 +343,8 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const parsedLimit =
       limitParam != null && limitParam !== '' ? parseInt(limitParam, 10) : Number.NaN
     const rawLimit = Number.isFinite(parsedLimit) ? parsedLimit : null
-    /** 해외·국내·항공+호텔 허브: 등록 풀 전량. `/products` 등 일반 목록만 60 상한 */
-    const isTravelHubScope = scopeForLimit === 'overseas' || scopeForLimit === 'domestic'
+    /** 해외·항공+호텔 허브: 등록 풀 전량. `/products` 등 일반 목록만 60 상한 */
+    const isTravelHubScope = scopeForLimit === 'overseas'
     const limitCap = isTravelHubScope ? 10_000 : 60
     const limit = Math.min(limitCap, Math.max(1, rawLimit ?? (isTravelHubScope ? limitCap : 24)))
 
@@ -377,13 +382,9 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     })
 
     const overseasLike = scope === 'overseas' || !!region
-    const domesticLike = scope === 'domestic'
 
     const poolNeedsDepartures = browsePoolNeedsDepartureAttach({
       paxFilter,
-      domesticLike,
-      dmPillar,
-      dmItem,
       departHours: q.departHours,
       departWeekdays: q.departWeekdays,
     })
@@ -400,20 +401,16 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       perf.db = performance.now() // PERF-LOG: 측정 후 제거
       perf.rowCount = rows.length // PERF-LOG: 측정 후 제거
     }
-    const skipGlobalTripDaysForDomesticSchedule =
-      domesticLike && dmPillar === 'schedule' && dmItem.length > 0
     /** region만 있어도 해외 목적지 트리와 동일하게 travelScope 정렬 */
-    const travelScopeParam = domesticLike ? 'domestic' : overseasLike ? 'overseas' : null
+    const travelScopeParam = overseasLike ? 'overseas' : null
     const scopedBeforeTree = filterPoolByStoredTravelScope(rows, travelScopeParam)
     let pool: typeof rows = scopedBeforeTree
-    if (domesticLike) {
-      pool = filterProductsForDomesticDestinationTree(scopedBeforeTree)
-    } else if (overseasLike) {
+    if (overseasLike) {
       pool = filterProductsForOverseasDestinationTree(scopedBeforeTree)
     }
 
     let filteredRows = pool
-    if (tripDaysFilter != null && !Number.isNaN(tripDaysFilter) && !skipGlobalTripDaysForDomesticSchedule) {
+    if (tripDaysFilter != null && !Number.isNaN(tripDaysFilter)) {
       filteredRows = filteredRows.filter((p) => p.tripDays === tripDaysFilter)
     }
     if (paxFilter != null && !Number.isNaN(paxFilter) && paxFilter > 0) {
@@ -434,14 +431,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       })
     }
 
-    /** 국내 허브만 자유여행 제외. 해외 허브는 패키지·자유여행 통합 노출 */
     const wantsAirHotelHubSlice =
       parseBrowseType(typeParam) === AIR_HOTEL_BROWSE_TYPE ||
       q.categories.some((c) => isAirHotelBrowseCategoryToken(c)) ||
       listingKindParsed === 'air_hotel_free'
-    if (domesticLike && !wantsAirHotelHubSlice) {
-      filteredRows = filteredRows.filter((p) => !isAirHotelProduct(p))
-    }
 
     if (overseasRegionTabOnlyGeo) {
       const regionTabId = (region ?? '').trim()
@@ -476,33 +469,6 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     if (hasOverseasUrlGeo) {
       scoringDestinationTerms =
         menuGroup || extraTerms.length > 0 ? [...baseTerms, ...extraTerms] : []
-    }
-    if (domesticLike) {
-      if (domesticSpecialTheme) {
-        filteredRows = filteredRows.filter((p) => domesticDisplayCategoryIsSpecialTheme(p.displayCategory))
-        scoringDestinationTerms = [...baseTerms]
-      } else if (domesticTransport === 'bus') {
-        filteredRows = filteredRows.filter((p) => domesticProductMatchesBus(p))
-        scoringDestinationTerms = [...baseTerms]
-      } else if (domesticTransport === 'train') {
-        filteredRows = filteredRows.filter((p) => domesticProductMatchesTrain(p))
-        scoringDestinationTerms = [...baseTerms]
-      } else if (domesticTransport === 'ship') {
-        filteredRows = filteredRows.filter((p) => domesticProductMatchesShip(p))
-        scoringDestinationTerms = [...baseTerms]
-      } else if (dmPillar === 'region' && dmItem) {
-        filteredRows = filteredRows.filter((p) => domesticNavRegionProductMatches(p, dmItem, extraTerms))
-        scoringDestinationTerms = [...baseTerms]
-      } else if (dmPillar === 'schedule' && dmItem) {
-        filteredRows = filteredRows.filter((p) =>
-          domesticProductMatchesScheduleNavKey(
-            { title: p.title, tripDays: p.tripDays, departures: p.departures },
-            dmItem,
-            extraTerms
-          )
-        )
-        scoringDestinationTerms = [...baseTerms]
-      }
     }
 
     if (perf) perf.filter = performance.now() // PERF-LOG: 측정 후 제거

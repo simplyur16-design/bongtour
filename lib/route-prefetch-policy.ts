@@ -6,7 +6,6 @@ const HEAVY_ROUTE_PREFIXES = [
   '/travel/overseas',
   '/travel/air-hotel',
   '/travel/esim',
-  '/travel/domestic',
   '/travel/overseas/private-trip',
   '/business',
   '/inquiry',

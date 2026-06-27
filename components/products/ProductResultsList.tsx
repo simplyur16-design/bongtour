@@ -34,10 +34,6 @@ import {
   resolveAirHotelItemBucket,
 } from '@/lib/air-hotel-region-filter'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import {
-  matchProductToDomesticNode,
-  type DomesticProductMatchInput,
-} from '@/lib/match-domestic-product'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
 import { HUB_PRODUCT_SCROLL_LI_CLASS } from '@/components/products/hub-product-row-layout'
@@ -145,8 +141,6 @@ type Props = {
   groupOverseasByRegion?: boolean
   /** `/travel/air-hotel`만: 국가 단위 섹션(도시 라벨 정규화) + 섹션 내 공급사 interleave */
   groupAirHotelByCountry?: boolean
-  /** `/travel/domestic`만: 지역 고정 순서 섹션 + 섹션 내 interleave */
-  groupDomesticByRegion?: boolean
   /** 서유럽 섹션 상단 목적지 브리핑(선택) */
   overseasEditorialBriefing?: OverseasEditorialBriefingPayload | null
   /** 해외 허브: 시즌 추천 순환 슬롯 — **일본 섹션 바로 아래** 고정 */
@@ -672,98 +666,6 @@ function AirHotelCountryGroupedList({
                 })}
               </ProductResultsHubScrollRow>
             )}
-          </section>
-        )
-      })}
-    </div>
-  )
-}
-
-/** 국내 허브 지역 섹션 고정 순서(상품 수와 무관) */
-const DOMESTIC_HUB_SECTIONS: { id: string; label: string }[] = [
-  { id: 'jeju', label: '제주' },
-  { id: 'gangwon', label: '강원' },
-  { id: 'gyeongsang', label: '부산/경상' },
-  { id: 'jeolla', label: '전라' },
-  { id: 'chungcheong', label: '충청' },
-  { id: 'capital', label: '수도권' },
-  { id: '__etc__', label: '기타' },
-]
-
-function domesticTreeGroupToSectionId(gk: string | null | undefined): string {
-  if (gk === 'jeju' || gk === 'gangwon' || gk === 'gyeongsang' || gk === 'jeolla' || gk === 'chungcheong' || gk === 'capital') {
-    return gk
-  }
-  return '__etc__'
-}
-
-/** 제목 우선 → 트리 매칭(기존 `DOMESTIC_LOCATION_TREE` 규칙 재사용) */
-function domesticPublicSectionId(item: ResultItem): string {
-  const base: DomesticProductMatchInput = {
-    title: item.title,
-    originSource: item.originSource,
-    primaryDestination: item.primaryDestination,
-    primaryRegion: item.primaryRegion,
-    destinationRaw: null,
-    destination: null,
-  }
-  const titleOnly = matchProductToDomesticNode({
-    ...base,
-    primaryDestination: null,
-    primaryRegion: null,
-  })
-  if (titleOnly) return domesticTreeGroupToSectionId(titleOnly.groupKey)
-  const full = matchProductToDomesticNode(base)
-  return domesticTreeGroupToSectionId(full?.groupKey)
-}
-
-function DomesticRegionGroupedList({
-  items,
-  formatWon,
-  seasonalPickIds,
-}: {
-  items: ResultItem[]
-  formatWon: (n: number | null) => string
-  seasonalPickIds?: ReadonlySet<string> | null
-}) {
-  const sections = useMemo(() => {
-    const byId = new Map<string, ResultItem[]>()
-    for (const { id } of DOMESTIC_HUB_SECTIONS) byId.set(id, [])
-    for (const item of items) {
-      const sid = domesticPublicSectionId(item)
-      const bucket = byId.get(sid) ?? byId.get('__etc__')!
-      bucket.push(item)
-    }
-    return DOMESTIC_HUB_SECTIONS.map(({ id, label }) => ({
-      id,
-      label,
-      items: interleaveProductsBySupplier(byId.get(id) ?? []),
-    })).filter((s) => s.items.length > 0)
-  }, [items])
-
-  return (
-    <div className="mt-6 space-y-10">
-      {sections.map(({ id, label, items: rowItems }, idx) => {
-        if (rowItems.length === 0) return null
-        return (
-          <section key={id} className="scroll-mt-4" aria-labelledby={`domestic-hub-sec-${idx}`}>
-            <h2
-              id={`domestic-hub-sec-${idx}`}
-              className="border-b border-slate-200 pb-2 text-lg font-bold tracking-tight text-slate-900"
-            >
-              {label}
-            </h2>
-            <ul className={productCardGridClassDefault} role="list">
-              {rowItems.map((row) => (
-                <li key={row.id}>
-                  <ProductResultCard
-                    item={row}
-                    formatWon={formatWon}
-                    seasonalPickBadge={Boolean(seasonalPickIds?.has(row.id))}
-                  />
-                </li>
-              ))}
-            </ul>
           </section>
         )
       })}
@@ -1310,7 +1212,6 @@ export default function ProductResultsList({
   formatWon,
   groupOverseasByRegion,
   groupAirHotelByCountry = false,
-  groupDomesticByRegion = false,
   overseasEditorialBriefing = null,
   overseasSeasonCurationSlides = null,
   seasonalPickIds = null,
@@ -1346,10 +1247,6 @@ export default function ProductResultsList({
         hubGalleryRotationSeed={hubGalleryRotationSeed}
       />
     )
-  }
-
-  if (groupDomesticByRegion && items.length > 0) {
-    return <DomesticRegionGroupedList items={items} formatWon={formatWon} seasonalPickIds={seasonalPickIds} />
   }
 
   if (groupAirHotelByCountry && items.length > 0) {

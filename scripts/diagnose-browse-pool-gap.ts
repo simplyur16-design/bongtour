@@ -10,7 +10,6 @@ if (process.env.DIRECT_URL) process.env.DATABASE_URL = process.env.DIRECT_URL
 
 import { PrismaClient } from '@prisma/client'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
-import { filterProductsForDomesticDestinationTree } from '@/lib/active-domestic-location-tree'
 import { triageProductTitleForPickTab } from '@/lib/gallery-product-triage'
 import { parseTravelScope } from '@/lib/product-listing-kind'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
@@ -104,24 +103,14 @@ async function main() {
   })
 
   const overseasTree = filterProductsForOverseasDestinationTree(rows)
-  const domesticTree = filterProductsForDomesticDestinationTree(rows)
 
   const inNeither = rows.filter((p) => {
     const inO = overseasTree.some((x) => x.id === p.id)
-    const inD = domesticTree.some((x) => x.id === p.id)
-    return !inO && !inD
-  })
-
-  const inBoth = rows.filter((p) => {
-    const inO = overseasTree.some((x) => x.id === p.id)
-    const inD = domesticTree.some((x) => x.id === p.id)
-    return inO && inD
+    return !inO
   })
 
   console.log('\n=== tree filter (no browse slice) ===')
   console.log('overseas tree pool:', overseasTree.length)
-  console.log('domestic tree pool:', domesticTree.length)
-  console.log('in both trees:', inBoth.length)
   console.log('in neither tree:', inNeither.length)
 
   const noCountryTag = rows.filter((p) => p.countryTags.length === 0)
