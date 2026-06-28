@@ -899,10 +899,11 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     )
     let mergedPromotion = mergePricePromotionLayers(null, geminiPm, null, null)
 
-    /** 성인1인 출발가 후보: 달력 행 → 기본상품 성인 슬롯. 1인 객실 사용료 등 부가요금은 `singleRoomSurcharge*`·불포함 축만(가격 슬롯·이 값에 포함하지 않음). */
+    /** 성인1인 출발가 — URL getPkgProdInfo anchor(productPriceTable) 우선, 달력은 별도 multi-row */
     const representativeCurrentSellingPrice =
-      departureInputs.find((r) => typeof r.adultPrice === 'number' && r.adultPrice > 0)?.adultPrice ??
       parsed.productPriceTable?.adultPrice ??
+      departureInputs.find((r) => typeof r.adultPrice === 'number' && r.adultPrice > 0)?.adultPrice ??
+      parsed.priceFrom ??
       null
 
     const reconciledPromo = reconcilePromotionSalePriceWithAuthoritative(

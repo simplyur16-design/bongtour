@@ -2,6 +2,10 @@
  * 하나투어 등록 — gw getPkgProdLst 다출발·상태·좌석·항공사를 parsed에 주입.
  * 붙여넣기·LLM에 prices[]/productPriceTable이 없을 때 confirm 게이트 통과용.
  *
+ * API 역할 분리:
+ * - getPkgProdInfo → productPriceTable (URL 페이지 대표가·anchor 1건)
+ * - getPkgProdLst  → prices[] (동일 상품라인 다출발 달력 — 호텔·일수·마스터 일치만)
+ *
  * REGRESSION-FREEZE[hanatour-register-api-price-inject]: injectHanatourApiDeparturePricesIfMissing — manifest
  */
 import { buildHanatourKstTargetMonths } from '@/lib/hanatour-departures'
