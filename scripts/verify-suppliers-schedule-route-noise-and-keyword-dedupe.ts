@@ -18,6 +18,7 @@ import { verygoodtourFactDaysToRegisterSchedule, applyVerygoodtourScheduleExpres
 import { kyowontourFactDaysToRegisterSchedule, buildKyowontourScheduleRouteTextFromTabRows } from '@/lib/kyowontour-register-api-schedule'
 import { naeiltourFactDaysToRegisterSchedule, applyNaeiltourScheduleExpressionToRows } from '@/lib/naeiltour-register-api-schedule'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { parseModetourRegisterFromApi } from '@/lib/modetour-register-api-parse'
 import { augmentModetourParsedWithDetailCollect } from '@/lib/modetour-register-detail-collect'
@@ -146,6 +147,23 @@ mustInclude('lib/register-schedule-image-keywords-apply.ts', [
   'sanitizeRegisterScheduleRouteText',
   'enforceRegisterScheduleTripUniqueImageKeywords',
 ])
+mustInclude('lib/register-parse-post-augment.ts', [
+  'REGRESSION-FREEZE[register-post-augment-schedule-ssot]',
+  'applyRegisterScheduleImageKeywordsBySupplier',
+  'mergePostAugmentScheduleImageKeywords',
+])
+const postAugmentSrc = read('lib/register-parse-post-augment.ts')
+for (const bypass of [
+  'applyModetourScheduleImageKeywordsToRows',
+  'applyHanatourScheduleImageKeywordsToRows',
+  'applyLottetourScheduleImageKeywordsToRows',
+  'applyKyowontourScheduleImageKeywordsToRows',
+  'applyVerygoodScheduleImageKeywordsToRows',
+  'applyNaeiltourScheduleImageKeywordsToRows',
+  'applyYbtourScheduleImageKeywordsToRows',
+]) {
+  assert.ok(!postAugmentSrc.includes(bypass), `post-augment must not bypass SSOT via ${bypass}`)
+}
 for (const rel of [
   'lib/hanatour-register-api-detail.ts',
   'lib/modetour-register-api-schedule.ts',
@@ -211,6 +229,35 @@ for (const s of SUPPLIERS) {
   const rt = buildKyowontourScheduleRouteTextFromTabRows(kyowontourTabRows)
   assertRouteNoAdminNoise(rt, 'kyowontour tab routeText')
   console.log('[ok] kyowontour tab routeText')
+}
+
+{
+  const built = modetourFactDaysToRegisterSchedule(FACT_DAY_BASE, { productTitle: '돗토리 3일' })
+  const before = built.map((row) => ({
+    ...row,
+    imageKeyword: row.day === 3 ? 'Shiomi Nawate Samurai Street' : '',
+    imageKeyword2: null,
+  }))
+  const postAugmented = await applyRegisterPostAugmentSchedulePipeline(
+    {
+      schedule: before,
+      primaryDestination: '돗토리',
+      destination: '돗토리',
+      title: '돗토리 3일',
+    },
+    { forcedBrandKey: 'modetour', travelScope: 'package', mode: 'preview' },
+  )
+  const schedule = postAugmented.schedule ?? []
+  for (const row of schedule) {
+    assertRouteNoAdminNoise(row.routeText, `modetour post-augment day ${row.day}`)
+  }
+  assertTripUniqueKeywords(schedule, 'modetour post-augment')
+  const last = schedule[schedule.length - 1]
+  assert.ok(
+    String(last?.imageKeyword ?? '').trim().length > 0,
+    'modetour post-augment: last day imageKeyword must not be empty',
+  )
+  console.log('[ok] modetour post-augment SSOT pipeline')
 }
 
 if (LIVE) {

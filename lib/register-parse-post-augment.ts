@@ -1,6 +1,7 @@
 /**
  * 등록 파이프 augment 직후 — 자유여행(Fit+imageKeyword) vs 패키지(공급사별 키워드) 분기.
  * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: mergePostAugmentScheduleImageKeywords — manifest
+ * REGRESSION-FREEZE[register-post-augment-schedule-ssot]: applyRegisterScheduleImageKeywordsBySupplier — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import {
@@ -8,13 +9,8 @@ import {
   stampRegisterAirtelProductTypeOnParsed,
 } from '@/lib/register-admin-airtel-listing'
 import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enrich'
-import { applyYbtourScheduleImageKeywordsToRows, inferYbtourEffectiveProductDestination, isYbtourCrossContinentHallucinationKeyword } from '@/lib/ybtour-schedule-image-keyword'
-import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
-import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
-import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
-import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
-import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
-import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
+import { inferYbtourEffectiveProductDestination, isYbtourCrossContinentHallucinationKeyword } from '@/lib/ybtour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
@@ -72,12 +68,12 @@ function shouldPreservePreAugmentImageKeyword(
     if (isYbtourCrossContinentHallucinationKeyword(t, dest)) return false
   }
   if (slot === 'return' && supplierKey !== 'ybtour') {
-    /* package return — Gemini kw rarely valid */
+    /* package return — SSOT apply wins when non-empty; empty re-allocate may keep pre-augment kw */
   }
   return true
 }
 
-/** 규칙 allocate 후 Gemini 등으로 채워진 키워드 — post-augment에서만 보존 */
+/** 규칙 allocate 후 Gemini 등으로 채워진 키워드 — post-augment re-allocate가 비었을 때만 보존 */
 function mergePostAugmentScheduleImageKeywords<T extends ScheduleRouteRow>(
   before: readonly T[],
   after: readonly T[],
@@ -95,9 +91,10 @@ function mergePostAugmentScheduleImageKeywords<T extends ScheduleRouteRow>(
     const nextKw = String(row.imageKeyword ?? '').trim()
     const nextKw2 = String(row.imageKeyword2 ?? '').trim()
     const preservePrevKw =
-      slot !== 'return' &&
+      !nextKw &&
       shouldPreservePreAugmentImageKeyword(prevKw, opts.supplierKey, opts.productDestination, before, slot)
     const preservePrevKw2 =
+      !nextKw2 &&
       slot === 'middle' &&
       shouldPreservePreAugmentImageKeyword(prevKw2, opts.supplierKey, opts.productDestination, before, slot)
     return {
@@ -109,30 +106,6 @@ function mergePostAugmentScheduleImageKeywords<T extends ScheduleRouteRow>(
         null,
     }
   })
-}
-
-function applySupplierScheduleImageKeywords<T extends ScheduleRouteRow>(
-  supplierKey: string,
-  schedule: T[],
-  productDestination: string | null,
-): T[] {
-  const rows = schedule.map(normalizeScheduleRouteRowForImageKeyword)
-  if (supplierKey === 'ybtour') {
-    return applyYbtourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
-  }
-  if (supplierKey === 'modetour') {
-    return applyModetourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
-  }
-  if (supplierKey === 'hanatour') {
-    return applyHanatourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
-  }
-  if (supplierKey === 'lottetour') {
-    return applyLottetourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
-  }
-  if (supplierKey === 'kyowontour') {
-    return applyKyowontourScheduleImageKeywordsToRows(rows, { productDestination }) as T[]
-  }
-  return schedule
 }
 
 /** 마지막·기내박 일차 — API에 routeText가 없을 때 title로 최소 routeText 보정 */
@@ -154,6 +127,37 @@ function backfillEmptyScheduleRouteTextFromTitle<T extends ScheduleRouteRow>(row
   })
 }
 
+const PACKAGE_POST_AUGMENT_SUPPLIERS = new Set([
+  'ybtour',
+  'modetour',
+  'hanatour',
+  'lottetour',
+  'kyowontour',
+  'verygoodtour',
+  'naeiltour',
+])
+
+function applyPackagePostAugmentScheduleKeywords(parsed: RegisterParsed, supplierKey: string): RegisterParsed {
+  const before = parsed.schedule ?? []
+  const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
+  const dest = parsed.primaryDestination ?? parsed.destination ?? null
+  const allocated = applyRegisterScheduleImageKeywordsBySupplier(
+    schedule.map(normalizeScheduleRouteRowForImageKeyword),
+    {
+      supplierKey,
+      productDestination: dest,
+      productTitle: parsed.title ?? null,
+    },
+  )
+  return {
+    ...parsed,
+    schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
+      supplierKey,
+      productDestination: dest,
+    }),
+  }
+}
+
 export async function applyRegisterPostAugmentSchedulePipeline(
   parsed: RegisterParsed,
   opts: ApplyRegisterPostAugmentScheduleOpts,
@@ -170,123 +174,8 @@ export async function applyRegisterPostAugmentSchedulePipeline(
     })
   }
 
-  if (opts.forcedBrandKey === 'ybtour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const allocated = applySupplierScheduleImageKeywords(
-      'ybtour',
-      schedule,
-      parsed.primaryDestination ?? parsed.destination ?? null,
-    )
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'ybtour',
-        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-      }),
-    }
-  }
-
-  if (opts.forcedBrandKey === 'modetour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const allocated = applySupplierScheduleImageKeywords(
-      'modetour',
-      schedule,
-      parsed.primaryDestination ?? parsed.destination ?? null,
-    )
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'modetour',
-        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-      }),
-    }
-  }
-
-  if (opts.forcedBrandKey === 'hanatour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const allocated = applySupplierScheduleImageKeywords(
-      'hanatour',
-      schedule,
-      parsed.primaryDestination ?? parsed.destination ?? null,
-    )
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'hanatour',
-        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-      }),
-    }
-  }
-
-  if (opts.forcedBrandKey === 'lottetour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const allocated = applySupplierScheduleImageKeywords(
-      'lottetour',
-      schedule,
-      parsed.primaryDestination ?? parsed.destination ?? null,
-    )
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'lottetour',
-        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-      }),
-    }
-  }
-
-  if (opts.forcedBrandKey === 'kyowontour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const allocated = applySupplierScheduleImageKeywords(
-      'kyowontour',
-      schedule,
-      parsed.primaryDestination ?? parsed.destination ?? null,
-    )
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'kyowontour',
-        productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-      }),
-    }
-  }
-
-  if (opts.forcedBrandKey === 'verygoodtour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const dest = parsed.primaryDestination ?? parsed.destination ?? null
-    const allocated = applyVerygoodScheduleImageKeywordsToRows(
-      schedule.map(normalizeScheduleRouteRowForImageKeyword),
-      { detRows: schedule, productDestination: dest, totalDays: schedule.length },
-    ) as typeof schedule
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'verygoodtour',
-        productDestination: dest,
-      }),
-    }
-  }
-
-  if (opts.forcedBrandKey === 'naeiltour') {
-    const before = parsed.schedule ?? []
-    const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
-    const dest = parsed.primaryDestination ?? parsed.destination ?? null
-    const allocated = applyNaeiltourScheduleImageKeywordsToRows(
-      schedule as NaeiltourScheduleImageKeywordRow[],
-      { productDestination: dest, englishLandmarksByDay: undefined },
-    ) as typeof schedule
-    return {
-      ...parsed,
-      schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-        supplierKey: 'naeiltour',
-        productDestination: dest,
-      }),
-    }
+  if (PACKAGE_POST_AUGMENT_SUPPLIERS.has(opts.forcedBrandKey)) {
+    return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey)
   }
 
   return parsed

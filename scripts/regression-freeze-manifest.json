@@ -3582,13 +3582,49 @@
         {
           "file": "lib/register-parse-post-augment.ts",
           "mustInclude": [
-            "applyHanatourScheduleImageKeywordsToRows"
+            "applyRegisterScheduleImageKeywordsBySupplier"
           ]
         }
       ],
       "vitestSuites": [
         "lib/hanatour-schedule-image-keyword.test.ts",
         "lib/hanatour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "register-post-augment-schedule-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 post-augment — applyRegisterScheduleImageKeywordsBySupplier SSOT, bypass 금지",
+      "checks": [
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-post-augment-schedule-ssot]",
+            "applyRegisterScheduleImageKeywordsBySupplier",
+            "mergePostAugmentScheduleImageKeywords"
+          ],
+          "mustNotInclude": [
+            "applyModetourScheduleImageKeywordsToRows",
+            "applyHanatourScheduleImageKeywordsToRows",
+            "applyLottetourScheduleImageKeywordsToRows",
+            "applyKyowontourScheduleImageKeywordsToRows",
+            "applyVerygoodScheduleImageKeywordsToRows",
+            "applyNaeiltourScheduleImageKeywordsToRows",
+            "applyYbtourScheduleImageKeywordsToRows"
+          ]
+        },
+        {
+          "file": "scripts/verify-suppliers-schedule-route-noise-and-keyword-dedupe.ts",
+          "mustInclude": [
+            "applyRegisterPostAugmentSchedulePipeline"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-parse-post-augment.test.ts"
       ]
     },
     {
