@@ -87,5 +87,7 @@ describe('register schedule route place noise', () => {
     const kws = out.map((r) => String(r.imageKeyword ?? '').trim()).filter(Boolean)
     expect(new Set(kws.map((k) => k.toLowerCase())).size).toBe(kws.length)
     expect(days[0]?.routeText).not.toMatch(/입국|관련\s*안내/)
+    expect(String(out[2]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    expect(String(out[0]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
   })
 })

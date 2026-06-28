@@ -193,6 +193,11 @@ for (const s of SUPPLIERS) {
     assertRouteNoAdminNoise(row.routeText, `${s.key} apply day ${row.day}`)
   }
   assertTripUniqueKeywords(withKeywords, s.key)
+  const last = withKeywords[withKeywords.length - 1]
+  assert.ok(
+    String(last?.imageKeyword ?? '').trim().length > 0,
+    `${s.key}: last day imageKeyword must not be empty`,
+  )
   console.log(`[ok] ${s.key} — routeText noise + trip keyword dedupe`)
 }
 

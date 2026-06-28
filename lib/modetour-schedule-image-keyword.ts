@@ -1570,6 +1570,40 @@ function pickModetourDepartureRepresentativeKeyword(
   }
 }
 
+function pickModetourReturnKeywordFromOwnRoute(
+  row: ModetourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+  used: ReadonlySet<string>,
+): string {
+  const ownRoute = collectModetourRouteOrderedSegmentKeywords(
+    row.routeText,
+    'return_home',
+    productDestination,
+  )
+  const tryKw = (kw: string): string => {
+    if (
+      !kw ||
+      isModetourAirportLikeKeyword(kw) ||
+      isDestinationHubEnglishKeyword(kw, productDestination ?? null) ||
+      isKnownDestinationCityEnglishKeyword(kw)
+    ) {
+      return ''
+    }
+    const nk = normKey(kw)
+    if (nk && used.has(nk)) return ''
+    return kw
+  }
+  for (let i = ownRoute.length - 1; i >= 0; i--) {
+    const picked = tryKw(ownRoute[i]!)
+    if (picked) return picked
+  }
+  for (const kw of ownRoute) {
+    const picked = tryKw(kw)
+    if (picked) return picked
+  }
+  return ''
+}
+
 function findPrevScheduledRow<T extends ModetourScheduleImageKeywordRow>(
   sorted: readonly T[],
   day: number,
@@ -1614,6 +1648,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
         primary =
           pickModetourDepartureRepresentativeKeyword(row.routeText, productDestination) ||
           pickFirstUnusedModetourRouteKeyword(routeOrderedMovement, used, undefined, productDestination) ||
+          pickFirstUnusedModetourRouteKeyword(routeOrderedTourism, used, undefined, productDestination) ||
           ''
       } else {
         primary =
@@ -1624,7 +1659,9 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
       }
       if (primary && isModetourAirportLikeKeyword(primary)) primary = ''
       if (!primary) {
-        primary = pickFirstUnusedModetourRouteKeyword(routeOrderedMovement, used, undefined, productDestination)
+        primary =
+          pickFirstUnusedModetourRouteKeyword(routeOrderedTourism, used, undefined, productDestination) ||
+          pickFirstUnusedModetourRouteKeyword(routeOrderedMovement, used, undefined, productDestination)
       }
       if (!primary && !isScheduleInFlightOvernightRow(row)) {
         const hasRoutePlace =
@@ -1656,6 +1693,9 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
         returnDayKind === 'return_home' && isDomesticOnlyRouteText(row.routeText)
       let primary = ''
       if (!domesticReturn) {
+        primary = pickModetourReturnKeywordFromOwnRoute(row, productDestination, used)
+      }
+      if (!primary && !domesticReturn) {
         const prev =
           sorted.find((r) => Number(r.day) === maxDay - 1) ??
           findPrevScheduledRow(sorted, maxDay)
@@ -1700,27 +1740,8 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
             'backward',
           ) || ''
       }
-      if (!primary) {
-        const ownRoute = collectModetourRouteOrderedSegmentKeywords(
-          row.routeText,
-          'return_home',
-          productDestination,
-        )
-        for (let i = ownRoute.length - 1; i >= 0; i--) {
-          const kw = ownRoute[i]!
-          if (
-            !kw ||
-            isModetourAirportLikeKeyword(kw) ||
-            isDestinationHubEnglishKeyword(kw, productDestination ?? null) ||
-            isKnownDestinationCityEnglishKeyword(kw)
-          ) {
-            continue
-          }
-          const nk = normKey(kw)
-          if (nk && used.has(nk)) continue
-          primary = kw
-          break
-        }
+      if (!primary && !domesticReturn) {
+        primary = pickModetourReturnKeywordFromOwnRoute(row, productDestination, used)
       }
       if (!primary) {
         primary = pickModetourReturnReuseTourismKeyword(sorted, maxDay, productDestination)

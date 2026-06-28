@@ -80,6 +80,10 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     if (primary && used.has(normScheduleImageKeywordKey(primary))) {
       primary = pickUnusedTripKeyword(cands, used) || ''
     }
+    // 귀국·마지막 일차 — route 후보가 있으면 빈 슬롯 금지 (중복만 교체)
+    if (!primary && cands.length > 0) {
+      primary = pickUnusedTripKeyword(cands, used) || ''
+    }
     if (primary) used.add(normScheduleImageKeywordKey(primary))
 
     if (secondary) {

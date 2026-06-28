@@ -3808,7 +3808,9 @@
             "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
             "SCHEDULE_SPOT_KO_REGEX_RULES",
             "SCHEDULE_CITY_KO_REGEX_RULES",
-            "firstMatchingScheduleSpotEn"
+            "firstMatchingScheduleSpotEn",
+            "Tottori Sand Dunes",
+            "Matsue Castle"
           ]
         },
         {

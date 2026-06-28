@@ -600,6 +600,38 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
     assert.equal(new Set(allKw.map((k) => k.toLowerCase())).size, allKw.length, `trip-wide dup: ${allKw.join(', ')}`)
   })
+
+  it('돗토리 3일 — 마지막 일차 imageKeyword 비지 않음(당일 routeText 명소)', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 돗토리 - 미즈키시게루 로드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText:
+            '요나고 - 돗토리 - 돗토리 사구 모래미술관 - 20세기 배 기념관(나싯코관) - 코난 박물관 (아오야마 고쇼 기념관)',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '마츠에 - 인천 - 아다치 미술관 - 마쓰에성 - 시오미나와테 거리',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '돗토리' },
+    )
+    const d3 = out.find((r) => r.day === 3)!
+    assert.ok(String(d3.imageKeyword ?? '').trim().length > 0, 'day 3 imageKeyword must not be empty')
+    assert.match(String(d3.imageKeyword), /Matsue|Adachi|Shiomi|Mizuki/i)
+    const primaries = out.map((r) => String(r.imageKeyword ?? '').trim()).filter(Boolean)
+    assert.equal(new Set(primaries.map((k) => k.toLowerCase())).size, primaries.length)
+  })
 })
 
 function normLoose(s: string): string {
