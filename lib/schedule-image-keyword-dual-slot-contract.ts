@@ -3,7 +3,7 @@
  * 6공급사 일괄 계약: 관광 일차 imageKeyword + imageKeyword2(1≠2), 출발·귀국 kw2 null.
  * vitest·`scripts/verify-schedule-image-keyword-dual-slot.ts` 공용 SSOT.
  */
-import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
@@ -130,8 +130,10 @@ function assertModetourBaNaHillsRegression(failures: string[], label: string, ou
 export function runScheduleImageKeywordDualSlotContract(): string[] {
   const failures: string[] = []
 
-  const modetourDirect = applyModetourScheduleImageKeywordsToRows(MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, {
+  const modetourDirect = applyRegisterScheduleImageKeywordsBySupplier(MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, {
+    supplierKey: 'modetour',
     productDestination: '다낭',
+    productTitle: 'contract-fixture',
   })
   assertModetourBaNaHillsRegression(failures, 'modetour-direct', modetourDirect)
 

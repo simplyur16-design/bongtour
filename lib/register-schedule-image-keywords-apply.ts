@@ -3,6 +3,7 @@
  * preview(클라이언트)·admin UI(서버) 모두 이 모듈만 호출한다. 스위치 복제 금지.
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]
  * REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: Forbidden City — route literal만 허용
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: trip-wide imageKeyword 중복 제거 — manifest
  */
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
@@ -16,6 +17,7 @@ import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airt
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
+import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 
 export type RegisterScheduleImageKeywordApplyRow = {
   day: number
@@ -96,5 +98,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         out = rows
     }
   }
-  return sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(out)
+  return enforceRegisterScheduleTripUniqueImageKeywords(
+    sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(out),
+  )
 }

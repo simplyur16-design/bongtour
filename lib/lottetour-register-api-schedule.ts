@@ -6,6 +6,7 @@
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
+import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -25,11 +26,9 @@ function cleanLottetourRoutePlaceLabel(raw: string): string {
 }
 
 function isLottetourRoutePlaceNoise(label: string): boolean {
+  if (isRegisterScheduleRoutePlaceNoise(label)) return true
   const t = label.trim()
-  if (!t || t.length < 2 || t.length > 80) return true
   if (LOTTETOUR_ROUTE_PLACE_NOISE_RE.test(t)) return true
-  if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
-  if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
   return false
 }
 

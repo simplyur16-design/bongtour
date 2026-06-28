@@ -10,6 +10,7 @@ import {
   dedupeLottetourScheduleRoutePlaces,
   joinLottetourScheduleRouteText,
 } from '@/lib/lottetour-register-api-schedule'
+import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import type { KyowontourScheduleRowParsed } from '@/lib/kyowontour-tour-event-tab-data'
 
 export const KYOWONTOUR_SCHEDULE_ROUTE_MAX = 7
@@ -46,6 +47,7 @@ export function kyowontourTabRowToRoutePlace(row: KyowontourScheduleRowParsed): 
   }
 
   let label = raw.replace(/^[\s▶●]+/, '').trim()
+  if (isRegisterScheduleRoutePlaceNoise(label)) return null
   const tour = label.match(/^(.+?)\s*(?:관광|방문|체험|투어|탐방)(?:\([^)]*\))?$/u)
   if (tour?.[1]) label = tour[1]!.trim()
 

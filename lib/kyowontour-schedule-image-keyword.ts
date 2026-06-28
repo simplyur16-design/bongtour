@@ -19,6 +19,7 @@ import {
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import {
   fillScheduleMiddleImageKeyword2Gap,
@@ -107,6 +108,7 @@ function kyowontourLandmarkFromHaystack(ctx: KyowontourImageKeywordContext): str
 
 function kyowontourUsableRouteSegments(routeText: string | null | undefined): string[] {
   return kyowontourRouteTextSegments(routeText).filter((s) => {
+    if (isRegisterScheduleRoutePlaceNoise(s)) return false
     if (isKyowontourDomesticHubToken(s)) return false
     if (firstMatchingScheduleSpotEn( s)) return true
     return !isNonLandmarkRouteTextSegment(s)

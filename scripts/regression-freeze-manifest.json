@@ -838,7 +838,7 @@
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "runScheduleImageKeywordDualSlotContract",
             "MODETOUR_BA_NA_HILLS_REGRESSION_ROWS",
-            "applyModetourScheduleImageKeywordsToRows",
+            "applyRegisterScheduleImageKeywordsBySupplier",
             "hanatour",
             "modetour",
             "ybtour",
@@ -950,7 +950,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]",
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence",
+            "enforceRegisterScheduleTripUniqueImageKeywords",
             "applyRegisterScheduleImageKeywordsBySupplier",
             "applyHanatourScheduleImageKeywordsToRows",
             "applyModetourScheduleImageKeywordsToRows",
@@ -3609,7 +3611,55 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-schedule-route-evidence-keyword.test.ts"
+        "lib/register-schedule-route-evidence-keyword.test.ts",
+        "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-route-place-noise",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "routeText 세그먼트 — 입국 안내·여행일정 UI 문구 제외",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-place-noise]",
+            "isRegisterScheduleRoutePlaceNoise"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise",
+            "dedupeLottetourScheduleRoutePlaces"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-place-noise.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-trip-image-keyword-dedupe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "6공급사 apply — trip-wide imageKeyword 중복 제거",
+      "checks": [
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "enforceRegisterScheduleTripUniqueImageKeywords"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
       ]
     },
     {
