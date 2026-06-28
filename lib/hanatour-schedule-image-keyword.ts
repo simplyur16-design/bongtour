@@ -47,7 +47,7 @@ import {
   isWeakOpaqueImageKeyword,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
-import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import { isRegisterScheduleRoutePlaceNoise, isRegisterScheduleAirlineRouteSegment } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 
 import {
@@ -56,6 +56,7 @@ import {
   fillScheduleMiddleImageKeyword2Gap,
   isScheduleAirportLikeImageKeyword,
   isScheduleAirportOnlyRouteText,
+  isScheduleAirportRouteSegmentText,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
   resolveScheduleKeywordSlotKind,
@@ -1135,24 +1136,66 @@ function pickFirstUnusedHanatourRouteKeywordPreferLandmark(
   )
 }
 
+/** kw2 — primary 이후 routeText 순서의 두 번째 랜드마크(도시·공항 제외) */
+function pickFirstUnusedHanatourRouteSecondLandmark(
+  ordered: readonly string[],
+  used: ReadonlySet<string>,
+  primary: string,
+): string {
+  let passedPrimary = false
+  for (const kw of ordered) {
+    if (!kw) continue
+    const accepted = acceptScheduleTourismImageKeywordOrEmpty(kw)
+    if (!accepted) continue
+    if (!passedPrimary) {
+      if (hanatourKeywordKeysOverlap(accepted, primary)) passedPrimary = true
+      continue
+    }
+    if (hanatourKeywordKeysOverlap(accepted, primary)) continue
+    if (isHanatourBareCityKeyword(accepted)) continue
+    if (isScheduleAirportLikeImageKeyword(accepted)) continue
+    const nk = normKey(accepted)
+    if (!nk || used.has(nk)) continue
+    return accepted
+  }
+  return ''
+}
+
 function pickHanatourDepartureRepresentativeKeyword(
   routeText: string | null | undefined,
   productDestination: string | null | undefined,
 ): string {
   for (const seg of routeTextSegments(routeText)) {
     if (isHanatourDomesticHubToken(seg)) continue
+    if (isRegisterScheduleRoutePlaceNoise(seg) || isNonLandmarkRouteTextSegment(seg)) continue
     const en = hanatourRouteSegmentToImageKeyword(seg, productDestination)
     if (en && !isHanatourDomesticHubToken(en)) return en
   }
-  const dest = String(productDestination ?? '').trim()
-  if (!dest) return ''
-  const fromProduct = hanatourRouteSegmentToImageKeyword(dest, productDestination) || mapDestination(dest)
-  if (!fromProduct || isHanatourDomesticHubToken(fromProduct)) return ''
-  try {
-    return finalizeScheduleImageKeyword(fromProduct)
-  } catch {
-    return fromProduct
-  }
+  return ''
+}
+
+/** 1일차 — 항공·공항-only·기내박만 빈 키워드 허용. route에 랜드마크 있으면 false */
+// REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: isHanatourDepartureMovementOnlyRow — manifest
+function isHanatourDepartureMovementOnlyRow(
+  row: HanatourScheduleImageKeywordRow,
+  routeOrdered: readonly string[],
+): boolean {
+  if (isScheduleInFlightOvernightRow(row)) return true
+  if (isScheduleAirportOnlyRouteText(row.routeText, isHanatourDomesticHubToken)) return true
+  if (routeOrdered.some((kw) => String(kw ?? '').trim())) return false
+  const segs = routeTextSegments(row.routeText).filter(
+    (s) =>
+      !isRegisterScheduleRoutePlaceNoise(s) &&
+      !isHanatourDomesticHubToken(s) &&
+      !isNonLandmarkRouteTextSegment(s),
+  )
+  if (!segs.length) return true
+  return segs.every(
+    (s) =>
+      isRegisterScheduleAirlineRouteSegment(s) ||
+      isScheduleAirportRouteSegmentText(s) ||
+      isHanatourForeignAirportRouteSegment(s),
+  )
 }
 
 type HanatourKeywordSlotKind = 'departure' | 'middle' | 'return'
@@ -1245,17 +1288,19 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
         row.routeText,
         productDestination,
       )
-      let primary =
-        pickHanatourDepartureRepresentativeKeyword(row.routeText, productDestination) || ''
-      if (primary && (isHanatourForeignAirportImageKeyword(primary) || isScheduleAirportLikeImageKeyword(primary))) {
-        primary = ''
+      const movementOnly = isHanatourDepartureMovementOnlyRow(row, routeOrdered)
+      let primary = ''
+      let secondary = ''
+      if (!movementOnly) {
+        primary = pickFirstUnusedHanatourRouteKeywordPreferLandmark(routeOrdered, used) || ''
+        if (primary && isScheduleAirportLikeImageKeyword(primary)) primary = ''
+        if (primary) used.add(normKey(primary))
+        if (primary) {
+          secondary = pickFirstUnusedHanatourRouteSecondLandmark(routeOrdered, used, primary) || ''
+          if (secondary) used.add(normKey(secondary))
+        }
       }
-      if (!primary) {
-        primary = pickFirstUnusedHanatourRouteKeyword(routeOrdered, used)
-      }
-      if (primary && isScheduleAirportLikeImageKeyword(primary)) primary = ''
-      if (primary) used.add(normKey(primary))
-      byDay.set(day, { primary, secondary: null })
+      byDay.set(day, { primary, secondary: secondary || null })
       continue
     }
 
@@ -1500,16 +1545,22 @@ export function applyHanatourScheduleImageKeywordsToRows<
       secondary = inputSecondary
     }
 
-    if (slotKind === 'middle' && primary && !String(secondary ?? '').trim()) {
+    if ((slotKind === 'middle' || slotKind === 'departure') && primary && !String(secondary ?? '').trim()) {
       const routeOrdered = collectHanatourRouteOrderedSegmentKeywords(
         row.routeText,
         productDestination,
       )
       const ordered = collectHanatourDayOrderedKeywordCandidates(row, productDestination)
       const movementOnly =
-        isScheduleInFlightOvernightRow(row) ||
-        isScheduleAirportOnlyRouteText(row.routeText, isHanatourDomesticHubToken)
+        slotKind === 'departure'
+          ? isHanatourDepartureMovementOnlyRow(row, routeOrdered)
+          : isScheduleInFlightOvernightRow(row) ||
+            isScheduleAirportOnlyRouteText(row.routeText, isHanatourDomesticHubToken)
 
+      if (slotKind === 'departure') {
+        secondary =
+          pickFirstUnusedHanatourRouteSecondLandmark(routeOrdered, used, primary) || ''
+      } else {
       secondary =
         resolveHanatourSecondaryKeyword(row, primary, dayKind, productDestination) ||
         pickDistinctScheduleRouteSecondKeyword(
@@ -1570,6 +1621,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
         })
         if (secondary) used.add(normKey(secondary))
       }
+      }
     }
 
     if (secondary && hanatourKeywordKeysOverlap(String(secondary), primary)) {
@@ -1579,7 +1631,10 @@ export function applyHanatourScheduleImageKeywordsToRows<
     return {
       ...row,
       imageKeyword: primary,
-      imageKeyword2: slotKind === 'middle' ? (String(secondary ?? '').trim() || null) : null,
+      imageKeyword2:
+        slotKind === 'return'
+          ? null
+          : String(secondary ?? '').trim() || null,
     }
     })
   } finally {

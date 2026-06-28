@@ -47,10 +47,9 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   T extends RegisterScheduleImageKeywordApplyRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsOpts): T[] {
   if (!rows.length) return rows
-  const sanitizedRows = rows.map((row) => ({
-    ...row,
-    routeText: sanitizeRegisterScheduleRouteText(row.routeText),
-  }))
+  /** imageKeyword SSOT — 키워드는 maxPlaces 자르기 전 원본 routeText 순서. 표시용 sanitize는 출력 직전만 */
+  // REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: routeTextRawByDay — manifest
+  const routeTextRawByDay = new Map(rows.map((row) => [Number(row.day), row.routeText ?? null]))
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
@@ -58,52 +57,60 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
 
   let out: T[]
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    out = applyAirtelRouteTextImageKeywordsToSchedule(sanitizedRows)
+    out = applyAirtelRouteTextImageKeywordsToSchedule(rows)
   } else {
     switch (supplier) {
       case 'hanatour':
-        out = applyHanatourScheduleImageKeywordsToRows(sanitizedRows, {
+        out = applyHanatourScheduleImageKeywordsToRows(rows, {
           productDestination: dest,
           optionalTourNames: opts.optionalTourNames,
           scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
         })
         break
       case 'modetour':
-        out = applyModetourScheduleImageKeywordsToRows(sanitizedRows, { productDestination: dest })
+        out = applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
         break
       case 'ybtour':
-        out = applyYbtourScheduleImageKeywordsToRows(sanitizedRows, { productDestination: dest })
+        out = applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
         break
       case 'verygoodtour':
-        out = applyVerygoodScheduleImageKeywordsToRows(sanitizedRows, {
-          detRows: sanitizedRows as VerygoodRegisterScheduleDay[],
+        out = applyVerygoodScheduleImageKeywordsToRows(rows, {
+          detRows: rows as VerygoodRegisterScheduleDay[],
           productDestination: dest,
-          totalDays: sanitizedRows.length,
+          totalDays: rows.length,
         })
         break
       case 'lottetour':
-        out = applyLottetourScheduleImageKeywordsToRows(sanitizedRows, {
+        out = applyLottetourScheduleImageKeywordsToRows(rows, {
           productDestination: dest,
           productTitle: title ?? undefined,
         })
         break
       case 'kyowontour':
-        out = applyKyowontourScheduleImageKeywordsToRows(sanitizedRows, {
+        out = applyKyowontourScheduleImageKeywordsToRows(rows, {
           productDestination: dest,
           productTitle: title ?? undefined,
         })
         break
       case 'naeiltour':
-        out = applyNaeiltourScheduleImageKeywordsToRows(sanitizedRows as NaeiltourScheduleImageKeywordRow[], {
+        out = applyNaeiltourScheduleImageKeywordsToRows(rows as NaeiltourScheduleImageKeywordRow[], {
           productDestination: dest,
           englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
         }) as T[]
         break
       default:
-        out = sanitizedRows
+        out = rows
     }
   }
-  return enforceRegisterScheduleTripUniqueImageKeywords(
+  const withKeywords = enforceRegisterScheduleTripUniqueImageKeywords(
     sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(out),
   )
+  return withKeywords.map((row) => {
+    const day = Number(row.day)
+    const rawRoute = routeTextRawByDay.get(day)
+    return {
+      ...row,
+      routeText: sanitizeRegisterScheduleRouteText(rawRoute ?? row.routeText),
+    }
+  })
 }

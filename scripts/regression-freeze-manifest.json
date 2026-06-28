@@ -964,6 +964,7 @@
             "sanitizeRegisterScheduleRouteText",
             "enforceRegisterScheduleTripUniqueImageKeywords",
             "applyRegisterScheduleImageKeywordsBySupplier",
+            "routeTextRawByDay",
             "applyHanatourScheduleImageKeywordsToRows",
             "applyModetourScheduleImageKeywordsToRows",
             "applyYbtourScheduleImageKeywordsToRows",
@@ -3899,6 +3900,9 @@
         "ci"
       ],
       "summary": "몽골 테렐지 4일 — Terelj·Turtle Rock·Zaisan POI, 관광캠프 제외",
+      "npmScripts": [
+        "verify:mongolia-cqp111-image-keyword-live"
+      ],
       "checks": [
         {
           "file": "lib/pexels-keyword.ts",
@@ -3919,7 +3923,16 @@
           "file": "lib/hanatour-schedule-image-keyword.ts",
           "mustInclude": [
             "hanatourLandmarkFromRouteSegment",
-            "isRegisterScheduleRoutePlaceNoise"
+            "isRegisterScheduleRoutePlaceNoise",
+            "isHanatourDepartureMovementOnlyRow"
+          ]
+        },
+        {
+          "file": "scripts/verify-mongolia-cqp111-image-keyword-live.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]",
+            "applyRegisterScheduleImageKeywordsForPreview",
+            "finalizeRegisterScheduleImageKeywords"
           ]
         }
       ],

@@ -224,7 +224,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /나이아가라\s*시티\s*크루즈|Niagara\s*City\s*Cruises/i, en: "Niagara Falls cruise boat mist" },
   { re: /테[를]?[르]?지\s*국립\s*공원|Terelj\s*National\s*Park/i, en: "Terelj National Park" },
   { re: /거북\s*바위|Turtle\s*Rock/i, en: "Turtle Rock" },
-  { re: /아리{1,2}ya?발\s*사원|Ariyabal/i, en: "Ariyabal Temple" },
+  { re: /아ri?ya발\s*사원|아리{1,2}ya?발\s*사원|Ariyabal/i, en: "Ariyabal Temple" },
   { re: /(?:자이승|Zaisan)/i, en: "Zaisan Memorial" },
   { re: /수흐?바타르|Sukhbaatar/i, en: "Sukhbaatar Square" },
   { re: /(?:칭기즈|징기스|Genghis)\s*칸/i, en: "Genghis Khan Statue" },

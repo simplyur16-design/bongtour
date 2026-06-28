@@ -229,7 +229,8 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
       productDestination: '일본 홋카이도',
     })
-    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'New Chitose')
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword, 'Jozankei')
+    assert.equal(out.find((r) => r.day === 1)!.imageKeyword2, null)
     assert.equal(out.find((r) => r.day === 2)!.imageKeyword, 'Noboribetsu Jigokudani')
     assert.match(out.find((r) => r.day === 3)!.imageKeyword ?? '', /Otaru/i)
     const tourismPrimaries = [2, 3].map((d) =>
@@ -269,7 +270,7 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     const out = applyHanatourScheduleImageKeywordsToRows(schedule, {
       productDestination: '홍콩',
     })
-    assert.ok((out.find((r) => r.day === 1)!.imageKeyword ?? '').length > 0)
+    assert.ok((out.find((r) => r.day === 1)!.imageKeyword ?? '').match(/Victoria Peak/i))
     assert.equal(out.find((r) => r.day === 1)!.imageKeyword2, null)
     const d2kw = out.find((r) => r.day === 2)!.imageKeyword ?? ''
     assert.ok(d2kw.length > 0)
