@@ -260,6 +260,30 @@ for (const s of SUPPLIERS) {
   console.log('[ok] modetour post-augment SSOT pipeline')
 }
 
+{
+  const BALI_SCHEDULE = [
+    { day: 1, title: '-', description: 'x', routeText: '발리 주요 관광지 지도 - 발리지도', imageKeyword: '', imageKeyword2: null },
+    { day: 2, title: '-', description: 'x', routeText: '전일 자유시간 - 발리에서 즐기는 여유로운 하루 - 비치 클럽 크루즈 - 발리 - 빠당빠당', imageKeyword: '', imageKeyword2: null },
+    { day: 3, title: '-', description: 'x', routeText: '전일 자유시간 - 발리에서 즐기는 여유로운 하루 - 비치 클럽 크루즈 - 발리 - 빠당빠당', imageKeyword: '', imageKeyword2: null },
+    { day: 4, title: '-', description: 'x', routeText: '전일 자유시간 - 발리에서 즐기는 여유로운 하루 - 비치 클럽 크루즈 - 발리 - 빠당빠당', imageKeyword: '', imageKeyword2: null },
+    { day: 5, title: '-', description: 'x', routeText: '남부투어 - 가루다 공원 - 울루와뚜 절벽사원 - 멜라스티 비치 음료 - 발리 - 발리 해변', imageKeyword: '', imageKeyword2: null },
+    { day: 6, title: '-', description: 'x', routeText: '발리', imageKeyword: '', imageKeyword2: null },
+  ]
+  for (const key of ['hanatour', 'modetour'] as const) {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(BALI_SCHEDULE, {
+      supplierKey: key,
+      productDestination: '발리',
+      productTitle: '발리 6일',
+    })
+    const day5 = out.find((r) => r.day === 5)
+    const day6 = out.find((r) => r.day === 6)
+    assert.ok(String(day5?.imageKeyword ?? '').trim().length > 0, `${key} bali day5 imageKeyword`)
+    assert.ok(String(day6?.imageKeyword ?? '').trim().length > 0, `${key} bali day6 imageKeyword`)
+    assertTripUniqueKeywords(out, `${key} bali 6-day`)
+  }
+  console.log('[ok] bali 6-day southern tour + return keyword gate')
+}
+
 if (LIVE) {
   await runLiveModetourGate()
 } else {

@@ -1110,7 +1110,7 @@ function allocateYbtourImageKeywordsByScheduleRules<T extends YbtourScheduleImag
           used,
           byDay,
           productDestination,
-          'both',
+          'backward',
           undefined,
           true,
         ) ||
@@ -1121,7 +1121,7 @@ function allocateYbtourImageKeywordsByScheduleRules<T extends YbtourScheduleImag
           used,
           byDay,
           productDestination,
-          'both',
+          'backward',
         ) ||
         ''
     }

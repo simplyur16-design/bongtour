@@ -1777,7 +1777,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
             used,
             byDay,
             productDestination,
-            'both',
+            'backward',
           ) || primary
       }
     } else if (!primary) {
@@ -1789,7 +1789,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
           used,
           byDay,
           productDestination,
-          'both',
+          'backward',
         ) || ''
     }
     if (primary) used.add(normKey(primary))

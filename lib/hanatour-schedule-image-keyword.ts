@@ -1032,17 +1032,58 @@ function pickHanatourReturnKeywordFromPrevDay(
   prevAlloc: { primary: string; secondary: string | null } | undefined,
   prevRouteOrdered: readonly string[],
   prevFullCandidates: readonly string[],
+  productDestination: string | null | undefined,
+  used?: ReadonlySet<string>,
 ): string {
+  const rejectReturnKw = (kw: string): boolean =>
+    !kw ||
+    isHanatourForeignAirportImageKeyword(kw) ||
+    isScheduleAirportLikeImageKeyword(kw) ||
+    isHanatourBareCityKeyword(kw)
+
   const pickFrom = (list: readonly string[]): string => {
     for (let i = list.length - 1; i >= 0; i--) {
       const kw = list[i]!
       if (prevAlloc && keysEqual(kw, prevAlloc.primary)) continue
       if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
-      if (kw) return kw
+      if (rejectReturnKw(kw)) continue
+      const nk = normKey(kw)
+      if (used && nk && used.has(nk)) continue
+      return kw
     }
     return ''
   }
   return pickFrom(prevRouteOrdered) || pickFrom(prevFullCandidates)
+}
+
+function pickHanatourReturnKeywordFromOwnRoute(
+  row: HanatourScheduleImageKeywordRow,
+  productDestination: string | null | undefined,
+  used: ReadonlySet<string>,
+): string {
+  const ownRoute = collectHanatourRouteOrderedSegmentKeywords(row.routeText, productDestination)
+  const tryKw = (kw: string): string => {
+    if (
+      !kw ||
+      isHanatourForeignAirportImageKeyword(kw) ||
+      isScheduleAirportLikeImageKeyword(kw) ||
+      isHanatourBareCityKeyword(kw)
+    ) {
+      return ''
+    }
+    const nk = normKey(kw)
+    if (nk && used.has(nk)) return ''
+    return kw
+  }
+  for (let i = ownRoute.length - 1; i >= 0; i--) {
+    const picked = tryKw(ownRoute[i]!)
+    if (picked) return picked
+  }
+  for (const kw of ownRoute) {
+    const picked = tryKw(kw)
+    if (picked) return picked
+  }
+  return ''
 }
 
 function hanatourKeywordKeysOverlap(a: string, b: string): boolean {
@@ -1210,12 +1251,15 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
     }
 
     if (slotKind === 'return') {
-      let primary = ''
-      if (String(row.routeText ?? '').trim()) {
+      let primary = pickHanatourReturnKeywordFromOwnRoute(row, productDestination, used)
+      if (!primary && String(row.routeText ?? '').trim()) {
         primary = pickHanatourDepartureRepresentativeKeyword(row.routeText, productDestination) || ''
         if (primary && (isHanatourForeignAirportImageKeyword(primary) || isScheduleAirportLikeImageKeyword(primary))) {
           primary = ''
         }
+        if (primary && isHanatourBareCityKeyword(primary)) primary = ''
+        const nk = normKey(primary)
+        if (primary && nk && used.has(nk)) primary = ''
       }
       let walkDay = maxDay - 1
       while (walkDay > 0 && !primary) {
@@ -1228,7 +1272,13 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
           productDestination,
         )
         const prevFull = collectHanatourDayOrderedKeywordCandidates(prevRow, productDestination)
-        primary = pickHanatourReturnKeywordFromPrevDay(prevAlloc, prevRouteOrdered, prevFull)
+        primary = pickHanatourReturnKeywordFromPrevDay(
+          prevAlloc,
+          prevRouteOrdered,
+          prevFull,
+          productDestination,
+          used,
+        )
         walkDay = Number(prevRow.day) - 1
       }
       if (!primary) {
@@ -1270,7 +1320,7 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
             used,
             byDay,
             productDestination,
-            'both',
+            'backward',
           ) || primary
       }
     } else if (!primary) {
@@ -1282,7 +1332,7 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
           used,
           byDay,
           productDestination,
-          'both',
+          'backward',
         ) || ''
     }
     if (primary) used.add(normKey(primary))

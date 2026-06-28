@@ -3831,6 +3831,33 @@
       ]
     },
     {
+      "id": "register-schedule-bali-image-keyword",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "발리 6일 — 가루다·멜라스티 POI + 남부투어·귀국일 imageKeyword",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "가루다 공원",
+            "Melasti Beach"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "Garuda Wisnu Kencana",
+            "Melasti Beach"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-bali-image-keyword.test.ts"
+      ]
+    },
+    {
       "id": "schedule-poi-regex-ssot",
       "tier": [
         "prebuild",
@@ -3846,7 +3873,9 @@
             "SCHEDULE_CITY_KO_REGEX_RULES",
             "firstMatchingScheduleSpotEn",
             "Tottori Sand Dunes",
-            "Matsue Castle"
+            "Matsue Castle",
+            "Garuda Wisnu Kencana",
+            "Melasti Beach"
           ]
         },
         {

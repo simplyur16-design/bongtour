@@ -204,6 +204,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /이과수\s*폭포|Iguazu|Iguassu/i, en: "Iguazu Falls Brazil Argentina waterfall panorama" },
   { re: /쿠스코|Cusco|Cuzco/i, en: "Cusco Peru Plaza de Armas colonial architecture" },
   { re: /아구아스\s*칼리엔테스|Aguas\s*Calientes/i, en: "Aguas Calientes Machu Picchu gateway town" },
+  { re: /가루다\s*공원|Garuda\s*Wisnu/i, en: "Garuda Wisnu Kencana" },
+  { re: /울루와뚜|Uluwatu/i, en: "Uluwatu Temple" },
+  { re: /멜라스티|Melasti/i, en: "Melasti Beach" },
+  { re: /빠당빠당|Padang\s*Padang/i, en: "Padang Padang Beach" },
+  { re: /비치\s*클럽|Beach\s*Club/i, en: "Bali Beach Club" },
+  { re: /뜨갈랄랑|Tegalalang/i, en: "Tegalalang Rice Terrace" },
+  { re: /발리\s*해변/i, en: "Bali beach sunset" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
