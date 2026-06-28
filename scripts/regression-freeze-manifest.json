@@ -3831,6 +3831,40 @@
       ]
     },
     {
+      "id": "register-schedule-day-owned-image-keyword",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "imageKeyword — 당일 routeText만, 타 일차 landmark·forward adjacent 금지",
+      "checks": [
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "당일 route 후보만"
+          ],
+          "mustNotInclude": [
+            "pickUnusedFromPriorDayRouteCandidates"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-keyword-adjacent-poi.ts",
+          "mustInclude": [
+            "당일 route에서 primary와 다른 landmark만"
+          ]
+        },
+        {
+          "file": "scripts/verify-suppliers-schedule-route-noise-and-keyword-dedupe.ts",
+          "mustInclude": [
+            "US east day-owned imageKeyword gate"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-day-owned-image-keyword.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-bali-image-keyword",
       "tier": [
         "prebuild",

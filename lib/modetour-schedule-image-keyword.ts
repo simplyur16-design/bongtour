@@ -1663,23 +1663,6 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
           pickFirstUnusedModetourRouteKeyword(routeOrderedTourism, used, undefined, productDestination) ||
           pickFirstUnusedModetourRouteKeyword(routeOrderedMovement, used, undefined, productDestination)
       }
-      if (!primary && !isScheduleInFlightOvernightRow(row)) {
-        const hasRoutePlace =
-          routeOrderedTourism.some((kw) => String(kw ?? '').trim()) ||
-          routeOrderedMovement.some((kw) => String(kw ?? '').trim())
-        if (isScheduleAirportOnlyRouteText(row.routeText, isModetourDomesticHubToken) || !hasRoutePlace) {
-          primary =
-            pickModetourAdjacentUnusedKeyword(
-              day,
-              maxDay,
-              sorted,
-              used,
-              byDay,
-              productDestination,
-              'forward',
-            ) || primary
-        }
-      }
       if (primary && isModetourAirportLikeKeyword(primary)) primary = ''
       if (primary) used.add(normKey(primary))
       byDay.set(day, { primary, secondary: null })
@@ -1780,7 +1763,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
             'backward',
           ) || primary
       }
-    } else if (!primary) {
+    } else if (!primary && movementOnly) {
       primary =
         pickModetourAdjacentUnusedKeyword(
           day,

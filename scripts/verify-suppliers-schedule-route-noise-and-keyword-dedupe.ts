@@ -284,6 +284,36 @@ for (const s of SUPPLIERS) {
   console.log('[ok] bali 6-day southern tour + return keyword gate')
 }
 
+{
+  const US_EAST = [
+    { day: 1, routeText: '에어프레미아 항공 - 에어프리미아', imageKeyword: '', imageKeyword2: null },
+    { day: 3, routeText: '워싱턴 D.C. - 링컨 기념관 - 스미소니언 박물관 - 국회의사당', imageKeyword: '', imageKeyword2: null },
+    { day: 4, routeText: '캐나다 나이아가라폭포 - 테이블 락 - 나이아가라 월풀', imageKeyword: '', imageKeyword2: null },
+    { day: 6, routeText: '하버드 대학교 - MIT - 보스턴', imageKeyword: '', imageKeyword2: null },
+    { day: 8, routeText: '센트럴 파크 - 록펠러 센터 전망대 - 9.11 메모리얼 - 황소 동상', imageKeyword: '', imageKeyword2: null },
+    { day: 10, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+  ]
+  const out = applyRegisterScheduleImageKeywordsBySupplier(US_EAST, {
+    supplierKey: 'hanatour',
+    productDestination: '미국',
+    productTitle: '미동부',
+  })
+  const d1 = out.find((r) => r.day === 1)
+  const d3 = out.find((r) => r.day === 3)
+  const d4 = out.find((r) => r.day === 4)
+  const d6 = out.find((r) => r.day === 6)
+  const d8 = out.find((r) => r.day === 8)
+  const d10 = out.find((r) => r.day === 10)
+  assert.ok(!String(d1?.imageKeyword ?? '').trim(), 'day1 airline-only must stay empty')
+  assert.ok(String(d3?.imageKeyword ?? '').match(/Lincoln Memorial/i), 'day3 own route landmark')
+  assert.ok(String(d4?.imageKeyword ?? '').match(/Niagara/i), 'day4 niagara')
+  assert.ok(String(d6?.imageKeyword ?? '').match(/Harvard|MIT|Boston/i), 'day6 boston route')
+  assert.ok(String(d8?.imageKeyword ?? '').match(/Central Park|Rockefeller|9\/11|Charging Bull/i), 'day8 nyc route')
+  assert.ok(!String(d10?.imageKeyword ?? '').trim(), 'day10 domestic return empty')
+  assert.ok(!String(d6?.imageKeyword ?? '').match(/Niagara|Washington/i), 'day6 must not bleed niagara/dc')
+  console.log('[ok] US east day-owned imageKeyword gate')
+}
+
 if (LIVE) {
   await runLiveModetourGate()
 } else {

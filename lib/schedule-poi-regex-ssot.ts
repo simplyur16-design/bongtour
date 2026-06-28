@@ -211,6 +211,17 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /비치\s*클럽|Beach\s*Club/i, en: "Bali Beach Club" },
   { re: /뜨갈랄랑|Tegalalang/i, en: "Tegalalang Rice Terrace" },
   { re: /발리\s*해변/i, en: "Bali beach sunset" },
+  { re: /프린스(?:턴|톤)\s*대학|Princeton\s*University/i, en: "Princeton University campus" },
+  { re: /필라델피아|Philadelphia/i, en: "Independence Hall Philadelphia" },
+  { re: /인디펜던스\s*홀|Independence\s*Hall/i, en: "Independence Hall Philadelphia" },
+  { re: /하버드\s*대학|Harvard\s*University/i, en: "Harvard University campus" },
+  { re: /예일\s*대학|Yale\s*University/i, en: "Yale University campus" },
+  { re: /우드버리\s*아울|Woodbury\s*Common/i, en: "Woodbury Common Premium Outlets" },
+  { re: /센트럴\s*파크|Central\s*Park/i, en: "Central Park New York" },
+  { re: /록펠러|Rockefeller\s*Center|Top\s*of\s*the\s*Rock/i, en: "Rockefeller Center Top of the Rock" },
+  { re: /9\.?11\s*메모리얼|Ground\s*Zero/i, en: "9/11 Memorial New York" },
+  { re: /황소\s*동상|Charging\s*Bull/i, en: "Wall Street Charging Bull New York" },
+  { re: /나이아가라\s*시티\s*크루즈|Niagara\s*City\s*Cruises/i, en: "Niagara Falls cruise boat mist" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [

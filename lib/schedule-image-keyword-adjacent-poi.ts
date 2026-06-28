@@ -130,21 +130,19 @@ export type FillScheduleMiddleKeyword2GapOpts = {
   pickAdjacent: (allowTripWideReuse: boolean, ignoreAdjacentDaySlots?: boolean) => string
 }
 
-/** 중간일 imageKeyword2 빈 슬롯 — 인접일 미사용 → 당일 route distinct → 인접일 재사용 허용 */
+/** 중간일 imageKeyword2 빈 슬롯 — 당일 route에서 primary와 다른 landmark만 (타 일차 금지) */
 export function fillScheduleMiddleImageKeyword2Gap(opts: FillScheduleMiddleKeyword2GapOpts): string {
-  const { primary, routeOrdered, extraOrdered, overlaps, rejectKeyword, pickAdjacent } = opts
+  const { primary, routeOrdered, extraOrdered, overlaps, rejectKeyword } = opts
   if (!String(primary ?? '').trim()) return ''
-  const fromAdjacent = pickAdjacent(false)
-  if (fromAdjacent) return fromAdjacent
-  const fromRoute = pickDistinctScheduleRouteSecondKeyword(
-    primary,
-    routeOrdered,
-    extraOrdered,
-    overlaps,
-    rejectKeyword,
+  return (
+    pickDistinctScheduleRouteSecondKeyword(
+      primary,
+      routeOrdered,
+      extraOrdered,
+      overlaps,
+      rejectKeyword,
+    ) || ''
   )
-  if (fromRoute) return fromRoute
-  return pickAdjacent(true, true)
 }
 
 export type ScheduleKeywordSlotKind = 'departure' | 'middle' | 'return'

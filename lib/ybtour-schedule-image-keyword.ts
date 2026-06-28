@@ -1024,21 +1024,6 @@ function allocateYbtourImageKeywordsByScheduleRules<T extends YbtourScheduleImag
       if (!primary) {
         primary = pickFirstUnusedYbtourRouteKeyword(routeOrdered, used, undefined, productDestination)
       }
-      if (!primary && !isScheduleInFlightOvernightRow(row)) {
-        const hasRoutePlace = routeOrdered.some((kw) => String(kw ?? '').trim())
-        if (isScheduleAirportOnlyRouteText(row.routeText, isYbtourDomesticHubToken) || !hasRoutePlace) {
-          primary =
-            pickYbtourAdjacentUnusedKeyword(
-              day,
-              maxDay,
-              sorted,
-              used,
-              byDay,
-              productDestination,
-              'forward',
-            ) || primary
-        }
-      }
       if (primary && isScheduleAirportLikeImageKeyword(primary)) primary = ''
       if (primary) used.add(normKey(primary))
       byDay.set(day, { primary, secondary: null })
@@ -1101,29 +1086,6 @@ function allocateYbtourImageKeywordsByScheduleRules<T extends YbtourScheduleImag
             'both',
           ) || primary
       }
-    } else if (!primary) {
-      primary =
-        pickYbtourAdjacentUnusedKeyword(
-          day,
-          maxDay,
-          sorted,
-          used,
-          byDay,
-          productDestination,
-          'backward',
-          undefined,
-          true,
-        ) ||
-        pickYbtourAdjacentUnusedKeyword(
-          day,
-          maxDay,
-          sorted,
-          used,
-          byDay,
-          productDestination,
-          'backward',
-        ) ||
-        ''
     }
     primary = finalizeYbtourAllocatedPrimaryKeyword(
       primary,

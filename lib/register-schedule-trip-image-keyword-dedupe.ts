@@ -1,7 +1,7 @@
 /**
  * 등록 schedule — trip 전체 imageKeyword·imageKeyword2 중복 제거 (6공급사 공통 후처리).
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: manifest
- * REGRESSION-FREEZE[register-schedule-bali-image-keyword]: 빈 슬롯 — 선행 일차 route 후보 폴백 — manifest
+ * 당일 route 후보만 사용 — 타 일차 landmark 끌어오기 금지.
  */
 import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
@@ -67,22 +67,7 @@ function pickUnusedTripKeyword(
   return ''
 }
 
-function pickUnusedFromPriorDayRouteCandidates<T extends RegisterScheduleTripKeywordRow>(
-  rows: readonly T[],
-  day: number,
-  used: ReadonlySet<string>,
-): string {
-  const prior = [...rows]
-    .filter((r) => Number(r.day) < day)
-    .sort((a, b) => Number(b.day) - Number(a.day))
-  for (const row of prior) {
-    const picked = pickUnusedTripKeyword(collectTripKeywordCandidates(row), used)
-    if (picked) return picked
-  }
-  return ''
-}
-
-/** 이미 쓴 키워드는 route·본문 후보에서 미사용 항목으로 교체, 없으면 빈 슬롯 */
+/** 이미 쓴 키워드는 당일 route·본문 후보만으로 교체 — 타 일차 landmark 금지, 없으면 빈 슬롯 */
 export function enforceRegisterScheduleTripUniqueImageKeywords<T extends RegisterScheduleTripKeywordRow>(
   rows: T[],
 ): T[] {
@@ -97,10 +82,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       primary = pickUnusedTripKeyword(cands, used) || ''
     }
     if (!primary) {
-      primary =
-        pickUnusedTripKeyword(cands, used) ||
-        pickUnusedFromPriorDayRouteCandidates(sorted, Number(row.day), used) ||
-        ''
+      primary = pickUnusedTripKeyword(cands, used) || ''
     }
     if (primary) used.add(normScheduleImageKeywordKey(primary))
 

@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[gemini-client-client-bundle]: hanatour 등록 파서 import 금지 — manifest
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-adjacent-poi]: D1·기내박·귀국 — 인접일 미사용 관광명소·공항 금지 — manifest
+ * REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 당일 routeText 우선 — 타 일차 landmark 금지 — manifest
  */
 import {
   classifyHanatourScheduleCardDayKind,
@@ -1111,6 +1112,19 @@ function pickFirstUnusedHanatourRouteKeyword(
   return ''
 }
 
+/** routeText 순서 유지 — 랜드마크 우선, 도시명은 같은 일차 후보가 없을 때만 */
+function pickFirstUnusedHanatourRouteKeywordPreferLandmark(
+  ordered: readonly string[],
+  used: ReadonlySet<string>,
+  excludePrimary?: string,
+): string {
+  const landmarks = ordered.filter((kw) => kw && !isHanatourBareCityKeyword(kw))
+  return (
+    pickFirstUnusedHanatourRouteKeyword(landmarks, used, excludePrimary) ||
+    pickFirstUnusedHanatourRouteKeyword(ordered, used, excludePrimary)
+  )
+}
+
 function pickHanatourDepartureRepresentativeKeyword(
   routeText: string | null | undefined,
   productDestination: string | null | undefined,
@@ -1229,21 +1243,6 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
       if (!primary) {
         primary = pickFirstUnusedHanatourRouteKeyword(routeOrdered, used)
       }
-      if (!primary && !isScheduleInFlightOvernightRow(row)) {
-        const hasRoutePlace = routeOrdered.some((kw) => String(kw ?? '').trim())
-        if (isScheduleAirportOnlyRouteText(row.routeText, isHanatourDomesticHubToken) || !hasRoutePlace) {
-          primary =
-            pickHanatourAdjacentUnusedKeyword(
-              day,
-              maxDay,
-              sorted,
-              used,
-              byDay,
-              productDestination,
-              'forward',
-            ) || primary
-        }
-      }
       if (primary && isScheduleAirportLikeImageKeyword(primary)) primary = ''
       if (primary) used.add(normKey(primary))
       byDay.set(day, { primary, secondary: null })
@@ -1251,6 +1250,7 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
     }
 
     if (slotKind === 'return') {
+      const domesticReturnOnly = isScheduleAirportOnlyRouteText(row.routeText, isHanatourDomesticHubToken)
       let primary = pickHanatourReturnKeywordFromOwnRoute(row, productDestination, used)
       if (!primary && String(row.routeText ?? '').trim()) {
         primary = pickHanatourDepartureRepresentativeKeyword(row.routeText, productDestination) || ''
@@ -1261,27 +1261,29 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
         const nk = normKey(primary)
         if (primary && nk && used.has(nk)) primary = ''
       }
-      let walkDay = maxDay - 1
-      while (walkDay > 0 && !primary) {
-        const prevRow =
-          findHanatourRowByDay(sorted, walkDay) ?? findPrevHanatourScheduledRow(sorted, walkDay + 1)
-        if (!prevRow) break
-        const prevAlloc = byDay.get(Number(prevRow.day))
-        const prevRouteOrdered = collectHanatourRouteOrderedSegmentKeywords(
-          prevRow.routeText,
-          productDestination,
-        )
-        const prevFull = collectHanatourDayOrderedKeywordCandidates(prevRow, productDestination)
-        primary = pickHanatourReturnKeywordFromPrevDay(
-          prevAlloc,
-          prevRouteOrdered,
-          prevFull,
-          productDestination,
-          used,
-        )
-        walkDay = Number(prevRow.day) - 1
+      if (!primary && !domesticReturnOnly) {
+        let walkDay = maxDay - 1
+        while (walkDay > 0 && !primary) {
+          const prevRow =
+            findHanatourRowByDay(sorted, walkDay) ?? findPrevHanatourScheduledRow(sorted, walkDay + 1)
+          if (!prevRow) break
+          const prevAlloc = byDay.get(Number(prevRow.day))
+          const prevRouteOrdered = collectHanatourRouteOrderedSegmentKeywords(
+            prevRow.routeText,
+            productDestination,
+          )
+          const prevFull = collectHanatourDayOrderedKeywordCandidates(prevRow, productDestination)
+          primary = pickHanatourReturnKeywordFromPrevDay(
+            prevAlloc,
+            prevRouteOrdered,
+            prevFull,
+            productDestination,
+            used,
+          )
+          walkDay = Number(prevRow.day) - 1
+        }
       }
-      if (!primary) {
+      if (!primary && !domesticReturnOnly) {
         primary =
           pickHanatourAdjacentUnusedKeyword(
             day,
@@ -1306,9 +1308,9 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
     const ordered = collectHanatourDayOrderedKeywordCandidates(row, productDestination)
     let primary = movementOnly
       ? ''
-      : pickFirstUnusedHanatourRouteKeyword(routeOrdered, used)
+      : pickFirstUnusedHanatourRouteKeywordPreferLandmark(routeOrdered, used)
     if (!primary) {
-      primary = pickFirstUnusedHanatourRouteKeyword(ordered, used)
+      primary = pickFirstUnusedHanatourRouteKeywordPreferLandmark(ordered, used)
     }
     if (movementOnly) {
       if (!primary || isScheduleAirportLikeImageKeyword(primary)) {
@@ -1323,7 +1325,7 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
             'backward',
           ) || primary
       }
-    } else if (!primary) {
+    } else if (!primary && movementOnly) {
       primary =
         pickHanatourAdjacentUnusedKeyword(
           day,
@@ -1481,23 +1483,6 @@ export function applyHanatourScheduleImageKeywordsToRows<
     ) {
       primary = inputPrimary
       secondary = null
-    }
-
-    if (!primary) {
-      const resolved = resolveHanatourPrimaryKeyword(
-        row,
-        dayKind,
-        day,
-        maxDay,
-        productDestination,
-        out,
-        opts,
-        used,
-      )
-      if (resolved) {
-        primary = resolved
-        used.add(normKey(primary))
-      }
     }
 
     const inputSecondary = tryAcceptHanatourLlmImageKeyword(inputRow?.imageKeyword2, productDestination)
