@@ -8,6 +8,8 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /^leh$/i,
   /^singapore\s+airlines$/i,
   /^air\s*premia$/i,
+  /^mirage\s*tourist\s*camp$/i,
+  /\btourist\s*camp\b/i,
   /\bairlines?\b/i,
   /\bairways\b/i,
   /^international$/i,

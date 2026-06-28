@@ -62,7 +62,7 @@ export function isScheduleAirportLikeImageKeyword(kw: string | null | undefined)
 export function acceptScheduleTourismImageKeywordOrEmpty(kw: string | null | undefined): string {
   const t = String(kw ?? '').trim()
   if (!t || isScheduleAirportLikeImageKeyword(t)) return ''
-  return acceptScheduleImageKeywordOrEmpty(t) || t
+  return acceptScheduleImageKeywordOrEmpty(t)
 }
 
 function isKeywordUsedOnAdjacentDay(
@@ -112,7 +112,7 @@ export function pickDistinctScheduleRouteSecondKeyword(
   if (!pk) return ''
   for (const list of [routeOrdered, extraOrdered]) {
     for (const raw of list) {
-      const kw = String(raw ?? '').trim()
+      const kw = acceptScheduleTourismImageKeywordOrEmpty(raw)
       if (!kw || reject?.(kw)) continue
       if (overlaps(kw, pk)) continue
       return kw

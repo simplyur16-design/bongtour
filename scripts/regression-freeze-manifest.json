@@ -3893,6 +3893,41 @@
       ]
     },
     {
+      "id": "register-schedule-mongolia-image-keyword",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "몽골 테렐지 4일 — Terelj·Turtle Rock·Zaisan POI, 관광캠프 제외",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "테렐지 국립공원",
+            "Zaisan Memorial"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "Terelj National Park",
+            "Turtle Rock",
+            "Genghis Khan Statue"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "hanatourLandmarkFromRouteSegment",
+            "isRegisterScheduleRoutePlaceNoise"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-mongolia-image-keyword.test.ts"
+      ]
+    },
+    {
       "id": "schedule-poi-regex-ssot",
       "tier": [
         "prebuild",
@@ -3910,7 +3945,8 @@
             "Tottori Sand Dunes",
             "Matsue Castle",
             "Garuda Wisnu Kencana",
-            "Melasti Beach"
+            "Melasti Beach",
+            "Terelj National Park"
           ]
         },
         {

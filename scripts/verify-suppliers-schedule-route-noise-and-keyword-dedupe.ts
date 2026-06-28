@@ -314,6 +314,48 @@ for (const s of SUPPLIERS) {
   console.log('[ok] US east day-owned imageKeyword gate')
 }
 
+{
+  const MONGOLIA = [
+    {
+      day: 1,
+      routeText:
+        '몽골 FAQ - 시내를 떠나기 전 필수 코스! 쇼핑 타임 - 현지 대형마트 - 아리iya발 사원 - 테렐지 국립공원 명물 - 거북 바위 (Turtle Rock) - MIRAGE TOURIST CAMP',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 2,
+      routeText:
+        '몽골 대초원 <테렐지 국립공원> - MIRAGE TOURIST CAMP - 칭기즈칸 청동 기마상 - 기마상 전망대 및 박물관',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 3,
+      routeText: '울란바토르 시내관광 - 자이승승전탑 - 수흐바타르 광장',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    { day: 4, title: '울란바토르', routeText: null, imageKeyword: '', imageKeyword2: null },
+  ]
+  const out = applyRegisterScheduleImageKeywordsBySupplier(MONGOLIA, {
+    supplierKey: 'hanatour',
+    productDestination: '몽골',
+    productTitle: '몽골/테렐지 4일',
+  })
+  const d1 = out.find((r) => r.day === 1)
+  const d2 = out.find((r) => r.day === 2)
+  const d3 = out.find((r) => r.day === 3)
+  assert.ok(String(d1?.imageKeyword ?? '').match(/Ariyabal|Terelj National Park/i), 'mongolia day1 landmark')
+  assert.ok(!String(d1?.imageKeyword ?? '').match(/MIRAGE|TOURIST CAMP/i), 'mongolia day1 no camp')
+  assert.ok(String(d2?.imageKeyword ?? '').match(/Terelj National Park|Genghis Khan Statue/i), 'mongolia day2 landmark')
+  assert.ok(!String(d2?.imageKeyword ?? '').match(/MIRAGE|TOURIST CAMP/i), 'mongolia day2 no camp')
+  assert.ok(String(d3?.imageKeyword ?? '').match(/Zaisan Memorial/i), 'mongolia day3 zaisan')
+  assert.ok(String(d3?.imageKeyword2 ?? '').match(/Sukhbaatar Square/i), 'mongolia day3 sukhbaatar kw2')
+  assertTripUniqueKeywords(out, 'mongolia terelj 4-day')
+  console.log('[ok] Mongolia Terelj CQP111-like imageKeyword gate')
+}
+
 if (LIVE) {
   await runLiveModetourGate()
 } else {

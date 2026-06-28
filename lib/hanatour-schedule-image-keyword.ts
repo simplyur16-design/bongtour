@@ -39,6 +39,7 @@ import {
 import {
   finalizeScheduleImageKeyword,
   isAirlineCarrierImageKeyword,
+  isHotelLodgingImageKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
   isNonLandmarkRouteTextSegment,
   isNonLandmarkSpaShoppingLoungeImageKeyword,
@@ -46,6 +47,8 @@ import {
   isWeakOpaqueImageKeyword,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
+import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 
 import {
   acceptScheduleTourismImageKeywordOrEmpty,
@@ -263,6 +266,8 @@ function isHanatourLlmImageKeywordFormatOk(kw: string): boolean {
   if (isNonLandmarkFoodOrDiningImageKeyword(k)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(k)) return false
   if (isAirlineCarrierImageKeyword(k)) return false
+  if (isBlockedScheduleImageKeyword(k)) return false
+  if (isHotelLodgingImageKeyword(k)) return false
   if (isWeakOpaqueImageKeyword(k)) return false
   if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
   const words = k.split(/\s+/).filter(Boolean).length
@@ -329,8 +334,10 @@ function pickDistinctPlaceFromRouteText(
   const primaryNk = normKey(primary)
   for (const seg of routeTextSegments(routeText)) {
     if (isHanatourDomesticHubToken(seg)) continue
-    const raw = extractLatinEnglishFromRouteSegment(seg) || englishFromKoreanRouteSegment(seg)
-    const kw = raw ? tryAcceptHanatourLlmImageKeyword(raw, productDestination) : ''
+    if (isRegisterScheduleRoutePlaceNoise(seg) || isNonLandmarkRouteTextSegment(seg)) continue
+    const kw = acceptScheduleTourismImageKeywordOrEmpty(
+      hanatourRouteSegmentToImageKeyword(seg, productDestination),
+    )
     if (kw && normKey(kw) !== primaryNk) return kw
   }
   return ''
@@ -987,11 +994,10 @@ function hanatourRouteSegmentToImageKeyword(
   seg: string,
   productDestination: string | null | undefined,
 ): string {
-  const latin = extractLatinEnglishFromRouteSegment(seg)
-  if (latin) return latin
-  const ko = englishFromKoreanRouteSegment(seg)
-  if (ko) return ko
-  return ''
+  if (isRegisterScheduleRoutePlaceNoise(seg) || isNonLandmarkRouteTextSegment(seg)) return ''
+  const fromLandmark = hanatourLandmarkFromRouteSegment(seg, seg, productDestination)
+  if (fromLandmark) return fromLandmark
+  return segmentToAcceptedHanatourKeyword(seg, productDestination)
 }
 
 function collectHanatourRouteOrderedSegmentKeywords(
@@ -1001,6 +1007,7 @@ function collectHanatourRouteOrderedSegmentKeywords(
   const out: string[] = []
   for (const seg of routeTextSegments(routeText)) {
     if (isHanatourDomesticHubToken(seg)) continue
+    if (isRegisterScheduleRoutePlaceNoise(seg) || isNonLandmarkRouteTextSegment(seg)) continue
     const en = hanatourRouteSegmentToImageKeyword(seg, productDestination)
     if (!en || isHanatourDomesticHubToken(en)) continue
     if (out.some((x) => keysEqual(x, en))) continue

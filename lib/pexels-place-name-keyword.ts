@@ -627,12 +627,12 @@ export function isNonLandmarkHistoricalPrisonImageKeyword(keyword: string): bool
 export function isHotelLodgingImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
-  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인/u.test(raw)) return true
+  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인|관광\s*캠프|투어(?:리스트|ist)\s*캠프/u.test(raw)) return true
   const n = normalizeToPlaceName(raw).toLowerCase()
   if (!n) return false
   /** 괌 PIC(Pacific Island Club) 등 리조트 브랜드 — Pexels 관광지명이 아님 */
   if (n === 'pic' || /\bpic\s*resort\b/i.test(n)) return true
-  return /\b(hotel|resort|hostel|inn|lodging|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|crowne\s*plaza|holiday\s*inn|best\s*western|motel)\b/i.test(
+  return /\b(hotel|resort|hostel|inn|lodging|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist)\b/i.test(
     n,
   )
 }
@@ -671,9 +671,9 @@ export function isWeakOpaqueImageKeyword(keyword: string): boolean {
 }
 
 function isNonLandmarkRouteTextSegmentKo(t: string): boolean {
-  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$|자금성\s*안내/u.test(
+  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$|자금성\s*안내|관광\s*캠프|투어(?:리스트|ist)\s*캠프|미라지\s*캠프|유목민\s*게르|현대식\s*게르/u.test(
     t,
-  )
+  ) || /(?:^|\s)캠프(?:\s|$)/u.test(t)
 }
 
 /** routeText 세그먼트 — 스파·라운지·마트·공항 등 랜드마크 후보 제외 */
@@ -681,6 +681,7 @@ export function isNonLandmarkRouteTextSegment(seg: string): boolean {
   const t = String(seg ?? '').trim()
   if (!t) return true
   if (isNonLandmarkRouteTextSegmentKo(t)) return true
+  if (/\b(?:mirage\s*)?tourist\s*camp\b/i.test(t)) return true
   const en = normalizeToPlaceName(t).toLowerCase()
   if (!en) return false
   return (
