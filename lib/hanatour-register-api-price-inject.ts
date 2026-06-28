@@ -38,16 +38,20 @@ export async function injectHanatourApiDeparturePricesIfMissing(
   let inputs = filterInputsInWindow(hit.inputs, fromYmd, toYmd).filter((x) => (x.adultPrice ?? 0) > 0)
 
   if (inputs.length === 0) {
-    const single = hit.inputs[0] ?? null
+    const single = hit.anchorInput ?? hit.inputs[0] ?? null
     if (single) inputs = [single]
   }
   if (inputs.length === 0) return parsed
 
-  const first = inputs[0]!
+  const anchor = hit.anchorInput
+  const priceAnchor =
+    (anchor && (anchor.adultPrice ?? 0) > 0 ? anchor : null) ??
+    inputs.find((x) => x.supplierDepartureCodeCandidate === `hanatour:${pkgCd}`) ??
+    inputs[0]!
   const productPriceTable = {
-    adultPrice: first.adultPrice ?? null,
-    childExtraBedPrice: first.childBedPrice ?? null,
-    infantPrice: first.infantPrice ?? null,
+    adultPrice: priceAnchor.adultPrice ?? null,
+    childExtraBedPrice: priceAnchor.childBedPrice ?? null,
+    infantPrice: priceAnchor.infantPrice ?? null,
   }
 
   const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]

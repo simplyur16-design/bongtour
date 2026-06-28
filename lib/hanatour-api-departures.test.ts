@@ -3,6 +3,7 @@ import {
   hanatourProdInfoToDepartureInput,
   hanatourProdListRowToDepartureInput,
   hanatourYmdFromDepDay,
+  filterHanatourProdListRowsForAnchorSaleProdCd,
   isHanatourAirtelLikeProdInfo,
   parseHanatourPkgCdFromUrl,
 } from '@/lib/hanatour-api-departures'
@@ -53,5 +54,24 @@ describe('hanatourProdListRowToDepartureInput', () => {
     })
     expect(out?.departureDate).toBe('2026-06-30')
     expect(out?.adultPrice).toBe(881900)
+  })
+})
+
+describe('filterHanatourProdListRowsForAnchorSaleProdCd', () => {
+  it('keeps only URL saleProdCd — 패키지·다른 호텔 variant 제외', () => {
+    const rows = [
+      { saleProdCd: 'PAP101260920JQ1', depDay: '20260920', adtAmt: 3190000 },
+      { saleProdCd: 'PAB101260920JQ9', depDay: '20260920', adtAmt: 2289000 },
+      { saleProdCd: 'PAB101260920JQ1', depDay: '20260920', adtAmt: 2059000 },
+      { saleProdCd: 'PAB101260903KE1', depDay: '20260903', adtAmt: 4419000 },
+    ]
+    const filtered = filterHanatourProdListRowsForAnchorSaleProdCd(rows, 'PAB101260920JQ1')
+    expect(filtered.map((r) => r.saleProdCd)).toEqual(['PAB101260920JQ1'])
+    expect(filtered[0]?.adtAmt).toBe(2059000)
+  })
+
+  it('empty anchor returns no rows — rprsProdCd 혼합 목록 그대로 쓰지 않음', () => {
+    const rows = [{ saleProdCd: 'A', depDay: '20260920', adtAmt: 1 }]
+    expect(filterHanatourProdListRowsForAnchorSaleProdCd(rows, '')).toEqual([])
   })
 })

@@ -301,6 +301,23 @@ function dedupeByDepartureDate(inputs: DepartureInput[]): DepartureInput[] {
   return out
 }
 
+/** getPkgProdLst — rprsProdCd 아래 패키지·다른 호텔 variant 혼재. URL pkgCd(saleProdCd)만 허용 */
+// REGRESSION-FREEZE[hanatour-api-departure-collect]: filterHanatourProdListRowsForAnchorSaleProdCd — manifest
+export function filterHanatourProdListRowsForAnchorSaleProdCd(
+  rows: readonly HanatourPkgProdListRow[],
+  anchorPkgCd: string,
+): HanatourPkgProdListRow[] {
+  const anchor = String(anchorPkgCd ?? '').trim()
+  if (!anchor) return []
+  return rows.filter((row) => String(row.saleProdCd ?? '').trim() === anchor)
+}
+
+function sortDepartureInputsByDate(inputs: DepartureInput[]): DepartureInput[] {
+  return [...inputs].sort((a, b) =>
+    (departureInputToYmd(a.departureDate) ?? '').localeCompare(departureInputToYmd(b.departureDate) ?? ''),
+  )
+}
+
 function filterInputsInWindow(inputs: DepartureInput[], fromYmd: string, toYmd: string): DepartureInput[] {
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
   const hi = fromYmd <= toYmd ? toYmd : fromYmd
@@ -310,21 +327,34 @@ function filterInputsInWindow(inputs: DepartureInput[], fromYmd: string, toYmd: 
   })
 }
 
+function mergeAnchorProdInfoIfMissing(merged: DepartureInput[], info: HanatourPkgProdInfo): void {
+  const anchor = hanatourProdInfoToDepartureInput(info)
+  if (!anchor) return
+  const anchorYmd = departureInputToYmd(anchor.departureDate)
+  if (!anchorYmd) return
+  const hasAnchorDate = merged.some((x) => departureInputToYmd(x.departureDate) === anchorYmd)
+  if (!hasAnchorDate) merged.push(anchor)
+}
+
 /** `monthYms` 각 월에 대해 getPkgProdLst 호출 후 병합. */
 export async function collectHanatourApiDepartureInputsForMonths(
   pkgCd: string,
   monthYms: readonly string[],
-): Promise<{ inputs: DepartureInput[]; airtelLike: boolean }> {
+): Promise<{ inputs: DepartureInput[]; airtelLike: boolean; anchorInput: DepartureInput | null }> {
   const info = await fetchHanatourPkgProdInfo(pkgCd)
-  if (!info) return { inputs: [], airtelLike: false }
+  if (!info) return { inputs: [], airtelLike: false, anchorInput: null }
 
   const airtelLike = isHanatourAirtelLikeProdInfo(info)
+  const anchorInput = hanatourProdInfoToDepartureInput(info)
   const merged: DepartureInput[] = []
 
   for (const ym of monthYms) {
     if (!/^\d{4}-\d{2}$/.test(ym)) continue
     try {
-      const rows = await fetchHanatourPkgProdLstPage(info, { ym, airtelLike })
+      const rows = filterHanatourProdListRowsForAnchorSaleProdCd(
+        await fetchHanatourPkgProdLstPage(info, { ym, airtelLike }),
+        pkgCd,
+      )
       for (const row of rows) {
         const mapped = hanatourProdListRowToDepartureInput(row)
         if (mapped) merged.push(mapped)
@@ -335,11 +365,16 @@ export async function collectHanatourApiDepartureInputsForMonths(
   }
 
   if (merged.length === 0) {
-    const single = hanatourProdInfoToDepartureInput(info)
-    if (single) merged.push(single)
+    if (anchorInput) merged.push(anchorInput)
+  } else {
+    mergeAnchorProdInfoIfMissing(merged, info)
   }
 
-  return { inputs: dedupeByDepartureDate(merged), airtelLike }
+  return {
+    inputs: dedupeByDepartureDate(sortDepartureInputsByDate(merged)),
+    airtelLike,
+    anchorInput,
+  }
 }
 
 export async function collectHanatourApiDepartureInputsForDateRange(

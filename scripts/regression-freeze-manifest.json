@@ -1145,6 +1145,7 @@
             "fetchHanatourPkgProdInfo",
             "fetchHanatourPkgProdLstPage",
             "collectHanatourApiDepartureInputsForMonths",
+            "filterHanatourProdListRowsForAnchorSaleProdCd",
             "gw.hanatour.com"
           ]
         },
@@ -1168,6 +1169,26 @@
       "vitestSuites": [
         "lib/hanatour-api-departures.test.ts",
         "lib/hanatour-price-collect.test.ts"
+      ]
+    },
+    {
+      "id": "hanatour-price-api-anchor-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "하나투어 gw getPkgProdLst — URL saleProdCd anchor 가격·달력 정합성 live",
+      "npmScripts": [
+        "verify:hanatour-price-api-anchor-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-hanatour-price-api-anchor-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-api-departure-collect]",
+            "filterHanatourProdListRowsForAnchorSaleProdCd",
+            "injectHanatourApiDeparturePricesIfMissing"
+          ]
+        }
       ]
     },
     {
