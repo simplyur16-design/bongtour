@@ -1146,6 +1146,7 @@
             "fetchHanatourPkgProdLstPage",
             "collectHanatourApiDepartureInputsForMonths",
             "filterHanatourProdListRowsForAnchorSaleProdCd",
+            "filterHanatourProdListRowsForAnchorProductLine",
             "gw.hanatour.com"
           ]
         },
@@ -1185,7 +1186,7 @@
           "file": "scripts/verify-hanatour-price-api-anchor-gate.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-api-departure-collect]",
-            "filterHanatourProdListRowsForAnchorSaleProdCd",
+            "filterHanatourProdListRowsForAnchorProductLine",
             "injectHanatourApiDeparturePricesIfMissing"
           ]
         }

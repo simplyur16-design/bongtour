@@ -15,6 +15,8 @@ export type HanatourPkgProdInfo = {
   saleProdCd?: string
   saleProdNm?: string
   rprsProdCd?: string
+  prodMstrCd?: string
+  trvlDayCnt?: number
   prodAreaCd?: string
   depCityCd?: string
   depDay?: string
@@ -110,6 +112,97 @@ export function isHanatourAirtelLikeProdInfo(info: HanatourPkgProdInfo | null | 
   if (info.frdmSchdDvCd === 'FS') return true
   const spr = String(info.prodSprtrNm ?? '')
   return /에어텔|자유\s*여행/i.test(spr)
+}
+
+function hanatourProdMstrCdFromSaleProdCd(cd: string, info?: HanatourPkgProdInfo): string {
+  const fromInfo = String(info?.prodMstrCd ?? '').trim()
+  if (fromInfo) return fromInfo
+  const m = cd.match(/^([A-Z]{3}\d{3})/i)
+  return m?.[1] ?? cd.slice(0, 6)
+}
+
+function hanatourTravelDaysFromProdName(nm: string | null | undefined): number | null {
+  const m = String(nm ?? '').match(/(\d+)\s*일/)
+  if (!m) return null
+  const n = Number(m[1])
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+const HANATOUR_HOTEL_NAME_KEYS: ReadonlyArray<{ re: RegExp; key: string }> = [
+  { re: /파라독스|Paradox/i, key: 'paradox' },
+  { re: /샹그리라|Shangri/i, key: 'shangri' },
+  { re: /포시즌|Four\s*Seasons/i, key: 'fourseasons' },
+]
+
+function hanatourHotelKeyFromProdName(nm: string | null | undefined): string | null {
+  const t = String(nm ?? '')
+  for (const { re, key } of HANATOUR_HOTEL_NAME_KEYS) {
+    if (re.test(t)) return key
+  }
+  return null
+}
+
+function hanatourSaleProdVariantSuffix(cd: string): string {
+  const m = String(cd ?? '').trim().match(/^[A-Z0-9]{6}\d{6}([A-Z0-9]+)$/i)
+  return m?.[1] ?? ''
+}
+
+function isHanatourPackageSaleProdCd(cd: string): boolean {
+  return /^PAP|^CPP|^CQP|^CHP|^ATP|^EWP|^ESP|^JSP/i.test(cd)
+}
+
+function isHanatourAirtelFreeTravelSaleProdCd(cd: string, nm?: string | null): boolean {
+  if (/^PAB|^AVB|^CMB|^CKB|^ADB|^PGB/i.test(cd)) return true
+  return /\[?자유여행\]?|에어텔/i.test(String(nm ?? ''))
+}
+
+/** getPkgProdLst — URL 상품과 동일 라인(마스터·일수·호텔)만. 패키지·다른 호텔·다른 일수 제외 */
+// REGRESSION-FREEZE[hanatour-api-departure-collect]: filterHanatourProdListRowsForAnchorProductLine — manifest
+export function filterHanatourProdListRowsForAnchorProductLine(
+  rows: readonly HanatourPkgProdListRow[],
+  anchorInfo: HanatourPkgProdInfo,
+  anchorPkgCd: string,
+): HanatourPkgProdListRow[] {
+  const anchor = String(anchorPkgCd ?? '').trim()
+  if (!anchor) return []
+
+  const anchorNm = String(anchorInfo.saleProdNm ?? '')
+  const anchorMstr = hanatourProdMstrCdFromSaleProdCd(anchor, anchorInfo)
+  const anchorDays =
+    (Number(anchorInfo.trvlDayCnt ?? 0) > 0 ? Number(anchorInfo.trvlDayCnt) : null) ??
+    hanatourTravelDaysFromProdName(anchorNm)
+  const anchorHotel = hanatourHotelKeyFromProdName(anchorNm)
+  const anchorVariant = hanatourSaleProdVariantSuffix(anchor)
+  const anchorAirtel = isHanatourAirtelLikeProdInfo(anchorInfo)
+
+  return rows.filter((row) => {
+    const cd = String(row.saleProdCd ?? '').trim()
+    if (!cd) return false
+    if (cd === anchor) return true
+
+    const rowNm = String(row.saleProdNm ?? '')
+    if (anchorAirtel) {
+      if (isHanatourPackageSaleProdCd(cd)) return false
+      if (!isHanatourAirtelFreeTravelSaleProdCd(cd, rowNm)) return false
+    } else if (isHanatourPackageSaleProdCd(anchor)) {
+      if (isHanatourAirtelFreeTravelSaleProdCd(cd, rowNm) && !isHanatourPackageSaleProdCd(cd)) return false
+    }
+
+    if (anchorMstr && !cd.startsWith(anchorMstr)) return false
+
+    const rowDays = hanatourTravelDaysFromProdName(rowNm)
+    if (anchorDays != null && anchorDays > 0 && rowDays != null && rowDays !== anchorDays) return false
+
+    if (anchorHotel) {
+      const rowHotel = hanatourHotelKeyFromProdName(rowNm)
+      if (rowHotel && rowHotel !== anchorHotel) return false
+    } else if (anchorVariant) {
+      const rowVariant = hanatourSaleProdVariantSuffix(cd)
+      if (rowVariant && rowVariant !== anchorVariant) return false
+    }
+
+    return true
+  })
 }
 
 function adultPriceFromProdInfo(info: HanatourPkgProdInfo): number | null {
@@ -301,8 +394,7 @@ function dedupeByDepartureDate(inputs: DepartureInput[]): DepartureInput[] {
   return out
 }
 
-/** getPkgProdLst — rprsProdCd 아래 패키지·다른 호텔 variant 혼재. URL pkgCd(saleProdCd)만 허용 */
-// REGRESSION-FREEZE[hanatour-api-departure-collect]: filterHanatourProdListRowsForAnchorSaleProdCd — manifest
+/** @deprecated strict saleProdCd only — use filterHanatourProdListRowsForAnchorProductLine for calendar */
 export function filterHanatourProdListRowsForAnchorSaleProdCd(
   rows: readonly HanatourPkgProdListRow[],
   anchorPkgCd: string,
@@ -351,8 +443,9 @@ export async function collectHanatourApiDepartureInputsForMonths(
   for (const ym of monthYms) {
     if (!/^\d{4}-\d{2}$/.test(ym)) continue
     try {
-      const rows = filterHanatourProdListRowsForAnchorSaleProdCd(
+      const rows = filterHanatourProdListRowsForAnchorProductLine(
         await fetchHanatourPkgProdLstPage(info, { ym, airtelLike }),
+        info,
         pkgCd,
       )
       for (const row of rows) {

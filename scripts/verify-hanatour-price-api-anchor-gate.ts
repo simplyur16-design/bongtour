@@ -61,15 +61,19 @@ async function verifySample(sample: Sample): Promise<void> {
   assert.equal(cal.anchorInput!.adultPrice, anchorPrice, `${sample.pkgCd}: anchorInput price`)
 
   for (const row of cal.inputs) {
-    const code = String(row.supplierDepartureCodeCandidate ?? '')
-    assert.ok(
-      code === `hanatour:${sample.pkgCd}`,
-      `${sample.pkgCd}: foreign saleProdCd in calendar ${code}`,
-    )
-    assert.ok(
-      !(sample.pkgCd.startsWith('PAB') && code.includes('PAP')),
-      `${sample.pkgCd}: package price must not bleed into airtel calendar`,
-    )
+    const code = String(row.supplierDepartureCodeCandidate ?? '').replace(/^hanatour:/, '')
+    if (sample.pkgCd.startsWith('PAB')) {
+      assert.ok(!/^PAP|^CPP|^CQP/i.test(code), `${sample.pkgCd}: package saleProdCd in airtel calendar ${code}`)
+      assert.ok(code.startsWith('PAB'), `${sample.pkgCd}: non-airtel code in calendar ${code}`)
+    } else if (/^CQP|^PAP|^CPP|^CHP/i.test(sample.pkgCd)) {
+      assert.ok(!/^PAB|^AVB|^CMB|^CKB/i.test(code), `${sample.pkgCd}: airtel saleProdCd in package calendar ${code}`)
+      assert.ok(code.startsWith(sample.pkgCd.slice(0, 6)), `${sample.pkgCd}: foreign master in calendar ${code}`)
+    }
+  }
+
+  if (sample.pkgCd === 'PAB101260920JQ1') {
+    const sep = cal.inputs.filter((r) => r.departureDate?.slice(0, 7) === '2026-09')
+    assert.ok(sep.length >= 3, `PAB101 Sep departures >= 3 (got ${sep.length})`)
   }
 
   const anchorYmd = cal.anchorInput!.departureDate?.slice(0, 10)
