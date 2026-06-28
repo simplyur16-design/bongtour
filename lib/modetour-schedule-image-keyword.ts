@@ -19,6 +19,7 @@ import {
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import {
   findMappedKoreanPoisInTextByMentionOrder,
@@ -196,7 +197,9 @@ function pickModetourAdjacentUnusedKeyword(
 }
 
 function routeTextSegments(routeText: string | null | undefined): string[] {
-  return splitRouteTextPlaceSegments(routeText).map(stripRouteSegmentNoise).filter((s) => s.length >= 2)
+  return splitRouteTextPlaceSegments(routeText)
+    .map(stripRouteSegmentNoise)
+    .filter((s) => s.length >= 2 && !isRegisterScheduleRoutePlaceNoise(s))
 }
 
 function countModetourForeignRouteSegments(routeText: string | null | undefined): number {

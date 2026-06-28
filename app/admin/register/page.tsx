@@ -46,6 +46,8 @@ import {
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
 import { resolveHanatourRegisterScheduleSectionByDay, enrichHanatourRegisterPreviewScheduleRowsFromSection } from '@/lib/hanatour-schedule-section-by-day'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { sanitizeModetourRegisterScheduleRouteRows } from '@/lib/modetour-register-api-schedule'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
@@ -425,7 +427,7 @@ function buildRegisterPexelsUiRows(
       supplierKey === 'modetour' &&
       validFromParsed.every((row) => String(row.imageKeyword ?? '').trim())
     ) {
-      return finalizeRegisterScheduleImageKeywords(
+      const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(
         validFromParsed.map((row) => {
           const day = Number(row.day)
           return {
@@ -437,6 +439,9 @@ function buildRegisterPexelsUiRows(
             imageKeyword2: String(row.imageKeyword2 ?? '').trim() || null,
           }
         }),
+      )
+      return finalizeRegisterScheduleImageKeywords(
+        enforceRegisterScheduleTripUniqueImageKeywords(routeSanitized),
         { productDestination: destHintEarly },
       ).map((row) => ({
         day: row.day,

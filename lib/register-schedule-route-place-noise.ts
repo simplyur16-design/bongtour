@@ -2,6 +2,7 @@
  * 등록 schedule routeText 세그먼트 — UI·행정 안내 문구 제외 (전 공급사 공통).
  * REGRESSION-FREEZE[register-schedule-route-place-noise]: manifest
  */
+import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 const ROUTE_PLACE_NOISE_START_RE =
   /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
 
@@ -21,4 +22,24 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
   if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
   return false
+}
+
+/** routeText·places 배열에서 행정/UI 세그먼트 제거 */
+export function filterRegisterScheduleRoutePlaceSegments(segments: readonly string[]): string[] {
+  const out: string[] = []
+  for (const raw of segments) {
+    const label = String(raw ?? '').replace(/\s+/g, ' ').trim()
+    if (!label || isRegisterScheduleRoutePlaceNoise(label)) continue
+    out.push(label)
+  }
+  return out
+}
+
+/** 기존 routeText 문자열 — 세그먼트 분리 후 noise 제거·재조립 */
+export function sanitizeRegisterScheduleRouteText(
+  routeText: string | null | undefined,
+  maxPlaces = 7,
+): string | null {
+  const chain = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText)).slice(0, maxPlaces)
+  return chain.length > 0 ? chain.join(' - ') : null
 }

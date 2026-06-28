@@ -75,6 +75,20 @@ describe('modetour register api schedule', () => {
     expect(desc).not.toMatch(/▶/)
   })
 
+  it('돗토리 — 입국 안내 세그먼트는 routeText에서 제거', () => {
+    const days = modetourFactDaysToRegisterSchedule([
+      {
+        day: 1,
+        places: ['인천', '돗토리', '한국-일본 여행 입국시 관련 안내', '미즈키시게루 로드'],
+        hotels: ['총 0개의 예정 호텔이 있습니다.'],
+        meals: [],
+        transportNote: null,
+      },
+    ])
+    expect(days[0]?.routeText).toBe('인천 - 돗토리 - 미즈키시게루 로드')
+    expect(days[0]?.routeText).not.toMatch(/입국|관련\s*안내|한국-일본\s*여행/)
+  })
+
   it('상해 1일차 — 입국신고·미팅 안내는 routeText/title에서 제거, 입국 도시는 상해만', () => {
     const days = modetourFactDaysToRegisterSchedule([
       {

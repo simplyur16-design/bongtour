@@ -6,6 +6,11 @@
  */
 import { classifyModetourScheduleCardDayKind } from '@/lib/modetour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
+import {
+  filterRegisterScheduleRoutePlaceSegments,
+  isRegisterScheduleRoutePlaceNoise,
+  sanitizeRegisterScheduleRouteText,
+} from '@/lib/register-schedule-route-place-noise'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 
@@ -65,6 +70,7 @@ function extractModetourEntryCityFromLabel(label: string): string | null {
 export function normalizeModetourFactPlaceLabel(raw: string): string | null {
   const label = cleanModetourHighlightLabel(String(raw ?? ''))
   if (!label) return null
+  if (isRegisterScheduleRoutePlaceNoise(label)) return null
   const entryCity = extractModetourEntryCityFromLabel(label)
   if (entryCity) return entryCity
   if (isModetourHighlightNoise(label)) return null
@@ -287,5 +293,25 @@ export function modetourFactDaysToRegisterSchedule(
       dinnerText: meals.dinnerText ?? null,
       mealSummaryText: meals.mealSummaryText ?? null,
     }
+  })
+}
+
+/** 등록 schedule[] — routeText 행정·UI 세그먼트 제거 (기수집·붙여넣기 병합 후) */
+export function sanitizeModetourRegisterScheduleRouteRows<
+  T extends { day: number; routeText?: string | null; title?: string | null },
+>(rows: T[]): T[] {
+  return rows.map((row) => {
+    const routeText = sanitizeRegisterScheduleRouteText(row.routeText, MODETOUR_SCHEDULE_HIGHLIGHT_MAX)
+    const titlePlaces = filterRegisterScheduleRoutePlaceSegments(
+      String(row.title ?? '')
+        .split(/\s*-\s*/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
+    const title =
+      titlePlaces.length > 0
+        ? titlePlaces.slice(0, MODETOUR_SCHEDULE_HIGHLIGHT_MAX).join(' - ')
+        : row.title
+    return { ...row, routeText, title }
   })
 }

@@ -22,7 +22,7 @@ import {
   extractModetourFeesFromDetailInfo,
   fetchModetourRegisterDetailBundle,
 } from '@/lib/modetour-register-api-detail'
-import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
+import { modetourFactDaysToRegisterSchedule, sanitizeModetourRegisterScheduleRouteRows } from '@/lib/modetour-register-api-schedule'
 export { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 import { filterModetourOptionalTourRows } from '@/lib/register-modetour-options'
 import {
@@ -104,7 +104,8 @@ export async function ensureModetourRegisterScheduleImageKeywords(
 ): Promise<RegisterParsed> {
   const schedule = parsed.schedule ?? []
   if (schedule.length === 0) return parsed
-  const normalized = schedule.map((row) => ({
+  const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(schedule)
+  const normalized = routeSanitized.map((row) => ({
     ...row,
     imageKeyword: String(row.imageKeyword ?? '').trim(),
     imageKeyword2: row.imageKeyword2 ?? null,

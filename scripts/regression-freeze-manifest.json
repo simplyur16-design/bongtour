@@ -3636,6 +3636,19 @@
             "isRegisterScheduleRoutePlaceNoise",
             "dedupeLottetourScheduleRoutePlaces"
           ]
+        },
+        {
+          "file": "lib/modetour-register-api-schedule.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise",
+            "sanitizeModetourRegisterScheduleRouteRows"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-detail-collect.ts",
+          "mustInclude": [
+            "sanitizeModetourRegisterScheduleRouteRows"
+          ]
         }
       ],
       "vitestSuites": [

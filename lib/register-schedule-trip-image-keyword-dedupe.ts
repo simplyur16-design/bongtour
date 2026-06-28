@@ -2,7 +2,7 @@
  * 등록 schedule — trip 전체 imageKeyword·imageKeyword2 중복 제거 (6공급사 공통 후처리).
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: manifest
  */
-import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
@@ -45,6 +45,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     if (isRegisterScheduleRoutePlaceNoise(seg)) continue
     push(firstMatchingScheduleSpotEn(seg))
     push(firstMatchingScheduleCityEn(seg))
+    push(englishFromScheduleKoreanSegment(seg))
   }
   const hay = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
   for (const poi of findAllMappedKoreanPoisInText(hay)) push(poi)
