@@ -181,7 +181,8 @@
     "backfill:highlight-llm": "npx tsx scripts/backfill-highlight-llm.ts",
     "smoke:highlight-llm": "npx tsx scripts/smoke-highlight-llm.ts",
     "verify:kyowontour-tour-event-tab-opt-shop": "npx tsx scripts/verify-kyowontour-tour-event-tab-opt-shop.ts",
-    "verify:suppliers-schedule-route-text-chain": "npx tsx scripts/verify-suppliers-schedule-route-text-chain.ts"
+    "verify:suppliers-schedule-route-text-chain": "npx tsx scripts/verify-suppliers-schedule-route-text-chain.ts",
+    "verify:suppliers-schedule-route-noise-and-keyword-dedupe": "npx tsx scripts/verify-suppliers-schedule-route-noise-and-keyword-dedupe.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

@@ -6,6 +6,7 @@
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
+import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const VERYGOODTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -27,6 +28,7 @@ function cleanVerygoodtourRoutePlaceLabel(raw: string): string {
 }
 
 function isVerygoodtourRoutePlaceNoise(label: string): boolean {
+  if (isRegisterScheduleRoutePlaceNoise(label)) return true
   const t = label.trim()
   if (!t || t.length < 2 || t.length > 80) return true
   if (/^\d{4}년\s*\d{1,2}월/.test(t)) return true
@@ -294,7 +296,10 @@ export function applyVerygoodtourScheduleExpressionToRows<T extends RegisterSche
       fromExisting.length >= 2
         ? fromExisting
         : dedupeVerygoodtourScheduleRoutePlaces(fromPaste.length > 0 ? fromPaste : fromExisting)
-    const routeText = joinVerygoodtourScheduleRouteText(routePlaces) ?? row.routeText ?? null
+    const routeText =
+      sanitizeRegisterScheduleRouteText(joinVerygoodtourScheduleRouteText(routePlaces) ?? row.routeText ?? null) ??
+      row.routeText ??
+      null
     const joinedBlob = [row.title, row.description, routeText].filter(Boolean).join('\n')
     const description = composeVerygoodtourScheduleDescription({
       day,

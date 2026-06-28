@@ -344,6 +344,15 @@
       "summary": "7공급사 일정요약 routeText a-b-c 체인 SSOT 점검"
     },
     {
+      "id": "suppliers-schedule-route-noise-and-keyword-dedupe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:suppliers-schedule-route-noise-and-keyword-dedupe",
+      "summary": "7공급사 routeText 행정 noise 제거 + trip imageKeyword 중복 실검"
+    },
+    {
       "id": "kyowontour-tour-event-tab-opt-shop",
       "tier": [
         "prebuild",
@@ -952,6 +961,7 @@
             "REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]",
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence",
+            "sanitizeRegisterScheduleRouteText",
             "enforceRegisterScheduleTripUniqueImageKeywords",
             "applyRegisterScheduleImageKeywordsBySupplier",
             "applyHanatourScheduleImageKeywordsToRows",
@@ -3648,6 +3658,47 @@
           "file": "lib/modetour-register-detail-collect.ts",
           "mustInclude": [
             "sanitizeModetourRegisterScheduleRouteRows"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise",
+            "sanitizeRegisterScheduleRouteText"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-api-schedule.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise",
+            "sanitizeRegisterScheduleRouteText"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-schedule.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise",
+            "sanitizeRegisterScheduleRouteText"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-schedule.ts",
+          "mustInclude": [
+            "isRegisterScheduleRoutePlaceNoise"
+          ]
+        },
+        {
+          "file": "scripts/verify-suppliers-schedule-route-noise-and-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]",
+            "assertRouteNoAdminNoise",
+            "assertTripUniqueKeywords"
           ]
         }
       ],

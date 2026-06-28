@@ -6,6 +6,7 @@
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-naeiltour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
+import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const NAEILTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -27,6 +28,7 @@ function cleanNaeiltourRoutePlaceLabel(raw: string): string {
 }
 
 function isNaeiltourRoutePlaceNoise(label: string): boolean {
+  if (isRegisterScheduleRoutePlaceNoise(label)) return true
   const t = label.trim()
   if (!t || t.length < 2 || t.length > 80) return true
   if (/^\d{4}년\s*\d{1,2}월/.test(t)) return true
@@ -294,7 +296,10 @@ export function applyNaeiltourScheduleExpressionToRows<T extends RegisterSchedul
       fromExisting.length >= 2
         ? fromExisting
         : dedupeNaeiltourScheduleRoutePlaces(fromPaste.length > 0 ? fromPaste : fromExisting)
-    const routeText = joinNaeiltourScheduleRouteText(routePlaces) ?? row.routeText ?? null
+    const routeText =
+      sanitizeRegisterScheduleRouteText(joinNaeiltourScheduleRouteText(routePlaces) ?? row.routeText ?? null) ??
+      row.routeText ??
+      null
     const joinedBlob = [row.title, row.description, routeText].filter(Boolean).join('\n')
     const description = composeNaeiltourScheduleDescription({
       day,

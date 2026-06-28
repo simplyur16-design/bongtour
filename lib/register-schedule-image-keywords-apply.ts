@@ -17,6 +17,7 @@ import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airt
 import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
+import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 
 export type RegisterScheduleImageKeywordApplyRow = {
@@ -46,6 +47,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   T extends RegisterScheduleImageKeywordApplyRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsOpts): T[] {
   if (!rows.length) return rows
+  const sanitizedRows = rows.map((row) => ({
+    ...row,
+    routeText: sanitizeRegisterScheduleRouteText(row.routeText),
+  }))
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
@@ -53,49 +58,49 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
 
   let out: T[]
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    out = applyAirtelRouteTextImageKeywordsToSchedule(rows)
+    out = applyAirtelRouteTextImageKeywordsToSchedule(sanitizedRows)
   } else {
     switch (supplier) {
       case 'hanatour':
-        out = applyHanatourScheduleImageKeywordsToRows(rows, {
+        out = applyHanatourScheduleImageKeywordsToRows(sanitizedRows, {
           productDestination: dest,
           optionalTourNames: opts.optionalTourNames,
           scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
         })
         break
       case 'modetour':
-        out = applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+        out = applyModetourScheduleImageKeywordsToRows(sanitizedRows, { productDestination: dest })
         break
       case 'ybtour':
-        out = applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+        out = applyYbtourScheduleImageKeywordsToRows(sanitizedRows, { productDestination: dest })
         break
       case 'verygoodtour':
-        out = applyVerygoodScheduleImageKeywordsToRows(rows, {
-          detRows: rows as VerygoodRegisterScheduleDay[],
+        out = applyVerygoodScheduleImageKeywordsToRows(sanitizedRows, {
+          detRows: sanitizedRows as VerygoodRegisterScheduleDay[],
           productDestination: dest,
-          totalDays: rows.length,
+          totalDays: sanitizedRows.length,
         })
         break
       case 'lottetour':
-        out = applyLottetourScheduleImageKeywordsToRows(rows, {
+        out = applyLottetourScheduleImageKeywordsToRows(sanitizedRows, {
           productDestination: dest,
           productTitle: title ?? undefined,
         })
         break
       case 'kyowontour':
-        out = applyKyowontourScheduleImageKeywordsToRows(rows, {
+        out = applyKyowontourScheduleImageKeywordsToRows(sanitizedRows, {
           productDestination: dest,
           productTitle: title ?? undefined,
         })
         break
       case 'naeiltour':
-        out = applyNaeiltourScheduleImageKeywordsToRows(rows as NaeiltourScheduleImageKeywordRow[], {
+        out = applyNaeiltourScheduleImageKeywordsToRows(sanitizedRows as NaeiltourScheduleImageKeywordRow[], {
           productDestination: dest,
           englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
         }) as T[]
         break
       default:
-        out = rows
+        out = sanitizedRows
     }
   }
   return enforceRegisterScheduleTripUniqueImageKeywords(

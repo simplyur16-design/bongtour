@@ -12,6 +12,7 @@ import {
 } from '@/lib/hanatour-api-departures'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-hanatour'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
@@ -175,6 +176,7 @@ function normalizeHanatourHighlightKey(label: string): string {
 function isHanatourHighlightNoise(label: string): boolean {
   const t = label.trim()
   if (!t || t.length < 2) return true
+  if (isRegisterScheduleRoutePlaceNoise(t)) return true
   if (HANATOUR_HIGHLIGHT_NOISE_RE.test(t)) return true
   if (/^HELLO[\s,]/i.test(t)) return true
   if (/^Hong Kong$/i.test(t)) return true

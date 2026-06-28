@@ -6,7 +6,7 @@
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
-import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -261,7 +261,10 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
     const fromRoute = row.routeText ? dedupeLottetourScheduleRoutePlaces(row.routeText.split(/\s*-\s*/)) : []
     const fromPaste = extractLottetourSchedulePlacesFromPastedBlock(String(row.description ?? ''))
     const routePlaces = dedupeLottetourScheduleRoutePlaces([...fromRoute, ...fromPaste])
-    const routeText = joinLottetourScheduleRouteText(routePlaces) ?? row.routeText ?? null
+    const routeText =
+      sanitizeRegisterScheduleRouteText(joinLottetourScheduleRouteText(routePlaces) ?? row.routeText ?? null) ??
+      row.routeText ??
+      null
     const joinedBlob = [row.title, row.description, routeText].filter(Boolean).join('\n')
     const description = composeLottetourScheduleDescription({
       day,

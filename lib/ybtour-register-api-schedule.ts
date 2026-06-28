@@ -7,6 +7,7 @@ import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
+import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -41,6 +42,7 @@ function cleanYbtourRoutePlaceLabel(raw: string): string {
 }
 
 function isYbtourRoutePlaceNoise(label: string): boolean {
+  if (isRegisterScheduleRoutePlaceNoise(label)) return true
   const t = label.trim()
   if (!t || t.length < 2 || t.length > 80) return true
   if (YBTOUR_ROUTE_PLACE_NOISE_RE.test(t)) return true
@@ -334,7 +336,10 @@ export function applyYbtourScheduleExpressionToRows<T extends RegisterScheduleDa
     if (day <= 0) return row
     const fromRoute = row.routeText ? dedupeYbtourScheduleRoutePlaces(row.routeText.split(/\s*-\s*/)) : []
     const routePlaces = dedupeYbtourScheduleRoutePlaces(fromRoute)
-    const routeText = joinYbtourScheduleRouteText(routePlaces) ?? row.routeText ?? null
+    const routeText =
+      sanitizeRegisterScheduleRouteText(joinYbtourScheduleRouteText(routePlaces) ?? row.routeText ?? null) ??
+      row.routeText ??
+      null
     const joinedBlob = [row.title, row.description, routeText].filter(Boolean).join('\n')
     const description = composeYbtourScheduleDescription({
       day,
