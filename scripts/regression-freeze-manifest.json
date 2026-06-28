@@ -3667,13 +3667,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "routeText 세그먼트 — 입국 안내·여행일정 UI 문구 제외",
+      "summary": "routeText 세그먼트 — 입국 안내·항공사·여행일정 UI 문구 제외",
       "checks": [
         {
           "file": "lib/register-schedule-route-place-noise.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-place-noise]",
-            "isRegisterScheduleRoutePlaceNoise"
+            "isRegisterScheduleRoutePlaceNoise",
+            "isRegisterScheduleAirlineRouteSegment"
           ]
         },
         {

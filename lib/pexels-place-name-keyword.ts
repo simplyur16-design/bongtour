@@ -598,12 +598,14 @@ export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boo
 
 /** 항공사·캐리어 브랜드 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
 const AIRLINE_CARRIER_RE =
-  /\b(?:airlines?|airways|air\s*line|항공(?:사)?)\b|singapore\s+airlines|korean\s+air|asiana\s+air|jeju\s+air|t\s*way|eastar\s+jet|air\s+canada|westjet|vietjet|vietnam\s+airlines|eva\s+air|china\s+airlines|china\s+eastern|china\s+southern|united\s+airlines|delta\s+air|american\s+airlines|british\s+airways|lufthansa|emirates|qatar\s+airways|turkish\s+airlines|air\s+france|klm|jal|ana\b|peach\s+aviation|spring\s+airlines|hainan\s+airlines|malaysia\s+airlines|garuda|philippine\s+airlines|scoot\b|jetstar|airasia|finnair|sas\b|swiss\s+air|iberia|alitalia|ryanair|easyjet/i
+  /\b(?:airlines?|airways|air\s*line|항공(?:사)?)\b|air\s*premia|singapore\s+airlines|korean\s+air|asiana\s+air|jeju\s+air|t\s*way|eastar\s+jet|air\s+canada|westjet|vietjet|vietnam\s+airlines|eva\s+air|china\s+airlines|china\s+eastern|china\s+southern|united\s+airlines|delta\s+air|american\s+airlines|british\s+airways|lufthansa|emirates|qatar\s+airways|turkish\s+airlines|air\s+france|klm|jal|ana\b|peach\s+aviation|spring\s+airlines|hainan\s+airlines|malaysia\s+airlines|garuda\s+indonesia|philippine\s+airlines|scoot\b|jetstar|airasia|finnair|sas\b|swiss\s+air|iberia|alitalia|ryanair|easyjet|zipair|air\s+seoul|air\s+busan/i
 
 export function isAirlineCarrierImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
   if (/항공(?:사)?|에어라인|직항\s*노선/u.test(raw)) return true
+  if (/에어\s*프(?:레미아|리미아)|에어프(?:레미아|리미아)/u.test(raw)) return true
+  if (/^에어[\uAC00-\uD7AF]{1,12}(?:\s*항공)?$/u.test(raw)) return true
   const n = normalizeToPlaceName(raw).toLowerCase()
   if (!n) return false
   return AIRLINE_CARRIER_RE.test(n)

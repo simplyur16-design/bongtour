@@ -7,6 +7,7 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /^male$/i,
   /^leh$/i,
   /^singapore\s+airlines$/i,
+  /^air\s*premia$/i,
   /\bairlines?\b/i,
   /\bairways\b/i,
   /^international$/i,

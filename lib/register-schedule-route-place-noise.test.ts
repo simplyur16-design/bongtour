@@ -10,6 +10,22 @@ import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-
 import type { KyowontourScheduleRowParsed } from '@/lib/kyowontour-tour-event-tab-data'
 
 describe('register schedule route place noise', () => {
+  it('blocks airline carrier segments — not tourism landmarks', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('에어프레미아 항공')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('에어프리미아')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('Air Premia')).toBe(true)
+    expect(sanitizeRegisterScheduleRouteText('에어프레미아 항공 - 에어프리미아')).toBeNull()
+  })
+
+  it('airline-only departure day — empty imageKeyword', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [{ day: 1, routeText: '에어프레미아 항공 - 에어프리미아', imageKeyword: '', imageKeyword2: null }],
+      { supplierKey: 'hanatour', productDestination: '미국', productTitle: '미동부' },
+    )
+    expect(String(out[0]?.imageKeyword ?? '').trim()).toBe('')
+    expect(sanitizeRegisterScheduleRouteText(out[0]?.routeText ?? '')).toBeNull()
+  })
+
   it('blocks immigration/admin guidance segments', () => {
     expect(isRegisterScheduleRoutePlaceNoise('한국-일본 여행 입국시 관련 안내')).toBe(true)
     expect(isRegisterScheduleRoutePlaceNoise('여행일정')).toBe(true)

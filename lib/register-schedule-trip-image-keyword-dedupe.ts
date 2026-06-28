@@ -7,6 +7,7 @@ import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRou
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import {
   firstMatchingScheduleCityEn,
@@ -27,6 +28,7 @@ function isRejectedTripKeywordCandidate(kw: string): boolean {
   if (!t) return true
   if (isBlockedScheduleImageKeyword(t)) return true
   if (isScheduleAirportLikeImageKeyword(t)) return true
+  if (isAirlineCarrierImageKeyword(t)) return true
   return false
 }
 

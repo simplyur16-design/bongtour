@@ -38,6 +38,7 @@ import {
 } from '@/lib/pexels-keyword'
 import {
   finalizeScheduleImageKeyword,
+  isAirlineCarrierImageKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
   isNonLandmarkRouteTextSegment,
   isNonLandmarkSpaShoppingLoungeImageKeyword,
@@ -261,6 +262,7 @@ function isHanatourLlmImageKeywordFormatOk(kw: string): boolean {
   if (/\b(hotel|resort|buffet|breakfast|lunch|dinner|brunch)\b/i.test(k)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(k)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(k)) return false
+  if (isAirlineCarrierImageKeyword(k)) return false
   if (isWeakOpaqueImageKeyword(k)) return false
   if (/\d{1,2}\/\d{1,2}/.test(k) || /\d{1,2}-\d{1,2}\b/.test(k)) return false
   const words = k.split(/\s+/).filter(Boolean).length
@@ -530,6 +532,7 @@ function tryAcceptHanatourMappedPoiKeyword(
     if (!kw || isHanatourDomesticHubToken(kw)) return ''
     if (isHanatourCrossContinentHallucinationKeyword(kw, productDestination)) return ''
     if (isHanatourForeignAirportImageKeyword(kw)) return ''
+    if (isAirlineCarrierImageKeyword(kw)) return ''
     return kw
   } catch {
     return ''
