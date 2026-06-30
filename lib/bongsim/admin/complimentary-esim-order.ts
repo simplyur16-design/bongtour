@@ -326,7 +326,7 @@ async function loadMinimalOrder(
       grand_total_krw: Number.parseInt(order.grand_total_krw, 10),
     },
     payment: {
-      payment_status: "paid",
+      payment_status: "captured",
       payment_provider: COMPLIMENTARY_ESIM_PAYMENT_PROVIDER,
       payment_reference: null,
       paid_amount_krw: 0,
