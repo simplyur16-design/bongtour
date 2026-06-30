@@ -844,6 +844,7 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   'us-east': ['미국'],
   canada: ['캐나다'],
   australia: ['호주'],
+  'australia-new-zealand': ['호주', '뉴질랜드'],
   china: ['중국'],
   mongolia: ['몽골'],
   usa: ['미국'],
@@ -940,7 +941,12 @@ function browseParamTargetsRegionBucketOnly(param: string, dbCountries: string[]
 
 /**
  * browse `country` URL 값 → `ProductCountryTag.countryKey` 후보 (소문자, 트리 `countryKey` 정합).
+ * REGRESSION-FREEZE[oceania-mega-menu-three-tier]: australia-new-zealand → australia+newzealand — manifest
  */
+const COMBINED_BROWSE_COUNTRY_KEY_EXPANSIONS: Record<string, string[]> = {
+  'australia-new-zealand': ['australia', 'newzealand'],
+}
+
 export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null | undefined): string[] {
   const trimmed = (param ?? '').trim()
   const raw = trimmed.toLowerCase()
@@ -949,6 +955,7 @@ export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null 
   if (raw === 'japan' || trimmed === '일본') out.add('jp')
   const saKey = SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[raw] ?? SOUTH_AMERICA_COUNTRY_KEY_BY_BROWSE_SLUG[trimmed]
   if (saKey) out.add(saKey)
+  for (const k of COMBINED_BROWSE_COUNTRY_KEY_EXPANSIONS[raw] ?? []) out.add(k)
   const dbCountries = resolveBrowseCountryParamToDbCountries(param)
   for (const dbKr of dbCountries) {
     const master = DB_KR_LABEL_TO_MASTER_COUNTRY_KEY[dbKr]

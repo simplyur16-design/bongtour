@@ -628,7 +628,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         { aliases: ['뉴질랜드', 'new zealand'] }
       ),
     ],
-    ['괌', '사이판', '호주', '뉴질랜드']
+    ['괌', '사이판', '호주/뉴질랜드']
   ),
 
   G(

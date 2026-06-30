@@ -113,6 +113,7 @@ async function verifyMegaMenuBrowseUrls(
     'guam',
     'saipan',
     'australia',
+    'australia-new-zealand',
     'new-zealand',
     'maldives',
     'mongolia',
@@ -481,6 +482,8 @@ async function main() {
       { id: 'J-mexico-sa', href: leafHref('south-america', '중남미', '멕시코'), min: 0 },
       { id: 'C-vietnam-header', href: headerHref('southeast-asia', '베트남'), min: 1 },
       { id: 'C-eastern-europe-header', href: headerHref('europe-me', '동유럽'), min: 1 },
+      { id: 'I-guam-oc', href: leafHref('oceania', '괌', '괌'), min: 0 },
+      { id: 'I-au-nz-oc', href: leafHref('oceania', '호주/뉴질랜드', '호주/뉴질랜드'), min: 0 },
     ]
 
     for (const c of hrefCases) {

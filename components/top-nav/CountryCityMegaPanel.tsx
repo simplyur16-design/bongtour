@@ -18,6 +18,14 @@ const FLAT_GRID_COLS_CLASS: Record<number, string> = {
   5: 'grid-cols-5',
 }
 
+/** 중분류=국가 leaf 1개(LC) — 헤더·하위 도시 중복 링크 방지 */
+function isSingleCountryLeafGroup(g: MegaMenuCountryGroup): boolean {
+  if (g.cities.length !== 1) return false
+  const leaf = g.cities[0]
+  if (!leaf || leaf.kind !== 'country') return false
+  return leaf.label.trim() === g.countryLabel.trim()
+}
+
 /**
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
  */
@@ -74,11 +82,35 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
           layout.compact ? 'gap-x-5 gap-y-4' : 'gap-8'
         }`}
       >
-        {countryGroups.map((g, idx) => (
+        {countryGroups.map((g, idx) => {
+          const singleCountryLeaf = isSingleCountryLeafGroup(g)
+          return (
           <div
             key={`${regionId}-${g.countryLabel}-${idx}`}
             className={`${layout.compact ? 'mb-4' : 'mb-6'} min-w-0${isFlatGrid ? ' col-span-full' : ''}`}
           >
+            {singleCountryLeaf ? (
+              (() => {
+                const leaf = g.cities[0]!
+                const href = buildMegaMenuLeafHref({
+                  type: activeProductType,
+                  regionId,
+                  countryLabel: g.countryLabel,
+                  headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                  leaf,
+                })
+                return (
+                  <Link
+                    href={href}
+                    prefetch={prefetchPropForHref(href)}
+                    className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
+                  >
+                    {g.countryLabel}
+                  </Link>
+                )
+              })()
+            ) : (
+              <>
             {!isFlatGrid &&
               (g.nonLinkHeader ? (
                 <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
@@ -132,8 +164,10 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                 )
               })}
             </ul>
+              </>
+            )}
           </div>
-        ))}
+        )})}
       </div>
     </div>
   )

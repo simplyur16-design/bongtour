@@ -65,7 +65,7 @@ const SUBGROUP_DISPLAY_ORDER_OVERRIDE: Partial<Record<string, string[]>> = {
   'south-america': ['멕시코', '쿠바', '페루', '브라질', '아르헨티나', '칠레', '볼리비아', '도미니카'],
   'china-hk-mo': ['중국', '홍콩/마카오', '몽골'],
   japan: ['홋카이도', '간사이', '도호쿠', '간토', '주고쿠-시코쿠', '규슈', '추부', '오키나와'],
-  oceania: ['괌', '사이판', '호주', '뉴질랜드'],
+  oceania: ['괌', '사이판', '호주/뉴질랜드'],
   'europe-me': [
     '서유럽',
     '동유럽',
@@ -291,6 +291,59 @@ const AMERICAS_WEST_TEXT = [
 ]
 
 const AMERICAS_HAWAII_TEXT = ['하와이', 'hawaii', '호놀룰루', 'honolulu', '오아후', 'oahu', '마우이', 'maui']
+
+const OCEANIA_AU_NZ_COUNTRY_KEYS = new Set(['australia', 'newzealand'])
+
+const OCEANIA_AU_NZ_ROW_LABELS = new Set(['호주', '뉴질랜드', '호주/뉴질랜드'])
+
+const OCEANIA_AU_NZ_TEXT = [
+  '호주',
+  'australia',
+  '뉴질랜드',
+  'new zealand',
+  'newzealand',
+  '시드니',
+  'sydney',
+  '멜버른',
+  'melbourne',
+  '브리즈번',
+  'brisbane',
+  '골드코스트',
+  'gold coast',
+  '케언즈',
+  'cairns',
+  '울루루',
+  'uluru',
+  '오클랜드',
+  'auckland',
+  '퀸즈타운',
+  'queenstown',
+  '로토루아',
+  'rotorua',
+  '크라이스트처치',
+  'christchurch',
+]
+
+function resolveOceaniaAuNzHint(
+  haystack: string,
+  labels: string[],
+  cityKeys: readonly string[],
+): '호주/뉴질랜드' | null {
+  const keys = cityKeys.map((k) => k.trim().toLowerCase()).filter(Boolean)
+  if (keys.some((k) => OCEANIA_AU_NZ_COUNTRY_KEYS.has(k))) return '호주/뉴질랜드'
+  for (const label of labels) {
+    const t = label.trim()
+    if (OCEANIA_AU_NZ_ROW_LABELS.has(t)) return '호주/뉴질랜드'
+  }
+  for (const term of OCEANIA_AU_NZ_TEXT) {
+    if (termAppearsInHaystack(term, haystack)) return '호주/뉴질랜드'
+  }
+  for (const label of labels) {
+    const low = label.toLowerCase()
+    if (OCEANIA_AU_NZ_TEXT.some((t) => low.includes(t.toLowerCase()))) return '호주/뉴질랜드'
+  }
+  return null
+}
 
 function scoreAmericasTextTerms(haystack: string, labels: string[], terms: string[]): number {
   let score = 0
@@ -1030,6 +1083,16 @@ export function resolveOverseasMegaMenuSubgroupLabelForBrowse(
       cityKeys,
     )
     if (americasHint) return americasHint
+  }
+
+  if (regionId === 'oceania') {
+    const auNzHint = resolveOceaniaAuNzHint(
+      haystack,
+      [countryRowLabel, match?.leafLabel, match?.countryLabel, product.primaryDestination ?? '']
+        .filter((v): v is string => Boolean(v?.trim())),
+      cityKeys,
+    )
+    if (auNzHint) return auNzHint
   }
 
   const subgroupStopTerms =

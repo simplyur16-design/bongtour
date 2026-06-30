@@ -17,8 +17,8 @@ describe('mega-menu-panel-layout', () => {
     assert.equal(layout.compact, true)
   })
 
-  it('oceania stays 4 columns', () => {
-    assert.equal(megaMenuPanelColumnCount('oceania', 4), 4)
-    assert.equal(megaMenuPanelUsesInnerScroll('oceania', 4, 6), false)
+  it('oceania stays 4 columns with three groups', () => {
+    assert.equal(megaMenuPanelColumnCount('oceania', 3), 4)
+    assert.equal(megaMenuPanelUsesInnerScroll('oceania', 3, 1), false)
   })
 })

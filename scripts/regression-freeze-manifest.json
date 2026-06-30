@@ -512,6 +512,41 @@
       ]
     },
     {
+      "id": "oceania-mega-menu-three-tier",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "오세아니아 메가메뉴 — 괌·사이판·호주/뉴질랜드 LC-only, 도시 하위메뉴 없음",
+      "checks": [
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[oceania-mega-menu-three-tier]",
+            "호주/뉴질랜드",
+            "australia-new-zealand"
+          ],
+          "mustNotInclude": [
+            "G('호주', [",
+            "G('뉴질랜드', ["
+          ]
+        },
+        {
+          "file": "lib/browse-country-url-resolve.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[oceania-mega-menu-three-tier]",
+            "australia-new-zealand"
+          ]
+        },
+        {
+          "file": "components/top-nav/CountryCityMegaPanel.tsx",
+          "mustInclude": [
+            "isSingleCountryLeafGroup"
+          ]
+        }
+      ]
+    },
+    {
       "id": "overseas-hub-geo-tag-filter",
       "tier": ["prebuild", "ci"],
       "summary": "해외 허브 클라이언트 필터 — ProductCityTag 기반 geo",
@@ -5923,6 +5958,17 @@
       "files": [
         "lib/mega-menu-eastern-europe-browse.test.ts",
         "lib/match-overseas-product-cebu-island.test.ts"
+      ]
+    },
+    {
+      "id": "oceania-mega-menu-three-tier",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "오세아니아 메가메뉴 — 괌·사이판·호주/뉴질랜드 LC-only, 도시 하위메뉴 없음",
+      "files": [
+        "tests/mega-menu-oceania-tab.test.ts"
       ]
     }
   ]

@@ -373,23 +373,22 @@ const CN: MegaMenuCountryGroupDef[] = [
   ]),
 ]
 
+/** REGRESSION-FREEZE[oceania-mega-menu-three-tier]: 괌·사이판·호주/뉴질랜드 LC-only — manifest */
 const OC: MegaMenuCountryGroupDef[] = [
-  G('괌', [LC('괌', ['괌', 'guam'])]),
-  G('사이판', [LC('사이판', ['사이판', 'saipan'])]),
-  G('호주', [
-    city('시드니', ['시드니', 'sydney', '호주', 'SYD']),
-    city('멜버른', ['멜버른', 'melbourne', '호주']),
-    city('브리즈번', ['브리즈번', 'brisbane', '호주']),
-    city('골드코스트', ['골드코스트', 'gold coast', '호주']),
-    city('케언즈', ['케언즈', 'cairns', '케인즈', '호주']),
-    city('울루루', ['울루루', 'uluru', '호주']),
-  ]),
-  G('뉴질랜드', [
-    city('오클랜드', ['오클랜드', 'auckland', '뉴질랜드']),
-    city('퀸스타운', ['퀸스타운', 'queenstown', '뉴질랜드']),
-    city('로토루아', ['로토루아', 'rotorua', '뉴질랜드']),
-    city('크라이스트처치', ['크라이스트처치', 'christchurch', '뉴질랜드']),
-  ]),
+  G('괌', [LC('괌', ['괌', 'guam'], 'guam')], false, 'guam'),
+  G('사이판', [LC('사이판', ['사이판', 'saipan'], 'saipan')], false, 'saipan'),
+  G(
+    '호주/뉴질랜드',
+    [
+      LC(
+        '호주/뉴질랜드',
+        ['호주', 'australia', '뉴질랜드', 'new zealand', 'newzealand'],
+        'australia-new-zealand',
+      ),
+    ],
+    false,
+    'australia-new-zealand',
+  ),
 ]
 
 const SA: MegaMenuCountryGroupDef[] = [
