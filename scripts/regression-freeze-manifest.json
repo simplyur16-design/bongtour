@@ -595,6 +595,60 @@
       ]
     },
     {
+      "id": "bongsim-complimentary-esim-grant",
+      "tier": ["prebuild", "ci"],
+      "summary": "관리자 무상 eSIM — 0원 paid·OrderPaid outbox·사유 메모·complimentary-esim grant API",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/complimentary-esim-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-complimentary-esim-grant]",
+            "adminGrantComplimentaryEsim",
+            "complimentary_esim"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/complimentary-esim/grant/route.ts",
+          "mustInclude": [
+            "adminGrantComplimentaryEsim"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/complimentary-esim/plans/route.ts",
+          "mustInclude": [
+            "BONGSIM_CATALOG_ACTIVE_WHERE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bongsim-discount-report-complimentary",
+      "tier": ["prebuild", "ci"],
+      "summary": "할인 리포트 — 쿠폰 + 무상 eSIM UNION·after.supply_krw 원가 SSOT",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/bongsim-discount-report.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-discount-report-complimentary]",
+            "queryBongsimDiscountReportRows",
+            "admin_complimentary_esim"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/pricing-after-recommended-krw.ts",
+          "mustInclude": [
+            "afterSupplyCostKrw"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/coupon-report/route.ts",
+          "mustInclude": [
+            "queryBongsimDiscountReportRows"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-usim-fulfillment",
       "tier": ["prebuild", "ci"],
       "summary": "봉심 eSIM/USIM 이행 — 어드민 ICCID 활성화 + USIMSA order/usim (고객 체크아웃 USIM 금지)",
@@ -6082,6 +6136,18 @@
       "tier": ["prebuild", "ci"],
       "summary": "매장 오프라인 USIM 3단계 피커 — destination toggle + catalog WHERE",
       "files": ["lib/bongsim/admin/offline-usim-plan-picker.test.ts"]
+    },
+    {
+      "id": "bongsim-complimentary-esim-grant",
+      "tier": ["prebuild", "ci"],
+      "summary": "관리자 무상 eSIM — consents·사유 파싱·checkout channel",
+      "files": ["lib/bongsim/admin/complimentary-esim-order.test.ts"]
+    },
+    {
+      "id": "bongsim-discount-report-complimentary",
+      "tier": ["prebuild", "ci"],
+      "summary": "할인 리포트 — 무상 eSIM 합산·공급 원가 helper",
+      "files": ["lib/bongsim/admin/bongsim-discount-report.test.ts"]
     },
     {
       "id": "bongsim-usim-fulfillment",

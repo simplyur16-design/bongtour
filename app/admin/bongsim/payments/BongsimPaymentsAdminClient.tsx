@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import AdminPageHeader from "@/app/admin/components/AdminPageHeader";
 import OfflineUsimPlanPicker, {
   type OfflineUsimPlanSelection,
 } from "@/app/admin/bongsim/payments/OfflineUsimPlanPicker";
 import { ADMIN_CARD_CLASS } from "@/lib/admin-design-system";
 import { refundErrorMessage } from "@/lib/bongsim/refund/refund-error-message";
+import { supplyLineTotalKrw } from "@/lib/bongsim/admin/line-supply-cost";
 
 const PURGE_CONFIRM = "PURGE_BONGSIM_ORDERS";
 
@@ -37,12 +38,51 @@ type DetailResponse = {
     fulfillment: string;
     payment?: { channel?: string; note?: string | null };
   } | null;
+  complimentary_esim?: {
+    fulfillment: string;
+    reason_category: string;
+    reason_memo: string;
+    granted_at: string;
+    granted_by_admin_id: string;
+  } | null;
 };
 
 function nfKrw(n: string): string {
   const v = Number.parseInt(n, 10);
   if (!Number.isFinite(v)) return n;
   return `${v.toLocaleString("ko-KR")}원`;
+}
+
+function adminPlanPricingBlock(
+  selection: OfflineUsimPlanSelection | null,
+  qty: number,
+  opts?: { customerLabel?: string; showZeroCustomer?: boolean },
+): ReactNode {
+  if (!selection?.price_krw && selection?.supply_krw == null) return null;
+  const q = Math.max(1, Math.trunc(qty));
+  const customerUnit = selection?.price_krw ?? null;
+  const supplyUnit = selection?.supply_krw ?? null;
+  const customerTotal =
+    customerUnit != null ? customerUnit * q : opts?.showZeroCustomer ? 0 : null;
+  const supplyTotal = supplyUnit != null ? supplyUnit * q : null;
+  const customerLabel = opts?.customerLabel ?? "고객 수납액";
+  return (
+    <div className="mt-2 space-y-1 text-sm">
+      {customerTotal != null ? (
+        <p>
+          <span className="text-bt-text-muted-lavender">{customerLabel}</span>{" "}
+          <span className="font-semibold">{customerTotal.toLocaleString("ko-KR")}원</span>
+          <span className="text-xs text-bt-text-muted-lavender"> (수량 {q})</span>
+        </p>
+      ) : null}
+      {supplyTotal != null ? (
+        <p>
+          <span className="text-bt-text-muted-lavender">공급 원가</span>{" "}
+          <span className="font-semibold">{supplyTotal.toLocaleString("ko-KR")}원</span>
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function statusBadgeClass(status: string): string {
@@ -116,6 +156,19 @@ export default function BongsimPaymentsAdminClient() {
   const [offlinePayChannel, setOfflinePayChannel] = useState<"cash" | "card_terminal" | "bank_transfer">("cash");
   const [offlinePayNote, setOfflinePayNote] = useState("");
   const [offlinePayBusy, setOfflinePayBusy] = useState(false);
+
+  const [compOptionId, setCompOptionId] = useState("");
+  const [compPlanSelection, setCompPlanSelection] = useState<OfflineUsimPlanSelection | null>(null);
+  const [compQty, setCompQty] = useState(1);
+  const [compPhone, setCompPhone] = useState("");
+  const [compEmail, setCompEmail] = useState("");
+  const [compReasonCategory, setCompReasonCategory] = useState<
+    "group_benefit" | "cs_compensation" | "customer_thanks" | "promo_event" | "other"
+  >("group_benefit");
+  const [compReasonMemo, setCompReasonMemo] = useState("");
+  const [compBusy, setCompBusy] = useState(false);
+  const [compErr, setCompErr] = useState<string | null>(null);
+  const [compOk, setCompOk] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -327,13 +380,45 @@ export default function BongsimPaymentsAdminClient() {
     }
   };
 
+  const submitComplimentaryGrant = async () => {
+    setCompBusy(true);
+    setCompErr(null);
+    setCompOk(null);
+    try {
+      const res = await fetch("/api/admin/bongsim/complimentary-esim/grant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          option_api_id: compOptionId.trim(),
+          quantity: compQty,
+          buyer_phone: compPhone.trim(),
+          buyer_email: compEmail.trim() || null,
+          reason_category: compReasonCategory,
+          reason_memo: compReasonMemo.trim(),
+        }),
+      });
+      const j = (await res.json()) as { order_number?: string; message?: string; error?: string };
+      if (!res.ok) throw new Error(j.message ?? j.error ?? "무상 발급 실패");
+      setCompOk(`무상 eSIM 발급 완료: ${j.order_number ?? ""} — QR 알림톡 발송이 시작됩니다.`);
+      setCompPlanSelection(null);
+      setCompOptionId("");
+      setCompReasonMemo("");
+      await load();
+    } catch (e) {
+      setCompErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setCompBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="eSIM 결제 내역"
-        subtitle="온라인 PG 주문과 매장 오프라인 USIM 주문(현금·별도 단말기·계좌이체)을 관리합니다."
+        subtitle="온라인 PG 주문, 매장 오프라인 USIM, 관리자 무상 eSIM 발급을 관리합니다."
       />
 
+      <div className="grid gap-6 xl:grid-cols-2">
       <section className={`${ADMIN_CARD_CLASS} border-teal-200/80 bg-teal-50/30`}>
         <h2 className="text-sm font-semibold text-teal-950">매장 오프라인 USIM 주문 (전자결제 없음)</h2>
         <p className="mt-2 text-xs text-teal-900/90">
@@ -387,11 +472,7 @@ export default function BongsimPaymentsAdminClient() {
             />
           </label>
         </div>
-        {offlinePlanSelection?.price_krw != null ? (
-          <p className="mt-2 text-sm font-medium text-teal-900">
-            예상 금액(1개): {Number(offlinePlanSelection.price_krw * offlineQty).toLocaleString("ko-KR")}원
-          </p>
-        ) : null}
+        {adminPlanPricingBlock(offlinePlanSelection, offlineQty, { customerLabel: "고객 수납액" })}
         {offlineErr ? <p className="mt-2 text-sm text-red-600">{offlineErr}</p> : null}
         {offlineOk ? <p className="mt-2 text-sm text-emerald-700">{offlineOk}</p> : null}
         <button
@@ -403,6 +484,103 @@ export default function BongsimPaymentsAdminClient() {
           {offlineBusy ? "생성 중…" : "오프라인 주문 생성 (결제대기)"}
         </button>
       </section>
+
+      <section className={`${ADMIN_CARD_CLASS} border-violet-200/80 bg-violet-50/30`}>
+        <h2 className="text-sm font-semibold text-violet-950">무상 eSIM 발급 (결제 없음)</h2>
+        <p className="mt-2 text-xs text-violet-900/90">
+          고객 휴대폰으로 eSIM QR 알림톡을 발송합니다. 발급 사유 메모는 필수이며, 휴대폰 번호는 직접 입력합니다.
+          USIMSA 공급 비용은 발생합니다.
+        </p>
+        <OfflineUsimPlanPicker
+          value={compOptionId}
+          plansApiPath="/api/admin/bongsim/complimentary-esim/plans"
+          onChange={(sel) => {
+            setCompPlanSelection(sel);
+            setCompOptionId(sel?.option_api_id ?? "");
+          }}
+        />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs text-bt-text-muted-lavender">
+            수량
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={compQty}
+              onChange={(e) => setCompQty(Number.parseInt(e.target.value, 10) || 1)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender sm:col-span-2">
+            고객 휴대폰 (필수)
+            <input
+              type="tel"
+              value={compPhone}
+              onChange={(e) => setCompPhone(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+              placeholder="010-0000-0000"
+              required
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender sm:col-span-2">
+            고객 이메일 (선택)
+            <input
+              type="email"
+              value={compEmail}
+              onChange={(e) => setCompEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+              placeholder="미입력 시 휴대폰 기반 내부 이메일 사용"
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender">
+            무상 발급 사유 유형
+            <select
+              value={compReasonCategory}
+              onChange={(e) =>
+                setCompReasonCategory(
+                  e.target.value as typeof compReasonCategory,
+                )
+              }
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+            >
+              <option value="group_benefit">단체 혜택</option>
+              <option value="cs_compensation">CS 보상</option>
+              <option value="customer_thanks">고객 감사</option>
+              <option value="promo_event">프로모션·이벤트</option>
+              <option value="other">기타</option>
+            </select>
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender sm:col-span-2">
+            무상 발급 사유 메모 (필수)
+            <textarea
+              value={compReasonMemo}
+              onChange={(e) => setCompReasonMemo(e.target.value)}
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+              placeholder="예: ○○ 단체 예약 고객 혜택 / CS 접수 #1234 보상"
+              required
+            />
+          </label>
+        </div>
+        {adminPlanPricingBlock(compPlanSelection, compQty, {
+          customerLabel: "카탈로그 정가(할인 전)",
+          showZeroCustomer: true,
+        })}
+        {compPlanSelection?.price_krw != null ? (
+          <p className="mt-1 text-xs text-violet-800/80">고객 결제 0원 · 할인 리포트에 전액 할인으로 기록됩니다.</p>
+        ) : null}
+        {compErr ? <p className="mt-2 text-sm text-red-600">{compErr}</p> : null}
+        {compOk ? <p className="mt-2 text-sm text-emerald-700">{compOk}</p> : null}
+        <button
+          type="button"
+          disabled={compBusy || !compOptionId.trim() || !compPhone.trim() || compReasonMemo.trim().length < 2}
+          onClick={() => void submitComplimentaryGrant()}
+          className="mt-4 rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-600 disabled:opacity-50"
+        >
+          {compBusy ? "발급 중…" : "무상 eSIM 발급 (QR 알림톡)"}
+        </button>
+      </section>
+      </div>
 
       <section className={`${ADMIN_CARD_CLASS} border-amber-200/80 bg-amber-50/40`}>
         <h2 className="text-sm font-semibold text-amber-950">결제 내역 DB 초기화 (테스트·운영 정리)</h2>
@@ -495,6 +673,11 @@ export default function BongsimPaymentsAdminClient() {
                   {r.checkout_channel === "admin_offline_usim" ? (
                     <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
                       오프라인
+                    </span>
+                  ) : null}
+                  {r.checkout_channel === "admin_complimentary_esim" ? (
+                    <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-900">
+                      무상
                     </span>
                   ) : null}
                 </td>
@@ -689,6 +872,41 @@ export default function BongsimPaymentsAdminClient() {
                     </table>
                   </div>
                 </div>
+                {detail.complimentary_esim ? (
+                  <div className="rounded-xl border border-violet-800/50 bg-violet-950/30 p-4">
+                    <h3 className="font-semibold text-violet-200">무상 eSIM 발급</h3>
+                    <dl className="mt-2 grid gap-2 text-xs">
+                      <div>
+                        <dt className="text-slate-500">사유 유형</dt>
+                        <dd className="text-slate-200">
+                          {(() => {
+                            const cat = detail.complimentary_esim!.reason_category;
+                            const labels: Record<string, string> = {
+                              group_benefit: "단체 혜택",
+                              cs_compensation: "CS 보상",
+                              customer_thanks: "고객 감사",
+                              promo_event: "프로모션·이벤트",
+                              other: "기타",
+                            };
+                            return labels[cat] ?? cat;
+                          })()}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">사유 메모</dt>
+                        <dd className="whitespace-pre-wrap text-slate-200">
+                          {detail.complimentary_esim.reason_memo}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-500">발급 시각</dt>
+                        <dd className="text-slate-200">
+                          {new Date(detail.complimentary_esim.granted_at).toLocaleString("ko-KR")}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                ) : null}
                 {(() => {
                   const st = String(detail.order.status ?? "");
                   const oid = String(detail.order.order_id ?? "");
@@ -763,6 +981,34 @@ export default function BongsimPaymentsAdminClient() {
                           ))}
                         </select>
                       </label>
+                      {(() => {
+                        const sel =
+                          usimLines.find((l) => String(l.option_api_id) === usimLineOptionId) ??
+                          usimLines[0];
+                        if (!sel) return null;
+                        const qty = Math.max(1, Math.trunc(Number(sel.quantity) || 1));
+                        const customerTotal = Number.parseInt(String(sel.line_total_krw ?? "0"), 10) || 0;
+                        const supplyTotal = supplyLineTotalKrw(sel.snapshot, qty);
+                        return (
+                          <div className="mt-3 rounded-lg border border-teal-900/50 bg-teal-950/50 px-3 py-2 text-xs text-teal-100">
+                            <p>
+                              고객 수납액{" "}
+                              <span className="font-semibold text-white">
+                                {customerTotal.toLocaleString("ko-KR")}원
+                              </span>
+                              <span className="text-teal-300/80"> (수량 {qty})</span>
+                            </p>
+                            {supplyTotal != null ? (
+                              <p className="mt-1">
+                                공급 원가{" "}
+                                <span className="font-semibold text-white">
+                                  {supplyTotal.toLocaleString("ko-KR")}원
+                                </span>
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                       <label className="mt-3 block text-xs text-slate-400">
                         ICCID (19~20자리)
                         <input
@@ -791,9 +1037,19 @@ export default function BongsimPaymentsAdminClient() {
                   const oid = String(detail.order.order_id ?? "");
                   const provider = String(detail.order.payment_provider ?? "");
                   const isOfflinePaid = provider === "offline" || Boolean(detail.offline_usim);
+                  const isComplimentary =
+                    provider === "complimentary" || Boolean(detail.complimentary_esim);
                   const canRefund =
-                    (st === "paid" || st === "delivered") && oid && !isOfflinePaid;
+                    (st === "paid" || st === "delivered") && oid && !isOfflinePaid && !isComplimentary;
                   if (!canRefund) {
+                    if (isComplimentary && (st === "paid" || st === "delivered")) {
+                      return (
+                        <p className="text-xs text-slate-500">
+                          무상 eSIM 발급 주문은 PG 환불 대상이 아닙니다. 유심사 취소·재발급은 별도 운영 절차로
+                          처리해 주세요.
+                        </p>
+                      );
+                    }
                     if (isOfflinePaid && (st === "paid" || st === "delivered")) {
                       return (
                         <p className="text-xs text-slate-500">

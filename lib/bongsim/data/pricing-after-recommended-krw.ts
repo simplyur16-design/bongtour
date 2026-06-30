@@ -33,3 +33,13 @@ export function afterRecommendedSellKrw(priceBlock: AfterRecommendedPriceBlockIn
   if (v == null || v < 0) return null;
   return Math.trunc(v);
 }
+
+/**
+ * 변동 후(after) 공급가만 — before·권장판매가 폴백 없음.
+ * 어드민 원가 표시·마진 참고 SSOT.
+ */
+export function afterSupplyCostKrw(priceBlock: AfterRecommendedPriceBlockInput): number | null {
+  const v = numOrNull(priceBlock?.after?.supply_krw);
+  if (v == null || v < 0) return null;
+  return Math.trunc(v);
+}

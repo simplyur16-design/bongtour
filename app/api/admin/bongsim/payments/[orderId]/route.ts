@@ -3,6 +3,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import { requireAdmin } from "@/lib/require-admin";
 import { supportsUsimFulfillment } from "@/lib/bongsim/catalog/sim-fulfillment";
 import { parseOfflineUsimConsents } from "@/lib/bongsim/admin/offline-usim-order";
+import { parseComplimentaryEsimConsents } from "@/lib/bongsim/admin/complimentary-esim-order";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ orderId: strin
       fulfillment_jobs: jobs.rows,
       fulfillment_topups: enrichedTopups,
       offline_usim: parseOfflineUsimConsents(o.rows[0]?.consents),
+      complimentary_esim: parseComplimentaryEsimConsents(o.rows[0]?.consents),
     });
   } catch (e) {
     console.error("[admin/bongsim/payments/[orderId] GET]", e);

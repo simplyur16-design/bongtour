@@ -6,9 +6,11 @@ type Row = {
   used_at: string;
   order_number: string;
   code: string;
+  description?: string | null;
   original_amount_krw: number;
   discount_amount_krw: number;
   final_amount_krw: number;
+  source?: "coupon" | "complimentary_esim";
 };
 
 export default function CouponReportClient() {
@@ -68,8 +70,10 @@ export default function CouponReportClient() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-100">쿠폰 사용 리포트</h1>
-        <p className="mt-1 text-sm text-slate-400">월별 사용 내역과 합계입니다 (UTC 기준).</p>
+        <h1 className="text-2xl font-bold text-slate-100">할인·쿠폰 사용 리포트</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          월별 쿠폰 사용과 관리자 무상 eSIM 발급(전액 할인) 내역·합계입니다 (UTC 기준).
+        </p>
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
@@ -127,7 +131,8 @@ export default function CouponReportClient() {
             <tr className="border-b border-slate-700 text-slate-400">
               <th className="py-2 pr-3">날짜</th>
               <th className="py-2 pr-3">주문번호</th>
-              <th className="py-2 pr-3">쿠폰</th>
+              <th className="py-2 pr-3">쿠폰/유형</th>
+              <th className="py-2 pr-3">설명</th>
               <th className="py-2 pr-3">원가</th>
               <th className="py-2 pr-3">할인</th>
               <th className="py-2">결제</th>
@@ -138,7 +143,17 @@ export default function CouponReportClient() {
               <tr key={`${r.used_at}-${r.order_number}`} className="border-b border-slate-800">
                 <td className="py-2 pr-3 font-mono text-xs">{r.used_at}</td>
                 <td className="py-2 pr-3 font-mono">{r.order_number}</td>
-                <td className="py-2 pr-3">{r.code}</td>
+                <td className="py-2 pr-3">
+                  {r.code}
+                  {r.source === "complimentary_esim" ? (
+                    <span className="ml-1.5 rounded bg-violet-900/60 px-1.5 py-0.5 text-[10px] text-violet-200">
+                      무상
+                    </span>
+                  ) : null}
+                </td>
+                <td className="max-w-[200px] truncate py-2 pr-3 text-slate-400" title={r.description ?? ""}>
+                  {r.description?.trim() ? r.description : "—"}
+                </td>
                 <td className="py-2 pr-3">{r.original_amount_krw.toLocaleString("ko-KR")}</td>
                 <td className="py-2 pr-3 text-amber-200">{r.discount_amount_krw.toLocaleString("ko-KR")}</td>
                 <td className="py-2">{r.final_amount_krw.toLocaleString("ko-KR")}</td>

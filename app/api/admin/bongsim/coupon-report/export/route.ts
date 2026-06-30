@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  queryBongsimDiscountReportRows,
+  summarizeBongsimDiscountReportRows,
+} from "@/lib/bongsim/admin/bongsim-discount-report";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { requireAdmin } from "@/lib/require-admin";
 
@@ -31,45 +35,18 @@ export async function GET(req: Request) {
   const end = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
 
   try {
-    const r = await pool.query<{
-      used_at: Date;
-      order_number: string;
-      code: string;
-      description: string | null;
-      original_amount_krw: string;
-      discount_amount_krw: string;
-      final_amount_krw: string;
-      buyer_email: string;
-    }>(
-      `SELECT u.used_at,
-              o.order_number,
-              c.code,
-              c.description,
-              u.original_amount_krw::text AS original_amount_krw,
-              u.discount_amount_krw::text AS discount_amount_krw,
-              u.final_amount_krw::text AS final_amount_krw,
-              o.buyer_email
-         FROM bongsim_coupon_usage u
-         JOIN bongsim_order o ON o.order_id = u.order_id
-         JOIN bongsim_coupon c ON c.coupon_id = u.coupon_id
-        WHERE u.used_at >= $1 AND u.used_at < $2
-        ORDER BY u.used_at ASC`,
-      [start.toISOString(), end.toISOString()],
-    );
+    const rows = await queryBongsimDiscountReportRows(pool, start, end);
+    const summary = summarizeBongsimDiscountReportRows(rows);
 
     let sumOrig = 0;
-    let sumDisc = 0;
-    let sumFinal = 0;
     const header = ["날짜", "주문번호", "쿠폰코드", "쿠폰설명", "원가", "할인액", "결제액", "사용자이메일"];
     const lines: string[] = [header.map(csvCell).join(",")];
 
-    for (const row of r.rows) {
+    for (const row of rows) {
       const oa = Number.parseInt(row.original_amount_krw, 10) || 0;
       const da = Number.parseInt(row.discount_amount_krw, 10) || 0;
       const fa = Number.parseInt(row.final_amount_krw, 10) || 0;
       sumOrig += oa;
-      sumDisc += da;
-      sumFinal += fa;
       lines.push(
         [
           csvCell(row.used_at.toISOString()),
@@ -91,9 +68,9 @@ export async function GET(req: Request) {
         csvCell(""),
         csvCell(""),
         csvCell(sumOrig),
-        csvCell(sumDisc),
-        csvCell(sumFinal),
-        csvCell(`건수:${r.rows.length}`),
+        csvCell(summary.total_discount_krw),
+        csvCell(summary.total_final_krw),
+        csvCell(`건수:${summary.count}`),
       ].join(","),
     );
 

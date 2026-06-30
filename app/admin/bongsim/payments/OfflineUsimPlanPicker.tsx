@@ -14,6 +14,7 @@ import { filterPlanGroupsByTripDaysWindow } from "@/lib/bongsim/recommend/plan-d
 import { sortPlanGroupsForDisplay, type PlanDisplayTab } from "@/lib/bongsim/recommend/plan-display-sort";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { formatKrw, type ProductOption } from "@/lib/bongsim/recommend/product-option";
+import { afterSupplyCostKrw } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
 const DAY_CHIPS = [3, 5, 7, 10, 15, 30] as const;
 const TAB_LABELS: Record<PlanDisplayTab, string> = {
@@ -28,12 +29,17 @@ export type OfflineUsimPlanSelection = {
   label: string;
   plan_name: string;
   days_raw: string;
+  /** 고객 수납·카탈로그 정가(after.recommended_krw) */
   price_krw: number | null;
+  /** 공급 원가(after.supply_krw) */
+  supply_krw: number | null;
 };
 
 type Props = {
   value: string;
   onChange: (sel: OfflineUsimPlanSelection | null) => void;
+  /** 기본: 오프라인 USIM 카탈로그. 무상 eSIM은 complimentary-esim plans API. */
+  plansApiPath?: string;
 };
 
 type PlanGroups = {
@@ -88,7 +94,7 @@ function DestinationButton({
   );
 }
 
-export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
+export default function OfflineUsimPlanPicker({ value, onChange, plansApiPath }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +109,9 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
   const [selectedSummary, setSelectedSummary] = useState<string | null>(null);
 
   const tripDaysFloored = Math.max(1, Math.floor(tripDays));
+
+  const plansUrl =
+    plansApiPath?.trim() || "/api/admin/bongsim/offline-usim/plans";
 
   const searchResults = useMemo(
     () => filterOfflineUsimDestinations(searchQuery),
@@ -146,7 +155,7 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
           days: String(tripDaysFloored),
           codes: selectedCodes.join(","),
         });
-        const res = await fetch(`/api/admin/bongsim/offline-usim/plans?${q.toString()}`, {
+        const res = await fetch(`${plansUrl}?${q.toString()}`, {
           cache: "no-store",
         });
         const json = (await res.json()) as {
@@ -181,7 +190,7 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [step, selectedCodes.join(","), tripDaysFloored]);
+  }, [step, selectedCodes.join(","), tripDaysFloored, plansUrl]);
 
   useEffect(() => {
     const visibleTabs = ALL_TABS.filter((t) => tabCounts[t] > 0);
@@ -202,6 +211,7 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
         typeof p.recommended_price === "number" && Number.isFinite(p.recommended_price)
           ? p.recommended_price
           : null,
+      supply_krw: afterSupplyCostKrw(p.price_block),
     });
   };
 
@@ -434,6 +444,7 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
                       typeof p.recommended_price === "number" && Number.isFinite(p.recommended_price)
                         ? p.recommended_price
                         : null;
+                    const supply = afterSupplyCostKrw(p.price_block);
                     return (
                       <li key={p.option_api_id}>
                         <button
@@ -452,6 +463,9 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
                           <span className="mt-2 text-base font-bold text-teal-800">
                             {price != null ? formatKrw(price) : "가격 —"}
                           </span>
+                          {supply != null ? (
+                            <span className="mt-0.5 block text-xs text-slate-500">원가 {formatKrw(supply)}</span>
+                          ) : null}
                         </button>
                       </li>
                     );
@@ -503,6 +517,7 @@ export default function OfflineUsimPlanPicker({ value, onChange }: Props) {
                     plan_name: "",
                     days_raw: "",
                     price_krw: null,
+                    supply_krw: null,
                   });
                 } else {
                   setSelectedSummary(null);

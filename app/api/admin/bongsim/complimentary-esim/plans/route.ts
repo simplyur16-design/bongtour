@@ -1,0 +1,54 @@
+import { NextResponse } from "next/server";
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
+import { getPgPool } from "@/lib/bongsim/db/pool";
+import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
+import { requireAdmin } from "@/lib/require-admin";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/admin/bongsim/complimentary-esim/plans?country=jp&days=7&codes=jp,th
+ * 관리자 무상 eSIM 피커 — active eSIM-capable 상품 (공개 plans API와 동일 분류·필터).
+ */
+export async function GET(req: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const country = (searchParams.get("country") || "").trim().toLowerCase();
+  const daysStr = (searchParams.get("days") || "").trim();
+  const days = parseInt(daysStr, 10);
+  const codesRaw = (searchParams.get("codes") || "").trim();
+
+  if (!country) {
+    return NextResponse.json({ error: "country required" }, { status: 400 });
+  }
+  if (!Number.isFinite(days) || days < 1) {
+    return NextResponse.json({ error: "days must be a positive integer" }, { status: 400 });
+  }
+
+  const fromCodes = codesRaw
+    ? codesRaw
+        .split(",")
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean)
+    : [country];
+  const allSelected = [...new Set(fromCodes)];
+
+  const pool = getPgPool();
+  if (!pool) return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
+
+  try {
+    const payload = await queryPlanCatalog({
+      pool,
+      country,
+      days,
+      allSelected,
+      catalogWhere: BONGSIM_CATALOG_ACTIVE_WHERE,
+    });
+    return NextResponse.json(payload);
+  } catch (e) {
+    console.error("[admin/complimentary-esim/plans]", e);
+    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+  }
+}
