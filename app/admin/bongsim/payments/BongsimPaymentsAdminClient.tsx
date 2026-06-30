@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminPageHeader from "@/app/admin/components/AdminPageHeader";
+import OfflineUsimPlanPicker, {
+  type OfflineUsimPlanSelection,
+} from "@/app/admin/bongsim/payments/OfflineUsimPlanPicker";
 import { ADMIN_CARD_CLASS } from "@/lib/admin-design-system";
 import { refundErrorMessage } from "@/lib/bongsim/refund/refund-error-message";
 
@@ -102,6 +105,7 @@ export default function BongsimPaymentsAdminClient() {
   const [usimOk, setUsimOk] = useState<string | null>(null);
 
   const [offlineOptionId, setOfflineOptionId] = useState("");
+  const [offlinePlanSelection, setOfflinePlanSelection] = useState<OfflineUsimPlanSelection | null>(null);
   const [offlineQty, setOfflineQty] = useState(1);
   const [offlineEmail, setOfflineEmail] = useState("");
   const [offlinePhone, setOfflinePhone] = useState("");
@@ -282,6 +286,8 @@ export default function BongsimPaymentsAdminClient() {
         throw new Error(j.message ?? j.error ?? "주문 생성 실패");
       }
       setOfflineOk(`오프라인 주문 생성: ${j.order_number}`);
+      setOfflinePlanSelection(null);
+      setOfflineOptionId("");
       setPage(1);
       await load();
       await openDetail(j.order_id);
@@ -334,16 +340,14 @@ export default function BongsimPaymentsAdminClient() {
           1) 주문 생성 → 2) 현금·카드단말기·계좌이체 수령 확인 → 3) 주문 상세에서 ICCID로 USIM 활성화.
           eSIM QR은 자동 발급되지 않습니다.
         </p>
+        <OfflineUsimPlanPicker
+          value={offlineOptionId}
+          onChange={(sel) => {
+            setOfflinePlanSelection(sel);
+            setOfflineOptionId(sel?.option_api_id ?? "");
+          }}
+        />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="block text-xs text-bt-text-muted-lavender sm:col-span-2">
-            option_api_id
-            <input
-              value={offlineOptionId}
-              onChange={(e) => setOfflineOptionId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 font-mono text-sm"
-              placeholder="유심사 옵션 ID"
-            />
-          </label>
           <label className="block text-xs text-bt-text-muted-lavender">
             수량
             <input
@@ -383,6 +387,11 @@ export default function BongsimPaymentsAdminClient() {
             />
           </label>
         </div>
+        {offlinePlanSelection?.price_krw != null ? (
+          <p className="mt-2 text-sm font-medium text-teal-900">
+            예상 금액(1개): {Number(offlinePlanSelection.price_krw * offlineQty).toLocaleString("ko-KR")}원
+          </p>
+        ) : null}
         {offlineErr ? <p className="mt-2 text-sm text-red-600">{offlineErr}</p> : null}
         {offlineOk ? <p className="mt-2 text-sm text-emerald-700">{offlineOk}</p> : null}
         <button

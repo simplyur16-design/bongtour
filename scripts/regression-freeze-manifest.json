@@ -569,6 +569,32 @@
       ]
     },
     {
+      "id": "bongsim-offline-usim-plan-picker",
+      "tier": ["prebuild", "ci"],
+      "summary": "매장 오프라인 USIM 3단계 피커 — 국가·패키지 통합 검색 + offline-usim plans API",
+      "checks": [
+        {
+          "file": "lib/bongsim/recommend/query-plan-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-offline-usim-plan-picker]",
+            "queryPlanCatalog"
+          ]
+        },
+        {
+          "file": "lib/bongsim/catalog/active-product-sql.ts",
+          "mustInclude": [
+            "BONGSIM_CATALOG_OFFLINE_USIM_WHERE"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/offline-usim/plans/route.ts",
+          "mustInclude": [
+            "BONGSIM_CATALOG_OFFLINE_USIM_WHERE"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-usim-fulfillment",
       "tier": ["prebuild", "ci"],
       "summary": "봉심 eSIM/USIM 이행 — 어드민 ICCID 활성화 + USIMSA order/usim (고객 체크아웃 USIM 금지)",
@@ -6050,6 +6076,12 @@
       "tier": ["prebuild", "ci"],
       "summary": "매장 오프라인 USIM 주문 consents·결제 확인",
       "files": ["lib/bongsim/admin/offline-usim-order.test.ts"]
+    },
+    {
+      "id": "bongsim-offline-usim-plan-picker",
+      "tier": ["prebuild", "ci"],
+      "summary": "매장 오프라인 USIM 3단계 피커 — destination toggle + catalog WHERE",
+      "files": ["lib/bongsim/admin/offline-usim-plan-picker.test.ts"]
     },
     {
       "id": "bongsim-usim-fulfillment",
