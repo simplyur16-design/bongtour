@@ -69,6 +69,38 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
     )
   }
 
+  if (regionId === 'oceania') {
+    return (
+      <div className="flex min-h-[280px] items-start justify-center overflow-visible p-5 sm:p-6">
+        <ul className="m-0 flex list-none flex-wrap items-start justify-center gap-x-12 gap-y-3 p-0 sm:gap-x-16">
+          {countryGroups.map((g, idx) => {
+            const leaf = g.cities[0]
+            if (!leaf) return null
+            const href = buildMegaMenuLeafHref({
+              type: activeProductType,
+              regionId,
+              countryLabel: g.countryLabel,
+              headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+              leaf,
+            })
+            return (
+              <li key={`${regionId}-${g.countryLabel}-${idx}`} className="min-w-0">
+                <Link
+                  href={href}
+                  prefetch={prefetchPropForHref(href)}
+                  className="block whitespace-nowrap text-center text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
+                  title={g.countryLabel}
+                >
+                  {g.countryLabel}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    )
+  }
+
   return (
     <div
       className={
@@ -85,42 +117,19 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
         {countryGroups.map((g, idx) => {
           const singleCountryLeaf = isSingleCountryLeafGroup(g)
           return (
-          <div
-            key={`${regionId}-${g.countryLabel}-${idx}`}
-            className={`${layout.compact ? 'mb-4' : 'mb-6'} min-w-0${isFlatGrid ? ' col-span-full' : ''}`}
-          >
-            {singleCountryLeaf ? (
-              (() => {
-                const leaf = g.cities[0]!
-                const href = buildMegaMenuLeafHref({
-                  type: activeProductType,
-                  regionId,
-                  countryLabel: g.countryLabel,
-                  headerBrowseCountryLabel: g.headerBrowseCountryLabel,
-                  leaf,
-                })
-                return (
-                  <Link
-                    href={href}
-                    prefetch={prefetchPropForHref(href)}
-                    className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
-                  >
-                    {g.countryLabel}
-                  </Link>
-                )
-              })()
-            ) : (
-              <>
-            {!isFlatGrid &&
-              (g.nonLinkHeader ? (
-                <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
-              ) : (
+            <div
+              key={`${regionId}-${g.countryLabel}-${idx}`}
+              className={`${layout.compact ? 'mb-4' : 'mb-6'} min-w-0${isFlatGrid ? ' col-span-full' : ''}`}
+            >
+              {singleCountryLeaf ? (
                 (() => {
-                  const href = buildMegaMenuGroupHeaderHref({
+                  const leaf = g.cities[0]!
+                  const href = buildMegaMenuLeafHref({
                     type: activeProductType,
                     regionId,
                     countryLabel: g.countryLabel,
                     headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                    leaf,
                   })
                   return (
                     <Link
@@ -132,42 +141,66 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                     </Link>
                   )
                 })()
-              ))}
-            <ul
-              className={
-                isFlatGrid
-                  ? `m-0 grid list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`
-                  : 'm-0 list-none p-0 text-left'
-              }
-            >
-              {g.cities.map((c, ci) => {
-                const href = buildMegaMenuLeafHref({
-                  type: activeProductType,
-                  regionId,
-                  countryLabel: g.countryLabel,
-                  headerBrowseCountryLabel: g.headerBrowseCountryLabel,
-                  leaf: c,
-                })
-                return (
-                  <li key={`${g.countryLabel}-${c.label}-${ci}`} className="min-w-0">
-                    <Link
-                      href={href}
-                      prefetch={prefetchPropForHref(href)}
-                      className={`block text-left text-sm text-slate-600 transition hover:text-orange-500 ${
-                        layout.compact ? 'leading-7' : 'leading-8'
-                      }`}
-                      title={c.label}
-                    >
-                      {c.label}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-              </>
-            )}
-          </div>
-        )})}
+              ) : (
+                <>
+                  {!isFlatGrid &&
+                    (g.nonLinkHeader ? (
+                      <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
+                    ) : (
+                      (() => {
+                        const href = buildMegaMenuGroupHeaderHref({
+                          type: activeProductType,
+                          regionId,
+                          countryLabel: g.countryLabel,
+                          headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                        })
+                        return (
+                          <Link
+                            href={href}
+                            prefetch={prefetchPropForHref(href)}
+                            className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
+                          >
+                            {g.countryLabel}
+                          </Link>
+                        )
+                      })()
+                    ))}
+                  <ul
+                    className={
+                      isFlatGrid
+                        ? `m-0 grid list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`
+                        : 'm-0 list-none p-0 text-left'
+                    }
+                  >
+                    {g.cities.map((c, ci) => {
+                      const href = buildMegaMenuLeafHref({
+                        type: activeProductType,
+                        regionId,
+                        countryLabel: g.countryLabel,
+                        headerBrowseCountryLabel: g.headerBrowseCountryLabel,
+                        leaf: c,
+                      })
+                      return (
+                        <li key={`${g.countryLabel}-${c.label}-${ci}`} className="min-w-0">
+                          <Link
+                            href={href}
+                            prefetch={prefetchPropForHref(href)}
+                            className={`block text-left text-sm text-slate-600 transition hover:text-orange-500 ${
+                              layout.compact ? 'leading-7' : 'leading-8'
+                            }`}
+                            title={c.label}
+                          >
+                            {c.label}
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
