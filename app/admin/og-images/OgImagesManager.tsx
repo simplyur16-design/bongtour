@@ -5,7 +5,7 @@ import {
   staticOgPreviewPathForPageKey,
   VALID_PAGE_KEYS,
   type OgPageKey,
-} from '@/lib/og-images-db'
+} from '@/lib/og-images-keys'
 import {
   getOgSeasonPageKey,
   isOgSeasonPageKey,

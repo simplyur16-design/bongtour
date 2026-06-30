@@ -612,7 +612,23 @@
           "file": "lib/og-images-db.ts",
           "mustInclude": [
             "getOgSeasonPageKey",
-            "OG_SEASON_PAGE_KEYS"
+            "server-only"
+          ]
+        },
+        {
+          "file": "lib/og-images-keys.ts",
+          "mustInclude": [
+            "VALID_PAGE_KEYS",
+            "staticOgPreviewPathForPageKey"
+          ]
+        },
+        {
+          "file": "app/admin/og-images/OgImagesManager.tsx",
+          "mustInclude": [
+            "og-images-keys"
+          ],
+          "mustNotInclude": [
+            "og-images-db"
           ]
         }
       ]
