@@ -1,3 +1,4 @@
+import type { BongsimFulfillmentMode } from "@/lib/bongsim/catalog/sim-fulfillment";
 import type {
   BongsimPriceBlockV1,
   BongsimProductFlagsV1,
@@ -39,6 +40,10 @@ export type BongsimOrderLineSnapshotV1 = {
   flags: BongsimProductFlagsV1;
   classification_conflict: boolean;
   classification_notes: string | null;
+  /** 미지정(구 주문) = esim */
+  fulfillment_mode?: BongsimFulfillmentMode;
+  /** fulfillment_mode=usim 일 때 수량만큼 ICCID(정규화된 숫자 문자열) */
+  customer_iccids?: string[];
 };
 
 export type BongsimOrderLineV1 = {

@@ -547,6 +547,80 @@
       ]
     },
     {
+      "id": "bongsim-offline-usim-order",
+      "tier": ["prebuild", "ci"],
+      "summary": "매장 오프라인 USIM — 어드민 주문·무PG 결제확인·eSIM 자동발급 스킵",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/offline-usim-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-offline-usim-order]",
+            "adminCreateOfflineUsimOrder",
+            "adminConfirmOfflineUsimPayment",
+            "physical_usim_only"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-fulfillment-job.ts",
+          "mustInclude": [
+            "isOfflineUsimOnlyOrder"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bongsim-usim-fulfillment",
+      "tier": ["prebuild", "ci"],
+      "summary": "봉심 eSIM/USIM 이행 — 어드민 ICCID 활성화 + USIMSA order/usim (고객 체크아웃 USIM 금지)",
+      "checks": [
+        {
+          "file": "lib/bongsim/catalog/sim-fulfillment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-usim-fulfillment]",
+            "isUsimCapableSimKind",
+            "validateCustomerIccidsForQuantity"
+          ]
+        },
+        {
+          "file": "lib/bongsim/admin/admin-usim-activate-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-usim-fulfillment]",
+            "adminActivateUsimForPaidOrder",
+            "submitUsimsaUsimOrder"
+          ]
+        },
+        {
+          "file": "lib/bongsim/supplier/usimsa-supplier-client.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-usim-fulfillment]",
+            "submitUsimsaUsimOrder",
+            "fulfillment_mode"
+          ]
+        },
+        {
+          "file": "lib/bongsim/supplier/usimsa/order-api.ts",
+          "mustInclude": [
+            "submitUsimsaUsimOrder",
+            "cancelUsimsaUsimTopup",
+            "/v2/cancel/usim/"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "usim_not_available_online"
+          ]
+        },
+        {
+          "file": "components/bongsim/checkout-store/CheckoutStoreClient.tsx",
+          "mustNotInclude": [
+            "SIM 설치 방식",
+            "물리 USIM (ICCID 활성화)"
+          ]
+        }
+      ]
+    },
+    {
       "id": "overseas-hub-geo-tag-filter",
       "tier": ["prebuild", "ci"],
       "summary": "해외 허브 클라이언트 필터 — ProductCityTag 기반 geo",
@@ -5969,6 +6043,20 @@
       "summary": "오세아니아 메가메뉴 — 괌·사이판·호주/뉴질랜드 LC-only, 도시 하위메뉴 없음",
       "files": [
         "tests/mega-menu-oceania-tab.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-offline-usim-order",
+      "tier": ["prebuild", "ci"],
+      "summary": "매장 오프라인 USIM 주문 consents·결제 확인",
+      "files": ["lib/bongsim/admin/offline-usim-order.test.ts"]
+    },
+    {
+      "id": "bongsim-usim-fulfillment",
+      "tier": ["prebuild", "ci"],
+      "summary": "봉심 물리 USIM — sim-fulfillment SSOT + 어드민 수동 활성화",
+      "files": [
+        "lib/bongsim/catalog/sim-fulfillment.test.ts"
       ]
     }
   ]

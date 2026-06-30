@@ -49,6 +49,12 @@ export type BongsimProductDetailPoliciesV1 = {
   };
 };
 
+/** 어드민·내부용 — 물리 USIM 활성화 가능 여부 (고객 공개 API에는 미포함) */
+export type BongsimProductDetailFulfillmentV1 = {
+  esim_available: boolean;
+  usim_available: boolean;
+};
+
 export type BongsimProductDetailStickyV1 = {
   summary: BongsimProductDetailSummaryV1;
   cta: {

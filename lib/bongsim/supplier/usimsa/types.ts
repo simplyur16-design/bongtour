@@ -40,6 +40,19 @@ export type UsimsaCancelResponse = {
   message: string;
 };
 
+/** POST /v2/order/usim */
+export type UsimsaUsimOrderRequest = {
+  orderId: string;
+  optionId: string;
+  iccid: string;
+};
+
+export type UsimsaUsimOrderResponse = {
+  topupId: string;
+  code: string;
+  message: string;
+};
+
 export type UsimsaWebhookPayload = {
   topupId: string;
   optionId: string;

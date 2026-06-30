@@ -4,6 +4,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
   cancelUsimsaTopup,
+  cancelUsimsaUsimTopup,
   UsimsaCancelError,
 } from "@/lib/bongsim/supplier/usimsa/order-api";
 import {
@@ -191,31 +192,42 @@ async function phase1RecordCardCancelRequest(
   return { ok: true, previousStatus };
 }
 
-type SupplierCancelRow = { topup_id: string };
+type SupplierCancelRow = { topup_id: string; fulfillment_mode: string };
 
-async function listUsimsaTopupsToCancel(client: PoolClient, orderId: string): Promise<string[]> {
+async function listUsimsaTopupsToCancel(client: PoolClient, orderId: string): Promise<SupplierCancelRow[]> {
   const rows = await client.query<SupplierCancelRow>(
-    `SELECT topup_id FROM bongsim_fulfillment_topup
-      WHERE order_id = $1::uuid AND supplier_id = 'usimsa'
-        AND status NOT IN ('canceled', 'failed')`,
+    `SELECT t.topup_id,
+            COALESCE(
+              NULLIF(t.webhook_payload->>'fulfillment_kind', ''),
+              l.snapshot->>'fulfillment_mode',
+              'esim'
+            ) AS fulfillment_mode
+       FROM bongsim_fulfillment_topup t
+       LEFT JOIN bongsim_order_line l
+         ON l.order_id = t.order_id AND l.option_api_id = t.option_api_id
+      WHERE t.order_id = $1::uuid AND t.supplier_id = 'usimsa'
+        AND t.status NOT IN ('canceled', 'failed')`,
     [orderId],
   );
-  return rows.rows.map((r) => r.topup_id);
+  return rows.rows;
 }
 
 /** 2단계: 유심사 API 환불(취소) 신청 — API는 트랜잭션 밖에서 호출 */
 async function callUsimsaCancelTopups(
-  topupIds: string[],
+  topups: SupplierCancelRow[],
 ): Promise<
   | { ok: true; results: Array<{ topup_id: string; code: string; message: string }> }
   | { ok: false; message: string }
 > {
   const results: Array<{ topup_id: string; code: string; message: string }> = [];
   try {
-    for (const topupId of topupIds) {
-      const res = await cancelUsimsaTopup(topupId);
+    for (const row of topups) {
+      const res =
+        row.fulfillment_mode === "usim"
+          ? await cancelUsimsaUsimTopup(row.topup_id)
+          : await cancelUsimsaTopup(row.topup_id);
       results.push({
-        topup_id: topupId,
+        topup_id: row.topup_id,
         code: String(res?.code ?? ""),
         message: String(res?.message ?? ""),
       });

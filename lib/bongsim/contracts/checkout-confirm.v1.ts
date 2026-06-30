@@ -1,8 +1,13 @@
+import type { BongsimFulfillmentMode } from "@/lib/bongsim/catalog/sim-fulfillment";
 import type { BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 
 export type BongsimCheckoutConfirmLineV1 = {
   option_api_id: string;
   quantity: number;
+  /** 미지정 = esim */
+  fulfillment_mode?: BongsimFulfillmentMode;
+  /** fulfillment_mode=usim 일 때 필수 — 수량과 동일 길이 */
+  customer_iccids?: string[];
 };
 
 export type BongsimCheckoutConfirmRequestV1 = {

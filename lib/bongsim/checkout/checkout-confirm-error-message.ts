@@ -19,6 +19,9 @@ export function checkoutConfirmErrorMessage(payload: {
     if (d.gift_recipient_email) return "받는 분 이메일을 확인해 주세요.";
     if (d.gift_recipient_phone) return "받는 분 휴대폰 번호를 010-0000-0000 형식으로 입력해 주세요.";
     if (d.option_api_id === "required") return "상품을 다시 선택해 주세요.";
+    if (d.fulfillment_mode === "usim_not_available_online") {
+      return "물리 USIM 활성화는 매장에서만 가능합니다. 온라인 주문은 eSIM으로 진행해 주세요.";
+    }
     if (d.coupon) return "쿠폰 적용을 확인해 주세요.";
     return "입력값을 확인해 주세요.";
   }

@@ -20,6 +20,10 @@ import {
 } from "@/lib/bongsim/checkout/gift-order";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 import { BONGSIM_CATALOG_ACTIVE_WHERE, isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
+import {
+  parseFulfillmentMode,
+  type BongsimFulfillmentMode,
+} from "@/lib/bongsim/catalog/sim-fulfillment";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
@@ -164,8 +168,9 @@ function buildLineSnapshot(
   opt: BongsimProductOptionV1,
   charged_basis_key: string,
   charged_unit_price_krw: number,
+  fulfillment: { mode: BongsimFulfillmentMode; iccids?: string[] },
 ): BongsimOrderLineSnapshotV1 {
-  return {
+  const base = {
     option_api_id: opt.option_api_id,
     charged_basis_key,
     charged_unit_price_krw,
@@ -194,6 +199,14 @@ function buildLineSnapshot(
     classification_conflict: opt.classification_conflict,
     classification_notes: opt.classification_notes,
   };
+  if (fulfillment.mode === "usim") {
+    return {
+      ...base,
+      fulfillment_mode: "usim" as const,
+      customer_iccids: fulfillment.iccids ?? [],
+    };
+  }
+  return base;
 }
 
 function defaultPayment(): BongsimOrderV1["order"]["payment"] {
@@ -289,6 +302,16 @@ function parseSnapshot(raw: unknown): BongsimOrderLineSnapshotV1 | null {
     flags: parseFlagsJson(s.flags),
     classification_conflict: Boolean(s.classification_conflict),
     classification_notes: typeof s.classification_notes === "string" ? s.classification_notes : null,
+    ...(s.fulfillment_mode === "usim"
+      ? {
+          fulfillment_mode: "usim" as const,
+          customer_iccids: Array.isArray(s.customer_iccids)
+            ? s.customer_iccids.map((v) => String(v))
+            : [],
+        }
+      : s.fulfillment_mode === "esim"
+        ? { fulfillment_mode: "esim" as const }
+        : {}),
   };
 }
 
@@ -350,6 +373,19 @@ function parseLineQuantity(raw: unknown): number {
   return Number.NaN;
 }
 
+function parseCheckoutLineFulfillment(
+  line: Record<string, unknown>,
+  index: number,
+  details: Record<string, string>,
+): { mode: "esim" } | null {
+  const mode = parseFulfillmentMode(line.fulfillment_mode);
+  if (mode === "usim" || Array.isArray(line.customer_iccids)) {
+    details.fulfillment_mode = "usim_not_available_online";
+    return null;
+  }
+  return { mode: "esim" };
+}
+
 /** `lines` 우선, 없으면 단일 `option_api_id`+`quantity` → 1건 배열. */
 function normalizeCheckoutLines(
   o: Record<string, unknown>,
@@ -397,7 +433,9 @@ function normalizeCheckoutLines(
         return null;
       }
       seen.add(option_api_id);
-      out.push({ option_api_id, quantity });
+    const fulfillment = parseCheckoutLineFulfillment(line, i, details);
+    if (!fulfillment) return null;
+    out.push({ option_api_id, quantity });
     }
     return out;
   }
@@ -417,11 +455,30 @@ function normalizeCheckoutLines(
     details.quantity = "max_99";
     return null;
   }
+  const fulfillment = parseCheckoutLineFulfillment(o, 0, details);
+  if (!fulfillment) return null;
   return [{ option_api_id, quantity }];
 }
 
 function sortLinesForMatch(lines: BongsimCheckoutConfirmLineV1[]): BongsimCheckoutConfirmLineV1[] {
   return [...lines].sort((a, b) => a.option_api_id.localeCompare(b.option_api_id));
+}
+
+function lineFulfillmentMatches(
+  reqLine: BongsimCheckoutConfirmLineV1,
+  snap: BongsimOrderLineSnapshotV1,
+): boolean {
+  const reqMode = parseFulfillmentMode(reqLine.fulfillment_mode);
+  const snapMode = parseFulfillmentMode(snap.fulfillment_mode);
+  if (reqMode !== snapMode) return false;
+  if (reqMode !== "usim") return true;
+  const reqIccids = [...(reqLine.customer_iccids ?? [])].sort();
+  const snapIccids = [...(snap.customer_iccids ?? [])].sort();
+  if (reqIccids.length !== snapIccids.length) return false;
+  for (let j = 0; j < reqIccids.length; j++) {
+    if (reqIccids[j] !== snapIccids[j]) return false;
+  }
+  return true;
 }
 
 function orderLinesMatchRequest(
@@ -434,6 +491,7 @@ function orderLinesMatchRequest(
   for (let i = 0; i < sortedReq.length; i++) {
     if (sortedReq[i]!.option_api_id !== sortedOrder[i]!.option_api_id) return false;
     if (sortedReq[i]!.quantity !== sortedOrder[i]!.quantity) return false;
+    if (!lineFulfillmentMatches(sortedReq[i]!, sortedOrder[i]!.snapshot)) return false;
   }
   return true;
 }
@@ -458,6 +516,7 @@ async function prepareCheckoutLines(
     const row = byId.get(line.option_api_id);
     if (!row) return { ok: false, reason: "product_not_found" };
     const opt = mapDbRowToProductOptionV1(row);
+    const fulfillmentMode = "esim" as const;
     if (!isEsimCapableSimKind(opt.sim_kind)) {
       return {
         ok: false,
@@ -476,7 +535,7 @@ async function prepareCheckoutLines(
       unit_krw,
       line_total,
       basis_key,
-      snapshot: buildLineSnapshot(opt, basis_key, unit_krw),
+      snapshot: buildLineSnapshot(opt, basis_key, unit_krw, { mode: fulfillmentMode }),
     });
   }
   return { ok: true, prepared };
@@ -816,4 +875,12 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
   } finally {
     client.release();
   }
+}
+
+/** 어드민 오프라인 USIM 주문 — 카탈로그 라인 준비(공개 체크아웃과 동일 SSOT). */
+export async function prepareCatalogCheckoutLines(
+  client: PoolClient,
+  lines: BongsimCheckoutConfirmLineV1[],
+): ReturnType<typeof prepareCheckoutLines> {
+  return prepareCheckoutLines(client, lines);
 }

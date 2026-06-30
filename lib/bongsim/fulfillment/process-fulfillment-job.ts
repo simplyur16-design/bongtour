@@ -1,5 +1,7 @@
 import type { PoolClient } from "pg";
 import { getDefaultSupplierClient, isAsyncSupplier } from "@/lib/bongsim/supplier/supplier-client-registry";
+import { isOfflineUsimOnlyOrder } from "@/lib/bongsim/admin/offline-usim-order";
+import { promoteFulfillmentJobIfReady } from "@/lib/bongsim/supplier/usimsa/webhook-parser";
 import type { BongsimSupplierClient, BongsimSupplierOrderLineInput, BongsimSupplierSubmitResult } from "@/lib/bongsim/supplier/supplier-types";
 
 type FulfillmentJobRow = {
@@ -125,6 +127,14 @@ export async function advanceFulfillmentForPaidOrder(
   );
   const order = o.rows[0];
   if (!order || order.status !== "paid") return;
+
+  const consentsRes = await client.query<{ consents: unknown }>(
+    `SELECT consents FROM bongsim_order WHERE order_id = $1`,
+    [orderId],
+  );
+  if (isOfflineUsimOnlyOrder(consentsRes.rows[0]?.consents)) {
+    return;
+  }
 
   const done = await client.query<{ n: string }>(
     `SELECT COUNT(*)::text AS n FROM bongsim_fulfillment_job WHERE order_id = $1 AND status = 'delivered'`,
@@ -255,14 +265,26 @@ async function advanceAsyncSupplier(
 
   // topup 행 N개 insert (UNIQUE 제약으로 중복 자동 차단)
   for (const topup of result.topups) {
+    const isUsimWithIccid = topup.fulfillment_mode === "usim" && Boolean(topup.iccid);
+    const status = isUsimWithIccid ? "iccid_ready" : "issued_topup";
     await client.query(
       `INSERT INTO bongsim_fulfillment_topup
-         (job_id, order_id, option_api_id, supplier_id, topup_id, status)
-       VALUES ($1, $2, $3, $4, $5, 'issued_topup')
+         (job_id, order_id, option_api_id, supplier_id, topup_id, status, iccid)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (supplier_id, topup_id) DO NOTHING`,
-      [jobIn.job_id, order.order_id, topup.option_api_id, supplier.id, topup.topup_id],
+      [
+        jobIn.job_id,
+        order.order_id,
+        topup.option_api_id,
+        supplier.id,
+        topup.topup_id,
+        status,
+        topup.iccid ?? null,
+      ],
     );
   }
+
+  await promoteFulfillmentJobIfReady(client, jobIn.job_id);
 
   // job 집계 세팅 + submitted로 전환
   await client.query(

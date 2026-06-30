@@ -25,6 +25,9 @@ export type BongsimSupplierSubmitResult = {
   topups?: Array<{
     topup_id: string;
     option_api_id: string;
+    /** 물리 USIM 이행 시 고객 ICCID(제출 직후 prefill) */
+    iccid?: string;
+    fulfillment_mode?: "esim" | "usim";
   }>;
 };
 

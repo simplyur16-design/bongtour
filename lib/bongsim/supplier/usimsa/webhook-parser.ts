@@ -146,7 +146,7 @@ export async function handleUsimsaWebhook(
     const newTopupStatus = upd.rows[0]?.status ?? nextStatus;
 
     // 3) job 승격 판정
-    const jobPromotedTo = await maybePromoteJob(client, row.job_id);
+    const jobPromotedTo = await promoteFulfillmentJobIfReady(client, row.job_id);
 
     await client.query("COMMIT");
 
@@ -172,13 +172,8 @@ export async function handleUsimsaWebhook(
 /**
  * job 자식 topup들의 상태를 집계해서 job을 승격시킨다.
  * 반환: 승격된 새 상태 또는 null (변경 없음).
- *
- * 조건:
- *   - 모든 자식이 iccid_ready / canceled → delivered (iccid_ready는 delivered로 마킹)
- *   - 하나라도 failed → failed
- *   - 그 외 (issued_topup 잔존) → 변경 없음
  */
-async function maybePromoteJob(
+export async function promoteFulfillmentJobIfReady(
   client: import("pg").PoolClient,
   jobId: string,
 ): Promise<string | null> {

@@ -11,6 +11,7 @@ type OrderRow = {
   order_id: string;
   order_number: string;
   status: string;
+  checkout_channel?: string;
   grand_total_krw: string;
   buyer_email: string;
   created_at: string;
@@ -18,8 +19,21 @@ type OrderRow = {
 
 type DetailResponse = {
   order: Record<string, unknown>;
-  lines: Record<string, unknown>[];
+  lines: Array<
+    Record<string, unknown> & {
+      usim_capable?: boolean;
+      plan_name?: string;
+    }
+  >;
   payment_attempts: Record<string, unknown>[];
+  fulfillment_jobs?: Record<string, unknown>[];
+  fulfillment_topups?: Array<
+    Record<string, unknown> & { fulfillment_kind?: string }
+  >;
+  offline_usim?: {
+    fulfillment: string;
+    payment?: { channel?: string; note?: string | null };
+  } | null;
 };
 
 function nfKrw(n: string): string {
@@ -81,6 +95,23 @@ export default function BongsimPaymentsAdminClient() {
   const [purgeBusy, setPurgeBusy] = useState(false);
   const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
   const [purgeErr, setPurgeErr] = useState<string | null>(null);
+  const [usimIccid, setUsimIccid] = useState("");
+  const [usimLineOptionId, setUsimLineOptionId] = useState("");
+  const [usimBusy, setUsimBusy] = useState(false);
+  const [usimErr, setUsimErr] = useState<string | null>(null);
+  const [usimOk, setUsimOk] = useState<string | null>(null);
+
+  const [offlineOptionId, setOfflineOptionId] = useState("");
+  const [offlineQty, setOfflineQty] = useState(1);
+  const [offlineEmail, setOfflineEmail] = useState("");
+  const [offlinePhone, setOfflinePhone] = useState("");
+  const [offlineNote, setOfflineNote] = useState("");
+  const [offlineBusy, setOfflineBusy] = useState(false);
+  const [offlineErr, setOfflineErr] = useState<string | null>(null);
+  const [offlineOk, setOfflineOk] = useState<string | null>(null);
+  const [offlinePayChannel, setOfflinePayChannel] = useState<"cash" | "card_terminal" | "bank_transfer">("cash");
+  const [offlinePayNote, setOfflinePayNote] = useState("");
+  const [offlinePayBusy, setOfflinePayBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -112,11 +143,19 @@ export default function BongsimPaymentsAdminClient() {
     setDetailErr(null);
     setRefundErr(null);
     setRefundReason("고객 요청 환불");
+    setUsimIccid("");
+    setUsimLineOptionId("");
+    setUsimErr(null);
+    setUsimOk(null);
     try {
       const res = await fetch(`/api/admin/bongsim/payments/${encodeURIComponent(orderId)}`, { cache: "no-store" });
       const j = (await res.json()) as DetailResponse & { error?: string };
       if (!res.ok) throw new Error(j.error ?? "상세를 불러오지 못했습니다.");
       setDetail(j);
+      const firstUsimLine = (j.lines ?? []).find((l) => Boolean(l.usim_capable));
+      if (firstUsimLine?.option_api_id) {
+        setUsimLineOptionId(String(firstUsimLine.option_api_id));
+      }
     } catch (e) {
       setDetailErr(e instanceof Error ? e.message : "오류");
     }
@@ -181,12 +220,180 @@ export default function BongsimPaymentsAdminClient() {
     }
   };
 
+  const submitUsimActivate = async () => {
+    if (!detail?.order) return;
+    const oid = String(detail.order.order_id ?? "").trim();
+    const optionId = usimLineOptionId.trim();
+    const iccid = usimIccid.trim();
+    if (!oid || !optionId || !iccid) {
+      setUsimErr("상품 라인과 ICCID를 입력해 주세요.");
+      return;
+    }
+    setUsimBusy(true);
+    setUsimErr(null);
+    setUsimOk(null);
+    try {
+      const res = await fetch(
+        `/api/admin/bongsim/payments/${encodeURIComponent(oid)}/usim-activate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ option_api_id: optionId, iccid }),
+        },
+      );
+      const j = (await res.json()) as { ok?: boolean; message?: string; error?: string; iccid?: string };
+      if (!res.ok || !j.ok) {
+        throw new Error(j.message ?? j.error ?? "USIM 활성화에 실패했습니다.");
+      }
+      setUsimOk(`물리 USIM 활성화 완료 (ICCID ${j.iccid ?? iccid})`);
+      setUsimIccid("");
+      await openDetail(oid);
+    } catch (e) {
+      setUsimErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setUsimBusy(false);
+    }
+  };
+
+  const submitOfflineCreate = async () => {
+    setOfflineBusy(true);
+    setOfflineErr(null);
+    setOfflineOk(null);
+    try {
+      const res = await fetch("/api/admin/bongsim/offline-usim/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          option_api_id: offlineOptionId.trim(),
+          quantity: offlineQty,
+          buyer_email: offlineEmail.trim(),
+          buyer_phone: offlinePhone.trim(),
+          note: offlineNote.trim() || null,
+        }),
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        order_id?: string;
+        order_number?: string;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok || !j.ok || !j.order_id) {
+        throw new Error(j.message ?? j.error ?? "주문 생성 실패");
+      }
+      setOfflineOk(`오프라인 주문 생성: ${j.order_number}`);
+      setPage(1);
+      await load();
+      await openDetail(j.order_id);
+    } catch (e) {
+      setOfflineErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setOfflineBusy(false);
+    }
+  };
+
+  const submitOfflinePaymentConfirm = async (orderId: string) => {
+    setOfflinePayBusy(true);
+    setUsimErr(null);
+    setOfflineErr(null);
+    try {
+      const res = await fetch(
+        `/api/admin/bongsim/offline-usim/orders/${encodeURIComponent(orderId)}/confirm-payment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payment_channel: offlinePayChannel,
+            note: offlinePayNote.trim() || null,
+          }),
+        },
+      );
+      const j = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!res.ok || !j.ok) {
+        throw new Error(j.message ?? j.error ?? "결제 확인 실패");
+      }
+      setUsimOk(null);
+      await openDetail(orderId);
+    } catch (e) {
+      setUsimErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setOfflinePayBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="eSIM 결제 내역"
-        subtitle="bongsim_order 최근 주문 (페이지당 50건). 환불은 결제완료·전달완료 주문만 가능합니다."
+        subtitle="온라인 PG 주문과 매장 오프라인 USIM 주문(현금·별도 단말기·계좌이체)을 관리합니다."
       />
+
+      <section className={`${ADMIN_CARD_CLASS} border-teal-200/80 bg-teal-50/30`}>
+        <h2 className="text-sm font-semibold text-teal-950">매장 오프라인 USIM 주문 (전자결제 없음)</h2>
+        <p className="mt-2 text-xs text-teal-900/90">
+          1) 주문 생성 → 2) 현금·카드단말기·계좌이체 수령 확인 → 3) 주문 상세에서 ICCID로 USIM 활성화.
+          eSIM QR은 자동 발급되지 않습니다.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs text-bt-text-muted-lavender sm:col-span-2">
+            option_api_id
+            <input
+              value={offlineOptionId}
+              onChange={(e) => setOfflineOptionId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 font-mono text-sm"
+              placeholder="유심사 옵션 ID"
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender">
+            수량
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={offlineQty}
+              onChange={(e) => setOfflineQty(Number.parseInt(e.target.value, 10) || 1)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender">
+            메모 (선택)
+            <input
+              value={offlineNote}
+              onChange={(e) => setOfflineNote(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender">
+            고객 이메일
+            <input
+              type="email"
+              value={offlineEmail}
+              onChange={(e) => setOfflineEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-xs text-bt-text-muted-lavender">
+            고객 휴대폰
+            <input
+              type="tel"
+              value={offlinePhone}
+              onChange={(e) => setOfflinePhone(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm"
+              placeholder="010-0000-0000"
+            />
+          </label>
+        </div>
+        {offlineErr ? <p className="mt-2 text-sm text-red-600">{offlineErr}</p> : null}
+        {offlineOk ? <p className="mt-2 text-sm text-emerald-700">{offlineOk}</p> : null}
+        <button
+          type="button"
+          disabled={offlineBusy}
+          onClick={() => void submitOfflineCreate()}
+          className="mt-4 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 disabled:opacity-50"
+        >
+          {offlineBusy ? "생성 중…" : "오프라인 주문 생성 (결제대기)"}
+        </button>
+      </section>
 
       <section className={`${ADMIN_CARD_CLASS} border-amber-200/80 bg-amber-50/40`}>
         <h2 className="text-sm font-semibold text-amber-950">결제 내역 DB 초기화 (테스트·운영 정리)</h2>
@@ -274,7 +481,14 @@ export default function BongsimPaymentsAdminClient() {
                 className="cursor-pointer border-b border-bt-border-soft/80 hover:bg-bt-bg-lavender/40"
                 onClick={() => void openDetail(r.order_id)}
               >
-                <td className="px-3 py-2.5 font-mono text-xs text-teal-800">{r.order_number}</td>
+                <td className="px-3 py-2.5 font-mono text-xs text-teal-800">
+                  {r.order_number}
+                  {r.checkout_channel === "admin_offline_usim" ? (
+                    <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
+                      오프라인
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2.5">
                   <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(r.status)}`}>
                     {statusLabel(r.status)}
@@ -382,26 +596,63 @@ export default function BongsimPaymentsAdminClient() {
                       <thead className="bg-slate-950 text-slate-400">
                         <tr>
                           <th className="px-2 py-2">option_api_id</th>
+                          <th className="px-2 py-2">상품명</th>
                           <th className="px-2 py-2">수량</th>
+                          <th className="px-2 py-2">USIM</th>
                           <th className="px-2 py-2">라인합계</th>
-                          <th className="px-2 py-2">과금기준</th>
                         </tr>
                       </thead>
                       <tbody>
                         {detail.lines.map((l) => (
                           <tr key={String(l.line_id)} className="border-t border-slate-800">
                             <td className="px-2 py-2 font-mono">{String(l.option_api_id ?? "")}</td>
-                            <td className="px-2 py-2">{String(l.quantity ?? "")}</td>
-                            <td className="px-2 py-2">{nfKrw(String(l.line_total_krw ?? "0"))}</td>
-                            <td className="max-w-[140px] truncate px-2 py-2" title={String(l.charged_basis_key ?? "")}>
-                              {String(l.charged_basis_key ?? "")}
+                            <td className="max-w-[160px] truncate px-2 py-2" title={String(l.plan_name ?? "")}>
+                              {String(l.plan_name ?? "—")}
                             </td>
+                            <td className="px-2 py-2">{String(l.quantity ?? "")}</td>
+                            <td className="px-2 py-2">
+                              {l.usim_capable ? (
+                                <span className="rounded bg-amber-900/50 px-1.5 py-0.5 text-amber-200">가능</span>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">{nfKrw(String(l.line_total_krw ?? "0"))}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
+                {(detail.fulfillment_topups?.length ?? 0) > 0 ? (
+                  <div>
+                    <h3 className="font-semibold text-teal-300">발급·활성화 (topup)</h3>
+                    <div className="mt-2 overflow-x-auto rounded-lg border border-slate-700">
+                      <table className="min-w-full text-left text-xs">
+                        <thead className="bg-slate-950 text-slate-400">
+                          <tr>
+                            <th className="px-2 py-2">종류</th>
+                            <th className="px-2 py-2">topup_id</th>
+                            <th className="px-2 py-2">ICCID</th>
+                            <th className="px-2 py-2">상태</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(detail.fulfillment_topups ?? []).map((t) => (
+                            <tr key={String(t.topup_row_id)} className="border-t border-slate-800">
+                              <td className="px-2 py-2">
+                                {t.fulfillment_kind === "usim" ? "물리 USIM" : "eSIM"}
+                              </td>
+                              <td className="px-2 py-2 font-mono">{String(t.topup_id ?? "")}</td>
+                              <td className="px-2 py-2 font-mono">{String(t.iccid ?? "—")}</td>
+                              <td className="px-2 py-2">{String(t.status ?? "")}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
                 <div>
                   <h3 className="font-semibold text-teal-300">결제 시도</h3>
                   <div className="mt-2 overflow-x-auto rounded-lg border border-slate-700">
@@ -432,8 +683,118 @@ export default function BongsimPaymentsAdminClient() {
                 {(() => {
                   const st = String(detail.order.status ?? "");
                   const oid = String(detail.order.order_id ?? "");
-                  const canRefund = (st === "paid" || st === "delivered") && oid;
-                  if (!canRefund) return null;
+                  const isOffline = Boolean(detail.offline_usim);
+                  if (!isOffline || st !== "awaiting_payment" || !oid) return null;
+                  return (
+                    <div className="rounded-xl border border-amber-800/50 bg-amber-950/30 p-4">
+                      <h3 className="font-semibold text-amber-200">오프라인 결제 확인</h3>
+                      <p className="mt-1 text-xs text-amber-100/80">
+                        현금·별도 카드단말기·계좌이체 수령 후 결제완료로 전환합니다. (봉투어 PG 미사용)
+                      </p>
+                      <label className="mt-3 block text-xs text-slate-400">
+                        결제 수단
+                        <select
+                          value={offlinePayChannel}
+                          onChange={(e) =>
+                            setOfflinePayChannel(
+                              e.target.value as "cash" | "card_terminal" | "bank_transfer",
+                            )
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                        >
+                          <option value="cash">현금</option>
+                          <option value="card_terminal">별도 카드단말기</option>
+                          <option value="bank_transfer">계좌이체</option>
+                        </select>
+                      </label>
+                      <label className="mt-3 block text-xs text-slate-400">
+                        메모 (선택)
+                        <input
+                          value={offlinePayNote}
+                          onChange={(e) => setOfflinePayNote(e.target.value)}
+                          className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={offlinePayBusy}
+                        className="mt-3 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-50"
+                        onClick={() => void submitOfflinePaymentConfirm(oid)}
+                      >
+                        {offlinePayBusy ? "처리 중…" : "오프라인 결제 확인"}
+                      </button>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const st = String(detail.order.status ?? "");
+                  const oid = String(detail.order.order_id ?? "");
+                  const usimLines = detail.lines.filter((l) => Boolean(l.usim_capable));
+                  const canUsimActivate =
+                    (st === "paid" || st === "delivered") && oid && usimLines.length > 0;
+                  if (!canUsimActivate) return null;
+                  return (
+                    <div className="rounded-xl border border-teal-800/60 bg-teal-950/40 p-4">
+                      <h3 className="font-semibold text-teal-200">물리 USIM 활성화 (오프라인 카드)</h3>
+                      <p className="mt-1 text-xs text-teal-100/80">
+                        매장에서 판매한 플랜 미설정 USIM의 ICCID를 입력하면 유심사 API로 해당 주문 플랜을
+                        활성화합니다. eSIM이 아직 발급되지 않은 경우 자동으로 eSIM 예약을 취소한 뒤 진행합니다.
+                      </p>
+                      <label className="mt-3 block text-xs text-slate-400">
+                        상품 라인
+                        <select
+                          value={usimLineOptionId}
+                          onChange={(e) => setUsimLineOptionId(e.target.value)}
+                          className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                        >
+                          {usimLines.map((l) => (
+                            <option key={String(l.line_id)} value={String(l.option_api_id ?? "")}>
+                              {String(l.plan_name || l.option_api_id)} × {String(l.quantity)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="mt-3 block text-xs text-slate-400">
+                        ICCID (19~20자리)
+                        <input
+                          value={usimIccid}
+                          onChange={(e) => setUsimIccid(e.target.value)}
+                          placeholder="8901…"
+                          className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100"
+                          autoComplete="off"
+                        />
+                      </label>
+                      {usimErr ? <p className="mt-2 text-xs text-red-400">{usimErr}</p> : null}
+                      {usimOk ? <p className="mt-2 text-xs text-emerald-400">{usimOk}</p> : null}
+                      <button
+                        type="button"
+                        disabled={usimBusy}
+                        className="mt-3 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+                        onClick={() => void submitUsimActivate()}
+                      >
+                        {usimBusy ? "활성화 중…" : "USIM 활성화 실행"}
+                      </button>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const st = String(detail.order.status ?? "");
+                  const oid = String(detail.order.order_id ?? "");
+                  const provider = String(detail.order.payment_provider ?? "");
+                  const isOfflinePaid = provider === "offline" || Boolean(detail.offline_usim);
+                  const canRefund =
+                    (st === "paid" || st === "delivered") && oid && !isOfflinePaid;
+                  if (!canRefund) {
+                    if (isOfflinePaid && (st === "paid" || st === "delivered")) {
+                      return (
+                        <p className="text-xs text-slate-500">
+                          오프라인 결제 주문은 PG 자동 환불이 없습니다. 유심사 취소·현금 반환은 별도 운영 절차로
+                          처리해 주세요.
+                        </p>
+                      );
+                    }
+                    return null;
+                  }
                   return (
                     <div className="rounded-xl border border-amber-900/60 bg-amber-950/40 p-4">
                       <h3 className="font-semibold text-amber-200">환불 (웰컴페이 전액 취소)</h3>

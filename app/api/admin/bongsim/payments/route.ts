@@ -33,6 +33,7 @@ export async function GET(req: Request) {
       `SELECT order_id::text AS order_id,
               order_number,
               status,
+              checkout_channel,
               grand_total_krw::text AS grand_total_krw,
               buyer_email,
               created_at
