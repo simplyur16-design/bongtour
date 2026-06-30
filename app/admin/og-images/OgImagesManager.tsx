@@ -1,20 +1,35 @@
 'use client'
 
 import SafeImage from '@/app/components/SafeImage'
+import {
+  staticOgPreviewPathForPageKey,
+  VALID_PAGE_KEYS,
+  type OgPageKey,
+} from '@/lib/og-images-db'
+import {
+  getOgSeasonPageKey,
+  isOgSeasonPageKey,
+  OG_SEASON_PAGE_LABELS,
+} from '@/lib/og-image-seasonal'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-type OgPageKey = 'default' | 'overseas' | 'private-trip' | 'training' | 'esim'
+const PAGE_ORDER: OgPageKey[] = [...VALID_PAGE_KEYS]
 
-const PAGE_ORDER: OgPageKey[] = ['default', 'overseas', 'private-trip', 'training', 'esim']
-
-const PAGE_LABELS: Record<
-  OgPageKey,
-  { label: string; url: string; description: string }
-> = {
-  default: {
-    label: '기본 (모든 페이지)',
+const PAGE_LABELS: Record<OgPageKey, { label: string; url: string; description: string }> = {
+  'season-apr-sep': {
+    label: OG_SEASON_PAGE_LABELS['season-apr-sep'].label,
     url: '/',
-    description: '다른 설정이 없을 때 사용',
+    description: `${OG_SEASON_PAGE_LABELS['season-apr-sep'].months} · ${OG_SEASON_PAGE_LABELS['season-apr-sep'].description}`,
+  },
+  'season-oct-nov-feb-mar': {
+    label: OG_SEASON_PAGE_LABELS['season-oct-nov-feb-mar'].label,
+    url: '/',
+    description: `${OG_SEASON_PAGE_LABELS['season-oct-nov-feb-mar'].months} · ${OG_SEASON_PAGE_LABELS['season-oct-nov-feb-mar'].description}`,
+  },
+  'season-dec-jan': {
+    label: OG_SEASON_PAGE_LABELS['season-dec-jan'].label,
+    url: '/',
+    description: `${OG_SEASON_PAGE_LABELS['season-dec-jan'].months} · ${OG_SEASON_PAGE_LABELS['season-dec-jan'].description}`,
   },
   overseas: {
     label: '해외여행 메인',
@@ -61,6 +76,7 @@ type Props = { actorRole: string | null | undefined }
 
 export default function OgImagesManager({ actorRole }: Props) {
   const canManage = actorRole === 'ADMIN' || actorRole === 'SUPER_ADMIN'
+  const activeSeasonKey = getOgSeasonPageKey()
   const [items, setItems] = useState<Partial<Record<OgPageKey, OgAssetApi | null>>>({})
   const [listState, setListState] = useState<ListState>('loading')
   const [listErr, setListErr] = useState('')
@@ -163,7 +179,7 @@ export default function OgImagesManager({ actorRole }: Props) {
         window.alert(data.error ?? '업로드에 실패했습니다.')
         return
       }
-      showBanner('ok', '업로드되었습니다.')
+      showBanner('ok', '업로드되었습니다. 카카오·페이스북은 디버거에서 캐시를 갱신해 주세요.')
       await loadList()
     } catch {
       window.alert('네트워크 오류로 업로드에 실패했습니다.')
@@ -177,7 +193,7 @@ export default function OgImagesManager({ actorRole }: Props) {
       window.alert('관리자 권한이 필요합니다.')
       return
     }
-    if (!window.confirm('이 OG 이미지를 삭제하시겠습니까?')) return
+    if (!window.confirm('업로드한 이미지를 삭제하고 기본(정적) 이미지로 되돌리시겠습니까?')) return
     setDeletingKey(pageKey)
     try {
       const res = await fetch(`/api/admin/og-images/${encodeURIComponent(pageKey)}`, {
@@ -192,7 +208,7 @@ export default function OgImagesManager({ actorRole }: Props) {
         window.alert(data.error ?? '삭제에 실패했습니다.')
         return
       }
-      showBanner('ok', '삭제되었습니다.')
+      showBanner('ok', '삭제되었습니다. 기본 이미지로 표시됩니다.')
       await loadList()
     } catch {
       window.alert('네트워크 오류로 삭제에 실패했습니다.')
@@ -218,7 +234,11 @@ export default function OgImagesManager({ actorRole }: Props) {
 
       <header className="space-y-2 border-b border-bt-border pb-6">
         <h1 className="text-2xl font-semibold text-bt-title">OG 이미지 관리</h1>
-        <p className="text-sm text-bt-muted">카카오톡/페이스북 공유 시 표시되는 이미지</p>
+        <p className="text-sm text-bt-muted">카카오톡·페이스북·문자 미리보기(링크 공유) 이미지</p>
+        <p className="text-sm text-bt-body">
+          홈(<span className="font-mono text-xs">/</span>)은 <strong>월별 시즌 3종</strong> 중 하나가 자동
+          적용됩니다. 각 시즌 카드에서 언제든 업로드·교체·삭제할 수 있습니다.
+        </p>
         <p className="text-sm text-bt-body">권장 1200×630 PNG/JPEG/WebP, 5MB 이하</p>
         <p className="text-sm font-medium text-amber-800">
           업로드 후 카카오톡 디버거에서 캐시 무효화가 필요할 수 있습니다.
@@ -250,32 +270,48 @@ export default function OgImagesManager({ actorRole }: Props) {
             const meta = PAGE_LABELS[key]
             const row = items[key] ?? null
             const hasDb = Boolean(row?.imageUrl)
+            const previewSrc = hasDb ? row!.imageUrl! : staticOgPreviewPathForPageKey(key)
+            const isActiveHomeSeason = isOgSeasonPageKey(key) && key === activeSeasonKey
             const busy = uploadingKey === key || deletingKey === key
             return (
               <div
                 key={key}
-                className="flex flex-col rounded-xl border border-bt-border bg-white p-6 shadow-sm"
+                className={`flex flex-col rounded-xl border bg-white p-6 shadow-sm ${
+                  isActiveHomeSeason ? 'border-teal-500 ring-1 ring-teal-200' : 'border-bt-border'
+                }`}
               >
-                <h2 className="text-lg font-semibold text-bt-title">{meta.label}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold text-bt-title">{meta.label}</h2>
+                  {isActiveHomeSeason ? (
+                    <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-800">
+                      지금 홈에 적용
+                    </span>
+                  ) : null}
+                  {hasDb ? (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-800">
+                      업로드됨
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      기본 이미지
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 text-xs text-bt-muted">{meta.description}</p>
                 <p className="mt-0.5 font-mono text-[11px] text-bt-meta">pageKey: {key}</p>
 
                 <div className="mt-4 flex min-h-[140px] items-center justify-center rounded-lg border border-dashed border-bt-border bg-bt-surface-soft">
-                  {hasDb ? (
-                    <SafeImage
-                      src={row!.imageUrl ?? ''}
-                      alt=""
-                      width={1200}
-                      height={630}
-                      className="max-h-36 max-w-full object-contain"
-                      onError={(ev) => {
-                        const t = ev.currentTarget
-                        t.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <span className="px-4 text-center text-sm text-bt-muted">기본 이미지 사용 중</span>
-                  )}
+                  <SafeImage
+                    src={previewSrc}
+                    alt=""
+                    width={1200}
+                    height={630}
+                    className="max-h-36 max-w-full object-contain"
+                    onError={(ev) => {
+                      const t = ev.currentTarget
+                      t.style.display = 'none'
+                    }}
+                  />
                 </div>
 
                 {hasDb && row?.width && row?.height ? (
@@ -292,7 +328,7 @@ export default function OgImagesManager({ actorRole }: Props) {
                     onClick={() => onPickFile(key)}
                     className="rounded-lg bg-bt-brand-blue px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    {uploadingKey === key ? '업로드 중…' : '이미지 업로드'}
+                    {uploadingKey === key ? '업로드 중…' : hasDb ? '이미지 교체' : '이미지 업로드'}
                   </button>
                   {hasDb ? (
                     <button
@@ -301,17 +337,19 @@ export default function OgImagesManager({ actorRole }: Props) {
                       onClick={() => void onDelete(key)}
                       className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
-                      {deletingKey === key ? '삭제 중…' : '삭제'}
+                      {deletingKey === key ? '삭제 중…' : '업로드 삭제'}
                     </button>
                   ) : null}
-                  <a
-                    href={kakaoDebuggerUrl(meta.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-lg border border-bt-border px-3 py-2 text-sm font-medium text-bt-link hover:bg-bt-surface-soft"
-                  >
-                    카카오 디버거
-                  </a>
+                  {meta.url === '/' ? (
+                    <a
+                      href={kakaoDebuggerUrl('/')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-lg border border-bt-border px-3 py-2 text-sm font-medium text-bt-link hover:bg-bt-surface-soft"
+                    >
+                      카카오 디버거
+                    </a>
+                  ) : null}
                 </div>
               </div>
             )

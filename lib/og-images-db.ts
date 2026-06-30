@@ -4,11 +4,19 @@
 
 import type { PageOgImage } from '@prisma/client'
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
+import {
+  getOgSeasonPageKey,
+  getSeasonalDefaultOgImagePath,
+  isOgSeasonPageKey,
+  OG_SEASON_PAGE_KEYS,
+  staticOgPathForSeasonKey,
+  type OgSeasonPageKey,
+} from '@/lib/og-image-seasonal'
 import { prisma } from '@/lib/prisma'
 import { isObjectStorageConfigured, removeStorageObject, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 
 export const VALID_PAGE_KEYS = [
-  'default',
+  ...OG_SEASON_PAGE_KEYS,
   'overseas',
   'private-trip',
   'training',
@@ -24,33 +32,53 @@ export function isValidOgPageKey(key: string): key is OgPageKey {
 }
 
 function staticPathForPage(pageKey: string): string {
+  if (isOgSeasonPageKey(pageKey)) return staticOgPathForSeasonKey(pageKey)
   return `/og/${pageKey}.webp`
 }
 
+async function loadOgImageUrl(pageKey: string): Promise<string | null> {
+  const row = await prisma.pageOgImage.findUnique({ where: { pageKey } })
+  const url = row?.imageUrl?.trim()
+  return url || null
+}
+
 /**
- * OG 이미지 URL (절대 또는 `/` 시작 상대). DB/네트워크 오류 시 정적 경로로 폴백.
+ * OG 이미지 URL (절대 또는 `/` 시작 상대).
+ * `default` = 현재 KST 시즌 키. 관리자 업로드가 있으면 항상 우선.
  */
 export async function getOgImageForPage(pageKey: string): Promise<string> {
   const key = (pageKey ?? '').trim()
+  const resolvedKey: string =
+    key === 'default' || !key ? getOgSeasonPageKey() : key
+
   if (shouldSkipDbAtBuild()) {
-    if (key && VALID_SET.has(key)) return staticPathForPage(key)
-    return '/og/default.webp'
+    if (isOgSeasonPageKey(resolvedKey)) return staticPathForPage(resolvedKey)
+    if (VALID_SET.has(resolvedKey)) return staticPathForPage(resolvedKey)
+    return getSeasonalDefaultOgImagePath()
   }
+
   try {
-    if (key && VALID_SET.has(key)) {
-      const row = await prisma.pageOgImage.findUnique({ where: { pageKey: key } })
-      if (row?.imageUrl?.trim()) return row.imageUrl.trim()
+    if (isOgSeasonPageKey(resolvedKey)) {
+      const uploaded = await loadOgImageUrl(resolvedKey)
+      if (uploaded) return uploaded
+      return staticPathForSeasonKey(resolvedKey)
     }
-    const def = await prisma.pageOgImage.findUnique({ where: { pageKey: 'default' } })
-    if (def?.imageUrl?.trim()) return def.imageUrl.trim()
+    if (VALID_SET.has(resolvedKey)) {
+      const uploaded = await loadOgImageUrl(resolvedKey)
+      if (uploaded) return uploaded
+      return staticPathForPage(resolvedKey)
+    }
   } catch (e) {
     console.warn('[og-images-db] getOgImageForPage DB error, using static fallback', {
       pageKey: key,
+      resolvedKey,
       message: e instanceof Error ? e.message : String(e),
     })
   }
-  if (key && VALID_SET.has(key)) return staticPathForPage(key)
-  return '/og/default.webp'
+
+  if (isOgSeasonPageKey(resolvedKey)) return staticPathForSeasonKey(resolvedKey)
+  if (VALID_SET.has(resolvedKey)) return staticPathForPage(resolvedKey)
+  return getSeasonalDefaultOgImagePath()
 }
 
 export type OgImageMetadataEntry = { url: string; width: number; height: number; alt: string }
@@ -124,7 +152,7 @@ async function removeStorageIfConfigured(objectKey: string | null | undefined): 
   }
 }
 
-/** DB 행 삭제 + 알려진 storagePath(또는 imageUrl에서 파싱한 키)로 Storage 객체 삭제 */
+/** DB 행 삭제 + Storage 객체 삭제 → 해당 시즌은 정적 fallback */
 export async function deleteOgImage(pageKey: string): Promise<void> {
   const key = (pageKey ?? '').trim()
   if (!key) return
@@ -146,3 +174,10 @@ export async function deletePreviousOgStorageIfAny(pageKey: OgPageKey): Promise<
   const path = row.storagePath?.trim() || tryParseObjectKeyFromPublicUrl(row.imageUrl)
   await removeStorageIfConfigured(path)
 }
+
+/** 관리자 UI — 업로드 없을 때 보여줄 정적 미리보기 경로 */
+export function staticOgPreviewPathForPageKey(pageKey: OgPageKey): string {
+  return staticPathForPage(pageKey)
+}
+
+export type { OgSeasonPageKey }

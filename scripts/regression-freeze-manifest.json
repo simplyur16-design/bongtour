@@ -595,6 +595,29 @@
       ]
     },
     {
+      "id": "og-image-seasonal",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈 OG 시즌 — 4~9·10·11·2·3·12·1월 KST pageKey·정적 경로",
+      "checks": [
+        {
+          "file": "lib/og-image-seasonal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[og-image-seasonal]",
+            "getOgSeasonPageKey",
+            "season-oct-nov-feb-mar",
+            "DEFAULT_OG_OCT_NOV_FEB_MAR_PATH"
+          ]
+        },
+        {
+          "file": "lib/og-images-db.ts",
+          "mustInclude": [
+            "getOgSeasonPageKey",
+            "OG_SEASON_PAGE_KEYS"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-complimentary-esim-grant",
       "tier": ["prebuild", "ci"],
       "summary": "관리자 무상 eSIM — 0원 paid·OrderPaid outbox·사유 메모·complimentary-esim grant API",
@@ -6156,6 +6179,12 @@
       "files": [
         "lib/bongsim/catalog/sim-fulfillment.test.ts"
       ]
+    },
+    {
+      "id": "og-image-seasonal",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈 OG 시즌 — KST 월별 pageKey·정적 fallback 경로",
+      "files": ["lib/og-image-seasonal.test.ts"]
     }
   ]
 }

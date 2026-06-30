@@ -20,7 +20,9 @@ function buildPageOgObjectKey(pageKey: string): string {
 }
 
 const OG_REVALIDATE_PATHS: Record<OgPageKey, string[]> = {
-  default: ['/'],
+  'season-apr-sep': ['/'],
+  'season-oct-nov-feb-mar': ['/'],
+  'season-dec-jan': ['/'],
   overseas: ['/travel/overseas'],
   'private-trip': ['/travel/overseas/private-trip'],
   training: ['/training'],

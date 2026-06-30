@@ -9,51 +9,55 @@ import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
 import MobileStickyBar from './components/MobileStickyBar'
 import AdminQuickActionsMount from '@/components/admin/AdminQuickActionsMount'
-import { DEFAULT_OG_IMAGE_PATH, getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
+import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
+import { getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
 
 const siteOrigin = getSiteOrigin()
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteOrigin),
-  icons: {
-    icon: [
-      { url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
-  },
-  title: {
-    default: `${SITE_NAME} | BongTour`,
-    template: `%s | ${SITE_NAME}`,
-  },
-  description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
-  openGraph: {
-    type: 'website',
-    locale: 'ko_KR',
-    siteName: SITE_NAME,
-    title: `${SITE_NAME} | BongTour`,
-    description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
-    url: '/',
-    images: [{ url: DEFAULT_OG_IMAGE_PATH, alt: SITE_NAME }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: `${SITE_NAME} | BongTour`,
-    description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
-    images: [DEFAULT_OG_IMAGE_PATH],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  verification: {
-    other: {
-      'naver-site-verification': '3f9184c6e176330957acec29603387d07115e54d',
-      'facebook-domain-verification': 'mcg3b915poi6zo8fcl33v2gedulj5p',
+export async function generateMetadata(): Promise<Metadata> {
+  const defaultOgImagePath = getSeasonalDefaultOgImagePath()
+  return {
+    metadataBase: new URL(siteOrigin),
+    icons: {
+      icon: [
+        { url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' },
+        { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      apple: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
     },
-  },
+    title: {
+      default: `${SITE_NAME} | BongTour`,
+      template: `%s | ${SITE_NAME}`,
+    },
+    description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
+    openGraph: {
+      type: 'website',
+      locale: 'ko_KR',
+      siteName: SITE_NAME,
+      title: `${SITE_NAME} | BongTour`,
+      description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
+      url: '/',
+      images: [{ url: defaultOgImagePath, alt: SITE_NAME }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${SITE_NAME} | BongTour`,
+      description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
+      images: [defaultOgImagePath],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    verification: {
+      other: {
+        'naver-site-verification': '3f9184c6e176330957acec29603387d07115e54d',
+        'facebook-domain-verification': 'mcg3b915poi6zo8fcl33v2gedulj5p',
+      },
+    },
+  }
 }
 
 const notoSansKr = Noto_Sans_KR({

@@ -14,30 +14,44 @@ import ServiceInfoCards from './components/home/ServiceInfoCards'
 import CustomerReviewsSection from './components/home/CustomerReviewsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
-import { DEFAULT_OG_IMAGE_PATH, SITE_NAME } from '@/lib/site-metadata'
+import { ogImagesForMetadata } from '@/lib/og-images-db'
+import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
+import { SITE_NAME } from '@/lib/site-metadata'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import MobileDestinationSearch from './components/home/MobileDestinationSearch'
 
 /** 5분 ISR — 허브 카드 풀·시즌 큐레이션은 최대 5분 지연 후 반영. */
 export const revalidate = 300
 
-export const metadata: Metadata = {
-  title: { absolute: HOME_PAGE_TITLE },
-  description: HOME_PAGE_DESCRIPTION,
-  alternates: { canonical: '/' },
-  openGraph: {
-    type: 'website',
-    locale: 'ko_KR',
-    siteName: SITE_NAME,
-    title: HOME_PAGE_TITLE,
+export async function generateMetadata(): Promise<Metadata> {
+  let images: Awaited<ReturnType<typeof ogImagesForMetadata>> = [
+    { url: getSeasonalDefaultOgImagePath(), width: 1200, height: 630, alt: SITE_NAME },
+  ]
+  try {
+    images = await ogImagesForMetadata('default', SITE_NAME)
+  } catch (e) {
+    console.error('[home-page] generateMetadata og image failed', e)
+  }
+  return {
+    title: { absolute: HOME_PAGE_TITLE },
     description: HOME_PAGE_DESCRIPTION,
-    url: '/',
-    images: [{ url: DEFAULT_OG_IMAGE_PATH, alt: SITE_NAME }],
-  },
-  twitter: {
-    title: HOME_PAGE_TITLE,
-    description: HOME_PAGE_DESCRIPTION,
-  },
+    alternates: { canonical: '/' },
+    openGraph: {
+      type: 'website',
+      locale: 'ko_KR',
+      siteName: SITE_NAME,
+      title: HOME_PAGE_TITLE,
+      description: HOME_PAGE_DESCRIPTION,
+      url: '/',
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: HOME_PAGE_TITLE,
+      description: HOME_PAGE_DESCRIPTION,
+      images: images.map((i) => i.url),
+    },
+  }
 }
 
 /** 메인: 밝은 헤더 + 시즌 히어로(PC) / 모바일 허브 + 추천·B2G·후기 */
