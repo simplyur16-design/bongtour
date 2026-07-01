@@ -28,6 +28,7 @@ import {
   type OverseasHubDestinationHeroSlide,
 } from '@/lib/overseas-hub-season-destination-hero-shared'
 import OverseasCountryHeroBanner from '@/components/travel/overseas/OverseasCountryHeroBanner'
+import { CINEMA_HERO_FRAME_CLASS } from '@/lib/cinema-hero-frame-class'
 
 const WEEKDAYS_KR = ['일', '월', '화', '수', '목', '금', '토'] as const
 
@@ -638,11 +639,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   return (
     <section className="relative border-b border-bt-border">
       <div
-        className={`relative w-full overflow-hidden lg:pb-0 ${
-          isSpotlightMode
-            ? 'min-h-[min(260px,44vh)] sm:min-h-[min(300px,48vh)]'
-            : 'min-h-[min(280px,46vh)] sm:min-h-[min(340px,50vh)]'
-        }`}
+        className={`relative w-full overflow-hidden lg:pb-0 ${CINEMA_HERO_FRAME_CLASS}`}
         onMouseEnter={() => {
           if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
             setIsPaused(true)
@@ -671,7 +668,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                   ctaHref={matchedCountrySlide.href}
                 />
               ) : countryBrowseLoading ? (
-                <div className="h-[240px] w-full animate-pulse rounded-xl bg-slate-200/70 lg:h-[300px]" />
+                <div className={`w-full animate-pulse bg-slate-200/70 ${CINEMA_HERO_FRAME_CLASS}`} />
               ) : autoHeroFromBrowse ? (
                 <OverseasCountryHeroBanner
                   imageUrl={autoHeroFromBrowse.imageUrl}
@@ -743,7 +740,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                       src={src}
                       alt=""
                       fill
-                      className="object-cover"
+                      className="object-cover object-center"
                       sizes="100vw"
                       loading={idx === 0 ? 'eager' : 'lazy'}
                       priority={idx === 0}

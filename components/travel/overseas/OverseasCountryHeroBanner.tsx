@@ -24,10 +24,10 @@ export default function OverseasCountryHeroBanner({
   const external = /^https?:\/\//i.test(href)
   const sub = subtitle.replace(/\s+/g, ' ').trim()
   return (
-    <div className="relative h-[240px] w-full overflow-hidden rounded-xl border border-slate-200/90 lg:h-[300px]">
+    <div className="relative h-full w-full overflow-hidden">
       {imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- 히어로 전용 원격 URL·eager 로딩
-        <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" />
+        <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" loading="eager" />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-teal-800 to-slate-900" aria-hidden />
       )}

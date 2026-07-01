@@ -5,6 +5,7 @@ import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
+import { CINEMA_HERO_FRAME_CLASS } from '@/lib/cinema-hero-frame-class'
 import { MAIN_CURATION_EYEBROW, MAIN_CURATION_LEAD, MAIN_CURATION_TITLE } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
@@ -126,7 +127,7 @@ export function SeasonCurationCardLink({
       <div
         className={`relative w-full overflow-hidden bg-slate-100 ${
           hero
-            ? 'min-h-[min(28rem,58vh)] sm:min-h-[min(32rem,62vh)]'
+            ? CINEMA_HERO_FRAME_CLASS
             : mobileBriefing
               ? 'aspect-[4/5] min-h-[min(14rem,35vh)] w-full max-h-[39vh]'
               : compact
