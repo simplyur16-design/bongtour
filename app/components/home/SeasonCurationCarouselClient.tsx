@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import SafeImage from '@/app/components/SafeImage'
+import CinemaHeroImage from '@/app/components/CinemaHeroImage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeHomeSeasonSlidesForClient, type HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { CINEMA_HERO_FRAME_CLASS } from '@/lib/cinema-hero-frame-class'
@@ -135,22 +136,28 @@ export function SeasonCurationCardLink({
                 : 'aspect-[21/9] sm:aspect-[24/9]'
         }`}
       >
-        <div className={`absolute inset-0 z-[1] ${SEASON_CURATION_PHOTO_FILTER}`}>
+        <div className={`absolute inset-0 z-[1] ${hero ? '' : SEASON_CURATION_PHOTO_FILTER}`}>
           {img ? (
-            <SafeImage
-              src={img}
-              alt=""
-              fill
-              className="object-cover object-center"
-              sizes={
-                hero || mobileBriefing
-                  ? '100vw'
-                  : compact
-                    ? '(max-width:768px) 85vw, 320px'
-                    : '(max-width:1280px) 100vw, 1152px'
-              }
-              loading="lazy"
-            />
+            hero ? (
+              <div className={`absolute inset-0 ${SEASON_CURATION_PHOTO_FILTER}`}>
+                <CinemaHeroImage src={img} sizes="100vw" loading="lazy" />
+              </div>
+            ) : (
+              <SafeImage
+                src={img}
+                alt=""
+                fill
+                className="object-cover object-center"
+                sizes={
+                  mobileBriefing
+                    ? '100vw'
+                    : compact
+                      ? '(max-width:768px) 85vw, 320px'
+                      : '(max-width:1280px) 100vw, 1152px'
+                }
+                loading="lazy"
+              />
+            )
           ) : (
             <div
               className="absolute inset-0 bg-gradient-to-br from-bt-bg-lavender-soft via-white to-bt-bg-lavender/40"

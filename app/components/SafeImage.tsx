@@ -37,6 +37,9 @@ export default function SafeImage({
   unoptimized: unoptimizedProp,
   fill,
   priority,
+  style,
+  loading: loadingProp,
+  onError: onErrorProp,
   ...rest
 }: ImageProps) {
   const [error, setError] = useState(false)
@@ -91,7 +94,7 @@ export default function SafeImage({
     (src.startsWith('/') || isNcloudHostUrl(src) || resolvedUnoptimized)
 
   if (useNativeImg) {
-    const loading = priority ? 'eager' : 'lazy'
+    const loading = priority ? 'eager' : (loadingProp ?? 'lazy')
     const imgClassName = [fill ? 'absolute inset-0 block h-full w-full' : '', className].filter(Boolean).join(' ') || undefined
     const sizesAttr = typeof rest.sizes === 'string' ? rest.sizes : undefined
     /** HTML width/height가 크면 `height:auto` 인라인이 Tailwind 높이를 깨뜨려 로고가 화면을 채움 */
@@ -99,6 +102,9 @@ export default function SafeImage({
       !fill && typeof width === 'number' && width > 0 && width <= 640 ? width : undefined
     const layoutH =
       !fill && typeof height === 'number' && height > 0 && height <= 640 ? height : undefined
+    const mergedStyle = fill
+      ? { width: '100%', height: '100%', objectFit: 'cover' as const, ...style }
+      : { objectFit: 'contain' as const, maxWidth: '100%', ...style }
     return (
       // eslint-disable-next-line @next/next/no-img-element -- 로컬·Ncloud·unoptimized: SSR/CSR 동일 (next/image hydration 불일치 방지)
       <img
@@ -110,12 +116,11 @@ export default function SafeImage({
         decoding="async"
         {...(sizesAttr ? { sizes: sizesAttr } : {})}
         className={imgClassName}
-        style={
-          fill
-            ? { objectFit: 'cover', width: '100%', height: '100%' }
-            : { objectFit: 'contain', maxWidth: '100%' }
-        }
-        onError={handleError}
+        style={mergedStyle}
+        onError={(e) => {
+          handleError()
+          onErrorProp?.(e)
+        }}
         draggable={false}
         onDragStart={(e) => e.preventDefault()}
         suppressHydrationWarning
@@ -132,7 +137,12 @@ export default function SafeImage({
       className={className}
       fill={fill}
       priority={priority}
-      onError={handleError}
+      style={style}
+      loading={loadingProp}
+      onError={(e) => {
+        handleError()
+        onErrorProp?.(e)
+      }}
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
       {...rest}

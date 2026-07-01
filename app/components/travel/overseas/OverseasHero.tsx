@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import SafeImage from '@/app/components/SafeImage'
+import CinemaHeroImage from '@/app/components/CinemaHeroImage'
 import {
   type FC,
   type ReactNode,
@@ -652,7 +652,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         }}
         aria-live={reduceMotion ? 'polite' : 'off'}
       >
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 overflow-hidden">
             {isSpotlightMode ? (
               matchedCountrySlide ? (
                 <OverseasCountryHeroBanner
@@ -668,7 +668,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                   ctaHref={matchedCountrySlide.href}
                 />
               ) : countryBrowseLoading ? (
-                <div className={`w-full animate-pulse bg-slate-200/70 ${CINEMA_HERO_FRAME_CLASS}`} />
+                <div className="absolute inset-0 animate-pulse bg-slate-200/70" />
               ) : autoHeroFromBrowse ? (
                 <OverseasCountryHeroBanner
                   imageUrl={autoHeroFromBrowse.imageUrl}
@@ -736,15 +736,11 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                   ) : null
                 const inner = (
                   <>
-                    <SafeImage
+                    <CinemaHeroImage
                       src={src}
-                      alt=""
-                      fill
-                      className="object-cover object-center"
                       sizes="100vw"
                       loading={idx === 0 ? 'eager' : 'lazy'}
                       priority={idx === 0}
-                      decoding="async"
                       onError={() => setBroken((prev) => ({ ...prev, [current.id]: true }))}
                     />
                     {dots}
@@ -782,7 +778,7 @@ const OverseasHero: FC<OverseasHeroProps> = ({
                     ) : null}
                     <HeroCurationLink
                       href={current.href}
-                      className="group relative block h-full w-full"
+                      className="group relative block h-full w-full min-h-0"
                       ariaLabel={`${current.headline} 자세히 보기`}
                     >
                       {inner}

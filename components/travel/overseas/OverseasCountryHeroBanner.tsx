@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import CinemaHeroImage from '@/app/components/CinemaHeroImage'
 
 export type OverseasCountryHeroBannerProps = {
   imageUrl: string | null
@@ -26,8 +27,7 @@ export default function OverseasCountryHeroBanner({
   return (
     <div className="relative h-full w-full overflow-hidden">
       {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- 히어로 전용 원격 URL·eager 로딩
-        <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" loading="eager" />
+        <CinemaHeroImage src={imageUrl} sizes="100vw" loading="eager" priority />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-teal-800 to-slate-900" aria-hidden />
       )}
