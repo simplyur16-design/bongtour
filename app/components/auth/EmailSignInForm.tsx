@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
+import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
 
 type Props = { callbackUrl: string }
 
@@ -16,7 +17,7 @@ export default function EmailSignInForm({ callbackUrl }: Props) {
     setErr('')
     setLoading(true)
     const res = await signIn('credentials', {
-      email: email.trim().toLowerCase(),
+      email: normalizeCredentialsLoginEmail(email),
       password,
       redirect: false,
       callbackUrl,
@@ -33,12 +34,12 @@ export default function EmailSignInForm({ callbackUrl }: Props) {
     <form onSubmit={onSubmit} className="w-full max-w-xs space-y-3">
       <div>
         <label htmlFor="signin-email" className="mb-1 block text-xs font-medium text-bt-body">
-          이메일
+          이메일 또는 ID
         </label>
         <input
           id="signin-email"
-          type="email"
-          autoComplete="email"
+          type="text"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm text-bt-body outline-none focus:border-bt-brand-blue-strong focus:ring-2 focus:ring-bt-brand-blue-soft"

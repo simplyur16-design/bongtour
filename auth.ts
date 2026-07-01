@@ -10,6 +10,7 @@ import { getSiteOrigin } from '@/lib/site-metadata'
 import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
+import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
 
 function authSessionCookieDomain(): string | undefined {
   try {
@@ -51,7 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: '비밀번호', type: 'password' },
       },
       async authorize(credentials) {
-        const email = credentials?.email?.toString().trim().toLowerCase()
+        const email = normalizeCredentialsLoginEmail(credentials?.email?.toString() ?? '')
         const password = credentials?.password?.toString() ?? ''
         if (!email || !password) return null
         const user = await prisma.user.findUnique({ where: { email } })
