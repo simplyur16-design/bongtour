@@ -1,14 +1,14 @@
 /**
  * 등록 schedule — trip 전체 imageKeyword·imageKeyword2 중복 제거 (6공급사 공통 후처리).
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: manifest
- * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only day foreign keyword strip — manifest
- * 당일 route 후보만 사용 — 타 일차 landmark 끌어오기 금지.
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — applyDomesticHubOnlyDepartureReturnAdjacentKeywords — manifest
+ * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
 import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import { isScheduleAirportLikeImageKeyword, isScheduleAirportOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
-import { isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import {
   firstMatchingScheduleCityEn,
@@ -22,6 +22,13 @@ export type RegisterScheduleTripKeywordRow = {
   routeText?: string | null
   imageKeyword?: string | null
   imageKeyword2?: string | null
+}
+
+function isReturnDayCityLeakKeyword(kw: string): boolean {
+  const t = String(kw ?? '').trim()
+  if (!t) return true
+  if (/\bnha trang\b/i.test(t) && !/\bpo nagar\b/i.test(t)) return true
+  return isBareCityOrCountryKeyword(t)
 }
 
 function isRejectedTripKeywordCandidate(kw: string): boolean {
@@ -84,31 +91,105 @@ function isScheduleDomesticHubToken(token: string): boolean {
   return /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i.test(t)
 }
 
-function keywordSupportedByRowRouteEvidence(
-  kw: string,
-  row: RegisterScheduleTripKeywordRow,
-): boolean {
+function isDomesticHubOrAirportImageKeyword(kw: string): boolean {
   const t = String(kw ?? '').trim()
-  if (!t) return false
-  const nk = normScheduleImageKeywordKey(t)
-  return collectTripKeywordCandidates(row).some((c) => normScheduleImageKeywordKey(c) === nk)
+  if (!t) return true
+  if (isScheduleAirportLikeImageKeyword(t)) return true
+  if (isScheduleDomesticHubToken(t)) return true
+  if (isAirlineCarrierImageKeyword(t)) return true
+  return false
 }
 
-/** 국내 허브만 있는 출발·귀국일 — 타 일차 관광명소 imageKeyword 누수 차단 (6공급사 공통) */
+/** 국내 허브 only 출발·귀국일 — adjacent-poi SSOT(도착지 forward / 마지막 관광 backward 미사용 명소) */
+export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
+  T extends RegisterScheduleTripKeywordRow,
+>(rows: T[]): T[] {
+  if (!rows.length) return rows
+  const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
+  const maxDay = Math.max(...sorted.map((r) => Number(r.day)).filter((d) => d > 0))
+  const used = new Set<string>()
+  const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    if (day <= 0) continue
+    const pk = String(row.imageKeyword ?? '').trim()
+    const sk = String(row.imageKeyword2 ?? '').trim()
+    byDay.set(day, { primary: pk, secondary: sk || null })
+    if (!isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) {
+      if (pk) used.add(normScheduleImageKeywordKey(pk))
+      if (sk) used.add(normScheduleImageKeywordKey(sk))
+    }
+  }
+
+  return sorted.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    if (!isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) return row
+
+    const isDeparture = day === 1
+    const isReturn = day === maxDay && maxDay >= 2
+    if (!isDeparture && !isReturn) return row
+
+    const prevDay = isReturn ? sorted.filter((r) => Number(r.day) > 0 && Number(r.day) < day).pop() : undefined
+    const prevAlloc = prevDay ? byDay.get(Number(prevDay.day)) : undefined
+
+    const overlapsPrevSlots = (kw: string): boolean => {
+      if (!prevAlloc) return false
+      const nk = normScheduleImageKeywordKey(kw)
+      if (!nk) return true
+      for (const slot of [prevAlloc.primary, prevAlloc.secondary ?? '']) {
+        const sk = normScheduleImageKeywordKey(slot)
+        if (!sk) continue
+        if (nk === sk || nk.includes(sk) || sk.includes(nk)) return true
+      }
+      return false
+    }
+
+    let picked = ''
+    if (isDeparture) {
+      const nextRow = sorted.find((r) => Number(r.day) > day)
+      if (nextRow) {
+        for (const kw of collectTripKeywordCandidates(nextRow)) {
+          if (isDomesticHubOrAirportImageKeyword(kw)) continue
+          picked = kw
+          break
+        }
+      }
+    } else if (isReturn && prevDay) {
+      for (const kw of [...collectTripKeywordCandidates(prevDay)].reverse()) {
+        if (isDomesticHubOrAirportImageKeyword(kw)) continue
+        if (isReturnDayCityLeakKeyword(kw)) continue
+        if (overlapsPrevSlots(kw)) continue
+        const nk = normScheduleImageKeywordKey(kw)
+        if (nk && used.has(nk)) continue
+        picked = kw
+        break
+      }
+    }
+
+    const primary =
+      picked && !isDomesticHubOrAirportImageKeyword(picked) ? picked : ''
+    if (primary) used.add(normScheduleImageKeywordKey(primary))
+
+    return {
+      ...row,
+      imageKeyword: primary,
+      imageKeyword2: null,
+    }
+  })
+}
+
+type ScheduleAdjacentDayAlloc = {
+  primary: string
+  secondary: string | null
+}
+
+/** @deprecated alias — hub/airport strip은 applyDomesticHubOnlyDepartureReturnAdjacentKeywords에 포함 */
 export function sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays<
   T extends RegisterScheduleTripKeywordRow,
 >(rows: T[]): T[] {
-  return rows.map((row) => {
-    if (!isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) return row
-    const primary = String(row.imageKeyword ?? '').trim()
-    const secondary = String(row.imageKeyword2 ?? '').trim()
-    return {
-      ...row,
-      imageKeyword: primary && keywordSupportedByRowRouteEvidence(primary, row) ? primary : '',
-      imageKeyword2:
-        secondary && keywordSupportedByRowRouteEvidence(secondary, row) ? secondary : null,
-    }
-  })
+  return applyDomesticHubOnlyDepartureReturnAdjacentKeywords(rows)
 }
 
 /** 이미 쓴 키워드는 당일 route·본문 후보만으로 교체 — 타 일차 landmark 금지, 없으면 빈 슬롯 */
@@ -118,9 +199,19 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
   const used = new Set<string>()
   const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
   return sorted.map((row) => {
+    const hubOnlyDay = isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)
     const cands = collectTripKeywordCandidates(row)
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (hubOnlyDay) {
+      if (primary && !isDomesticHubOrAirportImageKeyword(primary)) {
+        used.add(normScheduleImageKeywordKey(primary))
+      } else {
+        primary = ''
+      }
+      return { ...row, imageKeyword: primary, imageKeyword2: null }
+    }
 
     if (primary && used.has(normScheduleImageKeywordKey(primary))) {
       primary = pickUnusedTripKeyword(cands, used) || ''

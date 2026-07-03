@@ -233,7 +233,7 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
     assert.equal(d3.imageKeyword, 'Victoria Peak')
   })
 
-  it('인천 only 귀국일 — 전일 나트랑 키워드 누수 금지', () => {
+  it('인천 only 귀국일 — 마지막 관광일 미사용 명소 (Nha Trang 도시명 재사용 금지)', () => {
     const out = applyYbtourScheduleImageKeywordsToRows(
       [
         {
@@ -255,8 +255,11 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
       ],
       { productDestination: '동남아' },
     )
-    assert.equal(out.find((r) => r.day === 5)!.imageKeyword?.trim() ?? '', '')
-    assert.equal(out.find((r) => r.day === 5)!.imageKeyword2, null)
+    const d5 = out.find((r) => r.day === 5)!
+    const kw5 = d5.imageKeyword?.trim() ?? ''
+    assert.ok(kw5.length >= 2, 'return day should have unused POI from day 4')
+    assert.notEqual(kw5.toLowerCase(), 'nha trang')
+    assert.equal(d5.imageKeyword2, null)
   })
 })
 

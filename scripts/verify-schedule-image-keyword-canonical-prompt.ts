@@ -48,15 +48,25 @@ for (const supplier of ['modetour', 'ybtour', 'hanatour', 'lottetour', 'verygood
     productTitle: '베트남 달랏 나트랑',
   })
   for (const day of [1, 5] as const) {
-    const kw = String(out.find((r) => r.day === day)?.imageKeyword ?? '').trim()
-    if (kw.length > 0) {
-      failures.push(`${supplier} day${day}: domestic hub leaked foreign kw "${kw}"`)
+    const row = out.find((r) => r.day === day)!
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (day === 1) {
+      if (kw.length < 2) failures.push(`${supplier} day1: departure needs arrival-region POI (empty)`)
+      if (/^nha trang$/i.test(kw)) failures.push(`${supplier} day1: bare Nha Trang on departure (need Da Lat region)`)
     }
+    if (day === 5 && kw.length >= 2 && /nha trang/i.test(kw) && !/po nagar/i.test(kw)) {
+      failures.push(`${supplier} day5: Nha Trang city reuse on return ("${kw}")`)
+    }
+    if (kw2.length > 0) failures.push(`${supplier} day${day}: imageKeyword2 must be null on hub-only flight day`)
   }
   const d4 = out.find((r) => r.day === 4)!
   const kw4 = String(d4.imageKeyword ?? '').trim()
-  if (!/nha trang/i.test(kw4)) {
-    failures.push(`${supplier} day4: expected Nha Trang area keyword, got "${kw4}"`)
+  const kw42 = String(d4.imageKeyword2 ?? '').trim()
+  if (kw4.length < 2) failures.push(`${supplier} day4: tourism day missing imageKeyword`)
+  if (kw42.length < 2) failures.push(`${supplier} day4: tourism day missing imageKeyword2`)
+  if (!/nha trang|po nagar|long son/i.test(`${kw4} ${kw42}`)) {
+    failures.push(`${supplier} day4: expected Nha Trang-area landmarks, got kw1="${kw4}" kw2="${kw42}"`)
   }
 }
 

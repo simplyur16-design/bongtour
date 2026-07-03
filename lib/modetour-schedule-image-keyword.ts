@@ -514,8 +514,10 @@ function pickModetourReturnKeywordFromPrevDay(
   const pickFrom = (list: readonly string[], allowUsed = false): string => {
     for (let i = list.length - 1; i >= 0; i--) {
       const kw = list[i]!
-      if (prevAlloc && keysEqual(kw, prevAlloc.primary)) continue
+      if (prevAlloc?.primary && keysEqual(kw, prevAlloc.primary)) continue
       if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
+      if (prevAlloc?.primary && modetourKeywordKeysOverlap(kw, prevAlloc.primary)) continue
+      if (prevAlloc?.secondary && modetourKeywordKeysOverlap(kw, prevAlloc.secondary)) continue
       if (rejectReturnKw(kw)) continue
       const nk = normKey(kw)
       if (!allowUsed && used && nk && used.has(nk)) continue
@@ -1664,6 +1666,21 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
           pickFirstUnusedModetourRouteKeyword(routeOrderedMovement, used, undefined, productDestination)
       }
       if (primary && isModetourAirportLikeKeyword(primary)) primary = ''
+      if (
+        !primary &&
+        isScheduleAirportOnlyRouteText(row.routeText, isModetourDomesticHubToken)
+      ) {
+        primary =
+          pickModetourAdjacentUnusedKeyword(
+            day,
+            maxDay,
+            sorted,
+            used,
+            byDay,
+            productDestination,
+            'forward',
+          ) || ''
+      }
       if (primary) used.add(normKey(primary))
       byDay.set(day, { primary, secondary: null })
       continue
@@ -1692,7 +1709,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
             const prevAlloc = byDay.get(Number(prevRow.day))
             const prevRouteOrdered = collectModetourRouteOrderedSegmentKeywords(
               prevRow.routeText,
-              'return_home',
+              'tourism',
               productDestination,
             )
             const prevFull = collectModetourDayOrderedKeywordCandidates(

@@ -14,6 +14,7 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
+import { isScheduleAirportOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type VerygoodScheduleImageKeywordRow = {
@@ -453,6 +454,68 @@ export function resolveVerygoodPrimaryKeyword(
   return ''
 }
 
+function lastForeignVerygoodUnusedLandmarkFromPriorRows(
+  priorRows: ReadonlyArray<VerygoodScheduleImageKeywordRow>,
+  used: ReadonlySet<string>,
+  productDestination: string | null | undefined,
+  totalDays: number,
+): string {
+  const sorted = [...priorRows].sort((a, b) => Number(b.day) - Number(a.day))
+  for (const row of sorted) {
+    const day = Number(row.day) || 0
+    if (day <= 0) continue
+    const kind = classifyVerygoodDayKind(
+      String(row.description ?? ''),
+      String(row.title ?? ''),
+      day,
+      totalDays,
+      row.routeText,
+    )
+    if (kind === 'flight') continue
+    const hay = verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? ''))
+    for (const raw of [
+      ...findAllMappedKoreanPoisInText(hay),
+      firstVerygoodSpotFromRoute(row.routeText) ?? '',
+      String(row.imageKeyword ?? ''),
+    ]) {
+      const accepted = tryAcceptVerygoodLlmImageKeyword(raw, productDestination)
+      if (accepted && !used.has(normKey(accepted))) return accepted
+    }
+  }
+  return ''
+}
+
+function firstForeignVerygoodUnusedLandmarkFromFollowingRows(
+  followingRows: ReadonlyArray<VerygoodScheduleImageKeywordRow>,
+  used: ReadonlySet<string>,
+  productDestination: string | null | undefined,
+  totalDays: number,
+): string {
+  const sorted = [...followingRows].sort((a, b) => Number(a.day) - Number(b.day))
+  for (const row of sorted) {
+    const day = Number(row.day) || 0
+    if (day <= 0) continue
+    const kind = classifyVerygoodDayKind(
+      String(row.description ?? ''),
+      String(row.title ?? ''),
+      day,
+      totalDays,
+      row.routeText,
+    )
+    if (kind === 'flight') continue
+    const hay = verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? ''))
+    for (const raw of [
+      ...findAllMappedKoreanPoisInText(hay),
+      firstVerygoodSpotFromRoute(row.routeText) ?? '',
+      String(row.imageKeyword ?? ''),
+    ]) {
+      const accepted = tryAcceptVerygoodLlmImageKeyword(raw, productDestination)
+      if (accepted && !used.has(normKey(accepted))) return accepted
+    }
+  }
+  return ''
+}
+
 function lastForeignVerygoodLandmarkFromPriorRows(
   priorRows: ReadonlyArray<VerygoodScheduleImageKeywordRow>,
   current: VerygoodScheduleImageKeywordRow,
@@ -532,7 +595,7 @@ export function applyVerygoodScheduleImageKeywordsToRows<
       : Math.max(...rows.map((r) => Number(r.day) || 0), rows.length)
 
   const usedPrimaryKeys = new Set<string>()
-  return rows.map((row, idx) => {
+  const firstPass = rows.map((row, idx) => {
     const day = Number(row.day) || 0
     const det = detByDay.get(day)
     const description = String(det?.description ?? row.description ?? '')
@@ -556,6 +619,25 @@ export function applyVerygoodScheduleImageKeywordsToRows<
       prior,
       totalDays,
     )
+    if (dayKind === 'flight' && !primary && day === 1) {
+      const following = rows.slice(idx + 1).map((r) => {
+        const d = Number(r.day) || 0
+        const detR = detByDay.get(d)
+        return {
+          ...r,
+          description: String(detR?.description ?? r.description ?? ''),
+          title: String(detR?.title ?? r.title ?? ''),
+          routeText: r.routeText ?? detR?.routeText ?? null,
+        }
+      })
+      primary =
+        firstForeignVerygoodUnusedLandmarkFromFollowingRows(
+          following,
+          usedPrimaryKeys,
+          productDestination,
+          totalDays,
+        ) || ''
+    }
     if (primary && usedPrimaryKeys.has(normKey(primary))) {
       const hay = verygoodHaystackFromRow({ ...row, routeText }, description, title)
       const pois = findAllMappedKoreanPoisInText(hay)
@@ -578,8 +660,45 @@ export function applyVerygoodScheduleImageKeywordsToRows<
     )
     return {
       ...row,
+      description,
+      title,
+      routeText,
       imageKeyword: primary,
       imageKeyword2: secondary,
+    } as T
+  })
+
+  const tripUsed = new Set<string>()
+  return firstPass.map((row) => {
+    const day = Number(row.day) || 0
+    const description = String(row.description ?? '')
+    const title = String(row.title ?? '').trim()
+    const routeText = row.routeText ?? null
+    const dayKind = classifyVerygoodDayKind(description, title, day, totalDays, routeText)
+    let primary = String(row.imageKeyword ?? '').trim()
+    if (
+      dayKind === 'flight' &&
+      !primary &&
+      day === totalDays &&
+      isScheduleAirportOnlyRouteText(routeText, isVerygoodDomesticHubToken)
+    ) {
+      const priorProcessed = firstPass.filter((r) => Number(r.day) > 0 && Number(r.day) < day)
+      primary =
+        lastForeignVerygoodUnusedLandmarkFromPriorRows(
+          priorProcessed,
+          tripUsed,
+          productDestination,
+          totalDays,
+        ) || ''
     }
-  }) as T[]
+    if (primary) tripUsed.add(normKey(primary))
+    const sk = String(row.imageKeyword2 ?? '').trim()
+    if (sk) tripUsed.add(normKey(sk))
+
+    return {
+      ...row,
+      imageKeyword: primary,
+      imageKeyword2: dayKind === 'touring' ? row.imageKeyword2 : null,
+    }
+  })
 }

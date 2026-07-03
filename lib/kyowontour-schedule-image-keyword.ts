@@ -932,17 +932,29 @@ export function applyKyowontourScheduleImageKeywordsToRows<
       )
     }
 
-    if (!primary && (slotKind === 'middle' || slotKind === 'departure')) {
+    const refillFromNextDay = (): string => {
+      const next = reconciled.find((r) => Number(r.day) === day + 1)
+      if (!next) return ''
+      const haystack = [next.routeText, next.title, next.description].filter(Boolean).join('\n')
+      const cands = [
+        ...findAllScheduleSpotMatchesInText(haystack).map((h) => h.en),
+        ...collectKyowontourRouteLandmarkCandidates(next.routeText),
+      ]
+      return (
+        cands.find(
+          (c) => !tripUsed.has(normKyowontourKwKey(c)) && !isKyowontourRejectedImageKeywordCandidate(c),
+        ) ?? ''
+      )
+    }
+
+    if (!primary && slotKind === 'departure') {
+      primary = refillFromNextDay() || refillPrimary() || ''
+    }
+    if (!primary && slotKind === 'middle') {
       primary = refillPrimary() ?? refillFromPriorDay()
     }
     if (!primary && slotKind === 'return' && day > 1) {
-      const domesticReturnOnly = isScheduleAirportOnlyRouteText(
-        row.routeText,
-        isKyowontourDomesticHubToken,
-      )
-      if (!domesticReturnOnly) {
-        primary = refillFromPriorDay() || refillPrimary() || ''
-      }
+      primary = refillFromPriorDay() || refillPrimary() || ''
     }
     if (primary) tripUsed.add(normKyowontourKwKey(primary))
 

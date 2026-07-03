@@ -1056,8 +1056,10 @@ function pickHanatourReturnKeywordFromPrevDay(
   const pickFrom = (list: readonly string[]): string => {
     for (let i = list.length - 1; i >= 0; i--) {
       const kw = list[i]!
-      if (prevAlloc && keysEqual(kw, prevAlloc.primary)) continue
+      if (prevAlloc?.primary && keysEqual(kw, prevAlloc.primary)) continue
       if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
+      if (prevAlloc?.primary && hanatourKeywordKeysOverlap(kw, prevAlloc.primary)) continue
+      if (prevAlloc?.secondary && hanatourKeywordKeysOverlap(kw, prevAlloc.secondary)) continue
       if (rejectReturnKw(kw)) continue
       const nk = normKey(kw)
       if (used && nk && used.has(nk)) continue
@@ -1300,12 +1302,23 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
           if (secondary) used.add(normKey(secondary))
         }
       }
+      if (movementOnly && !primary) {
+        primary =
+          pickHanatourAdjacentUnusedKeyword(
+            day,
+            maxDay,
+            sorted,
+            used,
+            byDay,
+            productDestination,
+            'forward',
+          ) || ''
+      }
       byDay.set(day, { primary, secondary: secondary || null })
       continue
     }
 
     if (slotKind === 'return') {
-      const domesticReturnOnly = isScheduleAirportOnlyRouteText(row.routeText, isHanatourDomesticHubToken)
       let primary = pickHanatourReturnKeywordFromOwnRoute(row, productDestination, used)
       if (!primary && String(row.routeText ?? '').trim()) {
         primary = pickHanatourDepartureRepresentativeKeyword(row.routeText, productDestination) || ''
@@ -1316,7 +1329,7 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
         const nk = normKey(primary)
         if (primary && nk && used.has(nk)) primary = ''
       }
-      if (!primary && !domesticReturnOnly) {
+      if (!primary) {
         let walkDay = maxDay - 1
         while (walkDay > 0 && !primary) {
           const prevRow =
@@ -1338,7 +1351,7 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
           walkDay = Number(prevRow.day) - 1
         }
       }
-      if (!primary && !domesticReturnOnly) {
+      if (!primary) {
         primary =
           pickHanatourAdjacentUnusedKeyword(
             day,

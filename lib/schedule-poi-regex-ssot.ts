@@ -76,7 +76,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /발랏|Balat/i, en: "Balat Istanbul colorful houses street" },
   { re: /보스포러스|Bosphorus|Bosporus/i, en: "Bosphorus Strait Istanbul cruise view" },
   { re: /피엘로티|Pierre\s*Loti/i, en: "Pierre Loti Hill Istanbul cable car view" },
-  { re: /포나가르|Po Nagar|Cham Towers/i, en: "Po Nagar Cham Towers Nha Trang" },
+  { re: /포나가(?:\s*참)?(?:\s*사원)?|포나가르|Po Nagar|Cham Towers/i, en: "Po Nagar Cham Towers" },
   { re: /달랏\s*꽃\s*정원|Dalat Flower|Da Lat Flower/i, en: "Da Lat Flower Garden Vietnam" },
   { re: /달랏|Da Lat|Dalat/i, en: "Da Lat Vietnam highland city" },
   { re: /나트랑|Nha Trang/i, en: "Nha Trang beach Vietnam" },

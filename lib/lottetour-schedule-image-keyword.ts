@@ -643,14 +643,8 @@ function resolveLottetourPrimaryKeyword(
     const fromRoute = landmarkFromRouteText(row.routeText)
     if (fromRoute) return exitLottetourLandmark(fromRoute, ctx)
     if (dayKind === 'return_home') {
-      const domesticReturnOnly = isScheduleAirportOnlyRouteText(
-        row.routeText,
-        isLottetourDomesticHubToken,
-      )
-      if (!domesticReturnOnly) {
-        const fromPrior = lastForeignLandmarkFromPriorLottetourRows(priorRows, row, maxDay)
-        if (fromPrior) return exitLottetourLandmark(fromPrior, ctx)
-      }
+      const fromPrior = lastForeignLandmarkFromPriorLottetourRows(priorRows, row, maxDay)
+      if (fromPrior) return exitLottetourLandmark(fromPrior, ctx)
     }
     return ''
   }
@@ -874,6 +868,43 @@ export function applyLottetourScheduleImageKeywordsToRows<
     const slotKind = resolveScheduleKeywordSlotKind(day, maxDay, sorted.length)
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (
+      slotKind === 'departure' &&
+      !primary &&
+      isScheduleAirportOnlyRouteText(row.routeText, isLottetourDomesticHubToken)
+    ) {
+      const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
+      for (const r of deduped) {
+        const d = Number(r.day)
+        if (d <= 0) continue
+        byDay.set(d, {
+          primary: String(r.imageKeyword ?? '').trim(),
+          secondary: r.imageKeyword2 ?? null,
+        })
+      }
+      const usedForDeparture = new Set<string>()
+      for (const r of deduped) {
+        const d = Number(r.day)
+        if (d >= day) continue
+        const kw = String(r.imageKeyword ?? '').trim()
+        if (kw) usedForDeparture.add(normLottetourKwKey(kw))
+        const kw2 = String(r.imageKeyword2 ?? '').trim()
+        if (kw2) usedForDeparture.add(normLottetourKwKey(kw2))
+      }
+      primary =
+        pickLottetourAdjacentUnusedKeyword(
+          day,
+          maxDay,
+          sorted,
+          usedForDeparture,
+          byDay,
+          'forward',
+          undefined,
+          true,
+        ) || ''
+      if (primary) used.add(normLottetourKwKey(primary))
+    }
 
     if (
       slotKind === 'middle' &&

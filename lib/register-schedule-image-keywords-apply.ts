@@ -2,7 +2,7 @@
  * 등록 imageKeyword 규칙 — 6공급사 switch SSOT.
  * preview(클라이언트)·admin UI(서버) 모두 이 모듈만 호출한다. 스위치 복제 금지.
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]
- * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only 출발·귀국 키워드 누수 차단 — manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — adjacent-poi SSOT, hub/airport strip only — manifest
  * REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: Forbidden City — route literal만 허용
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: trip-wide imageKeyword 중복 제거 — manifest
  */
@@ -19,7 +19,7 @@ import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-im
 import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
 import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 
 export type RegisterScheduleImageKeywordApplyRow = {
   day: number
@@ -103,7 +103,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         out = rows
     }
   }
-  const withKeywords = sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays(
+  const withKeywords = applyDomesticHubOnlyDepartureReturnAdjacentKeywords(
     enforceRegisterScheduleTripUniqueImageKeywords(
       sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(out),
     ),

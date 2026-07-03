@@ -149,25 +149,33 @@ export const VIETNAM_DALAT_NHATRANG_DOMESTIC_HUB_ROWS: DualSlotContractRow[] = [
   },
 ]
 
-function assertDomesticHubOnlyDaysNoForeignKeyword(
+function assertDepartureReturnAdjacentPoiRules(
   failures: string[],
   label: string,
   out: DualSlotContractRow[],
-  days: readonly number[],
 ) {
-  for (const day of days) {
-    const row = out.find((r) => r.day === day)
-    if (!row) {
-      failures.push(`${label}: day ${day} missing`)
-      continue
-    }
-    const kw = String(row.imageKeyword ?? '').trim()
-    if (kw.length > 0) {
-      failures.push(`${label}: day ${day} domestic-hub-only route must not keep foreign imageKeyword (${kw})`)
-    }
-    if (row.imageKeyword2 != null && String(row.imageKeyword2).trim() !== '') {
-      failures.push(`${label}: day ${day} imageKeyword2 should be null on domestic-hub-only day`)
-    }
+  const d1 = out.find((r) => r.day === 1)
+  const d5 = out.find((r) => r.day === 5)
+  if (!d1 || !d5) {
+    failures.push(`${label}: missing day 1 or 5 in Vietnam fixture`)
+    return
+  }
+  const kw1 = String(d1.imageKeyword ?? '').trim()
+  const kw5 = String(d5.imageKeyword ?? '').trim()
+  if (kw1.length < 2) {
+    failures.push(`${label}: day 1 departure must pick arrival-region POI (got empty)`)
+  }
+  if (/^nha trang$/i.test(kw1)) {
+    failures.push(`${label}: day 1 must not use bare Nha Trang city (arrival is Da Lat region)`)
+  }
+  if (kw5.length >= 2 && /nha trang/i.test(kw5)) {
+    failures.push(`${label}: day 5 must not reuse Nha Trang city (pick unused landmark from day 4)`)
+  }
+  if (d1.imageKeyword2 != null && String(d1.imageKeyword2).trim() !== '') {
+    failures.push(`${label}: day 1 imageKeyword2 must be null`)
+  }
+  if (d5.imageKeyword2 != null && String(d5.imageKeyword2).trim() !== '') {
+    failures.push(`${label}: day 5 imageKeyword2 must be null`)
   }
 }
 
@@ -208,12 +216,7 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
 
   for (const supplier of DUAL_SLOT_CONTRACT_SUPPLIERS) {
     const vietnamOut = apply(supplier, VIETNAM_DALAT_NHATRANG_DOMESTIC_HUB_ROWS, '동남아')
-    assertDomesticHubOnlyDaysNoForeignKeyword(
-      failures,
-      `${supplier}-vietnam-domestic-hub`,
-      vietnamOut,
-      [1, 5],
-    )
+    assertDepartureReturnAdjacentPoiRules(failures, `${supplier}-vietnam-domestic-hub`, vietnamOut)
   }
 
   for (const row of modetourDirect) {

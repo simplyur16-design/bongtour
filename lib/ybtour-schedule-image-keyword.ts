@@ -788,12 +788,17 @@ function pickYbtourReturnKeywordFromPrevDay(
   prevAlloc: { primary: string; secondary: string | null } | undefined,
   prevRouteOrdered: readonly string[],
   prevFullCandidates: readonly string[],
+  used?: ReadonlySet<string>,
 ): string {
   const pickFrom = (list: readonly string[]): string => {
     for (let i = list.length - 1; i >= 0; i--) {
       const kw = list[i]!
-      if (prevAlloc && keysEqual(kw, prevAlloc.primary)) continue
+      if (prevAlloc?.primary && keysEqual(kw, prevAlloc.primary)) continue
       if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
+      if (prevAlloc?.primary && ybtourKeywordKeysOverlap(kw, prevAlloc.primary)) continue
+      if (prevAlloc?.secondary && ybtourKeywordKeysOverlap(kw, prevAlloc.secondary)) continue
+      if (isBareCityOrCountryKeyword(kw)) continue
+      if (used?.has(normKey(kw))) continue
       if (kw) return kw
     }
     return ''
@@ -1025,31 +1030,40 @@ function allocateYbtourImageKeywordsByScheduleRules<T extends YbtourScheduleImag
         primary = pickFirstUnusedYbtourRouteKeyword(routeOrdered, used, undefined, productDestination)
       }
       if (primary && isScheduleAirportLikeImageKeyword(primary)) primary = ''
+      if (
+        !primary &&
+        isScheduleAirportOnlyRouteText(row.routeText, isYbtourDomesticHubToken)
+      ) {
+        primary =
+          pickYbtourAdjacentUnusedKeyword(
+            day,
+            maxDay,
+            sorted,
+            used,
+            byDay,
+            productDestination,
+            'forward',
+          ) || ''
+      }
       if (primary) used.add(normKey(primary))
       byDay.set(day, { primary, secondary: null })
       continue
     }
 
     if (slotKind === 'return') {
-      const domesticReturnOnly = isScheduleAirportOnlyRouteText(
-        row.routeText,
-        isYbtourDomesticHubToken,
-      )
       let primary = ''
-      if (!domesticReturnOnly) {
-        let walkDay = maxDay - 1
-        while (walkDay > 0 && !primary) {
-          const prevRow =
-            findYbtourRowByDay(sorted, walkDay) ?? findPrevYbtourScheduledRow(sorted, walkDay + 1)
-          if (!prevRow) break
-          const prevAlloc = byDay.get(Number(prevRow.day))
-          const prevRouteOrdered = collectYbtourRouteOrderedSegmentKeywords(prevRow.routeText)
-          const prevFull = collectYbtourDayOrderedKeywordCandidates(prevRow, productDestination)
-          primary = pickYbtourReturnKeywordFromPrevDay(prevAlloc, prevRouteOrdered, prevFull)
-          walkDay = Number(prevRow.day) - 1
-        }
+      let walkDay = maxDay - 1
+      while (walkDay > 0 && !primary) {
+        const prevRow =
+          findYbtourRowByDay(sorted, walkDay) ?? findPrevYbtourScheduledRow(sorted, walkDay + 1)
+        if (!prevRow) break
+        const prevAlloc = byDay.get(Number(prevRow.day))
+        const prevRouteOrdered = collectYbtourRouteOrderedSegmentKeywords(prevRow.routeText)
+        const prevFull = collectYbtourDayOrderedKeywordCandidates(prevRow, productDestination)
+        primary = pickYbtourReturnKeywordFromPrevDay(prevAlloc, prevRouteOrdered, prevFull, used)
+        walkDay = Number(prevRow.day) - 1
       }
-      if (!primary && !domesticReturnOnly) {
+      if (!primary) {
         primary =
           pickYbtourAdjacentUnusedKeyword(
             day,

@@ -279,6 +279,8 @@ const POI_KO_TO_EN: Record<string, string> = {
   호이안고성: 'Hoi An Ancient Town',
   포나가르탑: 'Po Nagar Cham Towers',
   포나가르: 'Po Nagar Cham Towers',
+  '포나가 참 사원': 'Po Nagar Cham Towers',
+  '포나가 참': 'Po Nagar Cham Towers',
   롱선사: 'Long Son Pagoda',
   롱선: 'Long Son Pagoda',
   빈원더스: 'VinWonders Nha Trang',
