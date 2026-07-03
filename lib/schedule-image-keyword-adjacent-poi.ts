@@ -35,6 +35,14 @@ export function isScheduleAirportRouteSegmentText(seg: string): boolean {
   return AIRPORT_ROUTE_SEGMENT_RE.test(t)
 }
 
+function splitScheduleRouteTextSegments(routeText: string): string[] {
+  return String(routeText ?? '')
+    .trim()
+    .split(/\s*(?:-(?!\d)|[\u2010\u2011\u2012\u2013\u2014\u2212–—]|\u2192|\u00b7|\u2022|,|，)\s*/u)
+    .map((s) => s.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter((s) => s.length >= 2)
+}
+
 /** 공항·허브만 있는 routeText — 관광 POI 추출 불가 */
 export function isScheduleAirportOnlyRouteText(
   routeText: string | null | undefined,
@@ -43,12 +51,22 @@ export function isScheduleAirportOnlyRouteText(
   const raw = String(routeText ?? '').trim()
   if (!raw) return false
   if (isScheduleInFlightOvernightRow({ routeText: raw })) return true
-  const segs = raw
-    .split(/\s*(?:-(?!\d)|[\u2010\u2011\u2012\u2013\u2014\u2212–—]|\u2192|\u00b7|\u2022|,|，)\s*/u)
-    .map((s) => s.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter((s) => s.length >= 2)
+  const segs = splitScheduleRouteTextSegments(raw)
   if (!segs.length) return false
   return segs.every((s) => isDomesticHub(s) || isScheduleAirportRouteSegmentText(s))
+}
+
+/** 국내 허브(인천·김포 등)만 — airline-only·해외 공항 혼합 제외 */
+export function isScheduleDomesticHubOnlyRouteText(
+  routeText: string | null | undefined,
+  isDomesticHub: (token: string) => boolean,
+): boolean {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return false
+  if (isScheduleInFlightOvernightRow({ routeText: raw })) return false
+  const segs = splitScheduleRouteTextSegments(raw)
+  if (!segs.length) return false
+  return segs.every((s) => isDomesticHub(s))
 }
 
 /** imageKeyword 후보가 공항·generic 차단 대상인지 */

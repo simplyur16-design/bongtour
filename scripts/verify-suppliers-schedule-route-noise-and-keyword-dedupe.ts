@@ -309,7 +309,11 @@ for (const s of SUPPLIERS) {
   assert.ok(String(d4?.imageKeyword ?? '').match(/Niagara/i), 'day4 niagara')
   assert.ok(String(d6?.imageKeyword ?? '').match(/Harvard|MIT|Boston/i), 'day6 boston route')
   assert.ok(String(d8?.imageKeyword ?? '').match(/Central Park|Rockefeller|9\/11|Charging Bull/i), 'day8 nyc route')
-  assert.ok(!String(d10?.imageKeyword ?? '').trim(), 'day10 domestic return empty')
+  assert.ok(
+    String(d10?.imageKeyword ?? '').match(/Central Park|Rockefeller|9\/11|Charging Bull/i),
+    'day10 domestic return picks unused POI from last tourism day',
+  )
+  assert.ok(!String(d10?.imageKeyword2 ?? '').trim(), 'day10 kw2 null')
   assert.ok(!String(d6?.imageKeyword ?? '').match(/Niagara|Washington/i), 'day6 must not bleed niagara/dc')
   console.log('[ok] US east day-owned imageKeyword gate')
 }

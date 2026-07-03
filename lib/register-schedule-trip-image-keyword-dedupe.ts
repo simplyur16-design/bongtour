@@ -7,7 +7,10 @@
 import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
-import { isScheduleAirportLikeImageKeyword, isScheduleAirportOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
+import {
+  isScheduleAirportLikeImageKeyword,
+  isScheduleDomesticHubOnlyRouteText,
+} from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import {
@@ -116,7 +119,7 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
     const pk = String(row.imageKeyword ?? '').trim()
     const sk = String(row.imageKeyword2 ?? '').trim()
     byDay.set(day, { primary: pk, secondary: sk || null })
-    if (!isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) {
+    if (!isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) {
       if (pk) used.add(normScheduleImageKeywordKey(pk))
       if (sk) used.add(normScheduleImageKeywordKey(sk))
     }
@@ -125,7 +128,7 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
   return sorted.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
-    if (!isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) return row
+    if (!isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) return row
 
     const isDeparture = day === 1
     const isReturn = day === maxDay && maxDay >= 2
@@ -199,7 +202,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
   const used = new Set<string>()
   const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
   return sorted.map((row) => {
-    const hubOnlyDay = isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)
+    const hubOnlyDay = isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken)
     const cands = collectTripKeywordCandidates(row)
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()

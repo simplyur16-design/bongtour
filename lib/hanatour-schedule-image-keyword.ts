@@ -56,6 +56,7 @@ import {
   fillScheduleMiddleImageKeyword2Gap,
   isScheduleAirportLikeImageKeyword,
   isScheduleAirportOnlyRouteText,
+  isScheduleDomesticHubOnlyRouteText,
   isScheduleAirportRouteSegmentText,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
@@ -1302,7 +1303,11 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
           if (secondary) used.add(normKey(secondary))
         }
       }
-      if (movementOnly && !primary) {
+      if (
+        movementOnly &&
+        !primary &&
+        isScheduleDomesticHubOnlyRouteText(row.routeText, isHanatourDomesticHubToken)
+      ) {
         primary =
           pickHanatourAdjacentUnusedKeyword(
             day,

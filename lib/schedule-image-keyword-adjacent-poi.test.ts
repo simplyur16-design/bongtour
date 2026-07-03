@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isScheduleAirportLikeImageKeyword,
   isScheduleAirportOnlyRouteText,
+  isScheduleDomesticHubOnlyRouteText,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
@@ -26,6 +27,15 @@ describe('isScheduleAirportOnlyRouteText', () => {
       isScheduleAirportOnlyRouteText('인천 - 인천국제공항 - 존 F. 케네디 국제공항', isHub),
     ).toBe(true)
     expect(isScheduleAirportOnlyRouteText('워싱턴 - 링컨 기념관', isHub)).toBe(false)
+  })
+})
+
+describe('isScheduleDomesticHubOnlyRouteText', () => {
+  it('국내 허브만 — airline-only·관광 혼합 제외', () => {
+    expect(isScheduleDomesticHubOnlyRouteText('인천', isHub)).toBe(true)
+    expect(isScheduleDomesticHubOnlyRouteText('에어프레미아 항공 - 에어프리미아', isHub)).toBe(false)
+    expect(isScheduleDomesticHubOnlyRouteText('인천 - 존 F. 케네디 국제공항', isHub)).toBe(false)
+    expect(isScheduleDomesticHubOnlyRouteText('워싱턴 - 링컨 기념관', isHub)).toBe(false)
   })
 })
 
