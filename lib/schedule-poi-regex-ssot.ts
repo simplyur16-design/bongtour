@@ -249,6 +249,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /페트라|Petra/i, en: "Petra Treasury Jordan" },
   { re: /마라케시|Marrakech|Marrakesh/i, en: "Marrakech Jemaa el-Fnaa square" },
   { re: /리우\s*데\s*자네이로|리오\s*데\s*자네이로|Rio\s*de\s*Janeiro/i, en: "Rio de Janeiro Christ the Redeemer" },
+  { re: /세\s*자매\s*봉|Three\s*Sisters/i, en: "Three Sisters Blue Mountains" },
+  { re: /에코\s*포인트|Echo\s*Point/i, en: "Echo Point Blue Mountains" },
+  { re: /시드니\s*동물원|Taronga/i, en: "Taronga Zoo Sydney" },
+  { re: /세인트\s*메?리(?:스)?\s*대성당|St\s*Mary/i, en: "St Marys Cathedral Sydney" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [

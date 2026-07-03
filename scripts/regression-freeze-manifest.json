@@ -4208,6 +4208,12 @@
       "summary": "6공급사 등록 apply — imageKeyword는 routeText(일정요약) 세그먼트 순서만, 본문·schedule_section 스캔 금지",
       "checks": [
         {
+          "file": "lib/schedule-image-keyword-adjacent-poi.ts",
+          "mustInclude": [
+            "effectiveRouteTextForScheduleKeywordRow"
+          ]
+        },
+        {
           "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
@@ -4238,7 +4244,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-schedule-route-text-image-keyword-ssot.test.ts"
+        "lib/register-schedule-route-text-image-keyword-ssot.test.ts",
+        "lib/register-schedule-nz-au-seven-day-image-keyword.test.ts"
       ]
     },
     {

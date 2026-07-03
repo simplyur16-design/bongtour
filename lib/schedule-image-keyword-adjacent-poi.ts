@@ -56,6 +56,24 @@ export function isScheduleAirportOnlyRouteText(
   return segs.every((s) => isDomesticHub(s) || isScheduleAirportRouteSegmentText(s))
 }
 
+/**
+ * routeText 비었을 때 출발·귀국 movement 일 — description/title 단일 허브·도시 라인만 (본문 다중 관광 스캔 금지).
+ * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: manifest
+ */
+export function effectiveRouteTextForScheduleKeywordRow(row: {
+  routeText?: string | null
+  description?: string | null
+  title?: string | null
+}): string {
+  const route = String(row.routeText ?? '').trim()
+  if (route) return route
+  const line = String(row.description ?? '').trim() || String(row.title ?? '').trim()
+  if (!line) return ''
+  if (/[-–—→]|\s-\s/u.test(line)) return ''
+  if (line.length > 64) return ''
+  return line
+}
+
 /** 국내 허브(인천·김포 등)만 — airline-only·해외 공항 혼합 제외 */
 export function isScheduleDomesticHubOnlyRouteText(
   routeText: string | null | undefined,

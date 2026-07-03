@@ -12,6 +12,7 @@ import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import {
   acceptScheduleTourismImageKeywordOrEmpty,
+  effectiveRouteTextForScheduleKeywordRow,
   isScheduleDomesticHubOnlyRouteText,
   resolveScheduleKeywordSlotKind,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
@@ -193,6 +194,7 @@ function pickSecondRouteKeyword(
       continue
     }
     if (used.has(nk)) continue
+    if (isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) continue
     return kw
   }
   passedPrimary = false
@@ -205,7 +207,30 @@ function pickSecondRouteKeyword(
       continue
     }
     if (used.has(nk) || nk === pk) continue
+    if (isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) continue
     return kw
+  }
+  return ''
+}
+
+function pickReturnLandmarkWhenRouteTextMissing<T extends RegisterScheduleRouteTextKeywordRow>(
+  day: number,
+  sorted: readonly T[],
+  used: ReadonlySet<string>,
+): string {
+  const prior = sorted.filter((r) => Number(r.day) > 0 && Number(r.day) < day)
+  for (let pi = prior.length - 1; pi >= 0; pi--) {
+    const row = prior[pi]!
+    if (isScheduleDomesticHubOnlyRouteText(row.routeText, isDomesticHubToken)) continue
+    const ordered = collectRouteTextOrderedLandmarkKeywords(row.routeText)
+    for (let i = ordered.length - 1; i >= 0; i--) {
+      const kw = ordered[i]!
+      if (rejectRouteKeywordCandidate(kw)) continue
+      if (isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) continue
+      const nk = normScheduleImageKeywordKey(kw)
+      if (nk && used.has(nk)) continue
+      return kw
+    }
   }
   return ''
 }
@@ -257,6 +282,10 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
   for (const row of sorted) {
     const day = Number(row.day)
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, sorted.length)
+    const routeTextForKeywords = String(row.routeText ?? '').trim()
+    const movementHubLine = routeTextForKeywords
+      ? ''
+      : effectiveRouteTextForScheduleKeywordRow(row)
     const routeOrdered = collectRouteTextOrderedImageKeywords(row.routeText)
     const routeLandmarks = collectRouteTextOrderedLandmarkKeywords(row.routeText)
     let primary = ''
@@ -273,7 +302,10 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       primary = pickFirstPreferLandmark(routeOrdered, used)
       if (
         !primary &&
-        isScheduleDomesticHubOnlyRouteText(row.routeText, isDomesticHubToken)
+        isScheduleDomesticHubOnlyRouteText(
+          routeTextForKeywords || movementHubLine,
+          isDomesticHubToken,
+        )
       ) {
         primary = forwardRouteKeywordFromNextDay(day, sorted)
       }
@@ -283,6 +315,9 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       if (primary && isBareCityOrCountryKeyword(primary)) primary = ''
       if (!primary) {
         primary = backwardUnusedRouteKeywordFromPriorDays(day, sorted, used)
+      }
+      if (!primary && !routeTextForKeywords && movementHubLine) {
+        primary = pickReturnLandmarkWhenRouteTextMissing(day, sorted, used)
       }
       if (primary) used.add(normScheduleImageKeywordKey(primary))
     }

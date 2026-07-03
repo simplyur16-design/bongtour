@@ -11,6 +11,7 @@ import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-bloc
 import {
   isScheduleAirportLikeImageKeyword,
   isScheduleDomesticHubOnlyRouteText,
+  effectiveRouteTextForScheduleKeywordRow,
   resolveScheduleKeywordSlotKind,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
@@ -110,7 +111,14 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
     const pk = String(row.imageKeyword ?? '').trim()
     const sk = String(row.imageKeyword2 ?? '').trim()
     byDay.set(day, { primary: pk, secondary: sk || null })
-    if (!isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) {
+    const hubOnly =
+      isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken) ||
+      (!String(row.routeText ?? '').trim() &&
+        isScheduleDomesticHubOnlyRouteText(
+          effectiveRouteTextForScheduleKeywordRow(row),
+          isScheduleDomesticHubToken,
+        ))
+    if (!hubOnly) {
       if (pk) used.add(normScheduleImageKeywordKey(pk))
       if (sk) used.add(normScheduleImageKeywordKey(sk))
     }
@@ -119,7 +127,14 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
   return sorted.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
-    if (!isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) return row
+    const hubOnlyRoute =
+      isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken) ||
+      (!String(row.routeText ?? '').trim() &&
+        isScheduleDomesticHubOnlyRouteText(
+          effectiveRouteTextForScheduleKeywordRow(row),
+          isScheduleDomesticHubToken,
+        ))
+    if (!hubOnlyRoute) return row
 
     const isDeparture = day === 1
     const isReturn = day === maxDay && maxDay >= 2
