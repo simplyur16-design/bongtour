@@ -67,3 +67,32 @@ if (failures.length) {
 }
 
 console.log('PASSED: canonical prompt SSOT + Gemini prompt + Vietnam 6-supplier apply\n')
+
+console.log('--- 실검증 예시: 베트남 달랏·나트랑 5일 (DAY1·5 routeText=인천 only) ---\n')
+for (const supplier of ['modetour', 'ybtour', 'hanatour', 'lottetour', 'verygoodtour', 'kyowontour'] as const) {
+  const out = applyRegisterScheduleImageKeywordsBySupplier(VIETNAM_DALAT_NHATRANG_DOMESTIC_HUB_ROWS, {
+    supplierKey: supplier,
+    productDestination: '동남아',
+    productTitle: '베트남 달랏 나트랑 5일',
+  })
+  console.log(`[${supplier}]`)
+  for (const r of [...out].sort((a, b) => a.day - b.day)) {
+    const kw1 = String(r.imageKeyword ?? '').trim() || '(empty)'
+    const kw2 =
+      r.imageKeyword2 == null || String(r.imageKeyword2).trim() === ''
+        ? 'null'
+        : String(r.imageKeyword2).trim()
+    console.log(`  DAY ${r.day}: kw1=${kw1}  kw2=${kw2}`)
+  }
+  console.log('')
+}
+
+console.log('--- Gemini prompt 발췌 (직역 금지·정식 영문명) ---')
+for (const line of geminiPrompt.split('\n')) {
+  if (
+    /Do NOT translate|Po Nagar|직역|resolve the standard|Datanla Waterfalls|scenic area tour/i.test(line)
+  ) {
+    console.log(line)
+  }
+}
+console.log('')
