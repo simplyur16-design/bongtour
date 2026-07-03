@@ -40,7 +40,7 @@ function splitScheduleRouteTextSegments(routeText: string): string[] {
     .trim()
     .split(/\s*(?:-(?!\d)|[\u2010\u2011\u2012\u2013\u2014\u2212–—]|\u2192|\u00b7|\u2022|,|，)\s*/u)
     .map((s) => s.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter((s) => s.length >= 2)
+    .filter((s) => s.length >= 2 || /[\uAC00-\uD7AF]/u.test(s))
 }
 
 /** 공항·허브만 있는 routeText — 관광 POI 추출 불가 */

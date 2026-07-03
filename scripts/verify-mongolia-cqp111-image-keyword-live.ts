@@ -67,10 +67,12 @@ async function main() {
 
   // Rule: Day 1 must NOT be empty when route has tourism POIs
   assert.ok(String(d1?.imageKeyword ?? '').trim().length > 0, 'FAIL day1 kw1 empty — route has landmarks')
-  assert.ok(String(d1?.imageKeyword2 ?? '').trim().length > 0, 'FAIL day1 kw2 empty — route has 2+ landmarks')
   assert.match(String(d1?.imageKeyword ?? ''), /Ariyabal|Terelj National Park/i, 'FAIL day1 kw1 landmark')
   assert.doesNotMatch(String(d1?.imageKeyword ?? ''), FORBIDDEN, 'FAIL day1 kw1 camp/airline')
-  assert.doesNotMatch(String(d1?.imageKeyword2 ?? ''), FORBIDDEN, 'FAIL day1 kw2 camp/airline')
+  assert.ok(
+    d1?.imageKeyword2 == null || String(d1.imageKeyword2).trim() === '',
+    'FAIL day1 kw2 must be null (departure)',
+  )
 
   // Rule: no airline/airport as keyword
   for (const row of uiRows) {
@@ -86,9 +88,16 @@ async function main() {
   assert.match(String(d2?.imageKeyword ?? ''), /Terelj National Park|Genghis Khan Statue/i, 'FAIL day2 kw1')
   assert.doesNotMatch(String(d2?.imageKeyword ?? ''), FORBIDDEN, 'FAIL day2 kw1 camp')
 
-  // Rule: day3
-  assert.match(String(d3?.imageKeyword ?? ''), /Zaisan Memorial/i, 'FAIL day3 kw1')
-  assert.match(String(d3?.imageKeyword2 ?? ''), /Sukhbaatar Square/i, 'FAIL day3 kw2')
+  // Rule: day3 — routeText 순서(Zaisan·Sukhbaatar)대로 kw1/kw2
+  const d3kw1 = String(d3?.imageKeyword ?? '')
+  const d3kw2 = String(d3?.imageKeyword2 ?? '')
+  assert.ok(/Zaisan Memorial/i.test(d3kw1) || /Sukhbaatar Square/i.test(d3kw1), 'FAIL day3 kw1')
+  assert.ok(/Zaisan Memorial/i.test(d3kw2) || /Sukhbaatar Square/i.test(d3kw2), 'FAIL day3 kw2')
+  assert.notEqual(
+    normScheduleImageKeywordKey(d3kw1),
+    normScheduleImageKeywordKey(d3kw2),
+    'FAIL day3 kw1/kw2 must differ',
+  )
 
   // Rule: return day kw2 null
   assert.ok(

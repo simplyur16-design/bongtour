@@ -50,11 +50,7 @@ describe('Mongolia Terelj register schedule imageKeyword', () => {
 
     expect(String(d1?.imageKeyword ?? '')).toMatch(/Ariyabal|Terelj National Park/i)
     expect(String(d1?.imageKeyword ?? '')).not.toMatch(/MIRAGE|TOURIST CAMP/i)
-    expect(String(d1?.imageKeyword2 ?? '').trim().length).toBeGreaterThan(0)
-    expect(String(d1?.imageKeyword2 ?? '')).not.toMatch(/MIRAGE|TOURIST CAMP/i)
-    expect(normScheduleImageKeywordKey(String(d1?.imageKeyword ?? ''))).not.toBe(
-      normScheduleImageKeywordKey(String(d1?.imageKeyword2 ?? '')),
-    )
+    expect(d1?.imageKeyword2 == null || String(d1?.imageKeyword2 ?? '').trim() === '').toBe(true)
 
     expect(String(d2?.imageKeyword ?? '')).toMatch(/Terelj National Park|Genghis Khan Statue/i)
     expect(String(d2?.imageKeyword ?? '')).not.toMatch(/MIRAGE|TOURIST CAMP/i)

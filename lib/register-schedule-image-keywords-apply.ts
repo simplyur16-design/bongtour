@@ -4,20 +4,15 @@
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — adjacent-poi SSOT, hub/airport strip only — manifest
  * REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: Forbidden City — route literal만 허용
- * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: trip-wide imageKeyword 중복 제거 — manifest
+ * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: routeText 세그먼트 순서만 — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: trip dedupe·adjacent hub — manifest
  */
-import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
-import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
-import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
-import { applyModetourScheduleImageKeywordsToRows } from '@/lib/modetour-schedule-image-keyword'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
-import type { RegisterScheduleDay as VerygoodRegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
-import { applyVerygoodScheduleImageKeywordsToRows } from '@/lib/verygoodtour-schedule-image-keyword'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
-import { applyYbtourScheduleImageKeywordsToRows } from '@/lib/ybtour-schedule-image-keyword'
 import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
+import { applyRegisterScheduleRouteTextImageKeywordsToRows } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 
@@ -54,54 +49,18 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
-  const title = opts.productTitle ?? null
 
   let out: T[]
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
     out = applyAirtelRouteTextImageKeywordsToSchedule(rows)
+  } else if (supplier === 'naeiltour') {
+    out = applyNaeiltourScheduleImageKeywordsToRows(rows as NaeiltourScheduleImageKeywordRow[], {
+      productDestination: dest,
+      englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
+    }) as T[]
   } else {
-    switch (supplier) {
-      case 'hanatour':
-        out = applyHanatourScheduleImageKeywordsToRows(rows, {
-          productDestination: dest,
-          optionalTourNames: opts.optionalTourNames,
-          scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
-        })
-        break
-      case 'modetour':
-        out = applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
-        break
-      case 'ybtour':
-        out = applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
-        break
-      case 'verygoodtour':
-        out = applyVerygoodScheduleImageKeywordsToRows(rows, {
-          detRows: rows as VerygoodRegisterScheduleDay[],
-          productDestination: dest,
-          totalDays: rows.length,
-        })
-        break
-      case 'lottetour':
-        out = applyLottetourScheduleImageKeywordsToRows(rows, {
-          productDestination: dest,
-          productTitle: title ?? undefined,
-        })
-        break
-      case 'kyowontour':
-        out = applyKyowontourScheduleImageKeywordsToRows(rows, {
-          productDestination: dest,
-          productTitle: title ?? undefined,
-        })
-        break
-      case 'naeiltour':
-        out = applyNaeiltourScheduleImageKeywordsToRows(rows as NaeiltourScheduleImageKeywordRow[], {
-          productDestination: dest,
-          englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
-        }) as T[]
-        break
-      default:
-        out = rows
-    }
+    // 6공급사 — routeText(일정요약) 세그먼트 순서 SSOT. description·schedule_section·본문 POI 스캔 없음.
+    out = applyRegisterScheduleRouteTextImageKeywordsToRows(rows)
   }
   const withKeywords = applyDomesticHubOnlyDepartureReturnAdjacentKeywords(
     enforceRegisterScheduleTripUniqueImageKeywords(

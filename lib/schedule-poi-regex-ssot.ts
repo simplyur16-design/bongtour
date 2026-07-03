@@ -2,6 +2,7 @@
  * 등록 일정 imageKeyword — 한글 routeText·본문 → 영문 POI/도시 (전 공급사 공용 SSOT).
  * 공급사별 지역 ROI 테이블 금지 — 이 파일 + lib/pexels-keyword.ts POI_KO_TO_EN 만 사용.
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: 공급사 모듈에 POI/CITY regex 중복 금지 — manifest
+ * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·중동·남미 routeText 세그먼트 — manifest
  */
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -228,6 +229,26 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /(?:자이승|Zaisan)/i, en: "Zaisan Memorial" },
   { re: /수흐?바타르|Sukhbaatar/i, en: "Sukhbaatar Square" },
   { re: /(?:칭기즈|징기스|Genghis)\s*칸/i, en: "Genghis Khan Statue" },
+  { re: /로토루아\s*호수|Lake\s*Rotorua/i, en: "Lake Rotorua" },
+  { re: /아그로돜|Agrodome/i, en: "Agrodome Rotorua sheep show" },
+  { re: /스카이라인\s*곤돌라|Skyline\s*Rotorua/i, en: "Skyline Rotorua gondola luge" },
+  { re: /와카레와레와|Whakarewarewa/i, en: "Whakarewarewa Maori Village geothermal" },
+  { re: /미션\s*베이|Mission\s*Bay/i, en: "Mission Bay Auckland beach" },
+  { re: /마이클\s*조셉\s*세비지|Michael\s*Joseph\s*Savage/i, en: "Michael Joseph Savage Memorial Auckland" },
+  { re: /에덴\s*동산|Auckland\s*Domain/i, en: "Auckland Domain wintergardens" },
+  { re: /밀포드\s*사운드|Milford\s*Sound/i, en: "Milford Sound New Zealand fiord" },
+  { re: /와이토모|Waitomo/i, en: "Waitomo Glowworm Caves" },
+  { re: /울루루|Uluru|Ayers\s*Rock/i, en: "Uluru Ayers Rock sunset" },
+  { re: /그레이트\s*배리어\s*리프|Great\s*Barrier\s*Reef/i, en: "Great Barrier Reef aerial" },
+  { re: /폴리네시안\s*스파|Polynesian\s*Spa/i, en: "Polynesian Spa Rotorua" },
+  { re: /쿠메우|Kumeu/i, en: "Kumeu wine region Auckland" },
+  { re: /후지\s*산|후지산|Mount\s*Fuji|富士/i, en: "Mount Fuji Japan" },
+  { re: /콜로세움|Colosseum/i, en: "Colosseum Rome exterior" },
+  { re: /사그라다\s*파밀리아|Sagrada\s*Familia/i, en: "Sagrada Familia Barcelona exterior" },
+  { re: /스위스\s*알프스|Swiss\s*Alps|Matterhorn/i, en: "Swiss Alps Matterhorn scenic" },
+  { re: /페트라|Petra/i, en: "Petra Treasury Jordan" },
+  { re: /마라케시|Marrakech|Marrakesh/i, en: "Marrakech Jemaa el-Fnaa square" },
+  { re: /리우\s*데\s*자네이로|리오\s*데\s*자네이로|Rio\s*de\s*Janeiro/i, en: "Rio de Janeiro Christ the Redeemer" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
@@ -301,6 +322,20 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /말라카|Malacca|Melaka/i, en: "Malacca historic city Malaysia" },
   { re: /페낭|Penang|George\s*Town/i, en: "George Town Penang Malaysia" },
   { re: /랑카위|Langkawi/i, en: "Langkawi island Malaysia" },
+  { re: /오클랜드|Auckland/i, en: "Auckland Sky Tower harbour" },
+  { re: /로토루아|Rotorua/i, en: "Rotorua geothermal valley" },
+  { re: /퀸즈\s*타운|Queenstown/i, en: "Queenstown Lake Wakatipu" },
+  { re: /크라이스트\s*처치|Christchurch/i, en: "Christchurch Cathedral square" },
+  { re: /골드\s*코스트|Gold\s*Coast/i, en: "Surfers Paradise Gold Coast beach" },
+  { re: /케언즈|Cairns/i, en: "Cairns Great Barrier Reef gateway" },
+  { re: /퍼스|Perth/i, en: "Perth Kings Park skyline" },
+  { re: /브리즈번|Brisbane/i, en: "Brisbane Story Bridge" },
+  { re: /뉴질랜드|New\s*Zealand/i, en: "New Zealand Milford Sound landscape" },
+  { re: /호주|Australia/i, en: "Australia Sydney Opera House harbour" },
+  { re: /리우\s*데\s*자네이로|Rio\s*de\s*Janeiro/i, en: "Rio de Janeiro Christ the Redeemer view" },
+  { re: /마라케시|Marrakech/i, en: "Marrakech medina Morocco" },
+  { re: /하코네|Hakone/i, en: "Hakone hot spring Mount Fuji view" },
+  { re: /닛코|Nikko/i, en: "Nikko Toshogu Shrine" },
 ] as const
 function firstMatchingEn(rules: ReadonlyArray<SchedulePoiRegexRule>, h: string): string | null {
   for (const { re, en } of rules) {

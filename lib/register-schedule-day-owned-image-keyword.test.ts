@@ -47,7 +47,7 @@ describe('US east register schedule — day-owned imageKeyword', () => {
     expect(String(byDay.get(4)?.imageKeyword ?? '')).toMatch(/Niagara/i)
     expect(String(byDay.get(6)?.imageKeyword ?? '')).toMatch(/Harvard|MIT|Boston/i)
     expect(String(byDay.get(8)?.imageKeyword ?? '')).toMatch(/Central Park|Rockefeller|9\/11|Charging Bull/i)
-    expect(String(byDay.get(10)?.imageKeyword ?? '').trim()).toBe('')
+    expect(String(byDay.get(10)?.imageKeyword ?? '')).toMatch(/Central Park|Rockefeller|9\/11|Charging Bull/i)
 
     const day3kw = normScheduleImageKeywordKey(String(byDay.get(3)?.imageKeyword ?? ''))
     const day4kw = normScheduleImageKeywordKey(String(byDay.get(4)?.imageKeyword ?? ''))
@@ -57,5 +57,45 @@ describe('US east register schedule — day-owned imageKeyword', () => {
     expect(String(byDay.get(5)?.imageKeyword ?? '')).not.toMatch(/Washington|Boston|New York/i)
     expect(String(byDay.get(6)?.imageKeyword ?? '')).not.toMatch(/Niagara|Washington/i)
     expect(day6kw).not.toBe(day3kw)
+  })
+
+  it('NZ/AU hanatour — schedule_section 반딧불 오염 없이 당일 routeText만', () => {
+    const scheduleSectionByDay = new Map<number, string>([
+      [3, '선택관광: MD추천 선셋 반딧불이 투어 (코타키나발루)'],
+    ])
+    const rows = [
+      { day: 1, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '쿠메우 지역 와이너리 방문 & 시음 - 폴리네시안 스파',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        routeText:
+          '로토루아 호수 - 아그로돔 양털깎이쇼&팜투어 - 🚠스카이라인 곤돌라 + 뷔페중식 - 와카레와레와 마오리민속마을',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        routeText: '오클랜드 - 미션베이 - 마이클 조셉 세비지 기념공원 - 에덴동산',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyRegisterScheduleImageKeywordsBySupplier(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '뉴질랜드',
+      productTitle: '뉴질랜드 호주',
+      scheduleSectionByDay,
+    })
+    const day3 = out.find((r) => r.day === 3)
+    expect(String(day3?.imageKeyword ?? '')).not.toMatch(/Kota Kinabalu|Fireflies/i)
+    expect(String(day3?.imageKeyword ?? '')).toMatch(/Lake Rotorua|Rotorua/i)
+    expect(String(day3?.imageKeyword2 ?? '')).toMatch(/Agrodome|Skyline|Whakarewarewa/i)
+    const day4 = out.find((r) => r.day === 4)
+    expect(String(day4?.imageKeyword ?? '')).toMatch(/Mission Bay/i)
   })
 })

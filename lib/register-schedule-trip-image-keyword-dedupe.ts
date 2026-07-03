@@ -1,22 +1,19 @@
 /**
  * 등록 schedule — trip 전체 imageKeyword·imageKeyword2 중복 제거 (6공급사 공통 후처리).
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: manifest
+ * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: routeText 후보만 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — applyDomesticHubOnlyDepartureReturnAdjacentKeywords — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
-import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { collectRouteTextOrderedImageKeywords, collectRouteTextOrderedLandmarkKeywords } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import {
   isScheduleAirportLikeImageKeyword,
   isScheduleDomesticHubOnlyRouteText,
+  resolveScheduleKeywordSlotKind,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
-import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
-import {
-  firstMatchingScheduleCityEn,
-  firstMatchingScheduleSpotEn,
-} from '@/lib/schedule-poi-regex-ssot'
 
 export type RegisterScheduleTripKeywordRow = {
   day: number
@@ -55,14 +52,8 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     out.push(t)
   }
 
-  for (const seg of splitRouteTextPlaceSegments(row.routeText)) {
-    if (isRegisterScheduleRoutePlaceNoise(seg)) continue
-    push(firstMatchingScheduleSpotEn(seg))
-    push(firstMatchingScheduleCityEn(seg))
-    push(englishFromScheduleKoreanSegment(seg))
-  }
-  const hay = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
-  for (const poi of findAllMappedKoreanPoisInText(hay)) push(poi)
+  for (const kw of collectRouteTextOrderedLandmarkKeywords(row.routeText)) push(kw)
+  for (const kw of collectRouteTextOrderedImageKeywords(row.routeText)) push(kw)
   return out
 }
 
@@ -159,20 +150,28 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           break
         }
       }
-    } else if (isReturn && prevDay) {
-      for (const kw of [...collectTripKeywordCandidates(prevDay)].reverse()) {
-        if (isDomesticHubOrAirportImageKeyword(kw)) continue
-        if (isReturnDayCityLeakKeyword(kw)) continue
-        if (overlapsPrevSlots(kw)) continue
-        const nk = normScheduleImageKeywordKey(kw)
-        if (nk && used.has(nk)) continue
-        picked = kw
-        break
+    } else if (isReturn) {
+      const priorRows = sorted.filter((r) => Number(r.day) > 0 && Number(r.day) < day).reverse()
+      outer: for (const prior of priorRows) {
+        if (isScheduleDomesticHubOnlyRouteText(prior.routeText, isScheduleDomesticHubToken)) continue
+        for (const kw of [...collectTripKeywordCandidates(prior)].reverse()) {
+          if (isDomesticHubOrAirportImageKeyword(kw)) continue
+          if (isReturnDayCityLeakKeyword(kw)) continue
+          const nk = normScheduleImageKeywordKey(kw)
+          if (nk && used.has(nk)) continue
+          picked = kw
+          break outer
+        }
       }
     }
 
+    const existingPrimary = String(row.imageKeyword ?? '').trim()
     const primary =
-      picked && !isDomesticHubOrAirportImageKeyword(picked) ? picked : ''
+      picked && !isDomesticHubOrAirportImageKeyword(picked)
+        ? picked
+        : existingPrimary && !isDomesticHubOrAirportImageKeyword(existingPrimary)
+          ? existingPrimary
+          : ''
     if (primary) used.add(normScheduleImageKeywordKey(primary))
 
     return {
@@ -195,13 +194,70 @@ export function sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays<
   return applyDomesticHubOnlyDepartureReturnAdjacentKeywords(rows)
 }
 
+function allowKw2TripDuplicateKeyword(kw: string): boolean {
+  if (isBareCityOrCountryKeyword(kw)) return true
+  const nk = normScheduleImageKeywordKey(kw)
+  return /^(da nang|hoi an|bali|new york|nha trang|da lat|ho chi minh|hanoi|phuket|bangkok|singapore|seoul|tokyo|osaka|kyoto|paris|london|rome|barcelona|sydney|melbourne)$/.test(
+    nk,
+  )
+}
+
+function pickRouteOrderSecondKeyword(
+  cands: readonly string[],
+  primary: string,
+  used?: ReadonlySet<string>,
+  allowRouteDuplicateFallback = false,
+): string {
+  const pk = normScheduleImageKeywordKey(primary)
+  if (!pk || !cands.length) return ''
+  const usable = (kw: string, allowTripDuplicate: boolean): boolean => {
+    if (!kw || isRejectedTripKeywordCandidate(kw)) return false
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || nk === pk) return false
+    if (used?.has(nk) && !allowTripDuplicate) return false
+    return true
+  }
+
+  const primaryIdx = cands.findIndex((c) => normScheduleImageKeywordKey(c) === pk)
+  if (primaryIdx > 0) {
+    const lead = String(cands[0] ?? '').trim()
+    if (usable(lead, false)) return lead
+  }
+  for (const raw of cands) {
+    const kw = String(raw ?? '').trim()
+    if (usable(kw, false)) return kw
+  }
+  if (!allowRouteDuplicateFallback) return ''
+  if (primaryIdx > 0) {
+    const lead = String(cands[0] ?? '').trim()
+    if (usable(lead, true) && allowKw2TripDuplicateKeyword(lead)) return lead
+  }
+  for (const raw of cands) {
+    const kw = String(raw ?? '').trim()
+    if (usable(kw, true) && allowKw2TripDuplicateKeyword(kw)) return kw
+  }
+  return ''
+}
+
+function routeTextDedupeKey(routeText: string | null | undefined): string {
+  return String(routeText ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
 /** 이미 쓴 키워드는 당일 route·본문 후보만으로 교체 — 타 일차 landmark 금지, 없으면 빈 슬롯 */
 export function enforceRegisterScheduleTripUniqueImageKeywords<T extends RegisterScheduleTripKeywordRow>(
   rows: T[],
 ): T[] {
   const used = new Set<string>()
   const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
+  const activeDays = sorted.filter((r) => Number(r.day) > 0).length
+  const maxDay = activeDays ? Math.max(...sorted.map((r) => Number(r.day)).filter((d) => d > 0)) : 0
   return sorted.map((row) => {
+    const day = Number(row.day)
+    const slot = day > 0 ? resolveScheduleKeywordSlotKind(day, maxDay, activeDays) : 'middle'
+    const isMiddleDay = slot === 'middle'
     const hubOnlyDay = isScheduleDomesticHubOnlyRouteText(row.routeText, isScheduleDomesticHubToken)
     const cands = collectTripKeywordCandidates(row)
     let primary = String(row.imageKeyword ?? '').trim()
@@ -217,7 +273,19 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     }
 
     if (primary && used.has(normScheduleImageKeywordKey(primary))) {
-      primary = pickUnusedTripKeyword(cands, used) || ''
+      const pk = normScheduleImageKeywordKey(primary)
+      const replacement = pickUnusedTripKeyword(cands, used)
+      if (replacement) {
+        primary = replacement
+      } else {
+        const priorDup = sorted.find(
+          (r) =>
+            Number(r.day) < Number(row.day) &&
+            routeTextDedupeKey(r.routeText) === routeTextDedupeKey(row.routeText) &&
+            normScheduleImageKeywordKey(String(r.imageKeyword ?? '')) === pk,
+        )
+        if (priorDup) primary = ''
+      }
     }
     if (!primary) {
       primary = pickUnusedTripKeyword(cands, used) || ''
@@ -227,10 +295,15 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     if (secondary) {
       const nk2 = normScheduleImageKeywordKey(secondary)
       if (used.has(nk2) || nk2 === normScheduleImageKeywordKey(primary)) {
-        secondary = pickUnusedTripKeyword(cands, used, primary) || ''
+        secondary =
+          pickRouteOrderSecondKeyword(cands, primary, used, isMiddleDay) || ''
       }
     }
     if (secondary) used.add(normScheduleImageKeywordKey(secondary))
+
+    if (isMiddleDay && primary && !secondary) {
+      secondary = pickRouteOrderSecondKeyword(cands, primary, used, true)
+    }
 
     return { ...row, imageKeyword: primary, imageKeyword2: secondary || null }
   })

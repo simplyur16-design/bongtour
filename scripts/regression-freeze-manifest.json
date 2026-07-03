@@ -920,8 +920,11 @@
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
-            "applyHanatourScheduleImageKeywordsToRows",
-            "applyAirtelRouteTextImageKeywordsToSchedule"
+            "applyAirtelRouteTextImageKeywordsToSchedule",
+            "applyRegisterScheduleRouteTextImageKeywordsToRows"
+          ],
+          "mustNotInclude": [
+            "applyHanatourScheduleImageKeywordsToRows"
           ]
         },
         {
@@ -1005,6 +1008,9 @@
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
+            "applyRegisterScheduleRouteTextImageKeywordsToRows"
+          ],
+          "mustNotInclude": [
             "applyModetourScheduleImageKeywordsToRows"
           ]
         }
@@ -1214,12 +1220,12 @@
             "enforceRegisterScheduleTripUniqueImageKeywords",
             "applyRegisterScheduleImageKeywordsBySupplier",
             "routeTextRawByDay",
+            "applyRegisterScheduleRouteTextImageKeywordsToRows",
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]"
+          ],
+          "mustNotInclude": [
             "applyHanatourScheduleImageKeywordsToRows",
-            "applyModetourScheduleImageKeywordsToRows",
-            "applyYbtourScheduleImageKeywordsToRows",
-            "applyLottetourScheduleImageKeywordsToRows",
-            "applyVerygoodScheduleImageKeywordsToRows",
-            "applyKyowontourScheduleImageKeywordsToRows"
+            "applyModetourScheduleImageKeywordsToRows"
           ]
         },
         {
@@ -1235,8 +1241,8 @@
           "file": "scripts/check-schedule-image-keyword-routing-parity.mjs",
           "mustInclude": [
             "register-schedule-image-keywords-apply.ts",
-            "applyModetourScheduleImageKeywordsToRows",
-            "kyowontour"
+            "applyRegisterScheduleRouteTextImageKeywordsToRows",
+            "routeText SSOT only"
           ]
         },
         {
@@ -4118,6 +4124,48 @@
       ]
     },
     {
+      "id": "schedule-segment-poi-oceania-japan-europe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공용 POI·regex — NZ/AU·일본·유럽·중동·남미 routeText 세그먼트 imageKeyword SSOT",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]",
+            "lake rotorua"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]",
+            "로토루아 호수",
+            "후지산",
+            "콜로세움",
+            "사그라다 파밀리아",
+            "페트라",
+            "리우데자네이로"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]",
+            "Whakarewarewa",
+            "Mount Fuji",
+            "Colosseum"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-segment-poi-oceania-japan-europe.test.ts",
+        "lib/register-schedule-route-text-image-keyword-ssot.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-day-owned-image-keyword",
       "tier": [
         "prebuild",
@@ -4149,6 +4197,66 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-day-owned-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-route-text-image-keyword-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "6공급사 등록 apply — imageKeyword는 routeText(일정요약) 세그먼트 순서만, 본문·schedule_section 스캔 금지",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
+            "collectRouteTextOrderedImageKeywords",
+            "routeTextSegmentToImageKeyword",
+            "description·schedule_section·본문 스캔 금지"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "applyRegisterScheduleRouteTextImageKeywordsToRows",
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]"
+          ],
+          "mustNotInclude": [
+            "applyHanatourScheduleImageKeywordsToRows"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "collectRouteTextOrderedLandmarkKeywords",
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]"
+          ],
+          "mustNotInclude": [
+            "findAllMappedKoreanPoisInText"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-text-image-keyword-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "pexels-keyword-kk-fireflies-context",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "POI 사전 — 반딧불·KK 명소는 코타/키나발루 routeText 문맥 없으면 매핑 금지",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-keyword-kk-fireflies-context]",
+            "POI_KO_MAPPING_CONTEXT_RE",
+            "poiKoMappingAllowed"
+          ]
+        }
       ]
     },
     {
@@ -5206,7 +5314,7 @@
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
-            "case 'naeiltour'",
+            "supplier === 'naeiltour'",
             "applyNaeiltourScheduleImageKeywordsToRows"
           ]
         }

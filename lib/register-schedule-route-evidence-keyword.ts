@@ -24,13 +24,13 @@ export function registerScheduleKeywordPassesRouteEvidence(
 ): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return true
+  const hay = rowRouteEvidenceHaystack(row)
   const norm = normalizeToPlaceName(raw).toLowerCase()
   const mentionsForbidden =
     /\bforbidden\b/i.test(norm) ||
     /\bforbidden\b/i.test(raw) ||
     norm === 'forbidden city'
   if (!mentionsForbidden) return true
-  const hay = rowRouteEvidenceHaystack(row)
   return /forbidden\s*city/i.test(hay)
 }
 

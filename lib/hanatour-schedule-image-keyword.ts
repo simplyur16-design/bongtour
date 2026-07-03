@@ -145,11 +145,18 @@ let activeHanatourScheduleSectionByDay: ReadonlyMap<number, string> | null = nul
 function buildHanatourDayHaystack(
   row: HanatourScheduleImageKeywordRow,
   scheduleSectionByDay: ReadonlyMap<number, string> | null = activeHanatourScheduleSectionByDay,
+  includeScheduleSection = true,
 ): string {
   const day = Number(row.day)
   const section =
-    scheduleSectionByDay && day > 0 ? String(scheduleSectionByDay.get(day) ?? '').trim() : ''
+    includeScheduleSection && scheduleSectionByDay && day > 0
+      ? String(scheduleSectionByDay.get(day) ?? '').trim()
+      : ''
   return [section, row.title, row.description, row.routeText].filter(Boolean).join('\n').replace(/\r/g, '')
+}
+
+function buildHanatourRouteHaystack(row: HanatourScheduleImageKeywordRow): string {
+  return buildHanatourDayHaystack(row, null, false)
 }
 
 /** 하나투어 자유관광일 — "자유롭게 관광" 등 본문 패턴 포함 */
@@ -359,9 +366,10 @@ function isHanatourBareCityKeyword(kw: string): boolean {
 function collectHanatourOrderedScheduleLandmarks(
   row: HanatourScheduleImageKeywordRow,
   productDestination: string | null | undefined,
+  routeTextOnly = false,
 ): string[] {
   const out: string[] = []
-  const haystack = buildHanatourDayHaystack(row)
+  const haystack = routeTextOnly ? buildHanatourRouteHaystack(row) : buildHanatourDayHaystack(row)
   const push = (raw: string | null | undefined) => {
     const kw = String(raw ?? '').trim()
     if (!kw || isHanatourBareCityKeyword(kw)) return
@@ -1033,7 +1041,7 @@ function collectHanatourDayOrderedKeywordCandidates(
   for (const kw of collectHanatourRouteOrderedSegmentKeywords(row.routeText, productDestination)) {
     push(kw)
   }
-  for (const kw of collectHanatourOrderedScheduleLandmarks(row, productDestination)) {
+  for (const kw of collectHanatourOrderedScheduleLandmarks(row, productDestination, true)) {
     push(kw)
   }
   push(tryAcceptHanatourLlmImageKeyword(row.imageKeyword, productDestination))
@@ -1382,8 +1390,13 @@ function allocateHanatourImageKeywordsByScheduleRules<T extends HanatourSchedule
     let primary = movementOnly
       ? ''
       : pickFirstUnusedHanatourRouteKeywordPreferLandmark(routeOrdered, used)
-    if (!primary) {
-      primary = pickFirstUnusedHanatourRouteKeywordPreferLandmark(ordered, used)
+    if (!primary && !movementOnly) {
+      const inferred = inferEnglishPlaceKeywordFromDayContent(
+        { title: row.title, description: row.description, routeText: row.routeText, imageKeyword: row.imageKeyword },
+        productDestination,
+      )
+      const accepted = tryAcceptHanatourLlmImageKeyword(inferred, productDestination)
+      if (accepted && !used.has(normKey(accepted))) primary = accepted
     }
     if (movementOnly) {
       if (!primary || isScheduleAirportLikeImageKeyword(primary)) {

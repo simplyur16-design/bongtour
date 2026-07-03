@@ -30,7 +30,6 @@ describe('register-schedule-route-evidence-keyword', () => {
     expect(out[0]?.imageKeyword).toBe('')
     expect(out[0]?.imageKeyword2).toBe('Tiananmen Square')
   })
-
   it('applyRegisterScheduleImageKeywordsBySupplier — 6공급사 공통 sanitize', () => {
     const rows = [
       {

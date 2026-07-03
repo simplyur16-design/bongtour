@@ -2,6 +2,7 @@
  * Pexels 검색 키워드 생성 — 관광지(명소) 우선, 규칙 기반 + 최소 보정.
  * 한국어 상품 메타를 Pexels에서 의미 있는 영어 검색어로 변환.
  * REGRESSION-FREEZE[pexels-keyword-taiwan-poi]: 대만·타이페이 routeText 한글 명소 — manifest
+ * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·중동·남미 routeText 세그먼트 — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -68,6 +69,23 @@ const DESTINATION_MAP: Record<string, string> = {
   괌: 'Guam',
   사이판: 'Saipan',
   시드니: 'Sydney',
+  멜버른: 'Melbourne',
+  멜번: 'Melbourne',
+  오클랜드: 'Auckland',
+  로토루아: 'Rotorua',
+  퀸즈타운: 'Queenstown',
+  '퀸즈 타운': 'Queenstown',
+  크라이스트처치: 'Christchurch',
+  골드코스트: 'Gold Coast',
+  '골드 코스트': 'Gold Coast',
+  케언즈: 'Cairns',
+  퍼스: 'Perth',
+  브리즈번: 'Brisbane',
+  울루루: 'Uluru',
+  호주: 'Australia',
+  뉴질랜드: 'New Zealand',
+  리우데자네이로: 'Rio de Janeiro',
+  마라케시: 'Marrakech',
   파리: 'Paris',
   스페인: 'Spain',
   산티아고: 'Santiago de Compostela',
@@ -246,8 +264,6 @@ const POI_KO_TO_EN: Record<string, string> = {
   '툰구압둘라만 해양국립공원': 'Tunku Abdul Rahman National Park',
   '선셋 반딧불': 'Kota Kinabalu Fireflies',
   '선셋 반딧불이': 'Kota Kinabalu Fireflies',
-  반딧불이: 'Kota Kinabalu Fireflies',
-  반딧불: 'Kota Kinabalu Fireflies',
   '코타키나발루 시티 모스크': 'Kota Kinabalu City Mosque',
   '이슬람 사원': 'Kota Kinabalu City Mosque',
   만따나니: 'Mantanani Island',
@@ -344,8 +360,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   자이승기념탑: 'Zaisan Memorial',
   수흐바타르광장: 'Sukhbaatar Square',
   '수흐바타르 광장': 'Sukhbaatar Square',
+  '울란바토르 시내관광': 'Sukhbaatar Square',
+  '울란바토르 시내': 'Sukhbaatar Square',
   칭기즈칸기마상: 'Genghis Khan Statue',
   '칭기즈칸 기마상': 'Genghis Khan Statue',
+  '칭기즈칸 청동 기마상': 'Genghis Khan Statue',
   징기스칸기마상: 'Genghis Khan Statue',
   비치클럽: 'Bali Beach Club',
   '비치 클럽': 'Bali Beach Club',
@@ -533,6 +552,66 @@ const POI_KO_TO_EN: Record<string, string> = {
   '그라운드 제로': 'One World Trade Center New York',
   천섬유람선: 'Thousand Islands St Lawrence River',
   '천섬 유람선': 'Thousand Islands St Lawrence River',
+  /** REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU routeText 세그먼트 — manifest */
+  '로토루아 호수': 'Lake Rotorua',
+  로토루아호수: 'Lake Rotorua',
+  '아그로돔 양털깎이쇼': 'Agrodome Rotorua',
+  아그로돜: 'Agrodome Rotorua',
+  아그로돔: 'Agrodome Rotorua',
+  '스카이라인 곤돌라': 'Skyline Rotorua gondola',
+  스카이라인곤돌라: 'Skyline Rotorua gondola',
+  '와카레와레와 마오리민속마을': 'Whakarewarewa Maori Village',
+  '와카레와레와 마오리 민속마을': 'Whakarewarewa Maori Village',
+  와카레와레와: 'Whakarewarewa Maori Village',
+  '폴리네시안 스파': 'Polynesian Spa Rotorua',
+  '쿠메우 지역 와이너리': 'Kumeu wine region Auckland',
+  쿠메우: 'Kumeu wine region Auckland',
+  미션베이: 'Mission Bay Auckland',
+  '마이클 조셉 세비지 기념공원': 'Michael Joseph Savage Memorial Auckland',
+  마이클조셉세비지기념공원: 'Michael Joseph Savage Memorial Auckland',
+  에덴동산: 'Auckland Domain wintergardens',
+  '퀸즈타운': 'Queenstown Lake Wakatipu',
+  '퀸즈 타운': 'Queenstown Lake Wakatipu',
+  크라이스트교회: 'Christ Church Cathedral Christchurch',
+  '크라이스트 교회': 'Christ Church Cathedral Christchurch',
+  '밀포드 사운드': 'Milford Sound New Zealand',
+  밀포드사운드: 'Milford Sound New Zealand',
+  '마운트 쿡': 'Mount Cook New Zealand',
+  마운트쿡: 'Mount Cook New Zealand',
+  '테카포 호수': 'Lake Tekapo Church of Good Shepherd',
+  테카포: 'Lake Tekapo Church of Good Shepherd',
+  '와이토모 동굴': 'Waitomo Glowworm Caves',
+  와이토모: 'Waitomo Glowworm Caves',
+  웨이티모: 'Waitomo Glowworm Caves',
+  '그레이트 배리어 리프': 'Great Barrier Reef Cairns',
+  그레이트배리어리프: 'Great Barrier Reef Cairns',
+  '스카이 타워': 'Auckland Sky Tower',
+  스카이타워: 'Auckland Sky Tower',
+  '서퍼스 파라다이스': 'Surfers Paradise Gold Coast',
+  '워너 브러더스': 'Warner Bros Movie World Gold Coast',
+  '시드니 타워': 'Sydney Tower Eye',
+  '하이드 파크': 'Hyde Park Sydney',
+  '로얄 보타닉 가든': 'Royal Botanic Garden Sydney',
+  '테즈메이트 호수': 'Lake Te Anau New Zealand',
+  테아나우: 'Te Anau glowworm caves New Zealand',
+  '파랑이티 해변': 'Piha Beach Auckland',
+  /** REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: 일본·유럽·중동·남미 routeText 세그먼트 — manifest */
+  후지산: 'Mount Fuji Japan',
+  '후지 산': 'Mount Fuji Japan',
+  닛코동조궁: 'Nikko Toshogu Shrine',
+  '닛코 동조궁': 'Nikko Toshogu Shrine',
+  콜로세움: 'Colosseum Rome',
+  '콜로세움 경기장': 'Colosseum Rome',
+  사그라다파밀리아: 'Sagrada Familia Barcelona',
+  '사그라다 파밀리아': 'Sagrada Familia Barcelona',
+  '스위스 알프스': 'Swiss Alps Matterhorn',
+  스위스알프스: 'Swiss Alps Matterhorn',
+  페트라: 'Petra Treasury Jordan',
+  '페트라 고대도시': 'Petra Treasury Jordan',
+  마라케시: 'Marrakech Jemaa el-Fnaa',
+  '마라케시 구시가': 'Marrakech medina Morocco',
+  리우데자네이로: 'Rio de Janeiro Christ the Redeemer',
+  '예수상': 'Christ the Redeemer Rio de Janeiro',
 }
 
 /** 테마 태그(themeTags) 한국어/혼용 → Pexels 검색용 영어 (후순위 fallback) */
@@ -569,6 +648,50 @@ const MAX_LENGTH = 50
 const MAX_ATTRACTION_WORDS = 4
 
 const POI_KO_KEYS_SORTED = Object.keys(POI_KO_TO_EN).sort((a, b) => b.length - a.length)
+
+/** 목적지 고정 명소 — 동일 텍스트에 해당 지역·허브 언급 없으면 매핑 금지(지역별 POI 테이블 대신 문맥 SSOT) */
+// REGRESSION-FREEZE[pexels-keyword-kk-fireflies-context]: KK·말레이 명소 — 코타/키나발루 문맥 없으면 반딧불 등 매핑 금지 — manifest
+const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
+  '선셋 반딧불': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|만따나니|Mantanani/i,
+  '선셋 반딧불이': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|만따나니|Mantanani/i,
+  '코타키나발루 시티 모스크': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia/i,
+  '이슬람 사원': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|KK/i,
+  키나발루: /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|국립\s*공원/i,
+  '키나발루 국립공원': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia/i,
+  만따나니: /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|Mantanani/i,
+  '만따나니 아일랜드': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|Mantanani/i,
+}
+
+function poiKoMappingAllowed(ko: string, text: string): boolean {
+  const req = POI_KO_MAPPING_CONTEXT_RE[ko]
+  if (!req) return true
+  return req.test(text)
+}
+
+/**
+ * 영문 키워드에 DESTINATION_MAP 허브가 들어 있는데 상품·당일 routeText에 근거가 없으면 true.
+ * 지역별 POI 목록 없이 공용 도시 사전만으로 타 목적지 bleed 차단.
+ */
+export function scheduleKeywordEmbedsForeignDestinationHub(
+  keyword: string | null | undefined,
+  productDestination: string | null | undefined,
+  rowHaystack: string,
+): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  const kwNorm = normalizeSemanticPoiKey(raw)
+  if (!kwNorm) return false
+  const evidence = [productDestination, rowHaystack].filter(Boolean).join('\n')
+  const evidenceLower = evidence.toLowerCase()
+  for (const [ko, en] of Object.entries(DESTINATION_MAP)) {
+    const enNorm = normalizeSemanticPoiKey(en)
+    if (!enNorm || enNorm.length < 4) continue
+    if (!kwNorm.includes(enNorm) && !raw.toLowerCase().includes(en.toLowerCase())) continue
+    if (evidence.includes(ko) || evidenceLower.includes(en.toLowerCase())) continue
+    return true
+  }
+  return false
+}
 
 /**
  * 스크래퍼·공급사 페이지에 섞인 JSON/API 덤프가 title·destination 등에 들어오면
@@ -607,7 +730,9 @@ export function mapKoreanPoiSegment(segment: string): string {
   const compact = t.replace(/\s+/g, '')
   for (const ko of POI_KO_KEYS_SORTED) {
     const koCompact = ko.replace(/\s+/g, '')
-    if (t.includes(ko) || compact.includes(koCompact)) return POI_KO_TO_EN[ko] ?? ''
+    if (!t.includes(ko) && !compact.includes(koCompact)) continue
+    if (!poiKoMappingAllowed(ko, t)) continue
+    return POI_KO_TO_EN[ko] ?? ''
   }
   return ''
 }
@@ -625,6 +750,7 @@ export function findMappedKoreanPoisInTextByMentionOrder(text: string): Array<{ 
   const seen = new Set<string>()
   for (const ko of POI_KO_KEYS_SORTED) {
     if (!t.includes(ko)) continue
+    if (!poiKoMappingAllowed(ko, t)) continue
     const en = (POI_KO_TO_EN[ko] ?? '').trim()
     if (!en) continue
     const key = en.toLowerCase()

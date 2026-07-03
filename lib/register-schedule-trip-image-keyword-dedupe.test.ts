@@ -2,7 +2,11 @@
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]
  */
 import { describe, expect, it } from 'vitest'
-import { enforceRegisterScheduleTripUniqueImageKeywords, sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import {
+  applyDomesticHubOnlyDepartureReturnAdjacentKeywords,
+  enforceRegisterScheduleTripUniqueImageKeywords,
+  sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays,
+} from '@/lib/register-schedule-trip-image-keyword-dedupe'
 
 describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
   it('replaces duplicate primary with next unused route landmark', () => {
@@ -27,8 +31,8 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
 
   it('clears duplicate when no alternate landmark on same route', () => {
     const out = enforceRegisterScheduleTripUniqueImageKeywords([
-      { day: 1, routeText: '인천 - 레', imageKeyword: 'Leh', imageKeyword2: null },
-      { day: 2, routeText: '인천 - 레', imageKeyword: 'Leh', imageKeyword2: null },
+      { day: 1, routeText: '인천 - 레', imageKeyword: 'Leh Palace Ladakh', imageKeyword2: null },
+      { day: 2, routeText: '인천 - 레', imageKeyword: 'Leh Palace Ladakh', imageKeyword2: null },
     ])
     expect(out[0]!.imageKeyword).toMatch(/Leh/i)
     expect(out[1]!.imageKeyword).not.toBe(out[0]!.imageKeyword)
