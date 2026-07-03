@@ -24,6 +24,7 @@ import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-bloc
 import {
   fillScheduleMiddleImageKeyword2Gap,
   isScheduleAirportLikeImageKeyword,
+  isScheduleAirportOnlyRouteText,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
   resolveScheduleKeywordSlotKind,
@@ -935,7 +936,13 @@ export function applyKyowontourScheduleImageKeywordsToRows<
       primary = refillPrimary() ?? refillFromPriorDay()
     }
     if (!primary && slotKind === 'return' && day > 1) {
-      primary = refillFromPriorDay() || refillPrimary() || ''
+      const domesticReturnOnly = isScheduleAirportOnlyRouteText(
+        row.routeText,
+        isKyowontourDomesticHubToken,
+      )
+      if (!domesticReturnOnly) {
+        primary = refillFromPriorDay() || refillPrimary() || ''
+      }
     }
     if (primary) tripUsed.add(normKyowontourKwKey(primary))
 

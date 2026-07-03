@@ -254,10 +254,10 @@ describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 
     assert.match(d8.imageKeyword!, /Qutub/i)
   })
 
-  it('Day9 귀국 — 인천만 있으면 인접일 미사용 관광명소', () => {
+  it('Day9 귀국 — 인천만 있으면 인접일 관광명소 미사용(빈 슬롯)', () => {
     const out = applyModetourScheduleImageKeywordsToRows(ladakhRows, indiaOpts)
     const d9 = out.find((r) => r.day === 9)!
-    assert.ok(d9.imageKeyword?.trim(), `day9 kw empty: ${d9.imageKeyword}`)
+    assert.equal(d9.imageKeyword?.trim() ?? '', '')
     assert.equal(d9.imageKeyword2, null)
   })
 

@@ -105,6 +105,72 @@ export const MODETOUR_BA_NA_HILLS_REGRESSION_ROWS: DualSlotContractRow[] = [
   },
 ]
 
+/** 베트남 달랏·나트랑 5일 — routeText 인천 only 출발·귀국일 해외 키워드 누수 회귀 */
+export const VIETNAM_DALAT_NHATRANG_DOMESTIC_HUB_ROWS: DualSlotContractRow[] = [
+  {
+    day: 1,
+    title: '-',
+    description: '인천',
+    routeText: '인천',
+    imageKeyword: 'Nha Trang',
+    imageKeyword2: null,
+  },
+  {
+    day: 2,
+    title: '-',
+    description: '달랏 관광',
+    routeText: '달랏 - 베트남샤브샤브 - 달랏기차역 - 플라워가든 - 죽림사 - 다딴라폭포 - 소고기구이 정식',
+    imageKeyword: 'Da Lat Vietnam Highland',
+    imageKeyword2: 'Datanla Waterfalls',
+  },
+  {
+    day: 3,
+    title: '-',
+    description: '달랏 관광',
+    routeText: '달랏 - 랑비앙 - 바오다이 황제 별장 - 크레이지하우스 - 진흙공원 - 무제한삼겹살',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 4,
+    title: '-',
+    description: '나트랑 관광',
+    routeText: '나트랑 - 분짜+반쎄오 - 포나가 참 사원 - 담 재래시장 - 롱선사',
+    imageKeyword: 'Nha Trang',
+    imageKeyword2: 'Long Son Pagoda',
+  },
+  {
+    day: 5,
+    title: '-',
+    description: '인천',
+    routeText: '인천',
+    imageKeyword: 'Nha Trang',
+    imageKeyword2: null,
+  },
+]
+
+function assertDomesticHubOnlyDaysNoForeignKeyword(
+  failures: string[],
+  label: string,
+  out: DualSlotContractRow[],
+  days: readonly number[],
+) {
+  for (const day of days) {
+    const row = out.find((r) => r.day === day)
+    if (!row) {
+      failures.push(`${label}: day ${day} missing`)
+      continue
+    }
+    const kw = String(row.imageKeyword ?? '').trim()
+    if (kw.length > 0) {
+      failures.push(`${label}: day ${day} domestic-hub-only route must not keep foreign imageKeyword (${kw})`)
+    }
+    if (row.imageKeyword2 != null && String(row.imageKeyword2).trim() !== '') {
+      failures.push(`${label}: day ${day} imageKeyword2 should be null on domestic-hub-only day`)
+    }
+  }
+}
+
 function assertModetourBaNaHillsRegression(failures: string[], label: string, out: DualSlotContractRow[]) {
   const d2 = out.find((r) => r.day === 2)
   const d4 = out.find((r) => r.day === 4)
@@ -139,6 +205,16 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
 
   const modetourPreview = apply('modetour', MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, '다낭')
   assertModetourBaNaHillsRegression(failures, 'modetour-preview', modetourPreview)
+
+  for (const supplier of DUAL_SLOT_CONTRACT_SUPPLIERS) {
+    const vietnamOut = apply(supplier, VIETNAM_DALAT_NHATRANG_DOMESTIC_HUB_ROWS, '동남아')
+    assertDomesticHubOnlyDaysNoForeignKeyword(
+      failures,
+      `${supplier}-vietnam-domestic-hub`,
+      vietnamOut,
+      [1, 5],
+    )
+  }
 
   for (const row of modetourDirect) {
     const day = row.day

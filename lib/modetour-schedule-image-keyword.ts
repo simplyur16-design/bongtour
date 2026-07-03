@@ -1711,7 +1711,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
           }
         }
       }
-      if (!primary) {
+      if (!primary && !domesticReturn) {
         primary =
           pickModetourAdjacentUnusedKeyword(
             day,
@@ -1726,7 +1726,7 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
       if (!primary && !domesticReturn) {
         primary = pickModetourReturnKeywordFromOwnRoute(row, productDestination, used)
       }
-      if (!primary) {
+      if (!primary && !domesticReturn) {
         primary = pickModetourReturnReuseTourismKeyword(sorted, maxDay, productDestination)
       }
       if (primary) used.add(normKey(primary))

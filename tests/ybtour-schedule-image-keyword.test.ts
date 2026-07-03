@@ -232,6 +232,32 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
     assert.equal(d3.imageKeyword2, null)
     assert.equal(d3.imageKeyword, 'Victoria Peak')
   })
+
+  it('인천 only 귀국일 — 전일 나트랑 키워드 누수 금지', () => {
+    const out = applyYbtourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 4,
+          routeText: '나트랑 - 포나가 참 사원 - 롱선사',
+          title: '-',
+          description: '나트랑',
+          imageKeyword: 'Nha Trang',
+          imageKeyword2: 'Long Son Pagoda',
+        },
+        {
+          day: 5,
+          routeText: '인천',
+          title: '-',
+          description: '인천',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '동남아' },
+    )
+    assert.equal(out.find((r) => r.day === 5)!.imageKeyword?.trim() ?? '', '')
+    assert.equal(out.find((r) => r.day === 5)!.imageKeyword2, null)
+  })
 })
 
 describe('resolveYbtourPrimaryKeyword / resolveYbtourSecondaryKeyword (레거시 디버그)', () => {

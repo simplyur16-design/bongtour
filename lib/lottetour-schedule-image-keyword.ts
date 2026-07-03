@@ -17,6 +17,7 @@ import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-bloc
 import {
   fillScheduleMiddleImageKeyword2Gap,
   isScheduleAirportLikeImageKeyword,
+  isScheduleAirportOnlyRouteText,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
   resolveScheduleKeywordSlotKind,
@@ -642,8 +643,14 @@ function resolveLottetourPrimaryKeyword(
     const fromRoute = landmarkFromRouteText(row.routeText)
     if (fromRoute) return exitLottetourLandmark(fromRoute, ctx)
     if (dayKind === 'return_home') {
-      const fromPrior = lastForeignLandmarkFromPriorLottetourRows(priorRows, row, maxDay)
-      if (fromPrior) return exitLottetourLandmark(fromPrior, ctx)
+      const domesticReturnOnly = isScheduleAirportOnlyRouteText(
+        row.routeText,
+        isLottetourDomesticHubToken,
+      )
+      if (!domesticReturnOnly) {
+        const fromPrior = lastForeignLandmarkFromPriorLottetourRows(priorRows, row, maxDay)
+        if (fromPrior) return exitLottetourLandmark(fromPrior, ctx)
+      }
     }
     return ''
   }

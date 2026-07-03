@@ -1,12 +1,13 @@
 /**
  * 등록 schedule — trip 전체 imageKeyword·imageKeyword2 중복 제거 (6공급사 공통 후처리).
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only day foreign keyword strip — manifest
  * 당일 route 후보만 사용 — 타 일차 landmark 끌어오기 금지.
  */
 import { englishFromScheduleKoreanSegment, normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
-import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { isScheduleAirportLikeImageKeyword, isScheduleAirportOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import {
@@ -67,6 +68,47 @@ function pickUnusedTripKeyword(
     return c
   }
   return ''
+}
+
+function isScheduleDomesticHubToken(token: string): boolean {
+  const t = String(token ?? '').trim()
+  if (!t) return true
+  if (/^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u.test(t)) {
+    return true
+  }
+  if (/^인천(?:국제)?공항$/u.test(t)) return true
+  if (/^김포(?:국제)?공항$/u.test(t)) return true
+  if (/^부산(?:국제)?공항$/u.test(t)) return true
+  if (/^대구(?:국제)?공항$/u.test(t)) return true
+  if (/^청주(?:국제)?공항$/u.test(t)) return true
+  return /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i.test(t)
+}
+
+function keywordSupportedByRowRouteEvidence(
+  kw: string,
+  row: RegisterScheduleTripKeywordRow,
+): boolean {
+  const t = String(kw ?? '').trim()
+  if (!t) return false
+  const nk = normScheduleImageKeywordKey(t)
+  return collectTripKeywordCandidates(row).some((c) => normScheduleImageKeywordKey(c) === nk)
+}
+
+/** 국내 허브만 있는 출발·귀국일 — 타 일차 관광명소 imageKeyword 누수 차단 (6공급사 공통) */
+export function sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays<
+  T extends RegisterScheduleTripKeywordRow,
+>(rows: T[]): T[] {
+  return rows.map((row) => {
+    if (!isScheduleAirportOnlyRouteText(row.routeText, isScheduleDomesticHubToken)) return row
+    const primary = String(row.imageKeyword ?? '').trim()
+    const secondary = String(row.imageKeyword2 ?? '').trim()
+    return {
+      ...row,
+      imageKeyword: primary && keywordSupportedByRowRouteEvidence(primary, row) ? primary : '',
+      imageKeyword2:
+        secondary && keywordSupportedByRowRouteEvidence(secondary, row) ? secondary : null,
+    }
+  })
 }
 
 /** 이미 쓴 키워드는 당일 route·본문 후보만으로 교체 — 타 일차 landmark 금지, 없으면 빈 슬롯 */
