@@ -46,7 +46,6 @@ import {
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
 import { resolveHanatourRegisterScheduleSectionByDay, enrichHanatourRegisterPreviewScheduleRowsFromSection } from '@/lib/hanatour-schedule-section-by-day'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { sanitizeModetourRegisterScheduleRouteRows } from '@/lib/modetour-register-api-schedule'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
 import { buildAirtelRegisterPexelsUiScheduleRows } from '@/lib/register-airtel-pexels-ui-rows'
@@ -422,7 +421,7 @@ function buildRegisterPexelsUiRows(
       (parsed?.destination ?? '').trim() ||
       (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
       null
-    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: modetour — preview API `ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT. 클라이언트 재규칙은 Gemini kw2를 지움. */
+    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT — 클라이언트 routeText 재적용(stale kw 무시) */
     if (
       supplierKey === 'modetour' &&
       validFromParsed.every((row) => String(row.imageKeyword ?? '').trim())
@@ -435,22 +434,30 @@ function buildRegisterPexelsUiRows(
             title: String(row.title ?? ''),
             description: String(row.description ?? ''),
             routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
-            imageKeyword: String(row.imageKeyword ?? '').trim(),
-            imageKeyword2: String(row.imageKeyword2 ?? '').trim() || null,
+            imageKeyword: '',
+            imageKeyword2: null,
           }
         }),
       )
-      return finalizeRegisterScheduleImageKeywords(
-        enforceRegisterScheduleTripUniqueImageKeywords(routeSanitized),
-        { productDestination: destHintEarly },
-      ).map((row) => ({
-        day: row.day,
-        title: String(row.title ?? ''),
-        description: String(row.description ?? ''),
-        routeText: row.routeText ?? null,
-        imageKeyword: String(row.imageKeyword ?? '').trim(),
-        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
-      }))
+      try {
+        const augmented = applyRegisterScheduleImageKeywordsForPreview(routeSanitized, {
+          supplierKey,
+          productDestination: destHintEarly,
+          productTitle: (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null,
+        })
+        return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHintEarly }).map(
+          (row) => ({
+            day: row.day,
+            title: String(row.title ?? ''),
+            description: String(row.description ?? ''),
+            routeText: row.routeText ?? null,
+            imageKeyword: String(row.imageKeyword ?? '').trim(),
+            imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+          }),
+        )
+      } catch (e) {
+        console.error('[admin-register] modetour imageKeyword SSOT apply failed', e)
+      }
     }
 
     const useFitRowsInstead =
@@ -472,8 +479,8 @@ function buildRegisterPexelsUiRows(
         title: String(row.title ?? ''),
         description: String(row.description ?? ''),
         routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
-        imageKeyword: String(row.imageKeyword ?? '').trim(),
-        imageKeyword2: String(row.imageKeyword2 ?? '').trim() || null,
+        imageKeyword: '',
+        imageKeyword2: null,
       }
     }),
       parsed,
@@ -507,14 +514,15 @@ function buildRegisterPexelsUiRows(
         imageKeyword: String(row.imageKeyword ?? '').trim(),
         imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
       }))
-    } catch {
+    } catch (e) {
+      console.error('[admin-register] imageKeyword SSOT apply failed', e)
       return rawRows.map((row) => ({
         day: row.day,
         title: row.title,
         description: row.description,
         routeText: row.routeText ?? null,
-        imageKeyword: row.imageKeyword,
-        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+        imageKeyword: '',
+        imageKeyword2: '',
       }))
     }
   }
@@ -574,13 +582,14 @@ function buildRegisterPexelsUiRows(
       imageKeyword: String(row.imageKeyword ?? '').trim(),
       imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
     }))
-  } catch {
+  } catch (e) {
+    console.error('[admin-register] itinerary imageKeyword SSOT apply failed', e)
     return draftRows.map((row) => ({
       day: row.day,
       title: row.title,
       description: row.description,
       routeText: row.routeText,
-      imageKeyword: row.imageKeyword,
+      imageKeyword: '',
       imageKeyword2: '',
     }))
   }

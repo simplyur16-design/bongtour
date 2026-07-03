@@ -4250,6 +4250,13 @@
           ]
         },
         {
+          "file": "lib/register-schedule-image-keywords-preview.ts",
+          "mustInclude": [
+            "prepareRegisterScheduleImageKeywordPreviewRows",
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]"
+          ]
+        },
+        {
           "file": "scripts/verify-nz-pnp101-image-keyword-live.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
@@ -4261,7 +4268,8 @@
       "vitestSuites": [
         "lib/register-schedule-route-text-image-keyword-ssot.test.ts",
         "lib/register-schedule-nz-au-seven-day-image-keyword.test.ts",
-        "lib/register-schedule-nz-south-island-nine-day-image-keyword.test.ts"
+        "lib/register-schedule-nz-south-island-nine-day-image-keyword.test.ts",
+        "lib/register-schedule-image-keywords-preview.test.ts"
       ],
       "npmScripts": [
         "verify:nz-pnp101-image-keyword-live"

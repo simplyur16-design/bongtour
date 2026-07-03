@@ -1,6 +1,7 @@
 /**
  * 등록 미리보기 UI — 공급사별 imageKeyword 규칙(클라이언트 번들용).
  * 스위치 SSOT: `register-schedule-image-keywords-apply.ts`
+ * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: preview — routeText만, stale kw 무시 — manifest
  */
 import {
   applyRegisterScheduleImageKeywordsBySupplier,
@@ -12,10 +13,21 @@ export type RegisterScheduleImageKeywordPreviewRow = RegisterScheduleImageKeywor
 
 export type ApplyRegisterScheduleImageKeywordsForPreviewOpts = ApplyRegisterScheduleImageKeywordsOpts
 
+/** 미리보기 apply 입력 — 서버·Gemini가 채운 imageKeyword는 무시(routeText SSOT만) */
+export function prepareRegisterScheduleImageKeywordPreviewRows<
+  T extends RegisterScheduleImageKeywordPreviewRow,
+>(rows: T[]): T[] {
+  return rows.map((row) => ({
+    ...row,
+    imageKeyword: '',
+    imageKeyword2: null,
+  }))
+}
+
 export function applyRegisterScheduleImageKeywordsForPreview<
   T extends RegisterScheduleImageKeywordPreviewRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsForPreviewOpts): T[] {
-  return applyRegisterScheduleImageKeywordsBySupplier(rows, opts)
+  return applyRegisterScheduleImageKeywordsBySupplier(prepareRegisterScheduleImageKeywordPreviewRows(rows), opts)
 }
 
 /**
