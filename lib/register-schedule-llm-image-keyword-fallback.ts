@@ -124,7 +124,13 @@ export function splitRouteTextPlaceSegments(routeText: string | null | undefined
   if (!rt) return []
   return rt
     .split(/\s*(?:→|->|—|–|,|，|·|\/|\s+-\s+)\s*/u)
-    .map((s) => s.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim())
+    .map((s) =>
+      s
+        .replace(/\[[^\]]*\]/g, ' ')
+        .replace(/\([^)]*\)/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
     .filter((s) => s.length >= 2 || /[\uAC00-\uD7AF]/u.test(s))
 }
 

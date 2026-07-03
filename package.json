@@ -152,6 +152,7 @@
     "verify:register-six-suppliers-live-gate": "npx tsx scripts/verify-register-six-suppliers-live-gate.ts",
     "verify:register-hanatour-kk-live-gate": "npx tsx scripts/verify-register-hanatour-kk-live-gate.ts",
     "verify:mongolia-cqp111-image-keyword-live": "npx tsx scripts/verify-mongolia-cqp111-image-keyword-live.ts",
+    "verify:nz-pnp101-image-keyword-live": "npx tsx scripts/verify-nz-pnp101-image-keyword-live.ts",
     "verify:hanatour-price-api-anchor-gate": "npx tsx scripts/verify-hanatour-price-api-anchor-gate.ts",
     "verify:register-hanatour-samples-live-gate": "npx tsx scripts/verify-register-hanatour-samples-live-gate.ts",
     "verify:register-modetour-danang-live-gate": "npx tsx scripts/verify-register-modetour-danang-live-gate.ts",

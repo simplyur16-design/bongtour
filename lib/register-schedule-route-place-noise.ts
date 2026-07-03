@@ -42,8 +42,24 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
+  if (/^(?:뉴질랜드|호주|일본|중국|태국|베트남)\s*.+(?:관광|투어)$/u.test(t)) return true
+  if (/하이라이트\s*_/u.test(t)) return true
   if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
+  if (
+    /하루\s*동안\s*여러\s*장면|알찬\s*동선|전체적인\s*흐름과\s*분위기|여행의\s*컨셉|귀국길로\s*이어지|이동\s*중심의\s*마무리|현지\s*도착\s*후\s*첫날|보기와\s*걷기가\s*균형|보기와\s*이동이\s*균형/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
   return false
+}
+
+/** 하나투어 등 API placeholder — 명소 없는 관광 filler routeText */
+export function isRegisterScheduleGenericTourismFillerRouteText(routeText: string | null | undefined): boolean {
+  const t = String(routeText ?? '').trim()
+  if (!t) return false
+  return /하루\s*동안\s*여러\s*장면|알찬\s*동선|전체적인\s*흐름과\s*분위기|여행의\s*컨셉/i.test(t)
 }
 
 /** routeText·places 배열에서 행정/UI 세그먼트 제거 */

@@ -493,6 +493,23 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'sagrada familia barcelona': 'Sagrada Familia Barcelona',
   'colosseum rome': 'Colosseum Rome',
   'mount fuji japan': 'Mount Fuji Japan',
+  'kawarau gorge suspension bridge': 'Kawarau Gorge Suspension Bridge',
+  'arrowtown historic street': 'Arrowtown historic street',
+  'queenstown gardens': 'Queenstown Gardens',
+  'mirror lakes milford sound': 'Mirror Lakes Milford Sound',
+  'homer tunnel': 'Homer Tunnel',
+  'church of good shepherd lake tekapo': 'Church of Good Shepherd Lake Tekapo',
+  'lake pukaki mount cook view': 'Lake Pukaki Mount Cook view',
+  'hagley park christchurch': 'Hagley Park Christchurch',
+  'avon river christchurch': 'Avon River Christchurch',
+  'mona vale garden christchurch': 'Mona Vale Garden Christchurch',
+  'christchurch tram city': 'Christchurch Tram city',
+  'hamilton gardens': 'Hamilton Gardens',
+  'hamurana springs': 'Hamurana Springs',
+  'lake taupo': 'Lake Taupo',
+  'huka falls': 'Huka Falls',
+  'wai-o-tapu geothermal rotorua': 'Wai-O-Tapu geothermal Rotorua',
+  'redwoods whakarewarewa forest': 'Redwoods Whakarewarewa Forest',
 }
 
 function resolveCompoundLandmarkPhrase(s: string): string | null {

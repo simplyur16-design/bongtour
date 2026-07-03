@@ -9,7 +9,7 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
-import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import { isRegisterScheduleRoutePlaceNoise, isRegisterScheduleGenericTourismFillerRouteText } from '@/lib/register-schedule-route-place-noise'
 import {
   acceptScheduleTourismImageKeywordOrEmpty,
   effectiveRouteTextForScheduleKeywordRow,
@@ -299,13 +299,14 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       if (primary) used.add(normScheduleImageKeywordKey(primary))
       if (secondary) used.add(normScheduleImageKeywordKey(secondary))
     } else if (slot === 'departure') {
-      primary = pickFirstPreferLandmark(routeOrdered, used)
+      primary = pickFirstUnused(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)
       if (
         !primary &&
-        isScheduleDomesticHubOnlyRouteText(
+        (isScheduleDomesticHubOnlyRouteText(
           routeTextForKeywords || movementHubLine,
           isDomesticHubToken,
-        )
+        ) ||
+          isRegisterScheduleGenericTourismFillerRouteText(routeTextForKeywords))
       ) {
         primary = forwardRouteKeywordFromNextDay(day, sorted)
       }

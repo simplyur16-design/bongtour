@@ -4,6 +4,7 @@
  * vitest lib/schedule-image-keyword-adjacent-poi.test.ts — manifest
  */
 import { acceptScheduleImageKeywordOrEmpty, isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
+import { isRegisterScheduleGenericTourismFillerRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export type ScheduleAdjacentDayAlloc = {
   primary: string
@@ -67,11 +68,16 @@ export function effectiveRouteTextForScheduleKeywordRow(row: {
 }): string {
   const route = String(row.routeText ?? '').trim()
   if (route) return route
-  const line = String(row.description ?? '').trim() || String(row.title ?? '').trim()
-  if (!line) return ''
-  if (/[-–—→]|\s-\s/u.test(line)) return ''
-  if (line.length > 64) return ''
-  return line
+  const desc = String(row.description ?? '').trim()
+  const title = String(row.title ?? '').trim()
+  for (const line of [desc, title]) {
+    if (!line) continue
+    if (isRegisterScheduleGenericTourismFillerRouteText(line)) continue
+    if (/[-–—→]|\s-\s/u.test(line)) continue
+    if (line.length > 64) continue
+    return line
+  }
+  return ''
 }
 
 /** 국내 허브(인천·김포 등)만 — airline-only·해외 공항 혼합 제외 */

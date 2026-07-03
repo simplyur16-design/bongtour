@@ -4241,11 +4241,30 @@
           "mustNotInclude": [
             "findAllMappedKoreanPoisInText"
           ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-place-noise]",
+            "하루\\s*동안\\s*여러\\s*장면"
+          ]
+        },
+        {
+          "file": "scripts/verify-nz-pnp101-image-keyword-live.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
+            "PNP101260802KE1",
+            "applyRegisterScheduleImageKeywordsForPreview"
+          ]
         }
       ],
       "vitestSuites": [
         "lib/register-schedule-route-text-image-keyword-ssot.test.ts",
-        "lib/register-schedule-nz-au-seven-day-image-keyword.test.ts"
+        "lib/register-schedule-nz-au-seven-day-image-keyword.test.ts",
+        "lib/register-schedule-nz-south-island-nine-day-image-keyword.test.ts"
+      ],
+      "npmScripts": [
+        "verify:nz-pnp101-image-keyword-live"
       ]
     },
     {

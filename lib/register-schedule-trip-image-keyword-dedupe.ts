@@ -2,6 +2,7 @@
  * 등록 schedule — trip 전체 imageKeyword·imageKeyword2 중복 제거 (6공급사 공통 후처리).
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: manifest
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: routeText 후보만 — manifest
+ * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: kw2 dedupe — bare city·허브 fallback 금지 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — applyDomesticHubOnlyDepartureReturnAdjacentKeywords — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
@@ -210,7 +211,7 @@ export function sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays<
 }
 
 function allowKw2TripDuplicateKeyword(kw: string): boolean {
-  if (isBareCityOrCountryKeyword(kw)) return true
+  if (isBareCityOrCountryKeyword(kw)) return false
   const nk = normScheduleImageKeywordKey(kw)
   return /^(da nang|hoi an|bali|new york|nha trang|da lat|ho chi minh|hanoi|phuket|bangkok|singapore|seoul|tokyo|osaka|kyoto|paris|london|rome|barcelona|sydney|melbourne)$/.test(
     nk,
@@ -227,6 +228,7 @@ function pickRouteOrderSecondKeyword(
   if (!pk || !cands.length) return ''
   const usable = (kw: string, allowTripDuplicate: boolean): boolean => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return false
+    if (isBareCityOrCountryKeyword(kw)) return false
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || nk === pk) return false
     if (used?.has(nk) && !allowTripDuplicate) return false
