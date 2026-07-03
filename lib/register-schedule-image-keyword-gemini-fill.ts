@@ -6,7 +6,10 @@
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { classifyModetourScheduleCardDayKind, isModetourDomesticHubToken } from '@/lib/modetour-schedule-image-keyword'
-import { REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK } from '@/lib/register-schedule-image-keyword-prompt'
+import {
+  REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK,
+  REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK,
+} from '@/lib/register-schedule-image-keyword-prompt'
 import {
   isRegisterScheduleFreeLeisureDay,
   splitRouteTextPlaceSegments,
@@ -123,9 +126,11 @@ export function buildScheduleImageKeywordGeminiPrompt(
 Product title: ${opts.productTitle?.trim() || 'unknown'}
 Destination: ${opts.productDestination?.trim() || 'unknown'}
 
+${REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK}
+
 ${REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK}
 
-Read each day's routeText segments in visit order (A - B - C - D). Pick 1 or 2 distinct landmark proper nouns in English.
+Read each day's routeText segments in visit order (A - B - C - D). For each segment, resolve the standard English proper name — do not translate literally.
 
 Days to fill:
 ${lines.join('\n')}
@@ -157,10 +162,12 @@ export function buildFreeLeisureDayGeminiPrompt(
 
   return `This package tour has free-leisure schedule day(s). For each day below:
 1) Propose a realistic half-day or full-day recommended sightseeing route (2-4 landmark stops in visit order).
-2) Pick Pexels English landmark proper nouns for imageKeyword (1 required) and imageKeyword2 (second distinct landmark when 2+ stops).
+2) Resolve Pexels English landmark proper nouns for imageKeyword (1 required) and imageKeyword2 (second distinct landmark when 2+ stops).
 
 Product title: ${opts.productTitle?.trim() || 'unknown'}
 Destination: ${opts.productDestination?.trim() || 'unknown'}
+
+${REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK}
 
 ${REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK}
 
@@ -170,7 +177,7 @@ ${lines.join('\n')}
 Return JSON only:
 {"schedule":[{"day":6,"recommendedRoute":"Yas Island - Ferrari World - SeaWorld","imageKeyword":"Ferrari World","imageKeyword2":"SeaWorld Abu Dhabi"}]}
 
-recommendedRoute is for operator review only; imageKeyword/imageKeyword2 are required English landmark names.`
+recommendedRoute is for operator review only; imageKeyword/imageKeyword2 are required standard English proper names (not literal translations).`
 }
 
 async function fillFreeLeisureDaysWithGemini<

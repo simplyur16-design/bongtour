@@ -64,13 +64,21 @@ describe('register-schedule-image-keyword-gemini-fill', () => {
     expect(prompt).toMatch(/imageKeyword2/)
   })
 
-  it('buildScheduleImageKeywordGeminiPrompt — routeText 순서·dual-slot 규칙 포함', () => {
+  it('buildScheduleImageKeywordGeminiPrompt — routeText 순서·dual-slot·canonical resolve 규칙 포함', () => {
     const prompt = buildScheduleImageKeywordGeminiPrompt(
-      [{ day: 2, routeText: '북경 - 천안문광장 - 자금성', title: '2일차' }],
-      { productDestination: '중국', productTitle: '북경 4일', daysToFill: [2] },
+      [
+        {
+          day: 4,
+          routeText: '나트랑 - 분짜+반쎄오 - 포나가 참 사원 - 담 재래시장 - 롱선사',
+          title: '4일차',
+        },
+      ],
+      { productDestination: '동남아', productTitle: '베트남 5일', daysToFill: [4] },
     )
-    expect(prompt).toMatch(/routeText="북경 - 천안문광장 - 자금성"/)
+    expect(prompt).toMatch(/routeText="나트랑 - 분짜\+반쎄오 - 포나가 참 사원/)
     expect(prompt).toMatch(/imageKeyword2/)
-    expect(prompt).toMatch(/A - B - C/)
+    expect(prompt).toMatch(/Do NOT translate Korean/)
+    expect(prompt).toMatch(/Po Nagar Cham Towers/)
+    expect(prompt).toMatch(/resolve the standard English proper name/)
   })
 })

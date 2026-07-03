@@ -3802,7 +3802,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "등록 일정 imageKeyword — 규칙·POI 후 빈 일차 Gemini routeText 순서 1·2순위",
+      "summary": "등록 일정 imageKeyword — 규칙·POI 후 빈 일차 Gemini routeText 순서 1·2순위·정식 영문 고유명",
       "checks": [
         {
           "file": "lib/register-schedule-image-keyword-gemini-fill.ts",
@@ -3813,12 +3813,26 @@
             "scheduleFreeLeisureDaysMissingImageKeyword",
             "buildFreeLeisureDayGeminiPrompt",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
-            "REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK"
+            "REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK",
+            "REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keyword-prompt.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
+            "직역·의역·번역 금지",
+            "Po Nagar Cham Towers",
+            "REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK"
           ]
         }
       ],
+      "npmScripts": [
+        "verify:schedule-image-keyword-canonical-prompt"
+      ],
       "vitestSuites": [
-        "lib/register-schedule-image-keyword-gemini-fill.test.ts"
+        "lib/register-schedule-image-keyword-gemini-fill.test.ts",
+        "lib/register-schedule-image-keyword-prompt.test.ts"
       ]
     },
     {
