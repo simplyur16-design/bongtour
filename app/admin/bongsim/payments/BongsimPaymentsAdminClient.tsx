@@ -169,6 +169,13 @@ export default function BongsimPaymentsAdminClient() {
   const [compBusy, setCompBusy] = useState(false);
   const [compErr, setCompErr] = useState<string | null>(null);
   const [compOk, setCompOk] = useState<string | null>(null);
+  const [compBulkPhones, setCompBulkPhones] = useState("");
+  const [compBulkBusy, setCompBulkBusy] = useState(false);
+  const [compBulkErr, setCompBulkErr] = useState<string | null>(null);
+  const [compBulkOk, setCompBulkOk] = useState<string | null>(null);
+  const [compBulkFailed, setCompBulkFailed] = useState<
+    Array<{ phone: string; message: string }>
+  >([]);
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -411,6 +418,63 @@ export default function BongsimPaymentsAdminClient() {
     }
   };
 
+  const submitComplimentaryBulkGrant = async () => {
+    setCompBulkBusy(true);
+    setCompBulkErr(null);
+    setCompBulkOk(null);
+    setCompBulkFailed([]);
+    try {
+      const res = await fetch("/api/admin/bongsim/complimentary-esim/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          option_api_id: compOptionId.trim(),
+          reason_category: compReasonCategory,
+          reason_memo: compReasonMemo.trim(),
+          phones_text: compBulkPhones,
+        }),
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        requested?: number;
+        succeeded?: number;
+        failed?: number;
+        invalid_phones?: string[];
+        results?: Array<
+          | { phone: string; ok: true; order_number: string }
+          | { phone: string; ok: false; message?: string; reason?: string }
+        >;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(j.message ?? j.error ?? "일괄 발급 실패");
+      const invalid = j.invalid_phones ?? [];
+      const failedRows =
+        j.results?.filter((r): r is { phone: string; ok: false; message?: string; reason?: string } => !r.ok) ??
+        [];
+      setCompBulkFailed(
+        failedRows.map((r) => ({
+          phone: r.phone,
+          message: r.message ?? r.reason ?? "발급 실패",
+        })),
+      );
+      const parts = [
+        `일괄 발급 완료: 성공 ${j.succeeded ?? 0}건`,
+        (j.failed ?? 0) > 0 ? `실패 ${j.failed}건` : null,
+        invalid.length > 0 ? `형식 오류 ${invalid.length}건` : null,
+      ].filter(Boolean);
+      setCompBulkOk(`${parts.join(" · ")} — QR 알림톡 발송이 시작됩니다.`);
+      if ((j.succeeded ?? 0) > 0) {
+        setCompBulkPhones("");
+      }
+      await load();
+    } catch (e) {
+      setCompBulkErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setCompBulkBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
@@ -579,6 +643,48 @@ export default function BongsimPaymentsAdminClient() {
         >
           {compBusy ? "발급 중…" : "무상 eSIM 발급 (QR 알림톡)"}
         </button>
+
+        <div className="mt-6 border-t border-violet-200/80 pt-5">
+          <h3 className="text-sm font-semibold text-violet-950">단체 일괄 발급</h3>
+          <p className="mt-1 text-xs text-violet-900/90">
+            위와 같은 상품·사유로 여러 명에게 1인 1장씩 발급합니다. 휴대폰 번호만 한 줄에 하나씩 입력하세요. (최대
+            100명)
+          </p>
+          <label className="mt-3 block text-xs text-bt-text-muted-lavender">
+            휴대폰 목록
+            <textarea
+              value={compBulkPhones}
+              onChange={(e) => setCompBulkPhones(e.target.value)}
+              rows={6}
+              className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 font-mono text-sm"
+              placeholder={"010-1234-5678\n01098765432\n01055556666"}
+            />
+          </label>
+          {compBulkErr ? <p className="mt-2 text-sm text-red-600">{compBulkErr}</p> : null}
+          {compBulkOk ? <p className="mt-2 text-sm text-emerald-700">{compBulkOk}</p> : null}
+          {compBulkFailed.length > 0 ? (
+            <ul className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-xs text-red-800">
+              {compBulkFailed.map((row) => (
+                <li key={row.phone}>
+                  {row.phone}: {row.message}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            disabled={
+              compBulkBusy ||
+              !compOptionId.trim() ||
+              !compBulkPhones.trim() ||
+              compReasonMemo.trim().length < 2
+            }
+            onClick={() => void submitComplimentaryBulkGrant()}
+            className="mt-4 rounded-lg bg-violet-800 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+          >
+            {compBulkBusy ? "일괄 발급 중…" : "단체 일괄 발급 (QR 알림톡)"}
+          </button>
+        </div>
       </section>
       </div>
 

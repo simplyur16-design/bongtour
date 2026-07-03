@@ -104,6 +104,163 @@ export type AdminGrantComplimentaryEsimResult =
       message: string;
     };
 
+/** REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 관리자 무상 eSIM 단체 일괄 — 휴대폰 목록·1인1주문 SSOT — manifest */
+export const COMPLIMENTARY_ESIM_BULK_MAX_RECIPIENTS = 100;
+
+const BULK_PHONE_SPLIT_RE = /\r?\n|[,;\t]+/;
+
+/** 텍스트·배열에서 휴대폰 추출 — 중복 제거, 유효/무효 분리 */
+export function parseComplimentaryEsimBulkPhones(raw: string | string[]): {
+  phones: string[];
+  invalid: string[];
+} {
+  const chunks = Array.isArray(raw)
+    ? raw.flatMap((line) => String(line).split(BULK_PHONE_SPLIT_RE))
+    : raw.split(BULK_PHONE_SPLIT_RE);
+  const phones: string[] = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+  for (const chunk of chunks) {
+    const trimmed = chunk.trim();
+    if (!trimmed) continue;
+    if (!isValidBuyerPhoneInput(trimmed)) {
+      invalid.push(trimmed);
+      continue;
+    }
+    const normalized = normalizeBuyerPhone(trimmed)!;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    phones.push(trimmed);
+  }
+  return { phones, invalid };
+}
+
+export type AdminGrantComplimentaryEsimBulkResult =
+  | {
+      ok: true;
+      requested: number;
+      succeeded: number;
+      failed: number;
+      invalid_phones: string[];
+      results: Array<
+        | {
+            phone: string;
+            ok: true;
+            order_id: string;
+            order_number: string;
+            fulfillment_started: boolean;
+          }
+        | { phone: string; ok: false; reason: string; message: string }
+      >;
+    }
+  | {
+      ok: false;
+      reason:
+        | "db_unconfigured"
+        | "validation"
+        | "product_not_found"
+        | "product_not_esim_capable"
+        | "db_error";
+      message: string;
+      invalid_phones?: string[];
+    };
+
+export async function adminGrantComplimentaryEsimBulk(input: {
+  option_api_id: string;
+  reason_category: string;
+  reason_memo: string;
+  admin_id: string;
+  phones: string | string[];
+}): Promise<AdminGrantComplimentaryEsimBulkResult> {
+  const option_api_id = input.option_api_id.trim();
+  const reason_memo = input.reason_memo.trim();
+  const reason_category = parseComplimentaryEsimReasonCategory(input.reason_category);
+  const { phones, invalid } = parseComplimentaryEsimBulkPhones(input.phones);
+
+  if (!option_api_id) {
+    return { ok: false, reason: "validation", message: "상품을 선택해 주세요.", invalid_phones: invalid };
+  }
+  if (!reason_category) {
+    return { ok: false, reason: "validation", message: "무상 발급 사유 유형을 선택해 주세요.", invalid_phones: invalid };
+  }
+  if (!reason_memo || reason_memo.length < 2) {
+    return { ok: false, reason: "validation", message: "무상 발급 사유 메모를 입력해 주세요.", invalid_phones: invalid };
+  }
+  if (phones.length === 0) {
+    return {
+      ok: false,
+      reason: "validation",
+      message: invalid.length > 0 ? "유효한 휴대폰 번호가 없습니다." : "휴대폰 번호를 1건 이상 입력해 주세요.",
+      invalid_phones: invalid,
+    };
+  }
+  if (phones.length > COMPLIMENTARY_ESIM_BULK_MAX_RECIPIENTS) {
+    return {
+      ok: false,
+      reason: "validation",
+      message: `한 번에 최대 ${COMPLIMENTARY_ESIM_BULK_MAX_RECIPIENTS}명까지 발급할 수 있습니다.`,
+      invalid_phones: invalid,
+    };
+  }
+
+  const results: Array<
+    | {
+        phone: string;
+        ok: true;
+        order_id: string;
+        order_number: string;
+        fulfillment_started: boolean;
+      }
+    | { phone: string; ok: false; reason: string; message: string }
+  > = [];
+  let succeeded = 0;
+  let failed = 0;
+
+  for (let i = 0; i < phones.length; i++) {
+    const phone = phones[i]!;
+    const result = await adminGrantComplimentaryEsim({
+      option_api_id,
+      quantity: 1,
+      buyer_phone: phone,
+      reason_category,
+      reason_memo,
+      admin_id: input.admin_id,
+      skip_outbox_drain: i < phones.length - 1,
+    });
+    if (!result.ok) {
+      if (
+        i === 0 &&
+        (result.reason === "db_unconfigured" ||
+          result.reason === "product_not_found" ||
+          result.reason === "product_not_esim_capable" ||
+          result.reason === "db_error")
+      ) {
+        return { ok: false, reason: result.reason, message: result.message, invalid_phones: invalid };
+      }
+      failed += 1;
+      results.push({ phone, ok: false, reason: result.reason, message: result.message });
+      continue;
+    }
+    succeeded += 1;
+    results.push({
+      phone,
+      ok: true,
+      order_id: result.order.order_id,
+      order_number: result.order.order_number,
+      fulfillment_started: result.fulfillment_started,
+    });
+  }
+
+  return {
+    ok: true,
+    requested: phones.length,
+    succeeded,
+    failed,
+    invalid_phones: invalid,
+    results,
+  };
+}
+
 export async function adminGrantComplimentaryEsim(input: {
   option_api_id: string;
   quantity: number;
@@ -112,6 +269,7 @@ export async function adminGrantComplimentaryEsim(input: {
   reason_category: string;
   reason_memo: string;
   admin_id: string;
+  skip_outbox_drain?: boolean;
 }): Promise<AdminGrantComplimentaryEsimResult> {
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured", message: "DB 미연결" };
@@ -268,7 +426,7 @@ export async function adminGrantComplimentaryEsim(input: {
   }
 
   let fulfillment_started = false;
-  if (orderId) {
+  if (orderId && !input.skip_outbox_drain) {
     try {
       await drainOrderPaidOutboxBestEffort(16);
       fulfillment_started = true;

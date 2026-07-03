@@ -3,11 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import {
+  COMPLIMENTARY_ESIM_BULK_MAX_RECIPIENTS,
   COMPLIMENTARY_ESIM_CHECKOUT_CHANNEL,
   COMPLIMENTARY_ESIM_PAYMENT_PROVIDER,
   COMPLIMENTARY_ESIM_REASON_CATEGORIES,
   COMPLIMENTARY_ESIM_REASON_LABELS,
   isComplimentaryEsimOrder,
+  parseComplimentaryEsimBulkPhones,
   parseComplimentaryEsimConsents,
   parseComplimentaryEsimReasonCategory,
 } from "@/lib/bongsim/admin/complimentary-esim-order";
@@ -77,5 +79,24 @@ describe("complimentary-esim-order", () => {
   it("checkout channel and payment provider constants", () => {
     expect(COMPLIMENTARY_ESIM_CHECKOUT_CHANNEL).toBe("admin_complimentary_esim");
     expect(COMPLIMENTARY_ESIM_PAYMENT_PROVIDER).toBe("complimentary");
+  });
+
+  it("parseComplimentaryEsimBulkPhones splits lines and dedupes", () => {
+    const text = "010-1111-2222\n01033334444, 010-1111-2222\n01055556666\nbad\n";
+    expect(parseComplimentaryEsimBulkPhones(text)).toEqual({
+      phones: ["010-1111-2222", "01033334444", "01055556666"],
+      invalid: ["bad"],
+    });
+  });
+
+  it("parseComplimentaryEsimBulkPhones accepts string array", () => {
+    expect(parseComplimentaryEsimBulkPhones(["01012345678", "01087654321"])).toEqual({
+      phones: ["01012345678", "01087654321"],
+      invalid: [],
+    });
+  });
+
+  it("bulk max recipients cap is fixed", () => {
+    expect(COMPLIMENTARY_ESIM_BULK_MAX_RECIPIENTS).toBe(100);
   });
 });

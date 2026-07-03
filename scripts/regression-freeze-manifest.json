@@ -661,6 +661,27 @@
       ]
     },
     {
+      "id": "bongsim-complimentary-esim-bulk",
+      "tier": ["prebuild", "ci"],
+      "summary": "관리자 무상 eSIM 단체 일괄 — 휴대폰 목록 파싱·1인1주문·bulk API",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/complimentary-esim-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]",
+            "adminGrantComplimentaryEsimBulk",
+            "parseComplimentaryEsimBulkPhones"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/complimentary-esim/bulk/route.ts",
+          "mustInclude": [
+            "adminGrantComplimentaryEsimBulk"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-discount-report-complimentary",
       "tier": ["prebuild", "ci"],
       "summary": "할인 리포트 — 쿠폰 + 무상 eSIM UNION·after.supply_krw 원가 SSOT",
@@ -6180,6 +6201,12 @@
       "id": "bongsim-complimentary-esim-grant",
       "tier": ["prebuild", "ci"],
       "summary": "관리자 무상 eSIM — consents·사유 파싱·checkout channel",
+      "files": ["lib/bongsim/admin/complimentary-esim-order.test.ts"]
+    },
+    {
+      "id": "bongsim-complimentary-esim-bulk",
+      "tier": ["prebuild", "ci"],
+      "summary": "관리자 무상 eSIM 단체 — 휴대폰 파싱·중복 제거·상한",
       "files": ["lib/bongsim/admin/complimentary-esim-order.test.ts"]
     },
     {
