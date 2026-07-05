@@ -11,6 +11,7 @@ import MobileStickyBar from './components/MobileStickyBar'
 import AdminQuickActionsMount from '@/components/admin/AdminQuickActionsMount'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
+import { auth } from '@/auth'
 
 const siteOrigin = getSiteOrigin()
 
@@ -77,11 +78,13 @@ const hubOutfit = Outfit({
   preload: false,
 })
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+
   return (
     <html
       lang="ko"
@@ -93,7 +96,7 @@ export default function RootLayout({
         <ChunkLoadRecovery />
         <AntiCopyProtectionGate />
         <GoogleTagManager />
-        <SessionProvider>
+        <SessionProvider session={session}>
           <UtmCaptureProvider>
             <div className="flex-1 flex flex-col">{children}</div>
             <ConditionalSiteFooter />

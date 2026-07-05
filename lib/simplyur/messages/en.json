@@ -1,0 +1,441 @@
+{
+  "meta": {
+    "title": "simplyur | Korea eSIM",
+    "description": "simplyur — eSIM for South Korea. Instant QR by email. A Bong Tour brand."
+  },
+  "brand": {
+    "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
+  },
+  "nav": {
+    "home": "Home",
+    "findPlan": "Find my eSIM",
+    "guide": "Install guide",
+    "devices": "Compatible devices",
+    "support": "Support",
+    "signIn": "Sign in",
+    "myEsim": "My eSIM",
+    "signOut": "Sign out"
+  },
+  "tabs": {
+    "home": "Home",
+    "store": "Store",
+    "guide": "Guide",
+    "myEsim": "My eSIM"
+  },
+  "hero": {
+    "eyebrow": "simplyur",
+    "headline": "Global Connectivity, Simplified",
+    "titleLine1": "Stay connected in",
+    "titleHighlight": "South Korea",
+    "subtitle": "Travel data made simple — QR delivered by email right after purchase.",
+    "cta": "Find my eSIM",
+    "deviceLink": "Check compatible devices →",
+    "guideLink": "View install guide →"
+  },
+  "home": {
+    "popularPlans": "Popular Korea plans",
+    "viewAllPlans": "View all plans",
+    "koreaBadge": "South Korea eSIM"
+  },
+  "countries": {
+    "title": "South Korea eSIM",
+    "subtitle": "Seoul, Busan, Jeju — nationwide data plans for your trip.",
+    "kr": { "name": "South Korea", "subtitle": "Seoul, Busan & nationwide" }
+  },
+  "why": {
+    "title": "Why travelers choose simplyur",
+    "items": {
+      "instant": { "title": "Instant delivery", "body": "Receive your QR code by email within minutes of payment." },
+      "support": { "title": "24/7 customer care", "body": "Get help before and during your trip via email." },
+      "refund": { "title": "Refund guarantee", "body": "Unused eSIMs can be refunded according to our policy." }
+    }
+  },
+  "reviews": {
+    "title": "What travelers say",
+    "items": [
+      { "text": "Setup took one minute at Incheon Airport. Google Maps worked great!", "author": "Maria · Korea 4 days" },
+      { "text": "Much easier than buying a SIM at the airport. QR by email was instant.", "author": "James · Seoul 7 days" },
+      { "text": "Used unlimited data in Busan and Jeju — no issues at all.", "author": "Lin · Korea 10 days" }
+    ]
+  },
+  "recommend": {
+    "title": "Korea eSIM plans",
+    "koreaOnly": "All plans are for South Korea — Seoul, Busan, Jeju, and nationwide.",
+    "loading": "Loading plans…",
+    "noPlans": "No plans available right now.",
+    "fromPrice": "From",
+    "days": "days",
+    "data": "Data",
+    "duration": "Duration",
+    "roaming": "Roaming network",
+    "local": "Local Korean network",
+    "selectPlan": "Select",
+    "checkoutSoon": "Checkout opening soon",
+    "price": "Price"
+  },
+  "product": {
+    "buyNow": "Buy now",
+    "checkoutSoon": "Checkout opening soon",
+    "checkoutSoonHint": "You can browse Korea plans and read the install guide now. Online payment and Google sign-in for My eSIM are being enabled on the server.",
+    "details": "Plan details",
+    "network": "Network",
+    "planType": "Plan type",
+    "option": "Option",
+    "notFound": "This plan is not available.",
+    "backToPlans": "Back to plans"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "email": "Email",
+    "emailHint": "Your QR code will be sent here",
+    "phone": "Phone (optional)",
+    "phoneHint": "Include country code if outside Korea",
+    "terms": "I agree to the purchase terms",
+    "submit": "Continue to payment",
+    "summary": "Order summary",
+    "quantity": "Quantity",
+    "total": "Total",
+    "processing": "Processing…",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "completeTitle": "Thank you!",
+    "completeBody": "Payment received. Your Korea eSIM QR code will arrive by email within a few minutes.",
+    "orderNumber": "Order number",
+    "viewPlans": "Browse more plans"
+  },
+  "guide": {
+    "title": "How to install your eSIM",
+    "intro": "This guide matches the simplyur website and app flow. You can browse Korea plans today; after checkout and payment go live, your QR arrives by email (and in My eSIM when signed in).",
+    "flowPhaseNote": "Live now: plan catalog, prices, install guide. Coming soon on this site: online payment at checkout and Google sign-in for My eSIM (server setup in progress).",
+    "tabs": {
+      "precheck": "Before you start",
+      "iphone": "iPhone",
+      "android": "Android"
+    },
+    "stepsTitle": "Installation steps",
+    "faqTitle": "FAQ — Korea eSIM",
+    "regionalFaqTitle": "Regional notices (future multi-country plans)",
+    "regionalFaqNote": "simplyur Phase 1 is Korea-only. The policy below is kept for when we add multi-region plans — it does not apply to current South Korea eSIM products.",
+    "supportHint": "Questions? Email bongtour24@naver.com (KST 09:00–18:00).",
+    "quickSteps": [
+      "Confirm your phone supports eSIM and is carrier-unlocked.",
+      "Connect to stable Wi‑Fi before installing.",
+      "Open the QR code from your simplyur email (or My eSIM after sign-in).",
+      "Add the eSIM in Settings — scan the QR or enter the manual code.",
+      "When you arrive in Korea, turn on the simplyur line and set it as your mobile data."
+    ],
+    "precheckBlocks": [
+      {
+        "heading": "1. Check device compatibility",
+        "paras": [
+          "Your phone must support eSIM and be unlocked (or eligible for eSIM add-on). See Compatible devices in the menu."
+        ],
+        "bullets": [
+          "iPhone XS and newer (including iPhone 14/15/16 series)",
+          "Samsung Galaxy S20+, Google Pixel 3+, and other eSIM-capable Android models"
+        ]
+      },
+      {
+        "heading": "2. Use a stable network",
+        "paras": [
+          "Install on trusted Wi‑Fi (hotel, airport lounge, home). Unsecured public Wi‑Fi may cause installation to fail."
+        ],
+        "note": "If installation fails, restart your phone and try again on a different network."
+      },
+      {
+        "heading": "3. When to install",
+        "paras": [
+          "Most Korea plans can be installed before you fly. Your usage period typically starts when the eSIM first connects to a network in Korea — check your order email for details."
+        ]
+      }
+    ],
+    "precheckFaq": [
+      {
+        "q": "Can I install before flying to Korea?",
+        "a": "Yes for most Korea plans. Install before departure so data works as soon as you land at Incheon or any Korean airport."
+      },
+      {
+        "q": "Does my phone need to be unlocked?",
+        "a": "Yes. Carrier-locked phones cannot add a travel eSIM. Check with your home carrier or try adding any eSIM in Settings to confirm."
+      }
+    ],
+    "iphoneSteps": [
+      {
+        "title": "Receive your eSIM",
+        "blocks": [
+          {
+            "bullets": [
+              "Choose a Korea plan on simplyur → open Checkout.",
+              "Enter your email (required — your QR is sent here) and optional phone with country code. Agree to terms and pay.",
+              "After payment is confirmed and your eSIM is issued, open the email sent to that address (QR image, SM-DP+ address, activation code).",
+              "Optional: Sign in with Google using the same email → My eSIM on the website or app to view QR and data usage."
+            ],
+            "note": "Keep the QR email until your trip ends. Do not share your activation code publicly."
+          }
+        ]
+      },
+      {
+        "title": "Install the eSIM",
+        "blocks": [
+          {
+            "bullets": [
+              "End any active phone call before installing.",
+              "Stay on Wi‑Fi or cellular data during setup."
+            ]
+          },
+          {
+            "heading": "Option A — Scan QR code",
+            "paras": [
+              "iPhone cannot scan a QR saved in your own Photos app. Display the QR on another screen (laptop, tablet, or a travel companion's phone) or print it."
+            ],
+            "bullets": [
+              "Open Settings → Cellular (or Mobile Data) → Add eSIM.",
+              "Tap Use QR Code and scan the code from your simplyur email.",
+              "Follow the on-screen prompts until installation completes."
+            ]
+          },
+          {
+            "heading": "Option B — Enter code manually",
+            "paras": [
+              "Use this if the camera cannot scan the QR."
+            ],
+            "bullets": [
+              "Open Settings → Cellular → Add eSIM → Enter Details Manually.",
+              "Enter the SM-DP+ Address and Activation Code from your simplyur email.",
+              "Confirm and wait for the line to download."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Activate in Korea",
+        "blocks": [
+          {
+            "bullets": [
+              "Open Settings → Cellular.",
+              "Select your new simplyur line and turn it ON.",
+              "Set simplyur as your Cellular Data line.",
+              "Enable Data Roaming if your plan requires it (see order email)."
+            ],
+            "note": "If data does not connect, toggle Airplane Mode off and on, or manually select a supported network operator."
+          },
+          {
+            "heading": "Label your plan (optional)",
+            "bullets": [
+              "Settings → Cellular → tap the new plan.",
+              "Tap Cellular Plan Label and choose Travel or a custom name such as Korea."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Remove after your trip",
+        "blocks": [
+          {
+            "note": "Only remove the eSIM after your trip is fully finished. If you have connection issues, contact simplyur support before deleting the profile.",
+            "bullets": [
+              "Settings → Cellular → select the travel eSIM.",
+              "Tap Remove Cellular Plan and confirm."
+            ]
+          }
+        ]
+      }
+    ],
+    "androidSteps": [
+      {
+        "title": "Receive your eSIM",
+        "blocks": [
+          {
+            "bullets": [
+              "Choose a plan → Checkout with your email (required) and optional phone.",
+              "After payment and issuance, open the QR email sent to that address.",
+              "Same email + Google sign-in → My eSIM for QR and usage (when sign-in is enabled)."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Install the eSIM",
+        "blocks": [
+          {
+            "bullets": [
+              "End any active call before installing.",
+              "Connect to Wi‑Fi or mobile data."
+            ]
+          },
+          {
+            "heading": "Option A — Scan QR code",
+            "bullets": [
+              "Open Settings → Connections (or Network & Internet).",
+              "Tap SIM manager or SIM card manager → Add eSIM.",
+              "Scan the QR code from your simplyur email and confirm."
+            ]
+          },
+          {
+            "heading": "Option B — Enter code manually",
+            "paras": [
+              "If scanning fails, choose Enter activation code and type the details from your simplyur email."
+            ]
+          },
+          {
+            "note": "Menu names vary by manufacturer (Samsung, Google Pixel, etc.). Look for SIM manager or Add eSIM."
+          }
+        ]
+      },
+      {
+        "title": "Activate in Korea",
+        "blocks": [
+          {
+            "bullets": [
+              "Open SIM manager and ensure the simplyur eSIM is enabled.",
+              "Set simplyur as the default line for Mobile data.",
+              "Turn on Data roaming if required by your plan."
+            ],
+            "note": "Toggle Airplane Mode or restart the device if the network does not appear within a few minutes."
+          }
+        ]
+      },
+      {
+        "title": "Remove after your trip",
+        "blocks": [
+          {
+            "bullets": [
+              "Settings → Connections → SIM manager.",
+              "Select the travel eSIM → Delete or Remove.",
+              "Confirm removal."
+            ],
+            "note": "Contact simplyur support before deleting if you still need help with connectivity."
+          }
+        ]
+      }
+    ],
+    "commonFaq": [
+      {
+        "q": "What works on simplyur today?",
+        "a": "You can browse South Korea eSIM plans (roaming and local-network options), see prices in your language, and read this install guide. The Buy / Checkout buttons show “opening soon” while online payment and sign-in are being enabled on the server."
+      },
+      {
+        "q": "How does purchase work on simplyur? (when checkout is live)",
+        "a": "1) Pick a plan on Find my eSIM. 2) Checkout — email is required (QR is sent here); phone is optional (include country code). 3) Agree to purchase terms. 4) Pay online. 5) After payment is confirmed and the eSIM is issued, you receive an email with QR and manual install codes. No account is required to buy."
+      },
+      {
+        "q": "Do I need to sign in to buy?",
+        "a": "No. Checkout is guest-based with your email. Sign-in is only for My eSIM (order list, QR, data usage)."
+      },
+      {
+        "q": "How does My eSIM and Google sign-in work?",
+        "a": "My eSIM shows simplyur orders linked to your signed-in Google account email. Use the same email you enter at checkout. Google sign-in appears when OAuth is configured on the server; Apple and email magic link are not available yet. Without sign-in, rely on the QR email."
+      },
+      {
+        "q": "When will I receive my QR code?",
+        "a": "After payment succeeds and fulfillment completes — usually within a few minutes. The email goes to your checkout address and includes QR (when available), SM-DP+ address, and activation code. My eSIM shows the same once order status is Delivered."
+      },
+      {
+        "q": "How are prices shown?",
+        "a": "Plan prices on simplyur use the catalog consumer price plus 10%, converted to your selected locale currency (en / ja / zh / zh-TW / vi)."
+      },
+      {
+        "q": "Can I use a coupon?",
+        "a": "No. Coupons are not supported on simplyur checkout."
+      },
+      {
+        "q": "When does my Korea plan start?",
+        "a": "For most plans, usage starts when the eSIM first connects to a mobile network in South Korea — not necessarily when you install. See your order confirmation email."
+      },
+      {
+        "q": "Can I install at Incheon Airport?",
+        "a": "Yes. Use airport Wi‑Fi, open your QR email, and add the eSIM in Settings. Many plans allow installation before you land."
+      },
+      {
+        "q": "Roaming network vs local Korean network?",
+        "a": "Both are Korea-only in Phase 1. Roaming plans often need Data Roaming ON. Local-network plans use a Korean carrier profile directly. Both cover Seoul, Busan, Jeju, and nationwide."
+      },
+      {
+        "q": "Do I need to turn on data roaming?",
+        "a": "Usually yes for roaming-network plans. Local-network plans may work with roaming OFF; if unstable, try enabling Data Roaming."
+      },
+      {
+        "q": "Can I keep my home SIM for calls and use simplyur for data?",
+        "a": "Yes on dual-SIM phones. Set simplyur as the mobile data line; keep your home SIM for voice/SMS if needed."
+      },
+      {
+        "q": "Can I transfer my eSIM to another phone?",
+        "a": "No. Once activated on a device, the profile cannot move to another phone. Purchase a new eSIM if you change devices."
+      },
+      {
+        "q": "Installation failed — what should I try?",
+        "a": "Restart the phone, use stable Wi‑Fi, end active calls, retry. On iPhone, scan the QR from another screen (not Photos). Email bongtour24@naver.com with your order number if it still fails."
+      },
+      {
+        "q": "Data not working in Korea?",
+        "a": "Turn the simplyur line ON, set it as mobile data, toggle Airplane Mode 30 seconds, enable Data Roaming if your plan needs it, or pick a network manually."
+      },
+      {
+        "q": "Will simplyur work outside Korea?",
+        "a": "Phase 1 products are for use in South Korea only."
+      },
+      {
+        "q": "Refund and support",
+        "a": "Unused eSIMs may be refundable per simplyur terms before activation/first use. Support: bongtour24@naver.com (English OK), KST 09:00–18:00 Mon–Fri. Include order number and phone model."
+      }
+    ],
+    "regionalFaq": [
+      {
+        "q": "China mainland activation — plans that include China data (05 code)",
+        "a": "Effective 17 June 2026, 00:00 (Beijing time): products that include China mainland data under the 05 code cannot be first activated inside mainland China. Complete activation outside mainland China before entry. Hong Kong, Macau, and Taiwan count as outside mainland China. Before entering mainland China: insert the eSIM within 72 hours of entry; perform first installation outside mainland China; power on and stay connected to a network for at least 3–5 minutes. Skipping these steps may prevent activation or data service after entry. This notice is for future multi-region plans — not current Korea-only simplyur products."
+      }
+    ]
+  },
+  "devices": {
+    "title": "Compatible devices",
+    "intro": "Most recent iPhone and Android flagship models support eSIM.",
+    "iphone": "iPhone XS and newer (including iPhone 14/15/16 series)",
+    "android": "Samsung Galaxy S20+, Google Pixel 3+, and other eSIM-capable models"
+  },
+  "footer": {
+    "brand": "simplyur",
+    "tagline": "A brand of Bong Tour Co., Ltd. Operated and sold by Bong Tour.",
+    "email": "Support: bongtour24@naver.com",
+    "phone": "Tel: +82-31-213-2558 (KST 09:00–18:00)"
+  },
+  "language": { "label": "Language" },
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Sign in to view your eSIM orders and data usage. No Naver or Kakao — Google, Apple, or email only.",
+    "google": "Continue with Google",
+    "googleNotConfigured": "Google sign-in is not configured on this server yet.",
+    "errorGeneric": "Sign-in failed. Please try again or use a different method.",
+    "errorTitle": "Sign-in problem",
+    "tryAgain": "Try again",
+    "comingSoon": "Sign in with Apple and email magic link — coming soon.",
+    "backHome": "← Back to home"
+  },
+  "myEsim": {
+    "title": "My eSIM",
+    "subtitle": "View your orders, QR codes, and data usage.",
+    "loading": "Loading…",
+    "loadError": "Could not load your orders.",
+    "usageError": "Could not load usage data. Please try again.",
+    "signInRequired": "Please sign in to view your eSIMs.",
+    "empty": "No eSIM orders yet.",
+    "orderDate": "Order date",
+    "orderNo": "Order no.",
+    "viewQr": "View QR code",
+    "viewUsage": "Data usage",
+    "qrTitle": "eSIM QR code",
+    "usageTitle": "Data usage",
+    "close": "Close",
+    "activationCode": "Activation code",
+    "used": "Used",
+    "unlimited": "Unlimited",
+    "noDailyUsage": "No daily usage data yet.",
+    "status": {
+      "ordered": "Ordered",
+      "paid": "Paid",
+      "delivered": "Delivered",
+      "active": "In use",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "refundPending": "Refund pending"
+    }
+  }
+}

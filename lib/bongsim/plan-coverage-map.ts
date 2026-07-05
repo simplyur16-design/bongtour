@@ -57,6 +57,7 @@ export const MULTI_COUNTRY_PLAN_COVERAGE: Record<string, string[]> = {
   "미국/캐나다/멕시코": ["us", "ca", "mx"],
   "괌/사이판": ["gu", "mp"],
   "중국/홍콩/마카오": ["cn", "hk", "mo"],
+  "스페인/포르투갈": ["es", "pt"],
 };
 
 const EXTRA_KO_NAME_TO_CODE: Record<string, string> = {

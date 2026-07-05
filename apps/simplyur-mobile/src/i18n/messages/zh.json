@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "title": "simplyur | 韩国 eSIM",
+    "description": "simplyur — 韩国 eSIM。即时 QR。Bong Tour 品牌。"
+  },
+  "brand": {
+    "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
+  },
+  "nav": {
+    "home": "首页",
+    "findPlan": "查找 eSIM",
+    "guide": "安装指南",
+    "devices": "兼容设备",
+    "support": "客服",
+    "signIn": "登录",
+    "myEsim": "我的 eSIM",
+    "signOut": "退出"
+  },
+  "tabs": {
+    "home": "首页",
+    "store": "商店",
+    "guide": "指南",
+    "myEsim": "我的 eSIM"
+  },
+  "hero": {
+    "eyebrow": "simplyur",
+    "headline": "全球连接，化繁为简",
+    "titleLine1": "在",
+    "titleHighlight": "韩国",
+    "subtitle": "付款后邮件即时发送 QR 码。",
+    "cta": "查找 eSIM",
+    "deviceLink": "兼容设备 →",
+    "guideLink": "安装指南 →"
+  },
+  "home": {
+    "popularPlans": "热门韩国套餐",
+    "viewAllPlans": "查看全部套餐",
+    "koreaBadge": "韩国 eSIM"
+  },
+  "countries": {
+    "title": "韩国 eSIM",
+    "subtitle": "首尔、釜山、济州 — 全国流量套餐。",
+    "kr": { "name": "韩国", "subtitle": "首尔、釜山及全国" }
+  },
+  "why": {
+    "title": "为什么选择 simplyur",
+    "items": {
+      "instant": { "title": "即时发送", "body": "付款后数分钟内收到 QR。" },
+      "support": { "title": "24 小时客服", "body": "出行前后均可邮件咨询。" },
+      "refund": { "title": "退款保障", "body": "未使用 eSIM 可按政策退款。" }
+    }
+  },
+  "reviews": {
+    "title": "旅客评价",
+    "items": [
+      { "text": "仁川机场一分钟完成设置，Google 地图很顺畅！", "author": "Maria · 韩国 4 天" },
+      { "text": "比在机场买 SIM 方便多了。", "author": "James · 首尔 7 天" },
+      { "text": "釜山济州无限流量，毫无问题。", "author": "Lin · 韩国 10 天" }
+    ]
+  },
+  "recommend": {
+    "title": "韩国 eSIM 套餐",
+    "koreaOnly": "均为韩国套餐 — 首尔、釜山、济州及全国。",
+    "loading": "加载中…",
+    "noPlans": "暂无可用套餐。",
+    "fromPrice": "起",
+    "days": "天",
+    "data": "流量",
+    "duration": "时长",
+    "roaming": "漫游网络",
+    "local": "韩国本地网络",
+    "selectPlan": "选择",
+    "checkoutSoon": "支付即将开放",
+    "price": "价格"
+  },
+  "product": {
+    "buyNow": "立即购买",
+    "checkoutSoon": "支付即将开放",
+    "checkoutSoonHint": "在线支付正在准备中。您可以先浏览套餐并阅读安装指南。",
+    "details": "套餐详情",
+    "network": "网络",
+    "planType": "套餐类型",
+    "option": "选项",
+    "notFound": "该套餐不可用。",
+    "backToPlans": "返回套餐列表"
+  },
+  "checkout": {
+    "title": "结账",
+    "email": "邮箱",
+    "emailHint": "QR 码将发送至此邮箱",
+    "phone": "电话（选填）",
+    "phoneHint": "如在韩国以外请包含国家代码",
+    "terms": "我同意购买条款",
+    "submit": "继续支付",
+    "summary": "订单摘要",
+    "quantity": "数量",
+    "total": "合计",
+    "processing": "处理中…",
+    "errorGeneric": "出错了，请重试。",
+    "completeTitle": "谢谢！",
+    "completeBody": "支付已确认。韩国 eSIM QR 码将在几分钟内发送到您的邮箱。",
+    "orderNumber": "订单号",
+    "viewPlans": "浏览更多套餐"
+  },
+  "guide": {
+    "title": "安装 eSIM",
+    "steps": [
+      "确认手机支持 eSIM 且已解锁。",
+      "设置 → 蜂窝网络 → 添加 eSIM。",
+      "扫描购买后发送的 QR 码。",
+      "启用新线路，必要时打开数据漫游。",
+      "抵达韩国后将 eSIM 设为移动数据线路。"
+    ]
+  },
+  "devices": {
+    "title": "兼容设备",
+    "intro": "大多数近年 iPhone 和 Android 旗舰支持 eSIM。",
+    "iphone": "iPhone XS 及更新机型",
+    "android": "Galaxy S20+、Pixel 3+ 等"
+  },
+  "footer": {
+    "brand": "simplyur",
+    "tagline": "Bong Tour Co., Ltd. 旗下品牌，由 Bong Tour 运营销售。",
+    "email": "bongtour24@naver.com",
+    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+  },
+  "language": { "label": "语言" },
+  "auth": {
+    "title": "登录",
+    "subtitle": "登录后可查看 eSIM 订单与流量使用情况。仅支持 Google、Apple 或邮箱（无 Naver/Kakao）。",
+    "google": "使用 Google 继续",
+    "googleNotConfigured": "此服务器尚未配置 Google 登录。",
+    "errorGeneric": "登录失败，请重试或使用其他方式。",
+    "comingSoon": "Apple 登录与邮箱魔法链接即将推出。",
+    "backHome": "← 返回首页"
+  },
+  "myEsim": {
+    "title": "我的 eSIM",
+    "subtitle": "查看订单、QR 码和流量使用情况。",
+    "loading": "加载中…",
+    "loadError": "无法加载订单。",
+    "usageError": "无法加载用量数据，请稍后重试。",
+    "signInRequired": "请登录后查看 eSIM。",
+    "empty": "暂无 eSIM 订单。",
+    "orderDate": "下单日期",
+    "orderNo": "订单号",
+    "viewQr": "查看 QR 码",
+    "viewUsage": "流量使用",
+    "qrTitle": "eSIM QR 码",
+    "usageTitle": "流量使用",
+    "close": "关闭",
+    "activationCode": "激活码",
+    "used": "已用",
+    "unlimited": "无限",
+    "noDailyUsage": "暂无每日流量数据。",
+    "status": {
+      "ordered": "已下单",
+      "paid": "已付款",
+      "delivered": "已发送",
+      "active": "使用中",
+      "failed": "失败",
+      "cancelled": "已取消",
+      "refundPending": "退款处理中"
+    }
+  }
+}

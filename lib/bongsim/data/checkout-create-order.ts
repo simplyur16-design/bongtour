@@ -25,6 +25,13 @@ import {
   type BongsimFulfillmentMode,
 } from "@/lib/bongsim/catalog/sim-fulfillment";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
+import { isSimplyurCheckoutChannel } from "@/lib/simplyur/checkout/channel";
+import {
+  isValidSimplyurBuyerPhoneInput,
+  normalizeSimplyurBuyerPhone,
+} from "@/lib/simplyur/checkout/buyer-phone";
+import { isKoreaSingleCountryProduct } from "@/lib/simplyur/catalog/korea-product-filter";
+import { selectSimplyurChargedUnitPriceKrw } from "@/lib/simplyur/data/pricing-select-charged";
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 import {
@@ -499,6 +506,7 @@ function orderLinesMatchRequest(
 async function prepareCheckoutLines(
   client: PoolClient,
   lines: BongsimCheckoutConfirmLineV1[],
+  checkoutChannel?: string,
 ): Promise<
   | { ok: true; prepared: PreparedCheckoutLine[] }
   | { ok: false; reason: "product_not_found" | "validation"; details?: Record<string, string> }
@@ -511,11 +519,19 @@ async function prepareCheckoutLines(
   const byId = new Map<string, BongsimProductOptionDbRow>();
   for (const row of pr.rows) byId.set(row.option_api_id, row);
 
+  const simplyur = isSimplyurCheckoutChannel(checkoutChannel);
   const prepared: PreparedCheckoutLine[] = [];
   for (const line of lines) {
     const row = byId.get(line.option_api_id);
     if (!row) return { ok: false, reason: "product_not_found" };
     const opt = mapDbRowToProductOptionV1(row);
+    if (simplyur && !isKoreaSingleCountryProduct(opt)) {
+      return {
+        ok: false,
+        reason: "validation",
+        details: { product: "simplyur_korea_only" },
+      };
+    }
     const fulfillmentMode = "esim" as const;
     if (!isEsimCapableSimKind(opt.sim_kind)) {
       return {
@@ -527,7 +543,16 @@ async function prepareCheckoutLines(
         },
       };
     }
-    const { basis_key, unit_krw } = selectChargedUnitPriceKrw(opt.price_block);
+    const { basis_key, unit_krw } = simplyur
+      ? selectSimplyurChargedUnitPriceKrw(opt.price_block)
+      : selectChargedUnitPriceKrw(opt.price_block);
+    if (simplyur && unit_krw <= 0) {
+      return {
+        ok: false,
+        reason: "validation",
+        details: { product: "simplyur_price_unavailable" },
+      };
+    }
     const line_total = unit_krw * line.quantity;
     prepared.push({
       option_api_id: line.option_api_id,
@@ -563,9 +588,14 @@ function validateRequest(
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer_email)) {
     details.buyer_email = "invalid_email";
   }
-  if (!buyer_phone_raw) {
+  const simplyurCheckout = isSimplyurCheckoutChannel(
+    typeof o.checkout_channel === "string" ? o.checkout_channel : undefined,
+  );
+  if (!buyer_phone_raw && !simplyurCheckout) {
     details.buyer_phone = "required";
-  } else if (!isValidBuyerPhoneInput(buyer_phone_raw)) {
+  } else if (buyer_phone_raw && simplyurCheckout && !isValidSimplyurBuyerPhoneInput(buyer_phone_raw)) {
+    details.buyer_phone = "invalid_phone";
+  } else if (buyer_phone_raw && !simplyurCheckout && !isValidBuyerPhoneInput(buyer_phone_raw)) {
     details.buyer_phone = "invalid_phone";
   }
   if (!idempotency_key) details.idempotency_key = "required";
@@ -582,7 +612,10 @@ function validateRequest(
   const hasCouponDisc = Number.isInteger(coupon_discount_krw) && coupon_discount_krw > 0;
   const hasPublicCoupon = Boolean(coupon_id_raw) && hasCouponDisc;
   const hasUserCoupon = Boolean(user_coupon_id_raw) && hasCouponDisc;
-  if (hasPublicCoupon && hasUserCoupon) {
+  if (simplyurCheckout && (coupon_id_raw || user_coupon_id_raw || hasCouponDisc)) {
+    details.coupon = "not_available_for_simplyur";
+  }
+  if (!simplyurCheckout && hasPublicCoupon && hasUserCoupon) {
     details.coupon = "coupon_and_user_coupon_mutually_exclusive";
   }
   if (coupon_id_raw && !hasCouponDisc) {
@@ -618,7 +651,9 @@ function validateRequest(
     option_api_id: first.option_api_id,
     quantity: first.quantity,
     buyer_email: normEmail(buyer_email),
-    buyer_phone: normalizeBuyerPhone(buyer_phone_raw)!,
+    buyer_phone: simplyurCheckout
+      ? (normalizeSimplyurBuyerPhone(buyer_phone_raw) ?? "")
+      : normalizeBuyerPhone(buyer_phone_raw)!,
     buyer_locale,
     idempotency_key,
     checkout_channel: typeof o.checkout_channel === "string" ? o.checkout_channel : undefined,
@@ -684,7 +719,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       return { ok: true, order: full, reused: true };
     }
 
-    const linePrep = await prepareCheckoutLines(client, req.lines);
+    const linePrep = await prepareCheckoutLines(client, req.lines, req.checkout_channel);
     if (!linePrep.ok) {
       await client.query("ROLLBACK");
       if (linePrep.reason === "product_not_found") return { ok: false, reason: "product_not_found" };
@@ -695,8 +730,9 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
 
     let discount_krw = 0;
     let pressDiscountApplied = false;
+    const isSimplyur = isSimplyurCheckoutChannel(req.checkout_channel);
     const bongtourUserId = req.bongtour_user_id?.trim() ?? "";
-    if (bongtourUserId) {
+    if (!isSimplyur && bongtourUserId) {
       const pressVerified = await loadUserPressVerified(client, bongtourUserId);
       const pressCouponReject = pressMemberCouponRejection(
         pressVerified,
@@ -713,7 +749,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       }
     }
 
-    if (!pressDiscountApplied) {
+    if (!isSimplyur && !pressDiscountApplied) {
       if (req.coupon_id && req.user_coupon_id) {
         await client.query("ROLLBACK");
         return { ok: false, reason: "validation", details: { coupon: "at_most_one_coupon_per_order" } };
@@ -745,7 +781,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     }
 
     let june2026PromoApplied = false;
-    if (!pressDiscountApplied && discount_krw === 0 && isJune2026PromoActive()) {
+    if (!isSimplyur && !pressDiscountApplied && discount_krw === 0 && isJune2026PromoActive()) {
       const alreadyUsed = await buyerAlreadyUsedJune2026FirstPurchaseDiscount(client, {
         bongtourUserId: bongtourUserId || null,
         buyerEmail: req.buyer_email,
@@ -802,7 +838,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         orderNumber,
         req.checkout_channel ?? "web",
         req.buyer_email,
-        req.buyer_phone,
+        req.buyer_phone.trim() ? req.buyer_phone : null,
         req.buyer_locale ?? null,
         req.idempotency_key,
         JSON.stringify(consentsJson),

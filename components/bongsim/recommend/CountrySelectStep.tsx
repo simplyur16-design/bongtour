@@ -1,162 +1,130 @@
 "use client";
 
-import SafeImage from "@/app/components/SafeImage";
-import { COUNTRY_PICKER_GRID_CLASS, CountryPickerGrid } from "@/components/bongsim/CountryPickerGrid";
-import { CountryNameMultiline } from "@/lib/bongsim/country-name-display";
+import { useState } from "react";
+import { CountrySelectTabs, type CountrySelectTab } from "@/components/bongsim/recommend/CountrySelectTabs";
+import { BongsimRecommendAppShell } from "@/components/bongsim/recommend/BongsimRecommendAppShell";
+import { UsimsaCountryPickerGrid } from "@/components/bongsim/recommend/UsimsaCountryPickerGrid";
+import type { UsimsaPickerItem } from "@/lib/bongsim/recommend/usimsa-picker-item";
+import {
+  USIMSA_MULTI_COLLAPSED_COUNT,
+  USIMSA_MULTI_TRIP_ENTRY_BOX_CLASS,
+  USIMSA_MULTI_TRIP_ENTRY_SUBTITLE_CLASS,
+  USIMSA_MULTI_TRIP_ENTRY_TITLE_CLASS,
+} from "@/lib/bongsim/recommend/usimsa-country-picker-tokens";
+import { regionPackShowsCoverageOnSelect } from "@/lib/bongsim/recommend/region-pack-coverage-display";
+import { RegionPackCoverageDialog } from "@/components/bongsim/recommend/RegionPackCoverageDialog";
 import type { CountryOption } from "@/lib/bongsim/types";
-import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
-import { bongsimFlagIsoForDestination } from "@/lib/bongsim/recommend/popular-destinations";
 
 export type CountrySelectStepProps = {
-  selectedCodes: string[];
-  onToggleCountry: (code: string) => void;
-  onRemoveChip: (code: string) => void;
-  onNext: () => void;
+  /** 단일 국가·다국가 패키지 — 클릭 즉시 2단계 */
+  onPickCountry: (code: string) => void;
+  /** 여러 단일국가 조합 (별도 화면) */
+  onEnterMultiTrip: () => void;
   searchQuery: string;
   onSearchQueryChange: (q: string) => void;
   standaloneCountries: CountryOption[] | null;
   countriesLoadError: string | null;
   onRetryLoadCountries: () => void;
   popularCountries: CountryOption[];
+  allMultiCountryPacks: UsimsaPickerItem[];
   filteredCountries: CountryOption[];
-  resolveCountry: (code: string) => CountryOption | undefined;
 };
 
+/**
+ * usimsa Step1 — 인기국가 | 다국가, 1개 클릭 → 2단계.
+ * 여러 단일국가 조합은 하단 링크 → 별도 화면.
+ */
 export function CountrySelectStep({
-  selectedCodes,
-  onToggleCountry,
-  onRemoveChip,
-  onNext,
+  onPickCountry,
+  onEnterMultiTrip,
   searchQuery,
   onSearchQueryChange,
   standaloneCountries,
   countriesLoadError,
   onRetryLoadCountries,
   popularCountries,
+  allMultiCountryPacks,
   filteredCountries,
-  resolveCountry,
 }: CountrySelectStepProps) {
-  const hasSelection = selectedCodes.length > 0;
+  const [activeTab, setActiveTab] = useState<CountrySelectTab>("popular");
+  const [showAllSingle, setShowAllSingle] = useState(false);
+  const [showAllMulti, setShowAllMulti] = useState(false);
+  const [coverageSheet, setCoverageSheet] = useState<{
+    code: string;
+    title: string;
+    planName: string;
+  } | null>(null);
+
+  const isSearching = searchQuery.trim().length > 0;
+
+  const handleTabChange = (tab: CountrySelectTab) => {
+    setActiveTab(tab);
+    setShowAllSingle(false);
+    setShowAllMulti(false);
+    setCoverageSheet(null);
+    onSearchQueryChange("");
+  };
+
+  const handleMultiPackClick = (code: string) => {
+    const pack = allMultiCountryPacks.find((p) => p.code === code);
+    const label = pack?.displayNameKr ?? pack?.nameKr ?? code;
+    if (pack && regionPackShowsCoverageOnSelect(label)) {
+      setCoverageSheet({
+        code,
+        title: label,
+        planName: pack.displayNameKr ?? label,
+      });
+      return;
+    }
+    onPickCountry(code);
+  };
+
+  const popularGridItems: CountryOption[] = (() => {
+    if (isSearching) return filteredCountries;
+    if (showAllSingle) return filteredCountries;
+    return popularCountries;
+  })();
+
+  const showPopularSeeMore =
+    activeTab === "popular" &&
+    !isSearching &&
+    !showAllSingle &&
+    filteredCountries.length > popularCountries.length;
+
+  const multiVisible = showAllMulti
+    ? allMultiCountryPacks
+    : allMultiCountryPacks.slice(0, USIMSA_MULTI_COLLAPSED_COUNT);
+  const showMultiSeeMore =
+    !showAllMulti && allMultiCountryPacks.length > USIMSA_MULTI_COLLAPSED_COUNT;
 
   return (
-    <>
-      <div className={hasSelection ? "pb-28 sm:pb-32" : undefined}>
-        <div className="mb-8">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-teal-700">추천 eSIM</p>
-          <h1 className="mt-2 text-[1.4rem] font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl">
-            여행할 국가를 모두 선택해주세요
+    <BongsimRecommendAppShell singleCountry className="pb-8">
+      <div className="pb-6">
+        <div className="px-4 pt-5">
+          <h1 className="text-[20px] font-bold leading-[30px] tracking-[-1px] text-[#111]">
+            어디로 떠나시나요?
           </h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
-            선택한 국가에 맞는 가장 합리적인 상품 조합을 찾아드려요.
-          </p>
         </div>
 
-        {hasSelection ? (
-          <div className="mb-6 flex flex-wrap items-center gap-2">
-            <span className="text-[13px] font-bold text-slate-700">선택한 국가:</span>
-            {selectedCodes.map((code) => {
-              const country = resolveCountry(code);
-              if (!country) return null;
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => onRemoveChip(code)}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-teal-500 px-3 py-1.5 text-[13px] font-bold text-white ring-2 ring-teal-700 transition hover:bg-teal-600"
-                >
-                  <span>{country.nameKr}</span>
-                  <svg
-                    className="h-3.5 w-3.5 text-white/80 transition group-hover:text-white"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 9l3.5-3.5 1 1L11 10l3.5 3.5-1 1L10 11l-3.5 3.5-1-1L9 10 5.5 6.5l1-1L10 9z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+        <div className="mt-4">
+          <CountrySelectTabs active={activeTab} onChange={handleTabChange} />
+        </div>
 
-        <section className="mb-8 border-b border-slate-200 pb-8">
-          <h2 className="mb-3 text-[15px] font-bold text-slate-800">🔥 인기 여행지</h2>
-          <div className="px-2">
-            {standaloneCountries === null ? (
-              <p className="text-center text-[13px] text-slate-500">인기 여행지를 불러오는 중…</p>
-            ) : popularCountries.length === 0 ? (
-              <p className="text-center text-[13px] text-slate-500">
-                인기 여행지 중 단독 플랜이 있는 국가가 없습니다.
-              </p>
-            ) : (
-              <div className={COUNTRY_PICKER_GRID_CLASS}>
-                {popularCountries.map((country) => {
-                  const isSelected = selectedCodes.includes(country.code);
-                  const flagIso = bongsimFlagIsoForDestination(country.code);
-                  return (
-                    <button
-                      key={country.code}
-                      type="button"
-                      onClick={() => onToggleCountry(country.code)}
-                      className="flex w-full min-w-0 flex-col items-center px-1 py-2"
-                    >
-                      <div
-                        className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-full transition hover:scale-105 ${
-                          isSelected ? "shadow-lg ring-2 ring-blue-400" : "shadow-lg ring-1 ring-gray-200"
-                        }`}
-                      >
-                        <SafeImage
-                          src={resolveBongsimFlagImageUrlOrFallback(flagIso)}
-                          alt=""
-                          width={48}
-                          height={48}
-                          quality={90}
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          className="h-full w-full object-cover"
-                          sizes="48px"
-                        />
-                      </div>
-                      <CountryNameMultiline
-                        nameKr={country.nameKr}
-                        className={`mt-1 w-full min-w-0 px-0.5 text-xs ${
-                          isSelected ? "font-bold text-blue-500" : "font-medium text-gray-700"
-                        }`}
-                      />
-                      {country.subtitleKr ? (
-                        <span
-                          className={`mt-0.5 w-full px-0.5 text-center text-[10px] leading-tight ${
-                            isSelected ? "font-semibold text-blue-500" : "font-medium text-slate-500"
-                          }`}
-                        >
-                          {country.subtitleKr}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <div className="mb-6">
-          <div className="relative">
+        {activeTab === "popular" ? (
+          <div className="relative mx-4 mt-4">
             <input
-              type="text"
+              type="search"
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
-              placeholder="국가를 검색하세요 (예: 일본, 베트남)"
-              className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 pl-11 text-[14px] text-slate-900 placeholder-slate-400 transition focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+              placeholder="어디로 떠나시나요?"
+              className="h-12 w-full rounded-lg border border-[#e5e5ec] bg-[#f7f7f7] py-0 pl-10 pr-10 text-[15px] tracking-[-0.75px] text-[#111] placeholder:text-[#999] focus:border-[#0176f9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0176f9]/30"
             />
             <svg
-              className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#999]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden
             >
               <path
                 strokeLinecap="round"
@@ -169,7 +137,8 @@ export function CountrySelectStep({
               <button
                 type="button"
                 onClick={() => onSearchQueryChange("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999]"
+                aria-label="검색어 지우기"
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -181,61 +150,79 @@ export function CountrySelectStep({
               </button>
             ) : null}
           </div>
-          {searchQuery && standaloneCountries ? (
-            <p className="mt-2 text-[12px] text-slate-600">
-              <span className="font-semibold">{filteredCountries.length}개</span> 국가 검색됨
-            </p>
-          ) : null}
-        </div>
+        ) : null}
 
-        <section>
-          <h2 className="mb-4 text-[15px] font-bold text-slate-800">{searchQuery ? "검색 결과" : "전체 국가"}</h2>
-          {countriesLoadError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center">
-              <p className="text-[14px] text-red-800">{countriesLoadError}</p>
-              <button
-                type="button"
-                onClick={() => void onRetryLoadCountries()}
-                className="mt-3 text-sm font-semibold text-red-900 underline"
-              >
-                다시 시도
-              </button>
-            </div>
-          ) : standaloneCountries === null ? (
-            <div className="py-12 text-center">
-              <p className="text-[14px] text-slate-500">단독 플랜이 있는 국가 목록을 불러오는 중…</p>
-            </div>
-          ) : filteredCountries.length > 0 ? (
-            <CountryPickerGrid
-              countries={filteredCountries}
-              selectedCodes={selectedCodes}
-              onSelect={onToggleCountry}
-              mobileCollapseInitialCount={20}
-            />
-          ) : (
-            <div className="py-12 text-center">
-              <p className="text-[14px] text-slate-500">검색 결과가 없습니다.</p>
-            </div>
-          )}
-        </section>
-      </div>
-
-      {hasSelection ? (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white px-4 pt-3 shadow-lg pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto w-full max-w-3xl">
-            <p className="mb-2 text-center text-sm font-medium text-slate-600">
-              {selectedCodes.length}개국 선택됨
-            </p>
+        {standaloneCountries === null && activeTab === "popular" ? (
+          <p className="py-16 text-center text-[14px] text-[#767676]">국가 목록을 불러오는 중…</p>
+        ) : countriesLoadError && activeTab === "popular" ? (
+          <div className="mx-4 mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center">
+            <p className="text-[14px] text-red-800">{countriesLoadError}</p>
             <button
               type="button"
-              onClick={onNext}
-              className="w-full rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 py-3 text-lg font-semibold text-white shadow-md transition hover:from-teal-600 hover:to-cyan-600 active:scale-[0.99]"
+              onClick={() => void onRetryLoadCountries()}
+              className="mt-3 text-sm font-semibold text-red-900 underline"
             >
-              다음: 상품 확인
+              다시 시도
             </button>
           </div>
+        ) : activeTab === "popular" ? (
+          <div className="mt-4 pb-2">
+            {popularGridItems.length === 0 ? (
+              <p className="py-12 text-center text-[14px] text-[#767676]">
+                {isSearching ? "검색 결과가 없습니다." : "판매 중인 인기국가가 없습니다."}
+              </p>
+            ) : (
+              <UsimsaCountryPickerGrid
+                items={popularGridItems}
+                selectedCodes={[]}
+                onSelect={onPickCountry}
+                showSeeMore={showPopularSeeMore}
+                onSeeMore={() => setShowAllSingle(true)}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="mt-4 pb-2">
+            {allMultiCountryPacks.length === 0 ? (
+              <p className="py-12 text-center text-[14px] text-[#767676]">다국가 상품이 없습니다.</p>
+            ) : (
+              <UsimsaCountryPickerGrid
+                items={multiVisible}
+                selectedCodes={[]}
+                onSelect={handleMultiPackClick}
+                showSeeMore={showMultiSeeMore}
+                onSeeMore={() => setShowAllMulti(true)}
+              />
+            )}
+          </div>
+        )}
+
+        <div className="mx-4 mt-6">
+          <button
+            type="button"
+            onClick={onEnterMultiTrip}
+            className={`w-full ${USIMSA_MULTI_TRIP_ENTRY_BOX_CLASS}`}
+          >
+            <span className={USIMSA_MULTI_TRIP_ENTRY_TITLE_CLASS}>여러 나라를 방문하시나요?</span>
+            <span className={USIMSA_MULTI_TRIP_ENTRY_SUBTITLE_CLASS}>
+              나라별 eSIM을 조합해 구매 (2개국 이상)
+            </span>
+          </button>
         </div>
+      </div>
+
+      {coverageSheet ? (
+        <RegionPackCoverageDialog
+          title={coverageSheet.title}
+          regionCode={coverageSheet.code}
+          planName={coverageSheet.planName}
+          onClose={() => setCoverageSheet(null)}
+          onConfirm={() => {
+            onPickCountry(coverageSheet.code);
+            setCoverageSheet(null);
+          }}
+        />
       ) : null}
-    </>
+    </BongsimRecommendAppShell>
   );
 }

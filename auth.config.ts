@@ -29,6 +29,7 @@ if (!isProduction && resolvedAuthSecret === '__bongtour_dev_auth_secret_change_f
 export default {
   trustHost: true,
   secret: resolvedAuthSecret,
+  debug: process.env.NODE_ENV === 'development' || process.env.AUTH_DEBUG === '1',
   providers: [],
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: {

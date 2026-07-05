@@ -6,6 +6,8 @@ export type CountryOption = {
   /** Second line under name (e.g. "42개국") */
   subtitleKr?: string;
   isUnlimited?: boolean;
+  /** flags.kyc 분포 — none=인증 무관, mixed=일부 SKU, required=전 SKU 인증 */
+  travelerVerification?: "none" | "mixed" | "required";
   isRegion?: boolean;
 };
 

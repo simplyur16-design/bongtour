@@ -11,18 +11,37 @@ import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
+import { googleOAuthProvider } from '@/lib/auth/google-oauth-provider'
 
 function authSessionCookieDomain(): string | undefined {
   try {
-    return resolveOAuthStateCookieDomain(new URL(getSiteOrigin()).hostname)
+    const hostname = new URL(getSiteOrigin()).hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')) {
+      return undefined
+    }
+    return resolveOAuthStateCookieDomain(hostname)
   } catch {
     return undefined
   }
 }
 
+function authSessionCookieSecure(): boolean {
+  try {
+    const hostname = new URL(getSiteOrigin()).hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local')) {
+      return false
+    }
+    return getSiteOrigin().startsWith('https://')
+  } catch {
+    return false
+  }
+}
+
 const sessionCookieDomain = authSessionCookieDomain()
-const sessionCookieSecure = getSiteOrigin().startsWith('https://')
+const sessionCookieSecure = authSessionCookieSecure()
 const sessionCookiePrefix = sessionCookieSecure ? '__Secure-' : ''
+
+const googleProvider = googleOAuthProvider()
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -63,12 +82,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return { id: user.id, email: user.email, name: user.name, image: user.image }
       },
     }),
+    ...(googleProvider ? [googleProvider] : []),
     ...authConfig.providers,
   ],
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ user, account }) {
-      if (!user?.id) return true
+      const isOAuth = Boolean(account && account.provider !== 'credentials')
+
+      /** Google 등 OAuth — DB user 생성 전엔 profile id만 있을 수 있음 */
+      if (!user?.id || isOAuth) {
+        if (isOAuth && user?.email) {
+          const row = await prisma.user.findUnique({
+            where: { email: user.email },
+            select: { id: true, accountStatus: true, signupMethod: true },
+          })
+          if (row) {
+            if (row.accountStatus === 'suspended' || row.accountStatus === 'withdrawn') {
+              return false
+            }
+            await prisma.user.update({
+              where: { id: row.id },
+              data: {
+                lastLoginAt: new Date(),
+                socialProvider: account!.provider,
+                socialProviderUserId: account!.providerAccountId,
+                ...(row.signupMethod?.trim() ? {} : { signupMethod: account!.provider }),
+              },
+            })
+          }
+        }
+        return true
+      }
+
       await ensureUserBootstrapRole(user.id, user.email ?? null)
       const row = await prisma.user.findUnique({
         where: { id: user.id },
@@ -78,20 +124,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (row.accountStatus === 'suspended' || row.accountStatus === 'withdrawn') {
         return false
       }
-      const oauth = account && account.provider !== 'credentials'
       const data: {
         lastLoginAt: Date
         socialProvider?: string
         socialProviderUserId?: string
         signupMethod?: string
       } = { lastLoginAt: new Date() }
-      if (oauth && account) {
-        data.socialProvider = account.provider
-        data.socialProviderUserId = account.providerAccountId
-        if (!row.signupMethod?.trim()) {
-          data.signupMethod = account.provider
-        }
-      }
       await prisma.user.update({ where: { id: user.id }, data })
       return true
     },
@@ -136,25 +174,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      const pending = await prisma.user.findUnique({
-        where: { id: user.id! },
-        select: { accountStatus: true },
-      })
-      if (pending?.accountStatus === 'consent_pending') return
+      try {
+        const pending = await prisma.user.findUnique({
+          where: { id: user.id! },
+          select: { accountStatus: true },
+        })
+        if (!pending) return
+        if (pending.accountStatus === 'consent_pending') return
 
-      const role = bootstrapRoleForNewUserEmail(user.email ?? null)
-      const patch: { role?: string } = {}
-      if (role) patch.role = role
-      if (Object.keys(patch).length > 0) {
-        await prisma.user.update({ where: { id: user.id! }, data: patch })
-      }
-      void runNewUserCouponBootstrap(user.id!).then((r) => {
-        if (!r.welcomeIssued && r.reason !== 'ok') {
-          console.warn('[auth:createUser] coupon_bootstrap', r.reason)
+        const role = bootstrapRoleForNewUserEmail(user.email ?? null)
+        const patch: { role?: string } = {}
+        if (role) patch.role = role
+        if (Object.keys(patch).length > 0) {
+          await prisma.user.update({ where: { id: user.id! }, data: patch })
         }
-      }).catch((e) => {
-        console.warn('[auth:createUser] coupon_bootstrap', e)
-      })
+        void runNewUserCouponBootstrap(user.id!)
+          .then((r) => {
+            if (!r.welcomeIssued && r.reason !== 'ok') {
+              console.warn('[auth:createUser] coupon_bootstrap', r.reason)
+            }
+          })
+          .catch((e) => {
+            console.warn('[auth:createUser] coupon_bootstrap', e)
+          })
+      } catch (e) {
+        console.error('[auth:createUser]', e)
+      }
     },
   },
 })

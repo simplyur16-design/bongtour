@@ -321,6 +321,29 @@ a:not([class]):hover {
   }
 }
 
+/* 다국가 eSIM 타일 — 원형 국기 캐러셀 (유럽·글로벌 제외) */
+@keyframes region-pack-flag-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.bt-region-flag-marquee-track {
+  width: max-content;
+  will-change: transform;
+  animation: region-pack-flag-marquee var(--bt-region-flag-marquee-dur, 8s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bt-region-flag-marquee-track {
+    animation: none;
+    display: none;
+  }
+}
+
 /* `/products/[id]` — ProductDetailCopyGuard: 공급사 본문 복사 완화(전역 미적용) */
 .product-detail-copy-guard {
   user-select: none;

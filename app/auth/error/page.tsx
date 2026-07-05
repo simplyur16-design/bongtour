@@ -13,7 +13,8 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   },
   Configuration: {
     title: '설정 오류',
-    description: '로그인 설정에 문제가 있습니다. 잠시 후 다시 시도해 주세요.',
+    description:
+      'OAuth 설정·쿠키·redirect URI 문제입니다. 로컬: NEXTAUTH_URL=http://localhost:3001, Google Console redirect=http://localhost:3001/api/auth/callback/google, 시크릿 창으로 재시도.',
   },
   Verification: {
     title: '이메일 인증 필요',
@@ -55,6 +56,12 @@ export default async function AuthErrorPage({ searchParams }: Props) {
             className="border border-bt-cta-primary bg-bt-cta-primary px-4 py-2 text-sm font-medium text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover"
           >
             다시 로그인
+          </Link>
+          <Link
+            href="/simplyur/en/sign-in"
+            className="border border-bt-cta-secondary-border bg-bt-cta-secondary px-4 py-2 text-sm font-medium text-bt-cta-secondary-text hover:bg-bt-surface-soft"
+          >
+            simplyur 로그인
           </Link>
           <Link
             href="/"

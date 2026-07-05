@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { CircleHelp, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { KycBadgeState } from "@/lib/bongsim/esim/kyc-required";
 import { EsimVerificationGuideModal } from "@/components/bongsim/esim/EsimVerificationGuideModal";
+import { bongsimPath } from "@/lib/bongsim/constants";
 
 type Props = {
   state: KycBadgeState;
@@ -39,14 +41,22 @@ export function TravelerVerificationProductBadge({
             여행자 인증 필요
           </span>
           {showHelpIcon ? (
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              className="inline-flex shrink-0 items-center justify-center rounded-full text-amber-700 transition hover:bg-amber-100 hover:text-amber-900"
-              aria-label="여행자 인증 안내"
-            >
-              <CircleHelp className={helpIconClass} aria-hidden />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setGuideOpen(true)}
+                className="inline-flex shrink-0 items-center justify-center rounded-full text-amber-700 transition hover:bg-amber-100 hover:text-amber-900"
+                aria-label="여행자 인증 안내"
+              >
+                <CircleHelp className={helpIconClass} aria-hidden />
+              </button>
+              <Link
+                href={bongsimPath("/benefits/traveler-verification")}
+                className="text-[10px] font-semibold text-amber-800 underline underline-offset-2"
+              >
+                더보기
+              </Link>
+            </>
           ) : null}
         </span>
         {showHelpIcon ? (

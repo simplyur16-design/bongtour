@@ -24,6 +24,7 @@ export default function ConditionalSiteFooter() {
   }, [pathname])
 
   if (pathname?.startsWith('/admin')) return null
+  if (pathname?.startsWith('/simplyur')) return null
   if (detailLoading) return null
   return <SiteFooter />
 }

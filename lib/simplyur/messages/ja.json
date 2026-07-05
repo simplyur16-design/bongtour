@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "title": "simplyur | 韓国 eSIM",
+    "description": "simplyur — 韓国向けeSIM。QR即時配信。Bong Tourブランド。"
+  },
+  "brand": {
+    "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
+  },
+  "nav": {
+    "home": "ホーム",
+    "findPlan": "eSIMを探す",
+    "guide": "インストール",
+    "devices": "対応端末",
+    "support": "サポート",
+    "signIn": "ログイン",
+    "myEsim": "マイeSIM",
+    "signOut": "ログアウト"
+  },
+  "tabs": {
+    "home": "ホーム",
+    "store": "ストア",
+    "guide": "ガイド",
+    "myEsim": "マイeSIM"
+  },
+  "hero": {
+    "eyebrow": "simplyur",
+    "headline": "グローバル接続を、シンプルに",
+    "titleLine1": "韓国で",
+    "titleHighlight": "つながる",
+    "subtitle": "購入後すぐメールでQRコードをお届け。",
+    "cta": "eSIMを探す",
+    "deviceLink": "対応端末 →",
+    "guideLink": "インストールガイド →"
+  },
+  "home": {
+    "popularPlans": "人気の韓国プラン",
+    "viewAllPlans": "すべてのプランを見る",
+    "koreaBadge": "韓国 eSIM"
+  },
+  "countries": {
+    "title": "韓国 eSIM",
+    "subtitle": "ソウル、釜山、済州 — 全国対応プラン。",
+    "kr": { "name": "韓国", "subtitle": "ソウル、釜山ほか全国" }
+  },
+  "why": {
+    "title": "simplyurが選ばれる理由",
+    "items": {
+      "instant": { "title": "即時配信", "body": "お支払い後、数分以内にQRをメール送信。" },
+      "support": { "title": "24時間サポート", "body": "旅行前後もメールでサポート。" },
+      "refund": { "title": "返金保証", "body": "未使用eSIMはポリシーに基づき返金可能。" }
+    }
+  },
+  "reviews": {
+    "title": "旅行者の声",
+    "items": [
+      { "text": "仁川空港で1分で設定。Googleマップも快適！", "author": "Maria · 韓国4日" },
+      { "text": "空港でSIMを買うよりずっと簡単。", "author": "James · ソウル7日" },
+      { "text": "釜山・済州で無制限データ — 問題なし。", "author": "Lin · 韓国10日" }
+    ]
+  },
+  "recommend": {
+    "title": "韓国 eSIMプラン",
+    "koreaOnly": "すべて韓国向け — ソウル、釜山、済州、全国対応。",
+    "loading": "読み込み中…",
+    "noPlans": "現在プランがありません。",
+    "fromPrice": "最低",
+    "days": "日",
+    "data": "データ",
+    "duration": "期間",
+    "roaming": "ローミング回線",
+    "local": "韓国現地回線",
+    "selectPlan": "選択",
+    "checkoutSoon": "決済は近日公開",
+    "price": "料金"
+  },
+  "product": {
+    "buyNow": "購入する",
+    "checkoutSoon": "決済は近日公開",
+    "checkoutSoonHint": "オンライン決済を準備中です。プラン閲覧とインストールガイドをご利用ください。",
+    "details": "プラン詳細",
+    "network": "ネットワーク",
+    "planType": "プラン種別",
+    "option": "オプション",
+    "notFound": "このプランは利用できません。",
+    "backToPlans": "プラン一覧へ"
+  },
+  "checkout": {
+    "title": "チェックアウト",
+    "email": "メール",
+    "emailHint": "QRコードの送信先",
+    "phone": "電話（任意）",
+    "phoneHint": "韓国外の場合は国番号を含めてください",
+    "terms": "購入条件に同意します",
+    "submit": "支払いへ進む",
+    "summary": "注文内容",
+    "quantity": "数量",
+    "total": "合計",
+    "processing": "処理中…",
+    "errorGeneric": "エラーが発生しました。もう一度お試しください。",
+    "completeTitle": "ありがとうございます！",
+    "completeBody": "お支払いを確認しました。数分以内にQRコードをメールでお送りします。",
+    "orderNumber": "注文番号",
+    "viewPlans": "他のプランを見る"
+  },
+  "guide": {
+    "title": "eSIMのインストール",
+    "steps": [
+      "端末がeSIM対応かつSIMロック解除されていることを確認。",
+      "設定 → モバイル通信 → eSIMを追加。",
+      "購入後のQRコードをスキャン。",
+      "新しい回線を有効化し、必要に応じてデータローミングをON。",
+      "韓国到着後、eSIMをモバイルデータ回線に設定。"
+    ]
+  },
+  "devices": {
+    "title": "対応端末",
+    "intro": "最近のiPhone・Androidフラッグシップの多くがeSIM対応。",
+    "iphone": "iPhone XS以降",
+    "android": "Galaxy S20+、Pixel 3+ など"
+  },
+  "footer": {
+    "brand": "simplyur",
+    "tagline": "Bong Tour Co., Ltd.のブランド。Bong Tourが運営・販売。",
+    "email": "bongtour24@naver.com",
+    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+  },
+  "language": { "label": "言語" },
+  "auth": {
+    "title": "ログイン",
+    "subtitle": "eSIMの注文とデータ使用量を確認するにはログインしてください。Google・Apple・メールのみ（Naver/Kakaoなし）。",
+    "google": "Googleで続行",
+    "googleNotConfigured": "このサーバーではGoogleログインがまだ設定されていません。",
+    "errorGeneric": "ログインに失敗しました。もう一度お試しください。",
+    "comingSoon": "Appleログインとメールマジックリンクは近日公開予定です。",
+    "backHome": "← ホームに戻る"
+  },
+  "myEsim": {
+    "title": "マイeSIM",
+    "subtitle": "注文・QRコード・データ使用量を確認できます。",
+    "loading": "読み込み中…",
+    "loadError": "注文を読み込めませんでした。",
+    "usageError": "使用量を読み込めませんでした。しばらくしてから再度お試しください。",
+    "signInRequired": "eSIMを表示するにはログインしてください。",
+    "empty": "eSIMの注文はまだありません。",
+    "orderDate": "注文日",
+    "orderNo": "注文番号",
+    "viewQr": "QRコードを見る",
+    "viewUsage": "データ使用量",
+    "qrTitle": "eSIM QRコード",
+    "usageTitle": "データ使用量",
+    "close": "閉じる",
+    "activationCode": "アクティベーションコード",
+    "used": "使用済み",
+    "unlimited": "無制限",
+    "noDailyUsage": "日別データはまだありません。",
+    "status": {
+      "ordered": "注文完了",
+      "paid": "支払い完了",
+      "delivered": "発送完了",
+      "active": "使用中",
+      "failed": "失敗",
+      "cancelled": "キャンセル",
+      "refundPending": "返金処理中"
+    }
+  }
+}

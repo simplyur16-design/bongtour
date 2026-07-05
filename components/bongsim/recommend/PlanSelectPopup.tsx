@@ -11,6 +11,9 @@ import {
   type Ref,
 } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { CountryPurchaseNoticeList } from "@/components/bongsim/recommend/CountryPurchaseNotice";
+import { DayUsageSummary } from "@/components/bongsim/recommend/DayUsageSummary";
+import { KycPlanSelectNotice } from "@/components/bongsim/recommend/KycPlanSelectNotice";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
 import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
@@ -21,7 +24,7 @@ import {
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
 import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
-import { esimHasFreeData } from "@/lib/bongsim/constants";
+import { EsimFreeDataBenefitLine } from "@/components/bongsim/recommend/EsimFreeDataBenefitLine";
 import { EsimVerificationGuideBox } from "@/components/bongsim/esim/EsimVerificationGuideBox";
 import {
   getKycLabelDistribution,
@@ -383,7 +386,6 @@ function PlanCard({
           ? `${fixedDays}일 이내 사용`
           : "—"
         : cardSpeedSubLine(product);
-    const hasFreeData = esimHasFreeData(product.network_family, product.plan_name);
 
     return (
       <div
@@ -428,9 +430,7 @@ function PlanCard({
           </div>
         </div>
 
-        {hasFreeData ? (
-          <div className="mt-[6px] text-[10px] text-[#6B7280]">구글맵·ChatGPT 데이터 무료</div>
-        ) : null}
+        <EsimFreeDataBenefitLine product={product} variant="plan" />
 
         {kycBadge != null ? (
           <div className="mt-[6px]">
@@ -490,9 +490,7 @@ function PlanCard({
             </div>
           </>
         )}
-        {esimHasFreeData(product.network_family, product.plan_name) ? (
-          <p className="mt-1 text-[11px] font-medium text-teal-700">구글맵·ChatGPT 데이터 무료</p>
-        ) : null}
+        <EsimFreeDataBenefitLine product={product} variant="plan" />
       </div>
       <div className="shrink-0 text-right">
         {packageTotal != null && Number.isFinite(packageTotal) ? (
@@ -796,9 +794,22 @@ export function PlanSelectPopup({
         <h2 className="mt-1 text-[1.05rem] font-bold leading-snug text-slate-900 lg:text-xl">
           {tripDaysFloored}일 동안 사용할 플랜을 골라주세요
         </h2>
+        <div className="mt-3">
+          <CountryPurchaseNoticeList countryCode={countryCode} compact />
+        </div>
+        <KycPlanSelectNotice distribution={kycDistribution} compact />
+        <DayUsageSummary
+          className="mt-3"
+          tripDays={tripDaysFloored}
+          product={selectedProduct}
+          priceKrw={unitKrw}
+        />
         {isRegionPackCode(countryCode) ? (
           <PlanCoverageCountriesPanel destinationCode={countryCode} className="mt-3" />
         ) : null}
+        <p className="mt-2 text-[11px] leading-relaxed text-[#767676]">
+          상품마다 활성화 정책·망(로밍/로컬)이 다릅니다. 선택한 카드의 조건을 확인해 주세요.
+        </p>
       </div>
 
       {showAuthToggle ? (
@@ -850,6 +861,10 @@ export function PlanSelectPopup({
             </button>
           </div>
           {authFilter === "required" ? <EsimVerificationGuideBox /> : null}
+        </div>
+      ) : kycDistribution === "required_only" ? (
+        <div className="border-b border-slate-100 px-5 pb-3 pt-3">
+          <KycPlanSelectNotice distribution={kycDistribution} />
         </div>
       ) : null}
 

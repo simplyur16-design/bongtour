@@ -13,6 +13,8 @@ type Props = {
   planName?: string;
   /** 클릭이 부모 카드/버튼으로 전파되지 않게 할 때 */
   stopPropagation?: boolean;
+  /** 바텀시트 등 — 처음부터 목록 펼침 */
+  defaultOpen?: boolean;
   className?: string;
 };
 
@@ -20,9 +22,10 @@ export function PlanCoverageCountriesPanel({
   destinationCode,
   planName,
   stopPropagation = false,
+  defaultOpen = false,
   className = "",
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const countries = useMemo(
     () => listCoverageCountries({ destinationCode, planName }),
     [destinationCode, planName],

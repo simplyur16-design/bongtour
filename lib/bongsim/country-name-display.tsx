@@ -22,8 +22,7 @@ export function getCountryDisplayText(nameKr: string): string {
   return COUNTRY_NAME_DISPLAY[t] ?? COUNTRY_NAME_DISPLAY[compactKey(t)] ?? t;
 }
 
-const NAME_LINE_CLASS =
-  "max-w-[4.5rem] text-center break-keep leading-tight";
+const NAME_LINE_CLASS = "w-full text-center break-keep";
 
 type CountryNameMultilineProps = {
   nameKr: string;
@@ -32,7 +31,7 @@ type CountryNameMultilineProps = {
 
 /**
  * 국가명: 매핑에 `\n`이 있으면 `<br />`로 분리, 없으면 한 줄.
- * 긴 이름은 `max-w-[4.5rem] break-keep`으로 두 줄 내외 정렬.
+ * 긴 이름은 `break-keep`으로 두 줄 내외 정렬.
  */
 export function CountryNameMultiline({ nameKr, className }: CountryNameMultilineProps) {
   const display = getCountryDisplayText(nameKr);

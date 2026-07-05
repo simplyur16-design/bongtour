@@ -118,6 +118,16 @@ else
 fi
 echo ""
 
+echo "[선택 — Google 로그인 (simplyur · NextAuth)]"
+gg=0
+[[ -n "$(val_of "$(merged_line AUTH_GOOGLE_ID)")" ]] && [[ -n "$(val_of "$(merged_line AUTH_GOOGLE_SECRET)")" ]] && gg=1
+if [[ "$gg" -eq 1 ]]; then
+  echo "  [OK] AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET"
+else
+  echo "  [미설정] simplyur Google — Railway Variables 에 둘 다 추가. Console redirect: {NEXTAUTH_URL}/api/auth/callback/google"
+fi
+echo ""
+
 echo "[참고 — 이메일 로그인]"
 echo "  env 불필요. DB User에 email·passwordHash·accountStatus=active 필요."
 echo ""

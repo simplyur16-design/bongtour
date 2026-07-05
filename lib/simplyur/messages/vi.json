@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "title": "simplyur | eSIM Hàn Quốc",
+    "description": "simplyur — eSIM Hàn Quốc. QR tức thì. Thương hiệu Bong Tour."
+  },
+  "brand": {
+    "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "findPlan": "Tìm eSIM",
+    "guide": "Hướng dẫn cài",
+    "devices": "Thiết bị",
+    "support": "Hỗ trợ",
+    "signIn": "Đăng nhập",
+    "myEsim": "eSIM của tôi",
+    "signOut": "Đăng xuất"
+  },
+  "tabs": {
+    "home": "Trang chủ",
+    "store": "Cửa hàng",
+    "guide": "Hướng dẫn",
+    "myEsim": "eSIM của tôi"
+  },
+  "hero": {
+    "eyebrow": "simplyur",
+    "headline": "Kết nối toàn cầu, đơn giản hóa",
+    "titleLine1": "Kết nối tại",
+    "titleHighlight": "Hàn Quốc",
+    "subtitle": "QR gửi qua email ngay sau thanh toán.",
+    "cta": "Tìm eSIM",
+    "deviceLink": "Thiết bị tương thích →",
+    "guideLink": "Hướng dẫn cài →"
+  },
+  "home": {
+    "popularPlans": "Gói Hàn Quốc phổ biến",
+    "viewAllPlans": "Xem tất cả",
+    "koreaBadge": "eSIM Hàn Quốc"
+  },
+  "countries": {
+    "title": "eSIM Hàn Quốc",
+    "subtitle": "Seoul, Busan, Jeju — gói data toàn quốc.",
+    "kr": { "name": "Hàn Quốc", "subtitle": "Seoul, Busan & toàn quốc" }
+  },
+  "why": {
+    "title": "Vì sao chọn simplyur",
+    "items": {
+      "instant": { "title": "Gửi ngay", "body": "Nhận QR qua email trong vài phút." },
+      "support": { "title": "Hỗ trợ 24/7", "body": "Email hỗ trợ trước và trong chuyến đi." },
+      "refund": { "title": "Hoàn tiền", "body": "eSIM chưa dùng có thể hoàn theo chính sách." }
+    }
+  },
+  "reviews": {
+    "title": "Đánh giá",
+    "items": [
+      { "text": "Cài trong 1 phút tại Incheon. Google Maps mượt!", "author": "Maria · Hàn 4 ngày" },
+      { "text": "Dễ hơn nhiều so với mua SIM tại sân bay.", "author": "James · Seoul 7 ngày" },
+      { "text": "Data không giới hạn ở Busan, Jeju.", "author": "Lin · Hàn 10 ngày" }
+    ]
+  },
+  "recommend": {
+    "title": "Gói eSIM Hàn Quốc",
+    "koreaOnly": "Tất cả gói dành cho Hàn Quốc — Seoul, Busan, Jeju và toàn quốc.",
+    "loading": "Đang tải…",
+    "noPlans": "Chưa có gói cước.",
+    "fromPrice": "Từ",
+    "days": "ngày",
+    "data": "Data",
+    "duration": "Thời hạn",
+    "roaming": "Mạng roaming",
+    "local": "Mạng Hàn Quốc",
+    "selectPlan": "Chọn",
+    "checkoutSoon": "Thanh toán sắp mở",
+    "price": "Giá"
+  },
+  "product": {
+    "buyNow": "Mua ngay",
+    "checkoutSoon": "Thanh toán sắp mở",
+    "checkoutSoonHint": "Thanh toán trực tuyến đang được chuẩn bị. Bạn có thể xem gói và hướng dẫn cài đặt.",
+    "details": "Chi tiết gói",
+    "network": "Mạng",
+    "planType": "Loại gói",
+    "option": "Tùy chọn",
+    "notFound": "Gói này không khả dụng.",
+    "backToPlans": "Quay lại danh sách"
+  },
+  "checkout": {
+    "title": "Thanh toán",
+    "email": "Email",
+    "emailHint": "Mã QR sẽ được gửi đến email này",
+    "phone": "Điện thoại (tùy chọn)",
+    "phoneHint": "Thêm mã quốc gia nếu ở ngoài Hàn Quốc",
+    "terms": "Tôi đồng ý với điều khoản mua hàng",
+    "submit": "Tiếp tục thanh toán",
+    "summary": "Tóm tắt đơn hàng",
+    "quantity": "Số lượng",
+    "total": "Tổng",
+    "processing": "Đang xử lý…",
+    "errorGeneric": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "completeTitle": "Cảm ơn!",
+    "completeBody": "Thanh toán đã xác nhận. Mã QR eSIM Hàn Quốc sẽ được gửi qua email trong vài phút.",
+    "orderNumber": "Mã đơn",
+    "viewPlans": "Xem thêm gói"
+  },
+  "guide": {
+    "title": "Cài eSIM",
+    "steps": [
+      "Điện thoại hỗ trợ eSIM và đã mở khóa mạng.",
+      "Cài đặt → Di động → Thêm eSIM.",
+      "Quét QR sau khi mua.",
+      "Bật đường truyền mới và chuyển vùng dữ liệu nếu cần.",
+      "Đặt eSIM làm đường truyền dữ liệu khi đến Hàn Quốc."
+    ]
+  },
+  "devices": {
+    "title": "Thiết bị tương thích",
+    "intro": "Hầu hết iPhone và Android cao cấp gần đây hỗ trợ eSIM.",
+    "iphone": "iPhone XS trở lên",
+    "android": "Galaxy S20+, Pixel 3+…"
+  },
+  "footer": {
+    "brand": "simplyur",
+    "tagline": "Thương hiệu của Bong Tour Co., Ltd. Vận hành bởi Bong Tour.",
+    "email": "bongtour24@naver.com",
+    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+  },
+  "language": { "label": "Ngôn ngữ" },
+  "auth": {
+    "title": "Đăng nhập",
+    "subtitle": "Đăng nhập để xem đơn eSIM và mức sử dụng dữ liệu. Chỉ Google, Apple hoặc email — không có Naver/Kakao.",
+    "google": "Tiếp tục với Google",
+    "googleNotConfigured": "Đăng nhập Google chưa được cấu hình trên máy chủ này.",
+    "errorGeneric": "Đăng nhập thất bại. Vui lòng thử lại.",
+    "comingSoon": "Đăng nhập Apple và liên kết email sẽ sớm ra mắt.",
+    "backHome": "← Về trang chủ"
+  },
+  "myEsim": {
+    "title": "eSIM của tôi",
+    "subtitle": "Xem đơn hàng, mã QR và mức sử dụng dữ liệu.",
+    "loading": "Đang tải…",
+    "loadError": "Không thể tải đơn hàng.",
+    "usageError": "Không thể tải dữ liệu sử dụng. Vui lòng thử lại.",
+    "signInRequired": "Vui lòng đăng nhập để xem eSIM.",
+    "empty": "Chưa có đơn eSIM.",
+    "orderDate": "Ngày đặt",
+    "orderNo": "Mã đơn",
+    "viewQr": "Xem mã QR",
+    "viewUsage": "Dữ liệu đã dùng",
+    "qrTitle": "Mã QR eSIM",
+    "usageTitle": "Dữ liệu đã dùng",
+    "close": "Đóng",
+    "activationCode": "Mã kích hoạt",
+    "used": "Đã dùng",
+    "unlimited": "Không giới hạn",
+    "noDailyUsage": "Chưa có dữ liệu theo ngày.",
+    "status": {
+      "ordered": "Đã đặt",
+      "paid": "Đã thanh toán",
+      "delivered": "Đã gửi",
+      "active": "Đang dùng",
+      "failed": "Thất bại",
+      "cancelled": "Đã hủy",
+      "refundPending": "Đang hoàn tiền"
+    }
+  }
+}

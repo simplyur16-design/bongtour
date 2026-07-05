@@ -26,3 +26,33 @@ export function planNameForRegionPackCode(code: string): string | undefined {
 export function isRegionPackCode(code: string): boolean {
   return code.trim().toLowerCase().startsWith("rg-");
 }
+
+/** usimsa 다국가 탭 노출 순 (스크린샷 교차검증) */
+export const USIMSA_MULTI_TAB_ORDER = [
+  "rg-eu-42",
+  "rg-eu-36",
+  "rg-eu-33",
+  "rg-eu-27",
+  "rg-es-pt",
+  "rg-us-ca",
+  "rg-na-3",
+  "rg-cn-hk-mo",
+  "rg-hk-mo",
+  "rg-sea-8",
+  "rg-sea-3",
+  "rg-as-13",
+  "rg-au-nz",
+  "rg-gu-mp",
+  "rg-global-151",
+  "rg-sa-11",
+  "rg-nafr-4",
+] as const;
+
+/** 그리드 한 줄 라벨 — DB plan_name 우선 */
+export function regionPackGridLabel(code: string, opt?: { nameKr: string; subtitleKr?: string }): string {
+  const plan = planNameForRegionPackCode(code);
+  if (plan) return plan;
+  if (opt?.subtitleKr?.includes("개국")) return `${opt.nameKr} ${opt.subtitleKr}`;
+  if (opt?.subtitleKr) return `${opt.nameKr}/${opt.subtitleKr}`;
+  return opt?.nameKr ?? code;
+}

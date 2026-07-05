@@ -15,7 +15,7 @@ import { injectVerygoodtourApiDeparturePricesIfMissing } from '@/lib/verygoodtou
 
 export async function handleParseAndRegisterVerygoodtourRequest(request: Request) {
   return runVerygoodtourRegisterFlow(request, {
-    forcedBrandKey: 'verygoodtour',
+      forcedBrandKey: 'verygoodtour',
     parseFn: parseForRegisterVerygoodtour,
     logPrefix: '[verygoodtour-register]',
     savePersistedParsedOnly: true,

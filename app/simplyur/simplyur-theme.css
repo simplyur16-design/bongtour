@@ -1,0 +1,136 @@
+/**
+ * simplyur theme — brand typography (simply gray + ur navy) + utilities.
+ * Scoped to `.simplyur-theme`.
+ */
+.simplyur-theme {
+  --su-brand-simply: #243656;
+  --su-brand-ur: #e8654f;
+  --su-brand-ur-hover: #d45642;
+  --su-brand-bg: #eceef2;
+  --su-brand-bg-soft: #f4f5f7;
+  --su-brand-border: #dde1e8;
+  --su-brand-nav: #6b7280;
+
+  /* legacy tokens — prices & accents */
+  --su-dan: #e8654f;
+  --su-dan-hover: #d45642;
+  --su-dan-muted: #fdeee9;
+
+  --su-celadon: #3d6b5e;
+  --su-celadon-light: #e6efec;
+  --su-celadon-dark: #2a4f45;
+  --su-celadon-muted: #d4e4de;
+
+  --su-hanji: var(--su-brand-bg-soft);
+  --su-hanji-warm: #eef0f4;
+  --su-hanji-border: var(--su-brand-border);
+
+  --su-ink: #0b1b44;
+  --su-ink-muted: #6b7280;
+
+  --su-taeguk-blue: #0b1b44;
+  --su-taeguk-blue-light: #e8ecf4;
+
+  --su-tab-h: 4.25rem;
+
+  font-family: var(--font-simplyur), "Outfit", system-ui, sans-serif;
+  background-color: var(--su-brand-bg);
+  color: var(--su-ink);
+}
+
+.su-wordmark {
+  letter-spacing: -0.02em;
+}
+
+.su-nav-link {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--su-brand-nav);
+  transition: color 0.15s ease;
+}
+
+.su-nav-link:hover,
+.su-nav-link[data-active="true"] {
+  color: var(--su-brand-ur);
+  font-weight: 700;
+}
+
+.su-btn-navy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--su-brand-ur);
+  color: #fff;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+
+/* White text only on UR-filled buttons — not on light page surfaces */
+
+.su-btn-navy:hover {
+  background-color: var(--su-brand-ur-hover);
+}
+
+.su-text-celadon {
+  color: var(--su-celadon);
+}
+
+.su-text-dan {
+  color: var(--su-brand-ur);
+}
+
+.su-text-ink {
+  color: var(--su-ink);
+}
+
+.su-bg-dan {
+  background-color: var(--su-brand-ur);
+  color: #fff;
+}
+
+.su-bg-dan:hover {
+  background-color: var(--su-brand-ur-hover);
+}
+
+.su-bg-celadon-light {
+  background-color: var(--su-celadon-light);
+}
+
+.su-border-hanji {
+  border-color: var(--su-hanji-border);
+}
+
+.su-card {
+  border-radius: 1rem;
+  border: 1px solid var(--su-brand-border);
+  background-color: #fff;
+  box-shadow: 0 4px 24px rgba(11, 27, 68, 0.06);
+}
+
+.su-panel {
+  border-radius: 1rem;
+  border: 1px solid var(--su-brand-border);
+  background-color: #fff;
+}
+
+.su-hero-surface {
+  background: linear-gradient(180deg, var(--su-brand-bg) 0%, var(--su-brand-bg-soft) 100%);
+}
+
+.su-hero-dark {
+  background: linear-gradient(165deg, #0b1b44 0%, #152a52 55%, #1e3a66 100%);
+}
+
+.su-app-shell {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--su-tab-h) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .su-app-shell {
+    padding-bottom: 0;
+  }
+}

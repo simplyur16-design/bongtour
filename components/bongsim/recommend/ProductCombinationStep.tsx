@@ -7,7 +7,10 @@ import { useSession } from "next-auth/react";
 import {
   ComparePlansPopup,
 } from "@/components/bongsim/recommend/ComparePlansPopup";
+import { BongsimRecommendAppShell } from "@/components/bongsim/recommend/BongsimRecommendAppShell";
+import { CountryPurchaseNoticeList } from "@/components/bongsim/recommend/CountryPurchaseNotice";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
+import { SingleCountryPurchasePanel } from "@/components/bongsim/recommend/SingleCountryPurchasePanel";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
@@ -17,7 +20,8 @@ import {
   bongsimFlagIsoForDestination,
   resolveBongsimCountryHeroUrl,
 } from "@/lib/bongsim/recommend/popular-destinations";
-import { bongsimPath, esimHasFreeData, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
+import { EsimFreeDataBenefitLine } from "@/components/bongsim/recommend/EsimFreeDataBenefitLine";
+import { bongsimPath, type BongsimRecommendCheckoutLine } from "@/lib/bongsim/constants";
 import {
   clearRecommendCheckoutDispatched,
   markRecommendCheckoutDispatched,
@@ -31,6 +35,8 @@ import {
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
+import { dateRangeFromTripDays } from "@/lib/bongsim/recommend/duration-from-days";
+import { collectTripDaysFromCountryPack } from "@/lib/bongsim/recommend/available-trip-days";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import {
@@ -504,6 +510,47 @@ export function ProductCombinationStep({
 
   const flowCode = flow?.code;
   const flowCountryName = flowCode ? (countryByCode[flowCode]?.nameKr ?? flowCode) : "";
+  const isSingleCountry = selectedCodes.length === 1;
+  const singleCode = isSingleCountry ? selectedCodes[0]! : null;
+
+  const applySingleTripDays = (days: number) => {
+    if (!singleCode) return;
+    setCheckoutPaused(false);
+    clearRecommendCheckoutDispatched();
+    setCompleted((prev) => {
+      const next = { ...prev };
+      delete next[singleCode];
+      return next;
+    });
+    setStoredDone((prev) => {
+      const next = { ...prev };
+      delete next[singleCode];
+      return next;
+    });
+    const { start, end, tripDays } = dateRangeFromTripDays(days);
+    setCountryDateRanges([{ code: singleCode, start, end }]);
+    setOpenPlanByCode({ [singleCode]: { tripDays, start, end } });
+  };
+
+  const resetSingleCountrySelection = () => {
+    if (!singleCode) return;
+    setCompleted((prev) => {
+      const next = { ...prev };
+      delete next[singleCode];
+      return next;
+    });
+    setStoredDone((prev) => {
+      const next = { ...prev };
+      delete next[singleCode];
+      return next;
+    });
+    setOpenPlanByCode((prev) => {
+      const next = { ...prev };
+      delete next[singleCode];
+      return next;
+    });
+    setCountryDateRanges((prev) => prev.filter((r) => r.code !== singleCode));
+  };
 
   const allDone =
     selectedCodes.length > 0 && selectedCodes.every((c) => isCountryDone(c));
@@ -612,6 +659,79 @@ export function ProductCombinationStep({
     );
   }
 
+  if (isSingleCountry && singleCode) {
+    const country = countryByCode[singleCode];
+    const pack = data.individual[singleCode];
+    const availableDays = pack ? collectTripDaysFromCountryPack(pack) : [];
+    const done = isCountryDone(singleCode);
+    const selection = completed[singleCode];
+    const stored = storedDone[singleCode];
+    const planCtx = openPlanByCode[singleCode] ?? null;
+    let summaryLine = stored?.summaryLine ?? "";
+    if (selection) {
+      const range = countryDateRanges.find((r) => r.code === singleCode);
+      const summaryParts: string[] = [];
+      summaryParts.push(formatPlanOptionLabel(selection.product));
+      summaryParts.push(networkFamilyLabelKr(selection.product.network_family));
+      if (range) summaryParts.push(formatShortRange(range.start, range.end));
+      summaryParts.push(`${allowanceLabelForSummary(selection.product)} ×${selection.quantity}`);
+      summaryLine = summaryParts.join(" · ");
+    }
+
+    return (
+      <BongsimRecommendAppShell singleCountry>
+        <div className={`bt-bongsim-readable ${done && checkoutQueue.length > 0 ? "pb-24 lg:pb-8" : "pb-8"} lg:pb-12`}>
+          <div className="border-b border-[#f0f0f6] px-4 py-3 lg:px-0">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex min-h-10 items-center text-[14px] font-semibold text-[#424242]"
+            >
+              ← 국가 선택
+            </button>
+          </div>
+
+          <SingleCountryPurchasePanel
+            code={singleCode}
+            country={country}
+            availableDays={availableDays}
+            planCtx={planCtx}
+            done={done}
+            summaryLine={summaryLine}
+            selection={selection ?? null}
+            onApplyTripDays={applySingleTripDays}
+            onBackFromPlan={() => {
+              setOpenPlanByCode((prev) => {
+                const next = { ...prev };
+                delete next[singleCode];
+                return next;
+              });
+            }}
+            onCompletePlan={(product, quantity, ctx) =>
+              completeCountryPlan(singleCode, product, quantity, ctx?.kycDistribution)
+            }
+            onChangeDays={resetSingleCountrySelection}
+          />
+
+          {done && checkoutQueue.length > 0 ? (
+            <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[500px] border-t border-[#f0f0f6] bg-white px-4 py-3 lg:static lg:mt-6 lg:max-w-none lg:border-0 lg:px-0">
+              <button
+                type="button"
+                onClick={() => goToCheckout()}
+                className="flex min-h-[52px] w-full items-center justify-center rounded-lg text-[16px] font-bold text-white"
+                style={{ backgroundColor: "#0176f9" }}
+              >
+                {checkoutTotalKrw != null
+                  ? `결제하기 · ${formatKrw(checkoutTotalKrw)}`
+                  : "결제하기"}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </BongsimRecommendAppShell>
+    );
+  }
+
   return (
     <div className="bt-bongsim-readable mx-auto w-full max-w-none pb-8 sm:px-4 lg:mx-auto lg:max-w-5xl lg:px-6 lg:pb-12">
       <div className="px-4 sm:px-0">
@@ -636,6 +756,11 @@ export function ProductCombinationStep({
         <h1 className="text-center text-xl font-bold text-gray-900 sm:text-2xl lg:text-[1.65rem]">
           {headerTitle} eSIM
         </h1>
+        {selectedCodes.length >= 2 ? (
+          <div className="mt-4 px-1">
+            <CountryPurchaseNoticeList countryCodes={selectedCodes} />
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6 space-y-4 sm:mt-8 lg:mt-10">
@@ -755,7 +880,8 @@ export function ProductCombinationStep({
                       </div>
                     ) : null}
                     <p className="border-t border-slate-100 px-4 py-3 text-center text-sm font-medium text-slate-600 sm:py-4 sm:text-base lg:mt-auto lg:border-t lg:px-6 lg:py-5 lg:text-lg">
-                      카드를 눌러 여행 기간을 선택하세요
+                      카드를 눌러 <span className="font-semibold text-[#0176f9]">달력에서 여행 기간</span>을
+                      선택하세요
                     </p>
                   </div>
                 ) : null}
@@ -797,11 +923,8 @@ export function ProductCombinationStep({
                             />
                           ) : null}
                         </div>
-                      {selection &&
-                      esimHasFreeData(selection.product.network_family, selection.product.plan_name) ? (
-                        <span className="mt-1.5 block text-xs font-bold text-teal-700 sm:text-sm">
-                          구글맵·ChatGPT 데이터 무료
-                        </span>
+                      {selection ? (
+                        <EsimFreeDataBenefitLine product={selection.product} variant="summary" />
                       ) : null}
                     </div>
                       </div>
