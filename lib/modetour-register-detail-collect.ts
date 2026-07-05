@@ -107,8 +107,8 @@ export async function ensureModetourRegisterScheduleImageKeywords(
   const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(schedule)
   const normalized = routeSanitized.map((row) => ({
     ...row,
-    imageKeyword: String(row.imageKeyword ?? '').trim(),
-    imageKeyword2: row.imageKeyword2 ?? null,
+    imageKeyword: '',
+    imageKeyword2: null,
   }))
   const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(normalized, {
     supplierKey: 'modetour',

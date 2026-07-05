@@ -46,7 +46,11 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   T extends RegisterScheduleImageKeywordApplyRow,
 >(rows: T[], opts: ApplyRegisterScheduleImageKeywordsOpts): T[] {
   if (!rows.length) return rows
-  const prepared = prepareRegisterScheduleRowsForImageKeywordApply(rows)
+  /** package — stale Gemini·공급사 키워드 무시, routeText 순서 SSOT만 (preview·서버 공통) */
+  const rowsForApply = isRegisterAirtelListing(opts.travelScope, opts.productType)
+    ? rows
+    : rows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null }))
+  const prepared = prepareRegisterScheduleRowsForImageKeywordApply(rowsForApply)
   /** imageKeyword SSOT — 키워드는 maxPlaces 자르기 전 원본 routeText 순서. 표시용 sanitize는 출력 직전만 */
   const routeTextRawByDay = new Map(prepared.map((row) => [Number(row.day), row.routeText ?? null]))
   const supplier =

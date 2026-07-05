@@ -57,4 +57,20 @@ describe('modetour miyakojima 101123669 live gate', () => {
     expect(String(byDay.get(4)?.imageKeyword ?? '')).not.toMatch(/Paris/i)
     expect(String(byDay.get(4)?.imageKeyword ?? '')).toMatch(/Miyakojima Tropical Fruit Garden|Yonaha|Toriike/i)
   })
+
+  it('stale Okinawa·Paris server keywords — routeText SSOT replaces', () => {
+    const stale = MIYAKO.map((row) => ({
+      ...row,
+      imageKeyword: row.day === 1 ? 'Okinawa' : row.day === 4 ? 'Paris' : '',
+    }))
+    const out = applyRegisterScheduleImageKeywordsForPreview(stale, {
+      supplierKey: 'modetour',
+      productDestination: '오키나와',
+    })
+    const byDay = new Map(out.map((r) => [r.day, r]))
+    expect(String(byDay.get(1)?.imageKeyword ?? '')).not.toMatch(/^Okinawa$/i)
+    expect(String(byDay.get(1)?.imageKeyword ?? '')).toMatch(/Yonaha|Irabu|Shigira|Toriike/i)
+    expect(String(byDay.get(2)?.imageKeyword ?? '')).toMatch(/Haejung|Higashi|Shell|Yuki/i)
+    expect(String(byDay.get(4)?.imageKeyword ?? '')).not.toMatch(/Paris/i)
+  })
 })

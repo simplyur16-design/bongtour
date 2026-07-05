@@ -15,6 +15,8 @@ import {
   type RegisterScheduleRouteTextKeywordRow,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type RegisterScheduleRouteSupplierFallbackOpts = {
   supplierKey: string | null | undefined
@@ -44,9 +46,21 @@ function toSupplierScheduleRows(
   }))
 }
 
+function acceptSupplierFallbackKeyword(
+  kw: string,
+  productDestination: string | null | undefined,
+): string {
+  const t = String(kw ?? '').trim()
+  if (!t) return ''
+  if (isRegisterScheduleCrossContinentHallucinationKeyword(t, productDestination)) return ''
+  if (isBareCityOrCountryKeyword(t)) return ''
+  return t
+}
+
 function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRouteTextKeywordRow>(
   routeRows: T[],
   supplierRows: T[],
+  productDestination: string | null | undefined,
 ): T[] {
   const supplierByDay = new Map(supplierRows.map((r) => [Number(r.day), r]))
   const maxDay = routeRows.reduce((m, r) => Math.max(m, Number(r.day)), 0)
@@ -56,8 +70,8 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
     const supplier = supplierByDay.get(day)
     const routeKw = String(row.imageKeyword ?? '').trim()
     const routeKw2 = String(row.imageKeyword2 ?? '').trim()
-    const supplierKw = String(supplier?.imageKeyword ?? '').trim()
-    const supplierKw2 = String(supplier?.imageKeyword2 ?? '').trim()
+    const supplierKw = acceptSupplierFallbackKeyword(String(supplier?.imageKeyword ?? ''), productDestination)
+    const supplierKw2 = acceptSupplierFallbackKeyword(String(supplier?.imageKeyword2 ?? ''), productDestination)
     const imageKeyword = routeKw || supplierKw
     const imageKeyword2 =
       routeKw2 || (slot === 'middle' && imageKeyword ? supplierKw2 : '') || null
@@ -117,5 +131,5 @@ export function applyRegisterScheduleRouteTextKeywordsWithSupplierFallback<
 >(rows: T[], opts: RegisterScheduleRouteSupplierFallbackOpts): T[] {
   const routeTextOut = applyRegisterScheduleRouteTextImageKeywordsToRows(rows)
   const supplierOut = applySupplierScheduleImageKeywordFallback(rows, opts) as T[]
-  return mergeRouteTextKeywordWithSupplierKeyword(routeTextOut, supplierOut)
+  return mergeRouteTextKeywordWithSupplierKeyword(routeTextOut, supplierOut, opts.productDestination ?? null)
 }

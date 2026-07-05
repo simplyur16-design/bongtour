@@ -41,7 +41,6 @@ import {
 } from '@/lib/schedule-image-keyword-persist'
 import {
   applyRegisterScheduleImageKeywordsForPreview,
-  mergePreviewImageKeywordsFromServerWhenDeriveEmpty,
   overlayPreviewScheduleImageKeywords,
   softFinalizeRegisterScheduleImageKeywordsForPreview,
   type ApplyRegisterScheduleImageKeywordsForPreviewOpts,
@@ -420,8 +419,7 @@ function applyRegisterPreviewPexelsKeywordRows(
   )
   try {
     const augmented = applyRegisterScheduleImageKeywordsForPreview(prepared, opts)
-    const merged = mergePreviewImageKeywordsFromServerWhenDeriveEmpty(augmented, serverRows)
-    return softFinalizeRegisterScheduleImageKeywordsForPreview(merged).map(mapRegisterPexelsUiScheduleRow)
+    return softFinalizeRegisterScheduleImageKeywordsForPreview(augmented).map(mapRegisterPexelsUiScheduleRow)
   } catch (e) {
     console.error(`[admin-register] ${logLabel}`, e)
     return serverRows.map(mapRegisterPexelsUiScheduleRow)
@@ -458,21 +456,6 @@ function buildRegisterPexelsUiRows(
       (parsed?.destination ?? '').trim() ||
       (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
       null
-    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT — 클라이언트 routeText 재적용(stale kw 무시) */
-    if (
-      supplierKey === 'modetour' &&
-      validFromParsed.every((row) => String(row.imageKeyword ?? '').trim())
-    ) {
-      const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(
-        validFromParsed.map((row) => mapRegisterPexelsUiScheduleRow({ ...row, imageKeyword: '', imageKeyword2: null })),
-      )
-      return applyRegisterPreviewPexelsKeywordRows(routeSanitized, {
-        supplierKey,
-        productDestination: destHintEarly,
-        productTitle: (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null,
-      }, 'modetour imageKeyword SSOT apply failed')
-    }
-
     const useFitRowsInstead =
       isRegisterAirtelListing(travelScope, productType) &&
       scheduleRowsHaveUniformImageKeyword(validFromParsed)
@@ -485,10 +468,13 @@ function buildRegisterPexelsUiRows(
       if (airtelRows?.length) return airtelRows
     }
     const serverRows = validFromParsed.map(mapRegisterPexelsUiScheduleRow)
+    let clearedRows = serverRows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null }))
+    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT — routeText 재적용·stale kw 무시 */
+    if (supplierKey === 'modetour') {
+      clearedRows = sanitizeModetourRegisterScheduleRouteRows(clearedRows)
+    }
     const rawRows = prepareHanatourRegisterPexelsRawRows(
-      prepareRegisterScheduleRowsForImageKeywordApply(
-        serverRows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null })),
-      ),
+      prepareRegisterScheduleRowsForImageKeywordApply(clearedRows),
       parsed,
       preview,
       supplierKey,
