@@ -8,7 +8,10 @@ import {
   applyAirtelRouteTextImageKeywordsToSchedule,
   boostWeakAirtelScheduleImageKeywordsFromRouteText,
 } from '@/lib/register-airtel-route-image-keyword'
-import { finalizeRegisterScheduleImageKeywords } from '@/lib/schedule-image-keyword-persist'
+import {
+  areScheduleImageKeywordsDistinct,
+  finalizeRegisterScheduleImageKeywords,
+} from '@/lib/schedule-image-keyword-persist'
 
 export function scheduleRowsHaveUniformWeakAirtelKeyword(
   rows: Array<{ imageKeyword?: string | null }>,
@@ -17,7 +20,7 @@ export function scheduleRowsHaveUniformWeakAirtelKeyword(
     .map((r) => String(r.imageKeyword ?? '').trim().toLowerCase())
     .filter((k) => k.length > 0)
   if (kws.length < 2) return false
-  return new Set(kws).size === 1
+  return !areScheduleImageKeywordsDistinct(rows)
 }
 
 /** 본문 LLM parsed.schedule + routeText 보조 (Fit JSON 없을 때만) */
@@ -75,17 +78,20 @@ export function buildAirtelRegisterPexelsUiScheduleRows(
   parsed: RegisterParsed | null | undefined,
   productDestination: string | null | undefined,
 ): RegisterScheduleDay[] | null {
-  const hasFitJson = Boolean(parsed?.registerFitItineraryGeminiJson?.trim())
   const fromFit = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
-  if (fromFit?.length) {
+  const fromParsed = buildAirtelRegisterScheduleRowsFromParsed(parsed)
+
+  // Fit 일차별 랜드마크 SSOT — parsed routeText-only 경로보다 우선 (uniform Nha 등 제외)
+  if (fromFit?.length && (areScheduleImageKeywordsDistinct(fromFit) || parsed?.registerFitItineraryGeminiJson?.trim())) {
     return finalizeAirtelRegisterPexelsUiRows(fromFit, productDestination, { fromFitJson: true })
   }
 
-  const fromParsed = buildAirtelRegisterScheduleRowsFromParsed(parsed)
   if (fromParsed?.length) {
-    return finalizeAirtelRegisterPexelsUiRows(fromParsed, productDestination, {
-      fromFitJson: hasFitJson,
-    })
+    return finalizeAirtelRegisterPexelsUiRows(fromParsed, productDestination, { fromFitJson: false })
+  }
+
+  if (fromFit?.length) {
+    return finalizeAirtelRegisterPexelsUiRows(fromFit, productDestination, { fromFitJson: true })
   }
 
   return null

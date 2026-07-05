@@ -4493,6 +4493,33 @@
       ]
     },
     {
+      "id": "modetour-miyakojima-live-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "modetour 101123669 미야코지마 — 마이파리≠Paris, 일차별 Okinawa POI",
+      "checks": [
+        {
+          "file": "lib/modetour-miyakojima-live-gate.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-miyakojima-live-gate]",
+            "마이파리",
+            "applyRegisterScheduleImageKeywordsForPreview"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "Miyakojima Tropical Fruit Garden"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/modetour-miyakojima-live-gate.test.ts"
+      ]
+    },
+    {
       "id": "modetour-register-danang-live-gate",
       "tier": [
         "ci"
