@@ -4520,6 +4520,28 @@
       ]
     },
     {
+      "id": "modetour-105133652-live-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "modetour 105133652 항공+호텔(자유여행) — admin travelScope=air_hotel_free, Fit 이동·음식",
+      "npmScripts": [
+        "verify:register-modetour-105133652-live-gate"
+      ],
+      "checks": [
+        {
+          "file": "scripts/verify-register-modetour-105133652-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-105133652-live-gate]",
+            "105133652",
+            "air_hotel_free",
+            "registerFitItineraryGeminiJson",
+            "applyRegisterPostAugmentSchedulePipeline"
+          ]
+        }
+      ]
+    },
+    {
       "id": "modetour-register-danang-live-gate",
       "tier": [
         "ci"

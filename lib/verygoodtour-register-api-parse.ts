@@ -13,6 +13,8 @@ import { finalizeVerygoodRegisterParsedShopping } from '@/lib/register-verygoodt
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
 import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import {
   applyVerygoodScheduleExpressionToRows,
   verygoodFactDaysToRegisterSchedule,
@@ -36,7 +38,7 @@ export const VERYGOOD_FLIGHT_PREVIEW_NOTE =
 
 export type VerygoodtourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
 
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
@@ -85,6 +87,8 @@ export async function parseVerygoodtourRegisterFromApi(
   options?: VerygoodtourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airHotelListing = isRegisterAirHotelListing(travelScope)
   const proCode = parseVerygoodProCodeFromUrl(originUrl)
   if (!originUrl || !proCode || !/verygoodtour\.com/i.test(originUrl)) {
     throw new Error('참좋은여행 등록에는 유효한 originUrl(ProCode)이 필요합니다.')
@@ -176,6 +180,7 @@ export async function parseVerygoodtourRegisterFromApi(
       '참좋은여행 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       VERYGOOD_PRICE_SLOT_SSOT_NOTE,
       VERYGOOD_FLIGHT_PREVIEW_NOTE,
+      ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
     ],
     verygoodtourDetailCollectRan: false,
     verygoodtourDetailCollectSummary: 'register-facts+api-detail',
@@ -184,7 +189,7 @@ export async function parseVerygoodtourRegisterFromApi(
   parsed = applyRegisterCollectedFlightStructured(parsed, flightStructured)
   parsed = finalizeVerygoodRegisterParsedPricing(parsed)
   parsed = finalizeVerygoodRegisterParsedShopping(parsed)
-  parsed = await augmentVerygoodtourParsedWithDetailCollect(parsed, { originUrl })
+  parsed = await augmentVerygoodtourParsedWithDetailCollect(parsed, { originUrl, travelScope })
 
   const scheduleRouteTexts = (parsed.schedule ?? []).map((row) => row.routeText ?? '')
   const dest = resolveVerygoodtourRegisterDestination({
@@ -200,7 +205,7 @@ export async function parseVerygoodtourRegisterFromApi(
     primaryDestination: dest.primaryDestination,
   }
 
-  if ((parsed.schedule?.length ?? 0) > 0) {
+  if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing) {
     const destHint = parsed.primaryDestination ?? parsed.destination ?? null
     parsed = {
       ...parsed,

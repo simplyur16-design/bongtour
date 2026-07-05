@@ -46,11 +46,12 @@ function inferAirHotelFreeFromListingHint(hint: string | null | undefined): bool
   return AIRTEL_TITLE_HINT_RE.test(t)
 }
 
-/** REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: URL·제목 신호로 자유여행 강제 — manifest */
+/** REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: URL·붙여넣기 제목 신호 — manifest */
 export function resolveRegisterTravelScopeFromRequest(args: {
   bodyTravelScope?: unknown
   originSource: string
   originUrl?: string | null
+  /** 붙여넣기 본문·제목 힌트(관리자 입력). API 제목 자동 추론은 하지 않는다. */
   listingTitleHint?: string | null
 }): AdminRegisterTravelScopeSelection {
   const raw =

@@ -25,6 +25,7 @@ export async function handleParseAndRegisterHanatourRequest(request: Request) {
       let next = await augmentHanatourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
+        travelScope: ctx?.travelScope,
       })
       next = await injectHanatourApiDeparturePricesIfMissing(next, ctx?.originUrl)
       next = applyHanatourSyntheticPriceRowIfNeeded(next, pastedText, 'hanatour')

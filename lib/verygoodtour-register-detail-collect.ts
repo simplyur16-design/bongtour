@@ -32,6 +32,7 @@ const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.very
 export type VerygoodtourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+  travelScope?: string | null
 }
 
 function normalizeVerygoodDetailUrl(originUrl: string): string {

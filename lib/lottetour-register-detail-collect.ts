@@ -36,6 +36,7 @@ import { applyAugmentScheduleImageKeywordsBySupplier } from '@/lib/register-sche
 export type LottetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'shopping' | 'optionalTour'>> | null
+  travelScope?: string | null
 }
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {

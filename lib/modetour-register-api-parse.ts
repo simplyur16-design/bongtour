@@ -23,6 +23,7 @@ import {
   augmentModetourParsedWithDetailCollect,
   ensureModetourRegisterScheduleImageKeywords,
 } from '@/lib/modetour-register-detail-collect'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 
 const MODETOUR_PRICE_SLOT_SSOT_NOTE =
   '모두투어 가격표: adultPrice=성인, childExtraBedPrice=아동, childNoBedPrice=아동(무침대), infantPrice=유아. 달력은 GetOtherDepartureDates_lite SSOT.'
@@ -32,8 +33,11 @@ const MODETOUR_FLIGHT_PREVIEW_NOTE =
 
 export type ModetourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
+
+export const MODETOUR_AIR_HOTEL_PREVIEW_NOTE =
+  '모두투어 항공+호텔(자유여행): GetScheduleList routeText·식사·숙소만 보조. 예시 일정·일차별 imageKeyword는 Fit Gemini SSOT.'
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
   return rows
@@ -87,6 +91,8 @@ export async function parseModetourRegisterFromApi(
   options?: ModetourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airHotelListing = isRegisterAirHotelListing(travelScope)
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
   if (!originUrl || !productNo || productNo === '0') {
     throw new Error('모두투어 등록에는 유효한 originUrl(productNo)이 필요합니다.')
@@ -136,6 +142,7 @@ export async function parseModetourRegisterFromApi(
     meetingInfoRaw: bundle.meetingInfo,
     schedule: modetourFactDaysToRegisterSchedule(bundle.scheduleDays, {
       productTitle: titleRes.title,
+      registerAirHotelFree: airHotelListing,
     }),
     prices,
     productPriceTable,
@@ -149,6 +156,7 @@ export async function parseModetourRegisterFromApi(
       '모두투어 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       MODETOUR_PRICE_SLOT_SSOT_NOTE,
       MODETOUR_FLIGHT_PREVIEW_NOTE,
+      ...(airHotelListing ? [MODETOUR_AIR_HOTEL_PREVIEW_NOTE] : []),
     ],
     modetourDetailCollectRan: false,
     modetourDetailCollectSummary: null,
@@ -160,7 +168,9 @@ export async function parseModetourRegisterFromApi(
     parsed,
     extractModetourFeesFromDetailInfo(null, parsed.includedText, parsed.excludedText),
   )
-  parsed = await augmentModetourParsedWithDetailCollect(parsed, { originUrl })
-  parsed = await ensureModetourRegisterScheduleImageKeywords(parsed)
+  parsed = await augmentModetourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  if (!airHotelListing) {
+    parsed = await ensureModetourRegisterScheduleImageKeywords(parsed, { travelScope })
+  }
   return parsed
 }

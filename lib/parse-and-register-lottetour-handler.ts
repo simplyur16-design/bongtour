@@ -29,6 +29,7 @@ export async function handleParseAndRegisterLottetourRequest(request: Request) {
       let next = await augmentLottetourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
+        travelScope: ctx?.travelScope,
       })
       next = await injectLottetourApiDeparturePricesIfMissing(next, ctx?.originUrl)
       return next

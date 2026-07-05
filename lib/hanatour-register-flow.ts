@@ -10,6 +10,7 @@ import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
+import { resolveRegisterItineraryDayDraftsForAdminPreview } from '@/lib/register-air-hotel-admin-path'
 import { extractHighlightFromHanatour } from '@/lib/extract-highlight-hanatour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
@@ -189,6 +190,7 @@ export type ParseAndRegisterFlowOptions = {
     pastedText: string,
     ctx?: {
       originUrl?: string | null
+      travelScope?: string | null
       pastedBlocks?: Partial<
         Pick<
           import('@/lib/register-llm-blocks-hanatour').RegisterPastedBlocksInput,
@@ -601,6 +603,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
         originSource,
         brandKey,
         originUrl,
+        travelScope,
         pastedBlocks,
         forPreview: mode === 'preview',
         maxDetailSectionRepairs: mode === 'preview' ? 2 : 3,
@@ -801,6 +804,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
           originSource,
           brandKey,
           originUrl,
+          travelScope,
           pastedBlocks,
           forPreview: false,
           skipDetailSectionGeminiRepairs: true,
@@ -864,7 +868,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     }
     if (patchParsedAfterAugment) {
       parsed = await Promise.resolve(
-        patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks }),
+        patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }),
       )
     }
     parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
@@ -889,10 +893,15 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       enrichHanatourDepartureInputsFromProductPriceTable(departureFromParsed, parsed.productPriceTable),
     )
 
-    let itineraryDayDrafts = registerScheduleToDayInputs(schedule ?? [])
-    if (finalizeItineraryDayDraftsFromSchedule) {
-      itineraryDayDrafts = finalizeItineraryDayDraftsFromSchedule(itineraryDayDrafts, schedule ?? [])
-    }
+    let itineraryDayDrafts = resolveRegisterItineraryDayDraftsForAdminPreview({
+      parsed,
+      travelScope,
+      schedule: schedule ?? [],
+      buildFromSchedule: (s) => registerScheduleToDayInputs(s),
+      finalizePackageDrafts: finalizeItineraryDayDraftsFromSchedule
+        ? (drafts, s) => finalizeItineraryDayDraftsFromSchedule(drafts, s)
+        : undefined,
+    })
 
     const geminiPm = parsePricePromotionFromGeminiJson(
       (parsed as { pricePromotion?: unknown }).pricePromotion

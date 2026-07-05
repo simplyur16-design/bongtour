@@ -40,6 +40,7 @@ import { applyRegisterCollectedFlightStructured,
   needsRegisterFlightApiCollect,
 } from '@/lib/register-detail-collect-flight-apply'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
@@ -47,6 +48,8 @@ import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 export type ModetourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+  /** 관리자 travelScope — air_hotel_free 시 패키지 imageKeyword·vibe description 생략 */
+  travelScope?: string | null
 }
 
 function hasOptionalPaste(ctx?: ModetourRegisterDetailAugmentCtx): boolean {
@@ -101,7 +104,11 @@ export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
 /** API·붙여넣기 schedule에 routeText는 있는데 imageKeyword 규칙이 아직 안 탄 경우(미리보기 공통). */
 export async function ensureModetourRegisterScheduleImageKeywords(
   parsed: RegisterParsed,
+  opts?: { travelScope?: string | null },
 ): Promise<RegisterParsed> {
+  if (isRegisterAirHotelListing(opts?.travelScope, parsed.productType)) {
+    return parsed
+  }
   const schedule = parsed.schedule ?? []
   if (schedule.length === 0) return parsed
   const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(schedule)
@@ -133,6 +140,7 @@ export async function augmentModetourParsedWithDetailCollect(
   ctx?: ModetourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
   const originUrl = (ctx?.originUrl ?? '').trim()
+  const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
   if (!originUrl || !productNo || productNo === '0') return parsed
 
@@ -153,7 +161,7 @@ export async function augmentModetourParsedWithDetailCollect(
   const needFeeSupplement = needsModetourFeeSupplementCollect(parsed)
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight && !needFeeSupplement) {
-    return await ensureModetourRegisterScheduleImageKeywords(parsed)
+    return await ensureModetourRegisterScheduleImageKeywords(parsed, { travelScope: ctx?.travelScope })
   }
 
   const summaryParts: string[] = []
@@ -173,15 +181,20 @@ export async function augmentModetourParsedWithDetailCollect(
   if (needSchedule && facts?.scheduleDays.length) {
     const scheduleDays = modetourFactDaysToRegisterSchedule(facts.scheduleDays, {
       productTitle: next.title ?? facts.title,
+      registerAirHotelFree: airHotelListing,
     })
     if (scheduleDays.length > 0) {
-      const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
-        supplierKey: 'modetour',
-        productDestination: next.destination ?? null,
-        productTitle: next.title ?? null,
-      })
-      next = { ...next, schedule: withKeywords }
-      summaryParts.push(`GetScheduleList: 일정 ${withKeywords.length}일차`)
+      next = {
+        ...next,
+        schedule: airHotelListing
+          ? scheduleDays
+          : applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
+              supplierKey: 'modetour',
+              productDestination: next.destination ?? null,
+              productTitle: next.title ?? null,
+            }),
+      }
+      summaryParts.push(`GetScheduleList: 일정 ${scheduleDays.length}일차`)
     }
   }
 
@@ -300,10 +313,13 @@ export async function augmentModetourParsedWithDetailCollect(
       : '모두투어 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 
-  return await ensureModetourRegisterScheduleImageKeywords({
-    ...next,
-    modetourDetailCollectRan: summaryParts.length > 0,
-    modetourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
-    registerPreviewPolicyNotes: notes,
-  })
+  return await ensureModetourRegisterScheduleImageKeywords(
+    {
+      ...next,
+      modetourDetailCollectRan: summaryParts.length > 0,
+      modetourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
+      registerPreviewPolicyNotes: notes,
+    },
+    { travelScope: ctx?.travelScope },
+  )
 }

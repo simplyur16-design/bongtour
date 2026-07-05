@@ -23,6 +23,8 @@ import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/regist
 import { finalizeYbtourRegisterParsedPricing } from '@/lib/register-ybtour-price'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
 import { ensureYbtourRegisterScheduleImageKeywords } from '@/lib/ybtour-register-detail-collect'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import {
   applyYbtourScheduleExpressionToRows,
   ybtourFactDaysToRegisterSchedule,
@@ -36,7 +38,7 @@ export const YBTOUR_FLIGHT_PREVIEW_NOTE =
 
 export type YbtourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -91,6 +93,8 @@ export async function parseYbtourRegisterFromApi(
   options?: YbtourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airHotelListing = isRegisterAirHotelListing(travelScope)
   if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {
     throw new Error('노랑풍선 등록에는 유효한 originUrl(evCd 또는 goodsCd)이 필요합니다.')
   }
@@ -167,6 +171,7 @@ export async function parseYbtourRegisterFromApi(
       '노랑풍선 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       YBTOUR_PRICE_SLOT_SSOT_NOTE,
       YBTOUR_FLIGHT_PREVIEW_NOTE,
+      ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
     ],
     ybtourDetailCollectRan: false,
     ybtourDetailCollectSummary: null,
@@ -175,10 +180,10 @@ export async function parseYbtourRegisterFromApi(
   parsed = finalizeYbtourRegisterParsedPricing(parsed)
   parsed = finalizeYbtourRegisterParsedShopping(parsed)
 
-  if ((parsed.schedule?.length ?? 0) > 0) {
+  if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing) {
     const scheduleWithRoute = applyYbtourScheduleExpressionToRows(parsed.schedule ?? [])
     parsed = { ...parsed, schedule: scheduleWithRoute }
-    parsed = await ensureYbtourRegisterScheduleImageKeywords(parsed)
+    parsed = await ensureYbtourRegisterScheduleImageKeywords(parsed, { travelScope })
   }
 
   return parsed

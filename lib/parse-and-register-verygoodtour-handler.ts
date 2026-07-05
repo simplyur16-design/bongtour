@@ -27,6 +27,7 @@ export async function handleParseAndRegisterVerygoodtourRequest(request: Request
       let next = await augmentVerygoodtourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
+        travelScope: ctx?.travelScope,
       })
       next = await injectVerygoodtourApiDeparturePricesIfMissing(next, ctx?.originUrl)
       return next

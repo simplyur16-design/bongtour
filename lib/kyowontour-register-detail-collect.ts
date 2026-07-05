@@ -22,6 +22,7 @@ import { KYOWONTOUR_TOUR_CODE_TITLE_RE } from '@/lib/supplier-listing-title-unac
 export type KyowontourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+  travelScope?: string | null
   /** 이미 fetch한 goodsEventDetail HTML — tab collect와 공유 */
   detailHtml?: string | null
 }

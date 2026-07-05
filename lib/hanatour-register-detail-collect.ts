@@ -44,10 +44,13 @@ import {
 import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+  /** 관리자 travelScope — air_hotel_free 시 패키지 imageKeyword·일정 apply 생략 */
+  travelScope?: string | null
 }
 
 function hasOptionalPaste(ctx?: HanatourRegisterDetailAugmentCtx): boolean {
@@ -117,7 +120,11 @@ export function needsHanatourScheduleCollect(parsed: RegisterParsed): boolean {
 /** API·붙여넣기 schedule — routeText 슬롯 규칙 + Gemini(자유일) SSOT. REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply] */
 export async function ensureHanatourRegisterScheduleImageKeywords(
   parsed: RegisterParsed,
+  opts?: { travelScope?: string | null },
 ): Promise<RegisterParsed> {
+  if (isRegisterAirHotelListing(opts?.travelScope, parsed.productType)) {
+    return parsed
+  }
   const schedule = parsed.schedule ?? []
   if (schedule.length === 0) return parsed
   const normalized = schedule.map((row) => ({
@@ -235,6 +242,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   ctx?: HanatourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
   const originUrl = (ctx?.originUrl ?? '').trim()
+  const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || !parseHanatourPkgCdFromUrl(originUrl)) return parsed
 
   const needSchedule = needsHanatourScheduleCollect(parsed)
@@ -251,7 +259,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   const needFlight = needsRegisterFlightApiCollect(parsed)
 
   if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
-    return await ensureHanatourRegisterScheduleImageKeywords(parsed)
+    return await ensureHanatourRegisterScheduleImageKeywords(parsed, { travelScope: ctx?.travelScope })
   }
 
   const bundle = await fetchHanatourRegisterDetailBundle(originUrl)
@@ -271,16 +279,18 @@ export async function augmentHanatourParsedWithDetailCollect(
     const factDays = applyHanatourProdInfoHotelsToFactDays(hanatourItnrToFactDays(itnr), prodInfo)
     const scheduleDays = hanatourFactDaysToRegisterSchedule(factDays)
     if (scheduleDays.length > 0) {
-      const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
-        supplierKey: 'hanatour',
-        productDestination: next.destination ?? null,
-        productTitle: next.title ?? null,
-        productType: next.productType ?? null,
-        optionalTourNames: hanatourOptionalTourNamesFromParsed(next),
-        scheduleSectionByDay: next.detailBodyStructured
-          ? gatherHanatourScheduleSectionBodiesByDay(next.detailBodyStructured)
-          : null,
-      })
+      const withKeywords = airHotelListing
+        ? scheduleDays
+        : applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
+            supplierKey: 'hanatour',
+            productDestination: next.destination ?? null,
+            productTitle: next.title ?? null,
+            productType: next.productType ?? null,
+            optionalTourNames: hanatourOptionalTourNamesFromParsed(next),
+            scheduleSectionByDay: next.detailBodyStructured
+              ? gatherHanatourScheduleSectionBodiesByDay(next.detailBodyStructured)
+              : null,
+          })
       next = { ...next, schedule: withKeywords }
       summaryParts.push(`일정 ${withKeywords.length}일차`)
     }
@@ -360,10 +370,13 @@ export async function augmentHanatourParsedWithDetailCollect(
       : '하나투어 상세카드 자동수집: 해당 축 데이터 없음(originUrl·API 확인)'
   if (!notes.includes(note)) notes.push(note)
 
-  return await ensureHanatourRegisterScheduleImageKeywords({
-    ...next,
-    hanatourDetailCollectRan: summaryParts.length > 0,
-    hanatourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
-    registerPreviewPolicyNotes: notes,
-  })
+  return await ensureHanatourRegisterScheduleImageKeywords(
+    {
+      ...next,
+      hanatourDetailCollectRan: summaryParts.length > 0,
+      hanatourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
+      registerPreviewPolicyNotes: notes,
+    },
+    { travelScope: ctx?.travelScope },
+  )
 }

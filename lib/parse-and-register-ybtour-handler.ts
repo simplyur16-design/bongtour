@@ -27,6 +27,7 @@ export async function handleParseAndRegisterYbtourRequest(request: Request) {
       let next = await augmentYbtourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
+        travelScope: ctx?.travelScope,
       })
       next = await injectYbtourApiDeparturePricesIfMissing(next, ctx?.originUrl)
       return next

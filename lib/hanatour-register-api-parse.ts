@@ -18,6 +18,8 @@ import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-hanatour'
 import { finalizeHanatourRegisterParsedPricing } from '@/lib/register-hanatour-price'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import { ensureHanatourRegisterScheduleImageKeywords, augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
@@ -31,7 +33,7 @@ const HANATOUR_FLIGHT_PREVIEW_NOTE =
 
 export type HanatourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -86,6 +88,8 @@ export async function parseHanatourRegisterFromApi(
   options?: HanatourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airHotelListing = isRegisterAirHotelListing(travelScope)
   const pkgCd = parseHanatourPkgCdFromUrl(originUrl)
   if (!originUrl || !pkgCd) {
     throw new Error('하나투어 등록에는 유효한 originUrl(pkgCd)이 필요합니다.')
@@ -136,6 +140,7 @@ export async function parseHanatourRegisterFromApi(
       '하나투어 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       HANATOUR_PRICE_SLOT_SSOT_NOTE,
       HANATOUR_FLIGHT_PREVIEW_NOTE,
+      ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
     ],
   }
 
@@ -153,7 +158,9 @@ export async function parseHanatourRegisterFromApi(
 
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)
-  parsed = await augmentHanatourParsedWithDetailCollect(parsed, { originUrl })
-  parsed = await ensureHanatourRegisterScheduleImageKeywords(parsed)
+  parsed = await augmentHanatourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  if (!airHotelListing) {
+    parsed = await ensureHanatourRegisterScheduleImageKeywords(parsed, { travelScope })
+  }
   return parsed
 }

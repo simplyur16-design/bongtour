@@ -17,6 +17,8 @@ import { finalizeLottetourRegisterParsedShopping } from '@/lib/register-lottetou
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { lottetourFactDaysToRegisterSchedule } from '@/lib/lottetour-register-api-schedule'
 import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import { resolveLottetourRegisterDestination } from '@/lib/lottetour-register-destination-from-paste'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 
@@ -28,7 +30,7 @@ export const LOTTETOUR_FLIGHT_PREVIEW_NOTE =
 
 export type LottetourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -62,6 +64,8 @@ export async function parseLottetourRegisterFromApi(
   options?: LottetourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airHotelListing = isRegisterAirHotelListing(travelScope)
   const ids = await resolveLottetourRegisterOriginIdsFromUrl(originUrl || rawText)
   if (!originUrl || (!ids.evtCd && !ids.godId)) {
     throw new Error('롯데관광 등록에는 유효한 originUrl(godId 또는 evtCd)이 필요합니다.')
@@ -124,6 +128,7 @@ export async function parseLottetourRegisterFromApi(
       '롯데관광 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       LOTTETOUR_PRICE_SLOT_SSOT_NOTE,
       LOTTETOUR_FLIGHT_PREVIEW_NOTE,
+      ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
     ],
     lottetourDetailCollectRan: false,
     lottetourDetailCollectSummary: null,
@@ -131,9 +136,9 @@ export async function parseLottetourRegisterFromApi(
 
   parsed = finalizeLottetourRegisterParsedPricing(parsed)
   parsed = finalizeLottetourRegisterParsedShopping(parsed)
-  parsed = await augmentLottetourParsedWithDetailCollect(parsed, { originUrl })
+  parsed = await augmentLottetourParsedWithDetailCollect(parsed, { originUrl, travelScope })
 
-  if ((parsed.schedule?.length ?? 0) > 0) {
+  if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing) {
     const destHint = parsed.primaryDestination ?? parsed.destination ?? null
     parsed = {
       ...parsed,

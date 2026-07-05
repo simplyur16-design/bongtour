@@ -98,6 +98,7 @@ export async function invokeRegisterParsePersistAnalysisAttempt(params: {
   originSource: string
   brandKey: string | null
   originUrl: string | null
+  travelScope?: string | null
   pastedBlocks: RegisterLlmParseOptionsCommon['pastedBlocks']
   forPreview: boolean
   skipDetailSectionGeminiRepairs?: boolean
@@ -118,6 +119,7 @@ export async function invokeRegisterParsePersistAnalysisAttempt(params: {
   try {
     const parsed = await params.parseFn(params.text, params.originSource, {
       originUrl: params.originUrl,
+      travelScope: params.travelScope ?? null,
       pastedBodyForInference: params.text,
       pastedBlocks: params.pastedBlocks ?? undefined,
       forPreview: params.forPreview,

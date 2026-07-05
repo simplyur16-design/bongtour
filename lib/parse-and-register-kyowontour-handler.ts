@@ -28,6 +28,7 @@ export async function handleParseAndRegisterKyowontourRequest(request: Request) 
       return augmentKyowontourParsedWithDetailCollect(next, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
+        travelScope: ctx?.travelScope,
       })
     },
     finalizeItineraryDayDraftsFromSchedule: finalizeKyowontourItineraryDayDraftsFromSchedule,

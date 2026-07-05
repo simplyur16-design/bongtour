@@ -15,6 +15,7 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
       augmentModetourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
+        travelScope: ctx?.travelScope,
       }),
   })
 }

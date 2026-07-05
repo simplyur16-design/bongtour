@@ -10,6 +10,8 @@ import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
+import { buildRegisterAirHotelItineraryDayDrafts } from '@/lib/register-air-hotel-itinerary-day-drafts'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
@@ -554,7 +556,11 @@ export type ModetourRegisterFlowOptions = {
   patchParsedAfterAugment?: (
     parsed: RegisterParsed,
     pastedText: string,
-    ctx?: { originUrl?: string | null; pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>> | null },
+    ctx?: {
+      originUrl?: string | null
+      travelScope?: string | null
+      pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping' | 'hotel' | 'airlineTransport'>> | null
+    },
   ) => RegisterParsed | Promise<RegisterParsed>
 }
 
@@ -724,6 +730,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
         originSource,
         brandKey,
         originUrl,
+        travelScope,
         pastedBlocks,
         forPreview: mode === 'preview',
         onTiming,
@@ -774,11 +781,12 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
     }
 
     if (patchParsedAfterAugment) {
-      parsed = await Promise.resolve(patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks }))
+      parsed = await Promise.resolve(patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }))
     } else {
       parsed = await augmentModetourParsedWithDetailCollect(parsed, {
         originUrl,
         pastedBlocks,
+        travelScope,
       })
     }
 
@@ -1007,8 +1015,12 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
       itineraryDayDrafts = registerScheduleToDayInputs(schedule ?? [])
     }
 
-    if ((schedule?.length ?? 0) > 0) {
+    if ((schedule?.length ?? 0) > 0 && !isRegisterAirHotelListing(travelScope, parsed.productType)) {
       itineraryDayDrafts = finalizeModetourItineraryDayDraftsFromSchedule(itineraryDayDrafts, schedule ?? [])
+    }
+
+    if (isRegisterAirHotelListing(travelScope, parsed.productType)) {
+      itineraryDayDrafts = buildRegisterAirHotelItineraryDayDrafts(parsed)
     }
 
     if (itineraryDayDrafts.length > 0) {

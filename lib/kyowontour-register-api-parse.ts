@@ -12,6 +12,8 @@ import { finalizeKyowontourRegisterParsedPricing } from '@/lib/register-kyowonto
 import { finalizeKyowontourRegisterParsedShopping } from '@/lib/register-kyowontour-shopping'
 import { kyowontourFactDaysToRegisterSchedule } from '@/lib/kyowontour-register-api-schedule'
 import { augmentKyowontourParsedWithDetailCollect } from '@/lib/kyowontour-register-detail-collect'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 
 export const KYOWONTOUR_PRICE_SLOT_SSOT_NOTE =
   '교원이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -21,7 +23,7 @@ export const KYOWONTOUR_FLIGHT_PREVIEW_NOTE =
 
 export type KyowontourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -72,6 +74,8 @@ export async function parseKyowontourRegisterFromApi(
   options?: KyowontourRegisterApiParseOptions,
 ): Promise<RegisterParsed> {
   const originUrl = (options?.originUrl ?? '').trim()
+  const travelScope = options?.travelScope ?? null
+  const airHotelListing = isRegisterAirHotelListing(travelScope)
   if (!originUrl || !/kyowontour\.com/i.test(originUrl)) {
     throw new Error('교원이지 등록에는 유효한 originUrl(tourCode)이 필요합니다.')
   }
@@ -124,6 +128,7 @@ export async function parseKyowontourRegisterFromApi(
       '교원이지 등록 parse: register-facts API SSOT (Gemini overlay 없음)',
       KYOWONTOUR_PRICE_SLOT_SSOT_NOTE,
       KYOWONTOUR_FLIGHT_PREVIEW_NOTE,
+      ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
     ],
     kyowontourScheduleCollectRan: true,
     kyowontourScheduleCollectSummary: 'register-facts tourEventTabData',
@@ -131,7 +136,7 @@ export async function parseKyowontourRegisterFromApi(
 
   parsed = finalizeKyowontourRegisterParsedPricing(parsed)
   parsed = finalizeKyowontourRegisterParsedShopping(parsed)
-  parsed = await augmentKyowontourParsedWithDetailCollect(parsed, { originUrl })
+  parsed = await augmentKyowontourParsedWithDetailCollect(parsed, { originUrl, travelScope })
 
   return parsed
 }

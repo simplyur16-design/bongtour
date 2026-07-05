@@ -247,6 +247,8 @@ export function normalizeModetourScheduleHotelText(
 
 export type ModetourFactDaysToRegisterScheduleOpts = {
   productTitle?: string | null
+  /** 항공+호텔(자유여행) — routeText·식사·숙소만, description/imageKeyword는 Fit SSOT */
+  registerAirHotelFree?: boolean
 }
 
 /** register-facts scheduleDays → RegisterParsed.schedule SSOT */
@@ -268,7 +270,9 @@ export function modetourFactDaysToRegisterSchedule(
       firstTransport ||
       normalizeModetourScheduleHotelText(d.hotels[0], opts) ||
       `${d.day}일차`
-    const description = composeModetourScheduleVibeDescription(d, maxDay, highlights) || title
+    const description = opts?.registerAirHotelFree
+      ? ''
+      : composeModetourScheduleVibeDescription(d, maxDay, highlights) || title
     const routeText =
       places.length > 0
         ? places.join(' - ')

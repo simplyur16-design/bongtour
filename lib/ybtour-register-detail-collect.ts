@@ -27,6 +27,7 @@ import {
 } from '@/lib/ybtour-register-api-detail'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { applyYbtourScheduleExpressionToRows } from '@/lib/ybtour-register-api-schedule'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
 import { parseYbtourEvCdFromUrl, parseYbtourGoodsCdFromUrl } from '@/lib/ybtour-api-departures'
@@ -49,6 +50,7 @@ import {
 export type YbtourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+  travelScope?: string | null
 }
 
 function hasOptionalPaste(ctx?: YbtourRegisterDetailAugmentCtx): boolean {
@@ -93,7 +95,11 @@ export function needsYbtourMustKnowCollect(parsed: RegisterParsed): boolean {
 /** API·붙여넣기 schedule — routeText 슬롯 규칙 + Gemini(자유일) SSOT. REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply] */
 export async function ensureYbtourRegisterScheduleImageKeywords(
   parsed: RegisterParsed,
+  opts?: { travelScope?: string | null },
 ): Promise<RegisterParsed> {
+  if (isRegisterAirHotelListing(opts?.travelScope, parsed.productType)) {
+    return parsed
+  }
   const schedule = parsed.schedule ?? []
   if (schedule.length === 0) return parsed
   const normalized = schedule.map((row) => ({
@@ -139,6 +145,7 @@ export async function augmentYbtourParsedWithDetailCollect(
   ctx?: YbtourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
   const originUrl = (ctx?.originUrl ?? '').trim()
+  const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {
     return parsed
   }
@@ -170,7 +177,7 @@ export async function augmentYbtourParsedWithDetailCollect(
     !needOpt &&
     !needShop
   ) {
-    return await ensureYbtourRegisterScheduleImageKeywords(parsed)
+    return await ensureYbtourRegisterScheduleImageKeywords(parsed, { travelScope: ctx?.travelScope })
   }
 
   const bundle = await fetchYbtourRegisterDetailBundle(originUrl, {
@@ -198,11 +205,13 @@ export async function augmentYbtourParsedWithDetailCollect(
       const destHint = next.primaryDestination ?? next.destination ?? null
       next = {
         ...next,
-        schedule: applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
-          supplierKey: 'ybtour',
-          productDestination: destHint,
-          productTitle: next.title,
-        }),
+        schedule: airHotelListing
+          ? scheduleDays
+          : applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
+              supplierKey: 'ybtour',
+              productDestination: destHint,
+              productTitle: next.title,
+            }),
       }
       summaryParts.push(`일정 ${scheduleDays.length}일차`)
     }
@@ -356,10 +365,13 @@ export async function augmentYbtourParsedWithDetailCollect(
       : 'ybtour 상세카드 자동수집: 해당 축 데이터 없음(붙여넣기·LLM 우선)'
   if (!notes.includes(note)) notes.push(note)
 
-  return await ensureYbtourRegisterScheduleImageKeywords({
-    ...next,
-    ybtourDetailCollectRan: summaryParts.length > 0,
-    ybtourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
-    registerPreviewPolicyNotes: notes,
-  })
+  return await ensureYbtourRegisterScheduleImageKeywords(
+    {
+      ...next,
+      ybtourDetailCollectRan: summaryParts.length > 0,
+      ybtourDetailCollectSummary: summaryParts.join(' · ') || '스킵 또는 0건',
+      registerPreviewPolicyNotes: notes,
+    },
+    { travelScope: ctx?.travelScope },
+  )
 }

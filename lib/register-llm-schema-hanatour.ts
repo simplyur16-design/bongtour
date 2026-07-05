@@ -363,4 +363,6 @@ export type RegisterLlmParseOptionsCommon = {
   skipMustKnowWebSupplement?: boolean
   llmCallMetrics?: { mainLlm: number; repairLlm: number; sectionRepairLlm: number }
   onTiming?: (label: string) => void
+  /** 관리자 travelScope — air_hotel_free(항공+호텔·자유여행) vs 패키지 */
+  travelScope?: string | null
 }
