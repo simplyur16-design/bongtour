@@ -18,7 +18,7 @@ const ERROR_HINTS: Record<string, string> = {
 export function SimplyurAuthErrorClient({ locale }: Props) {
   const tr = useSimplyurT();
   const params = useSearchParams();
-  const code = params.get("error") ?? "Default";
+  const code = params?.get("error") ?? "Default";
   const hint = ERROR_HINTS[code] ?? tr("auth.errorGeneric");
 
   return (

@@ -7,7 +7,7 @@ import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurInt
 
 export function SimplyurCheckoutCompleteClient() {
   const searchParams = useSearchParams();
-  const orderNumber = (searchParams.get("orderNumber") ?? "").trim();
+  const orderNumber = (searchParams?.get("orderNumber") ?? "").trim();
   const { locale } = useSimplyurIntl();
   const tr = useSimplyurT();
 

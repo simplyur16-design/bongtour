@@ -12,7 +12,7 @@ import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 export function SimplyurCheckoutClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const optionApiId = (searchParams.get("optionApiId") ?? "").trim();
+  const optionApiId = (searchParams?.get("optionApiId") ?? "").trim();
   const { locale } = useSimplyurIntl();
   const tr = useSimplyurT();
 
@@ -219,7 +219,7 @@ export function SimplyurCheckoutClient() {
           {tr("checkout.terms")}
         </label>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {searchParams.get("failed") === "1" ? (
+        {searchParams?.get("failed") === "1" ? (
           <p className="text-sm text-red-600">{tr("checkout.errorGeneric")}</p>
         ) : null}
         <button
