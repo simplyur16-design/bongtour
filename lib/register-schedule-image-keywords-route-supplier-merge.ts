@@ -24,6 +24,26 @@ export type RegisterScheduleRouteSupplierFallbackOpts = {
   scheduleSectionByDay?: ReadonlyMap<number, string> | null
 }
 
+/** 공급사 allocate 입력 — title/description null → undefined (supplier row 타입 호환) */
+type SupplierScheduleImageKeywordRow = {
+  day: number
+  title?: string
+  description?: string
+  routeText?: string | null
+  imageKeyword?: string | null
+  imageKeyword2?: string | null
+}
+
+function toSupplierScheduleRows(
+  rows: RegisterScheduleRouteTextKeywordRow[],
+): SupplierScheduleImageKeywordRow[] {
+  return rows.map((row) => ({
+    ...row,
+    title: row.title ?? undefined,
+    description: row.description ?? undefined,
+  }))
+}
+
 function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRouteTextKeywordRow>(
   routeRows: T[],
   supplierRows: T[],
@@ -49,42 +69,43 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
   })
 }
 
-function applySupplierScheduleImageKeywordFallback<T extends RegisterScheduleRouteTextKeywordRow>(
-  rows: T[],
+function applySupplierScheduleImageKeywordFallback(
+  rows: RegisterScheduleRouteTextKeywordRow[],
   opts: RegisterScheduleRouteSupplierFallbackOpts,
-): T[] {
+): RegisterScheduleRouteTextKeywordRow[] {
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
   const title = opts.productTitle ?? null
+  const supplierRows = toSupplierScheduleRows(rows)
 
   switch (supplier) {
     case 'hanatour':
-      return applyHanatourScheduleImageKeywordsToRows(rows, {
+      return applyHanatourScheduleImageKeywordsToRows(supplierRows, {
         productDestination: dest,
         optionalTourNames: opts.optionalTourNames,
         scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
-      })
+      }) as RegisterScheduleRouteTextKeywordRow[]
     case 'modetour':
-      return applyModetourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+      return applyModetourScheduleImageKeywordsToRows(supplierRows, { productDestination: dest }) as RegisterScheduleRouteTextKeywordRow[]
     case 'ybtour':
-      return applyYbtourScheduleImageKeywordsToRows(rows, { productDestination: dest })
+      return applyYbtourScheduleImageKeywordsToRows(supplierRows, { productDestination: dest }) as RegisterScheduleRouteTextKeywordRow[]
     case 'verygoodtour':
-      return applyVerygoodScheduleImageKeywordsToRows(rows, {
-        detRows: rows as VerygoodRegisterScheduleDay[],
+      return applyVerygoodScheduleImageKeywordsToRows(supplierRows, {
+        detRows: supplierRows as VerygoodRegisterScheduleDay[],
         productDestination: dest,
-        totalDays: rows.length,
-      })
+        totalDays: supplierRows.length,
+      }) as RegisterScheduleRouteTextKeywordRow[]
     case 'lottetour':
-      return applyLottetourScheduleImageKeywordsToRows(rows, {
+      return applyLottetourScheduleImageKeywordsToRows(supplierRows, {
         productDestination: dest,
         productTitle: title ?? undefined,
-      })
+      }) as RegisterScheduleRouteTextKeywordRow[]
     case 'kyowontour':
-      return applyKyowontourScheduleImageKeywordsToRows(rows, {
+      return applyKyowontourScheduleImageKeywordsToRows(supplierRows, {
         productDestination: dest,
         productTitle: title ?? undefined,
-      })
+      }) as RegisterScheduleRouteTextKeywordRow[]
     default:
       return rows
   }
@@ -95,6 +116,6 @@ export function applyRegisterScheduleRouteTextKeywordsWithSupplierFallback<
   T extends RegisterScheduleRouteTextKeywordRow,
 >(rows: T[], opts: RegisterScheduleRouteSupplierFallbackOpts): T[] {
   const routeTextOut = applyRegisterScheduleRouteTextImageKeywordsToRows(rows)
-  const supplierOut = applySupplierScheduleImageKeywordFallback(rows, opts)
+  const supplierOut = applySupplierScheduleImageKeywordFallback(rows, opts) as T[]
   return mergeRouteTextKeywordWithSupplierKeyword(routeTextOut, supplierOut)
 }
