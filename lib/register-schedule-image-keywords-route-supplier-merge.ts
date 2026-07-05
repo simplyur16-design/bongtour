@@ -14,6 +14,7 @@ import {
   applyRegisterScheduleRouteTextImageKeywordsToRows,
   type RegisterScheduleRouteTextKeywordRow,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
+import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 
 export type RegisterScheduleRouteSupplierFallbackOpts = {
   supplierKey: string | null | undefined
@@ -28,17 +29,22 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
   supplierRows: T[],
 ): T[] {
   const supplierByDay = new Map(supplierRows.map((r) => [Number(r.day), r]))
+  const maxDay = routeRows.reduce((m, r) => Math.max(m, Number(r.day)), 0)
   return routeRows.map((row) => {
     const day = Number(row.day)
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, routeRows.length)
     const supplier = supplierByDay.get(day)
     const routeKw = String(row.imageKeyword ?? '').trim()
     const routeKw2 = String(row.imageKeyword2 ?? '').trim()
     const supplierKw = String(supplier?.imageKeyword ?? '').trim()
     const supplierKw2 = String(supplier?.imageKeyword2 ?? '').trim()
+    const imageKeyword = routeKw || supplierKw
+    const imageKeyword2 =
+      routeKw2 || (slot === 'middle' && imageKeyword ? supplierKw2 : '') || null
     return {
       ...row,
-      imageKeyword: routeKw || supplierKw,
-      imageKeyword2: routeKw2 || supplierKw2 || null,
+      imageKeyword,
+      imageKeyword2,
     }
   })
 }
