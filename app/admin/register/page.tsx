@@ -41,8 +41,12 @@ import {
 } from '@/lib/schedule-image-keyword-persist'
 import {
   applyRegisterScheduleImageKeywordsForPreview,
+  mergePreviewImageKeywordsFromServerWhenDeriveEmpty,
   overlayPreviewScheduleImageKeywords,
+  softFinalizeRegisterScheduleImageKeywordsForPreview,
+  type ApplyRegisterScheduleImageKeywordsForPreviewOpts,
 } from '@/lib/register-schedule-image-keywords-preview'
+import { prepareRegisterScheduleRowsForImageKeywordApply } from '@/lib/register-schedule-route-text-backfill'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
 import { resolveHanatourRegisterScheduleSectionByDay, enrichHanatourRegisterPreviewScheduleRowsFromSection } from '@/lib/hanatour-schedule-section-by-day'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -391,6 +395,39 @@ type HanatourScheduleSectionDetailSource = {
   detailBodyStructured?: DetailBodyParseSnapshot | null
 }
 
+function mapRegisterPexelsUiScheduleRow(row: RegisterScheduleDay): RegisterScheduleDay {
+  return {
+    day: Number(row.day),
+    title: String(row.title ?? ''),
+    description: String(row.description ?? ''),
+    routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
+  }
+}
+
+function applyRegisterPreviewPexelsKeywordRows(
+  serverRows: RegisterScheduleDay[],
+  opts: ApplyRegisterScheduleImageKeywordsForPreviewOpts,
+  logLabel: string,
+): RegisterScheduleDay[] {
+  const prepared = prepareRegisterScheduleRowsForImageKeywordApply(
+    serverRows.map((row) => ({
+      ...row,
+      imageKeyword: '',
+      imageKeyword2: null,
+    })),
+  )
+  try {
+    const augmented = applyRegisterScheduleImageKeywordsForPreview(prepared, opts)
+    const merged = mergePreviewImageKeywordsFromServerWhenDeriveEmpty(augmented, serverRows)
+    return softFinalizeRegisterScheduleImageKeywordsForPreview(merged).map(mapRegisterPexelsUiScheduleRow)
+  } catch (e) {
+    console.error(`[admin-register] ${logLabel}`, e)
+    return serverRows.map(mapRegisterPexelsUiScheduleRow)
+  }
+}
+
 /** 미리보기 패널용: 유효한 schedule 행이 없으면 itineraryDayDrafts로 일차별 SSOT 입력 행을 만든다 */
 function buildRegisterPexelsUiRows(
   parsed: RegisterParsed | null,
@@ -427,37 +464,13 @@ function buildRegisterPexelsUiRows(
       validFromParsed.every((row) => String(row.imageKeyword ?? '').trim())
     ) {
       const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(
-        validFromParsed.map((row) => {
-          const day = Number(row.day)
-          return {
-            day,
-            title: String(row.title ?? ''),
-            description: String(row.description ?? ''),
-            routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
-            imageKeyword: '',
-            imageKeyword2: null,
-          }
-        }),
+        validFromParsed.map((row) => mapRegisterPexelsUiScheduleRow({ ...row, imageKeyword: '', imageKeyword2: null })),
       )
-      try {
-        const augmented = applyRegisterScheduleImageKeywordsForPreview(routeSanitized, {
-          supplierKey,
-          productDestination: destHintEarly,
-          productTitle: (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null,
-        })
-        return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHintEarly }).map(
-          (row) => ({
-            day: row.day,
-            title: String(row.title ?? ''),
-            description: String(row.description ?? ''),
-            routeText: row.routeText ?? null,
-            imageKeyword: String(row.imageKeyword ?? '').trim(),
-            imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
-          }),
-        )
-      } catch (e) {
-        console.error('[admin-register] modetour imageKeyword SSOT apply failed', e)
-      }
+      return applyRegisterPreviewPexelsKeywordRows(routeSanitized, {
+        supplierKey,
+        productDestination: destHintEarly,
+        productTitle: (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null,
+      }, 'modetour imageKeyword SSOT apply failed')
     }
 
     const useFitRowsInstead =
@@ -471,33 +484,27 @@ function buildRegisterPexelsUiRows(
       const airtelRows = buildAirtelRegisterPexelsUiScheduleRows(parsed, destHint)
       if (airtelRows?.length) return airtelRows
     }
+    const serverRows = validFromParsed.map(mapRegisterPexelsUiScheduleRow)
     const rawRows = prepareHanatourRegisterPexelsRawRows(
-      validFromParsed.map((row) => {
-      const day = Number(row.day)
-      return {
-        day,
-        title: String(row.title ?? ''),
-        description: String(row.description ?? ''),
-        routeText: String((row as { routeText?: string | null }).routeText ?? '').trim() || null,
-        imageKeyword: '',
-        imageKeyword2: null,
-      }
-    }),
+      prepareRegisterScheduleRowsForImageKeywordApply(
+        serverRows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null })),
+      ),
       parsed,
       preview,
       supplierKey,
     )
-    try {
-      const destHint =
-        (parsed?.destination ?? '').trim() ||
-        (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
-        null
-      const titleHint = (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null
-      const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
-        String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
-      )
-      const scheduleSectionByDay = hanatourPreviewScheduleSectionByDay(parsed, preview, supplierKey)
-      const augmented = applyRegisterScheduleImageKeywordsForPreview(rawRows, {
+    const destHint =
+      (parsed?.destination ?? '').trim() ||
+      (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
+      null
+    const titleHint = (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null
+    const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
+      String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
+    )
+    const scheduleSectionByDay = hanatourPreviewScheduleSectionByDay(parsed, preview, supplierKey)
+    return applyRegisterPreviewPexelsKeywordRows(
+      rawRows,
+      {
         supplierKey,
         productDestination: destHint,
         productTitle: titleHint,
@@ -505,26 +512,9 @@ function buildRegisterPexelsUiRows(
         productType,
         optionalTourNames,
         scheduleSectionByDay,
-      })
-      return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
-        day: row.day,
-        title: String(row.title ?? ''),
-        description: String(row.description ?? ''),
-        routeText: row.routeText ?? null,
-        imageKeyword: String(row.imageKeyword ?? '').trim(),
-        imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
-      }))
-    } catch (e) {
-      console.error('[admin-register] imageKeyword SSOT apply failed', e)
-      return rawRows.map((row) => ({
-        day: row.day,
-        title: row.title,
-        description: row.description,
-        routeText: row.routeText ?? null,
-        imageKeyword: '',
-        imageKeyword2: '',
-      }))
-    }
+      },
+      'imageKeyword SSOT apply failed',
+    )
   }
   const it = preview.itineraryDayDrafts ?? []
   if (it.length === 0) return []
@@ -564,8 +554,9 @@ function buildRegisterPexelsUiRows(
     String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
   )
   const scheduleSectionByDay = hanatourPreviewScheduleSectionByDay(parsed, preview, supplierKey)
-  try {
-    const augmented = applyRegisterScheduleImageKeywordsForPreview(draftRows, {
+  return applyRegisterPreviewPexelsKeywordRows(
+    draftRows,
+    {
       supplierKey,
       productDestination: destHint,
       productTitle: titleHint,
@@ -573,26 +564,9 @@ function buildRegisterPexelsUiRows(
       productType,
       optionalTourNames,
       scheduleSectionByDay,
-    })
-    return finalizeRegisterScheduleImageKeywords(augmented, { productDestination: destHint }).map((row) => ({
-      day: row.day,
-      title: String(row.title ?? ''),
-      description: String(row.description ?? ''),
-      routeText: row.routeText ?? null,
-      imageKeyword: String(row.imageKeyword ?? '').trim(),
-      imageKeyword2: String(row.imageKeyword2 ?? '').trim(),
-    }))
-  } catch (e) {
-    console.error('[admin-register] itinerary imageKeyword SSOT apply failed', e)
-    return draftRows.map((row) => ({
-      day: row.day,
-      title: row.title,
-      description: row.description,
-      routeText: row.routeText,
-      imageKeyword: '',
-      imageKeyword2: '',
-    }))
-  }
+    },
+    'itinerary imageKeyword SSOT apply failed',
+  )
 }
 
 /** confirm 시: schedule이 비었거나 비정상이면 UI와 동일한 일정 행으로 채운 뒤 수동 대표관광지 키워드를 반영 */

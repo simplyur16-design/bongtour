@@ -20,8 +20,10 @@ import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule
 import type { SyncFitScheduleKeywordsResult } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import type { FitDayImageKeywordFallbackContext } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
-import { collectRouteLandmarkKeywordsFromRouteText } from '@/lib/ybtour-schedule-image-keyword'
-import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import {
+  applyAirtelRouteTextImageKeywordsToSchedule,
+  boostWeakAirtelScheduleImageKeywordsFromRouteText,
+} from '@/lib/register-airtel-route-image-keyword'
 
 export { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
 
@@ -85,39 +87,13 @@ function mergeParsedScheduleWithFitDays(
     return {
       ...prev,
       day: row.day,
-      title: row.title ?? prev.title,
-      description: row.description ?? prev.description,
+      title: String(row.title ?? '').trim() || String(prev.title ?? '').trim() || `Day ${row.day}`,
+      description: String(row.description ?? '').trim() || String(prev.description ?? '').trim(),
       imageKeyword: row.imageKeyword,
       imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
     }
   })
   return { schedule: scheduleJsonRowsToRegisterRows(merged), dayKeywords }
-}
-
-function isWeakAirtelRegisterImageKeyword(kw: string | null | undefined): boolean {
-  const t = String(kw ?? '').trim()
-  if (!t || t.toLowerCase() === 'travel') return true
-  if (/^nha$/i.test(t)) return true
-  if (/^nha\s*trang$/i.test(t)) return true
-  return isBareCityOrCountryKeyword(t)
-}
-
-/** 약한 키워드일 때만 일차별 routeText에서 랜드마크 보완 */
-function applyPerDayAirtelKeywordRouteTextBoostIfNeeded(
-  schedule: RegisterScheduleDay[],
-): RegisterScheduleDay[] {
-  return schedule.map((row) => {
-    if (!isWeakAirtelRegisterImageKeyword(row.imageKeyword)) {
-      return { ...row, imageKeyword2: null }
-    }
-    const list = collectRouteLandmarkKeywordsFromRouteText(String(row.routeText ?? '').trim())
-    for (const kw of list) {
-      if (!isWeakAirtelRegisterImageKeyword(kw)) {
-        return { ...row, imageKeyword: kw, imageKeyword2: null }
-      }
-    }
-    return { ...row, imageKeyword2: null }
-  })
 }
 
 function airtelFitFieldIssue(reason: string, severity: 'info' | 'warn' = 'warn'): RegisterExtractionFieldIssue {
@@ -147,7 +123,7 @@ export async function enrichRegisterParsedWithAirtelFit(
       const response = parseFitItineraryGeminiJson(geminiJson, logLabel)
       const fitDays = fitGeminiResponseToKeywordDays(response)
       let { schedule, dayKeywords } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-      schedule = applyPerDayAirtelKeywordRouteTextBoostIfNeeded(schedule)
+      schedule = boostWeakAirtelScheduleImageKeywordsFromRouteText(schedule)
       const kwSummary = Object.entries(dayKeywords)
         .map(([d, k]) => `${d}일:${k}`)
         .join(', ')
@@ -183,7 +159,7 @@ export async function enrichRegisterParsedWithAirtelFit(
     geminiJson = geminiResult.text.trim()
     const fitDays = fitGeminiResponseToKeywordDays(response)
     let { schedule, dayKeywords } = mergeParsedScheduleWithFitDays(parsed, fitDays)
-    schedule = applyPerDayAirtelKeywordRouteTextBoostIfNeeded(schedule)
+    schedule = boostWeakAirtelScheduleImageKeywordsFromRouteText(schedule)
     const kwSummary = Object.entries(dayKeywords)
       .map(([d, k]) => `${d}일:${k}`)
       .join(', ')

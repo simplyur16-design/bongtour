@@ -9,6 +9,7 @@ import {
   stampRegisterAirtelProductTypeOnParsed,
 } from '@/lib/register-admin-airtel-listing'
 import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enrich'
+import { backfillEmptyScheduleRouteTextFromTitle } from '@/lib/register-schedule-route-text-backfill'
 import { inferYbtourEffectiveProductDestination, isYbtourCrossContinentHallucinationKeyword } from '@/lib/ybtour-schedule-image-keyword'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
@@ -105,25 +106,6 @@ function mergePostAugmentScheduleImageKeywords<T extends ScheduleRouteRow>(
         (preservePrevKw2 ? prevKw2 : null) ||
         null,
     }
-  })
-}
-
-/** 마지막·기내박 일차 — API에 routeText가 없을 때 title로 최소 routeText 보정 */
-function backfillEmptyScheduleRouteTextFromTitle<T extends ScheduleRouteRow>(rows: T[]): T[] {
-  if (!rows.length) return rows
-  const maxDay = Math.max(...rows.map((r) => Number(r.day)).filter((d) => d > 0))
-  return rows.map((row) => {
-    const day = Number(row.day)
-    if (day <= 0 || String(row.routeText ?? '').trim()) return row
-    const title = String(row.title ?? '').trim()
-    if (!title) return row
-    if (day === maxDay && /^(?:인천|김포|ICN|GMP)$/iu.test(title)) {
-      return { ...row, routeText: title }
-    }
-    if (/^기내박$/u.test(title)) {
-      return { ...row, routeText: '기내박' }
-    }
-    return row
   })
 }
 

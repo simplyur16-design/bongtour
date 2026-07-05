@@ -30,8 +30,14 @@ export function registerScheduleKeywordPassesRouteEvidence(
     /\bforbidden\b/i.test(norm) ||
     /\bforbidden\b/i.test(raw) ||
     norm === 'forbidden city'
-  if (!mentionsForbidden) return true
-  return /forbidden\s*city/i.test(hay)
+  if (mentionsForbidden) {
+    return /forbidden\s*city/i.test(hay)
+  }
+  if (/\bParis\b/i.test(raw) || norm === 'paris') {
+    if (/마이파리/u.test(hay)) return false
+    return /(?<![가-힣])파리(?![가-힣])|\bParis\b/i.test(hay)
+  }
+  return true
 }
 
 export function sanitizeRegisterScheduleImageKeywordsFromRouteEvidence<

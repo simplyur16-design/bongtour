@@ -2,7 +2,11 @@
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]
  */
 import { describe, expect, it } from 'vitest'
-import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
+import {
+  applyRegisterScheduleImageKeywordsForPreview,
+  mergePreviewImageKeywordsFromServerWhenDeriveEmpty,
+} from '@/lib/register-schedule-image-keywords-preview'
+import { backfillScheduleRouteTextFromDescriptionOrTitle } from '@/lib/register-schedule-route-text-backfill'
 
 describe('register-schedule-image-keywords-preview', () => {
   it('ignores stale server imageKeyword — routeText SSOT only', () => {
@@ -26,5 +30,33 @@ describe('register-schedule-image-keywords-preview', () => {
     expect(String(d5?.imageKeyword ?? '')).toMatch(/Hagley|Avon/i)
     expect(String(d5?.imageKeyword ?? '')).not.toMatch(/Savage Memorial/i)
     expect(String(d5?.imageKeyword2 ?? '')).not.toMatch(/^Christchurch$/i)
+  })
+
+  it('keeps server keyword when routeText re-derive is empty', () => {
+    const server = [
+      {
+        day: 3,
+        title: '오사카',
+        description: '오사카성·도톤보리',
+        routeText: null,
+        imageKeyword: 'Dotonbori',
+        imageKeyword2: null,
+      },
+    ]
+    const derived = [{ ...server[0], imageKeyword: '', imageKeyword2: null }]
+    const out = mergePreviewImageKeywordsFromServerWhenDeriveEmpty(derived, server)
+    expect(out[0]?.imageKeyword).toBe('Dotonbori')
+  })
+
+  it('backfills routeText from description first line', () => {
+    const out = backfillScheduleRouteTextFromDescriptionOrTitle([
+      {
+        day: 2,
+        title: '2일차',
+        description: '교토 - 금각사 - 청수사\n아침은 가볍게.',
+        routeText: null,
+      },
+    ])
+    expect(out[0]?.routeText).toMatch(/교토 - 금각사/)
   })
 })

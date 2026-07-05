@@ -55,6 +55,7 @@ const DESTINATION_MAP: Record<string, string> = {
   뭄바이: 'Mumbai',
   바라나시: 'Varanasi',
   오키나와: 'Okinawa',
+  미야코지마: 'Miyakojima',
   제주: 'Jeju',
   제주도: 'Jeju',
   홍콩: 'Hong Kong',
@@ -178,6 +179,18 @@ const REGION_MAP: Record<string, string> = {
  * 긴 키를 먼저 매칭하도록 호출부에서 길이 내림차순 순회.
  */
 const POI_KO_TO_EN: Record<string, string> = {
+  '마이파리 열대과수원': 'Miyakojima Tropical Fruit Garden',
+  마이파리: 'Miyakojima Tropical Fruit Garden',
+  '미야코지마 해중공원': 'Miyakojima Haejung Park',
+  '17엔드': 'Yonaha Maehama Beach Miyakojima',
+  '이라부 대교': 'Irabu Bridge Miyakojima',
+  '히가시헨나 곶': 'Higashi-Hennazaki Cape Miyakojima',
+  '유키시오 뮤지엄': 'Yuki Snow Museum Miyakojima',
+  '시기라 오공 온센': 'Shigira Ogon Onsen Miyakojima',
+  토오리이케: 'Toriike Pond Miyakojima',
+  해중공원: 'Miyakojima Haejung Park',
+  유키시오: 'Yuki Snow Museum Miyakojima',
+  조개박물관: 'Miyakojima Shell Museum',
   유니버설스튜디오싱가포르: 'Universal Studios Singapore',
   유니버설스튜디오재팬: 'Universal Studios Japan',
   유니버설스튜디오: 'Universal Studios Japan',

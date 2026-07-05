@@ -15,9 +15,9 @@ export type AirtelRouteImageKeywordRow = {
   imageKeyword2?: string | null
 }
 
-function isWeakAirtelImageKeyword(kw: string | null | undefined): boolean {
+export function isWeakAirtelImageKeyword(kw: string | null | undefined): boolean {
   const t = String(kw ?? '').trim()
-  if (!t) return true
+  if (!t || t.toLowerCase() === 'travel') return true
   if (/^nha$/i.test(t)) return true
   if (/^nha\s*trang$/i.test(t)) return true
   if (isBareCityOrCountryKeyword(t)) return true
@@ -43,6 +43,24 @@ function pickDistinctRouteLandmarksForRow(
     break
   }
   return { imageKeyword, imageKeyword2 }
+}
+
+/** 약한 일차 imageKeyword만 routeText 랜드마크로 보완(Fit title·summary 유지) */
+export function boostWeakAirtelScheduleImageKeywordsFromRouteText<T extends AirtelRouteImageKeywordRow>(
+  rows: T[],
+): T[] {
+  return rows.map((row) => {
+    if (!isWeakAirtelImageKeyword(row.imageKeyword)) {
+      return { ...row, imageKeyword2: null }
+    }
+    const list = collectRouteLandmarkKeywordsFromRouteText(String(row.routeText ?? '').trim())
+    for (const kw of list) {
+      if (!isWeakAirtelImageKeyword(kw)) {
+        return { ...row, imageKeyword: kw, imageKeyword2: null }
+      }
+    }
+    return { ...row, imageKeyword2: null }
+  })
 }
 
 /** routeText 관광지로 Nha·Nha Trang·도시 폴백 덮어씀 — 일차별 1순위는 전역 중복 회피 */

@@ -4,11 +4,11 @@
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { buildAirtelRegisterScheduleRowsFromFitParsed } from '@/lib/register-airtel-fit-preview-ui'
-import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airtel-route-image-keyword'
 import {
-  areScheduleImageKeywordsDistinct,
-  finalizeRegisterScheduleImageKeywords,
-} from '@/lib/schedule-image-keyword-persist'
+  applyAirtelRouteTextImageKeywordsToSchedule,
+  boostWeakAirtelScheduleImageKeywordsFromRouteText,
+} from '@/lib/register-airtel-route-image-keyword'
+import { finalizeRegisterScheduleImageKeywords } from '@/lib/schedule-image-keyword-persist'
 
 export function scheduleRowsHaveUniformWeakAirtelKeyword(
   rows: Array<{ imageKeyword?: string | null }>,
@@ -20,7 +20,7 @@ export function scheduleRowsHaveUniformWeakAirtelKeyword(
   return new Set(kws).size === 1
 }
 
-/** 본문 LLM parsed.schedule + routeText 보조 (API enrich 결과 SSOT) */
+/** 본문 LLM parsed.schedule + routeText 보조 (Fit JSON 없을 때만) */
 export function buildAirtelRegisterScheduleRowsFromParsed(
   parsed: RegisterParsed | null | undefined,
 ): RegisterScheduleDay[] | null {
@@ -47,8 +47,11 @@ export function buildAirtelRegisterScheduleRowsFromParsed(
 export function finalizeAirtelRegisterPexelsUiRows(
   rows: RegisterScheduleDay[],
   productDestination: string | null | undefined,
+  opts?: { fromFitJson?: boolean },
 ): RegisterScheduleDay[] {
-  const routed = applyAirtelRouteTextImageKeywordsToSchedule(rows)
+  const routed = opts?.fromFitJson
+    ? boostWeakAirtelScheduleImageKeywordsFromRouteText(rows)
+    : applyAirtelRouteTextImageKeywordsToSchedule(rows)
   return finalizeRegisterScheduleImageKeywords(routed, {
     productDestination: productDestination ?? null,
   }).map((row) => ({
@@ -65,31 +68,25 @@ export function finalizeAirtelRegisterPexelsUiRows(
 }
 
 /**
- * SSOT 우선순위: (1) Fit JSON 일차별 랜드마크 (2) parsed.schedule 일차별 구분 (3) routeText 보조.
- * routeText 존재만으로 Fit·일차별 키워드를 건너뛰지 않는다(단일 도시·Nha 회귀 방지).
+ * SSOT: registerFitItineraryGeminiJson(Fit 예시일정) → title·description·일차별 imageKeyword.
+ * Fit JSON이 있으면 Gemini 2문장 요약·시적 제목을 유지하고, 키워드만 약할 때 routeText로 일차별 보완.
  */
 export function buildAirtelRegisterPexelsUiScheduleRows(
   parsed: RegisterParsed | null | undefined,
   productDestination: string | null | undefined,
 ): RegisterScheduleDay[] | null {
+  const hasFitJson = Boolean(parsed?.registerFitItineraryGeminiJson?.trim())
   const fromFit = buildAirtelRegisterScheduleRowsFromFitParsed(parsed)
+  if (fromFit?.length) {
+    return finalizeAirtelRegisterPexelsUiRows(fromFit, productDestination, { fromFitJson: true })
+  }
+
   const fromParsed = buildAirtelRegisterScheduleRowsFromParsed(parsed)
-
-  const candidates: RegisterScheduleDay[][] = []
-  if (fromFit?.length) candidates.push(fromFit)
-  if (fromParsed?.length) candidates.push(fromParsed)
-
-  let chosen: RegisterScheduleDay[] | null = null
-  for (const rows of candidates) {
-    if (areScheduleImageKeywordsDistinct(rows)) {
-      chosen = rows
-      break
-    }
+  if (fromParsed?.length) {
+    return finalizeAirtelRegisterPexelsUiRows(fromParsed, productDestination, {
+      fromFitJson: hasFitJson,
+    })
   }
-  if (!chosen) {
-    chosen = fromFit?.length ? fromFit : fromParsed?.length ? fromParsed : null
-  }
-  if (!chosen?.length) return null
 
-  return finalizeAirtelRegisterPexelsUiRows(chosen, productDestination)
+  return null
 }

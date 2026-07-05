@@ -62,8 +62,8 @@ function scheduleRowsFromFitDays(
     return {
       ...prev,
       day: row.day,
-      title: row.title ?? prev.title,
-      description: row.description ?? prev.description,
+      title: String(row.title ?? '').trim() || String(prev.title ?? '').trim() || `Day ${row.day}`,
+      description: String(row.description ?? '').trim() || String(prev.description ?? '').trim(),
       imageKeyword: row.imageKeyword,
       imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
     }
