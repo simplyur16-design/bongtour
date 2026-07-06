@@ -61,7 +61,7 @@ describe('sign-in-method-catalog', () => {
   it('splits methods by audience — domestic web / global web / global app', () => {
     expect(signInMethodsForAudience('domestic')).toEqual(['kakao', 'naver', 'email'])
     expect(signInMethodsForAudience('globalWeb')).toEqual(['email'])
-    expect(signInMethodsForAudience('globalApp')).toEqual(['google', 'apple', 'email'])
+    expect(signInMethodsForAudience('globalApp')).toEqual(['email', 'google', 'apple'])
     expect(signInSocialMethodsForAudience('domestic')).toEqual(['kakao', 'naver'])
     expect(signInSocialMethodsForAudience('globalWeb')).toEqual([])
     expect(signInSocialMethodsForAudience('globalApp')).toEqual(['google', 'apple'])

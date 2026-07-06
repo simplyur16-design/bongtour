@@ -103,7 +103,7 @@ export function signInMethodsForAudience(audience: SignInAudience): SignInMethod
     case 'globalWeb':
       return ['email']
     case 'globalApp':
-      return ['google', 'apple', 'email']
+      return ['email', 'google', 'apple']
     default:
       return ['email']
   }

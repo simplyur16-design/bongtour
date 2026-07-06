@@ -51,20 +51,17 @@ export default async function SignInPage({ searchParams }: Props) {
         ) : null}
 
         <div className="flex w-full max-w-sm flex-col items-center">
-          <SignInSocialPanel callbackUrl={cb} csrfToken="" socialOptions={socialOptions} />
+          {methodEnabled.email ? <EmailSignInForm callbackUrl={cb} /> : null}
 
-          {methodEnabled.email ? (
-            <>
-              {hasSocial ? (
-                <div className="my-5 flex w-full items-center gap-3">
-                  <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
-                  <span className="text-xs font-medium text-bt-meta">또는</span>
-                  <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
-                </div>
-              ) : null}
-              <EmailSignInForm callbackUrl={cb} />
-            </>
+          {methodEnabled.email && hasSocial ? (
+            <div className="my-5 flex w-full items-center gap-3">
+              <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
+              <span className="text-xs font-medium text-bt-meta">또는</span>
+              <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
+            </div>
           ) : null}
+
+          <SignInSocialPanel callbackUrl={cb} csrfToken="" socialOptions={socialOptions} />
         </div>
 
         <p className="mt-8 text-center text-sm text-bt-body">
