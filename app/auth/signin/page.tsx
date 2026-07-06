@@ -1,13 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EmailSignInForm from '@/app/components/auth/EmailSignInForm'
-import SignInMethodBackLink, { signInMethodTitle } from '@/app/components/auth/SignInMethodBackLink'
 import SignInSocialPanel from '@/app/components/auth/SignInSocialPanel'
 import Header from '@/app/components/Header'
 import {
   SIGN_IN_SOCIAL_METHODS_DOMESTIC,
-  isSignInDetailMethodForAudience,
-  isSignInMethodAllowedForAudience,
   isSignInMethodEnabled,
 } from '@/lib/auth/sign-in-method-catalog'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
@@ -17,7 +14,7 @@ type Props = {
   searchParams: Promise<{ callbackUrl?: string; registered?: string; method?: string; error?: string }>
 }
 
-/** 국내(봉투어) 웹 — 카카오·네이버·이메일만. Google·Apple은 모바일 앱 전용. */
+/** 국내(봉투어) 웹 — 카카오·네이버·이메일을 한 화면에. Google·Apple은 모바일 앱 전용. */
 export default async function SignInPage({ searchParams }: Props) {
   const { callbackUrl, registered, method: rawMethod } = await searchParams
   const cb = callbackUrl?.startsWith('/') ? callbackUrl : '/'
@@ -28,17 +25,6 @@ export default async function SignInPage({ searchParams }: Props) {
     email: isSignInMethodEnabled('email'),
   }
 
-  const method: 'email' | undefined =
-    isSignInDetailMethodForAudience(rawMethod, 'domestic') && rawMethod === 'email'
-      ? 'email'
-      : registered === '1'
-        ? 'email'
-        : undefined
-
-  if (method && (!methodEnabled.email || !isSignInMethodAllowedForAudience(method, 'domestic'))) {
-    notFound()
-  }
-
   if (rawMethod === 'google' || rawMethod === 'apple') {
     notFound()
   }
@@ -47,39 +33,39 @@ export default async function SignInPage({ searchParams }: Props) {
     id,
     enabled: methodEnabled[id],
   }))
+  const hasSocial = socialOptions.some((o) => o.enabled)
 
   return (
     <div className={SUBPAGE_PAGE_SHELL_CLASS}>
       <Header />
       <main className={`${SITE_CONTENT_CLASS} flex max-w-md flex-col items-center justify-center py-16`}>
-        <h1 className="mb-2 text-xl font-bold text-bt-strong">
-          {method ? signInMethodTitle(method) : '로그인'}
-        </h1>
+        <h1 className="mb-2 text-xl font-bold text-bt-strong">로그인</h1>
         <p className="mb-8 max-w-xs text-center text-sm leading-relaxed text-bt-body">
-          {method === 'email'
-            ? '이메일과 비밀번호를 입력해 주세요.'
-            : '카카오·네이버·이메일로 로그인할 수 있습니다. 여행·연수 상품 탐색은 로그인 없이 가능합니다.'}
+          카카오·네이버·이메일로 로그인할 수 있습니다. 여행·연수 상품 탐색은 로그인 없이 가능합니다.
         </p>
 
-        {registered === '1' && !method ? (
+        {registered === '1' ? (
           <p className="mb-4 w-full max-w-xs rounded-lg border border-bt-border-soft bg-bt-brand-blue-soft px-3 py-2 text-center text-xs text-bt-title">
             회원가입이 완료되었습니다. 이메일로 로그인해 주세요.
           </p>
         ) : null}
 
-        {!method ? (
-          <SignInSocialPanel
-            callbackUrl={cb}
-            csrfToken=""
-            socialOptions={socialOptions}
-            emailEnabled={methodEnabled.email}
-          />
-        ) : (
-          <div className="w-full max-w-xs">
-            <SignInMethodBackLink method={method} callbackUrl={cb} />
-            {method === 'email' ? <EmailSignInForm callbackUrl={cb} /> : null}
-          </div>
-        )}
+        <div className="flex w-full max-w-sm flex-col items-center">
+          <SignInSocialPanel callbackUrl={cb} csrfToken="" socialOptions={socialOptions} />
+
+          {methodEnabled.email ? (
+            <>
+              {hasSocial ? (
+                <div className="my-5 flex w-full items-center gap-3">
+                  <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
+                  <span className="text-xs font-medium text-bt-meta">또는</span>
+                  <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
+                </div>
+              ) : null}
+              <EmailSignInForm callbackUrl={cb} />
+            </>
+          ) : null}
+        </div>
 
         <p className="mt-8 text-center text-sm text-bt-body">
           계정이 없으신가요?{' '}

@@ -94,9 +94,9 @@ describe('sign-in-method-catalog', () => {
     )
   })
 
-  it('builds domestic email href', () => {
+  it('builds domestic email href — same page as social (no method=email step)', () => {
     expect(buildSignInMethodHref('email', '/mypage', { audience: 'domestic' })).toBe(
-      '/auth/signin?method=email&callbackUrl=%2Fmypage',
+      '/auth/signin?callbackUrl=%2Fmypage',
     )
   })
 })

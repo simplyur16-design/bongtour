@@ -212,7 +212,7 @@ export function buildSignInMethodHref(
     case 'naver':
       return `/api/auth/naver?callbackUrl=${q}`
     case 'email':
-      return `/auth/signin?method=email&callbackUrl=${q}`
+      return `/auth/signin?callbackUrl=${q}`
     case 'google':
     case 'apple':
       return SIMPLYUR_MOBILE_APP_SCHEME

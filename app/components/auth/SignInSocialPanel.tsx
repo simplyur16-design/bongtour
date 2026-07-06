@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import type { SignInSocialMethod } from '@/lib/auth/sign-in-method-catalog'
 import {
   SIGN_IN_METHOD_DEFINITIONS,
@@ -17,7 +16,6 @@ type Props = {
   callbackUrl: string
   csrfToken: string
   socialOptions: SocialOption[]
-  emailEnabled: boolean
 }
 
 const SOCIAL_BUTTON_BASE =
@@ -133,75 +131,24 @@ function renderSocialButton(
 }
 
 /**
- * 로그인 메인 — 소셜 4종(국내·글로벌) + 이메일 진입.
- * OAuth는 `<a>`·`<form POST>`만 사용(Next.js Link fetch 회피).
+ * 소셜 로그인 버튼 — OAuth는 `<a>`·`<form POST>`만 사용(Next.js Link fetch 회피).
+ * 이메일 폼은 호출 페이지에서 같은 화면에 직접 배치.
  */
 export default function SignInSocialPanel({
   callbackUrl,
   csrfToken,
   socialOptions,
-  emailEnabled,
 }: Props) {
   const enabledSocial = socialOptions.filter((o) => o.enabled)
-  const domestic = enabledSocial.filter((o) => SIGN_IN_METHOD_DEFINITIONS[o.id].section === 'domestic')
-  const global = enabledSocial.filter((o) => SIGN_IN_METHOD_DEFINITIONS[o.id].section === 'global')
 
-  if (enabledSocial.length === 0 && !emailEnabled) {
-    return <p className="text-center text-xs text-bt-meta">사용 가능한 로그인 방법이 없습니다.</p>
+  if (enabledSocial.length === 0) {
+    return null
   }
 
   return (
-    <div className="w-full max-w-sm">
-      {domestic.length > 0 ? (
-        <section className="mb-5">
-          <p className="mb-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-bt-meta">
-            국내 계정
-          </p>
-          <div className="flex flex-col gap-2.5">
-            {domestic.map((o) => renderSocialButton(o.id, callbackUrl, csrfToken))}
-          </div>
-        </section>
-      ) : null}
-
-      {global.length > 0 ? (
-        <section className={domestic.length > 0 ? 'mb-5' : 'mb-5'}>
-          <p className="mb-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-bt-meta">
-            Apple · Google
-          </p>
-          <div className="flex flex-col gap-2.5">
-            {global.map((o) => renderSocialButton(o.id, callbackUrl, csrfToken))}
-          </div>
-        </section>
-      ) : null}
-
-      {emailEnabled ? (
-        <div className="pt-1">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
-            <span className="text-xs font-medium text-bt-meta">또는</span>
-            <span className="h-px flex-1 bg-bt-border-soft" aria-hidden />
-          </div>
-          <Link
-            href={buildSignInMethodHref('email', callbackUrl)}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-bt-border-strong bg-bt-surface px-4 text-sm font-semibold text-bt-strong transition hover:border-bt-brand-blue-strong hover:bg-bt-brand-blue-soft/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-brand-blue-strong"
-          >
-            <EmailIcon />
-            이메일로 로그인
-          </Link>
-          <p className="mt-3 text-center text-[11px] leading-relaxed text-bt-meta">
-            기존 이메일·ID 가입 회원은 여기서 로그인하세요.
-          </p>
-        </div>
-      ) : null}
+    <div className="flex w-full max-w-sm flex-col gap-2.5">
+      {enabledSocial.map((o) => renderSocialButton(o.id, callbackUrl, csrfToken))}
     </div>
-  )
-}
-
-function EmailIcon() {
-  return (
-    <svg className="h-4 w-4 text-bt-brand-blue-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M4 8l8 5 8-5M4 8v8l8 5 8-5V8" />
-    </svg>
   )
 }
 
