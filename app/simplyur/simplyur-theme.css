@@ -33,7 +33,7 @@
 
   --su-tab-h: 4.25rem;
 
-  font-family: var(--font-simplyur), "Outfit", system-ui, sans-serif;
+  font-family: var(--font-simplyur), "Poppins", system-ui, sans-serif;
   background-color: var(--su-brand-bg);
   color: var(--su-ink);
 }

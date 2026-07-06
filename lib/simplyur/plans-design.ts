@@ -1,0 +1,22 @@
+/** design_handoff_plans — duration-first Find my eSIM screen tokens */
+export const SIMPLYUR_PLANS_DESIGN = {
+  bg: "#FFF4EF",
+  navy: "#12233F",
+  coral: "#FF6B4A",
+  muted: "#6B7686",
+  faint: "#98A0AB",
+  border: "#E1DFD9",
+  bannerBg: "#FDEDE7",
+  bannerBorder: "#FBD9CB",
+  skeleton: "#EFEDE9",
+  skeletonBtn: "#F6D9CE",
+  chipHeight: 48,
+  chipMinWidth: 76,
+  chipRadius: 14,
+  cardRadius: 18,
+  cardPadding: 18,
+  buttonHeight: 56,
+  buttonRadius: 16,
+  paddingH: 22,
+  sectionGap: 22,
+} as const;

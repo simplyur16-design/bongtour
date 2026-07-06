@@ -1,0 +1,21 @@
+/** design_handoff_guide — Install guide tab tokens (Login 1b / Plans SSOT) */
+export const SIMPLYUR_GUIDE_DESIGN = {
+  bg: "#FFF4EF",
+  navy: "#12233F",
+  coral: "#FF6B4A",
+  muted: "#6B7686",
+  faint: "#98A0AB",
+  border: "#E1DFD9",
+  bannerBg: "#FDEDE7",
+  bannerBorder: "#FBD9CB",
+  mockBg: "#F8F7F5",
+  mockBorder: "#EAE8E2",
+  mockChevron: "#C7C2BA",
+  cardRadius: 18,
+  cardPadding: 18,
+  segmentHeight: 48,
+  segmentRadius: 14,
+  faqRadius: 16,
+  paddingH: 22,
+  sectionGap: 22,
+} as const;

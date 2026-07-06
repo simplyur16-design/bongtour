@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Poppins', system-ui, sans-serif; background: #EDECE8; }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:22px; padding:56px 48px 60px;">
+  <div style="display:flex; align-items:baseline; gap:14px; color:#12233F;">
+    <span style="font-weight:600; font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:#FF6B4A;">Turn 6 · My eSIM</span>
+    <h1 style="margin:0; font-weight:600; font-size:22px; color:#12233F;">My eSIM — tab 4</h1>
+  </div>
+  <p style="margin:0; max-width:900px; font-size:14px; line-height:1.6; color:#6B7686;">Sign-in required after Login. <a href="#6a" style="color:#FF6B4A; text-decoration:none; font-weight:600;">6a</a> Sign-in required · <a href="#6b" style="color:#FF6B4A; text-decoration:none; font-weight:600;">6b</a> Empty · <a href="#6c" style="color:#FF6B4A; text-decoration:none; font-weight:600;">6c</a> Order list · <a href="#6d" style="color:#FF6B4A; text-decoration:none; font-weight:600;">6d</a> Order detail (QR + usage summary) · <a href="#6e" style="color:#FF6B4A; text-decoration:none; font-weight:600;">6e</a> Usage modal expanded.</p>
+
+  <div style="display:flex; flex-wrap:wrap; gap:40px; margin-top:10px; align-items:flex-start;">
+
+    <div id="6a" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#98A0AB; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">6a · Sign-in required</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="My eSIM Screen" view="signin" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+    <div id="6b" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#98A0AB; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">6b · Empty</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="My eSIM Screen" view="empty" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+    <div id="6c" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#FF6B4A; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">6c · Order list</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="My eSIM Screen" view="list" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+    <div id="6d" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#FF6B4A; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">6d · Order detail</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="My eSIM Screen" view="detail" selected-order-index="0" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+    <div id="6e" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#12233F; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">6e · Usage (unlimited)</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="My eSIM Screen" view="detail" selected-order-index="0" usage-modal-open="{{ true }}" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+    <div id="6f" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#12233F; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">6f · Usage (used + remaining)</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="My eSIM Screen" view="detail" selected-order-index="1" usage-modal-open="{{ true }}" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- component spec -->
+  <div style="margin-top:12px; background:#FBFAF8; border:1px solid #E1DFD9; border-radius:18px; padding:26px 30px; display:flex; flex-direction:column; gap:14px; width:min(100%,940px);">
+    <span style="font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#98A0AB; font-weight:700;">Component spec</span>
+    <div style="display:flex; flex-wrap:wrap; gap:28px; font-size:13px; color:#12233F; line-height:1.8;">
+      <div><strong>Sign-in / Empty states</strong><br/><span style="color:#6B7686;">centered icon badge, 64px, #FFE4DA fill · headline 19px/800 · body 13px muted · single coral CTA</span></div>
+      <div><strong>Order card</strong><br/><span style="color:#6B7686;">radius 16px · date 12px faint · plan 14px/700 navy · status badge pill</span></div>
+      <div><strong>Status badges</strong><br/><span style="color:#6B7686;">Active green #1B8A56/#E4F5EC · Expired gray #98A0AB/#F0EEE9 · Upcoming blue #2E5FD9/#EAF1FF</span></div>
+      <div><strong>QR panel</strong><br/><span style="color:#6B7686;">168px square placeholder · caption below with Settings path</span></div>
+      <div><strong>Usage summary row</strong><br/><span style="color:#6B7686;">tappable card → opens usage modal</span></div>
+      <div><strong>Usage modal</strong><br/><span style="color:#6B7686;">bottom sheet, radius 24px top corners · big usage number · 7 daily bars, today highlighted coral</span></div>
+    </div>
+  </div>
+
+  <!-- API note -->
+  <div style="background:#FBFAF8; border:1px solid #E1DFD9; border-radius:18px; padding:20px 26px; font-size:13px; color:#6B7686; width:min(100%,940px);">
+    <strong style="color:#12233F;">API (existing):</strong> <code>GET /api/simplyur/mypage/orders</code> · <code>GET /api/simplyur/mypage/usage?orderId=</code>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

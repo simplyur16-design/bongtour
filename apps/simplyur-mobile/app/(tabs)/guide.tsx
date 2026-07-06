@@ -1,61 +1,53 @@
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { GUIDE_DESIGN as D } from '@/src/constants/guide-design';
+import { getApiBaseUrl } from '@/src/constants/simplyur';
 import { getSimplyurGuideMessages } from '@/src/guide/by-locale';
-import type { SimplyurGuideBlock, SimplyurGuideStep } from '@/src/guide/guide-types';
+import type { SimplyurGuideMockRow, SimplyurGuidePrecheckCard, SimplyurGuideStepCard } from '@/src/guide/guide-types';
+import {
+  guideAndroidStepCards,
+  guideFaqItems,
+  guideIphoneStepCards,
+  guidePhaseBanner,
+  guidePrecheckCards,
+} from '@/src/guide/view-model';
+import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
 type TabKey = 'precheck' | 'iphone' | 'android';
 
-function BlockView({ block, muted }: { block: SimplyurGuideBlock; muted: string }) {
-  return (
-    <View style={styles.block}>
-      {block.heading ? <Text style={styles.blockHeading}>{block.heading}</Text> : null}
-      {block.paras?.map((p) => (
-        <Text key={p} style={[styles.para, { color: muted }]}>
-          {p}
-        </Text>
-      ))}
-      {block.bullets?.map((b) => (
-        <Text key={b} style={[styles.bullet, { color: muted }]}>
-          • {b}
-        </Text>
-      ))}
-      {block.note ? (
-        <View style={styles.noteBox}>
-          <Text style={styles.noteText}>{block.note}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function StepsView({ steps, muted }: { steps: SimplyurGuideStep[]; muted: string }) {
-  return (
-    <>
-      {steps.map((step, idx) => (
-        <View key={step.title} style={styles.stepSection}>
-          <Text style={styles.stepTitle}>
-            {idx + 1}. {step.title}
-          </Text>
-          {step.blocks.map((block, i) => (
-            <BlockView key={`${step.title}-${i}`} block={block} muted={muted} />
-          ))}
-        </View>
-      ))}
-    </>
-  );
-}
-
+/** design_handoff_guide — Install guide (Expo iOS + Android) */
 export default function GuideScreen() {
   const { locale } = useI18n();
-  const scheme = useColorScheme() ?? 'light';
-  const colors = Colors[scheme];
+  const insets = useSafeAreaInsets();
   const guide = getSimplyurGuideMessages(locale);
   const [tab, setTab] = useState<TabKey>('precheck');
-  const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [openFaqs, setOpenFaqs] = useState<Set<number>>(() => new Set());
+
+  const phaseBanner = guidePhaseBanner(guide);
+  const precheck = guidePrecheckCards(guide);
+  const iphoneSteps = guideIphoneStepCards(guide);
+  const androidSteps = guideAndroidStepCards(guide);
+  const faqs = guideFaqItems(guide);
+  const stepCards = tab === 'iphone' ? iphoneSteps : androidSteps;
+  const devicesLabel = guide.devicesLinkLabel ?? 'Compatible devices';
+
+  async function openDevices() {
+    const base = getApiBaseUrl().replace(/\/+$/, '');
+    await WebBrowser.openBrowserAsync(`${base}/simplyur/${locale}/devices`);
+  }
+
+  function toggleFaq(index: number) {
+    setOpenFaqs((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'precheck', label: guide.tabs.precheck },
@@ -63,129 +55,257 @@ export default function GuideScreen() {
     { key: 'android', label: guide.tabs.android },
   ];
 
-  const mainFaqs = [...guide.precheckFaq, ...guide.commonFaq];
-
   return (
-    <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: colors.text }]}>{guide.title}</Text>
-      <Text style={[styles.intro, { color: colors.inkMuted }]}>{guide.intro}</Text>
-      {guide.flowPhaseNote ? (
-        <View style={[styles.phaseNote, { backgroundColor: colors.celadonLight, borderColor: colors.hanjiBorder }]}>
-          <Text style={[styles.phaseNoteText, { color: colors.celadonDark }]}>{guide.flowPhaseNote}</Text>
+    <ScrollView
+      style={[styles.root, { backgroundColor: D.bg }]}
+      contentContainerStyle={{
+        paddingTop: insets.top + 16,
+        paddingBottom: insets.bottom + 100,
+        paddingHorizontal: D.paddingH,
+        gap: D.sectionGap,
+      }}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{guide.title}</Text>
+        <Text style={styles.intro}>{guide.intro}</Text>
+        <Text style={styles.support}>{guide.supportHint}</Text>
+      </View>
+
+      {phaseBanner ? (
+        <View style={styles.banner}>
+          <View style={styles.bannerIcon}>
+            <Text style={styles.bannerIconText}>i</Text>
+          </View>
+          <Text style={styles.bannerBody}>{phaseBanner}</Text>
         </View>
       ) : null}
-      <Text style={[styles.support, { color: colors.inkMuted }]}>{guide.supportHint}</Text>
 
-      <View style={styles.tabRow}>
+      <View style={styles.segmentRow}>
         {tabs.map(({ key, label }) => {
-          const active = tab === key;
+          const selected = tab === key;
           return (
             <Pressable
               key={key}
               onPress={() => setTab(key)}
-              style={[
-                styles.tab,
-                active
-                  ? { backgroundColor: colors.celadon }
-                  : { backgroundColor: '#fff', borderColor: colors.hanjiBorder, borderWidth: 1 },
-              ]}>
-              <Text style={[styles.tabText, { color: active ? '#fff' : colors.inkMuted }]}>{label}</Text>
+              style={[styles.segment, selected ? styles.segmentOn : styles.segmentOff]}>
+              <Text style={[styles.segmentText, selected ? styles.segmentTextOn : styles.segmentTextOff]}>{label}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      {tab === 'precheck'
-        ? guide.precheckBlocks.map((block, i) => (
-            <View key={i} style={[styles.card, { borderColor: colors.hanjiBorder }]}>
-              <BlockView block={block} muted={colors.inkMuted} />
+      <View style={styles.tabContent}>
+        {tab === 'precheck'
+          ? precheck.map((card) => (
+              <PrecheckCard key={card.title} card={card} devicesLabel={devicesLabel} onDevices={openDevices} />
+            ))
+          : stepCards.map((step) => <StepCard key={step.title} step={step} />)}
+      </View>
+
+      <View style={styles.faqSection}>
+        <Text style={styles.faqTitle}>{guide.faqTitle}</Text>
+        {faqs.map(({ q, a }, index) => {
+          const open = openFaqs.has(index);
+          return (
+            <View key={q} style={styles.faqCard}>
+              <Pressable onPress={() => toggleFaq(index)} style={styles.faqHead}>
+                <Text style={styles.faqQ}>{q}</Text>
+                <Text style={[styles.faqChevron, open && styles.faqChevronOpen]}>⌄</Text>
+              </Pressable>
+              {open ? <Text style={styles.faqA}>{a}</Text> : null}
             </View>
-          ))
-        : null}
-      {tab === 'iphone' ? <StepsView steps={guide.iphoneSteps} muted={colors.inkMuted} /> : null}
-      {tab === 'android' ? <StepsView steps={guide.androidSteps} muted={colors.inkMuted} /> : null}
-
-      <Text style={[styles.faqTitle, { color: colors.text }]}>{guide.faqTitle}</Text>
-      {mainFaqs.map(({ q, a }) => {
-        const open = openFaq === q;
-        return (
-          <View key={q} style={[styles.faqCard, { borderColor: colors.hanjiBorder }]}>
-            <Pressable onPress={() => setOpenFaq(open ? null : q)} style={styles.faqHead}>
-              <Text style={[styles.faqQ, { color: colors.text }]}>{q}</Text>
-            </Pressable>
-            {open ? <Text style={[styles.faqA, { color: colors.inkMuted }]}>{a}</Text> : null}
-          </View>
-        );
-      })}
-
-      {guide.regionalFaq && guide.regionalFaq.length > 0 ? (
-        <>
-          <Text style={[styles.faqTitle, { color: colors.text, marginTop: 28 }]}>
-            {guide.regionalFaqTitle ?? 'Regional notices'}
-          </Text>
-          {guide.regionalFaqNote ? (
-            <Text style={[styles.regionalNote, { color: colors.inkMuted }]}>{guide.regionalFaqNote}</Text>
-          ) : null}
-          {guide.regionalFaq.map(({ q, a }) => {
-            const open = openFaq === q;
-            return (
-              <View key={q} style={[styles.faqCard, { borderColor: colors.hanjiBorder }]}>
-                <Pressable onPress={() => setOpenFaq(open ? null : q)} style={styles.faqHead}>
-                  <Text style={[styles.faqQ, { color: colors.text }]}>{q}</Text>
-                </Pressable>
-                {open ? <Text style={[styles.faqA, { color: colors.inkMuted }]}>{a}</Text> : null}
-              </View>
-            );
-          })}
-        </>
-      ) : null}
+          );
+        })}
+      </View>
     </ScrollView>
+  );
+}
+
+function NoteCallout({ text }: { text: string }) {
+  return (
+    <View style={styles.note}>
+      <Text style={styles.noteEmoji}>💡</Text>
+      <Text style={styles.noteText}>{text}</Text>
+    </View>
+  );
+}
+
+function SettingsMockup({ rows }: { rows: SimplyurGuideMockRow[] }) {
+  return (
+    <View style={styles.mock}>
+      {rows.map((row) => (
+        <View key={`${row.label}-${row.value}`} style={[styles.mockRow, row.highlight && styles.mockRowHi]}>
+          <Text style={styles.mockLabel}>{row.label}</Text>
+          <Text style={styles.mockValue}>
+            {row.value} <Text style={styles.mockChevron}>›</Text>
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <>
+      {items.map((item) => (
+        <Text key={item} style={styles.bullet}>
+          – {item}
+        </Text>
+      ))}
+    </>
+  );
+}
+
+function PrecheckCard({
+  card,
+  devicesLabel,
+  onDevices,
+}: {
+  card: SimplyurGuidePrecheckCard;
+  devicesLabel: string;
+  onDevices: () => void;
+}) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{card.title}</Text>
+      {card.body ? <Text style={styles.cardBody}>{card.body}</Text> : null}
+      {card.bullets?.length ? <BulletList items={card.bullets} /> : null}
+      {card.linkLabel ? (
+        <Pressable onPress={onDevices}>
+          <Text style={styles.link}>{devicesLabel} →</Text>
+        </Pressable>
+      ) : null}
+      {card.note ? <NoteCallout text={card.note} /> : null}
+    </View>
+  );
+}
+
+function StepCard({ step }: { step: SimplyurGuideStepCard }) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.stepTitle}>{step.title}</Text>
+      {step.mockRows?.length ? <SettingsMockup rows={step.mockRows} /> : null}
+      {step.bullets?.length ? <BulletList items={step.bullets} /> : null}
+      {step.note ? <NoteCallout text={step.note} /> : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 20, paddingBottom: 48 },
-  title: { fontSize: 26, fontWeight: '800' },
-  intro: { marginTop: 10, fontSize: 14, lineHeight: 21 },
-  phaseNote: { marginTop: 12, borderRadius: 12, borderWidth: 1, padding: 12 },
-  phaseNoteText: { fontSize: 13, lineHeight: 19 },
-  support: { marginTop: 6, fontSize: 12, lineHeight: 18 },
-  tabRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 },
-  tab: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
-  tabText: { fontSize: 13, fontWeight: '700' },
+  header: { gap: 10 },
+  title: { fontSize: 26, ...fp('800'), color: D.navy, letterSpacing: -0.3 },
+  intro: { fontSize: 14, lineHeight: 21, ...fp('400'), color: D.muted },
+  support: { fontSize: 12, lineHeight: 18, ...fp('400'), color: D.faint },
+  banner: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: D.bannerBg,
+    borderWidth: 1,
+    borderColor: D.bannerBorder,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  bannerIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: D.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerIconText: { color: '#fff', fontSize: 12, ...fp('700') },
+  bannerBody: { flex: 1, fontSize: 12, lineHeight: 18, ...fp('400'), color: D.muted },
+  segmentRow: { flexDirection: 'row', gap: 8 },
+  segment: {
+    flex: 1,
+    height: D.segmentHeight,
+    borderRadius: D.segmentRadius,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  segmentOn: { backgroundColor: D.coral, borderColor: D.coral },
+  segmentOff: { backgroundColor: 'transparent', borderColor: D.border },
+  segmentText: { fontSize: 14, ...fp('600') },
+  segmentTextOn: { color: '#fff' },
+  segmentTextOff: { color: D.faint },
+  tabContent: { gap: 12 },
   card: {
-    marginTop: 12,
     backgroundColor: '#fff',
-    borderRadius: 12,
     borderWidth: 1,
-    padding: 14,
+    borderColor: D.border,
+    borderRadius: D.cardRadius,
+    padding: D.cardPadding,
+    gap: 8,
   },
-  block: { gap: 6 },
-  blockHeading: { fontSize: 15, fontWeight: '700', color: '#0b1b44' },
-  para: { fontSize: 14, lineHeight: 21 },
-  bullet: { fontSize: 14, lineHeight: 21, paddingLeft: 4 },
-  noteBox: {
+  cardTitle: { fontSize: 15, ...fp('700'), color: D.navy },
+  stepTitle: { fontSize: 16, ...fp('700'), color: D.navy },
+  cardBody: { fontSize: 14, lineHeight: 22, ...fp('400'), color: D.muted },
+  bullet: { fontSize: 14, lineHeight: 22, ...fp('400'), color: D.muted, paddingLeft: 2 },
+  link: { fontSize: 13, ...fp('600'), color: D.coral, marginTop: 2 },
+  note: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: D.bannerBg,
+    borderWidth: 1,
+    borderColor: D.bannerBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginTop: 4,
-    backgroundColor: '#fffbeb',
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#fde68a',
   },
-  noteText: { fontSize: 13, lineHeight: 19, color: '#78350f' },
-  stepSection: { marginTop: 16 },
-  stepTitle: { fontSize: 16, fontWeight: '700', color: '#0b1b44', marginBottom: 8 },
-  faqTitle: { marginTop: 28, fontSize: 18, fontWeight: '800' },
-  regionalNote: { marginTop: 8, marginBottom: 4, fontSize: 13, lineHeight: 19 },
-  faqCard: {
-    marginTop: 10,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+  noteEmoji: { fontSize: 13 },
+  noteText: { flex: 1, fontSize: 12.5, lineHeight: 19, ...fp('400'), color: D.navy },
+  mock: {
+    backgroundColor: D.mockBg,
     borderWidth: 1,
+    borderColor: D.mockBorder,
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  mockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  mockRowHi: { backgroundColor: D.bg, borderColor: D.coral },
+  mockLabel: { fontSize: 12.5, ...fp('600'), color: D.navy },
+  mockValue: { fontSize: 12, ...fp('400'), color: D.faint },
+  mockChevron: { color: D.mockChevron },
+  faqSection: { gap: 12, marginTop: 6 },
+  faqTitle: { fontSize: 18, ...fp('800'), color: D.navy },
+  faqCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: D.faqRadius,
     overflow: 'hidden',
   },
-  faqHead: { padding: 14 },
-  faqQ: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  faqA: { paddingHorizontal: 14, paddingBottom: 14, fontSize: 13, lineHeight: 20 },
+  faqHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  faqQ: { flex: 1, fontSize: 14, ...fp('700'), color: D.navy, lineHeight: 20 },
+  faqChevron: { fontSize: 13, color: D.faint },
+  faqChevronOpen: { transform: [{ rotate: '180deg' }] },
+  faqA: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    fontSize: 13,
+    lineHeight: 21,
+    ...fp('400'),
+    color: D.muted,
+  },
 });

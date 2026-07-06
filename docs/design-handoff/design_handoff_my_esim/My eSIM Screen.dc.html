@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:100%; height:100%; background:#FFF4EF; overflow-y:auto; box-sizing:border-box; position:relative;">
+
+  <!-- SIGN-IN REQUIRED -->
+  <sc-if value="{{ isSignin }}" hint-placeholder-val="{{ false }}">
+    <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px;">
+      <div style="width:64px; height:64px; border-radius:50%; background:#FFE4DA; display:flex; align-items:center; justify-content:center; font-size:28px;">🔒</div>
+      <div style="font-size:19px; font-weight:800; color:#12233F; text-align:center;">Sign in to see your eSIMs</div>
+      <div style="font-size:13px; color:#6B7686; text-align:center; line-height:1.6; max-width:260px;">Track your orders, view QR codes, and check data usage once you're signed in.</div>
+      <button onClick="{{ onLoginClick }}" style="margin-top:8px; width:100%; max-width:280px; height:52px; border-radius:16px; background:#FF6B4A; border:none; color:#fff; font-family:'Poppins',sans-serif; font-weight:600; font-size:15px; cursor:pointer;">Sign in</button>
+    </div>
+  </sc-if>
+
+  <!-- EMPTY -->
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:40px;">
+      <div style="width:64px; height:64px; border-radius:50%; background:#FFE4DA; display:flex; align-items:center; justify-content:center; font-size:28px;">📶</div>
+      <div style="font-size:19px; font-weight:800; color:#12233F; text-align:center;">No orders yet</div>
+      <div style="font-size:13px; color:#6B7686; text-align:center; line-height:1.6; max-width:260px;">When you buy a plan it'll show up here with your QR code and usage.</div>
+      <button style="margin-top:8px; width:100%; max-width:280px; height:52px; border-radius:16px; background:#FF6B4A; border:none; color:#fff; font-family:'Poppins',sans-serif; font-weight:600; font-size:15px; cursor:pointer;">Browse plans</button>
+    </div>
+  </sc-if>
+
+  <!-- ORDER LIST -->
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:56px 22px 40px; display:flex; flex-direction:column; gap:18px;">
+      <div style="font-size:22px; font-weight:800; color:#12233F;">My eSIM</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ orders }}" as="order" hint-placeholder-count="3">
+          <div onClick="{{ order.onClick }}" style="background:#fff; border:1px solid #E1DFD9; border-radius:16px; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <div style="font-size:12px; color:#98A0AB;">{{ order.date }}</div>
+              <div style="font-size:14px; font-weight:700; color:#12233F;">{{ order.planSummary }}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; background:{{ order.badgeBg }}; color:{{ order.badgeColor }};">{{ order.status }}</span>
+              <span style="color:#98A0AB; font-size:16px;">›</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ORDER DETAIL -->
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:56px 22px 40px; display:flex; flex-direction:column; gap:20px;">
+      <a href="#" onClick="{{ onBackClick }}" style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#FF6B4A; text-decoration:none;">
+        <span style="font-size:16px;">←</span> Back to My eSIM
+      </a>
+
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <span style="width:fit-content; font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; background:{{ detailOrder.badgeBg }}; color:{{ detailOrder.badgeColor }};">{{ detailOrder.status }}</span>
+        <div style="font-size:20px; font-weight:800; color:#12233F;">{{ detailOrder.planSummary }}</div>
+        <div style="font-size:12px; color:#98A0AB;">Ordered {{ detailOrder.date }}</div>
+      </div>
+
+      <!-- QR panel -->
+      <div style="background:#fff; border:1px solid #E1DFD9; border-radius:18px; padding:22px; display:flex; flex-direction:column; align-items:center; gap:12px;">
+        <div style="width:168px; height:168px; border-radius:14px; background:repeating-linear-gradient(45deg, #12233F 0 6px, #fff 6px 12px); position:relative; display:flex; align-items:center; justify-content:center;">
+          <div style="position:absolute; inset:0; background:#fff; opacity:.08;"></div>
+          <span style="background:#fff; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; color:#12233F;">QR CODE</span>
+        </div>
+        <div style="font-size:12px; color:#6B7686; text-align:center;">Scan in Settings → Cellular → Add eSIM</div>
+      </div>
+
+      <!-- usage summary card -->
+      <div onClick="{{ onUsageClick }}" style="background:#fff; border:1px solid #E1DFD9; border-radius:18px; padding:18px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <span style="font-size:12px; color:#98A0AB;">Data usage</span>
+          <span style="font-size:16px; font-weight:700; color:#12233F;">{{ detailOrder.usageLabel }}</span>
+          <sc-if value="{{ detailOrder.hasCap }}" hint-placeholder-val="{{ false }}">
+            <div style="width:120px; height:6px; border-radius:999px; background:#F0EEE9; overflow:hidden; margin-top:2px;">
+              <div style="height:100%; border-radius:999px; background:#FF6B4A; width:{{ detailOrder.usedPct }}%;"></div>
+            </div>
+          </sc-if>
+        </div>
+        <span style="color:#98A0AB; font-size:16px;">›</span>
+      </div>
+    </div>
+
+    <!-- USAGE MODAL (overlay) -->
+    <sc-if value="{{ isUsageModalOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; background:rgba(18,35,63,.45); display:flex; align-items:flex-end;">
+        <div style="width:100%; background:#fff; border-radius:24px 24px 0 0; padding:22px 22px 32px; display:flex; flex-direction:column; gap:18px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:16px; font-weight:800; color:#12233F;">Data usage</span>
+            <button onClick="{{ onUsageClose }}" style="border:none; background:#F0EEE9; width:28px; height:28px; border-radius:50%; color:#6B7686; font-size:14px; cursor:pointer;">✕</button>
+          </div>
+
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <span style="font-size:28px; font-weight:800; color:#12233F;">{{ detailOrder.usedLabel }}</span>
+            <span style="font-size:14px; font-weight:600; color:#98A0AB;">{{ detailOrder.usedOfLabel }}</span>
+          </div>
+          <div style="font-size:12px; color:#98A0AB; margin-top:-12px;">{{ detailOrder.usageSublabel }}</div>
+
+          <sc-if value="{{ detailOrder.hasCap }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="width:100%; height:10px; border-radius:999px; background:#F0EEE9; overflow:hidden;">
+                <div style="height:100%; border-radius:999px; background:#FF6B4A; width:{{ detailOrder.usedPct }}%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; color:#6B7686;">
+                <span>{{ detailOrder.usedLabel }} used</span>
+                <span style="font-weight:700; color:#12233F;">{{ detailOrder.remainingLabel }} left</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex; align-items:flex-end; gap:8px; height:100px; padding-top:8px;">
+            <sc-for list="{{ dailyBars }}" as="bar" hint-placeholder-count="7">
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <div style="width:100%; max-width:22px; height:{{ bar.height }}px; border-radius:6px; background:{{ bar.color }};"></div>
+                <span style="font-size:10px; color:#98A0AB;">{{ bar.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:700},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;list&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;empty&quot;,&quot;list&quot;,&quot;detail&quot;],&quot;tsType&quot;:&quot;'signin' | 'empty' | 'list' | 'detail'&quot;},&quot;selectedOrderIndex&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;usageModalOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;onLoginClick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onBackClick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onOrderClick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(index: number) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { usageModalOpen: false };
+
+  sampleOrders() {
+    return [
+      { date: 'Jul 2, 2026', planSummary: 'Korea 7-day Unlimited', status: 'Active', badgeBg: '#E4F5EC', badgeColor: '#1B8A56', hasCap: false, usageLabel: '2.4 GB used today', usedLabel: '2.4 GB', usedOfLabel: 'used today', usageSublabel: 'Unlimited plan · resets daily', remainingLabel: 'Unlimited', usedPct: 0 },
+      { date: 'Jun 18, 2026', planSummary: 'Korea 5-day 3GB/day', status: 'Expired', badgeBg: '#F0EEE9', badgeColor: '#98A0AB', hasCap: true, usageLabel: '12.1 GB of 15 GB used', usedLabel: '12.1 GB', usedOfLabel: 'of 15 GB', usageSublabel: 'Plan ended Jun 23, 2026', remainingLabel: '2.9 GB', usedPct: 81 },
+      { date: 'Jul 10, 2026', planSummary: 'Korea 10-day Unlimited', status: 'Upcoming', badgeBg: '#EAF1FF', badgeColor: '#2E5FD9', hasCap: false, usageLabel: 'Not started', usedLabel: '0 GB', usedOfLabel: 'used', usageSublabel: 'Activates on first connection', remainingLabel: '—', usedPct: 0 },
+    ];
+  }
+
+  renderVals() {
+    const view = this.props.view ?? 'list';
+    const orders = this.sampleOrders().map((o, i) => ({
+      ...o,
+      onClick: () => { if (this.props.onOrderClick) this.props.onOrderClick(i); },
+    }));
+    const selectedIndex = this.props.selectedOrderIndex ?? 0;
+    const detailOrder = orders[selectedIndex] ?? orders[0];
+
+    const dailyBars = [
+      { label: 'Mon', height: 34, color: '#FFD5C6' },
+      { label: 'Tue', height: 52, color: '#FFD5C6' },
+      { label: 'Wed', height: 70, color: '#FFD5C6' },
+      { label: 'Thu', height: 46, color: '#FFD5C6' },
+      { label: 'Fri', height: 88, color: '#FF6B4A' },
+      { label: 'Sat', height: 60, color: '#FFD5C6' },
+      { label: 'Sun', height: 20, color: '#FFD5C6' },
+    ];
+
+    return {
+      isSignin: view === 'signin',
+      isEmpty: view === 'empty',
+      isList: view === 'list',
+      isDetail: view === 'detail',
+      orders,
+      detailOrder,
+      dailyBars,
+      isUsageModalOpen: this.props.usageModalOpen ?? this.state.usageModalOpen,
+      onLoginClick: () => { if (this.props.onLoginClick) this.props.onLoginClick(); },
+      onBackClick: (e) => { e.preventDefault(); if (this.props.onBackClick) this.props.onBackClick(); },
+      onUsageClick: () => this.setState({ usageModalOpen: true }),
+      onUsageClose: () => this.setState({ usageModalOpen: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>

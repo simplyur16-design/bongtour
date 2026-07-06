@@ -1,7 +1,8 @@
 import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { getSimplyurGuideMessages } from "@/lib/simplyur/guide-by-locale";
-import { SimplyurGuideClient } from "@/components/simplyur/SimplyurGuideClient";
+import { SIMPLYUR_GUIDE_DESIGN as D } from "@/lib/simplyur/guide-design";
+import { SimplyurGuidePanel } from "@/components/simplyur/guide/SimplyurGuidePanel";
 import { notFound } from "next/navigation";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -14,9 +15,12 @@ export default async function SimplyurGuidePage({ params }: Props) {
   const guide = getSimplyurGuideMessages(locale);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-12">
-      <h1 className="text-3xl font-bold tracking-tight su-text-ink">{t(messages, "guide.title")}</h1>
-      <SimplyurGuideClient guide={guide} />
+    <main
+      className="mx-auto max-w-lg px-[22px] py-8 sm:max-w-2xl"
+      style={{ backgroundColor: D.bg, paddingBottom: "calc(var(--su-tab-h) + 2.5rem)", minHeight: "70vh" }}
+    >
+      <SimplyurGuidePanel guide={guide} />
+      <span className="sr-only">{t(messages, "guide.title")}</span>
     </main>
   );
 }

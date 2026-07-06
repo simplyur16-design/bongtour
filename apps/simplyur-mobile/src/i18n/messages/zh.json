@@ -6,6 +6,9 @@
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
   },
+  "opening": {
+    "getStarted": "开始"
+  },
   "nav": {
     "home": "首页",
     "findPlan": "查找 eSIM",
@@ -27,10 +30,10 @@
     "headline": "全球连接，化繁为简",
     "titleLine1": "在",
     "titleHighlight": "韩国",
-    "subtitle": "付款后邮件即时发送 QR 码。",
-    "cta": "查找 eSIM",
-    "deviceLink": "兼容设备 →",
-    "guideLink": "安装指南 →"
+    "subtitle": "购买后邮件即时发送 QR 码。出发前安装，落地即可激活。",
+    "cta": "Find my eSIM",
+    "deviceLink": "Compatible devices →",
+    "guideLink": "Install guide →"
   },
   "home": {
     "popularPlans": "热门韩国套餐",
@@ -43,11 +46,11 @@
     "kr": { "name": "韩国", "subtitle": "首尔、釜山及全国" }
   },
   "why": {
-    "title": "为什么选择 simplyur",
+    "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "即时发送", "body": "付款后数分钟内收到 QR。" },
-      "support": { "title": "24 小时客服", "body": "出行前后均可邮件咨询。" },
-      "refund": { "title": "退款保障", "body": "未使用 eSIM 可按政策退款。" }
+      "instant": { "title": "Instant activation", "body": "无需实体 SIM、无需到店 — 扫码数分钟即可安装。" },
+      "support": { "title": "English support", "body": "出行前后均可获得清晰的英文客服支持。" },
+      "refund": { "title": "Easy refunds", "body": "计划有变？未使用的 eSIM 可轻松退款。" }
     }
   },
   "reviews": {
@@ -59,8 +62,9 @@
     ]
   },
   "recommend": {
-    "title": "韩国 eSIM 套餐",
-    "koreaOnly": "均为韩国套餐 — 首尔、釜山、济州及全国。",
+    "title": "查找韩国 eSIM",
+    "subtitle": "先选择停留天数，再选择流量套餐。",
+    "koreaOnly": "先选择停留天数，再选择流量套餐。",
     "loading": "加载中…",
     "noPlans": "暂无可用套餐。",
     "fromPrice": "起",
@@ -71,17 +75,33 @@
     "local": "韩国本地网络",
     "selectPlan": "选择",
     "checkoutSoon": "支付即将开放",
-    "price": "价格"
+    "price": "价格",
+    "durationLabel": "您行程几天？",
+    "durationHint": "仅显示在售的天数。",
+    "durationCaption": "1 天 = 自激活起 24 小时（因套餐而异）",
+    "durationChip": "{N} 天",
+    "plansPlaceholder": "请在上方选择行程天数以查看套餐。",
+    "showingPlansPrefix": "显示 ",
+    "showingPlansSuffix": " 天套餐",
+    "change": "更改",
+    "bannerTitle": "结账功能即将开放",
+    "bannerBody": "您现在可以浏览套餐并阅读安装指南，在线支付正在开通中。",
+    "noPlansForDays": "暂无 {N} 天套餐，请尝试其他天数。",
+    "errorTitle": "无法加载套餐。",
+    "errorBody": "请检查网络后重试。",
+    "retry": "重试"
   },
   "product": {
     "buyNow": "立即购买",
     "checkoutSoon": "支付即将开放",
-    "checkoutSoonHint": "在线支付正在准备中。您可以先浏览套餐并阅读安装指南。",
+    "checkoutSoonHint": "在线支付开通后，我们会第一时间邮件通知您。",
     "details": "套餐详情",
     "network": "网络",
     "planType": "套餐类型",
     "option": "选项",
-    "notFound": "该套餐不可用。",
+    "notFoundTitle": "未找到套餐",
+    "notFoundBody": "该套餐可能已下架。请返回并选择其他行程天数。",
+    "notFound": "未找到套餐",
     "backToPlans": "返回套餐列表"
   },
   "checkout": {
@@ -127,6 +147,13 @@
   "language": { "label": "语言" },
   "auth": {
     "title": "登录",
+    "welcomeTitle": "欢迎使用 Simply UR",
+    "welcomeSubtitle": "登录以管理您的 eSIM",
+    "skip": "跳过",
+    "continueEmail": "使用邮箱继续",
+    "emailLabel": "邮箱",
+    "passwordLabel": "密码",
+    "signInSubmit": "登录",
     "audienceBadge": "赴韩国际访客专用",
     "subtitle": "simplyur 仅供赴韩国际访客使用（非韩国居民）。网站仅支持邮箱登录；Google 与 Apple 请使用 simplyur 手机应用。",
     "appSocialHint": "Google 与 Apple 登录仅在 simplyur 外国人专用应用中可用。网站请使用邮箱。",
@@ -153,6 +180,27 @@
     "loadError": "无法加载订单。",
     "usageError": "无法加载用量数据，请稍后重试。",
     "signInRequired": "请登录后查看 eSIM。",
+    "signInTitle": "登录查看 eSIM",
+    "signInBody": "登录后可追踪订单、查看 QR 码和数据用量。",
+    "emptyTitle": "暂无订单",
+    "emptyBody": "购买套餐后，QR 码和用量会显示在这里。",
+    "emptyCta": "浏览套餐",
+    "backToList": "返回 My eSIM",
+    "orderedOn": "下单",
+    "qrHint": "在 设置 → 蜂窝网络 → 添加 eSIM 中扫描",
+    "usageCardLabel": "数据用量",
+    "loadingUsage": "加载用量中…",
+    "notStarted": "未开始",
+    "activatesOnConnect": "首次连接时激活",
+    "usedToday": "今日已用 {amount}",
+    "usedTodaySuffix": "今日使用",
+    "usedOfCap": "已用 {used} / {cap}",
+    "usedOfSuffix": "/ {cap}",
+    "usedSuffix": "已用",
+    "usedWord": "已用",
+    "leftWord": "剩余",
+    "unlimitedResetsDaily": "无限套餐 · 每日重置",
+    "badge": { "active": "使用中", "expired": "已过期", "upcoming": "待开始" },
     "empty": "暂无 eSIM 订单。",
     "orderDate": "下单日期",
     "orderNo": "订单号",

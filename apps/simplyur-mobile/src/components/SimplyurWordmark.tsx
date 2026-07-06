@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SIMPLYUR_BRAND } from '@/src/constants/brand';
+import { fp } from '@/src/constants/typography';
 
 type Props = {
   size?: 'sm' | 'md' | 'lg';
@@ -28,11 +29,11 @@ export function SimplyurWordmark({ size = 'md', showTagline = true, tagline }: P
 const styles = StyleSheet.create({
   root: { alignItems: 'flex-start' },
   wordmark: { letterSpacing: -0.5, lineHeight: 40 },
-  simply: { fontWeight: '300', color: SIMPLYUR_BRAND.simplyColor },
-  ur: { fontWeight: '800', color: SIMPLYUR_BRAND.urColor },
+  simply: { ...fp('300'), color: SIMPLYUR_BRAND.simplyColor },
+  ur: { ...fp('800'), color: SIMPLYUR_BRAND.urColor },
   tagline: {
     marginTop: 6,
-    fontWeight: '500',
+    ...fp('400'),
     letterSpacing: 2.2,
     textTransform: 'uppercase',
     color: SIMPLYUR_BRAND.simplyColor,

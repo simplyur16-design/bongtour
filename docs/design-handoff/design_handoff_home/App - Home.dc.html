@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Poppins', system-ui, sans-serif; background: #EDECE8; }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:22px; padding:56px 48px 60px;">
+  <div style="display:flex; align-items:baseline; gap:14px; color:#12233F;">
+    <span style="font-weight:600; font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:#FF6B4A;">Turn 4 · Home tab</span>
+    <h1 style="margin:0; font-weight:600; font-size:22px; color:#12233F;">Home tab — [03 Home]</h1>
+  </div>
+  <p style="margin:0; max-width:800px; font-size:14px; line-height:1.6; color:#6B7686;">Post-login/skip landing tab. Korea eSIM value proposition + <strong style="color:#12233F;">Find my eSIM</strong> CTA leading to Plans. <a href="#4a" style="color:#FF6B4A; text-decoration:none; font-weight:600;">4a</a> Loaded frame.</p>
+
+  <div style="display:flex; flex-wrap:wrap; gap:40px; margin-top:10px; align-items:flex-start;">
+
+    <div id="4a" style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+      <span style="background:#FF6B4A; color:#fff; font-weight:600; font-size:13px; padding:4px 12px; border-radius:999px;">4a · Loaded</span>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390,844">
+        <dc-import name="Home Screen" hint-size="390,844"></dc-import>
+      </x-import>
+    </div>
+
+  </div>
+
+  <!-- component spec -->
+  <div style="margin-top:12px; background:#FBFAF8; border:1px solid #E1DFD9; border-radius:18px; padding:26px 30px; display:flex; flex-direction:column; gap:14px; width:min(100%,900px);">
+    <span style="font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#98A0AB; font-weight:700;">Component spec</span>
+    <div style="display:flex; flex-wrap:wrap; gap:28px; font-size:13px; color:#12233F; line-height:1.8;">
+      <div><strong>Country pill</strong><br/><span style="color:#6B7686;">navy #12233F fill · white text · uppercase · same component as Plans</span></div>
+      <div><strong>Hero</strong><br/><span style="color:#6B7686;">34px / weight 800 · two lines, second line coral</span></div>
+      <div><strong>Primary CTA</strong><br/><span style="color:#6B7686;">full width · 56px · radius 16px · coral fill · same as Opening's Get Started</span></div>
+      <div><strong>Why card</strong><br/><span style="color:#6B7686;">white · border #E1DFD9 · radius 16px · 36px icon tile (peach bg, coral glyph)</span></div>
+      <div><strong>Secondary links</strong><br/><span style="color:#6B7686;">13px / 600 · coral · Install guide + Compatible devices</span></div>
+      <div><strong>Page bg</strong><br/><span style="color:#6B7686;">#FFF4EF (unified across all tabs)</span></div>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

@@ -5,6 +5,7 @@ import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { LOCALE_LABELS, SIMPLYUR_LOCALES, useI18n } from '@/src/i18n/I18nContext';
 import type { SimplyurLocale } from '@/src/constants/simplyur';
+import { fp } from '@/src/constants/typography';
 
 export default function LanguageModal() {
   const { locale, setLocale, t } = useI18n();
@@ -38,7 +39,7 @@ export default function LanguageModal() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, padding: 24 },
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 16 },
+  title: { fontSize: 22, ...fp('800'), marginBottom: 16 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -49,5 +50,5 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: '#fff',
   },
-  rowText: { fontSize: 16, fontWeight: '600' },
+  rowText: { fontSize: 16, ...fp('600') },
 });

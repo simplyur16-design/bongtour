@@ -27,10 +27,10 @@
     "headline": "Global Connectivity, Simplified",
     "titleLine1": "Stay connected in",
     "titleHighlight": "South Korea",
-    "subtitle": "Travel data for international visitors to Korea — QR delivered by email after purchase.",
+    "subtitle": "Get your QR code by email right after purchase. Install it before you fly, then activate the moment you land.",
     "cta": "Find my eSIM",
-    "deviceLink": "Check compatible devices →",
-    "guideLink": "View install guide →"
+    "deviceLink": "Compatible devices →",
+    "guideLink": "Install guide →"
   },
   "home": {
     "popularPlans": "Popular Korea plans",
@@ -43,11 +43,11 @@
     "kr": { "name": "South Korea", "subtitle": "Seoul, Busan & nationwide" }
   },
   "why": {
-    "title": "Why travelers choose simplyur",
+    "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant delivery", "body": "Receive your QR code by email within minutes of payment." },
-      "support": { "title": "24/7 customer care", "body": "Get help before and during your trip via email." },
-      "refund": { "title": "Refund guarantee", "body": "Unused eSIMs can be refunded according to our policy." }
+      "instant": { "title": "Instant activation", "body": "No physical SIM, no store visit — install from your QR code in minutes." },
+      "support": { "title": "English support", "body": "Get help in plain English whenever you need it, before or during your trip." },
+      "refund": { "title": "Easy refunds", "body": "Change of plans? Unused eSIMs are refundable — no hassle." }
     }
   },
   "reviews": {
@@ -59,8 +59,9 @@
     ]
   },
   "recommend": {
-    "title": "Korea eSIM plans",
-    "koreaOnly": "All plans are for South Korea — Seoul, Busan, Jeju, and nationwide.",
+    "title": "Find your Korea eSIM",
+    "subtitle": "Choose how long you stay, then pick a data plan.",
+    "koreaOnly": "Choose how long you stay, then pick a data plan.",
     "loading": "Loading plans…",
     "noPlans": "No plans available right now.",
     "fromPrice": "From",
@@ -71,17 +72,33 @@
     "local": "Local Korean network",
     "selectPlan": "Select",
     "checkoutSoon": "Checkout opening soon",
-    "price": "Price"
+    "price": "Price",
+    "durationLabel": "How long is your trip?",
+    "durationHint": "Only trip lengths we sell are shown.",
+    "durationCaption": "1 day = 24 hours from activation (varies by plan)",
+    "durationChip": "{N} days",
+    "plansPlaceholder": "Select your trip length above to see available plans.",
+    "showingPlansPrefix": "Showing plans for ",
+    "showingPlansSuffix": " days",
+    "change": "Change",
+    "bannerTitle": "Checkout opening soon",
+    "bannerBody": "You can browse plans and read the install guide now. Online payment is being enabled.",
+    "noPlansForDays": "No plans for {N} days right now. Try another trip length.",
+    "errorTitle": "Couldn't load plans.",
+    "errorBody": "Check your connection and try again.",
+    "retry": "Retry"
   },
   "product": {
     "buyNow": "Buy now",
     "checkoutSoon": "Checkout opening soon",
-    "checkoutSoonHint": "You can browse Korea plans and read the install guide now. Online payment and Google sign-in for My eSIM are being enabled on the server.",
+    "checkoutSoonHint": "We'll email you the moment online payment goes live.",
     "details": "Plan details",
     "network": "Network",
     "planType": "Plan type",
     "option": "Option",
-    "notFound": "This plan is not available.",
+    "notFoundTitle": "Plan not found",
+    "notFoundBody": "This plan may no longer be available. Head back and pick another trip length.",
+    "notFound": "Plan not found",
     "backToPlans": "Back to plans"
   },
   "checkout": {
@@ -400,6 +417,13 @@
   "language": { "label": "Language" },
   "auth": {
     "title": "Sign in",
+    "welcomeTitle": "Welcome to Simply UR",
+    "welcomeSubtitle": "Sign in to manage your eSIM",
+    "skip": "Skip",
+    "continueEmail": "Continue with Email",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "signInSubmit": "Sign in",
     "audienceBadge": "International visitors to Korea",
     "subtitle": "simplyur is for visitors to Korea — not for Korea residents. On the website, use email only; Google and Apple sign-in are in the simplyur mobile app.",
     "appSocialHint": "Google and Apple sign-in are in the simplyur app (foreign visitors only). Use email here on the website.",
@@ -428,7 +452,27 @@
     "loadError": "Could not load your orders.",
     "usageError": "Could not load usage data. Please try again.",
     "signInRequired": "Please sign in to view your eSIMs.",
+    "signInTitle": "Sign in to see your eSIMs",
+    "signInBody": "Track your orders, view QR codes, and check data usage once you're signed in.",
+    "emptyTitle": "No orders yet",
+    "emptyBody": "When you buy a plan it'll show up here with your QR code and usage.",
+    "emptyCta": "Browse plans",
     "empty": "No eSIM orders yet.",
+    "backToList": "Back to My eSIM",
+    "orderedOn": "Ordered",
+    "qrHint": "Scan in Settings → Cellular → Add eSIM",
+    "usageCardLabel": "Data usage",
+    "loadingUsage": "Loading usage…",
+    "notStarted": "Not started",
+    "activatesOnConnect": "Activates on first connection",
+    "usedToday": "{amount} used today",
+    "usedTodaySuffix": "used today",
+    "usedOfCap": "{used} of {cap} used",
+    "usedOfSuffix": "of {cap}",
+    "usedSuffix": "used",
+    "usedWord": "used",
+    "leftWord": "left",
+    "unlimitedResetsDaily": "Unlimited plan · resets daily",
     "orderDate": "Order date",
     "orderNo": "Order no.",
     "viewQr": "View QR code",
@@ -440,6 +484,11 @@
     "used": "Used",
     "unlimited": "Unlimited",
     "noDailyUsage": "No daily usage data yet.",
+    "badge": {
+      "active": "Active",
+      "expired": "Expired",
+      "upcoming": "Upcoming"
+    },
     "status": {
       "ordered": "Ordered",
       "paid": "Paid",

@@ -8,8 +8,11 @@ export default async function SimplyurProductPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto max-w-2xl px-4 py-10">
-          <div className="h-8 w-48 animate-pulse rounded bg-[color:var(--su-hanji-border)]" />
+        <main
+          className="mx-auto max-w-lg px-[22px] py-8"
+          style={{ backgroundColor: "#FFF4EF", minHeight: "60vh" }}
+        >
+          <div className="h-7 w-3/4 animate-pulse rounded-lg bg-[#EDE9E4]" />
         </main>
       }
     >

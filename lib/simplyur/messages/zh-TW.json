@@ -27,10 +27,10 @@
     "headline": "全球連線，化繁為簡",
     "titleLine1": "在",
     "titleHighlight": "韓國",
-    "subtitle": "付款後郵件即時發送 QR 碼。",
-    "cta": "查找 eSIM",
-    "deviceLink": "相容裝置 →",
-    "guideLink": "安裝指南 →"
+    "subtitle": "購買後郵件即時發送 QR 碼。出發前安裝，落地即可啟用。",
+    "cta": "Find my eSIM",
+    "deviceLink": "Compatible devices →",
+    "guideLink": "Install guide →"
   },
   "home": {
     "popularPlans": "熱門韓國方案",
@@ -43,11 +43,11 @@
     "kr": { "name": "韓國", "subtitle": "首爾、釜山及全國" }
   },
   "why": {
-    "title": "為什麼選擇 simplyur",
+    "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "即時發送", "body": "付款後數分鐘內收到 QR。" },
-      "support": { "title": "24 小時客服", "body": "出發前後均可郵件諮詢。" },
-      "refund": { "title": "退款保障", "body": "未使用 eSIM 可依政策退款。" }
+      "instant": { "title": "Instant activation", "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。" },
+      "support": { "title": "English support", "body": "出發前後均可獲得清晰的英文客服支援。" },
+      "refund": { "title": "Easy refunds", "body": "計畫有變？未使用的 eSIM 可輕鬆退款。" }
     }
   },
   "reviews": {
@@ -59,8 +59,9 @@
     ]
   },
   "recommend": {
-    "title": "韓國 eSIM 方案",
-    "koreaOnly": "均為韓國方案 — 首爾、釜山、濟州及全國。",
+    "title": "查找韓國 eSIM",
+    "subtitle": "先選擇停留天數，再選擇流量方案。",
+    "koreaOnly": "先選擇停留天數，再選擇流量方案。",
     "loading": "載入中…",
     "noPlans": "暫無可用方案。",
     "fromPrice": "起",
@@ -71,17 +72,33 @@
     "local": "韓國本地網路",
     "selectPlan": "選擇",
     "checkoutSoon": "付款即將開放",
-    "price": "價格"
+    "price": "價格",
+    "durationLabel": "您行程幾天？",
+    "durationHint": "僅顯示在售的天數。",
+    "durationCaption": "1 天 = 自啟用起 24 小時（因方案而異）",
+    "durationChip": "{N} 天",
+    "plansPlaceholder": "請在上方選擇行程天數以查看方案。",
+    "showingPlansPrefix": "顯示 ",
+    "showingPlansSuffix": " 天方案",
+    "change": "更改",
+    "bannerTitle": "結帳功能即將開放",
+    "bannerBody": "您現在可以瀏覽方案並閱讀安裝指南，線上付款正在開通中。",
+    "noPlansForDays": "暫無 {N} 天方案，請嘗試其他天數。",
+    "errorTitle": "無法載入方案。",
+    "errorBody": "請檢查網路後重試。",
+    "retry": "重試"
   },
   "product": {
     "buyNow": "立即購買",
     "checkoutSoon": "付款即將開放",
-    "checkoutSoonHint": "線上付款準備中。可先瀏覽方案並閱讀安裝指南。",
+    "checkoutSoonHint": "線上付款開通後，我們會第一時間以郵件通知您。",
     "details": "方案詳情",
     "network": "網路",
     "planType": "方案類型",
     "option": "選項",
-    "notFound": "此方案不可用。",
+    "notFoundTitle": "找不到方案",
+    "notFoundBody": "此方案可能已下架。請返回並選擇其他行程天數。",
+    "notFound": "找不到方案",
     "backToPlans": "返回方案列表"
   },
   "checkout": {
@@ -127,6 +144,13 @@
   "language": { "label": "語言" },
   "auth": {
     "title": "登入",
+    "welcomeTitle": "歡迎使用 Simply UR",
+    "welcomeSubtitle": "登入以管理您的 eSIM",
+    "skip": "略過",
+    "continueEmail": "使用電子郵件繼續",
+    "emailLabel": "電子郵件",
+    "passwordLabel": "密碼",
+    "signInSubmit": "登入",
     "audienceBadge": "赴韓國際訪客專用",
     "subtitle": "simplyur 僅供赴韓國際訪客使用（非韓國居民）。網站僅支援電子郵件；Google 與 Apple 請使用 simplyur 手機應用程式。",
     "appSocialHint": "Google 與 Apple 登入僅在 simplyur 外國人專用應用程式中可用。網站請使用電子郵件。",
@@ -153,6 +177,27 @@
     "loadError": "無法載入訂單。",
     "usageError": "無法載入用量資料，請稍後再試。",
     "signInRequired": "請登入後查看 eSIM。",
+    "signInTitle": "登入查看 eSIM",
+    "signInBody": "登入後可追蹤訂單、查看 QR 碼和數據用量。",
+    "emptyTitle": "暫無訂單",
+    "emptyBody": "購買方案後，QR 碼和用量會顯示在這裡。",
+    "emptyCta": "瀏覽方案",
+    "backToList": "返回 My eSIM",
+    "orderedOn": "下單",
+    "qrHint": "在 設定 → 行動服務 → 加入 eSIM 中掃描",
+    "usageCardLabel": "數據用量",
+    "loadingUsage": "載入用量中…",
+    "notStarted": "未開始",
+    "activatesOnConnect": "首次連線時啟用",
+    "usedToday": "今日已用 {amount}",
+    "usedTodaySuffix": "今日使用",
+    "usedOfCap": "已用 {used} / {cap}",
+    "usedOfSuffix": "/ {cap}",
+    "usedSuffix": "已用",
+    "usedWord": "已用",
+    "leftWord": "剩餘",
+    "unlimitedResetsDaily": "無限方案 · 每日重置",
+    "badge": { "active": "使用中", "expired": "已過期", "upcoming": "待開始" },
     "empty": "尚無 eSIM 訂單。",
     "orderDate": "下單日期",
     "orderNo": "訂單號",

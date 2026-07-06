@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
+import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
 export default function CheckoutScreen() {
@@ -56,7 +57,7 @@ export default function CheckoutScreen() {
       </View>
       <Link href="/plans" asChild>
         <Pressable style={{ marginTop: 20 }}>
-          <Text style={{ color: colors.celadon, fontWeight: '600' }}>{t('product.backToPlans')}</Text>
+          <Text style={{ color: colors.celadon, ...fp('600') }}>{t('product.backToPlans')}</Text>
         </Pressable>
       </Link>
     </ScrollView>
@@ -67,9 +68,9 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: '800' },
-  sub: { marginTop: 8, fontSize: 15 },
+  title: { fontSize: 24, ...fp('800') },
+  sub: { marginTop: 8, fontSize: 15, ...fp('400') },
   banner: { marginTop: 24, borderRadius: 14, borderWidth: 1, padding: 16 },
-  bannerTitle: { fontSize: 17, fontWeight: '800' },
-  bannerBody: { marginTop: 8, fontSize: 14, lineHeight: 21 },
+  bannerTitle: { fontSize: 17, ...fp('800') },
+  bannerBody: { marginTop: 8, fontSize: 14, lineHeight: 21, ...fp('400') },
 });

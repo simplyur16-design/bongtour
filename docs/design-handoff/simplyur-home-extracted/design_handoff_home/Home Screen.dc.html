@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:100%; height:100%; background:#FFF4EF; overflow-y:auto; box-sizing:border-box;">
+  <div style="padding:88px 22px 100px; display:flex; flex-direction:column; gap:24px;">
+
+    <!-- header / country pill -->
+    <span style="align-self:flex-start; background:#12233F; color:#fff; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:999px;">South Korea</span>
+
+    <!-- hero -->
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:34px; font-weight:800; line-height:1.15; letter-spacing:-.01em;">
+        <span style="color:#12233F;">Stay connected in</span><br/><span style="color:#FF6B4A;">South Korea</span>
+      </div>
+      <div style="font-size:14px; color:#6B7686; line-height:1.6; max-width:320px;">Get your QR code by email right after purchase. Install it before you fly, then activate the moment you land.</div>
+    </div>
+
+    <!-- primary CTA -->
+    <button onClick="{{ onFindEsim }}" style="width:100%; height:56px; border-radius:16px; background:#FF6B4A; border:none; color:#fff; font-family:'Poppins',sans-serif; font-weight:600; font-size:16px; letter-spacing:.01em; cursor:pointer; box-shadow:0 12px 26px -12px rgba(255,107,74,.6);">Find my eSIM</button>
+
+    <!-- phase banner -->
+    <div style="display:flex; gap:10px; background:#FDEDE7; border:1px solid #FBD9CB; border-radius:14px; padding:14px 16px;">
+      <div style="width:20px; height:20px; border-radius:50%; background:#FF6B4A; flex:none; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700;">i</div>
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div style="font-size:13px; font-weight:700; color:#12233F;">Checkout opening soon</div>
+        <div style="font-size:12px; color:#6B7686; line-height:1.5;">You can browse plans and read the install guide now. Online payment is being enabled.</div>
+      </div>
+    </div>
+
+    <!-- why simplyur -->
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:15px; font-weight:700; color:#12233F;">Why simplyUR</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ whyCards }}" as="card" hint-placeholder-count="3">
+          <div style="border:1px solid #E1DFD9; border-radius:16px; background:#fff; padding:14px 16px; display:flex; align-items:center; gap:14px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#FDEDE7; flex:none; display:flex; align-items:center; justify-content:center; color:#FF6B4A; font-size:16px;">{{ card.icon }}</div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <div style="font-size:14px; font-weight:700; color:#12233F;">{{ card.title }}</div>
+              <div style="font-size:12.5px; color:#6B7686; line-height:1.5;">{{ card.body }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- secondary links -->
+    <div style="display:flex; gap:22px; padding:2px 2px 0;">
+      <a href="#" onClick="{{ onGuideClick }}" style="font-size:13px; font-weight:600; color:#FF6B4A; text-decoration:none;">Install guide →</a>
+      <a href="#" onClick="{{ onDevicesClick }}" style="font-size:13px; font-weight:600; color:#FF6B4A; text-decoration:none;">Compatible devices →</a>
+    </div>
+  </div>
+
+  <!-- bottom tab bar -->
+  <div style="position:sticky; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #EAE8E2; display:flex; padding:10px 0 22px;">
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; color:#FF6B4A;">
+      <div style="width:22px; height:22px;">🏠</div>
+      <span style="font-size:11px; font-weight:700;">Home</span>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; color:#98A0AB;">
+      <div style="width:22px; height:22px;">📶</div>
+      <span style="font-size:11px; font-weight:600;">Find my eSIM</span>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; color:#98A0AB;">
+      <div style="width:22px; height:22px;">📄</div>
+      <span style="font-size:11px; font-weight:600;">Install guide</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;onFindEsim&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onGuideClick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onDevicesClick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  whyData = [
+    { icon: '⚡', title: 'Instant activation', body: 'No physical SIM, no store visit \u2014 install from your QR code in minutes.' },
+    { icon: '\uD83D\uDCAC', title: 'English support', body: 'Get help in plain English whenever you need it, before or during your trip.' },
+    { icon: '\u21BA', title: 'Easy refunds', body: 'Change of plans? Unused eSIMs are refundable \u2014 no hassle.' },
+  ];
+
+  onFindEsim = () => { if (this.props.onFindEsim) this.props.onFindEsim(); };
+  onGuideClick = (e) => { e.preventDefault(); if (this.props.onGuideClick) this.props.onGuideClick(); };
+  onDevicesClick = (e) => { e.preventDefault(); if (this.props.onDevicesClick) this.props.onDevicesClick(); };
+
+  renderVals() {
+    return {
+      whyCards: this.whyData,
+      onFindEsim: this.onFindEsim,
+      onGuideClick: this.onGuideClick,
+      onDevicesClick: this.onDevicesClick,
+    };
+  }
+}
+</script>
+</body>
+</html>

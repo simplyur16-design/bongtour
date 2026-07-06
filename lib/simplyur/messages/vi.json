@@ -27,10 +27,10 @@
     "headline": "Kết nối toàn cầu, đơn giản hóa",
     "titleLine1": "Kết nối tại",
     "titleHighlight": "Hàn Quốc",
-    "subtitle": "QR gửi qua email ngay sau thanh toán.",
-    "cta": "Tìm eSIM",
-    "deviceLink": "Thiết bị tương thích →",
-    "guideLink": "Hướng dẫn cài →"
+    "subtitle": "Nhận mã QR qua email ngay sau khi mua. Cài trước khi bay, kích hoạt khi hạ cánh.",
+    "cta": "Find my eSIM",
+    "deviceLink": "Compatible devices →",
+    "guideLink": "Install guide →"
   },
   "home": {
     "popularPlans": "Gói Hàn Quốc phổ biến",
@@ -43,11 +43,11 @@
     "kr": { "name": "Hàn Quốc", "subtitle": "Seoul, Busan & toàn quốc" }
   },
   "why": {
-    "title": "Vì sao chọn simplyur",
+    "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Gửi ngay", "body": "Nhận QR qua email trong vài phút." },
-      "support": { "title": "Hỗ trợ 24/7", "body": "Email hỗ trợ trước và trong chuyến đi." },
-      "refund": { "title": "Hoàn tiền", "body": "eSIM chưa dùng có thể hoàn theo chính sách." }
+      "instant": { "title": "Instant activation", "body": "Không cần SIM vật lý, không cần ra cửa hàng — cài từ mã QR trong vài phút." },
+      "support": { "title": "English support", "body": "Hỗ trợ bằng tiếng Anh dễ hiểu trước và trong chuyến đi." },
+      "refund": { "title": "Easy refunds", "body": "Đổi kế hoạch? eSIM chưa dùng được hoàn tiền dễ dàng." }
     }
   },
   "reviews": {
@@ -59,8 +59,9 @@
     ]
   },
   "recommend": {
-    "title": "Gói eSIM Hàn Quốc",
-    "koreaOnly": "Tất cả gói dành cho Hàn Quốc — Seoul, Busan, Jeju và toàn quốc.",
+    "title": "Tìm eSIM Hàn Quốc",
+    "subtitle": "Chọn số ngày lưu trú, rồi chọn gói data.",
+    "koreaOnly": "Chọn số ngày lưu trú, rồi chọn gói data.",
     "loading": "Đang tải…",
     "noPlans": "Chưa có gói cước.",
     "fromPrice": "Từ",
@@ -71,17 +72,33 @@
     "local": "Mạng Hàn Quốc",
     "selectPlan": "Chọn",
     "checkoutSoon": "Thanh toán sắp mở",
-    "price": "Giá"
+    "price": "Giá",
+    "durationLabel": "Bạn ở bao lâu?",
+    "durationHint": "Chỉ hiển thị số ngày đang bán.",
+    "durationCaption": "1 ngày = 24 giờ kể từ kích hoạt (tùy gói)",
+    "durationChip": "{N} ngày",
+    "plansPlaceholder": "Chọn số ngày ở trên để xem gói.",
+    "showingPlansPrefix": "Gói cho ",
+    "showingPlansSuffix": " ngày",
+    "change": "Đổi",
+    "bannerTitle": "Thanh toán sắp ra mắt",
+    "bannerBody": "Bạn có thể xem gói và hướng dẫn cài đặt ngay. Thanh toán trực tuyến đang được bật.",
+    "noPlansForDays": "Chưa có gói {N} ngày. Thử độ dài khác.",
+    "errorTitle": "Không tải được gói.",
+    "errorBody": "Kiểm tra kết nối và thử lại.",
+    "retry": "Thử lại"
   },
   "product": {
     "buyNow": "Mua ngay",
     "checkoutSoon": "Thanh toán sắp mở",
-    "checkoutSoonHint": "Thanh toán trực tuyến đang được chuẩn bị. Bạn có thể xem gói và hướng dẫn cài đặt.",
+    "checkoutSoonHint": "Chúng tôi sẽ gửi email ngay khi thanh toán trực tuyến được bật.",
     "details": "Chi tiết gói",
     "network": "Mạng",
     "planType": "Loại gói",
     "option": "Tùy chọn",
-    "notFound": "Gói này không khả dụng.",
+    "notFoundTitle": "Không tìm thấy gói",
+    "notFoundBody": "Gói này có thể không còn khả dụng. Quay lại và chọn số ngày khác.",
+    "notFound": "Không tìm thấy gói",
     "backToPlans": "Quay lại danh sách"
   },
   "checkout": {
@@ -127,6 +144,13 @@
   "language": { "label": "Ngôn ngữ" },
   "auth": {
     "title": "Đăng nhập",
+    "welcomeTitle": "Chào mừng đến Simply UR",
+    "welcomeSubtitle": "Đăng nhập để quản lý eSIM của bạn",
+    "skip": "Bỏ qua",
+    "continueEmail": "Tiếp tục bằng email",
+    "emailLabel": "Email",
+    "passwordLabel": "Mật khẩu",
+    "signInSubmit": "Đăng nhập",
     "audienceBadge": "Dành cho khách quốc tế đến Hàn Quốc",
     "subtitle": "simplyur chỉ dành cho du khách quốc tế đến Hàn Quốc — không dành cho cư dân Hàn. Trên web chỉ đăng nhập email; Google và Apple dùng ứng dụng simplyur.",
     "appSocialHint": "Đăng nhập Google và Apple chỉ có trên ứng dụng simplyur (khách nước ngoài). Trên web hãy dùng email.",
@@ -153,6 +177,27 @@
     "loadError": "Không thể tải đơn hàng.",
     "usageError": "Không thể tải dữ liệu sử dụng. Vui lòng thử lại.",
     "signInRequired": "Vui lòng đăng nhập để xem eSIM.",
+    "signInTitle": "Đăng nhập để xem eSIM",
+    "signInBody": "Theo dõi đơn hàng, xem mã QR và dung lượng sau khi đăng nhập.",
+    "emptyTitle": "Chưa có đơn hàng",
+    "emptyBody": "Sau khi mua gói, mã QR và dung lượng sẽ hiển thị tại đây.",
+    "emptyCta": "Xem gói",
+    "backToList": "Quay lại My eSIM",
+    "orderedOn": "Đặt ngày",
+    "qrHint": "Quét trong Cài đặt → Di động → Thêm eSIM",
+    "usageCardLabel": "Dung lượng",
+    "loadingUsage": "Đang tải dung lượng…",
+    "notStarted": "Chưa bắt đầu",
+    "activatesOnConnect": "Kích hoạt khi kết nối lần đầu",
+    "usedToday": "Hôm nay đã dùng {amount}",
+    "usedTodaySuffix": "hôm nay",
+    "usedOfCap": "Đã dùng {used} / {cap}",
+    "usedOfSuffix": "/ {cap}",
+    "usedSuffix": "đã dùng",
+    "usedWord": "đã dùng",
+    "leftWord": "còn lại",
+    "unlimitedResetsDaily": "Gói không giới hạn · reset hàng ngày",
+    "badge": { "active": "Đang dùng", "expired": "Hết hạn", "upcoming": "Sắp tới" },
     "empty": "Chưa có đơn eSIM.",
     "orderDate": "Ngày đặt",
     "orderNo": "Mã đơn",

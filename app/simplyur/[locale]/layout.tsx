@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Outfit } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { auth } from "@/auth";
 import { SimplyurFooter } from "@/components/simplyur/SimplyurFooter";
 import { SimplyurHeader } from "@/components/simplyur/SimplyurHeader";
@@ -15,9 +15,9 @@ import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 import { SIMPLYUR_BRAND } from "@/lib/simplyur/brand";
 import "../simplyur-theme.css";
 
-const simplyurFont = Outfit({
+const simplyurFont = Poppins({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["300", "400", "600", "700", "800"],
   variable: "--font-simplyur",
   display: "swap",
 });

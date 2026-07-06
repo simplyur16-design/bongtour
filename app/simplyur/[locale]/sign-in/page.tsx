@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
-import { SimplyurEmailSignInForm } from "@/components/simplyur/auth/SimplyurEmailSignInForm";
+import { SimplyurLogin1bPanel } from "@/components/simplyur/auth/SimplyurLogin1bPanel";
 import {
   SIMPLYUR_DOMESTIC_ESIM_HREF,
   SIMPLYUR_DOMESTIC_SIGNIN_HREF,
@@ -14,7 +13,7 @@ type Props = {
   searchParams: Promise<{ callbackUrl?: string; error?: string; method?: string }>;
 };
 
-/** simplyur 웹 — 외국인 방문객 전용. 이메일 폼 먼저; Google·Apple은 모바일 앱. */
+/** simplyur 웹 — design_handoff_login_1b (이메일만; Apple·Google은 앱). */
 export default async function SimplyurSignInPage({ params, searchParams }: Props) {
   const { locale: raw } = await params;
   if (!isSimplyurLocale(raw)) return null;
@@ -36,60 +35,36 @@ export default async function SimplyurSignInPage({ params, searchParams }: Props
   const messages = await getSimplyurMessages(locale);
 
   const labels = {
-    email: t(messages, "auth.email"),
+    welcomeTitle: t(messages, "auth.welcomeTitle"),
+    welcomeSubtitle: t(messages, "auth.welcomeSubtitle"),
+    skip: t(messages, "auth.skip"),
+    continueEmail: t(messages, "auth.continueEmail"),
     emailSubtitle: t(messages, "auth.emailSubtitle"),
+    email: t(messages, "auth.email"),
+    signInSubmit: t(messages, "auth.signInSubmit"),
     invalidCredentials: t(messages, "auth.invalidCredentials"),
     appSocialHint: t(messages, "auth.appSocialHint"),
     domesticEsimLink: t(messages, "auth.domesticEsimLink"),
     domesticSignInLink: t(messages, "auth.domesticSignInLink"),
+    backToMethods: t(messages, "auth.backToMethods"),
+    backHome: t(messages, "auth.backHome"),
   };
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-16 sm:px-6">
-      <h1 className="text-2xl font-bold tracking-tight text-[color:var(--su-ink)]">
-        {t(messages, "auth.title")}
-      </h1>
-      <p className="mt-3 max-w-sm text-center text-sm leading-relaxed text-[color:var(--su-ink-muted)]">
-        {labels.emailSubtitle}
-      </p>
-
+    <main className="mx-auto w-full max-w-lg">
       {error ? (
-        <p className="mt-6 w-full max-w-sm rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
+        <p className="mx-4 mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
           {t(messages, "auth.errorGeneric")}
         </p>
       ) : null}
 
-      <div className="mt-10 flex w-full max-w-sm flex-col items-center">
-        <SimplyurEmailSignInForm
-          callbackUrl={returnTo}
-          submitLabel={labels.email}
-          invalidCredentialsLabel={labels.invalidCredentials}
-        />
-
-        <p className="mt-8 max-w-sm text-center text-[11px] leading-relaxed text-[color:var(--su-ink-muted)]">
-          {labels.appSocialHint}
-        </p>
-
-        <div className="mt-4 max-w-sm space-y-2 text-center text-[11px] leading-relaxed text-[color:var(--su-ink-muted)]">
-          <p>
-            <Link href={SIMPLYUR_DOMESTIC_ESIM_HREF} className="font-medium text-[color:var(--su-celadon)] hover:underline">
-              {labels.domesticEsimLink}
-            </Link>
-          </p>
-          <p>
-            <Link href={SIMPLYUR_DOMESTIC_SIGNIN_HREF} className="font-medium text-[color:var(--su-celadon)] hover:underline">
-              {labels.domesticSignInLink}
-            </Link>
-          </p>
-        </div>
-      </div>
-
-      <Link
-        href={simplyurPath(locale)}
-        className="mt-8 text-sm font-medium text-[color:var(--su-celadon)] hover:underline"
-      >
-        {t(messages, "auth.backHome")}
-      </Link>
+      <SimplyurLogin1bPanel
+        locale={locale}
+        callbackUrl={returnTo}
+        labels={labels}
+        domesticEsimHref={SIMPLYUR_DOMESTIC_ESIM_HREF}
+        domesticSignInHref={SIMPLYUR_DOMESTIC_SIGNIN_HREF}
+      />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { SimplyurGuideMessages } from "@/lib/simplyur/guide-types";
-import enGuide from "@/lib/simplyur/messages/en.json";
+import { GUIDE_EN_HANDOFF } from "@/lib/simplyur/guide-content/handoff-en";
 
 /** Locale-specific install guide copy (simplyur-branded; no supplier names). */
 const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = {
@@ -317,5 +317,6 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
 };
 
 export function getSimplyurGuideMessages(locale: SimplyurLocale): SimplyurGuideMessages {
-  return GUIDE_BY_LOCALE[locale] ?? (enGuide.guide as SimplyurGuideMessages);
+  if (locale === "en") return GUIDE_EN_HANDOFF;
+  return GUIDE_BY_LOCALE[locale] ?? GUIDE_EN_HANDOFF;
 }

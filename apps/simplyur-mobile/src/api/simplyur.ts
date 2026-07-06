@@ -2,6 +2,7 @@ import { getApiBaseUrl, type SimplyurLocale } from '@/src/constants/simplyur';
 
 export type PlanProduct = {
   option_api_id: string;
+  days?: number | null;
   days_label: string;
   data_label: string;
   plan_summary: string;

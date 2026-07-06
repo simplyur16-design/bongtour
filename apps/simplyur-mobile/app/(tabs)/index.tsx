@@ -1,80 +1,166 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { BRAND } from '@/src/constants/simplyur';
+import {
+  HOME_DESIGN as D,
+  HOME_WHY_ICONS,
+  HOME_WHY_KEYS,
+} from '@/src/constants/home-design';
+import { getApiBaseUrl } from '@/src/constants/simplyur';
+import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
-const WHY_KEYS = ['instant', 'support', 'refund'] as const;
-
+/** design_handoff_home — Home tab [03] */
 export default function HomeScreen() {
-  const { t } = useI18n();
-  const scheme = useColorScheme() ?? 'light';
-  const colors = Colors[scheme];
+  const { t, locale } = useI18n();
+  const insets = useSafeAreaInsets();
+
+  function onFindEsim() {
+    router.push('/plans');
+  }
+
+  async function openDevices() {
+    const base = getApiBaseUrl().replace(/\/+$/, '');
+    await WebBrowser.openBrowserAsync(`${base}/simplyur/${locale}/devices`);
+  }
 
   return (
-    <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={[styles.badge, { backgroundColor: colors.celadonLight, borderColor: colors.hanjiBorder }]}>
-        <Text style={[styles.badgeText, { color: colors.celadonDark }]}>{t('countries.kr.name')}</Text>
+    <ScrollView
+      style={[styles.root, { backgroundColor: D.bg }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
+      ]}>
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>
       </View>
 
-      <Text style={[styles.eyebrow, { color: colors.celadon }]}>{t('hero.eyebrow')}</Text>
-      <Text style={[styles.title, { color: colors.text }]}>
-        {t('hero.titleLine1')}{'\n'}
-        <Text style={{ color: colors.dan }}>{t('hero.titleHighlight')}</Text>
-      </Text>
-      <Text style={[styles.subtitle, { color: colors.inkMuted }]}>{t('hero.subtitle')}</Text>
+      <View style={styles.hero}>
+        <Text style={styles.heroLine1}>{t('hero.titleLine1')}</Text>
+        <Text style={styles.heroLine2}>{t('hero.titleHighlight')}</Text>
+        <Text style={styles.subtitle}>{t('hero.subtitle')}</Text>
+      </View>
 
-      <Link href="/plans" asChild>
-        <Pressable style={[styles.cta, { backgroundColor: colors.dan }]}>
-          <Text style={styles.ctaText}>{t('hero.cta')}</Text>
-        </Pressable>
-      </Link>
+      <Pressable style={styles.cta} onPress={onFindEsim} accessibilityRole="button">
+        <Text style={styles.ctaText}>{t('hero.cta')}</Text>
+      </Pressable>
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('why.title')}</Text>
-      <View style={styles.whyGrid}>
-        {WHY_KEYS.map((key) => (
-          <View key={key} style={[styles.whyCard, { borderColor: colors.hanjiBorder, backgroundColor: colors.celadonLight }]}>
-            <Text style={[styles.whyCardTitle, { color: colors.text }]}>{t(`why.items.${key}.title`)}</Text>
-            <Text style={[styles.whyCardBody, { color: colors.inkMuted }]}>{t(`why.items.${key}.body`)}</Text>
+      <View style={styles.banner}>
+        <View style={styles.bannerIcon}>
+          <Text style={styles.bannerIconText}>i</Text>
+        </View>
+        <View style={styles.bannerText}>
+          <Text style={styles.bannerTitle}>{t('recommend.bannerTitle')}</Text>
+          <Text style={styles.bannerBody}>{t('recommend.bannerBody')}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>{t('why.title')}</Text>
+      <View style={styles.whyList}>
+        {HOME_WHY_KEYS.map((key) => (
+          <View key={key} style={styles.whyCard}>
+            <View style={styles.iconTile}>
+              <Text style={styles.iconGlyph}>{HOME_WHY_ICONS[key]}</Text>
+            </View>
+            <View style={styles.whyText}>
+              <Text style={styles.whyTitle}>{t(`why.items.${key}.title`)}</Text>
+              <Text style={styles.whyBody}>{t(`why.items.${key}.body`)}</Text>
+            </View>
           </View>
         ))}
       </View>
 
-      <Link href="/modal" asChild>
-        <Pressable style={styles.langLink}>
-          <Text style={{ color: colors.celadon }}>{t('language.label')} →</Text>
+      <View style={styles.links}>
+        <Link href="/guide" asChild>
+          <Pressable hitSlop={8}>
+            <Text style={styles.link}>{t('hero.guideLink')}</Text>
+          </Pressable>
+        </Link>
+        <Pressable onPress={openDevices} hitSlop={8}>
+          <Text style={styles.link}>{t('hero.deviceLink')}</Text>
         </Pressable>
-      </Link>
-
-      <Text style={[styles.footer, { color: colors.inkMuted }]}>{BRAND.parent}</Text>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 24, paddingBottom: 48 },
+  content: { paddingHorizontal: D.paddingH, gap: D.sectionGap },
   badge: {
     alignSelf: 'flex-start',
+    backgroundColor: D.navy,
     borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  badgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
-  eyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
-  title: { marginTop: 8, fontSize: 32, fontWeight: '800', lineHeight: 38 },
-  subtitle: { marginTop: 12, fontSize: 16, lineHeight: 24 },
-  cta: { marginTop: 24, borderRadius: 999, paddingVertical: 14, alignItems: 'center' },
-  ctaText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  sectionTitle: { marginTop: 36, fontSize: 20, fontWeight: '800', textAlign: 'center' },
-  whyGrid: { marginTop: 16, gap: 10 },
-  whyCard: { borderRadius: 14, borderWidth: 1, padding: 16 },
-  whyCardTitle: { fontSize: 15, fontWeight: '700' },
-  whyCardBody: { marginTop: 6, fontSize: 13, lineHeight: 19 },
-  langLink: { marginTop: 24, alignSelf: 'flex-start' },
-  footer: { marginTop: 32, fontSize: 12, textAlign: 'center' },
+  badgeText: { fontSize: 11, ...fp('700'), letterSpacing: 0.88, color: '#fff' },
+  hero: { gap: 12 },
+  heroLine1: { fontSize: 34, ...fp('800'), lineHeight: 39, letterSpacing: -0.34, color: D.navy },
+  heroLine2: { fontSize: 34, ...fp('800'), lineHeight: 39, letterSpacing: -0.34, color: D.coral, marginTop: -8 },
+  subtitle: { fontSize: 14, lineHeight: 22.4, ...fp('400'), color: D.muted, maxWidth: 320 },
+  cta: {
+    height: D.buttonHeight,
+    borderRadius: D.buttonRadius,
+    backgroundColor: D.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: D.coral,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 13,
+    elevation: 6,
+  },
+  ctaText: { fontSize: 16, ...fp('600'), color: '#fff', letterSpacing: 0.16 },
+  banner: {
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: D.bannerBg,
+    borderWidth: 1,
+    borderColor: D.bannerBorder,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  bannerIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: D.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerIconText: { fontSize: 12, ...fp('700'), color: '#fff' },
+  bannerText: { flex: 1, gap: 2 },
+  bannerTitle: { fontSize: 13, ...fp('700'), color: D.navy },
+  bannerBody: { fontSize: 12, lineHeight: 18, ...fp('400'), color: D.muted },
+  sectionTitle: { fontSize: 15, ...fp('700'), color: D.navy },
+  whyList: { gap: 10, marginTop: -12 },
+  whyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: D.cardRadius,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  iconTile: {
+    width: D.iconTileSize,
+    height: D.iconTileSize,
+    borderRadius: D.iconTileRadius,
+    backgroundColor: D.iconTileBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconGlyph: { fontSize: 16, color: D.coral },
+  whyText: { flex: 1, gap: 2 },
+  whyTitle: { fontSize: 14, ...fp('700'), color: D.navy },
+  whyBody: { fontSize: 12.5, lineHeight: 18.75, ...fp('400'), color: D.muted },
+  links: { flexDirection: 'row', gap: 22, paddingHorizontal: 2, paddingTop: 2 },
+  link: { fontSize: 13, ...fp('600'), color: D.coral },
 });
