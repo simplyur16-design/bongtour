@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "simplyur | Korea eSIM",
-    "description": "simplyur — eSIM for South Korea. Instant QR by email. A Bong Tour brand."
+    "title": "simplyur | Korea eSIM for visitors",
+    "description": "simplyur — Korea eSIM for international visitors. Not for Korea residents. A Bong Tour brand."
   },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
@@ -27,7 +27,7 @@
     "headline": "Global Connectivity, Simplified",
     "titleLine1": "Stay connected in",
     "titleHighlight": "South Korea",
-    "subtitle": "Travel data made simple — QR delivered by email right after purchase.",
+    "subtitle": "Travel data for international visitors to Korea — QR delivered by email after purchase.",
     "cta": "Find my eSIM",
     "deviceLink": "Check compatible devices →",
     "guideLink": "View install guide →"
@@ -323,7 +323,7 @@
       },
       {
         "q": "How does My eSIM and Google sign-in work?",
-        "a": "My eSIM shows simplyur orders linked to your signed-in Google account email. Use the same email you enter at checkout. Google sign-in appears when OAuth is configured on the server; Apple and email magic link are not available yet. Without sign-in, rely on the QR email."
+        "a": "My eSIM shows simplyur orders linked to your signed-in account email (Google, Apple, or email/password). Use the same email you enter at checkout. Without sign-in, rely on the QR email."
       },
       {
         "q": "When will I receive my QR code?",
@@ -400,13 +400,25 @@
   "language": { "label": "Language" },
   "auth": {
     "title": "Sign in",
-    "subtitle": "Sign in to view your eSIM orders and data usage. No Naver or Kakao — Google, Apple, or email only.",
+    "audienceBadge": "International visitors to Korea",
+    "subtitle": "simplyur is for visitors to Korea — not for Korea residents. On the website, use email only; Google and Apple sign-in are in the simplyur mobile app.",
+    "appSocialHint": "Google and Apple sign-in are in the simplyur app (foreign visitors only). Use email here on the website.",
     "google": "Continue with Google",
+    "googleSubtitle": "Use your Google account to continue.",
+    "apple": "Continue with Apple",
+    "appleSubtitle": "Use your Apple ID to continue.",
+    "appleNotConfigured": "Apple sign-in is not configured on this server yet.",
+    "email": "Sign in with email",
+    "emailSubtitle": "Enter the email and password for your existing account.",
+    "invalidCredentials": "Email or password is incorrect, or this account is restricted.",
+    "or": "or",
+    "backToMethods": "Other sign-in options",
+    "domesticEsimLink": "Korea resident? Use Bong Tour eSIM (bongsim) — not simplyur",
+    "domesticSignInLink": "Korea resident? Sign in with Kakao or Naver on Bong Tour",
     "googleNotConfigured": "Google sign-in is not configured on this server yet.",
     "errorGeneric": "Sign-in failed. Please try again or use a different method.",
     "errorTitle": "Sign-in problem",
     "tryAgain": "Try again",
-    "comingSoon": "Sign in with Apple and email magic link — coming soon.",
     "backHome": "← Back to home"
   },
   "myEsim": {

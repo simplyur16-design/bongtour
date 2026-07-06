@@ -1,12 +1,6 @@
 import Link from 'next/link'
-import type { SignInMethod } from '@/app/components/auth/SignInMethodChooser'
-
-const LABELS: Record<SignInMethod, string> = {
-  kakao: '카카오',
-  naver: '네이버',
-  google: 'Google',
-  email: '이메일',
-}
+import type { SignInMethod } from '@/lib/auth/sign-in-method-catalog'
+import { SIGN_IN_METHOD_DEFINITIONS, signInMethodTitle } from '@/lib/auth/sign-in-method-catalog'
 
 type Props = {
   method: SignInMethod
@@ -21,11 +15,9 @@ export default function SignInMethodBackLink({ method, callbackUrl }: Props) {
       className="mb-6 inline-flex items-center gap-1 text-sm text-bt-meta transition hover:text-bt-link"
     >
       ← 다른 방법으로 로그인
-      <span className="sr-only"> ({LABELS[method]} 취소)</span>
+      <span className="sr-only"> ({SIGN_IN_METHOD_DEFINITIONS[method].label} 취소)</span>
     </Link>
   )
 }
 
-export function signInMethodTitle(method: SignInMethod): string {
-  return `${LABELS[method]}로 로그인`
-}
+export { signInMethodTitle }

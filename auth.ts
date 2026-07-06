@@ -12,6 +12,7 @@ import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
 import { googleOAuthProvider } from '@/lib/auth/google-oauth-provider'
+import { appleOAuthProvider } from '@/lib/auth/apple-oauth-provider'
 
 function authSessionCookieDomain(): string | undefined {
   try {
@@ -42,6 +43,7 @@ const sessionCookieSecure = authSessionCookieSecure()
 const sessionCookiePrefix = sessionCookieSecure ? '__Secure-' : ''
 
 const googleProvider = googleOAuthProvider()
+const appleProvider = appleOAuthProvider()
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -83,6 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     ...(googleProvider ? [googleProvider] : []),
+    ...(appleProvider ? [appleProvider] : []),
     ...authConfig.providers,
   ],
   callbacks: {

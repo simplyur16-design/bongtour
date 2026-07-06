@@ -6433,6 +6433,21 @@
       "tier": ["prebuild", "ci"],
       "summary": "홈 OG 시즌 — KST 월별 pageKey·정적 fallback 경로",
       "files": ["lib/og-image-seasonal.test.ts"]
+    },
+    {
+      "id": "sign-in-audience-split",
+      "tier": ["prebuild", "ci"],
+      "summary": "로그인 수단 분리 — 국내 웹 카카오·네이버·이메일 / simplyur 외국인 웹 이메일 / simplyur 외국인 앱 Google·Apple·이메일",
+      "files": [
+        "lib/auth/sign-in-method-catalog.test.ts",
+        "lib/simplyur/constants.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-foreign-audience-ssot",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur 외국인 방문객 전용 Korea eSIM — 내국인은 bongsim",
+      "files": ["lib/simplyur/constants.test.ts"]
     }
   ]
 }

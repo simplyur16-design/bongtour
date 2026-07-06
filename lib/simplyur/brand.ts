@@ -9,7 +9,7 @@ export const SIMPLYUR_BRAND = {
   bgSoft: "#F4F5F7",
   border: "#DDE1E8",
   navMuted: "#6B7280",
-  tagline: "eSIM for your Korea trip",
+  tagline: "eSIM for international visitors to Korea",
   wordmarkImage: "/simplyur/brand/simplyur-wordmark.png",
   iconImage: "/simplyur/brand/simplyur-icon.png",
 } as const;

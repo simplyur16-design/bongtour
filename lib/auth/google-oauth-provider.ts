@@ -9,7 +9,7 @@ function readGoogleOAuthEnv() {
   return { clientId, clientSecret }
 }
 
-/** Google OAuth Web client — simplyur 및 NextAuth `/api/auth/callback/google` */
+/** Google OAuth Web client — simplyur 모바일 앱·NextAuth `/api/auth/callback/google` */
 export function isGoogleOAuthConfigured(): boolean {
   const { clientId, clientSecret } = readGoogleOAuthEnv()
   return Boolean(clientId && clientSecret)

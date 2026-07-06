@@ -1,7 +1,17 @@
 # simplyur Mobile (React Native / Expo)
 
-Cross-platform iOS + Android app for **Korea eSIM** (Phase 1).  
+**Foreign visitors to Korea only** — dedicated Korea eSIM app (Phase 1).  
+Not for Korea residents; domestic users use **Bong Tour eSIM (bongsim)** at `/travel/esim`.
+
 Backend: BONGTOUR `GET /api/simplyur/*` (same repo, run separately).
+
+## Audience SSOT
+
+| Product | Who | Login |
+|---------|-----|-------|
+| **simplyur app** | International visitors to Korea | Google · Apple · email (in app) |
+| **simplyur web** | Same audience (supplementary) | Email only on web |
+| **bongsim / Bong Tour** | Korea residents | Kakao · Naver · email |
 
 ## Stack
 
@@ -10,8 +20,6 @@ Backend: BONGTOUR `GET /api/simplyur/*` (same repo, run separately).
 | Mobile | **React Native + Expo SDK 57** (Expo Router tabs) |
 | API | BONGTOUR Next.js (`/api/simplyur/products/by-country`) |
 | i18n | en, ja, zh, zh-TW, vi (JSON synced from `lib/simplyur/messages/`) |
-
-Why React Native over Flutter: BONGTOUR is TypeScript/Next.js — shared types, API contracts, and team skills align.
 
 ## Run locally
 
@@ -48,17 +56,11 @@ Press `a` (Android) or scan QR with Expo Go (iOS).
 - **Guide** — eSIM install steps
 - **Language** — modal picker
 
-## App Store IDs (placeholder)
+## App Store IDs
 
 - iOS: `com.bongtour.simplyur`
 - Android: `com.bongtour.simplyur`
-
-## Next steps
-
-1. Stripe in-app checkout (WebView or native SDK)
-2. Push notifications (order / QR ready)
-3. Japan eSIM (Phase 1b)
-4. Tourism & tickets (Phase 3)
+- Deep link: `simplyur://sign-in` (Google · Apple · email)
 
 ## Sync translations
 

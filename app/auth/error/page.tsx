@@ -58,12 +58,6 @@ export default async function AuthErrorPage({ searchParams }: Props) {
             다시 로그인
           </Link>
           <Link
-            href="/simplyur/en/sign-in"
-            className="border border-bt-cta-secondary-border bg-bt-cta-secondary px-4 py-2 text-sm font-medium text-bt-cta-secondary-text hover:bg-bt-surface-soft"
-          >
-            simplyur 로그인
-          </Link>
-          <Link
             href="/"
             className="border border-bt-cta-secondary-border bg-bt-cta-secondary px-4 py-2 text-sm font-medium text-bt-cta-secondary-text hover:bg-bt-surface-soft"
           >

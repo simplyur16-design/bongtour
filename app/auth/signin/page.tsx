@@ -1,11 +1,15 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EmailSignInForm from '@/app/components/auth/EmailSignInForm'
-import SignInMethodChooser, { type SignInMethod } from '@/app/components/auth/SignInMethodChooser'
 import SignInMethodBackLink, { signInMethodTitle } from '@/app/components/auth/SignInMethodBackLink'
+import SignInSocialPanel from '@/app/components/auth/SignInSocialPanel'
 import Header from '@/app/components/Header'
-import { getAuthCsrfToken } from '@/lib/auth/get-auth-csrf-token'
-import { isGoogleOAuthConfigured } from '@/lib/auth/google-oauth-provider'
+import {
+  SIGN_IN_SOCIAL_METHODS_DOMESTIC,
+  isSignInDetailMethodForAudience,
+  isSignInMethodAllowedForAudience,
+  isSignInMethodEnabled,
+} from '@/lib/auth/sign-in-method-catalog'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 
@@ -13,56 +17,34 @@ type Props = {
   searchParams: Promise<{ callbackUrl?: string; registered?: string; method?: string; error?: string }>
 }
 
-function isSignInMethod(v: string | undefined): v is 'email' | 'google' {
-  return v === 'email' || v === 'google'
-}
-
-function methodHref(id: SignInMethod, callbackUrl: string): string {
-  const q = encodeURIComponent(callbackUrl)
-  if (id === 'kakao') return `/api/auth/kakao?callbackUrl=${q}`
-  if (id === 'naver') return `/api/auth/naver?callbackUrl=${q}`
-  if (id === 'google') return `/auth/signin?method=google&callbackUrl=${q}`
-  return `/auth/signin?method=email&callbackUrl=${q}`
-}
-
+/** 국내(봉투어) 웹 — 카카오·네이버·이메일만. Google·Apple은 모바일 앱 전용. */
 export default async function SignInPage({ searchParams }: Props) {
-  const { callbackUrl, registered, method: rawMethod, error } = await searchParams
+  const { callbackUrl, registered, method: rawMethod } = await searchParams
   const cb = callbackUrl?.startsWith('/') ? callbackUrl : '/'
 
-  const kakaoOn = Boolean(process.env.KAKAO_CLIENT_ID?.trim() && process.env.KAKAO_CLIENT_SECRET?.trim())
-  const naverOn = Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
-  const googleOn = isGoogleOAuthConfigured()
-  const csrfToken = googleOn ? await getAuthCsrfToken() : ''
-
-  const methodEnabled: Record<SignInMethod, boolean> = {
-    kakao: kakaoOn,
-    naver: naverOn,
-    google: googleOn && Boolean(csrfToken),
-    email: true,
+  const methodEnabled = {
+    kakao: isSignInMethodEnabled('kakao'),
+    naver: isSignInMethodEnabled('naver'),
+    email: isSignInMethodEnabled('email'),
   }
 
-  const method =
-    rawMethod && isSignInMethod(rawMethod)
-      ? rawMethod
-      : registered === '1'
-        ? 'email'
-        : undefined
+  const method = isSignInDetailMethodForAudience(rawMethod, 'domestic')
+    ? rawMethod
+    : registered === '1'
+      ? 'email'
+      : undefined
 
-  if (method && !methodEnabled[method]) notFound()
+  if (method && (!methodEnabled[method] || !isSignInMethodAllowedForAudience(method, 'domestic'))) {
+    notFound()
+  }
 
-  const chooserOptions = (['kakao', 'naver', 'google', 'email'] as const).map((id) => ({
+  if (rawMethod === 'google' || rawMethod === 'apple') {
+    notFound()
+  }
+
+  const socialOptions = SIGN_IN_SOCIAL_METHODS_DOMESTIC.map((id) => ({
     id,
-    label: id === 'kakao' ? '카카오' : id === 'naver' ? '네이버' : id === 'google' ? 'Google' : '이메일',
-    description:
-      id === 'kakao'
-        ? '카카오 계정'
-        : id === 'naver'
-          ? '네이버 계정'
-          : id === 'google'
-            ? '해외·simplyur'
-            : 'ID·비밀번호',
     enabled: methodEnabled[id],
-    href: methodHref(id, cb),
   }))
 
   return (
@@ -72,19 +54,11 @@ export default async function SignInPage({ searchParams }: Props) {
         <h1 className="mb-2 text-xl font-bold text-bt-strong">
           {method ? signInMethodTitle(method) : '로그인'}
         </h1>
-        <p className="mb-6 text-center text-sm leading-relaxed text-bt-body">
+        <p className="mb-8 max-w-xs text-center text-sm leading-relaxed text-bt-body">
           {method === 'email'
             ? '이메일과 비밀번호를 입력해 주세요.'
-            : method === 'google'
-              ? 'Google 계정으로 로그인해 주세요.'
-              : '찜·문의 이력 등 일부 기능에 활용됩니다. 여행·연수 상품 탐색은 로그인 없이 가능합니다.'}
+            : '카카오·네이버·이메일로 로그인할 수 있습니다. 여행·연수 상품 탐색은 로그인 없이 가능합니다.'}
         </p>
-
-        {error === 'google_csrf' ? (
-          <p className="mb-4 w-full max-w-xs rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-xs text-red-800">
-            Google 로그인 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.
-          </p>
-        ) : null}
 
         {registered === '1' && !method ? (
           <p className="mb-4 w-full max-w-xs rounded-lg border border-bt-border-soft bg-bt-brand-blue-soft px-3 py-2 text-center text-xs text-bt-title">
@@ -93,25 +67,16 @@ export default async function SignInPage({ searchParams }: Props) {
         ) : null}
 
         {!method ? (
-          <SignInMethodChooser callbackUrl={cb} csrfToken={csrfToken} options={chooserOptions} />
+          <SignInSocialPanel
+            callbackUrl={cb}
+            csrfToken=""
+            socialOptions={socialOptions}
+            emailEnabled={methodEnabled.email}
+          />
         ) : (
           <div className="w-full max-w-xs">
-            <SignInMethodBackLink method={method === 'google' ? 'google' : 'email'} callbackUrl={cb} />
-
+            <SignInMethodBackLink method={method} callbackUrl={cb} />
             {method === 'email' ? <EmailSignInForm callbackUrl={cb} /> : null}
-
-            {method === 'google' && csrfToken ? (
-              <form action="/api/auth/signin/google" method="POST">
-                <input type="hidden" name="csrfToken" value={csrfToken} />
-                <input type="hidden" name="callbackUrl" value={cb} />
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2.5 rounded-lg border border-bt-border-soft bg-white px-5 py-3 text-[15px] font-medium text-bt-ink transition hover:bg-bt-surface-soft"
-                >
-                  Google 계정으로 계속
-                </button>
-              </form>
-            ) : null}
           </div>
         )}
 

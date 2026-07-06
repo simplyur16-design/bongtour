@@ -1,5 +1,8 @@
 import { SIMPLYUR_PALETTE } from './palette';
 
+/** Sync with BONGTOUR/lib/simplyur/constants.ts — foreign visitors to Korea only */
+export const SIMPLYUR_AUDIENCE = 'foreign-visitors-korea-esim' as const;
+
 export const SIMPLYUR_LOCALES = ['en', 'ja', 'zh', 'zh-TW', 'vi'] as const;
 export type SimplyurLocale = (typeof SIMPLYUR_LOCALES)[number];
 
@@ -19,7 +22,8 @@ export const LOCALE_LABELS: Record<SimplyurLocale, string> = {
 
 export const BRAND = {
   name: 'simplyur',
-  parent: 'Bong Tour (봉투어)',
+  audience: SIMPLYUR_AUDIENCE,
+  parent: 'Bong Tour Co., Ltd.',
   palette: SIMPLYUR_PALETTE,
 } as const;
 
