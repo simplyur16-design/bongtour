@@ -3,9 +3,9 @@
  * env 미설정 시 해당 버튼만 숨김(Apple Developer Active 전에도 코드 배포 가능).
  *
  * REGRESSION-FREEZE[sign-in-audience-split]: 국내 웹=카카오·네이버·이메일 / simplyur 웹=이메일 / simplyur 외국인 전용 앱=Google·Apple·이메일 — manifest
+ *
+ * 클라이언트 컴포넌트(SignInSocialPanel 등)에서 import — OAuth provider 모듈·node:crypto 체인 금지.
  */
-import { isAppleOAuthConfigured } from '@/lib/auth/apple-oauth-provider'
-import { isGoogleOAuthConfigured } from '@/lib/auth/google-oauth-provider'
 import { SIMPLYUR_DEFAULT_LOCALE, type SimplyurLocale } from '@/lib/simplyur/constants'
 
 /**
@@ -137,6 +137,28 @@ function naverOAuthConfigured(): boolean {
   return Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim())
 }
 
+/** OAuth env gate — isGoogleOAuthConfigured와 동일 env; 클라이언트 번들에서 provider import 회피 */
+function googleOAuthConfigured(): boolean {
+  const clientId =
+    process.env.AUTH_GOOGLE_ID?.trim() || process.env.GOOGLE_CLIENT_ID?.trim() || ''
+  const clientSecret =
+    process.env.AUTH_GOOGLE_SECRET?.trim() || process.env.GOOGLE_CLIENT_SECRET?.trim() || ''
+  return Boolean(clientId && clientSecret)
+}
+
+/** OAuth env gate — isAppleOAuthConfigured와 동일; JWT(.p8) 생성 모듈 import 금지 */
+function appleOAuthConfigured(): boolean {
+  const clientId = process.env.AUTH_APPLE_ID?.trim() || process.env.APPLE_ID?.trim() || ''
+  const staticSecret = process.env.AUTH_APPLE_SECRET?.trim() || ''
+  const teamId = process.env.AUTH_APPLE_TEAM_ID?.trim() || process.env.APPLE_TEAM_ID?.trim() || ''
+  const keyId = process.env.AUTH_APPLE_KEY_ID?.trim() || process.env.APPLE_KEY_ID?.trim() || ''
+  const privateKeyRaw =
+    process.env.AUTH_APPLE_PRIVATE_KEY?.trim() || process.env.APPLE_PRIVATE_KEY?.trim() || ''
+  if (!clientId) return false
+  if (staticSecret) return true
+  return Boolean(teamId && keyId && privateKeyRaw)
+}
+
 export function isSignInMethodEnabled(id: SignInMethod): boolean {
   switch (id) {
     case 'kakao':
@@ -144,9 +166,9 @@ export function isSignInMethodEnabled(id: SignInMethod): boolean {
     case 'naver':
       return naverOAuthConfigured()
     case 'google':
-      return isGoogleOAuthConfigured()
+      return googleOAuthConfigured()
     case 'apple':
-      return isAppleOAuthConfigured()
+      return appleOAuthConfigured()
     case 'email':
       return true
     default:

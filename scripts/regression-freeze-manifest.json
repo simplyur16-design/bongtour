@@ -6223,6 +6223,26 @@
           ]
         }
       ]
+    },
+    {
+      "id": "sign-in-catalog-client-safe",
+      "tier": ["prebuild", "ci"],
+      "summary": "sign-in-method-catalog — 클라이언트 번들용, apple-oauth-provider·node:crypto 체인 import 금지",
+      "checks": [
+        {
+          "file": "lib/auth/sign-in-method-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[sign-in-audience-split]",
+            "appleOAuthConfigured",
+            "googleOAuthConfigured"
+          ],
+          "mustNotInclude": [
+            "@/lib/auth/apple-oauth-provider",
+            "@/lib/auth/apple-client-secret-jwt",
+            "@/lib/auth/google-oauth-provider"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [

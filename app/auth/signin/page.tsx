@@ -28,13 +28,14 @@ export default async function SignInPage({ searchParams }: Props) {
     email: isSignInMethodEnabled('email'),
   }
 
-  const method = isSignInDetailMethodForAudience(rawMethod, 'domestic')
-    ? rawMethod
-    : registered === '1'
+  const method: 'email' | undefined =
+    isSignInDetailMethodForAudience(rawMethod, 'domestic') && rawMethod === 'email'
       ? 'email'
-      : undefined
+      : registered === '1'
+        ? 'email'
+        : undefined
 
-  if (method && (!methodEnabled[method] || !isSignInMethodAllowedForAudience(method, 'domestic'))) {
+  if (method && (!methodEnabled.email || !isSignInMethodAllowedForAudience(method, 'domestic'))) {
     notFound()
   }
 

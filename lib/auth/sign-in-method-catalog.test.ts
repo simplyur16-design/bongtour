@@ -49,6 +49,15 @@ describe('sign-in-method-catalog', () => {
     expect(resolveEnabledSocialSignInMethods()).toContain('kakao')
   })
 
+  it('enables google and apple when env present', () => {
+    process.env.AUTH_GOOGLE_ID = 'gid'
+    process.env.AUTH_GOOGLE_SECRET = 'gsec'
+    process.env.AUTH_APPLE_ID = 'aid'
+    process.env.AUTH_APPLE_SECRET = 'jwt-secret'
+    expect(isSignInMethodEnabled('google')).toBe(true)
+    expect(isSignInMethodEnabled('apple')).toBe(true)
+  })
+
   it('splits methods by audience — domestic web / global web / global app', () => {
     expect(signInMethodsForAudience('domestic')).toEqual(['kakao', 'naver', 'email'])
     expect(signInMethodsForAudience('globalWeb')).toEqual(['email'])

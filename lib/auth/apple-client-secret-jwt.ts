@@ -1,3 +1,4 @@
+import 'server-only'
 import { createSign } from 'node:crypto'
 
 function base64UrlJson(value: Record<string, unknown>): string {
