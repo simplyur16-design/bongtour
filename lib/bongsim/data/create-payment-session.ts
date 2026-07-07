@@ -12,7 +12,12 @@ import { getPaymentProviderAdapter } from "@/lib/bongsim/payments/payment-provid
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
 import { isSimplyurCheckoutChannel } from "@/lib/simplyur/checkout/channel";
-import { resolvePortoneEnv } from "@/lib/simplyur/payments/portone-env";
+import {
+  resolvePortoneCoreEnv,
+  resolvePortoneMethodChannel,
+  resolveSimplyurPortoneWebhookUrl,
+} from "@/lib/simplyur/payments/portone-env";
+import { parseSimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
 import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 
 export type CreatePaymentSessionResult =
@@ -55,6 +60,14 @@ type AttemptRow = {
   created_at: Date;
   updated_at: Date;
 };
+
+function simplyurPortoneCreateOpts(req: BongsimPaymentSessionRequestV1) {
+  if (!req.simplyur_portone_method) return undefined;
+  return {
+    method: req.simplyur_portone_method,
+    locale: req.simplyur_locale,
+  };
+}
 
 const REUSABLE: Set<PaymentAttemptStatus> = new Set(["created", "redirected", "authorized"]);
 
@@ -107,6 +120,10 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
 
   const provider = typeof o.provider === "string" && o.provider.trim() ? o.provider.trim() : "bongsim_mock";
 
+  const simplyur_portone_method = parseSimplyurPortoneMethod(o.simplyur_portone_method);
+  const simplyur_locale =
+    typeof o.simplyur_locale === "string" && o.simplyur_locale.trim() ? o.simplyur_locale.trim() : undefined;
+
   const return_urls: BongsimPaymentReturnUrlsV1 = {
     success_url: String((o.return_urls as Record<string, unknown>).success_url).trim(),
     fail_url: String((o.return_urls as Record<string, unknown>).fail_url).trim(),
@@ -121,6 +138,8 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
       idempotency_key: key,
       provider,
       return_urls,
+      ...(simplyur_portone_method ? { simplyur_portone_method } : {}),
+      ...(simplyur_locale ? { simplyur_locale } : {}),
     },
   };
 }
@@ -205,12 +224,26 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     };
   }
 
-  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID && !resolvePortoneEnv().ok) {
+  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID && !resolvePortoneCoreEnv().ok) {
     return {
       ok: false,
       reason: "validation",
-      details: { portone: "PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET required." },
+      details: {
+        portone:
+          "PORTONE_STORE_ID, PORTONE_API_SECRET, and PORTONE_CHANNEL_KEY_PAYPAL or PORTONE_CHANNEL_KEY_KICC required.",
+      },
     };
+  }
+
+  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID) {
+    const methodResolved = resolvePortoneMethodChannel(req.simplyur_portone_method);
+    if (!methodResolved.ok) {
+      return {
+        ok: false,
+        reason: "validation",
+        details: { simplyur_portone_method: methodResolved.reason },
+      };
+    }
   }
 
   const client = await pool.connect();
@@ -281,6 +314,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
           amount_krw: toInt(order.grand_total_krw),
           currency: "KRW",
           return_urls: returnUrlsReuse,
+          simplyur_portone: simplyurPortoneCreateOpts(req),
         });
         await client.query("COMMIT");
         return { ok: true, body: attemptToResponse(order, ex, provReuse.client, true) };
@@ -323,6 +357,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
         amount_krw: amount,
         currency: "KRW",
         return_urls: req.return_urls,
+        simplyur_portone: simplyurPortoneCreateOpts(req),
       });
     } catch (sessionErr) {
       await client.query("ROLLBACK");

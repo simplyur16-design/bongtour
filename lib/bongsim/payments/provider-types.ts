@@ -1,6 +1,7 @@
 /** PG 세션 생성 어댑터. 구현 등록: `payments/payment-provider-registry.ts`. */
 import type { BongsimPaymentReturnUrlsV1 } from "@/lib/bongsim/contracts/payment-integration.v1";
 import type { BongsimPaymentSessionClientV1 } from "@/lib/bongsim/contracts/payment-session.v1";
+import type { SimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
 
 export type BongsimPaymentProviderCreateInput = {
   provider: string;
@@ -11,6 +12,11 @@ export type BongsimPaymentProviderCreateInput = {
   amount_krw: number;
   currency: "KRW";
   return_urls: BongsimPaymentReturnUrlsV1;
+  /** simplyur PortOne only — PayPal / KICC method + UI locale */
+  simplyur_portone?: {
+    method: SimplyurPortoneMethod;
+    locale?: string;
+  };
 };
 
 export type BongsimPaymentProviderCreateResult = {

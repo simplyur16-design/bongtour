@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
+import { SimplyurPortonePayPalPanel } from "@/components/simplyur/checkout/SimplyurPortonePayPalPanel";
 import { SIMPLYUR_CHECKOUT_ENABLED, simplyurPath } from "@/lib/simplyur/constants";
 import { simplyurLegalPath } from "@/lib/simplyur/legal-disclosures";
-import { requestSimplyurPortonePayment } from "@/lib/simplyur/payments/request-simplyur-portone-payment";
+import type { SimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
+import { requestSimplyurPortoneKiccPayment } from "@/lib/simplyur/payments/request-simplyur-portone-payment";
 import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 
 // REGRESSION-FREEZE[simplyur-portone-checkout-p2]: simplyur checkout + PortOne — manifest
+// REGRESSION-FREEZE[simplyur-portone-overseas-pg]: PayPal + KICC method selector — manifest
 
 type FirstPurchasePreview = {
   eligible: true;
@@ -21,18 +24,40 @@ type FirstPurchasePreview = {
   grand_total_krw: number;
 };
 
+type PendingPayPal = {
+  client: Extract<BongsimPaymentSessionResponseV1["client"], { kind: "portone_v2" }>;
+  paymentAttemptId: string;
+  orderId: string;
+  orderNumber: string;
+};
+
 type Props = {
   optionApiId: string;
   initialProduct?: SimplyurPublicProduct | null;
   paymentFailed?: boolean;
   checkoutEnabled?: boolean;
+  availablePortoneMethods?: SimplyurPortoneMethod[];
 };
+
+function methodLabel(method: SimplyurPortoneMethod, tr: (k: string) => string): string {
+  switch (method) {
+    case "paypal":
+      return tr("checkout.payMethodPaypal");
+    case "kicc_wechat":
+      return tr("checkout.payMethodWechat");
+    case "kicc_alipay_plus":
+      return tr("checkout.payMethodAlipay");
+    default:
+      return method;
+  }
+}
 
 export function SimplyurCheckoutClient({
   optionApiId,
   initialProduct = null,
   paymentFailed = false,
   checkoutEnabled = SIMPLYUR_CHECKOUT_ENABLED,
+  availablePortoneMethods = ["paypal"],
 }: Props) {
   const router = useRouter();
   const { locale } = useSimplyurIntl();
@@ -45,6 +70,16 @@ export function SimplyurCheckoutClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [firstPurchase, setFirstPurchase] = useState<FirstPurchasePreview | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<SimplyurPortoneMethod>(
+    availablePortoneMethods[0] ?? "paypal",
+  );
+  const [pendingPayPal, setPendingPayPal] = useState<PendingPayPal | null>(null);
+
+  useEffect(() => {
+    if (availablePortoneMethods.length && !availablePortoneMethods.includes(paymentMethod)) {
+      setPaymentMethod(availablePortoneMethods[0]!);
+    }
+  }, [availablePortoneMethods, paymentMethod]);
 
   const subtotalKrw = product?.simplyur_sell_price_krw ?? null;
 
@@ -94,10 +129,29 @@ export function SimplyurCheckoutClient({
     return product.simplyur_display.formatted;
   }, [product, firstPurchase, locale]);
 
+  const completePortonePayment = useCallback(
+    async (paymentId: string, paymentAttemptId: string) => {
+      const completeRes = await fetch("/api/simplyur/checkout/portone-complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_id: paymentId,
+          payment_attempt_id: paymentAttemptId,
+        }),
+      });
+      const completeJson = (await completeRes.json()) as { ok?: boolean; error?: string };
+      if (!completeRes.ok || !completeJson.ok) {
+        throw new Error(completeJson.error ?? "payment_complete_failed");
+      }
+    },
+    [],
+  );
+
   const submit = useCallback(async () => {
-    if (!product || !terms || !email.trim()) return;
+    if (!product || !terms || !email.trim() || !availablePortoneMethods.length) return;
     setSubmitting(true);
     setError(null);
+    setPendingPayPal(null);
     try {
       const confirmRes = await fetch("/api/simplyur/checkout/confirm", {
         method: "POST",
@@ -127,8 +181,10 @@ export function SimplyurCheckoutClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           order_id: confirmJson.order.order_id,
-          idempotency_key: `${idempotencyKey}-pay`,
+          idempotency_key: `${idempotencyKey}-pay-${paymentMethod}`,
           provider: SIMPLYUR_PORTONE_PROVIDER_ID,
+          simplyur_portone_method: paymentMethod,
+          simplyur_locale: locale,
           return_urls: {
             success_url: successUrl,
             fail_url: failUrl,
@@ -145,20 +201,19 @@ export function SimplyurCheckoutClient({
         throw new Error("unexpected_payment_client");
       }
 
-      await requestSimplyurPortonePayment(payJson.client);
-
-      const completeRes = await fetch("/api/simplyur/checkout/portone-complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payment_id: payJson.client.payment_id,
-          payment_attempt_id: payJson.payment_attempt_id,
-        }),
-      });
-      const completeJson = (await completeRes.json()) as { ok?: boolean; error?: string };
-      if (!completeRes.ok || !completeJson.ok) {
-        throw new Error(completeJson.error ?? "payment_complete_failed");
+      if (paymentMethod === "paypal") {
+        setPendingPayPal({
+          client: payJson.client,
+          paymentAttemptId: payJson.payment_attempt_id,
+          orderId: confirmJson.order.order_id,
+          orderNumber: confirmJson.order.order_number,
+        });
+        setSubmitting(false);
+        return;
       }
+
+      await requestSimplyurPortoneKiccPayment(payJson.client);
+      await completePortonePayment(payJson.client.payment_id, payJson.payment_attempt_id);
 
       router.push(
         simplyurPath(
@@ -169,10 +224,40 @@ export function SimplyurCheckoutClient({
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       setError(msg && msg.length < 120 ? msg : tr("checkout.errorGeneric"));
-    } finally {
       setSubmitting(false);
     }
-  }, [product, terms, email, phone, idempotencyKey, locale, router, tr]);
+  }, [
+    product,
+    terms,
+    email,
+    phone,
+    idempotencyKey,
+    locale,
+    router,
+    tr,
+    paymentMethod,
+    availablePortoneMethods.length,
+    completePortonePayment,
+  ]);
+
+  const onPayPalPaid = useCallback(async () => {
+    if (!pendingPayPal) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await completePortonePayment(pendingPayPal.client.payment_id, pendingPayPal.paymentAttemptId);
+      router.push(
+        simplyurPath(
+          locale,
+          `/checkout/complete?orderId=${encodeURIComponent(pendingPayPal.orderId)}&orderNumber=${encodeURIComponent(pendingPayPal.orderNumber)}`,
+        ),
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      setError(msg && msg.length < 120 ? msg : tr("checkout.errorGeneric"));
+      setSubmitting(false);
+    }
+  }, [pendingPayPal, completePortonePayment, router, locale, tr]);
 
   if (!optionApiId) {
     return (
@@ -248,9 +333,33 @@ export function SimplyurCheckoutClient({
         className="mt-8 space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
-          void submit();
+          if (!pendingPayPal) void submit();
         }}
       >
+        {availablePortoneMethods.length > 0 ? (
+          <fieldset className="space-y-2">
+            <legend className="block text-sm font-medium su-text-ink">{tr("checkout.payMethod")}</legend>
+            <div className="space-y-2">
+              {availablePortoneMethods.map((method) => (
+                <label
+                  key={method}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-[color:var(--su-hanji-border)] bg-white px-3 py-2.5 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name="portone_method"
+                    value={method}
+                    checked={paymentMethod === method}
+                    disabled={Boolean(pendingPayPal) || submitting}
+                    onChange={() => setPaymentMethod(method)}
+                  />
+                  <span className="su-text-ink">{methodLabel(method, tr)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
         <div>
           <label htmlFor="su-email" className="block text-sm font-medium su-text-ink">
             {tr("checkout.email")}
@@ -263,7 +372,8 @@ export function SimplyurCheckoutClient({
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-[color:var(--su-hanji-border)] bg-white px-3 py-2.5 text-sm su-text-ink"
+            disabled={Boolean(pendingPayPal)}
+            className="mt-2 w-full rounded-lg border border-[color:var(--su-hanji-border)] bg-white px-3 py-2.5 text-sm su-text-ink disabled:opacity-60"
           />
         </div>
         <div>
@@ -277,7 +387,8 @@ export function SimplyurCheckoutClient({
             autoComplete="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-[color:var(--su-hanji-border)] bg-white px-3 py-2.5 text-sm su-text-ink"
+            disabled={Boolean(pendingPayPal)}
+            className="mt-2 w-full rounded-lg border border-[color:var(--su-hanji-border)] bg-white px-3 py-2.5 text-sm su-text-ink disabled:opacity-60"
           />
         </div>
         <label className="flex items-start gap-3 text-sm text-[color:var(--su-ink-muted)]">
@@ -285,6 +396,7 @@ export function SimplyurCheckoutClient({
             type="checkbox"
             checked={terms}
             onChange={(e) => setTerms(e.target.checked)}
+            disabled={Boolean(pendingPayPal)}
             className="mt-1"
           />
           <span>
@@ -307,13 +419,25 @@ export function SimplyurCheckoutClient({
         {paymentFailed ? (
           <p className="text-sm text-red-600">{tr("checkout.errorGeneric")}</p>
         ) : null}
-        <button
-          type="submit"
-          disabled={submitting || !terms || !email.trim()}
-          className="w-full rounded-full su-bg-dan px-6 py-3 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? tr("checkout.processing") : tr("checkout.submit")}
-        </button>
+
+        {pendingPayPal ? (
+          <SimplyurPortonePayPalPanel
+            client={pendingPayPal.client}
+            onPaid={() => void onPayPalPaid()}
+            onFail={(msg) => {
+              setError(msg.length < 120 ? msg : tr("checkout.errorGeneric"));
+              setSubmitting(false);
+            }}
+          />
+        ) : (
+          <button
+            type="submit"
+            disabled={submitting || !terms || !email.trim() || !availablePortoneMethods.length}
+            className="w-full rounded-full su-bg-dan px-6 py-3 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? tr("checkout.processing") : tr("checkout.submit")}
+          </button>
+        )}
       </form>
     </main>
   );

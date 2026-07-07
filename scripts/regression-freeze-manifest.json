@@ -6938,6 +6938,81 @@
       ]
     },
     {
+      "id": "simplyur-portone-overseas-pg",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur PortOne PayPal + KICC overseas (USD) + webhook",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/portone-methods.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-overseas-pg]",
+            "krwOrderTotalToUsdMinor",
+            "kicc_alipay_plus"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/providers/portone-payments.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-overseas-pg]",
+            "total_amount_minor",
+            "charge_currency"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/request-simplyur-portone-payment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-overseas-pg]",
+            "loadSimplyurPortonePayPalUi",
+            "ALIPAY_PLUS"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/webhooks/portone/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-overseas-pg]",
+            "REGRESSION-FREEZE[simplyur-portone-webhook-secret]",
+            "parseSimplyurPortoneWebhook",
+            "verifyAndCapturePortonePayment"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-overseas-pg]",
+            "simplyur_portone_method",
+            "SimplyurPortonePayPalPanel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/portone-overseas.test.ts",
+        "lib/simplyur/payments/portone-webhook-secret.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-portone-webhook-secret",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur PortOne webhook — PORTONE_WEBHOOK_SECRET signature verify",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/portone-webhook-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-webhook-secret]",
+            "verifyPortoneWebhook",
+            "resolvePortoneWebhookSecret"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/portone-env.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-webhook-secret]",
+            "resolvePortoneWebhookSecret"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/simplyur/payments/portone-webhook-secret.test.ts"]
+    },
+    {
       "id": "simplyur-pg-legal-surface",
       "tier": ["prebuild", "ci"],
       "summary": "simplyur PG 심사 — 사업자·약관·개인정보·환불 페이지 및 푸터",

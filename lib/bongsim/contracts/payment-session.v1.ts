@@ -7,6 +7,10 @@ export type BongsimPaymentSessionRequestV1 = {
   /** Defaults to `bongsim_mock` when omitted. */
   provider?: string;
   return_urls: BongsimPaymentReturnUrlsV1;
+  /** simplyur PortOne — PayPal or KICC (required when provider=portone) */
+  simplyur_portone_method?: "paypal" | "kicc_wechat" | "kicc_alipay_plus";
+  /** simplyur checkout UI locale for KICC payment window */
+  simplyur_locale?: string;
 };
 
 /** Browser-safe payload only; no secrets, no webhook verification material. */
@@ -34,10 +38,16 @@ export type BongsimPaymentSessionClientV1 =
       channel_key: string;
       payment_id: string;
       order_name: string;
-      total_amount_krw: number;
-      currency: "CURRENCY_KRW";
+      /** USD minor units charged via PortOne (PayPal / KICC). */
+      total_amount_minor: number;
+      charge_currency: "USD";
+      portone_method: "paypal" | "kicc_wechat" | "kicc_alipay_plus";
       customer_email: string;
       is_test_channel: boolean;
+      /** KICC locale (e.g. EN_US). Omitted for PayPal. */
+      portone_locale?: string;
+      /** PortOne async settlement (KICC QR flows). */
+      notice_url?: string;
     };
 
 export type BongsimPaymentSessionResponseV1 = {
