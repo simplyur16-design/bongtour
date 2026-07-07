@@ -75,6 +75,7 @@
     "price": "价格",
     "durationLabel": "您行程几天？",
     "durationHint": "仅显示在售的天数。",
+    "durationRecommendedHint": "蓝色边框为韩国旅行常用天数，点击即可查看套餐。",
     "durationCaption": "1 天 = 自激活起 24 小时（因套餐而异）",
     "durationChip": "{N} 天",
     "plansPlaceholder": "请在上方选择行程天数以查看套餐。",

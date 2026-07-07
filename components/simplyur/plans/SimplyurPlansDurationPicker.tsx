@@ -1,5 +1,6 @@
 "use client";
 
+import { TripDayChipScrollRow } from "@/components/bongsim/recommend/TripDayChipScrollRow";
 import { SIMPLYUR_PLANS_DESIGN as D } from "@/lib/simplyur/plans-design";
 import { formatPlanMessage } from "@/lib/simplyur/plans-catalog";
 import { useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
@@ -8,11 +9,21 @@ type Props = {
   options: number[];
   value: number | null;
   onChange: (days: number) => void;
+  /** 한국 기본 5일 등 — bongsim blue 추천 배지 */
+  recommendedDay?: number | null;
 };
 
-/** design_handoff_plans — horizontal day-count chip picker */
-export function SimplyurPlansDurationPicker({ options, value, onChange }: Props) {
+/** design_handoff_plans — bongsim blue 일수 칩 (스크롤 fade·구간 구분선 공유) */
+export function SimplyurPlansDurationPicker({
+  options,
+  value,
+  onChange,
+  recommendedDay = null,
+}: Props) {
   const tr = useSimplyurT();
+
+  const showRecommendedLegend =
+    recommendedDay != null && options.includes(recommendedDay) && value !== recommendedDay;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -22,32 +33,21 @@ export function SimplyurPlansDurationPicker({ options, value, onChange }: Props)
       <p className="text-xs" style={{ color: D.muted }}>
         {tr("recommend.durationHint")}
       </p>
-      <div className="overflow-x-auto pb-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max min-w-full gap-2.5 py-0.5">
-          {options.map((d) => {
-            const selected = value === d;
-            return (
-              <button
-                key={d}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onChange(d)}
-                className="shrink-0 whitespace-nowrap px-[18px] text-sm font-semibold transition"
-                style={{
-                  height: D.chipHeight,
-                  minWidth: D.chipMinWidth,
-                  borderRadius: D.chipRadius,
-                  border: `1.5px solid ${selected ? D.coral : D.border}`,
-                  backgroundColor: selected ? D.coral : "transparent",
-                  color: selected ? "#fff" : D.faint,
-                }}
-              >
-                {formatPlanMessage(tr("recommend.durationChip"), d)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <TripDayChipScrollRow
+        options={options}
+        value={value}
+        onChange={onChange}
+        recommendedDay={recommendedDay}
+        formatLabel={(d) => formatPlanMessage(tr("recommend.durationChip"), d)}
+        fadeBg={D.bg}
+        compact
+        ariaLabel={tr("recommend.durationLabel")}
+      />
+      {showRecommendedLegend ? (
+        <p className="text-[11px] font-medium text-[#0176f9]">
+          {tr("recommend.durationRecommendedHint")}
+        </p>
+      ) : null}
       <p className="text-[11px]" style={{ color: D.faint }}>
         {tr("recommend.durationCaption")}
       </p>

@@ -6618,6 +6618,91 @@
         }
       ],
       "vitestSuites": ["lib/bongsim/catalog/catalog-buckets.test.ts"]
+    },
+    {
+      "id": "bongsim-default-trip-days-ssot",
+      "tier": ["prebuild", "ci"],
+      "summary": "국가·권역별 기본 이용일수 + 카탈로그 스냅 + recommend 자동 선택",
+      "checks": [
+        {
+          "file": "lib/bongsim/recommend/default-trip-days.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-default-trip-days-ssot]",
+            "resolveDefaultTripDays",
+            "pickDefaultTripDaysForDestination"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-default-trip-days-ssot]",
+            "pickDefaultTripDaysForDestination"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/DayChipPicker.tsx",
+          "mustInclude": ["recommendedDay", "resolveDayChipVisualState", "추천"]
+        },
+        {
+          "file": "lib/bongsim/recommend/day-chip-visual-state.ts",
+          "mustInclude": ["resolveDayChipVisualState"]
+        },
+        {
+          "file": "app/simplyur/[locale]/recommend/SimplyurRecommendClient.tsx",
+          "mustInclude": ["SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS", "snapTripDaysToAvailable"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/recommend/default-trip-days.test.ts",
+        "lib/bongsim/recommend/day-chip-visual-state.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-trip-day-chip-ui",
+      "tier": ["prebuild", "ci"],
+      "summary": "일수 칩 — 스크롤 fade·15+ 구간 구분·simplyur blue 통일",
+      "checks": [
+        {
+          "file": "lib/bongsim/recommend/trip-day-chip-layout.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-trip-day-chip-ui]",
+            "groupTripDayOptions",
+            "TRIP_DAY_GROUP_DIVIDER_MIN_OPTIONS"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/TripDayChipScrollRow.tsx",
+          "mustInclude": ["TripDayChipScrollRow", "GroupDivider", "ResizeObserver"]
+        },
+        {
+          "file": "components/simplyur/plans/SimplyurPlansDurationPicker.tsx",
+          "mustInclude": ["TripDayChipScrollRow", "recommendedDay", "#0176f9"]
+        }
+      ],
+      "vitestSuites": ["lib/bongsim/recommend/trip-day-chip-layout.test.ts"]
+    },
+    {
+      "id": "bongsim-products-by-country-cache",
+      "tier": ["prebuild", "ci"],
+      "summary": "bongsim products/by-country API — loadProductsByCountry + 120s unstable_cache",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/load-products-by-country-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-products-by-country-cache]",
+            "loadProductsByCountryCached"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/products/by-country/route.ts",
+          "mustInclude": ["loadProductsByCountryCached", "export const revalidate = 120"]
+        },
+        {
+          "file": "app/api/bongsim/countries/route.ts",
+          "mustInclude": ["loadBongsimRecommendBootstrapCached"]
+        }
+      ],
+      "vitestSuites": []
     }
   ]
 }

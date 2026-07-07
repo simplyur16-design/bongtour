@@ -65,6 +65,7 @@ async function main() {
     { label: "bongsim esim landing", kind: "page", path: "/travel/esim" },
     { label: "bongsim catalog", kind: "page", path: "/travel/esim/catalog" },
     { label: "bongsim recommend", kind: "page", path: "/travel/esim/recommend" },
+    { label: "api bongsim by-country jp", kind: "api", path: "/api/bongsim/products/by-country?codes=jp", accept: "application/json" },
     { label: "api simplyur catalog", kind: "api", path: "/api/simplyur/products/by-country?locale=en", accept: "application/json" },
     { label: "api bongsim countries", kind: "api", path: "/api/bongsim/countries", accept: "application/json" },
     { label: "api bongsim heroes", kind: "api", path: "/api/bongsim/country-heroes", accept: "application/json" },

@@ -3,6 +3,7 @@
 import SafeImage from "@/app/components/SafeImage";
 import { CountryPurchaseNoticeList } from "@/components/bongsim/recommend/CountryPurchaseNotice";
 import { DayChipPicker } from "@/components/bongsim/recommend/DayChipPicker";
+import { pickDefaultTripDaysForDestination } from "@/lib/bongsim/recommend/default-trip-days";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import { UsimsaRegionPackMetaRows } from "@/components/bongsim/recommend/UsimsaRegionPackMetaRows";
@@ -16,6 +17,10 @@ import {
 import { isRegionPackCode, planNameForRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { RegionPackBadgeIcon } from "@/components/bongsim/recommend/RegionPackBadgeIcon";
+import {
+  RecommendPlansPlaceholder,
+  type RecommendPlansPriceHint,
+} from "@/components/bongsim/recommend/RecommendPlansPlaceholder";
 import { resolveDestinationFlagImageUrl } from "@/lib/bongsim/recommend/destination-flag-image";
 import type { CountryOption } from "@/lib/bongsim/types";
 
@@ -37,6 +42,7 @@ type Props = {
     ctx?: { kycDistribution?: KycLabelDistribution },
   ) => void;
   onChangeDays: () => void;
+  priceHint?: RecommendPlansPriceHint | null;
 };
 
 function flagUrl(code: string) {
@@ -56,12 +62,14 @@ export function SingleCountryPurchasePanel({
   onBackFromPlan,
   onCompletePlan,
   onChangeDays,
+  priceHint = null,
 }: Props) {
   const isRegion = isRegionPackCode(code);
   const countryName = isRegion
     ? (planNameForRegionPackCode(code) ?? country?.nameKr ?? code.toUpperCase())
     : (country?.nameKr ?? code.toUpperCase());
   const chipValue = planCtx?.tripDays ?? null;
+  const recommendedDay = pickDefaultTripDaysForDestination(code, availableDays);
 
   return (
     <div className="pb-6">
@@ -102,6 +110,7 @@ export function SingleCountryPurchasePanel({
             <DayChipPicker
               value={chipValue}
               options={availableDays}
+              recommendedDay={recommendedDay}
               onChange={onApplyTripDays}
               label="이용 일수"
               hint="판매 중인 요금제에 맞는 일수만 표시됩니다."
@@ -109,6 +118,10 @@ export function SingleCountryPurchasePanel({
           </div>
         ) : null}
       </div>
+
+      {!done && !planCtx ? (
+        <RecommendPlansPlaceholder priceHint={priceHint} />
+      ) : null}
 
       {done && selection ? (
         <div className="mx-4 mt-4 rounded-xl border border-[#dbeafe] bg-[#f3f8ff] px-4 py-3.5">

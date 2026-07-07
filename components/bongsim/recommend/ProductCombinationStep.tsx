@@ -11,6 +11,7 @@ import { BongsimRecommendAppShell } from "@/components/bongsim/recommend/Bongsim
 import { CountryPurchaseNoticeList } from "@/components/bongsim/recommend/CountryPurchaseNotice";
 import { DurationPopup } from "@/components/bongsim/recommend/DurationPopup";
 import { SingleCountryPurchasePanel } from "@/components/bongsim/recommend/SingleCountryPurchasePanel";
+import type { RecommendPlansPriceHint } from "@/components/bongsim/recommend/RecommendPlansPlaceholder";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup";
 import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
@@ -37,6 +38,8 @@ import {
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 import { dateRangeFromTripDays } from "@/lib/bongsim/recommend/duration-from-days";
 import { collectTripDaysFromCountryPack } from "@/lib/bongsim/recommend/available-trip-days";
+import { pickDefaultTripDaysForDestination } from "@/lib/bongsim/recommend/default-trip-days";
+// REGRESSION-FREEZE[bongsim-default-trip-days-ssot]: 단일국가 기본 일수 자동 선택 — manifest
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import {
@@ -45,15 +48,9 @@ import {
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
+import type { CountryProductPack } from "@/lib/bongsim/data/load-products-by-country";
 
 const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
-
-export type CountryProductPack = {
-  roaming: { min_price: number; products: ProductOption[] };
-  local: { min_price: number; products: ProductOption[] } | null;
-  roaming_unlimited_min: number | null;
-  local_unlimited_min: number | null;
-};
 
 function flagCdnUrl(code: string): string {
   return resolveBongsimFlagImageUrlOrFallback(bongsimFlagIsoForDestination(code));
@@ -347,6 +344,7 @@ export function ProductCombinationStep({
   );
   const [comparePopupOpen, setComparePopupOpen] = useState(false);
   const [comparePopupDismissed, setComparePopupDismissed] = useState(false);
+  const autoDefaultTripDaysRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!onStoredCompletedChange) return;
@@ -532,8 +530,31 @@ export function ProductCombinationStep({
     setOpenPlanByCode({ [singleCode]: { tripDays, start, end } });
   };
 
+  useEffect(() => {
+    const active = new Set(selectedCodes);
+    for (const code of Object.keys(autoDefaultTripDaysRef.current)) {
+      if (!active.has(code)) delete autoDefaultTripDaysRef.current[code];
+    }
+  }, [selectedCodes]);
+
+  useEffect(() => {
+    if (!isSingleCountry || !singleCode || !data || loading) return;
+    if (isCountryDone(singleCode)) return;
+    if (openPlanByCode[singleCode]) return;
+    if (autoDefaultTripDaysRef.current[singleCode]) return;
+
+    const pack = data.individual[singleCode];
+    if (!pack) return;
+    const days = pickDefaultTripDaysForDestination(singleCode, collectTripDaysFromCountryPack(pack));
+    if (days == null) return;
+
+    autoDefaultTripDaysRef.current[singleCode] = true;
+    applySingleTripDays(days);
+  }, [isSingleCountry, singleCode, data, loading, openPlanByCode, storedDone, completed]);
+
   const resetSingleCountrySelection = () => {
     if (!singleCode) return;
+    autoDefaultTripDaysRef.current[singleCode] = true;
     setCompleted((prev) => {
       const next = { ...prev };
       delete next[singleCode];
@@ -667,6 +688,13 @@ export function ProductCombinationStep({
     const selection = completed[singleCode];
     const stored = storedDone[singleCode];
     const planCtx = openPlanByCode[singleCode] ?? null;
+    const priceHint: RecommendPlansPriceHint | null = pack
+      ? {
+          roamingFromKrw: pack.roaming.min_price > 0 ? pack.roaming.min_price : null,
+          localFromKrw:
+            pack.local?.min_price != null && pack.local.min_price > 0 ? pack.local.min_price : null,
+        }
+      : null;
     let summaryLine = stored?.summaryLine ?? "";
     if (selection) {
       const range = countryDateRanges.find((r) => r.code === singleCode);
@@ -701,6 +729,7 @@ export function ProductCombinationStep({
             selection={selection ?? null}
             onApplyTripDays={applySingleTripDays}
             onBackFromPlan={() => {
+              if (singleCode) autoDefaultTripDaysRef.current[singleCode] = true;
               setOpenPlanByCode((prev) => {
                 const next = { ...prev };
                 delete next[singleCode];
@@ -711,6 +740,7 @@ export function ProductCombinationStep({
               completeCountryPlan(singleCode, product, quantity, ctx?.kycDistribution)
             }
             onChangeDays={resetSingleCountrySelection}
+            priceHint={priceHint}
           />
 
           {done && checkoutQueue.length > 0 ? (

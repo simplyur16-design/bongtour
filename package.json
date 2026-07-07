@@ -108,6 +108,8 @@
     "verify:regression-freeze:prebuild": "npx tsx scripts/verify-regression-freeze.ts --tier prebuild",
     "verify:regression-freeze:ci": "npx tsx scripts/verify-regression-freeze.ts --tier ci",
     "verify:regression-freeze:list": "npx tsx scripts/verify-regression-freeze.ts --list",
+    "audit:esim-routes": "npx tsx scripts/audit-esim-route-speed.ts",
+    "audit:site-routes": "npx tsx scripts/audit-public-route-speed.ts",
     "verify:hanatour-lib": "npx tsx scripts/verify-hanatour-lib-ssot.ts",
     "verify:hanatour-register-ssot-freeze": "npx tsx scripts/verify-hanatour-register-ssot-freeze.ts",
     "verify:ybtour-lib": "npx tsx scripts/verify-ybtour-lib-ssot.ts",

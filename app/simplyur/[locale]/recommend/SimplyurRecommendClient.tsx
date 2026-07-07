@@ -8,6 +8,10 @@ import {
   formatPlanMessage,
   minFormattedPrice,
 } from "@/lib/simplyur/plans-catalog";
+import {
+  SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
+  snapTripDaysToAvailable,
+} from "@/lib/bongsim/recommend/default-trip-days";
 import { SIMPLYUR_PLANS_DESIGN as D } from "@/lib/simplyur/plans-design";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import { SimplyurPlansDurationPicker } from "@/components/simplyur/plans/SimplyurPlansDurationPicker";
@@ -108,6 +112,12 @@ export function SimplyurRecommendClient({
 
   const pack = data?.pack ?? null;
   const dayOptions = useMemo(() => (pack ? collectAvailableDays(pack) : []), [pack]);
+
+  useEffect(() => {
+    if (!pack || selectedDays != null) return;
+    const days = snapTripDaysToAvailable(SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS, dayOptions);
+    if (days != null) setSelectedDays(days);
+  }, [pack, dayOptions, selectedDays]);
 
   const roamingFiltered = useMemo(
     () => (pack && selectedDays != null ? filterProductsByDays(pack.roaming.products, selectedDays) : []),
@@ -223,6 +233,10 @@ export function SimplyurRecommendClient({
                 options={dayOptions}
                 value={selectedDays}
                 onChange={setSelectedDays}
+                recommendedDay={snapTripDaysToAvailable(
+                  SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
+                  dayOptions,
+                )}
               />
             </div>
 
