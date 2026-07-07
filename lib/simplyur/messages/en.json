@@ -75,7 +75,6 @@
     "price": "Price",
     "durationLabel": "How long is your trip?",
     "durationHint": "Only trip lengths we sell are shown.",
-    "durationRecommendedHint": "Blue outline marks the typical trip length for Korea. Tap to see plans.",
     "durationCaption": "1 day = 24 hours from activation (varies by plan)",
     "durationChip": "{N} days",
     "plansPlaceholder": "Select your trip length above to see available plans.",

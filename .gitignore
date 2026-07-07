@@ -166,6 +166,7 @@ docs/ops/welcomepay-guide.zi
 
 # 도구 임시 스크래치 (root level — 기존 tmp*.txt/tmp*.json은 선행 점 미매칭이라 별도 추가)
 .tmp-*
+tmp-*.bin
 
 # scripts 임시 스크래치
 scripts/.tmp-*

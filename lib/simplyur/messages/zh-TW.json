@@ -75,7 +75,6 @@
     "price": "價格",
     "durationLabel": "您行程幾天？",
     "durationHint": "僅顯示在售的天數。",
-    "durationRecommendedHint": "藍色框線為韓國旅行常用天數，點擊即可查看方案。",
     "durationCaption": "1 天 = 自啟用起 24 小時（因方案而異）",
     "durationChip": "{N} 天",
     "plansPlaceholder": "請在上方選擇行程天數以查看方案。",

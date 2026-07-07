@@ -75,7 +75,6 @@
     "price": "Giá",
     "durationLabel": "Bạn ở bao lâu?",
     "durationHint": "Chỉ hiển thị số ngày đang bán.",
-    "durationRecommendedHint": "Viền xanh là số ngày phổ biến cho chuyến đi Hàn. Chạm để xem gói.",
     "durationCaption": "1 ngày = 24 giờ kể từ kích hoạt (tùy gói)",
     "durationChip": "{N} ngày",
     "plansPlaceholder": "Chọn số ngày ở trên để xem gói.",

@@ -75,7 +75,6 @@
     "price": "料金",
     "durationLabel": "滞在は何日ですか？",
     "durationHint": "販売中の日数のみ表示されます。",
-    "durationRecommendedHint": "青い枠は韓国旅行でよく選ばれる日数です。タップするとプランが表示されます。",
     "durationCaption": "1日＝アクティベーションから24時間（プランにより異なります）",
     "durationChip": "{N}日",
     "plansPlaceholder": "上で滞在日数を選ぶとプランが表示されます。",
