@@ -114,6 +114,8 @@
     "total": "Tổng",
     "processing": "Đang xử lý…",
     "errorGeneric": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "firstPurchaseBanner": "Đơn đầu tiên — giảm {rate}% tự động",
+    "firstPurchaseHint": "Nhập email để xem bạn có được giảm giá lần đầu không.",
     "completeTitle": "Cảm ơn!",
     "completeBody": "Thanh toán đã xác nhận. Mã QR eSIM Hàn Quốc sẽ được gửi qua email trong vài phút.",
     "orderNumber": "Mã đơn",

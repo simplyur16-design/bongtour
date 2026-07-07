@@ -5,10 +5,13 @@ import {
   SIMPLYUR_MARKET_COUNTRY,
   type SimplyurLocale,
 } from "@/lib/simplyur/constants";
-import { loadSimplyurKoreaCatalog } from "@/lib/simplyur/catalog/load-korea-catalog";
+import {
+  CATALOG_REVALIDATE_SEC,
+  loadSimplyurKoreaCatalogCached,
+} from "@/lib/simplyur/catalog/load-korea-catalog-cached";
 import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 
-export const dynamic = "force-dynamic";
+export const revalidate = CATALOG_REVALIDATE_SEC;
 
 /**
  * GET /api/simplyur/products/by-country?codes=kr&locale=en
@@ -33,7 +36,7 @@ export async function GET(req: Request) {
     );
   }
 
-  const catalog = await loadSimplyurKoreaCatalog(locale);
+  const catalog = await loadSimplyurKoreaCatalogCached(locale);
   if (!catalog.ok) {
     const status = catalog.reason === "db_unconfigured" ? 503 : 500;
     return jsonWithLeakGuard({ error: catalog.reason }, "simplyur.products.by-country", { status });
@@ -41,7 +44,7 @@ export async function GET(req: Request) {
 
   const messages = await getSimplyurMessages(locale);
 
-  return jsonWithLeakGuard(
+  const res = jsonWithLeakGuard(
     {
       locale,
       country_name: t(messages, "countries.kr.name"),
@@ -49,4 +52,9 @@ export async function GET(req: Request) {
     },
     "simplyur.products.by-country",
   );
+  res.headers.set(
+    "Cache-Control",
+    `public, s-maxage=${CATALOG_REVALIDATE_SEC}, stale-while-revalidate=300`,
+  );
+  return res;
 }

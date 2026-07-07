@@ -114,6 +114,8 @@
     "total": "合計",
     "processing": "處理中…",
     "errorGeneric": "發生錯誤，請重試。",
+    "firstPurchaseBanner": "首次購買自動享 {rate}% 折扣",
+    "firstPurchaseHint": "輸入電子郵件以查看首次購買折扣是否適用。",
     "completeTitle": "謝謝！",
     "completeBody": "付款已確認。韓國 eSIM QR 碼將在數分鐘內寄到您的信箱。",
     "orderNumber": "訂單編號",

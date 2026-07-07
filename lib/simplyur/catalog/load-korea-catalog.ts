@@ -7,6 +7,8 @@ import { SIMPLYUR_MARKET_COUNTRY, type SimplyurLocale } from "@/lib/simplyur/con
 import { toSimplyurPublicProduct, type SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 
+// REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 DB 로더 — manifest
+
 export type SimplyurKoreaPack = {
   roaming: {
     min_price_krw: number | null;

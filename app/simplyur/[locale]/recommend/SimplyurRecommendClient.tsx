@@ -62,15 +62,21 @@ function PlanSection({
 }
 
 /** design_handoff_plans — duration-first Korea eSIM catalog (Phase 1). */
-export function SimplyurRecommendClient() {
+export function SimplyurRecommendClient({
+  initialPack = null,
+  initialError = null,
+}: {
+  initialPack?: SimplyurKoreaPack | null;
+  initialError?: string | null;
+}) {
   const { locale } = useSimplyurIntl();
   const tr = useSimplyurT();
   const scrollRef = useRef<HTMLElement>(null);
   const chipsRef = useRef<HTMLDivElement>(null);
 
-  const [data, setData] = useState<ApiPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<ApiPayload | null>(initialPack ? { pack: initialPack } : null);
+  const [loading, setLoading] = useState(!initialPack && !initialError);
+  const [error, setError] = useState<string | null>(initialError);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
 
   const load = useCallback(() => {
@@ -90,6 +96,7 @@ export function SimplyurRecommendClient() {
   }, [locale]);
 
   useEffect(() => {
+    if (initialPack || initialError) return;
     let cancelled = false;
     load().then(() => {
       if (cancelled) return;
@@ -97,7 +104,7 @@ export function SimplyurRecommendClient() {
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, initialPack, initialError]);
 
   const pack = data?.pack ?? null;
   const dayOptions = useMemo(() => (pack ? collectAvailableDays(pack) : []), [pack]);

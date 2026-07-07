@@ -114,6 +114,8 @@
     "total": "Total",
     "processing": "Processing…",
     "errorGeneric": "Something went wrong. Please try again.",
+    "firstPurchaseBanner": "First order — {rate}% off applied automatically",
+    "firstPurchaseHint": "Enter your email to see if your first-order discount applies.",
     "completeTitle": "Thank you!",
     "completeBody": "Payment received. Your Korea eSIM QR code will arrive by email within a few minutes.",
     "orderNumber": "Order number",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
@@ -9,47 +9,83 @@ import { SIMPLYUR_CHECKOUT_ENABLED, simplyurPath } from "@/lib/simplyur/constant
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 
-export function SimplyurCheckoutClient() {
+type FirstPurchasePreview = {
+  eligible: true;
+  discount_rate_pct: number;
+  discount_krw: number;
+  grand_total_krw: number;
+};
+
+type Props = {
+  optionApiId: string;
+  initialProduct?: SimplyurPublicProduct | null;
+  paymentFailed?: boolean;
+};
+
+export function SimplyurCheckoutClient({
+  optionApiId,
+  initialProduct = null,
+  paymentFailed = false,
+}: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const optionApiId = (searchParams?.get("optionApiId") ?? "").trim();
   const { locale } = useSimplyurIntl();
   const tr = useSimplyurT();
 
-  const [product, setProduct] = useState<SimplyurPublicProduct | null>(null);
-  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [product] = useState<SimplyurPublicProduct | null>(initialProduct);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [terms, setTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [firstPurchase, setFirstPurchase] = useState<FirstPurchasePreview | null>(null);
+
+  const subtotalKrw = product?.simplyur_sell_price_krw ?? null;
 
   useEffect(() => {
-    if (!optionApiId) {
-      setLoadingProduct(false);
+    if (subtotalKrw == null || subtotalKrw <= 0) {
+      setFirstPurchase(null);
       return;
     }
-    let cancelled = false;
-    fetch(`/api/simplyur/products/${encodeURIComponent(optionApiId)}?locale=${locale}`)
-      .then(async (r) => {
-        if (!r.ok) throw new Error("not found");
-        return r.json() as Promise<{ product: SimplyurPublicProduct }>;
-      })
-      .then((json) => {
-        if (!cancelled) setProduct(json.product);
+    const buyerEmail = email.trim();
+    if (!buyerEmail) {
+      setFirstPurchase(null);
+      return;
+    }
+    const ac = new AbortController();
+    const q = new URLSearchParams({
+      subtotal_krw: String(subtotalKrw),
+      buyer_email: buyerEmail,
+    });
+    fetch(`/api/bongsim/checkout/first-purchase-preview?${q}`, { signal: ac.signal })
+      .then(async (r) => r.json())
+      .then((j) => {
+        if (j?.eligible === true) {
+          setFirstPurchase(j as FirstPurchasePreview);
+        } else {
+          setFirstPurchase(null);
+        }
       })
       .catch(() => {
-        if (!cancelled) setProduct(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingProduct(false);
+        if (!ac.signal.aborted) setFirstPurchase(null);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [optionApiId, locale]);
+    return () => ac.abort();
+  }, [email, subtotalKrw]);
 
   const idempotencyKey = useMemo(() => crypto.randomUUID(), []);
+
+  const displayFormatted = useMemo(() => {
+    if (!product?.simplyur_display) return "—";
+    if (firstPurchase?.eligible && product.simplyur_sell_price_krw != null && product.simplyur_sell_price_krw > 0) {
+      const ratio = 1 - firstPurchase.discount_krw / product.simplyur_sell_price_krw;
+      const displayAmt = Math.max(0, Math.round(product.simplyur_display.amount * ratio));
+      return new Intl.NumberFormat(locale === "en" ? "en-US" : locale, {
+        style: "currency",
+        currency: product.simplyur_display.currency,
+        maximumFractionDigits: product.simplyur_display.currency === "KRW" ? 0 : 2,
+      }).format(displayAmt);
+    }
+    return product.simplyur_display.formatted;
+  }, [product, firstPurchase, locale]);
 
   const submit = useCallback(async () => {
     if (!product || !terms || !email.trim()) return;
@@ -121,14 +157,6 @@ export function SimplyurCheckoutClient() {
     );
   }
 
-  if (loadingProduct) {
-    return (
-      <main className="mx-auto max-w-lg px-4 py-10">
-        <p className="text-sm text-[color:var(--su-ink-muted)]">{tr("recommend.loading")}</p>
-      </main>
-    );
-  }
-
   if (!product) {
     return (
       <main className="mx-auto max-w-lg px-4 py-10">
@@ -170,7 +198,22 @@ export function SimplyurCheckoutClient() {
           {tr("checkout.summary")}
         </h2>
         <p className="mt-3 font-medium su-text-ink">{product.plan_summary}</p>
-        <p className="mt-1 text-xl font-bold su-text-dan">{product.simplyur_display?.formatted ?? "—"}</p>
+        {firstPurchase ? (
+          <div className="mt-2 space-y-1">
+            <p className="text-base font-medium text-[color:var(--su-ink-muted)] line-through">
+              {product.simplyur_display?.formatted ?? "—"}
+            </p>
+            <p className="text-xl font-bold su-text-dan">{displayFormatted}</p>
+            <p className="text-xs font-semibold su-text-celadon">
+              {tr("checkout.firstPurchaseBanner").replace("{rate}", String(firstPurchase.discount_rate_pct))}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-1 text-xl font-bold su-text-dan">{product.simplyur_display?.formatted ?? "—"}</p>
+        )}
+        {!firstPurchase && !email.trim() ? (
+          <p className="mt-2 text-xs text-[color:var(--su-ink-muted)]">{tr("checkout.firstPurchaseHint")}</p>
+        ) : null}
       </section>
 
       <form
@@ -219,7 +262,7 @@ export function SimplyurCheckoutClient() {
           {tr("checkout.terms")}
         </label>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {searchParams?.get("failed") === "1" ? (
+        {paymentFailed ? (
           <p className="text-sm text-red-600">{tr("checkout.errorGeneric")}</p>
         ) : null}
         <button

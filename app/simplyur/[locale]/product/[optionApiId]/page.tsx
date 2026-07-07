@@ -1,22 +1,22 @@
-import { Suspense } from "react";
+import { notFound } from "next/navigation";
 import { SimplyurProductClient } from "./SimplyurProductClient";
+import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
+import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 
-type Props = { params: Promise<{ optionApiId: string }> };
+type Props = { params: Promise<{ locale: string; optionApiId: string }> };
 
 export default async function SimplyurProductPage({ params }: Props) {
-  const { optionApiId } = await params;
+  const { locale: raw, optionApiId } = await params;
+  if (!isSimplyurLocale(raw)) notFound();
+  const locale = raw as SimplyurLocale;
+
+  const res = await loadSimplyurKoreaProductByOptionId(optionApiId, locale);
+
   return (
-    <Suspense
-      fallback={
-        <main
-          className="mx-auto max-w-lg px-[22px] py-8"
-          style={{ backgroundColor: "#FFF4EF", minHeight: "60vh" }}
-        >
-          <div className="h-7 w-3/4 animate-pulse rounded-lg bg-[#EDE9E4]" />
-        </main>
-      }
-    >
-      <SimplyurProductClient optionApiId={optionApiId} />
-    </Suspense>
+    <SimplyurProductClient
+      optionApiId={optionApiId}
+      initialProduct={res.ok ? res.product : null}
+      initialState={res.ok ? "loaded" : res.reason === "not_found" || res.reason === "not_korea" ? "not_found" : "not_found"}
+    />
   );
 }

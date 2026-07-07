@@ -1,16 +1,33 @@
-import { Suspense } from "react";
+import { notFound } from "next/navigation";
 import { SimplyurCheckoutClient } from "./SimplyurCheckoutClient";
+import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
+import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 
-export default function SimplyurCheckoutPage() {
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ optionApiId?: string; failed?: string }>;
+};
+
+export default async function SimplyurCheckoutPage({ params, searchParams }: Props) {
+  const { locale: raw } = await params;
+  if (!isSimplyurLocale(raw)) notFound();
+  const locale = raw as SimplyurLocale;
+
+  const q = await searchParams;
+  const optionApiId = (q.optionApiId ?? "").trim();
+  const paymentFailed = q.failed === "1";
+
+  let initialProduct = null;
+  if (optionApiId) {
+    const loaded = await loadSimplyurKoreaProductByOptionId(optionApiId, locale);
+    if (loaded.ok) initialProduct = loaded.product;
+  }
+
   return (
-    <Suspense
-      fallback={
-        <main className="mx-auto max-w-lg px-4 py-10">
-          <div className="h-8 w-40 animate-pulse rounded bg-[color:var(--su-hanji-border)]" />
-        </main>
-      }
-    >
-      <SimplyurCheckoutClient />
-    </Suspense>
+    <SimplyurCheckoutClient
+      optionApiId={optionApiId}
+      initialProduct={initialProduct}
+      paymentFailed={paymentFailed}
+    />
   );
 }

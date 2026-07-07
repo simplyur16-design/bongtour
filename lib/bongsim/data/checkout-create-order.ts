@@ -35,20 +35,19 @@ import { selectSimplyurChargedUnitPriceKrw } from "@/lib/simplyur/data/pricing-s
 import type { NetworkFamily, PlanLineExcel, PlanType } from "@/lib/bongsim/contracts/public-enums";
 import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 import {
-  JUNE_2026_FIRST_PURCHASE_RATE_PCT,
-  buyerAlreadyUsedJune2026FirstPurchaseDiscount,
-  computeJune2026FirstPurchaseDiscountKrw,
-  isJune2026PromoActive,
-} from "@/lib/bongsim/promo/june-2026-first-purchase-discount";
+  ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT,
+  buyerHasPriorPaidEsimOrder,
+  computeEsimFirstPurchaseDiscountKrw,
+} from "@/lib/bongsim/promo/esim-first-purchase-discount";
 
 /** 체크아웃 confirm 다상품 라인 상한. */
 const MAX_CHECKOUT_LINES = 10;
 
 export { PRESS_MEMBER_DISCOUNT_RATE_PCT };
 export {
-  JUNE_2026_FIRST_PURCHASE_RATE_PCT,
-  computeJune2026FirstPurchaseDiscountKrw,
-  isJune2026PromoActive,
+  ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT,
+  computeEsimFirstPurchaseDiscountKrw,
+  buyerHasPriorPaidEsimOrder,
 };
 
 /** 직군 자동 할인액(원, floor). subtotal ≤ 0 이면 0. */
@@ -780,17 +779,18 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
       }
     }
 
-    let june2026PromoApplied = false;
-    if (!isSimplyur && !pressDiscountApplied && discount_krw === 0 && isJune2026PromoActive()) {
-      const alreadyUsed = await buyerAlreadyUsedJune2026FirstPurchaseDiscount(client, {
+    // REGRESSION-FREEZE[esim-first-purchase-discount-15pct]: 첫구매 15% — 직군·쿠폰 미적용 시
+    let firstPurchasePromoApplied = false;
+    if (!pressDiscountApplied && discount_krw === 0) {
+      const hasPriorPaid = await buyerHasPriorPaidEsimOrder(client, {
         bongtourUserId: bongtourUserId || null,
         buyerEmail: req.buyer_email,
       });
-      if (!alreadyUsed) {
-        const juneDiscount = computeJune2026FirstPurchaseDiscountKrw(subtotal_krw);
-        if (juneDiscount > 0) {
-          discount_krw = juneDiscount;
-          june2026PromoApplied = true;
+      if (!hasPriorPaid) {
+        const firstPurchaseDiscount = computeEsimFirstPurchaseDiscountKrw(subtotal_krw);
+        if (firstPurchaseDiscount > 0) {
+          discount_krw = firstPurchaseDiscount;
+          firstPurchasePromoApplied = true;
         }
       }
     }
@@ -816,10 +816,10 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     } else if (req.coupon_id && discount_krw > 0) {
       consentsJson.coupon_id = req.coupon_id;
       consentsJson.coupon_discount_krw = discount_krw;
-    } else if (june2026PromoApplied) {
-      consentsJson.june_2026_first_purchase_discount = true;
-      consentsJson.june_2026_first_purchase_discount_krw = discount_krw;
-      consentsJson.june_2026_first_purchase_discount_rate = JUNE_2026_FIRST_PURCHASE_RATE_PCT;
+    } else if (firstPurchasePromoApplied) {
+      consentsJson.first_purchase_discount = true;
+      consentsJson.first_purchase_discount_krw = discount_krw;
+      consentsJson.first_purchase_discount_rate = ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT;
     }
     const giftJson = buildGiftConsentsJson(parseGiftFromCheckoutBody(req.consents));
     if (giftJson) consentsJson.gift = giftJson;

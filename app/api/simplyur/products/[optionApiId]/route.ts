@@ -1,8 +1,9 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
+import { CATALOG_REVALIDATE_SEC } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
 
-export const dynamic = "force-dynamic";
+export const revalidate = CATALOG_REVALIDATE_SEC;
 
 type RouteContext = { params: Promise<{ optionApiId: string }> };
 
@@ -15,14 +16,19 @@ export async function GET(req: Request, context: RouteContext) {
   const localeParam = searchParams.get("locale") ?? "en";
   const locale: SimplyurLocale = isSimplyurLocale(localeParam) ? localeParam : "en";
 
-  const res = await loadSimplyurKoreaProductByOptionId(optionApiId, locale);
-  if (!res.ok) {
-    if (res.reason === "not_found" || res.reason === "not_korea") {
-      return jsonWithLeakGuard({ error: res.reason }, "simplyur.products.detail", { status: 404 });
+  const loaded = await loadSimplyurKoreaProductByOptionId(optionApiId, locale);
+  if (!loaded.ok) {
+    if (loaded.reason === "not_found" || loaded.reason === "not_korea") {
+      return jsonWithLeakGuard({ error: loaded.reason }, "simplyur.products.detail", { status: 404 });
     }
-    const status = res.reason === "db_unconfigured" ? 503 : 500;
-    return jsonWithLeakGuard({ error: res.reason }, "simplyur.products.detail", { status });
+    const status = loaded.reason === "db_unconfigured" ? 503 : 500;
+    return jsonWithLeakGuard({ error: loaded.reason }, "simplyur.products.detail", { status });
   }
 
-  return jsonWithLeakGuard({ locale, product: res.product }, "simplyur.products.detail");
+  const response = jsonWithLeakGuard({ locale, product: loaded.product }, "simplyur.products.detail");
+  response.headers.set(
+    "Cache-Control",
+    `public, s-maxage=${CATALOG_REVALIDATE_SEC}, stale-while-revalidate=300`,
+  );
+  return response;
 }

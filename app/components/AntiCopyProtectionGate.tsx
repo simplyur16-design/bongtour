@@ -12,6 +12,7 @@ function isAntiCopyExcludedPath(pathname: string): boolean {
   if (p === '/privacy' || p.startsWith('/privacy/')) return true
   if (p === '/terms' || p.startsWith('/terms/')) return true
   if (p === '/travel/esim/policy' || p.startsWith('/travel/esim/policy/')) return true
+  if (p === '/simplyur' || p.startsWith('/simplyur/')) return true
   return false
 }
 

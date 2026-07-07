@@ -6468,6 +6468,92 @@
       "tier": ["prebuild", "ci"],
       "summary": "simplyur 외국인 방문객 전용 Korea eSIM — 내국인은 bongsim",
       "files": ["lib/simplyur/constants.test.ts"]
+    },
+    {
+      "id": "esim-first-purchase-discount-15pct",
+      "tier": ["prebuild", "ci"],
+      "summary": "eSIM 첫구매 자동 15% — 직군·쿠폰 미적용 시 서버 할인",
+      "checks": [
+        {
+          "file": "lib/bongsim/promo/esim-first-purchase-discount.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-first-purchase-discount-15pct]",
+            "ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT = 15",
+            "buyerHasPriorPaidEsimOrder"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-first-purchase-discount-15pct]",
+            "first_purchase_discount",
+            "computeEsimFirstPurchaseDiscountKrw"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/promo/esim-first-purchase-discount.test.ts",
+        "lib/bongsim/data/checkout-first-purchase-discount.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-catalog-server-fetch-p0",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur 카탈로그 P0 — 서버 프리로드·120s unstable_cache",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]",
+            "unstable_cache",
+            "CATALOG_REVALIDATE_SEC"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/recommend/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]",
+            "loadSimplyurKoreaCatalogCached",
+            "initialPack"
+          ]
+        },
+        {
+          "file": "app/components/AntiCopyProtectionGate.tsx",
+          "mustInclude": ["/simplyur"]
+        }
+      ],
+      "vitestSuites": ["lib/simplyur/catalog/load-korea-catalog-cached.test.ts"]
+    },
+    {
+      "id": "simplyur-surface-layout-p2",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur P2 — 경량 루트 셸·Pretendard 분리·checkout 서버 프리로드",
+      "checks": [
+        {
+          "file": "app/layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-surface-layout-p2]",
+            "SIMPLYUR_SURFACE_HEADER",
+            "BongtourPretendardStyles"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": ["SIMPLYUR_SURFACE_HEADER", "isSimplyurSurfacePath"]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/page.tsx",
+          "mustInclude": ["loadSimplyurKoreaProductByOptionId", "initialProduct"]
+        },
+        {
+          "file": "lib/bongsim/promo/esim-first-purchase-preview.ts",
+          "mustInclude": ["resolveEsimFirstPurchasePreview"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/surface/simplyur-surface.test.ts",
+        "lib/bongsim/promo/esim-first-purchase-preview.test.ts"
+      ]
     }
   ]
 }

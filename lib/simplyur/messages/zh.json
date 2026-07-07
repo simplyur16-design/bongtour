@@ -114,6 +114,8 @@
     "total": "合计",
     "processing": "处理中…",
     "errorGeneric": "出错了，请重试。",
+    "firstPurchaseBanner": "首次购买自动享受 {rate}% 折扣",
+    "firstPurchaseHint": "输入邮箱可查看是否享受首次购买折扣。",
     "completeTitle": "谢谢！",
     "completeBody": "支付已确认。韩国 eSIM QR 码将在几分钟内发送到您的邮箱。",
     "orderNumber": "订单号",

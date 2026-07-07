@@ -21,6 +21,13 @@ import {
   isConsentAllowedPath,
   redirectToConsentSignup,
 } from '@/lib/middleware-consent'
+import {
+  isSimplyurSurfacePath,
+  SIMPLYUR_SURFACE_HEADER,
+  SIMPLYUR_SURFACE_VALUE,
+} from '@/lib/surface/simplyur-surface'
+
+// REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur surface 헤더 — manifest
 
 const BYPASS_COOKIE_MAX_AGE = 60 * 60 // 1시간
 
@@ -85,8 +92,14 @@ async function readSessionToken(req: NextRequest): Promise<MiddlewareToken | nul
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl
 
+  const requestHeaders = new Headers(req.headers)
+  if (isSimplyurSurfacePath(pathname)) {
+    requestHeaders.set(SIMPLYUR_SURFACE_HEADER, SIMPLYUR_SURFACE_VALUE)
+  }
+  const forward = () => NextResponse.next({ request: { headers: requestHeaders } })
+
   if (isStaticOrPublicAsset(pathname)) {
-    return NextResponse.next()
+    return forward()
   }
 
   const markerRedirect = consentPendingFromMarkerCookie(req, pathname)
@@ -147,7 +160,7 @@ export async function middleware(req: NextRequest) {
     if (isDev && secret && bypassParam === secret) {
       console.log('[admin bypass] 개발용 임시 접속:', req.url)
     }
-    const res = NextResponse.next()
+    const res = forward()
     if (secret && bypassParam === secret) {
       res.cookies.set(ADMIN_BYPASS_COOKIE_NAME, secret, {
         httpOnly: true,
@@ -161,11 +174,11 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isAdminApiRoute && isBypassAllowed(req)) {
-    return NextResponse.next()
+    return forward()
   }
 
   if (isAdminApiRoute && adminApiServiceBearerOk(req)) {
-    return NextResponse.next()
+    return forward()
   }
 
   if (isAdminRoute || isAdminApiRoute) {
@@ -229,7 +242,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  return forward()
 }
 
 /**
@@ -241,6 +254,8 @@ export async function middleware(req: NextRequest) {
  */
 export const config = {
   matcher: [
+    '/simplyur',
+    '/simplyur/:path*',
     '/admin',
     '/admin/:path*',
     '/api/admin/:path*',

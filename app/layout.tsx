@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Noto_Sans_KR, Outfit } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
@@ -9,9 +10,11 @@ import ConditionalSiteFooter from './components/ConditionalSiteFooter'
 import GoogleTagManager from './components/GoogleTagManager'
 import MobileStickyBar from './components/MobileStickyBar'
 import AdminQuickActionsMount from '@/components/admin/AdminQuickActionsMount'
+import BongtourPretendardStyles from './components/BongtourPretendardStyles'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
 import { auth } from '@/auth'
+import { SIMPLYUR_SURFACE_HEADER, SIMPLYUR_SURFACE_VALUE } from '@/lib/surface/simplyur-surface'
 
 const siteOrigin = getSiteOrigin()
 
@@ -84,25 +87,39 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const session = await auth()
+  const hdrs = await headers()
+  const isSimplyur = hdrs.get(SIMPLYUR_SURFACE_HEADER) === SIMPLYUR_SURFACE_VALUE
+
+  // REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur 경량 루트 셸 — manifest
+  const htmlClass = isSimplyur ? undefined : `${notoSansKr.variable} ${hubOutfit.variable}`
+  const bodyClass = isSimplyur
+    ? 'min-h-screen antialiased flex flex-col'
+    : 'min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0'
 
   return (
     <html
-      lang="ko"
-      className={`${notoSansKr.variable} ${hubOutfit.variable}`}
+      lang={isSimplyur ? 'en' : 'ko'}
+      className={htmlClass}
+      data-surface={isSimplyur ? 'simplyur' : 'bongtour'}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0">
+      <body className={bodyClass}>
         <ChunkLoadRecovery />
-        <AntiCopyProtectionGate />
-        <GoogleTagManager />
+        {!isSimplyur ? <AntiCopyProtectionGate /> : null}
+        {!isSimplyur ? <GoogleTagManager /> : null}
+        {!isSimplyur ? <BongtourPretendardStyles /> : null}
         <SessionProvider session={session}>
-          <UtmCaptureProvider>
+          {isSimplyur ? (
             <div className="flex-1 flex flex-col">{children}</div>
-            <ConditionalSiteFooter />
-            <MobileStickyBar />
-            <AdminQuickActionsMount />
-          </UtmCaptureProvider>
+          ) : (
+            <UtmCaptureProvider>
+              <div className="flex-1 flex flex-col">{children}</div>
+              <ConditionalSiteFooter />
+              <MobileStickyBar />
+              <AdminQuickActionsMount />
+            </UtmCaptureProvider>
+          )}
         </SessionProvider>
       </body>
     </html>

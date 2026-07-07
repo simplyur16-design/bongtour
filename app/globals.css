@@ -1,5 +1,4 @@
-﻿@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-@import '../styles/anti-copy.css';
+﻿@import '../styles/anti-copy.css';
 
 @tailwind base;
 @tailwind components;

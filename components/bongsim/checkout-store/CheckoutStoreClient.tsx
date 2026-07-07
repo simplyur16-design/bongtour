@@ -176,6 +176,9 @@ export function CheckoutStoreClient({
   const [couponBusy, setCouponBusy] = useState(false);
   /** 주문 합계에서 차감되는 할인액(KRW). */
   const [appliedOrderDiscountKrw, setAppliedOrderDiscountKrw] = useState<number | null>(null);
+  /** 쿠폰 미적용 시 첫구매 15% 프리뷰(KRW) — 서버 confirm 시 자동 반영 */
+  const [firstPurchasePreviewKrw, setFirstPurchasePreviewKrw] = useState<number | null>(null);
+  const [firstPurchaseRatePct, setFirstPurchaseRatePct] = useState<number | null>(null);
   /** `/api/bongsim/coupon/validate` 응답의 coupon_id — 주문 생성 시 함께 전달. */
   const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
   const [appliedUserCouponId, setAppliedUserCouponId] = useState<string | null>(null);
@@ -229,6 +232,63 @@ export function CheckoutStoreClient({
     }
     return sum;
   }, [allLinesReady, lineRows]);
+
+  useEffect(() => {
+    if (appliedCouponId || appliedUserCouponId || (appliedOrderDiscountKrw ?? 0) > 0) {
+      setFirstPurchasePreviewKrw(null);
+      setFirstPurchaseRatePct(null);
+      return;
+    }
+    if (previewSubtotalKrw == null || previewSubtotalKrw <= 0) {
+      setFirstPurchasePreviewKrw(null);
+      setFirstPurchaseRatePct(null);
+      return;
+    }
+    const buyerEmail = email.trim() || (sessionData?.user?.email ?? "").trim();
+    if (!buyerEmail) {
+      setFirstPurchasePreviewKrw(null);
+      setFirstPurchaseRatePct(null);
+      return;
+    }
+    const ac = new AbortController();
+    const q = new URLSearchParams({
+      subtotal_krw: String(previewSubtotalKrw),
+      buyer_email: buyerEmail,
+    });
+    fetch(`/api/bongsim/checkout/first-purchase-preview?${q}`, { signal: ac.signal })
+      .then(async (r) => r.json())
+      .then((j) => {
+        if (j?.eligible === true) {
+          setFirstPurchasePreviewKrw(
+            typeof j.discount_krw === "number" && Number.isFinite(j.discount_krw)
+              ? Math.trunc(j.discount_krw)
+              : null,
+          );
+          setFirstPurchaseRatePct(
+            typeof j.discount_rate_pct === "number" && Number.isFinite(j.discount_rate_pct)
+              ? Math.trunc(j.discount_rate_pct)
+              : null,
+          );
+        } else {
+          setFirstPurchasePreviewKrw(null);
+          setFirstPurchaseRatePct(null);
+        }
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) {
+          setFirstPurchasePreviewKrw(null);
+          setFirstPurchaseRatePct(null);
+        }
+      });
+    return () => ac.abort();
+  }, [
+    email,
+    sessionData,
+    previewSubtotalKrw,
+    appliedCouponId,
+    appliedUserCouponId,
+    appliedOrderDiscountKrw,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -832,11 +892,18 @@ export function CheckoutStoreClient({
               </ul>
               {(() => {
                 const subtotal = previewSubtotalKrw ?? 0;
-                const disc = appliedOrderDiscountKrw ?? 0;
+                const couponDisc = appliedOrderDiscountKrw ?? 0;
+                const autoFirstDisc = couponDisc > 0 ? 0 : (firstPurchasePreviewKrw ?? 0);
+                const disc = couponDisc > 0 ? couponDisc : autoFirstDisc;
                 const final = Math.max(0, subtotal - disc);
                 const nf = new Intl.NumberFormat("ko-KR");
                 return (
                   <div className="mt-4 border-t border-teal-200/80 pt-4 lg:mt-5">
+                    {autoFirstDisc > 0 && firstPurchaseRatePct ? (
+                      <p className="mb-3 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">
+                        첫 구매 {firstPurchaseRatePct}% 자동 할인이 결제 시 적용됩니다.
+                      </p>
+                    ) : null}
                     {lineRows.length > 1 ? (
                       <p className="text-sm font-medium text-slate-700">
                         소계 <span className="font-bold text-slate-900">{nf.format(subtotal)}원</span>

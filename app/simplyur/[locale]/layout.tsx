@@ -17,7 +17,7 @@ import "../simplyur-theme.css";
 
 const simplyurFont = Poppins({
   subsets: ["latin"],
-  weight: ["300", "400", "600", "700", "800"],
+  weight: ["400", "600", "800"],
   variable: "--font-simplyur",
   display: "swap",
 });

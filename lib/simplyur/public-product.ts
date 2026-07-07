@@ -18,6 +18,8 @@ export type SimplyurPublicProduct = {
     amount: number;
     formatted: string;
   } | null;
+  /** KRW 청구 단가 — 첫구매 할인 프리뷰·결제 SSOT */
+  simplyur_sell_price_krw: number | null;
 };
 
 export function toSimplyurPublicProduct(product: ProductOption, locale: SimplyurLocale): SimplyurPublicProduct {
@@ -32,5 +34,6 @@ export function toSimplyurPublicProduct(product: ProductOption, locale: Simplyur
     data_label: labels.dataLabel,
     plan_summary: labels.summary,
     simplyur_display: intl.simplyur_display,
+    simplyur_sell_price_krw: intl.simplyur_sell_price_krw,
   };
 }

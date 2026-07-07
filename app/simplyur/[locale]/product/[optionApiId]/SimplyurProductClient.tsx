@@ -6,14 +6,27 @@ import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { useSimplyurIntl } from "@/components/simplyur/SimplyurIntlProvider";
 import { SimplyurProductPanel } from "@/components/simplyur/product/SimplyurProductPanel";
 
-type Props = { optionApiId: string };
+type Props = {
+  optionApiId: string;
+  initialProduct?: SimplyurPublicProduct | null;
+  initialState?: SimplyurProductViewState;
+};
 
-export function SimplyurProductClient({ optionApiId }: Props) {
+export function SimplyurProductClient({
+  optionApiId,
+  initialProduct = null,
+  initialState = "loading",
+}: Props) {
   const { locale } = useSimplyurIntl();
-  const [product, setProduct] = useState<SimplyurPublicProduct | null>(null);
-  const [state, setState] = useState<SimplyurProductViewState>("loading");
+  const serverLoaded = initialState === "loaded" && initialProduct != null;
+  const serverNotFound = initialState === "not_found";
+  const [product, setProduct] = useState<SimplyurPublicProduct | null>(initialProduct);
+  const [state, setState] = useState<SimplyurProductViewState>(
+    serverLoaded ? "loaded" : serverNotFound ? "not_found" : "loading",
+  );
 
   useEffect(() => {
+    if (serverLoaded || serverNotFound) return;
     let cancelled = false;
     setState("loading");
     fetch(`/api/simplyur/products/${encodeURIComponent(optionApiId)}?locale=${locale}`)
@@ -38,7 +51,7 @@ export function SimplyurProductClient({ optionApiId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [optionApiId, locale]);
+  }, [optionApiId, locale, serverLoaded, serverNotFound]);
 
   return <SimplyurProductPanel state={state} product={product} />;
 }
