@@ -76,8 +76,9 @@ audit-public-display.json
 scripts.zip
 scripts/_test-*.mjs
 
-# 로컬 임시·메모
-tmp*.txt
+# curl·OAuth 로컬 스크래치 (실수 커밋 방지)
+csrf-body.txt
+oauth-start.html
 tmp*.json
 tmp-pr-body.md
 recent_changed_files.txt

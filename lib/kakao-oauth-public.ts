@@ -7,6 +7,7 @@
  */
 
 import type { NextResponse } from 'next/server'
+import { isOAuthProviderTraceEnabled } from '@/lib/auth/auth-debug'
 import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origin'
 import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
@@ -138,7 +139,7 @@ export function clearKakaoOAuthStateCookies(res: NextResponse, request: Request)
 }
 
 export function kakaoOAuthVerboseLog(): boolean {
-  return process.env.KAKAO_OAUTH_DEBUG === '1' || process.env.NODE_ENV !== 'production'
+  return isOAuthProviderTraceEnabled(process.env.KAKAO_OAUTH_DEBUG)
 }
 
 export function kakaoOAuthLog(stage: string, payload: Record<string, unknown>): void {

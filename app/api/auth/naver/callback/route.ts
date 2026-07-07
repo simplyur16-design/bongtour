@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { ensureUserBootstrapRole } from '@/lib/ensure-user-bootstrap-role'
+import { authSecurityWarn } from '@/lib/auth/auth-debug'
 import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-auth-session'
 import type { NaverTokenResponse, NaverProfileResponse } from '@/lib/naver-oauth-types'
 import {
@@ -13,6 +14,7 @@ import {
   maskNaverClientId,
   maskNaverState,
   naverOAuthLog,
+  naverOAuthVerboseLog,
   resolveNaverOAuthPublicOrigin,
   resolveNaverRedirectUri,
 } from '@/lib/naver-oauth-public'
@@ -111,15 +113,20 @@ export async function GET(request: Request) {
   })
 
   if (!savedState || !safeStateEqual(savedState, state)) {
-    console.warn('[naver-oauth] state mismatch', {
-      nodeEnv: process.env.NODE_ENV,
-      requestHost: request.headers.get('host'),
-      publicOrigin,
-      redirectUri,
-      queryState: maskNaverState(state),
-      storedPresent: Boolean(savedState),
-      storedState: maskNaverState(savedState),
-    })
+    authSecurityWarn(
+      'naver-oauth',
+      'state mismatch',
+      naverOAuthVerboseLog()
+        ? {
+            nodeEnv: process.env.NODE_ENV,
+            requestHost: request.headers.get('host'),
+            publicOrigin,
+            redirectUri,
+            queryState: maskNaverState(state),
+            storedPresent: Boolean(savedState),
+          }
+        : { storedPresent: Boolean(savedState) },
+    )
     return jsonErrorClearState(
       request,
       400,

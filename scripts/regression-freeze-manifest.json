@@ -6245,6 +6245,25 @@
       ]
     },
     {
+      "id": "auth-debug-ssot",
+      "tier": ["prebuild", "ci"],
+      "summary": "Auth·OAuth 디버그 SSOT — 운영 기본 무음, AUTH_DEBUG=1만 verbose",
+      "checks": [
+        {
+          "file": "lib/auth/auth-debug.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-debug-ssot]",
+            "isAuthDebugEnabled",
+            "isOAuthProviderTraceEnabled"
+          ]
+        },
+        {
+          "file": "auth.config.ts",
+          "mustInclude": ["isAuthDebugEnabled()"]
+        }
+      ]
+    },
+    {
       "id": "simplyur-oauth-callback-ssot",
       "tier": ["prebuild", "ci"],
       "summary": "simplyur OAuth callback path·locale·returnTo·deep link SSOT",
@@ -6554,6 +6573,12 @@
       "tier": ["prebuild", "ci"],
       "summary": "oauth-start callbackUrl gate — google·apple only",
       "files": ["lib/auth/oauth-mobile-start.test.ts"]
+    },
+    {
+      "id": "auth-debug-ssot-vitest",
+      "tier": ["prebuild", "ci"],
+      "summary": "auth-debug — AUTH_DEBUG gate, security warn always",
+      "files": ["lib/auth/auth-debug.test.ts"]
     },
     {
       "id": "simplyur-oauth-callback-ssot-vitest",

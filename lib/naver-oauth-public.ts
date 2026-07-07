@@ -4,6 +4,7 @@
  */
 
 import type { NextResponse } from 'next/server'
+import { isOAuthProviderTraceEnabled } from '@/lib/auth/auth-debug'
 import { publicOriginIfLoopbackRequest } from '@/lib/oauth-loopback-public-origin'
 import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
 
@@ -145,7 +146,7 @@ export function clearNaverOAuthStateCookies(res: NextResponse, request: Request)
 }
 
 export function naverOAuthVerboseLog(): boolean {
-  return process.env.NAVER_OAUTH_DEBUG === '1' || process.env.NODE_ENV !== 'production'
+  return isOAuthProviderTraceEnabled(process.env.NAVER_OAUTH_DEBUG)
 }
 
 export function naverOAuthLog(stage: string, payload: Record<string, unknown>): void {

@@ -5,6 +5,7 @@
  * @see https://authjs.dev/getting-started/middleware
  */
 import type { NextAuthConfig } from 'next-auth'
+import { isAuthDebugEnabled } from '@/lib/auth/auth-debug'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -29,7 +30,7 @@ if (!isProduction && resolvedAuthSecret === '__bongtour_dev_auth_secret_change_f
 export default {
   trustHost: true,
   secret: resolvedAuthSecret,
-  debug: process.env.NODE_ENV === 'development' || process.env.AUTH_DEBUG === '1',
+  debug: isAuthDebugEnabled(),
   providers: [],
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: {

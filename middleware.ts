@@ -21,6 +21,7 @@ import {
   isConsentAllowedPath,
   redirectToConsentSignup,
 } from '@/lib/middleware-consent'
+import { authDebugLog } from '@/lib/auth/auth-debug'
 import {
   isSimplyurSurfacePath,
   SIMPLYUR_SURFACE_HEADER,
@@ -128,7 +129,7 @@ export async function middleware(req: NextRequest) {
     if (bypassParam || cookie) {
       const hasSecret = Boolean(getDevAdminBypassSecret())
       const bypassAllowed = isBypassAllowed(req)
-      console.log('[middleware admin]', {
+      authDebugLog('middleware-admin', {
         pathname,
         authQuery: bypassParam ?? null,
         cookiePresent: Boolean(cookie),
@@ -158,7 +159,7 @@ export async function middleware(req: NextRequest) {
   if (isAdminRoute && isBypassAllowed(req)) {
     const secret = getDevAdminBypassSecret()
     if (isDev && secret && bypassParam === secret) {
-      console.log('[admin bypass] 개발용 임시 접속:', req.url)
+      authDebugLog('admin-bypass', '개발용 임시 접속:', req.url)
     }
     const res = forward()
     if (secret && bypassParam === secret) {
