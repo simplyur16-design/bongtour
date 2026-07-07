@@ -4,7 +4,13 @@
  * REGRESSION-FREEZE[hanatour-api-departure-collect]: gw.hanatour.com pkg API — manifest
  */
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
+import { resolveRegisterFactProductKindFromAdminTravelScope } from '@/lib/register-facts/product-kind'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
+
+export type HanatourApiDepartureCollectOptions = {
+  /** 관리자 등록 UI travelScope — 명시 시 API prodAttrCd 추론보다 우선(패키지·자유여행 가격 혼입 방지) */
+  adminTravelScope?: string | null
+}
 
 const HANATOUR_GW_BASE = process.env.HANATOUR_GW_BASE_URL ?? 'https://gw.hanatour.com'
 const HANATOUR_TRP_PRG_MID = 'CHPC0PKG0200M200'
@@ -114,6 +120,18 @@ export function isHanatourAirtelLikeProdInfo(info: HanatourPkgProdInfo | null | 
   return /에어텔|자유\s*여행/i.test(spr)
 }
 
+/** getPkgProdLst·필터 분기 — adminTravelScope 명시 시 API 메타만으로 자유여행 오분류하지 않음 */
+export function resolveHanatourApiAirtelLike(
+  info: HanatourPkgProdInfo | null | undefined,
+  options?: HanatourApiDepartureCollectOptions,
+): boolean {
+  const inferred = isHanatourAirtelLikeProdInfo(info) ? 'air_hotel_free' : 'package'
+  return (
+    resolveRegisterFactProductKindFromAdminTravelScope(options?.adminTravelScope, inferred) ===
+    'air_hotel_free'
+  )
+}
+
 function hanatourProdMstrCdFromSaleProdCd(cd: string, info?: HanatourPkgProdInfo): string {
   const fromInfo = String(info?.prodMstrCd ?? '').trim()
   if (fromInfo) return fromInfo
@@ -162,6 +180,7 @@ export function filterHanatourProdListRowsForAnchorProductLine(
   rows: readonly HanatourPkgProdListRow[],
   anchorInfo: HanatourPkgProdInfo,
   anchorPkgCd: string,
+  options?: HanatourApiDepartureCollectOptions,
 ): HanatourPkgProdListRow[] {
   const anchor = String(anchorPkgCd ?? '').trim()
   if (!anchor) return []
@@ -173,7 +192,7 @@ export function filterHanatourProdListRowsForAnchorProductLine(
     hanatourTravelDaysFromProdName(anchorNm)
   const anchorHotel = hanatourHotelKeyFromProdName(anchorNm)
   const anchorVariant = hanatourSaleProdVariantSuffix(anchor)
-  const anchorAirtel = isHanatourAirtelLikeProdInfo(anchorInfo)
+  const anchorAirtel = resolveHanatourApiAirtelLike(anchorInfo, options)
 
   return rows.filter((row) => {
     const cd = String(row.saleProdCd ?? '').trim()
@@ -432,11 +451,12 @@ function mergeAnchorProdInfoIfMissing(merged: DepartureInput[], info: HanatourPk
 export async function collectHanatourApiDepartureInputsForMonths(
   pkgCd: string,
   monthYms: readonly string[],
+  options?: HanatourApiDepartureCollectOptions,
 ): Promise<{ inputs: DepartureInput[]; airtelLike: boolean; anchorInput: DepartureInput | null }> {
   const info = await fetchHanatourPkgProdInfo(pkgCd)
   if (!info) return { inputs: [], airtelLike: false, anchorInput: null }
 
-  const airtelLike = isHanatourAirtelLikeProdInfo(info)
+  const airtelLike = resolveHanatourApiAirtelLike(info, options)
   const anchorInput = hanatourProdInfoToDepartureInput(info)
   const merged: DepartureInput[] = []
 
@@ -447,6 +467,7 @@ export async function collectHanatourApiDepartureInputsForMonths(
         await fetchHanatourPkgProdLstPage(info, { ym, airtelLike }),
         info,
         pkgCd,
+        options,
       )
       for (const row of rows) {
         const mapped = hanatourProdListRowToDepartureInput(row)
@@ -475,7 +496,8 @@ export async function collectHanatourApiDepartureInputsForDateRange(
   fromYmd: string,
   toYmd: string,
   monthYms: readonly string[],
+  options?: HanatourApiDepartureCollectOptions,
 ): Promise<DepartureInput[]> {
-  const { inputs } = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+  const { inputs } = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms, options)
   return filterInputsInWindow(inputs, fromYmd, toYmd).filter((x) => (x.adultPrice ?? 0) > 0)
 }

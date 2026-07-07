@@ -95,7 +95,7 @@ export async function parseHanatourRegisterFromApi(
     throw new Error('하나투어 등록에는 유효한 originUrl(pkgCd)이 필요합니다.')
   }
 
-  const bundle = await collectHanatourRegisterFacts(originUrl)
+  const bundle = await collectHanatourRegisterFacts(originUrl, { adminTravelScope: travelScope })
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·pkgCd를 확인하세요.')
   }

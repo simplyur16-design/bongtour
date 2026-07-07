@@ -13,6 +13,7 @@ import {
   validateHanatourAdminMonthYm,
 } from '@/lib/hanatour-departures'
 import { collectHanatourPriceInputsWithE2eFallback } from '@/lib/hanatour-price-collect'
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import {
   clearHanatourPriceRecheckFromRawMeta,
   computeHanatourNextPriceRecheckYmd,
@@ -69,6 +70,14 @@ type SweepProductRow = {
   title: string | null
   originalTitle: string | null
   rawMeta: string | null
+  listingKind: string | null
+  productType: string | null
+}
+
+function adminTravelScopeFromSweepProduct(product: SweepProductRow): string | null {
+  if (isAirHotelProduct(product)) return 'air_hotel_free'
+  if ((product.listingKind ?? '').trim() === 'travel') return 'overseas'
+  return null
 }
 
 function ymdToUtcMidnight(ymd: string): Date {
@@ -125,6 +134,8 @@ async function findSweepProducts(
     title: true,
     originalTitle: true,
     rawMeta: true,
+    listingKind: true,
+    productType: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
 
@@ -261,7 +272,11 @@ export async function sweepDueHanatourProducts(
         detailUrl,
         fromYmd,
         toYmd,
-        { monthYms, registeredRawTitle },
+        {
+          monthYms,
+          registeredRawTitle,
+          adminTravelScope: adminTravelScopeFromSweepProduct(product),
+        },
       )
 
       if (collected.source === 'e2e') {

@@ -47,13 +47,16 @@ export async function collectHanatourApiOnlyForDateRange(
   fromYmd: string,
   toYmd: string,
   monthYms: string[],
+  options?: { adminTravelScope?: string | null },
 ): Promise<HanatourApiOnlyCollectResult> {
   const pkgCd = parseHanatourPkgCdFromUrl(detailUrl)
   if (!pkgCd || monthYms.length === 0) {
     return { inputs: [], pkgCd, apiError: pkgCd ? null : 'no_pkg_cd' }
   }
   try {
-    const api = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+    const api = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms, {
+      adminTravelScope: options?.adminTravelScope,
+    })
     const priced = filterInputsInWindow(api.inputs, fromYmd, toYmd)
     return { inputs: priced, pkgCd, apiError: null }
   } catch (err) {
@@ -72,6 +75,8 @@ export async function collectHanatourPriceInputsWithE2eFallback(
   options?: {
     monthYms?: string[]
     registeredRawTitle?: string | null
+    /** DB listingKind·등록 travelScope — 패키지·자유여행 API 분기 */
+    adminTravelScope?: string | null
   },
 ): Promise<HanatourPriceCollectResult> {
   const pkgCd = parseHanatourPkgCdFromUrl(detailUrl)
@@ -79,7 +84,9 @@ export async function collectHanatourPriceInputsWithE2eFallback(
 
   if (pkgCd && monthYms.length > 0) {
     try {
-      const api = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+      const api = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms, {
+      adminTravelScope: options?.adminTravelScope,
+    })
       const priced = filterInputsInWindow(api.inputs, fromYmd, toYmd)
       if (priced.length > 0) {
         return {
@@ -98,6 +105,7 @@ export async function collectHanatourPriceInputsWithE2eFallback(
   const e2e = await collectHanatourDepartureInputs(detailUrl, {
     monthYmsOverride: monthYms.length > 0 ? monthYms : undefined,
     registeredRawTitle: options?.registeredRawTitle,
+    adminTravelScope: options?.adminTravelScope,
   })
   const pricedE2e = filterInputsInWindow(e2e.inputs, fromYmd, toYmd)
   return {

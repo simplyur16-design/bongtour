@@ -20,6 +20,7 @@ import {
 import {
   inferHanatourRegisterFactProductKind,
   registerFactProductKindNote,
+  resolveRegisterFactProductKindFromAdminTravelScope,
 } from '@/lib/register-facts/product-kind'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactScheduleDay, RegisterFactFlightLeg, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
@@ -32,7 +33,10 @@ function stripHtml(html: string): string {
 
 export { hanatourItnrSchdToFactDays } from '@/lib/hanatour-register-api-detail'
 
-export async function collectHanatourRegisterFacts(originUrl: string): Promise<SupplierRegisterFactBundle | null> {
+export async function collectHanatourRegisterFacts(
+  originUrl: string,
+  options?: { adminTravelScope?: string | null },
+): Promise<SupplierRegisterFactBundle | null> {
   const pkgCd = parseHanatourPkgCdFromUrl(originUrl)
   if (!pkgCd) return null
 
@@ -50,7 +54,9 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const monthYms = buildHanatourKstTargetMonths(6)
-  const cal = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+  const cal = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms, {
+    adminTravelScope: options?.adminTravelScope,
+  })
   const priceRows = cal.inputs
     .filter((x) => {
       const d = departureInputToYmd(x.departureDate)
@@ -68,7 +74,10 @@ export async function collectHanatourRegisterFacts(originUrl: string): Promise<S
   const prodInfo = info as HanatourProdInfoExtended
   const { includedItems, excludedItems } = extractHanatourIncludedExcluded(prodInfo)
   const shoppingExtract = extractHanatourShoppingFromProdInfo(prodInfo)
-  const productKind = inferHanatourRegisterFactProductKind(prodInfo, originUrl)
+  const productKind = resolveRegisterFactProductKindFromAdminTravelScope(
+    options?.adminTravelScope,
+    inferHanatourRegisterFactProductKind(prodInfo, originUrl),
+  )
 
   const meetRaw = itnr?.data?.meetInfoBcVo?.fstMeetCont ?? null
   const schdInfoList = itnr?.data?.schdInfoList ?? []

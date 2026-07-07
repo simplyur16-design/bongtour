@@ -27,7 +27,9 @@ export async function handleParseAndRegisterHanatourRequest(request: Request) {
         pastedBlocks: ctx?.pastedBlocks,
         travelScope: ctx?.travelScope,
       })
-      next = await injectHanatourApiDeparturePricesIfMissing(next, ctx?.originUrl)
+      next = await injectHanatourApiDeparturePricesIfMissing(next, ctx?.originUrl, {
+        adminTravelScope: ctx?.travelScope,
+      })
       next = applyHanatourSyntheticPriceRowIfNeeded(next, pastedText, 'hanatour')
       return next
     },

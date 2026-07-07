@@ -6,6 +6,7 @@ import {
   filterHanatourProdListRowsForAnchorSaleProdCd,
   filterHanatourProdListRowsForAnchorProductLine,
   isHanatourAirtelLikeProdInfo,
+  resolveHanatourApiAirtelLike,
   parseHanatourPkgCdFromUrl,
 } from '@/lib/hanatour-api-departures'
 
@@ -29,6 +30,20 @@ describe('isHanatourAirtelLikeProdInfo', () => {
   it('detects airtel attr', () => {
     expect(isHanatourAirtelLikeProdInfo({ prodAttrCd: 'B', frdmSchdDvCd: 'FS' })).toBe(true)
     expect(isHanatourAirtelLikeProdInfo({ prodAttrCd: 'P', frdmSchdDvCd: 'NS' })).toBe(false)
+  })
+})
+
+describe('resolveHanatourApiAirtelLike', () => {
+  const airtelMeta = { prodAttrCd: 'B', frdmSchdDvCd: 'FS' }
+
+  it('admin overseas — API 자유여행 메타여도 패키지 모드', () => {
+    expect(resolveHanatourApiAirtelLike(airtelMeta, { adminTravelScope: 'overseas' })).toBe(false)
+  })
+
+  it('admin air_hotel_free — API 패키지 메타여도 자유여행 모드', () => {
+    expect(
+      resolveHanatourApiAirtelLike({ prodAttrCd: 'P', frdmSchdDvCd: 'NS' }, { adminTravelScope: 'air_hotel_free' }),
+    ).toBe(true)
   })
 })
 
@@ -102,5 +117,28 @@ describe('filterHanatourProdListRowsForAnchorProductLine', () => {
       'PAB101260921TW1',
       'PAB101260926JQ1',
     ])
+  })
+
+  it('admin overseas — PAP anchor·자유여행 메타 시 PAB 제외·동일 패키지라인 PAP 유지', () => {
+    const packageAnchor = {
+      saleProdCd: 'PAP101260920JQ1',
+      saleProdNm: '시드니 6일 패키지',
+      prodMstrCd: 'PAP101',
+      trvlDayCnt: 6,
+      prodAttrCd: 'B',
+      frdmSchdDvCd: 'FS',
+    }
+    const rows = [
+      { saleProdCd: 'PAP101260920JQ1', depDay: '20260920', adtAmt: 3190000, saleProdNm: '시드니 6일 패키지' },
+      { saleProdCd: 'PAP101260921JQ1', depDay: '20260921', adtAmt: 3290000, saleProdNm: '시드니 6일 패키지' },
+      { saleProdCd: 'PAB101260920JQ1', depDay: '20260920', adtAmt: 2059000, saleProdNm: '[자유여행] 시드니 6일 #파라독스' },
+    ]
+    const misclassified = filterHanatourProdListRowsForAnchorProductLine(rows, packageAnchor, 'PAP101260920JQ1')
+    expect(misclassified.map((r) => r.saleProdCd)).toEqual(['PAP101260920JQ1'])
+
+    const filtered = filterHanatourProdListRowsForAnchorProductLine(rows, packageAnchor, 'PAP101260920JQ1', {
+      adminTravelScope: 'overseas',
+    })
+    expect(filtered.map((r) => r.saleProdCd)).toEqual(['PAP101260920JQ1', 'PAP101260921JQ1'])
   })
 })

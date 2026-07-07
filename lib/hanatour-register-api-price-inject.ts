@@ -29,6 +29,7 @@ function filterInputsInWindow(inputs: DepartureInput[], fromYmd: string, toYmd: 
 export async function injectHanatourApiDeparturePricesIfMissing(
   parsed: RegisterParsed,
   originUrl?: string | null,
+  options?: { adminTravelScope?: string | null },
 ): Promise<RegisterParsed> {
   if ((parsed.prices?.length ?? 0) > 0) return parsed
   const url = (originUrl ?? '').trim()
@@ -38,7 +39,9 @@ export async function injectHanatourApiDeparturePricesIfMissing(
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   const monthYms = buildHanatourKstTargetMonths(6)
-  const hit = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms)
+  const hit = await collectHanatourApiDepartureInputsForMonths(pkgCd, monthYms, {
+    adminTravelScope: options?.adminTravelScope,
+  })
   let inputs = filterInputsInWindow(hit.inputs, fromYmd, toYmd).filter((x) => (x.adultPrice ?? 0) > 0)
 
   if (inputs.length === 0) {

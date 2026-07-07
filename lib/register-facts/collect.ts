@@ -16,7 +16,7 @@ import { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
 export async function collectSupplierRegisterFacts(
   supplier: CanonicalOverseasSupplierKey,
   originUrl: string,
-  options?: { originCode?: string | null },
+  options?: { originCode?: string | null; adminTravelScope?: string | null },
 ): Promise<SupplierRegisterFactBundle | null> {
   const url = originUrl.trim()
   if (!url) return null
@@ -25,7 +25,7 @@ export async function collectSupplierRegisterFacts(
     case 'modetour':
       return collectModetourRegisterFacts(url, options)
     case 'hanatour':
-      return collectHanatourRegisterFacts(url)
+      return collectHanatourRegisterFacts(url, options)
     case 'ybtour':
       return collectYbtourRegisterFacts(url)
     case 'verygoodtour':

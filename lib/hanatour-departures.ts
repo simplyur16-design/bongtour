@@ -954,6 +954,8 @@ export async function collectHanatourDepartureInputs(
     monthYmsOverride?: string[]
     /** DB 등록 상품명 — 모달 동일상품 매칭 기준(우선). originalTitle ?? title */
     registeredRawTitle?: string | null
+    /** DB listingKind·등록 travelScope — API collect 분기(E2E 전 gw 재시도) */
+    adminTravelScope?: string | null
   }
 ): Promise<HanatourDepartureCollectResult> {
   const maxMonths = options?.maxMonths ?? SCRAPE_DEFAULT_MONTHS_FORWARD
@@ -1031,7 +1033,9 @@ export async function collectHanatourDepartureInputs(
       )
       const pkgCdForApi = parseHanatourPkgCdFromUrl(resolvedDetailUrl)
       if (pkgCdForApi) {
-        const api = await collectHanatourApiDepartureInputsForMonths(pkgCdForApi, monthYms)
+        const api = await collectHanatourApiDepartureInputsForMonths(pkgCdForApi, monthYms, {
+          adminTravelScope: options?.adminTravelScope,
+        })
         if (api.inputs.length > 0) {
           const fill = deriveFillMeta(api.inputs)
           return {
