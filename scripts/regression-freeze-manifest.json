@@ -6245,6 +6245,25 @@
       ]
     },
     {
+      "id": "oauth-mobile-get-start",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur 앱 OAuth — GET oauth-start (Auth.js v5 POST signin 대체)",
+      "checks": [
+        {
+          "file": "app/api/auth/oauth-start/[provider]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[oauth-mobile-get-start]",
+            "signIn(provider",
+            "safeOAuthCallbackUrl"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
+          "mustInclude": ["/api/auth/oauth-start/"]
+        }
+      ]
+    },
+    {
       "id": "apple-oauth-invalid-p8-no-crash",
       "tier": ["prebuild", "ci"],
       "summary": "불완전 AUTH_APPLE_PRIVATE_KEY — appleOAuthProvider null, 앱 기동 크래시 금지",
@@ -6485,6 +6504,12 @@
         "lib/auth/sign-in-method-catalog.test.ts",
         "lib/simplyur/constants.test.ts"
       ]
+    },
+    {
+      "id": "oauth-mobile-get-start-vitest",
+      "tier": ["prebuild", "ci"],
+      "summary": "oauth-start callbackUrl gate — google·apple only",
+      "files": ["lib/auth/oauth-mobile-start.test.ts"]
     },
     {
       "id": "apple-oauth-invalid-p8-no-crash-vitest",

@@ -30,7 +30,7 @@ export default function SignInChooserScreen() {
     try {
       const base = getApiBaseUrl();
       const q = encodeURIComponent('/simplyur/en/my-esim');
-      await WebBrowser.openBrowserAsync(`${base}/api/auth/signin/${provider}?callbackUrl=${q}`);
+      await WebBrowser.openBrowserAsync(`${base}/api/auth/oauth-start/${provider}?callbackUrl=${q}`);
     } finally {
       setBusy(null);
     }
