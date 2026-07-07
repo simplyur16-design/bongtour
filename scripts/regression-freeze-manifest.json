@@ -6684,19 +6684,30 @@
     {
       "id": "bongsim-products-by-country-cache",
       "tier": ["prebuild", "ci"],
-      "summary": "by-country API — 단일 전체 카탈로그 120s cache + 메모리 국가 필터",
+      "summary": "by-country API — 전체 cache + 단일 목적지 plan_name SQL 필터",
       "checks": [
+        {
+          "file": "lib/bongsim/data/single-destination-plan-names.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-products-by-country-cache]",
+            "resolveDestinationPlanNamesForSql"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-all-active-products.ts",
+          "mustInclude": ["fetchActiveProductOptionsForPlanNamesFromDb", "plan_name = ANY"]
+        },
         {
           "file": "lib/bongsim/data/load-all-active-products-cached.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[bongsim-products-by-country-cache]",
             "loadAllActiveProductsCached",
-            "bongsim-all-active-products"
+            "loadActiveProductsForDestinationCached",
+            "bongsim-active-products-destination"
           ]
         },
         {
           "file": "lib/bongsim/data/load-products-by-country-cached.ts",
-          "mustInclude": ["loadProductsByCountryCached", "filterProductsByCountry", "loadAllActiveProductsCached"]
+          "mustInclude": ["loadProductsByCountryCached", "loadActiveProductsForDestinationCached"]
         },
         {
           "file": "lib/bongsim/data/load-products-by-country.ts",
@@ -6711,7 +6722,10 @@
           "mustInclude": ["loadBongsimRecommendBootstrapCached"]
         }
       ],
-      "vitestSuites": ["lib/bongsim/data/load-products-by-country.test.ts"]
+      "vitestSuites": [
+        "lib/bongsim/data/load-products-by-country.test.ts",
+        "lib/bongsim/data/single-destination-plan-names.test.ts"
+      ]
     }
   ]
 }
