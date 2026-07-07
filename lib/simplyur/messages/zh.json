@@ -170,6 +170,9 @@
     "domesticSignInLink": "韩国居民请前往 Bong Tour 使用 Kakao/Naver 登录",
     "googleNotConfigured": "此服务器尚未配置 Google 登录。",
     "errorGeneric": "登录失败，请重试或使用其他方式。",
+    "oauthCompleteTitle": "登录成功",
+    "oauthCompleteBody": "返回 simplyur 应用管理您的 eSIM。",
+    "oauthCompleteOpenApp": "打开 simplyur 应用",
     "backHome": "← 返回首页"
   },
   "myEsim": {

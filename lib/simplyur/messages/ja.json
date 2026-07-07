@@ -170,6 +170,9 @@
     "domesticSignInLink": "韓国在住の方はBong Tourでカカオ・ネイバーログイン",
     "googleNotConfigured": "このサーバーではGoogleログインがまだ設定されていません。",
     "errorGeneric": "ログインに失敗しました。もう一度お試しください。",
+    "oauthCompleteTitle": "サインイン完了",
+    "oauthCompleteBody": "simplyurアプリに戻ってeSIMを管理してください。",
+    "oauthCompleteOpenApp": "simplyurアプリを開く",
     "backHome": "← ホームに戻る"
   },
   "myEsim": {

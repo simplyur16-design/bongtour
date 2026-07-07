@@ -11,6 +11,7 @@ import {
   isApplePrivateKeyPemPlausible,
   normalizeApplePrivateKeyPem,
 } from '@/lib/auth/apple-private-key-pem'
+import { SIMPLYUR_MOBILE_SIGN_IN_DEEP_LINK } from '@/lib/auth/simplyur-oauth-callback'
 
 /**
  * - domestic: 봉투어 웹 `/auth/signin` (한국 거주자·내국인)
@@ -90,7 +91,7 @@ export const SIGN_IN_METHOD_DEFINITIONS: Record<SignInMethod, SignInMethodDefini
 }
 
 /** simplyur 모바일 앱 딥링크 — 외국인 전용 eSIM, Google·Apple 로그인 UI */
-export const SIMPLYUR_MOBILE_APP_SCHEME = 'simplyur://sign-in'
+export const SIMPLYUR_MOBILE_APP_SCHEME = SIMPLYUR_MOBILE_SIGN_IN_DEEP_LINK
 
 export function isSignInMethod(v: string | undefined | null): v is SignInMethod {
   return (SIGN_IN_METHODS as readonly string[]).includes(v ?? '')

@@ -6245,21 +6245,65 @@
       ]
     },
     {
+      "id": "simplyur-oauth-callback-ssot",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur OAuth callback path·locale·returnTo·deep link SSOT",
+      "checks": [
+        {
+          "file": "lib/auth/simplyur-oauth-callback.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-oauth-callback-ssot]",
+            "resolveOAuthStartCallbackPath",
+            "simplyurMobileDeepLink"
+          ]
+        }
+      ]
+    },
+    {
       "id": "oauth-mobile-get-start",
       "tier": ["prebuild", "ci"],
-      "summary": "simplyur 앱 OAuth — GET oauth-start (Auth.js v5 POST signin 대체)",
+      "summary": "simplyur 앱 OAuth — GET oauth-start → signIn redirectTo + callback SSOT",
       "checks": [
         {
           "file": "app/api/auth/oauth-start/[provider]/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[oauth-mobile-get-start]",
-            "buildOAuthAutoPostHtml",
-            "safeOAuthCallbackUrl"
+            "resolveOAuthStartCallbackPath",
+            "signIn(provider"
           ]
         },
         {
           "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
-          "mustInclude": ["/api/auth/oauth-start/"]
+          "mustInclude": ["openAuthSessionAsync", "buildOAuthStartUrl"]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-my-esim-server-auth-gate",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur my-esim — server auth() gate before client 401 sign-in UI",
+      "checks": [
+        {
+          "file": "app/simplyur/[locale]/my-esim/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-esim-server-auth-gate]",
+            "await auth()",
+            "redirect("
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oauth-jwt-oauth-user-id",
+      "tier": ["prebuild", "ci"],
+      "summary": "OAuth JWT — email로 user.id 보강 (simplyur mypage 401 방지)",
+      "checks": [
+        {
+          "file": "auth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[oauth-jwt-oauth-user-id]",
+            "simplyur mypage 401"
+          ]
         }
       ]
     },
@@ -6510,6 +6554,12 @@
       "tier": ["prebuild", "ci"],
       "summary": "oauth-start callbackUrl gate — google·apple only",
       "files": ["lib/auth/oauth-mobile-start.test.ts"]
+    },
+    {
+      "id": "simplyur-oauth-callback-ssot-vitest",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur OAuth callback path·locale·returnTo SSOT",
+      "files": ["lib/auth/simplyur-oauth-callback.test.ts"]
     },
     {
       "id": "apple-oauth-invalid-p8-no-crash-vitest",

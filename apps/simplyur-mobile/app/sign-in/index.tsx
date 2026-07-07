@@ -13,24 +13,50 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppleMark, EmailMark, GoogleMark } from '@/src/components/auth/SignInButtonMarks';
 import { SignalPinIcon } from '@/src/components/auth/SignalPinIcon';
 import { LOGIN_1B } from '@/src/constants/login-design';
-import { getApiBaseUrl } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
+import {
+  buildEmailSignInWebUrl,
+  buildOAuthStartUrl,
+  mobileOAuthRedirectUri,
+} from '@/src/lib/oauth';
+import { markWebOAuthSession } from '@/src/lib/web-oauth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 /**
  * design_handoff_login_1b — centered chooser: Apple · Google · Email + Skip.
  */
 export default function SignInChooserScreen() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
-  const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
+  const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
 
   async function openOAuth(provider: 'google' | 'apple') {
     setBusy(provider);
     try {
-      const base = getApiBaseUrl();
-      const q = encodeURIComponent('/simplyur/en/my-esim');
-      await WebBrowser.openBrowserAsync(`${base}/api/auth/oauth-start/${provider}?callbackUrl=${q}`);
+      const redirectUri = mobileOAuthRedirectUri();
+      const authUrl = buildOAuthStartUrl(provider, locale);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      if (result.type === 'success' || result.type === 'dismiss') {
+        markWebOAuthSession();
+        router.replace('/(tabs)/my-esim');
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function openEmailSignIn() {
+    setBusy('email');
+    try {
+      const redirectUri = mobileOAuthRedirectUri();
+      const authUrl = buildEmailSignInWebUrl(locale);
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      if (result.type === 'success' || result.type === 'dismiss') {
+        markWebOAuthSession();
+        router.replace('/(tabs)/my-esim');
+      }
     } finally {
       setBusy(null);
     }
@@ -38,10 +64,6 @@ export default function SignInChooserScreen() {
 
   function onSkip() {
     router.replace('/(tabs)');
-  }
-
-  function onEmail() {
-    router.push('/sign-in/email');
   }
 
   return (
@@ -95,9 +117,19 @@ export default function SignInChooserScreen() {
           )}
         </Pressable>
 
-        <Pressable onPress={onEmail} disabled={busy !== null} style={[styles.btn, styles.btnEmail]}>
-          <EmailMark />
-          <Text style={styles.btnEmailText}>{t('auth.continueEmail')}</Text>
+        <Pressable
+          onPress={openEmailSignIn}
+          disabled={busy !== null}
+          style={[styles.btn, styles.btnEmail, busy ? styles.btnBusy : null]}
+        >
+          {busy === 'email' ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <EmailMark />
+              <Text style={styles.btnEmailText}>{t('auth.continueEmail')}</Text>
+            </>
+          )}
         </Pressable>
       </View>
 

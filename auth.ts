@@ -64,6 +64,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: `${sessionCookiePrefix}authjs.state`,
             options: sharedCookieOptions,
           },
+          callbackUrl: {
+            name: `${sessionCookiePrefix}authjs.callback-url`,
+            options: sharedCookieOptions,
+          },
         },
       }
     : {}),
@@ -140,9 +144,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       await prisma.user.update({ where: { id: user.id }, data })
       return true
     },
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user?.id) {
         token.id = user.id
+      } else if (account && account.provider !== 'credentials') {
+        /** REGRESSION-FREEZE[oauth-jwt-oauth-user-id]: OAuth JWT email→user.id — simplyur mypage 401 — manifest */
+        const email =
+          (user?.email as string | undefined)?.trim().toLowerCase() ??
+          (typeof token.email === 'string' ? token.email.trim().toLowerCase() : '')
+        if (email && !token.id) {
+          const row = await prisma.user.findUnique({
+            where: { email },
+            select: { id: true },
+          })
+          if (row?.id) token.id = row.id
+        }
       }
       const userId = (token.id as string | undefined) ?? (token.sub as string | undefined)
       if (!userId) return token

@@ -443,6 +443,9 @@
     "domesticSignInLink": "Korea resident? Sign in with Kakao or Naver on Bong Tour",
     "googleNotConfigured": "Google sign-in is not configured on this server yet.",
     "errorGeneric": "Sign-in failed. Please try again or use a different method.",
+    "oauthCompleteTitle": "You're signed in",
+    "oauthCompleteBody": "Return to the simplyur app to manage your eSIM.",
+    "oauthCompleteOpenApp": "Open simplyur app",
     "errorTitle": "Sign-in problem",
     "tryAgain": "Try again",
     "backHome": "← Back to home"

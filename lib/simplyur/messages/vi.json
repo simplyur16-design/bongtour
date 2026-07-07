@@ -170,6 +170,9 @@
     "domesticSignInLink": "Cư dân Hàn Quốc? Đăng nhập Kakao/Naver tại Bong Tour",
     "googleNotConfigured": "Đăng nhập Google chưa được cấu hình trên máy chủ này.",
     "errorGeneric": "Đăng nhập thất bại. Vui lòng thử lại.",
+    "oauthCompleteTitle": "Đăng nhập thành công",
+    "oauthCompleteBody": "Quay lại ứng dụng simplyur để quản lý eSIM.",
+    "oauthCompleteOpenApp": "Mở ứng dụng simplyur",
     "backHome": "← Về trang chủ"
   },
   "myEsim": {

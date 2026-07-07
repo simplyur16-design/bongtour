@@ -457,6 +457,7 @@
     "signInRequired": "Please sign in to view your eSIMs.",
     "signInTitle": "Sign in to see your eSIMs",
     "signInBody": "Track your orders, view QR codes, and check data usage once you're signed in.",
+    "openWeb": "Open My eSIM in browser",
     "emptyTitle": "No orders yet",
     "emptyBody": "When you buy a plan it'll show up here with your QR code and usage.",
     "emptyCta": "Browse plans",

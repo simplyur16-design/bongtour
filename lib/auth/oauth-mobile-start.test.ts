@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildOAuthAutoPostHtml,
+  buildOAuthClientCsrfPostHtml,
   isOAuthMobileStartProvider,
   safeOAuthCallbackUrl,
 } from '@/lib/auth/oauth-mobile-start'
@@ -21,16 +22,22 @@ describe('oauth-mobile-start', () => {
     expect(safeOAuthCallbackUrl('/simplyur/ja/my-esim')).toBe('/simplyur/ja/my-esim')
   })
 
-  it('builds auto-POST html for NextAuth signin', () => {
+  it('builds client-side CSRF fetch html', () => {
+    const html = buildOAuthClientCsrfPostHtml({
+      provider: 'google',
+      callbackUrl: '/simplyur/en/my-esim',
+    })
+    expect(html).toContain("fetch('/api/auth/csrf'")
+    expect(html).toContain('action="/api/auth/signin/google"')
+  })
+
+  it('builds legacy auto-POST html for NextAuth signin', () => {
     const html = buildOAuthAutoPostHtml({
       provider: 'google',
       callbackUrl: '/simplyur/en/my-esim',
       csrfToken: 'csrf-test',
     })
     expect(html).toContain('method="POST"')
-    expect(html).toContain('action="/api/auth/signin/google"')
-    expect(html).toContain('name="csrfToken"')
     expect(html).toContain('value="csrf-test"')
-    expect(html).toContain('value="/simplyur/en/my-esim"')
   })
 })
