@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { isOAuthMobileStartProvider, safeOAuthCallbackUrl } from '@/lib/auth/oauth-mobile-start'
+import {
+  buildOAuthAutoPostHtml,
+  isOAuthMobileStartProvider,
+  safeOAuthCallbackUrl,
+} from '@/lib/auth/oauth-mobile-start'
 
 describe('oauth-mobile-start', () => {
   it('allows google and apple only', () => {
@@ -15,5 +19,18 @@ describe('oauth-mobile-start', () => {
 
   it('accepts same-origin relative callbackUrl', () => {
     expect(safeOAuthCallbackUrl('/simplyur/ja/my-esim')).toBe('/simplyur/ja/my-esim')
+  })
+
+  it('builds auto-POST html for NextAuth signin', () => {
+    const html = buildOAuthAutoPostHtml({
+      provider: 'google',
+      callbackUrl: '/simplyur/en/my-esim',
+      csrfToken: 'csrf-test',
+    })
+    expect(html).toContain('method="POST"')
+    expect(html).toContain('action="/api/auth/signin/google"')
+    expect(html).toContain('name="csrfToken"')
+    expect(html).toContain('value="csrf-test"')
+    expect(html).toContain('value="/simplyur/en/my-esim"')
   })
 })

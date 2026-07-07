@@ -46,5 +46,15 @@ export default {
       }
       return session
     },
+    /** simplyur OAuth 후 /simplyur/... 유지 — callbackUrl 유실 시 baseUrl(/) 폴백 방지 */
+    redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return `${baseUrl.replace(/\/$/, '')}${url}`
+      try {
+        if (new URL(url).origin === new URL(baseUrl).origin) return url
+      } catch {
+        /* ignore */
+      }
+      return baseUrl
+    },
   },
 } satisfies NextAuthConfig

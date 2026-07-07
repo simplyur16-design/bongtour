@@ -6253,7 +6253,7 @@
           "file": "app/api/auth/oauth-start/[provider]/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[oauth-mobile-get-start]",
-            "signIn(provider",
+            "buildOAuthAutoPostHtml",
             "safeOAuthCallbackUrl"
           ]
         },

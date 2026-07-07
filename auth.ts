@@ -8,6 +8,7 @@ import { ensureUserBootstrapRole } from '@/lib/ensure-user-bootstrap-role'
 import authConfig from './auth.config'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
+import { authJsCookieOptions, authJsCookiePrefix } from '@/lib/auth/auth-js-cookie-options'
 
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
@@ -40,7 +41,8 @@ function authSessionCookieSecure(): boolean {
 
 const sessionCookieDomain = authSessionCookieDomain()
 const sessionCookieSecure = authSessionCookieSecure()
-const sessionCookiePrefix = sessionCookieSecure ? '__Secure-' : ''
+const sessionCookiePrefix = authJsCookiePrefix()
+const sharedCookieOptions = authJsCookieOptions()
 
 const googleProvider = googleOAuthProvider()
 const appleProvider = appleOAuthProvider()
@@ -52,13 +54,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         cookies: {
           sessionToken: {
             name: `${sessionCookiePrefix}authjs.session-token`,
-            options: {
-              httpOnly: true,
-              sameSite: 'lax' as const,
-              path: '/',
-              secure: sessionCookieSecure,
-              domain: sessionCookieDomain,
-            },
+            options: sharedCookieOptions,
+          },
+          pkceCodeVerifier: {
+            name: `${sessionCookiePrefix}authjs.pkce.code_verifier`,
+            options: sharedCookieOptions,
+          },
+          state: {
+            name: `${sessionCookiePrefix}authjs.state`,
+            options: sharedCookieOptions,
           },
         },
       }
