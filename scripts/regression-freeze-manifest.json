@@ -6580,6 +6580,44 @@
         }
       ],
       "vitestSuites": ["lib/bongsim/data/load-recommend-bootstrap-cached.test.ts"]
+    },
+    {
+      "id": "bongsim-catalog-client-pagination-p4",
+      "tier": ["prebuild", "ci"],
+      "summary": "bongsim catalog P4 — thin SSR + bucket pagination API·client load-more",
+      "checks": [
+        {
+          "file": "lib/bongsim/catalog/catalog-buckets.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]",
+            "CATALOG_PAGE_SIZE"
+          ]
+        },
+        {
+          "file": "app/travel/esim/catalog/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]",
+            "loadCatalogPageBootstrapCached",
+            "CatalogPageClient"
+          ]
+        },
+        {
+          "file": "app/travel/esim/catalog/CatalogPageClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]",
+            "/api/bongsim/products"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/products/route.ts",
+          "mustInclude": ["listCatalogProductsPaginatedCached", "export const revalidate = 120"]
+        },
+        {
+          "file": "lib/bongsim/data/load-catalog-page-bootstrap-cached.ts",
+          "mustInclude": ["loadCatalogPageBootstrapCached", "listCatalogProductsPaginatedCached"]
+        }
+      ],
+      "vitestSuites": ["lib/bongsim/catalog/catalog-buckets.test.ts"]
     }
   ]
 }
