@@ -6243,6 +6243,25 @@
           ]
         }
       ]
+    },
+    {
+      "id": "apple-oauth-invalid-p8-no-crash",
+      "tier": ["prebuild", "ci"],
+      "summary": "불완전 AUTH_APPLE_PRIVATE_KEY — appleOAuthProvider null, 앱 기동 크래시 금지",
+      "checks": [
+        {
+          "file": "lib/auth/apple-oauth-provider.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[apple-oauth-invalid-p8-no-crash]",
+            "isApplePrivateKeyPemPlausible",
+            "Apple Sign In disabled until fixed"
+          ]
+        },
+        {
+          "file": "lib/auth/apple-private-key-pem.ts",
+          "mustInclude": ["isApplePrivateKeyPemPlausible", "END PRIVATE KEY"]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -6462,6 +6481,12 @@
         "lib/auth/sign-in-method-catalog.test.ts",
         "lib/simplyur/constants.test.ts"
       ]
+    },
+    {
+      "id": "apple-oauth-invalid-p8-no-crash-vitest",
+      "tier": ["prebuild", "ci"],
+      "summary": "불완전 .p8 — appleOAuthProvider null·isAppleOAuthConfigured false",
+      "files": ["lib/auth/apple-oauth-provider.test.ts"]
     },
     {
       "id": "simplyur-foreign-audience-ssot",

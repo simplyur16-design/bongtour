@@ -7,6 +7,10 @@
  * 클라이언트 컴포넌트(SignInSocialPanel 등)에서 import — OAuth provider 모듈·node:crypto 체인 금지.
  */
 import { SIMPLYUR_DEFAULT_LOCALE, type SimplyurLocale } from '@/lib/simplyur/constants'
+import {
+  isApplePrivateKeyPemPlausible,
+  normalizeApplePrivateKeyPem,
+} from '@/lib/auth/apple-private-key-pem'
 
 /**
  * - domestic: 봉투어 웹 `/auth/signin` (한국 거주자·내국인)
@@ -156,7 +160,8 @@ function appleOAuthConfigured(): boolean {
     process.env.AUTH_APPLE_PRIVATE_KEY?.trim() || process.env.APPLE_PRIVATE_KEY?.trim() || ''
   if (!clientId) return false
   if (staticSecret) return true
-  return Boolean(teamId && keyId && privateKeyRaw)
+  if (!teamId || !keyId || !privateKeyRaw) return false
+  return isApplePrivateKeyPemPlausible(normalizeApplePrivateKeyPem(privateKeyRaw))
 }
 
 export function isSignInMethodEnabled(id: SignInMethod): boolean {

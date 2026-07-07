@@ -49,6 +49,14 @@ describe('sign-in-method-catalog', () => {
     expect(resolveEnabledSocialSignInMethods()).toContain('kakao')
   })
 
+  it('disables apple when .p8 is truncated', () => {
+    process.env.AUTH_APPLE_ID = 'aid'
+    process.env.AUTH_APPLE_TEAM_ID = 'TEAM123456'
+    process.env.AUTH_APPLE_KEY_ID = 'KEY1234567'
+    process.env.AUTH_APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----'
+    expect(isSignInMethodEnabled('apple')).toBe(false)
+  })
+
   it('enables google and apple when env present', () => {
     process.env.AUTH_GOOGLE_ID = 'gid'
     process.env.AUTH_GOOGLE_SECRET = 'gsec'

@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import Header from '@/app/components/Header'
+import { oauthConfigurationErrorDescriptionKo } from '@/lib/auth/oauth-configuration-error-copy'
+import { getSiteOrigin } from '@/lib/site-metadata'
 
 type Props = {
   searchParams: Promise<{ error?: string }>
@@ -13,8 +15,7 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   },
   Configuration: {
     title: '설정 오류',
-    description:
-      'OAuth 설정·쿠키·redirect URI 문제입니다. 로컬: NEXTAUTH_URL=http://localhost:3001, Google Console redirect=http://localhost:3001/api/auth/callback/google, 시크릿 창으로 재시도.',
+    description: '', // filled from oauthConfigurationErrorDescriptionKo(siteOrigin)
   },
   Verification: {
     title: '이메일 인증 필요',
@@ -39,7 +40,12 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
 
 export default async function AuthErrorPage({ searchParams }: Props) {
   const { error } = await searchParams
+  const siteOrigin = getSiteOrigin()
   const msg = (error && ERROR_MESSAGES[error]) || ERROR_MESSAGES.Default
+  const description =
+    error === 'Configuration'
+      ? oauthConfigurationErrorDescriptionKo(siteOrigin)
+      : msg.description
 
   return (
     <div className="min-h-screen bg-beige">
@@ -49,7 +55,7 @@ export default async function AuthErrorPage({ searchParams }: Props) {
           <p className="text-xs font-semibold uppercase tracking-wider text-bt-title">안내</p>
           <h1 className="mt-1 text-xl font-bold tracking-tight text-bt-title">{msg.title}</h1>
         </div>
-        <p className="mt-2 text-center text-sm text-bt-body">{msg.description}</p>
+        <p className="mt-2 text-center text-sm text-bt-body">{description}</p>
         <div className="mt-8 flex gap-3">
           <Link
             href="/auth/signin"
