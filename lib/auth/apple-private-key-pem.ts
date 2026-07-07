@@ -4,7 +4,14 @@ export function normalizeApplePrivateKeyPem(raw: string): string {
   const trimmed = raw.trim()
   if (!trimmed) return ''
   if (trimmed.includes('BEGIN PRIVATE KEY')) {
-    return trimmed.replace(/\\n/g, '\n')
+    let pem = trimmed.replace(/\\n/g, '\n')
+    // Single-line paste — .env 한 줄: BEGIN+base64+END 사이 줄바꿈 없으면 OpenSSL decoder 실패
+    if (!pem.includes('\n')) {
+      pem = pem
+        .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+        .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----')
+    }
+    return pem
   }
   const body = trimmed.replace(/\\n/g, '\n').replace(/\s+/g, '')
   const lines = body.match(/.{1,64}/g) ?? []

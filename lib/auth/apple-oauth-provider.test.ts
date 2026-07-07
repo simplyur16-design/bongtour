@@ -18,6 +18,14 @@ describe('apple-private-key-pem', () => {
   it('rejects BEGIN-only paste (truncated .p8)', () => {
     expect(isApplePrivateKeyPemPlausible('-----BEGIN PRIVATE KEY-----')).toBe(false)
   })
+
+  it('accepts single-line BEGIN+body+END paste (.env one-liner)', () => {
+    const body = 'A'.repeat(128)
+    const oneLine = `-----BEGIN PRIVATE KEY-----${body}-----END PRIVATE KEY-----`
+    const pem = normalizeApplePrivateKeyPem(oneLine)
+    expect(pem).toContain('\n')
+    expect(isApplePrivateKeyPemPlausible(oneLine)).toBe(true)
+  })
 })
 
 describe('apple-oauth-provider', () => {

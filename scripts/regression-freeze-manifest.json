@@ -6259,7 +6259,11 @@
         },
         {
           "file": "lib/auth/apple-private-key-pem.ts",
-          "mustInclude": ["isApplePrivateKeyPemPlausible", "END PRIVATE KEY"]
+          "mustInclude": [
+            "isApplePrivateKeyPemPlausible",
+            "END PRIVATE KEY",
+            "Single-line paste"
+          ]
         }
       ]
     }
