@@ -40,14 +40,12 @@ export async function requestSimplyurPortoneKiccPayment(
       ...base,
       payMethod: "EASY_PAY",
       easyPay: { easyPayProvider: "WECHAT" },
-      ...(client.portone_locale ? { locale: client.portone_locale } : {}),
     });
   } else if (client.portone_method === "kicc_alipay_plus") {
     response = await PortOne.requestPayment({
       ...base,
       payMethod: "ALIPAY_PLUS",
       alipayPlus: { easyPayProvider: "ALIPAY" },
-      orderDescription: client.order_name,
     });
   } else {
     throw new Error("unexpected_kicc_method");

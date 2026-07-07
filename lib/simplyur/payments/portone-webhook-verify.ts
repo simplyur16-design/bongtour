@@ -5,7 +5,7 @@ import {
   WebhookVerificationError,
   type Webhook,
 } from "@portone/server-sdk/webhook";
-import { resolvePortoneWebhookSecret, resolvePortoneWebhookSecretFormat } from "@/lib/simplyur/payments/portone-env";
+import { resolvePortoneWebhookSecret } from "@/lib/simplyur/payments/portone-env";
 
 export type ParsedPortoneWebhook =
   | { ok: true; verified: boolean; type: string; paymentId: string | null }
@@ -49,15 +49,12 @@ export async function parseSimplyurPortoneWebhook(
     return parseUnverifiedJson(rawBody);
   }
 
-  const format = resolvePortoneWebhookSecretFormat();
   try {
-    const webhook = await verifyPortoneWebhook(secret, rawBody, headersForVerify(headers), {
-      ...(format === "raw" ? { format: "raw" as const } : {}),
-    });
+    const webhook = await verifyPortoneWebhook(secret, rawBody, headersForVerify(headers));
     return {
       ok: true,
       verified: true,
-      type: webhook.type,
+      type: typeof webhook.type === "string" ? webhook.type : "",
       paymentId: paymentIdFromWebhook(webhook),
     };
   } catch (e) {
