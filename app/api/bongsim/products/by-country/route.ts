@@ -1,4 +1,5 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
+import { slimProductsByCountryForApi } from "@/lib/bongsim/data/slim-products-by-country-payload";
 import {
   loadProductsByCountryCached,
   PRODUCTS_BY_COUNTRY_REVALIDATE_SEC,
@@ -36,10 +37,9 @@ export async function GET(req: Request) {
     return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.by-country", { status: 500 });
   }
 
-  const response = jsonWithLeakGuard(
-    { individual: res.individual, multi: res.multi },
-    "bongsim.products.by-country",
-  );
+  const payload = slimProductsByCountryForApi(res);
+
+  const response = jsonWithLeakGuard(payload, "bongsim.products.by-country");
   response.headers.set(
     "Cache-Control",
     `public, s-maxage=${PRODUCTS_BY_COUNTRY_REVALIDATE_SEC}, stale-while-revalidate=${PRODUCTS_BY_COUNTRY_REVALIDATE_SEC * 2}`,

@@ -13,6 +13,7 @@ type Props = {
   items: UsimsaPickerItem[];
   selectedCodes: string[];
   onSelect: (code: string) => void;
+  onPrefetch?: (code: string) => void;
   showSeeMore?: boolean;
   onSeeMore?: () => void;
   gridClassName?: string;
@@ -23,6 +24,7 @@ export function UsimsaCountryPickerGrid({
   items,
   selectedCodes,
   onSelect,
+  onPrefetch,
   showSeeMore = false,
   onSeeMore,
   gridClassName = USIMSA_COUNTRY_GRID_CLASS,
@@ -36,6 +38,7 @@ export function UsimsaCountryPickerGrid({
           displayNameKr={country.displayNameKr}
           isSelected={selectedCodes.includes(country.code)}
           onClick={() => onSelect(country.code)}
+          onPrefetch={onPrefetch ? () => onPrefetch(country.code) : undefined}
           flagImageSrc={resolveDestinationFlagImageUrl(country.code)}
           useFlagImage={destinationUsesFlagImage(country.code)}
           showUnlimited={country.isUnlimited === true}

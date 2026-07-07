@@ -49,6 +49,10 @@ import {
 } from "@/lib/bongsim/esim/kyc-required";
 import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
 import type { CountryProductPack } from "@/lib/bongsim/data/load-products-by-country";
+import {
+  fetchProductsByCountry,
+  readPrefetchedProductsByCountry,
+} from "@/lib/bongsim/recommend/prefetch-products-by-country";
 
 const HERO_IMAGE_SIZES = "(max-width:1023px) 100vw, 55vw";
 
@@ -364,22 +368,28 @@ export function ProductCombinationStep({
   }, []);
 
   useEffect(() => {
-    async function fetchProducts() {
+    let cancelled = false;
+
+    async function loadProducts() {
       setLoading(true);
       try {
-        const codes = selectedCodes.join(",");
-        const res = await fetch(`/api/bongsim/products/by-country?codes=${codes}`);
-        if (!res.ok) throw new Error("fetch failed");
-        const json = await res.json();
-        setData(json);
+        const prefetched = readPrefetchedProductsByCountry(selectedCodes);
+        const json =
+          prefetched ?? (await fetchProductsByCountry(selectedCodes));
+        if (!json) throw new Error("fetch failed");
+        if (!cancelled) setData(json as ProductCombinationData);
       } catch (e) {
         console.error("[ProductCombinationStep]", e);
-        setData(null);
+        if (!cancelled) setData(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    void fetchProducts();
+
+    void loadProducts();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedCodes]);
 
   const countryByCode = useMemo(

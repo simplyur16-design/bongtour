@@ -22,6 +22,7 @@ type Props = {
   country: CountryOption;
   isSelected: boolean;
   onClick: () => void;
+  onPrefetch?: () => void;
   flagImageSrc: string | null;
   useFlagImage: boolean;
   /** 다국가 탭 — 한 줄 라벨 (유럽 42개국 등) */
@@ -35,6 +36,7 @@ export function CountryPickerFlagButton({
   country,
   isSelected,
   onClick,
+  onPrefetch,
   flagImageSrc,
   useFlagImage,
   displayNameKr,
@@ -47,6 +49,8 @@ export function CountryPickerFlagButton({
     <button
       type="button"
       onClick={onClick}
+      onPointerEnter={onPrefetch}
+      onFocus={onPrefetch}
       className="flex w-full min-w-0 flex-col items-center overflow-visible px-0.5 py-2"
     >
       <span className="relative z-0 flex shrink-0 flex-col items-center overflow-visible">

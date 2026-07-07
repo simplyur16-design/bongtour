@@ -13,6 +13,7 @@ import {
 } from "@/lib/bongsim/recommend/usimsa-country-picker-tokens";
 import { regionPackShowsCoverageOnSelect } from "@/lib/bongsim/recommend/region-pack-coverage-display";
 import { RegionPackCoverageDialog } from "@/components/bongsim/recommend/RegionPackCoverageDialog";
+import { prefetchProductsByCountry } from "@/lib/bongsim/recommend/prefetch-products-by-country";
 import type { CountryOption } from "@/lib/bongsim/types";
 
 export type CountrySelectStepProps = {
@@ -65,6 +66,10 @@ export function CountrySelectStep({
     onSearchQueryChange("");
   };
 
+  const handlePrefetchCountry = (code: string) => {
+    prefetchProductsByCountry([code]);
+  };
+
   const handleMultiPackClick = (code: string) => {
     const pack = allMultiCountryPacks.find((p) => p.code === code);
     const label = pack?.displayNameKr ?? pack?.nameKr ?? code;
@@ -76,6 +81,7 @@ export function CountrySelectStep({
       });
       return;
     }
+    prefetchProductsByCountry([code]);
     onPickCountry(code);
   };
 
@@ -175,7 +181,11 @@ export function CountrySelectStep({
               <UsimsaCountryPickerGrid
                 items={popularGridItems}
                 selectedCodes={[]}
-                onSelect={onPickCountry}
+                onSelect={(code) => {
+                  prefetchProductsByCountry([code]);
+                  onPickCountry(code);
+                }}
+                onPrefetch={handlePrefetchCountry}
                 showSeeMore={showPopularSeeMore}
                 onSeeMore={() => setShowAllSingle(true)}
               />
@@ -190,6 +200,7 @@ export function CountrySelectStep({
                 items={multiVisible}
                 selectedCodes={[]}
                 onSelect={handleMultiPackClick}
+                onPrefetch={handlePrefetchCountry}
                 showSeeMore={showMultiSeeMore}
                 onSeeMore={() => setShowAllMulti(true)}
               />
@@ -218,6 +229,7 @@ export function CountrySelectStep({
           planName={coverageSheet.planName}
           onClose={() => setCoverageSheet(null)}
           onConfirm={() => {
+            prefetchProductsByCountry([coverageSheet.code]);
             onPickCountry(coverageSheet.code);
             setCoverageSheet(null);
           }}

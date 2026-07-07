@@ -6726,6 +6726,44 @@
         "lib/bongsim/data/load-products-by-country.test.ts",
         "lib/bongsim/data/single-destination-plan-names.test.ts"
       ]
+    },
+    {
+      "id": "bongsim-by-country-slim-prefetch",
+      "tier": ["prebuild", "ci"],
+      "summary": "by-country 슬림 API + 국가 타일 hover prefetch",
+      "checks": [
+        {
+          "file": "lib/bongsim/recommend/slim-recommend-api-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]",
+            "slimProductForRecommendApi"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/slim-products-by-country-payload.ts",
+          "mustInclude": ["slimProductsByCountryForApi"]
+        },
+        {
+          "file": "app/api/bongsim/products/by-country/route.ts",
+          "mustInclude": ["slimProductsByCountryForApi"]
+        },
+        {
+          "file": "lib/bongsim/recommend/prefetch-products-by-country.ts",
+          "mustInclude": ["prefetchProductsByCountry", "readPrefetchedProductsByCountry"]
+        },
+        {
+          "file": "components/bongsim/recommend/CountrySelectStep.tsx",
+          "mustInclude": ["prefetchProductsByCountry", "onPrefetch"]
+        },
+        {
+          "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
+          "mustInclude": ["readPrefetchedProductsByCountry", "fetchProductsByCountry"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/recommend/slim-recommend-api-product.test.ts",
+        "lib/bongsim/recommend/prefetch-products-by-country.test.ts"
+      ]
     }
   ]
 }
