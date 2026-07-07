@@ -1400,6 +1400,7 @@
             "fetchHanatourPkgProdInfo",
             "fetchHanatourPkgProdLstPage",
             "collectHanatourApiDepartureInputsForMonths",
+            "resolveHanatourApiAirtelLike",
             "filterHanatourProdListRowsForAnchorSaleProdCd",
             "filterHanatourProdListRowsForAnchorProductLine",
             "gw.hanatour.com"
@@ -2629,7 +2630,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "등록 travelScope — FIT URL(menu=FIT 등)·#자유여행 제목 신호로 air_hotel_free 강제",
+      "summary": "등록 travelScope — admin 명시 선택 SSOT; 미선택 시 FIT URL·#자유여행 제목 신호로 air_hotel_free 추론",
       "checks": [
         {
           "file": "lib/register-admin-travel-category.ts",
@@ -2640,6 +2641,13 @@
           ]
         },
         {
+          "file": "lib/register-facts/product-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-travel-scope-origin-url-fit]",
+            "resolveRegisterFactProductKindFromAdminTravelScope"
+          ]
+        },
+        {
           "file": "lib/ybtour-register-flow.ts",
           "mustInclude": [
             "resolveRegisterTravelScopeFromRequest"
@@ -2647,7 +2655,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-admin-travel-category.test.ts"
+        "lib/register-admin-travel-category.test.ts",
+        "lib/register-facts/product-kind.test.ts"
       ]
     },
     {

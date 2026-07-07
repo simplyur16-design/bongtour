@@ -98,7 +98,10 @@ export async function parseModetourRegisterFromApi(
     throw new Error('모두투어 등록에는 유효한 originUrl(productNo)이 필요합니다.')
   }
 
-  const bundle = await collectModetourRegisterFacts(originUrl, { originCode: productNo })
+  const bundle = await collectModetourRegisterFacts(originUrl, {
+    originCode: productNo,
+    adminTravelScope: travelScope,
+  })
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·productNo를 확인하세요.')
   }

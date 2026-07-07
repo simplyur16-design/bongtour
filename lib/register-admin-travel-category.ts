@@ -46,7 +46,10 @@ function inferAirHotelFreeFromListingHint(hint: string | null | undefined): bool
   return AIRTEL_TITLE_HINT_RE.test(t)
 }
 
-/** REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: URL·붙여넣기 제목 신호 — manifest */
+/**
+ * REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: admin travelScope SSOT — manifest
+ * 명시 `overseas`/`air_hotel_free`는 URL·제목 추론으로 덮지 않는다(자유여행·패키지 가격·imageKeyword 분기).
+ */
 export function resolveRegisterTravelScopeFromRequest(args: {
   bodyTravelScope?: unknown
   originSource: string
@@ -57,7 +60,7 @@ export function resolveRegisterTravelScopeFromRequest(args: {
   const raw =
     typeof args.bodyTravelScope === 'string' ? args.bodyTravelScope.trim() : String(args.bodyTravelScope ?? '').trim()
   if (raw === 'air_hotel_free') return 'air_hotel_free'
-  if (raw === 'domestic') return 'overseas'
+  if (raw === 'overseas' || raw === 'domestic') return 'overseas'
 
   const supplier = registerFactSourceFromOriginSource(args.originSource)
   const url = String(args.originUrl ?? '').trim()

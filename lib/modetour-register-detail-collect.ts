@@ -169,7 +169,9 @@ export async function augmentModetourParsedWithDetailCollect(
 
   const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt || needFlight || needFeeSupplement
   const [facts, detailBundle] = await Promise.all([
-    needSchedule ? collectModetourRegisterFacts(originUrl) : Promise.resolve(null),
+    needSchedule
+      ? collectModetourRegisterFacts(originUrl, { adminTravelScope: ctx?.travelScope ?? null })
+      : Promise.resolve(null),
     needDetailBundle
       ? fetchModetourRegisterDetailBundle(originUrl, {
           includeOptShop: needOpt || needShop,

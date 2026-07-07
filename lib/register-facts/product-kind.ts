@@ -22,6 +22,18 @@ export function parseRegisterFactProductKind(bundle: SupplierRegisterFactBundle)
   return 'package'
 }
 
+/** 관리자 등록 UI travelScope — 명시 선택 시 URL·제목 추론보다 우선 */
+// REGRESSION-FREEZE[register-travel-scope-origin-url-fit]: adminTravelScope productKind — manifest
+export function resolveRegisterFactProductKindFromAdminTravelScope(
+  adminTravelScope: string | null | undefined,
+  inferred: RegisterFactProductKind,
+): RegisterFactProductKind {
+  const t = String(adminTravelScope ?? '').trim()
+  if (t === 'air_hotel_free') return 'air_hotel_free'
+  if (t === 'overseas' || t === 'domestic') return 'package'
+  return inferred
+}
+
 /** URL·공급사 휴리스틱 — collect 단계에서 API 확인 전 1차 추정 */
 export function inferRegisterFactProductKindFromOriginUrl(
   supplier: SupplierRegisterFactSource,

@@ -5,6 +5,7 @@ import {
   inferRegisterFactProductKindFromOriginUrl,
   parseRegisterFactProductKind,
   registerFactProductKindNote,
+  resolveRegisterFactProductKindFromAdminTravelScope,
 } from '@/lib/register-facts/product-kind'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 
@@ -40,5 +41,17 @@ describe('register-facts product kind', () => {
         'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=JMB331260701BXF',
       ),
     ).toBe('air_hotel_free')
+  })
+
+  it('admin travelScope overrides inferred product kind', () => {
+    expect(
+      resolveRegisterFactProductKindFromAdminTravelScope('air_hotel_free', 'package'),
+    ).toBe('air_hotel_free')
+    expect(
+      resolveRegisterFactProductKindFromAdminTravelScope('overseas', 'air_hotel_free'),
+    ).toBe('package')
+    expect(resolveRegisterFactProductKindFromAdminTravelScope('', 'air_hotel_free')).toBe(
+      'air_hotel_free',
+    )
   })
 })
