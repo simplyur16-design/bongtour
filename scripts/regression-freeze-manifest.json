@@ -6641,7 +6641,7 @@
         },
         {
           "file": "components/bongsim/recommend/DayChipPicker.tsx",
-          "mustInclude": ["recommendedDay", "resolveDayChipVisualState", "추천"]
+          "mustInclude": ["recommendedDay", "resolveDayChipVisualState"]
         },
         {
           "file": "lib/bongsim/recommend/day-chip-visual-state.ts",

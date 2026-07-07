@@ -31,11 +31,11 @@ export function groupTripDayOptions(days: number[]): TripDayChipGroupSlice[] {
 }
 
 export const TRIP_DAY_CHIP_BASE =
-  "relative flex h-[52px] min-w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-xl px-3 text-[17px] font-semibold tracking-[-0.03em] transition-[background-color,border-color,color,box-shadow] duration-150";
+  "relative flex h-[54px] min-w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-xl px-3 text-[18px] font-semibold tracking-[-0.03em] transition-[background-color,border-color,color,box-shadow] duration-150";
 
 export function tripDayChipClassName(state: DayChipVisualState, compact = false): string {
   const size = compact
-    ? "relative flex h-12 min-w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-[14px] px-[18px] text-sm font-semibold transition-[background-color,border-color,color,box-shadow] duration-150"
+    ? "relative flex h-12 min-w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-[14px] px-[18px] text-[15px] font-semibold transition-[background-color,border-color,color,box-shadow] duration-150"
     : TRIP_DAY_CHIP_BASE;
   switch (state) {
     case "selected":

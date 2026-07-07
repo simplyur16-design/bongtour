@@ -7,7 +7,6 @@ import {
 } from "@/lib/bongsim/recommend/day-chip-visual-state";
 import {
   groupTripDayOptions,
-  TRIP_DAY_CHIP_BLUE,
   TRIP_DAY_GROUP_DIVIDER_MIN_OPTIONS,
   tripDayChipClassName,
 } from "@/lib/bongsim/recommend/trip-day-chip-layout";
@@ -45,7 +44,7 @@ function TripDayChipButton({
       aria-pressed={state === "selected"}
       aria-label={
         isRecommended
-          ? `${day}일, 이 여행지 추천 일수`
+          ? `${day}일, 이 여행지 기본 일수`
           : state === "selected"
             ? `${day}일, 선택됨`
             : `${day}일`
@@ -53,14 +52,6 @@ function TripDayChipButton({
       onClick={() => onChange(day)}
       className={tripDayChipClassName(state, compact)}
     >
-      {isRecommended ? (
-        <span
-          className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white"
-          style={{ backgroundColor: TRIP_DAY_CHIP_BLUE }}
-        >
-          추천
-        </span>
-      ) : null}
       <span className="whitespace-nowrap">{formatLabel(day)}</span>
     </button>
   );

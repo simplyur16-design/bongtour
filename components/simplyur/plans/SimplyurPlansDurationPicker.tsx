@@ -9,7 +9,7 @@ type Props = {
   options: number[];
   value: number | null;
   onChange: (days: number) => void;
-  /** 한국 기본 5일 등 — bongsim blue 추천 배지 */
+  /** 한국 기본 5일 등 — 미선택 시 연한 파란 틴트 */
   recommendedDay?: number | null;
 };
 
@@ -21,9 +21,6 @@ export function SimplyurPlansDurationPicker({
   recommendedDay = null,
 }: Props) {
   const tr = useSimplyurT();
-
-  const showRecommendedLegend =
-    recommendedDay != null && options.includes(recommendedDay) && value !== recommendedDay;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -43,11 +40,6 @@ export function SimplyurPlansDurationPicker({
         compact
         ariaLabel={tr("recommend.durationLabel")}
       />
-      {showRecommendedLegend ? (
-        <p className="text-[11px] font-medium text-[#0176f9]">
-          {tr("recommend.durationRecommendedHint")}
-        </p>
-      ) : null}
       <p className="text-[11px]" style={{ color: D.faint }}>
         {tr("recommend.durationCaption")}
       </p>

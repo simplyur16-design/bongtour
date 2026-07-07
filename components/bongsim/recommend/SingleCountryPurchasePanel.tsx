@@ -113,7 +113,6 @@ export function SingleCountryPurchasePanel({
               recommendedDay={recommendedDay}
               onChange={onApplyTripDays}
               label="이용 일수"
-              hint="판매 중인 요금제에 맞는 일수만 표시됩니다."
             />
           </div>
         ) : null}
