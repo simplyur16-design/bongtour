@@ -247,6 +247,7 @@
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
     "eslint-config-next": "^15.5.15",
+    "playwright": "^1.61.1",
     "tsx": "^4.19.0",
     "vitest": "^4.1.7"
   },
