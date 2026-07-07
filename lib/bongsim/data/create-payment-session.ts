@@ -11,6 +11,9 @@ import type { BongsimPaymentProviderCreateResult } from "@/lib/bongsim/payments/
 import { getPaymentProviderAdapter } from "@/lib/bongsim/payments/payment-provider-registry";
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
+import { isSimplyurCheckoutChannel } from "@/lib/simplyur/checkout/channel";
+import { resolvePortoneEnv } from "@/lib/simplyur/payments/portone-env";
+import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 
 export type CreatePaymentSessionResult =
   | { ok: true; body: BongsimPaymentSessionResponseV1 }
@@ -36,6 +39,7 @@ type OrderRow = {
   grand_total_krw: string;
   currency: string;
   created_at: Date;
+  checkout_channel: string;
 };
 
 type AttemptRow = {
@@ -153,7 +157,11 @@ async function hasCapturedAttempt(client: PoolClient, orderId: string): Promise<
 }
 
 async function loadOrder(client: PoolClient, orderId: string): Promise<OrderRow | null> {
-  const r = await client.query<OrderRow>(`SELECT order_id, order_number, status, buyer_email, grand_total_krw, currency, created_at FROM bongsim_order WHERE order_id = $1 LIMIT 1`, [orderId]);
+  const r = await client.query<OrderRow>(
+    `SELECT order_id, order_number, status, buyer_email, grand_total_krw, currency, created_at, checkout_channel
+     FROM bongsim_order WHERE order_id = $1 LIMIT 1`,
+    [orderId],
+  );
   return r.rows[0] ?? null;
 }
 
@@ -197,6 +205,14 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     };
   }
 
+  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID && !resolvePortoneEnv().ok) {
+    return {
+      ok: false,
+      reason: "validation",
+      details: { portone: "PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET required." },
+    };
+  }
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -213,6 +229,22 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     if (order.status !== "awaiting_payment") {
       await client.query("ROLLBACK");
       return { ok: false, reason: "order_not_payable", details: { status: order.status } };
+    }
+    if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID && !isSimplyurCheckoutChannel(order.checkout_channel)) {
+      await client.query("ROLLBACK");
+      return {
+        ok: false,
+        reason: "validation",
+        details: { provider: "portone_simplyur_orders_only" },
+      };
+    }
+    if (effProvider === "welcomepay" && isSimplyurCheckoutChannel(order.checkout_channel)) {
+      await client.query("ROLLBACK");
+      return {
+        ok: false,
+        reason: "validation",
+        details: { provider: "welcomepay_not_for_simplyur" },
+      };
     }
     if (await hasCapturedAttempt(client, order.order_id)) {
       await client.query("ROLLBACK");

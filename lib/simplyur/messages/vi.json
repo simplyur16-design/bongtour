@@ -141,7 +141,19 @@
     "brand": "simplyur",
     "tagline": "Thương hiệu của Bong Tour Co., Ltd. Vận hành bởi Bong Tour.",
     "email": "bongtour24@naver.com",
-    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+    "phone": "+82-31-213-2558 (KST 09:00–18:00)",
+    "businessInfoTitle": "Thông tin doanh nghiệp",
+    "legalNameLabel": "Công ty",
+    "representativeLabel": "Đại diện",
+    "bizRegNoLabel": "Mã đăng ký kinh doanh",
+    "mailOrderLabel": "Số báo cáo bán hàng qua mạng",
+    "phoneLabel": "Điện thoại",
+    "emailLabel": "Email",
+    "ftcVerify": "Xác minh thông tin doanh nghiệp (FTC Hàn Quốc)",
+    "legalTerms": "Điều khoản dịch vụ",
+    "legalPrivacy": "Chính sách bảo mật",
+    "legalRefund": "Chính sách hoàn tiền",
+    "productsLink": "Gói eSIM"
   },
   "language": { "label": "Ngôn ngữ" },
   "auth": {

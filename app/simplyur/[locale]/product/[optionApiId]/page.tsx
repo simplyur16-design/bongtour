@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { SimplyurProductClient } from "./SimplyurProductClient";
+import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 
@@ -17,6 +18,7 @@ export default async function SimplyurProductPage({ params }: Props) {
       optionApiId={optionApiId}
       initialProduct={res.ok ? res.product : null}
       initialState={res.ok ? "loaded" : res.reason === "not_found" || res.reason === "not_korea" ? "not_found" : "not_found"}
+      checkoutEnabled={isSimplyurCheckoutEnabled()}
     />
   );
 }

@@ -2,11 +2,19 @@ import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import { checkoutCreateOrderFromRequest } from "@/lib/bongsim/data/checkout-create-order";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { SIMPLYUR_CHECKOUT_TERMS_VERSION } from "@/lib/simplyur/checkout/channel";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 
 export async function POST(req: Request) {
   try {
+    if (!isSimplyurCheckoutEnabled()) {
+      return jsonWithLeakGuard(
+        { schema: "bongsim.checkout_confirm.error.v1", error: "checkout_disabled" },
+        "simplyur.checkout.confirm",
+        { status: 503 },
+      );
+    }
     if (!getPgPool()) {
       return jsonWithLeakGuard(
         { schema: "bongsim.checkout_confirm.error.v1", error: "db_unconfigured" },

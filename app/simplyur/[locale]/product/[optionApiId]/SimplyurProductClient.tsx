@@ -10,12 +10,14 @@ type Props = {
   optionApiId: string;
   initialProduct?: SimplyurPublicProduct | null;
   initialState?: SimplyurProductViewState;
+  checkoutEnabled?: boolean;
 };
 
 export function SimplyurProductClient({
   optionApiId,
   initialProduct = null,
   initialState = "loading",
+  checkoutEnabled,
 }: Props) {
   const { locale } = useSimplyurIntl();
   const serverLoaded = initialState === "loaded" && initialProduct != null;
@@ -53,5 +55,5 @@ export function SimplyurProductClient({
     };
   }, [optionApiId, locale, serverLoaded, serverNotFound]);
 
-  return <SimplyurProductPanel state={state} product={product} />;
+  return <SimplyurProductPanel state={state} product={product} checkoutEnabled={checkoutEnabled} />;
 }

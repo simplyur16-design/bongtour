@@ -6,8 +6,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 import { SIMPLYUR_CHECKOUT_ENABLED, simplyurPath } from "@/lib/simplyur/constants";
+import { simplyurLegalPath } from "@/lib/simplyur/legal-disclosures";
+import { requestSimplyurPortonePayment } from "@/lib/simplyur/payments/request-simplyur-portone-payment";
+import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
+
+// REGRESSION-FREEZE[simplyur-portone-checkout-p2]: simplyur checkout + PortOne — manifest
 
 type FirstPurchasePreview = {
   eligible: true;
@@ -20,12 +25,14 @@ type Props = {
   optionApiId: string;
   initialProduct?: SimplyurPublicProduct | null;
   paymentFailed?: boolean;
+  checkoutEnabled?: boolean;
 };
 
 export function SimplyurCheckoutClient({
   optionApiId,
   initialProduct = null,
   paymentFailed = false,
+  checkoutEnabled = SIMPLYUR_CHECKOUT_ENABLED,
 }: Props) {
   const router = useRouter();
   const { locale } = useSimplyurIntl();
@@ -114,7 +121,6 @@ export function SimplyurCheckoutClient({
       const origin = window.location.origin;
       const successUrl = `${origin}${simplyurPath(locale, `/checkout/complete?orderId=${encodeURIComponent(confirmJson.order.order_id)}&orderNumber=${encodeURIComponent(confirmJson.order.order_number)}`)}`;
       const failUrl = `${origin}${simplyurPath(locale, `/checkout?optionApiId=${encodeURIComponent(product.option_api_id)}&failed=1`)}`;
-      const cancelUrl = failUrl;
 
       const payRes = await fetch("/api/bongsim/payments/session", {
         method: "POST",
@@ -122,11 +128,11 @@ export function SimplyurCheckoutClient({
         body: JSON.stringify({
           order_id: confirmJson.order.order_id,
           idempotency_key: `${idempotencyKey}-pay`,
-          provider: "bongsim_mock",
+          provider: SIMPLYUR_PORTONE_PROVIDER_ID,
           return_urls: {
             success_url: successUrl,
             fail_url: failUrl,
-            cancel_url: cancelUrl,
+            cancel_url: failUrl,
           },
         }),
       });
@@ -134,13 +140,35 @@ export function SimplyurCheckoutClient({
       if (!payRes.ok || !payJson.client) {
         throw new Error(payJson.error ?? "payment_session_failed");
       }
-      if (payJson.client.kind === "mock_redirect") {
-        window.location.href = payJson.client.redirect_path;
-        return;
+
+      if (payJson.client.kind !== "portone_v2") {
+        throw new Error("unexpected_payment_client");
       }
-      router.push(payJson.client.redirect_path);
-    } catch {
-      setError(tr("checkout.errorGeneric"));
+
+      await requestSimplyurPortonePayment(payJson.client);
+
+      const completeRes = await fetch("/api/simplyur/checkout/portone-complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_id: payJson.client.payment_id,
+          payment_attempt_id: payJson.payment_attempt_id,
+        }),
+      });
+      const completeJson = (await completeRes.json()) as { ok?: boolean; error?: string };
+      if (!completeRes.ok || !completeJson.ok) {
+        throw new Error(completeJson.error ?? "payment_complete_failed");
+      }
+
+      router.push(
+        simplyurPath(
+          locale,
+          `/checkout/complete?orderId=${encodeURIComponent(confirmJson.order.order_id)}&orderNumber=${encodeURIComponent(confirmJson.order.order_number)}`,
+        ),
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      setError(msg && msg.length < 120 ? msg : tr("checkout.errorGeneric"));
     } finally {
       setSubmitting(false);
     }
@@ -168,7 +196,7 @@ export function SimplyurCheckoutClient({
     );
   }
 
-  if (!SIMPLYUR_CHECKOUT_ENABLED) {
+  if (!checkoutEnabled) {
     return (
       <main className="mx-auto max-w-lg px-4 py-10 sm:px-6">
         <h1 className="text-2xl font-bold su-text-ink">{tr("checkout.title")}</h1>
@@ -259,7 +287,21 @@ export function SimplyurCheckoutClient({
             onChange={(e) => setTerms(e.target.checked)}
             className="mt-1"
           />
-          {tr("checkout.terms")}
+          <span>
+            {tr("checkout.termsPrefix")}{" "}
+            <Link href={simplyurLegalPath(locale, "terms")} className="font-semibold su-text-celadon underline">
+              {tr("footer.legalTerms")}
+            </Link>
+            {", "}
+            <Link href={simplyurLegalPath(locale, "privacy")} className="font-semibold su-text-celadon underline">
+              {tr("footer.legalPrivacy")}
+            </Link>
+            {", "}
+            <Link href={simplyurLegalPath(locale, "refund")} className="font-semibold su-text-celadon underline">
+              {tr("footer.legalRefund")}
+            </Link>
+            .
+          </span>
         </label>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         {paymentFailed ? (

@@ -108,6 +108,7 @@
     "phone": "Phone (optional)",
     "phoneHint": "Include country code if outside Korea",
     "terms": "I agree to the purchase terms",
+    "termsPrefix": "I agree to the",
     "submit": "Continue to payment",
     "summary": "Order summary",
     "quantity": "Quantity",
@@ -414,7 +415,19 @@
     "brand": "simplyur",
     "tagline": "A brand of Bong Tour Co., Ltd. Operated and sold by Bong Tour.",
     "email": "Support: bongtour24@naver.com",
-    "phone": "Tel: +82-31-213-2558 (KST 09:00–18:00)"
+    "phone": "Tel: +82-31-213-2558 (KST 09:00–18:00)",
+    "businessInfoTitle": "Business information",
+    "legalNameLabel": "Company",
+    "representativeLabel": "Representative",
+    "bizRegNoLabel": "Business registration no.",
+    "mailOrderLabel": "Mail-order sales report no.",
+    "phoneLabel": "Tel",
+    "emailLabel": "Email",
+    "ftcVerify": "Verify business info (FTC Korea)",
+    "legalTerms": "Terms of Service",
+    "legalPrivacy": "Privacy Policy",
+    "legalRefund": "Refund Policy",
+    "productsLink": "eSIM plans"
   },
   "language": { "label": "Language" },
   "auth": {

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { SimplyurCheckoutClient } from "./SimplyurCheckoutClient";
+import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 
@@ -28,6 +29,7 @@ export default async function SimplyurCheckoutPage({ params, searchParams }: Pro
       optionApiId={optionApiId}
       initialProduct={initialProduct}
       paymentFailed={paymentFailed}
+      checkoutEnabled={isSimplyurCheckoutEnabled()}
     />
   );
 }

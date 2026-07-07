@@ -6893,6 +6893,87 @@
         "lib/bongsim/recommend/slim-recommend-api-product.test.ts",
         "lib/bongsim/recommend/prefetch-products-by-country.test.ts"
       ]
+    },
+    {
+      "id": "simplyur-portone-checkout-p2",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur Phase 2 — PortOne checkout·complete·simplyur_web only",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/providers/portone-payments.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-checkout-p2]",
+            "SIMPLYUR_PORTONE_PROVIDER_ID",
+            "portone_v2"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/checkout/portone-complete/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-checkout-p2]",
+            "processPortonePaymentOutcome",
+            "fetchPortonePaymentSnapshot"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-portone-checkout-p2]",
+            "SIMPLYUR_PORTONE_PROVIDER_ID",
+            "portone-complete"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/create-payment-session.ts",
+          "mustInclude": ["portone_simplyur_orders_only", "SIMPLYUR_PORTONE_PROVIDER_ID"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/portone-checkout.test.ts",
+        "lib/simplyur/checkout/enabled.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-pg-legal-surface",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur PG 심사 — 사업자·약관·개인정보·환불 페이지 및 푸터",
+      "checks": [
+        {
+          "file": "lib/simplyur/legal-disclosures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
+            "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
+            "255-81-03455"
+          ]
+        },
+        {
+          "file": "components/simplyur/SimplyurFooter.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
+            "simplyurLegalPath",
+            "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
+            "255-81-03455"
+          ],
+          "mustNotInclude": ["hidden md:block"]
+        },
+        {
+          "file": "lib/simplyur/legal-document-en.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
+            "SimplyurTermsEnBody",
+            "Korea eSIM for international visitors"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/legal/privacy/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[simplyur-pg-legal-surface]", "SimplyurPrivacyEnBody"]
+        },
+        {
+          "file": "app/simplyur/[locale]/legal/refund/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[simplyur-pg-legal-surface]", "SimplyurRefundEnBody"]
+        }
+      ],
+      "vitestSuites": ["lib/simplyur/legal-disclosures.test.ts"]
     }
   ]
 }

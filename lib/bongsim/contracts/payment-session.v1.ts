@@ -26,6 +26,18 @@ export type BongsimPaymentSessionClientV1 =
       order_name: string;
       customer_email: string;
       amount_krw: number;
+    }
+  | {
+      kind: "portone_v2";
+      public_session_ref: string;
+      store_id: string;
+      channel_key: string;
+      payment_id: string;
+      order_name: string;
+      total_amount_krw: number;
+      currency: "CURRENCY_KRW";
+      customer_email: string;
+      is_test_channel: boolean;
     };
 
 export type BongsimPaymentSessionResponseV1 = {

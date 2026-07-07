@@ -60,7 +60,7 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 |-------|--------|
 | **1** ✅ | Korea-only eSIM, plan cards, web + Expo, i18n, pricing |
 | **1b** | Japan eSIM |
-| **2** | PortOne checkout, USIMSA fulfillment |
+| **2** | PortOne checkout (`portone` provider), USIMSA fulfillment via OrderPaid outbox |
 | **3** | Capacitor optional; store release polish |
 | **4** | Korea tourism, tickets, experiences |
 

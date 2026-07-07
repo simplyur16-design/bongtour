@@ -141,7 +141,19 @@
     "brand": "simplyur",
     "tagline": "Bong Tour Co., Ltd.のブランド。Bong Tourが運営・販売。",
     "email": "bongtour24@naver.com",
-    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+    "phone": "+82-31-213-2558 (KST 09:00–18:00)",
+    "businessInfoTitle": "事業者情報",
+    "legalNameLabel": "商号",
+    "representativeLabel": "代表者",
+    "bizRegNoLabel": "事業者登録番号",
+    "mailOrderLabel": "通信販売届出番号",
+    "phoneLabel": "電話",
+    "emailLabel": "メール",
+    "ftcVerify": "事業者情報確認（韓国FTC）",
+    "legalTerms": "利用規約",
+    "legalPrivacy": "プライバシーポリシー",
+    "legalRefund": "返金ポリシー",
+    "productsLink": "eSIMプラン"
   },
   "language": { "label": "言語" },
   "auth": {

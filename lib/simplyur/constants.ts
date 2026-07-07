@@ -8,6 +8,8 @@
  *
  * REGRESSION-FREEZE[simplyur-foreign-audience-ssot]: 외국인 전용 eSIM — manifest
  */
+import { isSimplyurCheckoutEnabledClient } from "@/lib/simplyur/checkout/enabled";
+
 export const SIMPLYUR_AUDIENCE = "foreign-visitors-korea-esim" as const;
 
 /** 내국인·거주자용 eSIM (봉심) — simplyur 와 분리 */
@@ -18,8 +20,8 @@ export const SIMPLYUR_DOMESTIC_SIGNIN_HREF = "/auth/signin" as const;
 
 export const SIMPLYUR_BRAND_NAME = "simplyur" as const;
 
-/** OAuth + PG pending — catalog/guide only; checkout UI shows “coming soon”. */
-export const SIMPLYUR_CHECKOUT_ENABLED = false as const;
+/** PortOne checkout — set NEXT_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED=1 when PG is live. */
+export const SIMPLYUR_CHECKOUT_ENABLED = isSimplyurCheckoutEnabledClient();
 
 export const SIMPLYUR_PARENT_LEGAL_NAME = "Bong Tour Co., Ltd." as const;
 
