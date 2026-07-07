@@ -6926,6 +6926,10 @@
         {
           "file": "lib/bongsim/data/create-payment-session.ts",
           "mustInclude": ["portone_simplyur_orders_only", "SIMPLYUR_PORTONE_PROVIDER_ID"]
+        },
+        {
+          "file": "components/bongsim/checkout-store/CheckoutStoreClient.tsx",
+          "mustInclude": ["welcomepay_std"]
         }
       ],
       "vitestSuites": [

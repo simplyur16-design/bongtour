@@ -742,19 +742,18 @@ export function CheckoutStoreClient({
           setSubmitError(detailMsg ?? pj.error ?? "결제 세션을 만들지 못했습니다.");
           return;
         }
-        if (pj.schema !== "bongsim.payment_session.response.v1" || !pj.client?.redirect_path) {
+        if (pj.schema !== "bongsim.payment_session.response.v1" || pj.client?.kind !== "welcomepay_std") {
           setSubmitError("결제 응답이 올바르지 않습니다.");
           return;
         }
-        let path = pj.client.redirect_path.startsWith("/") ? pj.client.redirect_path : `/${pj.client.redirect_path}`;
-        if (pj.client.kind === "welcomepay_std") {
-          const u = new URL(path, originBase);
-          u.searchParams.set("welcomeOid", pj.client.welcome_oid);
-          u.searchParams.set("orderName", pj.client.order_name);
-          u.searchParams.set("customerEmail", pj.client.customer_email);
-          u.searchParams.set("amount", String(pj.client.amount_krw));
-          path = `${u.pathname}${u.search}`;
-        }
+        const payClient = pj.client;
+        let path = payClient.redirect_path.startsWith("/") ? payClient.redirect_path : `/${payClient.redirect_path}`;
+        const u = new URL(path, originBase);
+        u.searchParams.set("welcomeOid", payClient.welcome_oid);
+        u.searchParams.set("orderName", payClient.order_name);
+        u.searchParams.set("customerEmail", payClient.customer_email);
+        u.searchParams.set("amount", String(payClient.amount_krw));
+        path = `${u.pathname}${u.search}`;
         router.push(path);
       } catch {
         setSubmitError("네트워크 오류가 발생했습니다.");
