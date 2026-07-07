@@ -1,5 +1,3 @@
-import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
-import { getPgPool } from "@/lib/bongsim/db/pool";
 import { planNameKrFromCountryCode } from "@/lib/bongsim/country-options";
 import {
   doesPlanCoverAllSelected,
@@ -7,11 +5,11 @@ import {
 } from "@/lib/bongsim/plan-coverage-map";
 import { isRegionPackCode, planNameForRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import {
-  computeRecommendedPrice,
   isTrueUnlimited,
   minRecommendedPrice,
 } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
+import { fetchAllActiveProductOptionsFromDb } from "@/lib/bongsim/data/load-all-active-products";
 
 export type CountryProductPack = {
   roaming: { min_price: number; products: ProductOption[] };
@@ -23,14 +21,6 @@ export type CountryProductPack = {
 export type ProductsByCountryResult =
   | { ok: true; individual: Record<string, CountryProductPack>; multi: ProductOption[] }
   | { ok: false; reason: "db_unconfigured" | "db_error" };
-
-function attachRecommended(row: ProductOption): ProductOption {
-  const rp = computeRecommendedPrice(row.price_block);
-  return {
-    ...row,
-    recommended_price: rp ?? undefined,
-  };
-}
 
 function isSingleCountryForCode(p: ProductOption, code: string): boolean {
   const covered = getPlanCoveredCountries(p.plan_name);
@@ -71,53 +61,41 @@ function packFromProducts(single: ProductOption[]): CountryProductPack {
   };
 }
 
-export async function loadProductsByCountry(selectedCodes: string[]): Promise<ProductsByCountryResult> {
-  const pool = getPgPool();
-  if (!pool) return { ok: false, reason: "db_unconfigured" };
+/** 메모리 — 캐시된 전체 카탈로그에서 국가별 pack 추출 */
+export function filterProductsByCountry(
+  allProducts: ProductOption[],
+  selectedCodes: string[],
+): ProductsByCountryResult {
+  const individual: Record<string, CountryProductPack> = {};
 
-  try {
-    const result = await pool.query(
-      `SELECT 
-        option_api_id,
-        plan_name,
-        network_family,
-        plan_type,
-        days_raw,
-        allowance_label,
-        option_label,
-        price_block,
-        flags
-      FROM bongsim_product_option
-      WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
-      ORDER BY plan_name, days_raw, (price_block->'after'->>'recommended_krw')::numeric ASC NULLS LAST`,
-    );
-    const allProducts = (result.rows as unknown as ProductOption[]).map(attachRecommended);
-    const individual: Record<string, CountryProductPack> = {};
-
-    if (selectedCodes.length === 1 && isRegionPackCode(selectedCodes[0]!)) {
-      const regionCode = selectedCodes[0]!;
-      const planName = planNameForRegionPackCode(regionCode);
-      const regional =
-        planName != null ? allProducts.filter((p) => p.plan_name.trim() === planName) : [];
-      individual[regionCode] = packFromProducts(regional);
-      return { ok: true, individual, multi: [] };
-    }
-
-    for (const code of selectedCodes) {
-      const single = allProducts.filter((p) => isSingleCountryForCode(p, code));
-      individual[code] = packFromProducts(single);
-    }
-
-    const multi =
-      selectedCodes.length < 2
-        ? []
-        : allProducts.filter((p) => {
-            const covered = getPlanCoveredCountries(p.plan_name);
-            return covered.length >= 2 && doesPlanCoverAllSelected(p.plan_name, selectedCodes);
-          });
-
-    return { ok: true, individual, multi };
-  } catch {
-    return { ok: false, reason: "db_error" };
+  if (selectedCodes.length === 1 && isRegionPackCode(selectedCodes[0]!)) {
+    const regionCode = selectedCodes[0]!;
+    const planName = planNameForRegionPackCode(regionCode);
+    const regional =
+      planName != null ? allProducts.filter((p) => p.plan_name.trim() === planName) : [];
+    individual[regionCode] = packFromProducts(regional);
+    return { ok: true, individual, multi: [] };
   }
+
+  for (const code of selectedCodes) {
+    const single = allProducts.filter((p) => isSingleCountryForCode(p, code));
+    individual[code] = packFromProducts(single);
+  }
+
+  const multi =
+    selectedCodes.length < 2
+      ? []
+      : allProducts.filter((p) => {
+          const covered = getPlanCoveredCountries(p.plan_name);
+          return covered.length >= 2 && doesPlanCoverAllSelected(p.plan_name, selectedCodes);
+        });
+
+  return { ok: true, individual, multi };
+}
+
+/** uncached — DB 직접 (테스트·스크립트용) */
+export async function loadProductsByCountry(selectedCodes: string[]): Promise<ProductsByCountryResult> {
+  const catalog = await fetchAllActiveProductOptionsFromDb();
+  if (!catalog.ok) return catalog;
+  return filterProductsByCountry(catalog.products, selectedCodes);
 }

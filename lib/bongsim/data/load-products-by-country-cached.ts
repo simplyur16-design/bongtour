@@ -1,15 +1,16 @@
-import { unstable_cache } from "next/cache";
-import { loadProductsByCountry } from "@/lib/bongsim/data/load-products-by-country";
+import {
+  filterProductsByCountry,
+  type ProductsByCountryResult,
+} from "@/lib/bongsim/data/load-products-by-country";
+import { loadAllActiveProductsCached } from "@/lib/bongsim/data/load-all-active-products-cached";
 
-// REGRESSION-FREEZE[bongsim-products-by-country-cache]: by-country API 120s cache — manifest
+// REGRESSION-FREEZE[bongsim-products-by-country-cache]: 단일 카탈로그 cache + 메모리 필터 — manifest
 
-export const PRODUCTS_BY_COUNTRY_REVALIDATE_SEC = 120;
+export { ALL_ACTIVE_PRODUCTS_REVALIDATE_SEC as PRODUCTS_BY_COUNTRY_REVALIDATE_SEC } from "@/lib/bongsim/data/load-all-active-products-cached";
 
-export function loadProductsByCountryCached(codes: string[]) {
+export async function loadProductsByCountryCached(codes: string[]): Promise<ProductsByCountryResult> {
   const normalized = [...codes].map((c) => c.trim().toLowerCase()).filter(Boolean).sort();
-  const key = normalized.join(",");
-  return unstable_cache(() => loadProductsByCountry(normalized), ["bongsim-products-by-country", key], {
-    revalidate: PRODUCTS_BY_COUNTRY_REVALIDATE_SEC,
-    tags: ["bongsim-products-by-country"],
-  })();
+  const catalog = await loadAllActiveProductsCached();
+  if (!catalog.ok) return catalog;
+  return filterProductsByCountry(catalog.products, normalized);
 }
