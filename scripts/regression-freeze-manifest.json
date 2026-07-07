@@ -6554,6 +6554,32 @@
         "lib/surface/simplyur-surface.test.ts",
         "lib/bongsim/promo/esim-first-purchase-preview.test.ts"
       ]
+    },
+    {
+      "id": "bongsim-recommend-server-bootstrap-p3",
+      "tier": ["prebuild", "ci"],
+      "summary": "bongsim recommend P3 — countries+heroes 서버 프리로드·120s cache",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/load-recommend-bootstrap.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-server-bootstrap-p3]",
+            "loadBongsimRecommendBootstrap"
+          ]
+        },
+        {
+          "file": "app/travel/esim/recommend/page.tsx",
+          "mustInclude": [
+            "loadBongsimRecommendBootstrapCached",
+            "initialCountries"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/list-catalog-products-cached.ts",
+          "mustInclude": ["unstable_cache", "listCatalogProductsCached"]
+        }
+      ],
+      "vitestSuites": ["lib/bongsim/data/load-recommend-bootstrap-cached.test.ts"]
     }
   ]
 }

@@ -2,7 +2,8 @@ import Link from "next/link";
 import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { ProductCatalogCard } from "@/components/bongsim/catalog/ProductCatalogCard";
-import { listCatalogProducts, type CatalogProductListRow } from "@/lib/bongsim/data/list-catalog-products";
+import { listCatalogProductsCached } from "@/lib/bongsim/data/list-catalog-products-cached";
+import type { CatalogProductListRow } from "@/lib/bongsim/data/list-catalog-products";
 import { getKycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 import type { KycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 
@@ -37,7 +38,8 @@ function groupRows(rows: CatalogProductListRow[]): Record<BucketKey, CatalogProd
 }
 
 export default async function CatalogPage() {
-  const res = await listCatalogProducts({});
+  // REGRESSION-FREEZE[bongsim-recommend-server-bootstrap-p3]: catalog list cache — manifest
+  const res = await listCatalogProductsCached({});
 
   if (!res.ok) {
     return (

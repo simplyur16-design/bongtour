@@ -3,7 +3,8 @@ import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants"
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 import { CATALOG_REVALIDATE_SEC } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
 
-export const revalidate = CATALOG_REVALIDATE_SEC;
+/** Next.js segment config — must be a literal (not imported). Keep in sync with CATALOG_REVALIDATE_SEC. */
+export const revalidate = 120;
 
 type RouteContext = { params: Promise<{ optionApiId: string }> };
 

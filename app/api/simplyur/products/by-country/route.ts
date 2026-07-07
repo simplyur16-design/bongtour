@@ -11,7 +11,8 @@ import {
 } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
 import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 
-export const revalidate = CATALOG_REVALIDATE_SEC;
+/** Next.js segment config — must be a literal (not imported). Keep in sync with CATALOG_REVALIDATE_SEC. */
+export const revalidate = 120;
 
 /**
  * GET /api/simplyur/products/by-country?codes=kr&locale=en

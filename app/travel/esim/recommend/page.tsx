@@ -1,8 +1,13 @@
 import { Suspense } from "react";
 import Header from "@/app/components/Header";
 import RecommendPageClient from "./RecommendPageClient";
+import { loadBongsimRecommendBootstrapCached } from "@/lib/bongsim/data/load-recommend-bootstrap-cached";
 
-export default function RecommendPage() {
+// REGRESSION-FREEZE[bongsim-recommend-server-bootstrap-p3]: recommend 페이지 서버 프리로드 — manifest
+
+export default async function RecommendPage() {
+  const bootstrap = await loadBongsimRecommendBootstrapCached();
+
   return (
     <Suspense
       fallback={
@@ -14,7 +19,12 @@ export default function RecommendPage() {
         </div>
       }
     >
-      <RecommendPageClient />
+      <RecommendPageClient
+        initialCountries={bootstrap.ok ? bootstrap.data.countries : null}
+        initialCatalogMeta={bootstrap.ok ? bootstrap.data.catalogMeta : null}
+        initialHeroMap={bootstrap.ok ? bootstrap.data.heroMap : null}
+        bootstrapError={bootstrap.ok ? null : bootstrap.reason}
+      />
     </Suspense>
   );
 }

@@ -60,7 +60,17 @@ function mergeCountryOptionsFromApi(allowed: ApiCountryRow[]): CountryOption[] {
   return sortByKoreanTravelRank2025(out);
 }
 
-export default function RecommendPageClient() {
+export default function RecommendPageClient({
+  initialCountries = null,
+  initialCatalogMeta = null,
+  initialHeroMap = null,
+  bootstrapError = null,
+}: {
+  initialCountries?: ApiCountryRow[] | null;
+  initialCatalogMeta?: Record<string, CountryCatalogMeta> | null;
+  initialHeroMap?: Record<string, string> | null;
+  bootstrapError?: string | null;
+}) {
   const searchParams = useSearchParams();
   const fromCheckout = searchParams?.get("fromCheckout") === "1";
 
@@ -70,10 +80,17 @@ export default function RecommendPageClient() {
   const [storedCompleted, setStoredCompleted] = useState<Record<string, StoredCountryPlanSelection>>({});
   const [funnelHydrated, setFunnelHydrated] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(null);
-  const [catalogMeta, setCatalogMeta] = useState<Record<string, CountryCatalogMeta>>({});
-  const [countriesLoadError, setCountriesLoadError] = useState<string | null>(null);
-  const [heroMap, setHeroMap] = useState<Record<string, string>>({});
+  const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(() => {
+    if (!initialCountries?.length) return null;
+    return mergeCountryOptionsFromApi(initialCountries);
+  });
+  const [catalogMeta, setCatalogMeta] = useState<Record<string, CountryCatalogMeta>>(
+    () => initialCatalogMeta ?? {},
+  );
+  const [countriesLoadError, setCountriesLoadError] = useState<string | null>(() =>
+    bootstrapError ? "국가 목록을 불러오지 못했습니다." : null,
+  );
+  const [heroMap, setHeroMap] = useState<Record<string, string>>(() => initialHeroMap ?? {});
 
   useEffect(() => {
     const snap = loadRecommendFunnelSnapshot();
@@ -125,10 +142,12 @@ export default function RecommendPageClient() {
   }, []);
 
   useEffect(() => {
+    if (initialCountries?.length) return;
     void loadCountries();
-  }, [loadCountries]);
+  }, [loadCountries, initialCountries]);
 
   useEffect(() => {
+    if (initialHeroMap && Object.keys(initialHeroMap).length > 0) return;
     let cancelled = false;
     void fetch("/api/bongsim/country-heroes", { cache: "no-store" })
       .then(async (res) => {
@@ -149,7 +168,7 @@ export default function RecommendPageClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialHeroMap]);
 
   const countryChoices = useMemo(() => standaloneCountries ?? [], [standaloneCountries]);
 
