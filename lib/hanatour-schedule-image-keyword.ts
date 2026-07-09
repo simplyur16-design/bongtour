@@ -970,8 +970,8 @@ function dedupeHanatourTourismPrimaryKeywordsAcrossDays<T extends HanatourSchedu
       used.add(nk)
       return kw
     }
-    return null
-  }
+  return null
+}
 
   return rows.map((row) => {
     const day = Number(row.day)
@@ -1667,7 +1667,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
           ? null
           : String(secondary ?? '').trim() || null,
     }
-    })
+  })
   } finally {
     activeHanatourScheduleSectionByDay = prevScheduleSectionByDay
   }

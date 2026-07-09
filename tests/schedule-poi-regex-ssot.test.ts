@@ -7,6 +7,7 @@ import {
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
   getSchedulePoiRegexEnglishKeys,
+  routeContextualNationalAssemblyEnglish,
 } from '@/lib/schedule-poi-regex-ssot'
 
 describe('schedule-poi-regex-ssot', () => {
@@ -30,6 +31,13 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleCityEn('이스탄불')).toMatch(/Istanbul/i)
     expect(firstMatchingScheduleCityEn('리마')).toMatch(/Lima/i)
     expect(firstMatchingScheduleSpotEn('링컨 기념관')).toMatch(/Lincoln Memorial/i)
+    expect(firstMatchingScheduleSpotEn('부다페스트 국회의사당')).toMatch(/Hungarian Parliament/i)
+    expect(firstMatchingScheduleSpotEn('시청사와 국회의사당')).toMatch(/Vienna Rathaus/i)
+    expect(firstMatchingScheduleSpotEn('워싱턴 국회의사당')).toMatch(/United States Capitol/i)
+    expect(
+      routeContextualNationalAssemblyEnglish('국회의사당', '부다페스트 - 국회의사당 - 부다왕궁'),
+    ).toMatch(/Hungarian Parliament/i)
+    expect(firstMatchingScheduleSpotEn('할슈타트')).toMatch(/Hallstatt/i)
     expect(firstMatchingScheduleSpotEn('마추픽chu')).toMatch(/Machu Picchu/i)
     expect(firstMatchingScheduleSpotEn('나이아가라 폭포')).toMatch(/Niagara/i)
   })

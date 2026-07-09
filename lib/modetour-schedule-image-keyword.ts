@@ -344,15 +344,40 @@ function tryAcceptModetourRouteSegmentKeyword(
   return isScheduleImageKeywordLandmarkEligible(accepted) ? accepted : ''
 }
 
+/** 동유럽 등 — 단독 「국회의사당」은 US Capitol로 매핑하지 않음 */
+function modetourContextualNationalAssemblyEnglish(
+  seg: string,
+  routeText: string | null | undefined,
+): string {
+  if (!/국회의사당/u.test(seg)) return ''
+  const ctx = `${String(routeText ?? '')} ${seg}`
+  if (/(?:워싱턴|Washington\s*D\.?\s*C\.?|미국\s*동부|미\s*동부)/i.test(ctx)) {
+    return 'United States Capitol dome Washington DC'
+  }
+  if (/부다페스트|헝가리/i.test(ctx)) return 'Hungarian Parliament Budapest'
+  if (/비엔나|오스트리아|Wien|Vienna/i.test(ctx)) return 'Austrian Parliament Vienna'
+  if (/프라하|체코/i.test(ctx)) return 'Prague Castle'
+  return ''
+}
+
 /** routeText 한 세그먼트 → 영문 imageKeyword 후보 (일정 순서 SSOT) */
 function modetourRouteSegmentToImageKeyword(
   seg: string,
   dayKind: ModetourScheduleCardDayKind,
   productDestination: string | null | undefined,
+  routeText?: string | null,
 ): string {
   if (isModetourDomesticHubToken(seg)) return ''
   if (isModetourForeignAirportRouteSegment(seg)) return ''
   if (isNonLandmarkRouteTextSegment(seg)) return ''
+
+  const assembly = modetourContextualNationalAssemblyEnglish(seg, routeText)
+  if (assembly) {
+    const fromAssembly = tryAcceptModetourRouteSegmentKeyword(assembly, productDestination, {
+      trustRouteMappedPoi: true,
+    })
+    if (fromAssembly) return fromAssembly
+  }
 
   if (dayKind === 'tourism' && isModetourRouteCorridorValleySegment(seg)) return ''
 
@@ -441,7 +466,7 @@ export function collectModetourRouteOrderedSegmentKeywords(
 ): string[] {
   const out: string[] = []
   for (const seg of routeTextSegments(routeText)) {
-    const kw = modetourRouteSegmentToImageKeyword(seg, dayKind, productDestination)
+    const kw = modetourRouteSegmentToImageKeyword(seg, dayKind, productDestination, routeText)
     if (!kw) continue
     if (out.some((x) => keysEqual(x, kw))) continue
     out.push(kw)
@@ -1687,10 +1712,8 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
     }
 
     if (slotKind === 'return') {
-      const haystack = buildModetourDayHaystack(row)
-      const returnDayKind = classifyModetourScheduleCardDayKind(day, maxDay, haystack)
       const domesticReturn =
-        returnDayKind === 'return_home' && isDomesticOnlyRouteText(row.routeText)
+        day === maxDay && isDomesticOnlyRouteText(row.routeText)
       let primary = ''
       if (!domesticReturn) {
         primary = pickModetourReturnKeywordFromOwnRoute(row, productDestination, used)

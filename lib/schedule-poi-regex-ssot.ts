@@ -183,7 +183,20 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /링컨\s*기념관|Lincoln\s*Memorial/i, en: "Lincoln Memorial Washington DC front view" },
   { re: /제퍼슨\s*기념관|Jefferson\s*Memorial/i, en: "Jefferson Memorial Washington DC dome reflection" },
   { re: /백악관|White\s*House/i, en: "White House Washington DC north facade" },
-  { re: /국회의사당|Capitol\s*Building|US\s*Capitol/i, en: "United States Capitol dome Washington DC" },
+  { re: /쉔부른\s*궁전|쇤브룬\s*궁전|Schonbrunn/i, en: "Schonbrunn Palace Vienna" },
+  { re: /할슈타트|Hallstatt/i, en: "Hallstatt lake village Austria" },
+  { re: /인스부르크|Innsbruck/i, en: "Innsbruck Golden Roof Austria" },
+  { re: /스와로브스키\s*크리스탈|Swarovski/i, en: "Swarovski Kristallwelten Wattens" },
+  { re: /체스키\s*크룸로프|Cesky\s*Krumlov|Český\s*Krumlov/i, en: "Cesky Krumlov castle Czech Republic" },
+  { re: /헝가리\s*국회|부다페스트.{0,16}국회/i, en: "Hungarian Parliament Budapest" },
+  { re: /어부의\s*요새/u, en: "Fisherman's Bastion Budapest" },
+  { re: /부다\s*왕궁/u, en: "Buda Castle Budapest" },
+  { re: /영웅\s*광장/u, en: "Heroes Square Budapest" },
+  { re: /시청사와\s*국회의사당/u, en: "Vienna Rathaus Austrian Parliament" },
+  {
+    re: /(?:워싱턴|Washington\s*D\.?\s*C\.?|미국\s*동부|미\s*동부).{0,24}국회의사당|국회의사당.{0,24}(?:워싱턴|Washington)|Capitol\s*Building|US\s*Capitol/i,
+    en: "United States Capitol dome Washington DC",
+  },
   { re: /자연사\s*박물관|Natural\s*History\s*Museum/i, en: "Smithsonian National Museum of Natural History Washington DC" },
   { re: /워싱턴\s*국립\s*미술관|National\s*Gallery/i, en: "National Gallery of Art Washington DC" },
   { re: /스카이론|Skylon/i, en: "Skylon Tower Niagara Falls observation deck" },
@@ -377,6 +390,21 @@ function firstMatchingEn(rules: ReadonlyArray<SchedulePoiRegexRule>, h: string):
 }
 
 /** routeText·본문 세그먼트 — 랜드마크/명소 우선 */
+export function routeContextualNationalAssemblyEnglish(
+  seg: string,
+  routeText: string | null | undefined,
+): string {
+  if (!/국회의사당/u.test(seg)) return ''
+  const ctx = `${String(routeText ?? '')} ${seg}`
+  if (/(?:워싱턴|Washington\s*D\.?\s*C\.?|미국\s*동부|미\s*동부)/i.test(ctx)) {
+    return 'United States Capitol dome Washington DC'
+  }
+  if (/부다페스트|헝가리/i.test(ctx)) return 'Hungarian Parliament Budapest'
+  if (/비엔나|오스트리아|Wien|Vienna/i.test(ctx)) return 'Austrian Parliament Vienna'
+  if (/프라하|체코/i.test(ctx)) return 'Prague Castle'
+  return ''
+}
+
 export function firstMatchingScheduleSpotEn(haystack: string): string | null {
   const h = String(haystack ?? '').trim()
   if (!h) return null

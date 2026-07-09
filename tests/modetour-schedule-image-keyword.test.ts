@@ -11,6 +11,7 @@ import {
   isModetourCrossContinentHallucinationKeyword,
   isModetourDomesticHubToken,
 } from '../lib/modetour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '../lib/register-schedule-image-keywords-apply'
 
 describe('isModetourDomesticHubToken', () => {
   it('국내 출발지 토큰을 true로', () => {
@@ -631,6 +632,80 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     assert.match(String(d3.imageKeyword), /Matsue|Adachi|Shiomi|Mizuki/i)
     const primaries = out.map((r) => String(r.imageKeyword ?? '').trim()).filter(Boolean)
     assert.equal(new Set(primaries.map((k) => k.toLowerCase())).size, primaries.length)
+  })
+
+  it('동유럽 9일 — 국회의사당 US Capitol 오매핑·귀국일 마지막 도시 미사용 명소', () => {
+    const rows = [
+      { day: 1, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText:
+          '비엔나 - 쉔부른궁전 - 게른트너 거리 - 슈테판 성당 - 시청사와 국회의사당 - 국립오페라극장 - 비엔나 음악회',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        routeText: "'잘츠카머구트의 진주' 할슈타트 관광 - 할슈타트",
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        routeText:
+          '인스부르크 - 스와로브스키 크리스탈 월드 - 황금지붕 - 호프부르크 궁전 - 성 야콥 대성당 - 마리아 테레지아 거리 - 노르트케테',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 5,
+        routeText:
+          '잘츠부르크 대성당 - 체스키크룸로프 성 - 미라벨정원 - 게트라이데 거리 - 모차르트 생가 - 망토다리 - 이발사의 다리',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 6,
+        routeText:
+          "프라하 - 틴교회 - 시청사와 천문시계 - 바츨라프광장 - 프라하성 - 카를교 - '세계3대 야경' 프라하 야간투어",
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 7,
+        routeText: '부르노 - 부다페스트 야간투어 - 구시청사 - 성 베드로와 바오로 대성당 - 자유 광장',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 8,
+        routeText: '부다페스트 - 국회의사당 - 부다왕궁 - 어부의 요새 - 영웅광장',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      { day: 9, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = applyRegisterScheduleImageKeywordsBySupplier(rows, {
+      supplierKey: 'modetour',
+      productDestination: '동유럽',
+      productTitle: '동유럽 3국9일',
+    })
+    const d1 = out.find((r) => r.day === 1)!
+    const d2 = out.find((r) => r.day === 2)!
+    const d8 = out.find((r) => r.day === 8)!
+    const d9 = out.find((r) => r.day === 9)!
+    assert.doesNotMatch(String(d1.imageKeyword), /United States Capitol/i)
+    assert.doesNotMatch(String(d2.imageKeyword), /United States Capitol/i)
+    assert.match(String(d2.imageKeyword), /Schonbrunn|Vienna|Austrian Parliament/i)
+    assert.match(String(d8.imageKeyword), /Hungarian Parliament|Budapest/i)
+    assert.doesNotMatch(String(d8.imageKeyword), /United States Capitol/i)
+    const kw9 = String(d9.imageKeyword ?? '').trim()
+    assert.ok(kw9.length >= 2, 'day 9 return must pick unused landmark from last tourism day')
+    assert.doesNotMatch(kw9, /United States Capitol|Prague/i)
+    assert.match(kw9, /Buda|Heroes|Fisherman|Hungarian|Parliament|Castle/i)
+    assert.equal(String(d9.imageKeyword2 ?? '').trim(), '')
+    const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
+    assert.ok(!allKw.some((k) => /United States Capitol/i.test(k)), `US Capitol leak: ${allKw.join(', ')}`)
   })
 })
 

@@ -20,6 +20,15 @@ describe('register-schedule-image-keyword-gemini-fill', () => {
     expect(days).toEqual([2])
   })
 
+  it('scheduleDaysMissingImageKeywordAfterRules — 인천-only·귀국일은 Gemini 대상 제외', () => {
+    const days = scheduleDaysMissingImageKeywordAfterRules([
+      { day: 1, routeText: '인천', imageKeyword: '' },
+      { day: 2, routeText: '비엔나 - 쉔부른궁전', imageKeyword: 'Schonbrunn Palace' },
+      { day: 9, routeText: '인천', imageKeyword: '' },
+    ])
+    expect(days).toEqual([])
+  })
+
   it('scheduleDaysMissingImageKeyword2AfterRules — 관광·kw1만·route 2+세그먼트', () => {
     const rows = [
       { day: 1, routeText: '인천 - 북경', imageKeyword: 'Beijing', imageKeyword2: null },

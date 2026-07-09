@@ -27,6 +27,7 @@ import {
   findAllScheduleSpotMatchesInText,
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
+  routeContextualNationalAssemblyEnglish,
 } from '@/lib/schedule-poi-regex-ssot'
 
 export type RegisterScheduleRouteTextKeywordRow = {
@@ -80,9 +81,17 @@ function acceptRouteSegmentKeyword(raw: string, opts?: { allowCity?: boolean }):
 }
 
 /** routeText 세그먼트 — 명소·POI만(도시·mapDestination 폴백 없음) */
-function englishLandmarkOnlyFromScheduleKoreanSegment(seg: string): string {
+function englishLandmarkOnlyFromScheduleKoreanSegment(
+  seg: string,
+  routeText?: string | null,
+): string {
   const t = seg.trim()
   if (!t) return ''
+  const assembly = routeContextualNationalAssemblyEnglish(t, routeText)
+  if (assembly) {
+    const kw = acceptRouteSegmentKeyword(assembly, { allowCity: false })
+    if (kw) return kw
+  }
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     const kw = acceptRouteSegmentKeyword(fromPoi, { allowCity: false })
@@ -97,15 +106,23 @@ function englishLandmarkOnlyFromScheduleKoreanSegment(seg: string): string {
 }
 
 /** routeText 한 세그먼트 → 영문 키워드(세그먼트 텍스트만 — 전체 haystack 스캔 없음) */
-export function routeTextSegmentToImageKeyword(seg: string, opts?: { allowCity?: boolean }): string {
+export function routeTextSegmentToImageKeyword(
+  seg: string,
+  opts?: { allowCity?: boolean; routeText?: string | null },
+): string {
   const t = String(seg ?? '').trim()
   if (!t || isRegisterScheduleRoutePlaceNoise(t) || isNonLandmarkRouteTextSegment(t)) return ''
   if (/^[A-Za-z][A-Za-z0-9\s,.'-]{1,}$/.test(t) && !/[\uAC00-\uD7AF]/.test(t)) {
     return acceptRouteSegmentKeyword(t, opts)
   }
+  const assembly = routeContextualNationalAssemblyEnglish(t, opts?.routeText)
+  if (assembly) {
+    const kw = acceptRouteSegmentKeyword(assembly, opts)
+    if (kw) return kw
+  }
   const fromKo =
     opts?.allowCity === false
-      ? englishLandmarkOnlyFromScheduleKoreanSegment(t)
+      ? englishLandmarkOnlyFromScheduleKoreanSegment(t, opts?.routeText)
       : englishFromScheduleKoreanSegment(t)
   if (fromKo) {
     const kw = acceptRouteSegmentKeyword(fromKo, opts)
@@ -132,7 +149,7 @@ function collectRouteTextKeywords(
   const out: string[] = []
   const seen = new Set<string>()
   for (const seg of splitRouteTextPlaceSegments(routeText)) {
-    const kw = routeTextSegmentToImageKeyword(seg, opts)
+    const kw = routeTextSegmentToImageKeyword(seg, { ...opts, routeText })
     if (!kw || rejectRouteKeywordCandidate(kw)) continue
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || seen.has(nk)) continue

@@ -6,6 +6,7 @@
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { classifyModetourScheduleCardDayKind, isModetourDomesticHubToken } from '@/lib/modetour-schedule-image-keyword'
+import { isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import {
   REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK,
   REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK,
@@ -54,8 +55,10 @@ export function scheduleFreeLeisureDaysMissingImageKeyword(
 export function scheduleDaysMissingImageKeywordAfterRules(
   rows: readonly ScheduleImageKeywordGeminiRow[],
 ): number[] {
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const maxDay = sorted.length ? Math.max(...sorted.map((r) => Number(r.day))) : 1
   const out: number[] = []
-  for (const row of rows) {
+  for (const row of sorted) {
     const day = Number(row.day)
     if (!Number.isFinite(day) || day < 1) continue
     if (String(row.imageKeyword ?? '').trim()) continue
@@ -65,7 +68,13 @@ export function scheduleDaysMissingImageKeywordAfterRules(
       out.push(day)
       continue
     }
-    if (!String(row.routeText ?? '').trim()) continue
+    const routeText = String(row.routeText ?? '').trim()
+    if (!routeText) continue
+    /** 출발·귀국 인천-only 등 — 규칙이 의도적으로 비운 슬롯. Gemini가 타일 관광명으로 채우면 SSOT 붕괴 */
+    // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: domestic-hub-only·movement·return — Gemini skip
+    if (isScheduleDomesticHubOnlyRouteText(routeText, isModetourDomesticHubToken)) continue
+    const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, hay)
+    if (dayKind === 'movement' || dayKind === 'return_home') continue
     out.push(day)
   }
   return out

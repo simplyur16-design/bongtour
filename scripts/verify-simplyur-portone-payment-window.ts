@@ -253,8 +253,12 @@ async function main() {
     console.log("\nFAILED — payment window did not open for:", failed.map((f) => f.method).join(", "));
     if (failed.some((f) => /credential|PG_PROVIDER_PAYPAL/i.test(f.result.detail))) {
       console.log(
-        "Hint: PayPal channel must be PortOne V2 SPB with Merchant ID saved in console (not v1 Express).",
+        "Hint: PortOne PayPal channel must be 테스트 연동 + 페이팔 + 결제창 일반결제(SPB)/정기결제(RT).",
       );
+      console.log(
+        "Hint: PG상점아이디 = PortOne test Merchant ID (e.g. UK PA4DULN9V66L6). NOT PayPal Developer Client ID / NVP-SOAP.",
+      );
+      console.log("Hint: https://help.portone.io/content/paypal — then copy SPB channel key → PORTONE_CHANNEL_KEY_PAYPAL");
     }
     if (failed.some((f) => /mallId/i.test(f.result.detail))) {
       console.log("Hint: KICC overseas channel mallId must be set in PortOne console for the KICC channel key.");

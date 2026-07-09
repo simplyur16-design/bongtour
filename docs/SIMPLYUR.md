@@ -64,13 +64,64 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 
 ## PortOne setup (simplyur overseas PG)
 
-Docs: [PortOne V2 PG overview](https://developers.portone.io/opi/ko/integration/pg/v2/readme?v=v2) · [PayPal](https://developers.portone.io/opi/ko/integration/pg/v2/paypal-v2) · [KICC overseas](https://developers.portone.io/opi/ko/integration/pg/v2/kicc-v2)
+Docs: [PortOne V2 PG overview](https://developers.portone.io/opi/ko/integration/pg/v2/readme?v=v2) · [PayPal](https://developers.portone.io/opi/ko/integration/pg/v2/paypal-v2) · [KICC overseas](https://developers.portone.io/opi/ko/integration/pg/v2/kicc-v2) · **[PayPal channel console SSOT](https://help.portone.io/content/paypal)**
 
-1. **PortOne console** — create store, connect **PayPal (SPB)** and **KICC overseas** channels; copy `storeId`, per-channel `channelKey`, and API secret.
-2. **Env** (see `.env.example`) — `PORTONE_STORE_ID`, `PORTONE_API_SECRET`, `PORTONE_CHANNEL_KEY_PAYPAL`, `PORTONE_CHANNEL_KEY_KICC`, enable `SIMPLYUR_CHECKOUT_ENABLED`.
-3. **Webhook** — register `https://bongtour.com/api/simplyur/webhooks/portone` (Payment module V2, `Transaction.Paid`). Required for KICC QR async approval and recommended for PayPal.
-4. **KICC domain** — register `bongtour.com` (checkout path) with KICC for mobile WeChat Pay.
-5. **PG resubmit URLs** — service `/simplyur/en`, products `/simplyur/en/recommend`, legal `/simplyur/en/legal/*`.
+### PayPal (SPB) — test channel (required for simplyur)
+
+Operator checklist from [help.portone.io/content/paypal](https://help.portone.io/content/paypal):
+
+1. **PortOne console** → 결제 연동 → 채널관리 → **+ 채널 추가**
+2. Set exactly:
+   - **연동 모드**: 테스트 연동
+   - **결제대행사**: 페이팔
+   - **결제모듈**: **결제창 일반결제(SPB)/정기결제(RT)** — not Express Checkout
+3. **PG상점아이디 (PayPal Merchant ID)** — use PortOne **shared test seller ID** (not PayPal Developer Client ID / NVP-SOAP):
+
+   | Country | Merchant ID |
+   |---------|---------------|
+   | UK (recommended) | `PA4DULN9V66L6` |
+   | US | `7WBB3CKT63FRG` |
+   | KR | `UFYSG9T7RFW2A` |
+   | JP | `PX5CTVZJTRXG4` |
+   | (others) | see help.portone.io table |
+
+4. **Save**, then copy this channel’s **channel key** → `PORTONE_CHANNEL_KEY_PAYPAL` in `.env.local`.
+5. **Buyer for test**: PayPal Sandbox **Personal**, **Country = US** (KR seller + KR buyer is blocked by PayPal policy).
+
+**Do not put in PortOne SPB channel:** PayPal REST Client ID/Secret, NVP/SOAP Username/Password/Signature — those are **Express Checkout (V1 only)**. simplyur uses `loadPaymentUI` + `PAYPAL_SPB` (V2). Wrong channel type → `PG_PROVIDER_PAYPAL credential 조회 미지원`.
+
+Verify: `npx tsx scripts/inspect-portone-channels-safe.ts` · `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000`
+
+### KICC overseas (WeChat / Alipay Plus)
+
+SSOT: [help.portone.io/content/kicc](https://help.portone.io/content/kicc) · code: [KICC v2](https://developers.portone.io/opi/ko/integration/pg/v2/kicc-v2)
+
+**Unlike PayPal, KICC overseas has no PortOne shared test MID.** You must apply (PortOne 전자결제 신청 → 해외결제 → 이지페이) and receive a **test MallId + 암복호화 키** first.
+
+Operator checklist:
+
+1. **PortOne console** → 결제 연동 → 채널관리 → **+ 채널 추가**
+2. Set exactly (해외결제 — not domestic 구모듈):
+   - **연동 모드**: 테스트 연동
+   - **결제대행사**: 이지페이(KICC)
+   - **결제모듈**: **신모듈 결제창 일반결제** (해외결제)
+3. Fill:
+   - **PG상점아이디 (가맹점 ID)**: KICC/PortOne에서 발급받은 **테스트 MallId**
+   - **암복호화 키**: 그 MallId의 암복호화 키
+4. **Save**, copy **channel key** → `PORTONE_CHANNEL_KEY_KICC` in `.env.local` (and Railway).
+5. **Webhook** (required for QR async paid): `https://bongtour.com/api/simplyur/webhooks/portone` (Payment module V2).
+6. **Mobile WeChat**: register checkout domain `bongtour.com` with KICC.
+
+**Do not use:** 구모듈 / `T5102001` (국내 KICC) — that is not WeChat/Alipay overseas. simplyur calls `requestPayment` with `EASY_PAY`/`WECHAT` and `ALIPAY_PLUS`.
+
+Verify: `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000` — KICC should open a payment window (not `mallId값이 유효하지 않습니다`).
+
+### Env + webhook
+
+1. **Env** (see `.env.example`) — `PORTONE_STORE_ID`, `PORTONE_API_SECRET`, `PORTONE_CHANNEL_KEY_PAYPAL`, `PORTONE_CHANNEL_KEY_KICC`, enable `SIMPLYUR_CHECKOUT_ENABLED`.
+2. **Webhook** — register `https://bongtour.com/api/simplyur/webhooks/portone` (Payment module V2, `Transaction.Paid`). Required for KICC QR async approval and recommended for PayPal.
+3. **KICC domain** — register `bongtour.com` (checkout path) with KICC for mobile WeChat Pay.
+4. **PG resubmit URLs** — service `/simplyur/en`, products `/simplyur/en/recommend`, legal `/simplyur/en/legal/*`.
 
 Checkout charges in **USD** (minor units) derived from order KRW total × `SIMPLYUR_FX_USD`.
 | **3** | Capacitor optional; store release polish |

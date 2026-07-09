@@ -993,6 +993,7 @@
             "allocateModetourImageKeywordsByScheduleRules",
             "routeText 세그먼트 순서",
             "collectModetourRouteOrderedSegmentKeywords",
+            "modetourContextualNationalAssemblyEnglish",
             "pickModetourDepartureRepresentativeKeyword",
             "pickFirstUnusedModetourRouteKeyword",
             "resolveModetourKeywordSlotKind",
@@ -3828,6 +3829,8 @@
             "scheduleFreeLeisureDaysMissingImageKeyword",
             "buildFreeLeisureDayGeminiPrompt",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
+            "isScheduleDomesticHubOnlyRouteText",
+            "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: domestic-hub-only",
             "REGISTER_PROMPT_SCHEDULE_IMAGE_KEYWORD_BLOCK",
             "REGISTER_GEMINI_SCHEDULE_IMAGE_KEYWORD_RESOLVE_BLOCK"
           ]
@@ -4056,7 +4059,8 @@
           "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
-            "enforceRegisterScheduleTripUniqueImageKeywords"
+            "enforceRegisterScheduleTripUniqueImageKeywords",
+            "마지막 관광일 미사용 명소만"
           ]
         }
       ],
@@ -4156,7 +4160,8 @@
             "콜로세움",
             "사그라다 파밀리아",
             "페트라",
-            "리우데자네이로"
+            "리우데자네이로",
+            "할슈타트"
           ]
         },
         {
@@ -4165,7 +4170,9 @@
             "REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]",
             "Whakarewarewa",
             "Mount Fuji",
-            "Colosseum"
+            "Colosseum",
+            "Hallstatt",
+            "Hungarian Parliament Budapest"
           ]
         }
       ],
@@ -4228,6 +4235,7 @@
             "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
             "collectRouteTextOrderedImageKeywords",
             "routeTextSegmentToImageKeyword",
+            "routeContextualNationalAssemblyEnglish",
             "description·schedule_section·본문 스캔 금지"
           ]
         },
@@ -4391,7 +4399,8 @@
             "SCHEDULE_SPOT_KO_REGEX_RULES",
             "SCHEDULE_CITY_KO_REGEX_RULES",
             "firstMatchingScheduleSpotEn",
-            "Tottori Sand Dunes",
+            "routeContextualNationalAssemblyEnglish",
+            "Fisherman's Bastion Budapest",
             "Matsue Castle",
             "Garuda Wisnu Kencana",
             "Melasti Beach",

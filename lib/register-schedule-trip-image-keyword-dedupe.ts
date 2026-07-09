@@ -167,16 +167,28 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
         }
       }
     } else if (isReturn) {
-      const priorRows = sorted.filter((r) => Number(r.day) > 0 && Number(r.day) < day).reverse()
-      outer: for (const prior of priorRows) {
-        if (isScheduleDomesticHubOnlyRouteText(prior.routeText, isScheduleDomesticHubToken)) continue
-        for (const kw of [...collectTripKeywordCandidates(prior)].reverse()) {
+      const lastTourismRow = [...sorted]
+        .filter((r) => Number(r.day) > 0 && Number(r.day) < day)
+        .reverse()
+        .find((prior) => {
+          const hubOnly =
+            isScheduleDomesticHubOnlyRouteText(prior.routeText, isScheduleDomesticHubToken) ||
+            (!String(prior.routeText ?? '').trim() &&
+              isScheduleDomesticHubOnlyRouteText(
+                effectiveRouteTextForScheduleKeywordRow(prior),
+                isScheduleDomesticHubToken,
+              ))
+          return !hubOnly
+        })
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return — 마지막 관광일 미사용 명소만
+      if (lastTourismRow) {
+        for (const kw of [...collectTripKeywordCandidates(lastTourismRow)].reverse()) {
           if (isDomesticHubOrAirportImageKeyword(kw)) continue
           if (isReturnDayCityLeakKeyword(kw)) continue
           const nk = normScheduleImageKeywordKey(kw)
           if (nk && used.has(nk)) continue
           picked = kw
-          break outer
+          break
         }
       }
     }
