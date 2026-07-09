@@ -485,7 +485,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "서유럽·동유럽·북유럽 menuGroup 상호 배제 + 오스트리아 레거시 동유럽 버킷 금지",
+      "summary": "서유럽·북유럽 menuGroup 타권역 배제 + 동유럽 cross-bucket(오스트리아+체코) 노출 + 오스트리아 레거시 동유럽 버킷 금지",
       "checks": [
         {
           "file": "lib/mega-menu-browse-group.ts",

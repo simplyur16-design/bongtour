@@ -191,7 +191,12 @@ function collectMasterCountryKeysFromTreeTokens(hay: string): string[] {
 
 export async function detectMultiCountryAutoPlan(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
-  opts: { title: string; primaryDestination: string | null; destinationRaw: string | null },
+  opts: {
+    title: string
+    primaryDestination: string | null
+    destinationRaw: string | null
+    scheduleHaystack?: string | null
+  },
   primaryMasterCountryKey: string | null,
 ): Promise<MultiCountryAutoPlan> {
   const title = opts.title.trim()

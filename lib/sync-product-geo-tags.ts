@@ -39,15 +39,31 @@ export async function syncProductGeoTags(
   opts: SyncProductGeoTagsOpts,
 ): Promise<SyncProductGeoTagsResult> {
   const country = await syncProductCountryTags(db, productId, geo, opts)
-  const { tagCount: cityTagCount, cityKeys, cityKey } = await syncProductCityTags(db, productId, geo, opts)
+  const countryTagRows = await db.productCountryTag.findMany({
+    where: { productId },
+    select: { countryKey: true },
+    orderBy: { sortOrder: 'asc' },
+  })
+  const allowedCountryKeys = countryTagRows.map((t) => t.countryKey)
+  const { tagCount: cityTagCount, cityKeys, cityKey } = await syncProductCityTags(db, productId, geo, {
+    ...opts,
+    allowedCountryKeys,
+  })
   const supplementalCountryTagCount = await syncSupplementalCountryTagsFromCityKeys(
     db,
     productId,
     cityKeys,
   )
+  const countryTagKeys =
+    country.plan.kind === 'multi' && country.plan.countryKeys.length >= 2
+      ? country.plan.countryKeys
+      : geo.countryKey?.trim()
+        ? [geo.countryKey.trim()]
+        : []
   const megaMenuSummary = buildRegisterMegaMenuGeoSummary({
     geo,
     cityKeys,
+    countryTagKeys,
     tagOpts: {
       title: opts.title,
       primaryDestination: opts.primaryDestination,

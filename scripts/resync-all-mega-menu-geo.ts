@@ -41,7 +41,7 @@ function bodyTextFromSchedule(schedule: string | null): string | null {
   if (!schedule?.trim()) return null
   const rows = getScheduleFromProduct({ schedule })
   const t = rows
-    .map((d) => [d.title, d.description].filter(Boolean).join(' '))
+    .map((d) => [d.title, d.description, d.routeText].filter(Boolean).join(' '))
     .filter(Boolean)
     .join('\n')
   return t.length ? t : null
@@ -209,6 +209,7 @@ async function main(): Promise<void> {
         title: r.title ?? '',
         primaryDestination: r.primaryDestination,
         destinationRaw: r.destinationRaw,
+        scheduleHaystack: bodyText,
       })
       applied++
     }

@@ -52,7 +52,7 @@ export async function resolveMegaMenuGeoForRegister(
   input: RegisterMegaMenuGeoInput,
 ): Promise<RegisterMegaMenuGeoResult> {
   const { geo, masterRegistrationOk } = await normalizeProductGeoForPrisma(db, input)
-  const tagOpts = registerGeoTagSyncOpts(input)
+  const tagOpts = registerGeoTagSyncOpts(input, input.bodyText)
   const multiPlan = await detectMultiCountryAutoPlan(db, tagOpts, geo.countryKey)
   const needsOperatorReview = !masterRegistrationOk || multiCountryNeedsOperatorReview(multiPlan)
   return { geo, masterRegistrationOk, multiPlan, needsOperatorReview }

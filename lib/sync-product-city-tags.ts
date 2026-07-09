@@ -1,6 +1,6 @@
 /**
  * ProductCityTag SSOT — browse·메가메뉴 도시/열(`menuGroup`) 필터.
- * 다도시 클러스터는 구성 도시 전부(메가메뉴에 있는 도시만) 태그로 연결한다.
+ * REGRESSION-FREEZE[supplier-register-mega-menu-geo]: allowedCountryKeys — countryTag 밖 cityTag 금지 — manifest
  */
 import type { Prisma } from '@prisma/client'
 import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
@@ -20,6 +20,8 @@ export type SyncProductCityTagsOpts = {
   destinationRaw?: string | null
   /** 일정 title·description·routeText — 메가메뉴 도시 토큰 매칭용 */
   scheduleHaystack?: string | null
+  /** ProductCountryTag·다국가 plan — cityTag는 이 countryKey 집합에 속한 도시만 */
+  allowedCountryKeys?: readonly string[]
 }
 
 function clusterNodeKeyFromGeo(geo: ProductLocationKeyPrismaFields): string | null {
@@ -68,6 +70,22 @@ async function filterCityKeysInMaster(
   return ordered
 }
 
+/** haystack 오매칭 차단 — 허용 countryKey 밖 도시 cityTag 금지 */
+async function filterCityKeysToAllowedCountries(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  allowedCountryKeys: readonly string[],
+  keys: readonly string[],
+): Promise<string[]> {
+  const allowed = new Set(allowedCountryKeys.map((k) => k.trim()).filter(Boolean))
+  if (allowed.size === 0 || keys.length === 0) return [...keys]
+  const rows = await db.city.findMany({
+    where: { cityKey: { in: [...keys] } },
+    select: { cityKey: true, countryKey: true },
+  })
+  const ok = new Set(rows.filter((r) => allowed.has(r.countryKey)).map((r) => r.cityKey))
+  return keys.filter((k) => ok.has(k))
+}
+
 /**
  * 클러스터 펼침 + 단일 도시 + 제목·목적지 토큰(메가메뉴 도시만).
  */
@@ -96,6 +114,16 @@ export async function resolveProductCityKeysForTags(
   }
 
   let filtered = await filterCityKeysInMaster(db, candidates)
+
+  const allowedCountryKeys =
+    opts?.allowedCountryKeys?.length
+      ? opts.allowedCountryKeys
+      : geo.countryKey?.trim()
+        ? [geo.countryKey.trim()]
+        : []
+  if (allowedCountryKeys.length > 0) {
+    filtered = await filterCityKeysToAllowedCountries(db, allowedCountryKeys, filtered)
+  }
 
   if (opts) {
     const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw, opts.scheduleHaystack]

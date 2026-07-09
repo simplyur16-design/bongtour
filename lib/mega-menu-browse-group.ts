@@ -117,31 +117,22 @@ export const EUROPE_WESTERN_MENU_GROUP_SLUG = 'western-europe'
 export const EUROPE_EASTERN_MENU_GROUP_SLUG = 'eastern-europe'
 export const EUROPE_NORTHERN_MENU_GROUP_SLUG = 'northern-europe'
 
-const EUROPE_MENU_GROUP_TRIPLE_SLUGS = [
-  EUROPE_WESTERN_MENU_GROUP_SLUG,
-  EUROPE_EASTERN_MENU_GROUP_SLUG,
-  EUROPE_NORTHERN_MENU_GROUP_SLUG,
-] as const
+function europeMenuGroupCountryKeysForSlug(regionId: string, slug: string): string[] {
+  return resolveMegaMenuGroupCountryKeySlugs(regionId, slug)
+}
 
-function europeMenuGroupCountryKeysExcluding(
-  regionId: string,
-  includeSlug: string,
-): { include: string[]; exclude: string[] } {
-  const includeNorm = normalizeMegaMenuGroupSlug(includeSlug)
-  const excludeSlugs = EUROPE_MENU_GROUP_TRIPLE_SLUGS.filter((s) => s !== includeNorm)
+function europeMenuGroupExcludeCountryKeys(regionId: string, ...excludeSlugs: string[]): string[] {
   const exclude = new Set<string>()
   for (const slug of excludeSlugs) {
     for (const k of resolveMegaMenuGroupCountryKeySlugs(regionId, slug)) exclude.add(k)
   }
-  return {
-    include: resolveMegaMenuGroupCountryKeySlugs(regionId, includeNorm),
-    exclude: [...exclude],
-  }
+  return [...exclude]
 }
 
 /**
- * 유럽 서유럽·동유럽·북유럽 중분류 상호 배제 browse 필터.
- * 서유럽: 서유럽 countryTag 있으나 동유럽 countryTag가 있으면 제외(오스트리아+체코 3국 패키지 등).
+ * 유럽 서유럽·동유럽·북유럽 중분류 browse 필터.
+ * 동유럽: 체코·헝가리 등 eastern countryTag만 있으면 노출(오스트리아 동반 3국 패키지 포함).
+ * 서유럽·북유럽: 해당 권역 태그는 있되 타 권역 태그가 섞이면 제외.
  */
 export function resolveMegaMenuEuropeMenuGroupExclusiveFilter(
   regionId: string,
@@ -149,14 +140,31 @@ export function resolveMegaMenuEuropeMenuGroupExclusiveFilter(
 ): { include: string[]; exclude: string[] } | null {
   if (regionId !== 'europe-me') return null
   const mg = normalizeMegaMenuGroupSlug(menuGroupSlug)
-  if (mg === EUROPE_WESTERN_MENU_GROUP_SLUG) {
-    return europeMenuGroupCountryKeysExcluding(regionId, EUROPE_WESTERN_MENU_GROUP_SLUG)
-  }
   if (mg === EUROPE_EASTERN_MENU_GROUP_SLUG) {
-    return europeMenuGroupCountryKeysExcluding(regionId, EUROPE_EASTERN_MENU_GROUP_SLUG)
+    return {
+      include: europeMenuGroupCountryKeysForSlug(regionId, EUROPE_EASTERN_MENU_GROUP_SLUG),
+      exclude: [],
+    }
+  }
+  if (mg === EUROPE_WESTERN_MENU_GROUP_SLUG) {
+    return {
+      include: europeMenuGroupCountryKeysForSlug(regionId, EUROPE_WESTERN_MENU_GROUP_SLUG),
+      exclude: europeMenuGroupExcludeCountryKeys(
+        regionId,
+        EUROPE_EASTERN_MENU_GROUP_SLUG,
+        EUROPE_NORTHERN_MENU_GROUP_SLUG,
+      ),
+    }
   }
   if (mg === EUROPE_NORTHERN_MENU_GROUP_SLUG) {
-    return europeMenuGroupCountryKeysExcluding(regionId, EUROPE_NORTHERN_MENU_GROUP_SLUG)
+    return {
+      include: europeMenuGroupCountryKeysForSlug(regionId, EUROPE_NORTHERN_MENU_GROUP_SLUG),
+      exclude: europeMenuGroupExcludeCountryKeys(
+        regionId,
+        EUROPE_EASTERN_MENU_GROUP_SLUG,
+        EUROPE_WESTERN_MENU_GROUP_SLUG,
+      ),
+    }
   }
   return null
 }

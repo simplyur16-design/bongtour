@@ -15,6 +15,17 @@ describe('geo-haystack-match', () => {
     expect(hay.startsWith('괌')).toBe(true)
   })
 
+  it('includes scheduleHaystack for multi-country detection', () => {
+    const hay = buildMultiCountryDetectionHaystack({
+      title: '4국 북유럽',
+      primaryDestination: null,
+      destinationRaw: null,
+      scheduleHaystack: '오슬로 - 스톡홀름 - 코펜하겐',
+    })
+    expect(hay).toContain('오슬로')
+    expect(hay).toContain('스톡홀름')
+  })
+
   it('matches single-char 괌 with word boundary', () => {
     expect(termAppearsInHaystack('괌', '괌 닛코 호텔')).toBe(true)
     expect(termAppearsInHaystack('괌', '닛코괌호텔')).toBe(false)

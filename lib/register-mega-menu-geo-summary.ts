@@ -42,6 +42,7 @@ export function megaMenuSummaryNeedsOperatorReview(summary: RegisterMegaMenuGeoS
 export function buildRegisterMegaMenuGeoSummary(input: {
   geo: ProductLocationKeyPrismaFields
   cityKeys: readonly string[]
+  countryTagKeys?: readonly string[]
   tagOpts: {
     title: string
     primaryDestination: string | null
@@ -58,6 +59,10 @@ export function buildRegisterMegaMenuGeoSummary(input: {
     .filter(Boolean)
     .join(' ')
 
+  const countryTagKeys = input.countryTagKeys?.length
+    ? [...new Set(input.countryTagKeys.map((k) => k.trim()).filter(Boolean))]
+    : []
+
   const matchInput: OverseasProductMatchInput = {
     title: input.tagOpts.title,
     originSource: '',
@@ -67,6 +72,9 @@ export function buildRegisterMegaMenuGeoSummary(input: {
     cityKey: input.geo.cityKey ?? null,
     nodeKey: input.geo.nodeKey ?? null,
     cityTags: input.cityKeys.map((cityKey) => ({ cityKey })),
+    ...(countryTagKeys.length > 0
+      ? { countryTags: countryTagKeys.map((ck) => ({ countryKey: ck, nodeKey: null })) }
+      : {}),
   }
 
   const match = matchProductToOverseasNode(matchInput)
@@ -82,13 +90,15 @@ export function buildRegisterMegaMenuGeoSummary(input: {
 
   if (cityPlacement) {
     browseRegionTab = cityPlacement.regionId
-    const tab = MEGA_MENU_TAB_DEFINITIONS.find((t) => t.id === cityPlacement.regionId)
-    const group = tab?.groups.find(
-      (g) => countrySlugFromLabel(g.countryLabel) === cityPlacement.menuGroupSlug,
-    )
-    subgroupLabel = group
-      ? megaMenuGroupToDisplayLabel(cityPlacement.regionId, group.countryLabel)
-      : null
+    if (cityPlacement.regionId !== 'europe-me') {
+      const tab = MEGA_MENU_TAB_DEFINITIONS.find((t) => t.id === cityPlacement.regionId)
+      const group = tab?.groups.find(
+        (g) => countrySlugFromLabel(g.countryLabel) === cityPlacement.menuGroupSlug,
+      )
+      subgroupLabel = group
+        ? megaMenuGroupToDisplayLabel(cityPlacement.regionId, group.countryLabel)
+        : null
+    }
   }
 
   if (!browseRegionTab && match) {
@@ -97,18 +107,21 @@ export function buildRegisterMegaMenuGeoSummary(input: {
   if (!browseRegionTab) warnings.push('해외 목적지 트리 매칭 실패 — 권역 탭 분류 불명')
 
   const countryRowLabel = resolveOverseasCountryRowLabelForBrowse(matchInput, match)
-  if (
-    browseRegionTab &&
-    isMegaMenuRegionCityGroupTabId(browseRegionTab) &&
-    !subgroupLabel
-  ) {
-    subgroupLabel = resolveOverseasMegaMenuSubgroupLabelForBrowse(
-      matchInput,
-      match,
-      browseRegionTab,
-      countryRowLabel,
-    )
-    if (!subgroupLabel) warnings.push(`메가메뉴 중분류(열) 미매칭 — region=${browseRegionTab}`)
+  if (browseRegionTab && isMegaMenuRegionCityGroupTabId(browseRegionTab)) {
+    const needsBrowseSubgroup =
+      browseRegionTab === 'europe-me' || !subgroupLabel
+    if (needsBrowseSubgroup) {
+      subgroupLabel =
+        resolveOverseasMegaMenuSubgroupLabelForBrowse(
+          matchInput,
+          match,
+          browseRegionTab,
+          countryRowLabel,
+        ) ?? subgroupLabel
+      if (!subgroupLabel) {
+        warnings.push(`메가메뉴 중분류(열) 미매칭 — region=${browseRegionTab}`)
+      }
+    }
   }
 
   if (input.cityKeys.length === 0) {

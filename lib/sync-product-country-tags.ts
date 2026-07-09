@@ -16,6 +16,7 @@ export type SyncProductCountryTagsOpts = {
   title: string
   primaryDestination: string | null
   destinationRaw: string | null
+  scheduleHaystack?: string | null
 }
 
 function buildMultiCountryTagRows(

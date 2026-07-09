@@ -13,11 +13,13 @@ export function buildMultiCountryDetectionHaystack(opts: {
   title: string
   primaryDestination: string | null
   destinationRaw: string | null
+  scheduleHaystack?: string | null
 }): string {
   const title = opts.title.trim()
   const pd = (opts.primaryDestination ?? '').trim()
   const dr = (opts.destinationRaw ?? '').trim()
-  return [pd, dr, title].filter(Boolean).join('\n')
+  const sched = (opts.scheduleHaystack ?? '').trim()
+  return [pd, dr, sched, title].filter(Boolean).join('\n')
 }
 
 /** 한글·라틴 토큰이 haystack에 독립적으로 등장하는지 (부분 문자열 오매칭 완화) */

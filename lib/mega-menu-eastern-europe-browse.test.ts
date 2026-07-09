@@ -73,6 +73,15 @@ describe('mega menu — 동유럽 browse countryKey', () => {
     expect(filter!.include).not.toContain('poland')
   })
 
+  it('동유럽 menuGroup includes eastern keys without excluding western (오스트리아+체코 3국)', () => {
+    const filter = resolveMegaMenuEuropeMenuGroupExclusiveFilter('europe-me', '동유럽')
+    expect(filter).not.toBeNull()
+    expect(filter!.include).toContain('czech')
+    expect(filter!.include).toContain('hungary')
+    expect(filter!.exclude).not.toContain('austria')
+    expect(filter!.exclude.length).toBe(0)
+  })
+
   it('북유럽 menuGroup excludes 서유럽·동유럽 countryKeys', () => {
     const filter = resolveMegaMenuEuropeMenuGroupExclusiveFilter('europe-me', '북유럽')
     expect(filter).not.toBeNull()
