@@ -7,7 +7,7 @@ import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
-import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
+import { expandRegisterScheduleRoutePlaceCandidates, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -64,26 +64,34 @@ export function dedupeYbtourScheduleRoutePlaces(places: readonly string[]): stri
   const out: string[] = []
   const keys: string[] = []
   for (const raw of places) {
-    const label = cleanYbtourRoutePlaceLabel(String(raw ?? ''))
-    if (!label || isYbtourRoutePlaceNoise(label)) continue
-    const key = normalizeYbtourRoutePlaceKey(label)
-    if (!key) continue
-    const dupIdx = keys.findIndex(
-      (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
-    )
-    if (dupIdx >= 0) {
-      if (label.length > out[dupIdx]!.length) out[dupIdx] = label
-      continue
+    const candidates = new Set<string>()
+    const fromTitle = extractPlaceFromYbtourTmTitle(String(raw ?? ''))
+    if (fromTitle) candidates.add(fromTitle)
+    for (const c of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) candidates.add(c)
+    for (const candidate of candidates) {
+      const label = cleanYbtourRoutePlaceLabel(candidate)
+      if (!label || isYbtourRoutePlaceNoise(label)) continue
+      const key = normalizeYbtourRoutePlaceKey(label)
+      if (!key) continue
+      const dupIdx = keys.findIndex(
+        (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
+      )
+      if (dupIdx >= 0) {
+        if (label.length > out[dupIdx]!.length) out[dupIdx] = label
+        continue
+      }
+      keys.push(key)
+      out.push(label)
     }
-    keys.push(key)
-    out.push(label)
   }
   return out
 }
 
 export function joinYbtourScheduleRouteText(places: readonly string[], max = YBTOUR_SCHEDULE_ROUTE_MAX): string | null {
-  const chain = dedupeYbtourScheduleRoutePlaces(places).slice(0, max)
-  return chain.length > 0 ? chain.join(' - ') : null
+  return sanitizeRegisterScheduleRouteText(
+    dedupeYbtourScheduleRoutePlaces(places).slice(0, max).join(' - '),
+    max,
+  )
 }
 
 function isYbtourTmTitleMealOrNoise(title: string): boolean {

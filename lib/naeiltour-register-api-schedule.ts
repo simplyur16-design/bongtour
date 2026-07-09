@@ -6,7 +6,7 @@
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-naeiltour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
-import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
+import { expandRegisterScheduleRoutePlaceCandidates, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const NAEILTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -56,26 +56,34 @@ export function dedupeNaeiltourScheduleRoutePlaces(places: readonly string[]): s
   const out: string[] = []
   const keys: string[] = []
   for (const raw of places) {
-    const label = cleanNaeiltourRoutePlaceLabel(String(raw ?? ''))
-    if (!label || isNaeiltourRoutePlaceNoise(label)) continue
-    const key = normalizeNaeiltourRoutePlaceKey(label)
-    if (!key) continue
-    const dupIdx = keys.findIndex(
-      (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
-    )
-    if (dupIdx >= 0) {
-      if (label.length > out[dupIdx]!.length) out[dupIdx] = label
-      continue
+    const candidates = new Set<string>()
+    const fromTitle = extractPlaceFromNaeiltourTmTitle(String(raw ?? ''))
+    if (fromTitle) candidates.add(fromTitle)
+    for (const c of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) candidates.add(c)
+    for (const candidate of candidates) {
+      const label = cleanNaeiltourRoutePlaceLabel(candidate)
+      if (!label || isNaeiltourRoutePlaceNoise(label)) continue
+      const key = normalizeNaeiltourRoutePlaceKey(label)
+      if (!key) continue
+      const dupIdx = keys.findIndex(
+        (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
+      )
+      if (dupIdx >= 0) {
+        if (label.length > out[dupIdx]!.length) out[dupIdx] = label
+        continue
+      }
+      keys.push(key)
+      out.push(label)
     }
-    keys.push(key)
-    out.push(label)
   }
   return out
 }
 
 export function joinNaeiltourScheduleRouteText(places: readonly string[], max = NAEILTOUR_SCHEDULE_ROUTE_MAX): string | null {
-  const chain = dedupeNaeiltourScheduleRoutePlaces(places).slice(0, max)
-  return chain.length > 0 ? chain.join(' - ') : null
+  return sanitizeRegisterScheduleRouteText(
+    dedupeNaeiltourScheduleRoutePlaces(places).slice(0, max).join(' - '),
+    max,
+  )
 }
 
 function extractPlaceFromNaeiltourTmTitle(title: string): string | null {

@@ -716,6 +716,43 @@ const EUROPE_ME_SPAIN_PORTUGAL_TEXT = [
   'lisbon',
 ]
 
+/** 북유럽 countryTag·도시 키 — 서유럽·동유럽 신호 없을 때 북유럽 섹션 */
+const EUROPE_ME_NORTHERN_COUNTRY_KEYS = new Set([
+  'denmark',
+  'norway',
+  'sweden',
+  'finland',
+  'iceland',
+])
+
+const EUROPE_ME_NORTHERN_TEXT = [
+  '북유럽',
+  '덴마크',
+  'denmark',
+  '코펜하겐',
+  'copenhagen',
+  '노르웨이',
+  'norway',
+  '오슬로',
+  'oslo',
+  '스웨덴',
+  'sweden',
+  '스톡홀름',
+  'stockholm',
+  '핀란드',
+  'finland',
+  '헬싱키',
+  'helsinki',
+  '아이슬란드',
+  'iceland',
+  '레이캬비크',
+  'reykjavik',
+  '피오르',
+  'fjord',
+  '스칸디나비아',
+  'scandinavia',
+]
+
 const EUROPE_ME_WESTERN_TEXT = [
   '서유럽',
   '이탈리아',
@@ -896,6 +933,37 @@ function resolveEuropeMeSpainPortugalHint(
   return null
 }
 
+function productHasEuropeNorthernCountrySignal(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): boolean {
+  const tagKeys = (product.countryTags ?? [])
+    .map((t) => (t.countryKey ?? '').trim().toLowerCase())
+    .filter(Boolean)
+  if (tagKeys.some((k) => EUROPE_ME_NORTHERN_COUNTRY_KEYS.has(k))) return true
+
+  const keys = [
+    ...cityKeys.map((k) => k.trim().toLowerCase()),
+    (match?.countryKey ?? '').trim().toLowerCase(),
+    (match?.leafKey ?? '').trim().toLowerCase(),
+  ].filter(Boolean)
+  if (keys.some((k) => EUROPE_ME_NORTHERN_COUNTRY_KEYS.has(k))) return true
+
+  return EUROPE_ME_NORTHERN_TEXT.some((t) => termAppearsInHaystack(t, haystack))
+}
+
+function resolveEuropeMeNorthernHint(
+  product: OverseasProductMatchInput,
+  haystack: string,
+  cityKeys: readonly string[],
+  match: MatchProductToOverseasNodeResult | null,
+): '북유럽' | null {
+  if (productHasEuropeNorthernCountrySignal(product, haystack, cityKeys, match)) return '북유럽'
+  return null
+}
+
 function resolveEuropeMeWesternHint(
   product: OverseasProductMatchInput,
   haystack: string,
@@ -1065,6 +1133,8 @@ export function resolveOverseasMegaMenuSubgroupLabelForBrowse(
     if (easternHint) return easternHint
     const spainPortugalHint = resolveEuropeMeSpainPortugalHint(product, haystack, cityKeys, match)
     if (spainPortugalHint) return spainPortugalHint
+    const northernHint = resolveEuropeMeNorthernHint(product, haystack, cityKeys, match)
+    if (northernHint) return northernHint
     const westernHint = resolveEuropeMeWesternHint(product, haystack, cityKeys, match)
     if (westernHint) return westernHint
     const africaHint = resolveEuropeMeAfricaHint(haystack, labelCandidates)

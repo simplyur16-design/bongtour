@@ -2,7 +2,11 @@
  * REGRESSION-FREEZE[register-schedule-route-place-noise]
  */
 import { describe, expect, it } from 'vitest'
-import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
+import {
+  extractRegisterScheduleRoutePlaceLabel,
+  isRegisterScheduleRoutePlaceNoise,
+  sanitizeRegisterScheduleRouteText,
+} from '@/lib/register-schedule-route-place-noise'
 import { joinLottetourScheduleRouteText } from '@/lib/lottetour-register-api-schedule'
 import { buildKyowontourScheduleRouteTextFromTabRows } from '@/lib/kyowontour-register-api-schedule'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
@@ -54,12 +58,27 @@ describe('register schedule route place noise', () => {
     expect(buildKyowontourScheduleRouteTextFromTabRows(rows)).toBe('인천 - 돗토리 - 미즈키시게루 로드')
   })
 
+  it('extractRegisterScheduleRoutePlaceLabel — 포르투갈 마케팅 카드명', () => {
+    expect(extractRegisterScheduleRoutePlaceLabel('땅이 끝나고 바다가 시작되는 곳, 까보다로까')).toBe('까보다로까')
+    expect(extractRegisterScheduleRoutePlaceLabel('유럽인들이 살고싶어 하는 최고의 포르투갈 휴양지, 카스카이스')).toBe(
+      '카스카이스',
+    )
+    expect(extractRegisterScheduleRoutePlaceLabel('작은 동화속 마을 신트라 관광')).toBe('신트라')
+    expect(extractRegisterScheduleRoutePlaceLabel('lisbon-7681991')).toBe('lisbon')
+    expect(extractRegisterScheduleRoutePlaceLabel('포르투 이미지')).toBeNull()
+  })
+
   it('sanitizeRegisterScheduleRouteText strips admin guidance from existing routeText', () => {
     expect(
       sanitizeRegisterScheduleRouteText(
         '인천 - 돗토리 - 한국-일본 여행 입국시 관련 안내 - 미즈키시게루 로드',
       ),
     ).toBe('인천 - 돗토리 - 미즈키시게루 로드')
+  })
+
+  it('sanitizeRegisterScheduleRouteText preserves comma inside route segment (대,소석림)', () => {
+    expect(sanitizeRegisterScheduleRouteText('여강고성 - 대,소석림')).toBe('여강고성 - 대,소석림')
+    expect(joinLottetourScheduleRouteText(['여강고성', '대,소석림'])).toBe('여강고성 - 대,소석림')
   })
 
   it('modetour apply — trip imageKeyword must not repeat across days (돗토리 3일)', () => {

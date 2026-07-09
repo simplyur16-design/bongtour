@@ -485,13 +485,15 @@
         "prebuild",
         "ci"
       ],
-      "summary": "서유럽·동유럽 menuGroup 상호 배제 + 오스트리아 레거시 동유럽 버킷 금지",
+      "summary": "서유럽·동유럽·북유럽 menuGroup 상호 배제 + 오스트리아 레거시 동유럽 버킷 금지",
       "checks": [
         {
           "file": "lib/mega-menu-browse-group.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[europe-western-eastern-exclusive]",
-            "resolveMegaMenuEuropeMenuGroupExclusiveFilter"
+            "resolveMegaMenuEuropeMenuGroupExclusiveFilter",
+            "EUROPE_NORTHERN_MENU_GROUP_SLUG",
+            "normalizeMegaMenuGroupSlug"
           ]
         },
         {
@@ -506,6 +508,7 @@
           "mustInclude": [
             "austria: ['오스트리아']",
             "czech: ['체코']",
+            "denmark: ['북유럽']",
             "KOREAN_REGION_BUCKET_LABELS"
           ]
         }
@@ -3979,7 +3982,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-place-noise]",
             "isRegisterScheduleRoutePlaceNoise",
-            "isRegisterScheduleAirlineRouteSegment"
+            "isRegisterScheduleAirlineRouteSegment",
+            "extractRegisterScheduleRoutePlaceLabel",
+            "expandRegisterScheduleRoutePlaceCandidates"
           ]
         },
         {
@@ -4046,6 +4051,41 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-route-place-noise.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-route-expression-normalize",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "신규 등록 — routeText a–g·요약 placeholder 오염 차단 (전 공급사 preview/apply 공통)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-text-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-expression-normalize]",
+            "normalizeRegisterScheduleRouteExpressionRows",
+            "isRegisterScheduleGenericTourismFillerDescription"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "prepareRegisterScheduleRowsForImageKeywordApply"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "expandRegisterScheduleRoutePlaceCandidates",
+            "hasCmsPlaces"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-text-backfill.test.ts",
+        "lib/hanatour-register-detail-collect.test.ts"
       ]
     },
     {
@@ -4648,6 +4688,8 @@
             "extractHanatourOptionalToursFromChcStsng",
             "selectHanatourScheduleHighlights",
             "composeHanatourScheduleVibeDescription",
+            "expandRegisterScheduleRoutePlaceCandidates",
+            "sanitizeRegisterScheduleRouteText",
             "applyHanatourProdInfoHotelsToFactDays",
             "isHanatourItnrNonRouteCard"
           ]

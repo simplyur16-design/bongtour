@@ -10,8 +10,7 @@ const PORTUGAL_NINE_DAY = [
   { day: 1, routeText: '인천', imageKeyword: '', imageKeyword2: null },
   {
     day: 2,
-    routeText:
-      '까보다로까 - 까보다로까 로카곶 - 카스카이스 - 카스카이스해변 - 신트라 관광 - 헤갈레이라 별장 - 파티마',
+    routeText: '까보다로까 - 로카곶 - 카스카이스 - 카스카이스해변 - 신트라 - 헤갈레이라 별장 - 파티마',
     imageKeyword: '',
     imageKeyword2: null,
   },
@@ -41,7 +40,7 @@ const PORTUGAL_NINE_DAY = [
   },
   {
     day: 7,
-    routeText: "사그레스 - 사그레스와 상비센테 곶",
+    routeText: '사그레스 - 상비센테 곶',
     imageKeyword: '',
     imageKeyword2: null,
   },

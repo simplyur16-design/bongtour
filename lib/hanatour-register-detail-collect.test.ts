@@ -73,16 +73,17 @@ describe('hanatour register detail collect', () => {
     ])
     expect(facts).toHaveLength(1)
     expect(facts[0]?.places).toEqual(
-      expect.arrayContaining(['홍콩의 전망을 한눈에!', '빅토리아 피크', '피크트램']),
+      expect.arrayContaining(['빅토리아 피크', '피크트램']),
     )
     expect(facts[0]?.transportNote).toBe('인천 - 홍콩')
     expect(facts[0]?.meals[0]).toMatch(/조식/)
     const sched = hanatourFactDaysToRegisterSchedule(facts)
     expect(sched[0]?.breakfastText).toMatch(/기내/)
     expect(sched[0]?.routeText).toContain('빅토리아')
+    expect(sched[0]?.routeText).not.toMatch(/전망을 한눈에/)
     expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
-    expect(sched[0]?.description).not.toContain('\n')
-    expect((sched[0]?.description?.match(/[.!?…]/g) ?? []).length).toBeGreaterThanOrEqual(1)
+    expect(sched[0]?.description).toBe(sched[0]?.routeText)
+    expect(sched[0]?.description).not.toMatch(/하루\s*동안\s*여러\s*장면/)
   })
 
   it('CHP101-style — highlights ≤7, prose description, prodInfo hotel fallback', () => {
@@ -124,18 +125,53 @@ describe('hanatour register detail collect', () => {
     const sched = hanatourFactDaysToRegisterSchedule(facts)
     expect(selectHanatourScheduleHighlights(facts[0]!.places).length).toBeLessThanOrEqual(7)
     expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
-    expect(sched[0]?.description).not.toMatch(/\n/)
-    expect(sched[0]?.description).not.toBe(sched[0]?.title)
-    expect(sched[0]?.description).not.toMatch(/추가로 .* 등도 포함됩니다/)
-    expect(sched[0]?.description).toContain('세련된 번화가')
-    expect(sched[0]?.description).toContain('걷는 즐거움이')
-    expect(sched[0]?.description).not.toMatch(/소호|피크|완차이|미드|빅토리아/)
-    expect((sched[0]?.description?.match(/[.!?…]/g) ?? []).length).toBeGreaterThanOrEqual(2)
-    expect((sched[0]?.description?.match(/[.!?…]/g) ?? []).length).toBeLessThanOrEqual(3)
+    expect(sched[0]?.description).toBe(sched[0]?.routeText)
+    expect(sched[0]?.description).not.toMatch(/하루\s*동안\s*여러\s*장면|세련된 번화가/)
+    expect(sched[0]?.description).toMatch(/피크|빅토리아/)
     expect(sched[0]?.hotelText).toMatch(/4성호텔/)
-    expect(sched[1]?.description).toMatch(/마무리|귀국|여운/)
-    expect(sched[1]?.description).not.toMatch(/럭키|웡타이/)
+    expect(sched[1]?.description).toMatch(/웡타이신/)
+    expect(sched[1]?.description).not.toMatch(/하루\s*동안\s*여러\s*장면/)
     expect(sched[1]?.hotelText).toMatch(/숙박 없음/)
+  })
+
+  it('포르투갈 ITNR — 마케팅 카드명 제거 후 routeText a–g만', () => {
+    const facts = hanatourItnrSchdToFactDays([
+      {
+        schdDay: 2,
+        schdMainInfoList: [
+          {
+            schdCatgNm: '관광지',
+            cardNm: '땅이 끝나고 바다가 시작되는 곳, 까보다로까',
+            cmsInfoList: [
+              { cmsCntntNm: '까보다로까 로카곶' },
+              { cmsCntntNm: '유럽인들이 살고싶어 하는 최고의 포르투갈 휴양지, 카스카이스' },
+              { cmsCntntNm: '카스카이스해변' },
+              { cmsCntntNm: '작은 동화속 마을 신트라 관광' },
+            ],
+          },
+        ],
+      },
+      {
+        schdDay: 8,
+        schdMainInfoList: [
+          {
+            schdCatgNm: '관광지',
+            cmsInfoList: [
+              { cmsCntntNm: '대항해 시대의 중심 도시, 리스본' },
+              { cmsCntntNm: '제로니모스 수도원' },
+              { cmsCntntNm: 'lisbon-7681991' },
+            ],
+          },
+        ],
+      },
+    ])
+    const sched = hanatourFactDaysToRegisterSchedule(facts)
+    expect(sched[0]?.routeText).toBe('까보다로까 - 로카곶 - 카스카이스 - 카스카이스해변 - 신트라')
+    expect(sched[0]?.routeText).not.toMatch(/땅이 끝나고|살고싶어|동화속 마을/)
+    expect(sched[0]?.description).toBe(sched[0]?.routeText)
+    expect(sched[1]?.routeText).toMatch(/리스본/)
+    expect(sched[1]?.routeText).toMatch(/제로니모스/)
+    expect(sched[1]?.routeText).not.toMatch(/7681991|대항해 시대/)
   })
 
   it('needs included/excluded when both missing', () => {

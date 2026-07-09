@@ -1,7 +1,7 @@
 /**
  * Browse URL → Prisma where (ProductCountryTag / ProductCityTag 단일 SSOT).
  * `Product.continent`·한글 `Product.country` 레거시 필드는 browse where에 쓰지 않는다.
- * REGRESSION-FREEZE[europe-western-eastern-exclusive]: 서유럽·동유럽 menuGroup 상호 배제 — manifest
+ * REGRESSION-FREEZE[europe-western-eastern-exclusive]: 서유럽·동유럽·북유럽 menuGroup 상호 배제 — manifest
  */
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'

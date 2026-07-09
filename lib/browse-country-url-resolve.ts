@@ -761,7 +761,7 @@ const BROWSE_COUNTRY_SLUG_TO_DB_COUNTRIES: Record<string, string[]> = {
   morocco: ['모로코'],
   norway: ['북유럽'],
   finland: ['북유럽'],
-  denmark: ['덴마크'],
+  denmark: ['북유럽'],
   sweden: ['북유럽'],
   iceland: ['북유럽'],
   netherlands: ['네덜란드'],

@@ -12,7 +12,11 @@ import {
 } from '@/lib/hanatour-api-departures'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
-import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import {
+  expandRegisterScheduleRoutePlaceCandidates,
+  isRegisterScheduleRoutePlaceNoise,
+  sanitizeRegisterScheduleRouteText,
+} from '@/lib/register-schedule-route-place-noise'
 import type { OptionalTourRowFields } from '@/lib/optional-tour-row-gate-hanatour'
 import type { ShoppingStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
@@ -180,6 +184,7 @@ function isHanatourHighlightNoise(label: string): boolean {
   if (HANATOUR_HIGHLIGHT_NOISE_RE.test(t)) return true
   if (/^HELLO[\s,]/i.test(t)) return true
   if (/^Hong Kong$/i.test(t)) return true
+  if (/전망을\s*한눈에|한눈에!$/u.test(t)) return true
   return false
 }
 
@@ -199,24 +204,37 @@ function scoreHanatourHighlight(label: string): number {
   return 4
 }
 
-/** itnr places — 중복·에셋명 제거 후 순서 유지. routeText·하이라이트 SSOT. */
+function hanatourPlaceDedupeIndex(keys: string[], key: string): number {
+  return keys.findIndex((k) => {
+    if (k === key) return true
+    if (k.length < 4 || key.length < 4) return false
+    const longer = k.length >= key.length ? k : key
+    const shorter = k.length < key.length ? k : key
+    if (!longer.startsWith(shorter)) return false
+    const tail = longer.slice(shorter.length)
+    if (/^(?:해변|곶|역|공항|시내|성|사원|종탑|대성당|수도원)/u.test(tail)) return false
+    return Math.abs(k.length - key.length) <= 2
+  })
+}
+
+/** itnr places — 중복·에셋명·마케팅 카드명 제거 후 순서 유지. routeText·하이라이트 SSOT. */
 export function dedupeHanatourFactDayPlaces(places: string[]): string[] {
   const out: string[] = []
   const keys: string[] = []
   for (const raw of places) {
-    const label = cleanHanatourHighlightLabel(String(raw ?? ''))
-    if (!label || isHanatourHighlightNoise(label)) continue
-    const key = normalizeHanatourHighlightKey(label)
-    if (!key) continue
-    const dupIdx = keys.findIndex(
-      (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
-    )
-    if (dupIdx >= 0) {
-      if (label.length > out[dupIdx]!.length) out[dupIdx] = label
-      continue
+    for (const candidate of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) {
+      const label = cleanHanatourHighlightLabel(candidate)
+      if (!label || isHanatourHighlightNoise(label)) continue
+      const key = normalizeHanatourHighlightKey(label)
+      if (!key) continue
+      const dupIdx = hanatourPlaceDedupeIndex(keys, key)
+      if (dupIdx >= 0) {
+        if (label.length > out[dupIdx]!.length) out[dupIdx] = label
+        continue
+      }
+      keys.push(key)
+      out.push(label)
     }
-    keys.push(key)
-    out.push(label)
   }
   return out
 }
@@ -402,18 +420,24 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
     const places = dedupeHanatourFactDayPlaces(d.places)
     const highlights = selectHanatourScheduleHighlights(places)
     const firstTransport = (d.transportNote ?? '').split(';').map((s) => s.trim()).find(Boolean) ?? ''
-    const title =
-      (highlights.length > 0 ? highlights.join(' - ') : '') ||
-      firstTransport ||
-      (d.hotels[0] ?? '').trim() ||
-      `${d.day}일차`
-    const description = composeHanatourScheduleVibeDescription(d, maxDay, highlights) || title
-    const routeText =
+    const routeText = sanitizeRegisterScheduleRouteText(
       places.length > 0
         ? places.join(' - ')
         : firstTransport.includes(' - ')
           ? firstTransport
-          : null
+          : null,
+      HANATOUR_SCHEDULE_HIGHLIGHT_MAX,
+    )
+    const title =
+      routeText ||
+      (highlights.length > 0 ? highlights.join(' - ') : '') ||
+      firstTransport ||
+      (d.hotels[0] ?? '').trim() ||
+      `${d.day}일차`
+    const description =
+      routeText ||
+      composeHanatourScheduleVibeDescription(d, maxDay, highlights) ||
+      title
     const hotelText = d.hotels.length > 0 ? d.hotels.join(' / ') : null
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
@@ -751,10 +775,14 @@ export function hanatourItnrTransportLine(main: HanatourItnrSchdMain): string | 
 
 export function hanatourItnrPlaceLabels(main: HanatourItnrSchdMain): string[] {
   const out: string[] = []
-  pushHanatourItnrUniqueLabel(out, stripHanatourHtmlText(String(main.schdTitlNm ?? main.schdCont ?? '')))
-  pushHanatourItnrUniqueLabel(out, String(main.cardNm ?? ''))
-  for (const cms of main.cmsInfoList ?? []) {
-    pushHanatourItnrUniqueLabel(out, String(cms.cmsCntntNm ?? ''))
+  const cms = main.cmsInfoList ?? []
+  const hasCmsPlaces = cms.some((c) => String(c.cmsCntntNm ?? '').trim().length >= 2)
+  if (!hasCmsPlaces) {
+    pushHanatourItnrUniqueLabel(out, stripHanatourHtmlText(String(main.schdTitlNm ?? main.schdCont ?? '')))
+    pushHanatourItnrUniqueLabel(out, String(main.cardNm ?? ''))
+  }
+  for (const row of cms) {
+    pushHanatourItnrUniqueLabel(out, String(row.cmsCntntNm ?? ''))
   }
   const html = String(main.cardCntntPc ?? main.cardCntntMbl ?? '')
   for (const m of html.matchAll(/alt="([^"]{2,48})"/gi)) {

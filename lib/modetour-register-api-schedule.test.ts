@@ -42,9 +42,10 @@ describe('modetour register api schedule', () => {
     expect(days[0]?.hotelText).toBe('기내박')
     expect(days[1]?.title).toMatch(/스피드\s*보트|몰디브/)
     expect(days[1]?.description).not.toMatch(/▶|홈페이지/)
+    expect(days[1]?.description).toBe(days[1]?.routeText)
     expect(days[1]?.hotelText).toMatch(/조이아|출발 전 확정/)
-    expect(days[2]?.description.length).toBeGreaterThan(20)
-    expect(days[2]?.description).not.toMatch(/몰디브\s*$/m)
+    expect(days[2]?.description).toBe('몰디브')
+    expect(days[2]?.routeText).toBe('몰디브')
   })
 
   it('하이라이트 — 최대 7개·준비 안내 제외', () => {
@@ -107,7 +108,7 @@ describe('modetour register api schedule', () => {
     expect(days[0]?.routeText).toBe('인천 - 상해')
     expect(days[0]?.title).toBe('인천 - 상해')
     expect(days[0]?.title).not.toMatch(/입국신고|미팅|개별\s*일정/)
-    expect(days[0]?.description).toMatch(/입국·이동/)
+    expect(days[0]?.description).toBe('인천 - 상해')
     expect(days[0]?.description).not.toMatch(/입국신고|미팅/)
   })
 })

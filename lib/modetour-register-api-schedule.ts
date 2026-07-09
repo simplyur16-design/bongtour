@@ -7,6 +7,7 @@
 import { classifyModetourScheduleCardDayKind } from '@/lib/modetour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import {
+  expandRegisterScheduleRoutePlaceCandidates,
   filterRegisterScheduleRoutePlaceSegments,
   isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
@@ -66,15 +67,18 @@ function extractModetourEntryCityFromLabel(label: string): string | null {
   return city
 }
 
-/** fact place 한 줄 — 준비·입국신고·미팅 안내 제거, 입국 도시 괄호는 도시명만. */
+/** fact place 한 줄 — 준비·입국신고·미팅 안내·마케팅 카드명 제거, 입국 도시 괄호는 도시명만. */
 export function normalizeModetourFactPlaceLabel(raw: string): string | null {
-  const label = cleanModetourHighlightLabel(String(raw ?? ''))
-  if (!label) return null
-  if (isRegisterScheduleRoutePlaceNoise(label)) return null
-  const entryCity = extractModetourEntryCityFromLabel(label)
-  if (entryCity) return entryCity
-  if (isModetourHighlightNoise(label)) return null
-  return label
+  for (const candidate of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) {
+    const label = cleanModetourHighlightLabel(candidate)
+    if (!label) continue
+    if (isRegisterScheduleRoutePlaceNoise(label)) continue
+    const entryCity = extractModetourEntryCityFromLabel(label)
+    if (entryCity) return entryCity
+    if (isModetourHighlightNoise(label)) continue
+    return label
+  }
+  return null
 }
 
 /** fact places — 준비·안내·HTML 잡음 제거. routeText·하이라이트 SSOT. */
@@ -272,13 +276,18 @@ export function modetourFactDaysToRegisterSchedule(
       `${d.day}일차`
     const description = opts?.registerAirHotelFree
       ? ''
-      : composeModetourScheduleVibeDescription(d, maxDay, highlights) || title
+      : (sanitizeRegisterScheduleRouteText(places.length > 0 ? places.join(' - ') : null) ||
+          composeModetourScheduleVibeDescription(d, maxDay, highlights) ||
+          title)
     const routeText =
-      places.length > 0
-        ? places.join(' - ')
-        : firstTransport.includes(' - ')
-          ? firstTransport
-          : null
+      sanitizeRegisterScheduleRouteText(
+        places.length > 0
+          ? places.join(' - ')
+          : firstTransport.includes(' - ')
+            ? firstTransport
+            : null,
+        MODETOUR_SCHEDULE_HIGHLIGHT_MAX,
+      )
     const hotelText =
       d.hotels
         .map((h) => normalizeModetourScheduleHotelText(h, opts))

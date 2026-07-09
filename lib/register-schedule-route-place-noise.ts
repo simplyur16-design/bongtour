@@ -13,6 +13,117 @@ const ROUTE_ADMIN_GUIDANCE_RE =
 const ROUTE_AIRLINE_SEGMENT_RE =
   /^에어[\uAC00-\uD7AF]{1,12}(?:\s*항공)?$|^대한\s*항공$|^아시아나(?:\s*항공)?$|^제주\s*항공$|^진\s*에어$|^티\s*웨이(?:\s*항공)?$|^이스타(?:\s*항공)?$|^에어부산$|^에어\s*프(?:레미아|리미아)(?:\s*항공)?$|^air\s*premia(?:\s*air)?$/iu
 
+const ROUTE_PLACE_LABEL_TRIM_SUFFIX_RE =
+  /(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|로\s*이동|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후|시내\s*관광)$/u
+
+const ROUTE_CMS_ASSET_SUFFIX_RE = /-\d{5,}$/i
+
+const ROUTE_MARKETING_EPITHET_RE =
+  /(?:땅이\s*끝나고|살고싶어|최고의|휴양지|휴양도시|동화속\s*마을|발현의\s*도시|기도의\s*도시|낭만을|건국의\s*도시|아름다운|천국의|에메랄드|대항해\s*시대|세상의\s*끝|땅끝마을|의\s*도시)/u
+
+/** ITNR·tmTitle 마케팅 접두/접미 제거 — 전 공급사 routeText a–g SSOT */
+export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
+  return String(raw ?? '')
+    .replace(/^[\s·▪▶●\-–—'"]+/, '')
+    .replace(/[''"]+$/g, '')
+    .replace(ROUTE_CMS_ASSET_SUFFIX_RE, '')
+    .replace(/\s*\(NEW\)\s*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(ROUTE_PLACE_LABEL_TRIM_SUFFIX_RE, '')
+    .trim()
+}
+
+function isRegisterScheduleMarketingOnlyRouteLabel(t: string): boolean {
+  if (!t || t.length > 64) return true
+  if (/^(?:땅이\s*끝나고|유럽인들이|작은\s*동화|모든\s*지역)/u.test(t)) return true
+  if (/이미지$/u.test(t) && !/(?:궁|성|사원|박물관|수도원|종탑|대성당)/u.test(t)) return true
+  if (/입니다[.!]?$|합니다[.!]?$|좋은\s*일정/u.test(t)) return true
+  if (ROUTE_MARKETING_EPITHET_RE.test(t) && !/[,，]/.test(t)) return true
+  return false
+}
+
+function pickRegisterSchedulePlaceAfterComma(t: string): string | null {
+  if (!/[,，]/.test(t)) return null
+  const parts = t
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (parts.length < 2) return null
+  const head = parts[0]!
+  const tail = parts[parts.length - 1]!
+  if (
+    head.length >= 10 ||
+    ROUTE_MARKETING_EPITHET_RE.test(head) ||
+    /(?:의\s*도시|휴양|해변|마을|시대|끝)/u.test(head)
+  ) {
+    return tail.length >= 2 ? tail : null
+  }
+  return null
+}
+
+/** `도시A 로카곶` 등 한 카드에 붙은 복합 라벨 분리 (2토큰만 — `봉 헤수스 두 몬테 성당` 등 긴 명칭은 유지) */
+export function splitRegisterScheduleCompoundRoutePlaceLabel(label: string): string[] {
+  const t = cleanRegisterScheduleRoutePlaceLabel(label)
+  if (!t) return []
+  const parts = t.split(/\s+/).filter(Boolean)
+  if (parts.length !== 2) return [t]
+  const m = t.match(
+    /^(.{2,28})\s+([가-힣A-Za-z][가-힣A-Za-z\s]{0,22}(?:곶|해변|역|종탑|터미널))$/u,
+  )
+  if (m?.[1] && m?.[2]) {
+    const a = cleanRegisterScheduleRoutePlaceLabel(m[1])
+    const b = cleanRegisterScheduleRoutePlaceLabel(m[2])
+    if (a && b && a !== b) return [a, b]
+  }
+  return [t]
+}
+
+/** API 카드·tmTitle 한 줄 → routeText 세그먼트 후보 0..n */
+export function expandRegisterScheduleRoutePlaceCandidates(raw: string): string[] {
+  const segments = String(raw ?? '')
+    .split(/\s+-\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const parts = segments.length > 1 ? segments : [String(raw ?? '').trim()]
+  const out: string[] = []
+  for (const part of parts) {
+    const label = extractRegisterScheduleRoutePlaceLabel(part)
+    if (!label) continue
+    for (const piece of splitRegisterScheduleCompoundRoutePlaceLabel(label)) {
+      out.push(piece)
+    }
+  }
+  return out
+}
+
+/** 마케팅 카드명·cms 라벨 → 순수 장소명 (없으면 null) */
+export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | null {
+  const t0 = cleanRegisterScheduleRoutePlaceLabel(raw)
+  if (!t0 || isRegisterScheduleRoutePlaceNoise(t0)) return null
+
+  const fairyVillage = t0.match(/동화속\s*마을\s+(.+)$/u)
+  if (fairyVillage?.[1]) {
+    return extractRegisterScheduleRoutePlaceLabel(fairyVillage[1])
+  }
+
+  const cityTail = t0.match(/(?:운하)?도시\s+(.{2,28})$/u)
+  if (cityTail?.[1] && (t0.length >= 14 || ROUTE_MARKETING_EPITHET_RE.test(t0))) {
+    return extractRegisterScheduleRoutePlaceLabel(cityTail[1])
+  }
+
+  const fromComma = pickRegisterSchedulePlaceAfterComma(t0)
+  if (fromComma) {
+    const cleaned = cleanRegisterScheduleRoutePlaceLabel(fromComma)
+    if (cleaned && !isRegisterScheduleRoutePlaceNoise(cleaned) && !isRegisterScheduleMarketingOnlyRouteLabel(cleaned)) {
+      return cleaned.slice(0, 48)
+    }
+  }
+
+  if (isRegisterScheduleMarketingOnlyRouteLabel(t0)) return null
+  if (t0.length > 48) return null
+  return t0.slice(0, 48)
+}
+
 /** routeText 세그먼트 — 항공사·캐리어명(관광지 아님) */
 export function isRegisterScheduleAirlineRouteSegment(label: string): boolean {
   const t = String(label ?? '')
@@ -52,6 +163,8 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   ) {
     return true
   }
+  if (/이미지$/u.test(t) && !/(?:궁|성|사원|박물관|수도원|종탑|대성당)/u.test(t)) return true
+  if (/^(?:모든\s*지역|엄선된)/u.test(t)) return true
   return false
 }
 
@@ -66,9 +179,10 @@ export function isRegisterScheduleGenericTourismFillerRouteText(routeText: strin
 export function filterRegisterScheduleRoutePlaceSegments(segments: readonly string[]): string[] {
   const out: string[] = []
   for (const raw of segments) {
-    const label = String(raw ?? '').replace(/\s+/g, ' ').trim()
-    if (!label || isRegisterScheduleRoutePlaceNoise(label)) continue
-    out.push(label)
+    for (const label of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) {
+      if (!label || isRegisterScheduleRoutePlaceNoise(label)) continue
+      out.push(label)
+    }
   }
   return out
 }
@@ -78,6 +192,12 @@ export function sanitizeRegisterScheduleRouteText(
   routeText: string | null | undefined,
   maxPlaces = 7,
 ): string | null {
-  const chain = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText)).slice(0, maxPlaces)
+  const rt = String(routeText ?? '').trim()
+  if (!rt) return null
+  // routeText 체인은 ` - ` 구분 — 세그먼트 안 쉼표 지명(예: 대,소석림)은 유지
+  const segments = /\s+-\s+/u.test(rt)
+    ? rt.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean)
+    : splitRouteTextPlaceSegments(rt)
+  const chain = filterRegisterScheduleRoutePlaceSegments(segments).slice(0, maxPlaces)
   return chain.length > 0 ? chain.join(' - ') : null
 }
