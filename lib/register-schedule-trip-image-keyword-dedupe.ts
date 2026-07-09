@@ -197,9 +197,11 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
     const primary =
       picked && !isDomesticHubOrAirportImageKeyword(picked)
         ? picked
-        : existingPrimary && !isDomesticHubOrAirportImageKeyword(existingPrimary)
-          ? existingPrimary
-          : ''
+        : isReturn
+          ? ''
+          : existingPrimary && !isDomesticHubOrAirportImageKeyword(existingPrimary)
+            ? existingPrimary
+            : ''
     if (primary) used.add(normScheduleImageKeywordKey(primary))
 
     return {

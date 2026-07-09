@@ -1118,6 +1118,7 @@
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS",
             "hanatour-schedule-image-keyword-prebuild.test.ts",
+            "hanatour-schedule-image-keyword-portugal.test.ts",
             "modetour-schedule-image-keyword.test.ts",
             "ybtour-schedule-image-keyword.test.ts",
             "lottetour-schedule-image-keyword-turkey.test.ts",
@@ -4060,7 +4061,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "enforceRegisterScheduleTripUniqueImageKeywords",
-            "마지막 관광일 미사용 명소만"
+            "마지막 관광일 미사용 명소만",
+            "isReturn"
           ]
         }
       ],
@@ -4161,7 +4163,10 @@
             "사그라다 파밀리아",
             "페트라",
             "리우데자네이로",
-            "할슈타트"
+            "할슈타트",
+            "리스본",
+            "Jeronimos Monastery Lisbon",
+            "Cabo da Roca"
           ]
         },
         {
@@ -4172,7 +4177,9 @@
             "Mount Fuji",
             "Colosseum",
             "Hallstatt",
-            "Hungarian Parliament Budapest"
+            "Hungarian Parliament Budapest",
+            "Jeronimos Monastery Lisbon",
+            "Cabo da Roca Portugal"
           ]
         }
       ],

@@ -8,6 +8,10 @@ export const SCHEDULE_IMAGE_KEYWORD_SUPPLIER_PREBUILD_TESTS = [
     nodeTest: 'tests/hanatour-schedule-image-keyword-prebuild.test.ts',
   },
   {
+    supplier: 'hanatour',
+    nodeTest: 'tests/hanatour-schedule-image-keyword-portugal.test.ts',
+  },
+  {
     supplier: 'modetour',
     nodeTest: 'tests/modetour-schedule-image-keyword.test.ts',
   },
