@@ -649,6 +649,7 @@ export function applyHanatour2030RegisterConfirmGuard(parsed: RegisterParsed): R
             : `hanatour2030.schedule.${i.field}`,
         reason: i.reason,
         source: 'auto' as const,
+        severity: 'warn' as const,
       })),
     ],
   }
