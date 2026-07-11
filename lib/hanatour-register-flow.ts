@@ -136,6 +136,7 @@ import { buildRegisterProductScheduleJson } from '@/lib/build-register-product-s
 import { buildRegisterVerificationBundle } from '@/lib/admin-register-verification-meta-hanatour'
 import type { RegisterPreviewProductDraft } from '@/lib/register-preview-payload-hanatour'
 import { parseLocalDepartureTagArrayFromAdminBody, parseSportsThemeTagArrayFromAdminBody } from '@/lib/product-listing-kind'
+import { mergeHanatour2030SportsThemeTagForRegister } from '@/lib/hanatour-register-schedule-2030'
 import {
   buildRegisterFlightInferHaystack,
   parseRegisterFactFlightsFromAdminBody,
@@ -1577,7 +1578,10 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       ...geo,
       localDepartureTag: departureAirportFields.localDepartureTag,
       departureAirportLabel: departureAirportFields.departureAirportLabel,
-      sportsThemeTag: parseSportsThemeTagArrayFromAdminBody(body),
+      sportsThemeTag: mergeHanatour2030SportsThemeTagForRegister(
+        parseSportsThemeTagArrayFromAdminBody(body),
+        parsed,
+      ),
       singleDepartureOnly: parseSingleDepartureOnlyFromAdminBody(body),
     }
 

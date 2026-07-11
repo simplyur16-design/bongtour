@@ -13,6 +13,7 @@ import {
   hanatour2030ConfirmScheduleBlockReason,
   hanatour2030RegisterScheduleOkAtConfirm,
   isHanatour2030ProductTitle,
+  mergeHanatour2030SportsThemeTagForRegister,
   normalizeHanatour2030ListingTitle,
   polishHanatour2030RegisterBundle,
   repolishHanatour2030ParsedAtRegisterConfirm,
@@ -206,5 +207,15 @@ describe('hanatour 2030 schedule polish', () => {
       prices: [{ departureDate: '2026-08-01', adultPrice: 890000, status: 'available' }],
     }
     expect(hanatourConfirmHasScheduleExpressionLayer(parsed, [])).toBe(true)
+  })
+
+  it('mergeHanatour2030SportsThemeTagForRegister — 2030 TRP는 sportsThemeTag 2030 자동', () => {
+    expect(mergeHanatour2030SportsThemeTagForRegister([], { title: JOP191_TITLE })).toEqual(['2030'])
+    expect(
+      mergeHanatour2030SportsThemeTagForRegister(['running'], {
+        title: '고베·오사카 3일 (2030)',
+      }),
+    ).toEqual(['2030', 'running'])
+    expect(mergeHanatour2030SportsThemeTagForRegister([], { title: '방콕 3일' })).toEqual([])
   })
 })

@@ -584,7 +584,8 @@
             "resolveHanatour2030ProductTitleForDetect",
             "collectHanatour2030RegisterScheduleConfirmIssues",
             "applyHanatour2030RegisterConfirmGuard",
-            "hanatour2030ConfirmScheduleBlockReason"
+            "hanatour2030ConfirmScheduleBlockReason",
+            "mergeHanatour2030SportsThemeTagForRegister"
           ]
         },
         {

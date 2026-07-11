@@ -48,6 +48,7 @@ import {
 import { prepareRegisterScheduleRowsForImageKeywordApply } from '@/lib/register-schedule-route-text-backfill'
 import type { DetailBodyParseSnapshot } from '@/lib/detail-body-parser-types'
 import { resolveHanatourRegisterScheduleSectionByDay, enrichHanatourRegisterPreviewScheduleRowsFromSection } from '@/lib/hanatour-schedule-section-by-day'
+import { mergeHanatour2030SportsThemeTagForRegister } from '@/lib/hanatour-register-schedule-2030'
 import { parseOptionalTourNamesFromStructuredJson } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { sanitizeModetourRegisterScheduleRouteRows } from '@/lib/modetour-register-api-schedule'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
@@ -796,6 +797,20 @@ export default function AdminRegisterPage() {
       ),
     [parsedForConfirm, preview, selectedBrandKey, travelScope],
   )
+
+  useEffect(() => {
+    if (selectedBrandKey !== 'hanatour' || travelScope !== 'overseas') return
+    const parsed = (parsedForConfirm ?? (preview as { parsed?: RegisterParsedH } | null)?.parsed) as
+      | RegisterParsedH
+      | null
+      | undefined
+    if (!parsed?.title?.trim()) return
+    setSportsThemeTag((prev) => {
+      const merged = mergeHanatour2030SportsThemeTagForRegister(prev, parsed)
+      if (merged.length === prev.length && merged.every((k, i) => k === prev[i])) return prev
+      return merged
+    })
+  }, [selectedBrandKey, travelScope, parsedForConfirm, preview])
 
   const resetRegisterPreviewSession = useCallback(
     (opts?: { clearPreview?: boolean; clearCorrection?: boolean; resetOriginCodeRef?: boolean }) => {
@@ -1549,10 +1564,11 @@ export default function AdminRegisterPage() {
         </div>
 
         <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
-          <p className="text-sm font-semibold text-slate-800">테마여행 (수동 지정)</p>
+          <p className="text-sm font-semibold text-slate-800">테마여행</p>
           <p className="mt-1 text-xs text-slate-500">
-            메가 메뉴·browse용. 없으면 선택 안 함. 확정 시 DB{' '}
-            <code className="text-[11px]">sportsThemeTag</code>만 반영.
+            메가 메뉴·browse용. 하나투어 2030 TRP는 제목 감지 시 <code className="text-[11px]">2030</code> 태그가
+            미리보기·확정 시 자동 반영됩니다. 그 외 테마는 수동 선택. 확정 시 DB{' '}
+            <code className="text-[11px]">sportsThemeTag</code>에 저장됩니다.
           </p>
           <SportsThemeTagMultiSelect
             value={sportsThemeTag}

@@ -11,6 +11,10 @@ import {
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
 import { SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX } from '@/lib/supplier-product-title-display'
+import {
+  SPORTS_THEME_TAG_VALUES,
+  type SportsThemeTag,
+} from '@/lib/product-listing-kind'
 
 const HANATOUR_2030_TITLE_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍|mingling|\(2030\)\s*$/i
 
@@ -664,4 +668,19 @@ export function hanatour2030ConfirmScheduleBlockReason(parsed: RegisterParsed): 
     .join(' ')
   const more = issues.length > 2 ? ` 외 ${issues.length - 2}건` : ''
   return `2030 TRP 일정 정제 미충족: ${head}${more} 미리보기를 다시 실행하거나 본문 일정을 확인하세요.`
+}
+
+/** 하나투어 2030 TRP — confirm 시 메가메뉴·browse용 `sportsThemeTag`에 2030 자동 병합. */
+export function mergeHanatour2030SportsThemeTagForRegister(
+  adminTags: SportsThemeTag[],
+  parsed: Pick<RegisterParsed, 'title' | 'supplierListingTitleRaw'>,
+): SportsThemeTag[] {
+  const detectTitle = resolveHanatour2030ProductTitleForDetect(
+    parsed.supplierListingTitleRaw,
+    parsed.title,
+  )
+  if (!isHanatour2030ProductTitle(detectTitle)) return adminTags
+  const seen = new Set<string>(adminTags)
+  seen.add('2030')
+  return SPORTS_THEME_TAG_VALUES.filter((k) => seen.has(k))
 }
