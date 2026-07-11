@@ -4280,6 +4280,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "enforceRegisterScheduleTripUniqueImageKeywords",
+            "ensureDepartureReturnVisitCityKeywords",
             "마지막 관광일 미사용 명소만",
             "isReturn"
           ]

@@ -283,9 +283,9 @@ function scheduleRowIssues(
   if (!isFirst && !isLast) {
     if (!kw) issues.push('중간일 imageKeyword 비어 있음')
     if (!kw2 && totalDays >= 4) issues.push('중간일 imageKeyword2 비어 있음(4일+)')
-  }
-  if (isLast && kw && /incheon|인천|귀국/i.test(route) === false && /incheon|인천/i.test(kw)) {
-    /* ok departure keywords on return day sometimes cleared */
+  } else {
+    if (!kw) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword 비어 있음`)
+    if (kw2) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword2는 null이어야 함`)
   }
 
   return issues

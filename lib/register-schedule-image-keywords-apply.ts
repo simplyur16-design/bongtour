@@ -17,7 +17,7 @@ import { applyRegisterScheduleRouteTextKeywordsWithSupplierFallback } from '@/li
 import { expandSingleSegmentPoiRouteTextRows, prepareRegisterScheduleRowsForImageKeywordApply } from '@/lib/register-schedule-route-text-backfill'
 import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
@@ -116,10 +116,14 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const deduped = enforceRegisterScheduleTripUniqueImageKeywords(crossContinentStripped)
   const sanitized = sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(deduped)
   const promoted = promoteMiddleDayEmptyPrimaryFromKeyword2(sanitized)
-  const withKeywords = fillRegisterScheduleMiddleDayImageKeywordGaps(
-    applyDomesticHubOnlyDepartureReturnAdjacentKeywords(
-      enforceRegisterScheduleTripUniqueImageKeywords(promoted),
+  const withKeywords = ensureDepartureReturnVisitCityKeywords(
+    fillRegisterScheduleMiddleDayImageKeywordGaps(
+      applyDomesticHubOnlyDepartureReturnAdjacentKeywords(
+        enforceRegisterScheduleTripUniqueImageKeywords(promoted),
+        { productDestination: dest },
+      ),
     ),
+    dest,
   )
   return withKeywords.map((row) => {
     const day = Number(row.day)

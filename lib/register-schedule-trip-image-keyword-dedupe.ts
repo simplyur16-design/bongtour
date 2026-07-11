@@ -4,10 +4,11 @@
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: routeText 후보만 — manifest
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: kw2 — primary 확정 후 route 이동순 2번째·랜드마크 dedupe — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — applyDomesticHubOnlyDepartureReturnAdjacentKeywords — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ensureDepartureReturnVisitCityKeywords — 1·마지막일 방문도시 — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
 import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { filterRegisterScheduleRoutePlaceSegments } from '@/lib/register-schedule-route-place-noise'
+import { filterRegisterScheduleRoutePlaceSegments, isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import {
   collectRouteTextOrderedImageKeywords,
   collectRouteTextOrderedLandmarkKeywords,
@@ -23,13 +24,14 @@ import {
   isScheduleDepartureReturnAdjacentRouteText,
   resolveScheduleKeywordSlotKind,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
-import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword, isLikelyTourismLandmarkKeyword, finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword, isLikelyTourismLandmarkKeyword, isNonLandmarkRouteTextSegment, finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { mapDestination } from '@/lib/pexels-keyword'
 import {
   buildRegisterScheduleTripRouteKeywordContext,
   registerScheduleKeywordPassesRouteEvidence,
   registerScheduleKeywordPassesTripRouteTextSsot,
 } from '@/lib/register-schedule-route-evidence-keyword'
-import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
+import { findAllScheduleSpotMatchesInText, firstMatchingScheduleCityEn } from '@/lib/schedule-poi-regex-ssot'
 
 export type RegisterScheduleTripKeywordRow = {
   day: number
@@ -68,6 +70,30 @@ function isAirlineOnlyMovementRouteText(routeText: string | null | undefined): b
   })
 }
 
+function findNextTourismRowForDepartureFill<T extends RegisterScheduleTripKeywordRow>(
+  sorted: readonly T[],
+  day: number,
+  maxDay: number,
+  activeDays: number,
+): T | undefined {
+  const hasMiddleAfter = sorted.some((row) => {
+    const nd = Number(row.day)
+    return (
+      nd > day &&
+      nd < maxDay &&
+      resolveScheduleKeywordSlotKind(nd, maxDay, activeDays) === 'middle'
+    )
+  })
+  return sorted.find((row) => {
+    const nd = Number(row.day)
+    if (nd <= day) return false
+    const slot = resolveScheduleKeywordSlotKind(nd, maxDay, activeDays)
+    if (slot === 'middle') return true
+    if (slot === 'return' && nd === maxDay && !hasMiddleAfter) return true
+    return false
+  })
+}
+
 function pickDepartureForwardKeywordFromNextRow(
   sorted: readonly RegisterScheduleTripKeywordRow[],
   day: number,
@@ -88,11 +114,7 @@ function pickDepartureForwardKeywordFromNextRow(
     (isScheduleHubMovementKeywordRow(depRow ?? { routeText: depRoute, day }, day, maxDay) &&
       !isSanitizedSingleDestinationHubRow(depRow, day, maxDay))
 
-  const nextTourism = sorted.find((row) => {
-    const nd = Number(row.day)
-    if (nd <= day) return false
-    return resolveScheduleKeywordSlotKind(nd, maxDay, activeDays) === 'middle'
-  })
+  const nextTourism = findNextTourismRowForDepartureFill(sorted, day, maxDay, activeDays)
   if (!nextTourism) return ''
 
   const nd = Number(nextTourism.day)
@@ -427,10 +449,132 @@ function isDomesticHubOrAirportImageKeyword(kw: string): boolean {
   return false
 }
 
+/** 출발·귀국일 — routeText·인접일·destination에서 해외 방문 도시 정식 영문명 */
+function pickForeignVisitCityFromRouteText(
+  routeText: string | null | undefined,
+  pickLast: boolean,
+): string {
+  const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2 && !isScheduleDomesticHubToken(s))
+  if (!segs.length) return ''
+  const ordered = pickLast ? [...segs].reverse() : segs
+  for (const seg of ordered) {
+    if (isRegisterScheduleRoutePlaceNoise(seg)) continue
+    const kw = routeTextSegmentToImageKeyword(seg, { allowCity: true, routeText })
+    if (kw && !isDomesticHubOrAirportImageKeyword(kw) && !isRejectedTripKeywordCandidate(kw)) return kw
+    const fromMap = mapDestination(seg)
+    if (
+      fromMap &&
+      fromMap !== seg &&
+      !/[\uAC00-\uD7AF]/.test(fromMap) &&
+      !isDomesticHubOrAirportImageKeyword(fromMap) &&
+      !isRejectedTripKeywordCandidate(fromMap) &&
+      !isBareCityOrCountryKeyword(fromMap)
+    ) {
+      return fromMap
+    }
+  }
+  const hay = ordered.join(' ')
+  const cityEn = firstMatchingScheduleCityEn(hay)
+  if (cityEn && !isDomesticHubOrAirportImageKeyword(cityEn) && !isRejectedTripKeywordCandidate(cityEn)) {
+    return cityEn
+  }
+  return ''
+}
+
+function pickDepartureVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
+  sorted: readonly T[],
+  day: number,
+  maxDay: number,
+  activeDays: number,
+  productDestination?: string | null,
+): string {
+  const depRow = sorted.find((r) => Number(r.day) === day)
+  const fromOwn = pickForeignVisitCityFromRouteText(depRow?.routeText, false)
+  if (fromOwn) return fromOwn
+  const fromForward = pickDepartureForwardKeywordFromNextRow(sorted, day, maxDay, activeDays)
+  if (fromForward) return fromForward
+  const nextTourism = findNextTourismRowForDepartureFill(sorted, day, maxDay, activeDays)
+  if (nextTourism) {
+    const fromNext = pickForeignVisitCityFromRouteText(nextTourism.routeText, false)
+    if (fromNext) return fromNext
+  }
+  const dest = String(productDestination ?? '').trim()
+  if (dest) {
+    const fromDest = mapDestination(dest)
+    if (
+      fromDest &&
+      !isDomesticHubOrAirportImageKeyword(fromDest) &&
+      !isBareCityOrCountryKeyword(fromDest)
+    ) {
+      return fromDest
+    }
+  }
+  return ''
+}
+
+function pickReturnVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
+  sorted: readonly T[],
+  day: number,
+  productDestination?: string | null,
+): string {
+  const retRow = sorted.find((r) => Number(r.day) === day)
+  const fromOwn = pickForeignVisitCityFromRouteText(retRow?.routeText, true)
+  if (fromOwn) return fromOwn
+  const tourismRows = [...sorted]
+    .filter((r) => {
+      const d = Number(r.day)
+      return d > 0 && d < day && !isScheduleDepartureReturnAdjacentKeywordRow(r, isScheduleDomesticHubToken)
+    })
+    .reverse()
+  for (const tourismRow of tourismRows) {
+    const fromPrior = pickForeignVisitCityFromRouteText(tourismRow.routeText, true)
+    if (fromPrior) return fromPrior
+  }
+  const dest = String(productDestination ?? '').trim()
+  if (dest) {
+    const fromDest = mapDestination(dest)
+    if (
+      fromDest &&
+      !isDomesticHubOrAirportImageKeyword(fromDest) &&
+      !isBareCityOrCountryKeyword(fromDest)
+    ) {
+      return fromDest
+    }
+  }
+  return ''
+}
+
+/** 1일·마지막 일차 imageKeyword 빈 슬롯 — 방문 도시 영문명 최종 보충 */
+export function ensureDepartureReturnVisitCityKeywords<T extends RegisterScheduleTripKeywordRow>(
+  rows: T[],
+  productDestination?: string | null,
+): T[] {
+  if (!rows.length) return rows
+  const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
+  const maxDay = Math.max(...sorted.map((r) => Number(r.day)).filter((d) => d > 0))
+  const activeDays = sorted.filter((r) => Number(r.day) > 0).length
+  return sorted.map((row) => {
+    const day = Number(row.day)
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+    if (slot !== 'departure' && slot !== 'return') return row
+    const kw = String(row.imageKeyword ?? '').trim()
+    const needsFill = !kw || isBareCityOrCountryKeyword(kw)
+    if (!needsFill) return { ...row, imageKeyword2: null }
+    const filled =
+      slot === 'departure'
+        ? pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, productDestination)
+        : pickReturnVisitCityKeyword(sorted, day, productDestination)
+    if (!filled) return { ...row, imageKeyword2: null }
+    return { ...row, imageKeyword: filled, imageKeyword2: null }
+  })
+}
+
 /** 국내 허브 only 출발·귀국일 — adjacent-poi SSOT(도착지 forward / 마지막 관광 backward 미사용 명소) */
 export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
   T extends RegisterScheduleTripKeywordRow,
->(rows: T[]): T[] {
+>(rows: T[], opts?: { productDestination?: string | null }): T[] {
   if (!rows.length) return rows
   const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
   const maxDay = Math.max(...sorted.map((r) => Number(r.day)).filter((d) => d > 0))
@@ -483,6 +627,9 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
     if (isDeparture) {
       const activeDays = sorted.filter((r) => Number(r.day) > 0).length
       picked = pickDepartureForwardKeywordFromNextRow(sorted, day, maxDay, activeDays)
+      if (!picked) {
+        picked = pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, opts?.productDestination)
+      }
     } else if (isReturn) {
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return — 마지막 관광일 미사용 명소만
       const tourismRows = [...sorted]
@@ -535,17 +682,18 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           break
         }
       }
+      if (!picked) {
+        picked = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination)
+      }
     }
 
     const existingPrimary = String(row.imageKeyword ?? '').trim()
     const primary =
       picked && !isDomesticHubOrAirportImageKeyword(picked)
         ? picked
-        : isReturn
-          ? ''
-          : existingPrimary && !isDomesticHubOrAirportImageKeyword(existingPrimary)
-            ? existingPrimary
-            : ''
+        : existingPrimary && !isDomesticHubOrAirportImageKeyword(existingPrimary)
+          ? existingPrimary
+          : ''
     if (primary) used.add(normScheduleImageKeywordKey(primary))
 
     return {
@@ -1924,7 +2072,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       return { ...row, imageKeyword: '', imageKeyword2: null }
     }
 
-    if (hubOnlyDay) {
+    if (hubOnlyDay && slot === 'middle') {
       return { ...row, imageKeyword: '', imageKeyword2: null }
     }
 

@@ -6,6 +6,7 @@ import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-k
 import {
   applyDomesticHubOnlyDepartureReturnAdjacentKeywords,
   enforceRegisterScheduleTripUniqueImageKeywords,
+  ensureDepartureReturnVisitCityKeywords,
   fillRegisterScheduleMiddleDayImageKeywordGaps,
   sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays,
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
@@ -98,6 +99,52 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       { supplierKey: 'hanatour', productDestination: 'Greece', travelScope: 'package' },
     )
     expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Meteora|Thessaloniki|White Tower/i)
+  })
+
+  it('return day with hub-only route — last visit city from prior tourism day', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 프라하',
+          title: '-',
+          description: '-',
+          imageKeyword: 'Prague',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '체스키크룸로프 - 잘츠부르크',
+          title: '-',
+          description: '-',
+          imageKeyword: 'Cesky Krumlov Castle Czech Republic',
+          imageKeyword2: 'Hohensalzburg Fortress Salzburg',
+        },
+        {
+          day: 3,
+          routeText: '인천 - [프라하 - 인천 : 약 11시간 20분 소요]',
+          title: '-',
+          description: '-',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      'Czech Republic',
+    )
+    expect(String(out.find((r) => r.day === 3)?.imageKeyword ?? '')).toMatch(/Prague|Salzburg|Cesky/i)
+    expect(String(out.find((r) => r.day === 3)?.imageKeyword2 ?? '')).toBe('')
+  })
+
+  it('departure day 인천 only — first visit city from next day route', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        { day: 1, routeText: '인천', title: '-', description: '-', imageKeyword: '', imageKeyword2: null },
+        { day: 2, routeText: '마드리드 - 톨레도', title: '-', description: '-', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '세고비아', title: '-', description: '-', imageKeyword: '', imageKeyword2: null },
+      ],
+      'Spain',
+    )
+    expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Madrid|Toledo|Segovia/i)
   })
 
   it('fills middle-day kw2 from same-day second landmark (Oslo + Vigeland)', () => {
