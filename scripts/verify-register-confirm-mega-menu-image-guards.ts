@@ -1,12 +1,16 @@
 /**
- * 등록 confirm — 메가메뉴 geo + imageKeyword 회귀 통합 가드 (DB 불필요·prebuild).
+ * 등록 confirm — 메가메뉴 geo + imageKeyword 회귀 통합 가드 (DB 불필요).
+ * prebuild: static·tsx·node 검사만 (vitest devDep 없음). ci: + vitest 시나리오.
  * REGRESSION-FREEZE[register-confirm-mega-menu-image-guard]: manifest
  *
  * npm run verify:register-confirm-mega-menu-image-guards
  */
+import { createRequire } from 'node:module'
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+
+const require = createRequire(import.meta.url)
 
 const ROOT = process.cwd()
 const failures: string[] = []
@@ -29,6 +33,15 @@ function run(label: string, cmd: string) {
     execSync(cmd, { cwd: ROOT, stdio: 'inherit' })
   } catch {
     fail(`${label} failed`)
+  }
+}
+
+function vitestInstalled(): boolean {
+  try {
+    require.resolve('vitest/config')
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -82,9 +95,14 @@ if (syncTags.includes('megaMenuSummaryNeedsOperatorReview(result.megaMenuSummary
 run('mega-menu geo SSOT', 'npm run verify:supplier-register-mega-menu-geo')
 run('mega-menu city leaf alignment', 'npm run verify:mega-menu-register-alignment')
 run('imageKeyword routing parity', 'node scripts/check-schedule-image-keyword-routing-parity.mjs')
-run('vitest register confirm guard', 'npx vitest run lib/register-confirm-mega-menu-image-guard.test.ts')
-run('vitest mega menu geo summary', 'npx vitest run lib/register-mega-menu-geo-summary.test.ts')
-run('vitest post-augment SSOT', 'npx vitest run lib/register-parse-post-augment.test.ts')
+
+if (vitestInstalled()) {
+  run('vitest register confirm guard', 'npx vitest run lib/register-confirm-mega-menu-image-guard.test.ts')
+  run('vitest mega menu geo summary', 'npx vitest run lib/register-mega-menu-geo-summary.test.ts')
+  run('vitest post-augment SSOT', 'npx vitest run lib/register-parse-post-augment.test.ts')
+} else {
+  console.log('\n[skip] vitest suites — prebuild / vitest devDependency not installed (ci tier runs full guard)')
+}
 
 if (failures.length === 0) {
   console.log(`\nOK: register confirm mega-menu + imageKeyword guards (${SUPPLIER_FLOWS.length} suppliers)`)
