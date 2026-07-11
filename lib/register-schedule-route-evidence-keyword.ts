@@ -32,6 +32,17 @@ export type RegisterScheduleTripRouteKeywordContext = {
   hasRouteText: boolean
 }
 
+function isRegisterScheduleTripRouteKeywordContext(
+  ctx: RegisterScheduleTripRouteKeywordContext | ReadonlySet<string>,
+): ctx is RegisterScheduleTripRouteKeywordContext {
+  return (
+    typeof ctx === 'object' &&
+    ctx !== null &&
+    'keywordKeys' in ctx &&
+    'hasRouteText' in ctx
+  )
+}
+
 export function buildRegisterScheduleTripRouteKeywordContext(
   rows: readonly RegisterScheduleRouteEvidenceRow[],
 ): RegisterScheduleTripRouteKeywordContext {
@@ -72,9 +83,9 @@ export function registerScheduleKeywordPassesTripRouteTextSsot(
   const raw = String(keyword ?? '').trim()
   if (!raw) return true
   const tripCtx: RegisterScheduleTripRouteKeywordContext =
-    ctx instanceof Set
-      ? { keywordKeys: ctx, hasRouteText: ctx.size > 0 }
-      : ctx
+    isRegisterScheduleTripRouteKeywordContext(ctx)
+      ? ctx
+      : { keywordKeys: ctx, hasRouteText: ctx.size > 0 }
   const nk = normScheduleImageKeywordKey(raw)
   if (!nk) return false
   if (tripCtx.keywordKeys.has(nk)) return true

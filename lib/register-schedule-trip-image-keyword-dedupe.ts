@@ -85,7 +85,7 @@ function pickDepartureForwardKeywordFromNextRow(
       /(?:출발|인천|김포|Incheon|Gimpo)/i.test(
         `${String(depRow?.description ?? '')} ${String(depRow?.title ?? '')}`,
       )) ||
-    (isScheduleHubMovementKeywordRow(depRow ?? { routeText: depRoute }, day, maxDay) &&
+    (isScheduleHubMovementKeywordRow(depRow ?? { routeText: depRoute, day }, day, maxDay) &&
       !isSanitizedSingleDestinationHubRow(depRow, day, maxDay))
 
   const nextTourism = sorted.find((row) => {

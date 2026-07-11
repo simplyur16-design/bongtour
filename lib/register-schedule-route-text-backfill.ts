@@ -5,7 +5,6 @@
  */
 import {
   isRegisterScheduleGenericTourismFillerRouteText,
-  isRegisterSchedulePlaceholderRouteText,
   isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
