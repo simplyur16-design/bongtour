@@ -2,6 +2,7 @@
  * 노랑풍선(ybtour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(동선 1줄 + 분위기 2~3문장).
  * REGRESSION-FREEZE[ybtour-register-detail-collect]: ybtourScheduleBundleToRegisterSchedule — manifest
  * REGRESSION-FREEZE[ybtour-register-api-schedule-tm-html-strip]: papi tmContent HTML strip — manifest
+ * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: description vibe-only — manifest
  */
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
@@ -48,6 +49,7 @@ function isYbtourRoutePlaceNoise(label: string): boolean {
   if (YBTOUR_ROUTE_PLACE_NOISE_RE.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
   if (/차별화\s*POINT|노랑풍선\s*차별화|<\/?\w+/i.test(t)) return true
+  if (/항공\s*(?:사|편|요금)|터미널|탑승\s*수속|출발\s*시간|도착\s*시간|기내\s*식|수하물|연결\s*편/u.test(t)) return true
   if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
   return false
 }
@@ -283,23 +285,20 @@ export function composeYbtourScheduleVibeSentences(
   return desc.slice(0, 320).trim()
 }
 
-/** description = routeText 1줄 + 분위기 2~3문장 */
+/** description — 분위기·흐름 2~3문장 (장소 나열은 routeText 전용) */
 export function composeYbtourScheduleDescription(opts: {
   day: number
   maxDay: number
   routePlaces: readonly string[]
   joinedBlob: string
 }): string {
-  const routeLine = joinYbtourScheduleRouteText(opts.routePlaces)
   const vibe = composeYbtourScheduleVibeSentences(
     opts.day,
     opts.maxDay,
     opts.routePlaces,
     opts.joinedBlob,
   )
-  if (!routeLine) return vibe || `${opts.day}일차`
-  if (!vibe) return routeLine
-  return `${routeLine}\n${vibe}`.slice(0, 500).trim()
+  return vibe || `${opts.day}일차`
 }
 
 export function ybtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {

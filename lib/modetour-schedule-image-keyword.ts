@@ -1,6 +1,6 @@
 /**
  * 모두투어 전용: `Product.schedule[].imageKeyword` / `imageKeyword2` — Pexels 검색용 영문.
- * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: routeText 세그먼트 순서만 — allocateModetourImageKeywordsByScheduleRules — manifest
+ * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]: routeText 세그먼트 순서만 — SSOT POI는 허브 스킵 전 매핑 — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 일차 슬롯 1·2·귀국 — manifest
  * 일정요약(routeText) a→g 순서만 — LLM·타일 본문·타상품 후보 스캔 없음.
  * REGRESSION-FREEZE[modetour-register-danang-live-gate]: 베트남 POI 오매핑 차단 — manifest
@@ -239,6 +239,7 @@ function isModetourForeignDestinationCitySegment(
   productDestination: string | null | undefined,
 ): boolean {
   const t = stripRouteSegmentNoise(seg)
+  if (firstMatchingScheduleSpotEn(t)) return false
   if (mapKoreanPoiSegment(t)) return false
   if (isModetourDestinationHubOnlySegment(seg)) return true
   if (!t) return false
@@ -953,6 +954,12 @@ export function classifyModetourScheduleCardDayKind(
   }
   if (day === maxDay && maxDay >= 2 && /(?:귀국|출국)/u.test(j)) {
     return 'return_home'
+  }
+  if (day === maxDay && maxDay >= 2) {
+    const hubOnly = j.replace(/\s+/g, ' ').trim()
+    if (/^(?:인천|김포|ICN|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/iu.test(hubOnly)) {
+      return 'return_home'
+    }
   }
   if (
     day === maxDay &&
@@ -1956,30 +1963,20 @@ export function applyModetourScheduleImageKeywordsToRows<
       primary &&
       !String(secondary ?? '').trim()
     ) {
-      const routeOrdered = collectModetourRouteOrderedSegmentKeywords(
-        row.routeText,
+      const resolved2 = resolveModetourSecondaryKeyword(
+        row,
+        primary,
         dayKind,
         productDestination,
+        day,
       )
-      const hasSecondRouteKeyword = routeOrdered.some(
-        (kw) => kw && !modetourKeywordKeysOverlap(kw, primary),
-      )
-      if (hasSecondRouteKeyword) {
-        const resolved2 = resolveModetourSecondaryKeyword(
-          row,
-          primary,
-          dayKind,
-          productDestination,
-          day,
-        )
-        if (resolved2) {
-          const nk2 = normKey(resolved2)
-          if (nk2 !== normKey(primary) && !used.has(nk2)) {
-            secondary = resolved2
-            used.add(nk2)
-          } else if (nk2 !== normKey(primary)) {
-            secondary = resolved2
-          }
+      if (resolved2) {
+        const nk2 = normKey(resolved2)
+        if (nk2 !== normKey(primary) && !used.has(nk2)) {
+          secondary = resolved2
+          used.add(nk2)
+        } else if (nk2 !== normKey(primary)) {
+          secondary = resolved2
         }
       }
     }

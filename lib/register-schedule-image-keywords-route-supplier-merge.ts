@@ -49,10 +49,11 @@ function toSupplierScheduleRows(
 function acceptSupplierFallbackKeyword(
   kw: string,
   productDestination: string | null | undefined,
+  scheduleRows?: readonly RegisterScheduleRouteTextKeywordRow[],
 ): string {
   const t = String(kw ?? '').trim()
   if (!t) return ''
-  if (isRegisterScheduleCrossContinentHallucinationKeyword(t, productDestination)) return ''
+  if (isRegisterScheduleCrossContinentHallucinationKeyword(t, productDestination, scheduleRows)) return ''
   if (isBareCityOrCountryKeyword(t)) return ''
   return t
 }
@@ -70,8 +71,16 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
     const supplier = supplierByDay.get(day)
     const routeKw = String(row.imageKeyword ?? '').trim()
     const routeKw2 = String(row.imageKeyword2 ?? '').trim()
-    const supplierKw = acceptSupplierFallbackKeyword(String(supplier?.imageKeyword ?? ''), productDestination)
-    const supplierKw2 = acceptSupplierFallbackKeyword(String(supplier?.imageKeyword2 ?? ''), productDestination)
+    const supplierKw = acceptSupplierFallbackKeyword(
+      String(supplier?.imageKeyword ?? ''),
+      productDestination,
+      routeRows,
+    )
+    const supplierKw2 = acceptSupplierFallbackKeyword(
+      String(supplier?.imageKeyword2 ?? ''),
+      productDestination,
+      routeRows,
+    )
     const imageKeyword = routeKw || supplierKw
     const imageKeyword2 =
       routeKw2 || (slot === 'middle' && imageKeyword ? supplierKw2 : '') || null

@@ -2,6 +2,7 @@
  * 하나투어 등록 상세카드 — gw API 응답 파싱 SSOT.
  *
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: getPkgProdInfo·getPkgProdItnrInfo·getPkgProdChcStsngInfo 매핑 — manifest
+ * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: description vibe-only — manifest
  */
 import {
   fetchHanatourPkgProdInfo,
@@ -164,7 +165,7 @@ export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
 const HANATOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
 const HANATOUR_HIGHLIGHT_NOISE_RE =
-  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$|유의\s*사항|예약\s*시|출입국\s*정보|여행\s*시\s*유의|참고\s*사항/i
+  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$|유의\s*사항|예약\s*시|출입국\s*정보|여행\s*시\s*유의|참고\s*사항|입국\s*조건|쇼\s*명|티파니|알카자|콜로세움\s*내부|입국\s*안내|등\s*\d+\s*성호텔|입국\s*절차|숙박\s*없음|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움|블루스타|Blue\s*Star\s*Delos|수완나|B게이트|출입구|자유일정\s*추천|전통\s*마사지|빅\s*씨|Big\s*C/i
 
 /** ITNR meta cards — 유의사항·출입국 안내 등 일정 routeText/title에 넣지 않음. REGRESSION-FREEZE[hanatour-register-detail-collect] */
 const HANATOUR_ITNR_META_CARD_RE =
@@ -258,6 +259,9 @@ type HanatourScheduleVibeProfile =
   | 'hk_walking'
   | 'harbor_skyline'
   | 'spiritual_calm'
+  | 'ancient_ruins'
+  | 'island_scenic'
+  | 'mountain_village'
   | 'generic_tourism'
 
 const HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<HanatourScheduleVibeProfile, readonly string[]> = {
@@ -289,6 +293,18 @@ const HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<HanatourScheduleVibeProfile, r
     '현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다.',
     '이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.',
   ],
+  ancient_ruins: [
+    '고대 유적과 박물관을 따라 걸으며, 역사의 결이 살아 있는 분위기를 느끼는 하루입니다.',
+    '짧은 이동마다 풍경이 바뀌어, 보고 듣는 재미가 균형 잡힌 알찬 동선입니다.',
+  ],
+  island_scenic: [
+    '섬의 절경과 마을 골목이 어우러지는, 여유로운 해안 리듬의 하루입니다.',
+    '전망과 산책이 자연스럽게 이어져, 사진과 휴식을 함께 즐기기 좋은 구성입니다.',
+  ],
+  mountain_village: [
+    '산악 마을과 계곡 풍경이 펼쳐지는, 차분하고 시원한 공기의 하루입니다.',
+    '무리한 이동 없이 주변 풍경을 천천히 음미하며, 여행의 호흡을 고르는 일정입니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -305,6 +321,9 @@ function inferHanatourScheduleVibeProfile(
     if (/사원|temple|럭키|행운|축원|기도|웡타이/i.test(joinedBlob)) return 'return_calm'
     return 'return_transit'
   }
+  if (day.day === maxDay && maxDay >= 2 && day.places.length === 0 && /귀국|출국|인천|ICN|김포|GMP/u.test(joinedBlob)) {
+    return 'return_transit'
+  }
   if (kind === 'movement' && day.day === 1) return 'arrival'
   if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
@@ -312,6 +331,9 @@ function inferHanatourScheduleVibeProfile(
   }
   if (/피크|peak|하버|harbor|빅토리아|전망|야경|스타\s*페리|침사/i.test(joinedBlob)) return 'harbor_skyline'
   if (/사원|temple|럭키|웡타이/i.test(joinedBlob)) return 'spiritual_calm'
+  if (/아크로|파르테논|유적|ruins|코린트|델파이|박물관|museum|고대/i.test(joinedBlob)) return 'ancient_ruins'
+  if (/산토리니|페리|섬|island|caldera|해변|스노클|snorkel/i.test(joinedBlob)) return 'island_scenic'
+  if (/아라호바|마을|village|산악|mountain|온천/i.test(joinedBlob)) return 'mountain_village'
   return 'generic_tourism'
 }
 
@@ -338,8 +360,9 @@ export function composeHanatourScheduleVibeDescription(
   let desc = sentences.join(' ')
   for (const h of highlights) {
     for (const chunk of hanatourHighlightLeakChunks(h)) {
-      if (desc.includes(chunk)) {
-        desc = HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
+      if (chunk.length >= 6 && desc.includes(chunk)) {
+        const alt = HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile].filter((s) => !s.includes(chunk))
+        desc = (alt.length >= 2 ? alt : HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]).slice(0, 2).join(' ')
         break
       }
     }
@@ -414,13 +437,32 @@ export function formatHanatourTrvlExpnBullet(row: HanatourTrvlExpnRow): string {
   return desc
 }
 
+function isHanatourScheduleHotelSummaryLabel(label: string): boolean {
+  const t = String(label ?? '').trim()
+  if (!t) return true
+  return /등\s*\d+\s*성\s*호텔|4성\s*호텔|5성\s*호텔|호텔\s*\(\s*출발\s*전\s*확정\s*\)/u.test(t)
+}
+
+function hanatourScheduleTitleFallback(
+  hotels: readonly string[],
+  day: number,
+  firstTransport: string,
+): string {
+  const hotel = String(hotels[0] ?? '').trim()
+  if (hotel && !isHanatourScheduleHotelSummaryLabel(hotel)) return hotel
+  if (firstTransport && !isHanatourScheduleHotelSummaryLabel(firstTransport)) return firstTransport
+  return `${day}일차`
+}
+
 export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
   return days.map((d) => {
     const places = dedupeHanatourFactDayPlaces(d.places)
     const highlights = selectHanatourScheduleHighlights(places)
     const firstTransport = (d.transportNote ?? '').split(';').map((s) => s.trim()).find(Boolean) ?? ''
-    const routeText = sanitizeRegisterScheduleRouteText(
+    const joinedBlob = [firstTransport, ...places, ...d.hotels].filter(Boolean).join(' ')
+    const dayKind = classifyHanatourScheduleCardDayKind(d.day, maxDay, joinedBlob)
+    let routeText = sanitizeRegisterScheduleRouteText(
       places.length > 0
         ? places.join(' - ')
         : firstTransport.includes(' - ')
@@ -428,16 +470,17 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
           : null,
       HANATOUR_SCHEDULE_HIGHLIGHT_MAX,
     )
+    if (!routeText && dayKind === 'return_home') {
+      routeText = /인천|ICN|김포|GMP/u.test(joinedBlob) ? '인천' : '인천'
+    }
     const title =
       routeText ||
       (highlights.length > 0 ? highlights.join(' - ') : '') ||
-      firstTransport ||
-      (d.hotels[0] ?? '').trim() ||
-      `${d.day}일차`
+      (dayKind === 'return_home' ? '숙박 없음(귀국)' : '') ||
+      hanatourScheduleTitleFallback(d.hotels, d.day, firstTransport)
     const description =
-      routeText ||
       composeHanatourScheduleVibeDescription(d, maxDay, highlights) ||
-      title
+      `${d.day}일차`
     const hotelText = d.hotels.length > 0 ? d.hotels.join(' / ') : null
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
@@ -722,6 +765,7 @@ function isHanatourItnrNoisePlaceLabel(label: string): boolean {
   if (!t || t.length < 2) return true
   if (HANATOUR_ITNR_PLACE_NOISE_RE.test(t)) return true
   if (HANATOUR_ITNR_META_CARD_RE.test(t)) return true
+  if (/등\s*\d+\s*성\s*호텔|4성\s*호텔/u.test(t)) return true
   if (/^Hong Kong$/i.test(t)) return true
   return false
 }

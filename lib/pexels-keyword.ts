@@ -44,6 +44,7 @@ const DESTINATION_MAP: Record<string, string> = {
   삿포로: 'Sapporo',
   니가타: 'Niigata',
   칸자와: 'Kanazawa',
+  /** 일본 나라(奈良)만 — mapDestination·POI는 koreanHaystackIncludesMapToken으로 부분매칭 차단 */
   나라: 'Nara',
   고베: 'Kobe',
   요코하마: 'Yokohama',
@@ -777,6 +778,9 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   '키나발루 국립공원': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia/i,
   만따나니: /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|Mantanani/i,
   '만따나니 아일랜드': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|Mantanani/i,
+  나라: /(?:奈良|나라시|Nara|일본|Japan|오사카|Osaka|Kyoto|교토)/i,
+  /** Manado·술라웨시 축복 예수상 — 리우 Christ와 분리 */
+  예수상: /(?:리우|리오|Rio\s*de\s*Janeiro|\bRio\b|브라질|Brazil|Corcovado|코르코바도)/i,
 }
 
 function poiKoMappingAllowed(ko: string, text: string): boolean {
@@ -846,8 +850,7 @@ export function mapKoreanPoiSegment(segment: string): string {
   if (!t) return ''
   const compact = t.replace(/\s+/g, '')
   for (const ko of POI_KO_KEYS_SORTED) {
-    const koCompact = ko.replace(/\s+/g, '')
-    if (!t.includes(ko) && !compact.includes(koCompact)) continue
+    if (!koreanHaystackIncludesMapToken(t, ko) && !koreanHaystackIncludesMapToken(compact, ko)) continue
     if (!poiKoMappingAllowed(ko, t)) continue
     return POI_KO_TO_EN[ko] ?? ''
   }
@@ -866,7 +869,7 @@ export function findMappedKoreanPoisInTextByMentionOrder(text: string): Array<{ 
   const out: Array<{ en: string; idx: number }> = []
   const seen = new Set<string>()
   for (const ko of POI_KO_KEYS_SORTED) {
-    if (!t.includes(ko)) continue
+    if (!koreanHaystackIncludesMapToken(t, ko)) continue
     if (!poiKoMappingAllowed(ko, t)) continue
     const en = (POI_KO_TO_EN[ko] ?? '').trim()
     if (!en) continue
@@ -881,6 +884,28 @@ export function findMappedKoreanPoisInTextByMentionOrder(text: string): Array<{ 
 
 function normalize(s: string): string {
   return s.trim().replace(/\s+/g, ' ')
+}
+
+/** 짧은 한글 토큰(나라 등) — "나라의" 같은 부분문자열 오매칭 방지 */
+export function koreanHaystackIncludesMapToken(haystack: string, token: string): boolean {
+  const t = haystack.trim()
+  const ko = token.trim()
+  if (!t || !ko) return false
+  const compactHay = t.replace(/\s+/g, '')
+  const compactKo = ko.replace(/\s+/g, '')
+  if ([...ko].length <= 3) {
+    const escaped = ko.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u').test(t)) return true
+    if (compactKo.length <= 3 && compactHay.includes(compactKo)) {
+      const idx = compactHay.indexOf(compactKo)
+      const before = idx > 0 ? compactHay[idx - 1]! : ''
+      const after = idx + compactKo.length < compactHay.length ? compactHay[idx + compactKo.length]! : ''
+      const isHangul = (ch: string) => /\p{Script=Hangul}/u.test(ch)
+      if (!isHangul(before) && !isHangul(after)) return true
+    }
+    return false
+  }
+  return t.includes(ko) || compactHay.includes(compactKo)
 }
 
 /** `DESTINATION_MAP` 단일 단어 도시·국가명만 — 복합 지명(타지마할·Palas de Rei 등)은 false */
@@ -923,7 +948,7 @@ export function mapDestination(destination: string | null): string {
   const t = normalize(destination)
   if (!t) return ''
   for (const ko of DESTINATION_MAP_KEYS_SORTED) {
-    if (t.includes(ko)) return DESTINATION_MAP[ko] ?? ''
+    if (koreanHaystackIncludesMapToken(t, ko)) return DESTINATION_MAP[ko] ?? ''
   }
   return t
 }

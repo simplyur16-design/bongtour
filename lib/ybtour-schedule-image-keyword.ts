@@ -41,6 +41,10 @@ import {
   shouldFillScheduleMiddleKeyword2Gap,
   type ScheduleAdjacentDayAlloc,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
+import {
+  EUROPE_PRODUCT_DEST_RE,
+  isRegisterScheduleCrossContinentHallucinationKeyword,
+} from '@/lib/register-schedule-cross-continent-keyword-guard'
 
 export type YbtourScheduleImageKeywordRow = {
   day: number
@@ -102,6 +106,7 @@ export function inferYbtourEffectiveProductDestination(
     .flatMap((r) => [r.title, r.description, r.routeText, r.imageKeyword, r.imageKeyword2])
     .filter(Boolean)
     .join('\n')
+  if (EUROPE_PRODUCT_DEST_RE.test(hay)) return 'Europe'
   if (AMERICAS_PRODUCT_DEST_RE.test(hay)) return 'South America'
   if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(hay)) return 'Middle East'
   if (ASIA_PACIFIC_PRODUCT_DEST_RE.test(hay)) return 'Asia Pacific'
@@ -241,24 +246,13 @@ function isYbtourLlmImageKeywordFormatOk(kw: string): boolean {
 export function isYbtourCrossContinentHallucinationKeyword(
   keyword: string,
   productDestination: string | null | undefined,
+  scheduleRows?: readonly YbtourScheduleImageKeywordRow[],
 ): boolean {
-  const dest = String(productDestination ?? '').trim()
-  const raw = String(keyword ?? '').trim()
-  if (!raw || !dest) return false
-  const fin = normalizeToPlaceName(raw)
-  const haystacks = fin && fin !== raw ? [raw, fin] : [raw]
-
-  if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(dest)) {
-    if (haystacks.some((h) => JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE.test(h))) return true
-    if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
-  }
-
-  if (AMERICAS_PRODUCT_DEST_RE.test(dest)) {
-    if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
-  }
-
-  if (!ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return false
-  return CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))
+  return isRegisterScheduleCrossContinentHallucinationKeyword(
+    keyword,
+    productDestination,
+    scheduleRows,
+  )
 }
 
 function tryAcceptYbtourLlmImageKeyword(

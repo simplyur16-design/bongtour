@@ -118,4 +118,21 @@ describe('register-schedule-nz-south-island-nine-day-image-keyword', () => {
     })
     expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Kawarau|Arrowtown|Queenstown/i)
   })
+
+  it('hanatour PNP101 live shape — day1·day9 filler routeText, hub-only description', () => {
+    const filler =
+      '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.'
+    const rows = NZ_SOUTH_ISLAND_NINE_DAY.map((row) => {
+      if (row.day === 1) return { ...row, routeText: filler, description: '' }
+      if (row.day === 9) return { ...row, routeText: filler, description: '오클랜드' }
+      return row
+    })
+    const out = applyRegisterScheduleImageKeywordsBySupplier(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '뉴질랜드',
+      productTitle: '뉴질랜드 남섬',
+    })
+    expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Kawarau|Arrowtown|Queenstown|Nevis/i)
+    expect(String(out.find((r) => r.day === 9)?.imageKeyword ?? '')).not.toBe('')
+  })
 })

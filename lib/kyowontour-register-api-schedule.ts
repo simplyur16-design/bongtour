@@ -28,6 +28,8 @@ const KYOWONTOUR_AIRPORT_CITY: Record<string, string> = {
 export function stripKyowontourScheduleRowName(name: string): string {
   return String(name ?? '')
     .replace(/^[\s▶■◎●]+/, '')
+    .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
+    .replace(/▷|■|⭐/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }

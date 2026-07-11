@@ -54,7 +54,17 @@ assertIncludes(resolveGeo, 'resolveMegaMenuGeoForRegister', 'register-resolve-me
 assertIncludes(syncTags, 'REGRESSION-FREEZE[supplier-register-mega-menu-geo]', 'sync-product-geo-tags')
 assertIncludes(syncTags, 'syncProductGeoTagsForRegister', 'sync-product-geo-tags')
 assertIncludes(syncTags, 'megaMenuSummaryNeedsOperatorReview', 'sync-product-geo-tags')
+assertIncludes(syncTags, 'countryTagKeys', 'sync-product-geo-tags')
+assertIncludes(syncTags, 'REGRESSION-FREEZE[register-mega-menu-auto-classify]', 'sync-product-geo-tags')
+assertIncludes(resolveGeo, 'enrichRegisterGeoInput', 'register-resolve-mega-menu-geo')
+assertIncludes(resolveGeo, 'REGRESSION-FREEZE[register-mega-menu-auto-classify]', 'register-resolve-mega-menu-geo')
+assertIncludes(summary, 'inferMegaMenuSubgroupFromRegisterTags', 'register-mega-menu-geo-summary')
+assertIncludes(summary, 'REGRESSION-FREEZE[register-mega-menu-auto-classify]', 'register-mega-menu-geo-summary')
 assertIncludes(summary, 'megaMenuPlacementForCityKey', 'register-mega-menu-geo-summary')
+
+const postAugment = read('lib/register-parse-post-augment.ts')
+assertIncludes(postAugment, 'applyRegisterPostAugmentSchedulePipeline', 'register-parse-post-augment')
+assertIncludes(postAugment, 'applyRegisterScheduleImageKeywordsBySupplier', 'register-parse-post-augment')
 
 for (const rel of SUPPLIER_FLOWS) {
   const abs = path.join(ROOT, rel)
@@ -67,6 +77,7 @@ for (const rel of SUPPLIER_FLOWS) {
   for (const needle of REQUIRED_IN_FLOW) {
     assertIncludes(flow, needle, `${label} register flow`)
   }
+  assertIncludes(flow, 'applyRegisterPostAugmentSchedulePipeline', `${label} register flow`)
   assertExcludes(flow, 'syncProductCountryTags(', `${label} register flow`)
   const usesLegacySync =
     flow.includes('syncProductGeoTags(') && !flow.includes('syncProductGeoTagsForRegister')

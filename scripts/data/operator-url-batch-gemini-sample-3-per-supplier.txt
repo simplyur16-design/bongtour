@@ -1,0 +1,21 @@
+# Gemini 포함 실등록 샘플 — 공급사별 3건 (83건 배치에서 선정)
+# ybtour ×3
+https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AABG001&evCd=AVP8307-260715VJ01
+https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAC002&evCd=EMP5273-260804KE00
+https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAGD002&evCd=NHP1025-260712KE00
+# lottetour ×3
+https://www.lottetour.com/evtDetail/826/857/1411/1412?evtCd=B05A260729KE000
+https://www.lottetour.com/evtDetail/826/857/2330/2343?evtCd=B15A2607307C000
+https://www.lottetour.com/evtDetail/826/860/1142/1143?evtCd=G03A260718KE000
+# kyowontour ×3
+https://www.kyowontour.com/goods/goodsEventDetail?tourCode=CTP518260711TW01&menuCode=M510501&brandId=3
+https://www.kyowontour.com/goods/goodsEventDetail?tourCode=AWP902260724KE01&menuCode=M510901&brandId=0
+https://www.kyowontour.com/goods/goodsEventDetail?tourCode=ENP121260713AY01&menuCode=M51010701&brandId=3
+# hanatour ×3
+https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=AAP2022608017CA&prePage=major-products
+https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=HCP187260801TWJ&prePage=major-products
+https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=ENP167260802LOB&prePage=major-products
+# modetour ×3
+https://www.modetour.com/package/104135387
+https://www.modetour.com/package/107152754
+https://www.modetour.com/package/105263432

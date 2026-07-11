@@ -3,6 +3,7 @@
  * B2C API(placeHeader·scheduleHotel·ortherActions) 전용. 공급사 공용 모듈로 합치지 않는다.
  *
  * REGRESSION-FREEZE[modetour-register-api-schedule]: modetourFactDaysToRegisterSchedule — manifest
+ * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: description vibe-only — manifest
  */
 import { classifyModetourScheduleCardDayKind } from '@/lib/modetour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
@@ -18,7 +19,7 @@ import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 const MODETOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
 const MODETOUR_HIGHLIGHT_NOISE_RE =
-  /출발\s*전\s*준비|준비\s*사항|변동이\s*있을\s*경우|홈페이지|이메일|알림톡|기내박|총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|출발\s*\d+\s*시간\s*전|수하물|탑승권|터미널|연결\s*수속|입국신고|사전\s*입국|온라인\s*입국|입국\s*유의|등록\s*방법|작성\s*(?:안내|요령)|패키지\s*개별\s*일정|개별\s*일정\s*불가|현지\s*미팅|미팅\s*안내|안내\s*사항|유의\s*사항|QR\s*코드|이민국\s*신청|대행으로\s*진행|모바일\s*.*입국/i
+  /출발\s*전\s*준비|준비\s*사항|여행\s*준비\s*가이드|비즈니스\s*석|프라이빗\s*전용|변동이\s*있을\s*경우|홈페이지|이메일|알림톡|기내박|총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|출발\s*\d+\s*시간\s*전|수하물|탑승권|터미널|연결\s*수속|입국신고|사전\s*입국|온라인\s*입국|입국\s*유의|등록\s*방법|작성\s*(?:안내|요령)|패키지\s*개별\s*일정|개별\s*일정\s*불가|현지\s*미팅|미팅\s*안내|안내\s*사항|유의\s*사항|QR\s*코드|이민국\s*신청|대행으로\s*진행|모바일\s*.*입국|골든패스|익스프레스\s*탑승|선택\s*관광|\$\s*\d|(?:전신)?마사지\s*\(\s*\d+\s*분\s*\)|입국\s*조건|쇼\s*명|티파니|알카자/i
 
 const MODETOUR_PLACEHOLDER_HOTEL_RE =
   /총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|변동이\s*있을\s*경우|홈페이지|이메일|알림톡/i
@@ -38,6 +39,11 @@ function stripModetourInlineHtml(s: string): string {
 
 function cleanModetourHighlightLabel(label: string): string {
   return stripScheduleLabel(stripModetourInlineHtml(label))
+    .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
+    .replace(/▷|■|⭐/g, ' ')
+    .replace(/\[[^\]]{2,64}\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function normalizeModetourHighlightKey(label: string): string {
@@ -107,7 +113,7 @@ function scoreModetourHighlight(label: string): number {
   const t = cleanModetourHighlightLabel(label)
   if (t.length < 3) return -10
   if (/스피드\s*보트|보트\s*이동|공항\s*이동/i.test(t)) return 3
-  if (/^몰디브$|^인천$|^싱가포르$/i.test(t)) return 1
+  if (/^몰디브$|^싱가포르$/i.test(t)) return 1
   if (t.length <= 36) return 6
   return 4
 }
@@ -269,16 +275,6 @@ export function modetourFactDaysToRegisterSchedule(
         .split(';')
         .map((s) => s.trim())
         .find(Boolean) ?? ''
-    const title =
-      (highlights.length > 0 ? highlights.join(' - ') : '') ||
-      firstTransport ||
-      normalizeModetourScheduleHotelText(d.hotels[0], opts) ||
-      `${d.day}일차`
-    const description = opts?.registerAirHotelFree
-      ? ''
-      : (sanitizeRegisterScheduleRouteText(places.length > 0 ? places.join(' - ') : null) ||
-          composeModetourScheduleVibeDescription(d, maxDay, highlights) ||
-          title)
     const routeText =
       sanitizeRegisterScheduleRouteText(
         places.length > 0
@@ -288,6 +284,16 @@ export function modetourFactDaysToRegisterSchedule(
             : null,
         MODETOUR_SCHEDULE_HIGHLIGHT_MAX,
       )
+    const title =
+      routeText ||
+      sanitizeRegisterScheduleRouteText(highlights.join(' - '), MODETOUR_SCHEDULE_HIGHLIGHT_MAX) ||
+      firstTransport ||
+      normalizeModetourScheduleHotelText(d.hotels[0], opts) ||
+      `${d.day}일차`
+    const description = opts?.registerAirHotelFree
+      ? ''
+      : composeModetourScheduleVibeDescription(d, maxDay, highlights) ||
+          `${d.day}일차`
     const hotelText =
       d.hotels
         .map((h) => normalizeModetourScheduleHotelText(h, opts))

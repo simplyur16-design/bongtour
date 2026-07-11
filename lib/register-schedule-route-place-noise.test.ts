@@ -4,8 +4,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   extractRegisterScheduleRoutePlaceLabel,
+  isRegisterScheduleDomesticHubRouteSegment,
   isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
+  stripRegisterScheduleRouteSegmentLodgingSuffix,
 } from '@/lib/register-schedule-route-place-noise'
 import { joinLottetourScheduleRouteText } from '@/lib/lottetour-register-api-schedule'
 import { buildKyowontourScheduleRouteTextFromTabRows } from '@/lib/kyowontour-register-api-schedule'
@@ -14,6 +16,31 @@ import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-
 import type { KyowontourScheduleRowParsed } from '@/lib/kyowontour-tour-event-tab-data'
 
 describe('register schedule route place noise', () => {
+  it('blocks hotel-grade suffix — keeps POI name for routeText/keywords', () => {
+    expect(extractRegisterScheduleRoutePlaceLabel('메테오라 등 4성호텔')).toBe('메테오라')
+    expect(stripRegisterScheduleRouteSegmentLodgingSuffix('메테오라 등 4성호텔')).toBe('메테오라')
+    expect(sanitizeRegisterScheduleRouteText('메테오라 등 4성호텔')).toBe('메테오라')
+  })
+
+  it('blocks domestic hub segments — overseas routeText is tourism chain only', () => {
+    expect(isRegisterScheduleDomesticHubRouteSegment('인천')).toBe(true)
+    expect(isRegisterScheduleDomesticHubRouteSegment('Incheon')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('인천')).toBe(false)
+    expect(sanitizeRegisterScheduleRouteText('인천 - 청도 - 잔교 - 인천')).toBe('청도 - 잔교')
+    expect(sanitizeRegisterScheduleRouteText('인천 - 돗토리 - 미즈키시게루 로드')).toBe(
+      '돗토리 - 미즈키시게루 로드',
+    )
+  })
+
+  it('blocks airport·province·optional-tour segments', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('청도국제공항')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('산동성')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('전신마사지 (60분)')).toBe(true)
+    expect(
+      sanitizeRegisterScheduleRouteText('청도 - 산동성 - 청도국제공항 - 5·4광장 - 전신마사지 (60분)'),
+    ).toBe('청도 - 5·4광장')
+  })
+
   it('blocks airline carrier segments — not tourism landmarks', () => {
     expect(isRegisterScheduleRoutePlaceNoise('에어프레미아 항공')).toBe(true)
     expect(isRegisterScheduleRoutePlaceNoise('에어프리미아')).toBe(true)
@@ -44,7 +71,7 @@ describe('register schedule route place noise', () => {
       '한국-일본 여행 입국시 관련 안내',
       '미즈키시게루 로드',
     ])
-    expect(chain).toBe('인천 - 돗토리 - 미즈키시게루 로드')
+    expect(chain).toBe('돗토리 - 미즈키시게루 로드')
     expect(chain).not.toMatch(/입국|관련\s*안내|한국-일본\s*여행/)
   })
 
@@ -55,7 +82,7 @@ describe('register schedule route place noise', () => {
       { step: 3, type: '관광', nameKo: '한국-일본 여행 입국시 관련 안내', tmContent: '' },
       { step: 4, type: '관광', nameKo: '미즈키시게루 로드', tmContent: '' },
     ]
-    expect(buildKyowontourScheduleRouteTextFromTabRows(rows)).toBe('인천 - 돗토리 - 미즈키시게루 로드')
+    expect(buildKyowontourScheduleRouteTextFromTabRows(rows)).toBe('돗토리 - 미즈키시게루 로드')
   })
 
   it('extractRegisterScheduleRoutePlaceLabel — 포르투갈 마케팅 카드명', () => {
@@ -73,7 +100,7 @@ describe('register schedule route place noise', () => {
       sanitizeRegisterScheduleRouteText(
         '인천 - 돗토리 - 한국-일본 여행 입국시 관련 안내 - 미즈키시게루 로드',
       ),
-    ).toBe('인천 - 돗토리 - 미즈키시게루 로드')
+    ).toBe('돗토리 - 미즈키시게루 로드')
   })
 
   it('sanitizeRegisterScheduleRouteText preserves comma inside route segment (대,소석림)', () => {

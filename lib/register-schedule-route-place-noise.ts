@@ -21,11 +21,31 @@ const ROUTE_CMS_ASSET_SUFFIX_RE = /-\d{5,}$/i
 const ROUTE_MARKETING_EPITHET_RE =
   /(?:땅이\s*끝나고|살고싶어|최고의|휴양지|휴양도시|동화속\s*마을|발현의\s*도시|기도의\s*도시|낭만을|건국의\s*도시|아름다운|천국의|에메랄드|대항해\s*시대|세상의\s*끝|땅끝마을|의\s*도시)/u
 
+/** BongTour 해외 패키지 — routeText는 관광지 체인만. 국내 출발·귀국 허브 제외. */
+const REGISTER_SCHEDULE_DOMESTIC_HUB_KO_RE =
+  /^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u
+
+const REGISTER_SCHEDULE_DOMESTIC_HUB_EN_RE =
+  /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i
+
+export function isRegisterScheduleDomesticHubRouteSegment(label: string): boolean {
+  const t = String(label ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return false
+  if (REGISTER_SCHEDULE_DOMESTIC_HUB_KO_RE.test(t)) return true
+  if (REGISTER_SCHEDULE_DOMESTIC_HUB_EN_RE.test(t)) return true
+  return false
+}
+
 /** ITNR·tmTitle 마케팅 접두/접미 제거 — 전 공급사 routeText a–g SSOT */
 export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
   return String(raw ?? '')
-    .replace(/^[\s·▪▶●\-–—'"]+/, '')
+    .replace(/^[\s·▪▶●▷\-–—'"]+/, '')
     .replace(/[''"]+$/g, '')
+    .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
+    .replace(/▷|■|⭐|🌅|🚙|🚤|🔥/g, ' ')
+    .replace(/\[[^\]]{2,64}\]/g, ' ')
     .replace(ROUTE_CMS_ASSET_SUFFIX_RE, '')
     .replace(/\s*\(NEW\)\s*/gi, ' ')
     .replace(/\s+/g, ' ')
@@ -96,10 +116,29 @@ export function expandRegisterScheduleRoutePlaceCandidates(raw: string): string[
   return out
 }
 
+/** `메테오라 등 4성호텔` → `메테오라` — routeText·imageKeyword 세그먼트 SSOT */
+export function stripRegisterScheduleRouteSegmentLodgingSuffix(seg: string): string {
+  return String(seg ?? '')
+    .replace(/\s*등\s*\d+\s*성\s*호텔.*$/u, '')
+    .replace(/\s*\/\s*(?:준)?\d+\s*성\s*호텔.*$/u, '')
+    .replace(/\s*(?:어기|Abbey)\s*호텔.*$/iu, '')
+    .replace(/\s*호텔\s*$/u, '')
+    .replace(/\s*\(\s*출발\s*전\s*확정\s*\)\s*$/u, '')
+    .trim()
+}
+
 /** 마케팅 카드명·cms 라벨 → 순수 장소명 (없으면 null) */
 export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | null {
   const t0 = cleanRegisterScheduleRoutePlaceLabel(raw)
   if (!t0 || isRegisterScheduleRoutePlaceNoise(t0)) return null
+
+  const hotelPoi = t0.match(/^(.{2,32})\s*(?:등\s*\d+\s*성\s*호텔|\/\s*(?:준)?\d+\s*성\s*호텔)/u)
+  if (hotelPoi?.[1]) {
+    return extractRegisterScheduleRoutePlaceLabel(hotelPoi[1].trim())
+  }
+  if (/등\s*\d+\s*성\s*호텔/u.test(t0) && !/(?:사원|궁|박물관|유적|폭포|성|타워|수도원|대성당)/u.test(t0)) {
+    return null
+  }
 
   const fairyVillage = t0.match(/동화속\s*마을\s+(.+)$/u)
   if (fairyVillage?.[1]) {
@@ -153,9 +192,15 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
+  if (/^\d+일차$/u.test(t)) return true
   if (/^(?:뉴질랜드|호주|일본|중국|태국|베트남)\s*.+(?:관광|투어)$/u.test(t)) return true
   if (/하이라이트\s*_/u.test(t)) return true
   if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
+  if (/^.{1,28}국제공항$/u.test(t) && !/(?:박물관|역사|항공\s*박물관)/u.test(t)) return true
+  if (/^.{2,8}성$/u.test(t) && /(?:산동|강소|요녕|하북|하남|광동|절강|안후이|길림|사천|운남|신장|티베트|몽골|태국|베트남)/u.test(t)) {
+    return true
+  }
+  if (/선택\s*관광|\$\s*\d|(?:전신)?마사지\s*\(\s*\d+\s*분\s*\)|옵션\s*투어|추천\s*선택/u.test(t)) return true
   if (
     /하루\s*동안\s*여러\s*장면|알찬\s*동선|전체적인\s*흐름과\s*분위기|여행의\s*컨셉|귀국길로\s*이어지|이동\s*중심의\s*마무리|현지\s*도착\s*후\s*첫날|보기와\s*걷기가\s*균형|보기와\s*이동이\s*균형/i.test(
       t,
@@ -165,6 +210,16 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   }
   if (/이미지$/u.test(t) && !/(?:궁|성|사원|박물관|수도원|종탑|대성당)/u.test(t)) return true
   if (/^(?:모든\s*지역|엄선된)/u.test(t)) return true
+  if (/호텔\s*(?:체크\s*아웃|개별\s*조식)|체크\s*아웃\s*후/u.test(t)) return true
+  if (/날짜\s*변경선|타사\s*비교|비즈니스\s*석|프라이빗\s*전용|여행\s*준비\s*가이드|골든패스|가이드\s*미팅|국경\s*통과/u.test(t)) return true
+  if (/^호텔(?:\s*이동|\s*조식|\s*투숙)/u.test(t)) return true
+  if (/^공항(?:\s*도착|\s*출발|\s*경유)?$/u.test(t) && t.length <= 12) return true
+  if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움/u.test(t)) return true
+  if (/블루스타|Blue\s*Star\s*Delos|수완나(?:품|폼)|B게이트|출입구/u.test(t)) return true
+  if (/자유일정\s*추천|전통\s*마사지|빅\s*씨|Big\s*C/u.test(t) && t.length <= 48) return true
+  if (/^Travel\s*Tip$/i.test(t)) return true
+  if (/^유락죠\s*온천/i.test(t)) return true
+  if (/정규\s*\d+\s*성\s*급\s*호텔|성\s*급\s*호텔/u.test(t)) return true
   return false
 }
 
@@ -175,12 +230,13 @@ export function isRegisterScheduleGenericTourismFillerRouteText(routeText: strin
   return /하루\s*동안\s*여러\s*장면|알찬\s*동선|전체적인\s*흐름과\s*분위기|여행의\s*컨셉/i.test(t)
 }
 
-/** routeText·places 배열에서 행정/UI 세그먼트 제거 */
+/** routeText·places 배열에서 행정/UI·국내 출발 허브 세그먼트 제거 */
 export function filterRegisterScheduleRoutePlaceSegments(segments: readonly string[]): string[] {
   const out: string[] = []
   for (const raw of segments) {
     for (const label of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) {
       if (!label || isRegisterScheduleRoutePlaceNoise(label)) continue
+      if (isRegisterScheduleDomesticHubRouteSegment(label)) continue
       out.push(label)
     }
   }

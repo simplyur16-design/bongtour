@@ -149,10 +149,14 @@ mustInclude('lib/register-schedule-image-keywords-apply.ts', [
 ])
 mustInclude('lib/register-parse-post-augment.ts', [
   'REGRESSION-FREEZE[register-post-augment-schedule-ssot]',
+  'REGRESSION-FREEZE[register-schedule-description-vibe-ssot]',
   'applyRegisterScheduleImageKeywordsBySupplier',
-  'mergePostAugmentScheduleImageKeywords',
 ])
 const postAugmentSrc = read('lib/register-parse-post-augment.ts')
+assert.ok(
+  !postAugmentSrc.includes('mergePostAugmentScheduleImageKeywords'),
+  'post-augment must not preserve pre-augment imageKeywords (routeText SSOT)',
+)
 for (const bypass of [
   'applyModetourScheduleImageKeywordsToRows',
   'applyHanatourScheduleImageKeywordsToRows',

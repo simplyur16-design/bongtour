@@ -1,6 +1,7 @@
 /**
  * ProductCityTag SSOT — browse·메가메뉴 도시/열(`menuGroup`) 필터.
  * REGRESSION-FREEZE[supplier-register-mega-menu-geo]: allowedCountryKeys — countryTag 밖 cityTag 금지 — manifest
+ * REGRESSION-FREEZE[register-mega-menu-city-country-fallback]: resolveRegisterDisplayCountryKey — manifest
  */
 import type { Prisma } from '@prisma/client'
 import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
@@ -70,7 +71,27 @@ async function filterCityKeysInMaster(
   return ordered
 }
 
-/** haystack 오매칭 차단 — 허용 countryKey 밖 도시 cityTag 금지 */
+/** geo.countryKey·countryTag 없을 때 cityTag 첫 도시의 마스터 countryKey */
+export async function resolveRegisterDisplayCountryKey(
+  db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  geo: ProductLocationKeyPrismaFields,
+  cityKeys: readonly string[],
+  countryTagKeys?: readonly string[],
+): Promise<string | null> {
+  const fromGeo = geo.countryKey?.trim()
+  if (fromGeo) return fromGeo
+  const tags = [...new Set((countryTagKeys ?? []).map((k) => k.trim()).filter(Boolean))]
+  if (tags.length >= 1) return tags[0]!
+  const keys = [...new Set(cityKeys.map((k) => k.trim()).filter(Boolean))]
+  if (!keys.length) return null
+  const row = await db.city.findFirst({
+    where: { cityKey: { in: keys } },
+    select: { countryKey: true },
+    orderBy: { sortOrder: 'asc' },
+  })
+  return row?.countryKey?.trim() || null
+}
+
 async function filterCityKeysToAllowedCountries(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
   allowedCountryKeys: readonly string[],

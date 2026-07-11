@@ -43,10 +43,31 @@ import { scheduleTabParsedToRegisterDays } from '../lib/kyowontour-register-sche
 {
   const tab = parseKyowontourScheduleTabDetail(CSP302_SCHEDULE_TAB2_DETAIL_FIXTURE)
   const days = scheduleTabParsedToRegisterDays(tab)
+  const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
   for (const d of days) {
     const rt = String(d.routeText ?? '')
-    assert.match(rt, /\s-\s/, `kyowontour day ${d.day} routeText must be a-b chain: ${rt}`)
-    assert.equal(d.description?.split('\n')[0]?.trim(), rt, `kyowontour day ${d.day} description line1 = routeText`)
+    const isMiddle = d.day > 1 && d.day < maxDay
+    if (isMiddle) {
+      assert.match(rt, /\s-\s/, `kyowontour day ${d.day} routeText must be a-b chain: ${rt}`)
+    } else {
+      assert.ok(rt.length >= 2, `kyowontour day ${d.day} routeText must not be empty: ${rt}`)
+    }
+    const hasDomesticHub = /(?:^|\s-\s)(?:인천|김포|부산|ICN|GMP)(?:\s|$|-)/u.test(rt)
+    if (hasDomesticHub) {
+      const departureForeignChain =
+        d.day === 1 &&
+        /^(?:인천|김포|부산|ICN|GMP)\s*-\s*/u.test(rt) &&
+        rt.split(/\s+-\s+/).filter(Boolean).length >= 2
+      assert.ok(
+        departureForeignChain,
+        `kyowontour day ${d.day} domestic hub only on day1 departure→destination chain: ${rt}`,
+      )
+    }
+    assert.notEqual(d.description?.trim(), rt, `kyowontour day ${d.day} description must not copy routeText`)
+    assert.ok(
+      (d.description?.length ?? 0) >= 20,
+      `kyowontour day ${d.day} description must be vibe prose (2~3 sentences)`,
+    )
   }
 }
 

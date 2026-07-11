@@ -41,6 +41,14 @@ describe('schedule-segment-poi-oceania-japan-europe', () => {
     expect(fromDict || fromSpot || fromCity).toMatch(re)
   })
 
+  it('이탈리아·장가계 POI — 아씨시·폼페이·십리화랑·보봉호', () => {
+    expect(firstMatchingScheduleSpotEn('아씨시')).toMatch(/Assisi/i)
+    expect(firstMatchingScheduleSpotEn('폼페이')).toMatch(/Pompeii/i)
+    expect(firstMatchingScheduleSpotEn('십리화랑')).toMatch(/Ten Mile Gallery/i)
+    expect(firstMatchingScheduleSpotEn('보봉호')).toMatch(/Baofeng Lake/i)
+    expect(firstMatchingScheduleSpotEn('황룡동굴')).toMatch(/Yellow Dragon Cave/i)
+  })
+
   it('NZ/AU city regex — 오클랜드·퀸즈타운', () => {
     expect(firstMatchingScheduleCityEn('오클랜드')).toMatch(/Auckland/i)
     expect(firstMatchingScheduleCityEn('퀸즈타운')).toMatch(/Queenstown/i)

@@ -9,7 +9,7 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
-import { isRegisterScheduleRoutePlaceNoise, isRegisterScheduleGenericTourismFillerRouteText } from '@/lib/register-schedule-route-place-noise'
+import { isRegisterScheduleRoutePlaceNoise, isRegisterScheduleGenericTourismFillerRouteText, isRegisterScheduleDomesticHubRouteSegment, stripRegisterScheduleRouteSegmentLodgingSuffix, filterRegisterScheduleRoutePlaceSegments } from '@/lib/register-schedule-route-place-noise'
 import {
   acceptScheduleTourismImageKeywordOrEmpty,
   effectiveRouteTextForScheduleKeywordRow,
@@ -110,7 +110,7 @@ export function routeTextSegmentToImageKeyword(
   seg: string,
   opts?: { allowCity?: boolean; routeText?: string | null },
 ): string {
-  const t = String(seg ?? '').trim()
+  const t = stripRegisterScheduleRouteSegmentLodgingSuffix(String(seg ?? '').trim())
   if (!t || isRegisterScheduleRoutePlaceNoise(t) || isNonLandmarkRouteTextSegment(t)) return ''
   if (/^[A-Za-z][A-Za-z0-9\s,.'-]{1,}$/.test(t) && !/[\uAC00-\uD7AF]/.test(t)) {
     return acceptRouteSegmentKeyword(t, opts)
@@ -164,9 +164,37 @@ export function collectRouteTextOrderedImageKeywords(routeText: string | null | 
   return collectRouteTextKeywords(routeText, { allowCity: true })
 }
 
-/** routeText — 명소·랜드마크 세그먼트만(도시-only 세그먼트 제외) */
+/** routeText 전체 regex 스캔 — 세그먼트 분리 전 명소 등장 순서(중복 제거) */
+export function collectRouteTextSpotScanLandmarkKeywords(routeText: string | null | undefined): string[] {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return []
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const hit of findAllScheduleSpotMatchesInText(raw)) {
+    if (isGenericCityHubSpotEn(hit.en)) continue
+    const kw = acceptRouteSegmentKeyword(hit.en, { allowCity: false })
+    if (!kw || rejectRouteKeywordCandidate(kw)) continue
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || seen.has(nk)) continue
+    seen.add(nk)
+    out.push(kw)
+  }
+  return out
+}
+
+/** routeText — 명소·랜드마크 세그먼트 + 전체 regex 스캔(세그먼트 순서 우선) */
 export function collectRouteTextOrderedLandmarkKeywords(routeText: string | null | undefined): string[] {
-  return collectRouteTextKeywords(routeText, { allowCity: false })
+  const fromSegments = collectRouteTextKeywords(routeText, { allowCity: false })
+  const fromScan = collectRouteTextSpotScanLandmarkKeywords(routeText)
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const kw of [...fromSegments, ...fromScan]) {
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || seen.has(nk)) continue
+    seen.add(nk)
+    out.push(kw)
+  }
+  return out
 }
 
 function pickFirstUnused(
@@ -185,6 +213,31 @@ function pickFirstUnused(
   return ''
 }
 
+function pickLastPreferLandmark(
+  ordered: readonly string[],
+  used: ReadonlySet<string>,
+  excludePrimary?: string,
+): string {
+  const ex = normScheduleImageKeywordKey(excludePrimary ?? '')
+  const landmarks = ordered.filter((kw) => kw && isLikelyTourismLandmarkKeyword(kw))
+  for (let i = landmarks.length - 1; i >= 0; i--) {
+    const kw = String(landmarks[i] ?? '').trim()
+    if (!kw || rejectRouteKeywordCandidate(kw)) continue
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || used.has(nk) || (ex && nk === ex)) continue
+    return kw
+  }
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const kw = String(ordered[i] ?? '').trim()
+    if (!kw || rejectRouteKeywordCandidate(kw)) continue
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || used.has(nk) || (ex && nk === ex)) continue
+    if (isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) continue
+    return kw
+  }
+  return ''
+}
+
 function pickFirstPreferLandmark(
   ordered: readonly string[],
   used: ReadonlySet<string>,
@@ -192,6 +245,65 @@ function pickFirstPreferLandmark(
 ): string {
   const landmarks = ordered.filter((kw) => kw && isLikelyTourismLandmarkKeyword(kw))
   return pickFirstUnused(landmarks, used, excludePrimary) || pickFirstUnused(ordered, used, excludePrimary)
+}
+
+function pickMiddleDayPrimaryKeyword(
+  routeLandmarks: readonly string[],
+  routeOrdered: readonly string[],
+  routeText?: string | null,
+): string {
+  const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(
+    splitRouteTextPlaceSegments(routeText),
+  ).length
+  const lead = String(routeLandmarks[0] ?? routeOrdered[0] ?? '').trim()
+  const cityToLandmarkPair =
+    tourismSegCount === 2 &&
+    lead.length > 0 &&
+    !isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(lead))
+  if (cityToLandmarkPair) {
+    return (
+      pickLastPreferLandmark(routeLandmarks, new Set()) ||
+      pickLastPreferLandmark(routeOrdered, new Set()) ||
+      pickFirstPreferLandmark(routeLandmarks, new Set())
+    )
+  }
+  if (routeLandmarks.length >= 3) {
+    const firstNk = normScheduleImageKeywordKey(String(routeLandmarks[0] ?? ''))
+    const lastNk = normScheduleImageKeywordKey(String(routeLandmarks[routeLandmarks.length - 1] ?? ''))
+    if (firstNk && firstNk === lastNk) {
+      for (let i = 1; i < routeLandmarks.length - 1; i++) {
+        const kw = String(routeLandmarks[i] ?? '').trim()
+        if (kw && isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(kw))) return kw
+      }
+      for (let i = 1; i < routeLandmarks.length - 1; i++) {
+        const kw = String(routeLandmarks[i] ?? '').trim()
+        if (kw && !isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) return kw
+      }
+    }
+  }
+  const tourismSegs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
+  if (tourismSegs.length >= 3) {
+    const firstKw = routeTextSegmentToImageKeyword(tourismSegs[0]!, { allowCity: true, routeText })
+    const lastKw = routeTextSegmentToImageKeyword(tourismSegs[tourismSegs.length - 1]!, {
+      allowCity: true,
+      routeText,
+    })
+    if (
+      firstKw &&
+      lastKw &&
+      normScheduleImageKeywordKey(firstKw) === normScheduleImageKeywordKey(lastKw)
+    ) {
+      for (let i = 1; i < tourismSegs.length - 1; i++) {
+        const kw = routeTextSegmentToImageKeyword(tourismSegs[i]!, { allowCity: true, routeText })
+        if (kw && !rejectRouteKeywordCandidate(kw)) return kw
+      }
+    }
+  }
+  return (
+    pickFirstPreferLandmark(routeLandmarks, new Set()) ||
+    pickFirstUnused(routeLandmarks, new Set()) ||
+    pickFirstPreferLandmark(routeOrdered, new Set())
+  )
 }
 
 function pickSecondRouteKeyword(
@@ -230,6 +342,77 @@ function pickSecondRouteKeyword(
   return ''
 }
 
+/** middle day — routeText 2+ 세그먼트면 primary와 다른 세그먼트 키워드(도시 허용) */
+export function pickSecondSegmentKeywordFromRouteText(
+  routeText: string | null | undefined,
+  primary: string,
+  used: ReadonlySet<string>,
+): string {
+  const segments = splitRouteTextPlaceSegments(routeText)
+    .map((s) => stripRegisterScheduleRouteSegmentLodgingSuffix(s))
+    .filter(
+      (s) =>
+        s.length >= 2 &&
+        !isRegisterScheduleRoutePlaceNoise(s) &&
+        !isRegisterScheduleDomesticHubRouteSegment(s),
+    )
+  if (segments.length < 2) return ''
+  const pk = normScheduleImageKeywordKey(primary)
+  let primaryIdx = -1
+  for (let i = 0; i < segments.length; i++) {
+    const kw = routeTextSegmentToImageKeyword(segments[i]!, { allowCity: true, routeText })
+    if (kw && normScheduleImageKeywordKey(kw) === pk) {
+      primaryIdx = i
+      break
+    }
+  }
+  const trySegment = (seg: string): string => {
+    const kw = routeTextSegmentToImageKeyword(seg, { allowCity: true, routeText })
+    if (!kw || rejectRouteKeywordCandidate(kw)) return ''
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || nk === pk || used.has(nk)) return ''
+    return kw
+  }
+  if (primaryIdx >= 0) {
+    for (let i = primaryIdx + 1; i < segments.length; i++) {
+      const kw = trySegment(segments[i]!)
+      if (kw) return kw
+    }
+    const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(segments).length
+    if (tourismSegCount === 2) {
+      for (let i = 0; i < primaryIdx; i++) {
+        const kw = trySegment(segments[i]!)
+        if (kw) return kw
+      }
+    }
+  }
+  for (const seg of segments) {
+    const kw = trySegment(seg)
+    if (kw) return kw
+  }
+  return ''
+}
+
+function predictRowReservedPrimaryKeyword(
+  row: RegisterScheduleRouteTextKeywordRow,
+  day: number,
+  maxDay: number,
+  activeDays: number,
+): string {
+  const routeLandmarks = collectRouteTextOrderedLandmarkKeywords(row.routeText)
+  const routeOrdered = collectRouteTextOrderedImageKeywords(row.routeText)
+  const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+  if (slot === 'middle') {
+    return pickMiddleDayPrimaryKeyword(routeLandmarks, routeOrdered, row.routeText)
+  }
+  return (
+    pickFirstPreferLandmark(routeLandmarks, new Set()) ||
+    pickFirstUnused(routeLandmarks, new Set()) ||
+    pickFirstPreferLandmark(routeOrdered, new Set()) ||
+    ''
+  )
+}
+
 function pickReturnLandmarkWhenRouteTextMissing<T extends RegisterScheduleRouteTextKeywordRow>(
   day: number,
   sorted: readonly T[],
@@ -252,17 +435,61 @@ function pickReturnLandmarkWhenRouteTextMissing<T extends RegisterScheduleRouteT
   return ''
 }
 
+/** 출발일 forward-fill — 후속일 primary·kw2 예약 키 (dedupe adjacent SSOT) */
+export function predictRowReservedKeywordKeysForForwardFill(
+  row: RegisterScheduleRouteTextKeywordRow,
+  day: number,
+  maxDay: number,
+  activeDays: number,
+): Set<string> {
+  return predictRowReservedKeywordKeys(row, day, maxDay, activeDays)
+}
+
+function predictRowReservedKeywordKeys(
+  row: RegisterScheduleRouteTextKeywordRow,
+  day: number,
+  maxDay: number,
+  activeDays: number,
+): Set<string> {
+  const keys = new Set<string>()
+  const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+  const routeLandmarks = collectRouteTextOrderedLandmarkKeywords(row.routeText)
+  const routeOrdered = collectRouteTextOrderedImageKeywords(row.routeText)
+  const primary =
+    slot === 'middle'
+      ? pickMiddleDayPrimaryKeyword(routeLandmarks, routeOrdered, row.routeText)
+      : predictRowReservedPrimaryKeyword(row, day, maxDay, activeDays)
+  if (primary) keys.add(normScheduleImageKeywordKey(primary))
+  if (slot === 'middle' && primary) {
+    const secondary =
+      pickSecondRouteKeyword(routeLandmarks, routeOrdered, primary, new Set()) ||
+      pickSecondRouteKeyword(routeOrdered, routeOrdered, primary, new Set()) ||
+      pickSecondSegmentKeywordFromRouteText(row.routeText, primary, new Set())
+    if (secondary) keys.add(normScheduleImageKeywordKey(secondary))
+  }
+  return keys
+}
+
 function forwardRouteKeywordFromNextDay<T extends RegisterScheduleRouteTextKeywordRow>(
   day: number,
   sorted: readonly T[],
+  maxDay: number,
+  activeDays: number,
 ): string {
-  const next = sorted.find((r) => Number(r.day) > day)
-  if (!next) return ''
-  const ordered = collectRouteTextOrderedLandmarkKeywords(next.routeText)
-  return pickFirstUnused(ordered, new Set()) || pickFirstPreferLandmark(
-    collectRouteTextOrderedImageKeywords(next.routeText),
-    new Set(),
-  )
+  for (const next of sorted) {
+    const nd = Number(next.day)
+    if (nd <= day) continue
+    const reserved = predictRowReservedKeywordKeys(next, nd, maxDay, activeDays)
+    const cands = collectRouteTextOrderedLandmarkKeywords(next.routeText).filter((kw) =>
+      isLikelyTourismLandmarkKeyword(kw),
+    )
+    for (const kw of cands) {
+      const nk = normScheduleImageKeywordKey(kw)
+      if (!nk || rejectRouteKeywordCandidate(kw) || reserved.has(nk)) continue
+      return kw
+    }
+  }
+  return ''
 }
 
 function backwardUnusedRouteKeywordFromPriorDays<T extends RegisterScheduleRouteTextKeywordRow>(
@@ -293,6 +520,7 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
   if (!rows.length) return rows
   const sorted = [...rows].filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
   const maxDay = Math.max(...sorted.map((r) => Number(r.day)))
+  const activeDays = sorted.length
   const used = new Set<string>()
   const byDay = new Map<number, { primary: string; secondary: string | null }>()
 
@@ -309,28 +537,58 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
     let secondary: string | null = null
 
     if (slot === 'middle') {
-      primary = pickFirstUnused(routeLandmarks, new Set()) || pickFirstPreferLandmark(routeOrdered, new Set())
+      primary = pickMiddleDayPrimaryKeyword(routeLandmarks, routeOrdered, row.routeText)
       secondary =
         pickSecondRouteKeyword(routeLandmarks, routeOrdered, primary, new Set()) ||
-        pickSecondRouteKeyword(routeOrdered, routeOrdered, primary, new Set())
+        pickSecondRouteKeyword(routeOrdered, routeOrdered, primary, new Set()) ||
+        pickSecondSegmentKeywordFromRouteText(row.routeText, primary, new Set())
       if (primary) used.add(normScheduleImageKeywordKey(primary))
       if (secondary) used.add(normScheduleImageKeywordKey(secondary))
     } else if (slot === 'departure') {
-      primary = pickFirstUnused(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)
+      const nextRow = sorted.find((r) => Number(r.day) > day)
+      primary = forwardRouteKeywordFromNextDay(day, sorted, maxDay, activeDays)
+      if (!primary) {
+        const candidate =
+          pickFirstUnused(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)
+        const hubCityOnly =
+          candidate && nextRow && !isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(candidate))
+        if (candidate && nextRow && hubCityOnly) {
+          // 출발 hub→도시 라인 — 도착 도시만으로는 채우지 않고 후속일 landmark forward-fill 우선
+        } else if (candidate && nextRow) {
+          const nextPrimary = predictRowReservedPrimaryKeyword(
+            nextRow,
+            Number(nextRow.day),
+            maxDay,
+            activeDays,
+          )
+          if (
+            normScheduleImageKeywordKey(candidate) !== normScheduleImageKeywordKey(nextPrimary)
+          ) {
+            primary = candidate
+          }
+        } else if (candidate) {
+          primary = candidate
+        }
+      }
       if (
         !primary &&
-        (isScheduleDomesticHubOnlyRouteText(
-          routeTextForKeywords || movementHubLine,
-          isDomesticHubToken,
-        ) ||
+        (!routeTextForKeywords ||
+          isScheduleDomesticHubOnlyRouteText(
+            routeTextForKeywords || movementHubLine,
+            isDomesticHubToken,
+          ) ||
           isRegisterScheduleGenericTourismFillerRouteText(routeTextForKeywords))
       ) {
-        primary = forwardRouteKeywordFromNextDay(day, sorted)
+        primary = forwardRouteKeywordFromNextDay(day, sorted, maxDay, activeDays)
       }
       if (primary) used.add(normScheduleImageKeywordKey(primary))
     } else {
-      primary = pickFirstPreferLandmark(routeOrdered, new Set()) || pickFirstUnused(routeLandmarks, new Set())
+      primary =
+        pickFirstPreferLandmark(routeOrdered, new Set()) || pickFirstUnused(routeLandmarks, new Set())
       if (primary && isBareCityOrCountryKeyword(primary)) primary = ''
+      if (primary && !isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(primary))) {
+        primary = ''
+      }
       if (!primary) {
         primary = backwardUnusedRouteKeywordFromPriorDays(day, sorted, used)
       }

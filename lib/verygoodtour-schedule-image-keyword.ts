@@ -398,38 +398,45 @@ export function resolveVerygoodPrimaryKeyword(
   priorRows?: ReadonlyArray<VerygoodScheduleImageKeywordRow>,
   totalDays?: number,
 ): string {
-  const fromRoutePrimary =
-    lastVerygoodSpotFromRoute(row.routeText) ?? firstVerygoodSpotFromRoute(row.routeText)
-  if (fromRoutePrimary) {
-    const accepted = tryAcceptVerygoodLlmImageKeyword(fromRoutePrimary, productDestination)
-    if (accepted) return accepted
-  }
-
-  const hay = verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? ''))
-  const fromSpot = firstVerygoodSpotMatch(hay)
-  if (fromSpot) {
-    const accepted = tryAcceptVerygoodLlmImageKeyword(fromSpot, productDestination)
-    if (accepted) return accepted
-  }
+  const description = String(row.description ?? '')
+  const title = String(row.title ?? '')
+  const bodyHay = dayHaystack(description, title)
+  const fullHay = verygoodHaystackFromRow(row, description, title)
 
   const fromLlm = tryAcceptVerygoodLlmImageKeyword(row.imageKeyword, productDestination)
   if (fromLlm) return fromLlm
 
-  if (dayKind === 'flight') {
+  if (dayKind !== 'flight') {
+    const fromRoutePrimary =
+      lastVerygoodSpotFromRoute(row.routeText) ?? firstVerygoodSpotFromRoute(row.routeText)
+    if (fromRoutePrimary) {
+      const accepted = tryAcceptVerygoodLlmImageKeyword(fromRoutePrimary, productDestination)
+      if (accepted) return accepted
+    }
+    const fromSpot = firstVerygoodSpotMatch(fullHay)
+    if (fromSpot) {
+      const accepted = tryAcceptVerygoodLlmImageKeyword(fromSpot, productDestination)
+      if (accepted) return accepted
+    }
     const fromRouteSeg = firstVerygoodEnglishFromRouteSegments(row.routeText, productDestination)
     if (fromRouteSeg) return fromRouteSeg
-
-    const fromRoute = inferEnglishPlaceKeywordFromDayContent(
-      { title: '', description: '', routeText: row.routeText ?? null },
-      productDestination,
-    )
-    if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) {
-      return tryAcceptVerygoodLlmImageKeyword(fromRoute, productDestination) || ''
+    const inferred = inferEnglishPlaceKeywordFromDayContent(row, productDestination)
+    if (inferred && !isBlockedScheduleImageKeyword(inferred)) {
+      return tryAcceptVerygoodLlmImageKeyword(inferred, productDestination) || ''
     }
-    const destHint =
-      inferVerygoodEnglishDestinationHint(productDestination, row.routeText) ||
-      inferVerygoodEnglishDestinationHint(productDestination, verygoodHaystackFromRow(row, String(row.description ?? ''), String(row.title ?? '')))
+    const destHint = inferVerygoodEnglishDestinationHint(productDestination, row.routeText)
     if (destHint) return destHint
+    return ''
+  }
+
+  const flightBodyHay = bodyHay.replace(/^#{2,6}\s*.+$/gm, '').trim()
+  const fromBodySpot = firstVerygoodSpotMatch(flightBodyHay)
+  if (fromBodySpot) {
+    const accepted = tryAcceptVerygoodLlmImageKeyword(fromBodySpot, productDestination)
+    if (accepted) return accepted
+  }
+
+  if (dayKind === 'flight') {
     const fromPriorRoute = lastVerygoodSpotFromRoute(
       priorRows?.length ? priorRows[priorRows.length - 1]?.routeText : null,
     )
@@ -442,15 +449,6 @@ export function resolveVerygoodPrimaryKeyword(
     return ''
   }
 
-  const fromRouteSeg = firstVerygoodEnglishFromRouteSegments(row.routeText, productDestination)
-  if (fromRouteSeg) return fromRouteSeg
-
-  const inferred = inferEnglishPlaceKeywordFromDayContent(row, productDestination)
-  if (inferred && !isBlockedScheduleImageKeyword(inferred)) {
-    return tryAcceptVerygoodLlmImageKeyword(inferred, productDestination) || ''
-  }
-  const destHint = inferVerygoodEnglishDestinationHint(productDestination, row.routeText)
-  if (destHint) return destHint
   return ''
 }
 

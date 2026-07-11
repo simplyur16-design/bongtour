@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isScheduleAirportLikeImageKeyword,
   isScheduleAirportOnlyRouteText,
+  isScheduleDepartureReturnAdjacentRouteText,
   isScheduleDomesticHubOnlyRouteText,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
@@ -36,6 +37,16 @@ describe('isScheduleDomesticHubOnlyRouteText', () => {
     expect(isScheduleDomesticHubOnlyRouteText('에어프레미아 항공 - 에어프리미아', isHub)).toBe(false)
     expect(isScheduleDomesticHubOnlyRouteText('인천 - 존 F. 케네디 국제공항', isHub)).toBe(false)
     expect(isScheduleDomesticHubOnlyRouteText('워싱턴 - 링컨 기념관', isHub)).toBe(false)
+  })
+})
+
+describe('isScheduleDepartureReturnAdjacentRouteText', () => {
+  it('하나투어 API filler — adjacent fill 대상', () => {
+    const filler =
+      '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.'
+    expect(isScheduleDepartureReturnAdjacentRouteText(filler, isHub)).toBe(true)
+    expect(isScheduleDepartureReturnAdjacentRouteText('인천', isHub)).toBe(true)
+    expect(isScheduleDepartureReturnAdjacentRouteText('카와라우 - 애로우타운', isHub)).toBe(false)
   })
 })
 

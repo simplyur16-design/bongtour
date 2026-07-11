@@ -18,6 +18,32 @@ describe('register-schedule-route-evidence-keyword', () => {
     )
   })
 
+  it('Christ the Redeemer — 리우·브라질 맥락 없는 예수상 전망대만으로는 거부', () => {
+    const row = {
+      routeText: '마나도 시내 - 축복받는 예수상 전망대 - 마카사테',
+      title: '4일차',
+      description: '인도네시아',
+    }
+    expect(
+      registerScheduleKeywordPassesRouteEvidence('Christ the Redeemer Rio de Janeiro', row),
+    ).toBe(false)
+    expect(
+      registerScheduleKeywordPassesRouteEvidence('Christ the Redeemer Rio de Janeiro', {
+        routeText: '리우 - 코르코바도 - 예수상',
+      }),
+    ).toBe(true)
+  })
+
+  it('Christ the Redeemer — description에 리우가 있어도 당일 route에 없으면 Manado에서 거부', () => {
+    expect(
+      registerScheduleKeywordPassesRouteEvidence('Christ the Redeemer Rio de Janeiro', {
+        routeText: '마나도 시내 - 축복하는 예수상 전망대',
+        title: '5일차',
+        description: '리우데자네이로의 압도적인 절경',
+      }),
+    ).toBe(false)
+  })
+
   it('sanitize — LLM·regex 환각 Forbidden 제거', () => {
     const out = sanitizeRegisterScheduleImageKeywordsFromRouteEvidence([
       {

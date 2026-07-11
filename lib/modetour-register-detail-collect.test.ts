@@ -93,8 +93,8 @@ describe('modetour register detail collect', () => {
       },
     ])
     expect(days).toHaveLength(1)
-    expect(days[0]?.title).toMatch(/인천|구마모토/)
-    expect(days[0]?.routeText).toBe('인천 - 구마모토')
+    expect(days[0]?.title).toMatch(/구마모토/)
+    expect(days[0]?.routeText).toBe('구마모토')
     expect(days[0]?.hotelText).toContain('구마모토')
     expect(days[0]?.dinnerText).toContain('현지식')
   })

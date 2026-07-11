@@ -42,9 +42,11 @@ describe('modetour register api schedule', () => {
     expect(days[0]?.hotelText).toBe('기내박')
     expect(days[1]?.title).toMatch(/스피드\s*보트|몰디브/)
     expect(days[1]?.description).not.toMatch(/▶|홈페이지/)
-    expect(days[1]?.description).toBe(days[1]?.routeText)
+    expect(days[1]?.description).not.toBe(days[1]?.routeText)
+    expect(days[1]?.description).toMatch(/여행|일정|분위기|리조트|이동/)
     expect(days[1]?.hotelText).toMatch(/조이아|출발 전 확정/)
-    expect(days[2]?.description).toBe('몰디브')
+    expect(days[2]?.description).not.toBe(days[2]?.routeText)
+    expect(days[2]?.description).toMatch(/여행|일정|분위기|리조트/)
     expect(days[2]?.routeText).toBe('몰디브')
   })
 
@@ -86,7 +88,7 @@ describe('modetour register api schedule', () => {
         transportNote: null,
       },
     ])
-    expect(days[0]?.routeText).toBe('인천 - 돗토리 - 미즈키시게루 로드')
+    expect(days[0]?.routeText).toBe('돗토리 - 미즈키시게루 로드')
     expect(days[0]?.routeText).not.toMatch(/입국|관련\s*안내|한국-일본\s*여행/)
   })
 
@@ -105,10 +107,11 @@ describe('modetour register api schedule', () => {
         transportNote: null,
       },
     ])
-    expect(days[0]?.routeText).toBe('인천 - 상해')
-    expect(days[0]?.title).toBe('인천 - 상해')
+    expect(days[0]?.routeText).toBe('상해')
+    expect(days[0]?.title).toBe('상해')
     expect(days[0]?.title).not.toMatch(/입국신고|미팅|개별\s*일정/)
-    expect(days[0]?.description).toBe('인천 - 상해')
+    expect(days[0]?.description).not.toBe('상해')
+    expect(days[0]?.description).toMatch(/입국|이동|여행/)
     expect(days[0]?.description).not.toMatch(/입국신고|미팅/)
   })
 })

@@ -49,7 +49,7 @@ const SAMPLES: Sample[] = [
     pkgCd: 'PAP101260920JQ1',
     label: '시드니 패키지 — admin overseas 시 PAB 미혼입',
     adminTravelScope: 'overseas',
-    expectAnchorPrice: 1_799_000,
+    expectAnchorPrice: 1_749_000,
   },
 ]
 

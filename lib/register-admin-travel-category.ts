@@ -14,7 +14,6 @@ export type AdminRegisterTravelScopeSelection = 'overseas' | 'air_hotel_free'
  *
  * - overseas → 해외 패키지형 (여행상품)
  * - air_hotel_free → 항공권+호텔(자유여행). travelScope='overseas' + listingKind='air_hotel_free' + productType='air-hotel' 강제.
- * - legacy `domestic` 요청값은 overseas 로 처리한다.
  */
 export type AdminRegisterCategoryMeta = {
   travelScope: string | null

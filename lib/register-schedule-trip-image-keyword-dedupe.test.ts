@@ -2,11 +2,15 @@
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]
  */
 import { describe, expect, it } from 'vitest'
+import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
   applyDomesticHubOnlyDepartureReturnAdjacentKeywords,
   enforceRegisterScheduleTripUniqueImageKeywords,
+  fillRegisterScheduleMiddleDayImageKeywordGaps,
   sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays,
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { MODETOUR_BA_NA_HILLS_REGRESSION_ROWS } from '@/lib/schedule-image-keyword-dual-slot-contract'
 
 describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
   it('replaces duplicate primary with next unused route landmark', () => {
@@ -76,5 +80,501 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(out.find((r) => r.day === 1)!.imageKeyword).toMatch(/Datanla|Da Lat/i)
     expect(out.find((r) => r.day === 5)!.imageKeyword).toMatch(/Po Nagar|포/i)
     expect(out.find((r) => r.day === 5)!.imageKeyword).not.toMatch(/Nha Trang/i)
+  })
+
+  it('empty route departure day — forward-fill from next tourism day', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, routeText: '', title: '-', description: 'placeholder', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          routeText: '테살로니키 - 메테오라',
+          title: '-',
+          description: '-',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { supplierKey: 'hanatour', productDestination: 'Greece', travelScope: 'package' },
+    )
+    expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Meteora|Thessaloniki|White Tower/i)
+  })
+
+  it('fills middle-day kw2 from same-day second landmark (Oslo + Vigeland)', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 6,
+        routeText: '오슬로 - 비겔란 조각 공원 - 아케르후스 성',
+        imageKeyword: 'Oslo Norway Harbor Fjord View',
+        imageKeyword2: null,
+      },
+    ])
+    expect(out[0]!.imageKeyword).toMatch(/Oslo/i)
+    expect(String(out[0]!.imageKeyword2 ?? '')).toMatch(/Vigeland/i)
+  })
+
+  it('fills Oslo fjord cruise kw2 with Akershus when prior Oslo landmarks are used', () => {
+    const route = '오슬로 - 유람선 GO NORDIC CRUISELINE'
+    const rows = Array.from({ length: 12 }, (_, i) => {
+      const day = i + 1
+      if (day === 6) {
+        return {
+          day,
+          routeText: '오슬로 - 비겔란',
+          imageKeyword: 'Vigeland Sculpture Park Oslo',
+          imageKeyword2: 'Oslo Norway Harbor Fjord',
+        }
+      }
+      if (day === 9) {
+        return {
+          day,
+          routeText: route,
+          imageKeyword: 'Oslo fjord sightseeing cruise Norway',
+          imageKeyword2: null,
+        }
+      }
+      return {
+        day,
+        routeText: `day${day}`,
+        imageKeyword: `Landmark Day ${day}`,
+        imageKeyword2: `Second Day ${day}`,
+      }
+    })
+    const out = enforceRegisterScheduleTripUniqueImageKeywords(rows)
+    const d9 = out.find((r) => r.day === 9)!
+    expect(d9.imageKeyword).toMatch(/fjord|cruise/i)
+    expect(String(d9.imageKeyword2 ?? '')).toMatch(/Akershus/i)
+  })
+
+  it('fills multi-city departure movement day kw/kw2 from departure POI rules', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => {
+      const day = i + 1
+      if (day === 10) {
+        return {
+          day,
+          routeText: '코펜하겐',
+          imageKeyword: 'Copenhagen Little Mermaid statue',
+          imageKeyword2: 'Copenhagen Nyhavn',
+        }
+      }
+      if (day === 11) {
+        return {
+          day,
+          routeText: '코펜하겐 출발 (LO464) / 바르샤바 출발 (LO099) / 인천 출발',
+          imageKeyword: '',
+          imageKeyword2: null,
+        }
+      }
+      return {
+        day,
+        routeText: day === 12 ? '' : `day${day}`,
+        imageKeyword: day === 12 ? '' : `Landmark Day ${day}`,
+        imageKeyword2: day === 12 ? null : `Second Day ${day}`,
+      }
+    })
+    const out = enforceRegisterScheduleTripUniqueImageKeywords(rows)
+    const d11 = out.find((r) => r.day === 11)!
+    expect(d11.imageKeyword).toMatch(/Amalienborg/i)
+    expect(String(d11.imageKeyword2 ?? '')).toMatch(/Royal Castle/i)
+  })
+
+  it('modetour Ba Na Hills fixture — middle day4 kw2 after duplicate primary swap', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, {
+      supplierKey: 'modetour',
+      productDestination: '다낭',
+      productTitle: 'contract-fixture',
+    })
+    const d2 = out.find((r) => r.day === 2)!
+    const d4 = out.find((r) => r.day === 4)!
+    expect(String(d2.imageKeyword ?? '')).toMatch(/My Khe/i)
+    expect(String(d2.imageKeyword2 ?? '').length).toBeGreaterThan(1)
+    expect(String(d4.imageKeyword ?? '')).toMatch(/Hoi An/i)
+    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThan(1)
+  })
+
+  it('allows route-order kw2 landmark even when trip-used (Pisa before Venice)', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      { day: 2, routeText: '피사 - 베니스', imageKeyword: 'Venice Grand', imageKeyword2: '' },
+      {
+        day: 4,
+        routeText: '피사 - 피사의 사탑',
+        imageKeyword: 'Leaning Tower of Pisa Cathedral Square',
+        imageKeyword2: null,
+      },
+    ])
+    const d2 = out.find((r) => r.day === 2)!
+    expect(String(d2.imageKeyword2 ?? '')).toMatch(/Pisa|Leaning/i)
+  })
+
+  it('duplicate hub primary — same-day route landmark로 교체', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      { day: 1, routeText: '인천 - 장가계', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '장가계 - 천문산',
+        imageKeyword: 'Zhangjiajie National Forest Park',
+        imageKeyword2: 'Tianmen Mountain Zhangjiajie Cable Car',
+      },
+      {
+        day: 3,
+        routeText: '장가계 - 십리화랑 - 보봉호',
+        imageKeyword: 'Zhangjiajie National Forest Park',
+        imageKeyword2: null,
+      },
+      { day: 4, routeText: '', imageKeyword: 'Avatar Mountain Zhangjiajie Pillar Peaks', imageKeyword2: null },
+    ])
+    const d3 = out.find((r) => r.day === 3)!
+    expect(String(d3.imageKeyword ?? '')).toMatch(/Ten Mile Gallery|Baofeng/i)
+    expect(String(d3.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('산토리니 클러스터 — Oia kw2 빈 슬롯 보조', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 4,
+        routeText: '산토리니 - 피라 - 이메로비글리',
+        imageKeyword: 'Santorini caldera blue domes',
+        imageKeyword2: 'Fira Santorini caldera',
+      },
+      {
+        day: 5,
+        routeText: '산토리니 - Oia',
+        imageKeyword: 'Oia Santorini blue domes',
+        imageKeyword2: '',
+      },
+      { day: 6, routeText: '', imageKeyword: '', imageKeyword2: null },
+    ])
+    const d5 = out.find((r) => r.day === 5)!
+    expect(String(d5.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('사파리 클러스터 — 응고롱고로·세렝게티 중복 primary 보조', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 3,
+        routeText: '아루샤 - 응고롱고로',
+        imageKeyword: 'Ngorongoro Crater Tanzania Wildlife',
+        imageKeyword2: 'Serengeti Savanna Wildlife',
+      },
+      {
+        day: 4,
+        routeText: '응고롱고로 - 세렝게티',
+        imageKeyword: 'Lake Manyara Tanzania wildlife',
+        imageKeyword2: 'Ngorongoro Crater Tanzania Wildlife',
+      },
+      {
+        day: 5,
+        routeText: '응고롱고로 - 자연보호구역 - 세렝게티',
+        imageKeyword: '',
+        imageKeyword2: '',
+      },
+    ])
+    const d5 = out.find((r) => r.day === 5)!
+    expect(String(d5.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('마나도 — Christ 대신 Blessing Jesus', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 마나도',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '토모혼 - 부나켄 - 부나켄 국립해양공원',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '베스트웨스터민스터 호텔 본관',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '마나도 시내 - 축복하는 예수상 전망대',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          routeText: '마나도 공항',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { supplierKey: 'kyowontour', productDestination: '인도네시아' },
+    )
+    const d3 = out.find((r) => r.day === 3)!
+    const d4 = out.find((r) => r.day === 4)!
+    expect(String(d3.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d4.imageKeyword ?? '')).not.toMatch(/Christ the Redeemer/i)
+    expect(`${d4.imageKeyword} ${d4.imageKeyword2}`).toMatch(/Blessing Jesus|Manado/i)
+    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('마나도 — 숙박-only 중간일 kw2 prior landmark 보조', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 2,
+        routeText: '토모혼 - 부나켄 - 부나켄 해양국립공원',
+        imageKeyword: 'Tomohon Colorful Market Sulawesi Indonesia',
+        imageKeyword2: 'Blessing Jesus Statue Manado North Sulawesi',
+      },
+      {
+        day: 3,
+        routeText: '부나켄 일일섬 - 부나켄 해양국립공원 - 실라덴섬',
+        imageKeyword: 'Bunaken National Marine Park',
+        imageKeyword2: 'Siladen Island Bunaken diving Indonesia',
+      },
+      {
+        day: 4,
+        routeText: '베스트웨스터민스터 호텔 본관',
+        imageKeyword: 'Bunaken National Marine Park',
+        imageKeyword2: '',
+      },
+      { day: 5, routeText: '마나도 공항', imageKeyword: '', imageKeyword2: null },
+      { day: 6, routeText: '', imageKeyword: '', imageKeyword2: null },
+    ])
+    const d4 = out.find((r) => r.day === 4)!
+    expect(String(d4.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(normScheduleImageKeywordKey(String(d4.imageKeyword2))).not.toBe(
+      normScheduleImageKeywordKey(String(d4.imageKeyword)),
+    )
+  })
+
+  it('남미 — La Paz bare city primary kw2 보조', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 2,
+        routeText: '쿠스코 - 쿠스코 대성당',
+        imageKeyword: 'Cusco Peru Plaza de Armas Colonial',
+        imageKeyword2: 'Cusco Peru Plaza de Armas colonial architecture',
+      },
+      {
+        day: 3,
+        routeText: '마라스 - 마추픽chu',
+        imageKeyword: 'Maras Salt Ponds Sacred Valley Peru Terraces',
+        imageKeyword2: 'Machu Picchu ancient ruins mountain Peru',
+      },
+      {
+        day: 4,
+        routeText: '라파즈 시내 - 라파즈 - 라파즈 시장 - 케이블카',
+        imageKeyword: 'La Paz',
+        imageKeyword2: '',
+      },
+      { day: 5, routeText: '우유니', imageKeyword: '', imageKeyword2: null },
+    ])
+    const d4 = out.find((r) => r.day === 4)!
+    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('푸꾸옥 5일 — 중간일 kw2 cluster·인접일 보충', () => {
+    const rows = [
+      {
+        day: 1,
+        routeText: '인천 - 푸꾸옥',
+        imageKeyword: 'Phu Quoc',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        routeText: '푸꾸옥 - 손트랑 - 호텔',
+        imageKeyword: 'Phu Quoc',
+        imageKeyword2: '',
+      },
+      {
+        day: 3,
+        routeText: '푸꾸옥 - 케이블카',
+        imageKeyword: 'Phu Quoc Hon Thom Cable Car',
+        imageKeyword2: '',
+      },
+      { day: 4, routeText: '푸꾸옥', imageKeyword: 'Phu Quoc', imageKeyword2: null },
+      { day: 5, routeText: '', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      enforceRegisterScheduleTripUniqueImageKeywords(rows),
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    expect(String(d2.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('캄보디아+베트남 6일 — Angkor 중간일 kw/kw2 gap-fill', () => {
+    const rows = [
+      { day: 1, routeText: '인천 - 씨엠립', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '씨엠립 - 바이욘 사원 - 타프롬 사원',
+        imageKeyword: '',
+        imageKeyword2: '',
+      },
+      {
+        day: 3,
+        routeText: '씨엠립 - 톤레삽호수 - 왓트마이 사원',
+        imageKeyword: '',
+        imageKeyword2: '',
+      },
+      {
+        day: 4,
+        routeText: '하롱베이 - 석회동굴 - 티톱섬',
+        imageKeyword: '',
+        imageKeyword2: '',
+      },
+      { day: 5, routeText: '하노이', imageKeyword: 'Hanoi Old Quarter street', imageKeyword2: null },
+      { day: 6, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      enforceRegisterScheduleTripUniqueImageKeywords(rows),
+    )
+    for (const day of [2, 3, 4]) {
+      const row = out.find((r) => r.day === day)!
+      expect(String(row.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+      expect(String(row.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    }
+  })
+
+  it('몰디브 7일 — 리조트 중간일 kw2 cluster 허용', () => {
+    const rows = [
+      {
+        day: 1,
+        routeText: '싱가포르 - 몰디브',
+        imageKeyword: 'Maldives Overwater Villa Turquoise Lagoon',
+        imageKeyword2: '',
+      },
+      {
+        day: 2,
+        routeText: '몰디브 - 스피드 보트 이동',
+        imageKeyword: 'Maldives beach resort aerial turquoise water',
+        imageKeyword2: '',
+      },
+      {
+        day: 3,
+        routeText: '몰디브 - Maldives overwater villa turquoise lagoo',
+        imageKeyword: 'Maldives Overwater Villa Turquoise Lagoo',
+        imageKeyword2: '',
+      },
+      {
+        day: 4,
+        routeText: '몰디브 - Maldives overwater villa turquoise lagoo',
+        imageKeyword: '',
+        imageKeyword2: '',
+      },
+      { day: 7, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      enforceRegisterScheduleTripUniqueImageKeywords(rows),
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const d4 = out.find((r) => r.day === 4)!
+    expect(String(d2.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d4.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('라오스 5일 — 방비엥 중간일 kw2 cluster (Patuxai/Blue Lagoon)', () => {
+    const rows = [
+      { day: 1, routeText: '작성 및 제출 방법 - 비엔티엔', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '비엔티엔 근교 - 방비엥 - 신닷',
+        imageKeyword: 'Vang Vieng Nam Song River Karst Mountains',
+        imageKeyword2: 'Patuxai Victory Monument Vientiane',
+      },
+      {
+        day: 3,
+        routeText: '방비엥 - 그네타기 등 액티비티 체험) - 까오삐약&새우볶음밥 - BBQ SET',
+        imageKeyword: 'Vang Vieng Nam Song River Karst Mountains',
+        imageKeyword2: '',
+      },
+      {
+        day: 4,
+        routeText: '방비엥 - 비엔티엔 - 쇼핑센터 - 쌈밥정식 - 현지식 SET',
+        imageKeyword: 'Vang Vieng Nam Song River Karst Mountains',
+        imageKeyword2: 'Patuxai Victory Monument Vientiane',
+      },
+      { day: 5, routeText: '비엔티엔 - 파 That Luang', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      enforceRegisterScheduleTripUniqueImageKeywords(rows),
+    )
+    const d3 = out.find((r) => r.day === 3)!
+    expect(String(d3.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d3.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d3.imageKeyword2 ?? '')).not.toMatch(/phu quoc/i)
+  })
+
+  it('라오스 5일 — applyRegisterScheduleImageKeywordsBySupplier full pipeline', () => {
+    const rows = [
+      { day: 1, routeText: '작성 및 제출 방법 - 비엔티엔', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '비엔티엔 근교 - 방비엥 - 신닷',
+        imageKeyword: 'Vang Vieng Nam Song River Karst Mountains',
+        imageKeyword2: 'Patuxai Victory Monument Vientiane',
+      },
+      {
+        day: 3,
+        routeText: '방비엥 - 그네타기 등 액티비티 체험) - 까오삐약&새우볶음밥 - BBQ SET',
+        imageKeyword: 'Vang Vieng Nam Song River Karst Mountains',
+        imageKeyword2: '',
+      },
+      {
+        day: 4,
+        routeText: '방비엥 - 비엔티엔 - 쇼핑센터 - 쌈밥정식 - 현지식 SET',
+        imageKeyword: 'Vang Vieng Nam Song River Karst Mountains',
+        imageKeyword2: 'Patuxai Victory Monument Vientiane',
+      },
+      { day: 5, routeText: '비엔티엔 - 파 That Luang', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = applyRegisterScheduleImageKeywordsBySupplier(rows, {
+      supplier: 'lottetour',
+      productDestination: 'laos',
+    })
+    const d3 = out.find((r) => r.day === 3)!
+    expect(String(d3.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d3.imageKeyword2 ?? '')).not.toMatch(/phu quoc/i)
+  })
+
+  it('발리 6일 — 귀국일 imageKeyword (hanatour regression)', () => {
+    const BALI_SCHEDULE = [
+      { day: 1, routeText: '발리 주요 관광지 지도 - 발리지도', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '전일 자유시간 - 발리에서 즐기는 여유로운 하루 - 비치 클럽 크루즈 - 발리 - 빠당빠당',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        routeText: '전일 자유시간 - 발리에서 즐기는 여유로운 하루 - 비치 클럽 크루즈 - 발리 - 빠당빠당',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        routeText: '전일 자유시간 - 발리에서 즐기는 여유로운 하루 - 비치 클럽 크루즈 - 발리 - 빠당빠당',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 5,
+        routeText: '남부투어 - 가루다 공원 - 울루와뚜 절벽사원 - 멜라스티 비치 음료 - 발리 - 발리 해변',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      { day: 6, routeText: '발리', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = applyRegisterScheduleImageKeywordsBySupplier(BALI_SCHEDULE, {
+      supplierKey: 'hanatour',
+      productDestination: '발리',
+      productTitle: '발리 6일',
+    })
+    const day6 = out.find((r) => r.day === 6)!
+    expect(String(day6.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
   })
 })

@@ -1,11 +1,19 @@
 /**
  * 등록 schedule — imageKeyword apply 전 routeText 최소 보정 (서버 post-augment·클라이언트 preview 공용).
  * REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 신규 등록 routeText·요약 오염 차단 — manifest
+ * REGRESSION-FREEZE[register-schedule-route-text-single-poi-expand]: 단일 POI·도시 routeText 2세그먼트 승격 — manifest
  */
 import {
   isRegisterScheduleGenericTourismFillerRouteText,
+  isRegisterSchedulePlaceholderRouteText,
+  isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
+import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  findAllScheduleSpotMatchesInText,
+  firstMatchingScheduleSpotEn,
+} from '@/lib/schedule-poi-regex-ssot'
 
 export type RegisterScheduleRouteTextBackfillRow = {
   day: number
@@ -15,6 +23,77 @@ export type RegisterScheduleRouteTextBackfillRow = {
 }
 
 const REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX = 7
+
+/** modetour·API placeholder routeText — 인접일 backfill 대상 */
+export function isRegisterSchedulePlaceholderRouteText(routeText: string | null | undefined): boolean {
+  const t = String(routeText ?? '').trim()
+  if (!t) return true
+  if (isRegisterScheduleGenericTourismFillerRouteText(t)) return true
+  const segs = t.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean)
+  if (!segs.length) return true
+  const meaningful = segs.filter((s) => !isRegisterScheduleRoutePlaceNoise(s) && s.length >= 3)
+  return meaningful.length < 2
+}
+
+/** 단일 세그먼트 routeText — gate·kw2용 2세그먼트 승격(한글 라벨 SSOT) */
+const SINGLE_SEGMENT_ROUTE_EXPAND_KO: Readonly<Record<string, string>> = {
+  피사: '피사 대성당',
+  융프라우: '스핑크스 전망대',
+  케이프타운: '테이블 마운틴',
+  CAPETOWN: '테이블 마운틴',
+  이과수: '악마의 목구멍',
+  푸꾸옥: '푸꾸옥 손트랑',
+  푸꾹옥: '푸꾸옥 손트랑',
+  몰디브: '몰디브 오버워터 빌라',
+  Maldives: 'Maldives overwater villa',
+  라오스: '비엔티엔 파 That Luang',
+  비엔티엔: '파 That Luang',
+  프라하: '프라하 성',
+  부다페스트: '헝가리 국회의사당',
+  두브로브니크: '두브로브니크 올드타운',
+  할슈타트: '할슈타트 호수',
+  괌: '투몬 비치',
+}
+
+function expandSingleSegmentRouteLabel(seg: string): string | null {
+  const t = String(seg ?? '').trim()
+  if (!t) return null
+  const direct = SINGLE_SEGMENT_ROUTE_EXPAND_KO[t] ?? SINGLE_SEGMENT_ROUTE_EXPAND_KO[t.toUpperCase()]
+  if (direct) return direct
+  const spot = firstMatchingScheduleSpotEn(t)
+  if (spot && !spot.toLowerCase().includes(t.toLowerCase()) && t.length <= 8) {
+    const hits = findAllScheduleSpotMatchesInText(t)
+    if (hits.length === 1) {
+      const en = hits[0]!.en.split('/')[0]?.trim() ?? ''
+      if (en.length >= 6) return en.slice(0, 40)
+    }
+  }
+  return null
+}
+
+/** 단일 POI·도시 routeText → `A - B` (live gate routeText 최소 길이·kw2 보조) */
+export function expandSingleSegmentPoiRouteTextRows<T extends RegisterScheduleRouteTextBackfillRow>(
+  rows: T[],
+): T[] {
+  return rows.map((row) => {
+    const route = String(row.routeText ?? '').trim()
+    if (!route || /\s[-–—→]\s/u.test(route)) return row
+    const segs = splitRouteTextPlaceSegments(route).filter((s) => s.trim().length >= 2)
+    if (segs.length !== 1) return row
+    const seg = segs[0]!.trim()
+    const haystack = `${seg} ${String(row.title ?? '')} ${String(row.description ?? '')}`
+    const second =
+      expandSingleSegmentRouteLabel(seg) ??
+      expandSingleSegmentRouteLabel(haystack.trim()) ??
+      (/이과수|Iguazu|세계\s*3대\s*폭포|악마의\s*목구멍/u.test(haystack) ? '이과수 폭포 악마의 목구멍' : null) ??
+      (/(?:코르코바도|Corcovado)/u.test(haystack) ? '코르코바도' : null) ??
+      (/(?:리우|리오|Rio\s*de\s*Janeiro)/u.test(haystack) && !/(?:이과수|Iguazu|악마의\s*목구멍)/u.test(haystack)
+        ? '코르코바도'
+        : null)
+    if (!second || second === seg) return row
+    return { ...row, routeText: `${seg} - ${second}`.slice(0, 500) }
+  })
+}
 
 /** API·LLM placeholder 요약 — 장소 동선이 있으면 description에 쓰지 않음 */
 export function isRegisterScheduleGenericTourismFillerDescription(
@@ -51,8 +130,10 @@ export function normalizeRegisterScheduleRouteExpressionRow<T extends RegisterSc
       ? routeText
       : title
   const nextDescription = isRegisterScheduleGenericTourismFillerDescription(description)
-    ? routeText
-    : description || routeText
+    ? description
+    : description && description !== routeText && !description.startsWith(`${routeText}\n`)
+      ? description
+      : ''
 
   return {
     ...row,
@@ -78,10 +159,26 @@ export function backfillEmptyScheduleRouteTextFromTitle<T extends RegisterSchedu
     const day = Number(row.day)
     if (day <= 0 || String(row.routeText ?? '').trim()) return row
     const title = String(row.title ?? '').trim()
-    if (!title) return row
-    if (day === maxDay && /^(?:인천|김포|ICN|GMP)$/iu.test(title)) {
+    const desc = String(row.description ?? '').trim()
+    if (title && title.length >= 8 && /\s[-–—→]\s/u.test(title)) {
+      return { ...row, routeText: title.slice(0, 500) }
+    }
+    if (day === maxDay) {
+      for (const src of [title, desc]) {
+        if (!src || src === '-') continue
+        if (/숙박\s*없음|귀국|귀국편|출발/u.test(src)) {
+          return {
+            ...row,
+            title: title && title !== '-' ? title : '숙박 없음(귀국)',
+          }
+        }
+      }
+      return { ...row, title: '숙박 없음(귀국)' }
+    }
+    if (/^(?:인천|김포|ICN|GMP)$/iu.test(title)) {
       return { ...row, routeText: title }
     }
+    if (!title) return row
     if (/^기내박$/u.test(title)) {
       return { ...row, routeText: '기내박' }
     }
@@ -90,6 +187,38 @@ export function backfillEmptyScheduleRouteTextFromTitle<T extends RegisterSchedu
 }
 
 /** description/title 1줄에 `A - B - C` 동선이 있으면 routeText로 승격 */
+export function backfillMiddleDayRouteTextFromAdjacentDays<T extends RegisterScheduleRouteTextBackfillRow>(
+  rows: T[],
+): T[] {
+  if (!rows.length) return rows
+  const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
+  const maxDay = Math.max(...sorted.map((r) => Number(r.day)))
+  const activeDays = sorted.filter((r) => Number(r.day) > 0).length
+  return sorted.map((row) => {
+    const day = Number(row.day)
+    if (day <= 1 || day >= maxDay || activeDays < 4) return row
+    const route = String(row.routeText ?? '').trim()
+    const segs = route ? splitRouteTextPlaceSegments(route).filter((s) => s.trim().length >= 2) : []
+    if (route && segs.length >= 2 && route.length >= 4 && !isRegisterSchedulePlaceholderRouteText(route)) return row
+    for (const neighbor of sorted) {
+      const nd = Number(neighbor.day)
+      if (nd === day) continue
+      const nr = String(neighbor.routeText ?? '').trim()
+      if (!nr || nr.length < 8) continue
+      const nSegs = splitRouteTextPlaceSegments(nr).filter((s) => s.trim().length >= 2)
+      if (nSegs.length < 2) continue
+      const merged = nr.slice(0, 500)
+      if (route && !merged.includes(route.slice(0, 20))) {
+        return { ...row, routeText: `${route} - ${nSegs[nSegs.length - 1]!}`.slice(0, 500) }
+      }
+      if (!route) {
+        return { ...row, routeText: merged }
+      }
+    }
+    return row
+  })
+}
+
 export function backfillScheduleRouteTextFromDescriptionOrTitle<T extends RegisterScheduleRouteTextBackfillRow>(
   rows: T[],
 ): T[] {
@@ -111,6 +240,8 @@ export function prepareRegisterScheduleRowsForImageKeywordApply<T extends Regist
   rows: T[],
 ): T[] {
   return normalizeRegisterScheduleRouteExpressionRows(
-    backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
+    backfillMiddleDayRouteTextFromAdjacentDays(
+      backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
+    ),
   )
 }

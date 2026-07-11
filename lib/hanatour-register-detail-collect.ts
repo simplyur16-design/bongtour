@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: augmentHanatourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: applyHanatourProdInfoIdentityFields — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: ensureHanatourRegisterScheduleImageKeywords — manifest
  * REGRESSION-FREEZE[hanatour-register-samples-live-gate]: SSOT 7샘플 live gate — manifest
  */
@@ -24,6 +25,7 @@ import {
   type HanatourProdInfoExtended,
 } from '@/lib/hanatour-register-api-detail'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
+import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
 import { parseHanatourPkgCdFromUrl } from '@/lib/hanatour-api-departures'
 import {
   hasStructuredJsonRows,
@@ -237,6 +239,35 @@ function applyProdInfoFields(
   return next
 }
 
+function applyHanatourProdInfoIdentityFields(
+  parsed: RegisterParsed,
+  info: HanatourProdInfoExtended,
+): RegisterParsed {
+  let next = parsed
+  const saleTitle = String(info.saleProdNm ?? '').trim()
+  if (!String(next.title ?? '').trim() && saleTitle) {
+    next = { ...next, title: saleTitle }
+  }
+  const hasDest =
+    Boolean(String(next.primaryDestination ?? '').trim()) ||
+    Boolean(String(next.destination ?? '').trim() && next.destination !== '미지정')
+  if (!hasDest) {
+    const resolved = resolveHanatourRegisterDestination({
+      title: String(next.title ?? saleTitle),
+      travelCitiesRaw: String(info.smplSchdCont ?? '').trim() || null,
+    })
+    if (resolved.destination && resolved.destination !== '미지정') {
+      next = {
+        ...next,
+        destination: resolved.destination,
+        primaryDestination: resolved.primaryDestination,
+        ...(resolved.destinationRaw ? { destinationRaw: resolved.destinationRaw } : {}),
+      }
+    }
+  }
+  return next
+}
+
 export async function augmentHanatourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: HanatourRegisterDetailAugmentCtx,
@@ -272,8 +303,8 @@ export async function augmentHanatourParsedWithDetailCollect(
   }
 
   const summaryParts: string[] = []
-  let next: RegisterParsed = { ...parsed }
   const { prodInfo, itnr, chcStsng } = bundle
+  let next: RegisterParsed = applyHanatourProdInfoIdentityFields(parsed, prodInfo)
 
   if (needSchedule) {
     const factDays = applyHanatourProdInfoHotelsToFactDays(hanatourItnrToFactDays(itnr), prodInfo)
@@ -283,7 +314,7 @@ export async function augmentHanatourParsedWithDetailCollect(
         ? scheduleDays
         : applyRegisterScheduleImageKeywordsBySupplier(scheduleDays, {
             supplierKey: 'hanatour',
-            productDestination: next.destination ?? null,
+            productDestination: next.primaryDestination ?? next.destination ?? null,
             productTitle: next.title ?? null,
             productType: next.productType ?? null,
             optionalTourNames: hanatourOptionalTourNamesFromParsed(next),

@@ -6,6 +6,7 @@ import type { Prisma } from '@prisma/client'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
 import {
   syncProductCityTags,
+  resolveRegisterDisplayCountryKey,
   type SyncProductCityTagsOpts,
 } from '@/lib/sync-product-city-tags'
 import {
@@ -60,10 +61,17 @@ export async function syncProductGeoTags(
       : geo.countryKey?.trim()
         ? [geo.countryKey.trim()]
         : []
+  const displayCountryKey = await resolveRegisterDisplayCountryKey(
+    db,
+    geo,
+    cityKeys,
+    countryTagKeys,
+  )
   const megaMenuSummary = buildRegisterMegaMenuGeoSummary({
     geo,
     cityKeys,
     countryTagKeys,
+    countryKeyOverride: displayCountryKey,
     tagOpts: {
       title: opts.title,
       primaryDestination: opts.primaryDestination,
@@ -84,6 +92,9 @@ export async function syncProductGeoTags(
 
 /**
  * 등록 confirm — geo 태그 동기화 후 메가메뉴 대·중·소분류 미달 시 registered → pending 강등.
+ * REGRESSION-FREEZE[supplier-register-mega-menu-geo]: syncProductGeoTagsForRegister — manifest
+ * REGRESSION-FREEZE[register-mega-menu-auto-classify]: country/city 태그만으로 browse 가능하면 pending 금지 — manifest
+ * REGRESSION-FREEZE[register-confirm-mega-menu-image-guard]: countryTagKeys → megaMenuSummaryNeedsOperatorReview — manifest
  * 전 공급사 orchestration은 `syncProductGeoTags` 대신 본 함수만 호출한다.
  */
 export async function syncProductGeoTagsForRegister(
@@ -93,7 +104,17 @@ export async function syncProductGeoTagsForRegister(
   opts: SyncProductGeoTagsOpts,
 ): Promise<SyncProductGeoTagsResult> {
   const result = await syncProductGeoTags(db, productId, geo, opts)
-  if (!megaMenuSummaryNeedsOperatorReview(result.megaMenuSummary)) return result
+  const countryTagKeys =
+    result.country.plan.kind === 'multi' && result.country.plan.countryKeys.length >= 2
+      ? result.country.plan.countryKeys
+      : geo.countryKey?.trim()
+        ? [geo.countryKey.trim()]
+        : []
+  if (
+    !megaMenuSummaryNeedsOperatorReview(result.megaMenuSummary, { countryTagKeys })
+  ) {
+    return result
+  }
 
   const downgraded = await db.product.updateMany({
     where: { id: productId, registrationStatus: 'registered' },

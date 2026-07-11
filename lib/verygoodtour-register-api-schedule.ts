@@ -232,23 +232,20 @@ export function composeVerygoodtourScheduleVibeSentences(
   return desc.slice(0, 320).trim()
 }
 
-/** description = routeText 1줄 + 분위기 2~3문장 */
+/** description — 분위기·흐름 2~3문장 (장소 나열은 routeText 전용) */
 export function composeVerygoodtourScheduleDescription(opts: {
   day: number
   maxDay: number
   routePlaces: readonly string[]
   joinedBlob: string
 }): string {
-  const routeLine = joinVerygoodtourScheduleRouteText(opts.routePlaces)
   const vibe = composeVerygoodtourScheduleVibeSentences(
     opts.day,
     opts.maxDay,
     opts.routePlaces,
     opts.joinedBlob,
   )
-  if (!routeLine) return vibe || `${opts.day}일차`
-  if (!vibe) return routeLine
-  return `${routeLine}\n${vibe}`.slice(0, 500).trim()
+  return vibe || `${opts.day}일차`
 }
 
 export function verygoodtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {

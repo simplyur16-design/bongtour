@@ -14,7 +14,7 @@ describe('kyowontour schedule routeText a-b-c chain', () => {
     const rows = CSP302_SCHEDULE_TAB2_DETAIL_FIXTURE.schedule
     const day1 = buildKyowontourScheduleRouteTextFromTabRows(rows.filter((r) => r.day === 1))
     const day2 = buildKyowontourScheduleRouteTextFromTabRows(rows.filter((r) => r.day === 2))
-    expect(day1).toBe('인천 - 쿤밍')
+    expect(day1).toBe('쿤밍')
     expect(day2).toBe('여강고성 - 대,소석림')
   })
 
@@ -28,7 +28,7 @@ describe('kyowontour schedule routeText a-b-c chain', () => {
     expect(place).toBe('인천')
   })
 
-  it('applyKyowontourScheduleExpressionToRows aligns description 1st line with routeText', () => {
+  it('applyKyowontourScheduleExpressionToRows keeps description as vibe-only (not routeText copy)', () => {
     const out = applyKyowontourScheduleExpressionToRows([
       {
         day: 1,
@@ -38,7 +38,8 @@ describe('kyowontour schedule routeText a-b-c chain', () => {
         imageKeyword: '',
       },
     ])
-    expect(out[0]?.routeText).toBe('인천 - 쿤밍')
-    expect(out[0]?.description?.split('\n')[0]).toBe('인천 - 쿤밍')
+    expect(out[0]?.routeText).toBe('쿤밍')
+    expect(out[0]?.description).not.toBe('쿤밍')
+    expect(out[0]?.description).toMatch(/여행|일정|분위기|동선/)
   })
 })

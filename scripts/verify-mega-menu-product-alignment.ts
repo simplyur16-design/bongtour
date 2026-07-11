@@ -96,7 +96,9 @@ async function main(): Promise<void> {
       },
     })
 
-    if (megaMenuSummaryNeedsOperatorReview(summary)) {
+    const countryTagKeysFromDb = p.countryTags.map((t) => t.countryKey)
+
+    if (megaMenuSummaryNeedsOperatorReview(summary, { countryTagKeys: countryTagKeysFromDb })) {
       issues.push({
         slug: p.slug ?? p.id,
         kind: 'mega_menu_summary_gap',

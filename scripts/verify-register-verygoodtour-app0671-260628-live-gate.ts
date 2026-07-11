@@ -80,14 +80,10 @@ function assertScheduleRouteAndDescription(
 
     const desc = String(row.description ?? '').trim()
     assert.ok(desc.length > 0, `day${row.day} description empty`)
-    const lines = desc.split(/\n/).map((l) => l.trim()).filter(Boolean)
-    assert.ok(lines[0] === route, `day${row.day} description line1 must equal routeText`)
-    const vibe = lines.slice(1).join(' ')
-    if (vibe) {
-      const sentenceCount = vibe.split(/[.!?]\s+/).filter((s) => s.length > 8).length
-      assert.ok(sentenceCount >= 1 && sentenceCount <= 4, `day${row.day} vibe sentence count ${sentenceCount}`)
-      assert.ok(vibe.length <= 320, `day${row.day} vibe too long`)
-    }
+    assert.notEqual(desc, route, `day${row.day} description must not copy routeText`)
+    const sentenceCount = desc.split(/[.!?]\s+/).filter((s) => s.length > 8).length
+    assert.ok(sentenceCount >= 1 && sentenceCount <= 4, `day${row.day} vibe sentence count ${sentenceCount}`)
+    assert.ok(desc.length <= 320, `day${row.day} vibe too long`)
   }
 }
 

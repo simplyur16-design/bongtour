@@ -135,7 +135,7 @@ describe('modetourScheduleItemsToFactDays', () => {
     ])
     expect(days[0]?.places).toEqual(['인천', '상해'])
     const sched = modetourFactDaysToRegisterSchedule(days)
-    expect(sched[0]?.routeText).toBe('인천 - 상해')
+    expect(sched[0]?.routeText).toBe('상해')
   })
 })
 

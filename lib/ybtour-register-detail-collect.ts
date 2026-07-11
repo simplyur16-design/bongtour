@@ -42,6 +42,8 @@ import {
   needsRegisterIncludedExcludedCollect,
   needsRegisterShoppingCollect,
 } from '@/lib/register-detail-collect-gates'
+import { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
+import { resolveYbtourRegisterDestination } from '@/lib/ybtour-register-destination-from-paste'
 import {
   applyRegisterCollectedFlightStructured,
   needsRegisterFlightApiCollect,
@@ -67,6 +69,40 @@ function hasStructuredOptional(parsed: RegisterParsed): boolean {
 
 function hasStructuredShopping(parsed: RegisterParsed): boolean {
   return hasStructuredJsonRows(parsed.shoppingStops)
+}
+
+async function applyYbtourIdentityFromRegisterFacts(
+  parsed: RegisterParsed,
+  originUrl: string,
+): Promise<RegisterParsed> {
+  const hasTitle = Boolean(String(parsed.title ?? '').trim() && parsed.title !== '미지정')
+  const hasDest =
+    Boolean(String(parsed.primaryDestination ?? '').trim()) ||
+    Boolean(String(parsed.destination ?? '').trim() && parsed.destination !== '미지정')
+  if (hasTitle && hasDest) return parsed
+  const facts = await collectYbtourRegisterFacts(originUrl)
+  if (!facts) return parsed
+  let next = parsed
+  const listingTitle = String(facts.title ?? '').trim()
+  if (!hasTitle && listingTitle) {
+    next = { ...next, title: listingTitle, supplierListingTitleRaw: listingTitle }
+  }
+  if (!hasDest) {
+    const resolved = resolveYbtourRegisterDestination({
+      title: String(next.title ?? listingTitle),
+      pastedBody: null,
+      llmDestination: null,
+    })
+    if (resolved.destination && resolved.destination !== '미지정') {
+      next = {
+        ...next,
+        destination: resolved.destination,
+        primaryDestination: resolved.primaryDestination,
+        ...(resolved.destinationRaw ? { destinationRaw: resolved.destinationRaw } : {}),
+      }
+    }
+  }
+  return next
 }
 
 export function needsYbtourIncludedCollect(parsed: RegisterParsed): boolean {
@@ -150,22 +186,24 @@ export async function augmentYbtourParsedWithDetailCollect(
     return parsed
   }
 
-  const titleHay = [parsed.title, parsed.supplierListingTitleRaw].filter(Boolean).join(' ')
-  const needSchedule = needsYbtourScheduleCollect(parsed)
-  const needIncl = needsYbtourIncludedCollect(parsed)
-  const needExcl = needsYbtourExcludedCollect(parsed)
+  let parsedWithIdentity = await applyYbtourIdentityFromRegisterFacts(parsed, originUrl)
+
+  const titleHay = [parsedWithIdentity.title, parsedWithIdentity.supplierListingTitleRaw].filter(Boolean).join(' ')
+  const needSchedule = needsYbtourScheduleCollect(parsedWithIdentity)
+  const needIncl = needsYbtourIncludedCollect(parsedWithIdentity)
+  const needExcl = needsYbtourExcludedCollect(parsedWithIdentity)
   const needInclExcl = needIncl || needExcl
-  const needMustKnow = needsYbtourMustKnowCollect(parsed)
-  const needMeeting = needsYbtourMeetingCollect(parsed)
-  const needFlight = needsRegisterFlightApiCollect(parsed)
+  const needMustKnow = needsYbtourMustKnowCollect(parsedWithIdentity)
+  const needMeeting = needsYbtourMeetingCollect(parsedWithIdentity)
+  const needFlight = needsRegisterFlightApiCollect(parsedWithIdentity)
   const needOpt = needsYbtourOptionalCollect({
     hasOptionalPaste: hasOptionalPaste(ctx),
-    optionalToursStructured: parsed.optionalToursStructured,
+    optionalToursStructured: parsedWithIdentity.optionalToursStructured,
     declaresNoOptional: ybtourHaystackDeclaresNoOptional(titleHay),
   })
   const needShop = needsRegisterShoppingCollect({
     hasShoppingPaste: hasShoppingPaste(ctx),
-    shoppingStops: parsed.shoppingStops,
+    shoppingStops: parsedWithIdentity.shoppingStops,
   })
 
   if (
@@ -177,7 +215,7 @@ export async function augmentYbtourParsedWithDetailCollect(
     !needOpt &&
     !needShop
   ) {
-    return await ensureYbtourRegisterScheduleImageKeywords(parsed, { travelScope: ctx?.travelScope })
+    return await ensureYbtourRegisterScheduleImageKeywords(parsedWithIdentity, { travelScope: ctx?.travelScope })
   }
 
   const bundle = await fetchYbtourRegisterDetailBundle(originUrl, {
@@ -185,14 +223,14 @@ export async function augmentYbtourParsedWithDetailCollect(
   })
   if (!bundle?.notice && !bundle?.schedule && !bundle?.tourDetail && !bundle?.optionalTourDetail) {
     return {
-      ...parsed,
+      ...parsedWithIdentity,
       ybtourDetailCollectRan: false,
       ybtourDetailCollectSummary: '자동수집 스킵: papi notice·schedule 응답 없음',
     }
   }
 
   const summaryParts: string[] = []
-  let next: RegisterParsed = { ...parsed }
+  let next: RegisterParsed = { ...parsedWithIdentity }
   const { notice, schedule, tourDetail } = bundle
   const scheduleDetail = schedule?.scheduleDetail ?? []
   const scheduleDetailTm = schedule?.scheduleDetailTm ?? []

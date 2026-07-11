@@ -184,6 +184,24 @@
       "summary": "전 공급사 등록 confirm — 메가메뉴 geo SSOT(resolve+sync) 연결"
     },
     {
+      "id": "register-mega-menu-auto-classify",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "test:register-mega-menu-auto-classify",
+      "summary": "등록 confirm — country/city 태그만으로 메가메뉴 browse 자동 분류·pending 금지"
+    },
+    {
+      "id": "register-confirm-mega-menu-image-guard",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:register-confirm-mega-menu-image-guards",
+      "summary": "등록 confirm — 메가메뉴 geo + imageKeyword 통합 회귀 가드 (7공급사 wiring + vitest)"
+    },
+    {
       "id": "register-detail-final-chain",
       "tier": [
         "prebuild",
@@ -3912,9 +3930,12 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-post-augment-schedule-ssot]",
             "applyRegisterScheduleImageKeywordsBySupplier",
-            "mergePostAugmentScheduleImageKeywords"
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ],
           "mustNotInclude": [
+            "mergePostAugmentScheduleImageKeywords",
             "applyModetourScheduleImageKeywordsToRows",
             "applyHanatourScheduleImageKeywordsToRows",
             "applyLottetourScheduleImageKeywordsToRows",
@@ -3983,6 +4004,7 @@
             "REGRESSION-FREEZE[register-schedule-route-place-noise]",
             "isRegisterScheduleRoutePlaceNoise",
             "isRegisterScheduleAirlineRouteSegment",
+            "isRegisterScheduleDomesticHubRouteSegment",
             "extractRegisterScheduleRoutePlaceLabel",
             "expandRegisterScheduleRoutePlaceCandidates"
           ]
@@ -4086,6 +4108,128 @@
       "vitestSuites": [
         "lib/register-schedule-route-text-backfill.test.ts",
         "lib/hanatour-register-detail-collect.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-route-text-single-poi-expand",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "단일 POI·도시 routeText 2세그먼트 승격 — live gate routeText·kw2",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-text-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-text-single-poi-expand]",
+            "expandSingleSegmentPoiRouteTextRows"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-text-backfill.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-cross-continent-europe-asia-guard",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "유럽 패키지 — 아시아 키워드·POI 환각 차단",
+      "checks": [
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]",
+            "isRegisterScheduleCrossContinentHallucinationKeyword"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "tests/schedule-poi-regex-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "register-mega-menu-city-country-fallback",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메가메뉴 countryKey — cityTag DB lookup fallback",
+      "checks": [
+        {
+          "file": "lib/sync-product-city-tags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-mega-menu-city-country-fallback]",
+            "resolveRegisterDisplayCountryKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-mega-menu-geo-summary.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-description-vibe-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정요약 routeText a–g 오염 없음 · 일정설명 vibe 2~3문장 · imageKeyword routeText SSOT만",
+      "checks": [
+        {
+          "file": "lib/modetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "composeModetourScheduleVibeDescription"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "composeHanatourScheduleVibeDescription"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "composeYbtourScheduleVibeSentences"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-evidence-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "registerScheduleKeywordPassesTripRouteTextSsot"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "inferRegisterEffectiveProductDestination"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "applyHanatourProdInfoIdentityFields"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-description-vibe-ssot.test.ts",
+        "lib/modetour-register-api-schedule.test.ts",
+        "lib/kyowontour-register-api-schedule.test.ts"
       ]
     },
     {
@@ -4281,6 +4425,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
             "collectRouteTextOrderedImageKeywords",
+            "collectRouteTextSpotScanLandmarkKeywords",
             "routeTextSegmentToImageKeyword",
             "routeContextualNationalAssemblyEnglish",
             "description·schedule_section·본문 스캔 금지"
@@ -6267,7 +6412,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "ybtour 등록 schedule imageKeyword — ensure + Gemini + post-augment 보존",
+      "summary": "ybtour 등록 schedule imageKeyword — ensure + Gemini + post-augment routeText SSOT만",
       "checks": [
         {
           "file": "lib/ybtour-register-detail-collect.ts",
@@ -6286,6 +6431,9 @@
         {
           "file": "lib/register-parse-post-augment.ts",
           "mustInclude": [
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ],
+          "mustNotInclude": [
             "mergePostAugmentScheduleImageKeywords"
           ]
         }
@@ -6525,6 +6673,86 @@
       ],
       "vitestSuites": [
         "lib/register-mega-menu-geo-summary.test.ts"
+      ]
+    },
+    {
+      "id": "register-mega-menu-auto-classify",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 confirm — 태그 기반 메가메뉴 자동 분류·subgroup 미달 pending 금지",
+      "checks": [
+        {
+          "file": "lib/register-mega-menu-geo-summary.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-mega-menu-auto-classify]",
+            "inferMegaMenuSubgroupFromRegisterTags",
+            "megaMenuSummaryNeedsOperatorReview"
+          ]
+        },
+        {
+          "file": "lib/sync-product-geo-tags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-mega-menu-auto-classify]",
+            "countryTagKeys"
+          ]
+        },
+        {
+          "file": "lib/register-resolve-mega-menu-geo.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-mega-menu-auto-classify]",
+            "enrichRegisterGeoInput"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-mega-menu-geo-summary.test.ts"
+      ]
+    },
+    {
+      "id": "register-confirm-mega-menu-image-guard",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 confirm — 메가메뉴·imageKeyword 통합 wiring + 시나리오 vitest",
+      "checks": [
+        {
+          "file": "scripts/verify-register-confirm-mega-menu-image-guards.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-mega-menu-image-guard]",
+            "applyRegisterPostAugmentSchedulePipeline",
+            "syncProductGeoTagsForRegister",
+            "verify:supplier-register-mega-menu-geo"
+          ]
+        },
+        {
+          "file": "lib/register-mega-menu-geo-summary.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-mega-menu-image-guard]",
+            "inferMegaMenuSubgroupFromRegisterTags"
+          ]
+        },
+        {
+          "file": "lib/sync-product-geo-tags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-mega-menu-image-guard]",
+            "countryTagKeys"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-post-augment-schedule-ssot]",
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-confirm-mega-menu-image-guard.test.ts",
+        "lib/register-mega-menu-geo-summary.test.ts",
+        "lib/register-parse-post-augment.test.ts"
       ]
     },
     {

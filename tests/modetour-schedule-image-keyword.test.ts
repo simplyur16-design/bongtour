@@ -707,6 +707,29 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     const allKw = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean).map(String))
     assert.ok(!allKw.some((k) => /United States Capitol/i.test(k)), `US Capitol leak: ${allKw.join(', ')}`)
   })
+
+  it('이탈리아 POI regex SSOT — 아시시·피사 세그먼트가 허브 스킵 전에 매핑', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        { day: 1, routeText: '로마', imageKeyword: '', imageKeyword2: null },
+        { day: 2, routeText: '아씨시 - 베니스', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '베니스', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '피렌체', imageKeyword: '', imageKeyword2: null },
+        { day: 5, routeText: '피렌체', imageKeyword: '', imageKeyword2: null },
+        { day: 6, routeText: '피사', imageKeyword: '', imageKeyword2: null },
+        { day: 7, routeText: '아시시 - 피렌체 - 로마 - 피렌체 전망대', imageKeyword: '', imageKeyword2: null },
+        { day: 8, routeText: '로마', imageKeyword: '', imageKeyword2: null },
+        { day: 9, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      { productDestination: 'Italy' },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const d7 = out.find((r) => r.day === 7)!
+    assert.match(String(d2.imageKeyword), /Assisi/i)
+    assert.match(String(d2.imageKeyword2), /Venice|Grand/i)
+    assert.match(String(d7.imageKeyword), /Assisi|Piazzale Michelangelo|Pompeii/i)
+    assert.ok(String(d7.imageKeyword2 ?? '').trim().length >= 4)
+  })
 })
 
 function normLoose(s: string): string {

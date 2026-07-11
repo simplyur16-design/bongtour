@@ -93,6 +93,39 @@ export function isScheduleDomesticHubOnlyRouteText(
   return segs.every((s) => isDomesticHub(s))
 }
 
+/**
+ * 패키지 해외 — 출발·귀국 adjacent POI fill 대상 routeText (허브 only·API filler·기내박).
+ * 자유여행(air_hotel_free) Fit 경로는 register-airtel-route-image-keyword 가 별도 SSOT.
+ */
+export function isScheduleDepartureReturnAdjacentRouteText(
+  routeText: string | null | undefined,
+  isDomesticHub: (token: string) => boolean,
+): boolean {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return false
+  if (isScheduleInFlightOvernightRow({ routeText: raw })) return true
+  if (isRegisterScheduleGenericTourismFillerRouteText(raw)) return true
+  return isScheduleDomesticHubOnlyRouteText(raw, isDomesticHub)
+}
+
+/** routeText 비었을 때 description/title 허브 라인까지 포함 */
+export function isScheduleDepartureReturnAdjacentKeywordRow(
+  row: {
+    routeText?: string | null
+    description?: string | null
+    title?: string | null
+  },
+  isDomesticHub: (token: string) => boolean,
+): boolean {
+  const route = String(row.routeText ?? '').trim()
+  if (isScheduleDepartureReturnAdjacentRouteText(route, isDomesticHub)) return true
+  if (!route) {
+    const hubLine = effectiveRouteTextForScheduleKeywordRow(row)
+    return isScheduleDepartureReturnAdjacentRouteText(hubLine, isDomesticHub)
+  }
+  return false
+}
+
 /** imageKeyword 후보가 공항·generic 차단 대상인지 */
 export function isScheduleAirportLikeImageKeyword(kw: string | null | undefined): boolean {
   const t = String(kw ?? '').trim()

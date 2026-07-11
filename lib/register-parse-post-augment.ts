@@ -1,7 +1,8 @@
 /**
  * 등록 파이프 augment 직후 — 자유여행(Fit+imageKeyword) vs 패키지(공급사별 키워드) 분기.
- * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: mergePostAugmentScheduleImageKeywords — manifest
  * REGRESSION-FREEZE[register-post-augment-schedule-ssot]: applyRegisterScheduleImageKeywordsBySupplier — manifest
+ * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: routeText·description vibe SSOT — manifest
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview/confirm Gemini 보조 — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import {
@@ -10,9 +11,9 @@ import {
 } from '@/lib/register-admin-airtel-listing'
 import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enrich'
 import { backfillEmptyScheduleRouteTextFromTitle } from '@/lib/register-schedule-route-text-backfill'
-import { inferYbtourEffectiveProductDestination, isYbtourCrossContinentHallucinationKeyword } from '@/lib/ybtour-schedule-image-keyword'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
-import { isScheduleAirportLikeImageKeyword } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { fillRegisterScheduleMiddleDayImageKeywordGaps } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
   travelScope: string
@@ -43,69 +44,18 @@ function normalizeScheduleRouteRowForImageKeyword<T extends ScheduleRouteRow>(
   }
 }
 
-type ScheduleKeywordSlotKind = 'departure' | 'middle' | 'return'
-
-function resolvePostAugmentKeywordSlotKind(day: number, maxDay: number): ScheduleKeywordSlotKind {
-  if (day === 1) return 'departure'
-  if (maxDay >= 2 && day === maxDay) return 'return'
-  return 'middle'
-}
-
-function shouldPreservePreAugmentImageKeyword(
-  kw: string,
-  supplierKey: string,
-  productDestination: string | null,
-  schedule: readonly ScheduleRouteRow[],
-  slot: 'departure' | 'middle' | 'return',
-): boolean {
-  const t = String(kw ?? '').trim()
-  if (!t) return false
-  if (isScheduleAirportLikeImageKeyword(t)) return false
-  if (supplierKey === 'ybtour') {
-    const dest = inferYbtourEffectiveProductDestination(
-      productDestination,
-      schedule.map(normalizeScheduleRouteRowForImageKeyword),
-    )
-    if (isYbtourCrossContinentHallucinationKeyword(t, dest)) return false
-  }
-  if (slot === 'return' && supplierKey !== 'ybtour') {
-    /* package return — SSOT apply wins when non-empty; empty re-allocate may keep pre-augment kw */
-  }
-  return true
-}
-
-/** 규칙 allocate 후 Gemini 등으로 채워진 키워드 — post-augment re-allocate가 비었을 때만 보존 */
-function mergePostAugmentScheduleImageKeywords<T extends ScheduleRouteRow>(
-  before: readonly T[],
-  after: readonly T[],
-  opts: { supplierKey: string; productDestination: string | null },
-): T[] {
-  const beforeByDay = new Map(before.map((r) => [Number(r.day), r]))
-  const maxDay = after.reduce((m, r) => Math.max(m, Number(r.day)), 0)
-  return after.map((row) => {
-    const day = Number(row.day)
-    const prev = beforeByDay.get(day)
-    if (!prev) return row
-    const slot = resolvePostAugmentKeywordSlotKind(day, maxDay)
-    const prevKw = String(prev.imageKeyword ?? '').trim()
-    const prevKw2 = String(prev.imageKeyword2 ?? '').trim()
-    const nextKw = String(row.imageKeyword ?? '').trim()
-    const nextKw2 = String(row.imageKeyword2 ?? '').trim()
-    const preservePrevKw =
-      !nextKw &&
-      shouldPreservePreAugmentImageKeyword(prevKw, opts.supplierKey, opts.productDestination, before, slot)
-    const preservePrevKw2 =
-      !nextKw2 &&
-      slot === 'middle' &&
-      shouldPreservePreAugmentImageKeyword(prevKw2, opts.supplierKey, opts.productDestination, before, slot)
-    return {
-      ...row,
-      imageKeyword: nextKw || (preservePrevKw ? prevKw : ''),
-      imageKeyword2:
-        nextKw2 ||
-        (preservePrevKw2 ? prevKw2 : null) ||
-        null,
-    }
+/** 마지막 일차 routeText 없음 — live gate 귀국 title 예외 SSOT */
+function ensurePackageScheduleLastDayGateCompliance<T extends ScheduleRouteRow>(rows: T[]): T[] {
+  if (!rows.length) return rows
+  const maxDay = Math.max(...rows.map((r) => Number(r.day)).filter((d) => d > 0))
+  return rows.map((row) => {
+    if (Number(row.day) !== maxDay) return row
+    const route = String(row.routeText ?? '').trim()
+    if (route) return row
+    const title = String(row.title ?? '').trim()
+    const desc = String(row.description ?? '').trim()
+    if (/숙박\s*없음|귀국|귀국편|출발/u.test(`${title} ${desc}`)) return row
+    return { ...row, title: '숙박 없음(귀국)' }
   })
 }
 
@@ -119,9 +69,12 @@ const PACKAGE_POST_AUGMENT_SUPPLIERS = new Set([
   'naeiltour',
 ])
 
-function applyPackagePostAugmentScheduleKeywords(parsed: RegisterParsed, supplierKey: string): RegisterParsed {
-  const before = parsed.schedule ?? []
-  const schedule = backfillEmptyScheduleRouteTextFromTitle(before)
+async function applyPackagePostAugmentScheduleKeywords(
+  parsed: RegisterParsed,
+  supplierKey: string,
+  logPrefix?: string,
+): Promise<RegisterParsed> {
+  const schedule = backfillEmptyScheduleRouteTextFromTitle(parsed.schedule ?? [])
   const dest = parsed.primaryDestination ?? parsed.destination ?? null
   const allocated = applyRegisterScheduleImageKeywordsBySupplier(
     schedule.map(normalizeScheduleRouteRowForImageKeyword),
@@ -129,14 +82,22 @@ function applyPackagePostAugmentScheduleKeywords(parsed: RegisterParsed, supplie
       supplierKey,
       productDestination: dest,
       productTitle: parsed.title ?? null,
+      travelScope: 'package',
     },
   )
+  const withGemini =
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1'
+      ? allocated
+      : await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(allocated, {
+          supplierKey,
+          productDestination: dest,
+          productTitle: parsed.title ?? null,
+          logLabel: logPrefix ?? 'register-post-augment',
+        })
+  const withFinalGaps = fillRegisterScheduleMiddleDayImageKeywordGaps(withGemini)
   return {
     ...parsed,
-    schedule: mergePostAugmentScheduleImageKeywords(before, allocated, {
-      supplierKey,
-      productDestination: dest,
-    }),
+    schedule: ensurePackageScheduleLastDayGateCompliance(withFinalGaps),
   }
 }
 
@@ -157,7 +118,7 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   }
 
   if (PACKAGE_POST_AUGMENT_SUPPLIERS.has(opts.forcedBrandKey)) {
-    return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey)
+    return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey, opts.logPrefix)
   }
 
   return parsed
