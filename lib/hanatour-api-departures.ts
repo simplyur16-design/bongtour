@@ -166,12 +166,17 @@ function hanatourSaleProdVariantSuffix(cd: string): string {
 }
 
 function isHanatourPackageSaleProdCd(cd: string): boolean {
-  return /^PAP|^CPP|^CQP|^CHP|^ATP|^EWP|^ESP|^JSP/i.test(cd)
+  return /^PAP|^CPP|^CQP|^CHP|^ATP|^EWP|^ESP|^JSP|^CAP|^AAB|^AAP|^EMP|^JYP/i.test(cd)
 }
 
 function isHanatourAirtelFreeTravelSaleProdCd(cd: string, nm?: string | null): boolean {
   if (/^PAB|^AVB|^CMB|^CKB|^ADB|^PGB/i.test(cd)) return true
   return /\[?자유여행\]?|에어텔/i.test(String(nm ?? ''))
+}
+
+/** 자유여행 전용 목록 행 — PAB·에어텔 명칭 등 (PAP·CAP 등 패키지 saleProdCd는 제외) */
+function isHanatourAirtelExclusiveListRow(cd: string, nm?: string | null): boolean {
+  return isHanatourAirtelFreeTravelSaleProdCd(cd, nm) && !isHanatourPackageSaleProdCd(cd)
 }
 
 /** getPkgProdLst — URL 상품과 동일 라인(마스터·일수·호텔)만. 패키지·다른 호텔·다른 일수 제외 */
@@ -203,8 +208,9 @@ export function filterHanatourProdListRowsForAnchorProductLine(
     if (anchorAirtel) {
       if (isHanatourPackageSaleProdCd(cd)) return false
       if (!isHanatourAirtelFreeTravelSaleProdCd(cd, rowNm)) return false
-    } else if (isHanatourPackageSaleProdCd(anchor)) {
-      if (isHanatourAirtelFreeTravelSaleProdCd(cd, rowNm) && !isHanatourPackageSaleProdCd(cd)) return false
+    } else {
+      /** 해외여행(패키지) — 자유여행·에어텔 전용 행 혼입 금지 (anchor prefix 무관) */
+      if (isHanatourAirtelExclusiveListRow(cd, rowNm)) return false
     }
 
     if (anchorMstr && !cd.startsWith(anchorMstr)) return false
@@ -215,7 +221,8 @@ export function filterHanatourProdListRowsForAnchorProductLine(
     if (anchorHotel) {
       const rowHotel = hanatourHotelKeyFromProdName(rowNm)
       if (rowHotel && rowHotel !== anchorHotel) return false
-    } else if (anchorVariant) {
+    } else if (anchorVariant && anchorAirtel) {
+      /** 자유여행만 suffix(호텔·등급) 일치 — 패키지는 출발일별 saleProdCd suffix가 달라도 동일 라인 */
       const rowVariant = hanatourSaleProdVariantSuffix(cd)
       if (rowVariant && rowVariant !== anchorVariant) return false
     }

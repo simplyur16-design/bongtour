@@ -1460,6 +1460,7 @@
             "resolveHanatourApiAirtelLike",
             "filterHanatourProdListRowsForAnchorSaleProdCd",
             "filterHanatourProdListRowsForAnchorProductLine",
+            "isHanatourAirtelExclusiveListRow",
             "gw.hanatour.com"
           ]
         },

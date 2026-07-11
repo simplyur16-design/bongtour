@@ -141,4 +141,62 @@ describe('filterHanatourProdListRowsForAnchorProductLine', () => {
     })
     expect(filtered.map((r) => r.saleProdCd)).toEqual(['PAP101260920JQ1', 'PAP101260921JQ1'])
   })
+
+  it('CAP 패키지 — 출발일별 saleProdCd suffix가 달라도 동일 마스터·일수 유지', () => {
+    const anchorInfo = {
+      saleProdCd: 'CAP104260801TWM',
+      saleProdNm: '대만 관광 4일',
+      prodMstrCd: 'CAP104',
+      trvlDayCnt: 4,
+      prodAttrCd: 'P',
+      frdmSchdDvCd: 'NS',
+    }
+    const rows = [
+      { saleProdCd: 'CAP104260801TWM', depDay: '20260801', adtAmt: 500000, saleProdNm: '대만 관광 4일' },
+      { saleProdCd: 'CAP104260815TWJ', depDay: '20260815', adtAmt: 520000, saleProdNm: '대만 관광 4일' },
+      { saleProdCd: 'CAP104260822ABC', depDay: '20260822', adtAmt: 510000, saleProdNm: '대만 관광 4일' },
+      { saleProdCd: 'PAB101260920JQ1', depDay: '20260920', adtAmt: 2059000, saleProdNm: '[자유여행] 시드니 6일' },
+    ]
+    const filtered = filterHanatourProdListRowsForAnchorProductLine(rows, anchorInfo, 'CAP104260801TWM', {
+      adminTravelScope: 'overseas',
+    })
+    expect(filtered.map((r) => r.saleProdCd)).toEqual([
+      'CAP104260801TWM',
+      'CAP104260815TWJ',
+      'CAP104260822ABC',
+    ])
+  })
+
+  it('해외여행 anchor — PAB·에어텔 명칭 전용 행 혼입 금지 (prefix 목록 밖 anchor 포함)', () => {
+    const anchorInfo = {
+      saleProdCd: 'ZZZ999260801AAA',
+      saleProdNm: '테스트 패키지 5일',
+      prodMstrCd: 'ZZZ999',
+      trvlDayCnt: 5,
+      prodAttrCd: 'P',
+    }
+    const rows = [
+      { saleProdCd: 'ZZZ999260801AAA', depDay: '20260801', adtAmt: 400000, saleProdNm: '테스트 패키지 5일' },
+      { saleProdCd: 'ZZZ999260815BBB', depDay: '20260815', adtAmt: 410000, saleProdNm: '테스트 패키지 5일' },
+      { saleProdCd: 'PAB101260920JQ1', depDay: '20260920', adtAmt: 2059000, saleProdNm: '[자유여행] 시드니 6일' },
+      { saleProdCd: 'PAP101260920JQ1', depDay: '20260920', adtAmt: 3190000, saleProdNm: '시드니 6일 패키지' },
+    ]
+    const filtered = filterHanatourProdListRowsForAnchorProductLine(rows, anchorInfo, 'ZZZ999260801AAA', {
+      adminTravelScope: 'overseas',
+    })
+    expect(filtered.map((r) => r.saleProdCd)).toEqual(['ZZZ999260801AAA', 'ZZZ999260815BBB'])
+  })
+
+  it('자유여행 anchor — 패키지 saleProdCd(PAP·CAP) 혼입 금지', () => {
+    const rows = [
+      { saleProdCd: 'PAB101260920JQ1', depDay: '20260920', adtAmt: 2059000, saleProdNm: '[자유여행] 시드니 6일 #파라독스' },
+      { saleProdCd: 'PAB101260921TW1', depDay: '20260921', adtAmt: 3219000, saleProdNm: '[자유여행] 시드니 6일 #파라독스' },
+      { saleProdCd: 'PAP101260920JQ1', depDay: '20260920', adtAmt: 3190000, saleProdNm: '시드니 6일 패키지' },
+      { saleProdCd: 'CAP104260801TWM', depDay: '20260801', adtAmt: 500000, saleProdNm: '대만 관광 4일' },
+    ]
+    const filtered = filterHanatourProdListRowsForAnchorProductLine(rows, anchorInfo, 'PAB101260920JQ1', {
+      adminTravelScope: 'air_hotel_free',
+    })
+    expect(filtered.map((r) => r.saleProdCd)).toEqual(['PAB101260920JQ1', 'PAB101260921TW1'])
+  })
 })
