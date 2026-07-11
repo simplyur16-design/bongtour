@@ -1,9 +1,9 @@
 /**
  * 하나투어 2030(구 밍글링) TRP 패키지 — 일정·제목 정제 SSOT.
- * REGRESSION-FREEZE[hanatour-register-schedule-2030]: 2030 routeText POI·vibe·제목 — manifest
+ * REGRESSION-FREEZE[hanatour-register-schedule-2030]: 2030 routeText POI·vibe·제목·confirm 가드 — manifest
  */
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
-import type { RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
+import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import { classifyHanatourScheduleCardDayKind } from '@/lib/hanatour-schedule-card-day-kind'
 import {
   cleanRegisterScheduleRoutePlaceLabel,
@@ -455,4 +455,212 @@ export function polishHanatour2030RegisterBundle(args: {
   })
   const listingTitle = normalizeHanatour2030ListingTitle(args.listingTitle ?? args.productTitle)
   return { listingTitle, factDays, schedule }
+}
+
+const HANATOUR_2030_CONFIRM_ROUTE_TOXIC_RE = /밍글|mingling|미션|출입국|입국\s*절차/i
+const HANATOUR_2030_CONFIRM_TITLE_TOXIC_RE = /밍글|mingling|Light|LIGHT/i
+const HANATOUR_2030_CONFIRM_LISTING_MARKETING_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍/i
+
+export type Hanatour2030ConfirmScheduleIssue = {
+  day: number
+  field: 'title' | 'routeText' | 'description' | 'listingTitle'
+  reason: string
+}
+
+function normalizeHanatour2030ConfirmCompareText(s: string | null | undefined): string {
+  return String(s ?? '').replace(/\s+/g, ' ').trim()
+}
+
+function inferHanatour2030FactDaysFromSchedule(schedule: RegisterScheduleDay[]): RegisterFactScheduleDay[] {
+  return schedule.map((row, index) => {
+    const rawPlaces: string[] = []
+    const routeText = String(row.routeText ?? '').trim()
+    const title = String(row.title ?? '').trim()
+    if (routeText) {
+      rawPlaces.push(
+        ...routeText
+          .split(/\s*[-–—·]\s*/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+    } else if (title) {
+      rawPlaces.push(
+        ...title
+          .split(/\s*[-–—·]\s*/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+    }
+    return {
+      day: row.day > 0 ? row.day : index + 1,
+      places: rawPlaces,
+      hotels: [],
+      meals: [],
+      transportNote: null,
+    }
+  })
+}
+
+/** 등록 confirm 직전 — augment 이후 schedule·제목을 2030 규칙으로 재정제. */
+export function repolishHanatour2030ParsedAtRegisterConfirm(parsed: RegisterParsed): RegisterParsed {
+  const detectTitle = resolveHanatour2030ProductTitleForDetect(
+    parsed.supplierListingTitleRaw,
+    parsed.title,
+  )
+  if (!isHanatour2030ProductTitle(detectTitle)) return parsed
+
+  const schedule = parsed.schedule ?? []
+  if (schedule.length === 0) return parsed
+
+  const polishedSchedule = applyHanatour2030SchedulePolish({
+    schedule,
+    factDays: inferHanatour2030FactDaysFromSchedule(schedule),
+    productTitle: detectTitle,
+  })
+  return {
+    ...parsed,
+    title: normalizeHanatour2030ListingTitle(parsed.title),
+    schedule: polishedSchedule,
+  }
+}
+
+/** 2030 TRP — 등록 confirm 시점 일정·제목 계약 위반 수집. */
+export function collectHanatour2030RegisterScheduleConfirmIssues(
+  parsed: Pick<RegisterParsed, 'title' | 'supplierListingTitleRaw' | 'schedule'>,
+): Hanatour2030ConfirmScheduleIssue[] {
+  const detectTitle = resolveHanatour2030ProductTitleForDetect(
+    parsed.supplierListingTitleRaw,
+    parsed.title,
+  )
+  if (!isHanatour2030ProductTitle(detectTitle)) return []
+
+  const issues: Hanatour2030ConfirmScheduleIssue[] = []
+  const listingTitle = String(parsed.title ?? '').trim()
+
+  if (!/\(2030\)\s*$/i.test(listingTitle)) {
+    issues.push({
+      day: 0,
+      field: 'listingTitle',
+      reason: '2030 상품 제목에 (2030) 접미가 필요합니다.',
+    })
+  }
+  if (HANATOUR_2030_CONFIRM_LISTING_MARKETING_RE.test(listingTitle)) {
+    issues.push({
+      day: 0,
+      field: 'listingTitle',
+      reason: '2030 상품 제목에 [2030전용]·밍글링 해시 등 마케팅 태그가 남아 있습니다.',
+    })
+  }
+
+  const schedule = parsed.schedule ?? []
+  if (schedule.length === 0) {
+    issues.push({
+      day: 0,
+      field: 'routeText',
+      reason: '2030 상품 일정 행이 비어 있습니다.',
+    })
+    return issues
+  }
+
+  for (const row of schedule) {
+    const day = row.day > 0 ? row.day : 0
+    const title = String(row.title ?? '')
+    const routeText = String(row.routeText ?? '')
+    const description = String(row.description ?? '')
+
+    if (
+      HANATOUR_2030_CONFIRM_ROUTE_TOXIC_RE.test(routeText) ||
+      HANATOUR_2030_META_CARD_RE.test(routeText)
+    ) {
+      issues.push({
+        day,
+        field: 'routeText',
+        reason: `D${day} routeText에 밍글링·미션·출입국 안내 문구가 포함되어 있습니다.`,
+      })
+    }
+    if (HANATOUR_2030_CONFIRM_TITLE_TOXIC_RE.test(title)) {
+      issues.push({
+        day,
+        field: 'title',
+        reason: `D${day} title에 밍글링·Light 마케팅 문구가 포함되어 있습니다.`,
+      })
+    }
+    if (
+      routeText &&
+      description &&
+      normalizeHanatour2030ConfirmCompareText(description) ===
+        normalizeHanatour2030ConfirmCompareText(routeText)
+    ) {
+      issues.push({
+        day,
+        field: 'description',
+        reason: `D${day} description이 routeText와 동일합니다. 2030 vibe 브리프가 필요합니다.`,
+      })
+    }
+    if (/밍글|미션/i.test(description)) {
+      issues.push({
+        day,
+        field: 'description',
+        reason: `D${day} description에 밍글링·미션 문구가 남아 있습니다.`,
+      })
+    }
+  }
+
+  return issues
+}
+
+export function hanatour2030RegisterScheduleOkAtConfirm(parsed: RegisterParsed): boolean {
+  const detectTitle = resolveHanatour2030ProductTitleForDetect(
+    parsed.supplierListingTitleRaw,
+    parsed.title,
+  )
+  if (!isHanatour2030ProductTitle(detectTitle)) return true
+  return collectHanatour2030RegisterScheduleConfirmIssues(parsed).length === 0
+}
+
+/** preview·confirm 공통 — augment 이후 2030 재정제 + extractionFieldIssues 동기화. */
+export function applyHanatour2030RegisterConfirmGuard(parsed: RegisterParsed): RegisterParsed {
+  const next = repolishHanatour2030ParsedAtRegisterConfirm(parsed)
+  const detectTitle = resolveHanatour2030ProductTitleForDetect(
+    next.supplierListingTitleRaw,
+    next.title,
+  )
+  if (!isHanatour2030ProductTitle(detectTitle)) return next
+
+  const issues = collectHanatour2030RegisterScheduleConfirmIssues(next)
+  const stripped = (next.extractionFieldIssues ?? []).filter(
+    (i) =>
+      !String(i.field).startsWith('hanatour2030.schedule') &&
+      !String(i.field).startsWith('schedule.day'),
+  )
+  if (issues.length === 0) {
+    return stripped.length !== (next.extractionFieldIssues ?? []).length
+      ? { ...next, extractionFieldIssues: stripped }
+      : next
+  }
+  return {
+    ...next,
+    extractionFieldIssues: [
+      ...stripped,
+      ...issues.map((i) => ({
+        field:
+          i.day > 0
+            ? `hanatour2030.schedule.day${i.day}.${i.field}`
+            : `hanatour2030.schedule.${i.field}`,
+        reason: i.reason,
+        source: 'auto' as const,
+      })),
+    ],
+  }
+}
+
+export function hanatour2030ConfirmScheduleBlockReason(parsed: RegisterParsed): string | null {
+  const issues = collectHanatour2030RegisterScheduleConfirmIssues(parsed)
+  if (issues.length === 0) return null
+  const head = issues
+    .slice(0, 2)
+    .map((i) => i.reason)
+    .join(' ')
+  const more = issues.length > 2 ? ` 외 ${issues.length - 2}건` : ''
+  return `2030 TRP 일정 정제 미충족: ${head}${more} 미리보기를 다시 실행하거나 본문 일정을 확인하세요.`
 }

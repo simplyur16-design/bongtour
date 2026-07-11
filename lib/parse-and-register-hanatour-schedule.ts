@@ -1,5 +1,6 @@
 /**
  * 하나투어 등록 파이프: 일정 표현층만 보정.
+ * REGRESSION-FREEZE[hanatour-register-schedule-2030]: confirm 2030 일정 표현 게이트 — manifest
  * @see docs/register_schedule_expression_ssot.md
  */
 import {
@@ -33,6 +34,8 @@ import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedul
 
 export { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
+import { hanatour2030RegisterScheduleOkAtConfirm } from '@/lib/hanatour-register-schedule-2030'
+import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 
 export {
   classifyHanatourScheduleCardDayKind,
@@ -2052,4 +2055,27 @@ export function finalizeHanatourItineraryDayDraftsFromSchedule(
     if (isPlaceholderHotel(ht ?? '')) return d
     return { ...d, accommodation: ht!.slice(0, 500) }
   })
+}
+
+/** confirm: 일정 표현층 존재 + 2030 TRP 일정·제목 계약. */
+export function hanatourConfirmHasScheduleExpressionLayer(
+  parsed: RegisterParsed,
+  drafts: ItineraryDayInput[],
+): boolean {
+  /** 자유여행(항공+호텔) — 일차 패키지 일정 표현층 없이 확정 가능 */
+  if (isRegisterAirHotelListing(null, parsed.productType)) return true
+
+  const hasBaseLayer =
+    (parsed.schedule?.length ?? 0) > 0 ||
+    drafts.some((d) => {
+      const s = String(d.summaryTextRaw ?? '').trim()
+      if (s.length >= 8) return true
+      const ht = d.hotelText?.trim()
+      if (ht && !isPlaceholderHotel(ht)) return true
+      const m = String(d.meals ?? '').trim()
+      if (m.length > 0) return true
+      return false
+    })
+  if (!hasBaseLayer) return false
+  return hanatour2030RegisterScheduleOkAtConfirm(parsed)
 }

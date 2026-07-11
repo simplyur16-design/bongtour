@@ -572,7 +572,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "하나투어 2030 TRP — 밍글링 카드 제외·routeText POI·vibe description·(2030) 제목",
+      "summary": "하나투어 2030 TRP — 밍글링 카드 제외·routeText POI·vibe description·(2030) 제목·confirm 가드",
       "checks": [
         {
           "file": "lib/hanatour-register-schedule-2030.ts",
@@ -581,7 +581,10 @@
             "applyHanatour2030SchedulePolish",
             "normalizeHanatour2030ListingTitle",
             "polishHanatour2030RegisterBundle",
-            "resolveHanatour2030ProductTitleForDetect"
+            "resolveHanatour2030ProductTitleForDetect",
+            "collectHanatour2030RegisterScheduleConfirmIssues",
+            "applyHanatour2030RegisterConfirmGuard",
+            "hanatour2030ConfirmScheduleBlockReason"
           ]
         },
         {
@@ -597,6 +600,21 @@
             "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
             "polishHanatour2030RegisterBundle",
             "resolveHanatour2030ProductTitleForDetect"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-handler.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
+            "applyHanatour2030RegisterConfirmGuard",
+            "confirmScheduleExpressionLayerOk: hanatourConfirmHasScheduleExpressionLayer"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanatour-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
+            "hanatourConfirmHasScheduleExpressionLayer"
           ]
         }
       ],

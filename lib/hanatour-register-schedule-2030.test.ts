@@ -6,13 +6,20 @@ import { hanatourFactDaysToRegisterSchedule } from '@/lib/hanatour-register-api-
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import {
   applyHanatour2030SchedulePolish,
+  applyHanatour2030RegisterConfirmGuard,
+  collectHanatour2030RegisterScheduleConfirmIssues,
   extractHanatour2030PoiFromCardLabel,
   filterHanatour2030FactScheduleDays,
+  hanatour2030ConfirmScheduleBlockReason,
+  hanatour2030RegisterScheduleOkAtConfirm,
   isHanatour2030ProductTitle,
   normalizeHanatour2030ListingTitle,
   polishHanatour2030RegisterBundle,
+  repolishHanatour2030ParsedAtRegisterConfirm,
   resolveHanatour2030ProductTitleForDetect,
 } from '@/lib/hanatour-register-schedule-2030'
+import { hanatourConfirmHasScheduleExpressionLayer } from '@/lib/parse-and-register-hanatour-schedule'
+import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
 
 const JOP191_TITLE =
   ' [2030전용] 고베/오사카/교토/이네후나야 3일 #밍글링Light #일본속베네치아 #낭만가득고베의밤 #천연온천 #요나키소바야식 #오사카성공원 #쇼핑메카'
@@ -145,5 +152,59 @@ describe('hanatour 2030 schedule polish', () => {
     })
     expect(out.schedule).toEqual(sched)
     expect(out.listingTitle).toBe('방콕 3일')
+  })
+
+  it('confirm guard — 오염 일정은 이슈, 재정제 후 통과', () => {
+    const pollutedSchedule = hanatourFactDaysToRegisterSchedule(JOP191_FACT_DAYS)
+    const polluted: RegisterParsed = {
+      originSource: 'hanatour',
+      originCode: 'JOP191',
+      title: JOP191_TITLE,
+      supplierListingTitleRaw: JOP191_TITLE,
+      destination: '일본',
+      schedule: pollutedSchedule,
+      prices: [],
+    }
+    expect(collectHanatour2030RegisterScheduleConfirmIssues(polluted).length).toBeGreaterThan(0)
+
+    const repolished = repolishHanatour2030ParsedAtRegisterConfirm(polluted)
+    expect(hanatour2030RegisterScheduleOkAtConfirm(repolished)).toBe(true)
+
+    const guarded = applyHanatour2030RegisterConfirmGuard(polluted)
+    expect(hanatour2030RegisterScheduleOkAtConfirm(guarded)).toBe(true)
+    expect(guarded.title).toMatch(/\(2030\)\s*$/)
+    expect(guarded.schedule[0]?.routeText).toBe('모토마치')
+    expect(guarded.extractionFieldIssues ?? []).toHaveLength(0)
+  })
+
+  it('hanatourConfirmHasScheduleExpressionLayer — 2030 미충족 시 false', () => {
+    const pollutedSchedule = hanatourFactDaysToRegisterSchedule(JOP191_FACT_DAYS)
+    const polluted: RegisterParsed = {
+      originSource: 'hanatour',
+      originCode: 'JOP191',
+      title: JOP191_TITLE,
+      supplierListingTitleRaw: JOP191_TITLE,
+      destination: '일본',
+      schedule: pollutedSchedule,
+      prices: [],
+    }
+    expect(hanatourConfirmHasScheduleExpressionLayer(polluted, [])).toBe(false)
+    const guarded = applyHanatour2030RegisterConfirmGuard(polluted)
+    expect(hanatourConfirmHasScheduleExpressionLayer(guarded, [])).toBe(true)
+    expect(hanatour2030ConfirmScheduleBlockReason(polluted)).toMatch(/2030 TRP/)
+    expect(hanatour2030ConfirmScheduleBlockReason(guarded)).toBeNull()
+  })
+
+  it('hanatourConfirmHasScheduleExpressionLayer — 자유여행(air-hotel)은 일정 없어도 통과', () => {
+    const parsed: RegisterParsed = {
+      originSource: 'hanatour',
+      originCode: 'FIT001',
+      title: '방콕 자유여행 3박 5일',
+      destination: '태국',
+      productType: 'air-hotel',
+      schedule: [],
+      prices: [{ departureDate: '2026-08-01', adultPrice: 890000, status: 'available' }],
+    }
+    expect(hanatourConfirmHasScheduleExpressionLayer(parsed, [])).toBe(true)
   })
 })

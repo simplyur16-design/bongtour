@@ -224,6 +224,11 @@ export type ParseAndRegisterFlowOptions = {
    * 선택: 출발·가격·항공 등 기본 캘린더 신호가 true여도, 일정 표현층이 없으면 확정을 막는다.
    */
   confirmScheduleExpressionLayerOk?: (parsed: RegisterParsed, drafts: ItineraryDayInput[]) => boolean
+  /** `confirmScheduleExpressionLayerOk` 실패 시 calendar 이슈 문구 대체(2030 등 공급사별). */
+  confirmScheduleExpressionLayerFailReason?: (
+    parsed: RegisterParsed,
+    drafts: ItineraryDayInput[],
+  ) => string | null
 }
 
 type ParseRegisterLogCtx = {
@@ -435,6 +440,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     getHeroTripDatesSupplement,
     reservationNoticeRawForProductSave,
     confirmScheduleExpressionLayerOk,
+    confirmScheduleExpressionLayerFailReason,
   } = flowOptions
   let stage = 'init'
   let ctx: ParseRegisterLogCtx = {
@@ -935,7 +941,16 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       baseCalendarOk = false
     }
     const scheduleExpressionLayerOk =
-      confirmScheduleExpressionLayerOk?.(parsed, itineraryDayDrafts) ?? true
+      confirmScheduleExpressionLayerOk?.(
+        {
+          ...parsed,
+          productType: resolveRegisterProductType(
+            travelScopeAndListingKindFromAdminRegister(travelScope),
+            parsed.productType,
+          ),
+        },
+        itineraryDayDrafts,
+      ) ?? true
     const calendarSignalsOk = baseCalendarOk && scheduleExpressionLayerOk
 
     const flowFieldIssues: PricePromotionFieldIssue[] = []
@@ -951,10 +966,14 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     // 미리보기는 prices[]/schedule[]를 의도적으로 비움 — 교정 이슈로 올리지 않음(정책 안내는 registerPreviewPolicyNotes).
     if (calendarDataMissing && mode === 'confirm') {
       const layerOnlyFail = baseCalendarOk && !scheduleExpressionLayerOk
+      const customLayerReason = layerOnlyFail
+        ? confirmScheduleExpressionLayerFailReason?.(parsed, itineraryDayDrafts) ?? null
+        : null
       flowFieldIssues.push({
         field: 'calendar',
         reason: layerOnlyFail
-          ? '일정 표현층(일차별 일정·요약)이 비어 있어 확정할 수 없습니다. 본문에 일정표를 포함했는지 확인한 뒤 미리보기를 다시 실행하세요.'
+          ? customLayerReason ??
+            '일정 표현층(일차별 일정·요약)이 비어 있어 확정할 수 없습니다. 본문에 일정표를 포함했는지 확인한 뒤 미리보기를 다시 실행하세요.'
           : savePersistedParsedOnly
             ? '등록에 필요한 출발·가격·일정 정보가 미리보기 결과에서 확인되지 않습니다. 본문에 해당 정보가 부족한 경우 본문을 보완하고, 이미 붙여넣었다면 미리보기를 다시 실행하세요.'
             : ranConfirmSupplementalFullParse
