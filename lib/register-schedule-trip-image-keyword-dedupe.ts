@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: kw2 — primary 확정 후 route 이동순 2번째·랜드마크 dedupe — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — applyDomesticHubOnlyDepartureReturnAdjacentKeywords — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ensureDepartureReturnVisitCityKeywords — 1·마지막일 방문도시 — manifest
+ * REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: pickMongoliaTerelClusterKeywordForUsedSlot — return dedupe — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
 import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -62,9 +63,9 @@ function isAirlineOnlyMovementRouteText(routeText: string | null | undefined): b
   if (!segs.length) return false
   return segs.every((s) => {
     if (isScheduleDomesticHubToken(s)) return false
+    if (/[\uAC00-\uD7AF]/.test(s) && !/(?:항공|에어)/u.test(s)) return false
     return (
       isAirlineCarrierImageKeyword(s) ||
-      isScheduleAirportLikeImageKeyword(s) ||
       /(?:항공|airline|air(?:line)?\b)/i.test(s)
     )
   })
@@ -242,6 +243,19 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Genghis Khan Statue Ordos')
     push('Xiangshawan Desert Ordos Inner Mongolia')
     push('Ordos grassland Mongolia steppe')
+  }
+  if (
+    /테렐지|Terelj|아리야발|Ariyabal|자이승|Zaisan|수흐바타르|Sukhbaatar|울란바토르|Ulaanbaatar|몽골|Mongolia|거북\s*바위|Turtle\s*Rock/i.test(
+      rawRoute,
+    )
+  ) {
+    push('Ariyabal Temple')
+    push('Terelj National Park')
+    push('Turtle Rock Terelj')
+    push('Genghis Khan Statue Complex')
+    push('Zaisan Memorial Ulaanbaatar')
+    push('Sukhbaatar Square Ulaanbaatar')
+    push('Gandantegchinlen Monastery Ulaanbaatar')
   }
   if (/Seattle|시애틀|알aska|Alaska|알래스카|퍼블릭 마켓|Pike Place/i.test(rawRoute)) {
     push('Pike Place Market Seattle')
@@ -506,7 +520,7 @@ function pickDepartureVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>
     if (
       fromDest &&
       !isDomesticHubOrAirportImageKeyword(fromDest) &&
-      !isBareCityOrCountryKeyword(fromDest)
+      !isRejectedTripKeywordCandidate(fromDest)
     ) {
       return fromDest
     }
@@ -518,10 +532,14 @@ function pickReturnVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
   sorted: readonly T[],
   day: number,
   productDestination?: string | null,
+  used?: ReadonlySet<string>,
 ): string {
   const retRow = sorted.find((r) => Number(r.day) === day)
   const fromOwn = pickForeignVisitCityFromRouteText(retRow?.routeText, true)
-  if (fromOwn) return fromOwn
+  if (fromOwn) {
+    const nk = normScheduleImageKeywordKey(fromOwn)
+    if (!nk || !used?.has(nk)) return fromOwn
+  }
   const tourismRows = [...sorted]
     .filter((r) => {
       const d = Number(r.day)
@@ -529,8 +547,17 @@ function pickReturnVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
     })
     .reverse()
   for (const tourismRow of tourismRows) {
+    for (const kw of [...collectTripKeywordCandidates(tourismRow)].reverse()) {
+      if (isDomesticHubOrAirportImageKeyword(kw) || isReturnDayCityLeakKeyword(kw)) continue
+      const nk = normScheduleImageKeywordKey(kw)
+      if (nk && used?.has(nk)) continue
+      return kw
+    }
     const fromPrior = pickForeignVisitCityFromRouteText(tourismRow.routeText, true)
-    if (fromPrior) return fromPrior
+    if (fromPrior) {
+      const nk = normScheduleImageKeywordKey(fromPrior)
+      if (!nk || !used?.has(nk)) return fromPrior
+    }
   }
   const dest = String(productDestination ?? '').trim()
   if (dest) {
@@ -538,9 +565,10 @@ function pickReturnVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
     if (
       fromDest &&
       !isDomesticHubOrAirportImageKeyword(fromDest) &&
-      !isBareCityOrCountryKeyword(fromDest)
+      !isRejectedTripKeywordCandidate(fromDest)
     ) {
-      return fromDest
+      const nk = normScheduleImageKeywordKey(fromDest)
+      if (!nk || !used?.has(nk)) return fromDest
     }
   }
   return ''
@@ -555,20 +583,99 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
   const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
   const maxDay = Math.max(...sorted.map((r) => Number(r.day)).filter((d) => d > 0))
   const activeDays = sorted.filter((r) => Number(r.day) > 0).length
-  return sorted.map((row) => {
+  const out = new Map<number, T>()
+  for (const row of sorted) out.set(Number(row.day), row)
+
+  const middleUsed = new Set<string>()
+  const tripReserved = new Set<string>()
+  const ingestSlots = (row: RegisterScheduleTripKeywordRow, into: Set<string>) => {
+    for (const slot of [row.imageKeyword, row.imageKeyword2]) {
+      const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
+      if (nk) into.add(nk)
+    }
+  }
+
+  for (const row of sorted) {
     const day = Number(row.day)
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
-    if (slot !== 'departure' && slot !== 'return') return row
+    if (slot === 'departure' || slot === 'return') continue
+    ingestSlots(row, middleUsed)
+  }
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+    if (slot !== 'departure' && slot !== 'return') continue
+    if (slot === 'departure' && isAirlineOnlyMovementRouteText(row.routeText)) {
+      out.set(day, { ...row, imageKeyword: '', imageKeyword2: null })
+      continue
+    }
     const kw = String(row.imageKeyword ?? '').trim()
     const needsFill = !kw || isBareCityOrCountryKeyword(kw)
-    if (!needsFill) return { ...row, imageKeyword2: null }
+    if (!needsFill) {
+      const kept = { ...row, imageKeyword2: null }
+      out.set(day, kept)
+      const keptKw = String(kept.imageKeyword ?? '').trim()
+      const keptNk = normScheduleImageKeywordKey(keptKw)
+      if (keptNk && isBareCityOrCountryKeyword(keptKw)) tripReserved.add(keptNk)
+      continue
+    }
     const filled =
       slot === 'departure'
         ? pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, productDestination)
-        : pickReturnVisitCityKeyword(sorted, day, productDestination)
-    if (!filled) return { ...row, imageKeyword2: null }
-    return { ...row, imageKeyword: filled, imageKeyword2: null }
-  })
+        : pickReturnVisitCityKeyword(
+            sorted,
+            day,
+            productDestination,
+            new Set([...middleUsed, ...tripReserved]),
+          ) ||
+          pickMongoliaTerelClusterKeywordForUsedSlot(
+            new Set([...middleUsed, ...tripReserved]),
+            sorted.map((r) => String(r.routeText ?? '')).join('\n'),
+          )
+    if (!filled) {
+      const keepKw = String(row.imageKeyword ?? '').trim()
+      out.set(day, {
+        ...row,
+        imageKeyword: keepKw,
+        imageKeyword2: null,
+      })
+      if (slot === 'departure' && keepKw) {
+        const keepNk = normScheduleImageKeywordKey(keepKw)
+        if (keepNk && isBareCityOrCountryKeyword(keepKw)) tripReserved.add(keepNk)
+      }
+      continue
+    }
+    const nk = normScheduleImageKeywordKey(filled)
+    const usedForReturn = new Set([...middleUsed, ...tripReserved])
+    if (slot === 'return' && nk && usedForReturn.has(nk)) {
+      out.set(day, { ...row, imageKeyword2: null })
+      continue
+    }
+    const next = { ...row, imageKeyword: filled, imageKeyword2: null }
+    out.set(day, next)
+    if (nk && isBareCityOrCountryKeyword(filled)) tripReserved.add(nk)
+  }
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+    if (slot !== 'middle') continue
+    const current = out.get(day) ?? row
+    let primary = String(current.imageKeyword ?? '').trim()
+    let secondary = String(current.imageKeyword2 ?? '').trim()
+    const pk = normScheduleImageKeywordKey(primary)
+    const sk = normScheduleImageKeywordKey(secondary)
+    if (sk && tripReserved.has(sk)) secondary = ''
+    if (pk && tripReserved.has(pk) && isBareCityOrCountryKeyword(primary)) primary = ''
+    out.set(day, {
+      ...current,
+      imageKeyword: primary,
+      imageKeyword2: secondary || null,
+    })
+  }
+
+  return sorted.map((row) => out.get(Number(row.day)) ?? row)
 }
 
 /** 국내 허브 only 출발·귀국일 — adjacent-poi SSOT(도착지 forward / 마지막 관광 backward 미사용 명소) */
@@ -682,16 +789,22 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           break
         }
       }
+      if (!picked && isMongoliaTerelClusterRoute(tripHay)) {
+        picked = pickMongoliaTerelClusterKeywordForUsedSlot(used, tripHay)
+      }
       if (!picked) {
-        picked = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination)
+        picked = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination, used)
       }
     }
 
     const existingPrimary = String(row.imageKeyword ?? '').trim()
+    const existingNk = normScheduleImageKeywordKey(existingPrimary)
     const primary =
       picked && !isDomesticHubOrAirportImageKeyword(picked)
         ? picked
-        : existingPrimary && !isDomesticHubOrAirportImageKeyword(existingPrimary)
+        : existingPrimary &&
+            !isDomesticHubOrAirportImageKeyword(existingPrimary) &&
+            (!existingNk || !used.has(existingNk))
           ? existingPrimary
           : ''
     if (primary) used.add(normScheduleImageKeywordKey(primary))
@@ -1760,6 +1873,35 @@ function isSteppeAlaskaClusterRoute(routeText: string | null | undefined): boole
   )
 }
 
+function isMongoliaTerelClusterRoute(routeText: string | null | undefined): boolean {
+  return /(?:테렐지|Terelj|아리야발|Ariyabal|자이승|Zaisan|수흐바타르|Sukhbaatar|울란바토르|Ulaanbaatar|몽골|Mongolia|거북\s*바위|Turtle\s*Rock)/i.test(
+    String(routeText ?? ''),
+  )
+}
+
+function pickMongoliaTerelClusterKeywordForUsedSlot(
+  used: ReadonlySet<string>,
+  tripHay: string,
+): string {
+  if (!isMongoliaTerelClusterRoute(tripHay)) return ''
+  for (const kw of [
+    'Gandantegchinlen Monastery Ulaanbaatar',
+    'Turtle Rock Terelj',
+    'Genghis Khan Statue Complex',
+    'Ariyabal Temple',
+    'Terelj National Park',
+    'Zaisan Memorial Ulaanbaatar',
+    'Sukhbaatar Square Ulaanbaatar',
+  ]) {
+    if (isRejectedTripKeywordCandidate(kw) || isDomesticHubOrAirportImageKeyword(kw)) continue
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk || used.has(nk)) continue
+    if (!registerScheduleKeywordPassesRouteEvidence(kw, { routeText: tripHay })) continue
+    return kw
+  }
+  return ''
+}
+
 function pickSteppeAlaskaClusterKeywordForUsedSlot(
   cands: readonly string[],
   used: ReadonlySet<string>,
@@ -2072,7 +2214,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       return { ...row, imageKeyword: '', imageKeyword2: null }
     }
 
-    if (hubOnlyDay && slot === 'middle') {
+    if (hubOnlyDay) {
       return { ...row, imageKeyword: '', imageKeyword2: null }
     }
 

@@ -147,6 +147,90 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Madrid|Toledo|Segovia/i)
   })
 
+  it('return day — trip-wide used 키워드(Zaisan) 재사용 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '아리야발 사원 - 테렐지',
+          title: '-',
+          description: '-',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '테렐지 국립공원',
+          title: '-',
+          description: '-',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '자이승 승전탑 - 수흐바타르 광장',
+          title: '-',
+          description: '-',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '', title: '-', description: '-', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'hanatour', productDestination: '몽골', travelScope: 'package' },
+    )
+    const d3 = out.find((r) => r.day === 3)!
+    const d4 = out.find((r) => r.day === 4)!
+    const used = new Set<string>()
+    for (const row of out) {
+      for (const slot of [row.imageKeyword, row.imageKeyword2]) {
+        const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
+        if (nk) {
+          expect(used.has(nk)).toBe(false)
+          used.add(nk)
+        }
+      }
+    }
+    expect(String(d4.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    expect(normScheduleImageKeywordKey(String(d3.imageKeyword ?? ''))).not.toBe(
+      normScheduleImageKeywordKey(String(d4.imageKeyword ?? '')),
+    )
+  })
+
+  it('ensureDepartureReturn — sanitized single-city departure route still fills visit city', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        { day: 1, routeText: '오사카', imageKeyword: '', imageKeyword2: null },
+        { day: 2, routeText: '오사카 - 교토 - 오사카', imageKeyword: 'Kyoto', imageKeyword2: 'Osaka' },
+        { day: 3, routeText: '오사카 - 인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      '오사카',
+    )
+    expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Osaka/i)
+    expect(String(out.find((r) => r.day === 2)?.imageKeyword2 ?? '')).toBe('')
+  })
+
+  it('Osaka 3-day — departure visit city does not duplicate middle kw2', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, routeText: '인천 - 오사카', imageKeyword: '', imageKeyword2: null },
+        { day: 2, routeText: '오사카 - 교토 - 오사카', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '오사카 - 인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'hanatour', productDestination: '오사카', productTitle: '오사카 3일', travelScope: 'package' },
+    )
+    const used = new Set<string>()
+    for (const row of out) {
+      for (const slot of [row.imageKeyword, row.imageKeyword2]) {
+        const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
+        if (!nk) continue
+        expect(used.has(nk)).toBe(false)
+        used.add(nk)
+      }
+    }
+    expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Osaka/i)
+    expect(String(out.find((r) => r.day === 2)?.imageKeyword ?? '').length).toBeGreaterThan(0)
+  })
+
   it('fills middle-day kw2 from same-day second landmark (Oslo + Vigeland)', () => {
     const out = enforceRegisterScheduleTripUniqueImageKeywords([
       {

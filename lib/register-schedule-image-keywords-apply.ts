@@ -116,14 +116,16 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const deduped = enforceRegisterScheduleTripUniqueImageKeywords(crossContinentStripped)
   const sanitized = sanitizeRegisterScheduleImageKeywordsFromRouteEvidence(deduped)
   const promoted = promoteMiddleDayEmptyPrimaryFromKeyword2(sanitized)
-  const withKeywords = ensureDepartureReturnVisitCityKeywords(
-    fillRegisterScheduleMiddleDayImageKeywordGaps(
-      applyDomesticHubOnlyDepartureReturnAdjacentKeywords(
-        enforceRegisterScheduleTripUniqueImageKeywords(promoted),
-        { productDestination: dest },
+  const withKeywords = fillRegisterScheduleMiddleDayImageKeywordGaps(
+    ensureDepartureReturnVisitCityKeywords(
+      fillRegisterScheduleMiddleDayImageKeywordGaps(
+        applyDomesticHubOnlyDepartureReturnAdjacentKeywords(
+          enforceRegisterScheduleTripUniqueImageKeywords(promoted),
+          { productDestination: dest },
+        ),
       ),
+      dest,
     ),
-    dest,
   )
   return withKeywords.map((row) => {
     const day = Number(row.day)

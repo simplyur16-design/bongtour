@@ -4600,6 +4600,14 @@
           ]
         },
         {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]",
+            "pickMongoliaTerelClusterKeywordForUsedSlot",
+            "마지막 관광일 미사용 명소만"
+          ]
+        },
+        {
           "file": "scripts/verify-mongolia-cqp111-image-keyword-live.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]",

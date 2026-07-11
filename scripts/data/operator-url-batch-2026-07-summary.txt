@@ -1,34 +1,24 @@
-Operator URL batch verification — 2026-07-11 (v8)
+Operator URL batch verification — 2026-07-11 (v9)
 ================================================
 Source: scripts/data/operator-url-batch-2026-07.txt (83 URLs)
 Gate: verify-register-user-url-batch-live-gate.ts (--urls-file)
 Pipeline: SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI=1 (rule-only, no Gemini backfill)
-Report: scripts/data/operator-url-batch-2026-07-report-v8.json
+Report: scripts/data/operator-url-batch-2026-07-report-v9.json
 
 SUMMARY (latest): 83 / 83 passed
-  - Fail subset (14 URLs): 14/14 PASSED
-  - Full batch: 83/83 PASSED
-  - Regression: verify:suppliers-schedule-route-noise-and-keyword-dedupe OK
-  - Regression: verify:regression-freeze:prebuild OK
-  - Regression: register-schedule-trip-image-keyword-dedupe.test.ts 21/21 OK
+  - 1일차 imageKeyword 비어 있음: 0 (v8: 9)
+  - 마지막 일차 imageKeyword 비어 있음: 0 (v8: 34)
+  - Regression: register-schedule-trip-image-keyword-dedupe.test.ts 23/23 OK
 
 Re-run:
   $env:SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI='1'
-  npx tsx scripts/verify-register-user-url-batch-live-gate.ts --urls-file scripts/data/operator-url-batch-2026-07.txt --json-out scripts/data/operator-url-batch-2026-07-report-v8.json
+  npx tsx scripts/verify-register-user-url-batch-live-gate.ts --urls-file scripts/data/operator-url-batch-2026-07.txt --json-out scripts/data/operator-url-batch-2026-07-report-v9.json
 
-Key fixes (v7→v8):
-  - Laos/Taiwan/Oceania/Japan/China hub clusters wired into gap-fill + kw2 duplicate allow
-  - Laos-only route Phu Quoc leak blocked (allowSoutheastAsia + shouldRejectRouteLeakKeyword2)
-  - BBQ SET rejected primary → promote kw2 before gap-fill (middle-day kw2 refill)
-  - Baltic POI: 톰페아 alias, Lahemaa/Alexander Nevsky/Toompea in Eastern Europe cluster
-  - Bali return-day fallback — unused SEA resort landmark when pool exhausted
+Key fixes (v8→v9):
+  - Live gate: 1일차·마지막 일차 imageKeyword 필수 검사 추가
+  - ensureDepartureReturnVisitCityKeywords — 방문 도시 영문명 최종 보충
+  - 단축 일정(중간일 없음): return 슬롯에서도 departure forward-fill
+  - applyDomesticHubOnly: return일 기존 키워드 유지 + 도시 폴백
 
-Gemini 실등록 샘플 (공급사별 3건, SKIP 미설정):
-  - Sample file: scripts/data/operator-url-batch-gemini-sample-3-per-supplier.txt (15 URLs)
-  - Result: 15/15 PASSED — scripts/data/operator-url-batch-gemini-sample-result.json
-  - 추가 수정: post-augment Gemini 후 final gap-fill, ENP121 D11 Eastern Europe primary cluster
-
-CI 재검증:
-  - prebuild: PASS (verify:regression-freeze:prebuild)
-  - ci tier: FAIL — lib/hanatour-register-detail-collect.test.ts 3건 (ITNR title/route·description vibe, 이번 imageKeyword 작업과 무관)
-  - hanatour price anchor: PAP101 1,799,000→1,749,000 live drift 반영
+DB 반영:
+  - 파이프라인·gate 통과 ≠ DB 자동 갱신. 관리자에서 상품별 재등록(confirm) 필요.
