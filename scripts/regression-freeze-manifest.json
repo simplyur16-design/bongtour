@@ -186,7 +186,6 @@
     {
       "id": "register-mega-menu-auto-classify",
       "tier": [
-        "prebuild",
         "ci"
       ],
       "script": "test:register-mega-menu-auto-classify",
