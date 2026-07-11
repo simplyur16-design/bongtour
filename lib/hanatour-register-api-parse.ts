@@ -2,6 +2,7 @@
  * 하나투어 등록 parseFn — URL register-facts SSOT (Gemini overlay 없음).
  *
  * REGRESSION-FREEZE[hanatour-register-api-parse]: collectHanatourRegisterFacts → RegisterParsed — manifest
+ * REGRESSION-FREEZE[hanatour-register-schedule-2030]: 2030 TRP 일정·제목 정제 — manifest
  * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: API-only register parse — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: parse 후 ensureHanatourRegisterScheduleImageKeywords — manifest
  */
@@ -24,6 +25,7 @@ import { ensureHanatourRegisterScheduleImageKeywords, augmentHanatourParsedWithD
 import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
+import { polishHanatour2030RegisterBundle } from '@/lib/hanatour-register-schedule-2030'
 
 const HANATOUR_PRICE_SLOT_SSOT_NOTE =
   '하나투어 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=미사용(null), infantPrice=유아. 유류·제세·기본상품가 안내·잔여석 등 메타 줄은 슬롯에 넣지 않습니다.'
@@ -112,12 +114,20 @@ export async function parseHanatourRegisterFromApi(
         }
       : undefined
 
-  const listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
+  const rawTitle = bundle.title?.trim() || ''
+  let listingTitle = normalizeSupplierRegisterListingTitle(rawTitle)
+  const polished2030 = polishHanatour2030RegisterBundle({
+    productTitle: rawTitle,
+    factDays: bundle.scheduleDays,
+    schedule: hanatourFactDaysToRegisterSchedule(bundle.scheduleDays),
+    listingTitle,
+  })
+  listingTitle = polished2030.listingTitle
   const paste = rawText.trim()
   const dest = resolveHanatourRegisterDestination({
     pastedBody: paste,
     title: listingTitle,
-    travelCitiesRaw: factSchedulePlacesToTravelCitiesRaw(bundle.scheduleDays),
+    travelCitiesRaw: factSchedulePlacesToTravelCitiesRaw(polished2030.factDays),
   })
 
   let parsed: RegisterParsed = {
@@ -133,7 +143,7 @@ export async function parseHanatourRegisterFromApi(
     includedText: bundle.includedBullets.join('\n'),
     excludedText: bundle.excludedBullets.join('\n'),
     meetingInfoRaw: bundle.meetingInfo,
-    schedule: hanatourFactDaysToRegisterSchedule(bundle.scheduleDays),
+    schedule: polished2030.schedule,
     prices,
     productPriceTable,
     registerPreviewPolicyNotes: [

@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: augmentHanatourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[hanatour-register-schedule-2030]: 2030 TRP 일정·제목 정제 — manifest
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: applyHanatourProdInfoIdentityFields — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: ensureHanatourRegisterScheduleImageKeywords — manifest
  * REGRESSION-FREEZE[hanatour-register-samples-live-gate]: SSOT 7샘플 live gate — manifest
@@ -47,6 +48,7 @@ import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedul
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { polishHanatour2030RegisterBundle } from '@/lib/hanatour-register-schedule-2030'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -308,7 +310,17 @@ export async function augmentHanatourParsedWithDetailCollect(
 
   if (needSchedule) {
     const factDays = applyHanatourProdInfoHotelsToFactDays(hanatourItnrToFactDays(itnr), prodInfo)
-    const scheduleDays = hanatourFactDaysToRegisterSchedule(factDays)
+    const rawTitle = String(next.title ?? prodInfo.saleProdNm ?? '').trim()
+    const polished2030 = polishHanatour2030RegisterBundle({
+      productTitle: rawTitle,
+      factDays,
+      schedule: hanatourFactDaysToRegisterSchedule(factDays),
+      listingTitle: next.title ?? undefined,
+    })
+    if (polished2030.listingTitle !== next.title) {
+      next = { ...next, title: polished2030.listingTitle }
+    }
+    const scheduleDays = polished2030.schedule
     if (scheduleDays.length > 0) {
       const withKeywords = airHotelListing
         ? scheduleDays

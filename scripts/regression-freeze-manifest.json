@@ -567,6 +567,42 @@
       ]
     },
     {
+      "id": "hanatour-register-schedule-2030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 2030 TRP — 밍글링 카드 제외·routeText POI·vibe description·(2030) 제목",
+      "checks": [
+        {
+          "file": "lib/hanatour-register-schedule-2030.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
+            "applyHanatour2030SchedulePolish",
+            "normalizeHanatour2030ListingTitle",
+            "polishHanatour2030RegisterBundle"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
+            "polishHanatour2030RegisterBundle"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
+            "polishHanatour2030RegisterBundle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-register-schedule-2030.test.ts"
+      ]
+    },
+    {
       "id": "theme-travel-mingling-mega-menu",
       "tier": [
         "prebuild",
