@@ -5,7 +5,7 @@ import { SPORTS_THEME_TAG_LABELS, SPORTS_THEME_TAG_VALUES } from '../lib/product
 import { TOP_NAV_MEGA_REGIONS, buildMegaMenuGroupHeaderHref } from '../lib/top-nav-resolve'
 
 describe('mega menu sports_theme tab (테마여행)', () => {
-  it('uses theme middle-classification groups including mingling', () => {
+  it('uses theme middle-classification groups including 2030', () => {
     const tab = MEGA_MENU_TAB_DEFINITIONS.find((t) => t.id === 'sports_theme')!
     assert.equal(tab.label, '테마여행')
     assert.equal(tab.groups.length, SPORTS_THEME_TAG_VALUES.length)
@@ -13,7 +13,7 @@ describe('mega menu sports_theme tab (테마여행)', () => {
       tab.groups.map((g) => g.countryLabel),
       SPORTS_THEME_TAG_VALUES.map((k) => SPORTS_THEME_TAG_LABELS[k]),
     )
-    assert.equal(SPORTS_THEME_TAG_LABELS.mingling, '밍글밍')
+    assert.equal(SPORTS_THEME_TAG_LABELS['2030'], '2030')
     const labels = SPORTS_THEME_TAG_VALUES.map((k) => SPORTS_THEME_TAG_LABELS[k])
     assert.deepEqual(labels, [...labels].sort((a, b) => a.localeCompare(b, 'ko')), '가나다순')
     for (let i = 0; i < tab.groups.length; i++) {

@@ -17,12 +17,12 @@ describe('overseas sports theme browse', () => {
     assert.equal(banner?.title, '러닝 여행상품')
   })
 
-  it('resolveOverseasGeoFilterBanner — sportsTheme=mingling', async () => {
+  it('resolveOverseasGeoFilterBanner — sportsTheme=2030', async () => {
     const banner = await resolveOverseasGeoFilterBanner({
       region: 'sports_theme',
-      sportsTheme: 'mingling',
+      sportsTheme: '2030',
     })
-    assert.equal(banner?.title, '밍글밍 여행상품')
+    assert.equal(banner?.title, '2030 여행상품')
   })
 
   it('computeHubFocusedResults — sports_theme region is focused', () => {

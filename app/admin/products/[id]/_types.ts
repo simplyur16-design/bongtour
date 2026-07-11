@@ -94,7 +94,7 @@ export type Product = {
   listingKind?: string | null
   /** 지방 출발 메가 메뉴·browse — `busan` | `cheongju` | `daegu` */
   localDepartureTag?: string[]
-  /** 테마여행 메가 메뉴·browse — `running` | `trekking` | `diving` | `spectator` | `golf` | `mingling` */
+  /** 테마여행 메가 메뉴·browse — `2030` | `running` | `trekking` | `diving` | `spectator` | `golf` */
   sportsThemeTag?: string[]
   /** 단일 출발(F1·이벤트 등) — 가격 동기화 단건 경로 */
   singleDepartureOnly?: boolean

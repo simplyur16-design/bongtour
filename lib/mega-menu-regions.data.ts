@@ -408,8 +408,8 @@ const SA: MegaMenuCountryGroupDef[] = [
   ),
 ]
 
-/** 테마여행 — 중분류=테마(러닝·밍글밍·…), 그룹·leaf 클릭 시 `sportsTheme` browse 필터 */
-// REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: 테마여행 탭·밍글밍 하위메뉴 — manifest
+/** 테마여행 — 중분류=테마(러닝·2030·…), 그룹·leaf 클릭 시 `sportsTheme` browse 필터 */
+// REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: 테마여행 탭·2030 하위메뉴 — manifest
 const ST: MegaMenuCountryGroupDef[] = SPORTS_THEME_TAG_VALUES.map((key) =>
   G(
     SPORTS_THEME_TAG_LABELS[key],
