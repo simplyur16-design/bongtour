@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[hanatour-schedule-image-keyword-landmark]: 자유여행 imageKeyword — 식당·카페 금지, 랜드마크만 — manifest
  * REGRESSION-FREEZE[hanatour-register-kk-live-gate]: dedupe·imageKeyword2 reconcile — manifest
+ * REGRESSION-FREEZE[hanatour-register-kk-live-gate]: reconcileHanatourTripUniqueImageKeywords — 일자 간 중복 차순위 — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: routeText 일차 슬롯 allocate — manifest
  * REGRESSION-FREEZE[gemini-client-client-bundle]: hanatour 등록 파서 import 금지 — manifest
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI regex — schedule-poi-regex-ssot SSOT — manifest
@@ -1000,6 +1001,86 @@ function dedupeHanatourTourismPrimaryKeywordsAcrossDays<T extends HanatourSchedu
   })
 }
 
+/** trip 전체 imageKeyword·imageKeyword2 — 일자 간 중복 시 route·본문 미사용 명소로 차순위 승격 */
+export function reconcileHanatourTripUniqueImageKeywords<T extends HanatourScheduleImageKeywordRow>(
+  rows: T[],
+  maxDay: number,
+  productDestination: string | null | undefined,
+): T[] {
+  const used = new Set<string>()
+  const sorted = rows.filter((r) => Number(r.day) > 0).sort((a, b) => Number(a.day) - Number(b.day))
+  const tripPool: string[] = []
+  for (const row of sorted) {
+    for (const kw of collectHanatourDayOrderedKeywordCandidates(row, productDestination)) {
+      if (!tripPool.some((x) => normKey(x) === normKey(kw))) tripPool.push(kw)
+    }
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(Number(row.day), maxDay, haystack)
+    for (const kw of collectHanatourDayPrimaryCandidates(row, dayKind, productDestination)) {
+      if (!tripPool.some((x) => normKey(x) === normKey(kw))) tripPool.push(kw)
+    }
+  }
+
+  const pickUnused = (cands: readonly string[], exclude?: string): string => {
+    const ex = exclude ? normKey(exclude) : ''
+    for (const kw of cands) {
+      const nk = normKey(kw)
+      if (!nk || used.has(nk) || (ex && nk === ex)) continue
+      used.add(nk)
+      return kw
+    }
+    return ''
+  }
+
+  const byDay = new Map<number, T>()
+  for (const row of rows) {
+    if (Number(row.day) <= 0) byDay.set(Number(row.day), row)
+  }
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const slotKind = resolveHanatourKeywordSlotKind(day, maxDay, sorted.length)
+    const dayCands = collectHanatourDayOrderedKeywordCandidates(row, productDestination)
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (primary) {
+      const nk = normKey(primary)
+      if (used.has(nk)) {
+        primary = pickUnused(dayCands) || pickUnused(tripPool) || ''
+      } else {
+        used.add(nk)
+      }
+    }
+
+    if (slotKind === 'return') {
+      secondary = ''
+    } else if (secondary) {
+      const nk2 = normKey(secondary)
+      if (used.has(nk2) || (primary && normKey(primary) === nk2)) {
+        const secCands = dayCands.filter((kw) => !primary || !hanatourKeywordKeysOverlap(kw, primary))
+        secondary =
+          pickUnused(secCands, primary) ||
+          pickUnused(
+            tripPool.filter((kw) => !primary || !hanatourKeywordKeysOverlap(kw, primary)),
+            primary,
+          ) ||
+          ''
+      } else {
+        used.add(nk2)
+      }
+    }
+
+    byDay.set(day, {
+      ...row,
+      imageKeyword: primary,
+      imageKeyword2: secondary ? secondary : null,
+    })
+  }
+
+  return rows.map((row) => byDay.get(Number(row.day)) ?? row)
+}
+
 function hanatourRouteSegmentToImageKeyword(
   seg: string,
   productDestination: string | null | undefined,
@@ -1533,7 +1614,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
   }
 
   try {
-    return out.map((row) => {
+    const mapped = out.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
 
@@ -1668,6 +1749,7 @@ export function applyHanatourScheduleImageKeywordsToRows<
           : String(secondary ?? '').trim() || null,
     }
   })
+  return reconcileHanatourTripUniqueImageKeywords(mapped, maxDay, productDestination)
   } finally {
     activeHanatourScheduleSectionByDay = prevScheduleSectionByDay
   }

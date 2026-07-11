@@ -510,6 +510,40 @@ describe('hanatour prebuild — imageKeyword dual slot', () => {
     assert.equal(d3.breakfastText, '호텔식')
   })
 
+  it('trip 전체 — 일자 간 imageKeyword·imageKeyword2 중복 시 route 차순위 명소', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        { day: 1, title: '출발', routeText: 'Incheon - Delhi', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          title: '아그라',
+          description: '타지마할과 아그라 성',
+          routeText: 'Taj Mahal - Agra Fort',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '델리',
+          description: '휴마윤의 무덤',
+          routeText: 'Agra Fort - Humayun Tomb - Delhi',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, title: '귀국', routeText: 'Delhi - Incheon', imageKeyword: '', imageKeyword2: null },
+      ],
+      { productDestination: 'India' },
+    )
+    const keys = out
+      .filter((r) => Number(r.day) > 0 && Number(r.day) < 4)
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean))
+      .map((k) => normScheduleImageKeywordKey(String(k)))
+    const unique = new Set(keys)
+    assert.equal(unique.size, keys.length)
+    const d3 = out.find((r) => r.day === 3)!
+    assert.notEqual(normScheduleImageKeywordKey(String(d3.imageKeyword)), normScheduleImageKeywordKey('Agra Fort'))
+  })
+
   it('flight-only detailBodyStructured stub (sections missing) — gather/enrich do not throw', () => {
     const stub = {
       flightStructured: {

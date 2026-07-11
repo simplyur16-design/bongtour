@@ -30,6 +30,7 @@ function isSingleCountryLeafGroup(g: MegaMenuCountryGroup): boolean {
 
 /**
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
+ * REGRESSION-FREEZE[mega-menu-submenu-center-align]: 하위 도시 leaf 링크 중앙정렬 — manifest
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
   const flatGridLeafCols =
@@ -42,7 +43,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
     return (
       <div className="min-h-[280px] overflow-visible p-5 sm:p-6">
         <ul
-          className={`m-0 mx-auto grid w-full max-w-[1200px] list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`}
+          className={`m-0 mx-auto grid w-full max-w-[1200px] list-none ${flatGridColsClass} justify-items-center gap-x-8 gap-y-2 p-0 text-center`}
         >
           {countryGroups.flatMap((g, gi) =>
             g.cities.map((c, ci) => {
@@ -58,7 +59,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                   <Link
                     href={href}
                     prefetch={prefetchPropForHref(href)}
-                    className="block text-left text-sm font-medium text-slate-700 transition hover:text-orange-500 leading-8"
+                    className="block text-center text-sm font-medium text-slate-700 transition hover:text-orange-500 leading-8"
                     title={c.label}
                   >
                     {c.label}
@@ -171,8 +172,8 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                   <ul
                     className={
                       isFlatGrid
-                        ? `m-0 grid list-none ${flatGridColsClass} gap-x-8 gap-y-2 p-0 text-left`
-                        : 'm-0 list-none p-0 text-left'
+                        ? `m-0 grid list-none ${flatGridColsClass} justify-items-center gap-x-8 gap-y-2 p-0 text-center`
+                        : 'm-0 list-none p-0 text-center'
                     }
                   >
                     {g.cities.map((c, ci) => {
@@ -188,7 +189,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                           <Link
                             href={href}
                             prefetch={prefetchPropForHref(href)}
-                            className={`block text-left text-sm text-slate-600 transition hover:text-orange-500 ${
+                            className={`block text-center text-sm text-slate-600 transition hover:text-orange-500 ${
                               layout.compact ? 'leading-7' : 'leading-8'
                             }`}
                             title={c.label}

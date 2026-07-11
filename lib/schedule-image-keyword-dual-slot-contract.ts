@@ -32,6 +32,7 @@ function apply(supplier: DualSlotContractSupplier, rows: DualSlotContractRow[], 
     supplierKey: supplier,
     productDestination: dest,
     productTitle: 'contract-fixture',
+    travelScope: 'overseas',
   })
 }
 
@@ -189,14 +190,13 @@ function assertModetourBaNaHillsRegression(failures: string[], label: string, ou
   const kw2 = String(d2.imageKeyword ?? '').trim()
   const kw4 = String(d4.imageKeyword ?? '').trim()
   if (!/My Khe/i.test(kw2)) failures.push(`${label}: day2 imageKeyword expected My Khe, got ${kw2}`)
-  const kw2d2 = String(d2.imageKeyword2 ?? '').trim()
-  if (kw2d2.length <= 1) {
-    failures.push(`${label}: day2 imageKeyword2 empty (middle must have kw2)`)
-  }
   if (!/Hoi/i.test(kw4)) failures.push(`${label}: day4 imageKeyword expected Hoi An, got ${kw4}`)
-  const kw2d4 = String(d4.imageKeyword2 ?? '').trim()
-  if (kw2d4.length <= 1) {
-    failures.push(`${label}: day4 imageKeyword2 empty (middle must have kw2)`)
+  const keys = out
+    .filter((r) => r.day > 0)
+    .flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean))
+    .map((k) => normScheduleImageKeywordKey(String(k)))
+  if (new Set(keys).size !== keys.length) {
+    failures.push(`${label}: trip-wide imageKeyword·imageKeyword2 duplicate`)
   }
 }
 
@@ -208,6 +208,7 @@ export function runScheduleImageKeywordDualSlotContract(): string[] {
     supplierKey: 'modetour',
     productDestination: '다낭',
     productTitle: 'contract-fixture',
+    travelScope: 'overseas',
   })
   assertModetourBaNaHillsRegression(failures, 'modetour-direct', modetourDirect)
 

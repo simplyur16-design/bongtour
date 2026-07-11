@@ -659,6 +659,24 @@
       ]
     },
     {
+      "id": "mega-menu-submenu-center-align",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메가메뉴 하위 도시 leaf 링크 중앙정렬",
+      "checks": [
+        {
+          "file": "components/top-nav/CountryCityMegaPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-submenu-center-align]",
+            "justify-items-center",
+            "text-center"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-offline-usim-order",
       "tier": ["prebuild", "ci"],
       "summary": "매장 오프라인 USIM — 어드민 주문·무PG 결제확인·eSIM 자동발급 스킵",
@@ -1333,6 +1351,10 @@
             "sanitizeRegisterScheduleRouteText",
             "enforceRegisterScheduleTripUniqueImageKeywords",
             "applyRegisterScheduleImageKeywordsBySupplier",
+            "finalDeduped",
+            "reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill",
+            "isPackageListing",
+            "!isRegisterAirtelListing",
             "routeTextRawByDay",
             "applyRegisterScheduleRouteTextImageKeywordsToRows",
             "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]"
@@ -4337,9 +4359,11 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "enforceRegisterScheduleTripUniqueImageKeywords",
+            "reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill",
             "ensureDepartureReturnVisitCityKeywords",
             "마지막 관광일 미사용 명소만",
-            "isReturn"
+            "isReturn",
+            "일자 간 중복 시 route 미사용 명소 차순위"
           ]
         }
       ],
@@ -4993,7 +5017,8 @@
           "file": "lib/hanatour-schedule-image-keyword.ts",
           "mustInclude": [
             "pickHanatourFreeDayExampleImageKeyword",
-            "isHanatourScheduleFreeLeisureDay"
+            "isHanatourScheduleFreeLeisureDay",
+            "reconcileHanatourTripUniqueImageKeywords"
           ]
         },
         {

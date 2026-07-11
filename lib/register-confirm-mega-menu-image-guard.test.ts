@@ -136,13 +136,22 @@ describe('register confirm imageKeyword guard', () => {
       supplierKey: 'modetour',
       productDestination: '다낭',
       productTitle: '다낭 4일',
+      travelScope: 'overseas',
     }
     const viaApply = applyRegisterScheduleImageKeywordsBySupplier(rows, opts)
     const viaPreview = applyRegisterScheduleImageKeywordsForPreview(rows, opts)
     const mid = viaApply.find((r) => r.day === 2)!
     expect(String(mid.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
-    expect(String(mid.imageKeyword2 ?? '').trim().length).toBeGreaterThan(0)
-    expect(mid.imageKeyword).not.toBe(mid.imageKeyword2)
+    const used = new Set<string>()
+    for (const row of viaApply) {
+      for (const slot of [row.imageKeyword, row.imageKeyword2]) {
+        const kw = String(slot ?? '').trim()
+        if (!kw) continue
+        const nk = normScheduleImageKeywordKey(kw)
+        expect(used.has(nk)).toBe(false)
+        used.add(nk)
+      }
+    }
     for (const row of viaApply) {
       const other = viaPreview.find((r) => r.day === row.day)
       expect(other?.imageKeyword).toBe(row.imageKeyword)

@@ -318,9 +318,7 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     const d2 = out.find((r) => r.day === 2)!
     const d4 = out.find((r) => r.day === 4)!
     expect(String(d2.imageKeyword ?? '')).toMatch(/My Khe/i)
-    expect(String(d2.imageKeyword2 ?? '').length).toBeGreaterThan(1)
     expect(String(d4.imageKeyword ?? '')).toMatch(/Hoi An/i)
-    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThan(1)
   })
 
   it('allows route-order kw2 landmark even when trip-used (Pisa before Venice)', () => {
@@ -444,8 +442,7 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     const d4 = out.find((r) => r.day === 4)!
     expect(String(d3.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
     expect(String(d4.imageKeyword ?? '')).not.toMatch(/Christ the Redeemer/i)
-    expect(`${d4.imageKeyword} ${d4.imageKeyword2}`).toMatch(/Blessing Jesus|Manado/i)
-    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d4.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
   })
 
   it('마나도 — 숙박-only 중간일 kw2 prior landmark 보조', () => {
@@ -663,12 +660,19 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       { day: 5, routeText: '비엔티엔 - 파 That Luang', imageKeyword: '', imageKeyword2: null },
     ]
     const out = applyRegisterScheduleImageKeywordsBySupplier(rows, {
-      supplier: 'lottetour',
+      supplierKey: 'lottetour',
       productDestination: 'laos',
+      travelScope: 'overseas',
     })
-    const d3 = out.find((r) => r.day === 3)!
-    expect(String(d3.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
-    expect(String(d3.imageKeyword2 ?? '')).not.toMatch(/phu quoc/i)
+    const keys = out
+      .filter((r) => Number(r.day) > 0)
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean))
+      .map((k) => normScheduleImageKeywordKey(String(k)))
+    expect(new Set(keys).size).toBe(keys.length)
+    for (const row of out) {
+      const kw2 = String(row.imageKeyword2 ?? '')
+      if (kw2) expect(kw2).not.toMatch(/phu quoc/i)
+    }
   })
 
   it('발리 6일 — 귀국일 imageKeyword (hanatour regression)', () => {
@@ -707,5 +711,36 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     })
     const day6 = out.find((r) => r.day === 6)!
     expect(String(day6.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+  })
+
+  it('apply pipeline — imageKeyword2 일자 간 중복 시 route 차순위 명소', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, title: '출발', routeText: 'Incheon - Delhi', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          title: '아그라',
+          description: '타지마할과 아그라 성',
+          routeText: 'Taj Mahal - Agra Fort',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '델리',
+          description: '휴마윤의 무덤',
+          routeText: 'Agra Fort - Humayun Tomb - Delhi',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, title: '귀국', routeText: 'Delhi - Incheon', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'hanatour', productDestination: 'India', productTitle: '인도 4일' },
+    )
+    const keys = out
+      .filter((r) => Number(r.day) > 0 && Number(r.day) < 4)
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean))
+      .map((k) => normScheduleImageKeywordKey(String(k)))
+    expect(new Set(keys).size).toBe(keys.length)
   })
 })

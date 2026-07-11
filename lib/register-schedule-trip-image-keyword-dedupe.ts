@@ -5,6 +5,8 @@
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: kw2 — primary 확정 후 route 이동순 2번째·랜드마크 dedupe — manifest
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: domestic-hub-only — applyDomesticHubOnlyDepartureReturnAdjacentKeywords — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ensureDepartureReturnVisitCityKeywords — 1·마지막일 방문도시 — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 일자 간 중복 시 route 미사용 명소 차순위 — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 해외 패키지·2030 테마 gap-fill 후 reconcile — manifest
  * REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: pickMongoliaTerelClusterKeywordForUsedSlot — return dedupe — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
@@ -733,9 +735,9 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
     let picked = ''
     if (isDeparture) {
       const activeDays = sorted.filter((r) => Number(r.day) > 0).length
-      picked = pickDepartureForwardKeywordFromNextRow(sorted, day, maxDay, activeDays)
+      picked = pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, opts?.productDestination)
       if (!picked) {
-        picked = pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, opts?.productDestination)
+        picked = pickDepartureForwardKeywordFromNextRow(sorted, day, maxDay, activeDays)
       }
     } else if (isReturn) {
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return — 마지막 관광일 미사용 명소만
@@ -2159,6 +2161,59 @@ function shouldRejectMiddleDayKeyword2(
   return false
 }
 
+function pickReplacementPrimaryTripKeyword(
+  row: RegisterScheduleTripKeywordRow,
+  cands: readonly string[],
+  used: ReadonlySet<string>,
+): string {
+  for (const kw of collectRouteTextOrderedLandmarkKeywords(row.routeText)) {
+    const raw = String(kw ?? '').trim()
+    if (!raw || isRejectedTripKeywordCandidate(raw)) continue
+    const nk = normScheduleImageKeywordKey(raw)
+    if (!nk || used.has(nk)) continue
+    return raw
+  }
+  const cityKw = pickForeignVisitCityFromRouteText(row.routeText, false)
+  if (cityKw) {
+    const nk = normScheduleImageKeywordKey(cityKw)
+    if (nk && !used.has(nk)) return cityKw
+  }
+  const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
+  return (
+    pickUnusedTripKeyword(landmarkCands.length ? landmarkCands : cands, used) ||
+    pickUnusedRoutePrimaryLandmark(row, used) ||
+    ''
+  )
+}
+
+function pickReplacementSecondaryTripKeyword(
+  row: RegisterScheduleTripKeywordRow,
+  primary: string,
+  cands: readonly string[],
+  used: ReadonlySet<string>,
+  multiSegRoute: boolean,
+): string {
+  const pk = normScheduleImageKeywordKey(primary)
+  const tries = [
+    () => pickRouteOrderSecondKeyword(cands, primary, used, true, true, row.routeText),
+    () => pickRouteOrderSecondKeyword(cands, primary, used, true, multiSegRoute, row.routeText),
+    () =>
+      pickUnusedTripKeyword(
+        cands.filter((c) => !primary || normScheduleImageKeywordKey(c) !== pk),
+        used,
+      ),
+    () => pickUnusedRoutePrimaryLandmark(row, used),
+  ]
+  for (const tryFn of tries) {
+    const raw = String(tryFn() ?? '').trim()
+    if (!raw || isRejectedTripKeywordCandidate(raw)) continue
+    const nk = normScheduleImageKeywordKey(raw)
+    if (!nk || used.has(nk) || nk === pk) continue
+    return raw
+  }
+  return ''
+}
+
 function fillMiddleDayKeyword2InDedupe(
   row: RegisterScheduleTripKeywordRow,
   primary: string,
@@ -2567,6 +2622,52 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
 
     return { ...row, imageKeyword: primary, imageKeyword2: secondary || null }
   })
+}
+
+/** gap-fill 후 중간일 trip-wide 중복 제거 — 출발·귀국 visit city 슬롯 유지, 차순위 없으면 슬롯 비움 */
+export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
+  T extends RegisterScheduleTripKeywordRow,
+>(rows: T[]): T[] {
+  if (!rows.length) return rows
+  const sorted = [...rows].sort((a, b) => Number(a.day) - Number(b.day))
+  const activeDays = sorted.filter((r) => Number(r.day) > 0).length
+  const maxDay = Math.max(...sorted.map((r) => Number(r.day)).filter((d) => d > 0))
+  const used = new Set<string>()
+  const out = new Map<number, T>()
+
+  for (const row of sorted) {
+    const day = Number(row.day)
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+
+    if (slot === 'departure' || slot === 'return') {
+      const primary = String(row.imageKeyword ?? '').trim()
+      const pk = normScheduleImageKeywordKey(primary)
+      if (pk) used.add(pk)
+      out.set(day, { ...row, imageKeyword: primary, imageKeyword2: null })
+      continue
+    }
+
+    const cands = collectTripKeywordCandidates(row)
+    const multiSegRoute = routeTextTourismSegmentCount(row.routeText) >= 2
+    let primary = String(row.imageKeyword ?? '').trim()
+    let secondary = String(row.imageKeyword2 ?? '').trim()
+
+    if (primary && used.has(normScheduleImageKeywordKey(primary))) {
+      primary = pickReplacementPrimaryTripKeyword(row, cands, used)
+    }
+    if (secondary) {
+      const nk2 = normScheduleImageKeywordKey(secondary)
+      if (used.has(nk2) || nk2 === normScheduleImageKeywordKey(primary)) {
+        secondary = pickReplacementSecondaryTripKeyword(row, primary, cands, used, multiSegRoute)
+      }
+    }
+
+    if (primary) used.add(normScheduleImageKeywordKey(primary))
+    if (secondary) used.add(normScheduleImageKeywordKey(secondary))
+    out.set(day, { ...row, imageKeyword: primary, imageKeyword2: secondary || null })
+  }
+
+  return sorted.map((row) => out.get(Number(row.day)) ?? row)
 }
 
 /** 4일+ 중간일 kw/kw2 빈 슬롯 — trip route evidence 범위 내에서 최종 보충 (apply 후처리) */

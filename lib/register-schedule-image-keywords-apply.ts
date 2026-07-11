@@ -7,6 +7,9 @@
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: routeText 세그먼트 순서 — manifest
  * applyRegisterScheduleRouteTextImageKeywordsToRows — register-schedule-image-keywords-route-supplier-merge.ts
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: trip dedupe·adjacent hub — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 일자 간 중복 시 route 미사용 명소 차순위 — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: hanatour gap-fill 후 reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 해외 패키지·2030 테마 — 자유여행 제외 gap-fill 후 trip 중복 차순위 — manifest
  */
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
@@ -17,7 +20,7 @@ import { applyRegisterScheduleRouteTextKeywordsWithSupplierFallback } from '@/li
 import { expandSingleSegmentPoiRouteTextRows, prepareRegisterScheduleRowsForImageKeywordApply } from '@/lib/register-schedule-route-text-backfill'
 import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
@@ -127,7 +130,11 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       dest,
     ),
   )
-  return withKeywords.map((row) => {
+  const isPackageListing = !isRegisterAirtelListing(opts.travelScope, opts.productType)
+  const finalDeduped = isPackageListing
+    ? reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill(withKeywords)
+    : withKeywords
+  return finalDeduped.map((row) => {
     const day = Number(row.day)
     const rawRoute = routeTextRawByDay.get(day)
     return {

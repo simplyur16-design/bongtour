@@ -63,6 +63,7 @@ const opts = {
   supplierKey: 'modetour',
   productDestination: '다낭',
   productTitle: 'parity-fixture',
+  travelScope: 'overseas',
 }
 const viaApply = applyRegisterScheduleImageKeywordsBySupplier(MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, opts)
 const viaPreview = applyRegisterScheduleImageKeywordsForPreview(MODETOUR_BA_NA_HILLS_REGRESSION_ROWS, opts)
