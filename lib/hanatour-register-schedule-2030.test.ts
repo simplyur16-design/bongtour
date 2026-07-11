@@ -11,6 +11,7 @@ import {
   isHanatour2030ProductTitle,
   normalizeHanatour2030ListingTitle,
   polishHanatour2030RegisterBundle,
+  resolveHanatour2030ProductTitleForDetect,
 } from '@/lib/hanatour-register-schedule-2030'
 
 const JOP191_TITLE =
@@ -77,7 +78,25 @@ describe('hanatour 2030 schedule polish', () => {
     expect(extractHanatour2030PoiFromCardLabel('신세카이')).toBe('신세카이')
   })
 
-  it('JOP191 — routeText·title·description 2030 초안', () => {
+  it('detects 2030 from normalized listing title (2030) suffix', () => {
+    expect(isHanatour2030ProductTitle('고베·오사카·이네 3일 (2030)')).toBe(true)
+  })
+
+  it('resolveHanatour2030ProductTitleForDetect — saleProdNm 우선(원제 보존)', () => {
+    expect(
+      resolveHanatour2030ProductTitleForDetect(
+        JOP191_TITLE,
+        '고베·오사카 3일 (2030)',
+      ),
+    ).toBe(JOP191_TITLE.trim())
+    expect(
+      resolveHanatour2030ProductTitleForDetect(
+        '고베·오사카 3일 (2030)',
+      ),
+    ).toBe('고베·오사카 3일 (2030)')
+  })
+
+  it('JOP191 — routeText must not contain 밍글링', () => {
     const filtered = filterHanatour2030FactScheduleDays(JOP191_FACT_DAYS, JOP191_TITLE)
     expect(filtered[0]?.places).toEqual(['모토마치'])
     expect(filtered[1]?.places).toEqual(['아마노하시다테', '이네후나야'])
@@ -102,6 +121,10 @@ describe('hanatour 2030 schedule polish', () => {
     expect(out[2]?.title).toBe('오사카성 · 신세카이')
     expect(out[2]?.routeText).toBe('오사카성 - 신세카이')
     expect(out[2]?.description).not.toMatch(/밍글|미션/)
+    for (const row of out) {
+      expect(String(row.routeText ?? '')).not.toMatch(/밍글|미션|출입국\s*절차/)
+      expect(String(row.title ?? '')).not.toMatch(/밍글|Light/)
+    }
   })
 
   it('normalizeHanatour2030ListingTitle — (2030) 접미·밍글링 해시 제거', () => {

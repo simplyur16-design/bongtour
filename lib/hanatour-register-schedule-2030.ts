@@ -12,7 +12,7 @@ import {
 } from '@/lib/register-schedule-route-place-noise'
 import { SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX } from '@/lib/supplier-product-title-display'
 
-const HANATOUR_2030_TITLE_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍|mingling/i
+const HANATOUR_2030_TITLE_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍|mingling|\(2030\)\s*$/i
 
 const HANATOUR_2030_PLACE_NOISE_RE =
   /밍글|mingling|미션|모여라|친구\s*만들기|여행러버|밍글링\s*투어|밍글링\s*타임|밍글링\s*친구|현지투어플러스|everyday\s*맞춤|Late\s*Night|Sunset\s*Chill|업로드|인생샷\s*가능|추천\s*일정|포토\s*스팟|포토스팟|자유\s*시간|속\s*밍글|MD와|feat\.|노미타베|호다이|일정식\s*요리|체크\s*인\s*후|낭만가득|대표\s*번화가|현대식\s*쇼핑|쇼핑\s*메카|초특가|유류비|내가\s*만들어서|타코야키|명물\s*체험|더\s*특별한/i
@@ -165,6 +165,17 @@ const HANATOUR_2030_VIBE_BY_REGION: Record<
 
 export function isHanatour2030ProductTitle(title: string | null | undefined): boolean {
   return HANATOUR_2030_TITLE_RE.test(String(title ?? ''))
+}
+
+/** detail-collect 등 — 정제된 listing title보다 공급사 원제 우선으로 2030 감지. */
+export function resolveHanatour2030ProductTitleForDetect(
+  ...titles: (string | null | undefined)[]
+): string {
+  for (const t of titles) {
+    const s = String(t ?? '').trim()
+    if (s && isHanatour2030ProductTitle(s)) return s
+  }
+  return String(titles.find((t) => String(t ?? '').trim()) ?? '').trim()
 }
 
 function isHanatour2030PlaceNoise(label: string): boolean {

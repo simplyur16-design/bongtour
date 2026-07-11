@@ -48,7 +48,7 @@ import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedul
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
-import { polishHanatour2030RegisterBundle } from '@/lib/hanatour-register-schedule-2030'
+import { polishHanatour2030RegisterBundle, resolveHanatour2030ProductTitleForDetect } from '@/lib/hanatour-register-schedule-2030'
 
 export type HanatourRegisterDetailAugmentCtx = {
   originUrl?: string | null
@@ -310,9 +310,9 @@ export async function augmentHanatourParsedWithDetailCollect(
 
   if (needSchedule) {
     const factDays = applyHanatourProdInfoHotelsToFactDays(hanatourItnrToFactDays(itnr), prodInfo)
-    const rawTitle = String(next.title ?? prodInfo.saleProdNm ?? '').trim()
+    const detectTitle = resolveHanatour2030ProductTitleForDetect(prodInfo.saleProdNm, next.title)
     const polished2030 = polishHanatour2030RegisterBundle({
-      productTitle: rawTitle,
+      productTitle: detectTitle,
       factDays,
       schedule: hanatourFactDaysToRegisterSchedule(factDays),
       listingTitle: next.title ?? undefined,

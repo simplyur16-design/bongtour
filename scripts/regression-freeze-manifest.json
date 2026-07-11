@@ -580,7 +580,8 @@
             "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
             "applyHanatour2030SchedulePolish",
             "normalizeHanatour2030ListingTitle",
-            "polishHanatour2030RegisterBundle"
+            "polishHanatour2030RegisterBundle",
+            "resolveHanatour2030ProductTitleForDetect"
           ]
         },
         {
@@ -594,7 +595,8 @@
           "file": "lib/hanatour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
-            "polishHanatour2030RegisterBundle"
+            "polishHanatour2030RegisterBundle",
+            "resolveHanatour2030ProductTitleForDetect"
           ]
         }
       ],
