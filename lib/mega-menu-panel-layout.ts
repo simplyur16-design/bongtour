@@ -3,6 +3,8 @@
  * 동남아(14그룹) 등은 7열 2행으로 스크롤 없이 한눈에 노출.
  */
 
+import { SPORTS_THEME_TAG_VALUES } from '@/lib/product-listing-kind'
+
 const GRID_COLS_CLASS: Record<number, string> = {
   2: 'grid-cols-2',
   3: 'grid-cols-3',
@@ -15,7 +17,7 @@ const GRID_COLS_CLASS: Record<number, string> = {
 /** 탭·그룹 수 → 그리드 열 수 (flatGrid 탭 제외) */
 export function megaMenuPanelColumnCount(regionId: string, groupCount: number): number {
   if (regionId === 'south-america') return 4
-  if (regionId === 'sports_theme') return 5
+  if (regionId === 'sports_theme') return SPORTS_THEME_TAG_VALUES.length
   if (groupCount <= 4) return 4
   if (groupCount <= 8) return 4
   if (groupCount <= 10) return 5

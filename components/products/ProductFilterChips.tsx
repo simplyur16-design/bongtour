@@ -36,9 +36,9 @@ export function buildFilterChips(q: BrowseQueryState): Chip[] {
     const key = q.sportsTheme.trim()
     const lab =
       key in SPORTS_THEME_TAG_LABELS ? SPORTS_THEME_TAG_LABELS[key as SportsThemeTag] : key
-    out.push({ key: 'sportsTheme', label: `스포츠:${lab}` })
+    out.push({ key: 'sportsTheme', label: `테마:${lab}` })
   } else if ((q.region ?? '').trim() === 'sports_theme') {
-    out.push({ key: 'sportsThemeRegion', label: '스포츠테마' })
+    out.push({ key: 'sportsThemeRegion', label: '테마여행' })
   }
   if (q.noOptionalTour) out.push({ key: 'noOptionalTour', label: '현지옵션 없음' })
   if (q.noShopping) out.push({ key: 'noShopping', label: '쇼핑 없음' })

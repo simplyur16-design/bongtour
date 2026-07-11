@@ -408,7 +408,8 @@ const SA: MegaMenuCountryGroupDef[] = [
   ),
 ]
 
-/** 스포츠 테마 — 중분류=종목(러닝·트레킹·…), 그룹·leaf 클릭 시 `sportsTheme` browse 필터 */
+/** 테마여행 — 중분류=테마(러닝·밍글밍·…), 그룹·leaf 클릭 시 `sportsTheme` browse 필터 */
+// REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: 테마여행 탭·밍글밍 하위메뉴 — manifest
 const ST: MegaMenuCountryGroupDef[] = SPORTS_THEME_TAG_VALUES.map((key) =>
   G(
     SPORTS_THEME_TAG_LABELS[key],
@@ -493,7 +494,7 @@ export const MEGA_MENU_TAB_DEFINITIONS: MegaMenuTabDef[] = [
   { id: 'oceania', label: '괌/사이판/호주/뉴질랜드', groups: OC },
   { id: 'americas', label: '미주/캐나다/하와이', groups: AM },
   { id: 'south-america', label: '중남미', groups: SA },
-  { id: 'sports_theme', label: '스포츠테마', groups: ST },
+  { id: 'sports_theme', label: '테마여행', groups: ST },
   { id: 'busan_dep', label: '부산출발', groups: [], localDeparture: 'busan' },
   { id: 'cheongju_dep', label: '청주출발', groups: [], localDeparture: 'cheongju' },
   { id: 'daegu_dep', label: '대구출발', groups: [], localDeparture: 'daegu' },

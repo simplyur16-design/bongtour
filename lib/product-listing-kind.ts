@@ -61,8 +61,16 @@ export function parseLocalDepartureTagArrayFromAdminBody(body: Record<string, un
   return LOCAL_DEPARTURE_TAG_VALUES.filter((k) => seen.has(k))
 }
 
-/** 관리자 수동 지정 — 스포츠 테마 메가 메뉴·browse 필터용 (`Product.sportsThemeTag`). */
-export const SPORTS_THEME_TAG_VALUES = ['running', 'trekking', 'diving', 'spectator', 'golf'] as const
+/** 관리자 수동 지정 — 테마여행 메가 메뉴·browse 필터용 (`Product.sportsThemeTag`). 한글 라벨 가나다순. */
+// REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: 테마여행 탭·밍글밍 태그 — manifest
+export const SPORTS_THEME_TAG_VALUES = [
+  'golf',
+  'diving',
+  'running',
+  'mingling',
+  'spectator',
+  'trekking',
+] as const
 export type SportsThemeTag = (typeof SPORTS_THEME_TAG_VALUES)[number]
 
 export const SPORTS_THEME_TAG_LABELS: Record<SportsThemeTag, string> = {
@@ -71,6 +79,7 @@ export const SPORTS_THEME_TAG_LABELS: Record<SportsThemeTag, string> = {
   diving: '다이빙',
   spectator: '직관',
   golf: '골프',
+  mingling: '밍글밍',
 }
 
 const SPORTS_THEME_TAG_SET = new Set<string>(SPORTS_THEME_TAG_VALUES)

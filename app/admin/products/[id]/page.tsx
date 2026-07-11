@@ -1510,7 +1510,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
               </div>
             </div>
             <div className="mt-3 rounded border border-bt-border-strong bg-bt-title/30 px-3 py-2">
-              <p className="text-[11px] font-semibold text-bt-inverse">스포츠 테마 (수동 지정)</p>
+              <p className="text-[11px] font-semibold text-bt-inverse">테마여행 (수동 지정)</p>
               <p className="mt-1 text-[10px] text-bt-subtle">메가 메뉴·browse용. 없으면 선택 안 함.</p>
               <SportsThemeTagMultiSelect
                 value={sportsThemeTagDraft}

@@ -567,6 +567,41 @@
       ]
     },
     {
+      "id": "theme-travel-mingling-mega-menu",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "테마여행 메가메뉴 — 스포츠테마→테마여행 라벨, 밍글밍 하위·관리자 sportsThemeTag",
+      "checks": [
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[theme-travel-mingling-mega-menu]",
+            "테마여행",
+            "mingling"
+          ]
+        },
+        {
+          "file": "lib/product-listing-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[theme-travel-mingling-mega-menu]",
+            "mingling: '밍글밍'",
+            "'golf'",
+            "'diving'",
+            "'running'",
+            "'mingling'",
+            "'spectator'",
+            "'trekking'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "tests/mega-menu-sports-theme.test.ts",
+        "tests/overseas-sports-theme-browse.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-offline-usim-order",
       "tier": ["prebuild", "ci"],
       "summary": "매장 오프라인 USIM — 어드민 주문·무PG 결제확인·eSIM 자동발급 스킵",

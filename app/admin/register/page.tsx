@@ -738,7 +738,7 @@ export default function AdminRegisterPage() {
   /** register-facts·confirm SSOT — 인천/김포= null 표시 */
   const [inferredDepartureAirportLabel, setInferredDepartureAirportLabel] =
     useState<HomeDepartureAirportLabel | null>(null)
-  /** 스포츠 테마 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.sportsThemeTag`만 반영 */
+  /** 테마여행 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.sportsThemeTag`만 반영 */
   const [sportsThemeTag, setSportsThemeTag] = useState<SportsThemeTag[]>([])
   /** 단일 출발(F1·이벤트 등) — LLM 비사용, 확정 시 DB `Product.singleDepartureOnly`만 반영 */
   const [singleDepartureOnly, setSingleDepartureOnly] = useState(false)
@@ -1549,7 +1549,7 @@ export default function AdminRegisterPage() {
         </div>
 
         <div className="mt-6 border-l-4 border-[#0f172a] pl-6">
-          <p className="text-sm font-semibold text-slate-800">스포츠 테마 (수동 지정)</p>
+          <p className="text-sm font-semibold text-slate-800">테마여행 (수동 지정)</p>
           <p className="mt-1 text-xs text-slate-500">
             메가 메뉴·browse용. 없으면 선택 안 함. 확정 시 DB{' '}
             <code className="text-[11px]">sportsThemeTag</code>만 반영.
@@ -1729,7 +1729,7 @@ export default function AdminRegisterPage() {
               </div>
 
               <div className="rounded border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950">
-                <p className="font-semibold text-violet-900">스포츠 테마 태그 (수동)</p>
+                <p className="font-semibold text-violet-900">테마여행 태그 (수동)</p>
                 <p className="mt-1 text-violet-900/90">
                   {sportsThemeTag.length === 0
                     ? '없음'

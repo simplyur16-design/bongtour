@@ -4,14 +4,18 @@ import { MEGA_MENU_TAB_DEFINITIONS } from '../lib/mega-menu-regions.data'
 import { SPORTS_THEME_TAG_LABELS, SPORTS_THEME_TAG_VALUES } from '../lib/product-listing-kind'
 import { TOP_NAV_MEGA_REGIONS, buildMegaMenuGroupHeaderHref } from '../lib/top-nav-resolve'
 
-describe('mega menu sports_theme tab', () => {
-  it('uses five middle-classification groups (running, trekking, …)', () => {
+describe('mega menu sports_theme tab (테마여행)', () => {
+  it('uses theme middle-classification groups including mingling', () => {
     const tab = MEGA_MENU_TAB_DEFINITIONS.find((t) => t.id === 'sports_theme')!
+    assert.equal(tab.label, '테마여행')
     assert.equal(tab.groups.length, SPORTS_THEME_TAG_VALUES.length)
     assert.deepEqual(
       tab.groups.map((g) => g.countryLabel),
       SPORTS_THEME_TAG_VALUES.map((k) => SPORTS_THEME_TAG_LABELS[k]),
     )
+    assert.equal(SPORTS_THEME_TAG_LABELS.mingling, '밍글밍')
+    const labels = SPORTS_THEME_TAG_VALUES.map((k) => SPORTS_THEME_TAG_LABELS[k])
+    assert.deepEqual(labels, [...labels].sort((a, b) => a.localeCompare(b, 'ko')), '가나다순')
     for (let i = 0; i < tab.groups.length; i++) {
       const g = tab.groups[i]!
       const key = SPORTS_THEME_TAG_VALUES[i]!

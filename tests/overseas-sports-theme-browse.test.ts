@@ -6,7 +6,7 @@ import { resolveOverseasGeoFilterBanner } from '../lib/overseas-destination-brow
 describe('overseas sports theme browse', () => {
   it('resolveOverseasGeoFilterBanner — region=sports_theme', async () => {
     const banner = await resolveOverseasGeoFilterBanner({ region: 'sports_theme' })
-    assert.equal(banner?.title, '스포츠테마 여행상품')
+    assert.equal(banner?.title, '테마여행 여행상품')
   })
 
   it('resolveOverseasGeoFilterBanner — sportsTheme=running', async () => {
@@ -15,6 +15,14 @@ describe('overseas sports theme browse', () => {
       sportsTheme: 'running',
     })
     assert.equal(banner?.title, '러닝 여행상품')
+  })
+
+  it('resolveOverseasGeoFilterBanner — sportsTheme=mingling', async () => {
+    const banner = await resolveOverseasGeoFilterBanner({
+      region: 'sports_theme',
+      sportsTheme: 'mingling',
+    })
+    assert.equal(banner?.title, '밍글밍 여행상품')
   })
 
   it('computeHubFocusedResults — sports_theme region is focused', () => {

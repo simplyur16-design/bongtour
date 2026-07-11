@@ -980,7 +980,7 @@ function SportsThemeGroupedList({
               sportsThemeGroupScopeKey(tag),
             )
           ) : (
-            <ProductResultsHubScrollRow ariaLabel={`스포츠테마 ${label} 상품`}>
+            <ProductResultsHubScrollRow ariaLabel={`테마여행 ${label} 상품`}>
               {buildProductResultRowNodes(sectionItems, formatWon, seasonalPickIds, {
                 compact: true,
                 liClassName: HUB_PRODUCT_SCROLL_LI_CLASS,

@@ -30,7 +30,7 @@ export async function resolveOverseasGeoFilterBanner(
       const label =
         sportsTheme && sportsTheme in SPORTS_THEME_TAG_LABELS
           ? SPORTS_THEME_TAG_LABELS[sportsTheme as SportsThemeTag]
-          : '스포츠테마'
+          : '테마여행'
       return { title: `${label} 여행상품`, cityKey: null, countryKey: null }
     }
     return null

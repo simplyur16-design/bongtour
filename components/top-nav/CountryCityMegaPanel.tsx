@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { MegaMenuCountryGroup } from '@/lib/travel-landing-mega-menu-data'
+import { SPORTS_THEME_TAG_VALUES } from '@/lib/product-listing-kind'
 import { resolveMegaMenuPanelLayout } from '@/lib/mega-menu-panel-layout'
 import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import { buildMegaMenuGroupHeaderHref, buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
@@ -16,6 +17,7 @@ type Props = {
 const FLAT_GRID_COLS_CLASS: Record<number, string> = {
   4: 'grid-cols-4',
   5: 'grid-cols-5',
+  6: 'grid-cols-6',
 }
 
 /** 중분류=국가 leaf 1개(LC) — 헤더·하위 도시 중복 링크 방지 */
@@ -30,7 +32,8 @@ function isSingleCountryLeafGroup(g: MegaMenuCountryGroup): boolean {
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
-  const flatGridLeafCols = regionId === 'south-america' ? 4 : regionId === 'sports_theme' ? 5 : null
+  const flatGridLeafCols =
+    regionId === 'south-america' ? 4 : regionId === 'sports_theme' ? SPORTS_THEME_TAG_VALUES.length : null
   const isFlatGrid = flatGridLeafCols != null
   const flatGridColsClass = flatGridLeafCols != null ? (FLAT_GRID_COLS_CLASS[flatGridLeafCols] ?? 'grid-cols-4') : ''
   const layout = resolveMegaMenuPanelLayout(regionId, countryGroups)
