@@ -35,8 +35,8 @@ describe('matchMegaMenuCityKeysInHaystack', () => {
 })
 
 describe('filterCityKeysToCoherentMegaMenuGroup', () => {
-  it('drops other japan menu columns when primary is osaka', () => {
+  it('keeps same-region japan columns when primary is osaka', () => {
     const keys = filterCityKeysToCoherentMegaMenuGroup('osaka', ['osaka', 'sapporo', 'fukuoka'])
-    expect(keys).toEqual(['osaka'])
+    expect(keys).toEqual(['osaka', 'sapporo', 'fukuoka'])
   })
 })

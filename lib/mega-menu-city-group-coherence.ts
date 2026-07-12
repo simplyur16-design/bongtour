@@ -1,6 +1,8 @@
 /**
- * 메가메뉴 열(간사이·홋카이도 등) 단위 — 단일 목적지 상품에 타 열 도시 태그가 섞이지 않게 한다.
+ * 메가메뉴 도시 태그 정합 — 동일 상위탭(region) 안 다열(간사이·홋카이도)은 유지,
+ * 타 region(괌 vs 유럽 등)만 primary region으로 clamp.
  */
+// REGRESSION-FREEZE[mega-menu-same-region-multi-column-city-tags]: 동일 region 다열 cityKey 유지 — manifest
 import { resolveBrowseCityKeysForFilter } from '@/lib/browse-country-url-resolve'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
@@ -46,7 +48,8 @@ export function megaMenuPlacementForCityKey(cityKey: string | null | undefined):
 }
 
 /**
- * primary 도시가 속한 메가메뉴 열과 다른 열의 도시 태그는 제거(다도시·클러스터는 호출 전에 후보에 모두 포함된 상태).
+ * primary 도시와 같은 mega-menu region 의 cityKey는 열(menuGroup)이 달라도 유지.
+ * 다른 region 키만 제거(다도시·클러스터 후보는 호출 전에 모두 포함된 상태).
  */
 export function filterCityKeysToCoherentMegaMenuGroup(
   primaryCityKey: string | null | undefined,
@@ -58,12 +61,6 @@ export function filterCityKeysToCoherentMegaMenuGroup(
   const primary = (primaryCityKey ?? '').trim()
   const primaryPlace = primary ? megaMenuPlacementForCityKey(primary) : null
   if (!primaryPlace) return keys
-
-  const sameGroup = keys.filter((k) => {
-    const p = megaMenuPlacementForCityKey(k)
-    return p?.regionId === primaryPlace.regionId && p.menuGroupSlug === primaryPlace.menuGroupSlug
-  })
-  if (sameGroup.includes(primary)) return sameGroup
 
   const sameRegion = keys.filter((k) => {
     const p = megaMenuPlacementForCityKey(k)

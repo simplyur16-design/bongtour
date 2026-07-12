@@ -67,6 +67,38 @@ describe('filterOverseasHubCatalogByUrl menuGroup', () => {
     expect(out.map((it) => it.id)).toEqual(['hk'])
   })
 
+  it('shows multi-column japan product under both kansai and hokkaido mid', () => {
+    const items = [
+      {
+        id: 'multi',
+        title: '오사카+삿포로 6일',
+        originSource: 'modetour',
+        browseMegaRegionTabId: 'japan',
+        countryRowLabel: '오사카',
+        cityTags: [{ cityKey: 'osaka' }, { cityKey: 'sapporo' }],
+        countryTags: [{ countryKey: 'jp', nodeKey: 'osaka' }],
+      },
+      {
+        id: 'fukuoka-only',
+        title: '후쿠오카 4일',
+        originSource: 'hanatour',
+        browseMegaRegionTabId: 'japan',
+        cityTags: [{ cityKey: 'fukuoka' }],
+        countryTags: [{ countryKey: 'jp', nodeKey: 'fukuoka' }],
+      },
+    ] as ResultItem[]
+    const kansai = filterOverseasHubCatalogByUrl(
+      items,
+      new URLSearchParams('scope=overseas&region=japan&country=japan&menuGroup=kansai'),
+    )
+    const hokkaido = filterOverseasHubCatalogByUrl(
+      items,
+      new URLSearchParams('scope=overseas&region=japan&country=japan&menuGroup=hokkaido'),
+    )
+    expect(kansai.map((it) => it.id)).toEqual(['multi'])
+    expect(hokkaido.map((it) => it.id)).toEqual(['multi'])
+  })
+
   it('filters osaka leaf by cityTags not title needle', () => {
     const items = [
       {

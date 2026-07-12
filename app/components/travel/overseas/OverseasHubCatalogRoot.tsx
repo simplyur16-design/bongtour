@@ -16,6 +16,11 @@ import {
   getOverseasHubSearchParamsString,
   subscribeOverseasHubUrl,
 } from '@/lib/overseas-hub-client-nav'
+import { fetchProductsBrowseClientJson } from '@/lib/products-browse-client-fetch'
+import {
+  buildOverseasHubBrowseQueryKey,
+  overseasHubUrlNeedsServerGeoFetch,
+} from '@/lib/products-browse-hub-query'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
@@ -26,8 +31,10 @@ type Props = {
 }
 
 /**
- * 해외 허브 상품 목록 — 카탈로그 1회 로드 후 URL(region/country)만 클라이언트 필터.
- * 메가메뉴 region 전환 시 RSC 재-fetch·Suspense 리마운트 없음.
+ * 해외 허브 상품 목록 —
+ * - 상위탭(region-only): 전량 카탈로그 1회 + 클라이언트 필터
+ * - 중·하(menuGroup/city/country): 서버 geo WHERE fetch (전량 스캔 병목 제거)
+ * REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: root wires server geo fetch — manifest
  */
 export default function OverseasHubCatalogRoot({
   initialSearchParamsString,
@@ -46,25 +53,54 @@ export default function OverseasHubCatalogRoot({
   const [error, setError] = useState<string | null>(null)
   const rotationSeedRef = useRef(hubGalleryRotationSeed)
   const sectionsCacheRef = useRef(new Map<string, OverseasHubCatalogSection[]>())
+  const geoFetchGenRef = useRef(0)
 
   useEffect(() => {
-    const peek = peekOverseasHubCatalogItems()
-    if (peek.length > 0) {
-      setCatalogItems(peek)
-      setCatalogLoading(false)
-      return
+    let cancelled = false
+    const sp = new URLSearchParams(searchParamsString)
+    const needsServerGeo = overseasHubUrlNeedsServerGeoFetch(sp)
+
+    if (!needsServerGeo) {
+      const peek = peekOverseasHubCatalogItems()
+      if (peek.length > 0) {
+        setCatalogItems(peek)
+        setCatalogLoading(false)
+        setError(null)
+        return
+      }
+
+      setCatalogLoading(true)
+      void ensureOverseasHubCatalog()
+        .then((items) => {
+          if (cancelled) return
+          setCatalogItems(items)
+          setCatalogLoading(false)
+          setError(null)
+        })
+        .catch((e) => {
+          if (cancelled) return
+          setError(e instanceof Error ? e.message : '목록을 불러오지 못했습니다.')
+          setCatalogLoading(false)
+        })
+
+      return () => {
+        cancelled = true
+      }
     }
 
-    let cancelled = false
-    void ensureOverseasHubCatalog()
-      .then((items) => {
-        if (cancelled) return
+    const gen = ++geoFetchGenRef.current
+    setCatalogLoading(true)
+    const queryKey = buildOverseasHubBrowseQueryKey(sp)
+    void fetchProductsBrowseClientJson(queryKey)
+      .then((json) => {
+        if (cancelled || gen !== geoFetchGenRef.current) return
+        const items = (json.items ?? []) as ResultItem[]
         setCatalogItems(items)
         setCatalogLoading(false)
         setError(null)
       })
       .catch((e) => {
-        if (cancelled) return
+        if (cancelled || gen !== geoFetchGenRef.current) return
         setError(e instanceof Error ? e.message : '목록을 불러오지 못했습니다.')
         setCatalogLoading(false)
       })
@@ -72,7 +108,7 @@ export default function OverseasHubCatalogRoot({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [searchParamsString])
 
   useEffect(() => {
     sectionsCacheRef.current.clear()
@@ -125,7 +161,9 @@ export default function OverseasHubCatalogRoot({
     error != null
       ? error
       : catalogItems.length === 0
-        ? '목록을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.'
+        ? overseasHubUrlNeedsServerGeoFetch(searchParamsString)
+          ? '선택한 조건에 맞는 상품이 없습니다.'
+          : '목록을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.'
         : sections.length === 0
           ? '선택한 조건에 맞는 상품이 없습니다.'
           : '등록된 여행상품이 없습니다.'

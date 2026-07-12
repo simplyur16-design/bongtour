@@ -85,6 +85,7 @@
     "season-curation:force": "npx tsx scripts/run-season-curation.ts --force",
     "backfill:product-country-tag": "npx tsx scripts/backfill-product-country-tag.ts",
     "verify:mega-menu-browse": "npx tsx scripts/verify-mega-menu-ssot-browse.ts",
+    "verify:overseas-hub-geo-fetch-perf": "npx tsx scripts/verify-overseas-hub-geo-fetch-perf.ts",
     "verify:sticky-quotation-total": "npx tsx scripts/verify-sticky-quotation-total.ts",
     "verify:mega-menu-register-alignment": "npx tsx scripts/verify-mega-menu-register-alignment.ts",
     "verify:mega-menu-product-alignment": "npx tsx scripts/verify-mega-menu-product-alignment.ts",

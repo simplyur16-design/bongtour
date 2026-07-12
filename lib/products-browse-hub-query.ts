@@ -3,8 +3,11 @@ import { OVERSEAS_HUB_CATALOG_CLIENT_VERSION } from '@/lib/overseas-hub-catalog-
 
 /** 허브·메인 그리드 — 등록 풀 전량(인벤토리 규모상 페이지 상한만 둠, 120 컷 없음) */
 export const HUB_BROWSE_FULL_CATALOG_LIMIT = '10000'
+/** 중·하·국가 geo fetch — 전량 10000 대신 DB WHERE + 상한으로 지연·오류 여지 축소 */
+export const HUB_BROWSE_GEO_FOCUSED_LIMIT = '500'
 
 export const OVERSEAS_HUB_BROWSE_LIMIT = HUB_BROWSE_FULL_CATALOG_LIMIT
+export const OVERSEAS_HUB_GEO_FOCUSED_LIMIT = HUB_BROWSE_GEO_FOCUSED_LIMIT
 export const AIR_HOTEL_HUB_BROWSE_LIMIT = HUB_BROWSE_FULL_CATALOG_LIMIT
 export const DOMESTIC_HUB_BROWSE_LIMIT = HUB_BROWSE_FULL_CATALOG_LIMIT
 
@@ -72,6 +75,7 @@ export function canonicalBrowseQueryKey(p: URLSearchParams): string {
 /**
  * 해외 허브 전량 카탈로그 — region/country/city 무관, 세션 1회 fetch SSOT.
  * 메가메뉴·히어로 URL 변경은 클라이언트 필터만 (`filterOverseasHubCatalogByUrl`).
+ * 중·하(`menuGroup`/`city` 등)는 `overseasHubUrlNeedsServerGeoFetch` → 서버 geo WHERE.
  */
 export function buildOverseasHubCatalogFetchQueryKey(): string {
   const p = new URLSearchParams()
@@ -80,6 +84,22 @@ export function buildOverseasHubCatalogFetchQueryKey(): string {
   /** 클라이언트 sessionStorage 구 캐시 무효화 — API는 무시 */
   p.set('hubCatalog', OVERSEAS_HUB_CATALOG_CLIENT_VERSION)
   return canonicalBrowseQueryKey(p)
+}
+
+/**
+ * 중·하·국가·테마 클릭 — 전량 카탈로그 대신 서버 `buildOverseasBrowseGeoResolution` WHERE fetch.
+ * region-only(상위탭)는 전량+클라이언트 인덱스 유지.
+ */
+// REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: mid/leaf server geo WHERE — manifest
+export function overseasHubUrlNeedsServerGeoFetch(qsInput: URLSearchParams | string): boolean {
+  const p =
+    typeof qsInput === 'string' ? new URLSearchParams(qsInput) : new URLSearchParams(qsInput.toString())
+  const q = parseBrowseQuery(p)
+  if ((q.sportsTheme ?? '').trim() || (q.region ?? '').trim() === 'sports_theme') return true
+  if ((p.get('menuGroup') ?? '').trim()) return true
+  if ((q.city ?? '').trim() || (p.get('destination') ?? '').trim()) return true
+  if ((q.country ?? '').trim()) return true
+  return false
 }
 
 /**
@@ -105,7 +125,11 @@ export function buildOverseasHubBrowseQueryKey(qsInput: URLSearchParams | string
     typeof qsInput === 'string' ? new URLSearchParams(qsInput) : new URLSearchParams(qsInput.toString())
   if (!p.get('scope')) p.set('scope', 'overseas')
   p.delete('listingKind')
-  p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
+  // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: geo-focused limit — manifest
+  p.set(
+    'limit',
+    overseasHubUrlNeedsServerGeoFetch(p) ? OVERSEAS_HUB_GEO_FOCUSED_LIMIT : OVERSEAS_HUB_BROWSE_LIMIT,
+  )
   p.delete('page')
   for (const k of OVERSEAS_HUB_HERO_UI_QUERY_KEYS) p.delete(k)
   stripSidebarFilterParamsFromSearchParams(p)

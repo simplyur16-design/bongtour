@@ -891,6 +891,60 @@
       ]
     },
     {
+      "id": "overseas-hub-server-geo-fetch",
+      "tier": ["prebuild", "ci"],
+      "summary": "중·하 메가메뉴 — 서버 geo WHERE fetch (전량 클라이언트 스캔 제거)",
+      "checks": [
+        {
+          "file": "lib/products-browse-hub-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
+            "overseasHubUrlNeedsServerGeoFetch",
+            "HUB_BROWSE_GEO_FOCUSED_LIMIT",
+            "menuGroup"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
+            "applyDbTake",
+            "take: limit"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
+          "mustInclude": [
+            "overseasHubUrlNeedsServerGeoFetch",
+            "buildOverseasHubBrowseQueryKey",
+            "fetchProductsBrowseClientJson"
+          ]
+        }
+      ],
+      "npmScripts": [{ "script": "verify:overseas-hub-geo-fetch-perf", "tier": ["ci"] }],
+      "vitestSuites": ["lib/products-browse-hub-query.test.ts"]
+    },
+    {
+      "id": "mega-menu-mid-leaf-tag-filter",
+      "tier": ["prebuild", "ci"],
+      "summary": "허브 중분류=그룹 city/country 태그 1차, 하분류=city 재좁힘 (라벨 단독·전량 반환 금지)",
+      "checks": [
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-mid-leaf-tag-filter]",
+            "filterItemsByMenuGroupCityKeys",
+            "resolveMegaMenuEuropeMenuGroupExclusiveFilter",
+            "resolveMegaMenuGroupCountryKeySlugs"
+          ],
+          "mustNotInclude": [
+            "byLabel.length > 0) return byLabel"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/overseas-hub-client-catalog-filter.test.ts"]
+    },
+    {
       "id": "overseas-hub-geo-tag-filter",
       "tier": ["prebuild", "ci"],
       "summary": "해외 허브 클라이언트 필터 — ProductCityTag 기반 geo",
@@ -899,12 +953,37 @@
           "file": "lib/overseas-hub-client-catalog-filter.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-geo-tag-filter]",
+            "REGRESSION-FREEZE[mega-menu-mid-leaf-tag-filter]",
             "productMatchesBrowseUrlGeo",
-            "filterItemsByMenuGroupCityKeys"
+            "filterItemsByMenuGroupCityKeys",
+            "resolveMegaMenuEuropeMenuGroupExclusiveFilter",
+            "resolveMegaMenuGroupCountryKeySlugs"
           ]
         }
       ],
       "vitestSuites": ["lib/overseas-hub-client-catalog-filter.test.ts"]
+    },
+    {
+      "id": "mega-menu-same-region-multi-column-city-tags",
+      "tier": ["prebuild", "ci"],
+      "summary": "동일 region 다열(오사카+삿포로) cityKey 유지 · 타 region clamp",
+      "checks": [
+        {
+          "file": "lib/mega-menu-city-group-coherence.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-same-region-multi-column-city-tags]",
+            "filterCityKeysToCoherentMegaMenuGroup",
+            "sameRegion"
+          ],
+          "mustNotInclude": [
+            "sameGroup.includes"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mega-menu-city-group-coherence.test.ts",
+        "lib/mega-menu-city-tag-match.test.ts"
+      ]
     },
     {
       "id": "japan-mega-menu-browse-cluster-keys",

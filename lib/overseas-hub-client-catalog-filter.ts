@@ -4,7 +4,9 @@ import type { ResultItem } from '@/components/products/ProductResultsList'
 import { countrySlugFromLabel, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import {
   findMegaMenuGroup,
+  resolveMegaMenuEuropeMenuGroupExclusiveFilter,
   resolveMegaMenuGroupCityKeys,
+  resolveMegaMenuGroupCountryKeySlugs,
 } from '@/lib/mega-menu-browse-group'
 import {
   productMatchesBrowseUrlGeo,
@@ -13,14 +15,11 @@ import {
 } from '@/lib/match-overseas-product'
 import { getOverseasHubCatalogForMegaRegionTab } from '@/lib/overseas-hub-catalog-region-index'
 import { filterCatalogByMegaRegionTab } from '@/lib/overseas-hub-mega-region-bucket'
-import {
-  isMegaMenuRegionCityGroupTabId,
-  megaMenuGroupToDisplayLabel,
-  resolveOverseasHubMegaSubgroupDisplayLabel,
-} from '@/lib/overseas-mega-region-city-group'
+import { isMegaMenuRegionCityGroupTabId } from '@/lib/overseas-mega-region-city-group'
 import { parseBrowseQuery } from '@/lib/products-browse-query'
 
 // REGRESSION-FREEZE[overseas-hub-geo-tag-filter]: hub client filter uses ProductCityTag — manifest
+// REGRESSION-FREEZE[mega-menu-mid-leaf-tag-filter]: mid=group tags first, leaf=city narrow — manifest
 
 function itemMatchesBrowseCountryParam(item: ResultItem, countryParam: string): boolean {
   const slug = countryParam.trim().toLowerCase()
@@ -91,15 +90,34 @@ function filterItemsByMenuGroupCityKeys(
   menuGroupSlug: string,
 ): ResultItem[] {
   const keys = new Set(resolveMegaMenuGroupCityKeys(regionId, menuGroupSlug).map((k) => k.toLowerCase()))
-  if (keys.size === 0) return items
-  const tagged = items.filter((it) => (it.cityTags?.length ?? 0) > 0)
-  if (tagged.length === 0) return items
+  if (keys.size === 0) return []
   return items.filter((it) =>
     (it.cityTags ?? []).some((t) => keys.has((t.cityKey ?? '').trim().toLowerCase())),
   )
 }
 
-/** 메가메뉴 열(홋카이도·간사이 등) — `menuGroup` 쿼리로 하위분류만 좁힘 */
+function filterItemsByMenuGroupCountryKeys(
+  items: ResultItem[],
+  include: string[],
+  exclude: string[] = [],
+): ResultItem[] {
+  const includeSet = new Set(include.map((k) => k.trim().toLowerCase()).filter(Boolean))
+  const excludeSet = new Set(exclude.map((k) => k.trim().toLowerCase()).filter(Boolean))
+  if (includeSet.size === 0) return []
+  return items.filter((it) => {
+    const keys = (it.countryTags ?? [])
+      .map((t) => (t.countryKey ?? '').trim().toLowerCase())
+      .filter(Boolean)
+    if (!keys.some((k) => includeSet.has(k))) return false
+    if (excludeSet.size > 0 && keys.some((k) => excludeSet.has(k))) return false
+    return true
+  })
+}
+
+/**
+ * 메가메뉴 중분류 — cityTags ∩ group cityKeys 우선.
+ * LC/국가 leaf·유럽 권역은 countryTags(서버 exclusive와 동일)로 좁힘. 전량 반환 금지.
+ */
 function filterOverseasHubCatalogByMenuGroup(
   items: ResultItem[],
   regionId: string,
@@ -110,19 +128,28 @@ function filterOverseasHubCatalogByMenuGroup(
   const group = findMegaMenuGroup(regionId, mg)
   if (!group) return null
 
-  const targetLabel = megaMenuGroupToDisplayLabel(regionId, group.countryLabel)
   const regionPool = filterCatalogByMegaRegionTab(items, regionId)
-  const byLabel = regionPool.filter(
-    (it) => resolveOverseasHubMegaSubgroupDisplayLabel(it, regionId) === targetLabel,
-  )
-  if (byLabel.length > 0) return byLabel
-  const byTags = filterItemsByMenuGroupCityKeys(regionPool, regionId, mg)
-  return byTags.length > 0 ? byTags : byLabel
+  const cityKeys = resolveMegaMenuGroupCityKeys(regionId, mg)
+  if (cityKeys.length > 0) {
+    return filterItemsByMenuGroupCityKeys(regionPool, regionId, mg)
+  }
+
+  const exclusive = resolveMegaMenuEuropeMenuGroupExclusiveFilter(regionId, mg)
+  if (exclusive && exclusive.include.length > 0) {
+    return filterItemsByMenuGroupCountryKeys(regionPool, exclusive.include, exclusive.exclude)
+  }
+
+  const countryKeys = resolveMegaMenuGroupCountryKeySlugs(regionId, mg)
+  if (countryKeys.length > 0) {
+    return filterItemsByMenuGroupCountryKeys(regionPool, countryKeys)
+  }
+
+  return []
 }
 
 /**
- * 해외 허브 — 전량 카탈로그(1회 fetch)를 URL `region`/`country`/`city`/`menuGroup`로 클라이언트 필터.
- * 메가메뉴 상위분류 클릭 시 API 재요청 없음.
+ * 해외 허브 — 전량 카탈로그 또는 서버 geo 목록을 URL `region`/`country`/`city`/`menuGroup`로 클라이언트 필터.
+ * 중분류=그룹 태그, 하분류=중분류 풀에서 city 재좁힘.
  */
 export function filterOverseasHubCatalogByUrl(
   items: ResultItem[],

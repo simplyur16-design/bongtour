@@ -42,7 +42,7 @@ npm run backfill:product-country-tag       # 누락 ProductCountryTag
 
 **중국권 탭(`china-hk-mo`)** — 메가메뉴 그룹·마스터 키: `몽골`→`mongolia`(도시 `ulaanbaatar`·`terelj`), `마카오`→`macau`(국가 leaf, `city` 쿼리 없음), `내몽골`→`inner-mongolia`/`china`(트리 `몽골` 별칭과 분리).  
 회귀: `tests/mega-menu-mongolia-macau-geo.test.ts`  
-일본 열 혼입 방지: `lib/mega-menu-city-group-coherence.ts`.
+동일 region 다열 허용·타 region clamp: `lib/mega-menu-city-group-coherence.ts` (`filterCityKeysToCoherentMegaMenuGroup` — 오사카+삿포로는 각 leaf·중분류에 노출, 괌+유럽은 제거).
 
 `registered` + `cityKey` 있는데 `ProductCityTag` 없으면 verify 스크립트가 실패한다.
 
