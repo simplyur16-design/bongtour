@@ -303,6 +303,7 @@ export const CITY_COUNTRY_ONLY = new Set(
     'hanoi',
     'ho chi minh',
     'nha trang',
+    'phu quoc',
     'bangkok',
     'chiang mai',
     'phuket',

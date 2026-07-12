@@ -134,7 +134,9 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const finalDeduped = isPackageListing
     ? reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill(withKeywords)
     : withKeywords
-  return finalDeduped.map((row) => {
+  // reconcile 후 귀국·출발 빈 슬롯 재보충 (중간일 gap-fill이 마지막 고유 랜드마크를 선점한 경우)
+  const withReturnRefill = ensureDepartureReturnVisitCityKeywords(finalDeduped, dest)
+  return withReturnRefill.map((row) => {
     const day = Number(row.day)
     const rawRoute = routeTextRawByDay.get(day)
     return {

@@ -799,4 +799,38 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     const d2 = out.find((r) => r.day === 2)!
     expect(String(d2.imageKeyword2 ?? '')).not.toMatch(/Prague|Charles Bridge/i)
   })
+
+  it('푸꾸옥 — Phu Quoc bare city must not repeat across middle days', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, routeText: '인천 - 푸꾸옥', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          routeText: '푸꾸옥 - 썬월드 혼똠 - 그랜드월드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '푸꾸옥 - 딘커우 사원 - 그랜드월드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '푸꾸옥 - 후추농장 - 쯔엉동 야시장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 5, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'ybtour', productDestination: '푸꾸옥', productTitle: '푸꾸옥 5일' },
+    )
+    const keys = out
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+      .filter(Boolean)
+      .map((k) => normScheduleImageKeywordKey(String(k)))
+    expect(new Set(keys).size).toBe(keys.length)
+    expect(String(out.find((r) => r.day === 5)?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+  })
 })

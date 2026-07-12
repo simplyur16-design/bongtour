@@ -155,6 +155,32 @@ function isReturnDayCityLeakKeyword(kw: string): boolean {
   return isBareCityOrCountryKeyword(t)
 }
 
+/** 귀국일 — trip route 미사용 랜드마크 (bare city 제외) */
+function pickUnusedTripLandmarkForReturnFill(
+  rows: readonly RegisterScheduleTripKeywordRow[],
+  used: ReadonlySet<string>,
+): string {
+  for (const kw of collectTripOrderedLandmarkKeywords(rows)) {
+    const t = String(kw ?? '').trim()
+    if (!t || isRejectedTripKeywordCandidate(t)) continue
+    if (isBareCityOrCountryKeyword(t)) continue
+    if (!isLikelyTourismLandmarkKeyword(t) && t.split(/\s+/).length < 2) continue
+    const nk = normScheduleImageKeywordKey(t)
+    if (!nk || used.has(nk)) continue
+    return t
+  }
+  for (const row of [...rows].sort((a, b) => Number(b.day) - Number(a.day))) {
+    for (const cand of collectTripKeywordCandidates(row)) {
+      const t = String(cand ?? '').trim()
+      if (!t || isRejectedTripKeywordCandidate(t) || isBareCityOrCountryKeyword(t)) continue
+      const nk = normScheduleImageKeywordKey(t)
+      if (!nk || used.has(nk)) continue
+      if (isLikelyTourismLandmarkKeyword(t)) return t
+    }
+  }
+  return ''
+}
+
 function isRejectedTripKeywordCandidate(kw: string): boolean {
   const t = String(kw ?? '').trim()
   if (!t) return true
@@ -592,6 +618,17 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
 
   const middleUsed = new Set<string>()
   const tripReserved = new Set<string>()
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return fill excludes departure+middle used — manifest
+  const allUsedExcept = (exceptDay: number) => {
+    const s = new Set<string>([...middleUsed, ...tripReserved])
+    for (const row of sorted) {
+      const d = Number(row.day)
+      if (d === exceptDay) continue
+      const cur = out.get(d) ?? row
+      ingestSlots(cur, s)
+    }
+    return s
+  }
   const ingestSlots = (row: RegisterScheduleTripKeywordRow, into: Set<string>) => {
     for (const slot of [row.imageKeyword, row.imageKeyword2]) {
       const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
@@ -624,17 +661,14 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       if (keptNk && isBareCityOrCountryKeyword(keptKw)) tripReserved.add(keptNk)
       continue
     }
+    const usedForEdge = allUsedExcept(day)
     const filled =
       slot === 'departure'
         ? pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, productDestination)
-        : pickReturnVisitCityKeyword(
-            sorted,
-            day,
-            productDestination,
-            new Set([...middleUsed, ...tripReserved]),
-          ) ||
+        : pickReturnVisitCityKeyword(sorted, day, productDestination, usedForEdge) ||
+          pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) ||
           pickMongoliaTerelClusterKeywordForUsedSlot(
-            new Set([...middleUsed, ...tripReserved]),
+            usedForEdge,
             sorted.map((r) => String(r.routeText ?? '')).join('\n'),
           )
     if (!filled) {
@@ -651,9 +685,17 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       continue
     }
     const nk = normScheduleImageKeywordKey(filled)
-    const usedForReturn = new Set([...middleUsed, ...tripReserved])
-    if (slot === 'return' && nk && usedForReturn.has(nk)) {
-      out.set(day, { ...row, imageKeyword2: null })
+    if (slot === 'return' && nk && usedForEdge.has(nk)) {
+      const alt =
+        pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) ||
+        pickReturnVisitCityKeyword(sorted, day, productDestination, usedForEdge)
+      if (alt && !usedForEdge.has(normScheduleImageKeywordKey(alt))) {
+        out.set(day, { ...row, imageKeyword: alt, imageKeyword2: null })
+        const altNk = normScheduleImageKeywordKey(alt)
+        if (altNk && isBareCityOrCountryKeyword(alt)) tripReserved.add(altNk)
+        continue
+      }
+      out.set(day, { ...row, imageKeyword: '', imageKeyword2: null })
       continue
     }
     const next = { ...row, imageKeyword: filled, imageKeyword2: null }
@@ -1137,7 +1179,6 @@ function pickEasternEuropeClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowEasternEuropeClusterKw2Duplicate(kw, clusterHay)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1204,7 +1245,6 @@ function pickCanadaRockiesClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowCanadaRockiesClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1261,7 +1301,6 @@ function pickLaosClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowLaosClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1308,7 +1347,6 @@ function pickTaiwanClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowTaiwanClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1357,7 +1395,6 @@ function pickOceaniaAuNzClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowOceaniaAuNzClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1392,12 +1429,6 @@ function pickSoutheastAsiaResortClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowSoutheastAsiaResortClusterKw2Duplicate(kw, routeText)) {
-      if (/(?:발리|Bali)/i.test(String(routeText ?? '')) && /bali|beach club|uluwatu|rice terrace|padang|melasti/.test(nk)) {
-        return ''
-      }
-      return kw
-    }
     return ''
   }
   for (const raw of cands) {
@@ -1454,7 +1485,6 @@ function pickHawaiiResortClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowHawaiiResortClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1500,7 +1530,6 @@ function pickUaeResortClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowUaeResortClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1549,7 +1578,6 @@ function pickHongKongHubClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowHongKongHubClusterKw2Duplicate(kw, evidence)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1592,7 +1620,6 @@ function pickGuamResortClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowGuamResortClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1639,7 +1666,6 @@ function pickCentralAsiaClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowCentralAsiaClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1689,7 +1715,6 @@ function pickSwissAlpsClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowSwissAlpsClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1755,7 +1780,6 @@ function pickJapanHubClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowJapanHubClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1815,7 +1839,6 @@ function pickChinaHubClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowChinaHubClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1981,7 +2004,6 @@ function pickSteppeAlaskaClusterKeywordForUsedSlot(
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowSteppeAlaskaClusterKw2Duplicate(kw, routeText)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -2153,8 +2175,8 @@ function isAllowableRouteOrderSecondKeyword2(
   if (!nk || !pk || nk === pk) return false
   const fromRoute = pickSecondSegmentKeywordFromRouteText(row.routeText, primary, new Set())
   if (!fromRoute || normScheduleImageKeywordKey(fromRoute) !== nk) return false
-  if (!used.has(nk)) return true
-  return !isLikelyTourismLandmarkKeyword(kw)
+  // 일자 간 used 재사용 금지 — 당일 route 2번째도 unused만
+  return !used.has(nk)
 }
 
 function lodgingClusterRouteContext(routeText: string | null | undefined): string {
@@ -2162,33 +2184,10 @@ function lodgingClusterRouteContext(routeText: string | null | undefined): strin
 }
 
 function allowClusterKw2ReuseDespiteUsed(kw: string, routeText?: string | null): boolean {
-  if (allowResortClusterCrossSlotReuse(kw, routeText)) return true
-  if (allowEasternEuropeClusterKw2Duplicate(kw, routeText)) return true
-  if (allowSouthAmericaClusterKw2Duplicate(kw, routeText)) return true
-  if (allowSafariClusterKw2Duplicate(kw, routeText)) return true
-  if (allowProvenceClusterKw2Duplicate(kw, routeText)) return true
-  if (allowSteppeAlaskaClusterKw2Duplicate(kw, routeText)) return true
-  if (allowJapanHubClusterKw2Duplicate(kw, routeText)) return true
-  if (allowChinaHubClusterKw2Duplicate(kw, routeText)) return true
-  if (allowCanadaRockiesClusterKw2Duplicate(kw, routeText)) return true
-  if (allowLaosClusterKw2Duplicate(kw, routeText)) return true
-  if (allowTaiwanClusterKw2Duplicate(kw, routeText)) return true
-  if (allowOceaniaAuNzClusterKw2Duplicate(kw, routeText)) return true
-  if (allowSoutheastAsiaResortClusterKw2Duplicate(kw, routeText)) {
-    const nk = normScheduleImageKeywordKey(kw)
-    const hay = String(routeText ?? '')
-    if (/bali|uluwatu|tegalalang|beach club|rice terrace|padang padang|melasti beach/.test(nk)) {
-      return false
-    }
-    if (isLaosOnlyClusterRoute(hay) && isSoutheastAsiaLeakKeywordForLaosRoute(kw)) return false
-    if (/maldives|overwater|house reef|white sand/.test(nk)) return true
-    if (!/(?:발리|Bali)/i.test(hay)) {
-      if (/phuquoc|phu quoc|hon thom|sao beach|grand world|sunset|kiss bridge|cable|vientiane|vang vieng|angkor|halong|laos|pha that|patuxai|nam song/.test(nk)) {
-        return true
-      }
-    }
-    return false
-  }
+  // Trip-wide unique — 일자 간 used norm key 재사용 금지 (클러스터·리조트 예외 폐지).
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: trip-unique no cluster kw reuse — manifest
+  void kw
+  void routeText
   return false
 }
 
@@ -2202,25 +2201,26 @@ function shouldRejectMiddleDayKeyword2(
   const routeCtx = isLodgingOnlyTourismRoute(row.routeText)
     ? lodgingClusterRouteContext(row.routeText)
     : String(row.routeText ?? '')
-  if (allowKw2TripDuplicateKeyword(secondary, routeCtx)) {
-    const nk2 = normScheduleImageKeywordKey(secondary)
-    if (nk2 && used.has(nk2) && !allowClusterKw2ReuseDespiteUsed(secondary, routeCtx)) return true
-    return false
-  }
   const nk2 = normScheduleImageKeywordKey(secondary)
   const pk = normScheduleImageKeywordKey(primary)
-  if (isBareCityOrCountryKeyword(secondary)) return true
-  if (nk2 === pk) return true
+  // 숙박-only 중간일 — prior tourism landmark kw2 허용 (일자 복사 의도)
   if (isLodgingOnlyTourismRoute(row.routeText)) {
     if (
       nk2 &&
       pk &&
+      nk2 !== pk &&
       isLikelyTourismLandmarkKeyword(secondary) &&
       !isDomesticHubOrAirportImageKeyword(secondary)
     ) {
       return false
     }
   }
+  if (allowKw2TripDuplicateKeyword(secondary, routeCtx)) {
+    if (nk2 && used.has(nk2) && !allowClusterKw2ReuseDespiteUsed(secondary, routeCtx)) return true
+    return false
+  }
+  if (isBareCityOrCountryKeyword(secondary)) return true
+  if (nk2 === pk) return true
   if (used.has(nk2)) return true
   return false
 }

@@ -4536,7 +4536,9 @@
             "isReturn",
             "일자 간 중복 시 route 미사용 명소 차순위",
             "easternEuropeHardcodedPool day-route evidence",
-            "스페인광장"
+            "스페인광장",
+            "trip-unique no cluster kw reuse",
+            "return fill excludes departure+middle used"
           ]
         },
         {
@@ -4544,7 +4546,14 @@
           "mustInclude": [
             "Guam — 스페인광장",
             "Croatia Split day",
-            "Prague"
+            "Prague",
+            "Phu Quoc bare city must not repeat"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "ensureDepartureReturnVisitCityKeywords(finalDeduped"
           ]
         }
       ],

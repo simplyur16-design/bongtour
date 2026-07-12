@@ -142,6 +142,10 @@ describe('register schedule route place noise', () => {
         '죽기전에 꼭 봐야 할 세계 건축 1001에 선정된 세인트 도나트교회',
       ),
     ).toBe('세인트 도나트교회')
+    expect(extractRegisterScheduleRoutePlaceLabel('항구도시 자다르')).toBe('자다르')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel('체스키크룸로프의 명소 이발사 다리'),
+    ).toBe('이발사 다리')
     expect(
       sanitizeRegisterScheduleRouteText(
         '스플리트 : 약 2시간 소요] - 마리안 해변 및 항구 - [네움 - [트로기르 - 카를로바츠 약 3시간 20분 소요]',

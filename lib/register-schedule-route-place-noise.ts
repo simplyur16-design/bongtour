@@ -17,7 +17,7 @@ const ROUTE_DURATION_INLINE_RE =
 
 /** 산문 가이드 문구 → 꼬리 명소만 (문자열에 이미 있는 이름만) */
 const ROUTE_PROSE_TAIL_RE =
-  /(?:이라?\s*불리우는|이라?\s*불리는?|에\s*위치한|로\s*유명한|가\s*전시된|로\s*손꼽히는|손꼽히는|기념해\s*건설한|한눈에\s*담을\s*수\s*있는|맞이해주는|을\s*수\s*있는|을?\s*간직한|에\s*선정된|를?\s*대표하는|로\s*구성된|이\s*보이는|이라는\s*뜻의|이\s*거행된|로\s*사용되고?\s*있는|으로\s*지어진)\s*(.+)$/u
+  /(?:이라?\s*불리우는|이라?\s*불리는?|에\s*위치한|로\s*유명한|가\s*전시된|로\s*손꼽히는|손꼽히는|기념해\s*건설한|한눈에\s*담을\s*수\s*있는|맞이해주는|을\s*수\s*있는|을?\s*간직한|에\s*선정된|를?\s*대표하는|로\s*구성된|이\s*보이는|이라는\s*뜻의|이\s*거행된|로\s*사용되고?\s*있는|으로\s*지어진|의\s*명소|만남의\s*장소|으로\s*이루어진|출신의|이\s*어우러진|유물이\s*있는|으로\s*빛나는|꼽히는|상태가\s*뛰어난|볼\s*수\s*있는|동상이\s*있는|선정한|박물관인)\s*(.+)$/u
 
 /** 긴 가이드 문장 — 끝 POI 접미사만 남김 */
 const ROUTE_GUIDE_POI_TAIL_RE =
@@ -284,16 +284,26 @@ export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | nu
   const fromProse = extractRegisterScheduleProseRoutePlaceTail(t0)
   if (fromProse) return fromProse.slice(0, 48)
 
-  // 산문 연결어가 남아 있으면 슬롯으로 쓰지 않음 (꼬리 추출 실패)
-  if (ROUTE_PROSE_TAIL_RE.test(t0) || /손꼽히는|불리우는|불리는|위치한|전시된|기념해\s*건설/u.test(t0)) {
+  // 산문 연결어·가이드 수식 잔존 — 꼬리 추출 실패 시 슬롯 거부
+  if (
+    ROUTE_PROSE_TAIL_RE.test(t0) ||
+    /손꼽히는|불리우는|불리는|위치한|전시된|기념해\s*건설|간직한|선정된|대표하는|이루어진|출신의|유일무이|다채로운|죽기전|어우러진|빛나는|거행되었|만남의\s*장소|등\s*시내|등\s*간단|야경\s*관광|호텔\s*투숙|자유\s*시간|석식\s*$|조식\s*$/u.test(
+      t0,
+    )
+  ) {
     return null
   }
 
   if (isRegisterScheduleMarketingOnlyRouteLabel(t0)) return null
-  if (t0.length > 48) return null
+  if (t0.length > 40) return null
   // 긴 가이드 문장(조사·수식어 다수) — POI 접미사 없으면 거부
-  if (t0.length > 28 && !ROUTE_POI_TAIL_HINT_RE.test(t0) && /(?:의|를|을|한|된|는|로)\s/u.test(t0)) {
+  if (t0.length > 22 && !ROUTE_POI_TAIL_HINT_RE.test(t0) && /(?:의|를|을|한|된|는|로|과|와)\s/u.test(t0)) {
     return null
+  }
+  // `항구도시 자다르` → 자다르
+  const harborCity = t0.match(/^(?:항구\s*도시|수도\s*도시|휴양\s*도시)\s+(.{2,24})$/u)
+  if (harborCity?.[1]) {
+    return extractRegisterScheduleRoutePlaceLabel(harborCity[1].trim())
   }
   return t0.slice(0, 48)
 }
