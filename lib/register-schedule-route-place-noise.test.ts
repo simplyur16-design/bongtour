@@ -108,6 +108,52 @@ describe('register schedule route place noise', () => {
     expect(joinLottetourScheduleRouteText(['여강고성', '대,소석림'])).toBe('여강고성 - 대,소석림')
   })
 
+  it('EKP3057-like — 비행시간 괄호·산문 불리우는 → 명소 슬롯만', () => {
+    expect(
+      sanitizeRegisterScheduleRouteText(
+        '[인천 - 인천공항 출발 (OZ545) - 프라하 공항 - 프라하 : 약 13시간 20분 소요] - 체스키크롬로프 이동 후 호텔 투숙 - [프라하',
+      ),
+    ).toBe('프라하 - 체스키크롬로프')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel(
+        '오스트리아의 베르사유궁전이라 불리는 쉔부른궁전',
+      ),
+    ).toBe('쉔부른궁전')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel(
+        '빈의 혼이라 불리우는 성 슈테판 대성당',
+      ),
+    ).toBe('성 슈테판 대성당')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel(
+        '아드리아해의 진주, 유럽 최고의 휴양도시로 손꼽히는 두브로브니크',
+      ),
+    ).toBe('두브로브니크')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel('가이드 미팅 후 호이안 옛도시로 이동'),
+    ).toBe('호이안 옛도시')
+    expect(isRegisterScheduleRoutePlaceNoise('가이드 미팅')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('가이드 미팅 후 호이안 옛도시로 이동')).toBe(false)
+    expect(
+      extractRegisterScheduleRoutePlaceLabel('중세모습을 간직한 라트란거리'),
+    ).toBe('라트란거리')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel(
+        '죽기전에 꼭 봐야 할 세계 건축 1001에 선정된 세인트 도나트교회',
+      ),
+    ).toBe('세인트 도나트교회')
+    expect(
+      sanitizeRegisterScheduleRouteText(
+        '스플리트 : 약 2시간 소요] - 마리안 해변 및 항구 - [네움 - [트로기르 - 카를로바츠 약 3시간 20분 소요]',
+      ),
+    ).toMatch(/마리안/)
+    expect(
+      sanitizeRegisterScheduleRouteText(
+        '스플리트 : 약 2시간 소요] - 마리안 해변 및 항구 - [네움 - [트로기르 - 카를로바츠 약 3시간 20분 소요]',
+      ),
+    ).not.toMatch(/소요|\[|\]/)
+  })
+
   it('modetour apply — trip imageKeyword must not repeat across days (돗토리 3일)', () => {
     const days = modetourFactDaysToRegisterSchedule(
       [

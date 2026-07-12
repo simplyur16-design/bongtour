@@ -12,7 +12,8 @@ export const EUROPE_PRODUCT_DEST_RE =
   /유럽|Europe|서유럽|동유럽|북유럽|남유럽|중동유럽|발트|Baltic|스칸디|Scandinav|지중해|Mediterranean|프랑스|France|이탈리아|Italy|스페인|Spain|독일|Germany|스위스|Switzerland|영국|Britain|UK|아일랜드|Ireland|그리스|Greece|터키|Turkey|크로아티아|Croatia|체코|Czech|Austria|오스트리아|헝가리|Hungary|폴란드|Poland|네덜란드|Netherlands|벨기에|Belgium|포르투갈|Portugal|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|아이슬란드|Iceland|리투아니아|Lithuania|에스토니아|Estonia|라트비아|Latvia|빌니우스|Vilnius|탈린|Tallinn|리가|Riga|프라하|Prague|파리|Paris|로마|Rome|런던|London|바르셀로나|Barcelona|인터라켄|Interlaken|융프라우|Jungfrau|피렌체|Florence|베네치아|Venice|취리히|Zurich|암스테르담|Amsterdam|비엔나|Vienna|부다페스트|Budapest|바르샤바|Warsaw|헬싱키|Helsinki|스톡홀름|Stockholm|코펜하겐|Copenhagen|Oslo|오슬로|Reykjavik|베르겐|Bergen|플롬|Flam|Flåm/i
 
 export const AMERICAS_PRODUCT_DEST_RE =
-  /미국|USA|U\.S\.|Canada|캐나다|멕시코|Mexico|브라질|Brazil|아르헨|Argentina|칠레|Chile|페루|Peru|Colombia|콜롬비아|남미|북미|중남미|South\s*America|North\s*America|Latin\s*America|하와이|Hawaii|괌|Guam|사이판|Saipan|Los\s*Angeles|LA|뉴욕|New\s*York|샌프란|San\s*Francisco|라스베가스|Las\s*Vegas|시애틀|Seattle|밴쿠버|Vancouver|토론토|Toronto|리마|Lima|마나우스|Manaus|리우|Rio|Mexico\s*City|과달라하라|Guadalajara/i
+  /미국|USA|U\.S\.|Canada|캐나다|멕시코|Mexico|브라질|Brazil|아르헨|Argentina|칠레|Chile|페루|Peru|Colombia|콜롬비아|남미|북미|중남미|South\s*America|North\s*America|Latin\s*America|하와이|Hawaii|괌|Guam|사이판|Saipan|Los\s*Angeles|LA|뉴욕|New\s*York|샌프란|San\s*Francisco|라스베가스|Las\s*Vegas|시애틀|Seattle|밴쿠버|Vancouver|토론토|Toronto|리마|Lima|마나우스|Manaus|리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|Mexico\s*City|과달라하라|Guadalajara/i
+// REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우/Rio 제거 — manifest
 
 export const MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE =
   /중동|Middle\s*East|두바이|Dubai|Abu\s*Dhabi|이집트|Egypt|카이로|Cairo|룩소르|Luxor|모로코|Morocco|케냐|Kenya|남아|South\s*Africa|아프리카|Africa|탄자니아|Tanzania|에티오피아|Ethiopia|요르단|Jordan|이스라엘|Israel|카타르|Qatar|오만|Oman|튀니지|Tunisia|나미비아|Namibia|보츠와나|Botswana|Zimbabwe|잠비아|Zambia|우간다|Uganda|르완다|Rwanda|Senegal|세네갈|가나|Ghana|나이지리아|Nigeria/i

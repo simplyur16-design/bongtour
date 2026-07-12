@@ -83,7 +83,8 @@ const MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE =
   /이집트|Egypt|두바이|Dubai|모로코|Morocco|튀니지|Tunisia|케냐|Kenya|남아프리카|South\s*Africa|에티오피아|Ethiopia|이스라엘|Israel|요르단|Jordan/i
 
 const AMERICAS_PRODUCT_DEST_RE =
-  /남미|South\s*America|브라질|Brazil|아르헨|Argentina|페루|Peru|볼리비아|Bolivia|칠레|Chile|콜롬비아|Colombia|에콰도르|Ecuador|우루과이|Uruguay|파라과이|Paraguay|베네수|Venezuela|이과수|Iguazu|마추|Machu|리우|Rio|부에노스|Buenos|리마|Lima|쿠스코|Cusco|우유니|Uyuni|라파즈|La\s*Paz|멕시코|Mexico|미국|USA|United\s*States|캐나다|Canada|미동부|미서부|북미|North\s*America/i
+  /남미|South\s*America|브라질|Brazil|아르헨|Argentina|페루|Peru|볼리비아|Bolivia|칠레|Chile|콜롬비아|Colombia|에콰도르|Ecuador|우루과이|Uruguay|파라과이|Paraguay|베네수|Venezuela|이과수|Iguazu|마추|Machu|리우\s*데\s*자|리오\s*데\s*자|Rio\s*de\s*Janeiro|부에노스|Buenos|리마|Lima|쿠스코|Cusco|우유니|Uyuni|라파즈|La\s*Paz|멕시코|Mexico|미국|USA|United\s*States|캐나다|Canada|미동부|미서부|북미|North\s*America/i
+// REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우 제거 — manifest
 
 const JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE =
   /\b(Osaka(?:\s*Castle)?|Tokyo|Kyoto|Dotonbori|Shibuya|Harajuku|Fushimi|Kinkakuji|Ginkakuji|Mount\s*Fuji|Fuji)\b/i

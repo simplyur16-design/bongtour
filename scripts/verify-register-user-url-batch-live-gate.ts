@@ -428,6 +428,39 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
     const scheduleIssues = scheduleReports.flatMap((r) => r.issues.map((i) => `D${r.day}: ${i}`))
     if (totalDays === 0) scheduleIssues.push('일정 0일')
 
+    // trip-wide imageKeyword·imageKeyword2 중복 (일자 간)
+    const usedKw = new Map<string, number>()
+    for (const r of scheduleReports) {
+      for (const slot of [r.imageKeyword, r.imageKeyword2]) {
+        const kw = String(slot ?? '').trim()
+        if (!kw) continue
+        const nk = kw.toLowerCase().replace(/\s+/g, ' ')
+        if (usedKw.has(nk)) {
+          scheduleIssues.push(`D${r.day}: imageKeyword 중복 "${kw}" (이미 D${usedKw.get(nk)})`)
+        } else {
+          usedKw.set(nk, r.day)
+        }
+      }
+    }
+
+    // 유럽·동남아 등 비남미 상품에 Brazil/Rio 환각 (실제 키워드·route 전용 표기만)
+    const destHay = `${title}\n${String(parsed.destination ?? '')}\n${String(parsed.primaryDestination ?? '')}`
+    const isAmericas =
+      /남미|중남미|브라질|Brazil|아르헨|페루|칠레|볼리비아|리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|이과수/i.test(
+        destHay,
+      ) ||
+      /남미|중남미|브라질|Brazil|아르헨|페루|리우\s*데|Rio\s*de\s*Janeiro/i.test(
+        scheduleReports.map((r) => r.routeText).join('\n'),
+      )
+    if (!isAmericas) {
+      for (const r of scheduleReports) {
+        const kwBlob = `${r.imageKeyword}\n${r.imageKeyword2}`
+        if (/brazil|브라질|christ\s*the\s*redeemer|sugar\s*loaf|rio\s*de\s*janeiro|corcovado/i.test(kwBlob)) {
+          scheduleIssues.push(`D${r.day}: 비남미 상품 Brazil/Rio 환각 키워드`)
+        }
+      }
+    }
+
     const ok =
       !needsReview &&
       scheduleIssues.length === 0 &&

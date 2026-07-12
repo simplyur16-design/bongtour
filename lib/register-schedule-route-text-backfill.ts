@@ -86,7 +86,7 @@ export function expandSingleSegmentPoiRouteTextRows<T extends RegisterScheduleRo
       expandSingleSegmentRouteLabel(haystack.trim()) ??
       (/이과수|Iguazu|세계\s*3대\s*폭포|악마의\s*목구멍/u.test(haystack) ? '이과수 폭포 악마의 목구멍' : null) ??
       (/(?:코르코바도|Corcovado)/u.test(haystack) ? '코르코바도' : null) ??
-      (/(?:리우|리오|Rio\s*de\s*Janeiro)/u.test(haystack) && !/(?:이과수|Iguazu|악마의\s*목구멍)/u.test(haystack)
+      (/(?:리우\s*데|리오\s*데|Rio\s*de\s*Janeiro)/u.test(haystack) && !/(?:이과수|Iguazu|악마의\s*목구멍)/u.test(haystack)
         ? '코르코바도'
         : null)
     if (!second || second === seg) return row

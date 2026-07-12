@@ -8,7 +8,7 @@ import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
-import { expandRegisterScheduleRoutePlaceCandidates, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
+import { expandRegisterScheduleRoutePlaceCandidates, extractRegisterScheduleRoutePlaceLabel, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -20,6 +20,7 @@ export function stripYbtourHtmlText(html: string): string {
     .replace(/<\/li>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/&#39;|&apos;|&#x27;/gi, "'")
     .replace(/&middot;/gi, '·')
     .replace(/[ \t\f\v]+/g, ' ')
     .replace(/\n[ \t]*/g, '\n')
@@ -34,12 +35,23 @@ const YBTOUR_ROUTE_LABEL_TRIM_RE =
   /(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|로\s*이동|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후)$/u
 
 function cleanYbtourRoutePlaceLabel(raw: string): string {
-  return String(raw ?? '')
+  const shared = extractRegisterScheduleRoutePlaceLabel(String(raw ?? ''))
+  if (shared) return shared
+  const t = String(raw ?? '')
     .replace(/^[\s·▪▶●\-–—]+/, '')
     .replace(/\s*\([^)]*\)\s*$/, (m) => (/\([A-Za-z]/.test(m) ? m : ' '))
     .replace(/\s+/g, ' ')
     .replace(YBTOUR_ROUTE_LABEL_TRIM_RE, '')
     .trim()
+  if (
+    t.length >= 2 &&
+    t.length <= 28 &&
+    !/(?:불리는|불리우는|손꼽히는|위치한|전시된|기념해)/u.test(t) &&
+    !isYbtourRoutePlaceNoise(t)
+  ) {
+    return t
+  }
+  return ''
 }
 
 function isYbtourRoutePlaceNoise(label: string): boolean {
@@ -104,35 +116,34 @@ function isYbtourTmTitleMealOrNoise(title: string): boolean {
 
 function extractPlaceFromYbtourTmTitle(title: string): string | null {
   const t = String(title ?? '').trim()
-  if (!t || isYbtourRoutePlaceNoise(t)) return null
+  if (!t) return null
+  // `가이드 미팅`은 세그먼트 noise — 전체 제목 noise 판정 전에 꼬리 장소만 추출
+  const afterGuide = t.match(/(?:가이드\s*)?(?:미팅|피켓)\s*후\s*(.+)/u)
+  if (afterGuide?.[1]) {
+    const place = extractRegisterScheduleRoutePlaceLabel(afterGuide[1].trim())
+    if (place) return place
+  }
+  if (isYbtourRoutePlaceNoise(t)) return null
   const arrow = t.match(/(?:▶|●)\s*(.+)/)
   if (arrow?.[1]) {
-    const label = cleanYbtourRoutePlaceLabel(arrow[1])
-    return label && !isYbtourRoutePlaceNoise(label) ? label : null
-  }
-  const afterGuide = t.match(/(?:미팅|피켓)\s*후\s*(.+)/u)
-  if (afterGuide?.[1]) {
-    const label = cleanYbtourRoutePlaceLabel(afterGuide[1])
-    return label && !isYbtourRoutePlaceNoise(label) ? label : null
+    return extractRegisterScheduleRoutePlaceLabel(arrow[1])
   }
   const moveTo = t.match(/^(.{2,32}?)(?:으로|로)\s*이동/u)
   if (moveTo?.[1]) {
-    const label = cleanYbtourRoutePlaceLabel(moveTo[1])
-    return label && !isYbtourRoutePlaceNoise(label) ? label : null
+    return extractRegisterScheduleRoutePlaceLabel(moveTo[1])
   }
   const move = t.match(/(?:에서|후)\s*(.+?)(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|방문|관광|투어|탐방)/u)
   if (move?.[1]) {
-    const label = cleanYbtourRoutePlaceLabel(move[1])
-    return label && !isYbtourRoutePlaceNoise(label) ? label : null
+    return extractRegisterScheduleRoutePlaceLabel(move[1])
   }
   const tour = t.match(/^(.{2,48}?)\s*(?:관광|방문|체험|투어|탐방)/u)
   if (tour?.[1]) {
-    const label = cleanYbtourRoutePlaceLabel(tour[1])
-    return label && !isYbtourRoutePlaceNoise(label) ? label : null
+    return extractRegisterScheduleRoutePlaceLabel(tour[1])
   }
-  if (t.length >= 2 && t.length <= 48 && !/(?:조식|중식|석식|미팅)\s*후/u.test(t)) {
-    const label = cleanYbtourRoutePlaceLabel(t)
-    return label && !isYbtourRoutePlaceNoise(label) ? label : null
+  const viaShared = extractRegisterScheduleRoutePlaceLabel(t)
+  if (viaShared && !/(?:미팅|피켓|가이드)/u.test(viaShared)) return viaShared
+  if (t.length >= 2 && t.length <= 32 && !/(?:조식|중식|석식|미팅)\s*후/u.test(t)) {
+    return extractRegisterScheduleRoutePlaceLabel(t)
   }
   return null
 }
@@ -164,7 +175,7 @@ export function extractYbtourSchedulePlacesFromTmRows(rows: readonly YbtourSched
         if (!trimmed) continue
         const arrow = trimmed.match(/(?:▶|●|■)\s*(.+)/)
         if (arrow?.[1]) {
-          const label = cleanYbtourRoutePlaceLabel(arrow[1])
+          const label = extractRegisterScheduleRoutePlaceLabel(arrow[1]) ?? cleanYbtourRoutePlaceLabel(arrow[1])
           if (label && !isYbtourRoutePlaceNoise(label)) out.push(label)
           continue
         }
@@ -246,7 +257,7 @@ function inferYbtourScheduleVibeProfile(day: number, maxDay: number, joinedBlob:
     return 'return_transit'
   }
   if (kind === 'movement' && day === 1) return 'arrival'
-  if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
+  if (/마카오|macau|베네시an|세나도|코타이/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'
   }

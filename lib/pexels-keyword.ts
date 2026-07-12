@@ -779,8 +779,8 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   만따나니: /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|Mantanani/i,
   '만따나니 아일랜드': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|Mantanani/i,
   나라: /(?:奈良|나라시|Nara|일본|Japan|오사카|Osaka|Kyoto|교토)/i,
-  /** Manado·술라웨시 축복 예수상 — 리우 Christ와 분리 */
-  예수상: /(?:리우|리오|Rio\s*de\s*Janeiro|\bRio\b|브라질|Brazil|Corcovado|코르코바도)/i,
+  /** Manado·술라웨시 축복 예수상 — 리우 Christ와 분리. bare 리우 금지(불리우는). */
+  예수상: /(?:리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|브라질|Brazil|Corcovado|코르코바도)/i,
 }
 
 function poiKoMappingAllowed(ko: string, text: string): boolean {

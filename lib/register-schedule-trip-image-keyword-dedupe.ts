@@ -35,6 +35,8 @@ import {
   registerScheduleKeywordPassesTripRouteTextSsot,
 } from '@/lib/register-schedule-route-evidence-keyword'
 import { findAllScheduleSpotMatchesInText, firstMatchingScheduleCityEn } from '@/lib/schedule-poi-regex-ssot'
+import { hasRioDeJaneiroContext } from '@/lib/schedule-rio-de-janeiro-context'
+// REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우→Sugar Loaf 금지 — manifest
 
 export type RegisterScheduleTripKeywordRow = {
   day: number
@@ -176,7 +178,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     if (
       /Christ\s*the\s*Redeemer/i.test(t) &&
       /(?:마나도|Manado|술라웨시|Sulawesi|부나켄|Bunaken|토모혼|Tomohon)/i.test(routeHay) &&
-      !/(?:리우|Rio\s*de\s*Janeiro|\bRio\b|브라질|Brazil|Corcovado|코르코바도)/i.test(routeHay)
+      !hasRioDeJaneiroContext(routeHay)
     ) {
       return
     }
@@ -349,7 +351,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Mexico City Zocalo Cathedral Square')
     push('Teotihuacan pyramids Mexico ancient ruins')
   }
-  if (/코르코바도|Corcovado|리우|Rio\s*de\s*Janeiro|슈가\s*loaf|Sugar\s*Loaf/i.test(rawRoute)) {
+  if (hasRioDeJaneiroContext(rawRoute)) {
     push('Sugar Loaf Mountain Rio de Janeiro Brazil')
     push('Copacabana Beach Rio de Janeiro')
   }
@@ -1029,8 +1031,10 @@ function pickNextTourismLandmarkForMiddleDay(
 }
 
 function isSouthAmericaClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:마추|Machu|쿠스코|Cusco|우유니|Uyuni|라\s*파스|La\s*Paz|라파즈|이과수|Iguazu|멕시코|Mexico|Chapultepec|Xochimilco|Tolantongo|Teotihuacan|Guadalupe|코파카바나|Copacabana|Corcovado|리우|Rio\s*de\s*Janeiro)/i.test(
-    String(routeText ?? ''),
+  const t = String(routeText ?? '')
+  if (hasRioDeJaneiroContext(t)) return true
+  return /(?:마추|Machu|쿠스코|Cusco|우유니|Uyuni|라\s*파스|La\s*Paz|라파즈|이과수|Iguazu|멕시코|Mexico|Chapultepec|Xochimilco|Tolantongo|Teotihuacan|Guadalupe|코파카바나|Copacabana)/i.test(
+    t,
   )
 }
 
@@ -1069,20 +1073,71 @@ function pickSouthAmericaClusterKeywordForUsedSlot(
   return ''
 }
 
+/** 동유럽·유럽 mega-pool 하드코딩 키워드 — 당일 route에 지명 증거가 있을 때만 */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: easternEuropeHardcodedPool day-route evidence — manifest
+function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const rt = String(dayRoute ?? '')
+  if (!rt.trim()) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (/prague|charles|krumlov|czech/.test(nk)) {
+    return /프라하|Prague|체코|Czech|크룸로프|Krumlov|체스키/i.test(rt)
+  }
+  if (/budapest|parliament|fisher|matthias|heroes|buda/.test(nk)) {
+    return /부다페스트|Budapest|헝가리|Hungary|어부|마챠시|마차시|영웅|국회/i.test(rt)
+  }
+  if (/hallstatt/.test(nk)) return /할슈타트|Hallstatt/i.test(rt)
+  if (/vienna|schonbrunn|belvedere/.test(nk)) {
+    return /비엔나|Vienna|Wien|빈\b|쉔부른|벨베데레|슈테판/i.test(rt)
+  }
+  if (/dubrovnik|rector/.test(nk)) return /두브로브니크|Dubrovnik/i.test(rt)
+  if (/plitvice/.test(nk)) return /플리트비체|Plitvice/i.test(rt)
+  if (/zagreb|split|diocletian|zadar|donatus/.test(nk)) {
+    return /자그레브|Zagreb|스플리트|Split|자다르|Zadar|디오클레|트로기르/i.test(rt)
+  }
+  if (/madrid|toledo|segovia|plaza mayor|spain/.test(nk)) {
+    return /마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia/i.test(rt)
+  }
+  if (/fatima|lisbon|porto|portugal/.test(nk)) {
+    return /파티마|Fatima|리스본|Lisbon|포르투|Porto|포르투갈|Portugal/i.test(rt)
+  }
+  if (/vilnius|trakai|lithuania/.test(nk)) return /빌니우스|Vilnius|트라카이|Trakai|리투/i.test(rt)
+  if (/riga|latvia|rundale|three brothers|art nouveau/.test(nk)) {
+    return /리가|Riga|라트|Latvia|룬달레|Rundale/i.test(rt)
+  }
+  if (/tallinn|estonia|lahemaa|toompea|nevsky/.test(nk)) {
+    return /탈린|Tallinn|에스토|Estonia|라헤마|Toompea/i.test(rt)
+  }
+  if (/geiranger|flam|bergen|oslo|norway/.test(nk)) {
+    return /게이랑|Geiranger|플롬|Flam|베르겐|Bergen|오슬로|Oslo|노르웨|Norway/i.test(rt)
+  }
+  if (/istanbul|cappadocia|pamukkale|hagia|turkey/.test(nk)) {
+    return /이스탄불|Istanbul|카파도키아|Cappadocia|파묵|Pamukkale|성소피아|Hagia|튀르키|Turkey/i.test(rt)
+  }
+  if (/taj|hawa|amber|jaipur|agra|delhi|qutub|india/.test(nk)) {
+    return /타지|Taj|자이푸르|Jaipur|아그라|Agra|델리|Delhi|인도|India/i.test(rt)
+  }
+  return false
+}
+
 function pickEasternEuropeClusterKeywordForUsedSlot(
   cands: readonly string[],
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  /** 당일 route — 하드코딩 pool은 tripHay가 아닌 여기 증거만 사용 */
+  dayRouteText?: string | null,
 ): string {
-  if (!isEasternEuropeClusterRoute(routeText)) return ''
+  if (isGuamResortClusterRoute(routeText) || isGuamResortClusterRoute(dayRouteText)) return ''
+  if (!isEasternEuropeClusterRoute(routeText) && !isEasternEuropeClusterRoute(dayRouteText)) return ''
+  const clusterHay = String(routeText ?? dayRouteText ?? '')
+  const evidenceHay = String(dayRouteText ?? routeText ?? '')
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowEasternEuropeClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowEasternEuropeClusterKw2Duplicate(kw, clusterHay)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowEasternEuropeClusterKw2Duplicate(kw, routeText)) return kw
+    if (allowEasternEuropeClusterKw2Duplicate(kw, clusterHay)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1116,6 +1171,7 @@ function pickEasternEuropeClusterKeywordForUsedSlot(
     'Hawa Mahal Jaipur pink facade India',
     'Amber Fort Jaipur India',
   ]) {
+    if (!easternEuropeHardcodedPoolHasDayRouteEvidence(raw, evidenceHay)) continue
     const hit = tryPick(raw)
     if (hit) return hit
   }
@@ -1482,15 +1538,18 @@ function pickHongKongHubClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  dayRouteText?: string | null,
 ): string {
-  if (!isHongKongHubClusterRoute(routeText)) return ''
+  // tripHay에 vibe「홍콩」문장이 섞여도 당일 route에 홍콩 증거가 없으면 주입 금지
+  const evidence = dayRouteText != null ? String(dayRouteText) : String(routeText ?? '')
+  if (!isHongKongHubClusterRoute(evidence)) return ''
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowHongKongHubClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowHongKongHubClusterKw2Duplicate(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
-    if (allowHongKongHubClusterKw2Duplicate(kw, routeText)) return kw
+    if (allowHongKongHubClusterKw2Duplicate(kw, evidence)) return kw
     return ''
   }
   for (const raw of cands) {
@@ -1803,9 +1862,11 @@ function allowProvenceClusterKw2Duplicate(kw: string, routeText?: string | null)
 
 function allowSouthAmericaClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
+  const t = String(routeText ?? '')
   if (
-    !/(?:마추|Machu|쿠스코|Cusco|우유니|Uyuni|라\s*파스|La\s*Paz|라파즈|이과수|Iguazu|멕시코|Mexico|Chapultepec|Xochimilco|Valle\s*de\s*la\s*Luna|코파카바나|Copacabana|리우|Rio\s*de\s*Janeiro)/i.test(
-      String(routeText ?? ''),
+    !hasRioDeJaneiroContext(t) &&
+    !/(?:마추|Machu|쿠스코|Cusco|우유니|Uyuni|라\s*파스|La\s*Paz|라파즈|이과수|Iguazu|멕시코|Mexico|Chapultepec|Xochimilco|Valle\s*de\s*la\s*Luna|코파카바나|Copacabana)/i.test(
+      t,
     )
   ) {
     return false
@@ -1824,8 +1885,11 @@ function allowManadoClusterKw2Duplicate(kw: string, routeText?: string | null): 
 }
 
 function isEasternEuropeClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:프라하|Prague|체코|Czech|부다페스트|Budapest|헝가리|Hungary|비엔나|Vienna|Wien|Hallstatt|할슈타트|크룸로프|Krumlov|두브로브니크|Dubrovnik|플리트비체|Plitvice|자그레브|Zagreb|크로아티아|Croatia|슬로베니아|Slovenia|브라티슬라바|Bratislava|폴란드|Poland|Krakow|크라쿠프|리투|Lithuania|라트|Latvia|에스토|Estonia|빌니우스|Vilnius|리가|Riga|탈린|Tallinn|트라카이|Trakai|룬달레|Rundale|발트|Baltic|마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia|스페인|Spain|포르투|Porto|리스본|Lisbon|파티마|Fatima|포르투갈|Portugal|이탈|Italy|로마|Rome|피렌|Florence|베니스|Venice|밀라노|Milan|콜로세|Colosseum|파리|Paris|스위스|Swiss|루체른|Lucerne|융프라|Jungfrau|노르웨|Norway|오슬로|Oslo|게이랑|Geiranger|플롬|Flam|베르겐|Bergen|스웨덴|Sweden|핀란|Finland|덴마크|Denmark|이스탄불|Istanbul|카파도키아|Cappadocia|튀르키|Turkey|파묵|Pamukkale|인도|India|자이푸르|Jaipur|아그라|Agra|뉴델리|Delhi|타지|Taj|쿠트브|Qutub)/i.test(
-    String(routeText ?? ''),
+  const t = String(routeText ?? '')
+  // 괌 스페인광장 등 — 괌은 동유럽/유럽 mega-cluster 금지
+  if (isGuamResortClusterRoute(t)) return false
+  return /(?:프라하|Prague|체코|Czech|부다페스트|Budapest|헝가리|Hungary|비엔나|Vienna|Wien|Hallstatt|할슈타트|크룸로프|Krumlov|두브로브니크|Dubrovnik|플리트비체|Plitvice|자그레브|Zagreb|크로아티아|Croatia|슬로베니아|Slovenia|브라티슬라바|Bratislava|폴란드|Poland|Krakow|크라쿠프|리투|Lithuania|라트|Latvia|에스토|Estonia|빌니우스|Vilnius|리가|Riga|탈린|Tallinn|트라카이|Trakai|룬달레|Rundale|발트|Baltic|마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia|포르투|Porto|리스본|Lisbon|파티마|Fatima|포르투갈|Portugal|이탈|Italy|로마|Rome|피렌|Florence|베니스|Venice|밀라노|Milan|콜로세|Colosseum|파리|Paris|스위스|Swiss|루체른|Lucerne|융프라|Jungfrau|노르웨|Norway|오슬로|Oslo|게이랑|Geiranger|플롬|Flam|베르겐|Bergen|스웨덴|Sweden|핀란|Finland|덴마크|Denmark|이스탄불|Istanbul|카파도키아|Cappadocia|튀르키|Turkey|파묵|Pamukkale|인도|India|자이푸르|Jaipur|아그라|Agra|뉴델리|Delhi|타지|Taj|쿠트브|Qutub)/i.test(
+    t,
   )
 }
 
@@ -2494,6 +2558,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
             used,
             tripHay,
             normScheduleImageKeywordKey(primary),
+            row.routeText,
           ) || secondary
       }
       if (!secondary && isLaosOnlyClusterRoute(tripHay)) {
@@ -2568,13 +2633,14 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
             normScheduleImageKeywordKey(primary),
           ) || secondary
       }
-      if (!secondary && isHongKongHubClusterRoute(tripHay)) {
+      if (!secondary && isHongKongHubClusterRoute(row.routeText)) {
         secondary =
           pickHongKongHubClusterKeywordForUsedSlot(
             cands,
             used,
             tripHay,
             normScheduleImageKeywordKey(primary),
+            row.routeText,
           ) || secondary
       }
       if (!secondary && isGuamResortClusterRoute(tripHay)) {
@@ -2593,14 +2659,14 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       secondary =
         pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false, pk) ||
         pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false, pk) ||
-        pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
@@ -2893,15 +2959,15 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
         pickGapFillKeyword(daySpots, '', row, acceptKw, false, used) ||
         pickGapFillKeyword(tripSpots, '', row, acceptKw, false, used) ||
-        pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
-        pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
-        pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
-        pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
@@ -2921,12 +2987,12 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickCanadaRockiesClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickCentralAsiaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
@@ -3018,7 +3084,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       }
       if (!secondary && isBareCityOrCountryKeyword(primary) && isEasternEuropeClusterRoute(tripHay)) {
         secondary =
-          pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk) || secondary
+          pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
+          secondary
       }
       if (!secondary && isBareCityOrCountryKeyword(primary) && isCanadaRockiesClusterRoute(tripHay)) {
         secondary =

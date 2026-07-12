@@ -47,7 +47,7 @@ describe('ybtour register api schedule expression', () => {
     assert.doesNotMatch(route ?? '', /POINT|<\/?\w+/i)
   })
 
-  it('description — route 1줄 + 분위기 2문장, 장소 디테일 없음', () => {
+  it('description — vibe 2문장 (routeText는 별도 슬롯, description에 장소 체인 없음)', () => {
     const routePlaces = dedupeYbtourScheduleRoutePlaces([
       '홍콩섬 센트럴',
       '소호 거리(SoHo)',
@@ -59,9 +59,8 @@ describe('ybtour register api schedule expression', () => {
       routePlaces,
       joinedBlob: routePlaces.join(' '),
     })
-    const lines = desc.split('\n')
-    assert.equal(lines[0], '홍콩섬 센트럴 - 소호 거리(SoHo) - 헐리우드 로드')
-    assert.match(lines[1] ?? '', /분위기|동선|걷/)
+    assert.match(desc, /분위기|동선|걷|하루|일정/)
+    assert.doesNotMatch(desc, /^홍콩섬 센트럴\s*-/)
     assert.doesNotMatch(desc, /센트럴.*세부|소호.*상세/)
   })
 })

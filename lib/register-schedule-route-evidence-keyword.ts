@@ -12,7 +12,9 @@ import {
   collectRouteTextSpotScanLandmarkKeywords,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
+import { hasRioDeJaneiroContext } from '@/lib/schedule-rio-de-janeiro-context'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+// REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: Christ Redeemer 리우 부분문자열 — manifest
 
 export type RegisterScheduleRouteEvidenceRow = {
   routeText?: string | null
@@ -138,9 +140,9 @@ export function registerScheduleKeywordPassesRouteEvidence(
   if (/Christ\s*the\s*Redeemer/i.test(raw)) {
     const routeHay = [row.routeText, row.title].map((s) => String(s ?? '').trim()).filter(Boolean).join('\n')
     if (/(?:마나도|Manado|술라웨시|Sulawesi|인도네시아|Indonesia|부나켄|Bunaken|토모혼|Tomohon)/i.test(hay)) {
-      return /(?:리우|Rio\s*de\s*Janeiro|\bRio\b|브라질|Brazil|Corcovado|코르코바도)/i.test(routeHay)
+      return hasRioDeJaneiroContext(routeHay)
     }
-    return /(?:리우|Rio\s*de\s*Janeiro|\bRio\b|브라질|Brazil|Corcovado|코르코바도)/i.test(hay)
+    return hasRioDeJaneiroContext(hay)
   }
   if (/Griffith\s*Observatory/i.test(raw)) {
     return /(?:그리피스|Griffith|Los\s*Angeles|LA)/i.test(hay)

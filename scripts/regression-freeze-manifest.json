@@ -4235,11 +4235,24 @@
           "file": "lib/register-schedule-route-place-noise.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-place-noise]",
+            "REGRESSION-FREEZE[register-schedule-route-text-slot-accuracy]",
             "isRegisterScheduleRoutePlaceNoise",
             "isRegisterScheduleAirlineRouteSegment",
             "isRegisterScheduleDomesticHubRouteSegment",
             "extractRegisterScheduleRoutePlaceLabel",
-            "expandRegisterScheduleRoutePlaceCandidates"
+            "expandRegisterScheduleRoutePlaceCandidates",
+            "stripRegisterScheduleRouteFlightDurationBlocks",
+            "extractRegisterScheduleProseRoutePlaceTail"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.test.ts",
+          "mustInclude": [
+            "EKP3057-like",
+            "불리우는",
+            "쉔부른궁전",
+            "호이안 옛도시",
+            "가이드 미팅"
           ]
         },
         {
@@ -4306,6 +4319,45 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-route-place-noise.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-route-text-slot-accuracy",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정요약 routeText 슬롯 — 비행시간·산문·가이드미팅 꼬리만 명소로 채움",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-text-slot-accuracy]",
+            "stripRegisterScheduleRouteFlightDurationBlocks",
+            "extractRegisterScheduleProseRoutePlaceTail",
+            "미팅 이후 장소만",
+            "^가이드\\s*미팅(?:\\s*후)?$"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "전체 제목 noise 판정 전에 꼬리 장소만 추출",
+            "extractRegisterScheduleRoutePlaceLabel"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.test.ts",
+          "mustInclude": [
+            "EKP3057-like",
+            "호이안 옛도시",
+            "가이드 미팅"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-place-noise.test.ts",
+        "lib/ybtour-register-detail-collect.test.ts"
       ]
     },
     {
@@ -4482,13 +4534,48 @@
             "ensureDepartureReturnVisitCityKeywords",
             "마지막 관광일 미사용 명소만",
             "isReturn",
-            "일자 간 중복 시 route 미사용 명소 차순위"
+            "일자 간 중복 시 route 미사용 명소 차순위",
+            "easternEuropeHardcodedPool day-route evidence",
+            "스페인광장"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
+          "mustInclude": [
+            "Guam — 스페인광장",
+            "Croatia Split day",
+            "Prague"
           ]
         }
       ],
       "vitestSuites": [
         "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
       ]
+    },
+    {
+      "id": "schedule-rio-de-janeiro-context",
+      "tier": ["prebuild", "ci"],
+      "summary": "리우데자네이루 맥락 — 불리우는·헐리우드 bare 리우 부분문자열로 Sugar Loaf/Brazil 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-rio-de-janeiro-context.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-rio-de-janeiro-context]",
+            "RIO_DE_JANEIRO_CONTEXT_RE",
+            "hasRioDeJaneiroContext"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-rio-de-janeiro-context]",
+            "hasRioDeJaneiroContext"
+          ]
+        }
+      ],
+      "npmScripts": [],
+      "staticGuards": [],
+      "vitestSuites": ["lib/schedule-rio-de-janeiro-context.test.ts"]
     },
     {
       "id": "modetour-register-taiwan-meal-shop",

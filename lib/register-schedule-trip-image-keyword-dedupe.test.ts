@@ -743,4 +743,60 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       .map((k) => normScheduleImageKeywordKey(String(k)))
     expect(new Set(keys).size).toBe(keys.length)
   })
+
+  it('Guam — 스페인광장 must not inject Prague/Budapest Europe fillers', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, routeText: '인천 - 괌', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          routeText: '아푸간 요새 - 괌 스페인광장 - 이파오비치',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '아푸간 요새 - 괌 스페인광장 - 이파오비치',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '괌 - 인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'modetour', productDestination: '괌', productTitle: '괌 4일' },
+    )
+    const blob = out
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+      .filter(Boolean)
+      .join(' | ')
+    expect(blob).not.toMatch(/Prague|Budapest|Hungarian Parliament|Charles Bridge/i)
+    expect(blob).toMatch(/Guam|Apugan|Tumon|Ipao|Spain Square|Spanish/i)
+  })
+
+  it('Croatia Split day — must not kw2 Prague when day route has no Prague', () => {
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      [
+        {
+          day: 1,
+          routeText: '프라하 - 체스키크롬로프',
+          imageKeyword: 'Cesky Krumlov Castle Czech Republic',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '스플리트 - 마리안 해변 - 트로기르',
+          imageKeyword: 'Diocletian Palace Split Croatia',
+          imageKeyword2: '',
+        },
+        {
+          day: 3,
+          routeText: '쉔부른궁전 - 성 슈테판 대성당',
+          imageKeyword: 'Schonbrunn Palace',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '동유럽', productTitle: '동유럽 발칸' },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    expect(String(d2.imageKeyword2 ?? '')).not.toMatch(/Prague|Charles Bridge/i)
+  })
 })
