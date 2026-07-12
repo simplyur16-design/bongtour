@@ -1,8 +1,10 @@
 /**
- * 롯데관광 본문에서 duration·잔여/최소·쇼핑·가격표 보강 (LLM 실패 시 보조).
+ * 롯데관광 본문에서 duration·잔여/최소·쇼핑·가격표·상품명 보강 (LLM 실패 시 보조).
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
 import { extractLottetourThreeSlotPricesFromBlob } from '@/lib/register-lottetour-price'
+import { extractLottetourVerbatimListingTitle } from '@/lib/register-lottetour-basic'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 function pickDuration(blob: string): string | null {
   const m = blob.match(/(\d+)\s*박\s*(\d+)\s*일/)
@@ -80,6 +82,17 @@ export function extractLottetourMasterIdsFromBlob(blob: string): {
 export function mergeLottetourDeterministicFieldsFromPaste(parsed: RegisterParsed, rawText: string): RegisterParsed {
   const blob = rawText.replace(/\r/g, '\n')
   let next = { ...parsed }
+  const curTitle = (parsed.title ?? '').trim()
+  if (!curTitle || isSupplierListingTitleUnacceptable(curTitle, 'lottetour')) {
+    const fromPaste = extractLottetourVerbatimListingTitle(blob)
+    if (fromPaste && !isSupplierListingTitleUnacceptable(fromPaste, 'lottetour')) {
+      next = {
+        ...next,
+        title: fromPaste,
+        supplierListingTitleRaw: fromPaste,
+      }
+    }
+  }
   const dur = pickDuration(blob)
   if (dur && !(parsed.duration ?? '').trim()) {
     next = { ...next, duration: dur }

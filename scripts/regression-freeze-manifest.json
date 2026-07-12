@@ -433,6 +433,46 @@
       ]
     },
     {
+      "id": "ybtour-register-listing-title-fallback",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour 등록 상품명 — first-display 실패 시 by-goods evNm·붙여넣기 복구, 미지정 stub 거부",
+      "checks": [
+        {
+          "file": "lib/ybtour-api-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-listing-title-fallback]",
+            "pickYbtourListingTitleFromPapiSources",
+            "listingTitle"
+          ]
+        },
+        {
+          "file": "lib/ybtour-paste-deterministic-patch-ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-listing-title-fallback]",
+            "extractYbtourVerbatimListingTitle"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-listing-title-fallback]",
+            "extractYbtourVerbatimListingTitle"
+          ]
+        },
+        {
+          "file": "lib/supplier-listing-title-unacceptable.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-listing-title-fallback]",
+            "미지정"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-listing-title-fallback.test.ts",
+        "lib/supplier-listing-title-unacceptable.test.ts"
+      ]
+    },
+    {
       "id": "supplier-product-title-plan-b-ssot",
       "tier": [
         "prebuild",

@@ -21,6 +21,8 @@ import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import { resolveLottetourRegisterDestination } from '@/lib/lottetour-register-destination-from-paste'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
+import { extractLottetourVerbatimListingTitle } from '@/lib/register-lottetour-basic'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 export const LOTTETOUR_PRICE_SLOT_SSOT_NOTE =
   '롯데관광 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -81,7 +83,13 @@ export async function parseLottetourRegisterFromApi(
   const resolvedGodId = ids.godId ?? godFromNotes ?? null
 
   const paste = rawText.trim()
-  const listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
+  let listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
+  if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'lottetour')) {
+    const fromPaste = paste ? extractLottetourVerbatimListingTitle(paste) : null
+    if (fromPaste && !isSupplierListingTitleUnacceptable(fromPaste, 'lottetour')) {
+      listingTitle = fromPaste
+    }
+  }
   const dest = resolveLottetourRegisterDestination({
     pastedBody: paste,
     title: listingTitle,

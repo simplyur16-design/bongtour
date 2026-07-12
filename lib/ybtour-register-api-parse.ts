@@ -29,6 +29,8 @@ import {
   applyYbtourScheduleExpressionToRows,
   ybtourFactDaysToRegisterSchedule,
 } from '@/lib/ybtour-register-api-schedule'
+import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 export const YBTOUR_PRICE_SLOT_SSOT_NOTE =
   '노랑풍선 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -110,7 +112,14 @@ export async function parseYbtourRegisterFromApi(
   }
 
   const paste = rawText.trim()
-  const listingTitle = bundle.title?.trim() || ''
+  let listingTitle = bundle.title?.trim() || ''
+  if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'ybtour')) {
+    const fromPaste = paste ? extractYbtourVerbatimListingTitle(paste) : null
+    if (fromPaste && !isSupplierListingTitleUnacceptable(fromPaste, 'ybtour')) {
+      listingTitle = fromPaste
+    }
+  }
+  // REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: paste·API 제목 복구 — manifest
   const dest = resolveYbtourRegisterDestination({
     pastedBody: paste,
     title: listingTitle,

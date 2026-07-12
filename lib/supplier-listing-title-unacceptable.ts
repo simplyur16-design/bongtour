@@ -14,9 +14,11 @@ const DURATION_ONLY_RE = /^\d+\s*박\s*\d+\s*일\s*$/u
 export const KYOWONTOUR_TOUR_CODE_TITLE_RE = /^[A-Z]{2,4}\d{6,}[A-Z0-9]*$/i
 
 /** 달력 UI 오염·등급+박일만·출발일 구간 등 — 공급사 공통 1차 거부 */
+// REGRESSION-FREEZE[supplier-product-title-plan-b]: stub 미지정 거부 — manifest
+// REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: stub 미지정 거부 — manifest
 export function isSupplierListingTitleUnacceptable(text: string, brandKey?: string): boolean {
   const t = text.replace(/\s+/g, ' ').trim()
-  if (!t || t === '미입력' || t === '상품명 없음') return true
+  if (!t || t === '미입력' || t === '상품명 없음' || t === '미지정') return true
   if (KYOWONTOUR_TOUR_CODE_TITLE_RE.test(t)) return true
   if (isModetourDepartureWindowOnlyTitleText(t)) return true
   if (isModetourHotelGradeDurationOnlyTitleText(t)) return true

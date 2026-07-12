@@ -215,6 +215,26 @@ export async function fetchYbtourEventFirstDisplay(
   )
 }
 
+/**
+ * first-display.evNm이 비어도 by-goods 행 evNm으로 등록 상품명 복구.
+ * REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: by-goods evNm 제목 복구 — manifest
+ */
+export function pickYbtourListingTitleFromPapiSources(args: {
+  firstDisplayEvNm?: string | null
+  byGoodsEvNmForSeed?: string | null
+  byGoodsAnyEvNm?: string | null
+}): string | null {
+  for (const raw of [args.firstDisplayEvNm, args.byGoodsEvNmForSeed, args.byGoodsAnyEvNm]) {
+    const t = String(raw ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (t.length < 4) continue
+    if (t === '미지정' || t === '미입력' || t === '상품명 없음') continue
+    return t
+  }
+  return null
+}
+
 export async function fetchYbtourGoodsAvailableDateDay(
   goodsCd: string,
   referer: string,
@@ -576,20 +596,25 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
   monthKeys: string[]
   rawRowCount: number
   evCdPriceEnriched: boolean
+  /** first-display·by-goods evNm 중 등록용 상품명 */
+  listingTitle: string | null
 }> {
+  const empty = {
+    inputs: [] as DepartureInput[],
+    goodsCd: null as string | null,
+    goodsCdFromUrl: null as string | null,
+    dspSid: null as string | null,
+    seedEvCd: null as string | null,
+    monthKeys: [] as string[],
+    rawRowCount: 0,
+    evCdPriceEnriched: false,
+    listingTitle: null as string | null,
+  }
+
   const goodsCdFromUrl = parseYbtourGoodsCdFromUrl(detailUrl)
   const goodsCd = resolveYbtourGoodsCdForApi(detailUrl, options?.originCode)
   if (!goodsCd) {
-    return {
-      inputs: [],
-      goodsCd: null,
-      goodsCdFromUrl,
-      dspSid: null,
-      seedEvCd: null,
-      monthKeys: [],
-      rawRowCount: 0,
-      evCdPriceEnriched: false,
-    }
+    return { ...empty, goodsCdFromUrl }
   }
 
   const referer =
@@ -597,41 +622,48 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
     `https://prdt.ybtour.co.kr/product/detailPackage?goodsCd=${encodeURIComponent(goodsCd)}`
   const seedEvCd = await resolveYbtourSeedEvCd(detailUrl, goodsCd, referer)
   if (!seedEvCd) {
-    return {
-      inputs: [],
-      goodsCd,
-      goodsCdFromUrl,
-      dspSid: null,
-      seedEvCd: null,
-      monthKeys: [],
-      rawRowCount: 0,
-      evCdPriceEnriched: false,
-    }
+    return { ...empty, goodsCd, goodsCdFromUrl }
   }
 
   const display = await fetchYbtourEventFirstDisplay(seedEvCd, referer)
   const dspSid = resolveYbtourByGoodsDspSid(display)
   if (!dspSid) {
     return {
-      inputs: [],
+      ...empty,
       goodsCd,
       goodsCdFromUrl,
-      dspSid: null,
       seedEvCd,
-      monthKeys: [],
-      rawRowCount: 0,
-      evCdPriceEnriched: false,
+      listingTitle: pickYbtourListingTitleFromPapiSources({ firstDisplayEvNm: display?.evNm }),
     }
   }
 
   const monthKeys = ybtourMonthKeysForYmdWindow(fromYmd, toYmd)
   const merged: DepartureInput[] = []
   let rawRowCount = 0
+  let byGoodsEvNmForSeed: string | null = null
+  let byGoodsAnyEvNm: string | null = null
+  const urlEvCd = parseYbtourEvCdFromUrl(detailUrl)
+  const seedBase = parseYbtourBaseSeriesFromEvCdShape(seedEvCd) ?? seedEvCd
 
   for (const monthKey of monthKeys) {
     const rows = await fetchYbtourEventByGoodsMonth(goodsCd, dspSid, monthKey, referer)
     rawRowCount += rows.length
     for (const row of rows) {
+      const nm = String(row.evNm ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (nm.length >= 4 && nm !== '미지정' && nm !== '미입력') {
+        if (!byGoodsAnyEvNm) byGoodsAnyEvNm = nm
+        const rowEv = String(row.evCd ?? '').trim()
+        if (
+          !byGoodsEvNmForSeed &&
+          (rowEv === seedEvCd ||
+            rowEv === urlEvCd ||
+            (seedBase && rowEv.startsWith(`${seedBase}-`)))
+        ) {
+          byGoodsEvNmForSeed = nm
+        }
+      }
       const mapped = ybtourByGoodsRowToDepartureInput(row)
       if (mapped) merged.push(mapped)
     }
@@ -655,6 +687,12 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
     evCdPriceEnriched = true
   }
 
+  const listingTitle = pickYbtourListingTitleFromPapiSources({
+    firstDisplayEvNm: display?.evNm,
+    byGoodsEvNmForSeed,
+    byGoodsAnyEvNm,
+  })
+
   return {
     inputs,
     goodsCd,
@@ -664,6 +702,7 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
     monthKeys,
     rawRowCount,
     evCdPriceEnriched,
+    listingTitle,
   }
 }
 

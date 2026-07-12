@@ -26,6 +26,8 @@ import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-dest
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { polishHanatour2030RegisterBundle } from '@/lib/hanatour-register-schedule-2030'
+import { extractSupplierListingTitleFromPaste } from '@/lib/supplier-listing-title-from-paste'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 const HANATOUR_PRICE_SLOT_SSOT_NOTE =
   '하나투어 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=미사용(null), infantPrice=유아. 유류·제세·기본상품가 안내·잔여석 등 메타 줄은 슬롯에 넣지 않습니다.'
@@ -124,6 +126,10 @@ export async function parseHanatourRegisterFromApi(
   })
   listingTitle = polished2030.listingTitle
   const paste = rawText.trim()
+  if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'hanatour')) {
+    const fromPaste = paste ? extractSupplierListingTitleFromPaste('hanatour', paste) : null
+    if (fromPaste) listingTitle = fromPaste
+  }
   const dest = resolveHanatourRegisterDestination({
     pastedBody: paste,
     title: listingTitle,
@@ -134,6 +140,7 @@ export async function parseHanatourRegisterFromApi(
     originSource: originSource?.trim() || 'hanatour',
     originCode: bundle.originCode ?? pkgCd,
     title: listingTitle,
+    supplierListingTitleRaw: rawTitle || listingTitle || null,
     destination: dest.destination || '미지정',
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,

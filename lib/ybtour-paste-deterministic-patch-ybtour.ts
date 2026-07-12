@@ -1,8 +1,10 @@
 /**
- * 노란풍선 본문에서 duration·잔여/최소·쇼핑·가격표 보강 (LLM 실패 시 보조).
+ * 노랑풍선 본문에서 duration·잔여/최소·쇼핑·가격표·상품명 보강 (LLM 실패 시 보조).
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import { extractYbtourThreeSlotPricesFromBlob } from '@/lib/register-ybtour-price'
+import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 function pickDuration(blob: string): string | null {
   const m = blob.match(/(\d+)\s*박\s*(\d+)\s*일/)
@@ -38,9 +40,25 @@ function pickShoppingCount(blob: string): number | null {
   return null
 }
 
+function ybtourTitleNeedsPasteRecovery(title: string | null | undefined): boolean {
+  const t = (title ?? '').trim()
+  return !t || isSupplierListingTitleUnacceptable(t, 'ybtour')
+}
+
 export function mergeYbtourDeterministicFieldsFromPaste(parsed: RegisterParsed, rawText: string): RegisterParsed {
   const blob = rawText.replace(/\r/g, '\n')
   let next = { ...parsed }
+  // REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: paste 제목 복구 — manifest
+  if (ybtourTitleNeedsPasteRecovery(parsed.title)) {
+    const fromPaste = extractYbtourVerbatimListingTitle(blob)
+    if (fromPaste && !isSupplierListingTitleUnacceptable(fromPaste, 'ybtour')) {
+      next = {
+        ...next,
+        title: fromPaste,
+        supplierListingTitleRaw: fromPaste,
+      }
+    }
+  }
   const dur = pickDuration(blob)
   if (dur && !(parsed.duration ?? '').trim()) {
     next = { ...next, duration: dur }

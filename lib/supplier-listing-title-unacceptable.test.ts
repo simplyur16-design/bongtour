@@ -11,4 +11,9 @@ describe('isSupplierListingTitleUnacceptable', () => {
     expect(isSupplierListingTitleUnacceptable('[동유럽] 체코 9일 #노팁노옵션')).toBe(false)
     expect(isSupplierListingTitleUnacceptable('코카서스 3국 10일 KE #두바이관광')).toBe(false)
   })
+
+  it('rejects stub placeholders 미지정/미입력', () => {
+    expect(isSupplierListingTitleUnacceptable('미지정')).toBe(true)
+    expect(isSupplierListingTitleUnacceptable('미입력')).toBe(true)
+  })
 })

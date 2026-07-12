@@ -154,7 +154,8 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     fetchedAt: new Date().toISOString(),
     originUrl,
     originCode: evCd.split('-')[0] ?? evCd,
-    title: display?.evNm?.trim() || null,
+    // REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: by-goods·first-display 제목 — manifest
+    title: apiHit.listingTitle ?? display?.evNm?.trim() || null,
     nights: null,
     days: null,
     meetingInfo: null,
