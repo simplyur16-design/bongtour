@@ -572,6 +572,8 @@ function stripTrailingGeoTokens(s: string): string {
     'hoi an',
     'chiang mai',
     'nha trang',
+    // REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]: Phu Quoc 등 CITY_COUNTRY_ONLY 전체명 보존 — manifest
+    'phu quoc',
     'los angeles',
     'san francisco',
     'las vegas',
@@ -583,6 +585,10 @@ function stripTrailingGeoTokens(s: string): string {
     'phi phi islands',
   ]
   const fullLower = words.join(' ').toLowerCase()
+  // 키워드 전체가 bare 도시·국가면 제거하지 않음 (Phu Quoc → '' 회귀 방지)
+  if (CITY_COUNTRY_ONLY.has(fullLower) || multiGeo.includes(fullLower)) {
+    return titleCaseWords(fullLower)
+  }
   for (const mg of multiGeo) {
     if (fullLower === mg || fullLower.endsWith(` ${mg}`)) {
       if (fullLower === mg) return titleCaseWords(mg)
@@ -602,7 +608,10 @@ function stripTrailingGeoTokens(s: string): string {
     }
     break
   }
-  return squash(trimmed.join(' '))
+  const out = squash(trimmed.join(' '))
+  // 전부 깎여 빈 문자열이 되면 원문 유지 (2단어 CITY_COUNTRY_ONLY 보호망)
+  if (!out && CITY_COUNTRY_ONLY.has(fullLower)) return titleCaseWords(fullLower)
+  return out
 }
 
 /**

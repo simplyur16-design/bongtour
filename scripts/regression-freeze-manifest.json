@@ -4536,6 +4536,7 @@
             "isReturn",
             "일자 간 중복 시 route 미사용 명소 차순위",
             "easternEuropeHardcodedPool day-route evidence",
+            "southeastAsiaHardcodedPool day-route evidence",
             "스페인광장",
             "trip-unique no cluster kw reuse",
             "return fill excludes departure+middle used"
@@ -4547,7 +4548,8 @@
             "Guam — 스페인광장",
             "Croatia Split day",
             "Prague",
-            "Phu Quoc bare city must not repeat"
+            "Phu Quoc bare city must not repeat",
+            "싱가포르 일정 — tripHay SEA라도"
           ]
         },
         {
@@ -4814,6 +4816,34 @@
       ],
       "npmScripts": [
         "verify:nz-pnp101-image-keyword-live"
+      ]
+    },
+    {
+      "id": "pexels-normalize-bare-multiword-city",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "normalizeToPlaceName — Phu Quoc 등 2단어 CITY_COUNTRY_ONLY 전체명이 빈 문자열로 깎이지 않음",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]",
+            "phu quoc",
+            "CITY_COUNTRY_ONLY.has(fullLower)"
+          ]
+        },
+        {
+          "file": "scripts/verify-pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]",
+            "Phu Quoc"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:pexels-place-name-keyword"
       ]
     },
     {

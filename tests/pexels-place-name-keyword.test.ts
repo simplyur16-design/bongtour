@@ -51,6 +51,12 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(normalizeToPlaceName('Nha Trang'), 'Nha Trang')
   })
 
+  // REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]: stripTrailingGeoTokens 전체명 보존
+  it('Phu Quoc 도시명은 빈 문자열로 깎이지 않음', () => {
+    assert.equal(normalizeToPlaceName('Phu Quoc'), 'Phu Quoc')
+    assert.equal(finalizeScheduleImageKeyword('Phu Quoc'), 'Phu Quoc')
+  })
+
   it('Forbidden City — City 보조어 제거로 Forbidden 단독이 되지 않음', () => {
     assert.equal(finalizeScheduleImageKeyword('Forbidden City'), 'Forbidden City')
     assert.equal(isScheduleImageKeywordLandmarkEligible('Forbidden City'), true)

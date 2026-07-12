@@ -429,14 +429,27 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
     if (totalDays === 0) scheduleIssues.push('일정 0일')
 
     // trip-wide imageKeyword·imageKeyword2 중복 (일자 간)
+    // 1일차·마지막 일차가 같은 방문도시(bare) soft-dup 은 허용 (귀국 빈 슬롯 방지)
     const usedKw = new Map<string, number>()
+    const maxDayForDup = scheduleReports.reduce((m, r) => Math.max(m, r.day), 0)
     for (const r of scheduleReports) {
       for (const slot of [r.imageKeyword, r.imageKeyword2]) {
         const kw = String(slot ?? '').trim()
         if (!kw) continue
         const nk = kw.toLowerCase().replace(/\s+/g, ' ')
         if (usedKw.has(nk)) {
-          scheduleIssues.push(`D${r.day}: imageKeyword 중복 "${kw}" (이미 D${usedKw.get(nk)})`)
+          const prevDay = usedKw.get(nk)!
+          const looksBareCity =
+            kw.split(/\s+/).length <= 3 &&
+            !/castle|temple|beach|park|tower|bridge|palace|museum|garden|fort|pagoda|bay|island|studio|statue|market|square|cathedral|mosque|shrine|waterfall|lagoon|villa|cable|merlion|universal|sentosa|marina|gardens/i.test(
+              kw,
+            )
+          const allowEdge =
+            looksBareCity &&
+            ((prevDay <= 1 && r.day >= maxDayForDup) || (r.day <= 1 && prevDay >= maxDayForDup))
+          if (!allowEdge) {
+            scheduleIssues.push(`D${r.day}: imageKeyword 중복 "${kw}" (이미 D${prevDay})`)
+          }
         } else {
           usedKw.set(nk, r.day)
         }

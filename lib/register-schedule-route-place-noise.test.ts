@@ -147,6 +147,12 @@ describe('register schedule route place noise', () => {
       extractRegisterScheduleRoutePlaceLabel('체스키크룸로프의 명소 이발사 다리'),
     ).toBe('이발사 다리')
     expect(
+      extractRegisterScheduleRoutePlaceLabel('부다페스트의 전경이 한 눈에 보이는 어부의 요새'),
+    ).toBe('어부의 요새')
+    expect(
+      extractRegisterScheduleRoutePlaceLabel('케이블카 탑승 후 가이드 미팅장소'),
+    ).toBeNull()
+    expect(
       sanitizeRegisterScheduleRouteText(
         '스플리트 : 약 2시간 소요] - 마리안 해변 및 항구 - [네움 - [트로기르 - 카를로바츠 약 3시간 20분 소요]',
       ),

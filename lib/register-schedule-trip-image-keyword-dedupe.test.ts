@@ -566,6 +566,40 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     }
   })
 
+  it('싱가포르 일정 — tripHay SEA라도 당일 route에 없는 Phu Quoc/Nha Trang 미주입', () => {
+    const rows = [
+      { day: 1, routeText: '인천 - 싱가포르', imageKeyword: 'Singapore', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '국립식물원 보타닉 가든 - 리버원더스 - 싱가포르',
+        imageKeyword: 'Singapore Botanic Gardens',
+        imageKeyword2: '',
+      },
+      {
+        day: 3,
+        routeText: '유니버셜스튜디오 - 싱가포르',
+        imageKeyword: 'Universal Studios Singapore',
+        imageKeyword2: '',
+      },
+      {
+        day: 4,
+        routeText: '머라이언 공원 - 센토사섬 - 싱가포르',
+        imageKeyword: 'Merlion Park',
+        imageKeyword2: '',
+      },
+      { day: 5, routeText: '싱가포르 - 인천', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      enforceRegisterScheduleTripUniqueImageKeywords(rows),
+    )
+    for (const row of out) {
+      const blob = `${row.imageKeyword ?? ''} ${row.imageKeyword2 ?? ''}`
+      expect(blob).not.toMatch(/Phu Quoc|Nha Trang|Po Nagar|Long Son/i)
+    }
+    const d4 = out.find((r) => r.day === 4)!
+    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+  })
+
   it('몰디브 7일 — 리조트 중간일 kw2 cluster 허용', () => {
     const rows = [
       {

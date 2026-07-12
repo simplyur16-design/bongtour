@@ -15,6 +15,9 @@ const cases: Array<{ in: string; want: string }> = [
   { in: 'Day 5 travel', want: '' },
   { in: 'Osaka Castle / landmark exterior', want: 'Osaka Castle' },
   { in: 'Osaka', want: 'Osaka' },
+  // REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]: stripTrailingGeoTokens 전체명 보존
+  { in: 'Phu Quoc', want: 'Phu Quoc' },
+  { in: 'Nha Trang', want: 'Nha Trang' },
 ]
 
 let failed = 0
