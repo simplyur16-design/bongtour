@@ -155,7 +155,7 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     originUrl,
     originCode: evCd.split('-')[0] ?? evCd,
     // REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: by-goods·first-display 제목 — manifest
-    title: apiHit.listingTitle ?? display?.evNm?.trim() || null,
+    title: apiHit.listingTitle ?? (display?.evNm?.trim() || null),
     nights: null,
     days: null,
     meetingInfo: null,
