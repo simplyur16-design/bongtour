@@ -26,7 +26,6 @@ import {
   ybtourScheduleBundleToRegisterSchedule,
 } from '@/lib/ybtour-register-api-detail'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
-import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { applyYbtourScheduleExpressionToRows } from '@/lib/ybtour-register-api-schedule'
 import { finalizeYbtourRegisterParsedShopping } from '@/lib/register-ybtour-shopping'
@@ -128,7 +127,10 @@ export function needsYbtourMustKnowCollect(parsed: RegisterParsed): boolean {
   return (parsed.mustKnowItems?.length ?? 0) === 0 && !parsed.mustKnowRaw?.trim()
 }
 
-/** API·붙여넣기 schedule — routeText 슬롯 규칙 + Gemini(자유일) SSOT. REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply] */
+/** API·붙여넣기 schedule — routeText 슬롯 규칙만. Gemini는 post-augment 1회.
+ * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: rules-only ensure — manifest
+ */
 export async function ensureYbtourRegisterScheduleImageKeywords(
   parsed: RegisterParsed,
   opts?: { travelScope?: string | null },
@@ -148,13 +150,17 @@ export async function ensureYbtourRegisterScheduleImageKeywords(
     productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
     productTitle: parsed.title ?? null,
   })
-  const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(withKeywords, {
-    supplierKey: 'ybtour',
-    productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-    productTitle: parsed.title ?? null,
-    logLabel: 'ybtour-register-schedule-image-keyword',
+  const merged = withKeywords.map((row, i) => {
+    const prev = normalized[i]
+    const keep1 = String(prev?.imageKeyword ?? '').trim()
+    const keep2 = String(prev?.imageKeyword2 ?? '').trim()
+    return {
+      ...row,
+      imageKeyword: keep1 || String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: keep2 || row.imageKeyword2 || null,
+    }
   })
-  return { ...parsed, schedule: withGemini }
+  return { ...parsed, schedule: merged }
 }
 
 function needsYbtourMeetingCollect(parsed: RegisterParsed): boolean {
@@ -180,6 +186,7 @@ export async function augmentYbtourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: YbtourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
+  if (parsed.ybtourDetailCollectRan) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {

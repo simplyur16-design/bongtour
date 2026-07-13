@@ -470,7 +470,7 @@ function buildRegisterPexelsUiRows(
     }
     const serverRows = validFromParsed.map(mapRegisterPexelsUiScheduleRow)
     let clearedRows = serverRows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null }))
-    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT — routeText 재적용·stale kw 무시 */
+    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙) SSOT — Gemini는 post-augment 1회 */
     if (supplierKey === 'modetour') {
       clearedRows = sanitizeModetourRegisterScheduleRouteRows(clearedRows)
     }
@@ -1101,6 +1101,11 @@ export default function AdminRegisterPage() {
                   singleDepartureOnly,
                   ...(selectedBrandKey && { brandKey: selectedBrandKey }),
                   ...(urlToCheck && { originUrl: urlToCheck }),
+                  ...(registerFactBundle &&
+                  urlToCheck &&
+                  String(registerFactBundle.originUrl ?? '').trim() === urlToCheck
+                    ? { registerFactBundle }
+                    : {}),
                 }
               : {
                   mode: 'preview',
@@ -1112,6 +1117,11 @@ export default function AdminRegisterPage() {
                   localDepartureTag: LOCAL_DEPARTURE_TAG_VALUES.filter((k) => localDepartureTag.includes(k)),
                   sportsThemeTag: SPORTS_THEME_TAG_VALUES.filter((k) => sportsThemeTag.includes(k)),
                   singleDepartureOnly,
+                  ...(registerFactBundle &&
+                  urlToCheck &&
+                  String(registerFactBundle.originUrl ?? '').trim() === urlToCheck
+                    ? { registerFactBundle }
+                    : {}),
                 }
           ),
           signal: controller.signal,

@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[verygoodtour-register-api-parse]: collectVerygoodtourRegisterFacts → RegisterParsed — manifest
  */
 import { collectVerygoodtourRegisterFacts, parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
@@ -38,7 +39,7 @@ export const VERYGOOD_FLIGHT_PREVIEW_NOTE =
 
 export type VerygoodtourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
@@ -94,7 +95,9 @@ export async function parseVerygoodtourRegisterFromApi(
     throw new Error('참좋은여행 등록에는 유효한 originUrl(ProCode)이 필요합니다.')
   }
 
-  const bundle = await collectVerygoodtourRegisterFacts(originUrl)
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'verygoodtour') ??
+    (await collectVerygoodtourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·ProCode를 확인하세요.')
   }

@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[naeiltour-register-airtel]: travelScope=air_hotel_free — 패키지 일정·kw 생략 — manifest
  */
 import { collectNaeiltourRegisterFacts, parseNaeiltourGoodCdFromUrlExport } from '@/lib/register-facts/naeiltour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import {
   buildNaeiltourFlightStructuredFromHtml,
   extractNaeiltourIncludedExcludedFromTab0,
@@ -48,7 +49,7 @@ export const NAEILTOUR_AIRTEL_PREVIEW_NOTE =
 
 export type NaeiltourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 export type NaeiltourRegisterDetailAugmentCtx = {
@@ -112,7 +113,9 @@ export async function parseNaeiltourRegisterFromApi(
     throw new Error('내일투어 등록에는 유효한 originUrl(good_cd)이 필요합니다.')
   }
 
-  const bundle = await collectNaeiltourRegisterFacts(originUrl)
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'naeiltour') ??
+    (await collectNaeiltourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·good_cd를 확인하세요.')
   }

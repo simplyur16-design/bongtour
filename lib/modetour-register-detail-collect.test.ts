@@ -59,6 +59,25 @@ describe('modetour register detail collect', () => {
     expect(out.schedule?.[0]?.imageKeyword).toMatch(/Yehliu|Jiufen|Shifen/i)
   })
 
+  it('ensureModetourRegisterScheduleImageKeywords keeps existing keywords (rules-only)', async () => {
+    const out = await ensureModetourRegisterScheduleImageKeywords({
+      destination: '대만',
+      title: '대만 4일',
+      schedule: [
+        {
+          day: 2,
+          title: '예류·지우펀',
+          description: '관광',
+          routeText: '타이페이 - 예류지질공원 - 지우펀 - 스펀',
+          imageKeyword: 'Keep Existing Landmark',
+          imageKeyword2: 'Second Keep',
+        },
+      ],
+    } as RegisterParsed)
+    expect(out.schedule?.[0]?.imageKeyword).toBe('Keep Existing Landmark')
+    expect(out.schedule?.[0]?.imageKeyword2).toBe('Second Keep')
+  })
+
   it('needs included/excluded when both missing', () => {
     expect(needsModetourIncludedExcludedCollect({} as RegisterParsed)).toBe(true)
     expect(

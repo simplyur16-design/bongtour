@@ -167,6 +167,7 @@ export async function augmentLottetourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: LottetourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
+  if (parsed.lottetourDetailCollectRan) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   if (!originUrl || !extractLottetourMasterIdsFromBlob(originUrl).evtCd) return parsed
 

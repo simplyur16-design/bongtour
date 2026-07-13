@@ -78,6 +78,7 @@ export async function augmentKyowontourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: KyowontourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
+  if (parsed.kyowontourDetailCollectRan) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   if (!originUrl || !/kyowontour\.com/i.test(originUrl)) return parsed
 

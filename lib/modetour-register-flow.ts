@@ -658,6 +658,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
     }
 
     const pastedBlocks = parseRegisterPastedBlocksPayload(body)
+    const prefetchedFactBundle = body.registerFactBundle ?? body.prefetchedFactBundle ?? null
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 
@@ -733,6 +734,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
         travelScope,
         pastedBlocks,
         forPreview: mode === 'preview',
+        prefetchedFactBundle,
         onTiming,
       })
       timing.mark('after-parseFn')

@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[lottetour-register-ssot-freeze]: API-only register parse — manifest
  */
 import { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import {
   resolveLottetourRegisterOriginIdsFromUrl,
 } from '@/lib/lottetour-register-api-detail'
@@ -32,7 +33,7 @@ export const LOTTETOUR_FLIGHT_PREVIEW_NOTE =
 
 export type LottetourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -73,7 +74,9 @@ export async function parseLottetourRegisterFromApi(
     throw new Error('롯데관광 등록에는 유효한 originUrl(godId 또는 evtCd)이 필요합니다.')
   }
 
-  const bundle = await collectLottetourRegisterFacts(originUrl)
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'lottetour') ??
+    (await collectLottetourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·godId·evtCd를 확인하세요.')
   }

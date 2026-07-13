@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[kyowontour-register-api-parse]: collectKyowontourRegisterFacts → RegisterParsed — manifest
  */
 import { collectKyowontourRegisterFacts } from '@/lib/register-facts/kyowontour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
@@ -23,7 +24,7 @@ export const KYOWONTOUR_FLIGHT_PREVIEW_NOTE =
 
 export type KyowontourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -80,7 +81,9 @@ export async function parseKyowontourRegisterFromApi(
     throw new Error('교원이지 등록에는 유효한 originUrl(tourCode)이 필요합니다.')
   }
 
-  const bundle = await collectKyowontourRegisterFacts(originUrl)
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'kyowontour') ??
+    (await collectKyowontourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·tourCode를 확인하세요.')
   }

@@ -92,7 +92,7 @@ assert(
 )
 assert(
   pageSrc.includes("supplierKey === 'modetour'") &&
-    pageSrc.includes('ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT'),
+    pageSrc.includes('ensureModetourRegisterScheduleImageKeywords`(규칙) SSOT'),
   'register page missing modetour preview server SSOT branch',
 )
 console.log('[preview] modetour server SSOT branch ok')

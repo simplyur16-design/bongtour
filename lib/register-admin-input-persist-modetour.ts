@@ -100,6 +100,7 @@ export async function invokeRegisterParsePersistAnalysisAttempt(params: {
   travelScope?: string | null
   pastedBlocks: RegisterLlmParseOptionsCommon['pastedBlocks']
   forPreview: boolean
+  prefetchedFactBundle?: RegisterLlmParseOptionsCommon['prefetchedFactBundle']
   skipDetailSectionGeminiRepairs?: boolean
   maxDetailSectionRepairs?: number
   llmCallMetrics?: { mainLlm: number; repairLlm: number; sectionRepairLlm: number }
@@ -122,6 +123,7 @@ export async function invokeRegisterParsePersistAnalysisAttempt(params: {
       pastedBodyForInference: params.text,
       pastedBlocks: params.pastedBlocks ?? undefined,
       forPreview: params.forPreview,
+      prefetchedFactBundle: params.prefetchedFactBundle ?? null,
       skipDetailSectionGeminiRepairs: params.skipDetailSectionGeminiRepairs,
       maxDetailSectionRepairs: params.maxDetailSectionRepairs,
       llmCallMetrics: params.llmCallMetrics,

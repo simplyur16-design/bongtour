@@ -364,4 +364,6 @@ export type RegisterLlmParseOptionsCommon = {
   maxDetailSectionRepairs?: number
   llmCallMetrics?: { mainLlm: number; repairLlm: number; sectionRepairLlm: number }
   onTiming?: (label: string) => void
+  /** [사실 가져오기] bundle — originUrl 일치 시 live collect 생략 (미리보기) */
+  prefetchedFactBundle?: import('@/lib/register-facts/types').SupplierRegisterFactBundle | null
 }

@@ -201,6 +201,7 @@ export async function augmentVerygoodtourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: VerygoodtourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
+  if (parsed.verygoodtourDetailCollectRan) return parsed
   const originUrl = normalizeVerygoodDetailUrl(ctx?.originUrl ?? '')
   if (!originUrl || !parseVerygoodProCodeFromUrl(originUrl)) return parsed
 

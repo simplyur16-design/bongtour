@@ -573,6 +573,7 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
     }
 
     const pastedBlocks = parsePastedBlocksFromBody(body)
+    const prefetchedFactBundle = body.registerFactBundle ?? body.prefetchedFactBundle ?? null
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 
@@ -652,6 +653,7 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
         travelScope,
         pastedBlocks,
         forPreview: mode === 'preview',
+        prefetchedFactBundle,
         maxDetailSectionRepairs: mode === 'preview' ? 2 : 3,
         llmCallMetrics,
         onTiming,

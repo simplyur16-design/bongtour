@@ -9,6 +9,7 @@ import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-
 import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
 import { resolveModetourRegisterProductTitle } from '@/lib/modetour-register-product-title-ssot'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow, RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
@@ -33,7 +34,7 @@ const MODETOUR_FLIGHT_PREVIEW_NOTE =
 
 export type ModetourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 export const MODETOUR_AIR_HOTEL_PREVIEW_NOTE =
@@ -98,10 +99,12 @@ export async function parseModetourRegisterFromApi(
     throw new Error('모두투어 등록에는 유효한 originUrl(productNo)이 필요합니다.')
   }
 
-  const bundle = await collectModetourRegisterFacts(originUrl, {
-    originCode: productNo,
-    adminTravelScope: travelScope,
-  })
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'modetour') ??
+    (await collectModetourRegisterFacts(originUrl, {
+      originCode: productNo,
+      adminTravelScope: travelScope,
+    }))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·productNo를 확인하세요.')
   }

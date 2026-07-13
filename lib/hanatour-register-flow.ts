@@ -534,6 +534,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     }
 
     const pastedBlocks = parseRegisterPastedBlocksPayload(body)
+    const prefetchedFactBundle = body.registerFactBundle ?? body.prefetchedFactBundle ?? null
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 
@@ -613,6 +614,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
         travelScope,
         pastedBlocks,
         forPreview: mode === 'preview',
+        prefetchedFactBundle,
         maxDetailSectionRepairs: mode === 'preview' ? 2 : 3,
         llmCallMetrics,
         onTiming,

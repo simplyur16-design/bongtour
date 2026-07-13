@@ -2848,7 +2848,25 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "GetOtherDepartureDates_lite",
-            "modetourOtherDepartureRowsToRegisterFactPriceRows"
+            "modetourOtherDepartureRowsToRegisterFactPriceRows",
+            "price_collect=lite_only"
+          ],
+          "mustNotInclude": [
+            "collectModetourDepartureInputs"
+          ]
+        },
+        {
+          "file": "lib/register-facts/resolve-prefetched-bundle.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "resolvePrefetchedRegisterFactBundle",
+            "prefetchedFactBundle skip live collect"
+          ]
+        },
+        {
+          "file": "app/admin/register/page.tsx",
+          "mustInclude": [
+            "registerFactBundle"
           ]
         },
         {
@@ -2883,7 +2901,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-facts/modetour.test.ts"
+        "lib/register-facts/modetour.test.ts",
+        "lib/register-facts/resolve-prefetched-bundle.test.ts"
       ]
     },
     {
@@ -4077,6 +4096,9 @@
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
             "ensureModetourRegisterScheduleImageKeywords",
             "applyRegisterScheduleImageKeywordsBySupplier",
+            "rules-only"
+          ],
+          "mustNotInclude": [
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ]
         },
@@ -4084,7 +4106,8 @@
           "file": "lib/modetour-register-api-parse.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]",
-            "ensureModetourRegisterScheduleImageKeywords"
+            "ensureModetourRegisterScheduleImageKeywords",
+            "resolvePrefetchedRegisterFactBundle"
           ]
         }
       ],
@@ -4107,7 +4130,7 @@
             "applyModetourScheduleImageKeywordsToRows",
             "Shichahai",
             "Forbidden City must not appear",
-            "ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT"
+            "ensureModetourRegisterScheduleImageKeywords`(규칙) SSOT"
           ]
         },
         {
@@ -4124,7 +4147,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
             "supplierKey === 'modetour'",
-            "ensureModetourRegisterScheduleImageKeywords`(규칙+Gemini) SSOT"
+            "ensureModetourRegisterScheduleImageKeywords`(규칙) SSOT"
           ]
         },
         {
@@ -4132,6 +4155,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-ssot-freeze]",
             "ensureModetourRegisterScheduleImageKeywords",
+            "rules-only"
+          ],
+          "mustNotInclude": [
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ]
         },
@@ -4209,6 +4235,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]",
             "ensureHanatourRegisterScheduleImageKeywords",
+            "rules-only"
+          ],
+          "mustNotInclude": [
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ]
         },
@@ -6871,13 +6900,16 @@
         "prebuild",
         "ci"
       ],
-      "summary": "ybtour 등록 schedule imageKeyword — ensure + Gemini + post-augment routeText SSOT만",
+      "summary": "ybtour 등록 schedule imageKeyword — ensure 규칙만 + Gemini는 post-augment 1회",
       "checks": [
         {
           "file": "lib/ybtour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]",
             "ensureYbtourRegisterScheduleImageKeywords",
+            "rules-only"
+          ],
+          "mustNotInclude": [
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ]
         },
@@ -6890,7 +6922,8 @@
         {
           "file": "lib/register-parse-post-augment.ts",
           "mustInclude": [
-            "applyRegisterScheduleImageKeywordsBySupplier"
+            "applyRegisterScheduleImageKeywordsBySupplier",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ],
           "mustNotInclude": [
             "mergePostAugmentScheduleImageKeywords"

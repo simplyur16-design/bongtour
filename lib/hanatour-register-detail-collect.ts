@@ -46,7 +46,6 @@ import {
 } from '@/lib/register-parse-hanatour'
 import { gatherHanatourScheduleSectionBodiesByDay } from '@/lib/hanatour-schedule-section-by-day'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
-import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { polishHanatour2030RegisterBundle, resolveHanatour2030ProductTitleForDetect } from '@/lib/hanatour-register-schedule-2030'
 
@@ -121,7 +120,10 @@ export function needsHanatourScheduleCollect(parsed: RegisterParsed): boolean {
   return rows.every(isHanatourPlaceholderScheduleRow)
 }
 
-/** API·붙여넣기 schedule — routeText 슬롯 규칙 + Gemini(자유일) SSOT. REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply] */
+/** API·붙여넣기 schedule — routeText 슬롯 규칙만. Gemini는 post-augment 1회.
+ * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: rules-only ensure — manifest
+ */
 export async function ensureHanatourRegisterScheduleImageKeywords(
   parsed: RegisterParsed,
   opts?: { travelScope?: string | null },
@@ -145,13 +147,17 @@ export async function ensureHanatourRegisterScheduleImageKeywords(
       ? gatherHanatourScheduleSectionBodiesByDay(parsed.detailBodyStructured)
       : null,
   })
-  const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(withKeywords, {
-    supplierKey: 'hanatour',
-    productDestination: parsed.primaryDestination ?? parsed.destination ?? null,
-    productTitle: parsed.title ?? null,
-    logLabel: 'hanatour-register-schedule-image-keyword',
+  const merged = withKeywords.map((row, i) => {
+    const prev = normalized[i]
+    const keep1 = String(prev?.imageKeyword ?? '').trim()
+    const keep2 = String(prev?.imageKeyword2 ?? '').trim()
+    return {
+      ...row,
+      imageKeyword: keep1 || String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: keep2 || row.imageKeyword2 || null,
+    }
   })
-  return { ...parsed, schedule: withGemini }
+  return { ...parsed, schedule: merged }
 }
 
 export function needsHanatourIncludedCollect(parsed: RegisterParsed): boolean {
@@ -274,6 +280,7 @@ export async function augmentHanatourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: HanatourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
+  if (parsed.hanatourDetailCollectRan) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || !parseHanatourPkgCdFromUrl(originUrl)) return parsed

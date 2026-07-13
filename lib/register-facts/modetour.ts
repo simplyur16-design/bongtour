@@ -8,13 +8,11 @@ import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { extractModetourIncludedExcludedFromDetailInfo, extractModetourShoppingFromDetailBundle } from '@/lib/modetour-register-api-detail'
 import type { RegisterFactPriceRow, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
-import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import {
   inferModetourRegisterFactProductKind,
   registerFactProductKindNote,
   resolveRegisterFactProductKindFromAdminTravelScope,
 } from '@/lib/register-facts/product-kind'
-import { collectModetourDepartureInputs } from '@/lib/modetour-departures'
 
 const MODETOUR_API_BASE = process.env.MODETOUR_API_BASE_URL ?? 'https://b2c-api.modetour.com'
 const MODETOUR_WEB_API_REQ_HEADER =
@@ -179,50 +177,8 @@ export async function collectModetourRegisterFacts(
     inferModetourRegisterFactProductKind(detail),
   )
 
-  // REGRESSION-FREEZE[register-facts-fetch-resilience]: pId prefetch 생략 — manifest
-  let priceRows = await fetchModetourRegisterFactPriceRows(productNo, referer, fromYmd, toYmd)
-
-  /** 패키지 — baseline title match(confirm·sweep과 동일). 자유여행 — lite 전체 행 유지. */
-  if (productKind === 'package') {
-    try {
-      const collected = await collectModetourDepartureInputs(originUrl, {
-        dateRangeYmd: { from: fromYmd, to: toYmd },
-      })
-      const baselineRows = collected.inputs
-        .map((input) =>
-          registerDepartureLikeToFactPriceRow({
-            ...input,
-            supplierDepartureCode: input.supplierDepartureCodeCandidate ?? null,
-          }),
-        )
-        .filter((row): row is NonNullable<typeof row> => row != null)
-      if (baselineRows.length > 0) {
-        priceRows = baselineRows
-      }
-    } catch {
-      /* lite fallback */
-    }
-  } else {
-    try {
-      const collected = await collectModetourDepartureInputs(originUrl, {
-        dateRangeYmd: { from: fromYmd, to: toYmd },
-        skipBaselineMatch: true,
-      })
-      const airHotelRows = collected.inputs
-        .map((input) =>
-          registerDepartureLikeToFactPriceRow({
-            ...input,
-            supplierDepartureCode: input.supplierDepartureCodeCandidate ?? null,
-          }),
-        )
-        .filter((row): row is NonNullable<typeof row> => row != null)
-      if (airHotelRows.length > 0) {
-        priceRows = airHotelRows
-      }
-    } catch {
-      /* lite fallback */
-    }
-  }
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: GetOtherDepartureDates_lite only — no baseline pId path
+  const priceRows = await fetchModetourRegisterFactPriceRows(productNo, referer, fromYmd, toYmd)
 
   const fallbackDate = ymdFromIso(String(detail.departureDate ?? ''))
   const fallbackAdult = Number(detail.sellingPriceAdultTotalAmount ?? detail.sellingPrice ?? 0)
@@ -262,7 +218,7 @@ export async function collectModetourRegisterFacts(
       `productNo=${productNo}`,
       `calendar_rows=${resolvedPriceRows.length}`,
       registerFactProductKindNote(productKind),
-      productKind === 'air_hotel_free' ? 'price_collect=skip_baseline_match' : 'price_collect=baseline_match',
+      'price_collect=lite_only',
     ],
   }
 }

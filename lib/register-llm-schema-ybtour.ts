@@ -362,4 +362,6 @@ export type RegisterLlmParseOptionsCommon = {
   onTiming?: (label: string) => void
   /** 관리자 travelScope — air_hotel_free(항공+호텔·자유여행) vs 패키지 */
   travelScope?: string | null
+  /** [사실 가져오기] bundle — originUrl 일치 시 live collect 생략 (미리보기) */
+  prefetchedFactBundle?: import('@/lib/register-facts/types').SupplierRegisterFactBundle | null
 }

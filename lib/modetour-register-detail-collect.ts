@@ -41,7 +41,6 @@ import { applyRegisterCollectedFlightStructured,
 } from '@/lib/register-detail-collect-flight-apply'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
-import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 
@@ -101,7 +100,9 @@ export function needsModetourScheduleCollect(parsed: RegisterParsed): boolean {
   return rows.every((d) => !d.title?.trim() && !d.description?.trim())
 }
 
-/** API·붙여넣기 schedule에 routeText는 있는데 imageKeyword 규칙이 아직 안 탄 경우(미리보기 공통). */
+/** API·붙여넣기 schedule에 routeText는 있는데 imageKeyword 규칙이 아직 안 탄 경우(미리보기 공통).
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: rules-only — Gemini는 post-augment 1회 — manifest
+ */
 export async function ensureModetourRegisterScheduleImageKeywords(
   parsed: RegisterParsed,
   opts?: { travelScope?: string | null },
@@ -114,21 +115,25 @@ export async function ensureModetourRegisterScheduleImageKeywords(
   const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(schedule)
   const normalized = routeSanitized.map((row) => ({
     ...row,
-    imageKeyword: '',
-    imageKeyword2: null,
+    imageKeyword: String(row.imageKeyword ?? '').trim(),
+    imageKeyword2: row.imageKeyword2 ?? null,
   }))
   const withKeywords = applyRegisterScheduleImageKeywordsBySupplier(normalized, {
     supplierKey: 'modetour',
     productDestination: parsed.destination ?? null,
     productTitle: parsed.title ?? null,
   })
-  const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(withKeywords, {
-    supplierKey: 'modetour',
-    productDestination: parsed.destination ?? null,
-    productTitle: parsed.title ?? null,
-    logLabel: 'modetour-register-schedule-image-keyword',
+  const merged = withKeywords.map((row, i) => {
+    const prev = normalized[i]
+    const keep1 = String(prev?.imageKeyword ?? '').trim()
+    const keep2 = String(prev?.imageKeyword2 ?? '').trim()
+    return {
+      ...row,
+      imageKeyword: keep1 || String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: keep2 || row.imageKeyword2 || null,
+    }
   })
-  return { ...parsed, schedule: withGemini }
+  return { ...parsed, schedule: merged }
 }
 
 export function needsModetourMustKnowCollect(parsed: RegisterParsed): boolean {
@@ -139,6 +144,7 @@ export async function augmentModetourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: ModetourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
+  if (parsed.modetourDetailCollectRan) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)

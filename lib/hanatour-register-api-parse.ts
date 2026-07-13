@@ -13,6 +13,7 @@ import { hanatourFactDaysToRegisterSchedule } from '@/lib/hanatour-register-api-
 import { applyHanatourOriginCodeFromPaste } from '@/lib/hanatour-origin-code-from-paste'
 import { sanitizeHanatourRegisterParsedDepartureFields } from '@/lib/hanatour-departure-flight-display'
 import { collectHanatourRegisterFacts } from '@/lib/register-facts/hanatour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
@@ -37,7 +38,7 @@ const HANATOUR_FLIGHT_PREVIEW_NOTE =
 
 export type HanatourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -99,7 +100,9 @@ export async function parseHanatourRegisterFromApi(
     throw new Error('하나투어 등록에는 유효한 originUrl(pkgCd)이 필요합니다.')
   }
 
-  const bundle = await collectHanatourRegisterFacts(originUrl, { adminTravelScope: travelScope })
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'hanatour') ??
+    (await collectHanatourRegisterFacts(originUrl, { adminTravelScope: travelScope }))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·pkgCd를 확인하세요.')
   }

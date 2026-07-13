@@ -16,6 +16,7 @@ import {
 } from '@/lib/ybtour-register-api-detail'
 import { resolveYbtourRegisterDestination } from '@/lib/ybtour-register-destination-from-paste'
 import { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
+import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow, RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
@@ -40,7 +41,7 @@ export const YBTOUR_FLIGHT_PREVIEW_NOTE =
 
 export type YbtourRegisterApiParseOptions = Pick<
   RegisterLlmParseOptionsCommon,
-  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope'
+  'originUrl' | 'forPreview' | 'pastedBodyForInference' | 'travelScope' | 'prefetchedFactBundle'
 >
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -106,7 +107,9 @@ export async function parseYbtourRegisterFromApi(
     throw new Error('register-facts 수집에 실패했습니다. URL·evCd/goodsCd를 확인하세요.')
   }
 
-  const bundle = await collectYbtourRegisterFacts(originUrl)
+  const bundle =
+    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'ybtour') ??
+    (await collectYbtourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·evCd/goodsCd를 확인하세요.')
   }

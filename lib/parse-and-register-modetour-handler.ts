@@ -11,11 +11,13 @@ export async function handleParseAndRegisterModetourRequest(request: Request) {
     parseFn: parseForRegisterModetour,
     logPrefix: '[modetour-register]',
     savePersistedParsedOnly: true,
-    patchParsedAfterAugment: async (parsed, _pastedText, ctx) =>
-      augmentModetourParsedWithDetailCollect(parsed, {
+    patchParsedAfterAugment: async (parsed, _pastedText, ctx) => {
+      if (parsed.modetourDetailCollectRan) return parsed
+      return augmentModetourParsedWithDetailCollect(parsed, {
         originUrl: ctx?.originUrl,
         pastedBlocks: ctx?.pastedBlocks,
         travelScope: ctx?.travelScope,
-      }),
+      })
+    },
   })
 }
