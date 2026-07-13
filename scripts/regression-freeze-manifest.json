@@ -2879,7 +2879,18 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "scheduleDetailTm → places(route)",
-            "preferYbtourFactScheduleDaysWithTmRoute"
+            "preferYbtourFactScheduleDaysWithTmRoute",
+            "enrichEvCdPrice: false",
+            "price_collect=by_goods_adult_only",
+            "detail_collect=notice_schedule_parallel"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "facts notice+schedule parallel",
+            "includeTourDetail"
           ]
         },
         {

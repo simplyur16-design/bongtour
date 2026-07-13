@@ -6,7 +6,6 @@
  */
 import {
   collectYbtourByGoodsApiDepartureInputsForUrl,
-  fetchYbtourEventFirstDisplay,
   resolveYbtourEvCdForRegisterUrl,
 } from '@/lib/ybtour-api-departures'
 import {
@@ -14,6 +13,7 @@ import {
   fetchYbtourRegisterDetailBundle,
   buildYbtourFlightStructuredFromTm,
   ybtourScheduleBundleToRegisterSchedule,
+  type YbtourScheduleDetailRow,
 } from '@/lib/ybtour-register-api-detail'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactScheduleDay, RegisterFactFlightLeg, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
@@ -25,48 +25,22 @@ import {
 } from '@/lib/register-facts/product-kind'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 
-const YBTOUR_PAPI_BASE = process.env.YBTOUR_PAPI_BASE_URL ?? 'https://papi.ybtour.co.kr'
-
-type YbtourScheduleDayRow = {
-  dayNo?: number
-  accommNm?: string | null
-  foodB?: string | null
-  foodL?: string | null
-  foodD?: string | null
-  trvInfo?: string | null
-}
-
-async function fetchYbtourScheduleDays(
-  evCd: string,
-  goodsCd: string,
-  referer: string,
-): Promise<RegisterFactScheduleDay[]> {
-  const url = `${YBTOUR_PAPI_BASE.replace(/\/$/, '')}/pkg/event-schedule/${encodeURIComponent(evCd)}/${encodeURIComponent(goodsCd)}`
-  const res = await fetch(url, {
-    headers: {
-      accept: 'application/json',
-      referer,
-    },
-  })
-  if (!res.ok) return []
-  const json = (await res.json()) as { code?: string; body?: { scheduleDetail?: YbtourScheduleDayRow[] } }
-  if (json?.code !== '0000') return []
-
-  const rows: RegisterFactScheduleDay[] = []
-  for (const row of json.body?.scheduleDetail ?? []) {
+function thinFactDaysFromScheduleDetail(rows: YbtourScheduleDetailRow[]): RegisterFactScheduleDay[] {
+  const out: RegisterFactScheduleDay[] = []
+  for (const row of rows) {
     const day = Number(row.dayNo ?? 0)
     if (!Number.isFinite(day) || day <= 0) continue
     const meals = [row.foodB, row.foodL, row.foodD].map((x) => String(x ?? '').trim()).filter(Boolean)
     const hotel = String(row.accommNm ?? '').trim()
-    rows.push({
+    out.push({
       day,
-      places: row.trvInfo ? [String(row.trvInfo).trim()] : [],
+      places: [],
       hotels: hotel ? [hotel] : [],
       meals,
       transportNote: null,
     })
   }
-  return rows.sort((a, b) => a.day - b.day)
+  return out.sort((a, b) => a.day - b.day)
 }
 
 /** RegisterScheduleDay → fact day (routeText 세그먼트 = places) */
@@ -160,12 +134,16 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
   const { evCd, goodsCd, referer } = resolved
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const [apiHit, display, scheduleDays, detailBundle] = await Promise.all([
-    collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd),
-    fetchYbtourEventFirstDisplay(evCd, referer),
-    fetchYbtourScheduleDays(evCd, goodsCd, referer),
-    fetchYbtourRegisterDetailBundle(originUrl),
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: ybtour facts lite — enrichEvCdPrice false + detail notice/schedule only — manifest
+  // by-goods 성인가만(출발일마다 /price N회 금지). schedule·TM은 detailBundle 1회로.
+  const [apiHit, detailBundle] = await Promise.all([
+    collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd, {
+      enrichEvCdPrice: false,
+    }),
+    fetchYbtourRegisterDetailBundle(originUrl, { includeTourDetail: false }),
   ])
+
+  const thinScheduleDays = thinFactDaysFromScheduleDetail(detailBundle?.schedule?.scheduleDetail ?? [])
 
   const inclExcl = extractYbtourIncludedExcluded(detailBundle?.notice ?? null)
   const shopInfo = String(detailBundle?.notice?.shopInfo ?? '').trim()
@@ -206,9 +184,10 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
         : []
 
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: scheduleDetailTm → places(route) — manifest
-  const scheduleDaysWithRoute = preferYbtourFactScheduleDaysWithTmRoute(scheduleDays, detailBundle?.schedule)
-  const usedTmRoute = scheduleDaysWithRoute.reduce((n, d) => n + d.places.length, 0) >
-    scheduleDays.reduce((n, d) => n + d.places.length, 0)
+  const scheduleDaysWithRoute = preferYbtourFactScheduleDaysWithTmRoute(thinScheduleDays, detailBundle?.schedule)
+  const usedTmRoute =
+    scheduleDaysWithRoute.reduce((n, d) => n + d.places.length, 0) >
+    thinScheduleDays.reduce((n, d) => n + d.places.length, 0)
 
   return {
     supplier: 'ybtour',
@@ -216,7 +195,7 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     originUrl,
     originCode: evCd.split('-')[0] ?? evCd,
     // REGRESSION-FREEZE[ybtour-register-listing-title-fallback]: by-goods·first-display 제목 — manifest
-    title: apiHit.listingTitle ?? (display?.evNm?.trim() || null),
+    title: apiHit.listingTitle ?? null,
     nights: null,
     days: null,
     meetingInfo: null,
@@ -229,7 +208,10 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     notes: [
       'source=ybtour_papi_by_goods',
       `evCd=${evCd}`,
+      `goodsCd=${goodsCd}`,
       `calendar_rows=${priceRows.length}`,
+      'price_collect=by_goods_adult_only',
+      'detail_collect=notice_schedule_parallel',
       ...(usedTmRoute ? ['schedule_places=scheduleDetailTm'] : []),
       registerFactProductKindNote(inferRegisterFactProductKindFromOriginUrl('ybtour', originUrl)),
     ],

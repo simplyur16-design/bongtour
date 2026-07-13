@@ -619,11 +619,33 @@ export function shoppingRowsToStopsJson(rows: ShoppingStructured['rows']): strin
 
 export async function fetchYbtourRegisterDetailBundle(
   originUrl: string,
-  opts?: { includeOptShop?: boolean; originCode?: string | null },
+  opts?: {
+    includeOptShop?: boolean
+    originCode?: string | null
+    /** false면 tour-detail 생략 — 등록 사실 가져오기용 (기본 true) */
+    includeTourDetail?: boolean
+  },
 ): Promise<YbtourRegisterDetailBundle | null> {
   const resolved = await resolveYbtourEvCdForRegisterUrl(originUrl, opts?.originCode)
   if (!resolved) return null
   const { evCd, goodsCd, referer } = resolved
+  const includeTourDetail = opts?.includeTourDetail !== false
+
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: facts notice+schedule parallel — manifest
+  if (!includeTourDetail && !opts?.includeOptShop) {
+    const [notice, schedule] = await Promise.all([
+      fetchYbtourRegisterPapiJson<YbtourNoticeBody>(
+        `/pkg/event/${encodeURIComponent(evCd)}/notice`,
+        referer,
+      ),
+      fetchYbtourRegisterPapiJson<YbtourScheduleBody>(
+        `/pkg/event-schedule/${encodeURIComponent(evCd)}/${encodeURIComponent(goodsCd)}`,
+        referer,
+      ),
+    ])
+    if (!notice && !schedule) return null
+    return { notice, schedule, tourDetail: null, optionalTourDetail: null }
+  }
 
   const notice = await fetchYbtourRegisterPapiJson<YbtourNoticeBody>(
     `/pkg/event/${encodeURIComponent(evCd)}/notice`,
@@ -637,10 +659,12 @@ export async function fetchYbtourRegisterDetailBundle(
   )
   await paceBetweenRegisterDetailFetches()
 
-  const tourDetail = await fetchYbtourRegisterPapiJson<YbtourTourDetailRow[]>(
-    `/pkg/event-schedule/${encodeURIComponent(evCd)}/tour-detail`,
-    referer,
-  )
+  const tourDetail = includeTourDetail
+    ? await fetchYbtourRegisterPapiJson<YbtourTourDetailRow[]>(
+        `/pkg/event-schedule/${encodeURIComponent(evCd)}/tour-detail`,
+        referer,
+      )
+    : null
 
   let optionalTourDetail: YbtourOptionalTourDetailBody | null = null
   if (opts?.includeOptShop) {
