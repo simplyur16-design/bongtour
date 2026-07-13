@@ -3,7 +3,7 @@ import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-produ
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
 import {
   getKycLabelDistribution,
-  getKycLabelState,
+  getEffectiveKycLabelState,
   hasBinaryAuthDistribution,
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
@@ -253,7 +253,7 @@ function dedupeMinDaysAtOrAbove(
 }
 
 function kycDedupeKeySuffix(p: EnrichedPlan): string {
-  const state = getKycLabelState(p.flags);
+  const state = getEffectiveKycLabelState(p);
   if (state === "required") return ":kyc:O";
   if (state === "not_required") return ":kyc:X";
   return ":kyc:unknown";
@@ -343,8 +343,8 @@ function pickRecommendedFromPool(pool: EnrichedPlan[], tripDays: number): Recomm
 }
 
 function buildRecommendedByAuth(pool: EnrichedPlan[], tripDays: number): RecommendedByAuth {
-  const requiredPool = pool.filter((p) => getKycLabelState(p.flags) === "required");
-  const notRequiredPool = pool.filter((p) => getKycLabelState(p.flags) === "not_required");
+  const requiredPool = pool.filter((p) => getEffectiveKycLabelState(p) === "required");
+  const notRequiredPool = pool.filter((p) => getEffectiveKycLabelState(p) === "not_required");
   return {
     required: pickRecommendedFromPool(requiredPool, tripDays),
     not_required: pickRecommendedFromPool(notRequiredPool, tripDays),

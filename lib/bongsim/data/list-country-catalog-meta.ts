@@ -10,6 +10,7 @@ import {
   planNameForRegionPackCode,
 } from "@/lib/bongsim/recommend/region-pack-plan";
 import { getKycLabelDistribution, type KycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
+import { countryCatalogAllowsTravelerVerificationPolicy } from "@/lib/bongsim/esim/traveler-verification-policy";
 import { isTrueUnlimited, type ProductOption } from "@/lib/bongsim/recommend/product-option";
 
 /** 국가(권역) 카탈로그 — 여행자 인증 정책 */
@@ -34,16 +35,24 @@ function kycDistributionToPolicy(dist: KycLabelDistribution): TravelerVerificati
   return "none";
 }
 
-function metaFromProducts(products: ProductOption[]): CountryCatalogMeta {
+function metaFromProducts(
+  products: ProductOption[],
+  catalogCode?: string,
+): CountryCatalogMeta {
   const roaming = products.filter((p) => (p.network_family || "").toLowerCase() === "roaming");
   const isUnlimited = roaming.some((p) => isTrueUnlimited(p));
-  const travelerVerification = kycDistributionToPolicy(getKycLabelDistribution(products));
+  let travelerVerification = kycDistributionToPolicy(getKycLabelDistribution(products));
+  // REGRESSION-FREEZE[bongsim-traveler-verification-hk-mo-tw]: 중국 등 비대상 코드는 카탈로그 none — manifest
+  if (catalogCode && !countryCatalogAllowsTravelerVerificationPolicy(catalogCode)) {
+    travelerVerification = "none";
+  }
   return { isUnlimited, travelerVerification };
 }
 
 /**
  * 단독 국가·권역 패키지별 카탈로그 메타 (무제한·여행자 인증).
  * flags.kyc=O/X 분포로 나라별 정책을 SSOT 계산.
+ * 여행자 인증 목적지 SSOT: 홍콩·마카오·대만 (중국 본토 단독 제외).
  */
 export async function listCountryCatalogMetaByCode(
   pool: Pool,
@@ -67,12 +76,12 @@ export async function listCountryCatalogMetaByCode(
       const planName = planNameForRegionPackCode(code);
       const regional =
         planName != null ? allProducts.filter((p) => p.plan_name.trim() === planName) : [];
-      out[code] = metaFromProducts(regional);
+      out[code] = metaFromProducts(regional, code);
       continue;
     }
 
     const single = allProducts.filter((p) => isSingleCountryForCode(p, code));
-    out[code] = metaFromProducts(single);
+    out[code] = metaFromProducts(single, code);
   }
 
   return out;
@@ -87,5 +96,8 @@ export function catalogMetaForMultiSelection(
     const covered = getPlanCoveredCountries(p.plan_name);
     return covered.length >= 2 && doesPlanCoverAllSelected(p.plan_name, selectedCodes);
   });
-  return metaFromProducts(multi);
+  // 다국가 선택은 커버 국가에 HK/MO/TW가 있을 때만 인증 정책 노출
+  const allows = selectedCodes.some((c) => countryCatalogAllowsTravelerVerificationPolicy(c));
+  const meta = metaFromProducts(multi, allows ? "hk" : "cn");
+  return meta;
 }

@@ -31,8 +31,8 @@ export function CountryTravelerVerificationNotice({ countries }: Props) {
             여행자 인증 필요: {requiredOnly.map((c) => c.nameKr).join(", ")}
           </p>
           <p className="mt-1 text-[12px] leading-relaxed text-amber-900/90">
-            이 국가 eSIM은 CMLink 여행자 인증(여권) 후 사용할 수 있습니다. 일본·베트남·중국 단독 등
-            인증 없는 국가와 다릅니다.
+            이 국가 eSIM은 CMLink 여행자 인증(여권) 후 사용할 수 있습니다. 대상은 홍콩·마카오·대만이며
+            중국 본토·일본·베트남 등은 인증이 필요 없습니다.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link

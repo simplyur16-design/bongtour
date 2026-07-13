@@ -24,6 +24,12 @@ describe('shouldShowBadge — 메모리 라인 11 SSOT', () => {
     expect(getKycLabelDistribution([p('X'), p('X')])).toBe('not_required_only')
   })
 
+  it('중국 본토 단독 — flags O여도 required 분포에서 제외', () => {
+    const chinaO = { plan_name: '중국', flags: { kyc: 'O' as const } }
+    expect(getKycLabelDistribution([chinaO])).toBe('not_required_only')
+    expect(shouldShowBadge(chinaO, 'not_required_only')).toBeNull()
+  })
+
   it('none → chip X (인증 무관)', () => {
     expect(shouldShowBadge(p(null), 'none')).toBeNull()
     expect(shouldShowBadge(p('X'), 'none')).toBeNull()

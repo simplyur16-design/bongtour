@@ -97,13 +97,22 @@ function buildPriceBlock(rec: Record<string, unknown>, lang: ExcelSheetLanguage)
   };
 }
 
-function buildFlags(rec: Record<string, unknown>, lang: ExcelSheetLanguage): BongsimProductFlagsV1 {
+import { isChinaMainlandOnlyPlanExemptFromTravelerVerification } from "@/lib/bongsim/esim/traveler-verification-policy";
+
+function buildFlags(
+  rec: Record<string, unknown>,
+  lang: ExcelSheetLanguage,
+  planName: string,
+): BongsimProductFlagsV1 {
   const f = (k: keyof typeof BONGSIM_EXCEL_COLUMN_MAP.ko) => {
     const s = cell(rec, lang, k);
     return s.length ? s : "—";
   };
+  // REGRESSION-FREEZE[bongsim-traveler-verification-hk-mo-tw]: 중국 본토 단독 KYC=X — manifest
+  const kycRaw = f("kyc");
+  const kyc = isChinaMainlandOnlyPlanExemptFromTravelerVerification(planName) ? "X" : kycRaw;
   return {
-    kyc: f("kyc"),
+    kyc,
     hotspot: f("hotspot"),
     esim: f("esim"),
     usim: f("usim"),
@@ -152,7 +161,8 @@ export function normalizeExcelRow(meta: BongsimExcelSourceMetaV1, rec: Record<st
   const now = new Date().toISOString();
 
   const price_block = buildPriceBlock(rec, lang);
-  const flags = buildFlags(rec, lang);
+  const plan_name = cellPlanName(rec, lang) || "—";
+  const flags = buildFlags(rec, lang, plan_name);
 
   return {
     option_api_id,
@@ -164,7 +174,7 @@ export function normalizeExcelRow(meta: BongsimExcelSourceMetaV1, rec: Record<st
     plan_line_excel,
     network_family,
     plan_type,
-    plan_name: cellPlanName(rec, lang) || "—",
+    plan_name,
     days_raw: cell(rec, lang, "days") || "—",
     allowance_label: cell(rec, lang, "allowance") || "—",
     option_label: cell(rec, lang, "option_name") || "—",

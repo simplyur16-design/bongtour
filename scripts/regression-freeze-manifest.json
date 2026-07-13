@@ -717,6 +717,50 @@
       ]
     },
     {
+      "id": "bongsim-traveler-verification-hk-mo-tw",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "여행자 인증(CMLink) — 홍콩·마카오·대만만, 중국 본토 단독 제외 (ICCID 8985234 SSOT)",
+      "checks": [
+        {
+          "file": "lib/bongsim/esim/traveler-verification-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-traveler-verification-hk-mo-tw]",
+            "TRAVELER_VERIFICATION_DESTINATION_CODES",
+            "isChinaMainlandOnlyPlanExemptFromTravelerVerification",
+            "countryCatalogAllowsTravelerVerificationPolicy"
+          ]
+        },
+        {
+          "file": "lib/bongsim/esim/kyc-required.ts",
+          "mustInclude": [
+            "getEffectiveKycLabelState",
+            "isChinaMainlandOnlyPlanExemptFromTravelerVerification"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/list-country-catalog-meta.ts",
+          "mustInclude": [
+            "countryCatalogAllowsTravelerVerificationPolicy",
+            "REGRESSION-FREEZE[bongsim-traveler-verification-hk-mo-tw]"
+          ]
+        },
+        {
+          "file": "lib/bongsim/ingest/excel-normalize-row.ts",
+          "mustInclude": [
+            "isChinaMainlandOnlyPlanExemptFromTravelerVerification",
+            "REGRESSION-FREEZE[bongsim-traveler-verification-hk-mo-tw]"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim/traveler-verification-policy.test.ts",
+        "lib/bongsim/esim/kyc-required.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-offline-usim-order",
       "tier": ["prebuild", "ci"],
       "summary": "매장 오프라인 USIM — 어드민 주문·무PG 결제확인·eSIM 자동발급 스킵",
@@ -7179,6 +7223,15 @@
       "summary": "오세아니아 메가메뉴 — 괌·사이판·호주/뉴질랜드 LC-only, 도시 하위메뉴 없음",
       "files": [
         "tests/mega-menu-oceania-tab.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-traveler-verification-hk-mo-tw",
+      "tier": ["prebuild", "ci"],
+      "summary": "여행자 인증 — 홍콩·마카오·대만만 (중국 본토 제외)",
+      "files": [
+        "lib/bongsim/esim/traveler-verification-policy.test.ts",
+        "lib/bongsim/esim/kyc-required.test.ts"
       ]
     },
     {

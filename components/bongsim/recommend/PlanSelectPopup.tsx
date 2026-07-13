@@ -28,7 +28,7 @@ import { EsimFreeDataBenefitLine } from "@/components/bongsim/recommend/EsimFree
 import { EsimVerificationGuideBox } from "@/components/bongsim/esim/EsimVerificationGuideBox";
 import {
   getKycLabelDistribution,
-  getKycLabelState,
+  getEffectiveKycLabelState,
   hasBinaryAuthDistribution,
   shouldShowBadge,
   type KycBadgeState,
@@ -71,7 +71,7 @@ const PLAN_QUANTITY_MAX = 15;
 
 function filterGroupsByAuth(groups: PlanGroups, auth: AuthFilter): PlanGroups {
   const match = (p: ProductOption) => {
-    const state = getKycLabelState(p.flags);
+    const state = getEffectiveKycLabelState(p);
     return auth === "required" ? state === "required" : state === "not_required";
   };
   return {

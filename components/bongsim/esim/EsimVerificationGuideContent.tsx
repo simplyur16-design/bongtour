@@ -26,8 +26,8 @@ export function EsimVerificationGuideContent({ className = "" }: Props) {
         ))}
       </ol>
       <p className="mt-3 text-xs leading-relaxed text-slate-600 lg:text-sm">
-        ICCID가 8985234로 시작하는 eSIM만 인증 대상입니다. 결제 후 주문 완료 화면·이메일에서 ICCID를 확인할 수
-        있어요.
+        ICCID가 8985234로 시작하는 eSIM만 인증 대상입니다(홍콩·마카오·대만). 중국 본토 등 그 외 ICCID는
+        인증이 필요 없습니다. 결제 후 주문 완료 화면·이메일에서 ICCID를 확인할 수 있어요.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <a
