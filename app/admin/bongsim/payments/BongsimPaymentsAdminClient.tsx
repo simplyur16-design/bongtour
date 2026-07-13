@@ -135,6 +135,9 @@ export default function BongsimPaymentsAdminClient() {
   const [refundReason, setRefundReason] = useState("고객 요청 환불");
   const [refundBusy, setRefundBusy] = useState(false);
   const [refundErr, setRefundErr] = useState<string | null>(null);
+  const [nonPgCancelReason, setNonPgCancelReason] = useState("관리자 무상·오프라인 eSIM 취소");
+  const [nonPgCancelBusy, setNonPgCancelBusy] = useState(false);
+  const [nonPgCancelErr, setNonPgCancelErr] = useState<string | null>(null);
   const [purgeBusy, setPurgeBusy] = useState(false);
   const [purgeMsg, setPurgeMsg] = useState<string | null>(null);
   const [purgeErr, setPurgeErr] = useState<string | null>(null);
@@ -207,6 +210,8 @@ export default function BongsimPaymentsAdminClient() {
     setDetailErr(null);
     setRefundErr(null);
     setRefundReason("고객 요청 환불");
+    setNonPgCancelReason("관리자 무상·오프라인 eSIM 취소");
+    setNonPgCancelErr(null);
     setUsimIccid("");
     setUsimLineOptionId("");
     setUsimErr(null);
@@ -281,6 +286,42 @@ export default function BongsimPaymentsAdminClient() {
       setRefundErr(e instanceof Error ? e.message : "오류");
     } finally {
       setRefundBusy(false);
+    }
+  };
+
+  const submitNonPgCancel = async () => {
+    if (!detail?.order) return;
+    const oid = String(detail.order.order_id ?? "").trim();
+    if (!oid) return;
+    if (
+      !window.confirm(
+        "유심사에서 eSIM을 취소하고 주문을 refunded로 표시합니다. PG 카드 환불은 없습니다. 계속할까요?",
+      )
+    ) {
+      return;
+    }
+    setNonPgCancelBusy(true);
+    setNonPgCancelErr(null);
+    try {
+      const res = await fetch("/api/admin/bongsim/cancel-non-pg", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: oid,
+          reason: nonPgCancelReason.trim() || "관리자 무상·오프라인 eSIM 취소",
+        }),
+      });
+      const j = (await res.json()) as { ok?: boolean; error?: string; message?: string };
+      if (!res.ok || !j.ok) {
+        throw new Error(j.message ?? j.error ?? `취소 실패 (${res.status})`);
+      }
+      setDetailId(null);
+      setDetail(null);
+      await load();
+    } catch (e) {
+      setNonPgCancelErr(e instanceof Error ? e.message : "오류");
+    } finally {
+      setNonPgCancelBusy(false);
     }
   };
 
@@ -1147,24 +1188,42 @@ export default function BongsimPaymentsAdminClient() {
                     provider === "complimentary" || Boolean(detail.complimentary_esim);
                   const canRefund =
                     (st === "paid" || st === "delivered") && oid && !isOfflinePaid && !isComplimentary;
-                  if (!canRefund) {
-                    if (isComplimentary && (st === "paid" || st === "delivered")) {
-                      return (
-                        <p className="text-xs text-slate-500">
-                          무상 eSIM 발급 주문은 PG 환불 대상이 아닙니다. 유심사 취소·재발급은 별도 운영 절차로
-                          처리해 주세요.
-                        </p>
-                      );
-                    }
-                    if (isOfflinePaid && (st === "paid" || st === "delivered")) {
-                      return (
-                        <p className="text-xs text-slate-500">
-                          오프라인 결제 주문은 PG 자동 환불이 없습니다. 유심사 취소·현금 반환은 별도 운영 절차로
-                          처리해 주세요.
-                        </p>
-                      );
-                    }
+                  const canNonPgCancel =
+                    (st === "paid" || st === "delivered") && oid && (isOfflinePaid || isComplimentary);
+                  if (!canRefund && !canNonPgCancel) {
                     return null;
+                  }
+                  if (canNonPgCancel) {
+                    return (
+                      <div className="rounded-xl border border-rose-900/60 bg-rose-950/40 p-4">
+                        <h3 className="font-semibold text-rose-200">
+                          {isComplimentary ? "무상 eSIM 취소" : "오프라인 주문 취소"}
+                        </h3>
+                        <p className="mt-1 text-xs text-rose-100/80">
+                          PG 카드 환불 없이 유심사에서 eSIM/USIM을 취소하고 주문을 refunded로 바꿉니다. 이미
+                          데이터를 사용한 경우 취소할 수 없습니다.
+                        </p>
+                        <label className="mt-3 block text-xs text-slate-400">
+                          사유
+                          <input
+                            value={nonPgCancelReason}
+                            onChange={(e) => setNonPgCancelReason(e.target.value)}
+                            className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                          />
+                        </label>
+                        {nonPgCancelErr ? (
+                          <p className="mt-2 text-xs text-red-400">{nonPgCancelErr}</p>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={nonPgCancelBusy}
+                          className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
+                          onClick={() => void submitNonPgCancel()}
+                        >
+                          {nonPgCancelBusy ? "취소 중…" : "유심사 취소 실행"}
+                        </button>
+                      </div>
+                    );
                   }
                   return (
                     <div className="rounded-xl border border-amber-900/60 bg-amber-950/40 p-4">

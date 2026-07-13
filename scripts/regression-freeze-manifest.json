@@ -875,6 +875,50 @@
       ]
     },
     {
+      "id": "bongsim-admin-non-pg-esim-cancel",
+      "tier": ["prebuild", "ci"],
+      "summary": "무상·오프라인 eSIM — PG 없이 유심사 취소·주문 refunded·cancel-non-pg API",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/admin-cancel-non-pg-esim-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-non-pg-esim-cancel]",
+            "adminCancelNonPgEsimOrder",
+            "NON_PG_CANCEL_PROVIDERS"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/cancel-non-pg/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-non-pg-esim-cancel]",
+            "adminCancelNonPgEsimOrder"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
+          "mustInclude": [
+            "/api/admin/bongsim/cancel-non-pg",
+            "canNonPgCancel"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "usimsa-access-key-env-split",
+      "tier": ["prebuild", "ci"],
+      "summary": "유심사 access key — 레거시 없으면 USIMSA_PROD_ACCESS_KEY / DEV 분기",
+      "checks": [
+        {
+          "file": "lib/usimsa/config.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[usimsa-access-key-env-split]",
+            "USIMSA_PROD_ACCESS_KEY",
+            "USIMSA_DEV_ACCESS_KEY"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-complimentary-esim-bulk",
       "tier": ["prebuild", "ci"],
       "summary": "관리자 무상 eSIM 단체 일괄 — 휴대폰 목록 파싱·1인1주문·bulk API",
@@ -7251,6 +7295,12 @@
       "tier": ["prebuild", "ci"],
       "summary": "관리자 무상 eSIM — consents·사유 파싱·checkout channel",
       "files": ["lib/bongsim/admin/complimentary-esim-order.test.ts"]
+    },
+    {
+      "id": "bongsim-admin-non-pg-esim-cancel",
+      "tier": ["prebuild", "ci"],
+      "summary": "무상·오프라인 eSIM — 관리자 유심사 취소(비 PG)",
+      "files": ["lib/bongsim/admin/admin-cancel-non-pg-esim-order.test.ts"]
     },
     {
       "id": "bongsim-complimentary-esim-bulk",

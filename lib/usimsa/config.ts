@@ -2,6 +2,8 @@ import "server-only";
 
 import { resolveSecretKey as resolveSecretKeyInner } from "@/lib/usimsa/resolve-secret-key";
 
+// REGRESSION-FREEZE[usimsa-access-key-env-split]: production → USIMSA_PROD_ACCESS_KEY fallback — manifest
+
 function trimOrEmpty(value: string | undefined): string {
   return (value ?? "").trim();
 }
@@ -37,14 +39,14 @@ function resolveBaseUrlFromEnv(): string {
   return "https://open-api-dev.usimsa.com/api";
 }
 
-/** x-gat-access-key — 주문·취소·조회 공통 (`USIMSA_ACCESS_KEY` 단일 SSOT) */
+/** x-gat-access-key — `USIMSA_ACCESS_KEY` 레거시 우선, 없으면 ENV별 DEV/PROD */
 function resolveAccessKey(runtimeEnv: UsimsaRuntimeEnv): string {
   const legacy = trimOrEmpty(process.env.USIMSA_ACCESS_KEY);
   if (legacy) return legacy;
   if (runtimeEnv === "development") {
     return trimOrEmpty(process.env.USIMSA_DEV_ACCESS_KEY);
   }
-  return "";
+  return trimOrEmpty(process.env.USIMSA_PROD_ACCESS_KEY);
 }
 
 export type UsimsaConfig = {
@@ -74,7 +76,7 @@ export function getUsimsaConfig(): UsimsaConfig {
 
   if (!accessKey) {
     throw new Error(
-      "Usimsa: USIMSA_ACCESS_KEY is missing (development may use USIMSA_DEV_ACCESS_KEY). Add it in the server environment (e.g. Railway / .env.local).",
+      "Usimsa: USIMSA_ACCESS_KEY is missing (or USIMSA_PROD_ACCESS_KEY / USIMSA_DEV_ACCESS_KEY by USIMSA_ENV). Add it in the server environment (e.g. Railway / .env.local).",
     );
   }
 

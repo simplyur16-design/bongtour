@@ -92,29 +92,26 @@ Operator checklist from [help.portone.io/content/paypal](https://help.portone.io
 
 Verify: `npx tsx scripts/inspect-portone-channels-safe.ts` · `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000`
 
-### KICC overseas (WeChat / Alipay Plus)
+### KICC (WeChat / Alipay Plus) — test channel
 
 SSOT: [help.portone.io/content/kicc](https://help.portone.io/content/kicc) · code: [KICC v2](https://developers.portone.io/opi/ko/integration/pg/v2/kicc-v2)
 
-**Unlike PayPal, KICC overseas has no PortOne shared test MID.** You must apply (PortOne 전자결제 신청 → 해외결제 → 이지페이) and receive a **test MallId + 암복호화 키** first.
-
-Operator checklist:
+Operator checklist (**결제창 일반/정기결제 V1** — PortOne shared test MID, **no separate key**):
 
 1. **PortOne console** → 결제 연동 → 채널관리 → **+ 채널 추가**
-2. Set exactly (해외결제 — not domestic 구모듈):
+2. Set exactly:
    - **연동 모드**: 테스트 연동
    - **결제대행사**: 이지페이(KICC)
-   - **결제모듈**: **신모듈 결제창 일반결제** (해외결제)
-3. Fill:
-   - **PG상점아이디 (가맹점 ID)**: KICC/PortOne에서 발급받은 **테스트 MallId**
-   - **암복호화 키**: 그 MallId의 암복호화 키
+   - **결제모듈**: **일반결제 V1** (콘솔 표기; help = 구모듈 결제창 일반/정기결제)
+3. **PG상점아이디 (MID)** — 클릭 후 선택 (직접 입력·암복호화 키 없음):
+   - **이지페이_KICC 결제창 일반결제 및 정기결제 (`T5102001`)**
 4. **Save**, copy **channel key** → `PORTONE_CHANNEL_KEY_KICC` in `.env.local` (and Railway).
 5. **Webhook** (required for QR async paid): `https://bongtour.com/api/simplyur/webhooks/portone` (Payment module V2).
 6. **Mobile WeChat**: register checkout domain `bongtour.com` with KICC.
 
-**Do not use:** 구모듈 / `T5102001` (국내 KICC) — that is not WeChat/Alipay overseas. simplyur calls `requestPayment` with `EASY_PAY`/`WECHAT` and `ALIPAY_PLUS`.
+simplyur calls `requestPayment` with `EASY_PAY`/`WECHAT` and `ALIPAY_PLUS`.
 
-Verify: `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000` — KICC should open a payment window (not `mallId값이 유효하지 않습니다`).
+Verify: `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000` — KICC should open a payment window.
 
 ### Env + webhook
 
