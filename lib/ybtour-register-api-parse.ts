@@ -107,9 +107,8 @@ export async function parseYbtourRegisterFromApi(
     throw new Error('register-facts 수집에 실패했습니다. URL·evCd/goodsCd를 확인하세요.')
   }
 
-  const bundle =
-    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'ybtour') ??
-    (await collectYbtourRegisterFacts(originUrl))
+  const prefetched = resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'ybtour')
+  const bundle = prefetched ?? (await collectYbtourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·evCd/goodsCd를 확인하세요.')
   }
@@ -129,17 +128,23 @@ export async function parseYbtourRegisterFromApi(
     llmDestination: null,
   })
 
-  const detailBundle = await fetchYbtourRegisterDetailBundle(originUrl)
-  const scheduleFromDetail =
-    detailBundle?.schedule &&
-    (detailBundle.schedule.scheduleDetail?.length ?? 0) + (detailBundle.schedule.scheduleDetailTm?.length ?? 0) > 0
-      ? ybtourScheduleBundleToRegisterSchedule(
-          detailBundle.schedule.scheduleDetail ?? [],
-          detailBundle.schedule.scheduleDetailTm ?? [],
-        )
-      : []
-  const schedule =
-    scheduleFromDetail.length > 0 ? scheduleFromDetail : ybtourFactDaysToRegisterSchedule(bundle.scheduleDays)
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
+  // [사실 가져오기]에서 이미 detail·schedule을 수집했으면 변환 시 재호출하지 않는다 (중복 ~50s×N 방지).
+  let schedule = ybtourFactDaysToRegisterSchedule(bundle.scheduleDays)
+  let detailCollectAlreadySatisfied = Boolean(prefetched && schedule.length > 0)
+  if (!detailCollectAlreadySatisfied) {
+    const detailBundle = await fetchYbtourRegisterDetailBundle(originUrl)
+    const scheduleFromDetail =
+      detailBundle?.schedule &&
+      (detailBundle.schedule.scheduleDetail?.length ?? 0) + (detailBundle.schedule.scheduleDetailTm?.length ?? 0) >
+        0
+        ? ybtourScheduleBundleToRegisterSchedule(
+            detailBundle.schedule.scheduleDetail ?? [],
+            detailBundle.schedule.scheduleDetailTm ?? [],
+          )
+        : []
+    if (scheduleFromDetail.length > 0) schedule = scheduleFromDetail
+  }
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const urlEvCd = parseYbtourEvCdFromUrl(originUrl) ?? resolved.evCd
@@ -155,6 +160,9 @@ export async function parseYbtourRegisterFromApi(
           infantPrice: anchorFactRow.infantPrice ?? null,
         }
       : undefined
+
+  const outbound = bundle.flights?.find((f) => f.direction === 'outbound')
+  const inbound = bundle.flights?.find((f) => f.direction === 'inbound')
 
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'ybtour',
@@ -173,6 +181,9 @@ export async function parseYbtourRegisterFromApi(
     schedule,
     prices,
     productPriceTable,
+    airlineName: outbound?.carrier ?? inbound?.carrier ?? null,
+    outboundFlightNo: outbound?.flightNo ?? null,
+    inboundFlightNo: inbound?.flightNo ?? null,
     hasShopping: bundle.shoppingPlaces.some((p) => /쇼핑/.test(p)),
     shoppingVisitCount: bundle.shoppingPlaces.some((p) => /노쇼핑/.test(p))
       ? 0
@@ -184,9 +195,15 @@ export async function parseYbtourRegisterFromApi(
       YBTOUR_PRICE_SLOT_SSOT_NOTE,
       YBTOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
+      ...(detailCollectAlreadySatisfied
+        ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)']
+        : []),
     ],
-    ybtourDetailCollectRan: false,
-    ybtourDetailCollectSummary: null,
+    // prefetch 경로 — augment가 동일 papi detail을 다시 긁지 않게 표시
+    ybtourDetailCollectRan: detailCollectAlreadySatisfied,
+    ybtourDetailCollectSummary: detailCollectAlreadySatisfied
+      ? 'prefetchedFactBundle — detail re-fetch skipped'
+      : null,
   }
 
   parsed = finalizeYbtourRegisterParsedPricing(parsed)

@@ -218,17 +218,29 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       ],
       { supplierKey: 'hanatour', productDestination: '오사카', productTitle: '오사카 3일', travelScope: 'package' },
     )
-    const used = new Set<string>()
+    const byDay = new Map(out.map((r) => [Number(r.day), r]))
+    const maxD = Math.max(...out.map((r) => Number(r.day)))
+    const used = new Map<string, number>()
     for (const row of out) {
       for (const slot of [row.imageKeyword, row.imageKeyword2]) {
         const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
         if (!nk) continue
-        expect(used.has(nk)).toBe(false)
-        used.add(nk)
+        if (used.has(nk)) {
+          const prev = used.get(nk)!
+          const day = Number(row.day)
+          const looksBare =
+            String(slot).split(/\s+/).length <= 2 &&
+            !/castle|temple|park|bridge|palace|museum/i.test(String(slot))
+          const allowEdge =
+            looksBare && ((prev <= 1 && day >= maxD) || (day <= 1 && prev >= maxD))
+          expect(allowEdge).toBe(true)
+        } else {
+          used.set(nk, Number(row.day))
+        }
       }
     }
-    expect(String(out.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Osaka/i)
-    expect(String(out.find((r) => r.day === 2)?.imageKeyword ?? '').length).toBeGreaterThan(0)
+    expect(String(byDay.get(1)?.imageKeyword ?? '')).toMatch(/Osaka/i)
+    expect(String(byDay.get(2)?.imageKeyword ?? '').length).toBeGreaterThan(0)
   })
 
   it('fills middle-day kw2 from same-day second landmark (Oslo + Vigeland)', () => {
@@ -502,7 +514,7 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
   })
 
-  it('푸꾸옥 5일 — 중간일 kw2 cluster·인접일 보충', () => {
+  it('푸꾸옥 5일 — 중간일 kw2 same-day landmark (손트랑→Sunset Sanato)', () => {
     const rows = [
       {
         day: 1,
@@ -518,18 +530,19 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       },
       {
         day: 3,
-        routeText: '푸꾸옥 - 케이블카',
+        routeText: '푸꾸옥 - 썬월드 혼똠',
         imageKeyword: 'Phu Quoc Hon Thom Cable Car',
         imageKeyword2: '',
       },
-      { day: 4, routeText: '푸꾸옥', imageKeyword: 'Phu Quoc', imageKeyword2: null },
+      { day: 4, routeText: '푸꾸옥 - 쯔엉동 야시장', imageKeyword: 'Duong Dong Night Market Phu Quoc', imageKeyword2: null },
       { day: 5, routeText: '', imageKeyword: '', imageKeyword2: null },
     ]
     const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
       enforceRegisterScheduleTripUniqueImageKeywords(rows),
     )
     const d2 = out.find((r) => r.day === 2)!
-    expect(String(d2.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
+    expect(String(d2.imageKeyword2 ?? '')).toMatch(/Sunset\s*Sanato|Sao\s*Beach|Hon\s*Thom|Grand\s*World/i)
+    expect(String(d2.imageKeyword2 ?? '')).not.toMatch(/Bali|Nha\s*Trang/i)
   })
 
   it('캄보디아+베트남 6일 — Angkor 중간일 kw/kw2 gap-fill', () => {
@@ -866,5 +879,61 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       .map((k) => normScheduleImageKeywordKey(String(k)))
     expect(new Set(keys).size).toBe(keys.length)
     expect(String(out.find((r) => r.day === 5)?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Phu Quoc day ownership — manifest
+  it('푸꾸옥 — day-owned landmarks; no Sao Beach/Hon Thom bleed; no Nha Trang/Bali', () => {
+    const dirty = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText:
+            '입국신고서 - 비용 : 1만원/1인(아동동일) - 호국사 - 먹거리 볼거리 가득 소나시 야시장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '푸꾸옥 - 썬월드 혼똠 - 그랜드월드 - 베트남 맛집 두번째 미식',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '바다가 보이는 딘커우 사원 - 그랜드월드 - 세번째 미식',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '후추농장 - 푸꾸옥 대표 야시장인 쯔엉동 야시장 - 미식',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 5, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'ybtour', productDestination: '푸꾸옥', productTitle: '푸꾸옥 5일' },
+    )
+    const d1 = dirty.find((r) => r.day === 1)!
+    const d2 = dirty.find((r) => r.day === 2)!
+    const d3 = dirty.find((r) => r.day === 3)!
+    const d4 = dirty.find((r) => r.day === 4)!
+    const d5 = dirty.find((r) => r.day === 5)!
+    expect(String(d1.routeText ?? '')).toMatch(/호국사|소나시/)
+    expect(String(d1.routeText ?? '')).not.toMatch(/비용|미식|먹거리|입국신고서/)
+    expect(String(d2.routeText ?? '')).toMatch(/혼똠|그랜드/)
+    expect(String(d2.routeText ?? '')).not.toMatch(/미식/)
+    expect(`${d2.imageKeyword}|${d2.imageKeyword2}`).toMatch(/Hon\s*Thom|Grand\s*World/i)
+    expect(`${d2.imageKeyword}|${d2.imageKeyword2}`).not.toMatch(/Sao\s*Beach/i)
+    expect(`${d3.imageKeyword}|${d3.imageKeyword2}`).toMatch(/Dinh\s*Cau|Grand\s*World/i)
+    expect(`${d3.imageKeyword}|${d3.imageKeyword2}`).not.toMatch(/Hon\s*Thom/i)
+    expect(`${d4.imageKeyword}|${d4.imageKeyword2}`).toMatch(/Duong\s*Dong|Pepper/i)
+    expect(`${d4.imageKeyword}|${d4.imageKeyword2}`).not.toMatch(/Po\s*Nagar|Long\s*Son|Nha\s*Trang/i)
+    const blob = dirty
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+      .filter(Boolean)
+      .join(' | ')
+    expect(blob).not.toMatch(/Bali|Tegalalang|Po\s*Nagar|Nha\s*Trang/i)
+    expect(String(d5.imageKeyword ?? '')).not.toMatch(/Sonasea|Bali|Tegalalang/i)
   })
 })

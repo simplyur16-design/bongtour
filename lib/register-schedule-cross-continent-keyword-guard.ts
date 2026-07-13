@@ -112,5 +112,20 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
   if (!ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return false
   if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
   if (haystacks.some((h) => AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE.test(h))) return true
+  // 푸꾸옥 상품 — 나트랑·발리·앙코르 등 동남아 타목적지 환각 차단
+  if (/푸꾸옥|Phu\s*Quoc|푸꾹옥/i.test(dest) || (scheduleRows ?? []).some((r) => /푸꾸옥|Phu\s*Quoc/i.test(String(r.routeText ?? '')))) {
+    const tripIsPhuQuocOnly =
+      /푸꾸옥|Phu\s*Quoc/i.test(dest) ||
+      ((scheduleRows ?? []).some((r) => /푸꾸옥|Phu\s*Quoc/i.test(String(r.routeText ?? ''))) &&
+        !(scheduleRows ?? []).some((r) => /나트랑|Nha\s*Trang|발리|Bali|앙코르|Angkor|하롱|Halong/i.test(String(r.routeText ?? ''))))
+    if (
+      tripIsPhuQuocOnly &&
+      /\b(Nha\s*Trang|Po\s*Nagar|Long\s*Son|Bali|Tegalalang|Uluwatu|Angkor|Bayon|Halong|Hoi\s*An|Da\s*Nang)\b/i.test(
+        raw,
+      )
+    ) {
+      return true
+    }
+  }
   return false
 }

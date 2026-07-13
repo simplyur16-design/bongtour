@@ -142,10 +142,18 @@ async function main(): Promise<void> {
 console.log('=== verify-suppliers-schedule-route-noise-and-keyword-dedupe ===\n')
 
 /** SSOT wiring — 공통 noise + apply 진입 sanitize */
-mustInclude('lib/register-schedule-route-place-noise.ts', ['isRegisterScheduleRoutePlaceNoise', 'sanitizeRegisterScheduleRouteText'])
+mustInclude('lib/register-schedule-route-place-noise.ts', [
+  'isRegisterScheduleRoutePlaceNoise',
+  'sanitizeRegisterScheduleRouteText',
+  'ROUTE_PRICE_MEAL_MARKETING_NOISE_RE',
+])
 mustInclude('lib/register-schedule-image-keywords-apply.ts', [
   'sanitizeRegisterScheduleRouteText',
   'enforceRegisterScheduleTripUniqueImageKeywords',
+])
+mustInclude('lib/register-schedule-trip-image-keyword-dedupe.ts', [
+  'southeastAsiaHardcodedPoolHasDayRouteEvidence',
+  'sao beach',
 ])
 mustInclude('lib/register-parse-post-augment.ts', [
   'REGRESSION-FREEZE[register-post-augment-schedule-ssot]',
@@ -156,6 +164,10 @@ const postAugmentSrc = read('lib/register-parse-post-augment.ts')
 assert.ok(
   !postAugmentSrc.includes('mergePostAugmentScheduleImageKeywords'),
   'post-augment must not preserve pre-augment imageKeywords (routeText SSOT)',
+)
+assert.ok(
+  !postAugmentSrc.includes('fillRegisterScheduleMiddleDayImageKeywordGaps(withGemini)'),
+  'post-augment must not re-run gap-fill after Gemini (bleed + latency)',
 )
 for (const bypass of [
   'applyModetourScheduleImageKeywordsToRows',
@@ -365,6 +377,64 @@ for (const s of SUPPLIERS) {
   assert.ok(/Zaisan Memorial/i.test(d3kw2) || /Sukhbaatar Square/i.test(d3kw2), 'mongolia day3 kw2')
   assertTripUniqueKeywords(out, 'mongolia terelj 4-day')
   console.log('[ok] Mongolia Terelj CQP111-like imageKeyword gate')
+}
+
+{
+  // REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]: Phu Quoc AVP8307 meal/price + day ownership — manifest
+  const PHU_QUOC = [
+    {
+      day: 1,
+      routeText:
+        '입국신고서 - 비용 : 1만원/1인(아동동일) - 호국사 - 먹거리 볼거리 가득 소나시 야시장',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 2,
+      routeText: '푸꾸옥 - 썬월드 혼똠 - 그랜드월드 - 베트남 맛집 두번째 미식',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 3,
+      routeText: '바다가 보이는 딘커우 사원 - 그랜드월드 - 세번째 미식',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    {
+      day: 4,
+      routeText: '후추농장 - 푸꾸옥 대표 야시장인 쯔엉동 야시장 - 미식',
+      imageKeyword: '',
+      imageKeyword2: null,
+    },
+    { day: 5, routeText: '', imageKeyword: '', imageKeyword2: null },
+  ]
+  const out = applyRegisterScheduleImageKeywordsBySupplier(PHU_QUOC, {
+    supplierKey: 'ybtour',
+    productDestination: '푸꾸옥',
+    productTitle: '푸꾸옥 5일',
+  })
+  const d1 = out.find((r) => r.day === 1)!
+  const d2 = out.find((r) => r.day === 2)!
+  const d3 = out.find((r) => r.day === 3)!
+  const d4 = out.find((r) => r.day === 4)!
+  const d5 = out.find((r) => r.day === 5)!
+  assert.ok(!/비용|미식|먹거리|입국신고서/u.test(String(d1.routeText ?? '')), 'phu quoc d1 noise stripped')
+  assert.ok(/호국사|소나시/u.test(String(d1.routeText ?? '')), 'phu quoc d1 keeps POI')
+  assert.ok(!/미식/u.test(String(d2.routeText ?? '')), 'phu quoc d2 meal stripped')
+  assert.ok(/Hon\s*Thom|Grand\s*World/i.test(`${d2.imageKeyword}|${d2.imageKeyword2}`), 'phu quoc d2 owns Hon Thom/Grand World')
+  assert.ok(!/Sao\s*Beach/i.test(`${d2.imageKeyword}|${d2.imageKeyword2}`), 'phu quoc d2 no Sao Beach invent')
+  assert.ok(/Dinh\s*Cau|Grand\s*World/i.test(`${d3.imageKeyword}|${d3.imageKeyword2}`), 'phu quoc d3 owns Dinh Cau')
+  assert.ok(!/Hon\s*Thom/i.test(`${d3.imageKeyword}|${d3.imageKeyword2}`), 'phu quoc d3 no Hon Thom bleed')
+  assert.ok(/Duong\s*Dong|Pepper/i.test(`${d4.imageKeyword}|${d4.imageKeyword2}`), 'phu quoc d4 owns Duong Dong')
+  const blob = out
+    .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+    .filter(Boolean)
+    .join(' | ')
+  assert.ok(!/Bali|Tegalalang|Po\s*Nagar|Nha\s*Trang/i.test(blob), 'phu quoc no cross-dest SEA')
+  assert.ok(!/Sonasea|Bali|Tegalalang/i.test(String(d5.imageKeyword ?? '')), 'phu quoc return no Sonasea/Bali invent')
+  assertTripUniqueKeywords(out, 'phu quoc AVP8307-like')
+  console.log('[ok] Phu Quoc AVP8307-like route noise + day ownership')
 }
 
 if (LIVE) {

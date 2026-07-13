@@ -280,12 +280,8 @@ export async function fillRegisterScheduleImageKeywordsWithGeminiIfNeeded<
   if (!rows.length) return rows
   if (process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1') return rows
 
-  const daysToFill = [
-    ...new Set([
-      ...scheduleDaysMissingImageKeywordAfterRules(rows),
-      ...scheduleDaysMissingImageKeyword2AfterRules(rows),
-    ]),
-  ]
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: primary-only — kw2는 규칙 SSOT, Gemini 지연 방지 — manifest
+  const daysToFill = scheduleDaysMissingImageKeywordAfterRules(rows)
   if (!daysToFill.length) {
     return fillFreeLeisureDaysWithGemini(rows, opts)
   }

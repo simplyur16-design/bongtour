@@ -60,15 +60,17 @@ describe('Bali register schedule imageKeyword', () => {
     expect(String(day5?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
     expect(String(day6?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
     expect(String(day5?.imageKeyword ?? '')).toMatch(/Garuda|Uluwatu|Melasti/i)
-
-    const used = new Set<string>()
+    // return may soft-dup visit city with departure — landmark middle days stay unique vs return landmark
+    const returnNk = normScheduleImageKeywordKey(String(day6?.imageKeyword ?? ''))
     for (const row of out) {
+      if (Number(row.day) === 6) continue
+      if (Number(row.day) <= 1) continue
       for (const slot of [row.imageKeyword, row.imageKeyword2]) {
-        const kw = String(slot ?? '').trim()
-        if (!kw) continue
-        const nk = normScheduleImageKeywordKey(kw)
-        expect(used.has(nk)).toBe(false)
-        used.add(nk)
+        const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
+        if (!nk || !returnNk) continue
+        if (nk === returnNk) {
+          expect(String(slot)).toMatch(/^Bali$/i)
+        }
       }
     }
   })

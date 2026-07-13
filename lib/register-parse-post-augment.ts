@@ -12,7 +12,6 @@ import {
 import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enrich'
 import { backfillEmptyScheduleRouteTextFromTitle } from '@/lib/register-schedule-route-text-backfill'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
-import { fillRegisterScheduleMiddleDayImageKeywordGaps } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
@@ -94,10 +93,11 @@ async function applyPackagePostAugmentScheduleKeywords(
           productTitle: parsed.title ?? null,
           logLabel: logPrefix ?? 'register-post-augment',
         })
-  const withFinalGaps = fillRegisterScheduleMiddleDayImageKeywordGaps(withGemini)
+  // Gemini 후 gap-fill 재실행 금지 — tripHay bleed·등록 지연 재개 방지 (rules는 apply 단계만)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: no post-gemini gap-fill — manifest
   return {
     ...parsed,
-    schedule: ensurePackageScheduleLastDayGateCompliance(withFinalGaps),
+    schedule: ensurePackageScheduleLastDayGateCompliance(withGemini),
   }
 }
 

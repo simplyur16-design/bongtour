@@ -2864,6 +2864,14 @@
           ]
         },
         {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "prefetchedFactBundle skip live detail re-fetch",
+            "detailCollectAlreadySatisfied"
+          ]
+        },
+        {
           "file": "app/admin/register/page.tsx",
           "mustInclude": [
             "registerFactBundle"

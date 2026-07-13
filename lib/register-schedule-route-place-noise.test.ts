@@ -208,4 +208,20 @@ describe('register schedule route place noise', () => {
     expect(String(out[2]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
     expect(String(out[0]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
   })
+
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: AVP8307 meal·price·marketing — manifest
+  it('strips price·meal·marketing noise — keeps Phu Quoc POI tails', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('비용 : 1만원/1인(아동동일)')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('베트남 맛집 두번째 미식')).toBe(true)
+    expect(extractRegisterScheduleRoutePlaceLabel('바다가 보이는 딘커우 사원')).toBe('딘커우 사원')
+    expect(extractRegisterScheduleRoutePlaceLabel('먹거리 볼거리 가득 소나시 야시장')).toBe('소나시 야시장')
+    expect(extractRegisterScheduleRoutePlaceLabel('푸꾸옥 대표 야시장인 쯔엉동 야시장')).toBe(
+      '쯔엉동 야시장',
+    )
+    expect(
+      sanitizeRegisterScheduleRouteText(
+        '입국신고서 - 비용 : 1만원/1인(아동동일) - 호국사 - 먹거리 볼거리 가득 소나시 야시장 - 베트남 맛집 두번째 미식',
+      ),
+    ).toBe('호국사 - 소나시 야시장')
+  })
 })

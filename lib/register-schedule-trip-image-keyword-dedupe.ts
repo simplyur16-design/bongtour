@@ -160,21 +160,29 @@ function pickUnusedTripLandmarkForReturnFill(
   rows: readonly RegisterScheduleTripKeywordRow[],
   used: ReadonlySet<string>,
 ): string {
+  const isUsedish = (kw: string): boolean => {
+    const nk = normScheduleImageKeywordKey(kw)
+    if (!nk) return true
+    if (used.has(nk)) return true
+    for (const u of used) {
+      if (!u) continue
+      if (nk.includes(u) || u.includes(nk)) return true
+    }
+    return false
+  }
   for (const kw of collectTripOrderedLandmarkKeywords(rows)) {
     const t = String(kw ?? '').trim()
     if (!t || isRejectedTripKeywordCandidate(t)) continue
     if (isBareCityOrCountryKeyword(t)) continue
     if (!isLikelyTourismLandmarkKeyword(t) && t.split(/\s+/).length < 2) continue
-    const nk = normScheduleImageKeywordKey(t)
-    if (!nk || used.has(nk)) continue
+    if (isUsedish(t)) continue
     return t
   }
   for (const row of [...rows].sort((a, b) => Number(b.day) - Number(a.day))) {
     for (const cand of collectTripKeywordCandidates(row)) {
       const t = String(cand ?? '').trim()
       if (!t || isRejectedTripKeywordCandidate(t) || isBareCityOrCountryKeyword(t)) continue
-      const nk = normScheduleImageKeywordKey(t)
-      if (!nk || used.has(nk)) continue
+      if (isUsedish(t)) continue
       if (isLikelyTourismLandmarkKeyword(t)) return t
     }
   }
@@ -675,6 +683,22 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
           )
     if (!filled) {
       const keepKw = String(row.imageKeyword ?? '').trim()
+      // 귀국 빈 슬롯 — 미사용 명소 없으면 방문도시 soft-dup (빈칸·환각 랜드마크보다 우선)
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return soft-dup visit city — manifest
+      if (slot === 'return' && !keepKw) {
+        const softCity =
+          pickReturnVisitCityKeyword(sorted, day, productDestination, undefined) ||
+          mapDestination(String(productDestination ?? '').trim()) ||
+          ''
+        if (
+          softCity &&
+          !isDomesticHubOrAirportImageKeyword(softCity) &&
+          !isRejectedTripKeywordCandidate(softCity)
+        ) {
+          out.set(day, { ...row, imageKeyword: softCity, imageKeyword2: null })
+          continue
+        }
+      }
       out.set(day, {
         ...row,
         imageKeyword: keepKw,
@@ -700,6 +724,11 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       // 귀국: 미사용 명소 없으면 방문도시 soft-dup 허용 (빈 슬롯보다 우선)
       if (filled && isBareCityOrCountryKeyword(filled)) {
         out.set(day, { ...row, imageKeyword: filled, imageKeyword2: null })
+        continue
+      }
+      const softCity = pickReturnVisitCityKeyword(sorted, day, productDestination, undefined)
+      if (softCity) {
+        out.set(day, { ...row, imageKeyword: softCity, imageKeyword2: null })
         continue
       }
       out.set(day, { ...row, imageKeyword: '', imageKeyword2: null })
@@ -803,7 +832,16 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           if (isDomesticHubOrAirportImageKeyword(kw)) continue
           if (isReturnDayCityLeakKeyword(kw)) continue
           const nk = normScheduleImageKeywordKey(kw)
-          if (nk && used.has(nk)) continue
+          if (!nk) continue
+          if (used.has(nk)) continue
+          let fuzzyHit = false
+          for (const u of used) {
+            if (nk.includes(u) || u.includes(nk)) {
+              fuzzyHit = true
+              break
+            }
+          }
+          if (fuzzyHit) continue
           picked = kw
           break
         }
@@ -819,12 +857,23 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
             const kw = String(raw ?? '').trim()
             if (!kw || isDomesticHubOrAirportImageKeyword(kw) || isReturnDayCityLeakKeyword(kw)) continue
             const nk = normScheduleImageKeywordKey(kw)
-            if (nk && used.has(nk)) continue
+            if (!nk || used.has(nk)) continue
+            let fuzzyHit = false
+            for (const u of used) {
+              if (nk.includes(u) || u.includes(nk)) {
+                fuzzyHit = true
+                break
+              }
+            }
+            if (fuzzyHit) continue
             picked = kw
             break
           }
           if (picked) break
         }
+      }
+      if (!picked) {
+        picked = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination, undefined)
       }
       if (!picked && isSoutheastAsiaResortClusterRoute(tripHay)) {
         for (const kw of [
@@ -834,6 +883,8 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           'Seminyak Beach Bali',
           'Nusa Penida Kelingking Beach Bali',
         ]) {
+          // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return SEA Bali only with day/trip Bali evidence — manifest
+          if (!southeastAsiaHardcodedPoolHasDayRouteEvidence(kw, tripHay)) continue
           if (isReturnDayCityLeakKeyword(kw) || isDomesticHubOrAirportImageKeyword(kw)) continue
           const nk = normScheduleImageKeywordKey(kw)
           if (!nk || used.has(nk)) continue
@@ -1428,7 +1479,14 @@ function southeastAsiaHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   const rt = String(dayRoute ?? '')
   if (!rt.trim()) return false
   const nk = normScheduleImageKeywordKey(kw)
-  if (/phu quoc|phuquoc|sao beach|hon thom/.test(nk)) {
+  // POI-specific — bare 푸꾸옥만으로 Sao Beach / Hon Thom 주입 금지
+  if (/sao beach/.test(nk)) {
+    return /사오\s*비치|Sao\s*Beach/i.test(rt)
+  }
+  if (/hon thom/.test(nk)) {
+    return /혼똠|혼똔|Hon\s*Thom|썬월드|세계\s*최장\s*케이블카/i.test(rt)
+  }
+  if (/phu quoc|phuquoc/.test(nk)) {
     return /푸꾸옥|푸꾹옥|Phu\s*Quoc/i.test(rt)
   }
   if (/nha trang|po nagar|long son/.test(nk)) {
@@ -2986,6 +3044,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
     if (!t || isRejectedTripKeywordCandidate(t)) return false
     if (!registerScheduleKeywordPassesTripRouteTextSsot(t, tripCtx, row)) return false
     if (registerScheduleKeywordPassesRouteEvidence(t, row)) return true
+    // 당일 관광 세그먼트가 있으면 tripHay 증거로 타일 랜드마크 주입 금지 (푸꾸옥 Hon Thom/Sao Beach bleed)
+    if (routeTextTourismSegmentCount(row.routeText) >= 1) return false
     return registerScheduleKeywordPassesRouteEvidence(t, {
       ...row,
       routeText: tripHay,
@@ -3021,7 +3081,9 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       let candidate =
         pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
         pickGapFillKeyword(daySpots, '', row, acceptKw, false, used) ||
-        pickGapFillKeyword(tripSpots, '', row, acceptKw, false, used) ||
+        (routeTextTourismSegmentCount(row.routeText) < 1
+          ? pickGapFillKeyword(tripSpots, '', row, acceptKw, false, used)
+          : '') ||
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
@@ -3036,15 +3098,22 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickUnusedRoutePrimaryLandmark(row, used) ||
         pickUnusedRouteLandmarkFromRowHaystack(row, '', used) ||
-        pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false) ||
-        pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false) ||
-        pickTripSpotGapFillFallback(tripSpots, usedPrimary, '') ||
+        (routeTextTourismSegmentCount(row.routeText) < 1
+          ? pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false)
+          : '') ||
+        (routeTextTourismSegmentCount(row.routeText) < 1
+          ? pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false)
+          : '') ||
+        (routeTextTourismSegmentCount(row.routeText) < 1
+          ? pickTripSpotGapFillFallback(tripSpots, usedPrimary, '')
+          : '') ||
         ''
       if (candidate) primary = candidate
     }
 
     if (primary && !secondary && fillKw2) {
       const pk = normScheduleImageKeywordKey(primary)
+      const dayHasTourism = routeTextTourismSegmentCount(row.routeText) >= 1
       let candidate =
         pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
@@ -3062,12 +3131,16 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickGapFillKeyword(daySpots, pk, row, acceptKw, false, used, true) ||
-        pickGapFillKeyword(tripSpots, pk, row, acceptKw, true, used, true, tripHay, processedByDay) ||
+        (!dayHasTourism
+          ? pickGapFillKeyword(tripSpots, pk, row, acceptKw, true, used, true, tripHay, processedByDay)
+          : '') ||
         fillMiddleDayKeyword2InDedupe(row, primary, cands, used, multiSegRoute) ||
-        pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false, pk) ||
-        pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false, pk) ||
+        (!dayHasTourism
+          ? pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false, pk)
+          : '') ||
+        (!dayHasTourism ? pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false, pk) : '') ||
         pickSouthAmericaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickTripSpotGapFillFallback(tripSpots, usedPrimary, pk) ||
+        (!dayHasTourism ? pickTripSpotGapFillFallback(tripSpots, usedPrimary, pk) : '') ||
         ''
       if (candidate && normScheduleImageKeywordKey(candidate) === pk) candidate = ''
       if (
@@ -3082,27 +3155,24 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
     if (!primary) {
       primary =
         pickTripSpotGapFillFallback(daySpots, usedPrimary, '') ||
-        pickTripSpotGapFillFallback(tripSpots, usedPrimary, '') ||
+        (routeTextTourismSegmentCount(row.routeText) < 1
+          ? pickTripSpotGapFillFallback(tripSpots, usedPrimary, '')
+          : '') ||
         primary
     }
 
     if (primary && !secondary && fillKw2) {
       const pk = normScheduleImageKeywordKey(primary)
-      for (const list of [daySpots, tripSpots, cands]) {
+      const lists =
+        routeTextTourismSegmentCount(row.routeText) >= 1 ? [daySpots, cands] : [daySpots, tripSpots, cands]
+      for (const list of lists) {
         for (const raw of list) {
           const kw = String(raw ?? '').trim()
           const nk = normScheduleImageKeywordKey(kw)
           if (!nk || nk === pk || isRejectedTripKeywordCandidate(kw) || isBareCityOrCountryKeyword(kw)) {
             continue
           }
-          if (
-            !registerScheduleKeywordPassesRouteEvidence(kw, {
-              ...row,
-              routeText: tripHay,
-              title: '',
-              description: '',
-            })
-          ) {
+          if (!registerScheduleKeywordPassesRouteEvidence(kw, row)) {
             continue
           }
           if (used.has(nk) && !allowClusterKw2ReuseDespiteUsed(kw, tripHay)) continue

@@ -17,14 +17,22 @@ const ROUTE_DURATION_INLINE_RE =
 
 /** 산문 가이드 문구 → 꼬리 명소만 (문자열에 이미 있는 이름만) */
 const ROUTE_PROSE_TAIL_RE =
-  /(?:이라?\s*불리우는|이라?\s*불리는?|에\s*위치한|로\s*유명한|가\s*전시된|로\s*손꼽히는|손꼽히는|기념해\s*건설한|한눈에\s*담을\s*수\s*있는|한\s*눈에\s*보이는|맞이해주는|을\s*수\s*있는|을?\s*간직한|에\s*선정된|를?\s*대표하는|로\s*구성된|이\s*보이는|이라는\s*뜻의|이\s*거행된|로\s*사용되고?\s*있는|으로\s*지어진|의\s*명소|만남의\s*장소|으로\s*이루어진|출신의|이\s*어우러진|유물이\s*있는|으로\s*빛나는|꼽히는|상태가\s*뛰어난|볼\s*수\s*있는|동상이\s*있는|선정한|박물관인)\s*(.+)$/u
+  /(?:이라?\s*불리우는|이라?\s*불리는?|에\s*위치한|로\s*유명한|가\s*전시된|로\s*손꼽히는|손꼽히는|기념해\s*건설한|한눈에\s*담을\s*수\s*있는|한\s*눈에\s*보이는|맞이해주는|을\s*수\s*있는|을?\s*간직한|에\s*선정된|를?\s*대표하는|대표\s*야시장인|야시장인|로\s*구성된|이\s*보이는|이라는\s*뜻의|이\s*거행된|로\s*사용되고?\s*있는|으로\s*지어진|의\s*명소|만남의\s*장소|으로\s*이루어진|출신의|이\s*어우러진|유물이\s*있는|으로\s*빛나는|꼽히는|상태가\s*뛰어난|볼\s*수\s*있는|동상이\s*있는|선정한|박물관인|먹거리\s*볼거리\s*가득)\s*(.+)$/u
 
 /** 긴 가이드 문장 — 끝 POI 접미사만 남김 */
 const ROUTE_GUIDE_POI_TAIL_RE =
-  /(?:^|[\s,，])([가-힣A-Za-z][가-힣A-Za-z0-9'\s]{1,28}(?:궁전|궁|성당|대성당|교회|광장|요새|해변|거리|박물관|수도원|국립공원|성|다리|호수|탑|공원|왕궁|시청))$/u
+  /(?:^|[\s,，])([가-힣A-Za-z][가-힣A-Za-z0-9'\s]{1,28}(?:궁전|궁|성당|대성당|교회|광장|요새|해변|거리|박물관|수도원|국립공원|야시장|사원|성|다리|호수|탑|공원|왕궁|시청))$/u
 
 const ROUTE_POI_TAIL_HINT_RE =
-  /(?:궁|성|광장|교회|성당|대성당|해변|거리|요새|박물관|수도원|사원|탑|다리|폭포|공원|성채|왕궁|시청|도서관|온천|항구|섬|호수|마을|요새|절|관|원|시)$/u
+  /(?:궁|성|광장|교회|성당|대성당|해변|거리|요새|박물관|수도원|사원|탑|다리|폭포|공원|성채|왕궁|시청|도서관|온천|항구|섬|호수|마을|요새|절|관|원|야시장|시)$/u
+
+/** 가격·미식·마케팅 수식 — 지명 슬롯 아님 (순수 잡음 문구) */
+const ROUTE_PRICE_MEAL_MARKETING_NOISE_RE =
+  /비용\s*[:：]?|만원\s*\/?\s*1인|\/\s*1인(?:\s*\()|아동\s*동일|(?:\d+|첫|두|세|네|다섯)\s*번째\s*미식|(?:베트남|로컬)?\s*맛집|^\s*미식\s*$|썬베드|무료\s*이용/u
+
+/** 마케팅 접두 — 꼬리 명소만 남기기 전 strip */
+const ROUTE_MARKETING_PREFIX_STRIP_RE =
+  /^(?:먹거리\s*볼거리\s*가득\s*|바다가\s*보이는\s*|푸꾸옥\s*대표\s*야시장인\s*|대표\s*야시장인\s*)/u
 
 const ROUTE_ADMIN_GUIDANCE_RE =
   /(?:입국|출국|출입국)(?:\s*(?:시|에|할))?[\s\S]{0,24}(?:관련\s*)?안내|관련\s*안내|한국\s*[-·]\s*일본\s*여행|(?:한국|일본)\s*[-·]\s*(?:한국|일본)\s*여행|여행\s*일정|여행\s*(?:입국|출국|시\s*유의)|비자\s*(?:안내|필수|필요)|세관\s*신고|세관에\s*신고|전자\s*입국|Visit\s*Japan|사전\s*동의|유의\s*사항|여행\s*시\s*유의|출입국\s*카드|온라인\s*입국|입국\s*심사|출국\s*심사|전자\s*여권|e\s*TA\b|ESTA|개별\s*수속|미팅\s*없음|영문\s*주민등록|외국환\s*신고|면세\s*한도|추가금이\s*발생|준비물|협조\s*사항|입국신고서|Arrival\s*Card|반입금지|판매\s*목적의\s*반입|일자별\s*운영시간|참고\s*URL|https?:|www\./i
@@ -112,6 +120,7 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/\s*\(NEW\)\s*/gi, ' ')
     .replace(/\s*\([A-Z]{2}\d{2,4}\)\s*/g, ' ')
     .replace(ROUTE_DURATION_INLINE_RE, '')
+    .replace(ROUTE_MARKETING_PREFIX_STRIP_RE, '')
     .replace(/\s+/g, ' ')
     .replace(ROUTE_PLACE_LABEL_TRIM_SUFFIX_RE, '')
     .trim()
@@ -287,7 +296,7 @@ export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | nu
   // 산문·안내 잔존 — 꼬리 추출 실패 시 슬롯 거부 (지명 슬롯 a–g만)
   if (
     ROUTE_PROSE_TAIL_RE.test(t0) ||
-    /손꼽히는|불리우는|불리는|위치한|전시된|기념해\s*건설|간직한|선정된|대표하는|이루어진|출신의|유일무이|다채로운|죽기전|어우러진|빛나는|거행되었|만남의\s*장소|등\s*시내|등\s*간단|야경\s*관광|호텔\s*투숙|자유\s*시간|석식\s*$|조식\s*$|전경이\s*한\s*눈에|가이드\s*미팅|미팅\s*장소|하선\s*후|탑승\s*후\s*가이드|무료\s*이용|추가금|발생됩니다|준비물|협조\s*사항|개별\s*수속/u.test(
+    /손꼽히는|불리우는|불리는|위치한|전시된|기념해\s*건설|간직한|선정된|대표하는|야시장인|이루어진|출신의|유일무이|다채로운|죽기전|어우러진|빛나는|거행되었|만남의\s*장소|먹거리\s*볼거리|등\s*시내|등\s*간단|야경\s*관광|호텔\s*투숙|자유\s*시간|석식\s*$|조식\s*$|전경이\s*한\s*눈에|가이드\s*미팅|미팅\s*장소|하선\s*후|탑승\s*후\s*가이드|무료\s*이용|썬베드|추가금|발생됩니다|준비물|협조\s*사항|개별\s*수속|케이블카\s*탑승\s*후\s*가이드/u.test(
       t0,
     )
   ) {
@@ -337,6 +346,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: price·meal·marketing — manifest
+  if (ROUTE_PRICE_MEAL_MARKETING_NOISE_RE.test(t)) return true
+  if (/미식|먹거리\s*볼거리/u.test(t) && !ROUTE_POI_TAIL_HINT_RE.test(t)) return true
   if (/^\d+일차$/u.test(t)) return true
   if (/^(?:뉴질랜드|호주|일본|중국|태국|베트남)\s*.+(?:관광|투어)$/u.test(t)) return true
   if (/하이라이트\s*_/u.test(t)) return true

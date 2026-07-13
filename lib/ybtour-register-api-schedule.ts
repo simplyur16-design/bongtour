@@ -46,7 +46,7 @@ function cleanYbtourRoutePlaceLabel(raw: string): string {
   if (
     t.length >= 2 &&
     t.length <= 28 &&
-    !/(?:불리는|불리우는|손꼽히는|위치한|전시된|기념해)/u.test(t) &&
+    !/(?:불리는|불리우는|손꼽히는|위치한|전시된|기념해|야시장인|먹거리|미식|비용|무료\s*이용)/u.test(t) &&
     !isYbtourRoutePlaceNoise(t)
   ) {
     return t

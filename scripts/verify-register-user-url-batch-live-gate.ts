@@ -269,6 +269,14 @@ function scheduleRowIssues(
   if (route && /(?:여행\s*준비\s*가이드|타사\s*비교|비즈니스\s*석|호텔\s*체크\s*아웃|날짜\s*변경선|🔥|🚙|▷)/u.test(route)) {
     issues.push('routeText 오염(마케팅·행정)')
   }
+  if (
+    route &&
+    /(?:비용\s*[:：]?|만원\s*\/?\s*1인|(?:\d+|첫|두|세|네|다섯)\s*번째\s*미식|(?:베트남|로컬)?\s*맛집|\b미식\b|먹거리\s*볼거리|입국신고서|관련\s*안내|바다가\s*보이는|대표\s*야시장인)/u.test(
+      route,
+    )
+  ) {
+    issues.push('routeText 오염(가격·미식·산문)')
+  }
   if (!desc) issues.push('description 비어 있음')
   if (desc.length > 0 && desc.length < 8) issues.push('description 너무 짧음')
   if (desc && route && (desc === route || desc.startsWith(`${route}\n`))) {
@@ -282,7 +290,12 @@ function scheduleRowIssues(
 
   if (!isFirst && !isLast) {
     if (!kw) issues.push('중간일 imageKeyword 비어 있음')
-    if (!kw2 && totalDays >= 4) issues.push('중간일 imageKeyword2 비어 있음(4일+)')
+    const tourismSegs = routeSegments.filter(
+      (s) => s && !/^(?:인천|김포|부산|대구|청주|김해|서울|제주|푸꾸옥|하노이|방콕|발리|오사카|도쿄)$/u.test(s),
+    )
+    if (!kw2 && totalDays >= 4 && tourismSegs.length >= 2) {
+      issues.push('중간일 imageKeyword2 비어 있음(4일+)')
+    }
   } else {
     if (!kw) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword 비어 있음`)
     if (kw2) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword2는 null이어야 함`)

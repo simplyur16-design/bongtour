@@ -22,7 +22,9 @@ import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/regi
 import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { mapDestination } from '@/lib/pexels-keyword'
 
 function promoteMiddleDayEmptyPrimaryFromKeyword2<T extends RegisterScheduleImageKeywordApplyRow>(
   rows: T[],
@@ -82,22 +84,29 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const prepared = expandSingleSegmentPoiRouteTextRows(
     prepareRegisterScheduleRowsForImageKeywordApply(rowsForApply),
   )
-  /** imageKeyword SSOT — 키워드는 maxPlaces 자르기 전 원본 routeText 순서. 표시용 sanitize는 출력 직전만 */
-  const routeTextRawByDay = new Map(prepared.map((row) => [Number(row.day), row.routeText ?? null]))
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: keyword collect on sanitized route — manifest
+  const preparedForKeywords = prepared.map((row) => ({
+    ...row,
+    routeText: sanitizeRegisterScheduleRouteText(row.routeText) ?? row.routeText,
+  }))
+  /** display sanitize는 출력 직전 — 키워드는 sanitize 후 세그먼트 순서 SSOT */
+  const routeTextRawByDay = new Map(
+    preparedForKeywords.map((row) => [Number(row.day), row.routeText ?? null]),
+  )
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   const dest = opts.productDestination ?? null
 
   let out: T[]
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    out = applyAirtelRouteTextImageKeywordsToSchedule(prepared)
+    out = applyAirtelRouteTextImageKeywordsToSchedule(preparedForKeywords)
   } else if (supplier === 'naeiltour') {
-    out = applyNaeiltourScheduleImageKeywordsToRows(prepared as NaeiltourScheduleImageKeywordRow[], {
+    out = applyNaeiltourScheduleImageKeywordsToRows(preparedForKeywords as NaeiltourScheduleImageKeywordRow[], {
       productDestination: dest,
       englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
     }) as T[]
   } else {
-    out = applyRegisterScheduleRouteTextKeywordsWithSupplierFallback(prepared, {
+    out = applyRegisterScheduleRouteTextKeywordsWithSupplierFallback(preparedForKeywords, {
       supplierKey: supplier,
       productDestination: dest,
       productTitle: opts.productTitle ?? null,
@@ -109,7 +118,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
     const strip = (k: string) =>
-      k && isRegisterScheduleCrossContinentHallucinationKeyword(k, dest, prepared) ? '' : k
+      k && isRegisterScheduleCrossContinentHallucinationKeyword(k, dest, preparedForKeywords) ? '' : k
     return {
       ...row,
       imageKeyword: strip(kw),
@@ -136,7 +145,103 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     : withKeywords
   // reconcile 후 귀국·출발 빈 슬롯 재보충 (중간일 gap-fill이 마지막 고유 랜드마크를 선점한 경우)
   const withReturnRefill = ensureDepartureReturnVisitCityKeywords(finalDeduped, dest)
-  return withReturnRefill.map((row) => {
+  // 귀국 슬롯이 중간일 랜드마크와 fuzzy 중복이면 방문도시 soft-dup으로 교체
+  const maxDayFinal = Math.max(...withReturnRefill.map((r) => Number(r.day)).filter((d) => d > 0), 0)
+  const pickTripVisitCitySoftDup = (): string => {
+    for (const row of [...withReturnRefill].sort((a, b) => Number(b.day) - Number(a.day))) {
+      if (Number(row.day) >= maxDayFinal) continue
+      for (const seg of String(row.routeText ?? '')
+        .split(/\s+-\s+/)
+        .map((s) => s.trim())
+        .filter(Boolean)) {
+        const mapped = mapDestination(seg)
+        if (
+          mapped &&
+          isBareCityOrCountryKeyword(mapped) &&
+          !/^(?:Vietnam|Thailand|Japan|Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore)$/i.test(
+            mapped,
+          )
+        ) {
+          return mapped
+        }
+      }
+    }
+    const fromDest = mapDestination(String(dest ?? '').trim())
+    if (fromDest && isBareCityOrCountryKeyword(fromDest)) return fromDest
+    return ''
+  }
+  const middleUsedNk = new Set<string>()
+  for (const row of withReturnRefill) {
+    const d = Number(row.day)
+    if (d <= 1 || d >= maxDayFinal) continue
+    for (const slot of [row.imageKeyword, row.imageKeyword2]) {
+      const nk = normScheduleImageKeywordKey(String(slot ?? '').trim())
+      if (nk) middleUsedNk.add(nk)
+    }
+  }
+  const returnDeduped = withReturnRefill.map((row) => {
+    const d = Number(row.day)
+    if (d !== maxDayFinal || maxDayFinal < 2) return row
+    let kw = String(row.imageKeyword ?? '').trim()
+    if (
+      !kw ||
+      /^(?:Vietnam|Thailand|Japan|Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|베트남|태국|일본|한국|중국)$/i.test(
+        kw,
+      )
+    ) {
+      const soft = pickTripVisitCitySoftDup()
+      if (soft) {
+        return { ...row, imageKeyword: soft, imageKeyword2: null }
+      }
+      if (!kw) return row
+    }
+    const nk = normScheduleImageKeywordKey(kw)
+    let clash = middleUsedNk.has(nk)
+    if (!clash) {
+      for (const u of middleUsedNk) {
+        if (nk.includes(u) || u.includes(nk)) {
+          clash = true
+          break
+        }
+      }
+    }
+    if (!clash) return row
+    if (isBareCityOrCountryKeyword(kw)) {
+      return { ...row, imageKeyword: kw, imageKeyword2: null }
+    }
+    const soft = pickTripVisitCitySoftDup()
+    if (soft) {
+      return { ...row, imageKeyword: soft, imageKeyword2: null }
+    }
+    return { ...row, imageKeyword: '', imageKeyword2: null }
+  })
+  // 귀국 soft-dup 방문도시와 겹치는 중간일 bare-city kw2 제거
+  const returnNk = normScheduleImageKeywordKey(
+    String(returnDeduped.find((r) => Number(r.day) === maxDayFinal)?.imageKeyword ?? '').trim(),
+  )
+  const middleBareCleared = returnDeduped.map((row) => {
+    const d = Number(row.day)
+    if (d <= 1 || d >= maxDayFinal) return row
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (!kw2 || !returnNk) return row
+    const nk2 = normScheduleImageKeywordKey(kw2)
+    if (nk2 === returnNk && isBareCityOrCountryKeyword(kw2)) {
+      return { ...row, imageKeyword2: null }
+    }
+    return row
+  })
+  const finalCrossStripped = middleBareCleared.map((row) => {
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    const strip = (k: string) =>
+      k && isRegisterScheduleCrossContinentHallucinationKeyword(k, dest, preparedForKeywords) ? '' : k
+    return {
+      ...row,
+      imageKeyword: strip(kw),
+      imageKeyword2: strip(kw2) || null,
+    }
+  })
+  return finalCrossStripped.map((row) => {
     const day = Number(row.day)
     const rawRoute = routeTextRawByDay.get(day)
     return {
