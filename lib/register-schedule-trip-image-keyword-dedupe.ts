@@ -2063,8 +2063,9 @@ function allowSoutheastAsiaResortClusterKw2Duplicate(kw: string, routeText?: str
 
 function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지 — Seattle·Alaska·내몽골 증거 필요
   if (
-    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알aska|알래스카|Juneau|Skagway|Glacier|Pike Place|Space Needle|크루즈|cruise)/i.test(
+    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알aska|알래스카|Juneau|Skagway|Glacier|Pike Place|Space Needle)/i.test(
       String(routeText ?? ''),
     )
   ) {
@@ -2077,7 +2078,8 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
 }
 
 function isSteppeAlaskaClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알aska|알래스카|Juneau|Skagway|Glacier|Pike Place|Space Needle|크루즈|cruise)/i.test(
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 크루즈/cruise 토큰 제외 — SEA 비치클럽 크루즈가 Glacier Bay를 끌어오지 않게
+  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알aska|알래스카|Juneau|Skagway|Glacier|Pike Place|Space Needle)/i.test(
     String(routeText ?? ''),
   )
 }

@@ -758,6 +758,12 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     })
     const day6 = out.find((r) => r.day === 6)!
     expect(String(day6.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    // 비치 클럽 크루즈만으로 Alaska/Seattle 키워드 유입 금지
+    const blob = out
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+      .map((k) => String(k ?? ''))
+      .join(' | ')
+    expect(blob).not.toMatch(/Glacier Bay|Pike Place|Space Needle|Alaska|Seattle/i)
   })
 
   it('apply pipeline — imageKeyword2 일자 간 중복 시 route 차순위 명소', () => {

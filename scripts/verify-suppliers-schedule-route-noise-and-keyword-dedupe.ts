@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]: manifest
  * 전 공급사 — routeText 행정/UI noise 제거 + trip-wide imageKeyword 중복 금지 실검.
+ * 출발·귀국 bare visit city soft-dup(Bali/Da Nang)만 허용 — 랜드마크·중간일 중복은 금지.
  *
  * 실행: npm run verify:suppliers-schedule-route-noise-and-keyword-dedupe
  *       npm run verify:suppliers-schedule-route-noise-and-keyword-dedupe -- --live
@@ -49,18 +50,38 @@ function assertRouteNoAdminNoise(routeText: string | null | undefined, label: st
   assert.ok(!ROUTE_ADMIN_RE.test(rt), `${label}: routeText must not contain admin guidance: ${rt}`)
 }
 
+function looksBareVisitCityKeyword(kw: string): boolean {
+  return (
+    kw.split(/\s+/).length <= 3 &&
+    !/beach|hills|town|pagoda|temple|castle|bridge|palace|museum|garden|fort|market|square|park|lake|sound|gorge|forest|village|church|memorial|tower/i.test(
+      kw,
+    )
+  )
+}
+
+/** trip-wide unique — 출발·귀국 bare visit city soft-dup(Bali/Da Nang)만 허용 */
 function assertTripUniqueKeywords(
   rows: Array<{ day: number; imageKeyword?: string | null; imageKeyword2?: string | null }>,
   label: string,
 ): void {
-  const used = new Set<string>()
+  const maxDay = Math.max(...rows.map((r) => Number(r.day)).filter((d) => d > 0), 0)
+  const used = new Map<string, number>()
   for (const row of rows) {
+    const day = Number(row.day)
     for (const slot of [row.imageKeyword, row.imageKeyword2]) {
       const kw = String(slot ?? '').trim()
       if (!kw) continue
       const nk = normScheduleImageKeywordKey(kw)
-      assert.ok(!used.has(nk), `${label} day ${row.day}: duplicate imageKeyword "${kw}"`)
-      used.add(nk)
+      if (!nk) continue
+      if (used.has(nk)) {
+        const prev = used.get(nk)!
+        // 귀국(또는 출발) bare visit city soft-dup — 중간일끼리 중복은 금지
+        const touchesEdge = day <= 1 || day >= maxDay || prev <= 1 || prev >= maxDay
+        const allowEdge = looksBareVisitCityKeyword(kw) && touchesEdge
+        assert.ok(allowEdge, `${label} day ${day}: duplicate imageKeyword "${kw}"`)
+      } else {
+        used.set(nk, day)
+      }
     }
   }
 }
@@ -295,6 +316,14 @@ for (const s of SUPPLIERS) {
     const day6 = out.find((r) => r.day === 6)
     assert.ok(String(day5?.imageKeyword ?? '').trim().length > 0, `${key} bali day5 imageKeyword`)
     assert.ok(String(day6?.imageKeyword ?? '').trim().length > 0, `${key} bali day6 imageKeyword`)
+    const baliBlob = out
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+      .map((k) => String(k ?? ''))
+      .join(' | ')
+    assert.ok(
+      !/Glacier Bay|Pike Place|Space Needle|Alaska|Seattle/i.test(baliBlob),
+      `${key} bali must not invent Alaska/Seattle from beach-club cruise`,
+    )
     assertTripUniqueKeywords(out, `${key} bali 6-day`)
   }
   console.log('[ok] bali 6-day southern tour + return keyword gate')

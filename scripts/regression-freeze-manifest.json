@@ -4439,7 +4439,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]",
             "assertRouteNoAdminNoise",
-            "assertTripUniqueKeywords"
+            "assertTripUniqueKeywords",
+            "출발·귀국 bare visit city soft-dup",
+            "beach-club cruise"
           ]
         }
       ],
@@ -4665,7 +4667,8 @@
             "southeastAsiaHardcodedPool day-route evidence",
             "스페인광장",
             "trip-unique no cluster kw reuse",
-            "return fill excludes departure+middle used"
+            "return fill excludes departure+middle used",
+            "발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지"
           ]
         },
         {
@@ -4675,7 +4678,8 @@
             "Croatia Split day",
             "Prague",
             "Phu Quoc bare city must not repeat",
-            "싱가포르 일정 — tripHay SEA라도"
+            "싱가포르 일정 — tripHay SEA라도",
+            "비치 클럽 크루즈만으로 Alaska/Seattle 키워드 유입 금지"
           ]
         },
         {
