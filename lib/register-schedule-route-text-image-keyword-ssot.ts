@@ -546,7 +546,22 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       if (secondary) used.add(normScheduleImageKeywordKey(secondary))
     } else if (slot === 'departure') {
       const nextRow = sorted.find((r) => Number(r.day) > day)
-      primary = forwardRouteKeywordFromNextDay(day, sorted, maxDay, activeDays)
+      // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: departure own-route landmark before forward — manifest
+      // 후속일 forward를 먼저 쓰면 산문·타도시 누수(AVP7297 Da Lat) / 마카오→홍콩 출발일 오배정
+      {
+        const ownLandmark =
+          pickFirstUnused(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)
+        if (
+          ownLandmark &&
+          isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(ownLandmark)) &&
+          !isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(ownLandmark))
+        ) {
+          primary = ownLandmark
+        }
+      }
+      if (!primary) {
+        primary = forwardRouteKeywordFromNextDay(day, sorted, maxDay, activeDays)
+      }
       if (!primary) {
         const candidate =
           pickFirstUnused(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)

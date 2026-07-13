@@ -20,6 +20,7 @@ export function stripYbtourHtmlText(html: string): string {
     .replace(/<\/li>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;|&#38;/gi, '&')
     .replace(/&quot;|&#34;/gi, '"')
     .replace(/&lt;|&#60;/gi, '<')
     .replace(/&gt;|&#62;/gi, '>')
@@ -92,7 +93,11 @@ function isYbtourRoutePlaceNoise(label: string): boolean {
   const t = label.trim()
   if (!t || t.length < 2 || t.length > 80) return true
   if (YBTOUR_ROUTE_PLACE_NOISE_RE.test(t)) return true
-  if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
+  if (/^(?:조식|중식|석식|기내|기장|승무원|호텔)$/i.test(t)) return true
+  if (/(?:분짜|반쎄오|샤브|세트|애프터눈|에프퍼눈)\s*(?:티|세트)?$/iu.test(t) && !/(?:사원|궁|성당|탑|폭포|공원)/u.test(t)) {
+    return true
+  }
+  if (/동양의\s*유럽\s*마을|일정이\s*끝난\s*후/u.test(t)) return true
   if (/차별화\s*POINT|노랑풍선\s*차별화|<\/?\w+/i.test(t)) return true
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: ybtour TM 안내문구 route 노이즈 — manifest
   if (/노랑풍선/i.test(t)) return true
@@ -166,6 +171,14 @@ function extractPlaceFromYbtourTmTitle(title: string): string | null {
     const place = extractRegisterScheduleRoutePlaceLabel(afterGuide[1].trim())
     if (place) return place
   }
+  // `참파 유적지 중 가장 오래된 포나가르 참 사원` → 꼬리 명소
+  const oldestPoi = t.match(/(?:중\s*)?가장\s*오래된\s+(.+)$/u)
+  if (oldestPoi?.[1]) {
+    const place = extractRegisterScheduleRoutePlaceLabel(oldestPoi[1].trim())
+    if (place && !isYbtourRoutePlaceNoise(place)) return place
+  }
+  // 마케팅 비유(`동양의 유럽마을 달랏`) — 당일 방문지로 쓰지 않음
+  if (/동양의\s*유럽\s*마을/u.test(t)) return null
   // `로스엔젤레스 도착 후 입국 수속` → 도시명만
   const arriveCity = t.match(/^(.{2,24}?)\s*(?:국제공항\s*)?도착(?:\s*후)?/u)
   if (arriveCity?.[1] && !/노랑풍선|수속|가이드/u.test(arriveCity[1])) {

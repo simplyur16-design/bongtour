@@ -28,7 +28,7 @@ const ROUTE_POI_TAIL_HINT_RE =
 
 /** 가격·미식·마케팅 수식 — 지명 슬롯 아님 (순수 잡음 문구) */
 const ROUTE_PRICE_MEAL_MARKETING_NOISE_RE =
-  /비용\s*[:：]?|만원\s*\/?\s*1인|\/\s*1인(?:\s*\()|아동\s*동일|(?:\d+|첫|두|세|네|다섯)\s*번째\s*미식|(?:베트남|로컬)?\s*맛집|^\s*미식\s*$|썬베드|무료\s*이용/u
+  /비용\s*[:：]?|만원\s*\/?\s*1인|\/\s*1인(?:\s*\()|아동\s*동일|(?:\d+|첫|두|세|네|다섯)\s*번째\s*미식|(?:베트남|로컬)?\s*맛집|^\s*미식\s*$|썬베드|무료\s*이용|(?:분짜|반쎄오|샤브샤브|삼겹살).{0,12}세트|세트$|애프터눈\s*티|에프퍼눈\s*티|동양의\s*유럽\s*마을|일정이\s*끝난\s*후/u
 
 /** 마케팅 접두 — 꼬리 명소만 남기기 전 strip */
 const ROUTE_MARKETING_PREFIX_STRIP_RE =
@@ -109,6 +109,7 @@ export function stripRegisterScheduleRouteFlightDurationBlocks(routeText: string
 /** ITNR·tmTitle 마케팅 접두/접미 제거 — 전 공급사 routeText a–g SSOT */
 export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
   return String(raw ?? '')
+    .replace(/&amp;|&#38;/gi, '&')
     .replace(/^[\s·▪▶●▷\-–—'"]+/, '')
     .replace(/[''"]+$/g, '')
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
@@ -121,6 +122,9 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/\s*\([A-Z]{2}\d{2,4}\)\s*/g, ' ')
     .replace(ROUTE_DURATION_INLINE_RE, '')
     .replace(ROUTE_MARKETING_PREFIX_STRIP_RE, '')
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: 야간·일정종료 꼬리 — manifest
+    .replace(/\s*야간\s*$/u, '')
+    .replace(/\s*일정이\s*끝난\s*후(?:\s*공항)?$/u, '')
     .replace(/\s+/g, ' ')
     .replace(ROUTE_PLACE_LABEL_TRIM_SUFFIX_RE, '')
     .trim()
@@ -264,6 +268,23 @@ export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | nu
     return extractRegisterScheduleRoutePlaceLabel(afterGuide[1].trim())
   }
 
+  // `참파 유적지 중 가장 오래된 포나가르 참 사원` → 꼬리 명소
+  const oldestPoi = t0.match(/(?:중\s*)?가장\s*오래된\s+(.+)$/u)
+  if (oldestPoi?.[1]) {
+    return extractRegisterScheduleRoutePlaceLabel(oldestPoi[1].trim())
+  }
+
+  // `베트남의 민속촌 꾸란마을` → 꾸란마을
+  const folkVillage = t0.match(/(?:민속촌|민속\s*마을)\s*(.+)$/u)
+  if (folkVillage?.[1]) {
+    return extractRegisterScheduleRoutePlaceLabel(folkVillage[1].trim())
+  }
+
+  // 마케팅 비유만 — 지명 슬롯 거부
+  if (/동양의\s*유럽\s*마을/u.test(t0) && !/(?:사원|성당|탑|폭포|공원)/u.test(t0)) {
+    return null
+  }
+
   // `호이안 옛도시로 이동` / `호이안 옛도시로` — 조사 로/으로 (도시로 오절단 방지: 캡처 후 재귀)
   const moveParticle = t0.match(/^(.{2,40}?)(?:으로|로)(?:\s*이동)?$/u)
   if (moveParticle?.[1]) {
@@ -371,7 +392,7 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/날짜\s*변경선|타사\s*비교|비즈니스\s*석|프라이빗\s*전용|여행\s*준비\s*가이드|골든패스|국경\s*통과/u.test(t)) return true
   // 단독 `가이드 미팅`만 noise — `가이드 미팅 후 호이안…` 는 꼬리 추출 대상
   if (/^가이드\s*미팅(?:\s*후)?$/u.test(t)) return true
-  if (/^호텔(?:\s*이동|\s*조식|\s*투숙)/u.test(t)) return true
+  if (/^호텔(?:\s*이동|\s*조식|\s*투숙)?$/u.test(t)) return true
   if (/^공항(?:\s*도착|\s*출발|\s*경유)?$/u.test(t) && t.length <= 12) return true
   if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움/u.test(t)) return true
   if (/블루스타|Blue\s*Star\s*Delos|수완나(?:품|폼)|B게이트|출입구/u.test(t)) return true

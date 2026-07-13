@@ -64,4 +64,19 @@ describe('ybtour register api schedule expression', () => {
     assert.equal(cleaned.includes('트윈픽스'), true)
     assert.equal(cleaned.includes('요세미티 국립공원'), true)
   })
+
+  // REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]: AVP7297 TM meal·마케팅 — manifest
+  it('routeText — AVP7297 meal·마케팅·HTML entity 제거, 포나가르 유지', () => {
+    const places = extractYbtourSchedulePlacesFromTmRows([
+      { tmNo: 1, tmTitle: '호텔', cityNm: '깜란' },
+      { tmNo: 2, tmTitle: '참파 유적지 중 가장 오래된 포나가르 참 사원', cityNm: '나트랑' },
+      { tmNo: 3, tmTitle: '분짜&amp;반쎄오 세트', cityNm: '나트랑' },
+      { tmNo: 4, tmTitle: "동양의 유럽마을 '달랏", cityNm: '나트랑' },
+      { tmNo: 5, tmTitle: '나트랑 빈펄 하버랜드 야간', cityNm: '나트랑' },
+    ])
+    assert.equal(places.some((p) => /^호텔$/u.test(p)), false)
+    assert.equal(places.some((p) => /분짜|세트|동양의\s*유럽/u.test(p)), false)
+    assert.equal(places.some((p) => /포나가르/u.test(p)), true)
+    assert.equal(places.some((p) => /빈펄\s*하버랜드/u.test(p)), true)
+  })
 })

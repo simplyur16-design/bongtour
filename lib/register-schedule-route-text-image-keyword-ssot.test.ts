@@ -76,6 +76,54 @@ describe('register-schedule-route-text-image-keyword-ssot', () => {
         imageKeyword2: null,
       },
     ])
-    expect(String(out[0]?.imageKeyword ?? '')).toMatch(/Meteora|Thessaloniki/i)
+    expect(String(out[0]?.imageKeyword ?? '')).toMatch(/White Tower|Meteora|Thessaloniki/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: AVP7297 departure not Da Lat bleed — manifest
+  it('AVP7297-like — D1은 자기 route(깜란/나트랑), 산문 달랏 forward 누수 금지', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '깜란',
+        routeText: '깜란 - 호텔 - 나트랑',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        title: '나트랑',
+        routeText:
+          "나트랑 - 참파 유적지 중 가장 오래된 포나가르 참 사원 - 분짜&amp;반쎄오 세트 - 동양의 유럽마을 '달랏 - 달랏 - 에프퍼눈 티 - 달랏 도멘드마리 성당",
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '달랏',
+        routeText: '달랏 - 베트남의 민속촌 꾸란마을 - 달랏 화원 생태',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        title: '달랏',
+        routeText: '달랏 - 나트랑 - 나트랑 빈펄 하버랜드 야간 - 일정이 끝난 후 공항',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      { day: 5, title: '나트랑', routeText: '나트랑', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = applyRegisterScheduleImageKeywordsBySupplier(rows, {
+      supplierKey: 'ybtour',
+      productDestination: '미지정',
+      productTitle: '[SK스토아] 나트랑/달랏 5일 #빈펄하버랜드#BX787',
+      travelScope: 'package',
+    })
+    const d1 = String(out.find((r) => r.day === 1)?.imageKeyword ?? '')
+    expect(d1).not.toMatch(/Da Lat/i)
+    expect(d1).toMatch(/Cam Ranh|Po Nagar|Nha Trang/i)
+    const d4 = String(out.find((r) => r.day === 4)?.imageKeyword ?? '')
+    expect(d4.length).toBeGreaterThan(0)
+    expect(d4).toMatch(/Vinpearl|Harbourland|Harborland|Nha Trang|Po Nagar|Da Lat|Cu Lan|Flower/i)
   })
 })

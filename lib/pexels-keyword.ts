@@ -3,6 +3,7 @@
  * 한국어 상품 메타를 Pexels에서 의미 있는 영어 검색어로 변환.
  * REGRESSION-FREEZE[pexels-keyword-taiwan-poi]: 대만·타이페이 routeText 한글 명소 — manifest
  * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·중동·남미 routeText 세그먼트 — manifest
+ * REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]: 나트랑·달랏 패키지 POI — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -328,12 +329,26 @@ const POI_KO_TO_EN: Record<string, string> = {
   호이안고성: 'Hoi An Ancient Town',
   포나가르탑: 'Po Nagar Cham Towers',
   포나가르: 'Po Nagar Cham Towers',
+  '포나가르 참 사원': 'Po Nagar Cham Towers',
   '포나가 참 사원': 'Po Nagar Cham Towers',
   '포나가 참': 'Po Nagar Cham Towers',
   롱선사: 'Long Son Pagoda',
   롱선: 'Long Son Pagoda',
   빈원더스: 'VinWonders Nha Trang',
   빈원더: 'VinWonders Nha Trang',
+  // REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]: 나트랑·달랏 패키지 POI — manifest
+  '빈펄 하버랜드': 'Vinpearl Harbourland Nha Trang',
+  빈펄하버랜드: 'Vinpearl Harbourland Nha Trang',
+  '나트랑 빈펄 하버랜드': 'Vinpearl Harbourland Nha Trang',
+  깜란: 'Cam Ranh Bay',
+  깜란공항: 'Cam Ranh Bay',
+  꾸란마을: 'Cu Lan Village Da Lat',
+  '꾸란 마을': 'Cu Lan Village Da Lat',
+  도멘드마리: 'Domaine de Marie Church',
+  '도멘드마리 성당': 'Domaine de Marie Church',
+  '달랏 도멘드마리 성당': 'Domaine de Marie Church',
+  '달랏 화원': 'Da Lat Flower Garden',
+  '달랏 화원 생태': 'Da Lat Flower Garden',
   담시장: 'Dam Market Nha Trang',
   나트랑: 'Nha Trang',
   나짱: 'Nha Trang',

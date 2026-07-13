@@ -224,4 +224,20 @@ describe('register schedule route place noise', () => {
       ),
     ).toBe('호국사 - 소나시 야시장')
   })
+
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: AVP7297 meal·야간·마케팅 — manifest
+  it('AVP7297-like — 호텔·식사·야간·동양유럽마을 노이즈, 포나가르·빈펄 꼬리 유지', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('호텔')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('분짜&반쎄오 세트')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('에프퍼눈 티')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('일정이 끝난 후 공항')).toBe(true)
+    expect(extractRegisterScheduleRoutePlaceLabel('동양의 유럽마을 달랏')).toBeNull()
+    expect(extractRegisterScheduleRoutePlaceLabel('참파 유적지 중 가장 오래된 포나가르 참 사원')).toBe(
+      '포나가르 참 사원',
+    )
+    expect(extractRegisterScheduleRoutePlaceLabel('나트랑 빈펄 하버랜드 야간')).toBe(
+      '나트랑 빈펄 하버랜드',
+    )
+    expect(sanitizeRegisterScheduleRouteText('깜란 - 호텔 - 나트랑')).toBe('깜란 - 나트랑')
+  })
 })

@@ -5057,6 +5057,70 @@
       ]
     },
     {
+      "id": "ybtour-nhatrang-dalat-route-kw",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "AVP7297 나트랑·달랏 — D1 Da Lat 산문 누수 금지·빈펄/포나가르 POI·식사·호텔 route 노이즈",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]",
+            "Vinpearl Harbourland Nha Trang",
+            "Cam Ranh Bay",
+            "Cu Lan Village Da Lat"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
+          "mustInclude": [
+            "departure own-route landmark before forward"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "야간·일정종료 꼬리",
+            "동양의\\s*유럽\\s*마을"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "가장\\s*오래된",
+            "동양의\\s*유럽\\s*마을"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-text-image-keyword-ssot.test.ts",
+          "mustInclude": [
+            "AVP7297-like",
+            "Da Lat"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.test.ts",
+          "mustInclude": [
+            "AVP7297-like",
+            "포나가르 참 사원"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]",
+            "포나가르"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-text-image-keyword-ssot.test.ts",
+        "lib/register-schedule-route-place-noise.test.ts"
+      ]
+    },
+    {
       "id": "pexels-normalize-bare-multiword-city",
       "tier": [
         "prebuild",
