@@ -2869,7 +2869,25 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "prefetchedFactBundle skip live detail re-fetch",
-            "detailCollectAlreadySatisfied"
+            "detailCollectAlreadySatisfied",
+            "ybtourPrefetchScheduleHasRouteCoverage",
+            "route coverage gate"
+          ]
+        },
+        {
+          "file": "lib/register-facts/ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "scheduleDetailTm → places(route)",
+            "preferYbtourFactScheduleDaysWithTmRoute"
+          ]
+        },
+        {
+          "file": "lib/register-facts/ybtour-tm-route.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "preferYbtourFactScheduleDaysWithTmRoute",
+            "ybtourPrefetchScheduleHasRouteCoverage"
           ]
         },
         {
@@ -2911,7 +2929,8 @@
       ],
       "vitestSuites": [
         "lib/register-facts/modetour.test.ts",
-        "lib/register-facts/resolve-prefetched-bundle.test.ts"
+        "lib/register-facts/resolve-prefetched-bundle.test.ts",
+        "lib/register-facts/ybtour-tm-route.test.ts"
       ]
     },
     {

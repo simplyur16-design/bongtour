@@ -68,6 +68,20 @@ function buildDuration(nights: number | null, days: number | null): string {
   return ''
 }
 
+/**
+ * prefetch skip 조건 — 귀국일(마지막) route 비움은 허용, 그 외 일차 routeText 필수.
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: route coverage gate — manifest
+ */
+export function ybtourPrefetchScheduleHasRouteCoverage(
+  schedule: Array<{ day?: number; routeText?: string | null }>,
+): boolean {
+  const days = schedule.filter((d) => Number(d.day) > 0)
+  if (days.length === 0) return false
+  const maxDay = Math.max(...days.map((d) => Number(d.day)))
+  const needRoute = days.filter((d) => Number(d.day) < maxDay || days.length === 1)
+  return needRoute.every((d) => String(d.routeText ?? '').trim().length > 0)
+}
+
 function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): string | null {
   const out: string[] = []
   const seen = new Set<string>()
@@ -129,9 +143,9 @@ export async function parseYbtourRegisterFromApi(
   })
 
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
-  // [사실 가져오기]에서 이미 detail·schedule을 수집했으면 변환 시 재호출하지 않는다 (중복 ~50s×N 방지).
+  // routeText가 채워진 schedule만 skip. 일차·식사만 있으면 detail 재수집 (속도≠내용 파괴).
   let schedule = ybtourFactDaysToRegisterSchedule(bundle.scheduleDays)
-  let detailCollectAlreadySatisfied = Boolean(prefetched && schedule.length > 0)
+  let detailCollectAlreadySatisfied = ybtourPrefetchScheduleHasRouteCoverage(schedule)
   if (!detailCollectAlreadySatisfied) {
     const detailBundle = await fetchYbtourRegisterDetailBundle(originUrl)
     const scheduleFromDetail =
@@ -144,6 +158,7 @@ export async function parseYbtourRegisterFromApi(
           )
         : []
     if (scheduleFromDetail.length > 0) schedule = scheduleFromDetail
+    detailCollectAlreadySatisfied = ybtourPrefetchScheduleHasRouteCoverage(schedule)
   }
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
