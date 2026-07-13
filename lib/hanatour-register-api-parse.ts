@@ -100,12 +100,18 @@ export async function parseHanatourRegisterFromApi(
     throw new Error('하나투어 등록에는 유효한 originUrl(pkgCd)이 필요합니다.')
   }
 
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
+  const prefetched = resolvePrefetchedRegisterFactBundle(
+    originUrl,
+    options?.prefetchedFactBundle,
+    'hanatour',
+  )
   const bundle =
-    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'hanatour') ??
-    (await collectHanatourRegisterFacts(originUrl, { adminTravelScope: travelScope }))
+    prefetched ?? (await collectHanatourRegisterFacts(originUrl, { adminTravelScope: travelScope }))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·pkgCd를 확인하세요.')
   }
+  const usedPrefetch = Boolean(prefetched)
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const firstPrice = bundle.priceRows[0]
@@ -161,7 +167,13 @@ export async function parseHanatourRegisterFromApi(
       HANATOUR_PRICE_SLOT_SSOT_NOTE,
       HANATOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
+      ...(usedPrefetch ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)'] : []),
     ],
+    // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
+    hanatourDetailCollectRan: usedPrefetch,
+    hanatourDetailCollectSummary: usedPrefetch
+      ? 'prefetchedFactBundle — detail re-fetch skipped'
+      : null,
   }
 
   if (paste) {
@@ -178,8 +190,11 @@ export async function parseHanatourRegisterFromApi(
 
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)
-  parsed = await augmentHanatourParsedWithDetailCollect(parsed, { originUrl, travelScope })
-  if (!airHotelListing) {
+  if (!usedPrefetch) {
+    parsed = await augmentHanatourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  }
+  // prefetch면 post-augment가 imageKeyword 1회만 적용
+  if (!airHotelListing && !usedPrefetch) {
     parsed = await ensureHanatourRegisterScheduleImageKeywords(parsed, { travelScope })
   }
   return parsed

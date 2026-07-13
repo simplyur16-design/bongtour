@@ -81,12 +81,17 @@ export async function parseKyowontourRegisterFromApi(
     throw new Error('교원이지 등록에는 유효한 originUrl(tourCode)이 필요합니다.')
   }
 
-  const bundle =
-    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'kyowontour') ??
-    (await collectKyowontourRegisterFacts(originUrl))
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
+  const prefetched = resolvePrefetchedRegisterFactBundle(
+    originUrl,
+    options?.prefetchedFactBundle,
+    'kyowontour',
+  )
+  const bundle = prefetched ?? (await collectKyowontourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·tourCode를 확인하세요.')
   }
+  const usedPrefetch = Boolean(prefetched)
 
   const paste = rawText.trim()
   const listingTitle = bundle.title?.trim() || ''
@@ -132,14 +137,23 @@ export async function parseKyowontourRegisterFromApi(
       KYOWONTOUR_PRICE_SLOT_SSOT_NOTE,
       KYOWONTOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
+      ...(usedPrefetch ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)'] : []),
     ],
     kyowontourScheduleCollectRan: true,
     kyowontourScheduleCollectSummary: 'register-facts tourEventTabData',
+    // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
+    kyowontourDetailCollectRan: usedPrefetch,
+    kyowontourDetailCollectSummary: usedPrefetch
+      ? 'prefetchedFactBundle — detail re-fetch skipped'
+      : null,
   }
 
   parsed = finalizeKyowontourRegisterParsedPricing(parsed)
   parsed = finalizeKyowontourRegisterParsedShopping(parsed)
-  parsed = await augmentKyowontourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  if (!usedPrefetch) {
+    parsed = await augmentKyowontourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  }
+  // prefetch면 post-augment가 imageKeyword 1회만 적용
 
   return parsed
 }

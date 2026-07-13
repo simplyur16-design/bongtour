@@ -249,6 +249,8 @@ export async function augmentKyowontourParsedWithTabDataCollect(
   parsed: RegisterParsed,
   ctx?: KyowontourRegisterTabDataAugmentCtx,
 ): Promise<RegisterParsed> {
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
+  if (parsed.kyowontourDetailCollectRan) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   if (!originUrl || !isKyowontourGoodsEventDetailUrl(originUrl)) {
     return parsed

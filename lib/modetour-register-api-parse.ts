@@ -99,8 +99,14 @@ export async function parseModetourRegisterFromApi(
     throw new Error('모두투어 등록에는 유효한 originUrl(productNo)이 필요합니다.')
   }
 
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
+  const prefetched = resolvePrefetchedRegisterFactBundle(
+    originUrl,
+    options?.prefetchedFactBundle,
+    'modetour',
+  )
   const bundle =
-    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'modetour') ??
+    prefetched ??
     (await collectModetourRegisterFacts(originUrl, {
       originCode: productNo,
       adminTravelScope: travelScope,
@@ -108,6 +114,7 @@ export async function parseModetourRegisterFromApi(
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·productNo를 확인하세요.')
   }
+  const usedPrefetch = Boolean(prefetched)
 
   const titleRes = resolveModetourRegisterProductTitle({
     pasteBlob: rawText.trim(),
@@ -163,9 +170,13 @@ export async function parseModetourRegisterFromApi(
       MODETOUR_PRICE_SLOT_SSOT_NOTE,
       MODETOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [MODETOUR_AIR_HOTEL_PREVIEW_NOTE] : []),
+      ...(usedPrefetch ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)'] : []),
     ],
-    modetourDetailCollectRan: false,
-    modetourDetailCollectSummary: null,
+    // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
+    modetourDetailCollectRan: usedPrefetch,
+    modetourDetailCollectSummary: usedPrefetch
+      ? 'prefetchedFactBundle — detail re-fetch skipped'
+      : null,
   }
 
   parsed = finalizeModetourRegisterParsedPricing(parsed)
@@ -174,8 +185,11 @@ export async function parseModetourRegisterFromApi(
     parsed,
     extractModetourFeesFromDetailInfo(null, parsed.includedText, parsed.excludedText),
   )
-  parsed = await augmentModetourParsedWithDetailCollect(parsed, { originUrl, travelScope })
-  if (!airHotelListing) {
+  if (!usedPrefetch) {
+    parsed = await augmentModetourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  }
+  // prefetch면 post-augment가 imageKeyword 1회만 적용
+  if (!airHotelListing && !usedPrefetch) {
     parsed = await ensureModetourRegisterScheduleImageKeywords(parsed, { travelScope })
   }
   return parsed

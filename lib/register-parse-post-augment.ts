@@ -71,7 +71,7 @@ const PACKAGE_POST_AUGMENT_SUPPLIERS = new Set([
 async function applyPackagePostAugmentScheduleKeywords(
   parsed: RegisterParsed,
   supplierKey: string,
-  logPrefix?: string,
+  opts: { logPrefix?: string; mode: 'preview' | 'confirm' },
 ): Promise<RegisterParsed> {
   const schedule = backfillEmptyScheduleRouteTextFromTitle(parsed.schedule ?? [])
   const dest = parsed.primaryDestination ?? parsed.destination ?? null
@@ -84,14 +84,16 @@ async function applyPackagePostAugmentScheduleKeywords(
       travelScope: 'package',
     },
   )
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview rules-only — Gemini는 confirm — manifest
+  // 미리보기에서 Gemini(최대 ~22s)가 사실가져오기보다 길어지는 회귀 방지. 확정(confirm)에서만 보조 채움.
   const withGemini =
-    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1'
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1' || opts.mode === 'preview'
       ? allocated
       : await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(allocated, {
           supplierKey,
           productDestination: dest,
           productTitle: parsed.title ?? null,
-          logLabel: logPrefix ?? 'register-post-augment',
+          logLabel: opts.logPrefix ?? 'register-post-augment',
         })
   // Gemini 후 gap-fill 재실행 금지 — tripHay bleed·등록 지연 재개 방지 (rules는 apply 단계만)
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: no post-gemini gap-fill — manifest
@@ -118,7 +120,10 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   }
 
   if (PACKAGE_POST_AUGMENT_SUPPLIERS.has(opts.forcedBrandKey)) {
-    return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey, opts.logPrefix)
+    return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey, {
+      logPrefix: opts.logPrefix,
+      mode: opts.mode,
+    })
   }
 
   return parsed

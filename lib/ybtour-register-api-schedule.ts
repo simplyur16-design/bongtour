@@ -20,6 +20,10 @@ export function stripYbtourHtmlText(html: string): string {
     .replace(/<\/li>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/&quot;|&#34;/gi, '"')
+    .replace(/&lt;|&#60;/gi, '<')
+    .replace(/&gt;|&#62;/gi, '>')
+    .replace(/&lsquo;|&rsquo;|&#8216;|&#8217;/gi, "'")
     .replace(/&#39;|&apos;|&#x27;/gi, "'")
     .replace(/&middot;/gi, '·')
     .replace(/[ \t\f\v]+/g, ' ')
@@ -36,17 +40,46 @@ const YBTOUR_ROUTE_LABEL_TRIM_RE =
 
 function cleanYbtourRoutePlaceLabel(raw: string): string {
   const shared = extractRegisterScheduleRoutePlaceLabel(String(raw ?? ''))
-  if (shared) return shared
+  if (shared && shared.length <= 28 && !isYbtourRoutePlaceNoise(shared)) return shared
   const t = String(raw ?? '')
     .replace(/^[\s·▪▶●\-–—]+/, '')
     .replace(/\s*\([^)]*\)\s*$/, (m) => (/\([A-Za-z]/.test(m) ? m : ' '))
     .replace(/\s+/g, ' ')
     .replace(YBTOUR_ROUTE_LABEL_TRIM_RE, '')
     .trim()
+  // 산문 꼬리 명소 — 끝에서 1~2토큰만 (수식 문장 전체 캡처 금지)
+  const tokens = t.split(/\s+/).filter(Boolean)
+  if (tokens.length >= 1) {
+    const last = tokens[tokens.length - 1] ?? ''
+    const prev = tokens.length >= 2 ? tokens[tokens.length - 2]! : ''
+    const tailCandidates: string[] = []
+    if (/(?:국립공원|캐년|폭포|사원|박물관|궁전|해변|광장|온천)$/u.test(last)) {
+      tailCandidates.push(last)
+      if (prev && prev.length >= 2 && prev.length <= 12 && !/(?:조화|산림|맑은|이루|손꼽|불리|위치|전시)/u.test(prev)) {
+        tailCandidates.unshift(`${prev} ${last}`)
+      }
+    } else if (last === '공원' && prev === '국립' && tokens.length >= 3) {
+      const name = tokens[tokens.length - 3]!
+      if (name.length >= 2 && name.length <= 12) tailCandidates.push(`${name} 국립공원`)
+    } else if (last === '공원' && /국립/u.test(prev)) {
+      tailCandidates.push(`${prev}공원`.replace(/국립국립/, '국립'))
+    }
+    for (const tail of tailCandidates) {
+      const n = tail.replace(/\s+/g, ' ').trim()
+      if (
+        n.length >= 2 &&
+        n.length <= 24 &&
+        !/(?:조화|산림|맑은|이루|손꼽|불리|위치|전시|기념|야시장|먹거리|미식)/u.test(n) &&
+        !isYbtourRoutePlaceNoise(n)
+      ) {
+        return n
+      }
+    }
+  }
   if (
     t.length >= 2 &&
     t.length <= 28 &&
-    !/(?:불리는|불리우는|손꼽히는|위치한|전시된|기념해|야시장인|먹거리|미식|비용|무료\s*이용)/u.test(t) &&
+    !/(?:불리는|불리우는|손꼽히는|위치한|전시된|기념해|야시장인|먹거리|미식|비용|무료\s*이용|조화를\s*이루)/u.test(t) &&
     !isYbtourRoutePlaceNoise(t)
   ) {
     return t
@@ -61,6 +94,16 @@ function isYbtourRoutePlaceNoise(label: string): boolean {
   if (YBTOUR_ROUTE_PLACE_NOISE_RE.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
   if (/차별화\s*POINT|노랑풍선\s*차별화|<\/?\w+/i.test(t)) return true
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: ybtour TM 안내문구 route 노이즈 — manifest
+  if (/노랑풍선/i.test(t)) return true
+  if (/^[①②③④⑤⑥⑦⑧⑨⑩❶❷❸❹❺❻❼❽❾❿]\s*/.test(t)) return true
+  if (/수화물\s*수속|탑승동|웰컴사인에서|기념\s*촬영|기상\s*후\s*호텔|관광\s*후|입국\s*수속|출국\s*수속|야경\s*감상|자유\s*일정|카지노에서|자유\s*쇼핑|메인\s*스트릿\s*도보|온천욕/i.test(t)) return true
+  if (/개별\s*체크인|웰컴\s*런치|식사시간|식사메뉴|승객\s*탑승|기항지|크루즈\s*하선|출항$/i.test(t)) return true
+  if (/인디언\s*언어|미국\s*알래스카주|미국\s*워싱턴주/i.test(t)) return true
+  if (/^&lt;|^<|>$/u.test(t)) return true
+  if (/신의\s*최대\s*걸작/u.test(t)) return true
+  if (/(?:도착|출발)\s*후/u.test(t) && /수속|가이드|미팅|피켓/u.test(t)) return true
+  if (/\d+\s*시간\s*진행/u.test(t)) return true
   if (/항공\s*(?:사|편|요금)|터미널|탑승\s*수속|출발\s*시간|도착\s*시간|기내\s*식|수하물|연결\s*편/u.test(t)) return true
   if (/^(?:인천|ICN|김포|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/i.test(t)) return true
   return false
@@ -123,6 +166,18 @@ function extractPlaceFromYbtourTmTitle(title: string): string | null {
     const place = extractRegisterScheduleRoutePlaceLabel(afterGuide[1].trim())
     if (place) return place
   }
+  // `로스엔젤레스 도착 후 입국 수속` → 도시명만
+  const arriveCity = t.match(/^(.{2,24}?)\s*(?:국제공항\s*)?도착(?:\s*후)?/u)
+  if (arriveCity?.[1] && !/노랑풍선|수속|가이드/u.test(arriveCity[1])) {
+    const place = extractRegisterScheduleRoutePlaceLabel(arriveCity[1].trim())
+    if (place) return place
+  }
+  // `트윈픽스에서 샌프란시스코 야경 감상` → 에서 앞 명소
+  const atPlace = t.match(/^(.{2,28}?)\s*에서\s+/u)
+  if (atPlace?.[1]) {
+    const place = extractRegisterScheduleRoutePlaceLabel(atPlace[1].trim())
+    if (place && !isYbtourRoutePlaceNoise(place)) return place
+  }
   if (isYbtourRoutePlaceNoise(t)) return null
   const arrow = t.match(/(?:▶|●)\s*(.+)/)
   if (arrow?.[1]) {
@@ -141,8 +196,10 @@ function extractPlaceFromYbtourTmTitle(title: string): string | null {
     return extractRegisterScheduleRoutePlaceLabel(tour[1])
   }
   const viaShared = extractRegisterScheduleRoutePlaceLabel(t)
-  if (viaShared && !/(?:미팅|피켓|가이드)/u.test(viaShared)) return viaShared
-  if (t.length >= 2 && t.length <= 32 && !/(?:조식|중식|석식|미팅)\s*후/u.test(t)) {
+  if (viaShared && !/(?:미팅|피켓|가이드)/u.test(viaShared) && !isYbtourRoutePlaceNoise(viaShared)) {
+    return viaShared
+  }
+  if (t.length >= 2 && t.length <= 32 && !/(?:조식|중식|석식|미팅)\s*후/u.test(t) && !isYbtourRoutePlaceNoise(t)) {
     return extractRegisterScheduleRoutePlaceLabel(t)
   }
   return null

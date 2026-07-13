@@ -143,11 +143,16 @@ export async function parseYbtourRegisterFromApi(
   })
 
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
-  // routeText가 채워진 schedule만 skip. 일차·식사만 있으면 detail 재수집 (속도≠내용 파괴).
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
+  // 사실 가져오기 bundle이면 detail·augment 재수집 금지(변환이 사실보다 길어지는 회귀). route 보정은 facts SSOT.
+  const usedPrefetch = Boolean(prefetched)
   let schedule = ybtourFactDaysToRegisterSchedule(bundle.scheduleDays)
-  let detailCollectAlreadySatisfied = ybtourPrefetchScheduleHasRouteCoverage(schedule)
+  let detailCollectAlreadySatisfied =
+    usedPrefetch || ybtourPrefetchScheduleHasRouteCoverage(schedule)
   if (!detailCollectAlreadySatisfied) {
-    const detailBundle = await fetchYbtourRegisterDetailBundle(originUrl)
+    const detailBundle = await fetchYbtourRegisterDetailBundle(originUrl, {
+      includeTourDetail: false,
+    })
     const scheduleFromDetail =
       detailBundle?.schedule &&
       (detailBundle.schedule.scheduleDetail?.length ?? 0) + (detailBundle.schedule.scheduleDetailTm?.length ?? 0) >
@@ -227,7 +232,10 @@ export async function parseYbtourRegisterFromApi(
   if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing) {
     const scheduleWithRoute = applyYbtourScheduleExpressionToRows(parsed.schedule ?? [])
     parsed = { ...parsed, schedule: scheduleWithRoute }
-    parsed = await ensureYbtourRegisterScheduleImageKeywords(parsed, { travelScope })
+    // prefetch면 post-augment가 imageKeyword SSOT 1회만 적용(중복 apply로 변환>사실 회귀 방지)
+    if (!usedPrefetch) {
+      parsed = await ensureYbtourRegisterScheduleImageKeywords(parsed, { travelScope })
+    }
   }
 
   return parsed

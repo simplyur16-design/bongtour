@@ -2871,7 +2871,52 @@
             "prefetchedFactBundle skip live detail re-fetch",
             "detailCollectAlreadySatisfied",
             "ybtourPrefetchScheduleHasRouteCoverage",
-            "route coverage gate"
+            "route coverage gate",
+            "prefetch → augment papi 재수집 금지"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "prefetchedFactBundle skip live detail re-fetch",
+            "prefetch → augment papi 재수집 금지",
+            "modetourDetailCollectRan: usedPrefetch"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "prefetchedFactBundle skip live detail re-fetch",
+            "prefetch → augment papi 재수집 금지",
+            "hanatourDetailCollectRan: usedPrefetch"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "prefetchedFactBundle skip live detail re-fetch",
+            "prefetch → augment papi 재수집 금지",
+            "lottetourDetailCollectRan: usedPrefetch"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "prefetchedFactBundle skip live detail re-fetch",
+            "prefetch → augment papi 재수집 금지",
+            "kyowontourDetailCollectRan: usedPrefetch"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-tab-data-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "prefetch → augment papi 재수집 금지",
+            "kyowontourDetailCollectRan"
           ]
         },
         {
@@ -2883,6 +2928,29 @@
             "enrichEvCdPrice: false",
             "price_collect=by_goods_adult_only",
             "detail_collect=notice_schedule_parallel"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "ybtour TM 안내문구 route 노이즈",
+            "노랑풍선",
+            "수화물\\s*수속"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "US west routeText POI → imageKeyword",
+            "operator-batch emptyKw POI fill",
+            "Yosemite National Park",
+            "Horseshoe Bend",
+            "Monument Valley",
+            "Khajuraho Temples",
+            "Gergeti Trinity Church",
+            "Little Mermaid Copenhagen"
           ]
         },
         {
@@ -4321,6 +4389,8 @@
             "applyRegisterScheduleImageKeywordsBySupplier",
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
+            "preview rules-only — Gemini는 confirm",
+            "opts.mode === 'preview'",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ],
           "mustNotInclude": [

@@ -142,8 +142,12 @@ describe('register confirm imageKeyword guard', () => {
     const viaPreview = applyRegisterScheduleImageKeywordsForPreview(rows, opts)
     const mid = viaApply.find((r) => r.day === 2)!
     expect(String(mid.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    const maxDay = Math.max(...viaApply.map((r) => Number(r.day)))
     const used = new Set<string>()
     for (const row of viaApply) {
+      const day = Number(row.day)
+      // 출발·귀국 슬롯은 방문도시 중복 허용 — 중간일 primary/secondary만 trip-unique
+      if (day <= 1 || day >= maxDay) continue
       for (const slot of [row.imageKeyword, row.imageKeyword2]) {
         const kw = String(slot ?? '').trim()
         if (!kw) continue
@@ -176,7 +180,10 @@ describe('register confirm imageKeyword guard', () => {
       mode: 'confirm',
     })
     const used = new Set<string>()
+    const maxDay = Math.max(...(after.schedule ?? []).map((r) => Number(r.day)))
     for (const row of after.schedule ?? []) {
+      const day = Number(row.day)
+      if (day <= 1 || day >= maxDay) continue
       for (const slot of [row.imageKeyword, row.imageKeyword2]) {
         const kw = String(slot ?? '').trim()
         if (!kw) continue

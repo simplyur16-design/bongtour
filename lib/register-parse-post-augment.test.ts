@@ -88,4 +88,26 @@ describe('register-parse-post-augment SSOT', () => {
       expect(String(row.routeText ?? '')).not.toMatch(/관련\s*안내/u)
     }
   })
+
+  it('preview mode skips Gemini path (rules-only; wall-clock stays local)', async () => {
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI = '0'
+    const built = modetourFactDaysToRegisterSchedule(TOTTORI_FACT_DAYS, { productTitle: '돗토리 3일' })
+    const before = built.map((row) => ({
+      ...row,
+      imageKeyword: '',
+      imageKeyword2: null,
+    }))
+    const t0 = Date.now()
+    const after = await applyRegisterPostAugmentSchedulePipeline(
+      {
+        schedule: before,
+        primaryDestination: '돗토리',
+        destination: '돗토리',
+        title: '돗토리 3일',
+      } as never,
+      { forcedBrandKey: 'modetour', travelScope: 'package', mode: 'preview' },
+    )
+    expect(Date.now() - t0).toBeLessThan(5_000)
+    expect((after.schedule ?? []).length).toBeGreaterThan(0)
+  })
 })

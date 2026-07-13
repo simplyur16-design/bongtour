@@ -47,20 +47,21 @@ describe('ybtour register api schedule expression', () => {
     assert.doesNotMatch(route ?? '', /POINT|<\/?\w+/i)
   })
 
-  it('description — vibe 2문장 (routeText는 별도 슬롯, description에 장소 체인 없음)', () => {
-    const routePlaces = dedupeYbtourScheduleRoutePlaces([
-      '홍콩섬 센트럴',
-      '소호 거리(SoHo)',
-      '헐리우드 로드',
+  it('routeText — 노랑풍선 테이블·원번호 안내·수속 문구 제거', () => {
+    const cleaned = dedupeYbtourScheduleRoutePlaces([
+      '① 노랑풍선 테이블에서 공항 담당자와',
+      '② 수화물 수속 후 탑승동',
+      '로스엔젤레스 도착 후 입국 수속',
+      '노랑풍선"으로 가이드',
+      '로스엔젤레스',
+      '＃노랑풍선 TIP 자유시간',
+      '트윈픽스에서 샌프란시스코 야경 감상',
+      '울창한 산림과 맑은공기가 조화를 이루는 요세미티 국립공원',
+      '기상 후 호텔',
     ])
-    const desc = composeYbtourScheduleDescription({
-      day: 2,
-      maxDay: 4,
-      routePlaces,
-      joinedBlob: routePlaces.join(' '),
-    })
-    assert.match(desc, /분위기|동선|걷|하루|일정/)
-    assert.doesNotMatch(desc, /^홍콩섬 센트럴\s*-/)
-    assert.doesNotMatch(desc, /센트럴.*세부|소호.*상세/)
+    assert.equal(cleaned.some((p) => /노랑풍선|수화물|기상\s*후|입국\s*수속|야경\s*감상/i.test(p)), false)
+    assert.equal(cleaned.includes('로스엔젤레스'), true)
+    assert.equal(cleaned.includes('트윈픽스'), true)
+    assert.equal(cleaned.includes('요세미티 국립공원'), true)
   })
 })

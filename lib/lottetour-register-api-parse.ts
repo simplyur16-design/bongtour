@@ -74,12 +74,17 @@ export async function parseLottetourRegisterFromApi(
     throw new Error('롯데관광 등록에는 유효한 originUrl(godId 또는 evtCd)이 필요합니다.')
   }
 
-  const bundle =
-    resolvePrefetchedRegisterFactBundle(originUrl, options?.prefetchedFactBundle, 'lottetour') ??
-    (await collectLottetourRegisterFacts(originUrl))
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetchedFactBundle skip live detail re-fetch — manifest
+  const prefetched = resolvePrefetchedRegisterFactBundle(
+    originUrl,
+    options?.prefetchedFactBundle,
+    'lottetour',
+  )
+  const bundle = prefetched ?? (await collectLottetourRegisterFacts(originUrl))
   if (!bundle) {
     throw new Error('register-facts 수집에 실패했습니다. URL·godId·evtCd를 확인하세요.')
   }
+  const usedPrefetch = Boolean(prefetched)
 
   const resolvedEvtCd = bundle.originCode?.trim() || ids.evtCd
   const godFromNotes = bundle.notes?.find((n) => n.startsWith('godId='))?.slice('godId='.length)?.trim()
@@ -140,16 +145,23 @@ export async function parseLottetourRegisterFromApi(
       LOTTETOUR_PRICE_SLOT_SSOT_NOTE,
       LOTTETOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
+      ...(usedPrefetch ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)'] : []),
     ],
-    lottetourDetailCollectRan: false,
-    lottetourDetailCollectSummary: null,
+    // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
+    lottetourDetailCollectRan: usedPrefetch,
+    lottetourDetailCollectSummary: usedPrefetch
+      ? 'prefetchedFactBundle — detail re-fetch skipped'
+      : null,
   }
 
   parsed = finalizeLottetourRegisterParsedPricing(parsed)
   parsed = finalizeLottetourRegisterParsedShopping(parsed)
-  parsed = await augmentLottetourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  if (!usedPrefetch) {
+    parsed = await augmentLottetourParsedWithDetailCollect(parsed, { originUrl, travelScope })
+  }
 
-  if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing) {
+  // prefetch면 post-augment가 imageKeyword 1회만 적용(중복 apply 금지)
+  if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing && !usedPrefetch) {
     const destHint = parsed.primaryDestination ?? parsed.destination ?? null
     parsed = {
       ...parsed,
