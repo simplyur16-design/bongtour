@@ -191,12 +191,33 @@ function assertModetourBaNaHillsRegression(failures: string[], label: string, ou
   const kw4 = String(d4.imageKeyword ?? '').trim()
   if (!/My Khe/i.test(kw2)) failures.push(`${label}: day2 imageKeyword expected My Khe, got ${kw2}`)
   if (!/Hoi/i.test(kw4)) failures.push(`${label}: day4 imageKeyword expected Hoi An, got ${kw4}`)
-  const keys = out
-    .filter((r) => r.day > 0)
-    .flatMap((r) => [r.imageKeyword, r.imageKeyword2].filter(Boolean))
-    .map((k) => normScheduleImageKeywordKey(String(k)))
-  if (new Set(keys).size !== keys.length) {
-    failures.push(`${label}: trip-wide imageKeyword·imageKeyword2 duplicate`)
+  // 출발·귀국 bare visit city soft-dup(Da Nang)은 허용 — 중간일·랜드마크 중복만 금지
+  const maxDay = Math.max(...out.map((r) => Number(r.day)).filter((d) => d > 0), 0)
+  const used = new Map<string, number>()
+  for (const r of out.filter((row) => Number(row.day) > 0)) {
+    for (const slot of [r.imageKeyword, r.imageKeyword2]) {
+      const kw = String(slot ?? '').trim()
+      if (!kw) continue
+      const nk = normScheduleImageKeywordKey(kw)
+      if (!nk) continue
+      if (used.has(nk)) {
+        const prev = used.get(nk)!
+        const day = Number(r.day)
+        const looksBare =
+          kw.split(/\s+/).length <= 3 &&
+          !/beach|hills|town|pagoda|temple|castle|bridge|palace|museum|garden|fort|market|square/i.test(
+            kw,
+          )
+        const allowEdge =
+          looksBare && ((prev <= 1 && day >= maxDay) || (day <= 1 && prev >= maxDay))
+        if (!allowEdge) {
+          failures.push(`${label}: trip-wide imageKeyword·imageKeyword2 duplicate`)
+          return
+        }
+      } else {
+        used.set(nk, Number(r.day))
+      }
+    }
   }
 }
 
