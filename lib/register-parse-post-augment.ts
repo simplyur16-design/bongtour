@@ -58,6 +58,21 @@ function ensurePackageScheduleLastDayGateCompliance<T extends ScheduleRouteRow>(
   })
 }
 
+/**
+ * 중간일(출발·귀국 제외) primary imageKeyword가 모두 있으면 confirm Gemini·재apply 생략 가능.
+ * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
+ */
+export function packageScheduleMiddleDaysHavePrimaryKeywords(
+  rows: readonly ScheduleRouteRow[],
+): boolean {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (days.length === 0) return false
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const middle = days.filter((r) => Number(r.day) < maxDay || days.length === 1)
+  if (middle.length === 0) return false
+  return middle.every((r) => String(r.imageKeyword ?? '').trim().length > 0)
+}
+
 const PACKAGE_POST_AUGMENT_SUPPLIERS = new Set([
   'ybtour',
   'modetour',
@@ -71,9 +86,22 @@ const PACKAGE_POST_AUGMENT_SUPPLIERS = new Set([
 async function applyPackagePostAugmentScheduleKeywords(
   parsed: RegisterParsed,
   supplierKey: string,
-  opts: { logPrefix?: string; mode: 'preview' | 'confirm' },
+  opts: { logPrefix?: string; mode: 'preview' | 'confirm'; hasPersistedParsed?: boolean },
 ): Promise<RegisterParsed> {
   const schedule = backfillEmptyScheduleRouteTextFromTitle(parsed.schedule ?? [])
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
+  // 미리보기에서 이미 중간일 kw가 찼으면 확정에서 wipe+규칙+Gemini(~1–22s) 금지 — 3축 저장 지연 회귀 방지.
+  if (
+    opts.mode === 'confirm' &&
+    opts.hasPersistedParsed &&
+    packageScheduleMiddleDaysHavePrimaryKeywords(schedule)
+  ) {
+    return {
+      ...parsed,
+      schedule: ensurePackageScheduleLastDayGateCompliance(schedule),
+    }
+  }
+
   const dest = parsed.primaryDestination ?? parsed.destination ?? null
   const allocated = applyRegisterScheduleImageKeywordsBySupplier(
     schedule.map(normalizeScheduleRouteRowForImageKeyword),
@@ -123,6 +151,7 @@ export async function applyRegisterPostAugmentSchedulePipeline(
     return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey, {
       logPrefix: opts.logPrefix,
       mode: opts.mode,
+      hasPersistedParsed: opts.hasPersistedParsed,
     })
   }
 

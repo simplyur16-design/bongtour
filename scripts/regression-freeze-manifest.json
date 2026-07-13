@@ -4390,6 +4390,8 @@
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
             "preview rules-only — Gemini는 confirm",
+            "confirm skip when preview kw filled",
+            "packageScheduleMiddleDaysHavePrimaryKeywords",
             "opts.mode === 'preview'",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ],
@@ -4402,6 +4404,12 @@
             "applyVerygoodScheduleImageKeywordsToRows",
             "applyNaeiltourScheduleImageKeywordsToRows",
             "applyYbtourScheduleImageKeywordsToRows"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.test.ts",
+          "mustInclude": [
+            "confirm + persisted preview keywords skips Gemini wipe/reapply"
           ]
         },
         {

@@ -110,4 +110,37 @@ describe('register-parse-post-augment SSOT', () => {
     expect(Date.now() - t0).toBeLessThan(5_000)
     expect((after.schedule ?? []).length).toBeGreaterThan(0)
   })
+
+  it('confirm + persisted preview keywords skips Gemini wipe/reapply', async () => {
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI = '0'
+    const built = modetourFactDaysToRegisterSchedule(TOTTORI_FACT_DAYS, { productTitle: '돗토리 3일' })
+    const before = built.map((row) => ({
+      ...row,
+      imageKeyword:
+        row.day === 1
+          ? 'Incheon Departure'
+          : row.day === 2
+            ? 'Tottori Sand Museum'
+            : 'Adachi Museum of Art',
+      imageKeyword2: null,
+    }))
+    const t0 = Date.now()
+    const after = await applyRegisterPostAugmentSchedulePipeline(
+      {
+        schedule: before,
+        primaryDestination: '돗토리',
+        destination: '돗토리',
+        title: '돗토리 3일',
+      } as never,
+      {
+        forcedBrandKey: 'modetour',
+        travelScope: 'package',
+        mode: 'confirm',
+        hasPersistedParsed: true,
+      },
+    )
+    expect(Date.now() - t0).toBeLessThan(500)
+    const d2 = (after.schedule ?? []).find((r) => Number(r.day) === 2)
+    expect(String(d2?.imageKeyword ?? '')).toBe('Tottori Sand Museum')
+  })
 })
