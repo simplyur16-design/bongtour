@@ -1,3 +1,4 @@
+import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 /**
  * 노랑풍선 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: manifest
@@ -543,7 +544,7 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
     }
 
     const pastedBlocks = parseRegisterPastedBlocksPayload(body)
-    const prefetchedFactBundle = body.registerFactBundle ?? body.prefetchedFactBundle ?? null
+    const prefetchedFactBundle = coercePrefetchedRegisterFactBundle(body.registerFactBundle ?? body.prefetchedFactBundle)
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 

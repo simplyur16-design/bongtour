@@ -2,7 +2,7 @@
  * REGRESSION-FREEZE[register-facts-fetch-resilience]
  */
 import { describe, expect, it } from 'vitest'
-import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
+import { coercePrefetchedRegisterFactBundle, resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 
 function sampleBundle(over: Partial<SupplierRegisterFactBundle> = {}): SupplierRegisterFactBundle {
@@ -25,6 +25,14 @@ function sampleBundle(over: Partial<SupplierRegisterFactBundle> = {}): SupplierR
     ...over,
   }
 }
+
+describe('coercePrefetchedRegisterFactBundle', () => {
+  it('accepts structured bundle and rejects garbage', () => {
+    expect(coercePrefetchedRegisterFactBundle(sampleBundle())).not.toBeNull()
+    expect(coercePrefetchedRegisterFactBundle(null)).toBeNull()
+    expect(coercePrefetchedRegisterFactBundle({ supplier: 'modetour' })).toBeNull()
+  })
+})
 
 describe('resolvePrefetchedRegisterFactBundle', () => {
   it('returns bundle when supplier and originUrl match', () => {

@@ -19,18 +19,26 @@ function normalizeFactOriginUrl(raw: string): string {
   }
 }
 
+/** body.registerFactBundle 등 unknown → 구조만 통과하면 번들, 아니면 null (URL·supplier 일치는 resolvePrefetched*). */
+export function coercePrefetchedRegisterFactBundle(candidate: unknown): SupplierRegisterFactBundle | null {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
+  const bundle = candidate as SupplierRegisterFactBundle
+  if (typeof bundle.supplier !== 'string' || typeof bundle.originUrl !== 'string') return null
+  if (!Array.isArray(bundle.scheduleDays) || !Array.isArray(bundle.priceRows)) return null
+  return bundle
+}
+
 /** body.registerFactBundle이 originUrl(+supplier)과 맞으면 그대로, 아니면 null → live collect. */
 export function resolvePrefetchedRegisterFactBundle(
   originUrl: string,
   candidate: unknown,
   expectedSupplier: SupplierRegisterFactSource,
 ): SupplierRegisterFactBundle | null {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
-  const bundle = candidate as SupplierRegisterFactBundle
+  const bundle = coercePrefetchedRegisterFactBundle(candidate)
+  if (!bundle) return null
   if (bundle.supplier !== expectedSupplier) return null
   const want = normalizeFactOriginUrl(originUrl)
   const got = normalizeFactOriginUrl(String(bundle.originUrl ?? ''))
   if (!want || !got || want !== got) return null
-  if (!Array.isArray(bundle.scheduleDays) || !Array.isArray(bundle.priceRows)) return null
   return bundle
 }

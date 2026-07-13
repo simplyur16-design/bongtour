@@ -1,3 +1,4 @@
+import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import { NextResponse } from 'next/server'
 import {
   assertRegisterRouteSupplierMatch,
@@ -534,7 +535,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     }
 
     const pastedBlocks = parseRegisterPastedBlocksPayload(body)
-    const prefetchedFactBundle = body.registerFactBundle ?? body.prefetchedFactBundle ?? null
+    const prefetchedFactBundle = coercePrefetchedRegisterFactBundle(body.registerFactBundle ?? body.prefetchedFactBundle)
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 

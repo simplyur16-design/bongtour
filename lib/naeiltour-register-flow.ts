@@ -1,3 +1,4 @@
+import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 /**
  * 내일투어 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[naeiltour-register-ssot-freeze]: manifest
@@ -573,7 +574,7 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
     }
 
     const pastedBlocks = parsePastedBlocksFromBody(body)
-    const prefetchedFactBundle = body.registerFactBundle ?? body.prefetchedFactBundle ?? null
+    const prefetchedFactBundle = coercePrefetchedRegisterFactBundle(body.registerFactBundle ?? body.prefetchedFactBundle)
     const optionalTourDisplayNoticeManual = parseOptionalTourDisplayNoticeManualFromBody(body)
     timing.mark('after-raw-input-normalize')
 
