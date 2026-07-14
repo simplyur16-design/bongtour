@@ -30,7 +30,7 @@ function isSingleCountryLeafGroup(g: MegaMenuCountryGroup): boolean {
 
 /**
  * 해외 메가메뉴 공통 패널 — 전 탭 동일: 4열 그리드·타이포·호버 색.
- * REGRESSION-FREEZE[mega-menu-submenu-center-align]: 하위 도시 leaf 링크 중앙정렬 — manifest
+ * REGRESSION-FREEZE[mega-menu-submenu-center-align]: 중분류 헤더·하위 도시 leaf 중앙정렬 — manifest
  */
 export default function CountryCityMegaPanel({ regionId, countryGroups, activeProductType }: Props) {
   const flatGridLeafCols =
@@ -139,7 +139,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                     <Link
                       href={href}
                       prefetch={prefetchPropForHref(href)}
-                      className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
+                      className="mb-3 block text-center text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
                     >
                       {g.countryLabel}
                     </Link>
@@ -149,7 +149,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                 <>
                   {!isFlatGrid &&
                     (g.nonLinkHeader ? (
-                      <span className="mb-3 block text-left text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
+                      <span className="mb-3 block text-center text-[15px] font-bold text-slate-800">{g.countryLabel}</span>
                     ) : (
                       (() => {
                         const href = buildMegaMenuGroupHeaderHref({
@@ -162,7 +162,7 @@ export default function CountryCityMegaPanel({ regionId, countryGroups, activePr
                           <Link
                             href={href}
                             prefetch={prefetchPropForHref(href)}
-                            className="mb-3 block text-left text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
+                            className="mb-3 block text-center text-[15px] font-bold text-slate-800 transition hover:text-orange-500"
                           >
                             {g.countryLabel}
                           </Link>

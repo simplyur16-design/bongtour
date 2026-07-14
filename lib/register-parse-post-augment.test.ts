@@ -143,4 +143,54 @@ describe('register-parse-post-augment SSOT', () => {
     const d2 = (after.schedule ?? []).find((r) => Number(r.day) === 2)
     expect(String(d2?.imageKeyword ?? '')).toBe('Tottori Sand Museum')
   })
+
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
+  it('confirm + persisted — empty Day4/return still skips Gemini (no wipe)', async () => {
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI = '0'
+    const schedule = [
+      { day: 1, title: '깜란', routeText: '깜란 - 나트랑', imageKeyword: 'Cam Ranh Bay', imageKeyword2: null },
+      {
+        day: 2,
+        title: '나트랑',
+        routeText: '나트랑 - 포나가르 참 사원',
+        imageKeyword: 'Po Nagar Cham Towers',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        title: '달랏',
+        routeText: '달랏 - 꾸란마을',
+        imageKeyword: 'Da Lat Vietnam Highland',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        title: '달랏',
+        routeText: '달랏 - 나트랑 - 빈펄 하버랜드',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      { day: 5, title: '나트랑', routeText: '나트랑', imageKeyword: '', imageKeyword2: null },
+    ]
+    const t0 = Date.now()
+    const after = await applyRegisterPostAugmentSchedulePipeline(
+      {
+        schedule,
+        primaryDestination: '베트남',
+        destination: '미지정',
+        title: '나트랑/달랏 5일',
+      } as never,
+      {
+        forcedBrandKey: 'ybtour',
+        travelScope: 'package',
+        mode: 'confirm',
+        hasPersistedParsed: true,
+      },
+    )
+    expect(Date.now() - t0).toBeLessThan(500)
+    expect(String((after.schedule ?? []).find((r) => r.day === 2)?.imageKeyword ?? '')).toBe(
+      'Po Nagar Cham Towers',
+    )
+    expect(String((after.schedule ?? []).find((r) => r.day === 4)?.imageKeyword ?? '')).toBe('')
+  })
 })

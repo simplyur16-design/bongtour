@@ -13,6 +13,7 @@ import { enrichRegisterParsedWithAirtelFit } from '@/lib/register-airtel-fit-enr
 import { backfillEmptyScheduleRouteTextFromTitle } from '@/lib/register-schedule-route-text-backfill'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
+import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
   travelScope: string
@@ -59,7 +60,7 @@ function ensurePackageScheduleLastDayGateCompliance<T extends ScheduleRouteRow>(
 }
 
 /**
- * 중간일(출발·귀국 제외) primary imageKeyword가 모두 있으면 confirm Gemini·재apply 생략 가능.
+ * 중간일(출발·귀국 제외) primary imageKeyword — confirm Gemini 스킵 진단/테스트용.
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
  */
 export function packageScheduleMiddleDaysHavePrimaryKeywords(
@@ -68,8 +69,12 @@ export function packageScheduleMiddleDaysHavePrimaryKeywords(
   const days = rows.filter((r) => Number(r.day) > 0)
   if (days.length === 0) return false
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
-  const middle = days.filter((r) => Number(r.day) < maxDay || days.length === 1)
-  if (middle.length === 0) return false
+  const activeDays = days.length
+  const middle = days.filter(
+    (r) => resolveScheduleKeywordSlotKind(Number(r.day), maxDay, activeDays) === 'middle',
+  )
+  // 중간일 없음(2일 일정 등) — 출발·귀국만이면 preview 재적용 불필요
+  if (middle.length === 0) return true
   return middle.every((r) => String(r.imageKeyword ?? '').trim().length > 0)
 }
 
@@ -90,12 +95,20 @@ async function applyPackagePostAugmentScheduleKeywords(
 ): Promise<RegisterParsed> {
   const schedule = backfillEmptyScheduleRouteTextFromTitle(parsed.schedule ?? [])
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
-  // 미리보기에서 이미 중간일 kw가 찼으면 확정에서 wipe+규칙+Gemini(~1–22s) 금지 — 3축 저장 지연 회귀 방지.
-  if (
-    opts.mode === 'confirm' &&
-    opts.hasPersistedParsed &&
-    packageScheduleMiddleDaysHavePrimaryKeywords(schedule)
-  ) {
+  // 3축 저장: preview parsed 재사용 시 wipe+규칙+Gemini(~1–22s) 전부 금지.
+  // (이전: 중간일 kw 전부 채움일 때만 스킵 → Day4 빈 슬롯·출발일까지 요구해 스킵 실패·Gemini 재호출)
+  if (opts.mode === 'confirm' && opts.hasPersistedParsed) {
+    if (opts.logPrefix && process.env.DEV_REGISTER_PERF_LOG === '1') {
+      const midOk = packageScheduleMiddleDaysHavePrimaryKeywords(schedule)
+      console.info(`[${opts.logPrefix}] confirm-skip-keyword-pipeline`, {
+        hasPersistedParsed: true,
+        middleDaysHavePrimaryKeywords: midOk,
+        days: schedule.map((r) => ({
+          day: r.day,
+          kw: String(r.imageKeyword ?? '').trim().slice(0, 40),
+        })),
+      })
+    }
     return {
       ...parsed,
       schedule: ensurePackageScheduleLastDayGateCompliance(schedule),
@@ -114,6 +127,7 @@ async function applyPackagePostAugmentScheduleKeywords(
   )
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview rules-only — Gemini는 confirm — manifest
   // 미리보기에서 Gemini(최대 ~22s)가 사실가져오기보다 길어지는 회귀 방지. 확정(confirm)에서만 보조 채움.
+  // (단, hasPersistedParsed confirm은 위에서 조기 return — 미리보기 결과를 덮지 않음)
   const withGemini =
     process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1' || opts.mode === 'preview'
       ? allocated

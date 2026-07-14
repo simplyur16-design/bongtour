@@ -704,14 +704,18 @@
         "prebuild",
         "ci"
       ],
-      "summary": "메가메뉴 하위 도시 leaf 링크 중앙정렬",
+      "summary": "메가메뉴 중분류 헤더·하위 도시 leaf 중앙정렬",
       "checks": [
         {
           "file": "components/top-nav/CountryCityMegaPanel.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-submenu-center-align]",
+            "중분류 헤더·하위 도시 leaf 중앙정렬",
             "justify-items-center",
-            "text-center"
+            "text-center text-[15px] font-bold"
+          ],
+          "mustNotInclude": [
+            "text-left text-[15px] font-bold"
           ]
         }
       ]
@@ -4392,6 +4396,8 @@
             "preview rules-only — Gemini는 confirm",
             "confirm skip when preview kw filled",
             "packageScheduleMiddleDaysHavePrimaryKeywords",
+            "opts.mode === 'confirm' && opts.hasPersistedParsed",
+            "wipe+규칙+Gemini",
             "opts.mode === 'preview'",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded"
           ],
@@ -4409,7 +4415,8 @@
         {
           "file": "lib/register-parse-post-augment.test.ts",
           "mustInclude": [
-            "confirm + persisted preview keywords skips Gemini wipe/reapply"
+            "confirm + persisted preview keywords skips Gemini wipe/reapply",
+            "empty Day4/return still skips Gemini"
           ]
         },
         {
