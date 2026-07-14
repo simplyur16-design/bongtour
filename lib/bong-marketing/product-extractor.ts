@@ -7,6 +7,7 @@ import {
   type MarketingCtaChannel,
   type MarketingCtaPosition,
 } from '@/lib/bong-marketing/cta-url-builder'
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { isValidYearMonth } from '@/lib/monthly-curation'
 import { findLeafInTree } from '@/lib/overseas-location-tree'
@@ -248,9 +249,12 @@ function shortenCtaTitle(title: string): string {
   return `${t.slice(0, CTA_TITLE_MAX - 1)}…`
 }
 
-function packageKeyword(productType: string | null | undefined): string {
-  const p = (productType ?? '').trim()
-  if (/자유/.test(p)) return '자유여행'
+function packageKeyword(
+  productType: string | null | undefined,
+  listingKind?: string | null,
+): string {
+  // REGRESSION-FREEZE[marketing-content-track-product-gate]: air-hotel keyword via SSOT
+  if (isAirHotelProduct({ productType, listingKind })) return '자유여행'
   return '패키지'
 }
 
@@ -310,6 +314,7 @@ export async function extractProductGeoMeta(
       tripNights: true,
       duration: true,
       productType: true,
+      listingKind: true,
       departures: { select: { departureDate: true }, orderBy: { departureDate: 'asc' } },
       prices: { select: { date: true }, orderBy: { date: 'asc' } },
     },
@@ -351,7 +356,7 @@ export async function extractProductGeoMeta(
     city,
     country,
     departureMonths,
-    packageWord: packageKeyword(row.productType),
+    packageWord: packageKeyword(row.productType, row.listingKind),
     nightsLabel: parseNightsLabel(row.duration, row.tripNights),
   })
 

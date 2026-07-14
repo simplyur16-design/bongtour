@@ -22,6 +22,7 @@ import {
   type PackageBlogLlmV1,
 } from '@/lib/bong-marketing/blog-draft-prompt'
 import { getAirtelBlogContext } from '@/lib/bong-marketing/airtel-blog-context'
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
@@ -240,6 +241,7 @@ async function loadProductBlogContext(
     tripDays: number | null
     tripNights: number | null
     productType: string | null
+    listingKind: string | null
     schedule: string | null
     country: string | null
     city: string | null
@@ -259,6 +261,7 @@ async function loadProductBlogContext(
       tripDays: true,
       tripNights: true,
       productType: true,
+      listingKind: true,
       schedule: true,
       country: true,
       city: true,
@@ -329,10 +332,11 @@ export async function generateNaverBlogDraftForPackage(
   }
 
   const pt = ctx.row.productType
+  // REGRESSION-FREEZE[marketing-content-track-product-gate]: packageOnly uses listingKind SSOT
   if (
     packageOnly &&
-    pt &&
-    (/자유/.test(pt) || isAirtelProductType(pt))
+    (isAirHotelProduct({ listingKind: ctx.row.listingKind, productType: pt }) ||
+      ctx.row.listingKind === 'private_trip')
   ) {
     return {
       ok: false,
@@ -517,9 +521,9 @@ export async function generateMonthBlogDraftsForPackages(
   const ids = candidates.map((c) => c.productId)
   const types = await prisma.product.findMany({
     where: { id: { in: ids } },
-    select: { id: true, productType: true },
+    select: { id: true, productType: true, listingKind: true },
   })
-  const typeById = new Map(types.map((t) => [t.id, t.productType]))
+  const typeById = new Map(types.map((t) => [t.id, t]))
 
   const skipped: Array<{ productId: string; code: string; message: string }> = []
   const blogPostIds: string[] = []
@@ -528,8 +532,12 @@ export async function generateMonthBlogDraftsForPackages(
   const packageOnly = options?.packageOnly !== false
   const pool: typeof candidates = []
   for (const c of candidates) {
-    const pt = typeById.get(c.productId)
-    if (packageOnly && pt && /자유/.test(pt)) {
+    const meta = typeById.get(c.productId)
+    if (
+      packageOnly &&
+      meta &&
+      (isAirHotelProduct(meta) || meta.listingKind === 'private_trip')
+    ) {
       skipped.push({ productId: c.productId, code: 'PACKAGE_ONLY_SKIP', message: '자유여행 제외' })
       continue
     }

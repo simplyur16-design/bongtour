@@ -12,7 +12,7 @@ import {
 } from '@/lib/bong-marketing/curation-event-repository'
 import { countryLabelsMatch } from '@/lib/bong-marketing/curation-event-gemini-parse'
 import {
-  matchProductIds,
+  matchProductIdsByMarketingTracks,
   monthLabelFromNumber,
   resolveTripDuration,
   rollingMonthsFrom,
@@ -212,13 +212,23 @@ function eventSlotCandidateToCard(
   countryLabels: Record<string, string>,
   cityLabels: Record<string, string>,
 ): TripRecommendationItem {
-  const matchingProductIds = matchProductIds(
+  const {
+    matchingProductIds,
+    matchingProductIdsPackage,
+    matchingProductIdsAirtel,
+  } = matchProductIdsByMarketingTracks(
     { city: candidate.city, country: candidate.country },
     products,
     cityLabels,
     countryLabels,
   )
-  const { nights, days } = resolveTripDuration({}, matchingProductIds, products)
+  const durationIds =
+    matchingProductIdsPackage[0] != null
+      ? matchingProductIdsPackage
+      : matchingProductIdsAirtel[0] != null
+        ? matchingProductIdsAirtel
+        : matchingProductIds
+  const { nights, days } = resolveTripDuration({}, durationIds, products)
   const reason =
     candidate.appealReason?.slice(0, 100) ||
     `${candidate.eventName} 시즌에 방문하기 좋은 도시입니다.`
@@ -233,6 +243,8 @@ function eventSlotCandidateToCard(
     recommendedTripNights: nights,
     recommendedTripDays: days,
     matchingProductIds,
+    matchingProductIdsPackage,
+    matchingProductIdsAirtel,
     themes: ['이벤트'],
     source: 'event',
     events: [

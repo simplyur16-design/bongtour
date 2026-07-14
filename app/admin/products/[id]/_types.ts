@@ -21,6 +21,7 @@ export type ScheduleEntry = {
   imageUrl?: string | null
   imageUrl2?: string | null
   imageSource?: { source?: string; photographer?: string; originalLink?: string }
+  imageSource2?: { source?: string; photographer?: string; originalLink?: string }
 }
 
 export type PromotionReferencePrices = {

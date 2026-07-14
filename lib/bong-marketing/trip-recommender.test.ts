@@ -4,6 +4,7 @@ import {
   groupCitiesByCountry,
   isFutureRecommendationMonth,
   matchProductIds,
+  matchProductIdsByMarketingTracks,
   monthLabelFromNumber,
   monthToSeason,
   parseMonthNumber,
@@ -16,6 +17,21 @@ import {
   CLIMATE_RECOMMENDATION_COUNT,
   type ProductSummary,
 } from '@/lib/bong-marketing/trip-recommender'
+
+function summary(
+  partial: Partial<ProductSummary> & Pick<ProductSummary, 'id' | 'title' | 'country' | 'city'>,
+): ProductSummary {
+  return {
+    continent: null,
+    displayCategory: null,
+    listingKind: 'travel',
+    productType: 'travel',
+    themes: [],
+    tripNights: null,
+    tripDays: null,
+    ...partial,
+  }
+}
 
 describe('extractThemes', () => {
   it('comma-separated themeTags', () => {
@@ -30,9 +46,9 @@ describe('extractThemes', () => {
 describe('groupCitiesByCountry', () => {
   it('groups unique cities per country', () => {
     const products: ProductSummary[] = [
-      { id: '1', title: 'A', country: 'japan', city: 'tokyo', continent: null, displayCategory: null, themes: [], tripNights: null, tripDays: null },
-      { id: '2', title: 'B', country: 'japan', city: 'osaka', continent: null, displayCategory: null, themes: [], tripNights: null, tripDays: null },
-      { id: '3', title: 'C', country: 'japan', city: 'tokyo', continent: null, displayCategory: null, themes: [], tripNights: null, tripDays: null },
+      summary({ id: '1', title: 'A', country: 'japan', city: 'tokyo' }),
+      summary({ id: '2', title: 'B', country: 'japan', city: 'osaka' }),
+      summary({ id: '3', title: 'C', country: 'japan', city: 'tokyo' }),
     ]
     expect(groupCitiesByCountry(products)).toEqual({ japan: ['osaka', 'tokyo'] })
   })
@@ -40,8 +56,8 @@ describe('groupCitiesByCountry', () => {
 
 describe('matchProductIds', () => {
   const products: ProductSummary[] = [
-    { id: 'p1', title: '도쿄 4박', country: 'japan', city: 'tokyo', continent: null, displayCategory: null, themes: [], tripNights: 4, tripDays: 5 },
-    { id: 'p2', title: '방콕 3박', country: 'thailand', city: 'bangkok', continent: null, displayCategory: null, themes: [], tripNights: 3, tripDays: 4 },
+    summary({ id: 'p1', title: '도쿄 4박', country: 'japan', city: 'tokyo', tripNights: 4, tripDays: 5 }),
+    summary({ id: 'p2', title: '방콕 3박', country: 'thailand', city: 'bangkok', tripNights: 3, tripDays: 4 }),
   ]
 
   it('matches by city slug', () => {
@@ -53,11 +69,40 @@ describe('matchProductIds', () => {
     const ids = matchProductIds({ city: '도쿄', country: '일본' }, products, { tokyo: '도쿄' }, { japan: '일본' })
     expect(ids).toEqual(['p1'])
   })
+
+  it('splits package vs airtel matching pools', () => {
+    // REGRESSION-FREEZE[marketing-content-track-product-gate]
+    const mixed: ProductSummary[] = [
+      summary({
+        id: 'fit1',
+        title: '도쿄 에어텔',
+        country: 'japan',
+        city: 'tokyo',
+        listingKind: 'air_hotel_free',
+        productType: 'air-hotel',
+      }),
+      summary({ id: 'pkg1', title: '도쿄 패키지', country: 'japan', city: 'tokyo' }),
+    ]
+    const tracks = matchProductIdsByMarketingTracks(
+      { city: 'tokyo', country: 'japan' },
+      mixed,
+      {},
+      {},
+    )
+    expect(tracks.matchingProductIdsPackage).toEqual(['pkg1'])
+    expect(tracks.matchingProductIdsAirtel).toEqual(['fit1'])
+    expect(matchProductIds({ city: 'tokyo', country: 'japan' }, mixed, {}, {}, 'package')).toEqual([
+      'pkg1',
+    ])
+    expect(matchProductIds({ city: 'tokyo', country: 'japan' }, mixed, {}, {}, 'airtel')).toEqual([
+      'fit1',
+    ])
+  })
 })
 
 describe('resolveTripDuration', () => {
   const products: ProductSummary[] = [
-    { id: 'p1', title: '도쿄 4박', country: 'japan', city: 'tokyo', continent: null, displayCategory: null, themes: [], tripNights: 4, tripDays: 5 },
+    summary({ id: 'p1', title: '도쿄 4박', country: 'japan', city: 'tokyo', tripNights: 4, tripDays: 5 }),
   ]
 
   it('uses Gemini values when present', () => {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { lottetourCalendarRowToRegisterFactFlights } from '@/lib/register-facts/lottetour-register-fact-flights'
+import {
+  buildLottetourFlightStructuredFromFactLegs,
+  lottetourCalendarRowToRegisterFactFlights,
+} from '@/lib/register-facts/lottetour-register-fact-flights'
 import type { LottetourCalendarRow } from '@/lib/lottetour-departures'
 
 describe('lottetourCalendarRowToRegisterFactFlights', () => {
@@ -35,5 +38,32 @@ describe('lottetourCalendarRowToRegisterFactFlights', () => {
     const legs = lottetourCalendarRowToRegisterFactFlights(null, '김해국제공항')
     expect(legs).toHaveLength(1)
     expect(legs[0]?.departureCity).toBe('김해국제공항')
+  })
+
+  it('buildLottetourFlightStructuredFromFactLegs — prefetch SSOT', () => {
+    const fs = buildLottetourFlightStructuredFromFactLegs([
+      {
+        direction: 'outbound',
+        carrier: '대한항공',
+        flightNo: 'KE485',
+        departureCity: '인천공항 T2 A존',
+        departureAt: '2026-07-20T19:05',
+        arrivalCity: null,
+        arrivalAt: '2026-07-20T22:50',
+      },
+      {
+        direction: 'inbound',
+        carrier: '대한항공',
+        flightNo: 'KE486',
+        departureCity: null,
+        departureAt: '2026-07-24T00:10',
+        arrivalCity: '인천공항 T2 A존',
+        arrivalAt: '2026-07-24T07:50',
+      },
+    ])
+    expect(fs?.airlineName).toBe('대한항공')
+    expect(fs?.outbound.flightNo).toBe('KE485')
+    expect(fs?.outbound.departureTime).toBe('19:05')
+    expect(fs?.inbound.flightNo).toBe('KE486')
   })
 })

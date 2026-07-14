@@ -27,6 +27,8 @@ interface TripRecommendationItem {
   recommendedTripDays: number
   themes?: string[]
   matchingProductIds: string[]
+  matchingProductIdsPackage?: string[]
+  matchingProductIdsAirtel?: string[]
   events?: TripRecommendationEvent[]
   source?: 'climate' | 'event'
   /** 레거시 캐시 호환 */
@@ -533,10 +535,13 @@ function TripCard({
 }) {
   const [creatingCardNews, setCreatingCardNews] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  const [showBlogTrackModal, setShowBlogTrackModal] = useState(false)
+  const [showTrackModal, setShowTrackModal] = useState<'blog' | 'card-news' | null>(null)
   const [selectedTrack, setSelectedTrack] = useState<'package' | 'airtel'>('package')
   const [creatingBlog, setCreatingBlog] = useState(false)
   const [blogError, setBlogError] = useState<string | null>(null)
+
+  const pkgCount = item.matchingProductIdsPackage?.length ?? 0
+  const airtelCount = item.matchingProductIdsAirtel?.length ?? 0
 
   const recommendationPayload = {
     city: item.city,
@@ -550,21 +555,26 @@ function TripCard({
     recommendedTripNights: item.recommendedTripNights,
     recommendedTripDays: item.recommendedTripDays,
     matchingProductIds: item.matchingProductIds,
+    matchingProductIdsPackage: item.matchingProductIdsPackage ?? [],
+    matchingProductIdsAirtel: item.matchingProductIdsAirtel ?? [],
     themes: item.themes,
   }
 
-  async function handleCreateCardNews() {
+  async function handleCreateCardNews(track: 'package' | 'airtel') {
     setCreatingCardNews(true)
     setCreateError(null)
     try {
       const res = await fetch('/api/admin/marketing/card-news/series/from-recommendation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recommendationPayload),
+        body: JSON.stringify({ ...recommendationPayload, contentTrack: track }),
       })
       const json = (await res.json()) as { redirectTo?: string; error?: string }
       if (!res.ok) throw new Error(json.error ?? '시리즈 생성 실패')
-      if (json.redirectTo) onCreated(json.redirectTo)
+      if (json.redirectTo) {
+        setShowTrackModal(null)
+        onCreated(json.redirectTo)
+      }
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '시리즈 생성 실패')
     } finally {
@@ -584,7 +594,7 @@ function TripCard({
       const json = (await res.json()) as { redirectTo?: string; error?: string }
       if (!res.ok) throw new Error(json.error ?? '블로그 글 생성 실패')
       if (json.redirectTo) {
-        setShowBlogTrackModal(false)
+        setShowTrackModal(null)
         onCreated(json.redirectTo)
       }
     } catch (err) {
@@ -643,12 +653,20 @@ function TripCard({
             ))}
           </div>
         )}
-        <p className="mt-3 text-xs text-bt-body/60">매칭 상품 {item.matchingProductIds.length}개</p>
+        <p className="mt-3 text-xs text-bt-body/60">
+          매칭 상품 패키지 {pkgCount} · 자유여행 {airtelCount}
+          {pkgCount === 0 && airtelCount === 0 && item.matchingProductIds.length > 0
+            ? ` (레거시 합집합 ${item.matchingProductIds.length} — 추천 다시 받기)`
+            : null}
+        </p>
         {createError && <p className="mt-2 text-xs text-red-700">{createError}</p>}
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => void handleCreateCardNews()}
+            onClick={() => {
+              setCreateError(null)
+              setShowTrackModal('card-news')
+            }}
             disabled={creatingCardNews || creatingBlog}
             className="rounded-lg border border-bt-border-strong px-3 py-1.5 text-sm hover:bg-bt-surface-soft disabled:opacity-50"
           >
@@ -658,7 +676,7 @@ function TripCard({
             type="button"
             onClick={() => {
               setBlogError(null)
-              setShowBlogTrackModal(true)
+              setShowTrackModal('blog')
             }}
             disabled={creatingCardNews || creatingBlog}
             className="rounded-lg border border-bt-border-strong px-3 py-1.5 text-sm hover:bg-bt-surface-soft disabled:opacity-50"
@@ -668,50 +686,58 @@ function TripCard({
         </div>
       </div>
 
-      {showBlogTrackModal && (
+      {showTrackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-bt-title">블로그 글 만들기</h3>
+            <h3 className="text-lg font-semibold text-bt-title">
+              {showTrackModal === 'blog' ? '블로그 글 만들기' : '카드뉴스 만들기'}
+            </h3>
             <p className="mt-1 text-sm text-bt-body/70">
-              {item.city} · 어떤 트랙으로 만들까요?
+              {item.city} · 콘텐츠 트랙을 고르면 해당 종류의 상품만 연결됩니다.
             </p>
             <div className="mt-4 space-y-2">
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-bt-border-strong px-3 py-2 text-sm">
                 <input
                   type="radio"
-                  name={`blog-track-${item.city}`}
+                  name={`content-track-${item.city}-${showTrackModal}`}
                   checked={selectedTrack === 'package'}
                   onChange={() => setSelectedTrack('package')}
                 />
-                패키지 여행
+                패키지 여행 ({pkgCount}개 매칭)
               </label>
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-bt-border-strong px-3 py-2 text-sm">
                 <input
                   type="radio"
-                  name={`blog-track-${item.city}`}
+                  name={`content-track-${item.city}-${showTrackModal}`}
                   checked={selectedTrack === 'airtel'}
                   onChange={() => setSelectedTrack('airtel')}
                 />
-                자유여행 (항공+호텔)
+                자유여행 항공+호텔 ({airtelCount}개 매칭)
               </label>
             </div>
-            {blogError && <p className="mt-3 text-sm text-red-700">{blogError}</p>}
+            {(blogError || createError) && (
+              <p className="mt-3 text-sm text-red-700">{blogError || createError}</p>
+            )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                disabled={creatingBlog}
-                onClick={() => setShowBlogTrackModal(false)}
+                disabled={creatingBlog || creatingCardNews}
+                onClick={() => setShowTrackModal(null)}
                 className="rounded-lg border border-bt-border-strong px-3 py-1.5 text-sm hover:bg-bt-surface-soft disabled:opacity-50"
               >
                 취소
               </button>
               <button
                 type="button"
-                disabled={creatingBlog}
-                onClick={() => void handleCreateBlog(selectedTrack)}
+                disabled={creatingBlog || creatingCardNews}
+                onClick={() =>
+                  void (showTrackModal === 'blog'
+                    ? handleCreateBlog(selectedTrack)
+                    : handleCreateCardNews(selectedTrack))
+                }
                 className="rounded-lg bg-bt-brand-blue px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:opacity-50"
               >
-                {creatingBlog ? '생성 중… (1-2분)' : '생성하기'}
+                {creatingBlog || creatingCardNews ? '생성 중… (1-2분)' : '생성하기'}
               </button>
             </div>
           </div>

@@ -690,25 +690,32 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
     }
   }
 
-  const pickScheduleEntryAsHero = async (entry: ScheduleEntry) => {
-    if (!id || !entry.imageUrl?.trim()) return
+  const pickScheduleEntryAsHero = async (
+    entry: ScheduleEntry,
+    opts?: { slot?: 1 | 2 },
+  ) => {
+    if (!id) return
+    const slot = opts?.slot ?? 1
+    const imageUrl = (slot === 2 ? entry.imageUrl2 : entry.imageUrl)?.trim()
+    if (!imageUrl) return
+    const imageSource = slot === 2 ? entry.imageSource2 : entry.imageSource
     setHeroReselectBusy(true)
     setPrimaryImageMessage(null)
     try {
-      const rawSrc = (entry.imageSource?.source ?? '').trim().toLowerCase()
+      const rawSrc = (imageSource?.source ?? '').trim().toLowerCase()
       const mapped =
         rawSrc.includes('pexel') ? 'pexels'
         : rawSrc.includes('gemini') ? 'gemini_auto'
-        : rawSrc.includes('pool') ? 'photopool'
+        : rawSrc.includes('pool') || rawSrc.includes('library') || rawSrc.includes('asset') ? 'photopool'
         : 'manual'
       const res = await fetch(`/api/admin/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          primaryImageUrl: entry.imageUrl.trim(),
+          primaryImageUrl: imageUrl,
           primaryImageSource: mapped,
-          primaryImagePhotographer: entry.imageSource?.photographer?.trim() || null,
-          primaryImageSourceUrl: entry.imageSource?.originalLink?.trim() || null,
+          primaryImagePhotographer: imageSource?.photographer?.trim() || null,
+          primaryImageSourceUrl: imageSource?.originalLink?.trim() || null,
         }),
       })
       const text = await res.text()
@@ -720,7 +727,8 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       }
       if (res.ok && updated) {
         setProduct(updated)
-        setPrimaryImageMessage(`${entry.day}일차 이미지를 대표로 지정했습니다.`)
+        const slotLabel = slot === 2 ? ' 이미지2' : ''
+        setPrimaryImageMessage(`${entry.day}일차${slotLabel} 이미지를 대표로 지정했습니다.`)
       } else {
         let errMsg = '저장 실패'
         try {
@@ -2346,36 +2354,52 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          {scheduleEntries.some((e) => Boolean(e.imageUrl?.trim())) ? (
+          {scheduleEntries.some((e) => Boolean(e.imageUrl?.trim() || e.imageUrl2?.trim())) ? (
             <div className="mt-4 rounded-lg border border-bt-border-strong bg-bt-surface-soft/80 p-4 text-xs text-bt-body">
               <p className="font-medium text-bt-title">일정 이미지에서 대표로 선택</p>
               <p className="mt-1 text-[11px] text-bt-muted">
-                공항·이동 중심 1일차 대신, 해당 일차 사진을 그대로 대표 커버로 지정합니다.
+                공항·이동 중심 1일차 대신, 해당 일차에 고른 사진(1·2번)을 그대로 대표 커버로 지정합니다.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {scheduleEntries
-                  .filter((e) => e.imageUrl?.trim())
-                  .map((e) => (
-                    <button
-                      key={`hero-pick-day-${e.day}`}
-                      type="button"
-                      disabled={heroReselectBusy || primaryImageUploading}
-                      onClick={() => void pickScheduleEntryAsHero(e)}
-                      className="flex flex-col items-center gap-1 rounded border border-bt-border-strong bg-bt-title p-2 hover:bg-bt-surface-soft disabled:opacity-50"
-                    >
-                      <span className="relative block h-14 w-24 overflow-hidden rounded">
-                        <SafeImage
-                          src={e.imageUrl!.trim()}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="96px"
-                          loading="lazy"
-                        />
-                      </span>
-                      <span className="text-[11px] text-bt-muted">{e.day}일차</span>
-                    </button>
-                  ))}
+                {scheduleEntries.flatMap((e) => {
+                  const picks: Array<{ key: string; slot: 1 | 2; url: string }> = []
+                  const u1 = e.imageUrl?.trim()
+                  if (u1) picks.push({ key: `hero-pick-day-${e.day}-s1`, slot: 1, url: u1 })
+                  const u2 = e.imageUrl2?.trim()
+                  if (u2) picks.push({ key: `hero-pick-day-${e.day}-s2`, slot: 2, url: u2 })
+                  return picks.map((p) => {
+                    const selected =
+                      Boolean(product?.bgImageUrl?.trim()) && product!.bgImageUrl!.trim() === p.url
+                    return (
+                      <button
+                        key={p.key}
+                        type="button"
+                        disabled={heroReselectBusy || primaryImageUploading}
+                        onClick={() => void pickScheduleEntryAsHero(e, { slot: p.slot })}
+                        className={`flex flex-col items-center gap-1 rounded border p-2 disabled:opacity-50 ${
+                          selected
+                            ? 'border-bt-brand-blue-strong bg-bt-brand-blue-soft'
+                            : 'border-bt-border-strong bg-bt-title hover:bg-bt-surface-soft'
+                        }`}
+                      >
+                        <span className="relative block h-14 w-24 overflow-hidden rounded">
+                          <SafeImage
+                            src={p.url}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                            loading="lazy"
+                          />
+                        </span>
+                        <span className="text-[11px] text-bt-muted">
+                          {e.day}일차{p.slot === 2 ? ' ·2' : ''}
+                          {selected ? ' ·선택' : ''}
+                        </span>
+                      </button>
+                    )
+                  })
+                })}
               </div>
               <button
                 type="button"

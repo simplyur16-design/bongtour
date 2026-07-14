@@ -239,6 +239,39 @@ describe('lottetour register detail collect', () => {
     expect(meeting.meetingInfoRaw).toMatch(/인천공항/)
   })
 
+  it('B41A-like scheduleAjax — drops 증명서·식사·포함일정 from route/title', () => {
+    // REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]
+    const html = `
+<dl id ="sche_plan_1" class="day_plan">
+  <dd>
+    <div class="timeline">
+      <strong>영문 가족관계증명서</strong>
+      <strong>푸꾸옥</strong>
+      <strong>면세가능품목</strong>
+    </div>
+    <div class="table_in"><p class="plan_info">[포함일정] 공항 이동</p></div>
+  </dd>
+</dl><!-- //day_plan -->
+<dl id ="sche_plan_2" class="day_plan">
+  <dd>
+    <div class="timeline"><strong>푸꾸옥</strong></div>
+    <div class="table_in">
+      <p class="plan_info">[베트남 가정식 SET] 포함</p>
+      <p class="plan_info">[그랜드월드] 관광</p>
+      <p class="plan_info">[갑오징어 볶음] 석식</p>
+    </div>
+  </dd>
+</dl><!-- //day_plan -->
+`
+    const days = parseLottetourScheduleDaysFromScheduleAjax(html)
+    expect(days).toHaveLength(2)
+    expect(days[0]?.title).not.toMatch(/증명서|면세/)
+    expect(days[0]?.routeText ?? '').not.toMatch(/증명서|면세|포함일정/)
+    expect(days[0]?.routeText).toMatch(/푸꾸옥/)
+    expect(days[1]?.routeText ?? '').toMatch(/그랜드월드/)
+    expect(days[1]?.routeText ?? '').not.toMatch(/가정식|갑오징어|SET/)
+  })
+
   it('optional spotList returns empty for NO-option section without rows', () => {
     const html = `<div class="travel_info_cont on"><!-- 선택관광 -->
       <dl class="dl_box type03"><dt>예약 시 유의 사항</dt><dd><ul><li>선택관광은 상품가격에 불포함</li></ul></dd></dl>

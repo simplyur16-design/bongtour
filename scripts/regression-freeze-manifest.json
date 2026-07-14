@@ -4198,6 +4198,62 @@
       ]
     },
     {
+      "id": "marketing-content-track-product-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "콘텐츠 자동화 — 패키지/자유여행 listingKind 게이트 (추천·블로그·카드뉴스 linkedProduct)",
+      "checks": [
+        {
+          "file": "lib/bong-marketing/marketing-content-track-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[marketing-content-track-product-gate]",
+            "isPackageMarketingProduct",
+            "isAirtelMarketingProduct",
+            "pickLinkedProductIdForMarketingTrack"
+          ]
+        },
+        {
+          "file": "lib/bong-marketing/trip-recommender.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[marketing-content-track-product-gate]",
+            "matchProductIdsByMarketingTracks",
+            "matchingProductIdsPackage",
+            "listingKind"
+          ]
+        },
+        {
+          "file": "app/api/admin/marketing/blog/from-recommendation/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[marketing-content-track-product-gate]",
+            "resolveLinkedProductIdsForMarketingTrack"
+          ]
+        },
+        {
+          "file": "app/api/admin/marketing/card-news/series/from-recommendation/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[marketing-content-track-product-gate]",
+            "resolveLinkedProductIdsForMarketingTrack",
+            "contentTrack"
+          ]
+        },
+        {
+          "file": "components/admin/marketing/trip-recommendations/TripRecommendationsClient.tsx",
+          "mustInclude": [
+            "matchingProductIdsPackage",
+            "matchingProductIdsAirtel",
+            "패키지",
+            "자유여행"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bong-marketing/marketing-content-track-product.test.ts",
+        "lib/bong-marketing/trip-recommender.test.ts"
+      ]
+    },
+    {
       "id": "trip-recommend-event-slots",
       "tier": [
         "prebuild",
@@ -6230,7 +6286,15 @@
             "resolveLottetourRegisterOriginIdsFromUrl",
             "resolveLottetourRegisterDestination",
             "normalizeSupplierRegisterListingTitle",
-            "godId 또는 evtCd"
+            "godId 또는 evtCd",
+            "buildLottetourFlightStructuredFromFactLegs",
+            "prefetch facts flights → flightStructured"
+          ]
+        },
+        {
+          "file": "lib/register-facts/lottetour-register-fact-flights.ts",
+          "mustInclude": [
+            "buildLottetourFlightStructuredFromFactLegs"
           ]
         },
         {
@@ -6251,7 +6315,88 @@
       "vitestSuites": [
         "lib/lottetour-register-api-parse.test.ts",
         "lib/lottetour-register-destination-from-paste.test.ts",
-        "lib/supplier-register-destination-forbidden.test.ts"
+        "lib/supplier-register-destination-forbidden.test.ts",
+        "lib/register-facts/lottetour-register-fact-flights.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-register-listing-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 리스트 제목 — #없이 [KE]…N일▶… 브래킷·basicAjax HTML 폴백",
+      "checks": [
+        {
+          "file": "lib/register-lottetour-basic.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-listing-title]",
+            "isLottetourBracketListingTitleLine",
+            "extractLottetourListingTitleFromHtml",
+            "extractLottetourVerbatimListingTitle"
+          ]
+        },
+        {
+          "file": "lib/register-facts/lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-listing-title]",
+            "extractLottetourListingTitleFromHtml",
+            "resolveLottetourFactListingTitle"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-listing-title]",
+            "extractLottetourVerbatimListingTitle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-lottetour-listing-title.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-schedule-route-admin-noise",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 route — 증명서·포함일정·식사 SET 등 행정·미식 잡음 제외",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]",
+            "가족관계\\s*증명서",
+            "포함\\s*일정"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]",
+            "영문\\s*가족관계",
+            "포함\\s*일정"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]",
+            "가족관계|증명서"
+          ]
+        },
+        {
+          "file": "lib/lottetour-schedule-day-header-title.ts",
+          "mustInclude": [
+            "영문\\s*가족관계",
+            "가족관계\\s*증명서"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-place-noise.test.ts"
       ]
     },
     {

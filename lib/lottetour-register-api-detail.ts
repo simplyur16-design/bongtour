@@ -529,7 +529,11 @@ function lottetourCitiesFromDayBlock(block: string): string[] {
         c.length > 1 &&
         c.length < 80 &&
         !/\d+\s*일차/.test(c) &&
-        !/^[★☆]|기상\s*악화|결항|대체|불가|→/.test(c),
+        !/^[★☆]|기상\s*악화|결항|대체|불가|→/.test(c) &&
+        // REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]: 증명서·식사·포함일정 strong 제외 — manifest
+        !/가족관계|증명서|면세\s*가능|포함\s*일정|현지\s*가이드|현지\s*연락처|필수\s*서류|작성\s*및\s*제출|체류\s*가능|롯데관광\s*단독|^롯데$|한국보다\s*\d+\s*시간|(?:가정식|쌀국수|분짜|반쎄오|갑오징어).{0,12}(?:SET|세트)|(?:SET|세트)$|양식\s*SET|한식$|특식$|에그\s*타르트|광동식|^이태원$/i.test(
+          c,
+        ),
     )
 }
 
@@ -540,7 +544,13 @@ function lottetourSpotNamesFromPlanInfo(block: string): string[] {
     for (const bracket of text.matchAll(/\[([^\]]{2,36})\]/g)) {
       const t = bracket[1]?.trim()
       if (!t) continue
-      if (/조식|중식|석식|특전|시차|국가번호|관광\s*시간|호텔식|제육|된장/i.test(t)) continue
+      if (
+        /조식|중식|석식|특전|시차|국가번호|관광\s*시간|호텔식|제육|된장|가족관계|증명서|면세|포함\s*일정|가정식|쌀국수|갑오징어|\bSET\b|세트$/i.test(
+          t,
+        )
+      ) {
+        continue
+      }
       out.push(t)
     }
   }

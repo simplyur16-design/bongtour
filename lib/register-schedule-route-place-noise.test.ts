@@ -73,6 +73,53 @@ describe('register schedule route place noise', () => {
     expect(isRegisterScheduleRoutePlaceNoise('미즈키시게루 로드')).toBe(false)
   })
 
+  it('lottetour B41A — drops 증명서·포함일정·식사 SET from route', () => {
+    // REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]
+    expect(isRegisterScheduleRoutePlaceNoise('영문 가족관계증명서')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('면세가능품목')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('포함일정')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('베트남 가정식 SET')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('소고기 쌀국수+반쎄오')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('그랜드월드')).toBe(false)
+    const chain = joinLottetourScheduleRouteText([
+      '영문 가족관계증명서',
+      '푸꾸옥',
+      '면세가능품목',
+      '포함일정',
+      '베트남 가정식 SET',
+      '그랜드월드',
+      '갑오징어 볶음',
+    ])
+    expect(chain).toBe('푸꾸옥 - 그랜드월드')
+    expect(chain).not.toMatch(/증명서|포함일정|가정식|갑오징어|면세/)
+  })
+
+  it('lottetour batch — drops 현지가이드·필수서류·시차 안내용 route noise', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('작성 및 제출 방법')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('현지 가이드')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('체류 가능 기간 : 입국 시 최대 3개월')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('한국보다 1시간 느립니다.')).toBe(true)
+    const chain = joinLottetourScheduleRouteText([
+      '작성 및 제출 방법',
+      '비엔티엔',
+      '현지 가이드',
+      '현지 연락처',
+      '롯데',
+      '자금성',
+    ])
+    expect(chain).toMatch(/비엔티엔|자금성/)
+    expect(chain).not.toMatch(/제출|가이드|연락처|^롯데$/)
+    expect(
+      joinLottetourScheduleRouteText([
+        '홍콩',
+        '3시간 45분',
+        '한국보다 1시간 느립니다.',
+        '이태원',
+        '에그타르트',
+      ]),
+    ).toBe('홍콩')
+  })
+
   it('joinLottetourScheduleRouteText drops admin guidance', () => {
     const chain = joinLottetourScheduleRouteText([
       '인천',

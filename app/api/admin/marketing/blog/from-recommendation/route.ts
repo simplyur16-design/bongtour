@@ -6,8 +6,11 @@ import {
 } from '@/lib/bong-marketing/blog-generator'
 import { appendBlogProductCtaMarkdown } from '@/lib/bong-marketing/cta-url-builder'
 import { extractProductGeoMeta } from '@/lib/bong-marketing/product-extractor'
+import { resolveLinkedProductIdsForMarketingTrack } from '@/lib/bong-marketing/resolve-linked-product-for-track'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+
+// REGRESSION-FREEZE[marketing-content-track-product-gate]: blog from-recommendation track gate — manifest
 
 export const maxDuration = 300
 
@@ -82,15 +85,23 @@ export async function POST(req: Request) {
       ? Math.floor(body.recommendedTripDays)
       : undefined
 
-  const matchingProductIds = Array.isArray(body.matchingProductIds)
+  const matchingProductIdsRaw = Array.isArray(body.matchingProductIds)
     ? body.matchingProductIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
     : []
+  const trackScopedKey =
+    contentTrack === 'package' ? 'matchingProductIdsPackage' : 'matchingProductIdsAirtel'
+  const trackScopedRaw = Array.isArray(body[trackScopedKey])
+    ? (body[trackScopedKey] as unknown[]).filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0,
+      )
+    : []
 
-  let firstProductId: string | null = matchingProductIds[0] ?? null
-  if (firstProductId) {
-    const product = await prisma.product.findUnique({ where: { id: firstProductId }, select: { id: true } })
-    if (!product) firstProductId = null
-  }
+  const { linkedProductId: firstProductId, matchingProductIds } =
+    await resolveLinkedProductIdsForMarketingTrack({
+      productIds: matchingProductIdsRaw,
+      track: contentTrack,
+      trackScopedIds: trackScopedRaw,
+    })
 
   try {
     const generated = await generateBlogPost({
@@ -108,7 +119,7 @@ export async function POST(req: Request) {
     })
 
     const monthKey = getCurrentMonthKey()
-    let body = generated.body
+    let bodyMd = generated.body
     if (firstProductId) {
       try {
         const geo = await extractProductGeoMeta(firstProductId, {
@@ -117,7 +128,7 @@ export async function POST(req: Request) {
           campaignMonthKey: monthKey,
         })
         if (geo.productSlug) {
-          body = appendBlogProductCtaMarkdown(body, geo.ctaUrl)
+          bodyMd = appendBlogProductCtaMarkdown(bodyMd, geo.ctaUrl)
         }
       } catch {
         /* CTA 없이 본문만 저장 */
@@ -128,7 +139,7 @@ export async function POST(req: Request) {
       data: {
         title: generated.title,
         excerpt: generated.excerpt || null,
-        body,
+        body: bodyMd,
         hashtags: generated.hashtags,
         contentTrack,
         status: 'draft',
@@ -145,6 +156,8 @@ export async function POST(req: Request) {
           reason,
           themes: themes ?? [],
           matchingProductIds,
+          matchingProductIdsRaw,
+          contentTrack,
           city,
           country,
         },

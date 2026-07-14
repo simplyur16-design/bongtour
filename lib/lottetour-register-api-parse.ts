@@ -24,6 +24,8 @@ import { resolveLottetourRegisterDestination } from '@/lib/lottetour-register-de
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { extractLottetourVerbatimListingTitle } from '@/lib/register-lottetour-basic'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
+import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
+import { buildLottetourFlightStructuredFromFactLegs } from '@/lib/register-facts/lottetour-register-fact-flights'
 
 export const LOTTETOUR_PRICE_SLOT_SSOT_NOTE =
   '롯데관광 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -91,6 +93,7 @@ export async function parseLottetourRegisterFromApi(
   const resolvedGodId = ids.godId ?? godFromNotes ?? null
 
   const paste = rawText.trim()
+  // REGRESSION-FREEZE[lottetour-register-listing-title]: facts title → paste bracket fallback — manifest
   let listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
   if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'lottetour')) {
     const fromPaste = paste ? extractLottetourVerbatimListingTitle(paste) : null
@@ -115,13 +118,17 @@ export async function parseLottetourRegisterFromApi(
         }
       : undefined
 
+  const outbound = bundle.flights?.find((f) => f.direction === 'outbound')
+  const inbound = bundle.flights?.find((f) => f.direction === 'inbound')
+  const flightStructuredFromFacts = buildLottetourFlightStructuredFromFactLegs(bundle.flights)
+
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'lottetour',
     originCode: resolvedEvtCd ?? resolvedGodId ?? '',
     godId: resolvedGodId,
     evtCd: resolvedEvtCd,
     title: listingTitle || '미지정',
-    supplierListingTitleRaw: bundle.title?.trim() || null,
+    supplierListingTitleRaw: listingTitle || bundle.title?.trim() || null,
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
@@ -134,6 +141,9 @@ export async function parseLottetourRegisterFromApi(
     schedule,
     prices,
     productPriceTable,
+    airlineName: outbound?.carrier ?? inbound?.carrier ?? null,
+    outboundFlightNo: outbound?.flightNo ?? null,
+    inboundFlightNo: inbound?.flightNo ?? null,
     hasShopping: bundle.shoppingPlaces.some((p) => /쇼핑/.test(p)),
     shoppingVisitCount: bundle.shoppingPlaces.some((p) => /노쇼핑/.test(p))
       ? 0
@@ -153,6 +163,9 @@ export async function parseLottetourRegisterFromApi(
       ? 'prefetchedFactBundle — detail re-fetch skipped'
       : null,
   }
+
+  // REGRESSION-FREEZE[lottetour-register-api-parse]: prefetch facts flights → flightStructured — manifest
+  parsed = applyRegisterCollectedFlightStructured(parsed, flightStructuredFromFacts)
 
   parsed = finalizeLottetourRegisterParsedPricing(parsed)
   parsed = finalizeLottetourRegisterParsedShopping(parsed)

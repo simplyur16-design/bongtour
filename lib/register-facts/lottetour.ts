@@ -22,6 +22,8 @@ import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFa
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import { lottetourCalendarRowToRegisterFactFlights } from '@/lib/register-facts/lottetour-register-fact-flights'
 import { registerFactProductKindNote } from '@/lib/register-facts/product-kind'
+import { extractLottetourListingTitleFromHtml } from '@/lib/register-lottetour-basic'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
 function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactScheduleDay[] {
   return days.map((d) => {
@@ -45,14 +47,36 @@ function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactSchedu
 }
 
 function parseNightsDays(durationText: string | null | undefined): { nights: number | null; days: number | null } {
-  const m = String(durationText ?? '').match(/(\d+)\s*박\s*(\d+)\s*일/)
-  if (!m) return { nights: null, days: null }
-  const nights = Number(m[1])
-  const days = Number(m[2])
-  return {
-    nights: Number.isFinite(nights) ? nights : null,
-    days: Number.isFinite(days) ? days : null,
+  const raw = String(durationText ?? '')
+  const nm = raw.match(/(\d+)\s*박\s*(\d+)\s*일/)
+  if (nm) {
+    const nights = Number(nm[1])
+    const days = Number(nm[2])
+    return {
+      nights: Number.isFinite(nights) ? nights : null,
+      days: Number.isFinite(days) ? days : null,
+    }
   }
+  // [KE]…푸꾸옥 5일▶… 브래킷 제목 — 일수만
+  const daysOnly = raw.match(/(\d+)\s*일/)
+  if (daysOnly) {
+    const days = Number(daysOnly[1])
+    return { nights: null, days: Number.isFinite(days) ? days : null }
+  }
+  return { nights: null, days: null }
+}
+
+/** evtList tourTitleRaw 비면 basicAjax HTML 브래킷 제목으로 복구 */
+function resolveLottetourFactListingTitle(
+  tourTitleRaw: string | null | undefined,
+  basicAjaxHtml: string | null | undefined,
+): string | null {
+  const fromRow = tourTitleRaw?.trim() || null
+  if (fromRow && !isSupplierListingTitleUnacceptable(fromRow, 'lottetour')) return fromRow
+  // REGRESSION-FREEZE[lottetour-register-listing-title]: HTML bracket title when evtList empty — manifest
+  const fromHtml = extractLottetourListingTitleFromHtml(basicAjaxHtml)
+  if (fromHtml && !isSupplierListingTitleUnacceptable(fromHtml, 'lottetour')) return fromHtml
+  return fromRow
 }
 
 function lottetourMeetingToFlights(
@@ -76,7 +100,8 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
   const shoppingPlaces =
     shopCount != null && shopCount > 0 ? [`쇼핑 ${shopCount}회`] : shopCount === 0 ? ['노쇼핑'] : []
   const row = bundle.evtListRow
-  const { nights, days } = parseNightsDays(row?.durationText ?? row?.tourTitleRaw)
+  const listingTitle = resolveLottetourFactListingTitle(row?.tourTitleRaw, bundle.basicAjaxHtml)
+  const { nights, days } = parseNightsDays(row?.durationText ?? listingTitle ?? row?.tourTitleRaw)
 
   let priceRows: SupplierRegisterFactBundle['priceRows'] = []
   let flightSourceRow: LottetourCalendarRow | null = null
@@ -117,7 +142,7 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
     fetchedAt: new Date().toISOString(),
     originUrl: url,
     originCode: bundle.evtCd ?? bundle.godId,
-    title: row?.tourTitleRaw?.trim() || null,
+    title: listingTitle,
     nights,
     days,
     meetingInfo: meeting.meetingInfoRaw,

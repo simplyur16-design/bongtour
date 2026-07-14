@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { isoWeekKey } from '@/lib/bong-marketing/card-news-admin-constants'
+import type { BlogContentTrack } from '@/lib/bong-marketing/blog-generator'
+import { resolveLinkedProductIdsForMarketingTrack } from '@/lib/bong-marketing/resolve-linked-product-for-track'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+
+// REGRESSION-FREEZE[marketing-content-track-product-gate]: card-news from-recommendation track gate — manifest
 
 const SEASON_KOR: Record<string, string> = {
   spring: '봄',
@@ -11,6 +15,7 @@ const SEASON_KOR: Record<string, string> = {
 }
 
 const VALID_SEASONS = ['spring', 'summer', 'autumn', 'winter', 'all_year'] as const
+const VALID_TRACKS: BlogContentTrack[] = ['package', 'airtel']
 
 async function readJson(req: Request): Promise<Record<string, unknown> | null> {
   try {
@@ -56,6 +61,11 @@ export async function POST(req: Request) {
   if (!city) return NextResponse.json({ error: 'city 필수' }, { status: 400 })
   if (!season) return NextResponse.json({ error: 'season 필수' }, { status: 400 })
 
+  const contentTrack =
+    typeof body.contentTrack === 'string' && VALID_TRACKS.includes(body.contentTrack as BlogContentTrack)
+      ? (body.contentTrack as BlogContentTrack)
+      : 'package'
+
   const tripNights =
     typeof body.recommendedTripNights === 'number' && body.recommendedTripNights > 0
       ? Math.floor(body.recommendedTripNights)
@@ -65,19 +75,28 @@ export async function POST(req: Request) {
       ? Math.floor(body.recommendedTripDays)
       : 5
 
-  const matchingProductIds = Array.isArray(body.matchingProductIds)
+  const matchingProductIdsRaw = Array.isArray(body.matchingProductIds)
     ? body.matchingProductIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
     : []
+  const trackScopedKey =
+    contentTrack === 'package' ? 'matchingProductIdsPackage' : 'matchingProductIdsAirtel'
+  const trackScopedRaw = Array.isArray(body[trackScopedKey])
+    ? (body[trackScopedKey] as unknown[]).filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0,
+      )
+    : []
 
-  let firstProductId: string | null = matchingProductIds[0] ?? null
-  if (firstProductId) {
-    const product = await prisma.product.findUnique({ where: { id: firstProductId }, select: { id: true } })
-    if (!product) firstProductId = null
-  }
+  const { linkedProductId: firstProductId } = await resolveLinkedProductIdsForMarketingTrack({
+    productIds: matchingProductIdsRaw,
+    track: contentTrack,
+    trackScopedIds: trackScopedRaw,
+  })
 
   const themeTitle = monthLabel ? `${monthLabel} ${city}` : `${SEASON_KOR[season] ?? season} ${city}`
+  const trackLabel = contentTrack === 'airtel' ? '자유여행' : '패키지'
   const operatorNote = [
     '[자동 생성]',
+    `콘텐츠 트랙: ${trackLabel}`,
     month ? `대상 월: ${month}월` : '',
     [monthLabel, urgency].filter(Boolean).join(' · '),
     reason,
@@ -105,10 +124,10 @@ export async function POST(req: Request) {
       episodeNumber: 1,
       episodeType: 'package',
       formatType: 'deep',
-      title: `${city} 추천 여행`,
+      title: `${city} ${trackLabel} 추천`,
       targetCity: city,
       linkedProductId: firstProductId,
-      operatorNote: '[자동 생성] 추천 결과 기반 1편',
+      operatorNote: `[자동 생성] 추천 결과 기반 1편 (${trackLabel})`,
       status: 'draft',
     },
   })

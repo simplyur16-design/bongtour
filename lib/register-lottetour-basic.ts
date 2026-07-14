@@ -38,9 +38,20 @@ export function extractLottetourProductCodeFromBlob(blob: string): string | null
 }
 
 /**
- * 상품 상단 노출 제목(해시태그·항공코드 등 포함) — LLM 의역 대신 붙여넣기 원문을 SSOT로 쓴다.
+ * 상품 상단 노출 제목(해시태그·항공코드·[KE] 브래킷 등 포함) — LLM 의역 대신 붙여넣기 원문을 SSOT로 쓴다.
  * `상품번호` 이후 짧은 구간에서만 탐색해 하단 "추천 상품" 줄과 혼동을 줄인다.
+ * REGRESSION-FREEZE[lottetour-register-listing-title]: bracket titles without # — manifest
  */
+export function isLottetourBracketListingTitleLine(line: string): boolean {
+  const t = String(line ?? '').replace(/\s+/g, ' ').trim()
+  if (!t || t.length < 12 || t.length > 220) return false
+  if (!/^\[[^\]]{1,40}\]/.test(t)) return false
+  if (!/\d+\s*(?:일|박)/.test(t)) return false
+  if (!/[가-힣]{2,}/.test(t)) return false
+  // [KE][NO옵션]…푸꾸옥 5일▶… / 항공코드·옵션 브래킷형
+  return /(?:▶|●|\[[A-Z0-9]{2}\]|NO\s*옵션|풀빌라|POOL|STAY)/i.test(t)
+}
+
 export function extractLottetourVerbatimListingTitle(blob: string): string | null {
   const text = blob.replace(/\r\n/g, '\n')
   const productIdx = text.search(/상품번호\s*[A-Za-z]*\d[A-Za-z0-9-]+/i)
@@ -55,9 +66,36 @@ export function extractLottetourVerbatimListingTitle(blob: string): string | nul
     if (/^(출발|도착|예약하기|인쇄|문의|찜|공유|담당자|상품\s*이미지|더보기|추천\s*상품)\b/i.test(line)) continue
     if (/^COUPON\b|^다운로드\b/i.test(line)) continue
     const hashCount = (line.match(/#/g) || []).length
-    if (hashCount < 2) continue
-    if (!/(일|박|\/)/.test(line)) continue
-    return line
+    if (hashCount >= 2) {
+      if (!/(일|박|\/)/.test(line)) continue
+      return line
+    }
+    // 해시태그 없는 [KE][NO옵션]…N일▶… 형태 (푸꾸옥 풀빌라 등)
+    if (isLottetourBracketListingTitleLine(line)) return line
+  }
+  return null
+}
+
+/** basicAjax/헤드 HTML에서 브래킷형 리스트 제목 복구 */
+export function extractLottetourListingTitleFromHtml(html: string | null | undefined): string | null {
+  if (!html?.trim()) return null
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|h\d|li|dt|dd|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r\n/g, '\n')
+  const fromLines = extractLottetourVerbatimListingTitle(text)
+  if (fromLines) return fromLines
+  // 한 줄로 붙은 HTML 텍스트에서도 [KE]…N일▶… 스캔
+  const m = text.match(/\[[^\]]{1,40}\][^\n]{8,180}?\d+\s*(?:일|박)[^\n]{0,120}/)
+  if (m?.[0] && isLottetourBracketListingTitleLine(m[0].replace(/\s+/g, ' ').trim())) {
+    return m[0].replace(/\s+/g, ' ').trim().slice(0, 220)
   }
   return null
 }

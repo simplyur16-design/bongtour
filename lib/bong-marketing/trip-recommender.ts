@@ -10,12 +10,18 @@ import {
 } from '@/lib/bong-marketing/curation-event-repository'
 import { findEventSlotCards, EVENT_SLOT_LIMIT } from '@/lib/bong-marketing/event-slot-finder'
 import {
+  filterProductIdsByMarketingTrack,
+  type MarketingContentTrack,
+} from '@/lib/bong-marketing/marketing-content-track-product'
+import {
   monthLabelFromNumber,
   monthToSeason,
   parseMonthNumber,
   rollingMonthsFrom,
   type Season,
 } from '@/lib/bong-marketing/trip-recommender-month-utils'
+
+// REGRESSION-FREEZE[marketing-content-track-product-gate]: package/airtel 매칭 분리 — manifest
 
 export {
   monthLabelFromNumber,
@@ -55,7 +61,12 @@ export interface TripRecommendationItem {
   reason: string
   recommendedTripNights: number
   recommendedTripDays: number
+  /** 패키지+자유여행 합집합(레거시 표시용). 콘텐츠 생성은 track별 배열을 쓴다. */
   matchingProductIds: string[]
+  /** 패키지(listingKind=travel·레거시)만 */
+  matchingProductIdsPackage?: string[]
+  /** 자유여행(air_hotel_free / air-hotel)만 */
+  matchingProductIdsAirtel?: string[]
   themes?: string[]
   events?: TripRecommendationEvent[]
   /** @deprecated 카드뉴스·블로그 API 호환 — monthToSeason(month) */
@@ -91,6 +102,8 @@ export interface ProductSummary {
   city: string | null
   continent: string | null
   displayCategory: string | null
+  listingKind: string | null
+  productType: string | null
   themes: string[]
   tripNights: number | null
   tripDays: number | null
@@ -265,6 +278,8 @@ async function loadActiveProductsSummary(): Promise<ProductSummary[]> {
       registrationStatus: 'registered',
       autoUnpublishedAt: null,
       OR: [{ city: { not: null } }, { country: { not: null } }],
+      // 국외연수는 마케팅 추천 풀에서 제외
+      NOT: { listingKind: 'overseas_training' },
     },
     select: {
       id: true,
@@ -273,6 +288,8 @@ async function loadActiveProductsSummary(): Promise<ProductSummary[]> {
       city: true,
       continent: true,
       displayCategory: true,
+      listingKind: true,
+      productType: true,
       themeTags: true,
       themeLabelsRaw: true,
       tripNights: true,
@@ -288,6 +305,8 @@ async function loadActiveProductsSummary(): Promise<ProductSummary[]> {
     city: p.city,
     continent: p.continent,
     displayCategory: p.displayCategory,
+    listingKind: p.listingKind,
+    productType: p.productType,
     themes: extractThemes(p.themeTags, p.themeLabelsRaw),
     tripNights: p.tripNights,
     tripDays: p.tripDays,
@@ -475,6 +494,7 @@ export function matchProductIds(
   products: ProductSummary[],
   cityLabels: Record<string, string>,
   countryLabels: Record<string, string>,
+  track?: MarketingContentTrack,
 ): string[] {
   const cityNeedle = recommendation.city.trim().toLowerCase()
   const countryNeedle = recommendation.country.trim().toLowerCase()
@@ -488,18 +508,56 @@ export function matchProductIds(
     return false
   }
 
-  return products
-    .filter((p) => {
-      const citySlug = p.city ?? ''
-      const countrySlug = p.country ?? ''
-      const cityLabel = p.city ? (cityLabels[p.city] ?? '') : ''
-      const countryLabel = p.country ? (countryLabels[p.country] ?? '') : ''
-      const cityMatch = fieldMatches(cityNeedle, citySlug, cityLabel)
-      const countryMatch = fieldMatches(countryNeedle, countrySlug, countryLabel)
-      return cityMatch || countryMatch
-    })
-    .slice(0, 10)
-    .map((p) => p.id)
+  const geoMatched = products.filter((p) => {
+    const citySlug = p.city ?? ''
+    const countrySlug = p.country ?? ''
+    const cityLabel = p.city ? (cityLabels[p.city] ?? '') : ''
+    const countryLabel = p.country ? (countryLabels[p.country] ?? '') : ''
+    const cityMatch = fieldMatches(cityNeedle, citySlug, cityLabel)
+    const countryMatch = fieldMatches(countryNeedle, countrySlug, countryLabel)
+    return cityMatch || countryMatch
+  })
+
+  const ids = geoMatched.slice(0, 24).map((p) => p.id)
+  if (!track) return ids.slice(0, 10)
+
+  const byId = new Map(geoMatched.map((p) => [p.id, p] as const))
+  return filterProductIdsByMarketingTrack(ids, byId, track).slice(0, 10)
+}
+
+export function matchProductIdsByMarketingTracks(
+  recommendation: { city: string; country: string },
+  products: ProductSummary[],
+  cityLabels: Record<string, string>,
+  countryLabels: Record<string, string>,
+): {
+  matchingProductIds: string[]
+  matchingProductIdsPackage: string[]
+  matchingProductIdsAirtel: string[]
+} {
+  const matchingProductIdsPackage = matchProductIds(
+    recommendation,
+    products,
+    cityLabels,
+    countryLabels,
+    'package',
+  )
+  const matchingProductIdsAirtel = matchProductIds(
+    recommendation,
+    products,
+    cityLabels,
+    countryLabels,
+    'airtel',
+  )
+  const seen = new Set<string>()
+  const matchingProductIds: string[] = []
+  for (const id of [...matchingProductIdsPackage, ...matchingProductIdsAirtel]) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    matchingProductIds.push(id)
+    if (matchingProductIds.length >= 10) break
+  }
+  return { matchingProductIds, matchingProductIdsPackage, matchingProductIdsAirtel }
 }
 
 function parseSeason(value: unknown): Season | null {
@@ -668,8 +726,18 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
     if (seenCardKeys.has(cardKey)) continue
     seenCardKeys.add(cardKey)
 
-    const matchingProductIds = matchProductIds({ city, country }, products, cityLabels, countryLabels)
-    const { nights, days } = resolveTripDuration(r, matchingProductIds, products)
+    const {
+      matchingProductIds,
+      matchingProductIdsPackage,
+      matchingProductIdsAirtel,
+    } = matchProductIdsByMarketingTracks({ city, country }, products, cityLabels, countryLabels)
+    const durationIds =
+      matchingProductIdsPackage[0] != null
+        ? matchingProductIdsPackage
+        : matchingProductIdsAirtel[0] != null
+          ? matchingProductIdsAirtel
+          : matchingProductIds
+    const { nights, days } = resolveTripDuration(r, durationIds, products)
     const monthLabel =
       typeof r.monthLabel === 'string' && r.monthLabel.trim()
         ? r.monthLabel.trim()
@@ -710,6 +778,8 @@ export async function generateTripRecommendations(): Promise<TripRecommendation>
         ? r.themes.map(String).filter(Boolean).slice(0, 2)
         : undefined,
       matchingProductIds,
+      matchingProductIdsPackage,
+      matchingProductIdsAirtel,
       events: events.length ? events : undefined,
       source: 'climate',
       season: monthToSeason(month),

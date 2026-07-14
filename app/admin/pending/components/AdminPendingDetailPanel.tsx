@@ -179,6 +179,12 @@ function scheduleImageSavingKey(day: number, slot: ScheduleImageSlot = 1): strin
   return `${day}:${slot}`
 }
 
+type ScheduleDayImageSourceMeta = {
+  source?: string
+  photographer?: string
+  originalLink?: string
+}
+
 type ScheduleDayImage = {
   day: number
   title?: string
@@ -188,10 +194,58 @@ type ScheduleDayImage = {
   imageKeyword2?: string | null
   imageUrl?: string | null
   imageUrl2?: string | null
-  imageSource?: { source?: string; photographer?: string; originalLink?: string }
+  imageSource?: ScheduleDayImageSourceMeta
+  imageSource2?: ScheduleDayImageSourceMeta
   imageManualSelected?: boolean
   imageSelectionMode?: string | null
   imageCandidateOrigin?: string | null
+}
+
+type ScheduleDayHeroPickCandidate = {
+  key: string
+  day: number
+  slot: 1 | 2
+  imageUrl: string
+  imageSource?: ScheduleDayImageSourceMeta
+}
+
+function mapScheduleDayImageSourceToPrimary(
+  rawSource: string | null | undefined,
+): 'pexels' | 'gemini_auto' | 'photopool' | 'manual' {
+  const rawSrc = String(rawSource ?? '').trim().toLowerCase()
+  if (rawSrc.includes('pexel')) return 'pexels'
+  if (rawSrc.includes('gemini')) return 'gemini_auto'
+  if (rawSrc.includes('pool') || rawSrc.includes('library') || rawSrc.includes('asset')) return 'photopool'
+  return 'manual'
+}
+
+function collectScheduleDayHeroPickCandidates(
+  rows: readonly ScheduleDayImage[],
+): ScheduleDayHeroPickCandidate[] {
+  const out: ScheduleDayHeroPickCandidate[] = []
+  for (const row of rows) {
+    const u1 = row.imageUrl?.trim()
+    if (u1) {
+      out.push({
+        key: `d${row.day}-s1`,
+        day: row.day,
+        slot: 1,
+        imageUrl: u1,
+        imageSource: row.imageSource,
+      })
+    }
+    const u2 = row.imageUrl2?.trim()
+    if (u2) {
+      out.push({
+        key: `d${row.day}-s2`,
+        day: row.day,
+        slot: 2,
+        imageUrl: u2,
+        imageSource: row.imageSource2,
+      })
+    }
+  }
+  return out
 }
 
 /** X박Y일·N일 → 일수 Y/N (이미지 슬롯은 최소 일차 수만큼) */
@@ -666,6 +720,7 @@ export default function AdminPendingDetailPanel({
       return []
     }
   })()
+  const scheduleDayHeroCandidates = collectScheduleDayHeroPickCandidates(scheduleDayRows)
 
   const itineraryByDay = new Map<number, ItineraryDayPreview>(itineraryDayRows.map((r) => [r.day, r]))
 
@@ -923,6 +978,36 @@ export default function AdminPendingDetailPanel({
       if (res.ok && data?.id) {
         setDetail({ ...detail, ...data })
         setPrimaryImageMessage('대표 이미지로 저장되었습니다.')
+      } else {
+        setPrimaryImageMessage((data as { error?: string })?.error ?? '저장 실패')
+      }
+    } catch {
+      setPrimaryImageMessage('저장 실패')
+    } finally {
+      setPrimaryImageSavingId(null)
+    }
+  }
+
+  const handleSetPrimaryImageFromScheduleDay = async (candidate: ScheduleDayHeroPickCandidate) => {
+    if (!detail) return
+    setPrimaryImageMessage(null)
+    setPrimaryImageSavingId(candidate.key)
+    try {
+      const res = await fetch(`/api/admin/products/${detail.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          primaryImageUrl: candidate.imageUrl,
+          primaryImageSource: mapScheduleDayImageSourceToPrimary(candidate.imageSource?.source),
+          primaryImagePhotographer: candidate.imageSource?.photographer?.trim() || null,
+          primaryImageSourceUrl: candidate.imageSource?.originalLink?.trim() || null,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data?.id) {
+        setDetail({ ...detail, ...data })
+        const slotLabel = candidate.slot === 2 ? ' (이미지2)' : ''
+        setPrimaryImageMessage(`${candidate.day}일차${slotLabel} 사진을 대표 이미지로 지정했습니다.`)
       } else {
         setPrimaryImageMessage((data as { error?: string })?.error ?? '저장 실패')
       }
@@ -2378,8 +2463,9 @@ export default function AdminPendingDetailPanel({
       <section className="border-b border-bt-border-soft p-5">
         <h3 className="mb-0.5 text-sm font-semibold text-bt-body">상품 대표 이미지 수급</h3>
         <p className="mb-3 text-[10px] text-bt-meta">
-          일정 이미지 SSOT는 위에서 <strong className="font-medium text-bt-muted">대표관광지 저장</strong>. 여기는 상품 썸네일용 — 자산 → Pexels
-          후보 미리보기 → Gemini(보조·상품 단위) 순으로 쓰면 됩니다.
+          일정 이미지 SSOT는 위에서 <strong className="font-medium text-bt-muted">대표관광지 저장</strong>. 여기는 상품
+          썸네일용 — <strong className="font-medium text-bt-muted">이미 고른 일자별 사진</strong> · 자산 → Pexels 후보
+          미리보기 → Gemini(보조·상품 단위) 순으로 쓰면 됩니다.
         </p>
         {/* 현재 대표 이미지 */}
         <div className="mb-4 rounded-lg border border-bt-border-soft bg-bt-surface-soft p-3">
@@ -2409,12 +2495,67 @@ export default function AdminPendingDetailPanel({
             </div>
           ) : (
             <p className="text-xs text-bt-meta">
-              대표 이미지 없음. 도시/관광지 자산을 먼저 보거나, 목적지·분류 키워드로 Pexels 후보 미리보기를 쓰세요.
+              대표 이미지 없음. 위 일정 DAY에서 고른 사진을 쓰거나, 도시/관광지 자산·Pexels 후보를 쓰세요.
             </p>
           )}
         </div>
+        {scheduleDayHeroCandidates.length > 0 ? (
+          <div className="mb-4 rounded-lg border border-bt-border-soft bg-bt-surface-soft p-3">
+            <p className="text-xs font-medium text-bt-muted">일자별 선택 사진에서 대표로 고르기</p>
+            <p className="mt-1 text-[10px] text-bt-meta">
+              위에서 확정한 DAY 이미지(1·2번 슬롯)를 그대로 상품 대표 커버로 지정합니다.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {scheduleDayHeroCandidates.map((c) => {
+                const selected =
+                  Boolean(detail.bgImageUrl?.trim()) &&
+                  detail.bgImageUrl!.trim() === c.imageUrl
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    disabled={primaryImageSavingId !== null || primaryImageManualUploading}
+                    onClick={() => void handleSetPrimaryImageFromScheduleDay(c)}
+                    className={`flex flex-col items-center gap-1 rounded border p-2 disabled:opacity-50 ${
+                      selected
+                        ? 'border-bt-brand-blue-strong bg-bt-brand-blue-soft'
+                        : 'border-bt-border-strong bg-bt-surface hover:bg-bt-surface-soft'
+                    }`}
+                    title={`${c.day}일차${c.slot === 2 ? ' 이미지2' : ''}를 대표로`}
+                  >
+                    <span className="relative block h-14 w-24 overflow-hidden rounded bg-bt-surface-alt">
+                      <SafeImage
+                        src={adminPreviewImgSrc(c.imageUrl) ?? c.imageUrl}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="96px"
+                        loading="lazy"
+                      />
+                    </span>
+                    <span className="text-[11px] text-bt-muted">
+                      {c.day}일차{c.slot === 2 ? ' ·2' : ''}
+                      {selected ? ' ·선택' : ''}
+                    </span>
+                    <span className="text-[10px] text-bt-meta">
+                      {primaryImageSavingId === c.key ? '저장 중…' : '대표로'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
         {primaryImageMessage && (
-          <p className={`mb-2 text-xs ${primaryImageMessage.startsWith('대표') ? 'text-bt-badge-domestic-text' : 'text-bt-warning'}`}>
+          <p
+            className={`mb-2 text-xs ${
+              primaryImageMessage.startsWith('대표') ||
+              primaryImageMessage.includes('대표 이미지로 지정') ||
+              primaryImageMessage.includes('사진을 대표')
+                ? 'text-bt-badge-domestic-text'
+                : 'text-bt-warning'
+            }`}
+          >
             {primaryImageMessage}
           </p>
         )}
