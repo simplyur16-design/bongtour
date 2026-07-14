@@ -34,7 +34,7 @@ describe('register-confirm-skip-detail-recollect', () => {
   })
 
   // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: skip only when reuse-safe — manifest
-  it('shouldSkipConfirmDetailPatch — empty prices/schedule without Ran must not skip (422 guard)', () => {
+  it('shouldSkipConfirmDetailPatch — Ran alone or empty prices must not skip (inject/422 guard)', () => {
     expect(
       shouldSkipConfirmDetailPatch({
         mode: 'confirm',
@@ -45,6 +45,7 @@ describe('register-confirm-skip-detail-recollect', () => {
         scheduleLen: 5,
       }),
     ).toBe(false)
+    // Ran만 true + prices 비면 inject 필요 — 전체 patch 스킵 금지
     expect(
       shouldSkipConfirmDetailPatch({
         mode: 'confirm',
@@ -52,9 +53,9 @@ describe('register-confirm-skip-detail-recollect', () => {
         reusedConfirmAnalysis: false,
         detailCollectRan: true,
         pricesLen: 0,
-        scheduleLen: 0,
+        scheduleLen: 5,
       }),
-    ).toBe(true)
+    ).toBe(false)
     expect(
       shouldSkipConfirmDetailPatch({
         mode: 'confirm',

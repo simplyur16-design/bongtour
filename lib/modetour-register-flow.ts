@@ -925,10 +925,50 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
 
     if (mode === 'confirm') {
       const pkgNo = parseModetourPackageProductNoFromUrl(originUrl)
-      if (!originUrl?.trim() || !pkgNo) {
-        departureFromParsed = []
-        itineraryDayDrafts = []
-      } else {
+      // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: modetour confirm skip live scrape when reuse-safe — manifest
+      // 미리보기에 가격·일정이 있으면 4개월 라이브 스크래프(수십 초~분)·타임아웃 실패를 건너뛴다.
+      {
+        let reuseDeps = modetourParsedPricesToDepartureInputs(
+          parsed.prices ?? [],
+          parsed.productPriceTable ?? null,
+        )
+        if (reuseDeps.length === 0) {
+          reuseDeps = modetourSyntheticDepartureInputsForPersistedParsed(parsed)
+        }
+        const reuseItin = registerScheduleToDayInputs(parsed.schedule ?? [])
+        if (
+          (hasParsed || reusedConfirmAnalysis) &&
+          modetourDepartureInputsSubstantive(reuseDeps) &&
+          reuseItin.length > 0
+        ) {
+          timing.mark('skip-modetour-confirm-scrape-reuse')
+          const titleForConfirm = resolveModetourRegisterProductTitleForConfirm({
+            parsedTitle: parsed.title,
+            supplierListingTitleRaw: parsed.supplierListingTitleRaw,
+            baselineTrace: null,
+          })
+          parsed = {
+            ...parsed,
+            title: titleForConfirm.title,
+            supplierListingTitleRaw: titleForConfirm.supplierListingTitleRaw,
+          }
+          departureFromParsed = enrichModetourPrefetchedDeparturesWithTable(
+            reuseDeps,
+            parsed.productPriceTable ?? null,
+          )
+          itineraryDayDrafts = reuseItin
+          console.info('[parse-and-register-modetour][confirm-prefetch]', {
+            baselinePicked: null,
+            skippedLiveScrape: true,
+            departureRows: departureFromParsed.length,
+            itineraryDays: itineraryDayDrafts.length,
+            usedDepartureDrafts: departureFromParsed.length,
+            usedItineraryDrafts: itineraryDayDrafts.length,
+          })
+        } else if (!originUrl?.trim() || !pkgNo) {
+          departureFromParsed = []
+          itineraryDayDrafts = []
+        } else {
         const scrapeWindow = pickModetourScrapeWindowFromParsedAndText(parsed, text)
         const isModetourAirHotel = travelScope === 'air_hotel_free'
         // REGRESSION-FREEZE[modetour-register-air-hotel-departures]: FIT confirm skipBaselineMatch — manifest
@@ -1015,6 +1055,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
           usedDepartureDrafts: departureFromParsed.length,
           usedItineraryDrafts: itineraryDayDrafts.length,
         })
+        }
       }
     } else {
       departureFromParsed = modetourParsedPricesToDepartureInputs(

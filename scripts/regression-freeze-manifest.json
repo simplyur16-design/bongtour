@@ -4453,7 +4453,22 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-confirm-skip-detail-recollect]",
             "skip only when reuse-safe",
-            "shouldSkipConfirmDetailPatch"
+            "shouldSkipConfirmDetailPatch",
+            "pricesLen > 0 && opts.scheduleLen > 0"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-price-inject.ts",
+          "mustInclude": [
+            "register inject skips per-evCd enrich",
+            "enrichEvCdPrice: false"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "skip-modetour-confirm-scrape-reuse",
+            "modetour confirm skip live scrape when reuse-safe"
           ]
         },
         {
@@ -4483,7 +4498,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-confirm-skip-detail-recollect]",
             "strip keeps DetailCollectRan",
-            "empty prices/schedule without Ran must not skip"
+            "Ran alone or empty prices must not skip"
           ]
         }
       ],

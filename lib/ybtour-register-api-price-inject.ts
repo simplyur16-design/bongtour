@@ -31,8 +31,11 @@ export async function injectYbtourApiDeparturePricesIfMissing(
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: register inject skips per-evCd enrich — manifest
+  // confirm 경로에서 prices가 비어 inject가 돌 때 evCd별 /price 연타(수십 초~분)로 플랫폼 타임아웃·실패 유발
   const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(url, fromYmd, toYmd, {
     originCode: parsed.originCode ?? null,
+    enrichEvCdPrice: false,
   })
   if (hit.inputs.length === 0) return parsed
 
