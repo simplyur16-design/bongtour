@@ -1,6 +1,7 @@
 /**
  * 관리자 출발일 live-rescrape — 공급사별 수집·ProductDeparture upsert 입력.
  * REGRESSION-FREEZE[ybtour-admin-rescrape-api-first]: ybtour papi by-goods API 우선 — manifest
+ * REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: godId 실패 시 evtCd 합성 출발일 — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -31,7 +32,9 @@ import {
   enrichLottetourEvtListCollectionHintsFromDetailPage,
   mapLottetourCalendarToDepartureInputs,
   parseLottetourEvtListCollectionHints,
+  type LottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
+import { lottetourBuildEvtCdSyntheticDepartureInputs } from '@/lib/lottetour-synthetic-departure'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
@@ -53,6 +56,7 @@ export type DepartureRescrapeResult = {
     | 'product-price-rebuild'
     | 'kyowontour-differentDepartDate'
     | 'lottetour-evtListAjax-html'
+    | 'lottetour-synthetic-evtCd'
   inputs: DepartureInput[]
   attemptedLive: boolean
   liveError?: string | null
@@ -560,6 +564,116 @@ export async function collectVerygoodE2eDepartureInputsForDateRange(
   }
 }
 
+async function buildLottetourEvtCdSyntheticRescrapeFallback(
+  prisma: PrismaClient,
+  product: { id: string; originCode: string },
+  hints: LottetourEvtListCollectionHints,
+  ctx: {
+    attemptedLive: boolean
+    liveError: string | null
+    detailUrl: string
+    detailUrlSummary: string
+    notes: string[]
+  }
+): Promise<DepartureRescrapeResult | null> {
+  const evtCd = (hints.detailEvtCd ?? product.originCode ?? '').trim()
+  const prices = await prisma.productPrice.findMany({
+    where: { productId: product.id },
+    orderBy: { date: 'asc' },
+  })
+  if (prices.length > 0) {
+    const fallbackInputs = prices.map((p) => ({
+      departureDate: p.date,
+      adultPrice: p.adult,
+      childBedPrice: p.childBed,
+      childNoBedPrice: p.childNoBed,
+      infantPrice: p.infant,
+      localPriceText: p.localPrice,
+      statusRaw: null as string | null,
+      seatsStatusRaw: null as string | null,
+    }))
+    const filtered = filterDepartureInputsOnOrAfterCalendarToday(fallbackInputs as DepartureInput[])
+    if (filtered.length > 0) {
+      const fillMeta = deriveFillMeta(filtered)
+      return {
+        mode: 'fallback-rebuild',
+        source: 'product-price-rebuild',
+        inputs: filtered,
+        attemptedLive: ctx.attemptedLive,
+        liveError: ctx.liveError,
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'price-only-confirmed',
+        notes: [...ctx.notes, 'lottetour: product-price-rebuild after live empty/godId miss'],
+        site: 'lottetour',
+        detailUrl: ctx.detailUrl,
+        detailUrlSummary: ctx.detailUrlSummary,
+        collectorStatus: null,
+      }
+    }
+  }
+
+  const priceRow = await prisma.product.findUnique({
+    where: { id: product.id },
+    select: { priceFrom: true, rawMeta: true },
+  })
+  let metaAdult: number | null = null
+  let metaChild: number | null = null
+  let metaInfant: number | null = null
+  if (priceRow?.rawMeta?.trim()) {
+    try {
+      const j = JSON.parse(priceRow.rawMeta) as Record<string, unknown>
+      const n = (v: unknown): number | null => {
+        const x = Number(v)
+        return Number.isFinite(x) && x > 0 ? Math.round(x) : null
+      }
+      metaAdult = n(j.priceFrom)
+      const table = j.productPriceTable
+      if (table && typeof table === 'object' && !Array.isArray(table)) {
+        const t = table as Record<string, unknown>
+        metaAdult = n(t.adultPrice) ?? metaAdult
+        metaChild = n(t.childExtraBedPrice) ?? n(t.childBedPrice)
+        metaInfant = n(t.infantPrice)
+      }
+      const pricesArr = j.prices
+      if (Array.isArray(pricesArr) && pricesArr[0] && typeof pricesArr[0] === 'object') {
+        const p0 = pricesArr[0] as Record<string, unknown>
+        metaAdult = n(p0.adultPrice) ?? metaAdult
+        metaChild = n(p0.childBedPrice) ?? metaChild
+        metaInfant = n(p0.infantPrice) ?? metaInfant
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const firstPrice = prices[0]
+  const synthetic = filterDepartureInputsOnOrAfterCalendarToday(
+    lottetourBuildEvtCdSyntheticDepartureInputs({
+      evtCd,
+      adultPrice: firstPrice?.adult ?? priceRow?.priceFrom ?? metaAdult ?? null,
+      childBedPrice: firstPrice?.childBed ?? metaChild ?? null,
+      infantPrice: firstPrice?.infant ?? metaInfant ?? null,
+    }) as DepartureInput[]
+  )
+  if (synthetic.length === 0) return null
+  const fillMeta = deriveFillMeta(synthetic)
+  return {
+    mode: 'fallback-rebuild',
+    source: 'lottetour-synthetic-evtCd',
+    inputs: synthetic,
+    attemptedLive: ctx.attemptedLive,
+    liveError: ctx.liveError,
+    filledFields: fillMeta.filledFields,
+    missingFields: fillMeta.missingFields,
+    mappingStatus: 'price-only-confirmed',
+    notes: [...ctx.notes, `lottetour: evtCd synthetic departure (${evtCd})`],
+    site: 'lottetour',
+    detailUrl: ctx.detailUrl,
+    detailUrlSummary: ctx.detailUrlSummary,
+    collectorStatus: null,
+  }
+}
+
 export async function collectDepartureInputsForAdminRescrape(
   prisma: PrismaClient,
   product: { id: string; originSource: string; originCode: string; originUrl: string | null },
@@ -679,16 +793,25 @@ export async function collectDepartureInputsForAdminRescrape(
       }
     })()
     if (!hints.godId || !hints.menuNos) {
+      const liveError = `롯데관광: evtList 공개 HTML 수집에 필요한 godId·menuNo 경로가 없습니다. ${hints.warnings.join(' ')}`.slice(
+        0,
+        500
+      )
+      const fb = await buildLottetourEvtCdSyntheticRescrapeFallback(prisma, product, hints, {
+        attemptedLive,
+        liveError,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary: detailUrlSummaryLt,
+        notes: hints.warnings,
+      })
+      if (fb) return fb
       const fillMeta = deriveFillMeta([])
       return {
         mode: 'live-rescrape',
         source: 'lottetour-evtListAjax-html',
         inputs: [],
         attemptedLive,
-        liveError: `롯데관광: evtList 공개 HTML 수집에 필요한 godId·menuNo 경로가 없습니다. ${hints.warnings.join(' ')}`.slice(
-          0,
-          500
-        ),
+        liveError,
         filledFields: fillMeta.filledFields,
         missingFields: fillMeta.missingFields,
         mappingStatus: 'detail-candidate-found-but-unmapped',
@@ -733,14 +856,23 @@ export async function collectDepartureInputsForAdminRescrape(
           collectorStatus: null,
         }
       }
-      const fillMeta = deriveFillMeta([])
       const tail = warnings.length ? ` · ${warnings.slice(0, 4).join(' · ')}` : ''
+      const liveError = `롯데관광: 유효 출발일 0건(오늘 이후 필터 후)${tail}`
+      const fb = await buildLottetourEvtCdSyntheticRescrapeFallback(prisma, product, hints, {
+        attemptedLive,
+        liveError,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary: detailUrlSummaryLt,
+        notes: [...hints.warnings, ...warnings],
+      })
+      if (fb) return fb
+      const fillMeta = deriveFillMeta([])
       return {
         mode: 'live-rescrape',
         source: 'lottetour-evtListAjax-html',
         inputs: [],
         attemptedLive,
-        liveError: `롯데관광: 유효 출발일 0건(오늘 이후 필터 후)${tail}`,
+        liveError,
         filledFields: fillMeta.filledFields,
         missingFields: fillMeta.missingFields,
         mappingStatus: 'detail-candidate-found-but-unmapped',
@@ -751,14 +883,23 @@ export async function collectDepartureInputsForAdminRescrape(
         collectorStatus: null,
       }
     } catch (e) {
-      const fillMeta = deriveFillMeta([])
       const msg = e instanceof Error ? e.message : String(e)
+      const liveError = `롯데관광: ${msg.slice(0, 400)}`
+      const fb = await buildLottetourEvtCdSyntheticRescrapeFallback(prisma, product, hints, {
+        attemptedLive,
+        liveError,
+        detailUrl: detailUrlResolved,
+        detailUrlSummary: detailUrlSummaryLt,
+        notes: hints.warnings,
+      })
+      if (fb) return fb
+      const fillMeta = deriveFillMeta([])
       return {
         mode: 'live-rescrape',
         source: 'lottetour-evtListAjax-html',
         inputs: [],
         attemptedLive,
-        liveError: `롯데관광: ${msg.slice(0, 400)}`,
+        liveError,
         filledFields: fillMeta.filledFields,
         missingFields: fillMeta.missingFields,
         mappingStatus: 'detail-candidate-found-but-unmapped',

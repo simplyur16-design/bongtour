@@ -54,6 +54,9 @@ async function main() {
   assert.equal(departDateFromLottetourEvtCd('B28A260513KE003'), '2026-05-13')
   assert.equal(departDateFromLottetourEvtCd('E01A260624KE007'), '2026-06-24')
   assert.ok(LOTTETOUR_EVT_CD_RE.test('B41A200821VJ002'))
+  // REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: 7C — manifest
+  assert.ok(LOTTETOUR_EVT_CD_RE.test('B15A2607307C000'))
+  assert.equal(departDateFromLottetourEvtCd('B15A2607307C000'), '2026-07-30')
 
   const htmlMap = new Map([['202606', doloHtml]])
   const collected = await collectLottetourCalendarRange(

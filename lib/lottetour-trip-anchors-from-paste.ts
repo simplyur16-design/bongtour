@@ -1,9 +1,11 @@
 /**
- * 히어로·합성 출발일: flightStructured 우선 → 상단 출발/도착 요약 정규식.
+ * 히어로·합성 출발일: flightStructured 우선 → 상단 출발/도착 요약 정규식 → evtCd YYMMDD.
  * 롯데관광: URL·쿼리에서 godId·evtCd·categoryMenuNo(menuNo 경로)를 함께 담는다.
  */
+// REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: evtCd YYMMDD tripStart — manifest
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
+import { departDateFromLottetourEvtCd } from '@/lib/lottetour-departures'
 import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-deterministic-patch'
 
 export type LottetourTripAnchors = {
@@ -73,6 +75,14 @@ export function extractLottetourTripAnchorsFromPaste(
         tripEndIso = iso
         tripEndSource = 'paste_summary_arrive_line'
       }
+    }
+  }
+
+  if (!tripStartIso && master.evtCd) {
+    const iso = departDateFromLottetourEvtCd(master.evtCd)
+    if (iso) {
+      tripStartIso = iso
+      tripStartSource = 'evtCd_yymmdd'
     }
   }
 

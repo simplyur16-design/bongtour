@@ -67,7 +67,8 @@ export function extractLottetourMasterIdsFromBlob(blob: string): {
   const evt =
     blob.match(/[?&]evtCd=([^&\s#'"<>]+)/i)?.[1]?.trim() ??
     blob.match(/\bevtCd\s*[:：=]\s*([A-Za-z0-9_-]{8,34})\b/i)?.[1]?.trim() ??
-    blob.match(/evtCd=([A-Z]\d{2}[A-Z]\d{6}[A-Z]{2}\d{3})\b/i)?.[1]?.trim() ??
+    // REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: 항공사 2자리 A-Z0-9 — manifest
+    blob.match(/evtCd=([A-Z]\d{2}[A-Z]\d{6}[A-Z0-9]{2}\d{3})\b/i)?.[1]?.trim() ??
     null
   const menuDetail = blob.match(/\/evtDetail\/(\d+)\/(\d+)\/(\d+)\/(\d+)/i)
   const menuList = blob.match(/\/evtList\/(\d+)\/(\d+)\/(\d+)\/(\d+)/i)

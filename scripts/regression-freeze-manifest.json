@@ -218,48 +218,6 @@
       "summary": "4공급사 등록 파이프라인 정렬 — CI는 DATABASE_URL 없으면 정적 구간만, DB 있으면 실측"
     },
     {
-      "id": "bongtour-product-title-r5",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "봉투어 톤 상품명 R-5·마케팅 opt-in confirm — LLM 실패·비활성 시 marketing_compose 폴백",
-      "checks": [
-        {
-          "file": "lib/bongtour-product-title-generator.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[bongtour-product-title-r5]",
-            "marketing_compose fallback",
-            "tryMarketingComposeTitle",
-            "LLM이 검증 실패해도 marketing_compose로 이어감"
-          ],
-          "mustNotInclude": [
-            "if (second) return { ...second, source: 'fallback_invalid' }"
-          ]
-        },
-        {
-          "file": "scripts/verify-bongtour-product-title-r5.ts",
-          "mustInclude": [
-            "composeMarketingProductTitle",
-            "productTitlePairForRegisterConfirm"
-          ]
-        }
-      ],
-      "npmScripts": [
-        {
-          "script": "verify:bongtour-product-title-r5",
-          "tier": [
-            "prebuild",
-            "ci"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bongtour-product-title-generator.test.ts",
-        "lib/bongtour-product-title-marketing-compose.test.ts"
-      ]
-    },
-    {
       "id": "supplier-product-title-plan-b",
       "tier": [
         "prebuild",
@@ -413,6 +371,48 @@
     }
   ],
   "staticGuards": [
+    {
+      "id": "bongtour-product-title-r5",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "봉투어 톤 상품명 R-5·마케팅 opt-in confirm — LLM 실패·비활성 시 marketing_compose 폴백",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-title-generator.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-product-title-r5]",
+            "marketing_compose fallback",
+            "tryMarketingComposeTitle",
+            "LLM이 검증 실패해도 marketing_compose로 이어감"
+          ],
+          "mustNotInclude": [
+            "if (second) return { ...second, source: 'fallback_invalid' }"
+          ]
+        },
+        {
+          "file": "scripts/verify-bongtour-product-title-r5.ts",
+          "mustInclude": [
+            "composeMarketingProductTitle",
+            "productTitlePairForRegisterConfirm"
+          ]
+        }
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:bongtour-product-title-r5",
+          "tier": [
+            "prebuild",
+            "ci"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-title-generator.test.ts",
+        "lib/bongtour-product-title-marketing-compose.test.ts"
+      ]
+    },
     {
       "id": "card-price-exact-krw",
       "tier": [
@@ -6387,6 +6387,57 @@
       ],
       "vitestSuites": [
         "lib/register-lottetour-listing-title.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-evtcd-alphanumeric-carrier",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 evtCd 항공사 2자리 A-Z0-9(7C) — YYMMDD·합성 출발일·admin rescrape 폴백",
+      "checks": [
+        {
+          "file": "lib/lottetour-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]",
+            "[A-Z0-9]{2}",
+            "departDateFromLottetourEvtCd"
+          ]
+        },
+        {
+          "file": "lib/lottetour-trip-anchors-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]",
+            "evtCd_yymmdd",
+            "departDateFromLottetourEvtCd"
+          ]
+        },
+        {
+          "file": "lib/lottetour-synthetic-departure.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]",
+            "lottetourBuildEvtCdSyntheticDepartureInputs"
+          ]
+        },
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]",
+            "lottetour-synthetic-evtCd",
+            "buildLottetourEvtCdSyntheticRescrapeFallback"
+          ]
+        },
+        {
+          "file": "lib/lottetour-paste-deterministic-patch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]",
+            "[A-Z0-9]{2}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-evtcd-alphanumeric-carrier.test.ts"
       ]
     },
     {

@@ -1,7 +1,9 @@
 /**
  * 롯데관광 전용: prices[] 비어 있을 때 최소 ProductDeparture 1행 합성.
  */
+// REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: evtCd 합성 출발일 — manifest
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
+import { departDateFromLottetourEvtCd } from '@/lib/lottetour-departures'
 import { parseDepartureDateTime, type DepartureInput } from '@/lib/upsert-product-departures-lottetour'
 
 function combineDt(d: string | null | undefined, t: string | null | undefined): string | null {
@@ -68,4 +70,38 @@ export function lottetourBuildMinimalDepartureInputs(
     ...(remaining != null ? { seatCount: remaining, seatsStatusRaw: `잔여${remaining}석` } : {}),
   }
   return [row]
+}
+
+/** godId 없는 evtDetail·관리자 재수집: evtCd YYMMDD + 상품가 → 최소 1행. */
+export function lottetourBuildEvtCdSyntheticDepartureInputs(opts: {
+  evtCd: string
+  adultPrice?: number | null
+  childBedPrice?: number | null
+  infantPrice?: number | null
+  statusRaw?: string | null
+}): DepartureInput[] {
+  const evtCd = opts.evtCd.trim()
+  const tripStartIso = departDateFromLottetourEvtCd(evtCd)
+  if (!tripStartIso) return []
+  const carrier = evtCd.slice(10, 12)
+  const adult =
+    opts.adultPrice != null && Number(opts.adultPrice) > 0 ? Math.round(Number(opts.adultPrice)) : undefined
+  const child =
+    opts.childBedPrice != null && Number(opts.childBedPrice) > 0
+      ? Math.round(Number(opts.childBedPrice))
+      : undefined
+  const infant =
+    opts.infantPrice != null && Number(opts.infantPrice) > 0 ? Math.round(Number(opts.infantPrice)) : undefined
+  return [
+    {
+      departureDate: tripStartIso,
+      ...(adult != null ? { adultPrice: adult } : {}),
+      ...(child != null ? { childBedPrice: child } : {}),
+      ...(infant != null ? { infantPrice: infant } : {}),
+      ...(carrier ? { carrierName: carrier } : {}),
+      ...(opts.statusRaw?.trim() ? { statusRaw: opts.statusRaw.trim() } : {}),
+      supplierDepartureCodeCandidate: evtCd,
+      matchingTraceRaw: 'lottetour-synthetic-evtCd',
+    },
+  ]
 }

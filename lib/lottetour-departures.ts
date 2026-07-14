@@ -34,8 +34,9 @@ const DEFAULT_TIMEOUT_MS = 25_000
 const DEFAULT_MAX_EVT_CNT = 19
 const DEFAULT_MONTH_COUNT = 12
 
-/** evtCd: 4글자 prefix + YYMMDD + 항공사 2 + 시퀀스 3 */
-export const LOTTETOUR_EVT_CD_RE = /^[A-Z]\d{2}[A-Z]\d{6}[A-Z]{2}\d{3}$/
+// REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: evtCd 항공사 2자리 A-Z0-9(7C 등) — manifest
+/** evtCd: 4글자 prefix + YYMMDD + 항공사 2(IATA 영문·숫자) + 시퀀스 3 */
+export const LOTTETOUR_EVT_CD_RE = /^[A-Z]\d{2}[A-Z]\d{6}[A-Z0-9]{2}\d{3}$/
 
 export type LottetourCalendarRow = {
   depYm: string
