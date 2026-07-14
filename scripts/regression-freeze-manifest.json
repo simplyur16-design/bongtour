@@ -4891,6 +4891,12 @@
             "일자 간 중복 시 route 미사용 명소 차순위",
             "easternEuropeHardcodedPool day-route evidence",
             "southeastAsiaHardcodedPool day-route evidence",
+            "oceaniaAuNzHardcodedPool day-route evidence",
+            "hub departure soft-dup visit city not next primary",
+            "return hub soft-dup visit city before unused landmark",
+            "airport-transfer middle no trip landmark bleed",
+            "isScheduleCityLevelSoftLandmarkKeyword",
+            "퀸스타운",
             "스페인광장",
             "trip-unique no cluster kw reuse",
             "return fill excludes departure+middle used",
@@ -4909,6 +4915,15 @@
           ]
         },
         {
+          "file": "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "D1≠Echo Point",
+            "D4≠Blue Mountains",
+            "D10≠Hamilton"
+          ]
+        },
+        {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
             "ensureDepartureReturnVisitCityKeywords(finalDeduped"
@@ -4916,7 +4931,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
+        "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
+        "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts"
       ]
     },
     {

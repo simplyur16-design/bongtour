@@ -708,7 +708,7 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /랑카위|Langkawi/i, en: "Langkawi island Malaysia" },
   { re: /오클랜드|Auckland/i, en: "Auckland Sky Tower harbour" },
   { re: /로토루아|Rotorua/i, en: "Rotorua geothermal valley" },
-  { re: /퀸즈\s*타운|Queenstown/i, en: "Queenstown Lake Wakatipu" },
+  { re: /퀸즈?\s*타운|퀸스\s*타운|Queenstown/i, en: "Queenstown Lake Wakatipu" },
   { re: /크라이스트\s*처치|Christchurch/i, en: "Christchurch Cathedral square" },
   { re: /골드\s*코스트|Gold\s*Coast/i, en: "Surfers Paradise Gold Coast beach" },
   { re: /케언즈|Cairns/i, en: "Cairns Great Barrier Reef gateway" },

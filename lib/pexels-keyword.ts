@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[pexels-keyword-taiwan-poi]: 대만·타이페이 routeText 한글 명소 — manifest
  * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·중동·남미 routeText 세그먼트 — manifest
  * REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]: 나트랑·달랏 패키지 POI — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 퀸스타운(스) Queenstown alias — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -78,6 +79,8 @@ const DESTINATION_MAP: Record<string, string> = {
   로토루아: 'Rotorua',
   퀸즈타운: 'Queenstown',
   '퀸즈 타운': 'Queenstown',
+  퀸스타운: 'Queenstown',
+  '퀸스 타운': 'Queenstown',
   크라이스트처치: 'Christchurch',
   골드코스트: 'Gold Coast',
   '골드 코스트': 'Gold Coast',
@@ -670,6 +673,8 @@ const POI_KO_TO_EN: Record<string, string> = {
   에덴동산: 'Auckland Domain wintergardens',
   '퀸즈타운': 'Queenstown Lake Wakatipu',
   '퀸즈 타운': 'Queenstown Lake Wakatipu',
+  퀸스타운: 'Queenstown Lake Wakatipu',
+  '퀸스 타운': 'Queenstown Lake Wakatipu',
   크라이스트교회: 'Christ Church Cathedral Christchurch',
   '크라이스트 교회': 'Christ Church Cathedral Christchurch',
   '밀포드 사운드': 'Milford Sound New Zealand',
