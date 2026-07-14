@@ -434,7 +434,10 @@
     },
     {
       "id": "ybtour-register-listing-title-fallback",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour 등록 상품명 — first-display 실패 시 by-goods evNm·붙여넣기 복구, 미지정 stub 거부",
       "checks": [
         {
@@ -766,7 +769,10 @@
     },
     {
       "id": "bongsim-offline-usim-order",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "매장 오프라인 USIM — 어드민 주문·무PG 결제확인·eSIM 자동발급 스킵",
       "checks": [
         {
@@ -788,7 +794,10 @@
     },
     {
       "id": "bongsim-offline-usim-plan-picker",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "매장 오프라인 USIM 3단계 피커 — 국가·패키지 통합 검색 + offline-usim plans API",
       "checks": [
         {
@@ -814,7 +823,10 @@
     },
     {
       "id": "og-image-seasonal",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈 OG 시즌 — 4~9·10·11·2·3·12·1월 KST pageKey·정적 경로",
       "checks": [
         {
@@ -853,7 +865,10 @@
     },
     {
       "id": "bongsim-complimentary-esim-grant",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "관리자 무상 eSIM — 0원 paid·OrderPaid outbox·사유 메모·complimentary-esim grant API",
       "checks": [
         {
@@ -880,7 +895,10 @@
     },
     {
       "id": "bongsim-admin-non-pg-esim-cancel",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "무상·오프라인 eSIM — PG 없이 유심사 취소·주문 refunded·cancel-non-pg API",
       "checks": [
         {
@@ -909,7 +927,10 @@
     },
     {
       "id": "usimsa-access-key-env-split",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "유심사 access key — 레거시 없으면 USIMSA_PROD_ACCESS_KEY / DEV 분기",
       "checks": [
         {
@@ -924,7 +945,10 @@
     },
     {
       "id": "bongsim-complimentary-esim-bulk",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "관리자 무상 eSIM 단체 일괄 — 휴대폰 목록 파싱·1인1주문·bulk API",
       "checks": [
         {
@@ -945,7 +969,10 @@
     },
     {
       "id": "bongsim-discount-report-complimentary",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "할인 리포트 — 쿠폰 + 무상 eSIM UNION·after.supply_krw 원가 SSOT",
       "checks": [
         {
@@ -972,7 +999,10 @@
     },
     {
       "id": "bongsim-usim-fulfillment",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "봉심 eSIM/USIM 이행 — 어드민 ICCID 활성화 + USIMSA order/usim (고객 체크아웃 USIM 금지)",
       "checks": [
         {
@@ -1024,7 +1054,10 @@
     },
     {
       "id": "overseas-hub-server-geo-fetch",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "중·하 메가메뉴 — 서버 geo WHERE fetch (전량 클라이언트 스캔 제거)",
       "checks": [
         {
@@ -1053,12 +1086,24 @@
           ]
         }
       ],
-      "npmScripts": [{ "script": "verify:overseas-hub-geo-fetch-perf", "tier": ["ci"] }],
-      "vitestSuites": ["lib/products-browse-hub-query.test.ts"]
+      "npmScripts": [
+        {
+          "script": "verify:overseas-hub-geo-fetch-perf",
+          "tier": [
+            "ci"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/products-browse-hub-query.test.ts"
+      ]
     },
     {
       "id": "mega-menu-mid-leaf-tag-filter",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "허브 중분류=그룹 city/country 태그 1차, 하분류=city 재좁힘 (라벨 단독·전량 반환 금지)",
       "checks": [
         {
@@ -1074,11 +1119,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/overseas-hub-client-catalog-filter.test.ts"]
+      "vitestSuites": [
+        "lib/overseas-hub-client-catalog-filter.test.ts"
+      ]
     },
     {
       "id": "overseas-hub-geo-tag-filter",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "해외 허브 클라이언트 필터 — ProductCityTag 기반 geo",
       "checks": [
         {
@@ -1093,11 +1143,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/overseas-hub-client-catalog-filter.test.ts"]
+      "vitestSuites": [
+        "lib/overseas-hub-client-catalog-filter.test.ts"
+      ]
     },
     {
       "id": "mega-menu-same-region-multi-column-city-tags",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "동일 region 다열(오사카+삿포로) cityKey 유지 · 타 region clamp",
       "checks": [
         {
@@ -1119,7 +1174,10 @@
     },
     {
       "id": "japan-mega-menu-browse-cluster-keys",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "일본 메가메뉴 leaf browse — cluster slug→cityKey 확장",
       "checks": [
         {
@@ -2368,7 +2426,10 @@
     },
     {
       "id": "modetour-register-air-hotel-departures",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "modetour FIT confirm — skipBaselineMatch로 출발일 수집",
       "checks": [
         {
@@ -2383,9 +2444,14 @@
     },
     {
       "id": "hanatour-register-api-parse",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 등록 parseFn — register-facts API SSOT, Gemini overlay 없음",
-      "npmScripts": ["verify:hanatour-lib"],
+      "npmScripts": [
+        "verify:hanatour-lib"
+      ],
       "checks": [
         {
           "file": "lib/hanatour-register-api-parse.ts",
@@ -2419,7 +2485,10 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/hanatour-register-detail-collect.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
+      "vitestSuites": [
+        "lib/hanatour-register-detail-collect.test.ts",
+        "lib/supplier-register-destination-from-paste.test.ts"
+      ]
     },
     {
       "id": "hanatour-register-ssot-freeze",
@@ -2464,9 +2533,14 @@
     },
     {
       "id": "modetour-register-api-parse",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "모두투어 등록 parseFn — register-facts API SSOT, Gemini overlay 없음",
-      "npmScripts": ["verify:modetour-lib"],
+      "npmScripts": [
+        "verify:modetour-lib"
+      ],
       "checks": [
         {
           "file": "lib/modetour-register-api-parse.ts",
@@ -2511,11 +2585,18 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/modetour-register-detail-collect.test.ts", "lib/modetour-register-api-schedule.test.ts", "lib/supplier-register-destination-from-paste.test.ts"]
+      "vitestSuites": [
+        "lib/modetour-register-detail-collect.test.ts",
+        "lib/modetour-register-api-schedule.test.ts",
+        "lib/supplier-register-destination-from-paste.test.ts"
+      ]
     },
     {
       "id": "modetour-register-api-schedule",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "모두투어 GetScheduleList → RegisterScheduleDay — B2C 전용 일정 SSOT",
       "checks": [
         {
@@ -2537,13 +2618,19 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/modetour-register-api-schedule.test.ts"]
+      "vitestSuites": [
+        "lib/modetour-register-api-schedule.test.ts"
+      ]
     },
     {
       "id": "modetour-register-samples-live-gate",
-      "tier": ["ci"],
+      "tier": [
+        "ci"
+      ],
       "summary": "모두투어 SSOT 9샘플 — API parse + detail-collect live gate",
-      "npmScripts": ["verify:register-modetour-samples-live-gate"],
+      "npmScripts": [
+        "verify:register-modetour-samples-live-gate"
+      ],
       "checks": [
         {
           "file": "scripts/verify-register-modetour-samples-live-gate.ts",
@@ -2558,7 +2645,10 @@
     },
     {
       "id": "hanatour-register-api-price-inject",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 confirm — gw API 출발·기본가 parsed 주입",
       "checks": [
         {
@@ -2580,7 +2670,10 @@
     },
     {
       "id": "ybtour-register-api-price-inject",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour confirm — papi 출발·기본가 parsed 주입",
       "checks": [
         {
@@ -2603,7 +2696,9 @@
         },
         {
           "file": "lib/parse-and-register-ybtour-handler.ts",
-          "mustInclude": ["injectYbtourApiDeparturePricesIfMissing"]
+          "mustInclude": [
+            "injectYbtourApiDeparturePricesIfMissing"
+          ]
         }
       ],
       "vitestSuites": [
@@ -2612,7 +2707,10 @@
     },
     {
       "id": "verygoodtour-register-api-price-inject",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "verygoodtour confirm — HXR+ProCode 출발가 parsed 주입(E2E 없음)",
       "checks": [
         {
@@ -2625,13 +2723,18 @@
         },
         {
           "file": "lib/parse-and-register-verygoodtour-handler.ts",
-          "mustInclude": ["injectVerygoodtourApiDeparturePricesIfMissing"]
+          "mustInclude": [
+            "injectVerygoodtourApiDeparturePricesIfMissing"
+          ]
         }
       ]
     },
     {
       "id": "kyowontour-register-api-price-inject",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "kyowontour confirm — calendar AJAX 출발가 parsed 주입(E2E 없음)",
       "checks": [
         {
@@ -2645,13 +2748,18 @@
         },
         {
           "file": "lib/parse-and-register-kyowontour-handler.ts",
-          "mustInclude": ["injectKyowontourApiDeparturePricesIfMissing"]
+          "mustInclude": [
+            "injectKyowontourApiDeparturePricesIfMissing"
+          ]
         }
       ]
     },
     {
       "id": "kyowontour-tourcode-detail-meta",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "kyowontour tourCode별 goodsEventDetail SSR — 예약·최소·잔여석 보강",
       "checks": [
         {
@@ -2676,7 +2784,10 @@
     },
     {
       "id": "lottetour-register-api-price-inject",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "lottetour confirm — evtListAjax 출발·기본가 parsed 주입",
       "checks": [
         {
@@ -2689,7 +2800,9 @@
         },
         {
           "file": "lib/parse-and-register-lottetour-handler.ts",
-          "mustInclude": ["injectLottetourApiDeparturePricesIfMissing"]
+          "mustInclude": [
+            "injectLottetourApiDeparturePricesIfMissing"
+          ]
         },
         {
           "file": "lib/lottetour-product-price-create-rows.ts",
@@ -2829,7 +2942,9 @@
       "npmScripts": [
         {
           "script": "verify:register-facts-live",
-          "tier": ["ci"]
+          "tier": [
+            "ci"
+          ]
         }
       ]
     },
@@ -3083,11 +3198,15 @@
       "npmScripts": [
         {
           "script": "verify:register-facts-live",
-          "tier": ["ci"]
+          "tier": [
+            "ci"
+          ]
         },
         {
           "script": "verify:register-facts-detail-parity",
-          "tier": ["ci"]
+          "tier": [
+            "ci"
+          ]
         }
       ],
       "vitestSuites": [
@@ -3402,7 +3521,9 @@
       "npmScripts": [
         {
           "script": "verify:product-departure-airport-migration",
-          "tier": ["prebuild"]
+          "tier": [
+            "prebuild"
+          ]
         }
       ],
       "vitestSuites": [
@@ -3838,7 +3959,10 @@
         },
         {
           "file": "lib/verygoodtour-procode-detail-meta.test.ts",
-          "mustInclude": ["buildVerygoodProCodeForYmd", "parseVerygoodProCodeDetailMetaFromHtml"]
+          "mustInclude": [
+            "buildVerygoodProCodeForYmd",
+            "parseVerygoodProCodeDetailMetaFromHtml"
+          ]
         },
         {
           "file": "lib/verygoodtour-detail-url-health.ts",
@@ -4908,7 +5032,8 @@
             "스페인광장",
             "trip-unique no cluster kw reuse",
             "return fill excludes departure+middle used",
-            "발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지"
+            "발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지",
+            "hawaiiHardcodedPool day-route evidence"
           ]
         },
         {
@@ -4954,8 +5079,51 @@
       ]
     },
     {
+      "id": "register-schedule-hawaii-free-day-example-itinerary",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하와이 TIP/예시 자유일 — 추천 예시일정 routeText + imageKeyword SSOT",
+      "checks": [
+        {
+          "file": "lib/register-schedule-hawaii-free-day-example-itinerary.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]",
+            "HAWAII_FREE_DAY_EXAMPLE_ITINERARIES",
+            "isHawaiiTipOrExampleFreeDay",
+            "applyHawaiiFreeDayRecommendedExampleItineraries",
+            "recommended example packs",
+            "tip/example free day detect"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]",
+            "applyHawaiiFreeDayRecommendedExampleItineraries"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-ybtour-nhp1025-hawaii-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]",
+            "NHP1025",
+            "D1≠North Shore",
+            "추천 예시일정"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-ybtour-nhp1025-hawaii-image-keyword.test.ts"
+      ]
+    },
+    {
       "id": "schedule-rio-de-janeiro-context",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "리우데자네이루 맥락 — 불리우는·헐리우드 bare 리우 부분문자열로 Sugar Loaf/Brazil 금지",
       "checks": [
         {
@@ -4976,7 +5144,9 @@
       ],
       "npmScripts": [],
       "staticGuards": [],
-      "vitestSuites": ["lib/schedule-rio-de-janeiro-context.test.ts"]
+      "vitestSuites": [
+        "lib/schedule-rio-de-janeiro-context.test.ts"
+      ]
     },
     {
       "id": "modetour-register-taiwan-meal-shop",
@@ -7270,7 +7440,10 @@
     },
     {
       "id": "sign-in-catalog-client-safe",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "sign-in-method-catalog — 클라이언트 번들용, apple-oauth-provider·node:crypto 체인 import 금지",
       "checks": [
         {
@@ -7290,7 +7463,10 @@
     },
     {
       "id": "auth-debug-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Auth·OAuth 디버그 SSOT — 운영 기본 무음, AUTH_DEBUG=1만 verbose",
       "checks": [
         {
@@ -7303,13 +7479,18 @@
         },
         {
           "file": "auth.config.ts",
-          "mustInclude": ["isAuthDebugEnabled()"]
+          "mustInclude": [
+            "isAuthDebugEnabled()"
+          ]
         }
       ]
     },
     {
       "id": "simplyur-oauth-callback-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur OAuth callback path·locale·returnTo·deep link SSOT",
       "checks": [
         {
@@ -7324,7 +7505,10 @@
     },
     {
       "id": "oauth-mobile-get-start",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur 앱 OAuth — GET oauth-start → signIn redirectTo + callback SSOT",
       "checks": [
         {
@@ -7337,13 +7521,19 @@
         },
         {
           "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
-          "mustInclude": ["openAuthSessionAsync", "buildOAuthStartUrl"]
+          "mustInclude": [
+            "openAuthSessionAsync",
+            "buildOAuthStartUrl"
+          ]
         }
       ]
     },
     {
       "id": "simplyur-my-esim-server-auth-gate",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur my-esim — server auth() gate before client 401 sign-in UI",
       "checks": [
         {
@@ -7358,7 +7548,10 @@
     },
     {
       "id": "oauth-jwt-oauth-user-id",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "OAuth JWT — email로 user.id 보강 (simplyur mypage 401 방지)",
       "checks": [
         {
@@ -7372,7 +7565,10 @@
     },
     {
       "id": "apple-oauth-invalid-p8-no-crash",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "불완전 AUTH_APPLE_PRIVATE_KEY — appleOAuthProvider null, 앱 기동 크래시 금지",
       "checks": [
         {
@@ -7641,7 +7837,10 @@
     },
     {
       "id": "bongsim-traveler-verification-hk-mo-tw",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "여행자 인증 — 홍콩·마카오·대만만 (중국 본토 제외)",
       "files": [
         "lib/bongsim/esim/traveler-verification-policy.test.ts",
@@ -7650,43 +7849,76 @@
     },
     {
       "id": "bongsim-offline-usim-order",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "매장 오프라인 USIM 주문 consents·결제 확인",
-      "files": ["lib/bongsim/admin/offline-usim-order.test.ts"]
+      "files": [
+        "lib/bongsim/admin/offline-usim-order.test.ts"
+      ]
     },
     {
       "id": "bongsim-offline-usim-plan-picker",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "매장 오프라인 USIM 3단계 피커 — destination toggle + catalog WHERE",
-      "files": ["lib/bongsim/admin/offline-usim-plan-picker.test.ts"]
+      "files": [
+        "lib/bongsim/admin/offline-usim-plan-picker.test.ts"
+      ]
     },
     {
       "id": "bongsim-complimentary-esim-grant",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "관리자 무상 eSIM — consents·사유 파싱·checkout channel",
-      "files": ["lib/bongsim/admin/complimentary-esim-order.test.ts"]
+      "files": [
+        "lib/bongsim/admin/complimentary-esim-order.test.ts"
+      ]
     },
     {
       "id": "bongsim-admin-non-pg-esim-cancel",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "무상·오프라인 eSIM — 관리자 유심사 취소(비 PG)",
-      "files": ["lib/bongsim/admin/admin-cancel-non-pg-esim-order.test.ts"]
+      "files": [
+        "lib/bongsim/admin/admin-cancel-non-pg-esim-order.test.ts"
+      ]
     },
     {
       "id": "bongsim-complimentary-esim-bulk",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "관리자 무상 eSIM 단체 — 휴대폰 파싱·중복 제거·상한",
-      "files": ["lib/bongsim/admin/complimentary-esim-order.test.ts"]
+      "files": [
+        "lib/bongsim/admin/complimentary-esim-order.test.ts"
+      ]
     },
     {
       "id": "bongsim-discount-report-complimentary",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "할인 리포트 — 무상 eSIM 합산·공급 원가 helper",
-      "files": ["lib/bongsim/admin/bongsim-discount-report.test.ts"]
+      "files": [
+        "lib/bongsim/admin/bongsim-discount-report.test.ts"
+      ]
     },
     {
       "id": "bongsim-usim-fulfillment",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "봉심 물리 USIM — sim-fulfillment SSOT + 어드민 수동 활성화",
       "files": [
         "lib/bongsim/catalog/sim-fulfillment.test.ts"
@@ -7694,13 +7926,21 @@
     },
     {
       "id": "og-image-seasonal",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈 OG 시즌 — KST 월별 pageKey·정적 fallback 경로",
-      "files": ["lib/og-image-seasonal.test.ts"]
+      "files": [
+        "lib/og-image-seasonal.test.ts"
+      ]
     },
     {
       "id": "sign-in-audience-split",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "로그인 수단 분리 — 국내 웹 카카오·네이버·이메일 / simplyur 외국인 웹 이메일 / simplyur 외국인 앱 Google·Apple·이메일",
       "files": [
         "lib/auth/sign-in-method-catalog.test.ts",
@@ -7709,37 +7949,65 @@
     },
     {
       "id": "oauth-mobile-get-start-vitest",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "oauth-start callbackUrl gate — google·apple only",
-      "files": ["lib/auth/oauth-mobile-start.test.ts"]
+      "files": [
+        "lib/auth/oauth-mobile-start.test.ts"
+      ]
     },
     {
       "id": "auth-debug-ssot-vitest",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "auth-debug — AUTH_DEBUG gate, security warn always",
-      "files": ["lib/auth/auth-debug.test.ts"]
+      "files": [
+        "lib/auth/auth-debug.test.ts"
+      ]
     },
     {
       "id": "simplyur-oauth-callback-ssot-vitest",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur OAuth callback path·locale·returnTo SSOT",
-      "files": ["lib/auth/simplyur-oauth-callback.test.ts"]
+      "files": [
+        "lib/auth/simplyur-oauth-callback.test.ts"
+      ]
     },
     {
       "id": "apple-oauth-invalid-p8-no-crash-vitest",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "불완전 .p8 — appleOAuthProvider null·isAppleOAuthConfigured false",
-      "files": ["lib/auth/apple-oauth-provider.test.ts"]
+      "files": [
+        "lib/auth/apple-oauth-provider.test.ts"
+      ]
     },
     {
       "id": "simplyur-foreign-audience-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur 외국인 방문객 전용 Korea eSIM — 내국인은 bongsim",
-      "files": ["lib/simplyur/constants.test.ts"]
+      "files": [
+        "lib/simplyur/constants.test.ts"
+      ]
     },
     {
       "id": "esim-first-purchase-discount-15pct",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "eSIM 첫구매 자동 15% — 직군·쿠폰 미적용 시 서버 할인",
       "checks": [
         {
@@ -7766,7 +8034,10 @@
     },
     {
       "id": "simplyur-catalog-server-fetch-p0",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur 카탈로그 P0 — 서버 프리로드·120s unstable_cache",
       "checks": [
         {
@@ -7787,14 +8058,21 @@
         },
         {
           "file": "app/components/AntiCopyProtectionGate.tsx",
-          "mustInclude": ["/simplyur"]
+          "mustInclude": [
+            "/simplyur"
+          ]
         }
       ],
-      "vitestSuites": ["lib/simplyur/catalog/load-korea-catalog-cached.test.ts"]
+      "vitestSuites": [
+        "lib/simplyur/catalog/load-korea-catalog-cached.test.ts"
+      ]
     },
     {
       "id": "simplyur-surface-layout-p2",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur P2 — 경량 루트 셸·Pretendard 분리·checkout 서버 프리로드",
       "checks": [
         {
@@ -7807,15 +8085,23 @@
         },
         {
           "file": "middleware.ts",
-          "mustInclude": ["SIMPLYUR_SURFACE_HEADER", "isSimplyurSurfacePath"]
+          "mustInclude": [
+            "SIMPLYUR_SURFACE_HEADER",
+            "isSimplyurSurfacePath"
+          ]
         },
         {
           "file": "app/simplyur/[locale]/checkout/page.tsx",
-          "mustInclude": ["loadSimplyurKoreaProductByOptionId", "initialProduct"]
+          "mustInclude": [
+            "loadSimplyurKoreaProductByOptionId",
+            "initialProduct"
+          ]
         },
         {
           "file": "lib/bongsim/promo/esim-first-purchase-preview.ts",
-          "mustInclude": ["resolveEsimFirstPurchasePreview"]
+          "mustInclude": [
+            "resolveEsimFirstPurchasePreview"
+          ]
         }
       ],
       "vitestSuites": [
@@ -7825,7 +8111,10 @@
     },
     {
       "id": "bongsim-recommend-server-bootstrap-p3",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "bongsim recommend P3 — countries+heroes 서버 프리로드·120s cache",
       "checks": [
         {
@@ -7844,14 +8133,22 @@
         },
         {
           "file": "lib/bongsim/data/list-catalog-products-cached.ts",
-          "mustInclude": ["unstable_cache", "listCatalogProductsCached"]
+          "mustInclude": [
+            "unstable_cache",
+            "listCatalogProductsCached"
+          ]
         }
       ],
-      "vitestSuites": ["lib/bongsim/data/load-recommend-bootstrap-cached.test.ts"]
+      "vitestSuites": [
+        "lib/bongsim/data/load-recommend-bootstrap-cached.test.ts"
+      ]
     },
     {
       "id": "bongsim-catalog-client-pagination-p4",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "bongsim catalog P4 — thin SSR + bucket pagination API·client load-more",
       "checks": [
         {
@@ -7878,18 +8175,29 @@
         },
         {
           "file": "app/api/bongsim/products/route.ts",
-          "mustInclude": ["listCatalogProductsPaginatedCached", "export const revalidate = 120"]
+          "mustInclude": [
+            "listCatalogProductsPaginatedCached",
+            "export const revalidate = 120"
+          ]
         },
         {
           "file": "lib/bongsim/data/load-catalog-page-bootstrap-cached.ts",
-          "mustInclude": ["loadCatalogPageBootstrapCached", "listCatalogProductsPaginatedCached"]
+          "mustInclude": [
+            "loadCatalogPageBootstrapCached",
+            "listCatalogProductsPaginatedCached"
+          ]
         }
       ],
-      "vitestSuites": ["lib/bongsim/catalog/catalog-buckets.test.ts"]
+      "vitestSuites": [
+        "lib/bongsim/catalog/catalog-buckets.test.ts"
+      ]
     },
     {
       "id": "bongsim-default-trip-days-ssot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "국가·권역별 기본 이용일수 + 카탈로그 스냅 + recommend 자동 선택",
       "checks": [
         {
@@ -7909,15 +8217,23 @@
         },
         {
           "file": "components/bongsim/recommend/DayChipPicker.tsx",
-          "mustInclude": ["recommendedDay", "resolveDayChipVisualState"]
+          "mustInclude": [
+            "recommendedDay",
+            "resolveDayChipVisualState"
+          ]
         },
         {
           "file": "lib/bongsim/recommend/day-chip-visual-state.ts",
-          "mustInclude": ["resolveDayChipVisualState"]
+          "mustInclude": [
+            "resolveDayChipVisualState"
+          ]
         },
         {
           "file": "app/simplyur/[locale]/recommend/SimplyurRecommendClient.tsx",
-          "mustInclude": ["SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS", "snapTripDaysToAvailable"]
+          "mustInclude": [
+            "SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS",
+            "snapTripDaysToAvailable"
+          ]
         }
       ],
       "vitestSuites": [
@@ -7927,7 +8243,10 @@
     },
     {
       "id": "bongsim-trip-day-chip-ui",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "일수 칩 — 스크롤 fade·15+ 구간 구분·simplyur blue 통일",
       "checks": [
         {
@@ -7940,18 +8259,31 @@
         },
         {
           "file": "components/bongsim/recommend/TripDayChipScrollRow.tsx",
-          "mustInclude": ["TripDayChipScrollRow", "GroupDivider", "ResizeObserver"]
+          "mustInclude": [
+            "TripDayChipScrollRow",
+            "GroupDivider",
+            "ResizeObserver"
+          ]
         },
         {
           "file": "components/simplyur/plans/SimplyurPlansDurationPicker.tsx",
-          "mustInclude": ["TripDayChipScrollRow", "recommendedDay", "#0176f9"]
+          "mustInclude": [
+            "TripDayChipScrollRow",
+            "recommendedDay",
+            "#0176f9"
+          ]
         }
       ],
-      "vitestSuites": ["lib/bongsim/recommend/trip-day-chip-layout.test.ts"]
+      "vitestSuites": [
+        "lib/bongsim/recommend/trip-day-chip-layout.test.ts"
+      ]
     },
     {
       "id": "bongsim-products-by-country-cache",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "by-country API — 전체 cache + 단일 목적지 plan_name SQL 필터",
       "checks": [
         {
@@ -7963,7 +8295,10 @@
         },
         {
           "file": "lib/bongsim/data/load-all-active-products.ts",
-          "mustInclude": ["fetchActiveProductOptionsForPlanNamesFromDb", "plan_name = ANY"]
+          "mustInclude": [
+            "fetchActiveProductOptionsForPlanNamesFromDb",
+            "plan_name = ANY"
+          ]
         },
         {
           "file": "lib/bongsim/data/load-all-active-products-cached.ts",
@@ -7975,19 +8310,29 @@
         },
         {
           "file": "lib/bongsim/data/load-products-by-country-cached.ts",
-          "mustInclude": ["loadProductsByCountryCached", "loadActiveProductsForDestinationCached"]
+          "mustInclude": [
+            "loadProductsByCountryCached",
+            "loadActiveProductsForDestinationCached"
+          ]
         },
         {
           "file": "lib/bongsim/data/load-products-by-country.ts",
-          "mustInclude": ["filterProductsByCountry"]
+          "mustInclude": [
+            "filterProductsByCountry"
+          ]
         },
         {
           "file": "app/api/bongsim/products/by-country/route.ts",
-          "mustInclude": ["loadProductsByCountryCached", "export const revalidate = 120"]
+          "mustInclude": [
+            "loadProductsByCountryCached",
+            "export const revalidate = 120"
+          ]
         },
         {
           "file": "app/api/bongsim/countries/route.ts",
-          "mustInclude": ["loadBongsimRecommendBootstrapCached"]
+          "mustInclude": [
+            "loadBongsimRecommendBootstrapCached"
+          ]
         }
       ],
       "vitestSuites": [
@@ -7997,7 +8342,10 @@
     },
     {
       "id": "bongsim-by-country-slim-prefetch",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "by-country 슬림 API + 국가 타일 hover prefetch",
       "checks": [
         {
@@ -8009,23 +8357,36 @@
         },
         {
           "file": "lib/bongsim/data/slim-products-by-country-payload.ts",
-          "mustInclude": ["slimProductsByCountryForApi"]
+          "mustInclude": [
+            "slimProductsByCountryForApi"
+          ]
         },
         {
           "file": "app/api/bongsim/products/by-country/route.ts",
-          "mustInclude": ["slimProductsByCountryForApi"]
+          "mustInclude": [
+            "slimProductsByCountryForApi"
+          ]
         },
         {
           "file": "lib/bongsim/recommend/prefetch-products-by-country.ts",
-          "mustInclude": ["prefetchProductsByCountry", "readPrefetchedProductsByCountry"]
+          "mustInclude": [
+            "prefetchProductsByCountry",
+            "readPrefetchedProductsByCountry"
+          ]
         },
         {
           "file": "components/bongsim/recommend/CountrySelectStep.tsx",
-          "mustInclude": ["prefetchProductsByCountry", "onPrefetch"]
+          "mustInclude": [
+            "prefetchProductsByCountry",
+            "onPrefetch"
+          ]
         },
         {
           "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
-          "mustInclude": ["readPrefetchedProductsByCountry", "fetchProductsByCountry"]
+          "mustInclude": [
+            "readPrefetchedProductsByCountry",
+            "fetchProductsByCountry"
+          ]
         }
       ],
       "vitestSuites": [
@@ -8035,7 +8396,10 @@
     },
     {
       "id": "simplyur-portone-checkout-p2",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur Phase 2 — PortOne checkout·complete·simplyur_web only",
       "checks": [
         {
@@ -8064,11 +8428,16 @@
         },
         {
           "file": "lib/bongsim/data/create-payment-session.ts",
-          "mustInclude": ["portone_simplyur_orders_only", "SIMPLYUR_PORTONE_PROVIDER_ID"]
+          "mustInclude": [
+            "portone_simplyur_orders_only",
+            "SIMPLYUR_PORTONE_PROVIDER_ID"
+          ]
         },
         {
           "file": "components/bongsim/checkout-store/CheckoutStoreClient.tsx",
-          "mustInclude": ["welcomepay_std"]
+          "mustInclude": [
+            "welcomepay_std"
+          ]
         }
       ],
       "vitestSuites": [
@@ -8078,7 +8447,10 @@
     },
     {
       "id": "simplyur-portone-overseas-pg",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur PortOne PayPal + KICC overseas (USD) + webhook",
       "checks": [
         {
@@ -8130,7 +8502,10 @@
     },
     {
       "id": "simplyur-portone-webhook-secret",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur PortOne webhook — PORTONE_WEBHOOK_SECRET signature verify",
       "checks": [
         {
@@ -8149,11 +8524,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/simplyur/payments/portone-webhook-secret.test.ts"]
+      "vitestSuites": [
+        "lib/simplyur/payments/portone-webhook-secret.test.ts"
+      ]
     },
     {
       "id": "simplyur-pg-legal-surface",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur PG 심사 — 사업자·약관·개인정보·환불 페이지 및 푸터",
       "checks": [
         {
@@ -8172,7 +8552,9 @@
             "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
             "255-81-03455"
           ],
-          "mustNotInclude": ["hidden md:block"]
+          "mustNotInclude": [
+            "hidden md:block"
+          ]
         },
         {
           "file": "lib/simplyur/legal-document-en.tsx",
@@ -8184,14 +8566,22 @@
         },
         {
           "file": "app/simplyur/[locale]/legal/privacy/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[simplyur-pg-legal-surface]", "SimplyurPrivacyEnBody"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
+            "SimplyurPrivacyEnBody"
+          ]
         },
         {
           "file": "app/simplyur/[locale]/legal/refund/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[simplyur-pg-legal-surface]", "SimplyurRefundEnBody"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
+            "SimplyurRefundEnBody"
+          ]
         }
       ],
-      "vitestSuites": ["lib/simplyur/legal-disclosures.test.ts"]
+      "vitestSuites": [
+        "lib/simplyur/legal-disclosures.test.ts"
+      ]
     }
   ]
 }

@@ -1789,18 +1789,22 @@ function pickHawaiiResortClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  dayRoute?: string | null,
 ): string {
-  if (!isHawaiiResortClusterRoute(routeText)) return ''
-  const tryPick = (kw: string): string => {
+  const evidenceRoute = String(dayRoute ?? '').trim() || String(routeText ?? '')
+  if (!isHawaiiResortClusterRoute(routeText) && !isHawaiiResortClusterRoute(evidenceRoute)) return ''
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: hawaiiHardcodedPool day-route evidence — manifest
+  const tryPick = (kw: string, requireDayEvidence: boolean): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowHawaiiResortClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowHawaiiResortClusterKw2Duplicate(kw, evidenceRoute)) return ''
+    if (requireDayEvidence && !hawaiiHardcodedPoolHasDayRouteEvidence(kw, evidenceRoute)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
     return ''
   }
   for (const raw of cands) {
-    const hit = tryPick(String(raw ?? '').trim())
+    const hit = tryPick(String(raw ?? '').trim(), true)
     if (hit) return hit
   }
   for (const raw of [
@@ -1810,10 +1814,25 @@ function pickHawaiiResortClusterKeywordForUsedSlot(
     'North Shore Oahu surf beach',
     'Polynesian Cultural Center Oahu Hawaii',
   ]) {
-    const hit = tryPick(raw)
+    const hit = tryPick(raw, true)
     if (hit) return hit
   }
   return ''
+}
+
+/** Hawaii hardcoded pool — day-route POI evidence only (bare Oahu/TIP must not steal North Shore) */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: hawaiiHardcodedPool day-route evidence — manifest
+function hawaiiHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const rt = String(dayRoute ?? '')
+  if (!rt.trim()) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (/diamond head/.test(nk)) return /다이아몬드|Diamond\s*Head/i.test(rt)
+  if (/pearl harbor|arizona/.test(nk)) return /진주만|Pearl\s*Harbor|아리조나|Arizona/i.test(rt)
+  if (/hanauma/.test(nk)) return /하나우마|Hanauma/i.test(rt)
+  if (/north shore/.test(nk)) return /노스\s*쇼어|North\s*Shore/i.test(rt)
+  if (/polynesian/.test(nk)) return /폴리네시안|Polynesian/i.test(rt)
+  if (/waikiki/.test(nk)) return /와이키키|Waikiki/i.test(rt)
+  return false
 }
 
 function isUaeResortClusterRoute(routeText: string | null | undefined): boolean {
@@ -2971,6 +2990,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
             used,
             tripHay,
             normScheduleImageKeywordKey(primary),
+            row.routeText,
           ) || secondary
       }
       if (!secondary && isUaeResortClusterRoute(tripHay)) {
@@ -3013,7 +3033,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
-        pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
@@ -3339,7 +3359,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
-        pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
@@ -3374,7 +3394,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickCanadaRockiesClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||

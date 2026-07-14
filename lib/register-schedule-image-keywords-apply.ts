@@ -10,6 +10,7 @@
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 일자 간 중복 시 route 미사용 명소 차순위 — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: hanatour gap-fill 후 reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 해외 패키지·2030 테마 — 자유여행 제외 gap-fill 후 trip 중복 차순위 — manifest
+ * REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]: tip/example free day detect — manifest
  */
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { isRegisterAirtelListing } from '@/lib/register-admin-airtel-listing'
@@ -25,6 +26,7 @@ import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adj
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { mapDestination } from '@/lib/pexels-keyword'
+import { applyHawaiiFreeDayRecommendedExampleItineraries } from '@/lib/register-schedule-hawaii-free-day-example-itinerary'
 
 function promoteMiddleDayEmptyPrimaryFromKeyword2<T extends RegisterScheduleImageKeywordApplyRow>(
   rows: T[],
@@ -89,24 +91,32 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     ...row,
     routeText: sanitizeRegisterScheduleRouteText(row.routeText) ?? row.routeText,
   }))
-  /** display sanitize는 출력 직전 — 키워드는 sanitize 후 세그먼트 순서 SSOT */
-  const routeTextRawByDay = new Map(
-    preparedForKeywords.map((row) => [Number(row.day), row.routeText ?? null]),
-  )
+  const dest = opts.productDestination ?? null
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
-  const dest = opts.productDestination ?? null
+  // REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]: tip/example free day detect — manifest
+  const preparedWithHawaiiExamples = applyHawaiiFreeDayRecommendedExampleItineraries(
+    preparedForKeywords,
+    {
+      productDestination: dest,
+      productTitle: opts.productTitle ?? null,
+    },
+  )
+  /** display sanitize는 출력 직전 — 키워드는 sanitize·예시 시드 후 세그먼트 순서 SSOT */
+  const routeTextRawByDay = new Map(
+    preparedWithHawaiiExamples.map((row) => [Number(row.day), row.routeText ?? null]),
+  )
 
   let out: T[]
   if (isRegisterAirtelListing(opts.travelScope, opts.productType)) {
-    out = applyAirtelRouteTextImageKeywordsToSchedule(preparedForKeywords)
+    out = applyAirtelRouteTextImageKeywordsToSchedule(preparedWithHawaiiExamples)
   } else if (supplier === 'naeiltour') {
-    out = applyNaeiltourScheduleImageKeywordsToRows(preparedForKeywords as NaeiltourScheduleImageKeywordRow[], {
+    out = applyNaeiltourScheduleImageKeywordsToRows(preparedWithHawaiiExamples as NaeiltourScheduleImageKeywordRow[], {
       productDestination: dest,
       englishLandmarksByDay: opts.naeiltourEnglishLandmarksByDay ?? undefined,
     }) as T[]
   } else {
-    out = applyRegisterScheduleRouteTextKeywordsWithSupplierFallback(preparedForKeywords, {
+    out = applyRegisterScheduleRouteTextKeywordsWithSupplierFallback(preparedWithHawaiiExamples, {
       supplierKey: supplier,
       productDestination: dest,
       productTitle: opts.productTitle ?? null,
@@ -114,6 +124,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       scheduleSectionByDay: opts.scheduleSectionByDay ?? null,
     })
   }
+  out = applyHawaiiFreeDayRecommendedExampleItineraries(out, {
+    productDestination: dest,
+    productTitle: opts.productTitle ?? null,
+  }) as T[]
   const crossContinentStripped = out.map((row) => {
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
@@ -140,9 +154,17 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     ),
   )
   const isPackageListing = !isRegisterAirtelListing(opts.travelScope, opts.productType)
-  const finalDeduped = isPackageListing
+  const reconciled = isPackageListing
     ? reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill(withKeywords)
     : withKeywords
+  // REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]: tip/example free day detect — manifest
+  const finalDeduped = applyHawaiiFreeDayRecommendedExampleItineraries(reconciled, {
+    productDestination: dest,
+    productTitle: opts.productTitle ?? null,
+  }) as T[]
+  for (const row of finalDeduped) {
+    routeTextRawByDay.set(Number(row.day), row.routeText ?? null)
+  }
   // reconcile 후 귀국·출발 빈 슬롯 재보충 (중간일 gap-fill이 마지막 고유 랜드마크를 선점한 경우)
   const withReturnRefill = ensureDepartureReturnVisitCityKeywords(finalDeduped, dest)
   // 귀국 슬롯이 중간일 랜드마크와 fuzzy 중복이면 방문도시 soft-dup으로 교체
