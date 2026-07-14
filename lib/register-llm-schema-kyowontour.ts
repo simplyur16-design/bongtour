@@ -332,28 +332,14 @@ export type RegisterParsed = {
   kyowontourDetailCollectSummary?: string | null
 }
 
-/** 클라이언트 전달용: 내부 감사·관리자 저장 전용 필드 제거 */
+/** 클라이언트 전달용: 감사·관리자 저장 전용만 제거. CollectRan 플래그는 confirm 재수집 스킵용으로 유지.
+ * REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: keep DetailCollectRan — manifest
+ */
 export function stripRegisterInternalArtifacts(p: RegisterParsed): RegisterParsed {
   const x = p as RegisterParsed & {
     registerAdminPersistedLlmParsedJson?: string | null
-    kyowontourOptShopCollectRan?: boolean
-    kyowontourOptShopCollectSummary?: string | null
-    kyowontourScheduleCollectRan?: boolean
-    kyowontourScheduleCollectSummary?: string | null
-    kyowontourCoreCollectRan?: boolean
-    kyowontourCoreCollectSummary?: string | null
   }
-  const {
-    registerParseAudit: _a,
-    registerAdminPersistedLlmParsedJson: _p,
-    kyowontourOptShopCollectRan: _c,
-    kyowontourOptShopCollectSummary: _s,
-    kyowontourScheduleCollectRan: _sc,
-    kyowontourScheduleCollectSummary: _ss,
-    kyowontourCoreCollectRan: _cc,
-    kyowontourCoreCollectSummary: _cs,
-    ...rest
-  } = x
+  const { registerParseAudit: _a, registerAdminPersistedLlmParsedJson: _p, ...rest } = x
   return rest as RegisterParsed
 }
 

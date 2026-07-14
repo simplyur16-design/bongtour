@@ -769,7 +769,9 @@ export function isNonLandmarkRouteTextSegment(seg: string): boolean {
     isNonLandmarkSpaShoppingLoungeImageKeyword(en) ||
     isNonLandmarkHistoricalPrisonImageKeyword(en) ||
     isHotelLodgingImageKeyword(en) ||
-    /\b(airport|international\s*airport|pickup|transfer)\b/i.test(en)
+    /\b(airport|international\s*airport|pickup|transfer)\b/i.test(en) ||
+    /^(?:boarding|departure|arrival|airport)\s+gates?$/i.test(en) ||
+    /^gates?$/i.test(en)
   )
 }
 

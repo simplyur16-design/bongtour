@@ -396,6 +396,10 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^공항(?:\s*도착|\s*출발|\s*경유)?$/u.test(t) && t.length <= 12) return true
   if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움/u.test(t)) return true
   if (/블루스타|Blue\s*Star\s*Delos|수완나(?:품|폼)|B게이트|출입구/u.test(t)) return true
+  // REGRESSION-FREEZE[schedule-image-keyword-return-gate-block]: 탑승·출국 게이트 route noise — manifest
+  if (/^(?:탑승|출국|입국|도착|출발)?\s*게이트$/u.test(t)) return true
+  if (/^(?:boarding|departure|arrival|airport)\s+gates?$/iu.test(t)) return true
+  if (/^gates?$/iu.test(t)) return true
   if (/자유일정\s*추천|전통\s*마사지|빅\s*씨|Big\s*C/u.test(t) && t.length <= 48) return true
   if (/^Travel\s*Tip$/i.test(t)) return true
   if (/^유락죠\s*온천/i.test(t)) return true

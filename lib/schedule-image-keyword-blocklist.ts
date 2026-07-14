@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: generic regional·공항 키워드 차단 — manifest
+ * REGRESSION-FREEZE[schedule-image-keyword-return-gate-block]: 귀국일 bare Gate·탑승게이트 차단 — manifest
  */
 const BLOCKED_PATTERNS: RegExp[] = [
   /^home$/i,
@@ -20,6 +21,11 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /\bdeparture\s+terminal\b/i,
   /\bairport\s+departure\b/i,
   /\bairport\s+window\b/i,
+  // bare Gate / 공항·탑승 게이트 (India Gate·Golden Gate Bridge·Karl Johans Gate는 유지)
+  /^gates?$/i,
+  /^(?:departure|arrival|boarding|airport)\s+gates?$/i,
+  /\b(?:departure|arrival|boarding)\s+gates?\b/i,
+  /\bairport\s+(?:departure\s+)?gates?\b/i,
   /european\s+historic\s+city\s+center/i,
   /north\s+america\s+urban\s+skyline/i,
   /southeast\s+asia\s+tropical\s+city/i,

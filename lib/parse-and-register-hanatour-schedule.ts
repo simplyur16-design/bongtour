@@ -278,7 +278,7 @@ export function hanatourEnglishPexelsImageKeywordFromBlob(blob: string, day: num
   if (/방콕|Bangkok/i.test(j)) return 'Bangkok temple river golden hour skyline'
   if (/도쿄|Tokyo/i.test(j)) return 'Tokyo Shibuya crossing night city lights'
   if (/파리|Paris/i.test(j)) return 'Paris Eiffel Tower skyline twilight'
-  if (/인천|Incheon/i.test(j) && day === 1) return 'Incheon International Airport departure gate'
+  if (/인천|Incheon/i.test(j) && day === 1) return 'Incheon International Airport departure'
 
   if (hanatourBlobLooksEuropeanOrNordic(j)) {
     return buildSafeHanatourImageFallbackKeyword(blob, day, maxDay).slice(0, 120)

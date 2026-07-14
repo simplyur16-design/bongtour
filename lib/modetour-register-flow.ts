@@ -11,6 +11,7 @@ import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
+import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail-patch'
 import { buildRegisterAirHotelItineraryDayDrafts } from '@/lib/register-air-hotel-itinerary-day-drafts'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
@@ -783,7 +784,19 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
       }
     }
 
-    if (patchParsedAfterAugment) {
+    // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: confirm reuse skips detail re-fetch — manifest
+    if (
+      shouldSkipConfirmDetailPatch({
+        mode,
+        hasParsed,
+        reusedConfirmAnalysis,
+        detailCollectRan: parsed.modetourDetailCollectRan,
+        pricesLen: parsed.prices?.length ?? 0,
+        scheduleLen: parsed.schedule?.length ?? 0,
+      })
+    ) {
+      timing.mark('skip-patch-confirm-reuse')
+    } else if (patchParsedAfterAugment) {
       parsed = await Promise.resolve(patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }))
     } else {
       parsed = await augmentModetourParsedWithDetailCollect(parsed, {

@@ -318,20 +318,14 @@ export type RegisterParsed = {
   verygoodtourDetailCollectSummary?: string | null
 }
 
-/** API·클라이언트 응답용: 내부 감사·관리자 저장 전용 필드 제거 */
+/** API·클라이언트 응답용: 감사·관리자 저장 전용만 제거. DetailCollectRan은 confirm 재수집 스킵용으로 유지.
+ * REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: keep DetailCollectRan — manifest
+ */
 export function stripRegisterInternalArtifacts(p: RegisterParsed): RegisterParsed {
   const x = p as RegisterParsed & {
     registerAdminPersistedLlmParsedJson?: string | null
-    verygoodtourDetailCollectRan?: boolean
-    verygoodtourDetailCollectSummary?: string | null
   }
-  const {
-    registerParseAudit: _a,
-    registerAdminPersistedLlmParsedJson: _p,
-    verygoodtourDetailCollectRan: _c,
-    verygoodtourDetailCollectSummary: _s,
-    ...rest
-  } = x
+  const { registerParseAudit: _a, registerAdminPersistedLlmParsedJson: _p, ...rest } = x
   return rest as RegisterParsed
 }
 

@@ -4431,6 +4431,102 @@
       ]
     },
     {
+      "id": "register-confirm-skip-detail-recollect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "3축 저장 — preview DetailCollectRan 유지 + confirm patch는 Ran/가격·일정 있을 때만 스킵",
+      "checks": [
+        {
+          "file": "lib/register-llm-schema-ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-skip-detail-recollect]",
+            "keep DetailCollectRan"
+          ],
+          "mustNotInclude": [
+            "ybtourDetailCollectRan: _c"
+          ]
+        },
+        {
+          "file": "lib/register-confirm-skip-detail-patch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-skip-detail-recollect]",
+            "skip only when reuse-safe",
+            "shouldSkipConfirmDetailPatch"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-skip-detail-recollect]",
+            "skip-patch-confirm-reuse",
+            "shouldSkipConfirmDetailPatch"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "skip-patch-confirm-reuse",
+            "shouldSkipConfirmDetailPatch"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "skip-patch-confirm-reuse",
+            "shouldSkipConfirmDetailPatch"
+          ]
+        },
+        {
+          "file": "lib/register-confirm-skip-detail-recollect.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-skip-detail-recollect]",
+            "strip keeps DetailCollectRan",
+            "empty prices/schedule without Ran must not skip"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-confirm-skip-detail-recollect.test.ts"
+      ]
+    },
+    {
+      "id": "schedule-image-keyword-return-gate-block",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "귀국·이동일 imageKeyword — bare Gate·탑승게이트 차단 (India Gate 유지)",
+      "checks": [
+        {
+          "file": "lib/schedule-image-keyword-blocklist.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-return-gate-block]",
+            "/^gates?$/i",
+            "boarding)\\s+gates?"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-return-gate-block]",
+            "탑승|출국|입국|도착|출발)?\\s*게이트"
+          ]
+        },
+        {
+          "file": "lib/register-confirm-skip-detail-recollect.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-return-gate-block]",
+            "blocks bare Gate"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-confirm-skip-detail-recollect.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-forbidden-city-route-evidence",
       "tier": [
         "prebuild",

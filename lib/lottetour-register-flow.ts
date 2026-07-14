@@ -17,6 +17,7 @@ import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
+import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail-patch'
 import { resolveRegisterItineraryDayDraftsForAdminPreview } from '@/lib/register-air-hotel-admin-path'
 import { extractHighlightFromLottetour } from '@/lib/extract-highlight-lottetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -873,9 +874,23 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       parsed = augmentParsed(parsed, { pastedBodyText: text, travelScope })
     }
     if (patchParsedAfterAugment) {
-      parsed = await Promise.resolve(
-        patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }),
-      )
+      // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: confirm reuse skips detail re-fetch — manifest
+      if (
+        shouldSkipConfirmDetailPatch({
+          mode,
+          hasParsed,
+          reusedConfirmAnalysis,
+          detailCollectRan: parsed.lottetourDetailCollectRan,
+          pricesLen: parsed.prices?.length ?? 0,
+          scheduleLen: parsed.schedule?.length ?? 0,
+        })
+      ) {
+        timing.mark('skip-patch-confirm-reuse')
+      } else {
+        parsed = await Promise.resolve(
+          patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }),
+        )
+      }
     }
     parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
       travelScope,
