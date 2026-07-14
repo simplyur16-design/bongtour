@@ -19,6 +19,26 @@ export type SyncProductCountryTagsOpts = {
   scheduleHaystack?: string | null
 }
 
+/** 마스터 countryKey → 트리 groupKey (중남미는 트리 countryKey가 latin-caribbean 클러스터) */
+function groupKeyForMasterCountryTag(countryKey: string): string | null {
+  const fromTree = findGroupKeyForCountryKey(countryKey)
+  if (fromTree) return fromTree
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: SA master countries → americas group — manifest
+  if (
+    countryKey === 'peru' ||
+    countryKey === 'bolivia' ||
+    countryKey === 'brazil' ||
+    countryKey === 'argentina' ||
+    countryKey === 'chile' ||
+    countryKey === 'mexico' ||
+    countryKey === 'cuba' ||
+    countryKey === 'dominican-republic'
+  ) {
+    return 'americas'
+  }
+  return null
+}
+
 function buildMultiCountryTagRows(
   productId: string,
   geo: ProductLocationKeyPrismaFields,
@@ -32,13 +52,17 @@ function buildMultiCountryTagRows(
   sortOrder: number
 }> | null {
   const primary = geo.countryKey?.trim()
-  if (!primary || !countryKeys.includes(primary)) return null
+  const keys = [...new Set(countryKeys.map((k) => k.trim()).filter(Boolean))]
+  if (keys.length < 2) return null
 
-  const ordered = [primary, ...countryKeys.filter((k) => k !== primary)]
-  if (ordered.length !== countryKeys.length) return null
+  /** 트리 클러스터(latin-caribbean)는 Country FK가 아니므로 found master keys만 태그 */
+  const ordered =
+    primary && keys.includes(primary)
+      ? [primary, ...keys.filter((k) => k !== primary)]
+      : keys
 
   const rows = ordered.map((countryKey, i) => {
-    const groupKey = findGroupKeyForCountryKey(countryKey)
+    const groupKey = groupKeyForMasterCountryTag(countryKey)
     if (!groupKey) return null
     const defaultNk = defaultNodeKeyForMasterCountryTag(countryKey)
     const nodeKey =
@@ -96,7 +120,7 @@ function buildSinglePrimaryTagRow(
   const countryKey = geo.countryKey?.trim()
   if (!countryKey) return null
 
-  const groupKey = (geo.groupKey ?? findGroupKeyForCountryKey(countryKey))?.trim()
+  const groupKey = (geo.groupKey ?? groupKeyForMasterCountryTag(countryKey))?.trim()
   if (!groupKey) return null
 
   const nodeKey =

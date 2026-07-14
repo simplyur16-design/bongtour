@@ -115,4 +115,35 @@ describe('register mega menu geo summary', () => {
     const label = inferMegaMenuSubgroupFromRegisterTags('china-hk-mo', ['mongolia'], [])
     expect(label).toBe('몽골')
   })
+
+  it('latin-caribbean geo without tree match → south-america tab', () => {
+    const summary = buildRegisterMegaMenuGeoSummary({
+      geo: {
+        countryKey: 'latin-caribbean',
+        cityKey: null,
+        nodeKey: 'south-america',
+        groupKey: 'americas',
+        continent: null,
+        continentKey: null,
+        country: null,
+        city: null,
+        locationMatchConfidence: null,
+        locationMatchSource: null,
+      },
+      cityKeys: [],
+      countryTagKeys: ['peru', 'bolivia', 'brazil', 'argentina'],
+      tagOpts: {
+        title: '남미 12일 #4개국 #우유니 별빛투어 #이과수 헬기투어',
+        primaryDestination: '미지정',
+        destinationRaw: '미지정',
+        scheduleHaystack: '리마 쿠스코 라파즈 우유니 리오데자네이로 이과수',
+      },
+    })
+    expect(summary.browseRegionTab).toBe('south-america')
+    expect(
+      megaMenuSummaryNeedsOperatorReview(summary, {
+        countryTagKeys: ['peru', 'bolivia', 'brazil', 'argentina'],
+      }),
+    ).toBe(false)
+  })
 })

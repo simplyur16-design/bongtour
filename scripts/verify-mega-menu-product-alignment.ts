@@ -12,6 +12,7 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import {
   buildRegisterMegaMenuGeoSummary,
   megaMenuSummaryNeedsOperatorReview,
+  type RegisterMegaMenuGeoSummary,
 } from '@/lib/register-mega-menu-geo-summary'
 import { buildOverseasBrowseGeoResolution } from '@/lib/browse-master-geo'
 import { productMatchesBrowseUrlGeo } from '@/lib/match-overseas-product'
@@ -27,8 +28,26 @@ import {
 import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherence'
 import { citySlugFromTermsAndLabel, countrySlugFromLabel } from '@/lib/location-url-slugs'
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
+import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
+import { isAmericasSouthAmericaBrowseCountryKey } from '@/lib/unified-location-tree'
 
 type Issue = { slug: string; kind: string; detail: string }
+
+type ProductRow = {
+  id: string
+  slug: string | null
+  title: string
+  travelScope: string | null
+  primaryDestination: string | null
+  destinationRaw: string | null
+  schedule: string | null
+  countryKey: string | null
+  cityKey: string | null
+  nodeKey: string | null
+  groupKey: string | null
+  countryTags: Array<{ countryKey: string; nodeKey: string | null; isPrimary: boolean }>
+  cityTags: Array<{ cityKey: string; isPrimary: boolean }>
+}
 
 function scheduleHaystack(schedule: string | null): string | null {
   if (!schedule?.trim()) return null
@@ -38,6 +57,120 @@ function scheduleHaystack(schedule: string | null): string | null {
     .filter(Boolean)
     .join('\n')
   return t.length ? t : null
+}
+
+function shouldHealLatinCaribbeanCluster(p: ProductRow): boolean {
+  if (p.countryTags.length > 0) return false
+  const ck = (p.countryKey ?? '').trim()
+  const nk = (p.nodeKey ?? '').trim()
+  return (
+    ck === 'latin-caribbean' ||
+    nk === 'south-america' ||
+    (ck.length > 0 && isAmericasSouthAmericaBrowseCountryKey(ck) && !p.cityKey)
+  )
+}
+
+async function evaluateProduct(p: ProductRow): Promise<{
+  summary: RegisterMegaMenuGeoSummary
+  countryTagKeys: string[]
+  cityKeys: string[]
+  primaryCity: string | null
+}> {
+  const cityKeys = p.cityTags.map((t) => t.cityKey)
+  const primaryCity = p.cityTags.find((t) => t.isPrimary)?.cityKey ?? cityKeys[0] ?? p.cityKey
+  const summary = buildRegisterMegaMenuGeoSummary({
+    geo: {
+      countryKey: p.countryKey,
+      cityKey: p.cityKey,
+      nodeKey: p.nodeKey,
+      groupKey: p.groupKey,
+      continent: null,
+      continentKey: null,
+      country: null,
+      city: null,
+      locationMatchConfidence: null,
+      locationMatchSource: null,
+    },
+    cityKeys,
+    countryTagKeys: p.countryTags.map((t) => t.countryKey),
+    tagOpts: {
+      title: p.title ?? '',
+      primaryDestination: p.primaryDestination,
+      destinationRaw: p.destinationRaw,
+      scheduleHaystack: scheduleHaystack(p.schedule),
+    },
+  })
+  return {
+    summary,
+    countryTagKeys: p.countryTags.map((t) => t.countryKey),
+    cityKeys,
+    primaryCity: primaryCity ?? null,
+  }
+}
+
+async function healLatinCaribbeanProduct(p: ProductRow): Promise<ProductRow> {
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: prebuild heal latin-caribbean tags — manifest
+  const hay = scheduleHaystack(p.schedule)
+  await syncProductGeoTags(
+    prisma,
+    p.id,
+    {
+      countryKey: p.countryKey,
+      cityKey: p.cityKey,
+      nodeKey: p.nodeKey,
+      groupKey: p.groupKey ?? 'americas',
+      continent: null,
+      continentKey: null,
+      country: null,
+      city: null,
+      locationMatchConfidence: null,
+      locationMatchSource: null,
+    },
+    {
+      title: p.title ?? '',
+      primaryDestination: p.primaryDestination,
+      destinationRaw: p.destinationRaw,
+      scheduleHaystack: hay,
+    },
+  )
+  if (
+    (!p.primaryDestination?.trim() || p.primaryDestination.trim() === '미지정') &&
+    ((p.countryKey ?? '').trim() === 'latin-caribbean' || (p.nodeKey ?? '').trim() === 'south-america')
+  ) {
+    await prisma.product.update({
+      where: { id: p.id },
+      data: {
+        primaryDestination: '남미',
+        destinationRaw:
+          !p.destinationRaw?.trim() || p.destinationRaw.trim() === '미지정' ? '남미' : p.destinationRaw,
+        groupKey: p.groupKey?.trim() || 'americas',
+      },
+    })
+  }
+  const refreshed = await prisma.product.findUniqueOrThrow({
+    where: { id: p.id },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      travelScope: true,
+      primaryDestination: true,
+      destinationRaw: true,
+      schedule: true,
+      countryKey: true,
+      cityKey: true,
+      nodeKey: true,
+      groupKey: true,
+      countryTags: { select: { countryKey: true, nodeKey: true, isPrimary: true } },
+      cityTags: { select: { cityKey: true, isPrimary: true }, orderBy: { sortOrder: 'asc' } },
+    },
+  })
+  console.warn(
+    `[verify:mega-menu-product-alignment] healed ${refreshed.slug ?? refreshed.id}: countryTags=${refreshed.countryTags
+      .map((t) => t.countryKey)
+      .join(',')}`,
+  )
+  return refreshed
 }
 
 async function main(): Promise<void> {
@@ -58,6 +191,7 @@ async function main(): Promise<void> {
       countryKey: true,
       cityKey: true,
       nodeKey: true,
+      groupKey: true,
       countryTags: { select: { countryKey: true, nodeKey: true, isPrimary: true } },
       cityTags: { select: { cityKey: true, isPrimary: true }, orderBy: { sortOrder: 'asc' } },
     },
@@ -67,36 +201,22 @@ async function main(): Promise<void> {
   let overseas = 0
   let aligned = 0
 
-  for (const p of products) {
+  for (let p of products) {
     if (parseTravelScope(p.travelScope ?? undefined) === 'domestic') continue
     overseas++
 
-    const cityKeys = p.cityTags.map((t) => t.cityKey)
-    const primaryCity = p.cityTags.find((t) => t.isPrimary)?.cityKey ?? cityKeys[0] ?? p.cityKey
+    let evaluated = await evaluateProduct(p)
+    if (
+      megaMenuSummaryNeedsOperatorReview(evaluated.summary, {
+        countryTagKeys: evaluated.countryTagKeys,
+      }) &&
+      shouldHealLatinCaribbeanCluster(p)
+    ) {
+      p = await healLatinCaribbeanProduct(p)
+      evaluated = await evaluateProduct(p)
+    }
 
-    const summary = buildRegisterMegaMenuGeoSummary({
-      geo: {
-        countryKey: p.countryKey,
-        cityKey: p.cityKey,
-        nodeKey: p.nodeKey,
-        groupKey: null,
-        continent: null,
-        continentKey: null,
-        country: null,
-        city: null,
-        locationMatchConfidence: null,
-        locationMatchSource: null,
-      },
-      cityKeys,
-      tagOpts: {
-        title: p.title ?? '',
-        primaryDestination: p.primaryDestination,
-        destinationRaw: p.destinationRaw,
-        scheduleHaystack: scheduleHaystack(p.schedule),
-      },
-    })
-
-    const countryTagKeysFromDb = p.countryTags.map((t) => t.countryKey)
+    const { summary, countryTagKeys: countryTagKeysFromDb, cityKeys, primaryCity } = evaluated
 
     if (megaMenuSummaryNeedsOperatorReview(summary, { countryTagKeys: countryTagKeysFromDb })) {
       issues.push({

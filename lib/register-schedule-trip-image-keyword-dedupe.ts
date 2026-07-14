@@ -2736,6 +2736,9 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         ''
     }
 
+    if (primary && shouldRejectRouteLeakKeyword2(primary, row.routeText, tripHay)) {
+      primary = ''
+    }
     if (secondary && shouldRejectRouteLeakKeyword2(secondary, row.routeText, tripHay)) {
       secondary = ''
     }
@@ -3045,6 +3048,9 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     if (secondary && shouldRejectMiddleDayKeyword2(secondary, row, primary, used)) {
       secondary = ''
     }
+    if (primary && shouldRejectRouteLeakKeyword2(primary, row.routeText, tripHay)) {
+      primary = ''
+    }
     if (secondary && shouldRejectRouteLeakKeyword2(secondary, row.routeText, tripHay)) {
       secondary = ''
     }
@@ -3221,6 +3227,14 @@ function shouldRejectRouteLeakKeyword2(
   if (isLaosOnlyClusterRoute(hay) && isSoutheastAsiaLeakKeywordForLaosRoute(secondary)) return true
   if (isOceaniaAuNzClusterRoute(hay) && /sugar loaf|rio de janeiro|brazil/.test(normScheduleImageKeywordKey(secondary))) {
     return true
+  }
+  // REGRESSION-FREEZE[schedule-segment-poi-us-west]: Yosemite family must not leak onto non-Yosemite US West days - manifest
+  const nk = normScheduleImageKeywordKey(secondary)
+  const dayRt = String(routeText ?? '')
+  if (/yosemite|el capitan|half dome|bridalveil|inspiration point/.test(nk)) {
+    if (!/요세미티|Yosemite|엘카피탄|El\s*Capitan|하프돔|Half\s*Dome|브라이드|Bridalveil|인스피레이션/i.test(dayRt)) {
+      return true
+    }
   }
   return false
 }
@@ -3508,6 +3522,9 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         shouldRejectMiddleDayKeyword2(secondary, { ...row, routeText: tripHay }, primary, used)
       ) {
         secondary = ''
+      }
+      if (primary && shouldRejectRouteLeakKeyword2(primary, row.routeText, tripHay)) {
+        primary = ''
       }
       if (secondary && shouldRejectRouteLeakKeyword2(secondary, row.routeText, tripHay)) {
         secondary = ''

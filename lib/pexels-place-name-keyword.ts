@@ -27,6 +27,9 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'universal studios japan osaka': 'Universal Studios Japan',
   'universal studios japan': 'Universal Studios Japan',
   'universal studios': 'Universal Studios',
+  'monument valley': 'Monument Valley',
+  'monument valley utah': 'Monument Valley',
+  'monument valley arizona': 'Monument Valley',
   'warner bros movie world': 'Warner Bros Movie World',
   'tokyo disneyland castle': 'Tokyo Disneyland',
   'tokyo disneyland': 'Tokyo Disneyland',
@@ -280,6 +283,7 @@ const PROTECTED_TRAILING = new Set([
   'volcano',
   'mountain',
   'mountains',
+  'valley',
 ])
 
 /** 도시·국가명 단독(관광지 고유명이 아닌 경우만 폴백 허용) */
@@ -617,6 +621,7 @@ function stripTrailingGeoTokens(s: string): string {
 /**
  * 어떤 imageKeyword든 정규화하여 장소 고유명만 반환. 의미 없으면 빈 문자열.
  */
+// REGRESSION-FREEZE[pexels-normalize-monument-valley]: Monument Valley — do not strip Valley — manifest
 export function normalizeToPlaceName(rawKeyword: string): string {
   let t = squash(String(rawKeyword ?? ''))
   if (!t) return ''

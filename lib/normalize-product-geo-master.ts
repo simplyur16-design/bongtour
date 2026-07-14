@@ -15,6 +15,7 @@ import {
 import {
   isMultiCityClusterNode,
   mapTreeKeysToMasterKeys,
+  masterCountryKeyFromLatinCaribbeanSouthAmericaTerm,
   type MapTreeKeysInput,
   type MapTreeKeysResult,
 } from '@/lib/product-master-mapping'
@@ -171,7 +172,15 @@ function collectMasterCountryKeysFromTreeTokens(hay: string): string[] {
           countryKey: country.countryKey,
           nodeKey,
         })
-        const mk = mapped.masterCountryKey?.trim()
+        let mk = mapped.masterCountryKey?.trim() || null
+        // REGRESSION-FREEZE[mega-menu-product-alignment]: latin-caribbean south-america alias → master — manifest
+        if (
+          !mk &&
+          country.countryKey === 'latin-caribbean' &&
+          nodeKey === 'south-america'
+        ) {
+          mk = masterCountryKeyFromLatinCaribbeanSouthAmericaTerm(t)
+        }
         if (!mk || used.has(mk)) return
         used.add(mk)
         keys.push(mk)
@@ -187,6 +196,23 @@ function collectMasterCountryKeysFromTreeTokens(hay: string): string[] {
     }
   }
   return keys
+}
+
+/** 일정·제목에만 도시명(리마·라파즈·이과수)이 있을 때 중남미 마스터 국가 보강 */
+function collectLatinAmericaMasterCountryKeysFromPlaceHints(hay: string): string[] {
+  const out: string[] = []
+  const used = new Set<string>()
+  const push = (ck: string) => {
+    if (used.has(ck)) return
+    used.add(ck)
+    out.push(ck)
+  }
+  if (/리마|쿠스코|마추\s*픽추|페루|\bLima\b|\bCusco\b|\bMachu\b/i.test(hay)) push('peru')
+  if (/우유니|라파즈|라파스|볼리비아|\bUyuni\b|La\s*Paz/i.test(hay)) push('bolivia')
+  if (/리오\s*데\s*자|리우\s*데\s*자|브라질|Rio\s*de\s*Janeiro/i.test(hay)) push('brazil')
+  if (/이과수|아르헨|부에노스|Iguazu|Buenos\s*Aires/i.test(hay)) push('argentina')
+  if (/산티아고|칠레|\bChile\b|\bSantiago\b/i.test(hay)) push('chile')
+  return out
 }
 
 export async function detectMultiCountryAutoPlan(
@@ -231,6 +257,12 @@ export async function detectMultiCountryAutoPlan(
       used.add(mk)
     }
   }
+  for (const mk of collectLatinAmericaMasterCountryKeysFromPlaceHints(hay)) {
+    if (!used.has(mk)) {
+      foundKeys.push(mk)
+      used.add(mk)
+    }
+  }
 
   const megaCityKeys = await matchMegaMenuSsotCityKeysInHaystack(db, hay)
   if (megaCityKeys.length > 0) {
@@ -262,8 +294,29 @@ export async function detectMultiCountryAutoPlan(
     return { kind: 'none' }
   }
 
-  if (!primaryMasterCountryKey || !foundKeys.includes(primaryMasterCountryKey)) {
+  /** 트리 클러스터 primary(latin-caribbean 등)는 Country 마스터 FK가 아니므로 foundKeys 포함 여부를 완화 */
+  const primaryIsTreeClusterOnly =
+    primaryMasterCountryKey === 'latin-caribbean' ||
+    primaryMasterCountryKey === 'india-nepal-sri-bhutan' ||
+    primaryMasterCountryKey === 'sea-multi'
+
+  if (
+    !primaryMasterCountryKey ||
+    (!foundKeys.includes(primaryMasterCountryKey) && !primaryIsTreeClusterOnly)
+  ) {
     return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: declaredN }
+  }
+
+  if (primaryIsTreeClusterOnly && foundKeys.length >= 2) {
+    if (nDeclared && foundKeys.length === nDeclared) {
+      return { kind: 'multi', confidence: 'high', countryKeys: foundKeys, declaredN: nDeclared }
+    }
+    return {
+      kind: 'multi',
+      confidence: 'medium',
+      countryKeys: foundKeys,
+      declaredN: nDeclared ?? foundKeys.length,
+    }
   }
 
   if (nDeclared && foundKeys.length === nDeclared) {

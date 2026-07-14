@@ -217,6 +217,8 @@ const POI_KO_TO_EN: Record<string, string> = {
   조개박물관: 'Miyakojima Shell Museum',
   유니버설스튜디오싱가포르: 'Universal Studios Singapore',
   유니버설스튜디오재팬: 'Universal Studios Japan',
+  유니버설스튜디오할리우드: 'Universal Studios Hollywood',
+  '유니버설 스튜디오 할리우드': 'Universal Studios Hollywood',
   유니버설스튜디오: 'Universal Studios Japan',
   유니버설: 'Universal Studios Japan',
   센토사: 'Sentosa',

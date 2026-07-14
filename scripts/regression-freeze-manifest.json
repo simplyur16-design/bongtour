@@ -7588,6 +7588,71 @@
           ]
         }
       ]
+    },
+    {
+      "id": "pexels-normalize-monument-valley",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "normalizeToPlaceName — Monument Valley keeps Valley (not bare Monument)",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-normalize-monument-valley]",
+            "'monument valley': 'Monument Valley'",
+            "valley"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-ybtour-nwp1002-us-west-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-normalize-monument-valley]",
+            "Monument Valley",
+            "NWP1002"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-ybtour-nwp1002-us-west-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "schedule-segment-poi-us-west",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "미서부 POI + LA Universal Hollywood + Yosemite day-leak 차단",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-segment-poi-us-west]",
+            "Universal Studios Hollywood",
+            "Monument Valley"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-segment-poi-us-west]",
+            "yosemite|el capitan|half dome|bridalveil"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-ybtour-nwp1002-us-west-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-segment-poi-us-west]",
+            "Universal Studios Hollywood",
+            "no Yosemite day-leak"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-ybtour-nwp1002-us-west-image-keyword.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
@@ -7692,7 +7757,9 @@
           "file": "scripts/verify-mega-menu-product-alignment.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
-            "megaMenuPlacementForCityKey"
+            "megaMenuPlacementForCityKey",
+            "healLatinCaribbeanProduct",
+            "prebuild heal latin-caribbean tags"
           ]
         }
       ],

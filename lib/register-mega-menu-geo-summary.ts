@@ -6,7 +6,10 @@ import {
 } from '@/lib/overseas-mega-region-city-group'
 import { resolveOverseasCountryRowLabelForBrowse } from '@/lib/overseas-display-buckets'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
-import { continentTabIdForMatch } from '@/lib/unified-location-tree'
+import {
+  continentTabIdForMatch,
+  isAmericasSouthAmericaBrowseCountryKey,
+} from '@/lib/unified-location-tree'
 import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherence'
 import { countrySlugFromLabel } from '@/lib/location-url-slugs'
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
@@ -191,6 +194,20 @@ export function buildRegisterMegaMenuGeoSummary(input: {
 
   if (!browseRegionTab && match) {
     browseRegionTab = continentTabIdForMatch(match.groupKey, match.countryKey)
+  }
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: latin-caribbean / south-america node → 중남미 탭 — manifest
+  if (!browseRegionTab && countryKey && isAmericasSouthAmericaBrowseCountryKey(countryKey)) {
+    browseRegionTab = 'south-america'
+  }
+  if (!browseRegionTab && (input.geo.nodeKey ?? '').trim() === 'south-america') {
+    browseRegionTab = 'south-america'
+  }
+  if (
+    !browseRegionTab &&
+    (input.geo.groupKey ?? '').trim() === 'americas' &&
+    countryKey === 'latin-caribbean'
+  ) {
+    browseRegionTab = 'south-america'
   }
   if (!browseRegionTab) warnings.push('해외 목적지 트리 매칭 실패 — 권역 탭 분류 불명')
 

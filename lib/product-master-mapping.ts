@@ -58,6 +58,32 @@ const TREE_COUNTRY_REQUIRES_NODEKEY = new Set([
 const RE_MEXICO_DESTINATION_HINT = /(?:\bmexico\b|멕시코|\bcancun\b|칸쿤)/i
 const RE_CUBA_DESTINATION_HINT = /(?:\bcuba\b|쿠바|\bhavana\b|아바나)/i
 
+/**
+ * 중남미 트리 leaf `south-america` aliases / 일정 표기 → Country 마스터 countryKey.
+ * `mapTreeKeysToMasterKeys`(nodeKey=south-america)는 다국가라 null이므로, 토큰 단위 분해용.
+ * REGRESSION-FREEZE[mega-menu-product-alignment]: latin-caribbean alias → master country — manifest
+ */
+const LATIN_CARIBBEAN_SOUTH_AMERICA_TERM_TO_MASTER: Record<string, string> = {
+  peru: 'peru',
+  페루: 'peru',
+  brazil: 'brazil',
+  브라질: 'brazil',
+  argentina: 'argentina',
+  아르헨티나: 'argentina',
+  bolivia: 'bolivia',
+  볼리비아: 'bolivia',
+  chile: 'chile',
+  칠레: 'chile',
+}
+
+export function masterCountryKeyFromLatinCaribbeanSouthAmericaTerm(
+  term: string | null | undefined,
+): string | null {
+  const t = String(term ?? '').trim().toLowerCase()
+  if (!t) return null
+  return LATIN_CARIBBEAN_SOUTH_AMERICA_TERM_TO_MASTER[t] ?? LATIN_CARIBBEAN_SOUTH_AMERICA_TERM_TO_MASTER[String(term ?? '').trim()] ?? null
+}
+
 /** seed `cuba-mexico` 리프와 동일 — 기본 mexico; 멕시코 명시 우선, 쿠바만 명시 시 cuba */
 function masterCountryKeyForCubaMexicoLeaf(destinationHint: string | null | undefined): 'mexico' | 'cuba' {
   const h = (destinationHint ?? '').trim()
