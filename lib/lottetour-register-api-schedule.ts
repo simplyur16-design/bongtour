@@ -122,6 +122,8 @@ type LottetourScheduleVibeProfile =
   | 'hk_walking'
   | 'harbor_skyline'
   | 'spiritual_calm'
+  | 'singapore_gardens'
+  | 'singapore_uss'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -153,6 +155,14 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다.',
     '이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.',
   ],
+  singapore_gardens: [
+    '정원·전망·해안이 이어지는 핵심 동선으로, 걷기와 시야 확장이 균형을 이룹니다.',
+    '도시 상징 랜드마크와 여유 구간을 하루 흐름에 맞춰 담아내는 구성입니다.',
+  ],
+  singapore_uss: [
+    '테마파크 하루 자유 일정으로, 입장·동선·여유 시간을 스스로 짜는 플레이형 하루입니다.',
+    '패키지 단체 일정과 분리된 자유 탐방 리듬이 중심이 됩니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -165,6 +175,15 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
     return 'return_transit'
   }
   if (day === 1 && /(?:출발|도착|공항|입국)/u.test(joinedBlob)) return 'arrival'
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 싱가포르 vibe — 전일 동일 generic 금지 — manifest
+  if (/(?:유|우)니버설\s*스튜디오|Universal\s*Studios/i.test(joinedBlob)) return 'singapore_uss'
+  if (
+    /싱가포르|Singapore|가든스|Gardens\s*by|센토사|Sentosa|머르?라이언|Merlion|버드\s*파라다이스/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'singapore_gardens'
+  }
   if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'

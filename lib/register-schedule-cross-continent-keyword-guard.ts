@@ -137,6 +137,25 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
   if (!ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return false
   if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
   if (haystacks.some((h) => AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE.test(h))) return true
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 싱가포르 일정에 USJ 금지 — manifest
+  {
+    const tripHay = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const singaporeTrip =
+      /싱가포르|Singapore/i.test(dest) || /싱가포르|Singapore/i.test(tripHay)
+    const japanTrip =
+      /일본|Japan|오사카|Osaka|도쿄|Tokyo|교토|Kyoto/i.test(dest) ||
+      /(?:일본|Japan|오사카|Osaka|도쿄|Tokyo|교토|Kyoto)/i.test(tripHay)
+    if (
+      singaporeTrip &&
+      !japanTrip &&
+      haystacks.some((h) => /Universal\s*Studios\s*Japan/i.test(h))
+    ) {
+      return true
+    }
+  }
   // 푸꾸옥 상품 — 나트랑·발리·앙코르 등 동남아 타목적지 환각 차단
   if (/푸꾸옥|Phu\s*Quoc|푸꾹옥/i.test(dest) || (scheduleRows ?? []).some((r) => /푸꾸옥|Phu\s*Quoc/i.test(String(r.routeText ?? '')))) {
     const tripIsPhuQuocOnly =

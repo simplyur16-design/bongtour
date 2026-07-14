@@ -229,8 +229,16 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /브라이스\s*캐년|Bryce\s*Canyon/i, en: "Bryce Canyon" },
   { re: /요세미티|Yosemite/i, en: "Yosemite National Park" },
   { re: /그랜드\s*캐년|Grand\s*Canyon/i, en: "Grand Canyon" },
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: Singapore USS before Japan Universal catch-all — manifest
+  { re: /(?:유|우)니버설\s*스튜디오\s*(?:싱가포르|singapore)|USS\b/iu, en: "Universal Studios Singapore" },
+  { re: /가든스\s*(?:바이\s*)?(?:더\s*)?베이|Gardens\s*by\s*the\s*Bay|슈퍼트리|클라우드\s*포레스트|플라워\s*돔/iu, en: "Gardens by the Bay" },
+  { re: /머르?라이언|Merlion/iu, en: "Merlion Park" },
+  { re: /센토사|Sentosa/iu, en: "Sentosa" },
+  { re: /마리나\s*베이\s*샌즈|Marina\s*Bay\s*Sands/iu, en: "Marina Bay Sands" },
+  { re: /버드\s*파라다이스|Bird\s*Paradise/iu, en: "Bird Paradise Singapore" },
   { re: /(?:유|우)니버설\s*스튜디오\s*(?:재팬|japan)|USJ/iu, en: "Universal Studios Japan Osaka" },
-  { re: /(?:유|우)니버설|USJ/u, en: "Universal Studios Japan Osaka" },
+  // bare 유니버설 → Japan 금지: 일본·오사카·도쿄 맥락 있을 때만 USJ
+  { re: /(?:오사카|도쿄|일본|japan|osaka|tokyo|재팬).{0,32}(?:유|우)니버설|(?:유|우)니버설.{0,32}(?:오사카|도쿄|일본|재팬|japan|osaka)/iu, en: "Universal Studios Japan Osaka" },
   { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: "Tokyo Disneyland castle" },
   { re: /돗토리\s*사구|Tottori\s*Sand/i, en: "Tottori Sand Dunes" },
   { re: /코난\s*박물관|고쇼\s*아오야마|Gosho\s*Aoyama|Manga\s*Factory/i, en: "Gosho Aoyama Manga Factory" },

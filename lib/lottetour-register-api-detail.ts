@@ -570,8 +570,17 @@ export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null):
     ].map((m) => stripLottetourScheduleHtml(m[1] ?? '')).filter(Boolean)
     const routePlaces = extractLottetourSchedulePlacesFromCityLabels([...uniqueCities, ...planPlaces])
     const routeText = joinLottetourScheduleRouteText(routePlaces)
-    const hotelMatch = block.match(/class="txt_link"[^>]*>([^<]+)</i)?.[1]
-    const hotelText = hotelMatch ? stripLottetourScheduleHtml(hotelMatch).slice(0, 200) : null
+    // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 숙박 txt_link — 써차지·포함 잡음 제외 — manifest
+    const hotelRaw =
+      block.match(/(?:숙박|호텔)[\s\S]{0,480}?class="txt_link"[^>]*>([^<]+)</i)?.[1] ??
+      block.match(/class="txt_link"[^>]*>([^<]+)</i)?.[1] ??
+      null
+    const hotelCandidate = hotelRaw ? stripLottetourScheduleHtml(hotelRaw).slice(0, 200) : null
+    const hotelText =
+      hotelCandidate &&
+      !/(?:써차지|추가\s*요금|포함\s*(?:사항|예정)|└|유류할증|여행자보험|TAX|노쇼핑)/i.test(hotelCandidate)
+        ? hotelCandidate
+        : null
     const title = routePlaces[0] ?? uniqueCities[0] ?? `${day}일차`
     const joinedBlob = [routeText, ...planParts, ...uniqueCities].filter(Boolean).join(' ')
     const description = composeLottetourScheduleDescription({

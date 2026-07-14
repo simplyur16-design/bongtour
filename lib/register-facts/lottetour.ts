@@ -18,9 +18,9 @@ import {
 } from '@/lib/lottetour-register-api-detail'
 import { lottetourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
-import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
-import { lottetourCalendarRowToRegisterFactFlights } from '@/lib/register-facts/lottetour-register-fact-flights'
+import { lottetourRegisterFactFlightsFromScheduleAndCalendar } from '@/lib/register-facts/lottetour-register-fact-flights'
 import { registerFactProductKindNote } from '@/lib/register-facts/product-kind'
 import { extractLottetourListingTitleFromHtml } from '@/lib/register-lottetour-basic'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
@@ -79,13 +79,6 @@ function resolveLottetourFactListingTitle(
   return fromRow
 }
 
-function lottetourMeetingToFlights(
-  calendarRow: LottetourCalendarRow | null | undefined,
-  meetingPlaceRaw: string | null,
-): RegisterFactFlightLeg[] {
-  return lottetourCalendarRowToRegisterFactFlights(calendarRow, meetingPlaceRaw)
-}
-
 export async function collectLottetourRegisterFacts(originUrl: string): Promise<SupplierRegisterFactBundle | null> {
   const url = originUrl.trim()
   if (!url || !/lottetour\.com/i.test(url)) return null
@@ -103,39 +96,48 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
   const listingTitle = resolveLottetourFactListingTitle(row?.tourTitleRaw, bundle.basicAjaxHtml)
   const { nights, days } = parseNightsDays(row?.durationText ?? listingTitle ?? row?.tourTitleRaw)
 
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: evtDetail 단건 우선 — 6개월 evtList 크롤로 타임아웃 나지 않게 — manifest
   let priceRows: SupplierRegisterFactBundle['priceRows'] = []
   let flightSourceRow: LottetourCalendarRow | null = null
-  let hints = parseLottetourEvtListCollectionHints({ rawMeta: null, originUrl: url })
-  if (!hints.godId || !hints.menuNos) {
-    hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
-  }
-  if (hints.godId && hints.menuNos) {
-    const cal = await collectLottetourCalendarRange(
-      { godId: hints.godId, menuNos: hints.menuNos },
-      { monthCount: 6, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
-    )
-    const evtPrefix = bundle.evtCd?.slice(0, 5) ?? ''
-    const filtered = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)
-    const scoped =
-      evtPrefix.length >= 4
-        ? filtered.filter((r) => r.evtCd.startsWith(evtPrefix.slice(0, 4)))
-        : filtered
-    const fromYmd = kstTodayYmd()
-    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-    const pricedRows = (scoped.length > 0 ? scoped : filtered).filter(
-      (r) => r.departDate >= fromYmd && r.departDate <= toYmd,
-    )
-    flightSourceRow = pricedRows[0] ?? scoped[0] ?? filtered[0] ?? null
-    priceRows = pricedRows
-      .map((r) => lottetourCalendarRowToFactPriceRow(r))
-      .filter((row): row is NonNullable<typeof row> => row != null)
-  } else if (row && row.adultPrice > 0 && row.departDate) {
+  if (row && row.adultPrice > 0 && row.departDate) {
     flightSourceRow = row
     const fact = lottetourCalendarRowToFactPriceRow(row)
     priceRows = fact ? [fact] : []
+  } else {
+    let hints = parseLottetourEvtListCollectionHints({ rawMeta: null, originUrl: url })
+    if (!hints.godId || !hints.menuNos) {
+      hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
+    }
+    if (hints.godId && hints.menuNos) {
+      const cal = await collectLottetourCalendarRange(
+        { godId: hints.godId, menuNos: hints.menuNos },
+        { monthCount: 2, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
+      )
+      const evtExact = (bundle.evtCd ?? '').trim()
+      const filtered = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)
+      const matched = evtExact ? filtered.find((r) => r.evtCd === evtExact) : null
+      const evtPrefix = bundle.evtCd?.slice(0, 4) ?? ''
+      const scoped =
+        matched != null
+          ? [matched]
+          : evtPrefix.length >= 4
+            ? filtered.filter((r) => r.evtCd.startsWith(evtPrefix))
+            : filtered
+      const fromYmd = kstTodayYmd()
+      const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+      const pricedRows = scoped.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
+      flightSourceRow = pricedRows[0] ?? scoped[0] ?? filtered[0] ?? null
+      priceRows = (pricedRows.length > 0 ? pricedRows : scoped)
+        .map((r) => lottetourCalendarRowToFactPriceRow(r))
+        .filter((pr): pr is NonNullable<typeof pr> => pr != null)
+    }
   }
 
-  const flights = lottetourMeetingToFlights(flightSourceRow ?? row, meeting.meetingPlaceRaw)
+  const flights = lottetourRegisterFactFlightsFromScheduleAndCalendar(
+    bundle.scheduleAjaxHtml,
+    flightSourceRow ?? row,
+    meeting.meetingPlaceRaw,
+  )
 
   return {
     supplier: 'lottetour',

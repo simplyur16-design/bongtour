@@ -6390,6 +6390,64 @@
       ]
     },
     {
+      "id": "lottetour-singapore-register-quality",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 싱가포르 — USS≠USJ·air_plan fact flights·숙소 써차지 잡음·evtDetail 단건 facts",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "Universal Studios Singapore",
+            "Gardens by the Bay"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "Universal\\s*Studios\\s*Japan"
+          ]
+        },
+        {
+          "file": "lib/register-facts/lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "evtDetail 단건 우선",
+            "lottetourRegisterFactFlightsFromScheduleAndCalendar"
+          ]
+        },
+        {
+          "file": "lib/register-facts/lottetour-register-fact-flights.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "lottetourRegisterFactFlightsFromScheduleAndCalendar"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "써차지"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "singapore_uss",
+            "singapore_gardens"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-singapore-register-quality.test.ts"
+      ]
+    },
+    {
       "id": "lottetour-evtcd-alphanumeric-carrier",
       "tier": [
         "prebuild",

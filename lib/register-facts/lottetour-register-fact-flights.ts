@@ -1,11 +1,13 @@
 /**
- * lottetour register-facts — evtListAjax 행·미팅 → RegisterFactFlightLeg.
+ * lottetour register-facts — evtListAjax 행·미팅·scheduleAjax air_plan → RegisterFactFlightLeg.
  *
  * REGRESSION-FREEZE[register-facts-completeness]: lottetourCalendarRowToRegisterFactFlights — manifest
  * REGRESSION-FREEZE[lottetour-register-api-parse]: buildLottetourFlightStructuredFromFactLegs — manifest
+ * REGRESSION-FREEZE[lottetour-singapore-register-quality]: air_plan → fact flights (prefetch) — manifest
  */
 import type { LottetourCalendarRow } from '@/lib/lottetour-departures'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
+import { buildLottetourFlightStructuredFromRegisterSources } from '@/lib/lottetour-register-api-detail'
 import type { RegisterFactFlightLeg } from '@/lib/register-facts/types'
 
 function extractFlightNoFromText(text: string | null | undefined): string | null {
@@ -130,6 +132,51 @@ function factLegToStructuredLeg(leg: RegisterFactFlightLeg): FlightStructured['o
     flightNo: leg.flightNo?.trim() || null,
     durationText: null,
   }
+}
+
+function structuredLegToFactLeg(
+  direction: 'outbound' | 'inbound',
+  leg: FlightStructured['outbound'],
+  carrier: string | null,
+): RegisterFactFlightLeg {
+  return {
+    direction,
+    carrier,
+    flightNo: leg.flightNo?.trim() || null,
+    departureCity: leg.departureAirport?.trim() || null,
+    departureAt: combineDateTime(leg.departureDate, leg.departureTime),
+    arrivalCity: leg.arrivalAirport?.trim() || null,
+    arrivalAt: combineDateTime(leg.arrivalDate, leg.arrivalTime),
+  }
+}
+
+/** scheduleAjax air_plan 우선 — prefetch에서 detail-collect 생략해도 편명 유지 */
+export function lottetourRegisterFactFlightsFromScheduleAndCalendar(
+  scheduleAjaxHtml: string | null | undefined,
+  row: LottetourCalendarRow | null | undefined,
+  meetingPlaceRaw: string | null,
+): RegisterFactFlightLeg[] {
+  const fs = buildLottetourFlightStructuredFromRegisterSources({
+    scheduleAjaxHtml: scheduleAjaxHtml ?? null,
+    evtListRow: row ?? null,
+  })
+  if (fs) {
+    const carrier = fs.airlineName?.trim() || row?.carrierText?.trim() || null
+    const legs: RegisterFactFlightLeg[] = []
+    if (fs.outbound.flightNo || fs.outbound.departureTime || fs.outbound.departureAirport) {
+      legs.push(structuredLegToFactLeg('outbound', fs.outbound, carrier))
+    }
+    if (fs.inbound.flightNo || fs.inbound.departureTime || fs.inbound.arrivalAirport) {
+      legs.push(structuredLegToFactLeg('inbound', fs.inbound, carrier))
+    }
+    if (legs.length > 0) {
+      if (!legs[0]?.departureCity && meetingPlaceRaw?.trim()) {
+        legs[0] = { ...legs[0]!, departureCity: meetingPlaceRaw.trim() }
+      }
+      return legs
+    }
+  }
+  return lottetourCalendarRowToRegisterFactFlights(row, meetingPlaceRaw)
 }
 
 /** prefetch 경로 — detail-collect 생략 시 bundle.flights → flightStructured */
