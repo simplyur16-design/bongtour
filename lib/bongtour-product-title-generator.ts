@@ -100,6 +100,7 @@ async function callGeminiTitleOnce(
  * 미리보기 단계에서 봉투어 톤 상품명 1줄 생성. 실패해도 예외를 밖으로 던지지 않는다.
  */
 export async function generateBongtourProductTitle(input: BongtourProductTitleLlmInput): Promise<GenerateResult> {
+  // REGRESSION-FREEZE[bongtour-product-title-r5]: LLM 실패·비활성 시에도 marketing_compose 폴백 — manifest
   const originalTitle = (input.originalProductTitle || '').trim() || '미입력'
   const emptyValidation = validateBongtourProductTitle('')
 
@@ -114,7 +115,9 @@ export async function generateBongtourProductTitle(input: BongtourProductTitleLl
   }
 
   if (!envFlag('BONGTOUR_PRODUCT_TITLE_LLM_ENABLED', true)) {
-    console.info('[bongtour-product-title] skipped: BONGTOUR_PRODUCT_TITLE_LLM_ENABLED=0')
+    console.info('[bongtour-product-title] LLM disabled — marketing_compose fallback')
+    const composedDisabled = tryMarketingComposeTitle(input)
+    if (composedDisabled) return composedDisabled
     return {
       title: null,
       originalTitle,
@@ -123,7 +126,9 @@ export async function generateBongtourProductTitle(input: BongtourProductTitleLl
     }
   }
   if (!hasGeminiKey()) {
-    console.warn('[bongtour-product-title] skipped: no GEMINI_API_KEY/GOOGLE_API_KEY')
+    console.warn('[bongtour-product-title] no Gemini key — marketing_compose fallback')
+    const composedNoKey = tryMarketingComposeTitle(input)
+    if (composedNoKey) return composedNoKey
     return {
       title: null,
       originalTitle,
@@ -159,12 +164,12 @@ export async function generateBongtourProductTitle(input: BongtourProductTitleLl
   }
 
   const first = await attempt(t0, 'llm')
-  if (first && first.title) return first
+  if (first?.title) return first
 
   if (maxRetry >= 1) {
     const second = await attempt(t1, 'llm_retry')
-    if (second && second.title) return second
-    if (second) return { ...second, source: 'fallback_invalid' }
+    if (second?.title) return second
+    // LLM이 검증 실패해도 marketing_compose로 이어감 (title:null early return 금지)
   }
 
   const composed = tryMarketingComposeTitle(input)
@@ -173,7 +178,7 @@ export async function generateBongtourProductTitle(input: BongtourProductTitleLl
   return {
     title: null,
     originalTitle,
-    validation: emptyValidation,
+    validation: first?.validation ?? emptyValidation,
     source: 'fallback_error',
   }
 }

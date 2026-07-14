@@ -223,8 +223,41 @@
         "prebuild",
         "ci"
       ],
-      "script": "verify:bongtour-product-title-r5",
-      "summary": "봉투어 톤 상품명 R-5·마케팅 opt-in confirm"
+      "summary": "봉투어 톤 상품명 R-5·마케팅 opt-in confirm — LLM 실패·비활성 시 marketing_compose 폴백",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-title-generator.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-product-title-r5]",
+            "marketing_compose fallback",
+            "tryMarketingComposeTitle",
+            "LLM이 검증 실패해도 marketing_compose로 이어감"
+          ],
+          "mustNotInclude": [
+            "if (second) return { ...second, source: 'fallback_invalid' }"
+          ]
+        },
+        {
+          "file": "scripts/verify-bongtour-product-title-r5.ts",
+          "mustInclude": [
+            "composeMarketingProductTitle",
+            "productTitlePairForRegisterConfirm"
+          ]
+        }
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:bongtour-product-title-r5",
+          "tier": [
+            "prebuild",
+            "ci"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-title-generator.test.ts",
+        "lib/bongtour-product-title-marketing-compose.test.ts"
+      ]
     },
     {
       "id": "supplier-product-title-plan-b",
