@@ -8,6 +8,11 @@ import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
   /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing/i
 
+/** 호주·뉴질랜드 — ASIA_PACIFIC에 안 묶여도 Mount Fuji 등 환각 차단용 */
+// REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
+export const OCEANIA_PRODUCT_DEST_RE =
+  /호주|Australia|뉴질랜드|New\s*Zealand|오세아니아|Oceania|시드니|Sydney|멜버른|Melbourne|브리즈번|Brisbane|퍼스|Perth|오클랜드|Auckland|크라이스트|Christchurch|퀸즈?\s*타운|Queenstown|로토루아|Rotorua/i
+
 export const EUROPE_PRODUCT_DEST_RE =
   /유럽|Europe|서유럽|동유럽|북유럽|남유럽|중동유럽|발트|Baltic|스칸디|Scandinav|지중해|Mediterranean|프랑스|France|이탈리아|Italy|스페인|Spain|독일|Germany|스위스|Switzerland|영국|Britain|UK|아일랜드|Ireland|그리스|Greece|터키|Turkey|크로아티아|Croatia|체코|Czech|Austria|오스트리아|헝가리|Hungary|폴란드|Poland|네덜란드|Netherlands|벨기에|Belgium|포르투갈|Portugal|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|아이슬란드|Iceland|리투아니아|Lithuania|에스토니아|Estonia|라트비아|Latvia|빌니우스|Vilnius|탈린|Tallinn|리가|Riga|프라하|Prague|파리|Paris|로마|Rome|런던|London|바르셀로나|Barcelona|인터라켄|Interlaken|융프라우|Jungfrau|피렌체|Florence|베네치아|Venice|취리히|Zurich|암스테르담|Amsterdam|비엔나|Vienna|부다페스트|Budapest|바르샤바|Warsaw|헬싱키|Helsinki|스톡홀름|Stockholm|코펜하겐|Copenhagen|Oslo|오슬로|Reykjavik|베르겐|Bergen|플롬|Flam|Flåm/i
 
@@ -106,6 +111,25 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
   if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(dest)) {
     if (haystacks.some((h) => JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE.test(h))) return true
     if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
+    return false
+  }
+
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
+  // AU/NZ — Mount Fuji·로마 등 (해밀턴 가든 국가나열·갭필 환각)
+  if (OCEANIA_PRODUCT_DEST_RE.test(dest)) {
+    const tripHay = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const tripHasJapanCity =
+      /(?:도쿄|Tokyo|오사카|Osaka|교토|Kyoto|하코네|Hakone|후지|Fuji|시즈오카|Shizuoka|나리타|Narita|규슈|Kyushu)/i.test(
+        tripHay,
+      )
+    if (!tripHasJapanCity && haystacks.some((h) => JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE.test(h))) {
+      return true
+    }
+    if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
+    if (haystacks.some((h) => AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE.test(h))) return true
     return false
   }
 

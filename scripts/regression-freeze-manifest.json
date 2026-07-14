@@ -4594,7 +4594,9 @@
             "extractRegisterScheduleRoutePlaceLabel",
             "expandRegisterScheduleRoutePlaceCandidates",
             "stripRegisterScheduleRouteFlightDurationBlocks",
-            "extractRegisterScheduleProseRoutePlaceTail"
+            "extractRegisterScheduleProseRoutePlaceTail",
+            "theme-garden country list strip",
+            "stripRegisterScheduleRouteThemeGardenCountryList"
           ]
         },
         {
@@ -4604,7 +4606,8 @@
             "불리우는",
             "쉔부른궁전",
             "호이안 옛도시",
-            "가이드 미팅"
+            "가이드 미팅",
+            "Hamilton Gardens multi-country theme list"
           ]
         },
         {
@@ -4781,12 +4784,15 @@
           "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]",
-            "isRegisterScheduleCrossContinentHallucinationKeyword"
+            "isRegisterScheduleCrossContinentHallucinationKeyword",
+            "Oceania dest Japan/Europe hallucination",
+            "OCEANIA_PRODUCT_DEST_RE"
           ]
         }
       ],
       "vitestSuites": [
-        "tests/schedule-poi-regex-ssot.test.ts"
+        "tests/schedule-poi-regex-ssot.test.ts",
+        "lib/register-schedule-description-vibe-ssot.test.ts"
       ]
     },
     {
@@ -4897,6 +4903,8 @@
             "airport-transfer middle no trip landmark bleed",
             "isScheduleCityLevelSoftLandmarkKeyword",
             "퀸스타운",
+            "Japan hub city/POI only — no bare 일본 (Hamilton Gardens theme list)",
+            "Oceania Opera House not on AU→NZ transit day",
             "스페인광장",
             "trip-unique no cluster kw reuse",
             "return fill excludes departure+middle used",
@@ -4924,6 +4932,15 @@
           ]
         },
         {
+          "file": "lib/register-schedule-ybtour-pap1194-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "ybtour PAP1194",
+            "D3≠Mount Fuji",
+            "Hamilton Gardens 국가나열"
+          ]
+        },
+        {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
             "ensureDepartureReturnVisitCityKeywords(finalDeduped"
@@ -4932,7 +4949,8 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
-        "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts"
+        "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts",
+        "lib/register-schedule-ybtour-pap1194-image-keyword.test.ts"
       ]
     },
     {

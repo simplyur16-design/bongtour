@@ -16,6 +16,15 @@ import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-
 import type { KyowontourScheduleRowParsed } from '@/lib/kyowontour-tour-event-tab-data'
 
 describe('register schedule route place noise', () => {
+  it('strips Hamilton Gardens multi-country theme list — keeps garden POI', () => {
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: theme-garden country list strip — manifest
+    const out = sanitizeRegisterScheduleRouteText(
+      '오클랜드 - 해밀턴 가든 - 중국, 영국, 일본, 미국, 인도, 이탈리아의 전형적인 정원과 허브정원 - 해밀턴',
+    )
+    expect(out).toMatch(/해밀턴\s*가든/)
+    expect(out).not.toMatch(/일본|이탈리아|중국/)
+  })
+
   it('blocks hotel-grade suffix — keeps POI name for routeText/keywords', () => {
     expect(extractRegisterScheduleRoutePlaceLabel('메테오라 등 4성호텔')).toBe('메테오라')
     expect(stripRegisterScheduleRouteSegmentLodgingSuffix('메테오라 등 4성호텔')).toBe('메테오라')

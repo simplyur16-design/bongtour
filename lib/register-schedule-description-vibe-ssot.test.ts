@@ -69,4 +69,16 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
       isRegisterScheduleCrossContinentHallucinationKeyword('Colosseum Rome', null, rows),
     ).toBe(true)
   })
+
+  it('뉴질랜드 — Mount Fuji cross-continent 차단 (Japan city 일정 없을 때)', () => {
+    // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
+    const rows = [{ day: 8, routeText: '오클랜드 - 해밀턴 가든', title: '오클랜드' }]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Mount Fuji Shizuoka view',
+        '뉴질랜드',
+        rows,
+      ),
+    ).toBe(true)
+  })
 })

@@ -449,12 +449,29 @@ export function filterRegisterScheduleRoutePlaceSegments(segments: readonly stri
   return out
 }
 
+/**
+ * 해밀턴 가든 등 — 「중국, 영국, 일본, 미국, 인도, 이탈리아의 전형적인 정원」국가나열은 방문국이 아님.
+ * REGRESSION-FREEZE[register-schedule-route-place-noise]: theme-garden country list strip — manifest
+ */
+const ROUTE_THEME_GARDEN_COUNTRY_LIST_RE =
+  /(?:중국|영국|일본|미국|인도|이탈리아|china|britain|\buk\b|japan|usa|america|india|italy)(?:\s*[,，·\/]\s*(?:중국|영국|일본|미국|인도|이탈리아|china|britain|\buk\b|japan|usa|america|india|italy)){2,}[^\n-]{0,64}?(?:전형적(?:인)?\s*)?(?:정원|garden|허브\s*정원)/giu
+
+export function stripRegisterScheduleRouteThemeGardenCountryList(routeText: string): string {
+  return String(routeText ?? '')
+    .replace(ROUTE_THEME_GARDEN_COUNTRY_LIST_RE, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 /** 기존 routeText 문자열 — 세그먼트 분리 후 noise 제거·재조립 */
 export function sanitizeRegisterScheduleRouteText(
   routeText: string | null | undefined,
   maxPlaces = 7,
 ): string | null {
-  const stripped = stripRegisterScheduleRouteFlightDurationBlocks(String(routeText ?? '').trim())
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: theme-garden country list strip — manifest
+  const stripped = stripRegisterScheduleRouteFlightDurationBlocks(
+    stripRegisterScheduleRouteThemeGardenCountryList(String(routeText ?? '').trim()),
+  )
   if (!stripped) return null
   // routeText 체인은 ` - ` 구분 — 세그먼트 안 쉼표 지명(예: 대,소석림)은 유지
   const segments = /\s+-\s+/u.test(stripped)

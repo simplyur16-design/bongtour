@@ -1602,6 +1602,13 @@ function oceaniaAuNzHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: strin
     )
   }
   if (/opera|harbour bridge|taronga|botanic.*sydney|sydney/.test(nk)) {
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Oceania Opera House not on AU→NZ transit day — manifest
+    // Opera House — 시드니 하버/오페라/크루즈만. 「크라이스트처치 시내 명소」의 시내 명소만으로는 불가
+    if (/opera|harbour/.test(nk) && !/bridge|taronga|botanic/.test(nk)) {
+      return /(?:오페라|Opera)|(?:시드니|Sydney).{0,32}(?:하버|Harbour).{0,20}(?:크루즈|티|Tea)|(?:하버|Harbour).{0,20}(?:크루즈|티|Tea)/i.test(
+        rt,
+      )
+    }
     return /시드니|Sydney|오페라|Opera|하버\s*브리지|Harbour\s*Bridge|동물원|Taronga/i.test(rt)
   }
   if (/christchurch|hagley|cathedral square|avon|mona vale/.test(nk)) {
@@ -2058,7 +2065,9 @@ function pickTripSpotGapFillFallback(
 }
 
 function isJapanHubClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:도쿄|Tokyo|시즈오카|Shizuoka|하코네|Hakone|오사카|Osaka|교토|Kyoto|나리타|Narita|후지|Fuji|요나고|Yonago|돗토리|Tottori|이즈모|Izumo|마쯔에|Matsue|다마즈|Tamatsukuri|나고야|Nagoya|타카야마|Takayama|시라카와|Shirakawa|가미코치|Kamikochi|이누야마|Inuyama|아쓰타|Atsuta|후쿠오카|Fukuoka|벳푸|Beppu|유후인|Yufuin|아소|Aso|규슈|Kyushu|오이타|Oita|야나가와|Yanagawa|일본|Japan)/i.test(
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub city/POI only — no bare 일본 (Hamilton Gardens theme list) — manifest
+  // bare 「일본|Japan」금지 — AU/NZ 해밀턴 가든 「중국, 영국, 일본…전형적 정원」이 tripHay Japan hub로 오인되어 Mount Fuji 갭필됨
+  return /(?:도쿄|Tokyo|시즈오카|Shizuoka|하코네|Hakone|오사카|Osaka|교토|Kyoto|나리타|Narita|후지|Fuji|요나고|Yonago|돗토리|Tottori|이즈모|Izumo|마쯔에|Matsue|다마즈|Tamatsukuri|나고야|Nagoya|타카야마|Takayama|시라카와|Shirakawa|가미코치|Kamikochi|이누야마|Inuyama|아쓰타|Atsuta|후쿠오카|Fukuoka|벳푸|Beppu|유후인|Yufuin|아소|Aso|규슈|Kyushu|오이타|Oita|야나가와|Yanagawa)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2117,7 +2126,9 @@ function pickJapanHubClusterKeywordForUsedSlot(
 }
 
 function isChinaHubClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:베이징|北京|Beijing|북경|천안문|Tiananmen|만리장성|Great\s*Wall|이화원|Summer\s*Palace|자금성|Forbidden|연길|Yanji|延吉|백두산|Changbai|장백|长白山|선양|Shenyang|중국|China|금강|Geumgang|장백폭포)/i.test(
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub city/POI only — no bare 일본 (Hamilton Gardens theme list) — manifest
+  // bare 「중국|China」금지 — 테마정원 국가나열(중국,영국,일본…)이 China hub 환각으로 흐르지 않게
+  return /(?:베이징|北京|Beijing|북경|천안문|Tiananmen|만리장성|Great\s*Wall|이화원|Summer\s*Palace|자금성|Forbidden|연길|Yanji|延吉|백두산|Changbai|장백|长白山|선양|Shenyang|금강|Geumgang|장백폭포)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2216,7 +2227,8 @@ function isEasternEuropeClusterRoute(routeText: string | null | undefined): bool
   const t = String(routeText ?? '')
   // 괌 스페인광장 등 — 괌은 동유럽/유럽 mega-cluster 금지
   if (isGuamResortClusterRoute(t)) return false
-  return /(?:프라하|Prague|체코|Czech|부다페스트|Budapest|헝가리|Hungary|비엔나|Vienna|Wien|Hallstatt|할슈타트|크룸로프|Krumlov|두브로브니크|Dubrovnik|플리트비체|Plitvice|자그레브|Zagreb|크로아티아|Croatia|슬로베니아|Slovenia|브라티슬라바|Bratislava|폴란드|Poland|Krakow|크라쿠프|리투|Lithuania|라트|Latvia|에스토|Estonia|빌니우스|Vilnius|리가|Riga|탈린|Tallinn|트라카이|Trakai|룬달레|Rundale|발트|Baltic|마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia|포르투|Porto|리스본|Lisbon|파티마|Fatima|포르투갈|Portugal|이탈|Italy|로마|Rome|피렌|Florence|베니스|Venice|밀라노|Milan|콜로세|Colosseum|파리|Paris|스위스|Swiss|루체른|Lucerne|융프라|Jungfrau|노르웨|Norway|오슬로|Oslo|게이랑|Geiranger|플롬|Flam|베르겐|Bergen|스웨덴|Sweden|핀란|Finland|덴마크|Denmark|이스탄불|Istanbul|카파도키아|Cappadocia|튀르키|Turkey|파묵|Pamukkale|인도|India|자이푸르|Jaipur|아그라|Agra|뉴델리|Delhi|타지|Taj|쿠트브|Qutub)/i.test(
+  // 「이탈」단독 금지 — 이탈리아 테마정원 국가나열이 Europe mega-cluster로 오인되지 않게 (`이탈리아|Italy`만)
+  return /(?:프라하|Prague|체코|Czech|부다페스트|Budapest|헝가리|Hungary|비엔나|Vienna|Wien|Hallstatt|할슈타트|크룸로프|Krumlov|두브로브니크|Dubrovnik|플리트비체|Plitvice|자그레브|Zagreb|크로아티아|Croatia|슬로베니아|Slovenia|브라티슬라바|Bratislava|폴란드|Poland|Krakow|크라쿠프|리투|Lithuania|라트|Latvia|에스토|Estonia|빌니우스|Vilnius|리가|Riga|탈린|Tallinn|트라카이|Trakai|룬달레|Rundale|발트|Baltic|마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia|포르투|Porto|리스본|Lisbon|파티마|Fatima|포르투갈|Portugal|이탈리아|Italia|\bItaly\b|로마|Rome|피렌|Florence|베니스|Venice|밀라노|Milan|콜로세|Colosseum|파리|Paris|스위스|Swiss|루체른|Lucerne|융프라|Jungfrau|노르웨|Norway|오슬로|Oslo|게이랑|Geiranger|플롬|Flam|베르겐|Bergen|스웨덴|Sweden|핀란|Finland|덴마크|Denmark|이스탄불|Istanbul|카파도키아|Cappadocia|튀르키|Turkey|파묵|Pamukkale|인도|India|자이푸르|Jaipur|아그라|Agra|뉴델리|Delhi|타지|Taj|쿠트브|Qutub)/i.test(
     t,
   )
 }
