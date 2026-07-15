@@ -1,6 +1,7 @@
 /**
- * 봉투어 노출 상품명 — 마케팅 「국가/권역 + 도시 + N박M일」 조합(결정론 폴백).
+ * 봉투어 노출 상품명 — 마케팅 「국가/권역 + 도시 + 핵심명소(1~2) + N박M일」 조합(결정론 폴백).
  * 6공급사 등록 confirm 의 Product.title 은 bongtour-product-title-generator 경로만 사용.
+ * REGRESSION-FREEZE[bongtour-product-title-r5]: 도시만 N박M일보다 원문 명소 1~2 보강 — manifest
  */
 import {
   sanitizeBongtourProductTitle,
@@ -73,6 +74,7 @@ function extractCityTokens(core: string, region: string, destination: string): s
     .replace(DURATION_BM_RE, ' ')
     .replace(DURATION_DAY_RE, ' ')
     .replace(/\([^)]{0,120}\)/g, ' ')
+    .replace(/[▶➢➤]/g, ' ')
     .trim()
 
   const parts = rest
@@ -98,6 +100,50 @@ function extractCityTokens(core: string, region: string, destination: string): s
   return cities
 }
 
+/** 원문 브래킷·▶ 뒤 핵심 명소/일정 키워드 1~2 (특전·배지 제외) */
+export function extractMarketingHighlightTokens(
+  original: string,
+  cities: readonly string[],
+): string[] {
+  const skipRe =
+    /^(?:KE|OZ|TW|LJ|대한항공|아시아나|진에어|제주항공|롯데관광|롯데|NO\s*쇼핑|노쇼핑|단독|인솔|직항|경유|나다운|떠난다면)/i
+  const perkRe = /미슐랭|프리미엄|엄선|NO옵션|노옵션|노팁|WORLD|체인호텔|특전/i
+  const out: string[] = []
+  const cityKeys = cities.map((c) => c.replace(/\s+/g, '').toLowerCase())
+  const seen = new Set(cityKeys)
+
+  const push = (raw: string) => {
+    let t = String(raw ?? '').replace(/\s+/g, ' ').trim()
+    t = t
+      .replace(/\d+\s*돔.*$/u, '')
+      .replace(/&.*/u, '')
+      .replace(/\s*2돔.*$/u, '')
+      .replace(/^[▶·+\s]+|[▶·+\s]+$/g, '')
+      .trim()
+    if (t.length < 2 || t.length > 28) return
+    if (skipRe.test(t) || perkRe.test(t)) return
+    if (DURATION_BM_RE.test(t) || DURATION_DAY_RE.test(t)) return
+    const key = t.replace(/\s+/g, '').toLowerCase()
+    if (seen.has(key)) return
+    if (cityKeys.some((ck) => ck && (key === ck || key.includes(ck) || ck.includes(key)))) return
+    seen.add(key)
+    out.push(t)
+  }
+
+  for (const m of original.matchAll(/\[([^\]]{2,40})\]/g)) {
+    push(m[1]!)
+    if (out.length >= 2) return out
+  }
+  const afterArrow = original.split(/▶/)[1]
+  if (afterArrow) {
+    for (const part of afterArrow.split(/[\[\]·+,/]/).map((x) => x.trim()).filter(Boolean)) {
+      push(part)
+      if (out.length >= 2) return out
+    }
+  }
+  return out
+}
+
 /** LLM이 키워드만 남기고 축약한 경우 마케팅 조합을 우선 */
 export function shouldPreferMarketingComposeOverLlm(
   llmTitle: string,
@@ -120,7 +166,7 @@ export function shouldPreferMarketingComposeOverLlm(
   return false
 }
 
-/** 마케팅 국가/권역 + 도시(1~2) + N박M일 — 과도한 특전·키워드 나열 없음 */
+/** 마케팅 국가/권역 + 도시(1~2) + 핵심명소(0~2) + N박M일 — 과도한 특전 나열 없음 */
 export function composeMarketingProductTitle(input: MarketingProductTitleComposeInput): string {
   const originalRaw = String(input.originalProductTitle ?? '').trim()
   if (isSupplierListingTitleUnacceptable(originalRaw)) return '해외여행'
@@ -137,12 +183,14 @@ export function composeMarketingProductTitle(input: MarketingProductTitleCompose
 
   const region = extractRegionToken(coreNoDur)
   const cities = extractCityTokens(coreNoDur, region, destination)
+  const highlights = extractMarketingHighlightTokens(original, cities)
 
   const headParts: string[] = []
   if (region) headParts.push(region)
   if (cities.length) headParts.push(cities.join('·'))
   else if (destination && destination !== '미지정') headParts.push(destination)
   else if (coreNoDur.length >= 4) headParts.push(coreNoDur.slice(0, 36))
+  if (highlights.length) headParts.push(highlights.join('·'))
 
   let out = headParts.filter(Boolean).join(' ').trim()
   if (durationToken) out = out ? `${out} ${durationToken}` : durationToken

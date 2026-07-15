@@ -6,7 +6,8 @@
  * title/description/일정 분리 로직은 건드리지 않는다.
  */
 
-import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword, isLikelyTourismLandmarkKeyword } from '@/lib/pexels-place-name-keyword'
+import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import {
   inferEnglishPlaceKeywordFromDayContent,
   pickDistinctSecondScheduleImageKeyword,
@@ -18,6 +19,7 @@ import {
   fillScheduleMiddleImageKeyword2Gap,
   isScheduleAirportLikeImageKeyword,
   isScheduleAirportOnlyRouteText,
+  isScheduleDepartureReturnAdjacentKeywordRow,
   isScheduleInFlightOvernightRow,
   pickUnusedScheduleImageKeywordFromAdjacentDays,
   resolveScheduleKeywordSlotKind,
@@ -538,6 +540,7 @@ function pickLottetourAdjacentUnusedKeyword<
   excludePrimary?: string,
   allowTripWideReuse = false,
   ignoreAdjacentDaySlots = false,
+  productDestination?: string | null,
 ): string {
   return pickUnusedScheduleImageKeywordFromAdjacentDays({
     anchorDay,
@@ -546,7 +549,7 @@ function pickLottetourAdjacentUnusedKeyword<
     getDay: (r) => Number(r.day),
     used,
     normKey: normLottetourKwKey,
-    collectLandmarkCandidates: (r) => collectLottetourLandmarkKeywordsFromRoute(r.routeText),
+    collectLandmarkCandidates: (r) => collectLottetourDayLandmarkKeywords(r),
     byDayAlloc: byDay,
     scan,
     excludePrimary,
@@ -555,7 +558,9 @@ function pickLottetourAdjacentUnusedKeyword<
     rejectKeyword: (kw) =>
       isBlockedScheduleImageKeyword(kw) ||
       isScheduleAirportLikeImageKeyword(kw) ||
-      isLottetourPexelsTooGeneric(kw),
+      isBareCityOrCountryKeyword(kw) ||
+      !isLikelyTourismLandmarkKeyword(kw) ||
+      isRegisterScheduleCrossContinentHallucinationKeyword(kw, productDestination ?? null, sorted),
   })
 }
 
@@ -570,8 +575,12 @@ function tryAcceptLottetourSecondaryLlmKeyword(
   return kw || null
 }
 
-/** routeText·세그먼트에서 관광지 고유명 영문 — 이동 순서 유지, 중복 제거(도시 스카이라인 제외) */
-function collectLottetourLandmarkKeywordsFromRoute(routeText: string | null | undefined): string[] {
+// REGRESSION-FREEZE[lottetour-singapore-register-quality]: route+title+description 명소 — manifest
+function collectLottetourDayLandmarkKeywords(row: {
+  title?: string
+  description?: string
+  routeText?: string | null
+}): string[] {
   const landmarks: string[] = []
   const pushSafe = (en: string) => {
     let kw = ''
@@ -585,11 +594,33 @@ function collectLottetourLandmarkKeywordsFromRoute(routeText: string | null | un
     landmarks.push(kw)
   }
 
-  const rt = String(routeText ?? '').trim()
-  if (!rt) return landmarks
-
-  for (const { en } of findAllScheduleSpotMatchesInText(rt)) pushSafe(en)
+  const rt = String(row.routeText ?? '').trim()
+  if (rt) {
+    for (const { en } of findAllScheduleSpotMatchesInText(rt)) pushSafe(en)
+  }
+  const dayHay = `${String(row.title ?? '')}\n${String(row.description ?? '')}`.trim()
+  if (dayHay) {
+    for (const { en } of findAllScheduleSpotMatchesInText(dayHay)) pushSafe(en)
+  }
   return landmarks
+}
+
+/** 출발일 — 공항 only뿐 아니라 도시·비자·이동 thin row도 다음날 미사용 명소로 채움 */
+function shouldFillLottetourDepartureAdjacent(
+  row: { routeText?: string | null; title?: string; description?: string },
+  primary: string,
+): boolean {
+  const p = String(primary ?? '').trim()
+  if (p && !isBareCityOrCountryKeyword(p) && isLikelyTourismLandmarkKeyword(p)) return false
+  if (isScheduleAirportOnlyRouteText(row.routeText, isLottetourDomesticHubToken)) return true
+  if (isScheduleDepartureReturnAdjacentKeywordRow(row, isLottetourDomesticHubToken)) return true
+  const own = collectLottetourDayLandmarkKeywords(row).filter((kw) => isLikelyTourismLandmarkKeyword(kw))
+  return own.length === 0
+}
+
+/** routeText·세그먼트에서 관광지 고유명 영문 — 이동 순서 유지 */
+function collectLottetourLandmarkKeywordsFromRoute(routeText: string | null | undefined): string[] {
+  return collectLottetourDayLandmarkKeywords({ routeText })
 }
 
 function classifyLottetourScheduleDayKind(
@@ -726,13 +757,47 @@ function reconcileLottetourDistinctPrimaryAcrossDays<
             .map((x) => normLottetourKwKey(String(x ?? '')))
             .filter(Boolean),
         )
-        for (const kw of collectLottetourLandmarkKeywordsFromRoute(prev.routeText)) {
+        for (const kw of collectLottetourDayLandmarkKeywords(prev)) {
           const nk = normLottetourKwKey(kw)
-          if (!usedOnPrev.has(nk) && !used.has(nk)) {
+          if (
+            !usedOnPrev.has(nk) &&
+            !used.has(nk) &&
+            isLikelyTourismLandmarkKeyword(kw) &&
+            !isRegisterScheduleCrossContinentHallucinationKeyword(
+              kw,
+              opts?.productDestination ?? null,
+              rows,
+            )
+          ) {
             primary = exitLottetourLandmark(kw, ctx)
             break
           }
         }
+      }
+      if (!primary || isBareCityOrCountryKeyword(primary) || !isLikelyTourismLandmarkKeyword(primary)) {
+        const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
+        for (const r of rows) {
+          const d = Number(r.day)
+          if (d <= 0) continue
+          byDay.set(d, {
+            primary: String(r.imageKeyword ?? '').trim(),
+            secondary: r.imageKeyword2 ?? null,
+          })
+        }
+        const fromAdj =
+          pickLottetourAdjacentUnusedKeyword(
+            row.day,
+            maxDay,
+            rows,
+            used,
+            byDay,
+            'backward',
+            undefined,
+            true,
+            false,
+            opts?.productDestination,
+          ) || ''
+        if (fromAdj) primary = exitLottetourLandmark(fromAdj, ctx)
       }
       if (!primary) {
         const fromRoute =
@@ -869,11 +934,7 @@ export function applyLottetourScheduleImageKeywordsToRows<
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()
 
-    if (
-      slotKind === 'departure' &&
-      !primary &&
-      isScheduleAirportOnlyRouteText(row.routeText, isLottetourDomesticHubToken)
-    ) {
+    if (slotKind === 'departure' && shouldFillLottetourDepartureAdjacent(row, primary)) {
       const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
       for (const r of deduped) {
         const d = Number(r.day)
@@ -886,12 +947,13 @@ export function applyLottetourScheduleImageKeywordsToRows<
       const usedForDeparture = new Set<string>()
       for (const r of deduped) {
         const d = Number(r.day)
-        if (d >= day) continue
+        if (d <= day) continue
         const kw = String(r.imageKeyword ?? '').trim()
         if (kw) usedForDeparture.add(normLottetourKwKey(kw))
         const kw2 = String(r.imageKeyword2 ?? '').trim()
         if (kw2) usedForDeparture.add(normLottetourKwKey(kw2))
       }
+      // 다음날 슬롯에 이미 쓴 키워드는 제외 — 미사용 명소만
       primary =
         pickLottetourAdjacentUnusedKeyword(
           day,
@@ -902,6 +964,8 @@ export function applyLottetourScheduleImageKeywordsToRows<
           'forward',
           undefined,
           true,
+          false,
+          opts?.productDestination,
         ) || ''
       if (primary) used.add(normLottetourKwKey(primary))
     }
@@ -922,7 +986,7 @@ export function applyLottetourScheduleImageKeywordsToRows<
         },
       )
     ) {
-      const routeOrdered = collectLottetourLandmarkKeywordsFromRoute(row.routeText)
+      const routeOrdered = collectLottetourDayLandmarkKeywords(row)
       const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
       for (const r of deduped) {
         const d = Number(r.day)
@@ -940,7 +1004,13 @@ export function applyLottetourScheduleImageKeywordsToRows<
         rejectKeyword: (kw) =>
           isBlockedScheduleImageKeyword(kw) ||
           isScheduleAirportLikeImageKeyword(kw) ||
-          isLottetourPexelsTooGeneric(kw),
+          isBareCityOrCountryKeyword(kw) ||
+          !isLikelyTourismLandmarkKeyword(kw) ||
+          isRegisterScheduleCrossContinentHallucinationKeyword(
+            kw,
+            opts?.productDestination ?? null,
+            sorted,
+          ),
         pickAdjacent: (allowTripWideReuse, ignoreAdjacentDaySlots) =>
           pickLottetourAdjacentUnusedKeyword(
             day,
@@ -952,9 +1022,45 @@ export function applyLottetourScheduleImageKeywordsToRows<
             primary,
             allowTripWideReuse,
             ignoreAdjacentDaySlots,
+            opts?.productDestination,
           ),
       })
       if (secondary) used.add(normLottetourKwKey(secondary))
+    }
+
+    if (slotKind === 'return' && (!primary || isBareCityOrCountryKeyword(primary) || !isLikelyTourismLandmarkKeyword(primary))) {
+      const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
+      for (const r of deduped) {
+        const d = Number(r.day)
+        if (d <= 0) continue
+        byDay.set(d, {
+          primary: String(r.imageKeyword ?? '').trim(),
+          secondary: r.imageKeyword2 ?? null,
+        })
+      }
+      const usedForReturn = new Set<string>()
+      for (const r of deduped) {
+        const d = Number(r.day)
+        if (d >= day) continue
+        const kw = String(r.imageKeyword ?? '').trim()
+        if (kw) usedForReturn.add(normLottetourKwKey(kw))
+        const kw2 = String(r.imageKeyword2 ?? '').trim()
+        if (kw2) usedForReturn.add(normLottetourKwKey(kw2))
+      }
+      primary =
+        pickLottetourAdjacentUnusedKeyword(
+          day,
+          maxDay,
+          sorted,
+          usedForReturn,
+          byDay,
+          'backward',
+          undefined,
+          true,
+          false,
+          opts?.productDestination,
+        ) || primary
+      if (primary) used.add(normLottetourKwKey(primary))
     }
 
     if (secondary && lottetourKeywordKeysOverlap(secondary, primary)) {

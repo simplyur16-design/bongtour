@@ -234,8 +234,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /가든스\s*(?:바이\s*)?(?:더\s*)?베이|Gardens\s*by\s*the\s*Bay|슈퍼트리|클라우드\s*포레스트|플라워\s*돔/iu, en: "Gardens by the Bay" },
   { re: /머르?라이언|Merlion/iu, en: "Merlion Park" },
   { re: /센토사|Sentosa/iu, en: "Sentosa" },
-  { re: /마리나\s*베이\s*샌즈|Marina\s*Bay\s*Sands/iu, en: "Marina Bay Sands" },
+  { re: /에스플러네이드|Esplanade/iu, en: "Esplanade Singapore" },
+  { re: /차이나타운|Chinatown/iu, en: "Chinatown Singapore" },
   { re: /버드\s*파라다이스|Bird\s*Paradise/iu, en: "Bird Paradise Singapore" },
+  { re: /마리나\s*베이\s*샌즈|Marina\s*Bay\s*Sands/iu, en: "Marina Bay Sands" },
   { re: /(?:유|우)니버설\s*스튜디오\s*(?:재팬|japan)|USJ/iu, en: "Universal Studios Japan Osaka" },
   // bare 유니버설 → Japan 금지: 일본·오사카·도쿄 맥락 있을 때만 USJ
   { re: /(?:오사카|도쿄|일본|japan|osaka|tokyo|재팬).{0,32}(?:유|우)니버설|(?:유|우)니버설.{0,32}(?:오사카|도쿄|일본|재팬|japan|osaka)/iu, en: "Universal Studios Japan Osaka" },
@@ -456,7 +458,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /사막\s*사파리|Desert\s*Safari/i, en: "Dubai desert safari dunes sunset" },
   { re: /쉬르반샤|Shirvanshah/i, en: "Shirvanshah Palace Baku Azerbaijan" },
   { re: /메이든\s*타워|Maiden\s*Tower/i, en: "Maiden Tower Baku old city" },
-  { re: /바쿠|Baku/i, en: "Flame Towers Baku Azerbaijan" },
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 바쿠테(Bakute)≠Baku — manifest
+  { re: /바쿠(?!테)|(?<![A-Za-z])Baku(?![A-Za-z])/i, en: "Flame Towers Baku Azerbaijan" },
   { re: /트빌리시|Tbilisi|트빌리/i, en: "Narikala Fortress Tbilisi Georgia" },
   { re: /예레ван|Yerevan|에치미아진/i, en: "Republic Square Yerevan Armenia" },
   { re: /다롄|大连|Dalian/i, en: "Dalian Xinghai Square coastal view" },

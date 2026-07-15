@@ -155,6 +155,13 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
     ) {
       return true
     }
+    // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 싱가포르에 Flame Towers|Baku 금지 — manifest
+    if (
+      singaporeTrip &&
+      haystacks.some((h) => /Flame\s*Towers|\bBaku\b|Azerbaijan/i.test(h))
+    ) {
+      return true
+    }
   }
   // 푸꾸옥 상품 — 나트랑·발리·앙코르 등 동남아 타목적지 환각 차단
   if (/푸꾸옥|Phu\s*Quoc|푸꾹옥/i.test(dest) || (scheduleRows ?? []).some((r) => /푸꾸옥|Phu\s*Quoc/i.test(String(r.routeText ?? '')))) {

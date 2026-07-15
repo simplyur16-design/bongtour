@@ -54,6 +54,19 @@ describe('composeMarketingProductTitle', () => {
     expect(title).toMatch(/호치민/)
     expect(title).toMatch(/5일/)
   })
+
+  it('keeps one or two highlights from supplier brackets (not bare destination+duration)', () => {
+    const title = composeMarketingProductTitle({
+      originalProductTitle:
+        "[KE][롯데관광'단독][NO쇼핑] 싱가포르 5일▶[하루자유][가든스바이더베이 2돔&버드 파라다이스]",
+      destination: '싱가포르',
+      duration: '3박 5일',
+    })
+    expect(title).toMatch(/싱가포르/)
+    expect(title).toMatch(/하루자유|가든스바이더베이/)
+    expect(title).toMatch(/3박\s*5일/)
+    expect(title).not.toMatch(/^싱가포르 3박 5일$/)
+  })
 })
 
 describe('shouldPreferMarketingComposeOverLlm', () => {

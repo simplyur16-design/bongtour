@@ -392,6 +392,13 @@
           ]
         },
         {
+          "file": "lib/bongtour-product-title-marketing-compose.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-product-title-r5]",
+            "extractMarketingHighlightTokens"
+          ]
+        },
+        {
           "file": "scripts/verify-bongtour-product-title-r5.ts",
           "mustInclude": [
             "composeMarketingProductTitle",
@@ -6395,29 +6402,39 @@
         "prebuild",
         "ci"
       ],
-      "summary": "롯데관광 싱가포르 — USS≠USJ·air_plan fact flights·숙소 써차지 잡음·evtDetail 단건 facts",
+      "summary": "롯데관광 싱가포르 — USS≠USJ·air_plan·써차지·가족 priceRows·출귀국 adjacent·바쿠테≠Baku",
       "checks": [
         {
           "file": "lib/schedule-poi-regex-ssot.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
             "Universal Studios Singapore",
-            "Gardens by the Bay"
+            "Gardens by the Bay",
+            "바쿠(?!테)"
           ]
         },
         {
           "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
-            "Universal\\s*Studios\\s*Japan"
+            "Universal\\s*Studios\\s*Japan",
+            "Flame\\s*Towers|\\bBaku\\b"
           ]
         },
         {
           "file": "lib/register-facts/lottetour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
-            "evtDetail 단건 우선",
+            "evtDetail 단건은 flight seed만",
             "lottetourRegisterFactFlightsFromScheduleAndCalendar"
+          ]
+        },
+        {
+          "file": "lib/lottetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
+            "shouldFillLottetourDepartureAdjacent",
+            "collectLottetourDayLandmarkKeywords"
           ]
         },
         {

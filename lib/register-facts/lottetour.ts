@@ -98,41 +98,48 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
   const listingTitle = resolveLottetourFactListingTitle(row?.tourTitleRaw, bundle.basicAjaxHtml)
   const { nights, days } = parseNightsDays(row?.durationText ?? listingTitle ?? row?.tourTitleRaw)
 
-  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: evtDetail 단건 우선 — 6개월 evtList 크롤로 타임아웃 나지 않게 — manifest
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: evtDetail 단건은 flight seed만 — priceRows는 evtCd prefix 가족 크롤(2개월) — manifest
   let priceRows: SupplierRegisterFactBundle['priceRows'] = []
-  let flightSourceRow: LottetourCalendarRow | null = null
-  if (row && row.adultPrice > 0 && row.departDate) {
-    flightSourceRow = row
+  let flightSourceRow: LottetourCalendarRow | null =
+    row && row.adultPrice > 0 && row.departDate ? row : null
+
+  let hints = parseLottetourEvtListCollectionHints({ rawMeta: null, originUrl: url })
+  if (!hints.godId || !hints.menuNos) {
+    hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
+  }
+  if (hints.godId && hints.menuNos) {
+    const cal = await collectLottetourCalendarRange(
+      { godId: hints.godId, menuNos: hints.menuNos },
+      { monthCount: 2, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
+    )
+    const evtExact = (bundle.evtCd ?? '').trim()
+    const filtered = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)
+    const evtPrefix = bundle.evtCd?.slice(0, 4) ?? ''
+    // 가족 다출발 — 단건 exact만 쓰지 않고 prefix(B05A 등)로 같은 상품군 가격행을 모은다
+    const scoped =
+      evtPrefix.length >= 4
+        ? filtered.filter((r) => r.evtCd.startsWith(evtPrefix))
+        : evtExact
+          ? filtered.filter((r) => r.evtCd === evtExact)
+          : filtered
+    const fromYmd = kstTodayYmd()
+    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+    const pricedRows = scoped.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
+    const pool = pricedRows.length > 0 ? pricedRows : scoped
+    if (!flightSourceRow) {
+      flightSourceRow =
+        (evtExact ? pool.find((r) => r.evtCd === evtExact) : null) ??
+        pool[0] ??
+        filtered[0] ??
+        null
+    }
+    priceRows = pool
+      .map((r) => lottetourCalendarRowToFactPriceRow(r))
+      .filter((pr): pr is NonNullable<typeof pr> => pr != null)
+  }
+  if (priceRows.length === 0 && row && row.adultPrice > 0 && row.departDate) {
     const fact = lottetourCalendarRowToFactPriceRow(row)
     priceRows = fact ? [fact] : []
-  } else {
-    let hints = parseLottetourEvtListCollectionHints({ rawMeta: null, originUrl: url })
-    if (!hints.godId || !hints.menuNos) {
-      hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
-    }
-    if (hints.godId && hints.menuNos) {
-      const cal = await collectLottetourCalendarRange(
-        { godId: hints.godId, menuNos: hints.menuNos },
-        { monthCount: 2, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
-      )
-      const evtExact = (bundle.evtCd ?? '').trim()
-      const filtered = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)
-      const matched = evtExact ? filtered.find((r) => r.evtCd === evtExact) : null
-      const evtPrefix = bundle.evtCd?.slice(0, 4) ?? ''
-      const scoped =
-        matched != null
-          ? [matched]
-          : evtPrefix.length >= 4
-            ? filtered.filter((r) => r.evtCd.startsWith(evtPrefix))
-            : filtered
-      const fromYmd = kstTodayYmd()
-      const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-      const pricedRows = scoped.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
-      flightSourceRow = pricedRows[0] ?? scoped[0] ?? filtered[0] ?? null
-      priceRows = (pricedRows.length > 0 ? pricedRows : scoped)
-        .map((r) => lottetourCalendarRowToFactPriceRow(r))
-        .filter((pr): pr is NonNullable<typeof pr> => pr != null)
-    }
   }
 
   const flights = lottetourRegisterFactFlightsFromScheduleAndCalendar(
