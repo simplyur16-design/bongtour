@@ -6578,6 +6578,42 @@
       ]
     },
     {
+      "id": "lottetour-schedule-plan-info-description",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 일정요약 — scheduleAjax plan_info 원문 우선, vibe filler는 폴백만",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-plan-info-description]",
+            "summarizeLottetourPlanInfoForDescription",
+            "isLottetourVibeFillerDescription",
+            "plan_info 요약은 vibe로 덮지 않음"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-plan-info-description]",
+            "planInfoRaw"
+          ]
+        },
+        {
+          "file": "lib/register-facts/lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-plan-info-description]",
+            "plan_info 요약을 facts로 보존"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-schedule-plan-info-description.test.ts"
+      ]
+    },
+    {
       "id": "lottetour-schedule-expression",
       "tier": [
         "prebuild",

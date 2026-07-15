@@ -582,12 +582,15 @@ export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null):
         ? hotelCandidate
         : null
     const title = routePlaces[0] ?? uniqueCities[0] ?? `${day}일차`
-    const joinedBlob = [routeText, ...planParts, ...uniqueCities].filter(Boolean).join(' ')
+    const planInfoRaw = planParts.join(' ').trim()
+    const joinedBlob = [routeText, planInfoRaw, ...uniqueCities].filter(Boolean).join(' ')
+    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info → 일정요약 — manifest
     const description = composeLottetourScheduleDescription({
       day,
       maxDay,
       routePlaces,
       joinedBlob,
+      planInfoRaw,
     })
     const breakfastText = lottetourMealFromBlock(block, '조식')
     const lunchText = lottetourMealFromBlock(block, '중식')

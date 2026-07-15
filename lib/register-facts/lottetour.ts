@@ -36,12 +36,14 @@ function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactSchedu
         ? [d.title.trim()]
         : []
     const meals = [d.breakfastText, d.lunchText, d.dinnerText].map((x) => String(x ?? '').trim()).filter(Boolean)
+    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info 요약을 facts로 보존 — manifest
+    const planSummary = String(d.description ?? '').trim()
     return {
       day: d.day,
       places,
       hotels: d.hotelText?.trim() ? [d.hotelText.trim()] : [],
       meals,
-      transportNote: null,
+      transportNote: planSummary || null,
     }
   })
 }
