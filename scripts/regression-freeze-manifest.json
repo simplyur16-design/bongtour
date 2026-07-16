@@ -6488,6 +6488,34 @@
       ]
     },
     {
+      "id": "lottetour-same-date-origin-evt-priority",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "lottetour 동일 출발일 다등급 — origin evtCd 우선( D01A RS002 )",
+      "checks": [
+        {
+          "file": "lib/lottetour-same-date-departure-pick.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-same-date-origin-evt-priority]",
+            "pickLottetourDepartureForSameDate",
+            "dedupeLottetourDepartureInputsByDate"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-lottetour.ts",
+          "mustInclude": [
+            "dedupeLottetourDepartureInputsByDate",
+            "preferSupplierPriceKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-same-date-departure-pick.test.ts"
+      ]
+    },
+    {
       "id": "lottetour-singapore-register-quality",
       "tier": [
         "prebuild",

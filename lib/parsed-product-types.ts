@@ -34,6 +34,8 @@ export type ParsedProductPrice = {
   meetingPointRaw?: string | null
   meetingTerminalRaw?: string | null
   meetingGuideNoticeRaw?: string | null
+  /** lottetour evtCd 등 — 동일 날짜 다등급 선택용 */
+  supplierDepartureCode?: string | null
   /** 현지 가이드비 원문 (예: "30 USD") — sync UI 등 */
   localGuideFee?: string | null
   /** 1인당 싱글차지 등 */

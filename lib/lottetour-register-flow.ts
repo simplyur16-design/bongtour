@@ -99,7 +99,7 @@ import {
 } from '@/lib/price-promotion-lottetour'
 import { issuePreviewToken, verifyPreviewToken } from '@/lib/registration-preview-token'
 import { departureInputsToProductPriceCreateMany } from '@/lib/product-departure-to-price-rows-lottetour'
-import { dedupeLottetourProductPriceCreateRows } from '@/lib/lottetour-product-price-create-rows'
+import { dedupeLottetourDepartureInputsByDate } from '@/lib/lottetour-same-date-departure-pick'
 import { buildPriceDisplaySsot, validatePriceDisplaySsot } from '@/lib/price-display-ssot'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
 import {
@@ -1668,7 +1668,11 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       infantFromParsedTable ??
       infantFromExistingPrices ??
       (await loadLottetourProductInfantFallback(prisma, productId))
-    const departureInputsForSave = enrichLottetourDepartureInputsForConfirmSave(departureInputs, infantFallback)
+    const preferEvtCd = String(parsed.originCode ?? parsed.evtCd ?? '').trim() || null
+    const departureInputsForSave = dedupeLottetourDepartureInputsByDate(
+      enrichLottetourDepartureInputsForConfirmSave(departureInputs, infantFallback),
+      preferEvtCd,
+    )
 
     const sortedPrices = [...(parsed.prices ?? [])].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -1702,10 +1706,9 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
         priceGap: priceGap ?? 0,
       }
     })
-    if (priceRows.length === 0 && departureInputsForSave.length > 0) {
+    if (departureInputsForSave.length > 0) {
       priceRows = departureInputsToProductPriceCreateMany(productId, departureInputsForSave)
-    }
-    if (priceRows.length === 0 && parsed.productPriceTable) {
+    } else if (priceRows.length === 0 && parsed.productPriceTable) {
       const fallbackDate =
         departureInputsForSave[0]?.departureDate instanceof Date
           ? departureInputsForSave[0].departureDate
@@ -1724,8 +1727,6 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       ]
     }
     if (priceRows.length > 0) {
-      // REGRESSION-FREEZE[lottetour-register-api-price-inject]: dedupe ProductPrice by date — manifest
-      priceRows = dedupeLottetourProductPriceCreateRows(priceRows)
       await prisma.productPrice.deleteMany({ where: { productId } })
       await prisma.productPrice.createMany({ data: priceRows, skipDuplicates: true })
       await updateLastPriceObservedAt(prisma, productId)
@@ -1733,7 +1734,12 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
     timing.mark('after-prices-save')
 
     if (departureInputsForSave.length > 0) {
-      await upsertProductDepartures(prisma, productId, departureInputsForSave)
+      await upsertProductDepartures(
+        prisma,
+        productId,
+        departureInputsForSave,
+        preferEvtCd,
+      )
     }
     timing.mark('after-departures-save')
 

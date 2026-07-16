@@ -8,6 +8,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { dedupeLottetourDepartureInputsByDate } from '@/lib/lottetour-same-date-departure-pick'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { normalizeCalendarDate } from './date-normalize'
@@ -287,32 +288,27 @@ function mergeHanatourDerivedFlags(
  * - 빈 배열이면 스킵.
  * - 잘못된 날짜는 해당 row 스킵.
  * - 같은 (productId, departureDate)는 갱신.
- * - 입력에 동일 날짜가 중복이면 `supplierPriceKey|supplierDepartureCodeCandidate` 사전순 뒤쪽 행을 채택.
+ * - 입력에 동일 날짜가 중복이면 `preferSupplierPriceKey`(origin evtCd) 우선, 없으면 최저 성인가.
  */
 export async function upsertProductDepartures(
   prisma: PrismaClient,
   productId: string,
-  departures: DepartureInput[]
+  departures: DepartureInput[],
+  preferSupplierPriceKey?: string | null,
 ): Promise<number> {
   if (!departures?.length) return 0
 
   const now = new Date()
+  const deduped = dedupeLottetourDepartureInputsByDate(departures, preferSupplierPriceKey)
 
   const pairsRaw: { dep: DepartureInput; departureDate: Date }[] = []
-  for (const d of departures) {
+  for (const d of deduped) {
     const departureDate = normalizeDepartureDate(d.departureDate)
     if (departureDate) pairsRaw.push({ dep: d, departureDate })
   }
   if (pairsRaw.length === 0) return 0
 
-  pairsRaw.sort((a, b) => {
-    const ta = a.departureDate.getTime()
-    const tb = b.departureDate.getTime()
-    if (ta !== tb) return ta - tb
-    const ka = `${a.dep.supplierPriceKey ?? ''}|${a.dep.supplierDepartureCodeCandidate ?? ''}`
-    const kb = `${b.dep.supplierPriceKey ?? ''}|${b.dep.supplierDepartureCodeCandidate ?? ''}`
-    return ka.localeCompare(kb)
-  })
+  pairsRaw.sort((a, b) => a.departureDate.getTime() - b.departureDate.getTime())
   const lastByUtc = new Map<number, { dep: DepartureInput; departureDate: Date }>()
   for (const p of pairsRaw) {
     lastByUtc.set(p.departureDate.getTime(), p)
@@ -519,6 +515,7 @@ export function parsedPricesToDepartureInputs(prices: Array<{
   meetingPointRaw?: string | null
   meetingTerminalRaw?: string | null
   meetingGuideNoticeRaw?: string | null
+  supplierDepartureCode?: string | null
 }>): DepartureInput[] {
   if (!prices?.length) return []
   return prices.map((p) => {
@@ -562,6 +559,12 @@ export function parsedPricesToDepartureInputs(prices: Array<{
       meetingPointRaw: p.meetingPointRaw ?? undefined,
       meetingTerminalRaw: p.meetingTerminalRaw ?? undefined,
       meetingGuideNoticeRaw: p.meetingGuideNoticeRaw ?? undefined,
+      ...((p as { supplierDepartureCode?: string | null }).supplierDepartureCode?.trim()
+        ? {
+            supplierPriceKey: (p as { supplierDepartureCode?: string | null }).supplierDepartureCode!.trim(),
+            supplierDepartureCodeCandidate: (p as { supplierDepartureCode?: string | null }).supplierDepartureCode!.trim(),
+          }
+        : {}),
     }
   })
 }

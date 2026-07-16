@@ -40,8 +40,8 @@ export type LottetourRegisterApiParseOptions = Pick<
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
   return rows
-    .map((row) =>
-      registerDepartureInputToParsedPrice({
+    .map((row) => {
+      const parsed = registerDepartureInputToParsedPrice({
         departureDate: row.departureDate ?? '',
         adultPrice: row.adultPrice,
         childBedPrice: row.childPrice,
@@ -51,8 +51,12 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
         seatCount: row.seatCount,
         minPax: row.minPax,
         carrierName: row.carrierName,
-      }),
-    )
+      })
+      if (!parsed) return null
+      const code = row.supplierDepartureCode?.trim()
+      if (code) parsed.supplierDepartureCode = code
+      return parsed
+    })
     .filter((row): row is ParsedProductPrice => row != null)
 }
 

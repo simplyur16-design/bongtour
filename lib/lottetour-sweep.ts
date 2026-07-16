@@ -296,7 +296,7 @@ export async function sweepDueLottetourProducts(
         return dk != null && dk >= fromYmd && dk <= toYmd
       })
 
-      await upsertProductDepartures(prisma, product.id, inWindow)
+      await upsertProductDepartures(prisma, product.id, inWindow, product.originCode)
 
       const sourceDates = sourceDatesFromInputs(inWindow, fromYmd, toYmd)
       const prunedCount = await pruneDeparturesOutsideSourceDates(
