@@ -6493,26 +6493,47 @@
         "prebuild",
         "ci"
       ],
-      "summary": "lottetour 동일 출발일 다등급 — origin evtCd 우선( D01A RS002 )",
+      "summary": "lottetour 동일 출발일 다등급 — origin evtCd 우선 선택(표시·폴백용)",
       "checks": [
         {
           "file": "lib/lottetour-same-date-departure-pick.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-same-date-origin-evt-priority]",
-            "pickLottetourDepartureForSameDate",
-            "dedupeLottetourDepartureInputsByDate"
-          ]
-        },
-        {
-          "file": "lib/upsert-product-departures-lottetour.ts",
-          "mustInclude": [
-            "dedupeLottetourDepartureInputsByDate",
-            "preferSupplierPriceKey"
+            "pickLottetourDepartureForSameDate"
           ]
         }
       ],
       "vitestSuites": [
         "lib/lottetour-same-date-departure-pick.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-multi-grade-departure-slots",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "lottetour 동일 출발일 evtCd별 8행 전부 저장 — departureSlotKey",
+      "checks": [
+        {
+          "file": "lib/departure-slot-key.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-multi-grade-departure-slots]",
+            "computeDepartureSlotKeyFromInput",
+            "dedupeDepartureInputsBySlotKey"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-multi-grade-departure-slots]",
+            "productId_departureSlotKey",
+            "dedupeDepartureInputsBySlotKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/departure-slot-key.test.ts"
       ]
     },
     {

@@ -294,6 +294,8 @@ model OptionalTour {
 model ProductPrice {
   id         String   @id @default(cuid())
   date       DateTime // 출발일
+  /// 동일 캘린더일 다등급(evtCd) 분리 — 없으면 date YMD
+  priceSlotKey String
   adult      Int // 성인 요금
   childBed   Int // 아동(베드)
   childNoBed Int // 아동(노베드)
@@ -303,7 +305,8 @@ model ProductPrice {
   productId  String
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, date])
+  @@unique([productId, priceSlotKey])
+  @@index([productId, date])
 }
 
 // ---- 에이전트 경로 이탈 보고 (UI 변경 감지) ----
@@ -438,7 +441,11 @@ model ProductDeparture {
   /// 주기 수집(syncedAt) 과 의미 분리 — 사용자 액션으로 트리거된 시도만 기록.
   lastScrapeAttemptAt DateTime?
 
-  @@unique([productId, departureDate])
+  /// 동일 캘린더일 다등급(evtCd) 분리 — supplierPriceKey 또는 YYYY-MM-DD
+  departureSlotKey String
+
+  @@unique([productId, departureSlotKey])
+  @@index([productId, departureDate])
 }
 
 // ---- On-demand 가격 스크래퍼 — 공급사별 마지막 시도/완료 시각 (G2 사이트별 throttle SSOT) ----

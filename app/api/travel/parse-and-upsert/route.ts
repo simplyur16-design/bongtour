@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { requireAdmin } from '@/lib/require-admin'
@@ -195,6 +196,7 @@ export async function POST(request: Request) {
           return {
             productId,
             date: new Date(p.date),
+            priceSlotKey: priceSlotKeyFromDate(new Date(p.date)),
             adult: adultTotal,
             childBed: childBedTotal || 0,
             childNoBed: childNoBedTotal || 0,

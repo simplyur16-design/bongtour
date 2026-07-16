@@ -17,6 +17,7 @@ import {
   mergeInfantPriceIntoProductPriceTable,
 } from '@/lib/infant-price-extract'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { extractIsoDate } from '@/lib/hero-date-utils'
 import { isScheduleAdultBookable } from '@/lib/price-utils'
 
@@ -1134,6 +1135,7 @@ export function modetourDepartureInputsToProductPriceCreateMany(
 ): Array<{
   productId: string
   date: Date
+  priceSlotKey: string
   adult: number
   childBed: number
   childNoBed: number
@@ -1202,6 +1204,7 @@ export function modetourDepartureInputsToProductPriceCreateMany(
     return {
       productId,
       date: new Date(`${ymd}T00:00:00.000Z`),
+      priceSlotKey: ymd,
       adult,
       childBed,
       childNoBed,
@@ -1219,6 +1222,7 @@ export function modetourParsedCalendarRowsToProductPriceCreateMany(
 ): Array<{
   productId: string
   date: Date
+  priceSlotKey: string
   adult: number
   childBed: number
   childNoBed: number
@@ -1270,6 +1274,7 @@ export function modetourParsedCalendarRowsToProductPriceCreateMany(
     return {
       productId,
       date: new Date(p.date),
+      priceSlotKey: priceSlotKeyFromDate(new Date(p.date)),
       adult: priceAdult,
       childBed: priceChildWithBed ?? 0,
       childNoBed: priceChildNoBed ?? 0,

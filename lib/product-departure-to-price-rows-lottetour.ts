@@ -10,6 +10,7 @@ import type { BodyProductPriceTable } from '@/lib/public-product-extras'
 import type { DepartureInput } from '@/lib/upsert-product-departures-lottetour'
 import { availableSeatsForPriceRow } from '@/lib/departure-seat-availability'
 import { normalizeCalendarDate } from '@/lib/date-normalize'
+import { computeDepartureSlotKeyFromInput, dedupeDepartureInputsBySlotKey } from '@/lib/departure-slot-key'
 
 function num(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0
@@ -301,6 +302,7 @@ export function departureInputsToProductPriceCreateMany(
 ): Array<{
   productId: string
   date: Date
+  priceSlotKey: string
   adult: number
   childBed: number
   childNoBed: number
@@ -314,24 +316,7 @@ export function departureInputsToProductPriceCreateMany(
       ? d.departureDate.toISOString().slice(0, 10)
       : normalizeCalendarDate(String(d.departureDate)) ?? String(d.departureDate).slice(0, 10)
 
-  const sorted = [...inputs].sort((a, b) => {
-    const sa = toYmd(a)
-    const sb = toYmd(b)
-    const c = sa.localeCompare(sb)
-    if (c !== 0) return c
-    const ka = `${a.supplierPriceKey ?? ''}|${a.supplierDepartureCodeCandidate ?? ''}`
-    const kb = `${b.supplierPriceKey ?? ''}|${b.supplierDepartureCodeCandidate ?? ''}`
-    return ka.localeCompare(kb)
-  })
-  /**
-   * 동일 출발일에 evtCd(팀)별 행이 여러 개면 Prisma `ProductPrice` 단일 date 키에 맞춰 마지막 행만 유지한다(옵션 A).
-   * 다중 팀을 스키마에 반영할지는 R-4-H/J에서 가격·좌석 데이터를 본 뒤 확정한다.
-   */
-  const lastByYmd = new Map<string, DepartureInput>()
-  for (const d of sorted) {
-    lastByYmd.set(toYmd(d), d)
-  }
-  const deduped = [...lastByYmd.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, d]) => d)
+  const deduped = dedupeDepartureInputsBySlotKey(inputs)
   let prevTotal = 0
   return deduped.map((d) => {
     const adult = d.adultPrice ?? 0
@@ -355,9 +340,11 @@ export function departureInputsToProductPriceCreateMany(
     const priceGap = prevTotal > 0 ? total - prevTotal : 0
     prevTotal = total
     const ymd = toYmd(d)
+    const priceSlotKey = computeDepartureSlotKeyFromInput(d) ?? ymd
     return {
       productId,
       date: new Date(`${ymd}T00:00:00.000Z`),
+      priceSlotKey,
       adult,
       childBed,
       childNoBed,

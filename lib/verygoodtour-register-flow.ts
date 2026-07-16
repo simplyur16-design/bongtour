@@ -21,6 +21,7 @@ import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail
 import { resolveRegisterItineraryDayDraftsForAdminPreview } from '@/lib/register-air-hotel-admin-path'
 import { extractHighlightFromVerygoodtour } from '@/lib/extract-highlight-verygoodtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
@@ -1709,6 +1710,9 @@ export async function runVerygoodtourRegisterFlow(request: Request, flowOptions:
       return {
         productId,
         date: new Date(p.date),
+        priceSlotKey:
+          (p as { supplierDepartureCode?: string | null }).supplierDepartureCode?.trim() ||
+          priceSlotKeyFromDate(new Date(p.date)),
         adult: priceAdult,
         childBed: priceChildWithBed ?? 0,
         childNoBed: priceChildNoBed ?? 0,
@@ -1729,6 +1733,9 @@ export async function runVerygoodtourRegisterFlow(request: Request, flowOptions:
         {
           productId,
           date: fallbackDate,
+          priceSlotKey: priceSlotKeyFromDate(
+            fallbackDate instanceof Date ? fallbackDate : new Date(fallbackDate),
+          ),
           adult: adult > 0 ? adult : 0,
           childBed: parsed.productPriceTable.childExtraBedPrice ?? 0,
           childNoBed: parsed.productPriceTable.childNoBedPrice ?? 0,

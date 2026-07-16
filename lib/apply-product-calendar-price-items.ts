@@ -3,6 +3,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import {
   calendarPricesRejectReason,
   resolveCalendarPricesAdultKrw,
@@ -207,6 +208,7 @@ export async function applyProductCalendarPriceItems(
       return {
         productId,
         date: n.date,
+        priceSlotKey: priceSlotKeyFromDate(n.date),
         adult: n.adult,
         childBed,
         childNoBed,

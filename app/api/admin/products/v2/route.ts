@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { requireAdmin } from '@/lib/require-admin'
 import type { ParsedProductForDB } from '@/lib/parsed-product-types'
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
           return {
             productId: product.id,
             date: new Date(p.date),
+            priceSlotKey: priceSlotKeyFromDate(new Date(p.date)),
             adult: adultTotal,
             childBed: childBedTotal || 0,
             childNoBed: childNoBedTotal || 0,

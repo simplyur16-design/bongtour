@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import {
   getGenAI,
   getModelName,
@@ -342,6 +343,7 @@ ${textInput}
       return {
         productId: product.id,
         date: row.date,
+        priceSlotKey: priceSlotKeyFromDate(row.date),
         adult: row.adult,
         childBed: row.childBed,
         childNoBed: row.childNoBed,

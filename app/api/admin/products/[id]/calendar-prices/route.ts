@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { requireAdmin } from '@/lib/require-admin'
 import { withAdminBatchDbSlot } from '@/lib/admin-batch-db-semaphore'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -253,6 +254,7 @@ export async function POST(
         return {
           productId,
           date: n.date,
+          priceSlotKey: priceSlotKeyFromDate(n.date),
           adult: n.adult,
           childBed,
           childNoBed,

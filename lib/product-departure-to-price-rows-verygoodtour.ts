@@ -305,6 +305,7 @@ export function departureInputsToProductPriceCreateMany(
 ): Array<{
   productId: string
   date: Date
+  priceSlotKey: string
   adult: number
   childBed: number
   childNoBed: number
@@ -340,6 +341,7 @@ export function departureInputsToProductPriceCreateMany(
     return {
       productId,
       date: new Date(`${ymd}T00:00:00.000Z`),
+      priceSlotKey: ymd,
       adult,
       childBed,
       childNoBed,

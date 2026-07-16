@@ -1,14 +1,15 @@
 /**
  * 롯데관광(lottetour) 경로용 — ProductDeparture MVP: 출발일/가격/상태 동기화 적재.
- * (productId, departureDate) 기준 upsert. 스키마 `@@unique([productId, departureDate])`이므로
- * 동일 출발일에 evtCd(팀)별 행이 여러 개면 마지막 입력만 남긴다(`supplierPriceKey` 정렬로 결정, 옵션 A).
- * 다중 팀 정책 확정은 R-4-H/J 이후(스키마·저장 방식 변경은 별도 작업).
- * 날짜 정규화·raw 보존·파생은 보수적으로.
+ * (productId, departureSlotKey) 기준 upsert. 동일 출발일 evtCd(등급)별 행을 각각 저장한다.
+ * REGRESSION-FREEZE[lottetour-multi-grade-departure-slots]: departureSlotKey — manifest
  */
 import type { PrismaClient } from '@prisma/client'
 
+import {
+  computeDepartureSlotKeyFromDate,
+  dedupeDepartureInputsBySlotKey,
+} from '@/lib/departure-slot-key'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
-import { dedupeLottetourDepartureInputsByDate } from '@/lib/lottetour-same-date-departure-pick'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { normalizeCalendarDate } from './date-normalize'
@@ -287,40 +288,46 @@ function mergeHanatourDerivedFlags(
  * 출발일 배열을 ProductDeparture로 upsert.
  * - 빈 배열이면 스킵.
  * - 잘못된 날짜는 해당 row 스킵.
- * - 같은 (productId, departureDate)는 갱신.
- * - 입력에 동일 날짜가 중복이면 `preferSupplierPriceKey`(origin evtCd) 우선, 없으면 최저 성인가.
+ * - 같은 (productId, departureSlotKey)는 갱신.
+ * - 입력에 동일 슬롯이 중복이면 마지막 입력 유지.
  */
 export async function upsertProductDepartures(
   prisma: PrismaClient,
   productId: string,
   departures: DepartureInput[],
-  preferSupplierPriceKey?: string | null,
+  _preferSupplierPriceKey?: string | null,
 ): Promise<number> {
   if (!departures?.length) return 0
 
   const now = new Date()
-  const deduped = dedupeLottetourDepartureInputsByDate(departures, preferSupplierPriceKey)
+  const deduped = dedupeDepartureInputsBySlotKey(departures)
 
-  const pairsRaw: { dep: DepartureInput; departureDate: Date }[] = []
+  const pairsRaw: { dep: DepartureInput; departureDate: Date; departureSlotKey: string }[] = []
   for (const d of deduped) {
     const departureDate = normalizeDepartureDate(d.departureDate)
-    if (departureDate) pairsRaw.push({ dep: d, departureDate })
+    if (!departureDate) continue
+    const departureSlotKey = computeDepartureSlotKeyFromDate(
+      departureDate,
+      d.supplierPriceKey,
+      d.supplierDepartureCodeCandidate,
+    )
+    pairsRaw.push({ dep: d, departureDate, departureSlotKey })
   }
   if (pairsRaw.length === 0) return 0
 
-  pairsRaw.sort((a, b) => a.departureDate.getTime() - b.departureDate.getTime())
-  const lastByUtc = new Map<number, { dep: DepartureInput; departureDate: Date }>()
-  for (const p of pairsRaw) {
-    lastByUtc.set(p.departureDate.getTime(), p)
-  }
-  const pairs = [...lastByUtc.values()].sort((a, b) => a.departureDate.getTime() - b.departureDate.getTime())
+  pairsRaw.sort((a, b) => {
+    const c = a.departureDate.getTime() - b.departureDate.getTime()
+    if (c !== 0) return c
+    return a.departureSlotKey.localeCompare(b.departureSlotKey)
+  })
+  const pairs = pairsRaw
 
   const productInfantFallback = await loadLottetourProductInfantFallback(prisma, productId)
 
   const existingRows = await prisma.productDeparture.findMany({
-    where: { productId, departureDate: { in: pairs.map((p) => p.departureDate) } },
+    where: { productId, departureSlotKey: { in: pairs.map((p) => p.departureSlotKey) } },
     select: {
-      departureDate: true,
+      departureSlotKey: true,
       adultPrice: true,
       baselineAdultPrice: true,
       childBedPrice: true,
@@ -328,8 +335,8 @@ export async function upsertProductDepartures(
       infantPrice: true,
     },
   })
-  const existingChildByUtc = new Map<
-    number,
+  const existingChildBySlot = new Map<
+    string,
     {
       adultPrice: number | null
       baselineAdultPrice: number | null
@@ -339,7 +346,7 @@ export async function upsertProductDepartures(
     }
   >()
   for (const row of existingRows) {
-    existingChildByUtc.set(row.departureDate.getTime(), {
+    existingChildBySlot.set(row.departureSlotKey, {
       adultPrice: row.adultPrice,
       baselineAdultPrice: row.baselineAdultPrice,
       childBedPrice: row.childBedPrice,
@@ -348,10 +355,10 @@ export async function upsertProductDepartures(
     })
   }
 
-  for (const { dep: d, departureDate } of pairs) {
+  for (const { dep: d, departureDate, departureSlotKey } of pairs) {
     const { isConfirmed, isBookable } = deriveDepartureFlags(d.statusRaw, d.seatsStatusRaw)
 
-    const previous = existingChildByUtc.get(departureDate.getTime())
+    const previous = existingChildBySlot.get(departureSlotKey)
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
     // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: baselineAdultPrice 최초 고정 — manifest
     const baselineAdultPrice = computeBaselineAdultPriceOnUpsert(previous, adultPrice)
@@ -414,8 +421,10 @@ export async function upsertProductDepartures(
     const inboundDepartureAt = parseDepartureDateTime(d.inboundDepartureAt ?? undefined)
     const inboundArrivalAt = parseDepartureDateTime(d.inboundArrivalAt ?? undefined)
 
-    const where = { productId_departureDate: { productId, departureDate } }
+    const where = { productId_departureSlotKey: { productId, departureSlotKey } }
     const corePayload = {
+      departureDate,
+      departureSlotKey,
       adultPrice,
       baselineAdultPrice,
       childBedPrice,
@@ -467,14 +476,14 @@ export async function upsertProductDepartures(
       await prisma.productDeparture.upsert({
         where,
         update: { ...corePayload, ...transportPayload },
-        create: { productId, departureDate, ...corePayload, ...transportPayload },
+        create: { productId, ...corePayload, ...transportPayload },
       })
     } catch (e) {
       if (!isStaleProductDepartureTransportClientError(e)) throw e
       await prisma.productDeparture.upsert({
         where,
         update: corePayload,
-        create: { productId, departureDate, ...corePayload },
+        create: { productId, ...corePayload },
       })
     }
   }

@@ -99,7 +99,11 @@ import {
 } from '@/lib/price-promotion-lottetour'
 import { issuePreviewToken, verifyPreviewToken } from '@/lib/registration-preview-token'
 import { departureInputsToProductPriceCreateMany } from '@/lib/product-departure-to-price-rows-lottetour'
-import { dedupeLottetourDepartureInputsByDate } from '@/lib/lottetour-same-date-departure-pick'
+import { dedupeLottetourProductPriceCreateRows } from '@/lib/lottetour-product-price-create-rows'
+import {
+  dedupeDepartureInputsBySlotKey,
+  priceSlotKeyFromDate,
+} from '@/lib/departure-slot-key'
 import { buildPriceDisplaySsot, validatePriceDisplaySsot } from '@/lib/price-display-ssot'
 import { applyDepartureTerminalMeetingInfo } from '@/lib/meeting-terminal-rules'
 import {
@@ -1668,10 +1672,8 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       infantFromParsedTable ??
       infantFromExistingPrices ??
       (await loadLottetourProductInfantFallback(prisma, productId))
-    const preferEvtCd = String(parsed.originCode ?? parsed.evtCd ?? '').trim() || null
-    const departureInputsForSave = dedupeLottetourDepartureInputsByDate(
+    const departureInputsForSave = dedupeDepartureInputsBySlotKey(
       enrichLottetourDepartureInputsForConfirmSave(departureInputs, infantFallback),
-      preferEvtCd,
     )
 
     const sortedPrices = [...(parsed.prices ?? [])].sort(
@@ -1699,6 +1701,9 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       return {
         productId,
         date: new Date(p.date),
+        priceSlotKey:
+          (p as { supplierDepartureCode?: string | null }).supplierDepartureCode?.trim() ||
+          priceSlotKeyFromDate(new Date(p.date)),
         adult: priceAdult,
         childBed: priceChildWithBed ?? 0,
         childNoBed: priceChildNoBed ?? 0,
@@ -1718,6 +1723,9 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
         {
           productId,
           date: fallbackDate,
+          priceSlotKey: priceSlotKeyFromDate(
+            fallbackDate instanceof Date ? fallbackDate : new Date(fallbackDate),
+          ),
           adult: adult > 0 ? adult : 0,
           childBed: parsed.productPriceTable.childExtraBedPrice ?? 0,
           childNoBed: parsed.productPriceTable.childNoBedPrice ?? 0,
@@ -1727,19 +1735,15 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       ]
     }
     if (priceRows.length > 0) {
+      const dedupedPriceRows = dedupeLottetourProductPriceCreateRows(priceRows)
       await prisma.productPrice.deleteMany({ where: { productId } })
-      await prisma.productPrice.createMany({ data: priceRows, skipDuplicates: true })
+      await prisma.productPrice.createMany({ data: dedupedPriceRows, skipDuplicates: true })
       await updateLastPriceObservedAt(prisma, productId)
     }
     timing.mark('after-prices-save')
 
     if (departureInputsForSave.length > 0) {
-      await upsertProductDepartures(
-        prisma,
-        productId,
-        departureInputsForSave,
-        preferEvtCd,
-      )
+      await upsertProductDepartures(prisma, productId, departureInputsForSave)
     }
     timing.mark('after-departures-save')
 

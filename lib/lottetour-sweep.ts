@@ -25,6 +25,7 @@ import {
   RULE_A_WINDOW_DAYS,
 } from '@/lib/product-sales-policy'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { computeDepartureSlotKeyFromInput } from '@/lib/departure-slot-key'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { syncSupplierUrgentDealForProduct } from '@/lib/supplier-urgent-deal'
 import {
@@ -71,13 +72,38 @@ function ymdToUtcMidnight(ymd: string): Date {
   return new Date(`${ymd}T00:00:00.000Z`)
 }
 
-function sourceDatesFromInputs(inputs: DepartureInput[], fromYmd: string, toYmd: string): string[] {
+function sourceSlotKeysFromInputs(inputs: DepartureInput[], fromYmd: string, toYmd: string): string[] {
   const lo = fromYmd <= toYmd ? fromYmd : toYmd
   const hi = fromYmd <= toYmd ? toYmd : fromYmd
-  const dates = inputs
-    .map((x) => departureInputToYmd(x.departureDate))
-    .filter((d): d is string => d != null && d >= lo && d <= hi)
-  return [...new Set(dates)]
+  const keys = inputs
+    .filter((x) => {
+      const dk = departureInputToYmd(x.departureDate)
+      return dk != null && dk >= lo && dk <= hi
+    })
+    .map((x) => computeDepartureSlotKeyFromInput(x))
+    .filter((k): k is string => k != null)
+  return [...new Set(keys)]
+}
+
+async function pruneDeparturesOutsideSourceSlotKeys(
+  prisma: PrismaClient,
+  productId: string,
+  fromYmd: string,
+  toYmd: string,
+  sourceSlotKeys: string[],
+): Promise<number> {
+  if (sourceSlotKeys.length === 0) return 0
+  const deleted = await prisma.productDeparture.deleteMany({
+    where: {
+      productId,
+      departureDate: {
+        gte: ymdToUtcMidnight(fromYmd),
+        lte: ymdToUtcMidnight(toYmd),
+      },
+      departureSlotKey: { notIn: [...new Set(sourceSlotKeys)] },
+    },
+  })
+  return deleted.count
 }
 
 async function findSweepProducts(
@@ -157,21 +183,9 @@ async function pruneDeparturesOutsideSourceDates(
   productId: string,
   fromYmd: string,
   toYmd: string,
-  sourceDates: string[],
+  sourceSlotKeys: string[],
 ): Promise<number> {
-  if (sourceDates.length === 0) return 0
-  const notIn = [...new Set(sourceDates)].map(ymdToUtcMidnight)
-  const deleted = await prisma.productDeparture.deleteMany({
-    where: {
-      productId,
-      departureDate: {
-        gte: ymdToUtcMidnight(fromYmd),
-        lte: ymdToUtcMidnight(toYmd),
-        notIn,
-      },
-    },
-  })
-  return deleted.count
+  return pruneDeparturesOutsideSourceSlotKeys(prisma, productId, fromYmd, toYmd, sourceSlotKeys)
 }
 
 /**
@@ -296,15 +310,15 @@ export async function sweepDueLottetourProducts(
         return dk != null && dk >= fromYmd && dk <= toYmd
       })
 
-      await upsertProductDepartures(prisma, product.id, inWindow, product.originCode)
+      await upsertProductDepartures(prisma, product.id, inWindow)
 
-      const sourceDates = sourceDatesFromInputs(inWindow, fromYmd, toYmd)
+      const sourceSlotKeys = sourceSlotKeysFromInputs(inWindow, fromYmd, toYmd)
       const prunedCount = await pruneDeparturesOutsideSourceDates(
         prisma,
         product.id,
         fromYmd,
         toYmd,
-        sourceDates,
+        sourceSlotKeys,
       )
       result.pruned += prunedCount
 

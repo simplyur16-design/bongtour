@@ -16,6 +16,7 @@ import { buildRegisterAirHotelItineraryDayDrafts } from '@/lib/register-air-hote
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { extractHighlightFromModetour } from '@/lib/extract-highlight-modetour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
 import { buildRegisterAdminPreviewCardData } from '@/lib/register-admin-preview-card-build'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
@@ -1955,6 +1956,9 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
         {
           productId,
           date: fallbackDate,
+          priceSlotKey: priceSlotKeyFromDate(
+            fallbackDate instanceof Date ? fallbackDate : new Date(fallbackDate),
+          ),
           adult: adult > 0 ? adult : 0,
           childBed: parsed.productPriceTable.childExtraBedPrice ?? 0,
           childNoBed: parsed.productPriceTable.childNoBedPrice ?? 0,

@@ -20,6 +20,7 @@ import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail
 import { resolveRegisterItineraryDayDraftsForAdminPreview } from '@/lib/register-air-hotel-admin-path'
 import { extractHighlightFromYbtour } from '@/lib/extract-highlight-ybtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
 import { buildRegisterAdminPreviewCardData } from '@/lib/register-admin-preview-card-build'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
@@ -1647,6 +1648,9 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       return {
         productId,
         date: new Date(p.date),
+        priceSlotKey:
+          (p as { supplierDepartureCode?: string | null }).supplierDepartureCode?.trim() ||
+          priceSlotKeyFromDate(new Date(p.date)),
         adult: priceAdult,
         childBed: priceChildWithBed ?? 0,
         childNoBed: priceChildNoBed ?? 0,
@@ -1667,6 +1671,9 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
         {
           productId,
           date: fallbackDate,
+          priceSlotKey: priceSlotKeyFromDate(
+            fallbackDate instanceof Date ? fallbackDate : new Date(fallbackDate),
+          ),
           adult: adult > 0 ? adult : 0,
           childBed: parsed.productPriceTable.childExtraBedPrice ?? 0,
           childNoBed: parsed.productPriceTable.childNoBedPrice ?? 0,

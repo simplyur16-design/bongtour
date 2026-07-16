@@ -8,6 +8,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { normalizeDepartureDate } from '@/lib/upsert-product-departures-ybtour'
 
 type MinimalDepartureInput = { departureDate: string | Date }
@@ -64,6 +65,7 @@ export async function syncYbtourProductPricesFromDepartureInputsDetailed(
       .map((r) => ({
         productId,
         date: r.departureDate,
+        priceSlotKey: priceSlotKeyFromDate(r.departureDate),
         adult: r.adultPrice!,
         childBed: r.childBedPrice ?? 0,
         childNoBed: r.childNoBedPrice ?? 0,

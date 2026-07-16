@@ -7,6 +7,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 
+import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
@@ -298,10 +299,16 @@ export async function upsertProductDepartures(
 
   const now = new Date()
 
-  const pairsRaw: { dep: DepartureInput; departureDate: Date }[] = []
+  const pairsRaw: { dep: DepartureInput; departureDate: Date; departureSlotKey: string }[] = []
   for (const d of departures) {
     const departureDate = normalizeDepartureDate(d.departureDate)
-    if (departureDate) pairsRaw.push({ dep: d, departureDate })
+    if (!departureDate) continue
+    const departureSlotKey = computeDepartureSlotKeyFromDate(
+      departureDate,
+      d.supplierPriceKey,
+      d.supplierDepartureCodeCandidate,
+    )
+    pairsRaw.push({ dep: d, departureDate, departureSlotKey })
   }
   if (pairsRaw.length === 0) return 0
 
@@ -313,7 +320,7 @@ export async function upsertProductDepartures(
     const kb = `${b.dep.supplierPriceKey ?? ''}|${b.dep.supplierDepartureCodeCandidate ?? ''}`
     return ka.localeCompare(kb)
   })
-  const lastByUtc = new Map<number, { dep: DepartureInput; departureDate: Date }>()
+  const lastByUtc = new Map<number, { dep: DepartureInput; departureDate: Date; departureSlotKey: string }>()
   for (const p of pairsRaw) {
     lastByUtc.set(p.departureDate.getTime(), p)
   }
@@ -322,9 +329,9 @@ export async function upsertProductDepartures(
   const productInfantFallback = await loadNaeiltourProductInfantFallback(prisma, productId)
 
   const existingRows = await prisma.productDeparture.findMany({
-    where: { productId, departureDate: { in: pairs.map((p) => p.departureDate) } },
+    where: { productId, departureSlotKey: { in: pairs.map((p) => p.departureSlotKey) } },
     select: {
-      departureDate: true,
+      departureSlotKey: true,
       adultPrice: true,
       baselineAdultPrice: true,
       childBedPrice: true,
@@ -332,8 +339,8 @@ export async function upsertProductDepartures(
       infantPrice: true,
     },
   })
-  const existingChildByUtc = new Map<
-    number,
+  const existingChildBySlot = new Map<
+    string,
     {
       adultPrice: number | null
       baselineAdultPrice: number | null
@@ -343,7 +350,7 @@ export async function upsertProductDepartures(
     }
   >()
   for (const row of existingRows) {
-    existingChildByUtc.set(row.departureDate.getTime(), {
+    existingChildBySlot.set(row.departureSlotKey, {
       adultPrice: row.adultPrice,
       baselineAdultPrice: row.baselineAdultPrice,
       childBedPrice: row.childBedPrice,
@@ -352,10 +359,10 @@ export async function upsertProductDepartures(
     })
   }
 
-  for (const { dep: d, departureDate } of pairs) {
+  for (const { dep: d, departureDate, departureSlotKey } of pairs) {
     const { isConfirmed, isBookable } = deriveDepartureFlags(d.statusRaw, d.seatsStatusRaw)
 
-    const previous = existingChildByUtc.get(departureDate.getTime())
+    const previous = existingChildBySlot.get(departureSlotKey)
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
     // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: baselineAdultPrice 최초 고정 — manifest
     const baselineAdultPrice = computeBaselineAdultPriceOnUpsert(previous, adultPrice)
@@ -418,8 +425,10 @@ export async function upsertProductDepartures(
     const inboundDepartureAt = parseDepartureDateTime(d.inboundDepartureAt ?? undefined)
     const inboundArrivalAt = parseDepartureDateTime(d.inboundArrivalAt ?? undefined)
 
-    const where = { productId_departureDate: { productId, departureDate } }
+    const where = { productId_departureSlotKey: { productId, departureSlotKey } }
     const corePayload = {
+      departureDate,
+      departureSlotKey,
       adultPrice,
       baselineAdultPrice,
       childBedPrice,
@@ -471,14 +480,14 @@ export async function upsertProductDepartures(
       await prisma.productDeparture.upsert({
         where,
         update: { ...corePayload, ...transportPayload },
-        create: { productId, departureDate, ...corePayload, ...transportPayload },
+        create: { productId, ...corePayload, ...transportPayload },
       })
     } catch (e) {
       if (!isStaleProductDepartureTransportClientError(e)) throw e
       await prisma.productDeparture.upsert({
         where,
         update: corePayload,
-        create: { productId, departureDate, ...corePayload },
+        create: { productId, ...corePayload },
       })
     }
   }
