@@ -10,6 +10,7 @@ import {
   parseLottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { lottetourMonthCountInclusive } from '@/lib/lottetour-price-recheck-meta'
 import { fetchLottetourRegisterDetailBundle } from '@/lib/lottetour-register-api-detail'
 import type { RegisterParsed } from '@/lib/register-llm-schema-lottetour'
 import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
@@ -46,10 +47,14 @@ export async function injectLottetourApiDeparturePricesIfMissing(
 
   const bundle = await fetchLottetourRegisterDetailBundle(url)
   const evtPrefix = bundle?.evtCd?.slice(0, 4) ?? ''
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  // REGRESSION-FREEZE[lottetour-register-facts-calendar-horizon]: inject도 RULE_A monthCount — manifest
+  const monthCount = lottetourMonthCountInclusive(fromYmd, toYmd)
   const cal = await collectLottetourCalendarRange(
     { godId: hints.godId, menuNos: hints.menuNos },
     {
-      monthCount: 6,
+      monthCount,
       disableE2EFallback: true,
       e2eTourCodeHint: bundle?.evtCd ?? null,
       logLabel: 'register-api-price-inject',
@@ -62,8 +67,6 @@ export async function injectLottetourApiDeparturePricesIfMissing(
   }
   if (rows.length === 0) return parsed
 
-  const fromYmd = kstTodayYmd()
-  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
   rows = rows.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
   if (rows.length === 0) return parsed
 

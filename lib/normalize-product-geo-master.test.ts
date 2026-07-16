@@ -82,4 +82,28 @@ describe('detectMultiCountryAutoPlan', () => {
     )
     expect(plan.kind).toBe('none')
   })
+
+  // REGRESSION-FREEZE[santiago-compostela-not-chile]
+  it('does not add chile for Santiago de Compostela pilgrimage', async () => {
+    const db = mockDb([
+      { countryKey: 'spain', koreanLabel: '스페인' },
+      { countryKey: 'portugal', koreanLabel: '포르투갈' },
+      { countryKey: 'chile', koreanLabel: '칠레' },
+    ])
+    const plan = await detectMultiCountryAutoPlan(
+      db as never,
+      {
+        title: '산티아고 순례길+포르투갈 16일 #포르투갈관광',
+        primaryDestination: '스페인, 포르투갈',
+        destinationRaw: '스페인, 포르투갈',
+      },
+      'spain',
+    )
+    expect(plan.kind).toBe('multi')
+    if (plan.kind === 'multi') {
+      expect(plan.countryKeys).not.toContain('chile')
+      expect(plan.countryKeys).toContain('spain')
+      expect(plan.countryKeys).toContain('portugal')
+    }
+  })
 })

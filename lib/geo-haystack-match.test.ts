@@ -35,6 +35,12 @@ describe('geo-haystack-match', () => {
     expect(termAppearsInHaystack('샌프란시스코', '샌프란시스코의 상징인 금문교')).toBe(true)
     expect(termAppearsInHaystack('라스베이거스', '바스토우 쇼핑 및 라스베이거스 입성')).toBe(true)
   })
+
+  it('does not treat 관광 as particle — 아일랜드관광 ≠ EU 아일랜드', () => {
+    expect(termAppearsInHaystack('아일랜드', '아일랜드관광')).toBe(false)
+    expect(termAppearsInHaystack('아일랜드', '사이판 /아일랜드관광/마나가하')).toBe(false)
+    expect(termAppearsInHaystack('아일랜드', '아일랜드 더블린')).toBe(true)
+  })
 })
 
 describe('matchProductToOverseasNode guam vs nikko', () => {

@@ -211,7 +211,14 @@ function collectLatinAmericaMasterCountryKeysFromPlaceHints(hay: string): string
   if (/우유니|라파즈|라파스|볼리비아|\bUyuni\b|La\s*Paz/i.test(hay)) push('bolivia')
   if (/리오\s*데\s*자|리우\s*데\s*자|브라질|Rio\s*de\s*Janeiro/i.test(hay)) push('brazil')
   if (/이과수|아르헨|부에노스|Iguazu|Buenos\s*Aires/i.test(hay)) push('argentina')
-  if (/산티아고|칠레|\bChile\b|\bSantiago\b/i.test(hay)) push('chile')
+  // REGRESSION-FREEZE[santiago-compostela-not-chile]: 산티아고 순례길 ≠ 칠레 — manifest
+  if (/(칠레|\bChile\b)/i.test(hay)) push('chile')
+  else if (
+    /(산티아고|\bSantiago\b)/i.test(hay) &&
+    !/(순례|Compostela|compostela|스페인|포르투갈|\bSpain\b|\bPortugal\b)/i.test(hay)
+  ) {
+    push('chile')
+  }
   return out
 }
 

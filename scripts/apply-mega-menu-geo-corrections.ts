@@ -30,13 +30,20 @@ type Correction = {
   cityTags?: CityTagRow[]
 }
 
-const DATA_PATH = path.join(
+const DEFAULT_DATA_PATH = path.join(
   process.cwd(),
   'scripts/data/mega-menu-geo-corrections-2026-06.json',
 )
 
 async function main(): Promise<void> {
   const apply = process.argv.includes('--apply')
+  const fileArg = process.argv.find((a) => a.startsWith('--file='))?.split('=')[1]?.trim()
+  const DATA_PATH = fileArg
+    ? path.isAbsolute(fileArg)
+      ? fileArg
+      : path.join(process.cwd(), fileArg)
+    : DEFAULT_DATA_PATH
+  console.log(`[corrections] file=${DATA_PATH}`)
   const raw = fs.readFileSync(DATA_PATH, 'utf8')
   const corrections = JSON.parse(raw) as Correction[]
 

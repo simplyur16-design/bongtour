@@ -387,9 +387,10 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
       }),
       C('uk', '영국', [
         L('uk', '영국 일반', { aliases: ['영국', 'london', '런던', 'UK'], supplierKeywords: ['LHR', 'LGW'] }),
+        // 「아일랜드관광」(섬 관광) 오매칭 방지 — EU 아일랜드는 ireland/Dublin/더블린만
         L('ie', '아일랜드', { aliases: ['ireland', 'Ireland', '더블린', 'Dublin'] }),
       ], {
-        aliases: ['영국', 'britain', '아일랜드'],
+        aliases: ['영국', 'britain'],
       }),
       C('netherlands', '네덜란드', [
         L('nl', '네덜란드', { aliases: ['netherlands', '암스테르담', 'holland', 'Amsterdam'] }),

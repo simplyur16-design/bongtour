@@ -400,7 +400,8 @@ const SA: MegaMenuCountryGroupDef[] = [
       LC('페루', ['페루', 'peru', '리마', '마추픽추', 'lima', 'cusco'], 'peru'),
       LC('브라질', ['브라질', 'brazil', '리우데자네이루', '리우데자네이로', '상파울루', 'rio de janeiro'], 'brazil'),
       LC('아르헨티나', ['아르헨티나', 'argentina', '부에노스아이레스'], 'argentina'),
-      LC('칠레', ['칠레', 'chile', '산티아고', 'santiago'], 'chile'),
+      // 산티아고 순례길(스페인) 오매칭 방지 — 칠레 수도는 chile/산티아고데칠레만
+      LC('칠레', ['칠레', 'chile', '산티아고데칠레'], 'chile'),
       LC('볼리비아', ['볼리비아', 'bolivia', '라파스', 'la paz'], 'bolivia'),
       LC('도미니카', ['도미니카', '도미니카공화국', 'dominican', 'caribbean'], 'dominican-republic'),
     ],

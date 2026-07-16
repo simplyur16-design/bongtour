@@ -20,6 +20,7 @@ import { lottetourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-ro
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+import { lottetourMonthCountInclusive } from '@/lib/lottetour-price-recheck-meta'
 import { lottetourRegisterFactFlightsFromScheduleAndCalendar } from '@/lib/register-facts/lottetour-register-fact-flights'
 import { registerFactProductKindNote } from '@/lib/register-facts/product-kind'
 import { extractLottetourListingTitleFromHtml } from '@/lib/register-lottetour-basic'
@@ -98,7 +99,8 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
   const listingTitle = resolveLottetourFactListingTitle(row?.tourTitleRaw, bundle.basicAjaxHtml)
   const { nights, days } = parseNightsDays(row?.durationText ?? listingTitle ?? row?.tourTitleRaw)
 
-  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: evtDetail 단건은 flight seed만 — priceRows는 evtCd prefix 가족 크롤(2개월) — manifest
+  // REGRESSION-FREEZE[lottetour-singapore-register-quality]: evtDetail 단건은 flight seed만 — priceRows는 RULE_A(180일) monthCount 가족 크롤 — manifest
+  // REGRESSION-FREEZE[lottetour-register-facts-calendar-horizon]: monthCount=2면 9~10월 상품(D01A) 0건 — manifest
   let priceRows: SupplierRegisterFactBundle['priceRows'] = []
   let flightSourceRow: LottetourCalendarRow | null =
     row && row.adultPrice > 0 && row.departDate ? row : null
@@ -108,22 +110,24 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
     hints = await enrichLottetourEvtListCollectionHintsFromDetailPage(hints, url)
   }
   if (hints.godId && hints.menuNos) {
+    const fromYmd = kstTodayYmd()
+    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+    // 당월부터 180일 창을 덮는 달 수(약 6~7). 하드코딩 2는 가을 출발 상품을 통째로 놓친다.
+    const monthCount = lottetourMonthCountInclusive(fromYmd, toYmd)
     const cal = await collectLottetourCalendarRange(
       { godId: hints.godId, menuNos: hints.menuNos },
-      { monthCount: 2, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
+      { monthCount, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
     )
     const evtExact = (bundle.evtCd ?? '').trim()
     const filtered = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)
     const evtPrefix = bundle.evtCd?.slice(0, 4) ?? ''
-    // 가족 다출발 — 단건 exact만 쓰지 않고 prefix(B05A 등)로 같은 상품군 가격행을 모은다
+    // godId 캘린더는 이미 상품군 — prefix(D01A/B05A)로 같은 라인만 남긴다
     const scoped =
       evtPrefix.length >= 4
         ? filtered.filter((r) => r.evtCd.startsWith(evtPrefix))
         : evtExact
           ? filtered.filter((r) => r.evtCd === evtExact)
           : filtered
-    const fromYmd = kstTodayYmd()
-    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
     const pricedRows = scoped.filter((r) => r.departDate >= fromYmd && r.departDate <= toYmd)
     const pool = pricedRows.length > 0 ? pricedRows : scoped
     if (!flightSourceRow) {

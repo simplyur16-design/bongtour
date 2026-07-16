@@ -1,0 +1,169 @@
+[
+  {
+    "slug": "pkg-yb-0053",
+    "note": "남미 4개국 — resync가 caribbean으로 깨진 것 복구",
+    "primary": { "continentKey": "south-america", "countryKey": "peru", "cityKey": "lima" },
+    "countryTags": [
+      { "countryKey": "peru", "nodeKey": "peru", "isPrimary": true },
+      { "countryKey": "bolivia", "nodeKey": "bolivia", "isPrimary": false },
+      { "countryKey": "brazil", "nodeKey": "brazil", "isPrimary": false },
+      { "countryKey": "argentina", "nodeKey": "argentina", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "lima", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-yb-0008",
+    "note": "산티아고 순례길(스페인)+포르투갈 — 칠레/프랑스 오매칭 제거",
+    "primary": { "continentKey": "europe", "countryKey": "spain", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "spain", "nodeKey": "spain", "isPrimary": true },
+      { "countryKey": "portugal", "nodeKey": "portugal", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "es", "isPrimary": true }, { "cityKey": "pt", "isPrimary": false }]
+  },
+  {
+    "slug": "pkg-mt-0133",
+    "note": "사이판 — 아일랜드관광≠아일랜드",
+    "primary": { "continentKey": "oceania", "countryKey": "saipan", "cityKey": "saipan" },
+    "countryTags": [
+      { "countryKey": "saipan", "nodeKey": "saipan", "isPrimary": true }
+    ],
+    "cityTags": [{ "cityKey": "saipan", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-mt-0113",
+    "note": "서인도 라자스탄 — 이탈리아(it) 오매칭 제거",
+    "primary": { "continentKey": "south-asia", "countryKey": "india", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "india", "nodeKey": "india", "isPrimary": true }
+    ],
+    "cityTags": []
+  },
+  {
+    "slug": "pkg-yb-0027",
+    "note": "아르헨티나·칠레 — caribbean-mix 오분류",
+    "primary": { "continentKey": "south-america", "countryKey": "argentina", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "argentina", "nodeKey": "argentina", "isPrimary": true },
+      { "countryKey": "chile", "nodeKey": "chile", "isPrimary": false }
+    ],
+    "cityTags": []
+  },
+  {
+    "slug": "fim-vg-0001",
+    "note": "북유럽 4국 국가 태그 보강",
+    "primary": { "continentKey": "europe", "countryKey": "denmark", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "denmark", "nodeKey": "denmark", "isPrimary": true },
+      { "countryKey": "norway", "nodeKey": "norway", "isPrimary": false },
+      { "countryKey": "sweden", "nodeKey": "sweden", "isPrimary": false },
+      { "countryKey": "finland", "nodeKey": "finland", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "denmark-mix", "isPrimary": true }]
+  },
+  {
+    "slug": "fim-vg-0002",
+    "note": "북유럽 3국 국가 태그 보강",
+    "primary": { "continentKey": "europe", "countryKey": "denmark", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "denmark", "nodeKey": "denmark", "isPrimary": true },
+      { "countryKey": "norway", "nodeKey": "norway", "isPrimary": false },
+      { "countryKey": "sweden", "nodeKey": "sweden", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "denmark-mix", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-hn-0006",
+    "note": "북유럽 4국 국가 태그 보강",
+    "primary": { "continentKey": "europe", "countryKey": "denmark", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "denmark", "nodeKey": "denmark", "isPrimary": true },
+      { "countryKey": "norway", "nodeKey": "norway", "isPrimary": false },
+      { "countryKey": "sweden", "nodeKey": "sweden", "isPrimary": false },
+      { "countryKey": "finland", "nodeKey": "finland", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "denmark-mix", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-mt-0169",
+    "note": "북유럽 4국 국가 태그 보강",
+    "primary": { "continentKey": "europe", "countryKey": "norway", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "norway", "nodeKey": "norway", "isPrimary": true },
+      { "countryKey": "sweden", "nodeKey": "sweden", "isPrimary": false },
+      { "countryKey": "denmark", "nodeKey": "denmark", "isPrimary": false },
+      { "countryKey": "finland", "nodeKey": "finland", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "norway-mix", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-hn-0031",
+    "note": "오스트리아·체코·헝가리 3국",
+    "primary": { "continentKey": "europe", "countryKey": "austria", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "austria", "nodeKey": "austria", "isPrimary": true },
+      { "countryKey": "czech", "nodeKey": "czech", "isPrimary": false },
+      { "countryKey": "hungary", "nodeKey": "hungary", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "at", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-yb-0001",
+    "note": "이탈리아·스위스·프랑스 3국",
+    "primary": { "continentKey": "europe", "countryKey": "italy", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "italy", "nodeKey": "italy", "isPrimary": true },
+      { "countryKey": "switzerland", "nodeKey": "switzerland", "isPrimary": false },
+      { "countryKey": "france", "nodeKey": "france", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "it", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-yb-0023",
+    "note": "아제르바이잔·조지아·아르메니아 3국",
+    "primary": { "continentKey": "middle-east", "countryKey": "azerbaijan", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "azerbaijan", "nodeKey": "azerbaijan", "isPrimary": true },
+      { "countryKey": "georgia", "nodeKey": "georgia", "isPrimary": false },
+      { "countryKey": "armenia", "nodeKey": "armenia", "isPrimary": false }
+    ],
+    "cityTags": []
+  },
+  {
+    "slug": "pkg-yb-0015",
+    "note": "코카서스+UAE",
+    "primary": { "continentKey": "middle-east", "countryKey": "azerbaijan", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "azerbaijan", "nodeKey": "azerbaijan", "isPrimary": true },
+      { "countryKey": "georgia", "nodeKey": "georgia", "isPrimary": false },
+      { "countryKey": "armenia", "nodeKey": "armenia", "isPrimary": false },
+      { "countryKey": "united-arab-emirates", "nodeKey": "united-arab-emirates", "isPrimary": false }
+    ],
+    "cityTags": []
+  },
+  {
+    "slug": "pkg-yb-0032",
+    "note": "동유럽/발칸 5국",
+    "primary": { "continentKey": "europe", "countryKey": "austria", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "austria", "nodeKey": "austria", "isPrimary": true },
+      { "countryKey": "czech", "nodeKey": "czech", "isPrimary": false },
+      { "countryKey": "hungary", "nodeKey": "hungary", "isPrimary": false },
+      { "countryKey": "croatia", "nodeKey": "croatia", "isPrimary": false },
+      { "countryKey": "slovenia", "nodeKey": "slovenia", "isPrimary": false }
+    ],
+    "cityTags": [{ "cityKey": "at", "isPrimary": true }]
+  },
+  {
+    "slug": "pkg-mt-0026",
+    "note": "코카서스+우즈베키스탄",
+    "primary": { "continentKey": "middle-east", "countryKey": "azerbaijan", "cityKey": null },
+    "countryTags": [
+      { "countryKey": "azerbaijan", "nodeKey": "azerbaijan", "isPrimary": true },
+      { "countryKey": "georgia", "nodeKey": "georgia", "isPrimary": false },
+      { "countryKey": "armenia", "nodeKey": "armenia", "isPrimary": false },
+      { "countryKey": "uzbekistan", "nodeKey": "uzbekistan", "isPrimary": false }
+    ],
+    "cityTags": []
+  }
+]

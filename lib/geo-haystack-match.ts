@@ -6,8 +6,9 @@
 export const SINGLE_CHAR_GEO_TERMS = new Set(['괌', '몰', '몽'])
 
 /** 일정 본문에서 도시명 뒤에 붙는 조사·어미 — `샌프란시스코의` 등이 매칭되도록 */
+/** `관광` 제외 — 「아일랜드관광」(섬 관광)이 EU 아일랜드로 잡히지 않게. REGRESSION-FREEZE[saipan-island-tour-geo-priority] */
 const KOREAN_GEO_TERM_PARTICLE_SUFFIX =
-  '(?:의|에|에서|으로|로|와|과|이|가|을|를|도|만|부터|까지|입성|출발|도착|경유|관광)?'
+  '(?:의|에|에서|으로|로|와|과|이|가|을|를|도|만|부터|까지|입성|출발|도착|경유)?'
 
 export function buildMultiCountryDetectionHaystack(opts: {
   title: string

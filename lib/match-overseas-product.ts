@@ -303,6 +303,35 @@ function earlyMatchPhilippinesCebuIslandContext(
   }
 }
 
+/**
+ * 사이판 상품의 「아일랜드관광」(섬 관광)은 EU 아일랜드(ireland)가 아님.
+ * REGRESSION-FREEZE[saipan-island-tour-geo-priority]: 사이판+아일랜드관광 → saipan — manifest
+ */
+const SAIPAN_ISLAND_TOUR_CONTEXT_RE = /사이판|\bsaipan\b/i
+
+function earlyMatchSaipanIslandTourContext(
+  product: OverseasProductMatchInput,
+): MatchProductToOverseasNodeResult | null {
+  const haystack = buildOverseasProductMatchHaystack(product)
+  if (!SAIPAN_ISLAND_TOUR_CONTEXT_RE.test(haystack)) return null
+
+  const group = OVERSEAS_LOCATION_TREE_CLEAN.find((g) => g.groupKey === 'guam-au-nz')
+  const country = group?.countries.find((c) => c.countryKey === 'saipan')
+  const leaf = country?.children.find((l) => l.nodeKey === 'saipan')
+  if (!group || !country || !leaf) return null
+
+  return {
+    scope: 'leaf',
+    groupKey: group.groupKey,
+    groupLabel: group.groupLabel,
+    countryKey: country.countryKey,
+    countryLabel: country.countryLabel,
+    leafKey: leaf.nodeKey,
+    leafLabel: leaf.nodeLabel,
+    matchedTerm: '사이판',
+  }
+}
+
 /** 코카서스 3국(+두바이 연계) — `두바이` leaf가 더 길게 잡히기 전에 country 고정 */
 function earlyMatchCaucasusPackage(
   product: OverseasProductMatchInput,
@@ -362,6 +391,9 @@ export function matchProductToOverseasNode(
 
   const philippinesCebu = earlyMatchPhilippinesCebuIslandContext(product)
   if (philippinesCebu) return philippinesCebu
+
+  const saipanIslandTour = earlyMatchSaipanIslandTourContext(product)
+  if (saipanIslandTour) return saipanIslandTour
 
   const shortCountry = earlyMatchShortCountryLeaf(product)
   if (shortCountry) return shortCountry

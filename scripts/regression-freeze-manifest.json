@@ -1256,6 +1256,66 @@
       ]
     },
     {
+      "id": "saipan-island-tour-geo-priority",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사이판 아일랜드관광 — EU ireland 오매칭 방지",
+      "checks": [
+        {
+          "file": "lib/match-overseas-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[saipan-island-tour-geo-priority]",
+            "SAIPAN_ISLAND_TOUR_CONTEXT_RE",
+            "earlyMatchSaipanIslandTourContext"
+          ]
+        },
+        {
+          "file": "lib/geo-haystack-match.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[saipan-island-tour-geo-priority]"
+          ],
+          "mustNotInclude": [
+            "입성|출발|도착|경유|관광)?"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/match-overseas-product-cebu-island.test.ts",
+        "lib/geo-haystack-match.test.ts"
+      ]
+    },
+    {
+      "id": "santiago-compostela-not-chile",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "산티아고 순례길 — 칠레 오매칭 방지",
+      "checks": [
+        {
+          "file": "lib/normalize-product-geo-master.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[santiago-compostela-not-chile]",
+            "순례|Compostela"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "산티아고데칠레"
+          ],
+          "mustNotInclude": [
+            "['칠레', 'chile', '산티아고', 'santiago']"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/normalize-product-geo-master.test.ts"
+      ]
+    },
+    {
       "id": "airtel-fit-per-day-keywords",
       "tier": [
         "prebuild",
@@ -2835,7 +2895,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-register-api-price-inject]",
             "injectLottetourApiDeparturePricesIfMissing",
-            "fetchLottetourRegisterDetailBundle"
+            "fetchLottetourRegisterDetailBundle",
+            "lottetourMonthCountInclusive"
           ]
         },
         {
@@ -6397,6 +6458,36 @@
       ]
     },
     {
+      "id": "lottetour-register-facts-calendar-horizon",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 register-facts 가격 — RULE_A 180일 monthCount (2개월 하드코딩 금지·D01A 9~10월)",
+      "checks": [
+        {
+          "file": "lib/register-facts/lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-facts-calendar-horizon]",
+            "lottetourMonthCountInclusive"
+          ],
+          "mustNotInclude": [
+            "monthCount: 2"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-price-inject.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-facts-calendar-horizon]",
+            "lottetourMonthCountInclusive"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-facts/lottetour-calendar-horizon.test.ts"
+      ]
+    },
+    {
       "id": "lottetour-singapore-register-quality",
       "tier": [
         "prebuild",
@@ -6426,6 +6517,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-singapore-register-quality]",
             "evtDetail 단건은 flight seed만",
+            "lottetourMonthCountInclusive",
             "lottetourRegisterFactFlightsFromScheduleAndCalendar"
           ]
         },
