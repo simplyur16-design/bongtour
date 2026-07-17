@@ -296,4 +296,22 @@ describe('register schedule route place noise', () => {
     )
     expect(sanitizeRegisterScheduleRouteText('깜란 - 호텔 - 나트랑')).toBe('깜란 - 나트랑')
   })
+
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: outlet·영화제목 쇼핑/옵션 노이즈 — manifest
+  it('strips DESIGNER OUTLET and Sound of Music — keeps city chain', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('DESIGNER OUTLET PANDORF')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('Sound of Music')).toBe(true)
+    expect(
+      sanitizeRegisterScheduleRouteText(
+        '브르노 - 브라티슬라바 - 부다페스트 - DESIGNER OUTLET PANDORF',
+      ),
+    ).toBe('브르노 - 브라티슬라바 - 부다페스트')
+  })
+
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 비엔나↔Vienna 한·영 도시 중복 제거 — manifest
+  it('dedupes Vienna - Linz English duplicates after Korean cities', () => {
+    expect(sanitizeRegisterScheduleRouteText('비엔나(Vienna) - 린츠 - Vienna - Linz')).toBe(
+      '비엔나 - 린츠',
+    )
+  })
 })

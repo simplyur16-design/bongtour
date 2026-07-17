@@ -366,6 +366,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^몽골\s*FAQ$/iu.test(t)) return true
   if (/필수\s*코스|쇼핑\s*타임|시내를\s*떠나기\s*전/u.test(t)) return true
   if (/면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: outlet·영화제목 쇼핑/옵션 노이즈 — manifest
+  if (/\b(?:designer\s*)?outlet\b|아울렛|아웃렛|pandorf|파르도르프/i.test(t)) return true
+  if (/sound\s*of\s*music|사운드\s*오브\s*뮤직|사운드오브뮤직/i.test(t)) return true
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
@@ -422,10 +425,45 @@ export function isRegisterScheduleGenericTourismFillerRouteText(routeText: strin
   return /하루\s*동안\s*여러\s*장면|알찬\s*동선|전체적인\s*흐름과\s*분위기|여행의\s*컨셉/i.test(t)
 }
 
+/** 한·영 도시 표기 중복(비엔나↔Vienna) — 짧은 도시 라벨만 */
+const ROUTE_CITY_ALIAS_KEY_RULES: ReadonlyArray<{ re: RegExp; key: string }> = [
+  { re: /^(?:프라하|prague|praha)$/i, key: 'prague' },
+  { re: /^(?:비엔나|vienna|wien)$/i, key: 'vienna' },
+  { re: /^(?:부다페스트|budapest)$/i, key: 'budapest' },
+  { re: /^(?:린츠|linz)$/i, key: 'linz' },
+  { re: /^(?:브라티슬라바|bratislava)$/i, key: 'bratislava' },
+  { re: /^(?:브르노|brno)$/i, key: 'brno' },
+  { re: /^(?:잘츠부르크|잘쯔부르크|salzburg)$/i, key: 'salzburg' },
+  { re: /^(?:할슈타트|hallstatt)$/i, key: 'hallstatt' },
+  { re: /^(?:시드니|sydney)$/i, key: 'sydney' },
+  { re: /^(?:오클랜드|auckland)$/i, key: 'auckland' },
+]
+
+function registerScheduleRouteCityAliasKey(label: string): string | null {
+  const t = String(label ?? '')
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t || t.length > 24) return null
+  if (/(?:성|궁|교|광장|요새|다리|castle|palace|bridge|square|fortress)/i.test(t)) return null
+  for (const { re, key } of ROUTE_CITY_ALIAS_KEY_RULES) {
+    if (re.test(t)) return key
+  }
+  return null
+}
+
+function preferRegisterScheduleRouteCityLabel(label: string): string {
+  return String(label ?? '')
+    .replace(/\s*\([A-Za-zÀ-ÿ][^)]{0,40}\)\s*$/u, '')
+    .replace(/\s+/g, ' ')
+    .trim() || String(label ?? '').trim()
+}
+
 /** routeText·places 배열에서 행정/UI·국내 출발 허브 세그먼트 제거 */
 export function filterRegisterScheduleRoutePlaceSegments(segments: readonly string[]): string[] {
   const out: string[] = []
   const keys: string[] = []
+  const cityAliasKeys: Array<string | null> = []
   const norm = (s: string) =>
     s
       .toLowerCase()
@@ -435,17 +473,32 @@ export function filterRegisterScheduleRoutePlaceSegments(segments: readonly stri
     for (const label of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) {
       if (!label || isRegisterScheduleRoutePlaceNoise(label)) continue
       if (isRegisterScheduleDomesticHubRouteSegment(label)) continue
-      const key = norm(label)
+      const display = preferRegisterScheduleRouteCityLabel(label)
+      const key = norm(display)
       if (!key) continue
       const dupIdx = keys.findIndex(
         (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
       )
       if (dupIdx >= 0) {
-        if (label.length > out[dupIdx]!.length) out[dupIdx] = label
+        if (display.length > out[dupIdx]!.length) out[dupIdx] = display
         continue
       }
+      // REGRESSION-FREEZE[register-schedule-route-place-noise]: 비엔나↔Vienna 한·영 도시 중복 제거 — manifest
+      const cityAlias = registerScheduleRouteCityAliasKey(display)
+      if (cityAlias) {
+        const cityDup = cityAliasKeys.findIndex((c) => c === cityAlias)
+        if (cityDup >= 0) {
+          const preferKo = /[가-힣]/.test(display) && !/[가-힣]/.test(out[cityDup] ?? '')
+          if (preferKo) {
+            out[cityDup] = display
+            keys[cityDup] = key
+          }
+          continue
+        }
+      }
+      cityAliasKeys.push(cityAlias)
       keys.push(key)
-      out.push(label)
+      out.push(display)
     }
   }
   return out

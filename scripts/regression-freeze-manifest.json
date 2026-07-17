@@ -4891,7 +4891,9 @@
             "stripRegisterScheduleRouteFlightDurationBlocks",
             "extractRegisterScheduleProseRoutePlaceTail",
             "theme-garden country list strip",
-            "stripRegisterScheduleRouteThemeGardenCountryList"
+            "stripRegisterScheduleRouteThemeGardenCountryList",
+            "outlet·영화제목 쇼핑/옵션 노이즈",
+            "비엔나↔Vienna 한·영 도시 중복 제거"
           ]
         },
         {
@@ -4902,7 +4904,9 @@
             "쉔부른궁전",
             "호이안 옛도시",
             "가이드 미팅",
-            "Hamilton Gardens multi-country theme list"
+            "Hamilton Gardens multi-country theme list",
+            "DESIGNER OUTLET",
+            "Vienna - Linz"
           ]
         },
         {
@@ -5776,6 +5780,7 @@
             "firstMatchingScheduleSpotEn",
             "routeContextualNationalAssemblyEnglish",
             "Fisherman's Bastion Budapest",
+            "프라하·동유럽 명소",
             "Matsue Castle",
             "Garuda Wisnu Kencana",
             "Melasti Beach",
@@ -5843,7 +5848,8 @@
         "verify:schedule-image-keyword-dual-slot"
       ],
       "vitestSuites": [
-        "tests/schedule-poi-regex-ssot.test.ts"
+        "tests/schedule-poi-regex-ssot.test.ts",
+        "lib/lottetour-schedule-central-europe-image-keyword.test.ts"
       ]
     },
     {

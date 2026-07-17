@@ -134,6 +134,9 @@ type LottetourScheduleVibeProfile =
   | 'fiord_cruise'
   | 'desert_coast'
   | 'thermal_spa'
+  | 'prague_old_town'
+  | 'danube_cities'
+  | 'alpine_lake'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -189,6 +192,18 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '지열·온천 지대의 독특한 공기와 여유를 중심으로 하루의 템포를 낮추는 일정입니다.',
     '문화 체험과 휴식이 자연스럽게 이어져 감각이 편안해지는 흐름입니다.',
   ],
+  prague_old_town: [
+    '중세 골목과 광장이 이어지는, 걷는 리듬이 중심이 되는 중부 유럽의 하루입니다.',
+    '성·다리·구시가지가 자연스럽게 연결되어 도시의 결을 천천히 느끼는 구성입니다.',
+  ],
+  danube_cities: [
+    '강변 도시들이 이어지는 이동형 하루로, 국경을 넘는 풍경 변화가 돋보입니다.',
+    '짧은 체류에도 각 도시의 분위기 차이가 분명하게 느껴지는 구성입니다.',
+  ],
+  alpine_lake: [
+    '호수와 산자락이 맞닿은 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다.',
+    '이동보다 시야가 열리는 순간이 중심이 되어, 여운이 길게 남는 구성입니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -222,6 +237,13 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   ) {
     return 'nature_trek'
   }
+  if (/할슈타트|Hallstatt|짤즈?\s*캄머|Salzkammergut|잘츠부르크|Salzburg|잘쯔/i.test(joinedBlob)) {
+    return 'alpine_lake'
+  }
+  if (/프라하|Prague|Praha|카를\s*교|프라하\s*성|천문\s*시계/i.test(joinedBlob)) return 'prague_old_town'
+  if (/부다페스트|Budapest|브라티슬라|Bratislava|비엔나|Vienna|Wien|다뉴브|Danube/i.test(joinedBlob)) {
+    return 'danube_cities'
+  }
   if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'
@@ -246,7 +268,7 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
-  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한/u.test(
+  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은/u.test(
     t,
   )
 }

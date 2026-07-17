@@ -670,7 +670,7 @@ export function isNonLandmarkFoodOrDiningImageKeyword(keyword: string): boolean 
 
 /** 스파·라운지·마트·쇼핑 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
 const NON_LANDMARK_SPA_SHOPPING_LOUNGE_RE =
-  /\b(spa|massage|wellness\s*center|lounge|club\s*lounge|t\s*lounge|bar\s*&\s*lounge|duty\s*free|shopping\s*mall|supermarket|minimart|convenience\s*store|grocery|retail\s*mall|outlet\s*mall|department\s*store|resort\s*restaurant|moon\s*spa|king\s*kong\s*mart)\b/i
+  /\b(spa|massage|wellness\s*center|lounge|club\s*lounge|t\s*lounge|bar\s*&\s*lounge|duty\s*free|shopping\s*mall|supermarket|minimart|convenience\s*store|grocery|retail\s*mall|outlet\s*mall|designer\s*outlet|department\s*store|resort\s*restaurant|moon\s*spa|king\s*kong\s*mart|sound\s*of\s*music)\b/i
 
 export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
@@ -756,7 +756,7 @@ export function isWeakOpaqueImageKeyword(keyword: string): boolean {
 }
 
 function isNonLandmarkRouteTextSegmentKo(t: string): boolean {
-  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$|자금성\s*안내|관광\s*캠프|투어(?:리스트|ist)\s*캠프|미라지\s*캠프|유목민\s*게르|현대식\s*게르/u.test(
+  return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$|자금성\s*안내|관광\s*캠프|투어(?:리스트|ist)\s*캠프|미라지\s*캠프|유목민\s*게르|현대식\s*게르|아울렛|아웃렛|OUTLET|Sound\s*of\s*Music|사운드\s*오브\s*뮤직/u.test(
     t,
   ) || /(?:^|\s)캠프(?:\s|$)/u.test(t)
 }
