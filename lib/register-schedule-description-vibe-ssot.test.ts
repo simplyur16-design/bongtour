@@ -128,6 +128,28 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
     ).toBe(false)
   })
 
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Provence — 일본(홋카이도) 환각 차단 — manifest
+  it('일본 홋카이도 일정 — Provence/Aix 키워드 환각', () => {
+    const rows = [
+      { day: 3, routeText: '후라노 이동 - 팜 토미타 - 라벤더 소프트', title: '후라노' },
+      { day: 4, routeText: '치토세 국제공항 이동', title: '귀국' },
+    ]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Provence lavender fields Valensole plateau',
+        '일본',
+        rows,
+      ),
+    ).toBe(true)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Aix-en-Provence old town fountain',
+        '일본',
+        rows,
+      ),
+    ).toBe(true)
+  })
+
   it('imageKeyword Europe 오염으로 dest 추론하지 않음', () => {
     const rows = [
       { day: 1, routeText: '싱가포르', title: '싱가포르', imageKeyword: 'Europe' },

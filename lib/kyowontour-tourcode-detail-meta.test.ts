@@ -81,7 +81,7 @@ describe('kyowontour calendar fact/map carries child/infant from detail rawJson'
   })
 
   // REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: applyUrlDetailThreeSlot — manifest
-  it('applyKyowontourUrlDetailThreeSlotToCalendarRows overlays URL HTML onto matching + empty rows', async () => {
+  it('applyKyowontourUrlDetailThreeSlotToCalendarRows overlays URL HTML onto matching tourCode only', async () => {
     const { applyKyowontourUrlDetailThreeSlotToCalendarRows } = await import(
       '@/lib/kyowontour-tourcode-detail-meta'
     )
@@ -116,10 +116,39 @@ describe('kyowontour calendar fact/map carries child/infant from detail rawJson'
       childPrice: 459000,
       infantPrice: 150000,
     })
+    // 다른 출발일 행에는 URL child/infant를 퍼뜨리지 않음 (ZE·7C 혼입 방지)
     expect(kyowontourCalendarRowToFactPriceRow(out[1]!)).toMatchObject({
       adultPrice: 849000,
-      childPrice: 459000,
-      infantPrice: 150000,
+      childPrice: null,
+      infantPrice: null,
+    })
+  })
+
+  // REGRESSION-FREEZE[kyowontour-tourcode-line]: synthesizeUrlAnchorCalendarRow — manifest
+  it('synthesizeKyowontourUrlAnchorCalendarRow builds anchor from tourCode date + HTML slots', async () => {
+    const { synthesizeKyowontourUrlAnchorCalendarRow } = await import(
+      '@/lib/kyowontour-tourcode-detail-meta'
+    )
+    const html = `
+      <input type="hidden" id="adultPrice" value="1899000"/>
+      <input type="hidden" id="childPrice" value="1899000"/>
+      <input type="hidden" id="infantPrice" value="100000"/>
+    `
+    const row = synthesizeKyowontourUrlAnchorCalendarRow({
+      html,
+      urlTourCode: 'JHP0132607167C01',
+      airlineName: '제주항공',
+    })
+    expect(row).toMatchObject({
+      departDate: '2026-07-16',
+      tourCode: 'JHP0132607167C01',
+      airline: '제주항공',
+      adultPriceFromCalendar: 1899000,
+    })
+    expect(kyowontourCalendarRowToFactPriceRow(row!)).toMatchObject({
+      adultPrice: 1899000,
+      childPrice: 1899000,
+      infantPrice: 100000,
     })
   })
 })

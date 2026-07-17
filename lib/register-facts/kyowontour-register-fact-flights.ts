@@ -9,8 +9,14 @@ import type { RegisterFactFlightLeg } from '@/lib/register-facts/types'
 export function kyowontourCalendarRowsToRegisterFactFlights(
   rows: KyowontourCalendarRow[],
   meetingText: string | null,
+  preferTourCode?: string | null,
 ): RegisterFactFlightLeg[] {
+  const prefer = String(preferTourCode ?? '').trim()
   const row =
+    (prefer
+      ? rows.find((r) => r.tourCode.trim() === prefer && r.airline?.trim() && r.departDate)
+      : null) ??
+    (prefer ? rows.find((r) => r.tourCode.trim() === prefer && r.departDate) : null) ??
     rows.find((r) => r.airline?.trim() && r.departDate) ??
     rows.find((r) => r.departDate) ??
     null

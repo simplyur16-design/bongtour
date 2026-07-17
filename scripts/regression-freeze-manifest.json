@@ -2878,8 +2878,24 @@
             "hidden adult/child/infantPrice",
             "child/infant → rawJson for fact/map",
             "applyUrlDetailThreeSlot",
+            "synthesizeUrlAnchorCalendarRow",
             "enrichKyowontourCalendarRowsWithTourCodeDetail",
             "fetchKyowontourTourCodeDetailMeta"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-tourcode-line.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tourcode-line]",
+            "parseKyowontourTourCodeDateAndVariant",
+            "filterKyowontourCalendarRowsByUrlTourCodeLine"
+          ]
+        },
+        {
+          "file": "lib/register-facts/kyowontour.ts",
+          "mustInclude": [
+            "URL tourCode 항공 변형(7C≠ZE) 필터",
+            "synthesizeKyowontourUrlAnchorCalendarRow"
           ]
         },
         {
@@ -2896,6 +2912,44 @@
         }
       ],
       "vitestSuites": [
+        "lib/kyowontour-tourcode-detail-meta.test.ts",
+        "lib/kyowontour-tourcode-line.test.ts"
+      ]
+    },
+    {
+      "id": "kyowontour-tourcode-line",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "kyowontour URL tourCode 날짜·항공 변형(7C≠ZE) 필터 + HTML 앵커 합성",
+      "checks": [
+        {
+          "file": "lib/kyowontour-tourcode-line.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tourcode-line]",
+            "parseKyowontourTourCodeDateAndVariant",
+            "filterKyowontourCalendarRowsByUrlTourCodeLine"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-tourcode-detail-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tourcode-line]",
+            "synthesizeUrlAnchorCalendarRow"
+          ]
+        },
+        {
+          "file": "lib/register-facts/kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-tourcode-line]",
+            "URL tourCode 항공 변형(7C≠ZE) 필터",
+            "synthesizeKyowontourUrlAnchorCalendarRow"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-tourcode-line.test.ts",
         "lib/kyowontour-tourcode-detail-meta.test.ts"
       ]
     },
@@ -3225,7 +3279,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "tourcode_detail_enrich=url_html_three_slot_only",
-            "skipPerDateDayAirFetch: true"
+            "skipPerDateDayAirFetch: false"
           ]
         },
         {
@@ -5165,7 +5219,8 @@
             "OCEANIA_PRODUCT_DEST_RE",
             "돗토리·시마네·규슈 일정 Mount Fuji 환각",
             "유럽에 Louvre Abu Dhabi 금지",
-            "Louvre\\b(?!\\s*Abu)"
+            "Louvre\\b(?!\\s*Abu)",
+            "Provence — 일본(홋카이도) 환각 차단"
           ]
         }
       ],
@@ -5880,7 +5935,8 @@
             "단독「역사 박물관」≠ Istanbul",
             "후룬베이얼 역사 박물관 ≠ Istanbul",
             "징기스칸 광장 ≠ Ordos 기마상",
-            "Ordos 기마상 — 오르도스 문맥만"
+            "Ordos 기마상 — 오르도스 문맥만",
+            "치토세 공항·후라노 라벤더 — Provence 환각 금지"
           ]
         },
         {

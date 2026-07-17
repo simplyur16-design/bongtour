@@ -266,7 +266,11 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Robben Island Cape Town Table Bay view')
     push('V&A Waterfront Cape Town harbor')
   }
-  if (/프로방스|Provence|라벤더|Lavender|엑스\s*프로방스|Aix-en-Provence/i.test(rawRoute)) {
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 치토세 공항·후라노 라벤더 — Provence 환각 금지 — manifest
+  if (
+    /프로방스|Provence|엑스\s*프로방스|Aix-en-Provence|Valensole|라벤더\s*밭/i.test(rawRoute) &&
+    !/(?:후라노|비에이|홋카이도|Hokkaido|Furano|Biei|Farm\s*Tomita|라벤더\s*소프트)/i.test(rawRoute)
+  ) {
     push('Valensole lavender plateau Provence')
     push('Aix-en-Provence old town fountain')
   }
@@ -2250,7 +2254,11 @@ function allowSafariClusterKw2Duplicate(kw: string, routeText?: string | null): 
 
 function allowProvenceClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
-  if (!/(?:프로방스|Provence|라벤더|Lavender|엑스\s*프로방스|Aix-en-Provence|아비뇽|Avignon|루(?:베|르)(?:봉|손)|Roussillon|세네끄|Senanque|오랑주|Orange)/i.test(String(routeText ?? ''))) {
+  const route = String(routeText ?? '')
+  if (/(?:후라노|비에이|홋카이도|Hokkaido|Furano|Biei|Farm\s*Tomita|라벤더\s*소프트)/i.test(route)) {
+    return false
+  }
+  if (!/(?:프로방스|Provence|라벤더\s*밭|엑스\s*프로방스|Aix-en-Provence|아비뇽|Avignon|루(?:베|르)(?:봉|손)|Roussillon|세네끄|Senanque|오랑주|Orange)/i.test(route)) {
     return false
   }
   const nk = normScheduleImageKeywordKey(kw)

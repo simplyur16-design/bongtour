@@ -15,7 +15,8 @@ import {
   parseKyowontourCoreTabDetail,
   parseKyowontourScheduleTabDetail,
 } from '@/lib/kyowontour-tour-event-tab-data'
-import { applyKyowontourUrlDetailThreeSlotToCalendarRows } from '@/lib/kyowontour-tourcode-detail-meta'
+import { applyKyowontourUrlDetailThreeSlotToCalendarRows, synthesizeKyowontourUrlAnchorCalendarRow } from '@/lib/kyowontour-tourcode-detail-meta'
+import { filterKyowontourCalendarRowsByUrlTourCodeLine } from '@/lib/kyowontour-tourcode-line'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
@@ -25,7 +26,10 @@ import {
 } from '@/lib/register-facts/product-kind'
 import { kyowontourCalendarRowsToRegisterFactFlights } from '@/lib/register-facts/kyowontour-register-fact-flights'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
-import { extractKyowontourProductTitleFromDetailHtml } from '@/lib/kyowontour-register-api-detail'
+import {
+  extractKyowontourAirlineNameFromDetailHtml,
+  extractKyowontourProductTitleFromDetailHtml,
+} from '@/lib/kyowontour-register-api-detail'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
 
@@ -98,21 +102,35 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
   const scheduleTab = parseKyowontourScheduleTabDetail(scheduleDetail)
   const scheduleDays = registerScheduleToFactDays(scheduleTabParsedToRegisterDays(scheduleTab))
 
+  // monthEvtList 날짜별 dayAirList — 월초 seed만 쓰면 08-01·이스타 변형이 URL(7C) 라인을 덮음
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: skipPerDateDayAirFetch false — monthEvt dayAir — manifest
   const cal = await collectKyowontourCalendarRange(hidden.masterCode, {
     monthCount: 6,
     disableE2EFallback: true,
-    skipPerDateDayAirFetch: true,
+    skipPerDateDayAirFetch: false,
     tourCodeForE2EFallback: hidden.tourCode,
     refererUrl: url,
     logLabel: 'register-facts-kyowontour',
   })
+  // REGRESSION-FREEZE[kyowontour-tourcode-line]: URL tourCode 항공 변형(7C≠ZE) 필터 — manifest
+  const lineRows = filterKyowontourCalendarRowsByUrlTourCodeLine(cal.rows, hidden.tourCode)
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: N× tourCode SSR enrich 생략 — URL HTML 1회 3슬롯만 — manifest
   // REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: applyUrlDetailThreeSlot — manifest
-  const enrichedRows = applyKyowontourUrlDetailThreeSlotToCalendarRows(
-    cal.rows,
+  let enrichedRows = applyKyowontourUrlDetailThreeSlotToCalendarRows(
+    lineRows,
     html,
     hidden.tourCode,
   )
+  const urlTc = hidden.tourCode.trim()
+  if (urlTc && !enrichedRows.some((r) => r.tourCode.trim() === urlTc)) {
+    const airlineFromHtml = extractKyowontourAirlineNameFromDetailHtml(html)
+    const anchor = synthesizeKyowontourUrlAnchorCalendarRow({
+      html,
+      urlTourCode: urlTc,
+      airlineName: airlineFromHtml,
+    })
+    if (anchor) enrichedRows = [anchor, ...enrichedRows]
+  }
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
@@ -121,7 +139,11 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     .map((r) => kyowontourCalendarRowToFactPriceRow(r))
     .filter((row): row is NonNullable<typeof row> => row != null)
 
-  const flights = kyowontourCalendarRowsToRegisterFactFlights(enrichedRows, scheduleTab.meetingText)
+  const flights = kyowontourCalendarRowsToRegisterFactFlights(
+    enrichedRows,
+    scheduleTab.meetingText,
+    urlTc || null,
+  )
 
   const nightsDays = html.match(/(\d+)\s*박\s*(\d+)\s*일/)
 

@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: tourCode detail SSR meta — manifest
  */
 import type { KyowontourCalendarRow } from '@/lib/kyowontour-departures'
+import { parseKyowontourTourCodeDateAndVariant } from '@/lib/kyowontour-tourcode-line'
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
 
 export type KyowontourTourCodeDetailMeta = {
@@ -206,20 +207,43 @@ export function applyKyowontourUrlDetailThreeSlotToCalendarRows(
       }
       return withMeta
     }
-    // 같은 master 라인 — URL 상세 child/infant만 비어 있는 행에 보강(추가 fetch 없음)
-    const raw = row.rawJson as Record<string, unknown>
-    const hasChild = positivePrice(raw.childPrice ?? raw.chdAmt ?? raw.childAmt) != null
-    const hasInfant = positivePrice(raw.infantPrice ?? raw.infAmt ?? raw.infantAmt) != null
-    if ((slots.childPrice != null && !hasChild) || (slots.infantPrice != null && !hasInfant)) {
-      return mergeMetaIntoCalendarRow(row, {
-        ...meta,
-        tourCode: row.tourCode,
-        childPrice: hasChild ? positivePrice(raw.childPrice) : slots.childPrice,
-        infantPrice: hasInfant ? positivePrice(raw.infantPrice) : slots.infantPrice,
-      })
-    }
+    // URL tourCode와 다른 항공 변형(ZE vs 7C)에는 child/infant를 퍼뜨리지 않음
     return row
   })
+}
+
+/**
+ * URL tourCode가 달력에 없을 때 — tourCode 날짜 + HTML 3슬롯·항공으로 앵커 행 합성.
+ * REGRESSION-FREEZE[kyowontour-tourcode-line]: synthesizeUrlAnchorCalendarRow — manifest
+ */
+export function synthesizeKyowontourUrlAnchorCalendarRow(args: {
+  html: string
+  urlTourCode: string
+  airlineName?: string | null
+}): KyowontourCalendarRow | null {
+  const tc = args.urlTourCode.trim()
+  if (!tc) return null
+  const { departYmd } = parseKyowontourTourCodeDateAndVariant(tc)
+  if (!departYmd) return null
+  const slots = parseKyowontourThreeSlotPricesFromDetailHtml(args.html)
+  if (slots.adultPrice == null || slots.adultPrice <= 0) return null
+  const airline = String(args.airlineName ?? '').trim()
+  return {
+    departDate: departYmd,
+    returnDate: '',
+    tourCode: tc,
+    airline,
+    adultPriceFromCalendar: slots.adultPrice,
+    status: 'available',
+    rawJson: {
+      tourCode: tc,
+      adultPrice: slots.adultPrice,
+      childPrice: slots.childPrice,
+      infantPrice: slots.infantPrice,
+      preferredAirlineNm: airline || undefined,
+      source: 'url_tourcode_html_anchor',
+    },
+  }
 }
 
 export type KyowontourTourCodeEnrichOptions = {

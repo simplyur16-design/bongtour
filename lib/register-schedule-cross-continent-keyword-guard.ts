@@ -49,6 +49,10 @@ const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /Hagia\s*Sophia/i,
   /Topkapi/i,
   /Bosphorus/i,
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Provence — 일본(홋카이도) 환각 차단 — manifest
+  /\bProvence\b/i,
+  /\bValensole\b/i,
+  /Aix-en-Provence/i,
 ]
 
 const JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE =

@@ -96,4 +96,16 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('니지노마츠바라')).toMatch(/Nijinomatsubara/i)
     expect(firstMatchingScheduleSpotEn('비엔티엔')).toMatch(/Vientiane|That Luang/i)
   })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 치토세 공항·후라노 라벤더 — Provence 환각 금지 — manifest
+  it('maps Hokkaido Farm Tomita lavender and Chitose airport — not Provence', () => {
+    expect(firstMatchingScheduleSpotEn('팜 토미타 - 라벤더 소프트 아이스크림 증정')).toMatch(
+      /Farm Tomita|Furano/i,
+    )
+    expect(firstMatchingScheduleSpotEn('팜 토미타 - 라벤더 소프트 아이스크림 증정')).not.toMatch(
+      /Provence|Valensole/i,
+    )
+    expect(firstMatchingScheduleSpotEn('치토세 국제공항 이동')).toMatch(/Chitose/i)
+    expect(firstMatchingScheduleSpotEn('프로방스 라벤더 밭')).toMatch(/Provence|Valensole/i)
+  })
 })
