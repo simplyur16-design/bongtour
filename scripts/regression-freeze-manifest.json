@@ -6849,7 +6849,9 @@
             "applyLottetourScheduleExpressionToRows",
             "composeLottetourScheduleDescription",
             "독일 일주 vibe 분화",
-            "프랑스 일주 vibe 분화"
+            "프랑스 일주 vibe 분화",
+            "첫날 arrival·마지막날 return 고정",
+            "당일 route 명소 있으면 타일 bleed 금지"
           ]
         },
         {

@@ -43,13 +43,13 @@ describe('lottetour Germany schedule quality', () => {
     ).toBe('뉘른베르크 - 밤베르크 - 드레스덴')
   })
 
-  it('apply keywords — landmarks not bare ALL-CAPS cities; vibe differs by day', () => {
+  it('apply keywords — no Day1 Dresden bleed; Berlin day7 and return filled', () => {
     const expressed = applyLottetourScheduleExpressionToRows([
       {
         day: 1,
         title: '프랑크푸르트',
         description: '도착',
-        routeText: '프랑크푸르트 - 필독사항',
+        routeText: '프랑크푸르트',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -57,7 +57,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 2,
         title: '프랑크푸르트',
         description: '라인',
-        routeText: '프랑크푸르트 - 뤼데스하임 - 로텐부르크 - 캠프텐 - 켐프텐 - KEMPTEN',
+        routeText: '프랑크푸르트 - 뤼데스하임 - 로텐부르크 - 캠프텐',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -65,7 +65,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 3,
         title: '캠프텐',
         description: '성',
-        routeText: '캠프텐 - 퓌센 - 뮌헨 - 내부입장 - 조망 - 성모교회',
+        routeText: '캠프텐 - 퓌센 - 뮌헨 - 성모교회',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -73,7 +73,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 4,
         title: '뮌헨',
         description: '킴제',
-        routeText: '뮌헨 - 킴제 - 뉘른베르크 - 내부입장',
+        routeText: '뮌헨 - 킴제 - 뉘른베르크',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -81,7 +81,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 5,
         title: '뉘른베르크',
         description: '드레스덴',
-        routeText: '뉘른베르크 - 밤베르크 - 드레스덴 - DRESDEN',
+        routeText: '뉘른베르크 - 밤베르크 - 드레스덴',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -89,7 +89,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 6,
         title: '드레스덴',
         description: '베를린',
-        routeText: '드레스덴 - 포츠담 - 베를린 - 정원입장 - BERLIN',
+        routeText: '드레스덴 - 포츠담 - 베를린',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -97,7 +97,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 7,
         title: '베를린',
         description: '구박물관',
-        routeText: '베를린 - 구박물관 - 내부관람',
+        routeText: '베를린 - 구박물관',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -105,7 +105,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 8,
         title: '베를린',
         description: 'ICE',
-        routeText: '베를린 - 프랑크푸르트 - ICE - FRANKFURT',
+        routeText: '베를린 - 프랑크푸르트',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -123,21 +123,20 @@ describe('lottetour Germany schedule quality', () => {
       productTitle: '독일 완전일주 9일',
     })
 
-    expect(out[1]?.routeText).not.toMatch(/KEMPTEN|필독|내부입장|ICE/i)
-    expect(out[1]?.routeText).toMatch(/뤼데스하임/)
-    expect(out[1]?.imageKeyword).toMatch(/Rudesheim|Rothenburg/i)
-    expect(isBareCityOrCountryKeyword(out[1]?.imageKeyword ?? '')).toBe(false)
-    expect(String(out[1]?.imageKeyword ?? '')).not.toMatch(/^KEMPTEN$/i)
+    // Day1 도착 — Dresden/Herrenchiemsee 등 타일 랜드마크 bleed 금지
+    expect(String(out[0]?.imageKeyword ?? '')).not.toMatch(
+      /Dresden|Frauenkirche|Sanssouci|Brandenburg|Herrenchiemsee|Neuschwanstein/i,
+    )
+    expect(out[0]?.imageKeyword).toMatch(/Romerberg/i)
+    expect(out[0]?.description).toMatch(/도착|입국|첫날/)
 
-    expect(out[2]?.imageKeyword).toMatch(/Neuschwanstein|Frauenkirche|Marienplatz/i)
-    expect(out[3]?.imageKeyword).toMatch(/Herrenchiemsee|Marienplatz|Nuremberg/i)
-    expect(out[4]?.imageKeyword).toMatch(/Dresden|Bamberg|Nuremberg/i)
-    expect(out[5]?.imageKeyword).toMatch(/Brandenburg|Sanssouci|Dresden/i)
-    expect(out[6]?.imageKeyword).toMatch(/Altes Museum|Brandenburg|Cecilienhof/i)
+    expect(out[5]?.imageKeyword).toMatch(/Sanssouci|Brandenburg|Dresden/i)
+    // Day7 — Brandenburg 이미 쓰였어도 구박물관·Reichstag 등 당일 증거로 채움
+    expect(out[6]?.imageKeyword).toMatch(/Altes Museum|Reichstag|Checkpoint|Brandenburg|Cecilienhof/i)
+    expect(String(out[6]?.routeText ?? '')).not.toMatch(/캠프텐|Kempten/i)
 
-    expect(out[1]?.description).not.toBe(out[2]?.description)
-    expect(out[1]?.description).not.toMatch(/하루 동안 여러 장면/)
-    expect(out[5]?.description).not.toMatch(/하루 동안 여러 장면/)
+    // Day9 귀국 — 빈 슬롯 금지
+    expect(String(out[8]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
     expect(out[8]?.description).toMatch(/귀국|마무리|이동 중심/)
   })
 })

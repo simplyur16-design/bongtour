@@ -266,11 +266,12 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
 }
 
 function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBlob: string): LottetourScheduleVibeProfile {
-  if (day === maxDay && /(?:도착|귀국|출국|해산)/u.test(joinedBlob)) {
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 첫날 arrival·마지막날 return 고정 — manifest
+  if (day === maxDay) {
     if (/사원|temple|럭키|행운|축원|기도|웡타이/i.test(joinedBlob)) return 'return_calm'
     return 'return_transit'
   }
-  if (day === 1 && /(?:출발|도착|공항|입국)/u.test(joinedBlob)) return 'arrival'
+  if (day === 1) return 'arrival'
   // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 싱가포르 vibe — 전일 동일 generic 금지 — manifest
   if (/(?:유|우)니버설\s*스튜디오|Universal\s*Studios/i.test(joinedBlob)) return 'singapore_uss'
   if (

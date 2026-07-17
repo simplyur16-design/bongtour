@@ -602,6 +602,14 @@ function collectLottetourDayLandmarkKeywords(row: {
   if (dayHay) {
     for (const { en } of findAllScheduleSpotMatchesInText(dayHay)) pushSafe(en)
   }
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 베를린 단독일 Brandenburg 중복 시 alt — manifest
+  const berlinHay = `${rt}\n${dayHay}`
+  if (/베를린|Berlin/i.test(berlinHay) && !/프랑크푸르트|Frankfurt/i.test(rt)) {
+    pushSafe('Brandenburg Gate Berlin')
+    pushSafe('Altes Museum Berlin')
+    pushSafe('Reichstag Building Berlin')
+    pushSafe('Checkpoint Charlie Berlin')
+  }
   return landmarks
 }
 
@@ -612,10 +620,15 @@ function shouldFillLottetourDepartureAdjacent(
 ): boolean {
   const p = String(primary ?? '').trim()
   if (p && !isBareCityOrCountryKeyword(p) && isLikelyTourismLandmarkKeyword(p)) return false
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 당일 route 명소 있으면 타일 bleed 금지 — manifest
+  const own = collectLottetourDayLandmarkKeywords(row).filter((kw) => {
+    const t = String(kw ?? '').trim()
+    return Boolean(t) && !isBlockedScheduleImageKeyword(t) && !isScheduleAirportLikeImageKeyword(t)
+  })
+  if (own.length > 0) return false
   if (isScheduleAirportOnlyRouteText(row.routeText, isLottetourDomesticHubToken)) return true
   if (isScheduleDepartureReturnAdjacentKeywordRow(row, isLottetourDomesticHubToken)) return true
-  const own = collectLottetourDayLandmarkKeywords(row).filter((kw) => isLikelyTourismLandmarkKeyword(kw))
-  return own.length === 0
+  return true
 }
 
 /** routeText·세그먼트에서 관광지 고유명 영문 — 이동 순서 유지 */
