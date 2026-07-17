@@ -80,6 +80,7 @@ const TRAILING_MODIFIER_WORDS = [
   'landmark',
   'exterior',
   'interior',
+  'dome',
   'facade',
   'architecture',
   'view',

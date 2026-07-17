@@ -158,6 +158,12 @@ type LottetourScheduleVibeProfile =
   | 'uk_scotland'
   | 'uk_ireland'
   | 'uk_countryside'
+  | 'turkey_istanbul'
+  | 'turkey_cappadocia'
+  | 'turkey_pamukkale'
+  | 'turkey_aegean'
+  | 'turkey_antalya'
+  | 'turkey_central'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -310,6 +316,31 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '석회암 마을과 전원 풍경이 이어지는, 잉글랜드 시골의 걷는 리듬이 돋보이는 하루입니다.',
     '작은 마을들의 분위기가 자연스럽게 연결되어 여운이 길게 남습니다.',
   ],
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 튀르키예 vibe 분화 — manifest
+  turkey_istanbul: [
+    '모스크와 궁전·골목이 이어지는 하루로, 역사의 층이 일정 리듬을 이끕니다.',
+    '도심을 천천히 가로지르며 도시의 결을 쌓아 가는 구성입니다.',
+  ],
+  turkey_cappadocia: [
+    '기암과 계곡이 이어지는 하루로, 풍경의 스케일이 중심이 됩니다.',
+    '이동보다 시야가 열리는 순간이 이어져 여운이 길게 남는 구성입니다.',
+  ],
+  turkey_pamukkale: [
+    '석회 계단과 유적이 이어지는 하루로, 하얀 풍경이 하이라이트입니다.',
+    '관람과 이동이 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+  ],
+  turkey_aegean: [
+    '마을과 유적지가 이어지는 연안 하루로, 걷는 리듬이 돋보입니다.',
+    '짧은 체류에도 분위기 차이가 분명하게 느껴지는 구성입니다.',
+  ],
+  turkey_antalya: [
+    '구시가지와 해안 풍경이 이어지는 여유로운 하루입니다.',
+    '바다와 유적의 대비가 시야를 넓히며 흐름의 중심이 됩니다.',
+  ],
+  turkey_central: [
+    '호수와 초원이 이어지는 내륙 이동형 하루로, 풍경 변화가 돋보입니다.',
+    '짧은 체류에도 지형의 결이 분명하게 느껴지는 구성입니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -442,6 +473,25 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'
   }
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 튀르키예 vibe 분화 — manifest
+  if (/카파도키아|Cappadocia|괴레메|Goreme|데린쿠유|우치히사르|데브란트/i.test(joinedBlob)) {
+    return 'turkey_cappadocia'
+  }
+  if (/파묵칼레|Pamukkale|히에라폴리스|Hierapolis/i.test(joinedBlob)) {
+    return 'turkey_pamukkale'
+  }
+  if (/쉬린제|Sirince|에페소|Ephesus|아이발릭|Ayvalik/i.test(joinedBlob)) {
+    return 'turkey_aegean'
+  }
+  if (/안탈리아|Antalya|오브룩|Obruk|올림포스|Olympos/i.test(joinedBlob)) {
+    return 'turkey_antalya'
+  }
+  if (/이스탄불|Istanbul|성\s*소피아|Hagia|돌마바흐|Dolmabahce|지하물궁전|톱카프|Topkapi|보스포러스|Bosphorus|부르사|Bursa/i.test(joinedBlob)) {
+    return 'turkey_istanbul'
+  }
+  if (/투즈골다|Lake\s*Tuz|앙카라|Ankara|콘야/i.test(joinedBlob)) {
+    return 'turkey_central'
+  }
   if (/피크|peak|하버|harbor|빅토리아|전망|야경|스타\s*페리|침사|오페라|본다이|시드니/i.test(joinedBlob)) {
     return 'harbor_skyline'
   }
@@ -462,7 +512,7 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
-  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형|상징 랜드마크와 거리가 이어지는 수도|해안과 수도원 풍경이 이어지는|고성과 강변 풍경이 이어지는|와인 마을과 강변 도시가 이어지는|중세 성채와 구시가지가 이어지는|해변 산책로와 절벽 마을이 이어지는/u.test(
+  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형|상징 랜드마크와 거리가 이어지는 수도|해안과 수도원 풍경이 이어지는|고성과 강변 풍경이 이어지는|와인 마을과 강변 도시가 이어지는|중세 성채와 구시가지가 이어지는|해변 산책로와 절벽 마을이 이어지는|모스크와 궁전·골목이 이어지는|기암과 계곡이 이어지는|석회 계단과 유적이 이어지는|마을과 유적지가 이어지는|구시가지와 해안 풍경이 이어지는|호수와 초원이 이어지는/u.test(
     t,
   )
 }

@@ -125,10 +125,14 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(ROUTE_MARKETING_PREFIX_STRIP_RE, '')
     // REGRESSION-FREEZE[register-schedule-route-place-noise]: 국가/지역 접두·뷰레스토랑 — manifest
     .replace(
-      /^(?:프랑스|이탈리아|독일|스페인|스위스|포르투갈|오스트리아|체코|헝가리|벨기에|네덜란드)\s*[\/／]\s*/u,
+      /^(?:프랑스|이탈리아|독일|스페인|스위스|포르투갈|오스트리아|체코|헝가리|벨기에|네덜란드|튀르키예|터키)\s*[\/／]\s*/u,
       '',
     )
     .replace(/\s*(?:뷰\s*)?레스토랑(?:\s*&?\s*거리)?$/u, '')
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: 터키 체험·이동 꼬리 — manifest
+    .replace(/^카라반들의\s*숙소\s*/u, '')
+    .replace(/\s*(?:지프\s*차|지프차|카트)$/u, '')
+    .replace(/^(이스탄불)\s*(?:이동|야경)$/u, '$1')
     // REGRESSION-FREEZE[register-schedule-route-place-noise]: 야간·일정종료 꼬리 — manifest
     .replace(/\s*야간\s*$/u, '')
     .replace(/\s*일정이\s*끝난\s*후(?:\s*공항)?$/u, '')
@@ -338,6 +342,11 @@ export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | nu
     return null
   }
   // `항구도시 자다르` → 자다르
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 튀르키예의 수도 앙카라 → 앙카라 — manifest
+  const turkeyCapital = t0.match(/^(?:튀르키예|터키)의\s*수도\s+(.{2,24})$/u)
+  if (turkeyCapital?.[1]) {
+    return extractRegisterScheduleRoutePlaceLabel(turkeyCapital[1].trim())
+  }
   const harborCity = t0.match(/^(?:항구\s*도시|수도\s*도시|휴양\s*도시)\s+(.{2,24})$/u)
   if (harborCity?.[1]) {
     return extractRegisterScheduleRoutePlaceLabel(harborCity[1].trim())
@@ -380,6 +389,10 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^(?:내부\s*(?:입장|관람)?|외관|입장|정원\s*입장|조망)$/u.test(t)) return true
   if (/사진\s*촬영\s*(?:후\s*)?이동/u.test(t)) return true
   if (/^AFTERNOON\s*TEA$/i.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 터키 체험·이동 꼬리 노이즈 — manifest
+  if (/밸리\s*댄스|벨리\s*댄스/u.test(t)) return true
+  if (/^지프\s*차$|^지프차$|^파묵칼레\s*카트$/u.test(t)) return true
+  if (/^카라반들의\s*숙소$/u.test(t)) return true
   if (/롯데관광\s*유일/u.test(t)) return true
   // 일정 산문 덤프(돌로미티 「낭만과 비극을…」) — 지명 세그먼트 아님
   if (
@@ -403,7 +416,7 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   }
   if (/^(?:VELIZY|MEUDON)$/i.test(t) && t.length <= 12) return true
   if (
-    /^(?:프랑스|이탈리아|독일|스페인|포르투갈|스위스|영국|오스트리아|체코|헝가리|벨기에|네덜란드)$/u.test(
+    /^(?:프랑스|이탈리아|독일|스페인|포르투갈|스위스|영국|오스트리아|체코|헝가리|벨기에|네덜란드|튀르키예|터키)$/u.test(
       t,
     )
   ) {

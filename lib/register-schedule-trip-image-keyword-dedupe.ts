@@ -1422,10 +1422,10 @@ function pickEasternEuropeClusterKeywordForUsedSlot(
     'Three Brothers Houses Riga Latvia',
     'Geirangerfjord Norway waterfall',
     'Flam Norway Fjord Railway',
-    'Hagia Sophia Istanbul Interior Dome',
-    'Cappadocia hot air balloons Turkey',
-    'Taj Mahal Agra India marble dome sunrise',
-    'Hawa Mahal Jaipur pink facade India',
+    'Hagia Sophia Istanbul',
+    'Cappadocia Fairy Chimneys',
+    'Taj Mahal Agra India',
+    'Hawa Mahal Jaipur',
     'Amber Fort Jaipur India',
   ]) {
     if (!easternEuropeHardcodedPoolHasDayRouteEvidence(raw, evidenceHay)) continue

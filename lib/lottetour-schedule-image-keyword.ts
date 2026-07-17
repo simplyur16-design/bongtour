@@ -350,7 +350,7 @@ function lottetourAirtelFreeTravelRegionalFallbackLocal(h: string): string {
     return 'European historic city center architecture plaza'
   if (/(영국|아일랜드|스코틀랜드|에든버러)/i.test(h)) return 'British Isles historic city street architecture'
   if (/(중동|터키|튀르키예|Turkey|요르단|이집트|모로코|UAE|아랍)/i.test(h))
-    return 'Istanbul Bosporus mosque skyline sunset'
+    return 'Blue Mosque Istanbul'
   if (/(아프리카|케냐|남아프리카|모잠비크)/i.test(h)) return 'Africa savanna lodge sunrise landscape'
   if (/(호주|뉴질랜드|Oceania)/i.test(h)) return 'Oceania coastal city waterfront skyline'
   if (/(미국|캐나다|하와이|알래스카|멕시코|Mexico)/i.test(h)) return 'North America urban skyline downtown day'
@@ -400,7 +400,7 @@ function lottetourResolveAirtelFreeTravelImageKeywordLocal(ctx: LottetourImageKe
     { re: /시드니|Sydney/i, en: 'Sydney Opera House harbour bridge view' },
     { re: /멜번|Melbourne/i, en: 'Melbourne laneway cafes city day' },
     { re: /아테네|Athens/i, en: 'Athens Acropolis historic skyline' },
-    { re: /이스탄불|Istanbul/i, en: 'Istanbul Bosporus mosque skyline sunset' },
+    { re: /이스탄불|Istanbul/i, en: 'Blue Mosque Istanbul' },
     { re: /두바이|Dubai/i, en: 'Dubai Marina skyline skyscrapers night' },
     { re: /싱가포르|Singapore/i, en: 'Singapore Marina Bay night skyline' },
     { re: /쿠알라룸푸르|Kuala Lumpur/i, en: 'Kuala Lumpur Petronas Twin Towers' },

@@ -87,13 +87,18 @@ function kyowontourRouteTextSegments(routeText: string | null | undefined): stri
     .filter((s) => s.length >= 2 || /[\uAC00-\uD7AF]/u.test(s))
 }
 
-/** REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 항공사·허브·home 등 — manifest */
+/** REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 항공사·허브·home·skyline 등 — manifest */
 function isKyowontourRejectedImageKeywordCandidate(kw: string | null | undefined): boolean {
   const t = String(kw ?? '').trim()
   if (!t) return true
   if (isBlockedScheduleImageKeyword(t)) return true
   if (isAirlineCarrierImageKeyword(t)) return true
   if (isKyowontourPlaceholderImageKeyword(t)) return true
+  if (/\bskyline\b/i.test(t)) return true
+  if (/\b(?:interior|dome|courtyard|cruise\s*view|cable\s*car\s*view|sinkhole|wine\s*houses|hot\s*air\s*balloons)\b/i.test(t)) {
+    // allow Night Market pattern elsewhere; reject banned admin modifiers
+    if (!/\bnight\s*market\b/i.test(t)) return true
+  }
   if (!isScheduleImageKeywordLandmarkEligible(t)) return true
   return false
 }
@@ -396,7 +401,7 @@ function kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx: KyowontourImage
     { re: /시드니|Sydney/i, en: 'Sydney Opera House harbour bridge view' },
     { re: /멜번|Melbourne/i, en: 'Melbourne laneway cafes city day' },
     { re: /아테네|Athens/i, en: 'Athens Acropolis historic skyline' },
-    { re: /이스탄불|Istanbul/i, en: 'Istanbul Bosporus mosque skyline sunset' },
+    { re: /이스탄불|Istanbul/i, en: 'Blue Mosque Istanbul' },
     { re: /두바이|Dubai/i, en: 'Dubai Marina skyline skyscrapers night' },
     { re: /싱가포르|Singapore/i, en: 'Singapore Marina Bay night skyline' },
     { re: /쿠알라룸푸르|Kuala Lumpur/i, en: 'Kuala Lumpur Petronas Twin Towers' },

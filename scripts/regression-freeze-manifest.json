@@ -4946,7 +4946,9 @@
             "독일 한·영 도시 중복",
             "독일 숙박거점 캠프텐 북부 bleed 금지",
             "호텔명·교외토큰·단독 국가명",
-            "국가/지역 접두·뷰레스토랑"
+            "국가/지역 접두·뷰레스토랑",
+            "튀르키예의 수도 앙카라 → 앙카라",
+            "터키 체험·이동 꼬리"
           ]
         },
         {
@@ -5837,6 +5839,7 @@
             "독일 일주 명소",
             "프랑스 일주 명소",
             "이탈리아·영국 일주 명소",
+            "튀르키예 명소 — skyline·interior 보조어 금지",
             "Matsue Castle",
             "Garuda Wisnu Kencana",
             "Melasti Beach",
@@ -6905,6 +6908,7 @@
             "독일 일주 vibe 분화",
             "프랑스 일주 vibe 분화",
             "이탈리아·영국 vibe 분화",
+            "튀르키예 vibe 분화",
             "첫날 arrival·마지막날 return 고정"
           ]
         },
@@ -6972,7 +6976,8 @@
       "vitestSuites": [
         "lib/kyowontour-register-api-schedule.test.ts",
         "lib/kyowontour-register-schedule-collect.test.ts",
-        "lib/kyowontour-schedule-france-image-keyword.test.ts"
+        "lib/kyowontour-schedule-france-image-keyword.test.ts",
+        "lib/kyowontour-schedule-turkey-image-keyword.test.ts"
       ]
     },
     {

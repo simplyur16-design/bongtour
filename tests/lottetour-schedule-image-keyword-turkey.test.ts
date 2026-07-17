@@ -85,7 +85,7 @@ describe('lottetour schedule imageKeyword — Turkey complete tour', () => {
       productDestination: '튀르키예',
     })
 
-    assert.match(out[0]!.imageKeyword!, /Istanbul|Bosporus/i, `day1: ${out[0]!.imageKeyword}`)
+    assert.match(out[0]!.imageKeyword!, /Istanbul|Bosporus|Blue Mosque/i, `day1: ${out[0]!.imageKeyword}`)
     assert.match(out[1]!.imageKeyword!, /Sultan Ahmed|Grand Bazaar/i, `day2: ${out[1]!.imageKeyword}`)
     assert.match(out[2]!.imageKeyword!, /Devrent|Uchisar|Goreme|Derinkuyu|Lake Tuz|Cappadocia/i, `day3: ${out[2]!.imageKeyword}`)
     assert.match(out[3]!.imageKeyword!, /Hadrian|Yivli|Antalya|Obruk/i, `day4: ${out[3]!.imageKeyword}`)
@@ -96,7 +96,7 @@ describe('lottetour schedule imageKeyword — Turkey complete tour', () => {
     assert.match(out[6]!.imageKeyword!, /Balat|Topkapi|Hagia Sophia/i, `day7: ${out[6]!.imageKeyword}`)
     assert.match(out[7]!.imageKeyword!, /Bosphorus|Pierre Loti|Istanbul/i, `day8: ${out[7]!.imageKeyword}`)
     assert.doesNotMatch(out[7]!.imageKeyword!, /Seoul/i)
-    assert.match(out[8]!.imageKeyword!, /Istanbul/i, `day9: ${out[8]!.imageKeyword}`)
+    assert.match(out[8]!.imageKeyword!, /Istanbul|Blue Mosque|Hagia Sophia|Bosphorus/i, `day9: ${out[8]!.imageKeyword}`)
     assert.doesNotMatch(out[8]!.imageKeyword!, /\bSeoul\b|Incheon/i)
   })
 
