@@ -945,6 +945,9 @@ function browseParamTargetsRegionBucketOnly(param: string, dbCountries: string[]
  */
 const COMBINED_BROWSE_COUNTRY_KEY_EXPANSIONS: Record<string, string[]> = {
   'australia-new-zealand': ['australia', 'newzealand'],
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia → stan master countryKeys — manifest
+  'central-asia': ['kazakhstan', 'kyrgyzstan', 'uzbekistan'],
+  중앙아시아: ['kazakhstan', 'kyrgyzstan', 'uzbekistan'],
 }
 
 export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null | undefined): string[] {

@@ -9,6 +9,7 @@ import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-
 import {
   continentTabIdForMatch,
   isAmericasSouthAmericaBrowseCountryKey,
+  isCentralAsiaBrowseCountryKey,
 } from '@/lib/unified-location-tree'
 import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherence'
 import { countrySlugFromLabel } from '@/lib/location-url-slugs'
@@ -77,6 +78,9 @@ export function inferMegaMenuSubgroupFromRegisterTags(
       EUROPE_NORTHERN_MENU_GROUP_SLUG,
       countrySlugFromLabel('스페인/포르투갈'),
       EUROPE_WESTERN_MENU_GROUP_SLUG,
+      // REGRESSION-FREEZE[mega-menu-product-alignment]: europe-me 중앙아시아·코카서스 tag → subgroup — manifest
+      countrySlugFromLabel('중앙아시아'),
+      countrySlugFromLabel('코카서스 3국'),
     ]
     for (const slug of europeSlugs) {
       const groupCountries = resolveMegaMenuGroupCountryKeySlugs(regionId, slug)
@@ -85,7 +89,6 @@ export function inferMegaMenuSubgroupFromRegisterTags(
         if (g) return megaMenuGroupToDisplayLabel(regionId, g.countryLabel)
       }
     }
-    return null
   }
 
   for (const group of tab.groups) {
@@ -208,6 +211,10 @@ export function buildRegisterMegaMenuGeoSummary(input: {
     countryKey === 'latin-caribbean'
   ) {
     browseRegionTab = 'south-america'
+  }
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia cluster → europe-me — manifest
+  if (!browseRegionTab && countryKey && isCentralAsiaBrowseCountryKey(countryKey)) {
+    browseRegionTab = 'europe-me'
   }
   if (!browseRegionTab) warnings.push('해외 목적지 트리 매칭 실패 — 권역 탭 분류 불명')
 

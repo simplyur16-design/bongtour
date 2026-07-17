@@ -146,4 +146,45 @@ describe('register mega menu geo summary', () => {
       }),
     ).toBe(false)
   })
+
+  it('central-asia geo → europe-me tab (not china-hk-mo)', () => {
+    const summary = buildRegisterMegaMenuGeoSummary({
+      geo: {
+        countryKey: 'central-asia',
+        cityKey: null,
+        nodeKey: null,
+        groupKey: 'china-circle',
+        continent: null,
+        continentKey: null,
+        country: null,
+        city: null,
+        locationMatchConfidence: null,
+        locationMatchSource: null,
+      },
+      cityKeys: [],
+      countryTagKeys: ['uzbekistan', 'kazakhstan', 'kyrgyzstan'],
+      tagOpts: {
+        title: '중앙아시아 3국 7박9일 우즈베키스탄/카자흐스탄/키르기스스탄 #노쇼핑노옵션',
+        primaryDestination: '노쇼핑노옵션',
+        destinationRaw: '노쇼핑노옵션',
+        scheduleHaystack: '타슈켄트 사마르칸트 알마티',
+      },
+    })
+    expect(summary.browseRegionTab).toBe('europe-me')
+    expect(summary.subgroupLabel).toBe('중앙아시아')
+    expect(
+      megaMenuSummaryNeedsOperatorReview(summary, {
+        countryTagKeys: ['uzbekistan', 'kazakhstan', 'kyrgyzstan'],
+      }),
+    ).toBe(false)
+  })
+
+  it('infers 중앙아시아 from uzbekistan country tags', () => {
+    const label = inferMegaMenuSubgroupFromRegisterTags(
+      'europe-me',
+      ['uzbekistan', 'kazakhstan', 'kyrgyzstan'],
+      [],
+    )
+    expect(label).toBe('중앙아시아')
+  })
 })

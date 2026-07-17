@@ -88,9 +88,24 @@ export function isAmericasSouthAmericaBrowseCountryKey(countryKey: string): bool
   return AMERICAS_SOUTH_AMERICA_COUNTRY_KEYS.has(countryKey)
 }
 
+/** 중앙아시아(스탄) — 트리는 china-circle 소속이지만 메가메뉴·browse 탭은 유럽/중동 */
+const CENTRAL_ASIA_BROWSE_COUNTRY_KEYS = new Set([
+  'central-asia',
+  'kazakhstan',
+  'kyrgyzstan',
+  'uzbekistan',
+])
+
+/** browse `region=europe-me` — 중앙아시아 카드·트리 countryKey */
+export function isCentralAsiaBrowseCountryKey(countryKey: string): boolean {
+  return CENTRAL_ASIA_BROWSE_COUNTRY_KEYS.has(countryKey)
+}
+
 /** 매칭 트리 → 메가메뉴 browse `region` 탭 id */
 function continentIdForLegacyCountry(groupKey: string, countryKey: string): string {
   if (groupKey === 'japan') return 'japan'
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia → europe-me (not china-hk-mo) — manifest
+  if (CENTRAL_ASIA_BROWSE_COUNTRY_KEYS.has(countryKey)) return 'europe-me'
   if (groupKey === 'china-circle') return 'china-hk-mo'
   if (groupKey === 'sea-taiwan-south-asia') return 'southeast-asia'
   if (groupKey === 'guam-au-nz') return 'oceania'

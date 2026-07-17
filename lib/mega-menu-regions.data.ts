@@ -117,6 +117,17 @@ const EU: MegaMenuCountryGroupDef[] = [
     ],
     true,
   ),
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: 중앙아시아 열 — europe-me + central-asia-stan — manifest
+  G(
+    '중앙아시아',
+    [
+      LC('카자흐스탄', ['카자흐스탄', 'kazakhstan', '알마티', 'almaty']),
+      LC('키르기스스탄', ['키르기스스탄', 'kyrgyzstan', '비슈케크', 'bishkek']),
+      LC('우즈베키스탄', ['우즈베키스탄', 'uzbekistan', '타슈켄트', 'tashkent']),
+      LC('중앙아시아', ['중앙아시아', 'central asia', '스탄']),
+    ],
+    true,
+  ),
   G(
     '북유럽',
     [

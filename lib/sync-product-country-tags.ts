@@ -36,6 +36,14 @@ function groupKeyForMasterCountryTag(countryKey: string): string | null {
   ) {
     return 'americas'
   }
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia stan masters → china-circle tree — manifest
+  if (
+    countryKey === 'kazakhstan' ||
+    countryKey === 'kyrgyzstan' ||
+    countryKey === 'uzbekistan'
+  ) {
+    return 'china-circle'
+  }
   return null
 }
 

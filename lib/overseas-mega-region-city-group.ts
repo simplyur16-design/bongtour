@@ -71,6 +71,7 @@ const SUBGROUP_DISPLAY_ORDER_OVERRIDE: Partial<Record<string, string[]>> = {
     '동유럽',
     '스페인/포르투갈',
     '코카서스 3국',
+    '중앙아시아',
     '북유럽',
     '튀르키예',
     '이집트',

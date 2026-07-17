@@ -29,7 +29,10 @@ import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherenc
 import { citySlugFromTermsAndLabel, countrySlugFromLabel } from '@/lib/location-url-slugs'
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
 import { syncProductGeoTags } from '@/lib/sync-product-geo-tags'
-import { isAmericasSouthAmericaBrowseCountryKey } from '@/lib/unified-location-tree'
+import {
+  isAmericasSouthAmericaBrowseCountryKey,
+  isCentralAsiaBrowseCountryKey,
+} from '@/lib/unified-location-tree'
 
 type Issue = { slug: string; kind: string; detail: string }
 
@@ -68,6 +71,24 @@ function shouldHealLatinCaribbeanCluster(p: ProductRow): boolean {
     nk === 'south-america' ||
     (ck.length > 0 && isAmericasSouthAmericaBrowseCountryKey(ck) && !p.cityKey)
   )
+}
+
+function isHashtagNoiseDestination(raw: string | null | undefined): boolean {
+  const t = (raw ?? '').trim()
+  if (!t || t === '미지정') return true
+  if (/^#/.test(t)) return true
+  if (/노쇼핑|노옵션/.test(t) && !/우즈베|카자흐|키르기스|중앙아시아|uzbekistan|kazakhstan|kyrgyzstan/i.test(t)) {
+    return true
+  }
+  return false
+}
+
+function shouldHealCentralAsiaCluster(p: ProductRow): boolean {
+  if (p.countryTags.length > 0) return false
+  const ck = (p.countryKey ?? '').trim()
+  if (ck === 'central-asia' || isCentralAsiaBrowseCountryKey(ck)) return true
+  const hay = [p.title, p.primaryDestination, p.destinationRaw].filter(Boolean).join(' ')
+  return /중앙아시아|우즈베키스탄|카자흐스탄|키르기스스탄/u.test(hay)
 }
 
 async function evaluateProduct(p: ProductRow): Promise<{
@@ -173,6 +194,70 @@ async function healLatinCaribbeanProduct(p: ProductRow): Promise<ProductRow> {
   return refreshed
 }
 
+async function healCentralAsiaProduct(p: ProductRow): Promise<ProductRow> {
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: prebuild heal central-asia tags — manifest
+  const hay = scheduleHaystack(p.schedule)
+  const dest = isHashtagNoiseDestination(p.primaryDestination)
+    ? '중앙아시아'
+    : (p.primaryDestination ?? '중앙아시아')
+  const destRaw = isHashtagNoiseDestination(p.destinationRaw) ? dest : (p.destinationRaw ?? dest)
+  await prisma.product.update({
+    where: { id: p.id },
+    data: {
+      primaryDestination: dest,
+      destinationRaw: destRaw,
+      countryKey: (p.countryKey ?? '').trim() || 'central-asia',
+      groupKey: 'china-circle',
+    },
+  })
+  await syncProductGeoTags(
+    prisma,
+    p.id,
+    {
+      countryKey: 'central-asia',
+      cityKey: p.cityKey,
+      nodeKey: p.nodeKey,
+      groupKey: 'china-circle',
+      continent: null,
+      continentKey: null,
+      country: null,
+      city: null,
+      locationMatchConfidence: null,
+      locationMatchSource: null,
+    },
+    {
+      title: p.title ?? '',
+      primaryDestination: dest,
+      destinationRaw: destRaw,
+      scheduleHaystack: hay,
+    },
+  )
+  const refreshed = await prisma.product.findUniqueOrThrow({
+    where: { id: p.id },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      travelScope: true,
+      primaryDestination: true,
+      destinationRaw: true,
+      schedule: true,
+      countryKey: true,
+      cityKey: true,
+      nodeKey: true,
+      groupKey: true,
+      countryTags: { select: { countryKey: true, nodeKey: true, isPrimary: true } },
+      cityTags: { select: { cityKey: true, isPrimary: true }, orderBy: { sortOrder: 'asc' } },
+    },
+  })
+  console.warn(
+    `[verify:mega-menu-product-alignment] healed central-asia ${refreshed.slug ?? refreshed.id}: countryTags=${refreshed.countryTags
+      .map((t) => t.countryKey)
+      .join(',')}`,
+  )
+  return refreshed
+}
+
 async function main(): Promise<void> {
   const issues: Issue[] = []
   const leafChecks: Array<{ regionId: string; subgroup: string; cityLabel: string; cityKey: string; ok: boolean }> =
@@ -213,6 +298,15 @@ async function main(): Promise<void> {
       shouldHealLatinCaribbeanCluster(p)
     ) {
       p = await healLatinCaribbeanProduct(p)
+      evaluated = await evaluateProduct(p)
+    }
+    if (
+      megaMenuSummaryNeedsOperatorReview(evaluated.summary, {
+        countryTagKeys: evaluated.countryTagKeys,
+      }) &&
+      shouldHealCentralAsiaCluster(p)
+    ) {
+      p = await healCentralAsiaProduct(p)
       evaluated = await evaluateProduct(p)
     }
 

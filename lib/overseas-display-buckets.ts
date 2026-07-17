@@ -62,7 +62,8 @@ export function mapMatchToOverseasDisplayBucket(
       if (ck === 'hk-mo-sz') return 'china_hk_mo'
       if (ck === 'china-major' || ck === 'inner-mongolia' || ck === 'china-trekking' || ck === 'mongolia')
         return 'china_hk_mo'
-      if (ck === 'central-asia') return 'china_hk_mo'
+      // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia display → europe_me_af — manifest
+      if (ck === 'central-asia') return 'europe_me_af'
       return 'other'
     }
     case 'sea-taiwan-south-asia':

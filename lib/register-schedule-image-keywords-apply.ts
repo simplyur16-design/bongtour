@@ -24,7 +24,7 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSegment } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -99,6 +99,11 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     if (!raw) return row
     // 인천 only — hub SSOT 유지 (blank 하면 Nha Trang bare soft-dup 회귀)
     if (isScheduleDomesticHubOnlyRouteText(raw, isRegisterScheduleDomesticHubRouteSegment)) {
+      return { ...row, routeText: raw }
+    }
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airline-only departure keep raw route — manifest
+    // 항공사명만 sanitize→빈 route면 airline-only 가드 실패 → 다음 관광일 landmark forward-fill
+    if (isAirlineOnlyMovementRouteText(raw)) {
       return { ...row, routeText: raw }
     }
     // 면세·해외공항만 — 원문 복원하지 않음(미사용 명소 bleed 방지)
