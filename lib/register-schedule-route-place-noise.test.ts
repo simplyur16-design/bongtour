@@ -45,9 +45,17 @@ describe('register schedule route place noise', () => {
     expect(isRegisterScheduleRoutePlaceNoise('청도국제공항')).toBe(true)
     expect(isRegisterScheduleRoutePlaceNoise('산동성')).toBe(true)
     expect(isRegisterScheduleRoutePlaceNoise('전신마사지 (60분)')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('전신마사지 1시간')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('쇼핑센터')).toBe(true)
     expect(
       sanitizeRegisterScheduleRouteText('청도 - 산동성 - 청도국제공항 - 5·4광장 - 전신마사지 (60분)'),
     ).toBe('청도 - 5·4광장')
+    expect(
+      sanitizeRegisterScheduleRouteText('옌뜨 국립공원 - 전신마사지 1시간 - 하롱베이'),
+    ).toBe('옌뜨 국립공원 - 하롱베이')
+    expect(sanitizeRegisterScheduleRouteText('쇼핑센터 - 바딘광장 - 한기둥사원')).toBe(
+      '바딘광장 - 한기둥사원',
+    )
   })
 
   it('blocks airline carrier segments — not tourism landmarks', () => {

@@ -164,6 +164,8 @@ type LottetourScheduleVibeProfile =
   | 'turkey_aegean'
   | 'turkey_antalya'
   | 'turkey_central'
+  | 'vietnam_hanoi'
+  | 'vietnam_halong'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -341,6 +343,15 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '호수와 초원이 이어지는 내륙 이동형 하루로, 풍경 변화가 돋보입니다.',
     '짧은 체류에도 지형의 결이 분명하게 느껴지는 구성입니다.',
   ],
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 하노이·하롱 vibe — manifest
+  vietnam_hanoi: [
+    '호수와 사원·골목이 이어지는 하루로, 걷는 리듬이 일정 흐름을 이끕니다.',
+    '도심을 천천히 가로지르며 도시의 결을 쌓아 가는 구성입니다.',
+  ],
+  vietnam_halong: [
+    '석회 섬과 만이 이어지는 선상 하루로, 시야가 넓게 열리는 풍경이 중심입니다.',
+    '유람과 짧은 상륙이 번갈아 이어져 여운이 길게 남는 구성입니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -492,6 +503,13 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   if (/투즈골다|Lake\s*Tuz|앙카라|Ankara|콘야/i.test(joinedBlob)) {
     return 'turkey_central'
   }
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 하노이·하롱 vibe — manifest
+  if (/하롱|Halong|Ha\s*Long|티톱|Ti\s*Top|석회\s*동굴|Surprise\s*Cave/i.test(joinedBlob)) {
+    return 'vietnam_halong'
+  }
+  if (/하노이|Hanoi|쩐꾸옥|바딘|한기둥|호안끼엠|옌뜨|Yen\s*Tu/i.test(joinedBlob)) {
+    return 'vietnam_hanoi'
+  }
   if (/피크|peak|하버|harbor|빅토리아|전망|야경|스타\s*페리|침사|오페라|본다이|시드니/i.test(joinedBlob)) {
     return 'harbor_skyline'
   }
@@ -512,7 +530,7 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
-  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형|상징 랜드마크와 거리가 이어지는 수도|해안과 수도원 풍경이 이어지는|고성과 강변 풍경이 이어지는|와인 마을과 강변 도시가 이어지는|중세 성채와 구시가지가 이어지는|해변 산책로와 절벽 마을이 이어지는|모스크와 궁전·골목이 이어지는|기암과 계곡이 이어지는|석회 계단과 유적이 이어지는|마을과 유적지가 이어지는|구시가지와 해안 풍경이 이어지는|호수와 초원이 이어지는/u.test(
+  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형|상징 랜드마크와 거리가 이어지는 수도|해안과 수도원 풍경이 이어지는|고성과 강변 풍경이 이어지는|와인 마을과 강변 도시가 이어지는|중세 성채와 구시가지가 이어지는|해변 산책로와 절벽 마을이 이어지는|모스크와 궁전·골목이 이어지는|기암과 계곡이 이어지는|석회 계단과 유적이 이어지는|마을과 유적지가 이어지는|구시가지와 해안 풍경이 이어지는|호수와 초원이 이어지는|호수와 사원·골목이 이어지는|석회 섬과 만이 이어지는/u.test(
     t,
   )
 }

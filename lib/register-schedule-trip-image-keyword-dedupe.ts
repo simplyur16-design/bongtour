@@ -1758,7 +1758,7 @@ function pickSoutheastAsiaResortClusterKeywordForUsedSlot(
     'Bayon temple Angkor Cambodia stone faces',
     'Ta Prohm temple Angkor Cambodia jungle roots',
     'Tonle Sap lake floating village Cambodia',
-    'Halong Bay Vietnam limestone karst',
+    'Halong Bay Vietnam',
     'Maldives house reef snorkeling turquoise water',
     'Maldives white sand beach palm trees aerial',
     'Hoi An Ancient Town lantern street',

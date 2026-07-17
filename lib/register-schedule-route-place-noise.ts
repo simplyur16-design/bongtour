@@ -133,6 +133,8 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/^카라반들의\s*숙소\s*/u, '')
     .replace(/\s*(?:지프\s*차|지프차|카트)$/u, '')
     .replace(/^(이스탄불)\s*(?:이동|야경)$/u, '$1')
+    .replace(/^선착장으로\s*이동하여\s*유람선\s*타고\s*/u, '')
+    .replace(/^하노이에서\s*가장\s*큰\s*호수\s*[''"]?/u, '서호')
     // REGRESSION-FREEZE[register-schedule-route-place-noise]: 야간·일정종료 꼬리 — manifest
     .replace(/\s*야간\s*$/u, '')
     .replace(/\s*일정이\s*끝난\s*후(?:\s*공항)?$/u, '')
@@ -254,8 +256,19 @@ export function stripRegisterScheduleRouteSegmentLodgingSuffix(seg: string): str
 /** 마케팅 카드명·cms 라벨 → 순수 장소명 (없으면 null) */
 export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | null {
   const t0 = cleanRegisterScheduleRoutePlaceLabel(raw)
-  if (!t0 || isRegisterScheduleRoutePlaceNoise(t0)) return null
-
+  if (!t0) return null
+  // 산문 덤프 전체가 noise여도 「…이라 불리는 쉔부른궁전」꼬리는 살린다
+  if (isRegisterScheduleRoutePlaceNoise(t0)) {
+    const fromProseDespiteNoise = extractRegisterScheduleProseRoutePlaceTail(t0)
+    if (
+      fromProseDespiteNoise &&
+      !isRegisterScheduleRoutePlaceNoise(fromProseDespiteNoise) &&
+      !isRegisterScheduleMarketingOnlyRouteLabel(fromProseDespiteNoise)
+    ) {
+      return fromProseDespiteNoise.slice(0, 48)
+    }
+    return null
+  }
   const hotelPoi = t0.match(/^(.{2,32})\s*(?:등\s*\d+\s*성\s*호텔|\/\s*(?:준)?\d+\s*성\s*호텔)/u)
   if (hotelPoi?.[1]) {
     return extractRegisterScheduleRoutePlaceLabel(hotelPoi[1].trim())
@@ -438,6 +451,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
     return true
   }
   if (/선택\s*관광|\$\s*\d|(?:전신)?마사지\s*\(\s*\d+\s*분\s*\)|옵션\s*투어|추천\s*선택/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 마사지·쇼핑센터·선착장 이동 문구 — manifest
+  if (/(?:전신|발)?\s*마사지(?:\s*\d+\s*(?:분|시간))?$/u.test(t)) return true
+  if (/^쇼핑\s*센터$|^쇼핑몰$|^스트릿\s*카$/u.test(t)) return true
   if (
     /하루\s*동안\s*여러\s*장면|알찬\s*동선|전체적인\s*흐름과\s*분위기|여행의\s*컨셉|귀국길로\s*이어지|이동\s*중심의\s*마무리|현지\s*도착\s*후\s*첫날|보기와\s*걷기가\s*균형|보기와\s*이동이\s*균형/i.test(
       t,

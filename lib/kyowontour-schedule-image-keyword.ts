@@ -408,7 +408,8 @@ function kyowontourResolveAirtelFreeTravelImageKeywordLocal(ctx: KyowontourImage
     { re: /세부|Cebu/i, en: 'Cebu tropical turquoise beach' },
     { re: /치앙마이|Chiang Mai/i, en: 'Chiang Mai old city temple street' },
     { re: /하노이|Hanoi/i, en: 'Hanoi Old Quarter colonial street day' },
-    { re: /호치민|Ho Chi Minh|사이공/i, en: 'Ho Chi Minh city skyline Saigon river' },
+    // REGRESSION-FREEZE[kyowontour-schedule-expression]: 호치민생가≠HCMC — manifest
+    { re: /(?:호치민(?:시)?|호찌민)(?!\s*생가)|Ho\s*Chi\s*Minh\s*City|사이공/iu, en: 'Ben Thanh Market Ho Chi Minh' },
     { re: /교토|京都|Kyoto/i, en: 'Kyoto bamboo forest temple path' },
     { re: /후쿠오카|福岡|Fukuoka/i, en: 'Fukuoka city ramen street night' },
     { re: /삿포로|札幌|Sapporo/i, en: 'Sapporo snow festival winter city' },
