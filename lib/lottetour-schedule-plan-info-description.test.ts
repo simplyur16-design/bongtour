@@ -8,10 +8,10 @@ import {
 import { parseLottetourScheduleDaysFromScheduleAjax } from '@/lib/lottetour-register-api-detail'
 import { registerScheduleRouteOrTitleHasShoppingNoise } from '@/lib/register-schedule-description-marketing-guard'
 
-// REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info 일정요약 — manifest
+// REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description vibe; plan_info → route·profile — manifest
 
 describe('lottetour schedule plan_info description', () => {
-  it('summarizeLottetourPlanInfoForDescription keeps itinerary body', () => {
+  it('summarizeLottetourPlanInfoForDescription keeps itinerary body (filter helper)', () => {
     const plan =
       '[가든스 바이 더 베이] 클라우드 포레스트·플라워 돔 관람 후 슈퍼트리 전망대. [센토사] 루지·스카이라이더.'
     expect(summarizeLottetourPlanInfoForDescription(plan)).toMatch(/가든스 바이 더 베이/)
@@ -26,7 +26,7 @@ describe('lottetour schedule plan_info description', () => {
     expect(out).not.toMatch(/좌석|수하물|특전|엔터테인/)
   })
 
-  it('compose prefers plan_info over vibe filler', () => {
+  it('compose prefers vibe over plan_info place dump', () => {
     const desc = composeLottetourScheduleDescription({
       day: 2,
       maxDay: 5,
@@ -35,28 +35,31 @@ describe('lottetour schedule plan_info description', () => {
       planInfoRaw:
         '[가든스 바이 더 베이] 2돔·슈퍼트리 관람. [버드 파라다이스] 체험. [머라이언] 외관.',
     })
-    expect(desc).toMatch(/가든스 바이 더 베이/)
-    expect(desc).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+    expect(desc).not.toMatch(/가든스 바이 더 베이|슈퍼트리|버드\s*파라다이스/)
+    expect(isLottetourVibeFillerDescription(desc)).toBe(true)
+    expect(desc.split(/[.!?。]/).filter((s) => s.trim().length > 8).length).toBeLessThanOrEqual(3)
   })
 
-  it('applyLottetourScheduleExpressionToRows does not overwrite plan_info description', () => {
+  it('applyLottetourScheduleExpressionToRows rewrites plan_info dump to vibe', () => {
     const plan =
-      '인천 출발 KE645 탑승 후 싱가포르 도착. 시내 이동 및 호텔 체크인.'
+      '호텔 조식 후 바다와 사막이 공존하는 모험의 땅 포트스테판 이동【약 3시간 30분 소요】 ▣ 사륜구동차(4WD) 탑승 & 모래썰매 체험 ▣ 돌핀 크루즈'
     const out = applyLottetourScheduleExpressionToRows([
       {
-        day: 1,
-        title: '싱가포르',
+        day: 3,
+        title: '시드니',
         description: plan,
-        routeText: '인천 - 싱가포르',
+        routeText: '시드니 - 포트스테판',
         imageKeyword: '',
         imageKeyword2: null,
       },
     ])
-    expect(out[0]?.description).toBe(plan)
-    expect(out[0]?.routeText).toMatch(/싱가포르/)
+    expect(out[0]?.description).not.toMatch(/▣|4WD|모래썰매|소요/)
+    expect(isLottetourVibeFillerDescription(out[0]?.description)).toBe(true)
+    expect(out[0]?.routeText).toMatch(/포트스테판|시드니/)
+    expect(out[0]?.routeText).not.toMatch(/모험의\s*땅|공존하는|▣/)
   })
 
-  it('parse scheduleAjax — plan_info becomes day description (not identical vibe)', () => {
+  it('parse scheduleAjax — description is vibe, not plan_info dump', () => {
     const html = `
 <dl id="sche_plan_1" class="day_plan">
   <dd>
@@ -88,10 +91,12 @@ describe('lottetour schedule plan_info description', () => {
 `
     const days = parseLottetourScheduleDaysFromScheduleAjax(html)
     expect(days.length).toBeGreaterThanOrEqual(2)
-    expect(days[0]?.description).toMatch(/KE645|인천/)
-    expect(days[1]?.description).toMatch(/가든스 바이 더 베이/)
+    expect(days[0]?.description).not.toMatch(/KE645|18:40/)
+    expect(days[1]?.description).not.toMatch(/클라우드 포레스트|루지/)
+    expect(isLottetourVibeFillerDescription(days[0]?.description)).toBe(true)
+    expect(isLottetourVibeFillerDescription(days[1]?.description)).toBe(true)
     expect(days[0]?.description).not.toBe(days[1]?.description)
-    expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+    expect(days[1]?.routeText).toMatch(/가든스|센토사/)
   })
 
   it('parse scheduleAjax — shopping strong excluded from routeText', () => {
@@ -112,5 +117,22 @@ describe('lottetour schedule plan_info description', () => {
     expect(days[0]?.routeText).not.toMatch(/면세|쇼핑/)
     expect(days[0]?.routeText).toMatch(/요나고/)
     expect(registerScheduleRouteOrTitleHasShoppingNoise(days[0]?.routeText ?? '')).toBe(false)
+  })
+
+  it('AU/NZ day — Port Stephens vibe, not Milford in description; route stays coastal', () => {
+    const out = applyLottetourScheduleExpressionToRows([
+      {
+        day: 3,
+        title: '시드니',
+        description:
+          '호텔 조식 후 포트스테판 이동【약 3시간 30분 소요】 ▣ 사륜구동 & 모래썰매 ▣ 돌핀 크루즈 탑승',
+        routeText: '시드니 - 포트스테판',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+    ])
+    expect(out[0]?.description).toMatch(/바다와 모래|해안 모험|활기찬/)
+    expect(out[0]?.description).not.toMatch(/밀포드|피요르드|▣|모래썰매/)
+    expect(out[0]?.routeText).toBe('시드니 - 포트스테판')
   })
 })

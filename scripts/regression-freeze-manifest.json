@@ -6465,7 +6465,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "롯데관광 리스트 제목 — #없이 [KE]…N일▶… 브래킷·basicAjax HTML 폴백",
+      "summary": "롯데관광 리스트 제목 — [KE]/★출발확정★【KE/N일】#태그·basicAjax·evtDetail HTML 폴백",
       "checks": [
         {
           "file": "lib/register-lottetour-basic.ts",
@@ -6473,7 +6473,8 @@
             "REGRESSION-FREEZE[lottetour-register-listing-title]",
             "isLottetourBracketListingTitleLine",
             "extractLottetourListingTitleFromHtml",
-            "extractLottetourVerbatimListingTitle"
+            "extractLottetourVerbatimListingTitle",
+            "carveLottetourListingTitleFromText"
           ]
         },
         {
@@ -6481,7 +6482,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-register-listing-title]",
             "extractLottetourListingTitleFromHtml",
-            "resolveLottetourFactListingTitle"
+            "resolveLottetourFactListingTitle",
+            "fetchLottetourEvtDetailHtml"
           ]
         },
         {
@@ -6780,7 +6782,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "롯데관광 일정요약 — plan_info [명소] 본문 우선, 마케팅·특전·수하물·쇼핑 제외, vibe 폴백",
+      "summary": "롯데관광 일정설명 — vibe 2~3문장 SSOT; plan_info는 route·profile 근거·마케팅 필터만",
       "checks": [
         {
           "file": "lib/lottetour-register-api-schedule.ts",
@@ -6788,7 +6790,7 @@
             "REGRESSION-FREEZE[lottetour-schedule-plan-info-description]",
             "summarizeLottetourPlanInfoForDescription",
             "isLottetourVibeFillerDescription",
-            "plan_info 요약은 vibe로 덮지 않음"
+            "description은 vibe 2~3문장 (plan_info는 route·profile 근거)"
           ]
         },
         {
@@ -6810,7 +6812,7 @@
           "file": "lib/register-facts/lottetour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-schedule-plan-info-description]",
-            "plan_info 요약을 facts로 보존"
+            "places from routeText; description is vibe"
           ]
         }
       ],

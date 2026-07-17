@@ -6,6 +6,7 @@
 import {
   collectLottetourCalendarRange,
   enrichLottetourEvtListCollectionHintsFromDetailPage,
+  fetchLottetourEvtDetailHtml,
   parseLottetourEvtListCollectionHints,
   type LottetourCalendarRow,
 } from '@/lib/lottetour-departures'
@@ -37,14 +38,13 @@ function scheduleDaysToFactDays(days: RegisterScheduleDay[]): RegisterFactSchedu
         ? [d.title.trim()]
         : []
     const meals = [d.breakfastText, d.lunchText, d.dinnerText].map((x) => String(x ?? '').trim()).filter(Boolean)
-    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info 요약을 facts로 보존 — manifest
-    const planSummary = String(d.description ?? '').trim()
+    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: places from routeText; description is vibe — manifest
     return {
       day: d.day,
       places,
       hotels: d.hotelText?.trim() ? [d.hotelText.trim()] : [],
       meals,
-      transportNote: planSummary || null,
+      transportNote: null,
     }
   })
 }
@@ -69,16 +69,20 @@ function parseNightsDays(durationText: string | null | undefined): { nights: num
   return { nights: null, days: null }
 }
 
-/** evtList tourTitleRaw 비면 basicAjax HTML 브래킷 제목으로 복구 */
+/** evtList tourTitleRaw 비면 basicAjax·evtDetail HTML 브래킷 제목으로 복구 */
 function resolveLottetourFactListingTitle(
   tourTitleRaw: string | null | undefined,
   basicAjaxHtml: string | null | undefined,
+  detailPageHtml?: string | null,
 ): string | null {
   const fromRow = tourTitleRaw?.trim() || null
   if (fromRow && !isSupplierListingTitleUnacceptable(fromRow, 'lottetour')) return fromRow
   // REGRESSION-FREEZE[lottetour-register-listing-title]: HTML bracket title when evtList empty — manifest
   const fromHtml = extractLottetourListingTitleFromHtml(basicAjaxHtml)
   if (fromHtml && !isSupplierListingTitleUnacceptable(fromHtml, 'lottetour')) return fromHtml
+  // REGRESSION-FREEZE[lottetour-register-listing-title]: ★출발확정★【KE/N일】·#태그·evtDetail HTML 폴백 — manifest
+  const fromDetail = extractLottetourListingTitleFromHtml(detailPageHtml)
+  if (fromDetail && !isSupplierListingTitleUnacceptable(fromDetail, 'lottetour')) return fromDetail
   return fromRow
 }
 
@@ -96,7 +100,19 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
   const shoppingPlaces =
     shopCount != null && shopCount > 0 ? [`쇼핑 ${shopCount}회`] : shopCount === 0 ? ['노쇼핑'] : []
   const row = bundle.evtListRow
-  const listingTitle = resolveLottetourFactListingTitle(row?.tourTitleRaw, bundle.basicAjaxHtml)
+  let listingTitle = resolveLottetourFactListingTitle(row?.tourTitleRaw, bundle.basicAjaxHtml)
+  if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'lottetour')) {
+    try {
+      const detailHtml = await fetchLottetourEvtDetailHtml(url)
+      listingTitle = resolveLottetourFactListingTitle(
+        row?.tourTitleRaw,
+        bundle.basicAjaxHtml,
+        detailHtml,
+      )
+    } catch {
+      // evtDetail HTML 폴백 실패 시 기존 listingTitle 유지
+    }
+  }
   const { nights, days } = parseNightsDays(row?.durationText ?? listingTitle ?? row?.tourTitleRaw)
 
   // REGRESSION-FREEZE[lottetour-singapore-register-quality]: evtDetail 단건은 flight seed만 — priceRows는 RULE_A(180일) monthCount 가족 크롤 — manifest

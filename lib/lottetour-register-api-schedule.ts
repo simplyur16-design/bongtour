@@ -1,7 +1,8 @@
 /**
- * 롯데관광(lottetour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(plan_info 원문 우선, vibe 폴백).
+ * 롯데관광(lottetour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(vibe 2~3문장).
+ * plan_info는 route 명소·vibe profile 근거만 (일정설명에 장소 디테일·마케팅 덤프 금지).
  * REGRESSION-FREEZE[lottetour-schedule-expression]: routeText·description vibe — manifest
- * REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info → 일정요약, vibe는 폴백만 — manifest
+ * REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
  * REGRESSION-FREEZE[lottetour-register-detail-collect]: parseLottetourScheduleDaysFromScheduleAjax — manifest
  */
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
@@ -17,7 +18,7 @@ export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
 // REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]: meal·포함일정·증명서 — manifest
 const LOTTETOUR_ROUTE_PLACE_NOISE_RE =
-  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속|포함\s*일정|영문\s*가족관계|가족관계\s*증명서|증명서|면세\s*가능|면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회|현지\s*가이드|현지\s*연락처|필수\s*서류|작성\s*및\s*제출|롯데관광\s*단독|^롯데$)|^\d+\s*시간(?:\s*\d+\s*분)?$|(?:가정식|쌀국수|분짜|반쎄오|갑오징어|양식|한식|특식).{0,12}(?:SET|세트)|(?:SET|세트)$|(?:소고기\s*)?쌀국수|분짜|반쎄오|가정식|갑오징어(?:\s*볶음)?|(?:양식|한식|특식|BBQ)\s*SET|에그\s*타르트|광동식|^이태원$|^칠리\s*크랩$|^바쿠테$|^송파$|^레드\s*하우스$|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
+  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속|포함\s*일정|영문\s*가족관계|가족관계\s*증명서|증명서|면세\s*가능|면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회|현지\s*가이드|현지\s*연락처|필수\s*서류|작성\s*및\s*제출|롯데관광\s*단독|^롯데$)|^\d+\s*시간(?:\s*\d+\s*분)?$|^\d{1,2}:\d{2}$|(?:가정식|쌀국수|분짜|반쎄오|갑오징어|양식|한식|특식).{0,12}(?:SET|세트)|(?:SET|세트)$|(?:소고기\s*)?쌀국수|분짜|반쎄오|가정식|갑오징어(?:\s*볶음)?|(?:양식|한식|특식|BBQ)\s*SET|에그\s*타르트|광동식|^이태원$|^칠리\s*크랩$|^바쿠테$|^송파$|^레드\s*하우스$|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스|공항\s*도착\s*후|가이드\s*미팅|세계\s*문화유산|세계\s*자연유산|멋진\s*풍경|전망대에서|모험의\s*땅|공존하는|귀환|여정$/i
 
 const LOTTETOUR_ROUTE_LABEL_TRIM_RE =
   /(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|로\s*이동|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후)$/u
@@ -129,6 +130,10 @@ type LottetourScheduleVibeProfile =
   | 'spiritual_calm'
   | 'singapore_gardens'
   | 'singapore_uss'
+  | 'nature_trek'
+  | 'fiord_cruise'
+  | 'desert_coast'
+  | 'thermal_spa'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -168,6 +173,22 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '테마파크 하루 자유 일정으로, 입장·동선·여유 시간을 스스로 짜는 플레이형 하루입니다.',
     '패키지 단체 일정과 분리된 자유 탐방 리듬이 중심이 됩니다.',
   ],
+  nature_trek: [
+    '대자연의 스케일을 천천히 걸으며 느끼는, 호흡이 깊어지는 트레킹형 하루입니다.',
+    '산·호수·숲길이 이어져 이동보다 풍경의 리듬이 중심이 되는 구성입니다.',
+  ],
+  fiord_cruise: [
+    '절벽과 바다가 맞닿은 피요르드 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다.',
+    '선상에서 시야가 넓게 열리며, 대자연의 장엄함이 흐름의 중심이 됩니다.',
+  ],
+  desert_coast: [
+    '바다와 모래 언덕이 맞닿은 해안 모험 동선으로, 움직임과 풍경 변화가 큰 하루입니다.',
+    '체험과 크루즈 리듬이 이어져 활기찬 분위기로 하루를 채우는 구성입니다.',
+  ],
+  thermal_spa: [
+    '지열·온천 지대의 독특한 공기와 여유를 중심으로 하루의 템포를 낮추는 일정입니다.',
+    '문화 체험과 휴식이 자연스럽게 이어져 감각이 편안해지는 흐름입니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -189,11 +210,25 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   ) {
     return 'singapore_gardens'
   }
+  if (/밀포드|Milford|피요르드|fiord|호머\s*터널|마이터/i.test(joinedBlob)) return 'fiord_cruise'
+  if (/포트\s*스테판|Port\s*Stephens|모래썰매|샌드보드|4WD|사륜|돌핀\s*크루즈/i.test(joinedBlob)) {
+    return 'desert_coast'
+  }
+  if (/로토루아|Rotorua|와이아리키|와카?레와레와|온천|지열|마오리/i.test(joinedBlob)) return 'thermal_spa'
+  if (
+    /블루\s*마운틴|Blue\s*Mountain|마운트\s*쿡|Mount\s*Cook|트레킹|글래시어|캐슬힐|케즘|허니문\s*브릿지/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'nature_trek'
+  }
   if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'
   }
-  if (/피크|peak|하버|harbor|빅토리아|전망|야경|스타\s*페리|침사/i.test(joinedBlob)) return 'harbor_skyline'
+  if (/피크|peak|하버|harbor|빅토리아|전망|야경|스타\s*페리|침사|오페라|본다이|시드니/i.test(joinedBlob)) {
+    return 'harbor_skyline'
+  }
   if (/사원|temple|럭키|웡타이/i.test(joinedBlob)) return 'spiritual_calm'
   return 'generic_tourism'
 }
@@ -211,9 +246,27 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
-  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로/u.test(
+  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한/u.test(
     t,
   )
+}
+
+/** plan_info `[명소]` 라벨만 route 후보 — 산문 덤프는 routeText에 넣지 않음 */
+export function extractLottetourBracketPlacesFromText(text: string | null | undefined): string[] {
+  const out: string[] = []
+  for (const m of String(text ?? '').matchAll(/\[([^\]]{2,36})\]/g)) {
+    const t = m[1]?.trim()
+    if (!t) continue
+    if (
+      /조식|중식|석식|특전|시차|국가번호|관광\s*시간|호텔식|가족관계|증명서|면세|포함\s*일정|가정식|쌀국수|갑오징어|\bSET\b|세트$|약\s*\d+|소요|편\s*이용/i.test(
+        t,
+      )
+    ) {
+      continue
+    }
+    out.push(t)
+  }
+  return dedupeLottetourScheduleRoutePlaces(out)
 }
 
 function splitLottetourPlanInfoSentences(raw: string): string[] {
@@ -223,7 +276,10 @@ function splitLottetourPlanInfoSentences(raw: string): string[] {
     .filter((s) => s.length >= 8)
 }
 
-/** scheduleAjax plan_info → 일정요약 (특전·수하물·쇼핑 등 마케팅 제외, [명소] 본문 우선) */
+/**
+ * plan_info 마케팅·특전 줄 필터 (route/profile 근거용).
+ * 일정설명(description)에는 쓰지 않음 — vibe SSOT.
+ */
 export function summarizeLottetourPlanInfoForDescription(
   planInfoRaw: string | null | undefined,
 ): string | null {
@@ -255,12 +311,11 @@ export function summarizeLottetourPlanInfoForDescription(
   ) {
     return null
   }
-  // SSOT §4.3 — 1~3문장 브리프
   const capped = splitLottetourPlanInfoSentences(body).slice(0, 3).join(' ').trim()
   return (capped.length >= 24 ? capped : body).slice(0, 320).trim()
 }
 
-/** 분위기·흐름 2~3문장 — plan_info 없을 때만 폴백 (장소 디테일 금지) */
+/** 분위기·흐름 2~3문장 (장소 디테일 금지) */
 export function composeLottetourScheduleVibeSentences(
   day: number,
   maxDay: number,
@@ -282,8 +337,9 @@ export function composeLottetourScheduleVibeSentences(
 }
 
 /**
- * description SSOT — plan_info(항공·일정 일차 본문) 우선, 없을 때만 vibe 폴백.
- * 장소 나열은 routeText 전용.
+ * description SSOT — 분위기·흐름 2~3문장만.
+ * plan_info는 joinedBlob(profile)·route `[명소]` 추출에만 쓰고 본문에 넣지 않음.
+ * REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
  */
 export function composeLottetourScheduleDescription(opts: {
   day: number
@@ -292,17 +348,12 @@ export function composeLottetourScheduleDescription(opts: {
   joinedBlob: string
   planInfoRaw?: string | null
 }): string {
-  const fromPlan =
-    summarizeLottetourPlanInfoForDescription(opts.planInfoRaw) ??
-    summarizeLottetourPlanInfoForDescription(
-      isLottetourVibeFillerDescription(opts.joinedBlob) ? null : opts.joinedBlob,
-    )
-  if (fromPlan) return fromPlan
+  const profileBlob = [opts.joinedBlob, opts.planInfoRaw].filter(Boolean).join('\n')
   const vibe = composeLottetourScheduleVibeSentences(
     opts.day,
     opts.maxDay,
     opts.routePlaces,
-    opts.joinedBlob,
+    profileBlob,
   )
   return vibe || `${opts.day}일차`
 }
@@ -310,12 +361,12 @@ export function composeLottetourScheduleDescription(opts: {
 export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
   return days.map((d) => {
-    const routePlaces = dedupeLottetourScheduleRoutePlaces(d.places)
+    const fromNote = extractLottetourBracketPlacesFromText(d.transportNote)
+    const routePlaces = dedupeLottetourScheduleRoutePlaces([...d.places, ...fromNote])
     const routeText = joinLottetourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
     const title =
       routeText?.split(' - ')[0]?.trim() ||
-      String(d.transportNote ?? '').split(';')[0]?.trim() ||
       (d.hotels[0] ?? '').trim() ||
       `${d.day}일차`
     const description = composeLottetourScheduleDescription({
@@ -323,7 +374,6 @@ export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
       maxDay,
       routePlaces,
       joinedBlob,
-      // facts transportNote에 plan_info 요약을 실어 옴
       planInfoRaw: d.transportNote,
     })
     const meals = parseFactMealsListToScheduleFields(d.meals)
@@ -343,7 +393,7 @@ export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
   })
 }
 
-/** 등록 schedule[] — routeText 보정 · description은 plan_info 유지(vibe만 재작성) */
+/** 등록 schedule[] — routeText 보정 · description은 항상 vibe 재작성 */
 export function applyLottetourScheduleExpressionToRows<T extends RegisterScheduleDay>(rows: T[]): T[] {
   const maxDay = rows.reduce((m, r) => Math.max(m, Number(r.day) || 0), 0)
   return rows.map((row) => {
@@ -351,31 +401,21 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
     if (day <= 0) return row
     const fromRoute = row.routeText ? dedupeLottetourScheduleRoutePlaces(row.routeText.split(/\s*-\s*/)) : []
     const existingDesc = String(row.description ?? '').trim()
-    const fromPaste = extractLottetourSchedulePlacesFromPastedBlock(existingDesc)
-    const routePlaces = dedupeLottetourScheduleRoutePlaces([...fromRoute, ...fromPaste])
+    // 산문 plan_info 덤프를 route로 쪼개지 않음 — [명소]·기존 route만
+    const fromBrackets = extractLottetourBracketPlacesFromText(existingDesc)
+    const routePlaces = dedupeLottetourScheduleRoutePlaces([...fromRoute, ...fromBrackets])
     const routeText =
       sanitizeRegisterScheduleRouteText(joinLottetourScheduleRouteText(routePlaces) ?? row.routeText ?? null) ??
       row.routeText ??
       null
-    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info 요약은 vibe로 덮지 않음 — manifest
-    const summarizedExisting = summarizeLottetourPlanInfoForDescription(existingDesc)
-    if (summarizedExisting) {
-      return { ...row, routeText, description: summarizedExisting }
-    }
-    if (
-      !isLottetourVibeFillerDescription(existingDesc) &&
-      existingDesc.length >= 24 &&
-      !registerScheduleDescriptionHasMarketingNoise(existingDesc)
-    ) {
-      return { ...row, routeText, description: existingDesc.slice(0, 320) }
-    }
     const joinedBlob = [row.title, existingDesc, routeText].filter(Boolean).join('\n')
+    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
     const description = composeLottetourScheduleDescription({
       day,
       maxDay,
       routePlaces,
       joinedBlob,
-      planInfoRaw: null,
+      planInfoRaw: isLottetourVibeFillerDescription(existingDesc) ? null : existingDesc,
     })
     return { ...row, routeText, description }
   })

@@ -38,45 +38,118 @@ export function extractLottetourProductCodeFromBlob(blob: string): string | null
 }
 
 /**
- * 상품 상단 노출 제목(해시태그·항공코드·[KE] 브래킷 등 포함) — LLM 의역 대신 붙여넣기 원문을 SSOT로 쓴다.
+ * 상품 상단 노출 제목(해시태그·항공코드·[KE]/【KE】 브래킷 등 포함) — LLM 의역 대신 붙여넣기 원문을 SSOT로 쓴다.
  * `상품번호` 이후 짧은 구간에서만 탐색해 하단 "추천 상품" 줄과 혼동을 줄인다.
  * REGRESSION-FREEZE[lottetour-register-listing-title]: bracket titles without # — manifest
+ * REGRESSION-FREEZE[lottetour-register-listing-title]: ★출발확정★【KE/N일】·#태그·evtDetail HTML 폴백 — manifest
  */
+const LOTTETOUR_LISTING_TITLE_STAR_CONFIRMED_RE =
+  /★\s*출발\s*확정\s*★\s*(?:【[^】]{1,48}】\s*){1,4}[^\n#]{0,100}?(?:#[^\s#【】\[\]]{1,40}(?:\s+[^\s#【】\[\]]{1,24})?){2,}/u
+
+const LOTTETOUR_LISTING_TITLE_FW_BRACKET_RE =
+  /【[^】]{1,40}】[^\n]{4,160}?\d+\s*(?:일|박)[^\n]{0,120}/u
+
+function cleanLottetourListingTitleCandidate(raw: string): string | null {
+  let t = String(raw ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return null
+  // 앞에 붙은 "출발확정 " 배지·뒤에 붙은 마케팅 꼬리 제거
+  t = t.replace(/^출발\s*확정\s+/u, '').trim()
+  t = t
+    .replace(/\s+고객만족\b.*$/u, '')
+    .replace(/\s+대양주.*$/u, '')
+    .replace(/\s+BEST\s*!!.*$/iu, '')
+    .trim()
+  // 해시 제목 — 마지막 #토큰까지만 (뒤 산문 절단)
+  if ((t.match(/#/g) || []).length >= 2) {
+    const cut = t.match(/^([\s\S]*#[^\s#【】\[\]]{1,40})(?:\s|$)/u)
+    if (cut?.[1]) t = cut[1].trim()
+  }
+  if (t.length < 12 || t.length > 220) return null
+  if (!/\d+\s*(?:일|박)/.test(t)) return null
+  if (!/[가-힣]{2,}/.test(t)) return null
+  return t
+}
+
+/** 긴 한 줄·HTML 평문에서 ★출발확정★【…】#태그 / 【…】N일 제목만 잘라낸다 */
+export function carveLottetourListingTitleFromText(blob: string): string | null {
+  const text = String(blob ?? '').replace(/\r\n/g, '\n')
+  const star = text.match(LOTTETOUR_LISTING_TITLE_STAR_CONFIRMED_RE)
+  if (star?.[0]) {
+    const cleaned = cleanLottetourListingTitleCandidate(star[0])
+    if (cleaned) return cleaned
+  }
+  // 해시 2개 이상 + ★출발확정★ — 느슨한 폴백
+  const starLoose = text.match(
+    /★\s*출발\s*확정\s*★[^\n]{12,200}?(?:#[^\s#]{1,40}[^\n#]{0,28}){2,}#[^\s#]{1,40}/u,
+  )
+  if (starLoose?.[0]) {
+    const cleaned = cleanLottetourListingTitleCandidate(starLoose[0])
+    if (cleaned) return cleaned
+  }
+  const fw = text.match(LOTTETOUR_LISTING_TITLE_FW_BRACKET_RE)
+  if (fw?.[0]) {
+    const cleaned = cleanLottetourListingTitleCandidate(fw[0])
+    if (cleaned && /(?:▶|●|NO\s*옵션|인솔자|풀빌라|POOL|STAY|【[A-Z0-9/]{2,})/iu.test(cleaned)) {
+      return cleaned
+    }
+  }
+  return null
+}
+
 export function isLottetourBracketListingTitleLine(line: string): boolean {
   const t = String(line ?? '').replace(/\s+/g, ' ').trim()
   if (!t || t.length < 12 || t.length > 220) return false
-  if (!/^\[[^\]]{1,40}\]/.test(t)) return false
+  // [KE]… 또는 ★출발확정★【KE/11일】… 또는 【KE/11일】…
+  const normalized = t.replace(/^★\s*출발\s*확정\s*★\s*/u, '').trim()
+  if (!/^(?:\[[^\]]{1,40}\]|【[^】]{1,40}】)/.test(normalized) && !/^\[[^\]]{1,40}\]/.test(t)) {
+    return false
+  }
   if (!/\d+\s*(?:일|박)/.test(t)) return false
   if (!/[가-힣]{2,}/.test(t)) return false
-  // [KE][NO옵션]…푸꾸옥 5일▶… / 항공코드·옵션 브래킷형
-  return /(?:▶|●|\[[A-Z0-9]{2}\]|NO\s*옵션|풀빌라|POOL|STAY)/i.test(t)
+  // [KE][NO옵션]…푸꾸옥 5일▶… / 【KE/11일】【인솔자동행/NO옵션】… / 항공코드·옵션 브래킷형
+  return /(?:▶|●|\[[A-Z0-9]{2}\]|【[A-Z0-9/]{2,}|NO\s*옵션|인솔자|풀빌라|POOL|STAY)/i.test(t)
 }
 
 export function extractLottetourVerbatimListingTitle(blob: string): string | null {
+  const carved = carveLottetourListingTitleFromText(blob)
+  if (carved) return carved
+
   const text = blob.replace(/\r\n/g, '\n')
   const productIdx = text.search(/상품번호\s*[A-Za-z]*\d[A-Za-z0-9-]+/i)
   const windowStart = productIdx >= 0 ? productIdx : 0
   const window = text.slice(windowStart, windowStart + 9000)
   const lines = window.split('\n').map((l) => l.trim())
   for (const line of lines) {
-    if (!line || line.length < 12 || line.length > 220) continue
+    if (!line || line.length < 12) continue
     if (/^https?:\/\//i.test(line)) continue
     if (/^\d+\s*\.\s*\d+\s*\/\s*\d+/i.test(line)) continue
     if (/(리뷰\s*\d+건)/i.test(line) && line.length < 48) continue
     if (/^(출발|도착|예약하기|인쇄|문의|찜|공유|담당자|상품\s*이미지|더보기|추천\s*상품)\b/i.test(line)) continue
     if (/^COUPON\b|^다운로드\b/i.test(line)) continue
+    // 긴 줄 — 제목 구간만 carve
+    if (line.length > 220) {
+      const fromLong = carveLottetourListingTitleFromText(line)
+      if (fromLong) return fromLong
+      continue
+    }
     const hashCount = (line.match(/#/g) || []).length
     if (hashCount >= 2) {
       if (!/(일|박|\/)/.test(line)) continue
-      return line
+      const cleaned = cleanLottetourListingTitleCandidate(line)
+      if (cleaned) return cleaned
+      continue
     }
-    // 해시태그 없는 [KE][NO옵션]…N일▶… 형태 (푸꾸옥 풀빌라 등)
-    if (isLottetourBracketListingTitleLine(line)) return line
+    // 해시태그 없는 [KE][NO옵션]…N일▶… / ★출발확정★【KE/N일】… 형태
+    if (isLottetourBracketListingTitleLine(line)) {
+      return cleanLottetourListingTitleCandidate(line) ?? line
+    }
   }
   return null
 }
 
-/** basicAjax/헤드 HTML에서 브래킷형 리스트 제목 복구 */
+/** basicAjax/헤드·evtDetail HTML에서 브래킷형 리스트 제목 복구 */
 export function extractLottetourListingTitleFromHtml(html: string | null | undefined): string | null {
   if (!html?.trim()) return null
   const text = html
@@ -90,12 +163,19 @@ export function extractLottetourListingTitleFromHtml(html: string | null | undef
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/\r\n/g, '\n')
+  const carved = carveLottetourListingTitleFromText(text)
+  if (carved) return carved
   const fromLines = extractLottetourVerbatimListingTitle(text)
   if (fromLines) return fromLines
-  // 한 줄로 붙은 HTML 텍스트에서도 [KE]…N일▶… 스캔
-  const m = text.match(/\[[^\]]{1,40}\][^\n]{8,180}?\d+\s*(?:일|박)[^\n]{0,120}/)
-  if (m?.[0] && isLottetourBracketListingTitleLine(m[0].replace(/\s+/g, ' ').trim())) {
-    return m[0].replace(/\s+/g, ' ').trim().slice(0, 220)
+  // 한 줄로 붙은 HTML 텍스트에서도 [KE]…N일▶… / 【KE/…】 스캔
+  const m =
+    text.match(/\[[^\]]{1,40}\][^\n]{8,180}?\d+\s*(?:일|박)[^\n]{0,120}/) ??
+    text.match(/【[^】]{1,40}】[^\n]{8,180}?\d+\s*(?:일|박)[^\n]{0,120}/)
+  if (m?.[0]) {
+    const candidate = m[0].replace(/\s+/g, ' ').trim()
+    if (isLottetourBracketListingTitleLine(candidate)) {
+      return cleanLottetourListingTitleCandidate(candidate) ?? candidate.slice(0, 220)
+    }
   }
   return null
 }

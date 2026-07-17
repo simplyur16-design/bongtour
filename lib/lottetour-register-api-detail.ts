@@ -527,9 +527,11 @@ function lottetourCitiesFromDayBlock(block: string): string[] {
     .filter(
       (c) =>
         c.length > 1 &&
-        c.length < 80 &&
+        c.length <= 36 &&
         !/\d+\s*일차/.test(c) &&
-        !/^[★☆]|기상\s*악화|결항|대체|불가|→/.test(c) &&
+        !/^[★☆▣]|기상\s*악화|결항|대체|불가|→|감상|이동|가이드|도착\s*후|출발\s*후|약\s*\d+|편\s*이용|모험의\s*땅|공존하는|풍경을|전망대|유산\s*국립|\d{1,2}:\d{2}/.test(
+          c,
+        ) &&
         // REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]: 증명서·식사·포함일정 strong 제외 — manifest
         !/가족관계|증명서|면세\s*가능|면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회|포함\s*일정|현지\s*가이드|현지\s*연락처|필수\s*서류|작성\s*및\s*제출|체류\s*가능|롯데관광\s*단독|^롯데$|한국보다\s*\d+\s*시간|(?:가정식|쌀국수|분짜|반쎄오|갑오징어).{0,12}(?:SET|세트)|(?:SET|세트)$|양식\s*SET|한식$|특식$|에그\s*타르트|광동식|^이태원$/i.test(
           c,
@@ -584,7 +586,7 @@ export function parseLottetourScheduleDaysFromScheduleAjax(html: string | null):
     const title = routePlaces[0] ?? uniqueCities[0] ?? `${day}일차`
     const planInfoRaw = planParts.join(' ').trim()
     const joinedBlob = [routeText, planInfoRaw, ...uniqueCities].filter(Boolean).join(' ')
-    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info → 일정요약 — manifest
+    // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
     const description = composeLottetourScheduleDescription({
       day,
       maxDay,
