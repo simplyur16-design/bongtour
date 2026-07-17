@@ -141,7 +141,7 @@ export async function parseModetourRegisterFromApi(
 
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'modetour',
-    originCode: productNo,
+    originCode: bundle.originCode?.trim() || productNo,
     title: titleRes.title,
     supplierListingTitleRaw: titleRes.supplierListingTitleRaw,
     destination: dest.destination || '미지정',
@@ -171,6 +171,13 @@ export async function parseModetourRegisterFromApi(
       MODETOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [MODETOUR_AIR_HOTEL_PREVIEW_NOTE] : []),
       ...(usedPrefetch ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)'] : []),
+      // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 시 productCode2 origin-code resolve 달력 — manifest
+      ...(bundle.notes ?? []).filter(
+        (n) =>
+          n.includes('calendar_') ||
+          n.includes('origin_code') ||
+          n.includes('GetOtherDepartureDates_lite'),
+      ),
     ],
     // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
     modetourDetailCollectRan: usedPrefetch,

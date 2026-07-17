@@ -14,6 +14,16 @@ import { backfillEmptyScheduleRouteTextFromTitle } from '@/lib/register-schedule
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
+import {
+  enforceRegisterScheduleTripUniqueImageKeywords,
+  ensureDepartureReturnVisitCityKeywords,
+  isScheduleHubMovementKeywordRow,
+} from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import {
+  inferRegisterEffectiveProductDestination,
+  isRegisterScheduleCrossContinentHallucinationKeyword,
+} from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
   travelScope: string
@@ -137,11 +147,25 @@ async function applyPackagePostAugmentScheduleKeywords(
           productTitle: parsed.title ?? null,
           logLabel: opts.logPrefix ?? 'register-post-augment',
         })
-  // Gemini 후 gap-fill 재실행 금지 — tripHay bleed·등록 지연 재개 방지 (rules는 apply 단계만)
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: no post-gemini gap-fill — manifest
+  // Gemini 후 환각·중복만 제거 (middle gap-fill 재실행 금지)
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: post-gemini unique+continent strip — manifest
+  const effectiveDest = inferRegisterEffectiveProductDestination(dest, withGemini)
+  const stripped = withGemini.map((row) => {
+    let kw = String(row.imageKeyword ?? '').trim()
+    let kw2 = String(row.imageKeyword2 ?? '').trim()
+    const strip = (k: string) =>
+      k && isRegisterScheduleCrossContinentHallucinationKeyword(k, effectiveDest, withGemini) ? '' : k
+    kw = strip(kw)
+    kw2 = strip(kw2)
+    if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) kw2 = ''
+    return { ...row, imageKeyword: kw, imageKeyword2: kw2 || null }
+  })
+  const deduped = enforceRegisterScheduleTripUniqueImageKeywords(stripped)
+  const edged = ensureDepartureReturnVisitCityKeywords(deduped, effectiveDest)
   return {
     ...parsed,
-    schedule: ensurePackageScheduleLastDayGateCompliance(withGemini),
+    schedule: ensurePackageScheduleLastDayGateCompliance(edged),
   }
 }
 

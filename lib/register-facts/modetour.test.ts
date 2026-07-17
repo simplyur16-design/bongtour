@@ -3,8 +3,27 @@ import {
   modetourFlightRoutesToFactLegs,
   modetourScheduleItemsToFactDays,
 } from '@/lib/register-facts/modetour-register-fact-mappers'
-import { modetourOtherDepartureRowsToRegisterFactPriceRows } from '@/lib/register-facts/modetour'
+import {
+  isModetourAlphaOriginCode,
+  modetourOtherDepartureRowsToRegisterFactPriceRows,
+  pickModetourRegisterOriginCode,
+} from '@/lib/register-facts/modetour'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
+
+describe('pickModetourRegisterOriginCode', () => {
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 시 productCode2 origin-code resolve 달력 — manifest
+  it('prefers alpha optionsOriginCode then detail.productCode2', () => {
+    expect(isModetourAlphaOriginCode('105263432')).toBe(false)
+    expect(isModetourAlphaOriginCode('PGP416LJM5')).toBe(true)
+    expect(pickModetourRegisterOriginCode('105263432', { productCode2: 'PGP416LJM5' })).toBe(
+      'PGP416LJM5',
+    )
+    expect(pickModetourRegisterOriginCode('JHP6627CG4', { productCode2: 'OTHER' })).toBe(
+      'JHP6627CG4',
+    )
+    expect(pickModetourRegisterOriginCode(null, { productCode: 'AHP301' })).toBeNull()
+  })
+})
 
 describe('modetourOtherDepartureRowsToRegisterFactPriceRows', () => {
   it('maps in-window priced rows and skips invalid', () => {

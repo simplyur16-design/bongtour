@@ -9,10 +9,6 @@ import {
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import {
-  findAllScheduleSpotMatchesInText,
-  firstMatchingScheduleSpotEn,
-} from '@/lib/schedule-poi-regex-ssot'
 
 export type RegisterScheduleRouteTextBackfillRow = {
   day: number
@@ -34,7 +30,7 @@ export function isRegisterSchedulePlaceholderRouteText(routeText: string | null 
   return meaningful.length < 2
 }
 
-/** 단일 세그먼트 routeText — gate·kw2용 2세그먼트 승격(한글 라벨 SSOT) */
+/** 단일 세그먼트 routeText — gate·kw2용 2세그먼트 승격(한글 라벨 SSOT — 영어 POI 금지) */
 const SINGLE_SEGMENT_ROUTE_EXPAND_KO: Readonly<Record<string, string>> = {
   피사: '피사 대성당',
   융프라우: '스핑크스 전망대',
@@ -52,6 +48,10 @@ const SINGLE_SEGMENT_ROUTE_EXPAND_KO: Readonly<Record<string, string>> = {
   두브로브니크: '두브로브니크 올드타운',
   할슈타트: '할슈타트 호수',
   괌: '투몬 비치',
+  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 요나고 route 한글 승격 — EN Mount Daisen 금지 — manifest
+  요나고: '다이센',
+  돗토리: '돗토리 사구',
+  쿠라요시: '쿠라요시 백벽',
 }
 
 function expandSingleSegmentRouteLabel(seg: string): string | null {
@@ -59,14 +59,7 @@ function expandSingleSegmentRouteLabel(seg: string): string | null {
   if (!t) return null
   const direct = SINGLE_SEGMENT_ROUTE_EXPAND_KO[t] ?? SINGLE_SEGMENT_ROUTE_EXPAND_KO[t.toUpperCase()]
   if (direct) return direct
-  const spot = firstMatchingScheduleSpotEn(t)
-  if (spot && !spot.toLowerCase().includes(t.toLowerCase()) && t.length <= 8) {
-    const hits = findAllScheduleSpotMatchesInText(t)
-    if (hits.length === 1) {
-      const en = hits[0]!.en.split('/')[0]?.trim() ?? ''
-      if (en.length >= 6) return en.slice(0, 40)
-    }
-  }
+  // 영어 SSOT(en)를 routeText에 넣지 않음 — imageKeyword 전용
   return null
 }
 

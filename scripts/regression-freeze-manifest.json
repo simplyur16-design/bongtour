@@ -2757,7 +2757,9 @@
             "REGRESSION-FREEZE[hanatour-register-api-price-inject]",
             "injectHanatourApiDeparturePricesIfMissing",
             "collectHanatourApiDepartureInputsForMonths",
-            "registerDepartureInputsToParsedPrices"
+            "registerDepartureInputsToParsedPrices",
+            "과거 anchor 단독 재주입 금지",
+            "하나투어 출발 달력 0건·anchor 과거마감"
           ]
         },
         {
@@ -3070,7 +3072,10 @@
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "GetOtherDepartureDates_lite",
             "modetourOtherDepartureRowsToRegisterFactPriceRows",
-            "price_collect=lite_only"
+            "price_collect=lite_only",
+            "SD1 시 과거 detail 출발 폴백 금지",
+            "SD1 시 productCode2 origin-code resolve 달력",
+            "pickModetourRegisterOriginCode"
           ],
           "mustNotInclude": [
             "collectModetourDepartureInputs"
@@ -4597,6 +4602,15 @@
           ]
         },
         {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
+            "post-gemini unique+continent strip",
+            "enforceRegisterScheduleTripUniqueImageKeywords",
+            "ensureDepartureReturnVisitCityKeywords"
+          ]
+        },
+        {
           "file": "lib/register-schedule-image-keyword-prompt.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
@@ -5045,7 +5059,8 @@
           "file": "lib/register-schedule-route-text-backfill.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-text-single-poi-expand]",
-            "expandSingleSegmentPoiRouteTextRows"
+            "expandSingleSegmentPoiRouteTextRows",
+            "영어 POI 금지"
           ]
         }
       ],
@@ -5067,7 +5082,10 @@
             "REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]",
             "isRegisterScheduleCrossContinentHallucinationKeyword",
             "Oceania dest Japan/Europe hallucination",
-            "OCEANIA_PRODUCT_DEST_RE"
+            "OCEANIA_PRODUCT_DEST_RE",
+            "돗토리·시마네·규슈 일정 Mount Fuji 환각",
+            "유럽에 Louvre Abu Dhabi 금지",
+            "Louvre\\b(?!\\s*Abu)"
           ]
         }
       ],
@@ -5190,7 +5208,16 @@
             "trip-unique no cluster kw reuse",
             "return fill excludes departure+middle used",
             "발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지",
-            "hawaiiHardcodedPool day-route evidence"
+            "hawaiiHardcodedPool day-route evidence",
+            "middle empty → visit-city soft-dup",
+            "Ipan must not substring-match Saipan"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "로스앤젤레스(앤) DEST soft-dup",
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]"
           ]
         },
         {
@@ -5747,6 +5774,13 @@
             "Matsue Castle",
             "Garuda Wisnu Kencana",
             "Melasti Beach",
+            "Palace of Fine Arts San Francisco",
+            "Saipan Bird Island Pacific Islands Club",
+            "Ipan must not substring-match Saipan",
+            "Laughlin Colorado River casino strip",
+            "TCL Chinese Theatre Hollywood",
+            "Nijinomatsubara pine grove Saga Japan",
+            "단독 빙하 ≠ Glacier Bay Alaska",
             "Terelj National Park"
           ]
         },
@@ -6741,7 +6775,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "롯데관광 일정요약 — scheduleAjax plan_info 원문 우선, vibe filler는 폴백만",
+      "summary": "롯데관광 일정요약 — plan_info [명소] 본문 우선, 마케팅·특전·수하물·쇼핑 제외, vibe 폴백",
       "checks": [
         {
           "file": "lib/lottetour-register-api-schedule.ts",
@@ -6750,6 +6784,14 @@
             "summarizeLottetourPlanInfoForDescription",
             "isLottetourVibeFillerDescription",
             "plan_info 요약은 vibe로 덮지 않음"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-description-marketing-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-schedule-plan-info-description]",
+            "registerScheduleDescriptionHasMarketingNoise",
+            "registerScheduleRouteOrTitleHasShoppingNoise"
           ]
         },
         {
@@ -9074,6 +9116,68 @@
       ],
       "vitestSuites": [
         "lib/simplyur/payments/portone-webhook-secret.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-eximbay-payment-prep",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur Eximbay 결제창 연동 준비 — env/Basic Auth/ready/verify (웰컴페이 비접점)",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/eximbay-env.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
+            "buildEximbayBasicAuthHeader",
+            "resolveEximbayEnv",
+            "api-test.eximbay.com"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/eximbay-ready.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
+            "callEximbayPaymentsReady",
+            "/v1/payments/ready"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/eximbay-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
+            "callEximbayPaymentsVerify",
+            "/v1/payments/verify"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/checkout/eximbay-ready/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
+            "callEximbayPaymentsReady",
+            "welcomepay_bongtour_orders_excluded"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/webhooks/eximbay/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
+            "callEximbayPaymentsVerify",
+            "eximbayStatusUrlAckBody"
+          ]
+        },
+        {
+          "file": "docs/ops/simplyur-eximbay-payment-prep-contract.md",
+          "mustInclude": [
+            "simplyur-eximbay-payment-prep",
+            "웰컴페이먼츠",
+            "EXIMBAY_API_KEY"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/eximbay-env.test.ts"
       ]
     },
     {

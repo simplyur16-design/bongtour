@@ -7,13 +7,17 @@
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
+import {
+  isRegisterSchedulePlanInfoMarketingLine,
+  registerScheduleDescriptionHasMarketingNoise,
+} from '@/lib/register-schedule-description-marketing-guard'
 import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText, expandRegisterScheduleRoutePlaceCandidates } from '@/lib/register-schedule-route-place-noise'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
 // REGRESSION-FREEZE[lottetour-schedule-route-admin-noise]: meal·포함일정·증명서 — manifest
 const LOTTETOUR_ROUTE_PLACE_NOISE_RE =
-  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속|포함\s*일정|영문\s*가족관계|가족관계\s*증명서|증명서|면세\s*가능|현지\s*가이드|현지\s*연락처|필수\s*서류|작성\s*및\s*제출|롯데관광\s*단독|^롯데$)|^\d+\s*시간(?:\s*\d+\s*분)?$|(?:가정식|쌀국수|분짜|반쎄오|갑오징어|양식|한식|특식).{0,12}(?:SET|세트)|(?:SET|세트)$|(?:소고기\s*)?쌀국수|분짜|반쎄오|가정식|갑오징어(?:\s*볶음)?|(?:양식|한식|특식|BBQ)\s*SET|에그\s*타르트|광동식|^이태원$|^칠리\s*크랩$|^바쿠테$|^송파$|^레드\s*하우스$|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
+  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속|포함\s*일정|영문\s*가족관계|가족관계\s*증명서|증명서|면세\s*가능|면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회|현지\s*가이드|현지\s*연락처|필수\s*서류|작성\s*및\s*제출|롯데관광\s*단독|^롯데$)|^\d+\s*시간(?:\s*\d+\s*분)?$|(?:가정식|쌀국수|분짜|반쎄오|갑오징어|양식|한식|특식).{0,12}(?:SET|세트)|(?:SET|세트)$|(?:소고기\s*)?쌀국수|분짜|반쎄오|가정식|갑오징어(?:\s*볶음)?|(?:양식|한식|특식|BBQ)\s*SET|에그\s*타르트|광동식|^이태원$|^칠리\s*크랩$|^바쿠테$|^송파$|^레드\s*하우스$|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
 
 const LOTTETOUR_ROUTE_LABEL_TRIM_RE =
   /(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|로\s*이동|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후)$/u
@@ -212,7 +216,14 @@ export function isLottetourVibeFillerDescription(text: string | null | undefined
   )
 }
 
-/** scheduleAjax plan_info → 일정요약 (행정·식사만인 짧은 줄 제외) */
+function splitLottetourPlanInfoSentences(raw: string): string[] {
+  return raw
+    .split(/(?<=[.!?。])\s+|[·•]\s+|\s{2,}/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 8)
+}
+
+/** scheduleAjax plan_info → 일정요약 (특전·수하물·쇼핑 등 마케팅 제외, [명소] 본문 우선) */
 export function summarizeLottetourPlanInfoForDescription(
   planInfoRaw: string | null | undefined,
 ): string | null {
@@ -224,14 +235,29 @@ export function summarizeLottetourPlanInfoForDescription(
     .trim()
   if (raw.length < 24) return null
   if (isLottetourVibeFillerDescription(raw)) return null
-  // 순수 행정·식사 한 줄만이면 요약으로 쓰지 않음
+  if (registerScheduleDescriptionHasMarketingNoise(raw) && !/\[[^\]]{2,48}\]/.test(raw)) {
+    return null
+  }
+
+  const kept = splitLottetourPlanInfoSentences(raw).filter((s) => !isRegisterSchedulePlanInfoMarketingLine(s))
+  let body = kept.join(' ').trim()
+  if (body.length < 24) {
+    const bracketChunks = [...raw.matchAll(/\[[^\]]{2,48}\][^.!?]{0,120}[.!?]?/g)]
+      .map((m) => m[0]?.trim())
+      .filter((c): c is string => Boolean(c) && !isRegisterSchedulePlanInfoMarketingLine(c))
+    if (bracketChunks.length > 0) body = bracketChunks.join(' ').trim()
+  }
+  if (body.length < 24) return null
+  if (registerScheduleDescriptionHasMarketingNoise(body)) return null
   if (
-    /^(?:포함\s*일정|조식|중식|석식|운항\s*소요|호텔식|기내식|자유식|특식)/u.test(raw) &&
-    raw.length < 72
+    /^(?:포함\s*일정|조식|중식|석식|운항\s*소요|호텔식|기내식|자유식|특식)/u.test(body) &&
+    body.length < 72
   ) {
     return null
   }
-  return raw.slice(0, 320).trim()
+  // SSOT §4.3 — 1~3문장 브리프
+  const capped = splitLottetourPlanInfoSentences(body).slice(0, 3).join(' ').trim()
+  return (capped.length >= 24 ? capped : body).slice(0, 320).trim()
 }
 
 /** 분위기·흐름 2~3문장 — plan_info 없을 때만 폴백 (장소 디테일 금지) */
@@ -332,7 +358,15 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
       row.routeText ??
       null
     // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info 요약은 vibe로 덮지 않음 — manifest
-    if (!isLottetourVibeFillerDescription(existingDesc) && existingDesc.length >= 24) {
+    const summarizedExisting = summarizeLottetourPlanInfoForDescription(existingDesc)
+    if (summarizedExisting) {
+      return { ...row, routeText, description: summarizedExisting }
+    }
+    if (
+      !isLottetourVibeFillerDescription(existingDesc) &&
+      existingDesc.length >= 24 &&
+      !registerScheduleDescriptionHasMarketingNoise(existingDesc)
+    ) {
       return { ...row, routeText, description: existingDesc.slice(0, 320) }
     }
     const joinedBlob = [row.title, existingDesc, routeText].filter(Boolean).join('\n')

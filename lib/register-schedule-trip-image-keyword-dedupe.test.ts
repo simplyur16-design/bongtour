@@ -12,6 +12,7 @@ import {
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { MODETOUR_BA_NA_HILLS_REGRESSION_ROWS } from '@/lib/schedule-image-keyword-dual-slot-contract'
+import { mapDestination } from '@/lib/pexels-keyword'
 
 describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
   it('replaces duplicate primary with next unused route landmark', () => {
@@ -36,11 +37,15 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
 
   it('clears duplicate when no alternate landmark on same route', () => {
     const out = enforceRegisterScheduleTripUniqueImageKeywords([
-      { day: 1, routeText: '인천 - 레', imageKeyword: 'Leh Palace Ladakh', imageKeyword2: null },
-      { day: 2, routeText: '인천 - 레', imageKeyword: 'Leh Palace Ladakh', imageKeyword2: null },
+      { day: 1, routeText: '인천 공항 출발', imageKeyword: 'Incheon', imageKeyword2: null },
+      { day: 2, routeText: '레 - 레 왕궁', imageKeyword: 'Leh Palace Ladakh', imageKeyword2: null },
+      { day: 3, routeText: '레 - 레 왕궁', imageKeyword: 'Leh Palace Ladakh', imageKeyword2: null },
+      { day: 4, routeText: '인천 공항 귀국', imageKeyword: 'Incheon', imageKeyword2: null },
     ])
-    expect(out[0]!.imageKeyword).toMatch(/Leh/i)
-    expect(out[1]!.imageKeyword).not.toBe(out[0]!.imageKeyword)
+    expect(out.find((r) => r.day === 2)!.imageKeyword).toMatch(/Leh/i)
+    expect(String(out.find((r) => r.day === 3)!.imageKeyword ?? '')).not.toBe(
+      String(out.find((r) => r.day === 2)!.imageKeyword ?? ''),
+    )
   })
 
   it('domestic-hub-only day — adjacent POI refill (departure forward / return backward)', () => {
@@ -941,5 +946,150 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       .join(' | ')
     expect(blob).not.toMatch(/Bali|Tegalalang|Po\s*Nagar|Nha\s*Trang/i)
     expect(String(d5.imageKeyword ?? '')).not.toMatch(/Sonasea|Bali|Tegalalang/i)
+  })
+
+  it('middle empty soft-dup visit city when landmark already used (Palace / Saipan)', () => {
+    const nwp = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '로스엔젤레스 공항',
+          imageKeyword: '',
+          imageKeyword2: null as string | null,
+        },
+        {
+          day: 2,
+          routeText: '샌프란시스코 시내 - 어부의 선착장 - 팔레스 오브 파인 아트',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 9,
+          routeText: '로스앤젤레스 - 팔레스 오브 파인 아트',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 10,
+          routeText: '로스엔젤레스 공항 출발',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'ybtour',
+        productDestination: '미서부',
+        productTitle: '미서부 9일',
+        travelScope: 'package',
+      },
+    )
+    expect(String(nwp.find((r) => r.day === 2)?.imageKeyword2 ?? nwp.find((r) => r.day === 2)?.imageKeyword ?? '')).toMatch(
+      /Palace of Fine Arts/i,
+    )
+    const d9 = String(nwp.find((r) => r.day === 9)?.imageKeyword ?? '').trim()
+    expect(d9.length).toBeGreaterThan(0)
+    expect(d9).toMatch(/Los Angeles|Hollywood|Palace of Fine Arts/i)
+
+    const dupCleared = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 1,
+        routeText: '로스엔젤레스 공항',
+        imageKeyword: 'Los Angeles',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        routeText: '샌프란시스코 - 팔레스 오브 파인 아트',
+        imageKeyword: "Fisherman's Wharf",
+        imageKeyword2: 'Palace of Fine Arts',
+      },
+      {
+        day: 9,
+        routeText: '로스앤젤레스 - 팔레스 오브 파인 아트',
+        imageKeyword: 'Palace of Fine Arts',
+        imageKeyword2: null,
+      },
+      {
+        day: 10,
+        routeText: '로스엔젤레스 공항 출발',
+        imageKeyword: 'Los Angeles',
+        imageKeyword2: null,
+      },
+    ])
+    expect(String(dupCleared.find((r) => r.day === 9)?.imageKeyword ?? '')).toMatch(/Los Angeles|Hollywood/i)
+    expect(mapDestination('로스앤젤레스')).toBe('Los Angeles')
+
+    const sai = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '천혜의 자연 새섬 - PACIFIC ISLANDS CLUB SAIPAN (PIC SAIPAN)',
+          imageKeyword: '',
+          imageKeyword2: null as string | null,
+        },
+        {
+          day: 2,
+          routeText: 'Pacific Islands Club SAIPAN - 사이판',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          routeText: '천혜의 자연 새섬 - PACIFIC ISLANDS CLUB SAIPAN (PIC SAIPAN)',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 6,
+          routeText: '사이판 공항 출발',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '사이판',
+        productTitle: '사이판 PIC',
+        travelScope: 'package',
+      },
+    )
+    expect(String(sai.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Bird Island|Saipan/i)
+    expect(String(sai.find((r) => r.day === 5)?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    expect(String(sai.find((r) => r.day === 5)?.imageKeyword ?? '')).toMatch(/Saipan/i)
+  })
+
+  it('final return refill does not duplicate a middle-day landmark', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, routeText: '두바이', imageKeyword: '', imageKeyword2: null as string | null },
+        {
+          day: 2,
+          routeText: '아부다비 왕궁 - 그랜드 모스크 - 두바이몰 분수쇼',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 3, routeText: '두바이 - 버즈칼리파 전망대', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '두바이 - 팜주메이라 전망대', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 5,
+          routeText: '알 파히디 - 금시장 - 향신료 시장 - 두바이 프레임',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 6, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '두바이',
+        productTitle: '두바이 아부다비 6일',
+        travelScope: 'package',
+      },
+    )
+    const d5 = out.find((r) => r.day === 5)!
+    const d6 = out.find((r) => r.day === 6)!
+    const middle = [d5.imageKeyword, d5.imageKeyword2]
+      .map((k) => normScheduleImageKeywordKey(String(k ?? '')))
+      .filter(Boolean)
+    expect(middle).not.toContain(normScheduleImageKeywordKey(String(d6.imageKeyword ?? '')))
   })
 })

@@ -10,7 +10,7 @@ import {
   registerScheduleKeywordPassesTripRouteTextSsot,
   sanitizeRegisterScheduleImageKeywordsFromRouteEvidence,
 } from '@/lib/register-schedule-route-evidence-keyword'
-import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { isRegisterScheduleCrossContinentHallucinationKeyword, inferRegisterEffectiveProductDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
 
 describe('register schedule description vibe SSOT', () => {
   it('modetour — description은 routeText 복사 금지, vibe 2~3문장', () => {
@@ -80,5 +80,66 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
         rows,
       ),
     ).toBe(true)
+  })
+
+  it('돗토리 일정 — Mount Fuji Shizuoka 환각 차단', () => {
+    const rows = [
+      { day: 3, routeText: '요나고 - 돗토리 - 쿠라요시', title: '돗토리' },
+    ]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Mount Fuji Shizuoka view',
+        '일본',
+        rows,
+      ),
+    ).toBe(true)
+  })
+
+  it('규슈 벳푸 일정 — Mount Fuji 환각 차단', () => {
+    const rows = [{ day: 2, routeText: '유후인 - 벳푸', title: '유후인' }]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Mount Fuji Shizuoka view',
+        '일본',
+        rows,
+      ),
+    ).toBe(true)
+  })
+
+  it('유럽 일정 — Louvre Abu Dhabi 환각 차단', () => {
+    const rows = [{ day: 3, routeText: '파리 - 루브르', title: '파리' }]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Louvre Abu Dhabi Saadiyat Island',
+        '프랑스',
+        rows,
+      ),
+    ).toBe(true)
+  })
+
+  it('두바이 일정 — Louvre Abu Dhabi는 환각 아님', () => {
+    const rows = [{ day: 3, routeText: '두바이 - 아부다비', title: '아부다비' }]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Louvre Abu Dhabi Saadiyat Island',
+        '두바이',
+        rows,
+      ),
+    ).toBe(false)
+  })
+
+  it('imageKeyword Europe 오염으로 dest 추론하지 않음', () => {
+    const rows = [
+      { day: 1, routeText: '싱가포르', title: '싱가포르', imageKeyword: 'Europe' },
+      { day: 3, routeText: '유니버설 스튜디오 싱가포르', title: 'USS' },
+    ]
+    expect(inferRegisterEffectiveProductDestination(null, rows)).toMatch(/Asia|Singapore|싱가포르/i)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Merlion Park Singapore',
+        null,
+        rows,
+      ),
+    ).toBe(false)
   })
 })

@@ -36,16 +36,12 @@ describe('register schedule route expression normalize — 신규 등록', () =>
     expect(out[1]?.routeText).toBe('융프라우 - 스핑크스 전망대')
   })
 
-  it('단일 Rio 코르코바도 — 이과수로 오확장하지 않음', () => {
+  it('단일 요나고 — 한글 다이센 승격, 영어 Mount Daisen 금지', () => {
+    // REGRESSION-FREEZE[register-schedule-route-text-single-poi-expand]: 영어 POI 금지 — manifest
     const out = expandSingleSegmentPoiRouteTextRows([
-      {
-        day: 7,
-        title: '세계 3대 낙원',
-        description: '리우데자네이로',
-        routeText: "세계 3대 낙원 리우데자네이로'코르코바도에서 보는 특별한 절경",
-      },
+      { day: 4, title: '요나고', description: '귀국', routeText: '요나고' },
     ])
-    expect(out[0]?.routeText).toMatch(/코르코바도/)
-    expect(out[0]?.routeText).not.toMatch(/이과수/)
+    expect(out[0]?.routeText).toBe('요나고 - 다이센')
+    expect(out[0]?.routeText).not.toMatch(/Mount\s*Daisen/i)
   })
 })

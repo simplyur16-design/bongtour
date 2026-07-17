@@ -21,14 +21,15 @@ export const AMERICAS_PRODUCT_DEST_RE =
 // REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우/Rio 제거 — manifest
 
 export const MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE =
-  /중동|Middle\s*East|두바이|Dubai|Abu\s*Dhabi|이집트|Egypt|카이로|Cairo|룩소르|Luxor|모로코|Morocco|케냐|Kenya|남아|South\s*Africa|아프리카|Africa|탄자니아|Tanzania|에티오피아|Ethiopia|요르단|Jordan|이스라엘|Israel|카타르|Qatar|오만|Oman|튀니지|Tunisia|나미비아|Namibia|보츠와나|Botswana|Zimbabwe|잠비아|Zambia|우간다|Uganda|르완다|Rwanda|Senegal|세네갈|가나|Ghana|나이지리아|Nigeria/i
+  /중동|Middle\s*East|두바이|Dubai|아부다비|Abu\s*Dhabi|이집트|Egypt|카이로|Cairo|룩소르|Luxor|모로코|Morocco|케냐|Kenya|남아|South\s*Africa|아프리카|Africa|탄자니아|Tanzania|에티오피아|Ethiopia|요르단|Jordan|이스라엘|Israel|카타르|Qatar|오만|Oman|튀니지|Tunisia|나미비아|Namibia|보츠와나|Botswana|Zimbabwe|잠비아|Zambia|우간다|Uganda|르완다|Rwanda|Senegal|세네갈|가나|Ghana|나이지리아|Nigeria|UAE|아랍에미리트/i
 
 const GENERIC_PRODUCT_DEST_RE = /^(?:미지정|미정|기타|해외|overseas|unknown)$/i
 
 const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bParis\b/i,
   /\bEiffel\b/i,
-  /\bLouvre\b/i,
+  // Louvre Museum(파리)만 — Louvre Abu Dhabi는 중동 실사
+  /\bLouvre\b(?!\s*Abu)/i,
   /Notre\s*Dame/i,
   /\bColosseum\b/i,
   /\bRome\b/i,
@@ -52,7 +53,7 @@ const ASIA_PACIFIC_HALLUCINATION_ON_NON_ASIA_DEST_RE =
   /\b(Phuket|Pattaya|Bangkok|Bali|Hoi\s*An|Da\s*Nang|Chiang\s*Mai|Singapore|Maldives|Nha\s*Trang)\b/i
 
 const AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE =
-  /\b(Christ\s*the\s*Redeemer|Griffith\s*Observatory|Golden\s*Gate|Statue\s*of\s*Liberty|Times\s*Square|Grand\s*Canyon|Niagara\s*Falls)\b/i
+  /\b(Christ\s*the\s*Redeemer|Griffith\s*Observatory|Golden\s*Gate|Statue\s*of\s*Liberty|Times\s*Square|Grand\s*Canyon|Niagara\s*Falls|Glacier\s*Bay|Alaska|Space\s*Needle|Pike\s*Place)\b/i
 
 export type RegisterScheduleTripDestinationRow = {
   routeText?: string | null
@@ -70,9 +71,10 @@ export function inferRegisterEffectiveProductDestination(
   const dest = String(productDestination ?? '').trim()
   if (dest && !GENERIC_PRODUCT_DEST_RE.test(dest)) return dest
   const hay = rows
-    .flatMap((r) => [r.routeText, r.title, r.description, r.imageKeyword, r.imageKeyword2])
+    .flatMap((r) => [r.routeText, r.title, r.description])
     .filter(Boolean)
     .join('\n')
+  // imageKeyword는 추론에 쓰지 않음 — "Europe" 등 오염 키워드가 dest를 뒤집음
   if (EUROPE_PRODUCT_DEST_RE.test(hay)) return 'Europe'
   if (AMERICAS_PRODUCT_DEST_RE.test(hay)) return 'Americas'
   if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(hay)) return 'Africa'
@@ -100,6 +102,20 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
     if (haystacks.some((h) => AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE.test(h))) return true
     if (haystacks.some((h) => ASIA_PACIFIC_HALLUCINATION_ON_NON_ASIA_DEST_RE.test(h))) return true
     if (/\bGiza\b/i.test(raw) || /\bPhuket\b/i.test(raw)) return true
+    // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 유럽에 Louvre Abu Dhabi 금지 — manifest
+    // 단, 일정에 아부다비·두바이 실방문이 있으면 다도시 상품으로 허용
+    const tripHay = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const tripHasGulf =
+      /아부다비|Abu\s*Dhabi|두바이|Dubai|사디야트|Saadiyat/i.test(tripHay)
+    if (
+      !tripHasGulf &&
+      /Louvre\s*Abu\s*Dhabi|Abu\s*Dhabi|Saadiyat|Dubai|Burj\s*Khalifa|Sheikh\s*Zayed/i.test(raw)
+    ) {
+      return true
+    }
     return false
   }
 
@@ -111,7 +127,20 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
 
   if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(dest)) {
     if (haystacks.some((h) => JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE.test(h))) return true
-    if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
+    // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: ME Louvre Abu 실사 — Louvre Museum 축약 허용 — manifest
+    const tripHay = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const tripHasLouvreAbu =
+      /루브르\s*아부다비|Louvre\s*Abu|아부다비|Abu\s*Dhabi|사디야트|Saadiyat/i.test(tripHay)
+    for (const h of haystacks) {
+      for (const re of CROSS_CONTINENT_HALLUCINATION_KW_RES) {
+        if (!re.test(h)) continue
+        if (/\bLouvre\b/i.test(h) && tripHasLouvreAbu) continue
+        return true
+      }
+    }
     return false
   }
 
@@ -162,6 +191,13 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
     ) {
       return true
     }
+    // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 비싱가포르 일정 Merlion 금지 — manifest
+    if (
+      !singaporeTrip &&
+      haystacks.some((h) => /Merlion|Gardens\s*by\s*the\s*Bay|Marina\s*Bay\s*Sands/i.test(h))
+    ) {
+      return true
+    }
   }
   // 푸꾸옥 상품 — 나트랑·발리·앙코르 등 동남아 타목적지 환각 차단
   if (/푸꾸옥|Phu\s*Quoc|푸꾹옥/i.test(dest) || (scheduleRows ?? []).some((r) => /푸꾸옥|Phu\s*Quoc/i.test(String(r.routeText ?? '')))) {
@@ -174,6 +210,29 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
       /\b(Nha\s*Trang|Po\s*Nagar|Long\s*Son|Bali|Tegalalang|Uluwatu|Angkor|Bayon|Halong|Hoi\s*An|Da\s*Nang)\b/i.test(
         raw,
       )
+    ) {
+      return true
+    }
+  }
+
+  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 돗토리·시마네·규슈 일정 Mount Fuji 환각 — manifest
+  if (ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest) || /일본|Japan/i.test(dest)) {
+    const tripHay = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const westOrKyushuTrip =
+      /돗토리|Tottori|요나고|Yonago|시마네|Shimane|이즈모|Izumo|마쯔에|Matsue|다마즈쿠리|Tamatsukuri|사카이미나토|Sakaiminato|쿠라요시|Kurayoshi|벳푸|Beppu|유후인|Yufuin|오이타|Oita|후쿠오카|Fukuoka|규슈|Kyushu/i.test(
+        tripHay,
+      )
+    const fujiCorridor =
+      /후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya|가마쿠라|Kamakura/i.test(
+        tripHay,
+      )
+    if (
+      westOrKyushuTrip &&
+      !fujiCorridor &&
+      haystacks.some((h) => /\bMount\s*Fuji\b|Fuji\s*Shizuoka|Hakone.*Fuji|Fuji.*view/i.test(h))
     ) {
       return true
     }

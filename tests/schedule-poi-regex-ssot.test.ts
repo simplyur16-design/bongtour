@@ -82,4 +82,18 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('부에노스아이레스')).toMatch(/Buenos Aires/i)
     expect(firstMatchingScheduleSpotEn('웨스트민스터 사원')).toMatch(/Westminster/i)
   })
+
+  it('maps US West Palace and Saipan Bird Island as SPOT; Ipan does not match Saipan', () => {
+    expect(firstMatchingScheduleSpotEn('로스앤젤레스 - 팔레스 오브 파인 아트')).toMatch(/Palace of Fine Arts/i)
+    expect(firstMatchingScheduleSpotEn('천혜의 자연 새섬 - PACIFIC ISLANDS CLUB SAIPAN')).toMatch(
+      /Saipan Bird Island/i,
+    )
+    expect(firstMatchingScheduleCityEn('사이판 PIC')).toMatch(/Saipan/i)
+    expect(firstMatchingScheduleCityEn('사이판')).not.toMatch(/Tumon|Guam/i)
+    expect(mapKoreanPoiSegment('천혜의 자연 새섬')).toMatch(/Saipan Bird Island/i)
+    expect(firstMatchingScheduleSpotEn('라플린')).toMatch(/Laughlin/i)
+    expect(firstMatchingScheduleSpotEn('코닥극장')).toMatch(/Chinese Theatre|Hollywood/i)
+    expect(firstMatchingScheduleSpotEn('니지노마츠바라')).toMatch(/Nijinomatsubara/i)
+    expect(firstMatchingScheduleSpotEn('비엔티엔')).toMatch(/Vientiane|That Luang/i)
+  })
 })

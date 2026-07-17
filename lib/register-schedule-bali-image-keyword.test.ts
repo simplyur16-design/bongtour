@@ -74,4 +74,30 @@ describe('Bali register schedule imageKeyword', () => {
       }
     }
   })
+
+  it('hanatour 6-day — free-day Padang is trip-unique (no D2 kw2 / D4 primary clash)', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(BALI_SCHEDULE, {
+      supplierKey: 'hanatour',
+      productDestination: '발리',
+      productTitle: '발리 6일',
+    })
+    const used = new Map<string, number>()
+    for (const row of out) {
+      const day = Number(row.day)
+      for (const slot of [row.imageKeyword, row.imageKeyword2]) {
+        const kw = String(slot ?? '').trim()
+        if (!kw) continue
+        const nk = normScheduleImageKeywordKey(kw)
+        if (!nk) continue
+        if (used.has(nk)) {
+          const prev = used.get(nk)!
+          const maxDay = 6
+          const touchesEdge = day <= 1 || day >= maxDay || prev <= 1 || prev >= maxDay
+          expect(touchesEdge && /^Bali$/i.test(kw)).toBe(true)
+        } else {
+          used.set(nk, day)
+        }
+      }
+    }
+  })
 })

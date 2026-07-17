@@ -243,6 +243,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /(?:오사카|도쿄|일본|japan|osaka|tokyo|재팬).{0,32}(?:유|우)니버설|(?:유|우)니버설.{0,32}(?:오사카|도쿄|일본|재팬|japan|osaka)/iu, en: "Universal Studios Japan Osaka" },
   { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: "Tokyo Disneyland castle" },
   { re: /돗토리\s*사구|Tottori\s*Sand/i, en: "Tottori Sand Dunes" },
+  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: bare 돗토리·쿠라요시 → 서일본 POI (Fuji 대체) — manifest
+  { re: /돗토리|Tottori/i, en: "Tottori Sand Dunes" },
+  { re: /쿠라요시|Kurayoshi/i, en: "Kurayoshi white-walled storehouses" },
   { re: /코난\s*박물관|고쇼\s*아오야마|Gosho\s*Aoyama|Manga\s*Factory/i, en: "Gosho Aoyama Manga Factory" },
   { re: /20\s*세기\s*배|나싯코\s*관|20segi/i, en: "Tottori Nashi Pear Museum" },
   { re: /아다치\s*미술관|Adachi\s*Museum/i, en: "Adachi Museum of Art" },
@@ -367,7 +370,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /Bodu\s*Finolhu|보두\s*피놀후/i, en: "Maldives white sand beach palm trees aerial" },
   { re: /달랏|Da Lat|Dalat/i, en: "Da Lat Vietnam highland pine forest city" },
   { re: /나트랑|Nha Trang/i, en: "Nha Trang beach Vietnam turquoise sea" },
-  { re: /비엔티안|Vientiane/i, en: "Pha That Luang Vientiane golden stupa" },
+  { re: /비엔티안|비엔티엔|Vientiane/i, en: "Pha That Luang Vientiane golden stupa" },
   { re: /방비엥|Vang Vieng/i, en: "Vang Vieng Nam Song river karst mountains" },
   { re: /블루\s*라군|Blue Lagoon/i, en: "Blue Lagoon Vang Vieng emerald water" },
   { re: /파투싸이|Patuxai/i, en: "Patuxai Victory Monument Vientiane" },
@@ -521,6 +524,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /채플테펙|Chapultepec/i, en: "Chapultepec Castle Mexico City hilltop" },
   { re: /소치밀로|Xochimilco/i, en: "Xochimilco floating gardens Mexico City trajineras" },
   { re: /축복.*예수|Blessing.*Jesus|예수\s*상\s*전망|Yesus\s*Blessing/i, en: "Blessing Jesus Statue Manado North Sulawesi" },
+  { re: /마카테테|Makatete/i, en: "Makatete Hill Manado Sulawesi viewpoint" },
+  { re: /오르도스\s*박물관|Ordos\s*Museum/i, en: "Ordos Museum Inner Mongolia" },
+  { re: /몰디브\s*리조트|Maldives\s*resort|체크아웃\s*준비/i, en: "Maldives overwater bungalow resort" },
   { re: /코르코바도|Corcovado/i, en: "Corcovado Christ the Redeemer Rio de Janeiro" },
   { re: /웨스트민스터|베스(?:트)?민스터|Westminster(?:\s*Abbey)?/i, en: "Westminster Abbey London Gothic facade" },
   { re: /로벤\s*섬|Robben\s*Island/i, en: "Robben Island Cape Town Table Bay view" },
@@ -609,6 +615,16 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /에코\s*포인트|Echo\s*Point/i, en: "Echo Point Blue Mountains" },
   { re: /시드니\s*동물원|Taronga/i, en: "Taronga Zoo Sydney" },
   { re: /세인트\s*메?리(?:스)?\s*대성당|St\s*Mary/i, en: "St Marys Cathedral Sydney" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Palace/Bird Island는 SPOT — trip SSOT·gap-fill spot scan — manifest
+  { re: /팔레스\s*오브\s*파인\s*아트|Palace\s*of\s*Fine\s*Arts/i, en: "Palace of Fine Arts San Francisco" },
+  {
+    re: /천혜의\s*자연\s*새섬|Bird\s*Island|PACIFIC\s*ISLANDS\s*CLUB|PIC\s*SAIPAN/i,
+    en: "Saipan Bird Island Pacific Islands Club",
+  },
+  { re: /라플린|Laughlin/i, en: "Laughlin Colorado River casino strip" },
+  { re: /코닥\s*극장|Kodak\s*Theatre|TCL\s*Chinese/i, en: "TCL Chinese Theatre Hollywood" },
+  { re: /니지노마츠바라|Nijinomatsubara|虹の松原/u, en: "Nijinomatsubara pine grove Saga Japan" },
+  { re: /KK\s*스타\s*라운지|KK\s*Star\s*Lounge/i, en: "Kota Kinabalu waterfront sunset" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
@@ -622,7 +638,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /퍼블릭 마켓|Pike Place|Public Market/i, en: "Pike Place Market Seattle" },
   { re: /게스웍|Gas Works/i, en: "Gas Works Park Seattle" },
   { re: /스페이스 니들|Space Needle/i, en: "Space Needle Seattle" },
-  { re: /알래스카|Alaska|주노|Juneau|스카그웨이|Skagway|빙하|Glacier Bay/i, en: "Glacier Bay Alaska cruise" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 단독 빙하 ≠ Glacier Bay Alaska (노르웨이 피요르드) — manifest
+  { re: /알래스카|Alaska|주노|Juneau|스카그웨이|Skagway|글래시어\s*베이|Glacier\s*Bay/i, en: "Glacier Bay Alaska cruise" },
   { re: /인컨타라|Xiangshawan|响沙湾/i, en: "Xiangshawan Desert Ordos Inner Mongolia" },
   { re: /오르도스|Ordos|칭기즈|Genghis|성吉思汗/i, en: "Genghis Khan Statue Ordos" },
   { re: /타슈켄트|Tashkent|타슈켄/i, en: "Tashkent Minor Mosque Uzbekistan" },
@@ -683,10 +700,13 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /아시아\s*타이|Asia\s*Typhoon/i, en: "Asia Typhoon Waterpark Guam" },
   { re: /플라자\s*데\s*스페|Plaza\s*de\s*Espana/i, en: "Plaza de Espana Guam Spanish steps" },
   { re: /아푸간|Apugan|Apaca/i, en: "Fort Apugan Guam hilltop view" },
-  { re: /이파오|Ipan|Tumon\s*Bay/i, en: "Tumon Bay Guam beach" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Ipan must not substring-match Saipan — manifest
+  { re: /이파오|\bIpan\b|Tumon\s*Bay/i, en: "Tumon Bay Guam beach" },
   { re: /알마티|Almaty/i, en: "Almaty Kazakhstan mountains city view" },
   { re: /침블락|Charyn|차른/i, en: "Charyn Canyon Kazakhstan red rock valley" },
-  { re: /콜사이|Kolsai/i, en: "Kolsai Lakes Kazakhstan mountain lake" },
+  { re: /콜사이|콜사이호수|Kolsai|Kolsay/i, en: "Kolsai Lakes Kazakhstan mountain lake" },
+  { re: /카인디|Kaindy/i, en: "Kaindy Lake Kazakhstan sunken forest" },
+  { re: /시애틀|Seattle/i, en: "Seattle Space Needle waterfront" },
   { re: /리츠린|Ritsurin/i, en: "Ritsurin Garden Takamatsu Japan" },
   { re: /고토히라|Kotohira|金刀比羅/i, en: "Kotohira Shrine Japan stone steps" },
   { re: /나오시마|Naoshima/i, en: "Naoshima art island Japan yellow pumpkin" },

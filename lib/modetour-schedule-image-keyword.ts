@@ -694,7 +694,7 @@ function tryAcceptMappedPoiKeyword(
   let fin = fromPoi
   try {
     fin = finalizeScheduleImageKeyword(fromPoi)
-  } catch {
+    } catch {
     /* keep fromPoi */
   }
   const accepted = tryAcceptModetourLlmImageKeyword(fin, productDestination)
@@ -703,7 +703,7 @@ function tryAcceptMappedPoiKeyword(
     isDestinationHubEnglishKeyword(accepted, productDestination) ||
     !isScheduleImageKeywordLandmarkEligible(accepted)
   ) {
-    return ''
+  return ''
   }
   return accepted
 }
@@ -1245,12 +1245,12 @@ function resolveModetourSecondaryKeyword(
   const fromRouteOrdered =
     pickModetourRouteOrderedSecondKeyword(primary, row.routeText, dayKind, productDestination) ||
     pickDistinctSecondScheduleImageKeyword(
-      primary,
-      filterTourismRouteLandmarkCandidates(
-        collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
-        productDestination,
-      ),
-    )
+    primary,
+    filterTourismRouteLandmarkCandidates(
+      collectRouteLandmarkKeywordsFromRouteText(row.routeText, productDestination),
+      productDestination,
+    ),
+  )
   if (fromRouteOrdered) return fromRouteOrdered
 
   const fromLlm = tryAcceptModetourLlmImageKeyword(row.imageKeyword2, productDestination)
@@ -1564,8 +1564,8 @@ function dedupeModetourTourismPrimaryKeywordsAcrossDays<T extends ModetourSchedu
     if (fromDay) return { ...row, imageKeyword: fromDay }
 
     if (!String(row.routeText ?? '').trim()) {
-      const fromTrip = pickUnused(tripLandmarks)
-      if (fromTrip) return { ...row, imageKeyword: fromTrip }
+    const fromTrip = pickUnused(tripLandmarks)
+    if (fromTrip) return { ...row, imageKeyword: fromTrip }
     }
 
     return row

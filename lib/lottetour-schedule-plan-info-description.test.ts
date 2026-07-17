@@ -6,6 +6,7 @@ import {
   summarizeLottetourPlanInfoForDescription,
 } from '@/lib/lottetour-register-api-schedule'
 import { parseLottetourScheduleDaysFromScheduleAjax } from '@/lib/lottetour-register-api-detail'
+import { registerScheduleRouteOrTitleHasShoppingNoise } from '@/lib/register-schedule-description-marketing-guard'
 
 // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: plan_info 일정요약 — manifest
 
@@ -15,6 +16,14 @@ describe('lottetour schedule plan_info description', () => {
       '[가든스 바이 더 베이] 클라우드 포레스트·플라워 돔 관람 후 슈퍼트리 전망대. [센토사] 루지·스카이라이더.'
     expect(summarizeLottetourPlanInfoForDescription(plan)).toMatch(/가든스 바이 더 베이/)
     expect(isLottetourVibeFillerDescription(plan)).toBe(false)
+  })
+
+  it('summarizeLottetourPlanInfoForDescription drops Air Seoul marketing perks', () => {
+    const plan =
+      '[에어서울] 좌석 간격 81cm, 기내 엔터테인먼트 제공. [특전] 인솔자 동행. [수하물] 위탁 15kg. [돗토리 모래언덕] 모래예술 관람 후 [이즈모대사] 참배.'
+    const out = summarizeLottetourPlanInfoForDescription(plan)
+    expect(out).toMatch(/돗토리|이즈모/)
+    expect(out).not.toMatch(/좌석|수하물|특전|엔터테인/)
   })
 
   it('compose prefers plan_info over vibe filler', () => {
@@ -83,5 +92,25 @@ describe('lottetour schedule plan_info description', () => {
     expect(days[1]?.description).toMatch(/가든스 바이 더 베이/)
     expect(days[0]?.description).not.toBe(days[1]?.description)
     expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+  })
+
+  it('parse scheduleAjax — shopping strong excluded from routeText', () => {
+    const html = `
+<dl id="sche_plan_4" class="day_plan">
+  <dd>
+    <div class="timeline">
+      <strong>면세점 1회 쇼핑</strong>
+      <strong>요나고</strong>
+    </div><!-- //timeline -->
+    <div class="table_in">
+      <p class="plan_info">[요나고] 시내 이동 후 귀국 준비.</p>
+    </div>
+  </dd>
+</dl><!-- //day_plan -->
+`
+    const days = parseLottetourScheduleDaysFromScheduleAjax(html)
+    expect(days[0]?.routeText).not.toMatch(/면세|쇼핑/)
+    expect(days[0]?.routeText).toMatch(/요나고/)
+    expect(registerScheduleRouteOrTitleHasShoppingNoise(days[0]?.routeText ?? '')).toBe(false)
   })
 })

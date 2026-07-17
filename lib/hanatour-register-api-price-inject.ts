@@ -46,7 +46,21 @@ export async function injectHanatourApiDeparturePricesIfMissing(
 
   if (inputs.length === 0) {
     const single = hit.anchorInput ?? hit.inputs[0] ?? null
-    if (single) inputs = [single]
+    // REGRESSION-FREEZE[hanatour-register-api-price-inject]: 과거 anchor 단독 재주입 금지 — manifest
+    if (single) {
+      const d = departureInputToYmd(single.departureDate) ?? ''
+      if (d && d >= fromYmd && d <= toYmd && (single.adultPrice ?? 0) > 0) {
+        inputs = [single]
+      } else if (d && d < fromYmd) {
+        return {
+          ...parsed,
+          registerPreviewPolicyNotes: [
+            ...(parsed.registerPreviewPolicyNotes ?? []),
+            `하나투어 출발 달력 0건·anchor 과거마감: ${d}`,
+          ],
+        }
+      }
+    }
   }
   if (inputs.length === 0) return parsed
 

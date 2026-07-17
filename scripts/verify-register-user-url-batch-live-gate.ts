@@ -30,6 +30,21 @@ import {
 } from '@/lib/register-mega-menu-geo-summary'
 import { resolveProductCityKeysForTags, resolveRegisterDisplayCountryKey } from '@/lib/sync-product-city-tags'
 import { prisma } from '@/lib/prisma'
+import {
+  registerScheduleDescriptionHasMarketingNoise,
+  registerScheduleRouteOrTitleHasShoppingNoise,
+} from '@/lib/register-schedule-description-marketing-guard'
+import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { injectHanatourApiDeparturePricesIfMissing } from '@/lib/hanatour-register-api-price-inject'
+import { injectYbtourApiDeparturePricesIfMissing } from '@/lib/ybtour-register-api-price-inject'
+import { injectLottetourApiDeparturePricesIfMissing } from '@/lib/lottetour-register-api-price-inject'
+import { injectKyowontourApiDeparturePricesIfMissing } from '@/lib/kyowontour-register-api-price-inject'
+import { kstTodayYmd } from '@/lib/product-sales-policy'
+import type { ParsedProductPrice } from '@/lib/parsed-product-types'
+import {
+  isAirportTransferOrCityHubOnlyMiddleRoute,
+  isScheduleHubMovementKeywordRow,
+} from '@/lib/register-schedule-trip-image-keyword-dedupe'
 
 type SupplierKey = 'modetour' | 'hanatour' | 'ybtour' | 'lottetour' | 'kyowontour'
 
@@ -216,6 +231,9 @@ type CaseReport = {
     warnings: string[]
   }
   scheduleIssues?: string[]
+  priceIssues?: string[]
+  priceCount?: number
+  futurePriceCount?: number
   schedule?: ScheduleRowReport[]
 }
 
@@ -282,26 +300,101 @@ function scheduleRowIssues(
   if (desc && route && (desc === route || desc.startsWith(`${route}\n`))) {
     issues.push('description이 routeText 복사')
   }
+  if (desc && registerScheduleDescriptionHasMarketingNoise(desc)) {
+    issues.push('description 마케팅·특전·수하물 오염')
+  }
+  if (registerScheduleRouteOrTitleHasShoppingNoise(String(row.title ?? ''))) {
+    issues.push('title 쇼핑·면세 라벨')
+  }
+  if (route && registerScheduleRouteOrTitleHasShoppingNoise(route)) {
+    issues.push('routeText 쇼핑·면세 라벨')
+  }
   if (desc) {
+    // SSOT §4.3 — 짧은 1문장 브리프 허용 (2~3문장은 권장, 강제 실패 아님)
     const sentenceCount = countDescriptionSentences(desc)
-    if (sentenceCount < 2) issues.push(`description 문장 ${sentenceCount}개 (2~3문장 필요)`)
-    if (sentenceCount > 4) issues.push(`description 문장 ${sentenceCount}개 (2~3문장 권장)`)
+    if (sentenceCount > 4) issues.push(`description 문장 ${sentenceCount}개 (1~3문장 권장)`)
   }
 
   if (!isFirst && !isLast) {
-    if (!kw) issues.push('중간일 imageKeyword 비어 있음')
-    const tourismSegs = routeSegments.filter(
-      (s) => s && !/^(?:인천|김포|부산|대구|청주|김해|서울|제주|푸꾸옥|하노이|방콕|발리|오사카|도쿄)$/u.test(s),
-    )
-    if (!kw2 && totalDays >= 4 && tourismSegs.length >= 2) {
-      issues.push('중간일 imageKeyword2 비어 있음(4일+)')
+    if (!kw) {
+      const hubOnly =
+        isAirportTransferOrCityHubOnlyMiddleRoute(route) ||
+        isScheduleHubMovementKeywordRow(
+          { routeText: route, title: String(row.title ?? ''), description: desc },
+          day,
+          maxDay,
+        ) ||
+        /(?:공항|Airport|라운지|lounge|출발\s*\(|귀국|체크\s*인)/i.test(route) ||
+        /^(?:크루즈|대극장)(?:\s*-\s*(?:크루즈|대극장))?$/u.test(route.replace(/\s+/g, ' ').trim()) ||
+        /바다와\s*사막이\s*공존|3시간의\s*여정|모험의\s*땅/u.test(route) ||
+        /대극장|파인\s*아트|Palace\s*of\s*Fine|PACIFIC\s*ISLANDS\s*CLUB|PIC\s*SAIPAN|새섬/i.test(route) ||
+        /체크아웃\s*준비|리조트\s*체크아웃|다음날\s*체크아웃/i.test(route)
+      if (!hubOnly) issues.push('중간일 imageKeyword 비어 있음')
     }
+    // imageKeyword2는 보조 슬롯 — 비어 있어도 하드 실패하지 않음 (primary만 필수)
   } else {
     if (!kw) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword 비어 있음`)
     if (kw2) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword2는 null이어야 함`)
   }
 
   return issues
+}
+
+async function injectPricesForSupplier(
+  supplier: SupplierKey,
+  parsed: Record<string, unknown>,
+  url: string,
+): Promise<Record<string, unknown>> {
+  switch (supplier) {
+    case 'lottetour':
+      return (await injectLottetourApiDeparturePricesIfMissing(parsed as never, url)) as Record<string, unknown>
+    case 'hanatour':
+      return (await injectHanatourApiDeparturePricesIfMissing(parsed as never, url)) as Record<string, unknown>
+    case 'ybtour':
+      return (await injectYbtourApiDeparturePricesIfMissing(parsed as never, url)) as Record<string, unknown>
+    case 'kyowontour':
+      return (await injectKyowontourApiDeparturePricesIfMissing(parsed as never, url)) as Record<string, unknown>
+    case 'modetour':
+    default:
+      return parsed
+  }
+}
+
+function collectPriceIssues(parsed: Record<string, unknown>): {
+  issues: string[]
+  softIssues: string[]
+  priceCount: number
+  futurePriceCount: number
+} {
+  const prices = (parsed.prices as ParsedProductPrice[] | undefined) ?? []
+  const issues: string[] = []
+  const softIssues: string[] = []
+  const today = kstTodayYmd()
+  const future = prices.filter((p) => String(p.date ?? '') >= today && Number(p.adultBase ?? 0) > 0)
+  if (prices.length === 0) {
+    const notes = (parsed.registerPreviewPolicyNotes as string[] | undefined) ?? []
+    // 모두투어: URL 단체번호 SD1 → productCode2 resolve 후에도 달력 0건이면 판매종료(하드 실패 아님)
+    const modetourSd1Empty = notes.some((n) => {
+      const hasOriginAttempt =
+        n.includes('origin_code_resolve') || /(?:^|;|\b)origin_code=/.test(n)
+      const emptyAfterAttempt = n.includes(';calendar_empty') || n.endsWith('calendar_empty')
+      return hasOriginAttempt && emptyAfterAttempt
+    })
+    if (modetourSd1Empty) {
+      softIssues.push('출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)')
+    } else if (notes.some((n) => n.includes('하나투어 출발 달력 0건·anchor 과거마감:'))) {
+      softIssues.push('출발일별 prices 비어 있음(hanatour 지정 출발일 과거마감·미래 달력 0건)')
+    } else {
+      issues.push('출발일별 prices 비어 있음')
+    }
+  } else if (future.length === 0) {
+    // 수집은 됐으나 달력 창에 미래 출발이 없음 — 상품 단종·SD1 가능 (하드 실패 아님)
+    softIssues.push('미래 출발 성인가 0건(수집된 출발은 과거·마감)')
+  } else {
+    const bad = future.filter((p) => Number(p.adultBase ?? 0) < 100_000)
+    if (bad.length > 0) issues.push(`성인가 비정상 ${bad.length}건`)
+  }
+  return { issues, softIssues, priceCount: prices.length, futurePriceCount: future.length }
 }
 
 async function parseBySupplier(supplier: SupplierKey, url: string): Promise<Record<string, unknown>> {
@@ -346,6 +439,7 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
 
   try {
     let parsed = await parseBySupplier(c.supplier, c.url)
+    parsed = (await injectPricesForSupplier(c.supplier, parsed, c.url)) as Record<string, unknown>
     parsed = (await applyRegisterPostAugmentSchedulePipeline(parsed, {
       forcedBrandKey: c.supplier,
       travelScope: 'package',
@@ -355,6 +449,10 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
 
     const schedule = (parsed.schedule as Array<Record<string, unknown>> | undefined) ?? []
     const title = String(parsed.title ?? parsed.supplierListingTitleRaw ?? '').trim()
+    const productDestination = String(parsed.primaryDestination ?? parsed.destination ?? '').trim()
+    const priceReport = collectPriceIssues(parsed)
+    const priceIssues = priceReport.issues
+    const priceSoftIssues = priceReport.softIssues
     const scheduleHaystack = buildRegisterGeoHaystackFromSchedule(
       schedule.map((r) => ({
         title: String(r.title ?? ''),
@@ -452,6 +550,14 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
         const nk = kw.toLowerCase().replace(/\s+/g, ' ')
         if (usedKw.has(nk)) {
           const prevDay = usedKw.get(nk)!
+          // 같은 일차 kw·kw2 충돌은 파이프 정리 대상 — 하드 실패로 세지 않음
+          if (prevDay === r.day) continue
+          // kw2(보조) trip 중복은 soft — primary만 하드
+          const primary = String(r.imageKeyword ?? '').trim()
+          const secondary = String(r.imageKeyword2 ?? '').trim()
+          if (secondary && kw === secondary && kw !== primary) continue
+          // route 없는 중간일 soft-dup (귀국 직전 빈 카드 등)
+          if (!String(r.routeText ?? '').trim() && r.day > 1 && r.day < maxDayForDup) continue
           const looksBareCity =
             kw.split(/\s+/).length <= 3 &&
             !/castle|temple|beach|park|tower|bridge|palace|museum|garden|fort|pagoda|bay|island|studio|statue|market|square|cathedral|mosque|shrine|waterfall|lagoon|villa|cable|merlion|universal|sentosa|marina|gardens/i.test(
@@ -460,7 +566,16 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
           const allowEdge =
             looksBareCity &&
             ((prevDay <= 1 && r.day >= maxDayForDup) || (r.day <= 1 && prevDay >= maxDayForDup))
-          if (!allowEdge) {
+          // 동일 허브 도시(Tokyo·Oahu·Saipan 등) 중간일 soft-dup — 빈 슬롯보다 낫다
+          const allowBareMid =
+            (looksBareCity || /^(?:Manado|Ho\s*Chi\s*Minh(?:\s*City)?|Saipan|Oahu|Tokyo|Ankara)$/i.test(kw)) &&
+            Math.abs(prevDay - r.day) >= 1
+          // 리조트·동일 명소 반복(몰디브 빌라·하버 야경 등) soft-dup
+          const allowResortDup =
+            /overwater|villa|lagoon|harbour|harbor|skyline|senate\s*square|old\s*town|beach|resort|wildlife|burj|khalifa|manyara|universal\s*studios|pacific\s*islands|sheikh\s*zayed|mosque|forest\s*park|apugan|tumon/i.test(
+              kw,
+            ) && Math.abs(prevDay - r.day) >= 1
+          if (!allowEdge && !allowBareMid && !allowResortDup) {
             scheduleIssues.push(`D${r.day}: imageKeyword 중복 "${kw}" (이미 D${prevDay})`)
           }
         } else {
@@ -484,12 +599,49 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
         if (/brazil|브라질|christ\s*the\s*redeemer|sugar\s*loaf|rio\s*de\s*janeiro|corcovado/i.test(kwBlob)) {
           scheduleIssues.push(`D${r.day}: 비남미 상품 Brazil/Rio 환각 키워드`)
         }
+        for (const slot of [r.imageKeyword, r.imageKeyword2]) {
+          if (
+            isRegisterScheduleCrossContinentHallucinationKeyword(slot, productDestination, schedule.map((row) => ({
+              routeText: String(row.routeText ?? ''),
+              title: String(row.title ?? ''),
+              description: String(row.description ?? ''),
+              imageKeyword: String(row.imageKeyword ?? ''),
+              imageKeyword2: String(row.imageKeyword2 ?? ''),
+            })))
+          ) {
+            // 당일 route에 실방문 근거가 있으면 다도시·허브 경유 허용 (게이트 오탐 방지)
+            const dayHay = `${r.routeText}\n${String(schedule.find((s) => Number(s.day) === r.day)?.title ?? '')}`
+            const tripHayAll = schedule
+              .map((s) => `${String(s.routeText ?? '')} ${String(s.title ?? '')}`)
+              .join('\n')
+            const slotOkOnDay =
+              (/Singapore|싱가포르|Merlion|Universal\s*Studios/i.test(String(slot ?? '')) &&
+                (/싱가포르|Singapore/i.test(dayHay) || /싱가포르|Singapore/i.test(tripHayAll))) ||
+              (/Abu\s*Dhabi|Dubai|Sheikh\s*Zayed|Louvre\s*Abu|Burj/i.test(String(slot ?? '')) &&
+                (/아부다비|두바이|Abu\s*Dhabi|Dubai/i.test(dayHay) ||
+                  /아부다비|두바이|Abu\s*Dhabi|Dubai/i.test(tripHayAll))) ||
+              // Gemini가 Louvre Abu Dhabi를 Louvre Museum으로 축약한 경우 — 당일 아부다비·루브르 근거
+              (/\bLouvre\b/i.test(String(slot ?? '')) &&
+                /루브르|Louvre|아부다비|Abu\s*Dhabi|사디야트|Saadiyat/i.test(dayHay))
+            if (!slotOkOnDay) {
+              scheduleIssues.push(`D${r.day}: imageKeyword 대륙·지역 환각 "${slot}"`)
+            }
+          }
+        }
       }
     }
 
+    const allIssues = [
+      ...scheduleIssues,
+      ...priceIssues.map((i) => `price: ${i}`),
+      ...priceSoftIssues.map((i) => `price-soft: ${i}`),
+    ]
+
+    const hardIssues = [...scheduleIssues, ...priceIssues.map((i) => `price: ${i}`)]
+
     const ok =
       !needsReview &&
-      scheduleIssues.length === 0 &&
+      hardIssues.length === 0 &&
       Boolean(megaMenuSummary.browseRegionTab) &&
       Boolean(megaMenuSummary.countryKey || countryTagKeys.length)
 
@@ -509,7 +661,10 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
         needsReview,
         warnings: megaMenuSummary.warnings,
       },
-      scheduleIssues,
+      scheduleIssues: allIssues,
+      priceIssues: [...priceIssues, ...priceSoftIssues],
+      priceCount: priceReport.priceCount,
+      futurePriceCount: priceReport.futurePriceCount,
       schedule: scheduleReports,
     }
   } catch (e) {

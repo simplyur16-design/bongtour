@@ -365,6 +365,7 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (ROUTE_ADMIN_GUIDANCE_RE.test(t)) return true
   if (/^몽골\s*FAQ$/iu.test(t)) return true
   if (/필수\s*코스|쇼핑\s*타임|시내를\s*떠나기\s*전/u.test(t)) return true
+  if (/면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회/u.test(t)) return true
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true

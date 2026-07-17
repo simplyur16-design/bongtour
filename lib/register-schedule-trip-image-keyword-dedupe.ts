@@ -7,6 +7,7 @@
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ensureDepartureReturnVisitCityKeywords — 1·마지막일 방문도시 — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 일자 간 중복 시 route 미사용 명소 차순위 — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 해외 패키지·2030 테마 gap-fill 후 reconcile — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
  * REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: pickMongoliaTerelClusterKeywordForUsedSlot — return dedupe — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
@@ -61,7 +62,7 @@ function isSanitizedSingleDestinationHubRow(
   return segs.length === 1 && !isScheduleDomesticHubToken(segs[0]!)
 }
 
-function isAirlineOnlyMovementRouteText(routeText: string | null | undefined): boolean {
+export function isAirlineOnlyMovementRouteText(routeText: string | null | undefined): boolean {
   const segs = splitRouteTextPlaceSegments(routeText)
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)
@@ -210,6 +211,10 @@ function isRejectedTripKeywordCandidate(kw: string): boolean {
   if (isBlockedScheduleImageKeyword(t)) return true
   if (isScheduleAirportLikeImageKeyword(t)) return true
   if (isAirlineCarrierImageKeyword(t)) return true
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: bare continent keyword 금지 — manifest
+  if (/^(?:Europe|Asia|Africa|Americas?|Oceania|유럽|아시아|아프리카|중남미|북미|오세아니아)$/i.test(t)) {
+    return true
+  }
   if (/^(?:BBQ|현지식|특식|조식|석식|쌈밥)\s*SET$/i.test(t)) return true
   if (/\bSET\b/i.test(t) && t.length <= 20 && /(?:BBQ|현지식|특식|조식|석식|쌈밥|식)/i.test(t)) return true
   return false
@@ -489,7 +494,7 @@ function isScheduleDomesticHubToken(token: string): boolean {
   return /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i.test(t)
 }
 
-function isScheduleHubMovementKeywordRow(
+export function isScheduleHubMovementKeywordRow(
   row: RegisterScheduleTripKeywordRow,
   day: number,
   maxDay: number,
@@ -501,8 +506,11 @@ function isScheduleHubMovementKeywordRow(
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)
   if (segs.length === 2) return segs.some((s) => isScheduleDomesticHubToken(s))
-  if (segs.length === 1 && !isScheduleDomesticHubToken(segs[0]!)) {
-    return true
+  // 단일 세그먼트가 해외 방문도시(싱가포르 등)면 hub-only로 비우지 않음
+  if (segs.length === 1) {
+    const only = segs[0]!
+    if (isScheduleDomesticHubToken(only) || isScheduleAirportLikeImageKeyword(only)) return true
+    return false
   }
   return false
 }
@@ -1191,7 +1199,7 @@ function isScheduleCityLevelSoftLandmarkKeyword(kw: string): boolean {
   )
 }
 
-function isAirportTransferOrCityHubOnlyMiddleRoute(routeText: string | null | undefined): boolean {
+export function isAirportTransferOrCityHubOnlyMiddleRoute(routeText: string | null | undefined): boolean {
   const t = String(routeText ?? '').trim()
   if (!t) return false
   if (!/(?:공항|Airport|체크인|호텔)/i.test(t)) return false
@@ -1928,7 +1936,8 @@ function pickHongKongHubClusterKeywordForUsedSlot(
 }
 
 function isGuamResortClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:괌|Guam|투몬|Tumon|아푸간|Apugan|이파오|Ipan)/i.test(String(routeText ?? ''))
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ipan must not substring-match Saipan — manifest
+  return /(?:괌|Guam|투몬|Tumon|아푸간|Apugan|이파오|\bIpan\b)/i.test(String(routeText ?? ''))
 }
 
 function allowGuamResortClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
@@ -2107,8 +2116,16 @@ function pickJapanHubClusterKeywordForUsedSlot(
   excludePrimaryNk = '',
 ): string {
   if (!isJapanHubClusterRoute(routeText)) return ''
+  const hay = String(routeText ?? '')
+  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 서일본·규슈에 Fuji 갭필 금지 — manifest
+  const westOrKyushuOnly =
+    /돗토리|Tottori|요나고|Yonago|시마네|Shimane|이즈모|Izumo|마쯔에|Matsue|다마즈쿠리|Tamatsukuri|쿠라요시|Kurayoshi|벳푸|Beppu|유후인|Yufuin|오이타|Oita|후쿠오카|Fukuoka|규슈|Kyushu|아소|Aso|다자이후|Dazaifu/i.test(
+      hay,
+    ) &&
+    !/후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya/i.test(hay)
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
+    if (westOrKyushuOnly && /\bMount\s*Fuji\b|Fuji\s*Shizuoka|Hakone.*Fuji/i.test(kw)) return ''
     if (!allowJapanHubClusterKw2Duplicate(kw, routeText)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
@@ -2119,25 +2136,38 @@ function pickJapanHubClusterKeywordForUsedSlot(
     const hit = tryPick(String(raw ?? '').trim())
     if (hit) return hit
   }
-  for (const raw of [
-    'Mount Fuji Shizuoka view',
-    'Hakone hot spring Mount Fuji view',
-    'Tokyo street night',
-    'Ritsurin Garden Takamatsu Japan',
-    'Naoshima art island Japan yellow pumpkin',
-    'Tottori Sand Dunes',
-    'Izumo Taisha shrine Japan',
-    'Matsue Castle Japan',
-    'Nagoya Castle Japan',
-    'Inuyama Castle Japan',
-    'Atsuta Shrine Nagoya Japan',
-    'Shirakawa-go gassho farmhouses Japan',
-    'Takayama old town Japan',
-    'Dazaifu Tenmangu shrine Fukuoka',
-    'Beppu hot springs steam Japan',
-    'Mount Aso volcano caldera Japan',
-    'Fukuoka city night',
-  ]) {
+  const defaults = westOrKyushuOnly
+    ? [
+        'Tottori Sand Dunes',
+        'Izumo Taisha shrine Japan',
+        'Matsue Castle Japan',
+        'Mount Daisen Yonago',
+        'Tamatsukuri Onsen',
+        'Beppu hot springs steam Japan',
+        'Dazaifu Tenmangu shrine Fukuoka',
+        'Mount Aso volcano caldera Japan',
+        'Fukuoka city night',
+      ]
+    : [
+        'Mount Fuji Shizuoka view',
+        'Hakone hot spring Mount Fuji view',
+        'Tokyo street night',
+        'Ritsurin Garden Takamatsu Japan',
+        'Naoshima art island Japan yellow pumpkin',
+        'Tottori Sand Dunes',
+        'Izumo Taisha shrine Japan',
+        'Matsue Castle Japan',
+        'Nagoya Castle Japan',
+        'Inuyama Castle Japan',
+        'Atsuta Shrine Nagoya Japan',
+        'Shirakawa-go gassho farmhouses Japan',
+        'Takayama old town Japan',
+        'Dazaifu Tenmangu shrine Fukuoka',
+        'Beppu hot springs steam Japan',
+        'Mount Aso volcano caldera Japan',
+        'Fukuoka city night',
+      ]
+  for (const raw of defaults) {
     const hit = tryPick(raw)
     if (hit) return hit
   }
@@ -2281,8 +2311,9 @@ function allowSoutheastAsiaResortClusterKw2Duplicate(kw: string, routeText?: str
 function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지 — Seattle·Alaska·내몽골 증거 필요
+  // 단독 Glacier/빙하 제외 — 노르웨이 피요르드 빙하박물관이 Glacier Bay를 끌어오지 않게
   if (
-    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알aska|알래스카|Juneau|Skagway|Glacier|Pike Place|Space Needle)/i.test(
+    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
       String(routeText ?? ''),
     )
   ) {
@@ -2296,7 +2327,8 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
 
 function isSteppeAlaskaClusterRoute(routeText: string | null | undefined): boolean {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 크루즈/cruise 토큰 제외 — SEA 비치클럽 크루즈가 Glacier Bay를 끌어오지 않게
-  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알aska|알래스카|Juneau|Skagway|Glacier|Pike Place|Space Needle)/i.test(
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 Glacier/빙하 제외 — 노르웨이 피요르드 — manifest
+  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2564,6 +2596,60 @@ function shouldRejectMiddleDayKeyword2(
   return false
 }
 
+function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefined): string {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
+  // 랜드마크(Palace/Bird Island)가 아니라 bare 방문도시만 — used 명소 soft-dup 재주입 금지
+  const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2 && !isScheduleDomesticHubToken(s))
+  for (const seg of segs) {
+    if (isRegisterScheduleRoutePlaceNoise(seg)) continue
+    if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
+    const fromMap = mapDestination(seg)
+    if (
+      fromMap &&
+      isBareCityOrCountryKeyword(fromMap) &&
+      !isCountryLevelScheduleKeyword(fromMap) &&
+      !isDomesticHubOrAirportImageKeyword(fromMap) &&
+      !isRejectedTripKeywordCandidate(fromMap)
+    ) {
+      return fromMap
+    }
+  }
+  const hay = String(routeText ?? '')
+  for (const ko of [
+    '로스앤젤레스',
+    '로스엔젤레스',
+    '시애틀',
+    '사이판',
+    '샌프란시스코',
+    '라스베이거스',
+    '라스베가스',
+  ]) {
+    if (!hay.includes(ko)) continue
+    const m = mapDestination(ko)
+    if (
+      m &&
+      isBareCityOrCountryKeyword(m) &&
+      !isCountryLevelScheduleKeyword(m) &&
+      !isDomesticHubOrAirportImageKeyword(m) &&
+      !isRejectedTripKeywordCandidate(m)
+    ) {
+      return m
+    }
+  }
+  const city = pickForeignVisitCityFromRouteText(routeText, false)
+  if (
+    city &&
+    isBareCityOrCountryKeyword(city) &&
+    !isCountryLevelScheduleKeyword(city) &&
+    !isDomesticHubOrAirportImageKeyword(city)
+  ) {
+    return city
+  }
+  return ''
+}
+
 function pickReplacementPrimaryTripKeyword(
   row: RegisterScheduleTripKeywordRow,
   cands: readonly string[],
@@ -2571,15 +2657,7 @@ function pickReplacementPrimaryTripKeyword(
 ): string {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
   if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
-    const city = pickForeignVisitCityFromRouteText(row.routeText, false)
-    if (
-      city &&
-      !isCountryLevelScheduleKeyword(city) &&
-      !isDomesticHubOrAirportImageKeyword(city)
-    ) {
-      return city
-    }
-    return ''
+    return softDupForeignVisitCityForMiddleRoute(row.routeText)
   }
   for (const kw of collectRouteTextOrderedLandmarkKeywords(row.routeText)) {
     const raw = String(kw ?? '').trim()
@@ -2588,11 +2666,10 @@ function pickReplacementPrimaryTripKeyword(
     if (!nk || used.has(nk)) continue
     return raw
   }
-  const cityKw = pickForeignVisitCityFromRouteText(row.routeText, false)
-  if (cityKw) {
-    const nk = normScheduleImageKeywordKey(cityKw)
-    if (nk && !used.has(nk)) return cityKw
-  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
+  // 명소가 trip-unique로 소진돼도 used city soft-dup 허용 (Palace/Saipan 반복일)
+  const cityKw = softDupForeignVisitCityForMiddleRoute(row.routeText)
+  if (cityKw) return cityKw
   const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
   return (
     pickUnusedTripKeyword(landmarkCands.length ? landmarkCands : cands, used) ||
@@ -2697,31 +2774,27 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       const pk = normScheduleImageKeywordKey(primary)
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
       // Queenstown→Auckland 공항일: D6 Queenstown Lake soft-dup과 겹쳐도 Milford로 바꾸지 않음
-      if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
-        const city = pickForeignVisitCityFromRouteText(row.routeText, false)
-        if (
-          city &&
-          !isCountryLevelScheduleKeyword(city) &&
-          !isDomesticHubOrAirportImageKeyword(city)
-        ) {
-          primary = city
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
+      const softCity = softDupForeignVisitCityForMiddleRoute(row.routeText)
+      if (softCity && normScheduleImageKeywordKey(softCity) === pk) {
+        // 방문도시 soft-dup — used여도 유지
+      } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
+        primary = softCity
+      } else {
+        const replacement = pickUnusedTripKeyword(cands, used)
+        if (replacement) {
+          primary = replacement
         } else {
-          primary = ''
+          const routeOwned = pickUnusedRoutePrimaryLandmark(row, used)
+          primary =
+            routeOwned && normScheduleImageKeywordKey(routeOwned) !== pk
+              ? routeOwned
+              : pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
+                pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
+                pickManadoClusterKeywordForUsedSlot(cands, used, row.routeText) ||
+                softCity ||
+                ''
         }
-      } else {
-      const replacement = pickUnusedTripKeyword(cands, used)
-      if (replacement) {
-        primary = replacement
-      } else {
-        const routeOwned = pickUnusedRoutePrimaryLandmark(row, used)
-        primary =
-          routeOwned && normScheduleImageKeywordKey(routeOwned) !== pk
-            ? routeOwned
-            : pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-              pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-              pickManadoClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-              ''
-      }
       }
     }
     if (!primary) {
@@ -2733,6 +2806,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
         pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
         pickManadoClusterKeywordForUsedSlot(cands, used, row.routeText) ||
+        softDupForeignVisitCityForMiddleRoute(row.routeText) ||
         ''
     }
 
@@ -2773,13 +2847,19 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     if (primary) {
       const pk = normScheduleImageKeywordKey(primary)
       if (used.has(pk)) {
-        const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
-        primary =
-          pickUnusedTripKeyword(landmarkCands.length ? landmarkCands : cands, used) ||
-          pickUnusedRoutePrimaryLandmark(row, used) ||
-          pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-          pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-          ''
+        const softCity = softDupForeignVisitCityForMiddleRoute(row.routeText)
+        if (softCity && normScheduleImageKeywordKey(softCity) === pk) {
+          // keep visit-city soft-dup
+        } else {
+          const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
+          primary =
+            pickUnusedTripKeyword(landmarkCands.length ? landmarkCands : cands, used) ||
+            pickUnusedRoutePrimaryLandmark(row, used) ||
+            pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
+            pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
+            softCity ||
+            ''
+        }
       }
     }
 
@@ -3095,15 +3175,15 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
 
     if (primary && used.has(normScheduleImageKeywordKey(primary))) {
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
       if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
-        const city = pickForeignVisitCityFromRouteText(row.routeText, false)
-        primary =
-          city && !isCountryLevelScheduleKeyword(city) && !isDomesticHubOrAirportImageKeyword(city)
-            ? city
-            : ''
+        primary = softDupForeignVisitCityForMiddleRoute(row.routeText)
       } else {
         primary = pickReplacementPrimaryTripKeyword(row, cands, used)
       }
+    }
+    if (!primary) {
+      primary = softDupForeignVisitCityForMiddleRoute(row.routeText)
     }
     if (secondary) {
       const nk2 = normScheduleImageKeywordKey(secondary)
@@ -3378,7 +3458,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
-        pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        // 당일 route에 Seattle/Alaska 증거가 있을 때만 — 크루즈·대극장일이 Gas Works를 끌어오지 않음
+        pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, row.routeText, '') ||
         pickUnusedRoutePrimaryLandmark(row, used) ||
         pickUnusedRouteLandmarkFromRowHaystack(row, '', used) ||
         (routeTextTourismSegmentCount(row.routeText) < 1
@@ -3415,7 +3496,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickCentralAsiaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, row.routeText, pk) ||
         pickGapFillKeyword(daySpots, pk, row, acceptKw, false, used, true) ||
         (!dayHasTourism
           ? pickGapFillKeyword(tripSpots, pk, row, acceptKw, true, used, true, tripHay, processedByDay)
@@ -3482,6 +3563,19 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false) ||
         pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false) ||
         primary
+    }
+
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
+    // 당일 명소가 trip unique로 소진돼도 빈칸보다 방문도시 유지 (Palace/Seattle D9 등)
+    if (!primary) {
+      const city = pickForeignVisitCityFromRouteText(row.routeText, false)
+      if (
+        city &&
+        !isCountryLevelScheduleKeyword(city) &&
+        !isDomesticHubOrAirportImageKeyword(city)
+      ) {
+        primary = city
+      }
     }
 
     if (primary && !secondary && fillKw2 && !isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {

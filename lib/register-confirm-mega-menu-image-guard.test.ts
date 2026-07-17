@@ -12,6 +12,13 @@ import {
   megaMenuSummaryNeedsOperatorReview,
 } from '@/lib/register-mega-menu-geo-summary'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { CITY_COUNTRY_ONLY, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+
+function isVisitCitySoftDupAllowed(kw: string): boolean {
+  const raw = String(kw ?? '').trim().toLowerCase()
+  if (CITY_COUNTRY_ONLY.has(raw)) return true
+  return isBareCityOrCountryKeyword(kw)
+}
 
 const emptyGeoFields = {
   groupKey: null,
@@ -147,11 +154,13 @@ describe('register confirm imageKeyword guard', () => {
     for (const row of viaApply) {
       const day = Number(row.day)
       // 출발·귀국 슬롯은 방문도시 중복 허용 — 중간일 primary/secondary만 trip-unique
+      // 방문도시 soft-dup(명소 소진 시)은 허용 — 랜드마크만 강제 unique
       if (day <= 1 || day >= maxDay) continue
       for (const slot of [row.imageKeyword, row.imageKeyword2]) {
         const kw = String(slot ?? '').trim()
         if (!kw) continue
         const nk = normScheduleImageKeywordKey(kw)
+        if (used.has(nk) && isVisitCitySoftDupAllowed(kw)) continue
         expect(used.has(nk)).toBe(false)
         used.add(nk)
       }

@@ -19,7 +19,10 @@ import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageK
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
 import { applyRegisterScheduleRouteTextKeywordsWithSupplierFallback } from '@/lib/register-schedule-image-keywords-route-supplier-merge'
 import { expandSingleSegmentPoiRouteTextRows, prepareRegisterScheduleRowsForImageKeywordApply } from '@/lib/register-schedule-route-text-backfill'
-import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import {
+  inferRegisterEffectiveProductDestination,
+  isRegisterScheduleCrossContinentHallucinationKeyword,
+} from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
@@ -91,7 +94,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     ...row,
     routeText: sanitizeRegisterScheduleRouteText(row.routeText) ?? row.routeText,
   }))
-  const dest = opts.productDestination ?? null
+  const dest = inferRegisterEffectiveProductDestination(
+    opts.productDestination ?? null,
+    preparedForKeywords,
+  )
   const supplier =
     normalizeSupplierOrigin(String(opts.supplierKey ?? '').trim()) ?? String(opts.supplierKey ?? '').trim()
   // REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]: tip/example free day detect — manifest
@@ -263,12 +269,72 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       imageKeyword2: strip(kw2) || null,
     }
   })
-  return finalCrossStripped.map((row) => {
+  // strip으로 primary만 비운 슬롯만 재채움 — 전역 gap-fill 재실행은 D1 비움·타대륙 환각 유발
+  const afterStripPrimaryRefill = fillRegisterScheduleMiddleDayImageKeywordGaps(finalCrossStripped).map(
+    (row, idx) => {
+      const before = finalCrossStripped[idx]!
+      const beforeKw = String(before.imageKeyword ?? '').trim()
+      const afterKw = String(row.imageKeyword ?? '').trim()
+      const beforeKw2 = String(before.imageKeyword2 ?? '').trim()
+      // primary가 strip 전에도 비어 있었거나, 새로 채운 값이 다시 환각이면 유지/거부
+      if (!beforeKw && afterKw) {
+        if (isRegisterScheduleCrossContinentHallucinationKeyword(afterKw, dest, preparedForKeywords)) {
+          return { ...before, imageKeyword: '', imageKeyword2: before.imageKeyword2 }
+        }
+        return {
+          ...before,
+          imageKeyword: afterKw,
+          imageKeyword2: beforeKw2 ? before.imageKeyword2 : row.imageKeyword2,
+        }
+      }
+      return before
+    },
+  )
+  const afterStripReturn = ensureDepartureReturnVisitCityKeywords(afterStripPrimaryRefill, dest)
+  const finalSanitized = afterStripReturn.map((row) => {
     const day = Number(row.day)
     const rawRoute = routeTextRawByDay.get(day)
+    let kw = String(row.imageKeyword ?? '').trim()
+    let kw2 = String(row.imageKeyword2 ?? '').trim()
+    const strip = (k: string) =>
+      k && isRegisterScheduleCrossContinentHallucinationKeyword(k, dest, preparedForKeywords) ? '' : k
+    kw = strip(kw)
+    kw2 = strip(kw2)
+    if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) {
+      kw2 = ''
+    }
     return {
       ...row,
+      imageKeyword: kw,
+      imageKeyword2: kw2 || null,
       routeText: sanitizeRegisterScheduleRouteText(rawRoute ?? row.routeText),
+    }
+  })
+  if (!isPackageListing) return finalSanitized
+
+  // 최종 strip·refill이 landmark를 재주입할 수 있으므로 출력 직전 exact trip-unique를 한 번 더 고정.
+  // 중복 landmark는 당일/여행 방문도시 soft-dup으로 교체한다(빈칸·타일 명소 유입보다 우선).
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
+  const used = new Set<string>()
+  return finalSanitized.map((row) => {
+    let kw = String(row.imageKeyword ?? '').trim()
+    let kw2 = String(row.imageKeyword2 ?? '').trim()
+    const nk = normScheduleImageKeywordKey(kw)
+    if (nk && used.has(nk)) {
+      kw = pickTripVisitCitySoftDup()
+    }
+    const finalNk = normScheduleImageKeywordKey(kw)
+    if (finalNk) used.add(finalNk)
+    const nk2 = normScheduleImageKeywordKey(kw2)
+    if (nk2 && (used.has(nk2) || nk2 === finalNk)) {
+      kw2 = ''
+    }
+    const finalNk2 = normScheduleImageKeywordKey(kw2)
+    if (finalNk2) used.add(finalNk2)
+    return {
+      ...row,
+      imageKeyword: kw,
+      imageKeyword2: kw2 || null,
     }
   })
 }
