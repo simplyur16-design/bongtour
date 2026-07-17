@@ -314,4 +314,16 @@ describe('register schedule route place noise', () => {
       '비엔나 - 린츠',
     )
   })
+
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일·유럽 admin·교통 세그먼트 — manifest
+  it('strips German admin labels and ICE; dedupes KEMPTEN after 캠프텐', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('필독사항')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('내부입장')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('ICE')).toBe(true)
+    expect(
+      sanitizeRegisterScheduleRouteText(
+        '프랑크푸르트 - 뤼데스하임 - 로텐부르크 - 캠프텐 - KEMPTEN',
+      ),
+    ).toBe('프랑크푸르트 - 뤼데스하임 - 로텐부르크 - 캠프텐')
+  })
 })

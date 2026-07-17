@@ -137,6 +137,11 @@ type LottetourScheduleVibeProfile =
   | 'prague_old_town'
   | 'danube_cities'
   | 'alpine_lake'
+  | 'germany_castles'
+  | 'germany_rhine'
+  | 'germany_romantic_road'
+  | 'germany_berlin'
+  | 'germany_medieval'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -204,6 +209,26 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '호수와 산자락이 맞닿은 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다.',
     '이동보다 시야가 열리는 순간이 중심이 되어, 여운이 길게 남는 구성입니다.',
   ],
+  germany_castles: [
+    '성곽과 호수가 이어지는 바이에른의 하루로, 왕실의 규모감이 일정 리듬을 이끕니다.',
+    '실내 관람과 이동이 번갈아 이어져, 풍경과 건축의 대비가 또렷한 구성입니다.',
+  ],
+  germany_rhine: [
+    '강변 언덕과 와인 마을이 이어지는, 라인 유역의 여유로운 이동형 하루입니다.',
+    '짧은 체류에도 강과 언덕의 분위기가 하루 흐름의 중심이 됩니다.',
+  ],
+  germany_romantic_road: [
+    '중세 골목과 성벽 마을이 이어지는, 로맨틱 가도의 걷는 리듬이 돋보이는 하루입니다.',
+    '작은 도시들의 분위기가 자연스럽게 연결되어 여정이 부드럽게 이어집니다.',
+  ],
+  germany_berlin: [
+    '광장과 기념비가 이어지는 수도의 하루로, 역사와 현대가 교차하는 흐름입니다.',
+    '도심을 천천히 가로지르며 도시의 결을 쌓아 가는 구성입니다.',
+  ],
+  germany_medieval: [
+    '성벽·광장·구시가지가 이어지는 중세형 하루로, 걷는 리듬이 중심이 됩니다.',
+    '짧은 이동에도 도시마다 결이 달라, 하루 안에서도 분위기가 분명하게 바뀝니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -244,6 +269,24 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   if (/부다페스트|Budapest|브라티슬라|Bratislava|비엔나|Vienna|Wien|다뉴브|Danube/i.test(joinedBlob)) {
     return 'danube_cities'
   }
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 독일 일주 vibe 분화 — manifest
+  if (
+    /노이슈반슈타인|Neuschwanstein|헤렌킴제|Herrenchiemsee|퓌센|F[uü]ssen|킴제|Chiemsee/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'germany_castles'
+  }
+  if (/뤼데스하임|R[uü]desheim|라인\s*강|Rhine/i.test(joinedBlob)) return 'germany_rhine'
+  if (/로텐부르크|Rothenburg|로맨틱\s*가도/i.test(joinedBlob)) return 'germany_romantic_road'
+  if (/베를린|Berlin|포츠담|Potsdam|브란덴부르크|체칠리엔호프|상수시|Sanssouci/i.test(joinedBlob)) {
+    return 'germany_berlin'
+  }
+  if (
+    /뉘른베르크|Nuremberg|N[uü]rnberg|밤베르크|Bamberg|드레스덴|Dresden/i.test(joinedBlob)
+  ) {
+    return 'germany_medieval'
+  }
   if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'
@@ -268,7 +311,7 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
-  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은/u.test(
+  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형/u.test(
     t,
   )
 }

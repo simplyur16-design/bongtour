@@ -369,6 +369,10 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: outlet·영화제목 쇼핑/옵션 노이즈 — manifest
   if (/\b(?:designer\s*)?outlet\b|아울렛|아웃렛|pandorf|파르도르프/i.test(t)) return true
   if (/sound\s*of\s*music|사운드\s*오브\s*뮤직|사운드오브뮤직/i.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일·유럽 admin·교통 세그먼트 — manifest
+  if (/^(?:필독\s*사항|유의\s*사항|안내\s*사항)$/u.test(t)) return true
+  if (/^(?:내부\s*(?:입장|관람)|정원\s*입장|조망)$/u.test(t)) return true
+  if (/^(?:ICE|IC|TGV|KTX)$/i.test(t)) return true
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
@@ -435,6 +439,19 @@ const ROUTE_CITY_ALIAS_KEY_RULES: ReadonlyArray<{ re: RegExp; key: string }> = [
   { re: /^(?:브르노|brno)$/i, key: 'brno' },
   { re: /^(?:잘츠부르크|잘쯔부르크|salzburg)$/i, key: 'salzburg' },
   { re: /^(?:할슈타트|hallstatt)$/i, key: 'hallstatt' },
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일 한·영 도시 중복 — manifest
+  { re: /^(?:프랑크푸르트|frankfurt)$/i, key: 'frankfurt' },
+  { re: /^(?:뮌헨|munich|m[uü]nchen)$/i, key: 'munich' },
+  { re: /^(?:베를린|berlin)$/i, key: 'berlin' },
+  { re: /^(?:드레스덴|dresden)$/i, key: 'dresden' },
+  { re: /^(?:뉘른베르크|nuremberg|n[uü]rnberg)$/i, key: 'nuremberg' },
+  { re: /^(?:캠프텐|켐프텐|kempten)$/i, key: 'kempten' },
+  { re: /^(?:퓌센|f[uü]ssen|fussen)$/i, key: 'fussen' },
+  { re: /^(?:킴제|chiemsee)$/i, key: 'chiemsee' },
+  { re: /^(?:밤베르크|bamberg)$/i, key: 'bamberg' },
+  { re: /^(?:포츠담|potsdam)$/i, key: 'potsdam' },
+  { re: /^(?:로텐부르크|rothenburg)$/i, key: 'rothenburg' },
+  { re: /^(?:뤼데스하임|r[uü]desheim|rudesheim)$/i, key: 'rudesheim' },
   { re: /^(?:시드니|sydney)$/i, key: 'sydney' },
   { re: /^(?:오클랜드|auckland)$/i, key: 'auckland' },
 ]

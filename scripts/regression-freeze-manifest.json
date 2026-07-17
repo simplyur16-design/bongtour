@@ -4893,7 +4893,9 @@
             "theme-garden country list strip",
             "stripRegisterScheduleRouteThemeGardenCountryList",
             "outlet·영화제목 쇼핑/옵션 노이즈",
-            "비엔나↔Vienna 한·영 도시 중복 제거"
+            "비엔나↔Vienna 한·영 도시 중복 제거",
+            "독일·유럽 admin·교통 세그먼트",
+            "독일 한·영 도시 중복"
           ]
         },
         {
@@ -5781,6 +5783,7 @@
             "routeContextualNationalAssemblyEnglish",
             "Fisherman's Bastion Budapest",
             "프라하·동유럽 명소",
+            "독일 일주 명소",
             "Matsue Castle",
             "Garuda Wisnu Kencana",
             "Melasti Beach",
@@ -5849,7 +5852,8 @@
       ],
       "vitestSuites": [
         "tests/schedule-poi-regex-ssot.test.ts",
-        "lib/lottetour-schedule-central-europe-image-keyword.test.ts"
+        "lib/lottetour-schedule-central-europe-image-keyword.test.ts",
+        "lib/lottetour-schedule-germany-image-keyword.test.ts"
       ]
     },
     {
@@ -6839,7 +6843,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-schedule-expression]",
             "applyLottetourScheduleExpressionToRows",
-            "composeLottetourScheduleDescription"
+            "composeLottetourScheduleDescription",
+            "독일 일주 vibe 분화"
           ]
         },
         {
