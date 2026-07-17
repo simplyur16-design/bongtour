@@ -77,6 +77,21 @@ export function isAirlineOnlyMovementRouteText(routeText: string | null | undefi
   })
 }
 
+/** 귀국일 — 면세·공항·해산만 있으면 중간일 미사용 명소(아라시야마 등) bleed 금지 */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+export function isReturnAirportOrShoppingOnlyRouteText(routeText: string | null | undefined): boolean {
+  const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2)
+  if (!segs.length) return true
+  return segs.every(
+    (s) =>
+      isRegisterScheduleRoutePlaceNoise(s) ||
+      isScheduleAirportRouteSegmentText(s) ||
+      /면세|공항|airport|해산|귀국|터미널/i.test(s),
+  )
+}
+
 function findNextTourismRowForDepartureFill<T extends RegisterScheduleTripKeywordRow>(
   sorted: readonly T[],
   day: number,
@@ -792,6 +807,32 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
             ) {
               return ownReturnCity
             }
+            // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+            if (isReturnAirportOrShoppingOnlyRouteText(row.routeText)) {
+              const fromDest = mapDestination(String(productDestination ?? '').trim())
+              if (
+                fromDest &&
+                !isDomesticHubOrAirportImageKeyword(fromDest) &&
+                !isRejectedTripKeywordCandidate(fromDest) &&
+                !isCountryLevelScheduleKeyword(fromDest)
+              ) {
+                return fromDest
+              }
+              for (const tourismRow of [...sorted].reverse()) {
+                const d = Number(tourismRow.day)
+                if (d <= 0 || d >= day) continue
+                const city = pickForeignVisitCityFromRouteText(tourismRow.routeText, false)
+                if (
+                  city &&
+                  isBareCityOrCountryKeyword(city) &&
+                  !isDomesticHubOrAirportImageKeyword(city) &&
+                  !isCountryLevelScheduleKeyword(city)
+                ) {
+                  return city
+                }
+              }
+              return ''
+            }
             return (
               pickReturnVisitCityKeyword(sorted, day, productDestination, usedForEdge) ||
               // 귀국일 route에 해외 장소가 없으면 중간일 미사용 명소 bleed 금지 (AVP024 Day5 Stilt House)
@@ -957,6 +998,8 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
     } else if (isReturn) {
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return hub soft-dup visit city before unused landmark — manifest
       // 공항-only 귀국이 Hamilton Gardens 등 미방문일 명소를 가져가면 키워드 반복처럼 보임
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+      const airportDutyFreeOnly = isReturnAirportOrShoppingOnlyRouteText(row.routeText)
       {
         const ownCity = pickForeignVisitCityFromRouteText(row.routeText, true)
         if (ownCity && isBareCityOrCountryKeyword(ownCity) && !isDomesticHubOrAirportImageKeyword(ownCity)) {
@@ -966,6 +1009,16 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           const softCity = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination, used)
           if (softCity && isBareCityOrCountryKeyword(softCity)) picked = softCity
         }
+        if (!picked && airportDutyFreeOnly) {
+          const fromDest = mapDestination(String(opts?.productDestination ?? '').trim())
+          if (
+            fromDest &&
+            !isDomesticHubOrAirportImageKeyword(fromDest) &&
+            !isCountryLevelScheduleKeyword(fromDest)
+          ) {
+            picked = fromDest
+          }
+        }
       }
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return — 마지막 관광일 미사용 명소만
       const tourismRows = [...sorted]
@@ -974,7 +1027,7 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           return d > 0 && d < day && !isScheduleDepartureReturnAdjacentKeywordRow(r, isScheduleDomesticHubToken)
         })
         .reverse()
-      if (!picked) {
+      if (!picked && !airportDutyFreeOnly) {
       for (const tourismRow of tourismRows) {
         for (const kw of [...collectTripKeywordCandidates(tourismRow)].reverse()) {
           if (isDomesticHubOrAirportImageKeyword(kw)) continue
@@ -996,7 +1049,7 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
         if (picked) break
       }
       }
-      if (!picked) {
+      if (!picked && !airportDutyFreeOnly) {
         for (const tourismRow of tourismRows) {
           const alloc = byDay.get(Number(tourismRow.day))
           for (const raw of [
@@ -1023,6 +1076,11 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
       }
       if (!picked) {
         picked = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination, undefined)
+        if (airportDutyFreeOnly && picked && !isBareCityOrCountryKeyword(picked)) {
+          picked =
+            mapDestination(String(opts?.productDestination ?? '').trim()) ||
+            ''
+        }
       }
       if (!picked && isSoutheastAsiaResortClusterRoute(tripHay)) {
         for (const kw of [

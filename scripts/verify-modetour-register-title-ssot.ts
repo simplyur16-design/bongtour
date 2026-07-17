@@ -29,13 +29,24 @@ const GOOD =
 const BAD_WINDOW = '2026.12.12~2026.12.14 2박 3일'
 const BAD_HOTEL_GRADE = '일급호텔 3박 5일'
 const BAD_JUNTEUK_GRADE = '준특급 3박 5일'
+const BAD_VISA_NOTICE =
+  '- 2024년 11월 08일 ~ 2025년 12월 31일까지 한국인 대상 중국 무비자 입국 시행 (사업, 관광, 친지 방문 및 국경 통과 목적으로 30일 이내 체'
+const GOOD_DALIAN = '대련+여순(뤼순) 3일<노쇼핑/안중근발자취>'
 
 // --- 런타임 계약 ---
 assert(isModetourDepartureWindowOnlyTitleText(BAD_WINDOW), 'departure window detector')
 assert(isModetourUnacceptableRegisterListingTitle(BAD_WINDOW), 'unacceptable register title')
 assert(isModetourUnacceptableRegisterListingTitle(BAD_HOTEL_GRADE), 'hotel grade duration not title')
 assert(isModetourUnacceptableRegisterListingTitle(BAD_JUNTEUK_GRADE), 'junteuk grade duration not title')
+assert(isModetourUnacceptableRegisterListingTitle(BAD_VISA_NOTICE), 'visa policy notice not title')
 assert(!isModetourUnacceptableRegisterListingTitle(GOOD), 'good title acceptable')
+assert(!isModetourUnacceptableRegisterListingTitle(GOOD_DALIAN), 'dalian listing title acceptable')
+
+const visaOnly = resolveModetourRegisterProductTitle({
+  pasteBlob: `${BAD_VISA_NOTICE}\n여행 일정`,
+  llmTitleRaw: BAD_VISA_NOTICE,
+})
+assert(visaOnly.unacceptable, 'visa notice paste+llm flagged unacceptable')
 
 const paste = `${BAD_WINDOW}\n${GOOD}\n여행 일정`
 assert(extractModetourVerbatimListingTitleRawFromPaste(paste) === GOOD, 'paste picks hash title not window')

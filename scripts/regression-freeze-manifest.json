@@ -5025,7 +5025,8 @@
             "튀르키예의 수도 앙카라 → 앙카라",
             "터키 체험·이동 꼬리",
             "마사지·쇼핑센터·선착장 이동 문구",
-            "서호서호 중복 붕괴"
+            "서호서호 중복 붕괴",
+            "L&aelig;rdal HTML entity → æ"
           ]
         },
         {
@@ -5351,7 +5352,8 @@
             "hawaiiHardcodedPool day-route evidence",
             "middle empty → visit-city soft-dup",
             "Ipan must not substring-match Saipan",
-            "교토·오사카·비와호 Kansai — Fuji 갭필 금지"
+            "교토·오사카·비와호 Kansai — Fuji 갭필 금지",
+            "return airport/duty-free no unused landmark bleed"
           ]
         },
         {
@@ -5393,14 +5395,23 @@
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
-            "ensureDepartureReturnVisitCityKeywords(finalDeduped"
+            "ensureDepartureReturnVisitCityKeywords(finalDeduped",
+            "all-noise return route must not restore dirty text"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts",
+          "mustInclude": [
+            "JOP031 Kyoto dual-slot",
+            "Day4 ≠ Arashiyama"
           ]
         }
       ],
       "vitestSuites": [
         "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
         "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts",
-        "lib/register-schedule-ybtour-pap1194-image-keyword.test.ts"
+        "lib/register-schedule-ybtour-pap1194-image-keyword.test.ts",
+        "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts"
       ]
     },
     {
@@ -5944,7 +5955,10 @@
             "징기스칸 광장 ≠ Ordos 기마상",
             "Ordos 기마상 — 오르도스 문맥만",
             "치토세 공항·후라노 라벤더 — Provence 환각 금지",
-            "도게츠교≠Doge's Palace"
+            "도게츠교≠Doge's Palace",
+            "교토·오사카 Kansai POI — Day2/3 dup·Day4 Arashiyama bleed",
+            "대련·여순 CAP611 — 성해/러시아거리·연화산 일차 오매핑 금지",
+            "북유럽 ENP121 — Preikestolen·십자가언덕·레르달"
           ]
         },
         {
@@ -6005,7 +6019,10 @@
         "lib/lottetour-schedule-central-europe-image-keyword.test.ts",
         "lib/lottetour-schedule-germany-image-keyword.test.ts",
         "lib/kyowontour-schedule-france-image-keyword.test.ts",
-        "lib/lottetour-schedule-italy-uk-image-keyword.test.ts"
+        "lib/lottetour-schedule-italy-uk-image-keyword.test.ts",
+        "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts",
+        "lib/modetour-schedule-cap611-dalian-image-keyword.test.ts",
+        "lib/kyowontour-schedule-enp121-nordic-image-keyword.test.ts"
       ]
     },
     {
@@ -7072,7 +7089,8 @@
             "kyowontourFactDaysToRegisterSchedule",
             "buildKyowontourScheduleRouteTextFromTabRows",
             "applyKyowontourScheduleExpressionToRows",
-            "composeLottetourScheduleDescription"
+            "composeLottetourScheduleDescription",
+            "L&aelig;rdal HTML entity → æ"
           ]
         },
         {

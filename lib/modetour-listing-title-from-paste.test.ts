@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isModetourDepartureWindowOnlyTitleText,
   isModetourUnacceptableRegisterListingTitle,
+  isModetourVisaPolicyNoticeTitleText,
   modetourBaselineAcceptableForConfirm,
 } from '@/lib/modetour-departures'
 import { extractModetourVerbatimListingTitleRawFromPaste } from '@/lib/modetour-listing-title-from-paste'
@@ -13,6 +14,16 @@ describe('modetour listing title from paste', () => {
   it('rejects departure window line as product title', () => {
     expect(isModetourDepartureWindowOnlyTitleText('2026.12.12~2026.12.14 2박 3일')).toBe(true)
     expect(isModetourUnacceptableRegisterListingTitle('2026.12.12~2026.12.14 2박 3일')).toBe(true)
+  })
+
+  it('rejects China visa-free policy notice as product title', () => {
+    const visa =
+      '- 2024년 11월 08일 ~ 2025년 12월 31일까지 한국인 대상 중국 무비자 입국 시행 (사업, 관광, 친지 방문 및 국경 통과 목적으로 30일 이내 체'
+    expect(isModetourVisaPolicyNoticeTitleText(visa)).toBe(true)
+    expect(isModetourUnacceptableRegisterListingTitle(visa)).toBe(true)
+    expect(
+      isModetourUnacceptableRegisterListingTitle('대련+여순(뤼순) 3일<노쇼핑/안중근발자취>')
+    ).toBe(false)
   })
 
   it('rejects hotel grade + duration only as product title', () => {

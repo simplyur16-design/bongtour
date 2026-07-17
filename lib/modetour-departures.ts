@@ -556,6 +556,18 @@ export function isModetourHotelGradeDurationOnlyTitleText(text: string): boolean
   return modetourGradePackageDurationOnlyResidual(withoutDur)
 }
 
+/** 무비자·입국 시행 안내문 — groupName/본문 오염, 리스트 제목이 아님 */
+// REGRESSION-FREEZE[modetour-register-title]: 중국 무비자 입국 시행 안내 ≠ 상품명 — manifest
+export function isModetourVisaPolicyNoticeTitleText(text: string): boolean {
+  const t = text.replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  if (/[#\[]/.test(t) && /[가-힣]{2,}/.test(t) && !/무비자|입국\s*시행/.test(t)) return false
+  return (
+    /무비자\s*입국|입국\s*시행|한국인\s*대상\s*중국\s*무비자|사업[,\s]*관광[,\s]*친지\s*방문/u.test(t) ||
+    (/무비자/.test(t) && /입국/.test(t) && /\d{4}\s*년/.test(t) && !/[#\[]/.test(t))
+  )
+}
+
 /** 날짜+상품코드·코드만·브레드크럼 등 — baseline 소스로 부적절 */
 function isModetourWeakBaselineTitleText(text: string): boolean {
   const t = text.replace(/\s+/g, ' ').trim()
@@ -563,6 +575,7 @@ function isModetourWeakBaselineTitleText(text: string): boolean {
   if (t.length < 4) return true
   if (isModetourDepartureWindowOnlyTitleText(t)) return true
   if (isModetourHotelGradeDurationOnlyTitleText(t)) return true
+  if (isModetourVisaPolicyNoticeTitleText(t)) return true
   if (/패키지\s*[>›|]|상품\s*상세/i.test(t)) return true
   if (/^[A-Z]{2,5}\d{3,12}[A-Z0-9]{0,10}\s*[>›|]/i.test(t)) return true
   if (/^\d{4}-\d{2}-\d{2}\s+[A-Za-z0-9][A-Za-z0-9\-]{4,}$/.test(t)) return true

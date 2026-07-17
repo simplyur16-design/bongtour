@@ -27,6 +27,10 @@ const KYOWONTOUR_AIRPORT_CITY: Record<string, string> = {
 /** goodsEvtTab_2 행 nameKo → routeText 세그먼트 (호텔·체크인 제외, step 순서 유지) */
 export function stripKyowontourScheduleRowName(name: string): string {
   return String(name ?? '')
+    .replace(/&amp;|&#38;/gi, '&')
+    // REGRESSION-FREEZE[kyowontour-schedule-expression]: L&aelig;rdal HTML entity → æ — manifest
+    .replace(/&aelig;|&#230;|&#xE6;/gi, 'æ')
+    .replace(/&AElig;|&#198;|&#xC6;/g, 'Æ')
     .replace(/^[\s▶■◎●]+/, '')
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
     .replace(/▷|■|⭐/g, ' ')

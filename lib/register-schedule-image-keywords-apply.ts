@@ -90,10 +90,14 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     prepareRegisterScheduleRowsForImageKeywordApply(rowsForApply),
   )
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: keyword collect on sanitized route — manifest
-  const preparedForKeywords = prepared.map((row) => ({
-    ...row,
-    routeText: sanitizeRegisterScheduleRouteText(row.routeText) ?? row.routeText,
-  }))
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: all-noise return route must not restore dirty text — manifest
+  const preparedForKeywords = prepared.map((row) => {
+    const cleaned = sanitizeRegisterScheduleRouteText(row.routeText)
+    if (cleaned) return { ...row, routeText: cleaned }
+    // 면세·공항만 남은 귀국일 등 — null이면 원문 복원하지 않음(미사용 명소 bleed 방지)
+    if (String(row.routeText ?? '').trim()) return { ...row, routeText: '' }
+    return row
+  })
   const dest = inferRegisterEffectiveProductDestination(
     opts.productDestination ?? null,
     preparedForKeywords,

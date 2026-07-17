@@ -111,6 +111,9 @@ export function stripRegisterScheduleRouteFlightDurationBlocks(routeText: string
 export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
   return String(raw ?? '')
     .replace(/&amp;|&#38;/gi, '&')
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: L&aelig;rdal HTML entity → æ — manifest
+    .replace(/&aelig;|&#230;|&#xE6;/gi, 'æ')
+    .replace(/&AElig;|&#198;|&#xC6;/g, 'Æ')
     .replace(/^[\s·▪▶●▷\-–—'"]+/, '')
     .replace(/[''"]+$/g, '')
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
@@ -473,6 +476,12 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: 공항 피켓·가이드 복장·미팅 데스크 — manifest
   if (/피켓\s*앞|녹색\s*셔츠|가이드\s*:\s*|미팅\s*데스크|입국장\s*나와서/u.test(t)) return true
   if (/국제공항.+(?:피켓|가이드|터미널)/u.test(t) && t.length <= 48) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 료칸·온천욕·관광면세점 route 금지 — manifest
+  if (/(?:관광)?면세점|천연\s*온천욕|온천욕$/u.test(t)) return true
+  if (/^우메코지\s*카덴쇼(?:\s*료칸)?$/u.test(t)) return true
+  if (/^교토\s*우메코지/u.test(t)) return true
+  if (/료칸|카덴쇼/u.test(t) && /(?:온천|욕|숙박|료칸)/u.test(t)) return true
+  if (/고베\s*(?:국제)?공항|Kobe\s*(?:International\s*)?Airport/i.test(t)) return true
   if (/^호텔(?:\s*이동|\s*조식|\s*투숙)?$/u.test(t)) return true
   if (/^공항(?:\s*도착|\s*출발|\s*경유)?$/u.test(t) && t.length <= 12) return true
   if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움/u.test(t)) return true
