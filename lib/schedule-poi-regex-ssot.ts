@@ -719,10 +719,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /세인트\s*메?리(?:스)?\s*대성당|St\s*Mary/i, en: "St Marys Cathedral Sydney" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Palace/Bird Island는 SPOT — trip SSOT·gap-fill spot scan — manifest
   { re: /팔레스\s*오브\s*파인\s*아트|Palace\s*of\s*Fine\s*Arts/i, en: "Palace of Fine Arts San Francisco" },
-  {
-    re: /천혜의\s*자연\s*새섬|Bird\s*Island|PACIFIC\s*ISLANDS\s*CLUB|PIC\s*SAIPAN/i,
-    en: "Saipan Bird Island Pacific Islands Club",
-  },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Saipan PIC·북섬 POI — bare Saipan 반복 금지 — manifest
+  { re: /천혜의\s*자연\s*새섬|Bird\s*Island/i, en: "Saipan Bird Island" },
+  { re: /PACIFIC\s*ISLANDS\s*CLUB|PIC\s*SAIPAN|사이판\s*PIC|Pacific\s*Islands\s*Club/i, en: "Pacific Islands Club Saipan" },
+  { re: /마나가하|Managaha/i, en: "Managaha Island Saipan" },
+  { re: /만세\s*절벽|Suicide\s*Cliff/i, en: "Suicide Cliff Saipan" },
+  { re: /한국인\s*위령탑|Korean\s*(?:Peace\s*)?Memorial/i, en: "Korean Peace Memorial Saipan" },
+  { re: /조텐(?:\s*쇼핑)?|Joeten/i, en: "Joeten Shopping Center Saipan" },
   { re: /라플린|Laughlin/i, en: "Laughlin Colorado River casino strip" },
   { re: /코닥\s*극장|Kodak\s*Theatre|TCL\s*Chinese/i, en: "TCL Chinese Theatre Hollywood" },
   { re: /니지노마츠바라|Nijinomatsubara|虹の松原/u, en: "Nijinomatsubara pine grove Saga Japan" },
@@ -818,7 +821,7 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /베넷세|Benesse/i, en: "Benesse House Museum Naoshima" },
   { re: /이우환|Lee\s*Ufan/i, en: "Lee Ufan Museum Naoshima" },
   { re: /다카마츠|Takamatsu/i, en: "Ritsurin Garden Takamatsu Japan" },
-  { re: /사이판|Saipan/i, en: "Saipan Managaha lagoon" },
+  { re: /사이판|Saipan/i, en: "Saipan" },
   { re: /캘거리|Calgary/i, en: "Calgary Tower downtown skyline" },
   { re: /밴프|Banff/i, en: "Banff townsite Rocky Mountains" },
   { re: /피렌체|Florence|Firenze/i, en: "Florence Duomo historic center" },

@@ -165,7 +165,7 @@ export type HanatourProdInfoExtended = HanatourPkgProdInfo & {
 const HANATOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
 const HANATOUR_HIGHLIGHT_NOISE_RE =
-  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$|유의\s*사항|예약\s*시|출입국\s*정보|여행\s*시\s*유의|참고\s*사항|입국\s*조건|쇼\s*명|티파니|알카자|콜로세움\s*내부|입국\s*안내|등\s*\d+\s*성호텔|입국\s*절차|숙박\s*없음|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움|블루스타|Blue\s*Star\s*Delos|수완나|B게이트|출입구|자유일정\s*추천|전통\s*마사지|빅\s*씨|Big\s*C/i
+  /최신$|^(?:마카오|홍콩)$|_벽화$|^\d+$|NO\.?\s*\d|자유식\s*추천|추천\s*선택관광|야시장\s*투어$|유의\s*사항|예약\s*시|출입국\s*정보|여행\s*시\s*유의|참고\s*사항|입국\s*조건|쇼\s*명|티파니|알카자|콜로세움\s*내부|입국\s*안내|등\s*\d+\s*성호텔|입국\s*절차|숙박\s*없음|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움|블루스타|Blue\s*Star\s*Delos|수완나|B게이트|출입구|자유일정\s*추천|전통\s*마사지|빅\s*씨|Big\s*C|에어텔\s*특가|특가\s*배너|SAIPAN_PIC|PIC_(?:BBQ|전경)|신규\s*사진|200%\s*즐기기|슈페리어\s*룸|일\s*2회\s*호텔|PIC\s*(?:전경|객실|신규)|반짝반짝\s*별빛|아이\s*러브\s*사이판|사이판\s*추천\s*쇼핑몰|사이판\s*조형물/i
 
 /** ITNR meta cards — 유의사항·출입국 안내 등 일정 routeText/title에 넣지 않음. REGRESSION-FREEZE[hanatour-register-detail-collect] */
 const HANATOUR_ITNR_META_CARD_RE =

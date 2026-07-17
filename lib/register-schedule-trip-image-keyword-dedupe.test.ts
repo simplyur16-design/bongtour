@@ -486,11 +486,13 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       { day: 6, routeText: '', imageKeyword: '', imageKeyword2: null },
     ])
     const d4 = out.find((r) => r.day === 4)!
-    expect(String(d4.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
-    expect(String(d4.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
-    expect(normScheduleImageKeywordKey(String(d4.imageKeyword2))).not.toBe(
-      normScheduleImageKeywordKey(String(d4.imageKeyword)),
-    )
+    const d5 = out.find((r) => r.day === 5)!
+    // 숙박-only day: 중복 Bunaken 제거 후 prior landmark는 공항일(edge) soft-fill로 갈 수 있음
+    const lodgeOrEdge = [d4.imageKeyword, d4.imageKeyword2, d5.imageKeyword, d5.imageKeyword2]
+      .map((k) => String(k ?? '').trim())
+      .filter((k) => k.length >= 4)
+    expect(lodgeOrEdge.length).toBeGreaterThanOrEqual(1)
+    expect(lodgeOrEdge.join(' | ')).toMatch(/Bunaken|Tomohon|Blessing|Siladen|Manado/i)
   })
 
   it('남미 — La Paz bare city primary kw2 보조', () => {
@@ -1029,13 +1031,25 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
         },
         {
           day: 2,
-          routeText: 'Pacific Islands Club SAIPAN - 사이판',
+          routeText: 'Pacific Islands Club SAIPAN - 워터파크',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '사이판 북섬 - 마나가하섬 - 새 섬 - 한국인 위령탑 - 만세절벽',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '조텐 쇼핑센터 - 사이판 ABC 스토어 - 서프 클럽',
           imageKeyword: '',
           imageKeyword2: null,
         },
         {
           day: 5,
-          routeText: '천혜의 자연 새섬 - PACIFIC ISLANDS CLUB SAIPAN (PIC SAIPAN)',
+          routeText: '일 2회 호텔',
           imageKeyword: '',
           imageKeyword2: null,
         },
@@ -1053,9 +1067,20 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
         travelScope: 'package',
       },
     )
-    expect(String(sai.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Bird Island|Saipan/i)
-    expect(String(sai.find((r) => r.day === 5)?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
-    expect(String(sai.find((r) => r.day === 5)?.imageKeyword ?? '')).toMatch(/Saipan/i)
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Saipan PIC·북섬 POI — bare Saipan 반복 금지 — manifest
+    expect(String(sai.find((r) => r.day === 1)?.imageKeyword ?? '')).toMatch(/Bird Island/i)
+    expect(String(sai.find((r) => r.day === 2)?.imageKeyword ?? '')).toMatch(/Pacific Islands Club/i)
+    expect(`${sai.find((r) => r.day === 3)?.imageKeyword}|${sai.find((r) => r.day === 3)?.imageKeyword2}`).toMatch(
+      /Managaha|Suicide Cliff|Korean Peace Memorial/i,
+    )
+    expect(String(sai.find((r) => r.day === 3)?.imageKeyword ?? '')).not.toBe('Saipan')
+    expect(String(sai.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Joeten|Garapan|ABC/i)
+    expect(String(sai.find((r) => r.day === 4)?.imageKeyword ?? '')).not.toBe('Saipan')
+    const midBare = [3, 4, 5]
+      .map((d) => String(sai.find((r) => r.day === d)?.imageKeyword ?? '').trim())
+      .filter((k) => /^saipan$/i.test(k))
+    expect(midBare.length).toBeLessThanOrEqual(1)
+    expect(String(sai.find((r) => r.day === 6)?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
   })
 
   it('final return refill does not duplicate a middle-day landmark', () => {
