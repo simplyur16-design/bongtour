@@ -5353,7 +5353,9 @@
             "middle empty → visit-city soft-dup",
             "Ipan must not substring-match Saipan",
             "교토·오사카·비와호 Kansai — Fuji 갭필 금지",
-            "return airport/duty-free no unused landmark bleed"
+            "return airport/duty-free no unused landmark bleed",
+            "domestic hub return keep unused landmark not bare city",
+            "all-noise return route must not restore dirty text"
           ]
         },
         {
@@ -5396,7 +5398,8 @@
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
             "ensureDepartureReturnVisitCityKeywords(finalDeduped",
-            "all-noise return route must not restore dirty text"
+            "all-noise return route must not restore dirty text",
+            "domestic hub return keep unused landmark not bare city"
           ]
         },
         {

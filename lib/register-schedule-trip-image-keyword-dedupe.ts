@@ -77,13 +77,18 @@ export function isAirlineOnlyMovementRouteText(routeText: string | null | undefi
   })
 }
 
-/** 귀국일 — 면세·공항·해산만 있으면 중간일 미사용 명소(아라시야마 등) bleed 금지 */
+/** 귀국일 — 면세·해외공항·해산만 있으면 중간일 미사용 명소(아라시야마 등) bleed 금지.
+ * 국내 허브 only(인천 등)는 false — Long Son 등 인접 미사용 명소 유지. */
 // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: domestic hub return keep unused landmark not bare city — manifest
 export function isReturnAirportOrShoppingOnlyRouteText(routeText: string | null | undefined): boolean {
   const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)
-  if (!segs.length) return true
+  // sanitize로 비운 해외 면세·공항 귀국 — bleed 가드 유지
+  if (!segs.length) return !String(routeText ?? '').trim() ? true : false
+  // 인천·김포 only — 국내 허브 귀국은 미사용 명소(Long Son) 허용
+  if (segs.every((s) => isScheduleDomesticHubToken(s))) return false
   return segs.every(
     (s) =>
       isRegisterScheduleRoutePlaceNoise(s) ||
