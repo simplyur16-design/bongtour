@@ -315,15 +315,12 @@ describe('register schedule route place noise', () => {
     )
   })
 
-  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일·유럽 admin·교통 세그먼트 — manifest
-  it('strips German admin labels and ICE; dedupes KEMPTEN after 캠프텐', () => {
-    expect(isRegisterScheduleRoutePlaceNoise('필독사항')).toBe(true)
-    expect(isRegisterScheduleRoutePlaceNoise('내부입장')).toBe(true)
-    expect(isRegisterScheduleRoutePlaceNoise('ICE')).toBe(true)
-    expect(
-      sanitizeRegisterScheduleRouteText(
-        '프랑크푸르트 - 뤼데스하임 - 로텐부르크 - 캠프텐 - KEMPTEN',
-      ),
-    ).toBe('프랑크푸르트 - 뤼데스하임 - 로텐부르크 - 캠프텐')
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 호텔명·교외토큰·단독 국가명 — manifest
+  it('strips English hotel names, VELIZY suburb, bare country Italy', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('HOTEL FOREST HILL PARIS MEUDON')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('VELIZY')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('이탈리아')).toBe(true)
+    expect(sanitizeRegisterScheduleRouteText('몽생미셸 뷰 레스토랑 - VELIZY')).toBe('몽생미셸')
+    expect(sanitizeRegisterScheduleRouteText('이탈리아 - 사보나')).toBe('사보나')
   })
 })

@@ -3,7 +3,7 @@
  * REGRESSION-FREEZE[register-schedule-route-place-noise]: manifest
  * REGRESSION-FREEZE[register-schedule-route-text-slot-accuracy]: 비행시간·산문→명소 꼬리 — manifest
  */
-import { isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { isAirlineCarrierImageKeyword, isHotelLodgingImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 const ROUTE_PLACE_NOISE_START_RE =
   /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
@@ -123,6 +123,12 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/\s*\([A-Z]{2}\d{2,4}\)\s*/g, ' ')
     .replace(ROUTE_DURATION_INLINE_RE, '')
     .replace(ROUTE_MARKETING_PREFIX_STRIP_RE, '')
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: 국가/지역 접두·뷰레스토랑 — manifest
+    .replace(
+      /^(?:프랑스|이탈리아|독일|스페인|스위스|포르투갈|오스트리아|체코|헝가리|벨기에|네덜란드)\s*[\/／]\s*/u,
+      '',
+    )
+    .replace(/\s*(?:뷰\s*)?레스토랑(?:\s*&?\s*거리)?$/u, '')
     // REGRESSION-FREEZE[register-schedule-route-place-noise]: 야간·일정종료 꼬리 — manifest
     .replace(/\s*야간\s*$/u, '')
     .replace(/\s*일정이\s*끝난\s*후(?:\s*공항)?$/u, '')
@@ -373,6 +379,23 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^(?:필독\s*사항|유의\s*사항|안내\s*사항)$/u.test(t)) return true
   if (/^(?:내부\s*(?:입장|관람)|정원\s*입장|조망)$/u.test(t)) return true
   if (/^(?:ICE|IC|TGV|KTX)$/i.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 호텔명·교외토큰·단독 국가명 — manifest
+  if (/^(?:HOTEL|Hotel)\b/.test(t)) return true
+  if (
+    isHotelLodgingImageKeyword(t) &&
+    !/(?:성|궁|탑|사원|박물관|유적|폭포|대성당|등\s*\d+\s*성|\/\s*(?:준)?\d+\s*성)/u.test(t)
+  ) {
+    return true
+  }
+  if (/^(?:VELIZY|MEUDON)$/i.test(t) && t.length <= 12) return true
+  if (
+    /^(?:프랑스|이탈리아|독일|스페인|포르투갈|스위스|영국|오스트리아|체코|헝가리|벨기에|네덜란드)$/u.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  if (/^(?:뷰\s*)?레스토랑$/u.test(t)) return true
   if (/\bFAQ\b/i.test(t) && t.length <= 24) return true
   if (/\b안내\b/u.test(t) && /(?:입국|출국|출입국|비자|세관|여행)/u.test(t)) return true
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
@@ -452,6 +475,10 @@ const ROUTE_CITY_ALIAS_KEY_RULES: ReadonlyArray<{ re: RegExp; key: string }> = [
   { re: /^(?:포츠담|potsdam)$/i, key: 'potsdam' },
   { re: /^(?:로텐부르크|rothenburg)$/i, key: 'rothenburg' },
   { re: /^(?:뤼데스하임|r[uü]desheim|rudesheim)$/i, key: 'rudesheim' },
+  { re: /^(?:파리|paris)$/i, key: 'paris' },
+  { re: /^(?:니스|nice)$/i, key: 'nice' },
+  { re: /^(?:보르도|bordeaux)$/i, key: 'bordeaux' },
+  { re: /^(?:아비뇽|avignon)$/i, key: 'avignon' },
   { re: /^(?:시드니|sydney)$/i, key: 'sydney' },
   { re: /^(?:오클랜드|auckland)$/i, key: 'auckland' },
 ]

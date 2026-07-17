@@ -142,6 +142,12 @@ type LottetourScheduleVibeProfile =
   | 'germany_romantic_road'
   | 'germany_berlin'
   | 'germany_medieval'
+  | 'france_paris'
+  | 'france_normandy'
+  | 'france_loire'
+  | 'france_bordeaux'
+  | 'france_provence'
+  | 'france_riviera'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -229,6 +235,30 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '성벽·광장·구시가지가 이어지는 중세형 하루로, 걷는 리듬이 중심이 됩니다.',
     '짧은 이동에도 도시마다 결이 달라, 하루 안에서도 분위기가 분명하게 바뀝니다.',
   ],
+  france_paris: [
+    '상징 랜드마크와 거리가 이어지는 수도의 하루로, 걷기와 시야 확장이 균형을 이룹니다.',
+    '광장·거리·전망이 자연스럽게 연결되어 도시의 결을 천천히 느끼는 구성입니다.',
+  ],
+  france_normandy: [
+    '해안과 수도원 풍경이 이어지는, 노르망디의 여운이 길게 남는 하루입니다.',
+    '이동보다 시야가 열리는 순간이 중심이 되어, 분위기가 또렷한 구성입니다.',
+  ],
+  france_loire: [
+    '고성과 강변 풍경이 이어지는, 루아르의 걷는 리듬이 돋보이는 하루입니다.',
+    '성 내부와 정원 분위기가 번갈아 이어져 여정이 부드럽게 흘러갑니다.',
+  ],
+  france_bordeaux: [
+    '와인 마을과 강변 도시가 이어지는, 미식과 풍경이 함께하는 하루입니다.',
+    '짧은 체류에도 마을과 와이너리의 분위기 차이가 분명하게 느껴지는 구성입니다.',
+  ],
+  france_provence: [
+    '중세 성채와 구시가지가 이어지는, 프로방스의 빛과 돌결이 중심이 되는 하루입니다.',
+    '실내 관람과 골목 산책이 번갈아 이어져 감각이 풍성해지는 구성입니다.',
+  ],
+  france_riviera: [
+    '해변 산책로와 절벽 마을이 이어지는, 리비에라의 여유로운 하루입니다.',
+    '바다와 언덕의 대비가 시야를 넓히며, 걷는 즐거움이 흐름의 중심이 됩니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -287,6 +317,33 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   ) {
     return 'germany_medieval'
   }
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 프랑스 일주 vibe 분화 — manifest
+  if (/니스|Nice|모나코|Monaco|에즈|Eze|프롬나드|Promenade|리비에라|Riviera/i.test(joinedBlob)) {
+    return 'france_riviera'
+  }
+  if (
+    /빛의\s*채석|Carrieres?\s*des\s*Lumieres|아비뇽|Avignon|카르카손|Carcassonne|프로방스|Provence|레\s*보|Les\s*Baux|생폴드방스/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'france_provence'
+  }
+  if (/생테밀리옹|Saint[\s-]*Emilion|보르도|Bordeaux|와이너리/i.test(joinedBlob)) {
+    return 'france_bordeaux'
+  }
+  if (/루아르|Loire|쉬농소|Chenonceau|앙부|Amboise/i.test(joinedBlob)) {
+    return 'france_loire'
+  }
+  if (
+    /에펠|Eiffel|개선문|오르세|Orsay|샹젤리제|루브르|Louvre|(?:^|[\s\-])파리(?:$|[\s\-])/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'france_paris'
+  }
+  if (/몽생미셸|Mont\s*Saint\s*Michel|지베르니|Giverny|노르망디|Normandy/i.test(joinedBlob)) {
+    return 'france_normandy'
+  }
   if (/마카오|macau|베네시an|세나도|코타이|유네스코/i.test(joinedBlob)) return 'macau_daytrip'
   if (/소호|soho|센트럴|central|헐리우드|hollywood|mid-?level|완차이|wan\s*chai|리퉁/i.test(joinedBlob)) {
     return 'hk_walking'
@@ -311,7 +368,7 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
-  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형/u.test(
+  return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형|상징 랜드마크와 거리가 이어지는 수도|해안과 수도원 풍경이 이어지는|고성과 강변 풍경이 이어지는|와인 마을과 강변 도시가 이어지는|중세 성채와 구시가지가 이어지는|해변 산책로와 절벽 마을이 이어지는/u.test(
     t,
   )
 }
@@ -469,10 +526,8 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
     // 산문 plan_info 덤프를 route로 쪼개지 않음 — [명소]·기존 route만
     const fromBrackets = extractLottetourBracketPlacesFromText(existingDesc)
     const routePlaces = dedupeLottetourScheduleRoutePlaces([...fromRoute, ...fromBrackets])
-    const routeText =
-      sanitizeRegisterScheduleRouteText(joinLottetourScheduleRouteText(routePlaces) ?? row.routeText ?? null) ??
-      row.routeText ??
-      null
+    // join 내부 sanitize — 전부 noise면 null (dirty row.routeText 되살리기 금지)
+    const routeText = joinLottetourScheduleRouteText(routePlaces)
     const joinedBlob = [row.title, existingDesc, routeText].filter(Boolean).join('\n')
     // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
     const description = composeLottetourScheduleDescription({

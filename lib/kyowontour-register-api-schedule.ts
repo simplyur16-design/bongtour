@@ -110,7 +110,8 @@ export function applyKyowontourScheduleExpressionToRows<T extends RegisterSchedu
     if (day <= 0) return row
     const fromRoute = row.routeText ? dedupeLottetourScheduleRoutePlaces(row.routeText.split(/\s*-\s*/)) : []
     const routePlaces = dedupeLottetourScheduleRoutePlaces(fromRoute)
-    const routeText = joinLottetourScheduleRouteText(routePlaces, KYOWONTOUR_SCHEDULE_ROUTE_MAX) ?? row.routeText ?? null
+    // join 내부 sanitize — 전부 noise면 null (dirty row.routeText 되살리기 금지)
+    const routeText = joinLottetourScheduleRouteText(routePlaces, KYOWONTOUR_SCHEDULE_ROUTE_MAX)
     const joinedBlob = [row.title, row.description, routeText].filter(Boolean).join('\n')
     const description = composeLottetourScheduleDescription({
       day,
