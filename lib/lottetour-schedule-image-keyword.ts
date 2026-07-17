@@ -7,6 +7,7 @@
  */
 
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword, isLikelyTourismLandmarkKeyword } from '@/lib/pexels-place-name-keyword'
+import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
 import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import {
   inferEnglishPlaceKeywordFromDayContent,
@@ -603,12 +604,10 @@ function collectLottetourDayLandmarkKeywords(row: {
     for (const { en } of findAllScheduleSpotMatchesInText(dayHay)) pushSafe(en)
   }
   // REGRESSION-FREEZE[lottetour-schedule-expression]: 베를린 단독일 Brandenburg 중복 시 alt — manifest
-  const berlinHay = `${rt}\n${dayHay}`
-  if (/베를린|Berlin/i.test(berlinHay) && !/프랑크푸르트|Frankfurt/i.test(rt)) {
-    pushSafe('Brandenburg Gate Berlin')
-    pushSafe('Altes Museum Berlin')
-    pushSafe('Reichstag Building Berlin')
-    pushSafe('Checkpoint Charlie Berlin')
+  // REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: city soft-alt trip SSOT — manifest
+  const cityHay = `${rt}\n${dayHay}`
+  for (const en of collectRegisterScheduleCitySoftAltKeywords(cityHay)) {
+    pushSafe(en)
   }
   return landmarks
 }
@@ -1069,7 +1068,7 @@ export function applyLottetourScheduleImageKeywordsToRows<
           byDay,
           'backward',
           undefined,
-          true,
+          false,
           false,
           opts?.productDestination,
         ) || primary

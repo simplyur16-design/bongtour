@@ -55,7 +55,7 @@ export function stripSupplierTitleUiNoise(s: string): string {
 
 /** `[출발확정]`·`[오전출발]`·`[매진임박]`·`[best]` 등 마케팅/상태 대괄호 — [지역]·[항공사]는 제외 */
 const SUPPLIER_TITLE_PROMO_BADGE_INNER =
-  /(?:출발\s*확정|매진\s*임박|긴급\s*모객|오전\s*출발|저녁\s*출발|오후\s*출발|선착\s*순|스테디\s*셀러|베스트\s*셀러|홈\s*쇼핑|품격|유류\s*할증|연휴\s*좌석|추석\s*연휴|설\s*연휴|휴양형|\bHIT\b|\bBEST\b|\bNEW\b|\bHOT\b)/i
+  /(?:출발\s*확정|매진\s*임박|긴급\s*모객|오전\s*출발|저녁\s*출발|오후\s*출발|선착\s*순|스테디\s*셀러|베스트\s*셀러|홈\s*쇼핑|품격|유류\s*할증|연휴\s*좌석|추석\s*연휴|설\s*연휴|휴양형|\bHIT\b|\bBEST\b|\bNEW\b|\bHOT\b|\bTKT\b|\bONLY\b)/i
 
 export function isSupplierTitlePromoBadgeText(raw: string): boolean {
   return isPromoOnlyBadgeText(raw)
@@ -67,9 +67,10 @@ function isPromoOnlyBadgeText(raw: string): boolean {
   let compact = spaced.replace(/\s/g, '').replace(/^#/, '')
   compact = compact.replace(/^노팁/, '')
   if (!compact) return true
-  if (/^(?:무(?:쇼핑|옵션)|노(?:쇼핑|옵션|팁)|직항|출발확정|매진임박|긴급모객|nooption|noshopping|best|hit|new|hot)$/i.test(compact)) {
+  if (/^(?:무(?:쇼핑|옵션)|노(?:쇼핑|옵션|팁)|직항|출발확정|매진임박|긴급모객|nooption|noshopping|best|hit|new|hot|tkt|only)$/i.test(compact)) {
     return true
   }
+  if (/^tkt\s*[\/·]\s*only$/i.test(spaced)) return true
   if (SUPPLIER_TITLE_PROMO_BADGE_INNER.test(spaced)) return true
   if (/^(?:오전|오후|저녁)출발/i.test(compact)) return true
   return false

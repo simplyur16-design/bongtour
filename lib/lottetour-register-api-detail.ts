@@ -777,7 +777,8 @@ async function fetchMatchingEvtListRow(
   })
   if (!res.ok) return null
   const html = await res.text()
-  if (!html || html.length < 3000) return null
+  // REGRESSION-FREEZE[lottetour-register-detail-collect]: evtListAjax short HTML seed — manifest
+  if (!html || html.length < 400) return null
   const parsed = parseLottetourEvtListAjaxHtml(html, { depYm: depDt, godId })
   return parsed.rows.find((r) => r.evtCd === evtCd) ?? null
 }
@@ -800,7 +801,9 @@ async function resolveLottetourEvtListSeedRow(
     })
     if (!res.ok) continue
     const html = await res.text()
-    if (!html || html.length < 3000) continue
+    // REGRESSION-FREEZE[lottetour-register-detail-collect]: evtListAjax short HTML seed — manifest
+    // godId=64566(돌로미티) Jul 단일행 HTML ≈2KB — 3000 컷이면 evtCd 시드 실패
+    if (!html || html.length < 400) continue
     const parsed = parseLottetourEvtListAjaxHtml(html, { depYm: depDt, godId })
     const priced = parsed.rows.find((r) => r.adultPrice > 0 && r.evtCd)
     if (priced) return priced

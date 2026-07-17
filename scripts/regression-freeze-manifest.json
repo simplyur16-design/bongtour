@@ -4850,7 +4850,16 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]",
             "registerScheduleKeywordPassesRouteEvidence",
-            "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence"
+            "sanitizeRegisterScheduleImageKeywordsFromRouteEvidence",
+            "city soft-alt trip SSOT"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]",
+            "collectRegisterScheduleCitySoftAltKeywords",
+            "appendRegisterScheduleCitySoftAltKeywordKeys"
           ]
         },
         {
@@ -4868,7 +4877,8 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-route-evidence-keyword.test.ts",
-        "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
+        "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
+        "lib/lottetour-schedule-germany-image-keyword.test.ts"
       ]
     },
     {
@@ -4897,6 +4907,7 @@
             "비엔나↔Vienna 한·영 도시 중복 제거",
             "독일·유럽 admin·교통 세그먼트",
             "독일 한·영 도시 중복",
+            "독일 숙박거점 캠프텐 북부 bleed 금지",
             "호텔명·교외토큰·단독 국가명",
             "국가/지역 접두·뷰레스토랑"
           ]
@@ -5788,6 +5799,7 @@
             "프라하·동유럽 명소",
             "독일 일주 명소",
             "프랑스 일주 명소",
+            "이탈리아·영국 일주 명소",
             "Matsue Castle",
             "Garuda Wisnu Kencana",
             "Melasti Beach",
@@ -5858,7 +5870,8 @@
         "tests/schedule-poi-regex-ssot.test.ts",
         "lib/lottetour-schedule-central-europe-image-keyword.test.ts",
         "lib/lottetour-schedule-germany-image-keyword.test.ts",
-        "lib/kyowontour-schedule-france-image-keyword.test.ts"
+        "lib/kyowontour-schedule-france-image-keyword.test.ts",
+        "lib/lottetour-schedule-italy-uk-image-keyword.test.ts"
       ]
     },
     {
@@ -6768,7 +6781,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-register-destination]",
             "resolveLottetourRegisterDestination",
-            "normalizeSupplierRegisterListingTitle"
+            "normalizeSupplierRegisterListingTitle",
+            "TKT/ONLY·항공코드 뱃지 목적지 금지"
           ]
         },
         {
@@ -6782,13 +6796,15 @@
           "file": "lib/supplier-product-title-display.ts",
           "mustInclude": [
             "isSupplierTitlePromoBadgeText",
-            "매진"
+            "매진",
+            "TKT"
           ]
         }
       ],
       "vitestSuites": [
         "lib/lottetour-register-destination-from-paste.test.ts",
-        "lib/supplier-register-destination-forbidden.test.ts"
+        "lib/supplier-register-destination-forbidden.test.ts",
+        "lib/lottetour-schedule-italy-uk-image-keyword.test.ts"
       ]
     },
     {
@@ -6851,6 +6867,7 @@
             "composeLottetourScheduleDescription",
             "독일 일주 vibe 분화",
             "프랑스 일주 vibe 분화",
+            "이탈리아·영국 vibe 분화",
             "첫날 arrival·마지막날 return 고정"
           ]
         },
@@ -7404,7 +7421,8 @@
             "extractLottetourShoppingFromSpotListAjax",
             "buildLottetourFlightStructuredFromRegisterSources",
             "extractLottetourAirPlansFromScheduleAjax",
-            "extractLottetourShoppingVisitCountFromCoreInfo"
+            "extractLottetourShoppingVisitCountFromCoreInfo",
+            "evtListAjax short HTML seed"
           ]
         },
         {

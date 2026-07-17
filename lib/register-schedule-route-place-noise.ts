@@ -377,8 +377,22 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/sound\s*of\s*music|사운드\s*오브\s*뮤직|사운드오브뮤직/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일·유럽 admin·교통 세그먼트 — manifest
   if (/^(?:필독\s*사항|유의\s*사항|안내\s*사항)$/u.test(t)) return true
-  if (/^(?:내부\s*(?:입장|관람)|정원\s*입장|조망)$/u.test(t)) return true
+  if (/^(?:내부\s*(?:입장|관람)?|외관|입장|정원\s*입장|조망)$/u.test(t)) return true
+  if (/사진\s*촬영\s*(?:후\s*)?이동/u.test(t)) return true
+  if (/^AFTERNOON\s*TEA$/i.test(t)) return true
+  if (/롯데관광\s*유일/u.test(t)) return true
+  // 일정 산문 덤프(돌로미티 「낭만과 비극을…」) — 지명 세그먼트 아님
+  if (
+    t.length >= 18 &&
+    /[가-힣]{6,}/u.test(t) &&
+    /(?:의|을|를|으로|에서|함께|가장|상징|양식|거대한)/u.test(t)
+  ) {
+    return true
+  }
   if (/^(?:ICE|IC|TGV|KTX)$/i.test(t)) return true
+  // 숙박 거점 온천마을 — 관광 명소 키워드 우선 시 세그먼트 노이즈
+  if (/^몬테카티니(?:테르메)?$/u.test(t)) return true
+  if (/^MONTECATINI(?:\s*TERME)?$/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: 호텔명·교외토큰·단독 국가명 — manifest
   if (/^(?:HOTEL|Hotel)\b/.test(t)) return true
   if (
@@ -475,6 +489,10 @@ const ROUTE_CITY_ALIAS_KEY_RULES: ReadonlyArray<{ re: RegExp; key: string }> = [
   { re: /^(?:포츠담|potsdam)$/i, key: 'potsdam' },
   { re: /^(?:로텐부르크|rothenburg)$/i, key: 'rothenburg' },
   { re: /^(?:뤼데스하임|r[uü]desheim|rudesheim)$/i, key: 'rudesheim' },
+  { re: /^(?:벨파스트|belfast)$/i, key: 'belfast' },
+  { re: /^(?:더블린|dublin)$/i, key: 'dublin' },
+  { re: /^(?:에딘버러|edinburgh)$/i, key: 'edinburgh' },
+  { re: /^(?:런던|london)$/i, key: 'london' },
   { re: /^(?:파리|paris)$/i, key: 'paris' },
   { re: /^(?:니스|nice)$/i, key: 'nice' },
   { re: /^(?:보르도|bordeaux)$/i, key: 'bordeaux' },
@@ -544,6 +562,14 @@ export function filterRegisterScheduleRoutePlaceSegments(segments: readonly stri
       keys.push(key)
       out.push(display)
     }
+  }
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일 숙박거점 캠프텐 북부 bleed 금지 — manifest
+  // 베를린·드레스덴 일차에 바이에른 숙박거점(캠프텐)이 붙는 일정 스크래퍼 bleed
+  const hasNorthDe = out.some((s) =>
+    /^(?:베를린|berlin|포츠담|potsdam|드레스덴|dresden)$/i.test(s.trim()),
+  )
+  if (hasNorthDe) {
+    return out.filter((s) => !/^(?:캠프텐|켐프텐|kempten)$/i.test(s.trim()))
   }
   return out
 }

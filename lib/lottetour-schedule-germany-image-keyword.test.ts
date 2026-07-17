@@ -41,6 +41,8 @@ describe('lottetour Germany schedule quality', () => {
     expect(
       sanitizeRegisterScheduleRouteText('뉘른베르크 - 밤베르크 - 드레스덴 - DRESDEN'),
     ).toBe('뉘른베르크 - 밤베르크 - 드레스덴')
+    // 베를린 일차에 바이에른 숙박거점 캠프텐 bleed 금지
+    expect(sanitizeRegisterScheduleRouteText('베를린 - 캠프텐')).toBe('베를린')
   })
 
   it('apply keywords — no Day1 Dresden bleed; Berlin day7 and return filled', () => {
@@ -97,7 +99,7 @@ describe('lottetour Germany schedule quality', () => {
         day: 7,
         title: '베를린',
         description: '구박물관',
-        routeText: '베를린 - 구박물관',
+        routeText: '베를린 - 캠프텐',
         imageKeyword: '',
         imageKeyword2: null,
       },
@@ -132,11 +134,20 @@ describe('lottetour Germany schedule quality', () => {
 
     expect(out[5]?.imageKeyword).toMatch(/Sanssouci|Brandenburg|Dresden/i)
     // Day7 — Brandenburg 이미 쓰였어도 구박물관·Reichstag 등 당일 증거로 채움
-    expect(out[6]?.imageKeyword).toMatch(/Altes Museum|Reichstag|Checkpoint|Brandenburg|Cecilienhof/i)
+    expect(out[6]?.imageKeyword).toMatch(/Altes Museum|Reichstag|Checkpoint|Brandenburg|Cecilienhof|East Side|Charlottenburg/i)
+    expect(String(out[6]?.imageKeyword ?? '')).not.toMatch(/Frauenkirche|Dresden|Romerberg/i)
     expect(String(out[6]?.routeText ?? '')).not.toMatch(/캠프텐|Kempten/i)
 
-    // Day9 귀국 — 빈 슬롯 금지
+    // Day8 ICE — 베를린 soft alt (Frankfurt 있어도 빈 슬롯 금지)
+    expect(String(out[7]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    expect(String(out[7]?.imageKeyword ?? '')).toMatch(
+      /Altes Museum|Reichstag|Checkpoint|Brandenburg|East Side|Charlottenburg/i,
+    )
+    expect(String(out[7]?.imageKeyword ?? '')).not.toMatch(/Romerberg|Frauenkirche|Dresden/i)
+
+    // Day9 귀국 — 빈 슬롯 금지 · 프랑크푸르트 Day1 재사용 금지
     expect(String(out[8]?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+    expect(String(out[8]?.imageKeyword ?? '')).not.toMatch(/Romerberg/i)
     expect(out[8]?.description).toMatch(/귀국|마무리|이동 중심/)
   })
 })

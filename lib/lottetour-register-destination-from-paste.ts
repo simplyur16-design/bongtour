@@ -22,7 +22,7 @@ const MARKETING_DEST_RE =
   /(?:숙박|폭포\s*뷰|폭포뷰|특급|전일정|식사\s*포함|VIP|리무진|품격|노쇼핑|게릴라|스테디|베스트|홈\s*쇼핑)/i
 
 const REGION_TITLE_RE =
-  /미동부|미서부|미남부|미국\s*일주|캐나다|미국|동부|서부|남부|유럽|일본|중국|동남아|호주|괌|하와이|싱가포르|태국|베트남|필리핀|대만|홍콩|마카오|다낭|북해도|오사카|도쿄|방콕|튀르키|터키|나트랑|푸꾸옥|코타|발리|세부|치앙/i
+  /미동부|미서부|미남부|미국\s*일주|캐나다|미국|동부|서부|남부|유럽|일본|중국|동남아|호주|괌|하와이|싱가포르|태국|베트남|필리핀|대만|홍콩|마카오|다낭|북해도|오사카|도쿄|방콕|튀르키|터키|나트랑|푸꾸옥|코타|발리|세부|치앙|이탈리아|독일|프랑스|스페인|스위스|포르투갈|오스트리아|영국|잉글랜드|스코틀랜드|아일랜드|웨일즈|돌로미티/i
 
 const TITLE_DURATION_RE = /\d+\s*(?:박\s*\d+\s*)?일(?:\s|$)/i
 const TITLE_DURATION_TOKEN_RE = /^\d+\s*(?:박\s*\d+\s*)?일$/i
@@ -43,14 +43,31 @@ export function extractLottetourTravelCitiesHintFromTitle(title: string): string
   for (const m of String(title ?? '').matchAll(/\[([^\]]{2,32})\]/g)) {
     const inner = m[1]?.trim() ?? ''
     if (!inner || isSupplierTitlePromoBadgeText(inner)) continue
+    // REGRESSION-FREEZE[lottetour-register-destination]: TKT/ONLY·항공코드 뱃지 목적지 금지 — manifest
+    if (/^(?:TKT|ONLY|KE|OZ|TW|LJ|7C)(?:\s*[\/·,]\s*(?:TKT|ONLY|KE|OZ|TW|LJ|7C))*$/i.test(inner)) {
+      continue
+    }
     bracketParts.push(inner)
   }
   let t = String(title ?? '')
     .replace(/\[[^\]]+\]/g, ' ')
     .replace(/#[^\s]+/g, ' ')
+    .replace(/[『』「」""]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
   t = stripTitleDurationSuffix(t)
+  // 『문학 제목』영국(잉글랜드/…) — 국가·지역 괄호 힌트 우선
+  const countryParen = String(title ?? '').match(
+    /(영국|이탈리아|독일|프랑스|스페인|스위스|포르투갈|오스트리아|아일랜드|스코틀랜드)\s*\(([^)]{4,80})\)/,
+  )
+  if (countryParen) {
+    const country = countryParen[1]!.trim()
+    const regions = countryParen[2]!
+      .split(/[/／·,，]/)
+      .map((p) => p.trim())
+      .filter((p) => p.length >= 2 && p.length <= 24)
+    return [country, ...regions].join(', ')
+  }
   const slashParts = t
     .split(/[/／·+]/)
     .map((p) => stripTitleDurationSuffix(p.replace(/\([^)]*\)/g, ' ')))
@@ -61,7 +78,8 @@ export function extractLottetourTravelCitiesHintFromTitle(title: string): string
         !/^\d+$/.test(p) &&
         !isTitleDurationToken(p) &&
         !isSupplierTitlePromoBadgeText(p) &&
-        !isSupplierRegisterDestinationUiLabel(p),
+        !isSupplierRegisterDestinationUiLabel(p) &&
+        !/^(?:TKT|ONLY)$/i.test(p),
     )
   const merged = [...new Set([...bracketParts, ...slashParts])]
   return merged.length > 0 ? merged.join(', ') : null

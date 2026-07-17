@@ -148,6 +148,16 @@ type LottetourScheduleVibeProfile =
   | 'france_bordeaux'
   | 'france_provence'
   | 'france_riviera'
+  | 'italy_tuscany'
+  | 'italy_rome'
+  | 'italy_venice'
+  | 'italy_amalfi'
+  | 'italy_lakes'
+  | 'italy_dolomites'
+  | 'uk_london'
+  | 'uk_scotland'
+  | 'uk_ireland'
+  | 'uk_countryside'
   | 'generic_tourism'
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
@@ -259,6 +269,47 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '해변 산책로와 절벽 마을이 이어지는, 리비에라의 여유로운 하루입니다.',
     '바다와 언덕의 대비가 시야를 넓히며, 걷는 즐거움이 흐름의 중심이 됩니다.',
   ],
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 이탈리아·영국 vibe 분화 — manifest
+  italy_tuscany: [
+    '중세 광장과 언덕 마을이 이어지는, 토스카나의 걷는 리듬이 돋보이는 하루입니다.',
+    '짧은 이동에도 도시마다 결이 달라, 여정이 부드럽게 이어집니다.',
+  ],
+  italy_rome: [
+    '유적과 광장이 이어지는 로마의 하루로, 역사의 밀도가 일정 리듬을 이끕니다.',
+    '도심을 천천히 가로지르며 도시의 층을 쌓아 가는 구성입니다.',
+  ],
+  italy_venice: [
+    '운하와 광장이 이어지는 베네토의 하루로, 물길 위 풍경이 중심이 됩니다.',
+    '걷는 속도와 시야가 열리는 순간이 번갈아 이어져 여운이 길게 남습니다.',
+  ],
+  italy_amalfi: [
+    '절벽 마을과 해안이 이어지는, 남이탈리아의 여유로운 하루입니다.',
+    '바다와 언덕의 대비가 시야를 넓히며, 걷는 즐거움이 흐름의 중심이 됩니다.',
+  ],
+  italy_lakes: [
+    '호수와 산자락이 맞닿은 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다.',
+    '이동보다 시야가 열리는 순간이 중심이 되어, 여운이 길게 남는 구성입니다.',
+  ],
+  italy_dolomites: [
+    '봉우리와 고원 마을이 이어지는, 돌로미티의 트레킹형 하루입니다.',
+    '산과 호수의 대비가 호흡을 깊게 만들며, 풍경의 리듬이 중심이 됩니다.',
+  ],
+  uk_london: [
+    '상징 랜드마크와 거리가 이어지는 런던의 하루로, 걷기와 시야 확장이 균형을 이룹니다.',
+    '광장·거리·전망이 자연스럽게 연결되어 도시의 결을 천천히 느끼는 구성입니다.',
+  ],
+  uk_scotland: [
+    '성곽과 구시가지가 이어지는 스코틀랜드의 하루로, 역사의 밀도가 돋보입니다.',
+    '짧은 체류에도 도시의 분위기 차이가 분명하게 느껴지는 구성입니다.',
+  ],
+  uk_ireland: [
+    '항구 도시와 구시가지가 이어지는, 아일랜드의 여유로운 이동형 하루입니다.',
+    '바다와 도심의 대비가 시야를 넓히며, 여정이 부드럽게 이어집니다.',
+  ],
+  uk_countryside: [
+    '석회암 마을과 전원 풍경이 이어지는, 잉글랜드 시골의 걷는 리듬이 돋보이는 하루입니다.',
+    '작은 마을들의 분위기가 자연스럽게 연결되어 여운이 길게 남습니다.',
+  ],
   generic_tourism: [
     '하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다.',
     '특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.',
@@ -318,8 +369,50 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   ) {
     return 'germany_medieval'
   }
+  // REGRESSION-FREEZE[lottetour-schedule-expression]: 이탈리아·영국 vibe 분화 — manifest
+  // 「베니스」 안의 「니스」 substring → 프랑스 리비에라 오매칭 금지
+  if (
+    /돌로미|Dolomit|오르티세이|Ortisei|코르티나|Cortina|볼차노|Bolzano|세시다|Seceda|트레\s*치메/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'italy_dolomites'
+  }
+  if (/꼬모|Como|가르다|Garda|마조레|Maggiore/i.test(joinedBlob)) return 'italy_lakes'
+  if (/소렌토|Sorrento|나폴리|Naples|폼페이|Pompeii|아말피|Amalfi/i.test(joinedBlob)) {
+    return 'italy_amalfi'
+  }
+  if (
+    /피사|Pisa|시에나|Siena|피렌|플로렌스|Florence|Firenze|친퀘|Cinque\s*Terre|몬테카티니|Montecatini/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'italy_tuscany'
+  }
+  if (/베니스|Venice|Venezia|베로나|Verona|산\s*마르코/i.test(joinedBlob)) return 'italy_venice'
+  if (/로마|Rome|Roma|바티칸|Vatican|콜로세|Colosseum|트레비|Trevi/i.test(joinedBlob)) {
+    return 'italy_rome'
+  }
+  if (/에딘버러|Edinburgh|윈더미어|Windermere|글라스미어|Grasmere|스코틀랜드|Scotland/i.test(joinedBlob)) {
+    return 'uk_scotland'
+  }
+  if (/벨파스트|Belfast|더블린|Dublin|아일랜드|Ireland/i.test(joinedBlob)) return 'uk_ireland'
+  if (
+    /옥스포드|Oxford|스트래트포드|Stratford|바스|Bath|솔즈베리|Salisbury|코츠월드|Cotswold|바이버리|Bibury|리버풀|Liverpool|체스터|Chester/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'uk_countryside'
+  }
+  if (/(?:^|[\s\-·,/])런던(?:$|[\s\-·,/])|London|타워\s*브릿지|빅벤|Big\s*Ben/i.test(joinedBlob)) {
+    return 'uk_london'
+  }
   // REGRESSION-FREEZE[lottetour-schedule-expression]: 프랑스 일주 vibe 분화 — manifest
-  if (/니스|Nice|모나코|Monaco|에즈|Eze|프롬나드|Promenade|리비에라|Riviera/i.test(joinedBlob)) {
+  if (
+    /(?:^|[\s\-·,/])니스(?:$|[\s\-·,/])|\bNice\b|모나코|Monaco|에즈|Eze|프롬나드|Promenade|(?:프랑스\s*)?리비에라|French\s*Riviera/i.test(
+      joinedBlob,
+    )
+  ) {
     return 'france_riviera'
   }
   if (

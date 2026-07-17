@@ -14,6 +14,7 @@ import {
 import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 import { hasRioDeJaneiroContext } from '@/lib/schedule-rio-de-janeiro-context'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { appendRegisterScheduleCitySoftAltKeywordKeys } from '@/lib/register-schedule-city-soft-alts'
 // REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: Christ Redeemer 리우 부분문자열 — manifest
 
 export type RegisterScheduleRouteEvidenceRow = {
@@ -72,6 +73,8 @@ export function buildRegisterScheduleTripRouteKeywordContext(
         /* keep */
       }
     }
+    // REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: city soft-alt trip SSOT — manifest
+    appendRegisterScheduleCitySoftAltKeywordKeys(hay, keywordKeys)
   }
   return { keywordKeys, hasRouteText }
 }
