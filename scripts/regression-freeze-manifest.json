@@ -5667,7 +5667,12 @@
           "mustInclude": [
             "REGRESSION-FREEZE[pexels-keyword-kk-fireflies-context]",
             "POI_KO_MAPPING_CONTEXT_RE",
-            "poiKoMappingAllowed"
+            "poiKoMappingAllowed",
+            "KK 스타 라운지",
+            "Kota Kinabalu waterfront sunset"
+          ],
+          "mustNotInclude": [
+            "'KK 스타 라운지': 'Petronas Twin Towers KL'"
           ]
         }
       ]

@@ -817,6 +817,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   코닥극장: 'TCL Chinese Theatre Hollywood',
   '코닥 극장': 'TCL Chinese Theatre Hollywood',
   니지노마츠바라: 'Nijinomatsubara pine grove Saga',
+  // REGRESSION-FREEZE[pexels-keyword-kk-fireflies-context]: KK 스타 라운지 → Kota Kinabalu (Petronas 중복키 금지) — manifest
   'KK 스타 라운지': 'Kota Kinabalu waterfront sunset',
   '오르도스 박물관': 'Ordos Museum Inner Mongolia',
   마카테테: 'Makatete Hill Manado',
@@ -934,7 +935,6 @@ const POI_KO_TO_EN: Record<string, string> = {
   '사카라+멤피스': 'Saqqara Pyramid Memphis',
   사카라: 'Saqqara Step Pyramid',
   멤피스: 'Memphis Egypt Ruins',
-  'KK 스타 라운지': 'Petronas Twin Towers KL',
   '사막을 느낄 수 있는 낙타': 'Camel Ride Ordos Desert',
   '사막을 질주하는 오프로드 서핑카': 'Desert Offroad Ordos',
   향사완: 'Xiangshawan Desert Ordos',
