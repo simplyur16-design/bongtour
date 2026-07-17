@@ -24,6 +24,8 @@ function calendarRowsToDepartureInputs(
     out.push({
       departureDate: fact.departureDate,
       adultPrice: fact.adultPrice,
+      childBedPrice: fact.childPrice,
+      infantPrice: fact.infantPrice,
       statusRaw: fact.statusRaw,
       seatsStatusRaw: fact.seatsStatusRaw,
       seatCount: fact.seatCount,

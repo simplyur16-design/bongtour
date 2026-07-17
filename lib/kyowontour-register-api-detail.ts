@@ -39,15 +39,26 @@ export function parseKyowontourTrafficDateTimeToken(raw: string): {
 }
 
 export function extractKyowontourProductTitleFromDetailHtml(html: string): string | null {
+  const decode = (s: string) =>
+    s
+      .replace(/&amp;/gi, '&')
+      .replace(/&#38;/g, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim()
+  // REGRESSION-FREEZE[kyowontour-register-api-detail]: title HTML entity decode (&amp;) — manifest
   const tourTitle = html.match(/tourTitle\s*=\s*'([^']{8,240})'/i)?.[1]?.trim()
-  if (tourTitle && /[가-힣#★]/.test(tourTitle)) return tourTitle
+  if (tourTitle && /[가-힣#★]/.test(tourTitle)) return decode(tourTitle)
   const hit = html.match(/(★[^<'"]{10,200}HIT)/i)?.[1]?.trim()
-  if (hit) return hit
+  if (hit) return decode(hit)
   const og = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i)?.[1]?.trim()
-  if (og && !/여행이지\s*:\s*그래/i.test(og)) return og
+  if (og && !/여행이지\s*:\s*그래/i.test(og)) return decode(og)
   const h1 = html.match(/<h1[^>]*class="[^"]*tit[^"]*"[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
   if (h1) {
-    const t = h1.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    const t = decode(h1.replace(/<[^>]+>/g, ' '))
     if (t.length >= 8) return t
   }
   return null

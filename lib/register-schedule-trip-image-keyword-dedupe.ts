@@ -790,11 +790,15 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
             }
             return (
               pickReturnVisitCityKeyword(sorted, day, productDestination, usedForEdge) ||
-              pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) ||
-              pickMongoliaTerelClusterKeywordForUsedSlot(
-                usedForEdge,
-                sorted.map((r) => String(r.routeText ?? '')).join('\n'),
-              )
+              // 귀국일 route에 해외 장소가 없으면 중간일 미사용 명소 bleed 금지 (AVP024 Day5 Stilt House)
+              // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty no unused landmark bleed — manifest
+              (ownReturnCity
+                ? pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) ||
+                  pickMongoliaTerelClusterKeywordForUsedSlot(
+                    usedForEdge,
+                    sorted.map((r) => String(r.routeText ?? '')).join('\n'),
+                  )
+                : '')
             )
           })()
     if (!filled) {
@@ -802,6 +806,11 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       // 귀국 빈 슬롯 — 미사용 명소 없으면 방문도시 soft-dup (빈칸·환각 랜드마크보다 우선)
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return soft-dup visit city — manifest
       if (slot === 'return' && !keepKw) {
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty no unused landmark bleed — manifest
+        if (!ownReturnCity) {
+          out.set(day, { ...row, imageKeyword: '', imageKeyword2: null })
+          continue
+        }
         const softCity =
           pickReturnVisitCityKeyword(sorted, day, productDestination, undefined) ||
           mapDestination(String(productDestination ?? '').trim()) ||
@@ -840,7 +849,7 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
         continue
       }
       const alt =
-        pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) ||
+        (ownReturnCity ? pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) : '') ||
         pickReturnVisitCityKeyword(sorted, day, productDestination, usedForEdge)
       const altNk = alt ? normScheduleImageKeywordKey(alt) : ''
       if (alt && altNk && !usedForEdge.has(altNk)) {

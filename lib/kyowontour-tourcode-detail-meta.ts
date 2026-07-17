@@ -1,5 +1,5 @@
 /**
- * kyowontour — tourCode별 goodsEventDetail SSR HTML에서 예약인원·최소·잔여석 보강 (E2E·Selenium 없음).
+ * kyowontour — tourCode별 goodsEventDetail SSR HTML에서 예약인원·최소·잔여석·아동·유아 보강 (E2E·Selenium 없음).
  *
  * REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: tourCode detail SSR meta — manifest
  */
@@ -14,11 +14,41 @@ export type KyowontourTourCodeDetailMeta = {
   seatCount: number | null
   seatsStatusRaw: string | null
   statusId: number | null
+  /** goodsEventDetail hidden `#childPrice` — 출발일 AJAX에는 없음 */
+  childPrice: number | null
+  /** goodsEventDetail hidden `#infantPrice` */
+  infantPrice: number | null
 }
 
 function positiveInt(v: unknown): number | null {
   const n = Number(v)
   return Number.isFinite(n) && n >= 0 ? Math.trunc(n) : null
+}
+
+function positivePrice(v: unknown): number | null {
+  const n = Number(String(v ?? '').replace(/,/g, ''))
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null
+}
+
+/** REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: hidden adult/child/infantPrice — manifest */
+export function parseKyowontourThreeSlotPricesFromDetailHtml(html: string): {
+  adultPrice: number | null
+  childPrice: number | null
+  infantPrice: number | null
+} {
+  const hidden = (id: string): number | null => {
+    const re = new RegExp(
+      `id=["']${id}["'][^>]*value=["']([\\d,]+)["']|value=["']([\\d,]+)["'][^>]*id=["']${id}["']`,
+      'i',
+    )
+    const m = html.match(re)
+    return positivePrice(m?.[1] ?? m?.[2])
+  }
+  return {
+    adultPrice: hidden('adultPrice') ?? positivePrice(html.match(/goodsAdultPrice\s*=\s*["']([\d,]+)["']/i)?.[1]),
+    childPrice: hidden('childPrice'),
+    infantPrice: hidden('infantPrice'),
+  }
 }
 
 /** goodsEventDetail SSR — `예약 0명 (최소 출발 인원 4명)` + fn_reservation count. */
@@ -47,8 +77,16 @@ export function parseKyowontourTourCodeDetailMetaFromHtml(
     seatCount = maxPaxCount - reservationCount
   }
   const seatsStatusRaw = seatCount != null && seatCount >= 0 ? `잔여${seatCount}석` : null
+  const slots = parseKyowontourThreeSlotPricesFromDetailHtml(html)
 
-  if (reservationCount == null && minPax == null && maxPaxCount == null && statusId == null) {
+  if (
+    reservationCount == null &&
+    minPax == null &&
+    maxPaxCount == null &&
+    statusId == null &&
+    slots.childPrice == null &&
+    slots.infantPrice == null
+  ) {
     return null
   }
 
@@ -60,6 +98,8 @@ export function parseKyowontourTourCodeDetailMetaFromHtml(
     seatCount: seatCount != null && seatCount > 0 ? seatCount : null,
     seatsStatusRaw,
     statusId,
+    childPrice: slots.childPrice,
+    infantPrice: slots.infantPrice,
   }
 }
 
@@ -120,6 +160,9 @@ function mergeMetaIntoCalendarRow(
   if (meta.maxPaxCount != null) raw.maxPaxCount = meta.maxPaxCount
   if (meta.seatCount != null) raw.remaSeatCnt = meta.seatCount
   if (meta.seatsStatusRaw) raw.seatsStatusRaw = meta.seatsStatusRaw
+  // REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: child/infant → rawJson for fact/map — manifest
+  if (meta.childPrice != null) raw.childPrice = meta.childPrice
+  if (meta.infantPrice != null) raw.infantPrice = meta.infantPrice
   return { ...row, rawJson: raw }
 }
 

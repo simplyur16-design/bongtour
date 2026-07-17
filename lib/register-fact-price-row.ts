@@ -54,11 +54,14 @@ export function kyowontourCalendarRowToFactPriceRow(row: KyowontourCalendarRow):
   )
   const seatsStatusRaw =
     seatCount != null ? `잔여${seatCount}석` : String(raw.seatsStatusRaw ?? raw.seatStatus ?? '').trim() || null
+  // REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: child/infant from detail SSR rawJson — manifest
+  const childPrice = positiveInt(raw.childPrice ?? raw.chdAmt ?? raw.childAmt)
+  const infantPrice = positiveInt(raw.infantPrice ?? raw.infAmt ?? raw.infantAmt)
   return {
     departureDate: row.departDate,
     adultPrice: row.adultPriceFromCalendar,
-    childPrice: null,
-    infantPrice: null,
+    childPrice,
+    infantPrice,
     supplierDepartureCode: row.tourCode || null,
     statusRaw,
     seatsStatusRaw,

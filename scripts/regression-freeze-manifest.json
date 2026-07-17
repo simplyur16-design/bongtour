@@ -2863,15 +2863,24 @@
         "prebuild",
         "ci"
       ],
-      "summary": "kyowontour tourCode별 goodsEventDetail SSR — 예약·최소·잔여석 보강",
+      "summary": "kyowontour tourCode별 goodsEventDetail SSR — 예약·최소·잔여석·아동·유아 보강",
       "checks": [
         {
           "file": "lib/kyowontour-tourcode-detail-meta.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]",
             "parseKyowontourTourCodeDetailMetaFromHtml",
+            "parseKyowontourThreeSlotPricesFromDetailHtml",
+            "hidden adult/child/infantPrice",
+            "child/infant → rawJson for fact/map",
             "enrichKyowontourCalendarRowsWithTourCodeDetail",
             "fetchKyowontourTourCodeDetailMeta"
+          ]
+        },
+        {
+          "file": "lib/register-fact-price-row.ts",
+          "mustInclude": [
+            "child/infant from detail SSR rawJson"
           ]
         },
         {
@@ -4949,7 +4958,8 @@
             "국가/지역 접두·뷰레스토랑",
             "튀르키예의 수도 앙카라 → 앙카라",
             "터키 체험·이동 꼬리",
-            "마사지·쇼핑센터·선착장 이동 문구"
+            "마사지·쇼핑센터·선착장 이동 문구",
+            "서호서호 중복 붕괴"
           ]
         },
         {
@@ -5267,6 +5277,7 @@
             "스페인광장",
             "trip-unique no cluster kw reuse",
             "return fill excludes departure+middle used",
+            "return empty no unused landmark bleed",
             "발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지",
             "hawaiiHardcodedPool day-route evidence",
             "middle empty → visit-city soft-dup",
@@ -6979,7 +6990,9 @@
           "file": "lib/kyowontour-schedule-image-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-schedule-expression]",
-            "호치민생가≠HCMC"
+            "호치민생가≠HCMC",
+            "middle day kw2 prefers last route POI",
+            "return empty no prior-day landmark bleed"
           ]
         }
       ],
@@ -7558,6 +7571,7 @@
           "file": "lib/kyowontour-register-api-detail.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-register-api-detail]",
+            "title HTML entity decode (&amp;)",
             "buildKyowontourFlightStructuredFromDetailHtml",
             "parseKyowontourRemainingSeatsFromDetailHtml"
           ]

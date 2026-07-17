@@ -74,11 +74,17 @@ export function kyowontourFactDaysToRegisterSchedule(days: RegisterFactScheduleD
     const routePlaces = dedupeLottetourScheduleRoutePlaces(d.places)
     const routeText = joinLottetourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
-    const title =
+    const titleRaw =
       routeText?.split(' - ')[0]?.trim() ||
       String(d.transportNote ?? '').split(';')[0]?.trim() ||
       (d.hotels[0] ?? '').trim() ||
       `${d.day}일차`
+    // REGRESSION-FREEZE[kyowontour-schedule-expression]: 귀국일 vibe title → 귀국 — manifest
+    const title =
+      d.day === maxDay &&
+      (!routeText || /귀국|현지를\s*정리|이동\s*중심의\s*마무리|귀국길로/u.test(titleRaw))
+        ? '귀국'
+        : titleRaw
     const description = composeLottetourScheduleDescription({
       day: d.day,
       maxDay,
@@ -119,6 +125,6 @@ export function applyKyowontourScheduleExpressionToRows<T extends RegisterSchedu
       routePlaces,
       joinedBlob,
     })
-    return { ...row, routeText, description }
+    return { ...row, routeText, description, ...(day === maxDay && (!routeText || /귀국|현지를\s*정리|귀국길로/u.test(String(row.title ?? ''))) ? { title: '귀국' } : {}) }
   })
 }

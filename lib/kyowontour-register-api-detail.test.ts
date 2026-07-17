@@ -30,6 +30,13 @@ describe('kyowontour register api detail HTML extract', () => {
     expect(extractKyowontourProductTitleFromDetailHtml(html)).toContain('튀르키예')
   })
 
+  it('decodes HTML entities in tourTitle (&amp; → &)', () => {
+    const html = `const tourTitle = '[하노이&amp;하롱베이5일] #VJ961 #노옵션 HIT';`
+    expect(extractKyowontourProductTitleFromDetailHtml(html)).toBe(
+      '[하노이&하롱베이5일] #VJ961 #노옵션 HIT',
+    )
+  })
+
   it('parseKyowontourRemainingSeatsFromDetailHtml reads 남은 좌석 em markup', () => {
     const html = `예약<em class="color-point-red">19</em>명( 남은 좌석<em class="color-point-red">12</em>석 / 최소 출발인원 <em>20</em>명)`
     expect(parseKyowontourRemainingSeatsFromDetailHtml(html)).toMatchObject({

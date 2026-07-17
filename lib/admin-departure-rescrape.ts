@@ -82,6 +82,8 @@ function deriveFillMeta(inputs: DepartureInput[]): { filledFields: string[]; mis
   const stats = {
     departureDate: inputs.some((x) => !!x.departureDate),
     adultPrice: inputs.some((x) => (x.adultPrice ?? 0) > 0),
+    childBedPrice: inputs.some((x) => (x.childBedPrice ?? 0) > 0),
+    infantPrice: inputs.some((x) => (x.infantPrice ?? 0) > 0),
     carrierName: inputs.some((x) => !!x.carrierName),
     outboundDepartureAt: inputs.some((x) => !!x.outboundDepartureAt),
     inboundArrivalAt: inputs.some((x) => !!x.inboundArrivalAt),
@@ -953,7 +955,15 @@ export async function collectDepartureInputsForAdminRescrape(
         ),
         logLabel: `admin-departure-rescrape:${product.id}`,
       })
-      const mapped = mapKyowontourCalendarToDepartureInputs(rows, product.id)
+      // goodsEventDetail SSR — 아동·유아(캘린더 AJAX에 없음) + 좌석·최소인원
+      const { enrichKyowontourCalendarRowsWithTourCodeDetail } = await import(
+        '@/lib/kyowontour-tourcode-detail-meta'
+      )
+      const enrichedRows = await enrichKyowontourCalendarRowsWithTourCodeDetail(rows, {
+        menuCode: kyoKeys?.menuCode || 'M5204',
+        refererUrl: detailUrlForCollect,
+      })
+      const mapped = mapKyowontourCalendarToDepartureInputs(enrichedRows, product.id)
       const inputs = filterDepartureInputsOnOrAfterCalendarToday(mapped as DepartureInput[])
       if (inputs.length > 0) {
         const fillMeta = deriveFillMeta(inputs)

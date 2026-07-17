@@ -697,10 +697,19 @@ function resolveKyowontourSecondaryKeyword(
 
   const routeSegLandmarks: string[] = []
   for (const seg of kyowontourUsableRouteSegments(row.routeText)) {
-    const spot = firstMatchingScheduleSpotEn( seg)
+    const spot = firstMatchingScheduleSpotEn(seg)
     if (spot) routeSegLandmarks.push(spot)
-    const city = firstMatchingScheduleCityEn( seg)
+    const city = firstMatchingScheduleCityEn(seg)
     if (city && !isBlockedScheduleImageKeyword(city)) routeSegLandmarks.push(city)
+  }
+  // 당일 명소 3곳 이상이면 2순위는 route 끝 랜드마크(AVP024 Day4 호안끼엠)
+  // REGRESSION-FREEZE[kyowontour-schedule-expression]: middle day kw2 prefers last route POI — manifest
+  const distinctRoute = routeSegLandmarks.filter(
+    (x) => normKyowontourKwKey(x) !== pk && !kyowontourKeywordKeysOverlap(x, primary),
+  )
+  if (distinctRoute.length >= 2) {
+    const last = distinctRoute[distinctRoute.length - 1]!
+    if (!isBlockedScheduleImageKeyword(last)) return last
   }
   const fromRoute = pickDistinctSecondScheduleImageKeyword(primary, routeSegLandmarks)
   if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) return fromRoute
@@ -959,8 +968,14 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     if (!primary && slotKind === 'middle') {
       primary = refillPrimary() ?? refillFromPriorDay()
     }
+    // 귀국·허브 only — 전일 명소 bleed 금지 (AVP024 Day5 ← Ba Dinh)
+    // REGRESSION-FREEZE[kyowontour-schedule-expression]: return empty no prior-day landmark bleed — manifest
     if (!primary && slotKind === 'return' && day > 1) {
-      primary = refillFromPriorDay() || refillPrimary() || ''
+      const dayKind = classifyKyowontourScheduleDayKind(day, maxDay, row)
+      const ownForeign = collectKyowontourRouteLandmarkCandidates(row.routeText).length > 0
+      if (dayKind !== 'return_home' && ownForeign) {
+        primary = refillFromPriorDay() || refillPrimary() || ''
+      }
     }
     if (primary) tripUsed.add(normKyowontourKwKey(primary))
 

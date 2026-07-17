@@ -596,6 +596,8 @@ export function mapKyowontourCalendarToDepartureInputs(
     out.push({
       departureDate: fact.departureDate,
       adultPrice: fact.adultPrice,
+      childBedPrice: fact.childPrice,
+      infantPrice: fact.infantPrice,
       carrierName: fact.carrierName,
       statusRaw: fact.statusRaw,
       seatsStatusRaw: fact.seatsStatusRaw,

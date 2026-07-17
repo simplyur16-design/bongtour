@@ -135,6 +135,9 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/^(이스탄불)\s*(?:이동|야경)$/u, '$1')
     .replace(/^선착장으로\s*이동하여\s*유람선\s*타고\s*/u, '')
     .replace(/^하노이에서\s*가장\s*큰\s*호수\s*[''"]?/u, '서호')
+    .replace(/[''"]+$/u, '')
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: 서호서호 중복 붕괴 — manifest
+    .replace(/(서호)(?:\s*\1)+/gu, '$1')
     // REGRESSION-FREEZE[register-schedule-route-place-noise]: 야간·일정종료 꼬리 — manifest
     .replace(/\s*야간\s*$/u, '')
     .replace(/\s*일정이\s*끝난\s*후(?:\s*공항)?$/u, '')
