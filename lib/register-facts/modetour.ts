@@ -2,13 +2,19 @@
  * modetour 등록 사실 수집 — b2c-api 구조화 응답만 사용.
  *
  * REGRESSION-FREEZE[register-facts-foundation]: GetProductDetailInfo·GetScheduleList — manifest
+ * REGRESSION-FREEZE[register-facts-foundation]: listingPriceSlots — SD1·과거 detail 미리보기 3슬롯 — manifest
  * REGRESSION-FREEZE[register-facts-fetch-resilience]: GetOtherDepartureDates_lite — manifest
  * REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 시 productCode2 origin-code resolve 달력 — manifest
  */
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { resolveModetourDetailByOriginCode } from '@/lib/modetour-origin-code-resolve'
+import { modetourB2cBodyIndicatesSd1 } from '@/lib/modetour-sd1-policy'
 import { extractModetourIncludedExcludedFromDetailInfo, extractModetourShoppingFromDetailBundle } from '@/lib/modetour-register-api-detail'
-import type { RegisterFactPriceRow, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
+import type {
+  RegisterFactPriceRow,
+  RegisterFactListingPriceSlots,
+  SupplierRegisterFactBundle,
+} from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import {
   inferModetourRegisterFactProductKind,
@@ -81,6 +87,45 @@ type ModetourOtherDepartureRow = {
   pId?: string
 }
 
+/** detail 3슬롯 — KidN/Toddler 필드가 SSOT (Child/Infant 별칭은 하위 호환). */
+// REGRESSION-FREEZE[register-facts-foundation]: listingPriceSlots KidN/Toddler — manifest
+export function modetourDetailListingThreeSlotPrices(detail: Record<string, unknown> | null | undefined): {
+  departureDate: string | null
+  adultPrice: number | null
+  childPrice: number | null
+  infantPrice: number | null
+} {
+  if (!detail) {
+    return { departureDate: null, adultPrice: null, childPrice: null, infantPrice: null }
+  }
+  const departureDate = ymdFromIso(String(detail.departureDate ?? ''))
+  const adult = Number(detail.sellingPriceAdultTotalAmount ?? detail.sellingPrice ?? 0)
+  const child = Number(
+    detail.sellingPriceKidNTotalAmount ??
+      detail.sellingPriceKidN ??
+      detail.sellingPriceKidETotalAmount ??
+      detail.sellingPriceKidE ??
+      detail.sellingPriceChildTotalAmount ??
+      detail.sellingPriceChild ??
+      detail.childPrice ??
+      0,
+  )
+  const infant = Number(
+    detail.sellingPriceToddlerTotalAmount ??
+      detail.sellingPriceToddler ??
+      detail.sellingPriceInfantTotalAmount ??
+      detail.sellingPriceInfant ??
+      detail.infantPrice ??
+      0,
+  )
+  return {
+    departureDate,
+    adultPrice: Number.isFinite(adult) && adult > 0 ? Math.trunc(adult) : null,
+    childPrice: Number.isFinite(child) && child > 0 ? Math.trunc(child) : null,
+    infantPrice: Number.isFinite(infant) && infant > 0 ? Math.trunc(infant) : null,
+  }
+}
+
 /** GetOtherDepartureDates 행 → RegisterFactPriceRow (등록 사실 경량). */
 export function modetourOtherDepartureRowsToRegisterFactPriceRows(
   rows: ModetourOtherDepartureRow[],
@@ -119,7 +164,7 @@ async function fetchModetourRegisterFactPriceRows(
   referer: string,
   fromYmd: string,
   toYmd: string,
-): Promise<RegisterFactPriceRow[]> {
+): Promise<{ rows: RegisterFactPriceRow[]; sd1: boolean }> {
   try {
     const base = MODETOUR_API_BASE.replace(/\/$/, '')
     const apiUrl = `${base}/Package/GetOtherDepartureDates?productNo=${encodeURIComponent(productNo)}&searchFrom=${encodeURIComponent(fromYmd)}&searchTo=${encodeURIComponent(toYmd)}`
@@ -128,12 +173,25 @@ async function fetchModetourRegisterFactPriceRows(
       headers: modetourHeaders(referer, productNo),
       signal: AbortSignal.timeout(45_000),
     })
-    if (!res.ok) return []
-    const json = (await res.json()) as { result?: ModetourOtherDepartureRow[] }
+    const text = await res.text()
+    let json: { result?: ModetourOtherDepartureRow[]; errorMessages?: unknown } = {}
+    try {
+      json = JSON.parse(text) as { result?: ModetourOtherDepartureRow[]; errorMessages?: unknown }
+    } catch {
+      return { rows: [], sd1: false }
+    }
+    // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 달력 응답 표기 — manifest
+    if (modetourB2cBodyIndicatesSd1(json, text)) {
+      return { rows: [], sd1: true }
+    }
+    if (!res.ok) return { rows: [], sd1: false }
     const rows = Array.isArray(json?.result) ? json.result : []
-    return modetourOtherDepartureRowsToRegisterFactPriceRows(rows, productNo, fromYmd, toYmd)
+    return {
+      rows: modetourOtherDepartureRowsToRegisterFactPriceRows(rows, productNo, fromYmd, toYmd),
+      sd1: false,
+    }
   } catch {
-    return []
+    return { rows: [], sd1: false }
   }
 }
 
@@ -149,15 +207,15 @@ async function fetchModetourRegisterFactPriceRowsWithOriginResolve(args: {
   originCodeHint?: string | null
   detail?: Record<string, unknown> | null
 }): Promise<{ priceRows: RegisterFactPriceRow[]; calendarProductNo: string; calendarNote: string }> {
-  const direct = await fetchModetourRegisterFactPriceRows(
+  const directHit = await fetchModetourRegisterFactPriceRows(
     args.productNo,
     args.referer,
     args.fromYmd,
     args.toYmd,
   )
-  if (direct.length > 0) {
+  if (directHit.rows.length > 0) {
     return {
-      priceRows: direct,
+      priceRows: directHit.rows,
       calendarProductNo: args.productNo,
       calendarNote: 'calendar_source=GetOtherDepartureDates_lite',
     }
@@ -168,7 +226,9 @@ async function fetchModetourRegisterFactPriceRowsWithOriginResolve(args: {
     return {
       priceRows: [],
       calendarProductNo: args.productNo,
-      calendarNote: 'calendar_source=GetOtherDepartureDates_lite;calendar_empty_no_origin_code',
+      calendarNote: directHit.sd1
+        ? 'calendar_source=GetOtherDepartureDates_lite;calendar_sd1;calendar_empty_no_origin_code'
+        : 'calendar_source=GetOtherDepartureDates_lite;calendar_empty_no_origin_code',
     }
   }
 
@@ -180,7 +240,7 @@ async function fetchModetourRegisterFactPriceRowsWithOriginResolve(args: {
     return {
       priceRows: [],
       calendarProductNo: args.productNo,
-      calendarNote: `calendar_source=GetOtherDepartureDates_lite;origin_code=${originCode};resolve=${resolved.source};calendar_empty`,
+      calendarNote: `calendar_source=GetOtherDepartureDates_lite;origin_code=${originCode};resolve=${resolved.source};${directHit.sd1 ? 'calendar_sd1;' : ''}calendar_empty`,
     }
   }
 
@@ -192,13 +252,14 @@ async function fetchModetourRegisterFactPriceRowsWithOriginResolve(args: {
     args.fromYmd,
     args.toYmd,
   )
+  const sd1Tag = directHit.sd1 || viaResolve.sd1 ? 'calendar_sd1;' : ''
   return {
-    priceRows: viaResolve,
+    priceRows: viaResolve.rows,
     calendarProductNo: resolvedNo,
     calendarNote:
-      viaResolve.length > 0
+      viaResolve.rows.length > 0
         ? `calendar_source=GetOtherDepartureDates_lite;origin_code_resolve=${originCode}->${resolvedNo}`
-        : `calendar_source=GetOtherDepartureDates_lite;origin_code_resolve=${originCode}->${resolvedNo};calendar_empty`,
+        : `calendar_source=GetOtherDepartureDates_lite;origin_code_resolve=${originCode}->${resolvedNo};${sd1Tag}calendar_empty`,
   }
 }
 
@@ -212,7 +273,7 @@ export async function countModetourRegisterFactPriceRows(
   const referer = originUrl.trim() || `https://www.modetour.com/package/${productNo}`
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const { priceRows } = await fetchModetourRegisterFactPriceRowsWithOriginResolve({
+  const { priceRows, calendarProductNo } = await fetchModetourRegisterFactPriceRowsWithOriginResolve({
     productNo,
     referer,
     fromYmd,
@@ -220,15 +281,32 @@ export async function countModetourRegisterFactPriceRows(
     detail,
   })
   if (priceRows.length > 0) return priceRows.length
-  const fallbackDate = ymdFromIso(String(detail?.departureDate ?? ''))
-  const fallbackAdult = Number(detail?.sellingPriceAdultTotalAmount ?? detail?.sellingPrice ?? 0)
+
+  let detailForFallback: Record<string, unknown> | null | undefined = detail
+  if (calendarProductNo && calendarProductNo !== productNo) {
+    try {
+      const base = MODETOUR_API_BASE.replace(/\/$/, '')
+      const resolvedDetailJson = await fetchModetourJson<{ result?: Record<string, unknown> }>(
+        `${base}/Package/GetProductDetailInfo?productNo=${encodeURIComponent(calendarProductNo)}&companyNo=undefined&companyStaffNo=undefined`,
+        modetourHeaders(
+          `https://www.modetour.com/package/${calendarProductNo}`,
+          calendarProductNo,
+        ),
+      )
+      if (resolvedDetailJson?.result) detailForFallback = resolvedDetailJson.result
+    } catch {
+      /* keep URL detail */
+    }
+  }
+
+  const slots = modetourDetailListingThreeSlotPrices(detailForFallback)
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: 과거 detail 폴백 카운트 제외 — manifest
   if (
-    fallbackDate &&
-    fallbackDate >= fromYmd &&
-    fallbackDate <= toYmd &&
-    Number.isFinite(fallbackAdult) &&
-    fallbackAdult > 0
+    slots.departureDate &&
+    slots.departureDate >= fromYmd &&
+    slots.departureDate <= toYmd &&
+    slots.adultPrice != null &&
+    slots.adultPrice > 0
   ) {
     return 1
   }
@@ -292,8 +370,29 @@ export async function collectModetourRegisterFacts(
       detail,
     })
 
-  const fallbackDate = ymdFromIso(String(detail.departureDate ?? ''))
-  const fallbackAdult = Number(detail.sellingPriceAdultTotalAmount ?? detail.sellingPrice ?? 0)
+  // SD1·달력 0건이면 origin resolve된 현행 단체번호 detail로 단건 폴백(URL 과거 앵커만 보지 않음)
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 시 resolve detail 단건 폴백 — manifest
+  let detailForPriceFallback: Record<string, unknown> = detail
+  if (priceRows.length === 0 && calendarProductNo && calendarProductNo !== productNo) {
+    try {
+      const resolvedDetailJson = await fetchModetourJson<{ result?: Record<string, unknown> }>(
+        `${base}/Package/GetProductDetailInfo?productNo=${encodeURIComponent(calendarProductNo)}&companyNo=undefined&companyStaffNo=undefined`,
+        modetourHeaders(
+          `https://www.modetour.com/package/${calendarProductNo}`,
+          calendarProductNo,
+        ),
+      )
+      if (resolvedDetailJson?.result && typeof resolvedDetailJson.result === 'object') {
+        detailForPriceFallback = resolvedDetailJson.result
+      }
+    } catch {
+      /* URL detail 유지 */
+    }
+  }
+
+  const fallbackSlots = modetourDetailListingThreeSlotPrices(detailForPriceFallback)
+  const fallbackDate = fallbackSlots.departureDate
+  const fallbackAdult = fallbackSlots.adultPrice
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 시 과거 detail 출발 폴백 금지 — manifest
   const resolvedPriceRows =
     priceRows.length > 0
@@ -301,20 +400,42 @@ export async function collectModetourRegisterFacts(
       : fallbackDate &&
           fallbackDate >= fromYmd &&
           fallbackDate <= toYmd &&
-          Number.isFinite(fallbackAdult) &&
+          fallbackAdult != null &&
           fallbackAdult > 0
         ? [
             {
               departureDate: fallbackDate,
               adultPrice: fallbackAdult,
-              childPrice: null,
-              infantPrice: null,
-              supplierDepartureCode: `modetour:${productNo}`,
+              childPrice: fallbackSlots.childPrice,
+              infantPrice: fallbackSlots.infantPrice,
+              supplierDepartureCode: `modetour:${calendarProductNo || productNo}`,
             },
           ]
         : []
 
   const resolvedOriginCode = pickModetourRegisterOriginCode(options?.originCode, detail)
+  const urlDetailPast = ymdFromIso(String(detail.departureDate ?? ''))
+  const pastDetailNote =
+    resolvedPriceRows.length === 0 && urlDetailPast && urlDetailPast < fromYmd
+      ? `detail_depart_past=${urlDetailPast}`
+      : null
+
+  // REGRESSION-FREEZE[register-facts-foundation]: listingPriceSlots — SD1·과거 detail 미리보기 3슬롯 — manifest
+  let listingPriceSlots: RegisterFactListingPriceSlots | null = null
+  if (resolvedPriceRows.length === 0 && fallbackAdult != null && fallbackAdult > 0) {
+    listingPriceSlots = {
+      adultPrice: fallbackAdult,
+      childPrice: fallbackSlots.childPrice,
+      infantPrice: fallbackSlots.infantPrice,
+      sourceDepartureDate: fallbackDate,
+      unavailableReason:
+        calendarNote.includes('calendar_sd1')
+          ? 'sd1'
+          : fallbackDate && fallbackDate < fromYmd
+            ? 'past_depart'
+            : 'calendar_empty',
+    }
+  }
 
   return {
     supplier: 'modetour',
@@ -331,12 +452,19 @@ export async function collectModetourRegisterFacts(
     scheduleDays: modetourScheduleItemsToFactDays(scheduleItems),
     flights,
     priceRows: resolvedPriceRows,
+    listingPriceSlots,
     notes: [
       'source=modetour_b2c_api',
       calendarNote,
       `productNo=${productNo}`,
       `calendar_productNo=${calendarProductNo}`,
       `calendar_rows=${resolvedPriceRows.length}`,
+      ...(pastDetailNote ? [pastDetailNote] : []),
+      ...(listingPriceSlots
+        ? [
+            `listing_slots_adult=${listingPriceSlots.adultPrice ?? ''};child=${listingPriceSlots.childPrice ?? ''};infant=${listingPriceSlots.infantPrice ?? ''}`,
+          ]
+        : []),
       registerFactProductKindNote(productKind),
       'price_collect=lite_only',
     ],

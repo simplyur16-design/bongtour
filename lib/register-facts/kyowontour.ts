@@ -1,8 +1,8 @@
 /**
  * kyowontour 등록 사실 수집 — goodsEventDetail + tourEventTabData + differentDepartDate AJAX.
  *
- * REGRESSION-FREEZE[register-facts-foundation]: tourEventTabData·calendar AJAX·tourCode detail enrich — manifest
- * REGRESSION-FREEZE[register-facts-fetch-resilience]: tourCode SSR enrich 생략 — manifest
+ * REGRESSION-FREEZE[register-facts-foundation]: tourEventTabData·calendar AJAX·URL HTML 3슬롯 — manifest
+ * REGRESSION-FREEZE[register-facts-fetch-resilience]: N× tourCode SSR enrich 생략 — URL HTML 1회 3슬롯만 — manifest
  */
 import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
 import { scheduleTabParsedToRegisterDays } from '@/lib/kyowontour-register-schedule-collect'
@@ -15,6 +15,7 @@ import {
   parseKyowontourCoreTabDetail,
   parseKyowontourScheduleTabDetail,
 } from '@/lib/kyowontour-tour-event-tab-data'
+import { applyKyowontourUrlDetailThreeSlotToCalendarRows } from '@/lib/kyowontour-tourcode-detail-meta'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import type { RegisterFactFlightLeg, RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
@@ -105,8 +106,13 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     refererUrl: url,
     logLabel: 'register-facts-kyowontour',
   })
-  // REGRESSION-FREEZE[register-facts-fetch-resilience]: tourCode SSR enrich 생략 — N×fetch 타임아웃 방지 — manifest
-  const enrichedRows = cal.rows
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: N× tourCode SSR enrich 생략 — URL HTML 1회 3슬롯만 — manifest
+  // REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: applyUrlDetailThreeSlot — manifest
+  const enrichedRows = applyKyowontourUrlDetailThreeSlotToCalendarRows(
+    cal.rows,
+    html,
+    hidden.tourCode,
+  )
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
@@ -139,7 +145,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
       `tourCode=${hidden.tourCode}`,
       `masterCode=${hidden.masterCode}`,
       `calendar_rows=${enrichedRows.length}`,
-      'tourcode_detail_enrich=skipped_register_facts',
+      'tourcode_detail_enrich=url_html_three_slot_only',
       registerFactProductKindNote(inferRegisterFactProductKindFromOriginUrl('kyowontour', url)),
     ],
   }

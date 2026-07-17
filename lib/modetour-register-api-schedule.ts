@@ -33,6 +33,25 @@ function stripModetourInlineHtml(s: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
+    // REGRESSION-FREEZE[modetour-register-api-schedule]: HTML 숫자 엔티티(이모지) 디코드 후 제거 — manifest
+    .replace(/&#(\d+);/g, (_, n: string) => {
+      const code = Number(n)
+      if (!Number.isFinite(code) || code < 1) return ' '
+      try {
+        return String.fromCodePoint(code)
+      } catch {
+        return ' '
+      }
+    })
+    .replace(/&#x([0-9a-fA-F]+);/gi, (_, h: string) => {
+      const code = Number.parseInt(h, 16)
+      if (!Number.isFinite(code) || code < 1) return ' '
+      try {
+        return String.fromCodePoint(code)
+      } catch {
+        return ' '
+      }
+    })
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -57,6 +76,8 @@ function isModetourHighlightNoise(label: string): boolean {
   if (!t || t.length < 2) return true
   if (MODETOUR_HIGHLIGHT_NOISE_RE.test(t)) return true
   if (/^[\d\s▶\-–—.;]+$/.test(t)) return true
+  // 디코드 실패·순수 기호만 남은 자리
+  if (/^&#\d+;?$/i.test(t) || /^[^\p{L}\p{N}]+$/u.test(t)) return true
   if (t.length > 48) return true
   return false
 }
@@ -142,7 +163,8 @@ type ModetourScheduleVibeProfile =
 
 const MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<ModetourScheduleVibeProfile, readonly string[]> = {
   resort_leisure: [
-    '몰디브의 에메랄드 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다.',
+    // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: resort_leisure — 목적지명(몰디브) 하드코딩 금지 — manifest
+    '에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다.',
     '특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.',
   ],
   island_transfer: [
@@ -228,7 +250,7 @@ export function composeModetourScheduleVibeDescription(
   return desc.slice(0, 320).trim()
 }
 
-/** 상품명에서 리조트·숙소 힌트 (예: 조이아일랜드 비치빌라). */
+/** 상품명에서 리조트·숙소 힌트 (예: 조이아일랜드 비치빌라 · 두짓비치). */
 export function extractModetourResortHintFromProductTitle(title: string | null | undefined): string | null {
   const t = String(title ?? '').trim()
   if (!t) return null
@@ -236,8 +258,21 @@ export function extractModetourResortHintFromProductTitle(title: string | null |
     /(?:몰디브|Maldives|푸켓|Phuket|괌|Guam|사이판|Saipan|발리|Bali|코타\s*키나발루|세부|Cebu)[^\d<]{0,24}?(?:리조트|resort|비치\s*빌라|beach\s*villa|조이아[^\d<]{2,24}|villa)/i,
   )
   if (m?.[0]) return m[0].replace(/\s+/g, ' ').trim().slice(0, 48)
+  // REGRESSION-FREEZE[modetour-register-api-schedule]: 괌·사이판 호텔명 — <>마케팅 태그 제외 — manifest
+  const destHotel = t.match(
+    /(?:괌|Guam|사이판|Saipan|하와이|Hawaii|발리|Bali|푸켓|Phuket)\s+([가-힣A-Za-z0-9][가-힣A-Za-z0-9\s·]{1,28}?(?:호텔|리조트|비치|오션뷰|룸))/i,
+  )
+  if (destHotel?.[1]) return destHotel[1].replace(/\s+/g, ' ').trim().slice(0, 48)
   const bracket = t.match(/<([^>]{4,40})>/)?.[1]?.trim()
-  if (bracket && !/AI|스피드|보트/i.test(bracket)) return bracket.slice(0, 48)
+  // 「아일랜드관광/레이트체크아웃」 등 혜택·일정 태그는 숙소가 아님
+  if (
+    bracket &&
+    !/AI|스피드|보트|관광|레이트|체크\s*아웃|체크아웃|쇼핑|유류|직항|자유\s*일정|NO\s*옵션|NO\s*팁/i.test(
+      bracket,
+    )
+  ) {
+    return bracket.slice(0, 48)
+  }
   return null
 }
 

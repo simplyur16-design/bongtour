@@ -6,7 +6,7 @@
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
-  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing/i
+  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing/i
 
 /** 호주·뉴질랜드 — ASIA_PACIFIC에 안 묶여도 Mount Fuji 등 환각 차단용 */
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
@@ -44,6 +44,11 @@ const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bMunich\b/i,
   /Arc\s*de\s*Triomphe/i,
   /Versailles/i,
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Istanbul — 아시아(내몽골) 환각 차단 — manifest
+  /\bIstanbul\b/i,
+  /Hagia\s*Sophia/i,
+  /Topkapi/i,
+  /Bosphorus/i,
 ]
 
 const JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE =

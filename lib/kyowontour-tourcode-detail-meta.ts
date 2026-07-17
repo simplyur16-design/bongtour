@@ -166,6 +166,62 @@ function mergeMetaIntoCalendarRow(
   return { ...row, rawJson: raw }
 }
 
+/**
+ * URL goodsEventDetail HTML(이미 fetch됨)의 3슬롯을 calendar row rawJson에 반영.
+ * N× tourCode enrich 없이 register-facts용 — 매칭 tourCode 우선, 없으면 child/infant만 빈 행에 보강.
+ * REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: applyUrlDetailThreeSlot — manifest
+ */
+export function applyKyowontourUrlDetailThreeSlotToCalendarRows(
+  rows: KyowontourCalendarRow[],
+  html: string,
+  urlTourCode: string,
+): KyowontourCalendarRow[] {
+  const slots = parseKyowontourThreeSlotPricesFromDetailHtml(html)
+  if (slots.childPrice == null && slots.infantPrice == null && slots.adultPrice == null) {
+    return rows
+  }
+  const tc = urlTourCode.trim()
+  const meta: KyowontourTourCodeDetailMeta = {
+    tourCode: tc,
+    reservationCount: null,
+    minPax: null,
+    maxPaxCount: null,
+    seatCount: null,
+    seatsStatusRaw: null,
+    statusId: null,
+    childPrice: slots.childPrice,
+    infantPrice: slots.infantPrice,
+  }
+  return rows.map((row) => {
+    const match = tc && row.tourCode.trim() === tc
+    if (match) {
+      const withMeta = mergeMetaIntoCalendarRow(row, meta)
+      if (slots.adultPrice != null && slots.adultPrice > 0) {
+        const raw = { ...(withMeta.rawJson as Record<string, unknown>), adultPrice: slots.adultPrice }
+        return {
+          ...withMeta,
+          adultPriceFromCalendar: slots.adultPrice,
+          rawJson: raw,
+        }
+      }
+      return withMeta
+    }
+    // 같은 master 라인 — URL 상세 child/infant만 비어 있는 행에 보강(추가 fetch 없음)
+    const raw = row.rawJson as Record<string, unknown>
+    const hasChild = positivePrice(raw.childPrice ?? raw.chdAmt ?? raw.childAmt) != null
+    const hasInfant = positivePrice(raw.infantPrice ?? raw.infAmt ?? raw.infantAmt) != null
+    if ((slots.childPrice != null && !hasChild) || (slots.infantPrice != null && !hasInfant)) {
+      return mergeMetaIntoCalendarRow(row, {
+        ...meta,
+        tourCode: row.tourCode,
+        childPrice: hasChild ? positivePrice(raw.childPrice) : slots.childPrice,
+        infantPrice: hasInfant ? positivePrice(raw.infantPrice) : slots.infantPrice,
+      })
+    }
+    return row
+  })
+}
+
 export type KyowontourTourCodeEnrichOptions = {
   menuCode: string
   refererUrl: string

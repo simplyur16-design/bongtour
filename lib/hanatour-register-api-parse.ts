@@ -115,6 +115,7 @@ export async function parseHanatourRegisterFromApi(
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const firstPrice = bundle.priceRows[0]
+  const listingSlots = bundle.listingPriceSlots
   const productPriceTable =
     firstPrice != null
       ? {
@@ -123,7 +124,21 @@ export async function parseHanatourRegisterFromApi(
           childNoBedPrice: null,
           infantPrice: firstPrice.infantPrice ?? null,
         }
-      : undefined
+      : listingSlots != null
+        ? {
+            adultPrice: listingSlots.adultPrice ?? null,
+            childExtraBedPrice: listingSlots.childPrice ?? null,
+            childNoBedPrice: null,
+            infantPrice: listingSlots.infantPrice ?? null,
+          }
+        : undefined
+
+  const pastDepartNote =
+    listingSlots?.unavailableReason === 'past_depart' && listingSlots.sourceDepartureDate
+      ? `하나투어 출발 달력 0건·URL 출발 과거마감: ${listingSlots.sourceDepartureDate} (동일 라인 미래 출발 없음). 미래 출발 pkgCd URL로 다시 사실 가져오기 하세요. 아래 3슬롯은 미리보기용 listingPriceSlots입니다.`
+      : listingSlots != null && prices.length === 0
+        ? '하나투어 출발 달력 0건 — 미리보기 3슬롯만 listingPriceSlots(확정 출발행 아님).'
+        : null
 
   const rawTitle = bundle.title?.trim() || ''
   let listingTitle = normalizeSupplierRegisterListingTitle(rawTitle)
@@ -168,6 +183,7 @@ export async function parseHanatourRegisterFromApi(
       HANATOUR_FLIGHT_PREVIEW_NOTE,
       ...(airHotelListing ? [REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE] : []),
       ...(usedPrefetch ? ['prefetchedFactBundle: detail 재수집 생략 (사실 가져오기 SSOT)'] : []),
+      ...(pastDepartNote ? [pastDepartNote] : []),
     ],
     // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
     hanatourDetailCollectRan: usedPrefetch,

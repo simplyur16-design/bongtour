@@ -2321,15 +2321,20 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
   if (isBareCityOrCountryKeyword(kw)) return false
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지 — Seattle·Alaska·내몽골 증거 필요
   // 단독 Glacier/빙하 제외 — 노르웨이 피요르드 빙하박물관이 Glacier Bay를 끌어오지 않게
+  const hay = String(routeText ?? '')
   if (
-    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
-      String(routeText ?? ''),
+    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+      hay,
     )
   ) {
     return false
   }
   const nk = normScheduleImageKeywordKey(kw)
-  return /ordos|genghis|xiangshawan|desert|grassland|steppe|seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|cruise/.test(
+  // REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: 후룬베이얼만 → Ordos·울란바토르 금지 — manifest
+  if (isInnerMongoliaChinaRoute(hay) && !/(?:오르도스|Ordos|인컨타라|Xiangshawan)/i.test(hay)) {
+    if (/ordos|xiangshawan|ulaanbaatar|gandantegchinlen|terelj|zaisan|sukhbaatar/.test(nk)) return false
+  }
+  return /ordos|genghis|xiangshawan|desert|grassland|hulunbuir|manzhouli|matryoshka|hailar|steppe|seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|cruise/.test(
     nk,
   )
 }
@@ -2337,14 +2342,23 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
 function isSteppeAlaskaClusterRoute(routeText: string | null | undefined): boolean {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 크루즈/cruise 토큰 제외 — SEA 비치클럽 크루즈가 Glacier Bay를 끌어오지 않게
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 Glacier/빙하 제외 — 노르웨이 피요르드 — manifest
-  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+    String(routeText ?? ''),
+  )
+}
+
+function isInnerMongoliaChinaRoute(routeText: string | null | undefined): boolean {
+  // REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: 내몽골·후룬 ≠ 몽골(테렐지/울란바토르) — manifest
+  return /(?:내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|呼伦贝尔|만주리|Manzhouli|하이라얼|Hailar|마트료시카|Matryoshka)/i.test(
     String(routeText ?? ''),
   )
 }
 
 function isMongoliaTerelClusterRoute(routeText: string | null | undefined): boolean {
+  const s = String(routeText ?? '')
+  if (isInnerMongoliaChinaRoute(s)) return false
   return /(?:테렐지|Terelj|아리야발|Ariyabal|자이승|Zaisan|수흐바타르|Sukhbaatar|울란바토르|Ulaanbaatar|몽골|Mongolia|거북\s*바위|Turtle\s*Rock)/i.test(
-    String(routeText ?? ''),
+    s,
   )
 }
 

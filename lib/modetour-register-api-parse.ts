@@ -129,6 +129,7 @@ export async function parseModetourRegisterFromApi(
 
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const firstPrice = bundle.priceRows[0]
+  const listingSlots = bundle.listingPriceSlots
   const productPriceTable =
     firstPrice != null
       ? {
@@ -137,7 +138,23 @@ export async function parseModetourRegisterFromApi(
           childNoBedPrice: null,
           infantPrice: firstPrice.infantPrice ?? null,
         }
-      : undefined
+      : listingSlots != null
+        ? {
+            adultPrice: listingSlots.adultPrice ?? null,
+            childExtraBedPrice: listingSlots.childPrice ?? null,
+            childNoBedPrice: null,
+            infantPrice: listingSlots.infantPrice ?? null,
+          }
+        : undefined
+
+  const pastOrSd1Note =
+    listingSlots?.unavailableReason === 'past_depart' && listingSlots.sourceDepartureDate
+      ? `모두투어 출발 달력 0건·URL 출발 과거마감: ${listingSlots.sourceDepartureDate}. 미래 출발 단체번호 URL로 다시 사실 가져오기 하세요. 아래 3슬롯은 미리보기용입니다.`
+      : listingSlots?.unavailableReason === 'sd1'
+        ? `모두투어 달력 SD1(상품 없음)·출발가 행 0건${listingSlots.sourceDepartureDate ? `·detail_depart=${listingSlots.sourceDepartureDate}` : ''}. 미래 출발 URL이 필요합니다. 아래 3슬롯은 미리보기용입니다.`
+        : listingSlots != null && prices.length === 0
+          ? '모두투어 출발 달력 0건 — 미리보기 3슬롯만 listingPriceSlots(확정 출발행 아님).'
+          : null
 
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'modetour',
@@ -176,8 +193,11 @@ export async function parseModetourRegisterFromApi(
         (n) =>
           n.includes('calendar_') ||
           n.includes('origin_code') ||
-          n.includes('GetOtherDepartureDates_lite'),
+          n.includes('GetOtherDepartureDates_lite') ||
+          n.includes('detail_depart_past') ||
+          n.includes('listing_slots_'),
       ),
+      ...(pastOrSd1Note ? [pastOrSd1Note] : []),
     ],
     // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
     modetourDetailCollectRan: usedPrefetch,

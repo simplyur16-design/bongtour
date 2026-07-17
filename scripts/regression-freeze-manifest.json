@@ -1898,7 +1898,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "하나투어 gw API 우선 수집·0건 시 E2E 폴백",
+      "summary": "하나투어 gw API 우선 수집·getPkgProdLst는 depYm 월조회(패키지 month-end depDay 0건 방지)·0건 시 E2E 폴백",
       "checks": [
         {
           "file": "lib/hanatour-api-departures.ts",
@@ -1906,6 +1906,8 @@
             "REGRESSION-FREEZE[hanatour-api-departure-collect]",
             "fetchHanatourPkgProdInfo",
             "fetchHanatourPkgProdLstPage",
+            "buildHanatourPkgProdLstBody",
+            "depYm",
             "collectHanatourApiDepartureInputsForMonths",
             "resolveHanatourApiAirtelLike",
             "filterHanatourProdListRowsForAnchorSaleProdCd",
@@ -2705,7 +2707,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-api-schedule]",
             "modetourFactDaysToRegisterSchedule",
-            "composeModetourScheduleVibeDescription"
+            "composeModetourScheduleVibeDescription",
+            "HTML 숫자 엔티티(이모지) 디코드 후 제거",
+            "괌·사이판 호텔명 — <>마케팅 태그 제외"
           ],
           "mustNotInclude": [
             "hanatourFactDaysToRegisterSchedule",
@@ -2873,6 +2877,7 @@
             "parseKyowontourThreeSlotPricesFromDetailHtml",
             "hidden adult/child/infantPrice",
             "child/infant → rawJson for fact/map",
+            "applyUrlDetailThreeSlot",
             "enrichKyowontourCalendarRowsWithTourCodeDetail",
             "fetchKyowontourTourCodeDetailMeta"
           ]
@@ -2980,7 +2985,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectModetourRegisterFacts",
-            "GetScheduleList"
+            "GetScheduleList",
+            "listingPriceSlots — SD1·과거 detail 미리보기 3슬롯",
+            "listingPriceSlots KidN/Toddler"
           ]
         },
         {
@@ -2996,7 +3003,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectHanatourRegisterFacts",
-            "collectHanatourApiDepartureInputsForMonths"
+            "collectHanatourApiDepartureInputsForMonths",
+            "listingPriceSlots — 과거 URL 달력0이어도 미리보기 3슬롯"
           ]
         },
         {
@@ -3029,7 +3037,7 @@
             "REGRESSION-FREEZE[register-facts-foundation]",
             "collectKyowontourRegisterFacts",
             "tourEventTabData",
-            "tourcode_detail_enrich=skipped_register_facts"
+            "tourcode_detail_enrich=url_html_three_slot_only"
           ]
         },
         {
@@ -3085,6 +3093,8 @@
             "price_collect=lite_only",
             "SD1 시 과거 detail 출발 폴백 금지",
             "SD1 시 productCode2 origin-code resolve 달력",
+            "SD1 시 resolve detail 단건 폴백",
+            "SD1 달력 응답 표기",
             "pickModetourRegisterOriginCode"
           ],
           "mustNotInclude": [
@@ -3214,7 +3224,7 @@
           "file": "lib/register-facts/kyowontour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
-            "tourcode_detail_enrich=skipped_register_facts",
+            "tourcode_detail_enrich=url_html_three_slot_only",
             "skipPerDateDayAirFetch: true"
           ]
         },
@@ -5196,7 +5206,8 @@
           "file": "lib/modetour-register-api-schedule.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
-            "composeModetourScheduleVibeDescription"
+            "composeModetourScheduleVibeDescription",
+            "resort_leisure — 목적지명(몰디브) 하드코딩 금지"
           ]
         },
         {
@@ -5814,6 +5825,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]",
             "pickMongoliaTerelClusterKeywordForUsedSlot",
+            "내몽골·후룬 ≠ 몽골(테렐지/울란바토르)",
+            "후룬베이얼만 → Ordos·울란바토르 금지",
             "마지막 관광일 미사용 명소만"
           ]
         },
@@ -5863,7 +5876,11 @@
             "TCL Chinese Theatre Hollywood",
             "Nijinomatsubara pine grove Saga Japan",
             "단독 빙하 ≠ Glacier Bay Alaska",
-            "Terelj National Park"
+            "Terelj National Park",
+            "단독「역사 박물관」≠ Istanbul",
+            "후룬베이얼 역사 박물관 ≠ Istanbul",
+            "징기스칸 광장 ≠ Ordos 기마상",
+            "Ordos 기마상 — 오르도스 문맥만"
           ]
         },
         {
@@ -6949,7 +6966,8 @@
             "REGRESSION-FREEZE[kyowontour-register-api-parse]",
             "parseKyowontourRegisterFromApi",
             "collectKyowontourRegisterFacts",
-            "augmentKyowontourParsedWithDetailCollect"
+            "augmentKyowontourParsedWithDetailCollect",
+            "productPriceTable anchor = URL tourCode 우선"
           ]
         },
         {

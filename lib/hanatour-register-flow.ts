@@ -978,7 +978,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       flowFieldIssues.push({
         field: 'hanatourPriceDepartureRows',
         reason:
-          '하나투어 확정: 출발일별 가격 행(prices[])이 없습니다. `register-hanatour-price`로 기본상품 3슬롯을 채운 뒤에도 달력 행은 항공 등에서 출발일(ISO)이 있어야 합성됩니다. 출발일·가격표를 확인하세요.',
+          '하나투어 확정: RULE_A 지평(오늘~180일) 안 출발가 행이 없습니다. URL pkgCd 출발이 과거이거나 동일 라인 미래 출발이 없으면 등록할 수 없습니다. 하나투어에서 미래 출발일 상품 URL로 다시 사실 가져오기 하세요.',
         source: 'auto',
       })
     }
@@ -1317,7 +1317,14 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
         : ranConfirmSupplementalFullParse
           ? '확정 단계에서 본문 전체 재분석을 수행했으나 출발·가격·일정 행이 비어 등록대기(Product)에 반영하지 않았습니다. 본문 가격표·일정·항공 구간을 확인한 뒤 다시 분석하세요.'
           : savePersistedParsedOnly && (hasParsed || reusedConfirmAnalysis)
-            ? '본문에 출발·가격·일정 정보가 부족하거나, 미리보기 분석 결과에 해당 필드가 반영되지 않았습니다. 본문을 확인한 뒤 미리보기를 다시 실행하세요.'
+            ? (() => {
+                const pastNote = (parsed.registerPreviewPolicyNotes ?? []).find((n) =>
+                  /과거마감|url_depart_past|SD1|미래 출발/.test(n),
+                )
+                return pastNote
+                  ? `출발가 행이 비어 확정할 수 없습니다. ${pastNote}`
+                  : '본문에 출발·가격·일정 정보가 부족하거나, 미리보기 분석 결과에 해당 필드가 반영되지 않았습니다. 본문을 확인한 뒤 미리보기를 다시 실행하세요.'
+              })()
             : savePersistedParsedOnly
               ? 'preview 분석 결과를 다시 불러오지 못했습니다. 동일 registerSnapshotId·registerAnalysisId로 미리보기를 다시 실행하세요.'
               : hasParsed || reusedConfirmAnalysis

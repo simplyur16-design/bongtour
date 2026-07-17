@@ -125,7 +125,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /에페수스|Ephesus/i, en: "Ephesus Library of Celsus" },
   { re: /(부르사|Bursa)/i, en: "Green Tomb Bursa" },
   { re: /성\s*소피아|아야\s*소피아|Hagia\s*Sophia/i, en: "Hagia Sophia Istanbul" },
-  { re: /역사\s*박물관|Archaeological\s*Museum/i, en: "Istanbul Archaeological Museum" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 단독「역사 박물관」≠ Istanbul — 이스탄불 문맥 필수 — manifest
+  {
+    re: /(?:이스탄불|Istanbul).{0,48}(?:역사\s*박물관|Archaeological\s*Museum)|(?:역사\s*박물관|Archaeological\s*Museum).{0,48}(?:이스탄불|Istanbul)/i,
+    en: "Istanbul Archaeological Museum",
+  },
   { re: /톱카프|Topkapi|Topkapı/i, en: "Topkapi Palace Istanbul" },
   { re: /발랏|Balat/i, en: "Balat Istanbul" },
   { re: /보스포러스|Bosphorus|Bosporus/i, en: "Bosphorus Strait Istanbul" },
@@ -433,6 +437,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /파투싸이|Patuxai/i, en: "Patuxai Victory Monument Vientiane" },
   { re: /타틀루앙|Pha That Luang/i, en: "Pha That Luang Vientiane golden stupa front view" },
   { re: /후룬베이얼\s*대초원|Hulunbuir Grassland/i, en: "Hulunbuir Grassland / rolling green hills / wide angle" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 후룬베이얼 역사 박물관 ≠ Istanbul — manifest
+  { re: /후룬베이얼\s*역사\s*박물관|Hulunbuir\s*History\s*Museum/i, en: "Hulunbuir History Museum" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 징기스칸 광장 ≠ Ordos 기마상 — manifest
+  { re: /(?:칭기즈|징기스)\s*칸\s*광장|Genghis\s*Khan\s*Square/i, en: "Genghis Khan Square Hailar" },
   { re: /모리거러|Morigele/i, en: "Morigele River / grassland valley / wide angle" },
   { re: /만주리|Manzhouli/i, en: "Manzhouli border city / Russian architecture / street view" },
   { re: /마트료시카|Matryoshka/i, en: "Matryoshka Square Manzhouli / colorful dolls plaza / front view" },
@@ -731,7 +739,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 단독 빙하 ≠ Glacier Bay Alaska (노르웨이 피요르드) — manifest
   { re: /알래스카|Alaska|주노|Juneau|스카그웨이|Skagway|글래시어\s*베이|Glacier\s*Bay/i, en: "Glacier Bay Alaska cruise" },
   { re: /인컨타라|Xiangshawan|响沙湾/i, en: "Xiangshawan Desert Ordos Inner Mongolia" },
-  { re: /오르도스|Ordos|칭기즈|Genghis|성吉思汗/i, en: "Genghis Khan Statue Ordos" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Ordos 기마상 — 오르도스 문맥만 (단독 칭기즈≠Ordos) — manifest
+  { re: /오르도스|Ordos/i, en: "Genghis Khan Statue Ordos" },
   { re: /타슈켄트|Tashkent|타슈켄/i, en: "Tashkent Minor Mosque Uzbekistan" },
   { re: /사마르칸트|Samarkand|레기스탄|Registan/i, en: "Registan Square Samarkand Uzbekistan" },
   { re: /부하라|Bukhara/i, en: "Bukhara old city Uzbekistan" },
@@ -790,6 +799,7 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /아시아\s*타이|Asia\s*Typhoon/i, en: "Asia Typhoon Waterpark Guam" },
   { re: /플라자\s*데\s*스페|Plaza\s*de\s*Espana/i, en: "Plaza de Espana Guam Spanish steps" },
   { re: /아푸간|Apugan|Apaca/i, en: "Fort Apugan Guam hilltop view" },
+  { re: /돈키\s*빌리지|Donkey\s*Village/i, en: "Donkey Village Guam" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Ipan must not substring-match Saipan — manifest
   { re: /이파오|\bIpan\b|Tumon\s*Bay/i, en: "Tumon Bay Guam beach" },
   { re: /알마티|Almaty/i, en: "Almaty Kazakhstan mountains city view" },

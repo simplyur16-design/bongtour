@@ -45,6 +45,18 @@ export type RegisterFactPriceRow = {
   carrierName?: string | null
 }
 
+/**
+ * RULE_A 달력 행이 비었을 때 — 미리보기 3슬롯·정책 안내용 (출발일 upsert에는 쓰지 않음).
+ * 예: URL 출발 과거마감·modetour SD1.
+ */
+export type RegisterFactListingPriceSlots = {
+  adultPrice: number | null
+  childPrice: number | null
+  infantPrice: number | null
+  sourceDepartureDate: string | null
+  unavailableReason: 'past_depart' | 'sd1' | 'calendar_empty'
+}
+
 export type SupplierRegisterFactBundle = {
   supplier: SupplierRegisterFactSource
   fetchedAt: string
@@ -60,6 +72,8 @@ export type SupplierRegisterFactBundle = {
   scheduleDays: RegisterFactScheduleDay[]
   flights: RegisterFactFlightLeg[]
   priceRows: RegisterFactPriceRow[]
+  /** 달력 0건일 때 미리보기 가격표만 (confirm 출발행으로 승격하지 않음) */
+  listingPriceSlots?: RegisterFactListingPriceSlots | null
   /** 디버그·추가 LLM 컨텍스트용 — 원문 HTML 전체는 넣지 않음 */
   notes: string[]
 }

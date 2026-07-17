@@ -5,6 +5,7 @@ import {
 } from '@/lib/register-facts/modetour-register-fact-mappers'
 import {
   isModetourAlphaOriginCode,
+  modetourDetailListingThreeSlotPrices,
   modetourOtherDepartureRowsToRegisterFactPriceRows,
   pickModetourRegisterOriginCode,
 } from '@/lib/register-facts/modetour'
@@ -22,6 +23,24 @@ describe('pickModetourRegisterOriginCode', () => {
       'JHP6627CG4',
     )
     expect(pickModetourRegisterOriginCode(null, { productCode: 'AHP301' })).toBeNull()
+  })
+})
+
+describe('modetourDetailListingThreeSlotPrices', () => {
+  // REGRESSION-FREEZE[register-facts-foundation]: listingPriceSlots KidN/Toddler — manifest
+  it('reads KidN/Toddler total amounts (not Child/Infant aliases only)', () => {
+    const slots = modetourDetailListingThreeSlotPrices({
+      departureDate: '2026-07-15T00:00:00',
+      sellingPriceAdultTotalAmount: 926000,
+      sellingPriceKidNTotalAmount: 500000,
+      sellingPriceToddlerTotalAmount: 150000,
+    })
+    expect(slots).toEqual({
+      departureDate: '2026-07-15',
+      adultPrice: 926000,
+      childPrice: 500000,
+      infantPrice: 150000,
+    })
   })
 })
 

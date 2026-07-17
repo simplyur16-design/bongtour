@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildHanatourPkgProdLstBody,
   hanatourProdInfoToDepartureInput,
   hanatourProdListRowToDepartureInput,
   hanatourYmdFromDepDay,
@@ -9,6 +10,18 @@ import {
   resolveHanatourApiAirtelLike,
   parseHanatourPkgCdFromUrl,
 } from '@/lib/hanatour-api-departures'
+
+describe('buildHanatourPkgProdLstBody', () => {
+  it('uses depYm month query — not month-end depDay (package CPP171 gap)', () => {
+    const body = buildHanatourPkgProdLstBody(
+      { prodAreaCd: 'AEP', depCityCd: 'ICN', rprsProdCd: 'MCP1085' },
+      '2026-08',
+    )
+    expect(body.depYm).toBe('202608')
+    expect(body.depDay).toBe('')
+    expect(body.rprsProdCds).toBe('MCP1085')
+  })
+})
 
 describe('hanatourYmdFromDepDay', () => {
   it('converts YYYYMMDD', () => {

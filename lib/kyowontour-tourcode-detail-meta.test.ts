@@ -79,4 +79,47 @@ describe('kyowontour calendar fact/map carries child/infant from detail rawJson'
       infantPrice: 150000,
     })
   })
+
+  // REGRESSION-FREEZE[kyowontour-tourcode-detail-meta]: applyUrlDetailThreeSlot — manifest
+  it('applyKyowontourUrlDetailThreeSlotToCalendarRows overlays URL HTML onto matching + empty rows', async () => {
+    const { applyKyowontourUrlDetailThreeSlotToCalendarRows } = await import(
+      '@/lib/kyowontour-tourcode-detail-meta'
+    )
+    const html = `
+      <input type="hidden" id="adultPrice" value="459000"/>
+      <input type="hidden" id="childPrice" value="459000"/>
+      <input type="hidden" id="infantPrice" value="150000"/>
+    `
+    const rows: KyowontourCalendarRow[] = [
+      {
+        departDate: '2026-07-11',
+        returnDate: '2026-07-15',
+        tourCode: 'AMP080260711LJ01',
+        airline: 'LJ',
+        adultPriceFromCalendar: 459000,
+        status: 'available',
+        rawJson: { adultPrice: 459000 },
+      },
+      {
+        departDate: '2026-08-01',
+        returnDate: '2026-08-05',
+        tourCode: 'AMP080260801LJ01',
+        airline: 'LJ',
+        adultPriceFromCalendar: 849000,
+        status: 'available',
+        rawJson: { adultPrice: 849000 },
+      },
+    ]
+    const out = applyKyowontourUrlDetailThreeSlotToCalendarRows(rows, html, 'AMP080260711LJ01')
+    expect(kyowontourCalendarRowToFactPriceRow(out[0]!)).toMatchObject({
+      adultPrice: 459000,
+      childPrice: 459000,
+      infantPrice: 150000,
+    })
+    expect(kyowontourCalendarRowToFactPriceRow(out[1]!)).toMatchObject({
+      adultPrice: 849000,
+      childPrice: 459000,
+      infantPrice: 150000,
+    })
+  })
 })

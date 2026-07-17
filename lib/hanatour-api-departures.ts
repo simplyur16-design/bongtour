@@ -380,27 +380,34 @@ function emptyLstFilterFields() {
   }
 }
 
-function lastDayOfYm(ym: string): string {
-  const [y, m] = ym.split('-').map(Number)
-  if (!y || !m) return ''
-  const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
-  return `${y}${String(m).padStart(2, '0')}${String(last).padStart(2, '0')}`
-}
-
-export async function fetchHanatourPkgProdLstPage(
-  info: HanatourPkgProdInfo,
-  opts: { ym: string; airtelLike: boolean },
-): Promise<HanatourPkgProdListRow[]> {
-  const ymCompact = opts.ym.replace(/-/g, '')
-  const body = {
+/**
+ * getPkgProdLst 월 조회 body.
+ * 패키지·에어텔 모두 `depYm=YYYYMM` + `depDay=''` — 월말 `depDay`만 넣으면 CPP171 등 패키지 라인이 0건이 된다.
+ * `airtelLike`는 필터 분기에만 쓰고 여기 쿼리에는 쓰지 않는다.
+ */
+// REGRESSION-FREEZE[hanatour-api-departure-collect]: buildHanatourPkgProdLstBody depYm — manifest
+export function buildHanatourPkgProdLstBody(
+  info: Pick<HanatourPkgProdInfo, 'prodAreaCd' | 'depCityCd' | 'rprsProdCd'>,
+  ym: string,
+): Record<string, string> {
+  const ymCompact = ym.replace(/-/g, '')
+  return {
     sort: 'RPRS_SORT1',
     ...emptyLstFilterFields(),
     areaCd: String(info.prodAreaCd ?? ''),
     depCityCd: String(info.depCityCd ?? 'JCN'),
     rprsProdCds: String(info.rprsProdCd ?? ''),
-    depDay: opts.airtelLike ? '' : lastDayOfYm(opts.ym),
-    depYm: opts.airtelLike ? ymCompact : '',
+    depDay: '',
+    depYm: ymCompact,
   }
+}
+
+export async function fetchHanatourPkgProdLstPage(
+  info: HanatourPkgProdInfo,
+  opts: { ym: string; airtelLike?: boolean },
+): Promise<HanatourPkgProdListRow[]> {
+  void opts.airtelLike
+  const body = buildHanatourPkgProdLstBody(info, opts.ym)
   const json = await postHanatourGw<HanatourGwJson<{ prodList?: HanatourPkgProdListRow[] }>>(
     '/package/pkg/api/dotcom/pkgdtcmprod/getPkgProdLst/v1.00',
     body,

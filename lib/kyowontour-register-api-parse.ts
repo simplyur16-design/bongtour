@@ -98,7 +98,12 @@ export async function parseKyowontourRegisterFromApi(
   const dest = resolveKyowontourRegisterDestination(listingTitle, paste)
   const schedule = kyowontourFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
-  const anchorRow = bundle.priceRows[0]
+  // REGRESSION-FREEZE[kyowontour-register-api-parse]: productPriceTable anchor = URL tourCode 우선 — manifest
+  const originCode = (bundle.originCode ?? '').trim()
+  const anchorRow =
+    (originCode
+      ? bundle.priceRows.find((r) => (r.supplierDepartureCode ?? '').trim() === originCode)
+      : null) ?? bundle.priceRows[0]
   const productPriceTable =
     anchorRow != null
       ? {

@@ -78,6 +78,16 @@ describe('modetour register api schedule', () => {
     expect(desc).not.toMatch(/▶/)
   })
 
+  it('resort_leisure vibe — 몰디브 지명 하드코딩 없음', () => {
+    const desc = composeModetourScheduleVibeDescription(
+      { day: 3, places: ['리조트 자유시간'], hotels: [], meals: [], transportNote: null },
+      7,
+      ['리조트 자유시간'],
+    )
+    expect(desc).toMatch(/리조트|휴양|에메랄드/)
+    expect(desc).not.toMatch(/몰디브/)
+  })
+
   it('돗토리 — 입국 안내 세그먼트는 routeText에서 제거', () => {
     const days = modetourFactDaysToRegisterSchedule([
       {
@@ -113,5 +123,56 @@ describe('modetour register api schedule', () => {
     expect(days[0]?.description).not.toBe('상해')
     expect(days[0]?.description).toMatch(/입국|이동|여행/)
     expect(days[0]?.description).not.toMatch(/입국신고|미팅/)
+  })
+
+  // REGRESSION-FREEZE[modetour-register-api-schedule]: 괌 HTML 엔티티·<>마케팅 태그·몰디브 하드코딩 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: resort_leisure — 목적지명(몰디브) 하드코딩 금지 — manifest
+  it('괌 — HTML 이모지 제거 · 숙소는 두짓비치 · 설명에 몰디브 금지', () => {
+    const days = modetourFactDaysToRegisterSchedule(
+      [
+        {
+          day: 1,
+          places: ['&#128129'],
+          hotels: ['총 1개의 예정 호텔이 있습니다. 확정 되는대로'],
+          meals: ['진에어 기내식(출발편)'],
+          transportNote: null,
+        },
+        {
+          day: 2,
+          places: ['아푸간 요새', '괌 스페인광장', '이파오비치', '돈키빌리지'],
+          hotels: ['총 1개의 예정 호텔이 있습니다.'],
+          meals: ['불포함'],
+          transportNote: null,
+        },
+        {
+          day: 3,
+          places: ['전일 리조트 내 부대시설 이용 및 자유시간'],
+          hotels: ['총 1개의 예정 호텔이 있습니다.'],
+          meals: ['불포함'],
+          transportNote: null,
+        },
+        {
+          day: 4,
+          places: ['숙박 없음(귀국)'],
+          hotels: [],
+          meals: [],
+          transportNote: null,
+        },
+      ],
+      {
+        productTitle:
+          '[저녁출발]괌 두짓비치 디럭스오션뷰룸 3박5일<아일랜드관광/레이트체크아웃>',
+      },
+    )
+    expect(days[0]?.routeText ?? '').not.toMatch(/&#|128129/)
+    expect(days[0]?.title ?? '').not.toMatch(/&#|128129/)
+    expect(days[0]?.hotelText).toMatch(/두짓비치/)
+    expect(days[0]?.hotelText).not.toMatch(/아일랜드관광|레이트체크아웃/)
+    expect(days[1]?.description).not.toMatch(/몰디브/)
+    expect(days[2]?.description).not.toMatch(/몰디브/)
+    // day2 sightseeing → generic ok; day3 free/resort — 몰디브 지명만 금지(프로필은 자유시간 문구에 따라 달라질 수 있음)
+    expect(
+      [days[1]?.description, days[2]?.description, days[3]?.description].join(' '),
+    ).not.toMatch(/몰디브/)
   })
 })

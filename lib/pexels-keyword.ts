@@ -911,7 +911,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   '보홀 국립박물관': 'Bohol National Museum',
   '바클레욘 성당': 'Baclayon Church Bohol',
   '혈맹 기념비': 'Blood Compact Monument Bohol',
-  돈키빌리지: 'Donkey Village Saipan',
+  돈키빌리지: 'Donkey Village',
   '마이크로네시아 몰': 'DFS Galleria Saipan',
   '대련 동관거리': 'Russian Street Dalian',
   '연화산 전망대': 'Yanhuashan Viewpoint Dalian',
