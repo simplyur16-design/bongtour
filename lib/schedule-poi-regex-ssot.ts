@@ -151,7 +151,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /우캉\s*루|武康路/u, en: "Wukang Road Shanghai" },
   { re: /남경\s*로|南京路/u, en: "Nanjing Road Shanghai" },
   { re: /에펠\s*탑|에펠탑|Eiffel/i, en: "Eiffel Tower Paris" },
-  { re: /도칼레|도게|Doge.*Palace|Palazzo\s*Ducale/i, en: "Doge's Palace Venice" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 도게츠교≠Doge's Palace — manifest
+  { re: /도게츠(?:교)?|渡月橋|Togetsu(?:kyo)?/i, en: "Togetsukyo Bridge Arashiyama Kyoto" },
+  { re: /아라시야마|嵐山|Arashiyama/i, en: "Arashiyama bamboo grove Kyoto" },
+  { re: /치쿠린|竹林|Bamboo\s*Grove/i, en: "Arashiyama bamboo grove Kyoto" },
+  { re: /도칼레|도게(?:의)?\s*궁|Doge'?s?\s*Palace|Palazzo\s*Ducale/i, en: "Doge's Palace Venice" },
   { re: /룬달레|Rundale/i, en: "Rundale Palace Latvia Baroque gardens" },
   { re: /블랙\s*헤드|Black\s*Heads?/i, en: "House of Blackheads Riga" },
   { re: /아르\s*누보|Art\s*Nouveau/i, en: "Riga Art Nouveau district" },

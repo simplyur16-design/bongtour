@@ -15,6 +15,8 @@ import { kyowontourFactDaysToRegisterSchedule } from '@/lib/kyowontour-register-
 import { augmentKyowontourParsedWithDetailCollect } from '@/lib/kyowontour-register-detail-collect'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
+import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
+import { buildKyowontourFlightStructuredFromFactLegs } from '@/lib/register-facts/kyowontour-register-fact-flights'
 
 export const KYOWONTOUR_PRICE_SLOT_SSOT_NOTE =
   '교원이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -152,6 +154,12 @@ export async function parseKyowontourRegisterFromApi(
       ? 'prefetchedFactBundle — detail re-fetch skipped'
       : null,
   }
+
+  // REGRESSION-FREEZE[register-detail-collect-flight-apply]: prefetch facts flights → flightStructured — manifest
+  parsed = applyRegisterCollectedFlightStructured(
+    parsed,
+    buildKyowontourFlightStructuredFromFactLegs(bundle.flights),
+  )
 
   parsed = finalizeKyowontourRegisterParsedPricing(parsed)
   parsed = finalizeKyowontourRegisterParsedShopping(parsed)

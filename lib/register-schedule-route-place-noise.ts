@@ -470,6 +470,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/날짜\s*변경선|타사\s*비교|비즈니스\s*석|프라이빗\s*전용|여행\s*준비\s*가이드|골든패스|국경\s*통과/u.test(t)) return true
   // 단독 `가이드 미팅`만 noise — `가이드 미팅 후 호이안…` 는 꼬리 추출 대상
   if (/^가이드\s*미팅(?:\s*후)?$/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 공항 피켓·가이드 복장·미팅 데스크 — manifest
+  if (/피켓\s*앞|녹색\s*셔츠|가이드\s*:\s*|미팅\s*데스크|입국장\s*나와서/u.test(t)) return true
+  if (/국제공항.+(?:피켓|가이드|터미널)/u.test(t) && t.length <= 48) return true
   if (/^호텔(?:\s*이동|\s*조식|\s*투숙)?$/u.test(t)) return true
   if (/^공항(?:\s*도착|\s*출발|\s*경유)?$/u.test(t) && t.length <= 12) return true
   if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움/u.test(t)) return true

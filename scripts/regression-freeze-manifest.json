@@ -4874,7 +4874,9 @@
           "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
             "skip-modetour-confirm-scrape-reuse",
-            "modetour confirm skip live scrape when reuse-safe"
+            "modetour confirm skip live scrape when reuse-safe",
+            "skip-scrape 시 facts/paste 제목을 baseline으로 인정",
+            "scrape baseline 없이도 허용 제목이면 confirm 통과"
           ]
         },
         {
@@ -5159,7 +5161,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-expression-normalize]",
             "normalizeRegisterScheduleRouteExpressionRows",
-            "isRegisterScheduleGenericTourismFillerDescription"
+            "isRegisterScheduleGenericTourismFillerDescription",
+            "isRegisterScheduleFreeTimeOrResortLeisureText"
           ]
         },
         {
@@ -5217,7 +5220,7 @@
             "isRegisterScheduleCrossContinentHallucinationKeyword",
             "Oceania dest Japan/Europe hallucination",
             "OCEANIA_PRODUCT_DEST_RE",
-            "돗토리·시마네·규슈 일정 Mount Fuji 환각",
+            "돗토리·시마네·규슈·간사이 일정 Mount Fuji 환각",
             "유럽에 Louvre Abu Dhabi 금지",
             "Louvre\\b(?!\\s*Abu)",
             "Provence — 일본(홋카이도) 환각 차단"
@@ -5347,7 +5350,8 @@
             "발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지",
             "hawaiiHardcodedPool day-route evidence",
             "middle empty → visit-city soft-dup",
-            "Ipan must not substring-match Saipan"
+            "Ipan must not substring-match Saipan",
+            "교토·오사카·비와호 Kansai — Fuji 갭필 금지"
           ]
         },
         {
@@ -5939,7 +5943,8 @@
             "후룬베이얼 역사 박물관 ≠ Istanbul",
             "징기스칸 광장 ≠ Ordos 기마상",
             "Ordos 기마상 — 오르도스 문맥만",
-            "치토세 공항·후라노 라벤더 — Provence 환각 금지"
+            "치토세 공항·후라노 라벤더 — Provence 환각 금지",
+            "도게츠교≠Doge's Palace"
           ]
         },
         {
@@ -6142,6 +6147,20 @@
             "applyRegisterCollectedFlightStructured",
             "needsRegisterFlightApiCollect",
             "registerFlightCollectLooksComplete"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": [
+            "buildModetourFlightStructuredFromFactLegs",
+            "prefetch facts flights → flightStructured"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-parse.ts",
+          "mustInclude": [
+            "buildKyowontourFlightStructuredFromFactLegs",
+            "prefetch facts flights → flightStructured"
           ]
         }
       ],

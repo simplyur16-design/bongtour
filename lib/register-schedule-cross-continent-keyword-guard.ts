@@ -224,7 +224,7 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
     }
   }
 
-  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 돗토리·시마네·규슈 일정 Mount Fuji 환각 — manifest
+  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 돗토리·시마네·규슈·간사이 일정 Mount Fuji 환각 — manifest
   if (ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest) || /일본|Japan/i.test(dest)) {
     const tripHay = (scheduleRows ?? [])
       .flatMap((r) => [r.routeText, r.title, r.description])
@@ -234,12 +234,16 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
       /돗토리|Tottori|요나고|Yonago|시마네|Shimane|이즈모|Izumo|마쯔에|Matsue|다마즈쿠리|Tamatsukuri|사카이미나토|Sakaiminato|쿠라요시|Kurayoshi|벳푸|Beppu|유후인|Yufuin|오이타|Oita|후쿠오카|Fukuoka|규슈|Kyushu/i.test(
         tripHay,
       )
+    const kansaiTrip =
+      /교토|Kyoto|오사카|Osaka|나라|Nara|고베|Kobe|비와|Biwa|아라시야마|Arashiyama|기요미즈|Kiyomizu|도톤보리|Dotonbori/i.test(
+        tripHay,
+      )
     const fujiCorridor =
       /후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya|가마쿠라|Kamakura/i.test(
         tripHay,
       )
     if (
-      westOrKyushuTrip &&
+      (westOrKyushuTrip || kansaiTrip) &&
       !fujiCorridor &&
       haystacks.some((h) => /\bMount\s*Fuji\b|Fuji\s*Shizuoka|Hakone.*Fuji|Fuji.*view/i.test(h))
     ) {

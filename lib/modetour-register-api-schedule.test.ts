@@ -132,7 +132,7 @@ describe('modetour register api schedule', () => {
       [
         {
           day: 1,
-          places: ['&#128129'],
+          places: ['&#128129;가이드: 녹색셔츠 착용 / &#128205;위치: 입국장 나와서 우측에 위치한 모두투어 데스크 앞'],
           hotels: ['총 1개의 예정 호텔이 있습니다. 확정 되는대로'],
           meals: ['진에어 기내식(출발편)'],
           transportNote: null,
@@ -166,10 +166,13 @@ describe('modetour register api schedule', () => {
     )
     expect(days[0]?.routeText ?? '').not.toMatch(/&#|128129/)
     expect(days[0]?.title ?? '').not.toMatch(/&#|128129/)
+    // REGRESSION-FREEZE[modetour-register-api-schedule]: 가이드 미팅 문구 route 금지 — manifest
+    expect(days[0]?.routeText ?? '').not.toMatch(/가이드|녹색셔츠|데스크/)
     expect(days[0]?.hotelText).toMatch(/두짓비치/)
     expect(days[0]?.hotelText).not.toMatch(/아일랜드관광|레이트체크아웃/)
     expect(days[1]?.description).not.toMatch(/몰디브/)
     expect(days[2]?.description).not.toMatch(/몰디브/)
+    expect(days[2]?.routeText ?? '').not.toMatch(/아푸간|돈키빌리지/)
     // day2 sightseeing → generic ok; day3 free/resort — 몰디브 지명만 금지(프로필은 자유시간 문구에 따라 달라질 수 있음)
     expect(
       [days[1]?.description, days[2]?.description, days[3]?.description].join(' '),

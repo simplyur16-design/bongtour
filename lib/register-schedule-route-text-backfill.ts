@@ -19,10 +19,21 @@ export type RegisterScheduleRouteTextBackfillRow = {
 
 const REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX = 7
 
+/** 리조트 자유·부대시설 일차 — 인접일 관광 routeText 복사 금지 */
+export function isRegisterScheduleFreeTimeOrResortLeisureText(text: string | null | undefined): boolean {
+  const t = String(text ?? '').trim()
+  if (!t) return false
+  return /자유\s*시간|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크|숙박\s*없음(?:\s*\(귀국\))?/i.test(
+    t,
+  )
+}
+
 /** modetour·API placeholder routeText — 인접일 backfill 대상 */
 export function isRegisterSchedulePlaceholderRouteText(routeText: string | null | undefined): boolean {
   const t = String(routeText ?? '').trim()
   if (!t) return true
+  // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·리조트일은 placeholder로 보지 않음 — manifest
+  if (isRegisterScheduleFreeTimeOrResortLeisureText(t)) return false
   if (isRegisterScheduleGenericTourismFillerRouteText(t)) return true
   const segs = t.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean)
   if (!segs.length) return true
@@ -190,6 +201,14 @@ export function backfillMiddleDayRouteTextFromAdjacentDays<T extends RegisterSch
     const day = Number(row.day)
     if (day <= 1 || day >= maxDay || activeDays < 4) return row
     const route = String(row.routeText ?? '').trim()
+    const title = String(row.title ?? '').trim()
+    // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·리조트일에 인접 관광 route 복사 금지 — manifest
+    if (
+      isRegisterScheduleFreeTimeOrResortLeisureText(route) ||
+      isRegisterScheduleFreeTimeOrResortLeisureText(title)
+    ) {
+      return row
+    }
     const segs = route ? splitRouteTextPlaceSegments(route).filter((s) => s.trim().length >= 2) : []
     if (route && segs.length >= 2 && route.length >= 4 && !isRegisterSchedulePlaceholderRouteText(route)) return row
     for (const neighbor of sorted) {

@@ -255,11 +255,12 @@ function factLegToFlightLeg(leg: RegisterFactFlightLeg): FlightStructured['outbo
   }
 }
 
-/** ItineraryDlgFlightRoute → 등록 flightStructured (REGRESSION-FREEZE[register-detail-collect-flight-apply]) */
-export function buildModetourFlightStructuredFromRoutes(
-  routes: ModetourFlightRouteItem[],
+/** prefetch 경로 — detail-collect 생략 시 bundle.flights → flightStructured */
+// REGRESSION-FREEZE[register-detail-collect-flight-apply]: facts legs → flightStructured — manifest
+export function buildModetourFlightStructuredFromFactLegs(
+  legs: readonly RegisterFactFlightLeg[] | null | undefined,
 ): FlightStructured | null {
-  const legs = modetourFlightRoutesToFactLegs(routes)
+  if (!legs?.length) return null
   const obLeg = legs.find((l) => l.direction === 'outbound')
   const ibLeg = legs.find((l) => l.direction === 'inbound')
   if (!obLeg && !ibLeg) return null
@@ -278,8 +279,8 @@ export function buildModetourFlightStructuredFromRoutes(
   const outbound = obLeg ? factLegToFlightLeg(obLeg) : emptyLeg()
   const inbound = ibLeg ? factLegToFlightLeg(ibLeg) : emptyLeg()
   const airlineName = obLeg?.carrier?.trim() || ibLeg?.carrier?.trim() || null
-  const hasOb = Boolean(outbound.flightNo || outbound.departureTime)
-  const hasIb = Boolean(inbound.flightNo || inbound.departureTime)
+  const hasOb = Boolean(outbound.flightNo || outbound.departureTime || outbound.departureAirport)
+  const hasIb = Boolean(inbound.flightNo || inbound.departureTime || inbound.arrivalAirport)
   if (!hasOb && !hasIb) return null
   return {
     airlineName,
@@ -287,7 +288,7 @@ export function buildModetourFlightStructuredFromRoutes(
     inbound,
     rawFlightLines: [],
     debug: {
-      candidateCount: routes.length,
+      candidateCount: legs.length,
       selectedOutRaw: outbound.flightNo,
       selectedInRaw: inbound.flightNo,
       partialStructured: !(hasOb && hasIb && airlineName),
@@ -299,4 +300,11 @@ export function buildModetourFlightStructuredFromRoutes(
     reviewNeeded: false,
     reviewReasons: [],
   }
+}
+
+/** ItineraryDlgFlightRoute → 등록 flightStructured (REGRESSION-FREEZE[register-detail-collect-flight-apply]) */
+export function buildModetourFlightStructuredFromRoutes(
+  routes: ModetourFlightRouteItem[],
+): FlightStructured | null {
+  return buildModetourFlightStructuredFromFactLegs(modetourFlightRoutesToFactLegs(routes))
 }

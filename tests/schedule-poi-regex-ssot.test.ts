@@ -108,4 +108,12 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('치토세 국제공항 이동')).toMatch(/Chitose/i)
     expect(firstMatchingScheduleSpotEn('프로방스 라벤더 밭')).toMatch(/Provence|Valensole/i)
   })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 도게츠교≠Doge's Palace — manifest
+  it('maps Togetsukyo Arashiyama — not Doge Palace Venice', () => {
+    expect(firstMatchingScheduleSpotEn('도게츠교')).toMatch(/Togetsu|Arashiyama/i)
+    expect(firstMatchingScheduleSpotEn('도게츠교')).not.toMatch(/Doge/i)
+    expect(firstMatchingScheduleSpotEn('아라시야마 - 도게츠교 - 치쿠린')).toMatch(/Arashiyama|Togetsu/i)
+    expect(firstMatchingScheduleSpotEn('아라시야마 - 도게츠교 - 치쿠린')).not.toMatch(/Doge/i)
+  })
 })

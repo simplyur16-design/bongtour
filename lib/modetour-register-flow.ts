@@ -79,6 +79,7 @@ import {
 import { MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD, addCalendarDaysToYmd } from '@/lib/scrape-date-bounds'
 import {
   collectModetourDepartureInputs,
+  isModetourUnacceptableRegisterListingTitle,
   modetourBaselineAcceptableForConfirm,
   parseModetourPackageProductNoFromUrl,
   type ModetourBaselineTrace,
@@ -943,10 +944,22 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
           reuseItin.length > 0
         ) {
           timing.mark('skip-modetour-confirm-scrape-reuse')
+          // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: skip-scrape 시 facts/paste 제목을 baseline으로 인정 — manifest
+          const reuseTitle = String(parsed.title ?? '').trim()
+          const reuseBaseline: ModetourBaselineTrace | null =
+            reuseTitle &&
+            modetourBaselineAcceptableForConfirm({
+              pickedSource: 'meta.title',
+              raw: reuseTitle,
+              cleaned: reuseTitle,
+            })
+              ? { pickedSource: 'meta.title', raw: reuseTitle, cleaned: reuseTitle }
+              : null
+          modetourConfirmBaselineTrace = reuseBaseline
           const titleForConfirm = resolveModetourRegisterProductTitleForConfirm({
             parsedTitle: parsed.title,
             supplierListingTitleRaw: parsed.supplierListingTitleRaw,
-            baselineTrace: null,
+            baselineTrace: reuseBaseline,
           })
           parsed = {
             ...parsed,
@@ -959,7 +972,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
           )
           itineraryDayDrafts = reuseItin
           console.info('[parse-and-register-modetour][confirm-prefetch]', {
-            baselinePicked: null,
+            baselinePicked: reuseBaseline?.pickedSource ?? null,
             skippedLiveScrape: true,
             departureRows: departureFromParsed.length,
             itineraryDays: itineraryDayDrafts.length,
@@ -1135,7 +1148,16 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
           { status: 400 }
         )
       }
-      if (!modetourBaselineAcceptableForConfirm(modetourConfirmBaselineTrace)) {
+      // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: scrape baseline 없이도 허용 제목이면 confirm 통과 — manifest
+      const confirmTitleOk =
+        modetourBaselineAcceptableForConfirm(modetourConfirmBaselineTrace) ||
+        (!isModetourUnacceptableRegisterListingTitle(String(parsed.title ?? '')) &&
+          modetourBaselineAcceptableForConfirm({
+            pickedSource: 'meta.title',
+            raw: String(parsed.title ?? ''),
+            cleaned: String(parsed.title ?? '').trim(),
+          }))
+      if (!confirmTitleOk) {
         console.info('[parse-and-register-modetour][save-gate-strict]', {
           saveCoverageDeparture: modetourConfirmStrict?.saveCoverageDeparture ?? false,
           saveCoverageSchedule: modetourConfirmStrict?.saveCoverageSchedule ?? false,

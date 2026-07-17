@@ -11,6 +11,7 @@ import {
   sanitizeRegisterScheduleImageKeywordsFromRouteEvidence,
 } from '@/lib/register-schedule-route-evidence-keyword'
 import { isRegisterScheduleCrossContinentHallucinationKeyword, inferRegisterEffectiveProductDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 
 describe('register schedule description vibe SSOT', () => {
   it('modetour — description은 routeText 복사 금지, vibe 2~3문장', () => {
@@ -104,6 +105,33 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
         rows,
       ),
     ).toBe(true)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 교토·오사카 Kansai Fuji 환각 — manifest
+  it('교토·오사카 일정 — Mount Fuji 환각 차단', () => {
+    const rows = [
+      {
+        day: 1,
+        routeText: '아라시야마 이동 - 도게츠교 - 치쿠린 - 니시키 재래시장',
+        title: '교토',
+      },
+      { day: 2, routeText: '기요미즈데라 - 비와호대교', title: '기요미즈데라' },
+      { day: 3, routeText: '오미하치만 - 도톤보리', title: '오사카' },
+    ]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Mount Fuji Shizuoka view',
+        '일본',
+        rows,
+      ),
+    ).toBe(true)
+  })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 도게츠교≠Doge's Palace — manifest
+  it('도게츠교 — Togetsukyo Arashiyama, not Doge Palace', () => {
+    expect(firstMatchingScheduleSpotEn('도게츠교')).toMatch(/Togetsu|Arashiyama/i)
+    expect(firstMatchingScheduleSpotEn('도게츠교')).not.toMatch(/Doge/i)
+    expect(firstMatchingScheduleSpotEn('아라시야마 - 도게츠교 - 치쿠린')).not.toMatch(/Doge/i)
   })
 
   it('유럽 일정 — Louvre Abu Dhabi 환각 차단', () => {

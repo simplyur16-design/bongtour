@@ -44,4 +44,33 @@ describe('register schedule route expression normalize — 신규 등록', () =>
     expect(out[0]?.routeText).toBe('요나고 - 다이센')
     expect(out[0]?.routeText).not.toMatch(/Mount\s*Daisen/i)
   })
+
+  // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 괌 리조트 자유일 — 인접 아일랜드 route 복사 금지 — manifest
+  it('괌 리조트 자유일 — 인접일 아일랜드 관광 routeText 복사 금지', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply([
+      { day: 1, title: '인천', routeText: '인천', description: '도착' },
+      {
+        day: 2,
+        title: '아일랜드',
+        routeText: '아푸간 요새 - 괌 스페인광장 - 이파오비치 - 돈키빌리지',
+        description: '관광',
+      },
+      {
+        day: 3,
+        title: '전일 리조트 내 부대시설 이용 및 자유시간',
+        routeText: '전일 리조트 내 부대시설 이용 및 자유시간',
+        description: '휴양',
+      },
+      {
+        day: 4,
+        title: '오전 리조트 자유시간',
+        routeText: '오전 리조트 내 부대시설 이용 및 자유시간',
+        description: '휴양',
+      },
+      { day: 5, title: '숙박 없음(귀국)', routeText: null, description: '귀국' },
+    ])
+    expect(out[2]?.routeText).toMatch(/리조트|자유시간/)
+    expect(out[2]?.routeText).not.toMatch(/아푸간|돈키빌리지/)
+    expect(out[3]?.routeText).not.toMatch(/아푸간|돈키빌리지/)
+  })
 })

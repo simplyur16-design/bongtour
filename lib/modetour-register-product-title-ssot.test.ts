@@ -46,6 +46,25 @@ describe('modetour-register-product-title-ssot', () => {
     expect(r.unacceptable).toBe(false)
   })
 
+  // REGRESSION-FREEZE[register-confirm-skip-detail-recollect]: skip-scrape 허용 제목은 confirm 통과 — manifest
+  it('confirm accepts Guam listing title without live scrape baseline', () => {
+    const guam =
+      '[저녁출발]괌 두짓비치 디럭스오션뷰룸 3박5일<아일랜드관광/레이트체크아웃>'
+    const r = resolveModetourRegisterProductTitleForConfirm({
+      parsedTitle: guam,
+      baselineTrace: null,
+    })
+    expect(r.unacceptable).toBe(false)
+    expect(r.title).toContain('괌')
+    expect(
+      modetourRegisterTitleBlocksConfirmSave({
+        prismaTitle: guam.replace(/^\[저녁출발\]/, ''),
+        prismaOriginalTitle: guam,
+        baselineTrace: null,
+      }),
+    ).toBe(false)
+  })
+
   it('blocks confirm save without baseline', () => {
     expect(
       modetourRegisterTitleBlocksConfirmSave({

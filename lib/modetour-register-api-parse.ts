@@ -25,6 +25,8 @@ import {
   ensureModetourRegisterScheduleImageKeywords,
 } from '@/lib/modetour-register-detail-collect'
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
+import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
+import { buildModetourFlightStructuredFromFactLegs } from '@/lib/register-facts/modetour-register-fact-mappers'
 
 const MODETOUR_PRICE_SLOT_SSOT_NOTE =
   '모두투어 가격표: adultPrice=성인, childExtraBedPrice=아동, childNoBedPrice=아동(무침대), infantPrice=유아. 달력은 GetOtherDepartureDates_lite SSOT.'
@@ -205,6 +207,12 @@ export async function parseModetourRegisterFromApi(
       ? 'prefetchedFactBundle — detail re-fetch skipped'
       : null,
   }
+
+  // REGRESSION-FREEZE[register-detail-collect-flight-apply]: prefetch facts flights → flightStructured — manifest
+  parsed = applyRegisterCollectedFlightStructured(
+    parsed,
+    buildModetourFlightStructuredFromFactLegs(bundle.flights),
+  )
 
   parsed = finalizeModetourRegisterParsedPricing(parsed)
   parsed = finalizeModetourRegisterParsedShopping(parsed)

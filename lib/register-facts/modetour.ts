@@ -394,9 +394,14 @@ export async function collectModetourRegisterFacts(
   const fallbackDate = fallbackSlots.departureDate
   const fallbackAdult = fallbackSlots.adultPrice
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1 시 과거 detail 출발 폴백 금지 — manifest
+  // REGRESSION-FREEZE[register-facts-foundation]: lite 달력 성인가만일 때 detail KidN/Toddler 보강 — manifest
   const resolvedPriceRows =
     priceRows.length > 0
-      ? priceRows
+      ? priceRows.map((row) => ({
+          ...row,
+          childPrice: row.childPrice ?? fallbackSlots.childPrice,
+          infantPrice: row.infantPrice ?? fallbackSlots.infantPrice,
+        }))
       : fallbackDate &&
           fallbackDate >= fromYmd &&
           fallbackDate <= toYmd &&

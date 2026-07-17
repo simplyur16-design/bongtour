@@ -2130,15 +2130,24 @@ function pickJapanHubClusterKeywordForUsedSlot(
 ): string {
   if (!isJapanHubClusterRoute(routeText)) return ''
   const hay = String(routeText ?? '')
-  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 서일본·규슈에 Fuji 갭필 금지 — manifest
+  // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 서일본·규슈·간사이에 Fuji 갭필 금지 — manifest
   const westOrKyushuOnly =
     /돗토리|Tottori|요나고|Yonago|시마네|Shimane|이즈모|Izumo|마쯔에|Matsue|다마즈쿠리|Tamatsukuri|쿠라요시|Kurayoshi|벳푸|Beppu|유후인|Yufuin|오이타|Oita|후쿠오카|Fukuoka|규슈|Kyushu|아소|Aso|다자이후|Dazaifu/i.test(
       hay,
     ) &&
     !/후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya/i.test(hay)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 교토·오사카·비와호 Kansai — Fuji 갭필 금지 — manifest
+  const kansaiWithoutFujiCorridor =
+    /교토|Kyoto|오사카|Osaka|나라|Nara|고베|Kobe|비와|Biwa|아라시야마|Arashiyama|기요미즈|Kiyomizu|도톤보리|Dotonbori|우메코지|Umekoji|오미하치만|Omihachiman/i.test(
+      hay,
+    ) &&
+    !/후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya|가마쿠라|Kamakura/i.test(
+      hay,
+    )
+  const banFujiGapFill = westOrKyushuOnly || kansaiWithoutFujiCorridor
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (westOrKyushuOnly && /\bMount\s*Fuji\b|Fuji\s*Shizuoka|Hakone.*Fuji/i.test(kw)) return ''
+    if (banFujiGapFill && /\bMount\s*Fuji\b|Fuji\s*Shizuoka|Hakone.*Fuji/i.test(kw)) return ''
     if (!allowJapanHubClusterKw2Duplicate(kw, routeText)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
@@ -2149,18 +2158,29 @@ function pickJapanHubClusterKeywordForUsedSlot(
     const hit = tryPick(String(raw ?? '').trim())
     if (hit) return hit
   }
-  const defaults = westOrKyushuOnly
-    ? [
-        'Tottori Sand Dunes',
-        'Izumo Taisha shrine Japan',
-        'Matsue Castle Japan',
-        'Mount Daisen Yonago',
-        'Tamatsukuri Onsen',
-        'Beppu hot springs steam Japan',
-        'Dazaifu Tenmangu shrine Fukuoka',
-        'Mount Aso volcano caldera Japan',
-        'Fukuoka city night',
-      ]
+  const defaults = banFujiGapFill
+    ? westOrKyushuOnly
+      ? [
+          'Tottori Sand Dunes',
+          'Izumo Taisha shrine Japan',
+          'Matsue Castle Japan',
+          'Mount Daisen Yonago',
+          'Tamatsukuri Onsen',
+          'Beppu hot springs steam Japan',
+          'Dazaifu Tenmangu shrine Fukuoka',
+          'Mount Aso volcano caldera Japan',
+          'Fukuoka city night',
+        ]
+      : [
+          'Kiyomizu-dera Kyoto',
+          'Arashiyama bamboo grove Kyoto',
+          'Togetsukyo Bridge Arashiyama Kyoto',
+          'Fushimi Inari shrine Kyoto',
+          'Dotonbori Osaka night',
+          'Osaka Castle Japan',
+          'Lake Biwa Japan',
+          'Nara Todai-ji deer park',
+        ]
     : [
         'Mount Fuji Shizuoka view',
         'Hakone hot spring Mount Fuji view',
