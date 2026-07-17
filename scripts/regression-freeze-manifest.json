@@ -4247,6 +4247,43 @@
       ]
     },
     {
+      "id": "kyowontour-admin-rescrape-master-code",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "kyowontour admin rescrape — differentDepartDate는 전체 tourCode가 아닌 6자 masterCode",
+      "checks": [
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]",
+            "resolveKyowontourSweepCollectKeys",
+            "kyowontour-differentDepartDate"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]",
+            "resolveKyowontourSweepCollectKeys",
+            "MASTER_CODE_RE"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-departures.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]",
+            "EWP300260712TW01",
+            "EWP300"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/kyowontour-departures.test.ts"
+      ]
+    },
+    {
       "id": "modetour-sd1-inventory",
       "tier": [
         "prebuild",

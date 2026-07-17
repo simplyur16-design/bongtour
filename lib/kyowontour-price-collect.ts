@@ -2,6 +2,7 @@
  * 교원이지 가격 수집 — differentDepartDate AJAX → Python E2E 폴백.
  *
  * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: collectKyowontourPriceInputsWithE2eFallback — manifest
+ * REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]: resolveKyowontourSweepCollectKeys — tourCode→6자 master — manifest
  */
 import {
   collectKyowontourCalendarRange,

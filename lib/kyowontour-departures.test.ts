@@ -1,11 +1,35 @@
 /**
  * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: departDateYmd 파싱
+ * REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]: tourCode→6자 masterCode
  */
 import { describe, expect, it } from 'vitest'
 import {
   extractKyowontourMonthEvtDepartYmds,
   parseKyowontourCalendarDayAirRow,
 } from './kyowontour-departures'
+import { resolveKyowontourSweepCollectKeys } from './kyowontour-price-collect'
+
+describe('resolveKyowontourSweepCollectKeys masterCode', () => {
+  it('full tourCode originCode → 6자 masterCode (EWP300)', () => {
+    const keys = resolveKyowontourSweepCollectKeys({
+      originCode: 'EWP300260712TW01',
+      originUrl:
+        'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=EWP300260712TW01&menuCode=M51010106&brandId=0',
+    })
+    expect(keys?.masterCode).toBe('EWP300')
+    expect(keys?.tourCodeHint).toBe('EWP300260712TW01')
+  })
+
+  it('already-master originCode stays 6자', () => {
+    const keys = resolveKyowontourSweepCollectKeys({
+      originCode: 'EWP300',
+      originUrl:
+        'https://www.kyowontour.com/goods/goodsEventDetail?tourCode=EWP300260712TW01&menuCode=M51010106',
+    })
+    expect(keys?.masterCode).toBe('EWP300')
+    expect(keys?.tourCodeHint).toBe('EWP300260712TW01')
+  })
+})
 
 describe('extractKyowontourMonthEvtDepartYmds', () => {
   it('monthEvtList departDateYmd → YYYYMMDD', () => {

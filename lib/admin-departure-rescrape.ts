@@ -2,6 +2,7 @@
  * 관리자 출발일 live-rescrape — 공급사별 수집·ProductDeparture upsert 입력.
  * REGRESSION-FREEZE[ybtour-admin-rescrape-api-first]: ybtour papi by-goods API 우선 — manifest
  * REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: godId 실패 시 evtCd 합성 출발일 — manifest
+ * REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]: differentDepartDate는 6자 masterCode — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -26,6 +27,7 @@ import {
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import { collectKyowontourCalendarRange, mapKyowontourCalendarToDepartureInputs } from '@/lib/kyowontour-departures'
+import { resolveKyowontourSweepCollectKeys } from '@/lib/kyowontour-price-collect'
 import {
   buildLottetourEvtDetailUrl,
   collectLottetourCalendarRange,
@@ -110,18 +112,10 @@ function calendarE2eSiteFromOrigin(originSource: string): DepartureRescrapeSite 
   return 'hanatour'
 }
 
-/** 상세 URL의 `tourCd`/`goodsCd`가 있으면 E2E `--tour-code`에 우선 사용(originCode가 마스터와 다를 때). */
+/** 상세 URL의 `tourCode`/`tourCd`/`goodsCd`가 있으면 E2E `--tour-code`에 우선 사용(originCode가 마스터와 다를 때). */
 function kyowontourTourCodeHintForE2e(product: { originCode: string; originUrl: string | null }): string {
-  const url = (product.originUrl ?? '').trim()
-  if (url) {
-    try {
-      const u = new URL(url)
-      const t = u.searchParams.get('tourCd') ?? u.searchParams.get('goodsCd')
-      if (t?.trim()) return t.trim()
-    } catch {
-      /* ignore */
-    }
-  }
+  const keys = resolveKyowontourSweepCollectKeys(product)
+  if (keys?.tourCodeHint) return keys.tourCodeHint
   return (product.originCode ?? '').trim()
 }
 
@@ -914,7 +908,13 @@ export async function collectDepartureInputsForAdminRescrape(
 
   if (site === 'kyowontour') {
     attemptedLive = true
-    const masterCode = (product.originCode ?? '').trim()
+    // differentDepartDate AJAX는 6자 masterCode(EWP300)만 유효. originCode에 전체 tourCode가
+    // 들어 있으면 dayAirList·monthEvtList가 비어 0건으로 실패한다.
+    const kyoKeys = resolveKyowontourSweepCollectKeys({
+      originCode: product.originCode,
+      originUrl: (product.originUrl ?? detailUrlForTrace) || null,
+    })
+    const masterCode = kyoKeys?.masterCode ?? ''
     if (!masterCode) {
       const fillMeta = deriveFillMeta([])
       return {
@@ -922,7 +922,8 @@ export async function collectDepartureInputsForAdminRescrape(
         source: 'kyowontour-differentDepartDate',
         inputs: [],
         attemptedLive,
-        liveError: 'kyowontour: originCode(상품·마스터 코드)가 비어 있어 캘린더를 호출할 수 없습니다.',
+        liveError:
+          'kyowontour: masterCode(6자)를 해석할 수 없어 캘린더를 호출할 수 없습니다. originCode·originUrl(tourCode)을 확인하세요.',
         filledFields: fillMeta.filledFields,
         missingFields: fillMeta.missingFields,
         mappingStatus: 'detail-candidate-found-but-unmapped',
@@ -940,9 +941,9 @@ export async function collectDepartureInputsForAdminRescrape(
           : product.originUrl?.trim().startsWith('http') &&
               /goodsEventDetail/i.test(product.originUrl.trim())
             ? product.originUrl.trim()
-            : detailUrlForTrace
+            : kyoKeys?.detailUrl ?? detailUrlForTrace
       const { rows, warnings } = await collectKyowontourCalendarRange(masterCode, {
-        tourCodeForE2EFallback: kyowontourTourCodeHintForE2e(product),
+        tourCodeForE2EFallback: kyoKeys?.tourCodeHint ?? kyowontourTourCodeHintForE2e(product),
         e2eMasterCodeHint: masterCode,
         refererUrl: detailUrlForCollect,
         disableE2EFallback: true,
