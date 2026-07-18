@@ -201,7 +201,8 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         if (
           mapped &&
           isBareCityOrCountryKeyword(mapped) &&
-          !/^(?:Vietnam|Thailand|Japan|Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore)$/i.test(
+          !/[\uAC00-\uD7AF]/.test(mapped) &&
+          !/^(?:Vietnam|Thailand|Japan|Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|Europe|Asia|Africa|아프리카|아시아|유럽|중동)$/i.test(
             mapped,
           )
         ) {
@@ -210,7 +211,14 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       }
     }
     const fromDest = mapDestination(String(dest ?? '').trim())
-    if (fromDest && isBareCityOrCountryKeyword(fromDest)) return fromDest
+    if (
+      fromDest &&
+      isBareCityOrCountryKeyword(fromDest) &&
+      !/[\uAC00-\uD7AF]/.test(fromDest) &&
+      !/^(?:Europe|Asia|Africa|Vietnam|Thailand|Japan|Korea|China)$/i.test(fromDest)
+    ) {
+      return fromDest
+    }
     return ''
   }
   const middleUsedNk = new Set<string>()
@@ -228,9 +236,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     let kw = String(row.imageKeyword ?? '').trim()
     if (
       !kw ||
-      /^(?:Vietnam|Thailand|Japan|Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|베트남|태국|일본|한국|중국)$/i.test(
+      /^(?:Vietnam|Thailand|Japan|Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|베트남|태국|일본|한국|중국|Europe|Asia|Africa|아프리카|아시아|유럽|중동)$/i.test(
         kw,
-      )
+      ) ||
+      /[\uAC00-\uD7AF]/.test(kw)
     ) {
       const soft = pickTripVisitCitySoftDup()
       if (soft) {
@@ -330,22 +339,35 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   // 최종 strip·refill이 landmark를 재주입할 수 있으므로 출력 직전 exact trip-unique를 한 번 더 고정.
   // 중복 landmark는 당일/여행 방문도시 soft-dup으로 교체한다(빈칸·타일 명소 유입보다 우선).
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
-  const used = new Set<string>()
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+  // bare 방문도시 soft-dup은 출발·귀국과만 허용 — Bali 중간일끼리 동일 도시 재주입 금지
+  const used = new Map<string, number>()
   return finalSanitized.map((row) => {
+    const day = Number(row.day)
     let kw = String(row.imageKeyword ?? '').trim()
     let kw2 = String(row.imageKeyword2 ?? '').trim()
     const nk = normScheduleImageKeywordKey(kw)
     if (nk && used.has(nk)) {
-      kw = pickTripVisitCitySoftDup()
+      const prev = used.get(nk)!
+      const touchesEdge = day <= 1 || day >= maxDayFinal || prev <= 1 || prev >= maxDayFinal
+      if (isBareCityOrCountryKeyword(kw) && touchesEdge) {
+        // keep edge soft-dup (D1 Dubai ↔ D13 hotel / D15 return)
+      } else if (isBareCityOrCountryKeyword(kw)) {
+        kw = ''
+      } else {
+        const soft = pickTripVisitCitySoftDup()
+        const softNk = soft ? normScheduleImageKeywordKey(soft) : ''
+        kw = soft && softNk && softNk !== nk && !used.has(softNk) ? soft : ''
+      }
     }
     const finalNk = normScheduleImageKeywordKey(kw)
-    if (finalNk) used.add(finalNk)
+    if (finalNk) used.set(finalNk, day)
     const nk2 = normScheduleImageKeywordKey(kw2)
     if (nk2 && (used.has(nk2) || nk2 === finalNk)) {
       kw2 = ''
     }
     const finalNk2 = normScheduleImageKeywordKey(kw2)
-    if (finalNk2) used.add(finalNk2)
+    if (finalNk2) used.set(finalNk2, day)
     return {
       ...row,
       imageKeyword: kw,

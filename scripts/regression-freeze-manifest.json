@@ -5535,6 +5535,7 @@
             "장가계→Zhangjiajie return soft-dup",
             "UAE cluster day-route evidence — Greece day Dubai bleed 금지",
             "UAE cluster day-route evidence — EMP340 landmark bleed 금지",
+            "Africa safari day-route evidence — SEQP01 bleed 금지",
             "Ordos≠Alaska cluster — Glacier Bay bleed 금지",
             "Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지",
             "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지"
@@ -5545,7 +5546,8 @@
           "mustInclude": [
             "로스앤젤레스(앤) DEST soft-dup",
             "장가계→Zhangjiajie return soft-dup",
-            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]"
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence"
           ]
         },
         {
@@ -5580,6 +5582,15 @@
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "UAE cluster day-route evidence — EMP340 landmark bleed 금지",
             "Day2 filled",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "Africa safari day-route evidence — SEQP01 bleed 금지",
+            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
             "supplierKey: 'modetour'"
           ]
         },
@@ -5624,7 +5635,8 @@
         "lib/register-schedule-ybtour-pap1194-image-keyword.test.ts",
         "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts",
         "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
-        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts"
+        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
+        "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts"
       ]
     },
     {
@@ -6183,8 +6195,25 @@
             "북유럽 ENP121 — Preikestolen·십자가언덕·레르달",
             "백장협≠Bailong",
             "UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드",
+            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
             "EAP321 Central Asia",
             "India AWP902"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
+            "supplierKey: 'modetour'"
           ]
         },
         {
@@ -6255,7 +6284,8 @@
         "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
         "lib/modetour-schedule-zhangjiajie-baizhang-image-keyword.test.ts",
         "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
-        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts"
+        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
+        "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts"
       ]
     },
     {

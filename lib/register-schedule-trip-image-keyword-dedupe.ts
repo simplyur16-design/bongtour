@@ -201,7 +201,7 @@ function isReturnDayCityLeakKeyword(kw: string): boolean {
 
 /** 출발·귀국 soft-dup — Vietnam/New Zealand 등 국가명은 도시로 쓰지 않음 */
 function isCountryLevelScheduleKeyword(kw: string): boolean {
-  return /^(?:New\s*Zealand|Australia|Vietnam|Thailand|Japan|Korea|South\s*Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|United\s*States|USA|Canada|France|Italy|Spain|Germany|United\s*Kingdom|UK|Brazil|Mexico|India|Taiwan|Hong\s*Kong|Greece|Alaska|Europe|Asia)$/i.test(
+  return /^(?:New\s*Zealand|Australia|Vietnam|Thailand|Japan|Korea|South\s*Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|United\s*States|USA|Canada|France|Italy|Spain|Germany|United\s*Kingdom|UK|Brazil|Mexico|India|Taiwan|Hong\s*Kong|Greece|Alaska|Europe|Asia|Africa|아프리카|아시아|유럽|중동)$/i.test(
     String(kw ?? '').trim(),
   )
 }
@@ -250,6 +250,9 @@ function isRejectedTripKeywordCandidate(kw: string): boolean {
   if (/^(?:Europe|Asia|Africa|Americas?|Oceania|유럽|아시아|아프리카|중남미|북미|오세아니아)$/i.test(t)) {
     return true
   }
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
+  // Canada Victoria harbour — 아프리카 빅토리아폭포·폴스 일정에 유입 금지
+  if (/^Inner\s*Harbour\s*Victoria$/i.test(t)) return true
   if (/^(?:BBQ|현지식|특식|조식|석식|쌈밥)\s*SET$/i.test(t)) return true
   if (/\bSET\b/i.test(t) && t.length <= 20 && /(?:BBQ|현지식|특식|조식|석식|쌈밥|식)/i.test(t)) return true
   return false
@@ -298,8 +301,26 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Sanctuary of Truth Pattaya')
   }
   if (/케이프타운|Cape\s*Town|CAPETOWN/i.test(rawRoute)) {
-    push('Robben Island Cape Town Table Bay view')
-    push('V&A Waterfront Cape Town harbor')
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    if (/로벤|Robben/i.test(rawRoute)) push('Robben Island Cape Town Table Bay view')
+    if (/워터프론트|Waterfront/i.test(rawRoute)) push('V&A Waterfront Cape Town harbor')
+    if (/테이블|Table\s*Mountain/i.test(rawRoute)) push('Table Mountain Cape Town')
+    if (/볼더스|Boulders/i.test(rawRoute)) push('Boulders Beach penguins Cape Town')
+    if (/희망봉|Good\s*Hope|케이프\s*포인트|Cape\s*Point/i.test(rawRoute)) {
+      push('Cape of Good Hope South Africa')
+      push('Cape Point South Africa')
+    }
+    if (/채프먼|Chapman/i.test(rawRoute)) push('Chapmans Peak Drive Cape Town')
+    if (/커스텐보쉬|Kirstenbosch/i.test(rawRoute)) push('Kirstenbosch Botanical Garden Cape Town')
+    if (/보캅|Bo-?Kaap/i.test(rawRoute)) push('Bo-Kaap Cape Town')
+    if (
+      !/(?:로벤|Robben|워터프론트|Waterfront|테이블|Table|볼더스|Boulders|희망봉|Good\s*Hope|케이프\s*포인트|Cape\s*Point|채프먼|Chapman|커스텐보쉬|Kirstenbosch|보캅|Bo-?Kaap)/i.test(
+        rawRoute,
+      )
+    ) {
+      push('Cape Town Table Mountain South Africa')
+      push('V&A Waterfront Cape Town harbor')
+    }
   }
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 치토세 공항·후라노 라벤더 — Provence 환각 금지 — manifest
   if (
@@ -310,13 +331,22 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Aix-en-Provence old town fountain')
   }
   if (/응고롱고로|Ngorongoro|세렝게티|Serengeti|마니아라|Manyara/i.test(rawRoute)) {
-    push('Lake Manyara Tanzania wildlife')
-    push('Serengeti savanna wildlife')
-    push('Ngorongoro Crater Tanzania wildlife')
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    if (/마니아라|Manyara/i.test(rawRoute)) push('Lake Manyara Tanzania wildlife')
+    if (/세렝게티|Serengeti/i.test(rawRoute)) push('Serengeti savanna wildlife')
+    if (/응고롱고로|Ngorongoro/i.test(rawRoute)) push('Ngorongoro Crater Tanzania wildlife')
   }
-  if (/Victoria\s*Falls|빅토리아\s*폭포|Livingstone|리빙스턴/i.test(rawRoute)) {
+  if (/Victoria\s*Falls|빅토리아\s*폭포|빅토리\s*폴스|Livingstone|리빙스턴/i.test(rawRoute)) {
     push('Victoria Falls Livingstone Zambia')
     push('Victoria Falls waterfall panorama')
+  }
+  if (/초베|Chobe/i.test(rawRoute)) {
+    push('Chobe River Boat Safari')
+    push('Chobe Game Drive Safari')
+  }
+  if (/나이바샤|Naivasha|기린\s*센터|Giraffe/i.test(rawRoute)) {
+    if (/나이바샤|Naivasha/i.test(rawRoute)) push('Lake Naivasha Kenya')
+    if (/기린|Giraffe/i.test(rawRoute)) push('Giraffe Centre Nairobi')
   }
   if (/체스키|Cesky|Krumlov/i.test(rawRoute)) {
     push('Cesky Krumlov Castle Czech Republic')
@@ -372,15 +402,22 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Republic Square Yerevan Armenia')
   }
   if (/두바이|Dubai|아부다비|Abu\s*Dhabi|UAE|에미리트/i.test(rawRoute)) {
-    push('Emirates Palace Abu Dhabi')
-    push('Qasr Al Watan Abu Dhabi')
-    push('Sheikh Zayed Grand Mosque Abu Dhabi')
-    push('Etihad Towers Abu Dhabi')
-    push('Dubai Fountain Dubai Mall')
-    push('Burj Khalifa Dubai skyline')
-    push('Louvre Abu Dhabi Saadiyat Island')
-    push('Palm Jumeirah Dubai aerial')
-    push('Dubai Creek Dhow Cruise')
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — EMP340 landmark bleed 금지 — manifest
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    // 두바이 경유일에 아부다비·루브르 전체 풀 주입 금지 — 당일 route 근거만
+    if (/에미레이트\s*팰리스|Emirates\s*Palace/i.test(rawRoute)) push('Emirates Palace Abu Dhabi')
+    if (/아부다비\s*왕궁|Qasr\s*Al\s*Watan|Presidential\s*Palace/i.test(rawRoute)) {
+      push('Qasr Al Watan Abu Dhabi')
+    }
+    if (/모스크|Mosque|자이드|Zayed/i.test(rawRoute)) push('Sheikh Zayed Grand Mosque Abu Dhabi')
+    if (/에티하드|Etihad/i.test(rawRoute)) push('Etihad Towers Abu Dhabi')
+    if (/분수|Fountain/i.test(rawRoute)) push('Dubai Fountain Dubai Mall')
+    if (/버즈|칼리파|Burj|Khalifa/i.test(rawRoute)) push('Burj Khalifa Dubai skyline')
+    if (/루브르|Louvre|사디얗|사디얏|Saadiyat/i.test(rawRoute)) {
+      push('Louvre Abu Dhabi Saadiyat Island')
+    }
+    if (/팜|주메이라|Palm|Jumeirah/i.test(rawRoute)) push('Palm Jumeirah Dubai aerial')
+    if (/도우|크루즈|Dhow|Creek|수상택시/i.test(rawRoute)) push('Dubai Creek Dhow Cruise')
   }
   if (/몰디브|Maldives|overwater|라군|lagoon/i.test(rawRoute)) {
     push('Maldives Overwater Villa Turquoise Lagoon')
@@ -721,17 +758,34 @@ function pickReturnVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
       return d > 0 && d < day && !isScheduleDepartureReturnAdjacentKeywordRow(r, isScheduleDomesticHubToken)
     })
     .reverse()
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty no unused landmark bleed — manifest
+  // 방문도시 soft-dup을 미사용 Palm/Burj 등 명소보다 우선
   for (const tourismRow of tourismRows) {
-    for (const kw of [...collectTripKeywordCandidates(tourismRow)].reverse()) {
-      if (isDomesticHubOrAirportImageKeyword(kw) || isReturnDayCityLeakKeyword(kw)) continue
-      const nk = normScheduleImageKeywordKey(kw)
-      if (nk && used?.has(nk)) continue
-      return kw
-    }
     const fromPrior = pickForeignVisitCityFromRouteText(tourismRow.routeText, true)
     if (fromPrior) {
       const nk = normScheduleImageKeywordKey(fromPrior)
       if (!nk || !used?.has(nk)) return fromPrior
+      if (isBareCityOrCountryKeyword(fromPrior) && !isCountryLevelScheduleKeyword(fromPrior)) {
+        return fromPrior
+      }
+    }
+  }
+  for (const tourismRow of tourismRows) {
+    for (const kw of [...collectTripKeywordCandidates(tourismRow)].reverse()) {
+      if (isDomesticHubOrAirportImageKeyword(kw) || isReturnDayCityLeakKeyword(kw)) continue
+      if (!isBareCityOrCountryKeyword(kw) || isCountryLevelScheduleKeyword(kw)) continue
+      const nk = normScheduleImageKeywordKey(kw)
+      if (nk && used?.has(nk)) continue
+      return kw
+    }
+  }
+  for (const tourismRow of tourismRows) {
+    for (const kw of [...collectTripKeywordCandidates(tourismRow)].reverse()) {
+      if (isDomesticHubOrAirportImageKeyword(kw) || isReturnDayCityLeakKeyword(kw)) continue
+      if (isBareCityOrCountryKeyword(kw)) continue
+      const nk = normScheduleImageKeywordKey(kw)
+      if (nk && used?.has(nk)) continue
+      return kw
     }
   }
   const dest = String(productDestination ?? '').trim()
@@ -952,6 +1006,12 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
             softCity = 'Zhangjiajie'
           } else if (/장사|Changsha/i.test(tripHay)) {
             softCity = 'Changsha'
+          } else if (/두바이|Dubai|아부다비|Abu\s*Dhabi/i.test(tripHay)) {
+            softCity = 'Dubai'
+          } else if (/케이프타운|Cape\s*Town/i.test(tripHay)) {
+            softCity = 'Cape Town'
+          } else if (/나이로비|Nairobi/i.test(tripHay)) {
+            softCity = 'Nairobi'
           }
         }
         if (!softCity) {
@@ -1047,6 +1107,35 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
     const sk = normScheduleImageKeywordKey(secondary)
     if (sk && tripReserved.has(sk)) secondary = ''
     if (pk && tripReserved.has(pk) && isBareCityOrCountryKeyword(primary)) primary = ''
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    // 귀국 soft-dup tripReserved로 비운 호텔-only 중간일 — 당일 도시 1회만 재보충
+    // (Bali 자유일 2~4가 전부 Bali soft-dup되면 middle끼리 중복)
+    if (!String(primary ?? '').trim()) {
+      const dayCity = softDupForeignVisitCityForMiddleRoute(current.routeText)
+      if (dayCity && isBareCityOrCountryKeyword(dayCity) && !isCountryLevelScheduleKeyword(dayCity)) {
+        const landmarkCands = collectTripKeywordCandidates(current).filter(
+          (k) =>
+            !isBareCityOrCountryKeyword(k) &&
+            !isRejectedTripKeywordCandidate(k) &&
+            !shouldRejectRouteLeakKeyword2(k, current.routeText),
+        )
+        if (landmarkCands.length === 0) {
+          const cityNk = normScheduleImageKeywordKey(dayCity)
+          let alreadyOnOtherMiddle = false
+          for (const r of sorted) {
+            const d = Number(r.day)
+            if (d === day) continue
+            if (resolveScheduleKeywordSlotKind(d, maxDay, activeDays) !== 'middle') continue
+            const other = out.get(d) ?? r
+            if (normScheduleImageKeywordKey(String(other.imageKeyword ?? '').trim()) === cityNk) {
+              alreadyOnOtherMiddle = true
+              break
+            }
+          }
+          if (!alreadyOnOtherMiddle) primary = dayCity
+        }
+      }
+    }
     out.set(day, {
       ...current,
       imageKeyword: primary,
@@ -1134,8 +1223,11 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
           const fromDest = mapDestination(String(opts?.productDestination ?? '').trim())
           if (
             fromDest &&
+            isBareCityOrCountryKeyword(fromDest) &&
+            !/[\uAC00-\uD7AF]/.test(fromDest) &&
             !isDomesticHubOrAirportImageKeyword(fromDest) &&
-            !isCountryLevelScheduleKeyword(fromDest)
+            !isCountryLevelScheduleKeyword(fromDest) &&
+            !isRejectedTripKeywordCandidate(fromDest)
           ) {
             picked = fromDest
           }
@@ -1226,6 +1318,24 @@ export function applyDomesticHubOnlyDepartureReturnAdjacentKeywords<
       }
       if (!picked) {
         picked = pickReturnVisitCityKeyword(sorted, day, opts?.productDestination, used)
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty no unused landmark bleed — manifest
+        // 빈·공항/면세 귀국 — Palm 등 미사용 명소 대신 bare 방문도시만
+        if (
+          airportDutyFreeOnly &&
+          picked &&
+          (!isBareCityOrCountryKeyword(picked) ||
+            isCountryLevelScheduleKeyword(picked) ||
+            isRejectedTripKeywordCandidate(picked) ||
+            /[\uAC00-\uD7AF]/.test(picked))
+        ) {
+          picked = ''
+        }
+      }
+      if (!picked && airportDutyFreeOnly) {
+        const tripHayCities = sorted.map((r) => String(r.routeText ?? '')).join('\n')
+        if (/두바이|Dubai|아부다비|Abu\s*Dhabi/i.test(tripHayCities)) picked = 'Dubai'
+        else if (/케이프타운|Cape\s*Town/i.test(tripHayCities)) picked = 'Cape Town'
+        else if (/나이로비|Nairobi/i.test(tripHayCities)) picked = 'Nairobi'
       }
     }
 
@@ -2047,6 +2157,8 @@ function isUaeResortClusterRoute(routeText: string | null | undefined): boolean 
 function allowUaeResortClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isUaeResortClusterRoute(routeText)) return false
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — EMP340 landmark bleed 금지 — manifest
+  if (!uaeHardcodedPoolHasDayRouteEvidence(kw, String(routeText ?? ''))) return false
   const nk = normScheduleImageKeywordKey(kw)
   return /dubai|burj|khalifa|mosque|zayed|louvre|abudhabi|abu dhabi|desert|safari|palm|jumeirah|fahidi|frame|marina|emirates|palace|etihad|fountain|dhow|creek|yas|ferrari|qasr|watan/.test(
     nk,
@@ -2067,7 +2179,8 @@ function uaeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): bool
   if (/fahidi|bastaki/.test(nk)) return /파히디|바스타|Fahidi|Bastaki/i.test(rt)
   if (/frame/.test(nk)) return /프레임|Frame/i.test(rt)
   if (/emirates\s*palace|palace abu/.test(nk)) return /에미레이트\s*팰리스|Emirates\s*Palace/i.test(rt)
-  if (/qasr|watan/.test(nk)) return /아부다비\s*왕궁|Qasr|Watan|왕궁/i.test(rt)
+  // bare「왕궁」만으로 Qasr 금지 — 두바이 호텔·아프리카 일정 bleed
+  if (/qasr|watan/.test(nk)) return /아부다비\s*왕궁|Qasr\s*Al\s*Watan|Presidential\s*Palace/i.test(rt)
   if (/etihad/.test(nk)) return /에티하드|Etihad/i.test(rt)
   if (/fountain/.test(nk)) return /분수|Fountain/i.test(rt)
   if (/dhow|creek/.test(nk)) return /도우|크루즈|Dhow|Creek/i.test(rt)
@@ -2482,15 +2595,50 @@ function pickChinaHubClusterKeywordForUsedSlot(
 
 function allowSafariClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
+  const rt = String(routeText ?? '')
   if (
-    !/(?:응고롱고로|Ngorongoro|세렝게티|Serengeti|케이프타운|Cape\s*Town|CAPETOWN|Victoria\s*Falls|빅토리아\s*폭포|Livingstone|리빙스턴)/i.test(
-      String(routeText ?? ''),
+    !/(?:응고롱고로|Ngorongoro|세렝게티|Serengeti|케이프타운|Cape\s*Town|CAPETOWN|Victoria\s*Falls|빅토리아\s*폭포|빅토리\s*폴스|Livingstone|리빙스턴|초베|Chobe|나이바샤|Naivasha|아루샤|Arusha|마니아라|Manyara)/i.test(
+      rt,
     )
   ) {
     return false
   }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+  if (!africaSafariHardcodedPoolHasDayRouteEvidence(kw, rt)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /ngorongoro|serengeti|manyara|victoria|cape|table|robben|waterfront|livingstone|naivasha|arusha/.test(nk)
+  return /ngorongoro|serengeti|manyara|victoria\s*falls|cape|table|robben|waterfront|livingstone|naivasha|arusha|chobe|giraffe|boulders|chapman|kirstenbosch|bo-?kaap|good hope|cape point/.test(
+    nk,
+  )
+}
+
+/** Africa safari/Cape hardcoded pool — 당일 route 근거 있는 키만 (케이프에 Victoria Falls·세렝게티에 Manyara bleed 금지) */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+function africaSafariHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const rt = String(dayRoute ?? '')
+  if (!rt.trim()) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (/chobe/.test(nk)) return /초베|Chobe/i.test(rt)
+  if (/manyara/.test(nk)) return /마니아라|Manyara/i.test(rt)
+  if (/serengeti/.test(nk)) return /세렝게티|Serengeti/i.test(rt)
+  if (/ngorongoro/.test(nk)) return /응고롱고로|Ngorongoro/i.test(rt)
+  if (/victoria\s*falls|livingstone/.test(nk)) {
+    return /빅토리아\s*폭포|빅토리\s*폴스|Victoria\s*Falls|Livingstone|리빙스턴/i.test(rt)
+  }
+  if (/robben/.test(nk)) return /로벤|Robben/i.test(rt)
+  if (/boulders/.test(nk)) return /볼더스|Boulders/i.test(rt)
+  if (/chapman/.test(nk)) return /채프먼|Chapman/i.test(rt)
+  if (/kirstenbosch/.test(nk)) return /커스텐보쉬|Kirstenbosch/i.test(rt)
+  if (/bo-?kaap|bokaap/.test(nk)) return /보캅|Bo-?Kaap/i.test(rt)
+  if (/good hope|cape point/.test(nk)) return /희망봉|Good\s*Hope|케이프\s*포인트|Cape\s*Point/i.test(rt)
+  if (/table mountain/.test(nk)) return /테이블|Table\s*Mountain|케이프타운|Cape\s*Town/i.test(rt)
+  if (/waterfront/.test(nk)) return /워터프론트|Waterfront|케이프타운|Cape\s*Town/i.test(rt)
+  if (/naivasha/.test(nk)) return /나이바샤|Naivasha/i.test(rt)
+  if (/giraffe/.test(nk)) return /기린|Giraffe/i.test(rt)
+  if (/arusha/.test(nk)) return /아루샤|Arusha/i.test(rt)
+  if (/cape town/.test(nk)) return /케이프타운|Cape\s*Town/i.test(rt)
+  // Inner Harbour Victoria (캐나다) — 아프리카 일정에 주입 금지
+  if (/inner harbour|harbour victoria/.test(nk) && !/폭포|Falls|폴스/i.test(rt)) return false
+  return false
 }
 
 function allowProvenceClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
@@ -2725,7 +2873,7 @@ function allowKw2TripDuplicateKeyword(kw: string, routeText?: string | null): bo
 }
 
 function isSafariClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:응고롱고로|Ngorongoro|세렝게티|Serengeti|케이프타운|Cape\s*Town|CAPETOWN|Victoria\s*Falls|빅토리아\s*폭포|마니아라|Manyara|Arusha|Livingstone|리빙스턴)/i.test(
+  return /(?:응고롱고로|Ngorongoro|세렝게티|Serengeti|케이프타운|Cape\s*Town|CAPETOWN|Victoria\s*Falls|빅토리아\s*폭포|빅토리\s*폴스|마니아라|Manyara|Arusha|아루샤|Livingstone|리빙스턴|초베|Chobe|나이바샤|Naivasha)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2735,14 +2883,41 @@ function pickSafariClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
 ): string {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
   if (!isSafariClusterRoute(routeText)) return ''
-  for (const raw of cands) {
-    const kw = String(raw ?? '').trim()
-    if (!kw || isRejectedTripKeywordCandidate(kw)) continue
-    if (!allowSafariClusterKw2Duplicate(kw, routeText)) continue
+  const evidence = String(routeText ?? '')
+  const tryPick = (kw: string, requireUnused: boolean): string => {
+    if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
+    if (!allowSafariClusterKw2Duplicate(kw, evidence)) return ''
+    if (!africaSafariHardcodedPoolHasDayRouteEvidence(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
-    if (!nk || !used.has(nk)) continue
+    if (!nk) return ''
+    if (requireUnused && used.has(nk)) return ''
+    if (!requireUnused && !used.has(nk)) return ''
     return kw
+  }
+  // 1) 당일 후보 중 미사용
+  for (const raw of cands) {
+    const hit = tryPick(String(raw ?? '').trim(), true)
+    if (hit) return hit
+  }
+  // 2) 당일 근거 하드코드 풀 미사용
+  for (const raw of [
+    'Lake Naivasha Kenya',
+    'Giraffe Centre Nairobi',
+    'Ngorongoro Crater Tanzania wildlife',
+    'Serengeti savanna wildlife',
+    'Lake Manyara Tanzania wildlife',
+    'Victoria Falls waterfall panorama',
+    'Chobe River Boat Safari',
+    'Table Mountain Cape Town',
+    'Boulders Beach penguins Cape Town',
+    'Cape of Good Hope South Africa',
+    'Kirstenbosch Botanical Garden Cape Town',
+    'V&A Waterfront Cape Town harbor',
+  ]) {
+    const hit = tryPick(raw, true)
+    if (hit) return hit
   }
   return ''
 }
@@ -3166,8 +3341,16 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       // Queenstown→Auckland 공항일: D6 Queenstown Lake soft-dup과 겹쳐도 Milford로 바꾸지 않음
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
       const softCity = softDupForeignVisitCityForMiddleRoute(row.routeText)
-      if (softCity && normScheduleImageKeywordKey(softCity) === pk) {
-        // 방문도시 soft-dup — used여도 유지
+      if (
+        softCity &&
+        normScheduleImageKeywordKey(softCity) === pk &&
+        !(
+          isMiddleDay &&
+          isBareCityOrCountryKeyword(primary) &&
+          bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays)
+        )
+      ) {
+        // 방문도시 soft-dup — used여도 유지 (출발일 Dubai → 호텔 중간일). 중간일끼리 Bali 중복은 금지
       } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softCity
       } else {
@@ -3182,13 +3365,26 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
               : pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
                 pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
                 pickManadoClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-                softCity ||
+                (isMiddleDay &&
+                softCity &&
+                isBareCityOrCountryKeyword(softCity) &&
+                bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays)
+                  ? ''
+                  : softCity) ||
                 ''
         }
       }
     }
     if (!primary) {
       const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
+      const softCityEmpty = softDupForeignVisitCityForMiddleRoute(row.routeText)
+      const softOk =
+        softCityEmpty &&
+        !(
+          isMiddleDay &&
+          isBareCityOrCountryKeyword(softCityEmpty) &&
+          bareVisitCityUsedAsOtherMiddlePrimary(softCityEmpty, day, processedByDay, maxDay, activeDays)
+        )
       primary =
         pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
         pickUnusedTripKeyword(landmarkCands.length ? landmarkCands : cands, used) ||
@@ -3196,7 +3392,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         pickSantoriniClusterKeywordForUsedSlot(cands, used, row.routeText) ||
         pickSafariClusterKeywordForUsedSlot(cands, used, row.routeText) ||
         pickManadoClusterKeywordForUsedSlot(cands, used, row.routeText) ||
-        softDupForeignVisitCityForMiddleRoute(row.routeText) ||
+        (softOk ? softCityEmpty : '') ||
         ''
     }
 
@@ -3231,6 +3427,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         (isLodgingOnlyTourismRoute(row.routeText)
           ? pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay)
           : '') ||
+        softDupForeignVisitCityForMiddleRoute(row.routeText) ||
         primary
     }
 
@@ -3525,6 +3722,16 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     if (secondary && shouldRejectRouteLeakKeyword2(secondary, row.routeText, tripHay)) {
       secondary = ''
     }
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    // 중간일끼리 bare 방문도시(Bali) soft-dup 금지 — 출발일 Dubai→호텔일은 허용
+    if (
+      isMiddleDay &&
+      primary &&
+      isBareCityOrCountryKeyword(primary) &&
+      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays)
+    ) {
+      primary = ''
+    }
 
     if (primary) used.add(normScheduleImageKeywordKey(primary))
     if (primary) usedPrimary.add(normScheduleImageKeywordKey(primary))
@@ -3574,7 +3781,51 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
       }
     }
     if (!primary) {
-      primary = softDupForeignVisitCityForMiddleRoute(row.routeText)
+      const soft = softDupForeignVisitCityForMiddleRoute(row.routeText)
+      if (
+        soft &&
+        !(
+          isBareCityOrCountryKeyword(soft) &&
+          bareVisitCityUsedAsOtherMiddlePrimary(
+            soft,
+            day,
+            new Map(
+              [...out.entries()].map(([d, r]) => [
+                d,
+                {
+                  primary: String(r.imageKeyword ?? '').trim(),
+                  secondary: String(r.imageKeyword2 ?? '').trim(),
+                },
+              ]),
+            ),
+            maxDay,
+            activeDays,
+          )
+        )
+      ) {
+        primary = soft
+      }
+    }
+    if (
+      primary &&
+      isBareCityOrCountryKeyword(primary) &&
+      bareVisitCityUsedAsOtherMiddlePrimary(
+        primary,
+        day,
+        new Map(
+          [...out.entries()].map(([d, r]) => [
+            d,
+            {
+              primary: String(r.imageKeyword ?? '').trim(),
+              secondary: String(r.imageKeyword2 ?? '').trim(),
+            },
+          ]),
+        ),
+        maxDay,
+        activeDays,
+      )
+    ) {
+      primary = ''
     }
     if (secondary) {
       const nk2 = normScheduleImageKeywordKey(secondary)
@@ -3666,6 +3917,25 @@ function keywordUsedAsTripPrimary(
   return false
 }
 
+/** bare 방문도시가 다른 중간일 primary로 이미 쓰였는지 — Bali 자유일 middle끼리 soft-dup 금지 */
+function bareVisitCityUsedAsOtherMiddlePrimary(
+  kw: string,
+  day: number,
+  processedByDay: ReadonlyMap<number, { primary: string; secondary: string }>,
+  maxDay: number,
+  activeDays: number,
+): boolean {
+  if (!isBareCityOrCountryKeyword(kw)) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (!nk) return false
+  for (const [d, slot] of processedByDay) {
+    if (Number(d) === day) continue
+    if (resolveScheduleKeywordSlotKind(Number(d), maxDay, activeDays) !== 'middle') continue
+    if (normScheduleImageKeywordKey(slot.primary) === nk) return true
+  }
+  return false
+}
+
 function allowResortClusterCrossSlotReuse(kw: string, routeText?: string | null): boolean {
   return (
     allowGuamResortClusterKw2Duplicate(kw, routeText) ||
@@ -3708,8 +3978,24 @@ function shouldRejectRouteLeakKeyword2(
     }
   }
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
-  if (/dubai|burj|khalifa|abu dhabi|abudhabi|saadiyat|palm jumeirah|sheikh zayed|desert safari/.test(nk)) {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — EMP340 landmark bleed 금지 — manifest
+  if (
+    !isBareCityOrCountryKeyword(secondary) &&
+    /dubai|burj|khalifa|abu dhabi|abudhabi|saadiyat|palm jumeirah|sheikh zayed|desert safari|emirates palace|qasr|watan|etihad|louvre|fahidi|fountain|dhow|creek/.test(
+      nk,
+    )
+  ) {
     if (!isUaeResortClusterRoute(dayRt)) return true
+    if (!uaeHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+  if (
+    !isBareCityOrCountryKeyword(secondary) &&
+    /chobe|manyara|serengeti|ngorongoro|victoria\s*falls|livingstone|robben|boulders|chapman|kirstenbosch|bo-?kaap|bokaap|good hope|cape point|table mountain|waterfront|naivasha|giraffe|arusha/.test(
+      nk,
+    )
+  ) {
+    if (!africaSafariHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
   }
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
   if (/glacier bay|space needle|pike place|juneau|skagway|ketchikan|alaska cruise/.test(nk)) {
@@ -3921,8 +4207,11 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       if (candidate && normScheduleImageKeywordKey(candidate) === pk) candidate = ''
       if (
         candidate &&
-        shouldRejectMiddleDayKeyword2(candidate, { ...row, routeText: tripHay }, primary, used)
+        shouldRejectMiddleDayKeyword2(candidate, row, primary, used)
       ) {
+        candidate = ''
+      }
+      if (candidate && shouldRejectRouteLeakKeyword2(candidate, row.routeText, tripHay)) {
         candidate = ''
       }
       if (candidate) secondary = candidate
@@ -3957,6 +4246,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
             continue
           }
           if (used.has(nk) && !allowClusterKw2ReuseDespiteUsed(kw, tripHay)) continue
+          if (shouldRejectRouteLeakKeyword2(kw, row.routeText, tripHay)) continue
           secondary = kw
           break
         }
@@ -3976,12 +4266,15 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
 
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
     // 당일 명소가 trip unique로 소진돼도 빈칸보다 방문도시 유지 (Palace/Seattle D9 등)
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    // Bali 자유일 등 — bare 도시가 다른 중간일에 있으면 soft-dup 재주입 금지
     if (!primary) {
       const city = pickForeignVisitCityFromRouteText(row.routeText, false)
       if (
         city &&
         !isCountryLevelScheduleKeyword(city) &&
-        !isDomesticHubOrAirportImageKeyword(city)
+        !isDomesticHubOrAirportImageKeyword(city) &&
+        !bareVisitCityUsedAsOtherMiddlePrimary(city, day, processedByDay, maxDay, activeDays)
       ) {
         primary = city
       }
@@ -4022,7 +4315,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       }
       if (
         secondary &&
-        shouldRejectMiddleDayKeyword2(secondary, { ...row, routeText: tripHay }, primary, used)
+        shouldRejectMiddleDayKeyword2(secondary, row, primary, used)
       ) {
         secondary = ''
       }
@@ -4067,7 +4360,11 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
     }
     if (primary && !secondary && fillKw2 && !isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
       const pkEnd = normScheduleImageKeywordKey(primary)
-      for (const list of [daySpots, tripSpots]) {
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+      // 당일 tourism이 있으면 tripSpots로 타일 랜드마크 kw2 주입 금지
+      const endLists =
+        routeTextTourismSegmentCount(row.routeText) >= 1 ? [daySpots] : [daySpots, tripSpots]
+      for (const list of endLists) {
         for (const raw of list) {
           const kw = String(raw ?? '').trim()
           const nk = normScheduleImageKeywordKey(kw)
@@ -4080,10 +4377,14 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
           ) {
             continue
           }
+          if (shouldRejectRouteLeakKeyword2(kw, row.routeText, tripHay)) continue
           secondary = kw
           break
         }
         if (secondary) break
+      }
+      if (secondary && shouldRejectRouteLeakKeyword2(secondary, row.routeText, tripHay)) {
+        secondary = ''
       }
     }
     processedByDay.set(day, { primary, secondary })

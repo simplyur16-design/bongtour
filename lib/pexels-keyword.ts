@@ -113,6 +113,9 @@ const DESTINATION_MAP: Record<string, string> = {
   런던: 'London',
   암스테르담: 'Amsterdam',
   두바이: 'Dubai',
+  나이로비: 'Nairobi',
+  케이프타운: 'Cape Town',
+  아루샤: 'Arusha',
   이스탄불: 'Istanbul',
   이집트: 'Egypt',
   카이로: 'Cairo',
@@ -890,7 +893,10 @@ const POI_KO_TO_EN: Record<string, string> = {
   '몰디브 리조트': 'Maldives overwater bungalow resort',
   베이커스필드: 'Bakersfield California',
   시애틀: 'Space Needle Seattle',
-  빅토리아: 'Inner Harbour Victoria',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
+  // bare「빅토리아」캐나다 항구 — 빅토리아폭포·빅토리폴스 아프리카 문맥에서는 SPOT 우선
+  빅토리아항: 'Inner Harbour Victoria',
+  '빅토리아 이너하버': 'Inner Harbour Victoria',
   껌벽: 'Juneau Waterfront Alaska',
   '파인애플 농장': 'Pineapple Farm Hawaii',
   상파울: 'Sao Paulo Cathedral',
@@ -1265,6 +1271,14 @@ export function mapDestination(destination: string | null): string {
   if (!t) return ''
   for (const ko of DESTINATION_MAP_KEYS_SORTED) {
     if (koreanHaystackIncludesMapToken(t, ko)) return DESTINATION_MAP[ko] ?? ''
+  }
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
+  // 권역명(아프리카/Asia) identity 통과 금지 — 귀국 soft-dup·destination hub 오용
+  if (
+    /^(?:유럽|아시아|아프리카|중동|중남미|북미|오세아니아|동남아|동남아시아|미주)$/u.test(t) ||
+    /^(?:Europe|Asia|Africa|Americas?|Oceania|Middle\s*East|Southeast\s*Asia)$/i.test(t)
+  ) {
+    return ''
   }
   return t
 }
