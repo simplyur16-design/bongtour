@@ -1594,7 +1594,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "pickDistinctSecondScheduleImageKeyword",
-            "shouldReconcileScheduleImageKeyword2"
+            "shouldReconcileScheduleImageKeyword2",
+            "scheduleImageKeywordsSemanticallyOverlap",
+            "kw2 must not semantic-overlap primary"
           ]
         },
         {
@@ -1655,7 +1657,31 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
             "isKyowontourRejectedImageKeywordCandidate",
-            "kyowontourLandmarkFromHaystack"
+            "kyowontourLandmarkFromHaystack",
+            "kw2 must not semantic-overlap primary"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-schedule-beijing-cbp151-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "CBP151-like 4-day",
+            "Forbidden City"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keyword-cross-supplier-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "cross-supplier schedule imageKeyword SSOT",
+            "modetour",
+            "hanatour",
+            "ybtour",
+            "lottetour",
+            "kyowontour",
+            "verygoodtour"
           ]
         },
         {
@@ -5034,7 +5060,8 @@
             "터키 체험·이동 꼬리",
             "마사지·쇼핑센터·선착장 이동 문구",
             "서호서호 중복 붕괴",
-            "L&aelig;rdal HTML entity → æ"
+            "L&aelig;rdal HTML entity → æ",
+            "북경 교원 — VIP리무진·인력거·쇼·도시락 route 금지"
           ]
         },
         {
@@ -6105,6 +6132,8 @@
             "리기≠승리기념탑 — Baltic Victory Monument bleed 금지",
             "Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all",
             "Baltic·Warsaw POI — 빌라누프·체시스",
+            "북경 도시허브=Beijing (자금성 POI는 SPOT)",
+            "북경 자금성·경산·천안문 — 도시허브≠자금성",
             "치토세 공항·후라노 라벤더 — Provence 환각 금지",
             "도게츠교≠Doge's Palace",
             "교토·오사카 Kansai POI — Day2/3 dup·Day4 Arashiyama bleed",
@@ -6173,7 +6202,9 @@
         "lib/lottetour-schedule-italy-uk-image-keyword.test.ts",
         "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts",
         "lib/modetour-schedule-cap611-dalian-image-keyword.test.ts",
-        "lib/kyowontour-schedule-enp121-nordic-image-keyword.test.ts"
+        "lib/kyowontour-schedule-enp121-nordic-image-keyword.test.ts",
+        "lib/kyowontour-schedule-beijing-cbp151-image-keyword.test.ts",
+        "lib/register-schedule-image-keyword-cross-supplier-ssot.test.ts"
       ]
     },
     {

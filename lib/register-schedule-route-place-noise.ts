@@ -484,7 +484,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/고베\s*(?:국제)?공항|Kobe\s*(?:International\s*)?Airport/i.test(t)) return true
   if (/^호텔(?:\s*이동|\s*조식|\s*투숙)?$/u.test(t)) return true
   if (/^공항(?:\s*도착|\s*출발|\s*경유)?$/u.test(t) && t.length <= 12) return true
-  if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움/u.test(t)) return true
+  if (/숙박\s*없음|입국\s*절차|파타야\s*대표\s*쇼|콜로세움.*쇼|콜롯세움|북경\s*서커스|베이징\s*서커스/u.test(t)) {
+    return true
+  }
   if (/블루스타|Blue\s*Star\s*Delos|수완나(?:품|폼)|B게이트|출입구/u.test(t)) return true
   // REGRESSION-FREEZE[schedule-image-keyword-return-gate-block]: 탑승·출국 게이트 route noise — manifest
   if (/^(?:탑승|출국|입국|도착|출발)?\s*게이트$/u.test(t)) return true
@@ -500,6 +502,16 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/공항\s*출발\s*\([A-Z]{2}\d/i.test(t)) return true
   if (/^이동\s*후\s*호텔\s*투숙/u.test(t)) return true
   if (/나이트\s*워킹|인솔자\s*미동행|\*자유시간/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 북경 교원 — VIP리무진·인력거·쇼·도시락 route 금지 — manifest
+  if (/VIP\s*리무진|리무진\s*버스|(?:^|[\s\-])리무진(?:$|[\s\-])/u.test(t) && t.length <= 28) {
+    return true
+  }
+  if (/^인력거$|인력거\s*(?:체험|투어)?$/u.test(t)) return true
+  if (/도시락(?:\s*식사)?(?:\s*후)?$/u.test(t)) return true
+  if (/소림(?:무술)?쇼|경극|(?:쇼|경극)\s*또는\s*(?:쇼|경극)/u.test(t) && t.length <= 48) {
+    return true
+  }
+  if (/^전문\s*대가$|^전문대가$/u.test(t)) return true
   return false
 }
 

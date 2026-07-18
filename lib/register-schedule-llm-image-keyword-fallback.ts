@@ -25,17 +25,31 @@ export function normScheduleImageKeywordKey(s: string): string {
   return normKeywordKey(s)
 }
 
+/** 1·2순위 의미 중복 — 동일 POI 장·단문(선두 구 일치). 도시명이 명소 뒤에 붙은 경우는 별개로 둠. */
+export function scheduleImageKeywordsSemanticallyOverlap(a: string, b: string): boolean {
+  const ka = normKeywordKey(String(a ?? '').trim())
+  const kb = normKeywordKey(String(b ?? '').trim())
+  if (!ka || !kb) return false
+  if (ka === kb) return true
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  // 「Jingshan Park」⊂「Jingshan Park Beijing…」만 차단. 「Manzhouli」⊂「Matryoshka … Manzhouli」는 허용.
+  if (ka.length >= 4 && (kb.startsWith(`${ka} `) || kb.startsWith(`${ka}/`))) return true
+  if (kb.length >= 4 && (ka.startsWith(`${kb} `) || ka.startsWith(`${kb}/`))) return true
+  return false
+}
+
 /** 이동 순서 후보 목록에서 1순위와 다른 첫 번째 2순위 */
 export function pickDistinctSecondScheduleImageKeyword(
   primary: string,
   candidates: readonly string[],
 ): string | null {
-  const pk = normKeywordKey(String(primary ?? '').trim())
-  if (!pk) return null
+  const p = String(primary ?? '').trim()
+  if (!normKeywordKey(p)) return null
   for (const raw of candidates) {
     const kw = String(raw ?? '').trim()
     if (!kw) continue
-    if (normKeywordKey(kw) !== pk) return kw
+    // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+    if (!scheduleImageKeywordsSemanticallyOverlap(kw, p)) return kw
   }
   return null
 }
@@ -49,7 +63,8 @@ export function shouldReconcileScheduleImageKeyword2(
   if (!p) return false
   const k2 = String(imageKeyword2 ?? '').trim()
   if (!k2) return true
-  return normKeywordKey(k2) === normKeywordKey(p)
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  return scheduleImageKeywordsSemanticallyOverlap(k2, p)
 }
 
 export type ScheduleRowTextForKeyword = {

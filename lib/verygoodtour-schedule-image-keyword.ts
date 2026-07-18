@@ -11,10 +11,10 @@ import {
   pickDistinctSecondScheduleImageKeyword,
   inferEnglishPlaceKeywordFromDayContent,
   englishFromScheduleKoreanSegment,
+  scheduleImageKeywordsSemanticallyOverlap,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
-import { isScheduleAirportOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { finalizeScheduleImageKeyword, normalizeToPlaceName, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type VerygoodScheduleImageKeywordRow = {
@@ -113,8 +113,8 @@ function normKey(s: string): string {
 }
 
 function keysEqual(a: string, b: string): boolean {
-  if (!a || !b) return false
-  return normKey(a) === normKey(b)
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  return scheduleImageKeywordsSemanticallyOverlap(a, b)
 }
 
 function dayHaystack(description: string, title: string): string {
@@ -642,12 +642,27 @@ export function applyVerygoodScheduleImageKeywordsToRows<
         .map((en) => tryAcceptVerygoodLlmImageKeyword(en, productDestination))
         .filter(Boolean) as string[]
       const spotEn = firstMatchingScheduleSpotEn(hay)
-      const alt = pickDistinctSecondScheduleImageKeyword(
+      let alt = pickDistinctSecondScheduleImageKeyword(
         primary,
         spotEn ? [...pois, spotEn] : pois,
       )
-      if (alt && !usedPrimaryKeys.has(normKey(alt))) primary = alt
-      else primary = ''
+      // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+      // 동일 POI 장·단문만 다른 후보는 trip-dup 대체가 아님 — 선행일 미사용 명소로 채움
+      if (!alt || usedPrimaryKeys.has(normKey(alt))) {
+        alt =
+          lastForeignVerygoodUnusedLandmarkFromPriorRows(
+            prior,
+            usedPrimaryKeys,
+            productDestination,
+            totalDays,
+          ) || ''
+      }
+      if (alt && !usedPrimaryKeys.has(normKey(alt))) {
+        primary = alt
+      } else if (!(day === totalDays || dayKind === 'flight')) {
+        primary = ''
+      }
+      // 귀국·flight — 미사용 대체 없으면 출발 현지 허브 soft-reuse 유지
     }
     if (primary) usedPrimaryKeys.add(normKey(primary))
     const secondary = resolveVerygoodSecondaryKeyword(
@@ -677,9 +692,9 @@ export function applyVerygoodScheduleImageKeywordsToRows<
     if (
       dayKind === 'flight' &&
       !primary &&
-      day === totalDays &&
-      isScheduleAirportOnlyRouteText(routeText, isVerygoodDomesticHubToken)
+      day === totalDays
     ) {
+      // 귀국·flight — 공항 only뿐 아니라「하이라얼 - 인천」처럼 현지허브+귀국도 선행일 명소로 채움
       const priorProcessed = firstPass.filter((r) => Number(r.day) > 0 && Number(r.day) < day)
       primary =
         lastForeignVerygoodUnusedLandmarkFromPriorRows(

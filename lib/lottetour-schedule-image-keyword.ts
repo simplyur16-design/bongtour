@@ -12,6 +12,7 @@ import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/regi
 import {
   inferEnglishPlaceKeywordFromDayContent,
   pickDistinctSecondScheduleImageKeyword,
+  scheduleImageKeywordsSemanticallyOverlap,
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -118,10 +119,14 @@ function landmarkFromRouteText(routeText: string | null | undefined): string | n
 /** routeText 해외 구간 — 이동 순서상 첫 랜드마크(관광 일차 1순위) */
 function firstLandmarkFromRouteText(routeText: string | null | undefined): string | null {
   const segs = lottetourRouteTextSegments(routeText).filter((s) => !isLottetourDomesticHubToken(s))
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 북경 도시허브=Beijing (자금성 POI는 SPOT) — manifest
+  // 도시허브보다 당일 route 명소(SPOT)를 먼저 — 북경→천안문 순서에서 도시 선점 금지
   for (const seg of segs) {
-    const spot = firstMatchingScheduleSpotEn( seg)
+    const spot = firstMatchingScheduleSpotEn(seg)
     if (spot) return spot
-    const city = firstMatchingScheduleCityEn( seg)
+  }
+  for (const seg of segs) {
+    const city = firstMatchingScheduleCityEn(seg)
     if (city && !isBlockedScheduleImageKeyword(city)) return city
   }
   return null
@@ -520,13 +525,8 @@ function normLottetourKwKey(s: string): string {
 }
 
 function lottetourKeywordKeysOverlap(a: string, b: string): boolean {
-  const ka = normLottetourKwKey(a)
-  const kb = normLottetourKwKey(b)
-  if (!ka || !kb) return false
-  if (ka === kb) return true
-  if (ka.length >= 4 && kb.includes(ka)) return true
-  if (kb.length >= 4 && ka.includes(kb)) return true
-  return false
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  return scheduleImageKeywordsSemanticallyOverlap(a, b)
 }
 
 function pickLottetourAdjacentUnusedKeyword<

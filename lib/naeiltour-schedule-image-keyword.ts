@@ -5,7 +5,11 @@
  */
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-naeiltour'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
-import { splitRouteTextPlaceSegments, englishFromScheduleKoreanSegment } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  splitRouteTextPlaceSegments,
+  englishFromScheduleKoreanSegment,
+  scheduleImageKeywordsSemanticallyOverlap,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { firstMatchingScheduleSpotEn, firstMatchingScheduleCityEn } from '@/lib/schedule-poi-regex-ssot'
@@ -110,11 +114,22 @@ function collectEnglishCandidates(row: NaeiltourScheduleImageKeywordRow): string
     .filter(Boolean)
   if (fromParsed.length) return fromParsed.slice(0, 7)
 
+  const segs = splitRouteTextPlaceSegments(row.routeText).filter((s) => !DOMESTIC_HUB_RE.test(s.trim()))
   const out: string[] = []
-  for (const seg of splitRouteTextPlaceSegments(row.routeText)) {
-    if (DOMESTIC_HUB_RE.test(seg.trim())) continue
+  const push = (en: string) => {
+    const t = String(en ?? '').trim()
+    if (!t) return
+    if (out.some((x) => scheduleImageKeywordsSemanticallyOverlap(x, t))) return
+    out.push(t)
+  }
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 북경 도시허브=Beijing (자금성 POI는 SPOT) — manifest
+  for (const seg of segs) {
+    const spot = firstMatchingScheduleSpotEn(seg)
+    if (spot) push(finalizeKw(spot))
+  }
+  for (const seg of segs) {
     const en = englishFromKoreanSegment(seg)
-    if (en) out.push(en)
+    if (en) push(en)
   }
   return out.slice(0, 7)
 }
@@ -128,10 +143,12 @@ function firstUnused(candidates: readonly string[], used: ReadonlySet<string>): 
 }
 
 function secondUnused(candidates: readonly string[], used: ReadonlySet<string>, primary: string): string {
-  const pk = normKey(primary)
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
   for (const c of candidates) {
     const k = normKey(c)
-    if (k && k !== pk && !used.has(k)) return c
+    if (!k || used.has(k)) continue
+    if (scheduleImageKeywordsSemanticallyOverlap(c, primary)) continue
+    return c
   }
   return ''
 }

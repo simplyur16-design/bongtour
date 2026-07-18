@@ -16,6 +16,7 @@ import {
   inferEnglishPlaceKeywordFromDayContent,
   normScheduleImageKeywordKey,
   pickDistinctSecondScheduleImageKeyword,
+  scheduleImageKeywordsSemanticallyOverlap,
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -137,10 +138,14 @@ function landmarkFromKyowontourRouteText(routeText: string | null | undefined): 
 
 function firstLandmarkFromKyowontourRouteText(routeText: string | null | undefined): string | null {
   const segs = kyowontourUsableRouteSegments(routeText)
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 북경 도시허브=Beijing (자금성 POI는 SPOT) — manifest
+  // 도시허브보다 당일 route 명소(SPOT)를 먼저 — 북경→천안문 순서에서 도시 선점 금지
   for (const seg of segs) {
-    const spot = firstMatchingScheduleSpotEn( seg)
+    const spot = firstMatchingScheduleSpotEn(seg)
     if (spot) return spot
-    const city = firstMatchingScheduleCityEn( seg)
+  }
+  for (const seg of segs) {
+    const city = firstMatchingScheduleCityEn(seg)
     if (city && !isBlockedScheduleImageKeyword(city)) return city
   }
   return null
@@ -513,13 +518,8 @@ function normKyowontourKwKey(s: string): string {
 }
 
 function kyowontourKeywordKeysOverlap(a: string, b: string): boolean {
-  const ka = normKyowontourKwKey(a)
-  const kb = normKyowontourKwKey(b)
-  if (!ka || !kb) return false
-  if (ka === kb) return true
-  if (ka.length >= 4 && kb.includes(ka)) return true
-  if (kb.length >= 4 && ka.includes(kb)) return true
-  return false
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  return scheduleImageKeywordsSemanticallyOverlap(a, b)
 }
 
 function pickKyowontourAdjacentUnusedKeyword<
@@ -709,10 +709,12 @@ function resolveKyowontourSecondaryKeyword(
   )
   if (distinctRoute.length >= 2) {
     const last = distinctRoute[distinctRoute.length - 1]!
-    if (!isBlockedScheduleImageKeyword(last)) return last
+    if (!isBlockedScheduleImageKeyword(last)) return exitKyowontourLandmark(last, ctx)
   }
   const fromRoute = pickDistinctSecondScheduleImageKeyword(primary, routeSegLandmarks)
-  if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) return fromRoute
+  if (fromRoute && !isBlockedScheduleImageKeyword(fromRoute)) {
+    return exitKyowontourLandmark(fromRoute, ctx)
+  }
 
   const haystack = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
   const secondEn = pickDistinctSecondScheduleImageKeyword(primary, findAllMappedKoreanPoisInText(haystack))
@@ -980,6 +982,10 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     if (primary) tripUsed.add(normKyowontourKwKey(primary))
 
     if (secondary && tripUsed.has(normKyowontourKwKey(secondary))) {
+      secondary = ''
+    }
+    // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+    if (secondary && primary && kyowontourKeywordKeysOverlap(secondary, primary)) {
       secondary = ''
     }
     if (

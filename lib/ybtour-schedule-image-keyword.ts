@@ -11,6 +11,7 @@ import {
   isRegisterScheduleFreeLeisureDay,
   pickDistinctSecondScheduleImageKeyword,
   resolveTourismKeywordPreferDistinctPerDay,
+  scheduleImageKeywordsSemanticallyOverlap,
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -144,8 +145,8 @@ function normKey(s: string): string {
 }
 
 function keysEqual(a: string, b: string): boolean {
-  if (!a || !b) return false
-  return normKey(a) === normKey(b)
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  return scheduleImageKeywordsSemanticallyOverlap(a, b)
 }
 
 function stripRouteSegmentNoise(seg: string): string {
@@ -726,11 +727,8 @@ export function applyYbtourScheduleImageKeywordsToRows<
 type YbtourKeywordSlotKind = 'departure' | 'middle' | 'return'
 
 function ybtourKeywordKeysOverlap(a: string, b: string): boolean {
-  const ak = normKey(a)
-  const bk = normKey(b)
-  if (!ak || !bk) return false
-  if (ak === bk) return true
-  return ak.includes(bk) || bk.includes(ak)
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
+  return scheduleImageKeywordsSemanticallyOverlap(a, b)
 }
 
 function collectYbtourRouteOrderedSegmentKeywords(
