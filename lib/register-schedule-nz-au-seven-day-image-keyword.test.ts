@@ -64,7 +64,10 @@ describe('register-schedule-nz-au-seven-day-image-keyword', () => {
     expect(String(d5?.imageKeyword2 ?? '')).toMatch(/Three Sisters|Echo Point|Blue Mountains/i)
     expect(String(d5?.imageKeyword2 ?? '')).not.toMatch(/^Sydney$/i)
 
-    expect(String(d7?.imageKeyword ?? '')).toMatch(/Opera House|Harbour Bridge|Blue Mountains|Three Sisters|Botanic|Taronga|Memorial|Mission Bay|Rotorua|Agrodome|St Marys/i)
-    expect(String(d7?.imageKeyword ?? '')).not.toMatch(/^Sydney$/i)
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return soft-dup visit city — manifest
+    // routeText 없는 귀국 — 미사용 Opera House bleed 대신 bare Sydney soft-dup
+    expect(String(d7?.imageKeyword ?? '')).toMatch(
+      /^(?:Sydney|Opera House|Harbour Bridge|Blue Mountains|Three Sisters|Botanic|Taronga|Memorial|Mission Bay|Rotorua|Agrodome|St Marys)/i,
+    )
   })
 })

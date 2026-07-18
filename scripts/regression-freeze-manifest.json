@@ -5618,7 +5618,8 @@
             "ensureDepartureReturnVisitCityKeywords(finalDeduped",
             "all-noise return route must not restore dirty text",
             "domestic hub return keep unused landmark not bare city",
-            "airline-only departure keep raw route"
+            "airline-only departure keep raw route",
+            "return airport/duty-free no unused landmark bleed"
           ]
         },
         {
@@ -5927,7 +5928,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
             "PNP101260802KE1",
-            "applyRegisterScheduleImageKeywordsForPreview"
+            "applyRegisterScheduleImageKeywordsForPreview",
+            "출발·귀국 bare visit city soft-dup"
           ]
         }
       ],

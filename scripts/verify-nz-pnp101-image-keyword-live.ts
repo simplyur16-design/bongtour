@@ -95,15 +95,24 @@ async function main() {
     assert.notEqual(d8kw2.trim(), 'Rotorua', 'FAIL day8 kw2 bare Rotorua')
   }
 
-  // trip-wide dedupe
-  const used = new Set<string>()
+  // trip-wide dedupe — 출발·귀국 bare visit city soft-dup(Queenstown/Bali)만 허용
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return soft-dup visit city — manifest
+  const used = new Map<string, number>()
   for (const row of uiRows) {
+    const day = Number(row.day)
     for (const slot of [row.imageKeyword, row.imageKeyword2]) {
       const kw = String(slot ?? '').trim()
       if (!kw) continue
       const nk = normScheduleImageKeywordKey(kw)
-      assert.ok(!used.has(nk), `FAIL trip duplicate keyword: ${kw} (day ${row.day})`)
-      used.add(nk)
+      if (!nk) continue
+      if (used.has(nk)) {
+        const prev = used.get(nk)!
+        const touchesEdge = day <= 1 || day >= maxDay || prev <= 1 || prev >= maxDay
+        const allowEdge = isBareCityOrCountryKeyword(kw) && touchesEdge
+        assert.ok(allowEdge, `FAIL trip duplicate keyword: ${kw} (day ${day})`)
+      } else {
+        used.set(nk, day)
+      }
     }
   }
 

@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: trip ctx — spot scan 포함 — manifest
  */
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
   collectRouteTextOrderedImageKeywords,
@@ -94,6 +95,12 @@ export function registerScheduleKeywordPassesTripRouteTextSsot(
   const nk = normScheduleImageKeywordKey(raw)
   if (!nk) return false
   if (tripCtx.keywordKeys.has(nk)) return true
+  // bare 방문도시 ↔ soft landmark (Queenstown ↔ Queenstown Lake Wakatipu)
+  if (isBareCityOrCountryKeyword(raw) && nk.length >= 4) {
+    for (const k of tripCtx.keywordKeys) {
+      if (k.startsWith(nk) || (k.length >= 4 && nk.startsWith(k))) return true
+    }
+  }
   if (row && String(row.routeText ?? '').trim()) {
     for (const hit of findAllScheduleSpotMatchesInText(rowRouteEvidenceHaystack(row))) {
       const variants = [hit.en]
@@ -103,7 +110,16 @@ export function registerScheduleKeywordPassesTripRouteTextSsot(
         /* keep */
       }
       for (const v of variants) {
-        if (normScheduleImageKeywordKey(v) === nk) return true
+        const vk = normScheduleImageKeywordKey(v)
+        if (vk === nk) return true
+        if (
+          isBareCityOrCountryKeyword(raw) &&
+          nk.length >= 4 &&
+          vk &&
+          (vk.startsWith(nk) || nk.startsWith(vk))
+        ) {
+          return true
+        }
       }
     }
   }

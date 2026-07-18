@@ -24,7 +24,7 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSegment } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -92,23 +92,36 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: keyword collect on sanitized route — manifest
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: all-noise return route must not restore dirty text — manifest
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: domestic hub return keep unused landmark not bare city — manifest
-  const preparedForKeywords = prepared.map((row) => {
-    const cleaned = sanitizeRegisterScheduleRouteText(row.routeText)
-    if (cleaned) return { ...row, routeText: cleaned }
-    const raw = String(row.routeText ?? '').trim()
-    if (!raw) return row
-    // 인천 only — hub SSOT 유지 (blank 하면 Nha Trang bare soft-dup 회귀)
-    if (isScheduleDomesticHubOnlyRouteText(raw, isRegisterScheduleDomesticHubRouteSegment)) {
-      return { ...row, routeText: raw }
-    }
-    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airline-only departure keep raw route — manifest
-    // 항공사명만 sanitize→빈 route면 airline-only 가드 실패 → 다음 관광일 landmark forward-fill
-    if (isAirlineOnlyMovementRouteText(raw)) {
-      return { ...row, routeText: raw }
-    }
-    // 면세·해외공항만 — 원문 복원하지 않음(미사용 명소 bleed 방지)
-    return { ...row, routeText: '' }
-  })
+  const preparedForKeywords = (() => {
+    const maxDayPrep = Math.max(...prepared.map((r) => Number(r.day)).filter((d) => d > 0), 0)
+    return prepared.map((row) => {
+      const cleaned = sanitizeRegisterScheduleRouteText(row.routeText)
+      if (cleaned) return { ...row, routeText: cleaned }
+      const raw = String(row.routeText ?? '').trim()
+      if (!raw) return row
+      // 인천 only — hub SSOT 유지 (blank 하면 Nha Trang bare soft-dup 회귀)
+      if (isScheduleDomesticHubOnlyRouteText(raw, isRegisterScheduleDomesticHubRouteSegment)) {
+        return { ...row, routeText: raw }
+      }
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airline-only departure keep raw route — manifest
+      // 항공사명만 sanitize→빈 route면 airline-only 가드 실패 → 다음 관광일 landmark forward-fill
+      if (isAirlineOnlyMovementRouteText(raw)) {
+        return { ...row, routeText: raw }
+      }
+      // 출발·귀국 해외공항 only — sanitize→빈 route면 ownReturnCity 상실 → Rotorua 등 타도시 명소 bleed
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+      const day = Number(row.day)
+      if (
+        (day === 1 || day === maxDayPrep) &&
+        /(?:공항|Airport)/i.test(raw) &&
+        !/(?:시내|명소|관광|크루즈|공원|사원|박물관)/i.test(raw)
+      ) {
+        return { ...row, routeText: raw }
+      }
+      // 면세·해외공항만 — 원문 복원하지 않음(미사용 명소 bleed 방지)
+      return { ...row, routeText: '' }
+    })
+  })()
   const dest = inferRegisterEffectiveProductDestination(
     opts.productDestination ?? null,
     preparedForKeywords,
@@ -340,7 +353,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   // 중복 landmark는 당일/여행 방문도시 soft-dup으로 교체한다(빈칸·타일 명소 유입보다 우선).
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
-  // bare 방문도시 soft-dup은 출발·귀국과만 허용 — Bali 중간일끼리 동일 도시 재주입 금지
+  // bare 방문도시 soft-dup은 출발·귀국↔호텔/공항이동 중간일만 — Osaka D2 관광일 soft-dup 금지
   const used = new Map<string, number>()
   return finalSanitized.map((row) => {
     const day = Number(row.day)
@@ -349,9 +362,31 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     const nk = normScheduleImageKeywordKey(kw)
     if (nk && used.has(nk)) {
       const prev = used.get(nk)!
-      const touchesEdge = day <= 1 || day >= maxDayFinal || prev <= 1 || prev >= maxDayFinal
-      if (isBareCityOrCountryKeyword(kw) && touchesEdge) {
-        // keep edge soft-dup (D1 Dubai ↔ D13 hotel / D15 return)
+      const isCurrentEdge = day <= 1 || day >= maxDayFinal
+      const isPrevEdge = prev <= 1 || prev >= maxDayFinal
+      if (isBareCityOrCountryKeyword(kw) && isCurrentEdge && isPrevEdge) {
+        // keep dep↔return soft-dup
+      } else if (isBareCityOrCountryKeyword(kw) && (isCurrentEdge || isPrevEdge)) {
+        // 출발/귀국 edge는 방문도시 soft-dup 유지 (D1 Dubai ↔ D13 hotel ↔ D15 return)
+        // 중간 관광일만 출발 도시 soft-dup 금지 (Osaka D2)
+        if (isCurrentEdge) {
+          // keep
+        } else {
+          const middleRt = String(row.routeText ?? '')
+          const allowMiddleHotel =
+            isAirportTransferOrCityHubOnlyMiddleRoute(middleRt) ||
+            /(?:호텔|Hotel|체크인|숙박|Resort|휴식|팔라조|Palazzo|베르사체|Versace|메리어트|Marriott|힐튼|Hilton|Hyatt)/i.test(
+              middleRt,
+            )
+          if (allowMiddleHotel) {
+            // keep SEQP01 hotel soft-dup
+          } else if (kw2 && normScheduleImageKeywordKey(kw2) !== nk) {
+            kw = kw2
+            kw2 = ''
+          } else {
+            kw = ''
+          }
+        }
       } else if (isBareCityOrCountryKeyword(kw)) {
         kw = ''
       } else {

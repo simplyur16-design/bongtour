@@ -864,9 +864,23 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       Boolean(ownReturnCity) &&
       Boolean(kw) &&
       normScheduleImageKeywordKey(ownReturnCity) === normScheduleImageKeywordKey(kw)
+    const returnKwMatchesOwnCity =
+      Boolean(ownReturnCity) &&
+      Boolean(kw) &&
+      (returnBareMatchesOwnCity ||
+        normScheduleImageKeywordKey(kw).startsWith(normScheduleImageKeywordKey(ownReturnCity)) ||
+        normScheduleImageKeywordKey(ownReturnCity).startsWith(normScheduleImageKeywordKey(kw)))
+    // 공항·면세 귀국(sanitize로 route 비움 포함)에 타 도시 명소(Rotorua 등)가 남아 있으면 방문도시로 교체
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+    const returnAirportLandmarkBleed =
+      slot === 'return' &&
+      Boolean(kw) &&
+      !returnKwMatchesOwnCity &&
+      isReturnAirportOrShoppingOnlyRouteText(row.routeText)
     const needsFill =
       !kw ||
       (slot === 'return' && isBareCityOrCountryKeyword(kw) && !returnBareMatchesOwnCity) ||
+      returnAirportLandmarkBleed ||
       (slot === 'departure' && isDomesticHubOrAirportImageKeyword(kw))
     if (!needsFill) {
       const kept = { ...row, imageKeyword2: null }
@@ -1504,11 +1518,17 @@ function isScheduleCityLevelSoftLandmarkKeyword(kw: string): boolean {
 export function isAirportTransferOrCityHubOnlyMiddleRoute(routeText: string | null | undefined): boolean {
   const t = String(routeText ?? '').trim()
   if (!t) return false
-  if (!/(?:공항|Airport|체크인|호텔)/i.test(t)) return false
   const landmarks = collectRouteTextOrderedLandmarkKeywords(t).filter(
     (kw) => isLikelyTourismLandmarkKeyword(kw) && !isScheduleCityLevelSoftLandmarkKeyword(kw),
   )
-  return landmarks.length === 0
+  if (landmarks.length > 0) return false
+  // 공항·호텔 이동일
+  if (/(?:공항|Airport|체크인|호텔)/i.test(t)) return true
+  // keyword apply 전 sanitize가 공항·호텔 세그먼트를 지운 뒤 시내/도시 허브만 남은 날
+  // (AU/NZ D7 `퀸스타운 시내` → trip Milford bleed 금지)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
+  if (/(?:시내|downtown|city\s*centre|city\s*center)/i.test(t)) return true
+  return false
 }
 
 function pickPriorTourismLandmarkForLodgingDay(
@@ -2918,6 +2938,18 @@ function pickSafariClusterKeywordForUsedSlot(
   ]) {
     const hit = tryPick(raw, true)
     if (hit) return hit
+  }
+  // 3) 당일 route 근거 있는 사파리 공원 — used여도 soft-dup (연속 세렝게티·응고롱고로 일차 빈칸 방지)
+  for (const raw of [
+    ...cands.map((c) => String(c ?? '').trim()),
+    'Ngorongoro Crater Tanzania wildlife',
+    'Serengeti savanna wildlife',
+    'Lake Manyara Tanzania wildlife',
+  ]) {
+    if (!raw || isRejectedTripKeywordCandidate(raw)) continue
+    if (!allowSafariClusterKw2Duplicate(raw, evidence)) continue
+    if (!africaSafariHardcodedPoolHasDayRouteEvidence(raw, evidence)) continue
+    return raw
   }
   return ''
 }

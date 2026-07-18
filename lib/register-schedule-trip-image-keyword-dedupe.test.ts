@@ -397,26 +397,32 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
   it('사파리 클러스터 — 응고롱고로·세렝게티 중복 primary 보조', () => {
     const out = enforceRegisterScheduleTripUniqueImageKeywords([
       {
-        day: 3,
+        day: 1,
         routeText: '아루샤 - 응고롱고로',
         imageKeyword: 'Ngorongoro Crater Tanzania Wildlife',
         imageKeyword2: 'Serengeti Savanna Wildlife',
       },
       {
-        day: 4,
+        day: 2,
         routeText: '응고롱고로 - 세렝게티',
         imageKeyword: 'Lake Manyara Tanzania wildlife',
         imageKeyword2: 'Ngorongoro Crater Tanzania Wildlife',
       },
       {
-        day: 5,
+        day: 3,
         routeText: '응고롱고로 - 자연보호구역 - 세렝게티',
         imageKeyword: '',
         imageKeyword2: '',
       },
+      {
+        day: 4,
+        routeText: '세렝게티 - 아루샤',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
     ])
-    const d5 = out.find((r) => r.day === 5)!
-    expect(String(d5.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+    const d3 = out.find((r) => r.day === 3)!
+    expect(String(d3.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
   })
 
   it('마나도 — Christ 대신 Blessing Jesus', () => {
