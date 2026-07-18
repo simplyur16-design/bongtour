@@ -281,7 +281,7 @@ const HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<HanatourScheduleVibeProfile, r
   ],
   spiritual_calm: [
     '도심 속 전통과 여유가 공존하는, 차분한 리듬의 하루입니다.',
-    '무거운 이동 없이 잔잔한 분위기 위주로, 여행의 마무리에 어울리는 구성입니다.',
+    '무거운 이동 없이 잔잔한 분위기 위주로, 하루의 호흡을 고르는 구성입니다.',
   ],
   return_calm: [
     '여유로운 마무리 관광 뒤 귀국 동선으로, 여정의 여운을 정리하는 하루입니다.',

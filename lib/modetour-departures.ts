@@ -128,7 +128,8 @@ function stripTags(html: string): string {
 }
 
 /** document.title / 잘못된 h1 에 붙는 패키지>상품상세>코드> 접두 제거 */
-function cleanModetourBaselineTitleSource(raw: string, productNo: string | null | undefined): string {
+// REGRESSION-FREEZE[modetour-register-title]: CAP611 breadcrumb before 대련+여순 — manifest
+export function cleanModetourBaselineTitleSource(raw: string, productNo: string | null | undefined): string {
   let t = decodeBasicHtmlEntities(String(raw ?? ''))
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
@@ -147,6 +148,20 @@ function cleanModetourBaselineTitleSource(raw: string, productNo: string | null 
       (pcodeUpper && prefix.toUpperCase().includes(pcodeUpper))
     ) {
       return t.slice(fb).trim()
+    }
+  }
+  // REGRESSION-FREEZE[modetour-register-title]: CAP611 breadcrumb before 대련+여순<노쇼핑> — manifest
+  const hangulStart = t.search(/[가-힣]/)
+  if (hangulStart > 0) {
+    const prefix = t.slice(0, hangulStart)
+    if (
+      /[>›|]/.test(prefix) ||
+      /상품\s*상세/i.test(prefix) ||
+      /패키지/i.test(prefix) ||
+      (pcodeUpper && prefix.toUpperCase().includes(pcodeUpper)) ||
+      /^[A-Z]{2,5}\d{3,12}/i.test(prefix.trim())
+    ) {
+      t = t.slice(hangulStart).trim()
     }
   }
 
@@ -617,6 +632,8 @@ function isModetourDocumentTitleLikelyContaminated(raw: string): boolean {
   const t = raw.trim()
   if ((t.match(/[>›|]/g) ?? []).length >= 3) return true
   if (/모두투어|modetour/i.test(t) && /[>›|]/.test(t) && !/[\uAC00-\uD7A3]{4,}/.test(t)) return true
+  // REGRESSION-FREEZE[modetour-register-title]: 패키지>상품상세>코드 breadcrumb — manifest
+  if (/패키지\s*[>›|]|상품\s*상세\s*[>›|]/i.test(t) && /[>›|]/.test(t)) return true
   return false
 }
 

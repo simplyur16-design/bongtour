@@ -359,7 +359,7 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
         day: 2,
         routeText: '장가계 - 천문산',
         imageKeyword: 'Zhangjiajie National Forest Park',
-        imageKeyword2: 'Tianmen Mountain Zhangjiajie Cable Car',
+        imageKeyword2: 'Tianmen Mountain',
       },
       {
         day: 3,
@@ -367,7 +367,7 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
         imageKeyword: 'Zhangjiajie National Forest Park',
         imageKeyword2: null,
       },
-      { day: 4, routeText: '', imageKeyword: 'Avatar Mountain Zhangjiajie Pillar Peaks', imageKeyword2: null },
+      { day: 4, routeText: '', imageKeyword: 'Avatar Mountain', imageKeyword2: null },
     ])
     const d3 = out.find((r) => r.day === 3)!
     expect(String(d3.imageKeyword ?? '')).toMatch(/Ten Mile Gallery|Baofeng/i)

@@ -5061,7 +5061,9 @@
             "마사지·쇼핑센터·선착장 이동 문구",
             "서호서호 중복 붕괴",
             "L&aelig;rdal HTML entity → æ",
-            "북경 교원 — VIP리무진·인력거·쇼·도시락 route 금지"
+            "북경 교원 — VIP리무진·인력거·쇼·도시락 route 금지",
+            "India AWP902 — 릭샤",
+            "특식·기차역·공항 route noise"
           ]
         },
         {
@@ -5142,7 +5144,9 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-schedule-route-place-noise.test.ts"
+        "lib/register-schedule-route-place-noise.test.ts",
+        "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
+        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts"
       ]
     },
     {
@@ -5368,7 +5372,9 @@
             "africa_safari",
             "caucasus_georgia_armenia",
             "austria_alps",
-            "로스엔젤"
+            "로스엔젤",
+            "central Asia before japan onsen",
+            "India Varanasi/Khajuraho ≠ golden reuse"
           ]
         },
         {
@@ -5411,7 +5417,9 @@
         "lib/register-schedule-description-vibe-ssot.test.ts",
         "lib/register-schedule-region-vibe.test.ts",
         "lib/modetour-register-api-schedule.test.ts",
-        "lib/kyowontour-register-api-schedule.test.ts"
+        "lib/kyowontour-register-api-schedule.test.ts",
+        "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
+        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts"
       ]
     },
     {
@@ -6138,7 +6146,10 @@
             "도게츠교≠Doge's Palace",
             "교토·오사카 Kansai POI — Day2/3 dup·Day4 Arashiyama bleed",
             "대련·여순 CAP611 — 성해/러시아거리·연화산 일차 오매핑 금지",
-            "북유럽 ENP121 — Preikestolen·십자가언덕·레르달"
+            "북유럽 ENP121 — Preikestolen·십자가언덕·레르달",
+            "백장협≠Bailong",
+            "EAP321 Central Asia",
+            "India AWP902"
           ]
         },
         {
@@ -6204,7 +6215,10 @@
         "lib/modetour-schedule-cap611-dalian-image-keyword.test.ts",
         "lib/kyowontour-schedule-enp121-nordic-image-keyword.test.ts",
         "lib/kyowontour-schedule-beijing-cbp151-image-keyword.test.ts",
-        "lib/register-schedule-image-keyword-cross-supplier-ssot.test.ts"
+        "lib/register-schedule-image-keyword-cross-supplier-ssot.test.ts",
+        "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
+        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
+        "lib/modetour-schedule-zhangjiajie-baizhang-image-keyword.test.ts"
       ]
     },
     {
@@ -7288,7 +7302,9 @@
             "REGRESSION-FREEZE[kyowontour-schedule-expression]",
             "호치민생가≠HCMC",
             "middle day kw2 prefers last route POI",
-            "return empty no prior-day landmark bleed"
+            "return empty no prior-day landmark bleed",
+            "middle empty no prior-day landmark bleed",
+            "middle kw2 no adjacent-day bleed"
           ]
         }
       ],
@@ -7297,7 +7313,10 @@
         "lib/kyowontour-register-schedule-collect.test.ts",
         "lib/kyowontour-schedule-france-image-keyword.test.ts",
         "lib/kyowontour-schedule-turkey-image-keyword.test.ts",
-        "lib/kyowontour-schedule-hanoi-halong-image-keyword.test.ts"
+        "lib/kyowontour-schedule-hanoi-halong-image-keyword.test.ts",
+        "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
+        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
+        "lib/kyowontour-schedule-beijing-cbp151-image-keyword.test.ts"
       ]
     },
     {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  cleanModetourBaselineTitleSource,
   isModetourDepartureWindowOnlyTitleText,
   isModetourUnacceptableRegisterListingTitle,
   isModetourVisaPolicyNoticeTitleText,
@@ -24,6 +25,23 @@ describe('modetour listing title from paste', () => {
     expect(
       isModetourUnacceptableRegisterListingTitle('대련+여순(뤼순) 3일<노쇼핑/안중근발자취>')
     ).toBe(false)
+  })
+
+  it('accepts CAP611 listing title after breadcrumb strip pattern', () => {
+    // REGRESSION-FREEZE[modetour-register-title]: CAP611 breadcrumb before 대련+여순 — manifest
+    const clean = '대련+여순(뤼순) 3일<노쇼핑/안중근발자취>'
+    expect(isModetourUnacceptableRegisterListingTitle(clean)).toBe(false)
+    expect(
+      isModetourUnacceptableRegisterListingTitle(
+        '패키지>상품상세>CAP611CZLC>대련+여순(뤼순) 3일<노쇼핑/안중근발자취>',
+      ),
+    ).toBe(true)
+    expect(
+      cleanModetourBaselineTitleSource(
+        '패키지>상품상세>CAP611CZLC>대련+여순(뤼순) 3일<노쇼핑/안중근발자취>',
+        'CAP611CZLC',
+      ),
+    ).toBe(clean)
   })
 
   it('rejects hotel grade + duration only as product title', () => {

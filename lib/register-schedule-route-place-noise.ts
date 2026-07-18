@@ -507,7 +507,20 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
     return true
   }
   if (/^인력거$|인력거\s*(?:체험|투어)?$/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: India AWP902 — 릭샤·이른기상·도시락 route 금지 — manifest
+  if (/^(?:릭샤|리크샤|rickshaw)$/iu.test(t)) return true
+  if (/(?:릭샤|리크샤|rickshaw)/iu.test(t) && t.length <= 28) return true
   if (/도시락(?:\s*식사)?(?:\s*후)?$/u.test(t)) return true
+  if (/도시락\s*지참|이른\s*기상(?:\s*후)?/u.test(t) && t.length <= 48) return true
+  if (/이른\s*기상.{0,24}(?:도시락|공항)|도시락.{0,16}공항/u.test(t) && t.length <= 56) {
+    return true
+  }
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 특식·기차역·공항 route noise — manifest
+  if (/^특식\s*[:：]/u.test(t) || /^특식\s*:/u.test(t)) return true
+  if (/특식\s*[:：].{0,24}/u.test(t) && t.length <= 40) return true
+  if (/^(?:기차역|공항)$/u.test(t)) return true
+  if (/(?:타슈켄트|비슈케크|알마티)?\s*공항$/u.test(t) && t.length <= 16) return true
+  if (/관광\s*후\s*.{0,12}기차역/u.test(t) && t.length <= 36) return true
   if (/소림(?:무술)?쇼|경극|(?:쇼|경극)\s*또는\s*(?:쇼|경극)/u.test(t) && t.length <= 48) {
     return true
   }

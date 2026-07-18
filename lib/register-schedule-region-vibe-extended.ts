@@ -63,6 +63,8 @@ type ExtendedRegionVibeProfile =
   | 'nordic_fjord'
   | 'egypt_nile'
   | 'india_golden'
+  | 'india_varanasi'
+  | 'india_khajuraho'
   | 'ordos_steppe'
   | 'vietnam_south'
   | 'hong_kong_city'
@@ -251,6 +253,15 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
     '요새와 사원·광장이 이어지는, 인도 골든트라이앵글의 밀도가 돋보이는 하루입니다.',
     '걷는 리듬과 시야 확장이 번갈아 이어져 도시의 결을 천천히 쌓아 갑니다.',
   ],
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: India Varanasi/Khajuraho ≠ golden reuse — manifest
+  india_varanasi: [
+    '강변 사원과 골목이 이어지는, 바라나시의 신앙 리듬이 중심인 하루입니다.',
+    '수변과 골목의 대비가 분명해 여정의 결이 깊게 남는 구성입니다.',
+  ],
+  india_khajuraho: [
+    '사원군과 조각·유적 풍경이 이어지는, 카주라호의 밀도가 돋보이는 하루입니다.',
+    '걷는 리듬과 유적 시야가 번갈아 이어져 여운이 길게 남는 구성입니다.',
+  ],
   ordos_steppe: [
     '초원과 사막·게르 풍경이 이어지는, 내몽골 오르도스의 스케일이 중심인 하루입니다.',
     '이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.',
@@ -274,7 +285,20 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   if (/중국|China|호남|호북|사천|운남|광저우|심천|하이난/i.test(joinedBlob)) {
     return 'china_city_walk'
   }
-  if (/돗토리|유후인|벳푸|온천|kusatsu|하코네|기노사키|아타미/i.test(joinedBlob)) {
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: central Asia before japan onsen — 악수온천≠일본 — manifest
+  if (
+    /알마티|침블락|침볼락|차른|콜사이|타슈켄트|사마르칸트|사마르칸|우즈베|카자흐|키르기스|중앙아시아|비슈케크|아프로시압|울루그벡|구르\s*아미르|레기스탄|젠코바|판필로바|이식쿨|알라아르차|촐폰|블랙\s*캐년|악수\s*온천|카라콜/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'central_asia_steppe'
+  }
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: japan onsen — bare 온천 alone 금지 — manifest
+  if (
+    /돗토리|유후인|벳푸|kusatsu|하코네|기노사키|아타미|(?:일본|Japan).{0,16}온천|온천.{0,16}(?:유후|벳푸|하코네|기노사키|아타미|돗토리)/i.test(
+      joinedBlob,
+    )
+  ) {
     return 'japan_onsen_town'
   }
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
@@ -409,13 +433,6 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'sea_diving'
   }
   if (
-    /알마티|침블락|침볼락|차른|콜사이|타슈켄트|사마르칸트|사마르칸|우즈베|카자흐|키르기스|중앙아시아|비슈케크|아프로시압|울루그벡|구르\s*아미르|레기스탄|젠코바|판필로바|이식쿨|알라아르차/i.test(
-      joinedBlob,
-    )
-  ) {
-    return 'central_asia_steppe'
-  }
-  if (
     /밴프|Banff|재스퍼|Jasper|아이스필드|웰스그레이|브라이덜|밴쿠버|Vancouver|로키|Rockies/i.test(
       joinedBlob,
     )
@@ -472,7 +489,18 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'egypt_nile'
   }
   if (
-    /뉴델리|자이푸르|아그라|타지마할|하와마할|암베르|델리|인도\s*게이트|인디아\s*게이트|인디아게이트|갠지스|골든\s*트라이앵글|Jaipur|Agra|Taj\s*Mahal|India\s*Gate/i.test(
+    /바라나시|갠지스|사르나트|아르띠\s*뿌자|아르티\s*푸자|Varanasi|Ganges|Sarnath|Ganga\s*Aarti|Banaras/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'india_varanasi'
+  }
+  if (/카주라호|Khajuraho|서부\s*사원군|동부\s*사원군/i.test(joinedBlob)) {
+    return 'india_khajuraho'
+  }
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: India golden = Delhi/Agra/Jaipur only — manifest
+  if (
+    /뉴델리|자이푸르|아그라|타지마할|하와마할|암베르|나하르가르|델리|인도\s*게이트|인디아\s*게이트|인디아게이트|골든\s*트라이앵글|Jaipur|Agra|Taj\s*Mahal|India\s*Gate|Amber\s*Fort|Hawa\s*Mahal|Qutub|꾸뜹|로디가든|악차르담|바하이/i.test(
       joinedBlob,
     )
   ) {

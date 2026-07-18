@@ -844,15 +844,6 @@ export function applyKyowontourScheduleImageKeywordsToRows<
       )
     ) {
       const routeOrdered = collectKyowontourRouteLandmarkCandidates(row.routeText)
-      const byDay = new Map<number, ScheduleAdjacentDayAlloc>()
-      for (const r of mapped) {
-        const d = Number(r.day)
-        if (d <= 0) continue
-        byDay.set(d, {
-          primary: String(r.imageKeyword ?? '').trim(),
-          secondary: r.imageKeyword2 ?? null,
-        })
-      }
       secondary = fillScheduleMiddleImageKeyword2Gap({
         primary,
         routeOrdered,
@@ -860,18 +851,8 @@ export function applyKyowontourScheduleImageKeywordsToRows<
         overlaps: kyowontourKeywordKeysOverlap,
         rejectKeyword: (kw) =>
           isKyowontourRejectedImageKeywordCandidate(kw) || isScheduleAirportLikeImageKeyword(kw),
-        pickAdjacent: (allowTripWideReuse, ignoreAdjacentDaySlots) =>
-          pickKyowontourAdjacentUnusedKeyword(
-            day,
-            maxDay,
-            sorted,
-            gapUsed,
-            byDay,
-            'both',
-            primary,
-            allowTripWideReuse,
-            ignoreAdjacentDaySlots,
-          ),
+        // REGRESSION-FREEZE[kyowontour-schedule-expression]: middle kw2 no adjacent-day bleed — manifest
+        pickAdjacent: () => '',
       })
       if (secondary) gapUsed.add(normKyowontourKwKey(secondary))
     }
@@ -967,8 +948,10 @@ export function applyKyowontourScheduleImageKeywordsToRows<
     if (!primary && slotKind === 'departure') {
       primary = refillFromNextDay() || refillPrimary() || ''
     }
+    // REGRESSION-FREEZE[kyowontour-schedule-expression]: middle empty no prior-day landmark bleed — manifest
+    // 중간일 primary 비면 당일 haystack만 — 전일 Qutub→D8 Lodhi 같은 bleed 금지
     if (!primary && slotKind === 'middle') {
-      primary = refillPrimary() ?? refillFromPriorDay()
+      primary = refillPrimary() ?? ''
     }
     // 귀국·허브 only — 전일 명소 bleed 금지 (AVP024 Day5 ← Ba Dinh)
     // REGRESSION-FREEZE[kyowontour-schedule-expression]: return empty no prior-day landmark bleed — manifest

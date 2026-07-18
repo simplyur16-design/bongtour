@@ -7,6 +7,7 @@ import path from 'node:path'
 import {
   isModetourDepartureWindowOnlyTitleText,
   isModetourUnacceptableRegisterListingTitle,
+  cleanModetourBaselineTitleSource,
 } from '../lib/modetour-departures'
 import { extractModetourVerbatimListingTitleRawFromPaste } from '../lib/modetour-listing-title-from-paste'
 import {
@@ -41,6 +42,19 @@ assert(isModetourUnacceptableRegisterListingTitle(BAD_JUNTEUK_GRADE), 'junteuk g
 assert(isModetourUnacceptableRegisterListingTitle(BAD_VISA_NOTICE), 'visa policy notice not title')
 assert(!isModetourUnacceptableRegisterListingTitle(GOOD), 'good title acceptable')
 assert(!isModetourUnacceptableRegisterListingTitle(GOOD_DALIAN), 'dalian listing title acceptable')
+assert(
+  isModetourUnacceptableRegisterListingTitle(
+    '패키지>상품상세>CAP611CZLC>대련+여순(뤼순) 3일<노쇼핑/안중근발자취>',
+  ),
+  'breadcrumb raw title unacceptable until cleaned',
+)
+assert(
+  cleanModetourBaselineTitleSource(
+    '패키지>상품상세>CAP611CZLC>대련+여순(뤼순) 3일<노쇼핑/안중근발자취>',
+    'CAP611CZLC',
+  ) === GOOD_DALIAN,
+  'CAP611 breadcrumb strips to listing title',
+)
 
 const visaOnly = resolveModetourRegisterProductTitle({
   pasteBlob: `${BAD_VISA_NOTICE}\n여행 일정`,

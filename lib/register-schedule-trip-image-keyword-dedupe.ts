@@ -360,8 +360,8 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Glacier Bay Alaska cruise')
   }
   if (/타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베크|Uzbekistan|카자흐|Kazakhstan/i.test(rawRoute)) {
-    push('Registan Square Samarkand Uzbekistan')
-    push('Tashkent Minor Mosque Uzbekistan')
+    push('Registan Square')
+    push('Minor Mosque')
   }
   if (/바쿠|Baku|쉬르반샤|Shirvanshah/i.test(rawRoute)) {
     push('Shirvanshah Palace Baku Azerbaijan')
@@ -395,17 +395,17 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Tumon Bay Guam beach')
     push('Plaza de Espana Guam Spanish steps')
   }
-  if (/알마티|Almaty|카자흐|Kazakhstan|침블락|Charyn/i.test(rawRoute)) {
-    push('Charyn Canyon Kazakhstan red rock valley')
-    push('Kolsai Lakes Kazakhstan mountain lake')
-    push('Almaty Kazakhstan mountains city view')
-  }
   if (/타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베|Uzbekistan|아프로시압|Afrosiyab|레기스탄|Registan|침볼락|Chimbulak|Shymbulak/i.test(rawRoute)) {
-    push('Registan Square Samarkand Uzbekistan')
-    push('Afrosiyab ancient ruins Samarkand Uzbekistan')
-    push('Ulugh Beg Observatory Samarkand Uzbekistan')
-    push('Shymbulak ski resort Almaty Kazakhstan')
-    push('Zenkov Cathedral Almaty Kazakhstan')
+    push('Registan Square')
+    push('Afrosiyab')
+    push('Ulugh Beg Observatory')
+    push('Shymbulak')
+    push('Zenkov Cathedral')
+  }
+  if (/알마티|Almaty|카자흐|Kazakhstan|침블락|Charyn/i.test(rawRoute)) {
+    push('Charyn Canyon')
+    push('Kolsai Lakes')
+    push('Almaty')
   }
   if (/스위스|Switzerland|인터라켄|Interlaken|융프라우|Jungfrau|체르마트|Zermatt|마테호른|Matterhorn|루체른|Lucerne|취리히|Zurich|베른|Bern|몽트뢰|Montreux|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b/i.test(rawRoute)) {
     push('Jungfraujoch Swiss Alps')
@@ -1609,8 +1609,8 @@ function pickEasternEuropeClusterKeywordForUsedSlot(
     'Hagia Sophia Istanbul',
     'Cappadocia Fairy Chimneys',
     'Taj Mahal Agra India',
-    'Hawa Mahal Jaipur',
-    'Amber Fort Jaipur India',
+    'Hawa Mahal',
+    'Amber Fort',
   ]) {
     if (!easternEuropeHardcodedPoolHasDayRouteEvidence(raw, evidenceHay)) continue
     const hit = tryPick(raw)
@@ -2203,13 +2203,13 @@ function pickCentralAsiaClusterKeywordForUsedSlot(
     if (hit) return hit
   }
   for (const raw of [
-    'Charyn Canyon Kazakhstan red rock valley',
-    'Kolsai Lakes Kazakhstan mountain lake',
-    'Almaty Kazakhstan mountains city view',
-    'Registan Square Samarkand Uzbekistan',
-    'Afrosiyab ancient ruins Samarkand Uzbekistan',
-    'Ulugh Beg Observatory Samarkand Uzbekistan',
-    'Shymbulak ski resort Almaty Kazakhstan',
+    'Charyn Canyon',
+    'Kolsai Lakes',
+    'Almaty',
+    'Registan Square',
+    'Afrosiyab',
+    'Ulugh Beg Observatory',
+    'Shymbulak',
   ]) {
     const hit = tryPick(raw)
     if (hit) return hit

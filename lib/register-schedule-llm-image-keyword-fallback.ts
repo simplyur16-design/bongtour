@@ -25,10 +25,19 @@ export function normScheduleImageKeywordKey(s: string): string {
   return normKeywordKey(s)
 }
 
+/** Khajuraho Temple Complex ≡ Temples ≡ Western/Eastern — 동일 POI */
+function scheduleImageKeywordSemanticCanonical(k: string): string {
+  const t = String(k ?? '').trim()
+  if (!t) return ''
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: Khajuraho Complex≡Temples semantic — manifest
+  if (/\bkhajuraho\b/i.test(t) && /\btemples?\b/i.test(t)) return 'khajuraho temples'
+  return t
+}
+
 /** 1·2순위 의미 중복 — 동일 POI 장·단문(선두 구 일치). 도시명이 명소 뒤에 붙은 경우는 별개로 둠. */
 export function scheduleImageKeywordsSemanticallyOverlap(a: string, b: string): boolean {
-  const ka = normKeywordKey(String(a ?? '').trim())
-  const kb = normKeywordKey(String(b ?? '').trim())
+  const ka = scheduleImageKeywordSemanticCanonical(normKeywordKey(String(a ?? '').trim()))
+  const kb = scheduleImageKeywordSemanticCanonical(normKeywordKey(String(b ?? '').trim()))
   if (!ka || !kb) return false
   if (ka === kb) return true
   // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: kw2 must not semantic-overlap primary — manifest
