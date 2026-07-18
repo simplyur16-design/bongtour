@@ -84,6 +84,7 @@ type ExtendedRegionVibeProfile =
   | 'italy_cities'
   | 'philippines_islands'
   | 'africa_safari'
+  | 'austria_alps'
 
 const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, readonly string[]> = {
   china_coastal: [
@@ -153,6 +154,10 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   africa_safari: [
     '초원·보호구와 산자락 풍경이 이어지는, 사파리의 스케일이 돋보이는 하루입니다.',
     '이동마다 시야가 열려 야생과 지형의 대비가 분명하게 느껴지는 구성입니다.',
+  ],
+  austria_alps: [
+    '알프스 산자락과 구시가지·전망이 이어지는, 오스트리아의 시야가 열리는 하루입니다.',
+    '짧은 이동에도 도시와 산의 결이 달라 여정이 부드럽게 이어집니다.',
   ],
   south_america: [
     '고원 도시와 유적·폭포 풍경이 이어지는, 남미의 스케일이 돋보이는 하루입니다.',
@@ -320,7 +325,14 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'us_west_city'
   }
   if (
-    /두오모|Duomo|시뇨리아|베키오|피렌체|Florence|Firenze|로마|Rome|바티칸|Vatican|베네치아|Venice|마테라|Matera|솔로프라|폼페이|Pompeii|나폴리|Naples|이탈리아|Italy/i.test(
+    /융프라우|Jungfrau|루체른|Lucerne|인터라켄|Interlaken|체르마트|Zermatt|스위스|Switzerland|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b|빈사의\s*사자/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'switzerland_alps'
+  }
+  if (
+    /두오모|Duomo|시뇨리아|베키오|피렌체|Florence|Firenze|(?<![가-힣])로마(?![가-힣])|\bRome\b|바티칸|Vatican|베네치아|Venice|마테라|Matera|솔로프라|폼페이|Pompeii|나폴리|Naples|이탈리아|Italy/i.test(
       joinedBlob,
     )
   ) {
@@ -334,11 +346,18 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'philippines_islands'
   }
   if (
-    /세렝게티|Serengeti|응고롱고로|Ngorongoro|케이프타운|Cape\s*Town|테이블\s*마운틴|Table\s*Mountain|사파리|Safari|킬리만자로|Kilimanjaro|탄자니아|Tanzania|케냐|Kenya|남아공|South\s*Africa/i.test(
+    /세렝게티|Serengeti|응고롱고로|Ngorongoro|케이프타운|Cape\s*Town|테이블\s*마운틴|Table\s*Mountain|사파리|Safari|킬리만자로|Kilimanjaro|아루샤|Arusha|탄자니아|Tanzania|케냐|Kenya|남아공|South\s*Africa/i.test(
       joinedBlob,
     )
   ) {
     return 'africa_safari'
+  }
+  if (
+    /인스부르크|Innsbruck|노르트케테|Nordkette|스와로브스키|Swarovski|잘츠부르크|Salzburg|할슈타트|Hallstatt|오스트리아|Austria/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'austria_alps'
   }
   if (
     /리마|Lima|쿠스코|Cusco|마추픽추|Machu\s*Picchu|라파즈|La\s*Paz|우유니|Uyuni|이과수|Iguazu|남미|페루|Peru|볼리비아|아르헨|칠레|부에노스|파타고니아/i.test(
@@ -349,13 +368,6 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   }
   if (/비엔티엔|Vientiane|방비엥|Vang\s*Vieng|라오스|Laos|왓시사켓|까오삐약/i.test(joinedBlob)) {
     return 'laos_mekong'
-  }
-  if (
-    /융프라우|Jungfrau|루체른|Lucerne|인터라켄|Interlaken|체르마트|Zermatt|스위스|Switzerland|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b|빈사의\s*사자/i.test(
-      joinedBlob,
-    )
-  ) {
-    return 'switzerland_alps'
   }
   if (
     /바르셀로나|Barcelona|마드리드|Madrid|세비야|Seville|그라나다|Granada|톨레도|Toledo|몬세라트|Montserrat|알함브라|Alhambra|스페인|Spain/i.test(
@@ -378,7 +390,7 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'mongolia_steppe'
   }
   if (
-    /므츠헤타|Mtskheta|아나누리|Ananuri|트빌리시|Tbilisi|예레반|Yerevan|가르니|Garni|게가르드|Geghard|조지아|Georgia|아르메니아|Armenia|코카서스|Caucasus/i.test(
+    /므츠헤타|Mtskheta|아나누리|Ananuri|트빌리시|Tbilisi|예레반|Yerevan|가르니|Garni|게가르드|Geghard|시그나기|Sighnaghi|보드베|Bodbe|조지아|Georgia|아르메니아|Armenia|코카서스|Caucasus/i.test(
       joinedBlob,
     )
   ) {
@@ -453,7 +465,7 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'nordic_fjord'
   }
   if (
-    /카이로|기자|피라미드|스핑크스|룩소르|아스완|아부심벨|카르나크|이집트|Giza|Cairo|Luxor|Aswan|나일|Nile|사카라|멤피스/i.test(
+    /카이로|기자|피라미드|스핑크스|룩소르|아스완|아부심벨|카르나크|이집트|Giza|Cairo|Luxor|Aswan|나일|Nile|사카라|멤피스|후르가다|후루가다|Hurghada|덴데라|Dendera/i.test(
       joinedBlob,
     )
   ) {

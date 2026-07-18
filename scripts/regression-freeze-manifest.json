@@ -5340,6 +5340,7 @@
             "philippines_islands",
             "africa_safari",
             "caucasus_georgia_armenia",
+            "austria_alps",
             "로스엔젤"
           ]
         },
@@ -5399,7 +5400,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
             "short title from route",
-            "composeRegisterScheduleDayTitleFromRoute"
+            "composeRegisterScheduleDayTitleFromRoute",
+            "주의사항·행정 안내를 title 폴백으로 쓰지 않음"
           ]
         },
         {

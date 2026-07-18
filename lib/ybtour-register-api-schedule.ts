@@ -354,16 +354,20 @@ export function composeYbtourScheduleVibeSentences(
   routePlaces: readonly string[],
   joinedBlob: string,
 ): string {
-  const profile = inferYbtourScheduleVibeProfile(day, maxDay, joinedBlob)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+  const regionalFirst = composeRegisterScheduleRegionVibeDescription({
+    day,
+    maxDay,
+    routePlaces,
+    joinedBlob,
+  })
+  if (regionalFirst) return regionalFirst
+
+  const profile = inferYbtourScheduleVibeProfile(day, maxDay, joinedBlob)
   if (profile === 'generic_tourism') {
-    const regional = composeRegisterScheduleRegionVibeDescription({
-      day,
-      maxDay,
-      routePlaces,
-      joinedBlob,
-    })
-    if (regional) return regional
+    return (
+      [...YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism].slice(0, 2).join(' ') || `${day}일차`
+    )
   }
   const sentences = [...YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest

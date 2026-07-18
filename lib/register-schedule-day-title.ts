@@ -24,6 +24,16 @@ function isHubOrReturnSegment(seg: string): boolean {
   return /^(?:인천|김포|귀국|출국|공항|ICN|GMP)(?:\s|$)/u.test(seg) || /귀국|출국/.test(seg)
 }
 
+/** 주의사항·행정 안내를 title 폴백으로 쓰지 않음 */
+function isRegisterScheduleDayTitleNoise(text: string): boolean {
+  const t = text.replace(/\s+/g, ' ').trim()
+  if (!t) return true
+  if (/^\d+\s*일차$/.test(t)) return true
+  return /주의사항|※|안전사고|자유시간\s*시|개별적으로\s*진행|여행\s*준비\s*가이드|타사\s*비교|비즈니스\s*석|포함\s*일정|필수\s*준비/u.test(
+    t,
+  )
+}
+
 /**
  * routeText → 짧은 title. 세그먼트가 2개 이상이면 `첫 · 끝`.
  * 귀국일·빈 route는 returnTitle / fallbacks / `N일차`.
@@ -37,7 +47,7 @@ export function composeRegisterScheduleDayTitleFromRoute(opts: {
   returnTitle?: string
 }): string {
   const { day, maxDay } = opts
-  const segs = splitRouteTitleSegments(opts.routeText)
+  const segs = splitRouteTitleSegments(opts.routeText).filter((s) => !isRegisterScheduleDayTitleNoise(s))
 
   const returnish =
     day === maxDay &&
@@ -58,7 +68,7 @@ export function composeRegisterScheduleDayTitleFromRoute(opts: {
 
   for (const f of opts.fallbacks ?? []) {
     const t = String(f ?? '').trim()
-    if (t) return clipRegisterScheduleDayTitle(t)
+    if (t && !isRegisterScheduleDayTitleNoise(t)) return clipRegisterScheduleDayTitle(t)
   }
   return `${day}일차`
 }

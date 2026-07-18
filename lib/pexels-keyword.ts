@@ -143,12 +143,7 @@ const DESTINATION_MAP: Record<string, string> = {
   오르후스: 'Aarhus',
   오덴세: 'Odense',
   뉴델리: 'Delhi',
-  델리: 'Delhi',
-  아그라: 'Agra',
-  룩소르: 'Luxor',
-  아스완: 'Aswan',
-  기자: 'Giza',
-  후르가다: 'Hurghada',
+  // 델리·아그라·룩소르·아스완·기자·후르가다 — earlier KO_CITY_TO_EN entries (duplicate keys break next build)
   후루가다: 'Hurghada',
   브라티슬라바: 'Bratislava',
   잘츠부르크: 'Salzburg',
@@ -268,7 +263,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   차이나타운: 'Chinatown Singapore',
   리버보트: 'Singapore River',
   리버보트크루즈: 'Singapore River',
-  후르가다: 'Hurghada',
+  // 후르가다 — earlier KO_CITY_TO_EN city map (duplicate key breaks next build)
   홍해: 'Red Sea Egypt',
   그랜드이집션뮤지엄: 'Grand Egyptian Museum',
   '그랜드 이집션 뮤지엄': 'Grand Egyptian Museum',

@@ -14,7 +14,10 @@ import {
 } from '@/lib/register-schedule-route-place-noise'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
-import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
+import {
+  composeRegisterScheduleRegionVibeDescription,
+  pickScheduleVibeSentencesWithoutPlaceLeak,
+} from '@/lib/register-schedule-region-vibe'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 
 const MODETOUR_SCHEDULE_HIGHLIGHT_MAX = 7
@@ -237,30 +240,35 @@ export function composeModetourScheduleVibeDescription(
   const chainBlob = highlights.join(' - ')
   const transport = stripModetourInlineHtml(String(day.transportNote ?? ''))
   const places = dedupeModetourFactDayPlaces(day.places)
+  const routePlaces = highlights.length ? highlights : places
   const joined = [transport, chainBlob, ...places].filter(Boolean).join(' ')
-  const profile = inferModetourScheduleVibeProfile(day, maxDay, joined)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+  const regionalFirst = composeRegisterScheduleRegionVibeDescription({
+    day: day.day,
+    maxDay,
+    routePlaces,
+    joinedBlob: joined,
+  })
+  if (regionalFirst) return regionalFirst
+
+  const profile = inferModetourScheduleVibeProfile(day, maxDay, joined)
   if (profile === 'generic_tourism') {
-    const regional = composeRegisterScheduleRegionVibeDescription({
-      day: day.day,
-      maxDay,
-      routePlaces: highlights.length ? highlights : places,
-      joinedBlob: joined,
-    })
-    if (regional) return regional
+    return [...MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism].slice(0, 2).join(' ')
   }
   const sentences = [...MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  let desc = sentences.join(' ')
-  for (const h of highlights) {
-    for (const chunk of modetourHighlightLeakChunks(h)) {
-      if (chunk.length >= 6 && desc.includes(chunk)) {
-        const alt = MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile].filter((s) => !s.includes(chunk))
-        desc = (alt.length >= 2 ? alt : MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]).slice(0, 2).join(' ')
-        break
-      }
-    }
-  }
-  return desc.slice(0, 320).trim()
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
+  return pickScheduleVibeSentencesWithoutPlaceLeak(
+    sentences,
+    routePlaces,
+    modetourHighlightLeakChunks,
+    () =>
+      composeRegisterScheduleRegionVibeDescription({
+        day: day.day,
+        maxDay,
+        routePlaces,
+        joinedBlob: joined,
+      }),
+  )
 }
 
 /** 상품명에서 리조트·숙소 힌트 (예: 조이아일랜드 비치빌라 · 두짓비치). */

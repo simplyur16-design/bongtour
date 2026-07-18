@@ -18,6 +18,18 @@ describe('register schedule day title SSOT', () => {
     ).toBe('피렌체 · 베네치아')
   })
 
+  // REGRESSION-FREEZE[register-schedule-day-title-ssot]: 주의사항 노이즈는 title 폴백 금지 — manifest
+  it('주의사항·행정 문구는 title 폴백으로 쓰지 않음', () => {
+    expect(
+      composeRegisterScheduleDayTitleFromRoute({
+        day: 1,
+        maxDay: 5,
+        routeText: '자유시간 시 주의사항 ※안전사고',
+        fallbacks: ['필수 준비 사항'],
+      }),
+    ).toBe('1일차')
+  })
+
   it('modetour — title ≠ full routeText', () => {
     const days = modetourFactDaysToRegisterSchedule([
       {
