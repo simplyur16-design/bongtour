@@ -331,6 +331,8 @@ export const CITY_COUNTRY_ONLY = new Set(
     'macao',
     'shanghai',
     'beijing',
+    'zhangjiajie',
+    'changsha',
     'guangzhou',
     'shenzhen',
     'taipei',

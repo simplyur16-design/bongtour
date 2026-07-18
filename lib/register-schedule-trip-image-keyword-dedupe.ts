@@ -372,9 +372,15 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Republic Square Yerevan Armenia')
   }
   if (/두바이|Dubai|아부다비|Abu\s*Dhabi|UAE|에미리트/i.test(rawRoute)) {
-    push('Burj Khalifa Dubai skyline')
+    push('Emirates Palace Abu Dhabi')
+    push('Qasr Al Watan Abu Dhabi')
     push('Sheikh Zayed Grand Mosque Abu Dhabi')
+    push('Etihad Towers Abu Dhabi')
+    push('Dubai Fountain Dubai Mall')
+    push('Burj Khalifa Dubai skyline')
     push('Louvre Abu Dhabi Saadiyat Island')
+    push('Palm Jumeirah Dubai aerial')
+    push('Dubai Creek Dhow Cruise')
   }
   if (/몰디브|Maldives|overwater|라군|lagoon/i.test(rawRoute)) {
     push('Maldives Overwater Villa Turquoise Lagoon')
@@ -941,6 +947,11 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
                 : 'Cairo'
           } else if (/두바이|아부다비|Dubai|Abu\s*Dhabi/i.test(tripHay)) {
             softCity = 'Dubai'
+          } else if (/장가계|원가계|천문산|천자산|보봉|미혼대|Zhangjiajie/i.test(tripHay)) {
+            // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 장가계→Zhangjiajie return soft-dup — manifest
+            softCity = 'Zhangjiajie'
+          } else if (/장사|Changsha/i.test(tripHay)) {
+            softCity = 'Changsha'
           }
         }
         if (!softCity) {
@@ -2037,9 +2048,31 @@ function allowUaeResortClusterKw2Duplicate(kw: string, routeText?: string | null
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isUaeResortClusterRoute(routeText)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /dubai|burj|khalifa|mosque|zayed|louvre|abudhabi|abu dhabi|desert|safari|palm|jumeirah|fahidi|frame|marina|emirates|yas|ferrari/.test(
+  return /dubai|burj|khalifa|mosque|zayed|louvre|abudhabi|abu dhabi|desert|safari|palm|jumeirah|fahidi|frame|marina|emirates|palace|etihad|fountain|dhow|creek|yas|ferrari|qasr|watan/.test(
     nk,
   )
+}
+
+/** UAE hardcoded pool — 당일 route 근거 있는 키만 (두바이 날에 Louvre bleed 금지) */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — EMP340 landmark bleed 금지 — manifest
+function uaeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const rt = String(dayRoute ?? '')
+  if (!rt.trim()) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (/louvre|saadiyat/.test(nk)) return /루브르|Louvre|사디얗|사디얏|Saadiyat/i.test(rt)
+  if (/mosque|zayed/.test(nk)) return /모스크|Mosque|자이드|Zayed|아부다비|Abu\s*Dhabi/i.test(rt)
+  if (/burj|khalifa/.test(nk)) return /버즈|칼리파|Burj|Khalifa/i.test(rt)
+  if (/palm|jumeirah/.test(nk)) return /팜|주메이라|Palm|Jumeirah/i.test(rt)
+  if (/desert|safari/.test(nk)) return /사막|사파리|Desert|Safari/i.test(rt)
+  if (/fahidi|bastaki/.test(nk)) return /파히디|바스타|Fahidi|Bastaki/i.test(rt)
+  if (/frame/.test(nk)) return /프레임|Frame/i.test(rt)
+  if (/emirates\s*palace|palace abu/.test(nk)) return /에미레이트\s*팰리스|Emirates\s*Palace/i.test(rt)
+  if (/qasr|watan/.test(nk)) return /아부다비\s*왕궁|Qasr|Watan|왕궁/i.test(rt)
+  if (/etihad/.test(nk)) return /에티하드|Etihad/i.test(rt)
+  if (/fountain/.test(nk)) return /분수|Fountain/i.test(rt)
+  if (/dhow|creek/.test(nk)) return /도우|크루즈|Dhow|Creek/i.test(rt)
+  if (/ferrari|yas/.test(nk)) return /페라리|Ferrari|야스|Yas/i.test(rt)
+  return false
 }
 
 function pickUaeResortClusterKeywordForUsedSlot(
@@ -2050,12 +2083,14 @@ function pickUaeResortClusterKeywordForUsedSlot(
   dayRouteText?: string | null,
 ): string {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — EMP340 landmark bleed 금지 — manifest
   // tripHay에 아부다비·두바이가 있어도 당일 route에 걸프 증거가 없으면 주입 금지
   const evidence = dayRouteText != null ? String(dayRouteText) : String(routeText ?? '')
   if (!isUaeResortClusterRoute(evidence)) return ''
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
     if (!allowUaeResortClusterKw2Duplicate(kw, evidence)) return ''
+    if (!uaeHardcodedPoolHasDayRouteEvidence(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -2066,11 +2101,16 @@ function pickUaeResortClusterKeywordForUsedSlot(
     if (hit) return hit
   }
   for (const raw of [
-    'Burj Khalifa Dubai skyline',
+    'Emirates Palace Abu Dhabi',
+    'Qasr Al Watan Abu Dhabi',
     'Sheikh Zayed Grand Mosque Abu Dhabi',
+    'Etihad Towers Abu Dhabi',
+    'Dubai Fountain Dubai Mall',
+    'Burj Khalifa Dubai skyline',
     'Louvre Abu Dhabi Saadiyat Island',
     'Dubai desert safari dunes sunset',
     'Palm Jumeirah Dubai aerial',
+    'Dubai Creek Dhow Cruise',
   ]) {
     const hit = tryPick(raw)
     if (hit) return hit
@@ -2943,7 +2983,7 @@ function pickReturnSoftDupBareVisitCity<T extends RegisterScheduleTripKeywordRow
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty route soft-dup bare city — manifest
   const bareCityFromEnglishHay = (hay: string): string => {
     const m = String(hay ?? '').match(
-      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb|Manado|Delhi|Jaipur|Agra|Cairo|Luxor|Aswan|Giza|Hurghada|Dubai)\b/i,
+      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb|Manado|Delhi|Jaipur|Agra|Cairo|Luxor|Aswan|Giza|Hurghada|Dubai|Zhangjiajie|Changsha)\b/i,
     )
     if (!m?.[1]) {
       if (/kota\s*kinabalu/i.test(hay)) return 'Kota Kinabalu'

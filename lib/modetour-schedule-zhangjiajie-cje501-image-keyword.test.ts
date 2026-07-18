@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: 백장협≠Bailong · Tianmen cable car 금지 — manifest
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 장가계→Zhangjiajie return soft-dup — manifest
  */
 import { describe, expect, it } from 'vitest'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
@@ -15,7 +16,7 @@ describe('modetour Zhangjiajie CJE501 imageKeyword', () => {
     expect(firstMatchingScheduleSpotEn('칠성산')).toMatch(/Seven Star/i)
   })
 
-  it('CJE501-like 5-day — Day4 Baizhang≠Bailong; Day2 Tianmen short', () => {
+  it('CJE501-like 5-day — Day4 Baizhang≠Bailong; Day5 return soft-dup Zhangjiajie', () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(
       [
         {
@@ -55,7 +56,7 @@ describe('modetour Zhangjiajie CJE501 imageKeyword', () => {
         },
       ],
       {
-        brandKey: 'modetour',
+        supplierKey: 'modetour',
         productDestination: '장가계',
         productTitle: '[비교불가] 장사 장가계/원가계 3박5일',
       },
@@ -65,8 +66,14 @@ describe('modetour Zhangjiajie CJE501 imageKeyword', () => {
     expect(String(d2.imageKeyword2 ?? d2.imageKeyword)).not.toMatch(/cable/i)
 
     const d4 = out.find((r) => r.day === 4)!
-    expect(String(d4.imageKeyword ?? '')).toMatch(/Baizhang Gorge|Baofeng Lake/i)
+    expect(String(d4.imageKeyword ?? '')).toMatch(/Baizhang/i)
     expect(String(d4.imageKeyword ?? '')).not.toMatch(/Bailong/i)
     expect(String(d4.imageKeyword2 ?? '')).not.toMatch(/Bailong/i)
+
+    const d5 = out.find((r) => r.day === 5)!
+    // 귀국·route 비움 — 미사용 명소 bleed 대신 방문도시 soft-dup (공항 금지)
+    expect(String(d5.imageKeyword ?? '')).toMatch(/^Zhangjiajie$/i)
+    expect(String(d5.imageKeyword ?? '')).not.toMatch(/airport|인천|귀국|Avatar/i)
+    expect(d5.imageKeyword2 == null || String(d5.imageKeyword2).trim() === '').toBe(true)
   })
 })

@@ -338,7 +338,12 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   if (/파타야|니모|스노클|푸켓|사무이|크라비/i.test(joinedBlob)) {
     return 'thailand_beach'
   }
-  if (/방콕|왕궁|에메랄드|수상가옥|짜오프라야|아시아티크|농눅/i.test(joinedBlob)) {
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: UAE before Bangkok 왕궁 — 아부다비 왕궁≠방콕 — manifest
+  if (/두바이|Dubai|아부다비|Abu\s*Dhabi|바스타키아|아브라|셰이크|버즈\s*칼리파|UAE|에미리트|에미레이트/i.test(joinedBlob)) {
+    return 'uae_gulf'
+  }
+  // bare「왕궁」만으로 방콕 금지 — 아부다비 왕궁·유럽 왕궁 오탐
+  if (/방콕|에메랄드|수상가옥|짜오프라야|아시아티크|농눅|(?:방콕).{0,20}왕궁|왕궁.{0,20}(?:방콕)/i.test(joinedBlob)) {
     return 'thailand_bangkok'
   }
   if (
@@ -423,9 +428,7 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   if (/바쿠|Baku|셰키|Sheki|고부스탄|쉬르반|아제르|Azerbaijan/i.test(joinedBlob)) {
     return 'caucasus_caspian'
   }
-  if (/두바이|Dubai|아부다비|Abu\s*Dhabi|바스타키아|아브라|셰이크|버즈\s*칼리파|UAE|에미리트/i.test(joinedBlob)) {
-    return 'uae_gulf'
-  }
+  // UAE는 thailand_bangkok보다 위에서 이미 처리 (아부다비 왕궁≠방콕)
   if (/사이판|Saipan|마나가하|Managaha|새섬|PIC|괌|Guam|투몬/i.test(joinedBlob)) {
     return 'micronesia_islands'
   }

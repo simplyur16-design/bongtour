@@ -5374,7 +5374,8 @@
             "austria_alps",
             "로스엔젤",
             "central Asia before japan onsen",
-            "India Varanasi/Khajuraho ≠ golden reuse"
+            "India Varanasi/Khajuraho ≠ golden reuse",
+            "UAE before Bangkok 왕궁 — 아부다비 왕궁≠방콕"
           ]
         },
         {
@@ -5391,6 +5392,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "registerScheduleKeywordPassesTripRouteTextSsot"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "UAE before Bangkok 왕궁 — 아부다비 왕궁≠방콕",
+            "걸프"
           ]
         },
         {
@@ -5419,7 +5428,8 @@
         "lib/modetour-register-api-schedule.test.ts",
         "lib/kyowontour-register-api-schedule.test.ts",
         "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
-        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts"
+        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
+        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts"
       ]
     },
     {
@@ -5522,7 +5532,9 @@
             "domestic hub return keep unused landmark not bare city",
             "return empty route soft-dup bare city",
             "삿포→Sapporo bare soft-dup",
+            "장가계→Zhangjiajie return soft-dup",
             "UAE cluster day-route evidence — Greece day Dubai bleed 금지",
+            "UAE cluster day-route evidence — EMP340 landmark bleed 금지",
             "Ordos≠Alaska cluster — Glacier Bay bleed 금지",
             "Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지",
             "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지"
@@ -5532,6 +5544,7 @@
           "file": "lib/pexels-keyword.ts",
           "mustInclude": [
             "로스앤젤레스(앤) DEST soft-dup",
+            "장가계→Zhangjiajie return soft-dup",
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]"
           ]
         },
@@ -5545,10 +5558,29 @@
             "싱가포르 일정 — tripHay SEA라도",
             "비치 클럽 크루즈만으로 Alaska/Seattle 키워드 유입 금지",
             "return empty route — prior tourism bare city soft-dup",
+            "장가계 귀국 empty route — soft-dup Zhangjiajie",
             "홋카이도 중간일 삿포",
             "그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지",
             "이집트 기자 스핑크스 — Jungfraujoch bleed 금지",
             "발트 승리기념탑 — Mount Rigi Swiss bleed 금지"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "장가계→Zhangjiajie return soft-dup",
+            "Day5 return soft-dup Zhangjiajie",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "UAE cluster day-route evidence — EMP340 landmark bleed 금지",
+            "Day2 filled",
+            "supplierKey: 'modetour'"
           ]
         },
         {
@@ -5590,7 +5622,9 @@
         "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
         "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts",
         "lib/register-schedule-ybtour-pap1194-image-keyword.test.ts",
-        "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts"
+        "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts",
+        "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
+        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts"
       ]
     },
     {
@@ -6148,6 +6182,7 @@
             "대련·여순 CAP611 — 성해/러시아거리·연화산 일차 오매핑 금지",
             "북유럽 ENP121 — Preikestolen·십자가언덕·레르달",
             "백장협≠Bailong",
+            "UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드",
             "EAP321 Central Asia",
             "India AWP902"
           ]
@@ -6218,7 +6253,9 @@
         "lib/register-schedule-image-keyword-cross-supplier-ssot.test.ts",
         "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
         "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
-        "lib/modetour-schedule-zhangjiajie-baizhang-image-keyword.test.ts"
+        "lib/modetour-schedule-zhangjiajie-baizhang-image-keyword.test.ts",
+        "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
+        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts"
       ]
     },
     {

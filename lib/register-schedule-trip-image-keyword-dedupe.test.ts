@@ -1184,6 +1184,35 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Prague/i)
   })
 
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 장가계→Zhangjiajie return soft-dup — manifest
+  it('장가계 귀국 empty route — soft-dup Zhangjiajie not unused landmark', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 장가계',
+          imageKeyword: 'Seven Star Mountain',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '장가계 - 천문산',
+          imageKeyword: 'Zhangjiajie National Forest Park',
+          imageKeyword2: 'Tianmen Mountain',
+        },
+        {
+          day: 3,
+          routeText: '장가계 - 천자산 - 원가계',
+          imageKeyword: 'Tianzi Mountain',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '장가계',
+    )
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/^Zhangjiajie$/i)
+  })
+
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
   it('홋카이도 중간일 삿포 — empty kw soft-dup Sapporo', () => {
     const out = fillRegisterScheduleMiddleDayImageKeywordGaps(

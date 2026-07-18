@@ -34,7 +34,7 @@ describe('modetour Zhangjiajie Baizhang / Tianmen imageKeyword', () => {
         },
       ],
       {
-        brandKey: 'modetour',
+        supplierKey: 'modetour',
         productDestination: '장가계',
         productTitle: '장사 장가계/원가계 3박5일',
       },

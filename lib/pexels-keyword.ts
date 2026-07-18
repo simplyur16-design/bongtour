@@ -71,6 +71,9 @@ const DESTINATION_MAP: Record<string, string> = {
   사해: 'Shanghai',
   베이징: 'Beijing',
   북경: 'Beijing',
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 장가계→Zhangjiajie return soft-dup — manifest
+  장가계: 'Zhangjiajie',
+  장사: 'Changsha',
   하와이: 'Hawaii',
   괌: 'Guam',
   사이판: 'Saipan',
