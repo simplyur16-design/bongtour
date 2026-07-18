@@ -737,6 +737,10 @@ export function isAirlineCarrierImageKeyword(keyword: string): boolean {
   if (/^에어[\uAC00-\uD7AF]{1,12}(?:\s*항공)?$/u.test(raw)) return true
   const n = normalizeToPlaceName(raw).toLowerCase()
   if (!n) return false
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드 — manifest
+  // Emirates Palace(아부다비 랜드마크) ≠ Emirates 항공사
+  if (/\bemirates\s+palace\b/i.test(n)) return false
+  if (/\betihad\s+towers?\b/i.test(n)) return false
   return AIRLINE_CARRIER_RE.test(n)
 }
 
@@ -800,6 +804,15 @@ export function isWeakOpaqueImageKeyword(keyword: string): boolean {
 }
 
 function isNonLandmarkRouteTextSegmentKo(t: string): boolean {
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드 — manifest
+  // 「에미레이트 팰리스호텔 … +아부다비 왕궁」처럼 호텔 토큰과 관광 POI가 한 세그먼트면 통째로 버리지 않음
+  if (
+    /(?:왕궁|팰리스|모스크|분수|사원|궁전|타워|전망대|크루즈|시장|수크|프레임|칼리파|에미레이트|에티하드|아부다비)/u.test(
+      t,
+    )
+  ) {
+    return false
+  }
   return /스파|라운지|마트|면세|쇼핑|식당|레스토랑|뷔페|호텔|리조트|공항|픽업|이동|체크인|숙박|식사|조식|중식|석식|킹콩|T\s*라운지|문\s*스파|국제\s*공항|투숙|안내사항|유의사항|입국신고|입국\s*도시|선택관광|서커스|팁$|자금성\s*안내|관광\s*캠프|투어(?:리스트|ist)\s*캠프|미라지\s*캠프|유목민\s*게르|현대식\s*게르|아울렛|아웃렛|OUTLET|Sound\s*of\s*Music|사운드\s*오브\s*뮤직|VIP\s*리무진|리무진\s*버스|인력거|릭샤|리크샤|rickshaw|도시락|이른\s*기상|소림(?:무술)?쇼|경극|전문대가/u.test(
     t,
   ) || /(?:^|\s)캠프(?:\s|$)/u.test(t)

@@ -426,10 +426,13 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^몬테카티니(?:테르메)?$/u.test(t)) return true
   if (/^MONTECATINI(?:\s*TERME)?$/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: 호텔명·교외토큰·단독 국가명 — manifest
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드 — manifest
   if (/^(?:HOTEL|Hotel)\b/.test(t)) return true
   if (
     isHotelLodgingImageKeyword(t) &&
-    !/(?:성|궁|탑|사원|박물관|유적|폭포|대성당|등\s*\d+\s*성|\/\s*(?:준)?\d+\s*성)/u.test(t)
+    !/(?:성|궁|탑|사원|박물관|유적|폭포|대성당|팰리스|모스크|분수|왕궁|전망대|에미레이트|에티하드|등\s*\d+\s*성|\/\s*(?:준)?\d+\s*성)/u.test(
+      t,
+    )
   ) {
     return true
   }

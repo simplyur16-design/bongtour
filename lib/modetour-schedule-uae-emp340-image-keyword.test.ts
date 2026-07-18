@@ -87,6 +87,8 @@ describe('modetour UAE EMP340 imageKeyword', () => {
     const d2 = out.find((r) => r.day === 2)!
     const d2blob = `${d2.imageKeyword ?? ''} ${d2.imageKeyword2 ?? ''}`
     expect(String(d2.imageKeyword ?? '').trim().length).toBeGreaterThan(2)
+    // Emirates Palace는 항공사 오탐 없이 1순위(호텔 복합 세그먼트 선두 POI)
+    expect(String(d2.imageKeyword ?? '')).toMatch(/Emirates Palace/i)
     expect(d2blob).toMatch(/Emirates Palace|Qasr Al Watan|Grand Mosque|Etihad|Fountain/i)
     expect(d2blob).not.toMatch(/Louvre/i)
 
