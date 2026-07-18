@@ -10,7 +10,7 @@ import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-k
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import { expandRegisterScheduleRoutePlaceCandidates, extractRegisterScheduleRoutePlaceLabel, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
-import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
+import { composeRegisterScheduleRegionVibeDescription, pickScheduleVibeSentencesWithoutPlaceLeak } from '@/lib/register-schedule-region-vibe'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -289,7 +289,7 @@ type YbtourScheduleVibeProfile =
 
 const YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<YbtourScheduleVibeProfile, readonly string[]> = {
   hk_walking: [
-    '홍콩의 세련된 번화가부터 아기자기한 로컬 골목까지, 다채로운 매력을 하루에 만끽하는 알찬 도보 여행 동선입니다.',
+    '세련된 번화가부터 아기자기한 로컬 골목까지, 다채로운 매력을 하루에 만끽하는 알찬 도보 여행 동선입니다.',
     '화려한 현대적 감각과 서정적인 분위기가 자연스럽게 이어져 걷는 즐거움이 가득한 최적의 일정입니다.',
   ],
   macau_daytrip: [
@@ -366,22 +366,19 @@ export function composeYbtourScheduleVibeSentences(
     if (regional) return regional
   }
   const sentences = [...YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  let desc = sentences.join(' ')
-  for (const h of routePlaces) {
-    for (const chunk of ybtourHighlightLeakChunks(h)) {
-      if (desc.includes(chunk)) {
-        const regional = composeRegisterScheduleRegionVibeDescription({
-          day,
-          maxDay,
-          routePlaces,
-          joinedBlob,
-        })
-        desc = regional || YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
-        break
-      }
-    }
-  }
-  return desc.slice(0, 320).trim()
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
+  return pickScheduleVibeSentencesWithoutPlaceLeak(
+    sentences,
+    routePlaces,
+    ybtourHighlightLeakChunks,
+    () =>
+      composeRegisterScheduleRegionVibeDescription({
+        day,
+        maxDay,
+        routePlaces,
+        joinedBlob,
+      }),
+  )
 }
 
 /** description — 분위기·흐름 2~3문장 (장소 나열은 routeText 전용) */

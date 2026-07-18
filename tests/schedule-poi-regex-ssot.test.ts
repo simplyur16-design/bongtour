@@ -116,4 +116,27 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('아라시야마 - 도게츠교 - 치쿠린')).toMatch(/Arashiyama|Togetsu/i)
     expect(firstMatchingScheduleSpotEn('아라시야마 - 도게츠교 - 치쿠린')).not.toMatch(/Doge/i)
   })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 이집트 스핑크스 ≠ Jungfraujoch — manifest
+  it('maps Egypt Giza Sphinx — not Jungfraujoch Swiss Alps', () => {
+    expect(firstMatchingScheduleSpotEn('기자의 피라미드와 스핑크스')).toMatch(/Great Sphinx|Giza/i)
+    expect(firstMatchingScheduleSpotEn('기자의 피라미드와 스핑크스')).not.toMatch(/Jungfrau/i)
+    expect(firstMatchingScheduleSpotEn('카이로 - 스핑크스 - 피라미드')).toMatch(/Great Sphinx|Giza/i)
+    expect(firstMatchingScheduleSpotEn('카이로 - 스핑크스 - 피라미드')).not.toMatch(/Jungfrau/i)
+    expect(firstMatchingScheduleSpotEn('융프라우요흐 스핑크스 전망대')).toMatch(/Jungfraujoch|Sphinx Observatory/i)
+    expect(firstMatchingScheduleSpotEn('Sphinx Observatory')).toMatch(/Jungfraujoch/i)
+  })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 리기≠승리기념탑 — Baltic Victory Monument bleed 금지 — manifest
+  it('does not map Baltic Victory Monument 승리기념탑 to Mount Rigi', () => {
+    expect(firstMatchingScheduleSpotEn('체시스 - 승리기념탑 - 시굴다 - 투라이다 성')).not.toMatch(/Rigi|Jungfrau|Swiss/i)
+    expect(firstMatchingScheduleSpotEn('체시스 - 승리기념탑 - 시굴다 - 투라이다 성')).toMatch(
+      /Cesis|Sigulda|Turaida/i,
+    )
+    expect(firstMatchingScheduleSpotEn('리기산 전망')).toMatch(/Rigi/i)
+    expect(firstMatchingScheduleSpotEn('주노 - 껌벽 등')).toMatch(/Juneau/i)
+    expect(firstMatchingScheduleSpotEn('주노 - 껌벽 등')).not.toMatch(/Glacier Bay/i)
+    expect(firstMatchingScheduleSpotEn('케치칸')).toMatch(/Ketchikan/i)
+    expect(firstMatchingScheduleSpotEn('빌라누프 궁전')).toMatch(/Wilanow/i)
+  })
 })

@@ -321,6 +321,7 @@ function scheduleRowIssues(
     issues.push('description 마케팅·특전·수하물 오염')
   }
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: batch generic tourism soft — manifest
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
   if (desc && isRegisterScheduleGenericTourismDescription(desc) && !isFirst && !isLast) {
     softIssues.push('description generic tourism')
   }
@@ -402,8 +403,9 @@ function collectPriceIssues(parsed: Record<string, unknown>): {
       return hasOriginAttempt && emptyAfterAttempt
     })
     if (modetourSd1Empty) {
-      softIssues.push('출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)')
       // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1·calendar_empty는 soft (품절·퇴장) — hard parse fail 금지 — manifest
+      // 판매종료·달력 0건은 정직한 상태 — soft 노이즈로 반복 집계하지 않음 (notes에 이미 기록)
+      // softIssues.push omitted — ok + priceCount=0 + notes SSOT
     } else if (notes.some((n) => n.includes('하나투어 출발 달력 0건·anchor 과거마감:'))) {
       softIssues.push('출발일별 prices 비어 있음(hanatour 지정 출발일 과거마감·미래 달력 0건)')
     } else {

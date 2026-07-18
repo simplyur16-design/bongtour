@@ -10,6 +10,38 @@ export function isRegisterScheduleGenericTourismDescription(desc: string): boole
   return desc.includes(GENERIC_TOURISM_MARKER)
 }
 
+/**
+ * 장소명이 vibe 문장에 섞일 때 — 같은 프로필 대체 문장·확장 지역만 시도.
+ * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
+ */
+export function pickScheduleVibeSentencesWithoutPlaceLeak(
+  profileSentences: readonly string[],
+  routePlaces: readonly string[],
+  leakChunksFor: (label: string) => string[],
+  regionalFallback: () => string | null,
+): string {
+  const join = (sents: readonly string[]) => sents.slice(0, 2).join(' ')
+  let desc = join(profileSentences)
+  for (const h of routePlaces) {
+    for (const chunk of leakChunksFor(h)) {
+      if (!chunk || !desc.includes(chunk)) continue
+      const alt = profileSentences.filter((s) => !s.includes(chunk))
+      if (alt.length >= 1) {
+        desc = join(alt)
+        continue
+      }
+      const regional = regionalFallback()
+      if (regional && !isRegisterScheduleGenericTourismDescription(regional)) {
+        desc = regional
+        break
+      }
+      // non-generic 프로필을 generic으로 떨어뜨리지 않음
+      break
+    }
+  }
+  return desc.slice(0, 320).trim()
+}
+
 type ExtendedRegionVibeProfile =
   | 'china_coastal'
   | 'china_zhangjiajie'
@@ -22,6 +54,7 @@ type ExtendedRegionVibeProfile =
   | 'central_asia_steppe'
   | 'canada_rockies'
   | 'us_west_nature'
+  | 'us_west_city'
   | 'mediterranean_coast'
   | 'croatia_adriatic'
   | 'balkans_city'
@@ -31,6 +64,26 @@ type ExtendedRegionVibeProfile =
   | 'egypt_nile'
   | 'india_golden'
   | 'ordos_steppe'
+  | 'vietnam_south'
+  | 'hong_kong_city'
+  | 'oceania_nz'
+  | 'hawaii_islands'
+  | 'south_america'
+  | 'laos_mekong'
+  | 'switzerland_alps'
+  | 'spain_iberia'
+  | 'portugal_atlantic'
+  | 'taiwan_island'
+  | 'mongolia_steppe'
+  | 'caucasus_caspian'
+  | 'caucasus_georgia_armenia'
+  | 'uae_gulf'
+  | 'micronesia_islands'
+  | 'sea_diving'
+  | 'japan_kyushu'
+  | 'italy_cities'
+  | 'philippines_islands'
+  | 'africa_safari'
 
 const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, readonly string[]> = {
   china_coastal: [
@@ -57,6 +110,10 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
     '신사·상점가·골목이 이어지는, 걷는 즐거움이 중심인 하루입니다.',
     '도심의 리듬에 맞춰 장면이 자연스럽게 바뀌는 알찬 구성입니다.',
   ],
+  japan_kyushu: [
+    '온천·강변·항구 도시가 이어지는, 규슈의 여유로운 하루입니다.',
+    '짧은 이동마다 풍경의 결이 바뀌어 여정이 또렷하게 느껴지는 구성입니다.',
+  ],
   thailand_bangkok: [
     '왕궁·사원·수변이 이어지는, 방콕의 밀도가 느껴지는 하루입니다.',
     '도심을 가로지르며 전통과 현대의 대비를 함께 담는 구성입니다.',
@@ -64,6 +121,86 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   thailand_beach: [
     '섬과 해안이 이어지는, 여유로운 남국의 하루입니다.',
     '수상 활동과 해변 리듬이 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+  ],
+  vietnam_south: [
+    '섬과 고원·야시장이 이어지는, 베트남 남부의 여유로운 하루입니다.',
+    '걷는 리듬과 수변 분위기가 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+  ],
+  hong_kong_city: [
+    '번화가와 골목·전망이 이어지는, 도보 리듬이 중심인 하루입니다.',
+    '현대적 감각과 로컬 분위기가 자연스럽게 섞여 걷는 즐거움이 돋보입니다.',
+  ],
+  oceania_nz: [
+    '호수·산자락·시내 거리가 이어지는, 뉴질랜드의 시야가 열리는 하루입니다.',
+    '이동마다 풍경의 스케일이 바뀌어 여운이 길게 남는 구성입니다.',
+  ],
+  hawaii_islands: [
+    '해변과 화산·문화 거점이 이어지는, 하와이의 여유로운 하루입니다.',
+    '수변과 시내 분위기가 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+  ],
+  us_west_city: [
+    '전망대와 거리·해안 공원이 이어지는, 미서부 도시의 걷는 리듬이 중심인 하루입니다.',
+    '짧은 체류에도 분위기 차이가 또렷해 여정이 부드럽게 이어집니다.',
+  ],
+  italy_cities: [
+    '광장과 성당·골목이 이어지는, 이탈리아 도시의 걷는 리듬이 중심인 하루입니다.',
+    '짧은 이동에도 도시마다 결이 달라 여정이 부드럽게 이어집니다.',
+  ],
+  philippines_islands: [
+    '해변과 섬·리조트 풍경이 이어지는, 필리핀의 여유로운 하루입니다.',
+    '수변과 시내 분위기가 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+  ],
+  africa_safari: [
+    '초원·보호구와 산자락 풍경이 이어지는, 사파리의 스케일이 돋보이는 하루입니다.',
+    '이동마다 시야가 열려 야생과 지형의 대비가 분명하게 느껴지는 구성입니다.',
+  ],
+  south_america: [
+    '고원 도시와 유적·폭포 풍경이 이어지는, 남미의 스케일이 돋보이는 하루입니다.',
+    '이동마다 고도와 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.',
+  ],
+  laos_mekong: [
+    '강변 마을과 동굴·자연 풍경이 이어지는, 라오스의 차분한 하루입니다.',
+    '무거운 이동 없이 주변 분위기를 천천히 음미하는 구성입니다.',
+  ],
+  switzerland_alps: [
+    '호수와 설봉·산악 열차 풍경이 이어지는, 알프스의 시야가 열리는 하루입니다.',
+    '이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.',
+  ],
+  spain_iberia: [
+    '성당·궁전과 골목 풍경이 이어지는, 이베리아의 걷는 리듬이 중심인 하루입니다.',
+    '짧은 이동에도 도시마다 결이 달라 여정이 부드럽게 이어집니다.',
+  ],
+  portugal_atlantic: [
+    '해안과 구시가지·광장이 이어지는, 포르투갈의 여유로운 하루입니다.',
+    '바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.',
+  ],
+  taiwan_island: [
+    '옛거리와 항구·야시장이 이어지는, 대만의 걷는 리듬이 중심인 하루입니다.',
+    '짧은 체류에도 분위기 차이가 분명하게 느껴지는 구성입니다.',
+  ],
+  mongolia_steppe: [
+    '초원과 수도 거리가 이어지는, 몽골의 스케일이 돋보이는 하루입니다.',
+    '이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.',
+  ],
+  caucasus_caspian: [
+    '구시가지와 궁전·산기슭 풍경이 이어지는, 카스피해 연안의 하루입니다.',
+    '걷는 리듬과 시야 확장이 번갈아 이어져 도시의 결을 쌓아 갑니다.',
+  ],
+  caucasus_georgia_armenia: [
+    '성당·요새와 산기슭 풍경이 이어지는, 코카서스의 걷는 리듬이 중심인 하루입니다.',
+    '짧은 이동에도 도시마다 결이 달라 여정이 부드럽게 이어집니다.',
+  ],
+  uae_gulf: [
+    '해안 스카이라인과 전통 지구가 이어지는, 걸프의 대비가 돋보이는 하루입니다.',
+    '도심과 수변의 리듬이 번갈아 이어져 여정이 또렷하게 느껴지는 구성입니다.',
+  ],
+  micronesia_islands: [
+    '해변과 리조트·섬 풍경이 이어지는, 남국의 여유로운 하루입니다.',
+    '수상 활동과 해변 리듬이 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+  ],
+  sea_diving: [
+    '해양 공원과 항구·수변 거리가 이어지는, 다이빙·섬 여행의 하루입니다.',
+    '수중과 시내 분위기가 번갈아 이어져 여운이 길게 남는 구성입니다.',
   ],
   central_asia_steppe: [
     '초원·협곡·도시 거리가 이어지는, 중앙아시아의 스케일이 돋보이는 하루입니다.',
@@ -143,14 +280,121 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   ) {
     return 'hokkaido_nature'
   }
-  if (/교토|오사카|도쿄|도톤보리|기요미즈|아라시야마|닛코|가나자와|일본/i.test(joinedBlob)) {
+  if (/아소|야나가와|후쿠오카|벳푸|유후인|규슈|이마리|아리타|사가|Oita|Fukuoka|Kyushu/i.test(joinedBlob)) {
+    return 'japan_kyushu'
+  }
+  if (/교토|오사카|도쿄|도톤보리|기요미즈|아라시야마|닛코|가나자와|일본|가미코치|이누야마|나고야|다카마츠/i.test(joinedBlob)) {
     return 'japan_city_walk'
   }
-  if (/파타야|니모|스노클|푸켓|사무이|크라비|해변|비치|섬\s*투어/i.test(joinedBlob)) {
+  if (
+    /푸꾸옥|Phu\s*Quoc|달랏|Da\s*Lat|그랜드월드|쯔엉동|꾸란|호치민|호찌민|다낭|호이안|나트랑/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'vietnam_south'
+  }
+  if (/홍콩|Hong\s*Kong|소호|SoHo|타이쿤|빅토리아\s*피크|침사추이|완차이|센트럴/i.test(joinedBlob)) {
+    return 'hong_kong_city'
+  }
+  if (/오아후|Oahu|호놀룰루|Honolulu|하와이|Hawaii|진주만|다이아몬드\s*헤드|노스쇼어|와이키키/i.test(joinedBlob)) {
+    return 'hawaii_islands'
+  }
+  if (
+    /퀸스타운|Queenstown|오클랜드|Auckland|크라이스트처치|Christchurch|밀포드|테카포|마운트\s*쿡|뉴질랜드|New\s*Zealand/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'oceania_nz'
+  }
+  if (/파타야|니모|스노클|푸켓|사무이|크라비/i.test(joinedBlob)) {
     return 'thailand_beach'
   }
   if (/방콕|왕궁|에메랄드|수상가옥|짜오프라야|아시아티크|농눅/i.test(joinedBlob)) {
     return 'thailand_bangkok'
+  }
+  if (
+    /샌프란|San\s*Francisco|로스앤젤|로스엔젤|Los\s*Angeles|\bLA\b|할리우드|Hollywood|팔레스\s*오브|Palace\s*of\s*Fine|예술가의\s*마을/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'us_west_city'
+  }
+  if (
+    /두오모|Duomo|시뇨리아|베키오|피렌체|Florence|Firenze|로마|Rome|바티칸|Vatican|베네치아|Venice|마테라|Matera|솔로프라|폼페이|Pompeii|나폴리|Naples|이탈리아|Italy/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'italy_cities'
+  }
+  if (
+    /보홀|Bohol|알로나|Alona|세부|Cebu|보라카이|Boracay|마닐라|Manila|팔라완|Palawan|필리핀|Philippines/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'philippines_islands'
+  }
+  if (
+    /세렝게티|Serengeti|응고롱고로|Ngorongoro|케이프타운|Cape\s*Town|테이블\s*마운틴|Table\s*Mountain|사파리|Safari|킬리만자로|Kilimanjaro|탄자니아|Tanzania|케냐|Kenya|남아공|South\s*Africa/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'africa_safari'
+  }
+  if (
+    /리마|Lima|쿠스코|Cusco|마추픽추|Machu\s*Picchu|라파즈|La\s*Paz|우유니|Uyuni|이과수|Iguazu|남미|페루|Peru|볼리비아|아르헨|칠레|부에노스|파타고니아/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'south_america'
+  }
+  if (/비엔티엔|Vientiane|방비엥|Vang\s*Vieng|라오스|Laos|왓시사켓|까오삐약/i.test(joinedBlob)) {
+    return 'laos_mekong'
+  }
+  if (
+    /융프라우|Jungfrau|루체른|Lucerne|인터라켄|Interlaken|체르마트|Zermatt|스위스|Switzerland|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b|빈사의\s*사자/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'switzerland_alps'
+  }
+  if (
+    /바르셀로나|Barcelona|마드리드|Madrid|세비야|Seville|그라나다|Granada|톨레도|Toledo|몬세라트|Montserrat|알함브라|Alhambra|스페인|Spain/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'spain_iberia'
+  }
+  if (
+    /리스본|Lisbon|포르투|Porto|알부페이라|포르티망|베나길|까보다로까|벨렘|포르투갈|Portugal/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'portugal_atlantic'
+  }
+  if (/단수이|홍마오|타이베이|Taipei|대만|Taiwan|지우펀|예류|화련/i.test(joinedBlob)) {
+    return 'taiwan_island'
+  }
+  if (/울란바타르|Ulaanbaatar|테렐지|Terelj|몽골|Mongolia|톨강/i.test(joinedBlob)) {
+    return 'mongolia_steppe'
+  }
+  if (
+    /므츠헤타|Mtskheta|아나누리|Ananuri|트빌리시|Tbilisi|예레반|Yerevan|가르니|Garni|게가르드|Geghard|조지아|Georgia|아르메니아|Armenia|코카서스|Caucasus/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'caucasus_georgia_armenia'
+  }
+  if (/바쿠|Baku|셰키|Sheki|고부스탄|쉬르반|아제르|Azerbaijan/i.test(joinedBlob)) {
+    return 'caucasus_caspian'
+  }
+  if (/두바이|Dubai|아부다비|Abu\s*Dhabi|바스타키아|아브라|셰이크|버즈\s*칼리파|UAE|에미리트/i.test(joinedBlob)) {
+    return 'uae_gulf'
+  }
+  if (/사이판|Saipan|마나가하|Managaha|새섬|PIC|괌|Guam|투몬/i.test(joinedBlob)) {
+    return 'micronesia_islands'
+  }
+  if (/마나도|Manado|부나켄|Bunaken|코타키나발루|Kota\s*Kinabalu|\bKK\b|썬베거리/i.test(joinedBlob)) {
+    return 'sea_diving'
   }
   if (
     /알마티|침블락|침볼락|차른|콜사이|타슈켄트|사마르칸트|사마르칸|우즈베|카자흐|키르기스|중앙아시아|비슈케크|아프로시압|울루그벡|구르\s*아미르|레기스탄|젠코바|판필로바|이식쿨|알라아르차/i.test(
@@ -202,7 +446,7 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'alaska_cruise'
   }
   if (
-    /오슬로|Oslo|베르겐|Bergen|플롬|Flam|피오르드|fjord|코펜하겐|Copenhagen|스톡홀름|Stockholm|헬싱키|Helsinki|탈린|Tallinn|빌뉴스|Vilnius|북유럽|노르웨이|Sweden|Denmark|Finland|Norway|오르후스|Aarhus|오덴세|Odense|프레이케스톨|Preikestolen|게이랑에르|Geiranger/i.test(
+    /오슬로|Oslo|베르겐|Bergen|플롬|Flam|피오르드|fjord|코펜하겐|Copenhagen|스톡홀름|Stockholm|헬싱키|Helsinki|탈린|Tallinn|빌뉴스|Vilnius|리가|Riga|바르샤바|Warsaw|빌라누프|Wilanow|북유럽|노르웨이|Sweden|Denmark|Finland|Norway|오르후스|Aarhus|오덴세|Odense|프레이케스톨|Preikestolen|게이랑에르|Geiranger|발트|라트비아|리투아니아|에스토니아/i.test(
       joinedBlob,
     )
   ) {
@@ -216,14 +460,16 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'egypt_nile'
   }
   if (
-    /뉴델리|자이푸르|아그라|타지마할|하와마할|암베르|델리|인도\s*게이트|골든\s*트라이앵글|Jaipur|Agra|Taj\s*Mahal/i.test(
+    /뉴델리|자이푸르|아그라|타지마할|하와마할|암베르|델리|인도\s*게이트|인디아\s*게이트|인디아게이트|갠지스|골든\s*트라이앵글|Jaipur|Agra|Taj\s*Mahal|India\s*Gate/i.test(
       joinedBlob,
     )
   ) {
     return 'india_golden'
   }
   if (
-    /오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|초원|사막|게르|내몽골|Inner\s*Mongolia/i.test(joinedBlob)
+    /오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|초원|사막|게르|내몽골|Inner\s*Mongolia|만주리|마트료시카/i.test(
+      joinedBlob,
+    )
   ) {
     return 'ordos_steppe'
   }

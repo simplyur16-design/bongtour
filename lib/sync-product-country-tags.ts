@@ -159,11 +159,8 @@ export async function syncProductCountryTags(
 ): Promise<{ plan: MultiCountryAutoPlan; tagCount: number }> {
   await db.productCountryTag.deleteMany({ where: { productId } })
 
-  const countryKey = geo.countryKey?.trim()
-  if (!countryKey) {
-    return { plan: { kind: 'none' }, tagCount: 0 }
-  }
-
+  const countryKey = geo.countryKey?.trim() || null
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: null/latin-caribbean primary도 다국가 태그 — manifest
   const plan = await detectMultiCountryAutoPlan(db, opts, countryKey)
 
   let rows: ReturnType<typeof buildSinglePrimaryTagRow> = null
@@ -174,7 +171,7 @@ export async function syncProductCountryTags(
   ) {
     rows = buildMultiCountryTagRows(productId, geo, plan.countryKeys)
   }
-  if (!rows?.length) {
+  if (!rows?.length && countryKey) {
     rows = buildSinglePrimaryTagRow(productId, geo)
   }
 

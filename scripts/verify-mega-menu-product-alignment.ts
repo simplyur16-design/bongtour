@@ -66,11 +66,16 @@ function shouldHealLatinCaribbeanCluster(p: ProductRow): boolean {
   if (p.countryTags.length > 0) return false
   const ck = (p.countryKey ?? '').trim()
   const nk = (p.nodeKey ?? '').trim()
-  return (
+  if (
     ck === 'latin-caribbean' ||
     nk === 'south-america' ||
     (ck.length > 0 && isAmericasSouthAmericaBrowseCountryKey(ck) && !p.cityKey)
-  )
+  ) {
+    return true
+  }
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: empty tags + 남미/중남미 제목 → heal — manifest
+  const hay = [p.title, p.primaryDestination, p.destinationRaw].filter(Boolean).join(' ')
+  return /남미|중남미|우유니|이과수|파타고니아|부에노스|아르헨티나|칠레|페루|볼리비아|브라질/u.test(hay)
 }
 
 function isHashtagNoiseDestination(raw: string | null | undefined): boolean {

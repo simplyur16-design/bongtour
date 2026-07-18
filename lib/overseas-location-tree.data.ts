@@ -715,7 +715,22 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         [
           L('cuba-mexico', '쿠바 · 멕시코 · 칸쿤', { aliases: ['cuba', '쿠바', 'mexico', '멕시코', 'cancun', '칸쿤'] }),
           L('south-america', '남미(페루·브라질·아르헨티나·볼리비아·칠레)', {
-            aliases: ['peru', '페루', 'brazil', '브라질', 'argentina', '아르헨티나', 'bolivia', 'chile', '칠레'],
+            // REGRESSION-FREEZE[mega-menu-product-alignment]: 남미 region label → south-america leaf — manifest
+            aliases: [
+              '남미',
+              '중남미',
+              'south america',
+              'peru',
+              '페루',
+              'brazil',
+              '브라질',
+              'argentina',
+              '아르헨티나',
+              'bolivia',
+              '볼리비아',
+              'chile',
+              '칠레',
+            ],
           }),
           L('caribbean', '카리브해', { aliases: ['caribbean', '카리브'] }),
         ],

@@ -107,3 +107,38 @@ describe('deriveProductLocationKeyFieldsForPrisma — 인도네시아', () => {
     expect(['jakarta', 'yogyakarta']).toContain(geo.nodeKey)
   })
 })
+
+describe('deriveProductLocationKeyFieldsForPrisma — 남미 경유 허브', () => {
+  // REGRESSION-FREEZE[mega-menu-product-alignment]
+  it('structured Argentina/Chile dest beats LA transit in schedule body', () => {
+    const geo = deriveProductLocationKeyFieldsForPrisma({
+      title: '아르헨티나·칠레 12일 #파타고니아',
+      originSource: 'ybtour',
+      primaryDestination: '아르헨티나, 칠레',
+      destinationRaw: '아르헨티나, 칠레',
+      destination: '아르헨티나, 칠레',
+      bodyText: [
+        '인천에서 로스앤젤레스로 출발 로스앤젤레스에 도착합니다',
+        '로스앤젤레스를 거쳐 리마로 이동 부에노스아이레스',
+      ].join('\n'),
+    })
+    expect(geo.groupKey).toBe('americas')
+    expect(geo.countryKey).toBe('latin-caribbean')
+    expect(geo.nodeKey).toBe('south-america')
+    expect(geo.nodeKey).not.toBe('la')
+  })
+
+  // REGRESSION-FREEZE[mega-menu-product-alignment]
+  it('남미 primaryDestination matches south-america leaf', () => {
+    const geo = deriveProductLocationKeyFieldsForPrisma({
+      title: '남미 12일 #4개국 #우유니',
+      originSource: 'ybtour',
+      primaryDestination: '남미',
+      destinationRaw: '남미',
+      bodyText: '리마 쿠스코 라파즈 우유니 이과수',
+    })
+    expect(geo.groupKey).toBe('americas')
+    expect(geo.countryKey).toBe('latin-caribbean')
+    expect(geo.nodeKey).toBe('south-america')
+  })
+})

@@ -12,7 +12,8 @@ import {
 export {
   composeRegisterScheduleExtendedRegionVibeDescription,
   isRegisterScheduleGenericTourismDescription,
-}
+  pickScheduleVibeSentencesWithoutPlaceLeak,
+} from '@/lib/register-schedule-region-vibe-extended'
 
 /**
  * 공급사 전용 vibe가 generic일 때 — 유럽 등(lottetour 표) → 확장 지역 → null(호출측 generic).

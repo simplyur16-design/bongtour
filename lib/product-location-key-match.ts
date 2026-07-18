@@ -313,12 +313,14 @@ export function deriveProductLocationKeyFieldsForPrisma(
      * D-3-FIX: 일정 본문을 `destinationRaw`에 합치면 이탈리아+스위스 경유 등 **다른 국가 토큰**이
      * 더 길게 매칭되어 키·표기가 뒤틀린다. 목적지 메타가 이미 있으면 본문은 매칭 힙에 넣지 않는다.
      * (목적지가 비어 있을 때만 본문을 `destinationRaw` 대용으로 사용)
+     * REGRESSION-FREEZE[mega-menu-product-alignment]: structured dest beats schedule transit hub — manifest
      */
-    const hasStructuredDestination = Boolean(
-      String(input.destinationRaw ?? '').trim() ||
-        String(input.primaryDestination ?? '').trim() ||
-        String(input.destination ?? '').trim(),
-    )
+    const destMeta = [
+      String(input.destinationRaw ?? '').trim(),
+      String(input.primaryDestination ?? '').trim(),
+      String(input.destination ?? '').trim(),
+    ].filter((s) => s && s !== '미지정' && s !== '미상')
+    const hasStructuredDestination = destMeta.length > 0
     const destinationRawForMatch = hasStructuredDestination
       ? input.destinationRaw || null
       : body || input.destinationRaw || null
@@ -361,15 +363,24 @@ export function deriveProductLocationKeyFieldsForPrisma(
     }
 
     if (!m) {
-      m =
-        bestOverseasMatchFromDestinationBlobs(input, body) ?? matchProductToOverseasNode(matchInput)
+      // 목적지 메타로 leaf/country가 잡히면 일정 경유 허브(LA 등)로 덮지 않는다.
+      const destOnly =
+        bestOverseasMatchFromDestinationBlobs(input, null) ?? matchProductToOverseasNode(matchInput)
+      if (destOnly && destOnly.scope !== 'group') {
+        m = destOnly
+      } else {
+        m =
+          bestOverseasMatchFromDestinationBlobs(input, body) ??
+          destOnly ??
+          matchProductToOverseasNode(matchInput)
 
-      if (!m && hasStructuredDestination && body) {
-        m = matchProductToOverseasNode({
-          ...matchInput,
-          destinationRaw:
-            [String(input.destinationRaw ?? '').trim(), body].filter(Boolean).join(' \n ') || body,
-        })
+        if (!m && hasStructuredDestination && body) {
+          m = matchProductToOverseasNode({
+            ...matchInput,
+            destinationRaw:
+              [String(input.destinationRaw ?? '').trim(), body].filter(Boolean).join(' \n ') || body,
+          })
+        }
       }
     }
 

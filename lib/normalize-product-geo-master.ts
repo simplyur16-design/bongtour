@@ -247,32 +247,60 @@ export async function detectMultiCountryAutoPlan(
   })
   const sorted = [...countries].sort((a, b) => b.koreanLabel.length - a.koreanLabel.length)
 
-  const foundKeys: string[] = []
-  const used = new Set<string>()
-  for (const c of sorted) {
-    const label = c.koreanLabel.trim()
-    if (label.length < 2) continue
-    if (termAppearsInHaystack(label, hay) && !used.has(c.countryKey)) {
-      foundKeys.push(c.countryKey)
-      used.add(c.countryKey)
+  const collectFromHay = (haystack: string): string[] => {
+    const foundKeys: string[] = []
+    const used = new Set<string>()
+    for (const c of sorted) {
+      const label = c.koreanLabel.trim()
+      if (label.length < 2) continue
+      if (termAppearsInHaystack(label, haystack) && !used.has(c.countryKey)) {
+        foundKeys.push(c.countryKey)
+        used.add(c.countryKey)
+      }
     }
+    for (const mk of collectMasterCountryKeysFromTreeTokens(haystack)) {
+      if (!used.has(mk)) {
+        foundKeys.push(mk)
+        used.add(mk)
+      }
+    }
+    for (const mk of collectLatinAmericaMasterCountryKeysFromPlaceHints(haystack)) {
+      if (!used.has(mk)) {
+        foundKeys.push(mk)
+        used.add(mk)
+      }
+    }
+    return foundKeys
   }
 
-  for (const mk of collectMasterCountryKeysFromTreeTokens(hay)) {
-    if (!used.has(mk)) {
-      foundKeys.push(mk)
-      used.add(mk)
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: title/dest countries beat schedule transit hubs — manifest
+  const destHay = [title, opts.primaryDestination ?? '', opts.destinationRaw ?? '']
+    .filter((s) => String(s).trim())
+    .join(' ')
+  let foundKeys = collectFromHay(hay)
+  const destKeys = collectFromHay(destHay).filter((k) => k !== 'united-states')
+  if (destKeys.length >= 2 && (!nDeclared || destKeys.length === nDeclared || destKeys.length >= 2)) {
+    // 제목·목적지에 국가가 2개 이상이면 일정 경유(LA·리마 환승)를 국가 목록에 섞지 않음
+    if (!nDeclared || destKeys.length === nDeclared || destKeys.length >= nDeclared) {
+      foundKeys = destKeys
+    } else if (nDeclared && destKeys.length < nDeclared) {
+      // N개국보다 적으면 일정에서 보강하되, dest에 없는 미국 경유는 제외
+      const extra = foundKeys.filter((k) => !destKeys.includes(k) && k !== 'united-states')
+      foundKeys = [...destKeys, ...extra].slice(0, nDeclared)
     }
-  }
-  for (const mk of collectLatinAmericaMasterCountryKeysFromPlaceHints(hay)) {
-    if (!used.has(mk)) {
-      foundKeys.push(mk)
-      used.add(mk)
-    }
+  } else if (
+    foundKeys.includes('united-states') &&
+    !/(미국|미서부|미동부|하와이|\bUSA\b|\bUnited\s*States\b)/i.test(destHay) &&
+    foundKeys.some((k) =>
+      ['peru', 'bolivia', 'brazil', 'argentina', 'chile', 'mexico', 'cuba'].includes(k),
+    )
+  ) {
+    foundKeys = foundKeys.filter((k) => k !== 'united-states')
   }
 
+  const used = new Set(foundKeys)
   const megaCityKeys = await matchMegaMenuSsotCityKeysInHaystack(db, hay)
-  if (megaCityKeys.length > 0) {
+  if (megaCityKeys.length > 0 && destKeys.length < 2) {
     const cities = await db.city.findMany({
       where: { cityKey: { in: megaCityKeys }, isActive: true },
       select: { countryKey: true },
@@ -308,10 +336,31 @@ export async function detectMultiCountryAutoPlan(
     primaryMasterCountryKey === 'india-nepal-sri-bhutan' ||
     primaryMasterCountryKey === 'sea-multi'
 
-  if (
-    !primaryMasterCountryKey ||
-    (!foundKeys.includes(primaryMasterCountryKey) && !primaryIsTreeClusterOnly)
-  ) {
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: null primary + N개국 일치 → high multi tags — manifest
+  if (!primaryMasterCountryKey) {
+    if (nDeclared && foundKeys.length === nDeclared) {
+      return { kind: 'multi', confidence: 'high', countryKeys: foundKeys, declaredN: nDeclared }
+    }
+    if (nDeclared && foundKeys.length >= 2) {
+      return {
+        kind: 'multi',
+        confidence: foundKeys.length >= nDeclared ? 'medium' : 'low',
+        countryKeys: foundKeys,
+        declaredN: nDeclared,
+      }
+    }
+    if (foundKeys.length >= 2) {
+      return {
+        kind: 'multi',
+        confidence: 'medium',
+        countryKeys: foundKeys,
+        declaredN: foundKeys.length,
+      }
+    }
+    return { kind: 'none' }
+  }
+
+  if (!foundKeys.includes(primaryMasterCountryKey) && !primaryIsTreeClusterOnly) {
     return { kind: 'multi', confidence: 'low', countryKeys: foundKeys, declaredN: declaredN }
   }
 

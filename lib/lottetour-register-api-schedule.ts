@@ -17,6 +17,7 @@ import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedul
 import {
   composeRegisterScheduleExtendedRegionVibeDescription,
   isRegisterScheduleGenericTourismDescription,
+  pickScheduleVibeSentencesWithoutPlaceLeak,
 } from '@/lib/register-schedule-region-vibe-extended'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
@@ -175,7 +176,7 @@ type LottetourScheduleVibeProfile =
 
 const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile, readonly string[]> = {
   hk_walking: [
-    '홍콩의 세련된 번화가부터 아기자기한 로컬 골목까지, 다채로운 매력을 하루에 만끽하는 알찬 도보 여행 동선입니다.',
+    '세련된 번화가부터 아기자기한 로컬 골목까지, 다채로운 매력을 하루에 만끽하는 알찬 도보 여행 동선입니다.',
     '화려한 현대적 감각과 서정적인 분위기가 자연스럽게 이어져 걷는 즐거움이 가득한 최적의 일정입니다.',
   ],
   macau_daytrip: [
@@ -437,7 +438,7 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
     return 'italy_tuscany'
   }
   if (/베니스|Venice|Venezia|베로나|Verona|산\s*마르코/i.test(joinedBlob)) return 'italy_venice'
-  if (/로마|Rome|Roma|바티칸|Vatican|콜로세|Colosseum|트레비|Trevi/i.test(joinedBlob)) {
+  if (/(?:^|[\s\-·,/])로마(?:$|[\s\-·,/])|\bRome\b|\bRoma\b|바티칸|Vatican|콜로세|Colosseum|트레비|Trevi/i.test(joinedBlob)) {
     return 'italy_rome'
   }
   if (/에딘버러|Edinburgh|윈더미어|Windermere|글라스미어|Grasmere|스코틀랜드|Scotland/i.test(joinedBlob)) {
@@ -445,7 +446,7 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   }
   if (/벨파스트|Belfast|더블린|Dublin|아일랜드|Ireland/i.test(joinedBlob)) return 'uk_ireland'
   if (
-    /옥스포드|Oxford|스트래트포드|Stratford|바스|Bath|솔즈베리|Salisbury|코츠월드|Cotswold|바이버리|Bibury|리버풀|Liverpool|체스터|Chester/i.test(
+    /옥스포드|Oxford|스트래트포드|Stratford|(?:^|[\s\-·,/])바스(?:$|[\s\-·,/])|\bBath\b|솔즈베리|Salisbury|코츠월드|Cotswold|바이버리|Bibury|리버풀|Liverpool|체스터|Chester/i.test(
       joinedBlob,
     )
   ) {
@@ -618,23 +619,18 @@ export function composeLottetourScheduleVibeSentences(
     if (regional) return regional
   }
   const sentences = [...LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  let desc = sentences.join(' ')
-  for (const h of routePlaces) {
-    for (const chunk of lottetourHighlightLeakChunks(h)) {
-      if (desc.includes(chunk)) {
-        const regional = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
-        desc =
-          regional ||
-          LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
-        break
-      }
-    }
-  }
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
+  let desc = pickScheduleVibeSentencesWithoutPlaceLeak(
+    sentences,
+    routePlaces,
+    lottetourHighlightLeakChunks,
+    () => composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob),
+  )
   if (isRegisterScheduleGenericTourismDescription(desc)) {
     const regional = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
     if (regional) return regional
   }
-  return desc.slice(0, 320).trim()
+  return desc
 }
 
 /**

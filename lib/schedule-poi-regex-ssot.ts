@@ -266,8 +266,16 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   },
   { re: /코펜하겐\s*출발/i, en: 'Copenhagen Amalienborg Palace square' },
   { re: /바르샤바\s*출발/i, en: 'Warsaw Royal Castle square' },
-  { re: /노르웨이\s*피ord|Oslo\s*fjord|유람선\s*크루즈|GO\s*NORDIC/i, en: "Oslo fjord sightseeing cruise Norway" },
-  { re: /스핑크스|Sphinx\s*Observatory/i, en: "Jungfraujoch Sphinx Observatory Swiss Alps" },
+  { re: /노르웨이\s*피요르드|Oslo\s*fjord|유람선\s*크루즈|GO\s*NORDIC/i, en: "Oslo fjord sightseeing cruise Norway" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 이집트 스핑크스 ≠ Jungfraujoch — manifest
+  {
+    re: /스핑크스\s*전망대|Sphinx\s*Observatory|(?:융프라우|Jungfrau)[\s\S]{0,24}스핑크스|스핑크스[\s\S]{0,24}(?:융프라우|Jungfrau)/i,
+    en: 'Jungfraujoch Sphinx Observatory Swiss Alps',
+  },
+  {
+    re: /(?:기자|Giza|피라미드)[\s\S]{0,40}스핑크스|스핑크스[\s\S]{0,40}(?:기자|Giza|피라미드)|Great\s*Sphinx|(?:^|[\s\-·,/])스핑크스(?:$|[\s\-·,/])|\bSphinx\b/i,
+    en: 'Great Sphinx of Giza',
+  },
   { re: /개선문/u, en: "Arc de Triomphe Paris" },
   { re: /몽생미셸|Mont\s*Saint\s*Michel/i, en: "Mont Saint Michel abbey" },
   { re: /오르세\s*미술관|Orsay/i, en: "Musee d Orsay Paris" },
@@ -743,7 +751,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /시옹성|Chillon|쉴롱/i, en: "Chillon Castle Lake Geneva Switzerland" },
   { re: /하이델베르크|Heidelberg/i, en: "Heidelberg Castle old bridge Germany" },
   { re: /취리히|Zurich|취리흐/i, en: "Zurich Grossmunster lake waterfront Switzerland" },
-  { re: /리기|Rigi|리기산/i, en: "Mount Rigi Switzerland cogwheel railway view" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 리기≠승리기념탑 — Baltic Victory Monument bleed 금지 — manifest
+  { re: /리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b/i, en: "Mount Rigi Switzerland cogwheel railway view" },
   { re: /인터라켄|Interlaken/i, en: "Interlaken Swiss Alps twin lakes view" },
   { re: /콜로세움|Colosseum/i, en: "Colosseum Rome exterior" },
   { re: /사그라다\s*파밀리아|Sagrada\s*Familia/i, en: "Sagrada Familia Barcelona exterior" },
@@ -768,6 +777,20 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /코닥\s*극장|Kodak\s*Theatre|TCL\s*Chinese/i, en: "TCL Chinese Theatre Hollywood" },
   { re: /니지노마츠바라|Nijinomatsubara|虹の松原/u, en: "Nijinomatsubara pine grove Saga Japan" },
   { re: /KK\s*스타\s*라운지|KK\s*Star\s*Lounge/i, en: "Kota Kinabalu waterfront sunset" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all — manifest
+  { re: /껌벽/i, en: "Juneau Waterfront Alaska" },
+  { re: /주노|Juneau/i, en: "Juneau Alaska waterfront" },
+  { re: /케치칸|Ketchikan/i, en: "Ketchikan Alaska totem poles" },
+  { re: /스카그웨이|스캐그웨이|Skagway|화이트\s*패스|White\s*Pass/i, en: "White Pass Yukon Railroad Skagway" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 단독 빙하 ≠ Glacier Bay Alaska (노르웨이 피요르드) — manifest
+  { re: /글래시어\s*베이|Glacier\s*Bay/i, en: "Glacier Bay Alaska cruise" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Baltic·Warsaw POI — 빌라누프·체시스 — manifest
+  { re: /빌라누프|Wilanow|Wilanów/i, en: "Wilanow Palace Warsaw" },
+  { re: /체시스|Cesis|Cēsis/i, en: "Cesis Castle Latvia" },
+  { re: /시굴다|Sigulda/i, en: "Sigulda Castle Latvia" },
+  { re: /투라이다|Turaida/i, en: "Turaida Castle Latvia" },
+  { re: /쿠트마니스|Gutmanis|Gūtmaņi/i, en: "Gutmanis Cave Sigulda Latvia" },
+  { re: /카드리오르그|Kadriorg/i, en: "Kadriorg Palace Tallinn Estonia" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
@@ -782,7 +805,7 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /게스웍|Gas Works/i, en: "Gas Works Park Seattle" },
   { re: /스페이스 니들|Space Needle/i, en: "Space Needle Seattle" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 단독 빙하 ≠ Glacier Bay Alaska (노르웨이 피요르드) — manifest
-  { re: /알래스카|Alaska|주노|Juneau|스카그웨이|Skagway|글래시어\s*베이|Glacier\s*Bay/i, en: "Glacier Bay Alaska cruise" },
+  { re: /알래스카|Alaska/i, en: "Glacier Bay Alaska cruise" },
   { re: /인컨타라|Xiangshawan|响沙湾/i, en: "Xiangshawan Desert Ordos Inner Mongolia" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Ordos 기마상 — 오르도스 문맥만 (단독 칭기즈≠Ordos) — manifest
   { re: /오르도스|Ordos/i, en: "Genghis Khan Statue Ordos" },

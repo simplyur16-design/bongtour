@@ -116,7 +116,8 @@ describe('register schedule description vibe SSOT', () => {
       joinedBlob: '바르샤바 - 리가',
     })
     expect(desc).not.toMatch(/^바르샤바\s*-\s*리가/)
-    expect(desc).toMatch(/여행|일정|분위기|동선/)
+    expect(desc).toMatch(/여행|일정|분위기|동선|여정|구성|시야|피오르드|하루/)
+    expect(desc).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
   })
 })
 
@@ -272,5 +273,23 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
     expect(
       isRegisterScheduleCrossContinentHallucinationKeyword('Glacier Bay Alaska cruise', '알래스카 크루즈', rows),
     ).toBe(false)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: italy/philippines/africa/caucasus/LA spelling — manifest
+  it('extended vibe — 로스엔젤·이탈리아·필리핀·코카서스·사파리는 generic 금지', async () => {
+    const { composeRegisterScheduleExtendedRegionVibeDescription, isRegisterScheduleGenericTourismDescription } =
+      await import('@/lib/register-schedule-region-vibe-extended')
+    const blobs = [
+      '로스엔젤레스 공항 - 로스엔젤레스 출발',
+      '베키오 다리 - 두오모 - 시뇨리아 광장',
+      '알로나 비치 - 보홀',
+      '므츠헤타 - 아나누리 교회',
+      '세렝게티 국립공원 - 응고롱고로',
+    ]
+    for (const blob of blobs) {
+      const d = composeRegisterScheduleExtendedRegionVibeDescription(blob.split(/\s*-\s*/), blob)
+      expect(d, blob).toBeTruthy()
+      expect(isRegisterScheduleGenericTourismDescription(d!), blob).toBe(false)
+    }
   })
 })

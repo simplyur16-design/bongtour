@@ -1381,6 +1381,80 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(String(out.find((r) => r.day === 4)?.imageKeyword2 ?? '')).not.toMatch(/Glacier|Alaska/i)
   })
 
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지 — manifest
+  it('이집트 기자 스핑크스 — Jungfraujoch bleed 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 카이로',
+          imageKeyword: 'Cairo skyline Egypt',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '기자 주 - 카이 - 기자의 피라미드와 스핑크스 - 페스티벌몰 - 피라미드 내부',
+          imageKeyword: 'Pyramids of Giza',
+          imageKeyword2: 'Jungfraujoch Sphinx Observatory Swiss Alps',
+        },
+        {
+          day: 3,
+          routeText: '룩소르 - 카르나크 신전',
+          imageKeyword: 'Karnak Temple Luxor',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '카이로 공항', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      'modetour',
+      {
+        productTitle: '이집트 나일 크루즈',
+        travelScope: 'package',
+      },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const blob = `${d2.imageKeyword ?? ''} ${d2.imageKeyword2 ?? ''}`
+    expect(blob).not.toMatch(/Jungfrau|Swiss Alps|Sphinx Observatory/i)
+    expect(blob).toMatch(/Sphinx|Giza|Pyramid/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지 — manifest
+  it('발트 승리기념탑 — Mount Rigi Swiss bleed 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '인천 - 탈린',
+          imageKeyword: 'Tallinn Old Town Estonia',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '체시스 - 체시스 성 - 승리기념탑 - 시굴다 - 투라이다 성 - 쿠트마니스 동굴',
+          imageKeyword: 'Mount Rigi Switzerland cogwheel railway view',
+          imageKeyword2: 'Jungfraujoch Swiss Alps',
+        },
+        {
+          day: 3,
+          routeText: '빌라누프 궁전 - 카드리오르그 공원',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '바르샤바 공항', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      'hanatour',
+      {
+        productTitle: '발트 3국과 폴란드',
+        travelScope: 'package',
+      },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    const blob2 = `${d2.imageKeyword ?? ''} ${d2.imageKeyword2 ?? ''}`
+    expect(blob2).not.toMatch(/Rigi|Jungfrau|Swiss Alps/i)
+    expect(blob2).toMatch(/Cesis|Sigulda|Turaida|Gutmanis/i)
+    expect(String(d3.imageKeyword ?? '')).toMatch(/Wilanow|Kadriorg/i)
+  })
+
   it('코타키나발루·마나도·인도·이집트 귀국 empty soft-dup', () => {
     const kk = ensureDepartureReturnVisitCityKeywords(
       [

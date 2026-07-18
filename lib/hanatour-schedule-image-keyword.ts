@@ -1740,11 +1740,12 @@ export function applyHanatourScheduleImageKeywordsToRows<
       secondary = null
     }
 
+    // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 출발·귀국 kw2 null — manifest
     return {
       ...row,
       imageKeyword: primary,
       imageKeyword2:
-        slotKind === 'return'
+        slotKind === 'return' || slotKind === 'departure'
           ? null
           : String(secondary ?? '').trim() || null,
     }

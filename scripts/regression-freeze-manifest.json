@@ -3159,7 +3159,8 @@
           "file": "scripts/verify-register-user-url-batch-live-gate.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
-            "SD1·calendar_empty는 soft"
+            "SD1·calendar_empty는 soft",
+            "softIssues.push omitted"
           ]
         },
         {
@@ -5330,7 +5331,16 @@
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "composeRegisterScheduleExtendedRegionVibeDescription",
             "croatia_adriatic",
-            "alaska_cruise"
+            "alaska_cruise",
+            "place leak must not downgrade to generic",
+            "hong_kong_city",
+            "vietnam_south",
+            "switzerland_alps",
+            "italy_cities",
+            "philippines_islands",
+            "africa_safari",
+            "caucasus_georgia_armenia",
+            "로스엔젤"
           ]
         },
         {
@@ -5338,7 +5348,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "batch generic tourism soft",
-            "description generic tourism"
+            "description generic tourism",
+            "place leak must not downgrade to generic"
           ]
         },
         {
@@ -5475,7 +5486,9 @@
             "return empty route soft-dup bare city",
             "삿포→Sapporo bare soft-dup",
             "UAE cluster day-route evidence — Greece day Dubai bleed 금지",
-            "Ordos≠Alaska cluster — Glacier Bay bleed 금지"
+            "Ordos≠Alaska cluster — Glacier Bay bleed 금지",
+            "Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지",
+            "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지"
           ]
         },
         {
@@ -5496,7 +5509,9 @@
             "비치 클럽 크루즈만으로 Alaska/Seattle 키워드 유입 금지",
             "return empty route — prior tourism bare city soft-dup",
             "홋카이도 중간일 삿포",
-            "그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지"
+            "그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지",
+            "이집트 기자 스핑크스 — Jungfraujoch bleed 금지",
+            "발트 승리기념탑 — Mount Rigi Swiss bleed 금지"
           ]
         },
         {
@@ -6084,6 +6099,10 @@
             "후룬베이얼 역사 박물관 ≠ Istanbul",
             "징기스칸 광장 ≠ Ordos 기마상",
             "Ordos 기마상 — 오르도스 문맥만",
+            "이집트 스핑크스 ≠ Jungfraujoch",
+            "리기≠승리기념탑 — Baltic Victory Monument bleed 금지",
+            "Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all",
+            "Baltic·Warsaw POI — 빌라누프·체시스",
             "치토세 공항·후라노 라벤더 — Provence 환각 금지",
             "도게츠교≠Doge's Palace",
             "교토·오사카 Kansai POI — Day2/3 dup·Day4 Arashiyama bleed",
@@ -8639,12 +8658,51 @@
             "healLatinCaribbeanProduct",
             "prebuild heal latin-caribbean tags",
             "healCentralAsiaProduct",
-            "prebuild heal central-asia tags"
+            "prebuild heal central-asia tags",
+            "empty tags + 남미/중남미 제목 → heal"
+          ]
+        },
+        {
+          "file": "lib/product-location-key-match.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "structured dest beats schedule transit hub"
+          ]
+        },
+        {
+          "file": "lib/sync-product-country-tags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "null/latin-caribbean primary도 다국가 태그"
+          ]
+        },
+        {
+          "file": "lib/normalize-product-geo-master.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "title/dest countries beat schedule transit hubs",
+            "null primary + N개국 일치 → high multi tags"
+          ]
+        },
+        {
+          "file": "lib/overseas-location-tree.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "남미 region label → south-america leaf"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "dominican terms — no bare caribbean"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/register-mega-menu-geo-summary.test.ts"
+        "lib/register-mega-menu-geo-summary.test.ts",
+        "lib/normalize-product-geo-master.test.ts",
+        "lib/product-location-key-match-us-west.test.ts"
       ]
     },
     {

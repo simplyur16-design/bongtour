@@ -407,7 +407,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Shymbulak ski resort Almaty Kazakhstan')
     push('Zenkov Cathedral Almaty Kazakhstan')
   }
-  if (/스위스|Switzerland|인터라켄|Interlaken|융프라우|Jungfrau|체르마트|Zermatt|마테호른|Matterhorn|루체른|Lucerne|취리히|Zurich|베른|Bern|몽트뢰|Montreux|리기|Rigi/i.test(rawRoute)) {
+  if (/스위스|Switzerland|인터라켄|Interlaken|융프라우|Jungfrau|체르마트|Zermatt|마테호른|Matterhorn|루체른|Lucerne|취리히|Zurich|베른|Bern|몽트뢰|Montreux|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b/i.test(rawRoute)) {
     push('Jungfraujoch Swiss Alps')
     push('Matterhorn Zermatt Switzerland peak view')
     push('Chapel Bridge Lucerne Switzerland')
@@ -2218,7 +2218,8 @@ function pickCentralAsiaClusterKeywordForUsedSlot(
 }
 
 function isSwissAlpsClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:스위스|Switzerland|인터라켄|Interlaken|융프라우|Jungfrau|체르마트|Zermatt|마테호른|Matterhorn|루체른|Lucerne|취리히|Zurich|베른|Bern|몽트뢰|Montreux|리기|Rigi|로이커바트|Leukerbad|시옹성|Chillon|하이델베르크|Heidelberg)/i.test(
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지 — manifest
+  return /(?:스위스|Switzerland|인터라켄|Interlaken|융프라우|Jungfrau|체르마트|Zermatt|마테호른|Matterhorn|루체른|Lucerne|취리히|Zurich|베른|Bern|몽트뢰|Montreux|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b|로이커바트|Leukerbad|시옹성|Chillon|하이델베르크|Heidelberg)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2237,11 +2238,14 @@ function pickSwissAlpsClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  dayRouteText?: string | null,
 ): string {
-  if (!isSwissAlpsClusterRoute(routeText)) return ''
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지 — manifest
+  const evidence = dayRouteText != null ? String(dayRouteText) : String(routeText ?? '')
+  if (!isSwissAlpsClusterRoute(evidence)) return ''
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowSwissAlpsClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowSwissAlpsClusterKw2Duplicate(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -2533,7 +2537,7 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
       hay,
     )
   const alaskish =
-    /(?:Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+    /(?:Seattle|시애틀|Alaska|알래스카|Juneau|주노|Skagway|스카그웨이|스캐그웨이|Ketchikan|케치칸|Glacier\s*Bay|글래시어|Pike Place|Space Needle|껌벽)/i.test(
       hay,
     )
   if (!ordosish && !alaskish) return false
@@ -2547,9 +2551,9 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
     )
   }
   if (alaskish && !ordosish) {
-    return /seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|cruise/.test(nk)
+    return /seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|ketchikan|white pass|totem|cruise/.test(nk)
   }
-  return /ordos|genghis|xiangshawan|desert|grassland|hulunbuir|manzhouli|matryoshka|hailar|steppe|seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|cruise/.test(
+  return /ordos|genghis|xiangshawan|desert|grassland|hulunbuir|manzhouli|matryoshka|hailar|steppe|seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|ketchikan|white pass|totem|cruise/.test(
     nk,
   )
 }
@@ -2557,7 +2561,7 @@ function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | n
 function isSteppeAlaskaClusterRoute(routeText: string | null | undefined): boolean {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 크루즈/cruise 토큰 제외 — SEA 비치클럽 크루즈가 Glacier Bay를 끌어오지 않게
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 단독 Glacier/빙하 제외 — 노르웨이 피요르드 — manifest
-  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+  return /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|Seattle|시애틀|Alaska|알래스카|Juneau|주노|Skagway|스카그웨이|스캐그웨이|Ketchikan|케치칸|Glacier\s*Bay|글래시어|Pike Place|Space Needle|껌벽)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2609,7 +2613,7 @@ function pickSteppeAlaskaClusterKeywordForUsedSlot(
   if (!isSteppeAlaskaClusterRoute(routeText)) return ''
   const hay = String(routeText ?? '')
   const alaskish =
-    /(?:Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+    /(?:Seattle|시애틀|Alaska|알래스카|Juneau|주노|Skagway|스카그웨이|스캐그웨이|Ketchikan|케치칸|Glacier\s*Bay|글래시어|Pike Place|Space Needle|껌벽)/i.test(
       hay,
     )
   const ordosish =
@@ -2631,6 +2635,9 @@ function pickSteppeAlaskaClusterKeywordForUsedSlot(
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
   const pool = alaskish && !ordosish
     ? [
+        'Juneau Alaska waterfront',
+        'Ketchikan Alaska totem poles',
+        'White Pass Yukon Railroad Skagway',
         'Glacier Bay Alaska cruise',
         'Pike Place Market Seattle',
         'Space Needle Seattle',
@@ -3667,12 +3674,16 @@ function shouldRejectRouteLeakKeyword2(
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
   if (/glacier bay|space needle|pike place|juneau|skagway|ketchikan|alaska cruise/.test(nk)) {
     if (
-      !/(?:Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+      !/(?:Seattle|시애틀|Alaska|알래스카|Juneau|주노|Skagway|스카그웨이|스캐그웨이|Ketchikan|케치칸|Glacier\s*Bay|글래시어|Pike Place|Space Needle|껌벽)/i.test(
         dayRt,
       )
     ) {
       return true
     }
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지 — manifest
+  if (/jungfrau|matterhorn|zermatt|interlaken|lucerne|chapel bridge|chillon|rigi|swiss alps|sphinx observatory/.test(nk)) {
+    if (!isSwissAlpsClusterRoute(dayRt)) return true
   }
   return false
 }
@@ -3815,7 +3826,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
-        pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         // 당일 route에 Seattle/Alaska 증거가 있을 때만 — 크루즈·대극장일이 Gas Works를 끌어오지 않음
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, row.routeText, '') ||
         pickUnusedRoutePrimaryLandmark(row, used) ||
@@ -3853,7 +3864,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickCentralAsiaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, row.routeText, pk) ||
         pickGapFillKeyword(daySpots, pk, row, acceptKw, false, used, true) ||
         (!dayHasTourism

@@ -106,4 +106,60 @@ describe('detectMultiCountryAutoPlan', () => {
       expect(plan.countryKeys).toContain('portugal')
     }
   })
+
+  // REGRESSION-FREEZE[mega-menu-product-alignment]
+  it('prefers title/dest countries over schedule transit US hub', async () => {
+    const db = mockDb([
+      { countryKey: 'argentina', koreanLabel: '아르헨티나' },
+      { countryKey: 'chile', koreanLabel: '칠레' },
+      { countryKey: 'peru', koreanLabel: '페루' },
+      { countryKey: 'united-states', koreanLabel: '미국' },
+    ])
+    const plan = await detectMultiCountryAutoPlan(
+      db as never,
+      {
+        title: '아르헨티나·칠레 12일 #파타고니아',
+        primaryDestination: '아르헨티나, 칠레',
+        destinationRaw: '아르헨티나, 칠레',
+        scheduleHaystack:
+          '인천에서 로스앤젤레스로 출발 로스앤젤레스를 거쳐 리마로 이동 부에노스아이레스',
+      },
+      null,
+    )
+    expect(plan.kind).toBe('multi')
+    if (plan.kind === 'multi') {
+      expect(plan.confidence).toMatch(/high|medium/)
+      expect(plan.countryKeys).toEqual(expect.arrayContaining(['argentina', 'chile']))
+      expect(plan.countryKeys).not.toContain('united-states')
+      expect(plan.countryKeys).not.toContain('peru')
+    }
+  })
+
+  // REGRESSION-FREEZE[mega-menu-product-alignment]
+  it('null primary + 4개국 place hints → high multi', async () => {
+    const db = mockDb([
+      { countryKey: 'peru', koreanLabel: '페루' },
+      { countryKey: 'bolivia', koreanLabel: '볼리비아' },
+      { countryKey: 'brazil', koreanLabel: '브라질' },
+      { countryKey: 'argentina', koreanLabel: '아르헨티나' },
+    ])
+    const plan = await detectMultiCountryAutoPlan(
+      db as never,
+      {
+        title: '남미 12일 #4개국 #우유니 #이과수',
+        primaryDestination: '남미',
+        destinationRaw: '남미',
+        scheduleHaystack: '리마 쿠스코 라파즈 우유니 리오데자네이로 이과수 부에노스아이레스',
+      },
+      null,
+    )
+    expect(plan.kind).toBe('multi')
+    if (plan.kind === 'multi') {
+      expect(plan.confidence).toBe('high')
+      expect(plan.countryKeys).toEqual(
+        expect.arrayContaining(['peru', 'bolivia', 'brazil', 'argentina']),
+      )
+      expect(plan.countryKeys).toHaveLength(4)
+    }
+  })
 })

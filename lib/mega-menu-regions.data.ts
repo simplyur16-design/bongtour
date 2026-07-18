@@ -414,7 +414,8 @@ const SA: MegaMenuCountryGroupDef[] = [
       // 산티아고 순례길(스페인) 오매칭 방지 — 칠레 수도는 chile/산티아고데칠레만
       LC('칠레', ['칠레', 'chile', '산티아고데칠레'], 'chile'),
       LC('볼리비아', ['볼리비아', 'bolivia', '라파스', 'la paz'], 'bolivia'),
-      LC('도미니카', ['도미니카', '도미니카공화국', 'dominican', 'caribbean'], 'dominican-republic'),
+      // REGRESSION-FREEZE[mega-menu-product-alignment]: dominican terms — no bare caribbean (남미 오매칭) — manifest
+      LC('도미니카', ['도미니카', '도미니카공화국', 'dominican republic', 'dominican'], 'dominican-republic'),
     ],
     true,
   ),

@@ -101,4 +101,35 @@ describe('register schedule region vibe', () => {
     expect(isRegisterScheduleGenericTourismDescription(central!)).toBe(false)
     expect(central).toMatch(/중앙아시아|초원|협곡|도시/)
   })
+
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
+  it('홍콩·푸꾸옥·융프라우 — place leak에도 generic 금지', () => {
+    const hk = composeRegisterScheduleRegionVibeDescription({
+      day: 3,
+      maxDay: 4,
+      routePlaces: ['홍콩', '소호 거리', '빅토리아 피크'],
+      joinedBlob: '홍콩 - 소호 거리 - 타이쿤 - 빅토리아 피크',
+    })
+    expect(hk).toBeTruthy()
+    expect(isRegisterScheduleGenericTourismDescription(hk!)).toBe(false)
+
+    const pq = composeRegisterScheduleRegionVibeDescription({
+      day: 3,
+      maxDay: 5,
+      routePlaces: ['푸꾸옥', '그랜드월드'],
+      joinedBlob: '푸꾸옥 - 그랜드월드 나이트',
+    })
+    expect(pq).toMatch(/베트남|섬|고원|야시장|수변/)
+    expect(isRegisterScheduleGenericTourismDescription(pq!)).toBe(false)
+
+    const swiss = composeRegisterScheduleRegionVibeDescription({
+      day: 6,
+      maxDay: 9,
+      routePlaces: ['융프라우', '로마 벤츠'],
+      joinedBlob: '융프라우 - 로마 벤츠',
+    })
+    expect(swiss).toMatch(/알프스|호수|설봉|산악/)
+    expect(isRegisterScheduleGenericTourismDescription(swiss!)).toBe(false)
+    expect(swiss).not.toMatch(/로마의|잉글랜드/)
+  })
 })
