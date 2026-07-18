@@ -1338,4 +1338,83 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       /Vilnius|Helsinki|Oslo|Bergen/i,
     )
   })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
+  it('내몽골 오르도스 — Glacier Bay Alaska kw2 bleed 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '오르도스',
+          imageKeyword: 'Genghis Khan Statue Ordos',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '초원 - 현대식게르',
+          imageKeyword: 'Ordos grassland Mongolia steppe',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '인컨타라 사막 - 사막캠프',
+          imageKeyword: 'Xiangshawan Desert Ordos',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '칭기즈칸릉 - 오르도스불교문화원',
+          imageKeyword: 'Genghis Khan Statue',
+          imageKeyword2: 'Glacier Bay Alaska cruise',
+        },
+        { day: 5, routeText: '오르도스 박물관', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'ybtour',
+        productDestination: '내몽골',
+        productTitle: '내몽골 오르도스',
+        travelScope: 'package',
+      },
+    )
+    const blob = out.flatMap((r) => [r.imageKeyword, r.imageKeyword2]).join(' | ')
+    expect(blob).not.toMatch(/Glacier Bay|Space Needle|Pike Place|Juneau|Alaska cruise/i)
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword2 ?? '')).not.toMatch(/Glacier|Alaska/i)
+  })
+
+  it('코타키나발루·마나도·인도·이집트 귀국 empty soft-dup', () => {
+    const kk = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '코타키나발루',
+          imageKeyword: 'Kota Kinabalu Malaysia',
+          imageKeyword2: null,
+        },
+        { day: 2, routeText: '아일랜드 호핑', imageKeyword: 'Kota Kinabalu', imageKeyword2: null },
+        { day: 3, routeText: '코타키나발루 공항', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '말레이시아',
+    )
+    expect(String(kk.find((r) => r.day === 3)?.imageKeyword ?? '')).toMatch(/Kota Kinabalu/i)
+
+    const india = ensureDepartureReturnVisitCityKeywords(
+      [
+        { day: 1, routeText: '뉴델리', imageKeyword: 'India Gate', imageKeyword2: null },
+        { day: 2, routeText: '아그라 - 타지마할', imageKeyword: 'Taj Mahal', imageKeyword2: null },
+        { day: 3, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '인도',
+    )
+    expect(String(india.find((r) => r.day === 3)?.imageKeyword ?? '')).toMatch(/Delhi|Agra|Jaipur/i)
+
+    const egypt = ensureDepartureReturnVisitCityKeywords(
+      [
+        { day: 1, routeText: '카이로', imageKeyword: 'Khan El-khalili', imageKeyword2: null },
+        { day: 2, routeText: '기자 피라미드', imageKeyword: 'Giza Pyramids', imageKeyword2: null },
+        { day: 3, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '이집트',
+    )
+    expect(String(egypt.find((r) => r.day === 3)?.imageKeyword ?? '')).toMatch(/Cairo|Giza|Luxor/i)
+  })
 })

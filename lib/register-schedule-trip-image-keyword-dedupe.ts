@@ -923,6 +923,24 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
                 : /코펜하겐/i.test(tripHay)
                   ? 'Copenhagen'
                   : 'Oslo'
+          } else if (/코타키나발루|Kota\s*Kinabalu/i.test(tripHay)) {
+            softCity = 'Kota Kinabalu'
+          } else if (/마나도|Manado|부나켄|Bunaken/i.test(tripHay)) {
+            softCity = 'Manado'
+          } else if (/뉴델리|델리|자이푸르|아그라|타지마할|India\s*Gate/i.test(tripHay)) {
+            softCity = /아그라|타지마할/i.test(tripHay)
+              ? 'Agra'
+              : /자이푸르/i.test(tripHay)
+                ? 'Jaipur'
+                : 'Delhi'
+          } else if (/카이로|기자|룩소르|아스완|후르가다|후루가다|피라미드|Giza|Cairo|Luxor|Aswan/i.test(tripHay)) {
+            softCity = /룩소르|Luxor/i.test(tripHay)
+              ? 'Luxor'
+              : /아스완|Aswan/i.test(tripHay)
+                ? 'Aswan'
+                : 'Cairo'
+          } else if (/두바이|아부다비|Dubai|Abu\s*Dhabi/i.test(tripHay)) {
+            softCity = 'Dubai'
           }
         }
         if (!softCity) {
@@ -2010,7 +2028,9 @@ function hawaiiHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): b
 }
 
 function isUaeResortClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:두바이|Dubai|아부다비|Abu\s*Dhabi|UAE|에미리트|Emirates)/i.test(String(routeText ?? ''))
+  return /(?:두바이|Dubai|아부다비|Abu\s*Dhabi|UAE|에미리트|Emirates|사막\s*사파리|desert\s*safari|야스\s*아일랜드|Yas\s*Island|페라리\s*월드|Ferrari\s*World|워너\s*브라더스|Warner\s*Brothers|씨월드|Sea\s*World|루브르\s*아부|Louvre\s*Abu|사디얏|Saadiyat)/i.test(
+    String(routeText ?? ''),
+  )
 }
 
 function allowUaeResortClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
@@ -2505,19 +2525,29 @@ function allowSoutheastAsiaResortClusterKw2Duplicate(kw: string, routeText?: str
 function allowSteppeAlaskaClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 발리「비치 클럽 크루즈」만으로 Alaska/Seattle 클러스터 금지 — Seattle·Alaska·내몽골 증거 필요
-  // 단독 Glacier/빙하 제외 — 노르웨이 피요르드 빙하박물관이 Glacier Bay를 끌어오지 않게
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
   const hay = String(routeText ?? '')
-  if (
-    !/(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+  const nk = normScheduleImageKeywordKey(kw)
+  const ordosish =
+    /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli)/i.test(
       hay,
     )
-  ) {
-    return false
-  }
-  const nk = normScheduleImageKeywordKey(kw)
+  const alaskish =
+    /(?:Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+      hay,
+    )
+  if (!ordosish && !alaskish) return false
   // REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: 후룬베이얼만 → Ordos·울란바토르 금지 — manifest
   if (isInnerMongoliaChinaRoute(hay) && !/(?:오르도스|Ordos|인컨타라|Xiangshawan)/i.test(hay)) {
     if (/ordos|xiangshawan|ulaanbaatar|gandantegchinlen|terelj|zaisan|sukhbaatar/.test(nk)) return false
+  }
+  if (ordosish && !alaskish) {
+    return /ordos|genghis|xiangshawan|desert|grassland|hulunbuir|manzhouli|matryoshka|hailar|steppe|inner mongolia/.test(
+      nk,
+    )
+  }
+  if (alaskish && !ordosish) {
+    return /seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|cruise/.test(nk)
   }
   return /ordos|genghis|xiangshawan|desert|grassland|hulunbuir|manzhouli|matryoshka|hailar|steppe|seattle|pike|space needle|gas works|alaska|glacier|juneau|skagway|cruise/.test(
     nk,
@@ -2577,6 +2607,15 @@ function pickSteppeAlaskaClusterKeywordForUsedSlot(
   excludePrimaryNk = '',
 ): string {
   if (!isSteppeAlaskaClusterRoute(routeText)) return ''
+  const hay = String(routeText ?? '')
+  const alaskish =
+    /(?:Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+      hay,
+    )
+  const ordosish =
+    /(?:오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|Genghis|내몽골|Inner Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli)/i.test(
+      hay,
+    )
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
     if (!allowSteppeAlaskaClusterKw2Duplicate(kw, routeText)) return ''
@@ -2589,12 +2628,22 @@ function pickSteppeAlaskaClusterKeywordForUsedSlot(
     const hit = tryPick(String(raw ?? '').trim())
     if (hit) return hit
   }
-  for (const raw of [
-    'Glacier Bay Alaska cruise',
-    'Pike Place Market Seattle',
-    'Space Needle Seattle',
-    'Gas Works Park Seattle',
-  ]) {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
+  const pool = alaskish && !ordosish
+    ? [
+        'Glacier Bay Alaska cruise',
+        'Pike Place Market Seattle',
+        'Space Needle Seattle',
+        'Gas Works Park Seattle',
+      ]
+    : ordosish
+      ? [
+          'Xiangshawan Desert Ordos Inner Mongolia',
+          'Ordos grassland Mongolia steppe',
+          'Genghis Khan Mausoleum Ordos',
+        ]
+      : []
+  for (const raw of pool) {
     const hit = tryPick(raw)
     if (hit) return hit
   }
@@ -2847,6 +2896,13 @@ function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefi
     '괌',
     '아테네',
     '산토리니',
+    '코타키나발루',
+    '마나도',
+    '뉴델리',
+    '자이푸르',
+    '아그라',
+    '카이로',
+    '두바이',
   ]) {
     if (!hay.includes(ko)) continue
     const m = mapDestination(ko) || (/^삿포로?$/u.test(ko) ? 'Sapporo' : '')
@@ -2880,13 +2936,17 @@ function pickReturnSoftDupBareVisitCity<T extends RegisterScheduleTripKeywordRow
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty route soft-dup bare city — manifest
   const bareCityFromEnglishHay = (hay: string): string => {
     const m = String(hay ?? '').match(
-      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb)\b/i,
+      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb|Manado|Delhi|Jaipur|Agra|Cairo|Luxor|Aswan|Giza|Hurghada|Dubai)\b/i,
     )
-    if (!m?.[1]) return ''
-    const city = m[1]!.charAt(0).toUpperCase() + m[1]!.slice(1).toLowerCase()
-    // multi-word already matched as single token above
+    if (!m?.[1]) {
+      if (/kota\s*kinabalu/i.test(hay)) return 'Kota Kinabalu'
+      return ''
+    }
+    const raw = m[1]!
+    if (/^kota$/i.test(raw)) return ''
+    const city = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
     if (city.toLowerCase() === 'copenhagen') return 'Copenhagen'
-    if (isBareCityOrCountryKeyword(city)) return city
+    if (isBareCityOrCountryKeyword(city) || city === 'Kota Kinabalu') return city === 'Delhi' ? 'Delhi' : city
     return city
   }
   for (const tourismRow of [...sorted].reverse()) {
@@ -3603,6 +3663,16 @@ function shouldRejectRouteLeakKeyword2(
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
   if (/dubai|burj|khalifa|abu dhabi|abudhabi|saadiyat|palm jumeirah|sheikh zayed|desert safari/.test(nk)) {
     if (!isUaeResortClusterRoute(dayRt)) return true
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
+  if (/glacier bay|space needle|pike place|juneau|skagway|ketchikan|alaska cruise/.test(nk)) {
+    if (
+      !/(?:Seattle|시애틀|Alaska|알래스카|Juneau|Skagway|Glacier\s*Bay|글래시어|Pike Place|Space Needle)/i.test(
+        dayRt,
+      )
+    ) {
+      return true
+    }
   }
   return false
 }

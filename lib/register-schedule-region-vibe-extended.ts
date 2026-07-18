@@ -28,6 +28,9 @@ type ExtendedRegionVibeProfile =
   | 'alaska_cruise'
   | 'hokkaido_nature'
   | 'nordic_fjord'
+  | 'egypt_nile'
+  | 'india_golden'
+  | 'ordos_steppe'
 
 const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, readonly string[]> = {
   china_coastal: [
@@ -97,6 +100,18 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   nordic_fjord: [
     '피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다.',
     '이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.',
+  ],
+  egypt_nile: [
+    '신전과 나일 강변·사막 풍경이 이어지는, 이집트의 스케일이 중심인 하루입니다.',
+    '유적과 이동의 리듬이 번갈아 이어져 여운이 길게 남는 구성입니다.',
+  ],
+  india_golden: [
+    '요새와 사원·광장이 이어지는, 인도 골든트라이앵글의 밀도가 돋보이는 하루입니다.',
+    '걷는 리듬과 시야 확장이 번갈아 이어져 도시의 결을 천천히 쌓아 갑니다.',
+  ],
+  ordos_steppe: [
+    '초원과 사막·게르 풍경이 이어지는, 내몽골 오르도스의 스케일이 중심인 하루입니다.',
+    '이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.',
   ],
 }
 
@@ -192,6 +207,25 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     )
   ) {
     return 'nordic_fjord'
+  }
+  if (
+    /카이로|기자|피라미드|스핑크스|룩소르|아스완|아부심벨|카르나크|이집트|Giza|Cairo|Luxor|Aswan|나일|Nile|사카라|멤피스/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'egypt_nile'
+  }
+  if (
+    /뉴델리|자이푸르|아그라|타지마할|하와마할|암베르|델리|인도\s*게이트|골든\s*트라이앵글|Jaipur|Agra|Taj\s*Mahal/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'india_golden'
+  }
+  if (
+    /오르도스|Ordos|인컨타라|Xiangshawan|칭기즈|초원|사막|게르|내몽골|Inner\s*Mongolia/i.test(joinedBlob)
+  ) {
+    return 'ordos_steppe'
   }
   return null
 }

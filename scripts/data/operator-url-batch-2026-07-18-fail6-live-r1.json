@@ -1,0 +1,705 @@
+[
+  {
+    "label": "ybtour-CXP2511",
+    "supplier": "ybtour",
+    "url": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AACK002&evCd=CXP2511-260711KN00",
+    "ok": true,
+    "title": "[NS홈쇼핑] 내몽골(직항/오르도스)+초원+사막+별빛 4일 #사막크리스탈호텔 #현대식게르2인1실",
+    "scheduleDays": 5,
+    "megaMenu": {
+      "browseRegionTab": "china-hk-mo",
+      "subgroupLabel": "몽골",
+      "countryKey": "china",
+      "countryTagKeys": [
+        "china"
+      ],
+      "cityKeys": [
+        "ordos"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D2: description generic tourism",
+      "schedule-soft: D3: description generic tourism",
+      "schedule-soft: D4: description generic tourism"
+    ],
+    "priceIssues": [],
+    "priceCount": 27,
+    "futurePriceCount": 27,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "오르도스",
+        "routeText": "오르도스",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Genghis Khan Statue Ordos",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "초원 · 현대식게르 투숙 및 휴식",
+        "routeText": "초원 - 초원에서 펼쳐지는 초원썰매 - 오르도스 초원을 달리는 꼬마열차(왕복) - 서커스관람(30분) - 현대식게르 투숙 및 휴식",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Xiangshawan Desert Ordos Inner Mongolia",
+        "imageKeyword2": "Ordos grassland Mongolia steppe",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 3,
+        "title": "게르 조식 후 이동 · 사막에서 즐기는 사막캠프파이어",
+        "routeText": "게르 조식 후 이동 - 오르도스초원에서 일출감상 - 인컨타라 사막 - 사막을 질주하는 오프로드 서핑카 - 사막 - 사막에서 즐기는 사막캠프파이어",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Xiangshawan Desert Ordos",
+        "imageKeyword2": "Desert Offroad Ordos",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "전국 중점문물보호단위인 국가5A급 풍경구 칭기즈칸릉 · 오르도스불교문화원",
+        "routeText": "전국 중점문물보호단위인 국가5A급 풍경구 칭기즈칸릉 - 오르도스불교문화원",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Genghis Khan Statue",
+        "imageKeyword2": "Genghis Khan Mausoleum Ordos",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 5,
+        "title": "오르도스 박물관 · 참고사항",
+        "routeText": "오르도스 박물관 - 참고사항",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Ordos Museum Inner Mongolia",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "kyowontour-AMP080260711LJ01-M51020401",
+    "supplier": "kyowontour",
+    "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=AMP080260711LJ01&menuCode=M51020401&brandId=0",
+    "ok": true,
+    "title": "",
+    "scheduleDays": 5,
+    "megaMenu": {
+      "browseRegionTab": "southeast-asia",
+      "subgroupLabel": "말레이시아",
+      "countryKey": "malaysia",
+      "countryTagKeys": [
+        "ireland",
+        "malaysia"
+      ],
+      "cityKeys": [
+        "kotakinabalu"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D3: description generic tourism",
+      "schedule-soft: D4: description generic tourism"
+    ],
+    "priceIssues": [],
+    "priceCount": 92,
+    "futurePriceCount": 92,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "판보르네오 호텔",
+        "routeText": "",
+        "descriptionLen": 93,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다. 이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.",
+        "imageKeyword": "Kota Kinabalu Malaysia",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "아일랜드 호핑",
+        "routeText": "아일랜드 호핑 - 코타키나발루 공항",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "항구 도시와 구시가지가 이어지는, 아일랜드의 여유로운 이동형 하루입니다. 바다와 도심의 대비가 시야를 넓히며, 여정이 부드럽게 이어집니다.",
+        "imageKeyword": "",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "판보르네오 호텔",
+        "routeText": "KK 스타 라운지 - 코타키나발루 공항",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "KK 스타 라운지 · 코타키나발루 공항",
+        "routeText": "KK 스타 라운지 - 코타키나발루 공항",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 5,
+        "title": "코타키나발루 공항",
+        "routeText": "코타키나발루 공항",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Kota Kinabalu",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "kyowontour-AIP709260711ZE01-M51020502",
+    "supplier": "kyowontour",
+    "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=AIP709260711ZE01&menuCode=M51020502&brandId=3",
+    "ok": true,
+    "title": "",
+    "scheduleDays": 6,
+    "megaMenu": {
+      "browseRegionTab": "southeast-asia",
+      "subgroupLabel": "인도네시아",
+      "countryKey": "indonesia",
+      "countryTagKeys": [
+        "indonesia"
+      ],
+      "cityKeys": [
+        "manado"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D3: description generic tourism",
+      "schedule-soft: D4: description generic tourism"
+    ],
+    "priceIssues": [],
+    "priceCount": 132,
+    "futurePriceCount": 132,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "필수 준비 사항 · 마나도 공항",
+        "routeText": "필수 준비 사항 - 마나도 공항",
+        "descriptionLen": 93,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다. 이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.",
+        "imageKeyword": "Manado Sulawesi Indonesia Coastal",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "토모혼 · 부킷카시",
+        "routeText": "토모혼 - 지역 - 무지개 언덕 - 부킷도아 - 에카야나 사원 - 토모혼 전통시장 - 부킷카시",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "도심 속 전통과 여유가 공존하는, 차분한 리듬의 하루입니다. 무거운 이동 없이 잔잔한 분위기 위주로, 여행의 마무리에 어울리는 구성입니다.",
+        "imageKeyword": "Tomohon Colorful Market Sulawesi Indonesia",
+        "imageKeyword2": "Blessing Jesus Statue Manado North Sulawesi",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "부나켄 해양국립공원 · 썬베거리",
+        "routeText": "부나켄 해양국립공원 - 썬베거리",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Bunaken National Marine Park",
+        "imageKeyword2": "Bunaken National Marine Park Indonesia",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "베스트웨스턴 더 라군 호텔",
+        "routeText": "필수 준비 사항 - 마나도 공항",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Siladen Island Bunaken diving Indonesia",
+        "imageKeyword2": "Makatete Hill",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 5,
+        "title": "마나도 시내 · 마카테테 힐",
+        "routeText": "마나도 시내 - 이슬람 사원 - 축복하는 예수상 전망대 - 마카테테 힐",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Makatete Hill Manado Sulawesi Viewpoint",
+        "imageKeyword2": "Blessing Jesus Statue",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "마나도 공항",
+        "routeText": "마나도 공항",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Manado",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "hanatour-EAP133260801EKH",
+    "supplier": "hanatour",
+    "url": "https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=EAP133260801EKH&prePage=major-products",
+    "ok": true,
+    "title": "두바이/아부다비 7일 #2인이상 출발 #5성 럭셔리 호캉스 #단독 사막사파리 #대통령궁 #그랜드모스크",
+    "scheduleDays": 7,
+    "megaMenu": {
+      "browseRegionTab": "europe-me",
+      "subgroupLabel": "서유럽",
+      "countryKey": "ireland",
+      "countryTagKeys": [
+        "ireland",
+        "united-arab-emirates"
+      ],
+      "cityKeys": [
+        "ireland-mix",
+        "dubai",
+        "abudhabi"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D3: description generic tourism",
+      "schedule-soft: D4: description generic tourism"
+    ],
+    "priceIssues": [],
+    "priceCount": 111,
+    "futurePriceCount": 111,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "월드체인 5성급 호텔",
+        "routeText": "",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Burj Khalifa Dubai skyline",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "바스타키아 · 셰이크 모하메드 궁전",
+        "routeText": "바스타키아 - 아브라 - 두바이 왕궁 - 두바이 시내투어31 - 두바이 - 알시프 - 셰이크 모하메드 궁전",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Al Fahidi Historical",
+        "imageKeyword2": "Dubai",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "2명도 OK! 우리끼리 단독 사막 사파리",
+        "routeText": "2명도 OK! 우리끼리 단독 사막 사파리 - 셰이크 모하메드 궁전",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Dubai Desert Safari Dunes",
+        "imageKeyword2": "Burj Khalifa Dubai skyline",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "월드체인 5성급 호텔",
+        "routeText": "바스타키아 - 아브라 - 두바이 왕궁 - 두바이 시내투어31 - 두바이 - 알시프 - 셰이크 모하메드 궁전",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Sheikh Zayed Grand Mosque Abu Dhabi",
+        "imageKeyword2": "Louvre Abu Dhabi Saadiyat Island",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 5,
+        "title": "아부다비 자연사박물관 02 · 아부다비 대통령궁",
+        "routeText": "아부다비 자연사박물관 02 - 자이드 내셔널 뮤지엄 - 루브르 아부다비 - 루브르 - 사디얏 아일랜드 문화 - 아랍에미리트 대통령궁 - 아부다비 대통령궁",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Louvre Museum",
+        "imageKeyword2": "Saadiyat Island",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "씨월드 · 개별 자유일정",
+        "routeText": "씨월드 - 페라리 월드 - 워너 브라더스 월드 - 야스아일랜드 테마파크 - 개별 자유일정",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "항구 도시와 구시가지가 이어지는, 아일랜드의 여유로운 이동형 하루입니다. 바다와 도심의 대비가 시야를 넓히며, 여정이 부드럽게 이어집니다.",
+        "imageKeyword": "Seaworld Abu Dhabi",
+        "imageKeyword2": "Ferrari World Abu Dhabi",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "숙박 없음(귀국)",
+        "routeText": "",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Dubai",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "modetour-104953272",
+    "supplier": "modetour",
+    "url": "https://www.modetour.com/package/104953272",
+    "ok": true,
+    "title": "[대한항공] 준특급 북인도 골든트라이앵글 6일 <노쇼핑/3대특식>",
+    "scheduleDays": 6,
+    "megaMenu": {
+      "browseRegionTab": "southeast-asia",
+      "subgroupLabel": "인도",
+      "countryKey": "india",
+      "countryTagKeys": [
+        "india"
+      ],
+      "cityKeys": [
+        "india",
+        "jaipur",
+        "agra"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D3: description generic tourism",
+      "schedule-soft: D4: description generic tourism",
+      "schedule-soft: D5: description generic tourism"
+    ],
+    "priceIssues": [],
+    "priceCount": 25,
+    "futurePriceCount": 25,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "뉴델리",
+        "routeText": "뉴델리",
+        "descriptionLen": 88,
+        "descriptionSentences": 2,
+        "descriptionPreview": "출발·경유를 거쳐 목적지에 도착하는, 여행의 문을 여는 입국·이동 일정입니다. 공항과 이동 동선을 따라, 앞으로 펼쳐질 휴양 일정을 기대하게 하는 구성입니다.",
+        "imageKeyword": "Delhi",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "뉴델리 · 연꽃사원(바하이사원)",
+        "routeText": "뉴델리 - 자이푸르 - 꾸뜹미나르 - 인디아게이트 - 연꽃사원(바하이사원)",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "도심 속 전통과 여유가 공존하는, 차분한 리듬의 하루입니다. 무거운 이동 없이 잔잔한 분위기 위주로, 여행의 마무리에 어울리는 구성입니다.",
+        "imageKeyword": "Hawa Mahal Jaipur Pink Facade India",
+        "imageKeyword2": "Qutub Minar",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "자이푸르 · 잘 마할",
+        "routeText": "자이푸르 - 잔타르 만타르 - 하와마할 - 알버트 홀 뮤지엄 - 암베르 성 - 잘 마할",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Amber Fort Jaipur India",
+        "imageKeyword2": "Taj Mahal Agra India",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "아바네리 · 타지마할",
+        "routeText": "아바네리 - 아그라 - 뉴델리 - 아그라 성 - 타지마할",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Agra Fort",
+        "imageKeyword2": "Taj Mahal",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 5,
+        "title": "뉴델리 · 아그리센 키 바올리",
+        "routeText": "뉴델리 - 구르드와라 방글라사힙 - 아그리센 키 바올리",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Gurudwara Bangla Sahib",
+        "imageKeyword2": "Hawa Mahal Jaipur",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 6,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Jaipur",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "modetour-110281962",
+    "supplier": "modetour",
+    "url": "https://www.modetour.com/package/110281962",
+    "ok": true,
+    "title": "이집트 10일 완벽일주 <노쇼핑/그랜드뮤지엄/투탕카문의 무덤포함/디럭스급크루즈/피라미드뷰카페/크루즈 맥주1병제공>",
+    "scheduleDays": 10,
+    "megaMenu": {
+      "browseRegionTab": "europe-me",
+      "subgroupLabel": "이집트",
+      "countryKey": "egypt",
+      "countryTagKeys": [
+        "egypt"
+      ],
+      "cityKeys": [
+        "egypt",
+        "luxor"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D2: description generic tourism",
+      "schedule-soft: D3: description generic tourism",
+      "schedule-soft: D4: description generic tourism",
+      "schedule-soft: D5: description generic tourism",
+      "schedule-soft: D6: description generic tourism",
+      "schedule-soft: D7: description generic tourism",
+      "schedule-soft: D8: description generic tourism",
+      "schedule-soft: D9: description generic tourism"
+    ],
+    "priceIssues": [],
+    "priceCount": 6,
+    "futurePriceCount": 6,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "카이",
+        "routeText": "카이",
+        "descriptionLen": 88,
+        "descriptionSentences": 2,
+        "descriptionPreview": "출발·경유를 거쳐 목적지에 도착하는, 여행의 문을 여는 입국·이동 일정입니다. 공항과 이동 동선을 따라, 앞으로 펼쳐질 휴양 일정을 기대하게 하는 구성입니다.",
+        "imageKeyword": "Aswan",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "카이 · 사카라+멤피스",
+        "routeText": "카이 - 아스완 - 그랜드뮤지엄 - 칸 엘 칼릴리 - 문명박물관 - 사카라+멤피스",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Khan El-khalili",
+        "imageKeyword2": "Saqqara Pyramid Memphis",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 3,
+        "title": "아스완 · 누비안 빌리지",
+        "routeText": "아스완 - 미완성의 오벨리스크 - 필레신전 - 누비안 빌리지",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Unfinished Obelisk",
+        "imageKeyword2": "Philae Temple",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "아스완 · 콤옴보 신전",
+        "routeText": "아스완 - 아부심벨 신전 - 콤옴보 - 에드푸 - 아스완 하이댐 - 콤옴보 신전",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Abu Simbel",
+        "imageKeyword2": "Aswan High Dam",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 5,
+        "title": "에드푸 · 멤논의 거상",
+        "routeText": "에드푸 - 룩소르 - 에드푸 신전 (호루스 신전) - 카르나크 신전 - 룩소르 신전(내부)+마차 - 핫셉수트 여왕의 장제전 - 멤논의 거상",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Temple of Edfu",
+        "imageKeyword2": "Luxor",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 6,
+        "title": "후루가다 · 덴데라 신전",
+        "routeText": "후루가다 - 후르가다 - 덴데라 신전",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Hurghada",
+        "imageKeyword2": "Edfu",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 7,
+        "title": "후루가다 · 사파리+잠수정",
+        "routeText": "후루가다 - 후르가다 - 사파리+잠수정",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Giza",
+        "imageKeyword2": "Kom Ombo Temple",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 8,
+        "title": "카이 · 사카라+멤피스",
+        "routeText": "카이 - 누비안 빌리지 - 사카라+멤피스",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Nubian Village",
+        "imageKeyword2": "Kom Ombo",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 9,
+        "title": "기자 주 · 피라미드 내부",
+        "routeText": "기자 주 - 카이 - 기자의 피라미드와 스핑크스 - 페스티벌몰 - 피라미드 내부",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Giza Pyramids",
+        "imageKeyword2": "Jungfraujoch Sphinx Observatory Swiss Alps",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 10,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Aswan",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  }
+]
