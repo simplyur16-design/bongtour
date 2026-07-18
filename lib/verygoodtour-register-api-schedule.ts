@@ -7,6 +7,8 @@ import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import { expandRegisterScheduleRoutePlaceCandidates, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
+import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
+import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
 
 export const VERYGOODTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -219,12 +221,29 @@ export function composeVerygoodtourScheduleVibeSentences(
   joinedBlob: string,
 ): string {
   const profile = inferVerygoodtourScheduleVibeProfile(day, maxDay, joinedBlob)
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+  if (profile === 'generic_tourism') {
+    const regional = composeRegisterScheduleRegionVibeDescription({
+      day,
+      maxDay,
+      routePlaces,
+      joinedBlob,
+    })
+    if (regional) return regional
+  }
   const sentences = [...VERYGOODTOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
   let desc = sentences.join(' ')
   for (const h of routePlaces) {
     for (const chunk of verygoodtourHighlightLeakChunks(h)) {
       if (desc.includes(chunk)) {
-        desc = VERYGOODTOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
+        const regional = composeRegisterScheduleRegionVibeDescription({
+          day,
+          maxDay,
+          routePlaces,
+          joinedBlob,
+        })
+        desc =
+          regional || VERYGOODTOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
         break
       }
     }
@@ -254,11 +273,14 @@ export function verygoodtourFactDaysToRegisterSchedule(days: RegisterFactSchedul
     const routePlaces = dedupeVerygoodtourScheduleRoutePlaces(d.places)
     const routeText = joinVerygoodtourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
-    const title =
-      routeText?.split(' - ')[0]?.trim() ||
-      String(d.transportNote ?? '').split(';')[0]?.trim() ||
-      (d.hotels[0] ?? '').trim() ||
-      `${d.day}일차`
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day: d.day,
+      maxDay,
+      routeText,
+      fallbacks: [String(d.transportNote ?? '').split(';')[0], d.hotels[0]],
+      returnTitle: '귀국',
+    })
     const description = composeVerygoodtourScheduleDescription({
       day: d.day,
       maxDay,
@@ -312,7 +334,15 @@ export function applyVerygoodtourScheduleExpressionToRows<T extends RegisterSche
       routePlaces,
       joinedBlob,
     })
-    return { ...row, routeText, description }
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day,
+      maxDay,
+      routeText,
+      fallbacks: [row.title],
+      returnTitle: '귀국',
+    })
+    return { ...row, routeText, description, title }
   })
 }
 

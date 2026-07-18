@@ -9,12 +9,13 @@ import { classifyModetourScheduleCardDayKind } from '@/lib/modetour-schedule-ima
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import {
   expandRegisterScheduleRoutePlaceCandidates,
-  filterRegisterScheduleRoutePlaceSegments,
   isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
+import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
+import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 
 const MODETOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
@@ -235,14 +236,26 @@ export function composeModetourScheduleVibeDescription(
 ): string {
   const chainBlob = highlights.join(' - ')
   const transport = stripModetourInlineHtml(String(day.transportNote ?? ''))
-  const joined = [transport, chainBlob, ...dedupeModetourFactDayPlaces(day.places)].filter(Boolean).join(' ')
+  const places = dedupeModetourFactDayPlaces(day.places)
+  const joined = [transport, chainBlob, ...places].filter(Boolean).join(' ')
   const profile = inferModetourScheduleVibeProfile(day, maxDay, joined)
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+  if (profile === 'generic_tourism') {
+    const regional = composeRegisterScheduleRegionVibeDescription({
+      day: day.day,
+      maxDay,
+      routePlaces: highlights.length ? highlights : places,
+      joinedBlob: joined,
+    })
+    if (regional) return regional
+  }
   const sentences = [...MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
   let desc = sentences.join(' ')
   for (const h of highlights) {
     for (const chunk of modetourHighlightLeakChunks(h)) {
-      if (desc.includes(chunk)) {
-        desc = MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
+      if (chunk.length >= 6 && desc.includes(chunk)) {
+        const alt = MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile].filter((s) => !s.includes(chunk))
+        desc = (alt.length >= 2 ? alt : MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]).slice(0, 2).join(' ')
         break
       }
     }
@@ -319,12 +332,18 @@ export function modetourFactDaysToRegisterSchedule(
             : null,
         MODETOUR_SCHEDULE_HIGHLIGHT_MAX,
       )
-    const title =
-      routeText ||
-      sanitizeRegisterScheduleRouteText(highlights.join(' - '), MODETOUR_SCHEDULE_HIGHLIGHT_MAX) ||
-      firstTransport ||
-      normalizeModetourScheduleHotelText(d.hotels[0], opts) ||
-      `${d.day}일차`
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day: d.day,
+      maxDay,
+      routeText,
+      fallbacks: [
+        sanitizeRegisterScheduleRouteText(highlights.join(' - '), MODETOUR_SCHEDULE_HIGHLIGHT_MAX),
+        firstTransport,
+        normalizeModetourScheduleHotelText(d.hotels[0], opts),
+      ],
+      returnTitle: '귀국',
+    })
     const description = opts?.registerAirHotelFree
       ? ''
       : composeModetourScheduleVibeDescription(d, maxDay, highlights) ||
@@ -354,18 +373,17 @@ export function modetourFactDaysToRegisterSchedule(
 export function sanitizeModetourRegisterScheduleRouteRows<
   T extends { day: number; routeText?: string | null; title?: string | null },
 >(rows: T[]): T[] {
+  const maxDay = rows.reduce((m, r) => Math.max(m, Number(r.day) || 0), 0)
   return rows.map((row) => {
     const routeText = sanitizeRegisterScheduleRouteText(row.routeText, MODETOUR_SCHEDULE_HIGHLIGHT_MAX)
-    const titlePlaces = filterRegisterScheduleRoutePlaceSegments(
-      String(row.title ?? '')
-        .split(/\s*-\s*/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-    )
-    const title =
-      titlePlaces.length > 0
-        ? titlePlaces.slice(0, MODETOUR_SCHEDULE_HIGHLIGHT_MAX).join(' - ')
-        : row.title
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day: Number(row.day) || 0,
+      maxDay,
+      routeText,
+      fallbacks: [row.title],
+      returnTitle: '귀국',
+    })
     return { ...row, routeText, title }
   })
 }

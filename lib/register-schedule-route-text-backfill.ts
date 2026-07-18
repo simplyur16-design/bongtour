@@ -166,6 +166,10 @@ export function backfillEmptyScheduleRouteTextFromTitle<T extends RegisterSchedu
     if (title && title.length >= 8 && /\s[-–—→]\s/u.test(title)) {
       return { ...row, routeText: title.slice(0, 500) }
     }
+    // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 리조트 자유일 empty route ← title — manifest
+    if (title && isRegisterScheduleFreeTimeOrResortLeisureText(title)) {
+      return { ...row, routeText: title.slice(0, 500) }
+    }
     if (day === maxDay) {
       for (const src of [title, desc]) {
         if (!src || src === '-') continue

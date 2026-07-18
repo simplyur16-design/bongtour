@@ -1,0 +1,169 @@
+[
+  {
+    "label": "modetour-108830469",
+    "supplier": "modetour",
+    "url": "https://www.modetour.com/package/108830469",
+    "ok": true,
+    "title": "[인생샷 예술기행] 다카마츠/나오시마/고토히라 4일(1일자유/왕복승선권포함/시내연박)",
+    "scheduleDays": 4,
+    "megaMenu": {
+      "browseRegionTab": "japan",
+      "subgroupLabel": "주고쿠-시코쿠",
+      "countryKey": "japan",
+      "countryTagKeys": [
+        "japan"
+      ],
+      "cityKeys": [
+        "takamatsu",
+        "naoshima"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "schedule-soft: D3: description generic tourism",
+      "price-soft: 출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)"
+    ],
+    "priceIssues": [
+      "출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)"
+    ],
+    "priceCount": 0,
+    "futurePriceCount": 0,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "다카마츠 · 리츠린 정원",
+        "routeText": "다카마츠 - 고토히라 신사 - 몬젠마치 - 치치부가하마 - 리츠린 정원",
+        "descriptionLen": 88,
+        "descriptionSentences": 2,
+        "descriptionPreview": "출발·경유를 거쳐 목적지에 도착하는, 여행의 문을 여는 입국·이동 일정입니다. 공항과 이동 동선을 따라, 앞으로 펼쳐질 휴양 일정을 기대하게 하는 구성입니다.",
+        "imageKeyword": "Ritsurin Garden Takamatsu",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "나오시마 · 이우환 미술관",
+        "routeText": "나오시마 - 카코가와 - 다카마츠 - 쿠사마 야요이 호박 - 지중 미술관 - 베넷세 하우스 뮤지엄 - 이우환 미술관",
+        "descriptionLen": 76,
+        "descriptionSentences": 2,
+        "descriptionPreview": "온천 마을과 거리 풍경이 이어지는, 차분한 일본의 하루입니다. 무거운 이동 없이 주변 분위기를 천천히 음미하며 호흡을 고르는 일정입니다.",
+        "imageKeyword": "Naoshima Art Island Japan Yellow Pumpkin",
+        "imageKeyword2": "Chichu Art Museum Naoshima Tadao Ando",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "다카마츠 심볼타워 · 시코쿠무라",
+        "routeText": "다카마츠 심볼타워 - 야시마 - 야시마신사 - 시코쿠무라",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Benesse House Museum Naoshima",
+        "imageKeyword2": "Ritsurin Garden Takamatsu Japan",
+        "issues": [],
+        "softIssues": [
+          "description generic tourism"
+        ]
+      },
+      {
+        "day": 4,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "다카마츠 · 고토히라 신사 외 13도시",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "modetour-109121790",
+    "supplier": "modetour",
+    "url": "https://www.modetour.com/package/109121790",
+    "ok": true,
+    "title": "[맑고 푸른 삿포로]비에이/도야/북해도 4일 (온천2박/호수전망객실/무제한대게특식/청의호수/기프트4종)",
+    "scheduleDays": 4,
+    "megaMenu": {
+      "browseRegionTab": "japan",
+      "subgroupLabel": "홋카이도",
+      "countryKey": "japan",
+      "countryTagKeys": [
+        "japan"
+      ],
+      "cityKeys": [
+        "sapporo",
+        "toya",
+        "jozankei",
+        "otaru",
+        "furano",
+        "biei"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [
+      "price-soft: 출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)"
+    ],
+    "priceIssues": [
+      "출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)"
+    ],
+    "priceCount": 0,
+    "futurePriceCount": 0,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "도야 · 도야호수 롱런 불꽃놀이",
+        "routeText": "도야 - 삿포 - 도야호수 롱런 불꽃놀이",
+        "descriptionLen": 88,
+        "descriptionSentences": 2,
+        "descriptionPreview": "출발·경유를 거쳐 목적지에 도착하는, 여행의 문을 여는 입국·이동 일정입니다. 공항과 이동 동선을 따라, 앞으로 펼쳐질 휴양 일정을 기대하게 하는 구성입니다.",
+        "imageKeyword": "Lake Toya",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "도야 · 오타루 오르골당",
+        "routeText": "도야 - 오타루 - 도야호수 (유람선 탑승) - 쇼와신잔 - 사이로 전망대(サイロ展望台) - 오타루운하 (여름) - 오타루 오르골당",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "온천 마을과 꽃밭·협곡이 이어지는, 홋카이도의 자연 리듬이 중심인 하루입니다. 짧은 이동마다 풍경의 결이 바뀌어 여정이 또렷하게 느껴지는 구성입니다.",
+        "imageKeyword": "Otaru Music Box Museum",
+        "imageKeyword2": "Otaru",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "후라노 · 오도리 공원(大通公園)",
+        "routeText": "후라노 - 삿포 - 비에이 패치워크로드(여름) - 비에이 푸른연못(청의호수) - 흰수염폭포 - 사계절의언덕(四季彩の丘) - 오도리 공원(大通公園)",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "온천 마을과 꽃밭·협곡이 이어지는, 홋카이도의 자연 리듬이 중심인 하루입니다. 짧은 이동마다 풍경의 결이 바뀌어 여정이 또렷하게 느껴지는 구성입니다.",
+        "imageKeyword": "Farm Tomita Furano",
+        "imageKeyword2": "Odori Park",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "삿포 · 시코츠 호수(支笏湖)",
+        "routeText": "삿포 - 치토세 - 삿포로 시계탑(차창관광) - 시코츠 호수(支笏湖)",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "리조트를 정리하고 공항·경유지를 거쳐 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Sapporo Clock Tower",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  }
+]

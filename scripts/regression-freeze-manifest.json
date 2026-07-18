@@ -3156,6 +3156,13 @@
           ]
         },
         {
+          "file": "scripts/verify-register-user-url-batch-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-facts-fetch-resilience]",
+            "SD1·calendar_empty는 soft"
+          ]
+        },
+        {
           "file": "lib/register-facts/resolve-prefetched-bundle.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
@@ -5163,7 +5170,8 @@
             "REGRESSION-FREEZE[register-schedule-route-expression-normalize]",
             "normalizeRegisterScheduleRouteExpressionRows",
             "isRegisterScheduleGenericTourismFillerDescription",
-            "isRegisterScheduleFreeTimeOrResortLeisureText"
+            "isRegisterScheduleFreeTimeOrResortLeisureText",
+            "리조트 자유일 empty route ← title"
           ]
         },
         {
@@ -5224,7 +5232,8 @@
             "돗토리·시마네·규슈·간사이 일정 Mount Fuji 환각",
             "유럽에 Louvre Abu Dhabi 금지",
             "Louvre\\b(?!\\s*Abu)",
-            "Provence — 일본(홋카이도) 환각 차단"
+            "Provence — 일본(홋카이도) 환각 차단",
+            "알래스카·미주 dest — Space Needle 오탐 금지"
           ]
         }
       ],
@@ -5266,21 +5275,70 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "composeModetourScheduleVibeDescription",
-            "resort_leisure — 목적지명(몰디브) 하드코딩 금지"
+            "resort_leisure — 목적지명(몰디브) 하드코딩 금지",
+            "region vibe before generic"
           ]
         },
         {
           "file": "lib/hanatour-register-api-detail.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
-            "composeHanatourScheduleVibeDescription"
+            "composeHanatourScheduleVibeDescription",
+            "region vibe before generic"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-region-vibe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "region vibe before generic",
+            "composeRegisterScheduleRegionVibeDescription"
           ]
         },
         {
           "file": "lib/ybtour-register-api-schedule.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
-            "composeYbtourScheduleVibeSentences"
+            "composeYbtourScheduleVibeSentences",
+            "region vibe before generic"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "region vibe before generic"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "region vibe before generic"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "region vibe before generic"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-region-vibe-extended.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "composeRegisterScheduleExtendedRegionVibeDescription",
+            "croatia_adriatic",
+            "alaska_cruise"
+          ]
+        },
+        {
+          "file": "scripts/verify-register-user-url-batch-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
+            "batch generic tourism soft",
+            "description generic tourism"
           ]
         },
         {
@@ -5312,8 +5370,66 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-description-vibe-ssot.test.ts",
+        "lib/register-schedule-region-vibe.test.ts",
         "lib/modetour-register-api-schedule.test.ts",
         "lib/kyowontour-register-api-schedule.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-day-title-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 일차 title — 정제 routeText 기반 짧은 헤드라인 (full routeText 복붙 금지)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-day-title.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
+            "short title from route",
+            "composeRegisterScheduleDayTitleFromRoute"
+          ]
+        },
+        {
+          "file": "scripts/verify-register-user-url-batch-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
+            "batch title 계측",
+            "title이 routeText 전체 복붙"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
+            "composeRegisterScheduleDayTitleFromRoute"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
+            "composeRegisterScheduleDayTitleFromRoute"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
+            "composeRegisterScheduleDayTitleFromRoute"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-title-ssot]",
+            "composeRegisterScheduleDayTitleFromRoute"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-day-title.test.ts"
       ]
     },
     {
@@ -5340,6 +5456,7 @@
             "hub departure soft-dup visit city not next primary",
             "return hub soft-dup visit city before unused landmark",
             "airport-transfer middle no trip landmark bleed",
+            "departure forward dep-route cluster",
             "isScheduleCityLevelSoftLandmarkKeyword",
             "퀸스타운",
             "Japan hub city/POI only — no bare 일본 (Hamilton Gardens theme list)",
@@ -5354,7 +5471,10 @@
             "Ipan must not substring-match Saipan",
             "교토·오사카·비와호 Kansai — Fuji 갭필 금지",
             "return airport/duty-free no unused landmark bleed",
-            "domestic hub return keep unused landmark not bare city"
+            "domestic hub return keep unused landmark not bare city",
+            "return empty route soft-dup bare city",
+            "삿포→Sapporo bare soft-dup",
+            "UAE cluster day-route evidence — Greece day Dubai bleed 금지"
           ]
         },
         {
@@ -5372,7 +5492,10 @@
             "Prague",
             "Phu Quoc bare city must not repeat",
             "싱가포르 일정 — tripHay SEA라도",
-            "비치 클럽 크루즈만으로 Alaska/Seattle 키워드 유입 금지"
+            "비치 클럽 크루즈만으로 Alaska/Seattle 키워드 유입 금지",
+            "return empty route — prior tourism bare city soft-dup",
+            "홋카이도 중간일 삿포",
+            "그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지"
           ]
         },
         {
@@ -5661,7 +5784,9 @@
             "collectRouteTextSpotScanLandmarkKeywords",
             "routeTextSegmentToImageKeyword",
             "routeContextualNationalAssemblyEnglish",
-            "description·schedule_section·본문 스캔 금지"
+            "description·schedule_section·본문 스캔 금지",
+            "departure forward only next tourism day",
+            "departure forward dep-route cluster"
           ]
         },
         {
@@ -5934,6 +6059,7 @@
             "routeContextualNationalAssemblyEnglish",
             "Fisherman's Bastion Budapest",
             "프라하·동유럽 명소",
+            "크(?:룸|롬)로프",
             "독일 일주 명소",
             "프랑스 일주 명소",
             "이탈리아·영국 일주 명소",

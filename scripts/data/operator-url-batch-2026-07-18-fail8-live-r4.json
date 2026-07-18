@@ -1,0 +1,1049 @@
+[
+  {
+    "label": "ybtour-EKP3057",
+    "supplier": "ybtour",
+    "url": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAL004&evCd=EKP3057-260712OZ00",
+    "ok": true,
+    "title": "동유럽/발칸 5국 11일 OZ #특급호텔1박 #자유시간 #현지특식 #2대야경",
+    "scheduleDays": 11,
+    "megaMenu": {
+      "browseRegionTab": "europe-me",
+      "subgroupLabel": "동유럽",
+      "countryKey": "austria",
+      "countryTagKeys": [
+        "croatia",
+        "japan",
+        "austria",
+        "czech",
+        "hungary"
+      ],
+      "cityKeys": [
+        "at",
+        "dubrovnik",
+        "zagreb"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 52,
+    "futurePriceCount": 52,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "프라하 공항 · 체스키크룸로프",
+        "routeText": "프라하 공항 - 체스키크룸로프",
+        "descriptionLen": 97,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 걷기가 균형 잡힌 알찬 동선입니다. 특정 장소보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Cesky Krumlov Castle Czech Republic",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "입구 · 잘츠부르크",
+        "routeText": "입구 - 라트란거리 - 잘츠카머구트 - 할슈타트 - 잘츠부르크",
+        "descriptionLen": 81,
+        "descriptionSentences": 2,
+        "descriptionPreview": "호수와 산자락이 맞닿은 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다. 이동보다 시야가 열리는 순간이 중심이 되어, 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "Hallstatt Lake Village Austria",
+        "imageKeyword2": "Hohensalzburg Fortress Salzburg",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "잘츠부르크 · 블레드 호수",
+        "routeText": "잘츠부르크 - 정원과 미라벨 정원 - 대성당 - 천재 음악가 모짜르트의 생가 - 게트라이데 거리 - 블레드 - 블레드 호수",
+        "descriptionLen": 81,
+        "descriptionSentences": 2,
+        "descriptionPreview": "호수와 산자락이 맞닿은 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다. 이동보다 시야가 열리는 순간이 중심이 되어, 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "Mirabell Gardens Salzburg",
+        "imageKeyword2": "Mozart Birthplace Salzburg",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "크로아티아 국립공원 중 · 네움",
+        "routeText": "크로아티아 국립공원 중 - 플리트비체 국립공원 - 자다르 - 세인트 도나트교회 - 네움",
+        "descriptionLen": 87,
+        "descriptionSentences": 2,
+        "descriptionPreview": "아드리아 해안과 성벽·국립공원이 이어지는, 크로아티아의 풍경이 중심인 하루입니다. 이동마다 시야가 열려 바다와 돌마을의 대비가 분명하게 느껴지는 구성입니다.",
+        "imageKeyword": "Plitvice Lakes National Park Croatia",
+        "imageKeyword2": "Church of St Donatus Zadar Croatia",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "두브로브니크 · 네움",
+        "routeText": "두브로브니크 - 렉터 궁전 - 스트라둔 거리 - 구시가지 - 네움",
+        "descriptionLen": 87,
+        "descriptionSentences": 2,
+        "descriptionPreview": "아드리아 해안과 성벽·국립공원이 이어지는, 크로아티아의 풍경이 중심인 하루입니다. 이동마다 시야가 열려 바다와 돌마을의 대비가 분명하게 느껴지는 구성입니다.",
+        "imageKeyword": "Dubrovnik Old Town Walls Croatia",
+        "imageKeyword2": "Rector Palace Dubrovnik",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "스플리트 · 카를로바츠",
+        "routeText": "스플리트 - 마리안 해변 - 트로기르 - 나로드니 광장 - 카를로바츠",
+        "descriptionLen": 67,
+        "descriptionSentences": 2,
+        "descriptionPreview": "섬과 해안이 이어지는, 여유로운 남국의 하루입니다. 수상 활동과 해변 리듬이 번갈아 이어져 감각이 또렷해지는 구성입니다.",
+        "imageKeyword": "Diocletian Palace Split Croatia",
+        "imageKeyword2": "Plitvice Lakes National Park Croatia waterfall",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "자그레브 · 부다페스트",
+        "routeText": "자그레브 - 대성당 - 초 세워진 바로크 양식의 교회 성 카타리나 교회 - 부다페스트",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "광장과 골목·성당이 이어지는, 발칸 도시의 걷는 리듬이 중심인 하루입니다. 짧은 체류에도 분위기 차이가 또렷해 여정이 부드럽게 이어집니다.",
+        "imageKeyword": "Zagreb Cathedral Croatia",
+        "imageKeyword2": "Budapest",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 8,
+        "title": "영웅 광장 · 부다페스트 제 1의 성당인 성 이슈트반 성당",
+        "routeText": "영웅 광장 - 마챠시 교회 - 부다페스트 왕궁 등 - 부다페스트 자유 - 정부의 주요 행사가 열리는 국회의사당 - 역대 왕들의 대관식이 거행되었던 마차시 성당 - 부다페스트 제 1의 성당인 성 이슈트반 성당",
+        "descriptionLen": 67,
+        "descriptionSentences": 2,
+        "descriptionPreview": "섬과 해안이 이어지는, 여유로운 남국의 하루입니다. 수상 활동과 해변 리듬이 번갈아 이어져 감각이 또렷해지는 구성입니다.",
+        "imageKeyword": "Heroes Square",
+        "imageKeyword2": "Hungarian Parliament",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 9,
+        "title": "벨베데레 궁전 · 프라하",
+        "routeText": "벨베데레 궁전 - 성 슈테판 대성당 - 빈 자연사 박물관 - 국립도서관 - 게른트너 거리 - 프라하",
+        "descriptionLen": 88,
+        "descriptionSentences": 2,
+        "descriptionPreview": "중세 골목과 광장이 이어지는, 걷는 리듬이 중심이 되는 중부 유럽의 하루입니다. 성·다리·구시가지가 자연스럽게 연결되어 도시의 결을 천천히 느끼는 구성입니다.",
+        "imageKeyword": "Belvedere Palace",
+        "imageKeyword2": "Prague",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 10,
+        "title": "낭만의 다리 카를교 · 프라하",
+        "routeText": "낭만의 다리 카를교 - 1400년경 제작되었으며 세계 - 바츨라프 광장 - 프라하 자유 - 페르트진 전망대 타워 - 황금소 - 프라하",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Charles Bridge",
+        "imageKeyword2": "Prague Castle Charles Bridge view",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 11,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Prague",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "ybtour-NAP1048",
+    "supplier": "ybtour",
+    "url": "https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAGO001&evCd=NAP1048-260717KE00",
+    "ok": true,
+    "title": "알래스카 크루즈 10일 #로얄프린세스크루즈 #4대기항지투어포함 #한국인전문가이드동행 #내측선실",
+    "scheduleDays": 10,
+    "megaMenu": {
+      "browseRegionTab": "americas",
+      "subgroupLabel": "알래스카",
+      "countryKey": "united-states",
+      "countryTagKeys": [
+        "united-states"
+      ],
+      "cityKeys": [
+        "alaska"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 8,
+    "futurePriceCount": 8,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "시애틀 타코마 · 스타벅스 1호점, 플라잉피쉬 마켓, 껌벽 등",
+        "routeText": "시애틀 타코마 - 시애틀 - 서부지역 최초의 노천시장인 퍼블릭 마켓 - 스타벅스 1호점, 플라잉피쉬 마켓, 껌벽 등",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "빙하·피오르드와 선상의 여유 리듬이 이어지는, 알래스카 크루즈의 하루입니다. 이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "Seattle",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "알카이 비치 · 크루즈 시애틀",
+        "routeText": "알카이 비치 - 시애틀 - 크루즈 시애틀",
+        "descriptionLen": 67,
+        "descriptionSentences": 2,
+        "descriptionPreview": "섬과 해안이 이어지는, 여유로운 남국의 하루입니다. 수상 활동과 해변 리듬이 번갈아 이어져 감각이 또렷해지는 구성입니다.",
+        "imageKeyword": "Alki Beach",
+        "imageKeyword2": "Space Needle",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "크루즈 · 대극장",
+        "routeText": "크루즈 - 대극장",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Starbucks Original Store",
+        "imageKeyword2": "Pike Place Market Seattle",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "주노",
+        "routeText": "주노 - 껌벽 등",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "빙하·피오르드와 선상의 여유 리듬이 이어지는, 알래스카 크루즈의 하루입니다. 이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "Juneau Alaska",
+        "imageKeyword2": "Juneau Waterfront Alaska",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "스캐그웨이 · 화이트 패스 기차여행",
+        "routeText": "스캐그웨이 - 화이트 패스 기차여행",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "빙하·피오르드와 선상의 여유 리듬이 이어지는, 알래스카 크루즈의 하루입니다. 이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "White Pass Yukon Railroad",
+        "imageKeyword2": "Skagway Alaska",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "크루즈 · 대극장",
+        "routeText": "크루즈 - 대극장",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "케치칸 · 케치칸은 '카치 카한나'란 말",
+        "routeText": "케치칸 - 케치칸은 '카치 카한나'란 말",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "빙하·피오르드와 선상의 여유 리듬이 이어지는, 알래스카 크루즈의 하루입니다. 이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "Ketchikan Alaska",
+        "imageKeyword2": "Space Needle Seattle",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 8,
+        "title": "빅토리아 · 이너하버 워킹",
+        "routeText": "빅토리아 - 이너하버 워킹",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Inner Harbour Victoria",
+        "imageKeyword2": "Glacier Bay Alaska cruise",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 9,
+        "title": "시애틀",
+        "routeText": "시애틀 - 대극장",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "빙하·피오르드와 선상의 여유 리듬이 이어지는, 알래스카 크루즈의 하루입니다. 이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.",
+        "imageKeyword": "Gas Works Park Seattle",
+        "imageKeyword2": "Pike Place Market",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 10,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Seattle",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "lottetour-D03A260726OZ005",
+    "supplier": "lottetour",
+    "url": "https://www.lottetour.com/evtDetail/826/856/1034/1037?evtCd=D03A260726OZ005",
+    "ok": true,
+    "title": "",
+    "scheduleDays": 5,
+    "megaMenu": {
+      "browseRegionTab": "japan",
+      "subgroupLabel": "홋카이도",
+      "countryKey": "japan",
+      "countryTagKeys": [
+        "japan"
+      ],
+      "cityKeys": [
+        "toya",
+        "jozankei",
+        "otaru",
+        "furano",
+        "biei"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 11,
+    "futurePriceCount": 11,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "치토세 · 죠잔케이",
+        "routeText": "치토세 - 죠잔케이",
+        "descriptionLen": 93,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다. 이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.",
+        "imageKeyword": "Jozankei",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "죠잔케이 · 소운쿄",
+        "routeText": "죠잔케이 - 후라노 - 비에이 - 소운쿄",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "지열·온천 지대의 독특한 공기와 여유를 중심으로 하루의 템포를 낮추는 일정입니다. 문화 체험과 휴식이 자연스럽게 이어져 감각이 편안해지는 흐름입니다.",
+        "imageKeyword": "Farm Tomita Furano",
+        "imageKeyword2": "Shikisai-no-oka Biei",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "소운쿄 · 삿포",
+        "routeText": "소운쿄 - 삿포 - 죠잔케이",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "지열·온천 지대의 독특한 공기와 여유를 중심으로 하루의 템포를 낮추는 일정입니다. 문화 체험과 휴식이 자연스럽게 이어져 감각이 편안해지는 흐름입니다.",
+        "imageKeyword": "Sounkyo",
+        "imageKeyword2": "Sapporo",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "삿포",
+        "routeText": "삿포 - 죠잔케이",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "지열·온천 지대의 독특한 공기와 여유를 중심으로 하루의 템포를 낮추는 일정입니다. 문화 체험과 휴식이 자연스럽게 이어져 감각이 편안해지는 흐름입니다.",
+        "imageKeyword": "Sapporo",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "삿포 · 치토세",
+        "routeText": "삿포 - 오타루 - 치토세",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Otaru",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "kyowontour-ECP130260711EY01-M51010502",
+    "supplier": "kyowontour",
+    "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=ECP130260711EY01&menuCode=M51010502&brandId=0",
+    "ok": true,
+    "title": "",
+    "scheduleDays": 9,
+    "megaMenu": {
+      "browseRegionTab": "europe-me",
+      "subgroupLabel": "서유럽",
+      "countryKey": "greece",
+      "countryTagKeys": [
+        "greece",
+        "united-arab-emirates"
+      ],
+      "cityKeys": [
+        "santorini",
+        "athens"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 9,
+    "futurePriceCount": 9,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "아부다비",
+        "routeText": "아부다비",
+        "descriptionLen": 93,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다. 이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.",
+        "imageKeyword": "Sheikh Zayed Grand Mosque Abu Dhabi",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "아부다비 · 포세이돈 신전",
+        "routeText": "아부다비 - 아테네 - 아테네 시내 - 국회의사당 - 수니온 곶 - 포세이돈 신전",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Burj Khalifa Dubai skyline",
+        "imageKeyword2": "Louvre Abu Dhabi Saadiyat Island",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "아라호바 · 메테오라",
+        "routeText": "아라호바 - 델피 유적지 - 메테오라",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Arachova Greece Mountain Village",
+        "imageKeyword2": "Meteora Monasteries Greece",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "메테오라 수도원 1곳 내부 입장 · 아테네 야경",
+        "routeText": "메테오라 수도원 1곳 내부 입장 - 테르모필레로 경유 - 레오디나스 청동상 조망 - 아테네 야경",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Thermopylae Greece",
+        "imageKeyword2": "Leonidas Monument Thermopylae",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "고린도 · 나프플리오 경유",
+        "routeText": "고린도 - 미케네 유적지 - 나프플리오 경유",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Acropolis",
+        "imageKeyword2": "Delphi Greece ancient ruins",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "이메로비글리 · 산토리니 1박2일 관광지",
+        "routeText": "이메로비글리 - 이아마을 - 피라마을 - 카마리 비치 - 페리사 비치 - 산토리니 1박2일 관광지",
+        "descriptionLen": 67,
+        "descriptionSentences": 2,
+        "descriptionPreview": "섬과 해안이 이어지는, 여유로운 남국의 하루입니다. 수상 활동과 해변 리듬이 번갈아 이어져 감각이 또렷해지는 구성입니다.",
+        "imageKeyword": "Imerovigli Santorini Caldera",
+        "imageKeyword2": "Oia Santorini Blue Domes",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "산토리니 · 선셋크루즈 & 디너",
+        "routeText": "산토리니 - 선셋크루즈 & 디너",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Santorini Caldera Blue Domes",
+        "imageKeyword2": "Fira Santorini caldera",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 8,
+        "title": "산토리니 · 아부다비",
+        "routeText": "산토리니 - 아부다비",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다. 바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Santorini",
+        "imageKeyword2": "Dubai desert safari dunes sunset",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 9,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Santorini",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "kyowontour-EAP321260716HY01-M51080301",
+    "supplier": "kyowontour",
+    "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=EAP321260716HY01&menuCode=M51080301&brandId=3",
+    "ok": true,
+    "title": "",
+    "scheduleDays": 9,
+    "megaMenu": {
+      "browseRegionTab": "europe-me",
+      "subgroupLabel": "중앙아시아",
+      "countryKey": "kyrgyzstan",
+      "countryTagKeys": [
+        "uzbekistan",
+        "kazakhstan",
+        "kyrgyzstan"
+      ],
+      "cityKeys": [
+        "kyrgyzstan"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 27,
+    "futurePriceCount": 27,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "미노르 모스크 · 초르수 바자르",
+        "routeText": "미노르 모스크 - 하르자트 이맘 단지 - 특식: 샤슬릭 - 초르수 바자르",
+        "descriptionLen": 93,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지 도착 후 첫날, 도시의 리듬에 맞춰 걷고 둘러보는 알찬 입국·탐색 일정입니다. 이동과 관광이 자연스럽게 이어지며, 이후 일정의 흐름을 미리 익혀 가는 구성입니다.",
+        "imageKeyword": "Shah-i-zinda Necropolis Samarkand Uzbekistan",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "기차역 · 특식 : 삼사",
+        "routeText": "기차역 - 레기스탄 광장 야경 - 비비하눔 모스크 - 시요브 바자르 - 특식 : 펠메니 - 샤히진다 영묘 - 특식 : 삼사",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스카이라인과 바다 풍경이 어우러지는, 시야가 넓게 펼쳐지는 감성적인 하루입니다. 이동 동선마다 분위기가 달라져, 짧은 시간에도 여행의 깊이를 느끼기 좋은 구성입니다.",
+        "imageKeyword": "Registan Square Samarkand Uzbekistan",
+        "imageKeyword2": "Bibi-khanym Mosque Samarkand Uzbekistan",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "아프로시압 박물관 · 기차역",
+        "routeText": "아프로시압 박물관 - 울루그벡 천문대 - 구르 아미르 묘소 - 실크카펫 팩토리 - 특식 : 플롭 - 기차역",
+        "descriptionLen": 79,
+        "descriptionSentences": 2,
+        "descriptionPreview": "초원·협곡·도시 거리가 이어지는, 중앙아시아의 스케일이 돋보이는 하루입니다. 이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.",
+        "imageKeyword": "Afrosiyab Ancient Ruins Samarkand Uzbekistan",
+        "imageKeyword2": "Ulugh Beg Observatory Samarkand Uzbekistan",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "황만금박물관 · 타슈켄트공항",
+        "routeText": "황만금박물관 - 아미르 티무르 광장 - 타슈켄트 브로드웨이 거리 - 특식 : 고려국시 - 알리세르 나보이 역 - 코스모나틀라르 역 - 타슈켄트공항",
+        "descriptionLen": 79,
+        "descriptionSentences": 2,
+        "descriptionPreview": "초원·협곡·도시 거리가 이어지는, 중앙아시아의 스케일이 돋보이는 하루입니다. 이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.",
+        "imageKeyword": "Tashkent",
+        "imageKeyword2": "Tashkent Minor Mosque Uzbekistan",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "침볼락 · 아르바트 거리",
+        "routeText": "침볼락 - 판필로바 28인동상 - 젠코바성당 - 특식 : 베쉬바르막 - 질뇨늬 바자르 - 아르바트 거리",
+        "descriptionLen": 79,
+        "descriptionSentences": 2,
+        "descriptionPreview": "초원·협곡·도시 거리가 이어지는, 중앙아시아의 스케일이 돋보이는 하루입니다. 이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.",
+        "imageKeyword": "Zenkov Cathedral Almaty Kazakhstan",
+        "imageKeyword2": "Shymbulak Ski Resort Almaty Kazakhstan",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "블랙캐년 · 악수온천",
+        "routeText": "블랙캐년 - 루나캐년 - 차른캐년 협곡 트래킹 - 특식 : 라그만&만티 - 카라콜 - 특식 : 꾸르닥 - 악수온천",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "지열·온천 지대의 독특한 공기와 여유를 중심으로 하루의 템포를 낮추는 일정입니다. 문화 체험과 휴식이 자연스럽게 이어져 감각이 편안해지는 흐름입니다.",
+        "imageKeyword": "Charyn Canyon Kazakhstan Red Rock Valley",
+        "imageKeyword2": "Gur-e Amir Mausoleum Samarkand Uzbekistan",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "촐폰아타 · 비슈케크 이동",
+        "routeText": "촐폰아타 - 이식쿨호수 - 이식쿨유람선 - 르호르도 종교관 - 특식 : 케밥 + 샤슬릭 - 암각화박물관 - 비슈케크 이동",
+        "descriptionLen": 79,
+        "descriptionSentences": 2,
+        "descriptionPreview": "초원·협곡·도시 거리가 이어지는, 중앙아시아의 스케일이 돋보이는 하루입니다. 이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.",
+        "imageKeyword": "Cholpon Ata Kyrgyzstan",
+        "imageKeyword2": "Issyk Kul Lake",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 8,
+        "title": "알라아르차 국립공원 · 타슈켄트공항",
+        "routeText": "알라아르차 국립공원 - 트레킹 - 알라투광장 - 승리광장 - 바자르 시장 - 비슈케크공항 - 타슈켄트공항",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "대자연의 스케일을 천천히 걸으며 느끼는, 호흡이 깊어지는 트레킹형 하루입니다. 산·호수·숲길이 이어져 이동보다 풍경의 리듬이 중심이 되는 구성입니다.",
+        "imageKeyword": "Ala Archa National Park",
+        "imageKeyword2": "Ala Too Square",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 9,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Tashkent",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "kyowontour-ENP121260713AY01-M51010701",
+    "supplier": "kyowontour",
+    "url": "https://www.kyowontour.com/goods/goodsEventDetail?tourCode=ENP121260713AY01&menuCode=M51010701&brandId=3",
+    "ok": true,
+    "title": "",
+    "scheduleDays": 11,
+    "megaMenu": {
+      "browseRegionTab": "europe-me",
+      "subgroupLabel": "북유럽",
+      "countryKey": "lithuania",
+      "countryTagKeys": [
+        "norway",
+        "sweden",
+        "lithuania",
+        "thailand",
+        "finland",
+        "denmark"
+      ],
+      "cityKeys": [
+        "vilnius",
+        "tallinn",
+        "riga",
+        "bangkok",
+        "norway-mix",
+        "sweden-mix"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 40,
+    "futurePriceCount": 40,
+    "schedule": [
+      {
+        "day": 2,
+        "title": "오슬로 시청사 · 노르웨이/비올리",
+        "routeText": "오슬로 시청사 - 비겔란 조각공원 - 노르웨이 왕궁 - 노르웨이/비올리",
+        "descriptionLen": 70,
+        "descriptionSentences": 2,
+        "descriptionPreview": "왕궁·사원·수변이 이어지는, 방콕의 밀도가 느껴지는 하루입니다. 도심을 가로지르며 전통과 현대의 대비를 함께 담는 구성입니다.",
+        "imageKeyword": "Vigeland Sculpture Park",
+        "imageKeyword2": "Voss Norway Fjord Village",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "노르웨이/비올리 · 노르웨이/라르달",
+        "routeText": "노르웨이/비올리 - 요정의 길 - 게이랑에르 피오르드 - 피얼란드 빙하박물관 - 노르웨이/뵈이야 - 송네피오르드 - 노르웨이/라르달",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다. 이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.",
+        "imageKeyword": "Trolltunga Norway Cliff",
+        "imageKeyword2": "Geirangerfjord Norway Waterfall",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "레르달Lærdal · 헤우게순",
+        "routeText": "레르달Lærdal - 플롬 열차 - 브뤼겐 거리 - 베르겐 어시장 - 헤우게순",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다. 이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.",
+        "imageKeyword": "Laerdal Norway Fjord",
+        "imageKeyword2": "Flam Norway Fjord Railway",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "헤우게순/프레이케스톨론트래킹/스타방에르 · 크비네스달",
+        "routeText": "헤우게순/프레이케스톨론트래킹/스타방에르 - 노르웨이/보크나피오르드 - 노르웨이/프레이케스톨렌 - 노르웨이/뤼세피오르드 - 뤼세피요르드 - 크비네스달",
+        "descriptionLen": 83,
+        "descriptionSentences": 2,
+        "descriptionPreview": "절벽과 바다가 맞닿은 피요르드 풍경이 하루의 하이라이트로 펼쳐지는 일정입니다. 선상에서 시야가 넓게 열리며, 대자연의 장엄함이 흐름의 중심이 됩니다.",
+        "imageKeyword": "Haugesund Norway",
+        "imageKeyword2": "Preikestolen Pulpit Rock Norway",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "오르후스 · 오덴세",
+        "routeText": "오르후스 - 오덴세",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다. 이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.",
+        "imageKeyword": "Aarhus Cathedral Denmark",
+        "imageKeyword2": "Hans Christian Andersen Museum",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "코펜하겐 시청 광장 · 코펜하겐 시청사",
+        "routeText": "코펜하겐 시청 광장 - 아말리엔보르 궁전 - 코펜하겐 시청사",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다. 이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.",
+        "imageKeyword": "Copenhagen Amalienborg Palace Square",
+        "imageKeyword2": "Copenhagen",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 8,
+        "title": "스톡홀름 시청 · 바이킹 또는 실자라인",
+        "routeText": "스톡홀름 시청 - 스웨덴 왕궁 - 감라스탄 - 바이킹라인 또는 실자라인 탑승 후 투르크 - 바이킹 또는 실자라인",
+        "descriptionLen": 70,
+        "descriptionSentences": 2,
+        "descriptionPreview": "왕궁·사원·수변이 이어지는, 방콕의 밀도가 느껴지는 하루입니다. 도심을 가로지르며 전통과 현대의 대비를 함께 담는 구성입니다.",
+        "imageKeyword": "Stockholm City Hall",
+        "imageKeyword2": "Stockholm Royal Palace",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 9,
+        "title": "시벨리우스 공원 · 구시가지",
+        "routeText": "시벨리우스 공원 - 헬싱키 원로원 광장 - FERRY 탑승 후 헬싱키 - 에스토니아/탈린 - 툼페아 언덕 - 알렉산드로 넵스키 사원 - 구시가지",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "도심 속 전통과 여유가 공존하는, 차분한 리듬의 하루입니다. 무거운 이동 없이 잔잔한 분위기 위주로, 여행의 마무리에 어울리는 구성입니다.",
+        "imageKeyword": "Helsinki",
+        "imageKeyword2": "Tallinn",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 10,
+        "title": "십자가의 언덕 · 빌뉴스",
+        "routeText": "십자가의 언덕 - 리투아니아/트라카이 - 트라카이 성 - 라트비아/빌뉴스 - 리투아니아/빌뉴스 - 버나딘 성당 - 빌뉴스",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다. 이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.",
+        "imageKeyword": "Hill of Crosses Lithuania",
+        "imageKeyword2": "Trakai Island Castle Lithuania",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 11,
+        "title": "리투아니아/빌뉴스 · 헬싱키 도착 후 환승",
+        "routeText": "리투아니아/빌뉴스 - 헬싱키 도착 후 환승",
+        "descriptionLen": 77,
+        "descriptionSentences": 2,
+        "descriptionPreview": "피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다. 이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.",
+        "imageKeyword": "Gediminas Tower",
+        "imageKeyword2": "Vilnius Old Town Lithuania",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 12,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 80,
+        "descriptionSentences": 2,
+        "descriptionPreview": "현지를 정리하고 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Vilnius",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "modetour-105263432",
+    "supplier": "modetour",
+    "url": "https://www.modetour.com/package/105263432",
+    "ok": true,
+    "title": "괌 두짓비치 디럭스오션뷰룸 3박5일<아일랜드관광/레이트체크아웃>",
+    "scheduleDays": 5,
+    "megaMenu": {
+      "browseRegionTab": "oceania",
+      "subgroupLabel": "괌",
+      "countryKey": "guam",
+      "countryTagKeys": [
+        "guam"
+      ],
+      "cityKeys": [
+        "guam"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 1,
+    "futurePriceCount": 1,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "모두투어 데스크…",
+        "routeText": "모두투어 데스크…",
+        "descriptionLen": 88,
+        "descriptionSentences": 2,
+        "descriptionPreview": "출발·경유를 거쳐 목적지에 도착하는, 여행의 문을 여는 입국·이동 일정입니다. 공항과 이동 동선을 따라, 앞으로 펼쳐질 휴양 일정을 기대하게 하는 구성입니다.",
+        "imageKeyword": "Donkey Village",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "아푸간 요새 · 돈키빌리지",
+        "routeText": "아푸간 요새 - 괌 스페인광장 - 이파오비치 - K마트 - 마이크로네시아 몰 - 돈키빌리지",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "DFS Galleria",
+        "imageKeyword2": "Fort Apugan Guam hilltop view",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "전일 리조트 내 부대시설 이용 및 자유시간",
+        "routeText": "전일 리조트 내 부대시설 이용 및 자유시간",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "Tumon Bay Guam beach",
+        "imageKeyword2": "Guam Tumon beach",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "오전 리조트 내 부대시설 이용 및 자유시간",
+        "routeText": "오전 리조트 내 부대시설 이용 및 자유시간",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "Fort Apugan Guam Hilltop",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "귀국",
+        "routeText": "",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Guam",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  },
+  {
+    "label": "modetour-104200856",
+    "supplier": "modetour",
+    "url": "https://www.modetour.com/package/104200856",
+    "ok": true,
+    "title": "몰디브 조이아일랜드 라군빌라 4박7일 <AI/스피드보트>",
+    "scheduleDays": 7,
+    "megaMenu": {
+      "browseRegionTab": "southeast-asia",
+      "subgroupLabel": "싱가포르",
+      "countryKey": "singapore",
+      "countryTagKeys": [
+        "maldives",
+        "singapore",
+        "ireland"
+      ],
+      "cityKeys": [
+        "singapore",
+        "maldives"
+      ],
+      "needsReview": false,
+      "warnings": []
+    },
+    "scheduleIssues": [],
+    "priceIssues": [],
+    "priceCount": 1,
+    "futurePriceCount": 1,
+    "schedule": [
+      {
+        "day": 1,
+        "title": "몰디브 조이아일랜드 라군빌라",
+        "routeText": "몰디브 조이아일랜드 라군빌라",
+        "descriptionLen": 100,
+        "descriptionSentences": 2,
+        "descriptionPreview": "하루 동안 여러 장면이 자연스럽게 이어지는, 보기와 이동이 균형 잡힌 알찬 동선입니다. 특정 장소 나열보다 전체적인 흐름과 분위기를 중심으로 여행의 컨셉을 느끼기 좋은 일정입니다.",
+        "imageKeyword": "Maldives Overwater Villa Turquoise Lagoon",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 2,
+        "title": "몰디브 · 조이 아일랜드 AI(올인클루시브) 제공사항",
+        "routeText": "몰디브 - 싱가포르 도착 및 - 스피드 보트 이동 - 조이 아일랜드 AI(올인클루시브) 제공사항",
+        "descriptionLen": 84,
+        "descriptionSentences": 2,
+        "descriptionPreview": "스피드보트로 섬과 리조트를 잇는, 바다 위 이동이 포인트인 하루입니다. 짧은 항해 뒤 리조트에 도착하며, 휴양지 분위기를 본격적으로 느끼기 시작합니다.",
+        "imageKeyword": "Maldives",
+        "imageKeyword2": "Singapore",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 3,
+        "title": "몰디브 · 몰디브 오버워터 빌라",
+        "routeText": "몰디브 - 몰디브 오버워터 빌라",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "Maldives",
+        "imageKeyword2": "Maldives beach resort aerial turquoise water",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 4,
+        "title": "몰디브 · 몰디브 오버워터 빌라",
+        "routeText": "몰디브 - 몰디브 오버워터 빌라",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "Maldives",
+        "imageKeyword2": "Maldives house reef snorkeling turquoise water",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 5,
+        "title": "몰디브 · 다음날 체크아웃 준비를 해주세요.",
+        "routeText": "몰디브 - 다음날 체크아웃 준비를 해주세요.",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "Maldives Overwater Bungalow",
+        "imageKeyword2": "Maldives white sand beach palm trees aerial",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 6,
+        "title": "몰디브 공항 · 몰디브",
+        "routeText": "몰디브 공항 - 몰디브",
+        "descriptionLen": 82,
+        "descriptionSentences": 2,
+        "descriptionPreview": "에메랄드빛 바다와 리조트에서 여유롭게 쉬어 가는, 휴양 중심의 하루입니다. 특별한 이동 없이 섬 안에서 휴식과 자유 시간을 즐기기 좋은 구성입니다.",
+        "imageKeyword": "Maldives",
+        "imageKeyword2": "Blue Lagoon Vang Vieng emerald water",
+        "issues": [],
+        "softIssues": []
+      },
+      {
+        "day": 7,
+        "title": "싱가포르 도착 및",
+        "routeText": "싱가포르 도착 및",
+        "descriptionLen": 92,
+        "descriptionSentences": 2,
+        "descriptionPreview": "리조트를 정리하고 공항·경유지를 거쳐 귀국길로 이어지는, 이동 중심의 마무리 일정입니다. 여행의 리듬을 늦추지 않고, 돌아오는 길까지 자연스럽게 이어지는 흐름입니다.",
+        "imageKeyword": "Maldives",
+        "imageKeyword2": "",
+        "issues": [],
+        "softIssues": []
+      }
+    ]
+  }
+]

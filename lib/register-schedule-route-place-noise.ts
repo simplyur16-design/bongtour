@@ -638,8 +638,18 @@ export function sanitizeRegisterScheduleRouteText(
   maxPlaces = 7,
 ): string | null {
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: theme-garden country list strip — manifest
+  const raw = String(routeText ?? '').trim()
+  // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 리조트 자유일 empty route ← title — manifest
+  // 리조트·자유시간 라벨은 place 체인이 아니어도 유지 (sanitize가 null로 비우면 live gate hard fail)
+  if (
+    /자유\s*시간|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크/i.test(
+      raw,
+    )
+  ) {
+    return raw.slice(0, Math.max(40, maxPlaces * 24))
+  }
   const stripped = stripRegisterScheduleRouteFlightDurationBlocks(
-    stripRegisterScheduleRouteThemeGardenCountryList(String(routeText ?? '').trim()),
+    stripRegisterScheduleRouteThemeGardenCountryList(raw),
   )
   if (!stripped) return null
   // routeText 체인은 ` - ` 구분 — 세그먼트 안 쉼표 지명(예: 대,소석림)은 유지

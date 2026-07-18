@@ -473,12 +473,34 @@ function predictRowReservedKeywordKeys(
   return keys
 }
 
+function departureForwardKeywordCompatibleWithDepRoute(depRoute: string, kw: string): boolean {
+  const dep = String(depRoute ?? '').trim()
+  const k = String(kw ?? '')
+  if (!dep || !k) return true
+  // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: departure forward dep-route cluster — manifest
+  if (/프라하|Prague|체스키|크롬로프|크룸로프|Krumlov|체코/i.test(dep)) {
+    if (/Salzburg|Mozart|Mirabell|Hohensalzburg|잘츠/i.test(k) && !/잘츠|Salzburg/i.test(dep)) {
+      return false
+    }
+    if (/Hallstatt|할슈타트/i.test(k) && !/할슈타트|Hallstatt/i.test(dep)) return false
+    if (/Budapest|부다페스트|Parliament|Vienna|비엔나|Schonbrunn/i.test(k) && !/부다|헝가리|비엔나|Vienna/i.test(dep)) {
+      return false
+    }
+  }
+  if (/헝가리|Hungary|부다페스트|Budapest/i.test(dep) && !/프라하|체스키|잘츠|Salzburg/i.test(dep)) {
+    if (/Salzburg|Mozart|Mirabell|잘츠|Cesky|Krumlov|프라하|Prague/i.test(k)) return false
+  }
+  return true
+}
+
 function forwardRouteKeywordFromNextDay<T extends RegisterScheduleRouteTextKeywordRow>(
   day: number,
   sorted: readonly T[],
   maxDay: number,
   activeDays: number,
 ): string {
+  const depRow = sorted.find((r) => Number(r.day) === day)
+  const depRoute = String(depRow?.routeText ?? '').trim()
   for (const next of sorted) {
     const nd = Number(next.day)
     if (nd <= day) continue
@@ -486,11 +508,16 @@ function forwardRouteKeywordFromNextDay<T extends RegisterScheduleRouteTextKeywo
     const cands = collectRouteTextOrderedLandmarkKeywords(next.routeText).filter((kw) =>
       isLikelyTourismLandmarkKeyword(kw),
     )
+    // 랜드마크 없는 경유·공항일만 건너뛰고, 첫 관광일에서 멈추어 D3 Salzburg 누수 방지
+    if (cands.length === 0) continue
     for (const kw of cands) {
       const nk = normScheduleImageKeywordKey(kw)
       if (!nk || rejectRouteKeywordCandidate(kw) || reserved.has(nk)) continue
+      if (!departureForwardKeywordCompatibleWithDepRoute(depRoute, kw)) continue
       return kw
     }
+    // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: departure forward only next tourism day — manifest
+    return ''
   }
   return ''
 }

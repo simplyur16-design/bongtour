@@ -26,7 +26,32 @@ describe('register schedule description vibe SSOT', () => {
     ])
     expect(days[0]?.routeText).toBe('피렌체 - 베네치아')
     expect(days[0]?.description).not.toBe(days[0]?.routeText)
-    expect(days[0]?.description).toMatch(/여행|일정|분위기|동선/)
+    expect(days[0]?.description).toMatch(/여행|일정|분위기|동선|토스카나|베네토|걷는/)
+    // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+    expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+  })
+
+  it('modetour — 대련·장가계는 중국 지역 vibe (전일 generic 금지)', () => {
+    const days = modetourFactDaysToRegisterSchedule([
+      {
+        day: 2,
+        places: ['대련', '동관거리', '연화산'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 3,
+        places: ['장가계', '천문산', '원가계'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+    ])
+    expect(days[0]?.description).toMatch(/항구|해안|도심|바다/)
+    expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+    expect(days[1]?.description).toMatch(/기암|협곡|풍경|시야/)
+    expect(days[1]?.description).not.toBe(days[0]?.description)
   })
 
   it('hanatour — description은 routeText 복사 금지', () => {
@@ -41,6 +66,46 @@ describe('register schedule description vibe SSOT', () => {
     ])
     expect(sched[0]?.routeText).toBe('방콕 - 왕궁')
     expect(sched[0]?.description).not.toBe(sched[0]?.routeText)
+  })
+
+  it('hanatour — 프라하·밴프는 지역 vibe (전일 generic 금지)', () => {
+    const sched = hanatourFactDaysToRegisterSchedule([
+      {
+        day: 2,
+        places: ['프라하 성', '카를교', '프라하'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 3,
+        places: ['밴프 국립공원', '보우폭포'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+    ])
+    expect(sched[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+    expect(sched[0]?.description).toMatch(/프라하|중세|광장|걷는|도시/)
+    expect(sched[1]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+    expect(sched[1]?.description).toMatch(/국립공원|록키|대자연|호수|폭포/)
+    expect(sched[0]?.description).not.toBe(sched[1]?.description)
+  })
+
+  it('ybtour — 프라하는 region vibe (generic 금지)', () => {
+    // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+    const desc = composeYbtourScheduleDescription({
+      day: 2,
+      maxDay: 8,
+      routePlaces: ['프라하 성', '카를교'],
+      joinedBlob: '프라하 성 - 카를교 - 프라하',
+    })
+    expect(desc).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
+    expect(desc).toMatch(/프라하|중세|광장|도시|걷는/)
+  })
+
+  it('체스키크롬로프 spelling — POI SSOT matches Cesky', () => {
+    expect(firstMatchingScheduleSpotEn('프라하 공항 - 체스키크롬로프')).toMatch(/Cesky Krumlov/i)
   })
 
   it('ybtour — description은 vibe만 (routeText 1줄 금지)', () => {
@@ -190,6 +255,22 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
         null,
         rows,
       ),
+    ).toBe(false)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 알래스카·미주 dest — Space Needle 오탐 금지 — manifest
+  it('알래스카 크루즈 — 잘못된 아시아 dest여도 Space Needle 환각 오탐 금지', () => {
+    const rows = [
+      { routeText: '시애틀 타코마 - 시애틀 - 퍼블릭 마켓', title: '시애틀' },
+      { routeText: '주노 - 글래시어 베이', title: '주노' },
+      { routeText: '케치칸', title: '케치칸' },
+    ]
+    expect(inferRegisterEffectiveProductDestination('아시아', rows)).toMatch(/Americas/i)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Space Needle Seattle', '아시아', rows),
+    ).toBe(false)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Glacier Bay Alaska cruise', '알래스카 크루즈', rows),
     ).toBe(false)
   })
 })

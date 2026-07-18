@@ -13,6 +13,11 @@ import {
   registerScheduleDescriptionHasMarketingNoise,
 } from '@/lib/register-schedule-description-marketing-guard'
 import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText, expandRegisterScheduleRoutePlaceCandidates } from '@/lib/register-schedule-route-place-noise'
+import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
+import {
+  composeRegisterScheduleExtendedRegionVibeDescription,
+  isRegisterScheduleGenericTourismDescription,
+} from '@/lib/register-schedule-region-vibe-extended'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -607,15 +612,27 @@ export function composeLottetourScheduleVibeSentences(
   joinedBlob: string,
 ): string {
   const profile = inferLottetourScheduleVibeProfile(day, maxDay, joinedBlob)
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+  if (profile === 'generic_tourism') {
+    const regional = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
+    if (regional) return regional
+  }
   const sentences = [...LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
   let desc = sentences.join(' ')
   for (const h of routePlaces) {
     for (const chunk of lottetourHighlightLeakChunks(h)) {
       if (desc.includes(chunk)) {
-        desc = LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
+        const regional = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
+        desc =
+          regional ||
+          LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
         break
       }
     }
+  }
+  if (isRegisterScheduleGenericTourismDescription(desc)) {
+    const regional = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
+    if (regional) return regional
   }
   return desc.slice(0, 320).trim()
 }
@@ -649,10 +666,14 @@ export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
     const routePlaces = dedupeLottetourScheduleRoutePlaces([...d.places, ...fromNote])
     const routeText = joinLottetourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
-    const title =
-      routeText?.split(' - ')[0]?.trim() ||
-      (d.hotels[0] ?? '').trim() ||
-      `${d.day}일차`
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day: d.day,
+      maxDay,
+      routeText,
+      fallbacks: [d.hotels[0]],
+      returnTitle: '귀국',
+    })
     const description = composeLottetourScheduleDescription({
       day: d.day,
       maxDay,
@@ -699,6 +720,14 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
       joinedBlob,
       planInfoRaw: isLottetourVibeFillerDescription(existingDesc) ? null : existingDesc,
     })
-    return { ...row, routeText, description }
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day,
+      maxDay,
+      routeText,
+      fallbacks: [row.title],
+      returnTitle: '귀국',
+    })
+    return { ...row, routeText, description, title }
   })
 }

@@ -166,6 +166,21 @@ function pickDepartureForwardKeywordFromNextRow(
   for (const kw of cands) {
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || reserved.has(nk)) continue
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: departure forward dep-route cluster — manifest
+    if (
+      /프라하|Prague|체스키|크롬로프|크룸로프|Krumlov|체코/i.test(depRoute) &&
+      /Salzburg|Mozart|Mirabell|Hohensalzburg|잘츠/i.test(kw) &&
+      !/잘츠|Salzburg/i.test(depRoute)
+    ) {
+      continue
+    }
+    if (
+      /헝가리|Hungary|부다페스트|Budapest/i.test(depRoute) &&
+      !/잘츠|Salzburg|프라하|체스키/i.test(depRoute) &&
+      /Salzburg|Mozart|Mirabell|잘츠|Cesky|Krumlov|프라하|Prague/i.test(kw)
+    ) {
+      continue
+    }
     return kw
   }
 
@@ -186,7 +201,7 @@ function isReturnDayCityLeakKeyword(kw: string): boolean {
 
 /** 출발·귀국 soft-dup — Vietnam/New Zealand 등 국가명은 도시로 쓰지 않음 */
 function isCountryLevelScheduleKeyword(kw: string): boolean {
-  return /^(?:New\s*Zealand|Australia|Vietnam|Thailand|Japan|Korea|South\s*Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|United\s*States|USA|Canada|France|Italy|Spain|Germany|United\s*Kingdom|UK|Brazil|Mexico|India|Taiwan|Hong\s*Kong)$/i.test(
+  return /^(?:New\s*Zealand|Australia|Vietnam|Thailand|Japan|Korea|South\s*Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|United\s*States|USA|Canada|France|Italy|Spain|Germany|United\s*Kingdom|UK|Brazil|Mexico|India|Taiwan|Hong\s*Kong|Greece|Alaska|Europe|Asia)$/i.test(
     String(kw ?? '').trim(),
   )
 }
@@ -718,8 +733,11 @@ function pickReturnVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>(
     const fromDest = mapDestination(dest)
     if (
       fromDest &&
+      isBareCityOrCountryKeyword(fromDest) &&
+      !/[\uAC00-\uD7AF]/.test(fromDest) &&
       !isDomesticHubOrAirportImageKeyword(fromDest) &&
-      !isRejectedTripKeywordCandidate(fromDest)
+      !isRejectedTripKeywordCandidate(fromDest) &&
+      !isCountryLevelScheduleKeyword(fromDest)
     ) {
       const nk = normScheduleImageKeywordKey(fromDest)
       if (!nk || !used?.has(nk)) return fromDest
@@ -799,7 +817,7 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       continue
     }
     const usedForEdge = allUsedExcept(day)
-    const filled =
+    let filled =
       slot === 'departure'
         ? pickDepartureVisitCityKeyword(sorted, day, maxDay, activeDays, productDestination)
         : (() => {
@@ -817,6 +835,8 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
               const fromDest = mapDestination(String(productDestination ?? '').trim())
               if (
                 fromDest &&
+                isBareCityOrCountryKeyword(fromDest) &&
+                !/[\uAC00-\uD7AF]/.test(fromDest) &&
                 !isDomesticHubOrAirportImageKeyword(fromDest) &&
                 !isRejectedTripKeywordCandidate(fromDest) &&
                 !isCountryLevelScheduleKeyword(fromDest)
@@ -851,26 +871,93 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
                 : '')
             )
           })()
+    // 권역·한글 dest 라벨은 귀국 키워드로 쓰지 않음 — soft-dup 방문도시로 넘김
+    if (
+      slot === 'return' &&
+      filled &&
+      (/[\uAC00-\uD7AF]/.test(filled) || isCountryLevelScheduleKeyword(filled))
+    ) {
+      filled = ''
+    }
     if (!filled) {
       const keepKw = String(row.imageKeyword ?? '').trim()
-      // 귀국 빈 슬롯 — 미사용 명소 없으면 방문도시 soft-dup (빈칸·환각 랜드마크보다 우선)
+      // 귀국 빈 슬롯 — 미사용 명소 bleed 대신 방문도시 soft-dup (빈칸·환각 랜드마크보다 우선)
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return soft-dup visit city — manifest
       if (slot === 'return' && !keepKw) {
+        let softCity = pickReturnSoftDupBareVisitCity(sorted, day)
+        if (!softCity) {
+          for (const tourismRow of [...sorted].reverse()) {
+            const d = Number(tourismRow.day)
+            if (d <= 0 || d >= day) continue
+            const city = pickForeignVisitCityFromRouteText(tourismRow.routeText, false)
+            if (
+              city &&
+              isBareCityOrCountryKeyword(city) &&
+              !isDomesticHubOrAirportImageKeyword(city) &&
+              !isCountryLevelScheduleKeyword(city)
+            ) {
+              softCity = city
+              break
+            }
+          }
+        }
+        if (!softCity) {
+          const tripHay = sorted.map((r) => String(r.routeText ?? '')).join('\n')
+          // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return soft-dup visit city — manifest
+          // dest 국가·권역명(Asia/중앙아시아)보다 일정 route 방문도시 우선
+          if (isMongoliaTerelClusterRoute(tripHay)) softCity = 'Ulaanbaatar'
+          else if (/몰디브|Maldives/i.test(tripHay)) softCity = 'Maldives'
+          else if (/시애틀|Seattle|알래스카|Alaska|주노|Juneau/i.test(tripHay)) softCity = 'Seattle'
+          else if (/괌|Guam/i.test(tripHay)) softCity = 'Guam'
+          else if (/타슈켄트|사마르칸트|알마티|비슈케크|우즈베|카자흐|키르기스/i.test(tripHay)) {
+            softCity = /비슈케크/i.test(tripHay)
+              ? 'Bishkek'
+              : /알마티/i.test(tripHay)
+                ? 'Almaty'
+                : 'Tashkent'
+          } else if (/빌뉴스|빌니우스|헬싱키|코펜하겐|오슬로|베르겐|스톡홀름|북유럽/i.test(tripHay)) {
+            softCity = /빌뉴스|빌니우스/i.test(tripHay)
+              ? 'Vilnius'
+              : /헬싱키/i.test(tripHay)
+                ? 'Helsinki'
+                : /코펜하겐/i.test(tripHay)
+                  ? 'Copenhagen'
+                  : 'Oslo'
+          }
+        }
+        if (!softCity) {
+          const fromDest = mapDestination(String(productDestination ?? '').trim())
+          if (
+            fromDest &&
+            isBareCityOrCountryKeyword(fromDest) &&
+            !/[\uAC00-\uD7AF]/.test(fromDest) &&
+            !isDomesticHubOrAirportImageKeyword(fromDest) &&
+            !isCountryLevelScheduleKeyword(fromDest) &&
+            !isRejectedTripKeywordCandidate(fromDest)
+          ) {
+            softCity = fromDest
+          }
+        }
+        if (softCity) {
+          out.set(day, { ...row, imageKeyword: softCity, imageKeyword2: null })
+          continue
+        }
         // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty no unused landmark bleed — manifest
         if (!ownReturnCity) {
           out.set(day, { ...row, imageKeyword: '', imageKeyword2: null })
           continue
         }
-        const softCity =
-          pickReturnVisitCityKeyword(sorted, day, productDestination, undefined) ||
-          mapDestination(String(productDestination ?? '').trim()) ||
-          ''
+        const softPrefer =
+          pickReturnVisitCityKeyword(sorted, day, productDestination, undefined) || ''
         if (
-          softCity &&
-          !isDomesticHubOrAirportImageKeyword(softCity) &&
-          !isRejectedTripKeywordCandidate(softCity)
+          softPrefer &&
+          isBareCityOrCountryKeyword(softPrefer) &&
+          !/[\uAC00-\uD7AF]/.test(softPrefer) &&
+          !isDomesticHubOrAirportImageKeyword(softPrefer) &&
+          !isCountryLevelScheduleKeyword(softPrefer) &&
+          !isRejectedTripKeywordCandidate(softPrefer)
         ) {
-          out.set(day, { ...row, imageKeyword: softCity, imageKeyword2: null })
+          out.set(day, { ...row, imageKeyword: softPrefer, imageKeyword2: null })
           continue
         }
       }
@@ -1414,7 +1501,10 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   if (!rt.trim()) return false
   const nk = normScheduleImageKeywordKey(kw)
   if (/prague|charles|krumlov|czech/.test(nk)) {
-    return /프라하|Prague|체코|Czech|크룸로프|Krumlov|체스키/i.test(rt)
+    return /프라하|Prague|체코|Czech|크룸로프|크롬로프|Krumlov|체스키/i.test(rt)
+  }
+  if (/salzburg|mozart|mirabell|hohensalzburg/.test(nk)) {
+    return /잘츠|Salzburg|미라벨|Mozart|모짜르트|호엔잘츠/i.test(rt)
   }
   if (/budapest|parliament|fisher|matthias|heroes|buda/.test(nk)) {
     return /부다페스트|Budapest|헝가리|Hungary|어부|마챠시|마차시|영웅|국회/i.test(rt)
@@ -1937,11 +2027,15 @@ function pickUaeResortClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  dayRouteText?: string | null,
 ): string {
-  if (!isUaeResortClusterRoute(routeText)) return ''
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
+  // tripHay에 아부다비·두바이가 있어도 당일 route에 걸프 증거가 없으면 주입 금지
+  const evidence = dayRouteText != null ? String(dayRouteText) : String(routeText ?? '')
+  if (!isUaeResortClusterRoute(evidence)) return ''
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowUaeResortClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowUaeResortClusterKw2Duplicate(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -2719,6 +2813,11 @@ function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefi
   for (const seg of segs) {
     if (isRegisterScheduleRoutePlaceNoise(seg)) continue
     if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
+    if (/^삿포로?$/u.test(seg) || /^죠잔케이|조잔케이$/u.test(seg)) {
+      const typo = /^삿포로?$/u.test(seg) ? 'Sapporo' : 'Jozankei'
+      if (isBareCityOrCountryKeyword(typo)) return typo
+    }
     const fromMap = mapDestination(seg)
     if (
       fromMap &&
@@ -2739,9 +2838,18 @@ function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefi
     '샌프란시스코',
     '라스베이거스',
     '라스베가스',
+    '삿포로',
+    '삿포',
+    '죠잔케이',
+    '프라하',
+    '몰디브',
+    '싱가포르',
+    '괌',
+    '아테네',
+    '산토리니',
   ]) {
     if (!hay.includes(ko)) continue
-    const m = mapDestination(ko)
+    const m = mapDestination(ko) || (/^삿포로?$/u.test(ko) ? 'Sapporo' : '')
     if (
       m &&
       isBareCityOrCountryKeyword(m) &&
@@ -2760,6 +2868,67 @@ function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefi
     !isDomesticHubOrAirportImageKeyword(city)
   ) {
     return city
+  }
+  return ''
+}
+
+/** 귀국 빈 슬롯 — prior route·키워드에서 bare 방문도시 soft-dup */
+function pickReturnSoftDupBareVisitCity<T extends RegisterScheduleTripKeywordRow>(
+  sorted: readonly T[],
+  returnDay: number,
+): string {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty route soft-dup bare city — manifest
+  const bareCityFromEnglishHay = (hay: string): string => {
+    const m = String(hay ?? '').match(
+      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb)\b/i,
+    )
+    if (!m?.[1]) return ''
+    const city = m[1]!.charAt(0).toUpperCase() + m[1]!.slice(1).toLowerCase()
+    // multi-word already matched as single token above
+    if (city.toLowerCase() === 'copenhagen') return 'Copenhagen'
+    if (isBareCityOrCountryKeyword(city)) return city
+    return city
+  }
+  for (const tourismRow of [...sorted].reverse()) {
+    const d = Number(tourismRow.day)
+    if (d <= 0 || d >= returnDay) continue
+    const fromRouteLast = pickForeignVisitCityFromRouteText(tourismRow.routeText, true)
+    if (
+      fromRouteLast &&
+      isBareCityOrCountryKeyword(fromRouteLast) &&
+      !isDomesticHubOrAirportImageKeyword(fromRouteLast) &&
+      !isCountryLevelScheduleKeyword(fromRouteLast)
+    ) {
+      return fromRouteLast
+    }
+    const soft = softDupForeignVisitCityForMiddleRoute(tourismRow.routeText)
+    if (soft) return soft
+    const fromRouteHay = bareCityFromEnglishHay(String(tourismRow.routeText ?? ''))
+    if (fromRouteHay) return fromRouteHay
+    for (const slot of [tourismRow.imageKeyword, tourismRow.imageKeyword2]) {
+      const raw = String(slot ?? '').trim()
+      if (!raw) continue
+      if (
+        isBareCityOrCountryKeyword(raw) &&
+        !isDomesticHubOrAirportImageKeyword(raw) &&
+        !isCountryLevelScheduleKeyword(raw)
+      ) {
+        return finalizeScheduleImageKeyword(raw) || raw
+      }
+      const fromEn = bareCityFromEnglishHay(raw)
+      if (fromEn) return fromEn
+      const fromKw = firstMatchingScheduleCityEn(raw)
+      if (
+        fromKw &&
+        isBareCityOrCountryKeyword(fromKw) &&
+        !isDomesticHubOrAirportImageKeyword(fromKw) &&
+        !isCountryLevelScheduleKeyword(fromKw)
+      ) {
+        return fromKw
+      }
+      const fromKwEn = bareCityFromEnglishHay(String(fromKw ?? ''))
+      if (fromKwEn) return fromKwEn
+    }
   }
   return ''
 }
@@ -3197,6 +3366,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
             used,
             tripHay,
             normScheduleImageKeywordKey(primary),
+            row.routeText,
           ) || secondary
       }
       if (!secondary && isHongKongHubClusterRoute(row.routeText)) {
@@ -3231,7 +3401,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
-        pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
@@ -3430,6 +3600,10 @@ function shouldRejectRouteLeakKeyword2(
       return true
     }
   }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
+  if (/dubai|burj|khalifa|abu dhabi|abudhabi|saadiyat|palm jumeirah|sheikh zayed|desert safari/.test(nk)) {
+    if (!isUaeResortClusterRoute(dayRt)) return true
+  }
   return false
 }
 
@@ -3568,7 +3742,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
-        pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
@@ -3604,7 +3778,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickCanadaRockiesClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
-        pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||

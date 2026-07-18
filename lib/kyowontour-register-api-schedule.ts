@@ -10,6 +10,7 @@ import {
   dedupeLottetourScheduleRoutePlaces,
   joinLottetourScheduleRouteText,
 } from '@/lib/lottetour-register-api-schedule'
+import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import type { KyowontourScheduleRowParsed } from '@/lib/kyowontour-tour-event-tab-data'
 
@@ -78,17 +79,15 @@ export function kyowontourFactDaysToRegisterSchedule(days: RegisterFactScheduleD
     const routePlaces = dedupeLottetourScheduleRoutePlaces(d.places)
     const routeText = joinLottetourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
-    const titleRaw =
-      routeText?.split(' - ')[0]?.trim() ||
-      String(d.transportNote ?? '').split(';')[0]?.trim() ||
-      (d.hotels[0] ?? '').trim() ||
-      `${d.day}일차`
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     // REGRESSION-FREEZE[kyowontour-schedule-expression]: 귀국일 vibe title → 귀국 — manifest
-    const title =
-      d.day === maxDay &&
-      (!routeText || /귀국|현지를\s*정리|이동\s*중심의\s*마무리|귀국길로/u.test(titleRaw))
-        ? '귀국'
-        : titleRaw
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day: d.day,
+      maxDay,
+      routeText,
+      fallbacks: [String(d.transportNote ?? '').split(';')[0], d.hotels[0]],
+      returnTitle: '귀국',
+    })
     const description = composeLottetourScheduleDescription({
       day: d.day,
       maxDay,
@@ -129,6 +128,15 @@ export function applyKyowontourScheduleExpressionToRows<T extends RegisterSchedu
       routePlaces,
       joinedBlob,
     })
-    return { ...row, routeText, description, ...(day === maxDay && (!routeText || /귀국|현지를\s*정리|귀국길로/u.test(String(row.title ?? ''))) ? { title: '귀국' } : {}) }
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    // REGRESSION-FREEZE[kyowontour-schedule-expression]: 귀국일 vibe title → 귀국 — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day,
+      maxDay,
+      routeText,
+      fallbacks: [row.title],
+      returnTitle: '귀국',
+    })
+    return { ...row, routeText, description, title }
   })
 }

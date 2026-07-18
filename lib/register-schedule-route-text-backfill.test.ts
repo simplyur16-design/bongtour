@@ -7,6 +7,7 @@ import {
   expandSingleSegmentPoiRouteTextRows,
   prepareRegisterScheduleRowsForImageKeywordApply,
 } from '@/lib/register-schedule-route-text-backfill'
+import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 
 describe('register schedule route expression normalize — 신규 등록', () => {
   it('placeholder 요약을 routeText a–g로 교체', () => {
@@ -72,5 +73,40 @@ describe('register schedule route expression normalize — 신규 등록', () =>
     expect(out[2]?.routeText).toMatch(/리조트|자유시간/)
     expect(out[2]?.routeText).not.toMatch(/아푸간|돈키빌리지/)
     expect(out[3]?.routeText).not.toMatch(/아푸간|돈키빌리지/)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 리조트 자유일 empty route ← title — manifest
+  it('리조트 자유일 — empty routeText는 title로 채움', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply([
+      { day: 1, title: '인천 - 괌', routeText: '인천 - 괌', description: '이동' },
+      {
+        day: 2,
+        title: '아푸간 요새 - 돈키빌리지',
+        routeText: '아푸간 요새 - 괌 스페인광장 - 돈키빌리지',
+        description: '관광',
+      },
+      {
+        day: 3,
+        title: '전일 리조트 내 부대시설 이용 및 자유시간',
+        routeText: '',
+        description: '',
+      },
+      {
+        day: 4,
+        title: '오전 리조트 내 부대시설 이용 및 자유시간',
+        routeText: '',
+        description: '',
+      },
+      { day: 5, title: '귀국', routeText: '', description: '' },
+    ])
+    expect(out[2]?.routeText).toMatch(/리조트|자유시간/)
+    expect(out[3]?.routeText).toMatch(/리조트|자유시간/)
+    expect(out[2]?.routeText).not.toMatch(/아푸간|돈키빌리지/)
+  })
+
+  it('리조트 자유일 — sanitize가 routeText를 null로 비우지 않음', () => {
+    expect(
+      sanitizeRegisterScheduleRouteText('전일 리조트 내 부대시설 이용 및 자유시간'),
+    ).toMatch(/리조트|자유시간/)
   })
 })

@@ -25,6 +25,8 @@ import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal
 import { classifyHanatourScheduleCardDayKind } from '@/lib/hanatour-schedule-card-day-kind'
 import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-row-to-persist'
 import { addDaysUtcYmd } from '@/lib/calendar-ymd'
+import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
+import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 
 const HANATOUR_GW_BASE = process.env.HANATOUR_GW_BASE_URL ?? 'https://gw.hanatour.com'
 const HANATOUR_TRP_PRG_MID = 'CHPC0PKG0200M200'
@@ -354,8 +356,19 @@ export function composeHanatourScheduleVibeDescription(
 ): string {
   const chainBlob = highlights.join(' - ')
   const transport = String(day.transportNote ?? '')
-  const joined = [transport, chainBlob, ...dedupeHanatourFactDayPlaces(day.places)].filter(Boolean).join(' ')
+  const places = dedupeHanatourFactDayPlaces(day.places)
+  const joined = [transport, chainBlob, ...places].filter(Boolean).join(' ')
   const profile = inferHanatourScheduleVibeProfile(day, maxDay, joined)
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+  if (profile === 'generic_tourism') {
+    const regional = composeRegisterScheduleRegionVibeDescription({
+      day: day.day,
+      maxDay,
+      routePlaces: highlights.length ? highlights : places,
+      joinedBlob: joined,
+    })
+    if (regional) return regional
+  }
   const sentences = [...HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
   let desc = sentences.join(' ')
   for (const h of highlights) {
@@ -473,11 +486,18 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
     if (!routeText && dayKind === 'return_home') {
       routeText = /인천|ICN|김포|GMP/u.test(joinedBlob) ? '인천' : '인천'
     }
-    const title =
-      routeText ||
-      (highlights.length > 0 ? highlights.join(' - ') : '') ||
-      (dayKind === 'return_home' ? '숙박 없음(귀국)' : '') ||
-      hanatourScheduleTitleFallback(d.hotels, d.day, firstTransport)
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
+    const title = composeRegisterScheduleDayTitleFromRoute({
+      day: d.day,
+      maxDay,
+      routeText,
+      fallbacks: [
+        highlights.length > 0 ? highlights.join(' - ') : null,
+        dayKind === 'return_home' ? '숙박 없음(귀국)' : null,
+        hanatourScheduleTitleFallback(d.hotels, d.day, firstTransport),
+      ],
+      returnTitle: '숙박 없음(귀국)',
+    })
     const description =
       composeHanatourScheduleVibeDescription(d, maxDay, highlights) ||
       `${d.day}일차`

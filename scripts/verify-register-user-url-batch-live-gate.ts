@@ -34,6 +34,7 @@ import {
   registerScheduleDescriptionHasMarketingNoise,
   registerScheduleRouteOrTitleHasShoppingNoise,
 } from '@/lib/register-schedule-description-marketing-guard'
+import { isRegisterScheduleGenericTourismDescription } from '@/lib/register-schedule-region-vibe'
 import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { injectHanatourApiDeparturePricesIfMissing } from '@/lib/hanatour-register-api-price-inject'
 import { injectYbtourApiDeparturePricesIfMissing } from '@/lib/ybtour-register-api-price-inject'
@@ -204,6 +205,8 @@ function loadCasesFromUrlFile(filePath: string): UrlCase[] {
 
 type ScheduleRowReport = {
   day: number
+  /** 일정 일차 title(전체일정요약 헤드라인) — REGRESSION-FREEZE[register-schedule-day-title-ssot] */
+  title: string
   routeText: string
   descriptionLen: number
   descriptionSentences: number
@@ -211,6 +214,7 @@ type ScheduleRowReport = {
   imageKeyword: string
   imageKeyword2: string
   issues: string[]
+  softIssues: string[]
 }
 
 type CaseReport = {
@@ -255,17 +259,30 @@ function scheduleRowIssues(
   },
   totalDays: number,
   maxDay: number,
-): string[] {
+): { issues: string[]; softIssues: string[] } {
   const issues: string[] = []
+  const softIssues: string[] = []
   const day = row.day ?? 0
   const route = String(row.routeText ?? '').trim()
   const desc = String(row.description ?? '').trim()
+  const title = String(row.title ?? '').trim()
   const kw = String(row.imageKeyword ?? '').trim()
   const kw2 = String(row.imageKeyword2 ?? '').trim()
   const isFirst = day <= 1
   const isLast = day >= maxDay
 
-  if (!route && !(isFirst && totalDays > 1) && !(isLast && /숙박\s*없음|귀국|출발/u.test(`${String(row.title ?? '')} ${desc}`))) {
+  // REGRESSION-FREEZE[register-schedule-day-title-ssot]: batch title 계측 — manifest
+  if (!title) softIssues.push('title 비어 있음')
+  else if (/^\d+\s*일차$/.test(title)) softIssues.push('title이 N일차 폴백만')
+  else if (route && title === route) {
+    // 단일 도시·세그먼트는 compose 정상일 수 있음 — 복붙 soft는 다구간·장문만
+    const segs = route.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean)
+    if (segs.length >= 2 || route.length >= 24) softIssues.push('title이 routeText 전체 복붙')
+  } else if (title.includes(' - ') && title.split(/\s*-\s*/).filter(Boolean).length >= 3) {
+    softIssues.push('title이 긴 route 체인형')
+  }
+
+  if (!route && !(isFirst && totalDays > 1) && !(isLast && /숙박\s*없음|귀국|출발/u.test(`${title} ${desc}`))) {
     issues.push('routeText 비어 있음')
   }
   const routeSegments = route
@@ -303,7 +320,11 @@ function scheduleRowIssues(
   if (desc && registerScheduleDescriptionHasMarketingNoise(desc)) {
     issues.push('description 마케팅·특전·수하물 오염')
   }
-  if (registerScheduleRouteOrTitleHasShoppingNoise(String(row.title ?? ''))) {
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: batch generic tourism soft — manifest
+  if (desc && isRegisterScheduleGenericTourismDescription(desc) && !isFirst && !isLast) {
+    softIssues.push('description generic tourism')
+  }
+  if (registerScheduleRouteOrTitleHasShoppingNoise(title)) {
     issues.push('title 쇼핑·면세 라벨')
   }
   if (route && registerScheduleRouteOrTitleHasShoppingNoise(route)) {
@@ -320,7 +341,7 @@ function scheduleRowIssues(
       const hubOnly =
         isAirportTransferOrCityHubOnlyMiddleRoute(route) ||
         isScheduleHubMovementKeywordRow(
-          { routeText: route, title: String(row.title ?? ''), description: desc },
+          { routeText: route, title, description: desc },
           day,
           maxDay,
         ) ||
@@ -337,7 +358,7 @@ function scheduleRowIssues(
     if (kw2) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword2는 null이어야 함`)
   }
 
-  return issues
+  return { issues, softIssues }
 }
 
 async function injectPricesForSupplier(
@@ -382,6 +403,7 @@ function collectPriceIssues(parsed: Record<string, unknown>): {
     })
     if (modetourSd1Empty) {
       softIssues.push('출발일별 prices 비어 있음(모두투어 달력 SD1·현행 단체번호도 0건)')
+      // REGRESSION-FREEZE[register-facts-fetch-resilience]: SD1·calendar_empty는 soft (품절·퇴장) — hard parse fail 금지 — manifest
     } else if (notes.some((n) => n.includes('하나투어 출발 달력 0건·anchor 과거마감:'))) {
       softIssues.push('출발일별 prices 비어 있음(hanatour 지정 출발일 과거마감·미래 달력 0건)')
     } else {
@@ -449,7 +471,9 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
 
     const schedule = (parsed.schedule as Array<Record<string, unknown>> | undefined) ?? []
     const title = String(parsed.title ?? parsed.supplierListingTitleRaw ?? '').trim()
-    const productDestination = String(parsed.primaryDestination ?? parsed.destination ?? '').trim()
+    const productDestination = String(
+      parsed.primaryDestination ?? parsed.destination ?? parsed.title ?? '',
+    ).trim()
     const priceReport = collectPriceIssues(parsed)
     const priceIssues = priceReport.issues
     const priceSoftIssues = priceReport.softIssues
@@ -512,10 +536,11 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
       const day = Number(r.day ?? 0)
       const routeText = String(r.routeText ?? '').trim()
       const description = String(r.description ?? '').trim()
-      const rowIssues = scheduleRowIssues(
+      const title = String(r.title ?? '').trim()
+      const { issues: rowIssues, softIssues: rowSoft } = scheduleRowIssues(
         {
           day,
-          title: String(r.title ?? ''),
+          title,
           routeText,
           description,
           imageKeyword: String(r.imageKeyword ?? ''),
@@ -526,6 +551,7 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
       )
       return {
         day,
+        title: title.slice(0, 80),
         routeText: routeText.slice(0, 120),
         descriptionLen: description.length,
         descriptionSentences: countDescriptionSentences(description),
@@ -533,10 +559,14 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
         imageKeyword: String(r.imageKeyword ?? '').trim(),
         imageKeyword2: String(r.imageKeyword2 ?? '').trim(),
         issues: rowIssues,
+        softIssues: rowSoft,
       }
     })
 
     const scheduleIssues = scheduleReports.flatMap((r) => r.issues.map((i) => `D${r.day}: ${i}`))
+    const scheduleSoftIssues = scheduleReports.flatMap((r) =>
+      r.softIssues.map((i) => `D${r.day}: ${i}`),
+    )
     if (totalDays === 0) scheduleIssues.push('일정 0일')
 
     // trip-wide imageKeyword·imageKeyword2 중복 (일자 간)
@@ -618,11 +648,20 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
               (/Singapore|싱가포르|Merlion|Universal\s*Studios/i.test(String(slot ?? '')) &&
                 (/싱가포르|Singapore/i.test(dayHay) || /싱가포르|Singapore/i.test(tripHayAll))) ||
               (/Abu\s*Dhabi|Dubai|Sheikh\s*Zayed|Louvre\s*Abu|Burj/i.test(String(slot ?? '')) &&
-                (/아부다비|두바이|Abu\s*Dhabi|Dubai/i.test(dayHay) ||
-                  /아부다비|두바이|Abu\s*Dhabi|Dubai/i.test(tripHayAll))) ||
+                /아부다비|두바이|Abu\s*Dhabi|Dubai/i.test(dayHay)) ||
               // Gemini가 Louvre Abu Dhabi를 Louvre Museum으로 축약한 경우 — 당일 아부다비·루브르 근거
               (/\bLouvre\b/i.test(String(slot ?? '')) &&
-                /루브르|Louvre|아부다비|Abu\s*Dhabi|사디야트|Saadiyat/i.test(dayHay))
+                /루브르|Louvre|아부다비|Abu\s*Dhabi|사디야트|Saadiyat/i.test(dayHay)) ||
+              // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 알래스카·미주 dest — Space Needle 오탐 금지 — manifest
+              (/\b(Space\s*Needle|Pike\s*Place|Glacier\s*Bay|Juneau|Skagway|Ketchikan|Alaska|Seattle)\b/i.test(
+                String(slot ?? ''),
+              ) &&
+                (/시애틀|Seattle|알래스카|Alaska|주노|Juneau|스캐그웨이|Skagway|케치칸|Ketchikan|글래시어|Glacier/i.test(
+                  dayHay,
+                ) ||
+                  /시애틀|Seattle|알래스카|Alaska|주노|Juneau|스캐그웨이|Skagway|케치칸|Ketchikan|글래시어|Glacier/i.test(
+                    tripHayAll,
+                  )))
             if (!slotOkOnDay) {
               scheduleIssues.push(`D${r.day}: imageKeyword 대륙·지역 환각 "${slot}"`)
             }
@@ -633,6 +672,7 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
 
     const allIssues = [
       ...scheduleIssues,
+      ...scheduleSoftIssues.map((i) => `schedule-soft: ${i}`),
       ...priceIssues.map((i) => `price: ${i}`),
       ...priceSoftIssues.map((i) => `price-soft: ${i}`),
     ]
@@ -755,9 +795,10 @@ async function main() {
     for (const row of r.schedule ?? []) {
       const flag = row.issues.length ? '!' : ' '
       console.log(
-        `  ${flag} D${row.day}: route="${row.routeText}" kw="${row.imageKeyword}" kw2="${row.imageKeyword2}" desc=${row.descriptionSentences}문장/${row.descriptionLen}자`,
+        `  ${flag} D${row.day}: title="${row.title}" route="${row.routeText}" kw="${row.imageKeyword}" kw2="${row.imageKeyword2}" desc=${row.descriptionSentences}문장/${row.descriptionLen}자`,
       )
       if (row.descriptionPreview) console.log(`       desc: ${row.descriptionPreview}`)
+      if (row.softIssues.length) console.log(`       soft: ${row.softIssues.join('; ')}`)
     }
   }
 

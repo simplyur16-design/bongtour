@@ -515,7 +515,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /짤즈?\s*캄머\s*굿|Salzkammergut/i, en: "Salzkammergut lake Austria" },
   { re: /린츠|Linz/i, en: "Linz Hauptplatz Austria" },
   { re: /체스케\s*부데요비체|Česk[eé]\s*Bud[eě]jovice|Ceske\s*Budejovice/i, en: "Ceske Budejovice square" },
-  { re: /체스키\s*크룸로프|Český\s*Krumlov|Cesky\s*Krumlov/i, en: "Cesky Krumlov Castle Czech Republic" },
+  { re: /체스키\s*크(?:룸|롬)로프|Český\s*Krumlov|Cesky\s*Krumlov/i, en: "Cesky Krumlov Castle Czech Republic" },
   { re: /이발사\s*다리|Barber\s*Bridge/i, en: "Cesky Krumlov old town bridge" },
   { re: /미라벨|Mirabell/i, en: "Mirabell Gardens Salzburg" },
   { re: /모짜르트|Mozart/i, en: "Mozart birthplace Salzburg" },

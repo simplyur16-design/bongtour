@@ -1117,4 +1117,225 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       .filter(Boolean)
     expect(middle).not.toContain(normScheduleImageKeywordKey(String(d6.imageKeyword ?? '')))
   })
+
+  it('EKP3057-shaped — D1 프라하·체스키크롬로프 must not forward-fill Salzburg/Mozart', () => {
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: departure forward dep-route cluster — manifest
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '프라하 공항 - 체스키크롬로프',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '체스키크롬로프 - 할슈타트',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '잘츠부르크 - 모짜르트 생가 - 미라벨 정원',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '인천 귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'ybtour',
+        productDestination: '동유럽',
+        productTitle: '동유럽 발칸',
+        travelScope: 'package',
+      },
+    )
+    const d1 = out.find((r) => r.day === 1)!
+    const blob = `${d1.imageKeyword ?? ''} ${d1.imageKeyword2 ?? ''}`
+    expect(blob).not.toMatch(/Salzburg|Mozart|Mirabell|Hohensalzburg/i)
+    expect(blob).toMatch(/Cesky|Krumlov|Prague|Czech/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty route soft-dup bare city — manifest
+  it('return empty route — prior tourism bare city soft-dup (EKP/NAP last day)', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '프라하 공항 - 체스키크룸로프',
+          imageKeyword: 'Cesky Krumlov Castle Czech Republic',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '할슈타트 - 잘츠부르크',
+          imageKeyword: 'Hallstatt Lake Village Austria',
+          imageKeyword2: 'Hohensalzburg Fortress Salzburg',
+        },
+        {
+          day: 3,
+          routeText: '카를교 - 프라하',
+          imageKeyword: 'Charles Bridge',
+          imageKeyword2: 'Prague Castle Charles Bridge view',
+        },
+        { day: 4, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '동유럽',
+    )
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Prague/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
+  it('홋카이도 중간일 삿포 — empty kw soft-dup Sapporo', () => {
+    const out = fillRegisterScheduleMiddleDayImageKeywordGaps(
+      [
+        {
+          day: 1,
+          routeText: '치토세 - 죠잔케이',
+          imageKeyword: 'Jozankei',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '죠잔케이 - 후라노 - 비에이',
+          imageKeyword: 'Farm Tomita Furano',
+          imageKeyword2: 'Shikisai-no-oka Biei',
+        },
+        {
+          day: 3,
+          routeText: '소운쿄 - 삿포 - 죠잔케이',
+          imageKeyword: 'Odori Park',
+          imageKeyword2: 'Sounkyo',
+        },
+        { day: 4, routeText: '삿포 - 죠잔케이', imageKeyword: '', imageKeyword2: null },
+        { day: 5, routeText: '삿포 - 오타루 - 치토세', imageKeyword: 'Otaru', imageKeyword2: null },
+      ],
+      '일본',
+    )
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Sapporo|Jozankei/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
+  it('그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '아부다비',
+          imageKeyword: 'Sheikh Zayed Grand Mosque Abu Dhabi',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '아부다비 - 아테네 - 수니온 곶',
+          imageKeyword: 'Louvre Abu Dhabi Saadiyat Island',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '고린도 - 미케네 유적지 - 나프플리오 경유',
+          imageKeyword: 'Dubai desert safari dunes sunset',
+          imageKeyword2: 'Palm Jumeirah Dubai aerial',
+        },
+        {
+          day: 4,
+          routeText: '산토리니 - 이아마을',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 5, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'kyowontour',
+        productDestination: '그리스',
+        productTitle: '그리스 아부다비',
+        travelScope: 'package',
+      },
+    )
+    const d3 = out.find((r) => r.day === 3)!
+    const blob = `${d3.imageKeyword ?? ''} ${d3.imageKeyword2 ?? ''}`
+    expect(blob).not.toMatch(/Dubai|Burj|Palm Jumeirah|desert safari/i)
+    expect(String(out.find((r) => r.day === 5)?.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+  })
+
+  it('알래스카 귀국 empty — Seattle soft-dup', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '시애틀 타코마 - 시애틀',
+          imageKeyword: 'Seattle',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '주노',
+          imageKeyword: 'Juneau Alaska',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '시애틀 - 대극장',
+          imageKeyword: 'Gas Works Park Seattle',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '알래스카',
+    )
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Seattle|Juneau/i)
+  })
+
+  it('중앙아시아 귀국 empty — Tashkent/Almaty/Bishkek soft-dup', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '타슈켄트 - 사마르칸트',
+          imageKeyword: 'Registan Square Samarkand Uzbekistan',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '알마티 - 침볼락',
+          imageKeyword: 'Zenkov Cathedral Almaty Kazakhstan',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '비슈케크공항 - 타슈켄트공항',
+          imageKeyword: 'Ala Archa National Park',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '중앙아시아',
+    )
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(
+      /Tashkent|Almaty|Bishkek|Samarkand/i,
+    )
+  })
+
+  it('북유럽 귀국 empty — Vilnius/Helsinki soft-dup', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '오슬로 - 베르겐',
+          imageKeyword: 'Vigeland Sculpture Park Oslo',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '리투아니아/빌뉴스 - 헬싱키 환승',
+          imageKeyword: 'Gediminas Tower Vilnius',
+          imageKeyword2: null,
+        },
+        { day: 3, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '북유럽',
+    )
+    expect(String(out.find((r) => r.day === 3)?.imageKeyword ?? '')).toMatch(
+      /Vilnius|Helsinki|Oslo|Bergen/i,
+    )
+  })
 })
