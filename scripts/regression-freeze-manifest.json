@@ -829,6 +829,13 @@
           "mustInclude": [
             "isOfflineUsimOnlyOrder"
           ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-offline-usim-order]",
+            "confirm/activate 후 목록 status 갱신"
+          ]
         }
       ]
     },

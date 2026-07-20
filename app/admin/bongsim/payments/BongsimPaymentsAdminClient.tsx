@@ -353,6 +353,7 @@ export default function BongsimPaymentsAdminClient() {
       setUsimOk(`물리 USIM 활성화 완료 (ICCID ${j.iccid ?? iccid})`);
       setUsimIccid("");
       await openDetail(oid);
+      await load();
     } catch (e) {
       setUsimErr(e instanceof Error ? e.message : "오류");
     } finally {
@@ -420,7 +421,9 @@ export default function BongsimPaymentsAdminClient() {
         throw new Error(j.message ?? j.error ?? "결제 확인 실패");
       }
       setUsimOk(null);
+      // REGRESSION-FREEZE[bongsim-offline-usim-order]: confirm/activate 후 목록 status 갱신 — manifest
       await openDetail(orderId);
+      await load();
     } catch (e) {
       setUsimErr(e instanceof Error ? e.message : "오류");
     } finally {
