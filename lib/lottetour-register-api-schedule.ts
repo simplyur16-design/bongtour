@@ -317,7 +317,7 @@ const LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS: Record<LottetourScheduleVibeProfile,
     '짧은 체류에도 도시의 분위기 차이가 분명하게 느껴지는 구성입니다.',
   ],
   uk_ireland: [
-    '항구 도시와 구시가지가 이어지는, 아일랜드의 여유로운 이동형 하루입니다.',
+    '항구 도시와 구시가지가 이어지는, 섬과 바다가 이어지는 여유로운 이동형 하루입니다.',
     '바다와 도심의 대비가 시야를 넓히며, 여정이 부드럽게 이어집니다.',
   ],
   uk_countryside: [

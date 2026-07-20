@@ -6,20 +6,24 @@
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
-  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing/i
+  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island/i
 
 /** 호주·뉴질랜드 — ASIA_PACIFIC에 안 묶여도 Mount Fuji 등 환각 차단용 */
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
 export const OCEANIA_PRODUCT_DEST_RE =
   /호주|Australia|뉴질랜드|New\s*Zealand|오세아니아|Oceania|시드니|Sydney|멜버른|Melbourne|브리즈번|Brisbane|퍼스|Perth|오클랜드|Auckland|크라이스트|Christchurch|퀸즈?\s*타운|Queenstown|로토루아|Rotorua/i
 
+// REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 조이아일랜드·아일랜드호핑 ≠ EU Ireland — manifest
+// bare 「아일랜드」는 섬/Joy Island/호핑 오탐 — Ireland·아일랜드 공화국·일주만 Europe
 export const EUROPE_PRODUCT_DEST_RE =
-  /유럽|Europe|서유럽|동유럽|북유럽|남유럽|중동유럽|발트|Baltic|스칸디|Scandinav|지중해|Mediterranean|프랑스|France|이탈리아|Italy|스페인|Spain|독일|Germany|스위스|Switzerland|영국|Britain|UK|아일랜드|Ireland|그리스|Greece|터키|Turkey|크로아티아|Croatia|체코|Czech|Austria|오스트리아|헝가리|Hungary|폴란드|Poland|네덜란드|Netherlands|벨기에|Belgium|포르투갈|Portugal|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|아이슬란드|Iceland|리투아니아|Lithuania|에스토니아|Estonia|라트비아|Latvia|빌니우스|Vilnius|탈린|Tallinn|리가|Riga|프라하|Prague|파리|Paris|로마|Rome|런던|London|바르셀로나|Barcelona|인터라켄|Interlaken|융프라우|Jungfrau|피렌체|Florence|베네치아|Venice|취리히|Zurich|암스테르담|Amsterdam|비엔나|Vienna|부다페스트|Budapest|바르샤바|Warsaw|헬싱키|Helsinki|스톡홀름|Stockholm|코펜하겐|Copenhagen|Oslo|오슬로|Reykjavik|베르겐|Bergen|플롬|Flam|Flåm/i
+  /유럽|Europe|서유럽|동유럽|북유럽|남유럽|중동유럽|발트|Baltic|스칸디|Scandinav|지중해|Mediterranean|프랑스|France|이탈리아|Italy|스페인|Spain|독일|Germany|스위스|Switzerland|영국|Britain|UK|Ireland|(?<![가-힣])아일랜드(?:\s*(?:공화국|일주|완전일주|패키지|여행|더블린|Dublin)|(?=\s*[<(#]))|그리스|Greece|터키|Turkey|크로아티아|Croatia|체코|Czech|Austria|오스트리아|헝가리|Hungary|폴란드|Poland|네덜란드|Netherlands|벨기에|Belgium|포르투갈|Portugal|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|아이슬란드|Iceland|리투아니아|Lithuania|에스토니아|Estonia|라트비아|Latvia|빌니우스|Vilnius|탈린|Tallinn|(?<![가-힣])리가(?![가-힣])|\bRiga\b|프라하|Prague|파리|Paris|로마|Rome|런던|London|바르셀로나|Barcelona|인터라켄|Interlaken|융프라우|Jungfrau|피렌체|Florence|베네치아|Venice|취리히|Zurich|암스테르담|Amsterdam|비엔나|Vienna|부다페스트|Budapest|바르샤바|Warsaw|헬싱키|Helsinki|스톡홀름|Stockholm|코펜하겐|Copenhagen|Oslo|오슬로|Reykjavik|베르겐|Bergen|플롬|Flam|Flåm|미주리나|Misurina|돌로미테|Dolomit|몬세라트|Montserrat|콜로세움|Colosseum|에펠|Eiffel/i
 
 export const AMERICAS_PRODUCT_DEST_RE =
-  /미국|USA|U\.S\.|미주|미서부|미동부|미남부|미국서부|미국동부|Canada|캐나다|멕시코|Mexico|브라질|Brazil|아르헨|Argentina|칠레|Chile|페루|Peru|Colombia|콜롬비아|남미|북미|중남미|South\s*America|North\s*America|Latin\s*America|알래스카|Alaska|앵커리지|Anchorage|주노|Juneau|스캐그웨이|Skagway|케치칸|Ketchikan|글래시어\s*베이|Glacier\s*Bay|하와이|Hawaii|괌|Guam|사이판|Saipan|Los\s*Angeles|LA|뉴욕|New\s*York|샌프란|San\s*Francisco|라스베가스|Las\s*Vegas|시애틀|Seattle|밴쿠버|Vancouver|토론토|Toronto|리마|Lima|마나우스|Manaus|리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|Mexico\s*City|과달라하라|Guadalajara|Americas/i
+  /미국|USA|U\.S\.|(?<![가-힣])미주(?![가-힣])|미서부|미동부|미남부|미국서부|미국동부|Canada|캐나다|멕시코|Mexico|브라질|Brazil|아르헨|Argentina|칠레|Chile|페루|Peru|Colombia|콜롬비아|남미|북미|중남미|South\s*America|North\s*America|Latin\s*America|알래스카|Alaska|앵커리지|Anchorage|주노|Juneau|스캐그웨이|Skagway|케치칸|Ketchikan|글래시어\s*베이|Glacier\s*Bay|하와이|Hawaii|괌|Guam|사이판|Saipan|Los\s*Angeles|\bLA\b|뉴욕|New\s*York|샌프란|San\s*Francisco|라스베가스|Las\s*Vegas|시애틀|Seattle|밴쿠버|Vancouver|토론토|Toronto|리마|Lima|마나우스|Manaus|리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|Mexico\s*City|과달라하라|Guadalajara|Americas/i
 // REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우/Rio 제거 — manifest
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 알래스카·미주 dest — Space Needle 오탐 금지 — manifest
+// REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 미주리나≠미주 Americas — manifest
+// REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: MILANO≠LA Americas — manifest
 
 export const MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE =
   /중동|Middle\s*East|두바이|Dubai|아부다비|Abu\s*Dhabi|이집트|Egypt|카이로|Cairo|룩소르|Luxor|모로코|Morocco|케냐|Kenya|남아|South\s*Africa|아프리카|Africa|탄자니아|Tanzania|에티오피아|Ethiopia|요르단|Jordan|이스라엘|Israel|카타르|Qatar|오만|Oman|튀니지|Tunisia|나미비아|Namibia|보츠와나|Botswana|Zimbabwe|잠비아|Zambia|우간다|Uganda|르완다|Rwanda|Senegal|세네갈|가나|Ghana|나이지리아|Nigeria|UAE|아랍에미리트/i
@@ -75,10 +79,12 @@ export type RegisterScheduleTripDestinationRow = {
 
 function inferContinentLabelFromHaystack(hay: string): string {
   // imageKeyword는 추론에 쓰지 않음 — "Europe" 등 오염 키워드가 dest를 뒤집음
+  // Europe를 Americas보다 우선 — MILANO·미주리나 잔여 오탐보다 이탈리아·서유럽 실방문 우선
   if (EUROPE_PRODUCT_DEST_RE.test(hay)) return 'Europe'
   if (AMERICAS_PRODUCT_DEST_RE.test(hay)) return 'Americas'
-  if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(hay)) return 'Africa'
   if (ASIA_PACIFIC_PRODUCT_DEST_RE.test(hay)) return 'Asia Pacific'
+  if (OCEANIA_PRODUCT_DEST_RE.test(hay)) return 'Oceania'
+  if (MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test(hay)) return 'Africa'
   return ''
 }
 
@@ -138,7 +144,7 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
   const fin = normalizeToPlaceName(raw)
   const haystacks = fin && fin !== raw ? [raw, fin] : [raw]
 
-  if (EUROPE_PRODUCT_DEST_RE.test(dest)) {
+  if (EUROPE_PRODUCT_DEST_RE.test(dest) && !ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest) && !OCEANIA_PRODUCT_DEST_RE.test(dest)) {
     if (haystacks.some((h) => JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE.test(h))) return true
     if (haystacks.some((h) => AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE.test(h))) return true
     if (haystacks.some((h) => ASIA_PACIFIC_HALLUCINATION_ON_NON_ASIA_DEST_RE.test(h))) return true

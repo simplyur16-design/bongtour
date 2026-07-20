@@ -894,9 +894,41 @@ const POI_KO_TO_EN: Record<string, string> = {
   베이커스필드: 'Bakersfield California',
   시애틀: 'Space Needle Seattle',
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
-  // bare「빅토리아」캐나다 항구 — 빅토리아폭포·빅토리폴스 아프리카 문맥에서는 SPOT 우선
+  // bare「빅토리아」캐나다 항구 — 빅토리아폭포·빅토리폴스 아프리카 문맥에서는 SPOT regex 우선
   빅토리아항: 'Inner Harbour Victoria',
   '빅토리아 이너하버': 'Inner Harbour Victoria',
+  /** Alaska cruise Victoria BC — bare「빅토리아」(폭포/폴스 없을 때). Falls는 schedule-poi-regex-ssot */
+  빅토리아: 'Inner Harbour Victoria',
+  죠잔케이: 'Jozankei',
+  '죠잔 케이': 'Jozankei',
+  가버먼트가든: 'Government Gardens Rotorua',
+  '가버먼트 가든': 'Government Gardens Rotorua',
+  '정부 정원': 'Government Gardens Rotorua',
+  '식민지시대 관청': 'Government Gardens Rotorua',
+  '식민지 시대 관청': 'Government Gardens Rotorua',
+  '알칼리성 염화 온천': 'Polynesian Spa Rotorua',
+  '염화 온천': 'Polynesian Spa Rotorua',
+  바스타키아: 'Al Fahidi Historical Dubai',
+  '알 파히디': 'Al Fahidi Historical Dubai',
+  알파히디: 'Al Fahidi Historical Dubai',
+  '셰이크 모하메드 궁전': 'Sheikh Mohammed Palace Dubai',
+  '조이 아일랜드': 'Maldives Joy Island lagoon villa',
+  조이아일랜드: 'Maldives Joy Island lagoon villa',
+  '오버워터 빌라': 'Maldives overwater bungalow resort',
+  오버워터빌라: 'Maldives overwater bungalow resort',
+  라군빌라: 'Maldives lagoon villa turquoise water',
+  '라군 빌라': 'Maldives lagoon villa turquoise water',
+  시그나기: 'Signagi Georgia wine town',
+  보드베: 'Bodbe Monastery Georgia',
+  '보드베 교회': 'Bodbe Monastery Georgia',
+  므츠헤타: 'Mtskheta Georgia ancient capital',
+  아나누리: 'Ananuri Fortress Georgia',
+  '아나누리 교회': 'Ananuri Fortress Georgia',
+  즈바리: 'Jvari Monastery Mtskheta',
+  '즈바리 수도원': 'Jvari Monastery Mtskheta',
+  스베티츠호벨리: 'Svetitskhoveli Cathedral Mtskheta',
+  '스베티츠호벨리 대성당': 'Svetitskhoveli Cathedral Mtskheta',
+  '아일랜드 호핑': 'Kota Kinabalu island hopping',
   껌벽: 'Juneau Waterfront Alaska',
   '파인애플 농장': 'Pineapple Farm Hawaii',
   상파울: 'Sao Paulo Cathedral',
@@ -1106,6 +1138,8 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
 }
 
 function poiKoMappingAllowed(ko: string, text: string): boolean {
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — bare 빅토리아≠Falls/Peak — manifest
+  if (ko === '빅토리아' && /폭포|폴스|피크|Peak|Falls/i.test(text)) return false
   const req = POI_KO_MAPPING_CONTEXT_RE[ko]
   if (!req) return true
   return req.test(text)
@@ -1276,7 +1310,7 @@ export function mapDestination(destination: string | null): string {
   // 권역명(아프리카/Asia) identity 통과 금지 — 귀국 soft-dup·destination hub 오용
   if (
     /^(?:유럽|아시아|아프리카|중동|중남미|북미|오세아니아|동남아|동남아시아|미주)$/u.test(t) ||
-    /^(?:Europe|Asia|Africa|Americas?|Oceania|Middle\s*East|Southeast\s*Asia)$/i.test(t)
+    /^(?:Europe|Asia(?:\s*Pacific)?|Africa|Americas?|Oceania|Middle\s*East|Southeast\s*Asia)$/i.test(t)
   ) {
     return ''
   }

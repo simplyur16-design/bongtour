@@ -201,7 +201,7 @@ function isReturnDayCityLeakKeyword(kw: string): boolean {
 
 /** 출발·귀국 soft-dup — Vietnam/New Zealand 등 국가명은 도시로 쓰지 않음 */
 function isCountryLevelScheduleKeyword(kw: string): boolean {
-  return /^(?:New\s*Zealand|Australia|Vietnam|Thailand|Japan|Korea|South\s*Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|United\s*States|USA|Canada|France|Italy|Spain|Germany|United\s*Kingdom|UK|Brazil|Mexico|India|Taiwan|Hong\s*Kong|Greece|Alaska|Europe|Asia|Africa|아프리카|아시아|유럽|중동)$/i.test(
+  return /^(?:New\s*Zealand|Australia|Vietnam|Thailand|Japan|Korea|South\s*Korea|China|Indonesia|Malaysia|Cambodia|Laos|Philippines|Singapore|United\s*States|USA|Canada|France|Italy|Spain|Germany|United\s*Kingdom|UK|Brazil|Mexico|India|Taiwan|Hong\s*Kong|Greece|Alaska|Europe|Asia(?:\s*Pacific)?|Africa|Oceania|Americas|아프리카|아시아|유럽|중동|오세아니아)$/i.test(
     String(kw ?? '').trim(),
   )
 }
@@ -251,8 +251,7 @@ function isRejectedTripKeywordCandidate(kw: string): boolean {
     return true
   }
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
-  // Canada Victoria harbour — 아프리카 빅토리아폭포·폴스 일정에 유입 금지
-  if (/^Inner\s*Harbour\s*Victoria$/i.test(t)) return true
+  // Inner Harbour Victoria 는 전역 거부하지 않음 — 아프리카 일정 주입 금지는 keywordRouteEvidence(아래)에서만
   if (/^(?:BBQ|현지식|특식|조식|석식|쌈밥)\s*SET$/i.test(t)) return true
   if (/\bSET\b/i.test(t) && t.length <= 20 && /(?:BBQ|현지식|특식|조식|석식|쌈밥|식)/i.test(t)) return true
   return false
@@ -949,7 +948,8 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
     if (
       slot === 'return' &&
       filled &&
-      (/[\uAC00-\uD7AF]/.test(filled) || isCountryLevelScheduleKeyword(filled))
+      (/[\uAC00-\uD7AF]/.test(filled) ||
+        (isCountryLevelScheduleKeyword(filled) && !/Singapore|Maldives/i.test(filled)))
     ) {
       filled = ''
     }
@@ -968,7 +968,7 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
               city &&
               isBareCityOrCountryKeyword(city) &&
               !isDomesticHubOrAirportImageKeyword(city) &&
-              !isCountryLevelScheduleKeyword(city)
+              (!isCountryLevelScheduleKeyword(city) || /Singapore|Maldives/i.test(city))
             ) {
               softCity = city
               break
@@ -981,7 +981,12 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
           // dest 국가·권역명(Asia/중앙아시아)보다 일정 route 방문도시 우선
           if (isMongoliaTerelClusterRoute(tripHay)) softCity = 'Ulaanbaatar'
           else if (/몰디브|Maldives/i.test(tripHay)) softCity = 'Maldives'
-          else if (/시애틀|Seattle|알래스카|Alaska|주노|Juneau/i.test(tripHay)) softCity = 'Seattle'
+          else if (/싱가포르|Singapore/i.test(tripHay)) softCity = 'Singapore'
+          else if (/하노이|Hanoi|하롱|Halong|다\s*낭|Da\s*Nang|베트남|Vietnam/i.test(tripHay)) {
+            softCity = /다\s*낭|Da\s*Nang/i.test(tripHay) ? 'Da Nang' : 'Hanoi'
+          } else if (/비엔티엔|Vientiane|방비엥|Vang\s*Vieng|라오스|Laos/i.test(tripHay)) {
+            softCity = 'Vientiane'
+          } else if (/시애틀|Seattle|알래스카|Alaska|주노|Juneau/i.test(tripHay)) softCity = 'Seattle'
           else if (/괌|Guam/i.test(tripHay)) softCity = 'Guam'
           else if (/타슈켄트|사마르칸트|알마티|비슈케크|우즈베|카자흐|키르기스/i.test(tripHay)) {
             softCity = /비슈케크/i.test(tripHay)
@@ -1685,7 +1690,8 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   }
   if (/vilnius|trakai|lithuania/.test(nk)) return /빌니우스|Vilnius|트라카이|Trakai|리투/i.test(rt)
   if (/riga|latvia|rundale|three brothers|art nouveau/.test(nk)) {
-    return /리가|Riga|라트|Latvia|룬달레|Rundale/i.test(rt)
+    // 「거리가」오탐 금지 — 리가는 음절 경계에서만
+    return /(?<![가-힣])리가(?![가-힣])|\bRiga\b|라트비아|Latvia|룬달레|Rundale/i.test(rt)
   }
   if (/tallinn|estonia|lahemaa|toompea|nevsky/.test(nk)) {
     return /탈린|Tallinn|에스토|Estonia|라헤마|Toompea/i.test(rt)
@@ -2026,11 +2032,13 @@ function southeastAsiaHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   if (/danang|da nang|marble|sontra|my khe/.test(nk)) {
     return /다\s*낭|Da\s*Nang|선짜|마블|미케/i.test(rt)
   }
-  if (/maldives|overwater|house reef|lagoon|villa|white sand/.test(nk)) {
-    return /몰디브|Maldives|overwater/i.test(rt)
-  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Laos Blue Lagoon ≠ Maldives lagoon evidence — manifest
+  // Vang Vieng/Laos 를 Maldives `lagoon` 토큰보다 먼저 — Blue Lagoon Vang Vieng 이 몰디브 일차에 유입 금지
   if (/vang vieng|nam song|blue lagoon|vientiane|pha that|patuxai|laos/.test(nk)) {
     return /방비엥|Vang\s*Vieng|비엔티엔|Vientiane|라오스|Laos|파탓|Patuxai/i.test(rt)
+  }
+  if (/maldives|overwater|house reef|lagoon|villa|white sand|joy island/.test(nk)) {
+    return /몰디브|Maldives|overwater|조이\s*아일랜드|Joy\s*Island|라군|lagoon/i.test(rt)
   }
   if (/chiang|phuket|patong|kota kinabalu|cebu|boracay|bali|uluwatu|tegalalang/.test(nk)) {
     return /치앙|Chiang|푸켓|Phuket|파통|코타|Kinabalu|세부|Cebu|보라카이|Boracay|발리|Bali/i.test(
@@ -2703,7 +2711,8 @@ function isEasternEuropeClusterRoute(routeText: string | null | undefined): bool
   // 괌 스페인광장 등 — 괌은 동유럽/유럽 mega-cluster 금지
   if (isGuamResortClusterRoute(t)) return false
   // 「이탈」단독 금지 — 이탈리아 테마정원 국가나열이 Europe mega-cluster로 오인되지 않게 (`이탈리아|Italy`만)
-  return /(?:프라하|Prague|체코|Czech|부다페스트|Budapest|헝가리|Hungary|비엔나|Vienna|Wien|Hallstatt|할슈타트|크룸로프|Krumlov|두브로브니크|Dubrovnik|플리트비체|Plitvice|자그레브|Zagreb|크로아티아|Croatia|슬로베니아|Slovenia|브라티슬라바|Bratislava|폴란드|Poland|Krakow|크라쿠프|리투|Lithuania|라트|Latvia|에스토|Estonia|빌니우스|Vilnius|리가|Riga|탈린|Tallinn|트라카이|Trakai|룬달레|Rundale|발트|Baltic|마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia|포르투|Porto|리스본|Lisbon|파티마|Fatima|포르투갈|Portugal|이탈리아|Italia|\bItaly\b|로마|Rome|피렌|Florence|베니스|Venice|밀라노|Milan|콜로세|Colosseum|파리|Paris|스위스|Swiss|루체른|Lucerne|융프라|Jungfrau|노르웨|Norway|오슬로|Oslo|게이랑|Geiranger|플롬|Flam|베르겐|Bergen|스웨덴|Sweden|핀란|Finland|덴마크|Denmark|이스탄불|Istanbul|카파도키아|Cappadocia|튀르키|Turkey|파묵|Pamukkale|인도|India|자이푸르|Jaipur|아그라|Agra|뉴델리|Delhi|타지|Taj|쿠트브|Qutub)/i.test(
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 「거리가」≠ 리가 Riga bleed — manifest
+  return /(?:프라하|Prague|체코|Czech|부다페스트|Budapest|헝가리|Hungary|비엔나|Vienna|Wien|Hallstatt|할슈타트|크룸로프|Krumlov|두브로브니크|Dubrovnik|플리트비체|Plitvice|자그레브|Zagreb|크로아티아|Croatia|슬로베니아|Slovenia|브라티슬라바|Bratislava|폴란드|Poland|Krakow|크라쿠프|리투|Lithuania|라트비아|Latvia|에스토|Estonia|빌니우스|Vilnius|(?<![가-힣])리가(?![가-힣])|\bRiga\b|탈린|Tallinn|트라카이|Trakai|룬달레|Rundale|발트|Baltic|마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia|포르투|Porto|리스본|Lisbon|파티마|Fatima|포르투갈|Portugal|이탈리아|Italia|\bItaly\b|로마|Rome|피렌|Florence|베니스|Venice|밀라노|Milan|콜로세|Colosseum|파리|Paris|스위스|Swiss|루체른|Lucerne|융프라|Jungfrau|노르웨|Norway|오슬로|Oslo|게이랑|Geiranger|플롬|Flam|베르겐|Bergen|스웨덴|Sweden|핀란|Finland|덴마크|Denmark|이스탄불|Istanbul|카파도키아|Cappadocia|튀르키|Turkey|파묵|Pamukkale|인도|India|자이푸르|Jaipur|아그라|Agra|뉴델리|Delhi|타지|Taj|쿠트브|Qutub)/i.test(
     t,
   )
 }
@@ -3107,7 +3116,7 @@ function shouldRejectMiddleDayKeyword2(
   return false
 }
 
-function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefined): string {
+export function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefined): string {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
   // 랜드마크(Palace/Bird Island)가 아니라 bare 방문도시만 — used 명소 soft-dup 재주입 금지
   const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
@@ -3117,10 +3126,13 @@ function softDupForeignVisitCityForMiddleRoute(routeText: string | null | undefi
     if (isRegisterScheduleRoutePlaceNoise(seg)) continue
     if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
-    if (/^삿포로?$/u.test(seg) || /^죠잔케이|조잔케이$/u.test(seg)) {
-      const typo = /^삿포로?$/u.test(seg) ? 'Sapporo' : 'Jozankei'
-      if (isBareCityOrCountryKeyword(typo)) return typo
-    }
+    if (/^삿포로?$/u.test(seg)) return 'Sapporo'
+    // 죠잔케이는 landmark로 잡혀도 soft-dup 허용 (D1 사용 후 D4 삿포-죠잔케이 빈칸 방지)
+    if (/^죠잔케이$|^조잔케이$/u.test(seg)) return 'Jozankei'
+    // 몰디브 리조트 일차 — country-level이어도 soft-dup 허용 (빈칸·Vang Vieng bleed 방지)
+    if (/^몰디브$|^Maldives$/i.test(seg)) return 'Maldives'
+    // 코타키나발루 아일랜드 호핑 — landmark 소진 후 bare soft-dup
+    if (/아일랜드\s*호핑|island\s*hopping/i.test(seg)) return 'Kota Kinabalu'
     const fromMap = mapDestination(seg)
     if (
       fromMap &&
@@ -3190,7 +3202,7 @@ function pickReturnSoftDupBareVisitCity<T extends RegisterScheduleTripKeywordRow
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty route soft-dup bare city — manifest
   const bareCityFromEnglishHay = (hay: string): string => {
     const m = String(hay ?? '').match(
-      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb|Manado|Delhi|Jaipur|Agra|Cairo|Luxor|Aswan|Giza|Hurghada|Dubai|Zhangjiajie|Changsha)\b/i,
+      /\b(Vilnius|Oslo|Bergen|Copenhagen|Stockholm|Helsinki|Tallinn|Aarhus|Odense|Tashkent|Samarkand|Almaty|Bishkek|Prague|Seattle|Juneau|Maldives|Guam|Athens|Santorini|Sapporo|Dubrovnik|Budapest|Vienna|Zagreb|Manado|Delhi|Jaipur|Agra|Cairo|Luxor|Aswan|Giza|Hurghada|Dubai|Zhangjiajie|Changsha|Singapore|Hanoi|Vientiane|Halong)\b/i,
     )
     if (!m?.[1]) {
       if (/kota\s*kinabalu/i.test(hay)) return 'Kota Kinabalu'
@@ -3200,7 +3212,12 @@ function pickReturnSoftDupBareVisitCity<T extends RegisterScheduleTripKeywordRow
     if (/^kota$/i.test(raw)) return ''
     const city = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
     if (city.toLowerCase() === 'copenhagen') return 'Copenhagen'
-    if (isBareCityOrCountryKeyword(city) || city === 'Kota Kinabalu') return city === 'Delhi' ? 'Delhi' : city
+    if (city.toLowerCase() === 'singapore') return 'Singapore'
+    if (city.toLowerCase() === 'hanoi') return 'Hanoi'
+    if (city.toLowerCase() === 'vientiane') return 'Vientiane'
+    if (city.toLowerCase() === 'halong') return 'Halong'
+    if (isBareCityOrCountryKeyword(city) || city === 'Kota Kinabalu' || /Singapore|Maldives/i.test(city))
+      return city === 'Delhi' ? 'Delhi' : city
     return city
   }
   for (const tourismRow of [...sorted].reverse()) {
@@ -3211,7 +3228,7 @@ function pickReturnSoftDupBareVisitCity<T extends RegisterScheduleTripKeywordRow
       fromRouteLast &&
       isBareCityOrCountryKeyword(fromRouteLast) &&
       !isDomesticHubOrAirportImageKeyword(fromRouteLast) &&
-      !isCountryLevelScheduleKeyword(fromRouteLast)
+      (!isCountryLevelScheduleKeyword(fromRouteLast) || /Singapore|Maldives/i.test(fromRouteLast))
     ) {
       return fromRouteLast
     }
@@ -3379,10 +3396,12 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         !(
           isMiddleDay &&
           isBareCityOrCountryKeyword(primary) &&
-          bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays)
+          bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays) &&
+          !allowRouteRevisitBareVisitCitySoftDup(softCity)
         )
       ) {
         // 방문도시 soft-dup — used여도 유지 (출발일 Dubai → 호텔 중간일). 중간일끼리 Bali 중복은 금지
+        // 몰디브·삿포 등 route 재등장은 soft-dup 허용
       } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softCity
       } else {
@@ -3400,7 +3419,8 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
                 (isMiddleDay &&
                 softCity &&
                 isBareCityOrCountryKeyword(softCity) &&
-                bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays)
+                bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays) &&
+                !allowRouteRevisitBareVisitCitySoftDup(softCity)
                   ? ''
                   : softCity) ||
                 ''
@@ -3415,7 +3435,8 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         !(
           isMiddleDay &&
           isBareCityOrCountryKeyword(softCityEmpty) &&
-          bareVisitCityUsedAsOtherMiddlePrimary(softCityEmpty, day, processedByDay, maxDay, activeDays)
+          bareVisitCityUsedAsOtherMiddlePrimary(softCityEmpty, day, processedByDay, maxDay, activeDays) &&
+          !allowRouteRevisitBareVisitCitySoftDup(softCityEmpty)
         )
       primary =
         pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
@@ -3657,7 +3678,20 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
             row.routeText,
           ) || secondary
       }
-      if (!secondary && isJapanHubClusterRoute(tripHay)) {
+      if (!secondary && isJapanHubClusterRoute(row.routeText)) {
+        secondary =
+          pickJapanHubClusterKeywordForUsedSlot(
+            cands,
+            used,
+            row.routeText,
+            normScheduleImageKeywordKey(primary),
+          ) || secondary
+      } else if (
+        !secondary &&
+        hubOnlyDay &&
+        isJapanHubClusterRoute(tripHay)
+      ) {
+        // 숙박·이동만 있는 날 — trip이 일본일 때만 Japan hub 갭필 (유럽 일차 Tottori bleed 금지)
         secondary =
           pickJapanHubClusterKeywordForUsedSlot(
             cands,
@@ -3740,7 +3774,8 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed) — manifest
+        pickJapanHubClusterKeywordForUsedSlot(cands, used, row.routeText, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         secondary
     }
@@ -3760,7 +3795,8 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       isMiddleDay &&
       primary &&
       isBareCityOrCountryKeyword(primary) &&
-      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays)
+      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays) &&
+      !allowRouteRevisitBareVisitCitySoftDup(primary)
     ) {
       primary = ''
     }
@@ -3814,9 +3850,8 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
     }
     if (!primary) {
       const soft = softDupForeignVisitCityForMiddleRoute(row.routeText)
-      if (
-        soft &&
-        !(
+      if (soft) {
+        const blocked =
           isBareCityOrCountryKeyword(soft) &&
           bareVisitCityUsedAsOtherMiddlePrimary(
             soft,
@@ -3833,9 +3868,11 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
             maxDay,
             activeDays,
           )
-        )
-      ) {
-        primary = soft
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
+        // route에 다시 나온 삿포/죠잔케이/몰디브/로토루아는 중간일 soft-dup 허용
+        if (!blocked || allowRouteRevisitBareVisitCitySoftDup(soft)) {
+          primary = soft
+        }
       }
     }
     if (
@@ -3855,7 +3892,9 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
         ),
         maxDay,
         activeDays,
-      )
+      ) &&
+      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
+      !allowRouteRevisitBareVisitCitySoftDup(primary)
     ) {
       primary = ''
     }
@@ -3966,6 +4005,14 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
     if (normScheduleImageKeywordKey(slot.primary) === nk) return true
   }
   return false
+}
+
+/** route 재등장 리조트·허브 도시 — 중간일끼리 soft-dup 허용 (빈칸·bleed 방지) */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
+function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu/i.test(
+    String(city ?? '').trim(),
+  )
 }
 
 function allowResortClusterCrossSlotReuse(kw: string, routeText?: string | null): boolean {
@@ -4183,7 +4230,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
-        pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed) — manifest
+        pickJapanHubClusterKeywordForUsedSlot(cands, used, row.routeText, '') ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         // 당일 route에 Seattle/Alaska 증거가 있을 때만 — 크루즈·대극장일이 Gas Works를 끌어오지 않음
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, row.routeText, '') ||
@@ -4219,7 +4267,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickUaeResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickHongKongHubClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
-        pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed) — manifest
+        pickJapanHubClusterKeywordForUsedSlot(cands, used, row.routeText, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickCentralAsiaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
@@ -4301,14 +4350,26 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
     // Bali 자유일 등 — bare 도시가 다른 중간일에 있으면 soft-dup 재주입 금지
     if (!primary) {
-      const city = pickForeignVisitCityFromRouteText(row.routeText, false)
+      const city = softDupForeignVisitCityForMiddleRoute(row.routeText) || pickForeignVisitCityFromRouteText(row.routeText, false)
       if (
         city &&
-        !isCountryLevelScheduleKeyword(city) &&
         !isDomesticHubOrAirportImageKeyword(city) &&
-        !bareVisitCityUsedAsOtherMiddlePrimary(city, day, processedByDay, maxDay, activeDays)
+        (!isCountryLevelScheduleKeyword(city) || /Maldives/i.test(city))
       ) {
-        primary = city
+        const blocked = bareVisitCityUsedAsOtherMiddlePrimary(
+          city,
+          day,
+          processedByDay,
+          maxDay,
+          activeDays,
+        )
+        // 삿포·죠잔케이·몰디브 등 route에 다시 나온 방문지는 중간일 soft-dup 허용
+        if (
+          !blocked ||
+          allowRouteRevisitBareVisitCitySoftDup(city)
+        ) {
+          primary = city
+        }
       }
     }
 
@@ -4333,8 +4394,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
           pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
           secondary
       }
-      if (!secondary && isBareCityOrCountryKeyword(primary) && isJapanHubClusterRoute(tripHay)) {
-        secondary = pickJapanHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) || secondary
+      if (!secondary && isBareCityOrCountryKeyword(primary) && isJapanHubClusterRoute(row.routeText)) {
+        secondary = pickJapanHubClusterKeywordForUsedSlot(cands, used, row.routeText, pk) || secondary
       }
       if (!secondary && isBareCityOrCountryKeyword(primary) && isEasternEuropeClusterRoute(tripHay)) {
         secondary =

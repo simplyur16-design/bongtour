@@ -1526,4 +1526,129 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     )
     expect(String(egypt.find((r) => r.day === 3)?.imageKeyword ?? '')).toMatch(/Cairo|Giza|Luxor/i)
   })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed) — manifest
+  it('동유럽 크로아티아 — Japan Tottori kw2 bleed 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '프라하 공항 - 체스키크룸로프',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '할슈타트 - 잘츠부르크',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '스플리트 - 마리안 해변 - 트로기르 - 나로드니 광장 - 카를로바츠',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '자그레브 - 부다페스트',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 5, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'ybtour',
+        productDestination: '동유럽',
+        productTitle: '동유럽/발칸 5국',
+        travelScope: 'package',
+      },
+    )
+    const blob = out.map((r) => `${r.imageKeyword ?? ''} ${r.imageKeyword2 ?? ''}`).join(' | ')
+    expect(blob).not.toMatch(/Tottori|Izumo|Matsue|Mount Fuji|Hakone/i)
+  })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
+  it('알래스카 빅토리아 이너하버 — Inner Harbour 허용 (전역 거부 금지)', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '시애틀 - 퍼블릭 마켓',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '주노 - 껌벽',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '크루즈 - 대극장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '빅토리아 - 이너하버 워킹',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 5, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'ybtour',
+        productDestination: '알래스카',
+        productTitle: '알래스카 크루즈',
+        travelScope: 'package',
+      },
+    )
+    const d4 = out.find((r) => r.day === 4)!
+    expect(`${d4.imageKeyword ?? ''} ${d4.imageKeyword2 ?? ''}`).toMatch(/Inner Harbour|Victoria/i)
+    expect(String(d4.imageKeyword ?? '').trim().length).toBeGreaterThan(0)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Laos Blue Lagoon ≠ Maldives lagoon evidence — manifest
+  it('몰디브 리조트 — Blue Lagoon Vang Vieng bleed 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '몰디브 조이아일랜드 라군빌라',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '몰디브 - 스피드 보트 이동 - 조이 아일랜드 AI',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '몰디브 - 몰디브 오버워터 빌라',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          routeText: '몰디브 - 다음날 체크아웃 준비를 해주세요.',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 5, routeText: '싱가포르 도착 및', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '몰디브',
+        productTitle: '몰디브 조이아일랜드',
+        travelScope: 'package',
+      },
+    )
+    const blob = out.map((r) => `${r.imageKeyword ?? ''} ${r.imageKeyword2 ?? ''}`).join(' | ')
+    expect(blob).not.toMatch(/Vang Vieng|Patuxai|Pha That Luang/i)
+    expect(blob).toMatch(/Maldives|Joy Island|overwater|lagoon/i)
+  })
 })

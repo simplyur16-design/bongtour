@@ -275,6 +275,88 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
     ).toBe(false)
   })
 
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 미주리나≠미주 Americas — manifest
+  it('미주리나 호수 — Americas 오탐으로 Venice/Eiffel strip 금지', () => {
+    const rows = [
+      { routeText: '바티칸시국 - 콜로세움 - 로마', title: '로마' },
+      { routeText: '미주리나 호수 - 돌로미테 케이블카', title: '미주리나' },
+      { routeText: '산 마르코 광장 - 베니스 곤돌라', title: '베니스' },
+      { routeText: '에펠탑 - 개선문', title: '파리' },
+    ]
+    const dest = inferRegisterEffectiveProductDestination(null, rows)
+    expect(dest).not.toMatch(/Americas/i)
+    expect(dest).toMatch(/Europe|Italy|France|Venice|Rome|Paris|Asia|미주리나|돌로미테/i)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Venice Grand Canal gondolas', null, rows),
+    ).toBe(false)
+    expect(isRegisterScheduleCrossContinentHallucinationKeyword('Eiffel Tower', null, rows)).toBe(false)
+    expect(isRegisterScheduleCrossContinentHallucinationKeyword('Colosseum', null, rows)).toBe(false)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: MILANO≠LA Americas — manifest
+  it('HOTEL TIFFANY MILANO — LA Americas 오탐 금지', () => {
+    const rows = [
+      { routeText: '', title: 'HOTEL TIFFANY MILANO' },
+      { routeText: '베키오 다리 - 두오모 - 시뇨리아 광장', title: '피렌체' },
+      { routeText: '베니스 - 돌로미테 케이블카', title: '베니스' },
+    ]
+    expect(inferRegisterEffectiveProductDestination(null, rows)).toMatch(/Europe|Italy|Venice|Florence/i)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Venice Grand Canal gondolas', null, rows),
+    ).toBe(false)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 조이아일랜드·아일랜드호핑 ≠ EU Ireland — manifest
+  it('조이아일랜드·아일랜드호핑 — EU Ireland 오탐으로 Maldives/KK strip 금지', async () => {
+    const maldivesRows = [
+      { routeText: '몰디브 조이아일랜드 라군빌라', title: '몰디브 조이아일랜드 라군빌라' },
+      { routeText: '몰디브 - 몰디브 오버워터 빌라', title: '오버워터' },
+    ]
+    const title = '몰디브 조이아일랜드 라군빌라 4박7일 <AI/스피드보트>'
+    expect(inferRegisterEffectiveProductDestination(title, maldivesRows)).toMatch(/몰디브|Maldives|Asia/i)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Maldives Joy Island Lagoon Villa', title, maldivesRows),
+    ).toBe(false)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Maldives', title, maldivesRows),
+    ).toBe(false)
+
+    const kkRows = [
+      {
+        routeText: '',
+        title: '판보르네오 호텔',
+        description: '항구 도시와 구시가지가 이어지는, 아일랜드의 여유로운 이동형 하루입니다.',
+      },
+      { routeText: '아일랜드 호핑', title: '아일랜드 호핑' },
+      { routeText: 'KK 스타 라운지', title: 'KK 스타 라운지' },
+    ]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Kota Kinabalu Island Hopping', null, kkRows),
+    ).toBe(false)
+    // 「거리가」≠ 리가 — EE cluster·POI 오탐 금지 (apply 경로)
+    const { applyRegisterScheduleImageKeywordsBySupplier } = await import(
+      '@/lib/register-schedule-image-keywords-apply'
+    )
+    const ampOut = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, title: '판보르네오 호텔', routeText: '', description: kkRows[0].description, imageKeyword: '', imageKeyword2: null },
+        { day: 2, title: '아일랜드 호핑', routeText: '아일랜드 호핑', description: kkRows[0].description, imageKeyword: '', imageKeyword2: null },
+        { day: 3, title: '판보르네오 호텔', routeText: '', description: '항구·수변 거리가 이어지는 하루입니다.', imageKeyword: '', imageKeyword2: null },
+        { day: 4, title: 'KK 스타 라운지', routeText: 'KK 스타 라운지', imageKeyword: '', imageKeyword2: null },
+        { day: 5, title: '귀국', routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'kyowontour',
+        productDestination: '코타키나발루',
+        productTitle: '코타키나발루 아일랜드호핑',
+        travelScope: 'package',
+      },
+    )
+    const ampBlob = ampOut.map((r) => `${r.imageKeyword ?? ''} ${r.imageKeyword2 ?? ''}`).join(' | ')
+    expect(ampBlob).not.toMatch(/Riga|Latvia|Art Nouveau/i)
+    expect(ampBlob).toMatch(/Kota Kinabalu/i)
+  })
+
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: italy/philippines/africa/caucasus/LA spelling — manifest
   it('extended vibe — 로스엔젤·이탈리아·필리핀·코카서스·사파리는 generic 금지', async () => {
     const { composeRegisterScheduleExtendedRegionVibeDescription, isRegisterScheduleGenericTourismDescription } =

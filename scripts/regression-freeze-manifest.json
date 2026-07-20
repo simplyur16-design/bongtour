@@ -5265,7 +5265,11 @@
             "유럽에 Louvre Abu Dhabi 금지",
             "Louvre\\b(?!\\s*Abu)",
             "Provence — 일본(홋카이도) 환각 차단",
-            "알래스카·미주 dest — Space Needle 오탐 금지"
+            "알래스카·미주 dest — Space Needle 오탐 금지",
+            "조이아일랜드·아일랜드호핑 ≠ EU Ireland",
+            "(?<![가-힣])리가(?![가-힣])",
+            "미주리나≠미주 Americas",
+            "MILANO≠LA Americas"
           ]
         }
       ],
@@ -5538,7 +5542,12 @@
             "Africa safari day-route evidence — SEQP01 bleed 금지",
             "Ordos≠Alaska cluster — Glacier Bay bleed 금지",
             "Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지",
-            "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지"
+            "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지",
+            "Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed)",
+            "Laos Blue Lagoon ≠ Maldives lagoon evidence",
+            "「거리가」≠ 리가 Riga bleed",
+            "allowRouteRevisitBareVisitCitySoftDup",
+            "싱가포르|Singapore"
           ]
         },
         {
@@ -5547,7 +5556,8 @@
             "로스앤젤레스(앤) DEST soft-dup",
             "장가계→Zhangjiajie return soft-dup",
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
-            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence"
+            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
+            "Africa SEQP01 — bare 빅토리아≠Falls/Peak"
           ]
         },
         {
@@ -5564,7 +5574,10 @@
             "홋카이도 중간일 삿포",
             "그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지",
             "이집트 기자 스핑크스 — Jungfraujoch bleed 금지",
-            "발트 승리기념탑 — Mount Rigi Swiss bleed 금지"
+            "발트 승리기념탑 — Mount Rigi Swiss bleed 금지",
+            "동유럽 크로아티아 — Japan Tottori kw2 bleed 금지",
+            "알래스카 빅토리아 이너하버 — Inner Harbour 허용",
+            "몰디브 리조트 — Blue Lagoon Vang Vieng bleed 금지"
           ]
         },
         {
@@ -6179,6 +6192,8 @@
             "TCL Chinese Theatre Hollywood",
             "Nijinomatsubara pine grove Saga Japan",
             "단독 빙하 ≠ Glacier Bay Alaska",
+            "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
+            "Alaska Victoria BC Inner Harbour — 폭포/폴스/피크 제외",
             "Terelj National Park",
             "단독「역사 박물관」≠ Istanbul",
             "후룬베이얼 역사 박물관 ≠ Istanbul",
@@ -6199,7 +6214,9 @@
             "UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
             "EAP321 Central Asia",
-            "India AWP902"
+            "India AWP902",
+            "「거리가」≠ 리가 Riga",
+            "몬세라트 수도원 Montserrat"
           ]
         },
         {

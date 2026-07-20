@@ -283,7 +283,8 @@ function scheduleRowIssues(
   }
 
   if (!route && !(isFirst && totalDays > 1) && !(isLast && /숙박\s*없음|귀국|출발/u.test(`${title} ${desc}`))) {
-    issues.push('routeText 비어 있음')
+    // 중간일 route 공란 — 리조트 자유일·라운지일 등. hard fail 대신 soft (키워드 게이트는 별도)
+    softIssues.push('routeText 비어 있음')
   }
   const routeSegments = route
     ? route
@@ -350,7 +351,9 @@ function scheduleRowIssues(
         /^(?:크루즈|대극장)(?:\s*-\s*(?:크루즈|대극장))?$/u.test(route.replace(/\s+/g, ' ').trim()) ||
         /바다와\s*사막이\s*공존|3시간의\s*여정|모험의\s*땅/u.test(route) ||
         /대극장|파인\s*아트|Palace\s*of\s*Fine|PACIFIC\s*ISLANDS\s*CLUB|PIC\s*SAIPAN|새섬/i.test(route) ||
-        /체크아웃\s*준비|리조트\s*체크아웃|다음날\s*체크아웃/i.test(route)
+        /체크아웃\s*준비|리조트\s*체크아웃|다음날\s*체크아웃/i.test(route) ||
+        /아일랜드\s*호핑|island\s*hopping|KK\s*스타\s*라운지|스타\s*라운지/i.test(route) ||
+        (!route && /라운지|lounge|호핑|hopping|자유|호텔/i.test(`${title} ${desc}`))
       if (!hubOnly) issues.push('중간일 imageKeyword 비어 있음')
     }
     // imageKeyword2는 보조 슬롯 — 비어 있어도 하드 실패하지 않음 (primary만 필수)
