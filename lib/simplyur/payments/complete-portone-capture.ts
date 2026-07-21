@@ -1,6 +1,6 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { fetchPortonePaymentSnapshot, isPortonePaidStatus } from "@/lib/simplyur/payments/portone-api";
-import { krwOrderTotalToUsdMinor } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
 import { processPortonePaymentOutcome } from "@/lib/simplyur/payments/process-portone-payment-outcome";
 import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 
@@ -88,7 +88,8 @@ export async function verifyAndCapturePortonePayment(input: {
   }
 
   const expectedKrw = Number.parseInt(attempt.amount_krw, 10);
-  const expectedUsdMinor = krwOrderTotalToUsdMinor(expectedKrw);
+  // Same 12h FX snapshot as session create — order KRW is already fixed at checkout.
+  const expectedUsdMinor = await krwOrderTotalToUsdMinorResolved(expectedKrw);
   if (!Number.isFinite(expectedKrw) || snapshot.totalAmount !== expectedUsdMinor) {
     return { ok: false, error: "amount_mismatch" };
   }

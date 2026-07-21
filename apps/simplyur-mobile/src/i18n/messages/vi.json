@@ -74,6 +74,7 @@
     "roaming": "Mạng roaming",
     "local": "Mạng Hàn Quốc",
     "selectPlan": "Chọn",
+    "perDay": "{amount}/ngày",
     "checkoutSoon": "Thanh toán sắp mở",
     "price": "Giá",
     "durationLabel": "Bạn ở bao lâu?",

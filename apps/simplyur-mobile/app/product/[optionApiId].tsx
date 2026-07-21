@@ -62,6 +62,10 @@ export default function ProductScreen() {
       : '';
 
   const price = product?.simplyur_display?.formatted ?? '—';
+  const perDay = product?.simplyur_display_per_day?.formatted;
+  const perDayLabel = perDay
+    ? t('recommend.perDay').replace('{amount}', perDay)
+    : null;
 
   return (
     <ScrollView
@@ -93,7 +97,10 @@ export default function ProductScreen() {
       {state === 'loaded' && product ? (
         <View style={styles.loaded}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.price}>{price}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{price}</Text>
+            {perDayLabel ? <Text style={styles.perDay}>{perDayLabel}</Text> : null}
+          </View>
 
           <View style={styles.panel}>
             <DetailRow label={t('product.network')} value={network} bordered />
@@ -183,6 +190,8 @@ const styles = StyleSheet.create({
   loaded: { gap: D.sectionGap },
   title: { fontSize: 24, ...fp('800'), lineHeight: 31, color: D.navy },
   price: { fontSize: 34, ...fp('800'), color: D.coral },
+  priceRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 },
+  perDay: { fontSize: 14, ...fp('600'), color: D.faint },
   panel: {
     borderWidth: 1,
     borderColor: D.border,

@@ -71,11 +71,29 @@ export function formatSimplyurPriceFromKrw(
   rates?: SimplyurFxRates,
 ): { currency: SimplyurDisplayCurrency; amount: number; formatted: string; krw: number } {
   const currency = SIMPLYUR_LOCALE_CURRENCY[locale];
-  const amount = krwToDisplayAmount(sellPriceKrw, currency, rates);
+  const amount = krwToDisplayAmount(sellPriceKrw, currency, rates ?? getSimplyurFxRates());
   return {
     currency,
     amount,
     formatted: formatSimplyurMoney(amount, currency, locale),
     krw: sellPriceKrw,
+  };
+}
+
+/** Display-only per-day amount from package total ÷ days (charge SSOT remains package total). */
+export function formatSimplyurPerDayFromTotal(
+  totalAmount: number,
+  days: number,
+  currency: SimplyurDisplayCurrency,
+  locale: SimplyurLocale,
+): { amount: number; formatted: string } | null {
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) return null;
+  if (!Number.isFinite(days) || days <= 0) return null;
+  const raw = totalAmount / days;
+  const amount =
+    currency === "JPY" || currency === "VND" ? Math.ceil(raw) : Math.round(raw * 100) / 100;
+  return {
+    amount,
+    formatted: formatSimplyurMoney(amount, currency, locale),
   };
 }

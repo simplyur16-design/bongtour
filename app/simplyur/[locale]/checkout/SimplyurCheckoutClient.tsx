@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 import { SimplyurPortonePayPalPanel } from "@/components/simplyur/checkout/SimplyurPortonePayPalPanel";
+import { SimplyurEximbayPrepSmokePanel } from "@/components/simplyur/checkout/SimplyurEximbayPrepSmokePanel";
 import { SIMPLYUR_CHECKOUT_ENABLED, simplyurPath } from "@/lib/simplyur/constants";
 import { simplyurLegalPath } from "@/lib/simplyur/legal-disclosures";
 import type { SimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
@@ -37,6 +38,8 @@ type Props = {
   paymentFailed?: boolean;
   checkoutEnabled?: boolean;
   availablePortoneMethods?: SimplyurPortoneMethod[];
+  /** Dev-only Eximbay FGKey smoke — not the live payment path */
+  eximbayPrepUi?: boolean;
 };
 
 function methodLabel(method: SimplyurPortoneMethod, tr: (k: string) => string): string {
@@ -58,6 +61,7 @@ export function SimplyurCheckoutClient({
   paymentFailed = false,
   checkoutEnabled = SIMPLYUR_CHECKOUT_ENABLED,
   availablePortoneMethods = ["paypal"],
+  eximbayPrepUi = false,
 }: Props) {
   const router = useRouter();
   const { locale } = useSimplyurIntl();
@@ -439,6 +443,7 @@ export function SimplyurCheckoutClient({
           </button>
         )}
       </form>
+      {eximbayPrepUi ? <SimplyurEximbayPrepSmokePanel locale={locale} /> : null}
     </main>
   );
 }

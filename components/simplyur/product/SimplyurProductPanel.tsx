@@ -52,6 +52,7 @@ export function SimplyurProductPanel({
       : "";
 
   const priceFormatted = product?.simplyur_display?.formatted ?? "—";
+  const perDayFormatted = product?.simplyur_display_per_day?.formatted;
 
   return (
     <main
@@ -98,9 +99,16 @@ export function SimplyurProductPanel({
               {title}
             </h1>
 
-            <p className="font-extrabold leading-none" style={{ fontSize: D.priceSize, color: D.coral }}>
-              {priceFormatted}
-            </p>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <p className="font-extrabold leading-none" style={{ fontSize: D.priceSize, color: D.coral }}>
+                {priceFormatted}
+              </p>
+              {perDayFormatted ? (
+                <p className="text-sm font-semibold" style={{ color: D.faint }}>
+                  {tr("recommend.perDay").replace("{amount}", perDayFormatted)}
+                </p>
+              ) : null}
+            </div>
 
             <DetailPanel
               network={networkLabel}
@@ -141,7 +149,7 @@ export function SimplyurProductPanel({
   );
 }
 
-function DetailPanel({
+function DetailRow({
   network,
   duration,
   data,

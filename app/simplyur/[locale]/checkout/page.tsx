@@ -3,6 +3,7 @@ import { SimplyurCheckoutClient } from "./SimplyurCheckoutClient";
 import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
+import { isSimplyurEximbayPrepUiEnabled } from "@/lib/simplyur/payments/eximbay-env";
 import { listConfiguredPortoneMethodsFromEnv } from "@/lib/simplyur/payments/portone-env";
 
 type Props = {
@@ -32,6 +33,7 @@ export default async function SimplyurCheckoutPage({ params, searchParams }: Pro
       paymentFailed={paymentFailed}
       checkoutEnabled={isSimplyurCheckoutEnabled()}
       availablePortoneMethods={listConfiguredPortoneMethodsFromEnv()}
+      eximbayPrepUi={isSimplyurEximbayPrepUiEnabled()}
     />
   );
 }

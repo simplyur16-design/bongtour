@@ -71,6 +71,7 @@
     "roaming": "漫遊網路",
     "local": "韓國本地網路",
     "selectPlan": "選擇",
+    "perDay": "{amount}/天",
     "checkoutSoon": "付款即將開放",
     "price": "價格",
     "durationLabel": "您行程幾天？",

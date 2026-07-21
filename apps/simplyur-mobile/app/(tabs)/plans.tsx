@@ -266,10 +266,17 @@ function PlanSection({
 }
 
 function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) {
+  const perDay = plan.simplyur_display_per_day?.formatted;
+  const perDayLabel = perDay
+    ? t('recommend.perDay').replace('{amount}', perDay)
+    : null;
   return (
     <View style={styles.card}>
       <Text style={styles.dataLabel}>{plan.data_label}</Text>
-      <Text style={styles.price}>{plan.simplyur_display?.formatted ?? '—'}</Text>
+      <View style={styles.priceRow}>
+        <Text style={styles.price}>{plan.simplyur_display?.formatted ?? '—'}</Text>
+        {perDayLabel ? <Text style={styles.perDay}>{perDayLabel}</Text> : null}
+      </View>
       <Link href={{ pathname: '/product/[optionApiId]', params: { optionApiId: plan.option_api_id } }} asChild>
         <Pressable style={styles.selectBtn}>
           <Text style={styles.selectBtnText}>{t('recommend.selectPlan')}</Text>
@@ -363,6 +370,8 @@ const styles = StyleSheet.create({
   },
   dataLabel: { fontSize: 20, ...fp('800'), color: D.navy },
   price: { fontSize: 26, ...fp('800'), color: D.coral },
+  priceRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 },
+  perDay: { fontSize: 13, ...fp('600'), color: D.faint },
   selectBtn: {
     height: D.buttonHeight,
     borderRadius: D.buttonRadius,

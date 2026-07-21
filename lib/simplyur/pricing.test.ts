@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { simplyurSellPriceKrw, SIMPLYUR_MARKUP_MULTIPLIER } from "@/lib/simplyur/pricing";
 
 describe("simplyurSellPriceKrw", () => {
-  it("applies 10% markup on after.consumer_krw", () => {
+  it("applies 5% markup on after.consumer_krw", () => {
     expect(
       simplyurSellPriceKrw({
         after: { consumer_krw: 10000, recommended_krw: 12000 },

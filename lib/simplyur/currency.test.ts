@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatSimplyurPerDayFromTotal,
   formatSimplyurPriceFromKrw,
   krwToDisplayAmount,
   type SimplyurFxRates,
@@ -29,5 +30,15 @@ describe("formatSimplyurPriceFromKrw", () => {
     expect(r.currency).toBe("USD");
     expect(r.amount).toBe(11);
     expect(r.krw).toBe(11000);
+  });
+});
+
+describe("formatSimplyurPerDayFromTotal", () => {
+  it("returns null for invalid days", () => {
+    expect(formatSimplyurPerDayFromTotal(10, 0, "USD", "en")).toBeNull();
+  });
+
+  it("rounds USD per-day to cents", () => {
+    expect(formatSimplyurPerDayFromTotal(10, 3, "USD", "en")?.amount).toBe(3.33);
   });
 });

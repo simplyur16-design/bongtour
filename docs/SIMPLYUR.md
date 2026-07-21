@@ -7,7 +7,7 @@
 - Web: `/simplyur/{locale}` (en, ja, zh, zh-TW, vi)
 - Mobile: `apps/simplyur-mobile` — **React Native (Expo)**, iOS + Android
 - Countries: **`kr` only** (Japan in Phase 1b)
-- Pricing: `after.consumer_krw × 1.10` → locale currency
+- Pricing: `after.consumer_krw × 1.05` → locale currency (ExchangeRate-API, ~12h cache; env fallback)
 
 ## Architecture
 
@@ -52,7 +52,7 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 | `GET /api/simplyur/countries?locale=en` | KR only |
 | `GET /api/simplyur/products/by-country?codes=kr&locale=en` | Plans + simplyur pricing |
 | `GET /api/simplyur/products/{optionApiId}?locale=en` | Single Korea plan |
-| `POST /api/simplyur/checkout/confirm` | Create order (`checkout_channel=simplyur_web`, price ×1.10) |
+| `POST /api/simplyur/checkout/confirm` | Create order (`checkout_channel=simplyur_web`, price ×1.05) |
 
 ## Roadmap
 
@@ -61,6 +61,16 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 | **1** ✅ | Korea-only eSIM, plan cards, web + Expo, i18n, pricing |
 | **1b** | Japan eSIM |
 | **2** | PortOne checkout (`portone` provider): **PayPal** + **KICC overseas** (WeChat / Alipay Plus), USD charge, USIMSA fulfillment via OrderPaid outbox |
+| **2b** | Eximbay payment-window **prep** (FGKey / ready / status_url) — live checkout still PortOne; Bongtour Welcomepay untouched |
+
+## Eximbay prep (Simplyur only)
+
+Contract: [`docs/ops/simplyur-eximbay-payment-prep-contract.md`](ops/simplyur-eximbay-payment-prep-contract.md) · [Eximbay preparing-payment](https://developer.eximbay.com/eximbay/payment_linkage/preparing-payment.html)
+
+- Env: `EXIMBAY_MID`, `EXIMBAY_API_KEY` (server), `EXIMBAY_ENV=test|production`
+- Ready: `POST /api/simplyur/checkout/eximbay-ready` → FGKey
+- Status: `/api/simplyur/webhooks/eximbay` · Return stub: `/simplyur/{locale}/checkout/eximbay-return`
+- Optional smoke UI: `SIMPLYUR_EXIMBAY_PREP_UI=1`
 
 ## PortOne setup (simplyur overseas PG)
 
@@ -120,7 +130,7 @@ Verify: `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=ht
 3. **KICC domain** — register `bongtour.com` (checkout path) with KICC for mobile WeChat Pay.
 4. **PG resubmit URLs** — service `/simplyur/en`, products `/simplyur/en/recommend`, legal `/simplyur/en/legal/*`.
 
-Checkout charges in **USD** (minor units) derived from order KRW total × `SIMPLYUR_FX_USD`.
+Checkout charges in **USD** (minor units) derived from order KRW total via the same FX snapshot as catalog display (`resolveSimplyurFxRates` / `SIMPLYUR_FX_*` fallback).
 | **3** | Capacitor optional; store release polish |
 | **4** | Korea tourism, tickets, experiences |
 

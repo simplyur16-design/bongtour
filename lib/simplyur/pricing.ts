@@ -1,9 +1,11 @@
 import type { AfterRecommendedPriceBlockInput } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
-/** simplyur 판매가 = after 소비자가 × 10% 인상 */
-export const SIMPLYUR_MARKUP_MULTIPLIER = 1.1;
+// REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog sell = consumer × 1.05 — manifest
 
-export const SIMPLYUR_PRICE_BASIS_KEY = "after.consumer_krw.simplyur_markup_1.1" as const;
+/** simplyur 판매가 = after 소비자가 × 5% 인상 */
+export const SIMPLYUR_MARKUP_MULTIPLIER = 1.05;
+
+export const SIMPLYUR_PRICE_BASIS_KEY = "after.consumer_krw.simplyur_markup_1.05" as const;
 
 function numOrNull(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -15,7 +17,7 @@ function numOrNull(v: unknown): number | null {
 }
 
 /**
- * simplyur 청구·표시 단가(KRW): `price_block.after.consumer_krw × 1.10` (ceil).
+ * simplyur 청구·표시 단가(KRW): `price_block.after.consumer_krw × 1.05` (ceil).
  * after.consumer_krw 없으면 null — recommended_krw 폴백 없음.
  */
 export function simplyurSellPriceKrw(

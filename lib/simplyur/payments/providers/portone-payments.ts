@@ -9,7 +9,7 @@ import {
   resolvePortoneCoreEnv,
   resolveSimplyurPortoneWebhookUrl,
 } from "@/lib/simplyur/payments/portone-env";
-import { krwOrderTotalToUsdMinor } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
 
 export const SIMPLYUR_PORTONE_PROVIDER_ID = "portone" as const;
 
@@ -57,7 +57,7 @@ export class SimplyurPortonePaymentsProvider implements BongsimPaymentProviderAd
 
     const paymentId = buildSimplyurPortonePaymentId(input.order_number, input.payment_attempt_id);
     const publicRef = `po_${input.payment_attempt_id.replace(/-/g, "").slice(0, 8)}`;
-    const totalAmountMinor = krwOrderTotalToUsdMinor(input.amount_krw);
+    const totalAmountMinor = await krwOrderTotalToUsdMinorResolved(input.amount_krw);
     const noticeUrl = resolveSimplyurPortoneWebhookUrl() ?? undefined;
     const portoneLocale =
       method === "paypal" ? undefined : portoneLocaleForSimplyur(input.simplyur_portone?.locale);

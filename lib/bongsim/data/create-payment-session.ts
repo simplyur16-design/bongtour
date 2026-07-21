@@ -271,6 +271,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
         details: { provider: "portone_simplyur_orders_only" },
       };
     }
+    // Simplyur foreigners eSIM: Welcomepay (Bongtour) forbidden. PG prep target is Eximbay (not Welcome).
     if (effProvider === "welcomepay" && isSimplyurCheckoutChannel(order.checkout_channel)) {
       await client.query("ROLLBACK");
       return {

@@ -9,6 +9,7 @@ export type PlanProduct = {
   network_family?: string;
   plan_type?: string | null;
   simplyur_display: { formatted: string; currency: string; amount: number } | null;
+  simplyur_display_per_day?: { formatted: string; currency: string; amount: number } | null;
 };
 
 export type CountryPack = {

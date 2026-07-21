@@ -74,6 +74,7 @@
     "roaming": "Roaming network",
     "local": "Local Korean network",
     "selectPlan": "Select",
+    "perDay": "{amount}/day",
     "checkoutSoon": "Checkout opening soon",
     "price": "Price",
     "durationLabel": "How long is your trip?",
@@ -351,7 +352,7 @@
       },
       {
         "q": "How are prices shown?",
-        "a": "Plan prices on simplyur use the catalog consumer price plus 10%, converted to your selected locale currency (en / ja / zh / zh-TW / vi)."
+        "a": "Plan prices on simplyur use the catalog consumer price plus 5%, converted to your selected locale currency with rates refreshed about every 12 hours (en / ja / zh / zh-TW / vi)."
       },
       {
         "q": "Can I use a coupon?",

@@ -74,6 +74,7 @@
     "roaming": "漫游网络",
     "local": "韩国本地网络",
     "selectPlan": "选择",
+    "perDay": "{amount}/天",
     "checkoutSoon": "支付即将开放",
     "price": "价格",
     "durationLabel": "您行程几天？",

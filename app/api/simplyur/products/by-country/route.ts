@@ -16,7 +16,7 @@ export const revalidate = 120;
 
 /**
  * GET /api/simplyur/products/by-country?codes=kr&locale=en
- * Korea only; prices = after.consumer_krw × 1.10 + locale currency display.
+ * Korea only; prices = after.consumer_krw × 1.05 + locale currency display (FX ~12h cache).
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

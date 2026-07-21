@@ -3,11 +3,14 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import { extractDaysFromDaysRaw } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { isKoreaSingleCountryProduct } from "@/lib/simplyur/catalog/korea-product-filter";
-import { SIMPLYUR_MARKET_COUNTRY, type SimplyurLocale } from "@/lib/simplyur/constants";
+import type { SimplyurLocale } from "@/lib/simplyur/constants";
+import type { SimplyurFxRates } from "@/lib/simplyur/currency";
+import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
 import { toSimplyurPublicProduct, type SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 
 // REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 DB 로더 — manifest
+// REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog uses resolveSimplyurFxRates — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -48,15 +51,19 @@ function sortProducts(products: SimplyurPublicProduct[], source: ProductOption[]
   });
 }
 
-function packFromSingle(products: ProductOption[], locale: SimplyurLocale): SimplyurKoreaPack {
+function packFromSingle(
+  products: ProductOption[],
+  locale: SimplyurLocale,
+  rates: SimplyurFxRates,
+): SimplyurKoreaPack {
   const roamingArr = products.filter((p) => (p.network_family || "").toLowerCase() === "roaming");
   const localArr = products.filter((p) => (p.network_family || "").toLowerCase() === "local");
   const roamingMapped = sortProducts(
-    roamingArr.map((p) => toSimplyurPublicProduct(p, locale)),
+    roamingArr.map((p) => toSimplyurPublicProduct(p, locale, rates)),
     roamingArr,
   );
   const localMapped = sortProducts(
-    localArr.map((p) => toSimplyurPublicProduct(p, locale)),
+    localArr.map((p) => toSimplyurPublicProduct(p, locale, rates)),
     localArr,
   );
 
@@ -82,6 +89,7 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
   try {
+    const rates = await resolveSimplyurFxRates();
     const result = await pool.query<ProductOption>(
       `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
               allowance_label, option_label, price_block, flags
@@ -94,7 +102,7 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
     return {
       ok: true,
       locale,
-      pack: packFromSingle(koreaOnly, locale),
+      pack: packFromSingle(koreaOnly, locale, rates),
     };
   } catch {
     return { ok: false, reason: "db_error" };
@@ -115,6 +123,7 @@ export async function loadSimplyurKoreaProductByOptionId(
   if (!id) return { ok: false, reason: "not_found" };
 
   try {
+    const rates = await resolveSimplyurFxRates();
     const result = await pool.query<ProductOption>(
       `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
               allowance_label, option_label, price_block, flags
@@ -126,10 +135,8 @@ export async function loadSimplyurKoreaProductByOptionId(
     const row = result.rows[0];
     if (!row) return { ok: false, reason: "not_found" };
     if (!isKoreaSingleCountryProduct(row)) return { ok: false, reason: "not_korea" };
-    return { ok: true, product: toSimplyurPublicProduct(row, locale) };
+    return { ok: true, product: toSimplyurPublicProduct(row, locale, rates) };
   } catch {
     return { ok: false, reason: "db_error" };
   }
 }
-
-// SIMPLYUR_MARKET_COUNTRY is used in the route filter above.

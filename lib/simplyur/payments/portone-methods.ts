@@ -1,6 +1,8 @@
 // REGRESSION-FREEZE[simplyur-portone-overseas-pg]: PayPal + KICC method SSOT — manifest
+// REGRESSION-FREEZE[simplyur-fx-daily-price]: USD minor uses resolveSimplyurFxRates — manifest
 
-import { krwToDisplayAmount } from "@/lib/simplyur/currency";
+import { getSimplyurFxRates, krwToDisplayAmount, type SimplyurFxRates } from "@/lib/simplyur/currency";
+import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
 
 /** simplyur 해외 PG — PortOne V2 채널별 결제 수단 */
 export type SimplyurPortoneMethod = "paypal" | "kicc_wechat" | "kicc_alipay_plus";
@@ -18,10 +20,16 @@ export function parseSimplyurPortoneMethod(raw: unknown): SimplyurPortoneMethod 
 }
 
 /** PortOne `totalAmount` for USD — minor units (e.g. $1.50 → 150). */
-export function krwOrderTotalToUsdMinor(krw: number): number {
+export function krwOrderTotalToUsdMinor(krw: number, rates?: SimplyurFxRates): number {
   if (!Number.isFinite(krw) || krw <= 0) return 1;
-  const usd = krwToDisplayAmount(krw, "USD");
+  const usd = krwToDisplayAmount(krw, "USD", rates ?? getSimplyurFxRates());
   return Math.max(1, Math.round(usd * 100));
+}
+
+/** Same as `krwOrderTotalToUsdMinor` with server FX snapshot (12h cache). */
+export async function krwOrderTotalToUsdMinorResolved(krw: number): Promise<number> {
+  const rates = await resolveSimplyurFxRates();
+  return krwOrderTotalToUsdMinor(krw, rates);
 }
 
 export function isSimplyurPortonePaymentId(paymentId: string): boolean {

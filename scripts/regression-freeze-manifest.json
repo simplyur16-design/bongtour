@@ -9794,6 +9794,60 @@
       "vitestSuites": [
         "lib/simplyur/legal-disclosures.test.ts"
       ]
+    },
+    {
+      "id": "simplyur-fx-daily-price",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 일당 표시 + ExchangeRate-API 12h FX + 마크업 1.05 (표시·PortOne USD 동일 스냅샷)",
+      "checks": [
+        {
+          "file": "lib/simplyur/fx-rates.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-fx-daily-price]",
+            "SIMPLYUR_FX_REVALIDATE_SEC",
+            "parseExchangeRateApiUsdBaseToKrwPerUnit",
+            "resolveSimplyurFxRates"
+          ]
+        },
+        {
+          "file": "lib/simplyur/pricing.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-fx-daily-price]",
+            "SIMPLYUR_MARKUP_MULTIPLIER = 1.05",
+            "simplyur_markup_1.05"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/portone-methods.ts",
+          "mustInclude": [
+            "krwOrderTotalToUsdMinorResolved",
+            "resolveSimplyurFxRates"
+          ]
+        },
+        {
+          "file": "components/simplyur/plans/SimplyurPlansPlanCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-fx-daily-price]",
+            "simplyur_display_per_day",
+            "recommend.perDay"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-fx-daily-price]",
+            "resolveSimplyurFxRates"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/fx-rates.test.ts",
+        "lib/simplyur/pricing.test.ts",
+        "lib/simplyur/currency.test.ts"
+      ]
     }
   ]
 }

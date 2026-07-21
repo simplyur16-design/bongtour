@@ -71,6 +71,7 @@
     "roaming": "ローミング回線",
     "local": "韓国現地回線",
     "selectPlan": "選択",
+    "perDay": "{amount}/日",
     "checkoutSoon": "決済は近日公開",
     "price": "料金",
     "durationLabel": "滞在は何日ですか？",
