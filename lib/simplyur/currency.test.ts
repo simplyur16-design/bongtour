@@ -3,6 +3,7 @@ import {
   formatSimplyurPerDayFromTotal,
   formatSimplyurPriceFromKrw,
   krwToDisplayAmount,
+  shouldShowSimplyurPerDay,
   type SimplyurFxRates,
 } from "@/lib/simplyur/currency";
 
@@ -40,5 +41,11 @@ describe("formatSimplyurPerDayFromTotal", () => {
 
   it("rounds USD per-day to cents", () => {
     expect(formatSimplyurPerDayFromTotal(10, 3, "USD", "en")?.amount).toBe(3.33);
+  });
+
+  it("shows daily price only for plans of at least two days", () => {
+    expect(shouldShowSimplyurPerDay(1)).toBe(false);
+    expect(shouldShowSimplyurPerDay(2)).toBe(true);
+    expect(shouldShowSimplyurPerDay(null)).toBe(false);
   });
 });

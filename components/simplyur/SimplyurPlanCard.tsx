@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { simplyurPath } from "@/lib/simplyur/constants";
+import { shouldShowSimplyurPerDay } from "@/lib/simplyur/currency";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 
@@ -16,6 +17,11 @@ export function SimplyurPlanCard({ plan, selectLabel, priceLabel, networkFamily 
   const { locale } = useSimplyurIntl();
   const tr = useSimplyurT();
   const href = simplyurPath(locale, `/product/${encodeURIComponent(plan.option_api_id)}`);
+  const perDay = plan.simplyur_display_per_day?.formatted;
+  const perDayLabel =
+    perDay && shouldShowSimplyurPerDay(plan.days)
+      ? tr("recommend.perDay").replace("{amount}", perDay)
+      : null;
 
   return (
     <article className="su-card flex items-center gap-3 p-4 sm:p-5">
@@ -27,10 +33,19 @@ export function SimplyurPlanCard({ plan, selectLabel, priceLabel, networkFamily 
             </span>
           ) : null}
         </div>
-        <p className="mt-2 text-base font-bold su-text-ink">{plan.data_label}</p>
-        <p className="mt-0.5 text-sm text-[color:var(--su-ink-muted)]">{plan.days_label}</p>
-        <p className="mt-2 text-xs font-medium text-[color:var(--su-ink-muted)]">{priceLabel}</p>
-        <p className="text-xl font-bold su-text-dan">{plan.simplyur_display?.formatted ?? "—"}</p>
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-bold su-text-ink">{plan.data_label}</p>
+            <p className="mt-0.5 text-sm text-[color:var(--su-ink-muted)]">{plan.days_label}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-xs font-medium text-[color:var(--su-ink-muted)]">{priceLabel}</p>
+            <p className="text-xl font-bold su-text-dan">{plan.simplyur_display?.formatted ?? "—"}</p>
+            {perDayLabel ? (
+              <p className="mt-1 text-xs font-semibold text-[color:var(--su-ink-muted)]">{perDayLabel}</p>
+            ) : null}
+          </div>
+        </div>
       </div>
       <Link href={href} className="su-btn-navy shrink-0 px-5 py-2.5 text-sm">
         {selectLabel}

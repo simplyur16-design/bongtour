@@ -9832,7 +9832,10 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-fx-daily-price]",
             "simplyur_display_per_day",
-            "recommend.perDay"
+            "recommend.perDay",
+            "shouldShowSimplyurPerDay",
+            "justify-between",
+            "text-right"
           ]
         },
         {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SIMPLYUR_CHECKOUT_ENABLED, simplyurPath } from "@/lib/simplyur/constants";
+import { shouldShowSimplyurPerDay } from "@/lib/simplyur/currency";
 import {
   SIMPLYUR_PRODUCT_DESIGN as D,
   type SimplyurProductViewState,
@@ -52,7 +53,8 @@ export function SimplyurProductPanel({
       : "";
 
   const priceFormatted = product?.simplyur_display?.formatted ?? "—";
-  const perDayFormatted = product?.simplyur_display_per_day?.formatted;
+  const perDayFormatted =
+    shouldShowSimplyurPerDay(product?.days) ? product?.simplyur_display_per_day?.formatted : null;
 
   return (
     <main

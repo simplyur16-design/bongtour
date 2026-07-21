@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { simplyurPath } from "@/lib/simplyur/constants";
+import { shouldShowSimplyurPerDay } from "@/lib/simplyur/currency";
 import { SIMPLYUR_PLANS_DESIGN as D } from "@/lib/simplyur/plans-design";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
@@ -18,7 +19,7 @@ export function SimplyurPlansPlanCard({ plan }: Props) {
   const tr = useSimplyurT();
   const href = simplyurPath(locale, `/product/${encodeURIComponent(plan.option_api_id)}`);
   const perDay = plan.simplyur_display_per_day?.formatted;
-  const perDayLabel = perDay
+  const perDayLabel = perDay && shouldShowSimplyurPerDay(plan.days)
     ? tr("recommend.perDay").replace("{amount}", perDay)
     : null;
 
@@ -27,18 +28,20 @@ export function SimplyurPlansPlanCard({ plan }: Props) {
       className="flex flex-col gap-3.5 border bg-white p-[18px]"
       style={{ borderColor: D.border, borderRadius: D.cardRadius }}
     >
-      <p className="text-xl font-extrabold" style={{ color: D.navy }}>
-        {plan.data_label}
-      </p>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <p className="text-[26px] font-extrabold leading-none" style={{ color: D.coral }}>
-          {plan.simplyur_display?.formatted ?? "—"}
+      <div className="flex items-start justify-between gap-4">
+        <p className="min-w-0 flex-1 text-xl font-extrabold" style={{ color: D.navy }}>
+          {plan.data_label}
         </p>
-        {perDayLabel ? (
-          <p className="text-sm font-semibold" style={{ color: D.faint }}>
-            {perDayLabel}
+        <div className="shrink-0 text-right">
+          <p className="text-[26px] font-extrabold leading-none" style={{ color: D.coral }}>
+            {plan.simplyur_display?.formatted ?? "—"}
           </p>
-        ) : null}
+          {perDayLabel ? (
+            <p className="mt-1.5 text-sm font-semibold" style={{ color: D.faint }}>
+              {perDayLabel}
+            </p>
+          ) : null}
+        </div>
       </div>
       <Link
         href={href}

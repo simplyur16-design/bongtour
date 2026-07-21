@@ -97,3 +97,8 @@ export function formatSimplyurPerDayFromTotal(
     formatted: formatSimplyurMoney(amount, currency, locale),
   };
 }
+
+/** Avoid repeating the package total as a daily price on one-day plans. */
+export function shouldShowSimplyurPerDay(days: number | null | undefined): boolean {
+  return typeof days === "number" && Number.isFinite(days) && days >= 2;
+}

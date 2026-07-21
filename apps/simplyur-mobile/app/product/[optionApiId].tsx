@@ -62,7 +62,8 @@ export default function ProductScreen() {
       : '';
 
   const price = product?.simplyur_display?.formatted ?? '—';
-  const perDay = product?.simplyur_display_per_day?.formatted;
+  const perDay =
+    (product?.days ?? 0) >= 2 ? product?.simplyur_display_per_day?.formatted : null;
   const perDayLabel = perDay
     ? t('recommend.perDay').replace('{amount}', perDay)
     : null;

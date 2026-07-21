@@ -267,15 +267,19 @@ function PlanSection({
 
 function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) {
   const perDay = plan.simplyur_display_per_day?.formatted;
-  const perDayLabel = perDay
+  const perDayLabel = perDay && (plan.days ?? 0) >= 2
     ? t('recommend.perDay').replace('{amount}', perDay)
     : null;
   return (
     <View style={styles.card}>
-      <Text style={styles.dataLabel}>{plan.data_label}</Text>
-      <View style={styles.priceRow}>
-        <Text style={styles.price}>{plan.simplyur_display?.formatted ?? '—'}</Text>
+      <View style={styles.planSummaryRow}>
+        <Text style={styles.dataLabel}>{plan.data_label}</Text>
+        <View style={styles.priceBlock}>
+          <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit>
+            {plan.simplyur_display?.formatted ?? '—'}
+          </Text>
         {perDayLabel ? <Text style={styles.perDay}>{perDayLabel}</Text> : null}
+        </View>
       </View>
       <Link href={{ pathname: '/product/[optionApiId]', params: { optionApiId: plan.option_api_id } }} asChild>
         <Pressable style={styles.selectBtn}>
@@ -368,10 +372,11 @@ const styles = StyleSheet.create({
     padding: D.cardPadding,
     gap: 14,
   },
-  dataLabel: { fontSize: 20, ...fp('800'), color: D.navy },
-  price: { fontSize: 26, ...fp('800'), color: D.coral },
-  priceRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 },
-  perDay: { fontSize: 13, ...fp('600'), color: D.faint },
+  planSummaryRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+  dataLabel: { flex: 1, fontSize: 20, ...fp('800'), color: D.navy },
+  priceBlock: { flexShrink: 0, alignItems: 'flex-end' },
+  price: { fontSize: 26, ...fp('800'), color: D.coral, textAlign: 'right' },
+  perDay: { marginTop: 5, fontSize: 13, ...fp('600'), color: D.faint, textAlign: 'right' },
   selectBtn: {
     height: D.buttonHeight,
     borderRadius: D.buttonRadius,
