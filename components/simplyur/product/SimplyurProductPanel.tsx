@@ -149,7 +149,7 @@ export function SimplyurProductPanel({
   );
 }
 
-function DetailRow({
+function DetailPanel({
   network,
   duration,
   data,
