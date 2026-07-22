@@ -32,6 +32,10 @@ function scheduleImageKeywordSemanticCanonical(k: string): string {
   if (!t) return ''
   // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: Khajuraho Complex≡Temples semantic — manifest
   if (/\bkhajuraho\b/i.test(t) && /\btemples?\b/i.test(t)) return 'khajuraho temples'
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+  if (/\blivingstone\b/i.test(t) && /victoria\s*falls/i.test(t)) return 'victoria falls livingstone'
+  if (/victoria\s*falls/i.test(t)) return 'victoria falls'
+  if (/table\s*mountain/i.test(t)) return 'table mountain cape'
   return t
 }
 

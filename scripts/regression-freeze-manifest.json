@@ -5598,7 +5598,10 @@
             "장가계→Zhangjiajie return soft-dup",
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
-            "Africa SEQP01 — bare 빅토리아≠Falls/Peak"
+            "Africa SEQP01 — bare 빅토리아≠Falls/Peak",
+            "Africa SEQP01 — same-day Falls/Table Mountain semantic",
+            "Cape Town South Africa",
+            "Zambezi River sunset cruise"
           ]
         },
         {
@@ -5645,6 +5648,7 @@
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "Africa safari day-route evidence — SEQP01 bleed 금지",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
+            "Africa SEQP01 — same-day Falls/Table Mountain semantic",
             "supplierKey: 'modetour'"
           ]
         },
@@ -6280,7 +6284,18 @@
           "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
           "mustInclude": [
             "findAllScheduleSpotMatchesInText",
-            "firstMatchingScheduleCityEn"
+            "firstMatchingScheduleCityEn",
+            "Africa SEQP01 — same-day Falls/Table Mountain semantic",
+            "victoria falls livingstone",
+            "table mountain cape"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "Africa SEQP01 — same-day Falls/Table Mountain semantic",
+            "scheduleImageKeywordsSemanticallyOverlap",
+            "pickDistinctSecondScheduleImageKeyword"
           ]
         },
         {

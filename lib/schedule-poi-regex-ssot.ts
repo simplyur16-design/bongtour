@@ -254,9 +254,12 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /마니야라|Manyara/i, en: "Lake Manyara Tanzania wildlife" },
   { re: /마사이\s*마라|Masai\s*Mara/i, en: "Masai Mara savanna Kenya" },
   { re: /리빙스턴|Livingstone/i, en: "Victoria Falls Livingstone Zambia" },
-  { re: /케이프타운|Cape\s*Town|CAPETOWN/i, en: "Cape Town Table Mountain South Africa" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+  // 케이프타운 bare ≠ Table Mountain(명시 세그먼트만). 워터프론트 날에 산이 1순위로 붙는 회귀 금지.
+  { re: /케이프타운|Cape\s*Town|CAPETOWN/i, en: "Cape Town South Africa" },
   { re: /테이블\s*마운틴|Table\s*Mountain/i, en: "Table Mountain Cape Town" },
   { re: /V\s*&\s*A\s*Waterfront|워터프론트/i, en: "V&A Waterfront Cape Town harbor" },
+  { re: /잠베지(?:강)?|Zambezi/i, en: "Zambezi River sunset cruise" },
   { re: /마나도|Manado/i, en: "Manado Sulawesi Indonesia coastal city" },
   { re: /부나켄|Bunaken/i, en: "Bunaken National Marine Park Indonesia" },
   { re: /실라덴|Siladen/i, en: "Siladen Island Bunaken diving Indonesia" },
@@ -983,7 +986,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /대련|다롄|大连/u, en: "Dalian" },
   { re: /여순|旅顺|Lushun/i, en: "Lushun Dalian" },
   { re: /나이로비|Nairobi/i, en: "Nairobi Kenya city skyline" },
-  { re: /케이프타운|Cape\s*Town/i, en: "Cape Town Table Mountain" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+  { re: /케이프타운|Cape\s*Town/i, en: "Cape Town South Africa" },
   { re: /모나코|Monaco/i, en: "Monaco Monte Carlo harbor" },
   { re: /베른|Bern/i, en: "Bern Switzerland old town" },
   { re: /하문|샤먼|Xiamen|厦门/u, en: "Xiamen harbor skyline" },

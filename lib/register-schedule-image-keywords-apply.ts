@@ -27,9 +27,37 @@ import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSe
 import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
-import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  normScheduleImageKeywordKey,
+  pickDistinctSecondScheduleImageKeyword,
+  scheduleImageKeywordsSemanticallyOverlap,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { mapDestination } from '@/lib/pexels-keyword'
+import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 import { applyHawaiiFreeDayRecommendedExampleItineraries } from '@/lib/register-schedule-hawaii-free-day-example-itinerary'
+
+function pickRouteDistinctSecondaryKeyword(
+  primary: string,
+  routeText: string | null | undefined,
+  usedKeys?: ReadonlySet<string>,
+): string {
+  const p = String(primary ?? '').trim()
+  if (!p) return ''
+  const spots = findAllScheduleSpotMatchesInText(String(routeText ?? ''))
+    .map((x) => x.en)
+    .filter((en) => {
+      const t = String(en ?? '').trim()
+      if (!t) return false
+      if (scheduleImageKeywordsSemanticallyOverlap(t, p)) return false
+      if (isBareCityOrCountryKeyword(t)) return false
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+      // bare 케이프타운 도시 허브는 Table Mountain 날 2순위로 쓰지 않음(Bo-Kaap·Kirstenbosch 우선)
+      if (/^cape\s*town(?:\s+south\s+africa)?$/i.test(t)) return false
+      if (usedKeys?.has(normScheduleImageKeywordKey(t))) return false
+      return true
+    })
+  return pickDistinctSecondScheduleImageKeyword(p, spots) ?? ''
+}
 
 function promoteMiddleDayEmptyPrimaryFromKeyword2<T extends RegisterScheduleImageKeywordApplyRow>(
   rows: T[],
@@ -337,8 +365,13 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       k && isRegisterScheduleCrossContinentHallucinationKeyword(k, dest, preparedForKeywords) ? '' : k
     kw = strip(kw)
     kw2 = strip(kw2)
-    if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) {
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+    // exact key만 비교하면 Victoria Falls vs …Panorama / Table Mountain Cape Town vs …Cape 가 남음
+    if (kw && kw2 && scheduleImageKeywordsSemanticallyOverlap(kw, kw2)) {
       kw2 = ''
+    }
+    if (kw && !kw2) {
+      kw2 = pickRouteDistinctSecondaryKeyword(kw, rawRoute ?? row.routeText)
     }
     return {
       ...row,
@@ -407,6 +440,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     const nk2 = normScheduleImageKeywordKey(kw2)
     if (nk2 && (used.has(nk2) || nk2 === finalNk)) {
       kw2 = ''
+    }
+    if (kw && !kw2) {
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+      kw2 = pickRouteDistinctSecondaryKeyword(kw, row.routeText, new Set(used.keys()))
     }
     const finalNk2 = normScheduleImageKeywordKey(kw2)
     if (finalNk2) used.set(finalNk2, day)

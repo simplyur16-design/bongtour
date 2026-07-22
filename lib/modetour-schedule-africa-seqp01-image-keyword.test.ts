@@ -1,10 +1,12 @@
 /**
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
+ * REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
+import { scheduleImageKeywordsSemanticallyOverlap } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 const SEQP01_ROWS = [
   { day: 1, title: '두바이', routeText: '두바이', imageKeyword: '', imageKeyword2: null as string | null },
@@ -116,9 +118,30 @@ describe('modetour Africa SEQP01 104307927 imageKeyword', () => {
     const byDay = (d: number) => out.find((r) => r.day === d)!
     const blob = (d: number) => `${byDay(d).imageKeyword ?? ''} ${byDay(d).imageKeyword2 ?? ''}`
 
-    // Day8 Victoria Falls ≠ Canada Victoria harbour
+    // Day8 — Falls 1순위와 panorama 2순위 의미 중복 금지; Zambezi 등 당일 다른 명소
     expect(blob(8)).toMatch(/Victoria Falls/i)
     expect(blob(8)).not.toMatch(/Inner Harbour|Harbour Victoria/i)
+    expect(
+      scheduleImageKeywordsSemanticallyOverlap(
+        String(byDay(8).imageKeyword ?? ''),
+        String(byDay(8).imageKeyword2 ?? ''),
+      ),
+    ).toBe(false)
+    expect(String(byDay(8).imageKeyword2 ?? '')).toMatch(/Zambezi|Livingstone|cruise/i)
+
+    // Day10 waterfront — bare 케이프타운이 Table Mountain을 1순위로 훔치지 않음
+    expect(blob(10)).toMatch(/Waterfront|Cape Town/i)
+    expect(String(byDay(10).imageKeyword ?? '')).not.toMatch(/Table Mountain/i)
+
+    // Day11 Table Mountain — kw1·kw2 의미 중복 금지 (Bo-Kaap / Kirstenbosch)
+    expect(blob(11)).toMatch(/Table Mountain/i)
+    expect(
+      scheduleImageKeywordsSemanticallyOverlap(
+        String(byDay(11).imageKeyword ?? ''),
+        String(byDay(11).imageKeyword2 ?? ''),
+      ),
+    ).toBe(false)
+    expect(String(byDay(11).imageKeyword2 ?? '')).toMatch(/Kirstenbosch|Bo-?Kaap|Botanical|Waterfront/i)
 
     // Day3 Kenya — no Chobe Botswana bleed
     expect(blob(3)).not.toMatch(/Chobe/i)
