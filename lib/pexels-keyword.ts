@@ -147,7 +147,6 @@ const DESTINATION_MAP: Record<string, string> = {
   비엔나: 'Vienna',
   부다페스트: 'Budapest',
   프라하: 'Prague',
-  아테네: 'Athens',
   산토리니: 'Santorini',
   몰디브: 'Maldives',
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty route soft-dup bare city — manifest
