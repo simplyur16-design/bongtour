@@ -300,6 +300,10 @@ export type RegisterParsed = {
   mustKnowSource?: 'supplier' | 'supplier+web' | 'web' | null
   /** 검색 보완 시 안내 문구 */
   mustKnowNoticeRaw?: string | null
+  /** 상품 핵심 포인트 원문(corePoints) */
+  highlightPointsRaw?: string | null
+  /** 상품 핵심 포인트 정리본 */
+  highlightPoints?: string | null
   /** 출발 조건(공급사 본문 추출) */
   minimumDepartureCount?: number | null
   minimumDepartureText?: string | null

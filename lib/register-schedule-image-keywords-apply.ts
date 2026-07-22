@@ -437,6 +437,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       } else if (isBareCityOrCountryKeyword(kw)) {
         // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
         // route에 재등장한 방문도시(삿포/몰디브 등)는 중간일 soft-dup 유지 — Osaka D2 관광일 환각 soft-dup만 금지
+        // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
         const routeSoft = softDupForeignVisitCityForMiddleRoute(row.routeText)
         if (
           routeSoft &&
@@ -444,6 +445,8 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
           allowRouteRevisitBareVisitCitySoftDup(kw)
         ) {
           // keep — allowlist 도시만 (Osaka D2 관광일 soft-dup 금지)
+        } else if (allowRouteRevisitBareVisitCitySoftDup(kw)) {
+          // keep — 서핑 등 액티비티-only route에 도시명 없어도 allowlist soft-dup 유지
         } else {
           kw = ''
         }

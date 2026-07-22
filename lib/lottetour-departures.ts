@@ -7,6 +7,8 @@
  *
  * HTML만으로 0건이고 `e2eTourCodeHint`가 있으며 `LOTTETOUR_E2E_FALLBACK`이 꺼지지 않았으면
  * `scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper`를 subprocess로 한 번 호출한다.
+ *
+ * REGRESSION-FREEZE[lottetour-calendar-month-concurrency]: parallel month fetch (local concurrency) — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -76,6 +78,11 @@ export type LottetourCalendarRangeOptions = {
   /** 단위 검증: fetch 대신 고정 HTML */
   htmlByDepYm?: Map<string, string> | null
   fetchImpl?: (url: string, init: RequestInit) => Promise<Response>
+  /**
+   * 월 단위 병렬 fetch 동시성(공급사 로컬만). 기본 3·`LOTTETOUR_CALENDAR_MONTH_CONCURRENCY`.
+   * REGRESSION-FREEZE[lottetour-calendar-month-concurrency]: monthConcurrency — manifest
+   */
+  monthConcurrency?: number
 }
 
 export type LottetourCalendarRangeParams = {
@@ -760,8 +767,22 @@ export async function collectLottetourCalendarRange(
 
   const all: LottetourCalendarRow[] = []
   const htmlByYm = options?.htmlByDepYm ?? null
+  // REGRESSION-FREEZE[lottetour-calendar-month-concurrency]: parallel months, pages stay sequential — manifest
+  const monthConcurrency = Math.max(
+    1,
+    Math.min(
+      3,
+      Number(
+        options?.monthConcurrency ??
+          process.env.LOTTETOUR_CALENDAR_MONTH_CONCURRENCY ??
+          '3',
+      ) || 3,
+    ),
+  )
 
-  for (const ym of ymsFiltered) {
+  async function collectOneMonth(ym: string): Promise<{ rows: LottetourCalendarRow[]; warnings: string[] }> {
+    const monthRows: LottetourCalendarRow[] = []
+    const monthWarnings: string[] = []
     const depDt = ymToDepDt(ym)
     let pageIndex = 1
     let reportedTotal: number | null = null
@@ -776,11 +797,13 @@ export async function collectLottetourCalendarRange(
       })
       if (options?.log) {
         console.log(
-          `[lottetour-departures] ${options.logLabel ?? 'collect'} ym=${ym} page=${pageIndex} maxEvtCnt=${maxEvtCnt}`
+          `[lottetour-departures] ${options.logLabel ?? 'collect'} ym=${ym} page=${pageIndex} maxEvtCnt=${maxEvtCnt}`,
         )
       }
       let html: string
       if (htmlByYm?.has(depDt)) {
+        // prefetch — page1만 사용(추가 페이지 fetch 생략으로 중복 네트워크 방지)
+        if (pageIndex > 1) break
         html = htmlByYm.get(depDt)!
       } else {
         try {
@@ -794,26 +817,48 @@ export async function collectLottetourCalendarRange(
           })
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e)
-          warnings.push(`${ym} p${pageIndex}: ${msg.slice(0, 240)}`)
+          monthWarnings.push(`${ym} p${pageIndex}: ${msg.slice(0, 240)}`)
           break
         }
       }
       const parsed = parseLottetourEvtListAjaxHtml(html, { depYm: depDt, godId })
-      for (const w of parsed.warnings) warnings.push(`${ym} p${pageIndex}: ${w}`)
+      for (const w of parsed.warnings) monthWarnings.push(`${ym} p${pageIndex}: ${w}`)
       if (reportedTotal == null && parsed.totalReported != null) reportedTotal = parsed.totalReported
 
       if (parsed.rows.length === 0) break
-      all.push(...parsed.rows)
+      monthRows.push(...parsed.rows)
 
+      if (htmlByYm?.has(depDt)) break
       if (parsed.rows.length < maxEvtCnt) break
       if (reportedTotal != null && pageIndex * maxEvtCnt >= reportedTotal) break
       pageIndex += 1
       if (pageIndex > 200) {
-        warnings.push(`${ym}: pageIndex 200 초과 중단(비정상)`)
+        monthWarnings.push(`${ym}: pageIndex 200 초과 중단(비정상)`)
         break
       }
     }
+    return { rows: monthRows, warnings: monthWarnings }
   }
+
+  async function mapPoolMonths(yms: string[]): Promise<void> {
+    const parts: Array<{ rows: LottetourCalendarRow[]; warnings: string[] }> = new Array(yms.length)
+    let next = 0
+    const workers = Array.from({ length: Math.min(monthConcurrency, Math.max(1, yms.length)) }, async () => {
+      for (;;) {
+        const i = next++
+        if (i >= yms.length) return
+        parts[i] = await collectOneMonth(yms[i]!)
+      }
+    })
+    await Promise.all(workers)
+    for (const part of parts) {
+      if (!part) continue
+      all.push(...part.rows)
+      warnings.push(...part.warnings)
+    }
+  }
+
+  await mapPoolMonths(ymsFiltered)
 
   const e2eHint = (options?.e2eTourCodeHint ?? '').trim()
   if (all.length === 0 && e2eHint && !options?.disableE2EFallback && lottetourE2eFallbackEnabled()) {

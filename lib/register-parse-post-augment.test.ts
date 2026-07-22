@@ -144,6 +144,33 @@ describe('register-parse-post-augment SSOT', () => {
     expect(String(d2?.imageKeyword ?? '')).toBe('Tottori Sand Museum')
   })
 
+  // REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]: preview skips wipe when middle filled — manifest
+  it('preview + middle keywords already filled skips wipe/reapply (keeps intact)', async () => {
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI = '0'
+    const built = modetourFactDaysToRegisterSchedule(TOTTORI_FACT_DAYS, { productTitle: '돗토리 3일' })
+    const before = built.map((row) => ({
+      ...row,
+      imageKeyword:
+        row.day === 1
+          ? 'Incheon Departure'
+          : row.day === 2
+            ? 'Tottori Sand Museum'
+            : 'Adachi Museum of Art',
+      imageKeyword2: null,
+    }))
+    const after = await applyRegisterPostAugmentSchedulePipeline(
+      {
+        schedule: before,
+        primaryDestination: '돗토리',
+        destination: '돗토리',
+        title: '돗토리 3일',
+      } as never,
+      { forcedBrandKey: 'modetour', travelScope: 'package', mode: 'preview' },
+    )
+    const d2 = (after.schedule ?? []).find((r) => Number(r.day) === 2)
+    expect(String(d2?.imageKeyword ?? '')).toBe('Tottori Sand Museum')
+  })
+
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: empty middle recovers (no sticky skip) — manifest
   it('confirm + persisted — empty middle Day4 recovers via rules (no sticky skip)', async () => {

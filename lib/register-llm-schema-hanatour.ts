@@ -294,6 +294,10 @@ export type RegisterParsed = {
   mustKnowSource?: 'supplier' | 'supplier+web' | 'web' | null
   /** 검색 보완 시 안내 문구 */
   mustKnowNoticeRaw?: string | null
+  /** 상품 핵심 포인트 원문(붙여넣기 또는 prodInfo bnft) */
+  highlightPointsRaw?: string | null
+  /** 상품 핵심 포인트 정리본(노출 우선) — 등록 시 raw와 동일 가능 */
+  highlightPoints?: string | null
   /** 출발 조건(공급사 본문 추출) */
   minimumDepartureCount?: number | null
   minimumDepartureText?: string | null

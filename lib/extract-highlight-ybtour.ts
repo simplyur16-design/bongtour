@@ -1,5 +1,8 @@
 /**
- * 노랑풍선(ybtour) 전용 — 「여행포인트」 ✔ 리스트. 타 공급사와 공유하지 않음.
+ * 노랑풍선(ybtour) 전용 — 「여행포인트」 ✔ 리스트·goodsInfo core points.
+ * 타 공급사와 공유하지 않음.
+ *
+ * REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: formatYbtourHighlightPointsFromCorePoints — manifest
  */
 const MAX_HIGHLIGHT = 8000
 
@@ -65,6 +68,43 @@ export function extractHighlightFromYbtour(rawHtml: string | unknown): string | 
     .map((l) => normalizeYbtourLine(l))
     .filter(Boolean)
   const out = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  if (!out) return null
+  return out.length > MAX_HIGHLIGHT ? out.slice(0, MAX_HIGHLIGHT) : out
+}
+
+const YBTOUR_PRODUCT_KEEP_RE =
+  /호텔|리조트|숙박|관광|체험|호핑|서핑|투어|특전|혜택|핵심|포인트|크루즈|골프|스파|야경|전망|미식|온천|하이라이트|가성비|포함/i
+
+function isYbtourNonProductCoreLine(line: string): boolean {
+  const t = line.trim()
+  if (!t) return true
+  const hasProduct = YBTOUR_PRODUCT_KEEP_RE.test(t)
+  if (/보험|SAFETY|안전\s*(?:수칙|안내)/i.test(t) && !hasProduct) return true
+  if (/(?:비자|입국|출입국)/i.test(t) && !hasProduct) return true
+  if (/예약\s*시|인원별\s*차량|최소\s*출발/i.test(t) && !hasProduct) return true
+  if (t.length < 28 && !hasProduct) return true
+  return false
+}
+
+/**
+ * goodsInfo core bullets → product highlight subset.
+ * REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: goodsInfo product highlight — manifest
+ */
+export function formatYbtourHighlightPointsFromCorePoints(
+  points: readonly string[] | null | undefined,
+): string | null {
+  if (!points?.length) return null
+  const lines: string[] = []
+  const seen = new Set<string>()
+  for (const raw of points) {
+    const line = normalizeYbtourLine(String(raw ?? ''))
+    if (!line || isYbtourNonProductCoreLine(line)) continue
+    const key = line.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    lines.push(line)
+  }
+  const out = lines.join('\n').trim()
   if (!out) return null
   return out.length > MAX_HIGHLIGHT ? out.slice(0, MAX_HIGHLIGHT) : out
 }

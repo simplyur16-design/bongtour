@@ -2,9 +2,11 @@
  * 교원이지 등록 — goodsEventDetail HTML 1회 + tourEventTabData(goodsEvtTab_1·goodsEvtTab_2·goodsEvtTab_3·goodsEvtTab_7) 배치 자동 수집.
  *
  * REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]: register tab augment — manifest
+ * REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]: corePoints → highlightPoints — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-kyowontour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-kyowontour'
+import { formatKyowontourHighlightPointsFromCorePoints } from '@/lib/extract-highlight-kyowontour'
 import {
   KYOWONTOUR_TAB_CORE_ID,
   KYOWONTOUR_TAB_OPT_SHOP_ID,
@@ -236,6 +238,21 @@ function applyKyowontourCoreTabToParsed(
         mustKnowSource: 'supplier',
       }
       summaryParts.push(`핵심·안내 ${mustItems.length}건`)
+    }
+  }
+
+  // REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]: product corePoints → highlight
+  const highlightEmpty =
+    !String(next.highlightPointsRaw ?? '').trim() && !String(next.highlightPoints ?? '').trim()
+  if (highlightEmpty && core.corePoints.length > 0) {
+    const highlight = formatKyowontourHighlightPointsFromCorePoints(core.corePoints)
+    if (highlight) {
+      next = {
+        ...next,
+        highlightPointsRaw: highlight,
+        highlightPoints: highlight,
+      }
+      summaryParts.push('상품핵심포인트')
     }
   }
 

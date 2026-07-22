@@ -3,12 +3,14 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[ybtour-register-detail-collect]: augmentYbtourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: goodsInfo → highlightPoints — manifest
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: preview=confirm API SSOT — manifest
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: 규칙 후 빈 kw → Gemini — manifest
  * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: ensureYbtourRegisterScheduleImageKeywords — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-ybtour'
+import { formatYbtourHighlightPointsFromCorePoints } from '@/lib/extract-highlight-ybtour'
 import {
   buildYbtourFlightStructuredFromTm,
   extractYbtourCorePointsFromGoodsInfo,
@@ -300,9 +302,9 @@ export async function augmentYbtourParsedWithDetailCollect(
     }
   }
 
-  if (needMustKnow && notice) {
+  if (notice) {
     const corePoints = extractYbtourCorePointsFromGoodsInfo(notice)
-    if (corePoints.length > 0) {
+    if (needMustKnow && corePoints.length > 0) {
       next = {
         ...next,
         mustKnowItems: corePoints.map((body) => ({
@@ -314,6 +316,20 @@ export async function augmentYbtourParsedWithDetailCollect(
         mustKnowSource: 'supplier',
       }
       summaryParts.push(`핵심포인트 ${corePoints.length}건`)
+    }
+    // REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: when highlight empty, set from goodsInfo
+    const highlightEmpty =
+      !String(next.highlightPointsRaw ?? '').trim() && !String(next.highlightPoints ?? '').trim()
+    if (highlightEmpty) {
+      const highlight = formatYbtourHighlightPointsFromCorePoints(corePoints)
+      if (highlight) {
+        next = {
+          ...next,
+          highlightPointsRaw: highlight,
+          highlightPoints: highlight,
+        }
+        summaryParts.push('상품핵심포인트')
+      }
     }
   }
 

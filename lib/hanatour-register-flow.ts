@@ -1523,7 +1523,9 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       hasDeparturesToSave: departureInputs.length > 0,
       hasItineraryDaysToSave: itineraryDayDrafts.length > 0 || schedule.length > 0,
     })
-    const highlightRaw = extractHighlightFromHanatour(text)
+    // REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]: paste extract ?? parsed.highlightPointsRaw
+    const highlightRaw =
+      extractHighlightFromHanatour(text) ?? parsed.highlightPointsRaw ?? null
     const departureAirportFields = resolveRegisterProductDepartureAirportFields({
       manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
       inferHaystack: buildRegisterFlightInferHaystack({

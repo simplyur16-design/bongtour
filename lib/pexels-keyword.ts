@@ -54,6 +54,9 @@ const DESTINATION_MAP: Record<string, string> = {
   가라츠: 'Karatsu',
   사파: 'Sapa',
   삿포로: 'Sapporo',
+  // REGRESSION-FREEZE[hanatour-register-schedule-2030]: 홋카이도 dest → Sapporo return/edge fill — manifest
+  홋카이도: 'Sapporo',
+  북해도: 'Sapporo',
   /** 공급사 표기 축약(삿포) — bare 방문도시 soft-dup용 (Odori Park 랜드마크는 POI 맵) */
   삿포: 'Sapporo',
   니가타: 'Niigata',

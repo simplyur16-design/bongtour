@@ -135,6 +135,137 @@ describe('hanatour 2030 schedule polish', () => {
     }
   })
 
+  it('wipes pre-polish mingling route and expands bare city middle day', () => {
+    // REGRESSION-FREEZE[hanatour-register-schedule-2030]: mingling wipe + NY 시내 — manifest
+    const title = '[2030전용] 뉴욕 7일 #밍글링Light'
+    const polluted = [
+      {
+        day: 1,
+        title: '밍글링 투어 Light - 밍글링 타임',
+        description: 'x',
+        routeText: '밍글링 투어 Light - 밍글링 타임',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 6,
+        title: '뉴욕',
+        description: 'x',
+        routeText: '뉴욕',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+      {
+        day: 7,
+        title: '3일차',
+        description: 'x',
+        routeText: '',
+        imageKeyword: '',
+        imageKeyword2: null,
+      },
+    ]
+    const out = applyHanatour2030SchedulePolish({
+      productTitle: title,
+      schedule: polluted,
+      factDays: [
+        { day: 1, places: ['밍글링 투어 Light', '밍글링 타임'], hotels: [], meals: [], transportNote: null },
+        { day: 6, places: ['뉴욕'], hotels: [], meals: [], transportNote: null },
+        { day: 7, places: [], hotels: [], meals: [], transportNote: '인천 귀국' },
+      ],
+    })
+    expect(out[0]?.title).toMatch(/뉴욕\s*입국/)
+    expect(out[0]?.routeText).not.toMatch(/밍글/)
+    expect(out[0]?.title).not.toMatch(/^\d+\s*일차$/)
+    expect(out[1]?.routeText).toBe('뉴욕 시내')
+    expect(out[1]?.title).toMatch(/뉴욕/)
+    expect(out[2]?.title).toMatch(/출발 및 인천 귀국/)
+    expect(out[2]?.title).not.toMatch(/^\d+\s*일차$/)
+  })
+
+  it('free-day transportNote + bare city → route 「도시 자유 일정」 (not bare short)', () => {
+    const title = '[2030전용] 뉴욕 7일 #2일 자유일정'
+    const out = applyHanatour2030SchedulePolish({
+      productTitle: title,
+      schedule: [
+        {
+          day: 6,
+          title: '뉴욕',
+          description: 'x',
+          routeText: '뉴욕',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      factDays: [{ day: 6, places: ['뉴욕'], hotels: [], meals: [], transportNote: '자유 일정' }],
+    })
+    expect(out[0]?.title).toMatch(/자유\s*일정/)
+    expect(out[0]?.routeText).toBe('뉴욕 자유 일정')
+    expect(out[0]?.routeText.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('HEP172 free day — transportNote 「도시; 도시 - 인천」 must not yield bare city route', () => {
+    const title = '[2030전용] 뉴욕 7일 #2일 자유일정'
+    const out = applyHanatour2030SchedulePolish({
+      productTitle: title,
+      schedule: Array.from({ length: 7 }, (_, i) => ({
+        day: i + 1,
+        title: 'x',
+        description: 'x',
+        routeText: 'x',
+        imageKeyword: '',
+        imageKeyword2: null,
+      })),
+      factDays: [
+        { day: 1, places: ['뉴욕'], hotels: [], meals: [], transportNote: null },
+        { day: 2, places: ['리틀 아일랜드'], hotels: [], meals: [], transportNote: null },
+        { day: 3, places: ['타임스퀘어'], hotels: [], meals: [], transportNote: null },
+        { day: 4, places: ['센트럴 파크'], hotels: [], meals: [], transportNote: null },
+        { day: 5, places: ['파크'], hotels: [], meals: [], transportNote: '뉴욕' },
+        {
+          day: 6,
+          places: [],
+          hotels: ['뉴욕 맨해튼 중심에 위치한 시내 호텔'],
+          meals: [],
+          transportNote: '뉴욕; 뉴욕 - 인천',
+        },
+        { day: 7, places: [], hotels: [], meals: [], transportNote: '인천' },
+      ],
+    })
+    const d6 = out.find((r) => r.day === 6)!
+    expect(d6.title).toMatch(/자유\s*일정/)
+    expect(d6.routeText).toBe('뉴욕 자유 일정')
+    expect(d6.routeText).not.toBe('뉴욕')
+  })
+
+  it('splits dashed CMS place blob into title middot (not full route paste)', () => {
+    const title = '[2030전용] 푸꾸옥 5일'
+    const out = applyHanatour2030SchedulePolish({
+      productTitle: title,
+      schedule: [
+        {
+          day: 2,
+          title: 'x',
+          description: 'x',
+          routeText: 'x',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      factDays: [
+        {
+          day: 2,
+          places: ['크레이지 호핑 - 소나시 비치바 푸꾸옥 - 베스트웨스턴 비치클럽'],
+          hotels: [],
+          meals: [],
+          transportNote: null,
+        },
+      ],
+    })
+    expect(out[0]?.title).toBe('크레이지 호핑 · 소나시 비치바 푸꾸옥')
+    expect(out[0]?.routeText).toContain(' - ')
+    expect(out[0]?.title).not.toBe(out[0]?.routeText)
+  })
+
   it('normalizeHanatour2030ListingTitle — (2030) 접미·밍글링 해시 제거', () => {
     const t = normalizeHanatour2030ListingTitle(JOP191_TITLE)
     expect(t).toMatch(/\(2030\)\s*$/)

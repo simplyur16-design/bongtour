@@ -19,7 +19,7 @@ import {
 const HANATOUR_2030_TITLE_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍|mingling|\(2030\)\s*$/i
 
 const HANATOUR_2030_PLACE_NOISE_RE =
-  /밍글|mingling|미션|모여라|친구\s*만들기|여행러버|밍글링\s*투어|밍글링\s*타임|밍글링\s*친구|현지투어플러스|everyday\s*맞춤|Late\s*Night|Sunset\s*Chill|업로드|인생샷\s*가능|추천\s*일정|포토\s*스팟|포토스팟|자유\s*시간|속\s*밍글|MD와|feat\.|노미타베|호다이|일정식\s*요리|체크\s*인\s*후|낭만가득|대표\s*번화가|현대식\s*쇼핑|쇼핑\s*메카|초특가|유류비|내가\s*만들어서|타코야키|명물\s*체험|더\s*특별한/i
+  /밍글|mingling|미션|모여라|친구\s*만들기|여행러버|밍글링\s*투어|밍글링\s*타임|밍글링\s*친구|현지투어플러스|everyday\s*맞춤|Late\s*Night|Sunset\s*Chill|업로드|인생샷\s*가능|추천\s*일정|포토\s*스팟|포토스팟|자유\s*시간|속\s*밍글|MD와|feat\.|노미타베|호다이|일정식\s*요리|체크\s*인\s*후|낭만가득|대표\s*번화가|현대식\s*쇼핑|쇼핑\s*메카|초특가|유류비|내가\s*만들어서|타코야키|명물\s*체험|더\s*특별한|짐\s*풀고|바로\s*GO|에어아시아|AirAsia|출발\s*및\s*인천|인천\s*귀국|^\s*귀국\s*$/i
 
 const HANATOUR_2030_META_CARD_RE =
   /출입국|입국\s*절차|입국\s*안내|조식\s*안내|여행자보험|면세|항공\s*안내|미주지역\s*호텔|방문객\s*출입국/i
@@ -263,12 +263,19 @@ export function filterHanatour2030FactScheduleDays(
     const pois: string[] = []
     const seen = new Set<string>()
     for (const raw of d.places) {
-      const poi = extractHanatour2030PoiFromCardLabel(raw)
-      if (!poi) continue
-      const key = poi.toLowerCase().replace(/\s+/g, '')
-      if (seen.has(key)) continue
-      seen.add(key)
-      pois.push(poi)
+      // CMS가 `A - B - C`를 한 칸에 넣으면 세그먼트별로 POI 추출 (title=route 복붙 soft 방지)
+      const chunks = String(raw ?? '')
+        .split(/\s+-\s+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      for (const chunk of chunks.length > 0 ? chunks : [String(raw ?? '')]) {
+        const poi = extractHanatour2030PoiFromCardLabel(chunk)
+        if (!poi) continue
+        const key = poi.toLowerCase().replace(/\s+/g, '')
+        if (seen.has(key)) continue
+        seen.add(key)
+        pois.push(poi)
+      }
     }
     return { ...d, places: pois }
   })
@@ -305,28 +312,42 @@ function composeHanatour2030DayTitle(args: {
   productTitle: string
   transportNote: string | null
 }): string {
+  // REGRESSION-FREEZE[hanatour-register-schedule-2030]: no bare N일차 / no return-phrase double — manifest
   const { day, maxDay, routePlaces, dayKind, productTitle, transportNote } = args
   const city = extractHanatour2030CityFromTitle(productTitle)
 
-  if (day === 1 && routePlaces.length > 0) {
-    const place = routePlaces[0]!
-    if (city && place !== city) return `${city} 입국 · ${place}`
-    return routePlaces.length >= 2 ? `${routePlaces[0]} · ${routePlaces[1]}` : `${place} 입국 · ${place}`
-  }
-  if (dayKind === 'movement' && day === 1) {
+  if (day === 1) {
+    if (routePlaces.length >= 2) return `${routePlaces[0]} · ${routePlaces[1]}`
     const place = routePlaces[0] ?? city
-    return place ? `${place} 입국 · ${place}` : `${day}일차`
+    if (place && city && place !== city) return `${city} 입국 · ${place}`
+    if (place) return `${place} 입국`
+    return city ? `${city} 입국` : `${day}일차`
   }
-  if (dayKind === 'return_home' || (day === maxDay && /인천|ICN|귀국/u.test(transportNote ?? ''))) {
-    const from = routePlaces[routePlaces.length - 1] ?? city ?? '현지'
+  if (
+    dayKind === 'return_home' ||
+    (day === maxDay && routePlaces.length === 0) ||
+    (day === maxDay && /인천|ICN|귀국/u.test(transportNote ?? ''))
+  ) {
+    const rawFrom = routePlaces[routePlaces.length - 1] ?? city ?? '현지'
+    const from =
+      rawFrom
+        .replace(/\s*출발\s*및\s*인천\s*귀국.*$/u, '')
+        .replace(/\s*귀국.*$/u, '')
+        .trim() ||
+      city ||
+      '현지'
+    if (/출발\s*및\s*인천\s*귀국/u.test(rawFrom) && /인천|ICN/u.test(rawFrom)) return rawFrom
     return `${from} 출발 및 인천 귀국`
   }
   if (routePlaces.some((p) => HANATOUR_2030_FREE_DAY_RE.test(p)) || /자유\s*일정/u.test(transportNote ?? '')) {
     return `자유 일정 · ${city ?? routePlaces[0] ?? '현지'}`
   }
   if (routePlaces.length >= 2) return `${routePlaces[0]} · ${routePlaces[1]}`
-  if (routePlaces.length === 1) return routePlaces[0]!
-  return `${day}일차`
+  if (routePlaces.length === 1) {
+    const p = routePlaces[0]!
+    return p.length < 4 ? `${p} 시내` : p
+  }
+  return `자유 일정 · ${city ?? '현지'}`
 }
 
 function composeHanatour2030DayDescription(args: {
@@ -343,11 +364,17 @@ function composeHanatour2030DayDescription(args: {
   if (routePlaces.some((p) => HANATOUR_2030_FREE_DAY_RE.test(p))) {
     return vibes.free.slice(0, 2).join(' ')
   }
-  if (dayKind === 'movement' && args.day === 1) {
+  if (args.day === 1 || (dayKind === 'movement' && args.day === 1)) {
     return vibes.arrival.slice(0, 2).join(' ')
   }
-  if (dayKind === 'return_home' || args.day === args.maxDay) {
+  if (dayKind === 'return_home' || (args.day === args.maxDay && routePlaces.length === 0)) {
     return vibes.returnDay.slice(0, 2).join(' ')
+  }
+  if (args.day === args.maxDay && /인천|ICN|귀국/u.test(routePlaces.join(' '))) {
+    return vibes.returnDay.slice(0, 2).join(' ')
+  }
+  if (routePlaces.length === 0) {
+    return vibes.free.slice(0, 2).join(' ')
   }
   return vibes.tourism.slice(0, 2).join(' ')
 }
@@ -357,18 +384,46 @@ function buildHanatour2030RouteText(
   routePlaces: string[],
   dayKind: ReturnType<typeof classifyHanatourScheduleCardDayKind>,
   maxDay: number,
+  productTitle: string,
 ): string {
+  // REGRESSION-FREEZE[hanatour-register-schedule-2030]: bare city middle ≠ hard-short route — manifest
   const transport = String(factDay.transportNote ?? '').trim()
+  const cityFromTitle = extractHanatour2030CityFromTitle(productTitle)
   if (routePlaces.some((p) => HANATOUR_2030_FREE_DAY_RE.test(p))) {
-    const city = routePlaces.find((p) => !HANATOUR_2030_FREE_DAY_RE.test(p)) ?? routePlaces[0]
+    const city =
+      routePlaces.find((p) => !HANATOUR_2030_FREE_DAY_RE.test(p)) ?? cityFromTitle ?? routePlaces[0]
     return city ? `${city} 자유 일정` : '자유 일정'
   }
-  if (routePlaces.length > 0) {
+  // 자유 일정 transportNote + bare city place — title「자유 일정 · 도시」와 route 정합
+  if (/자유\s*일정/u.test(transport) && routePlaces.length <= 1) {
+    const city =
+      routePlaces.find((p) => !HANATOUR_2030_FREE_DAY_RE.test(p)) ?? cityFromTitle
+    if (city) return `${city} 자유 일정`
+  }
+  if (routePlaces.length === 1) {
+    const p = routePlaces[0]!
+    // 「뉴욕」등 2~3글자 bare city — sanitize가 축약해도 시내 접미 유지
+    if (p.length < 4) return `${p} 시내`
+    return sanitizeRegisterScheduleRouteText(p, 4) ?? p
+  }
+  if (routePlaces.length > 1) {
     return sanitizeRegisterScheduleRouteText(routePlaces.join(' - '), 4) ?? routePlaces.join(' - ')
   }
-  if (transport.includes(' - ')) return transport.split(';')[0]!.trim()
-  if (dayKind === 'return_home' && factDay.day === maxDay) return '인천'
-  return ''
+  if (transport.includes(' - ')) {
+    // 「뉴욕; 뉴욕 - 인천」처럼 세미콜론 앞이 bare city이고 뒤에 귀국 체인이 붙은 오염 —
+    // first chunk만 쓰면 live gate soft(bare city short). 관광 체인일 때만 채택.
+    const first = transport.split(';')[0]!.trim()
+    if (first.includes(' - ') || first.length >= 4) {
+      return first
+    }
+  }
+  if (factDay.day === maxDay || dayKind === 'return_home') {
+    return cityFromTitle ? `${cityFromTitle} 출발 및 인천 귀국` : '인천'
+  }
+  if (factDay.day === 1) {
+    return cityFromTitle ? `${cityFromTitle} 입국` : ''
+  }
+  return cityFromTitle ? `${cityFromTitle} 자유 일정` : '자유 일정'
 }
 
 /** 2030 상품 — factDays 기반으로 schedule title·routeText·description 재구성. */
@@ -388,7 +443,13 @@ export function applyHanatour2030SchedulePolish(args: {
     const routePlaces = fact.places
     const joined = [fact.transportNote ?? '', ...routePlaces, ...fact.hotels].filter(Boolean).join(' ')
     const dayKind = classifyHanatourScheduleCardDayKind(fact.day, maxDay, joined)
-    const routeText = buildHanatour2030RouteText(fact, routePlaces, dayKind, maxDay)
+    const routeText = buildHanatour2030RouteText(
+      fact,
+      routePlaces,
+      dayKind,
+      maxDay,
+      args.productTitle,
+    )
     const title = composeHanatour2030DayTitle({
       day: fact.day,
       maxDay,
@@ -404,10 +465,11 @@ export function applyHanatour2030SchedulePolish(args: {
       dayKind,
       productTitle: args.productTitle,
     })
+    // REGRESSION-FREEZE[hanatour-register-schedule-2030]: never keep pre-polish mingling route/title — manifest
     return {
       ...row,
-      title: title || row.title,
-      routeText: routeText || row.routeText,
+      title,
+      routeText,
       description: description || row.description,
     }
   })

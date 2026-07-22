@@ -1835,7 +1835,8 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
       hasDeparturesToSave: departureInputs.length > 0,
       hasItineraryDaysToSave: itineraryDayDrafts.length > 0 || schedule.length > 0,
     })
-    const highlightRaw = extractHighlightFromModetour(text) ?? null
+    const highlightRaw =
+      extractHighlightFromModetour(text) ?? parsed.highlightPointsRaw ?? null
     const departureAirportFields = resolveRegisterProductDepartureAirportFields({
       manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
       inferHaystack: buildRegisterFlightInferHaystack({

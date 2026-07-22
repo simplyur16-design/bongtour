@@ -2,6 +2,7 @@ import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve
 /**
  * 롯데관광 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[lottetour-register-ssot-freeze]: manifest
+ * REGRESSION-FREEZE[lottetour-register-highlight-curated]: curated = raw — manifest
  */
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
@@ -1546,7 +1547,9 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       hasDeparturesToSave: departureInputs.length > 0,
       hasItineraryDaysToSave: itineraryDayDrafts.length > 0 || schedule.length > 0,
     })
+    // REGRESSION-FREEZE[lottetour-register-highlight-curated]: curated = raw when paste extract present
     const highlightPointsRaw = extractHighlightFromLottetour(text) ?? null
+    const highlightPoints = highlightPointsRaw
     const departureAirportFields = resolveRegisterProductDepartureAirportFields({
       manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
       inferHaystack: buildRegisterFlightInferHaystack({
@@ -1591,7 +1594,7 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       registrationStatus: registrationStatusForSave,
       benefitSummary,
       highlightPointsRaw,
-      highlightPoints: null,
+      highlightPoints,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

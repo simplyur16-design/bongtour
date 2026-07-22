@@ -298,9 +298,20 @@ function scheduleRowIssues(
     !isFirst &&
     !isLast &&
     route.length < 4 &&
-    !/^(?:인천|김포|기내박)$/u.test(route)
+    !/^(?:인천|김포|기내박)$/u.test(route) &&
+    // Hangul bare city (뉴욕·세부 등) — polish expands to 「시내」; leftover 2~3자만 soft
+    !(route.length >= 2 && /^[가-힣]+$/u.test(route))
   ) {
     issues.push('routeText 너무 짧음')
+  } else if (
+    route.length > 0 &&
+    routeSegments.length < 2 &&
+    !isFirst &&
+    !isLast &&
+    route.length < 4 &&
+    /^[가-힣]+$/u.test(route)
+  ) {
+    softIssues.push('routeText bare city short')
   }
   if (route && /(?:여행\s*준비\s*가이드|타사\s*비교|비즈니스\s*석|호텔\s*체크\s*아웃|날짜\s*변경선|🔥|🚙|▷)/u.test(route)) {
     issues.push('routeText 오염(마케팅·행정)')

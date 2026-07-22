@@ -1,5 +1,7 @@
 /**
  * 롯데관광(lottetour) 전용 — 「Point 상품포인트」 ★ 리스트. 타 공급사와 공유하지 않음.
+ *
+ * REGRESSION-FREEZE[lottetour-register-highlight-curated]: paste extract raw (= curated on confirm) — manifest
  */
 const MAX_HIGHLIGHT = 8000
 

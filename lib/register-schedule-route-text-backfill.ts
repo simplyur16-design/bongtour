@@ -23,7 +23,8 @@ const REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX = 7
 export function isRegisterScheduleFreeTimeOrResortLeisureText(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return false
-  return /자유\s*시간|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크|숙박\s*없음(?:\s*\(귀국\))?/i.test(
+  // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·자유일정·리조트일 인접 관광 route 복사 금지 — manifest
+  return /자유\s*시간|자유\s*일정|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크|숙박\s*없음(?:\s*\(귀국\))?/i.test(
     t,
   )
 }

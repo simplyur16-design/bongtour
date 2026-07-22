@@ -2,6 +2,7 @@ import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve
 /**
  * 노랑풍선 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: manifest
+ * REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: curated = raw + goodsInfo fallback — manifest
  */
 import { NextResponse } from 'next/server'
 import {
@@ -1495,7 +1496,9 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       hasDeparturesToSave: departureInputs.length > 0,
       hasItineraryDaysToSave: itineraryDayDrafts.length > 0 || schedule.length > 0,
     })
-    const highlightPointsRaw = extractHighlightFromYbtour(text) ?? null
+    const highlightPointsRaw =
+      extractHighlightFromYbtour(text) ?? parsed.highlightPointsRaw ?? null
+    const highlightPoints = highlightPointsRaw ?? parsed.highlightPoints ?? null
     const departureAirportFields = resolveRegisterProductDepartureAirportFields({
       manualLocalDepartureTags: parseLocalDepartureTagArrayFromAdminBody(body),
       inferHaystack: buildRegisterFlightInferHaystack({
@@ -1540,7 +1543,7 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       registrationStatus: registrationStatusForSave,
       benefitSummary,
       highlightPointsRaw,
-      highlightPoints: null,
+      highlightPoints,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

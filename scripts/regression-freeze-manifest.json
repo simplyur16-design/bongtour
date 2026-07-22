@@ -4591,9 +4591,11 @@
           "file": "lib/modetour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-detail-collect]",
+            "REGRESSION-FREEZE[modetour-register-highlight-keypoint]",
             "REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]",
             "augmentModetourParsedWithDetailCollect",
             "ensureModetourRegisterScheduleImageKeywords",
+            "formatModetourHighlightPointsFromKeyPointInfo",
             "GetScheduleList",
             "GetProductDetailInfo",
             "GetProductKeyPointInfo",
@@ -4621,6 +4623,13 @@
           ]
         },
         {
+          "file": "lib/extract-highlight-modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-highlight-keypoint]",
+            "formatModetourHighlightPointsFromKeyPointInfo"
+          ]
+        },
+        {
           "file": "lib/parse-and-register-modetour-handler.ts",
           "mustInclude": [
             "augmentModetourParsedWithDetailCollect",
@@ -4630,12 +4639,42 @@
         {
           "file": "lib/modetour-register-flow.ts",
           "mustInclude": [
-            "augmentModetourParsedWithDetailCollect"
+            "augmentModetourParsedWithDetailCollect",
+            "parsed.highlightPointsRaw"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/modetour-register-detail-collect.test.ts"
+        "lib/modetour-register-detail-collect.test.ts",
+        "lib/extract-highlight-modetour.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-register-highlight-keypoint",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 KeyPointInfo specialBenefits/sightseeings/hotels → highlight (보험 제외)",
+      "checks": [
+        {
+          "file": "lib/extract-highlight-modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-highlight-keypoint]",
+            "formatModetourHighlightPointsFromKeyPointInfo",
+            "keyPoint product highlight"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-register-highlight-keypoint]",
+            "formatModetourHighlightPointsFromKeyPointInfo"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/extract-highlight-modetour.test.ts"
       ]
     },
     {
@@ -4910,8 +4949,10 @@
             "applyRegisterScheduleImageKeywordsBySupplier",
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
+            "REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]",
             "preview rules-only — Gemini는 confirm",
             "confirm skip when preview kw filled",
+            "preview also skips wipe+reapply when filled",
             "empty middle recovers (no sticky skip)",
             "packageScheduleMiddleDaysHavePrimaryKeywords",
             "opts.mode === 'confirm' && opts.hasPersistedParsed",
@@ -4934,6 +4975,7 @@
           "file": "lib/register-parse-post-augment.test.ts",
           "mustInclude": [
             "confirm + persisted preview keywords skips Gemini wipe/reapply",
+            "preview + middle keywords already filled skips wipe/reapply",
             "empty middle Day4 recovers via rules (no sticky skip)"
           ]
         },
@@ -6577,7 +6619,9 @@
           "file": "lib/hanatour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-detail-collect]",
+            "REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]",
             "augmentHanatourParsedWithDetailCollect",
+            "formatHanatourHighlightPointsFromProdInfo",
             "getPkgProdInfo",
             "buildHanatourFlightStructuredFromProdInfo",
             "needsRegisterFlightApiCollect",
@@ -6603,6 +6647,13 @@
           ]
         },
         {
+          "file": "lib/extract-highlight-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]",
+            "formatHanatourHighlightPointsFromProdInfo"
+          ]
+        },
+        {
           "file": "lib/parse-and-register-hanatour-schedule.ts",
           "mustInclude": [
             "composeHanatourScheduleDescriptionFromRawBody",
@@ -6623,7 +6674,44 @@
         }
       ],
       "vitestSuites": [
-        "lib/hanatour-register-detail-collect.test.ts"
+        "lib/hanatour-register-detail-collect.test.ts",
+        "lib/extract-highlight-hanatour.test.ts"
+      ]
+    },
+    {
+      "id": "hanatour-register-highlight-prodinfo",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 prodInfo bnft → highlightPoints (보험·비자·운영 제외)",
+      "checks": [
+        {
+          "file": "lib/extract-highlight-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]",
+            "formatHanatourHighlightPointsFromProdInfo",
+            "bnft product highlight"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]",
+            "formatHanatourHighlightPointsFromProdInfo",
+            "highlightPointsRaw"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]",
+            "parsed.highlightPointsRaw"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/extract-highlight-hanatour.test.ts"
       ]
     },
     {
@@ -6762,7 +6850,9 @@
           "file": "lib/ybtour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-detail-collect]",
+            "REGRESSION-FREEZE[ybtour-register-highlight-corepoints]",
             "augmentYbtourParsedWithDetailCollect",
+            "formatYbtourHighlightPointsFromCorePoints",
             "needsYbtourOptionalCollect",
             "needsRegisterFlightApiCollect",
             "resolveYbtourCarrierNameForUrl",
@@ -6783,6 +6873,13 @@
             "ybtourScheduleBundleToRegisterSchedule",
             "composeYbtourScheduleDescription",
             "extractYbtourSchedulePlacesFromTmRows"
+          ]
+        },
+        {
+          "file": "lib/extract-highlight-ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-highlight-corepoints]",
+            "formatYbtourHighlightPointsFromCorePoints"
           ]
         },
         {
@@ -6807,7 +6904,43 @@
       ],
       "vitestSuites": [
         "lib/ybtour-register-detail-collect.test.ts",
-        "lib/ybtour-register-api-schedule.test.ts"
+        "lib/ybtour-register-api-schedule.test.ts",
+        "lib/extract-highlight-ybtour.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-register-highlight-corepoints",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour goodsInfo core → highlightPoints + confirm curated=raw",
+      "checks": [
+        {
+          "file": "lib/extract-highlight-ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-highlight-corepoints]",
+            "formatYbtourHighlightPointsFromCorePoints",
+            "goodsInfo product highlight"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-highlight-corepoints]",
+            "formatYbtourHighlightPointsFromCorePoints"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "parsed.highlightPointsRaw",
+            "highlightPoints"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/extract-highlight-ybtour.test.ts"
       ]
     },
     {
@@ -7236,6 +7369,14 @@
           ]
         },
         {
+          "file": "lib/lottetour-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-calendar-month-concurrency]",
+            "monthConcurrency",
+            "parallel months, pages stay sequential"
+          ]
+        },
+        {
           "file": "lib/lottetour-trip-anchors-from-paste.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]",
@@ -7268,6 +7409,54 @@
       ],
       "vitestSuites": [
         "lib/lottetour-evtcd-alphanumeric-carrier.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-calendar-month-concurrency",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 evtListAjax 월 수집 — 공급사 로컬 병렬(concurrency 2–3), prefetch page1 only",
+      "checks": [
+        {
+          "file": "lib/lottetour-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-calendar-month-concurrency]",
+            "monthConcurrency",
+            "parallel months, pages stay sequential",
+            "LOTTETOUR_CALENDAR_MONTH_CONCURRENCY"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/lottetour-calendar-month-concurrency.test.ts"
+      ]
+    },
+    {
+      "id": "lottetour-register-highlight-curated",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "롯데관광 highlight — paste extract 시 curated=raw (fill rate)",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-highlight-curated]",
+            "curated = raw"
+          ]
+        },
+        {
+          "file": "lib/extract-highlight-lottetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-highlight-curated]"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/extract-highlight-lottetour.test.ts"
       ]
     },
     {
@@ -8267,13 +8456,22 @@
           "file": "lib/kyowontour-register-tab-data-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]",
+            "REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]",
             "augmentKyowontourParsedWithTabDataCollect",
+            "formatKyowontourHighlightPointsFromCorePoints",
             "goodsEvtTab_1",
             "goodsEvtTab_2",
             "goodsEvtTab_3",
             "goodsEvtTab_7",
             "needsKyowontourIncludedExcludedCollect",
             "singleRoomSurchargeRaw"
+          ]
+        },
+        {
+          "file": "lib/extract-highlight-kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]",
+            "formatKyowontourHighlightPointsFromCorePoints"
           ]
         },
         {
@@ -8303,7 +8501,73 @@
       "vitestSuites": [
         "lib/kyowontour-tour-event-tab-data.test.ts",
         "lib/kyowontour-register-schedule-collect.test.ts",
-        "lib/kyowontour-register-tab-data-collect.test.ts"
+        "lib/kyowontour-register-tab-data-collect.test.ts",
+        "lib/extract-highlight-kyowontour.test.ts"
+      ]
+    },
+    {
+      "id": "kyowontour-register-highlight-corepoints",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "교원이지 corePoints → highlightPoints (보험·비자·예약안내 제외)",
+      "checks": [
+        {
+          "file": "lib/extract-highlight-kyowontour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]",
+            "formatKyowontourHighlightPointsFromCorePoints",
+            "product corePoints highlight"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-tab-data-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]",
+            "formatKyowontourHighlightPointsFromCorePoints",
+            "highlightPointsRaw"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-flow.ts",
+          "mustInclude": [
+            "highlightPointsRaw",
+            "highlightPoints"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/extract-highlight-kyowontour.test.ts"
+      ]
+    },
+    {
+      "id": "register-post-augment-keyword-skip-when-filled",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 post-augment — preview/confirm 중간일 kw 이미 있으면 wipe+reapply 스킵",
+      "checks": [
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]",
+            "preview also skips wipe+reapply when filled",
+            "packageScheduleMiddleDaysHavePrimaryKeywords",
+            "opts.mode === 'preview'"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]",
+            "preview + middle keywords already filled skips wipe/reapply"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-parse-post-augment.test.ts"
       ]
     },
     {

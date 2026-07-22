@@ -1,6 +1,8 @@
 /**
- * 모두투어 전용 — 상세 붙여넣기에서 「상품 POINT」 블록만 추출 (MODE'S EVENT 제외).
+ * 모두투어 전용 — 상세 붙여넣기 「상품 POINT」·GetProductKeyPointInfo 상품 판매 포인트.
  * 타 공급사·공통 유틸과 import/공유하지 않음.
+ *
+ * REGRESSION-FREEZE[modetour-register-highlight-keypoint]: formatModetourHighlightPointsFromKeyPointInfo — manifest
  */
 const MAX_HIGHLIGHT = 8000
 
@@ -80,4 +82,38 @@ export function extractHighlightFromModetour(rawHtml: string | unknown): string 
   if (modeStop >= 0) slice = slice.slice(0, modeStop)
   slice = slice.replace(/MODE['']S\s+EVENT[\s\S]*/i, '')
   return finalizeBlock(slice)
+}
+
+function asRows(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : []
+}
+
+function isModetourInsuranceOrGuaranteeLine(line: string): boolean {
+  return /보험|공제|보증|보장\s*한도|여행자\s*보험|businessGuarantee|travelerInsurance/i.test(line)
+}
+
+/**
+ * GetProductKeyPointInfo — specialBenefits·sightseeings·hotels → highlight.
+ * 보험·공제/보증 제외. meals/leader는 mustKnow 축에 두고 highlight에서는 생략.
+ * REGRESSION-FREEZE[modetour-register-highlight-keypoint]: keyPoint product highlight — manifest
+ */
+export function formatModetourHighlightPointsFromKeyPointInfo(
+  keyPoint: Record<string, unknown> | null | undefined,
+): string | null {
+  if (!keyPoint) return null
+  const lines: string[] = []
+  const seen = new Set<string>()
+  const push = (raw: unknown) => {
+    const b = normalizeBulletLine(decodeEntities(stripTags(breakHtmlLines(String(raw ?? '')))))
+    if (!b || b === '상품 핵심 포인트') return
+    if (isModetourInsuranceOrGuaranteeLine(b)) return
+    const key = b.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    lines.push(b)
+  }
+  for (const row of asRows(keyPoint.specialBenefits)) push(row)
+  for (const row of asRows(keyPoint.sightseeings)) push(row)
+  for (const row of asRows(keyPoint.hotels)) push(row)
+  return finalizeBlock(lines.join('\n'))
 }

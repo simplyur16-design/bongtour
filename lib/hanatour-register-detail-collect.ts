@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: augmentHanatourParsedWithDetailCollect — manifest
+ * REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]: applyProdInfoFields highlightPoints — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-2030]: 2030 TRP 일정·제목 정제 — manifest
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: applyHanatourProdInfoIdentityFields — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: ensureHanatourRegisterScheduleImageKeywords — manifest
@@ -10,6 +11,7 @@
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-hanatour'
+import { formatHanatourHighlightPointsFromProdInfo } from '@/lib/extract-highlight-hanatour'
 import {
   extractHanatourCorePoints,
   extractHanatourFeesFromProdInfo,
@@ -242,6 +244,21 @@ function applyProdInfoFields(
       mustKnowSource: 'supplier',
     }
     summaryParts.push(`핵심포인트 ${corePoints.length}건`)
+  }
+
+  // REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]: when highlight empty, set both from formatter
+  const highlightEmpty =
+    !String(next.highlightPointsRaw ?? '').trim() && !String(next.highlightPoints ?? '').trim()
+  if (highlightEmpty) {
+    const highlight = formatHanatourHighlightPointsFromProdInfo(info)
+    if (highlight) {
+      next = {
+        ...next,
+        highlightPointsRaw: highlight,
+        highlightPoints: highlight,
+      }
+      summaryParts.push('상품핵심포인트')
+    }
   }
 
   return next

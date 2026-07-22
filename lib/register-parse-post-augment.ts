@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[register-post-augment-schedule-ssot]: applyRegisterScheduleImageKeywordsBySupplier — manifest
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: routeText·description vibe SSOT — manifest
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview/confirm Gemini 보조 — manifest
+ * REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]: preview+confirm skip wipe when middle filled — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import {
@@ -105,13 +106,19 @@ async function applyPackagePostAugmentScheduleKeywords(
 ): Promise<RegisterParsed> {
   const schedule = backfillEmptyScheduleRouteTextFromTitle(parsed.schedule ?? [])
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
-  // 중간일 primary가 이미 채워진 preview만 스킵(모두·교원·롯데 등 정상 미리보기 유지).
+  // REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]: preview also skips wipe+reapply when filled — manifest
+  // 중간일 primary가 이미 채워진 preview·confirm만 스킵(모두·교원·롯데 등 정상 미리보기 유지).
   // 중간일이 비면 고착 금지 — wipe+규칙+Gemini로 빈 슬롯만 회복(빈 Day4를 스킵하던 회귀 교정).
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: empty middle recovers (no sticky skip) — manifest
-  if (opts.mode === 'confirm' && opts.hasPersistedParsed && packageScheduleMiddleDaysHavePrimaryKeywords(schedule)) {
+  const middleFilled = packageScheduleMiddleDaysHavePrimaryKeywords(schedule)
+  const skipKeywordPipeline =
+    middleFilled &&
+    (opts.mode === 'preview' || (opts.mode === 'confirm' && opts.hasPersistedParsed))
+  if (skipKeywordPipeline) {
     if (opts.logPrefix && process.env.DEV_REGISTER_PERF_LOG === '1') {
-      console.info(`[${opts.logPrefix}] confirm-skip-keyword-pipeline`, {
-        hasPersistedParsed: true,
+      console.info(`[${opts.logPrefix}] skip-keyword-pipeline-when-filled`, {
+        mode: opts.mode,
+        hasPersistedParsed: opts.hasPersistedParsed ?? false,
         middleDaysHavePrimaryKeywords: true,
         days: schedule.map((r) => ({
           day: r.day,

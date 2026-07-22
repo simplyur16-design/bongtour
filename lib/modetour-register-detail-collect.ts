@@ -3,6 +3,7 @@
  * 붙여넣기·LLM·정형칸 SSOT가 있으면 덮지 않음.
  *
  * REGRESSION-FREEZE[modetour-register-detail-collect]: B2C+HTML register augment — manifest
+ * REGRESSION-FREEZE[modetour-register-highlight-keypoint]: highlight from KeyPointInfo — manifest
  * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: parse·augment 후 schedule imageKeyword — manifest
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: 규칙 후 빈 kw → Gemini — manifest
  * REGRESSION-FREEZE[modetour-register-ssot-freeze]: preview=confirm imageKeyword SSOT — manifest
@@ -11,6 +12,7 @@
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-modetour'
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
+import { formatModetourHighlightPointsFromKeyPointInfo } from '@/lib/extract-highlight-modetour'
 import {
   extractModetourIncludedExcludedFromDetailInfo,
   extractModetourMustKnowFromKeyPointInfo,
@@ -305,6 +307,21 @@ export async function augmentModetourParsedWithDetailCollect(
         mustKnowSource: 'supplier',
       }
       summaryParts.push(`GetProductKeyPointInfo: 핵심포인트 ${mustKnowItems.length}건`)
+    }
+  }
+
+  // REGRESSION-FREEZE[modetour-register-highlight-keypoint]: when highlight empty, set from KeyPointInfo
+  const highlightEmpty =
+    !String(next.highlightPointsRaw ?? '').trim() && !String(next.highlightPoints ?? '').trim()
+  if (highlightEmpty) {
+    const highlight = formatModetourHighlightPointsFromKeyPointInfo(detailBundle?.keyPointInfo)
+    if (highlight) {
+      next = {
+        ...next,
+        highlightPointsRaw: highlight,
+        highlightPoints: highlight,
+      }
+      summaryParts.push('상품핵심포인트')
     }
   }
 

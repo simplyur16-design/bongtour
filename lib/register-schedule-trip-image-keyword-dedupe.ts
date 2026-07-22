@@ -899,11 +899,19 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       Boolean(kw) &&
       !String(row.routeText ?? '').trim() &&
       !isBareCityOrCountryKeyword(kw)
+    // REGRESSION-FREEZE[hanatour-register-schedule-2030]: departure 「입국」only must not keep middle landmarks — manifest
+    const departureArrivalOnlyLandmarkBleed =
+      slot === 'departure' &&
+      Boolean(kw) &&
+      !isBareCityOrCountryKeyword(kw) &&
+      /입국|도착/u.test(String(row.routeText ?? '')) &&
+      !/\s+-\s+/.test(String(row.routeText ?? ''))
     const needsFill =
       !kw ||
       (slot === 'return' && isBareCityOrCountryKeyword(kw) && !returnBareMatchesOwnCity) ||
       returnAirportLandmarkBleed ||
       edgeEmptyRouteLandmarkBleed ||
+      departureArrivalOnlyLandmarkBleed ||
       (slot === 'departure' && isDomesticHubOrAirportImageKeyword(kw))
     if (!needsFill) {
       const kept = { ...row, imageKeyword2: null }
@@ -3487,6 +3495,13 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       ) {
         // 방문도시 soft-dup — used여도 유지 (출발일 Dubai → 호텔 중간일). 중간일끼리 Bali 중복은 금지
         // 몰디브·삿포 등 route 재등장은 soft-dup 허용
+      } else if (
+        // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
+        // 서핑-only route는 softCity 없음 — allowlist bare soft-dup은 enforce에서 비우지 않음
+        isBareCityOrCountryKeyword(primary) &&
+        allowRouteRevisitBareVisitCitySoftDup(primary)
+      ) {
+        // keep
       } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softCity
       } else {
@@ -3575,6 +3590,12 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         const softCity = softDupForeignVisitCityForMiddleRoute(row.routeText)
         if (softCity && normScheduleImageKeywordKey(softCity) === pk) {
           // keep visit-city soft-dup
+        } else if (
+          // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
+          isBareCityOrCountryKeyword(primary) &&
+          allowRouteRevisitBareVisitCitySoftDup(primary)
+        ) {
+          // keep — 서핑 등 allowlist soft-dup (route에 도시명 없음)
         } else {
           const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
           primary =

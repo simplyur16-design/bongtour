@@ -1581,6 +1581,8 @@ export async function runKyowontourRegisterFlow(request: Request, flowOptions: P
       schedule: scheduleJson,
       registrationStatus: registrationStatusForSave,
       benefitSummary,
+      highlightPointsRaw: parsed.highlightPointsRaw ?? null,
+      highlightPoints: parsed.highlightPoints ?? parsed.highlightPointsRaw ?? null,
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,

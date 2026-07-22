@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
 
 describe('hanatour 2030 APP232 Bohol imageKeyword live gaps', () => {
@@ -123,5 +124,92 @@ describe('hanatour 2030 APP232 Bohol imageKeyword live gaps', () => {
     for (const d of [2, 3, 4]) {
       expect(String(by(d).imageKeyword ?? '').trim().length).toBeGreaterThan(2)
     }
+  })
+
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
+  it('JWP141 surfing-only middle soft-dups Okinawa (not empty after D1 edge)', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '오키나와 입국',
+          routeText: '오키나와 입국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '서핑 · 서핑체험6',
+          routeText: '서핑 - 서핑체험6 - 서핑 체험2 - 서핑 체험 3',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '류큐무라',
+          routeText: '오키나와 현지투어 플러스 - 류큐무라 - 카비라만 - 츄라우미 수족관',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '슈리성',
+          routeText: '슈리성 - 우미카지 테라스',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '오키나와',
+        productTitle: '오키나와 4일 #서핑체험 (2030)',
+        travelScope: 'package',
+      },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    expect(String(d2.imageKeyword ?? '').trim()).toMatch(/Okinawa/i)
+  })
+
+  it('JWP141 surfing soft-dup survives enforceRegisterScheduleTripUniqueImageKeywords', () => {
+    const applied = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '오키나와 입국',
+          routeText: '오키나와 입국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '서핑',
+          routeText: '서핑 - 서핑체험6 - 서핑 체험2',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '류큐무라',
+          routeText: '류큐무라 - 카비라만',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '슈리성',
+          routeText: '슈리성',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '오키나와',
+        productTitle: '오키나와 4일 (2030)',
+        travelScope: 'package',
+      },
+    )
+    const enforced = enforceRegisterScheduleTripUniqueImageKeywords(applied)
+    expect(String(enforced.find((r) => r.day === 2)?.imageKeyword ?? '')).toMatch(/Okinawa/i)
   })
 })
