@@ -285,17 +285,15 @@ function inferHanatour2030RegionProfile(productTitle: string, routePlaces: strin
   return 'generic'
 }
 
+import {
+  firstRegisterDestinationPlaceFromTitleHead,
+} from '@/lib/register-destination-tour-style-noise'
+
 function extractHanatour2030CityFromTitle(productTitle: string): string | null {
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: bare 일주/개국 일주 금지 — manifest
   const cleaned = productTitle.replace(/\[?\s*2030\s*전용\s*\]?/gi, '').trim()
   const m = cleaned.match(/([가-힣A-Za-z][가-힣A-Za-z·\s/／]{0,50}?)\s*\d+\s*일/)
-  if (m?.[1]) {
-    const head = m[1].trim()
-    const first = head
-      .split(/[/／·]/)
-      .map((s) => s.trim())
-      .find((s) => s.length >= 2)
-    if (first) return first
-  }
+  if (m?.[1]) return firstRegisterDestinationPlaceFromTitleHead(m[1])
   return null
 }
 

@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[lottetour-register-destination]: manifest
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
 import {
   acceptSupplierRegisterDestinationCandidate,
   isSupplierRegisterDestinationUiLabel,
@@ -68,19 +69,22 @@ export function extractLottetourTravelCitiesHintFromTitle(title: string): string
       .filter((p) => p.length >= 2 && p.length <= 24)
     return [country, ...regions].join(', ')
   }
-  const slashParts = t
-    .split(/[/／·+]/)
-    .map((p) => stripTitleDurationSuffix(p.replace(/\([^)]*\)/g, ' ')))
-    .filter(
-      (p) =>
-        p.length >= 2 &&
-        p.length <= 24 &&
-        !/^\d+$/.test(p) &&
-        !isTitleDurationToken(p) &&
-        !isSupplierTitlePromoBadgeText(p) &&
-        !isSupplierRegisterDestinationUiLabel(p) &&
-        !/^(?:TKT|ONLY)$/i.test(p),
-    )
+  const slashParts = filterRegisterDestinationTitlePlaceTokens(
+    t
+      .split(/[/／·+]/)
+      .map((p) => stripTitleDurationSuffix(p.replace(/\([^)]*\)/g, ' ')))
+      .filter(
+        (p) =>
+          p.length >= 2 &&
+          p.length <= 24 &&
+          !/^\d+$/.test(p) &&
+          !isTitleDurationToken(p) &&
+          !isSupplierTitlePromoBadgeText(p) &&
+          !isSupplierRegisterDestinationUiLabel(p) &&
+          !/^(?:TKT|ONLY)$/i.test(p),
+      ),
+  )
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: drop bare 일주 tokens — manifest
   const merged = [...new Set([...bracketParts, ...slashParts])]
   return merged.length > 0 ? merged.join(', ') : null
 }

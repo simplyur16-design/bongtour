@@ -17,6 +17,10 @@ import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
 import { buildKyowontourFlightStructuredFromFactLegs } from '@/lib/register-facts/kyowontour-register-fact-flights'
+import {
+  firstRegisterDestinationPlaceFromTitleHead,
+  isRegisterDestinationTourStyleNoiseToken,
+} from '@/lib/register-destination-tour-style-noise'
 
 export const KYOWONTOUR_PRICE_SLOT_SSOT_NOTE =
   '교원이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -53,16 +57,31 @@ function buildDuration(nights: number | null, days: number | null): string {
   return ''
 }
 
-function resolveKyowontourRegisterDestination(title: string, paste: string): {
+export function resolveKyowontourRegisterDestination(title: string, paste: string = ''): {
   destination: string
   primaryDestination: string | null
   destinationRaw: string | null
 } {
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: 「튀르키예 일주 9일」→ 튀르키예, bare 일주 금지 — manifest
   const hay = [title, paste].filter(Boolean).join(' ')
-  const m = hay.match(
-    /(?:^|[\s#])([가-힣A-Za-z]{2,16}(?:\s*[·/]\s*[가-힣A-Za-z]{2,12})?)\s*(?:\d+\s*박|\d+\s*일|#)/u,
+  const countryBeforeIlju = hay.match(
+    /([가-힣A-Za-z]{2,16})\s*(?:완전)?일주\s*(?:\d+\s*박|\d+\s*일|#)/u,
   )
-  const dest = (m?.[1] ?? title.split(/\s+/)[0] ?? '미지정').trim()
+  let dest =
+    countryBeforeIlju?.[1]?.trim() ||
+    (() => {
+      const m = hay.match(
+        /(?:^|[\s#])([가-힣A-Za-z]{2,16}(?:\s*[·/]\s*[가-힣A-Za-z]{2,12})?)\s*(?:\d+\s*박|\d+\s*일|#)/u,
+      )
+      return (m?.[1] ?? title.split(/\s+/).find((t) => t.length >= 2) ?? '미지정').trim()
+    })()
+  if (isRegisterDestinationTourStyleNoiseToken(dest)) {
+    dest = firstRegisterDestinationPlaceFromTitleHead(title) || '미지정'
+  } else {
+    const scrubbed = firstRegisterDestinationPlaceFromTitleHead(dest)
+    if (scrubbed) dest = scrubbed
+  }
+  if (isRegisterDestinationTourStyleNoiseToken(dest)) dest = '미지정'
   return {
     destination: dest || '미지정',
     primaryDestination: dest || null,

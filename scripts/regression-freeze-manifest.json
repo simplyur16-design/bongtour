@@ -8837,6 +8837,63 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-destination-reject-ilju",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 destination — bare 「일주」/개국 일주 금지 (메가메뉴 지역 오염)",
+      "checks": [
+        {
+          "file": "lib/register-destination-tour-style-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "isRegisterDestinationTourStyleNoiseToken",
+            "filterRegisterDestinationTitlePlaceTokens"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-schedule-2030.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "firstRegisterDestinationPlaceFromTitleHead"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "filterRegisterDestinationTitlePlaceTokens"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "filterRegisterDestinationTitlePlaceTokens"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "filterRegisterDestinationTitlePlaceTokens"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "resolveKyowontourRegisterDestination",
+            "countryBeforeIlju"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-destination-reject-ilju.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

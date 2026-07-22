@@ -3,6 +3,7 @@
  * 공급사 공용 모듈로 합치지 않는다.
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
 
 export type ModetourRegisterDestinationResolved = {
   destination: string
@@ -47,17 +48,20 @@ export function extractModetourTravelCitiesHintFromTitle(title: string): string 
     .replace(/\s+/g, ' ')
     .trim()
   t = stripTitleDurationSuffix(t)
-  const slashParts = t
-    .split(/[/／·+]/)
-    .map((p) => stripTitleDurationSuffix(p.replace(/\([^)]*\)/g, ' ')))
-    .filter(
-      (p) =>
-        p.length >= 2 &&
-        p.length <= 20 &&
-        !/^\d+$/.test(p) &&
-        !isTitleDurationToken(p) &&
-        !TITLE_PROMO_BRACKET_RE.test(p),
-    )
+  const slashParts = filterRegisterDestinationTitlePlaceTokens(
+    t
+      .split(/[/／·+]/)
+      .map((p) => stripTitleDurationSuffix(p.replace(/\([^)]*\)/g, ' ')))
+      .filter(
+        (p) =>
+          p.length >= 2 &&
+          p.length <= 20 &&
+          !/^\d+$/.test(p) &&
+          !isTitleDurationToken(p) &&
+          !TITLE_PROMO_BRACKET_RE.test(p),
+      ),
+  )
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: drop bare 일주 tokens — manifest
   const merged = [...new Set([...bracketParts, ...slashParts])]
   return merged.length > 0 ? merged.join(', ') : null
 }
