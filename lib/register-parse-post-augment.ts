@@ -105,14 +105,14 @@ async function applyPackagePostAugmentScheduleKeywords(
 ): Promise<RegisterParsed> {
   const schedule = backfillEmptyScheduleRouteTextFromTitle(parsed.schedule ?? [])
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
-  // 3축 저장: preview parsed 재사용 시 wipe+규칙+Gemini(~1–22s) 전부 금지.
-  // (이전: 중간일 kw 전부 채움일 때만 스킵 → Day4 빈 슬롯·출발일까지 요구해 스킵 실패·Gemini 재호출)
-  if (opts.mode === 'confirm' && opts.hasPersistedParsed) {
+  // 중간일 primary가 이미 채워진 preview만 스킵(모두·교원·롯데 등 정상 미리보기 유지).
+  // 중간일이 비면 고착 금지 — wipe+규칙+Gemini로 빈 슬롯만 회복(빈 Day4를 스킵하던 회귀 교정).
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: empty middle recovers (no sticky skip) — manifest
+  if (opts.mode === 'confirm' && opts.hasPersistedParsed && packageScheduleMiddleDaysHavePrimaryKeywords(schedule)) {
     if (opts.logPrefix && process.env.DEV_REGISTER_PERF_LOG === '1') {
-      const midOk = packageScheduleMiddleDaysHavePrimaryKeywords(schedule)
       console.info(`[${opts.logPrefix}] confirm-skip-keyword-pipeline`, {
         hasPersistedParsed: true,
-        middleDaysHavePrimaryKeywords: midOk,
+        middleDaysHavePrimaryKeywords: true,
         days: schedule.map((r) => ({
           day: r.day,
           kw: String(r.imageKeyword ?? '').trim().slice(0, 40),
@@ -137,7 +137,7 @@ async function applyPackagePostAugmentScheduleKeywords(
   )
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview rules-only — Gemini는 confirm — manifest
   // 미리보기에서 Gemini(최대 ~22s)가 사실가져오기보다 길어지는 회귀 방지. 확정(confirm)에서만 보조 채움.
-  // (단, hasPersistedParsed confirm은 위에서 조기 return — 미리보기 결과를 덮지 않음)
+  // (중간일 kw가 이미 찬 hasPersistedParsed confirm만 위에서 조기 return)
   const withGemini =
     process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI === '1' || opts.mode === 'preview'
       ? allocated

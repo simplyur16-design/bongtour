@@ -209,8 +209,8 @@ export async function parseHanatourRegisterFromApi(
   if (!usedPrefetch) {
     parsed = await augmentHanatourParsedWithDetailCollect(parsed, { originUrl, travelScope })
   }
-  // prefetch면 post-augment가 imageKeyword 1회만 적용
-  if (!airHotelListing && !usedPrefetch) {
+  // REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: prefetch도 detail 재수집만 생략 — imageKeyword 규칙은 적용
+  if (!airHotelListing) {
     parsed = await ensureHanatourRegisterScheduleImageKeywords(parsed, { travelScope })
   }
   return parsed

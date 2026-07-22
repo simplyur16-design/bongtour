@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·중동·남미 routeText 세그먼트 — manifest
  * REGRESSION-FREEZE[ybtour-nhatrang-dalat-route-kw]: 나트랑·달랏 패키지 POI — manifest
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 퀸스타운(스) Queenstown alias — manifest
+ * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 보홀·세부·방콕·발리 한글 route — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -22,6 +23,7 @@ const DESTINATION_MAP: Record<string, string> = {
   싱가포르: 'Singapore',
   발리: 'Bali',
   세부: 'Cebu',
+  보홀: 'Bohol',
   보라카이: 'Boracay',
   마닐라: 'Manila',
   마나도: 'Manado',
@@ -1022,6 +1024,28 @@ const POI_KO_TO_EN: Record<string, string> = {
   '보홀 국립박물관': 'Bohol National Museum',
   '바클레욘 성당': 'Baclayon Church Bohol',
   '혈맹 기념비': 'Blood Compact Monument Bohol',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 보홀·세부·방콕·발리 한글 route — manifest
+  초콜릿힐: 'Chocolate Hills Bohol',
+  '초콜릿 힐': 'Chocolate Hills Bohol',
+  '보홀 초콜릿힐': 'Chocolate Hills Bohol',
+  밤부브릿지: 'Bamboo Bridge Bohol',
+  '밤부 브릿지': 'Bamboo Bridge Bohol',
+  '노스젠 밤부브릿지': 'Bamboo Bridge Bohol',
+  알로나비치: 'Alona Beach Bohol',
+  '알로나 비치': 'Alona Beach Bohol',
+  헤난알로나비치: 'Alona Beach Bohol',
+  올랑고섬: 'Olango Island Cebu',
+  올랑고: 'Olango Island Cebu',
+  막탄: 'Mactan Island Cebu',
+  '막탄 섬': 'Mactan Island Cebu',
+  왓아룬: 'Wat Arun Bangkok',
+  '왓 아룬': 'Wat Arun Bangkok',
+  짜오프라야: 'Chao Phraya River Bangkok',
+  '방콕 왕궁': 'Grand Palace Bangkok',
+  우루와투: 'Uluwatu Temple Bali',
+  '우루와투 사원': 'Uluwatu Temple Bali',
+  딴중아렌: 'Tanah Lot Temple Bali',
+  '따나롯': 'Tanah Lot Temple Bali',
   돈키빌리지: 'Donkey Village',
   '마이크로네시아 몰': 'DFS Galleria Saipan',
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 대련 동관거리≠Russian Street — manifest

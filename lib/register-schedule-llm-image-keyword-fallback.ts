@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 imageKeyword + imageKeyword2(1≠2).
  * REGRESSION-FREEZE[hanatour-register-kk-live-gate]: return_home·free-day example keyword — manifest
+ * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: CMS underscore route segment — manifest
  * 공급사별 모듈은 이 파일의 2순위·dedupe 후 reconcile 헬퍼를 공유한다 — 한 공급사만 고치지 말 것.
  */
 import { extractPlaceNameKeyword } from '@/lib/pexels-place-name-keyword'
@@ -152,6 +153,8 @@ export function splitRouteTextPlaceSegments(routeText: string | null | undefined
       s
         .replace(/\[[^\]]*\]/g, ' ')
         .replace(/\([^)]*\)/g, ' ')
+        // 하나투어 CMS `보홀_초콜릿힐` 등 — POI 사전 매칭용
+        .replace(/_/g, ' ')
         .replace(/\s+/g, ' ')
         .trim(),
     )

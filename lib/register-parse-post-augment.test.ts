@@ -145,8 +145,9 @@ describe('register-parse-post-augment SSOT', () => {
   })
 
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
-  it('confirm + persisted — empty Day4/return still skips Gemini (no wipe)', async () => {
-    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI = '0'
+  // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: empty middle recovers (no sticky skip) — manifest
+  it('confirm + persisted — empty middle Day4 recovers via rules (no sticky skip)', async () => {
+    process.env.SKIP_REGISTER_SCHEDULE_IMAGE_KEYWORD_GEMINI = '1'
     const schedule = [
       { day: 1, title: '깜란', routeText: '깜란 - 나트랑', imageKeyword: 'Cam Ranh Bay', imageKeyword2: null },
       {
@@ -172,7 +173,6 @@ describe('register-parse-post-augment SSOT', () => {
       },
       { day: 5, title: '나트랑', routeText: '나트랑', imageKeyword: '', imageKeyword2: null },
     ]
-    const t0 = Date.now()
     const after = await applyRegisterPostAugmentSchedulePipeline(
       {
         schedule,
@@ -187,10 +187,8 @@ describe('register-parse-post-augment SSOT', () => {
         hasPersistedParsed: true,
       },
     )
-    expect(Date.now() - t0).toBeLessThan(500)
-    expect(String((after.schedule ?? []).find((r) => r.day === 2)?.imageKeyword ?? '')).toBe(
-      'Po Nagar Cham Towers',
-    )
-    expect(String((after.schedule ?? []).find((r) => r.day === 4)?.imageKeyword ?? '')).toBe('')
+    const d4 = String((after.schedule ?? []).find((r) => r.day === 4)?.imageKeyword ?? '').trim()
+    expect(d4.length).toBeGreaterThan(0)
+    expect(d4).toMatch(/Vinpearl|Harbourland|Nha Trang|Da Lat/i)
   })
 })

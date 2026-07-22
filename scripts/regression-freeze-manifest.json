@@ -4781,6 +4781,38 @@
       ]
     },
     {
+      "id": "register-schedule-sea-poi-kw",
+      "tier": ["prebuild", "ci"],
+      "summary": "동남아 한글 routeText(보홀 초콜릿힐·밤부브릿지·세부 올랑고 등) → imageKeyword + CMS underscore 정규화",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-sea-poi-kw]",
+            "Chocolate Hills Bohol",
+            "Bamboo Bridge Bohol",
+            "Olango Island Cebu",
+            "Wat Arun Bangkok"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-llm-image-keyword-fallback.ts",
+          "mustInclude": [
+            "보홀_초콜릿힐",
+            ".replace(/_/g, ' ')"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-sea-poi-kw.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-sea-poi-kw]",
+            "maps Bohol 2030-style Korean routeText"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-schedule-sea-poi-kw.test.ts"]
+    },
+    {
       "id": "hanatour-register-schedule-image-keyword-apply",
       "tier": [
         "prebuild",
@@ -4803,7 +4835,8 @@
           "file": "lib/hanatour-register-api-parse.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]",
-            "ensureHanatourRegisterScheduleImageKeywords"
+            "ensureHanatourRegisterScheduleImageKeywords",
+            "prefetch도 detail 재수집만 생략"
           ]
         },
         {
@@ -4842,6 +4875,7 @@
             "REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]",
             "preview rules-only — Gemini는 confirm",
             "confirm skip when preview kw filled",
+            "empty middle recovers (no sticky skip)",
             "packageScheduleMiddleDaysHavePrimaryKeywords",
             "opts.mode === 'confirm' && opts.hasPersistedParsed",
             "wipe+규칙+Gemini",
@@ -4863,7 +4897,7 @@
           "file": "lib/register-parse-post-augment.test.ts",
           "mustInclude": [
             "confirm + persisted preview keywords skips Gemini wipe/reapply",
-            "empty Day4/return still skips Gemini"
+            "empty middle Day4 recovers via rules (no sticky skip)"
           ]
         },
         {
