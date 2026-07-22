@@ -69,6 +69,7 @@
     "verify:night-market-keywords": "npx tsx scripts/verify-night-market-keywords.ts",
     "verify:pexels-queries": "npx tsx scripts/verify-pexels-queries.ts",
     "verify:pexels-place-name-keyword": "npx tsx scripts/verify-pexels-place-name-keyword.ts",
+    "verify:pexels-primary-single-ingest": "npx tsx scripts/verify-pexels-primary-single-ingest.ts",
     "test:pexels-place-name-keyword": "node --import tsx --test tests/pexels-place-name-keyword.test.ts",
     "test:image-keyword-verify-guards": "node --import tsx --test tests/image-keyword-verify-guards.test.ts",
     "test:register-schedule-image-keyword-guard": "node --import tsx --test tests/register-schedule-image-keyword-guard.test.ts",

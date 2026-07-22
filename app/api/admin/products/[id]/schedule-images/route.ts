@@ -4,8 +4,8 @@ import { requireAdmin } from '@/lib/require-admin'
 import { recordAssetUsage, normalizeSelectionMode } from '@/lib/asset-usage-log'
 import { findImageAssetByPublicUrl } from '@/lib/image-assets-db'
 import { getImageStorageBucket, isObjectStorageConfigured, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
-import { isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
+import { extractPexelsPhotoIdFromCdnUrl, isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 import {
   persistScheduleImageFields,
@@ -255,7 +255,25 @@ export async function POST(request: Request, { params }: RouteParams) {
       const poolAttraction = (placeName ?? searchLabel ?? scheduleKw ?? `day_${day}`).slice(0, 80) || `day_${day}`
       originalCdnUrlForMeta = imageUrl
 
-      const poolRec = await savePhotoFromUrlWithRetry(prisma, imageUrl, poolCity, poolAttraction, source || 'manual')
+      // REGRESSION-FREEZE[pexels-primary-single-ingest]: schedule day — reuse PhotoPool by Pexels id — manifest
+      const pexelsIdForPool =
+        externalIdResolved ||
+        (isPexelsCdnUrl(imageUrl) ? String(extractPexelsPhotoIdFromCdnUrl(imageUrl) ?? '') : '') ||
+        null
+      const poolRec = await savePhotoFromUrlWithRetry(
+        prisma,
+        imageUrl,
+        poolCity,
+        poolAttraction,
+        source || 'manual',
+        {
+          attribution: {
+            photographer,
+            sourceUrl: originalLink,
+            sourcePhotoId: pexelsIdForPool && pexelsIdForPool !== 'null' ? pexelsIdForPool : null,
+          },
+        },
+      )
       if (poolRec) {
         const key = tryParseObjectKeyFromPublicUrl(poolRec.filePath)
         persistedImageUrl = poolRec.filePath

@@ -4790,7 +4790,10 @@
     },
     {
       "id": "register-schedule-sea-poi-kw",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "동남아·2030 한글 routeText·사해≠Shanghai·empty edge landmark 가로채기 금지",
       "checks": [
         {
@@ -8782,6 +8785,57 @@
       ],
       "vitestSuites": [
         "lib/register-schedule-ybtour-nwp1002-us-west-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "pexels-primary-single-ingest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Pexels 대표/일차 선택 — PhotoPool 1회 ingest·검색 TTL 캐시·itinerary 재요청 금지",
+      "npmScripts": [
+        "verify:pexels-primary-single-ingest"
+      ],
+      "checks": [
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-primary-single-ingest]",
+            "PhotoPool internalize only"
+          ],
+          "mustNotInclude": [
+            "rehostPexelsProductHeroIfNeeded"
+          ]
+        },
+        {
+          "file": "lib/photo-pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-primary-single-ingest]",
+            "findPhotoPoolBySourcePhotoId"
+          ]
+        },
+        {
+          "file": "app/api/admin/pexels/search/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-primary-single-ingest]",
+            "SEARCH_CACHE_TTL_MS"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-primary-single-ingest]",
+            "firstPoiNamesFromItinerary"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/schedule-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-primary-single-ingest]",
+            "reuse PhotoPool by Pexels id"
+          ]
+        }
       ]
     }
   ],

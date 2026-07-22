@@ -3,6 +3,30 @@ import { createClient } from 'pexels'
 import { requireAdmin } from '@/lib/require-admin'
 
 const MAX_PER_PAGE = 12
+/** REGRESSION-FREEZE[pexels-primary-single-ingest]: short TTL search cache — manifest */
+const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000
+const SEARCH_CACHE_MAX = 80
+
+type CacheEntry = { at: number; body: PexelsSearchResponse }
+const searchCache = new Map<string, CacheEntry>()
+
+function getCached(q: string): PexelsSearchResponse | null {
+  const hit = searchCache.get(q)
+  if (!hit) return null
+  if (Date.now() - hit.at > SEARCH_CACHE_TTL_MS) {
+    searchCache.delete(q)
+    return null
+  }
+  return hit.body
+}
+
+function setCached(q: string, body: PexelsSearchResponse) {
+  if (searchCache.size >= SEARCH_CACHE_MAX) {
+    const first = searchCache.keys().next().value
+    if (first != null) searchCache.delete(first)
+  }
+  searchCache.set(q, { at: Date.now(), body })
+}
 
 export type PexelsSearchPhoto = {
   id: number
@@ -46,6 +70,11 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     )
   }
+  const cached = getCached(q)
+  if (cached) {
+    console.log('[api/admin/pexels/search] cache-hit', { keywordLen: q.length })
+    return NextResponse.json(cached)
+  }
   console.log('[api/admin/pexels/search] request', { hasApiKey, keywordLen: q.length })
   try {
     const client = createClient(apiKey)
@@ -56,11 +85,9 @@ export async function GET(req: NextRequest) {
     })
     if (!('photos' in result) || !Array.isArray(result.photos)) {
       console.log('[api/admin/pexels/search] unexpected result shape, returning empty photos')
-      return NextResponse.json({
-        ok: true,
-        query: q,
-        photos: [],
-      } satisfies PexelsSearchResponse)
+      const empty: PexelsSearchResponse = { ok: true, query: q, photos: [] }
+      setCached(q, empty)
+      return NextResponse.json(empty)
     }
     const photos: PexelsSearchPhoto[] = result.photos.map((p: { id: number; src?: { small?: string; medium?: string; large?: string }; photographer?: string; url?: string }) => ({
       id: p.id,
@@ -71,11 +98,9 @@ export async function GET(req: NextRequest) {
       sourceUrl: p.url ?? 'https://www.pexels.com',
     }))
     console.log('[api/admin/pexels/search] ok', { count: photos.length, query: q.slice(0, 80) })
-    return NextResponse.json({
-      ok: true,
-      query: q,
-      photos,
-    } satisfies PexelsSearchResponse)
+    const body: PexelsSearchResponse = { ok: true, query: q, photos }
+    setCached(q, body)
+    return NextResponse.json(body)
   } catch (err) {
     console.error('[api/admin/pexels/search] error', err)
     return NextResponse.json(

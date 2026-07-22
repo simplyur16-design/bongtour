@@ -359,7 +359,13 @@ function getOriginBadge(origin: string | null | undefined): { label: string; cla
   }
 }
 
-/** 일정 API에서 첫 비어 있지 않은 poiNamesRaw (Pexels/Gemini 키워드 공통) */
+/** 이미 로드된 일정 행에서 첫 poiNamesRaw (추가 itinerary API 왕복 금지) */
+function firstPoiNamesFromItinerary(rows: ItineraryDayPreview[]): string | null {
+  const hit = rows.find((x) => (x.poiNamesRaw ?? '').trim().length > 0)
+  return hit?.poiNamesRaw?.trim() ?? null
+}
+
+/** 일정 API에서 첫 비어 있지 않은 poiNamesRaw (Pexels/Gemini 키워드 공통) — 패널에 행이 없을 때만 */
 async function fetchFirstPoiNamesRaw(productId: string): Promise<string | null> {
   try {
     const r = await fetch(`/api/admin/products/${productId}/itinerary-days`)
@@ -726,7 +732,9 @@ export default function AdminPendingDetailPanel({
 
   const handlePexelsSearch = async () => {
     if (!detail) return
-    const poiNamesRaw = await fetchFirstPoiNamesRaw(detail.id)
+    // REGRESSION-FREEZE[pexels-primary-single-ingest]: use loaded itinerary — no extra itinerary fetch — manifest
+    const poiNamesRaw =
+      firstPoiNamesFromItinerary(itineraryDayRows) ?? (await fetchFirstPoiNamesRaw(detail.id))
     const keyword = buildPexelsKeyword({
       destination: detail.destination,
       primaryRegion: primaryRegion || detail.primaryRegion,
@@ -767,7 +775,7 @@ export default function AdminPendingDetailPanel({
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(photo.id)
     try {
-      const poiRaw = await fetchFirstPoiNamesRaw(detail.id)
+      const poiRaw = firstPoiNamesFromItinerary(itineraryDayRows)
       const placeGuess =
         poiRaw
           ?.split(/[,，\n|/]/)
@@ -818,7 +826,8 @@ export default function AdminPendingDetailPanel({
     setGeminiLoading(true)
     if (geminiPromptEditMode) setGeminiPromptEditMode(false)
     try {
-      const poiNamesRaw = await fetchFirstPoiNamesRaw(detail.id)
+      const poiNamesRaw =
+        firstPoiNamesFromItinerary(itineraryDayRows) ?? (await fetchFirstPoiNamesRaw(detail.id))
       const body: Record<string, unknown> = {
         title: detail.title ?? null,
         destination: detail.destination ?? null,
@@ -2688,9 +2697,9 @@ export default function AdminPendingDetailPanel({
                   >
                     <SafeImage
                       src={
-                        adminPreviewImgSrc(photo.medium || photo.thumbnail) ??
-                        photo.medium ??
+                        adminPreviewImgSrc(photo.thumbnail || photo.medium) ??
                         photo.thumbnail ??
+                        photo.medium ??
                         ''
                       }
                       alt=""

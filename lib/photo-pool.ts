@@ -185,6 +185,22 @@ const IMAGE_INGEST_FETCH_HEADERS: Record<string, string> = {
   'User-Agent': 'BongTour-ImageIngest/1.0',
 }
 
+/**
+ * REGRESSION-FREEZE[pexels-primary-single-ingest]: same Pexels photo id → reuse pool row (skip download) — manifest
+ */
+export async function findPhotoPoolBySourcePhotoId(
+  prisma: PrismaClient,
+  sourcePhotoId: string
+): Promise<PoolPhotoRecord | null> {
+  const sid = sourcePhotoId.trim()
+  if (!sid) return null
+  const hit = await prisma.photoPool.findFirst({
+    where: { sourcePhotoId: sid },
+    orderBy: { createdAt: 'desc' },
+  })
+  return (hit as PoolPhotoRecord | null) ?? null
+}
+
 export async function savePhotoFromUrl(
   prisma: Parameters<typeof savePhotoToPool>[0],
   imageUrl: string,
@@ -194,6 +210,11 @@ export async function savePhotoFromUrl(
   attribution?: PhotoPoolAttribution
 ): Promise<PoolPhotoRecord | null> {
   try {
+    const sid = attribution?.sourcePhotoId?.trim()
+    if (sid) {
+      const existing = await findPhotoPoolBySourcePhotoId(prisma as PrismaClient, sid)
+      if (existing?.filePath) return existing
+    }
     const res = await fetch(imageUrl, {
       signal: AbortSignal.timeout(20000),
       headers: IMAGE_INGEST_FETCH_HEADERS,
