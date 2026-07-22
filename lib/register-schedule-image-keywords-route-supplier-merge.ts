@@ -17,6 +17,7 @@ import {
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import { scheduleImageKeywordsSemanticallyOverlap } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 export type RegisterScheduleRouteSupplierFallbackOpts = {
   supplierKey: string | null | undefined
@@ -82,8 +83,18 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
       routeRows,
     )
     const imageKeyword = routeKw || supplierKw
+    // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: route kw2∩primary → supplier kw2 — manifest
+    // route SSOT가 Leh Palace를 kw1·kw2에 중복 넣으면 supplier Leh Market이 막힘
+    // 출발·귀국은 kw2 금지 — routeKw2도 중간일만 유지
+    const routeKw2Distinct =
+      slot === 'middle' &&
+      routeKw2 &&
+      imageKeyword &&
+      !scheduleImageKeywordsSemanticallyOverlap(routeKw2, imageKeyword)
+        ? routeKw2
+        : ''
     const imageKeyword2 =
-      routeKw2 || (slot === 'middle' && imageKeyword ? supplierKw2 : '') || null
+      routeKw2Distinct || (slot === 'middle' && imageKeyword ? supplierKw2 : '') || null
     return {
       ...row,
       imageKeyword,

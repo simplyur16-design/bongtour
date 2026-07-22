@@ -1607,6 +1607,14 @@
           ]
         },
         {
+          "file": "lib/register-schedule-image-keywords-route-supplier-merge.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
+            "route kw2∩primary → supplier kw2",
+            "scheduleImageKeywordsSemanticallyOverlap"
+          ]
+        },
+        {
           "file": "lib/schedule-image-keyword-dual-slot-contract.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
@@ -4783,7 +4791,7 @@
     {
       "id": "register-schedule-sea-poi-kw",
       "tier": ["prebuild", "ci"],
-      "summary": "동남아 한글 routeText(보홀 초콜릿힐·밤부브릿지·세부 올랑고 등) → imageKeyword + CMS underscore 정규화",
+      "summary": "동남아·2030 한글 routeText·사해≠Shanghai·empty edge landmark 가로채기 금지",
       "checks": [
         {
           "file": "lib/pexels-keyword.ts",
@@ -4791,8 +4799,21 @@
             "REGRESSION-FREEZE[register-schedule-sea-poi-kw]",
             "Chocolate Hills Bohol",
             "Bamboo Bridge Bohol",
-            "Olango Island Cebu",
-            "Wat Arun Bangkok"
+            "Dead Sea Jordan",
+            "사해≠Shanghai",
+            "2030 live emptyKw route POI",
+            "Sonashi Beach Bar Phu Quoc",
+            "2030 live emptyKw r2 remain"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "empty edge route must not keep other-day landmarks",
+            "forward landmark(Bamboo Bridge 등) 승격 금지",
+            "2030 Bohol return soft-dup",
+            "2030 revisit soft-dup",
+            "edge tripReserved must not blank route-revisit middle"
           ]
         },
         {
@@ -4808,9 +4829,22 @@
             "REGRESSION-FREEZE[register-schedule-sea-poi-kw]",
             "maps Bohol 2030-style Korean routeText"
           ]
+        },
+        {
+          "file": "lib/register-schedule-hanatour-2030-app232-kw.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-sea-poi-kw]",
+            "Day1 does not steal Bamboo",
+            "사해 maps to Dead Sea not Shanghai",
+            "Phu Quoc twin beach-club days",
+            "empty Japan return soft-dups Miyazaki"
+          ]
         }
       ],
-      "vitestSuites": ["lib/register-schedule-sea-poi-kw.test.ts"]
+      "vitestSuites": [
+        "lib/register-schedule-sea-poi-kw.test.ts",
+        "lib/register-schedule-hanatour-2030-app232-kw.test.ts"
+      ]
     },
     {
       "id": "hanatour-register-schedule-image-keyword-apply",
@@ -5598,7 +5632,12 @@
             "장가계→Zhangjiajie return soft-dup",
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
-            "Africa SEQP01 — bare 빅토리아≠Falls/Peak",
+            "Africa SEQP01 — bare 빅토리아≠Falls/Peak"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
             "Africa SEQP01 — same-day Falls/Table Mountain semantic",
             "Cape Town South Africa",
             "Zambezi River sunset cruise"

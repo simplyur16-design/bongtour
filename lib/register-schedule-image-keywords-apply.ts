@@ -24,7 +24,7 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSegment } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import {
@@ -211,9 +211,11 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
           enforceRegisterScheduleTripUniqueImageKeywords(promoted),
           { productDestination: dest },
         ),
+        { productDestination: dest },
       ),
       dest,
     ),
+    { productDestination: dest },
   )
   const isPackageListing = !isRegisterAirtelListing(opts.travelScope, opts.productType)
   const reconciled = isPackageListing
@@ -231,6 +233,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   const withReturnRefill = ensureDepartureReturnVisitCityKeywords(finalDeduped, dest)
   // 귀국 슬롯이 중간일 랜드마크와 fuzzy 중복이면 방문도시 soft-dup으로 교체
   const maxDayFinal = Math.max(...withReturnRefill.map((r) => Number(r.day)).filter((d) => d > 0), 0)
+  const activeDaysFinal = withReturnRefill.filter((r) => Number(r.day) > 0).length
   const pickTripVisitCitySoftDup = (): string => {
     for (const row of [...withReturnRefill].sort((a, b) => Number(b.day) - Number(a.day))) {
       if (Number(row.day) >= maxDayFinal) continue
@@ -335,7 +338,9 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     }
   })
   // strip으로 primary만 비운 슬롯만 재채움 — 전역 gap-fill 재실행은 D1 비움·타대륙 환각 유발
-  const afterStripPrimaryRefill = fillRegisterScheduleMiddleDayImageKeywordGaps(finalCrossStripped).map(
+  const afterStripPrimaryRefill = fillRegisterScheduleMiddleDayImageKeywordGaps(finalCrossStripped, {
+    productDestination: dest,
+  }).map(
     (row, idx) => {
       const before = finalCrossStripped[idx]!
       const beforeKw = String(before.imageKeyword ?? '').trim()
@@ -370,7 +375,9 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     if (kw && kw2 && scheduleImageKeywordsSemanticallyOverlap(kw, kw2)) {
       kw2 = ''
     }
-    if (kw && !kw2) {
+    const slot = resolveScheduleKeywordSlotKind(day, maxDayFinal, activeDaysFinal)
+    // 출발·귀국 kw2 금지 — middle만 secondary refill
+    if (kw && !kw2 && slot === 'middle') {
       kw2 = pickRouteDistinctSecondaryKeyword(kw, rawRoute ?? row.routeText)
     }
     return {
@@ -406,12 +413,19 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
           // keep
         } else {
           const middleRt = String(row.routeText ?? '')
+          // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: route revisit bare soft-dup vs edge — manifest
+          // 푸꾸옥/뉴욕 등 D1 edge 사용 후 같은 도시 재방문 중간일이 빈칸 되지 않게
+          const routeSoft = softDupForeignVisitCityForMiddleRoute(middleRt)
           const allowMiddleHotel =
             isAirportTransferOrCityHubOnlyMiddleRoute(middleRt) ||
             /(?:호텔|Hotel|체크인|숙박|Resort|휴식|팔라조|Palazzo|베르사체|Versace|메리어트|Marriott|힐튼|Hilton|Hyatt)/i.test(
               middleRt,
             )
-          if (allowMiddleHotel) {
+          if (routeSoft && normScheduleImageKeywordKey(routeSoft) === nk && allowRouteRevisitBareVisitCitySoftDup(kw)) {
+            // keep — allowlist 도시만 route 재방문 soft-dup (Osaka D2 금지)
+          } else if (allowRouteRevisitBareVisitCitySoftDup(kw)) {
+            // keep — 2030 액티비티일 productDestination soft (서핑→Okinawa 등)
+          } else if (allowMiddleHotel) {
             // keep SEQP01 hotel soft-dup
           } else if (kw2 && normScheduleImageKeywordKey(kw2) !== nk) {
             kw = kw2
@@ -424,8 +438,12 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
         // route에 재등장한 방문도시(삿포/몰디브 등)는 중간일 soft-dup 유지 — Osaka D2 관광일 환각 soft-dup만 금지
         const routeSoft = softDupForeignVisitCityForMiddleRoute(row.routeText)
-        if (routeSoft && normScheduleImageKeywordKey(routeSoft) === nk) {
-          // keep
+        if (
+          routeSoft &&
+          normScheduleImageKeywordKey(routeSoft) === nk &&
+          allowRouteRevisitBareVisitCitySoftDup(kw)
+        ) {
+          // keep — allowlist 도시만 (Osaka D2 관광일 soft-dup 금지)
         } else {
           kw = ''
         }
@@ -441,10 +459,12 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     if (nk2 && (used.has(nk2) || nk2 === finalNk)) {
       kw2 = ''
     }
-    if (kw && !kw2) {
+    const slot = resolveScheduleKeywordSlotKind(day, maxDayFinal, activeDaysFinal)
+    if (kw && !kw2 && slot === 'middle') {
       // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
       kw2 = pickRouteDistinctSecondaryKeyword(kw, row.routeText, new Set(used.keys()))
     }
+    if (slot !== 'middle') kw2 = ''
     const finalNk2 = normScheduleImageKeywordKey(kw2)
     if (finalNk2) used.set(finalNk2, day)
     return {

@@ -147,7 +147,15 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /세나두\s*광장|Senado\s*Square/u, en: "Senado Square" },
   { re: /침사추이\s*해변|연인의\s*거리|스타의\s*거리|Avenue\s*of\s*Stars/u, en: "Avenue of Stars Hong Kong" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 튀르키예 명소 — skyline·interior 보조어 금지 — manifest
-  { re: /술탄\s*아흐메트|블루\s*모스크|Sultan\s*Ahmed/i, en: "Sultan Ahmed Mosque Istanbul" },
+  { re: /술탄\s*아흐메트|Sultan\s*Ahmed/i, en: "Sultan Ahmed Mosque Istanbul" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: KK 블루모스크≠Istanbul — manifest
+  {
+    re: /(?:이스탄불|Istanbul|튀르키예|Turkey|Turkiye).{0,40}블루\s*모스크|블루\s*모스크.{0,40}(?:이스탄불|Istanbul)|Blue\s*Mosque/i,
+    en: "Blue Mosque Istanbul",
+  },
+  { re: /핑크\s*모스크|Pink\s*Mosque/i, en: "Pink Mosque Kota Kinabalu" },
+  { re: /시티\s*모스크|City\s*Mosque/i, en: "City Mosque Kota Kinabalu" },
+  { re: /사바\s*주청사/i, en: "Sabah State Administrative Centre Kota Kinabalu" },
   { re: /그랜드\s*바자르|Grand\s*Bazaar/i, en: "Grand Bazaar Istanbul" },
   { re: /지하\s*물\s*궁전|지하물궁전|Basilica\s*Cistern/i, en: "Basilica Cistern Istanbul" },
   { re: /돌마바흐체|Dolmabahce|Dolmabahçe/i, en: "Dolmabahce Palace Istanbul" },
@@ -773,7 +781,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /울루와뚜|Uluwatu/i, en: "Uluwatu Temple" },
   { re: /멜라스티|Melasti/i, en: "Melasti Beach" },
   { re: /빠당빠당|Padang\s*Padang/i, en: "Padang Padang Beach" },
-  { re: /비치\s*클럽|Beach\s*Club/i, en: "Bali Beach Club" },
+  { re: /비치\s*클럽|Beach\s*Club/i, en: "Tropical beach club coastline" },
   { re: /뜨갈랄랑|Tegalalang/i, en: "Tegalalang Rice Terrace" },
   { re: /발리\s*해변/i, en: "Bali beach sunset" },
   { re: /프린스(?:턴|톤)\s*대학|Princeton\s*University/i, en: "Princeton University campus" },
@@ -883,7 +891,9 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /안탈리아|Antalya/i, en: "Antalya Old Town" },
   { re: /아이발릭|Ayvalik|Ayvalık/i, en: "Ayvalik Aegean coast Turkey" },
   { re: /튀르키예|터키|Turkey/i, en: "Blue Mosque Istanbul" },
-  { re: /상해|사해|上海/u, en: "Shanghai skyline night" },
+  { re: /상해|上海/u, en: "Shanghai skyline night" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 사해≠Shanghai — Dead Sea — manifest
+  { re: /사해|Dead\s*Sea/i, en: "Dead Sea Jordan shoreline" },
   { re: /퍼블릭 마켓|Pike Place|Public Market/i, en: "Pike Place Market Seattle" },
   { re: /게스웍|Gas Works/i, en: "Gas Works Park Seattle" },
   { re: /스페이스 니들|Space Needle/i, en: "Space Needle Seattle" },
