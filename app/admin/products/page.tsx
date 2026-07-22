@@ -25,6 +25,7 @@ type ProductRow = {
   destination: string | null
   destinationRaw: string | null
   primaryDestination: string | null
+  countryKey?: string | null
   supplierGroupId: string | null
   priceFrom: number | null
   priceCurrency: string | null
@@ -805,6 +806,7 @@ export default function AdminProductsPage() {
                             destinationRaw: p.destinationRaw,
                             primaryRegion: p.primaryRegion,
                             title: p.title,
+                            countryKey: p.countryKey,
                           })}
                         </td>
                         <td className="p-3 font-mono text-xs text-gray-500">{p.supplierGroupId ?? '—'}</td>

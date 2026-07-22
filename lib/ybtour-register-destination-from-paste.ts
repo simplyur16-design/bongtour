@@ -2,6 +2,7 @@
  * ybtour(노랑풍선) 등록 — 붙여넣기·제목·LLM 목적지 SSOT.
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 
 export type YbtourRegisterDestinationResolved = {
   destination: string
@@ -95,10 +96,11 @@ export function resolveYbtourRegisterDestination(input: {
     '미지정'
   const destinationRaw =
     citiesRaw || (fromLlm && !isYbtourMarketingDestination(fromLlm) ? fromLlm : null)
-  const primary = destination === '미지정' ? '' : destination
-  return {
-    destination: primary,
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: finalize pollution scrub — manifest
+  return finalizeRegisterDestinationFields({
+    title,
+    destination,
     destinationRaw,
-    primaryDestination: primary || null,
-  }
+    primaryDestination: destination === '미지정' ? null : destination,
+  })
 }

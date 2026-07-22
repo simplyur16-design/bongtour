@@ -682,6 +682,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           destinationRaw: p.destinationRaw,
           primaryRegion: p.primaryRegion,
           title: p.title,
+          countryKey: p.countryKey,
         })
         return label !== '—' ? label : p.primaryDestination
       })(),

@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[verygoodtour-register-destination]: hash·route 목적지 — manifest
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 import {
   extractNonPolicyDestinationFragment,
   isVerygoodtourPolicyBracketDestination,
@@ -169,10 +170,11 @@ export function resolveVerygoodtourRegisterDestination(input: {
     '미지정'
   const destinationRaw =
     journeyRaw || bracket || fromHashOrRoutes || (llmUsable || null)
-  const primary = destination === '미지정' ? '' : destination
-  return {
-    destination: primary,
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: finalize pollution scrub — manifest
+  return finalizeRegisterDestinationFields({
+    title,
+    destination,
     destinationRaw,
-    primaryDestination: primary || null,
-  }
+    primaryDestination: destination === '미지정' ? null : destination,
+  })
 }

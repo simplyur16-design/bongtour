@@ -3,6 +3,7 @@
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
+import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 
 export type HanatourRegisterDestinationResolved = {
   destination: string
@@ -146,10 +147,11 @@ export function resolveHanatourRegisterDestination(input: {
     '미지정'
   const destinationRaw =
     citiesRaw || (fromLlm && !isHanatourMarketingDestination(fromLlm) ? fromLlm : null)
-  const primary = destination === '미지정' ? '' : destination
-  return {
-    destination: primary,
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: finalize pollution scrub — manifest
+  return finalizeRegisterDestinationFields({
+    title,
+    destination,
     destinationRaw,
-    primaryDestination: primary || null,
-  }
+    primaryDestination: destination === '미지정' ? null : destination,
+  })
 }

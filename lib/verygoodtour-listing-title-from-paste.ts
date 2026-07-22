@@ -5,6 +5,10 @@
 
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { isSupplierRegisterDestinationUiLabel } from '@/lib/supplier-register-destination-forbidden'
+import {
+  healRegisterDestinationLabel,
+  isRegisterDestinationPollutionLabel,
+} from '@/lib/register-destination-finalize'
 
 const SKIP_LINE_RE =
   /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험|여행\s*주요)/i
@@ -152,14 +156,16 @@ export function extractVerygoodDestinationFromBracketTitle(title: string): strin
   return null
 }
 
-/** 관리자 목록·카드 — 정책 뱃지가 destination에 들어간 기등록 상품 폴백 */
+/** 관리자 목록·카드 — 정책 뱃지·일주·항공 오염 destination 폴백 */
 export function resolveProductListDestinationLabel(input: {
   primaryDestination?: string | null
   destination?: string | null
   destinationRaw?: string | null
   primaryRegion?: string | null
   title?: string | null
+  countryKey?: string | null
 }): string {
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: list column uses heal SSOT — manifest
   const candidates = [
     input.primaryDestination,
     input.destination,
@@ -170,12 +176,19 @@ export function resolveProductListDestinationLabel(input: {
     .filter(Boolean)
   for (const c of candidates) {
     if (isSupplierRegisterDestinationUiLabel(c)) continue
+    if (isRegisterDestinationPollutionLabel(c)) continue
     const usable = extractNonPolicyDestinationFragment(c)
-    if (usable) return usable
+    if (usable && !isRegisterDestinationPollutionLabel(usable)) return usable
   }
+  const healed = healRegisterDestinationLabel({
+    title: input.title,
+    countryKey: input.countryKey,
+    current: null,
+  })
+  if (healed) return healed
   const fromBracketTitle = extractVerygoodDestinationFromBracketTitle(input.title ?? '')
-  if (fromBracketTitle) return fromBracketTitle
+  if (fromBracketTitle && !isRegisterDestinationPollutionLabel(fromBracketTitle)) return fromBracketTitle
   const fromTitle = extractDestinationFromTitle(input.title ?? '')
-  if (fromTitle !== '미지정') return fromTitle
+  if (fromTitle !== '미지정' && !isRegisterDestinationPollutionLabel(fromTitle)) return fromTitle
   return '—'
 }

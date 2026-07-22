@@ -21,6 +21,7 @@ import {
   firstRegisterDestinationPlaceFromTitleHead,
   isRegisterDestinationTourStyleNoiseToken,
 } from '@/lib/register-destination-tour-style-noise'
+import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 
 export const KYOWONTOUR_PRICE_SLOT_SSOT_NOTE =
   '교원이지 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -81,12 +82,12 @@ export function resolveKyowontourRegisterDestination(title: string, paste: strin
     const scrubbed = firstRegisterDestinationPlaceFromTitleHead(dest)
     if (scrubbed) dest = scrubbed
   }
-  if (isRegisterDestinationTourStyleNoiseToken(dest)) dest = '미지정'
-  return {
-    destination: dest || '미지정',
-    primaryDestination: dest || null,
-    destinationRaw: dest || null,
-  }
+  return finalizeRegisterDestinationFields({
+    title,
+    destination: dest,
+    destinationRaw: dest,
+    primaryDestination: dest,
+  })
 }
 
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 tab-data-collect·detail-collect가 보강한다. */

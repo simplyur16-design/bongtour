@@ -4,6 +4,7 @@
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
+import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 import {
   acceptSupplierRegisterDestinationCandidate,
   isSupplierRegisterDestinationUiLabel,
@@ -170,10 +171,11 @@ export function resolveLottetourRegisterDestination(input: {
   const destination = fromPaste || fromTitleOk || '미지정'
   const destinationRaw =
     citiesRaw && !isLottetourMarketingDestination(citiesRaw) ? citiesRaw : fromTitleOk
-  const primary = destination === '미지정' ? '' : destination
-  return {
-    destination: primary,
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: finalize pollution scrub — manifest
+  return finalizeRegisterDestinationFields({
+    title,
+    destination,
     destinationRaw,
-    primaryDestination: primary || null,
-  }
+    primaryDestination: destination === '미지정' ? null : destination,
+  })
 }

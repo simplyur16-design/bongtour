@@ -8889,6 +8889,22 @@
             "resolveKyowontourRegisterDestination",
             "countryBeforeIlju"
           ]
+        },
+        {
+          "file": "lib/register-destination-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "isRegisterDestinationPollutionLabel",
+            "healRegisterDestinationLabel",
+            "finalizeRegisterDestinationFields"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-listing-title-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "healRegisterDestinationLabel"
+          ]
         }
       ],
       "vitestSuites": [

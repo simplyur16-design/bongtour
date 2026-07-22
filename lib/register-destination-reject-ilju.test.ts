@@ -11,6 +11,12 @@ import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-dest
 import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
 import { resolveLottetourRegisterDestination } from '@/lib/lottetour-register-destination-from-paste'
 import { resolveKyowontourRegisterDestination } from '@/lib/kyowontour-register-api-parse'
+import {
+  finalizeRegisterDestinationFields,
+  healRegisterDestinationLabel,
+  isRegisterDestinationPollutionLabel,
+} from '@/lib/register-destination-finalize'
+import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 
 describe('register-destination-reject-ilju', () => {
   it('rejects bare 일주 / 개국 tokens', () => {
@@ -62,5 +68,67 @@ describe('register-destination-reject-ilju', () => {
     expect(
       resolveKyowontourRegisterDestination('NO유류 차액! 출발가능 이탈리아 일주 11일').destination,
     ).toBe('이탈리아')
+  })
+
+  it('pollution: promo / policy / airline / mingling', () => {
+    expect(isRegisterDestinationPollutionLabel('일주')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('출발확정')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('노쇼핑')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('노쇼핑 · 노옵션 · 노팁')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('여행일정')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('밍글링 투어 Light')).toBe(true)
+    expect(
+      isRegisterDestinationPollutionLabel('에어프레미아 이코노미 클래스 외 승무원 안내'),
+    ).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('튀르키예')).toBe(false)
+    expect(isRegisterDestinationPollutionLabel('다낭')).toBe(false)
+  })
+
+  it('heal: polluted current → title / countryKey', () => {
+    expect(
+      healRegisterDestinationLabel({
+        title: '튀르키예 일주 9일',
+        current: '일주',
+        countryKey: 'turkey',
+      }),
+    ).toBe('튀르키예')
+    expect(
+      healRegisterDestinationLabel({
+        title: '[다낭] 자유여행 3박5일',
+        current: '노쇼핑',
+      }),
+    ).toBe('다낭')
+    expect(
+      healRegisterDestinationLabel({
+        title: '패키지 상품',
+        current: '출발확정',
+        countryKey: 'italy',
+      }),
+    ).toBe('이탈리아')
+    const fin = finalizeRegisterDestinationFields({
+      title: '이탈리아 일주 11일',
+      destination: '일주',
+      destinationRaw: '일주',
+      primaryDestination: '일주',
+    })
+    expect(fin.destination).toBe('이탈리아')
+    expect(fin.primaryDestination).toBe('이탈리아')
+  })
+
+  it('list label skips polluted stored destination', () => {
+    expect(
+      resolveProductListDestinationLabel({
+        primaryDestination: '일주',
+        destination: '일주',
+        title: '튀르키예 일주 9일',
+        countryKey: 'turkey',
+      }),
+    ).toBe('튀르키예')
+    expect(
+      resolveProductListDestinationLabel({
+        primaryDestination: '노쇼핑',
+        title: '[치앙마이] #노쇼핑 4일',
+      }),
+    ).toBe('치앙마이')
   })
 })
