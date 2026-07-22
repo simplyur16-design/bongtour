@@ -1130,7 +1130,6 @@ const POI_KO_TO_EN: Record<string, string> = {
   '노스젠 밤부브릿지': 'Bamboo Bridge Bohol',
   알로나비치: 'Alona Beach Bohol',
   '알로나 비치': 'Alona Beach Bohol',
-  헤난알로나비치: 'Alona Beach Bohol',
   올랑고섬: 'Olango Island Cebu',
   올랑고: 'Olango Island Cebu',
   막탄: 'Mactan Island Cebu',
