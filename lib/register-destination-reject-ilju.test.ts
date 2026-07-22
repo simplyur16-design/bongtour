@@ -82,6 +82,11 @@ describe('register-destination-reject-ilju', () => {
     ).toBe(true)
     expect(isRegisterDestinationPollutionLabel('튀르키예')).toBe(false)
     expect(isRegisterDestinationPollutionLabel('다낭')).toBe(false)
+    expect(isRegisterDestinationPollutionLabel('괌')).toBe(false)
+    expect(isRegisterDestinationPollutionLabel('온라인전용')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('풀패키지')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('2030전용')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('KE')).toBe(true)
   })
 
   it('heal: polluted current → title / countryKey', () => {
@@ -105,6 +110,42 @@ describe('register-destination-reject-ilju', () => {
         countryKey: 'italy',
       }),
     ).toBe('이탈리아')
+    expect(
+      healRegisterDestinationLabel({
+        title: '[온라인전용]발트 3국[에스토니아/라트비아/리투아니아]과 폴란드 9일',
+        current: '폴란드 항공 LOT · LO 폴란드항공 이코노미클래스 외',
+        countryKey: 'lithuania',
+      }),
+    ).toBe('에스토니아 · 라트비아 · 리투아니아')
+    expect(
+      healRegisterDestinationLabel({
+        title: '[2030전용] 칭다오(청도) 3일 #ALL포함 #운상해천전망대',
+        current: '밍글링 투어 Light · 밍글링 타임 외',
+        countryKey: 'china',
+      }),
+    ).toBe('칭다오')
+    expect(
+      healRegisterDestinationLabel({
+        title: '자카르타/족자카르타 6일 #국내선 이동포함',
+        current: '노쇼핑 · 노옵션 · 노팁',
+        countryKey: 'indonesia',
+      }),
+    ).toBe('자카르타')
+    expect(
+      healRegisterDestinationLabel({
+        title: '북유럽&발트 7개국 12일',
+        current: '노쇼핑',
+        countryKey: 'lithuania',
+      }),
+    ).toBe('북유럽&발트')
+    expect(
+      finalizeRegisterDestinationFields({
+        title: '괌 닛코 오션프론트룸 3박5일',
+        destination: '괌',
+        destinationRaw: '여행일정',
+        primaryDestination: null,
+      }).destination,
+    ).toBe('괌')
     const fin = finalizeRegisterDestinationFields({
       title: '이탈리아 일주 11일',
       destination: '일주',

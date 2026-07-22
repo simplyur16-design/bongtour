@@ -81,10 +81,24 @@ async function main() {
       countryKey: p.countryKey,
     })
 
-    const before = (p.primaryDestination || p.destination || p.destinationRaw || '').trim()
+    const beforePrimary = (p.primaryDestination || '').trim()
+    const beforeDest = (p.destination || '').trim()
+    const beforeRaw = (p.destinationRaw || '').trim()
+    const before = (beforePrimary || beforeDest || beforeRaw).trim()
     const after = (next.primaryDestination || next.destination || '').trim()
-    if (!after || after === before) {
-      if (isRegisterDestinationPollutionLabel(before) || !after) {
+
+    const stillPolluted =
+      isRegisterDestinationPollutionLabel(next.primaryDestination) ||
+      isRegisterDestinationPollutionLabel(next.destination) ||
+      isRegisterDestinationPollutionLabel(next.destinationRaw)
+
+    const changed =
+      (next.destination || '') !== (p.destination || '') ||
+      (next.destinationRaw || '') !== (p.destinationRaw || '') ||
+      (next.primaryDestination || '') !== (p.primaryDestination || '')
+
+    if (!changed) {
+      if (stillPolluted || (needsHeal(p) && !after)) {
         unhealable += 1
         if (samples.length < 40) {
           samples.push({
@@ -97,6 +111,11 @@ async function main() {
           })
         }
       }
+      continue
+    }
+
+    if (!after) {
+      unhealable += 1
       continue
     }
 

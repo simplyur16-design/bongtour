@@ -20,33 +20,81 @@ const PRODUCT_COPY_POLLUTION_RE = /밍글링\s*투어|밍글링\s*타임|라이�
 const POLICY_COMPOUND_RE =
   /^(?:노|무)(?:쇼핑|옵션|팁)(?:\s*[·,/]\s*(?:노|무)?(?:쇼핑|옵션|팁))*$/u
 
+/** `[온라인전용]`·`[풀패키지]`·홈쇼핑 채널 등 — 지명 아님 */
+const CHANNEL_OR_OFFER_LABEL_RE =
+  /^(?:온라인\s*전용|풀\s*패키지|자유\s*여행|2030\s*전용|홈\s*쇼핑|롯데\s*원티비|SK\s*스토아|NS\s*홈쇼핑|공영\s*홈쇼핑|현대\s*홈쇼핑|명문대\s*학부형.*|학부형\s*가이드.*)$/iu
+
+const AIRLINE_CODE_ONLY_RE =
+  /^(?:KE|OZ|VJ|TW|7C|LJ|BX|ZE|RS|SQ|TG|NH|JL|CX|KA|하와이안|젯스타|진에어|티웨이|에어서울|대한항공|아시아나|핀에어)$/i
+
 /** True if label must never be stored/shown as product destination / list 지역. */
 export function isRegisterDestinationPollutionLabel(raw: string | null | undefined): boolean {
   const t = String(raw ?? '')
     .replace(/\s+/g, ' ')
     .trim()
-  if (!t || t.length < 2) return true
+  // Single Hangul place names (괌) are valid — do not use length<2 ASCII heuristic alone.
+  if (!t) return true
+  if (t.length < 2 && !/[가-힣]/.test(t)) return true
   if (t === '미지정' || t === '—' || /^unknown$/i.test(t)) return true
   if (isRegisterDestinationTourStyleNoiseToken(t)) return true
   if (isSupplierRegisterDestinationUiLabel(t)) return true
   if (isSupplierTitlePromoBadgeText(t)) return true
+  if (CHANNEL_OR_OFFER_LABEL_RE.test(t)) return true
+  if (AIRLINE_CODE_ONLY_RE.test(t)) return true
   if (POLICY_COMPOUND_RE.test(t)) return true
-  if (AIRLINE_POLLUTION_RE.test(t) && (t.length >= 18 || /클래스|승무원|이코노미/i.test(t))) return true
+  if (AIRLINE_POLLUTION_RE.test(t) && (t.length >= 18 || /클래스|승무원|이코노미|에어프레미아|에어프리미아/i.test(t))) {
+    return true
+  }
   if (PRODUCT_COPY_POLLUTION_RE.test(t)) return true
   if (/^여행\s*일정/.test(t)) return true
   return false
 }
 
+function scrubPlaceToken(raw: string): string | null {
+  let t = String(raw ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return null
+  t = t.replace(/\d+\s*(?:박|일)\s*$/u, '').trim()
+  t = t.replace(/\s*\([^)]*\)/g, '').trim() // 칭다오(청도) → 칭다오
+  t = t.replace(/\s*\([^)]*$/u, '').trim() // 칭다오(청도 → 칭다오
+  t = t.replace(/[)）]+$/u, '').trim()
+  if (!t || isRegisterDestinationPollutionLabel(t)) return null
+  return t.slice(0, 96)
+}
+
+function isLikelyPlaceBracketInner(inner: string): boolean {
+  const t = inner.replace(/\s+/g, ' ').trim()
+  if (!t || isRegisterDestinationPollutionLabel(t)) return false
+  if (/[,，]/.test(t)) return false // 일년 중 단 한달, 칭다오맥주축제
+  if (/\s/.test(t) && t.length > 18) return false
+  if (/ROOM|VIEW|HOTEL|UPGRADE|DELUXE|SUITE/i.test(t)) return false
+  if (/^[A-Za-z0-9][A-Za-z0-9\s\-_/]*$/.test(t) && t.split(/\s+/).length >= 2) return false
+  return true
+}
+
 function firstNonPolicyBracketPlace(title: string): string | null {
   for (const m of String(title ?? '').matchAll(/\[([^\]]+)\]/g)) {
     const inner = (m[1] ?? '').replace(/\s+/g, ' ').trim()
-    if (!inner || isRegisterDestinationPollutionLabel(inner)) continue
+    if (!isLikelyPlaceBracketInner(inner)) continue
     const parts = inner
       .split(/[/／·]/)
-      .map((p) => p.trim())
-      .filter((p) => p.length >= 2 && !isRegisterDestinationPollutionLabel(p))
+      .map((p) => scrubPlaceToken(p))
+      .filter((p): p is string => Boolean(p))
     if (parts.length === 0) continue
     return parts.length === 1 ? parts[0]! : parts.join(' · ')
+  }
+  return null
+}
+
+function firstCleanStoredDestination(
+  ...candidates: Array<string | null | undefined>
+): string | null {
+  for (const c of candidates) {
+    const t = String(c ?? '').trim()
+    if (!t || isRegisterDestinationPollutionLabel(t)) continue
+    const scrubbed = scrubPlaceToken(firstRegisterDestinationPlaceFromTitleHead(t) || t)
+    if (scrubbed) return scrubbed
   }
   return null
 }
@@ -61,54 +109,51 @@ export function healRegisterDestinationLabel(input: {
   current?: string | null
 }): string | null {
   const title = String(input.title ?? '').trim()
-  const current = String(input.current ?? '').trim()
-  if (current && !isRegisterDestinationPollutionLabel(current)) {
-    const scrubbed = firstRegisterDestinationPlaceFromTitleHead(current)
-    if (scrubbed && !isRegisterDestinationPollutionLabel(scrubbed)) return scrubbed
-    return current.slice(0, 96)
-  }
+  const fromCurrent = firstCleanStoredDestination(input.current)
+  if (fromCurrent) return fromCurrent
 
-  const countryIlju = title.match(/([가-힣A-Za-z]{2,16})\s*(?:완전)?일주\s*(?:\d+\s*박|\d+\s*일|#)/u)
-  if (countryIlju?.[1] && !isRegisterDestinationPollutionLabel(countryIlju[1])) {
-    return countryIlju[1]
+  const countryIlju = title.match(
+    /([가-힣A-Za-z]{2,16})\s*(?:완전)?일주\s*(?:\d+\s*박|\d+\s*일|#)/u,
+  )
+  if (countryIlju?.[1]) {
+    const tok = scrubPlaceToken(countryIlju[1])
+    if (tok) return tok
   }
 
   // Prefer [place] brackets before free-text head (avoids returning the whole title line).
   const fromBracket = firstNonPolicyBracketPlace(title)
-  if (fromBracket) return fromBracket.slice(0, 96)
+  if (fromBracket) return fromBracket
 
   const titleForHead = title
     .replace(/\[?\s*2030\s*전용\s*\]?/gi, ' ')
     .replace(/\[[^\]]*\]/g, ' ')
     .replace(/#[^\s#]+/g, ' ')
+    .replace(/^[●○■▶]+/, '')
     .replace(/\s+/g, ' ')
     .trim()
   const fromHeadRaw = firstRegisterDestinationPlaceFromTitleHead(titleForHead)
   const fromHead = fromHeadRaw
-    ? fromHeadRaw
-        .replace(/\d+\s*(?:박|일).*$/u, '')
-        .trim()
-        .split(/\s+/)[0]
-        ?.trim() ?? null
+    ? scrubPlaceToken(
+        fromHeadRaw
+          .split(/[/,，、]/)[0]
+          ?.trim()
+          .split(/\s+/)[0] ?? fromHeadRaw,
+      )
     : null
-  if (
-    fromHead &&
-    fromHead.length >= 2 &&
-    fromHead.length <= 24 &&
-    !isRegisterDestinationPollutionLabel(fromHead)
-  ) {
-    return fromHead.slice(0, 96)
-  }
-
-  const fromTitle = extractDestinationFromTitle(title)
-  if (fromTitle !== '미지정' && !isRegisterDestinationPollutionLabel(fromTitle)) {
-    return fromTitle.slice(0, 96)
-  }
+  if (fromHead && /[가-힣]/.test(fromHead)) return fromHead
 
   const ck = String(input.countryKey ?? '').trim()
   if (ck) {
     const fromBrowse = koreanCountryLabelFromBrowseSlug(ck) || resolveProductCountryToKoreanDisplay(ck)
-    if (fromBrowse && !isRegisterDestinationPollutionLabel(fromBrowse)) return fromBrowse.slice(0, 96)
+    const tok = scrubPlaceToken(fromBrowse || '')
+    if (tok) return tok
+  }
+
+  // Last resort — CITY_PATTERNS can false-positive on substrings (운상해천→상해, 국내선→제주).
+  const fromTitle = extractDestinationFromTitle(title)
+  if (fromTitle !== '미지정') {
+    const tok = scrubPlaceToken(fromTitle)
+    if (tok) return tok
   }
 
   return null
@@ -126,15 +171,15 @@ export function finalizeRegisterDestinationFields(input: {
   primaryDestination: string | null
 } {
   const healed =
+    firstCleanStoredDestination(
+      input.primaryDestination,
+      input.destination,
+      input.destinationRaw,
+    ) ||
     healRegisterDestinationLabel({
       title: input.title,
       countryKey: input.countryKey,
-      current: input.primaryDestination || input.destination,
-    }) ||
-    healRegisterDestinationLabel({
-      title: input.title,
-      countryKey: input.countryKey,
-      current: input.destinationRaw,
+      current: null,
     })
 
   const dest = healed || '미지정'

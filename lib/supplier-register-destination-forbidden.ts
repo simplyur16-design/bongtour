@@ -13,7 +13,9 @@ export function isSupplierRegisterDestinationUiLabel(s: string): boolean {
   const t = String(s ?? '')
     .replace(/\s+/g, ' ')
     .trim()
-  if (!t || t.length < 2) return true
+  // Single Hangul place names (괌) are valid destinations.
+  if (!t) return true
+  if (t.length < 2 && !/[가-힣]/.test(t)) return true
   if (UI_LABEL_RE.test(t)) return true
   if (isSupplierTitlePromoBadgeText(t)) return true
   // REGRESSION-FREEZE[register-destination-reject-ilju]: tour-style noise = UI pollution — manifest
