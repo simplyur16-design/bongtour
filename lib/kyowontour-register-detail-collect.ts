@@ -78,7 +78,18 @@ export async function augmentKyowontourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: KyowontourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
-  if (parsed.kyowontourDetailCollectRan) return parsed
+  // REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]: prefetch ran → highlight-only when empty — manifest
+  const needHighlight =
+    !String(parsed.highlightPointsRaw ?? '').trim() && !String(parsed.highlightPoints ?? '').trim()
+  if (parsed.kyowontourDetailCollectRan) {
+    if (!needHighlight) return parsed
+    // tab-data-collect도 동일 게이트를 highlight-only로 통과시킴
+    return await augmentKyowontourParsedWithTabDataCollect(parsed, {
+      originUrl: ctx?.originUrl,
+      pastedBlocks: ctx?.pastedBlocks,
+      detailHtml: ctx?.detailHtml,
+    })
+  }
   const originUrl = (ctx?.originUrl ?? '').trim()
   if (!originUrl || !/kyowontour\.com/i.test(originUrl)) return parsed
 

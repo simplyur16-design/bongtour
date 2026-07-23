@@ -4669,7 +4669,8 @@
           "file": "lib/modetour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[modetour-register-highlight-keypoint]",
-            "formatModetourHighlightPointsFromKeyPointInfo"
+            "formatModetourHighlightPointsFromKeyPointInfo",
+            "prefetch ran → highlight-only when empty"
           ]
         }
       ],
@@ -6699,7 +6700,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]",
             "formatHanatourHighlightPointsFromProdInfo",
-            "highlightPointsRaw"
+            "highlightPointsRaw",
+            "highlight-only when incl/mustKnow filled",
+            "prefetch ran → highlight-only when empty"
           ]
         },
         {
@@ -6928,7 +6931,8 @@
           "file": "lib/ybtour-register-detail-collect.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-register-highlight-corepoints]",
-            "formatYbtourHighlightPointsFromCorePoints"
+            "formatYbtourHighlightPointsFromCorePoints",
+            "prefetch ran → highlight-only when empty"
           ]
         },
         {
@@ -8526,7 +8530,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]",
             "formatKyowontourHighlightPointsFromCorePoints",
-            "highlightPointsRaw"
+            "highlightPointsRaw",
+            "prefetch ran → highlight-only when empty"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]",
+            "prefetch ran → highlight-only when empty"
           ]
         },
         {

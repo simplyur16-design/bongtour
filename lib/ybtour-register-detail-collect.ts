@@ -184,11 +184,41 @@ export function needsYbtourOptionalCollect(args: {
   return true
 }
 
+async function fillYbtourHighlightOnlyAfterPrefetch(
+  parsed: RegisterParsed,
+  ctx?: YbtourRegisterDetailAugmentCtx,
+): Promise<RegisterParsed> {
+  const originUrl = (ctx?.originUrl ?? '').trim()
+  if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {
+    return parsed
+  }
+  const bundle = await fetchYbtourRegisterDetailBundle(originUrl, { includeOptShop: false })
+  if (!bundle?.notice) return parsed
+  const corePoints = extractYbtourCorePointsFromGoodsInfo(bundle.notice)
+  const highlight = formatYbtourHighlightPointsFromCorePoints(corePoints)
+  if (!highlight) return parsed
+  const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
+  const note = 'ybtour 상품핵심포인트만 보강 (prefetch 후 goodsInfo)'
+  if (!notes.includes(note)) notes.push(note)
+  return {
+    ...parsed,
+    highlightPointsRaw: highlight,
+    highlightPoints: highlight,
+    registerPreviewPolicyNotes: notes,
+  }
+}
+
 export async function augmentYbtourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: YbtourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
-  if (parsed.ybtourDetailCollectRan) return parsed
+  // REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: prefetch ran → highlight-only when empty — manifest
+  const needHighlightEarly =
+    !String(parsed.highlightPointsRaw ?? '').trim() && !String(parsed.highlightPoints ?? '').trim()
+  if (parsed.ybtourDetailCollectRan) {
+    if (!needHighlightEarly) return parsed
+    return fillYbtourHighlightOnlyAfterPrefetch(parsed, ctx)
+  }
   const originUrl = (ctx?.originUrl ?? '').trim()
   const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || (!parseYbtourEvCdFromUrl(originUrl) && !parseYbtourGoodsCdFromUrl(originUrl))) {
@@ -215,6 +245,11 @@ export async function augmentYbtourParsedWithDetailCollect(
     shoppingStops: parsedWithIdentity.shoppingStops,
   })
 
+  // REGRESSION-FREEZE[ybtour-register-highlight-corepoints]: highlight empty → still fetch notice — manifest
+  const needHighlight =
+    !String(parsedWithIdentity.highlightPointsRaw ?? '').trim() &&
+    !String(parsedWithIdentity.highlightPoints ?? '').trim()
+
   if (
     !needSchedule &&
     !needInclExcl &&
@@ -222,7 +257,8 @@ export async function augmentYbtourParsedWithDetailCollect(
     !needMeeting &&
     !needFlight &&
     !needOpt &&
-    !needShop
+    !needShop &&
+    !needHighlight
   ) {
     return await ensureYbtourRegisterScheduleImageKeywords(parsedWithIdentity, { travelScope: ctx?.travelScope })
   }

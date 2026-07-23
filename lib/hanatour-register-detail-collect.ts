@@ -293,11 +293,38 @@ function applyHanatourProdInfoIdentityFields(
   return next
 }
 
+async function fillHanatourHighlightOnlyAfterPrefetch(
+  parsed: RegisterParsed,
+  ctx?: HanatourRegisterDetailAugmentCtx,
+): Promise<RegisterParsed> {
+  const originUrl = (ctx?.originUrl ?? '').trim()
+  if (!originUrl || !parseHanatourPkgCdFromUrl(originUrl)) return parsed
+  const bundle = await fetchHanatourRegisterDetailBundle(originUrl)
+  if (!bundle?.prodInfo) return parsed
+  const highlight = formatHanatourHighlightPointsFromProdInfo(bundle.prodInfo)
+  if (!highlight) return parsed
+  const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
+  const note = '하나투어 상품핵심포인트만 보강 (prefetch 후 bnft)'
+  if (!notes.includes(note)) notes.push(note)
+  return {
+    ...parsed,
+    highlightPointsRaw: highlight,
+    highlightPoints: highlight,
+    registerPreviewPolicyNotes: notes,
+  }
+}
+
 export async function augmentHanatourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: HanatourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
-  if (parsed.hanatourDetailCollectRan) return parsed
+  // REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]: prefetch ran → highlight-only when empty — manifest
+  const needHighlight =
+    !String(parsed.highlightPointsRaw ?? '').trim() && !String(parsed.highlightPoints ?? '').trim()
+  if (parsed.hanatourDetailCollectRan) {
+    if (!needHighlight) return parsed
+    return fillHanatourHighlightOnlyAfterPrefetch(parsed, ctx)
+  }
   const originUrl = (ctx?.originUrl ?? '').trim()
   const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   if (!originUrl || !parseHanatourPkgCdFromUrl(originUrl)) return parsed
@@ -314,8 +341,17 @@ export async function augmentHanatourParsedWithDetailCollect(
     shoppingStops: parsed.shoppingStops,
   })
   const needFlight = needsRegisterFlightApiCollect(parsed)
+  // REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]: highlight empty → still fetch prodInfo — manifest
 
-  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight) {
+  if (
+    !needSchedule &&
+    !needInclExcl &&
+    !needMustKnow &&
+    !needOpt &&
+    !needShop &&
+    !needFlight &&
+    !needHighlight
+  ) {
     return await ensureHanatourRegisterScheduleImageKeywords(parsed, { travelScope: ctx?.travelScope })
   }
 
@@ -365,6 +401,18 @@ export async function augmentHanatourParsedWithDetailCollect(
 
   if (needInclExcl || needMustKnow) {
     next = applyProdInfoFields(next, prodInfo, summaryParts)
+  } else if (needHighlight) {
+    // 사실가져오기로 포함·mustKnow가 이미 찬 경우에도 bnft → highlight 채움
+    // REGRESSION-FREEZE[hanatour-register-highlight-prodinfo]: highlight-only when incl/mustKnow filled — manifest
+    const highlight = formatHanatourHighlightPointsFromProdInfo(prodInfo)
+    if (highlight) {
+      next = {
+        ...next,
+        highlightPointsRaw: highlight,
+        highlightPoints: highlight,
+      }
+      summaryParts.push('상품핵심포인트')
+    }
   }
 
   if (needOpt) {

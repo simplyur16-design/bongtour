@@ -142,11 +142,41 @@ export function needsModetourMustKnowCollect(parsed: RegisterParsed): boolean {
   return (parsed.mustKnowItems?.length ?? 0) === 0 && !parsed.mustKnowRaw?.trim()
 }
 
+async function fillModetourHighlightOnlyAfterPrefetch(
+  parsed: RegisterParsed,
+  ctx?: ModetourRegisterDetailAugmentCtx,
+): Promise<RegisterParsed> {
+  const originUrl = (ctx?.originUrl ?? '').trim()
+  const productNo = parseModetourPackageProductNoFromUrl(originUrl)
+  if (!originUrl || !productNo || productNo === '0') return parsed
+  const detailBundle = await fetchModetourRegisterDetailBundle(originUrl, {
+    includeOptShop: false,
+    includeFlight: false,
+  })
+  const highlight = formatModetourHighlightPointsFromKeyPointInfo(detailBundle?.keyPointInfo)
+  if (!highlight) return parsed
+  const notes = [...(parsed.registerPreviewPolicyNotes ?? [])]
+  const note = '모두투어 상품핵심포인트만 보강 (prefetch 후 KeyPointInfo)'
+  if (!notes.includes(note)) notes.push(note)
+  return {
+    ...parsed,
+    highlightPointsRaw: highlight,
+    highlightPoints: highlight,
+    registerPreviewPolicyNotes: notes,
+  }
+}
+
 export async function augmentModetourParsedWithDetailCollect(
   parsed: RegisterParsed,
   ctx?: ModetourRegisterDetailAugmentCtx,
 ): Promise<RegisterParsed> {
-  if (parsed.modetourDetailCollectRan) return parsed
+  // REGRESSION-FREEZE[modetour-register-highlight-keypoint]: prefetch ran → highlight-only when empty — manifest
+  const needHighlight =
+    !String(parsed.highlightPointsRaw ?? '').trim() && !String(parsed.highlightPoints ?? '').trim()
+  if (parsed.modetourDetailCollectRan) {
+    if (!needHighlight) return parsed
+    return fillModetourHighlightOnlyAfterPrefetch(parsed, ctx)
+  }
   const originUrl = (ctx?.originUrl ?? '').trim()
   const airHotelListing = isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)
   const productNo = parseModetourPackageProductNoFromUrl(originUrl)
@@ -167,15 +197,26 @@ export async function augmentModetourParsedWithDetailCollect(
   })
   const needFlight = needsRegisterFlightApiCollect(parsed)
   const needFeeSupplement = needsModetourFeeSupplementCollect(parsed)
+  // REGRESSION-FREEZE[modetour-register-highlight-keypoint]: highlight empty → still fetch KeyPointInfo — manifest
 
-  if (!needSchedule && !needInclExcl && !needMustKnow && !needOpt && !needShop && !needFlight && !needFeeSupplement) {
+  if (
+    !needSchedule &&
+    !needInclExcl &&
+    !needMustKnow &&
+    !needOpt &&
+    !needShop &&
+    !needFlight &&
+    !needFeeSupplement &&
+    !needHighlight
+  ) {
     return await ensureModetourRegisterScheduleImageKeywords(parsed, { travelScope: ctx?.travelScope })
   }
 
   const summaryParts: string[] = []
   let next: RegisterParsed = { ...parsed }
 
-  const needDetailBundle = needInclExcl || needShop || needMustKnow || needOpt || needFlight || needFeeSupplement
+  const needDetailBundle =
+    needInclExcl || needShop || needMustKnow || needOpt || needFlight || needFeeSupplement || needHighlight
   const [facts, detailBundle] = await Promise.all([
     needSchedule
       ? collectModetourRegisterFacts(originUrl, { adminTravelScope: ctx?.travelScope ?? null })

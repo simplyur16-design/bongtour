@@ -91,8 +91,17 @@ export function needsKyowontourMustKnowCollect(parsed: RegisterParsed): boolean 
   return (parsed.mustKnowItems?.length ?? 0) === 0 && !parsed.mustKnowRaw?.trim()
 }
 
+function needsKyowontourHighlightCollect(parsed: RegisterParsed): boolean {
+  return !String(parsed.highlightPointsRaw ?? '').trim() && !String(parsed.highlightPoints ?? '').trim()
+}
+
 function needsCoreTabCollect(parsed: RegisterParsed): boolean {
-  return needsKyowontourIncludedExcludedCollect(parsed) || needsKyowontourMustKnowCollect(parsed)
+  // REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]: highlight empty → still fetch core tab — manifest
+  return (
+    needsKyowontourIncludedExcludedCollect(parsed) ||
+    needsKyowontourMustKnowCollect(parsed) ||
+    needsKyowontourHighlightCollect(parsed)
+  )
 }
 
 function needsReservationTabCollect(parsed: RegisterParsed): boolean {
@@ -267,7 +276,8 @@ export async function augmentKyowontourParsedWithTabDataCollect(
   ctx?: KyowontourRegisterTabDataAugmentCtx,
 ): Promise<RegisterParsed> {
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: prefetch → augment papi 재수집 금지 — manifest
-  if (parsed.kyowontourDetailCollectRan) return parsed
+  // REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]: prefetch ran → highlight-only when empty — manifest
+  if (parsed.kyowontourDetailCollectRan && !needsKyowontourHighlightCollect(parsed)) return parsed
   const originUrl = (ctx?.originUrl ?? '').trim()
   if (!originUrl || !isKyowontourGoodsEventDetailUrl(originUrl)) {
     return parsed
