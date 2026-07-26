@@ -5110,6 +5110,45 @@
       ]
     },
     {
+      "id": "register-user-url-batch-live-gate-hard",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "운영자 URL 배치 — 2030 중간일 bare city hard fail + package flightStructured 필수",
+      "checks": [
+        {
+          "file": "lib/register-user-url-batch-live-gate-hard-rules.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-user-url-batch-live-gate-hard]",
+            "2030 middle bare city hard",
+            "flightStructured required",
+            "collectRegisterBatch2030MiddleBareCityHardIssues",
+            "collectRegisterBatchFlightStructuredHardIssues"
+          ]
+        },
+        {
+          "file": "scripts/verify-register-user-url-batch-live-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-user-url-batch-live-gate-hard]",
+            "collectRegisterBatch2030MiddleBareCityHardIssues",
+            "collectRegisterBatchFlightStructuredHardIssues"
+          ]
+        },
+        {
+          "file": "lib/register-user-url-batch-live-gate-hard-rules.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-user-url-batch-live-gate-hard]",
+            "APP221-like",
+            "bare Cebu hard-fails"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-user-url-batch-live-gate-hard-rules.test.ts"
+      ]
+    },
+    {
       "id": "hanatour-register-schedule-image-keyword-apply",
       "tier": [
         "prebuild",

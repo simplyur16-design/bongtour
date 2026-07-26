@@ -1,6 +1,8 @@
 /**
  * 운영자 지정 URL 배치 — 등록 파이프라인 실검증 (메가메뉴·imageKeyword·일정요약·일정설명).
  *
+ * REGRESSION-FREEZE[register-user-url-batch-live-gate-hard]: 2030 middle bare city + flightStructured — manifest
+ *
  * npx tsx scripts/verify-register-user-url-batch-live-gate.ts
  * npx tsx scripts/verify-register-user-url-batch-live-gate.ts --json
  * npx tsx scripts/verify-register-user-url-batch-live-gate.ts --urls-file scripts/data/operator-url-batch-2026-07.txt
@@ -46,6 +48,10 @@ import {
   isAirportTransferOrCityHubOnlyMiddleRoute,
   isScheduleHubMovementKeywordRow,
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import {
+  collectRegisterBatch2030MiddleBareCityHardIssues,
+  collectRegisterBatchFlightStructuredHardIssues,
+} from '@/lib/register-user-url-batch-live-gate-hard-rules'
 
 type SupplierKey = 'modetour' | 'hanatour' | 'ybtour' | 'lottetour' | 'kyowontour'
 
@@ -259,6 +265,7 @@ function scheduleRowIssues(
   },
   totalDays: number,
   maxDay: number,
+  opts?: { productTitle?: string | null },
 ): { issues: string[]; softIssues: string[] } {
   const issues: string[] = []
   const softIssues: string[] = []
@@ -367,6 +374,18 @@ function scheduleRowIssues(
         (!route && /라운지|lounge|호핑|hopping|자유|호텔/i.test(`${title} ${desc}`))
       if (!hubOnly) issues.push('중간일 imageKeyword 비어 있음')
     }
+    // REGRESSION-FREEZE[register-user-url-batch-live-gate-hard]: 2030 middle bare city hard — manifest
+    issues.push(
+      ...collectRegisterBatch2030MiddleBareCityHardIssues({
+        productTitle: opts?.productTitle,
+        day,
+        maxDay,
+        routeText: route,
+        title,
+        description: desc,
+        imageKeyword: kw,
+      }),
+    )
     // imageKeyword2는 보조 슬롯 — 비어 있어도 하드 실패하지 않음 (primary만 필수)
   } else {
     if (!kw) issues.push(`${isFirst ? '1일차' : '마지막 일차'} imageKeyword 비어 있음`)
@@ -552,11 +571,11 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
       const day = Number(r.day ?? 0)
       const routeText = String(r.routeText ?? '').trim()
       const description = String(r.description ?? '').trim()
-      const title = String(r.title ?? '').trim()
+      const dayTitle = String(r.title ?? '').trim()
       const { issues: rowIssues, softIssues: rowSoft } = scheduleRowIssues(
         {
           day,
-          title,
+          title: dayTitle,
           routeText,
           description,
           imageKeyword: String(r.imageKeyword ?? ''),
@@ -564,10 +583,11 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
         },
         totalDays,
         maxDay,
+        { productTitle: `${title}\n${String(parsed.supplierListingTitleRaw ?? '')}` },
       )
       return {
         day,
-        title: title.slice(0, 80),
+        title: dayTitle.slice(0, 80),
         routeText: routeText.slice(0, 120),
         descriptionLen: description.length,
         descriptionSentences: countDescriptionSentences(description),
@@ -692,6 +712,15 @@ async function verifyCase(c: UrlCase): Promise<CaseReport> {
       ...priceIssues.map((i) => `price: ${i}`),
       ...priceSoftIssues.map((i) => `price-soft: ${i}`),
     ]
+
+    // REGRESSION-FREEZE[register-user-url-batch-live-gate-hard]: flightStructured required — manifest
+    const flightIssues = collectRegisterBatchFlightStructuredHardIssues(parsed as never, {
+      travelScope: 'package',
+    })
+    for (const fi of flightIssues) {
+      scheduleIssues.push(fi)
+      allIssues.push(fi)
+    }
 
     const hardIssues = [...scheduleIssues, ...priceIssues.map((i) => `price: ${i}`)]
 
