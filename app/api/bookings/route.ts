@@ -16,6 +16,7 @@ import { makeBookingNumber } from '@/lib/identifiers/make-booking-number'
 import { intakeMarketingConsentDbFields } from '@/lib/intake-marketing-consent'
 import { parsePublicAttributionFromBody } from '@/lib/public-attribution-body'
 import { CALENDAR_PRICES_MIN_ADULT_PRICE_KRW } from '@/lib/calendar-prices-adult-floor'
+import { isProductAdultOnly2030 } from '@/lib/product-adult-only-2030'
 import {
   extractModetourPidAdultPriceKrw,
   fetchModetourPidDetailInfo,
@@ -97,6 +98,8 @@ export async function POST(request: Request) {
       select: {
         id: true,
         title: true,
+        rawTitle: true,
+        sportsThemeTag: true,
         originSource: true,
         originCode: true,
         originUrl: true,
@@ -108,6 +111,12 @@ export async function POST(request: Request) {
     if (!product) {
       return jsonWithLeakGuard({ error: '상품을 찾을 수 없습니다.' }, 'api.bookings.not-found', { status: 404 })
     }
+
+    const adultOnly2030 = isProductAdultOnly2030({
+      title: product.title,
+      rawTitle: product.rawTitle,
+      sportsThemeTag: product.sportsThemeTag,
+    })
 
     const intakeCandidate = {
       productId: rawProductId,
@@ -167,9 +176,17 @@ export async function POST(request: Request) {
 
     const pax = {
       adult: intake.adultCount,
-      childBed: intake.childWithBedCount,
-      childNoBed: intake.childNoBedCount,
-      infant: intake.infantCount,
+      childBed: adultOnly2030 ? 0 : intake.childWithBedCount,
+      childNoBed: adultOnly2030 ? 0 : intake.childNoBedCount,
+      infant: adultOnly2030 ? 0 : intake.infantCount,
+    }
+
+    if (adultOnly2030 && (intake.childWithBedCount > 0 || intake.childNoBedCount > 0 || intake.infantCount > 0)) {
+      return jsonWithLeakGuard(
+        { error: '2030 성인 전용 상품은 아동·유아 예약이 불가합니다.' },
+        'api.bookings.adult-only-2030',
+        { status: 400 },
+      )
     }
 
     if (!intake.selectedDepartureDate) {

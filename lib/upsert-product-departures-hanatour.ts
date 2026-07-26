@@ -11,6 +11,7 @@ import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { deriveDepartureFlags } from '@/lib/derive-departure-flags'
+import { isProductAdultOnly2030 } from '@/lib/product-adult-only-2030'
 import { normalizeCalendarDate } from './date-normalize'
 import { deriveHanatourConfirmationFlags, parseStatusLabelsJson } from './hanatour-normalize'
 
@@ -232,6 +233,13 @@ export async function upsertProductDepartures(
   }
   if (pairs.length === 0) return 0
 
+  const productMeta = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { title: true, rawTitle: true, sportsThemeTag: true },
+  })
+  // REGRESSION-FREEZE[product-adult-only-2030]: upsert never refill child/infant — manifest
+  const adultOnly2030 = isProductAdultOnly2030(productMeta ?? {})
+
   const existingRows = await prisma.productDeparture.findMany({
     where: { productId, departureSlotKey: { in: pairs.map((p) => p.departureSlotKey) } },
     select: {
@@ -272,13 +280,22 @@ export async function upsertProductDepartures(
     const adultPrice = d.adultPrice != null && !Number.isNaN(d.adultPrice) ? d.adultPrice : null
     // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: baselineAdultPrice 최초 고정 — manifest
     const baselineAdultPrice = computeBaselineAdultPriceOnUpsert(previous, adultPrice)
-    // 아동: incoming 없으면 기존 DB값 유지, 둘 다 없으면 성인가로 채움
-    const childBedRaw = pickPreservedChildPriceHanatour(d.childBedPrice, previous?.childBedPrice)
-    const childBedPrice = childBedRaw ?? adultPrice
-    const childNoBedRaw = pickPreservedChildPriceHanatour(d.childNoBedPrice, previous?.childNoBedPrice)
-    const childNoBedPrice = childNoBedRaw ?? adultPrice
-    // 유아: 0은 미전달로 보고 기존값 유지
-    const infantPrice = pickPreservedInfantPriceHanatour(d.infantPrice, previous?.infantPrice)
+    let childBedPrice: number | null
+    let childNoBedPrice: number | null
+    let infantPrice: number | null
+    if (adultOnly2030) {
+      childBedPrice = null
+      childNoBedPrice = null
+      infantPrice = null
+    } else {
+      // 아동: incoming 없으면 기존 DB값 유지, 둘 다 없으면 성인가로 채움
+      const childBedRaw = pickPreservedChildPriceHanatour(d.childBedPrice, previous?.childBedPrice)
+      childBedPrice = childBedRaw ?? adultPrice
+      const childNoBedRaw = pickPreservedChildPriceHanatour(d.childNoBedPrice, previous?.childNoBedPrice)
+      childNoBedPrice = childNoBedRaw ?? adultPrice
+      // 유아: 0은 미전달로 보고 기존값 유지
+      infantPrice = pickPreservedInfantPriceHanatour(d.infantPrice, previous?.infantPrice)
+    }
     const minPax = d.minPax != null && !Number.isNaN(d.minPax) ? d.minPax : null
     const localPriceText = d.localPriceText != null && String(d.localPriceText).trim() ? String(d.localPriceText).trim().slice(0, 200) : null
     const statusRaw = d.statusRaw != null && String(d.statusRaw).trim() ? String(d.statusRaw).trim().slice(0, 200) : null

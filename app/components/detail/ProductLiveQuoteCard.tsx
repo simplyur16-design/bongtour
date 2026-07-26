@@ -19,6 +19,7 @@ import {
   PAX_STEP_INCREMENT_GLYPH,
   STICKY_PAX_ROWS,
 } from '@/lib/product-live-quote-pax-ui'
+import { isProductAdultOnly2030 } from '@/lib/product-adult-only-2030'
 
 type Pax = { adult: number; childBed: number; childNoBed: number; infant: number }
 
@@ -108,6 +109,17 @@ export default function ProductLiveQuoteCard({
   const showQuotationTotal =
     !showCollectingBanner && !showPendingQuoteBanner && totalPaxCount >= 1
 
+  // REGRESSION-FREEZE[product-adult-only-2030]: sticky hide child/infant — manifest
+  const adultOnly2030 =
+    product.adultOnly2030 === true ||
+    isProductAdultOnly2030({
+      title: product.title,
+      sportsThemeTag: product.sportsThemeTag,
+    })
+  const stickyPaxRows = adultOnly2030
+    ? STICKY_PAX_ROWS.filter((row) => row.key === 'adult')
+    : STICKY_PAX_ROWS
+
   return (
     <div className={`bt-card-strong border-2 border-bt-border-soft ${pad}`}>
       {heroTripDepartureDisplay || heroTripReturnDisplay ? (
@@ -179,7 +191,7 @@ export default function ProductLiveQuoteCard({
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide !text-[#1F1B2D]">{copy.paxSectionTitle}</p>
         <div className="space-y-2.5">
-          {STICKY_PAX_ROWS.map((row) => {
+          {stickyPaxRows.map((row) => {
             const isChildRow = row.key === 'child'
             const priceSlot = isChildRow ? 'childBed' : row.key
             const unit =

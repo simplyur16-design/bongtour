@@ -37,6 +37,7 @@ export type Product = {
   title: string
   /** R-5: 공급사 파싱 상품명. 신규 등록분만 채워질 수 있음 */
   originalTitle?: string | null
+  rawTitle?: string | null
   destination: string | null
   destinationRaw?: string | null
   primaryDestination?: string | null

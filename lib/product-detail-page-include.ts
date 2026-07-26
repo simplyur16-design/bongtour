@@ -86,6 +86,8 @@ export function buildProductDetailScalarsSelect() {
     originSource: true,
     originCode: true,
     title: true,
+    rawTitle: true,
+    sportsThemeTag: true,
     destination: true,
     primaryDestination: true,
     primaryRegion: true,

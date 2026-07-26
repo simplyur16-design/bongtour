@@ -705,10 +705,11 @@
           ]
         },
         {
-          "file": "lib/hanatour-register-schedule-2030.ts",
+          "file": "lib/product-adult-only-2030.ts",
           "mustInclude": [
             "투어\\s*Light\\b",
-            "또래\\s*친구\\s*만들기"
+            "또래\\s*친구\\s*만들기",
+            "isProductAdultOnly2030"
           ]
         },
         {
@@ -721,6 +722,58 @@
       ],
       "vitestSuites": [
         "lib/hanatour-register-schedule-2030.test.ts"
+      ]
+    },
+    {
+      "id": "product-adult-only-2030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "2030 성인 전용 — 공개/관리자 아동·유아 비노출·upsert 재채움 금지·백필",
+      "checks": [
+        {
+          "file": "lib/product-adult-only-2030.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-adult-only-2030]",
+            "isProductAdultOnly2030",
+            "stripAdultOnly2030PriceRows"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-adult-only-2030]",
+            "adultOnly2030",
+            "isProductAdultOnly2030"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-adult-only-2030]",
+            "stickyPaxRows",
+            "isProductAdultOnly2030"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-adult-only-2030]",
+            "stripAdultOnly2030PriceRows"
+          ]
+        },
+        {
+          "file": "scripts/backfill-2030-adult-only-prices.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-adult-only-2030]",
+            "childBedPrice: null",
+            "isProductAdultOnly2030"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-adult-only-2030.test.ts"
       ]
     },
     {

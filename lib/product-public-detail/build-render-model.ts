@@ -117,6 +117,10 @@ import type {
 } from '@/lib/product-public-detail/types'
 import { absoluteUrl, buildPublicProductDescription } from '@/lib/site-metadata'
 import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
+import {
+  isProductAdultOnly2030,
+  stripAdultOnly2030PriceRows,
+} from '@/lib/product-adult-only-2030'
 
 export type ProductDetailViewRow = Prisma.ProductGetPayload<{
   select: ReturnType<typeof buildProductDetailPageSelect>
@@ -659,6 +663,16 @@ export async function buildProductPublicDetailRenderModel(
   )
   let priceRowsForPublic = Array.isArray(mergedPriceRows) ? mergedPriceRows : []
 
+  // REGRESSION-FREEZE[product-adult-only-2030]: public rows strip child/infant — manifest
+  const adultOnly2030 = isProductAdultOnly2030({
+    title: travelProduct.title,
+    rawTitle: travelProduct.rawTitle,
+    sportsThemeTag: travelProduct.sportsThemeTag,
+  })
+  if (adultOnly2030) {
+    priceRowsForPublic = stripAdultOnly2030PriceRows(priceRowsForPublic)
+  }
+
   if (isAirHotelProduct({ listingKind: travelProduct.listingKind, productType: travelProduct.productType })) {
     /** 자유여행: 출발 달력·ProductPrice 행이 비어도 본문 연령별 표·priceFrom으로 견적 SSOT 보강 */
     const fallbackDate =
@@ -844,6 +858,8 @@ export async function buildProductPublicDetailRenderModel(
     primaryDestination: travelProduct.primaryDestination ?? null,
     listingKind: travelProduct.listingKind ?? null,
     departureAirportLabelDisplay: homeDepartureAirportDisplayText(travelProduct.departureAirportLabel),
+    sportsThemeTag: Array.isArray(travelProduct.sportsThemeTag) ? travelProduct.sportsThemeTag : [],
+    adultOnly2030,
     infantAgeRuleText: structured?.infantAgeRuleText ?? null,
     childAgeRuleText: structured?.childAgeRuleText ?? null,
     bgImageSource: travelProduct.bgImageSource ?? null,

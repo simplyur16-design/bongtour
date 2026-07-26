@@ -31,6 +31,7 @@ import {
   TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
 import { isSingleDepartureAdminCheckboxDisabled } from '@/lib/single-departure-product-ssot'
+import { isProductAdultOnly2030 } from '@/lib/product-adult-only-2030'
 import SportsThemeTagMultiSelect from '@/app/admin/components/SportsThemeTagMultiSelect'
 import { adminProductBgImageAttributionLine } from '@/lib/product-bg-image-attribution'
 import {
@@ -405,6 +406,19 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       originForInternal,
     }
   }, [product])
+
+  // REGRESSION-FREEZE[product-adult-only-2030]: admin hide child/infant — manifest
+  const adultOnly2030 = useMemo(
+    () =>
+      product
+        ? isProductAdultOnly2030({
+            title: product.title,
+            rawTitle: product.rawTitle ?? product.originalTitle,
+            sportsThemeTag: product.sportsThemeTag,
+          })
+        : false,
+    [product],
+  )
 
   const flightManualContext = useMemo(() => {
     if (!product?.rawMeta || !supplierInternal) return null
@@ -2771,9 +2785,13 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                   <tr className="border-b border-bt-border-strong text-left">
                     <th className="py-2 pr-2 font-medium text-bt-meta">출발일</th>
                     <th className="py-2 pr-2 font-medium text-bt-meta">성인가</th>
-                    <th className="py-2 pr-2 font-medium text-bt-meta">아동(베드)</th>
-                    <th className="py-2 pr-2 font-medium text-bt-meta">아동(노베드)</th>
-                    <th className="py-2 pr-2 font-medium text-bt-meta">유아</th>
+                    {!adultOnly2030 ? (
+                      <>
+                        <th className="py-2 pr-2 font-medium text-bt-meta">아동(베드)</th>
+                        <th className="py-2 pr-2 font-medium text-bt-meta">아동(노베드)</th>
+                        <th className="py-2 pr-2 font-medium text-bt-meta">유아</th>
+                      </>
+                    ) : null}
                     <th className="py-2 pr-2 font-medium text-bt-meta">상태</th>
                     <th className="py-2 pr-2 font-medium text-bt-meta">잔여</th>
                     <th className="py-2 pr-2 font-medium text-bt-meta">확정</th>
@@ -2798,15 +2816,19 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                         <td className="py-2 pr-2">
                           {row.adultPrice != null ? row.adultPrice.toLocaleString() : '—'}
                         </td>
-                        <td className="py-2 pr-2">
-                          {row.childBedPrice != null ? row.childBedPrice.toLocaleString() : '—'}
-                        </td>
-                        <td className="py-2 pr-2">
-                          {row.childNoBedPrice != null ? row.childNoBedPrice.toLocaleString() : '—'}
-                        </td>
-                        <td className="py-2 pr-2">
-                          {row.infantPrice != null ? row.infantPrice.toLocaleString() : '—'}
-                        </td>
+                        {!adultOnly2030 ? (
+                          <>
+                            <td className="py-2 pr-2">
+                              {row.childBedPrice != null ? row.childBedPrice.toLocaleString() : '—'}
+                            </td>
+                            <td className="py-2 pr-2">
+                              {row.childNoBedPrice != null ? row.childNoBedPrice.toLocaleString() : '—'}
+                            </td>
+                            <td className="py-2 pr-2">
+                              {row.infantPrice != null ? row.infantPrice.toLocaleString() : '—'}
+                            </td>
+                          </>
+                        ) : null}
                         <td
                           className="max-w-[120px] truncate py-2 pr-2 text-bt-meta"
                           title={adminDepartureText(row.statusRaw ?? undefined) || undefined}
@@ -2998,39 +3020,47 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                   className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-xs text-bt-subtle">아동(베드)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={priceForm.childBed}
-                  onChange={(e) => setPriceForm((f) => ({ ...f, childBed: e.target.value }))}
-                  placeholder="원"
-                  className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-bt-subtle">아동(노베드)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={priceForm.childNoBed}
-                  onChange={(e) => setPriceForm((f) => ({ ...f, childNoBed: e.target.value }))}
-                  placeholder="원"
-                  className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-bt-subtle">유아</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={priceForm.infant}
-                  onChange={(e) => setPriceForm((f) => ({ ...f, infant: e.target.value }))}
-                  placeholder="원"
-                  className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
-                />
-              </div>
+              {!adultOnly2030 ? (
+                <>
+                  <div>
+                    <label className="mb-1 block text-xs text-bt-subtle">아동(베드)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={priceForm.childBed}
+                      onChange={(e) => setPriceForm((f) => ({ ...f, childBed: e.target.value }))}
+                      placeholder="원"
+                      className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-bt-subtle">아동(노베드)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={priceForm.childNoBed}
+                      onChange={(e) => setPriceForm((f) => ({ ...f, childNoBed: e.target.value }))}
+                      placeholder="원"
+                      className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-bt-subtle">유아</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={priceForm.infant}
+                      onChange={(e) => setPriceForm((f) => ({ ...f, infant: e.target.value }))}
+                      placeholder="원"
+                      className="w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="sm:col-span-2 text-xs text-bt-subtle">
+                  2030 성인 전용 상품 — 아동·유아 요금 슬롯을 표시하지 않습니다.
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -3044,9 +3074,21 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                     body: JSON.stringify({
                       firstPriceRow: {
                         priceAdult: priceForm.adult,
-                        priceChildWithBed: priceForm.childBed === '' ? null : parseInt(priceForm.childBed, 10),
-                        priceChildNoBed: priceForm.childNoBed === '' ? null : parseInt(priceForm.childNoBed, 10),
-                        priceInfant: priceForm.infant === '' ? null : parseInt(priceForm.infant, 10),
+                        priceChildWithBed: adultOnly2030
+                          ? null
+                          : priceForm.childBed === ''
+                            ? null
+                            : parseInt(priceForm.childBed, 10),
+                        priceChildNoBed: adultOnly2030
+                          ? null
+                          : priceForm.childNoBed === ''
+                            ? null
+                            : parseInt(priceForm.childNoBed, 10),
+                        priceInfant: adultOnly2030
+                          ? null
+                          : priceForm.infant === ''
+                            ? null
+                            : parseInt(priceForm.infant, 10),
                       },
                     }),
                   })
@@ -3079,7 +3121,9 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                   <tr className="border-b border-bt-border-strong text-bt-meta">
                     <th className="px-2 py-2 text-left">날짜</th>
                     <th className="px-2 py-2 text-right">성인</th>
-                    <th className="px-2 py-2 text-right">아동/노베드/유아</th>
+                    {!adultOnly2030 ? (
+                      <th className="px-2 py-2 text-right">아동/노베드/유아</th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -3091,12 +3135,14 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                       <td className="px-2 py-1.5 text-right text-bt-inverse">
                         {(row.adult ?? 0).toLocaleString()}원
                       </td>
-                      <td className="px-2 py-1.5 text-right text-bt-meta">
-                        {[row.childBed, row.childNoBed, row.infant]
-                          .filter((v): v is number => v != null)
-                          .map((v) => v.toLocaleString())
-                          .join(' / ') || '—'}
-                      </td>
+                      {!adultOnly2030 ? (
+                        <td className="px-2 py-1.5 text-right text-bt-meta">
+                          {[row.childBed, row.childNoBed, row.infant]
+                            .filter((v): v is number => v != null)
+                            .map((v) => v.toLocaleString())
+                            .join(' / ') || '—'}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
