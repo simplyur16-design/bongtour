@@ -9644,6 +9644,83 @@
       ]
     },
     {
+      "id": "bongsim-affiliation-card-ocr",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 소속 명함 — CLOVA OCR 보조 + 관리자 승인 → affiliationVerified 할인",
+      "checks": [
+        {
+          "file": "lib/bongsim/affiliation/clova-name-card-ocr.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "invokeClovaNameCardOcr",
+            "parseClovaNameCardFields",
+            "NCP_CLOVA_OCR_INVOKE_URL",
+            "X-OCR-SECRET"
+          ]
+        },
+        {
+          "file": "lib/bongsim/affiliation/affiliation-card-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "submitAffiliationCardRequest",
+            "reviewAffiliationCardRequest",
+            "affiliationVerified",
+            "sendAdminShortAlertSms"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "loadUserOccupationDiscountEligible",
+            "affiliationVerified"
+          ]
+        },
+        {
+          "file": "lib/bongsim/promo/esim-first-purchase-preview.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "affiliationVerified"
+          ]
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "BongsimAffiliationCardRequest",
+            "affiliationVerified"
+          ]
+        },
+        {
+          "file": "components/mypage/AffiliationCardClient.tsx",
+          "mustInclude": [
+            "NameCardCameraOverlay",
+            "사진 촬영",
+            "사진 업로드"
+          ]
+        },
+        {
+          "file": "components/mypage/NameCardCameraOverlay.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "name-card camera frame",
+            "data-name-card-frame",
+            "getUserMedia",
+            "명함을 흰 틀 안에 맞춰 주세요",
+            "사진 찍기",
+            "확인하기",
+            "다시 찍기"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/affiliation/clova-name-card-ocr.test.ts"
+      ]
+    },
+    {
       "id": "esim-first-purchase-discount-15pct",
       "tier": [
         "prebuild",

@@ -560,6 +560,11 @@ model User {
   pressVerifiedAt          DateTime? @db.Timestamp(6)
   pressVerifiedDomain      String?
   pressVerifiedEmail       String?
+  /// 명함 관리자 승인 후 eSIM 직군형 지속 할인 (pressVerified 와 OR)
+  affiliationVerified       Boolean   @default(false)
+  affiliationVerifiedAt     DateTime? @db.Timestamp(6)
+  affiliationOrgName        String?
+  affiliationCardImageUrl   String?
   lastLoginAt              DateTime?
   /// 가입 시 입력한 추천 코드(원문, 대소문자 무시 조회는 앱 레이어)
   referredByCode           String?
@@ -1641,6 +1646,31 @@ model BongsimPressVerification {
   @@index([userId, workEmail, createdAt(sort: Desc)], map: "idx_press_verif_user_email")
   @@index([expiresAt], map: "idx_press_verif_expires")
   @@map("bongsim_press_verification")
+}
+
+/// eSIM 소속 명함 승인 요청 — CLOVA OCR 보조 + 관리자 승인 게이트
+/// REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: schema — manifest
+model BongsimAffiliationCardRequest {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id")
+  status         String    @default("pending")
+  imageObjectKey String    @map("image_object_key")
+  imageUrl       String    @map("image_url")
+  ocrRawJson     String?   @map("ocr_raw_json") @db.Text
+  ocrName        String?   @map("ocr_name")
+  ocrCompany     String?   @map("ocr_company")
+  ocrEmail       String?   @map("ocr_email")
+  ocrPhone       String?   @map("ocr_phone")
+  ocrPosition    String?   @map("ocr_position")
+  adminNote      String?   @map("admin_note") @db.Text
+  reviewedBy     String?   @map("reviewed_by")
+  reviewedAt     DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_affil_card_status_created")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_affil_card_user_created")
+  @@map("bongsim_affiliation_card_request")
 }
 
 /// 메인 시즌 추천 도시 사이클(매달 KST 1일 기준) — Gemini가 primary 5 + fallback 10 cityKey 제안, PR-D3 검증 후 저장

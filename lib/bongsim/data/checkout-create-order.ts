@@ -70,12 +70,19 @@ export function pressMemberCouponRejection(
   return null;
 }
 
-async function loadUserPressVerified(client: PoolClient, userId: string): Promise<boolean> {
-  const r = await client.query<{ pressVerified: boolean }>(
-    `SELECT "pressVerified" FROM "User" WHERE id = $1 LIMIT 1`,
+/** 언론 OTP 또는 명함 관리자 승인 → eSIM 직군형 지속 할인 */
+// REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: occupation discount OR affiliationVerified — manifest
+async function loadUserOccupationDiscountEligible(
+  client: PoolClient,
+  userId: string,
+): Promise<boolean> {
+  const r = await client.query<{ pressVerified: boolean; affiliationVerified: boolean }>(
+    `SELECT "pressVerified", COALESCE("affiliationVerified", false) AS "affiliationVerified"
+     FROM "User" WHERE id = $1 LIMIT 1`,
     [userId.trim()],
   );
-  return Boolean(r.rows[0]?.pressVerified);
+  const row = r.rows[0];
+  return Boolean(row?.pressVerified || row?.affiliationVerified);
 }
 
 /** validateRequest 이후 항상 `lines`가 채워진 요청. */
@@ -732,9 +739,9 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     const isSimplyur = isSimplyurCheckoutChannel(req.checkout_channel);
     const bongtourUserId = req.bongtour_user_id?.trim() ?? "";
     if (!isSimplyur && bongtourUserId) {
-      const pressVerified = await loadUserPressVerified(client, bongtourUserId);
+      const occupationEligible = await loadUserOccupationDiscountEligible(client, bongtourUserId);
       const pressCouponReject = pressMemberCouponRejection(
-        pressVerified,
+        occupationEligible,
         req.coupon_id,
         req.user_coupon_id,
       );
@@ -742,7 +749,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         await client.query("ROLLBACK");
         return { ok: false, reason: "validation", details: { coupon: pressCouponReject } };
       }
-      if (pressVerified) {
+      if (occupationEligible) {
         discount_krw = computePressMemberDiscountKrw(subtotal_krw);
         pressDiscountApplied = true;
       }

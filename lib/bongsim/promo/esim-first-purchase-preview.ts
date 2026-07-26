@@ -21,12 +21,18 @@ export type EsimFirstPurchasePreviewResult =
       reason: "missing_buyer" | "invalid_subtotal" | "prior_purchase" | "press_member" | "db_unconfigured";
     };
 
-async function loadUserPressVerified(client: PoolClient, userId: string): Promise<boolean> {
-  const r = await client.query<{ pressVerified: boolean }>(
-    `SELECT "pressVerified" FROM "User" WHERE id = $1 LIMIT 1`,
+// REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: first-purchase skip when affiliationVerified — manifest
+async function loadUserOccupationDiscountEligible(
+  client: PoolClient,
+  userId: string,
+): Promise<boolean> {
+  const r = await client.query<{ pressVerified: boolean; affiliationVerified: boolean }>(
+    `SELECT "pressVerified", COALESCE("affiliationVerified", false) AS "affiliationVerified"
+     FROM "User" WHERE id = $1 LIMIT 1`,
     [userId.trim()],
   );
-  return Boolean(r.rows[0]?.pressVerified);
+  const row = r.rows[0];
+  return Boolean(row?.pressVerified || row?.affiliationVerified);
 }
 
 /** 첫구매 15% UI·API 프리뷰 — 결제 confirm 과 동일 우선순위(직군 > 쿠폰 > 첫구매). */
@@ -52,8 +58,8 @@ export async function resolveEsimFirstPurchasePreview(input: {
   const client = await pool.connect();
   try {
     if (userId) {
-      const pressVerified = await loadUserPressVerified(client, userId);
-      if (pressVerified) {
+      const occupationEligible = await loadUserOccupationDiscountEligible(client, userId);
+      if (occupationEligible) {
         return { eligible: false, reason: "press_member" };
       }
     }

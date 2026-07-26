@@ -10,7 +10,8 @@ const HUB_LINKS = [
   { href: '/mypage/esim', label: '내 eSIM 주문내역', desc: '주문·QR·취소·환불', icon: Smartphone },
   { href: '/mypage/reviews', label: '여행 후기', desc: '목록·작성·수정', icon: PenLine },
   { href: '/mypage/coupons', label: '내 쿠폰함', desc: '할인권 확인', icon: Gift },
-  { href: '/mypage/press', label: '직군 인증', desc: '언론사 직장 이메일', icon: BadgeCheck },
+  { href: '/mypage/affiliation', label: '소속 명함 인증', desc: '명함 제출·관리자 승인 후 eSIM 할인', icon: BadgeCheck },
+  { href: '/mypage/press', label: '언론사 이메일 인증', desc: '직장 이메일 OTP', icon: BadgeCheck },
   { href: '/mypage/marketing-consent', label: '마케팅 수신 동의', desc: '동의 여부·일자 확인', icon: Bell },
 ] as const
 
