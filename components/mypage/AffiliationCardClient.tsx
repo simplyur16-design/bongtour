@@ -19,7 +19,6 @@ type Latest = {
 } | null
 
 type Initial = {
-  pressVerified: boolean
   affiliationVerified: boolean
   affiliationVerifiedAt: string | null
   affiliationOrgName: string | null
@@ -49,7 +48,7 @@ export default function AffiliationCardClient({ initial }: { initial: Initial })
   const [okMsg, setOkMsg] = useState<string | null>(null)
   const [latest, setLatest] = useState<Latest>(initial.latest)
   const [cameraOpen, setCameraOpen] = useState(false)
-  const verified = initial.affiliationVerified || initial.pressVerified
+  const verified = initial.affiliationVerified
 
   const statusLabel = useMemo(() => {
     if (verified) return '할인 적용 중'
@@ -127,7 +126,6 @@ export default function AffiliationCardClient({ initial }: { initial: Initial })
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           eSIM 직군 할인이 적용 중입니다.
           {initial.affiliationOrgName ? ` (${initial.affiliationOrgName})` : null}
-          {initial.pressVerified ? ' · 언론사 이메일 인증' : null}
         </p>
         {(initial.affiliationCardImageUrl || latest?.imageUrl) && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -228,14 +226,6 @@ export default function AffiliationCardClient({ initial }: { initial: Initial })
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
       {okMsg && <p className="text-sm text-emerald-700">{okMsg}</p>}
-
-      <p className="text-xs text-slate-500">
-        언론사 직장 이메일이 있으면{' '}
-        <Link href="/mypage/press" className="underline">
-          직군 이메일 인증
-        </Link>
-        으로도 할인을 받을 수 있습니다.
-      </p>
 
       {isMobile && (
         <NameCardCameraOverlay

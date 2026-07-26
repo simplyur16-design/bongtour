@@ -25,7 +25,6 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      pressVerified: true,
       affiliationVerified: true,
       affiliationVerifiedAt: true,
       affiliationOrgName: true,
@@ -39,7 +38,6 @@ export async function GET() {
       ok: true,
       user: user
         ? {
-            pressVerified: user.pressVerified,
             affiliationVerified: user.affiliationVerified,
             affiliationVerifiedAt: user.affiliationVerifiedAt?.toISOString() ?? null,
             affiliationOrgName: user.affiliationOrgName,

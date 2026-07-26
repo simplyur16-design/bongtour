@@ -26,13 +26,13 @@ async function loadUserOccupationDiscountEligible(
   client: PoolClient,
   userId: string,
 ): Promise<boolean> {
-  const r = await client.query<{ pressVerified: boolean; affiliationVerified: boolean }>(
-    `SELECT "pressVerified", COALESCE("affiliationVerified", false) AS "affiliationVerified"
+  const r = await client.query<{ affiliationVerified: boolean }>(
+    `SELECT COALESCE("affiliationVerified", false) AS "affiliationVerified"
      FROM "User" WHERE id = $1 LIMIT 1`,
     [userId.trim()],
   );
   const row = r.rows[0];
-  return Boolean(row?.pressVerified || row?.affiliationVerified);
+  return Boolean(row?.affiliationVerified);
 }
 
 /** 첫구매 15% UI·API 프리뷰 — 결제 confirm 과 동일 우선순위(직군 > 쿠폰 > 첫구매). */

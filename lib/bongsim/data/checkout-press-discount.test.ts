@@ -24,7 +24,7 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     expect(pressMemberCouponRejection(true, "c1", "u1")).toBe("press_member_no_coupon");
   });
 
-  it("3) 비직군(pressVerified=false) + 쿠폰 필드 → 거절 없음(기존 쿠폰 경로)", () => {
+  it("3) 비직군(occupationEligible=false) + 쿠폰 필드 → 거절 없음(기존 쿠폰 경로)", () => {
     expect(
       pressMemberCouponRejection(false, "00000000-0000-4000-8000-000000000001", null),
     ).toBeNull();
@@ -32,10 +32,10 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     expect(computePressMemberDiscountKrw(20_000)).toBeGreaterThan(0);
   });
 
-  it("4) 비로그인(bongtour_user_id 없음) → 직군 분기 미진입(pressVerified 조회 안 함)", () => {
+  it("4) 비로그인(bongtour_user_id 없음) → 직군 분기 미진입", () => {
     const bongtourUserId = "";
-    const entersPressBranch = Boolean(bongtourUserId);
-    expect(entersPressBranch).toBe(false);
+    const entersOccupationBranch = Boolean(bongtourUserId);
+    expect(entersOccupationBranch).toBe(false);
     expect(pressMemberCouponRejection(false, null, null)).toBeNull();
   });
 

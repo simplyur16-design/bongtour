@@ -560,7 +560,7 @@ model User {
   pressVerifiedAt          DateTime? @db.Timestamp(6)
   pressVerifiedDomain      String?
   pressVerifiedEmail       String?
-  /// 명함 관리자 승인 후 eSIM 직군형 지속 할인 (pressVerified 와 OR)
+  /// 명함 관리자 승인 후 eSIM 직군형 지속 할인 (언론 이메일 OTP 폐기 — affiliationVerified만)
   affiliationVerified       Boolean   @default(false)
   affiliationVerifiedAt     DateTime? @db.Timestamp(6)
   affiliationOrgName        String?

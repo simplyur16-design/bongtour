@@ -57,32 +57,32 @@ export function computePressMemberDiscountKrw(subtotal_krw: number): number {
   return Math.floor((sub * PRESS_MEMBER_DISCOUNT_RATE_PCT) / 100);
 }
 
-/** pressVerified 직군 회원이 쿠폰 필드를내면 거절 코드, 아니면 null. */
+/** 명함 승인(occupation) 회원이 쿠폰 필드를내면 거절 코드, 아니면 null. */
 export function pressMemberCouponRejection(
-  pressVerified: boolean,
+  occupationEligible: boolean,
   coupon_id?: string | null,
   user_coupon_id?: string | null,
 ): "press_member_no_coupon" | null {
-  if (!pressVerified) return null;
+  if (!occupationEligible) return null;
   if ((coupon_id ?? "").trim() || (user_coupon_id ?? "").trim()) {
     return "press_member_no_coupon";
   }
   return null;
 }
 
-/** 언론 OTP 또는 명함 관리자 승인 → eSIM 직군형 지속 할인 */
-// REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: occupation discount OR affiliationVerified — manifest
+/** 명함 관리자 승인(affiliationVerified)만 → eSIM 직군형 지속 할인 (언론 이메일 OTP 폐기) */
+// REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: occupation discount affiliationVerified only — manifest
 async function loadUserOccupationDiscountEligible(
   client: PoolClient,
   userId: string,
 ): Promise<boolean> {
-  const r = await client.query<{ pressVerified: boolean; affiliationVerified: boolean }>(
-    `SELECT "pressVerified", COALESCE("affiliationVerified", false) AS "affiliationVerified"
+  const r = await client.query<{ affiliationVerified: boolean }>(
+    `SELECT COALESCE("affiliationVerified", false) AS "affiliationVerified"
      FROM "User" WHERE id = $1 LIMIT 1`,
     [userId.trim()],
   );
   const row = r.rows[0];
-  return Boolean(row?.pressVerified || row?.affiliationVerified);
+  return Boolean(row?.affiliationVerified);
 }
 
 /** validateRequest 이후 항상 `lines`가 채워진 요청. */

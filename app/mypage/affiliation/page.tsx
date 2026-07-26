@@ -16,7 +16,6 @@ export default async function MyPageAffiliationCardPage() {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      pressVerified: true,
       affiliationVerified: true,
       affiliationVerifiedAt: true,
       affiliationOrgName: true,
@@ -32,7 +31,6 @@ export default async function MyPageAffiliationCardPage() {
   return (
     <AffiliationCardClient
       initial={{
-        pressVerified: user.pressVerified,
         affiliationVerified: user.affiliationVerified,
         affiliationVerifiedAt: user.affiliationVerifiedAt?.toISOString() ?? null,
         affiliationOrgName: user.affiliationOrgName,

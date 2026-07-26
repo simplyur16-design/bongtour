@@ -137,7 +137,7 @@ export default function MarketingConsentClient({ initial, returnTo }: Props) {
       {!consented ? (
         <form onSubmit={onOptIn} className="rounded-2xl border border-[#DAD4EE] bg-white p-5 shadow-sm space-y-4">
           <p className="text-sm text-[#534AB7]">
-            직군(언론사) 인증 등 일부 혜택은 마케팅 수신 동의가 필요합니다.
+            일부 프로모션·혜택 안내는 마케팅 수신 동의가 필요합니다.
           </p>
           <ConsentBlock type="marketing" checked={marketing} onChange={setMarketing} required={false} />
           <button
@@ -151,7 +151,7 @@ export default function MarketingConsentClient({ initial, returnTo }: Props) {
       ) : (
         <div className="rounded-2xl border border-[#DAD4EE] bg-white p-5 shadow-sm space-y-3">
           <p className="text-sm text-[#534AB7]">
-            동의를 철회해도 기본 서비스 이용에는 제한이 없습니다. 다만 직군 인증 혜택은 이용할 수 없습니다.
+            동의를 철회해도 기본 서비스 이용에는 제한이 없습니다. 소속 명함 인증(eSIM 할인)은 마케팅 동의와 별도로 이용할 수 있습니다.
           </p>
           <button
             type="button"
@@ -196,7 +196,7 @@ export default function MarketingConsentClient({ initial, returnTo }: Props) {
               마케팅 수신 동의를 철회할까요?
             </h2>
             <p className="mt-2 text-sm text-[#534AB7]">
-              철회 후에는 직군(언론사) 인증 할인 혜택을 이용할 수 없습니다.
+              철회 후에는 마케팅 목적의 안내·혜택 안내를 받지 않습니다. 소속 명함 인증 할인은 영향을 받지 않습니다.
             </p>
             <div className="mt-6 flex gap-2">
               <button

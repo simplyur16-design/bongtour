@@ -89,7 +89,6 @@ export async function submitAffiliationCardRequest(params: {
     where: { id: userId },
     select: {
       affiliationVerified: true,
-      pressVerified: true,
       name: true,
       email: true,
     },
@@ -97,7 +96,7 @@ export async function submitAffiliationCardRequest(params: {
   if (!user) {
     return { ok: false, reason: 'db_error', message: '회원을 찾을 수 없습니다.' }
   }
-  if (user.affiliationVerified || user.pressVerified) {
+  if (user.affiliationVerified) {
     return { ok: false, reason: 'already_verified', message: '이미 eSIM 직군 할인이 적용된 계정입니다.' }
   }
 

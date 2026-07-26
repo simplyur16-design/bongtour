@@ -9649,7 +9649,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 소속 명함 — CLOVA OCR 보조 + 관리자 승인 → affiliationVerified 할인",
+      "summary": "eSIM 소속 명함 — CLOVA OCR 보조 + 관리자 승인 → affiliationVerified 할인 (언론 OTP 미사용)",
       "checks": [
         {
           "file": "lib/bongsim/affiliation/clova-name-card-ocr.ts",
@@ -9669,6 +9669,9 @@
             "reviewAffiliationCardRequest",
             "affiliationVerified",
             "sendAdminShortAlertSms"
+          ],
+          "mustNotInclude": [
+            "pressVerified"
           ]
         },
         {
@@ -9676,7 +9679,12 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
             "loadUserOccupationDiscountEligible",
-            "affiliationVerified"
+            "affiliationVerified",
+            "occupation discount affiliationVerified only"
+          ],
+          "mustNotInclude": [
+            "pressVerified ||",
+            "row?.pressVerified"
           ]
         },
         {
@@ -9684,6 +9692,10 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
             "affiliationVerified"
+          ],
+          "mustNotInclude": [
+            "pressVerified ||",
+            "row?.pressVerified"
           ]
         },
         {
@@ -9700,6 +9712,10 @@
             "NameCardCameraOverlay",
             "사진 촬영",
             "사진 업로드"
+          ],
+          "mustNotInclude": [
+            "/mypage/press",
+            "pressVerified"
           ]
         },
         {
@@ -9714,10 +9730,89 @@
             "확인하기",
             "다시 찍기"
           ]
+        },
+        {
+          "file": "app/admin/components/AdminSidebar.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "admin mobile drawer shell",
+            "data-admin-mobile-bar",
+            "data-admin-mobile-drawer",
+            "명함승인"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/affiliation-cards/AffiliationCardsAdminClient.tsx",
+          "mustInclude": [
+            "data-admin-affiliation-mobile",
+            "승인 · 할인",
+            "탭하면 확대"
+          ]
         }
       ],
       "vitestSuites": [
-        "lib/bongsim/affiliation/clova-name-card-ocr.test.ts"
+        "lib/bongsim/affiliation/clova-name-card-ocr.test.ts",
+        "lib/bongsim/data/checkout-press-discount.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-press-email-retired",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "언론사 이메일 OTP 폐기 — 410 + mypage 명함만",
+      "checks": [
+        {
+          "file": "app/api/bongsim/mypage/press/request-otp/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-press-email-retired]",
+            "press_email_auth_retired",
+            "status: 410"
+          ],
+          "mustNotInclude": [
+            "requestPressOtp"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/mypage/press/verify-otp/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-press-email-retired]",
+            "press_email_auth_retired",
+            "status: 410"
+          ],
+          "mustNotInclude": [
+            "verifyPressOtp"
+          ]
+        },
+        {
+          "file": "app/mypage/press/page.tsx",
+          "mustInclude": [
+            "redirect('/mypage/affiliation')"
+          ],
+          "mustNotInclude": [
+            "PressVerificationClient"
+          ]
+        },
+        {
+          "file": "app/mypage/page.tsx",
+          "mustInclude": [
+            "/mypage/affiliation"
+          ],
+          "mustNotInclude": [
+            "/mypage/press"
+          ]
+        },
+        {
+          "file": "app/mypage/layout.tsx",
+          "mustInclude": [
+            "/mypage/affiliation",
+            "소속 명함 인증"
+          ],
+          "mustNotInclude": [
+            "/mypage/press"
+          ]
+        }
       ]
     },
     {
@@ -10321,7 +10416,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
             "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
-            "255-81-03455"
+            "255-81-03455",
+            "addressEn",
+            "COMPANY_FOOTER.addressLineEn"
           ]
         },
         {
@@ -10330,7 +10427,8 @@
             "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
             "simplyurLegalPath",
             "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
-            "255-81-03455"
+            "255-81-03455",
+            "e.addressEn"
           ],
           "mustNotInclude": [
             "hidden md:block"
@@ -10341,7 +10439,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
             "SimplyurTermsEnBody",
-            "Korea eSIM for international visitors"
+            "Korea eSIM for international visitors",
+            "e.addressEn"
+          ]
+        },
+        {
+          "file": "lib/company-footer.ts",
+          "mustInclude": [
+            "addressLineEn",
+            "Edutown-ro"
           ]
         },
         {

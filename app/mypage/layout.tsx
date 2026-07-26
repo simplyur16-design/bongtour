@@ -9,7 +9,7 @@ const nav = [
   { href: '/mypage/esim', label: '내 eSIM', icon: Smartphone },
   { href: '/mypage/reviews', label: '여행 후기', icon: PenLine },
   { href: '/mypage/coupons', label: '내 쿠폰함', icon: Gift },
-  { href: '/mypage/press', label: '직군 인증', icon: BadgeCheck },
+  { href: '/mypage/affiliation', label: '소속 명함 인증', icon: BadgeCheck },
 ] as const
 
 export default function MyPageLayout({ children }: { children: ReactNode }) {

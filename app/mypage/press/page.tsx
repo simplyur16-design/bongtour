@@ -1,43 +1,8 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import PressVerificationClient from "@/components/mypage/PressVerificationClient";
+import { redirect } from 'next/navigation'
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
-export default async function MyPagePressVerificationPage() {
-  const session = await auth();
-  const userId = ((session?.user as { id?: string } | undefined)?.id ?? "").trim();
-  if (!userId) {
-    redirect("/auth/signin?callbackUrl=/mypage/press");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      pressVerified: true,
-      pressVerifiedAt: true,
-      pressVerifiedDomain: true,
-      pressVerifiedEmail: true,
-      marketingConsent: true,
-      marketingConsentAt: true,
-    },
-  });
-
-  if (!user) {
-    redirect("/auth/signin?callbackUrl=/mypage/press");
-  }
-
-  return (
-    <PressVerificationClient
-      initial={{
-        pressVerified: user.pressVerified,
-        pressVerifiedAt: user.pressVerifiedAt?.toISOString() ?? null,
-        pressVerifiedDomain: user.pressVerifiedDomain,
-        pressVerifiedEmail: user.pressVerifiedEmail,
-        marketingConsent: user.marketingConsent,
-        marketingConsentAt: user.marketingConsentAt?.toISOString() ?? null,
-      }}
-    />
-  );
+/** 언론사 이메일 OTP 폐기 — 소속 명함 인증으로 통합 */
+export default function MyPagePressVerificationPage() {
+  redirect('/mypage/affiliation')
 }
