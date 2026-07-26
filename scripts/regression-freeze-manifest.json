@@ -9276,6 +9276,94 @@
       "vitestSuites": [
         "lib/register-destination-reject-ilju.test.ts"
       ]
+    },
+    {
+      "id": "admin-mobile-ops-b-register",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "관리자 모바일 B+상품등록 — quick chips, 카드 목록, register 스택·confirm CTA",
+      "checks": [
+        {
+          "file": "app/admin/components/AdminSidebar.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-quick-chips",
+            "/admin/inquiries",
+            "/admin/bookings",
+            "/admin/register"
+          ]
+        },
+        {
+          "file": "app/admin/members/MembersAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-members"
+          ]
+        },
+        {
+          "file": "app/admin/bookings/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-bookings"
+          ]
+        },
+        {
+          "file": "components/admin/InquiryListTable.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-inquiries"
+          ]
+        },
+        {
+          "file": "app/admin/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-dashboard-actions",
+            "/admin/inquiries",
+            "/admin/register"
+          ]
+        },
+        {
+          "file": "app/admin/register/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-register",
+            "data-admin-mobile-register-confirm",
+            "미리보기 확인 후 최종 저장",
+            "사실 가져오기 (API)",
+            "봉투어 형식으로 변환"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admin-gemini-image-generate-parallel",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "관리자 Gemini 이미지 생성 — 슬롯 병렬 + 일차 maxSlots=2 (순차 4슬롯 체감 단축)",
+      "checks": [
+        {
+          "file": "app/api/admin/gemini/image-generate/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-gemini-image-generate-parallel]",
+            "Promise.all",
+            "maxSlots",
+            "stylePreset: 'admin_travel_slot'"
+          ],
+          "mustNotInclude": [
+            "for (let i = 0; i < slotList.length; i++)"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "maxSlots: 2",
+            "Gemini 생성 (2후보)"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -9899,64 +9987,6 @@
       "vitestSuites": [
         "lib/bongsim/affiliation/clova-name-card-ocr.test.ts",
         "lib/bongsim/data/checkout-press-discount.test.ts"
-      ]
-    },
-    {
-      "id": "admin-mobile-ops-b-register",
-      "tier": ["prebuild"],
-      "summary": "관리자 모바일 B+상품등록 — quick chips, 카드 목록, register 스택·confirm CTA",
-      "checks": [
-        {
-          "file": "app/admin/components/AdminSidebar.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
-            "data-admin-mobile-quick-chips",
-            "/admin/inquiries",
-            "/admin/bookings",
-            "/admin/register"
-          ]
-        },
-        {
-          "file": "app/admin/members/MembersAdminClient.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
-            "data-admin-mobile-members"
-          ]
-        },
-        {
-          "file": "app/admin/bookings/page.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
-            "data-admin-mobile-bookings"
-          ]
-        },
-        {
-          "file": "components/admin/InquiryListTable.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
-            "data-admin-mobile-inquiries"
-          ]
-        },
-        {
-          "file": "app/admin/page.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
-            "data-admin-mobile-dashboard-actions",
-            "/admin/inquiries",
-            "/admin/register"
-          ]
-        },
-        {
-          "file": "app/admin/register/page.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
-            "data-admin-mobile-register",
-            "data-admin-mobile-register-confirm",
-            "미리보기 확인 후 최종 저장",
-            "사실 가져오기 (API)",
-            "봉투어 형식으로 변환"
-          ]
-        }
       ]
     },
     {

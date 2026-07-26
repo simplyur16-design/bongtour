@@ -1553,6 +1553,8 @@ export default function AdminPendingDetailPanel({
         displayCategory: displayCategory || detail.displayCategory || null,
         scheduleJson: detail.schedule ?? null,
         promptOverride: dayPrompt,
+        /** 일차 수급: 2후보만 — 4슬롯 순차 대비 체감 단축 (API는 병렬) */
+        maxSlots: 2,
       }
       const res = await fetch('/api/admin/gemini/image-generate', {
         method: 'POST',
@@ -1964,7 +1966,7 @@ export default function AdminPendingDetailPanel({
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft"
                         title="저장값(promptOverride) 기준 4슬롯 생성 · 미저장 시 자동 추천 문자열이 fallback"
                       >
-                        {dayGeminiLoading[row.day] ? '생성 중… (Gemini)' : 'Gemini 생성 (저장값 기준)'}
+                        {dayGeminiLoading[row.day] ? '생성 중… (약 15–40초)' : 'Gemini 생성 (2후보)'}
                       </button>
                       <button
                         type="button"
@@ -2040,7 +2042,7 @@ export default function AdminPendingDetailPanel({
                         disabled={day2GeminiLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft"
                       >
-                        {day2GeminiLoading[row.day] ? 'Gemini 생성 중…' : 'Gemini 생성'}
+                        {day2GeminiLoading[row.day] ? '생성 중… (약 15–40초)' : 'Gemini 생성 (2후보)'}
                       </button>
                       <button
                         type="button"

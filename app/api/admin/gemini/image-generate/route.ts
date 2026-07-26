@@ -36,9 +36,13 @@ export type GeminiImageGenerateResponse =
 
 /**
  * POST /api/admin/gemini/image-generate
- * 관리자 전용. 4슬롯 고정으로 각각 Imagen 1장씩 생성.
+ * 관리자 전용. 슬롯별 Imagen 1장씩 생성(기본 4슬롯).
  *
- * Supabase Storage에 WebP로 업로드한 뒤 공개 HTTPS URL만 반환 (로컬 디스크 미사용).
+ * REGRESSION-FREEZE[admin-gemini-image-generate-parallel]: slots run in parallel — manifest
+ * (이전 순차 await는 일차당 1~2분 체감. Promise.all로 벽시계 ≈ 최장 슬롯 1회.)
+ *
+ * body.maxSlots (1~4, 선택): 앞쪽 슬롯만 생성. 일차 이미지 수급은 보통 2로 호출.
+ * Storage에 WebP 업로드 후 공개 HTTPS URL만 반환.
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -87,6 +91,11 @@ export async function POST(request: Request) {
       typeof body.trainingDescription === 'string' ? body.trainingDescription.trim() : null
     const trainingCategory =
       typeof body.trainingCategory === 'string' ? body.trainingCategory.trim() : null
+    const maxSlotsRaw = typeof body.maxSlots === 'number' ? body.maxSlots : Number(body.maxSlots)
+    const maxSlots =
+      Number.isFinite(maxSlotsRaw) && maxSlotsRaw >= 1
+        ? Math.min(4, Math.floor(maxSlotsRaw))
+        : null
 
     const promptOptions = {
       destination,
@@ -100,19 +109,17 @@ export async function POST(request: Request) {
     }
 
     const isTraining = profile === 'overseas_training'
-    const promptsBySlot: { slot: GeminiImageSlotType | TrainingGeminiImageSlotType; text: string }[] = []
-    const images: GeminiImageCandidate[] = []
-
     const now = new Date()
     const baseId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    const slotList: Array<GeminiImageSlotType | TrainingGeminiImageSlotType> = isTraining
+    const fullSlotList: Array<GeminiImageSlotType | TrainingGeminiImageSlotType> = isTraining
       ? [...TRAINING_GEMINI_IMAGE_SLOT_ORDER]
       : [...GEMINI_IMAGE_SLOT_ORDER]
+    const slotList =
+      maxSlots != null ? fullSlotList.slice(0, Math.min(maxSlots, fullSlotList.length)) : fullSlotList
 
-    for (let i = 0; i < slotList.length; i++) {
-      const slot = slotList[i]!
-      const slotPrompt = isTraining
+    const promptsBySlot = slotList.map((slot) => {
+      const text = isTraining
         ? buildTrainingGeminiImagePromptForSlot(
             {
               title,
@@ -124,33 +131,37 @@ export async function POST(request: Request) {
             slot as TrainingGeminiImageSlotType
           )
         : buildGeminiImagePromptForSlot(promptOptions, promptOverride, slot as GeminiImageSlotType)
-      promptsBySlot.push({ slot, text: slotPrompt })
+      return { slot, text }
+    })
 
-      try {
-        const buffer = await generateImageWithGemini({
-          prompt: slotPrompt,
-          aspectRatio: '16:9',
-          strictErrors: true,
-          stylePreset: 'admin_travel_slot',
-        })
-        if (!buffer || buffer.length === 0) {
-          images.push({ slot, imageUrl: null, error: 'empty_buffer' })
-          continue
+    // REGRESSION-FREEZE[admin-gemini-image-generate-parallel]: Promise.all slot generate — manifest
+    const images = await Promise.all(
+      promptsBySlot.map(async ({ slot, text: slotPrompt }, i) => {
+        try {
+          const buffer = await generateImageWithGemini({
+            prompt: slotPrompt,
+            aspectRatio: '16:9',
+            strictErrors: true,
+            stylePreset: 'admin_travel_slot',
+          })
+          if (!buffer || buffer.length === 0) {
+            return { slot, imageUrl: null, error: 'empty_buffer' } satisfies GeminiImageCandidate
+          }
+
+          const webp = await convertToWebp(buffer, { maxWidth: 2400, quality: 82 })
+          const objectKey = buildGeminiGeneratedObjectKey(now, baseId, slot, i)
+          const { publicUrl } = await uploadStorageObject({
+            objectKey,
+            body: webp.buffer,
+            contentType: 'image/webp',
+          })
+          return { slot, imageUrl: publicUrl, error: null } satisfies GeminiImageCandidate
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          return { slot, imageUrl: null, error: msg.slice(0, 400) } satisfies GeminiImageCandidate
         }
-
-        const webp = await convertToWebp(buffer, { maxWidth: 2400, quality: 82 })
-        const objectKey = buildGeminiGeneratedObjectKey(now, baseId, slot, i)
-        const { publicUrl } = await uploadStorageObject({
-          objectKey,
-          body: webp.buffer,
-          contentType: 'image/webp',
-        })
-        images.push({ slot, imageUrl: publicUrl, error: null })
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e)
-        images.push({ slot, imageUrl: null, error: msg.slice(0, 400) })
-      }
-    }
+      })
+    )
 
     const promptUsed = promptsBySlot.map((p) => `[${p.slot}] ${p.text}`).join('\n\n')
 
