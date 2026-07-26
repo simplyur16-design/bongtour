@@ -85,7 +85,8 @@ export default function StaffAdminClient() {
     <div className="mx-auto max-w-5xl">
       <h1 className={ADMIN_PAGE_TITLE_CLASS}>직원 권한 관리</h1>
       <p className={ADMIN_PAGE_SUBTITLE_CLASS}>
-        일반 회원을 <strong>STAFF</strong>로 승격하면 공개 페이지에서 빠른 검색·문의 답변 도구를 사용할 수 있습니다.
+        일반 회원을 <strong>STAFF</strong>로 승격하면 공개 페이지 빠른 검색·문의 답변과
+        관리자 화면의 <strong>소속 명함 승인</strong>·회원 조회를 사용할 수 있습니다.
         ADMIN만 이 화면과 STAFF 지정이 가능합니다.
       </p>
 

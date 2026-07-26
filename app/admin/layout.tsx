@@ -14,6 +14,7 @@ export default async function AdminLayout({
   }
   const isDevMock =
     process.env.NODE_ENV === 'development' && (session?.user as { id?: string })?.id === MOCK_ADMIN_SESSION_ID
+  const actorRole = (session?.user as { role?: string | null } | undefined)?.role ?? null
 
   return (
     <div className={ADMIN_SHELL_CLASS}>
@@ -22,7 +23,7 @@ export default async function AdminLayout({
           [개발] 임시 관리자 모드 (세션 없음, 카카오 승인 대기 중)
         </div>
       )}
-      <AdminSidebar />
+      <AdminSidebar actorRole={actorRole} />
       <main className={ADMIN_MAIN_CLASS}>{children}</main>
     </div>
   )

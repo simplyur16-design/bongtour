@@ -20,6 +20,11 @@ export function isMembersViewerRole(role: string | null | undefined): boolean {
   return role === 'STAFF' || role === 'ADMIN' || role === 'SUPER_ADMIN'
 }
 
+/** 소속 명함 승인(조회·승인·반려) — STAFF 포함 */
+export function isAffiliationReviewerRole(role: string | null | undefined): boolean {
+  return isMembersViewerRole(role)
+}
+
 /** 회원 정보 수정(역할·상태) */
 export function isMembersEditorRole(role: string | null | undefined): boolean {
   return role === 'ADMIN' || role === 'SUPER_ADMIN'

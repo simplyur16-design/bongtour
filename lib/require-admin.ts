@@ -6,7 +6,7 @@ import {
   isAdminBypassAllowed,
   isDevAdminBypassRuntimeAllowed,
 } from '@/lib/admin-bypass'
-import { isMembersEditorRole, isMembersViewerRole } from '@/lib/user-role'
+import { isMembersEditorRole, isMembersViewerRole, isAffiliationReviewerRole } from '@/lib/user-role'
 
 export type AdminSession = {
   user: { id?: string; role?: string | null }
@@ -65,6 +65,31 @@ export async function requireMembersViewer(): Promise<AdminSession | null> {
   const role = (session?.user as { role?: string | null } | undefined)?.role
   if (id) {
     if (isMembersViewerRole(role)) return session as AdminSession
+    return null
+  }
+  if (isDevMockAdminEnabled()) {
+    return MOCK_ADMIN
+  }
+  if (isDevAdminBypassRuntimeAllowed()) {
+    const c = await cookies()
+    const cookieVal = c.get(ADMIN_BYPASS_COOKIE_NAME)?.value
+    if (isAdminBypassAllowed({ cookieValue: cookieVal, authQuery: undefined })) {
+      return MOCK_ADMIN
+    }
+  }
+  return null
+}
+
+/**
+ * 소속 명함 승인 API·페이지용. STAFF·ADMIN·SUPER_ADMIN 허용.
+ * REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: staff may review affiliation cards — manifest
+ */
+export async function requireAffiliationReviewer(): Promise<AdminSession | null> {
+  const session = await auth()
+  const id = session?.user?.id
+  const role = (session?.user as { role?: string | null } | undefined)?.role
+  if (id) {
+    if (isAffiliationReviewerRole(role)) return session as AdminSession
     return null
   }
   if (isDevMockAdminEnabled()) {

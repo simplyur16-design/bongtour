@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/require-admin'
+import { requireAffiliationReviewer } from '@/lib/require-admin'
 import { prisma } from '@/lib/prisma'
 import { listAffiliationCardRequests } from '@/lib/bongsim/affiliation/affiliation-card-service'
 
@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic'
 
 /** GET /api/admin/affiliation-cards?status=pending|approved|rejected|all */
 export async function GET(request: Request) {
-  const admin = await requireAdmin()
+  const admin = await requireAffiliationReviewer()
   if (!admin) {
-    return NextResponse.json({ ok: false, error: '관리자만 접근할 수 있습니다.' }, { status: 403 })
+    return NextResponse.json({ ok: false, error: '관리자·스태프만 접근할 수 있습니다.' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)

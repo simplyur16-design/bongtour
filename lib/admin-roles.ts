@@ -1,6 +1,6 @@
 /**
  * Admin tool role SSOT (User.role text column — no DB enum).
- * Operator-facing levels: ADMIN (full) · STAFF (search + inquiry respond) · null (no tool).
+ * Operator-facing levels: ADMIN (full) · STAFF (search + inquiry respond + affiliation card review) · null (no tool).
  */
 
 export const ADMIN_TOOL_ROLES = ['ADMIN', 'STAFF'] as const

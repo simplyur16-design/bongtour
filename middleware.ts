@@ -15,7 +15,7 @@ import {
   recordAdminApiSecurityEvent,
 } from '@/lib/admin-api-security'
 import { isAdminOnlyRole, isAdminToolRole } from '@/lib/admin-roles'
-import { isAdminPanelRole, isMembersViewerRole } from '@/lib/user-role'
+import { isAdminPanelRole, isAffiliationReviewerRole, isMembersViewerRole } from '@/lib/user-role'
 import {
   consentPendingFromMarkerCookie,
   isConsentAllowedPath,
@@ -195,11 +195,13 @@ export async function middleware(req: NextRequest) {
 
     const role = token.role ?? null
     const isStaff = role === 'STAFF'
+    const affiliationAdminPage = pathname.startsWith('/admin/bongsim/affiliation-cards')
+    const affiliationApi = pathname.startsWith('/api/admin/affiliation-cards')
 
     if (isAdminApiRoute && isStaff) {
       const membersApi = pathname.startsWith('/api/admin/members') && req.method === 'GET'
       const quickActionsApi = pathname.startsWith('/api/admin/quick-actions/')
-      if (!membersApi && !quickActionsApi) {
+      if (!membersApi && !quickActionsApi && !affiliationApi) {
         recordAdminApiSecurityEvent(getClientIp(req.headers), '403', pathname)
         return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
       }
@@ -212,7 +214,13 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    if (isAdminRoute && isStaff && !pathname.startsWith('/admin/members')) {
+    // STAFF: 회원 관리 + 소속 명함 승인만 (그 외 /admin → 회원 관리)
+    if (
+      isAdminRoute &&
+      isStaff &&
+      !pathname.startsWith('/admin/members') &&
+      !affiliationAdminPage
+    ) {
       return NextResponse.redirect(new URL('/admin/members', req.url))
     }
 
@@ -221,6 +229,7 @@ export async function middleware(req: NextRequest) {
     const staffAdminPage = pathname.startsWith('/admin/staff')
     const membersPath =
       pathname.startsWith('/admin/members') || pathname.startsWith('/api/admin/members')
+    const affiliationPath = affiliationAdminPage || affiliationApi
 
     let allowed: boolean
     if (quickActionsApi) {
@@ -229,6 +238,8 @@ export async function middleware(req: NextRequest) {
       allowed = isAdminOnlyRole(role)
     } else if (membersPath) {
       allowed = isMembersViewerRole(role)
+    } else if (affiliationPath) {
+      allowed = isAffiliationReviewerRole(role)
     } else {
       allowed = isAdminPanelRole(role)
     }

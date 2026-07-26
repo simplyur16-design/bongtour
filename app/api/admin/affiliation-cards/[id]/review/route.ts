@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/require-admin'
+import { requireAffiliationReviewer } from '@/lib/require-admin'
 import { reviewAffiliationCardRequest } from '@/lib/bongsim/affiliation/affiliation-card-service'
 
 export const dynamic = 'force-dynamic'
@@ -10,9 +10,9 @@ function isUuid(s: string): boolean {
 
 /** POST /api/admin/affiliation-cards/[id]/review  body: { decision: 'approve'|'reject', adminNote?: string } */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin()
+  const admin = await requireAffiliationReviewer()
   if (!admin) {
-    return NextResponse.json({ ok: false, error: '관리자만 접근할 수 있습니다.' }, { status: 403 })
+    return NextResponse.json({ ok: false, error: '관리자·스태프만 접근할 수 있습니다.' }, { status: 403 })
   }
 
   const { id } = await params

@@ -9830,7 +9830,8 @@
             "data-admin-mobile-drawer",
             "소속 명함 승인",
             "/admin/bongsim/affiliation-cards",
-            "사이드바 단일 진입점"
+            "사이드바 단일 진입점",
+            "staffNavEntries"
           ]
         },
         {
@@ -9862,7 +9863,36 @@
             "userSignupMethod",
             "userSocialProvider",
             "userMissing",
-            "listAffiliationCardRequests"
+            "listAffiliationCardRequests",
+            "requireAffiliationReviewer"
+          ]
+        },
+        {
+          "file": "app/api/admin/affiliation-cards/[id]/review/route.ts",
+          "mustInclude": [
+            "requireAffiliationReviewer",
+            "reviewAffiliationCardRequest"
+          ]
+        },
+        {
+          "file": "lib/require-admin.ts",
+          "mustInclude": [
+            "requireAffiliationReviewer",
+            "isAffiliationReviewerRole"
+          ]
+        },
+        {
+          "file": "lib/user-role.ts",
+          "mustInclude": [
+            "isAffiliationReviewerRole"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "affiliation-cards",
+            "isAffiliationReviewerRole",
+            "affiliationApi"
           ]
         }
       ],

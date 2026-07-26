@@ -116,6 +116,21 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/scheduler-settings', label: '스케줄러·보안', icon: Settings },
 ]
 
+/** STAFF — 회원 관리 + 소속 명함 승인만 */
+const staffNavEntries: NavEntry[] = [
+  {
+    type: 'link',
+    href: '/admin/bongsim/affiliation-cards',
+    label: '소속 명함 승인',
+    icon: IdCard,
+  },
+  { type: 'link', href: '/admin/members', label: '회원 관리', icon: Users },
+]
+
+function navEntriesForRole(role: string | null | undefined): NavEntry[] {
+  return role === 'STAFF' ? staffNavEntries : navEntries
+}
+
 function NavItemLink({
   href,
   label,
@@ -156,14 +171,16 @@ function SidebarNav({
   pathname,
   collapsed,
   onNavigate,
+  entries,
 }: {
   pathname: string
   collapsed: boolean
   onNavigate?: () => void
+  entries: NavEntry[]
 }) {
   return (
     <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-      {navEntries.map((entry, idx) => {
+      {entries.map((entry, idx) => {
         if (entry.type === 'link') {
           return (
             <NavItemLink
@@ -203,11 +220,12 @@ function SidebarNav({
 }
 
 /** REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: admin mobile drawer shell — manifest */
-export default function AdminSidebar() {
+export default function AdminSidebar({ actorRole }: { actorRole?: string | null }) {
   const pathname = usePathname() ?? ''
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const entries = navEntriesForRole(actorRole)
 
   useEffect(() => {
     setMounted(true)
@@ -292,6 +310,7 @@ export default function AdminSidebar() {
             <SidebarNav
               pathname={pathname}
               collapsed={false}
+              entries={entries}
               onNavigate={() => setMobileOpen(false)}
             />
           </aside>
@@ -317,7 +336,7 @@ export default function AdminSidebar() {
             )}
           </button>
         </div>
-        <SidebarNav pathname={pathname} collapsed={collapsed} />
+        <SidebarNav pathname={pathname} collapsed={collapsed} entries={entries} />
       </aside>
     </>
   )
