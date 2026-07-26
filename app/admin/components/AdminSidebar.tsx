@@ -39,6 +39,8 @@ import {
   Quote,
   Link2,
   LineChart,
+  Menu,
+  X,
 } from 'lucide-react'
 
 type NavLink = { href: string; label: string; icon: LucideIcon }
@@ -114,12 +116,14 @@ function NavItemLink({
   Icon,
   pathname,
   collapsed,
+  onNavigate,
 }: {
   href: string
   label: string
   Icon: LucideIcon
   pathname: string
   collapsed: boolean
+  onNavigate?: () => void
 }) {
   const isActive =
     pathname === href ||
@@ -130,6 +134,7 @@ function NavItemLink({
   return (
     <Link
       href={href}
+      onClick={() => onNavigate?.()}
       className={`flex items-center gap-3 rounded-lg py-2.5 pr-3 text-sm transition-colors ${
         isActive ? ADMIN_NAV_ACTIVE_CLASS : ADMIN_NAV_IDLE_CLASS
       }`}
@@ -141,81 +146,173 @@ function NavItemLink({
   )
 }
 
+function SidebarNav({
+  pathname,
+  collapsed,
+  onNavigate,
+}: {
+  pathname: string
+  collapsed: boolean
+  onNavigate?: () => void
+}) {
+  return (
+    <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+      {navEntries.map((entry, idx) => {
+        if (entry.type === 'link') {
+          return (
+            <NavItemLink
+              key={entry.href}
+              href={entry.href}
+              label={entry.label}
+              Icon={entry.icon}
+              pathname={pathname}
+              collapsed={collapsed}
+              onNavigate={onNavigate}
+            />
+          )
+        }
+        return (
+          <div key={`group-${entry.label}-${idx}`} className="mt-2 flex flex-col gap-0.5 first:mt-0">
+            {!collapsed && (
+              <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                {entry.label}
+              </div>
+            )}
+            {entry.items.map((item) => (
+              <NavItemLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                Icon={item.icon}
+                pathname={pathname}
+                collapsed={collapsed}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
+
+/** REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: admin mobile drawer shell — manifest */
 export default function AdminSidebar() {
   const pathname = usePathname() ?? ''
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [mobileOpen])
+
   if (!mounted) {
     return (
-      <aside className={`${ADMIN_SIDEBAR_CLASS} w-56`} aria-hidden="true">
-        <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
-          <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
-          <span className="h-8 w-8 shrink-0" />
+      <>
+        <div className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b border-white/10 bg-bt-text-navy px-3 md:hidden">
+          <span className="h-9 w-9" />
+          <span className="text-sm font-semibold text-white">Bong투어 관리</span>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" />
-      </aside>
+        <aside className={`${ADMIN_SIDEBAR_CLASS} hidden w-56 md:flex`} aria-hidden="true">
+          <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
+            <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+            <span className="h-8 w-8 shrink-0" />
+          </div>
+          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" />
+        </aside>
+      </>
     )
   }
 
   return (
-    <aside className={`${ADMIN_SIDEBAR_CLASS} ${collapsed ? 'w-[56px]' : 'w-56'}`}>
-      <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
-        {!collapsed && (
-          <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
-        )}
+    <>
+      {/* 모바일 상단바 */}
+      <header
+        className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b border-white/10 bg-bt-text-navy px-3 md:hidden"
+        data-admin-mobile-bar="true"
+      >
         <button
           type="button"
-          onClick={() => setCollapsed((c) => !c)}
-          className="rounded p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
-          aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          onClick={() => setMobileOpen(true)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10"
+          aria-label="메뉴 열기"
         >
-          {collapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
+          <Menu className="h-5 w-5" />
         </button>
-      </div>
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {navEntries.map((entry, idx) => {
-          if (entry.type === 'link') {
-            return (
-              <NavItemLink
-                key={entry.href}
-                href={entry.href}
-                label={entry.label}
-                Icon={entry.icon}
-                pathname={pathname}
-                collapsed={collapsed}
-              />
-            )
-          }
-          return (
-            <div key={`group-${entry.label}-${idx}`} className="mt-2 flex flex-col gap-0.5 first:mt-0">
-              {!collapsed && (
-                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">
-                  {entry.label}
-                </div>
-              )}
-              {entry.items.map((item) => (
-                <NavItemLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  Icon={item.icon}
-                  pathname={pathname}
-                  collapsed={collapsed}
-                />
-              ))}
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">Bong투어 관리</span>
+        <Link
+          href="/admin/bongsim/affiliation-cards"
+          className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-bt-brand-gold"
+        >
+          명함승인
+        </Link>
+      </header>
+
+      {/* 모바일 드로어 */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" data-admin-mobile-drawer="true">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="메뉴 닫기"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className={`${ADMIN_SIDEBAR_CLASS} absolute inset-y-0 left-0 w-[min(18rem,88vw)] shadow-xl`}>
+            <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
+              <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="rounded p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
+                aria-label="메뉴 닫기"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          )
-        })}
-      </nav>
-    </aside>
+            <SidebarNav
+              pathname={pathname}
+              collapsed={false}
+              onNavigate={() => setMobileOpen(false)}
+            />
+          </aside>
+        </div>
+      )}
+
+      {/* 데스크톱 사이드바 */}
+      <aside className={`${ADMIN_SIDEBAR_CLASS} hidden ${collapsed ? 'w-[56px]' : 'w-56'} md:flex`}>
+        <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
+          {!collapsed && (
+            <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+          )}
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            className="rounded p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
+            aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+        <SidebarNav pathname={pathname} collapsed={collapsed} />
+      </aside>
+    </>
   )
 }

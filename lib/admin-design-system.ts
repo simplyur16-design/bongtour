@@ -6,8 +6,9 @@
  * - CTA: 골드 #d9a81e (bt-brand-gold-strong)
  */
 
-/** 어드민 루트 셸 — layout 최상위 */
-export const ADMIN_SHELL_CLASS = 'admin-shell flex min-h-screen font-sans text-bt-body'
+/** 어드민 루트 셸 — layout 최상위 (모바일: 세로, md+: 사이드바+메인) */
+export const ADMIN_SHELL_CLASS =
+  'admin-shell flex min-h-screen flex-col font-sans text-bt-body md:flex-row'
 
 /** 사이드바 */
 export const ADMIN_SIDEBAR_CLASS =
