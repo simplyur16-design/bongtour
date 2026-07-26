@@ -274,6 +274,59 @@ describe('hanatour 2030 schedule polish', () => {
     expect(t).toMatch(/고베·오사카/)
   })
 
+  it('normalizeHanatour2030ListingTitle — 긴 해시 제목도 (2030) 접미가 잘리지 않음 (AYP261)', () => {
+    const long =
+      '[2030전용] 코타키나발루 5일 #노을맛집 #핫플휴양 #5성급 #월드체인 #인피니트풀 #아일랜드투어 #선셋반딧불이 #Late Night 밍글링타임 #레이트체크아웃 #자유일정'
+    const t = normalizeHanatour2030ListingTitle(long)
+    expect(t.length).toBeLessThanOrEqual(90)
+    expect(t).toMatch(/\(2030\)\s*$/)
+    expect(t).toContain('코타키나발루')
+    expect(t).not.toMatch(/#/)
+    const guarded = applyHanatour2030RegisterConfirmGuard({
+      originSource: 'hanatour',
+      originCode: 'AYP261260825AKH',
+      title: long,
+      supplierListingTitleRaw: long,
+      destination: '말레이시아',
+      schedule: [
+        {
+          day: 1,
+          title: '코타키나발루 입국',
+          description: '현지 도착 후 해변·시내 리듬에 맞추는 첫날입니다.',
+          routeText: '코타키나발루',
+        },
+        {
+          day: 2,
+          title: '시티모스크',
+          description: '해변·섬·시장을 오가는 활동 중심 하루입니다.',
+          routeText: '시티모스크',
+        },
+        {
+          day: 3,
+          title: '바나나보트',
+          description: '해변·섬·시장을 오가는 활동 중심 하루입니다.',
+          routeText: '바나나보트',
+        },
+        {
+          day: 4,
+          title: '자유 일정',
+          description: '비치·리조트·야시장을 각자 또는 함께 채우는 자유 일정입니다.',
+          routeText: '코타키나발루',
+        },
+        {
+          day: 5,
+          title: '귀국',
+          description: '여정을 정리하고 귀국하는 마무리 일정입니다.',
+          routeText: '인천',
+        },
+      ],
+      prices: [],
+    })
+    expect(guarded.title).toMatch(/\(2030\)\s*$/)
+    expect(hanatour2030RegisterScheduleOkAtConfirm(guarded)).toBe(true)
+    expect(hanatourConfirmHasScheduleExpressionLayer(guarded, [])).toBe(true)
+  })
+
   it('polishHanatour2030RegisterBundle — 비2030은 no-op', () => {
     const days = [{ day: 1, places: ['방콕'], hotels: [], meals: [], transportNote: null }]
     const sched = hanatourFactDaysToRegisterSchedule(days)

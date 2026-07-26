@@ -1327,8 +1327,12 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     const calendarBlockedConfirm = mode === 'confirm' && !calendarSignalsOk
     if (calendarBlockedConfirm) {
       const layerOnlyFail = baseCalendarOk && !scheduleExpressionLayerOk
+      const customLayerReason = layerOnlyFail
+        ? confirmScheduleExpressionLayerFailReason?.(parsed, itineraryDayDrafts) ?? null
+        : null
       const emptyConfirmError = layerOnlyFail
-        ? '일정 표현층(일차별 일정·요약)이 비어 있어 확정할 수 없습니다. 본문에 일정표를 포함했는지 확인한 뒤 미리보기를 다시 실행하세요.'
+        ? customLayerReason ??
+          '일정 표현층(일차별 일정·요약)이 비어 있어 확정할 수 없습니다. 본문에 일정표를 포함했는지 확인한 뒤 미리보기를 다시 실행하세요.'
         : ranConfirmSupplementalFullParse
           ? '확정 단계에서 본문 전체 재분석을 수행했으나 출발·가격·일정 행이 비어 등록대기(Product)에 반영하지 않았습니다. 본문 가격표·일정·항공 구간을 확인한 뒤 다시 분석하세요.'
           : savePersistedParsedOnly && (hasParsed || reusedConfirmAnalysis)

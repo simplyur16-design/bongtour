@@ -470,8 +470,11 @@ export function applyHanatour2030SchedulePolish(args: {
 const HANATOUR_2030_TITLE_SOCIAL_HASH_RE =
   /^(?:또래\s*친구\s*만들기|여행러버\s*모여라|밍글링\s*Light|밍글링\s*LIGHT|밍글밍|2030\s*전용|일본감성\s*풀충전|주류무한\s*이자카야|공항.?호텔\s*왕복\s*송영)$/i
 
-/** 2030 TRP — 마케팅 해시 제거·(2030) 접미. */
+/** 2030 TRP — 마케팅 해시 제거·(2030) 접미(상한 내 접미 보존). */
 export function normalizeHanatour2030ListingTitle(s: string): string {
+  const suffix = ' (2030)'
+  const bodyMax = Math.max(24, SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX - suffix.length)
+
   let t = String(s ?? '')
     .replace(/\[\s*2030\s*전용\s*\]/gi, ' ')
     .replace(/\[?\s*2030\s*전용\s*\]?/gi, ' ')
@@ -486,10 +489,15 @@ export function normalizeHanatour2030ListingTitle(s: string): string {
     const body = m.slice(1).trim()
     return HANATOUR_2030_TITLE_SOCIAL_HASH_RE.test(body) ? ' ' : m
   })
+  // 남은 관광 해시가 상한을 잡아 (2030) 접미가 잘리지 않도록 전부 제거
+  t = t.replace(/#[^\s#]+(?:\s+[^\s#]+)*/g, ' ')
   t = t.replace(/\s+/g, ' ').trim()
   t = t.replace(/\bLight\b/gi, ' ').replace(/\s+/g, ' ').trim()
   t = t.replace(/\//g, '·')
-  if (!/\(2030\)\s*$/i.test(t)) t = `${t} (2030)`.trim()
+  t = t.replace(/\(\s*2030\s*\)\s*$/i, '').trim()
+  // REGRESSION-FREEZE[hanatour-register-schedule-2030]: keep (2030) within title max — manifest
+  if (t.length > bodyMax) t = t.slice(0, bodyMax).trim()
+  t = `${t}${suffix}`.trim()
   return t.slice(0, SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX)
 }
 

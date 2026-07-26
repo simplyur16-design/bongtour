@@ -670,7 +670,8 @@
             "stripHanatour2030ChildInfantPrices",
             "hanatour2030.price.adultOnly",
             "hanatour2030ConfirmScheduleBlockReason",
-            "mergeHanatour2030SportsThemeTagForRegister"
+            "mergeHanatour2030SportsThemeTagForRegister",
+            "keep (2030) within title max"
           ]
         },
         {
@@ -701,7 +702,8 @@
           "file": "lib/hanatour-register-flow.ts",
           "mustInclude": [
             "polishParsedBeforeConfirmGate",
-            "polish always before confirm gate"
+            "polish always before confirm gate",
+            "customLayerReason"
           ]
         },
         {
