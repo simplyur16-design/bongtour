@@ -87,6 +87,71 @@ describe('hanatour 2030 schedule polish', () => {
     expect(extractHanatour2030PoiFromCardLabel('신세카이')).toBe('신세카이')
   })
 
+  it('extractHanatour2030PoiFromCardLabel — APP221 손글씨·기획자 노이즈', () => {
+    expect(extractHanatour2030PoiFromCardLabel('‍ 상품 기획자 전 일정 동반 안심 여행')).toBeNull()
+    expect(extractHanatour2030PoiFromCardLabel('세부 소개')).toBeNull()
+    expect(extractHanatour2030PoiFromCardLabel('해적 호핑_손글씨 버전')).toBe('해적 호핑')
+    expect(extractHanatour2030PoiFromCardLabel('시라오 가든 _손글씨 버전')).toBe('시라오 가든')
+    expect(extractHanatour2030PoiFromCardLabel('해적 호핑 식사')).toBe('해적 호핑')
+    expect(extractHanatour2030PoiFromCardLabel('세부 해적호핑')).toBe('세부 해적호핑')
+  })
+
+  it('APP221-like — polish strips planner/handwriting from title·routeText', () => {
+    const title =
+      '[2030전용] 세부 5일 #뫼벤픽 #디럭스 #해적호핑 #정어리떼스노클링 #전신마사지 #시라오가든 #레아신전 #SM몰자유시간'
+    const factDays = [
+      {
+        day: 1,
+        places: ['상품 기획자 전 일정 동반 안심 여행', '세부 소개'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 2,
+        places: ['세부 해적호핑', '해적 호핑_손글씨 버전', '해적 호핑 식사'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 4,
+        places: ['시라오 가든 _손글씨 버전', '시라오 플라워 가든', '레아 신전'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 5,
+        places: ['세부 출발 및 인천 귀국'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+    ]
+    const sched = hanatourFactDaysToRegisterSchedule(factDays)
+    const polished = applyHanatour2030SchedulePolish({
+      schedule: sched,
+      factDays,
+      productTitle: title,
+    })
+    const blob = polished.map((d) => `${d.title} ${d.routeText}`).join(' | ')
+    expect(blob).not.toMatch(/손글씨|기획자|안심\s*여행|세부\s*소개/)
+    expect(polished[1]?.routeText).toMatch(/해적/)
+    expect(polished[2]?.routeText).toMatch(/시라오|레아/)
+    const guarded = applyHanatour2030RegisterConfirmGuard({
+      originSource: 'hanatour',
+      originCode: 'APP2212608057CZ',
+      title,
+      supplierListingTitleRaw: title,
+      destination: '필리핀',
+      schedule: sched,
+      prices: [],
+    })
+    expect(guarded.title).toMatch(/\(2030\)\s*$/)
+    expect(hanatour2030RegisterScheduleOkAtConfirm(guarded)).toBe(true)
+  })
+
   it('detects 2030 from normalized listing title (2030) suffix', () => {
     expect(isHanatour2030ProductTitle('고베·오사카·이네 3일 (2030)')).toBe(true)
   })

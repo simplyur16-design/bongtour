@@ -26,10 +26,14 @@ export {
 } from '@/lib/product-adult-only-2030'
 
 const HANATOUR_2030_PLACE_NOISE_RE =
-  /밍글|mingling|미션|모여라|친구\s*만들기|여행러버|밍글링\s*투어|밍글링\s*타임|밍글링\s*친구|현지투어플러스|everyday\s*맞춤|Late\s*Night|Sunset\s*Chill|업로드|인생샷\s*가능|추천\s*일정|포토\s*스팟|포토스팟|자유\s*시간|속\s*밍글|MD와|feat\.|노미타베|호다이|일정식\s*요리|체크\s*인\s*후|낭만가득|대표\s*번화가|현대식\s*쇼핑|쇼핑\s*메카|초특가|유류비|내가\s*만들어서|타코야키|명물\s*체험|더\s*특별한|짐\s*풀고|바로\s*GO|에어아시아|AirAsia|출발\s*및\s*인천|인천\s*귀국|^\s*귀국\s*$/i
+  /밍글|mingling|미션|모여라|친구\s*만들기|여행러버|밍글링\s*투어|밍글링\s*타임|밍글링\s*친구|현지투어플러스|everyday\s*맞춤|Late\s*Night|Sunset\s*Chill|업로드|인생샷\s*가능|추천\s*일정|포토\s*스팟|포토스팟|자유\s*시간|속\s*밍글|MD와|feat\.|노미타베|호다이|일정식\s*요리|체크\s*인\s*후|낭만가득|대표\s*번화가|현대식\s*쇼핑|쇼핑\s*메카|초특가|유류비|내가\s*만들어서|타코야키|명물\s*체험|더\s*특별한|짐\s*풀고|바로\s*GO|에어아시아|AirAsia|출발\s*및\s*인천|인천\s*귀국|^\s*귀국\s*$|손글씨|기획자|전\s*일정\s*동반|안심\s*여행|세부\s*소개|상품\s*소개|호핑\s*식사|식사$/i
 
 const HANATOUR_2030_META_CARD_RE =
   /출입국|입국\s*절차|입국\s*안내|조식\s*안내|여행자보험|면세|항공\s*안내|미주지역\s*호텔|방문객\s*출입국/i
+
+/** CMS 손글씨·버전 접미 — POI 본문만 남긴다. */
+const HANATOUR_2030_HANDWRITING_SUFFIX_RE = /[_\s]*손글씨\s*(?:버전)?.*$/iu
+const HANATOUR_2030_MEAL_TAIL_RE = /\s*(?:특식|선상식|자유식|식사|런치|조식|중식|석식)\s*$/u
 
 const HANATOUR_2030_FREE_DAY_RE = /자유\s*일정|자유일정|1\s*일\s*자유|2\s*일\s*자유/i
 
@@ -200,6 +204,12 @@ function pickHanatour2030PlaceAfterComma(t: string): string | null {
 /** 2030 카드 라벨 → routeText용 POI (밍글링·미션·안내 카드 제외). */
 export function extractHanatour2030PoiFromCardLabel(raw: string): string | null {
   let t = cleanRegisterScheduleRoutePlaceLabel(String(raw ?? ''))
+  if (!t) return null
+
+  // REGRESSION-FREEZE[hanatour-register-schedule-2030]: strip 손글씨·식사 접미 — manifest
+  t = t.replace(HANATOUR_2030_HANDWRITING_SUFFIX_RE, '').trim()
+  t = t.replace(HANATOUR_2030_MEAL_TAIL_RE, '').trim()
+  t = t.replace(/[_\s]+$/g, '').trim()
   if (!t) return null
 
   const inlineParenKo = t.match(/([가-힣]{2,16})\s*\(([^)]+)\)\s*$/)
@@ -528,8 +538,10 @@ export function polishHanatour2030RegisterBundle(args: {
   return { listingTitle, factDays, schedule }
 }
 
-const HANATOUR_2030_CONFIRM_ROUTE_TOXIC_RE = /밍글|mingling|미션|출입국|입국\s*절차/i
-const HANATOUR_2030_CONFIRM_TITLE_TOXIC_RE = /밍글|mingling|Light|LIGHT/i
+const HANATOUR_2030_CONFIRM_ROUTE_TOXIC_RE =
+  /밍글|mingling|미션|출입국|입국\s*절차|손글씨|기획자|전\s*일정\s*동반|안심\s*여행/i
+const HANATOUR_2030_CONFIRM_TITLE_TOXIC_RE =
+  /밍글|mingling|Light|LIGHT|손글씨|기획자|전\s*일정\s*동반/i
 const HANATOUR_2030_CONFIRM_LISTING_MARKETING_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍/i
 
 export type Hanatour2030ConfirmScheduleIssue = {

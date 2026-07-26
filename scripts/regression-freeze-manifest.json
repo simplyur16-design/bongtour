@@ -707,6 +707,14 @@
           ]
         },
         {
+          "file": "lib/hanatour-register-schedule-2030.ts",
+          "mustInclude": [
+            "손글씨",
+            "전\\s*일정\\s*동반",
+            "HANATOUR_2030_HANDWRITING_SUFFIX_RE"
+          ]
+        },
+        {
           "file": "lib/product-adult-only-2030.ts",
           "mustInclude": [
             "투어\\s*Light\\b",
