@@ -205,6 +205,15 @@ export type ParseAndRegisterFlowOptions = {
     },
   ) => RegisterParsed | Promise<RegisterParsed>
   /**
+   * detail patch 스킵 여부와 무관하게 confirm/preview 게이트 직전 항상 실행.
+   * 하나투어 2030: 제목 (2030) 접미·일정 재정제 — confirm reuse 스킵 시에도 필수.
+   * REGRESSION-FREEZE[hanatour-register-schedule-2030]: polish always before confirm gate — manifest
+   */
+  polishParsedBeforeConfirmGate?: (
+    parsed: RegisterParsed,
+    ctx?: { travelScope?: string | null },
+  ) => RegisterParsed
+  /**
    * true인 진입에서만 적용. confirm 시 raw 재파스·보강 LLM 금지는 각 핸들러가 이 플래그로 켠다.
    */
   savePersistedParsedOnly?: boolean
@@ -438,6 +447,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     forcedBrandKey,
     augmentParsed,
     patchParsedAfterAugment,
+    polishParsedBeforeConfirmGate,
     savePersistedParsedOnly,
     recoverEmptyScheduleWithFullParse,
     finalizeItineraryDayDraftsFromSchedule,
@@ -897,6 +907,10 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
           patchParsedAfterAugment(parsed, text, { originUrl, pastedBlocks, travelScope }),
         )
       }
+    }
+    // REGRESSION-FREEZE[hanatour-register-schedule-2030]: polish always before confirm gate — manifest
+    if (polishParsedBeforeConfirmGate) {
+      parsed = polishParsedBeforeConfirmGate(parsed, { travelScope })
     }
     parsed = await applyRegisterPostAugmentSchedulePipeline(parsed, {
       travelScope,

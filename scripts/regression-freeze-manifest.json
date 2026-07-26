@@ -691,7 +691,22 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanatour-register-schedule-2030]",
             "applyHanatour2030RegisterConfirmGuard",
+            "polishParsedBeforeConfirmGate",
             "confirmScheduleExpressionLayerOk: hanatourConfirmHasScheduleExpressionLayer"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "polishParsedBeforeConfirmGate",
+            "polish always before confirm gate"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-schedule-2030.ts",
+          "mustInclude": [
+            "투어\\s*Light\\b",
+            "또래\\s*친구\\s*만들기"
           ]
         },
         {

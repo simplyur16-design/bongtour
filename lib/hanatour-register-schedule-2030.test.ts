@@ -327,6 +327,46 @@ describe('hanatour 2030 schedule polish', () => {
     expect(hanatour2030ConfirmScheduleBlockReason(guarded)).toBeNull()
   })
 
+  it('JKP135 Light 제목 — confirm reuse 스킵 후에도 guard면 (2030) 접미·게이트 통과', () => {
+    const title =
+      '규슈·후쿠오카 3일 투어 Light #해안가 사이클링 #유유자적 섬마을 시카노시마 #일본감성 풀충전 #주류무한 이자카야 #공항↔호텔 왕복 송영 #또래 친구 만들기'
+    const schedule = [
+      {
+        day: 1,
+        title: '규슈 입국',
+        description: '현지에 도착한 뒤 도심을 걸으며 일정 리듬을 맞추는 첫날입니다.',
+        routeText: '후쿠오카',
+      },
+      {
+        day: 2,
+        title: '시카노시마',
+        description: '도심과 근교를 오가며 걷기 좋은 동선입니다.',
+        routeText: '시카노시마',
+      },
+      {
+        day: 3,
+        title: '귀국',
+        description: '랜드마크와 로컬 거리를 걸으며 마무리하는 하루입니다.',
+        routeText: '인천',
+      },
+    ]
+    const persisted: RegisterParsed = {
+      originSource: 'hanatour',
+      originCode: 'JKP135260729ZEC',
+      title,
+      supplierListingTitleRaw: title,
+      destination: '일본',
+      schedule,
+      prices: [{ departureDate: '2026-07-29', adultPrice: 1179900, status: 'available' }],
+    }
+    expect(isHanatour2030ProductTitle(title)).toBe(true)
+    expect(hanatourConfirmHasScheduleExpressionLayer(persisted, [])).toBe(false)
+    const guarded = applyHanatour2030RegisterConfirmGuard(persisted)
+    expect(guarded.title).toMatch(/\(2030\)\s*$/)
+    expect(hanatourConfirmHasScheduleExpressionLayer(guarded, [])).toBe(true)
+    expect(hanatour2030ConfirmScheduleBlockReason(guarded)).toBeNull()
+  })
+
   it('hanatourConfirmHasScheduleExpressionLayer — 자유여행(air-hotel)은 일정 없어도 통과', () => {
     const parsed: RegisterParsed = {
       originSource: 'hanatour',

@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-2030]: confirm 시 2030 일정 재정제·가드 — manifest
+ * REGRESSION-FREEZE[hanatour-register-schedule-2030]: polishParsedBeforeConfirmGate (reuse skip) — manifest
  */
 import { augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { injectHanatourApiDeparturePricesIfMissing } from '@/lib/hanatour-register-api-price-inject'
@@ -38,10 +39,12 @@ export async function handleParseAndRegisterHanatourRequest(request: Request) {
         adminTravelScope: ctx?.travelScope,
       })
       next = applyHanatourSyntheticPriceRowIfNeeded(next, pastedText, 'hanatour')
-      if (!isRegisterAirHotelListing(ctx?.travelScope, next.productType)) {
-        next = applyHanatour2030RegisterConfirmGuard(next)
-      }
       return next
+    },
+    /** detail patch 스킵 시에도 2030 제목·일정 정제 필수 (confirm reuse) */
+    polishParsedBeforeConfirmGate: (parsed, ctx) => {
+      if (isRegisterAirHotelListing(ctx?.travelScope, parsed.productType)) return parsed
+      return applyHanatour2030RegisterConfirmGuard(parsed)
     },
     finalizeItineraryDayDraftsFromSchedule: finalizeHanatourItineraryDayDraftsFromSchedule,
     strictConfirmDeparturePriceRows: true,

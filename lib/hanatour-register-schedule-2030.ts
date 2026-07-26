@@ -16,7 +16,8 @@ import {
   type SportsThemeTag,
 } from '@/lib/product-listing-kind'
 
-const HANATOUR_2030_TITLE_RE = /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍|mingling|\(2030\)\s*$/i
+const HANATOUR_2030_TITLE_RE =
+  /\[?\s*2030\s*전용\s*\]?|#?\s*밍글링|#?\s*밍글밍|mingling|\(2030\)\s*$|투어\s*Light\b|#?\s*또래\s*친구\s*만들기|#?\s*여행러버\s*모여라/i
 
 const HANATOUR_2030_PLACE_NOISE_RE =
   /밍글|mingling|미션|모여라|친구\s*만들기|여행러버|밍글링\s*투어|밍글링\s*타임|밍글링\s*친구|현지투어플러스|everyday\s*맞춤|Late\s*Night|Sunset\s*Chill|업로드|인생샷\s*가능|추천\s*일정|포토\s*스팟|포토스팟|자유\s*시간|속\s*밍글|MD와|feat\.|노미타베|호다이|일정식\s*요리|체크\s*인\s*후|낭만가득|대표\s*번화가|현대식\s*쇼핑|쇼핑\s*메카|초특가|유류비|내가\s*만들어서|타코야키|명물\s*체험|더\s*특별한|짐\s*풀고|바로\s*GO|에어아시아|AirAsia|출발\s*및\s*인천|인천\s*귀국|^\s*귀국\s*$/i
@@ -476,7 +477,7 @@ export function applyHanatour2030SchedulePolish(args: {
 }
 
 const HANATOUR_2030_TITLE_SOCIAL_HASH_RE =
-  /^(?:또래\s*친구\s*만들기|여행러버\s*모여라|밍글링\s*Light|밍글링\s*LIGHT|밍글밍|2030\s*전용)$/i
+  /^(?:또래\s*친구\s*만들기|여행러버\s*모여라|밍글링\s*Light|밍글링\s*LIGHT|밍글밍|2030\s*전용|일본감성\s*풀충전|주류무한\s*이자카야|공항.?호텔\s*왕복\s*송영)$/i
 
 /** 2030 TRP — 마케팅 해시 제거·(2030) 접미. */
 export function normalizeHanatour2030ListingTitle(s: string): string {
@@ -485,10 +486,17 @@ export function normalizeHanatour2030ListingTitle(s: string): string {
     .replace(/\[?\s*2030\s*전용\s*\]?/gi, ' ')
     .replace(/#?\s*밍글링\s*(?:Light|LIGHT)?/gi, ' ')
     .replace(/#?\s*밍글밍/gi, ' ')
+    .replace(/#또래\s*친구\s*만들기/gi, ' ')
+    .replace(/#여행러버\s*모여라/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-  t = t.replace(/#[^\s#]+/g, (m) => (HANATOUR_2030_TITLE_SOCIAL_HASH_RE.test(m.slice(1).trim()) ? ' ' : m))
+  // 공백 없는 해시 + 공백 포함 해시(#또래 친구 만들기) 모두 제거 후보
+  t = t.replace(/#[^\s#]+(?:\s+[^\s#]+)*/g, (m) => {
+    const body = m.slice(1).trim()
+    return HANATOUR_2030_TITLE_SOCIAL_HASH_RE.test(body) ? ' ' : m
+  })
   t = t.replace(/\s+/g, ' ').trim()
+  t = t.replace(/\bLight\b/gi, ' ').replace(/\s+/g, ' ').trim()
   t = t.replace(/\//g, '·')
   if (!/\(2030\)\s*$/i.test(t)) t = `${t} (2030)`.trim()
   return t.slice(0, SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX)
