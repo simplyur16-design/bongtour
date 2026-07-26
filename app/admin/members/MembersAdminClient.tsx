@@ -35,7 +35,7 @@ type Props = { actorRole: string | null | undefined }
 export default function MembersAdminClient({ actorRole }: Props) {
   const canEdit = actorRole === 'ADMIN' || actorRole === 'SUPER_ADMIN'
   const superActor = isSuperAdminRole(actorRole)
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() ?? new URLSearchParams()
 
   const [q, setQ] = useState(() => searchParams.get('q')?.trim() ?? '')
   const [signupMethod, setSignupMethod] = useState('all')
