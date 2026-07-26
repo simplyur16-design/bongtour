@@ -90,7 +90,9 @@ export function collectRegisterBatchFlightStructuredHardIssues(
 ): string[] {
   const scope = String(opts?.travelScope ?? 'package').trim().toLowerCase()
   if (scope && scope !== 'package' && scope !== 'pkg') return []
-  if (registerFlightCollectLooksComplete(parsed ?? {})) return []
+  if (registerFlightCollectLooksComplete((parsed ?? {}) as Parameters<typeof registerFlightCollectLooksComplete>[0])) {
+    return []
+  }
   const fs = parsed?.detailBodyStructured?.flightStructured
   const airline = String(parsed?.airlineName ?? fs?.airlineName ?? '').trim()
   const ob = String(parsed?.outboundFlightNo ?? fs?.outbound?.flightNo ?? '').trim()
