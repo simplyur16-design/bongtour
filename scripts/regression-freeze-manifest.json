@@ -9828,7 +9828,17 @@
             "admin mobile drawer shell",
             "data-admin-mobile-bar",
             "data-admin-mobile-drawer",
-            "명함승인"
+            "소속 명함 승인",
+            "/admin/bongsim/affiliation-cards"
+          ]
+        },
+        {
+          "file": "app/admin/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "소속 명함 승인",
+            "/admin/bongsim/affiliation-cards",
+            "affiliationPendingCount"
           ]
         },
         {

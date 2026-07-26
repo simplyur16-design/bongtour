@@ -50,6 +50,13 @@ type NavEntry =
 
 const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin', label: '대시보드', icon: LayoutDashboard },
+  /** 최상단 노출 — eSIM 그룹 안에만 두면 스크롤·접힘에 묻힘 */
+  {
+    type: 'link',
+    href: '/admin/bongsim/affiliation-cards',
+    label: '소속 명함 승인',
+    icon: IdCard,
+  },
   { type: 'link', href: '/admin/members', label: '회원 관리', icon: Users },
   { type: 'link', href: '/admin/staff', label: '직원 권한 관리', icon: ShieldCheck },
   { type: 'link', href: '/admin/home-hub-card-images', label: '메인 허브 이미지', icon: Images },
@@ -74,10 +81,10 @@ const navEntries: NavEntry[] = [
     type: 'group',
     label: 'eSIM 관리',
     items: [
+      { href: '/admin/bongsim/affiliation-cards', label: '소속 명함 승인', icon: IdCard },
       { href: '/admin/bongsim/coupons', label: '쿠폰 관리', icon: Ticket },
       { href: '/admin/bongsim/coupon-report', label: '할인 리포트', icon: BarChart3 },
       { href: '/admin/bongsim/payments', label: '결제 내역', icon: CreditCard },
-      { href: '/admin/bongsim/affiliation-cards', label: '소속 명함 승인', icon: IdCard },
       { href: '/admin/bongsim/products', label: '상품 관리', icon: Package },
       { href: '/admin/bongsim/monthly-curation', label: '월별 큐레이션(Gemini)', icon: CalendarDays },
     ],
@@ -256,9 +263,9 @@ export default function AdminSidebar() {
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">Bong투어 관리</span>
         <Link
           href="/admin/bongsim/affiliation-cards"
-          className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-bt-brand-gold"
+          className="shrink-0 rounded-lg bg-bt-brand-gold-strong px-2.5 py-1.5 text-xs font-semibold text-bt-text-navy"
         >
-          명함승인
+          소속 명함 승인
         </Link>
       </header>
 

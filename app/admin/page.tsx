@@ -26,12 +26,14 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
   const { auth } = await searchParams
   const query = auth ? `?auth=${auth}` : ''
 
-  const [pendingCount, registeredCount, bookingCount, inquiryCount] = await Promise.all([
-    prisma.product.count({ where: { registrationStatus: 'pending' } }),
-    prisma.product.count({ where: { registrationStatus: 'registered' } }),
-    prisma.booking.count({ where: { status: { not: '취소' } } }),
-    prisma.customerInquiry.count({ where: { status: { notIn: ['dropped', 'cancelled'] } } }),
-  ])
+  const [pendingCount, registeredCount, bookingCount, inquiryCount, affiliationPendingCount] =
+    await Promise.all([
+      prisma.product.count({ where: { registrationStatus: 'pending' } }),
+      prisma.product.count({ where: { registrationStatus: 'registered' } }),
+      prisma.booking.count({ where: { status: { not: '취소' } } }),
+      prisma.customerInquiry.count({ where: { status: { notIn: ['dropped', 'cancelled'] } } }),
+      prisma.bongsimAffiliationCardRequest.count({ where: { status: 'pending' } }).catch(() => 0),
+    ])
   const consultIntakeTotal = bookingCount + inquiryCount
 
   return (
@@ -39,7 +41,13 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
         <AdminPageHeader title="Bong투어 관리자" subtitle="오늘 현황과 빠른 작업" />
 
         {/* KPI 카드 */}
-        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: dashboard CTA for affiliation cards — manifest */}
+        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <AdminKpiCard
+            label="소속 명함 승인대기"
+            value={`${affiliationPendingCount}건`}
+            href={`/admin/bongsim/affiliation-cards${query}`}
+          />
           <AdminKpiCard label="등록대기" value={`${pendingCount}건`} href={`/admin/pending${query}`} />
           <AdminKpiCard label="상품 목록" value={`${registeredCount}건`} href={`/admin/products${query}`} />
           <AdminKpiCard
@@ -54,10 +62,14 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
         <section className="mb-8">
           <h2 className={ADMIN_SECTION_TITLE_CLASS}>빠른 액션</h2>
           <div className="flex flex-wrap gap-3">
+            <Link href={`/admin/bongsim/affiliation-cards${query}`} className={ADMIN_BTN_PRIMARY_CLASS}>
+              소속 명함 승인
+              {affiliationPendingCount > 0 ? ` (${affiliationPendingCount})` : ''}
+            </Link>
             <Link href={`/admin/training-programs/new${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
               국외연수 프로그램 등록
             </Link>
-            <Link href={`/admin/register${query}`} className={ADMIN_BTN_PRIMARY_CLASS}>
+            <Link href={`/admin/register${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
               상품 등록
             </Link>
             <Link href={`/admin/pending${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
