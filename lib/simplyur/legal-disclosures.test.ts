@@ -17,4 +17,10 @@ describe("simplyur legal disclosures", () => {
     expect(SIMPLYUR_LEGAL_ENTITY.representativeName).toBe("황일연");
     expect(SIMPLYUR_FTC_BIZ_VERIFY_HREF).toContain("2558103455");
   });
+
+  it("simplyur 표시 주소는 영문", () => {
+    expect(SIMPLYUR_LEGAL_ENTITY.addressEn).toMatch(/Republic of Korea/);
+    expect(SIMPLYUR_LEGAL_ENTITY.addressEn).toMatch(/Edutown-ro/);
+    expect(SIMPLYUR_LEGAL_ENTITY.addressEn).not.toMatch(/경기도/);
+  });
 });

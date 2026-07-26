@@ -42,7 +42,7 @@ export function SimplyurFooter() {
             <li>
               {tr("footer.mailOrderLabel")}: {e.mailOrderReportNo}
             </li>
-            <li>{e.address}</li>
+            <li>{e.addressEn}</li>
             <li>
               {tr("footer.phoneLabel")}:{" "}
               <a href={e.phoneTel} className="underline underline-offset-2">

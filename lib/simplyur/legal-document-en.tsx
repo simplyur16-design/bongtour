@@ -13,7 +13,7 @@ function BizInfoListEn() {
       <li>Business registration no.: {e.bizRegNo}</li>
       <li>Mail-order sales report no.: {e.mailOrderReportNo}</li>
       <li>Tourism business registration: {e.tourismRegNo}</li>
-      <li>Address: {e.address}</li>
+      <li>Address: {e.addressEn}</li>
       <li>
         Phone:{" "}
         <a href={e.phoneTel} className="underline underline-offset-2">

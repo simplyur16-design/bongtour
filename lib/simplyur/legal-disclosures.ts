@@ -1,9 +1,10 @@
+import { COMPANY_FOOTER } from "@/lib/company-footer";
 import { LEGAL_ENTITY } from "@/lib/legal-site-disclosures";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 
 // REGRESSION-FREEZE[simplyur-pg-legal-surface]: simplyur PG 심사용 법인·약관 경로 SSOT — manifest
 
-/** PortOne·PG 심사용 사업자 정보 (한국어 표기 고정) */
+/** PortOne·PG 심사용 사업자 정보 — 주소는 simplyur 표면 영문(addressEn) 우선 */
 export const SIMPLYUR_LEGAL_ENTITY = {
   legalName: LEGAL_ENTITY.legalName,
   serviceName: "simplyur",
@@ -14,7 +15,10 @@ export const SIMPLYUR_LEGAL_ENTITY = {
   bizRegNo: LEGAL_ENTITY.bizRegNo,
   mailOrderReportNo: LEGAL_ENTITY.mailOrderReportNo,
   tourismRegNo: LEGAL_ENTITY.tourismRegNo,
+  /** 등록 한글 주소 (대조·보관용) */
   address: LEGAL_ENTITY.address,
+  /** simplyur 앱·웹 표시용 영문 주소 */
+  addressEn: COMPANY_FOOTER.addressLineEn,
   phone: LEGAL_ENTITY.phone,
   phoneTel: LEGAL_ENTITY.phoneTel,
   fax: LEGAL_ENTITY.fax,

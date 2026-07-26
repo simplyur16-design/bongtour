@@ -5,6 +5,9 @@ export const COMPANY_FOOTER = {
   legalName: '주식회사 봉투어',
   bizRegNo: '255-81-03455',
   addressLine: '경기도 수원시 영통구 에듀타운로 101 에듀하임 103동 110호',
+  /** simplyur 등 외국인 표면용 영문 주소 */
+  addressLineEn:
+    'Unit 110, Building 103, Eduheim, 101 Edutown-ro, Yeongtong-gu, Suwon-si, Gyeonggi-do, Republic of Korea',
   phoneDisplay: '031-213-2558',
   phoneTel: 'tel:0312132558',
   faxDisplay: '031-215-2558',
