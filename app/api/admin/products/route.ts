@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sanitizePrismaWriteData } from '@/lib/prisma-safe-string'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
@@ -219,10 +220,10 @@ export async function POST(request: Request) {
     const { travelScope: scopeForGeo } = travelScopeAndListingKindFromAdminRegister(
       typeof body.travelScope === 'string' ? body.travelScope : null,
     )
-    const updateData = {
+    const updateData = sanitizePrismaWriteData({
       ...(await productToUpdateData(parsed, scopeForGeo)),
       ...(brandId != null && { brandId }),
-    }
+    })
     let productId: string
 
     if (existing) {
@@ -240,7 +241,7 @@ export async function POST(request: Request) {
       const created = await prisma.product.create({
         data: {
           ...createData,
-          originCode: parsed.originCode,
+          originCode: sanitizePrismaWriteData(parsed.originCode),
         },
       })
       productId = created.id

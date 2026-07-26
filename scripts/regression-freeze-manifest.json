@@ -9364,6 +9364,76 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-confirm-prisma-safe-surrogates",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 confirm product.create — lone UTF-16 surrogate 제거 (Prisma JSON 오류 방지)",
+      "checks": [
+        {
+          "file": "lib/prisma-safe-string.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "stripLoneUtf16Surrogates",
+            "sanitizePrismaWriteData"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]",
+            "sanitizePrismaWriteData(productData)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/prisma-safe-string.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

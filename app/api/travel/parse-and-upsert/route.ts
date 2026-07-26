@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { sanitizePrismaWriteData } from '@/lib/prisma-safe-string'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
@@ -130,10 +131,10 @@ export async function POST(request: Request) {
     let productId: string
 
     const travelScopeForGeo = existing?.travelScope ?? 'overseas'
-    const updateData = {
+    const updateData = sanitizePrismaWriteData({
       ...(await productToUpdateData(parsed, travelScopeForGeo)),
       ...(brandId != null && { brandId }),
-    }
+    })
     if (existing) {
       await prisma.$transaction(async (tx) => {
         await tx.productPrice.deleteMany({ where: { productId: existing.id } })
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
       const created = await prisma.product.create({
         data: {
           ...createData,
-          originCode: parsed.originCode,
+          originCode: sanitizePrismaWriteData(parsed.originCode),
         },
       })
       productId = created.id

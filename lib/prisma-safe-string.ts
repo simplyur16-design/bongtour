@@ -1,6 +1,7 @@
 /**
  * Prisma query engine rejects strings with lone UTF-16 surrogates (truncated emoji etc.).
  * @see https://github.com/prisma/prisma/issues/21578
+ * REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]: strip before product.create — manifest
  */
 
 /** 고립 서로게이트(이모지 절반 등) 제거 — Prisma create/update 전 필수 */

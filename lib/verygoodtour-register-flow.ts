@@ -11,6 +11,7 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
+import { sanitizePrismaWriteData } from '@/lib/prisma-safe-string'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
@@ -1652,21 +1653,23 @@ export async function runVerygoodtourRegisterFlow(request: Request, flowOptions:
 
     stage = 'prismaConfirmWrite'
     ctx.stage = stage
+    // REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]: sanitize before create/update — manifest
+    const safeProductData = sanitizePrismaWriteData(productData)
     if (existing) {
       await prisma.$transaction(async (tx) => {
         await tx.productPrice.deleteMany({ where: { productId: existing.id } })
         await tx.itinerary.deleteMany({ where: { productId: existing.id } })
         await tx.product.update({
           where: { id: existing.id },
-          data: productData,
+          data: safeProductData,
         })
       })
       productId = existing.id
     } else {
       const created = await prisma.product.create({
         data: {
-          ...productData,
-          originCode: parsed.originCode,
+          ...safeProductData,
+          originCode: sanitizePrismaWriteData(parsed.originCode),
         },
       })
       productId = created.id

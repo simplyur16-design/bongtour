@@ -1925,6 +1925,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
 
     stage = 'prismaConfirmWrite'
     ctx.stage = stage
+    // REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]: sanitize before create/update — manifest
     const safeProductData = sanitizePrismaWriteData(productData)
     if (existing) {
       await prisma.$transaction(async (tx) => {
@@ -1940,7 +1941,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
       const created = await prisma.product.create({
         data: {
           ...safeProductData,
-          originCode: parsed.originCode,
+          originCode: sanitizePrismaWriteData(parsed.originCode),
         },
       })
       productId = created.id
