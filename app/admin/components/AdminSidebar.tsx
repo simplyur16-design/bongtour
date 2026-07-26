@@ -277,13 +277,48 @@ export default function AdminSidebar({ actorRole }: { actorRole?: string | null 
         >
           <Menu className="h-5 w-5" />
         </button>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">Bong투어 관리</span>
-        <Link
-          href="/admin/bongsim/affiliation-cards"
-          className="shrink-0 rounded-lg bg-bt-brand-gold-strong px-2.5 py-1.5 text-xs font-semibold text-bt-text-navy"
+        <span className="min-w-0 shrink truncate text-sm font-semibold text-white">관리</span>
+        <div
+          className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          data-admin-mobile-quick-chips="true"
         >
-          소속 명함 승인
-        </Link>
+          {/* REGRESSION-FREEZE[admin-mobile-ops-b-register]: mobile quick chips inquiries/bookings/register — manifest */}
+          <Link
+            href="/admin/bongsim/affiliation-cards"
+            className="shrink-0 rounded-lg bg-bt-brand-gold-strong px-2.5 py-1.5 text-xs font-semibold text-bt-text-navy"
+          >
+            명함
+          </Link>
+          {actorRole !== 'STAFF' ? (
+            <>
+              <Link
+                href="/admin/inquiries"
+                className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white"
+              >
+                문의
+              </Link>
+              <Link
+                href="/admin/bookings"
+                className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white"
+              >
+                예약
+              </Link>
+              <Link
+                href="/admin/register"
+                className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white"
+              >
+                등록
+              </Link>
+            </>
+          ) : (
+            <Link
+              href="/admin/members"
+              className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white"
+            >
+              회원
+            </Link>
+          )}
+        </div>
       </header>
 
       {/* 모바일 드로어 */}

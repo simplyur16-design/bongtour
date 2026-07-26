@@ -9902,6 +9902,64 @@
       ]
     },
     {
+      "id": "admin-mobile-ops-b-register",
+      "tier": ["prebuild"],
+      "summary": "관리자 모바일 B+상품등록 — quick chips, 카드 목록, register 스택·confirm CTA",
+      "checks": [
+        {
+          "file": "app/admin/components/AdminSidebar.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-quick-chips",
+            "/admin/inquiries",
+            "/admin/bookings",
+            "/admin/register"
+          ]
+        },
+        {
+          "file": "app/admin/members/MembersAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-members"
+          ]
+        },
+        {
+          "file": "app/admin/bookings/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-bookings"
+          ]
+        },
+        {
+          "file": "components/admin/InquiryListTable.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-inquiries"
+          ]
+        },
+        {
+          "file": "app/admin/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-dashboard-actions",
+            "/admin/inquiries",
+            "/admin/register"
+          ]
+        },
+        {
+          "file": "app/admin/register/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "data-admin-mobile-register",
+            "data-admin-mobile-register-confirm",
+            "미리보기 확인 후 최종 저장",
+            "사실 가져오기 (API)",
+            "봉투어 형식으로 변환"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-press-email-retired",
       "tier": [
         "prebuild",

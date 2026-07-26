@@ -58,30 +58,43 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
           <AdminKpiCard label="오늘 수집" value={<span className="text-base font-normal text-bt-text-muted-lavender">아래 차트 참고</span>} tone="muted" />
         </section>
 
-        {/* 빠른 액션 */}
-        <section className="mb-8">
+        {/* 빠른 액션 — 모바일 우선 운영 링크 */}
+        {/* REGRESSION-FREEZE[admin-mobile-ops-b-register]: dashboard phone-first quick actions — manifest */}
+        <section className="mb-8" data-admin-mobile-dashboard-actions="true">
           <h2 className={ADMIN_SECTION_TITLE_CLASS}>빠른 액션</h2>
-          <div className="flex flex-wrap gap-3">
-            <Link href={`/admin/bongsim/affiliation-cards${query}`} className={ADMIN_BTN_PRIMARY_CLASS}>
+          <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+            <Link
+              href={`/admin/bongsim/affiliation-cards${query}`}
+              className={`${ADMIN_BTN_PRIMARY_CLASS} min-h-12 w-full sm:w-auto`}
+            >
               소속 명함 승인
               {affiliationPendingCount > 0 ? ` (${affiliationPendingCount})` : ''}
             </Link>
-            <Link href={`/admin/training-programs/new${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
-              국외연수 프로그램 등록
-            </Link>
-            <Link href={`/admin/register${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
+            <Link href={`/admin/register${query}`} className={`${ADMIN_BTN_PRIMARY_CLASS} min-h-12 w-full sm:w-auto`}>
               상품 등록
             </Link>
-            <Link href={`/admin/pending${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
-              등록대기 보기
+            <Link href={`/admin/bookings${query}`} className={`${ADMIN_BTN_SECONDARY_CLASS} min-h-12 w-full sm:w-auto`}>
+              상담·예약
             </Link>
-            <Link href={`/admin/products${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
-              상품 목록 보기
+            <Link href={`/admin/inquiries${query}`} className={`${ADMIN_BTN_SECONDARY_CLASS} min-h-12 w-full sm:w-auto`}>
+              문의 접수
             </Link>
-            <Link href={`/admin/bookings${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
-              상담·예약 보기
+            <Link href={`/admin/pending${query}`} className={`${ADMIN_BTN_SECONDARY_CLASS} min-h-12 w-full sm:w-auto`}>
+              등록대기
             </Link>
-            <Link href={`/admin/brands${query}`} className={ADMIN_BTN_SECONDARY_CLASS}>
+            <Link href={`/admin/products${query}`} className={`${ADMIN_BTN_SECONDARY_CLASS} min-h-12 w-full sm:w-auto`}>
+              상품 목록
+            </Link>
+            <Link
+              href={`/admin/training-programs/new${query}`}
+              className={`${ADMIN_BTN_SECONDARY_CLASS} hidden min-h-12 w-full sm:inline-flex sm:w-auto`}
+            >
+              국외연수 프로그램 등록
+            </Link>
+            <Link
+              href={`/admin/brands${query}`}
+              className={`${ADMIN_BTN_SECONDARY_CLASS} hidden min-h-12 w-full sm:inline-flex sm:w-auto`}
+            >
               브랜드 관리
             </Link>
           </div>
@@ -99,8 +112,11 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
           </div>
         )}
 
-        {/* 오늘 수집 현황 · 봇 상태 · 가격 동기화 1회 · 로그 */}
-        <AdminDashboardControl />
+        {/* 오늘 수집 현황 · 봇 상태 · 가격 동기화 1회 · 로그 — 모바일에서는 하단 */}
+        <div className="mt-4 border-t border-bt-border-soft pt-6 md:mt-0 md:border-0 md:pt-0">
+          <p className="mb-3 text-xs font-medium text-bt-text-muted-lavender md:hidden">수집·봇 현황 (상세)</p>
+          <AdminDashboardControl />
+        </div>
     </div>
   )
 }

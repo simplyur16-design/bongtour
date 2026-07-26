@@ -55,7 +55,77 @@ export default function InquiryListTable({
           {patchError}
         </p>
       )}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+
+      {/* REGRESSION-FREEZE[admin-mobile-ops-b-register]: inquiry mobile cards — manifest */}
+      <ul className="space-y-3 md:hidden" data-admin-mobile-inquiries="true">
+        {rows.map((r) => {
+          const productLabel = r.snapshotProductTitle?.trim()
+            ? clip(r.snapshotProductTitle, 40).text
+            : '일반 상담'
+          return (
+            <li key={r.id}>
+              <button
+                type="button"
+                onClick={() => router.push(`/admin/inquiries/${r.id}`)}
+                className={`w-full rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm${
+                  r.isTest ? ' border-amber-200 bg-amber-50/40' : ''
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded border px-2 py-0.5 text-xs font-medium ${inquiryStatusBadgeClass(r.status)}`}
+                  >
+                    {inquiryStatusLabel(r.status)}
+                  </span>
+                  <span className="font-mono text-xs text-gray-700">{dash(r.inquiryNumber)}</span>
+                  {r.isTest ? (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
+                      테스트
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-base font-semibold text-gray-900">{productLabel}</p>
+                <p className="mt-1 text-sm text-gray-700">
+                  {dash(r.applicantName)} · {dash(r.applicantPhone)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {formatCreatedAt(r.createdAt)} · {inquiryTypeDisplayLabel(r.inquiryType, r.quoteKind)}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <span
+                    className={`inline-flex rounded border px-2 py-0.5 font-medium ${preferredContactChannelBadgeClass(r.preferredContactChannel)}`}
+                  >
+                    {preferredContactChannelLabel(r.preferredContactChannel)}
+                  </span>
+                  <span
+                    className={`inline-flex rounded border px-2 py-0.5 font-medium ${leadTimeRiskBadgeClass(r.leadTimeRisk)}`}
+                  >
+                    {leadTimeRiskLabel(r.leadTimeRisk)}
+                  </span>
+                </div>
+              </button>
+              <div
+                className="mt-2 rounded-lg border border-gray-100 bg-white px-3 py-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="mb-1 text-[11px] font-medium text-gray-500">상태 변경</p>
+                <InquiryStatusSelect
+                  inquiryId={r.id}
+                  value={r.status}
+                  disabled={selectDisabled}
+                  onStatusUpdated={(id, st) => {
+                    onPatchError(null)
+                    onStatusUpdated(id, st)
+                  }}
+                  onError={onPatchError}
+                />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm md:block">
         <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600">

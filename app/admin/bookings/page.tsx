@@ -271,7 +271,8 @@ export default function AdminBookingsPage() {
               actionHref="/admin"
             />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-gray-100 md:divide-y" data-admin-mobile-bookings="true">
+              {/* REGRESSION-FREEZE[admin-mobile-ops-b-register]: bookings mobile list — manifest */}
               {intakeItems.map((item) => {
                 const isSelected =
                   selection?.kind === item.kind &&
@@ -281,11 +282,11 @@ export default function AdminBookingsPage() {
                 return (
                   <li key={`${item.kind}-${item.id}`}>
                     <div
-                      className={`flex w-full items-center gap-3 py-3 ${isSelected ? 'bg-gray-50' : ''}`}
+                      className={`flex w-full items-start gap-3 py-3 md:items-center ${isSelected ? 'bg-gray-50' : ''}`}
                     >
                       <input
                         type="checkbox"
-                        className="ml-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                        className="ml-1 mt-1 h-5 w-5 shrink-0 rounded border-gray-300 md:mt-0 md:h-4 md:w-4"
                         checked={isChecked}
                         aria-label={`${item.accessionNumber} 선택`}
                         onChange={(e) => toggleChecked(item, e.target.checked)}
@@ -300,9 +301,10 @@ export default function AdminBookingsPage() {
                               : { kind: 'inquiry', id: item.id },
                           )
                         }
-                        className="flex min-w-0 flex-1 items-center justify-between text-left hover:opacity-90"
+                        className="flex min-h-12 min-w-0 flex-1 flex-col gap-2 text-left hover:opacity-90 md:min-h-0 md:flex-row md:items-center md:justify-between"
                       >
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${
                             item.kind === 'inquiry'
@@ -315,20 +317,11 @@ export default function AdminBookingsPage() {
                         <span className="rounded border border-gray-200 px-2 py-0.5 font-mono text-xs font-medium text-gray-800">
                           {item.accessionNumber}
                         </span>
-                        <span className="font-medium text-[#0f172a]">{item.productTitle}</span>
-                        <span className="text-sm text-gray-500">{item.customerName}</span>
                         {item.isTest ? (
                           <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
                             테스트
                           </span>
                         ) : null}
-                        {item.kind === 'booking' ? (
-                          <span className="text-sm text-gray-500">
-                            {new Date(item.selectedDate).toLocaleDateString('ko-KR')} 출발
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-500">{item.inquiryTypeLabel}</span>
-                        )}
                         <AdminStatusBadge
                           variant={
                             item.kind === 'booking'
@@ -337,6 +330,16 @@ export default function AdminBookingsPage() {
                           }
                           label={item.kind === 'booking' ? item.status : item.statusLabel}
                         />
+                        </div>
+                        <span className="font-medium text-[#0f172a]">{item.productTitle}</span>
+                        <span className="text-sm text-gray-600">{item.customerName}</span>
+                        {item.kind === 'booking' ? (
+                          <span className="text-sm text-gray-500">
+                            {new Date(item.selectedDate).toLocaleDateString('ko-KR')} 출발
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500">{item.inquiryTypeLabel}</span>
+                        )}
                       </div>
                     </button>
                     </div>

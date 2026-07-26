@@ -1365,9 +1365,14 @@ export default function AdminRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-4xl px-6 py-8">
+    // REGRESSION-FREEZE[admin-mobile-ops-b-register]: register mobile stack + confirm CTA — manifest
+    <div className="min-h-screen bg-gray-50" data-admin-mobile-register="true">
+      <div className="mx-auto max-w-4xl px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-8">
         <AdminPageHeader title="상품 등록" />
+        <p className="mt-2 text-xs text-slate-600 md:hidden">
+          폰에서도 사실 가져오기 → 변환 → 미리보기 → 최종 저장까지 진행합니다. 무거운 검수(Pexels 등)는 아래 접기 메뉴에
+          있습니다.
+        </p>
 
         <div className="mt-6 rounded-lg border border-slate-200 bg-white px-4 py-3">
           <p className="text-sm font-bold text-slate-900">A. 기본 원문 입력</p>
@@ -1377,7 +1382,7 @@ export default function AdminRegisterPage() {
         </div>
 
         {/* A-1. 여행사 · 상품 카테고리 (여행사 우선) */}
-        <div className="mt-6 grid gap-4 border-l-4 border-[#0f172a] pl-6 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 border-l-4 border-[#0f172a] pl-4 sm:grid-cols-2 sm:pl-6">
           <div>
             <label htmlFor="admin-register-brand" className="block text-sm font-semibold text-slate-800">
               여행사
@@ -1497,7 +1502,7 @@ export default function AdminRegisterPage() {
               type="button"
               onClick={() => void fetchRegisterFacts()}
               disabled={loading || registerFactFetchLoading || !registerFactFetchEnabled}
-              className="border border-[#0f172a] bg-[#0f172a] px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-12 w-full border border-[#0f172a] bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-h-0 sm:px-3 sm:py-2 sm:font-medium"
             >
               {registerFactFetchLoading ? '사실 가져오는 중…' : '사실 가져오기 (API)'}
             </button>
@@ -1640,7 +1645,7 @@ export default function AdminRegisterPage() {
             type="button"
             onClick={handleSubmit}
             disabled={loading || confirming || !resolveRegisterPasteText()}
-            className="w-full bg-[#10b981] px-6 py-4 text-base font-bold tracking-wide text-white transition hover:bg-[#0d9668] disabled:opacity-70 sm:w-auto sm:max-w-xl"
+            className="min-h-12 w-full bg-[#10b981] px-6 py-4 text-base font-bold tracking-wide text-white transition hover:bg-[#0d9668] disabled:opacity-70 sm:w-auto sm:max-w-xl"
           >
             {loading ? LOADING_STATUS : '봉투어 형식으로 변환'}
           </button>
@@ -2314,9 +2319,11 @@ export default function AdminRegisterPage() {
                 </div>
               </div>
 
-              <div className="rounded border border-indigo-200 bg-indigo-50/50 p-3 text-xs">
-                <p className="text-sm font-semibold text-indigo-950">대표관광지 저장</p>
-                <p className="mt-0.5 text-[10px] font-medium text-indigo-900/90">
+              <details className="rounded border border-indigo-200 bg-indigo-50/50 p-3 text-xs open:shadow-sm">
+                <summary className="cursor-pointer text-sm font-semibold text-indigo-950">
+                  대표관광지 저장 · Pexels 후보 (접기)
+                </summary>
+                <p className="mt-2 text-[10px] font-medium text-indigo-900/90">
                   Pexels·Gemini 공통 기준 · 저장 SSOT:{' '}
                   <code className="rounded bg-white/80 px-1">Product.schedule[].imageKeyword</code> ·{' '}
                   <code className="rounded bg-white/80 px-1">imageKeyword2</code> (일차당 2장)
@@ -2557,7 +2564,7 @@ export default function AdminRegisterPage() {
                     </div>
                   </div>
                 ) : null}
-              </div>
+              </details>
             </div>
 
             <RegisterCorrectionDrawer
@@ -2570,7 +2577,10 @@ export default function AdminRegisterPage() {
               hintDetail={correctionHintDetail}
             />
 
-            <div className="mt-4">
+            <div
+              className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:static md:mt-4 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none"
+              data-admin-mobile-register-confirm="true"
+            >
               <button
                 type="button"
                 onClick={handleConfirmRegister}
@@ -2582,7 +2592,7 @@ export default function AdminRegisterPage() {
                   (previewContentFingerprintRef.current != null &&
                     currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current)
                 }
-                className="rounded-lg bg-[#0f172a] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                className="min-h-12 w-full rounded-lg bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 md:w-auto md:min-h-0 md:py-2.5"
               >
                 {confirming ? '3축 저장 중…' : '미리보기 확인 후 최종 저장'}
               </button>

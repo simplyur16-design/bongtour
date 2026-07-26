@@ -157,34 +157,34 @@ export default function MembersAdminClient({ actorRole }: Props) {
         </p>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-700 bg-slate-900/80 p-4">
-        <label className="text-xs text-slate-400">
+      <div className="mb-4 flex flex-col gap-3 rounded-lg border border-slate-700 bg-slate-900/80 p-4 sm:flex-wrap sm:flex-row sm:items-end">
+        <label className="flex flex-col gap-1 text-xs text-slate-400 sm:block">
           검색
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="이름·이메일"
-            className="ml-2 rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            className="mt-0 w-full rounded border border-slate-600 bg-slate-950 px-3 py-2.5 text-base text-white sm:ml-2 sm:mt-0 sm:inline-block sm:w-auto sm:py-1.5 sm:text-sm"
           />
         </label>
-        <label className="text-xs text-slate-400">
+        <label className="flex flex-col gap-1 text-xs text-slate-400 sm:block">
           가입 방식
           <select
             value={signupMethod}
             onChange={(e) => setSignupMethod(e.target.value)}
-            className="ml-2 rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            className="mt-0 w-full rounded border border-slate-600 bg-slate-950 px-3 py-2.5 text-base text-white sm:ml-2 sm:inline-block sm:w-auto sm:py-1.5 sm:text-sm"
           >
             <option value="all">전체</option>
             <option value="email">이메일</option>
             <option value="kakao">카카오</option>
           </select>
         </label>
-        <label className="text-xs text-slate-400">
+        <label className="flex flex-col gap-1 text-xs text-slate-400 sm:block">
           역할
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="ml-2 rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            className="mt-0 w-full rounded border border-slate-600 bg-slate-950 px-3 py-2.5 text-base text-white sm:ml-2 sm:inline-block sm:w-auto sm:py-1.5 sm:text-sm"
           >
             <option value="all">전체</option>
             <option value="user">일반 회원</option>
@@ -192,12 +192,12 @@ export default function MembersAdminClient({ actorRole }: Props) {
             <option value="admin">관리자(최고 포함)</option>
           </select>
         </label>
-        <label className="text-xs text-slate-400">
+        <label className="flex flex-col gap-1 text-xs text-slate-400 sm:block">
           상태
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="ml-2 rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-white"
+            className="mt-0 w-full rounded border border-slate-600 bg-slate-950 px-3 py-2.5 text-base text-white sm:ml-2 sm:inline-block sm:w-auto sm:py-1.5 sm:text-sm"
           >
             <option value="all">전체</option>
             {ACCOUNT_STATUSES.map((s) => (
@@ -210,7 +210,7 @@ export default function MembersAdminClient({ actorRole }: Props) {
         <button
           type="button"
           onClick={() => void load()}
-          className="rounded bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+          className="min-h-12 w-full rounded bg-teal-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 sm:min-h-0 sm:w-auto sm:py-1.5"
           disabled={listState === 'loading'}
         >
           적용
@@ -234,7 +234,91 @@ export default function MembersAdminClient({ actorRole }: Props) {
         <div className="mb-3 rounded-lg border border-sky-500/35 bg-sky-950/30 px-3 py-2 text-sm text-sky-100">{saveHint}</div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-700">
+      {/* REGRESSION-FREEZE[admin-mobile-ops-b-register]: members mobile cards — manifest */}
+      <ul className="space-y-3 md:hidden" data-admin-mobile-members="true">
+        {listState === 'loading' ? (
+          <li className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-8 text-center text-sm text-slate-500">
+            불러오는 중…
+          </li>
+        ) : listState === 'forbidden' ? (
+          <li className="rounded-xl border border-dashed border-slate-600 bg-slate-900/60 px-4 py-8 text-center text-sm text-slate-300">
+            회원 목록은 관리자 권한이 연결된 뒤 표시됩니다.
+          </li>
+        ) : listState === 'error' ? (
+          <li className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-8 text-center text-sm text-red-200">
+            다시 「적용」으로 불러와 주세요.
+          </li>
+        ) : rows.length === 0 ? (
+          <li className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-8 text-center text-sm text-slate-500">
+            조건에 맞는 회원이 없습니다.
+          </li>
+        ) : (
+          rows.map((r) => (
+            <li key={r.id} className="rounded-xl border border-slate-700 bg-slate-950/80 p-4 shadow-sm">
+              <p className="text-base font-semibold text-white">{r.name ?? '(이름 없음)'}</p>
+              <p className="mt-0.5 break-all text-sm text-slate-300">{r.email ?? '—'}</p>
+              {r.phone ? (
+                <a href={`tel:${r.phone.replace(/\s/g, '')}`} className="mt-1 inline-block text-sm text-teal-300 underline">
+                  {r.phone}
+                </a>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">전화 미등록</p>
+              )}
+              <dl className="mt-3 grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-1.5 text-sm">
+                <dt className="text-slate-500">가입</dt>
+                <dd className="text-slate-200">{displaySignupMethod(r.signupMethod)}</dd>
+                <dt className="text-slate-500">역할</dt>
+                <dd>
+                  {canEdit && (superActor || r.role !== 'SUPER_ADMIN') ? (
+                    <select
+                      disabled={savingId === r.id}
+                      value={r.role ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        void patchRow(r.id, { role: v === '' ? null : v })
+                      }}
+                      className="min-h-11 w-full rounded border border-slate-600 bg-slate-900 px-2 text-sm text-white"
+                    >
+                      {roleSelectOptions().map((o) => (
+                        <option key={o.value || 'user'} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-slate-200">{displayRole(r.role)}</span>
+                  )}
+                </dd>
+                <dt className="text-slate-500">상태</dt>
+                <dd>
+                  {canEdit && (superActor || r.role !== 'SUPER_ADMIN') ? (
+                    <select
+                      disabled={savingId === r.id}
+                      value={r.accountStatus}
+                      onChange={(e) => void patchRow(r.id, { accountStatus: e.target.value })}
+                      className="min-h-11 w-full rounded border border-slate-600 bg-slate-900 px-2 text-sm text-white"
+                    >
+                      {ACCOUNT_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {displayAccountStatus(s)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-slate-200">{displayAccountStatus(r.accountStatus)}</span>
+                  )}
+                </dd>
+                <dt className="text-slate-500">가입일</dt>
+                <dd className="text-xs text-slate-400">
+                  {r.createdAt ? new Date(r.createdAt).toLocaleString('ko-KR') : '—'}
+                </dd>
+              </dl>
+            </li>
+          ))
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-700 md:block">
         <table className="min-w-full divide-y divide-slate-700 text-left text-sm">
           <thead className="bg-slate-900">
             <tr>
