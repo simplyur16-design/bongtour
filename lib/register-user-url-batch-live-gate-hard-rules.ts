@@ -26,7 +26,7 @@ function isHubOnlyMiddleDay(args: {
   return (
     isAirportTransferOrCityHubOnlyMiddleRoute(route) ||
     isScheduleHubMovementKeywordRow(
-      { routeText: route, title: args.title, description: args.description },
+      { day: args.day, routeText: route, title: args.title, description: args.description },
       args.day,
       args.maxDay,
     ) ||

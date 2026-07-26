@@ -361,7 +361,7 @@ function scheduleRowIssues(
       const hubOnly =
         isAirportTransferOrCityHubOnlyMiddleRoute(route) ||
         isScheduleHubMovementKeywordRow(
-          { routeText: route, title, description: desc },
+          { day, routeText: route, title, description: desc },
           day,
           maxDay,
         ) ||
