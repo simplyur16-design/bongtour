@@ -126,17 +126,23 @@ export default function AffiliationCardsAdminClient() {
             className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
           >
             {/* REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: 제출 회원 블록 — manifest */}
-            <div className="space-y-2 border-b border-slate-100 bg-slate-50 px-3 py-3 sm:px-4">
+            <div
+              className="space-y-2 border-b-2 border-[#5B4B8A]/30 bg-[#F4F1FA] px-3 py-3 sm:px-4"
+              data-affiliation-submitter="true"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    제출 회원
-                  </p>
-                  <p className="mt-0.5 truncate text-base font-semibold text-slate-900">
+                  <p className="text-sm font-bold text-[#5B4B8A]">이 명함을 제출한 회원</p>
+                  <p className="mt-1 break-words text-lg font-semibold text-slate-900">
                     {it.userMissing
                       ? '(회원 없음 — 탈퇴·삭제 가능)'
                       : it.userName?.trim() || '(계정 이름 없음)'}
                   </p>
+                  {!it.userMissing && it.userEmail ? (
+                    <p className="mt-0.5 break-all text-base font-medium text-slate-800">
+                      {it.userEmail}
+                    </p>
+                  ) : null}
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -151,8 +157,6 @@ export default function AffiliationCardsAdminClient() {
                 </span>
               </div>
               <dl className="grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-1 text-sm text-slate-800">
-                <dt className="text-slate-500">이메일</dt>
-                <dd className="break-all font-medium">{it.userEmail || '-'}</dd>
                 <dt className="text-slate-500">전화</dt>
                 <dd>
                   {it.userPhone ? (
@@ -163,7 +167,7 @@ export default function AffiliationCardsAdminClient() {
                       {it.userPhone}
                     </a>
                   ) : (
-                    '-'
+                    <span className="text-slate-400">미등록</span>
                   )}
                 </dd>
                 <dt className="text-slate-500">가입</dt>
@@ -196,17 +200,17 @@ export default function AffiliationCardsAdminClient() {
             </button>
 
             <div className="space-y-3 p-3 sm:p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">명함 OCR</p>
-              <dl className="grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-1.5 text-sm text-slate-800">
+              <p className="text-sm font-semibold text-slate-600">명함 OCR (사진에서 읽은 값 · 참고용)</p>
+              <dl className="grid grid-cols-[5.5rem_1fr] gap-x-2 gap-y-1.5 text-sm text-slate-800">
                 <dt className="text-slate-500">회사</dt>
                 <dd className="break-words font-medium">{it.ocrCompany || '-'}</dd>
-                <dt className="text-slate-500">이름</dt>
+                <dt className="text-slate-500">명함 이름</dt>
                 <dd className="break-words">{it.ocrName || '-'}</dd>
                 <dt className="text-slate-500">직함</dt>
                 <dd className="break-words">{it.ocrPosition || '-'}</dd>
-                <dt className="text-slate-500">이메일</dt>
+                <dt className="text-slate-500">명함 이메일</dt>
                 <dd className="break-all">{it.ocrEmail || '-'}</dd>
-                <dt className="text-slate-500">전화</dt>
+                <dt className="text-slate-500">명함 전화</dt>
                 <dd>
                   {it.ocrPhone ? (
                     <a

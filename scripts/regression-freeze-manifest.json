@@ -9849,9 +9849,11 @@
             "승인 · 할인",
             "탭하면 확대",
             "제출 회원",
+            "이 명함을 제출한 회원",
             "명함 OCR",
             "회원 관리에서 보기",
-            "userId"
+            "userId",
+            "data-affiliation-submitter"
           ]
         },
         {
