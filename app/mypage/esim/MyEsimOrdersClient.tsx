@@ -2,6 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+type TopupUi = {
+  topup_id: string;
+  status: string;
+  qr_code_img_url: string | null;
+  smdp: string | null;
+  activate_code: string | null;
+};
+
 type OrderRow = {
   order_id: string;
   order_number: string;
@@ -14,6 +22,7 @@ type OrderRow = {
   allowance_label: string;
   country_flag: string;
   country_label: string;
+  topups: TopupUi[];
   qr_code_img_url: string | null;
   sm_dp_plus_address: string | null;
   activation_code: string | null;
@@ -116,7 +125,12 @@ export default function MyEsimOrdersClient() {
         return;
       }
       if (!res.ok) throw new Error(j.error ?? "목록을 불러오지 못했습니다.");
-      setRows(j.orders ?? []);
+      setRows(
+        (j.orders ?? []).map((o) => ({
+          ...o,
+          topups: Array.isArray(o.topups) ? o.topups : [],
+        })),
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : "오류");
     }
@@ -213,13 +227,15 @@ export default function MyEsimOrdersClient() {
             </dl>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {o.can_show_qr && o.qr_code_img_url ? (
+              {o.can_show_qr && (o.qr_code_img_url || o.topups.some((t) => t.qr_code_img_url)) ? (
                 <button
                   type="button"
                   className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-teal-600 hover:to-cyan-700"
                   onClick={() => setQrModal(o)}
                 >
-                  QR코드 보기
+                  {o.topups.filter((t) => t.qr_code_img_url).length > 1
+                    ? `QR코드 ${o.topups.filter((t) => t.qr_code_img_url).length}개 보기`
+                    : "QR코드 보기"}
                 </button>
               ) : null}
               {o.can_check_usage ? (
@@ -294,37 +310,70 @@ export default function MyEsimOrdersClient() {
                 닫기
               </button>
             </div>
-            {qrModal.qr_code_img_url ? (
-              <div className="mt-4 flex justify-center rounded-xl bg-white p-4">
-                {/* eslint-disable-next-line @next/next/no-img-element -- 외부 eSIM QR URL 동적 도메인 */}
-                <img
-                  src={qrModal.qr_code_img_url}
-                  alt="eSIM QR 코드"
-                  loading="eager"
-                  decoding="async"
-                  className="max-h-[min(70vh,320px)] w-full max-w-[320px] object-contain"
-                />
-              </div>
-            ) : null}
-            {qrModal.sm_dp_plus_address || qrModal.activation_code ? (
-              <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/40 p-4">
-                <p className="text-xs font-semibold text-teal-900">수동 설치</p>
-                <p className="mt-1 text-xs leading-relaxed text-teal-800">
-                  QR 스캔이 어려우면 아래 SM-DP+ 주소와 활성화 코드를 설정에 직접 입력하세요.
-                </p>
-                {qrModal.sm_dp_plus_address ? (
-                  <ManualInstallField
-                    label="SM-DP+ 주소"
-                    value={qrModal.sm_dp_plus_address}
-                    copyLabel="주소 복사"
-                  />
-                ) : null}
-                {qrModal.activation_code ? (
-                  <ManualInstallField label="활성화 코드" value={qrModal.activation_code} copyLabel="코드 복사" />
-                ) : null}
-              </div>
-            ) : null}
-            <p className="mt-3 text-center text-xs text-slate-500">설치 앱에서 QR을 스캔해 주세요.</p>
+            {(() => {
+              const units =
+                qrModal.topups?.filter((t) => t.qr_code_img_url || t.smdp || t.activate_code) ?? [];
+              const list =
+                units.length > 0
+                  ? units
+                  : qrModal.qr_code_img_url || qrModal.sm_dp_plus_address || qrModal.activation_code
+                    ? [
+                        {
+                          topup_id: "primary",
+                          status: "delivered",
+                          qr_code_img_url: qrModal.qr_code_img_url,
+                          smdp: qrModal.sm_dp_plus_address,
+                          activate_code: qrModal.activation_code,
+                        },
+                      ]
+                    : [];
+              const multi = list.length > 1;
+              return (
+                <div className="mt-4 space-y-5">
+                  {list.map((u, i) => (
+                    <div key={u.topup_id} className="rounded-xl border border-teal-100 bg-slate-50/60 p-3">
+                      {multi ? (
+                        <p className="mb-2 text-sm font-semibold text-slate-800">
+                          eSIM {i + 1}/{list.length}
+                        </p>
+                      ) : null}
+                      {u.qr_code_img_url ? (
+                        <div className="flex justify-center rounded-xl bg-white p-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- 외부 eSIM QR URL 동적 도메인 */}
+                          <img
+                            src={u.qr_code_img_url}
+                            alt={`eSIM QR ${i + 1}`}
+                            loading="eager"
+                            decoding="async"
+                            className="max-h-[min(50vh,280px)] w-full max-w-[280px] object-contain"
+                          />
+                        </div>
+                      ) : null}
+                      {u.smdp || u.activate_code ? (
+                        <div className="mt-3 rounded-xl border border-teal-100 bg-teal-50/40 p-3">
+                          <p className="text-xs font-semibold text-teal-900">수동 설치</p>
+                          {u.smdp ? (
+                            <ManualInstallField label="SM-DP+ 주소" value={u.smdp} copyLabel="주소 복사" />
+                          ) : null}
+                          {u.activate_code ? (
+                            <ManualInstallField
+                              label="활성화 코드"
+                              value={u.activate_code}
+                              copyLabel="코드 복사"
+                            />
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                  <p className="text-center text-xs text-slate-500">
+                    {multi
+                      ? "각 QR을 기기마다 따로 스캔해 설치해 주세요."
+                      : "설치 앱에서 QR을 스캔해 주세요."}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         </div>
       ) : null}

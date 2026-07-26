@@ -128,45 +128,47 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
         }
       : null;
 
-    const topupLink = await pool.query<{
+    // REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]: all topup installs — manifest
+    const topupRows = await pool.query<{
+      topup_row_id: string;
       qr_code_img_url: string | null;
       download_link: string | null;
       smdp: string | null;
       activate_code: string | null;
+      iccid: string | null;
     }>(
-      `SELECT qr_code_img_url, download_link, smdp, activate_code
-         FROM bongsim_fulfillment_topup
-        WHERE order_id = $1
-          AND status NOT IN ('canceled', 'failed')
-          AND (
-            COALESCE(qr_code_img_url, '') <> ''
-            OR COALESCE(download_link, '') <> ''
-            OR COALESCE(smdp, '') <> ''
-            OR COALESCE(activate_code, '') <> ''
-          )
-        ORDER BY updated_at DESC NULLS LAST
-        LIMIT 1`,
-      [id],
-    );
-    const tl = topupLink.rows[0];
-
-    const topupIccids = await pool.query<{ iccid: string | null }>(
-      `SELECT iccid
+      `SELECT topup_row_id::text AS topup_row_id, qr_code_img_url, download_link, smdp, activate_code, iccid
          FROM bongsim_fulfillment_topup
         WHERE order_id = $1
           AND status NOT IN ('canceled', 'failed')
         ORDER BY created_at ASC`,
       [id],
     );
-    const travelerVerificationIccid = pickPrimaryVerificationIccid(topupIccids.rows);
-
-    const esim_install = buildEsimInstallFromTopup({
-      orderStatus: row.status,
-      qr_code_img_url: tl?.qr_code_img_url ?? null,
-      download_link: tl?.download_link ?? null,
-      smdp: tl?.smdp ?? null,
-      activate_code: tl?.activate_code ?? null,
-    });
+    const unitTotal = topupRows.rows.length;
+    const esim_installs = topupRows.rows.map((t, i) =>
+      buildEsimInstallFromTopup({
+        orderStatus: row.status,
+        qr_code_img_url: t.qr_code_img_url,
+        download_link: t.download_link,
+        smdp: t.smdp,
+        activate_code: t.activate_code,
+        topup_row_id: t.topup_row_id,
+        unit_index: unitTotal > 0 ? i + 1 : null,
+        unit_total: unitTotal > 0 ? unitTotal : null,
+      }),
+    );
+    const primary =
+      esim_installs.find((x) => x.ready && (x.qr_image_url || x.sm_dp_plus_address || x.activation_code)) ??
+      esim_installs[0] ??
+      buildEsimInstallFromTopup({
+        orderStatus: row.status,
+        qr_code_img_url: null,
+        download_link: null,
+        smdp: null,
+        activate_code: null,
+      });
+    const esim_install = primary;
+    const travelerVerificationIccid = pickPrimaryVerificationIccid(topupRows.rows);
 
     const refundElig = await getRefundEligibility(id);
     const cancelEligible = refundElig.eligible;
@@ -187,6 +189,7 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
       lines,
       fulfillment,
       esim_install,
+      esim_installs,
       cancel_eligible: cancelEligible,
       cancel_block_reason: cancelBlockReason,
       requires_traveler_verification: travelerVerificationIccid !== null,

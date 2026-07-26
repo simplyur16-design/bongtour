@@ -3,6 +3,7 @@
  * PG 콜백 직후 drain이 끊긴 경우 미처리 outbox 복구.
  */
 import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { drainEsimQrNotifyOutboxBestEffort } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 
 const CRON_EXPR = "*/2 * * * *";
 
@@ -69,9 +70,12 @@ async function tickBongsimOrderPaidOutboxCron(trigger: "cron" | "boot"): Promise
       return;
     }
     await drainOrderPaidOutboxBestEffort(16);
+    // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: cron also drains EsimQrNotify — manifest
+    const notify = await drainEsimQrNotifyOutboxBestEffort(24);
     console.log("[bongsim-order-paid-outbox-cron] tick done", {
       trigger,
       ms: Date.now() - started,
+      esim_qr_notify: notify,
     });
   } catch (e) {
     console.error("[bongsim-order-paid-outbox-cron] tick error", { trigger, e });

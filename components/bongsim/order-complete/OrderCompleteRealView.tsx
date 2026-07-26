@@ -129,7 +129,7 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
         orderStatus={order.status}
       />
 
-      <EsimInstallSection install={order.esim_install} />
+      <EsimInstallSection install={order.esim_install} installs={order.esim_installs} />
 
       {order.requires_traveler_verification && order.traveler_verification_iccid ? (
         <EsimTravelerVerificationCallout iccid={order.traveler_verification_iccid} />

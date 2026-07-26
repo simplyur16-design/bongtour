@@ -496,7 +496,7 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
 
   if (!apiKey || !apiSecret || !senderPhone) {
     console.error('[sendEsimQrDeliveredLmsFallback] skipped_missing_env', JSON.stringify({ orderId: p.orderId }))
-    return { ok: true }
+    return { ok: false, message: 'skipped_missing_env' }
   }
 
   const toDigits = digitsOnlyPhone(p.customerPhone)
@@ -507,7 +507,7 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
 
   const from = digitsOnlyPhone(senderPhone)
   if (!from || !isPlausibleKrSmsTo(from)) {
-    return { ok: true }
+    return { ok: false, message: 'invalid_sender' }
   }
 
   const text = [

@@ -1,15 +1,25 @@
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { resolveEsimDeliveryContact } from "@/lib/bongsim/checkout/gift-order";
 import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
-import { buildBongsimOrderCompleteUrl } from "@/lib/bongsim/esim-install-presentation";
+import {
+  buildBongsimOrderCompleteUrl,
+  formatEsimNotifyOrderLabel,
+} from "@/lib/bongsim/esim-install-presentation";
 import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
 import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
+import {
+  enqueueEsimQrNotify,
+  kickEsimQrNotifyDrain,
+  type EsimQrNotifyPayload,
+} from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
 import { sendEsimQrDeliveredLmsFallback } from "@/lib/notification-service";
 
 /**
  * 결제 완료 → 공급사 발급 → QR 확보 후 고객 전달(이메일·알림톡).
+ * 알림톡은 EsimQrNotify outbox로 순차 발송 (버스트 누락 방지).
+ * REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: deliver enqueues notify — manifest
  */
 
 export type DeliverEsimToCustomerResult =
@@ -21,7 +31,10 @@ export type DeliverEsimToCustomerResult =
     }
   | { ok: false; reason: "db_unconfigured" | "db_error" };
 
-async function fetchTopupManualCredentials(orderId: string): Promise<{
+async function fetchTopupManualCredentials(
+  orderId: string,
+  topupRowId?: string | null,
+): Promise<{
   smdp: string | null;
   activate_code: string | null;
   travelerVerificationIccid: string | null;
@@ -29,14 +42,23 @@ async function fetchTopupManualCredentials(orderId: string): Promise<{
   const pool = getPgPool();
   if (!pool) return { smdp: null, activate_code: null, travelerVerificationIccid: null };
   try {
-    const r = await pool.query<{ smdp: string | null; activate_code: string | null }>(
-      `SELECT smdp, activate_code
-         FROM bongsim_fulfillment_topup
-        WHERE order_id = $1::uuid
-        ORDER BY updated_at DESC NULLS LAST
-        LIMIT 1`,
-      [orderId],
-    );
+    const tid = (topupRowId ?? "").trim();
+    const r = tid
+      ? await pool.query<{ smdp: string | null; activate_code: string | null }>(
+          `SELECT smdp, activate_code
+             FROM bongsim_fulfillment_topup
+            WHERE order_id = $1::uuid AND topup_row_id = $2::uuid
+            LIMIT 1`,
+          [orderId, tid],
+        )
+      : await pool.query<{ smdp: string | null; activate_code: string | null }>(
+          `SELECT smdp, activate_code
+             FROM bongsim_fulfillment_topup
+            WHERE order_id = $1::uuid
+            ORDER BY updated_at DESC NULLS LAST
+            LIMIT 1`,
+          [orderId],
+        );
     const row = r.rows[0];
 
     const iccidRows = await pool.query<{ iccid: string | null }>(
@@ -83,58 +105,74 @@ async function sendEsimQrEmailBestEffort(params: {
   }
 }
 
-async function notifyEsimQrToCustomer(params: {
-  orderId: string;
-  orderNumber: string;
-  deliveryEmail: string;
-  deliveryPhone: string | null;
-  qrCodeUrl: string;
-  downloadLink: string;
-  smdp: string | null;
-  activate_code: string | null;
-  travelerVerificationIccid: string | null;
-}): Promise<void> {
-  const orderPageUrl = buildBongsimOrderCompleteUrl(params.orderId);
-  const phone = params.deliveryPhone ?? (await resolveBuyerPhoneForOrder(params.orderId));
+/**
+ * outbox worker 전용 — 알림톡 실패(+LMS 실패) 시 throw → 재시도.
+ */
+export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayload): Promise<void> {
+  const orderId = payload.order_id;
+  const orderPageUrl = buildBongsimOrderCompleteUrl(orderId);
+  const phone = payload.delivery_phone ?? (await resolveBuyerPhoneForOrder(orderId));
+  const { smdp, activate_code, travelerVerificationIccid } = await fetchTopupManualCredentials(
+    orderId,
+    payload.topup_row_id,
+  );
+
+  let phoneNotifyOk = !phone;
+  const orderLabel = formatEsimNotifyOrderLabel(
+    payload.order_number,
+    payload.unit_index,
+    payload.unit_total,
+  );
+
   if (phone) {
-    const alim = await sendEsimQrDeliveredAlimTalk(params.orderId, {
+    const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
       customerPhone: phone,
-      orderNumber: params.orderNumber,
+      orderNumber: orderLabel,
       orderPageUrl,
     });
-    if (!alim.ok && alim.shouldSendLmsFallback) {
-      await sendEsimQrDeliveredLmsFallback({
-        orderId: params.orderId,
+    if (alim.ok) {
+      phoneNotifyOk = true;
+    } else if (alim.shouldSendLmsFallback) {
+      const lms = await sendEsimQrDeliveredLmsFallback({
+        orderId,
         customerPhone: phone,
-        orderNumber: params.orderNumber,
+        orderNumber: orderLabel,
         orderPageUrl,
       });
+      phoneNotifyOk = Boolean(lms.ok);
     }
   } else {
-    console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId: params.orderId });
+    console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId });
   }
 
-  await sendEsimQrEmailBestEffort({
-    buyerEmail: params.deliveryEmail,
-    orderNumber: params.orderNumber,
-    orderPageUrl,
-    qrCodeUrl: params.qrCodeUrl,
-    downloadLink: params.downloadLink,
-    smdp: params.smdp,
-    activate_code: params.activate_code,
-    travelerVerificationIccid: params.travelerVerificationIccid,
-  });
+  if (payload.delivery_email) {
+    await sendEsimQrEmailBestEffort({
+      buyerEmail: payload.delivery_email,
+      orderNumber: orderLabel,
+      orderPageUrl,
+      qrCodeUrl: payload.qr_code_url,
+      downloadLink: payload.download_link,
+      smdp,
+      activate_code,
+      travelerVerificationIccid,
+    });
+  }
+
+  if (!phoneNotifyOk) {
+    throw new Error(`[bongsim:esim-qr-notify] phone_notify_failed order=${orderId}`);
+  }
 }
 
 /**
  * USIMSA 웹훅에서 QR·다운로드 링크를 확보한 뒤 호출한다.
  * - `bongsim_order`: `paid` → `delivered` (멱등: 이미 delivered면 skip)
- * - 이메일·알림톡: 트랜잭션 커밋 후 best-effort placeholder
+ * - 이메일·알림톡: topup별 EsimQrNotify enqueue (qty>1 → N건)
  */
 export async function deliverEsimToCustomer(
   orderId: string,
   qrCodeUrl: string,
   downloadLink: string,
+  opts?: { topup_row_id?: string | null },
 ): Promise<DeliverEsimToCustomerResult> {
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
@@ -143,6 +181,7 @@ export async function deliverEsimToCustomer(
   let deliveryEmail = "";
   let deliveryPhone: string | null = null;
   let orderNumber = "";
+  let result: DeliverEsimToCustomerResult = { ok: true, status: "delivered" };
   try {
     await client.query("BEGIN");
     const r = await client.query<{
@@ -171,18 +210,18 @@ export async function deliverEsimToCustomer(
     orderNumber = row.order_number;
     if (row.status === "delivered") {
       await client.query("ROLLBACK");
-      return { ok: true, status: "skipped", reason: "already_delivered" };
-    }
-    if (row.status !== "paid") {
+      result = { ok: true, status: "skipped", reason: "already_delivered" };
+    } else if (row.status !== "paid") {
       await client.query("ROLLBACK");
       return { ok: true, status: "skipped", reason: "invalid_transition" };
+    } else {
+      await client.query(
+        `UPDATE bongsim_order SET status = 'delivered', updated_at = now() WHERE order_id = $1::uuid`,
+        [orderId],
+      );
+      await client.query("COMMIT");
+      result = { ok: true, status: "delivered" };
     }
-
-    await client.query(
-      `UPDATE bongsim_order SET status = 'delivered', updated_at = now() WHERE order_id = $1::uuid`,
-      [orderId],
-    );
-    await client.query("COMMIT");
   } catch {
     try {
       await client.query("ROLLBACK");
@@ -194,22 +233,47 @@ export async function deliverEsimToCustomer(
     client.release();
   }
 
-  if (!isBongsimCheckoutTestMode()) {
-    const { smdp, activate_code, travelerVerificationIccid } = await fetchTopupManualCredentials(orderId);
-    await notifyEsimQrToCustomer({
-      orderId,
-      orderNumber,
-      deliveryEmail,
-      deliveryPhone,
-      qrCodeUrl,
-      downloadLink,
-      smdp,
-      activate_code,
-      travelerVerificationIccid,
-    });
+  const shouldEnqueueNotify =
+    result.ok &&
+    (result.status === "delivered" ||
+      (result.status === "skipped" && result.reason === "already_delivered"));
+
+  if (!isBongsimCheckoutTestMode() && shouldEnqueueNotify) {
+    const q = qrCodeUrl.trim();
+    const d = downloadLink.trim();
+    if (q && d) {
+      const topupRowId = (opts?.topup_row_id ?? "").trim() || null;
+      let unit_index: number | null = null;
+      let unit_total: number | null = null;
+      if (topupRowId) {
+        const units = await pool.query<{ topup_row_id: string }>(
+          `SELECT topup_row_id::text AS topup_row_id
+             FROM bongsim_fulfillment_topup
+            WHERE order_id = $1::uuid
+              AND status NOT IN ('canceled', 'failed')
+            ORDER BY created_at ASC`,
+          [orderId],
+        );
+        unit_total = units.rows.length;
+        const idx = units.rows.findIndex((r) => r.topup_row_id === topupRowId);
+        unit_index = idx >= 0 ? idx + 1 : null;
+      }
+      await enqueueEsimQrNotify({
+        order_id: orderId,
+        order_number: orderNumber,
+        delivery_email: deliveryEmail,
+        delivery_phone: deliveryPhone,
+        qr_code_url: q,
+        download_link: d,
+        topup_row_id: topupRowId,
+        unit_index,
+        unit_total,
+      });
+      kickEsimQrNotifyDrain();
+    }
   }
 
-  return { ok: true, status: "delivered" };
+  return result;
 }
 
 /**
@@ -224,7 +288,7 @@ export async function maybeDeliverEsimAfterFulfillment(orderId: string): Promise
     [orderId],
   );
   const order = o.rows[0];
-  if (!order || order.status !== "paid") return;
+  if (!order || (order.status !== "paid" && order.status !== "delivered")) return;
 
   const j = await pool.query<{ status: string; supplier_id: string | null; supplier_iccid: string | null }>(
     `SELECT status, supplier_id, supplier_iccid
@@ -237,26 +301,40 @@ export async function maybeDeliverEsimAfterFulfillment(orderId: string): Promise
   const job = j.rows[0];
   if (!job || job.status !== "delivered") return;
 
-  const t = await pool.query<{ qr_code_img_url: string | null; download_link: string | null }>(
-    `SELECT qr_code_img_url, download_link
+  const t = await pool.query<{
+    topup_row_id: string;
+    qr_code_img_url: string | null;
+    download_link: string | null;
+  }>(
+    `SELECT topup_row_id::text AS topup_row_id, qr_code_img_url, download_link
        FROM bongsim_fulfillment_topup
       WHERE order_id = $1
-        AND (COALESCE(qr_code_img_url, '') <> '' OR COALESCE(download_link, '') <> '')
-      ORDER BY updated_at DESC NULLS LAST
-      LIMIT 1`,
+        AND status NOT IN ('canceled', 'failed')
+        AND (
+          COALESCE(qr_code_img_url, '') <> ''
+          OR COALESCE(download_link, '') <> ''
+        )
+      ORDER BY created_at ASC`,
     [orderId],
   );
-  const topup = t.rows[0];
-  let qr = topup?.qr_code_img_url?.trim() ?? "";
-  let dl = topup?.download_link?.trim() ?? "";
 
-  if ((!qr || !dl) && job.supplier_id === "bongsim_mock_supplier") {
+  if (t.rows.length === 0 && job.supplier_id === "bongsim_mock_supplier") {
     const iccid = job.supplier_iccid?.trim() || "mock";
-    qr = qr || `https://bongtour.com/travel/esim/mock-qr?order=${encodeURIComponent(order.order_number)}`;
-    dl = dl || `LPA:1$mock.bongtour$${iccid}`;
+    const qr = `https://bongtour.com/travel/esim/mock-qr?order=${encodeURIComponent(order.order_number)}`;
+    const dl = `LPA:1$mock.bongtour$${iccid}`;
+    await deliverEsimToCustomer(orderId, qr, dl);
+    return;
   }
 
-  if (!qr || !dl) return;
-
-  await deliverEsimToCustomer(orderId, qr, dl);
+  for (const topup of t.rows) {
+    let qr = topup.qr_code_img_url?.trim() ?? "";
+    let dl = topup.download_link?.trim() ?? "";
+    if ((!qr || !dl) && job.supplier_id === "bongsim_mock_supplier") {
+      const iccid = job.supplier_iccid?.trim() || "mock";
+      qr = qr || `https://bongtour.com/travel/esim/mock-qr?order=${encodeURIComponent(order.order_number)}`;
+      dl = dl || `LPA:1$mock.bongtour$${iccid}`;
+    }
+    if (!qr || !dl) continue;
+    await deliverEsimToCustomer(orderId, qr, dl, { topup_row_id: topup.topup_row_id });
+  }
 }

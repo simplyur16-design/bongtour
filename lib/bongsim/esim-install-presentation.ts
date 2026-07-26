@@ -34,12 +34,18 @@ export function buildEsimInstallFromTopup(params: {
   download_link: string | null;
   smdp: string | null;
   activate_code: string | null;
+  topup_row_id?: string | null;
+  unit_index?: number | null;
+  unit_total?: number | null;
 }): BongsimOrderPublicEsimInstallV1 {
   const revoked = isBongsimOrderEsimRevoked(params.orderStatus);
   if (revoked) {
     return {
       ready: false,
       revoked: true,
+      unit_index: params.unit_index ?? null,
+      unit_total: params.unit_total ?? null,
+      topup_row_id: params.topup_row_id ?? null,
       qr_image_url: null,
       sm_dp_plus_address: null,
       activation_code: null,
@@ -59,9 +65,25 @@ export function buildEsimInstallFromTopup(params: {
 
   return {
     ready,
+    unit_index: params.unit_index ?? null,
+    unit_total: params.unit_total ?? null,
+    topup_row_id: params.topup_row_id ?? null,
     qr_image_url: qr,
     sm_dp_plus_address: smDpPlusAddress,
     activation_code: activationCode,
     apple_quick_install_url: downloadLink ? buildAppleQuickInstallUrl(downloadLink) : null,
   };
+}
+
+/** 알림톡·메일 주문번호 표기 — qty>1 이면 (k/N) */
+export function formatEsimNotifyOrderLabel(
+  orderNumber: string,
+  unitIndex?: number | null,
+  unitTotal?: number | null,
+): string {
+  const base = orderNumber.trim() || "—";
+  if (unitTotal != null && unitTotal > 1 && unitIndex != null && unitIndex > 0) {
+    return `${base} (${unitIndex}/${unitTotal})`;
+  }
+  return base;
 }

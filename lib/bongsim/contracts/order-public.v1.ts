@@ -22,6 +22,10 @@ export type BongsimOrderPublicEsimInstallV1 = {
   ready: boolean;
   /** 환불·취소 완료(또는 처리 중) — QR·문자 링크 비노출 */
   revoked?: boolean;
+  /** qty>1 일 때 단위 라벨 (1-based) */
+  unit_index?: number | null;
+  unit_total?: number | null;
+  topup_row_id?: string | null;
   qr_image_url: string | null;
   sm_dp_plus_address: string | null;
   activation_code: string | null;
@@ -42,7 +46,10 @@ export type BongsimOrderPublicV1 = {
   payment_provider: string | null;
   lines: BongsimOrderPublicLineV1[];
   fulfillment: BongsimOrderPublicFulfillmentV1 | null;
+  /** 하위 호환 — 첫 번째(또는 대표) 설치 정보 */
   esim_install: BongsimOrderPublicEsimInstallV1;
+  /** qty>1 — 발급된 모든 eSIM 설치 정보 (created_at ASC) */
+  esim_installs: BongsimOrderPublicEsimInstallV1[];
   /** 고객 전액 취소(웰컴페이 환불) 가능 여부 */
   cancel_eligible: boolean;
   cancel_block_reason: string | null;

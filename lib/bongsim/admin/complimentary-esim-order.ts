@@ -430,6 +430,11 @@ export async function adminGrantComplimentaryEsim(input: {
     try {
       await drainOrderPaidOutboxBestEffort(16);
       fulfillment_started = true;
+      const { kickEsimQrNotifyDrain } = await import(
+        "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
+      );
+      // 웹훅 도착 후 쌓인 알림톡을 순차 발송 (요청은 막지 않음)
+      kickEsimQrNotifyDrain(40);
     } catch (e) {
       console.warn("[adminGrantComplimentaryEsim] outbox drain", e);
     }

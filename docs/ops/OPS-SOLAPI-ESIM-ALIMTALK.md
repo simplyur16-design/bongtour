@@ -1,6 +1,9 @@
 # eSIM QR 카카오 알림톡 (Solapi)
 
-결제·발급 완료 후 `deliverEsimToCustomer` → `sendEsimQrDeliveredAlimTalk` 호출.
+결제·발급 완료 후 `deliverEsimToCustomer` → `bongsim_outbox` topic `EsimQrNotify` enqueue →
+순차 드레인(`ESIM_QR_NOTIFY_GAP_MS`, 기본 1200ms) → `sendEsimQrDeliveredAlimTalk` (+ LMS 폴백).
+
+단체 일괄처럼 웹훅이 몰려도 Solapi를 동시에 때리지 않는다. 실패 시 outbox 초 단위 백오프 재시도(최대 5회).
 
 ## 환경 변수
 

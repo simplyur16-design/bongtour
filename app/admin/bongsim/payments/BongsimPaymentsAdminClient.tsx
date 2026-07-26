@@ -507,7 +507,9 @@ export default function BongsimPaymentsAdminClient() {
         (j.failed ?? 0) > 0 ? `실패 ${j.failed}건` : null,
         invalid.length > 0 ? `형식 오류 ${invalid.length}건` : null,
       ].filter(Boolean);
-      setCompBulkOk(`${parts.join(" · ")} — QR 알림톡 발송이 시작됩니다.`);
+      setCompBulkOk(
+        `${parts.join(" · ")} — QR 카톡/LMS는 약 1~2초 간격으로 순차 발송됩니다(실패 시 자동 재시도). 발급 건수와 카톡 도달은 별개입니다.`,
+      );
       if ((j.succeeded ?? 0) > 0) {
         setCompBulkPhones("");
       }

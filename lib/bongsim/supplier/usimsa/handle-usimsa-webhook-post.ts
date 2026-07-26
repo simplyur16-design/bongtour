@@ -96,6 +96,8 @@ export async function handleUsimsaWebhookPost(
     );
   }
 
-  const delivery = await deliverEsimToCustomer(topup.order_id, qr, dl);
+  const delivery = await deliverEsimToCustomer(topup.order_id, qr, dl, {
+    topup_row_id: handleResult.topup_row_id,
+  });
   return jsonWithLeakGuard({ ok: true, handle: handleResult, delivery }, leakGuardContext, { status: 200 });
 }

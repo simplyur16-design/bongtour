@@ -1003,7 +1003,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]",
             "adminGrantComplimentaryEsimBulk",
-            "parseComplimentaryEsimBulkPhones"
+            "parseComplimentaryEsimBulkPhones",
+            "kickEsimQrNotifyDrain"
           ]
         },
         {
@@ -1012,6 +1013,95 @@
             "adminGrantComplimentaryEsimBulk"
           ]
         }
+      ]
+    },
+    {
+      "id": "bongsim-esim-qr-notify-serialize",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM QR 알림톡 — EsimQrNotify outbox 순차 발송·버스트 누락 방지",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]",
+            "EsimQrNotify",
+            "enqueueEsimQrNotify",
+            "drainEsimQrNotifyOutboxBestEffort",
+            "ESIM_QR_NOTIFY_GAP_MS",
+            "esimQrNotifyDedupeKey"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-delivery.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]",
+            "enqueueEsimQrNotify",
+            "kickEsimQrNotifyDrain",
+            "sendQueuedEsimQrCustomerNotify",
+            "topup_row_id"
+          ],
+          "mustNotInclude": [
+            "await notifyEsimQrToCustomer"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "drainEsimQrNotifyOutboxBestEffort"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/fulfillment/esim-qr-notify-outbox.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-multi-qty-qr",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM qty>1 — topup별 QR 노출·알림 N건 (한 사람 여러 장)",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/get-order-public.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]",
+            "esim_installs",
+            "ORDER BY created_at ASC"
+          ]
+        },
+        {
+          "file": "lib/bongsim/contracts/order-public.v1.ts",
+          "mustInclude": [
+            "esim_installs"
+          ]
+        },
+        {
+          "file": "components/bongsim/order-complete/EsimInstallSection.tsx",
+          "mustInclude": [
+            "installs",
+            "eSIM ${idx}/${total}"
+          ]
+        },
+        {
+          "file": "lib/bongsim/supplier/usimsa/handle-usimsa-webhook-post.ts",
+          "mustInclude": [
+            "topup_row_id: handleResult.topup_row_id"
+          ]
+        },
+        {
+          "file": "lib/bongsim/esim-install-presentation.ts",
+          "mustInclude": [
+            "formatEsimNotifyOrderLabel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-presentation.test.ts"
       ]
     },
     {
