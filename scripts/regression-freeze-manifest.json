@@ -671,7 +671,8 @@
             "hanatour2030.price.adultOnly",
             "hanatour2030ConfirmScheduleBlockReason",
             "mergeHanatour2030SportsThemeTagForRegister",
-            "keep (2030) within title max"
+            "keep (2030) within title max",
+            "Day1 hotel→막탄 seed for APP221 kw"
           ]
         },
         {
@@ -5061,7 +5062,9 @@
             "사해≠Shanghai",
             "2030 live emptyKw route POI",
             "Sonashi Beach Bar Phu Quoc",
-            "2030 live emptyKw r2 remain"
+            "2030 live emptyKw r2 remain",
+            "Cebu Pirate Island Hopping",
+            "Mactan Sardine Snorkeling"
           ]
         },
         {
@@ -5071,7 +5074,8 @@
             "forward landmark(Bamboo Bridge 등) 승격 금지",
             "2030 Bohol return soft-dup",
             "2030 revisit soft-dup",
-            "edge tripReserved must not blank route-revisit middle"
+            "edge tripReserved must not blank route-revisit middle",
+            "APP221 Cebu middle soft-dup"
           ]
         },
         {
@@ -5095,7 +5099,8 @@
             "Day1 does not steal Bamboo",
             "사해 maps to Dead Sea not Shanghai",
             "Phu Quoc twin beach-club days",
-            "empty Japan return soft-dups Miyazaki"
+            "empty Japan return soft-dups Miyazaki",
+            "APP221-like Cebu 5-day"
           ]
         }
       ],
@@ -6812,6 +6817,13 @@
           ]
         },
         {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "buildHanatourFlightStructuredFromFactLegs",
+            "prefetch facts flights → flightStructured"
+          ]
+        },
+        {
           "file": "lib/kyowontour-register-api-parse.ts",
           "mustInclude": [
             "buildKyowontourFlightStructuredFromFactLegs",
@@ -6820,7 +6832,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/register-detail-collect-flight-apply.test.ts"
+        "lib/register-detail-collect-flight-apply.test.ts",
+        "lib/register-facts/hanatour-register-fact-flights.test.ts"
       ]
     },
     {
@@ -6843,6 +6856,21 @@
             "needsRegisterFlightApiCollect",
             "singleRoomSurchargeRaw",
             "shoppingVisitCount"
+          ]
+        },
+        {
+          "file": "lib/register-facts/hanatour-register-fact-flights.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-detail-collect-flight-apply]",
+            "hanatourProdInfoToFactFlightLegs",
+            "buildHanatourFlightStructuredFromFactLegs"
+          ]
+        },
+        {
+          "file": "lib/register-facts/hanatour.ts",
+          "mustInclude": [
+            "pkgAirSeqList → fact flights",
+            "hanatourProdInfoToFactFlightLegs"
           ]
         },
         {
@@ -6891,7 +6919,8 @@
       ],
       "vitestSuites": [
         "lib/hanatour-register-detail-collect.test.ts",
-        "lib/extract-highlight-hanatour.test.ts"
+        "lib/extract-highlight-hanatour.test.ts",
+        "lib/register-facts/hanatour-register-fact-flights.test.ts"
       ]
     },
     {

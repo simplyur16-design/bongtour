@@ -423,6 +423,11 @@ function buildHanatour2030RouteText(
     return cityFromTitle ? `${cityFromTitle} 출발 및 인천 귀국` : '인천'
   }
   if (factDay.day === 1) {
+    // REGRESSION-FREEZE[hanatour-register-schedule-2030]: Day1 hotel→막탄 seed for APP221 kw — manifest
+    const hotelBlob = (factDay.hotels ?? []).join(' ')
+    if (/막탄|Mactan|Mövenpick|Movenpick|뫼벤픽/iu.test(hotelBlob)) {
+      return cityFromTitle ? `${cityFromTitle} 막탄` : '막탄'
+    }
     return cityFromTitle ? `${cityFromTitle} 입국` : ''
   }
   return cityFromTitle ? `${cityFromTitle} 자유 일정` : '자유 일정'

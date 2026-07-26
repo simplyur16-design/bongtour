@@ -25,6 +25,8 @@ import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel
 import { ensureHanatourRegisterScheduleImageKeywords, augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import { buildHanatourFlightStructuredFromFactLegs } from '@/lib/register-facts/hanatour-register-fact-flights'
+import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { polishHanatour2030RegisterBundle } from '@/lib/hanatour-register-schedule-2030'
 import { extractSupplierListingTitleFromPaste } from '@/lib/supplier-listing-title-from-paste'
@@ -203,6 +205,12 @@ export async function parseHanatourRegisterFromApi(
     parsed = sanitizeHanatourRegisterParsedDepartureFields(parsed, detailBody.normalizedRaw ?? paste)
     parsed = applyHanatourOriginCodeFromPaste(parsed, paste)
   }
+
+  // REGRESSION-FREEZE[register-detail-collect-flight-apply]: prefetch facts flights → flightStructured — manifest
+  parsed = applyRegisterCollectedFlightStructured(
+    parsed,
+    buildHanatourFlightStructuredFromFactLegs(bundle.flights),
+  )
 
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)

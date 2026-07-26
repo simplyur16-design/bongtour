@@ -24,6 +24,7 @@ import {
   resolveRegisterFactProductKindFromAdminTravelScope,
 } from '@/lib/register-facts/product-kind'
 import { registerDepartureLikeToFactPriceRow } from '@/lib/register-fact-price-row'
+import { hanatourProdInfoToFactFlightLegs } from '@/lib/register-facts/hanatour-register-fact-flights'
 import type {
   RegisterFactScheduleDay,
   RegisterFactFlightLeg,
@@ -151,7 +152,10 @@ export async function collectHanatourRegisterFacts(
       hanatourItnrSchdToFactDays(schdInfoList),
       info as HanatourProdInfoExtended,
     ),
+    // REGRESSION-FREEZE[hanatour-register-detail-collect]: pkgAirSeqList → fact flights — manifest
     flights: (() => {
+      const fromPkg = hanatourProdInfoToFactFlightLegs(info as HanatourProdInfoExtended)
+      if (fromPkg.length > 0) return fromPkg
       const legs: RegisterFactFlightLeg[] = []
       if (!firstInput) return legs
       if (

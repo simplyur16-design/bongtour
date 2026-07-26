@@ -3247,6 +3247,7 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '두바이',
     // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 soft-dup hay cities — manifest
     '푸꾸옥',
+    '세부',
     '사파',
     '뉴욕',
     '나트랑',
@@ -4126,7 +4127,8 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
 // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
 // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 revisit soft-dup (Phu Quoc/Sapa/NY/…) — manifest
 export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka/i.test(
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu/i.test(
     String(city ?? '').trim(),
   )
 }

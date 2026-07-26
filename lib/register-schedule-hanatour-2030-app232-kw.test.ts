@@ -212,4 +212,67 @@ describe('hanatour 2030 APP232 Bohol imageKeyword live gaps', () => {
     const enforced = enforceRegisterScheduleTripUniqueImageKeywords(applied)
     expect(String(enforced.find((r) => r.day === 2)?.imageKeyword ?? '')).toMatch(/Okinawa/i)
   })
+
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu 2030 해적호핑·정어리떼 — manifest
+  it('APP221-like Cebu 5-day — Day2 pirate hopping; Day3 sardine; Day1 Mactan not bare-only', () => {
+    expect(mapKoreanPoiSegment('해적호핑')).toMatch(/Pirate|Island Hopping/i)
+    expect(mapKoreanPoiSegment('세부 막탄 정어리떼 스노클링')).toMatch(/Sardine/i)
+
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '세부 막탄',
+          routeText: '세부 막탄',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '해적호핑',
+          routeText: '세부 해적호핑 - 해적 호핑',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '정어리',
+          routeText: '세부 막탄 정어리떼 스노클링 - 라부요 망고 빙수',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '시라오',
+          routeText: '시라오 가든 - 시라오 플라워 가든 - 레아 신전',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '귀국',
+          routeText: '세부 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '세부',
+        productTitle:
+          '[2030전용] 세부 5일 #뫼벤픽 #디럭스 #해적호핑 #정어리떼스노클링 #시라오가든 #레아신전',
+        travelScope: 'package',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)!
+    expect(String(by(1).imageKeyword ?? '')).toMatch(/Mactan/i)
+    expect(String(by(2).imageKeyword ?? '')).toMatch(/Pirate|Island Hopping/i)
+    expect(String(by(2).imageKeyword ?? '').trim().length).toBeGreaterThan(2)
+    expect(String(by(3).imageKeyword ?? '')).toMatch(/Sardine/i)
+    expect(String(by(4).imageKeyword ?? '')).toMatch(/Sirao|Temple of Leah/i)
+    expect(String(by(5).imageKeyword ?? '').trim().length).toBeGreaterThan(2)
+    for (const d of [1, 2, 3, 4, 5]) {
+      expect(String(by(d).imageKeyword ?? '').trim().length).toBeGreaterThan(2)
+    }
+  })
 })
