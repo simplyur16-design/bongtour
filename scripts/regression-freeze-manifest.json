@@ -779,6 +779,51 @@
       ]
     },
     {
+      "id": "cover-image-quality",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "커버·히어로 화질 — PhotoPool 2400/q88·목록 Next quality 80·Pexels original",
+      "checks": [
+        {
+          "file": "lib/cover-image-quality.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cover-image-quality]",
+            "COVER_IMAGE_WEBP_MAX_WIDTH = 2400",
+            "COVER_IMAGE_WEBP_QUALITY = 88",
+            "COVER_IMAGE_LIST_NEXT_QUALITY = 80",
+            "pickPexelsCoverIngestUrl",
+            "src?.original"
+          ]
+        },
+        {
+          "file": "lib/photo-pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cover-image-quality]",
+            "COVER_IMAGE_WEBP_MAX_WIDTH",
+            "COVER_IMAGE_WEBP_QUALITY"
+          ]
+        },
+        {
+          "file": "lib/pexels-service.ts",
+          "mustInclude": [
+            "pickPexelsCoverIngestUrl",
+            "from '@/lib/cover-image-quality'"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "COVER_IMAGE_LIST_NEXT_QUALITY"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/cover-image-quality.test.ts"
+      ]
+    },
+    {
       "id": "theme-travel-mingling-mega-menu",
       "tier": [
         "prebuild",

@@ -2,10 +2,16 @@
  * Client-side downscale + JPEG before multipart upload.
  * Avoids HTTP 413 on hosts with small request body limits (e.g. Vercel).
  * Pairs with `savePhotoToPool` server conversion (still accepts jpeg).
+ * REGRESSION-FREEZE[cover-image-quality]: browser upload matches cover master — manifest
  */
 
-export const BROWSER_UPLOAD_RESIZE_MAX_WIDTH = 1600
-export const BROWSER_UPLOAD_JPEG_QUALITY = 0.82
+import {
+  COVER_IMAGE_BROWSER_UPLOAD_JPEG_QUALITY,
+  COVER_IMAGE_BROWSER_UPLOAD_MAX_WIDTH,
+} from '@/lib/cover-image-quality'
+
+export const BROWSER_UPLOAD_RESIZE_MAX_WIDTH = COVER_IMAGE_BROWSER_UPLOAD_MAX_WIDTH
+export const BROWSER_UPLOAD_JPEG_QUALITY = COVER_IMAGE_BROWSER_UPLOAD_JPEG_QUALITY
 
 export function resizeImageFileForUpload(
   file: File,

@@ -41,7 +41,7 @@ const CARD_MIN_H = 'min-h-[18rem] sm:min-h-[20rem] lg:min-h-[22rem]'
 
 /** 사진 레이어 — 메모리 #27 SSOT: 밝은 베이스 + 하단 그라데이션만(전면 딤 제거) */
 const PHOTO_FILTER_BASE =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.98)_saturate(1.04)] group-hover:[filter:brightness(1.0)_saturate(1.08)]'
 
 type Props = { card: HomeHubFourClientCardModel; index: number }
 

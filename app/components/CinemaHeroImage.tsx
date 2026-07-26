@@ -35,7 +35,7 @@ export default function CinemaHeroImage({
         alt=""
         aria-hidden
         fill
-        className="scale-110 object-cover opacity-55 blur-2xl saturate-125"
+        className="scale-105 object-cover opacity-40 blur-md saturate-110"
         style={fitStyle}
         sizes={sizes}
         loading="lazy"

@@ -87,7 +87,7 @@ export async function runImageAssetUpload(input: ImageAssetUploadInput): Promise
     isPexelsAuto: input.isPexelsAuto ?? false,
   })
 
-  const webp = await convertToWebp(input.fileBuffer, { maxWidth: 2400, quality: 82 })
+  const webp = await convertToWebp(input.fileBuffer, { maxWidth: 2400, quality: 88 })
   const mimeType = 'image/webp'
   const fileExt = 'webp'
 

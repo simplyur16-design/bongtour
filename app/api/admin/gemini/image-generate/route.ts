@@ -148,7 +148,7 @@ export async function POST(request: Request) {
             return { slot, imageUrl: null, error: 'empty_buffer' } satisfies GeminiImageCandidate
           }
 
-          const webp = await convertToWebp(buffer, { maxWidth: 2400, quality: 82 })
+          const webp = await convertToWebp(buffer, { maxWidth: 2400, quality: 88 })
           const objectKey = buildGeminiGeneratedObjectKey(now, baseId, slot, i)
           const { publicUrl } = await uploadStorageObject({
             objectKey,

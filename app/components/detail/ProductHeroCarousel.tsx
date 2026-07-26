@@ -179,7 +179,7 @@ export default function ProductHeroCarousel({
             className={`object-cover transition-opacity duration-500 ${
               i === index ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ filter: 'brightness(1.10) contrast(1.05) saturate(1.18)' }}
+            style={{ filter: 'brightness(1.03) contrast(1.02) saturate(1.06)' }}
             sizes="(max-width: 1024px) 100vw, min(896px, 100vw)"
             loading={i === 0 ? 'eager' : 'lazy'}
             priority={i === 0}

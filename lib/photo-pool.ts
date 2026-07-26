@@ -10,6 +10,10 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import type { PrismaClient } from '@prisma/client'
 import { convertToWebp } from '@/lib/image-to-webp'
+import {
+  COVER_IMAGE_WEBP_MAX_WIDTH,
+  COVER_IMAGE_WEBP_QUALITY,
+} from '@/lib/cover-image-quality'
 import { buildWebpFilename } from '@/lib/webp-filename'
 import {
   buildPhotoPoolObjectKey,
@@ -92,8 +96,9 @@ export async function savePhotoToPool(
   let data = buffer
   if (options?.convertToWebpFirst !== false) {
     const converted = await convertToWebp(buffer, {
-      maxWidth: options?.maxWidth ?? 1600,
-      quality: options?.quality ?? 82,
+      // REGRESSION-FREEZE[cover-image-quality]: PhotoPool cover master — manifest
+      maxWidth: options?.maxWidth ?? COVER_IMAGE_WEBP_MAX_WIDTH,
+      quality: options?.quality ?? COVER_IMAGE_WEBP_QUALITY,
     })
     data = converted.buffer
   }
@@ -225,8 +230,8 @@ export async function savePhotoFromUrl(
     const buf = Buffer.from(await res.arrayBuffer())
     return savePhotoToPool(prisma, buf, cityName, attractionName, source, {
       convertToWebpFirst: true,
-      maxWidth: 1600,
-      quality: 82,
+      maxWidth: COVER_IMAGE_WEBP_MAX_WIDTH,
+      quality: COVER_IMAGE_WEBP_QUALITY,
       attribution,
     })
   } catch {

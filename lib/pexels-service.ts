@@ -1,6 +1,9 @@
 import { createClient } from 'pexels'
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 import { withPexelsRealisticQuery } from '@/lib/image-style'
+import { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
+
+export { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
 const client = createClient(process.env.PEXELS_API_KEY!)
 
@@ -35,7 +38,7 @@ type PexelsApiPhoto = {
   id: number
   width?: number
   height?: number
-  src?: { large2x?: string; large?: string; medium?: string }
+  src?: { original?: string; large2x?: string; large?: string; medium?: string }
   photographer?: string
   photographer_url?: string
   url?: string
@@ -73,7 +76,7 @@ export async function searchPexelsHeroCandidates(
     const out: PexelsHeroCandidateMeta[] = []
     for (const photo of result.photos) {
       const p = photo as PexelsApiPhoto
-      const url = p.src?.large2x ?? p.src?.large ?? p.src?.medium ?? ''
+      const url = pickPexelsCoverIngestUrl(p.src)
       if (!url || isPexelsFallbackUrl(url)) continue
       out.push({
         pexelsId: p.id,
@@ -93,7 +96,7 @@ export async function searchPexelsHeroCandidates(
 }
 
 function photoToObject(photo: PexelsApiPhoto): PexelsPhotoObject {
-  const url = photo.src?.large2x ?? photo.src?.large ?? photo.src?.medium ?? null
+  const url = pickPexelsCoverIngestUrl(photo.src) || null
   const pageUrl = photo.url?.trim() || 'https://www.pexels.com'
   return {
     url: withFallback(url),
@@ -159,8 +162,8 @@ export async function fetchPexelsImage(keyword: string): Promise<string> {
       orientation: 'landscape',
     })
     if ('photos' in response && response.photos.length > 0) {
-      const photo = response.photos[0]
-      return withFallback(photo.src.large2x ?? photo.src.large ?? photo.src.medium)
+      const photo = response.photos[0] as PexelsApiPhoto
+      return withFallback(pickPexelsCoverIngestUrl(photo.src) || null)
     }
     return LUXURY_FALLBACK_IMAGE_URL
   } catch (error) {
@@ -169,7 +172,7 @@ export async function fetchPexelsImage(keyword: string): Promise<string> {
   }
 }
 
-/** 가로형(landscape), 고화질 large2x 1장. 실패 시 럭셔리 fallback 반환 (null 없음) */
+/** 가로형(landscape) 고화질 1장. 실패 시 럭셔리 fallback 반환 (null 없음) */
 export async function getPexelsImage(keyword: string): Promise<string> {
   try {
     const result = await client.photos.search({
@@ -178,7 +181,7 @@ export async function getPexelsImage(keyword: string): Promise<string> {
       orientation: 'landscape',
     })
     if ('photos' in result && result.photos.length > 0) {
-      return withFallback(result.photos[0].src.large2x ?? null)
+      return withFallback(pickPexelsCoverIngestUrl((result.photos[0] as PexelsApiPhoto).src) || null)
     }
     return LUXURY_FALLBACK_IMAGE_URL
   } catch (err) {

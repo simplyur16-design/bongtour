@@ -2,6 +2,7 @@
 
 import Header from '@/app/components/Header'
 import SafeImage from '@/app/components/SafeImage'
+import { COVER_IMAGE_LIST_NEXT_QUALITY } from '@/lib/cover-image-quality'
 import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-image'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import type { ProductDetailCardPreview } from '@/lib/product-detail-card-preview'
@@ -44,7 +45,7 @@ export default function ProductDetailInstantFromCard({
             className="object-cover"
             sizes={isMobile ? '100vw' : '(max-width: 1024px) 80vw, 960px'}
             priority
-            quality={60}
+            quality={COVER_IMAGE_LIST_NEXT_QUALITY}
             {...(optimizable ? {} : { unoptimized: true })}
           />
         ) : null}

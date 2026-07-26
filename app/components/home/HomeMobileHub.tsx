@@ -21,7 +21,7 @@ const INQUIRY_TRAVEL = '/inquiry?type=travel'
 
 /** PC 시즌·4카드 — 메모리 #27 밝은 톤 */
 const MOBILE_HUB_PHOTO_FILTER =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.98)_saturate(1.04)] group-hover:[filter:brightness(1.0)_saturate(1.08)]'
 
 function hubFourCardKeyToMobileTileKey(k: HubFourCardKey): MobileMainServiceTileKey {
   switch (k) {

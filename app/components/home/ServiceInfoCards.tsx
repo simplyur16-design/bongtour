@@ -25,7 +25,7 @@ export default function ServiceInfoCards() {
             className="group relative flex min-h-[14rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15"
           >
             <div className="absolute inset-0 z-0">
-              <div className="absolute inset-0 z-0 [filter:brightness(0.92)_saturate(1.08)] transition group-hover:[filter:brightness(1.0)_saturate(1.15)]">
+              <div className="absolute inset-0 z-0 [filter:brightness(0.98)_saturate(1.04)] transition group-hover:[filter:brightness(1.0)_saturate(1.08)]">
                 <SafeImage
                   src={privateImg}
                   alt=""
@@ -56,7 +56,7 @@ export default function ServiceInfoCards() {
             className="group relative flex min-h-[14rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15"
           >
             <div className="absolute inset-0 z-0">
-              <div className="absolute inset-0 z-0 [filter:brightness(0.92)_saturate(1.08)] transition group-hover:[filter:brightness(1.0)_saturate(1.15)]">
+              <div className="absolute inset-0 z-0 [filter:brightness(0.98)_saturate(1.04)] transition group-hover:[filter:brightness(1.0)_saturate(1.08)]">
                 <SafeImage
                   src={trainingImg}
                   alt=""

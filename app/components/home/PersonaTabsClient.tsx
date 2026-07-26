@@ -14,7 +14,7 @@ import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent
 import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 
 const PHOTO_FILTER_BASE =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.98)_saturate(1.04)] group-hover:[filter:brightness(1.0)_saturate(1.08)]'
 
 type Props = { cards: PersonaCityCard[] }
 

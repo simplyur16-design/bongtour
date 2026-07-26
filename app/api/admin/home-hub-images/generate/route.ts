@@ -16,7 +16,7 @@ const PROMPT_MAX = 4000
 const VALID_COUNTS = new Set([2, 4, 6])
 
 async function uploadCandidateWebp(candidateId: string, imageBuffer: Buffer): Promise<string> {
-  const webp = await convertToWebp(imageBuffer, { maxWidth: 2400, quality: 82 })
+  const webp = await convertToWebp(imageBuffer, { maxWidth: 2400, quality: 88 })
   const objectKey = buildHomeHubCandidateObjectKey(candidateId)
   const { publicUrl } = await uploadStorageObject({
     objectKey,

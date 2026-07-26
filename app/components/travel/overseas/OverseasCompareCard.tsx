@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ProductDetailNavLink from '@/components/products/ProductDetailNavLink'
 import { productDetailCardPreviewFromGalleryProduct } from '@/lib/product-detail-card-preview-from-item'
 import SafeImage from '@/app/components/SafeImage'
+import { COVER_IMAGE_LIST_NEXT_QUALITY } from '@/lib/cover-image-quality'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import type { GalleryProduct } from '@/app/api/gallery/route'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
@@ -67,7 +68,7 @@ export default function OverseasCompareCard({ product, priority = false, product
               fill
               className="object-cover"
               sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
-              quality={60}
+              quality={COVER_IMAGE_LIST_NEXT_QUALITY}
               priority={priority}
               loading={priority ? undefined : 'lazy'}
             />

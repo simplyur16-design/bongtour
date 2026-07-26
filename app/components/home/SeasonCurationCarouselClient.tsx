@@ -15,7 +15,7 @@ const PAUSE_AFTER_MS = 12_000
 
 /** PC 히어로 — HomeHubFourClientCard와 동일 사진 톤(#27) */
 export const SEASON_CURATION_PHOTO_FILTER =
-  'transition-[filter] duration-200 ease-out [filter:brightness(0.92)_saturate(1.08)] group-hover:[filter:brightness(1.0)_saturate(1.15)]'
+  'transition-[filter] duration-200 ease-out [filter:brightness(0.98)_saturate(1.04)] group-hover:[filter:brightness(1.0)_saturate(1.08)]'
 
 type Props = {
   slides: HomeSeasonPickDTO[]

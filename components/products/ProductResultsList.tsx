@@ -23,6 +23,7 @@ import {
 } from '@/lib/overseas-mega-region-city-group'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import SafeImage from '@/app/components/SafeImage'
+import { COVER_IMAGE_LIST_NEXT_QUALITY } from '@/lib/cover-image-quality'
 import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-image'
 import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
@@ -768,7 +769,7 @@ export function ProductResultCard({
                       ? '(max-width:768px) 100vw, (max-width:1024px) 50vw, 40vw'
                       : '(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw'
               }
-              quality={60}
+              quality={COVER_IMAGE_LIST_NEXT_QUALITY}
               {...(cardBlur
                 ? { placeholder: 'blur' as const, blurDataURL: PRODUCT_CARD_IMAGE_BLUR_DATA_URL }
                 : {})}

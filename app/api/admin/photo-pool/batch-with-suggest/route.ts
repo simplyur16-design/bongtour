@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { savePhotoToPool } from '@/lib/photo-pool'
+import {
+  COVER_IMAGE_WEBP_MAX_WIDTH,
+  COVER_IMAGE_WEBP_QUALITY,
+} from '@/lib/cover-image-quality'
 import { suggestImageName } from '@/lib/suggest-image-name'
 import { inferSourceFromFilename } from '@/lib/webp-filename'
 
@@ -46,8 +50,8 @@ export async function POST(request: Request) {
         const source = inferSourceFromFilename(file.name) || 'Upload'
         const row = await savePhotoToPool(prisma, buffer, city, attraction, source, {
           convertToWebpFirst: true,
-          maxWidth: 1600,
-          quality: 82,
+          maxWidth: COVER_IMAGE_WEBP_MAX_WIDTH,
+          quality: COVER_IMAGE_WEBP_QUALITY,
         })
         saved.push({
           id: row.id,
