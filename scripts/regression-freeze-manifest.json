@@ -9829,7 +9829,8 @@
             "data-admin-mobile-bar",
             "data-admin-mobile-drawer",
             "소속 명함 승인",
-            "/admin/bongsim/affiliation-cards"
+            "/admin/bongsim/affiliation-cards",
+            "사이드바 단일 진입점"
           ]
         },
         {
@@ -9846,7 +9847,20 @@
           "mustInclude": [
             "data-admin-affiliation-mobile",
             "승인 · 할인",
-            "탭하면 확대"
+            "탭하면 확대",
+            "제출 회원",
+            "명함 OCR",
+            "회원 관리에서 보기",
+            "userId"
+          ]
+        },
+        {
+          "file": "app/api/admin/affiliation-cards/route.ts",
+          "mustInclude": [
+            "userSignupMethod",
+            "userSocialProvider",
+            "userMissing",
+            "listAffiliationCardRequests"
           ]
         }
       ],

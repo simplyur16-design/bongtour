@@ -50,7 +50,7 @@ type NavEntry =
 
 const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin', label: '대시보드', icon: LayoutDashboard },
-  /** 최상단 노출 — eSIM 그룹 안에만 두면 스크롤·접힘에 묻힘 */
+  /** REGRESSION-FREEZE: 사이드바 단일 진입점 — 대시보드 바로 아래 */
   {
     type: 'link',
     href: '/admin/bongsim/affiliation-cards',
@@ -81,7 +81,6 @@ const navEntries: NavEntry[] = [
     type: 'group',
     label: 'eSIM 관리',
     items: [
-      { href: '/admin/bongsim/affiliation-cards', label: '소속 명함 승인', icon: IdCard },
       { href: '/admin/bongsim/coupons', label: '쿠폰 관리', icon: Ticket },
       { href: '/admin/bongsim/coupon-report', label: '할인 리포트', icon: BarChart3 },
       { href: '/admin/bongsim/payments', label: '결제 내역', icon: CreditCard },

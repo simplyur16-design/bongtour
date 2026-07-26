@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { displayAccountStatus } from '@/lib/account-status'
 import { displaySignupMethod } from '@/lib/signup-method'
 import { displayRole, isSuperAdminRole } from '@/lib/user-role'
@@ -34,8 +35,9 @@ type Props = { actorRole: string | null | undefined }
 export default function MembersAdminClient({ actorRole }: Props) {
   const canEdit = actorRole === 'ADMIN' || actorRole === 'SUPER_ADMIN'
   const superActor = isSuperAdminRole(actorRole)
+  const searchParams = useSearchParams()
 
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(() => searchParams.get('q')?.trim() ?? '')
   const [signupMethod, setSignupMethod] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -44,6 +46,11 @@ export default function MembersAdminClient({ actorRole }: Props) {
   const [err, setErr] = useState('')
   const [saveHint, setSaveHint] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fromUrl = searchParams.get('q')?.trim() ?? ''
+    setQ((prev) => (prev === fromUrl ? prev : fromUrl))
+  }, [searchParams])
 
   const load = useCallback(async () => {
     setListState('loading')

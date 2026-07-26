@@ -24,7 +24,15 @@ export async function GET(request: Request) {
   const users = userIds.length
     ? await prisma.user.findMany({
         where: { id: { in: userIds } },
-        select: { id: true, name: true, email: true, phone: true, affiliationVerified: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          signupMethod: true,
+          socialProvider: true,
+          affiliationVerified: true,
+        },
       })
     : []
   const byId = new Map(users.map((u) => [u.id, u]))
@@ -39,7 +47,10 @@ export async function GET(request: Request) {
         userName: u?.name ?? null,
         userEmail: u?.email ?? null,
         userPhone: u?.phone ?? null,
+        userSignupMethod: u?.signupMethod ?? null,
+        userSocialProvider: u?.socialProvider ?? null,
         userAffiliationVerified: Boolean(u?.affiliationVerified),
+        userMissing: !u,
         status: r.status,
         imageUrl: r.imageUrl,
         ocrName: r.ocrName,

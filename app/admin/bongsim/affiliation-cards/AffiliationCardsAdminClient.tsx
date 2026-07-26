@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 
 type Item = {
@@ -8,6 +9,10 @@ type Item = {
   userName: string | null
   userEmail: string | null
   userPhone: string | null
+  userSignupMethod: string | null
+  userSocialProvider: string | null
+  userAffiliationVerified: boolean
+  userMissing: boolean
   status: string
   imageUrl: string
   ocrName: string | null
@@ -24,6 +29,11 @@ const STATUS_LABEL: Record<string, string> = {
   approved: '승인',
   rejected: '반려',
   all: '전체',
+}
+
+function membersHref(it: Item): string {
+  const q = (it.userEmail || it.userName || it.userId).trim()
+  return q ? `/admin/members?q=${encodeURIComponent(q)}` : '/admin/members'
 }
 
 export default function AffiliationCardsAdminClient() {
@@ -115,27 +125,18 @@ export default function AffiliationCardsAdminClient() {
             key={it.id}
             className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
           >
-            <button
-              type="button"
-              className="block w-full bg-slate-50"
-              onClick={() => setLightbox(it.imageUrl)}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={it.imageUrl}
-                alt="명함"
-                className="mx-auto max-h-[42vh] w-full object-contain md:max-h-64"
-              />
-              <span className="block py-1 text-center text-[11px] text-slate-500">탭하면 확대</span>
-            </button>
-
-            <div className="space-y-3 p-3 sm:p-4">
+            {/* REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: 제출 회원 블록 — manifest */}
+            <div className="space-y-2 border-b border-slate-100 bg-slate-50 px-3 py-3 sm:px-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate text-base font-semibold text-slate-900">
-                    {it.userName || '(이름 없음)'}
-                  </div>
-                  <div className="truncate text-xs text-slate-500">{it.userEmail || it.userId}</div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    제출 회원
+                  </p>
+                  <p className="mt-0.5 truncate text-base font-semibold text-slate-900">
+                    {it.userMissing
+                      ? '(회원 없음 — 탈퇴·삭제 가능)'
+                      : it.userName?.trim() || '(계정 이름 없음)'}
+                  </p>
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -149,11 +150,53 @@ export default function AffiliationCardsAdminClient() {
                   {STATUS_LABEL[it.status] ?? it.status}
                 </span>
               </div>
-
-              <div className="text-xs text-slate-500">
-                접수 {new Date(it.createdAt).toLocaleString('ko-KR')}
+              <dl className="grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-1 text-sm text-slate-800">
+                <dt className="text-slate-500">이메일</dt>
+                <dd className="break-all font-medium">{it.userEmail || '-'}</dd>
+                <dt className="text-slate-500">전화</dt>
+                <dd>
+                  {it.userPhone ? (
+                    <a
+                      href={`tel:${it.userPhone.replace(/\s/g, '')}`}
+                      className="font-medium text-[#5B4B8A] underline"
+                    >
+                      {it.userPhone}
+                    </a>
+                  ) : (
+                    '-'
+                  )}
+                </dd>
+                <dt className="text-slate-500">가입</dt>
+                <dd className="break-words">
+                  {[it.userSignupMethod, it.userSocialProvider].filter(Boolean).join(' · ') || '-'}
+                </dd>
+                <dt className="text-slate-500">회원ID</dt>
+                <dd className="break-all font-mono text-xs text-slate-600">{it.userId}</dd>
+              </dl>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                <span>접수 {new Date(it.createdAt).toLocaleString('ko-KR')}</span>
+                <Link href={membersHref(it)} className="font-medium text-[#5B4B8A] underline">
+                  회원 관리에서 보기
+                </Link>
               </div>
+            </div>
 
+            <button
+              type="button"
+              className="block w-full bg-white"
+              onClick={() => setLightbox(it.imageUrl)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={it.imageUrl}
+                alt="명함"
+                className="mx-auto max-h-[42vh] w-full object-contain md:max-h-64"
+              />
+              <span className="block py-1 text-center text-[11px] text-slate-500">탭하면 확대</span>
+            </button>
+
+            <div className="space-y-3 p-3 sm:p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">명함 OCR</p>
               <dl className="grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-1.5 text-sm text-slate-800">
                 <dt className="text-slate-500">회사</dt>
                 <dd className="break-words font-medium">{it.ocrCompany || '-'}</dd>
@@ -165,12 +208,12 @@ export default function AffiliationCardsAdminClient() {
                 <dd className="break-all">{it.ocrEmail || '-'}</dd>
                 <dt className="text-slate-500">전화</dt>
                 <dd>
-                  {it.ocrPhone || it.userPhone ? (
+                  {it.ocrPhone ? (
                     <a
-                      href={`tel:${(it.ocrPhone || it.userPhone || '').replace(/\s/g, '')}`}
+                      href={`tel:${it.ocrPhone.replace(/\s/g, '')}`}
                       className="font-medium text-[#5B4B8A] underline"
                     >
-                      {it.ocrPhone || it.userPhone}
+                      {it.ocrPhone}
                     </a>
                   ) : (
                     '-'
