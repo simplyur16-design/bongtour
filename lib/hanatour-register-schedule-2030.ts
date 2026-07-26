@@ -690,9 +690,47 @@ export function hanatour2030RegisterScheduleOkAtConfirm(parsed: RegisterParsed):
   return collectHanatour2030RegisterScheduleConfirmIssues(parsed).length === 0
 }
 
+/**
+ * 2030 TRP는 또래·성인 전용 — 아동·유아 요금 슬롯을 비운다.
+ * REGRESSION-FREEZE[hanatour-register-schedule-2030]: adult-only prices — manifest
+ */
+export function stripHanatour2030ChildInfantPrices(parsed: RegisterParsed): RegisterParsed {
+  const detectTitle = resolveHanatour2030ProductTitleForDetect(
+    parsed.supplierListingTitleRaw,
+    parsed.title,
+  )
+  if (!isHanatour2030ProductTitle(detectTitle)) return parsed
+
+  const table = parsed.productPriceTable
+  const nextTable = table
+    ? {
+        ...table,
+        childExtraBedPrice: null,
+        childNoBedPrice: null,
+        infantPrice: null,
+      }
+    : table
+
+  const nextPrices = (parsed.prices ?? []).map((row) => {
+    const next = { ...row }
+    delete next.childBedBase
+    delete next.childNoBedBase
+    delete next.infantBase
+    next.childFuel = 0
+    next.infantFuel = 0
+    return next
+  })
+
+  return {
+    ...parsed,
+    productPriceTable: nextTable,
+    prices: nextPrices,
+  }
+}
+
 /** preview·confirm 공통 — augment 이후 2030 재정제 + extractionFieldIssues 동기화. */
 export function applyHanatour2030RegisterConfirmGuard(parsed: RegisterParsed): RegisterParsed {
-  const next = repolishHanatour2030ParsedAtRegisterConfirm(parsed)
+  const next = stripHanatour2030ChildInfantPrices(repolishHanatour2030ParsedAtRegisterConfirm(parsed))
   const detectTitle = resolveHanatour2030ProductTitleForDetect(
     next.supplierListingTitleRaw,
     next.title,
@@ -703,17 +741,26 @@ export function applyHanatour2030RegisterConfirmGuard(parsed: RegisterParsed): R
   const stripped = (next.extractionFieldIssues ?? []).filter(
     (i) =>
       !String(i.field).startsWith('hanatour2030.schedule') &&
-      !String(i.field).startsWith('schedule.day'),
+      !String(i.field).startsWith('schedule.day') &&
+      !String(i.field).startsWith('hanatour2030.price'),
   )
+  const priceNote = {
+    field: 'hanatour2030.price.adultOnly',
+    reason: '2030 상품: 아동·유아 요금 슬롯을 비웠습니다(성인 전용).',
+    source: 'auto' as const,
+    severity: 'info' as const,
+  }
   if (issues.length === 0) {
-    return stripped.length !== (next.extractionFieldIssues ?? []).length
-      ? { ...next, extractionFieldIssues: stripped }
-      : next
+    return {
+      ...next,
+      extractionFieldIssues: [...stripped, priceNote],
+    }
   }
   return {
     ...next,
     extractionFieldIssues: [
       ...stripped,
+      priceNote,
       ...issues.map((i) => ({
         field:
           i.day > 0

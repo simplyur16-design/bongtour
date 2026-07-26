@@ -655,7 +655,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "하나투어 2030 TRP — 밍글링 카드 제외·routeText POI·vibe description·(2030) 제목·confirm 가드",
+      "summary": "하나투어 2030 TRP — 밍글링 카드 제외·routeText POI·vibe description·(2030) 제목·confirm 가드·성인 전용 요금",
       "checks": [
         {
           "file": "lib/hanatour-register-schedule-2030.ts",
@@ -667,6 +667,8 @@
             "resolveHanatour2030ProductTitleForDetect",
             "collectHanatour2030RegisterScheduleConfirmIssues",
             "applyHanatour2030RegisterConfirmGuard",
+            "stripHanatour2030ChildInfantPrices",
+            "hanatour2030.price.adultOnly",
             "hanatour2030ConfirmScheduleBlockReason",
             "mergeHanatour2030SportsThemeTagForRegister"
           ]

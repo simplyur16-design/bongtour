@@ -18,6 +18,7 @@ import {
   polishHanatour2030RegisterBundle,
   repolishHanatour2030ParsedAtRegisterConfirm,
   resolveHanatour2030ProductTitleForDetect,
+  stripHanatour2030ChildInfantPrices,
 } from '@/lib/hanatour-register-schedule-2030'
 import { hanatourConfirmHasScheduleExpressionLayer } from '@/lib/parse-and-register-hanatour-schedule'
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
@@ -306,7 +307,9 @@ describe('hanatour 2030 schedule polish', () => {
     expect(hanatour2030RegisterScheduleOkAtConfirm(guarded)).toBe(true)
     expect(guarded.title).toMatch(/\(2030\)\s*$/)
     expect(guarded.schedule[0]?.routeText).toBe('모토마치')
-    expect(guarded.extractionFieldIssues ?? []).toHaveLength(0)
+    expect(guarded.extractionFieldIssues?.some((i) => i.field === 'hanatour2030.price.adultOnly')).toBe(
+      true,
+    )
   })
 
   it('hanatourConfirmHasScheduleExpressionLayer — 2030 미충족 시 false', () => {
@@ -357,7 +360,24 @@ describe('hanatour 2030 schedule polish', () => {
       supplierListingTitleRaw: title,
       destination: '일본',
       schedule,
-      prices: [{ departureDate: '2026-07-29', adultPrice: 1179900, status: 'available' }],
+      productPriceTable: {
+        adultPrice: 1_179_900,
+        childExtraBedPrice: 1_079_900,
+        childNoBedPrice: 999_000,
+        infantPrice: 150_000,
+      },
+      prices: [
+        {
+          departureDate: '2026-07-29',
+          adultPrice: 1_179_900,
+          status: 'available',
+          childBedBase: 1_079_900,
+          childNoBedBase: 999_000,
+          infantBase: 150_000,
+          childFuel: 50_000,
+          infantFuel: 10_000,
+        },
+      ],
     }
     expect(isHanatour2030ProductTitle(title)).toBe(true)
     expect(hanatourConfirmHasScheduleExpressionLayer(persisted, [])).toBe(false)
@@ -365,6 +385,49 @@ describe('hanatour 2030 schedule polish', () => {
     expect(guarded.title).toMatch(/\(2030\)\s*$/)
     expect(hanatourConfirmHasScheduleExpressionLayer(guarded, [])).toBe(true)
     expect(hanatour2030ConfirmScheduleBlockReason(guarded)).toBeNull()
+    expect(guarded.productPriceTable?.adultPrice).toBe(1_179_900)
+    expect(guarded.productPriceTable?.childExtraBedPrice).toBeNull()
+    expect(guarded.productPriceTable?.childNoBedPrice).toBeNull()
+    expect(guarded.productPriceTable?.infantPrice).toBeNull()
+    expect(guarded.prices[0]?.childBedBase).toBeUndefined()
+    expect(guarded.prices[0]?.childNoBedBase).toBeUndefined()
+    expect(guarded.prices[0]?.infantBase).toBeUndefined()
+    expect(guarded.prices[0]?.childFuel).toBe(0)
+    expect(guarded.prices[0]?.infantFuel).toBe(0)
+    expect(guarded.extractionFieldIssues?.some((i) => i.field === 'hanatour2030.price.adultOnly')).toBe(
+      true,
+    )
+  })
+
+  it('stripHanatour2030ChildInfantPrices — 비2030은 아동·유아 유지', () => {
+    const parsed: RegisterParsed = {
+      originSource: 'hanatour',
+      originCode: 'BKK001',
+      title: '방콕 3일',
+      destination: '태국',
+      schedule: [],
+      productPriceTable: {
+        adultPrice: 900_000,
+        childExtraBedPrice: 800_000,
+        childNoBedPrice: null,
+        infantPrice: 100_000,
+      },
+      prices: [
+        {
+          departureDate: '2026-08-01',
+          adultPrice: 900_000,
+          status: 'available',
+          childBedBase: 800_000,
+          infantBase: 100_000,
+          childFuel: 0,
+          infantFuel: 0,
+        },
+      ],
+    }
+    const out = stripHanatour2030ChildInfantPrices(parsed)
+    expect(out).toBe(parsed)
+    expect(out.productPriceTable?.childExtraBedPrice).toBe(800_000)
+    expect(out.prices[0]?.childBedBase).toBe(800_000)
   })
 
   it('hanatourConfirmHasScheduleExpressionLayer — 자유여행(air-hotel)은 일정 없어도 통과', () => {
