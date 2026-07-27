@@ -20,7 +20,7 @@ export type CountryProductPack = {
 
 export type ProductsByCountryResult =
   | { ok: true; individual: Record<string, CountryProductPack>; multi: ProductOption[] }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 function isSingleCountryForCode(p: ProductOption, code: string): boolean {
   const covered = getPlanCoveredCountries(p.plan_name);
