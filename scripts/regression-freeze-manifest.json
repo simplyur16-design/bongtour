@@ -9523,6 +9523,8 @@
             "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
             "data-admin-mobile-register",
             "data-admin-mobile-register-confirm",
+            "data-admin-mobile-register-confirm-early",
+            "portal confirm out of overflow main",
             "미리보기 확인 후 최종 저장",
             "사실 가져오기 (API)",
             "봉투어 형식으로 변환"

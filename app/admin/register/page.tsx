@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import type { RegisterPreviewFingerprintInput } from '@/lib/register-preview-content-fingerprint-hanatour'
 import { buildRegisterPreviewCanonicalString as buildRegisterCanonH } from '@/lib/register-preview-content-fingerprint-hanatour'
@@ -754,6 +755,11 @@ export default function AdminRegisterPage() {
   const [preview, setPreview] = useState<AdminRegisterPreviewPayload | null>(null)
   const [parsedForConfirm, setParsedForConfirm] = useState<unknown>(null)
   const [confirming, setConfirming] = useState(false)
+  /** REGRESSION-FREEZE[admin-mobile-ops-b-register]: portal confirm out of overflow main — manifest */
+  const [registerConfirmPortalReady, setRegisterConfirmPortalReady] = useState(false)
+  useEffect(() => {
+    setRegisterConfirmPortalReady(true)
+  }, [])
   const [selectedBrandKey, setSelectedBrandKey] = useState<AdminRegisterSupplierKey>(
     () => REGISTER_SUPPLIER_OPTIONS[0]!.brandKey as AdminRegisterSupplierKey
   )
@@ -1663,7 +1669,7 @@ export default function AdminRegisterPage() {
               savedProductId &&
               '미리보기 저장 완료. 등록대기에서 검토 후 승인하면 등록 확정됩니다.'}
             {!loading && !savedProductId && error && <span className="text-red-600">{error}</span>}
-            {!loading && !savedProductId && !error && '대기 중'}
+            {!loading && !savedProductId && !error && (statusText?.trim() || '대기 중')}
           </p>
         </div>
 
@@ -1709,6 +1715,54 @@ export default function AdminRegisterPage() {
             <p className="mt-1 text-xs text-slate-500">
               미리보기는 저장 직전 검수용입니다. confirm 단계는 미리보기에서 확정된 값만 저장하며 추가 재해석을 하지 않습니다.
             </p>
+
+            {(() => {
+              const confirmDisabled =
+                confirming ||
+                loading ||
+                !preview.previewToken ||
+                !preview.previewContentDigest?.trim() ||
+                (previewContentFingerprintRef.current != null &&
+                  currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current)
+              const confirmHint = !preview.previewToken ? (
+                <p className="mt-2 text-xs text-red-600">미리보기 토큰이 없어 저장할 수 없습니다. 미리보기를 다시 생성하세요.</p>
+              ) : !preview.previewContentDigest?.trim() ? (
+                <p className="mt-2 text-xs text-red-600">
+                  미리보기 지문이 없어 저장할 수 없습니다. 서버·클라이언트를 최신으로 한 뒤 다시 분석하세요.
+                </p>
+              ) : previewContentFingerprintRef.current != null &&
+                currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current ? (
+                <p className="mt-2 text-xs text-red-600">
+                  본문·여행사·URL·카테고리가 바뀌었습니다. 다시 분석한 뒤 저장하세요.
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500 md:hidden">
+                  아래 검수를 마친 뒤에도 화면 맨 아래 저장 바로 저장할 수 있습니다.
+                </p>
+              )
+              const confirmButton = (
+                <button
+                  type="button"
+                  onClick={handleConfirmRegister}
+                  disabled={confirmDisabled}
+                  className="min-h-12 w-full rounded-lg bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 md:w-auto md:min-h-0 md:py-2.5"
+                >
+                  {confirming ? '3축 저장 중…' : '미리보기 확인 후 최종 저장'}
+                </button>
+              )
+              return (
+                <>
+                  {/* REGRESSION-FREEZE[admin-mobile-ops-b-register]: early confirm CTA above long preview — manifest */}
+                  <div
+                    className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 md:hidden"
+                    data-admin-mobile-register-confirm-early="true"
+                  >
+                    {confirmButton}
+                    {confirmHint}
+                  </div>
+                </>
+              )
+            })()}
 
             {preview.ssotPreview ? (
               <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-3 text-xs text-slate-800">
@@ -2577,26 +2631,15 @@ export default function AdminRegisterPage() {
               hintDetail={correctionHintDetail}
             />
 
-            <div
-              className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:static md:mt-4 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none"
-              data-admin-mobile-register-confirm="true"
-            >
-              <button
-                type="button"
-                onClick={handleConfirmRegister}
-                disabled={
-                  confirming ||
-                  loading ||
-                  !preview.previewToken ||
-                  !preview.previewContentDigest?.trim() ||
-                  (previewContentFingerprintRef.current != null &&
-                    currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current)
-                }
-                className="min-h-12 w-full rounded-lg bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 md:w-auto md:min-h-0 md:py-2.5"
-              >
-                {confirming ? '3축 저장 중…' : '미리보기 확인 후 최종 저장'}
-              </button>
-              {!preview.previewToken ? (
+            {(() => {
+              const confirmDisabled =
+                confirming ||
+                loading ||
+                !preview.previewToken ||
+                !preview.previewContentDigest?.trim() ||
+                (previewContentFingerprintRef.current != null &&
+                  currentRegisterPreviewFingerprint() !== previewContentFingerprintRef.current)
+              const confirmHint = !preview.previewToken ? (
                 <p className="mt-2 text-xs text-red-600">미리보기 토큰이 없어 저장할 수 없습니다. 미리보기를 다시 생성하세요.</p>
               ) : !preview.previewContentDigest?.trim() ? (
                 <p className="mt-2 text-xs text-red-600">
@@ -2607,8 +2650,53 @@ export default function AdminRegisterPage() {
                 <p className="mt-2 text-xs text-red-600">
                   본문·여행사·URL·카테고리가 바뀌었습니다. 다시 분석한 뒤 저장하세요.
                 </p>
-              ) : null}
-            </div>
+              ) : null
+              const confirmButtonClass =
+                'min-h-12 w-full rounded-lg bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 md:w-auto md:min-h-0 md:py-2.5'
+              const confirmLabel = confirming ? '3축 저장 중…' : '미리보기 확인 후 최종 저장'
+              // REGRESSION-FREEZE[admin-mobile-ops-b-register]: portal confirm out of overflow main — manifest
+              const mobilePortal =
+                registerConfirmPortalReady && typeof document !== 'undefined'
+                  ? createPortal(
+                      <div
+                        className="fixed inset-x-0 bottom-0 z-[95] border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur md:hidden"
+                        data-admin-mobile-register-confirm="true"
+                      >
+                        <button
+                          type="button"
+                          onClick={handleConfirmRegister}
+                          disabled={confirmDisabled}
+                          className={confirmButtonClass}
+                        >
+                          {confirmLabel}
+                        </button>
+                        {confirmHint}
+                      </div>,
+                      document.body,
+                    )
+                  : null
+              return (
+                <>
+                  {/* Mobile: spacer so preview content clears the body portal bar */}
+                  <div className="h-24 md:hidden" aria-hidden />
+                  <div
+                    className="mt-4 hidden md:block"
+                    data-admin-mobile-register-confirm="true"
+                  >
+                    <button
+                      type="button"
+                      onClick={handleConfirmRegister}
+                      disabled={confirmDisabled}
+                      className={confirmButtonClass}
+                    >
+                      {confirmLabel}
+                    </button>
+                    {confirmHint}
+                  </div>
+                  {mobilePortal}
+                </>
+              )
+            })()}
           </div>
         )}
 
