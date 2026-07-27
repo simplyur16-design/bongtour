@@ -11081,6 +11081,47 @@
         "lib/simplyur/pricing.test.ts",
         "lib/simplyur/currency.test.ts"
       ]
+    },
+    {
+      "id": "mypage-hub-affiliation-esim-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "마이페이지 허브 — 소속 명함 인증·내 eSIM 주문내역 최상단, 내 쿠폰함·마케팅 수신동의 메뉴 제외",
+      "staticGuards": [
+        {
+          "file": "app/mypage/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mypage-hub-affiliation-esim-first]",
+            "href: '/mypage/affiliation'",
+            "href: '/mypage/esim'",
+            "소속 명함 인증",
+            "내 eSIM 주문내역"
+          ],
+          "mustNotInclude": [
+            "/mypage/coupons",
+            "/mypage/marketing-consent",
+            "내 쿠폰함",
+            "마케팅 수신"
+          ]
+        },
+        {
+          "file": "app/mypage/layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mypage-hub-affiliation-esim-first]",
+            "href: '/mypage/affiliation'",
+            "href: '/mypage/esim'",
+            "소속 명함 인증"
+          ],
+          "mustNotInclude": [
+            "/mypage/coupons",
+            "/mypage/marketing-consent",
+            "내 쿠폰함",
+            "Gift"
+          ]
+        }
+      ]
     }
   ]
 }
