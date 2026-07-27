@@ -1,17 +1,22 @@
 import type { BongsimPriceBlockV1 } from "@/lib/bongsim/contracts/product-master.v1";
+import {
+  AFTER_RECOMMENDED_BASIS_KEY,
+  afterRecommendedSellKrw,
+} from "@/lib/bongsim/data/pricing-after-recommended-krw";
+
+// REGRESSION-FREEZE[bongsim-charge-after-recommended-krw]: 체크아웃 청구 = 표시 after.recommended_krw — manifest
 
 /**
- * Server-only charged unit selection (same priority family as storefront display: 소비자가 단일).
+ * 봉심 웹 체크아웃 청구 단가 — 스토어프론트 표시와 동일하게 `after.recommended_krw` 만.
+ * (소비자가 consumer_krw 로 청구하면 11700 표시 → 13000 결제 같은 괴리 발생)
  */
-export function selectChargedUnitPriceKrw(priceBlock: BongsimPriceBlockV1): { basis_key: string; unit_krw: number } {
-  const candidates: Array<{ basis_key: string; value: number | null }> = [
-    { basis_key: "after.consumer_krw", value: priceBlock.after.consumer_krw },
-    { basis_key: "before.consumer_krw", value: priceBlock.before.consumer_krw },
-  ];
-  for (const c of candidates) {
-    if (c.value != null && Number.isFinite(c.value) && c.value >= 0) {
-      return { basis_key: c.basis_key, unit_krw: Math.trunc(c.value) };
-    }
+export function selectChargedUnitPriceKrw(priceBlock: BongsimPriceBlockV1): {
+  basis_key: string;
+  unit_krw: number;
+} {
+  const unit = afterRecommendedSellKrw(priceBlock);
+  if (unit != null && Number.isFinite(unit) && unit >= 0) {
+    return { basis_key: AFTER_RECOMMENDED_BASIS_KEY, unit_krw: unit };
   }
   return { basis_key: "missing_all_price_cells", unit_krw: 0 };
 }

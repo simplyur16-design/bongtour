@@ -11113,6 +11113,45 @@
       ]
     },
     {
+      "id": "bongsim-charge-after-recommended-krw",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "봉심 체크아웃 청구 단가 = after.recommended_krw (표시와 동일, consumer_krw 청구 금지)",
+      "staticGuards": [
+        {
+          "file": "lib/bongsim/data/pricing-select-charged.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-charge-after-recommended-krw]",
+            "afterRecommendedSellKrw",
+            "AFTER_RECOMMENDED_BASIS_KEY"
+          ],
+          "mustNotInclude": [
+            "after.consumer_krw",
+            "before.consumer_krw"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/pricing-after-recommended-krw.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-charge-after-recommended-krw]",
+            "afterRecommendedSellKrw"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "selectChargedUnitPriceKrw"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/data/pricing-select-charged.test.ts",
+        "lib/bongsim/data/pricing-after-recommended-krw.test.ts"
+      ]
+    },
+    {
       "id": "mypage-hub-affiliation-esim-first",
       "tier": [
         "prebuild",

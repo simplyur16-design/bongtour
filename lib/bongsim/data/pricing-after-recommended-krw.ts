@@ -26,7 +26,8 @@ export type AfterRecommendedPriceBlockInput =
 
 /**
  * 변동 후(after) 권장판매가만 — before·소비자가·공급가 폴백 없음.
- * 스토어프론트 표시·정렬·결제 단가 SSOT.
+ * 스토어프론트 표시·정렬·체크아웃 청구 단가 SSOT.
+ * REGRESSION-FREEZE[bongsim-charge-after-recommended-krw]: 체크아웃 청구 = 표시 after.recommended_krw — manifest
  */
 export function afterRecommendedSellKrw(priceBlock: AfterRecommendedPriceBlockInput): number | null {
   const v = numOrNull(priceBlock?.after?.recommended_krw);
