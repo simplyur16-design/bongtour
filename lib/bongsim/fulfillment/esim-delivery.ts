@@ -10,6 +10,8 @@ import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verificat
 import {
   enqueueEsimQrNotify,
   kickEsimQrNotifyDrain,
+  esimQrNotifyDedupeKey,
+  ESIM_QR_NOTIFY_TOPIC,
   type EsimQrNotifyPayload,
 } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
@@ -243,6 +245,19 @@ export async function deliverEsimToCustomer(
     const d = downloadLink.trim();
     if (q && d) {
       const topupRowId = (opts?.topup_row_id ?? "").trim() || null;
+      // already_delivered 재진입: 해당 topup 알림이 이미 성공 처리면 재큐/킥 스킵 (이중 발송·레이스 축소)
+      if (result.status === "skipped" && result.reason === "already_delivered") {
+        const dedupe = esimQrNotifyDedupeKey(orderId, topupRowId);
+        const existing = await pool.query<{ processed_at: Date | null }>(
+          `SELECT processed_at FROM bongsim_outbox
+            WHERE topic = $1 AND dedupe_key = $2
+            LIMIT 1`,
+          [ESIM_QR_NOTIFY_TOPIC, dedupe],
+        );
+        if (existing.rows[0]?.processed_at) {
+          return result;
+        }
+      }
       let unit_index: number | null = null;
       let unit_total: number | null = null;
       if (topupRowId) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ESIM_QR_NOTIFY_TOPIC,
+  ESIM_QR_NOTIFY_CLAIM_LEASE_MS,
   computeEsimQrNotifyStaggerMs,
   esimQrNotifyDedupeKey,
 } from '@/lib/bongsim/fulfillment/esim-qr-notify-outbox'
@@ -20,5 +21,9 @@ describe('esim-qr-notify-outbox', () => {
     expect(computeEsimQrNotifyStaggerMs(1, 1200)).toBe(1200)
     expect(computeEsimQrNotifyStaggerMs(4, 1200)).toBe(4800)
     expect(computeEsimQrNotifyStaggerMs(9, 1200)).toBe(10_800)
+  })
+
+  it('claim lease is at least 60s so concurrent kick+cron cannot double-send', () => {
+    expect(ESIM_QR_NOTIFY_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(60_000)
   })
 })

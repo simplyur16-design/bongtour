@@ -88,6 +88,8 @@ export async function sendEsimQrDeliveredAlimTalk(
         pfId,
         templateId,
         variables,
+        /** 솔라피 자동 문자 + 앱 LMS 폴백 이중 채널 방지 — LMS는 `sendEsimQrDeliveredLmsFallback` */
+        disableSms: true,
       },
     });
     return { ok: true };

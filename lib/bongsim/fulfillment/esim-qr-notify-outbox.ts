@@ -14,6 +14,16 @@ export const ESIM_QR_NOTIFY_GAP_MS = Math.max(
   Number.parseInt(process.env.BONGSIM_ESIM_QR_NOTIFY_GAP_MS ?? '1200', 10) || 1200,
 )
 
+/**
+ * pick 후 네트워크 발송 전 커밋할 때 available_at을 밀어 동시 드레인(킥+크론)이
+ * 같은 행을 두 번 Solapi로 보내지 않게 한다.
+ * REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: claim lease — manifest
+ */
+export const ESIM_QR_NOTIFY_CLAIM_LEASE_MS = Math.max(
+  60_000,
+  Number.parseInt(process.env.BONGSIM_ESIM_QR_NOTIFY_CLAIM_LEASE_MS ?? '900000', 10) || 900_000,
+)
+
 export type EsimQrNotifyPayload = {
   order_id: string
   order_number: string
@@ -238,7 +248,15 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
       return { outcome: 'terminal', order_id: undefined }
     }
 
-    // 발송 전 커밋 해제 — 네트워크 대기 중 락 유지 금지
+    // 발송 전 커밋 해제 — 네트워크 대기 중 행 락 유지 금지.
+    // 단 available_at lease로 다른 드레인이 같은 행을 집어 이중 알림톡 내지 않게 한다.
+    await client.query(
+      `UPDATE bongsim_outbox
+          SET locked_at = now(),
+              available_at = now() + ($2::int * interval '1 millisecond')
+        WHERE id = $1`,
+      [row.id, ESIM_QR_NOTIFY_CLAIM_LEASE_MS],
+    )
     await client.query('COMMIT')
   } catch (e) {
     try {

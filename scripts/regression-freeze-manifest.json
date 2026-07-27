@@ -1166,6 +1166,7 @@
             "enqueueEsimQrNotify",
             "drainEsimQrNotifyOutboxBestEffort",
             "ESIM_QR_NOTIFY_GAP_MS",
+            "ESIM_QR_NOTIFY_CLAIM_LEASE_MS",
             "esimQrNotifyDedupeKey"
           ]
         },
@@ -1176,10 +1177,17 @@
             "enqueueEsimQrNotify",
             "kickEsimQrNotifyDrain",
             "sendQueuedEsimQrCustomerNotify",
-            "topup_row_id"
+            "topup_row_id",
+            "SELECT processed_at FROM bongsim_outbox"
           ],
           "mustNotInclude": [
             "await notifyEsimQrToCustomer"
+          ]
+        },
+        {
+          "file": "lib/bongsim/notifications/esim-qr-alimtalk.ts",
+          "mustInclude": [
+            "disableSms: true"
           ]
         },
         {
