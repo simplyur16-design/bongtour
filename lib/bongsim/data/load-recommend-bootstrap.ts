@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { listCountryCatalogMetaByCode } from "@/lib/bongsim/data/list-country-catalog-meta";
-import { listBongsimStandaloneCountries } from "@/lib/bongsim/data/list-standalone-countries";
+import {
+  catalogMetaFromSlimRows,
+  type CountryCatalogMeta,
+  type CountryCatalogMetaRow,
+} from "@/lib/bongsim/data/list-country-catalog-meta";
+import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
+import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
+import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";
 import { getPgPool, withBongsimStatementTimeout } from "@/lib/bongsim/db/pool";
-import type { CountryCatalogMeta } from "@/lib/bongsim/data/list-country-catalog-meta";
 import { RECOMMEND_CATALOG_META_REGION_CODES } from "@/lib/bongsim/recommend/recommend-destination-sections";
 import { RECOMMEND_POPULAR_CODES } from "@/lib/bongsim/home-data";
 
@@ -27,6 +32,7 @@ export type BongsimRecommendBootstrapResult =
   | { ok: false; reason: "db_unconfigured" | "db_error" };
 
 // REGRESSION-FREEZE[bongsim-recommend-server-bootstrap-p3]: recommend 서버 프리로드 — manifest
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: countries 1-pass slim (no price_block) — manifest
 
 export async function loadBongsimCountryHeroMap(): Promise<Record<string, string>> {
   const rows = await prisma.imageAsset.findMany({
@@ -54,6 +60,27 @@ export async function loadBongsimCountryHeroMap(): Promise<Record<string, string
   return heroes;
 }
 
+function standaloneCountriesFromPlanNames(planNames: string[]): BongsimCountryListItem[] {
+  const codes = new Set<string>();
+  for (const raw of planNames) {
+    const pn = raw?.trim();
+    if (!pn) continue;
+    const multi = resolveMultiCoverage(pn);
+    const singleCode = extractSingleCountryCode(pn);
+    if (multi !== undefined && singleCode === null) continue;
+    if (singleCode) codes.add(singleCode.trim().toLowerCase());
+  }
+
+  const byCode = new Map(COUNTRY_OPTIONS.map((c) => [c.code.toLowerCase(), c]));
+  const countries: BongsimCountryListItem[] = [];
+  for (const code of codes) {
+    const opt = byCode.get(code);
+    if (opt) countries.push({ code: opt.code, nameKr: opt.nameKr });
+  }
+  countries.sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
+  return countries;
+}
+
 export async function loadBongsimCountriesPayload(): Promise<
   | { ok: true; countries: BongsimCountryListItem[]; catalogMeta: Record<string, CountryCatalogMeta> }
   | { ok: false; reason: "db_unconfigured" | "db_error" }
@@ -63,13 +90,24 @@ export async function loadBongsimCountriesPayload(): Promise<
 
   try {
     return await withBongsimStatementTimeout(async (client) => {
-      const countries = await listBongsimStandaloneCountries(client);
+      // 한 번만: DISTINCT plan_name + 전체 price_block 이중 스캔 금지
+      const { rows } = await client.query<CountryCatalogMetaRow>(
+        `SELECT TRIM(plan_name) AS plan_name,
+                network_family,
+                plan_type,
+                allowance_label,
+                jsonb_build_object('kyc', flags->'kyc') AS flags
+         FROM bongsim_product_option
+         WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
+      );
+
+      const countries = standaloneCountriesFromPlanNames(rows.map((r) => r.plan_name));
       const metaCodes = [
         ...countries.map((c) => c.code),
         ...RECOMMEND_POPULAR_CODES,
         ...RECOMMEND_CATALOG_META_REGION_CODES,
       ];
-      const metaByCode = await listCountryCatalogMetaByCode(client, metaCodes);
+      const metaByCode = catalogMetaFromSlimRows(rows, metaCodes);
 
       const enriched: BongsimCountryListItem[] = countries.map((c) => {
         const meta = metaByCode[c.code.toLowerCase()];

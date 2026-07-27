@@ -22,7 +22,18 @@ export type CountryCatalogMeta = {
   travelerVerification: TravelerVerificationCountryPolicy;
 };
 
-function isSingleCountryForCode(p: ProductOption, code: string): boolean {
+/** 메타 계산용 슬림 행 — price_block 없음 (카탈로그 목록 부하 금지) */
+export type CountryCatalogMetaRow = {
+  plan_name: string;
+  network_family: string | null;
+  plan_type: string | null;
+  allowance_label: string | null;
+  flags: Record<string, unknown> | null;
+};
+
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: countries meta 슬림 SELECT — manifest
+
+function isSingleCountryForCode(p: Pick<CountryCatalogMetaRow, "plan_name">, code: string): boolean {
   const covered = getPlanCoveredCountries(p.plan_name);
   if (covered.length === 1 && covered[0] === code) return true;
   const nameKr = planNameKrFromCountryCode(code);
@@ -36,7 +47,7 @@ function kycDistributionToPolicy(dist: KycLabelDistribution): TravelerVerificati
 }
 
 function metaFromProducts(
-  products: ProductOption[],
+  products: CountryCatalogMetaRow[],
   catalogCode?: string,
 ): CountryCatalogMeta {
   const roaming = products.filter((p) => (p.network_family || "").toLowerCase() === "roaming");
@@ -49,26 +60,14 @@ function metaFromProducts(
   return { isUnlimited, travelerVerification };
 }
 
-/**
- * 단독 국가·권역 패키지별 카탈로그 메타 (무제한·여행자 인증).
- * flags.kyc=O/X 분포로 나라별 정책을 SSOT 계산.
- * 여행자 인증 목적지 SSOT: 홍콩·마카오·대만 (중국 본토 단독 제외).
- */
-export async function listCountryCatalogMetaByCode(
-  pool: Pool | PoolClient,
+/** 이미 로드된 슬림 행에서 국가·권역 메타 계산 (추가 DB 왕복 없음) */
+export function catalogMetaFromSlimRows(
+  allProducts: CountryCatalogMetaRow[],
   codes: string[],
-): Promise<Record<string, CountryCatalogMeta>> {
+): Record<string, CountryCatalogMeta> {
   const normalized = [...new Set(codes.map((c) => c.trim().toLowerCase()).filter(Boolean))];
   if (normalized.length === 0) return {};
 
-  const { rows } = await pool.query<ProductOption>(
-    `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
-            allowance_label, option_label, price_block, flags
-     FROM bongsim_product_option
-     WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
-  );
-
-  const allProducts = rows as ProductOption[];
   const out: Record<string, CountryCatalogMeta> = {};
 
   for (const code of normalized) {
@@ -85,6 +84,32 @@ export async function listCountryCatalogMetaByCode(
   }
 
   return out;
+}
+
+/**
+ * 단독 국가·권역 패키지별 카탈로그 메타 (무제한·여행자 인증).
+ * flags.kyc=O/X 분포로 나라별 정책을 SSOT 계산.
+ * 여행자 인증 목적지 SSOT: 홍콩·마카오·대만 (중국 본토 단독 제외).
+ * price_block 미조회 — 목록 API 타임아웃·DB 포화 방지.
+ */
+export async function listCountryCatalogMetaByCode(
+  pool: Pool | PoolClient,
+  codes: string[],
+): Promise<Record<string, CountryCatalogMeta>> {
+  const normalized = [...new Set(codes.map((c) => c.trim().toLowerCase()).filter(Boolean))];
+  if (normalized.length === 0) return {};
+
+  const { rows } = await pool.query<CountryCatalogMetaRow>(
+    `SELECT TRIM(plan_name) AS plan_name,
+            network_family,
+            plan_type,
+            allowance_label,
+            jsonb_build_object('kyc', flags->'kyc') AS flags
+     FROM bongsim_product_option
+     WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
+  );
+
+  return catalogMetaFromSlimRows(rows, normalized);
 }
 
 /** 다국가 플랜 — 선택 국가 전체 커버 시 메타 */

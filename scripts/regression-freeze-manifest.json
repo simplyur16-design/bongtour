@@ -1406,6 +1406,69 @@
       ]
     },
     {
+      "id": "bongsim-catalog-list-perf",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "국가·상품 목록 — price_block 전체 스캔 금지, slim consumer, countries 실패 비캐시, plans 단일국 plan_name 필터",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/list-country-catalog-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "catalogMetaFromSlimRows",
+            "jsonb_build_object('kyc'"
+          ],
+          "mustNotInclude": [
+            "price_block, flags"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-recommend-bootstrap.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "catalogMetaFromSlimRows",
+            "jsonb_build_object('kyc'"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-bongsim-countries-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "fetchCountriesOrThrow",
+            "bongsim-countries-payload-v2"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/catalog-consumer-krw-sql.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-all-active-products.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/query-plan-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "resolveDestinationPlanNamesForSql",
+            "BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL",
+            "plan_name = ANY($2::text[])"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/data/list-country-catalog-meta.test.ts"
+      ]
+    },
+    {
       "id": "mypage-hub-affiliation-esim-first",
       "tier": [
         "prebuild",

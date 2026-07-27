@@ -1,9 +1,11 @@
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
+import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import { getPgPool, withBongsimStatementTimeout } from "@/lib/bongsim/db/pool";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 
 // REGRESSION-FREEZE[bongsim-products-by-country-cache]: active 카탈로그 DB SSOT — manifest
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: by-country SELECT slim consumer only — manifest
 
 export type AllActiveProductsResult =
   | { ok: true; products: ProductOption[] }
@@ -17,7 +19,7 @@ const PRODUCT_OPTION_SELECT = `SELECT
   days_raw,
   allowance_label,
   option_label,
-  price_block,
+  ${BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL} AS price_block,
   flags
 FROM bongsim_product_option`;
 

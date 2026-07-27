@@ -1,6 +1,9 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
+import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
+import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
+import { BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS } from "@/lib/bongsim/db/pool";
 import {
   getKycLabelDistribution,
   getEffectiveKycLabelState,
@@ -23,6 +26,32 @@ import {
   pickRecommendedBySpeedTier,
   type PlanRecSource,
 } from "@/lib/bongsim/recommend/plan-speed-tier";
+
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: plans SQL slim + single-dest filter — manifest
+
+async function withPoolLocalTimeout<T>(
+  pool: Pool,
+  fn: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  const ms = Math.max(1_000, Math.trunc(BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS));
+  try {
+    await client.query("BEGIN");
+    await client.query(`SET LOCAL statement_timeout = ${ms}`);
+    const out = await fn(client);
+    await client.query("COMMIT");
+    return out;
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  } finally {
+    client.release();
+  }
+}
 
 type Row = {
   option_api_id: string;
@@ -359,8 +388,13 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
   const country = params.country.trim().toLowerCase();
   const allSelected = [...new Set(params.allSelected.map((c) => c.trim().toLowerCase()).filter(Boolean))];
 
-  const result = await params.pool.query(
-    `
+  const singleDestPlanNames =
+    allSelected.length === 1 ? resolveDestinationPlanNamesForSql(allSelected[0]!) : null;
+  const planNameFilter = singleDestPlanNames && singleDestPlanNames.length > 0 ? singleDestPlanNames : null;
+
+  const result = await withPoolLocalTimeout(params.pool, (client) =>
+    client.query(
+      `
       SELECT
         option_api_id,
         plan_name,
@@ -369,12 +403,13 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
         days_raw,
         allowance_label,
         option_label,
-        price_block,
+        ${BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL} AS price_block,
         flags,
         qos_raw
       FROM bongsim_product_option
       WHERE ${catalogWhere}
         AND ($1::text IS NULL OR lower(network_family) = lower($1::text))
+        AND ($2::text[] IS NULL OR plan_name = ANY($2::text[]))
         AND (
           (plan_type IS NOT NULL AND lower(plan_type) IN ('unlimited', 'daily', 'fixed'))
           OR (
@@ -383,9 +418,10 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
             AND ($1::text IS NULL OR lower($1::text) = 'local')
           )
         )
-      ORDER BY plan_name, days_raw, (price_block->'after'->>'recommended_krw')::numeric ASC NULLS LAST
+      ORDER BY plan_name, days_raw
       `,
-    [networkParam],
+      [networkParam, planNameFilter],
+    ),
   );
 
   const ctx = { country, days, allSelected };
