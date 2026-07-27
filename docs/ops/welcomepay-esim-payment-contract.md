@@ -33,7 +33,7 @@
 - `WELCOMEPAY_MID`, `WELCOMEPAY_SIGN_KEY`, `WELCOMEPAY_ENV=production`
 - `NEXT_PUBLIC_SITE_URL=https://bongtour.com` (콜백 URL SSOT)
 - `WELCOMEPAY_EASY_PAY=1` (선택) — 간편결제 다이렉트. 운영 기본 on, `0`으로 off
-- `WELCOMEPAY_EASY_PAY_METHODS=kakaopay,naverpay,tosspay,payco,samsungpay` (선택 allowlist)
+- `WELCOMEPAY_EASY_PAY_METHODS=kakaopay,naverpay,tosspay,payco` (선택 allowlist; 삼성페이 미계약)
 
 ## 재결제·취소 후
 
@@ -47,9 +47,8 @@
 | 네이버페이 | `onlynaverpay` | `centerCd=Y&d_npay=Y` |
 | 토스페이 | `onlytosspay` | `centerCd=Y&d_tosspay=Y` |
 | PAYCO | `onlypayco` | `centerCd=Y&d_payco=Y` |
-| 삼성페이 | `onlyssp` | `centerCd=Y&d_samsungpay=Y` |
 
-PC `acceptmethod`: `centerCd(Y):cardonly`. checkout id: `easy_kakaopay` 등. SSOT: `lib/bongsim/welcomepay-easy-pay.ts`.
+PC `acceptmethod`: `centerCd(Y):cardonly`. checkout id: `easy_kakaopay` 등. SSOT: `lib/bongsim/welcomepay-easy-pay.ts`. 삼성페이는 가맹점 미계약으로 미지원.
 
 ## 검증
 

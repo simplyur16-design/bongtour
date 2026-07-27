@@ -2646,6 +2646,11 @@
             "onlykakaopay",
             "d_kakaopay=Y",
             "WELCOMEPAY_EASY_PAY"
+          ],
+          "mustNotInclude": [
+            "samsungpay",
+            "onlyssp",
+            "d_samsungpay=Y"
           ]
         },
         {

@@ -36,8 +36,8 @@ describe("welcomepay-easy-pay", () => {
       "easy_naverpay",
       "easy_tosspay",
       "easy_payco",
-      "easy_samsungpay",
     ]);
+    expect(listWelcomepayEasyPayCheckoutDefinitions().map((m) => m.kind)).not.toContain("samsungpay");
   });
 
   it("builds PC acceptmethod and mobile P_RESERVED for kakaopay", () => {

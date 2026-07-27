@@ -10,12 +10,12 @@ import {
   type WelcomepayMethodId,
 } from "@/lib/bongsim/welcomepay-payment-methods";
 
+/** 가맹점 미계약 삼성페이는 노출하지 않음 (WELCOMEPAY_EASY_PAY_METHODS에도 없음). */
 export const WELCOMEPAY_EASY_PAY_KINDS = [
   "kakaopay",
   "naverpay",
   "tosspay",
   "payco",
-  "samsungpay",
 ] as const;
 
 export type WelcomepayEasyPayKind = (typeof WELCOMEPAY_EASY_PAY_KINDS)[number];
@@ -76,17 +76,6 @@ const EASY_PAY_BY_KIND: Record<WelcomepayEasyPayKind, Omit<WelcomepayEasyPayChec
     pIniPayment: "CARD",
     pcGoPayMethod: "onlypayco",
     mobileDirectReserved: "d_payco=Y",
-    requiresNotiUrl: false,
-    requiresHppMethod: false,
-    vbankPendingOnIssue: false,
-  },
-  samsungpay: {
-    kind: "samsungpay",
-    label: "삼성페이",
-    mobilePath: "wcard",
-    pIniPayment: "CARD",
-    pcGoPayMethod: "onlyssp",
-    mobileDirectReserved: "d_samsungpay=Y",
     requiresNotiUrl: false,
     requiresHppMethod: false,
     vbankPendingOnIssue: false,
