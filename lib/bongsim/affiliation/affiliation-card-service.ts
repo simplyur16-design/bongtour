@@ -5,6 +5,7 @@
 import { prisma } from '@/lib/prisma'
 import { isObjectStorageConfigured, uploadStorageObject } from '@/lib/object-storage'
 import { sendAdminShortAlertSms } from '@/lib/notification-service'
+import { absoluteUrl } from '@/lib/site-metadata'
 import {
   invokeClovaNameCardOcr,
   isClovaNameCardOcrConfigured,
@@ -12,6 +13,20 @@ import {
 } from '@/lib/bongsim/affiliation/clova-name-card-ocr'
 
 export type AffiliationCardStatus = 'pending' | 'approved' | 'rejected'
+
+const AFFILIATION_CARD_ADMIN_PATH = '/admin/bongsim/affiliation-cards'
+
+/** 관리자 명함 제출 SMS — 전체 URL을 앞줄에 두어 잘림·비클릭 방지 */
+export function buildAffiliationCardAdminAlertSms(input: {
+  who: string
+  company: string
+}): string {
+  // REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: admin SMS absolute link first — manifest
+  const adminUrl = absoluteUrl(AFFILIATION_CARD_ADMIN_PATH)
+  const who = input.who.trim().slice(0, 24) || '회원'
+  const company = input.company.trim().slice(0, 24) || '-'
+  return `[봉투어] 명함 승인요청\n${adminUrl}\n${who} · ${company}`
+}
 
 const MAX_BYTES = 8 * 1024 * 1024
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
@@ -172,12 +187,11 @@ export async function submitAffiliationCardRequest(params: {
       },
     })
 
-    const who = (user.name || user.email || userId).slice(0, 40)
-    const company = (fields.company || '-').slice(0, 40)
-    void sendAdminShortAlertSms(
-      `[봉투어] 명함 승인요청\n${who}\n회사:${company}\n/admin/bongsim/affiliation-cards`,
-      { channel: 'affiliation_card' },
-    ).catch((e) => console.warn('[affiliation-card] admin sms', e))
+    const who = user.name || user.email || userId
+    const company = fields.company || '-'
+    void sendAdminShortAlertSms(buildAffiliationCardAdminAlertSms({ who, company }), {
+      channel: 'affiliation_card',
+    }).catch((e) => console.warn('[affiliation-card] admin sms', e))
 
     return {
       ok: true,

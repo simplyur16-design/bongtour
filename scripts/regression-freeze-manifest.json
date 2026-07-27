@@ -10111,7 +10111,10 @@
             "submitAffiliationCardRequest",
             "reviewAffiliationCardRequest",
             "affiliationVerified",
-            "sendAdminShortAlertSms"
+            "sendAdminShortAlertSms",
+            "buildAffiliationCardAdminAlertSms",
+            "admin SMS absolute link first",
+            "absoluteUrl"
           ],
           "mustNotInclude": [
             "pressVerified"
@@ -10251,6 +10254,7 @@
       ],
       "vitestSuites": [
         "lib/bongsim/affiliation/clova-name-card-ocr.test.ts",
+        "lib/bongsim/affiliation/affiliation-card-admin-alert.test.ts",
         "lib/bongsim/data/checkout-press-discount.test.ts"
       ]
     },
