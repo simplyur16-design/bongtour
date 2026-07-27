@@ -326,6 +326,8 @@ export function ProductCombinationStep({
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [data, setData] = useState<ProductCombinationData | null>(null);
   const [completed, setCompleted] = useState<Record<string, CountryPlanSelection>>({});
   const [storedDone, setStoredDone] = useState<Record<string, StoredCountryPlanSelection>>(
@@ -372,15 +374,22 @@ export function ProductCombinationStep({
 
     async function loadProducts() {
       setLoading(true);
+      setLoadFailed(false);
       try {
         const prefetched = readPrefetchedProductsByCountry(selectedCodes);
         const json =
           prefetched ?? (await fetchProductsByCountry(selectedCodes));
         if (!json) throw new Error("fetch failed");
-        if (!cancelled) setData(json as ProductCombinationData);
+        if (!cancelled) {
+          setData(json as ProductCombinationData);
+          setLoadFailed(false);
+        }
       } catch (e) {
         console.error("[ProductCombinationStep]", e);
-        if (!cancelled) setData(null);
+        if (!cancelled) {
+          setData(null);
+          setLoadFailed(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -390,7 +399,7 @@ export function ProductCombinationStep({
     return () => {
       cancelled = true;
     };
-  }, [selectedCodes]);
+  }, [selectedCodes, reloadToken]);
 
   const countryByCode = useMemo(
     () =>
@@ -677,15 +686,28 @@ export function ProductCombinationStep({
   if (!data) {
     return shell(
       <div className="py-20 text-center lg:py-24">
-        <p className="text-sm text-red-600 lg:text-base">상품을 불러올 수 없습니다.</p>
-        <button
-          type="button"
-          onClick={onBack}
-          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold !text-black shadow-sm hover:border-teal-300 hover:bg-teal-50"
-          style={{ color: "#000000" }}
-        >
-          ← 국가 선택으로 돌아가기
-        </button>
+        <p className="text-sm text-red-600 lg:text-base">
+          {loadFailed
+            ? "상품 조회가 지연되거나 실패했습니다. 잠시 후 다시 시도해 주세요."
+            : "상품을 불러올 수 없습니다."}
+        </p>
+        <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setReloadToken((n) => n + 1)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-teal-800"
+          >
+            다시 시도
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold !text-black shadow-sm hover:border-teal-300 hover:bg-teal-50"
+            style={{ color: "#000000" }}
+          >
+            ← 국가 선택으로 돌아가기
+          </button>
+        </div>
       </div>,
     );
   }

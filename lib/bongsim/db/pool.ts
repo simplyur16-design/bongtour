@@ -67,6 +67,8 @@ function buildPoolConfig(): PoolConfig | null {
     connectionString: url,
     max: 5,
     idleTimeoutMillis: 10_000,
+    // 연결 고갈 시 무한 대기 → eSIM by-country「상품 조회 중…」무한 로딩 방지
+    connectionTimeoutMillis: 8_000,
     ssl: sslRejectUnauthorized ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
   };
 
@@ -130,5 +132,36 @@ export async function closePgPool(): Promise<void> {
   if (p) {
     await p.end();
     setCachedPool(undefined);
+  }
+}
+
+/** 카탈로그 등 — 트랜잭션 풀러에서도 세션에 남지 않게 LOCAL + BEGIN */
+export const BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS = 12_000;
+
+export async function withBongsimStatementTimeout<T>(
+  fn: (client: import("pg").PoolClient) => Promise<T>,
+  timeoutMs: number = BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS,
+): Promise<T> {
+  const pool = getPgPool();
+  if (!pool) {
+    throw new Error("db_unconfigured");
+  }
+  const client = await pool.connect();
+  const ms = Math.max(1_000, Math.trunc(timeoutMs));
+  try {
+    await client.query("BEGIN");
+    await client.query(`SET LOCAL statement_timeout = ${ms}`);
+    const out = await fn(client);
+    await client.query("COMMIT");
+    return out;
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  } finally {
+    client.release();
   }
 }

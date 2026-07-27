@@ -10676,7 +10676,16 @@
           "file": "lib/bongsim/data/load-all-active-products.ts",
           "mustInclude": [
             "fetchActiveProductOptionsForPlanNamesFromDb",
-            "plan_name = ANY"
+            "plan_name = ANY",
+            "withBongsimStatementTimeout"
+          ]
+        },
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "connectionTimeoutMillis",
+            "withBongsimStatementTimeout",
+            "SET LOCAL statement_timeout"
           ]
         },
         {
@@ -10704,7 +10713,8 @@
           "file": "app/api/bongsim/products/by-country/route.ts",
           "mustInclude": [
             "loadProductsByCountryCached",
-            "export const revalidate = 120"
+            "export const revalidate = 120",
+            "export const maxDuration = 30"
           ]
         },
         {
@@ -10750,7 +10760,15 @@
           "file": "lib/bongsim/recommend/prefetch-products-by-country.ts",
           "mustInclude": [
             "prefetchProductsByCountry",
-            "readPrefetchedProductsByCountry"
+            "readPrefetchedProductsByCountry",
+            "PRODUCTS_BY_COUNTRY_CLIENT_TIMEOUT_MS",
+            "AbortController"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/products/by-country/route.ts",
+          "mustInclude": [
+            "export const maxDuration = 30"
           ]
         },
         {
@@ -10764,7 +10782,9 @@
           "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
           "mustInclude": [
             "readPrefetchedProductsByCountry",
-            "fetchProductsByCountry"
+            "fetchProductsByCountry",
+            "setReloadToken",
+            "loadFailed"
           ]
         }
       ],

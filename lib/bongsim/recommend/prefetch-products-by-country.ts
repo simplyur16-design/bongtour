@@ -18,6 +18,8 @@ export type ProductsByCountryClientPayload = {
 };
 
 const CACHE_TTL_MS = 120_000;
+/** 서버/풀 행 시 UI가 「상품 조회 중…」에 영원히 남지 않게 */
+export const PRODUCTS_BY_COUNTRY_CLIENT_TIMEOUT_MS = 20_000;
 
 const memory = new Map<string, { at: number; data: ProductsByCountryClientPayload }>();
 const inflight = new Map<string, Promise<ProductsByCountryClientPayload | null>>();
@@ -56,11 +58,21 @@ export async function fetchProductsByCountry(
   if (pending) return pending;
 
   const task = (async () => {
-    const res = await fetch(`/api/bongsim/products/by-country?codes=${encodeURIComponent(key)}`);
-    if (!res.ok) return null;
-    const json = (await res.json()) as ProductsByCountryClientPayload;
-    memory.set(key, { at: Date.now(), data: json });
-    return json;
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), PRODUCTS_BY_COUNTRY_CLIENT_TIMEOUT_MS);
+    try {
+      const res = await fetch(`/api/bongsim/products/by-country?codes=${encodeURIComponent(key)}`, {
+        signal: ctrl.signal,
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as ProductsByCountryClientPayload;
+      memory.set(key, { at: Date.now(), data: json });
+      return json;
+    } catch {
+      return null;
+    } finally {
+      window.clearTimeout(timer);
+    }
   })().finally(() => {
     inflight.delete(key);
   });

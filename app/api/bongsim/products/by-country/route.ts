@@ -7,6 +7,7 @@ import {
 
 /** Next.js segment config — must be a literal (not imported). Keep in sync with PRODUCTS_BY_COUNTRY_REVALIDATE_SEC. */
 export const revalidate = 120;
+export const maxDuration = 30;
 
 /**
  * GET /api/bongsim/products/by-country?codes=jp,kr
