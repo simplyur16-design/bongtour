@@ -29,6 +29,8 @@ import {
 } from "@/lib/bongsim/esim/kyc-required";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
+import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
+import { storefrontDisplayUnitKrw } from "@/lib/bongsim/press/affiliation-member-display-price";
 
 // REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
 
@@ -142,6 +144,7 @@ export function CheckoutStoreClient({
   const router = useRouter();
   const sp = useSearchParams();
   const { data: sessionData, status: sessionStatus } = useSession();
+  const { affiliationVerified } = useAffiliationVerified();
   const orderIdFromUrl = (sp?.get("orderId") ?? orderIdInitial).trim();
   const [resumeOrderId, setResumeOrderId] = useState("");
   const [resumeOrderNumber, setResumeOrderNumber] = useState("");
@@ -191,8 +194,6 @@ export function CheckoutStoreClient({
   /** 쿠폰 미적용 시 첫구매 15% 프리뷰(KRW) — 서버 confirm 시 자동 반영 */
   const [firstPurchasePreviewKrw, setFirstPurchasePreviewKrw] = useState<number | null>(null);
   const [firstPurchaseRatePct, setFirstPurchaseRatePct] = useState<number | null>(null);
-  /** 로그인·명함 승인 시 소비자가 기준 25% 프리뷰 — confirm 은 서버가 재계산 */
-  const [affiliationVerified, setAffiliationVerified] = useState(false);
   /** `/api/bongsim/coupon/validate` 응답의 coupon_id — 주문 생성 시 함께 전달. */
   const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
   const [appliedUserCouponId, setAppliedUserCouponId] = useState<string | null>(null);
@@ -246,23 +247,6 @@ export function CheckoutStoreClient({
     }
     return sum;
   }, [allLinesReady, lineRows]);
-
-  useEffect(() => {
-    if (sessionStatus !== "authenticated") {
-      setAffiliationVerified(false);
-      return;
-    }
-    const ac = new AbortController();
-    fetch("/api/bongsim/mypage/affiliation-card", { signal: ac.signal })
-      .then(async (r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        setAffiliationVerified(Boolean(j?.user?.affiliationVerified));
-      })
-      .catch(() => {
-        if (!ac.signal.aborted) setAffiliationVerified(false);
-      });
-    return () => ac.abort();
-  }, [sessionStatus]);
 
   useEffect(() => {
     if (appliedCouponId || appliedUserCouponId || (appliedOrderDiscountKrw ?? 0) > 0) {
@@ -882,8 +866,10 @@ export function CheckoutStoreClient({
                 {lineRows.map((row) => {
                   if (!row.detail) return null;
                   const head = checkoutCountryHeadline(row.detail.summary.plan_name);
-                  const unit = row.detail.summary.pricing.display_amount_krw;
+                  const listUnit = row.detail.summary.pricing.display_amount_krw;
+                  const unit = storefrontDisplayUnitKrw(listUnit, affiliationVerified);
                   const lineTotal = unit * row.line.quantity;
+                  const listLineTotal = listUnit * row.line.quantity;
                   const nf = new Intl.NumberFormat("ko-KR");
                   const optionLabel = formatPlanOptionLabel({
                     plan_type: row.detail.summary.plan_type,
@@ -914,12 +900,34 @@ export function CheckoutStoreClient({
                           </p>
                         </div>
                         <div className="ml-auto shrink-0 text-right">
-                          <p className="text-sm font-bold text-slate-900">
-                            {nf.format(unit)}원 × {row.line.quantity}
-                          </p>
-                          <p className="mt-0.5 text-base font-bold text-slate-900">
-                            {nf.format(lineTotal)}원
-                          </p>
+                          {affiliationVerified && unit < listUnit ? (
+                            <>
+                              <p className="text-[11px] font-semibold text-teal-700">
+                                소속 {PRESS_MEMBER_DISCOUNT_RATE_PCT}%
+                              </p>
+                              <p className="text-xs text-slate-400 line-through">
+                                {nf.format(listUnit)}원 × {row.line.quantity}
+                              </p>
+                              <p className="text-sm font-bold text-teal-700">
+                                {nf.format(unit)}원 × {row.line.quantity}
+                              </p>
+                              <p className="mt-0.5 text-base font-bold text-teal-700">
+                                {nf.format(lineTotal)}원
+                              </p>
+                              <p className="text-[11px] text-slate-400 line-through">
+                                {nf.format(listLineTotal)}원
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm font-bold text-slate-900">
+                                {nf.format(unit)}원 × {row.line.quantity}
+                              </p>
+                              <p className="mt-0.5 text-base font-bold text-slate-900">
+                                {nf.format(lineTotal)}원
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                     </li>

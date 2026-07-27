@@ -1,8 +1,11 @@
+"use client";
+
 import type { BongsimProductDetailSummaryV1 } from "@/lib/bongsim/contracts/product-detail.v1";
-import { formatKrw } from "@/components/bongsim/detail-v1/format-krw";
+import { AffiliationMemberPrice } from "@/components/bongsim/AffiliationMemberPrice";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
 import type { KycBadgeState } from "@/lib/bongsim/esim/kyc-required";
+import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
 
 function badge(text: string, tone: "slate" | "teal" | "amber") {
   const tones = {
@@ -33,6 +36,8 @@ export function ProductDetailSummaryV1({
   kycBadge: KycBadgeState;
   qosRaw: string;
 }) {
+  const { affiliationVerified } = useAffiliationVerified();
+
   return (
     <header className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -65,9 +70,12 @@ export function ProductDetailSummaryV1({
         </div>
       </dl>
       <div className="mt-4 flex items-end justify-between gap-4 border-t border-slate-100 pt-4">
-        <div>
-        </div>
-        <p className="text-[22px] font-semibold tracking-tight text-slate-900">{formatKrw(summary.pricing.display_amount_krw)}</p>
+        <div />
+        <AffiliationMemberPrice
+          consumerKrw={summary.pricing.display_amount_krw}
+          affiliationVerified={affiliationVerified}
+          size="lg"
+        />
       </div>
     </header>
   );

@@ -167,21 +167,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       /** 로그인·세션 갱신 시에만 DB — `/api/auth/session` 폴링마다 Prisma 2회 호출하지 않음 */
       const shouldRefreshRoleFromDb =
-        Boolean(user?.id) || trigger === 'update' || token.role == null || token.accountStatus == null
+        Boolean(user?.id) ||
+        trigger === 'update' ||
+        token.role == null ||
+        token.accountStatus == null ||
+        token.affiliationVerified == null
 
       if (shouldRefreshRoleFromDb) {
         const email = (user?.email as string | undefined) ?? (token.email as string | undefined)
         await ensureUserBootstrapRole(userId, email ?? null)
         const dbUser = await prisma.user.findUnique({
           where: { id: userId },
-          select: { role: true, accountStatus: true },
+          select: { role: true, accountStatus: true, affiliationVerified: true },
         })
         token.role = dbUser?.role ?? null
         token.accountStatus = dbUser?.accountStatus ?? 'active'
+        token.affiliationVerified = Boolean(dbUser?.affiliationVerified)
       }
 
       if (trigger === 'update' && session) {
         token.role = (session as { role?: string }).role ?? token.role
+        if (typeof (session as { affiliationVerified?: boolean }).affiliationVerified === 'boolean') {
+          token.affiliationVerified = (session as { affiliationVerified: boolean }).affiliationVerified
+        }
       }
       return token
     },
@@ -191,6 +199,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ;(session.user as { role?: string }).role = (token.role as string) ?? null
         ;(session.user as { accountStatus?: string }).accountStatus =
           (token.accountStatus as string) ?? 'active'
+        ;(session.user as { affiliationVerified?: boolean }).affiliationVerified = Boolean(
+          token.affiliationVerified,
+        )
       }
       return session
     },

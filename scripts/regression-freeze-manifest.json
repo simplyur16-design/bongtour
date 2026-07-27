@@ -1360,6 +1360,13 @@
           ]
         },
         {
+          "file": "lib/bongsim/press/affiliation-member-display-price.ts",
+          "mustInclude": [
+            "storefrontDisplayUnitKrw",
+            "affiliationMemberNetKrw"
+          ]
+        },
+        {
           "file": "lib/bongsim/data/checkout-create-order.ts",
           "mustInclude": [
             "selectChargedUnitPriceKrw",
@@ -1371,14 +1378,31 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]",
             "소속 명함",
-            "PRESS_MEMBER_DISCOUNT_RATE_PCT"
+            "PRESS_MEMBER_DISCOUNT_RATE_PCT",
+            "useAffiliationVerified"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/PlanSelectPopup.tsx",
+          "mustInclude": [
+            "AffiliationMemberPrice",
+            "useAffiliationVerified",
+            "storefrontDisplayUnitKrw"
+          ]
+        },
+        {
+          "file": "components/bongsim/AffiliationMemberPrice.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]",
+            "소속"
           ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/data/pricing-select-charged.test.ts",
         "lib/bongsim/data/pricing-after-recommended-krw.test.ts",
-        "lib/bongsim/data/checkout-press-discount.test.ts"
+        "lib/bongsim/data/checkout-press-discount.test.ts",
+        "lib/bongsim/press/affiliation-member-display-price.test.ts"
       ]
     },
     {

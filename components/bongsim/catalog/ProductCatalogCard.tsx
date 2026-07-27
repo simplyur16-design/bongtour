@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { CatalogProductListRow } from "@/lib/bongsim/data/list-catalog-products";
 import { bongsimPath } from "@/lib/bongsim/constants";
@@ -8,6 +10,8 @@ import {
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { computeRecommendedPrice, type ProductOption } from "@/lib/bongsim/recommend/product-option";
+import { AffiliationMemberPrice } from "@/components/bongsim/AffiliationMemberPrice";
+import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
 
 type Props = {
   row: CatalogProductListRow;
@@ -23,6 +27,7 @@ export function ProductCatalogCard({ row, kycDistribution }: Props) {
     qos_raw: row.qos_raw,
   });
   const kycBadge = shouldShowBadge(row, kycDistribution);
+  const { affiliationVerified } = useAffiliationVerified();
 
   return (
     <Link
@@ -43,7 +48,11 @@ export function ProductCatalogCard({ row, kycDistribution }: Props) {
         </div>
         <div className="ml-auto shrink-0 text-right">
           {price != null ? (
-            <p className="text-[14px] font-semibold tabular-nums text-teal-900">{price.toLocaleString("ko-KR")}원</p>
+            <AffiliationMemberPrice
+              consumerKrw={price}
+              affiliationVerified={affiliationVerified}
+              size="sm"
+            />
           ) : (
             <p className="text-[12px] text-slate-400">가격 문의</p>
           )}

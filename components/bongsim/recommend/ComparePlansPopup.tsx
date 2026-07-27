@@ -29,6 +29,9 @@ import {
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
+import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
+import { storefrontDisplayUnitKrw } from "@/lib/bongsim/press/affiliation-member-display-price";
+import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 
 export type CompareChoice = "individual" | "multi";
 
@@ -219,6 +222,7 @@ export function ComparePlansPopup({
   combinedTripDays,
   multiFetchCountryCode,
 }: Props) {
+  const { affiliationVerified } = useAffiliationVerified();
   const [multiLoading, setMultiLoading] = useState(false);
   const [multiErr, setMultiErr] = useState<string | null>(null);
   const [multiPlans, setMultiPlans] = useState<ProductOption[]>([]);
@@ -294,12 +298,20 @@ export function ComparePlansPopup({
         ? multiCheckoutQueue.length > 0 && multiPrice != null
         : false;
 
-  const checkoutAmount =
+  const checkoutAmountRaw =
     boxChoice === "individual"
       ? individualTotal
       : boxChoice === "multi"
         ? multiPrice
         : null;
+  const checkoutAmount =
+    checkoutAmountRaw != null
+      ? storefrontDisplayUnitKrw(checkoutAmountRaw, affiliationVerified)
+      : null;
+  const displayIndividualTotal =
+    individualTotal != null
+      ? storefrontDisplayUnitKrw(individualTotal, affiliationVerified)
+      : null;
 
   const boxRing = (selected: boolean) =>
     selected
@@ -433,7 +445,25 @@ export function ComparePlansPopup({
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
               <span className="text-sm font-bold text-slate-800">합계</span>
               <span className="text-base font-bold text-teal-800">
-                {individualTotal != null ? formatKrw(individualTotal) : "—"}
+                {displayIndividualTotal != null ? (
+                  affiliationVerified &&
+                  individualTotal != null &&
+                  individualTotal > displayIndividualTotal ? (
+                    <span className="inline-flex flex-col items-end">
+                      <span className="text-[11px] font-semibold text-teal-700">
+                        소속 {PRESS_MEMBER_DISCOUNT_RATE_PCT}%
+                      </span>
+                      <span className="text-sm font-medium text-slate-400 line-through">
+                        {formatKrw(individualTotal)}
+                      </span>
+                      <span>{formatKrw(displayIndividualTotal)}</span>
+                    </span>
+                  ) : (
+                    formatKrw(displayIndividualTotal)
+                  )
+                ) : (
+                  "—"
+                )}
               </span>
             </div>
             {boxChoice === "individual" && payReady ? (

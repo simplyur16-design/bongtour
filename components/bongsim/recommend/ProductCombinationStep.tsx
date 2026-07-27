@@ -4,6 +4,9 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import SafeImage from "@/app/components/SafeImage";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
+import { storefrontDisplayUnitKrw } from "@/lib/bongsim/press/affiliation-member-display-price";
+import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 import {
   ComparePlansPopup,
 } from "@/components/bongsim/recommend/ComparePlansPopup";
@@ -325,6 +328,7 @@ export function ProductCombinationStep({
 }: ProductCombinationStepProps) {
   const router = useRouter();
   const { status: sessionStatus } = useSession();
+  const { affiliationVerified } = useAffiliationVerified();
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -650,6 +654,24 @@ export function ProductCombinationStep({
       sum += unit * sel.quantity;
       hasPrice = true;
     }
+    if (!hasPrice) return null;
+    return storefrontDisplayUnitKrw(sum, affiliationVerified);
+  }, [selectedCodes, completed, affiliationVerified]);
+
+  const checkoutListTotalKrw = useMemo(() => {
+    let sum = 0;
+    let hasPrice = false;
+    for (const code of selectedCodes) {
+      const sel = completed[code];
+      if (!sel?.product) continue;
+      const unit =
+        typeof sel.product.recommended_price === "number" && Number.isFinite(sel.product.recommended_price)
+          ? sel.product.recommended_price
+          : computeRecommendedPrice(sel.product.price_block);
+      if (unit == null || !Number.isFinite(unit)) continue;
+      sum += unit * sel.quantity;
+      hasPrice = true;
+    }
     return hasPrice ? sum : null;
   }, [selectedCodes, completed]);
 
@@ -784,7 +806,11 @@ export function ProductCombinationStep({
                 style={{ backgroundColor: "#0176f9" }}
               >
                 {checkoutTotalKrw != null
-                  ? `결제하기 · ${formatKrw(checkoutTotalKrw)}`
+                  ? affiliationVerified &&
+                    checkoutListTotalKrw != null &&
+                    checkoutListTotalKrw > checkoutTotalKrw
+                    ? `결제하기 · 소속 ${PRESS_MEMBER_DISCOUNT_RATE_PCT}% ${formatKrw(checkoutTotalKrw)}`
+                    : `결제하기 · ${formatKrw(checkoutTotalKrw)}`
                   : "결제하기"}
               </button>
             </div>
@@ -1022,7 +1048,11 @@ export function ProductCombinationStep({
             className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-teal-700 px-6 text-base font-bold text-white shadow-md transition hover:bg-teal-800"
           >
             {checkoutTotalKrw != null
-              ? `결제하기 · ${formatKrw(checkoutTotalKrw)}`
+              ? affiliationVerified &&
+                checkoutListTotalKrw != null &&
+                checkoutListTotalKrw > checkoutTotalKrw
+                ? `결제하기 · 소속 ${PRESS_MEMBER_DISCOUNT_RATE_PCT}% ${formatKrw(checkoutTotalKrw)}`
+                : `결제하기 · ${formatKrw(checkoutTotalKrw)}`
               : "결제하기"}
           </button>
         </div>

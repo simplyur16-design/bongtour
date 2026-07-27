@@ -44,6 +44,9 @@ export default {
         ;(session.user as { role?: string }).role = (token.role as string) ?? null
         ;(session.user as { accountStatus?: string }).accountStatus =
           (token.accountStatus as string) ?? 'active'
+        ;(session.user as { affiliationVerified?: boolean }).affiliationVerified = Boolean(
+          (token as { affiliationVerified?: boolean }).affiliationVerified,
+        )
       }
       return session
     },

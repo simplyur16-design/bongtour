@@ -14,6 +14,8 @@ declare module 'next-auth' {
       image?: string | null
       role?: string | null
       accountStatus?: string | null
+      /** eSIM 소속 명함 관리자 승인 — 스토어프론트 할인가 표시 */
+      affiliationVerified?: boolean
     }
   }
 }
@@ -23,5 +25,6 @@ declare module 'next-auth/jwt' {
     id?: string
     role?: string | null
     accountStatus?: string | null
+    affiliationVerified?: boolean
   }
 }

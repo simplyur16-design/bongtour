@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import NameCardCameraOverlay from '@/components/mypage/NameCardCameraOverlay'
 
 type Latest = {
@@ -39,6 +40,7 @@ function useIsMobileCapture(): boolean {
 }
 
 export default function AffiliationCardClient({ initial }: { initial: Initial }) {
+  const { update: updateSession } = useSession()
   const isMobile = useIsMobileCapture()
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -49,6 +51,11 @@ export default function AffiliationCardClient({ initial }: { initial: Initial })
   const [latest, setLatest] = useState<Latest>(initial.latest)
   const [cameraOpen, setCameraOpen] = useState(false)
   const verified = initial.affiliationVerified
+
+  useEffect(() => {
+    if (!verified) return
+    void updateSession({ affiliationVerified: true })
+  }, [verified, updateSession])
 
   const statusLabel = useMemo(() => {
     if (verified) return '할인 적용 중'

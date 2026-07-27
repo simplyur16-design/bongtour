@@ -20,7 +20,6 @@ import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import {
   extractDaysFromDaysRaw,
   formatKrw,
-  formatKrwPerDay,
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
 import { parseAllowance } from "@/lib/bongsim/recommend/parse-allowance";
@@ -40,6 +39,10 @@ import {
   classifyPlanSpeedTier,
   PLAN_SPEED_TIER_LABEL,
 } from "@/lib/bongsim/recommend/plan-speed-tier";
+import { AffiliationMemberPrice } from "@/components/bongsim/AffiliationMemberPrice";
+import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
+import { storefrontDisplayUnitKrw } from "@/lib/bongsim/press/affiliation-member-display-price";
+import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
 
 type PlanTab = "unlimited" | "daily" | "fixed";
 
@@ -90,14 +93,6 @@ function displayRecommended(p: ProductOption): number | null {
 
 function productBillableDays(p: ProductOption, fallback: number): number {
   return extractDaysFromDaysRaw(p.days_raw) ?? fallback;
-}
-
-function dailyRateFromProduct(p: ProductOption, fallbackDays: number): number | null {
-  const total = displayRecommended(p);
-  if (total == null || !Number.isFinite(total)) return null;
-  const d = productBillableDays(p, fallbackDays);
-  if (d <= 0) return null;
-  return total / d;
 }
 
 function allowanceCapacityGbKey(label: string | null | undefined): number {
@@ -213,6 +208,7 @@ type PlanCardProps = {
   kycDistribution: KycLabelDistribution;
   layout: "mobile" | "desktop";
   quantity: number;
+  affiliationVerified: boolean;
   onQuantityDecrease: (e: MouseEvent) => void;
   onQuantityIncrease: (e: MouseEvent) => void;
   onSelect: () => void;
@@ -297,11 +293,15 @@ function AuthChipMobile({ badge }: { badge: KycBadgeState }) {
 
 function PlanInlineConfirmBar({
   totalKrw,
+  listTotalKrw,
+  affiliationVerified,
   canComplete,
   onConfirm,
   barRef,
 }: {
   totalKrw: number | null;
+  listTotalKrw: number | null;
+  affiliationVerified: boolean;
   canComplete: boolean;
   onConfirm: () => void;
   barRef?: Ref<HTMLDivElement>;
@@ -314,7 +314,19 @@ function PlanInlineConfirmBar({
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-slate-700">선택한 플랜</span>
         {totalKrw != null ? (
-          <span className="text-lg font-bold tabular-nums text-slate-900">{formatKrw(totalKrw)}</span>
+          <div className="text-right">
+            {affiliationVerified && listTotalKrw != null && listTotalKrw > totalKrw ? (
+              <>
+                <p className="text-[11px] font-semibold text-teal-700">
+                  소속 {PRESS_MEMBER_DISCOUNT_RATE_PCT}%
+                </p>
+                <p className="text-sm text-slate-400 line-through tabular-nums">{formatKrw(listTotalKrw)}</p>
+                <p className="text-lg font-bold tabular-nums text-teal-700">{formatKrw(totalKrw)}</p>
+              </>
+            ) : (
+              <span className="text-lg font-bold tabular-nums text-slate-900">{formatKrw(totalKrw)}</span>
+            )}
+          </div>
         ) : (
           <span className="text-sm text-slate-500">금액 확인 중</span>
         )}
@@ -361,18 +373,29 @@ function PlanCard({
   kycDistribution,
   layout,
   quantity,
+  affiliationVerified,
   onQuantityDecrease,
   onQuantityIncrease,
   onSelect,
 }: PlanCardProps) {
   const kycBadge = shouldShowBadge(product, kycDistribution);
   const packageTotal = displayRecommended(product);
-  const dailyRate = dailyRateFromProduct(product, displayMatchedDays);
   const allowance = (product.allowance_label || "").trim() || "—";
   const country = product.plan_name.trim() || "—";
   const carrier = cardCarrierLabel(product);
   const planType = (product.plan_type || "").trim().toLowerCase();
   const fixedDays = planType === "fixed" ? extractDaysFromDaysRaw(product.days_raw) : null;
+  const billableDays = productBillableDays(product, displayMatchedDays);
+
+  const priceBlock =
+    packageTotal != null && Number.isFinite(packageTotal) ? (
+      <AffiliationMemberPrice
+        consumerKrw={packageTotal}
+        affiliationVerified={affiliationVerified}
+        billableDays={billableDays}
+        size={layout === "desktop" ? "md" : "sm"}
+      />
+    ) : null;
 
   if (layout === "desktop") {
     const borderClass = isSelected
@@ -410,16 +433,7 @@ function PlanCard({
           </div>
 
           <div className="flex shrink-0 flex-col items-end justify-center gap-[2px]">
-            {packageTotal != null && Number.isFinite(packageTotal) ? (
-              <div className="whitespace-nowrap text-[18px] font-medium text-[#1F1B2D]">
-                {formatKrw(packageTotal)}
-              </div>
-            ) : null}
-            {dailyRate != null && Number.isFinite(dailyRate) ? (
-              <div className="whitespace-nowrap text-[10px] text-[#6B7280]">
-                {formatKrwPerDay(dailyRate)}
-              </div>
-            ) : null}
+            {priceBlock}
             {isSelected ? (
               <CardQuantityControls
                 quantity={quantity}
@@ -493,16 +507,7 @@ function PlanCard({
         <EsimFreeDataBenefitLine product={product} variant="plan" />
       </div>
       <div className="shrink-0 text-right">
-        {packageTotal != null && Number.isFinite(packageTotal) ? (
-          <div className="whitespace-nowrap text-base font-medium text-slate-900">
-            {formatKrw(packageTotal)}
-          </div>
-        ) : null}
-        {dailyRate != null && Number.isFinite(dailyRate) ? (
-          <div className="whitespace-nowrap text-[11px] text-slate-500">
-            {formatKrwPerDay(dailyRate)}
-          </div>
-        ) : null}
+        {priceBlock}
         {isSelected ? (
           <CardQuantityControls
             quantity={quantity}
@@ -525,6 +530,7 @@ export function PlanSelectPopup({
   onBack,
   onComplete,
 }: Props) {
+  const { affiliationVerified } = useAffiliationVerified();
   const [loading, setLoading] = useState(false);
   const [recommended, setRecommended] = useState<RecommendedPlan | null>(null);
   const [recommendedByAuth, setRecommendedByAuth] = useState<RecommendedByAuth | null>(null);
@@ -724,7 +730,11 @@ export function PlanSelectPopup({
     return displayRecommended(selectedProduct);
   }, [selectedProduct]);
 
-  const totalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
+  const listTotalKrw = unitKrw != null && Number.isFinite(unitKrw) ? unitKrw * quantity : null;
+  const totalKrw =
+    listTotalKrw != null
+      ? storefrontDisplayUnitKrw(listTotalKrw, affiliationVerified)
+      : null;
   const canComplete = Boolean(selectedId && selectedProduct && quantity >= 1);
 
   const handleComplete = () => {
@@ -956,6 +966,7 @@ export function PlanSelectPopup({
                     kycDistribution={kycDistribution}
                     layout="mobile"
                     quantity={quantity}
+                    affiliationVerified={affiliationVerified}
                     onQuantityDecrease={handleQuantityDecrease}
                     onQuantityIncrease={handleQuantityIncrease}
                     onSelect={() => setSelectedId(product.option_api_id)}
@@ -964,6 +975,8 @@ export function PlanSelectPopup({
                     <PlanInlineConfirmBar
                       barRef={inlineConfirmRef}
                       totalKrw={totalKrw}
+                      listTotalKrw={listTotalKrw}
+                      affiliationVerified={affiliationVerified}
                       canComplete={canComplete}
                       onConfirm={handleComplete}
                     />
@@ -1035,6 +1048,7 @@ export function PlanSelectPopup({
                               kycDistribution={kycDistribution}
                               layout="desktop"
                               quantity={quantity}
+                              affiliationVerified={affiliationVerified}
                               onQuantityDecrease={handleQuantityDecrease}
                               onQuantityIncrease={handleQuantityIncrease}
                               onSelect={() => {
@@ -1051,6 +1065,8 @@ export function PlanSelectPopup({
                               <PlanInlineConfirmBar
                                 barRef={inlineConfirmRef}
                                 totalKrw={totalKrw}
+                                listTotalKrw={listTotalKrw}
+                                affiliationVerified={affiliationVerified}
                                 canComplete={canComplete}
                                 onConfirm={handleComplete}
                               />
