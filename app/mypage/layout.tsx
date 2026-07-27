@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { BadgeCheck, Heart, MessageSquareText, PenLine, Smartphone } from 'lucide-react'
 import Header from '@/app/components/Header'
 
-// REGRESSION-FREEZE[mypage-hub-affiliation-esim-first]: 소속 명함·eSIM 주문 최상단, 쿠폰·마케팅 허브 링크 제외 — manifest
+// REGRESSION-FREEZE[mypage-hub-affiliation-esim-first]: affiliation + esim hub first; coupons/marketing menus omitted — manifest
 const nav = [
   { href: '/mypage/affiliation', label: '소속 명함 인증', icon: BadgeCheck },
   { href: '/mypage/esim', label: '내 eSIM', icon: Smartphone },

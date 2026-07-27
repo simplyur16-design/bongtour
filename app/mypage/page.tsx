@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { BadgeCheck, Heart, MessageSquareText, PenLine, Smartphone } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
-// REGRESSION-FREEZE[mypage-hub-affiliation-esim-first]: 소속 명함·eSIM 주문 최상단, 쿠폰·마케팅 허브 링크 제외 — manifest
+// REGRESSION-FREEZE[mypage-hub-affiliation-esim-first]: affiliation + esim hub first; coupons/marketing menus omitted — manifest
 const HUB_LINKS = [
   { href: '/mypage/affiliation', label: '소속 명함 인증', desc: '명함 제출·관리자 승인 후 eSIM 할인', icon: BadgeCheck },
   { href: '/mypage/esim', label: '내 eSIM 주문내역', desc: '주문·QR·취소·환불', icon: Smartphone },

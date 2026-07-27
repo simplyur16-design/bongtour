@@ -1411,7 +1411,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "마이페이지 허브 — 소속 명함 인증·내 eSIM 주문내역 최상단, 내 쿠폰함·마케팅 수신동의 메뉴 제외",
+      "summary": "마이페이지 허브 — 소속 명함 인증·내 eSIM 주문내역 최상단, 쿠폰·마케팅 메뉴 제외",
       "checks": [
         {
           "file": "app/mypage/page.tsx",
@@ -1426,7 +1426,7 @@
             "/mypage/coupons",
             "/mypage/marketing-consent",
             "내 쿠폰함",
-            "마케팅 수신"
+            "label: '마케팅"
           ]
         },
         {
