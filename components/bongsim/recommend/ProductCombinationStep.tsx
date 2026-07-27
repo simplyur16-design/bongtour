@@ -871,7 +871,7 @@ export function ProductCombinationStep({
       <div className="mt-6 space-y-4 sm:mt-8 lg:mt-10">
         {selectedCodes.map((code, idx) => {
           const country = countryByCode[code];
-          const pack = data.individual[code];
+          // data may be null while single-country optimistic plan open (by-country still loading)
           const done = isCountryDone(code);
           const hero = resolveBongsimCountryHeroUrl(code, heroMap);
           const selection = completed[code];
