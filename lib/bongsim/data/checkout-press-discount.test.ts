@@ -5,13 +5,27 @@ import {
   pressMemberCouponRejection,
 } from "@/lib/bongsim/data/checkout-create-order";
 
+// REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
+
 describe("직군 checkout 할인 (서버 계산)", () => {
-  it("1) subtotal=20000 → discount=3000, grand=17000", () => {
+  it("할인율 SSOT 25%", () => {
+    expect(PRESS_MEMBER_DISCOUNT_RATE_PCT).toBe(25);
+  });
+
+  it("1) subtotal=20000 → discount=5000, grand=15000", () => {
     const subtotal = 20_000;
     const discount = computePressMemberDiscountKrw(subtotal);
     const grand = Math.max(0, subtotal - discount);
-    expect(discount).toBe(3_000);
-    expect(grand).toBe(17_000);
+    expect(discount).toBe(5_000);
+    expect(grand).toBe(15_000);
+  });
+
+  it("1b) consumer 13000 → discount=3250, grand=9750", () => {
+    const subtotal = 13_000;
+    const discount = computePressMemberDiscountKrw(subtotal);
+    const grand = Math.max(0, subtotal - discount);
+    expect(discount).toBe(3_250);
+    expect(grand).toBe(9_750);
   });
 
   it("2) 직군 + coupon_id/user_coupon_id → press_member_no_coupon", () => {
@@ -28,7 +42,7 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     expect(
       pressMemberCouponRejection(false, "00000000-0000-4000-8000-000000000001", null),
     ).toBeNull();
-    expect(computePressMemberDiscountKrw(20_000)).toBe(3_000);
+    expect(computePressMemberDiscountKrw(20_000)).toBe(5_000);
     expect(computePressMemberDiscountKrw(20_000)).toBeGreaterThan(0);
   });
 
@@ -56,14 +70,14 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     consentsJson.press_discount_rate = PRESS_MEMBER_DISCOUNT_RATE_PCT;
     expect(consentsJson).toEqual({
       press_discount: true,
-      press_discount_krw: 3_000,
-      press_discount_rate: 15,
+      press_discount_krw: 5_000,
+      press_discount_rate: 25,
     });
   });
 
   it("클라 coupon_discount_krw만 전송(쿠폰 id 없음) — 직군은 서버 할인만, 쿠폰 필드 거절 없음", () => {
     expect(pressMemberCouponRejection(true, null, null)).toBeNull();
     const discount = computePressMemberDiscountKrw(20_000);
-    expect(discount).toBe(3_000);
+    expect(discount).toBe(5_000);
   });
 });

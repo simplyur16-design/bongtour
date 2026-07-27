@@ -28,6 +28,9 @@ import {
   type KycLabelDistribution,
 } from "@/lib/bongsim/esim/kyc-required";
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
+import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
+
+// REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
 
 type CheckoutRetryContextResponse = {
   ok?: boolean;
@@ -188,6 +191,8 @@ export function CheckoutStoreClient({
   /** 쿠폰 미적용 시 첫구매 15% 프리뷰(KRW) — 서버 confirm 시 자동 반영 */
   const [firstPurchasePreviewKrw, setFirstPurchasePreviewKrw] = useState<number | null>(null);
   const [firstPurchaseRatePct, setFirstPurchaseRatePct] = useState<number | null>(null);
+  /** 로그인·명함 승인 시 소비자가 기준 25% 프리뷰 — confirm 은 서버가 재계산 */
+  const [affiliationVerified, setAffiliationVerified] = useState(false);
   /** `/api/bongsim/coupon/validate` 응답의 coupon_id — 주문 생성 시 함께 전달. */
   const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null);
   const [appliedUserCouponId, setAppliedUserCouponId] = useState<string | null>(null);
@@ -243,7 +248,29 @@ export function CheckoutStoreClient({
   }, [allLinesReady, lineRows]);
 
   useEffect(() => {
+    if (sessionStatus !== "authenticated") {
+      setAffiliationVerified(false);
+      return;
+    }
+    const ac = new AbortController();
+    fetch("/api/bongsim/mypage/affiliation-card", { signal: ac.signal })
+      .then(async (r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        setAffiliationVerified(Boolean(j?.user?.affiliationVerified));
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setAffiliationVerified(false);
+      });
+    return () => ac.abort();
+  }, [sessionStatus]);
+
+  useEffect(() => {
     if (appliedCouponId || appliedUserCouponId || (appliedOrderDiscountKrw ?? 0) > 0) {
+      setFirstPurchasePreviewKrw(null);
+      setFirstPurchaseRatePct(null);
+      return;
+    }
+    if (affiliationVerified) {
       setFirstPurchasePreviewKrw(null);
       setFirstPurchaseRatePct(null);
       return;
@@ -297,6 +324,7 @@ export function CheckoutStoreClient({
     appliedCouponId,
     appliedUserCouponId,
     appliedOrderDiscountKrw,
+    affiliationVerified,
   ]);
 
   useEffect(() => {
@@ -901,13 +929,22 @@ export function CheckoutStoreClient({
               {(() => {
                 const subtotal = previewSubtotalKrw ?? 0;
                 const couponDisc = appliedOrderDiscountKrw ?? 0;
-                const autoFirstDisc = couponDisc > 0 ? 0 : (firstPurchasePreviewKrw ?? 0);
-                const disc = couponDisc > 0 ? couponDisc : autoFirstDisc;
+                const affiliationDisc =
+                  couponDisc > 0 || !affiliationVerified || subtotal <= 0
+                    ? 0
+                    : Math.floor((subtotal * PRESS_MEMBER_DISCOUNT_RATE_PCT) / 100);
+                const autoFirstDisc =
+                  couponDisc > 0 || affiliationDisc > 0 ? 0 : (firstPurchasePreviewKrw ?? 0);
+                const disc = couponDisc > 0 ? couponDisc : affiliationDisc > 0 ? affiliationDisc : autoFirstDisc;
                 const final = Math.max(0, subtotal - disc);
                 const nf = new Intl.NumberFormat("ko-KR");
                 return (
                   <div className="mt-4 border-t border-teal-200/80 pt-4 lg:mt-5">
-                    {autoFirstDisc > 0 && firstPurchaseRatePct ? (
+                    {affiliationDisc > 0 ? (
+                      <p className="mb-3 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">
+                        소속 명함 {PRESS_MEMBER_DISCOUNT_RATE_PCT}% 할인이 결제 시 적용됩니다.
+                      </p>
+                    ) : autoFirstDisc > 0 && firstPurchaseRatePct ? (
                       <p className="mb-3 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">
                         첫 구매 {firstPurchaseRatePct}% 자동 할인이 결제 시 적용됩니다.
                       </p>

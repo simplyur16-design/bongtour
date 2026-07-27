@@ -1,8 +1,8 @@
 import type { BongsimProductDetailV1 } from "@/lib/bongsim/contracts/product-detail.v1";
 import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import {
-  AFTER_RECOMMENDED_BASIS_KEY,
-  afterRecommendedSellKrw,
+  AFTER_CONSUMER_BASIS_KEY,
+  afterConsumerSellKrw,
 } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
 function txt(v: string | null | undefined): string {
@@ -11,8 +11,8 @@ function txt(v: string | null | undefined): string {
 }
 
 function pickDisplayPrice(pb: BongsimProductOptionV1["price_block"]): { amount: number; basis: string } {
-  const v = afterRecommendedSellKrw(pb);
-  if (v != null) return { amount: v, basis: AFTER_RECOMMENDED_BASIS_KEY };
+  const v = afterConsumerSellKrw(pb);
+  if (v != null) return { amount: v, basis: AFTER_CONSUMER_BASIS_KEY };
   return { amount: 0, basis: "none" };
 }
 

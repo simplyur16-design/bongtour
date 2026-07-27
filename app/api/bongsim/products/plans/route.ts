@@ -8,7 +8,7 @@ import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
  * - `days` = 여정 일수(원본). daily/unlimited/fixed 모두 d>=days 후 그룹별 최소 d 1SKU.
  * - `matched_days` = 매칭 풀에서 d>=days 인 최소 catalog 일수 (안내 문구 M값).
  * - `network` 생략 시 roaming + local 모두 조회 (roaming | local 지정 가능)
- * - recommended_price = price_block.after.recommended_krw 만 (before·소비자가 폴백 없음)
+ * - recommended_price = price_block.after.consumer_krw 만 (before·권장가 폴백 없음; 필드명은 API 호환)
  * - groups: tierPool 을 plan_type(unlimited|daily|fixed) 별 분류·정렬
  * - 다국가·지역 패키지 동일 추천 규칙 (binary → recommended_by_auth)
  */

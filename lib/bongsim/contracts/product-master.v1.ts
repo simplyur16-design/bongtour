@@ -7,7 +7,7 @@ import type {
 
 /**
  * Six-cell supplier price snapshot (엑셀 기존/변경).
- * 스토어·결제·정렬 SSOT: `after.recommended_krw` 만 — `before`·소비자가 폴백 없음.
+ * 스토어·결제·정렬 SSOT: `after.consumer_krw` 만 — `before`·권장가 폴백 없음.
  */
 export type BongsimPriceBlockV1 = {
   before: {
