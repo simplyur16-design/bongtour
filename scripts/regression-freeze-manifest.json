@@ -1481,7 +1481,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/bongsim/data/list-country-catalog-meta.test.ts"
+        "lib/bongsim/data/list-country-catalog-meta.test.ts",
+        "lib/bongsim/data/slim-products-by-country-payload.test.ts"
       ]
     },
     {

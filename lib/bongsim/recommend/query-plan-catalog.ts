@@ -1,9 +1,8 @@
-import type { Pool, PoolClient } from "pg";
+import type { Pool } from "pg";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
-import { BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS } from "@/lib/bongsim/db/pool";
 import {
   getKycLabelDistribution,
   getEffectiveKycLabelState,
@@ -28,30 +27,6 @@ import {
 } from "@/lib/bongsim/recommend/plan-speed-tier";
 
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: plans SQL slim + single-dest filter — manifest
-
-async function withPoolLocalTimeout<T>(
-  pool: Pool,
-  fn: (client: PoolClient) => Promise<T>,
-): Promise<T> {
-  const client = await pool.connect();
-  const ms = Math.max(1_000, Math.trunc(BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS));
-  try {
-    await client.query("BEGIN");
-    await client.query(`SET LOCAL statement_timeout = ${ms}`);
-    const out = await fn(client);
-    await client.query("COMMIT");
-    return out;
-  } catch (e) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {
-      /* ignore */
-    }
-    throw e;
-  } finally {
-    client.release();
-  }
-}
 
 type Row = {
   option_api_id: string;
@@ -392,9 +367,10 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
     allSelected.length === 1 ? resolveDestinationPlanNamesForSql(allSelected[0]!) : null;
   const planNameFilter = singleDestPlanNames && singleDestPlanNames.length > 0 ? singleDestPlanNames : null;
 
-  const result = await withPoolLocalTimeout(params.pool, (client) =>
-    client.query(
-      `
+  // Prefer plain pool.query — BEGIN/SET LOCAL under txn pooler + pool starvation → ~8s query failed.
+  // Destination plan_name filter keeps the scan narrow without holding a checkout client.
+  const result = await params.pool.query(
+    `
       SELECT
         option_api_id,
         plan_name,
@@ -420,8 +396,7 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
         )
       ORDER BY plan_name, days_raw
       `,
-      [networkParam, planNameFilter],
-    ),
+    [networkParam, planNameFilter],
   );
 
   const ctx = { country, days, allSelected };
