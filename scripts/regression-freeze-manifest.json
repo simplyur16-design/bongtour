@@ -2407,6 +2407,23 @@
           ]
         },
         {
+          "file": "lib/bongsim/checkout/reset-after-pg-overlay.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[welcomepay-esim-payment]",
+            "reset overlay on retry",
+            "#inicisModalDiv",
+            "pointer-events"
+          ]
+        },
+        {
+          "file": "app/travel/esim/checkout/payment/result/page.tsx",
+          "mustInclude": [
+            "goRetryCheckout",
+            "window.location.assign",
+            "resetAfterPgOverlay"
+          ]
+        },
+        {
           "file": "lib/bongsim/welcomepay-easy-pay.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[welcomepay-esim-payment]",
@@ -9739,6 +9756,7 @@
         "lib/bongsim/welcomepay-payment-methods.test.ts",
         "lib/bongsim/welcomepay-easy-pay.test.ts",
         "lib/bongsim/welcomepay-checkout-options.test.ts",
+        "lib/bongsim/checkout/reset-after-pg-overlay.test.ts",
         "lib/bongsim/welcomepay-mobile-signature.test.ts",
         "lib/bongsim/welcomepay-mobile-hash-key.test.ts",
         "lib/bongsim/welcomepay-mobile-checkout.test.ts",

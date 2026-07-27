@@ -105,6 +105,18 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
   const mobileFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
+    // REGRESSION-FREEZE[welcomepay-esim-payment]: reset overlay on retry — manifest
+    resetAfterPgOverlay();
+    setIsSubmitting(false);
+    const onPageShow = () => {
+      resetAfterPgOverlay();
+      setIsSubmitting(false);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  useEffect(() => {
     if (typeof navigator === "undefined") return;
     setUaMobile(isMobileWelpayUserAgent(navigator.userAgent));
   }, []);
@@ -298,6 +310,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
 
   const handlePay = () => {
     if (!prep || isSubmitting || !sdkReady) return;
+    resetAfterPgOverlay();
     if (uaMobile) {
       const form = mobileFormRef.current;
       if (!form) {

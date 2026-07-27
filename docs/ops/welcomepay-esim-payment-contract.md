@@ -35,7 +35,11 @@
 - `WELCOMEPAY_EASY_PAY=1` (선택) — 간편결제 다이렉트. 운영 기본 on, `0`으로 off
 - `WELCOMEPAY_EASY_PAY_METHODS=kakaopay,naverpay,tosspay,payco,samsungpay` (선택 allowlist)
 
-## 간편결제 (가맹 승인 후)
+## 재결제·취소 후
+
+- `resetAfterPgOverlay()` — body 스크롤 잠금·`#inicisModalDiv` 등 PG 오버레이 DOM 제거
+- 결과 페이지「다시 결제하기」는 soft Link 대신 `location.assign` + overlay reset (화면 정지 방지)
+- 결제·체크아웃·close 진입 시 mount에서 reset
 
 | 수단 | PC `gopaymethod` | 모바일 `P_RESERVED` |
 |------|------------------|---------------------|

@@ -1,6 +1,7 @@
 "use client";
 
 import { bongsimPath } from "@/lib/bongsim/constants";
+import { resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
@@ -12,6 +13,7 @@ function CloseRedirectInner() {
   const router = useRouter();
 
   useEffect(() => {
+    resetAfterPgOverlay();
     const incoming = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     const q = new URLSearchParams();
     q.set("status", "cancel");

@@ -11,6 +11,7 @@ import {
   type BongsimRecommendCheckoutLine,
 } from "@/lib/bongsim/constants";
 import { checkoutConfirmErrorMessage } from "@/lib/bongsim/checkout/checkout-confirm-error-message";
+import { resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 import { formatKoreanTelInput } from "@/lib/korean-tel-format";
 import { formatBuyerPhoneDisplay } from "@/lib/bongsim/phone/normalize-buyer-phone";
 import { EsimSupportFootnote } from "@/components/bongsim/EsimSupportFootnote";
@@ -156,6 +157,11 @@ export function CheckoutStoreClient({
     }[]
   >([]);
   const [linesLoading, setLinesLoading] = useState(false);
+
+  useEffect(() => {
+    // REGRESSION-FREEZE[welcomepay-esim-payment]: reset overlay on retry — manifest
+    resetAfterPgOverlay();
+  }, []);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

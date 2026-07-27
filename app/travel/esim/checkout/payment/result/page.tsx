@@ -36,11 +36,22 @@ function ResultInner() {
 
   useEffect(() => {
     resetAfterPgOverlay();
+    const onVis = () => {
+      if (document.visibilityState === "visible") resetAfterPgOverlay();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   const esimMainHref = bongsimPath();
   const checkoutRetryHref = buildCheckoutRetryHref({ orderId });
   const guideHref = "/travel/esim/guide";
+
+  const goRetryCheckout = () => {
+    resetAfterPgOverlay();
+    // Soft Link만으로는 INIStdPay 잔여 오버레이가 남아 화면이 멈춘 것처럼 보일 수 있음 → 풀 리로드
+    window.location.assign(checkoutRetryHref);
+  };
 
   const isCancel = statusRaw === "cancel";
   const isFail = statusRaw === "fail";
@@ -201,12 +212,13 @@ function ResultInner() {
                 {orderNoDisplay}
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={checkoutRetryHref}
+                <button
+                  type="button"
+                  onClick={goRetryCheckout}
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 sm:text-base"
                 >
                   다시 결제하기
-                </Link>
+                </button>
                 <Link
                   href={esimMainHref}
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-teal-600 hover:text-teal-700 sm:text-base"
@@ -247,12 +259,13 @@ function ResultInner() {
                 {orderNoDisplay}
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={checkoutRetryHref}
+                <button
+                  type="button"
+                  onClick={goRetryCheckout}
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 sm:text-base"
                 >
                   다시 시도
-                </Link>
+                </button>
                 <Link
                   href={esimMainHref}
                   className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:text-base"
