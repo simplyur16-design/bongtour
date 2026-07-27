@@ -64,7 +64,7 @@ type PrepareOk = {
   closeUrl: string;
   popupUrl: string;
   pcStdPayScriptUrl: string;
-  paymentMethod?: WelcomepayMethodId;
+  paymentMethod?: WelcomepayCheckoutMethodId;
   orderName?: string;
   pNotiUrl?: string;
   mobileAcceptCharset?: string;
