@@ -11,7 +11,6 @@ import {
   listWelcomepayCheckoutMethods,
   type WelcomepayMethodDefinition,
   type WelcomepayMethodId,
-  WELCOMEPAY_CHECKOUT_METHOD_DEFAULT,
 } from "@/lib/bongsim/welcomepay-payment-methods";
 import {
   buildWelcomepayEasyPayMobileReserved,
@@ -23,6 +22,8 @@ import {
   type WelcomepayEasyPayCheckoutId,
 } from "@/lib/bongsim/welcomepay-easy-pay";
 import { welcomepayMobileSubmitUrlForPath } from "@/lib/bongsim/welcomepay";
+
+const CHECKOUT_METHOD_FALLBACK: WelcomepayMethodId = "card";
 
 export type WelcomepayCheckoutMethodId = WelcomepayMethodId | WelcomepayEasyPayCheckoutId;
 
@@ -99,7 +100,7 @@ export function resolveWelcomepayCheckoutMethodId(raw: unknown): WelcomepayCheck
   const s = typeof raw === "string" ? raw.trim().toLowerCase() : "";
   const options = listWelcomepayAllCheckoutMethodOptions();
   if (s && options.some((m) => m.id === s)) return s as WelcomepayCheckoutMethodId;
-  return WELCOMEPAY_CHECKOUT_METHOD_DEFAULT;
+  return CHECKOUT_METHOD_FALLBACK;
 }
 
 export function getWelcomepayCheckoutMethodDefinition(

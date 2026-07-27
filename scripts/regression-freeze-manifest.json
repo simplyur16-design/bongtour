@@ -9729,6 +9729,7 @@
         "lib/bongsim/welcomepay-env.test.ts",
         "lib/bongsim/welcomepay-payment-methods.test.ts",
         "lib/bongsim/welcomepay-easy-pay.test.ts",
+        "lib/bongsim/welcomepay-checkout-options.test.ts",
         "lib/bongsim/welcomepay-mobile-signature.test.ts",
         "lib/bongsim/welcomepay-mobile-hash-key.test.ts",
         "lib/bongsim/welcomepay-mobile-checkout.test.ts",
