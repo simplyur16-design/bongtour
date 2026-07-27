@@ -1562,6 +1562,21 @@
           ]
         },
         {
+          "file": "scripts/verify-overseas-hub-geo-fetch-perf.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
+            "CI placeholder",
+            "hasReachableDatabaseUrl"
+          ]
+        },
+        {
+          "file": "scripts/verify-regression-freeze.ts",
+          "mustInclude": [
+            "skip CI placeholder DB",
+            "requiresDatabase"
+          ]
+        },
+        {
           "file": "lib/products-browse-build-payload.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
@@ -1583,7 +1598,8 @@
           "script": "verify:overseas-hub-geo-fetch-perf",
           "tier": [
             "ci"
-          ]
+          ],
+          "requiresDatabase": true
         }
       ],
       "vitestSuites": [

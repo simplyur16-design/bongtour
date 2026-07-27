@@ -2,7 +2,8 @@
  * 전량 vs 중·하 browse payload 지연 수치 + 오류 게이트.
  *   npm run verify:overseas-hub-geo-fetch-perf
  *
- * DATABASE_URL 없으면 skip(exit 0). CI tier에서 실행.
+ * DATABASE_URL 없거나 CI placeholder(127.0.0.1:5432)면 skip(exit 0).
+ * REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: skip unreachable CI DB — manifest
  */
 import './load-env-for-scripts'
 import {
@@ -11,6 +12,13 @@ import {
 } from '../lib/products-browse-hub-query'
 
 type Case = { name: string; queryKey: string }
+
+function hasReachableDatabaseUrl(): boolean {
+  const raw = (process.env.DATABASE_URL ?? '').trim()
+  if (!raw) return false
+  if (/@(?:127\.0\.0\.1|localhost):5432\b/i.test(raw)) return false
+  return true
+}
 
 async function timePayload(queryKey: string): Promise<{ ms: number; items: number; ok: boolean; err?: string }> {
   const t0 = performance.now()
@@ -36,8 +44,8 @@ async function timePayload(queryKey: string): Promise<{ ms: number; items: numbe
 }
 
 async function main() {
-  if (!(process.env.DATABASE_URL ?? '').trim()) {
-    console.log('[skip] verify-overseas-hub-geo-fetch-perf: DATABASE_URL unset')
+  if (!hasReachableDatabaseUrl()) {
+    console.log('[skip] verify-overseas-hub-geo-fetch-perf: DATABASE_URL unset or CI placeholder')
     process.exit(0)
   }
 

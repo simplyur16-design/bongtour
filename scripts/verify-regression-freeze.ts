@@ -35,8 +35,8 @@ type Manifest = {
       mustInclude?: string[]
       mustNotInclude?: string[]
     }>
-    /** static guard 직후 실행할 npm script (live gate 등) — 문자열 또는 { script, tier } */
-    npmScripts?: Array<string | { script: string; tier?: Tier[] }>
+    /** static guard 직후 실행할 npm script (live gate 등) — 문자열 또는 { script, tier, requiresDatabase } */
+    npmScripts?: Array<string | { script: string; tier?: Tier[]; requiresDatabase?: boolean }>
     /** static guard에 묶인 vitest 파일 — manifest staticGuards[].vitestSuites 레거시 키도 허용 */
     vitestSuites?: string[]
   }>
@@ -102,22 +102,29 @@ function runNpmScript(script: string, label: string): void {
 }
 
 function databaseUrlConfigured(): boolean {
-  return Boolean((process.env.DATABASE_URL ?? '').trim())
+  const raw = (process.env.DATABASE_URL ?? '').trim()
+  if (!raw) return false
+  // GitHub Actions regression-freeze / security-checks: Prisma init용 더미 URL (DB 없음)
+  // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: skip CI placeholder DB — manifest
+  if (/@(?:127\.0\.0\.1|localhost):5432\b/i.test(raw)) return false
+  return true
 }
 
 function guardNpmScriptsForTier(
-  guard: { npmScripts?: Array<string | { script: string; tier?: Tier[] }> },
+  guard: { npmScripts?: Array<string | { script: string; tier?: Tier[]; requiresDatabase?: boolean }> },
   runTier: Tier,
-): string[] {
-  const out: string[] = []
+): Array<{ script: string; requiresDatabase?: boolean }> {
+  const out: Array<{ script: string; requiresDatabase?: boolean }> = []
   for (const entry of guard.npmScripts ?? []) {
     if (typeof entry === 'string') {
-      out.push(entry)
+      out.push({ script: entry })
       continue
     }
     const script = entry?.script?.trim()
     if (!script) continue
-    if (tierMatch(entry.tier ?? ['ci'], runTier)) out.push(script)
+    if (tierMatch(entry.tier ?? ['ci'], runTier)) {
+      out.push({ script, requiresDatabase: entry.requiresDatabase })
+    }
   }
   return out
 }
@@ -144,11 +151,17 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
       }
     }
     console.log(`[regression-freeze] ✓ static ${guard.id}`)
-    for (const script of guardNpmScriptsForTier(guard, runTier)) {
+    for (const nested of guardNpmScriptsForTier(guard, runTier)) {
+      if (nested.requiresDatabase && !databaseUrlConfigured()) {
+        console.warn(
+          `[regression-freeze] ⊘ skip nested npm ${guard.id} → ${nested.script} (requiresDatabase — no reachable DATABASE_URL)`,
+        )
+        continue
+      }
       try {
-        runNpmScript(script, `${guard.id} → npm run ${script}`)
+        runNpmScript(nested.script, `${guard.id} → npm run ${nested.script}`)
       } catch {
-        console.error(`\n[FAIL] regression-freeze nested npm: ${guard.id} (${script})`)
+        console.error(`\n[FAIL] regression-freeze nested npm: ${guard.id} (${nested.script})`)
         process.exit(1)
       }
     }
