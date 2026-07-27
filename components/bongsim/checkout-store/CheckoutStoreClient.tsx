@@ -161,6 +161,9 @@ export function CheckoutStoreClient({
   useEffect(() => {
     // REGRESSION-FREEZE[welcomepay-esim-payment]: reset overlay on retry — manifest
     resetAfterPgOverlay();
+    const onShow = () => resetAfterPgOverlay();
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
   }, []);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");

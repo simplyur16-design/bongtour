@@ -2412,15 +2412,25 @@
             "REGRESSION-FREEZE[welcomepay-esim-payment]",
             "reset overlay on retry",
             "#inicisModalDiv",
-            "pointer-events"
+            "pointer-events",
+            "breakOutOfPgFrameIfNeeded",
+            "navigateTopHard"
           ]
         },
         {
           "file": "app/travel/esim/checkout/payment/result/page.tsx",
           "mustInclude": [
             "goRetryCheckout",
-            "window.location.assign",
+            "navigateTopHard",
+            "breakOutOfPgFrameIfNeeded",
             "resetAfterPgOverlay"
+          ]
+        },
+        {
+          "file": "app/travel/esim/checkout/payment/welcomepay/close/page.tsx",
+          "mustInclude": [
+            "breakOutOfPgFrameIfNeeded",
+            "navigateTopHard"
           ]
         },
         {

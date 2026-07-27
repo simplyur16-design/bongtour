@@ -1,8 +1,11 @@
 "use client";
 
 import { bongsimPath } from "@/lib/bongsim/constants";
-import { resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
-import { useRouter } from "next/navigation";
+import {
+  breakOutOfPgFrameIfNeeded,
+  navigateTopHard,
+  resetAfterPgOverlay,
+} from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 import { Suspense, useEffect } from "react";
 
 /**
@@ -10,9 +13,9 @@ import { Suspense, useEffect } from "react";
  * `closeUrl`이 이 경로를 가리키는 구성이면 PG가 넘긴 쿼리를 유지해 전달한다.
  */
 function CloseRedirectInner() {
-  const router = useRouter();
-
   useEffect(() => {
+    // REGRESSION-FREEZE[welcomepay-esim-payment]: reset overlay on retry — manifest
+    if (breakOutOfPgFrameIfNeeded()) return;
     resetAfterPgOverlay();
     const incoming = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     const q = new URLSearchParams();
@@ -23,8 +26,8 @@ function CloseRedirectInner() {
     if (orderNumber) q.set("orderNumber", orderNumber);
     const message = (incoming.get("message") ?? "").trim();
     if (message) q.set("message", message);
-    router.replace(`${bongsimPath("/checkout/payment/result")}?${q.toString()}`);
-  }, [router]);
+    navigateTopHard(`${bongsimPath("/checkout/payment/result")}?${q.toString()}`);
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-sky-50 text-sm text-slate-600">

@@ -7,22 +7,30 @@
 const WELCOMEPAY_OVERLAY_SELECTORS = [
   "#inicisModalDiv",
   "#inicisModalBg",
+  "#inicisModalDiv iframe",
   "#paywelcome_layer",
   "#paywelcome_modal",
   "#allat_layer",
+  "#allat_div",
+  "#layer_all",
+  "#inipay_modal",
+  ".inipay_modal",
   "iframe[src*='paywelcome.co.kr']",
   "iframe[src*='inicis.com']",
+  "iframe[src*='stdpay']",
   "iframe[name*='inicis']",
   "iframe[id*='inicis']",
+  "iframe[name*='ini']",
   "div[id*='inicisModal']",
   "div[class*='inicisModal']",
+  "div[id*='INIStdPay']",
+  "div[class*='INIStdPay']",
 ] as const;
 
-function removeMatchingOverlayNodes(): number {
-  if (typeof document === "undefined") return 0;
+function removeMatchingOverlayNodes(doc: Document): number {
   let removed = 0;
   for (const sel of WELCOMEPAY_OVERLAY_SELECTORS) {
-    document.querySelectorAll(sel).forEach((el) => {
+    doc.querySelectorAll(sel).forEach((el) => {
       try {
         el.parentNode?.removeChild(el);
         removed += 1;
@@ -34,34 +42,111 @@ function removeMatchingOverlayNodes(): number {
   return removed;
 }
 
-export function resetAfterPgOverlay(): void {
-  if (typeof document === "undefined") return;
-  const body = document.body;
-  const html = document.documentElement;
-  body.style.removeProperty("overflow");
-  body.style.removeProperty("position");
-  body.style.removeProperty("top");
-  body.style.removeProperty("left");
-  body.style.removeProperty("right");
-  body.style.removeProperty("bottom");
-  body.style.removeProperty("width");
-  body.style.removeProperty("height");
-  body.style.removeProperty("max-height");
-  body.style.removeProperty("touch-action");
-  body.style.removeProperty("padding-right");
-  body.style.removeProperty("margin-right");
-  body.style.removeProperty("pointer-events");
-  html.style.removeProperty("overflow");
-  html.style.removeProperty("position");
-  html.style.removeProperty("height");
-  html.style.removeProperty("pointer-events");
-  body.classList.remove("modal-open", "inicis-modal-open");
-  html.classList.remove("modal-open", "inicis-modal-open");
-  removeMatchingOverlayNodes();
+function clearScrollLockStyles(el: HTMLElement | null | undefined): void {
+  if (!el?.style) return;
+  el.style.removeProperty("overflow");
+  el.style.removeProperty("overflow-x");
+  el.style.removeProperty("overflow-y");
+  el.style.removeProperty("position");
+  el.style.removeProperty("top");
+  el.style.removeProperty("left");
+  el.style.removeProperty("right");
+  el.style.removeProperty("bottom");
+  el.style.removeProperty("width");
+  el.style.removeProperty("height");
+  el.style.removeProperty("max-height");
+  el.style.removeProperty("touch-action");
+  el.style.removeProperty("padding-right");
+  el.style.removeProperty("margin-right");
+  el.style.removeProperty("pointer-events");
+}
+
+function unlockDocument(doc: Document, win: Window): void {
+  const body = doc.body;
+  const html = doc.documentElement;
+  let scrollY = 0;
   try {
-    window.scrollTo(0, window.scrollY);
+    const topRaw = body?.style?.top ?? "";
+    const m = /^-?\d+/.exec(topRaw);
+    if (m) {
+      const n = Number.parseInt(m[0]!, 10);
+      if (Number.isFinite(n)) scrollY = Math.abs(n);
+    } else if (typeof win.scrollY === "number" && win.scrollY > 0) {
+      scrollY = win.scrollY;
+    }
   } catch {
     /* ignore */
+  }
+  clearScrollLockStyles(body);
+  clearScrollLockStyles(html);
+  body?.classList.remove("modal-open", "inicis-modal-open", "noscroll", "no-scroll");
+  html?.classList.remove("modal-open", "inicis-modal-open", "noscroll", "no-scroll");
+  removeMatchingOverlayNodes(doc);
+  try {
+    win.scrollTo(0, scrollY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function sameOriginTop(): Window | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const topWin = window.top;
+    if (!topWin || topWin === window) return null;
+    // same-origin probe
+    void topWin.document.location.href;
+    return topWin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * PG overlay iframe 안에서 결과·닫기 페이지가 열린 경우 top으로 탈출.
+ * true면 top 네비게이션을 걸었으므로 현재 프레임은 정리만 하면 됨.
+ */
+export function breakOutOfPgFrameIfNeeded(): boolean {
+  if (typeof window === "undefined") return false;
+  const topWin = sameOriginTop();
+  if (!topWin) return false;
+  try {
+    const href = window.location.href;
+    if (!href || topWin.location.href === href) {
+      unlockDocument(topWin.document, topWin);
+      return false;
+    }
+    topWin.location.replace(href);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** top(가능하면) 문서로 하드 이동 — 재결제·취소 복귀용 */
+export function navigateTopHard(href: string): void {
+  if (typeof window === "undefined") return;
+  const target = href.trim();
+  if (!target) return;
+  resetAfterPgOverlay();
+  try {
+    const topWin = window.top ?? window;
+    topWin.location.assign(target);
+  } catch {
+    window.location.assign(target);
+  }
+}
+
+export function resetAfterPgOverlay(): void {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  unlockDocument(document, window);
+  const topWin = sameOriginTop();
+  if (topWin) {
+    try {
+      unlockDocument(topWin.document, topWin);
+    } catch {
+      /* ignore */
+    }
   }
 }
 

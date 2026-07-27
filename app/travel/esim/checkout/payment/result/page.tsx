@@ -8,7 +8,11 @@ import { Ban, CheckCircle2, Landmark, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
-import { resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
+import {
+  breakOutOfPgFrameIfNeeded,
+  navigateTopHard,
+  resetAfterPgOverlay,
+} from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 import { normalizeWelcomepayPgUserMessage } from "@/lib/bongsim/welcomepay-pg-text-decode";
 
 function formatAmountKrw(raw: string): string | null {
@@ -35,12 +39,20 @@ function ResultInner() {
   const vbankDue = (sp?.get("vbankDue") ?? "").trim();
 
   useEffect(() => {
+    // REGRESSION-FREEZE[welcomepay-esim-payment]: reset overlay on retry — manifest
+    // fail/cancel이 PG overlay iframe 안에 뜨면 top으로 탈출해야 스크롤·클릭이 살아남
+    if (breakOutOfPgFrameIfNeeded()) return;
     resetAfterPgOverlay();
     const onVis = () => {
       if (document.visibilityState === "visible") resetAfterPgOverlay();
     };
+    const onShow = () => resetAfterPgOverlay();
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pageshow", onShow);
+    };
   }, []);
 
   const esimMainHref = bongsimPath();
@@ -48,9 +60,8 @@ function ResultInner() {
   const guideHref = "/travel/esim/guide";
 
   const goRetryCheckout = () => {
-    resetAfterPgOverlay();
-    // Soft Link만으로는 INIStdPay 잔여 오버레이가 남아 화면이 멈춘 것처럼 보일 수 있음 → 풀 리로드
-    window.location.assign(checkoutRetryHref);
+    // Soft Link / iframe 내 assign만으로는 부모 INIStdPay 잠금이 남음 → top 하드 이동
+    navigateTopHard(checkoutRetryHref);
   };
 
   const isCancel = statusRaw === "cancel";
