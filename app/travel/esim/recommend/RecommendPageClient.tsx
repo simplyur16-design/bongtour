@@ -126,8 +126,10 @@ export default function RecommendPageClient({
   const loadCountries = useCallback(async () => {
     setCountriesLoadError(null);
     setStandaloneCountries(null);
+    const ac = new AbortController();
+    const timer = window.setTimeout(() => ac.abort(), 20_000);
     try {
-      const res = await fetch("/api/bongsim/countries", { cache: "no-store" });
+      const res = await fetch("/api/bongsim/countries", { cache: "no-store", signal: ac.signal });
       const data = (await res.json()) as ApiCountriesPayload & { error?: string };
       if (!res.ok) {
         setCountriesLoadError(data.error || "국가 목록을 불러오지 못했습니다.");
@@ -137,7 +139,9 @@ export default function RecommendPageClient({
       setStandaloneCountries(merged);
       setCatalogMeta(data.catalogMeta ?? {});
     } catch {
-      setCountriesLoadError("국가 목록을 불러오지 못했습니다.");
+      setCountriesLoadError("국가 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      window.clearTimeout(timer);
     }
   }, []);
 

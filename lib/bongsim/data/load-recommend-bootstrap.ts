@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { listCountryCatalogMetaByCode } from "@/lib/bongsim/data/list-country-catalog-meta";
 import { listBongsimStandaloneCountries } from "@/lib/bongsim/data/list-standalone-countries";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import { getPgPool, withBongsimStatementTimeout } from "@/lib/bongsim/db/pool";
 import type { CountryCatalogMeta } from "@/lib/bongsim/data/list-country-catalog-meta";
 import { RECOMMEND_CATALOG_META_REGION_CODES } from "@/lib/bongsim/recommend/recommend-destination-sections";
 import { RECOMMEND_POPULAR_CODES } from "@/lib/bongsim/home-data";
@@ -62,27 +62,29 @@ export async function loadBongsimCountriesPayload(): Promise<
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
   try {
-    const countries = await listBongsimStandaloneCountries(pool);
-    const metaCodes = [
-      ...countries.map((c) => c.code),
-      ...RECOMMEND_POPULAR_CODES,
-      ...RECOMMEND_CATALOG_META_REGION_CODES,
-    ];
-    const metaByCode = await listCountryCatalogMetaByCode(pool, metaCodes);
+    return await withBongsimStatementTimeout(async (client) => {
+      const countries = await listBongsimStandaloneCountries(client);
+      const metaCodes = [
+        ...countries.map((c) => c.code),
+        ...RECOMMEND_POPULAR_CODES,
+        ...RECOMMEND_CATALOG_META_REGION_CODES,
+      ];
+      const metaByCode = await listCountryCatalogMetaByCode(client, metaCodes);
 
-    const enriched: BongsimCountryListItem[] = countries.map((c) => {
-      const meta = metaByCode[c.code.toLowerCase()];
-      return {
-        code: c.code,
-        nameKr: c.nameKr,
-        ...(meta?.isUnlimited ? { isUnlimited: true } : {}),
-        ...(meta?.travelerVerification && meta.travelerVerification !== "none"
-          ? { travelerVerification: meta.travelerVerification }
-          : {}),
-      };
+      const enriched: BongsimCountryListItem[] = countries.map((c) => {
+        const meta = metaByCode[c.code.toLowerCase()];
+        return {
+          code: c.code,
+          nameKr: c.nameKr,
+          ...(meta?.isUnlimited ? { isUnlimited: true } : {}),
+          ...(meta?.travelerVerification && meta.travelerVerification !== "none"
+            ? { travelerVerification: meta.travelerVerification }
+            : {}),
+        };
+      });
+
+      return { ok: true as const, countries: enriched, catalogMeta: metaByCode };
     });
-
-    return { ok: true, countries: enriched, catalogMeta: metaByCode };
   } catch (e) {
     console.error("[loadBongsimCountriesPayload]", e);
     return { ok: false, reason: "db_error" };

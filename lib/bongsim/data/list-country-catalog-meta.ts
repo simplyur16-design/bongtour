@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { planNameKrFromCountryCode } from "@/lib/bongsim/country-options";
 import {
@@ -55,7 +55,7 @@ function metaFromProducts(
  * 여행자 인증 목적지 SSOT: 홍콩·마카오·대만 (중국 본토 단독 제외).
  */
 export async function listCountryCatalogMetaByCode(
-  pool: Pool,
+  pool: Pool | PoolClient,
   codes: string[],
 ): Promise<Record<string, CountryCatalogMeta>> {
   const normalized = [...new Set(codes.map((c) => c.trim().toLowerCase()).filter(Boolean))];
