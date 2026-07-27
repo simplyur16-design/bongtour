@@ -1455,6 +1455,22 @@
           ]
         },
         {
+          "file": "lib/bongsim/data/slim-products-by-country-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "available_days",
+            "litePack"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/products/plans/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "unstable_cache",
+            "bongsim-plans-v1"
+          ]
+        },
+        {
           "file": "lib/bongsim/recommend/query-plan-catalog.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
@@ -2577,7 +2593,8 @@
         {
           "file": "app/travel/esim/checkout/payment/welcomepay/WelcomepayPaymentClient.tsx",
           "mustInclude": [
-            "name=\"P_SIGNATURE\""
+            "name=\"P_SIGNATURE\"",
+            "watchWelcomepayOverlayUntilClosed"
           ]
         },
         {
@@ -2599,7 +2616,9 @@
             "#inicisModalDiv",
             "pointer-events",
             "breakOutOfPgFrameIfNeeded",
-            "navigateTopHard"
+            "navigateTopHard",
+            "watchWelcomepayOverlayUntilClosed",
+            "overlay poll seen-once"
           ]
         },
         {

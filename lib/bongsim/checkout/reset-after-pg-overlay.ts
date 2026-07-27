@@ -169,3 +169,56 @@ export function removeWelcomepayIniScriptNodes(): void {
 export function listWelcomepayOverlayCleanupSelectors(): readonly string[] {
   return WELCOMEPAY_OVERLAY_SELECTORS;
 }
+
+/** PC overlay 존재 여부 폴링용 — cleanup 목록과 동일 SSOT */
+export function welcomepayOverlayPresentSelector(): string {
+  return WELCOMEPAY_OVERLAY_SELECTORS.join(", ");
+}
+
+/**
+ * INIStdPay.pay 직후 — 오버레이가 아직 안 뜬 타이밍에 reset 하면 창이 즉시 사라짐.
+ * 한 번이라도 보인 뒤에만 "닫힘"으로 판정. graceMs 전에는 미등장도 대기.
+ * REGRESSION-FREEZE[welcomepay-esim-payment]: overlay poll seen-once — manifest
+ */
+export function watchWelcomepayOverlayUntilClosed(opts?: {
+  graceMs?: number;
+  pollMs?: number;
+  maxMs?: number;
+  onClosed?: () => void;
+}): () => void {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return () => {};
+  }
+  const graceMs = Math.max(500, opts?.graceMs ?? 2_500);
+  const pollMs = Math.max(100, opts?.pollMs ?? 400);
+  const maxMs = Math.max(graceMs + 1_000, opts?.maxMs ?? 10 * 60 * 1_000);
+  const sel = welcomepayOverlayPresentSelector();
+  const startedAt = Date.now();
+  let seen = false;
+  const poll = window.setInterval(() => {
+    const open = document.querySelector(sel);
+    if (open) {
+      seen = true;
+      return;
+    }
+    const elapsed = Date.now() - startedAt;
+    if (!seen && elapsed < graceMs) return;
+    if (!seen && elapsed >= graceMs) {
+      // never mounted — unlock UI only; do not nuke (nothing to remove yet / avoid race)
+      window.clearInterval(poll);
+      opts?.onClosed?.();
+      return;
+    }
+    // seen once, now gone → closed
+    window.clearInterval(poll);
+    resetAfterPgOverlay();
+    opts?.onClosed?.();
+  }, pollMs);
+  const hardStop = window.setTimeout(() => {
+    window.clearInterval(poll);
+  }, maxMs);
+  return () => {
+    window.clearInterval(poll);
+    window.clearTimeout(hardStop);
+  };
+}

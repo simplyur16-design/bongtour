@@ -65,10 +65,10 @@ function buildPoolConfig(): PoolConfig | null {
 
   const cfg: PoolConfig & { prepareThreshold?: number } = {
     connectionString: url,
-    max: 5,
+    max: 10,
     idleTimeoutMillis: 10_000,
     // 연결 고갈 시 무한 대기 → eSIM by-country「상품 조회 중…」무한 로딩 방지
-    connectionTimeoutMillis: 8_000,
+    connectionTimeoutMillis: 6_000,
     ssl: sslRejectUnauthorized ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
   };
 

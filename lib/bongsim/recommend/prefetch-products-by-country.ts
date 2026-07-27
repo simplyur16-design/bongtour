@@ -12,6 +12,7 @@ export type ProductsByCountryClientPayload = {
       local: { min_price: number; products: unknown[] } | null;
       roaming_unlimited_min: number | null;
       local_unlimited_min: number | null;
+      available_days?: number[];
     }
   >;
   multi: unknown[];

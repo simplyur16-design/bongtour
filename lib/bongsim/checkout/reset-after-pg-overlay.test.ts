@@ -19,6 +19,14 @@ describe("resetAfterPgOverlay", () => {
     expect(listWelcomepayOverlayCleanupSelectors()).toContain("#allat_div");
   });
 
+  it("welcomepayOverlayPresentSelector includes paywelcome_modal", async () => {
+    const { welcomepayOverlayPresentSelector } = await import(
+      "@/lib/bongsim/checkout/reset-after-pg-overlay"
+    );
+    expect(welcomepayOverlayPresentSelector()).toContain("#paywelcome_modal");
+    expect(welcomepayOverlayPresentSelector()).toContain("#inicisModalDiv");
+  });
+
   it("clears body scroll-lock styles and removes overlay nodes", () => {
     const removed: string[] = [];
     const bodyStyle: Record<string, string> = {

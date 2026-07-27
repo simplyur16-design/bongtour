@@ -36,6 +36,10 @@ import {
 import { sortPlanGroupsForDisplay } from "@/lib/bongsim/recommend/plan-display-sort";
 import { filterPlanGroupsByTripDaysWindow } from "@/lib/bongsim/recommend/plan-display-filter";
 import {
+  fetchPlans,
+  readPrefetchedPlans,
+} from "@/lib/bongsim/recommend/prefetch-plans";
+import {
   classifyPlanSpeedTier,
   PLAN_SPEED_TIER_LABEL,
 } from "@/lib/bongsim/recommend/plan-speed-tier";
@@ -569,22 +573,21 @@ export function PlanSelectPopup({
       setLoading(true);
       setErr(null);
       try {
-        const q = new URLSearchParams({
-          country: countryCode,
-          days: String(tripDaysFloored),
-        });
-        if (allSelectedCodes.length > 0) {
-          q.set("codes", allSelectedCodes.map((c) => c.toLowerCase()).join(","));
-        }
-        const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`);
-        if (!res.ok) throw new Error("fetch failed");
-        const json = (await res.json()) as {
+        const codes =
+          allSelectedCodes.length > 0
+            ? allSelectedCodes.map((c) => c.toLowerCase())
+            : [countryCode.toLowerCase()];
+        const prefetched = readPrefetchedPlans(countryCode, tripDaysFloored, codes);
+        const json = (prefetched ??
+          (await fetchPlans(countryCode, tripDaysFloored, codes))) as {
           recommended?: RecommendedPlan | null;
           recommended_by_auth?: RecommendedByAuth | null;
           kyc_distribution?: KycLabelDistribution;
           groups?: Partial<PlanGroups>;
           matched_days?: number;
-        };
+          error?: string;
+        } | null;
+        if (!json || json.error) throw new Error("fetch failed");
         if (cancelled) return;
         const mdRaw = json.matched_days;
         const md =

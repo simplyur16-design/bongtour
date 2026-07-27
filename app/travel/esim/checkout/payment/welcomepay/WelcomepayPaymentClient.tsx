@@ -5,7 +5,11 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/app/components/Header";
 import { bongsimPath } from "@/lib/bongsim/constants";
-import { removeWelcomepayIniScriptNodes, resetAfterPgOverlay } from "@/lib/bongsim/checkout/reset-after-pg-overlay";
+import {
+  removeWelcomepayIniScriptNodes,
+  resetAfterPgOverlay,
+  watchWelcomepayOverlayUntilClosed,
+} from "@/lib/bongsim/checkout/reset-after-pg-overlay";
 import {
   isMobileWelpayUserAgent,
   isProductionSiteHostname,
@@ -349,6 +353,11 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
     setIsSubmitting(true);
     try {
       pay("SendPayForm_id");
+      // Overlay may take >400ms to mount — never reset until seen once (or grace elapsed).
+      // REGRESSION-FREEZE[welcomepay-esim-payment]: overlay poll seen-once — manifest
+      watchWelcomepayOverlayUntilClosed({
+        onClosed: () => setIsSubmitting(false),
+      });
     } catch (e) {
       setIsSubmitting(false);
       setErrorMsg(e instanceof Error ? e.message : "결제 호출에 실패했어요.");

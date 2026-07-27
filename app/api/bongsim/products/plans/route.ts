@@ -1,6 +1,13 @@
+import { unstable_cache } from "next/cache";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
+
+export const revalidate = 120;
+
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: plans 120s cache — manifest
+
+const PLANS_REVALIDATE_SEC = 120;
 
 /**
  * GET /api/bongsim/products/plans?country=jp&network=roaming&days=4&codes=jp,vn
@@ -40,7 +47,7 @@ export async function GET(req: Request) {
         .map((c) => c.trim().toLowerCase())
         .filter(Boolean)
     : [country];
-  const allSelected = [...new Set(fromCodes)];
+  const allSelected = [...new Set(fromCodes)].sort();
 
   const pool = getPgPool();
   if (!pool) {
@@ -48,16 +55,37 @@ export async function GET(req: Request) {
   }
 
   const networkParam: "roaming" | "local" | null = networkRaw ? (networkRaw as "roaming" | "local") : null;
+  const cacheKey = [
+    "bongsim-plans-v1",
+    country,
+    String(days),
+    allSelected.join(","),
+    networkParam ?? "all",
+  ];
 
   try {
-    const payload = await queryPlanCatalog({
-      pool,
-      country,
-      days,
-      allSelected,
-      network: networkParam,
-    });
-    return jsonWithLeakGuard(payload, "bongsim.products.plans");
+    const payload = await unstable_cache(
+      async () =>
+        queryPlanCatalog({
+          pool: getPgPool()!,
+          country,
+          days,
+          allSelected,
+          network: networkParam,
+        }),
+      cacheKey,
+      {
+        revalidate: PLANS_REVALIDATE_SEC,
+        tags: ["bongsim-plans", `bongsim-plans-${country}`],
+      },
+    )();
+
+    const response = jsonWithLeakGuard(payload, "bongsim.products.plans");
+    response.headers.set(
+      "Cache-Control",
+      `public, s-maxage=${PLANS_REVALIDATE_SEC}, stale-while-revalidate=${PLANS_REVALIDATE_SEC * 2}`,
+    );
+    return response;
   } catch (e) {
     console.error("[plans]", e);
     return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.plans", { status: 500 });

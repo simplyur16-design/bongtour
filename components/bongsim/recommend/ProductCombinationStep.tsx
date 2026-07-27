@@ -41,9 +41,13 @@ import {
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
 import { dateRangeFromTripDays } from "@/lib/bongsim/recommend/duration-from-days";
 import { collectTripDaysFromCountryPack } from "@/lib/bongsim/recommend/available-trip-days";
-import { pickDefaultTripDaysForDestination } from "@/lib/bongsim/recommend/default-trip-days";
+import {
+  pickDefaultTripDaysForDestination,
+  resolveDefaultTripDays,
+} from "@/lib/bongsim/recommend/default-trip-days";
 // REGRESSION-FREEZE[bongsim-default-trip-days-ssot]: 단일국가 기본 일수 자동 선택 — manifest
 import { formatPlanOptionLabel } from "@/lib/bongsim/recommend/plan-option-label";
+import { prefetchPlans } from "@/lib/bongsim/recommend/prefetch-plans";
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import {
   getKycLabelDistribution,
@@ -52,6 +56,7 @@ import {
 } from "@/lib/bongsim/esim/kyc-required";
 import { resolveBongsimFlagImageUrlOrFallback } from "@/lib/bongsim-flag-image-url";
 import type { CountryProductPack } from "@/lib/bongsim/data/load-products-by-country";
+import type { CountryProductPackLite } from "@/lib/bongsim/data/slim-products-by-country-payload";
 import {
   fetchProductsByCountry,
   readPrefetchedProductsByCountry,
@@ -107,7 +112,7 @@ function allowanceLabelForSummary(p: ProductOption): string {
 }
 
 interface ProductCombinationData {
-  individual: Record<string, CountryProductPack>;
+  individual: Record<string, CountryProductPack | CountryProductPackLite>;
   multi: ProductOption[];
 }
 
@@ -551,6 +556,8 @@ export function ProductCombinationStep({
     const { start, end, tripDays } = dateRangeFromTripDays(days);
     setCountryDateRanges([{ code: singleCode, start, end }]);
     setOpenPlanByCode({ [singleCode]: { tripDays, start, end } });
+    // by-country 대기 없이 plans 선조회 — REGRESSION-FREEZE[bongsim-catalog-list-perf]
+    prefetchPlans(singleCode, tripDays, [singleCode]);
   };
 
   useEffect(() => {
@@ -560,20 +567,30 @@ export function ProductCombinationStep({
     }
   }, [selectedCodes]);
 
+  // 단일 국가: by-country 응답 전에 SSOT 기본 일수로 플랜 팝업 오픈 (워터폴 제거)
   useEffect(() => {
-    if (!isSingleCountry || !singleCode || !data || loading) return;
+    if (!isSingleCountry || !singleCode) return;
     if (isCountryDone(singleCode)) return;
     if (openPlanByCode[singleCode]) return;
     if (autoDefaultTripDaysRef.current[singleCode]) return;
+    autoDefaultTripDaysRef.current[singleCode] = true;
+    applySingleTripDays(resolveDefaultTripDays(singleCode));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per country pick
+  }, [isSingleCountry, singleCode]);
 
+  // 카탈로그 도착 후 실제 판매 일수로 스냅 (열려 있을 때만)
+  useEffect(() => {
+    if (!isSingleCountry || !singleCode || !data || loading) return;
+    if (isCountryDone(singleCode)) return;
+    const open = openPlanByCode[singleCode];
+    if (!open) return;
     const pack = data.individual[singleCode];
     if (!pack) return;
     const days = pickDefaultTripDaysForDestination(singleCode, collectTripDaysFromCountryPack(pack));
-    if (days == null) return;
-
-    autoDefaultTripDaysRef.current[singleCode] = true;
+    if (days == null || open.tripDays === days) return;
     applySingleTripDays(days);
-  }, [isSingleCountry, singleCode, data, loading, openPlanByCode, storedDone, completed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSingleCountry, singleCode, data, loading]);
 
   const resetSingleCountrySelection = () => {
     if (!singleCode) return;
@@ -696,7 +713,7 @@ export function ProductCombinationStep({
     <div className="mx-auto w-full max-w-none px-0 sm:px-4 lg:max-w-5xl lg:px-6">{inner}</div>
   );
 
-  if (loading) {
+  if (loading && !(isSingleCountry && singleCode && openPlanByCode[singleCode])) {
     return shell(
       <div className="py-20 text-center lg:py-24">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent lg:h-10 lg:w-10 lg:border-[5px]" />
@@ -705,7 +722,7 @@ export function ProductCombinationStep({
     );
   }
 
-  if (!data) {
+  if (!data && !(isSingleCountry && singleCode && openPlanByCode[singleCode])) {
     return shell(
       <div className="py-20 text-center lg:py-24">
         <p className="text-sm text-red-600 lg:text-base">
@@ -736,7 +753,7 @@ export function ProductCombinationStep({
 
   if (isSingleCountry && singleCode) {
     const country = countryByCode[singleCode];
-    const pack = data.individual[singleCode];
+    const pack = data?.individual[singleCode];
     const availableDays = pack ? collectTripDaysFromCountryPack(pack) : [];
     const done = isCountryDone(singleCode);
     const selection = completed[singleCode];
