@@ -1478,11 +1478,21 @@
             "BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL",
             "plan_name = ANY($2::text[])"
           ]
+        },
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
+            "classifyBongsimPgError",
+            "resetBongsimPgPoolAfterConnectTimeout",
+            "connection_timeout"
+          ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/data/list-country-catalog-meta.test.ts",
-        "lib/bongsim/data/slim-products-by-country-payload.test.ts"
+        "lib/bongsim/data/slim-products-by-country-payload.test.ts",
+        "lib/bongsim/db/pool-classify.test.ts"
       ]
     },
     {

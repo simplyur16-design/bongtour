@@ -9,7 +9,7 @@ export const BONGSIM_COUNTRIES_REVALIDATE_SEC = 120;
 
 export type BongsimCountriesCachedResult =
   | { ok: true; countries: BongsimCountryListItem[]; catalogMeta: Record<string, CountryCatalogMeta> }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: countries 실패 결과 캐시 금지 — manifest
 
@@ -26,7 +26,9 @@ export async function loadBongsimCountriesPayloadCached(): Promise<BongsimCountr
       revalidate: BONGSIM_COUNTRIES_REVALIDATE_SEC,
       tags: ["bongsim-countries-payload", "bongsim-recommend-bootstrap"],
     })();
-  } catch {
+  } catch (e) {
+    const msg = String(e instanceof Error ? e.message : e);
+    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
     return { ok: false, reason: "db_error" };
   }
 }

@@ -1,6 +1,6 @@
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
-import { getPgPool, withBongsimStatementTimeout } from "@/lib/bongsim/db/pool";
+import { getPgPool, withBongsimStatementTimeout, classifyBongsimPgError, resetBongsimPgPoolAfterConnectTimeout } from "@/lib/bongsim/db/pool";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 
@@ -9,7 +9,7 @@ import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 
 export type AllActiveProductsResult =
   | { ok: true; products: ProductOption[] }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 const PRODUCT_OPTION_SELECT = `SELECT 
   option_api_id,
@@ -62,7 +62,8 @@ export async function fetchAllActiveProductOptionsFromDb(): Promise<AllActivePro
     return { ok: true, products };
   } catch (e) {
     console.error("[fetchAllActiveProductOptionsFromDb]", e);
-    return { ok: false, reason: "db_error" };
+    resetBongsimPgPoolAfterConnectTimeout(e);
+    return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }
 
@@ -88,6 +89,7 @@ export async function fetchActiveProductOptionsForPlanNamesFromDb(
     return { ok: true, products };
   } catch (e) {
     console.error("[fetchActiveProductOptionsForPlanNamesFromDb]", e);
-    return { ok: false, reason: "db_error" };
+    resetBongsimPgPoolAfterConnectTimeout(e);
+    return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }

@@ -30,7 +30,9 @@ export async function loadAllActiveProductsCached(): Promise<AllActiveProductsRe
       revalidate: ALL_ACTIVE_PRODUCTS_REVALIDATE_SEC,
       tags: ["bongsim-all-active-products", "bongsim-products-by-country"],
     })();
-  } catch {
+  } catch (e) {
+    const msg = String(e instanceof Error ? e.message : e);
+    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
     return { ok: false, reason: "db_error" };
   }
 }
@@ -57,7 +59,9 @@ export async function loadActiveProductsForDestinationCached(
         ],
       },
     )();
-  } catch {
+  } catch (e) {
+    const msg = String(e instanceof Error ? e.message : e);
+    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
     return { ok: false, reason: "db_error" };
   }
 }

@@ -7,7 +7,7 @@ import {
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";
-import { getPgPool, withBongsimStatementTimeout } from "@/lib/bongsim/db/pool";
+import { getPgPool, withBongsimStatementTimeout, classifyBongsimPgError, resetBongsimPgPoolAfterConnectTimeout } from "@/lib/bongsim/db/pool";
 import { RECOMMEND_CATALOG_META_REGION_CODES } from "@/lib/bongsim/recommend/recommend-destination-sections";
 import { RECOMMEND_POPULAR_CODES } from "@/lib/bongsim/home-data";
 
@@ -29,7 +29,7 @@ export type BongsimRecommendBootstrap = {
 
 export type BongsimRecommendBootstrapResult =
   | { ok: true; data: BongsimRecommendBootstrap }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 // REGRESSION-FREEZE[bongsim-recommend-server-bootstrap-p3]: recommend 서버 프리로드 — manifest
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: countries 1-pass slim (no price_block) — manifest
@@ -83,7 +83,7 @@ function standaloneCountriesFromPlanNames(planNames: string[]): BongsimCountryLi
 
 export async function loadBongsimCountriesPayload(): Promise<
   | { ok: true; countries: BongsimCountryListItem[]; catalogMeta: Record<string, CountryCatalogMeta> }
-  | { ok: false; reason: "db_unconfigured" | "db_error" }
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" }
 > {
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
@@ -125,7 +125,8 @@ export async function loadBongsimCountriesPayload(): Promise<
     });
   } catch (e) {
     console.error("[loadBongsimCountriesPayload]", e);
-    return { ok: false, reason: "db_error" };
+    resetBongsimPgPoolAfterConnectTimeout(e);
+    return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }
 

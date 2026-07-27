@@ -138,6 +138,59 @@ export async function closePgPool(): Promise<void> {
 /** 카탈로그 등 — 트랜잭션 풀러에서도 세션에 남지 않게 LOCAL + BEGIN */
 export const BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS = 12_000;
 
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: classify connect timeout + pool self-heal — manifest
+
+export type BongsimPgFailureKind = "connection_timeout" | "db_error";
+
+export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
+  const msg = String(err instanceof Error ? err.message : err);
+  const code =
+    typeof err === "object" && err !== null && "code" in err
+      ? String((err as { code?: string }).code ?? "")
+      : "";
+  if (
+    /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED/i.test(
+      msg,
+    ) ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNREFUSED"
+  ) {
+    return "connection_timeout";
+  }
+  return "db_error";
+}
+
+export function getBongsimPoolStats(): {
+  total: number;
+  idle: number;
+  waiting: number;
+} | null {
+  const p = getCachedPool();
+  if (!p) return null;
+  return {
+    total: p.totalCount,
+    idle: p.idleCount,
+    waiting: p.waitingCount,
+  };
+}
+
+let poolResetInFlight: Promise<void> | null = null;
+
+/** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 */
+export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): void {
+  if (classifyBongsimPgError(err) !== "connection_timeout") return;
+  if (poolResetInFlight) return;
+  const stats = getBongsimPoolStats();
+  console.error("[bongsim/db/pool] connection_timeout — resetting pool", { stats });
+  poolResetInFlight = closePgPool()
+    .catch((e) => {
+      console.error("[bongsim/db/pool] pool reset failed", e);
+    })
+    .finally(() => {
+      poolResetInFlight = null;
+    });
+}
+
 export async function withBongsimStatementTimeout<T>(
   fn: (client: import("pg").PoolClient) => Promise<T>,
   timeoutMs: number = BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS,

@@ -33,9 +33,17 @@ export async function GET(req: Request) {
 
   if (!res.ok) {
     if (res.reason === "db_unconfigured") {
-      return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.products.by-country", { status: 500 });
+      return jsonWithLeakGuard(
+        { error: "DB not configured", reason: res.reason },
+        "bongsim.products.by-country",
+        { status: 500 },
+      );
     }
-    return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.by-country", { status: 500 });
+    return jsonWithLeakGuard(
+      { error: "query failed", reason: res.reason },
+      "bongsim.products.by-country",
+      { status: 500 },
+    );
   }
 
   const payload = slimProductsByCountryForApi(res);

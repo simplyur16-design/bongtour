@@ -15,7 +15,10 @@ export async function GET() {
   const res = await loadBongsimCountriesPayloadCached();
   if (!res.ok) {
     return jsonWithLeakGuard(
-      { error: res.reason === "db_unconfigured" ? "DB not configured" : "query failed" },
+      {
+        error: res.reason === "db_unconfigured" ? "DB not configured" : "query failed",
+        reason: res.reason,
+      },
       "bongsim.countries.list",
       { status: 500 },
     );

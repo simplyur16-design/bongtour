@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import { getPgPool, classifyBongsimPgError, resetBongsimPgPoolAfterConnectTimeout } from "@/lib/bongsim/db/pool";
 import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
 
 export const revalidate = 120;
@@ -88,6 +88,12 @@ export async function GET(req: Request) {
     return response;
   } catch (e) {
     console.error("[plans]", e);
-    return jsonWithLeakGuard({ error: "query failed" }, "bongsim.products.plans", { status: 500 });
+    resetBongsimPgPoolAfterConnectTimeout(e);
+    const reason = classifyBongsimPgError(e);
+    return jsonWithLeakGuard(
+      { error: "query failed", reason },
+      "bongsim.products.plans",
+      { status: 500 },
+    );
   }
 }
