@@ -26,7 +26,7 @@ export type HomeHubTravelCardCoverPick = {
   scheduleImageSummary: string | null
 }
 
-const CANDIDATE_LIMIT = 120
+const CANDIDATE_LIMIT = 24
 
 /** 외부 CDN 직링크는 매 요청 CDN 왕복이 크므로, 동일 스코프 정적 WebP로 치환 */
 function preferStaticHubCoverOverSlowCdNs(url: string, scope: HomeHubTravelCardCoverScope): string {
@@ -38,16 +38,19 @@ function preferStaticHubCoverOverSlowCdNs(url: string, scope: HomeHubTravelCardC
 /**
  * 등록 완료 + 해당 travelScope 상품만 스캔해 커버 URL이 있는 풀을 만든 뒤, 요청마다 1건 무작위 선택.
  * 풀이 비면 null → 호출부에서 `resolveHomeHubCardHybridImageSrc` 가 정적 폴백까지 처리.
+ * REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]: slim cover query — manifest
  */
 export async function pickHomeHubTravelCardCover(
   scope: HomeHubTravelCardCoverScope,
 ): Promise<HomeHubTravelCardCoverPick | null> {
   if (shouldSkipDbAtBuild()) return null
   try {
-    const rows = await prisma.product.findMany({
+    // 1차: bgImageUrl 있는 행만 — itinerary/schedule 조인 없이 커버 확보
+    const withBg = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
         travelScope: scope,
+        bgImageUrl: { not: null },
         AND: [publicProductWhereClause()],
       },
       orderBy: { updatedAt: 'desc' },
@@ -58,29 +61,14 @@ export async function pickHomeHubTravelCardCover(
         travelScope: true,
         originSource: true,
         bgImageUrl: true,
-        schedule: true,
-        itineraries: {
-          select: { day: true, description: true },
-          orderBy: { day: 'asc' },
-          take: 24,
-        },
       },
     })
 
     const pool: HomeHubTravelCardCoverPick[] = []
-    for (const p of rows) {
-      /** Prisma where 외에 행 단위 재검증 — DB/마이그레이션 오염 시 해외·국내 풀 혼입 방지 */
+    for (const p of withBg) {
       if ((p.travelScope ?? '').trim() !== scope) continue
-      const scheduleDays = getScheduleFromProduct(p)
-      const url = getHomeHubCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays })
-      const trimmed = (url ?? '').trim()
+      const trimmed = (p.bgImageUrl ?? '').trim()
       if (!trimmed) continue
-      const scheduleImageSummary =
-        scheduleDays
-          .filter((d) => (d.imageUrl ?? '').trim().length > 0)
-          .slice(0, 5)
-          .map((d) => `d${d.day}:${String(d.imageUrl).trim().slice(0, 72)}`)
-          .join(' | ') || null
       pool.push({
         imageSrc: preferStaticHubCoverOverSlowCdNs(trimmed, scope),
         productId: p.id,
@@ -88,8 +76,51 @@ export async function pickHomeHubTravelCardCover(
         travelScope: p.travelScope ?? null,
         originSource: p.originSource,
         bgImageUrl: p.bgImageUrl ?? null,
-        scheduleImageSummary,
+        scheduleImageSummary: null,
       })
+    }
+
+    if (pool.length === 0) {
+      // 2차 폴백: schedule JSON만 (itinerary 24행 조인 금지 — 콜드 메인 병목)
+      const rows = await prisma.product.findMany({
+        where: {
+          registrationStatus: 'registered',
+          travelScope: scope,
+          AND: [publicProductWhereClause()],
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: CANDIDATE_LIMIT,
+        select: {
+          id: true,
+          title: true,
+          travelScope: true,
+          originSource: true,
+          bgImageUrl: true,
+          schedule: true,
+        },
+      })
+      for (const p of rows) {
+        if ((p.travelScope ?? '').trim() !== scope) continue
+        const scheduleDays = getScheduleFromProduct(p)
+        const url = getHomeHubCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays })
+        const trimmed = (url ?? '').trim()
+        if (!trimmed) continue
+        const scheduleImageSummary =
+          scheduleDays
+            .filter((d) => (d.imageUrl ?? '').trim().length > 0)
+            .slice(0, 5)
+            .map((d) => `d${d.day}:${String(d.imageUrl).trim().slice(0, 72)}`)
+            .join(' | ') || null
+        pool.push({
+          imageSrc: preferStaticHubCoverOverSlowCdNs(trimmed, scope),
+          productId: p.id,
+          title: p.title,
+          travelScope: p.travelScope ?? null,
+          originSource: p.originSource,
+          bgImageUrl: p.bgImageUrl ?? null,
+          scheduleImageSummary,
+        })
+      }
     }
 
     if (pool.length === 0) return null

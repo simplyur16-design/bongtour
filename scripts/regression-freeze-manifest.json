@@ -1545,6 +1545,36 @@
       ]
     },
     {
+      "id": "home-cold-skip-hub-cover-pool",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메인 콜드 — production에서 hub cover 120건 itinerary 스캔 스킵·커버 쿼리 슬림",
+      "checks": [
+        {
+          "file": "app/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]",
+            "NODE_ENV !== 'production'",
+            "getCachedHomeHubTravelCardCover"
+          ]
+        },
+        {
+          "file": "lib/home-hub-travel-card-cover.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]",
+            "bgImageUrl: { not: null }",
+            "CANDIDATE_LIMIT = 24"
+          ],
+          "mustNotInclude": [
+            "CANDIDATE_LIMIT = 120",
+            "itineraries: {"
+          ]
+        }
+      ]
+    },
+    {
       "id": "overseas-hub-server-geo-fetch",
       "tier": [
         "prebuild",

@@ -56,29 +56,34 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** 메인: 밝은 헤더 + 시즌 히어로(PC) / 모바일 허브 + 추천·B2G·후기 */
 export default async function Home() {
+  // REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]: prod skips product_pool cover scan — manifest
+  // HomeHubCardDebugServerPanel 은 production 에서 null — 120건 schedule/itinerary 스캔이 콜드 TTFB만 키움.
   let overseasCover: Awaited<ReturnType<typeof getCachedHomeHubTravelCardCover>> = null
-  try {
-    overseasCover = await getCachedHomeHubTravelCardCover('overseas')
-  } catch (e) {
-    console.error('[Home] overseas hub cover', e)
-  }
-
-  const hubActive = getHomeHubActiveFile()
-  const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
-  let overseasDetail: ReturnType<typeof getHomeHubCardHybridResolutionDetail>
-  try {
-    overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
-      activeSnapshot: hubSnap,
-      productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
-      productPoolDomesticUrl: null,
-    })
-  } catch (e) {
-    console.error('[Home] overseas hub detail', e)
-    overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
+  let overseasDetail: ReturnType<typeof getHomeHubCardHybridResolutionDetail> =
+    getHomeHubCardHybridResolutionDetail('overseas', {
       activeSnapshot: null,
       productPoolOverseasUrl: null,
       productPoolDomesticUrl: null,
     })
+
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      overseasCover = await getCachedHomeHubTravelCardCover('overseas')
+    } catch (e) {
+      console.error('[Home] overseas hub cover', e)
+    }
+
+    const hubActive = getHomeHubActiveFile()
+    const hubSnap = hubActive ? { images: hubActive.images, imageSourceModes: hubActive.imageSourceModes } : null
+    try {
+      overseasDetail = getHomeHubCardHybridResolutionDetail('overseas', {
+        activeSnapshot: hubSnap,
+        productPoolOverseasUrl: overseasCover?.imageSrc ?? null,
+        productPoolDomesticUrl: null,
+      })
+    } catch (e) {
+      console.error('[Home] overseas hub detail', e)
+    }
   }
 
   return (
