@@ -860,6 +860,15 @@
             "'spectator'",
             "'trekking'"
           ]
+        },
+        {
+          "file": "scripts/verify-regression-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[theme-travel-mingling-mega-menu]",
+            "runFreezeTestFile",
+            "npx tsx --test",
+            "startsWith('tests/')"
+          ]
         }
       ],
       "vitestSuites": [

@@ -163,13 +163,24 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
         )
       } else {
         for (const file of guardVitestFiles) {
-          const full = path.join(ROOT, file).replace(/\\/g, '/')
-          console.log(`\n[regression-freeze] ▶ vitest ${guard.id} → ${file}`)
-          execSync(`npx vitest run ${full}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+          runFreezeTestFile(guard.id, file)
         }
       }
     }
   }
+}
+
+// REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: tests/ uses node:test not vitest — manifest
+/** tests/ 아래는 node:test SSOT — vitest include가 lib|app만이라 CI에서 빈 필터로 깨진다. */
+function runFreezeTestFile(guardId: string, file: string): void {
+  const rel = file.replace(/\\/g, '/')
+  if (rel.startsWith('tests/')) {
+    console.log(`\n[regression-freeze] ▶ node:test ${guardId} → ${rel}`)
+    execSync(`npx tsx --test ${rel}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+    return
+  }
+  console.log(`\n[regression-freeze] ▶ vitest ${guardId} → ${rel}`)
+  execSync(`npx vitest run ${rel}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
 }
 
 function vitestInstalled(): boolean {
@@ -198,9 +209,28 @@ function runVitestSuites(manifest: Manifest, runTier: Tier): number {
       console.warn(`[regression-freeze] ⊘ skip vitest suite ${suite.id} (no files — move to staticGuards?)`)
       continue
     }
-    const args = suite.files.map((f) => path.join(ROOT, f).replace(/\\/g, '/')).join(' ')
-    console.log(`\n[regression-freeze] ▶ vitest ${suite.id}`)
-    execSync(`npx vitest run ${args}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
+    const nodeTestFiles = suite.files
+      .map((f) => f.replace(/\\/g, '/'))
+      .filter((f) => f.startsWith('tests/'))
+    const vitestFiles = suite.files
+      .map((f) => f.replace(/\\/g, '/'))
+      .filter((f) => !f.startsWith('tests/'))
+    if (nodeTestFiles.length > 0) {
+      console.log(`\n[regression-freeze] ▶ node:test ${suite.id}`)
+      execSync(`npx tsx --test ${nodeTestFiles.join(' ')}`, {
+        cwd: ROOT,
+        stdio: 'inherit',
+        env: process.env,
+      })
+    }
+    if (vitestFiles.length > 0) {
+      console.log(`\n[regression-freeze] ▶ vitest ${suite.id}`)
+      execSync(`npx vitest run ${vitestFiles.join(' ')}`, {
+        cwd: ROOT,
+        stdio: 'inherit',
+        env: process.env,
+      })
+    }
   }
   return suites.length
 }
