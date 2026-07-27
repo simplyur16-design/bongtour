@@ -32,6 +32,20 @@
 
 - `WELCOMEPAY_MID`, `WELCOMEPAY_SIGN_KEY`, `WELCOMEPAY_ENV=production`
 - `NEXT_PUBLIC_SITE_URL=https://bongtour.com` (콜백 URL SSOT)
+- `WELCOMEPAY_EASY_PAY=1` (선택) — 간편결제 다이렉트. 운영 기본 on, `0`으로 off
+- `WELCOMEPAY_EASY_PAY_METHODS=kakaopay,naverpay,tosspay,payco,samsungpay` (선택 allowlist)
+
+## 간편결제 (가맹 승인 후)
+
+| 수단 | PC `gopaymethod` | 모바일 `P_RESERVED` |
+|------|------------------|---------------------|
+| 카카오페이 | `onlykakaopay` | `centerCd=Y&d_kakaopay=Y` |
+| 네이버페이 | `onlynaverpay` | `centerCd=Y&d_npay=Y` |
+| 토스페이 | `onlytosspay` | `centerCd=Y&d_tosspay=Y` |
+| PAYCO | `onlypayco` | `centerCd=Y&d_payco=Y` |
+| 삼성페이 | `onlyssp` | `centerCd=Y&d_samsungpay=Y` |
+
+PC `acceptmethod`: `centerCd(Y):cardonly`. checkout id: `easy_kakaopay` 등. SSOT: `lib/bongsim/welcomepay-easy-pay.ts`.
 
 ## 검증
 

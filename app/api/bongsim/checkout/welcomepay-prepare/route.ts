@@ -4,19 +4,18 @@ import { buildCheckoutPaymentResultRedirectUrl } from "@/lib/bongsim/checkout/pa
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
-  buildWelcomepayPcAcceptMethod,
   buildWelcomepayPgGoodsName,
-  listWelcomepayCheckoutMethods,
-  getWelcomepayMethodDefinition,
-  resolveWelcomepayMethodId,
-  type WelcomepayMethodId,
 } from "@/lib/bongsim/welcomepay-payment-methods";
+import {
+  listWelcomepayAllCheckoutMethodOptions,
+  resolveWelcomepayCheckoutMethodId,
+  type WelcomepayCheckoutMethodId,
+} from "@/lib/bongsim/welcomepay-checkout-options";
 import {
   resolveWelcomepayMobileCharsetMode,
   welcomepayMobileFormCharsetFields,
 } from "@/lib/bongsim/welcomepay-pg-text-decode";
 import {
-  WELCOMEPAY_MOBILE_P_RESERVED,
   generateMKey,
   generateMobileWelpayPChkfake,
   generateMobileWelpayPSignature,
@@ -28,8 +27,6 @@ import {
   resolveWelcomepayMobileHashKey,
   welcomepayCheckoutCallbackOrigin,
   welcomepayMobileNextCallbackUrlRegistered,
-  welcomepayMobileReservedForMethod,
-  welcomepayMobileSubmitUrlForMethod,
   welcomepayStdPayScriptUrl,
   welcomepayVbankNotiCallbackUrlRegistered,
 } from "@/lib/bongsim/welcomepay";
@@ -48,7 +45,7 @@ type PrepareBody = {
 };
 
 type PrepareMethodPayload = {
-  id: WelcomepayMethodId;
+  id: WelcomepayCheckoutMethodId;
   label: string;
   mobile: {
     submitUrl: string;
@@ -199,28 +196,30 @@ export async function POST(req: Request) {
       ? customerEmail.split("@")[0]!.slice(0, 30)
       : customerEmail.slice(0, 30) || "고객";
   const pGoods = buildWelcomepayPgGoodsName(bongsimOrderNumber);
-  const paymentMethod = resolveWelcomepayMethodId(body.paymentMethod);
-  const selectedDef = getWelcomepayMethodDefinition(paymentMethod);
+  const paymentMethod = resolveWelcomepayCheckoutMethodId(body.paymentMethod);
   const pNotiUrl = welcomepayVbankNotiCallbackUrlRegistered();
 
   const mobileCharset = resolveWelcomepayMobileCharsetMode();
   const mobileCharsetFields = welcomepayMobileFormCharsetFields(mobileCharset);
 
-  const methods: PrepareMethodPayload[] = listWelcomepayCheckoutMethods().map((def) => ({
-    id: def.id,
-    label: def.label,
+  const methods: PrepareMethodPayload[] = listWelcomepayAllCheckoutMethodOptions(mobileUseAmtHash).map((opt) => ({
+    id: opt.id,
+    label: opt.label,
     mobile: {
-      submitUrl: welcomepayMobileSubmitUrlForMethod(def.id),
-      pIniPayment: def.pIniPayment,
-      pReserved: welcomepayMobileReservedForMethod(def.id, mobileUseAmtHash),
-      requiresNotiUrl: def.requiresNotiUrl,
-      requiresHppMethod: def.requiresHppMethod,
+      submitUrl: opt.mobile.submitUrl,
+      pIniPayment: opt.mobile.pIniPayment,
+      pReserved: opt.mobile.pReserved,
+      requiresNotiUrl: opt.mobile.requiresNotiUrl,
+      requiresHppMethod: opt.mobile.requiresHppMethod,
     },
     pc: {
-      goPayMethod: def.pcGoPayMethod,
-      acceptMethod: buildWelcomepayPcAcceptMethod(def.id),
+      goPayMethod: opt.pc.goPayMethod,
+      acceptMethod: opt.pc.acceptMethod,
     },
   }));
+
+  const selectedMethod =
+    methods.find((m) => m.id === paymentMethod) ?? methods.find((m) => m.id === "card") ?? methods[0]!;
 
   const res = jsonWithLeakGuard(
     {
@@ -243,7 +242,7 @@ export async function POST(req: Request) {
       mobilePCharset: mobileCharsetFields.pCharset,
       methods,
       mobile: {
-        submitUrl: welcomepayMobileSubmitUrlForMethod(paymentMethod),
+        submitUrl: selectedMethod.mobile.submitUrl,
         pNextUrl,
         pMid: mid,
         pOid: orderNumber,
@@ -257,8 +256,8 @@ export async function POST(req: Request) {
         pUnam: buyerShort,
         pEmail: customerEmail,
         pMobile,
-        pIniPayment: selectedDef.pIniPayment,
-        pReserved: welcomepayMobileReservedForMethod(paymentMethod, mobileUseAmtHash),
+        pIniPayment: selectedMethod.mobile.pIniPayment,
+        pReserved: selectedMethod.mobile.pReserved,
       },
       welcomepay_env: resolveWelcomepayEnv(),
     },

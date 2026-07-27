@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { config as loadDotenv } from "dotenv";
 import { Client } from "pg";
 import { listWelcomepayCheckoutMethods } from "../lib/bongsim/welcomepay-payment-methods";
+import { listWelcomepayEasyPayCheckoutDefinitions } from "../lib/bongsim/welcomepay-easy-pay";
 
 if (existsSync(".env.local")) loadDotenv({ path: ".env.local" });
 else if (existsSync(".env")) loadDotenv({ path: ".env" });
@@ -124,7 +125,10 @@ async function prepareSmoke(order: NonNullable<Awaited<ReturnType<typeof findPay
     return { ok: false, detail: `${res.status} ${data.error ?? "prepare_failed"}` };
   }
   const ids = (data.methods ?? []).map((m) => m.id).sort();
-  const expected = listWelcomepayCheckoutMethods().map((m) => m.id).sort();
+  const expected = [
+    ...listWelcomepayCheckoutMethods().map((m) => m.id),
+    ...listWelcomepayEasyPayCheckoutDefinitions().map((m) => m.id),
+  ].sort();
   const urlsOk = (data.methods ?? []).every((m) => m.mobile.submitUrl.includes(`/smart/`));
   const vbank = data.methods?.find((m) => m.id === "vbank");
   const pNoti = Boolean(data.pNotiUrl?.includes("welcomepay-vbank-noti"));

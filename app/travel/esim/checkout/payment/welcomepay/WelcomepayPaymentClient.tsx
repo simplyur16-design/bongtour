@@ -13,12 +13,12 @@ import {
 } from "@/lib/bongsim/welcomepay-mobile-user-agent";
 import { welcomepayMobileOidDocumentCookie } from "@/lib/bongsim/welcomepay-mobile-oid-cookie";
 import {
-  resolveWelcomepayMethodId,
-  type WelcomepayMethodId,
-} from "@/lib/bongsim/welcomepay-payment-methods";
+  resolveWelcomepayCheckoutMethodIdForClient,
+  type WelcomepayCheckoutMethodId,
+} from "@/lib/bongsim/welcomepay-easy-pay";
 
 type PrepareMethodPayload = {
-  id: WelcomepayMethodId;
+  id: WelcomepayCheckoutMethodId;
   label: string;
   mobile: {
     submitUrl: string;
@@ -93,10 +93,10 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
   const customerEmail = sp?.get("customerEmail") ?? "";
   const amountStr = sp?.get("amount") ?? "";
   const amount = Number.parseInt(amountStr, 10);
-  const initialPaymentMethod = resolveWelcomepayMethodId(sp?.get("paymentMethod"));
+  const initialPaymentMethod = resolveWelcomepayCheckoutMethodIdForClient(sp?.get("paymentMethod"));
 
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
-  const [paymentMethod, setPaymentMethod] = useState<WelcomepayMethodId>(initialPaymentMethod);
+  const [paymentMethod, setPaymentMethod] = useState<WelcomepayCheckoutMethodId>(initialPaymentMethod);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [prep, setPrep] = useState<PrepareOk | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
@@ -526,7 +526,7 @@ export default function WelcomepayPaymentClient({ initialMobileWelpay }: Props) 
               </button>
 
               <p className="text-center text-[11.5px] leading-relaxed text-slate-500 lg:text-sm">
-                결제 진행은 웰컴페이먼츠가 안전하게 처리해요. 결제 완료 후 이메일로 QR코드를 보내드려요.
+                결제 진행은 웰컴페이먼츠가 안전하게 처리해요. 신용카드·간편결제 선택 후 결제하면 QR코드를 이메일로 보내드려요.
               </p>
               <Link
                 href={

@@ -2396,6 +2396,30 @@
           "mustNotInclude": [
             "pCharset: \"EUC-KR\""
           ]
+        },
+        {
+          "file": "lib/bongsim/welcomepay-easy-pay.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[welcomepay-esim-payment]",
+            "easy pay direct call after merchant approval",
+            "onlykakaopay",
+            "d_kakaopay=Y",
+            "WELCOMEPAY_EASY_PAY"
+          ]
+        },
+        {
+          "file": "lib/bongsim/welcomepay-checkout-options.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[welcomepay-esim-payment]",
+            "listWelcomepayAllCheckoutMethodOptions",
+            "resolveWelcomepayCheckoutMethodId"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-prepare/route.ts",
+          "mustInclude": [
+            "listWelcomepayAllCheckoutMethodOptions"
+          ]
         }
       ]
     },
@@ -9704,6 +9728,7 @@
       "files": [
         "lib/bongsim/welcomepay-env.test.ts",
         "lib/bongsim/welcomepay-payment-methods.test.ts",
+        "lib/bongsim/welcomepay-easy-pay.test.ts",
         "lib/bongsim/welcomepay-mobile-signature.test.ts",
         "lib/bongsim/welcomepay-mobile-hash-key.test.ts",
         "lib/bongsim/welcomepay-mobile-checkout.test.ts",
