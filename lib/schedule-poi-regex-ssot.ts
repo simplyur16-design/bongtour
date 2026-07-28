@@ -702,6 +702,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /마쯔에|Matsue/i, en: "Matsue Castle Japan" },
   { re: /다마즈쿠리|Tamatsukuri/i, en: "Tamatsukuri onsen Japan" },
   { re: /다자이후|Dazaifu/i, en: "Dazaifu Tenmangu shrine Fukuoka" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: JKP135 시카노시마≠Tottori — manifest
+  { re: /시카노시마|시카시마|Shikanoshima/i, en: "Shikanoshima Island Fukuoka coast" },
   { re: /다케오|Takeo/i, en: "Takeo Onsen Japan" },
   { re: /이올라니|Iolani/i, en: "Iolani Palace Honolulu Hawaii" },
   { re: /카카오코|Kakaako|Kaka.?ako/i, en: "Kakaako street art Honolulu Hawaii" },

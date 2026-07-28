@@ -5384,7 +5384,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "동남아·2030 한글 routeText·사해≠Shanghai·AAP218 두짓≠NYC·AVP227 나트랑≠Cebu Pirate·AYP261 코타≠Kinabalu Park·empty edge landmark 가로채기 금지",
+      "summary": "동남아·2030 한글 routeText·사해≠Shanghai·AAP218 두짓≠NYC·AVP227 나트랑≠Cebu·AYP261 코타≠Kinabalu Park·JKP135 시카노시마≠Tottori·empty edge landmark 가로채기 금지",
       "checks": [
         {
           "file": "lib/pexels-keyword.ts",
@@ -5404,7 +5404,9 @@
             "두짓 센트럴 파크≠NYC Central Park",
             "AVP227 나트랑 해적호핑≠Cebu Pirate",
             "Nha Trang Pirate Island Hopping",
-            "AYP261 코타키나발루≠Kinabalu Park"
+            "AYP261 코타키나발루≠Kinabalu Park",
+            "JKP135 시카노시마≠Tottori",
+            "Shikanoshima Island Fukuoka coast"
           ]
         },
         {
@@ -5415,7 +5417,9 @@
             "Dusit Central Park Bangkok",
             "Bang Luang Canal Village Bangkok",
             "AVP227 나트랑 해적호핑≠Cebu Pirate",
-            "Nha Trang Pirate Island Hopping"
+            "Nha Trang Pirate Island Hopping",
+            "JKP135 시카노시마≠Tottori",
+            "Shikanoshima Island Fukuoka coast"
           ]
         },
         {
@@ -5446,7 +5450,9 @@
             "AVP227 Nha Trang day2",
             "pirate hopping not Cebu",
             "AYP261 KK free day",
-            "코타키나발루≠Kinabalu Park"
+            "코타키나발루≠Kinabalu Park",
+            "JKP135 Fukuoka day2",
+            "Shikanoshima not Tottori"
           ]
         },
         {
@@ -6281,6 +6287,7 @@
             "Swiss cluster day-route evidence — Egypt Sphinx≠Jungfraujoch bleed 금지",
             "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지",
             "Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed)",
+            "JKP135 규슈≠Tottori Sand Dunes 갭필",
             "Laos Blue Lagoon ≠ Maldives lagoon evidence",
             "「거리가」≠ 리가 Riga bleed",
             "allowRouteRevisitBareVisitCitySoftDup",

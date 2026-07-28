@@ -126,4 +126,48 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(kw2).not.toMatch(/Kinabalu Park/i)
     expect(`${kw1} ${kw2}`).toMatch(/Kota Kinabalu/i)
   })
+
+  it('JKP135 Fukuoka day2 — Shikanoshima not Tottori Sand Dunes', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: JKP135 시카노시마≠Tottori — manifest
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '규슈 입국',
+          description: '',
+          routeText: '규슈 입국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '시카노시마 해안선 사이클링',
+          description: '',
+          routeText:
+            '시카노시마 해안선 사이클링 코스 - 시카시마 사이클링 코스 - 후쿠오카의 청량한 바다를 가르는 사이클링',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '규슈 출발 및 인천 귀국',
+          description: '',
+          routeText: '규슈 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '규슈',
+        productTitle: '규슈·후쿠오카 3일 #해안가 사이클링 #시카노시마',
+        supplierKey: 'hanatour',
+      },
+    )
+    const d2 = out.find((r) => r.day === 2)
+    const kw1 = String(d2?.imageKeyword ?? '')
+    const kw2 = String(d2?.imageKeyword2 ?? '')
+    expect(kw1).not.toMatch(/Tottori/i)
+    expect(kw2).not.toMatch(/Tottori/i)
+    expect(`${kw1} ${kw2}`).toMatch(/Shikanoshima/i)
+  })
 })

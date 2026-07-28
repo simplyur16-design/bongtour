@@ -2546,7 +2546,7 @@ function pickTripSpotGapFillFallback(
 function isJapanHubClusterRoute(routeText: string | null | undefined): boolean {
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub city/POI only — no bare 일본 (Hamilton Gardens theme list) — manifest
   // bare 「일본|Japan」금지 — AU/NZ 해밀턴 가든 「중국, 영국, 일본…전형적 정원」이 tripHay Japan hub로 오인되어 Mount Fuji 갭필됨
-  return /(?:도쿄|Tokyo|시즈오카|Shizuoka|하코네|Hakone|오사카|Osaka|교토|Kyoto|나리타|Narita|후지|Fuji|요나고|Yonago|돗토리|Tottori|이즈모|Izumo|마쯔에|Matsue|다마즈|Tamatsukuri|나고야|Nagoya|타카야마|Takayama|시라카와|Shirakawa|가미코치|Kamikochi|이누야마|Inuyama|아쓰타|Atsuta|후쿠오카|Fukuoka|벳푸|Beppu|유후인|Yufuin|아소|Aso|규슈|Kyushu|오이타|Oita|야나가와|Yanagawa)/i.test(
+  return /(?:도쿄|Tokyo|시즈오카|Shizuoka|하코네|Hakone|오사카|Osaka|교토|Kyoto|나리타|Narita|후지|Fuji|요나고|Yonago|돗토리|Tottori|이즈모|Izumo|마쯔에|Matsue|다마즈|Tamatsukuri|나고야|Nagoya|타카야마|Takayama|시라카와|Shirakawa|가미코치|Kamikochi|이누야마|Inuyama|아쓰타|Atsuta|후쿠오카|Fukuoka|벳푸|Beppu|유후인|Yufuin|아소|Aso|규슈|Kyushu|오이타|Oita|야나가와|Yanagawa|시카노시마|시카시마|Shikanoshima)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2555,7 +2555,7 @@ function allowJapanHubClusterKw2Duplicate(kw: string, routeText?: string | null)
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isJapanHubClusterRoute(routeText)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /tokyo|shizuoka|hakone|fuji|osaka|kyoto|narita|shibuya|harajuku|ritsurin|naoshima|chichu|benesse|takamatsu|mount fuji|hot spring|daisen|yonago|tottori|sand|izumo|matsue|tamatsukuri|shrine|castle|onsen|nagoya|inuyama|atsuta|shirakawa|takayama|kamikochi|gassho|fukuoka|beppu|yufuin|aso|dazaifu|yuushien|yanagawa/.test(
+  return /tokyo|shizuoka|hakone|fuji|osaka|kyoto|narita|shibuya|harajuku|ritsurin|naoshima|chichu|benesse|takamatsu|mount fuji|hot spring|daisen|yonago|tottori|sand|izumo|matsue|tamatsukuri|shrine|castle|onsen|nagoya|inuyama|atsuta|shirakawa|takayama|kamikochi|gassho|fukuoka|beppu|yufuin|aso|dazaifu|yuushien|yanagawa|shikanoshima/.test(
     nk,
   )
 }
@@ -2571,6 +2571,15 @@ function pickJapanHubClusterKeywordForUsedSlot(
   // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 서일본·규슈·간사이에 Fuji 갭필 금지 — manifest
   const westOrKyushuOnly =
     /돗토리|Tottori|요나고|Yonago|시마네|Shimane|이즈모|Izumo|마쯔에|Matsue|다마즈쿠리|Tamatsukuri|쿠라요시|Kurayoshi|벳푸|Beppu|유후인|Yufuin|오이타|Oita|후쿠오카|Fukuoka|규슈|Kyushu|아소|Aso|다자이후|Dazaifu/i.test(
+      hay,
+    ) &&
+    !/후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya/i.test(hay)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: JKP135 규슈≠Tottori Sand Dunes 갭필 — manifest
+  const kyushuOnlyNoSanin =
+    /후쿠오카|Fukuoka|규슈|Kyushu|벳푸|Beppu|유후인|Yufuin|오이타|Oita|아소|Aso|다자이후|Dazaifu|야나가와|Yanagawa|시카노시마|시카시마|Shikanoshima/i.test(
+      hay,
+    ) &&
+    !/돗토리|Tottori|요나고|Yonago|시마네|Shimane|이즈모|Izumo|마쯔에|Matsue|다마즈쿠리|Tamatsukuri|쿠라요시|Kurayoshi/i.test(
       hay,
     ) &&
     !/후지|Fuji|시즈오카|Shizuoka|하코네|Hakone|도쿄|Tokyo|요코하마|Yokohama|나고야|Nagoya/i.test(hay)
@@ -2596,19 +2605,31 @@ function pickJapanHubClusterKeywordForUsedSlot(
     const hit = tryPick(String(raw ?? '').trim())
     if (hit) return hit
   }
+  const saninWestDefaults = [
+    'Tottori Sand Dunes',
+    'Izumo Taisha shrine Japan',
+    'Matsue Castle Japan',
+    'Mount Daisen Yonago',
+    'Tamatsukuri Onsen',
+    'Beppu hot springs steam Japan',
+    'Dazaifu Tenmangu shrine Fukuoka',
+    'Mount Aso volcano caldera Japan',
+    'Fukuoka city night',
+  ]
+  const kyushuDefaults = [
+    'Dazaifu Tenmangu shrine Fukuoka',
+    'Beppu hot springs steam Japan',
+    'Yufuin Onsen Japan',
+    'Mount Aso volcano caldera Japan',
+    'Yanagawa canal boat Japan',
+    'Fukuoka city night',
+    'Shikanoshima Island Fukuoka coast',
+  ]
   const defaults = banFujiGapFill
     ? westOrKyushuOnly
-      ? [
-          'Tottori Sand Dunes',
-          'Izumo Taisha shrine Japan',
-          'Matsue Castle Japan',
-          'Mount Daisen Yonago',
-          'Tamatsukuri Onsen',
-          'Beppu hot springs steam Japan',
-          'Dazaifu Tenmangu shrine Fukuoka',
-          'Mount Aso volcano caldera Japan',
-          'Fukuoka city night',
-        ]
+      ? kyushuOnlyNoSanin
+        ? kyushuDefaults
+        : saninWestDefaults
       : [
           'Kiyomizu-dera Kyoto',
           'Arashiyama bamboo grove Kyoto',

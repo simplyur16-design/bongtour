@@ -405,6 +405,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   마츠야마성: 'Matsuyama Castle',
   다자이후텐만구: 'Dazaifu Tenmangu',
   다자이후: 'Dazaifu Tenmangu',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: JKP135 시카노시마≠Tottori — manifest
+  시카노시마: 'Shikanoshima Island Fukuoka coast',
+  시카시마: 'Shikanoshima Island Fukuoka coast',
+  '시카노시마 해안선': 'Shikanoshima Island Fukuoka coast',
+  '시카시마 사이클링': 'Shikanoshima Island Fukuoka cycling',
   유후인온천: 'Yufuin Onsen',
   벳푸온천: 'Beppu Onsen',
   긴잔지: 'Kinkaku-ji',
