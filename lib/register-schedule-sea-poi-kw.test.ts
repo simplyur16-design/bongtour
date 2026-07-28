@@ -100,4 +100,30 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(kw2).not.toMatch(/Cebu/i)
     expect(kw1).toMatch(/Nha Trang.*Pirate|Pirate.*Nha Trang/i)
   })
+
+  it('AYP261 KK free day — 코타키나발루≠Kinabalu Park', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AYP261 코타키나발루≠Kinabalu Park — manifest
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 4,
+          title: '자유 일정 · 코타키나발루',
+          description: '',
+          routeText: '코타키나발루 자유 일정',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '코타키나발루',
+        productTitle: '코타키나발루 5일 #시티모스크 #핑크모스크 #바나나보트 #자유일정',
+        supplierKey: 'hanatour',
+      },
+    )
+    const kw1 = String(out[0]?.imageKeyword ?? '')
+    const kw2 = String(out[0]?.imageKeyword2 ?? '')
+    expect(kw1).not.toMatch(/Kinabalu Park/i)
+    expect(kw2).not.toMatch(/Kinabalu Park/i)
+    expect(`${kw1} ${kw2}`).toMatch(/Kota Kinabalu/i)
+  })
 })

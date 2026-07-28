@@ -398,6 +398,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   만따나니: 'Mantanani Island',
   '만따나니 아일랜드': 'Mantanani Island',
   '키나발루 국립공원': 'Kinabalu Park',
+  // bare 키나발루→Park — 코타키나발루 부분문자열은 poiKoMappingAllowed에서 deny (AYP261)
   키나발루: 'Kinabalu Park',
   카미코치: 'Kamikochi',
   도고온천: 'Dogo Onsen',
@@ -1302,6 +1303,11 @@ function poiKoMappingAllowed(ko: string, text: string): boolean {
     !/세부|Cebu|필리핀|Philippines|막탄|Mactan|보홀|Bohol/i.test(text)
   ) {
     return false
+  }
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AYP261 코타키나발루≠Kinabalu Park — manifest
+  if (ko === '키나발루') {
+    const stripped = text.replace(/코\s*타\s*키나발루|Kota\s*Kinabalu/gi, ' ')
+    if (!/키나발루|Kinabalu|국립\s*공원/i.test(stripped)) return false
   }
   const req = POI_KO_MAPPING_CONTEXT_RE[ko]
   if (!req) return true

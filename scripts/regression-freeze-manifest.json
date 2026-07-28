@@ -5384,7 +5384,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "동남아·2030 한글 routeText·사해≠Shanghai·AAP218 두짓≠NYC·AVP227 나트랑≠Cebu Pirate·empty edge landmark 가로채기 금지",
+      "summary": "동남아·2030 한글 routeText·사해≠Shanghai·AAP218 두짓≠NYC·AVP227 나트랑≠Cebu Pirate·AYP261 코타≠Kinabalu Park·empty edge landmark 가로채기 금지",
       "checks": [
         {
           "file": "lib/pexels-keyword.ts",
@@ -5403,7 +5403,8 @@
             "Dusit Central Park Bangkok",
             "두짓 센트럴 파크≠NYC Central Park",
             "AVP227 나트랑 해적호핑≠Cebu Pirate",
-            "Nha Trang Pirate Island Hopping"
+            "Nha Trang Pirate Island Hopping",
+            "AYP261 코타키나발루≠Kinabalu Park"
           ]
         },
         {
@@ -5443,7 +5444,9 @@
             "AAP218 Bangkok day4",
             "Bang Luang not NYC Central Park",
             "AVP227 Nha Trang day2",
-            "pirate hopping not Cebu"
+            "pirate hopping not Cebu",
+            "AYP261 KK free day",
+            "코타키나발루≠Kinabalu Park"
           ]
         },
         {
