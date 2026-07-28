@@ -32,8 +32,13 @@ export default function CouponReportClient() {
         rows?: Row[];
         summary?: { count: number; total_discount_krw: number; total_final_krw: number };
         error?: string;
+        message?: string;
       };
-      if (!res.ok) throw new Error(j.error ?? "불러오기 실패");
+      if (!res.ok) throw new Error(
+        j.message ??
+          (j.error === "query_failed" ? "리포트 조회에 실패했습니다." : j.error) ??
+          "불러오기 실패",
+      );
       setRows(j.rows ?? []);
       setSummary(j.summary ?? null);
     } catch (e) {

@@ -18,6 +18,7 @@ type OrderRow = {
   checkout_channel?: string;
   grand_total_krw: string;
   buyer_email: string;
+  buyer_tel?: string | null;
   created_at: string;
 };
 
@@ -129,6 +130,16 @@ export default function BongsimPaymentsAdminClient() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [loadErr, setLoadErr] = useState<string | null>(null);
+
+  // REGRESSION-FREEZE[bongsim-admin-payments-query]: query_failed 한글 메시지 — manifest
+  const adminLoadErrorMessage = (j: { error?: string; message?: string }, fallback: string) =>
+    j.message?.trim() ||
+    (j.error === "query_failed"
+      ? "주문·발급 내역 조회에 실패했습니다. 새로고침해 주세요."
+      : j.error === "connection_timeout"
+        ? "DB 연결이 지연되었습니다. 잠시 후 새로고침해 주세요."
+        : j.error) ||
+    fallback;
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailResponse | null>(null);
   const [detailErr, setDetailErr] = useState<string | null>(null);
@@ -191,8 +202,9 @@ export default function BongsimPaymentsAdminClient() {
         orders?: OrderRow[];
         total_pages?: number;
         error?: string;
+        message?: string;
       };
-      if (!res.ok) throw new Error(j.error ?? "목록을 불러오지 못했습니다.");
+      if (!res.ok) throw new Error(adminLoadErrorMessage(j, "목록을 불러오지 못했습니다."));
       setRows(j.orders ?? []);
       setTotalPages(Math.max(1, j.total_pages ?? 1));
     } catch (e) {
@@ -218,8 +230,8 @@ export default function BongsimPaymentsAdminClient() {
     setUsimOk(null);
     try {
       const res = await fetch(`/api/admin/bongsim/payments/${encodeURIComponent(orderId)}`, { cache: "no-store" });
-      const j = (await res.json()) as DetailResponse & { error?: string };
-      if (!res.ok) throw new Error(j.error ?? "상세를 불러오지 못했습니다.");
+      const j = (await res.json()) as DetailResponse & { error?: string; message?: string };
+      if (!res.ok) throw new Error(adminLoadErrorMessage(j, "상세를 불러오지 못했습니다."));
       setDetail(j);
       const firstUsimLine = (j.lines ?? []).find((l) => Boolean(l.usim_capable));
       if (firstUsimLine?.option_api_id) {
@@ -777,7 +789,7 @@ export default function BongsimPaymentsAdminClient() {
             value={searchInput}
             onChange={(ev) => setSearchInput(ev.target.value)}
             className="mt-1 w-full rounded-lg border border-bt-border-soft px-3 py-2 text-sm text-bt-text-navy placeholder:text-bt-text-muted-lavender"
-            placeholder="검색…"
+            placeholder="주문번호·이메일·휴대폰·ICCID 검색…"
           />
         </label>
         <button
@@ -808,7 +820,7 @@ export default function BongsimPaymentsAdminClient() {
               <th className="px-3 py-3">주문번호</th>
               <th className="px-3 py-3">상태</th>
               <th className="px-3 py-3">결제금액</th>
-              <th className="px-3 py-3">이메일</th>
+              <th className="px-3 py-3">연락처</th>
               <th className="px-3 py-3">생성일</th>
               <th className="px-3 py-3">환불</th>
             </tr>
@@ -839,8 +851,14 @@ export default function BongsimPaymentsAdminClient() {
                   </span>
                 </td>
                 <td className="px-3 py-2.5">{nfKrw(r.grand_total_krw)}</td>
-                <td className="max-w-[220px] truncate px-3 py-2.5" title={r.buyer_email}>
-                  {r.buyer_email}
+                <td
+                  className="max-w-[220px] truncate px-3 py-2.5"
+                  title={[r.buyer_tel, r.buyer_email].filter(Boolean).join(" · ")}
+                >
+                  {r.buyer_tel ? <div className="font-mono text-xs text-slate-800">{r.buyer_tel}</div> : null}
+                  <div className={r.buyer_tel ? "truncate text-xs text-bt-text-muted-lavender" : "truncate"}>
+                    {r.buyer_email}
+                  </div>
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-bt-text-muted-lavender">
                   {new Date(r.created_at).toLocaleString("ko-KR")}

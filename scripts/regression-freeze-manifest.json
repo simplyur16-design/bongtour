@@ -943,6 +943,51 @@
       ]
     },
     {
+      "id": "bongsim-admin-payments-query",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 결제·발급 조회 — TLS probe·연결 재시도·query_failed 한글 메시지·buyer_tel/ICCID 검색",
+      "checks": [
+        {
+          "file": "lib/bongsim/db/admin-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-payments-query]",
+            "withBongsimAdminPgRetry",
+            "bongsimAdminQueryFailurePayload"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/payments/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-payments-query]",
+            "withBongsimAdminPgRetry",
+            "buyer_tel",
+            "bongsim_fulfillment_topup"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/payments/[orderId]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-payments-query]",
+            "withBongsimAdminPgRetry"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-payments-query]",
+            "query_failed",
+            "주문·발급 내역 조회에 실패"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/db/admin-query.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-offline-usim-order",
       "tier": [
         "prebuild",
@@ -10359,6 +10404,17 @@
       "files": [
         "lib/bongsim/esim/traveler-verification-policy.test.ts",
         "lib/bongsim/esim/kyc-required.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-admin-payments-query",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 결제·발급 조회 failure payload",
+      "files": [
+        "lib/bongsim/db/admin-query.test.ts"
       ]
     },
     {

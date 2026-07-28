@@ -3,17 +3,22 @@ import {
   queryBongsimDiscountReportRows,
   summarizeBongsimDiscountReportRows,
 } from "@/lib/bongsim/admin/bongsim-discount-report";
+import {
+  bongsimAdminQueryFailurePayload,
+  withBongsimAdminPgRetry,
+} from "@/lib/bongsim/db/admin-query";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { requireAdmin } from "@/lib/require-admin";
 
 export const dynamic = "force-dynamic";
 
+// REGRESSION-FREEZE[bongsim-admin-payments-query]: coupon-report probe·retry — manifest
+
 export async function GET(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const pool = getPgPool();
-  if (!pool) return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
+  if (!getPgPool()) return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
 
   const { searchParams } = new URL(req.url);
   const now = new Date();
@@ -29,7 +34,9 @@ export async function GET(req: Request) {
   const end = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
 
   try {
-    const rows = await queryBongsimDiscountReportRows(pool, start, end);
+    const rows = await withBongsimAdminPgRetry((pool) =>
+      queryBongsimDiscountReportRows(pool, start, end),
+    );
     const summary = summarizeBongsimDiscountReportRows(rows);
 
     return NextResponse.json({
@@ -51,6 +58,7 @@ export async function GET(req: Request) {
     const err = e as { code?: string };
     if (err.code === "42P01") return NextResponse.json({ error: "tables_missing" }, { status: 503 });
     console.error("[admin/bongsim/coupon-report]", e);
-    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+    const { status, body } = bongsimAdminQueryFailurePayload(e);
+    return NextResponse.json(body, { status });
   }
 }
