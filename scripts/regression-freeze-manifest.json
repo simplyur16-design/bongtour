@@ -988,19 +988,65 @@
       ]
     },
     {
+      "id": "bongsim-admin-payments-pagination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 eSIM 결제 목록 이전/다음 — 요청 generation으로 stale 덮어쓰기 방지·page clamp",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/clamp-admin-list-page.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-payments-pagination]",
+            "clampAdminListPage"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-payments-pagination]",
+            "loadGenRef",
+            "goToPage",
+            "clampAdminListPage"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/payments/route.ts",
+          "mustInclude": [
+            "LIMIT $1::int OFFSET $2::int",
+            "LIMIT $3::int OFFSET $4::int"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/admin/clamp-admin-list-page.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-admin-esim-usage-check",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "관리자 결제 목록 — eSIM 미사용 확인(유심사 usage)·환불 옆 버튼",
+      "summary": "관리자 결제 목록 — eSIM 미사용 확인(활성화·usage)·환불 옆 버튼",
       "checks": [
         {
           "file": "lib/bongsim/refund/usimsa-refund-usage.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-admin-esim-usage-check]",
             "summarizeUsimsaOrderDataUsage",
-            "isUsimsaUnusedMb"
+            "fetchUsimsaTopupStatus",
+            "activated"
+          ]
+        },
+        {
+          "file": "lib/bongsim/supplier/usimsa/usage-normalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-esim-usage-check]",
+            "activeTime",
+            "todayUsageMb",
+            "formatUsimsaUsageAdminLabel"
           ]
         },
         {
@@ -1027,7 +1073,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/bongsim/refund/usimsa-usage-threshold.test.ts"
+        "lib/bongsim/refund/usimsa-usage-threshold.test.ts",
+        "lib/bongsim/supplier/usimsa/usage-normalize.test.ts"
       ]
     },
     {
@@ -10461,14 +10508,26 @@
       ]
     },
     {
+      "id": "bongsim-admin-payments-pagination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 eSIM 결제 목록 페이지네이션 clamp",
+      "files": [
+        "lib/bongsim/admin/clamp-admin-list-page.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-admin-esim-usage-check",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "관리자 eSIM 미사용 확인 epsilon",
+      "summary": "관리자 eSIM 미사용 확인 — epsilon·활성화 파싱",
       "files": [
-        "lib/bongsim/refund/usimsa-usage-threshold.test.ts"
+        "lib/bongsim/refund/usimsa-usage-threshold.test.ts",
+        "lib/bongsim/supplier/usimsa/usage-normalize.test.ts"
       ]
     },
     {

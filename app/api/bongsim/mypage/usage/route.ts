@@ -89,7 +89,9 @@ export async function GET(req: Request) {
       );
     }
 
-    const totalUsedMb = norm.history.reduce((s, h) => s + (Number.isFinite(h.usageMb) ? h.usageMb : 0), 0);
+    const totalUsedMb =
+      norm.history.reduce((s, h) => s + (Number.isFinite(h.usageMb) ? h.usageMb : 0), 0) +
+      (Number.isFinite(norm.todayUsageMb) ? norm.todayUsageMb : 0);
 
     return jsonWithLeakGuard({
       order_id: orderId,

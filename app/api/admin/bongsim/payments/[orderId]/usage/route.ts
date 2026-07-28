@@ -39,13 +39,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ orderId: strin
       ok: true,
       order_id: id,
       unused: summary.unused,
+      activated: summary.activated,
       total_used_mb: summary.totalUsedMb,
       topup_count: summary.topupCount,
-      label: summary.unused
-        ? summary.topupCount === 0
-          ? "발급 전·미사용"
-          : "미사용"
-        : `사용 ${summary.totalUsedMb.toFixed(1)}MB`,
+      label: summary.label,
     });
   } catch (e) {
     console.error("[admin/bongsim/payments/[orderId]/usage GET]", e);

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import AdminPageHeader from "@/app/admin/components/AdminPageHeader";
 import OfflineUsimPlanPicker, {
   type OfflineUsimPlanSelection,
 } from "@/app/admin/bongsim/payments/OfflineUsimPlanPicker";
 import { ADMIN_CARD_CLASS } from "@/lib/admin-design-system";
+import { clampAdminListPage } from "@/lib/bongsim/admin/clamp-admin-list-page";
 import { refundErrorMessage } from "@/lib/bongsim/refund/refund-error-message";
 import { supplyLineTotalKrw } from "@/lib/bongsim/admin/line-supply-cost";
 
@@ -130,6 +131,10 @@ export default function BongsimPaymentsAdminClient() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [listLoading, setListLoading] = useState(false);
+  const listTopRef = useRef<HTMLDivElement | null>(null);
+  // REGRESSION-FREEZE[bongsim-admin-payments-pagination]: 느린 응답 레이스로 이전 페이지 덮어쓰기 방지 — manifest
+  const loadGenRef = useRef(0);
 
   // REGRESSION-FREEZE[bongsim-admin-payments-query]: query_failed 한글 메시지 — manifest
   const adminLoadErrorMessage = (j: { error?: string; message?: string }, fallback: string) =>
@@ -194,7 +199,7 @@ export default function BongsimPaymentsAdminClient() {
     Record<
       string,
       | { state: "loading" }
-      | { state: "ok"; unused: boolean; label: string }
+      | { state: "ok"; unused: boolean; activated: boolean; label: string }
       | { state: "err"; message: string }
     >
   >({});
@@ -209,6 +214,7 @@ export default function BongsimPaymentsAdminClient() {
       const j = (await res.json()) as {
         ok?: boolean;
         unused?: boolean;
+        activated?: boolean;
         label?: string;
         error?: string;
         message?: string;
@@ -221,7 +227,8 @@ export default function BongsimPaymentsAdminClient() {
         [orderId]: {
           state: "ok",
           unused: Boolean(j.unused),
-          label: j.label?.trim() || (j.unused ? "미사용" : "사용"),
+          activated: Boolean(j.activated),
+          label: j.label?.trim() || (j.unused ? "미사용" : j.activated ? "활성화됨" : "사용"),
         },
       }));
     } catch (e) {
@@ -235,30 +242,48 @@ export default function BongsimPaymentsAdminClient() {
     }
   };
 
-  const load = useCallback(async () => {
-    setLoadErr(null);
-    try {
-      const q = new URLSearchParams();
-      q.set("page", String(page));
-      if (search.trim()) q.set("search", search.trim());
-      const res = await fetch(`/api/admin/bongsim/payments?${q.toString()}`, { cache: "no-store" });
-      const j = (await res.json()) as {
-        orders?: OrderRow[];
-        total_pages?: number;
-        error?: string;
-        message?: string;
-      };
-      if (!res.ok) throw new Error(adminLoadErrorMessage(j, "목록을 불러오지 못했습니다."));
-      setRows(j.orders ?? []);
-      setTotalPages(Math.max(1, j.total_pages ?? 1));
-    } catch (e) {
-      setLoadErr(e instanceof Error ? e.message : "오류");
-    }
-  }, [page, search]);
+  const load = useCallback(
+    async (opts?: { page?: number; search?: string }) => {
+      const pageToLoad = opts?.page ?? page;
+      const searchToLoad = opts?.search ?? search;
+      const gen = ++loadGenRef.current;
+      setListLoading(true);
+      setLoadErr(null);
+      try {
+        const q = new URLSearchParams();
+        q.set("page", String(pageToLoad));
+        if (searchToLoad.trim()) q.set("search", searchToLoad.trim());
+        const res = await fetch(`/api/admin/bongsim/payments?${q.toString()}`, { cache: "no-store" });
+        const j = (await res.json()) as {
+          orders?: OrderRow[];
+          total_pages?: number;
+          error?: string;
+          message?: string;
+        };
+        if (gen !== loadGenRef.current) return;
+        if (!res.ok) throw new Error(adminLoadErrorMessage(j, "목록을 불러오지 못했습니다."));
+        setRows(j.orders ?? []);
+        setTotalPages(Math.max(1, Number(j.total_pages) || 1));
+      } catch (e) {
+        if (gen !== loadGenRef.current) return;
+        setLoadErr(e instanceof Error ? e.message : "오류");
+      } finally {
+        if (gen === loadGenRef.current) setListLoading(false);
+      }
+    },
+    [page, search],
+  );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const goToPage = (next: number) => {
+    const clamped = clampAdminListPage(next, totalPages);
+    if (clamped === page) return;
+    setPage(clamped);
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const openDetail = async (orderId: string) => {
     setDetailId(orderId);
@@ -313,7 +338,7 @@ export default function BongsimPaymentsAdminClient() {
       }
       setPurgeMsg(`${j.deletedCount ?? 0}건 삭제했습니다. (mode=${mode})`);
       setPage(1);
-      await load();
+      await load({ page: 1 });
     } catch (e) {
       setPurgeErr(e instanceof Error ? e.message : "오류");
     } finally {
@@ -447,7 +472,7 @@ export default function BongsimPaymentsAdminClient() {
       setOfflinePlanSelection(null);
       setOfflineOptionId("");
       setPage(1);
-      await load();
+      await load({ page: 1 });
       await openDetail(j.order_id);
     } catch (e) {
       setOfflineErr(e instanceof Error ? e.message : "오류");
@@ -856,8 +881,14 @@ export default function BongsimPaymentsAdminClient() {
       </form>
 
       {loadErr ? <p className="mt-4 text-sm text-red-600">{loadErr}</p> : null}
+      {listLoading ? (
+        <p className="mt-2 text-sm text-bt-text-muted-lavender">목록 불러오는 중…</p>
+      ) : null}
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-bt-border-soft">
+      <div
+        ref={listTopRef}
+        className={`mt-6 overflow-x-auto rounded-xl border border-bt-border-soft ${listLoading ? "opacity-60" : ""}`}
+      >
         <table className="min-w-full text-left text-sm text-bt-text-navy">
           <thead>
             <tr className="border-b border-bt-border-soft bg-bt-bg-lavender/50 text-xs uppercase text-bt-text-muted-lavender">
@@ -933,7 +964,11 @@ export default function BongsimPaymentsAdminClient() {
                           return (
                             <span
                               className={`text-[11px] font-semibold ${
-                                u.unused ? "text-teal-700" : "text-amber-800"
+                                u.unused
+                                  ? "text-teal-700"
+                                  : u.activated && !u.label.startsWith("사용")
+                                    ? "text-violet-800"
+                                    : "text-amber-800"
                               }`}
                             >
                               {u.label}
@@ -968,20 +1003,21 @@ export default function BongsimPaymentsAdminClient() {
       <div className="mt-4 flex items-center justify-between gap-3 text-sm text-bt-text-muted-lavender">
         <button
           type="button"
-          disabled={page <= 1}
+          disabled={listLoading || page <= 1}
           className="rounded-lg border border-bt-border-soft px-3 py-1.5 disabled:opacity-40"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => goToPage(page - 1)}
         >
           이전
         </button>
         <span>
           {page} / {totalPages}
+          {listLoading ? " · 불러오는 중" : ""}
         </span>
         <button
           type="button"
-          disabled={page >= totalPages}
+          disabled={listLoading || page >= totalPages}
           className="rounded-lg border border-bt-border-soft px-3 py-1.5 disabled:opacity-40"
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() => goToPage(page + 1)}
         >
           다음
         </button>

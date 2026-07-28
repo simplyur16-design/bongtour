@@ -28,7 +28,9 @@ export async function GET(req: Request) {
   const digits = search.replace(/\D/g, "");
   const digitsPat = hasSearch && digits.length >= 8 ? `%${digits}%` : null;
 
-  const whereSql = `($1::text IS NULL
+  // No-search: avoid EXISTS on every row (slow list → pagination looks stuck).
+  const whereSql = hasSearch
+    ? `($1::text IS NULL
         OR order_number ILIKE $1 ESCAPE '\\'
         OR buyer_email ILIKE $1 ESCAPE '\\'
         OR COALESCE(buyer_tel, '') ILIKE $1 ESCAPE '\\'
@@ -37,17 +39,21 @@ export async function GET(req: Request) {
               SELECT 1 FROM bongsim_fulfillment_topup t
                WHERE t.order_id = bongsim_order.order_id
                  AND COALESCE(t.iccid, '') ILIKE $1 ESCAPE '\\'
-            ))`;
+            ))`
+    : `TRUE`;
 
   try {
     const { total, rows } = await withBongsimAdminPgRetry(async (pool) => {
       const countR = await pool.query<{ c: string }>(
-        `SELECT COUNT(*)::text AS c FROM bongsim_order WHERE ${whereSql}`,
-        [pat, digitsPat],
+        hasSearch
+          ? `SELECT COUNT(*)::text AS c FROM bongsim_order WHERE ${whereSql}`
+          : `SELECT COUNT(*)::text AS c FROM bongsim_order`,
+        hasSearch ? [pat, digitsPat] : [],
       );
       const totalCount = Number.parseInt(countR.rows[0]?.c ?? "0", 10);
       const r = await pool.query(
-        `SELECT order_id::text AS order_id,
+        hasSearch
+          ? `SELECT order_id::text AS order_id,
                 order_number,
                 status,
                 checkout_channel,
@@ -58,8 +64,19 @@ export async function GET(req: Request) {
            FROM bongsim_order
           WHERE ${whereSql}
           ORDER BY created_at DESC
-          LIMIT $3 OFFSET $4`,
-        [pat, digitsPat, PAGE_SIZE, offset],
+          LIMIT $3::int OFFSET $4::int`
+          : `SELECT order_id::text AS order_id,
+                order_number,
+                status,
+                checkout_channel,
+                grand_total_krw::text AS grand_total_krw,
+                buyer_email,
+                buyer_tel,
+                created_at
+           FROM bongsim_order
+          ORDER BY created_at DESC
+          LIMIT $1::int OFFSET $2::int`,
+        hasSearch ? [pat, digitsPat, PAGE_SIZE, offset] : [PAGE_SIZE, offset],
       );
       return { total: totalCount, rows: r.rows };
     });
