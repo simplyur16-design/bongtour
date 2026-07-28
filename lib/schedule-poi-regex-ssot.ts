@@ -21,7 +21,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /54광장|5\.4광장/u, en: "May Fourth Square" },
   { re: /팔대관|八大关/u, en: "Badaguan Scenic Area Qingdao" },
   { re: /맥주\s*박물관|Tsingtao\s*Beer/i, en: "Tsingtao Beer Museum Qingdao" },
-  { re: /대복도|따빠오|Taipingdao|Small\s*Qingdao/i, en: "Small Qingdao Island Qingdao" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CAP104 Qingdao 소어산≠Zhanqiao — manifest
+  // 대복도=大鲍岛(맥주거리 일대). 소청도≠대복도
+  { re: /대복도|大鲍岛|Dabaodao/i, en: "Dabaodao Historic District Qingdao" },
+  { re: /소\s*청도|샤오\s*칭다오|小青岛|Small\s*Qingdao/i, en: "Small Qingdao Island Qingdao" },
+  { re: /따빠오|태평\s*(?:각|도)|Taiping(?:dao|jiao)|太平角/i, en: "Taipingjiao Qingdao" },
+  { re: /소어산|小鱼山|Signal\s*Hill/i, en: "Signal Hill Qingdao" },
+  { re: /(?:칭다오|청도|Qingdao).{0,16}(?:바다\s*)?일출|(?:바다\s*)?일출.{0,16}(?:칭다오|청도|Qingdao)/i, en: "Qingdao coastal sunrise" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 백장협≠Bailong · 백룡=Elevator · cable car 보조어 금지 — manifest
   { re: /천자산|Tianzi\s*Mountain/i, en: 'Tianzi Mountain' },
   { re: /천문산|Tianmen\s*Mountain|天門山/u, en: 'Tianmen Mountain' },
@@ -503,6 +509,15 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /한기둥\s*사원|One\s*Pillar\s*Pagoda/i, en: 'One Pillar Pagoda Hanoi' },
   { re: /호치민\s*생가|Ho\s*Chi\s*Minh\s*(?:Stilt\s*)?House|호찌민\s*생가/i, en: 'Ho Chi Minh Stilt House Hanoi' },
   { re: /호안끼엠|Hoan\s*Kiem/i, en: 'Hoan Kiem Lake Hanoi' },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 롱비엔·하노이 구시가지 — manifest
+  { re: /롱비엔|Long\s*Bien/i, en: 'Long Bien Bridge Hanoi' },
+  {
+    re: /(?:하노이|호안끼엠).{0,48}구시가지|구시가지.{0,48}(?:하노이|호안끼엠|스트리트카)|Hanoi\s*Old\s*Quarter/iu,
+    en: 'Hanoi Old Quarter',
+  },
+  { re: /하노이\s*스트리트카|Hanoi\s*(?:tram|streetcar)/i, en: 'Hanoi Old Quarter' },
+  { re: /판시판|Fansipan|사파\s*정상/i, en: 'Fansipan Peak Sapa Vietnam' },
+  { re: /깟깟|Cat\s*Cat/i, en: 'Cat Cat Village Sapa Vietnam' },
   { re: /하노이.{0,40}서호|서호(?=.{0,24}하노이)|West\s*Lake\s*Hanoi/iu, en: 'West Lake Hanoi' },
   { re: /서호/u, en: 'West Lake Hanoi' },
   { re: /삼형제|Three\s*Brothers/i, en: 'Three Brothers Houses Riga Latvia' },
@@ -541,6 +556,12 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /알렉산더\s*네브스키|Alexander\s*Nevsky/i, en: 'Alexander Nevsky Cathedral Tallinn Estonia' },
   { re: /예류|Yehliu/i, en: 'Yehliu Geopark Taiwan rock formations' },
   { re: /단수이|Danshui|Tamsui|홍마오청|Fort\s*San\s*Domingo/i, en: 'Danshui Old Street Taiwan waterfront' },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 Dihua Street≠bare Dihua — manifest
+  { re: /디화제|Dihua/i, en: 'Dihua Street Taipei' },
+  { re: /다다오청\s*PIER\s*5|다다오청\s*Pier\s*5|Dadaocheng\s*Pier\s*5|PIER\s*5/i, en: 'Dadaocheng Pier 5 Taipei' },
+  { re: /다다오청|Dadaocheng/i, en: 'Dadaocheng Taipei' },
+  { re: /카발란|Kavalan/i, en: 'Kavalan Whisky Distillery Taiwan' },
+  { re: /장메이|Zhangmei/i, en: 'Zhangmei Leisure Farm Taiwan' },
   { re: /벳푸|Beppu/i, en: 'Beppu hot springs steam Japan' },
   { re: /아소|Mount\s*Aso|阿蘇/i, en: 'Mount Aso volcano caldera Japan' },
   { re: /밴프|Banff/i, en: 'Lake Louise Banff National Park Canada' },
@@ -587,6 +608,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /쯔엉동\s*야시장|쯔엉동|Duong\s*Dong/i, en: "Duong Dong Night Market Phu Quoc" },
   { re: /부이페스트|Vui\s*Pnest/i, en: "Vui Pnest Night Market Phu Quoc" },
   { re: /소나시\s*야시장|Sonasea/i, en: "Sonasea Night Market Phu Quoc" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+  { re: /소나시\s*비치바|Sonashi\s*Beach\s*Bar/i, en: "Sonashi Beach Bar Phu Quoc" },
+  { re: /크레이지\s*호핑|Crazy\s*(?:Island\s*)?Hopping/i, en: "Phu Quoc Crazy Island Hopping" },
+  { re: /더\s*피크\s*푸꾸옥|The\s*Peak\s*Phu\s*Quoc/i, en: "The Peak Phu Quoc Viewpoint" },
   { re: /호국사|Ho\s*Quoc/i, en: "Ho Quoc Pagoda Phu Quoc" },
   { re: /후추\s*농장|Pepper\s*Farm/i, en: "Phu Quoc Pepper Farm" },
   { re: /푸꾸옥|Phu\s*Quoc|푸꾹옥/i, en: "Phu Quoc" },
@@ -604,6 +629,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 프라하·동유럽 명소 — manifest
   { re: /프라하\s*성|Prague\s*Castle/i, en: "Prague Castle" },
   { re: /카를\s*교|카를교|Charles\s*Bridge/i, en: "Charles Bridge Prague" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
+  { re: /스트라호프|Strahov/i, en: "Strahov Monastery Prague" },
+  { re: /리에그로비|Riegrovy|Riegrovy\s*Sady/i, en: "Riegrovy Sady Prague" },
+  { re: /하벨\s*시장|Havel\s*Market/i, en: "Havel Market Prague" },
+  { re: /라트란|Latr[aá]n/i, en: "Latran Street Cesky Krumlov" },
   { re: /천문\s*시계|Astronomical\s*Clock|올드\s*타운\s*스퀘어|구시가(?:지)?\s*광장/i, en: "Prague Old Town Square" },
   { re: /카를로비\s*바리|Karlovy\s*Vary|카를스바트/i, en: "Karlovy Vary colonnade" },
   { re: /플젠|플젠시|Plze[nň]|Pilsen/i, en: "Plzen Republic Square" },
@@ -630,6 +660,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /브란덴부르크\s*문|Brandenburg\s*Gate/i, en: "Brandenburg Gate Berlin" },
   { re: /(?:베를린\s*)?구박물관|Altes\s*Museum/i, en: "Altes Museum Berlin" },
   { re: /드레스덴\s*성모|Frauenkirche\s*Dresden|Zwinger/i, en: "Dresden Frauenkirche Cathedral" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
+  { re: /젬퍼\s*오페라|Semperoper|Semper\s*Opera/i, en: "Semperoper Dresden" },
+  {
+    re: /(?:드레스덴|Dresden).{0,32}성모\s*교회|성모\s*교회(?=.{0,48}(?:드레스덴|Dresden|젬퍼|Semper))|(?:드레스덴|Dresden)\s*성모/i,
+    en: "Dresden Frauenkirche Cathedral",
+  },
+  { re: /드레스덴.{0,16}크리스마스|크리스마스.{0,16}드레스덴|Dresden\s*Christmas/i, en: "Dresden Christmas Market" },
   { re: /뉘른베르크\s*(?:성|고성)|Nuremberg\s*Castle/i, en: "Nuremberg Castle" },
   // 뮌헨 성모교회 — 도시 없는 Frauenkirche Cathedral은 타일 bleed 위험
   { re: /성모교회|Frauenkirche\s*Munich|Marienkirche/i, en: "Marienplatz Square Munich" },
@@ -754,13 +791,16 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /샤히진다|Shah[-\s]*i[-\s]*Zinda/i, en: 'Shah-i-Zinda' },
   { re: /비비하눔|Bibi[-\s]*Khanym/i, en: 'Bibi-Khanym Mosque' },
   { re: /시요브\s*바자르|Siyob\s*Bazaar/i, en: 'Siyob Bazaar' },
-  { re: /침볼락|Chimbulak|Shymbulak/i, en: 'Shymbulak' },
+  { re: /침블락|침볼락|Chimbulak|Shymbulak/i, en: 'Shymbulak' },
   { re: /젠코바|Zenkov/i, en: 'Zenkov Cathedral' },
   { re: /판필로바|Panfilov/i, en: 'Panfilov Park' },
   { re: /아르바트\s*거리|Arbat/i, en: 'Arbat Street' },
-  { re: /블랙\s*캐년|Black\s*Canyon/i, en: 'Black Canyon' },
-  { re: /루나\s*캐년|Luna\s*Canyon/i, en: 'Luna Canyon' },
-  { re: /차른\s*캐년|Charyn\s*Canyon/i, en: 'Charyn Canyon' },
+  { re: /블랙\s*캐니언|블랙\s*캐년|Black\s*Canyon/i, en: 'Black Canyon' },
+  { re: /루나\s*캐니언|루나\s*캐년|Luna\s*Canyon|Valley\s*of\s*Castles/i, en: 'Luna Canyon' },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 차른 캐니언·콜사이·카인디 — manifest
+  { re: /차른\s*캐니언|차른\s*캐년|차른협곡|Charyn\s*Canyon/i, en: 'Charyn Canyon' },
+  { re: /콜사이|Kolsai|Kolsay/i, en: 'Kolsai Lakes' },
+  { re: /카인디|Kaindy/i, en: 'Kaindy Lake' },
   { re: /악수\s*온천|Aksu\s*(?:Hot\s*)?Spring/i, en: 'Aksu Hot Springs' },
   { re: /촐폰\s*아타|Cholpon[-\s]*Ata/i, en: 'Cholpon Ata' },
   { re: /이식쿨|Issyk[-\s]*Kul/i, en: 'Issyk Kul Lake' },
@@ -808,6 +848,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /울루와뚜|Uluwatu/i, en: "Uluwatu Temple" },
   { re: /멜라스티|Melasti/i, en: "Melasti Beach" },
   { re: /빠당빠당|Padang\s*Padang/i, en: "Padang Padang Beach" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+  // Best Western·신상 세그먼트는 route-place-noise — bare 비치클럽만 Tropical
   { re: /비치\s*클럽|Beach\s*Club/i, en: "Tropical beach club coastline" },
   { re: /뜨갈랄랑|Tegalalang/i, en: "Tegalalang Rice Terrace" },
   { re: /발리\s*해변/i, en: "Bali beach sunset" },
@@ -994,8 +1036,6 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Ipan must not substring-match Saipan — manifest
   { re: /이파오|\bIpan\b|Tumon\s*Bay/i, en: "Tumon Bay Guam beach" },
   { re: /알마티|Almaty/i, en: 'Almaty' },
-  { re: /콜사이|콜사이호수|Kolsai|Kolsay/i, en: 'Kolsai Lakes' },
-  { re: /카인디|Kaindy/i, en: "Kaindy Lake Kazakhstan sunken forest" },
   { re: /시애틀|Seattle/i, en: "Seattle Space Needle waterfront" },
   { re: /리츠린|Ritsurin/i, en: "Ritsurin Garden Takamatsu Japan" },
   { re: /고토히라|Kotohira|金刀比羅/i, en: "Kotohira Shrine Japan stone steps" },
@@ -1020,7 +1060,9 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /코펜하겐|Copenhagen|København/i, en: "Copenhagen Nyhavn waterfront" },
   { re: /베르겐|Bergen/i, en: "Bergen Norway Bryggen harbor" },
   { re: /바르샤바|Warsaw/i, en: "Warsaw Old Town square Poland" },
-  { re: /칭다오|청도|Qingdao/i, en: "Qingdao Zhanqiao Pier" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CAP104 Qingdao 소어산≠Zhanqiao — manifest
+  // 도시 허브는 bare Qingdao — Zhanqiao는 SPOT(잔교)만
+  { re: /칭다오|청도|Qingdao/i, en: "Qingdao" },
   { re: /대련|다롄|大连/u, en: "Dalian" },
   { re: /여순|旅顺|Lushun/i, en: "Lushun Dalian" },
   { re: /나이로비|Nairobi/i, en: "Nairobi Kenya city skyline" },

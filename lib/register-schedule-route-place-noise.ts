@@ -404,7 +404,14 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/\b(?:designer\s*)?outlet\b|아울렛|아웃렛|pandorf|파르도르프/i.test(t)) return true
   if (/sound\s*of\s*music|사운드\s*오브\s*뮤직|사운드오브뮤직/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일·유럽 admin·교통 세그먼트 — manifest
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
   if (/^(?:필독\s*사항|유의\s*사항|안내\s*사항)$/u.test(t)) return true
+  if (/여행\s*전\s*필수\s*확인|필수\s*확인\s*사항|여행\s*전\s*꼭\s*읽어/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+  // Best Western·신상 비치클럽 = 숙박/마케팅 — Sonashi 관광과 same-day twin 금지
+  if (/(?:베스트웨스턴|Best\s*Western)/i.test(t) && /비치|클럽|호텔|리조트|Beach|Club/i.test(t)) return true
+  if (/(?:핫한\s*)?신상\s*비치\s*클럽/u.test(t)) return true
+  if (/핫한\s*신상/u.test(t) && /비치\s*클럽/u.test(t)) return true
   if (/^(?:내부\s*(?:입장|관람)?|외관|입장|정원\s*입장|조망)$/u.test(t)) return true
   if (/사진\s*촬영\s*(?:후\s*)?이동/u.test(t)) return true
   if (/^AFTERNOON\s*TEA$/i.test(t)) return true

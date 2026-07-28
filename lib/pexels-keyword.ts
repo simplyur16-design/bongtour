@@ -533,11 +533,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   '비치 클럽': 'Tropical beach club coastline',
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 비치클럽≠Bali — Phu Quoc·동남아 공통 — manifest
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: Sonashi≠Beach Club same-day twin — manifest
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
   '소나시 비치바': 'Sonashi Beach Bar Phu Quoc',
   소나시: 'Sonashi Beach Bar Phu Quoc',
-  '베스트웨스턴 비치클럽': 'Phu Quoc Beach Club',
-  '신상 비치클럽': 'Phu Quoc Beach Club',
-  '핫한 신상 비치클럽': 'Phu Quoc Beach Club',
+  '크레이지 호핑': 'Phu Quoc Crazy Island Hopping',
+  크레이지호핑: 'Phu Quoc Crazy Island Hopping',
   '더 피크 푸꾸옥': 'The Peak Phu Quoc viewpoint',
   더피크: 'The Peak Phu Quoc viewpoint',
   '푸꾸옥 손트랑': 'Phu Quoc Duong Dong night market',
@@ -559,7 +559,21 @@ const POI_KO_TO_EN: Record<string, string> = {
   차른협곡: 'Charyn Canyon Kazakhstan',
   '루나 캐니언': 'Valley of Castles Charyn Kazakhstan',
   '블랙 캐니언': 'Black Canyon Kazakhstan',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 차른 캐니언·콜사이·카인디 — manifest
+  콜사이: 'Kolsai Lakes Kazakhstan',
+  '콜사이 호수': 'Kolsai Lakes Kazakhstan',
+  카인디: 'Kaindy Lake Kazakhstan',
+  '카인디 호수': 'Kaindy Lake Kazakhstan',
+  침블락: 'Shymbulak Almaty Kazakhstan',
+  침볼락: 'Shymbulak Almaty Kazakhstan',
   판시판: 'Fansipan peak Sapa Vietnam',
+  '사파 정상': 'Fansipan peak Sapa Vietnam',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 롱비엔·하노이 구시가지 — manifest
+  롱비엔: 'Long Bien Bridge Hanoi',
+  '롱비엔 다리': 'Long Bien Bridge Hanoi',
+  '하노이 구시가지': 'Hanoi Old Quarter',
+  구시가지: 'Hanoi Old Quarter',
+  '하노이 스트리트카': 'Hanoi Old Quarter',
   '깟깟 마을': 'Cat Cat Village Sapa Vietnam',
   깟깟: 'Cat Cat Village Sapa Vietnam',
   차임스: 'CHIJMES Singapore',
@@ -622,7 +636,6 @@ const POI_KO_TO_EN: Record<string, string> = {
   '스타벅스 리저브': 'Starbucks Reserve Roastery New York',
   '내맘대로 채우는': 'Times Square New York',
   '뉴욕의 추천 명소': 'Times Square New York',
-  '사파 정상': 'Fansipan peak Sapa Vietnam',
   다합: 'Dahab Egypt Red Sea',
   다합해변: 'Dahab Egypt Red Sea',
   '발리 해변': 'Bali beach sunset',
@@ -847,6 +860,13 @@ const POI_KO_TO_EN: Record<string, string> = {
   지모루시장: 'Jimo Road Market',
   찌모루시장: 'Jimo Road Market',
   지모루: 'Jimo Road Market',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CAP104 Qingdao 소어산≠Zhanqiao — manifest
+  소어산: 'Signal Hill Qingdao',
+  '소 어산': 'Signal Hill Qingdao',
+  대복도: 'Dabaodao Historic District Qingdao',
+  '대 복도': 'Dabaodao Historic District Qingdao',
+  소청도: 'Small Qingdao Island Qingdao',
+  '소 청도': 'Small Qingdao Island Qingdao',
   극지해양: 'Polar Ocean World',
   마추픽chu: 'Machu Picchu ancient ruins Peru',
   '마추 픽chu': 'Machu Picchu ancient ruins Peru',
@@ -1149,6 +1169,20 @@ const POI_KO_TO_EN: Record<string, string> = {
   라르달: 'Laerdal Norway Fjord',
   '천문시계': 'Prague Astronomical Clock',
   '하벨 시장': 'Havel Market Prague',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
+  '젬퍼 오페라': 'Semperoper Dresden',
+  젬퍼오페라: 'Semperoper Dresden',
+  '드레스덴 성모 교회': 'Dresden Frauenkirche Cathedral',
+  '성모 교회': 'Dresden Frauenkirche Cathedral',
+  '드레스덴 크리스마스마켓': 'Dresden Christmas Market',
+  '드레스덴 크리스마스 마켓': 'Dresden Christmas Market',
+  스트라호프: 'Strahov Monastery Prague',
+  '스트라호프 수도원': 'Strahov Monastery Prague',
+  '프라하 스트라호프 수도원': 'Strahov Monastery Prague',
+  리에그로비: 'Riegrovy Sady Prague',
+  '리에그로비 공원': 'Riegrovy Sady Prague',
+  '라트란 거리': 'Latran Street Cesky Krumlov',
+  라트란: 'Latran Street Cesky Krumlov',
   뜨르들: 'Trdelnik Old Town Prague',
   '클리브랜드 댐': 'Cleveland Dam Vancouver',
   '클리브랜드 댐 cleveland dam': 'Cleveland Dam Vancouver',
@@ -1325,6 +1359,13 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   스카이파크: /싱가포르|Singapore|마리나|Marina/i,
   페라나칸: /싱가포르|Singapore|페라나칸|Peranakan/i,
   실로소: /센토사|Sentosa|실로소|Siloso|싱가포르|Singapore/i,
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 롱비엔·하노이 구시가지 — manifest
+  구시가지: /하노이|Hanoi|호안끼엠|스트리트카|베트남|Vietnam|롱비엔|Long\s*Bien/i,
+  '하노이 구시가지': /하노이|Hanoi|호안끼엠|베트남|Vietnam/i,
+  '하노이 스트리트카': /하노이|Hanoi|스트리트카|베트남|Vietnam/i,
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
+  '성모 교회': /드레스덴|Dresden|젬퍼|Semper|작센|Frauenkirche/i,
+  '드레스덴 성모 교회': /드레스덴|Dresden|성모|Frauenkirche/i,
   /** NYC Central Park — 두짓·방콕·태국 문맥이면 Dusit 전용 키만 (아래 deny) */
 }
 

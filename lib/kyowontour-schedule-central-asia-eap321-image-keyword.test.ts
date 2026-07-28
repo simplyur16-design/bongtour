@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyKyowontourScheduleExpressionToRows } from '@/lib/kyowontour-register-api-schedule'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import {
   isRegisterScheduleRoutePlaceNoise,
@@ -97,5 +98,76 @@ describe('kyowontour Central Asia EAP321 route + imageKeyword + vibe', () => {
     expect(d6.imageKeyword).toMatch(/Charyn|Black Canyon|Luna Canyon|Aksu/i)
     expect(String(d6.imageKeyword)).not.toMatch(/Gur-e Amir|Samarkand/i)
     expect(String(d6.imageKeyword2 ?? '')).not.toMatch(/Gur-e Amir|Samarkand/i)
+  })
+
+  it('CFP114 Almaty 5-day — Kolsai/Kaindy/Shymbulak; Day1 not Charyn; no Registan', () => {
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 차른 캐니언·콜사이·카인디 — manifest
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
+    expect(firstMatchingScheduleSpotEn('콜사이 호수')).toMatch(/Kolsai/i)
+    expect(firstMatchingScheduleSpotEn('카인디 호수')).toMatch(/Kaindy/i)
+    expect(firstMatchingScheduleSpotEn('침블락')).toMatch(/Shymbulak/i)
+    expect(firstMatchingScheduleSpotEn('차른 캐니언')).toMatch(/Charyn/i)
+
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '카자흐스탄 입국',
+          description: '',
+          routeText: '카자흐스탄 여행 전 꼭 읽어주세요!',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '차른',
+          description: '',
+          routeText: '차른 캐니언 - 루나 캐니언 - 블랙 캐니언 - 차른협곡',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '콜사이',
+          description: '',
+          routeText: '알마티 근교｜콜사이 호수 - 알마티 근교 | 카인디 호수',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '침블락',
+          description: '',
+          routeText: '침블락 - 알마티 | 침블락',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '귀국',
+          description: '',
+          routeText: '카자흐스탄 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '알마티',
+        productTitle: '카자흐스탄 알마티 5일 #차른캐니언 #콜사이 #침블락',
+        travelScope: 'package',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)
+    expect(String(by(1)?.imageKeyword ?? '')).toMatch(/Almaty/i)
+    expect(String(by(1)?.imageKeyword ?? '')).not.toMatch(/Charyn/i)
+    expect(`${by(2)?.imageKeyword ?? ''} ${by(2)?.imageKeyword2 ?? ''}`).toMatch(
+      /Charyn|Valley of Castles|Luna|Black Canyon/i,
+    )
+    expect(String(by(3)?.imageKeyword ?? '')).toMatch(/Kolsai/i)
+    expect(String(by(3)?.imageKeyword2 ?? '')).toMatch(/Kaindy/i)
+    expect(String(by(4)?.imageKeyword ?? '')).toMatch(/Shymbulak/i)
+    expect(`${by(4)?.imageKeyword ?? ''} ${by(4)?.imageKeyword2 ?? ''}`).not.toMatch(/Registan/i)
+    expect(String(by(5)?.imageKeyword ?? '')).toMatch(/Almaty/i)
   })
 })

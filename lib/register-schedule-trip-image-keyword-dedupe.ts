@@ -12,7 +12,7 @@
  * REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: pickMongoliaTerelClusterKeywordForUsedSlot — return dedupe — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
-import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments, isRegisterScheduleFreeLeisureDay } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { filterRegisterScheduleRoutePlaceSegments, isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import {
   collectRouteTextOrderedImageKeywords,
@@ -28,6 +28,7 @@ import {
   isScheduleAirportRouteSegmentText,
   isScheduleDepartureReturnAdjacentKeywordRow,
   isScheduleDepartureReturnAdjacentRouteText,
+  isScheduleDomesticHubOnlyRouteText,
   resolveScheduleKeywordSlotKind,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword, isLikelyTourismLandmarkKeyword, isNonLandmarkRouteTextSegment, finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
@@ -389,7 +390,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Space Needle Seattle')
     push('Glacier Bay Alaska cruise')
   }
-  if (/타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베크|Uzbekistan|카자흐|Kazakhstan/i.test(rawRoute)) {
+  if (/타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베크|Uzbekistan/i.test(rawRoute)) {
     push('Registan Square')
     push('Minor Mosque')
   }
@@ -438,17 +439,27 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Tumon Bay Guam beach')
     push('Plaza de Espana Guam Spanish steps')
   }
-  if (/타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베|Uzbekistan|아프로시압|Afrosiyab|레기스탄|Registan|침볼락|Chimbulak|Shymbulak/i.test(rawRoute)) {
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
+  if (/타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베|Uzbekistan|아프로시압|Afrosiyab|레기스탄|Registan/i.test(rawRoute)) {
     push('Registan Square')
     push('Afrosiyab')
     push('Ulugh Beg Observatory')
+  }
+  if (/침블락|침볼락|Chimbulak|Shymbulak/i.test(rawRoute)) {
     push('Shymbulak')
+  }
+  if (/젠코바|Zenkov/i.test(rawRoute)) {
     push('Zenkov Cathedral')
   }
-  if (/알마티|Almaty|카자흐|Kazakhstan|침블락|Charyn/i.test(rawRoute)) {
-    push('Charyn Canyon')
-    push('Kolsai Lakes')
-    push('Almaty')
+  if (/알마티|Almaty|카자흐|Kazakhstan|침블락|침볼락|Charyn|콜사이|카인디/i.test(rawRoute)) {
+    if (/차른|Charyn/i.test(rawRoute)) push('Charyn Canyon')
+    if (/콜사이|Kolsai|Kolsay/i.test(rawRoute)) push('Kolsai Lakes')
+    if (/카인디|Kaindy/i.test(rawRoute)) push('Kaindy Lake')
+    if (/침블락|침볼락|Chimbulak|Shymbulak/i.test(rawRoute)) push('Shymbulak')
+    if (/알마티|Almaty/i.test(rawRoute)) push('Almaty')
+    else if (/카자흐|Kazakhstan/i.test(rawRoute) && !/차른|Charyn|콜사이|카인디|침블락|침볼락/i.test(rawRoute)) {
+      push('Almaty')
+    }
   }
   if (/스위스|Switzerland|인터라켄|Interlaken|융프라우|Jungfrau|체르마트|Zermatt|마테호른|Matterhorn|루체른|Lucerne|취리히|Zurich|베른|Bern|몽트뢰|Montreux|리기산|(?<![가-힣])리기(?![가-힣])|\bRigi\b/i.test(rawRoute)) {
     push('Jungfraujoch Swiss Alps')
@@ -914,7 +925,10 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
       departureArrivalOnlyLandmarkBleed ||
       (slot === 'departure' && isDomesticHubOrAirportImageKeyword(kw))
     if (!needsFill) {
-      const kept = { ...row, imageKeyword2: null }
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
+      const keepKw2 = slot === 'departure' && departureKeepsMultiTourismKeyword2(row.routeText)
+      const secondary = keepKw2 ? String(row.imageKeyword2 ?? '').trim() : ''
+      const kept = { ...row, imageKeyword2: secondary || null }
       out.set(day, kept)
       const keptKw = String(kept.imageKeyword ?? '').trim()
       const keptNk = normScheduleImageKeywordKey(keptKw)
@@ -1565,6 +1579,20 @@ function routeTextTourismSegmentCount(routeText: string | null | undefined): num
   return filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText)).length
 }
 
+/** 출발 슬롯이지만 당일 multi tourism이면 kw2 유지 (ATP223 디화제·PIER5) — 몽골·유럽 day1 관광열에는 적용 금지 */
+// REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
+export function departureKeepsMultiTourismKeyword2(routeText: string | null | undefined): boolean {
+  if (isAirlineOnlyMovementRouteText(routeText)) return false
+  if (isAirportTransferOrCityHubOnlyMiddleRoute(routeText)) return false
+  if (isScheduleDomesticHubOnlyRouteText(String(routeText ?? ''), isScheduleDomesticHubToken)) return false
+  if (routeTextTourismSegmentCount(routeText) < 2) return false
+  const rt = String(routeText ?? '')
+  // Taipei harbor/old-street · Qingdao beer+district 출발일만 — Terelj·Europe 등 일반 day1 multi POI는 출발 kw2 금지(CQP111)
+  return /디화|Dihua|피어\s*5|Pier\s*5|대만|타이베이|Taipei|기륭|Keelung|단수이|Danshui|Tamsui|지우펀|Jiufen|칭다오|청도|Qingdao|지모루|찌모루|Jimo|맥주\s*박물관|Tsingtao|대복도|소어산/i.test(
+    rt,
+  )
+}
+
 function scheduleKeywordNkOverlaps(a: string, b: string): boolean {
   if (!a || !b) return false
   if (a === b) return true
@@ -1740,8 +1768,22 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   const rt = String(dayRoute ?? '')
   if (!rt.trim()) return false
   const nk = normScheduleImageKeywordKey(kw)
-  if (/prague|charles|krumlov|czech/.test(nk)) {
-    return /프라하|Prague|체코|Czech|크룸로프|크롬로프|Krumlov|체스키/i.test(rt)
+  if (/prague|charles|krumlov|czech|strahov|havel|riegrovy|latran/.test(nk)) {
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
+    if (/charles\s*bridge|charles bridge/.test(nk)) {
+      return /카를\s*교|카를교|Charles\s*Bridge/i.test(rt)
+    }
+    if (/prague\s*castle/.test(nk) && !/charles|bridge|strahov|havel|riegrovy/.test(nk)) {
+      return /프라하\s*성|Prague\s*Castle/i.test(rt)
+    }
+    if (/strahov/.test(nk)) return /스트라호프|Strahov/i.test(rt)
+    if (/havel/.test(nk)) return /하벨|Havel/i.test(rt)
+    if (/riegrovy/.test(nk)) return /리에그로비|Riegrovy/i.test(rt)
+    if (/latran/.test(nk)) return /라트란|Latr[aá]n/i.test(rt)
+    if (/krumlov|cesky/.test(nk)) {
+      return /크룸로프|크롬로프|Krumlov|체스키/i.test(rt)
+    }
+    return /프라하|Prague|체코|Czech|크룸로프|크롬로프|Krumlov|체스키|스트라호프|하벨|리에그로비/i.test(rt)
   }
   if (/salzburg|mozart|mirabell|hohensalzburg/.test(nk)) {
     return /잘츠|Salzburg|미라벨|Mozart|모짜르트|호엔잘츠/i.test(rt)
@@ -1998,7 +2040,7 @@ function pickLaosClusterKeywordForUsedSlot(
 }
 
 function isTaiwanClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:대만|Taiwan|타이페이|Taipei|타이중|Taichung|지우펀|Jiufen|九份|예류|Yehliu|단수이|Danshui|Tamsui|홍마오청)/i.test(
+  return /(?:대만|Taiwan|타이페이|타이베이|Taipei|타이중|Taichung|지우펀|Jiufen|九份|예류|Yehliu|단수이|Danshui|Tamsui|홍마오청|디화제|Dihua|다다오청|Dadaocheng|카발란|Kavalan|장메이|Zhangmei)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2007,7 +2049,7 @@ function allowTaiwanClusterKw2Duplicate(kw: string, routeText?: string | null): 
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isTaiwanClusterRoute(routeText)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /taipei|jiufen|yehliu|shifen|danshui|tamsui|palace museum|101|night market|taroko|sun moon|alishan|fort san/.test(
+  return /taipei|jiufen|yehliu|shifen|danshui|tamsui|palace museum|101|night market|taroko|sun moon|alishan|fort san|dihua|dadaocheng|pier|kavalan|zhangmei/.test(
     nk,
   )
 }
@@ -2032,12 +2074,16 @@ function pickTaiwanClusterKeywordForUsedSlot(
     if (hit) return hit
   }
   for (const raw of [
+    'Dihua Street Taipei',
+    'Dadaocheng Pier 5 Taipei',
     'Taipei 101 tower night',
     'Jiufen old street Taiwan night',
     'Yehliu Geopark Taiwan rock formations',
     'Danshui Old Street Taiwan waterfront',
     'National Palace Museum Taipei',
     'Shifen waterfall Taiwan',
+    'Kavalan Whisky Distillery Taiwan',
+    'Zhangmei Leisure Farm Taiwan',
   ]) {
     const hit = tryPick(raw)
     if (hit) return hit
@@ -2505,7 +2551,7 @@ function pickGuamResortClusterKeywordForUsedSlot(
 }
 
 function isCentralAsiaClusterRoute(routeText: string | null | undefined): boolean {
-  return /(?:알마티|Almaty|카자흐|Kazakhstan|침블락|Charyn|콜사이|Kolsai|타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베|Uzbekistan|아프로시압|Afrosiyab|레기스탄|Registan|침볼락|Chimbulak|Shymbulak|젠코바|Zenkov)/i.test(
+  return /(?:알마티|Almaty|카자흐|Kazakhstan|침블락|침볼락|Charyn|콜사이|카인디|Kolsai|타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베|Uzbekistan|아프로시압|Afrosiyab|레기스탄|Registan|Chimbulak|Shymbulak|젠코바|Zenkov)/i.test(
     String(routeText ?? ''),
   )
 }
@@ -2514,9 +2560,31 @@ function allowCentralAsiaClusterKw2Duplicate(kw: string, routeText?: string | nu
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isCentralAsiaClusterRoute(routeText)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /almaty|charyn|canyon|kolsai|kazakhstan|tashkent|samarkand|registan|kok tobe|panfilov|cathedral|afrosiyab|ulug|gur|shah|zinda|bibi|chimbulak|shymbulak|zenkov|uzbekistan/.test(
+  return /almaty|charyn|canyon|kolsai|kaindy|kazakhstan|tashkent|samarkand|registan|kok tobe|panfilov|cathedral|afrosiyab|ulug|gur|shah|zinda|bibi|chimbulak|shymbulak|zenkov|uzbekistan|luna|valley of castles|black canyon/.test(
     nk,
   )
+}
+
+// REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
+function centralAsiaHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const rt = String(dayRoute ?? '')
+  if (!rt.trim()) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (/registan|afrosiyab|ulugh|gur|shah|zinda|bibi|chorsu|minor mosque|samarkand|tashkent/.test(nk)) {
+    return /타슈켄트|Tashkent|사마르칸트|Samarkand|우즈베|Uzbekistan|레기스탄|Registan|아프로시압|Afrosiyab|울루그|구르\s*아미르|샤히진다|비비하눔|초르수|미노르/i.test(
+      rt,
+    )
+  }
+  if (/shymbulak|chimbulak/.test(nk)) return /침블락|침볼락|Chimbulak|Shymbulak/i.test(rt)
+  if (/zenkov|panfilov/.test(nk)) return /젠코바|Zenkov|판필로바|Panfilov|알마티|Almaty/i.test(rt)
+  if (/charyn|valley of castles|luna canyon/.test(nk)) {
+    return /차른|Charyn|루나|Luna|Valley\s*of\s*Castles/i.test(rt)
+  }
+  if (/black canyon/.test(nk)) return /블랙|Black\s*Canyon/i.test(rt)
+  if (/kolsai/.test(nk)) return /콜사이|Kolsai|Kolsay/i.test(rt)
+  if (/kaindy/.test(nk)) return /카인디|Kaindy/i.test(rt)
+  if (/almaty/.test(nk)) return /알마티|Almaty/i.test(rt)
+  return false
 }
 
 function pickCentralAsiaClusterKeywordForUsedSlot(
@@ -2524,11 +2592,19 @@ function pickCentralAsiaClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  dayRouteText?: string | null,
 ): string {
-  if (!isCentralAsiaClusterRoute(routeText)) return ''
+  if (
+    !isCentralAsiaClusterRoute(routeText) &&
+    !isCentralAsiaClusterRoute(dayRouteText)
+  ) {
+    return ''
+  }
+  const evidenceHay = String(dayRouteText ?? routeText ?? '')
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowCentralAsiaClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowCentralAsiaClusterKw2Duplicate(kw, evidenceHay)) return ''
+    if (!centralAsiaHardcodedPoolHasDayRouteEvidence(kw, evidenceHay)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -2541,11 +2617,12 @@ function pickCentralAsiaClusterKeywordForUsedSlot(
   for (const raw of [
     'Charyn Canyon',
     'Kolsai Lakes',
+    'Kaindy Lake',
+    'Shymbulak',
     'Almaty',
     'Registan Square',
     'Afrosiyab',
     'Ulugh Beg Observatory',
-    'Shymbulak',
   ]) {
     const hit = tryPick(raw)
     if (hit) return hit
@@ -3603,6 +3680,9 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         allowRouteRevisitBareVisitCitySoftDup(primary)
       ) {
         // keep
+      } else if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
+        // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+        // keep — D2 Fansipan Peak 후 D3 판시판·사파 정상 일차
       } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softCity
       } else {
@@ -3697,6 +3777,9 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
           allowRouteRevisitBareVisitCitySoftDup(primary)
         ) {
           // keep — 서핑 등 allowlist soft-dup (route에 도시명 없음)
+        } else if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
+          // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+          // keep
         } else {
           const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
           primary =
@@ -4038,7 +4121,13 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
       const primary = String(row.imageKeyword ?? '').trim()
       const pk = normScheduleImageKeywordKey(primary)
       if (pk) used.add(pk)
-      out.set(day, { ...row, imageKeyword: primary, imageKeyword2: null })
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
+      const keepKw2 =
+        slot === 'departure' && departureKeepsMultiTourismKeyword2(row.routeText)
+      const secondary = keepKw2 ? String(row.imageKeyword2 ?? '').trim() : ''
+      const sk = normScheduleImageKeywordKey(secondary)
+      if (sk) used.add(sk)
+      out.set(day, { ...row, imageKeyword: primary, imageKeyword2: secondary || null })
       continue
     }
 
@@ -4051,7 +4140,10 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
       const prevPrimary = primary
-      if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
+      // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+      if (allowFansipanRouteRevisitSoftDup(prevPrimary, row.routeText)) {
+        // keep Fansipan Peak when day route has 판시판·사파 정상
+      } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softDupForeignVisitCityForMiddleRoute(row.routeText)
       } else {
         primary = pickReplacementPrimaryTripKeyword(row, cands, used)
@@ -4205,6 +4297,14 @@ function keywordUsedAsTripPrimary(
   return false
 }
 
+/** route에 판시판·사파 정상이 있으면 Fansipan Peak soft-dup 허용 (AVP205 D2→D3) */
+// REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+export function allowFansipanRouteRevisitSoftDup(kw: string, routeText?: string | null): boolean {
+  const nk = normScheduleImageKeywordKey(kw)
+  if (!/fansipan/.test(nk)) return false
+  return /판시판|사파\s*정상|Fansipan/i.test(String(routeText ?? ''))
+}
+
 /** bare 방문도시가 다른 중간일 primary로 이미 쓰였는지 — Bali 자유일 middle끼리 soft-dup 금지 */
 function bareVisitCityUsedAsOtherMiddlePrimary(
   kw: string,
@@ -4294,6 +4394,17 @@ function shouldRejectRouteLeakKeyword2(
     )
   ) {
     if (!africaSafariHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
+  }
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
+  if (
+    !isBareCityOrCountryKeyword(secondary) &&
+    /registan|afrosiyab|ulugh|gur-?e?\s*amir|shah-?i-?zinda|bibi|chorsu|minor mosque|charyn|kolsai|kaindy|shymbulak|chimbulak|zenkov|valley of castles|luna canyon|black canyon/.test(
+      nk,
+    )
+  ) {
+    if (isCentralAsiaClusterRoute(dayRt) || isCentralAsiaClusterRoute(hay)) {
+      if (!centralAsiaHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
+    }
   }
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Ordos≠Alaska cluster — Glacier Bay bleed 금지 — manifest
   if (/glacier bay|space needle|pike place|juneau|skagway|ketchikan|alaska cruise/.test(nk)) {
@@ -4472,10 +4583,16 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
     }
 
     if (primary && !secondary && fillKw2) {
+      // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+      // 자유일정 — bare 방문도시만, trip 미사용 Beach Club 등 kw2 bleed 금지
+      const freeLeisure = isRegisterScheduleFreeLeisureDay(
+        `${String(row.routeText ?? '')} ${String(row.title ?? '')} ${String(row.description ?? '')}`,
+      )
       const pk = normScheduleImageKeywordKey(primary)
       const dayHasTourism = routeTextTourismSegmentCount(row.routeText) >= 1
       const airportTransfer = isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)
-      let candidate = airportTransfer
+      let candidate =
+        freeLeisure || airportTransfer
         ? ''
         : pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
@@ -4490,7 +4607,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed) — manifest
         pickJapanHubClusterKeywordForUsedSlot(cands, used, row.routeText, pk) ||
         pickChinaHubClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
-        pickCentralAsiaClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickCentralAsiaClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSwissAlpsClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSteppeAlaskaClusterKeywordForUsedSlot(cands, used, row.routeText, pk) ||
         pickGapFillKeyword(daySpots, pk, row, acceptKw, false, used, true) ||
@@ -4533,6 +4650,12 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
     }
 
     if (primary && !secondary && fillKw2 && !isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
+      // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+      if (
+        !isRegisterScheduleFreeLeisureDay(
+          `${String(row.routeText ?? '')} ${String(row.title ?? '')} ${String(row.description ?? '')}`,
+        )
+      ) {
       const pk = normScheduleImageKeywordKey(primary)
       const lists =
         routeTextTourismSegmentCount(row.routeText) >= 1 ? [daySpots, cands] : [daySpots, tripSpots, cands]
@@ -4555,6 +4678,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       }
       if (secondary && normScheduleImageKeywordKey(secondary) === normScheduleImageKeywordKey(primary)) {
         secondary = ''
+      }
       }
     }
 

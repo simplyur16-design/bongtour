@@ -534,6 +534,11 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'great wall of china': 'Great Wall of China',
   'great wall': 'Great Wall of China',
   '798 art district': '798 Art District',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 Dihua Street≠bare Dihua — manifest
+  'dihua street': 'Dihua Street',
+  'dihua street taipei': 'Dihua Street Taipei',
+  'dadaocheng pier 5': 'Dadaocheng Pier 5',
+  'dadaocheng pier 5 taipei': 'Dadaocheng Pier 5 Taipei',
   /** REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU 복합 명소 — geo strip 보호 — manifest */
   'lake rotorua': 'Lake Rotorua',
   'agrodome rotorua': 'Agrodome Rotorua',

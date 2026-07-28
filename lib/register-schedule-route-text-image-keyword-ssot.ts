@@ -628,13 +628,19 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       }
       if (primary) used.add(normScheduleImageKeywordKey(primary))
     } else {
+      // return — 당일 route 명소만. 관광 세그먼트 없으면 prior 미사용 명소(Havel 등) bleed 금지
+      // → 이후 soft-dup 방문도시(Prague). REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return empty no unused landmark bleed
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
       primary =
         pickFirstPreferLandmark(routeOrdered, new Set()) || pickFirstUnused(routeLandmarks, new Set())
       if (primary && isBareCityOrCountryKeyword(primary)) primary = ''
       if (primary && !isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(primary))) {
         primary = ''
       }
-      if (!primary) {
+      const returnOwnTourismSegs = filterRegisterScheduleRoutePlaceSegments(
+        splitRouteTextPlaceSegments(routeTextForKeywords),
+      )
+      if (!primary && returnOwnTourismSegs.length > 0) {
         primary = backwardUnusedRouteKeywordFromPriorDays(day, sorted, used)
       }
       if (!primary && !routeTextForKeywords && movementHubLine) {

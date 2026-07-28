@@ -24,13 +24,14 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSegment } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup, allowFansipanRouteRevisitSoftDup, departureKeepsMultiTourismKeyword2 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import {
   normScheduleImageKeywordKey,
   pickDistinctSecondScheduleImageKeyword,
   scheduleImageKeywordsSemanticallyOverlap,
+  isRegisterScheduleFreeLeisureDay,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { mapDestination } from '@/lib/pexels-keyword'
 import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
@@ -376,8 +377,14 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       kw2 = ''
     }
     const slot = resolveScheduleKeywordSlotKind(day, maxDayFinal, activeDaysFinal)
-    // 출발·귀국 kw2 금지 — middle만 secondary refill
-    if (kw && !kw2 && slot === 'middle') {
+    // 출발·귀국 kw2 금지 — middle만 secondary refill (출발 multi tourism은 예외)
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
+    if (
+      kw &&
+      !kw2 &&
+      (slot === 'middle' ||
+        (slot === 'departure' && departureKeepsMultiTourismKeyword2(rawRoute ?? row.routeText)))
+    ) {
       kw2 = pickRouteDistinctSecondaryKeyword(kw, rawRoute ?? row.routeText)
     }
     return {
@@ -450,6 +457,18 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         } else {
           kw = ''
         }
+      } else if (allowFansipanRouteRevisitSoftDup(kw, row.routeText)) {
+        // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+        // keep — final trip-unique must not replace Fansipan with bare Sapa
+      } else if (
+        kw2 &&
+        normScheduleImageKeywordKey(kw2) !== nk &&
+        !used.has(normScheduleImageKeywordKey(kw2))
+      ) {
+        // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
+        // landmark 충돌 시 당일 kw2(Semperoper)를 dest soft-dup(Prague)보다 우선
+        kw = kw2
+        kw2 = ''
       } else {
         const soft = pickTripVisitCitySoftDup()
         const softNk = soft ? normScheduleImageKeywordKey(soft) : ''
@@ -463,11 +482,39 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       kw2 = ''
     }
     const slot = resolveScheduleKeywordSlotKind(day, maxDayFinal, activeDaysFinal)
-    if (kw && !kw2 && slot === 'middle') {
+    if (
+      kw &&
+      !kw2 &&
+      slot === 'middle' &&
+      !isRegisterScheduleFreeLeisureDay(
+        `${String(row.routeText ?? '')} ${String(row.title ?? '')} ${String(row.description ?? '')}`,
+      )
+    ) {
       // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — same-day Falls/Table Mountain semantic — manifest
+      // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+      kw2 = pickRouteDistinctSecondaryKeyword(kw, row.routeText, new Set(used.keys()))
+    } else if (
+      kw &&
+      !kw2 &&
+      slot === 'departure' &&
+      departureKeepsMultiTourismKeyword2(row.routeText)
+    ) {
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
       kw2 = pickRouteDistinctSecondaryKeyword(kw, row.routeText, new Set(used.keys()))
     }
-    if (slot !== 'middle') kw2 = ''
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+    if (
+      kw2 &&
+      isRegisterScheduleFreeLeisureDay(
+        `${String(row.routeText ?? '')} ${String(row.title ?? '')} ${String(row.description ?? '')}`,
+      )
+    ) {
+      kw2 = ''
+    }
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
+    if (slot !== 'middle' && !(slot === 'departure' && departureKeepsMultiTourismKeyword2(row.routeText))) {
+      kw2 = ''
+    }
     const finalNk2 = normScheduleImageKeywordKey(kw2)
     if (finalNk2) used.set(finalNk2, day)
     return {

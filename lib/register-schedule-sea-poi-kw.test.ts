@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 describe('register-schedule-sea-poi-kw', () => {
@@ -303,5 +304,190 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(`${by(4)?.imageKeyword ?? ''} ${by(4)?.imageKeyword2 ?? ''}`).toMatch(
       /Sentosa|Siloso|Peranakan/i,
     )
+  })
+
+  it('AVP205 Sapa/Hanoi — Day1 Long Bien not dest Sapa; Day3 Fansipan soft-dup', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 롱비엔·하노이 구시가지 — manifest
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '',
+          description: '',
+          routeText: '클릭 - 반미 - 반미 25 - 롱비엔',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '',
+          description: '',
+          routeText: '사파 슬리핑 버스 - 판시판 테라스 카페 - 카페 - 깟깟 마을',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '',
+          description: '',
+          routeText: '베트남 판시판 - 판시판 - 사파 정상 - 사파 여행 필수 관광지',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '',
+          description: '',
+          routeText: '사파 슬리핑 버스 - 구시가지 - 하노이 스트리트카 - 호안끼엠 호수',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '',
+          description: '',
+          routeText: '하노이 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '사파',
+        productTitle: '하노이/사파 5일 #판시판 #깟깟마을',
+        travelScope: 'package',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)
+    expect(String(by(1)?.imageKeyword ?? '')).toMatch(/Long Bien/i)
+    expect(String(by(1)?.imageKeyword ?? '')).not.toMatch(/^Sapa$/i)
+    expect(String(by(2)?.imageKeyword ?? '')).toMatch(/Fansipan/i)
+    expect(String(by(2)?.imageKeyword2 ?? '')).toMatch(/Cat Cat/i)
+    expect(String(by(3)?.imageKeyword ?? '')).toMatch(/Fansipan/i)
+    expect(`${by(4)?.imageKeyword ?? ''} ${by(4)?.imageKeyword2 ?? ''}`).toMatch(/Hoan Kiem|Old Quarter/i)
+    expect(String(by(5)?.imageKeyword ?? '')).toMatch(/Hanoi/i)
+  })
+
+  it('ATP223 Taipei — Dihua Street + Pier5 on Day1; free day no Pier bleed', () => {
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 Dihua Street≠bare Dihua — manifest
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ATP223 departure multi-tourism keeps kw2 — manifest
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '디화제',
+          description: '',
+          routeText: '디화제 - 다다오청 PIER5',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '카발란',
+          description: '',
+          routeText: '카발란 위스키 증류소 - 카발란 위스키 공장 - 카발란 위스키 DIY - 장메이 아마 농장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '자유 일정',
+          description: '',
+          routeText: '타이베이 자유 일정',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '까르푸',
+          description: '',
+          routeText: '까르푸 꾸이린점 - 까르푸 하나투어 고객 계산대 - 까르푸 쇼핑 리스트',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '타이베이',
+        productTitle: '타이베이 4일 #디화제 #다다오청 #카발란 #장메이',
+        travelScope: 'package',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)
+    expect(String(by(1)?.imageKeyword ?? '')).toMatch(/Dihua Street/i)
+    expect(String(by(1)?.imageKeyword ?? '')).not.toMatch(/^Dihua$/i)
+    expect(String(by(1)?.imageKeyword2 ?? '')).toMatch(/Pier\s*5|Dadaocheng/i)
+    expect(String(by(2)?.imageKeyword ?? '')).toMatch(/Kavalan/i)
+    expect(String(by(2)?.imageKeyword2 ?? '')).toMatch(/Zhangmei/i)
+    expect(String(by(3)?.imageKeyword ?? '')).toMatch(/Taipei/i)
+    expect(String(by(3)?.imageKeyword2 ?? '')).not.toMatch(/Pier|Dihua|Dadaocheng/i)
+    expect(String(by(4)?.imageKeyword ?? '')).toMatch(/Taipei/i)
+    expect(String(by(4)?.imageKeyword2 ?? '')).not.toMatch(/Pier|Dihua/i)
+  })
+
+  it('AVP257 Phu Quoc — Sonashi+Crazy Hopping; free day no Beach Club', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: Sonashi≠Beach Club same-day twin — manifest
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '',
+          description: '',
+          routeText: '푸꾸옥 입국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '',
+          description: '',
+          routeText: '크레이지 호핑 - 소나시 비치바 푸꾸옥 - 베스트웨스턴 비치클럽 - 핫한 신상 비치클럽',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '',
+          description: '',
+          routeText: '푸꾸옥 자유 일정',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '',
+          description: '',
+          routeText: '킹콩마트 - 기념품 사기 좋은 푸꾸옥 대표 마트 - 더 피크 푸꾸옥 - 더피크 레스토랑&카페 정원',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '',
+          description: '',
+          routeText: '푸꾸옥 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '푸꾸옥',
+        productTitle: '푸꾸옥 5일 #크레이지호핑 #소나시 #더피크 #자유일정',
+        travelScope: 'package',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)!
+    expect(String(by(1).imageKeyword ?? '')).toMatch(/Phu Quoc/i)
+    const d2 = `${by(2).imageKeyword ?? ''} ${by(2).imageKeyword2 ?? ''}`
+    expect(d2).toMatch(/Sonashi/i)
+    expect(d2).toMatch(/Crazy|Hopping/i)
+    expect(d2).not.toMatch(/Beach Club|Tropical Beach/i)
+    expect(String(by(3).imageKeyword ?? '')).toMatch(/Phu Quoc/i)
+    expect(String(by(3).imageKeyword2 ?? '')).not.toMatch(/Beach Club|Tropical|Sonashi/i)
+    expect(String(by(4).imageKeyword ?? '')).toMatch(/Peak/i)
+    expect(String(by(5).imageKeyword ?? '')).toMatch(/Phu Quoc/i)
   })
 })

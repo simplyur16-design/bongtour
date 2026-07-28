@@ -5384,7 +5384,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "동남아·2030·AAP218·AVP227·AYP261·JKP135·ALP201 방비엥≠Patuxai·empty edge landmark 가로채기 금지",
+      "summary": "동남아·2030·AAP218·AVP227·AYP261·JKP135·ALP201·ASP214 Sentosa≠Gardens·AVP205 Sapa/Hanoi·empty edge landmark 가로채기 금지",
       "checks": [
         {
           "file": "lib/pexels-keyword.ts",
@@ -5410,7 +5410,11 @@
             "ALP201 왓씨므앙·방비엥 액티비티",
             "Wat Si Muang Vientiane",
             "ASP214 멀라이언·페라나칸·실로소",
-            "Siloso Beach Sentosa"
+            "Siloso Beach Sentosa",
+            "AVP205 롱비엔·하노이 구시가지",
+            "Long Bien Bridge Hanoi",
+            "AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club",
+            "Phu Quoc Crazy Island Hopping"
           ]
         },
         {
@@ -5428,7 +5432,10 @@
             "Wat Si Muang Vientiane",
             "ASP214 멀라이언·페라나칸·실로소",
             "Siloso Beach Sentosa",
-            "멀라이언"
+            "멀라이언",
+            "AVP205 롱비엔·하노이 구시가지",
+            "Long Bien Bridge Hanoi",
+            "AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club"
           ]
         },
         {
@@ -5439,7 +5446,10 @@
             "2030 Bohol return soft-dup",
             "2030 revisit soft-dup",
             "edge tripReserved must not blank route-revisit middle",
-            "APP221 Cebu middle soft-dup"
+            "APP221 Cebu middle soft-dup",
+            "AVP205 Fansipan route revisit soft-dup",
+            "ATP223 departure multi-tourism keeps kw2",
+            "AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club"
           ]
         },
         {
@@ -5465,7 +5475,13 @@
             "ALP201 Laos",
             "Vang Vieng days not Patuxai",
             "ASP214 Singapore",
-            "Sentosa day not Gardens"
+            "Sentosa day not Gardens",
+            "AVP205 Sapa/Hanoi",
+            "Day1 Long Bien not dest Sapa",
+            "ATP223 Taipei",
+            "Dihua Street + Pier5 on Day1",
+            "AVP257 Phu Quoc",
+            "free day no Beach Club"
           ]
         },
         {
@@ -6667,14 +6683,16 @@
             "routeContextualNationalAssemblyEnglish",
             "description·schedule_section·본문 스캔 금지",
             "departure forward only next tourism day",
-            "departure forward dep-route cluster"
+            "departure forward dep-route cluster",
+            "EEP138 Dresden Semper·성모≠Prague"
           ]
         },
         {
           "file": "lib/register-schedule-image-keywords-apply.ts",
           "mustInclude": [
             "applyRegisterScheduleRouteTextImageKeywordsToRows",
-            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]"
+            "REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]",
+            "EEP138 Dresden Semper·성모≠Prague"
           ],
           "mustNotInclude": [
             "applyHanatourScheduleImageKeywordsToRows"
@@ -6982,6 +7000,10 @@
             "UAE EMP340 Day2 — Emirates Palace·왕궁·모스크·분수·에티하드",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
             "EAP321 Central Asia",
+            "CFP114 차른 캐니언·콜사이·카인디",
+            "ATP223 Dihua Street≠bare Dihua",
+            "EEP138 Dresden Semper·성모≠Prague",
+            "CAP104 Qingdao 소어산≠Zhanqiao",
             "India AWP902",
             "「거리가」≠ 리가 Riga",
             "몬세라트 수도원 Montserrat"
@@ -7018,7 +7040,15 @@
           "mustInclude": [
             "Africa SEQP01 — same-day Falls/Table Mountain semantic",
             "scheduleImageKeywordsSemanticallyOverlap",
-            "pickDistinctSecondScheduleImageKeyword"
+            "pickDistinctSecondScheduleImageKeyword",
+            "ATP223 departure multi-tourism keeps kw2"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "ATP223 Dihua Street≠bare Dihua",
+            "dihua street"
           ]
         },
         {
@@ -7057,6 +7087,23 @@
           ]
         },
         {
+          "file": "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "EAP321-like",
+            "CFP114 Almaty 5-day",
+            "Day1 not Charyn",
+            "no Registan"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "CFP114 Kazakhstan day-route evidence — Registan≠Almaty",
+            "centralAsiaHardcodedPoolHasDayRouteEvidence"
+          ]
+        },
+        {
           "file": "scripts/check-schedule-poi-regex-ssot-no-supplier-dup.mjs",
           "mustInclude": [
             "schedule-poi-regex-ssot",
@@ -7083,7 +7130,8 @@
         "lib/modetour-schedule-zhangjiajie-baizhang-image-keyword.test.ts",
         "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
         "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
-        "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts"
+        "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
+        "lib/register-schedule-qingdao-cap104-image-keyword.test.ts"
       ]
     },
     {
