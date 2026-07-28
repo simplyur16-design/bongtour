@@ -1889,11 +1889,26 @@ function pickCanadaRockiesClusterKeywordForUsedSlot(
 function isLaosOnlyClusterRoute(routeText: string | null | undefined): boolean {
   const hay = String(routeText ?? '')
   return (
-    /(?:라오스|Laos|비엔티엔|Vientiane|방비엥|Vang\s*Vieng)/i.test(hay) &&
+    /(?:라오스|Laos|비엔티엔|비엔티안|Vientiane|방비엥|Vang\s*Vieng)/i.test(hay) &&
     !/(?:푸꾸옥|Phu Quoc|베트남|Vietnam|호치민|하노이|Halong|다낭|Da Nang|캄보디아|Cambodia|앙코르|Angkor|싱가포르|Singapore)/i.test(
       hay,
     )
   )
+}
+
+/** 당일 route — 방비엥 vs 비엔티안 (ALP201 교차 bleed 방지) */
+function laosDayCityHint(routeText: string | null | undefined): 'vang' | 'vientiane' | 'mixed' | 'laos' {
+  const hay = String(routeText ?? '')
+  const hasVang =
+    /방비엥|Vang\s*Vieng|블루\s*라군|Blue\s*Lagoon|카약|짚라인|열기구|Nam\s*Song|탐짱/i.test(hay)
+  const hasVien =
+    /비엔티엔|비엔티안|Vientiane|파\s*탓|파탓|Patuxai|독립기념|왓\s*씨\s*므앙|Wat\s*Si\s*Muang|라오아트|조각아트|That\s*Luang|Corebeer/i.test(
+      hay,
+    )
+  if (hasVang && hasVien) return 'mixed'
+  if (hasVang) return 'vang'
+  if (hasVien) return 'vientiane'
+  return 'laos'
 }
 
 function isSoutheastAsiaLeakKeywordForLaosRoute(kw: string): boolean {
@@ -1905,10 +1920,36 @@ function isSoutheastAsiaLeakKeywordForLaosRoute(kw: string): boolean {
 
 function allowLaosClusterKw2Duplicate(kw: string, routeText?: string | null): boolean {
   if (isBareCityOrCountryKeyword(kw)) return false
-  if (!isLaosOnlyClusterRoute(routeText)) return false
+  const hay = String(routeText ?? '')
+  if (!isLaosOnlyClusterRoute(hay) && !/방비엥|Vang|비엔티엔|비엔티안|Vientiane|라오스|Laos/i.test(hay)) {
+    return false
+  }
   if (isSoutheastAsiaLeakKeywordForLaosRoute(kw)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /vientiane|vang vieng|laos|pha that|patuxai|blue lagoon|nam song|karst/.test(nk)
+  if (
+    !/vientiane|vang vieng|laos|pha that|patuxai|blue lagoon|nam song|karst|kayak|zipline|balloon|si muang|wat si/.test(
+      nk,
+    )
+  ) {
+    return false
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ALP201 방비엥≠Patuxai/That Luang — manifest
+  const city = laosDayCityHint(hay)
+  if (
+    city === 'vang' &&
+    /(?:patuxai|pha that|wat si muang)/.test(nk) &&
+    !/vang vieng|blue lagoon|nam song|kayak|zipline|balloon/.test(nk)
+  ) {
+    return false
+  }
+  if (
+    city === 'vientiane' &&
+    /(?:blue lagoon|nam song|kayak|zipline|balloon)/.test(nk) &&
+    !/(?:vientiane|pha that|patuxai|si muang)/.test(nk)
+  ) {
+    return false
+  }
+  return true
 }
 
 function pickLaosClusterKeywordForUsedSlot(
@@ -1916,11 +1957,15 @@ function pickLaosClusterKeywordForUsedSlot(
   used: ReadonlySet<string>,
   routeText: string | null | undefined,
   excludePrimaryNk = '',
+  /** 당일 route — tripHay로 비엔티안 명소를 방비엥 일자에 넣지 않음 */
+  dayRouteText?: string | null,
 ): string {
-  if (!isLaosOnlyClusterRoute(routeText)) return ''
+  const clusterHay = String(routeText ?? dayRouteText ?? '')
+  if (!isLaosOnlyClusterRoute(clusterHay) && !isLaosOnlyClusterRoute(dayRouteText)) return ''
+  const evidence = String(dayRouteText ?? '').trim() || String(routeText ?? '')
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
-    if (!allowLaosClusterKw2Duplicate(kw, routeText)) return ''
+    if (!allowLaosClusterKw2Duplicate(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -1930,12 +1975,22 @@ function pickLaosClusterKeywordForUsedSlot(
     const hit = tryPick(String(raw ?? '').trim())
     if (hit) return hit
   }
-  for (const raw of [
-    'Patuxai Victory Monument Vientiane',
-    'Pha That Luang Vientiane golden stupa',
+  const vangDefaults = [
     'Blue Lagoon Vang Vieng emerald water',
     'Vang Vieng Nam Song River Karst Mountains',
-  ]) {
+    'Vang Vieng kayaking Nam Song river',
+    'Vang Vieng hot air balloon karst',
+  ]
+  const vienDefaults = [
+    'Patuxai Victory Monument Vientiane',
+    'Pha That Luang Vientiane golden stupa',
+    'Wat Si Muang Vientiane',
+  ]
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ALP201 방비엥≠Patuxai/That Luang — manifest
+  const city = laosDayCityHint(evidence)
+  const defaults =
+    city === 'vang' ? vangDefaults : city === 'vientiane' ? vienDefaults : [...vangDefaults, ...vienDefaults]
+  for (const raw of defaults) {
     const hit = tryPick(raw)
     if (hit) return hit
   }
@@ -2109,9 +2164,15 @@ function southeastAsiaHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
     return /다\s*낭|Da\s*Nang|선짜|마블|미케/i.test(rt)
   }
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Laos Blue Lagoon ≠ Maldives lagoon evidence — manifest
-  // Vang Vieng/Laos 를 Maldives `lagoon` 토큰보다 먼저 — Blue Lagoon Vang Vieng 이 몰디브 일차에 유입 금지
-  if (/vang vieng|nam song|blue lagoon|vientiane|pha that|patuxai|laos/.test(nk)) {
-    return /방비엥|Vang\s*Vieng|비엔티엔|Vientiane|라오스|Laos|파탓|Patuxai/i.test(rt)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ALP201 방비엥≠Patuxai/That Luang — manifest
+  if (/(?:pha that|patuxai|wat si muang)/.test(nk) || (/vientiane/.test(nk) && !/vang vieng|blue lagoon|nam song/.test(nk))) {
+    return /비엔티엔|비엔티안|Vientiane|파\s*탓|파탓|Patuxai|독립기념|왓\s*씨|That\s*Luang|라오아트|조각아트/i.test(rt)
+  }
+  if (/vang vieng|nam song|blue lagoon|kayak|zipline|balloon/.test(nk)) {
+    return /방비엥|Vang\s*Vieng|블루\s*라군|카약|짚라인|열기구|Nam\s*Song/i.test(rt)
+  }
+  if (/laos/.test(nk)) {
+    return /라오스|Laos|방비엥|비엔티엔|비엔티안|Vientiane|Vang/i.test(rt)
   }
   if (/maldives|overwater|house reef|lagoon|villa|white sand|joy island/.test(nk)) {
     return /몰디브|Maldives|overwater|조이\s*아일랜드|Joy\s*Island|라군|lagoon/i.test(rt)
@@ -3785,6 +3846,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
             used,
             tripHay,
             normScheduleImageKeywordKey(primary),
+            row.routeText,
           ) || secondary
       }
       if (!secondary && isTaiwanClusterRoute(tripHay)) {
@@ -3894,7 +3956,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false, pk) ||
         pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false, pk) ||
         pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
-        pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
@@ -4364,7 +4426,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickEasternEuropeClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
-        pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
+        pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
         pickHawaiiResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
@@ -4397,7 +4459,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       const airportTransfer = isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)
       let candidate = airportTransfer
         ? ''
-        : pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
+        : pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) ||
         pickOceaniaAuNzClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) ||
@@ -4544,7 +4606,7 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false, pk) ||
         secondary
       if (!secondary && isBareCityOrCountryKeyword(primary) && isLaosOnlyClusterRoute(tripHay)) {
-        secondary = pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk) || secondary
+        secondary = pickLaosClusterKeywordForUsedSlot(cands, used, tripHay, pk, row.routeText) || secondary
       }
       if (!secondary && isBareCityOrCountryKeyword(primary) && isTaiwanClusterRoute(tripHay)) {
         secondary = pickTaiwanClusterKeywordForUsedSlot(cands, used, tripHay, pk) || secondary

@@ -694,6 +694,9 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(String(d3.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
     expect(String(d3.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
     expect(String(d3.imageKeyword2 ?? '')).not.toMatch(/phu quoc/i)
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ALP201 방비엥≠Patuxai/That Luang — manifest
+    expect(String(d3.imageKeyword2 ?? '')).not.toMatch(/Patuxai|Pha That Luang/i)
+    expect(String(d3.imageKeyword2 ?? '')).toMatch(/Blue Lagoon|Nam Song|Vang Vieng|kayak|balloon|zipline/i)
   })
 
   it('라오스 5일 — applyRegisterScheduleImageKeywordsBySupplier full pipeline', () => {

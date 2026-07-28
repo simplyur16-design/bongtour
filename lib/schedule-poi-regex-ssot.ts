@@ -550,6 +550,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /블루\s*라군|Blue Lagoon/i, en: "Blue Lagoon Vang Vieng emerald water" },
   { re: /파투싸이|Patuxai/i, en: "Patuxai Victory Monument Vientiane" },
   { re: /타틀루앙|Pha That Luang/i, en: "Pha That Luang Vientiane golden stupa front view" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ALP201 왓씨므앙·방비엥 액티비티 — manifest
+  { re: /왓\s*씨\s*므앙|Wat\s*Si\s*Muang/i, en: "Wat Si Muang Vientiane" },
+  { re: /라오아트뮤지엄|조각아트\s*박물관/i, en: "Lao sculpture art museum Vientiane" },
+  { re: /Corebeer/i, en: "Corebeer Brewery Vientiane" },
+  { re: /(?:방비엥|Vang\s*Vieng).{0,24}(?:카약킹|카약)|(?:카약킹|카약).{0,24}(?:방비엥|Vang\s*Vieng)/i, en: "Vang Vieng kayaking Nam Song river" },
+  { re: /(?:방비엥|Vang\s*Vieng|라오스).{0,24}짚라인|짚라인.{0,24}(?:방비엥|Vang\s*Vieng)/i, en: "Vang Vieng zipline jungle" },
+  { re: /(?:방비엥|라오스).{0,12}열기구|방비엥\s*열기구/i, en: "Vang Vieng hot air balloon karst" },
   { re: /후룬베이얼\s*대초원|Hulunbuir Grassland/i, en: "Hulunbuir Grassland / rolling green hills / wide angle" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 후룬베이얼 역사 박물관 ≠ Istanbul — manifest
   { re: /후룬베이얼\s*역사\s*박물관|Hulunbuir\s*History\s*Museum/i, en: "Hulunbuir History Museum" },

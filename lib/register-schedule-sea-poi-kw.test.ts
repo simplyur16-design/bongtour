@@ -170,4 +170,75 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(kw2).not.toMatch(/Tottori/i)
     expect(`${kw1} ${kw2}`).toMatch(/Shikanoshima/i)
   })
+
+  it('ALP201 Laos — Vang Vieng days not Patuxai/That Luang; Wat Si Muang on day1', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ALP201 왓씨므앙·방비엥 액티비티 — manifest
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '왓 씨 므앙',
+          description: '',
+          routeText: '라오스 담당자 소개 - 왓 씨 므앙 - Corebeer Brewery',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '방비엥 · 카약킹',
+          description: '',
+          routeText: '방비엥 - 카약킹 - 방비엥_추천도시_스케줄러 - 방비엥7',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '짚라인 · 열기구',
+          description: '',
+          routeText: 'V COFFEE & TEA - 짚라인 - 라오스 열기구 - 방비엥 열기구',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '파 탓 루앙',
+          description: '',
+          routeText: '라오아트뮤지엄 - 조각아트 박물관 - 독립기념탑 - 파 탓 루앙',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '귀국',
+          description: '',
+          routeText: '라오스 비엔티안 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '라오스',
+        productTitle: '라오스 방비엥 5일 #카약 #열기구 #파탓루앙',
+        supplierKey: 'hanatour',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)
+    expect(String(by(1)?.imageKeyword ?? '')).toMatch(/Wat Si Muang|Corebeer/i)
+    expect(String(by(1)?.imageKeyword ?? '')).not.toMatch(/Vang Vieng/i)
+    expect(`${by(2)?.imageKeyword ?? ''} ${by(2)?.imageKeyword2 ?? ''}`).not.toMatch(
+      /Patuxai|Pha That Luang/i,
+    )
+    expect(`${by(2)?.imageKeyword ?? ''} ${by(2)?.imageKeyword2 ?? ''}`).toMatch(
+      /Vang Vieng|kayak|Nam Song|Blue Lagoon/i,
+    )
+    expect(`${by(3)?.imageKeyword ?? ''} ${by(3)?.imageKeyword2 ?? ''}`).not.toMatch(
+      /Patuxai|Pha That Luang/i,
+    )
+    expect(`${by(3)?.imageKeyword ?? ''} ${by(3)?.imageKeyword2 ?? ''}`).toMatch(
+      /zipline|balloon|Vang Vieng|Blue Lagoon|Nam Song/i,
+    )
+    expect(`${by(4)?.imageKeyword ?? ''} ${by(4)?.imageKeyword2 ?? ''}`).toMatch(
+      /Patuxai|That Luang|sculpture|Museum/i,
+    )
+  })
 })

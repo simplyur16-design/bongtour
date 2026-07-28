@@ -5384,7 +5384,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "동남아·2030 한글 routeText·사해≠Shanghai·AAP218 두짓≠NYC·AVP227 나트랑≠Cebu·AYP261 코타≠Kinabalu Park·JKP135 시카노시마≠Tottori·empty edge landmark 가로채기 금지",
+      "summary": "동남아·2030·AAP218·AVP227·AYP261·JKP135·ALP201 방비엥≠Patuxai·empty edge landmark 가로채기 금지",
       "checks": [
         {
           "file": "lib/pexels-keyword.ts",
@@ -5406,7 +5406,9 @@
             "Nha Trang Pirate Island Hopping",
             "AYP261 코타키나발루≠Kinabalu Park",
             "JKP135 시카노시마≠Tottori",
-            "Shikanoshima Island Fukuoka coast"
+            "Shikanoshima Island Fukuoka coast",
+            "ALP201 왓씨므앙·방비엥 액티비티",
+            "Wat Si Muang Vientiane"
           ]
         },
         {
@@ -5419,7 +5421,9 @@
             "AVP227 나트랑 해적호핑≠Cebu Pirate",
             "Nha Trang Pirate Island Hopping",
             "JKP135 시카노시마≠Tottori",
-            "Shikanoshima Island Fukuoka coast"
+            "Shikanoshima Island Fukuoka coast",
+            "ALP201 왓씨므앙·방비엥 액티비티",
+            "Wat Si Muang Vientiane"
           ]
         },
         {
@@ -5452,7 +5456,9 @@
             "AYP261 KK free day",
             "코타키나발루≠Kinabalu Park",
             "JKP135 Fukuoka day2",
-            "Shikanoshima not Tottori"
+            "Shikanoshima not Tottori",
+            "ALP201 Laos",
+            "Vang Vieng days not Patuxai"
           ]
         },
         {
@@ -6288,6 +6294,7 @@
             "리기≠승리기념탑 — Baltic Victory Monument Swiss bleed 금지",
             "Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed)",
             "JKP135 규슈≠Tottori Sand Dunes 갭필",
+            "ALP201 방비엥≠Patuxai/That Luang",
             "Laos Blue Lagoon ≠ Maldives lagoon evidence",
             "「거리가」≠ 리가 Riga bleed",
             "allowRouteRevisitBareVisitCitySoftDup",

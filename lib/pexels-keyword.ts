@@ -802,6 +802,19 @@ const POI_KO_TO_EN: Record<string, string> = {
   블루라군: 'Blue Lagoon Vang Vieng',
   탐짱동굴: 'Tham Chang Cave',
   '탐짱 동굴': 'Tham Chang Cave',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ALP201 왓씨므앙·방비엥 액티비티 — manifest
+  '왓 씨 므앙': 'Wat Si Muang Vientiane',
+  왓씨므앙: 'Wat Si Muang Vientiane',
+  카약킹: 'Vang Vieng kayaking Nam Song river',
+  카약: 'Vang Vieng kayaking Nam Song river',
+  짚라인: 'Vang Vieng zipline jungle',
+  '라오스 열기구': 'Vang Vieng hot air balloon karst',
+  '방비엥 열기구': 'Vang Vieng hot air balloon karst',
+  열기구: 'Vang Vieng hot air balloon karst',
+  라오아트뮤지엄: 'Lao National Museum Vientiane',
+  '조각아트 박물관': 'Lao sculpture art museum Vientiane',
+  Corebeer: 'Corebeer Brewery Vientiane',
+  'Corebeer Brewery': 'Corebeer Brewery Vientiane',
   파탓루앙: 'Pha That Luang',
   빠뚜사이: 'Patuxai',
   독립기념탑: 'Patuxai',
@@ -1288,6 +1301,11 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   나라: /(?:奈良|나라시|Nara|일본|Japan|오사카|Osaka|Kyoto|교토)/i,
   /** Manado·술라웨시 축복 예수상 — 리우 Christ와 분리. bare 리우 금지(불리우는). */
   예수상: /(?:리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|브라질|Brazil|Corcovado|코르코바도)/i,
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ALP201 왓씨므앙·방비엥 액티비티 — manifest
+  카약킹: /방비엥|Vang\s*Vieng|라오스|Laos|Nam\s*Song/i,
+  카약: /방비엥|Vang\s*Vieng|라오스|Laos|Nam\s*Song/i,
+  짚라인: /방비엥|Vang\s*Vieng|라오스|Laos/i,
+  열기구: /방비엥|Vang\s*Vieng|라오스|Laos/i,
   /** NYC Central Park — 두짓·방콕·태국 문맥이면 Dusit 전용 키만 (아래 deny) */
 }
 
