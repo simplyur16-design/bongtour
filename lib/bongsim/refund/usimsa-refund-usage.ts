@@ -6,14 +6,19 @@ import type { PoolClient } from "pg";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { fetchUsimsaTopupDailyUsage } from "@/lib/bongsim/supplier/usimsa/usage-api";
 import { isUsimsaSuccess } from "@/lib/bongsim/supplier/usimsa/types";
+import { isUsimsaUnusedMb } from "@/lib/bongsim/refund/usimsa-usage-threshold";
 
-/** 이 값 이하이면 미사용으로 본다 (MB) */
-const USAGE_MB_EPSILON = 0.01;
+export { USIMSA_USAGE_MB_EPSILON } from "@/lib/bongsim/refund/usimsa-usage-threshold";
 
 export type UsimsaRefundUsageCheck =
   | { ok: true; totalUsedMb: number }
   | { ok: false; reason: "usage_check_failed"; message: string }
   | { ok: false; reason: "esim_used"; message: string; totalUsedMb: number };
+
+/** REGRESSION-FREEZE[bongsim-admin-esim-usage-check]: 관리자 미사용 확인 SSOT — manifest */
+export type UsimsaOrderUsageSummary =
+  | { ok: true; unused: boolean; totalUsedMb: number; topupCount: number }
+  | { ok: false; reason: "usage_check_failed"; message: string };
 
 async function listUsimsaTopupIdsForOrder(
   client: PoolClient,
@@ -29,10 +34,10 @@ async function listUsimsaTopupIdsForOrder(
   return r.rows.map((row) => row.topup_id.trim()).filter(Boolean);
 }
 
-export async function checkUsimsaOrderDataUsageForRefund(
+export async function summarizeUsimsaOrderDataUsage(
   orderId: string,
   existingClient?: PoolClient,
-): Promise<UsimsaRefundUsageCheck> {
+): Promise<UsimsaOrderUsageSummary> {
   const id = orderId.trim();
   const pool = getPgPool();
   if (!pool && !existingClient) {
@@ -45,7 +50,7 @@ export async function checkUsimsaOrderDataUsageForRefund(
   try {
     const topupIds = await listUsimsaTopupIdsForOrder(client, id);
     if (topupIds.length === 0) {
-      return { ok: true, totalUsedMb: 0 };
+      return { ok: true, unused: true, totalUsedMb: 0, topupCount: 0 };
     }
 
     let totalUsedMb = 0;
@@ -57,16 +62,14 @@ export async function checkUsimsaOrderDataUsageForRefund(
         return {
           ok: false,
           reason: "usage_check_failed",
-          message:
-            "데이터 사용량을 확인하지 못해 취소할 수 없습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.",
+          message: "데이터 사용량을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
         };
       }
       if (!isUsimsaSuccess(norm.code)) {
         return {
           ok: false,
           reason: "usage_check_failed",
-          message:
-            "유심사 사용량 조회에 실패했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.",
+          message: "유심사 사용량 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.",
         };
       }
       const mb = norm.history.reduce(
@@ -76,17 +79,37 @@ export async function checkUsimsaOrderDataUsageForRefund(
       totalUsedMb += mb;
     }
 
-    if (totalUsedMb > USAGE_MB_EPSILON) {
-      return {
-        ok: false,
-        reason: "esim_used",
-        message: `이미 데이터를 사용한 eSIM은 취소할 수 없습니다. (사용량 약 ${totalUsedMb.toFixed(1)}MB)`,
-        totalUsedMb,
-      };
-    }
-
-    return { ok: true, totalUsedMb };
+    return {
+      ok: true,
+      unused: isUsimsaUnusedMb(totalUsedMb),
+      totalUsedMb,
+      topupCount: topupIds.length,
+    };
   } finally {
     if (release) client.release();
   }
+}
+
+export async function checkUsimsaOrderDataUsageForRefund(
+  orderId: string,
+  existingClient?: PoolClient,
+): Promise<UsimsaRefundUsageCheck> {
+  const summary = await summarizeUsimsaOrderDataUsage(orderId, existingClient);
+  if (!summary.ok) {
+    return {
+      ok: false,
+      reason: "usage_check_failed",
+      message:
+        "데이터 사용량을 확인하지 못해 취소할 수 없습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.",
+    };
+  }
+  if (!summary.unused) {
+    return {
+      ok: false,
+      reason: "esim_used",
+      message: `이미 데이터를 사용한 eSIM은 취소할 수 없습니다. (사용량 약 ${summary.totalUsedMb.toFixed(1)}MB)`,
+      totalUsedMb: summary.totalUsedMb,
+    };
+  }
+  return { ok: true, totalUsedMb: summary.totalUsedMb };
 }

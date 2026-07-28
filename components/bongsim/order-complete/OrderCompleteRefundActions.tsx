@@ -63,7 +63,7 @@ export function OrderCompleteRefundActions({
   const onCancel = async () => {
     if (busy) return;
     const ok = window.confirm(
-      "주문을 취소할까요?\n\n1) 유심사 eSIM 발급 취소(문자·QR로 받은 eSIM도 사용 불가)\n2) 카드 결제 전액 환불\n\n데이터를 사용하지 않았으면 취소할 수 있습니다. 이미 데이터를 사용한 경우에는 취소할 수 없습니다.",
+      "주문을 취소할까요?\n\n1) eSIM 발급 취소(문자·QR로 받은 eSIM도 사용 불가)\n2) 카드 결제 전액 환불\n\n데이터를 사용하지 않았으면 취소할 수 있습니다. 이미 데이터를 사용한 경우에는 취소할 수 없습니다.",
     );
     if (!ok) return;
     setBusy(true);
@@ -95,7 +95,7 @@ export function OrderCompleteRefundActions({
         {showHeading ? "주문 취소·환불" : "주문 취소"}
       </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-amber-900">
-        유심사 eSIM 발급을 취소한 뒤 카드 결제를 전액 환불합니다. 문자·QR로 받은 eSIM도 설치·사용이
+        eSIM 발급을 취소한 뒤 카드 결제를 전액 환불합니다. 문자·QR로 받은 eSIM도 설치·사용이
         불가해집니다. 데이터를 사용하지 않았을 때만 취소할 수 있습니다.
       </p>
       {err ? <p className="mt-2 text-[13px] text-red-700">{err}</p> : null}

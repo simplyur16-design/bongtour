@@ -3,17 +3,18 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { FileText, RefreshCw, Scale, ShieldAlert } from "lucide-react";
 import Header from "@/app/components/Header";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
+import { bongsimPath, USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/lib/bongsim/constants";
 import { SITE_NAME } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: `eSIM 환불·서비스 정책 | Bong투어 eSIM`,
   description:
-    "Bong투어 eSIM(무형재화)의 서비스 제공기간, 환불·교환 정책 및 유의사항입니다. 결제 후 QR 발송, 활성화 기준, 미활성 시 환불 안내.",
+    "Bong투어 eSIM의 서비스 제공기간, 환불·교환 정책 및 유의사항입니다. 결제 후 QR 발송, 활성화 기준, 미활성 시 환불 안내.",
   alternates: { canonical: "/travel/esim/policy" },
   openGraph: {
     title: `eSIM 환불·서비스 정책 | ${SITE_NAME} eSIM`,
-    description: "서비스 제공기간, 환불·교환 정책, 유의사항(무형재화·디지털 상품 기준).",
+    description: "서비스 제공기간, 환불·교환 정책, 유의사항.",
     url: "/travel/esim/policy",
     type: "website",
   },
@@ -49,14 +50,26 @@ const SECTIONS: Array<{
         <li>QR코드 사용(활성화) 후: 환불 불가</li>
         <li>제품 결함 시: 전액 환불 또는 재발급</li>
         <li>
-          환불 신청: 고객센터 또는 이메일(
+          환불·이용 문의:{" "}
           <a
-            href="mailto:bongtour24@naver.com"
-            className="font-medium text-teal-700 underline decoration-teal-300 underline-offset-2 hover:text-teal-800"
+            href={USIMSA_CX_KAKAO_CHAT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-teal-800 underline decoration-teal-400 underline-offset-2 hover:text-teal-950"
           >
-            bongtour24@naver.com
+            카카오톡 문의
           </a>
-          )
+          {" · "}
+          <a
+            href={USIMSA_CX_CONTACT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-teal-800 underline decoration-teal-400 underline-offset-2 hover:text-teal-950"
+          >
+            고객센터
+          </a>
+          {" "}
+          (24시간)
         </li>
       </ul>
     ),
@@ -67,7 +80,7 @@ const SECTIONS: Array<{
     icon: RefreshCw,
     body: (
       <ul className="ml-4 list-disc space-y-2 pl-1 marker:text-teal-600">
-        <li>eSIM은 디지털 상품으로 교환이 불가합니다.</li>
+        <li>eSIM은 교환이 불가합니다.</li>
         <li>제품 결함 시 동일 상품 재발급으로 대체합니다.</li>
       </ul>
     ),
@@ -87,21 +100,20 @@ const SECTIONS: Array<{
 
 export default function EsimPolicyPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bt-esim-policy-page min-h-screen bg-white text-slate-900">
       <Header />
       <section
         className="w-full bg-gradient-to-br from-sky-50 to-teal-50 px-4 py-12 lg:py-16"
         aria-labelledby="esim-policy-hero"
       >
         <div className="mx-auto max-w-3xl text-center lg:max-w-4xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-800/80">무형재화 · 디지털 상품</p>
           <h1
             id="esim-policy-hero"
-            className="mt-2 text-balance text-2xl font-bold leading-tight tracking-tight text-slate-900 lg:text-4xl"
+            className="text-balance text-2xl font-bold leading-tight tracking-tight text-slate-900 lg:text-4xl"
           >
             eSIM 환불·서비스 정책
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-slate-600 lg:mt-5 lg:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base text-slate-700 lg:mt-5 lg:text-lg">
             간편이심(eSIM) 구매 전 서비스 제공 기간과 환불·교환 기준을 확인해 주세요.
           </p>
         </div>
@@ -120,16 +132,34 @@ export default function EsimPolicyPage() {
                 id={`${id}-heading`}
                 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-lg font-bold text-slate-900 lg:text-xl"
               >
-                <Icon className="h-5 w-5 shrink-0 text-teal-600" aria-hidden />
+                <Icon className="h-5 w-5 shrink-0 text-teal-700" aria-hidden />
                 {title}
               </h2>
-              <div className="mt-4 text-sm leading-relaxed text-slate-700 lg:text-base">{body}</div>
+              <div className="mt-4 text-sm leading-relaxed text-slate-800 lg:text-base">{body}</div>
             </section>
           ))}
         </div>
 
-        <p className="mt-10 text-center text-sm text-slate-500">
-          <Link href={bongsimPath()} className="font-medium text-teal-700 underline-offset-4 hover:underline">
+        <section
+          className="mt-10 rounded-xl border border-slate-200 bg-slate-50 px-5 py-6 text-center lg:px-8 lg:py-8"
+          aria-labelledby="esim-policy-cs-heading"
+        >
+          <h2 id="esim-policy-cs-heading" className="text-base font-semibold text-slate-900 lg:text-lg">
+            고객센터 안내
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-700 lg:text-base">
+            eSIM 설치·사용·환불 문의는 고객센터에서 24시간 접수합니다.
+          </p>
+          <div className="mt-4 flex justify-center text-left">
+            <EsimMypageUsimsaCsLinks />
+          </div>
+        </section>
+
+        <p className="mt-10 text-center text-sm text-slate-600">
+          <Link
+            href={bongsimPath()}
+            className="font-medium text-teal-800 underline-offset-4 hover:underline"
+          >
             ← eSIM 홈으로
           </Link>
         </p>

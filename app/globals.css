@@ -447,3 +447,17 @@ a:not([class]):hover {
 .bt-esim-benefit-page .bt-esim-benefit-notice li {
   color: #78350f !important;
 }
+
+/* eSIM 환불·서비스 정책 — 밝은 배경 본문: 흰색 상속 차단 */
+.bt-esim-policy-page,
+.bt-esim-policy-page main,
+.bt-esim-policy-page section,
+.bt-esim-policy-page h1,
+.bt-esim-policy-page h2,
+.bt-esim-policy-page p,
+.bt-esim-policy-page li {
+  color: #0f172a !important;
+}
+.bt-esim-policy-page a.font-medium {
+  color: #115e59 !important;
+}

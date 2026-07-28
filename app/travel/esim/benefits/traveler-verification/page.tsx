@@ -24,7 +24,7 @@ export default function EsimTravelerVerificationPage() {
         "인증이 필요한 상품은 국내에서 미리 설치·인증해도 날짜가 차감되지 않아요.",
       ]}
       countriesHeading="내 상품이 인증 대상인지 확인"
-      countriesText="ICCID 번호 앞자리로 인증 필요 여부를 확인할 수 있어요. (유심사 안내와 동일)"
+      countriesText="ICCID 번호 앞자리로 인증 필요 여부를 확인할 수 있어요."
       countriesBullets={[
         "ICCID가 8985234로 시작 → 여행자 인증 필요 (홍콩·마카오·대만)",
         "그 외 ICCID(예: 90000·8985235 등) → 인증 불필요 (중국 본토 포함)",

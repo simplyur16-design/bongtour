@@ -988,6 +988,49 @@
       ]
     },
     {
+      "id": "bongsim-admin-esim-usage-check",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 결제 목록 — eSIM 미사용 확인(유심사 usage)·환불 옆 버튼",
+      "checks": [
+        {
+          "file": "lib/bongsim/refund/usimsa-refund-usage.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-esim-usage-check]",
+            "summarizeUsimsaOrderDataUsage",
+            "isUsimsaUnusedMb"
+          ]
+        },
+        {
+          "file": "lib/bongsim/refund/usimsa-usage-threshold.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-esim-usage-check]",
+            "USIMSA_USAGE_MB_EPSILON"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/payments/[orderId]/usage/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-esim-usage-check]",
+            "summarizeUsimsaOrderDataUsage"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-esim-usage-check]",
+            "미사용 확인",
+            "/usage"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/refund/usimsa-usage-threshold.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-offline-usim-order",
       "tier": [
         "prebuild",
@@ -10415,6 +10458,17 @@
       "summary": "관리자 결제·발급 조회 failure payload",
       "files": [
         "lib/bongsim/db/admin-query.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-admin-esim-usage-check",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 eSIM 미사용 확인 epsilon",
+      "files": [
+        "lib/bongsim/refund/usimsa-usage-threshold.test.ts"
       ]
     },
     {

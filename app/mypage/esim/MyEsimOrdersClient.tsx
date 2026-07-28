@@ -283,8 +283,8 @@ export default function MyEsimOrdersClient() {
           고객지원센터
         </h2>
         <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-          eSIM 설치·사용 중 문제가 있으면 유심사 CX(24시간)를 이용해 주세요. 일반 문의는 봉투어 고객센터(09:00-18:00
-          KST)를 이용해 주세요.
+          eSIM 설치·사용 중 문제가 있으면 아래 고객지원(24시간)을 이용해 주세요. 일반 문의는 봉투어
+          고객센터(09:00-18:00 KST)를 이용해 주세요.
         </p>
         <EsimMypageUsimsaCsLinks className="mt-4" />
       </section>

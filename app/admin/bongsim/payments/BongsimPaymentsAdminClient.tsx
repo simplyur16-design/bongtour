@@ -190,6 +190,50 @@ export default function BongsimPaymentsAdminClient() {
   const [compBulkFailed, setCompBulkFailed] = useState<
     Array<{ phone: string; message: string }>
   >([]);
+  const [usageByOrder, setUsageByOrder] = useState<
+    Record<
+      string,
+      | { state: "loading" }
+      | { state: "ok"; unused: boolean; label: string }
+      | { state: "err"; message: string }
+    >
+  >({});
+
+  // REGRESSION-FREEZE[bongsim-admin-esim-usage-check]: 목록 미사용 확인 버튼 — manifest
+  const checkOrderUsage = async (orderId: string) => {
+    setUsageByOrder((prev) => ({ ...prev, [orderId]: { state: "loading" } }));
+    try {
+      const res = await fetch(`/api/admin/bongsim/payments/${encodeURIComponent(orderId)}/usage`, {
+        cache: "no-store",
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        unused?: boolean;
+        label?: string;
+        error?: string;
+        message?: string;
+      };
+      if (!res.ok || !j.ok) {
+        throw new Error(j.message ?? j.error ?? "사용량 조회 실패");
+      }
+      setUsageByOrder((prev) => ({
+        ...prev,
+        [orderId]: {
+          state: "ok",
+          unused: Boolean(j.unused),
+          label: j.label?.trim() || (j.unused ? "미사용" : "사용"),
+        },
+      }));
+    } catch (e) {
+      setUsageByOrder((prev) => ({
+        ...prev,
+        [orderId]: {
+          state: "err",
+          message: e instanceof Error ? e.message : "사용량 조회 실패",
+        },
+      }));
+    }
+  };
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -822,7 +866,7 @@ export default function BongsimPaymentsAdminClient() {
               <th className="px-3 py-3">결제금액</th>
               <th className="px-3 py-3">연락처</th>
               <th className="px-3 py-3">생성일</th>
-              <th className="px-3 py-3">환불</th>
+              <th className="px-3 py-3">사용·환불</th>
             </tr>
           </thead>
           <tbody>
@@ -865,13 +909,45 @@ export default function BongsimPaymentsAdminClient() {
                 </td>
                 <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                   {r.status === "paid" || r.status === "delivered" ? (
-                    <button
-                      type="button"
-                      className="rounded-md bg-amber-600/90 px-2 py-1 text-xs font-semibold text-white hover:bg-amber-500"
-                      onClick={() => void openDetail(r.order_id)}
-                    >
-                      환불
-                    </button>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          className="rounded-md border border-teal-700/40 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100"
+                          disabled={usageByOrder[r.order_id]?.state === "loading"}
+                          onClick={() => void checkOrderUsage(r.order_id)}
+                        >
+                          {usageByOrder[r.order_id]?.state === "loading" ? "조회 중…" : "미사용 확인"}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md bg-amber-600/90 px-2 py-1 text-xs font-semibold text-white hover:bg-amber-500"
+                          onClick={() => void openDetail(r.order_id)}
+                        >
+                          환불
+                        </button>
+                      </div>
+                      {(() => {
+                        const u = usageByOrder[r.order_id];
+                        if (u?.state === "ok") {
+                          return (
+                            <span
+                              className={`text-[11px] font-semibold ${
+                                u.unused ? "text-teal-700" : "text-amber-800"
+                              }`}
+                            >
+                              {u.label}
+                            </span>
+                          );
+                        }
+                        if (u?.state === "err") {
+                          return (
+                            <span className="max-w-[10rem] text-[11px] text-red-600">{u.message}</span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   ) : (
                     <span className="text-bt-text-muted-lavender">—</span>
                   )}
