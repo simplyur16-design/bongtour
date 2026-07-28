@@ -554,6 +554,17 @@ const POI_KO_TO_EN: Record<string, string> = {
   짜뚜짝시장: 'Chatuchak Weekend Market Bangkok',
   '짜뚜짝 주말시장': 'Chatuchak Weekend Market Bangkok',
   딸랏노이: 'Talad Noi Bangkok alley',
+  '딸랏노이 골목': 'Talad Noi Bangkok alley',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AAP218 방루앙·두짓≠NYC Central Park — manifest
+  방루앙: 'Bang Luang Canal Village Bangkok',
+  '방루앙 운하마을': 'Bang Luang Canal Village Bangkok',
+  왓빡남: 'Wat Paknam Bangkok',
+  '왓 빡남': 'Wat Paknam Bangkok',
+  '아티스트 하우스': 'Artist House Bangkok canal',
+  아티스트하우스: 'Artist House Bangkok canal',
+  '두짓 센트럴 파크': 'Dusit Central Park Bangkok',
+  두짓센트럴파크: 'Dusit Central Park Bangkok',
+  'Dusit Central Park': 'Dusit Central Park Bangkok',
   동방지문: 'Gate of the Orient Suzhou',
   핑장루: 'Pingjiang Road Suzhou canal',
   '소주 운하': 'Suzhou canal Pingjiang',
@@ -1137,6 +1148,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   올랑고: 'Olango Island Cebu',
   막탄: 'Mactan Island Cebu',
   '막탄 섬': 'Mactan Island Cebu',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP227 나트랑 해적호핑≠Cebu Pirate — manifest
+  '나트랑 해적 호핑': 'Nha Trang Pirate Island Hopping',
+  '나트랑 해적호핑': 'Nha Trang Pirate Island Hopping',
+  '나트랑 레일웨이 카페': 'Nha Trang Railway Cafe',
+  '나트랑 레일웨이카페': 'Nha Trang Railway Cafe',
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu 2030 해적호핑·정어리떼 — manifest
   해적호핑: 'Cebu Pirate Island Hopping',
   '해적 호핑': 'Cebu Pirate Island Hopping',
@@ -1266,11 +1282,27 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   나라: /(?:奈良|나라시|Nara|일본|Japan|오사카|Osaka|Kyoto|교토)/i,
   /** Manado·술라웨시 축복 예수상 — 리우 Christ와 분리. bare 리우 금지(불리우는). */
   예수상: /(?:리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|브라질|Brazil|Corcovado|코르코바도)/i,
+  /** NYC Central Park — 두짓·방콕·태국 문맥이면 Dusit 전용 키만 (아래 deny) */
 }
 
 function poiKoMappingAllowed(ko: string, text: string): boolean {
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — bare 빅토리아≠Falls/Peak — manifest
   if (ko === '빅토리아' && /폭포|폴스|피크|Peak|Falls/i.test(text)) return false
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 두짓 센트럴 파크≠NYC Central Park — manifest
+  if (
+    (ko === '센트럴 파크' || ko === '센트럴파크') &&
+    /두짓|Dusit|방콕|Bangkok|태국|Thailand|파타야|Pattaya/i.test(text)
+  ) {
+    return false
+  }
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP227 나트랑 해적호핑≠Cebu Pirate — manifest
+  if (
+    (ko === '해적호핑' || ko === '해적 호핑') &&
+    /나트랑|Nha\s*Trang|베트남|Vietnam|다낭|Da\s*Nang|푸꾸옥|Phu\s*Quoc/i.test(text) &&
+    !/세부|Cebu|필리핀|Philippines|막탄|Mactan|보홀|Bohol/i.test(text)
+  ) {
+    return false
+  }
   const req = POI_KO_MAPPING_CONTEXT_RE[ko]
   if (!req) return true
   return req.test(text)

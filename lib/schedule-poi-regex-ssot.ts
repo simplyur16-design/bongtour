@@ -75,6 +75,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /진리의\s*성전|Sanctuary\s*of\s*Truth/i, en: "Sanctuary of Truth Pattaya" },
   { re: /농눅|Nong\s*Nooch/i, en: "Nong Nooch Tropical Garden Pattaya" },
   { re: /아시아티크|Asiatique/i, en: "Asiatique Bangkok night market" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AAP218 방루앙·두짓≠NYC Central Park — manifest
+  { re: /두짓\s*센트럴\s*파크|Dusit\s*Central\s*Park/i, en: "Dusit Central Park Bangkok" },
+  { re: /방루앙(?:\s*운하\s*마을)?|Bang\s*Luang/i, en: "Bang Luang Canal Village Bangkok" },
+  { re: /왓\s*빡남|Wat\s*Paknam/i, en: "Wat Paknam Bangkok" },
+  { re: /아티스트\s*하우스|Artist'?s?\s*House/i, en: "Artist House Bangkok canal" },
+  { re: /짜뚜짝(?:\s*주말)?\s*시장|Chatuchak/i, en: "Chatuchak Weekend Market Bangkok" },
+  { re: /딸랏\s*노이|Talad\s*Noi/i, en: "Talad Noi Bangkok alley" },
   { re: /니모섬|Nemo\s*Island/i, en: "Koh Nang Yuan snorkeling Thailand" },
   { re: /하쿠토\s*신사|Hakuto/i, en: "Hakuto Shrine Tottori" },
   { re: /유시엔|Yuushien|유후인/i, en: "Yuushien Garden Shimane" },
@@ -188,6 +195,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /포나가(?:\s*참)?(?:\s*사원)?|포나가르|Po Nagar|Cham Towers/i, en: "Po Nagar Cham Towers" },
   { re: /달랏\s*꽃\s*정원|Dalat Flower|Da Lat Flower/i, en: "Da Lat Flower Garden Vietnam" },
   { re: /달랏|Da Lat|Dalat/i, en: "Da Lat Vietnam highland city" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP227 나트랑 해적호핑≠Cebu Pirate — manifest
+  { re: /나트랑\s*해적\s*호핑|Nha\s*Trang\s*Pirate/i, en: "Nha Trang Pirate Island Hopping" },
+  { re: /나트랑\s*레일웨이\s*카페|Nha\s*Trang\s*Railway\s*Cafe/i, en: "Nha Trang Railway Cafe" },
   { re: /나트랑|Nha Trang/i, en: "Nha Trang beach Vietnam" },
   { re: /(?:유|우)원|豫园|예원/u, en: "Yu Garden Shanghai" },
   { re: /외탄|外灘|外滩|와탄/u, en: "Shanghai Bund skyline" },
@@ -790,6 +800,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /하버드\s*대학|Harvard\s*University/i, en: "Harvard University campus" },
   { re: /예일\s*대학|Yale\s*University/i, en: "Yale University campus" },
   { re: /우드버리\s*아울|Woodbury\s*Common/i, en: "Woodbury Common Premium Outlets" },
+  // bare 센트럴 파크 = NYC. 두짓 센트럴 파크는 위 Bangkok Dusit 규칙 선매칭.
   { re: /센트럴\s*파크|Central\s*Park/i, en: "Central Park New York" },
   { re: /록펠러|Rockefeller\s*Center|Top\s*of\s*the\s*Rock/i, en: "Rockefeller Center Top of the Rock" },
   { re: /9\.?11\s*메모리얼|Ground\s*Zero/i, en: "9/11 Memorial New York" },

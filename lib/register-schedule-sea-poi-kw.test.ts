@@ -49,4 +49,55 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(String(out.find((r) => r.day === 2)?.imageKeyword ?? '')).toMatch(/Bamboo Bridge/i)
     expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Chocolate Hills/i)
   })
+
+  it('AAP218 Bangkok day4 — Bang Luang not NYC Central Park (Dusit)', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AAP218 방루앙·두짓≠NYC Central Park — manifest
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 4,
+          title: '방루앙 운하마을 · 왓빡남',
+          description: '',
+          routeText: '방루앙 운하마을 - 왓빡남 - 아티스트 하우스 - 두짓 센트럴 파크',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '방콕',
+        productTitle:
+          '방콕 5일 #타이쿠킹클래스 #올드타운투어 #빈티지짜뚜짝시장 #방루앙운하마을 #두짓센트럴파크',
+        supplierKey: 'hanatour',
+      },
+    )
+    const kw = String(out[0]?.imageKeyword ?? '')
+    expect(kw).not.toMatch(/Central Park New York|^Central Park$/i)
+    expect(kw).toMatch(/Bang Luang|Wat Paknam|Artist House|Dusit Central Park/i)
+  })
+
+  it('AVP227 Nha Trang day2 — pirate hopping not Cebu', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP227 나트랑 해적호핑≠Cebu Pirate — manifest
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 2,
+          title: '나트랑 해적 호핑 · 나트랑 레일웨이 카페',
+          description: '',
+          routeText: '나트랑 해적 호핑 - 나트랑 레일웨이 카페 - 오늘의 감성카페 - 스카이라이트',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '나트랑',
+        productTitle: '나트랑 5일 #해적호핑 #레일웨이카페 #판랑사막 #코코배',
+        supplierKey: 'hanatour',
+      },
+    )
+    const kw1 = String(out[0]?.imageKeyword ?? '')
+    const kw2 = String(out[0]?.imageKeyword2 ?? '')
+    expect(kw1).not.toMatch(/Cebu/i)
+    expect(kw2).not.toMatch(/Cebu/i)
+    expect(kw1).toMatch(/Nha Trang.*Pirate|Pirate.*Nha Trang/i)
+  })
 })
