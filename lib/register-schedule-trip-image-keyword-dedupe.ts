@@ -2182,8 +2182,23 @@ function southeastAsiaHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
       rt,
     )
   }
-  if (/merlion|gardens by the bay|universal studios singapore|sentosa|marina bay|singapore/.test(nk)) {
-    return /싱가포르|Singapore|머라이언|Merlion|센토사|Sentosa|마리나|유니버셜|Universal|가든스|Gardens/i.test(
+  if (/merlion|gardens by the bay|universal studios singapore|sentosa|marina bay|singapore|siloso|chijmes|dempsey|tiong bahru|peranakan/.test(nk)) {
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: ASP214 Sentosa≠Gardens by the Bay bleed — manifest
+    if (/gardens by the bay/.test(nk)) {
+      return /가든스|Gardens\s*by|슈퍼트리|클라우드\s*포레스트|플라워\s*돔|클라우드포레스트/i.test(rt)
+    }
+    if (/merlion/.test(nk)) return /머르?라이언|멀라이언|Merlion/i.test(rt)
+    if (/sentosa|siloso/.test(nk)) return /센토사|Sentosa|실로소|Siloso/i.test(rt)
+    if (/marina bay/.test(nk)) return /마리나|Marina\s*Bay|스카이파크|Sky\s*Park/i.test(rt)
+    if (/universal studios singapore/.test(nk)) {
+      return /유니버설|Universal|USS/i.test(rt) && /싱가포르|Singapore/i.test(rt)
+    }
+    if (/chijmes/.test(nk)) return /차임스|CHIJMES/i.test(rt)
+    if (/dempsey/.test(nk)) return /뎀시|Dempsey/i.test(rt)
+    if (/tiong bahru/.test(nk)) return /티옹바루|Tiong\s*Bahru/i.test(rt)
+    if (/peranakan/.test(nk)) return /페라나칸|Peranakan/i.test(rt)
+    if (/singapore/.test(nk)) return /싱가포르|Singapore/i.test(rt)
+    return /싱가포르|Singapore|머라이언|멀라이언|Merlion|센토사|Sentosa|마리나|유니버셜|Universal|가든스|Gardens/i.test(
       rt,
     )
   }
@@ -2242,7 +2257,10 @@ function pickSoutheastAsiaResortClusterKeywordForUsedSlot(
     'Gardens by the Bay Singapore',
     'Universal Studios Singapore',
     'Sentosa Island Singapore',
+    'Siloso Beach Sentosa',
     'Marina Bay Sands Singapore',
+    'CHIJMES Singapore',
+    'Peranakan Place Singapore',
   ]) {
     if (!southeastAsiaHardcodedPoolHasDayRouteEvidence(raw, evidenceHay)) continue
     const hit = tryPick(raw)

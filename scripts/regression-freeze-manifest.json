@@ -5408,7 +5408,9 @@
             "JKP135 시카노시마≠Tottori",
             "Shikanoshima Island Fukuoka coast",
             "ALP201 왓씨므앙·방비엥 액티비티",
-            "Wat Si Muang Vientiane"
+            "Wat Si Muang Vientiane",
+            "ASP214 멀라이언·페라나칸·실로소",
+            "Siloso Beach Sentosa"
           ]
         },
         {
@@ -5423,7 +5425,10 @@
             "JKP135 시카노시마≠Tottori",
             "Shikanoshima Island Fukuoka coast",
             "ALP201 왓씨므앙·방비엥 액티비티",
-            "Wat Si Muang Vientiane"
+            "Wat Si Muang Vientiane",
+            "ASP214 멀라이언·페라나칸·실로소",
+            "Siloso Beach Sentosa",
+            "멀라이언"
           ]
         },
         {
@@ -5458,7 +5463,9 @@
             "JKP135 Fukuoka day2",
             "Shikanoshima not Tottori",
             "ALP201 Laos",
-            "Vang Vieng days not Patuxai"
+            "Vang Vieng days not Patuxai",
+            "ASP214 Singapore",
+            "Sentosa day not Gardens"
           ]
         },
         {
@@ -6295,6 +6302,7 @@
             "Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed)",
             "JKP135 규슈≠Tottori Sand Dunes 갭필",
             "ALP201 방비엥≠Patuxai/That Luang",
+            "ASP214 Sentosa≠Gardens by the Bay bleed",
             "Laos Blue Lagoon ≠ Maldives lagoon evidence",
             "「거리가」≠ 리가 Riga bleed",
             "allowRouteRevisitBareVisitCitySoftDup",

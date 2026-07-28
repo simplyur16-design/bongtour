@@ -241,4 +241,67 @@ describe('register-schedule-sea-poi-kw', () => {
       /Patuxai|That Luang|sculpture|Museum/i,
     )
   })
+
+  it('ASP214 Singapore — Sentosa day not Gardens; Merlion typo; Peranakan/Siloso', () => {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ASP214 멀라이언·페라나칸·실로소 — manifest
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '마리나베이',
+          description: '',
+          routeText:
+            '싱가포르_마리나베이_스카이파크_전망대 - 페라나칸 테라스 하우스 - Peranakan Cuisine_HR_031 - 정보 및 팁!',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '가든스',
+          description: '',
+          routeText: '포레스트 - 가든스바이더베이_플라워돔 - 멀라이언 파크',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '차임스',
+          description: '',
+          routeText: '차임스 - 뎀시 힐 - 티옹바루 - 클럽 스트리트 & 안 시앙 로드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '센토사',
+          description: '',
+          routeText: '페라나칸 플레이스 - 센토사 실로소 비치 - 실로소! - 어드벤처',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '귀국',
+          description: '',
+          routeText: '싱가포르 출발 및 인천 귀국',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '싱가포르',
+        productTitle: '싱가포르 5일 #마리나베이 #가든스바이더베이 #센토사',
+        supplierKey: 'hanatour',
+      },
+    )
+    const by = (d: number) => out.find((r) => r.day === d)
+    expect(`${by(1)?.imageKeyword ?? ''} ${by(1)?.imageKeyword2 ?? ''}`).toMatch(/Marina Bay|Peranakan/i)
+    expect(`${by(2)?.imageKeyword ?? ''} ${by(2)?.imageKeyword2 ?? ''}`).toMatch(/Gardens by the Bay/i)
+    expect(`${by(2)?.imageKeyword ?? ''} ${by(2)?.imageKeyword2 ?? ''}`).toMatch(/Merlion/i)
+    expect(String(by(3)?.imageKeyword ?? '')).toMatch(/CHIJMES/i)
+    expect(`${by(4)?.imageKeyword ?? ''} ${by(4)?.imageKeyword2 ?? ''}`).not.toMatch(/Gardens by the Bay/i)
+    expect(`${by(4)?.imageKeyword ?? ''} ${by(4)?.imageKeyword2 ?? ''}`).toMatch(
+      /Sentosa|Siloso|Peranakan/i,
+    )
+  })
 })

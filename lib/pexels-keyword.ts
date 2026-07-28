@@ -280,15 +280,29 @@ const POI_KO_TO_EN: Record<string, string> = {
   센토사섬: 'Sentosa',
   머를라이언: 'Merlion Park',
   머라이언: 'Merlion Park',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ASP214 멀라이언·페라나칸·실로소 — manifest
+  멀라이언: 'Merlion Park',
+  '멀라이언 파크': 'Merlion Park',
   가든스바이더베이: 'Gardens by the Bay',
   마리나베이샌즈: 'Marina Bay Sands',
   마리나베이: 'Marina Bay Sands',
+  '마리나베이 스카이파크': 'Marina Bay Sands SkyPark',
+  스카이파크: 'Marina Bay Sands SkyPark',
   헨더슨웨이브: 'Henderson Waves Bridge',
   클라우드포레스트: 'Gardens by the Bay',
   오차드로드: 'Orchard Road',
   차이나타운: 'Chinatown Singapore',
   리버보트: 'Singapore River',
   리버보트크루즈: 'Singapore River',
+  '페라나칸 테라스 하우스': 'Peranakan terrace house Singapore',
+  '페라나칸 플레이스': 'Peranakan Place Singapore',
+  페라나칸: 'Peranakan Place Singapore',
+  '센토사 실로소 비치': 'Siloso Beach Sentosa',
+  실로소: 'Siloso Beach Sentosa',
+  '실로소 비치': 'Siloso Beach Sentosa',
+  '클럽 스트리트': 'Club Street Singapore',
+  '안 시앙 로드': 'Ann Siang Road Singapore',
+  '안 시앙': 'Ann Siang Hill Singapore',
   // 후르가다 — earlier KO_CITY_TO_EN city map (duplicate key breaks next build)
   홍해: 'Red Sea Egypt',
   그랜드이집션뮤지엄: 'Grand Egyptian Museum',
@@ -551,6 +565,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   차임스: 'CHIJMES Singapore',
   '뎀시 힐': 'Dempsey Hill Singapore',
   티옹바루: 'Tiong Bahru Singapore',
+  뎀시힐: 'Dempsey Hill Singapore',
   아라쿠라야마: 'Arakurayama Sengen Park Kawaguchiko',
   '아라쿠라야마 센겐공원': 'Arakurayama Sengen Park Kawaguchiko',
   오시노핫카이: 'Oshino Hakkai Fuji five lakes',
@@ -1306,6 +1321,10 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   카약: /방비엥|Vang\s*Vieng|라오스|Laos|Nam\s*Song/i,
   짚라인: /방비엥|Vang\s*Vieng|라오스|Laos/i,
   열기구: /방비엥|Vang\s*Vieng|라오스|Laos/i,
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ASP214 멀라이언·페라나칸·실로소 — manifest
+  스카이파크: /싱가포르|Singapore|마리나|Marina/i,
+  페라나칸: /싱가포르|Singapore|페라나칸|Peranakan/i,
+  실로소: /센토사|Sentosa|실로소|Siloso|싱가포르|Singapore/i,
   /** NYC Central Park — 두짓·방콕·태국 문맥이면 Dusit 전용 키만 (아래 deny) */
 }
 

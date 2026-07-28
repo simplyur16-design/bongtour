@@ -359,12 +359,20 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   // REGRESSION-FREEZE[lottetour-singapore-register-quality]: Singapore USS before Japan Universal catch-all — manifest
   { re: /(?:유|우)니버설\s*스튜디오\s*(?:싱가포르|singapore)|USS\b/iu, en: "Universal Studios Singapore" },
   { re: /가든스\s*(?:바이\s*)?(?:더\s*)?베이|Gardens\s*by\s*the\s*Bay|슈퍼트리|클라우드\s*포레스트|플라워\s*돔/iu, en: "Gardens by the Bay" },
-  { re: /머르?라이언|Merlion/iu, en: "Merlion Park" },
+  { re: /머르?라이언|멀라이언|Merlion/iu, en: "Merlion Park" },
+  { re: /센토사\s*실로소|실로소\s*비치|Siloso/iu, en: "Siloso Beach Sentosa" },
   { re: /센토사|Sentosa/iu, en: "Sentosa" },
   { re: /에스플러네이드|Esplanade/iu, en: "Esplanade Singapore" },
   { re: /차이나타운|Chinatown/iu, en: "Chinatown Singapore" },
   { re: /버드\s*파라다이스|Bird\s*Paradise/iu, en: "Bird Paradise Singapore" },
-  { re: /마리나\s*베이\s*샌즈|Marina\s*Bay\s*Sands/iu, en: "Marina Bay Sands" },
+  { re: /마리나\s*베이(?:\s*샌즈)?|스카이파크|Marina\s*Bay\s*Sands|Sky\s*Park/iu, en: "Marina Bay Sands" },
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: ASP214 멀라이언·페라나칸·실로소 — manifest
+  { re: /차임스|CHIJMES/iu, en: "CHIJMES Singapore" },
+  { re: /뎀시\s*힐|Dempsey/iu, en: "Dempsey Hill Singapore" },
+  { re: /티옹바루|Tiong\s*Bahru/iu, en: "Tiong Bahru Singapore" },
+  { re: /페라나칸|Peranakan/iu, en: "Peranakan Place Singapore" },
+  { re: /클럽\s*스트리트|Club\s*Street/iu, en: "Club Street Singapore" },
+  { re: /안\s*시앙|Ann\s*Siang/iu, en: "Ann Siang Hill Singapore" },
   { re: /(?:유|우)니버설\s*스튜디오\s*(?:재팬|japan)|USJ/iu, en: "Universal Studios Japan Osaka" },
   // bare 유니버설 → Japan 금지: 일본·오사카·도쿄 맥락 있을 때만 USJ
   { re: /(?:오사카|도쿄|일본|japan|osaka|tokyo|재팬).{0,32}(?:유|우)니버설|(?:유|우)니버설.{0,32}(?:오사카|도쿄|일본|재팬|japan|osaka)/iu, en: "Universal Studios Japan Osaka" },
