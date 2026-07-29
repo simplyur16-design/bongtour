@@ -999,7 +999,8 @@
           "file": "lib/bongsim/admin/clamp-admin-list-page.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-admin-payments-pagination]",
-            "clampAdminListPage"
+            "clampAdminListPage",
+            "resolveAdminListPaging"
           ]
         },
         {
@@ -1008,12 +1009,14 @@
             "REGRESSION-FREEZE[bongsim-admin-payments-pagination]",
             "loadGenRef",
             "goToPage",
-            "clampAdminListPage"
+            "clampAdminListPage",
+            "skipLoadAfterPageSyncRef"
           ]
         },
         {
           "file": "app/api/admin/bongsim/payments/route.ts",
           "mustInclude": [
+            "resolveAdminListPaging",
             "LIMIT $1::int OFFSET $2::int",
             "LIMIT $3::int OFFSET $4::int"
           ]

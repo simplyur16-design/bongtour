@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveAdminListPaging } from "@/lib/bongsim/admin/clamp-admin-list-page";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import {
   bongsimAdminQueryFailurePayload,
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 
 // REGRESSION-FREEZE[bongsim-admin-payments-query]: list probe·retry·buyer_tel/iccid 검색 — manifest
+// REGRESSION-FREEZE[bongsim-admin-payments-pagination]: count 후 page/offset clamp — manifest
 
 export async function GET(req: Request) {
   const admin = await requireAdmin();
@@ -19,9 +21,8 @@ export async function GET(req: Request) {
   if (!getPgPool()) return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
 
   const { searchParams } = new URL(req.url);
-  const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const requestedPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const search = (searchParams.get("search") ?? "").trim();
-  const offset = (page - 1) * PAGE_SIZE;
 
   const hasSearch = search.length > 0;
   const pat = hasSearch ? `%${search.replace(/%/g, "\\%").replace(/_/g, "\\_")}%` : null;
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
     : `TRUE`;
 
   try {
-    const { total, rows } = await withBongsimAdminPgRetry(async (pool) => {
+    const { total, page, totalPages, rows } = await withBongsimAdminPgRetry(async (pool) => {
       const countR = await pool.query<{ c: string }>(
         hasSearch
           ? `SELECT COUNT(*)::text AS c FROM bongsim_order WHERE ${whereSql}`
@@ -51,6 +52,11 @@ export async function GET(req: Request) {
         hasSearch ? [pat, digitsPat] : [],
       );
       const totalCount = Number.parseInt(countR.rows[0]?.c ?? "0", 10);
+      const paging = resolveAdminListPaging({
+        page: requestedPage,
+        pageSize: PAGE_SIZE,
+        totalCount,
+      });
       const r = await pool.query(
         hasSearch
           ? `SELECT order_id::text AS order_id,
@@ -76,9 +82,16 @@ export async function GET(req: Request) {
            FROM bongsim_order
           ORDER BY created_at DESC
           LIMIT $1::int OFFSET $2::int`,
-        hasSearch ? [pat, digitsPat, PAGE_SIZE, offset] : [PAGE_SIZE, offset],
+        hasSearch
+          ? [pat, digitsPat, PAGE_SIZE, paging.offset]
+          : [PAGE_SIZE, paging.offset],
       );
-      return { total: totalCount, rows: r.rows };
+      return {
+        total: totalCount,
+        page: paging.page,
+        totalPages: paging.totalPages,
+        rows: r.rows,
+      };
     });
 
     return NextResponse.json({
@@ -86,7 +99,7 @@ export async function GET(req: Request) {
       page,
       page_size: PAGE_SIZE,
       total,
-      total_pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      total_pages: totalPages,
     });
   } catch (e) {
     console.error("[admin/bongsim/payments GET]", e);

@@ -135,6 +135,8 @@ export default function BongsimPaymentsAdminClient() {
   const listTopRef = useRef<HTMLDivElement | null>(null);
   // REGRESSION-FREEZE[bongsim-admin-payments-pagination]: 느린 응답 레이스로 이전 페이지 덮어쓰기 방지 — manifest
   const loadGenRef = useRef(0);
+  /** 서버가 page를 clamp해 내려준 뒤 state만 맞출 때 useEffect 재조회를 한 번 건너뛴다. */
+  const skipLoadAfterPageSyncRef = useRef(false);
 
   // REGRESSION-FREEZE[bongsim-admin-payments-query]: query_failed 한글 메시지 — manifest
   const adminLoadErrorMessage = (j: { error?: string; message?: string }, fallback: string) =>
@@ -256,14 +258,26 @@ export default function BongsimPaymentsAdminClient() {
         const res = await fetch(`/api/admin/bongsim/payments?${q.toString()}`, { cache: "no-store" });
         const j = (await res.json()) as {
           orders?: OrderRow[];
+          page?: number;
           total_pages?: number;
           error?: string;
           message?: string;
         };
         if (gen !== loadGenRef.current) return;
         if (!res.ok) throw new Error(adminLoadErrorMessage(j, "목록을 불러오지 못했습니다."));
+        const nextTotalPages = Math.max(1, Number(j.total_pages) || 1);
+        const serverPage = Number(j.page);
+        const nextPage = clampAdminListPage(
+          Number.isFinite(serverPage) && serverPage > 0 ? serverPage : pageToLoad,
+          nextTotalPages,
+        );
         setRows(j.orders ?? []);
-        setTotalPages(Math.max(1, Number(j.total_pages) || 1));
+        setTotalPages(nextTotalPages);
+        // REGRESSION-FREEZE[bongsim-admin-payments-pagination]: 서버 clamp page를 UI에 동기화 — manifest
+        if (nextPage !== page) {
+          skipLoadAfterPageSyncRef.current = true;
+          setPage(nextPage);
+        }
       } catch (e) {
         if (gen !== loadGenRef.current) return;
         setLoadErr(e instanceof Error ? e.message : "오류");
@@ -275,6 +289,10 @@ export default function BongsimPaymentsAdminClient() {
   );
 
   useEffect(() => {
+    if (skipLoadAfterPageSyncRef.current) {
+      skipLoadAfterPageSyncRef.current = false;
+      return;
+    }
     void load();
   }, [load]);
 
