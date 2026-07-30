@@ -172,7 +172,8 @@
         "ci"
       ],
       "script": "verify:mega-menu-product-alignment",
-      "summary": "registered 해외 상품 ↔ 메가메뉴 대·중·소분류·browse URL 정합"
+      "summary": "registered 해외 상품 ↔ 메가메뉴 대·중·소분류·browse URL 정합",
+      "requiresDatabase": true
     },
     {
       "id": "supplier-register-mega-menu-geo",
