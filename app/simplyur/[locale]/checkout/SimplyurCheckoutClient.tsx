@@ -42,6 +42,21 @@ type Props = {
   eximbayPrepUi?: boolean;
 };
 
+/**
+ * 결제 API 실패를 어느 단계·어느 필드인지 알 수 있게 만든다.
+ * details 값은 서버 설정 문구까지 담을 수 있어 키만 노출한다.
+ */
+function formatCheckoutApiError(
+  stage: "confirm" | "payment_session",
+  json: { error?: string; details?: unknown },
+): string {
+  const reason = (json.error ?? "").trim() || "unknown_error";
+  const details = json.details;
+  const keys =
+    details && typeof details === "object" && !Array.isArray(details) ? Object.keys(details) : [];
+  return keys.length ? `${stage}: ${reason} (${keys.join(", ")})` : `${stage}: ${reason}`;
+}
+
 function methodLabel(method: SimplyurPortoneMethod, tr: (k: string) => string): string {
   switch (method) {
     case "paypal":
@@ -171,9 +186,10 @@ export function SimplyurCheckoutClient({
       });
       const confirmJson = (await confirmRes.json()) as BongsimCheckoutConfirmResponseV1 & {
         error?: string;
+        details?: unknown;
       };
       if (!confirmRes.ok || !confirmJson.order) {
-        throw new Error(confirmJson.error ?? "confirm_failed");
+        throw new Error(formatCheckoutApiError("confirm", confirmJson));
       }
 
       const origin = window.location.origin;
@@ -196,9 +212,12 @@ export function SimplyurCheckoutClient({
           },
         }),
       });
-      const payJson = (await payRes.json()) as BongsimPaymentSessionResponseV1 & { error?: string };
+      const payJson = (await payRes.json()) as BongsimPaymentSessionResponseV1 & {
+        error?: string;
+        details?: unknown;
+      };
       if (!payRes.ok || !payJson.client) {
-        throw new Error(payJson.error ?? "payment_session_failed");
+        throw new Error(formatCheckoutApiError("payment_session", payJson));
       }
 
       if (payJson.client.kind !== "portone_v2") {

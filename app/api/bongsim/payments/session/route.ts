@@ -25,6 +25,11 @@ export async function POST(req: Request) {
 
     const res = await createPaymentSessionFromRequest(body);
     if (!res.ok) {
+      // 공개 응답은 details 키만 쓸 수 있으므로 원인 값은 서버 로그로 남긴다.
+      console.error("[bongsim/payments/session] rejected", {
+        reason: res.reason,
+        details: res.details ?? null,
+      });
       if (res.reason === "validation") {
         return jsonWithLeakGuard(
           { schema: "bongsim.payment_session.error.v1", error: "validation", details: res.details },

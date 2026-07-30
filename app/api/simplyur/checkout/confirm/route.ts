@@ -52,6 +52,10 @@ export async function POST(req: Request) {
 
     const res = await checkoutCreateOrderFromRequest(merged);
     if (!res.ok) {
+      console.error("[api/simplyur/checkout/confirm] rejected", {
+        reason: res.reason,
+        details: res.details ?? null,
+      });
       const status =
         res.reason === "validation"
           ? 400
