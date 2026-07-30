@@ -39,8 +39,13 @@ export async function GET(req: Request) {
 
   const catalog = await loadSimplyurKoreaCatalogCached(locale);
   if (!catalog.ok) {
-    const status = catalog.reason === "db_unconfigured" ? 503 : 500;
-    return jsonWithLeakGuard({ error: catalog.reason }, "simplyur.products.by-country", { status });
+    const status =
+      catalog.reason === "db_unconfigured" || catalog.reason === "connection_timeout" ? 503 : 500;
+    return jsonWithLeakGuard(
+      { error: catalog.reason, reason: catalog.reason },
+      "simplyur.products.by-country",
+      { status },
+    );
   }
 
   const messages = await getSimplyurMessages(locale);

@@ -10986,6 +10986,42 @@
       ]
     },
     {
+      "id": "simplyur-catalog-pool-resilience",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 카탈로그 — statement timeout·connect timeout 분류·풀 리셋, DB 실패는 캐시 금지",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-catalog-pool-resilience]",
+            "withBongsimStatementTimeout",
+            "resetBongsimPgPoolAfterConnectTimeout",
+            "classifyBongsimPgError"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-catalog-pool-resilience]",
+            "loadSimplyurKoreaCatalogOrThrow",
+            "connection_timeout"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/products/by-country/route.ts",
+          "mustInclude": [
+            "connection_timeout"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/catalog/load-korea-catalog-cached.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-surface-layout-p2",
       "tier": [
         "prebuild",

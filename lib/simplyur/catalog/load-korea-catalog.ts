@@ -1,5 +1,10 @@
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import {
+  classifyBongsimPgError,
+  getPgPool,
+  resetBongsimPgPoolAfterConnectTimeout,
+  withBongsimStatementTimeout,
+} from "@/lib/bongsim/db/pool";
 import { extractDaysFromDaysRaw } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { isKoreaSingleCountryProduct } from "@/lib/simplyur/catalog/korea-product-filter";
@@ -11,6 +16,7 @@ import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 
 // REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 DB 로더 — manifest
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog uses resolveSimplyurFxRates — manifest
+// REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: statement timeout·connect timeout 분류·풀 리셋 — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -27,7 +33,7 @@ export type SimplyurKoreaPack = {
 
 export type SimplyurKoreaCatalogResult =
   | { ok: true; locale: SimplyurLocale; pack: SimplyurKoreaPack }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 function minSimplyurPrice(products: ProductOption[]): number | null {
   let min: number | null = null;
@@ -90,13 +96,15 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
 
   try {
     const rates = await resolveSimplyurFxRates();
-    const result = await pool.query<ProductOption>(
-      `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
+    const result = await withBongsimStatementTimeout((client) =>
+      client.query<ProductOption>(
+        `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
               allowance_label, option_label, price_block, flags
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
        ORDER BY plan_name, days_raw,
          (price_block->'after'->>'consumer_krw')::numeric ASC NULLS LAST`,
+      ),
     );
     const koreaOnly = result.rows.filter(isKoreaSingleCountryProduct);
     return {
@@ -104,8 +112,10 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
       locale,
       pack: packFromSingle(koreaOnly, locale, rates),
     };
-  } catch {
-    return { ok: false, reason: "db_error" };
+  } catch (e) {
+    console.error("[loadSimplyurKoreaCatalog]", e);
+    resetBongsimPgPoolAfterConnectTimeout(e);
+    return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }
 
@@ -114,7 +124,10 @@ export async function loadSimplyurKoreaProductByOptionId(
   locale: SimplyurLocale,
 ): Promise<
   | { ok: true; product: SimplyurPublicProduct }
-  | { ok: false; reason: "db_unconfigured" | "not_found" | "not_korea" | "db_error" }
+  | {
+      ok: false;
+      reason: "db_unconfigured" | "not_found" | "not_korea" | "db_error" | "connection_timeout";
+    }
 > {
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
@@ -124,19 +137,23 @@ export async function loadSimplyurKoreaProductByOptionId(
 
   try {
     const rates = await resolveSimplyurFxRates();
-    const result = await pool.query<ProductOption>(
-      `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
+    const result = await withBongsimStatementTimeout((client) =>
+      client.query<ProductOption>(
+        `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
               allowance_label, option_label, price_block, flags
        FROM bongsim_product_option
        WHERE option_api_id = $1 AND ${BONGSIM_CATALOG_ACTIVE_WHERE}
        LIMIT 1`,
-      [id],
+        [id],
+      ),
     );
     const row = result.rows[0];
     if (!row) return { ok: false, reason: "not_found" };
     if (!isKoreaSingleCountryProduct(row)) return { ok: false, reason: "not_korea" };
     return { ok: true, product: toSimplyurPublicProduct(row, locale, rates) };
-  } catch {
-    return { ok: false, reason: "db_error" };
+  } catch (e) {
+    console.error("[loadSimplyurKoreaProductByOptionId]", e);
+    resetBongsimPgPoolAfterConnectTimeout(e);
+    return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }
