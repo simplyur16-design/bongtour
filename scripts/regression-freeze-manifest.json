@@ -168,11 +168,10 @@
     {
       "id": "mega-menu-product-alignment",
       "tier": [
-        "prebuild",
         "ci"
       ],
       "script": "verify:mega-menu-product-alignment",
-      "summary": "registered 해외 상품 ↔ 메가메뉴 대·중·소분류·browse URL 정합",
+      "summary": "registered 해외 상품 ↔ 메가메뉴 대·중·소분류·browse URL 정합 (운영 DB 조회 — 배포 빌드에서 제외)",
       "requiresDatabase": true
     },
     {
