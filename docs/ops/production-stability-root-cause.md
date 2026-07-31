@@ -81,20 +81,24 @@ DATABASE_URL=… (web과 동일)
 
 5. Replica **1** 고정
 
-### 커넥션 예산 — Supabase 세션 풀 `pool_size: 15`
+### 커넥션 예산 — Supabase 세션 풀 `pool_size`
 
-web·worker·마이그레이션이 **같은 15슬롯을 나눠 쓴다.** 합이 15에 닿으면
+web·worker·마이그레이션이 **같은 슬롯을 나눠 쓴다.** 합이 한도에 닿으면
 `FATAL: (EMAXCONNSESSION)` 이 나고, 앱의 모든 미캐시 조회가 `db_error` 로 떨어진다.
+2026-07 장애가 정확히 이것이었다 — 기본값이 web 15 + worker 13 = 28 인데 한도가 15였다.
+
+Supabase → Settings → Database → Connection pooling → **Pool Size = 40**.
 
 | 소비자 | Prisma | `pg` 풀 | 합 |
 |---|---|---|---|
 | web | 3 | 4 | 7 |
 | worker | 2 | 2 | 4 |
 | `prisma migrate deploy` 스키마 엔진 | — | — | ~2 |
-| **합계** | | | **~13 / 15** |
+| **합계** | | | **~13 / 40** |
 
-배포 중에는 구 인스턴스가 아직 살아 있으므로 여유분 2슬롯이 그 겹침을 흡수한다.
-서비스나 replica 를 늘리려면 먼저 Supabase 의 pool_size 를 올리고 이 표를 갱신할 것.
+배포 중에는 구 인스턴스가 아직 살아 있으므로 그 겹침까지 20 남짓이다.
+서비스나 replica 를 늘릴 때는 이 표를 갱신하고 Pool Size 와 대조할 것.
+Pool Size 는 인스턴스의 최대 직결 커넥션 수보다 낮게 유지해야 한다.
 
 `DIRECT_URL` 은 풀러가 아니라 실제 직결 주소(`db.<ref>.supabase.co:5432`)여야 한다.
 풀러를 가리키면 마이그레이션이 이 15슬롯을 두고 앱과 경쟁한다.
