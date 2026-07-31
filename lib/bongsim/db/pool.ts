@@ -52,6 +52,21 @@ function isLikelyTlsHandshakeIssue(err: unknown): boolean {
   );
 }
 
+/**
+ * Supabase 세션 풀은 pool_size 15. Prisma(`connection_limit`)와 이 풀이 한 인스턴스에서
+ * 15를 다 쓰면 배포 중 구 인스턴스·`prisma migrate deploy` 가 EMAXCONNSESSION 으로 죽는다.
+ */
+const BONGSIM_POOL_MAX_DEFAULT = 4
+
+export function resolveBongsimPoolMax(): number {
+  const raw = process.env.BONGSIM_PG_POOL_MAX?.trim();
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 20) return n;
+  }
+  return BONGSIM_POOL_MAX_DEFAULT;
+}
+
 function buildPoolConfig(): PoolConfig | null {
   let url = process.env.DATABASE_URL?.trim();
   if (!url) return null;
@@ -65,7 +80,7 @@ function buildPoolConfig(): PoolConfig | null {
 
   const cfg: PoolConfig & { prepareThreshold?: number } = {
     connectionString: url,
-    max: 10,
+    max: resolveBongsimPoolMax(),
     idleTimeoutMillis: 10_000,
     // 연결 고갈 시 무한 대기 → eSIM by-country「상품 조회 중…」무한 로딩 방지
     connectionTimeoutMillis: 6_000,
@@ -152,8 +167,11 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
     /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED/i.test(
       msg,
     ) ||
+    // Supabase 풀러 고갈. 일시적 용량 문제라 풀 리셋 + 503 재시도 경로로 보낸다.
+    /EMAXCONNSESSION|max clients reached|too many connections|remaining connection slots/i.test(msg) ||
     code === "ETIMEDOUT" ||
-    code === "ECONNREFUSED"
+    code === "ECONNREFUSED" ||
+    code === "53300"
   ) {
     return "connection_timeout";
   }

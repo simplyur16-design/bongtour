@@ -35,7 +35,7 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 |------|------|
 | `lib/instrumentation-process-role.ts` | `web` / `worker` / `all` |
 | `instrumentation.ts` | 역할별 cron 등록 |
-| `lib/prisma-connection-limit.ts` | prod 기본 connection_limit=5 |
+| `lib/prisma-connection-limit.ts` | prod 기본 connection_limit=3 (`lib/bongsim/db/pool` 4개와 합쳐 Supabase pool_size 15 미만 유지) |
 | `lib/products-browse-cached.ts` | browse in-flight dedupe |
 | `lib/internal-loopback-origin.ts` | cron self-fetch → 127.0.0.1 |
 | `app/components/home/AirHotelProductGridClient.tsx` | 메인 browse 클라이언트 전용 |
@@ -58,10 +58,11 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=web
-BONGTOUR_PRISMA_CONNECTION_LIMIT=5
+BONGTOUR_PRISMA_CONNECTION_LIMIT=3
+BONGSIM_PG_POOL_MAX=4
 ```
 
-(미설정 시 production은 자동 `web`)
+(미설정 시 production은 자동 `web`, 그리고 위 두 값이 코드 기본값이다)
 
 ### 2) worker 서비스 추가
 
@@ -72,12 +73,31 @@ BONGTOUR_PRISMA_CONNECTION_LIMIT=5
 
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=worker
-BONGTOUR_PRISMA_CONNECTION_LIMIT=3
+BONGTOUR_PRISMA_CONNECTION_LIMIT=2
+BONGSIM_PG_POOL_MAX=2
 BONGTOUR_CRON_SECRET=… (web과 동일)
 DATABASE_URL=… (web과 동일)
 ```
 
 5. Replica **1** 고정
+
+### 커넥션 예산 — Supabase 세션 풀 `pool_size: 15`
+
+web·worker·마이그레이션이 **같은 15슬롯을 나눠 쓴다.** 합이 15에 닿으면
+`FATAL: (EMAXCONNSESSION)` 이 나고, 앱의 모든 미캐시 조회가 `db_error` 로 떨어진다.
+
+| 소비자 | Prisma | `pg` 풀 | 합 |
+|---|---|---|---|
+| web | 3 | 4 | 7 |
+| worker | 2 | 2 | 4 |
+| `prisma migrate deploy` 스키마 엔진 | — | — | ~2 |
+| **합계** | | | **~13 / 15** |
+
+배포 중에는 구 인스턴스가 아직 살아 있으므로 여유분 2슬롯이 그 겹침을 흡수한다.
+서비스나 replica 를 늘리려면 먼저 Supabase 의 pool_size 를 올리고 이 표를 갱신할 것.
+
+`DIRECT_URL` 은 풀러가 아니라 실제 직결 주소(`db.<ref>.supabase.co:5432`)여야 한다.
+풀러를 가리키면 마이그레이션이 이 15슬롯을 두고 앱과 경쟁한다.
 
 ### web에서 켜지 말 것
 

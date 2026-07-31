@@ -1,11 +1,15 @@
 /**
  * Prisma pooler connection_limit SSOT.
- * schema.prisma 주석(기본 5)과 코드 불일치가 간헐 502·허브 멈춤 원인이었음 — prod 기본 5.
+ * schema.prisma 주석(기본 5)과 코드 불일치가 간헐 502·허브 멈춤 원인이었음.
+ *
+ * Supabase 세션 풀은 pool_size 15다. Prisma + `lib/bongsim/db/pool` 이 한 인스턴스에서
+ * 그 15를 다 쓰면 배포 중 겹치는 구(舊) 인스턴스와 `prisma migrate deploy` 스키마 엔진이
+ * 슬롯을 못 받아 EMAXCONNSESSION 으로 죽는다. 두 인스턴스가 겹쳐도 여유가 남게 잡는다.
  */
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 
 const BUILD_SAFE_DEFAULT = 1
-const PRODUCTION_DEFAULT = 5
+const PRODUCTION_DEFAULT = 3
 
 export function resolvePrismaConnectionLimit(): number {
   if (shouldSkipDbAtBuild()) return 1

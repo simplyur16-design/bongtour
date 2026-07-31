@@ -15,6 +15,21 @@ describe("classifyBongsimPgError", () => {
     expect(classifyBongsimPgError(err)).toBe("connection_timeout");
   });
 
+  it("treats Supabase session pool exhaustion as recoverable", () => {
+    expect(
+      classifyBongsimPgError(
+        new Error(
+          "FATAL: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15",
+        ),
+      ),
+    ).toBe("connection_timeout");
+  });
+
+  it("treats postgres 53300 too many connections as recoverable", () => {
+    const err = Object.assign(new Error("sorry, too many clients already"), { code: "53300" });
+    expect(classifyBongsimPgError(err)).toBe("connection_timeout");
+  });
+
   it("defaults other errors to db_error", () => {
     expect(classifyBongsimPgError(new Error("relation does not exist"))).toBe("db_error");
   });
