@@ -61,15 +61,15 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 | **1** ✅ | Korea-only eSIM, plan cards, web + Expo, i18n, pricing |
 | **1b** | Japan eSIM |
 | **2** | PortOne checkout (`portone` provider): **PayPal** + **KICC overseas** (WeChat / Alipay Plus), USD charge, USIMSA fulfillment via OrderPaid outbox |
-| **2b** | Eximbay payment-window **prep** (FGKey / ready / status_url) — live checkout still PortOne; Bongtour Welcomepay untouched |
+| **2b** | Eximbay payment-window **live** (FGKey / ready / status_url → OrderPaid). PortOne is not used for Simplyur checkout. Bongtour Welcomepay untouched |
 
-## Eximbay prep (Simplyur only)
+## Eximbay live checkout (Simplyur only)
 
 Contract: [`docs/ops/simplyur-eximbay-payment-prep-contract.md`](ops/simplyur-eximbay-payment-prep-contract.md) · [Eximbay preparing-payment](https://developer.eximbay.com/eximbay/payment_linkage/preparing-payment.html)
 
-- Env: `EXIMBAY_MID`, `EXIMBAY_API_KEY` (server), `EXIMBAY_ENV=test|production`
-- Ready: `POST /api/simplyur/checkout/eximbay-ready` → FGKey
-- Status: `/api/simplyur/webhooks/eximbay` · Return stub: `/simplyur/{locale}/checkout/eximbay-return`
+- Env: `EXIMBAY_MID`, `EXIMBAY_API_KEY` (server), `EXIMBAY_ENV=test|production`, `SIMPLYUR_CHECKOUT_ENABLED=1`
+- Live path: confirm → `provider=eximbay` session → `EXIMBAY.request_pay` → status_url marks paid
+- Status: `/api/simplyur/webhooks/eximbay` · Return: `/simplyur/{locale}/checkout/eximbay-return` → complete
 - Optional smoke UI: `SIMPLYUR_EXIMBAY_PREP_UI=1`
 
 ## PortOne setup (simplyur overseas PG)

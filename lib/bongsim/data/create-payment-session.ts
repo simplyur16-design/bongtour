@@ -12,12 +12,14 @@ import { getPaymentProviderAdapter } from "@/lib/bongsim/payments/payment-provid
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
 import { isSimplyurCheckoutChannel } from "@/lib/simplyur/checkout/channel";
+import { resolveEximbayEnv } from "@/lib/simplyur/payments/eximbay-env";
 import {
   resolvePortoneCoreEnv,
   resolvePortoneMethodChannel,
   resolveSimplyurPortoneWebhookUrl,
 } from "@/lib/simplyur/payments/portone-env";
 import { parseSimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
+import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-payments";
 import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 
 export type CreatePaymentSessionResult =
@@ -236,15 +238,23 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
         },
       };
     }
-  }
-
-  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID) {
     const methodResolved = resolvePortoneMethodChannel(req.simplyur_portone_method);
     if (!methodResolved.ok) {
       return {
         ok: false,
         reason: "validation",
         details: { simplyur_portone_method: methodResolved.reason },
+      };
+    }
+  }
+
+  if (effProvider === SIMPLYUR_EXIMBAY_PROVIDER_ID) {
+    const eximbayEnv = resolveEximbayEnv();
+    if (!eximbayEnv.ok) {
+      return {
+        ok: false,
+        reason: "validation",
+        details: { eximbay: `missing:${eximbayEnv.missing.join(",")}` },
       };
     }
   }
@@ -266,12 +276,20 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
       await client.query("ROLLBACK");
       return { ok: false, reason: "order_not_payable", details: { status: order.status } };
     }
-    if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID && !isSimplyurCheckoutChannel(order.checkout_channel)) {
+    if (
+      (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID || effProvider === SIMPLYUR_EXIMBAY_PROVIDER_ID) &&
+      !isSimplyurCheckoutChannel(order.checkout_channel)
+    ) {
       await client.query("ROLLBACK");
       return {
         ok: false,
         reason: "validation",
-        details: { provider: "portone_simplyur_orders_only" },
+        details: {
+          provider:
+            effProvider === SIMPLYUR_EXIMBAY_PROVIDER_ID
+              ? "eximbay_simplyur_orders_only"
+              : "portone_simplyur_orders_only",
+        },
       };
     }
     // Simplyur foreigners eSIM: Welcomepay (Bongtour) forbidden. PG prep target is Eximbay (not Welcome).
@@ -319,6 +337,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
           currency: "KRW",
           return_urls: returnUrlsReuse,
           simplyur_portone: simplyurPortoneCreateOpts(req),
+          simplyur_locale: req.simplyur_locale,
         });
         await client.query("COMMIT");
         return { ok: true, body: attemptToResponse(order, ex, provReuse.client, true) };
@@ -362,6 +381,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
         currency: "KRW",
         return_urls: req.return_urls,
         simplyur_portone: simplyurPortoneCreateOpts(req),
+        simplyur_locale: req.simplyur_locale,
       });
     } catch (sessionErr) {
       await client.query("ROLLBACK");

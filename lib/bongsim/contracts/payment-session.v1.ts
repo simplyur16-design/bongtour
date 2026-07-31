@@ -48,6 +48,28 @@ export type BongsimPaymentSessionClientV1 =
       portone_locale?: string;
       /** PortOne async settlement (KICC QR flows). */
       notice_url?: string;
+    }
+  | {
+      kind: "eximbay_v2";
+      public_session_ref: string;
+      sdk_script_url: string;
+      /** Exact payload for EXIMBAY.request_pay (fgkey + ready body). No API secret. */
+      request_pay: {
+        fgkey: string;
+        payment: {
+          transaction_type: "PAYMENT";
+          order_id: string;
+          currency: "USD";
+          amount: string;
+          lang: string;
+        };
+        merchant: { mid: string };
+        buyer: { name: string; email: string };
+        url: { return_url: string; status_url: string };
+      };
+      order_name: string;
+      customer_email: string;
+      is_test: boolean;
     };
 
 export type BongsimPaymentSessionResponseV1 = {

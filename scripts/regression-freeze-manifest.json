@@ -11397,14 +11397,6 @@
           ]
         },
         {
-          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[simplyur-portone-checkout-p2]",
-            "SIMPLYUR_PORTONE_PROVIDER_ID",
-            "portone-complete"
-          ]
-        },
-        {
           "file": "lib/bongsim/data/create-payment-session.ts",
           "mustInclude": [
             "portone_simplyur_orders_only",
@@ -11465,11 +11457,10 @@
           ]
         },
         {
-          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "file": "components/simplyur/checkout/SimplyurPortonePayPalPanel.tsx",
           "mustInclude": [
-            "REGRESSION-FREEZE[simplyur-portone-overseas-pg]",
-            "simplyur_portone_method",
-            "SimplyurPortonePayPalPanel"
+            "SimplyurPortonePayPalPanel",
+            "portone_v2"
           ]
         }
       ],
@@ -11504,6 +11495,52 @@
       ],
       "vitestSuites": [
         "lib/simplyur/payments/portone-webhook-secret.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-eximbay-live-checkout",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur Eximbay 실결제 — provider adapter·session client·status_url OrderPaid",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/providers/eximbay-payments.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]",
+            "SIMPLYUR_EXIMBAY_PROVIDER_ID",
+            "eximbay_v2",
+            "callEximbayPaymentsReady"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/process-eximbay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]",
+            "processEximbayPaymentOutcome",
+            "OrderPaid"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]",
+            "SIMPLYUR_EXIMBAY_PROVIDER_ID",
+            "requestEximbayPay",
+            "eximbay_v2"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/webhooks/eximbay/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]",
+            "processEximbayPaymentOutcome"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/eximbay-env.test.ts"
       ]
     },
     {

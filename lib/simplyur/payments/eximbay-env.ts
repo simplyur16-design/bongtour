@@ -114,10 +114,15 @@ export function resolveSimplyurEximbayReturnUrl(locale: string): string | null {
   return `${origin}/simplyur/${encodeURIComponent(loc)}/checkout/eximbay-return`;
 }
 
-/** Dev-only prep smoke UI (does not replace PortOne checkout). */
+/** Dev-only prep smoke UI (does not replace live checkout). */
 export function isSimplyurEximbayPrepUiEnabled(): boolean {
   return (
     truthyEnv(process.env.SIMPLYUR_EXIMBAY_PREP_UI) ||
     truthyEnv(process.env.NEXT_PUBLIC_SIMPLYUR_EXIMBAY_PREP_UI)
   );
+}
+
+/** Simplyur live PG is Eximbay only — PortOne is not used on checkout. */
+export function isSimplyurEximbayLiveEnabled(): boolean {
+  return resolveEximbayEnv().ok;
 }

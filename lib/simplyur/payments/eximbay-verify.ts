@@ -94,3 +94,24 @@ export function eximbayStatusUrlAckBody(ok: boolean, message?: string): string {
   const msg = (message ?? "Fail").replace(/[&=\s]+/g, "_").slice(0, 80);
   return `rescode=XXXX&resmsg=${msg}`;
 }
+
+/** Pull order_id / transaction_id from Eximbay status_url querystring. */
+export function parseEximbayStatusQuery(data: string): {
+  orderId: string | null;
+  transactionId: string | null;
+  rescode: string | null;
+} {
+  const params = new URLSearchParams(data.trim().replace(/^\?/, ""));
+  const orderId =
+    params.get("order_id")?.trim() ||
+    params.get("orderId")?.trim() ||
+    params.get("ref")?.trim() ||
+    null;
+  const transactionId =
+    params.get("transaction_id")?.trim() ||
+    params.get("transid")?.trim() ||
+    params.get("fgkey")?.trim() ||
+    null;
+  const rescode = params.get("rescode")?.trim() || null;
+  return { orderId, transactionId, rescode };
+}

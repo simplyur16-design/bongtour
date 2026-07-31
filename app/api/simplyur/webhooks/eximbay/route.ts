@@ -1,10 +1,12 @@
 import {
   callEximbayPaymentsVerify,
   eximbayStatusUrlAckBody,
+  parseEximbayStatusQuery,
 } from "@/lib/simplyur/payments/eximbay-verify";
+import { processEximbayPaymentOutcome } from "@/lib/simplyur/payments/process-eximbay-payment-outcome";
 
 // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]: status_url webhook + verify — manifest
-// Prep stage: verify FGKey integrity only — does NOT mark order paid / fulfill eSIM.
+// REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: verify → OrderPaid — manifest
 
 async function extractStatusQueryString(req: Request): Promise<string> {
   const url = new URL(req.url);
@@ -60,17 +62,38 @@ async function handleStatus(req: Request): Promise<Response> {
       rescode: verified.rescode,
       resmsg: verified.resmsg,
     });
-    // Still ACK so Eximbay does not hammer; paid/fulfill is next phase.
+    // ACK so Eximbay does not hammer failed verifies.
     return new Response(eximbayStatusUrlAckBody(true), {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }
 
-  console.info("[simplyur:eximbay:status:verified]", {
-    rescode: verified.rescode,
-    // order paid + fulfillment intentionally deferred (prep stage)
+  const parsed = parseEximbayStatusQuery(data);
+  if (!parsed.orderId) {
+    console.warn("[simplyur:eximbay:status] verified but no order_id in payload");
+    return new Response(eximbayStatusUrlAckBody(true), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const eventId = parsed.transactionId || `eximbay_status_${parsed.orderId}_${Date.now()}`;
+  const outcome = await processEximbayPaymentOutcome({
+    eximbayOrderId: parsed.orderId,
+    providerEventId: eventId,
+    rawPayload: { data, rescode: verified.rescode, resmsg: verified.resmsg },
   });
+
+  if (!outcome.ok) {
+    console.warn("[simplyur:eximbay:status:capture]", { reason: outcome.reason, orderId: parsed.orderId });
+  } else {
+    console.info("[simplyur:eximbay:status:paid]", {
+      duplicate: outcome.duplicate,
+      order_id: outcome.order_id,
+      order_number: outcome.order_number,
+    });
+  }
 
   return new Response(eximbayStatusUrlAckBody(true), {
     status: 200,

@@ -17,6 +17,8 @@ export type BongsimPaymentProviderCreateInput = {
     method: SimplyurPortoneMethod;
     locale?: string;
   };
+  /** simplyur checkout UI locale (Eximbay lang / PortOne KICC) */
+  simplyur_locale?: string;
 };
 
 export type BongsimPaymentProviderCreateResult = {

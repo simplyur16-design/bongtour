@@ -6,8 +6,10 @@ import {
   EXIMBAY_API_ORIGIN_TEST,
   resolveEximbayApiOrigin,
   resolveEximbaySdkScriptUrl,
+  isSimplyurEximbayLiveEnabled,
 } from "@/lib/simplyur/payments/eximbay-env";
 import { buildEximbayReadyRequestBody, formatEximbayUsdAmountFromMinor } from "@/lib/simplyur/payments/eximbay-ready";
+import { parseEximbayStatusQuery } from "@/lib/simplyur/payments/eximbay-verify";
 
 describe("simplyur Eximbay env / Basic Auth", () => {
   // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]
@@ -58,5 +60,24 @@ describe("simplyur Eximbay ready payload", () => {
     expect(body.buyer.email).toBe("test@eximbay.com");
     expect(body.url.return_url).toContain("eximbay-return");
     expect(body.url.status_url).toContain("/api/simplyur/webhooks/eximbay");
+  });
+
+  it("parseEximbayStatusQuery reads order_id and transaction_id", () => {
+    const parsed = parseEximbayStatusQuery("rescode=0000&order_id=SU-123&transaction_id=tx9");
+    expect(parsed.orderId).toBe("SU-123");
+    expect(parsed.transactionId).toBe("tx9");
+    expect(parsed.rescode).toBe("0000");
+  });
+
+  it("isSimplyurEximbayLiveEnabled when MID+API key set", () => {
+    const prevMid = process.env.EXIMBAY_MID;
+    const prevKey = process.env.EXIMBAY_API_KEY;
+    process.env.EXIMBAY_MID = "1849705C64";
+    process.env.EXIMBAY_API_KEY = "test_key";
+    expect(isSimplyurEximbayLiveEnabled()).toBe(true);
+    if (prevMid === undefined) delete process.env.EXIMBAY_MID;
+    else process.env.EXIMBAY_MID = prevMid;
+    if (prevKey === undefined) delete process.env.EXIMBAY_API_KEY;
+    else process.env.EXIMBAY_API_KEY = prevKey;
   });
 });
