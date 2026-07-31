@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
+import { fetchKoreaProduct, openSimplyurWebCheckout, type PlanProduct } from '@/src/api/simplyur';
 import { PRODUCT_DESIGN as D, type ProductViewState } from '@/src/constants/product-design';
-import { SIMPLYUR_CHECKOUT_ENABLED } from '@/src/constants/simplyur';
+import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import {
@@ -20,6 +20,8 @@ export default function ProductScreen() {
   const insets = useSafeAreaInsets();
   const [product, setProduct] = useState<PlanProduct | null>(null);
   const [state, setState] = useState<ProductViewState>('loading');
+  const [openingPay, setOpeningPay] = useState(false);
+  const checkoutEnabled = isSimplyurCheckoutEnabled();
 
   useEffect(() => {
     const id = String(optionApiId ?? '').trim();
@@ -68,6 +70,16 @@ export default function ProductScreen() {
     ? t('recommend.perDay').replace('{amount}', perDay)
     : null;
 
+  const onBuy = async () => {
+    if (!product || openingPay) return;
+    setOpeningPay(true);
+    try {
+      await openSimplyurWebCheckout(locale, product.option_api_id);
+    } finally {
+      setOpeningPay(false);
+    }
+  };
+
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: D.bg }]}
@@ -109,14 +121,18 @@ export default function ProductScreen() {
             <DetailRow label={t('recommend.data')} value={product.data_label} />
           </View>
 
-          {SIMPLYUR_CHECKOUT_ENABLED ? (
-            <Link
-              href={{ pathname: '/checkout', params: { optionApiId: product.option_api_id } }}
-              asChild>
-              <Pressable style={styles.ctaEnabled}>
-                <Text style={styles.ctaEnabledText}>{t('product.buyNow')}</Text>
+          {checkoutEnabled ? (
+            <View style={styles.ctaBlock}>
+              <Pressable
+                style={[styles.ctaEnabled, openingPay && { opacity: 0.7 }]}
+                onPress={() => void onBuy()}
+                disabled={openingPay}>
+                <Text style={styles.ctaEnabledText}>
+                  {openingPay ? t('checkout.processing') : t('product.buyNow')}
+                </Text>
               </Pressable>
-            </Link>
+              <Text style={styles.ctaHint}>{t('product.payInBrowserHint')}</Text>
+            </View>
           ) : (
             <View style={styles.ctaBlock}>
               <View style={styles.ctaDisabled}>

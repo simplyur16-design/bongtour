@@ -47,3 +47,16 @@ export function simplyurWebCheckoutUrl(locale: SimplyurLocale, optionApiId: stri
   const base = getApiBaseUrl().replace(/\/+$/, '');
   return `${base}/simplyur/${locale}/checkout?optionApiId=${encodeURIComponent(optionApiId)}`;
 }
+
+/** Open web Simplyur checkout (Eximbay mobile window). Native in-app pay is a later phase. */
+export async function openSimplyurWebCheckout(
+  locale: SimplyurLocale,
+  optionApiId: string,
+): Promise<void> {
+  const WebBrowser = await import('expo-web-browser');
+  const url = simplyurWebCheckoutUrl(locale, optionApiId);
+  await WebBrowser.openBrowserAsync(url, {
+    enableDefaultShareMenuItem: false,
+    showTitle: true,
+  });
+}

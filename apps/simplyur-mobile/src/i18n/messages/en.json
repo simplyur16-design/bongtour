@@ -43,22 +43,43 @@
   "countries": {
     "title": "South Korea eSIM",
     "subtitle": "Seoul, Busan, Jeju — nationwide data plans for your trip.",
-    "kr": { "name": "South Korea", "subtitle": "Seoul, Busan & nationwide" }
+    "kr": {
+      "name": "South Korea",
+      "subtitle": "Seoul, Busan & nationwide"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "No physical SIM, no store visit — install from your QR code in minutes." },
-      "support": { "title": "English support", "body": "Get help in plain English whenever you need it, before or during your trip." },
-      "refund": { "title": "Easy refunds", "body": "Change of plans? Unused eSIMs are refundable — no hassle." }
+      "instant": {
+        "title": "Instant activation",
+        "body": "No physical SIM, no store visit — install from your QR code in minutes."
+      },
+      "support": {
+        "title": "English support",
+        "body": "Get help in plain English whenever you need it, before or during your trip."
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "Change of plans? Unused eSIMs are refundable — no hassle."
+      }
     }
   },
   "reviews": {
     "title": "What travelers say",
     "items": [
-      { "text": "Setup took one minute at Incheon Airport. Google Maps worked great!", "author": "Maria · Korea 4 days" },
-      { "text": "Much easier than buying a SIM at the airport. QR by email was instant.", "author": "James · Seoul 7 days" },
-      { "text": "Used unlimited data in Busan and Jeju — no issues at all.", "author": "Lin · Korea 10 days" }
+      {
+        "text": "Setup took one minute at Incheon Airport. Google Maps worked great!",
+        "author": "Maria · Korea 4 days"
+      },
+      {
+        "text": "Much easier than buying a SIM at the airport. QR by email was instant.",
+        "author": "James · Seoul 7 days"
+      },
+      {
+        "text": "Used unlimited data in Busan and Jeju — no issues at all.",
+        "author": "Lin · Korea 10 days"
+      }
     ]
   },
   "recommend": {
@@ -85,8 +106,8 @@
     "showingPlansPrefix": "Showing plans for ",
     "showingPlansSuffix": " days",
     "change": "Change",
-    "bannerTitle": "Checkout opening soon",
-    "bannerBody": "You can browse plans and read the install guide now. Online payment is being enabled.",
+    "bannerTitle": "Ready to buy",
+    "bannerBody": "Pick a plan, then pay securely in the browser. Your QR code arrives by email.",
     "noPlansForDays": "No plans for {N} days right now. Try another trip length.",
     "errorTitle": "Couldn't load plans.",
     "errorBody": "Check your connection and try again.",
@@ -103,7 +124,8 @@
     "notFoundTitle": "Plan not found",
     "notFoundBody": "This plan may no longer be available. Head back and pick another trip length.",
     "notFound": "Plan not found",
-    "backToPlans": "Back to plans"
+    "backToPlans": "Back to plans",
+    "payInBrowserHint": "Secure checkout opens in your browser (mobile payment)."
   },
   "checkout": {
     "title": "Checkout",
@@ -121,12 +143,13 @@
     "completeTitle": "Thank you!",
     "completeBody": "Payment received. Your Korea eSIM QR code will arrive by email within a few minutes.",
     "orderNumber": "Order number",
-    "viewPlans": "Browse more plans"
+    "viewPlans": "Browse more plans",
+    "continueInBrowser": "Continue in browser"
   },
   "guide": {
     "title": "How to install your eSIM",
     "intro": "This guide matches the simplyur website and app flow. You can browse Korea plans today; after checkout and payment go live, your QR arrives by email (and in My eSIM when signed in).",
-    "flowPhaseNote": "Live now: plan catalog, prices, install guide. Coming soon on this site: online payment at checkout and Google sign-in for My eSIM (server setup in progress).",
+    "flowPhaseNote": "Live now: Korea plans, prices, install guide, and checkout payment in the browser.",
     "tabs": {
       "precheck": "Before you start",
       "iphone": "iPhone",
@@ -418,7 +441,9 @@
     "email": "Support: bongtour24@naver.com",
     "phone": "Tel: +82-31-213-2558 (KST 09:00–18:00)"
   },
-  "language": { "label": "Language" },
+  "language": {
+    "label": "Language"
+  },
   "auth": {
     "title": "Sign in",
     "welcomeTitle": "Welcome to Simply UR",

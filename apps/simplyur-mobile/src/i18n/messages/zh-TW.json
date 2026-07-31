@@ -43,22 +43,43 @@
   "countries": {
     "title": "韓國 eSIM",
     "subtitle": "首爾、釜山、濟州 — 全國流量方案。",
-    "kr": { "name": "韓國", "subtitle": "首爾、釜山及全國" }
+    "kr": {
+      "name": "韓國",
+      "subtitle": "首爾、釜山及全國"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。" },
-      "support": { "title": "English support", "body": "出發前後均可獲得清晰的英文客服支援。" },
-      "refund": { "title": "Easy refunds", "body": "計畫有變？未使用的 eSIM 可輕鬆退款。" }
+      "instant": {
+        "title": "Instant activation",
+        "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。"
+      },
+      "support": {
+        "title": "English support",
+        "body": "出發前後均可獲得清晰的英文客服支援。"
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "計畫有變？未使用的 eSIM 可輕鬆退款。"
+      }
     }
   },
   "reviews": {
     "title": "旅客評價",
     "items": [
-      { "text": "仁川機場一分鐘完成設定，Google 地圖很順！", "author": "Maria · 韓國 4 天" },
-      { "text": "比在機場買 SIM 方便多了。", "author": "James · 首爾 7 天" },
-      { "text": "釜山濟州無限流量，毫無問題。", "author": "Lin · 韓國 10 天" }
+      {
+        "text": "仁川機場一分鐘完成設定，Google 地圖很順！",
+        "author": "Maria · 韓國 4 天"
+      },
+      {
+        "text": "比在機場買 SIM 方便多了。",
+        "author": "James · 首爾 7 天"
+      },
+      {
+        "text": "釜山濟州無限流量，毫無問題。",
+        "author": "Lin · 韓國 10 天"
+      }
     ]
   },
   "recommend": {
@@ -85,8 +106,8 @@
     "showingPlansPrefix": "顯示 ",
     "showingPlansSuffix": " 天方案",
     "change": "更改",
-    "bannerTitle": "結帳功能即將開放",
-    "bannerBody": "您現在可以瀏覽方案並閱讀安裝指南，線上付款正在開通中。",
+    "bannerTitle": "可以購買了",
+    "bannerBody": "選擇方案後在瀏覽器安全付款，QR 碼會寄到信箱。",
     "noPlansForDays": "暫無 {N} 天方案，請嘗試其他天數。",
     "errorTitle": "無法載入方案。",
     "errorBody": "請檢查網路後重試。",
@@ -103,7 +124,8 @@
     "notFoundTitle": "找不到方案",
     "notFoundBody": "此方案可能已下架。請返回並選擇其他行程天數。",
     "notFound": "找不到方案",
-    "backToPlans": "返回方案列表"
+    "backToPlans": "返回方案列表",
+    "payInBrowserHint": "安全結帳會在瀏覽器開啟（行動付款畫面）。"
   },
   "checkout": {
     "title": "結帳",
@@ -121,7 +143,8 @@
     "completeTitle": "謝謝！",
     "completeBody": "付款已確認。韓國 eSIM QR 碼將在數分鐘內寄到您的信箱。",
     "orderNumber": "訂單編號",
-    "viewPlans": "瀏覽更多方案"
+    "viewPlans": "瀏覽更多方案",
+    "continueInBrowser": "在瀏覽器繼續"
   },
   "guide": {
     "title": "安裝 eSIM",
@@ -131,7 +154,8 @@
       "掃描購買後發送的 QR 碼。",
       "啟用新線路，必要時開啟數據漫遊。",
       "抵達韓國後將 eSIM 設為行動數據線路。"
-    ]
+    ],
+    "flowPhaseNote": "現已支援：方案、價格、安裝指南，以及瀏覽器結帳付款。"
   },
   "devices": {
     "title": "相容裝置",
@@ -145,7 +169,9 @@
     "email": "bongtour24@naver.com",
     "phone": "+82-31-213-2558 (KST 09:00–18:00)"
   },
-  "language": { "label": "語言" },
+  "language": {
+    "label": "語言"
+  },
   "auth": {
     "title": "登入",
     "welcomeTitle": "歡迎使用 Simply UR",
@@ -201,7 +227,11 @@
     "usedWord": "已用",
     "leftWord": "剩餘",
     "unlimitedResetsDaily": "無限方案 · 每日重置",
-    "badge": { "active": "使用中", "expired": "已過期", "upcoming": "待開始" },
+    "badge": {
+      "active": "使用中",
+      "expired": "已過期",
+      "upcoming": "待開始"
+    },
     "empty": "尚無 eSIM 訂單。",
     "orderDate": "下單日期",
     "orderNo": "訂單號",

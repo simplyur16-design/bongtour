@@ -43,22 +43,43 @@
   "countries": {
     "title": "韓国 eSIM",
     "subtitle": "ソウル、釜山、済州 — 全国対応プラン。",
-    "kr": { "name": "韓国", "subtitle": "ソウル、釜山ほか全国" }
+    "kr": {
+      "name": "韓国",
+      "subtitle": "ソウル、釜山ほか全国"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "店舗不要・物理SIM不要 — QRコードから数分でインストール。" },
-      "support": { "title": "English support", "body": "旅行前後、わかりやすい英語でサポート。" },
-      "refund": { "title": "Easy refunds", "body": "予定変更？未使用eSIMは手間なく返金可能。" }
+      "instant": {
+        "title": "Instant activation",
+        "body": "店舗不要・物理SIM不要 — QRコードから数分でインストール。"
+      },
+      "support": {
+        "title": "English support",
+        "body": "旅行前後、わかりやすい英語でサポート。"
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "予定変更？未使用eSIMは手間なく返金可能。"
+      }
     }
   },
   "reviews": {
     "title": "旅行者の声",
     "items": [
-      { "text": "仁川空港で1分で設定。Googleマップも快適！", "author": "Maria · 韓国4日" },
-      { "text": "空港でSIMを買うよりずっと簡単。", "author": "James · ソウル7日" },
-      { "text": "釜山・済州で無制限データ — 問題なし。", "author": "Lin · 韓国10日" }
+      {
+        "text": "仁川空港で1分で設定。Googleマップも快適！",
+        "author": "Maria · 韓国4日"
+      },
+      {
+        "text": "空港でSIMを買うよりずっと簡単。",
+        "author": "James · ソウル7日"
+      },
+      {
+        "text": "釜山・済州で無制限データ — 問題なし。",
+        "author": "Lin · 韓国10日"
+      }
     ]
   },
   "recommend": {
@@ -85,8 +106,8 @@
     "showingPlansPrefix": "",
     "showingPlansSuffix": "日プランを表示中",
     "change": "変更",
-    "bannerTitle": "決済は近日公開",
-    "bannerBody": "プランの閲覧とインストールガイドは今すぐご利用いただけます。オンライン決済を準備中です。",
+    "bannerTitle": "ご購入いただけます",
+    "bannerBody": "プランを選んでブラウザで安全に決済。QRはメールで届きます。",
     "noPlansForDays": "{N}日のプランは現在ありません。別の日数をお試しください。",
     "errorTitle": "プランを読み込めませんでした。",
     "errorBody": "接続を確認してもう一度お試しください。",
@@ -103,7 +124,8 @@
     "notFoundTitle": "プランが見つかりません",
     "notFoundBody": "このプランは利用できない可能性があります。プラン一覧に戻り、別の日数を選んでください。",
     "notFound": "プランが見つかりません",
-    "backToPlans": "プラン一覧へ"
+    "backToPlans": "プラン一覧へ",
+    "payInBrowserHint": "安全な決済はブラウザで開きます（モバイル決済画面）。"
   },
   "checkout": {
     "title": "チェックアウト",
@@ -121,7 +143,8 @@
     "completeTitle": "ありがとうございます！",
     "completeBody": "お支払いを確認しました。数分以内にQRコードをメールでお送りします。",
     "orderNumber": "注文番号",
-    "viewPlans": "他のプランを見る"
+    "viewPlans": "他のプランを見る",
+    "continueInBrowser": "ブラウザで続ける"
   },
   "guide": {
     "title": "eSIMのインストール",
@@ -131,7 +154,8 @@
       "購入後のQRコードをスキャン。",
       "新しい回線を有効化し、必要に応じてデータローミングをON。",
       "韓国到着後、eSIMをモバイルデータ回線に設定。"
-    ]
+    ],
+    "flowPhaseNote": "プラン・料金・インストール案内・ブラウザ決済が利用可能です。"
   },
   "devices": {
     "title": "対応端末",
@@ -145,7 +169,9 @@
     "email": "bongtour24@naver.com",
     "phone": "+82-31-213-2558 (KST 09:00–18:00)"
   },
-  "language": { "label": "言語" },
+  "language": {
+    "label": "言語"
+  },
   "auth": {
     "title": "ログイン",
     "welcomeTitle": "Simply URへようこそ",
@@ -201,7 +227,11 @@
     "usedWord": "使用",
     "leftWord": "残り",
     "unlimitedResetsDaily": "無制限プラン · 毎日リセット",
-    "badge": { "active": "利用中", "expired": "期限切れ", "upcoming": "開始前" },
+    "badge": {
+      "active": "利用中",
+      "expired": "期限切れ",
+      "upcoming": "開始前"
+    },
     "empty": "eSIMの注文はまだありません。",
     "orderDate": "注文日",
     "orderNo": "注文番号",

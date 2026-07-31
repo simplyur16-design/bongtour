@@ -9,16 +9,25 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bongtour.simplyur"
+      "bundleIdentifier": "com.bongtong.simplyur",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": []
+      }
     },
     "android": {
-      "package": "com.bongtour.simplyur",
+      "package": "com.bongtong.simplyur",
       "adaptiveIcon": {
         "backgroundColor": "#F5E8EA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      }
+      },
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +44,8 @@
           "backgroundColor": "#FFF4EF"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -43,7 +53,14 @@
     "extra": {
       "brand": "simplyur",
       "audience": "foreign-visitors-korea-esim",
-      "parentLegal": "Bong Tour Co., Ltd."
+      "parentLegal": "Bong Tour Co., Ltd.",
+      "privacyPolicyUrl": "https://bongtong.com/simplyur/en/legal/privacy",
+      "termsUrl": "https://bongtong.com/simplyur/en/legal/terms",
+      "supportUrl": "https://bongtong.com/simplyur/en",
+      "supportEmail": "bongtong24@naver.com",
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
     }
   }
 }

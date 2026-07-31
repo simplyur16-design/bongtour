@@ -43,22 +43,43 @@
   "countries": {
     "title": "eSIM Hàn Quốc",
     "subtitle": "Seoul, Busan, Jeju — gói data toàn quốc.",
-    "kr": { "name": "Hàn Quốc", "subtitle": "Seoul, Busan & toàn quốc" }
+    "kr": {
+      "name": "Hàn Quốc",
+      "subtitle": "Seoul, Busan & toàn quốc"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "Không cần SIM vật lý, không cần ra cửa hàng — cài từ mã QR trong vài phút." },
-      "support": { "title": "English support", "body": "Hỗ trợ bằng tiếng Anh dễ hiểu trước và trong chuyến đi." },
-      "refund": { "title": "Easy refunds", "body": "Đổi kế hoạch? eSIM chưa dùng được hoàn tiền dễ dàng." }
+      "instant": {
+        "title": "Instant activation",
+        "body": "Không cần SIM vật lý, không cần ra cửa hàng — cài từ mã QR trong vài phút."
+      },
+      "support": {
+        "title": "English support",
+        "body": "Hỗ trợ bằng tiếng Anh dễ hiểu trước và trong chuyến đi."
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "Đổi kế hoạch? eSIM chưa dùng được hoàn tiền dễ dàng."
+      }
     }
   },
   "reviews": {
     "title": "Đánh giá",
     "items": [
-      { "text": "Cài trong 1 phút tại Incheon. Google Maps mượt!", "author": "Maria · Hàn 4 ngày" },
-      { "text": "Dễ hơn nhiều so với mua SIM tại sân bay.", "author": "James · Seoul 7 ngày" },
-      { "text": "Data không giới hạn ở Busan, Jeju.", "author": "Lin · Hàn 10 ngày" }
+      {
+        "text": "Cài trong 1 phút tại Incheon. Google Maps mượt!",
+        "author": "Maria · Hàn 4 ngày"
+      },
+      {
+        "text": "Dễ hơn nhiều so với mua SIM tại sân bay.",
+        "author": "James · Seoul 7 ngày"
+      },
+      {
+        "text": "Data không giới hạn ở Busan, Jeju.",
+        "author": "Lin · Hàn 10 ngày"
+      }
     ]
   },
   "recommend": {
@@ -85,8 +106,8 @@
     "showingPlansPrefix": "Gói cho ",
     "showingPlansSuffix": " ngày",
     "change": "Đổi",
-    "bannerTitle": "Thanh toán sắp ra mắt",
-    "bannerBody": "Bạn có thể xem gói và hướng dẫn cài đặt ngay. Thanh toán trực tuyến đang được bật.",
+    "bannerTitle": "Sẵn sàng mua",
+    "bannerBody": "Chọn gói rồi thanh toán an toàn trên trình duyệt. Mã QR gửi về email.",
     "noPlansForDays": "Chưa có gói {N} ngày. Thử độ dài khác.",
     "errorTitle": "Không tải được gói.",
     "errorBody": "Kiểm tra kết nối và thử lại.",
@@ -103,7 +124,8 @@
     "notFoundTitle": "Không tìm thấy gói",
     "notFoundBody": "Gói này có thể không còn khả dụng. Quay lại và chọn số ngày khác.",
     "notFound": "Không tìm thấy gói",
-    "backToPlans": "Quay lại danh sách"
+    "backToPlans": "Quay lại danh sách",
+    "payInBrowserHint": "Thanh toán an toàn mở trong trình duyệt (giao diện mobile)."
   },
   "checkout": {
     "title": "Thanh toán",
@@ -121,7 +143,8 @@
     "completeTitle": "Cảm ơn!",
     "completeBody": "Thanh toán đã xác nhận. Mã QR eSIM Hàn Quốc sẽ được gửi qua email trong vài phút.",
     "orderNumber": "Mã đơn",
-    "viewPlans": "Xem thêm gói"
+    "viewPlans": "Xem thêm gói",
+    "continueInBrowser": "Tiếp tục trong trình duyệt"
   },
   "guide": {
     "title": "Cài eSIM",
@@ -131,7 +154,8 @@
       "Quét QR sau khi mua.",
       "Bật đường truyền mới và chuyển vùng dữ liệu nếu cần.",
       "Đặt eSIM làm đường truyền dữ liệu khi đến Hàn Quốc."
-    ]
+    ],
+    "flowPhaseNote": "Đã có: gói cước, giá, hướng dẫn cài, và thanh toán trên trình duyệt."
   },
   "devices": {
     "title": "Thiết bị tương thích",
@@ -145,7 +169,9 @@
     "email": "bongtour24@naver.com",
     "phone": "+82-31-213-2558 (KST 09:00–18:00)"
   },
-  "language": { "label": "Ngôn ngữ" },
+  "language": {
+    "label": "Ngôn ngữ"
+  },
   "auth": {
     "title": "Đăng nhập",
     "welcomeTitle": "Chào mừng đến Simply UR",
@@ -201,7 +227,11 @@
     "usedWord": "đã dùng",
     "leftWord": "còn lại",
     "unlimitedResetsDaily": "Gói không giới hạn · reset hàng ngày",
-    "badge": { "active": "Đang dùng", "expired": "Hết hạn", "upcoming": "Sắp tới" },
+    "badge": {
+      "active": "Đang dùng",
+      "expired": "Hết hạn",
+      "upcoming": "Sắp tới"
+    },
     "empty": "Chưa có đơn eSIM.",
     "orderDate": "Ngày đặt",
     "orderNo": "Mã đơn",

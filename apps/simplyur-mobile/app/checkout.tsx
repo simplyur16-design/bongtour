@@ -1,13 +1,15 @@
 import { Link, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
+import { fetchKoreaProduct, openSimplyurWebCheckout, type PlanProduct } from '@/src/api/simplyur';
+import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
+/** Bridge screen — opens web Eximbay checkout (mobile UI). Native pay is Phase 2c. */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
   const { t, locale } = useI18n();
@@ -15,9 +17,11 @@ export default function CheckoutScreen() {
   const colors = Colors[scheme];
   const [product, setProduct] = useState<PlanProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const [opening, setOpening] = useState(false);
+  const checkoutEnabled = isSimplyurCheckoutEnabled();
+  const id = String(optionApiId ?? '').trim();
 
   useEffect(() => {
-    const id = String(optionApiId ?? '').trim();
     if (!id) {
       setLoading(false);
       return;
@@ -33,13 +37,47 @@ export default function CheckoutScreen() {
     return () => {
       cancelled = true;
     };
-  }, [optionApiId, locale]);
+  }, [id, locale]);
+
+  const openPay = useCallback(async () => {
+    if (!id || opening) return;
+    setOpening(true);
+    try {
+      await openSimplyurWebCheckout(locale, id);
+    } finally {
+      setOpening(false);
+    }
+  }, [id, locale, opening]);
+
+  useEffect(() => {
+    if (!checkoutEnabled || loading || !id) return;
+    void openPay();
+    // Auto-open once when ready
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot on load
+  }, [checkoutEnabled, loading, id]);
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.celadon} />
       </View>
+    );
+  }
+
+  if (!checkoutEnabled) {
+    return (
+      <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+        <Text style={[styles.title, { color: colors.text }]}>{t('checkout.title')}</Text>
+        <View style={[styles.banner, { backgroundColor: colors.danMuted, borderColor: colors.hanjiBorder }]}>
+          <Text style={[styles.bannerTitle, { color: colors.dan }]}>{t('product.checkoutSoon')}</Text>
+          <Text style={[styles.bannerBody, { color: colors.text }]}>{t('product.checkoutSoonHint')}</Text>
+        </View>
+        <Link href="/plans" asChild>
+          <Pressable style={{ marginTop: 20 }}>
+            <Text style={{ color: colors.celadon, ...fp('600') }}>{t('product.backToPlans')}</Text>
+          </Pressable>
+        </Link>
+      </ScrollView>
     );
   }
 
@@ -51,10 +89,17 @@ export default function CheckoutScreen() {
           {product.plan_summary} · {product.simplyur_display?.formatted}
         </Text>
       ) : null}
-      <View style={[styles.banner, { backgroundColor: colors.danMuted, borderColor: colors.hanjiBorder }]}>
-        <Text style={[styles.bannerTitle, { color: colors.dan }]}>{t('product.checkoutSoon')}</Text>
-        <Text style={[styles.bannerBody, { color: colors.text }]}>{t('product.checkoutSoonHint')}</Text>
-      </View>
+      <Text style={[styles.bannerBody, { color: colors.inkMuted, marginTop: 16 }]}>
+        {t('product.payInBrowserHint')}
+      </Text>
+      <Pressable
+        style={[styles.cta, { backgroundColor: colors.dan, opacity: opening ? 0.7 : 1 }]}
+        onPress={() => void openPay()}
+        disabled={opening || !id}>
+        <Text style={styles.ctaText}>
+          {opening ? t('checkout.processing') : t('checkout.continueInBrowser')}
+        </Text>
+      </Pressable>
       <Link href="/plans" asChild>
         <Pressable style={{ marginTop: 20 }}>
           <Text style={{ color: colors.celadon, ...fp('600') }}>{t('product.backToPlans')}</Text>
@@ -73,4 +118,12 @@ const styles = StyleSheet.create({
   banner: { marginTop: 24, borderRadius: 14, borderWidth: 1, padding: 16 },
   bannerTitle: { fontSize: 17, ...fp('800') },
   bannerBody: { marginTop: 8, fontSize: 14, lineHeight: 21, ...fp('400') },
+  cta: {
+    marginTop: 24,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: { color: '#fff', fontSize: 16, ...fp('600') },
 });
