@@ -24,12 +24,15 @@ export function SimplyurHeader({ locale, currentPath = "", user = null }: Props)
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color:var(--su-brand-border)] bg-[color:var(--su-brand-bg-soft)]/95 backdrop-blur-sm">
-      <div className="relative mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3 sm:max-w-3xl sm:px-6 sm:py-4 lg:max-w-6xl">
-        <Link href={simplyurPath(locale)} className="shrink-0">
-          <SimplyurWordmark size="sm" />
+      <div className="relative mx-auto flex max-w-lg min-w-0 items-center gap-2 px-3 py-2.5 sm:max-w-3xl sm:gap-3 sm:px-6 sm:py-4 lg:max-w-6xl">
+        <Link href={simplyurPath(locale)} className="min-w-0 shrink">
+          <SimplyurWordmark
+            size="sm"
+            className="[&_img]:h-7 [&_img]:w-auto [&_img]:max-w-[6.75rem] sm:[&_img]:h-9 sm:[&_img]:max-w-none"
+          />
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav className="hidden min-w-0 items-center gap-6 lg:flex">
           {nav.map(({ key, href, match }) => (
             <Link
               key={key}
@@ -42,15 +45,17 @@ export function SimplyurHeader({ locale, currentPath = "", user = null }: Props)
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Phone: Find eSIM + language must share one row (app chrome). */}
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           <SimplyurHeaderAuth locale={locale} user={user} />
           <Link
             href={simplyurPath(locale, "/recommend")}
-            className="su-btn-navy hidden px-5 py-2 text-sm md:inline-flex"
+            className="su-btn-navy inline-flex max-w-[7.25rem] shrink-0 truncate px-2.5 py-1.5 text-[11px] leading-none sm:max-w-none sm:px-5 sm:py-2 sm:text-sm"
           >
-            {tr("hero.cta")}
+            <span className="sm:hidden">{tr("nav.findPlanShort")}</span>
+            <span className="hidden sm:inline">{tr("hero.cta")}</span>
           </Link>
-          <SimplyurLanguageSwitcher locale={locale} currentPath={currentPath} />
+          <SimplyurLanguageSwitcher locale={locale} currentPath={currentPath} compact />
           <SimplyurMobileNav locale={locale} user={user} />
         </div>
       </div>

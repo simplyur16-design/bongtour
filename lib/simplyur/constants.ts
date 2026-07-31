@@ -49,6 +49,15 @@ export const SIMPLYUR_LOCALE_LABELS: Record<SimplyurLocale, string> = {
   vi: "Tiếng Việt",
 };
 
+/** Compact header chip (phone) — full label stays in the dropdown. */
+export const SIMPLYUR_LOCALE_SHORT_LABELS: Record<SimplyurLocale, string> = {
+  en: "EN",
+  ja: "JA",
+  zh: "简",
+  "zh-TW": "繁",
+  vi: "VI",
+};
+
 export function isSimplyurLocale(v: string): v is SimplyurLocale {
   return (SIMPLYUR_LOCALES as readonly string[]).includes(v);
 }

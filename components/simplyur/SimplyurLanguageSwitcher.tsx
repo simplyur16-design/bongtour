@@ -3,27 +3,43 @@
 import Link from "next/link";
 import {
   SIMPLYUR_LOCALE_LABELS,
+  SIMPLYUR_LOCALE_SHORT_LABELS,
   SIMPLYUR_LOCALES,
   simplyurPath,
   type SimplyurLocale,
 } from "@/lib/simplyur/constants";
 import { useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 
-type Props = { locale: SimplyurLocale; currentPath?: string };
+type Props = { locale: SimplyurLocale; currentPath?: string; compact?: boolean };
 
-export function SimplyurLanguageSwitcher({ locale, currentPath = "" }: Props) {
+export function SimplyurLanguageSwitcher({
+  locale,
+  currentPath = "",
+  compact = false,
+}: Props) {
   const tr = useSimplyurT();
 
   return (
-    <div className="relative group">
+    <div className="relative group shrink-0">
       <button
         type="button"
-        className="flex items-center gap-1 rounded-lg border border-[color:var(--su-hanji-border)] bg-white px-3 py-1.5 text-sm font-medium text-[color:var(--su-ink-muted)] transition hover:border-[color:var(--su-celadon-muted)] hover:su-bg-celadon-light"
+        className={`flex items-center gap-0.5 rounded-lg border border-[color:var(--su-hanji-border)] bg-white font-medium text-[color:var(--su-ink-muted)] transition hover:border-[color:var(--su-celadon-muted)] hover:su-bg-celadon-light ${
+          compact
+            ? "px-2 py-1.5 text-[11px] leading-none sm:gap-1 sm:px-3 sm:py-1.5 sm:text-sm"
+            : "gap-1 px-3 py-1.5 text-sm"
+        }`}
         aria-haspopup="listbox"
         aria-label={tr("language.label")}
       >
-        {SIMPLYUR_LOCALE_LABELS[locale]}
-        <span aria-hidden className="text-xs opacity-60">▾</span>
+        <span className={compact ? "sm:hidden" : "hidden"}>
+          {SIMPLYUR_LOCALE_SHORT_LABELS[locale]}
+        </span>
+        <span className={compact ? "hidden sm:inline" : undefined}>
+          {SIMPLYUR_LOCALE_LABELS[locale]}
+        </span>
+        <span aria-hidden className="text-[10px] opacity-60 sm:text-xs">
+          ▾
+        </span>
       </button>
       <ul
         role="listbox"
