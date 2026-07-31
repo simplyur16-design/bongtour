@@ -4,9 +4,12 @@ import {
   buildEximbayBasicAuthHeader,
   EXIMBAY_API_ORIGIN_LIVE,
   EXIMBAY_API_ORIGIN_TEST,
-  resolveEximbayApiOrigin,
-  resolveEximbaySdkScriptUrl,
+  EXIMBAY_PUBLIC_TEST_API_KEY,
+  EXIMBAY_PUBLIC_TEST_MID,
   isSimplyurEximbayLiveEnabled,
+  resolveEximbayApiOrigin,
+  resolveEximbayEnv,
+  resolveEximbaySdkScriptUrl,
 } from "@/lib/simplyur/payments/eximbay-env";
 import { buildEximbayReadyRequestBody, formatEximbayUsdAmountFromMinor } from "@/lib/simplyur/payments/eximbay-ready";
 import { parseEximbayStatusQuery } from "@/lib/simplyur/payments/eximbay-verify";
@@ -79,5 +82,27 @@ describe("simplyur Eximbay ready payload", () => {
     else process.env.EXIMBAY_MID = prevMid;
     if (prevKey === undefined) delete process.env.EXIMBAY_API_KEY;
     else process.env.EXIMBAY_API_KEY = prevKey;
+  });
+
+  it("falls back to Eximbay public test MID/key when unset (non-production)", () => {
+    const prevMid = process.env.EXIMBAY_MID;
+    const prevKey = process.env.EXIMBAY_API_KEY;
+    const prevEnv = process.env.EXIMBAY_ENV;
+    delete process.env.EXIMBAY_MID;
+    delete process.env.EXIMBAY_API_KEY;
+    process.env.EXIMBAY_ENV = "test";
+    const resolved = resolveEximbayEnv();
+    expect(resolved.ok).toBe(true);
+    if (resolved.ok) {
+      expect(resolved.env.mid).toBe(EXIMBAY_PUBLIC_TEST_MID);
+      expect(resolved.env.apiKey).toBe(EXIMBAY_PUBLIC_TEST_API_KEY);
+      expect(resolved.env.mode).toBe("test");
+    }
+    if (prevMid === undefined) delete process.env.EXIMBAY_MID;
+    else process.env.EXIMBAY_MID = prevMid;
+    if (prevKey === undefined) delete process.env.EXIMBAY_API_KEY;
+    else process.env.EXIMBAY_API_KEY = prevKey;
+    if (prevEnv === undefined) delete process.env.EXIMBAY_ENV;
+    else process.env.EXIMBAY_ENV = prevEnv;
   });
 });

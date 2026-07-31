@@ -1,11 +1,18 @@
 /**
  * Simplyur 외국인 eSIM — Eximbay PG env / Basic Auth / base URL SSOT.
- * 봉투어 웰컴페이먼츠와 분리. PortOne 실결제 경로와 병행(연동 준비 단계).
+ * 봉투어 웰컴페이먼츠와 분리.
  * REGRESSION-FREEZE[simplyur-eximbay-payment-prep]: Eximbay env + Basic Auth — manifest
  */
 
 export const EXIMBAY_API_ORIGIN_TEST = "https://api-test.eximbay.com" as const;
 export const EXIMBAY_API_ORIGIN_LIVE = "https://api.eximbay.com" as const;
+
+/**
+ * Eximbay 개발자 문서 공개 테스트 키 — 가맹 승인 전 결제창 연동용.
+ * @see https://developer.eximbay.com/eximbay/payment_linkage/preparing-payment.html
+ */
+export const EXIMBAY_PUBLIC_TEST_MID = "1849705C64" as const;
+export const EXIMBAY_PUBLIC_TEST_API_KEY = "test_1849705C642C217E0B2D" as const;
 
 export type EximbayEnvMode = "test" | "production";
 
@@ -60,14 +67,22 @@ export function buildEximbayBasicAuthHeader(apiKey: string): string {
 }
 
 export function resolveEximbayEnv(): ResolveEximbayEnvResult {
-  const mid = readEnv("EXIMBAY_MID", "eximbay_mid");
-  const apiKey = readEnv("EXIMBAY_API_KEY", "eximbay_api_key");
+  let mid = readEnv("EXIMBAY_MID", "eximbay_mid");
+  let apiKey = readEnv("EXIMBAY_API_KEY", "eximbay_api_key");
+  let mode = resolveEximbayEnvMode();
+
+  // 가맹 승인 전: 문서 공개 테스트 MID/Key 로 결제창 연동 가능. production 강제 시에는 실키 필수.
+  if ((!mid || !apiKey) && mode !== "production") {
+    mid = mid || EXIMBAY_PUBLIC_TEST_MID;
+    apiKey = apiKey || EXIMBAY_PUBLIC_TEST_API_KEY;
+    mode = "test";
+  }
+
   const missing: string[] = [];
   if (!mid) missing.push("EXIMBAY_MID");
   if (!apiKey) missing.push("EXIMBAY_API_KEY");
   if (missing.length) return { ok: false, reason: "eximbay_env_incomplete", missing };
 
-  const mode = resolveEximbayEnvMode();
   const apiOrigin = resolveEximbayApiOrigin(mode);
   return {
     ok: true,

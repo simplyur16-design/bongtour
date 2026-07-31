@@ -11557,7 +11557,8 @@
             "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
             "buildEximbayBasicAuthHeader",
             "resolveEximbayEnv",
-            "api-test.eximbay.com"
+            "api-test.eximbay.com",
+            "EXIMBAY_PUBLIC_TEST_MID"
           ]
         },
         {
