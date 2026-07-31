@@ -158,6 +158,10 @@ export function SimplyurCheckoutClient({
       const origin = window.location.origin;
       const successUrl = `${origin}${simplyurPath(locale, `/checkout/complete?orderId=${encodeURIComponent(confirmJson.order.order_id)}&orderNumber=${encodeURIComponent(confirmJson.order.order_number)}`)}`;
       const failUrl = `${origin}${simplyurPath(locale, `/checkout?optionApiId=${encodeURIComponent(product.option_api_id)}&failed=1`)}`;
+      // Phone/app: mobile Eximbay UI + redirect. Wide desktop: PC popup.
+      const preferMobile =
+        window.matchMedia("(max-width: 768px)").matches ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
       const payRes = await fetch("/api/bongsim/payments/session", {
         method: "POST",
@@ -167,6 +171,7 @@ export function SimplyurCheckoutClient({
           idempotency_key: `${idempotencyKey}-pay-eximbay`,
           provider: SIMPLYUR_EXIMBAY_PROVIDER_ID,
           simplyur_locale: locale,
+          eximbay_ostype: preferMobile ? "M" : "P",
           return_urls: {
             success_url: successUrl,
             fail_url: failUrl,

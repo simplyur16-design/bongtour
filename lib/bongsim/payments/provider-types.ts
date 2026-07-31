@@ -19,6 +19,8 @@ export type BongsimPaymentProviderCreateInput = {
   };
   /** simplyur checkout UI locale (Eximbay lang / PortOne KICC) */
   simplyur_locale?: string;
+  /** Eximbay ostype — M mobile (default), P PC */
+  eximbay_ostype?: "M" | "P";
 };
 
 export type BongsimPaymentProviderCreateResult = {

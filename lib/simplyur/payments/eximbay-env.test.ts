@@ -63,6 +63,24 @@ describe("simplyur Eximbay ready payload", () => {
     expect(body.buyer.email).toBe("test@eximbay.com");
     expect(body.url.return_url).toContain("eximbay-return");
     expect(body.url.status_url).toContain("/api/simplyur/webhooks/eximbay");
+    expect(body.settings.ostype).toBe("M");
+    expect(body.settings.display_type).toBe("R");
+  });
+
+  it("buildEximbayReadyRequestBody uses PC popup when ostype=P", () => {
+    const body = buildEximbayReadyRequestBody({
+      mid: "1849705C64",
+      orderId: "su-order-2",
+      amountUsdMinor: 100,
+      buyerName: "eximbay",
+      buyerEmail: "test@eximbay.com",
+      lang: "EN",
+      returnUrl: "https://example.com/r",
+      statusUrl: "https://example.com/s",
+      ostype: "P",
+    });
+    expect(body.settings.ostype).toBe("P");
+    expect(body.settings.display_type).toBe("P");
   });
 
   it("parseEximbayStatusQuery reads order_id and transaction_id", () => {

@@ -11527,7 +11527,8 @@
             "eximbay_v2",
             "callEximbayPaymentsReady",
             "resolveSimplyurEximbayReturnUrl",
-            "su_cancel"
+            "su_cancel",
+            "eximbay_ostype"
           ]
         },
         {

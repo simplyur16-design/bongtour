@@ -60,6 +60,7 @@ export class SimplyurEximbayPaymentsProvider implements BongsimPaymentProviderAd
       lang: mapSimplyurLocaleToEximbayLang(locale),
       returnUrl,
       statusUrl,
+      ostype: input.eximbay_ostype ?? "M",
     });
 
     const ready = await callEximbayPaymentsReady(requestBody);

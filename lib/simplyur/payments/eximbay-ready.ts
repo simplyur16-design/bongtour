@@ -10,6 +10,9 @@ import {
 } from "@/lib/simplyur/payments/eximbay-env";
 import { krwOrderTotalToUsdMinor, krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
 
+export type EximbayOsType = "P" | "M";
+export type EximbayDisplayType = "P" | "R";
+
 export type EximbayReadyRequestBody = {
   payment: {
     transaction_type: "PAYMENT";
@@ -21,6 +24,12 @@ export type EximbayReadyRequestBody = {
   merchant: { mid: string };
   buyer: { name: string; email: string };
   url: { return_url: string; status_url: string };
+  /** PC(P) vs mobile(M) payment UI — Simplyur defaults to mobile. */
+  settings: {
+    ostype: EximbayOsType;
+    /** P=popup, R=redirect — mobile prefers redirect. */
+    display_type: EximbayDisplayType;
+  };
 };
 
 export type EximbayRequestPayPayload = EximbayReadyRequestBody & { fgkey: string };
@@ -50,6 +59,15 @@ export function mapSimplyurLocaleToEximbayLang(locale: string | null | undefined
   return "EN";
 }
 
+/** Simplyur is phone/app-first — mobile UI unless explicitly PC. */
+export function resolveEximbayClientSettings(ostype: EximbayOsType = "M"): {
+  ostype: EximbayOsType;
+  display_type: EximbayDisplayType;
+} {
+  if (ostype === "P") return { ostype: "P", display_type: "P" };
+  return { ostype: "M", display_type: "R" };
+}
+
 export function buildEximbayReadyRequestBody(input: {
   mid: string;
   orderId: string;
@@ -59,7 +77,10 @@ export function buildEximbayReadyRequestBody(input: {
   lang: string;
   returnUrl: string;
   statusUrl: string;
+  /** Default M — mobile payment window (not PC popup). */
+  ostype?: EximbayOsType;
 }): EximbayReadyRequestBody {
+  const settings = resolveEximbayClientSettings(input.ostype ?? "M");
   return {
     payment: {
       transaction_type: "PAYMENT",
@@ -77,6 +98,7 @@ export function buildEximbayReadyRequestBody(input: {
       return_url: input.returnUrl,
       status_url: input.statusUrl,
     },
+    settings,
   };
 }
 

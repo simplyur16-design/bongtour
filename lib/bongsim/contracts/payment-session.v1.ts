@@ -9,8 +9,13 @@ export type BongsimPaymentSessionRequestV1 = {
   return_urls: BongsimPaymentReturnUrlsV1;
   /** simplyur PortOne — PayPal or KICC (required when provider=portone) */
   simplyur_portone_method?: "paypal" | "kicc_wechat" | "kicc_alipay_plus";
-  /** simplyur checkout UI locale for KICC payment window */
+  /** simplyur checkout UI locale for Eximbay lang / PortOne KICC */
   simplyur_locale?: string;
+  /**
+   * Eximbay payment window form factor.
+   * M = mobile UI + redirect (default for Simplyur). P = PC popup.
+   */
+  eximbay_ostype?: "M" | "P";
 };
 
 /** Browser-safe payload only; no secrets, no webhook verification material. */
@@ -66,6 +71,10 @@ export type BongsimPaymentSessionClientV1 =
         merchant: { mid: string };
         buyer: { name: string; email: string };
         url: { return_url: string; status_url: string };
+        settings: {
+          ostype: "P" | "M";
+          display_type: "P" | "R";
+        };
       };
       order_name: string;
       customer_email: string;

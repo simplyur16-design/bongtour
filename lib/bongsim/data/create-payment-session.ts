@@ -125,6 +125,8 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
   const simplyur_portone_method = parseSimplyurPortoneMethod(o.simplyur_portone_method);
   const simplyur_locale =
     typeof o.simplyur_locale === "string" && o.simplyur_locale.trim() ? o.simplyur_locale.trim() : undefined;
+  const ostypeRaw = typeof o.eximbay_ostype === "string" ? o.eximbay_ostype.trim().toUpperCase() : "";
+  const eximbay_ostype = ostypeRaw === "P" || ostypeRaw === "M" ? (ostypeRaw as "P" | "M") : undefined;
 
   const return_urls: BongsimPaymentReturnUrlsV1 = {
     success_url: String((o.return_urls as Record<string, unknown>).success_url).trim(),
@@ -142,6 +144,7 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
       return_urls,
       ...(simplyur_portone_method ? { simplyur_portone_method } : {}),
       ...(simplyur_locale ? { simplyur_locale } : {}),
+      ...(eximbay_ostype ? { eximbay_ostype } : {}),
     },
   };
 }
@@ -338,6 +341,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
           return_urls: returnUrlsReuse,
           simplyur_portone: simplyurPortoneCreateOpts(req),
           simplyur_locale: req.simplyur_locale,
+          eximbay_ostype: req.eximbay_ostype,
         });
         await client.query("COMMIT");
         return { ok: true, body: attemptToResponse(order, ex, provReuse.client, true) };
@@ -382,6 +386,7 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
         return_urls: req.return_urls,
         simplyur_portone: simplyurPortoneCreateOpts(req),
         simplyur_locale: req.simplyur_locale,
+        eximbay_ostype: req.eximbay_ostype,
       });
     } catch (sessionErr) {
       await client.query("ROLLBACK");
