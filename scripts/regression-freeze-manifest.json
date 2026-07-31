@@ -11042,6 +11042,20 @@
           ]
         },
         {
+          "file": "app/loading.tsx",
+          "mustInclude": [
+            "SIMPLYUR_SURFACE_HEADER",
+            "SimplyurPageLoading",
+            "HomePageLoading"
+          ]
+        },
+        {
+          "file": "app/simplyur/loading.tsx",
+          "mustInclude": [
+            "SimplyurPageLoading"
+          ]
+        },
+        {
           "file": "middleware.ts",
           "mustInclude": [
             "SIMPLYUR_SURFACE_HEADER",
