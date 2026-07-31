@@ -56,9 +56,11 @@ function scrubPlaceToken(raw: string): string | null {
     .trim()
   if (!t) return null
   t = t.replace(/\d+\s*(?:박|일)\s*$/u, '').trim()
-  t = t.replace(/\s*\([^)]*\)/g, '').trim() // 칭다오(청도) → 칭다오
-  t = t.replace(/\s*\([^)]*$/u, '').trim() // 칭다오(청도 → 칭다오
-  t = t.replace(/[)）]+$/u, '').trim()
+  // 지명에 바로 붙은 괄호만 별칭으로 보고 제거한다.
+  // 앞에 공백이 있으면 공급사 조합 라벨(`미동부 (뉴욕 · 나이아가라)`)이라 살린다.
+  t = t.replace(/(?<=\S)\([^)]*\)/g, '').trim() // 칭다오(청도) → 칭다오
+  t = t.replace(/(?<=\S)\([^)]*$/u, '').trim() // 칭다오(청도 → 칭다오
+  if (!/[(（]/u.test(t)) t = t.replace(/[)）]+$/u, '').trim() // 짝 없는 닫는 괄호만 정리
   if (!t || isRegisterDestinationPollutionLabel(t)) return null
   return t.slice(0, 96)
 }
@@ -87,13 +89,24 @@ function firstNonPolicyBracketPlace(title: string): string | null {
   return null
 }
 
+/**
+ * 공급사 조합 라벨(`미동부 · 캐나다 (뉴욕 · 나이아가라)`)은 제목이 아니라 이미 정리된 값이다.
+ * 제목용 머리 토큰 분리를 태우면 첫 지명만 남고 나머지가 잘린다.
+ */
+function isComposedRegisterDestinationLabel(t: string): boolean {
+  return /\s·\s/.test(t) || /\S\s\([^)]*\)$/.test(t)
+}
+
 function firstCleanStoredDestination(
   ...candidates: Array<string | null | undefined>
 ): string | null {
   for (const c of candidates) {
     const t = String(c ?? '').trim()
     if (!t || isRegisterDestinationPollutionLabel(t)) continue
-    const scrubbed = scrubPlaceToken(firstRegisterDestinationPlaceFromTitleHead(t) || t)
+    const head = isComposedRegisterDestinationLabel(t)
+      ? t
+      : firstRegisterDestinationPlaceFromTitleHead(t) || t
+    const scrubbed = scrubPlaceToken(head)
     if (scrubbed) return scrubbed
   }
   return null

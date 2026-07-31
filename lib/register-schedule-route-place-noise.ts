@@ -600,6 +600,17 @@ function preferRegisterScheduleRouteCityLabel(label: string): string {
     .trim() || String(label ?? '').trim()
 }
 
+/**
+ * `카스카이스`·`카스카이스해변`처럼 접미사가 붙으면 도시와 그 안의 장소로 서로 다른 곳이다.
+ * REGRESSION-FREEZE[register-schedule-route-place-noise]: 접미사 장소는 부분문자열 중복 아님 — manifest
+ */
+const ROUTE_PLACE_DISTINCT_SUFFIX_RE = /^(?:해변|곶|역|공항|시내|성|사원|종탑|대성당|수도원)/u
+
+export function isRegisterScheduleRoutePlaceDistinctSuffix(longer: string, shorter: string): boolean {
+  if (!longer.startsWith(shorter) || longer === shorter) return false
+  return ROUTE_PLACE_DISTINCT_SUFFIX_RE.test(longer.slice(shorter.length))
+}
+
 /** routeText·places 배열에서 행정/UI·국내 출발 허브 세그먼트 제거 */
 export function filterRegisterScheduleRoutePlaceSegments(segments: readonly string[]): string[] {
   const out: string[] = []
@@ -617,9 +628,13 @@ export function filterRegisterScheduleRoutePlaceSegments(segments: readonly stri
       const display = preferRegisterScheduleRouteCityLabel(label)
       const key = norm(display)
       if (!key) continue
-      const dupIdx = keys.findIndex(
-        (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
-      )
+      const dupIdx = keys.findIndex((k) => {
+        if (k === key) return true
+        const longer = k.length >= key.length ? k : key
+        const shorter = k.length < key.length ? k : key
+        if (shorter.length < 4 || !longer.includes(shorter)) return false
+        return !isRegisterScheduleRoutePlaceDistinctSuffix(longer, shorter)
+      })
       if (dupIdx >= 0) {
         if (display.length > out[dupIdx]!.length) out[dupIdx] = display
         continue

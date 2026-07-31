@@ -29,6 +29,11 @@ type Sample = {
   expectAnchorPrice: number
   /** 자유여행: 9월 다출발 최소 건수 */
   minSepDepartures?: number
+  /**
+   * 이 pkgCd의 대표가와 값이 같으면 실패 — 패키지/자유여행 혼입 감지.
+   * 공급사가 수시로 재가격하므로 절대 금액 대신 형제 상품과의 차이로 검증한다.
+   */
+  expectAnchorDiffersFrom?: string
 }
 
 const SAMPLES: Sample[] = [
@@ -36,7 +41,8 @@ const SAMPLES: Sample[] = [
     pkgCd: 'PAB101260920JQ1',
     label: '자유여행 시드니 6일 파라독스',
     adminTravelScope: 'air_hotel_free',
-    expectAnchorPrice: 2_059_000,
+    // 공급사 재가격 시 깨지므로 절대 금액 고정 금지 — >0 + 달력/형제 상품 정합만 본다.
+    expectAnchorPrice: 0,
     minSepDepartures: 3,
   },
   {
@@ -49,7 +55,8 @@ const SAMPLES: Sample[] = [
     pkgCd: 'PAP101260920JQ1',
     label: '시드니 패키지 — admin overseas 시 PAB 미혼입',
     adminTravelScope: 'overseas',
-    expectAnchorPrice: 1_749_000,
+    expectAnchorPrice: 0,
+    expectAnchorDiffersFrom: 'PAB101260920JQ1',
   },
 ]
 
@@ -70,7 +77,7 @@ function assertCalendarProductLine(sample: Sample, cal: Awaited<ReturnType<typeo
   }
 }
 
-async function verifySample(sample: Sample): Promise<void> {
+async function verifySample(sample: Sample): Promise<number> {
   const url = `${TRP}?pkgCd=${encodeURIComponent(sample.pkgCd)}`
   const scopeOpts = { adminTravelScope: sample.adminTravelScope ?? null }
   const info = await fetchHanatourPkgProdInfo(sample.pkgCd)
@@ -155,11 +162,46 @@ async function verifySample(sample: Sample): Promise<void> {
     airtelLike: cal.airtelLike,
     factsRows: facts!.priceRows.length,
   })
+  return anchorPrice
+}
+
+async function withLiveFetchRetry<T>(label: string, fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let lastErr: unknown = null
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+      const transient =
+        /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket|network|AbortError|timeout/i.test(msg)
+      if (!transient || i >= attempts) break
+      const waitMs = 2000 * i
+      console.warn(`[retry ${i}/${attempts}] ${label}: ${msg.slice(0, 120)} — wait ${waitMs}ms`)
+      await new Promise((r) => setTimeout(r, waitMs))
+    }
+  }
+  throw lastErr
 }
 
 async function main() {
+  const anchorByPkgCd = new Map<string, number>()
   for (const sample of SAMPLES) {
-    await verifySample(sample)
+    anchorByPkgCd.set(
+      sample.pkgCd,
+      await withLiveFetchRetry(sample.pkgCd, () => verifySample(sample)),
+    )
+  }
+  for (const sample of SAMPLES) {
+    const siblingCd = sample.expectAnchorDiffersFrom
+    if (!siblingCd) continue
+    const sibling = anchorByPkgCd.get(siblingCd)
+    assert.ok(sibling != null, `${sample.pkgCd}: sibling ${siblingCd} not in samples`)
+    assert.notEqual(
+      anchorByPkgCd.get(sample.pkgCd),
+      sibling,
+      `${sample.pkgCd}: anchor price equals ${siblingCd} — package/airtel mixed`,
+    )
   }
   console.log(`hanatour-price-api-anchor-gate: ${SAMPLES.length}/${SAMPLES.length} passed`)
 }

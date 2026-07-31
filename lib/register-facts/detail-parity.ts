@@ -29,6 +29,34 @@ function legHasSignal(bundle: SupplierRegisterFactBundle): boolean {
   )
 }
 
+/**
+ * live 공급사 응답·두 수집 경로의 미세 차이는 절대 일치로 깨지기 쉽다.
+ * 한쪽만 0이거나 상대 편차가 크면 error, 허용 범위 안이면 warn.
+ */
+function pushLiveCountParity(
+  mismatches: RegisterFactDetailParityMismatch[],
+  field: string,
+  facts: number,
+  detail: number,
+  opts: { absWarn?: number; relWarn?: number } = {},
+): void {
+  if (facts === detail) return
+  if ((facts === 0) !== (detail === 0)) {
+    mismatches.push({ field, facts, detail, severity: 'error' })
+    return
+  }
+  const abs = Math.abs(facts - detail)
+  const rel = abs / Math.max(facts, detail, 1)
+  const withinAbs = opts.absWarn != null && abs <= opts.absWarn
+  const withinRel = opts.relWarn != null && rel <= opts.relWarn
+  mismatches.push({
+    field,
+    facts,
+    detail,
+    severity: withinAbs || withinRel ? 'warn' : 'error',
+  })
+}
+
 /** detail-collect 추출치와 register-facts 번들 필드 수·축 정합 */
 export function auditRegisterFactDetailParity(args: {
   bundle: SupplierRegisterFactBundle
@@ -52,9 +80,20 @@ export function auditRegisterFactDetailParity(args: {
     mismatches.push({ field, facts, detail, severity })
   }
 
-  push('priceRows', args.bundle.priceRows.filter((r) => (r.adultPrice ?? 0) > 0).length, args.detailPriceRows)
-  push('includedBullets', args.bundle.includedBullets.length, args.detailIncludedCount)
-  push('excludedBullets', args.bundle.excludedBullets.length, args.detailExcludedCount)
+  // REGRESSION-FREEZE[register-facts-completeness]: live 달력·포함문구 절대일치 금지 — manifest
+  pushLiveCountParity(
+    mismatches,
+    'priceRows',
+    args.bundle.priceRows.filter((r) => (r.adultPrice ?? 0) > 0).length,
+    args.detailPriceRows,
+    { relWarn: 0.4 },
+  )
+  pushLiveCountParity(mismatches, 'includedBullets', args.bundle.includedBullets.length, args.detailIncludedCount, {
+    absWarn: 5,
+  })
+  pushLiveCountParity(mismatches, 'excludedBullets', args.bundle.excludedBullets.length, args.detailExcludedCount, {
+    absWarn: 5,
+  })
   push('shoppingPlaces', args.bundle.shoppingPlaces.length, args.detailShoppingCount, 'warn')
 
   if (productKind === 'package') {

@@ -15,6 +15,7 @@ import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import {
   expandRegisterScheduleRoutePlaceCandidates,
+  isRegisterScheduleRoutePlaceDistinctSuffix,
   isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
@@ -214,8 +215,7 @@ function hanatourPlaceDedupeIndex(keys: string[], key: string): number {
     const longer = k.length >= key.length ? k : key
     const shorter = k.length < key.length ? k : key
     if (!longer.startsWith(shorter)) return false
-    const tail = longer.slice(shorter.length)
-    if (/^(?:해변|곶|역|공항|시내|성|사원|종탑|대성당|수도원)/u.test(tail)) return false
+    if (isRegisterScheduleRoutePlaceDistinctSuffix(longer, shorter)) return false
     return Math.abs(k.length - key.length) <= 2
   })
 }

@@ -3,6 +3,15 @@ import { ModetourB2cApiError } from '@/lib/modetour-sd1-policy'
 import {
   collectModetourPriceInputsWithE2eFallback,
 } from '@/lib/modetour-price-collect'
+import { addCalendarDaysToYmd, scrapeCalendarTodayYmd } from '@/lib/scrape-date-bounds'
+
+/**
+ * E2E 폴백은 오늘 이전 출발일을 버리므로 고정 날짜를 쓰면 그 날이 지나는 순간 깨진다.
+ * 모든 날짜를 오늘 기준 상대값으로 잡는다.
+ */
+const ymdFromToday = (days: number) => addCalendarDaysToYmd(scrapeCalendarTodayYmd(), days)
+const FROM_YMD = ymdFromToday(-45)
+const TO_YMD = ymdFromToday(150)
 
 const scrapeLiveCalendar = vi.fn()
 const collectModetourDepartureInputsForDateRange = vi.fn()
@@ -60,14 +69,14 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        result: [{ departureDate: '2026-07-01', minPrice: 1200000, pId: 99 }],
+        result: [{ departureDate: ymdFromToday(10), minPrice: 1200000, pId: 99 }],
       }),
     } as Response)
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/12345',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
     )
 
     expect(out.source).toBe('api')
@@ -88,14 +97,14 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     } as Response)
 
     scrapeLiveCalendar.mockResolvedValueOnce({
-      rows: [{ date: '2026-08-01', adultPrice: 990000 }],
+      rows: [{ date: ymdFromToday(20), adultPrice: 990000 }],
       stderr: '',
     })
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/12345',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
     )
 
     expect(out.apiFailedSd1).toBe(true)
@@ -117,14 +126,14 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     } as Response)
 
     scrapeLiveCalendar.mockResolvedValueOnce({
-      rows: [{ date: '2026-08-15', adultPrice: 880000 }],
+      rows: [{ date: ymdFromToday(30), adultPrice: 880000 }],
       stderr: '',
     })
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/12345',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
     )
 
     expect(out.apiFailedSd1).toBe(true)
@@ -151,8 +160,8 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/12345',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
     )
 
     expect(out.e2eAttempted).toBe(true)
@@ -164,19 +173,19 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        result: [{ departureDate: '2026-07-01', minPrice: 0 }],
+        result: [{ departureDate: ymdFromToday(10), minPrice: 0 }],
       }),
     } as Response)
 
     scrapeLiveCalendar.mockResolvedValueOnce({
-      rows: [{ date: '2026-07-15', adultPrice: 1100000 }],
+      rows: [{ date: ymdFromToday(40), adultPrice: 1100000 }],
       stderr: '',
     })
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/12345',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
     )
 
     expect(out.source).toBe('e2e')
@@ -196,14 +205,14 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
 
     fetchModetourGroupDetailInfo.mockResolvedValueOnce({
       groupNumber: 102323588,
-      departureDate: '2026-08-01',
+      departureDate: ymdFromToday(50),
       sellingPriceAdultTotalAmount: 579900,
     })
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/102323588',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
       { airHotel: true, originCode: 'ADA920TWB4' },
     )
 
@@ -221,13 +230,13 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
       json: async () => ({ result: [] }),
     } as Response)
     collectModetourDepartureInputsForDateRange.mockResolvedValueOnce([
-      { departureDate: '2026-09-01', adultPrice: 550000, seatsStatusRaw: '잔여3' },
+      { departureDate: ymdFromToday(60), adultPrice: 550000, seatsStatusRaw: '잔여3' },
     ])
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://go.modetour.co.kr/package/99999',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
       { airHotel: true },
     )
 
@@ -236,8 +245,8 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     expect(out.inputs[0]?.adultPrice).toBe(550000)
     expect(collectModetourDepartureInputsForDateRange).toHaveBeenCalledWith(
       'https://www.modetour.com/package/99999',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
       { skipBaselineMatch: true },
     )
     expect(scrapeLiveCalendar).not.toHaveBeenCalled()
@@ -246,14 +255,14 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
   it('singleDeparture skips calendar API and uses GetProductDetailInfo group row', async () => {
     fetchModetourGroupDetailInfo.mockResolvedValueOnce({
       groupNumber: 107583036,
-      departureDate: '2026-11-20',
+      departureDate: ymdFromToday(90),
       sellingPriceAdultTotalAmount: 4990000,
     })
 
     const out = await collectModetourPriceInputsWithE2eFallback(
       'https://www.modetour.com/package/109317452',
-      '2026-06-16',
-      '2026-12-13',
+      FROM_YMD,
+      TO_YMD,
       { singleDeparture: true, originCode: 'NWQ210KEF1' },
     )
 
@@ -274,8 +283,8 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     await expect(
       collectModetourPriceInputsWithE2eFallback(
         'https://www.modetour.com/package/12345',
-        '2026-06-16',
-        '2026-12-13',
+        FROM_YMD,
+        TO_YMD,
       ),
     ).rejects.toBeInstanceOf(ModetourB2cApiError)
 

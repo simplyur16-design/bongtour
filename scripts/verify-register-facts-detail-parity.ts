@@ -14,8 +14,8 @@ import { fetchRegisterFactDetailParityMetrics } from '@/lib/register-facts/detai
 import { parseRegisterFactProductKind } from '@/lib/register-facts/product-kind'
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 
-const LIVE_FETCH_ATTEMPTS = Math.max(1, Number(process.env.REGISTER_FACTS_LIVE_FETCH_ATTEMPTS) || 3)
-const LIVE_FETCH_RETRY_MS = Math.max(1000, Number(process.env.REGISTER_FACTS_LIVE_FETCH_RETRY_MS) || 5000)
+const LIVE_FETCH_ATTEMPTS = Math.max(1, Number(process.env.REGISTER_FACTS_LIVE_FETCH_ATTEMPTS) || 4)
+const LIVE_FETCH_RETRY_MS = Math.max(1000, Number(process.env.REGISTER_FACTS_LIVE_FETCH_RETRY_MS) || 8000)
 
 async function collectRegisterFactsLiveWithRetry(
   supplier: CanonicalOverseasSupplierKey,

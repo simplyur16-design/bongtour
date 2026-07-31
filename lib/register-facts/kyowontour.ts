@@ -72,21 +72,30 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
   const tourCode = parseTourCodeFromUrl(url)
   if (!tourCode) return null
 
-  let html: string
-  try {
-    const res = await fetch(url, {
-      headers: {
-        accept: 'text/html,application/xhtml+xml',
-        'accept-language': 'ko-KR',
-        referer: KYOWONTOUR_BASE,
-      },
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (!res.ok) return null
-    html = await res.text()
-  } catch {
-    return null
+  // CI live 게이트에서 연속 수집 시 교원 HTML(600KB+)이 30s에 끊기면 null bundle이 난다.
+  // REGRESSION-FREEZE[register-facts-fetch-resilience]: detail HTML retry — manifest
+  let html: string | null = null
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          accept: 'text/html,application/xhtml+xml',
+          'accept-language': 'ko-KR',
+          referer: KYOWONTOUR_BASE,
+        },
+        signal: AbortSignal.timeout(60_000),
+      })
+      if (!res.ok) {
+        if (attempt < 3) await new Promise((r) => setTimeout(r, 1500 * attempt))
+        continue
+      }
+      html = await res.text()
+      break
+    } catch {
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 1500 * attempt))
+    }
   }
+  if (!html) return null
   const hidden = extractKyowontourHiddenFieldsFromDetailHtml(html)
   if (!hidden) return null
 

@@ -4016,7 +4016,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-fetch-resilience]",
             "tourcode_detail_enrich=url_html_three_slot_only",
-            "skipPerDateDayAirFetch: false"
+            "skipPerDateDayAirFetch: false",
+            "detail HTML retry",
+            "60_000"
           ]
         },
         {
@@ -4079,7 +4081,9 @@
           "file": "lib/register-facts/detail-parity.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-completeness]",
-            "auditRegisterFactDetailParity"
+            "auditRegisterFactDetailParity",
+            "pushLiveCountParity",
+            "relWarn"
           ]
         },
         {

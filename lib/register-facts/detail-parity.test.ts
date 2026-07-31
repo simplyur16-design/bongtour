@@ -58,4 +58,43 @@ describe('auditRegisterFactDetailParity', () => {
     expect(report.productKind).toBe('air_hotel_free')
     expect(report.ok).toBe(true)
   })
+
+  it('treats small live count drift as warn, not hard fail', () => {
+    const bundle = minimalBundle({
+      includedBullets: Array.from({ length: 24 }, (_, i) => `포함${i}`),
+      priceRows: Array.from({ length: 52 }, (_, i) => ({
+        departureDate: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`,
+        adultPrice: 1000000,
+        childPrice: null,
+        infantPrice: null,
+        supplierDepartureCode: String(i),
+      })),
+    })
+    const report = auditRegisterFactDetailParity({
+      bundle,
+      detailScheduleDays: 1,
+      detailIncludedCount: 28,
+      detailExcludedCount: 1,
+      detailShoppingCount: 1,
+      detailFlightSignal: true,
+      detailPriceRows: 76,
+    })
+    expect(report.ok).toBe(true)
+    expect(report.mismatches.every((m) => m.severity === 'warn')).toBe(true)
+  })
+
+  it('hard-fails when one collector returns zero priced rows', () => {
+    const bundle = minimalBundle({ priceRows: [] })
+    const report = auditRegisterFactDetailParity({
+      bundle,
+      detailScheduleDays: 1,
+      detailIncludedCount: 2,
+      detailExcludedCount: 1,
+      detailShoppingCount: 1,
+      detailFlightSignal: true,
+      detailPriceRows: 10,
+    })
+    expect(report.ok).toBe(false)
+    expect(report.mismatches.some((m) => m.field === 'priceRows' && m.severity === 'error')).toBe(true)
+  })
 })
