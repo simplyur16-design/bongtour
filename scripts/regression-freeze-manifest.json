@@ -11525,7 +11525,9 @@
             "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]",
             "SIMPLYUR_EXIMBAY_PROVIDER_ID",
             "eximbay_v2",
-            "callEximbayPaymentsReady"
+            "callEximbayPaymentsReady",
+            "resolveSimplyurEximbayReturnUrl",
+            "su_cancel"
           ]
         },
         {
@@ -11537,11 +11539,19 @@
           ]
         },
         {
+          "file": "lib/simplyur/payments/eximbay-sdk.ts",
+          "mustInclude": [
+            "watchEximbayPayUntilClosed",
+            "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]"
+          ]
+        },
+        {
           "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-live-checkout]",
             "SIMPLYUR_EXIMBAY_PROVIDER_ID",
             "requestEximbayPay",
+            "watchEximbayPayUntilClosed",
             "eximbay_v2"
           ]
         },

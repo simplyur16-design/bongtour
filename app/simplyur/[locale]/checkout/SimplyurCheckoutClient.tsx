@@ -1,18 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import type { BongsimPaymentSessionResponseV1 } from "@/lib/bongsim/contracts/payment-session.v1";
 import { SimplyurEximbayPrepSmokePanel } from "@/components/simplyur/checkout/SimplyurEximbayPrepSmokePanel";
 import { SIMPLYUR_CHECKOUT_ENABLED, simplyurPath } from "@/lib/simplyur/constants";
 import { simplyurLegalPath } from "@/lib/simplyur/legal-disclosures";
-import { requestEximbayPay } from "@/lib/simplyur/payments/eximbay-sdk";
+import {
+  requestEximbayPay,
+  watchEximbayPayUntilClosed,
+} from "@/lib/simplyur/payments/eximbay-sdk";
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-provider-id";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: Eximbay live request_pay — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: unlock UI after cancel — manifest
 
 type FirstPurchasePreview = {
   eligible: true;
@@ -69,6 +73,14 @@ export function SimplyurCheckoutClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [firstPurchase, setFirstPurchase] = useState<FirstPurchasePreview | null>(null);
+  const stopPayWatchRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      stopPayWatchRef.current?.();
+      stopPayWatchRef.current = null;
+    };
+  }, []);
 
   const subtotalKrw = product?.simplyur_sell_price_krw ?? null;
 
@@ -172,9 +184,19 @@ export function SimplyurCheckoutClient({
       if (payJson.client.kind !== "eximbay_v2") {
         throw new Error("unexpected_payment_client");
       }
+      // Start before request_pay so window.open / overlay mount is observed.
+      stopPayWatchRef.current?.();
+      stopPayWatchRef.current = watchEximbayPayUntilClosed({
+        onClosed: () => {
+          stopPayWatchRef.current = null;
+          setSubmitting(false);
+        },
+      });
       await requestEximbayPay(payJson.client.sdk_script_url, payJson.client.request_pay);
-      // Browser returns via return_url → complete; status_url marks paid.
+      // Success: return_url → complete; status_url marks paid. Cancel closes popup → onClosed.
     } catch (e) {
+      stopPayWatchRef.current?.();
+      stopPayWatchRef.current = null;
       const msg = e instanceof Error ? e.message : "";
       setError(msg && msg.length < 120 ? msg : tr("checkout.errorGeneric"));
       setSubmitting(false);

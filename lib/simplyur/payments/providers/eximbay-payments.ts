@@ -5,6 +5,7 @@ import type {
 } from "@/lib/bongsim/payments/provider-types";
 import {
   resolveEximbayEnv,
+  resolveSimplyurEximbayReturnUrl,
   resolveSimplyurEximbayStatusUrl,
 } from "@/lib/simplyur/payments/eximbay-env";
 import {
@@ -38,7 +39,13 @@ export class SimplyurEximbayPaymentsProvider implements BongsimPaymentProviderAd
     }
 
     const locale = input.simplyur_locale ?? input.simplyur_portone?.locale ?? "en";
-    const returnUrl = input.return_urls.success_url;
+    const returnBase = resolveSimplyurEximbayReturnUrl(locale);
+    if (!returnBase) {
+      throw new Error("[simplyur:eximbay] NEXT_PUBLIC_SITE_URL (or APP/NEXTAUTH) required for return_url");
+    }
+    // Cancel/fail resume (checkout?failed=1) — eximbay-return branches on rescode.
+    const cancelResume = input.return_urls.cancel_url || input.return_urls.fail_url;
+    const returnUrl = `${returnBase}?su_cancel=${encodeURIComponent(cancelResume)}`;
     const usdMinor = await krwOrderTotalToUsdMinorResolved(input.amount_krw);
     const buyerName = (input.buyer_email.split("@")[0] || "guest").slice(0, 100);
 

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getPgPool } from "@/lib/bongsim/db/pool";
@@ -12,16 +13,70 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+function firstQuery(
+  q: Record<string, string | string[] | undefined>,
+  key: string,
+): string {
+  const v = q[key];
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function requestOrigin(hdrs: Headers): string {
+  const host = (hdrs.get("x-forwarded-host") || hdrs.get("host") || "").split(",")[0]?.trim();
+  const proto = (hdrs.get("x-forwarded-proto") || "https").split(",")[0]?.trim() || "https";
+  if (host) return `${proto}://${host}`;
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    "https://bongtour.com"
+  );
+}
+
+function hostAllowed(candidate: string, requestHost: string): boolean {
+  const a = candidate.toLowerCase();
+  const b = requestHost.toLowerCase();
+  if (a === b) return true;
+  // www / apex
+  if (a.replace(/^www\./, "") === b.replace(/^www\./, "")) return true;
+  return false;
+}
+
+/** Same-site Simplyur cancel resume only (relative or absolute). */
+function safeCancelResume(raw: string, origin: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+  try {
+    if (s.startsWith("/") && !s.startsWith("//")) {
+      if (!s.startsWith("/simplyur/")) return null;
+      return s;
+    }
+    const u = new URL(s);
+    const req = new URL(origin);
+    if (!hostAllowed(u.hostname, req.hostname)) return null;
+    if (!u.pathname.startsWith("/simplyur/")) return null;
+    return `${u.pathname}${u.search}${u.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export default async function SimplyurEximbayReturnPage({ params, searchParams }: Props) {
   const { locale: raw } = await params;
   if (!isSimplyurLocale(raw)) notFound();
   const locale = raw as SimplyurLocale;
   const q = await searchParams;
-  const rescode = typeof q.rescode === "string" ? q.rescode : "";
-  const orderNumber =
-    (typeof q.order_id === "string" && q.order_id.trim()) ||
-    (typeof q.orderId === "string" && q.orderId.trim()) ||
-    "";
+  const origin = requestOrigin(await headers());
+
+  const rescode = firstQuery(q, "rescode");
+  const orderNumber = firstQuery(q, "order_id") || firstQuery(q, "orderId") || "";
+  const cancelResume = safeCancelResume(firstQuery(q, "su_cancel"), origin);
+
+  const failed = Boolean(rescode && rescode !== "0000");
+
+  // Cancel / decline — send buyer back to checkout (not stuck on this stub).
+  if (failed && cancelResume) {
+    redirect(cancelResume);
+  }
 
   if (orderNumber && (rescode === "0000" || !rescode)) {
     const pool = getPgPool();
@@ -53,8 +108,6 @@ export default async function SimplyurEximbayReturnPage({ params, searchParams }
     }
   }
 
-  const failed = rescode && rescode !== "0000";
-
   return (
     <main style={{ maxWidth: 480, margin: "48px auto", padding: 24, fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: 20, marginBottom: 12 }}>
@@ -62,7 +115,7 @@ export default async function SimplyurEximbayReturnPage({ params, searchParams }
       </h1>
       <p style={{ color: "#555", lineHeight: 1.5, marginBottom: 16 }}>
         {failed
-          ? "The payment window reported a failure. You can return to plans and try again."
+          ? "The payment window reported a failure. You can return to checkout and try again."
           : "If you completed payment, your eSIM will appear shortly. You can also check My eSIM."}
       </p>
       {rescode ? (
@@ -77,8 +130,8 @@ export default async function SimplyurEximbayReturnPage({ params, searchParams }
         </p>
       ) : null}
       <p style={{ marginTop: 24 }}>
-        <Link href={simplyurPath(locale, failed ? "/recommend" : "/my-esim")}>
-          {failed ? "Back to plans" : "My eSIM"}
+        <Link href={cancelResume || simplyurPath(locale, failed ? "/recommend" : "/my-esim")}>
+          {failed ? "Back to checkout" : "My eSIM"}
         </Link>
       </p>
     </main>
