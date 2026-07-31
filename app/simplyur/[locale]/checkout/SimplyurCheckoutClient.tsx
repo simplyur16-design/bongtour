@@ -44,7 +44,7 @@ type Props = {
 
 /**
  * 결제 API 실패를 어느 단계·어느 필드인지 알 수 있게 만든다.
- * details 값은 서버 설정 문구까지 담을 수 있어 키만 노출한다.
+ * PortOne 누락 env(`missing:…`)처럼 시크릿이 아닌 코드 값은 함께 노출한다.
  */
 function formatCheckoutApiError(
   stage: "confirm" | "payment_session",
@@ -52,9 +52,16 @@ function formatCheckoutApiError(
 ): string {
   const reason = (json.error ?? "").trim() || "unknown_error";
   const details = json.details;
-  const keys =
-    details && typeof details === "object" && !Array.isArray(details) ? Object.keys(details) : [];
-  return keys.length ? `${stage}: ${reason} (${keys.join(", ")})` : `${stage}: ${reason}`;
+  if (!details || typeof details !== "object" || Array.isArray(details)) {
+    return `${stage}: ${reason}`;
+  }
+  const parts = Object.entries(details as Record<string, unknown>).map(([k, v]) => {
+    if (typeof v === "string" && (v.startsWith("missing:") || v.endsWith("_missing") || v.includes("_required"))) {
+      return `${k}=${v}`;
+    }
+    return k;
+  });
+  return parts.length ? `${stage}: ${reason} (${parts.join(", ")})` : `${stage}: ${reason}`;
 }
 
 function methodLabel(method: SimplyurPortoneMethod, tr: (k: string) => string): string {

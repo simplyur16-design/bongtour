@@ -224,15 +224,18 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
     };
   }
 
-  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID && !resolvePortoneCoreEnv().ok) {
-    return {
-      ok: false,
-      reason: "validation",
-      details: {
-        portone:
-          "PORTONE_STORE_ID, PORTONE_API_SECRET, and PORTONE_CHANNEL_KEY_PAYPAL or PORTONE_CHANNEL_KEY_KICC required.",
-      },
-    };
+  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID) {
+    const portoneEnv = resolvePortoneCoreEnv();
+    if (!portoneEnv.ok) {
+      return {
+        ok: false,
+        reason: "validation",
+        details: {
+          // 값은 시크릿이 아니라 누락 환경변수 이름 — UI에 그대로 노출해도 안전하다.
+          portone: `missing:${portoneEnv.missing.join(",")}`,
+        },
+      };
+    }
   }
 
   if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID) {

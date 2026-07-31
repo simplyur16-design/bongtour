@@ -91,6 +91,8 @@ export function resolvePortoneChannelKey(method: SimplyurPortoneMethod): string 
 }
 
 export function listConfiguredPortoneMethodsFromEnv(): SimplyurPortoneMethod[] {
+  // STORE_ID/API_SECRET 없이 채널 키만 있으면 결제창까지 갔다가 validation 으로 죽는다.
+  if (!resolvePortoneCoreEnv().ok) return [];
   return listConfiguredPortoneMethods(resolvePortoneChannelKey);
 }
 
