@@ -12,10 +12,11 @@ if (process.env.ANALYZE === 'true') {
 
 /**
  * 프로덕션 전용 CSP·HSTS. `next dev`에서는 NODE_ENV=development 이므로 적용되지 않아 HMR(ws)을 깨지 않는다.
- * GTM·Welcomepay·원격 이미지(https) 등을 허용한다. (Ncloud Object Storage 등)
+ * GTM·Welcomepay·Eximbay(Simplyur)·원격 이미지(https) 등을 허용한다. (Ncloud Object Storage 등)
  *
  * script-src: `'unsafe-inline'`은 GTM 스니펫·일부 인라인 초기화에 필요할 수 있음(nonce 트랙 별도).
  * `'unsafe-eval'`은 앱 소스에서 미사용 → 제거. GTM 커스텀 HTML 등으로 위반 시 도메인 단위 조정 또는 복원 검토.
+ * Eximbay: `api(-test).eximbay.com/v2/javascriptSDK.js` — CSP 미허용 시 `eximbay_sdk_script_error`.
  *
  * Cross-Origin-Opener-Policy / Cross-Origin-Resource-Policy 는 OAuth 팝업·결제 iframe과 충돌 가능성이 있어 미부여.
  */
@@ -40,18 +41,18 @@ function buildContentSecurityPolicy() {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.paywelcome.co.kr",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.paywelcome.co.kr https://*.eximbay.com",
     // globals.css @import Pretendard from jsDelivr — Chrome may enforce style-src-elem separately
     // next/font/google(Noto 등)는 fonts.googleapis.com 링크·fonts.gstatic.com 글리프를 쓸 수 있음
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
-    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.paywelcome.co.kr",
+    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.paywelcome.co.kr https://*.eximbay.com",
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
-    "frame-src 'self' https://www.googletagmanager.com https://www.google.com https://*.paywelcome.co.kr",
+    "frame-src 'self' https://www.googletagmanager.com https://www.google.com https://*.paywelcome.co.kr https://*.eximbay.com",
     // www / non-www 혼용 시 RSC·fetch가 'self'와 달라 connect-src 에서 막힘 — origin 통일 전까지 둘 다 허용
     // jsDelivr: Pretendard 등 @import 리소스의 .map 소스맵 fetch(connect) — style-src/font-src 와 별도
-    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://*.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://*.paywelcome.co.kr",
+    "connect-src 'self' https://bongtour.com https://www.bongtour.com https://*.supabase.co https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://*.paywelcome.co.kr https://*.eximbay.com",
     "worker-src 'self' blob:",
   ]
   return directives.join('; ')
