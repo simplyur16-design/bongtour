@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "preDeployCommand": ["/bin/sh scripts/predeploy-db.sh"],
+    "preDeployCommand": "/bin/sh scripts/predeploy-db.sh",
     "startCommand": "npm start",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE"
