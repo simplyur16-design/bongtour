@@ -28,4 +28,15 @@ describe('prisma-connection-limit', () => {
     const url = withPrismaConnectionLimit('postgresql://u:p@host/db')
     expect(url).toContain('connection_limit=3')
   })
+
+  it('rewrites session pooler to transaction mode and sets pgbouncer=true', () => {
+    process.env.NODE_ENV = 'production'
+    const url = withPrismaConnectionLimit(
+      'postgresql://postgres.abc:secret@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres',
+    )
+    expect(url).toContain(':6543/')
+    expect(url).toContain('pgbouncer=true')
+    expect(url).toContain('connection_limit=3')
+    expect(url).not.toContain(':5432')
+  })
 })

@@ -23,9 +23,11 @@ generator client {
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
-// 프로덕션 DATABASE_URL: pgbouncer 권장. connection_limit은 lib/prisma.ts에서 기본 3으로 보강.
-// DIRECT_URL 은 풀러가 아닌 실제 직결 주소여야 한다. 풀러를 가리키면 `prisma migrate deploy`
-// 스키마 엔진이 세션 풀(pool_size 15)을 두고 앱과 경쟁해 EMAXCONNSESSION 으로 죽는다.
+// 프로덕션 DATABASE_URL: Supabase 트랜잭션 풀러(:6543) 권장.
+// lib/prisma.ts 가 세션 풀러(:5432 on *.pooler.supabase.com)를 :6543 으로 자동 전환하고
+// connection_limit=3·pgbouncer=true 를 붙인다.
+// DIRECT_URL 은 풀러가 아닌 직결 주소(db.<ref>.supabase.co:5432)여야 한다.
+// 풀러를 가리키면 `prisma migrate deploy` 스키마 엔진이 EMAXCONNSESSION 으로 죽는다.
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")

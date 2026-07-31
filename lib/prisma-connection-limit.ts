@@ -1,12 +1,15 @@
 /**
  * Prisma pooler connection_limit SSOT.
- * schema.prisma 주석(기본 5)과 코드 불일치가 간헐 502·허브 멈춤 원인이었음.
  *
- * Supabase 세션 풀은 pool_size 15다. Prisma + `lib/bongsim/db/pool` 이 한 인스턴스에서
- * 그 15를 다 쓰면 배포 중 겹치는 구(舊) 인스턴스와 `prisma migrate deploy` 스키마 엔진이
- * 슬롯을 못 받아 EMAXCONNSESSION 으로 죽는다. 두 인스턴스가 겹쳐도 여유가 남게 잡는다.
+ * Supabase session pool is capped (often pool_size 15). Prisma + `lib/bongsim/db/pool`
+ * must not fill that alone — and Prisma must prefer the transaction pooler (`:6543`)
+ * so it does not compete for session slots at all.
  */
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
+import {
+  ensurePrismaPgBouncerFlag,
+  rewriteSupabaseSessionPoolerToTransaction,
+} from '@/lib/supabase-pooler-url'
 
 const BUILD_SAFE_DEFAULT = 1
 const PRODUCTION_DEFAULT = 3
@@ -22,9 +25,17 @@ export function resolvePrismaConnectionLimit(): number {
   return BUILD_SAFE_DEFAULT
 }
 
+function appendQueryParam(url: string, key: string, value: string): string {
+  if (new RegExp(`[?&]${key}=`, 'i').test(url)) return url
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}${key}=${value}`
+}
+
 export function withPrismaConnectionLimit(databaseUrl: string | undefined): string | undefined {
   if (!databaseUrl) return databaseUrl
-  if (/[?&]connection_limit=/i.test(databaseUrl)) return databaseUrl
-  const separator = databaseUrl.includes('?') ? '&' : '?'
-  return `${databaseUrl}${separator}connection_limit=${resolvePrismaConnectionLimit()}`
+  // Session-mode pooler URLs are what produce EMAXCONNSESSION under load.
+  let url = rewriteSupabaseSessionPoolerToTransaction(databaseUrl.trim())
+  url = ensurePrismaPgBouncerFlag(url)
+  url = appendQueryParam(url, 'connection_limit', String(resolvePrismaConnectionLimit()))
+  return url
 }

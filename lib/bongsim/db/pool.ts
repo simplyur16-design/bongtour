@@ -1,4 +1,8 @@
 ﻿import { Pool, type PoolConfig } from "pg";
+import {
+  isTransactionPoolerUrl,
+  rewriteSupabaseSessionPoolerToTransaction,
+} from "@/lib/supabase-pooler-url";
 
 /** Next.js dev 핫리로드 시 모듈 스코프가 초기화되어도 풀 인스턴스를 유지 */
 type GlobalWithBongsimPool = typeof globalThis & {
@@ -19,28 +23,6 @@ function setCachedPool(p: Pool | undefined): void {
 
 /** strict → 연결 실패 시 relaxed 로 한 번만 전환 (프로세스 전역 TLS 비활성화 금지) */
 let sslRejectUnauthorized: boolean = true;
-
-/** 세션 모드(5432) → 트랜잭션 풀러(6543). 비표준 URL은 `:@host:5432` 형태만 치환. */
-function rewriteSessionPort5432To6543(urlStr: string): string {
-  try {
-    const u = new URL(urlStr);
-    if (u.port === "5432") {
-      u.port = "6543";
-      return u.toString();
-    }
-    return urlStr;
-  } catch {
-    return urlStr.replace(/:5432(?=[/?#]|$)/g, ":6543");
-  }
-}
-
-function isTransactionPoolerPort(urlStr: string): boolean {
-  try {
-    return new URL(urlStr).port === "6543";
-  } catch {
-    return /:6543(?=[/?#]|$)/.test(urlStr);
-  }
-}
 
 function isLikelyTlsHandshakeIssue(err: unknown): boolean {
   const msg = String(err instanceof Error ? err.message : err);
@@ -74,9 +56,9 @@ function buildPoolConfig(): PoolConfig | null {
   // sslmode를 URL에서 제거 (pg-connection-string이 ssl 설정을 덮어쓰는 것 방지)
   url = url.replace(/[?&]sslmode=[^&]*/gi, "").replace(/\?$/, "");
 
-  url = rewriteSessionPort5432To6543(url);
+  url = rewriteSupabaseSessionPoolerToTransaction(url);
 
-  const useTxnPooler = isTransactionPoolerPort(url);
+  const useTxnPooler = isTransactionPoolerUrl(url);
 
   const cfg: PoolConfig & { prepareThreshold?: number } = {
     connectionString: url,
