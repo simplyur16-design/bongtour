@@ -10997,7 +10997,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-trip-day-chip-ui]",
             "groupTripDayOptions",
-            "TRIP_DAY_GROUP_DIVIDER_MIN_OPTIONS"
+            "TRIP_DAY_GROUP_DIVIDER_MIN_OPTIONS",
+            "TRIP_DAY_CHIP_BLUE",
+            "#0176f9"
           ]
         },
         {
@@ -11013,7 +11015,7 @@
           "mustInclude": [
             "TripDayChipScrollRow",
             "recommendedDay",
-            "#0176f9"
+            "SIMPLYUR_PLANS_DESIGN"
           ]
         }
       ],
@@ -11187,8 +11189,7 @@
           "file": "app/api/simplyur/checkout/portone-complete/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-portone-checkout-p2]",
-            "processPortonePaymentOutcome",
-            "fetchPortonePaymentSnapshot"
+            "verifyAndCapturePortonePayment"
           ]
         },
         {
@@ -11425,7 +11426,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
             "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
-            "255-81-03455",
+            "2558103455",
+            "Korea eSIM for international visitors",
             "addressEn",
             "COMPANY_FOOTER.addressLineEn"
           ]
@@ -11436,7 +11438,7 @@
             "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
             "simplyurLegalPath",
             "SIMPLYUR_FTC_BIZ_VERIFY_HREF",
-            "255-81-03455",
+            "e.bizRegNo",
             "e.addressEn"
           ],
           "mustNotInclude": [
@@ -11448,7 +11450,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-pg-legal-surface]",
             "SimplyurTermsEnBody",
-            "Korea eSIM for international visitors",
+            "Korea eSIM product",
+            "international visitors to",
             "e.addressEn"
           ]
         },
@@ -11456,7 +11459,8 @@
           "file": "lib/company-footer.ts",
           "mustInclude": [
             "addressLineEn",
-            "Edutown-ro"
+            "Edutown-ro",
+            "255-81-03455"
           ]
         },
         {
