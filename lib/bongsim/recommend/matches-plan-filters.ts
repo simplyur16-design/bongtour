@@ -1,3 +1,5 @@
+// REGRESSION-FREEZE[bongsim-pg-tls-global]: plans filter nameKr ↔ by-country 정합 — manifest
+import { planNameKrFromCountryCode } from "@/lib/bongsim/country-options";
 import { doesPlanCoverAllSelected, getPlanCoveredCountries } from "@/lib/bongsim/plan-coverage-map";
 import { extractDaysFromDaysRaw } from "@/lib/bongsim/recommend/product-option";
 import { resolveEffectivePlanType } from "@/lib/bongsim/recommend/resolve-effective-plan-type";
@@ -18,7 +20,7 @@ export type PlanFilterCtx = {
   allSelected: string[];
 };
 
-/** GET /api/bongsim/products/plans 매칭 SSOT — by-country 지역 패키지 분기와 정합 */
+/** GET /api/bongsim/products/plans 매칭 SSOT — by-country 단일국·지역 패키지와 정합 */
 export function matchesBongsimPlanFilters(row: PlanFilterRow, ctx: PlanFilterCtx): boolean {
   const covered = getPlanCoveredCountries(row.plan_name);
   const pt = resolveEffectivePlanType(row);
@@ -36,5 +38,8 @@ export function matchesBongsimPlanFilters(row: PlanFilterRow, ctx: PlanFilterCtx
     return covered.length >= 2 && doesPlanCoverAllSelected(row.plan_name, ctx.allSelected);
   }
 
-  return covered.length === 1 && covered[0] === ctx.country;
+  // by-country isSingleCountryForCode 와 동일 — coverage 1국 또는 plan_name === nameKr
+  if (covered.length === 1 && covered[0] === ctx.country) return true;
+  const nameKr = planNameKrFromCountryCode(ctx.country);
+  return Boolean(nameKr && row.plan_name.trim() === nameKr);
 }

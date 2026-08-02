@@ -10,6 +10,7 @@ import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/pl
 import {
   getPgPool,
   withBongsimStatementTimeout,
+  withBongsimCatalogRetry,
   classifyBongsimPgError,
   resetBongsimPgPoolAfterConnectTimeout,
   probePgPoolTlsOrFallback,
@@ -96,43 +97,45 @@ export async function loadBongsimCountriesPayload(): Promise<
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
   try {
-    return await withBongsimStatementTimeout(async (client) => {
-      // 한 번만: DISTINCT plan_name + 전체 price_block 이중 스캔 금지
-      const { rows } = await client.query<CountryCatalogMetaRow>(
-        `SELECT TRIM(plan_name) AS plan_name,
+    return await withBongsimCatalogRetry(() =>
+      withBongsimStatementTimeout(async (client) => {
+        // 한 번만: DISTINCT plan_name + 전체 price_block 이중 스캔 금지
+        const { rows } = await client.query<CountryCatalogMetaRow>(
+          `SELECT TRIM(plan_name) AS plan_name,
                 network_family,
                 plan_type,
                 allowance_label,
                 jsonb_build_object('kyc', flags->'kyc') AS flags
          FROM bongsim_product_option
          WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
-      );
+        );
 
-      const countries = standaloneCountriesFromPlanNames(rows.map((r) => r.plan_name));
-      const metaCodes = [
-        ...countries.map((c) => c.code),
-        ...RECOMMEND_POPULAR_CODES,
-        ...RECOMMEND_CATALOG_META_REGION_CODES,
-      ];
-      const metaByCode = catalogMetaFromSlimRows(rows, metaCodes);
+        const countries = standaloneCountriesFromPlanNames(rows.map((r) => r.plan_name));
+        const metaCodes = [
+          ...countries.map((c) => c.code),
+          ...RECOMMEND_POPULAR_CODES,
+          ...RECOMMEND_CATALOG_META_REGION_CODES,
+        ];
+        const metaByCode = catalogMetaFromSlimRows(rows, metaCodes);
 
-      const enriched: BongsimCountryListItem[] = countries.map((c) => {
-        const meta = metaByCode[c.code.toLowerCase()];
-        return {
-          code: c.code,
-          nameKr: c.nameKr,
-          ...(meta?.isUnlimited ? { isUnlimited: true } : {}),
-          ...(meta?.travelerVerification && meta.travelerVerification !== "none"
-            ? { travelerVerification: meta.travelerVerification }
-            : {}),
-        };
-      });
+        const enriched: BongsimCountryListItem[] = countries.map((c) => {
+          const meta = metaByCode[c.code.toLowerCase()];
+          return {
+            code: c.code,
+            nameKr: c.nameKr,
+            ...(meta?.isUnlimited ? { isUnlimited: true } : {}),
+            ...(meta?.travelerVerification && meta.travelerVerification !== "none"
+              ? { travelerVerification: meta.travelerVerification }
+              : {}),
+          };
+        });
 
-      return { ok: true as const, countries: enriched, catalogMeta: metaByCode };
-    });
+        return { ok: true as const, countries: enriched, catalogMeta: metaByCode };
+      }),
+    );
   } catch (e) {
     console.error("[loadBongsimCountriesPayload]", e);
-    resetBongsimPgPoolAfterConnectTimeout(e);
+    await resetBongsimPgPoolAfterConnectTimeout(e);
     return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }

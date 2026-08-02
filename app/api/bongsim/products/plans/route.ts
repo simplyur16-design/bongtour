@@ -120,7 +120,7 @@ export async function GET(req: Request) {
     if (isBongsimPgTlsHandshakeIssue(e)) {
       await probePgPoolTlsOrFallback();
     }
-    resetBongsimPgPoolAfterConnectTimeout(e);
+    await resetBongsimPgPoolAfterConnectTimeout(e);
     try {
       // cache 콜백 밖 1회 — 인스턴스 간 풀 잔상으로 cold miss만 죽는 경우 복구
       const payload = await withBongsimCatalogRetry(() =>
@@ -134,7 +134,7 @@ export async function GET(req: Request) {
       return response;
     } catch (e2) {
       console.error("[plans] retry failed", e2);
-      resetBongsimPgPoolAfterConnectTimeout(e2);
+      await resetBongsimPgPoolAfterConnectTimeout(e2);
       const msg = String(e2 instanceof Error ? e2.message : e2);
       if (msg.includes("db_unconfigured")) return plansErrorResponse("db_unconfigured");
       return plansErrorResponse(classifyBongsimPgError(e2));

@@ -4,6 +4,7 @@ import {
   getPgPool,
   probePgPoolTlsOrFallback,
   resetBongsimPgPoolAfterConnectTimeout,
+  withBongsimCatalogRetry,
   withBongsimStatementTimeout,
 } from "@/lib/bongsim/db/pool";
 import { extractDaysFromDaysRaw } from "@/lib/bongsim/recommend/product-option";
@@ -98,14 +99,16 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
 
   try {
     const rates = await resolveSimplyurFxRates();
-    const result = await withBongsimStatementTimeout((client) =>
-      client.query<ProductOption>(
-        `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
+    const result = await withBongsimCatalogRetry(() =>
+      withBongsimStatementTimeout((client) =>
+        client.query<ProductOption>(
+          `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
               allowance_label, option_label, price_block, flags
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
        ORDER BY plan_name, days_raw,
          (price_block->'after'->>'consumer_krw')::numeric ASC NULLS LAST`,
+        ),
       ),
     );
     const koreaOnly = result.rows.filter(isKoreaSingleCountryProduct);
@@ -116,7 +119,7 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
     };
   } catch (e) {
     console.error("[loadSimplyurKoreaCatalog]", e);
-    resetBongsimPgPoolAfterConnectTimeout(e);
+    await resetBongsimPgPoolAfterConnectTimeout(e);
     return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }

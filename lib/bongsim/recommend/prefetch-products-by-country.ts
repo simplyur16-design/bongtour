@@ -3,7 +3,7 @@
 import { normalizeProductsByCountryKey } from "@/lib/bongsim/recommend/products-by-country-client-key";
 
 // REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]: 국가 타일 hover prefetch — manifest
-export const BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER = "3";
+export const BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER = "4";
 
 export type ProductsByCountryClientPayload = {
   individual: Record<

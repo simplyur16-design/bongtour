@@ -4,10 +4,16 @@ import {
   loadProductsByCountryCached,
   PRODUCTS_BY_COUNTRY_REVALIDATE_SEC,
 } from "@/lib/bongsim/data/load-products-by-country-cached";
+import {
+  closePgPool,
+  probePgPoolTlsOrFallback,
+} from "@/lib/bongsim/db/pool";
 
 /** 과거 실패 Route Cache가 국가별로 굳지 않게 — DB는 unstable_cache로만 메모 */
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
+
+// REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]: by-country outer heal+retry — manifest
 
 /**
  * GET /api/bongsim/products/by-country?codes=jp,kr
@@ -29,7 +35,15 @@ export async function GET(req: Request) {
     );
   }
 
-  const res = await loadProductsByCountryCached(selectedCodes);
+  let res = await loadProductsByCountryCached(selectedCodes);
+
+  // plans 와 동일 — cold miss·풀 잔상으로 jp만 되고 타국이 비는 경우 캐시 밖 1회 복구
+  if (!res.ok && res.reason !== "db_unconfigured") {
+    console.warn("[by-country] catalog miss; healing pool and retrying once", res.reason);
+    await probePgPoolTlsOrFallback();
+    await closePgPool().catch(() => {});
+    res = await loadProductsByCountryCached(selectedCodes);
+  }
 
   if (!res.ok) {
     const status =

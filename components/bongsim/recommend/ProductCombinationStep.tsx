@@ -567,22 +567,31 @@ export function ProductCombinationStep({
     }
   }, [selectedCodes]);
 
-  // 단일 국가: by-country(available_days) 확정 후에만 플랜 오픈.
-  // 이전에 SSOT 기본일로 선오픈하면 cold miss·캐시 잔상 때 「일본만 되고 타국 빔」이 난다.
+  // 단일 국가: by-country(available_days) 우선, 실패 시에도 SSOT 기본일로 플랜 오픈.
+  // (by-country만 죽으면 플랜 API가 살아 있어도 UI가 「상품 없음」에 갇히던 회귀 차단)
   useEffect(() => {
-    if (!isSingleCountry || !singleCode || !data || loading) return;
+    if (!isSingleCountry || !singleCode || loading) return;
     if (isCountryDone(singleCode)) return;
     if (openPlanByCode[singleCode]) return;
     if (autoDefaultTripDaysRef.current[singleCode]) return;
-    const pack = data.individual[singleCode];
-    if (!pack) return;
-    const days =
-      pickDefaultTripDaysForDestination(singleCode, collectTripDaysFromCountryPack(pack)) ??
-      resolveDefaultTripDays(singleCode);
-    autoDefaultTripDaysRef.current[singleCode] = true;
-    applySingleTripDays(days);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per country after catalog
-  }, [isSingleCountry, singleCode, data, loading]);
+
+    if (data) {
+      const pack = data.individual[singleCode];
+      if (!pack) return;
+      const days =
+        pickDefaultTripDaysForDestination(singleCode, collectTripDaysFromCountryPack(pack)) ??
+        resolveDefaultTripDays(singleCode);
+      autoDefaultTripDaysRef.current[singleCode] = true;
+      applySingleTripDays(days);
+      return;
+    }
+
+    if (loadFailed) {
+      autoDefaultTripDaysRef.current[singleCode] = true;
+      applySingleTripDays(resolveDefaultTripDays(singleCode));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per country after catalog/fail
+  }, [isSingleCountry, singleCode, data, loading, loadFailed]);
 
   const resetSingleCountrySelection = () => {
     if (!singleCode) return;

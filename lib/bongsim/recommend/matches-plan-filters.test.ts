@@ -51,6 +51,15 @@ describe("matchesBongsimPlanFilters", () => {
     expect(ok).toBe(true);
   });
 
+  it("단일 ISO 국가 — coverage 비어도 plan_name===nameKr 이면 통과 (by-country 정합)", () => {
+    const ok = matchesBongsimPlanFilters(row("대한민국", "5일"), {
+      country: "kr",
+      days: 3,
+      allSelected: ["kr"],
+    });
+    expect(ok).toBe(true);
+  });
+
   it("다국가 2개국 — 커버 플랜만 통과", () => {
     const ok = matchesBongsimPlanFilters(row("유럽 33개국", "10일"), {
       country: "fr",

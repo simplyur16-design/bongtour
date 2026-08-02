@@ -72,7 +72,7 @@ export async function fetchAllActiveProductOptionsFromDb(): Promise<AllActivePro
     return { ok: true, products };
   } catch (e) {
     console.error("[fetchAllActiveProductOptionsFromDb]", e);
-    resetBongsimPgPoolAfterConnectTimeout(e);
+    await resetBongsimPgPoolAfterConnectTimeout(e);
     return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }
@@ -102,7 +102,7 @@ export async function fetchActiveProductOptionsForPlanNamesFromDb(
     return { ok: true, products };
   } catch (e) {
     console.error("[fetchActiveProductOptionsForPlanNamesFromDb]", e);
-    resetBongsimPgPoolAfterConnectTimeout(e);
+    await resetBongsimPgPoolAfterConnectTimeout(e);
     return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }

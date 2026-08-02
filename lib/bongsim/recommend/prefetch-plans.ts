@@ -4,7 +4,7 @@ import { normalizeProductsByCountryKey } from "@/lib/bongsim/recommend/products-
 
 // REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]: plans hover/click prefetch — manifest
 /** URL·HTTP 캐시 버스팅 — 과거 500이 jp만 남고 타국이 비던 회귀 차단 */
-export const BONGSIM_PLANS_CLIENT_CACHE_VER = "3";
+export const BONGSIM_PLANS_CLIENT_CACHE_VER = "4";
 
 const CACHE_TTL_MS = 120_000;
 export const PLANS_CLIENT_TIMEOUT_MS = 20_000;

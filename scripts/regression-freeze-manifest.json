@@ -1698,7 +1698,31 @@
             "rebuildPoolWithRelaxedTls",
             "withBongsimPoolQuery",
             "withBongsimCatalogRetry",
-            "isSupabasePoolerConnectionString"
+            "isSupabasePoolerConnectionString",
+            "poolResetInFlight",
+            "Promise<void>"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-recommend-bootstrap.ts",
+          "mustInclude": [
+            "withBongsimCatalogRetry",
+            "loadBongsimCountriesPayload"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/matches-plan-filters.ts",
+          "mustInclude": [
+            "planNameKrFromCountryCode",
+            "matchesBongsimPlanFilters"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/products/by-country/route.ts",
+          "mustInclude": [
+            "healing pool and retrying once",
+            "closePgPool",
+            "force-dynamic"
           ]
         },
         {
@@ -10772,6 +10796,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-catalog-pool-resilience]",
             "withBongsimStatementTimeout",
+            "withBongsimCatalogRetry",
             "resetBongsimPgPoolAfterConnectTimeout",
             "classifyBongsimPgError"
           ]
@@ -11059,7 +11084,8 @@
           "mustInclude": [
             "loadAllActiveProductsCached",
             "loadActiveProductsForDestinationCached",
-            "bongsim-active-products-destination"
+            "bongsim-active-products-destination",
+            "retryCatalogOutsideCache"
           ]
         },
         {
@@ -11119,7 +11145,9 @@
         {
           "file": "app/api/bongsim/products/by-country/route.ts",
           "mustInclude": [
-            "slimProductsByCountryForApi"
+            "slimProductsByCountryForApi",
+            "REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]",
+            "healing pool and retrying once"
           ]
         },
         {
@@ -11130,7 +11158,8 @@
             "PRODUCTS_BY_COUNTRY_CLIENT_TIMEOUT_MS",
             "AbortController",
             "cache: \"no-store\"",
-            "BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER"
+            "BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER",
+            "\"4\""
           ]
         },
         {
@@ -11138,7 +11167,15 @@
           "mustInclude": [
             "BONGSIM_PLANS_CLIENT_CACHE_VER",
             "cache: \"no-store\"",
-            "cv"
+            "cv",
+            "\"4\""
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
+          "mustInclude": [
+            "loadFailed",
+            "resolveDefaultTripDays"
           ]
         },
         {

@@ -5,6 +5,7 @@ import {
   type AllActiveProductsResult,
 } from "@/lib/bongsim/data/load-all-active-products";
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
+import { closePgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 
 // REGRESSION-FREEZE[bongsim-products-by-country-cache]: 전체·단일 목적지 120s cache — manifest
 
@@ -24,6 +25,29 @@ async function fetchDestinationOrThrow(
   return res;
 }
 
+function reasonFromCacheError(e: unknown): "connection_timeout" | "db_error" {
+  const msg = String(e instanceof Error ? e.message : e);
+  return msg.includes("connection_timeout") ? "connection_timeout" : "db_error";
+}
+
+/** unstable_cache 실패 후 풀 heal → 캐시 밖 1회 (국가별 cold miss 복구) */
+async function retryCatalogOutsideCache(
+  load: () => Promise<Extract<AllActiveProductsResult, { ok: true }>>,
+  firstErr: unknown,
+): Promise<AllActiveProductsResult> {
+  console.warn(
+    "[load-all-active-products-cached] cache miss; healing pool and retrying once",
+    firstErr instanceof Error ? firstErr.message : firstErr,
+  );
+  await probePgPoolTlsOrFallback();
+  await closePgPool().catch(() => {});
+  try {
+    return await load();
+  } catch (e2) {
+    return { ok: false, reason: reasonFromCacheError(e2) };
+  }
+}
+
 export async function loadAllActiveProductsCached(): Promise<AllActiveProductsResult> {
   try {
     return await unstable_cache(fetchAllOrThrow, ["bongsim-all-active-products-v3"], {
@@ -31,9 +55,7 @@ export async function loadAllActiveProductsCached(): Promise<AllActiveProductsRe
       tags: ["bongsim-all-active-products", "bongsim-products-by-country"],
     })();
   } catch (e) {
-    const msg = String(e instanceof Error ? e.message : e);
-    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
-    return { ok: false, reason: "db_error" };
+    return retryCatalogOutsideCache(fetchAllOrThrow, e);
   }
 }
 
@@ -60,8 +82,6 @@ export async function loadActiveProductsForDestinationCached(
       },
     )();
   } catch (e) {
-    const msg = String(e instanceof Error ? e.message : e);
-    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
-    return { ok: false, reason: "db_error" };
+    return retryCatalogOutsideCache(() => fetchDestinationOrThrow(planNames), e);
   }
 }

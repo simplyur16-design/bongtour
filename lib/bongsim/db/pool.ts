@@ -223,10 +223,10 @@ export function getBongsimPoolStats(): {
 
 let poolResetInFlight: Promise<void> | null = null;
 
-/** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 */
-export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): void {
-  if (classifyBongsimPgError(err) !== "connection_timeout") return;
-  if (poolResetInFlight) return;
+/** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 (호출측에서 await 권장) */
+export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): Promise<void> {
+  if (classifyBongsimPgError(err) !== "connection_timeout") return Promise.resolve();
+  if (poolResetInFlight) return poolResetInFlight;
   const stats = getBongsimPoolStats();
   const relaxTls = isBongsimPgTlsHandshakeIssue(err);
   console.error("[bongsim/db/pool] connection_timeout — resetting pool", { stats, relaxTls });
@@ -241,6 +241,7 @@ export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): void {
     .finally(() => {
       poolResetInFlight = null;
     });
+  return poolResetInFlight;
 }
 
 async function runWithStatementTimeout<T>(
@@ -325,8 +326,9 @@ export async function withBongsimCatalogRetry<T>(fn: () => Promise<T>): Promise<
       e instanceof Error ? e.message : e,
     );
     setSslRejectUnauthorized(false);
+    if (poolResetInFlight) await poolResetInFlight.catch(() => {});
     await closePgPool().catch(() => {});
-    const pool2 = getPgPool();
+    let pool2 = getPgPool();
     if (!pool2) throw e;
     try {
       await pool2.query("SELECT 1");
@@ -334,7 +336,10 @@ export async function withBongsimCatalogRetry<T>(fn: () => Promise<T>): Promise<
       if (isBongsimPgTlsHandshakeIssue(probeErr)) {
         await rebuildPoolWithRelaxedTls();
       } else {
-        throw e;
+        // connect/pool 잔상 — 한 번 더 풀을 갈아끼운 뒤 fn 재시도 (probe 실패로 포기하지 않음)
+        await closePgPool().catch(() => {});
+        pool2 = getPgPool();
+        if (!pool2) throw e;
       }
     }
     return await fn();
