@@ -31,14 +31,15 @@ function setCachedPool(p: Pool | undefined): void {
 function isSupabasePoolerConnectionString(urlStr: string): boolean {
   try {
     const host = new URL(urlStr).hostname.toLowerCase();
-    return host.includes("pooler.supabase.com") || host.includes("pooler.supabase.co");
+    // pooler·direct(db.*) 모두 체인 self-signed → strict TLS 불가
+    return host.includes("supabase.com") || host.includes("supabase.co");
   } catch {
-    return /pooler\.supabase\.(com|co)/i.test(urlStr);
+    return /supabase\.(com|co)/i.test(urlStr);
   }
 }
 
 /**
- * Supabase pooler는 체인에 self-signed가 있어 strict TLS가 항상 실패한다.
+ * Supabase는 체인에 self-signed가 있어 strict TLS가 실패한다.
  * 첫 접근 시 URL 보고 기본값을 정하고 globalThis에 고정한다.
  */
 function getSslRejectUnauthorized(): boolean {
@@ -47,7 +48,7 @@ function getSslRejectUnauthorized(): boolean {
     return g.__bongsimSslRejectUnauthorized;
   }
   const raw = process.env.DATABASE_URL?.trim() ?? "";
-  // pooler → 처음부터 relaxed (probe 전 cold request도 카탈로그 살림)
+  // Supabase → 처음부터 relaxed (probe 전 cold request도 카탈로그 살림)
   const strict = raw ? !isSupabasePoolerConnectionString(raw) : true;
   g.__bongsimSslRejectUnauthorized = strict;
   return strict;
@@ -192,11 +193,14 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
     ) ||
     // Supabase 풀러 고갈. 일시적 용량 문제라 풀 리셋 + 503 재시도 경로로 보낸다.
     /EMAXCONNSESSION|max clients reached|too many connections|remaining connection slots/i.test(msg) ||
+    // statement_timeout — 풀 고갈·락과 겹치면 카탈로그가 db_error로 굳음 → 503 재시도
+    /canceling statement due to statement timeout|query_canceled/i.test(msg) ||
     // TLS handshake 실패도 풀 재생성으로 복구 (strict→relaxed). 클라이언트가 503으로 재시도하게 한다.
     isBongsimPgTlsHandshakeIssue(err) ||
     code === "ETIMEDOUT" ||
     code === "ECONNREFUSED" ||
-    code === "53300"
+    code === "53300" ||
+    code === "57014"
   ) {
     return "connection_timeout";
   }
@@ -303,5 +307,36 @@ export async function withBongsimPoolQuery<T>(fn: (pool: Pool) => Promise<T>): P
       return await fn(pool2);
     }
     throw e;
+  }
+}
+
+/**
+ * 카탈로그 cold miss가 풀/TLS 잔상으로 한 번 실패해도 복구 후 1회 재시도.
+ * (프로덕션에서 캐시된 jp만 되고 fr/kr plans·by-country가 db_error로 비는 증상 완화)
+ */
+// REGRESSION-FREEZE[bongsim-pg-tls-global]: withBongsimCatalogRetry heal+retry — manifest
+export async function withBongsimCatalogRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (String(e instanceof Error ? e.message : e).includes("db_unconfigured")) throw e;
+    console.warn(
+      "[bongsim/db/pool] catalog query failed; healing pool and retrying once",
+      e instanceof Error ? e.message : e,
+    );
+    setSslRejectUnauthorized(false);
+    await closePgPool().catch(() => {});
+    const pool2 = getPgPool();
+    if (!pool2) throw e;
+    try {
+      await pool2.query("SELECT 1");
+    } catch (probeErr) {
+      if (isBongsimPgTlsHandshakeIssue(probeErr)) {
+        await rebuildPoolWithRelaxedTls();
+      } else {
+        throw e;
+      }
+    }
+    return await fn();
   }
 }

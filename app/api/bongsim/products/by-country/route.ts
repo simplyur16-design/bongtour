@@ -34,7 +34,7 @@ export async function GET(req: Request) {
   if (!res.ok) {
     const status =
       res.reason === "db_unconfigured" || res.reason === "connection_timeout" ? 503 : 500;
-    return jsonWithLeakGuard(
+    const errRes = jsonWithLeakGuard(
       {
         error: res.reason === "db_unconfigured" ? "DB not configured" : "query failed",
         reason: res.reason,
@@ -42,6 +42,8 @@ export async function GET(req: Request) {
       "bongsim.products.by-country",
       { status },
     );
+    errRes.headers.set("Cache-Control", "no-store");
+    return errRes;
   }
 
   const payload = slimProductsByCountryForApi(res);

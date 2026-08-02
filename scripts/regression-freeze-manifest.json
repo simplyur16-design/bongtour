@@ -1649,8 +1649,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
             "unstable_cache",
-            "bongsim-plans-v2",
-            "probePgPoolTlsOrFallback"
+            "bongsim-plans-v3",
+            "probePgPoolTlsOrFallback",
+            "withBongsimCatalogRetry"
           ]
         },
         {
@@ -1695,6 +1696,7 @@
             "SELF_SIGNED_CERT_IN_CHAIN",
             "rebuildPoolWithRelaxedTls",
             "withBongsimPoolQuery",
+            "withBongsimCatalogRetry",
             "isSupabasePoolerConnectionString"
           ]
         },

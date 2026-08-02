@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import {
   getPgPool,
@@ -6,6 +7,7 @@ import {
   isBongsimPgTlsHandshakeIssue,
   probePgPoolTlsOrFallback,
   resetBongsimPgPoolAfterConnectTimeout,
+  withBongsimCatalogRetry,
 } from "@/lib/bongsim/db/pool";
 import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
 
@@ -14,6 +16,35 @@ export const revalidate = 120;
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: plans 120s cache — manifest
 
 const PLANS_REVALIDATE_SEC = 120;
+
+function plansErrorResponse(reason: string): NextResponse {
+  const status = reason === "connection_timeout" || reason === "db_unconfigured" ? 503 : 500;
+  const res = jsonWithLeakGuard(
+    { error: reason === "db_unconfigured" ? "DB not configured" : "query failed", reason },
+    "bongsim.products.plans",
+    { status },
+  );
+  res.headers.set("Cache-Control", "no-store");
+  return res;
+}
+
+async function loadPlansPayload(params: {
+  country: string;
+  days: number;
+  allSelected: string[];
+  network: "roaming" | "local" | null;
+}) {
+  await probePgPoolTlsOrFallback();
+  const pool = getPgPool();
+  if (!pool) throw new Error("db_unconfigured");
+  return queryPlanCatalog({
+    pool,
+    country: params.country,
+    days: params.days,
+    allSelected: params.allSelected,
+    network: params.network,
+  });
+}
 
 /**
  * GET /api/bongsim/products/plans?country=jp&network=roaming&days=4&codes=jp,vn
@@ -55,15 +86,9 @@ export async function GET(req: Request) {
     : [country];
   const allSelected = [...new Set(fromCodes)].sort();
 
-  await probePgPoolTlsOrFallback();
-  const pool = getPgPool();
-  if (!pool) {
-    return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.products.plans", { status: 503 });
-  }
-
   const networkParam: "roaming" | "local" | null = networkRaw ? (networkRaw as "roaming" | "local") : null;
   const cacheKey = [
-    "bongsim-plans-v2",
+    "bongsim-plans-v3",
     country,
     String(days),
     allSelected.join(","),
@@ -73,13 +98,9 @@ export async function GET(req: Request) {
   try {
     const payload = await unstable_cache(
       async () =>
-        queryPlanCatalog({
-          pool: getPgPool()!,
-          country,
-          days,
-          allSelected,
-          network: networkParam,
-        }),
+        withBongsimCatalogRetry(() =>
+          loadPlansPayload({ country, days, allSelected, network: networkParam }),
+        ),
       cacheKey,
       {
         revalidate: PLANS_REVALIDATE_SEC,
@@ -99,11 +120,23 @@ export async function GET(req: Request) {
       await probePgPoolTlsOrFallback();
     }
     resetBongsimPgPoolAfterConnectTimeout(e);
-    const reason = classifyBongsimPgError(e);
-    return jsonWithLeakGuard(
-      { error: "query failed", reason },
-      "bongsim.products.plans",
-      { status: reason === "connection_timeout" ? 503 : 500 },
-    );
+    try {
+      // cache 콜백 밖 1회 — 인스턴스 간 풀 잔상으로 cold miss만 죽는 경우 복구
+      const payload = await withBongsimCatalogRetry(() =>
+        loadPlansPayload({ country, days, allSelected, network: networkParam }),
+      );
+      const response = jsonWithLeakGuard(payload, "bongsim.products.plans");
+      response.headers.set(
+        "Cache-Control",
+        `public, s-maxage=${PLANS_REVALIDATE_SEC}, stale-while-revalidate=${PLANS_REVALIDATE_SEC * 2}`,
+      );
+      return response;
+    } catch (e2) {
+      console.error("[plans] retry failed", e2);
+      resetBongsimPgPoolAfterConnectTimeout(e2);
+      const msg = String(e2 instanceof Error ? e2.message : e2);
+      if (msg.includes("db_unconfigured")) return plansErrorResponse("db_unconfigured");
+      return plansErrorResponse(classifyBongsimPgError(e2));
+    }
   }
 }

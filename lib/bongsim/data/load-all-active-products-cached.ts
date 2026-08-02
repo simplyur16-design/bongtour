@@ -26,7 +26,7 @@ async function fetchDestinationOrThrow(
 
 export async function loadAllActiveProductsCached(): Promise<AllActiveProductsResult> {
   try {
-    return await unstable_cache(fetchAllOrThrow, ["bongsim-all-active-products-v2"], {
+    return await unstable_cache(fetchAllOrThrow, ["bongsim-all-active-products-v3"], {
       revalidate: ALL_ACTIVE_PRODUCTS_REVALIDATE_SEC,
       tags: ["bongsim-all-active-products", "bongsim-products-by-country"],
     })();
@@ -49,7 +49,7 @@ export async function loadActiveProductsForDestinationCached(
   try {
     return await unstable_cache(
       () => fetchDestinationOrThrow(planNames),
-      ["bongsim-active-products-destination-v2", lc, planNames.join("|")],
+      ["bongsim-active-products-destination-v3", lc, planNames.join("|")],
       {
         revalidate: ALL_ACTIVE_PRODUCTS_REVALIDATE_SEC,
         tags: [

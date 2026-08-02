@@ -618,7 +618,7 @@ export function PlanSelectPopup({
           ...nextGroups.daily,
           ...nextGroups.fixed,
         ]);
-        const windowed = filterPlanGroupsByTripDaysWindow(nextGroups, tripDaysFloored);
+        const windowed = filterPlanGroupsByTripDaysWindow(nextGroups, tripDaysFloored, undefined, md);
         const visibleGroups = showBinary
           ? filterGroupsByAuth(windowed, defaultAuth)
           : windowed;
@@ -656,8 +656,8 @@ export function PlanSelectPopup({
   const showAuthToggle = hasBinaryAuthDistribution(allCatalogProducts);
 
   const windowFilteredGroups = useMemo(
-    () => filterPlanGroupsByTripDaysWindow(rawGroups, tripDaysFloored),
-    [rawGroups, tripDaysFloored],
+    () => filterPlanGroupsByTripDaysWindow(rawGroups, tripDaysFloored, undefined, matchedDays),
+    [rawGroups, tripDaysFloored, matchedDays],
   );
 
   const groups = useMemo(() => {

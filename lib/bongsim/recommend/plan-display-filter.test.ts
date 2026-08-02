@@ -72,4 +72,20 @@ describe('plan-display-filter ±2 window SSOT', () => {
     expect(groups.daily.map((p) => p.option_api_id)).toEqual(['d5'])
     expect(groups.fixed.map((p) => p.option_api_id)).toEqual(['f7', 'f30'])
   })
+
+  it('matched_days anchor — trip=3·matched=7 이면 7일 SKU 유지', () => {
+    const groups = filterPlanGroupsByTripDaysWindow(
+      {
+        unlimited: [plan('7일', 'u7')],
+        daily: [plan('7일', 'd7')],
+        fixed: [fixedPlan('30일', '3GB', 'f30')],
+      },
+      3,
+      2,
+      7,
+    )
+    expect(groups.unlimited.map((p) => p.option_api_id)).toEqual(['u7'])
+    expect(groups.daily.map((p) => p.option_api_id)).toEqual(['d7'])
+    expect(groups.fixed.map((p) => p.option_api_id)).toEqual(['f30'])
+  })
 })

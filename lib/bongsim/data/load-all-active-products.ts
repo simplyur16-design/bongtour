@@ -1,6 +1,13 @@
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
-import { getPgPool, withBongsimStatementTimeout, classifyBongsimPgError, resetBongsimPgPoolAfterConnectTimeout } from "@/lib/bongsim/db/pool";
+import {
+  getPgPool,
+  withBongsimStatementTimeout,
+  withBongsimCatalogRetry,
+  classifyBongsimPgError,
+  resetBongsimPgPoolAfterConnectTimeout,
+  probePgPoolTlsOrFallback,
+} from "@/lib/bongsim/db/pool";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 
@@ -47,13 +54,16 @@ function sortCatalogProducts(products: ProductOption[]): ProductOption[] {
 
 /** DB — 판매 중 eSIM 옵션 전체 (국가 필터 없음) */
 export async function fetchAllActiveProductOptionsFromDb(): Promise<AllActiveProductsResult> {
+  await probePgPoolTlsOrFallback();
   if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   try {
-    const result = await withBongsimStatementTimeout((client) =>
-      client.query(
-        `${PRODUCT_OPTION_SELECT}
+    const result = await withBongsimCatalogRetry(() =>
+      withBongsimStatementTimeout((client) =>
+        client.query(
+          `${PRODUCT_OPTION_SELECT}
       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
+        ),
       ),
     );
     const products = sortCatalogProducts(
@@ -71,16 +81,19 @@ export async function fetchAllActiveProductOptionsFromDb(): Promise<AllActivePro
 export async function fetchActiveProductOptionsForPlanNamesFromDb(
   planNames: string[],
 ): Promise<AllActiveProductsResult> {
+  await probePgPoolTlsOrFallback();
   if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
   if (planNames.length === 0) return { ok: true, products: [] };
 
   try {
-    const result = await withBongsimStatementTimeout((client) =>
-      client.query(
-        `${PRODUCT_OPTION_SELECT}
+    const result = await withBongsimCatalogRetry(() =>
+      withBongsimStatementTimeout((client) =>
+        client.query(
+          `${PRODUCT_OPTION_SELECT}
       WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
         AND plan_name = ANY($1::text[])`,
-        [planNames],
+          [planNames],
+        ),
       ),
     );
     const products = sortCatalogProducts(

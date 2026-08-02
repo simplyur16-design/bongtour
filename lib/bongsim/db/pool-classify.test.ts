@@ -40,6 +40,13 @@ describe("classifyBongsimPgError", () => {
     });
     expect(classifyBongsimPgError(err)).toBe("connection_timeout");
   });
+
+  it("treats statement timeout as recoverable connection_timeout", () => {
+    const err = Object.assign(new Error("canceling statement due to statement timeout"), {
+      code: "57014",
+    });
+    expect(classifyBongsimPgError(err)).toBe("connection_timeout");
+  });
 });
 
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: SELF_SIGNED_CERT_IN_CHAIN 감지 — manifest

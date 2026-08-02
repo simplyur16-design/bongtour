@@ -128,9 +128,14 @@ export default function OfflineUsimPlanPicker({ value, onChange, plansApiPath }:
   const popular = useMemo(() => offlineUsimPopularDestinations(), []);
 
   const displayGroups = useMemo(() => {
-    const windowed = filterPlanGroupsByTripDaysWindow(rawGroups, tripDaysFloored);
+    const windowed = filterPlanGroupsByTripDaysWindow(
+      rawGroups,
+      tripDaysFloored,
+      undefined,
+      matchedDays,
+    );
     return sortPlanGroupsForDisplay(windowed, tripDaysFloored);
-  }, [rawGroups, tripDaysFloored]);
+  }, [rawGroups, tripDaysFloored, matchedDays]);
 
   const tabCounts = useMemo(
     () => ({
