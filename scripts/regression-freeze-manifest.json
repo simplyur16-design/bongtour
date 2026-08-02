@@ -11231,7 +11231,9 @@
           "file": "app/travel/esim/recommend/page.tsx",
           "mustInclude": [
             "loadBongsimRecommendBootstrapCached",
-            "initialCountries"
+            "initialCountries",
+            "force-static",
+            "revalidate = 120"
           ]
         },
         {
@@ -11547,30 +11549,72 @@
       "tier": [
         "prebuild"
       ],
-      "summary": "recommend hard refresh — search-params Suspense·일반 funnelHydrated 게이트로 빙빙 금지",
+      "summary": "recommend hard refresh — next/navigation searchParams Suspense 금지·fromCheckout는 useSyncExternalStore query",
       "checks": [
         {
           "file": "app/travel/esim/recommend/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]",
-            "fromCheckout={fromCheckout}"
+            "loadBongsimRecommendBootstrapCached"
           ],
           "mustNotInclude": [
             "from \"next/navigation\"",
-            "<Suspense"
+            "<Suspense",
+            "searchParams"
           ]
         },
         {
           "file": "app/travel/esim/recommend/RecommendPageClient.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]",
-            "fromCheckout?: boolean",
-            "useState(() => !fromCheckout)",
-            "fromCheckout && !funnelHydrated"
+            "useSyncExternalStore",
+            "fromCheckout && !funnelHydrated",
+            "getFromCheckoutQuerySnapshot"
           ],
           "mustNotInclude": [
             "from \"next/navigation\"",
             "from 'next/navigation'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bongsim-recommend-isr-cdn",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "recommend 페이지 force-static ISR — searchParams로 private no-store·cold spike 방지",
+      "checks": [
+        {
+          "file": "app/travel/esim/recommend/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-isr-cdn]",
+            "force-static",
+            "revalidate = 120"
+          ],
+          "mustNotInclude": [
+            "searchParams",
+            "await headers()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-locale-lang-boot",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "simplyur boot — html lang from path locale (en/ja/zh/zh-TW/vi), not always en",
+      "checks": [
+        {
+          "file": "app/layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-locale-lang-boot]",
+            "allow={en:1,ja:1,zh:1,'zh-TW':1,vi:1}",
+            "d.lang=allow[loc]?loc:'en'"
+          ],
+          "mustNotInclude": [
+            "d.lang='en';d.dataset.surface='simplyur'"
           ]
         }
       ]

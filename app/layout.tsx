@@ -83,7 +83,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   // simplyur first-paint: path로 lang/surface/body 보정 (headers() 없이 ISR 유지)
-  const simplyurBoot = `(function(){try{var p=location.pathname||'/';if(p==='/simplyur'||p.indexOf('/simplyur/')===0){var d=document.documentElement;d.lang='en';d.dataset.surface='simplyur';document.body.className='min-h-screen antialiased flex flex-col';}}catch(e){}})();`
+  // REGRESSION-FREEZE[simplyur-locale-lang-boot]: lang from /simplyur/{locale} (not always en) — manifest
+  const simplyurBoot = `(function(){try{var p=location.pathname||'/';if(p==='/simplyur'||p.indexOf('/simplyur/')===0){var d=document.documentElement;var loc=(p.split('/')[2]||'en');var allow={en:1,ja:1,zh:1,'zh-TW':1,vi:1};d.lang=allow[loc]?loc:'en';d.dataset.surface='simplyur';document.body.className='min-h-screen antialiased flex flex-col';}}catch(e){}})();`
 
   return (
     <html

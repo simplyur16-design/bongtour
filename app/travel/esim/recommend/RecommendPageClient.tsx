@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Header from "@/app/components/Header";
 import { CountrySelectStep } from "@/components/bongsim/recommend/CountrySelectStep";
 import { MultiTripCountrySelectStep } from "@/components/bongsim/recommend/MultiTripCountrySelectStep";
@@ -40,6 +40,21 @@ type ApiCountriesPayload = {
 
 type Step1View = "pick" | "multi-trip";
 
+/** ISR page — no server searchParams. Client reads query without next/navigation (Suspense spin 방지). */
+function subscribeFromCheckoutQuery() {
+  return () => {};
+}
+function getFromCheckoutQuerySnapshot(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("fromCheckout") === "1";
+  } catch {
+    return false;
+  }
+}
+function getFromCheckoutQueryServerSnapshot(): boolean {
+  return false;
+}
+
 function mergeCountryOptionsFromApi(allowed: ApiCountryRow[]): CountryOption[] {
   const byCode = new Map(COUNTRY_OPTIONS.map((c) => [c.code.toLowerCase(), c]));
   const out: CountryOption[] = [];
@@ -60,26 +75,29 @@ function mergeCountryOptionsFromApi(allowed: ApiCountryRow[]): CountryOption[] {
 }
 
 export default function RecommendPageClient({
-  fromCheckout = false,
   initialCountries = null,
   initialCatalogMeta = null,
   initialHeroMap = null,
   bootstrapError = null,
 }: {
-  /** 서버 page searchParams — 클라 search-params 훅으로 hard refresh 시 「불러오는 중…」에 갇히지 않게 */
-  fromCheckout?: boolean;
   initialCountries?: ApiCountryRow[] | null;
   initialCatalogMeta?: Record<string, CountryCatalogMeta> | null;
   initialHeroMap?: Record<string, string> | null;
   bootstrapError?: string | null;
 }) {
-  // REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]: fromCheckout prop·일반 진입은 즉시 페인트 — manifest
+  // REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]: query via useSyncExternalStore·일반 진입 즉시 페인트 — manifest
+  const fromCheckout = useSyncExternalStore(
+    subscribeFromCheckoutQuery,
+    getFromCheckoutQuerySnapshot,
+    getFromCheckoutQueryServerSnapshot,
+  );
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [step1View, setStep1View] = useState<Step1View>("pick");
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [storedCompleted, setStoredCompleted] = useState<Record<string, StoredCountryPlanSelection>>({});
-  /** 체크아웃 복귀만 스냅샷 복원 대기 — 일반 hard refresh는 SSR 국가 목록을 바로 그림 */
-  const [funnelHydrated, setFunnelHydrated] = useState(() => !fromCheckout);
+  /** 체크아웃 복귀(?fromCheckout=1)만 스냅샷 복원 대기 — 일반 진입은 즉시 funnelHydrated */
+  const [checkoutRestoreDone, setCheckoutRestoreDone] = useState(false);
+  const funnelHydrated = !fromCheckout || checkoutRestoreDone;
   const [searchQuery, setSearchQuery] = useState("");
   const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(() => {
     if (!initialCountries?.length) return null;
@@ -96,7 +114,7 @@ export default function RecommendPageClient({
   useEffect(() => {
     const snap = loadRecommendFunnelSnapshot();
     if (!snap) {
-      setFunnelHydrated(true);
+      setCheckoutRestoreDone(true);
       return;
     }
     if (fromCheckout) {
@@ -112,7 +130,7 @@ export default function RecommendPageClient({
       setStep1View("pick");
       clearRecommendCheckoutDispatched();
     }
-    setFunnelHydrated(true);
+    setCheckoutRestoreDone(true);
   }, [fromCheckout]);
 
   useEffect(() => {
