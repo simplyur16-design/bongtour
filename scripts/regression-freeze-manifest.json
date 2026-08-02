@@ -11261,18 +11261,24 @@
         "prebuild",
         "ci"
       ],
-      "summary": "중국 구매 안내 — 플랜 영역 중복 금지·05코드 비노출·인증 불필요 명시",
+      "summary": "구매 안내 — HK/MO/TW 한국 선설치·미확정 본토개통/05코드 비노출·플랜 중복 금지",
       "checks": [
         {
           "file": "lib/bongsim/country-purchase-notices.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]",
             "VPN 없이 SNS·유튜브 이용",
-            "여행자 인증은 필요 없습니다"
+            "입국 전 한국에서 설치해 주세요",
+            "출국 전 한국에서 미리 설치",
+            "hk: HK_MO_TW_INSTALL_NOTICES",
+            "mo: HK_MO_TW_INSTALL_NOTICES",
+            "tw: HK_MO_TW_INSTALL_NOTICES"
           ],
           "mustNotInclude": [
             "05코드",
-            "05 코드"
+            "05 코드",
+            "처음 개통",
+            "최초 개통"
           ]
         },
         {
