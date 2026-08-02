@@ -188,19 +188,29 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
       ? String((err as { code?: string }).code ?? "")
       : "";
   if (
-    /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED/i.test(
+    /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED|ECONNRESET/i.test(
+      msg,
+    ) ||
+    // 풀 잔상·서버가 연결을 끊은 경우 — 503 재시도
+    /Connection terminated|server closed the connection|Client has encountered a connection error|broken pipe|EPIPE/i.test(
       msg,
     ) ||
     // Supabase 풀러 고갈. 일시적 용량 문제라 풀 리셋 + 503 재시도 경로로 보낸다.
-    /EMAXCONNSESSION|max clients reached|too many connections|remaining connection slots/i.test(msg) ||
+    /EMAXCONNSESSION|max clients reached|too many connections|remaining connection slots|MaxClientsInSessionMode/i.test(
+      msg,
+    ) ||
     // statement_timeout — 풀 고갈·락과 겹치면 카탈로그가 db_error로 굳음 → 503 재시도
     /canceling statement due to statement timeout|query_canceled/i.test(msg) ||
     // TLS handshake 실패도 풀 재생성으로 복구 (strict→relaxed). 클라이언트가 503으로 재시도하게 한다.
     isBongsimPgTlsHandshakeIssue(err) ||
     code === "ETIMEDOUT" ||
     code === "ECONNREFUSED" ||
+    code === "ECONNRESET" ||
     code === "53300" ||
-    code === "57014"
+    code === "57014" ||
+    code === "57P01" ||
+    code === "08006" ||
+    code === "08001"
   ) {
     return "connection_timeout";
   }
@@ -222,26 +232,54 @@ export function getBongsimPoolStats(): {
 }
 
 let poolResetInFlight: Promise<void> | null = null;
+let lastCatalogHealAt = 0;
+const CATALOG_HEAL_COOLDOWN_MS = 8_000;
 
-/** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 (호출측에서 await 권장) */
-export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): Promise<void> {
-  if (classifyBongsimPgError(err) !== "connection_timeout") return Promise.resolve();
-  if (poolResetInFlight) return poolResetInFlight;
+/**
+ * 카탈로그 복구용 풀 heal — 동시 요청이 closePgPool 연타하지 않게 coalesce + cooldown.
+ * (연타 시 Supabase EMAXCONNSESSION → 전 국가/locale db_error 연쇄)
+ */
+// REGRESSION-FREEZE[bongsim-pg-tls-global]: healBongsimPgPoolForCatalog coalesce — manifest
+export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void> {
+  if (poolResetInFlight) {
+    await poolResetInFlight.catch(() => {});
+    return;
+  }
+  const now = Date.now();
+  if (now - lastCatalogHealAt < CATALOG_HEAL_COOLDOWN_MS) {
+    return;
+  }
+  lastCatalogHealAt = now;
   const stats = getBongsimPoolStats();
-  const relaxTls = isBongsimPgTlsHandshakeIssue(err);
-  console.error("[bongsim/db/pool] connection_timeout — resetting pool", { stats, relaxTls });
-  poolResetInFlight = (
-    relaxTls
-      ? rebuildPoolWithRelaxedTls().then(() => undefined)
-      : closePgPool()
-  )
+  console.warn("[bongsim/db/pool] catalog heal", { reason, stats });
+  poolResetInFlight = (async () => {
+    setSslRejectUnauthorized(false);
+    await closePgPool().catch(() => {});
+    const pool = getPgPool();
+    if (!pool) return;
+    try {
+      await pool.query("SELECT 1");
+    } catch (probeErr) {
+      if (isBongsimPgTlsHandshakeIssue(probeErr)) {
+        await rebuildPoolWithRelaxedTls();
+      }
+    }
+  })()
     .catch((e) => {
-      console.error("[bongsim/db/pool] pool reset failed", e);
+      console.error("[bongsim/db/pool] catalog heal failed", e);
     })
     .finally(() => {
       poolResetInFlight = null;
     });
-  return poolResetInFlight;
+  await poolResetInFlight;
+}
+
+/** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 (호출측에서 await 권장) */
+export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): Promise<void> {
+  if (classifyBongsimPgError(err) !== "connection_timeout") return Promise.resolve();
+  return healBongsimPgPoolForCatalog(
+    isBongsimPgTlsHandshakeIssue(err) ? "tls_handshake" : "connection_timeout",
+  );
 }
 
 async function runWithStatementTimeout<T>(
@@ -325,23 +363,8 @@ export async function withBongsimCatalogRetry<T>(fn: () => Promise<T>): Promise<
       "[bongsim/db/pool] catalog query failed; healing pool and retrying once",
       e instanceof Error ? e.message : e,
     );
-    setSslRejectUnauthorized(false);
-    if (poolResetInFlight) await poolResetInFlight.catch(() => {});
-    await closePgPool().catch(() => {});
-    let pool2 = getPgPool();
-    if (!pool2) throw e;
-    try {
-      await pool2.query("SELECT 1");
-    } catch (probeErr) {
-      if (isBongsimPgTlsHandshakeIssue(probeErr)) {
-        await rebuildPoolWithRelaxedTls();
-      } else {
-        // connect/pool 잔상 — 한 번 더 풀을 갈아끼운 뒤 fn 재시도 (probe 실패로 포기하지 않음)
-        await closePgPool().catch(() => {});
-        pool2 = getPgPool();
-        if (!pool2) throw e;
-      }
-    }
+    await healBongsimPgPoolForCatalog(e instanceof Error ? e.message : String(e));
+    if (!getPgPool()) throw e;
     return await fn();
   }
 }

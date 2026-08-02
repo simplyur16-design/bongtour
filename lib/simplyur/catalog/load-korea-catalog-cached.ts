@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { closePgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { healBongsimPgPoolForCatalog, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
@@ -61,7 +61,7 @@ export async function loadSimplyurKoreaCatalogCached(
       e instanceof Error ? e.message : e,
     );
     await probePgPoolTlsOrFallback();
-    await closePgPool().catch(() => {});
+    await healBongsimPgPoolForCatalog("simplyur-catalog-cache");
     try {
       const products = await loadSimplyurKoreaProductsOrThrow();
       return await mapProductsToCatalog(products, locale);

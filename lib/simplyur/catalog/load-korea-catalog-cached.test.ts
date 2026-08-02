@@ -10,7 +10,7 @@ vi.mock("@/lib/bongsim/db/pool", async () => {
   return {
     ...actual,
     probePgPoolTlsOrFallback: vi.fn(async () => {}),
-    closePgPool: vi.fn(async () => {}),
+    healBongsimPgPoolForCatalog: vi.fn(async () => {}),
   };
 });
 

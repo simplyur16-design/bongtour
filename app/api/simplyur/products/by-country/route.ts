@@ -8,7 +8,7 @@ import {
   CATALOG_REVALIDATE_SEC,
   loadSimplyurKoreaCatalogCached,
 } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
-import { closePgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { healBongsimPgPoolForCatalog, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 
 /** 실패 Route Cache가 locale별로 굳지 않게 — DB는 unstable_cache로만 메모 */
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   if (!catalog.ok && catalog.reason !== "db_unconfigured") {
     console.warn("[simplyur/by-country] catalog miss; healing pool and retrying once", catalog.reason);
     await probePgPoolTlsOrFallback();
-    await closePgPool().catch(() => {});
+    await healBongsimPgPoolForCatalog(`simplyur/by-country:${catalog.reason}`);
     catalog = await loadSimplyurKoreaCatalogCached(locale);
   }
 

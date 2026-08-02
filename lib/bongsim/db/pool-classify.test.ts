@@ -47,6 +47,14 @@ describe("classifyBongsimPgError", () => {
     });
     expect(classifyBongsimPgError(err)).toBe("connection_timeout");
   });
+
+  it("treats connection reset / server closed as recoverable", () => {
+    expect(classifyBongsimPgError(new Error("Connection terminated unexpectedly"))).toBe(
+      "connection_timeout",
+    );
+    const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+    expect(classifyBongsimPgError(reset)).toBe("connection_timeout");
+  });
 });
 
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: SELF_SIGNED_CERT_IN_CHAIN 감지 — manifest

@@ -5,7 +5,7 @@ import {
   type AllActiveProductsResult,
 } from "@/lib/bongsim/data/load-all-active-products";
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
-import { closePgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { healBongsimPgPoolForCatalog, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 
 // REGRESSION-FREEZE[bongsim-products-by-country-cache]: 전체·단일 목적지 120s cache — manifest
 
@@ -40,7 +40,7 @@ async function retryCatalogOutsideCache(
     firstErr instanceof Error ? firstErr.message : firstErr,
   );
   await probePgPoolTlsOrFallback();
-  await closePgPool().catch(() => {});
+  await healBongsimPgPoolForCatalog("active-products-cache");
   try {
     return await load();
   } catch (e2) {

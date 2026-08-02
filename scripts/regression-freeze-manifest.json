@@ -1699,6 +1699,8 @@
             "withBongsimPoolQuery",
             "withBongsimCatalogRetry",
             "isSupabasePoolerConnectionString",
+            "healBongsimPgPoolForCatalog",
+            "CATALOG_HEAL_COOLDOWN_MS",
             "poolResetInFlight",
             "Promise<void>"
           ]
@@ -1721,7 +1723,7 @@
           "file": "app/api/bongsim/products/by-country/route.ts",
           "mustInclude": [
             "healing pool and retrying once",
-            "closePgPool",
+            "healBongsimPgPoolForCatalog",
             "force-dynamic"
           ]
         },
