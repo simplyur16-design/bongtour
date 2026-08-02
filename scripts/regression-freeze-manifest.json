@@ -1707,7 +1707,10 @@
             "Promise<void>",
             "Cannot use a pool after calling end on the pool",
             "setCachedPool(undefined)",
-            "이중 close 금지"
+            "이중 close 금지",
+            "void p.end()",
+            "HEAL_WAIT_BUDGET_MS",
+            "pool.end() must not block request path"
           ]
         },
         {

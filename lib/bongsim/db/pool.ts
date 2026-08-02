@@ -172,7 +172,9 @@ export async function closePgPool(): Promise<void> {
   // 캐시에서 먼저 분리 — end() 대기 중 다른 요청이 같은 Pool을 쓰면
   // "Cannot use a pool after calling end on the pool" 가 난다.
   setCachedPool(undefined);
-  await p.end().catch(() => {});
+  // REGRESSION-FREEZE[bongsim-pg-tls-global]: pool.end() must not block request path — manifest
+  // 체크아웃/대기 클라이언트가 있으면 end()가 풀러 압박 하에서 영구 대기 → /countries 무응답.
+  void p.end().catch(() => {});
 }
 
 /** 카탈로그 등 — 트랜잭션 풀러에서도 세션에 남지 않게 LOCAL + BEGIN */
@@ -242,10 +244,15 @@ const CATALOG_HEAL_COOLDOWN_MS = 30_000;
  * 카탈로그 복구용 풀 heal — 동시 요청이 closePgPool 연타하지 않게 coalesce + cooldown.
  * (연타 시 Supabase EMAXCONNSESSION → 전 국가/locale db_error 연쇄)
  */
+const HEAL_WAIT_BUDGET_MS = 2_500;
+
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: healBongsimPgPoolForCatalog coalesce — manifest
 export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void> {
   if (poolResetInFlight) {
-    await poolResetInFlight.catch(() => {});
+    await Promise.race([
+      poolResetInFlight.catch(() => {}),
+      new Promise<void>((r) => setTimeout(r, HEAL_WAIT_BUDGET_MS)),
+    ]);
     return;
   }
   const now = Date.now();
@@ -257,12 +264,17 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
   console.warn("[bongsim/db/pool] catalog heal", { reason, stats });
   poolResetInFlight = (async () => {
     setSslRejectUnauthorized(false);
-    // closePgPool: detach → end. 이후 getPgPool()은 새 인스턴스.
+    // closePgPool: detach → non-blocking end. 이후 getPgPool()은 새 인스턴스.
     await closePgPool().catch(() => {});
     const pool = getPgPool();
     if (!pool) return;
     try {
-      await pool.query("SELECT 1");
+      await Promise.race([
+        pool.query("SELECT 1"),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("heal probe timeout")), HEAL_WAIT_BUDGET_MS),
+        ),
+      ]);
     } catch (probeErr) {
       // TLS만 한 번 더 교체. connection_timeout은 이미 새 풀이므로 이중 close 금지.
       if (isBongsimPgTlsHandshakeIssue(probeErr)) {
@@ -276,7 +288,11 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
     .finally(() => {
       poolResetInFlight = null;
     });
-  await poolResetInFlight;
+  // 요청 경로가 heal에 붙잡혀 /countries가 무응답 되지 않게 상한.
+  await Promise.race([
+    poolResetInFlight,
+    new Promise<void>((r) => setTimeout(r, HEAL_WAIT_BUDGET_MS)),
+  ]);
 }
 
 /** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 (호출측에서 await 권장) */
