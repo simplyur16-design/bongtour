@@ -1702,7 +1702,9 @@
             "healBongsimPgPoolForCatalog",
             "CATALOG_HEAL_COOLDOWN_MS",
             "poolResetInFlight",
-            "Promise<void>"
+            "Promise<void>",
+            "Cannot use a pool after calling end on the pool",
+            "setCachedPool(undefined)"
           ]
         },
         {

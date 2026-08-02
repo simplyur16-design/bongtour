@@ -55,6 +55,12 @@ describe("classifyBongsimPgError", () => {
     const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
     expect(classifyBongsimPgError(reset)).toBe("connection_timeout");
   });
+
+  it("treats ended-pool race after heal as recoverable", () => {
+    expect(
+      classifyBongsimPgError(new Error("Cannot use a pool after calling end on the pool")),
+    ).toBe("connection_timeout");
+  });
 });
 
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: SELF_SIGNED_CERT_IN_CHAIN 감지 — manifest

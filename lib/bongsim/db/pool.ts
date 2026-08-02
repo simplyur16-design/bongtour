@@ -168,10 +168,11 @@ export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStri
 
 export async function closePgPool(): Promise<void> {
   const p = getCachedPool();
-  if (p) {
-    await p.end();
-    setCachedPool(undefined);
-  }
+  if (!p) return;
+  // 캐시에서 먼저 분리 — end() 대기 중 다른 요청이 같은 Pool을 쓰면
+  // "Cannot use a pool after calling end on the pool" 가 난다.
+  setCachedPool(undefined);
+  await p.end().catch(() => {});
 }
 
 /** 카탈로그 등 — 트랜잭션 풀러에서도 세션에 남지 않게 LOCAL + BEGIN */
@@ -191,6 +192,8 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
     /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED|ECONNRESET/i.test(
       msg,
     ) ||
+    // heal이 pool.end() 한 뒤 동시 요청이 옛 풀을 집는 경우 — 새 풀로 재시도
+    /Cannot use a pool after calling end on the pool/i.test(msg) ||
     // 풀 잔상·서버가 연결을 끊은 경우 — 503 재시도
     /Connection terminated|server closed the connection|Client has encountered a connection error|broken pipe|EPIPE/i.test(
       msg,
@@ -254,6 +257,7 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
   console.warn("[bongsim/db/pool] catalog heal", { reason, stats });
   poolResetInFlight = (async () => {
     setSslRejectUnauthorized(false);
+    // closePgPool: detach → end. 이후 getPgPool()은 새 인스턴스.
     await closePgPool().catch(() => {});
     const pool = getPgPool();
     if (!pool) return;
@@ -262,6 +266,10 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
     } catch (probeErr) {
       if (isBongsimPgTlsHandshakeIssue(probeErr)) {
         await rebuildPoolWithRelaxedTls();
+      } else if (classifyBongsimPgError(probeErr) === "connection_timeout") {
+        // 연결 자체가 안 되면 한 번 더 교체만 하고 끝(요청 경로에서 재시도)
+        await closePgPool().catch(() => {});
+        getPgPool();
       }
     }
   })()
