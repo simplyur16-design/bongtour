@@ -11218,7 +11218,8 @@
           "file": "app/travel/esim/catalog/CatalogPageClient.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]",
-            "/api/bongsim/products"
+            "/api/bongsim/products",
+            "connection_timeout"
           ]
         },
         {

@@ -41,7 +41,7 @@ function emptyBucketState(): BucketState {
 type Props = {
   initialBucketCounts: CatalogBucketCounts | null;
   initialKycByPlanName: CatalogKycByPlanName | null;
-  bootstrapError: "db_unconfigured" | "db_error" | null;
+  bootstrapError: "db_unconfigured" | "db_error" | "connection_timeout" | null;
 };
 
 export default function CatalogPageClient({
@@ -130,7 +130,9 @@ export default function CatalogPageClient({
             <p className="mt-3 text-sm text-slate-600">
               {bootstrapError === "db_unconfigured"
                 ? "DATABASE_URL이 설정되지 않았거나 DB에 연결할 수 없습니다."
-                : "목록을 불러오지 못했습니다."}
+                : bootstrapError === "connection_timeout"
+                  ? "일시적으로 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
+                  : "목록을 불러오지 못했습니다."}
             </p>
             <Link href={bongsimPath()} className="mt-6 inline-block text-sm text-teal-800 underline">
               홈으로
