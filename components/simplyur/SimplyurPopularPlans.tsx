@@ -23,21 +23,23 @@ export function SimplyurPopularPlans() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/simplyur/products/by-country?locale=${locale}`)
-      .then(async (r) => {
+    const url = `/api/simplyur/products/by-country?codes=kr&locale=${locale}&cv=2`;
+    (async () => {
+      try {
+        let r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) {
+          await new Promise((res) => window.setTimeout(res, 450));
+          r = await fetch(url, { cache: "no-store" });
+        }
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<{ pack?: SimplyurKoreaPack }>;
-      })
-      .then((json) => {
-        if (cancelled) return;
-        setPlans(json.pack ? pickPreviewPlans(json.pack) : []);
-      })
-      .catch(() => {
+        const json = (await r.json()) as { pack?: SimplyurKoreaPack };
+        if (!cancelled) setPlans(json.pack ? pickPreviewPlans(json.pack) : []);
+      } catch {
         if (!cancelled) setPlans([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

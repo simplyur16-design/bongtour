@@ -10761,7 +10761,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]",
             "unstable_cache",
-            "CATALOG_REVALIDATE_SEC"
+            "CATALOG_REVALIDATE_SEC",
+            "simplyur-korea-products-v1",
+            "buildSimplyurKoreaPack"
           ]
         },
         {
@@ -10805,14 +10807,25 @@
           "file": "lib/simplyur/catalog/load-korea-catalog-cached.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-catalog-pool-resilience]",
-            "loadSimplyurKoreaCatalogOrThrow",
+            "loadSimplyurKoreaProductsOrThrow",
+            "healing pool and retrying once",
             "connection_timeout"
           ]
         },
         {
           "file": "app/api/simplyur/products/by-country/route.ts",
           "mustInclude": [
-            "connection_timeout"
+            "connection_timeout",
+            "force-dynamic",
+            "only_kr_supported_in_phase_1",
+            "Cache-Control\", \"no-store\""
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "loadSimplyurKoreaActiveProducts",
+            "buildSimplyurKoreaPack"
           ]
         }
       ],

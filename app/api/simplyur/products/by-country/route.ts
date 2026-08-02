@@ -1,7 +1,6 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import {
   isSimplyurLocale,
-  SIMPLYUR_COUNTRY_CODES,
   SIMPLYUR_MARKET_COUNTRY,
   type SimplyurLocale,
 } from "@/lib/simplyur/constants";
@@ -9,10 +8,13 @@ import {
   CATALOG_REVALIDATE_SEC,
   loadSimplyurKoreaCatalogCached,
 } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
+import { closePgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
 import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 
-/** Next.js segment config — must be a literal (not imported). Keep in sync with CATALOG_REVALIDATE_SEC. */
-export const revalidate = 120;
+/** 실패 Route Cache가 locale별로 굳지 않게 — DB는 unstable_cache로만 메모 */
+export const dynamic = "force-dynamic";
+
+// REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: by-country outer heal+retry — manifest
 
 /**
  * GET /api/simplyur/products/by-country?codes=kr&locale=en
@@ -23,13 +25,13 @@ export async function GET(req: Request) {
   const localeParam = searchParams.get("locale") ?? "en";
   const locale: SimplyurLocale = isSimplyurLocale(localeParam) ? localeParam : "en";
 
-  const requested = (searchParams.get("codes") || "")
+  const rawCodes = (searchParams.get("codes") || "")
     .split(",")
     .map((c) => c.trim().toLowerCase())
-    .filter((c) => (SIMPLYUR_COUNTRY_CODES as readonly string[]).includes(c));
+    .filter(Boolean);
 
-  const selectedCodes = requested.length > 0 ? requested : [...SIMPLYUR_COUNTRY_CODES];
-  if (selectedCodes.some((c) => c !== SIMPLYUR_MARKET_COUNTRY)) {
+  // 비-kr 요청을 조용히 kr로 폴백하지 않음 (이전: codes=jp → 필터 후 빈 배열 → kr 200)
+  if (rawCodes.some((c) => c !== SIMPLYUR_MARKET_COUNTRY)) {
     return jsonWithLeakGuard(
       { error: "only_kr_supported_in_phase_1" },
       "simplyur.products.by-country",
@@ -37,15 +39,24 @@ export async function GET(req: Request) {
     );
   }
 
-  const catalog = await loadSimplyurKoreaCatalogCached(locale);
+  let catalog = await loadSimplyurKoreaCatalogCached(locale);
+  if (!catalog.ok && catalog.reason !== "db_unconfigured") {
+    console.warn("[simplyur/by-country] catalog miss; healing pool and retrying once", catalog.reason);
+    await probePgPoolTlsOrFallback();
+    await closePgPool().catch(() => {});
+    catalog = await loadSimplyurKoreaCatalogCached(locale);
+  }
+
   if (!catalog.ok) {
     const status =
       catalog.reason === "db_unconfigured" || catalog.reason === "connection_timeout" ? 503 : 500;
-    return jsonWithLeakGuard(
+    const errRes = jsonWithLeakGuard(
       { error: catalog.reason, reason: catalog.reason },
       "simplyur.products.by-country",
       { status },
     );
+    errRes.headers.set("Cache-Control", "no-store");
+    return errRes;
   }
 
   const messages = await getSimplyurMessages(locale);

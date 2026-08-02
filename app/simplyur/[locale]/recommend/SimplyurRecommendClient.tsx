@@ -83,20 +83,26 @@ export function SimplyurRecommendClient({
   const [error, setError] = useState<string | null>(initialError);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    return fetch(`/api/simplyur/products/by-country?locale=${locale}`)
-      .then(async (r) => {
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({}));
-          throw new Error(typeof body.error === "string" ? body.error : `HTTP ${r.status}`);
-        }
-        return r.json() as Promise<ApiPayload>;
-      })
-      .then((json) => setData(json))
-      .catch(() => setError("load failed"))
-      .finally(() => setLoading(false));
+    const url = `/api/simplyur/products/by-country?codes=kr&locale=${locale}&cv=2`;
+    try {
+      let r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) {
+        await new Promise((res) => window.setTimeout(res, 450));
+        r = await fetch(url, { cache: "no-store" });
+      }
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${r.status}`);
+      }
+      setData((await r.json()) as ApiPayload);
+    } catch {
+      setError("load failed");
+    } finally {
+      setLoading(false);
+    }
   }, [locale]);
 
   useEffect(() => {

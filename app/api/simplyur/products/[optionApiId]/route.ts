@@ -3,8 +3,7 @@ import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants"
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 import { CATALOG_REVALIDATE_SEC } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
 
-/** Next.js segment config — must be a literal (not imported). Keep in sync with CATALOG_REVALIDATE_SEC. */
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ optionApiId: string }> };
 
@@ -22,8 +21,11 @@ export async function GET(req: Request, context: RouteContext) {
     if (loaded.reason === "not_found" || loaded.reason === "not_korea") {
       return jsonWithLeakGuard({ error: loaded.reason }, "simplyur.products.detail", { status: 404 });
     }
-    const status = loaded.reason === "db_unconfigured" ? 503 : 500;
-    return jsonWithLeakGuard({ error: loaded.reason }, "simplyur.products.detail", { status });
+    const status =
+      loaded.reason === "db_unconfigured" || loaded.reason === "connection_timeout" ? 503 : 500;
+    const err = jsonWithLeakGuard({ error: loaded.reason }, "simplyur.products.detail", { status });
+    err.headers.set("Cache-Control", "no-store");
+    return err;
   }
 
   const response = jsonWithLeakGuard({ locale, product: loaded.product }, "simplyur.products.detail");

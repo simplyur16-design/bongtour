@@ -37,6 +37,10 @@ export type SimplyurKoreaCatalogResult =
   | { ok: true; locale: SimplyurLocale; pack: SimplyurKoreaPack }
   | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
+export type SimplyurKoreaProductsResult =
+  | { ok: true; products: ProductOption[] }
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
+
 function minSimplyurPrice(products: ProductOption[]): number | null {
   let min: number | null = null;
   for (const p of products) {
@@ -59,7 +63,8 @@ function sortProducts(products: SimplyurPublicProduct[], source: ProductOption[]
   });
 }
 
-function packFromSingle(
+/** Locale/FX 매핑 — DB 캐시와 분리 (en 워밍이 vi/zh-TW cold miss를 살림) */
+export function buildSimplyurKoreaPack(
   products: ProductOption[],
   locale: SimplyurLocale,
   rates: SimplyurFxRates,
@@ -92,13 +97,13 @@ function packFromSingle(
   };
 }
 
-export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<SimplyurKoreaCatalogResult> {
+/** Korea SKU rows only — locale 무관 SSOT (unstable_cache 공유 키) */
+export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaProductsResult> {
   await probePgPoolTlsOrFallback();
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
   try {
-    const rates = await resolveSimplyurFxRates();
     const result = await withBongsimCatalogRetry(() =>
       withBongsimStatementTimeout((client) =>
         client.query<ProductOption>(
@@ -111,17 +116,26 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
         ),
       ),
     );
-    const koreaOnly = result.rows.filter(isKoreaSingleCountryProduct);
     return {
       ok: true,
-      locale,
-      pack: packFromSingle(koreaOnly, locale, rates),
+      products: result.rows.filter(isKoreaSingleCountryProduct),
     };
   } catch (e) {
-    console.error("[loadSimplyurKoreaCatalog]", e);
+    console.error("[loadSimplyurKoreaActiveProducts]", e);
     await resetBongsimPgPoolAfterConnectTimeout(e);
     return { ok: false, reason: classifyBongsimPgError(e) };
   }
+}
+
+export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<SimplyurKoreaCatalogResult> {
+  const rates = await resolveSimplyurFxRates();
+  const loaded = await loadSimplyurKoreaActiveProducts();
+  if (!loaded.ok) return loaded;
+  return {
+    ok: true,
+    locale,
+    pack: buildSimplyurKoreaPack(loaded.products, locale, rates),
+  };
 }
 
 export async function loadSimplyurKoreaProductByOptionId(
@@ -134,6 +148,7 @@ export async function loadSimplyurKoreaProductByOptionId(
       reason: "db_unconfigured" | "not_found" | "not_korea" | "db_error" | "connection_timeout";
     }
 > {
+  await probePgPoolTlsOrFallback();
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
@@ -142,14 +157,16 @@ export async function loadSimplyurKoreaProductByOptionId(
 
   try {
     const rates = await resolveSimplyurFxRates();
-    const result = await withBongsimStatementTimeout((client) =>
-      client.query<ProductOption>(
-        `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
+    const result = await withBongsimCatalogRetry(() =>
+      withBongsimStatementTimeout((client) =>
+        client.query<ProductOption>(
+          `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
               allowance_label, option_label, price_block, flags
        FROM bongsim_product_option
        WHERE option_api_id = $1 AND ${BONGSIM_CATALOG_ACTIVE_WHERE}
        LIMIT 1`,
-        [id],
+          [id],
+        ),
       ),
     );
     const row = result.rows[0];
@@ -158,7 +175,7 @@ export async function loadSimplyurKoreaProductByOptionId(
     return { ok: true, product: toSimplyurPublicProduct(row, locale, rates) };
   } catch (e) {
     console.error("[loadSimplyurKoreaProductByOptionId]", e);
-    resetBongsimPgPoolAfterConnectTimeout(e);
+    await resetBongsimPgPoolAfterConnectTimeout(e);
     return { ok: false, reason: classifyBongsimPgError(e) };
   }
 }
