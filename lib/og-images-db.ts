@@ -4,6 +4,7 @@
 
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
 import type { PageOgImage } from '@prisma/client'
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import {
@@ -37,6 +38,12 @@ async function loadOgImageUrl(pageKey: string): Promise<string | null> {
   return url || null
 }
 
+const cachedLoadOgImageUrl = (pageKey: string) =>
+  unstable_cache(async () => loadOgImageUrl(pageKey), ['page-og-image-url-v1', pageKey], {
+    revalidate: 300,
+    tags: ['page-og-image', `page-og-image-${pageKey}`],
+  })()
+
 /**
  * OG 이미지 URL (절대 또는 `/` 시작 상대).
  * `default` = 현재 KST 시즌 키. 관리자 업로드가 있으면 항상 우선.
@@ -53,12 +60,12 @@ export async function getOgImageForPage(pageKey: string): Promise<string> {
 
   try {
     if (isOgSeasonPageKey(resolvedKey)) {
-      const uploaded = await loadOgImageUrl(resolvedKey)
+      const uploaded = await cachedLoadOgImageUrl(resolvedKey)
       if (uploaded) return uploaded
       return staticOgPathForSeasonKey(resolvedKey)
     }
     if (VALID_SET.has(resolvedKey)) {
-      const uploaded = await loadOgImageUrl(resolvedKey)
+      const uploaded = await cachedLoadOgImageUrl(resolvedKey)
       if (uploaded) return uploaded
       return staticOgPreviewPathForPageKey(resolvedKey as OgPageKey)
     }

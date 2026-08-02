@@ -1,15 +1,6 @@
-import { headers } from "next/headers";
 import HomePageLoading from "@/components/route-loading/HomePageLoading";
-import SimplyurPageLoading from "@/components/route-loading/SimplyurPageLoading";
-import {
-  SIMPLYUR_SURFACE_HEADER,
-  SIMPLYUR_SURFACE_VALUE,
-} from "@/lib/surface/simplyur-surface";
 
-export default async function Loading() {
-  const hdrs = await headers();
-  if (hdrs.get(SIMPLYUR_SURFACE_HEADER) === SIMPLYUR_SURFACE_VALUE) {
-    return <SimplyurPageLoading />;
-  }
+/** simplyur는 `app/simplyur/loading.tsx` — 루트는 surface header 없이 홈 로딩만 (ISR 유지) */
+export default function Loading() {
   return <HomePageLoading />;
 }

@@ -1,19 +1,11 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { Noto_Sans_KR, Outfit } from 'next/font/google'
 import './globals.css'
 import SessionProvider from './components/providers/SessionProvider'
-import UtmCaptureProvider from '@/components/UtmCaptureProvider'
 import ChunkLoadRecovery from './components/ChunkLoadRecovery'
-import AntiCopyProtectionGate from './components/AntiCopyProtectionGate'
-import ConditionalSiteFooter from './components/ConditionalSiteFooter'
-import GoogleTagManager from './components/GoogleTagManager'
-import MobileStickyBar from './components/MobileStickyBar'
-import AdminQuickActionsMount from '@/components/admin/AdminQuickActionsMount'
-import BongtourPretendardStyles from './components/BongtourPretendardStyles'
+import BongtourRootShell from './components/BongtourRootShell'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
-import { SIMPLYUR_SURFACE_HEADER, SIMPLYUR_SURFACE_VALUE } from '@/lib/surface/simplyur-surface'
 
 const siteOrigin = getSiteOrigin()
 
@@ -80,45 +72,32 @@ const hubOutfit = Outfit({
   preload: false,
 })
 
-export default async function RootLayout({
+/**
+ * REGRESSION-FREEZE[layout-drop-root-auth]: no server auth() on every page — manifest
+ * REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur 경량 셸 — path 분기(headers 없음) — manifest
+ * REGRESSION-FREEZE[layout-no-headers-isr]: root layout headers() 제거로 ISR/CDN — manifest
+ */
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // REGRESSION-FREEZE[layout-drop-root-auth]: no server auth() on every page — manifest
-  const hdrs = await headers()
-  const isSimplyur = hdrs.get(SIMPLYUR_SURFACE_HEADER) === SIMPLYUR_SURFACE_VALUE
-
-  // REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur 경량 루트 셸 — manifest
-  const htmlClass = isSimplyur ? undefined : `${notoSansKr.variable} ${hubOutfit.variable}`
-  const bodyClass = isSimplyur
-    ? 'min-h-screen antialiased flex flex-col'
-    : 'min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0'
+  // simplyur first-paint: path로 lang/surface/body 보정 (headers() 없이 ISR 유지)
+  const simplyurBoot = `(function(){try{var p=location.pathname||'/';if(p==='/simplyur'||p.indexOf('/simplyur/')===0){var d=document.documentElement;d.lang='en';d.dataset.surface='simplyur';document.body.className='min-h-screen antialiased flex flex-col';}}catch(e){}})();`
 
   return (
     <html
-      lang={isSimplyur ? 'en' : 'ko'}
-      className={htmlClass}
-      data-surface={isSimplyur ? 'simplyur' : 'bongtour'}
+      lang="ko"
+      className={`${notoSansKr.variable} ${hubOutfit.variable}`}
+      data-surface="bongtour"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className={bodyClass}>
+      <body className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0">
+        <script dangerouslySetInnerHTML={{ __html: simplyurBoot }} />
         <ChunkLoadRecovery />
-        {!isSimplyur ? <AntiCopyProtectionGate /> : null}
-        {!isSimplyur ? <GoogleTagManager /> : null}
-        {!isSimplyur ? <BongtourPretendardStyles /> : null}
         <SessionProvider>
-          {isSimplyur ? (
-            <div className="flex-1 flex flex-col">{children}</div>
-          ) : (
-            <UtmCaptureProvider>
-              <div className="flex-1 flex flex-col">{children}</div>
-              <ConditionalSiteFooter />
-              <MobileStickyBar />
-              <AdminQuickActionsMount />
-            </UtmCaptureProvider>
-          )}
+          <BongtourRootShell>{children}</BongtourRootShell>
         </SessionProvider>
       </body>
     </html>

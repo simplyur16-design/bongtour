@@ -27,6 +27,7 @@ import {
   SIMPLYUR_SURFACE_HEADER,
   SIMPLYUR_SURFACE_VALUE,
 } from '@/lib/surface/simplyur-surface'
+import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 
 // REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur surface 헤더 — manifest
 
@@ -254,6 +255,22 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // REGRESSION-FREEZE[home-single-device-ssr]: mobile UA → /m rewrite (URL은 /) — manifest
+  // consent/admin 가드 이후에만 — pending 유저가 / 에서 우회되지 않게.
+  if (pathname === '/' || pathname === '/m') {
+    const mobile = isMobileUserAgent(req.headers.get('user-agent'))
+    if (pathname === '/' && mobile) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/m'
+      return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+    }
+    if (pathname === '/m' && !mobile) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+    }
+  }
+
   return forward()
 }
 
@@ -266,6 +283,8 @@ export async function middleware(req: NextRequest) {
  */
 export const config = {
   matcher: [
+    '/',
+    '/m',
     '/simplyur',
     '/simplyur/:path*',
     '/admin',

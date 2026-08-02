@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import Header from './components/Header'
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
 import { getCachedHomeHubTravelCardCover } from '@/lib/home-page-data-cached'
 import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid-core'
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
-import HomeMobileHub from './components/home/HomeMobileHub'
 import SeasonCurationHero from './components/home/SeasonCurationHero'
 import SeasonProductGrid from './components/home/SeasonProductGrid'
 import HomeTrustSection from './components/home/HomeTrustSection'
@@ -18,11 +16,8 @@ import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
-import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
-import MobileDestinationSearch from './components/home/MobileDestinationSearch'
-import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 
-/** 5분 ISR — 허브 카드 풀·시즌 큐레이션은 최대 5분 지연 후 반영. */
+/** 5분 ISR — request headers 미사용 → CDN/Full Route Cache 가능. 모바일은 middleware가 `/m`으로 rewrite. */
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -56,10 +51,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-/** 메인: 밝은 헤더 + 시즌 히어로(PC) / 모바일 허브 + 추천·B2G·후기 */
+/** 메인 PC 트리 — 모바일 UA는 middleware rewrite → `app/m/page.tsx` */
 export default async function Home() {
   // REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]: prod skips product_pool cover scan — manifest
-  // HomeHubCardDebugServerPanel 은 production 에서 null — 120건 schedule/itinerary 스캔이 콜드 TTFB만 키움.
+  // REGRESSION-FREEZE[home-single-device-ssr]: desktop tree only; mobile at /m — manifest
   let overseasCover: Awaited<ReturnType<typeof getCachedHomeHubTravelCardCover>> = null
   let overseasDetail: ReturnType<typeof getHomeHubCardHybridResolutionDetail> =
     getHomeHubCardHybridResolutionDetail('overseas', {
@@ -88,10 +83,6 @@ export default async function Home() {
     }
   }
 
-  // REGRESSION-FREEZE[home-single-device-ssr]: UA로 모바일/PC 트리 하나만 SSR — manifest
-  const ua = (await headers()).get('user-agent')
-  const isMobileHome = isMobileUserAgent(ua)
-
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
@@ -113,34 +104,17 @@ export default async function Home() {
             className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,transparent_50%)]"
             aria-hidden
           />
-          {isMobileHome ? (
-            <>
-              <div className={SITE_CONTENT_CLASS}>
-                <MobileDestinationSearch />
-              </div>
-              <HomeMobileHub />
-              <HomeTrustSection />
-              <CustomerReviewsSection />
-            </>
-          ) : (
-            <>
-              <SeasonCurationHero sectionId="season-curation-main" />
-              <SeasonProductGrid />
-              <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
-                <HomeHubCardDebugServerPanel overseasPick={overseasCover} overseasDetail={overseasDetail} />
-              </div>
-            </>
-          )}
+          <SeasonCurationHero sectionId="season-curation-main" />
+          <SeasonProductGrid />
+          <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
+            <HomeHubCardDebugServerPanel overseasPick={overseasCover} overseasDetail={overseasDetail} />
+          </div>
         </section>
-        {!isMobileHome ? (
-          <>
-            <PersonaCuratedDestinations />
-            <AirHotelProductGrid />
-            <ServiceInfoCards />
-            <HomeTrustSection />
-            <CustomerReviewsSection />
-          </>
-        ) : null}
+        <PersonaCuratedDestinations />
+        <AirHotelProductGrid />
+        <ServiceInfoCards />
+        <HomeTrustSection />
+        <CustomerReviewsSection />
       </main>
     </div>
   )

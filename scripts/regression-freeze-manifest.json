@@ -1874,20 +1874,76 @@
         "prebuild",
         "ci"
       ],
-      "summary": "메인 — UA로 모바일/PC RSC 트리 하나만 SSR (이중 DB 로드 금지)",
+      "summary": "메인 — PC=/ · 모바일=/m rewrite 단일 트리 ISR (headers UA 금지)",
       "checks": [
         {
           "file": "app/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[home-single-device-ssr]",
-            "isMobileUserAgent",
-            "isMobileHome",
-            "HomeMobileHub",
-            "SeasonCurationHero"
+            "SeasonCurationHero",
+            "revalidate = 300"
           ],
           "mustNotInclude": [
+            "await headers()",
+            "from 'next/headers'",
+            "HomeMobileHub",
+            "isMobileUserAgent",
             "className=\"block lg:hidden\"",
             "className=\"hidden lg:block\""
+          ]
+        },
+        {
+          "file": "app/m/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-single-device-ssr]",
+            "HomeMobileHub",
+            "revalidate = 300"
+          ],
+          "mustNotInclude": [
+            "await headers()",
+            "from 'next/headers'",
+            "SeasonCurationHero"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-single-device-ssr]",
+            "isMobileUserAgent",
+            "pathname = '/m'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layout-no-headers-isr",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "루트 layout — headers() 제거로 공개 페이지 ISR/CDN 가능",
+      "checks": [
+        {
+          "file": "app/layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[layout-no-headers-isr]",
+            "BongtourRootShell",
+            "simplyurBoot"
+          ],
+          "mustNotInclude": [
+            "await headers()",
+            "from 'next/headers'"
+          ]
+        },
+        {
+          "file": "app/loading.tsx",
+          "mustInclude": [
+            "HomePageLoading"
+          ],
+          "mustNotInclude": [
+            "await headers()",
+            "from \"next/headers\"",
+            "SIMPLYUR_SURFACE_HEADER"
           ]
         }
       ]
@@ -1935,7 +1991,8 @@
           ],
           "mustNotInclude": [
             "await auth()",
-            "from '@/auth'"
+            "from '@/auth'",
+            "await headers()"
           ]
         }
       ]
@@ -10973,15 +11030,20 @@
           "file": "app/layout.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-surface-layout-p2]",
-            "SIMPLYUR_SURFACE_HEADER",
-            "BongtourPretendardStyles"
+            "BongtourRootShell"
+          ]
+        },
+        {
+          "file": "app/components/BongtourRootShell.tsx",
+          "mustInclude": [
+            "isSimplyurSurfacePath",
+            "BongtourPretendardStyles",
+            "GoogleTagManager"
           ]
         },
         {
           "file": "app/loading.tsx",
           "mustInclude": [
-            "SIMPLYUR_SURFACE_HEADER",
-            "SimplyurPageLoading",
             "HomePageLoading"
           ]
         },
