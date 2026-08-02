@@ -29,6 +29,7 @@ export async function loadBongsimCountriesPayloadCached(): Promise<BongsimCountr
   } catch (e) {
     const msg = String(e instanceof Error ? e.message : e);
     if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
+    if (msg.includes("db_unconfigured")) return { ok: false, reason: "db_unconfigured" };
     return { ok: false, reason: "db_error" };
   }
 }

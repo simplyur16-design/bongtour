@@ -1,6 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
-import { getPgPool, classifyBongsimPgError, resetBongsimPgPoolAfterConnectTimeout } from "@/lib/bongsim/db/pool";
+import {
+  getPgPool,
+  classifyBongsimPgError,
+  isBongsimPgTlsHandshakeIssue,
+  probePgPoolTlsOrFallback,
+  resetBongsimPgPoolAfterConnectTimeout,
+} from "@/lib/bongsim/db/pool";
 import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
 
 export const revalidate = 120;
@@ -49,14 +55,15 @@ export async function GET(req: Request) {
     : [country];
   const allSelected = [...new Set(fromCodes)].sort();
 
+  await probePgPoolTlsOrFallback();
   const pool = getPgPool();
   if (!pool) {
-    return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.products.plans", { status: 500 });
+    return jsonWithLeakGuard({ error: "DB not configured" }, "bongsim.products.plans", { status: 503 });
   }
 
   const networkParam: "roaming" | "local" | null = networkRaw ? (networkRaw as "roaming" | "local") : null;
   const cacheKey = [
-    "bongsim-plans-v1",
+    "bongsim-plans-v2",
     country,
     String(days),
     allSelected.join(","),
@@ -88,12 +95,15 @@ export async function GET(req: Request) {
     return response;
   } catch (e) {
     console.error("[plans]", e);
+    if (isBongsimPgTlsHandshakeIssue(e)) {
+      await probePgPoolTlsOrFallback();
+    }
     resetBongsimPgPoolAfterConnectTimeout(e);
     const reason = classifyBongsimPgError(e);
     return jsonWithLeakGuard(
       { error: "query failed", reason },
       "bongsim.products.plans",
-      { status: 500 },
+      { status: reason === "connection_timeout" ? 503 : 500 },
     );
   }
 }

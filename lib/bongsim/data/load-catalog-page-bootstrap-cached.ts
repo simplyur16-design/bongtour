@@ -10,6 +10,7 @@ import {
 } from "@/lib/bongsim/data/list-catalog-products";
 
 // REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]: catalog bootstrap + paginated cache — manifest
+// REGRESSION-FREEZE[bongsim-catalog-list-perf]: catalog bootstrap 실패 결과 캐시 금지 — manifest
 
 export const CATALOG_LIST_REVALIDATE_SEC = 120;
 
@@ -18,28 +19,36 @@ export type CatalogPageBootstrap = {
   kycByPlanName: CatalogKycByPlanName;
 };
 
-export function loadCatalogPageBootstrapCached(): Promise<
-  { ok: true; data: CatalogPageBootstrap } | { ok: false; reason: "db_unconfigured" | "db_error" }
-> {
-  return unstable_cache(
-    async () => {
-      const [countsRes, kycRes] = await Promise.all([listCatalogBucketCounts(), listCatalogKycByPlanName()]);
-      if (!countsRes.ok) return { ok: false as const, reason: countsRes.reason };
-      if (!kycRes.ok) return { ok: false as const, reason: kycRes.reason };
-      return {
-        ok: true as const,
-        data: {
-          bucketCounts: countsRes.counts,
-          kycByPlanName: kycRes.kycByPlanName,
-        },
-      };
-    },
-    ["bongsim-catalog-page-bootstrap"],
-    { revalidate: CATALOG_LIST_REVALIDATE_SEC, tags: ["bongsim-catalog-list"] },
-  )();
+export type CatalogPageBootstrapResult =
+  | { ok: true; data: CatalogPageBootstrap }
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
+
+async function fetchCatalogBootstrapOrThrow(): Promise<CatalogPageBootstrap> {
+  const [countsRes, kycRes] = await Promise.all([listCatalogBucketCounts(), listCatalogKycByPlanName()]);
+  if (!countsRes.ok) throw new Error(`bongsim_catalog_bootstrap_${countsRes.reason}`);
+  if (!kycRes.ok) throw new Error(`bongsim_catalog_bootstrap_${kycRes.reason}`);
+  return {
+    bucketCounts: countsRes.counts,
+    kycByPlanName: kycRes.kycByPlanName,
+  };
 }
 
-export function listCatalogProductsPaginatedCached(
+export async function loadCatalogPageBootstrapCached(): Promise<CatalogPageBootstrapResult> {
+  try {
+    const data = await unstable_cache(fetchCatalogBootstrapOrThrow, ["bongsim-catalog-page-bootstrap-v2"], {
+      revalidate: CATALOG_LIST_REVALIDATE_SEC,
+      tags: ["bongsim-catalog-list"],
+    })();
+    return { ok: true, data };
+  } catch (e) {
+    const msg = String(e instanceof Error ? e.message : e);
+    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
+    if (msg.includes("db_unconfigured")) return { ok: false, reason: "db_unconfigured" };
+    return { ok: false, reason: "db_error" };
+  }
+}
+
+export async function listCatalogProductsPaginatedCached(
   params: ListCatalogProductsPaginatedParams,
 ): Promise<ListCatalogProductsPaginatedResult> {
   const key = JSON.stringify({
@@ -50,8 +59,23 @@ export function listCatalogProductsPaginatedCached(
     limit: params.limit ?? 24,
     offset: params.offset ?? 0,
   });
-  return unstable_cache(() => listCatalogProductsPaginated(params), ["bongsim-catalog-page", key], {
-    revalidate: CATALOG_LIST_REVALIDATE_SEC,
-    tags: ["bongsim-catalog-list"],
-  })();
+  try {
+    return await unstable_cache(
+      async () => {
+        const res = await listCatalogProductsPaginated(params);
+        if (!res.ok) throw new Error(`bongsim_catalog_page_${res.reason}`);
+        return res;
+      },
+      ["bongsim-catalog-page-v2", key],
+      {
+        revalidate: CATALOG_LIST_REVALIDATE_SEC,
+        tags: ["bongsim-catalog-list"],
+      },
+    )();
+  } catch (e) {
+    const msg = String(e instanceof Error ? e.message : e);
+    if (msg.includes("connection_timeout")) return { ok: false, reason: "connection_timeout" };
+    if (msg.includes("db_unconfigured")) return { ok: false, reason: "db_unconfigured" };
+    return { ok: false, reason: "db_error" };
+  }
 }

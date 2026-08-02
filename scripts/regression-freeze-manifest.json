@@ -1649,7 +1649,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
             "unstable_cache",
-            "bongsim-plans-v1"
+            "bongsim-plans-v2",
+            "probePgPoolTlsOrFallback"
           ]
         },
         {
@@ -1692,7 +1693,23 @@
             "__bongsimSslRejectUnauthorized",
             "isBongsimPgTlsHandshakeIssue",
             "SELF_SIGNED_CERT_IN_CHAIN",
-            "rebuildPoolWithRelaxedTls"
+            "rebuildPoolWithRelaxedTls",
+            "withBongsimPoolQuery",
+            "isSupabasePoolerConnectionString"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-recommend-bootstrap-cached.ts",
+          "mustInclude": [
+            "fetchBootstrapOrThrow",
+            "bongsim-recommend-bootstrap-v2"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-catalog-page-bootstrap-cached.ts",
+          "mustInclude": [
+            "fetchCatalogBootstrapOrThrow",
+            "bongsim-catalog-page-bootstrap-v2"
           ]
         }
       ],

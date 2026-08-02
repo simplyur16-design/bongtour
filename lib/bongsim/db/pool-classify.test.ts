@@ -48,3 +48,30 @@ describe("isBongsimPgTlsHandshakeIssue", () => {
     expect(isBongsimPgTlsHandshakeIssue(new Error("relation does not exist"))).toBe(false);
   });
 });
+
+describe("supabase pooler TLS default (globalThis)", () => {
+  it("defaults relaxed SSL when DATABASE_URL is supabase pooler", async () => {
+    const g = globalThis as { __bongsimSslRejectUnauthorized?: boolean; __bongsimPool?: unknown };
+    const prevFlag = g.__bongsimSslRejectUnauthorized;
+    const prevUrl = process.env.DATABASE_URL;
+    delete g.__bongsimSslRejectUnauthorized;
+    process.env.DATABASE_URL =
+      "postgresql://user:pass@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres";
+    try {
+      // re-import helpers via dynamic path — buildPoolConfig reads getSslRejectUnauthorized
+      const { getPgPool, closePgPool } = await import("@/lib/bongsim/db/pool");
+      await closePgPool().catch(() => {});
+      delete g.__bongsimPool;
+      delete g.__bongsimSslRejectUnauthorized;
+      // touching getPgPool triggers default decision when flag unset
+      getPgPool();
+      expect(g.__bongsimSslRejectUnauthorized).toBe(false);
+    } finally {
+      process.env.DATABASE_URL = prevUrl;
+      g.__bongsimSslRejectUnauthorized = prevFlag;
+      const { closePgPool } = await import("@/lib/bongsim/db/pool");
+      await closePgPool().catch(() => {});
+      delete g.__bongsimPool;
+    }
+  });
+});

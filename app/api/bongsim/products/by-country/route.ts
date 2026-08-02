@@ -32,17 +32,15 @@ export async function GET(req: Request) {
   const res = await loadProductsByCountryCached(selectedCodes);
 
   if (!res.ok) {
-    if (res.reason === "db_unconfigured") {
-      return jsonWithLeakGuard(
-        { error: "DB not configured", reason: res.reason },
-        "bongsim.products.by-country",
-        { status: 500 },
-      );
-    }
+    const status =
+      res.reason === "db_unconfigured" || res.reason === "connection_timeout" ? 503 : 500;
     return jsonWithLeakGuard(
-      { error: "query failed", reason: res.reason },
+      {
+        error: res.reason === "db_unconfigured" ? "DB not configured" : "query failed",
+        reason: res.reason,
+      },
       "bongsim.products.by-country",
-      { status: 500 },
+      { status },
     );
   }
 

@@ -28,8 +28,29 @@ function setCachedPool(p: Pool | undefined): void {
   }
 }
 
+function isSupabasePoolerConnectionString(urlStr: string): boolean {
+  try {
+    const host = new URL(urlStr).hostname.toLowerCase();
+    return host.includes("pooler.supabase.com") || host.includes("pooler.supabase.co");
+  } catch {
+    return /pooler\.supabase\.(com|co)/i.test(urlStr);
+  }
+}
+
+/**
+ * Supabase pooler는 체인에 self-signed가 있어 strict TLS가 항상 실패한다.
+ * 첫 접근 시 URL 보고 기본값을 정하고 globalThis에 고정한다.
+ */
 function getSslRejectUnauthorized(): boolean {
-  return (globalThis as GlobalWithBongsimPool).__bongsimSslRejectUnauthorized !== false;
+  const g = globalThis as GlobalWithBongsimPool;
+  if (typeof g.__bongsimSslRejectUnauthorized === "boolean") {
+    return g.__bongsimSslRejectUnauthorized;
+  }
+  const raw = process.env.DATABASE_URL?.trim() ?? "";
+  // pooler → 처음부터 relaxed (probe 전 cold request도 카탈로그 살림)
+  const strict = raw ? !isSupabasePoolerConnectionString(raw) : true;
+  g.__bongsimSslRejectUnauthorized = strict;
+  return strict;
 }
 
 function setSslRejectUnauthorized(next: boolean): void {
@@ -253,6 +274,26 @@ export async function withBongsimStatementTimeout<T>(
       );
       await rebuildPoolWithRelaxedTls();
       return await runWithStatementTimeout(fn, timeoutMs);
+    }
+    throw e;
+  }
+}
+
+/**
+ * plans 등 BEGIN/SET LOCAL을 피하는 plain `pool.query` 경로용.
+ * TLS handshake 실패 시 relaxed 풀로 1회 재시도.
+ */
+export async function withBongsimPoolQuery<T>(fn: (pool: Pool) => Promise<T>): Promise<T> {
+  const pool = getPgPool();
+  if (!pool) throw new Error("db_unconfigured");
+  try {
+    return await fn(pool);
+  } catch (e) {
+    if (getSslRejectUnauthorized() && isBongsimPgTlsHandshakeIssue(e)) {
+      console.warn("[bongsim/db/pool] TLS handshake failed in pool-query path; rebuilding relaxed pool");
+      const pool2 = await rebuildPoolWithRelaxedTls();
+      if (!pool2) throw e;
+      return await fn(pool2);
     }
     throw e;
   }

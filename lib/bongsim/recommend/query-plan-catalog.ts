@@ -3,6 +3,7 @@ import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-produ
 import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
+import { withBongsimPoolQuery } from "@/lib/bongsim/db/pool";
 import {
   getKycLabelDistribution,
   getEffectiveKycLabelState,
@@ -369,8 +370,11 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
 
   // Prefer plain pool.query — BEGIN/SET LOCAL under txn pooler + pool starvation → ~8s query failed.
   // Destination plan_name filter keeps the scan narrow without holding a checkout client.
-  const result = await params.pool.query(
-    `
+  // withBongsimPoolQuery: TLS handshake 실패 시 relaxed 풀로 1회 재시도 (params.pool은 호환용).
+  void params.pool;
+  const result = await withBongsimPoolQuery((pool) =>
+    pool.query(
+      `
       SELECT
         option_api_id,
         plan_name,
@@ -396,7 +400,8 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
         )
       ORDER BY plan_name, days_raw
       `,
-    [networkParam, planNameFilter],
+      [networkParam, planNameFilter],
+    ),
   );
 
   const ctx = { country, days, allSelected };

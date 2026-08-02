@@ -5,7 +5,12 @@ import {
   CATALOG_BUCKET_ORDER,
 } from "@/lib/bongsim/catalog/catalog-buckets";
 import { getKycLabelDistribution, type KycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import {
+  classifyBongsimPgError,
+  getPgPool,
+  resetBongsimPgPoolAfterConnectTimeout,
+  withBongsimPoolQuery,
+} from "@/lib/bongsim/db/pool";
 
 export type CatalogProductListRow = {
   option_api_id: string;
@@ -34,11 +39,11 @@ export type ListCatalogProductsPaginatedParams = ListCatalogProductsParams & {
 
 export type ListCatalogProductsResult =
   | { ok: true; rows: CatalogProductListRow[] }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 export type ListCatalogProductsPaginatedResult =
   | { ok: true; rows: CatalogProductListRow[]; total: number }
-  | { ok: false; reason: "db_unconfigured" | "db_error" };
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
 export type CatalogBucketCounts = Record<CatalogBucketKey, number>;
 
@@ -74,20 +79,25 @@ const LIST_SELECT = `SELECT
          price_block,
          flags`;
 
+function failReason(e: unknown): "db_error" | "connection_timeout" {
+  resetBongsimPgPoolAfterConnectTimeout(e);
+  return classifyBongsimPgError(e);
+}
+
 /**
  * Storefront catalog read. Sort: local first, then plan/option labels; stable for cards.
  */
 export async function listCatalogProducts(params: ListCatalogProductsParams): Promise<ListCatalogProductsResult> {
-  const pool = getPgPool();
-  if (!pool) return { ok: false, reason: "db_unconfigured" };
+  if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   const nf = params.network_family?.trim() || null;
   const pt = params.plan_type?.trim() || null;
   const qpat = searchPattern(params.q);
 
   try {
-    const r = await pool.query<CatalogProductListRow>(
-      `${LIST_SELECT}
+    const r = await withBongsimPoolQuery((pool) =>
+      pool.query<CatalogProductListRow>(
+        `${LIST_SELECT}
        FROM bongsim_product_option
        WHERE ${baseFilterSql()}
        ORDER BY
@@ -95,11 +105,12 @@ export async function listCatalogProducts(params: ListCatalogProductsParams): Pr
          plan_name ASC,
          option_label ASC,
          option_api_id ASC`,
-      [nf, pt, qpat],
+        [nf, pt, qpat],
+      ),
     );
     return { ok: true, rows: r.rows };
-  } catch {
-    return { ok: false, reason: "db_error" };
+  } catch (e) {
+    return { ok: false, reason: failReason(e) };
   }
 }
 
@@ -107,8 +118,7 @@ export async function listCatalogProducts(params: ListCatalogProductsParams): Pr
 export async function listCatalogProductsPaginated(
   params: ListCatalogProductsPaginatedParams,
 ): Promise<ListCatalogProductsPaginatedResult> {
-  const pool = getPgPool();
-  if (!pool) return { ok: false, reason: "db_unconfigured" };
+  if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   const nf = params.network_family?.trim() || null;
   const pt = params.plan_type?.trim() || null;
@@ -119,17 +129,18 @@ export async function listCatalogProductsPaginated(
   const bucketSql = bucket ? `AND (${catalogBucketWhereSql(bucket)})` : "";
 
   try {
-    const countR = await pool.query<{ c: string }>(
-      `SELECT COUNT(*)::text AS c
+    return await withBongsimPoolQuery(async (pool) => {
+      const countR = await pool.query<{ c: string }>(
+        `SELECT COUNT(*)::text AS c
        FROM bongsim_product_option
        WHERE ${baseFilterSql()}
          ${bucketSql}`,
-      [nf, pt, qpat],
-    );
-    const total = Number.parseInt(countR.rows[0]?.c ?? "0", 10);
+        [nf, pt, qpat],
+      );
+      const total = Number.parseInt(countR.rows[0]?.c ?? "0", 10);
 
-    const r = await pool.query<CatalogProductListRow>(
-      `${LIST_SELECT}
+      const r = await pool.query<CatalogProductListRow>(
+        `${LIST_SELECT}
        FROM bongsim_product_option
        WHERE ${baseFilterSql()}
          ${bucketSql}
@@ -138,70 +149,77 @@ export async function listCatalogProductsPaginated(
          option_label ASC,
          option_api_id ASC
        LIMIT $4 OFFSET $5`,
-      [nf, pt, qpat, limit, offset],
-    );
-    return { ok: true, rows: r.rows, total };
-  } catch {
-    return { ok: false, reason: "db_error" };
+        [nf, pt, qpat, limit, offset],
+      );
+      return { ok: true as const, rows: r.rows, total };
+    });
+  } catch (e) {
+    return { ok: false, reason: failReason(e) };
   }
 }
 
 /** Per-bucket totals for catalog section headers (lightweight). */
 export async function listCatalogBucketCounts(
   params: ListCatalogProductsParams = {},
-): Promise<{ ok: true; counts: CatalogBucketCounts } | { ok: false; reason: "db_unconfigured" | "db_error" }> {
-  const pool = getPgPool();
-  if (!pool) return { ok: false, reason: "db_unconfigured" };
+): Promise<
+  | { ok: true; counts: CatalogBucketCounts }
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" }
+> {
+  if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   const nf = params.network_family?.trim() || null;
   const pt = params.plan_type?.trim() || null;
   const qpat = searchPattern(params.q);
 
   try {
-    const counts = Object.fromEntries(CATALOG_BUCKET_ORDER.map((k) => [k, 0])) as CatalogBucketCounts;
-    await Promise.all(
-      CATALOG_BUCKET_ORDER.map(async (bucket) => {
-        const r = await pool.query<{ c: string }>(
-          `SELECT COUNT(*)::text AS c
+    return await withBongsimPoolQuery(async (pool) => {
+      const counts = Object.fromEntries(CATALOG_BUCKET_ORDER.map((k) => [k, 0])) as CatalogBucketCounts;
+      await Promise.all(
+        CATALOG_BUCKET_ORDER.map(async (bucket) => {
+          const r = await pool.query<{ c: string }>(
+            `SELECT COUNT(*)::text AS c
            FROM bongsim_product_option
            WHERE ${baseFilterSql()}
              AND (${catalogBucketWhereSql(bucket)})`,
-          [nf, pt, qpat],
-        );
-        counts[bucket] = Number.parseInt(r.rows[0]?.c ?? "0", 10);
-      }),
-    );
-    return { ok: true, counts };
-  } catch {
-    return { ok: false, reason: "db_error" };
+            [nf, pt, qpat],
+          );
+          counts[bucket] = Number.parseInt(r.rows[0]?.c ?? "0", 10);
+        }),
+      );
+      return { ok: true as const, counts };
+    });
+  } catch (e) {
+    return { ok: false, reason: failReason(e) };
   }
 }
 
 /** plan_name → KYC badge distribution (flags only — small payload). */
 export async function listCatalogKycByPlanName(): Promise<
-  { ok: true; kycByPlanName: CatalogKycByPlanName } | { ok: false; reason: "db_unconfigured" | "db_error" }
+  | { ok: true; kycByPlanName: CatalogKycByPlanName }
+  | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" }
 > {
-  const pool = getPgPool();
-  if (!pool) return { ok: false, reason: "db_unconfigured" };
+  if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   try {
-    const r = await pool.query<{ plan_name: string; flags: Record<string, unknown> }>(
-      `SELECT plan_name, flags
+    return await withBongsimPoolQuery(async (pool) => {
+      const r = await pool.query<{ plan_name: string; flags: Record<string, unknown> }>(
+        `SELECT plan_name, flags
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
-    );
-    const byPlan = new Map<string, { flags?: Record<string, unknown> | null }[]>();
-    for (const row of r.rows) {
-      const siblings = byPlan.get(row.plan_name) ?? [];
-      siblings.push({ flags: row.flags });
-      byPlan.set(row.plan_name, siblings);
-    }
-    const kycByPlanName: CatalogKycByPlanName = {};
-    for (const [planName, siblings] of byPlan) {
-      kycByPlanName[planName] = getKycLabelDistribution(siblings);
-    }
-    return { ok: true, kycByPlanName };
-  } catch {
-    return { ok: false, reason: "db_error" };
+      );
+      const byPlan = new Map<string, { flags?: Record<string, unknown> | null }[]>();
+      for (const row of r.rows) {
+        const siblings = byPlan.get(row.plan_name) ?? [];
+        siblings.push({ flags: row.flags });
+        byPlan.set(row.plan_name, siblings);
+      }
+      const kycByPlanName: CatalogKycByPlanName = {};
+      for (const [planName, siblings] of byPlan) {
+        kycByPlanName[planName] = getKycLabelDistribution(siblings);
+      }
+      return { ok: true as const, kycByPlanName };
+    });
+  } catch (e) {
+    return { ok: false, reason: failReason(e) };
   }
 }

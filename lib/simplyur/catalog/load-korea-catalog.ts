@@ -2,6 +2,7 @@ import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-produ
 import {
   classifyBongsimPgError,
   getPgPool,
+  probePgPoolTlsOrFallback,
   resetBongsimPgPoolAfterConnectTimeout,
   withBongsimStatementTimeout,
 } from "@/lib/bongsim/db/pool";
@@ -91,6 +92,7 @@ function packFromSingle(
 }
 
 export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<SimplyurKoreaCatalogResult> {
+  await probePgPoolTlsOrFallback();
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
