@@ -4,8 +4,6 @@ import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import {
   getPgPool,
   classifyBongsimPgError,
-  isBongsimPgTlsHandshakeIssue,
-  probePgPoolTlsOrFallback,
   resetBongsimPgPoolAfterConnectTimeout,
   withBongsimCatalogRetry,
 } from "@/lib/bongsim/db/pool";
@@ -35,7 +33,6 @@ async function loadPlansPayload(params: {
   allSelected: string[];
   network: "roaming" | "local" | null;
 }) {
-  await probePgPoolTlsOrFallback();
   const pool = getPgPool();
   if (!pool) throw new Error("db_unconfigured");
   return queryPlanCatalog({
@@ -117,9 +114,6 @@ export async function GET(req: Request) {
     return response;
   } catch (e) {
     console.error("[plans]", e);
-    if (isBongsimPgTlsHandshakeIssue(e)) {
-      await probePgPoolTlsOrFallback();
-    }
     await resetBongsimPgPoolAfterConnectTimeout(e);
     try {
       // cache 콜백 밖 1회 — 인스턴스 간 풀 잔상으로 cold miss만 죽는 경우 복구

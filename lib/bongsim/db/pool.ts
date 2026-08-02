@@ -316,6 +316,21 @@ export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): Promise<voi
   );
 }
 
+const POOL_CONNECT_BUDGET_MS = 6_000;
+
+async function connectWithBudget(pool: Pool): Promise<import("pg").PoolClient> {
+  // REGRESSION-FREEZE[bongsim-pg-tls-global]: pool.connect budget — manifest
+  return await Promise.race([
+    pool.connect(),
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("timeout exceeded when trying to connect")),
+        POOL_CONNECT_BUDGET_MS,
+      ),
+    ),
+  ]);
+}
+
 async function runWithStatementTimeout<T>(
   fn: (client: import("pg").PoolClient) => Promise<T>,
   timeoutMs: number,
@@ -324,7 +339,7 @@ async function runWithStatementTimeout<T>(
   if (!pool) {
     throw new Error("db_unconfigured");
   }
-  const client = await pool.connect();
+  const client = await connectWithBudget(pool);
   const ms = Math.max(1_000, Math.trunc(timeoutMs));
   try {
     await client.query("BEGIN");

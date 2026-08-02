@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { healBongsimPgPoolForCatalog, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
@@ -60,7 +60,6 @@ export async function loadSimplyurKoreaCatalogCached(
       "[loadSimplyurKoreaCatalogCached] cache miss; healing pool and retrying once",
       e instanceof Error ? e.message : e,
     );
-    await probePgPoolTlsOrFallback();
     await healBongsimPgPoolForCatalog("simplyur-catalog-cache");
     try {
       const products = await loadSimplyurKoreaProductsOrThrow();

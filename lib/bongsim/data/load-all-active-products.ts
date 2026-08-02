@@ -6,7 +6,6 @@ import {
   withBongsimCatalogRetry,
   classifyBongsimPgError,
   resetBongsimPgPoolAfterConnectTimeout,
-  probePgPoolTlsOrFallback,
 } from "@/lib/bongsim/db/pool";
 import { computeRecommendedPrice } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
@@ -54,7 +53,7 @@ function sortCatalogProducts(products: ProductOption[]): ProductOption[] {
 
 /** DB — 판매 중 eSIM 옵션 전체 (국가 필터 없음) */
 export async function fetchAllActiveProductOptionsFromDb(): Promise<AllActiveProductsResult> {
-  await probePgPoolTlsOrFallback();
+  // probe는 instrumentation 기동 시 1회 — 핫패스 SELECT 1은 /countries·by-country를 멈춤.
   if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   try {
@@ -81,7 +80,6 @@ export async function fetchAllActiveProductOptionsFromDb(): Promise<AllActivePro
 export async function fetchActiveProductOptionsForPlanNamesFromDb(
   planNames: string[],
 ): Promise<AllActiveProductsResult> {
-  await probePgPoolTlsOrFallback();
   if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
   if (planNames.length === 0) return { ok: true, products: [] };
 

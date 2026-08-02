@@ -1650,9 +1650,11 @@
             "REGRESSION-FREEZE[bongsim-catalog-list-perf]",
             "unstable_cache",
             "bongsim-plans-v3",
-            "probePgPoolTlsOrFallback",
             "withBongsimCatalogRetry",
             "force-dynamic"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
           ]
         },
         {
@@ -1712,7 +1714,9 @@
             "HEAL_WAIT_BUDGET_MS",
             "pool.end() must not block request path",
             "PROBE_QUERY_BUDGET_MS",
-            "probe SELECT 1 budget"
+            "probe SELECT 1 budget",
+            "POOL_CONNECT_BUDGET_MS",
+            "pool.connect budget"
           ]
         },
         {
