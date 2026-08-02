@@ -11224,6 +11224,38 @@
       ]
     },
     {
+      "id": "bongsim-recommend-countries-error-first",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "recommend 국가탭 — bootstrap/API 실패 시 로딩보다 에러·재시도 먼저",
+      "checks": [
+        {
+          "file": "components/bongsim/recommend/CountrySelectStep.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-countries-error-first]",
+            "countriesLoadError && activeTab === \"popular\""
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/MultiTripCountryPickerPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-countries-error-first]",
+            "countriesLoadError ?"
+          ]
+        },
+        {
+          "file": "app/travel/esim/recommend/RecommendPageClient.tsx",
+          "mustInclude": [
+            "setCountriesLoadError(null)"
+          ],
+          "mustNotInclude": [
+            "setStandaloneCountries(null)"
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-portone-checkout-p2",
       "tier": [
         "prebuild",

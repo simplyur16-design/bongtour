@@ -158,9 +158,8 @@ export function CountrySelectStep({
           </div>
         ) : null}
 
-        {standaloneCountries === null && activeTab === "popular" ? (
-          <p className="py-16 text-center text-[14px] text-[#767676]">국가 목록을 불러오는 중…</p>
-        ) : countriesLoadError && activeTab === "popular" ? (
+        {/* REGRESSION-FREEZE[bongsim-recommend-countries-error-first]: 에러를 null-loading보다 먼저 — manifest */}
+        {countriesLoadError && activeTab === "popular" ? (
           <div className="mx-4 mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center">
             <p className="text-[14px] text-red-800">{countriesLoadError}</p>
             <button
@@ -171,6 +170,8 @@ export function CountrySelectStep({
               다시 시도
             </button>
           </div>
+        ) : standaloneCountries === null && activeTab === "popular" ? (
+          <p className="py-16 text-center text-[14px] text-[#767676]">국가 목록을 불러오는 중…</p>
         ) : activeTab === "popular" ? (
           <div className="mt-4 pb-2">
             {popularGridItems.length === 0 ? (

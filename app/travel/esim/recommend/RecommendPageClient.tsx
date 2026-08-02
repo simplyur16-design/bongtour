@@ -124,8 +124,7 @@ export default function RecommendPageClient({
   }, [currentStep, selectedCodes, storedCompleted, funnelHydrated]);
 
   const loadCountries = useCallback(async () => {
-    setCountriesLoadError(null);
-    setStandaloneCountries(null);
+    // 목록을 null로 비우지 않음 — null이면 「불러오는 중…」에 갇히고, 실패 시에도 재시도 UI가 안 보임
     const ac = new AbortController();
     const timer = window.setTimeout(() => ac.abort(), 20_000);
     try {
@@ -138,6 +137,7 @@ export default function RecommendPageClient({
       const merged = mergeCountryOptionsFromApi(data.countries ?? []);
       setStandaloneCountries(merged);
       setCatalogMeta(data.catalogMeta ?? {});
+      setCountriesLoadError(null);
     } catch {
       setCountriesLoadError("국가 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
