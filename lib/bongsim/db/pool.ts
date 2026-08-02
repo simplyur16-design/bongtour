@@ -4,9 +4,16 @@ import {
   rewriteSupabaseSessionPoolerToTransaction,
 } from "@/lib/supabase-pooler-url";
 
-/** Next.js dev 핫리로드 시 모듈 스코프가 초기화되어도 풀 인스턴스를 유지 */
+/**
+ * Next.js instrumentation·라우트 번들이 모듈 인스턴스를 따로 가져도
+ * 풀·TLS 완화 플래그는 프로세스 전역으로 공유해야 한다.
+ * (모듈 `let` 이면 probe가 완화해도 라우트 쪽은 strict로 풀을 다시 만들어 카탈로그가 전부 db_error)
+ */
+// REGRESSION-FREEZE[bongsim-pg-tls-global]: pool+TLS flag on globalThis — manifest
 type GlobalWithBongsimPool = typeof globalThis & {
   __bongsimPool?: Pool;
+  /** false = 인증서 검증 완화 확정. undefined/true = strict 시도 */
+  __bongsimSslRejectUnauthorized?: boolean;
 };
 
 function getCachedPool(): Pool | undefined {
@@ -21,16 +28,25 @@ function setCachedPool(p: Pool | undefined): void {
   }
 }
 
-/** strict → 연결 실패 시 relaxed 로 한 번만 전환 (프로세스 전역 TLS 비활성화 금지) */
-let sslRejectUnauthorized: boolean = true;
+function getSslRejectUnauthorized(): boolean {
+  return (globalThis as GlobalWithBongsimPool).__bongsimSslRejectUnauthorized !== false;
+}
 
-function isLikelyTlsHandshakeIssue(err: unknown): boolean {
+function setSslRejectUnauthorized(next: boolean): void {
+  (globalThis as GlobalWithBongsimPool).__bongsimSslRejectUnauthorized = next;
+}
+
+export function isBongsimPgTlsHandshakeIssue(err: unknown): boolean {
   const msg = String(err instanceof Error ? err.message : err);
-  const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code?: string }).code) : "";
+  const code =
+    typeof err === "object" && err !== null && "code" in err
+      ? String((err as { code?: string }).code ?? "")
+      : "";
   return (
     /certificate|Certification|SSL|TLS|UNABLE_TO_VERIFY|SELF_SIGNED|wrong version number|ssl/i.test(msg) ||
     code === "DEPTH_ZERO_SELF_SIGNED_CERT" ||
-    code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+    code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+    code === "SELF_SIGNED_CERT_IN_CHAIN"
   );
 }
 
@@ -38,7 +54,7 @@ function isLikelyTlsHandshakeIssue(err: unknown): boolean {
  * Supabase 세션 풀은 pool_size 15. Prisma(`connection_limit`)와 이 풀이 한 인스턴스에서
  * 15를 다 쓰면 배포 중 구 인스턴스·`prisma migrate deploy` 가 EMAXCONNSESSION 으로 죽는다.
  */
-const BONGSIM_POOL_MAX_DEFAULT = 4
+const BONGSIM_POOL_MAX_DEFAULT = 4;
 
 export function resolveBongsimPoolMax(): number {
   const raw = process.env.BONGSIM_PG_POOL_MAX?.trim();
@@ -59,6 +75,7 @@ function buildPoolConfig(): PoolConfig | null {
   url = rewriteSupabaseSessionPoolerToTransaction(url);
 
   const useTxnPooler = isTransactionPoolerUrl(url);
+  const sslStrict = getSslRejectUnauthorized();
 
   const cfg: PoolConfig & { prepareThreshold?: number } = {
     connectionString: url,
@@ -66,7 +83,7 @@ function buildPoolConfig(): PoolConfig | null {
     idleTimeoutMillis: 10_000,
     // 연결 고갈 시 무한 대기 → eSIM by-country「상품 조회 중…」무한 로딩 방지
     connectionTimeoutMillis: 6_000,
-    ssl: sslRejectUnauthorized ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+    ssl: sslStrict ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
   };
 
   // PgBouncer transaction pooling: 풀러가 prepared statement를 유지하기 어려울 때 대비(자동 prepare 비활성화)
@@ -89,27 +106,30 @@ export function getPgPool(): Pool | null {
   return next;
 }
 
+async function rebuildPoolWithRelaxedTls(): Promise<Pool | null> {
+  setSslRejectUnauthorized(false);
+  await closePgPool().catch(() => {});
+  return getPgPool();
+}
+
 /**
  * Supabase 등: 우선 인증서 검증 ON. 체인 문제 등으로 실패 시 한 번만 검증 완화 후 재시도.
  * instrumentation 등 서버 기동 시 호출 권장.
  */
 export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStrict: boolean }> {
   const pool = getPgPool();
-  if (!pool) return { ok: true, sslStrict: sslRejectUnauthorized };
+  if (!pool) return { ok: true, sslStrict: getSslRejectUnauthorized() };
 
   try {
     await pool.query("SELECT 1");
-    return { ok: true, sslStrict: sslRejectUnauthorized };
+    return { ok: true, sslStrict: getSslRejectUnauthorized() };
   } catch (err) {
-    if (sslRejectUnauthorized && isLikelyTlsHandshakeIssue(err)) {
+    if (getSslRejectUnauthorized() && isBongsimPgTlsHandshakeIssue(err)) {
       console.warn(
         "[bongsim/db/pool] Strict TLS (rejectUnauthorized: true) failed; falling back to rejectUnauthorized: false.",
         err instanceof Error ? err.message : err,
       );
-      await pool.end().catch(() => {});
-      setCachedPool(undefined);
-      sslRejectUnauthorized = false;
-      const pool2 = getPgPool();
+      const pool2 = await rebuildPoolWithRelaxedTls();
       if (!pool2) return { ok: false, sslStrict: false };
       try {
         await pool2.query("SELECT 1");
@@ -120,7 +140,7 @@ export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStri
       }
     }
     console.error("[bongsim/db/pool] SELECT 1 failed:", err);
-    return { ok: false, sslStrict: sslRejectUnauthorized };
+    return { ok: false, sslStrict: getSslRejectUnauthorized() };
   }
 }
 
@@ -191,9 +211,9 @@ export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): void {
     });
 }
 
-export async function withBongsimStatementTimeout<T>(
+async function runWithStatementTimeout<T>(
   fn: (client: import("pg").PoolClient) => Promise<T>,
-  timeoutMs: number = BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS,
+  timeoutMs: number,
 ): Promise<T> {
   const pool = getPgPool();
   if (!pool) {
@@ -216,5 +236,24 @@ export async function withBongsimStatementTimeout<T>(
     throw e;
   } finally {
     client.release();
+  }
+}
+
+export async function withBongsimStatementTimeout<T>(
+  fn: (client: import("pg").PoolClient) => Promise<T>,
+  timeoutMs: number = BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS,
+): Promise<T> {
+  try {
+    return await runWithStatementTimeout(fn, timeoutMs);
+  } catch (e) {
+    // instrumentation 번들과 라우트 번들의 TLS 플래그가 갈라진 경우 여기서 복구
+    if (getSslRejectUnauthorized() && isBongsimPgTlsHandshakeIssue(e)) {
+      console.warn(
+        "[bongsim/db/pool] TLS handshake failed in statement-timeout path; rebuilding relaxed pool",
+      );
+      await rebuildPoolWithRelaxedTls();
+      return await runWithStatementTimeout(fn, timeoutMs);
+    }
+    throw e;
   }
 }

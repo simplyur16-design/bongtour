@@ -1678,6 +1678,29 @@
       ]
     },
     {
+      "id": "bongsim-pg-tls-global",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "bongsim pg 풀 TLS 완화 플래그를 globalThis로 공유 — 카탈로그 db_error 방지",
+      "checks": [
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-pg-tls-global]",
+            "__bongsimSslRejectUnauthorized",
+            "isBongsimPgTlsHandshakeIssue",
+            "SELF_SIGNED_CERT_IN_CHAIN",
+            "rebuildPoolWithRelaxedTls"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/db/pool-classify.test.ts"
+      ]
+    },
+    {
       "id": "mypage-hub-affiliation-esim-first",
       "tier": [
         "prebuild",
