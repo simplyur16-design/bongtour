@@ -13,7 +13,6 @@ import {
   withBongsimCatalogRetry,
   classifyBongsimPgError,
   resetBongsimPgPoolAfterConnectTimeout,
-  probePgPoolTlsOrFallback,
 } from "@/lib/bongsim/db/pool";
 import { RECOMMEND_CATALOG_META_REGION_CODES } from "@/lib/bongsim/recommend/recommend-destination-sections";
 import { RECOMMEND_POPULAR_CODES } from "@/lib/bongsim/home-data";
@@ -92,7 +91,7 @@ export async function loadBongsimCountriesPayload(): Promise<
   | { ok: true; countries: BongsimCountryListItem[]; catalogMeta: Record<string, CountryCatalogMeta> }
   | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" }
 > {
-  await probePgPoolTlsOrFallback();
+  // probe는 instrumentation 기동 시 1회. 핫패스 SELECT 1은 좀비 연결에서 /countries를 멈춤.
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 

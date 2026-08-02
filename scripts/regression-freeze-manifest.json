@@ -1710,7 +1710,17 @@
             "이중 close 금지",
             "void p.end()",
             "HEAL_WAIT_BUDGET_MS",
-            "pool.end() must not block request path"
+            "pool.end() must not block request path",
+            "PROBE_QUERY_BUDGET_MS",
+            "probe SELECT 1 budget"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/countries/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-countries-handler-budget]",
+            "COUNTRIES_HANDLER_BUDGET_MS",
+            "countries_handler_timeout"
           ]
         },
         {
@@ -1821,6 +1831,35 @@
           "mustNotInclude": [
             "CANDIDATE_LIMIT = 120",
             "itineraries: {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bongsim-countries-handler-budget",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM countries — 핸들러 하드 타임아웃으로 무응답 방지",
+      "checks": [
+        {
+          "file": "app/api/bongsim/countries/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-countries-handler-budget]",
+            "COUNTRIES_HANDLER_BUDGET_MS",
+            "countries_handler_timeout",
+            "maxDuration"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-recommend-bootstrap.ts",
+          "mustInclude": [
+            "loadBongsimCountriesPayload",
+            "withBongsimCatalogRetry"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
           ]
         }
       ]

@@ -134,6 +134,19 @@ async function rebuildPoolWithRelaxedTls(): Promise<Pool | null> {
   return getPgPool();
 }
 
+const PROBE_QUERY_BUDGET_MS = 4_000;
+
+async function probeSelect1(pool: Pool): Promise<void> {
+  // REGRESSION-FREEZE[bongsim-pg-tls-global]: probe SELECT 1 budget — manifest
+  // idle 좀비 연결에서 query가 connectionTimeout을 안 타고 영구 대기하는 경우 차단.
+  await Promise.race([
+    pool.query("SELECT 1"),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("probe SELECT 1 timeout")), PROBE_QUERY_BUDGET_MS),
+    ),
+  ]);
+}
+
 /**
  * Supabase 등: 우선 인증서 검증 ON. 체인 문제 등으로 실패 시 한 번만 검증 완화 후 재시도.
  * instrumentation 등 서버 기동 시 호출 권장.
@@ -143,7 +156,7 @@ export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStri
   if (!pool) return { ok: true, sslStrict: getSslRejectUnauthorized() };
 
   try {
-    await pool.query("SELECT 1");
+    await probeSelect1(pool);
     return { ok: true, sslStrict: getSslRejectUnauthorized() };
   } catch (err) {
     if (getSslRejectUnauthorized() && isBongsimPgTlsHandshakeIssue(err)) {
@@ -154,7 +167,7 @@ export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStri
       const pool2 = await rebuildPoolWithRelaxedTls();
       if (!pool2) return { ok: false, sslStrict: false };
       try {
-        await pool2.query("SELECT 1");
+        await probeSelect1(pool2);
         return { ok: true, sslStrict: false };
       } catch (e2) {
         console.error("[bongsim/db/pool] Fallback pool SELECT 1 failed:", e2);
