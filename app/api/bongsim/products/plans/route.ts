@@ -11,7 +11,8 @@ import {
 } from "@/lib/bongsim/db/pool";
 import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
 
-export const revalidate = 120;
+/** 과거 500 Route Cache가 국가별로 굳지 않게 — DB는 unstable_cache(v3)로만 메모 */
+export const dynamic = "force-dynamic";
 
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: plans 120s cache — manifest
 

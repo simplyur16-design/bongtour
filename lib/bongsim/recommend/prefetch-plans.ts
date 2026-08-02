@@ -3,6 +3,8 @@
 import { normalizeProductsByCountryKey } from "@/lib/bongsim/recommend/products-by-country-client-key";
 
 // REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]: plans hover/click prefetch — manifest
+/** URL·HTTP 캐시 버스팅 — 과거 500이 jp만 남고 타국이 비던 회귀 차단 */
+export const BONGSIM_PLANS_CLIENT_CACHE_VER = "3";
 
 const CACHE_TTL_MS = 120_000;
 export const PLANS_CLIENT_TIMEOUT_MS = 20_000;
@@ -16,7 +18,7 @@ function plansKey(country: string, days: number, codes: string[]): string {
   const c = country.trim().toLowerCase();
   const sorted = [...codes].map((x) => x.trim().toLowerCase()).filter(Boolean).sort();
   const codesPart = sorted.length ? sorted.join(",") : c;
-  return `${c}|${Math.max(1, Math.floor(days))}|${codesPart}`;
+  return `v${BONGSIM_PLANS_CLIENT_CACHE_VER}|${c}|${Math.max(1, Math.floor(days))}|${codesPart}`;
 }
 
 export function readPrefetchedPlans(country: string, days: number, codes: string[]): unknown | null {
@@ -30,8 +32,34 @@ export function readPrefetchedPlans(country: string, days: number, codes: string
   return hit.data;
 }
 
+export function clearPrefetchedPlans(): void {
+  memory.clear();
+  inflight.clear();
+}
+
 export function prefetchPlans(country: string, days: number, codes: string[]): void {
   void fetchPlans(country, days, codes).catch(() => {});
+}
+
+async function fetchPlansOnce(
+  country: string,
+  days: number,
+  codes: string[],
+  signal: AbortSignal,
+): Promise<unknown | null> {
+  const q = new URLSearchParams({
+    country: country.trim().toLowerCase(),
+    days: String(Math.max(1, Math.floor(days))),
+    cv: BONGSIM_PLANS_CLIENT_CACHE_VER,
+  });
+  const sorted = [...codes].map((x) => x.trim().toLowerCase()).filter(Boolean);
+  if (sorted.length > 0) q.set("codes", sorted.join(","));
+  const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`, {
+    signal,
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function fetchPlans(
@@ -52,17 +80,12 @@ export async function fetchPlans(
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), PLANS_CLIENT_TIMEOUT_MS);
     try {
-      const q = new URLSearchParams({
-        country: country.trim().toLowerCase(),
-        days: String(Math.max(1, Math.floor(days))),
-      });
-      const sorted = [...codes].map((x) => x.trim().toLowerCase()).filter(Boolean);
-      if (sorted.length > 0) q.set("codes", sorted.join(","));
-      const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`, {
-        signal: ctrl.signal,
-      });
-      if (!res.ok) return null;
-      const json = await res.json();
+      let json = await fetchPlansOnce(country, days, codes, ctrl.signal);
+      if (!json) {
+        await new Promise((r) => window.setTimeout(r, 450));
+        json = await fetchPlansOnce(country, days, codes, ctrl.signal);
+      }
+      if (!json) return null;
       memory.set(key, { at: Date.now(), data: json });
       return json;
     } catch {

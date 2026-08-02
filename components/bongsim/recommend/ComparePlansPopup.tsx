@@ -264,8 +264,11 @@ export function ComparePlansPopup({
           country: multiFetchCountryCode.toLowerCase(),
           days: String(days),
           codes: selectedCodes.map((c) => c.toLowerCase()).join(","),
+          cv: "3",
         });
-        const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`);
+        const res = await fetch(`/api/bongsim/products/plans?${q.toString()}`, {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("fetch failed");
         const json = (await res.json()) as { plans?: ProductOption[] };
         if (cancelled) return;

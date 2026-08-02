@@ -3,6 +3,7 @@
 import { normalizeProductsByCountryKey } from "@/lib/bongsim/recommend/products-by-country-client-key";
 
 // REGRESSION-FREEZE[bongsim-by-country-slim-prefetch]: 국가 타일 hover prefetch — manifest
+export const BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER = "3";
 
 export type ProductsByCountryClientPayload = {
   individual: Record<
@@ -30,7 +31,7 @@ export { normalizeProductsByCountryKey } from "@/lib/bongsim/recommend/products-
 export function readPrefetchedProductsByCountry(
   codes: string[],
 ): ProductsByCountryClientPayload | null {
-  const key = normalizeProductsByCountryKey(codes);
+  const key = `${BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER}|${normalizeProductsByCountryKey(codes)}`;
   const hit = memory.get(key);
   if (!hit) return null;
   if (Date.now() - hit.at > CACHE_TTL_MS) {
@@ -40,17 +41,39 @@ export function readPrefetchedProductsByCountry(
   return hit.data;
 }
 
+export function clearPrefetchedProductsByCountry(): void {
+  memory.clear();
+  inflight.clear();
+}
+
 /** hover/click — fire-and-forget */
 export function prefetchProductsByCountry(codes: string[]): void {
   if (codes.length === 0) return;
   void fetchProductsByCountry(codes).catch(() => {});
 }
 
+async function fetchByCountryOnce(
+  codesKey: string,
+  signal: AbortSignal,
+): Promise<ProductsByCountryClientPayload | null> {
+  const q = new URLSearchParams({
+    codes: codesKey,
+    cv: BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER,
+  });
+  const res = await fetch(`/api/bongsim/products/by-country?${q.toString()}`, {
+    signal,
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as ProductsByCountryClientPayload;
+}
+
 export async function fetchProductsByCountry(
   codes: string[],
 ): Promise<ProductsByCountryClientPayload | null> {
-  const key = normalizeProductsByCountryKey(codes);
-  if (!key) return null;
+  const codesKey = normalizeProductsByCountryKey(codes);
+  if (!codesKey) return null;
+  const key = `${BONGSIM_BY_COUNTRY_CLIENT_CACHE_VER}|${codesKey}`;
 
   const cached = readPrefetchedProductsByCountry(codes);
   if (cached) return cached;
@@ -62,11 +85,12 @@ export async function fetchProductsByCountry(
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), PRODUCTS_BY_COUNTRY_CLIENT_TIMEOUT_MS);
     try {
-      const res = await fetch(`/api/bongsim/products/by-country?codes=${encodeURIComponent(key)}`, {
-        signal: ctrl.signal,
-      });
-      if (!res.ok) return null;
-      const json = (await res.json()) as ProductsByCountryClientPayload;
+      let json = await fetchByCountryOnce(codesKey, ctrl.signal);
+      if (!json) {
+        await new Promise((r) => window.setTimeout(r, 450));
+        json = await fetchByCountryOnce(codesKey, ctrl.signal);
+      }
+      if (!json) return null;
       memory.set(key, { at: Date.now(), data: json });
       return json;
     } catch {

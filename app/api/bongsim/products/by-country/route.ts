@@ -5,8 +5,8 @@ import {
   PRODUCTS_BY_COUNTRY_REVALIDATE_SEC,
 } from "@/lib/bongsim/data/load-products-by-country-cached";
 
-/** Next.js segment config — must be a literal (not imported). Keep in sync with PRODUCTS_BY_COUNTRY_REVALIDATE_SEC. */
-export const revalidate = 120;
+/** 과거 실패 Route Cache가 국가별로 굳지 않게 — DB는 unstable_cache로만 메모 */
+export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 /**

@@ -2,7 +2,7 @@ import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { loadBongsimCountriesPayloadCached } from "@/lib/bongsim/data/load-bongsim-countries-cached";
 import type { BongsimCountryListItem } from "@/lib/bongsim/data/load-recommend-bootstrap";
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 export type { BongsimCountryListItem };
 
 /**
