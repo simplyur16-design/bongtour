@@ -3,7 +3,7 @@ import RecommendPageClient from "./RecommendPageClient";
 import { loadBongsimRecommendBootstrapCached } from "@/lib/bongsim/data/load-recommend-bootstrap-cached";
 
 // REGRESSION-FREEZE[bongsim-recommend-server-bootstrap-p3]: recommend 페이지 서버 프리로드 — manifest
-// REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]: fromCheckout 서버 전달·Suspense/useSearchParams 제거 — manifest
+// REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]: fromCheckout 서버 전달·클라 search-params 훅/Suspense 제거 — manifest
 
 export default async function RecommendPage({
   searchParams,

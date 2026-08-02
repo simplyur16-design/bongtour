@@ -11237,7 +11237,7 @@
             "fromCheckout={fromCheckout}"
           ],
           "mustNotInclude": [
-            "useSearchParams",
+            "from \"next/navigation\"",
             "<Suspense"
           ]
         },
@@ -11250,7 +11250,8 @@
             "fromCheckout && !funnelHydrated"
           ],
           "mustNotInclude": [
-            "useSearchParams"
+            "from \"next/navigation\"",
+            "from 'next/navigation'"
           ]
         }
       ]

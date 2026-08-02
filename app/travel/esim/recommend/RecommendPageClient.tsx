@@ -66,7 +66,7 @@ export default function RecommendPageClient({
   initialHeroMap = null,
   bootstrapError = null,
 }: {
-  /** 서버 page searchParams — useSearchParams/Suspense로 hard refresh 시 「불러오는 중…」에 갇히지 않게 */
+  /** 서버 page searchParams — 클라 search-params 훅으로 hard refresh 시 「불러오는 중…」에 갇히지 않게 */
   fromCheckout?: boolean;
   initialCountries?: ApiCountryRow[] | null;
   initialCatalogMeta?: Record<string, CountryCatalogMeta> | null;
