@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Header from "@/app/components/Header";
 import { CountrySelectStep } from "@/components/bongsim/recommend/CountrySelectStep";
 import { MultiTripCountrySelectStep } from "@/components/bongsim/recommend/MultiTripCountrySelectStep";
@@ -61,24 +60,26 @@ function mergeCountryOptionsFromApi(allowed: ApiCountryRow[]): CountryOption[] {
 }
 
 export default function RecommendPageClient({
+  fromCheckout = false,
   initialCountries = null,
   initialCatalogMeta = null,
   initialHeroMap = null,
   bootstrapError = null,
 }: {
+  /** 서버 page searchParams — useSearchParams/Suspense로 hard refresh 시 「불러오는 중…」에 갇히지 않게 */
+  fromCheckout?: boolean;
   initialCountries?: ApiCountryRow[] | null;
   initialCatalogMeta?: Record<string, CountryCatalogMeta> | null;
   initialHeroMap?: Record<string, string> | null;
   bootstrapError?: string | null;
 }) {
-  const searchParams = useSearchParams();
-  const fromCheckout = searchParams?.get("fromCheckout") === "1";
-
+  // REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]: fromCheckout prop·일반 진입은 즉시 페인트 — manifest
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [step1View, setStep1View] = useState<Step1View>("pick");
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [storedCompleted, setStoredCompleted] = useState<Record<string, StoredCountryPlanSelection>>({});
-  const [funnelHydrated, setFunnelHydrated] = useState(false);
+  /** 체크아웃 복귀만 스냅샷 복원 대기 — 일반 hard refresh는 SSR 국가 목록을 바로 그림 */
+  const [funnelHydrated, setFunnelHydrated] = useState(() => !fromCheckout);
   const [searchQuery, setSearchQuery] = useState("");
   const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(() => {
     if (!initialCountries?.length) return null;
@@ -273,7 +274,7 @@ export default function RecommendPageClient({
 
   const isSingleCountryRecommend = currentStep === 2 && selectedCodes.length === 1;
 
-  if (!funnelHydrated) {
+  if (fromCheckout && !funnelHydrated) {
     return (
       <div className="min-h-screen bg-bt-page">
         <Header />

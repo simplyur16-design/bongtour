@@ -11224,6 +11224,38 @@
       ]
     },
     {
+      "id": "bongsim-recommend-no-hard-refresh-spin",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "recommend hard refresh — useSearchParams Suspense·일반 funnelHydrated 게이트로 빙빙 금지",
+      "checks": [
+        {
+          "file": "app/travel/esim/recommend/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]",
+            "fromCheckout={fromCheckout}"
+          ],
+          "mustNotInclude": [
+            "useSearchParams",
+            "<Suspense"
+          ]
+        },
+        {
+          "file": "app/travel/esim/recommend/RecommendPageClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-no-hard-refresh-spin]",
+            "fromCheckout?: boolean",
+            "useState(() => !fromCheckout)",
+            "fromCheckout && !funnelHydrated"
+          ],
+          "mustNotInclude": [
+            "useSearchParams"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-recommend-countries-error-first",
       "tier": [
         "prebuild"
