@@ -277,6 +277,13 @@ export async function middleware(req: NextRequest) {
     return homeRes
   }
 
+  // REGRESSION-FREEZE[bongsim-recommend-isr-cdn]: anonymous CDN hint (matcher always-on) — manifest
+  if (pathname === '/travel/esim/recommend') {
+    const res = forward()
+    res.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300')
+    return res
+  }
+
   return forward()
 }
 
@@ -291,6 +298,7 @@ export const config = {
   matcher: [
     '/',
     '/m',
+    '/travel/esim/recommend',
     '/simplyur',
     '/simplyur/:path*',
     '/admin',

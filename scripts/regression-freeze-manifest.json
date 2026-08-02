@@ -11583,7 +11583,7 @@
       "tier": [
         "prebuild"
       ],
-      "summary": "recommend 페이지 force-static ISR — searchParams로 private no-store·cold spike 방지",
+      "summary": "recommend 페이지 force-static ISR + middleware CDN s-maxage=120",
       "checks": [
         {
           "file": "app/travel/esim/recommend/page.tsx",
@@ -11595,6 +11595,14 @@
           "mustNotInclude": [
             "searchParams",
             "await headers()"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-isr-cdn]",
+            "/travel/esim/recommend",
+            "s-maxage=120"
           ]
         }
       ]
