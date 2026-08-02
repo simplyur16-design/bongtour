@@ -4,8 +4,9 @@
   },
   "deploy": {
     "preDeployCommand": "/bin/sh scripts/predeploy-db.sh",
-    "startCommand": "npm start",
+    "startCommand": "exec node ./node_modules/next/dist/bin/next start -p ${PORT:-3000}",
     "healthcheckPath": "/api/health",
-    "restartPolicyType": "ON_FAILURE"
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }

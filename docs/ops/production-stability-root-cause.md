@@ -23,7 +23,7 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
               └─ Prisma pool (별도 limit 가능)
 ```
 
-동일 repo·동일 `npm start` 이미지. **코드 배포 1회** 후 Railway에서 worker 서비스만 추가하면 됨.
+동일 repo·동일 Next start 이미지(`railway.json` `exec node …/next start`). **코드 배포 1회** 후 Railway에서 worker 서비스만 추가하면 됨.
 
 **worker 미구축( web 단독 ):** `instrumentation.ts` 가 6공급사 **일 1회 sweep** 을 web-fallback 으로 등록한다 (`DISABLE_WEB_SUPPLIER_SWEEP_CRON=1` 로 끔). 3h calendar batch는 기본 OFF.
 
@@ -49,6 +49,31 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 | **all** | 개발용 — production에서는 경고 로그 |
 
 `RAILWAY_SERVICE_NAME`에 `worker` 또는 `cron` 포함 시 worker로 추론.
+
+---
+
+## Railway “Deploy Crashed” 메일 폭주 (운영)
+
+<!-- REGRESSION-FREEZE[railway-start-exec-next]: Deploy Crashed false-positive + Notification Rules — manifest -->
+
+**증상:** `bongtour` + `bongtour-worker` 가 **같은 시각**에 메일로 오고, 하루 수십~백 통. 사이트는 정상인 경우가 많음.
+
+**원인 (우선순위):**
+
+1. **재배포 시 구 컨테이너 종료를 Crash로 집계** — `startCommand`가 `npm start`이면 npm이 PID 1이라 SIGTERM 후 **non-zero exit** → Railway가 “Deploy Crashed” 메일. web·worker가 **같은 repo**라 push 1회 = 메일 2통.
+2. **main 푸시가 잦음** — 배포 N회 × 2서비스 ≈ 메일 수. (오늘처럼 연속 핫픽스 시 70~80통 가능)
+3. (드묾) worker에 `/api/health` 헬스체크가 실패해 진짜 재시작 루프 — Railway 대시보드 Deployments에서 **Failed/Crashed가 Active 직후 구 배포에만** 찍히면 1번, **새 배포가 반복 Crashed**면 3번.
+
+**조치:**
+
+| 조치 | 어디 |
+|------|------|
+| `exec node …/next start` (npm 래퍼 제거) | repo `railway.json` — REGRESSION-FREEZE[`railway-start-exec-next`] |
+| Crash 메일 끄기/완화 | [Notification Rules](https://railway.com/account/notifications) |
+| worker 헬스체크 | worker 서비스 Settings → Healthcheck **비우기 권장**(HTTP 공개 불필요). web만 `/api/health` |
+| 배포 빈도 | 핫픽스 묶어서 push |
+
+`RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30`~(60) 을 서비스 Variables에 두면 교체 시 graceful shutdown 여유가 생긴다.
 
 ---
 
@@ -140,5 +165,5 @@ BONGTOUR_INSTRUMENTATION_ROLE=all
 
 - `instrumentation.ts`
 - `lib/instrumentation-process-role.ts`
-- `railway.json` — web healthcheck `/api/health`
+- `railway.json` — `exec node …/next start` + web healthcheck `/api/health`
 - `lib/detail-payload-postdeploy.ts` — web 배포 시 postdeploy skip

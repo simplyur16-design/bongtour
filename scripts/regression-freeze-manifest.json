@@ -2049,6 +2049,34 @@
       ]
     },
     {
+      "id": "railway-start-exec-next",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "Railway start — npm start 금지·exec node next (Deploy Crashed 가짜 메일 방지)",
+      "checks": [
+        {
+          "file": "railway.json",
+          "mustInclude": [
+            "exec node ./node_modules/next/dist/bin/next start",
+            "healthcheckPath",
+            "/api/health"
+          ],
+          "mustNotInclude": [
+            "\"startCommand\": \"npm start\""
+          ]
+        },
+        {
+          "file": "docs/ops/production-stability-root-cause.md",
+          "mustInclude": [
+            "REGRESSION-FREEZE[railway-start-exec-next]",
+            "Deploy Crashed",
+            "Notification Rules"
+          ]
+        }
+      ]
+    },
+    {
       "id": "layout-no-headers-isr",
       "tier": [
         "prebuild",
