@@ -10926,6 +10926,9 @@
             "withBongsimCatalogRetry",
             "resetBongsimPgPoolAfterConnectTimeout",
             "classifyBongsimPgError"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
           ]
         },
         {

@@ -2,7 +2,6 @@ import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-produ
 import {
   classifyBongsimPgError,
   getPgPool,
-  probePgPoolTlsOrFallback,
   resetBongsimPgPoolAfterConnectTimeout,
   withBongsimCatalogRetry,
   withBongsimStatementTimeout,
@@ -99,7 +98,7 @@ export function buildSimplyurKoreaPack(
 
 /** Korea SKU rows only — locale 무관 SSOT (unstable_cache 공유 키) */
 export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaProductsResult> {
-  await probePgPoolTlsOrFallback();
+  // probe는 instrumentation 기동 시 1회 — 핫패스 SELECT 1 금지.
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
@@ -148,7 +147,6 @@ export async function loadSimplyurKoreaProductByOptionId(
       reason: "db_unconfigured" | "not_found" | "not_korea" | "db_error" | "connection_timeout";
     }
 > {
-  await probePgPoolTlsOrFallback();
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
