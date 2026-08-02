@@ -7,20 +7,22 @@ import type {
 import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { mergeOrderReadKeyIntoReturnUrls } from "@/lib/bongsim/payments/merge-order-read-key-into-return-urls";
+import { buildPaymentProviderCreateInput } from "@/lib/bongsim/payments/build-payment-provider-create-input";
+import { assertCheckoutProviderAllowed } from "@/lib/bongsim/payments/checkout-provider-channel-gate";
 import type { BongsimPaymentProviderCreateResult } from "@/lib/bongsim/payments/provider-types";
 import { getPaymentProviderAdapter } from "@/lib/bongsim/payments/payment-provider-registry";
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
-import { isSimplyurCheckoutChannel } from "@/lib/simplyur/checkout/channel";
 import { resolveEximbayEnv } from "@/lib/simplyur/payments/eximbay-env";
 import {
   resolvePortoneCoreEnv,
   resolvePortoneMethodChannel,
-  resolveSimplyurPortoneWebhookUrl,
 } from "@/lib/simplyur/payments/portone-env";
 import { parseSimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-payments";
 import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
+
+// REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: session channel×PG + race opts — manifest
 
 export type CreatePaymentSessionResult =
   | { ok: true; body: BongsimPaymentSessionResponseV1 }
@@ -62,14 +64,6 @@ type AttemptRow = {
   created_at: Date;
   updated_at: Date;
 };
-
-function simplyurPortoneCreateOpts(req: BongsimPaymentSessionRequestV1) {
-  if (!req.simplyur_portone_method) return undefined;
-  return {
-    method: req.simplyur_portone_method,
-    locale: req.simplyur_locale,
-  };
-}
 
 const REUSABLE: Set<PaymentAttemptStatus> = new Set(["created", "redirected", "authorized"]);
 
@@ -279,29 +273,13 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
       await client.query("ROLLBACK");
       return { ok: false, reason: "order_not_payable", details: { status: order.status } };
     }
-    if (
-      (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID || effProvider === SIMPLYUR_EXIMBAY_PROVIDER_ID) &&
-      !isSimplyurCheckoutChannel(order.checkout_channel)
-    ) {
+    const channelGate = assertCheckoutProviderAllowed(effProvider, order.checkout_channel);
+    if (!channelGate.ok) {
       await client.query("ROLLBACK");
       return {
         ok: false,
         reason: "validation",
-        details: {
-          provider:
-            effProvider === SIMPLYUR_EXIMBAY_PROVIDER_ID
-              ? "eximbay_simplyur_orders_only"
-              : "portone_simplyur_orders_only",
-        },
-      };
-    }
-    // Simplyur foreigners eSIM: Welcomepay (Bongtour) forbidden. PG prep target is Eximbay (not Welcome).
-    if (effProvider === "welcomepay" && isSimplyurCheckoutChannel(order.checkout_channel)) {
-      await client.query("ROLLBACK");
-      return {
-        ok: false,
-        reason: "validation",
-        details: { provider: "welcomepay_not_for_simplyur" },
+        details: { provider: channelGate.providerDetail },
       };
     }
     if (await hasCapturedAttempt(client, order.order_id)) {
@@ -330,19 +308,18 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
           parseStoredReturnUrls(ex.return_urls) ?? req.return_urls,
           readKeyForUrls,
         );
-        const provReuse = await adapterReuse.createSession({
-          provider: ex.provider,
-          payment_attempt_id: ex.payment_attempt_id,
-          order_id: order.order_id,
-          order_number: order.order_number,
-          buyer_email: order.buyer_email,
-          amount_krw: toInt(order.grand_total_krw),
-          currency: "KRW",
-          return_urls: returnUrlsReuse,
-          simplyur_portone: simplyurPortoneCreateOpts(req),
-          simplyur_locale: req.simplyur_locale,
-          eximbay_ostype: req.eximbay_ostype,
-        });
+        const provReuse = await adapterReuse.createSession(
+          buildPaymentProviderCreateInput({
+            provider: ex.provider,
+            payment_attempt_id: ex.payment_attempt_id,
+            order_id: order.order_id,
+            order_number: order.order_number,
+            buyer_email: order.buyer_email,
+            amount_krw: order.grand_total_krw,
+            return_urls: returnUrlsReuse,
+            req,
+          }),
+        );
         await client.query("COMMIT");
         return { ok: true, body: attemptToResponse(order, ex, provReuse.client, true) };
       }
@@ -375,19 +352,18 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
 
     let prov: BongsimPaymentProviderCreateResult;
     try {
-      prov = await adapter.createSession({
-        provider: adapter.id,
-        payment_attempt_id,
-        order_id: order.order_id,
-        order_number: order.order_number,
-        buyer_email: order.buyer_email,
-        amount_krw: amount,
-        currency: "KRW",
-        return_urls: req.return_urls,
-        simplyur_portone: simplyurPortoneCreateOpts(req),
-        simplyur_locale: req.simplyur_locale,
-        eximbay_ostype: req.eximbay_ostype,
-      });
+      prov = await adapter.createSession(
+        buildPaymentProviderCreateInput({
+          provider: adapter.id,
+          payment_attempt_id,
+          order_id: order.order_id,
+          order_number: order.order_number,
+          buyer_email: order.buyer_email,
+          amount_krw: amount,
+          return_urls: req.return_urls,
+          req,
+        }),
+      );
     } catch (sessionErr) {
       await client.query("ROLLBACK");
       const msg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
@@ -463,16 +439,19 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
           );
           let provRace: BongsimPaymentProviderCreateResult;
           try {
-            provRace = await adapterRace.createSession({
-              provider: row.provider,
-              payment_attempt_id: row.payment_attempt_id,
-              order_id: order.order_id,
-              order_number: order.order_number,
-              buyer_email: order.buyer_email,
-              amount_krw: toInt(order.grand_total_krw),
-              currency: "KRW",
-              return_urls: returnUrlsRace,
-            });
+            // REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: race passes simplyur_locale/eximbay_ostype
+            provRace = await adapterRace.createSession(
+              buildPaymentProviderCreateInput({
+                provider: row.provider,
+                payment_attempt_id: row.payment_attempt_id,
+                order_id: order.order_id,
+                order_number: order.order_number,
+                buyer_email: order.buyer_email,
+                amount_krw: order.grand_total_krw,
+                return_urls: returnUrlsRace,
+                req,
+              }),
+            );
           } catch (raceSessionErr) {
             const msg = raceSessionErr instanceof Error ? raceSessionErr.message : String(raceSessionErr);
             console.error("[bongsim] createPaymentSession: race createSession failed", raceSessionErr);

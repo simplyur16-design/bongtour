@@ -1,5 +1,7 @@
 import { bongsimPath } from "@/lib/bongsim/constants";
 
+// REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: WelcomePay success → bongsimPath only — manifest
+
 export function buildCheckoutReturnSuccessPath(params: {
   orderId: string;
   orderNumber?: string | null;

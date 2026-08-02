@@ -17,6 +17,7 @@ import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: Eximbay live request_pay — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: unlock UI after cancel — manifest
+// REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: Simplyur Eximbay only — manifest
 
 type FirstPurchasePreview = {
   eligible: true;

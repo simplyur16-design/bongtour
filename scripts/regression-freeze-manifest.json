@@ -1041,6 +1041,82 @@
       ]
     },
     {
+      "id": "bongsim-simplyur-payment-channel-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "봉투어 WelcomePay vs 심플리유어 Eximbay — 채널×PG 게이트·23505 race simplyur opts·리다이렉트 경로 분리",
+      "checks": [
+        {
+          "file": "lib/bongsim/payments/checkout-provider-channel-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "assertCheckoutProviderAllowed",
+            "welcomepay_not_for_simplyur",
+            "eximbay_simplyur_orders_only",
+            "portone_simplyur_orders_only"
+          ]
+        },
+        {
+          "file": "lib/bongsim/payments/build-payment-provider-create-input.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "buildPaymentProviderCreateInput",
+            "simplyur_locale",
+            "eximbay_ostype",
+            "simplyur_portone"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/create-payment-session.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "assertCheckoutProviderAllowed",
+            "buildPaymentProviderCreateInput",
+            "race passes simplyur_locale/eximbay_ostype"
+          ]
+        },
+        {
+          "file": "components/bongsim/checkout-store/CheckoutStoreClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "provider: \"welcomepay\""
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "SIMPLYUR_EXIMBAY_PROVIDER_ID"
+          ]
+        },
+        {
+          "file": "lib/bongsim/checkout/build-checkout-return-success-url.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "bongsimPath"
+          ],
+          "mustNotInclude": [
+            "simplyurPath"
+          ]
+        },
+        {
+          "file": "lib/bongsim/checkout/payment-result-redirect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]",
+            "bongsimPath"
+          ],
+          "mustNotInclude": [
+            "simplyurPath"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/payments/checkout-provider-channel-gate.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-admin-payments-pagination",
       "tier": [
         "prebuild",
@@ -11603,8 +11679,15 @@
         {
           "file": "lib/bongsim/data/create-payment-session.ts",
           "mustInclude": [
-            "portone_simplyur_orders_only",
+            "assertCheckoutProviderAllowed",
             "SIMPLYUR_PORTONE_PROVIDER_ID"
+          ]
+        },
+        {
+          "file": "lib/bongsim/payments/checkout-provider-channel-gate.ts",
+          "mustInclude": [
+            "portone_simplyur_orders_only",
+            "welcomepay_not_for_simplyur"
           ]
         },
         {
@@ -12076,6 +12159,16 @@
       "summary": "관리자 결제·발급 조회 failure payload",
       "files": [
         "lib/bongsim/db/admin-query.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-simplyur-payment-channel-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "봉투어/심플리유어 결제 채널×PG 게이트 vitest",
+      "files": [
+        "lib/bongsim/payments/checkout-provider-channel-gate.test.ts"
       ]
     },
     {

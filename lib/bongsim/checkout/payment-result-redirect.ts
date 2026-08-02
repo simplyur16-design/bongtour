@@ -1,5 +1,7 @@
 import { bongsimPath } from "@/lib/bongsim/constants";
 
+// REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: WelcomePay result → bongsimPath only — manifest
+
 /**
  * 결제 결과 전용 페이지(`/checkout/payment/result`)로 리다이렉트할 절대 URL.
  * `URLSearchParams`로 쿼리를 만들어 한글 `message` 등이 UTF-8로 올바르게 인코딩된다.

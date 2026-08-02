@@ -749,6 +749,7 @@ export function CheckoutStoreClient({
             schema: "bongsim.payment_session.request.v1",
             order_id: orderId,
             idempotency_key: paymentKey,
+            // REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: domestic WelcomePay only — manifest
             provider: "welcomepay",
             return_urls: { success_url: successUrl, fail_url: failUrl, cancel_url: cancelUrl },
           }),
