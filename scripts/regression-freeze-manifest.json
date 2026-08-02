@@ -1386,6 +1386,42 @@
       ]
     },
     {
+      "id": "bongsim-esim-android-quick-install",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 원클릭 — iPhone·Android(갤럭시) URL 동시 제공 (기기 미구분 발송)",
+      "checks": [
+        {
+          "file": "lib/bongsim/esim-install-presentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-android-quick-install]",
+            "buildAndroidQuickInstallUrl",
+            "esimsetup.android.com",
+            "android_quick_install_url"
+          ]
+        },
+        {
+          "file": "components/bongsim/order-complete/EsimInstallSection.tsx",
+          "mustInclude": [
+            "android_quick_install_url",
+            "Galaxy·Android에서 바로 설치"
+          ]
+        },
+        {
+          "file": "lib/bongsim/email/travel-esim-order-qr-mail.ts",
+          "mustInclude": [
+            "buildAndroidQuickInstallUrl",
+            "Galaxy·Android에서 바로 설치"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-presentation.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-discount-report-complimentary",
       "tier": [
         "prebuild",

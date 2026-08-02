@@ -2,7 +2,10 @@ import nodemailer from "nodemailer";
 
 import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
 import { ESIM_VERIFICATION_GUIDE_HOURS } from "@/components/bongsim/esim/EsimVerificationGuideContent";
-import { buildAppleQuickInstallUrl } from "@/lib/bongsim/esim-install-presentation";
+import {
+  buildAndroidQuickInstallUrl,
+  buildAppleQuickInstallUrl,
+} from "@/lib/bongsim/esim-install-presentation";
 import {
   CMLINK_TRAVELER_VERIFICATION_URL,
   TRAVELER_VERIFICATION_ICCID_PREFIX,
@@ -110,6 +113,7 @@ export function buildTravelEsimOrderQrMailContent(
   const lpa = input.downloadLink.trim();
   const orderPage = input.orderPageUrl.trim();
   const appleUrl = lpa ? buildAppleQuickInstallUrl(lpa) : null;
+  const androidUrl = lpa ? buildAndroidQuickInstallUrl(lpa) : null;
   const smDp = input.smDpPlusAddress?.trim() || "";
   const activationCode = input.activationCode?.trim() || "";
   const verificationIccid = input.travelerVerificationIccid?.trim() || "";
@@ -124,13 +128,14 @@ export function buildTravelEsimOrderQrMailContent(
     "",
     `주문번호: ${orderNumber}`,
     "",
-    "아래 주문 페이지에서 QR 코드를 스캔해 주세요.",
+    "아래 주문 페이지에서 QR 코드를 스캔해 주세요. (iPhone·Galaxy 공통)",
     orderPage,
     "",
     qr ? `QR 이미지(백업 URL): ${qr}` : "",
     smDp ? `SM-DP+ 주소: ${smDp}` : "",
     activationCode ? `활성화 코드: ${activationCode}` : "",
     appleUrl ? `iPhone 바로 설치: ${appleUrl}` : "",
+    androidUrl ? `Galaxy·Android 바로 설치: ${androidUrl}` : "",
     verificationBlock.text ? ["", verificationBlock.text].join("\n") : "",
     "",
     "── 설치·사용 문의 ──",
@@ -157,9 +162,21 @@ export function buildTravelEsimOrderQrMailContent(
   const qrImgSrc = options?.qrImgSrc?.trim() ?? "";
   const qrImgHtml = qr && qrImgSrc ? buildQrImgHtml(safeQr, qrImgSrc) : "";
 
-  const appleBtn = appleUrl
-    ? `<p style="margin:16px 0 0;text-align:center;"><a href="${escapeHtml(appleUrl)}" style="display:inline-block;padding:12px 20px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">iPhone에서 바로 설치</a></p>`
-    : "";
+  const quickInstallBtns =
+    appleUrl || androidUrl
+      ? `<p style="margin:16px 0 0;text-align:center;">
+    ${
+      appleUrl
+        ? `<a href="${escapeHtml(appleUrl)}" style="display:inline-block;margin:0 4px 8px;padding:12px 16px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">iPhone에서 바로 설치</a>`
+        : ""
+    }
+    ${
+      androidUrl
+        ? `<a href="${escapeHtml(androidUrl)}" style="display:inline-block;margin:0 4px 8px;padding:12px 16px;background:#fff;color:#0f172a;border:1px solid #cbd5e1;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">Galaxy·Android에서 바로 설치</a>`
+        : ""
+    }
+  </p>`
+      : "";
 
   const html = `<!DOCTYPE html>
 <html lang="ko"><body style="margin:0;padding:24px;background:#f8fafc;font-family:sans-serif;">
@@ -188,7 +205,7 @@ export function buildTravelEsimOrderQrMailContent(
     }`
         : ""
     }
-    ${appleBtn}
+    ${quickInstallBtns}
     <div style="margin:20px 0 0;padding:16px;border:1px solid #99f6e4;border-radius:12px;background:#f0fdfa;">
       <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f766e;">설치·사용 문의</p>
       <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#334155;">봉투어 고객센터 (${ESIM_VERIFICATION_GUIDE_HOURS})</p>

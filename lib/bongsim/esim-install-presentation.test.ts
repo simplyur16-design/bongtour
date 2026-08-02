@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAndroidQuickInstallUrl,
+  buildAppleQuickInstallUrl,
   buildEsimInstallFromTopup,
   formatEsimNotifyOrderLabel,
 } from "@/lib/bongsim/esim-install-presentation";
@@ -21,6 +23,15 @@ describe("buildEsimInstallFromTopup", () => {
     expect(r.revoked).toBeUndefined();
   });
 
+  // REGRESSION-FREEZE[bongsim-esim-android-quick-install]: iPhone·Android 원클릭 동시 제공 — manifest
+  it("delivered — iPhone·Android 원클릭 URL 모두 노출", () => {
+    const r = buildEsimInstallFromTopup({ orderStatus: "delivered", ...issued });
+    expect(r.apple_quick_install_url).toBe(buildAppleQuickInstallUrl(issued.download_link));
+    expect(r.android_quick_install_url).toBe(buildAndroidQuickInstallUrl(issued.download_link));
+    expect(r.android_quick_install_url).toContain("esimsetup.android.com");
+    expect(r.apple_quick_install_url).toContain("esimsetup.apple.com");
+  });
+
   it("refunded — QR·링크 비노출(revoked)", () => {
     const r = buildEsimInstallFromTopup({ orderStatus: "refunded", ...issued });
     expect(r.ready).toBe(false);
@@ -28,6 +39,7 @@ describe("buildEsimInstallFromTopup", () => {
     expect(r.qr_image_url).toBeNull();
     expect(r.sm_dp_plus_address).toBeNull();
     expect(r.apple_quick_install_url).toBeNull();
+    expect(r.android_quick_install_url).toBeNull();
   });
 
   it("qty>1 unit label on install", () => {

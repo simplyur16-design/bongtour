@@ -83,13 +83,25 @@ function SingleInstallCard({
         </div>
       ) : null}
 
-      {install.apple_quick_install_url ? (
-        <a
-          href={install.apple_quick_install_url}
-          className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-[13px] font-semibold text-white hover:bg-slate-800"
-        >
-          iPhone에서 바로 설치
-        </a>
+      {install.apple_quick_install_url || install.android_quick_install_url ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {install.apple_quick_install_url ? (
+            <a
+              href={install.apple_quick_install_url}
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-[13px] font-semibold text-white hover:bg-slate-800"
+            >
+              iPhone에서 바로 설치
+            </a>
+          ) : null}
+          {install.android_quick_install_url ? (
+            <a
+              href={install.android_quick_install_url}
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Galaxy·Android에서 바로 설치
+            </a>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -107,7 +119,13 @@ export function EsimInstallSection({
       ? installs
       : [install];
   const readyList = list.filter(
-    (x) => x.ready && (x.qr_image_url || x.sm_dp_plus_address || x.activation_code || x.apple_quick_install_url),
+    (x) =>
+      x.ready &&
+      (x.qr_image_url ||
+        x.sm_dp_plus_address ||
+        x.activation_code ||
+        x.apple_quick_install_url ||
+        x.android_quick_install_url),
   );
   const anyRevoked = list.some((x) => x.revoked) || install.revoked;
 

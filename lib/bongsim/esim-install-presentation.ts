@@ -5,12 +5,24 @@ import { absoluteUrl } from "@/lib/site-metadata";
 
 const APPLE_ESIM_QR_PROVISIONING_BASE =
   "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=";
+const ANDROID_ESIM_QR_PROVISIONING_BASE =
+  "https://esimsetup.android.com/esim_qrcode_provisioning?carddata=";
+
+function buildOsQuickInstallUrl(base: string, lpa: string): string | null {
+  const code = lpa.trim();
+  if (!code.startsWith("LPA:")) return null;
+  return `${base}${encodeURIComponent(code)}`;
+}
 
 /** iPhone 「바로 설치」 — `carddata`에 LPA 전체를 URL 인코딩 */
 export function buildAppleQuickInstallUrl(lpa: string): string | null {
-  const code = lpa.trim();
-  if (!code.startsWith("LPA:")) return null;
-  return `${APPLE_ESIM_QR_PROVISIONING_BASE}${encodeURIComponent(code)}`;
+  return buildOsQuickInstallUrl(APPLE_ESIM_QR_PROVISIONING_BASE, lpa);
+}
+
+// REGRESSION-FREEZE[bongsim-esim-android-quick-install]: Galaxy/Android 원클릭 URL — manifest
+/** Android/갤럭시 「바로 설치」 — Apple과 동일 LPA, esimsetup.android.com */
+export function buildAndroidQuickInstallUrl(lpa: string): string | null {
+  return buildOsQuickInstallUrl(ANDROID_ESIM_QR_PROVISIONING_BASE, lpa);
 }
 
 export function buildBongsimOrderCompleteUrl(orderId: string): string {
@@ -50,6 +62,7 @@ export function buildEsimInstallFromTopup(params: {
       sm_dp_plus_address: null,
       activation_code: null,
       apple_quick_install_url: null,
+      android_quick_install_url: null,
     };
   }
 
@@ -72,6 +85,7 @@ export function buildEsimInstallFromTopup(params: {
     sm_dp_plus_address: smDpPlusAddress,
     activation_code: activationCode,
     apple_quick_install_url: downloadLink ? buildAppleQuickInstallUrl(downloadLink) : null,
+    android_quick_install_url: downloadLink ? buildAndroidQuickInstallUrl(downloadLink) : null,
   };
 }
 

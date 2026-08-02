@@ -514,7 +514,7 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
     '[Bong투어] eSIM 설치 안내',
     '',
     `주문번호: ${p.orderNumber.trim()}`,
-    '아래 주문 페이지에서 QR 코드를 스캔해 주세요.',
+    '아래 주문 페이지에서 QR 스캔 또는 iPhone·Galaxy 바로 설치를 이용해 주세요.',
     p.orderPageUrl.trim(),
     '',
     '문의: bongtour.com',

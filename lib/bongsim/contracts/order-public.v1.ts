@@ -30,6 +30,8 @@ export type BongsimOrderPublicEsimInstallV1 = {
   sm_dp_plus_address: string | null;
   activation_code: string | null;
   apple_quick_install_url: string | null;
+  /** Galaxy 등 Android 원클릭 (esimsetup.android.com) — iPhone과 동일 LPA */
+  android_quick_install_url?: string | null;
 };
 
 export type BongsimOrderPublicV1 = {

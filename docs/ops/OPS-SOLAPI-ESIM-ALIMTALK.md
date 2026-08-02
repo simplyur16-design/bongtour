@@ -35,6 +35,14 @@
 https://bongtour.com#{installPath}
 ```
 
+## 기기 구분 (iPhone / Galaxy)
+
+- 알림톡·LMS는 **기기 구분 없이** 주문 완료 페이지만 보냅니다. (휴대폰 번호만으로는 OS를 알 수 없음)
+- **원클릭 설치 URL**은 주문 페이지·이메일에 **iPhone + Galaxy/Android 둘 다** 노출합니다.
+  - iPhone: `esimsetup.apple.com/...`
+  - Android: `esimsetup.android.com/...`
+- QR 스캔은 양쪽 공통입니다.
+
 ## 수신 번호
 
 - 체크아웃 **휴대폰** 필드 → `bongsim_order.buyer_tel` (선물 주문은 `consents.gift.recipient_phone`)
