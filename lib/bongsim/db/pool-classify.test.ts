@@ -33,6 +33,13 @@ describe("classifyBongsimPgError", () => {
   it("defaults other errors to db_error", () => {
     expect(classifyBongsimPgError(new Error("relation does not exist"))).toBe("db_error");
   });
+
+  it("treats TLS handshake failure as recoverable connection_timeout", () => {
+    const err = Object.assign(new Error("self-signed certificate in certificate chain"), {
+      code: "SELF_SIGNED_CERT_IN_CHAIN",
+    });
+    expect(classifyBongsimPgError(err)).toBe("connection_timeout");
+  });
 });
 
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: SELF_SIGNED_CERT_IN_CHAIN 감지 — manifest

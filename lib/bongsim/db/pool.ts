@@ -192,6 +192,8 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
     ) ||
     // Supabase 풀러 고갈. 일시적 용량 문제라 풀 리셋 + 503 재시도 경로로 보낸다.
     /EMAXCONNSESSION|max clients reached|too many connections|remaining connection slots/i.test(msg) ||
+    // TLS handshake 실패도 풀 재생성으로 복구 (strict→relaxed). 클라이언트가 503으로 재시도하게 한다.
+    isBongsimPgTlsHandshakeIssue(err) ||
     code === "ETIMEDOUT" ||
     code === "ECONNREFUSED" ||
     code === "53300"
@@ -222,8 +224,13 @@ export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): void {
   if (classifyBongsimPgError(err) !== "connection_timeout") return;
   if (poolResetInFlight) return;
   const stats = getBongsimPoolStats();
-  console.error("[bongsim/db/pool] connection_timeout — resetting pool", { stats });
-  poolResetInFlight = closePgPool()
+  const relaxTls = isBongsimPgTlsHandshakeIssue(err);
+  console.error("[bongsim/db/pool] connection_timeout — resetting pool", { stats, relaxTls });
+  poolResetInFlight = (
+    relaxTls
+      ? rebuildPoolWithRelaxedTls().then(() => undefined)
+      : closePgPool()
+  )
     .catch((e) => {
       console.error("[bongsim/db/pool] pool reset failed", e);
     })
