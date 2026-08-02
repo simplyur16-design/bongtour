@@ -11228,7 +11228,7 @@
       "tier": [
         "prebuild"
       ],
-      "summary": "recommend hard refresh — useSearchParams Suspense·일반 funnelHydrated 게이트로 빙빙 금지",
+      "summary": "recommend hard refresh — search-params Suspense·일반 funnelHydrated 게이트로 빙빙 금지",
       "checks": [
         {
           "file": "app/travel/esim/recommend/page.tsx",
