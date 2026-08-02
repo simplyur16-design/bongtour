@@ -1881,7 +1881,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[home-single-device-ssr]",
             "SeasonCurationHero",
-            "revalidate = 300"
+            "revalidate = 300",
+            "force-static"
           ],
           "mustNotInclude": [
             "await headers()",
@@ -1897,7 +1898,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[home-single-device-ssr]",
             "HomeMobileHub",
-            "revalidate = 300"
+            "revalidate = 300",
+            "force-static"
           ],
           "mustNotInclude": [
             "await headers()",
@@ -1910,7 +1912,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[home-single-device-ssr]",
             "isMobileUserAgent",
-            "pathname = '/m'"
+            "pathname = '/m'",
+            "s-maxage=300",
+            "Vary"
           ]
         }
       ]

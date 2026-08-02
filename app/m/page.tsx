@@ -12,6 +12,7 @@ import { SITE_NAME } from '@/lib/site-metadata'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 /** 모바일 홈 — URL은 middleware rewrite로 `/` 유지. request headers 미사용 ISR. */
+export const dynamic = 'force-static'
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {

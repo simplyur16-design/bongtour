@@ -18,6 +18,7 @@ import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
 
 /** 5분 ISR — request headers 미사용 → CDN/Full Route Cache 가능. 모바일은 middleware가 `/m`으로 rewrite. */
+export const dynamic = 'force-static'
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {

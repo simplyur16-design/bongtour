@@ -259,16 +259,22 @@ export async function middleware(req: NextRequest) {
   // consent/admin 가드 이후에만 — pending 유저가 / 에서 우회되지 않게.
   if (pathname === '/' || pathname === '/m') {
     const mobile = isMobileUserAgent(req.headers.get('user-agent'))
+    let homeRes: NextResponse
     if (pathname === '/' && mobile) {
       const url = req.nextUrl.clone()
       url.pathname = '/m'
-      return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
-    }
-    if (pathname === '/m' && !mobile) {
+      homeRes = NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+    } else if (pathname === '/m' && !mobile) {
       const url = req.nextUrl.clone()
       url.pathname = '/'
-      return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+      homeRes = NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+    } else {
+      homeRes = forward()
     }
+    // UA rewrite가 private no-store로 굳지 않게 CDN 힌트 + Vary
+    homeRes.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    homeRes.headers.set('Vary', 'User-Agent')
+    return homeRes
   }
 
   return forward()
