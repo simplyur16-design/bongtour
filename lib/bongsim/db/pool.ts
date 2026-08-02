@@ -76,7 +76,7 @@ export function isBongsimPgTlsHandshakeIssue(err: unknown): boolean {
  * Supabase 세션 풀은 pool_size 15. Prisma(`connection_limit`)와 이 풀이 한 인스턴스에서
  * 15를 다 쓰면 배포 중 구 인스턴스·`prisma migrate deploy` 가 EMAXCONNSESSION 으로 죽는다.
  */
-const BONGSIM_POOL_MAX_DEFAULT = 4;
+const BONGSIM_POOL_MAX_DEFAULT = 2;
 
 export function resolveBongsimPoolMax(): number {
   const raw = process.env.BONGSIM_PG_POOL_MAX?.trim();
@@ -236,7 +236,7 @@ export function getBongsimPoolStats(): {
 
 let poolResetInFlight: Promise<void> | null = null;
 let lastCatalogHealAt = 0;
-const CATALOG_HEAL_COOLDOWN_MS = 8_000;
+const CATALOG_HEAL_COOLDOWN_MS = 30_000;
 
 /**
  * 카탈로그 복구용 풀 heal — 동시 요청이 closePgPool 연타하지 않게 coalesce + cooldown.
@@ -264,12 +264,9 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
     try {
       await pool.query("SELECT 1");
     } catch (probeErr) {
+      // TLS만 한 번 더 교체. connection_timeout은 이미 새 풀이므로 이중 close 금지.
       if (isBongsimPgTlsHandshakeIssue(probeErr)) {
         await rebuildPoolWithRelaxedTls();
-      } else if (classifyBongsimPgError(probeErr) === "connection_timeout") {
-        // 연결 자체가 안 되면 한 번 더 교체만 하고 끝(요청 경로에서 재시도)
-        await closePgPool().catch(() => {});
-        getPgPool();
       }
     }
   })()

@@ -1,16 +1,16 @@
 import PersonaTabsClient from '@/app/components/home/PersonaTabsClient'
 import { getPersonaCuratedDestinationsPayload } from '@/lib/persona-curated-destinations'
-import { getCurrentCycle } from '@/lib/season-curation'
+import { getCachedCurrentCycle } from '@/lib/season-curation-content'
 import { MAIN_PERSONA_SECTION_TITLE } from '@/lib/main-hub-copy'
 
 /**
  * 메인 영역 6 — 페르소나 큐레이션 추천 여행지 (서버 prefetch + 클라이언트 탭).
- * PC(`lg` 이상)만 노출 — 모바일은 `app/page.tsx`에서 `hidden lg:block` 래핑(4카드와 시각적 혼동 방지).
+ * PC 트리만 렌더 — 모바일은 `app/page.tsx` UA 단일 SSR에서 제외.
  */
 export default async function PersonaCuratedDestinations() {
   let data: Awaited<ReturnType<typeof getPersonaCuratedDestinationsPayload>>
   try {
-    const cycle = await getCurrentCycle(new Date())
+    const cycle = await getCachedCurrentCycle()
     data = await getPersonaCuratedDestinationsPayload(cycle)
   } catch (e) {
     console.error('[PersonaCuratedDestinations]', e)

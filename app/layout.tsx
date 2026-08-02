@@ -13,7 +13,6 @@ import AdminQuickActionsMount from '@/components/admin/AdminQuickActionsMount'
 import BongtourPretendardStyles from './components/BongtourPretendardStyles'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { getSiteOrigin, SITE_NAME } from '@/lib/site-metadata'
-import { auth } from '@/auth'
 import { SIMPLYUR_SURFACE_HEADER, SIMPLYUR_SURFACE_VALUE } from '@/lib/surface/simplyur-surface'
 
 const siteOrigin = getSiteOrigin()
@@ -86,7 +85,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
+  // REGRESSION-FREEZE[layout-drop-root-auth]: no server auth() on every page — manifest
   const hdrs = await headers()
   const isSimplyur = hdrs.get(SIMPLYUR_SURFACE_HEADER) === SIMPLYUR_SURFACE_VALUE
 
@@ -109,7 +108,7 @@ export default async function RootLayout({
         {!isSimplyur ? <AntiCopyProtectionGate /> : null}
         {!isSimplyur ? <GoogleTagManager /> : null}
         {!isSimplyur ? <BongtourPretendardStyles /> : null}
-        <SessionProvider session={session}>
+        <SessionProvider>
           {isSimplyur ? (
             <div className="flex-1 flex flex-col">{children}</div>
           ) : (

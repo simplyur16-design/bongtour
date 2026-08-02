@@ -1701,10 +1701,13 @@
             "isSupabasePoolerConnectionString",
             "healBongsimPgPoolForCatalog",
             "CATALOG_HEAL_COOLDOWN_MS",
+            "CATALOG_HEAL_COOLDOWN_MS = 30_000",
+            "BONGSIM_POOL_MAX_DEFAULT = 2",
             "poolResetInFlight",
             "Promise<void>",
             "Cannot use a pool after calling end on the pool",
-            "setCachedPool(undefined)"
+            "setCachedPool(undefined)",
+            "이중 close 금지"
           ]
         },
         {
@@ -1815,6 +1818,78 @@
           "mustNotInclude": [
             "CANDIDATE_LIMIT = 120",
             "itineraries: {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home-single-device-ssr",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메인 — UA로 모바일/PC RSC 트리 하나만 SSR (이중 DB 로드 금지)",
+      "checks": [
+        {
+          "file": "app/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-single-device-ssr]",
+            "isMobileUserAgent",
+            "isMobileHome",
+            "HomeMobileHub",
+            "SeasonCurationHero"
+          ],
+          "mustNotInclude": [
+            "className=\"block lg:hidden\"",
+            "className=\"hidden lg:block\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "persona-cached-current-cycle",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "페르소나 — getCurrentCycle을 unstable_cache로 감싸 매 요청 Prisma 조회 방지",
+      "checks": [
+        {
+          "file": "lib/season-curation-content.ts",
+          "mustInclude": [
+            "getCachedCurrentCycle",
+            "SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG",
+            "revalidate: 300"
+          ]
+        },
+        {
+          "file": "app/components/home/PersonaCuratedDestinations.tsx",
+          "mustInclude": [
+            "getCachedCurrentCycle"
+          ],
+          "mustNotInclude": [
+            "getCurrentCycle(new Date())"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "layout-drop-root-auth",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "루트 layout — 매 요청 await auth() 제거 (클라 SessionProvider)",
+      "checks": [
+        {
+          "file": "app/layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[layout-drop-root-auth]",
+            "SessionProvider"
+          ],
+          "mustNotInclude": [
+            "await auth()",
+            "from '@/auth'"
           ]
         }
       ]

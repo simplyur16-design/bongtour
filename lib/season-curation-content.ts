@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
+import { getCurrentCycle, type SeasonCurationCycle } from '@/lib/season-curation'
 
 export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): string {
   const [yStr, mStr] = yearMonth.split('-')
@@ -98,4 +99,13 @@ export const getCachedSeasonLinkedProductIds = unstable_cache(
   async () => loadSeasonLinkedProductIdsUncached(),
   ['season-linked-product-ids-v1'],
   { revalidate: 21_600 },
+)
+
+/** 페르소나 등 — 매 요청 Prisma cycle 조회 방지 (홈 ISR과 맞춤 5분) */
+export const SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG = 'season-curation-current-cycle-v1'
+
+export const getCachedCurrentCycle = unstable_cache(
+  async (): Promise<SeasonCurationCycle> => getCurrentCycle(new Date()),
+  [SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG],
+  { revalidate: 300, tags: [SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG] },
 )
