@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
-import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { getPgPool } from "@/lib/bongsim/db/pool";
+// REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
 import { readWelcomepayCallbackFromRequest } from "@/lib/bongsim/welcomepay-callback-parse";
 import {
   isVbankDepositNoti,
@@ -20,7 +21,6 @@ async function handleVbankNoti(req: Request): Promise<NextResponse> {
   if (!getPgPool()) {
     return new NextResponse("db_unconfigured", { status: 503 });
   }
-  await probePgPoolTlsOrFallback();
 
   const incoming = await readWelcomepayCallbackFromRequest(req);
   if (!isVbankDepositNoti(incoming)) {

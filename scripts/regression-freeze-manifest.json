@@ -948,14 +948,18 @@
         "prebuild",
         "ci"
       ],
-      "summary": "관리자 결제·발급 조회 — TLS probe·연결 재시도·query_failed 한글 메시지·buyer_tel/ICCID 검색",
+      "summary": "관리자 결제·발급 조회 — heal·1회 재시도·query_failed 한글 메시지·buyer_tel/ICCID 검색 (요청 경로 TLS probe 금지)",
       "checks": [
         {
           "file": "lib/bongsim/db/admin-query.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-admin-payments-query]",
             "withBongsimAdminPgRetry",
-            "bongsimAdminQueryFailurePayload"
+            "bongsimAdminQueryFailurePayload",
+            "healBongsimPgPoolForCatalog"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
           ]
         },
         {
@@ -985,6 +989,55 @@
       ],
       "vitestSuites": [
         "lib/bongsim/db/admin-query.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-request-path-no-pg-probe",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "pg TLS probe는 instrumentation 기동 1회만 — WelcomePay·admin 요청 경로 SELECT 1 금지",
+      "checks": [
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]",
+            "probePgPoolTlsOrFallback"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-return/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-vbank-noti/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-mobile-next/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]"
+          ],
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
+          ]
+        },
+        {
+          "file": "lib/bongsim/db/admin-query.ts",
+          "mustNotInclude": [
+            "probePgPoolTlsOrFallback"
+          ]
+        }
       ]
     },
     {

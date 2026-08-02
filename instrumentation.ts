@@ -29,6 +29,7 @@ export async function register() {
     const hasDb = Boolean(dbUrl)
 
     if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
+      // REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: boot-time TLS probe only — manifest
       const { probePgPoolTlsOrFallback } = await import('@/lib/bongsim/db/pool')
       await probePgPoolTlsOrFallback()
     }

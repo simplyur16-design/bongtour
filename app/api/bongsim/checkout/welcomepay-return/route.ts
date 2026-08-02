@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { assertNoInternalMetaLeak } from "@/lib/public-response-guard";
 import { buildCheckoutReturnSuccessUrl } from "@/lib/bongsim/checkout/build-checkout-return-success-url";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
-import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { getPgPool } from "@/lib/bongsim/db/pool";
+// REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
 import {
   isVbankIssuedApproval,
   parseWelcomepayPayload,
@@ -56,7 +57,6 @@ export async function POST(req: Request) {
   if (!getPgPool()) {
     return new NextResponse("db_unconfigured", { status: 503 });
   }
-  await probePgPoolTlsOrFallback();
 
   const incoming = await readWelcomepayCallbackFromRequest(req);
   const oid = pickOid(incoming);

@@ -8,7 +8,8 @@ import {
   welcomepayPgAuthFailMessage,
 } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
-import { getPgPool, probePgPoolTlsOrFallback } from "@/lib/bongsim/db/pool";
+import { getPgPool } from "@/lib/bongsim/db/pool";
+// REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
 import {
   isVbankIssuedApproval,
   parseWelcomepayPayload,
@@ -71,7 +72,6 @@ async function handleWelcomepayMobileNext(req: Request) {
   if (!getPgPool()) {
     return new NextResponse("db_unconfigured", { status: 503 });
   }
-  await probePgPoolTlsOrFallback();
 
   const incoming = await readWelcomepayCallbackFromRequest(req);
   const authRc = resultCodeOf(incoming);

@@ -2,14 +2,14 @@ import type { Pool } from "pg";
 import {
   classifyBongsimPgError,
   getPgPool,
-  probePgPoolTlsOrFallback,
+  healBongsimPgPoolForCatalog,
   resetBongsimPgPoolAfterConnectTimeout,
   type BongsimPgFailureKind,
 } from "@/lib/bongsim/db/pool";
 
-/** REGRESSION-FREEZE[bongsim-admin-payments-query]: admin DB probe·1회 재시도 — manifest */
+/** REGRESSION-FREEZE[bongsim-admin-payments-query]: admin DB heal·1회 재시도 — manifest */
 export async function withBongsimAdminPgRetry<T>(run: (pool: Pool) => Promise<T>): Promise<T> {
-  await probePgPoolTlsOrFallback();
+  // probe는 instrumentation 기동 시 1회. 요청 경로 SELECT 1 금지.
   const pool = getPgPool();
   if (!pool) {
     throw Object.assign(new Error("db_unconfigured"), { code: "db_unconfigured" });
@@ -17,14 +17,15 @@ export async function withBongsimAdminPgRetry<T>(run: (pool: Pool) => Promise<T>
   try {
     return await run(pool);
   } catch (first) {
-    resetBongsimPgPoolAfterConnectTimeout(first);
-    await probePgPoolTlsOrFallback();
+    await healBongsimPgPoolForCatalog(
+      first instanceof Error ? first.message : "admin-pg-retry",
+    );
     const pool2 = getPgPool();
     if (!pool2) throw first;
     try {
       return await run(pool2);
     } catch (second) {
-      resetBongsimPgPoolAfterConnectTimeout(second);
+      await resetBongsimPgPoolAfterConnectTimeout(second);
       throw second;
     }
   }
