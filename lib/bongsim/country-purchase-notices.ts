@@ -1,4 +1,5 @@
 /** 국가·권역별 구매 전 안내 — usimsa purchase-notice 패턴 (eSIM 보상 항목 제외). */
+// REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]: 중국 안내 1회·공급사 코드 비노출 — manifest
 
 export type CountryNoticeSeverity = "info" | "warning";
 
@@ -17,12 +18,12 @@ const CN_NOTICES: CountryPurchaseNotice[] = [
   {
     severity: "info",
     title: "일일 데이터·저속 무제한",
-    body: "데일리 플랜은 하루 제공량을 모두 쓴 뒤 QoS(저속, 예: 384kbps) 무제한으로 이어질 수 있습니다. 완전 무제한 상품은 별도 정책이 적용됩니다.",
+    body: "데일리 플랜은 하루 제공량을 모두 쓴 뒤 저속 무제한으로 이어질 수 있습니다. 완전 무제한 상품은 별도 정책이 적용됩니다.",
   },
   {
     severity: "warning",
-    title: "중국 본토 개통 제한 (05코드)",
-    body: "중국 본토 데이터가 포함된 일부 상품은 본토 내 최초 개통(활성화)이 불가합니다. 입국 전 홍콩·마카오·대만 등 본토 외 지역에서 eSIM을 장착·활성화하고, 3~5분 이상 네트워크에 연결해 주세요.",
+    title: "중국 본토에서는 처음 개통이 안 될 수 있어요",
+    body: "중국 본토 데이터가 포함된 일부 상품은 본토 안에서 처음 활성화가 되지 않습니다. 입국 전 홍콩·마카오·대만 등 본토 밖에서 eSIM을 설치·활성화한 뒤, 3~5분 이상 네트워크에 연결해 주세요. (여행자 인증은 필요 없습니다.)",
   },
 ];
 

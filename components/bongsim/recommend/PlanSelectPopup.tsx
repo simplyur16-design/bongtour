@@ -11,7 +11,6 @@ import {
   type Ref,
 } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
-import { CountryPurchaseNoticeList } from "@/components/bongsim/recommend/CountryPurchaseNotice";
 import { DayUsageSummary } from "@/components/bongsim/recommend/DayUsageSummary";
 import { KycPlanSelectNotice } from "@/components/bongsim/recommend/KycPlanSelectNotice";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
@@ -807,9 +806,8 @@ export function PlanSelectPopup({
         <h2 className="mt-1 text-[1.05rem] font-bold leading-snug text-slate-900 lg:text-xl">
           {tripDaysFloored}일 동안 사용할 플랜을 골라주세요
         </h2>
-        <div className="mt-3">
-          <CountryPurchaseNoticeList countryCode={countryCode} compact />
-        </div>
+        {/* 국가 구매 안내는 국가 패널·다국가 상단에만 — 플랜 선택 영역 중복 금지 */}
+        {/* REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]: 플랜 팝업에 구매 안내 카드 금지 — manifest */}
         <KycPlanSelectNotice distribution={kycDistribution} compact />
         <DayUsageSummary
           className="mt-3"

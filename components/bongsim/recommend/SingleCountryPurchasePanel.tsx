@@ -99,11 +99,10 @@ export function SingleCountryPurchasePanel({
 
         {isRegion ? <UsimsaRegionPackMetaRows regionCode={code} /> : null}
 
-        {!isRegion ? (
-          <div className="mt-4">
-            <CountryPurchaseNoticeList countryCode={code} compact />
-          </div>
-        ) : null}
+        {/* 국가·권역 공통 — 플랜 팝업이 아닌 여기 1회만 (중국 VPN·개통 안내 중복 방지) */}
+        <div className="mt-4">
+          <CountryPurchaseNoticeList countryCode={code} compact />
+        </div>
 
         {!done ? (
           <div className="mt-5">

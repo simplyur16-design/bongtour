@@ -11256,6 +11256,46 @@
       ]
     },
     {
+      "id": "bongsim-cn-purchase-notices-user-facing",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "중국 구매 안내 — 플랜 영역 중복 금지·05코드 비노출·인증 불필요 명시",
+      "checks": [
+        {
+          "file": "lib/bongsim/country-purchase-notices.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]",
+            "VPN 없이 SNS·유튜브 이용",
+            "여행자 인증은 필요 없습니다"
+          ],
+          "mustNotInclude": [
+            "05코드",
+            "05 코드"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/PlanSelectPopup.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]"
+          ],
+          "mustNotInclude": [
+            "CountryPurchaseNoticeList"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/SingleCountryPurchasePanel.tsx",
+          "mustInclude": [
+            "CountryPurchaseNoticeList countryCode={code}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/country-purchase-notices.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-portone-checkout-p2",
       "tier": [
         "prebuild",
