@@ -1433,8 +1433,7 @@
             "parseComplimentaryEsimBulkPhones",
             "kickEsimQrNotifyDrain",
             "skip_outbox_drain: true",
-            "SMS를 HTTP 응답 전에 await 하면",
-            "isLikelyProxyTimeoutEmpty"
+            "SMS를 HTTP 응답 전에 await 하면"
           ]
         },
         {
@@ -1451,6 +1450,7 @@
             "REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]",
             "readAdminResponseJson",
             "COMPLIMENTARY_BULK_CLIENT_CHUNK",
+            "isLikelyProxyTimeoutEmpty",
             "서버 응답이 비었습니다",
             "complimentary-esim/bulk"
           ]
