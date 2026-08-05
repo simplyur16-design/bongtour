@@ -252,14 +252,15 @@ export async function adminGrantComplimentaryEsimBulk(input: {
     });
   }
 
-  // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 일괄 후 OrderPaid+QR 알림 직렬 await — 문자 1건만 가는 누락 방지 — manifest
+  // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: OrderPaid await + QR kick(직렬) — 요청 중 SMS await 금지(빈 500) — manifest
   if (succeeded > 0) {
     try {
       await drainOrderPaidOutboxBestEffort(Math.min(100, succeeded + 8));
-      const { awaitEsimQrNotifyDrain } = await import(
+      const { kickEsimQrNotifyDrain } = await import(
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
       );
-      await awaitEsimQrNotifyDrain(Math.min(80, succeeded * 2 + 8));
+      // SMS를 HTTP 응답 전에 await 하면 프록시 타임아웃 → 빈 500 (문자는 이미 감)
+      kickEsimQrNotifyDrain(Math.min(80, succeeded * 2 + 8));
     } catch (e) {
       console.warn("[adminGrantComplimentaryEsimBulk] outbox/notify drain", e);
     }

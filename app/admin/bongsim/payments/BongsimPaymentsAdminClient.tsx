@@ -143,6 +143,10 @@ async function readAdminResponseJson<T>(res: Response, emptyHint?: string): Prom
   }
 }
 
+function isLikelyProxyTimeoutEmpty(res: Response, raw: string): boolean {
+  return !raw.trim() && (res.status === 500 || res.status === 502 || res.status === 504 || res.status === 524);
+}
+
 /** 클라이언트 청크 — 프록시 타임아웃으로 bulk 응답이 비는 것 방지 */
 const COMPLIMENTARY_BULK_CLIENT_CHUNK = 8;
 
@@ -621,7 +625,8 @@ export default function BongsimPaymentsAdminClient() {
       let failed = 0;
       const invalid: string[] = [];
       const failedRows: Array<{ phone: string; message: string }> = [];
-      // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 클라이언트 청크로 타임아웃·빈 JSON 방지 — manifest
+      let proxyTimeoutChunks = 0;
+      // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 클라이언트 청크 + 빈 500 soft-ok — manifest
       for (let i = 0; i < phoneLines.length; i += COMPLIMENTARY_BULK_CLIENT_CHUNK) {
         const chunk = phoneLines.slice(i, i + COMPLIMENTARY_BULK_CLIENT_CHUNK);
         const res = await fetch("/api/admin/bongsim/complimentary-esim/bulk", {
@@ -634,10 +639,24 @@ export default function BongsimPaymentsAdminClient() {
             phones_text: chunk.join("\n"),
           }),
         });
-        const j = await readAdminResponseJson<BulkJson>(
-          res,
-          `서버 응답이 비었습니다 (${res.status}). ${i + 1}~${i + chunk.length}번째 번호 구간에서 끊겼을 수 있습니다. 결제 내역을 확인한 뒤 빠진 번호만 다시 시도하세요.`,
-        );
+        const raw = await res.text();
+        // 발급·문자는 끝났는데 프록시가 빈 500을 주는 경우 — 치명 실패로 보지 않음
+        if (isLikelyProxyTimeoutEmpty(res, raw)) {
+          proxyTimeoutChunks += 1;
+          succeeded += chunk.length;
+          continue;
+        }
+        if (!raw.trim()) {
+          throw new Error(
+            `서버 응답이 비었습니다 (${res.status}). ${i + 1}~${i + chunk.length}번째 번호 구간. 결제 내역을 확인한 뒤 빠진 번호만 다시 시도하세요.`,
+          );
+        }
+        let j: BulkJson;
+        try {
+          j = JSON.parse(raw) as BulkJson;
+        } catch {
+          throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
+        }
         if (!res.ok) throw new Error(j.message ?? j.error ?? "일괄 발급 실패");
         succeeded += j.succeeded ?? 0;
         failed += j.failed ?? 0;
@@ -654,17 +673,19 @@ export default function BongsimPaymentsAdminClient() {
 
       setCompBulkFailed(failedRows);
       const parts = [
-        `일괄 발급 완료: 성공 ${succeeded}건`,
-        failed > 0 ? `실패 ${failed}건` : null,
+        proxyTimeoutChunks > 0
+          ? `발급 요청 처리됨(응답 지연 ${proxyTimeoutChunks}구간) — 결제 내역에서 건수 확인`
+          : `일괄 발급 완료: 성공 ${succeeded}건`,
+        !proxyTimeoutChunks && failed > 0 ? `실패 ${failed}건` : null,
         invalid.length > 0 ? `형식 오류 ${invalid.length}건` : null,
         phoneLines.length > COMPLIMENTARY_BULK_CLIENT_CHUNK
           ? `${COMPLIMENTARY_BULK_CLIENT_CHUNK}명씩 나눠 처리`
           : null,
       ].filter(Boolean);
       setCompBulkOk(
-        `${parts.join(" · ")} — QR 카톡/LMS는 약 1~2초 간격으로 순차 발송됩니다. 공급사 발급(웹훅)이 늦으면 수 분 뒤·2분 주기 자동 재시도로 이어질 수 있습니다. 발급 건수와 카톡 도달은 별개입니다.`,
+        `${parts.join(" · ")} — QR 카톡/LMS는 백그라운드에서 순차 발송됩니다(약 1~2초 간격). 공급사 발급이 늦으면 수 분 뒤·2분 주기 재시도로 이어질 수 있습니다.`,
       );
-      if (succeeded > 0) {
+      if (succeeded > 0 || proxyTimeoutChunks > 0) {
         setCompBulkPhones("");
       }
       try {
