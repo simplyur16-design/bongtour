@@ -9,6 +9,7 @@ import {
 import { resolveBongsimFlagImageUrlOrFallback } from '@/lib/bongsim-flag-image-url'
 import { bongsimFlagIsoForDestination } from '@/lib/bongsim/recommend/popular-destinations'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 
 const ADMIN_GROUPS: EsimCountryHeroAdminGroup[] = ['standalone', 'europe_region', 'europe_country']
 
@@ -66,11 +67,11 @@ export default function CountryHeroesAdminClient() {
         fetch('/api/admin/bongsim/country-heroes/catalog', { cache: 'no-store' }),
         fetch('/api/bongsim/country-heroes', { cache: 'no-store' }),
       ])
-      const cJson = (await cRes.json()) as {
+      const cJson = await readAdminResponseJson<{
         ok?: boolean
         catalog?: EsimCountryHeroAdminEntry[]
         error?: string
-      }
+      }>(cRes)
       if (!cRes.ok || !cJson.ok) {
         setLoadErr(cJson.error ?? `카탈로그 HTTP ${cRes.status}`)
         setCatalog([])
@@ -78,7 +79,7 @@ export default function CountryHeroesAdminClient() {
         setCatalog(Array.isArray(cJson.catalog) ? cJson.catalog : [])
       }
 
-      const hJson = (await hRes.json()) as Record<string, string> & { error?: string }
+      const hJson = await readAdminResponseJson<Record<string, string> & { error?: string }>(hRes)
       if (!hRes.ok || typeof hJson.error === 'string') {
         if (!cRes.ok) {
           /* keep loadErr from catalog */

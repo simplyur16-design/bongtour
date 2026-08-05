@@ -19,6 +19,9 @@ export default async function OverseasHeroSlot({
   let seasonDestinationHeroSlides: Awaited<ReturnType<typeof getCachedOverseasHubSeasonDestinationHeroSlides>> = []
   try {
     const cycle = await getCurrentCycle(new Date())
+    if (!cycle) {
+      console.warn('[OverseasHeroSlot] no active SeasonalDestinationCuration cycle — empty hero')
+    }
     seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides(cycle)
   } catch (e) {
     console.error('[OverseasHeroSlot] season hero slides failed', e)

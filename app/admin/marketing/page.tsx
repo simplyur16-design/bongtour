@@ -19,6 +19,7 @@ export default async function MarketingDashboardPage() {
   type GroupRow = { contentTrack: string; status: BongContentStatus; _count: { id: number } }
   let rows: GroupRow[] = []
   let migrationPending = false
+  let loadError: string | null = null
   try {
     const data = await prisma.bongBlogPost.groupBy({
       by: ['contentTrack', 'status'],
@@ -30,7 +31,9 @@ export default async function MarketingDashboardPage() {
       rows = []
       migrationPending = true
     } else {
-      throw e
+      loadError = e instanceof Error ? e.message : String(e)
+      console.error('[admin/marketing] overview groupBy failed', e)
+      rows = []
     }
   }
 
@@ -53,6 +56,11 @@ export default async function MarketingDashboardPage() {
         {migrationPending && (
           <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             DB에 `contentTrack` 등 B-CRUD-1 마이그레이션이 아직 적용되지 않았습니다. Supabase MCP로 마이그레이션 SQL 적용 후 새로고침하세요.
+          </p>
+        )}
+        {loadError && (
+          <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-900">
+            개요 집계를 불러오지 못했습니다: {loadError}
           </p>
         )}
       </div>

@@ -12,20 +12,26 @@ export async function GET(request: Request) {
   const scope = searchParams.get('scope')?.trim() || 'overseas'
   const monthKey = searchParams.get('monthKey')?.trim()
 
-  const items = await prisma.monthlyCurationContent.findMany({
-    where: {
-      pageScope: scope,
-      ...(monthKey && /^\d{4}-\d{2}$/.test(monthKey) ? { monthKey } : {}),
-    },
-    orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
-    include: {
-      curationEvents: {
-        select: CURATION_EVENT_SUMMARY_SELECT,
-        orderBy: { name: 'asc' },
+  try {
+    const items = await prisma.monthlyCurationContent.findMany({
+      where: {
+        pageScope: scope,
+        ...(monthKey && /^\d{4}-\d{2}$/.test(monthKey) ? { monthKey } : {}),
       },
-    },
-  })
-  return NextResponse.json({ items })
+      orderBy: [{ monthKey: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
+      include: {
+        curationEvents: {
+          select: CURATION_EVENT_SUMMARY_SELECT,
+          orderBy: { name: 'asc' },
+        },
+      },
+    })
+    return NextResponse.json({ items })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[api/admin/monthly-curation-contents GET]', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {

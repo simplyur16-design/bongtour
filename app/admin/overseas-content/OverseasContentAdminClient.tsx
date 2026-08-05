@@ -7,6 +7,10 @@ import {
   formatCurationEventMonthRange,
   formatLinkedEventBadgeLabel,
 } from '@/lib/bong-marketing/curation-event-card-link'
+import {
+  adminClientFetchErrorMessage,
+  readAdminResponseJson,
+} from '@/lib/admin/read-admin-response-json'
 
 type EditorialItem = {
   id: string
@@ -152,14 +156,6 @@ function clipForAriaTitle(s: string | null | undefined, max = 36): string {
   return `${t.slice(0, max - 1)}…`
 }
 
-function adminClientFetchErrorMessage(e: unknown): string {
-  if (e instanceof TypeError && /failed to fetch/i.test(e.message)) {
-    return '서버에 연결할 수 없습니다. 네트워크·주소(http/https)와 개발 서버 실행 여부를 확인해 주세요.'
-  }
-  if (e instanceof Error && e.message.trim()) return e.message
-  return '요청 중 오류가 발생했습니다.'
-}
-
 export type OverseasContentAdminView = 'all' | 'editorial' | 'monthly'
 
 export default function OverseasContentAdminClient({ view = 'all' }: { view?: OverseasContentAdminView }) {
@@ -192,8 +188,8 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
         fetch('/api/admin/editorial-contents?scope=overseas', { cache: 'no-store' }),
         fetch('/api/admin/monthly-curation-contents?scope=overseas', { cache: 'no-store' }),
       ])
-      const aj = (await a.json()) as { items?: EditorialItem[]; error?: string }
-      const bj = (await b.json()) as { items?: MonthlyItem[]; error?: string }
+      const aj = await readAdminResponseJson<{ items?: EditorialItem[]; error?: string }>(a)
+      const bj = await readAdminResponseJson<{ items?: MonthlyItem[]; error?: string }>(b)
       if (!a.ok) throw new Error(aj.error ?? '목록을 불러오지 못했습니다.')
       if (!b.ok) throw new Error(bj.error ?? '목록을 불러오지 못했습니다.')
       setEditorials(Array.isArray(aj.items) ? aj.items : [])

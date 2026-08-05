@@ -23,45 +23,52 @@ export async function GET() {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const now = new Date()
-  const current = await getCurrentCycle(now)
-  const offsets = [1, 2, 3] as const
-  const ahead = await Promise.all(
-    offsets.map(async (offset) => {
-      const { startDate, endDate } = getKstMonthlySeasonWindowForOffset(now, offset)
-      const row = await prisma.seasonalDestinationCuration.findUnique({
-        where: { cycleStartDate: startDate },
-      })
-      const cityKeys = row?.cityKeys ?? []
-      return {
-        offset,
-        cycleStartDate: startDate.toISOString(),
-        cycleEndDate: endDate.toISOString(),
-        exists: Boolean(row),
-        id: row?.id ?? null,
-        cityKeys,
-        cityLabels: await cityLabelsForKeys(cityKeys),
-      }
-    }),
-  )
-
-  const currentKeys = current?.cityKeys ?? []
-  return NextResponse.json({
-    ok: true,
-    at: now.toISOString(),
-    current: current
-      ? {
-          id: current.id,
-          cycleStartDate: current.cycleStartDate.toISOString(),
-          cycleEndDate: current.cycleEndDate.toISOString(),
-          cityKeys: currentKeys,
-          fallbackKeys: current.fallbackKeys,
-          cityLabels: await cityLabelsForKeys(currentKeys),
+  // REGRESSION-FREEZE[admin-empty-json-response]: season-curation GET always JSON — manifest
+  try {
+    const now = new Date()
+    const current = await getCurrentCycle(now)
+    const offsets = [1, 2, 3] as const
+    const ahead = await Promise.all(
+      offsets.map(async (offset) => {
+        const { startDate, endDate } = getKstMonthlySeasonWindowForOffset(now, offset)
+        const row = await prisma.seasonalDestinationCuration.findUnique({
+          where: { cycleStartDate: startDate },
+        })
+        const cityKeys = row?.cityKeys ?? []
+        return {
+          offset,
+          cycleStartDate: startDate.toISOString(),
+          cycleEndDate: endDate.toISOString(),
+          exists: Boolean(row),
+          id: row?.id ?? null,
+          cityKeys,
+          cityLabels: await cityLabelsForKeys(cityKeys),
         }
-      : null,
-    ahead,
-    scheduleNote: '서버 기동 시 1회 시드 · 매월 15일 00:00 KST 자동 갱신(instrumentation)',
-  })
+      }),
+    )
+
+    const currentKeys = current?.cityKeys ?? []
+    return NextResponse.json({
+      ok: true,
+      at: now.toISOString(),
+      current: current
+        ? {
+            id: current.id,
+            cycleStartDate: current.cycleStartDate.toISOString(),
+            cycleEndDate: current.cycleEndDate.toISOString(),
+            cityKeys: currentKeys,
+            fallbackKeys: current.fallbackKeys,
+            cityLabels: await cityLabelsForKeys(currentKeys),
+          }
+        : null,
+      ahead,
+      scheduleNote: '서버 기동 시 1회 시드 · 매월 15일 00:00 KST 자동 갱신(instrumentation)',
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[api/admin/season-curation GET]', e)
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 })
+  }
 }
 
 /** POST: 수동 실행 — `{ "force": true }` 시 현재 사이클 강제 재생성 */

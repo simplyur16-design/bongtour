@@ -164,9 +164,12 @@ export async function ensureSeasonDestinationCyclesForMonthOffsets(
   offsets: number[],
   now = new Date(),
 ): Promise<void> {
-  const uniq = [...new Set(offsets.filter((n) => Number.isFinite(n) && n > 0))].sort((a, b) => a - b)
+  // offset 0 = 당월(현재 사이클) — 월 전환 후 기동 시드 실패 시 빈 히어로 방지
+  // REGRESSION-FREEZE[admin-empty-json-response]: ensure offset 0 current month — manifest
+  const uniq = [...new Set(offsets.filter((n) => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b)
   for (const offset of uniq) {
-    const { startDate, endDate } = getKstMonthlySeasonWindowForOffset(now, offset)
+    const { startDate, endDate } =
+      offset === 0 ? getKstMonthlySeasonWindow(now) : getKstMonthlySeasonWindowForOffset(now, offset)
     const existing = await prisma.seasonalDestinationCuration.findUnique({
       where: { cycleStartDate: startDate },
     })

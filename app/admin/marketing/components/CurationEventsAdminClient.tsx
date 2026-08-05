@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 
 type LinkedSeasonCard = {
   id: string
@@ -124,7 +125,7 @@ export default function CurationEventsAdminClient() {
       if (appliedSearch) q.set('search', appliedSearch)
       q.set('limit', '100')
       const res = await fetch(`/api/admin/marketing/curation-events/list?${q}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson<{ events?: unknown[]; total?: number; error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '목록 조회 실패')
       setEvents(data.events ?? [])
       setTotal(data.total ?? 0)
@@ -147,7 +148,7 @@ export default function CurationEventsAdminClient() {
     setError('')
     try {
       const res = await fetch(`/api/admin/marketing/curation-events/${id}/approve`, { method: 'POST' })
-      const data = await res.json()
+      const data = await readAdminResponseJson<{ error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '승인 실패')
       await load()
     } catch (e) {
@@ -163,7 +164,7 @@ export default function CurationEventsAdminClient() {
     setError('')
     try {
       const res = await fetch(`/api/admin/marketing/curation-events/${id}/reject`, { method: 'POST' })
-      const data = await res.json()
+      const data = await readAdminResponseJson<{ error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '거절 실패')
       await load()
     } catch (e) {
@@ -184,7 +185,7 @@ export default function CurationEventsAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson<{ error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '일괄 승인 실패')
       await load()
     } catch (e) {
@@ -217,7 +218,7 @@ export default function CurationEventsAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson<{ error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '수정 실패')
       setEditRow(null)
       setEditForm(null)

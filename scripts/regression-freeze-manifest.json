@@ -1458,6 +1458,53 @@
       ]
     },
     {
+      "id": "admin-empty-json-response",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 fetch 빈 JSON 가드 · 시즌/마케팅 GET JSON 오류 · 국가히어로 Prisma 카탈로그 · 당월 시즌 ensure",
+      "checks": [
+        {
+          "file": "lib/admin/read-admin-response-json.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-empty-json-response]",
+            "readAdminResponseJson",
+            "서버 응답이 비었습니다"
+          ]
+        },
+        {
+          "file": "app/api/admin/season-curation/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-empty-json-response]",
+            "api/admin/season-curation GET"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/list-standalone-countries.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-empty-json-response]",
+            "listBongsimStandaloneCountriesViaPrisma"
+          ]
+        },
+        {
+          "file": "lib/season-curation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-empty-json-response]",
+            "ensure offset 0 current month",
+            "n >= 0"
+          ]
+        },
+        {
+          "file": "app/admin/marketing/components/CurationEventsAdminClient.tsx",
+          "mustInclude": [
+            "readAdminResponseJson",
+            "curation-events/list"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-esim-qr-notify-serialize",
       "tier": [
         "prebuild",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
 import { ADMIN_CARD_CLASS } from '@/lib/admin-design-system'
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 
 type CyclePayload = {
   id: string
@@ -74,7 +75,7 @@ export default function SeasonCurationAdminClient() {
     setLoadErr(null)
     try {
       const res = await fetch('/api/admin/season-curation', { cache: 'no-store', credentials: 'include' })
-      const j = (await res.json()) as StatusResponse & { error?: string }
+      const j = await readAdminResponseJson<StatusResponse & { error?: string }>(res)
       if (!res.ok) throw new Error(j.error ?? `로드 실패 (${res.status})`)
       setStatus(j)
     } catch (e) {
@@ -99,14 +100,14 @@ export default function SeasonCurationAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force }),
       })
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean
         rotated?: boolean
         cycleId?: string | null
         cityKeys?: string[]
         message?: string
         error?: string
-      }
+      }>(res)
       if (!res.ok || !j.ok) {
         throw new Error(j.message ?? j.error ?? `실행 실패 (${res.status})`)
       }

@@ -22,6 +22,6 @@ export async function runSeasonCurationJob(
   if (result.message && !result.cycle) {
     return { ok: false, rotated: result.rotated, cycle: null, message: result.message }
   }
-  await ensureSeasonDestinationCyclesForMonthOffsets([1, 2, 3], now)
+  await ensureSeasonDestinationCyclesForMonthOffsets([0, 1, 2, 3], now)
   return { ok: true, rotated: result.rotated, cycle: result.cycle, message: result.message }
 }

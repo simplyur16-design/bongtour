@@ -10,11 +10,17 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const scope = searchParams.get('scope')?.trim() || 'overseas'
 
-  const items = await prisma.editorialContent.findMany({
-    where: { pageScope: scope },
-    orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
-  })
-  return NextResponse.json({ items })
+  try {
+    const items = await prisma.editorialContent.findMany({
+      where: { pageScope: scope },
+      orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }],
+    })
+    return NextResponse.json({ items })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[api/admin/editorial-contents GET]', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {

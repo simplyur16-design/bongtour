@@ -44,28 +44,34 @@ export async function GET(req: Request) {
     where.monthlyCurationContentId = null
   }
 
-  const [rows, total] = await Promise.all([
-    prisma.curationEvent.findMany({
-      where,
-      orderBy: { collectedAt: 'desc' },
-      take: limit,
-      skip: offset,
-      include: {
-        monthlyCurationContent: {
-          select: { id: true, title: true, monthKey: true },
+  try {
+    const [rows, total] = await Promise.all([
+      prisma.curationEvent.findMany({
+        where,
+        orderBy: { collectedAt: 'desc' },
+        take: limit,
+        skip: offset,
+        include: {
+          monthlyCurationContent: {
+            select: { id: true, title: true, monthKey: true },
+          },
         },
-      },
-    }),
-    prisma.curationEvent.count({ where }),
-  ])
+      }),
+      prisma.curationEvent.count({ where }),
+    ])
 
-  const events = rows.map((row) => {
-    const { monthlyCurationContent, ...rest } = row
-    return {
-      ...rest,
-      linkedSeasonCard: monthlyCurationContent,
-    }
-  })
+    const events = rows.map((row) => {
+      const { monthlyCurationContent, ...rest } = row
+      return {
+        ...rest,
+        linkedSeasonCard: monthlyCurationContent,
+      }
+    })
 
-  return NextResponse.json({ events, total, limit, offset })
+    return NextResponse.json({ events, total, limit, offset })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[api/admin/marketing/curation-events/list]', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }

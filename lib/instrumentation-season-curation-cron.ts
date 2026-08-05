@@ -30,8 +30,8 @@ async function seedSeasonCurationCycleOnStartup(): Promise<void> {
       if (!result.ok) return
     }
     const { ensureSeasonDestinationCyclesForMonthOffsets } = await import('./season-curation')
-    await ensureSeasonDestinationCyclesForMonthOffsets([1, 2, 3], now)
-    console.log('[season-curation-cron] startup ahead cycles ensured (+1/+2/+3)')
+    await ensureSeasonDestinationCyclesForMonthOffsets([0, 1, 2, 3], now)
+    console.log('[season-curation-cron] startup ahead cycles ensured (0/+1/+2/+3)')
   } catch (e) {
     console.error('[season-curation-cron] startup seed error', e)
   }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 
 type Row = {
   id: string
@@ -54,7 +55,7 @@ export default function MarketingBlogListClient(props: {
       q.set('page', String(page))
       q.set('limit', String(limit))
       const res = await fetch(`/api/admin/marketing/blog-posts?${q}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson<{ items?: Row[]; total?: number; error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '목록 조회 실패')
       setItems(data.items ?? [])
       setTotal(typeof data.total === 'number' ? data.total : 0)

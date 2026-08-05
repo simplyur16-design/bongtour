@@ -51,32 +51,38 @@ export async function GET(req: Request) {
     ...(citySlug ? { citySlug: { contains: citySlug, mode: 'insensitive' } } : {}),
   }
 
-  const [total, items] = await Promise.all([
-    prisma.bongBlogPost.count({ where }),
-    prisma.bongBlogPost.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        monthKey: true,
-        citySlug: true,
-        countrySlug: true,
-        linkedProductId: true,
-        createdAt: true,
-        updatedAt: true,
-        contentTrack: true,
-      },
-    }),
-  ])
+  try {
+    const [total, items] = await Promise.all([
+      prisma.bongBlogPost.count({ where }),
+      prisma.bongBlogPost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          monthKey: true,
+          citySlug: true,
+          countrySlug: true,
+          linkedProductId: true,
+          createdAt: true,
+          updatedAt: true,
+          contentTrack: true,
+        },
+      }),
+    ])
 
-  return NextResponse.json({
-    items,
-    total,
-    page,
-    limit,
-  })
+    return NextResponse.json({
+      items,
+      total,
+      page,
+      limit,
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[api/admin/marketing/blog-posts GET]', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
