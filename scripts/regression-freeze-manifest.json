@@ -1421,6 +1421,8 @@
           "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]",
+            "readAdminResponseJson",
+            "COMPLIMENTARY_BULK_CLIENT_CHUNK",
             "서버 응답이 비었습니다",
             "complimentary-esim/bulk"
           ]

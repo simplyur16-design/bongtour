@@ -124,6 +124,28 @@ function statusLabel(status: string): string {
   }
 }
 
+/**
+ * REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 빈/잘린 본문에서 Response.json() 예외 방지 — manifest
+ * (`Failed to execute 'json' on 'Response': Unexpected end of JSON input`)
+ */
+async function readAdminResponseJson<T>(res: Response, emptyHint?: string): Promise<T> {
+  const raw = await res.text();
+  if (!raw.trim()) {
+    throw new Error(
+      emptyHint?.trim() ||
+        `서버 응답이 비었습니다 (${res.status}). 잠시 후 다시 시도하거나 결제 내역을 확인하세요.`,
+    );
+  }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
+  }
+}
+
+/** 클라이언트 청크 — 프록시 타임아웃으로 bulk 응답이 비는 것 방지 */
+const COMPLIMENTARY_BULK_CLIENT_CHUNK = 8;
+
 export default function BongsimPaymentsAdminClient() {
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [page, setPage] = useState(1);
@@ -213,14 +235,14 @@ export default function BongsimPaymentsAdminClient() {
       const res = await fetch(`/api/admin/bongsim/payments/${encodeURIComponent(orderId)}/usage`, {
         cache: "no-store",
       });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean;
         unused?: boolean;
         activated?: boolean;
         label?: string;
         error?: string;
         message?: string;
-      };
+      }>(res);
       if (!res.ok || !j.ok) {
         throw new Error(j.message ?? j.error ?? "사용량 조회 실패");
       }
@@ -256,13 +278,13 @@ export default function BongsimPaymentsAdminClient() {
         q.set("page", String(pageToLoad));
         if (searchToLoad.trim()) q.set("search", searchToLoad.trim());
         const res = await fetch(`/api/admin/bongsim/payments?${q.toString()}`, { cache: "no-store" });
-        const j = (await res.json()) as {
+        const j = await readAdminResponseJson<{
           orders?: OrderRow[];
           page?: number;
           total_pages?: number;
           error?: string;
           message?: string;
-        };
+        }>(res);
         if (gen !== loadGenRef.current) return;
         if (!res.ok) throw new Error(adminLoadErrorMessage(j, "목록을 불러오지 못했습니다."));
         const nextTotalPages = Math.max(1, Number(j.total_pages) || 1);
@@ -317,7 +339,7 @@ export default function BongsimPaymentsAdminClient() {
     setUsimOk(null);
     try {
       const res = await fetch(`/api/admin/bongsim/payments/${encodeURIComponent(orderId)}`, { cache: "no-store" });
-      const j = (await res.json()) as DetailResponse & { error?: string; message?: string };
+      const j = await readAdminResponseJson<DetailResponse & { error?: string; message?: string }>(res);
       if (!res.ok) throw new Error(adminLoadErrorMessage(j, "상세를 불러오지 못했습니다."));
       setDetail(j);
       const firstUsimLine = (j.lines ?? []).find((l) => Boolean(l.usim_capable));
@@ -345,12 +367,12 @@ export default function BongsimPaymentsAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: PURGE_CONFIRM, mode }),
       });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean;
         deletedCount?: number;
         message?: string;
         error?: string;
-      };
+      }>(res);
       if (!res.ok || !j.ok) {
         throw new Error(j.message ?? j.error ?? `삭제 실패 (${res.status})`);
       }
@@ -376,7 +398,7 @@ export default function BongsimPaymentsAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: oid, reason: refundReason.trim() || "고객 요청 환불" }),
       });
-      const j = (await res.json()) as { error?: string; message?: string };
+      const j = await readAdminResponseJson<{ error?: string; message?: string }>(res);
       if (!res.ok) throw new Error(refundErrorMessage(j));
       setDetailId(null);
       setDetail(null);
@@ -410,7 +432,7 @@ export default function BongsimPaymentsAdminClient() {
           reason: nonPgCancelReason.trim() || "관리자 무상·오프라인 eSIM 취소",
         }),
       });
-      const j = (await res.json()) as { ok?: boolean; error?: string; message?: string };
+      const j = await readAdminResponseJson<{ ok?: boolean; error?: string; message?: string }>(res);
       if (!res.ok || !j.ok) {
         throw new Error(j.message ?? j.error ?? `취소 실패 (${res.status})`);
       }
@@ -445,7 +467,9 @@ export default function BongsimPaymentsAdminClient() {
           body: JSON.stringify({ option_api_id: optionId, iccid }),
         },
       );
-      const j = (await res.json()) as { ok?: boolean; message?: string; error?: string; iccid?: string };
+      const j = await readAdminResponseJson<{ ok?: boolean; message?: string; error?: string; iccid?: string }>(
+        res,
+      );
       if (!res.ok || !j.ok) {
         throw new Error(j.message ?? j.error ?? "USIM 활성화에 실패했습니다.");
       }
@@ -476,13 +500,13 @@ export default function BongsimPaymentsAdminClient() {
           note: offlineNote.trim() || null,
         }),
       });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean;
         order_id?: string;
         order_number?: string;
         message?: string;
         error?: string;
-      };
+      }>(res);
       if (!res.ok || !j.ok || !j.order_id) {
         throw new Error(j.message ?? j.error ?? "주문 생성 실패");
       }
@@ -515,7 +539,7 @@ export default function BongsimPaymentsAdminClient() {
           }),
         },
       );
-      const j = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      const j = await readAdminResponseJson<{ ok?: boolean; message?: string; error?: string }>(res);
       if (!res.ok || !j.ok) {
         throw new Error(j.message ?? j.error ?? "결제 확인 실패");
       }
@@ -547,13 +571,17 @@ export default function BongsimPaymentsAdminClient() {
           reason_memo: compReasonMemo.trim(),
         }),
       });
-      const j = (await res.json()) as { order_number?: string; message?: string; error?: string };
+      const j = await readAdminResponseJson<{ order_number?: string; message?: string; error?: string }>(res);
       if (!res.ok) throw new Error(j.message ?? j.error ?? "무상 발급 실패");
       setCompOk(`무상 eSIM 발급 완료: ${j.order_number ?? ""} — QR 알림톡 발송이 시작됩니다.`);
       setCompPlanSelection(null);
       setCompOptionId("");
       setCompReasonMemo("");
-      await load();
+      try {
+        await load();
+      } catch {
+        /* 발급 성공 후 목록 갱신 실패는 무시 */
+      }
     } catch (e) {
       setCompErr(e instanceof Error ? e.message : "오류");
     } finally {
@@ -567,19 +595,15 @@ export default function BongsimPaymentsAdminClient() {
     setCompBulkOk(null);
     setCompBulkFailed([]);
     try {
-      const res = await fetch("/api/admin/bongsim/complimentary-esim/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          option_api_id: compOptionId.trim(),
-          reason_category: compReasonCategory,
-          reason_memo: compReasonMemo.trim(),
-          phones_text: compBulkPhones,
-        }),
-      });
-      // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 빈/잘린 응답 → Unexpected end of JSON 방지 — manifest
-      const raw = await res.text();
-      let j: {
+      const phoneLines = compBulkPhones
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (phoneLines.length === 0) {
+        throw new Error("휴대폰 번호를 1건 이상 입력해 주세요.");
+      }
+
+      type BulkJson = {
         ok?: boolean;
         requested?: number;
         succeeded?: number;
@@ -591,40 +615,63 @@ export default function BongsimPaymentsAdminClient() {
         >;
         message?: string;
         error?: string;
-      } = {};
-      if (!raw.trim()) {
-        throw new Error(
-          `서버 응답이 비었습니다 (${res.status}). 인원이 많으면 요청이 끊겼을 수 있습니다. 결제 내역에서 발급 여부를 확인한 뒤, 빠진 번호만 다시 시도하세요.`,
+      };
+
+      let succeeded = 0;
+      let failed = 0;
+      const invalid: string[] = [];
+      const failedRows: Array<{ phone: string; message: string }> = [];
+      // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 클라이언트 청크로 타임아웃·빈 JSON 방지 — manifest
+      for (let i = 0; i < phoneLines.length; i += COMPLIMENTARY_BULK_CLIENT_CHUNK) {
+        const chunk = phoneLines.slice(i, i + COMPLIMENTARY_BULK_CLIENT_CHUNK);
+        const res = await fetch("/api/admin/bongsim/complimentary-esim/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            option_api_id: compOptionId.trim(),
+            reason_category: compReasonCategory,
+            reason_memo: compReasonMemo.trim(),
+            phones_text: chunk.join("\n"),
+          }),
+        });
+        const j = await readAdminResponseJson<BulkJson>(
+          res,
+          `서버 응답이 비었습니다 (${res.status}). ${i + 1}~${i + chunk.length}번째 번호 구간에서 끊겼을 수 있습니다. 결제 내역을 확인한 뒤 빠진 번호만 다시 시도하세요.`,
         );
+        if (!res.ok) throw new Error(j.message ?? j.error ?? "일괄 발급 실패");
+        succeeded += j.succeeded ?? 0;
+        failed += j.failed ?? 0;
+        for (const p of j.invalid_phones ?? []) invalid.push(p);
+        for (const r of j.results ?? []) {
+          if (!r.ok) {
+            failedRows.push({
+              phone: r.phone,
+              message: r.message ?? r.reason ?? "발급 실패",
+            });
+          }
+        }
       }
-      try {
-        j = JSON.parse(raw) as typeof j;
-      } catch {
-        throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
-      }
-      if (!res.ok) throw new Error(j.message ?? j.error ?? "일괄 발급 실패");
-      const invalid = j.invalid_phones ?? [];
-      const failedRows =
-        j.results?.filter((r): r is { phone: string; ok: false; message?: string; reason?: string } => !r.ok) ??
-        [];
-      setCompBulkFailed(
-        failedRows.map((r) => ({
-          phone: r.phone,
-          message: r.message ?? r.reason ?? "발급 실패",
-        })),
-      );
+
+      setCompBulkFailed(failedRows);
       const parts = [
-        `일괄 발급 완료: 성공 ${j.succeeded ?? 0}건`,
-        (j.failed ?? 0) > 0 ? `실패 ${j.failed}건` : null,
+        `일괄 발급 완료: 성공 ${succeeded}건`,
+        failed > 0 ? `실패 ${failed}건` : null,
         invalid.length > 0 ? `형식 오류 ${invalid.length}건` : null,
+        phoneLines.length > COMPLIMENTARY_BULK_CLIENT_CHUNK
+          ? `${COMPLIMENTARY_BULK_CLIENT_CHUNK}명씩 나눠 처리`
+          : null,
       ].filter(Boolean);
       setCompBulkOk(
         `${parts.join(" · ")} — QR 카톡/LMS는 약 1~2초 간격으로 순차 발송됩니다(실패 시 자동 재시도). 발급 건수와 카톡 도달은 별개입니다.`,
       );
-      if ((j.succeeded ?? 0) > 0) {
+      if (succeeded > 0) {
         setCompBulkPhones("");
       }
-      await load();
+      try {
+        await load();
+      } catch {
+        /* 발급 성공 후 목록 갱신 실패는 무시 */
+      }
     } catch (e) {
       setCompBulkErr(e instanceof Error ? e.message : "오류");
     } finally {
@@ -805,7 +852,7 @@ export default function BongsimPaymentsAdminClient() {
           <h3 className="text-sm font-semibold text-violet-950">단체 일괄 발급</h3>
           <p className="mt-1 text-xs text-violet-900/90">
             위와 같은 상품·사유로 여러 명에게 1인 1장씩 발급합니다. 휴대폰 번호만 한 줄에 하나씩 입력하세요. (최대
-            100명 · 타임아웃 방지를 위해 한 번에 20명 이하 권장)
+            100명 · {COMPLIMENTARY_BULK_CLIENT_CHUNK}명씩 자동 분할 처리)
           </p>
           <label className="mt-3 block text-xs text-bt-text-muted-lavender">
             휴대폰 목록
