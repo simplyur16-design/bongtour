@@ -1247,13 +1247,15 @@
         "prebuild",
         "ci"
       ],
-      "summary": "매장 오프라인 USIM 3단계 피커 — 국가·패키지 통합 검색 + offline-usim plans API",
+      "summary": "매장 오프라인 USIM 3단계 피커 — 국가·패키지 통합 검색 + offline-usim plans API·supply_krw",
       "checks": [
         {
           "file": "lib/bongsim/recommend/query-plan-catalog.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-offline-usim-plan-picker]",
-            "queryPlanCatalog"
+            "queryPlanCatalog",
+            "includeSupplyKrw",
+            "BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL"
           ]
         },
         {
@@ -1263,9 +1265,32 @@
           ]
         },
         {
+          "file": "lib/bongsim/data/catalog-consumer-krw-sql.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-offline-usim-plan-picker]",
+            "BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL",
+            "BONGSIM_CATALOG_SUPPLY_KRW_SQL"
+          ]
+        },
+        {
           "file": "app/api/admin/bongsim/offline-usim/plans/route.ts",
           "mustInclude": [
-            "BONGSIM_CATALOG_OFFLINE_USIM_WHERE"
+            "BONGSIM_CATALOG_OFFLINE_USIM_WHERE",
+            "includeSupplyKrw: true"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/complimentary-esim/plans/route.ts",
+          "mustInclude": [
+            "BONGSIM_CATALOG_ACTIVE_WHERE",
+            "includeSupplyKrw: true"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/OfflineUsimPlanPicker.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-offline-usim-plan-picker]",
+            "서버 응답이 비었습니다"
           ]
         }
       ]

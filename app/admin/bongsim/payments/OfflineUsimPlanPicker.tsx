@@ -163,11 +163,21 @@ export default function OfflineUsimPlanPicker({ value, onChange, plansApiPath }:
         const res = await fetch(`${plansUrl}?${q.toString()}`, {
           cache: "no-store",
         });
-        const json = (await res.json()) as {
+        // REGRESSION-FREEZE[bongsim-offline-usim-plan-picker]: 빈 응답 JSON 가드 — manifest
+        const raw = await res.text();
+        if (!raw.trim()) {
+          throw new Error(`서버 응답이 비었습니다 (${res.status}). 잠시 후 다시 시도하세요.`);
+        }
+        let json: {
           groups?: Partial<PlanGroups>;
           matched_days?: number;
           error?: string;
         };
+        try {
+          json = JSON.parse(raw) as typeof json;
+        } catch {
+          throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
+        }
         if (!res.ok) throw new Error(json.error ?? "플랜 조회 실패");
         if (cancelled) return;
         setRawGroups({

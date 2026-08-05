@@ -45,6 +45,7 @@ export async function GET(req: Request) {
       days,
       allSelected,
       catalogWhere: BONGSIM_CATALOG_ACTIVE_WHERE,
+      includeSupplyKrw: true,
     });
     return NextResponse.json(payload);
   } catch (e) {

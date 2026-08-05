@@ -1,6 +1,9 @@
 import type { Pool } from "pg";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
-import { BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
+import {
+  BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL,
+  BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL,
+} from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import { parseFlagsJson } from "@/lib/bongsim/data/parse-product-json";
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
 import { withBongsimPoolQuery } from "@/lib/bongsim/db/pool";
@@ -67,6 +70,11 @@ export type QueryPlanCatalogParams = {
   network?: "roaming" | "local" | null;
   /** SQL WHERE fragment (no leading AND). Default: active eSIM-capable catalog. */
   catalogWhere?: string;
+  /**
+   * 어드민 피커 — after.supply_krw 포함 (공개 plans는 false).
+   * REGRESSION-FREEZE[bongsim-offline-usim-plan-picker]: includeSupplyKrw — manifest
+   */
+  includeSupplyKrw?: boolean;
 };
 
 export type QueryPlanCatalogResult = {
@@ -372,6 +380,9 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
   // Destination plan_name filter keeps the scan narrow without holding a checkout client.
   // withBongsimPoolQuery: TLS handshake 실패 시 relaxed 풀로 1회 재시도 (params.pool은 호환용).
   void params.pool;
+  const priceBlockSql = params.includeSupplyKrw
+    ? BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL
+    : BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL;
   const result = await withBongsimPoolQuery((pool) =>
     pool.query(
       `
@@ -383,7 +394,7 @@ export async function queryPlanCatalog(params: QueryPlanCatalogParams): Promise<
         days_raw,
         allowance_label,
         option_label,
-        ${BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL} AS price_block,
+        ${priceBlockSql} AS price_block,
         flags,
         qos_raw
       FROM bongsim_product_option

@@ -37,3 +37,18 @@ describe("BONGSIM_CATALOG_OFFLINE_USIM_WHERE", () => {
     expect(BONGSIM_CATALOG_OFFLINE_USIM_WHERE.toLowerCase()).toContain("usim");
   });
 });
+
+describe("admin plan catalog slim price with supply", () => {
+  it("WITH_SUPPLY SQL includes supply_krw extract", async () => {
+    const {
+      BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL,
+      BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL,
+      BONGSIM_CATALOG_SUPPLY_KRW_SQL,
+    } = await import("@/lib/bongsim/data/catalog-consumer-krw-sql");
+    expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL).toContain("consumer_krw");
+    expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL).not.toContain("supply_krw");
+    expect(BONGSIM_CATALOG_SUPPLY_KRW_SQL).toContain("supply_krw");
+    expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL).toContain("supply_krw");
+    expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL).toContain("consumer_krw");
+  });
+});
