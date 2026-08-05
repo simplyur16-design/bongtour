@@ -1406,7 +1406,8 @@
             "REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]",
             "adminGrantComplimentaryEsimBulk",
             "parseComplimentaryEsimBulkPhones",
-            "kickEsimQrNotifyDrain"
+            "awaitEsimQrNotifyDrain",
+            "skip_outbox_drain: true"
           ]
         },
         {
@@ -1444,6 +1445,8 @@
             "EsimQrNotify",
             "enqueueEsimQrNotify",
             "drainEsimQrNotifyOutboxBestEffort",
+            "awaitEsimQrNotifyDrain",
+            "notifyDrainTail",
             "ESIM_QR_NOTIFY_GAP_MS",
             "ESIM_QR_NOTIFY_CLAIM_LEASE_MS",
             "esimQrNotifyDedupeKey"

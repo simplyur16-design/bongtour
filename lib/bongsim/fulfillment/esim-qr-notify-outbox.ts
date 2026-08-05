@@ -318,9 +318,19 @@ export async function drainEsimQrNotifyOutboxBestEffort(maxRounds = 24): Promise
 }> {
   let processed = 0
   let deferred = 0
+  let consecutiveEmpty = 0
   for (let i = 0; i < maxRounds; i += 1) {
     const r = await processNextEsimQrNotifyOutbox()
-    if (r.outcome === 'empty') break
+    if (r.outcome === 'empty') {
+      consecutiveEmpty += 1
+      // 스케줄(available_at)만 미래인 pending이 있으면 gap 대기 후 재시도 — 일괄 발급 시 1건만 보내고 끊기는 것 방지
+      const pending = await countPendingEsimQrNotify()
+      if (pending <= 0) break
+      await sleep(ESIM_QR_NOTIFY_GAP_MS)
+      if (consecutiveEmpty >= 4) break
+      continue
+    }
+    consecutiveEmpty = 0
     if (r.outcome === 'processed') {
       processed += 1
       await sleep(ESIM_QR_NOTIFY_GAP_MS)
@@ -330,17 +340,48 @@ export async function drainEsimQrNotifyOutboxBestEffort(maxRounds = 24): Promise
       deferred += 1
       continue
     }
-    /* error — stop burst to avoid tight loop */
-    break
+    /* error — Solapi 일시 오류 등: 전체 중단하지 않고 간격 두고 계속 (일괄 발급 다건 누락 방지) */
+    deferred += 1
+    await sleep(ESIM_QR_NOTIFY_GAP_MS)
   }
   return { processed, deferred }
 }
 
-/** 웹훅·일괄 발급 직후 — 요청을 막지 않고 백그라운드 순차 발송 */
+/**
+ * 동시 kick(웹훅 버스트)이 서로 empty로 빠져 1건만 나가는 것 방지 — 프로세스 내 직렬 체인.
+ * REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: notifyDrainTail serialize kicks — manifest
+ */
+let notifyDrainTail: Promise<unknown> = Promise.resolve()
+
+/** 웹훅·일괄 발급 직후 — 요청을 막지 않고 백그라운드 순차 발송(직렬) */
 export function kickEsimQrNotifyDrain(maxRounds = 32): void {
-  void drainEsimQrNotifyOutboxBestEffort(maxRounds).catch((e) => {
-    console.warn('[bongsim:esim-qr-notify:kick]', e)
+  notifyDrainTail = notifyDrainTail
+    .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
+    .catch((e) => {
+      console.warn('[bongsim:esim-qr-notify:kick]', e)
+    })
+}
+
+/** 관리자 일괄 발급 등 — 직렬 체인에 붙여 끝날 때까지 대기 */
+export async function awaitEsimQrNotifyDrain(maxRounds = 40): Promise<{
+  processed: number
+  deferred: number
+}> {
+  let result = { processed: 0, deferred: 0 }
+  const run = notifyDrainTail.then(async () => {
+    result = await drainEsimQrNotifyOutboxBestEffort(maxRounds)
+    return result
   })
+  notifyDrainTail = run.then(
+    () => undefined,
+    () => undefined,
+  )
+  try {
+    await run
+  } catch (e) {
+    console.warn('[bongsim:esim-qr-notify:await]', e)
+  }
+  return result
 }
 
 export async function countPendingEsimQrNotify(): Promise<number> {

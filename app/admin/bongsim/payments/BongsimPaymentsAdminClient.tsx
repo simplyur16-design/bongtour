@@ -662,7 +662,7 @@ export default function BongsimPaymentsAdminClient() {
           : null,
       ].filter(Boolean);
       setCompBulkOk(
-        `${parts.join(" · ")} — QR 카톡/LMS는 약 1~2초 간격으로 순차 발송됩니다(실패 시 자동 재시도). 발급 건수와 카톡 도달은 별개입니다.`,
+        `${parts.join(" · ")} — QR 카톡/LMS는 약 1~2초 간격으로 순차 발송됩니다. 공급사 발급(웹훅)이 늦으면 수 분 뒤·2분 주기 자동 재시도로 이어질 수 있습니다. 발급 건수와 카톡 도달은 별개입니다.`,
       );
       if (succeeded > 0) {
         setCompBulkPhones("");

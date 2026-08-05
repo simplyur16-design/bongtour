@@ -225,7 +225,8 @@ export async function adminGrantComplimentaryEsimBulk(input: {
       reason_category,
       reason_memo,
       admin_id: input.admin_id,
-      skip_outbox_drain: i < phones.length - 1,
+      // 루프 중 매번 drain 하면 타임아웃 — 전부 적재 후 아래에서 일괄 drain
+      skip_outbox_drain: true,
     });
     if (!result.ok) {
       if (
@@ -249,6 +250,19 @@ export async function adminGrantComplimentaryEsimBulk(input: {
       order_number: result.order.order_number,
       fulfillment_started: result.fulfillment_started,
     });
+  }
+
+  // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 일괄 후 OrderPaid+QR 알림 직렬 await — 문자 1건만 가는 누락 방지 — manifest
+  if (succeeded > 0) {
+    try {
+      await drainOrderPaidOutboxBestEffort(Math.min(100, succeeded + 8));
+      const { awaitEsimQrNotifyDrain } = await import(
+        "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
+      );
+      await awaitEsimQrNotifyDrain(Math.min(80, succeeded * 2 + 8));
+    } catch (e) {
+      console.warn("[adminGrantComplimentaryEsimBulk] outbox/notify drain", e);
+    }
   }
 
   return {

@@ -26,4 +26,10 @@ describe('esim-qr-notify-outbox', () => {
   it('claim lease is at least 60s so concurrent kick+cron cannot double-send', () => {
     expect(ESIM_QR_NOTIFY_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(60_000)
   })
+
+  it('exports await drain + serialize kick chain symbol', async () => {
+    const mod = await import('@/lib/bongsim/fulfillment/esim-qr-notify-outbox')
+    expect(typeof mod.awaitEsimQrNotifyDrain).toBe('function')
+    expect(typeof mod.kickEsimQrNotifyDrain).toBe('function')
+  })
 })
