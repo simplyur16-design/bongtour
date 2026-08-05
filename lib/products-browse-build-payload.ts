@@ -364,14 +364,32 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       prismaWhereForBrowseTravelScope(region?.trim() ? 'overseas' : null)
 
     // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: mid/leaf geo applies take — manifest
-    const applyDbTake =
-      !isHubFullCatalog &&
-      (Boolean((searchParams.get('menuGroup') ?? '').trim()) ||
-        Boolean((searchParams.get('city') ?? '').trim()) ||
-        Boolean((searchParams.get('country') ?? '').trim()) ||
-        Boolean((searchParams.get('destination') ?? '').trim()) ||
-        Boolean((searchParams.get('sportsTheme') ?? '').trim()) ||
-        (q.region ?? '').trim() === 'sports_theme')
+    // REGRESSION-FREEZE[browse-preview-db-take]: small page-1 preview (home air-hotel) DB take — manifest
+    const hasGeoDbTake =
+      Boolean((searchParams.get('menuGroup') ?? '').trim()) ||
+      Boolean((searchParams.get('city') ?? '').trim()) ||
+      Boolean((searchParams.get('country') ?? '').trim()) ||
+      Boolean((searchParams.get('destination') ?? '').trim()) ||
+      Boolean((searchParams.get('sportsTheme') ?? '').trim()) ||
+      (q.region ?? '').trim() === 'sports_theme'
+    const poolNeedsDeparturesEarly = browsePoolNeedsDepartureAttach({
+      paxFilter,
+      departHours: q.departHours,
+      departWeekdays: q.departWeekdays,
+    })
+    const previewDbTake =
+      page === 1 &&
+      limit <= 48 &&
+      !hasOverseasUrlGeo &&
+      !hasGeoDbTake &&
+      !poolNeedsDeparturesEarly
+    const applyDbTake = !isHubFullCatalog && (hasGeoDbTake || previewDbTake)
+    /** geo는 limit 그대로, 미리보기는 over-fetch 후 score (urgent·updatedAt 이후 정렬 여유) */
+    const dbTake = applyDbTake
+      ? previewDbTake
+        ? Math.min(200, Math.max(limit * 4, 80))
+        : limit
+      : undefined
     const productRows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',
@@ -387,17 +405,13 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         { urgentDealNextDate: { sort: 'asc', nulls: 'last' } },
         { updatedAt: 'desc' },
       ],
-      ...(applyDbTake ? { take: limit } : {}),
+      ...(dbTake != null ? { take: dbTake } : {}),
       select: buildProductBrowseFindManySelectWithoutDepartures(),
     })
 
     const overseasLike = scope === 'overseas' || !!region
 
-    const poolNeedsDepartures = browsePoolNeedsDepartureAttach({
-      paxFilter,
-      departHours: q.departHours,
-      departWeekdays: q.departWeekdays,
-    })
+    const poolNeedsDepartures = poolNeedsDeparturesEarly
     let rows: ProductBrowseIncludedRow[]
     if (poolNeedsDepartures) {
       const departureByProductId = await fetchBrowseDeparturesByProductIds(

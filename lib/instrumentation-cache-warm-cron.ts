@@ -14,6 +14,7 @@ import { CACHE_WARM_HTTP_ROUTES } from '@/lib/cache-warm-routes'
 import { getCachedProductsBrowsePayload } from '@/lib/products-browse-cached'
 import {
   buildAirHotelHubBrowseQueryKey,
+  buildHomeAirHotelPreviewBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
 } from '@/lib/products-browse-hub-query'
 import { getInternalLoopbackOrigin } from '@/lib/internal-loopback-origin'
@@ -22,6 +23,8 @@ import { hubBrowsePrefetchWithTimeout } from '@/lib/products-browse-hub-prefetch
 const CACHE_WARM_BROWSE_QUERY_KEYS = [
   buildOverseasHubBrowseQueryKey('scope=overseas'),
   buildAirHotelHubBrowseQueryKey('scope=overseas&type=air-hotel'),
+  // REGRESSION-FREEZE[browse-preview-db-take]: warm home preview key — manifest
+  buildHomeAirHotelPreviewBrowseQueryKey(),
 ] as const
 
 /** 가벼운 정적·허브 페이지 — HTTP loopback 허용 상한 */

@@ -3,14 +3,16 @@ import { Suspense } from 'react'
 import Header from '@/app/components/Header'
 import OverseasBrowseSlot from '@/app/components/travel/overseas/OverseasBrowseSlot'
 import OverseasHeroLoading from '@/app/components/travel/overseas/OverseasHeroLoading'
-import OverseasHeroSlot, { overseasSelectedRegionSlug } from '@/app/components/travel/overseas/OverseasHeroSlot'
+import OverseasHeroSlot from '@/app/components/travel/overseas/OverseasHeroSlot'
 import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasInteractiveShell'
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
 import OverseasRegionMegaNav from '@/app/components/travel/overseas/OverseasRegionMegaNav'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
-import { searchParamsRecordToUrlSearchParams } from '@/lib/products-browse-hub-query'
 import { SITE_NAME } from '@/lib/site-metadata'
 
+// REGRESSION-FREEZE[overseas-hub-isr-cdn]: force-static + no request query await — private no-store 금지 — manifest
+/** 요청 query 미사용 → CDN/Full Route Cache. ?region=&country= 는 클라 URL SSOT. */
+export const dynamic = 'force-static'
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,17 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function OverseasTravelPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
-  const sp = (await searchParams) ?? {}
-  const region = typeof sp.region === 'string' ? sp.region : null
-  const country = typeof sp.country === 'string' ? sp.country : null
-  const selectedRegionSlug = overseasSelectedRegionSlug(region)
-  const hubSearchParamsString = searchParamsRecordToUrlSearchParams(sp).toString()
-
+export default async function OverseasTravelPage() {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -55,18 +47,18 @@ export default async function OverseasTravelPage({
       <main>
         <Suspense fallback={<OverseasHeroLoading />}>
           <OverseasHeroSlot
-            selectedCountrySlug={country}
-            selectedRegionSlug={selectedRegionSlug}
-            initialSearchParamsString={hubSearchParamsString}
+            selectedCountrySlug={null}
+            selectedRegionSlug={null}
+            initialSearchParamsString=""
           />
         </Suspense>
 
-        <OverseasBrowseSlot searchParams={sp} />
+        <OverseasBrowseSlot />
 
         <OverseasInteractiveShell
           postProductSlot={
             <Suspense fallback={null}>
-              <OverseasManagedContent region={region} country={country} omitEditorialSection omitMonthlyCuration />
+              <OverseasManagedContent omitEditorialSection omitMonthlyCuration />
             </Suspense>
           }
         />

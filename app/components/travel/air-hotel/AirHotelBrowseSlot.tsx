@@ -1,13 +1,11 @@
 import ProductsBrowseClient from '@/components/products/ProductsBrowseClient'
-import { computeHubFocusedResultsFromRecord } from '@/lib/hub-focused-results'
 import { createHubGalleryRotationSeed } from '@/lib/hub-gallery-rotation'
 
-type Props = {
-  searchParams: Record<string, string | string[] | undefined>
-}
-
-/** browse 목록은 클라이언트가 캐시된 `/api/products/browse`로 로드 — RSC HTML 비대화 방지 */
-export default function AirHotelBrowseSlot({ searchParams }: Props) {
+/**
+ * browse 목록은 클라이언트가 캐시된 `/api/products/browse`로 로드 — RSC HTML 비대화 방지.
+ * REGRESSION-FREEZE[air-hotel-hub-isr-cdn]: SSR query 미전달 — manifest
+ */
+export default function AirHotelBrowseSlot() {
   return (
     <ProductsBrowseClient
       hubBrowse
@@ -15,11 +13,8 @@ export default function AirHotelBrowseSlot({ searchParams }: Props) {
       defaultScope="overseas"
       pageTitle="항공+호텔"
       hidePageHeading
-      initialSearchParams={searchParams}
-      initialHubFocusedResults={computeHubFocusedResultsFromRecord(searchParams, {
-        pathname: '/travel/air-hotel',
-        defaultScope: 'overseas',
-      })}
+      initialSearchParams={null}
+      initialHubFocusedResults={false}
       hubGalleryRotationSeed={createHubGalleryRotationSeed()}
     />
   )

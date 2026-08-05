@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
 import Header from '@/app/components/Header'
 import AirHotelBrowseSlot from '@/app/components/travel/air-hotel/AirHotelBrowseSlot'
 import AirHotelHero from '@/app/components/travel/air-hotel/AirHotelHero'
 import AirHotelHeroLoading from '@/app/components/travel/air-hotel/AirHotelHeroLoading'
-import { AIR_HOTEL_BROWSE_TYPE, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
 import { getCachedAirHotelSeasonCuration } from '@/lib/air-hotel-season-curation-content'
 import { SITE_NAME } from '@/lib/site-metadata'
 
+// REGRESSION-FREEZE[air-hotel-hub-isr-cdn]: force-static + no request query await — private no-store 금지 — manifest
+/** 요청 query 미사용 → CDN/Full Route Cache. ?scope=&type= 는 클라 URL SSOT. */
+export const dynamic = 'force-static'
 export const revalidate = 300
 
 export const metadata: Metadata = {
@@ -34,34 +35,7 @@ async function AirHotelSeasonSection() {
   }
 }
 
-export default async function AirHotelPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
-  const perfPage = process.env.BONGTOUR_PERF_LOG === '1' // PERF-LOG: 측정 후 제거
-  const tPage0 = perfPage ? performance.now() : 0 // PERF-LOG: 측정 후 제거
-  const sp = (await searchParams) ?? {}
-  const scope = typeof sp.scope === 'string' ? sp.scope : null
-  const type = typeof sp.type === 'string' ? sp.type : null
-
-  if (!scope || !type) {
-    redirect(`/travel/air-hotel?scope=overseas&type=${AIR_HOTEL_BROWSE_TYPE}`)
-  }
-  if (scope !== 'overseas' && scope !== 'domestic') {
-    redirect(`/travel/air-hotel?scope=overseas&type=${AIR_HOTEL_BROWSE_TYPE}`)
-  }
-  if (parseAirHotelBrowseTypeParam(type) !== AIR_HOTEL_BROWSE_TYPE) {
-    redirect(`/travel/air-hotel?scope=${encodeURIComponent(scope)}&type=${AIR_HOTEL_BROWSE_TYPE}`)
-  }
-
-  if (perfPage) {
-    console.log(
-      '[page-rsc-perf]',
-      JSON.stringify({ route: '/travel/air-hotel', rscRenderMs: Math.round(performance.now() - tPage0) }),
-    ) // PERF-LOG: 측정 후 제거
-  }
-
+export default async function AirHotelPage() {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
@@ -70,7 +44,7 @@ export default async function AirHotelPage({
           <AirHotelSeasonSection />
         </Suspense>
 
-        <AirHotelBrowseSlot searchParams={sp} />
+        <AirHotelBrowseSlot />
       </main>
     </div>
   )

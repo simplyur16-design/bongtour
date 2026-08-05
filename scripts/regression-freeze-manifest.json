@@ -2305,7 +2305,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
             "applyDbTake",
-            "take: limit"
+            "hasGeoDbTake"
           ]
         },
         {
@@ -11743,6 +11743,154 @@
             "s-maxage=120"
           ]
         }
+      ]
+    },
+    {
+      "id": "overseas-hub-isr-cdn",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "해외 허브 force-static ISR + middleware CDN s-maxage=300 — searchParams로 private no-store 금지",
+      "checks": [
+        {
+          "file": "app/travel/overseas/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-isr-cdn]",
+            "force-static",
+            "revalidate = 300"
+          ],
+          "mustNotInclude": [
+            "searchParams",
+            "await headers()"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasBrowseSlot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-isr-cdn]",
+            "initialSearchParamsString=\"\""
+          ],
+          "mustNotInclude": [
+            "searchParams:"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-isr-cdn]",
+            "/travel/overseas",
+            "s-maxage=300"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "air-hotel-hub-isr-cdn",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "항공+호텔 허브 force-static ISR + middleware CDN — SSR redirect/searchParams로 private no-store 금지",
+      "checks": [
+        {
+          "file": "app/travel/air-hotel/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[air-hotel-hub-isr-cdn]",
+            "force-static",
+            "revalidate = 300"
+          ],
+          "mustNotInclude": [
+            "searchParams",
+            "redirect(",
+            "await headers()"
+          ]
+        },
+        {
+          "file": "app/components/travel/air-hotel/AirHotelBrowseSlot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[air-hotel-hub-isr-cdn]",
+            "initialSearchParams={null}"
+          ],
+          "mustNotInclude": [
+            "searchParams:"
+          ]
+        },
+        {
+          "file": "lib/products-browse-hub-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[air-hotel-hub-isr-cdn]",
+            "normalizeAirHotelHubUrlSearchParams",
+            "p.set('type', 'air-hotel')"
+          ]
+        },
+        {
+          "file": "components/products/ProductsBrowseClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[air-hotel-hub-isr-cdn]",
+            "normalizeAirHotelHubUrlSearchParams"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[air-hotel-hub-isr-cdn]",
+            "/travel/air-hotel",
+            "s-maxage=300"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/products-browse-hub-query.test.ts"
+      ]
+    },
+    {
+      "id": "browse-preview-db-take",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈 항공+호텔 browse 미리보기 — DB take + canonical cache key (콜드 전량 findMany 금지)",
+      "checks": [
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-preview-db-take]",
+            "previewDbTake",
+            "Math.min(200, Math.max(limit * 4, 80))"
+          ]
+        },
+        {
+          "file": "lib/products-browse-hub-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-preview-db-take]",
+            "buildHomeAirHotelPreviewBrowseQueryKey",
+            "HOME_AIR_HOTEL_PREVIEW_LIMIT"
+          ]
+        },
+        {
+          "file": "lib/products-browse-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-preview-db-take]",
+            "canonicalBrowseQueryKey"
+          ]
+        },
+        {
+          "file": "app/components/home/AirHotelProductGridClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-preview-db-take]",
+            "buildHomeAirHotelPreviewBrowseQueryKey"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-cache-warm-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-preview-db-take]",
+            "buildHomeAirHotelPreviewBrowseQueryKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/products-browse-hub-query.test.ts"
       ]
     },
     {

@@ -1,10 +1,39 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildAirHotelHubBrowseQueryKey,
+  buildHomeAirHotelPreviewBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
   buildOverseasHubCatalogFetchQueryKey,
+  HOME_AIR_HOTEL_PREVIEW_LIMIT,
   isOverseasHubFullCatalogQueryKey,
+  normalizeAirHotelHubUrlSearchParams,
   overseasHubUrlNeedsServerGeoFetch,
 } from '@/lib/products-browse-hub-query'
+
+describe('buildHomeAirHotelPreviewBrowseQueryKey', () => {
+  it('canonical home preview key — not hub full catalog', () => {
+    const key = buildHomeAirHotelPreviewBrowseQueryKey()
+    expect(key).toBe(`limit=${HOME_AIR_HOTEL_PREVIEW_LIMIT}&page=1&scope=overseas&type=air-hotel`)
+    expect(isOverseasHubFullCatalogQueryKey(key)).toBe(false)
+  })
+})
+
+describe('buildAirHotelHubBrowseQueryKey', () => {
+  it('always includes type=air-hotel even when URL omits it', () => {
+    const key = buildAirHotelHubBrowseQueryKey('scope=overseas')
+    expect(key).toContain('type=air-hotel')
+    expect(key).toContain('scope=overseas')
+    expect(key).toContain('limit=10000')
+  })
+})
+
+describe('normalizeAirHotelHubUrlSearchParams', () => {
+  it('fills defaults and coerces bad type', () => {
+    const n = normalizeAirHotelHubUrlSearchParams(new URLSearchParams('type=travel'))
+    expect(n.get('scope')).toBe('overseas')
+    expect(n.get('type')).toBe('air-hotel')
+  })
+})
 
 describe('isOverseasHubFullCatalogQueryKey', () => {
   it('matches hub catalog fetch key', () => {

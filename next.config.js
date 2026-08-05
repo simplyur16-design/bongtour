@@ -72,7 +72,7 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
     /**
      * App Router 뒤로가기·재진입 시 RSC 재요청 완화(기본 dynamic stale 0초).
-     * 해외/자유여행 허브·상세는 여전히 dynamic — 캐시는 짧게만 유지한다.
+     * 해외·항공+호텔 허브는 force-static ISR — 상품 상세는 별도.
      */
     staleTimes: {
       dynamic: 60,

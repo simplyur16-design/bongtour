@@ -4,10 +4,8 @@ import { useEffect, useState } from 'react'
 import ProductResultCardsClient from '@/app/components/home/ProductResultCardsClient'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS } from '@/lib/products-browse-hub-prefetch-timeout'
+import { buildHomeAirHotelPreviewBrowseQueryKey } from '@/lib/products-browse-hub-query'
 import type { ResultItem } from '@/components/products/ProductResultsList'
-
-/** 메인 그리드 — 허브 전량(1만)이 아닌 미리보기만 요청 */
-const HOME_AIR_HOTEL_PREVIEW_LIMIT = '20'
 
 type BrowseOk = { ok: true; items: ResultItem[] }
 
@@ -17,17 +15,13 @@ export default function AirHotelProductGridClient() {
 
   useEffect(() => {
     let active = true
-    const qs = new URLSearchParams({
-      scope: 'overseas',
-      type: 'air-hotel',
-      limit: HOME_AIR_HOTEL_PREVIEW_LIMIT,
-      page: '1',
-    })
+    // REGRESSION-FREEZE[browse-preview-db-take]: canonical home preview key — manifest
+    const qs = buildHomeAirHotelPreviewBrowseQueryKey()
     const timer = setTimeout(() => {
       if (active) setReady(true)
     }, HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS)
 
-    void fetch(`/api/products/browse?${qs.toString()}`)
+    void fetch(`/api/products/browse?${qs}`)
       .then((res) => res.json() as Promise<BrowseOk | { ok: false }>)
       .then((body) => {
         if (!active) return

@@ -284,6 +284,20 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
+  // REGRESSION-FREEZE[overseas-hub-isr-cdn]: anonymous CDN hint (matcher always-on) — manifest
+  if (pathname === '/travel/overseas') {
+    const res = forward()
+    res.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    return res
+  }
+
+  // REGRESSION-FREEZE[air-hotel-hub-isr-cdn]: anonymous CDN hint (matcher always-on) — manifest
+  if (pathname === '/travel/air-hotel') {
+    const res = forward()
+    res.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    return res
+  }
+
   return forward()
 }
 
@@ -299,6 +313,8 @@ export const config = {
     '/',
     '/m',
     '/travel/esim/recommend',
+    '/travel/overseas',
+    '/travel/air-hotel',
     '/simplyur',
     '/simplyur/:path*',
     '/admin',

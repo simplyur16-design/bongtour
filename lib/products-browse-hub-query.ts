@@ -154,6 +154,8 @@ export function buildAirHotelHubBrowseQueryKey(qsInput: URLSearchParams | string
   const p =
     typeof qsInput === 'string' ? new URLSearchParams(qsInput) : new URLSearchParams(qsInput.toString())
   if (!p.get('scope')) p.set('scope', 'overseas')
+  // REGRESSION-FREEZE[air-hotel-hub-isr-cdn]: hub browse key always type=air-hotel — manifest
+  p.set('type', 'air-hotel')
   p.set('limit', AIR_HOTEL_HUB_BROWSE_LIMIT)
   p.delete('page')
   p.delete('country')
@@ -161,6 +163,33 @@ export function buildAirHotelHubBrowseQueryKey(qsInput: URLSearchParams | string
   p.delete('city')
   stripSidebarFilterParamsFromSearchParams(p)
   applyBudgetFitSortIfNeeded(p)
+  return canonicalBrowseQueryKey(p)
+}
+
+/**
+ * 항공+호텔 허브 URL — scope/type 기본값·레거시 type 정규화 (SSR redirect 대체).
+ * REGRESSION-FREEZE[air-hotel-hub-isr-cdn]: client URL normalize SSOT — manifest
+ */
+export function normalizeAirHotelHubUrlSearchParams(spInput: URLSearchParams): URLSearchParams {
+  const p = new URLSearchParams(spInput.toString())
+  const scope = (p.get('scope') ?? '').trim()
+  if (scope !== 'overseas' && scope !== 'domestic') {
+    p.set('scope', 'overseas')
+  }
+  p.set('type', 'air-hotel')
+  return p
+}
+
+/** 메인 홈 항공+호텔 미리보기 — 허브 전량(1만)과 별도 캐시 키 */
+export const HOME_AIR_HOTEL_PREVIEW_LIMIT = '20'
+
+// REGRESSION-FREEZE[browse-preview-db-take]: home air-hotel preview key SSOT — manifest
+export function buildHomeAirHotelPreviewBrowseQueryKey(): string {
+  const p = new URLSearchParams()
+  p.set('scope', 'overseas')
+  p.set('type', 'air-hotel')
+  p.set('limit', HOME_AIR_HOTEL_PREVIEW_LIMIT)
+  p.set('page', '1')
   return canonicalBrowseQueryKey(p)
 }
 

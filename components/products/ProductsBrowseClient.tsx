@@ -34,6 +34,7 @@ import {
   buildAirHotelHubBrowseQueryKey,
   buildOverseasHubBrowseQueryKey,
   buildProductsBrowseQueryKey,
+  normalizeAirHotelHubUrlSearchParams,
   searchParamsRecordToUrlSearchParams,
 } from '@/lib/products-browse-hub-query'
 import { computeHubFocusedResults } from '@/lib/hub-focused-results'
@@ -951,8 +952,24 @@ function ProductsBrowseClientHub(props: Props) {
   const [searchParamsString, setSearchParamsString] = useState(initialQs)
 
   useEffect(() => {
-    setSearchParamsString(initialQs)
-  }, [initialQs])
+    if (typeof window === 'undefined') return
+    const raw = window.location.search.replace(/^\?/, '')
+    if (props.basePath === '/travel/air-hotel') {
+      // REGRESSION-FREEZE[air-hotel-hub-isr-cdn]: client URL normalize (no SSR redirect) — manifest
+      const normalized = normalizeAirHotelHubUrlSearchParams(new URLSearchParams(raw))
+      const qs = normalized.toString()
+      if (qs !== raw) {
+        window.history.replaceState(null, '', qs ? `${props.basePath}?${qs}` : props.basePath)
+      }
+      setSearchParamsString(qs)
+      return
+    }
+    if (raw) {
+      setSearchParamsString(raw)
+      return
+    }
+    if (initialQs) setSearchParamsString(initialQs)
+  }, [initialQs, props.basePath])
 
   return (
     <ProductsBrowseClientCore
