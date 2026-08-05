@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
@@ -47,7 +49,7 @@ export default function SixMonthPurgeRecommendationsPage() {
         setData(null)
         return
       }
-      setData((await r.json()) as ApiResponse)
+      setData(await readAdminResponseJson<ApiResponse>(r))
     } catch {
       setErr('네트워크 오류')
       setData(null)
@@ -82,7 +84,7 @@ export default function SixMonthPurgeRecommendationsPage() {
         method: 'DELETE',
         credentials: 'include',
       })
-      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      const j = (await readAdminResponseJson(r).catch(() => ({}))) as { error?: string }
       if (!r.ok) {
         setMsg(j.error ?? `삭제 실패 (${r.status})`)
         return

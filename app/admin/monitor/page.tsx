@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 
@@ -143,7 +145,7 @@ export default function AdminMonitorPage() {
       const res = await fetch(
         `/api/admin/products/${pid}/prices?targetDate=${encodeURIComponent(targetDate)}`
       )
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && Array.isArray(data.prices)) {
         setSixtyDayRows(data.prices)
       } else {

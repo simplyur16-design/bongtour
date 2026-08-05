@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useEffect, useState } from 'react'
 import {
   BRIEFING_SOURCE_TYPES,
@@ -138,7 +140,7 @@ export default function MonthlyCurationEditor({ open, mode, defaults, prefillFro
             isActive: form.isActive,
           }),
         })
-        const data = (await res.json().catch(() => ({}))) as {
+        const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
           item?: AdminMonthlyCurationListItem
           error?: string
           fieldErrors?: Record<string, string>
@@ -170,7 +172,7 @@ export default function MonthlyCurationEditor({ open, mode, defaults, prefillFro
             isActive: form.isActive,
           }),
         })
-        const data = (await res.json().catch(() => ({}))) as {
+        const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
           item?: AdminMonthlyCurationListItem
           error?: string
           fieldErrors?: Record<string, string>

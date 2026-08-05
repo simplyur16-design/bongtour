@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import BlogMarkdownPreview from './BlogMarkdownPreview'
@@ -61,7 +63,7 @@ export default function MarketingBlogDetailClient(props: {
     setErr('')
     try {
       const res = await fetch(`/api/admin/marketing/blog-posts/${id}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '조회 실패')
       const p = data as PostDetail
       setPost(p)
@@ -91,7 +93,7 @@ export default function MarketingBlogDetailClient(props: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '요청 실패')
       setMsg('저장되었습니다.')
       await load()
@@ -128,7 +130,7 @@ export default function MarketingBlogDetailClient(props: {
     setErr('')
     try {
       const res = await fetch(`/api/admin/marketing/blog-posts/${id}`, { method: 'DELETE' })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '삭제 실패')
       window.location.href = listHref
     } catch (e) {

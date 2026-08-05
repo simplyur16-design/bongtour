@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState } from 'react'
 
 export type SlideRow = {
@@ -53,7 +55,7 @@ export default function SlideViewer({ seriesId, episodeId, slides, onUpdated }: 
           }),
         },
       )
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
       setEditingId(null)
       onUpdated()

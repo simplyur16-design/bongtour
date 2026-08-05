@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
@@ -43,7 +45,7 @@ export default function AdminPhotoPoolPage() {
     try {
       const url = filterCity ? `/api/admin/photo-pool?city=${encodeURIComponent(filterCity)}` : '/api/admin/photo-pool'
       const res = await fetch(url)
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       setList(Array.isArray(data) ? data : [])
     } finally {
       setListLoading(false)
@@ -101,7 +103,7 @@ export default function AdminPhotoPoolPage() {
       const form = new FormData()
       form.append('file', first)
       const res = await fetch('/api/admin/suggest-image-name', { method: 'POST', body: form })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data?.error ?? '추천 실패')
       setCityNames(data.city ?? '')
       setAttractionNames(data.attraction ?? '')
@@ -142,7 +144,7 @@ export default function AdminPhotoPoolPage() {
         const form = new FormData()
         chunks[c].forEach((f) => form.append('file', f))
         const res = await fetch('/api/admin/photo-pool/batch-with-suggest', { method: 'POST', body: form })
-        const data = await res.json()
+        const data = await readAdminResponseJson(res)
         if (res.ok) {
           const n = data.saved ?? 0
           totalSaved += n
@@ -182,7 +184,7 @@ export default function AdminPhotoPoolPage() {
       form.append('source', source.trim() || 'Upload')
 
       const res = await fetch('/api/admin/photo-pool/upload', { method: 'POST', body: form })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data?.message ?? data?.error ?? '저장 실패')
       setMessage(`${data.saved ?? 0}장 자동 저장됨`)
       setFiles([])
@@ -241,7 +243,7 @@ export default function AdminPhotoPoolPage() {
         const res = await fetch(`/api/admin/photo-pool/${id}`, { method: 'DELETE' })
         if (res.ok) await loadList()
         else {
-          const data = await res.json().catch(() => ({}))
+          const data = await readAdminResponseJson(res).catch(() => ({}))
           setMessage(data?.error ?? '삭제 실패')
         }
       } catch {

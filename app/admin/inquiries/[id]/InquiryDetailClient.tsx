@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -83,7 +85,7 @@ export default function InquiryDetailClient({ inquiryId }: { inquiryId: string }
   const fetchDetail = useCallback(async () => {
     setLoadError(null)
     const res = await fetch(`/api/admin/inquiries/${inquiryId}`)
-    const data = (await res.json().catch(() => ({}))) as { inquiry?: InquiryDetailDto; error?: string }
+    const data = (await readAdminResponseJson(res).catch(() => ({}))) as { inquiry?: InquiryDetailDto; error?: string }
     if (!res.ok) {
       setLoadError(data.error ?? '불러오지 못했습니다.')
       setRow(null)

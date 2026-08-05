@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import AdminEmptyState from '../components/AdminEmptyState'
@@ -119,7 +121,7 @@ export default function AdminPendingPage() {
         setRegisteredMessage('등록되었습니다. 상품 목록에서 확인하세요.')
         setSelectedId(null)
       } else {
-        const json = (await res.json().catch(() => null)) as { error?: string; missing?: { departures?: boolean; itineraryDays?: boolean } } | null
+        const json = (await readAdminResponseJson(res).catch(() => null)) as { error?: string; missing?: { departures?: boolean; itineraryDays?: boolean } } | null
         const parts = [json?.error?.trim()].filter(Boolean)
         if (json?.missing?.departures) parts.push('출발일(ProductDeparture) 없음')
         if (json?.missing?.itineraryDays) parts.push('일정(ItineraryDay) 없음')
@@ -164,7 +166,7 @@ export default function AdminPendingPage() {
         setList((prev) => prev.filter((p) => p.id !== productId))
         setSelectedId(null)
       } else {
-        const json = await res.json().catch(() => ({}))
+        const json = await readAdminResponseJson(res).catch(() => ({}))
         alert((json as { error?: string }).error ?? '반려 처리에 실패했습니다.')
       }
     } finally {

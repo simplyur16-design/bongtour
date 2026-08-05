@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -43,7 +45,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
     setError('')
     try {
       const res = await fetch(`/api/admin/marketing/card-news/series/${seriesId}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '조회 실패')
       setSeries(data.series)
     } catch (e) {
@@ -67,7 +69,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
       const res = await fetch(`/api/admin/marketing/card-news/series/${seriesId}/generate`, {
         method: 'POST',
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '생성 실패')
       await load()
     } catch (e) {
@@ -86,7 +88,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ seriesId, contentTrack: track }),
       })
-      const json = (await res.json()) as { redirectTo?: string; error?: string }
+      const json = await readAdminResponseJson<{ redirectTo?: string; error?: string }>(res)
       if (!res.ok) throw new Error(json.error ?? '블로그 생성 실패')
       if (json.redirectTo) {
         router.push(json.redirectTo)
@@ -103,7 +105,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
     if (!confirm('시리즈와 모든 편·슬라이드를 삭제합니다. 계속할까요?')) return
     const res = await fetch(`/api/admin/marketing/card-news/series/${seriesId}`, { method: 'DELETE' })
     if (!res.ok) {
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       setError(data.error ?? '삭제 실패')
       return
     }
@@ -128,7 +130,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    const data = await res.json()
+    const data = await readAdminResponseJson(res)
     if (!res.ok) throw new Error(data.error ?? '저장 실패')
     await load()
   }
@@ -151,7 +153,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
           operatorNote: `[자동 생성] ${type === 'tip' ? '여행팁' : '주의사항'} 빠른 추가`,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '편 추가 실패')
       await load()
     } catch (e) {
@@ -282,7 +284,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
                 { method: 'DELETE' },
               )
               if (!res.ok) {
-                const data = await res.json()
+                const data = await readAdminResponseJson(res)
                 throw new Error(data.error ?? '삭제 실패')
               }
               await load()
@@ -317,7 +319,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
                     `/api/admin/marketing/card-news/series/${id}/recommend-cities`,
                     { method: 'POST' },
                   )
-                  const data = await res.json()
+                  const data = await readAdminResponseJson(res)
                   if (!res.ok) throw new Error(data.error ?? '추천 실패')
                   return data.recommendation?.cities ?? data.series?.selectedCities ?? []
                 }}
@@ -335,7 +337,7 @@ export default function CardNewsDetailClient({ seriesId }: { seriesId: string })
                       selectedCities: values.selectedCities,
                     }),
                   })
-                  const data = await res.json()
+                  const data = await readAdminResponseJson(res)
                   if (!res.ok) throw new Error(data.error ?? '저장 실패')
                   setMetaOpen(false)
                   await load()

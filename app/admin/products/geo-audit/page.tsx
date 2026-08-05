@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
 import {
@@ -177,7 +179,7 @@ export default function GeoAuditPage() {
         setData(null)
         return
       }
-      const j = (await r.json()) as ListResponse
+      const j = await readAdminResponseJson<ListResponse>(r)
       setData(j)
       setSelectedId((prev) => {
         if (j.items.length === 0) return null
@@ -280,7 +282,7 @@ export default function GeoAuditPage() {
           })),
         }),
       })
-      const j = await r.json().catch(() => ({}))
+      const j = await readAdminResponseJson(r).catch(() => ({}))
       if (!r.ok) {
         const errMsg = typeof j.error === 'string' ? j.error : `적용 실패 (${r.status})`
         const reason = typeof (j as { reason?: unknown }).reason === 'string' ? String((j as { reason: string }).reason) : ''

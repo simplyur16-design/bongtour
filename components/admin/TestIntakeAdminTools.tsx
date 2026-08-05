@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 
@@ -40,7 +42,7 @@ export default function TestIntakeAdminTools({ variant = 'combined', onPurged }:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dryRun: true }),
     })
-    const preview = (await previewRes.json().catch(() => ({}))) as PurgePreview & { error?: string }
+    const preview = (await readAdminResponseJson(previewRes).catch(() => ({}))) as PurgePreview & { error?: string }
     if (!previewRes.ok) {
       setPurgeMessage(preview.error ?? '목록 조회 실패')
       return
@@ -65,7 +67,7 @@ export default function TestIntakeAdminTools({ variant = 'combined', onPurged }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dryRun: false }),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         error?: string
         deletedInquiries?: number
         deletedBookings?: number
@@ -151,7 +153,7 @@ export function useAdminIntakeDelete(onDone: () => void) {
       const url =
         kind === 'inquiry' ? `/api/admin/inquiries/${id}` : `/api/admin/bookings/${id}`
       const res = await fetch(url, { method: 'DELETE' })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setError(data.error ?? '삭제 실패')
         return
@@ -189,7 +191,7 @@ export function useAdminIntakeDelete(onDone: () => void) {
           items: rows.map((r) => ({ kind: r.kind, id: r.id })),
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         error?: string
         deletedCount?: number
         failedCount?: number

@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState } from 'react'
 import SlideViewer from '@/components/admin/marketing/card-news/SlideViewer'
 import { CARD_NEWS_EPISODE_STATUS_LABEL } from '@/lib/bong-marketing/card-news-admin-constants'
@@ -69,7 +71,7 @@ export default function EpisodeCard({ seriesId, episode, onEdit, onDelete, onRef
       const res = await fetch(`/api/admin/marketing/card-news/episodes/${episode.id}/caption`, {
         method: 'POST',
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '캡션 생성 실패')
       onRefresh()
     } catch (e) {

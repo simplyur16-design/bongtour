@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import SeriesCard, { type SeriesCardData } from '@/components/admin/marketing/card-news/SeriesCard'
@@ -14,7 +16,7 @@ export default function CardNewsListClient() {
     setError('')
     try {
       const res = await fetch('/api/admin/marketing/card-news/series')
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '목록 조회 실패')
       setSeries(Array.isArray(data.series) ? data.series : [])
     } catch (e) {

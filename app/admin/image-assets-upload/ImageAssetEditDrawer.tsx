@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useEffect, useState } from 'react'
 import {
   ADMIN_MANUAL_PRIMARY_HERO_UPLOAD_OPTIONS,
@@ -118,7 +120,7 @@ export default function ImageAssetEditDrawer({ open, row, onClose, onSaved }: Pr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok || !data.ok) {
         setError(typeof data.error === 'string' ? data.error : '저장 실패')
         return

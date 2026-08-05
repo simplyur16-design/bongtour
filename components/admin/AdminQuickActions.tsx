@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Command, Loader2, MessageSquare, Search, X } from 'lucide-react'
@@ -65,7 +67,7 @@ export default function AdminQuickActions() {
     setInquiriesLoading(true)
     try {
       const res = await fetch('/api/admin/quick-actions/inquiries?limit=20')
-      const data = (await res.json().catch(() => ({}))) as { inquiries?: InquiryRow[] }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { inquiries?: InquiryRow[] }
       if (res.ok) setInquiries(data.inquiries ?? [])
     } finally {
       setInquiriesLoading(false)
@@ -106,7 +108,7 @@ export default function AdminQuickActions() {
         setProductLoading(true)
         try {
           const res = await fetch(`/api/admin/quick-actions/products?q=${encodeURIComponent(q)}`)
-          const data = (await res.json().catch(() => ({}))) as { products?: ProductHit[] }
+          const data = (await readAdminResponseJson(res).catch(() => ({}))) as { products?: ProductHit[] }
           if (res.ok) setProducts(data.products ?? [])
         } finally {
           setProductLoading(false)
@@ -135,7 +137,7 @@ export default function AdminQuickActions() {
           status: replyStatus,
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string; ok?: boolean; detail?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string; ok?: boolean; detail?: string }
       if (!res.ok || !data.ok) {
         setReplyErr(data.error ?? '발송에 실패했습니다.')
         return

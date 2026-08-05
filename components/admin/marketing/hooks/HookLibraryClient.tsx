@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import HookForm, { type HookFormValues } from './HookForm'
@@ -68,7 +70,7 @@ export default function HookLibraryClient() {
       if (appliedSearch) q.set('search', appliedSearch)
       if (activeOnly) q.set('isActive', 'true')
       const res = await fetch(`/api/admin/marketing/hooks?${q}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '목록 조회 실패')
       setItems(data.items ?? [])
     } catch (e) {
@@ -92,7 +94,7 @@ export default function HookLibraryClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '수정 실패')
       setItems((prev) => prev.map((r) => (r.id === id ? { ...r, ...data.item } : r)))
     } catch (e) {
@@ -107,7 +109,7 @@ export default function HookLibraryClient() {
     setError('')
     try {
       const res = await fetch(`/api/admin/marketing/hooks/${id}`, { method: 'DELETE' })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '삭제 실패')
       setItems((prev) => prev.filter((r) => r.id !== id))
     } catch (e) {
@@ -132,7 +134,7 @@ export default function HookLibraryClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topKeywordGroups: 3, itemsPerKeyword: 20 }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '수집 실패')
       setCollectResult(data as CollectResult)
       await load()
@@ -162,7 +164,7 @@ export default function HookLibraryClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '수정 실패')
     } else {
       const res = await fetch('/api/admin/marketing/hooks', {
@@ -170,7 +172,7 @@ export default function HookLibraryClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, source: 'manual' }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '등록 실패')
     }
     await load()

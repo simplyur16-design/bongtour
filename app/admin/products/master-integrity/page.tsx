@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
 import Link from 'next/link'
@@ -28,7 +30,7 @@ export default function MasterIntegrityPage() {
         setData(null)
         return
       }
-      setData((await r.json()) as Report)
+      setData(await readAdminResponseJson<Report>(r))
     } catch {
       setErr('네트워크 오류')
       setData(null)
@@ -48,7 +50,7 @@ export default function MasterIntegrityPage() {
       const u = new URL('/api/admin/master-integrity', window.location.origin)
       u.searchParams.set('skipNotify', skipNotify ? '1' : '0')
       const r = await fetch(u.toString(), { method: 'POST', credentials: 'include' })
-      const j = await r.json().catch(() => ({}))
+      const j = await readAdminResponseJson(r).catch(() => ({}))
       if (!r.ok) {
         setRunMsg(`실행 실패 (${r.status})`)
         return

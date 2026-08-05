@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -76,7 +78,7 @@ export default function MonthlyCurationGenerateClient() {
         `/api/admin/monthly-curation-contents?scope=overseas&monthKey=${encodeURIComponent(monthFilter)}`,
         { cache: 'no-store' }
       )
-      const j = (await res.json()) as { items?: MonthlyRow[]; error?: string }
+      const j = await readAdminResponseJson<{ items?: MonthlyRow[]; error?: string }>(res)
       if (!res.ok) throw new Error(j.error ?? '목록을 불러오지 못했습니다.')
       setRows(Array.isArray(j.items) ? j.items : [])
     } catch (e) {
@@ -117,13 +119,13 @@ export default function MonthlyCurationGenerateClient() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ targetMonth: targetMonth.trim(), overwrite }),
       })
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean
         error?: string
         code?: string
         created?: number
         items?: { id: string; title: string }[]
-      }
+      }>(res)
       if (!res.ok) {
         setError(j.error ?? '생성에 실패했습니다.')
         return
@@ -147,7 +149,7 @@ export default function MonthlyCurationGenerateClient() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...row, isPublished: !row.isPublished }),
       })
-      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      const j = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setError(j.error ?? '발행 상태 변경에 실패했습니다.')
         return

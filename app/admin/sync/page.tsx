@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ParsedProductForDB, ParsedProductPrice, ParsedItinerary } from '@/lib/parsed-product-types'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
@@ -89,7 +91,7 @@ export default function AdminSyncPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawText, originSource: requestOriginSource }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '파싱 실패')
       const parsed = data.parsed as ParsedProductForDB
       setForm(parsed)
@@ -124,7 +126,7 @@ export default function AdminSyncPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
       setSaveResult({ detailPath: data.detailPath ?? '/admin/sync', message: data.message ?? '저장되었습니다.' })
     } catch (e) {

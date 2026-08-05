@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
@@ -867,7 +869,7 @@ export default function AdminRegisterPage() {
       const res = await fetch(`/api/admin/pexels/search?q=${encodeURIComponent(keyword)}`, {
         credentials: 'include',
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         error?: string
         photos?: RegisterPexelsSearchPhoto[]
@@ -986,7 +988,7 @@ export default function AdminRegisterPage() {
       const res = await fetch(
         `/api/admin/products/check-origin-url?originUrl=${encodeURIComponent(normalized)}`
       )
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && data?.ok) {
         setDuplicateResult({
           exists: !!data.exists,
@@ -1034,11 +1036,11 @@ export default function AdminRegisterPage() {
           brandKey: selectedBrandKey,
         }),
       })
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         error?: string
         bundle?: SupplierRegisterFactBundle
-      }
+      }>(res)
       if (!res.ok || !data.ok || !data.bundle) {
         setRegisterFactFetchError(data.error ?? '사실 가져오기에 실패했습니다.')
         return

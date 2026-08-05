@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import {
   ADMIN_BTN_PRIMARY_CLASS,
@@ -38,7 +40,7 @@ export default function StaffAdminClient() {
     if (q.trim()) sp.set('q', q.trim())
     try {
       const res = await fetch(`/api/admin/staff?${sp.toString()}`)
-      const data = (await res.json().catch(() => ({}))) as { users?: Row[]; error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { users?: Row[]; error?: string }
       if (!res.ok) {
         setRows([])
         setErr(data.error ?? '목록을 불러오지 못했습니다.')
@@ -67,7 +69,7 @@ export default function StaffAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, role }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setErr(data.error ?? '저장에 실패했습니다.')
         return

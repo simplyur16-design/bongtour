@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
@@ -370,7 +372,7 @@ async function fetchFirstPoiNamesRaw(productId: string): Promise<string | null> 
   try {
     const r = await fetch(`/api/admin/products/${productId}/itinerary-days`)
     if (!r.ok) return null
-    const rows = (await r.json()) as { poiNamesRaw?: string | null }[]
+    const rows = await readAdminResponseJson<{ poiNamesRaw?: string | null }[]>(r)
     if (!Array.isArray(rows)) return null
     const hit = rows.find((x) => (x.poiNamesRaw ?? '').trim().length > 0)
     return hit?.poiNamesRaw?.trim() ?? null
@@ -383,7 +385,7 @@ async function fetchAdminProductDetail(productId: string): Promise<ProductDetail
   try {
     const r = await fetch(`/api/admin/products/${productId}`, { cache: 'no-store' })
     if (!r.ok) return null
-    const data = (await r.json()) as { id?: string }
+    const data = await readAdminResponseJson<{ id?: string }>(r)
     return data?.id ? (data as ProductDetail) : null
   } catch {
     return null
@@ -555,8 +557,8 @@ export default function AdminPendingDetailPanel({
         fetch(`/api/admin/products/${productId}/departures`, fetchOpts),
         fetch(`/api/admin/products/${productId}/itinerary-days`, fetchOpts),
       ])
-      const deps = depsRes.ok ? await depsRes.json().catch(() => []) : []
-      const days = daysRes.ok ? await daysRes.json().catch(() => []) : []
+      const deps = depsRes.ok ? await readAdminResponseJson(depsRes).catch(() => []) : []
+      const days = daysRes.ok ? await readAdminResponseJson(daysRes).catch(() => []) : []
       setDepartureRows(Array.isArray(deps) ? (deps as DeparturePreview[]) : [])
       setItineraryDayRows(Array.isArray(days) ? (days as ItineraryDayPreview[]) : [])
     } catch {
@@ -749,7 +751,7 @@ export default function AdminPendingDetailPanel({
     setPexelsQuery(keyword)
     try {
       const res = await fetch(`/api/admin/pexels/search?q=${encodeURIComponent(keyword)}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) {
         setPexelsError(data?.error ?? '검색에 실패했습니다.')
         setPexelsPhotos([])
@@ -800,7 +802,7 @@ export default function AdminPendingDetailPanel({
           primaryImageCityName: cityGuess ?? undefined,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && data?.id) {
         setDetail({ ...detail, ...data })
         setPrimaryImageMessage('대표 이미지로 저장되었습니다.')
@@ -848,7 +850,7 @@ export default function AdminPendingDetailPanel({
         body: JSON.stringify(body),
       })
       console.log('[Gemini click] response', { ok: res.ok, status: res.status })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         error?: string
         images?: { imageUrl: string | null; slot?: string; error?: string | null }[]
@@ -895,7 +897,7 @@ export default function AdminPendingDetailPanel({
           primaryImageExternalId: null,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && data?.id) {
         setDetail({ ...detail, ...data })
         setPrimaryImageMessage('대표 이미지로 저장되었습니다.')
@@ -917,7 +919,7 @@ export default function AdminPendingDetailPanel({
     setAssetsLoading(true)
     try {
       const res = await fetch(`/api/admin/image-assets/suggest?productId=${encodeURIComponent(detail.id)}`)
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) {
         setAssetsError((data as { error?: string })?.error ?? '후보를 불러오지 못했습니다.')
         return
@@ -983,7 +985,7 @@ export default function AdminPendingDetailPanel({
           primaryImageExternalId: candidate.externalId ?? null,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && data?.id) {
         setDetail({ ...detail, ...data })
         setPrimaryImageMessage('대표 이미지로 저장되었습니다.')
@@ -1012,7 +1014,7 @@ export default function AdminPendingDetailPanel({
           primaryImageSourceUrl: candidate.imageSource?.originalLink?.trim() || null,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && data?.id) {
         setDetail({ ...detail, ...data })
         const slotLabel = candidate.slot === 2 ? ' (이미지2)' : ''
@@ -1087,7 +1089,7 @@ export default function AdminPendingDetailPanel({
         // 서버 ybtour Playwright subprocess 최대 ~300s + DB 여유
         signal: AbortSignal.timeout(330_000),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         error?: string
         stage?: string
@@ -1176,7 +1178,7 @@ export default function AdminPendingDetailPanel({
     setItineraryResyncMessage(null)
     try {
       const res = await fetch(`/api/admin/products/${detail.id}/itinerary-days`, { method: 'POST' })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         error?: string
         count?: number
         mode?: string
@@ -1211,7 +1213,7 @@ export default function AdminPendingDetailPanel({
           targetAudience: targetAudience.trim() || null,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (res.ok && data?.id) {
         primaryRegionDirtyRef.current = false
         themeTagsDirtyRef.current = false
@@ -1264,7 +1266,7 @@ export default function AdminPendingDetailPanel({
           ...(kw2 !== undefined ? { imageKeyword2: kw2 || null } : {}),
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setDayImageMessage(`DAY${day} 키워드 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
@@ -1293,7 +1295,7 @@ export default function AdminPendingDetailPanel({
     setLoading((prev) => ({ ...prev, [day]: true }))
     try {
       const res = await fetch(`/api/admin/pexels/search?q=${encodeURIComponent(query)}`)
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; photos?: PexelsSearchPhoto[] }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; photos?: PexelsSearchPhoto[] }
       const photos = data.ok && Array.isArray(data.photos) ? data.photos : []
       setMap((prev) => ({ ...prev, [day]: photos.slice(0, 8) }))
     } finally {
@@ -1347,7 +1349,7 @@ export default function AdminPendingDetailPanel({
             (slot === 2 ? dayImageKeyword2Draft[day] : dayImageKeywordDraft[day])?.trim() || null,
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
@@ -1378,7 +1380,7 @@ export default function AdminPendingDetailPanel({
         take: '24',
       })
       const res = await fetch(`/api/admin/image-assets/library?${qs.toString()}`)
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         page?: number
         totalPages?: number
@@ -1444,7 +1446,7 @@ export default function AdminPendingDetailPanel({
       form.append('attractionName', `DAY${day}`)
       form.append('source', 'manual-upload')
       const uploadRes = await fetch('/api/admin/photo-pool/upload', { method: 'POST', body: form })
-      const upload = (await uploadRes.json().catch(() => ({}))) as {
+      const upload = (await readAdminResponseJson(uploadRes).catch(() => ({}))) as {
         ok?: boolean
         error?: string
         message?: string
@@ -1513,7 +1515,7 @@ export default function AdminPendingDetailPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ day, imageSlot: slot, manualSelected: false }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setDayImageMessage(`DAY${day} ${slot}순위 자동 복귀 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
@@ -1561,7 +1563,7 @@ export default function AdminPendingDetailPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         error?: string
         images?: { imageUrl: string | null; slot?: string; error?: string | null }[]

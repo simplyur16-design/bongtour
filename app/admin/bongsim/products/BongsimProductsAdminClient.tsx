@@ -1,5 +1,7 @@
 "use client";
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from "react";
 import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 
@@ -38,11 +40,11 @@ export default function BongsimProductsAdminClient() {
       q.set("page", String(page));
       if (country.trim()) q.set("country", country.trim().toUpperCase());
       const res = await fetch(`/api/admin/bongsim/products?${q.toString()}`, { cache: "no-store" });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         products?: ProductRow[];
         total_pages?: number;
         error?: string;
-      };
+      }>(res);
       if (!res.ok) throw new Error(j.error ?? "목록을 불러오지 못했습니다.");
       setRows(j.products ?? []);
       setTotalPages(Math.max(1, j.total_pages ?? 1));
@@ -64,7 +66,7 @@ export default function BongsimProductsAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: next }),
       });
-      const j = (await res.json()) as { error?: string };
+      const j = await readAdminResponseJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(j.error ?? "변경 실패");
       await load();
     } catch (e) {

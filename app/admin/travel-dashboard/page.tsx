@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
@@ -101,7 +103,7 @@ export default function TravelDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawText, originSource: requestOriginSource, auth: 'bongtour2026' }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '파싱 실패')
       setPreviewParsed(data.parsed)
     } catch (e) {
@@ -125,7 +127,7 @@ export default function TravelDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawText, originSource: requestOriginSource }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '파싱 또는 저장 실패')
       setSaveResult(data)
       setPreviewParsed(data.parsed)
@@ -154,7 +156,7 @@ export default function TravelDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parsed: payload, originSource: requestOriginSource }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
       setSaveResult({
         ok: true,

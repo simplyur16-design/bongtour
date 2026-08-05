@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
@@ -56,7 +58,7 @@ export default function CardNewsNewPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(seriesPayload(values)),
             })
-            const data = await res.json()
+            const data = await readAdminResponseJson(res)
             if (!res.ok) throw new Error(data.error ?? '시리즈 업데이트 실패')
             return draftId
           }
@@ -65,7 +67,7 @@ export default function CardNewsNewPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(seriesPayload(values)),
           })
-          const data = await res.json()
+          const data = await readAdminResponseJson(res)
           if (!res.ok) throw new Error(data.error ?? '시리즈 생성 실패')
           setDraftId(data.series.id)
           return data.series.id as string
@@ -74,7 +76,7 @@ export default function CardNewsNewPage() {
           const res = await fetch(`/api/admin/marketing/card-news/series/${id}/recommend-cities`, {
             method: 'POST',
           })
-          const data = await res.json()
+          const data = await readAdminResponseJson(res)
           if (!res.ok) throw new Error(data.error ?? '도시 추천 실패')
           return Array.isArray(data.series?.selectedCities) ? data.series.selectedCities : []
         }}
@@ -85,7 +87,7 @@ export default function CardNewsNewPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(seriesPayload(values)),
             })
-            const data = await res.json()
+            const data = await readAdminResponseJson(res)
             if (!res.ok) throw new Error(data.error ?? '저장 실패')
             router.push(`/admin/marketing/card-news/${data.series.id}`)
             return
@@ -95,7 +97,7 @@ export default function CardNewsNewPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(seriesPayload(values)),
           })
-          const data = await res.json()
+          const data = await readAdminResponseJson(res)
           if (!res.ok) throw new Error(data.error ?? '저장 실패')
           router.push(`/admin/marketing/card-news/${data.series.id}`)
         }}

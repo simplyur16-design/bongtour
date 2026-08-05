@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
@@ -74,8 +76,8 @@ export default function RegistrationStatsClient() {
         fetch('/api/admin/stats/registration', { cache: 'no-store', credentials: 'include' }),
         fetch('/api/admin/scheduler/calendar-audit', { cache: 'no-store', credentials: 'include' }),
       ])
-      const j1 = (await r1.json()) as Payload & { error?: string }
-      const j2 = (await r2.json()) as CalendarAudit & { error?: string }
+      const j1 = (await readAdminResponseJson(r1)) as Payload & { error?: string }
+      const j2 = (await readAdminResponseJson(r2)) as CalendarAudit & { error?: string }
       if (!r1.ok) throw new Error(j1.error ?? `등록 통계 (${r1.status})`)
       if (!r2.ok) throw new Error(j2.error ?? `캘린더 점검 (${r2.status})`)
       setData(j1)
@@ -101,7 +103,7 @@ export default function RegistrationStatsClient() {
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       })
-      const j = (await res.json()) as { ok?: boolean; message?: string; error?: string }
+      const j = await readAdminResponseJson<{ ok?: boolean; message?: string; error?: string }>(res)
       if (!res.ok || !j.ok) throw new Error(j.error ?? j.message ?? `실행 실패 (${res.status})`)
       setRunMsg(j.message ?? '배치를 시작했습니다. 스케줄러 설정에서 로그를 확인하세요.')
     } catch (e) {

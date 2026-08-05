@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -56,7 +58,7 @@ export default function MonthlyCurationsPageClient() {
     const q = buildListQueryString(searchParams)
     fetch(`/api/admin/curations/monthly${q ? `?${q}` : ''}`)
       .then(async (res) => {
-        const data = (await res.json().catch(() => ({}))) as {
+        const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
           items?: AdminMonthlyCurationListItem[]
           error?: string
         }

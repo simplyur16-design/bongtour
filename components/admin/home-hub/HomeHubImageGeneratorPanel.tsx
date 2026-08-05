@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
 import { getDefaultHomeHubImagePrompt, type HubImageSeasonKey } from '@/lib/home-hub-image-prompts'
@@ -108,7 +110,7 @@ export function HomeHubImageGeneratorPanel({ onGenerated }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cardKey, season, promptText, count }),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         error?: string
         items?: unknown[]

@@ -1463,7 +1463,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "관리자 fetch 빈 JSON 가드 · 시즌/마케팅 GET JSON 오류 · 국가히어로 Prisma 카탈로그 · 당월 시즌 ensure",
+      "summary": "관리자 fetch 빈 JSON 가드(전체 admin UI) · 시즌/마케팅 GET JSON 오류 · 국가히어로 Prisma 카탈로그 · 당월 시즌 ensure",
       "checks": [
         {
           "file": "lib/admin/read-admin-response-json.ts",
@@ -1500,6 +1500,27 @@
           "mustInclude": [
             "readAdminResponseJson",
             "curation-events/list"
+          ]
+        },
+        {
+          "file": "components/admin/marketing/card-news/CardNewsListClient.tsx",
+          "mustInclude": [
+            "readAdminResponseJson",
+            "card-news/series"
+          ]
+        },
+        {
+          "file": "components/admin/marketing/hooks/HookLibraryClient.tsx",
+          "mustInclude": [
+            "readAdminResponseJson",
+            "/api/admin/marketing/hooks"
+          ]
+        },
+        {
+          "file": "components/admin/marketing/trip-recommendations/TripRecommendationsClient.tsx",
+          "mustInclude": [
+            "readAdminResponseJson",
+            "trip-recommendations"
           ]
         }
       ]

@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { CARD_NEWS_SERIES_STATUS_LABEL } from '@/lib/bong-marketing/card-news-admin-constants'
@@ -19,7 +21,7 @@ export interface RecentSeriesItem {
 
 async function fetchRecentSeries(): Promise<RecentSeriesItem[]> {
   const res = await fetch('/api/admin/marketing/card-news/recent')
-  const data = (await res.json()) as { series?: RecentSeriesItem[]; error?: string }
+  const data = await readAdminResponseJson<{ series?: RecentSeriesItem[]; error?: string }>(res)
   if (!res.ok) throw new Error(data.error ?? '최근 시리즈 조회 실패')
   return data.series ?? []
 }

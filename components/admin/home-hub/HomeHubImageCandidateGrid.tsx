@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useState } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
@@ -75,7 +77,7 @@ export function HomeHubImageCandidateGrid({
       if (filterCard) q.set('cardKey', filterCard)
       if (filterSeason) q.set('season', filterSeason)
       const res = await fetch(`/api/admin/home-hub-images/candidates?${q.toString()}`)
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         items?: HomeHubCandidateRecord[]
         error?: string
@@ -112,7 +114,7 @@ export function HomeHubImageCandidateGrid({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidateId: c.id }),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         active?: HomeHubActiveFile
         error?: string
@@ -152,7 +154,7 @@ export function HomeHubImageCandidateGrid({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidateId: c.id }),
       })
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; error?: string }
       if (!res.ok || !data.ok) {
         setError(data.error ?? `삭제 실패(HTTP ${res.status})`)
         return

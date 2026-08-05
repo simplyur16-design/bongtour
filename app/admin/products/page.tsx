@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -183,7 +185,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch('/api/admin/products/list/options')
       if (res.ok) {
-        const json = await res.json()
+        const json = await readAdminResponseJson(res)
         setOptions(json)
       }
     } catch {
@@ -210,7 +212,7 @@ export default function AdminProductsPage() {
       if (highlightEmptyOnly) params.set('highlightEmpty', '1')
       const res = await fetch(`/api/admin/products/list?${params}`)
       if (res.ok) {
-        const json = await res.json()
+        const json = await readAdminResponseJson(res)
         setData(json)
       } else {
         setData(null)
@@ -296,7 +298,7 @@ export default function AdminProductsPage() {
         setQueueMessage(`재수집 중 ${i + 1}/${ids.length}…`)
         try {
           const res = await fetch(`/api/admin/products/${encodeURIComponent(id)}/departures`, { method: 'POST' })
-          const json = (await res.json().catch(() => ({}))) as {
+          const json = (await readAdminResponseJson(res).catch(() => ({}))) as {
             ok?: boolean
             error?: string
             mode?: string
@@ -349,13 +351,13 @@ export default function AdminProductsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productIds, mode: 'manual' }),
       })
-      const json = (await res.json()) as {
+      const json = await readAdminResponseJson<{
         ok?: boolean
         error?: string
         added?: number
         refreshed?: number
         notFound?: number
-      }
+      }>(res)
       if (json.ok) {
         const added = json.added ?? 0
         const refreshed = json.refreshed ?? 0
@@ -396,13 +398,13 @@ export default function AdminProductsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productIds: [productId], mode: 'manual' }),
       })
-      const json = (await res.json()) as {
+      const json = await readAdminResponseJson<{
         ok?: boolean
         error?: string
         added?: number
         refreshed?: number
         notFound?: number
-      }
+      }>(res)
       if (!res.ok) {
         setImageReviewMessage(json.error ?? `요청 실패 (${res.status})`)
         return
@@ -464,7 +466,7 @@ export default function AdminProductsPage() {
     setDeletingId(productId)
     try {
       const res = await fetch(`/api/admin/products/${productId}`, { method: 'DELETE' })
-      const json = await res.json().catch(() => ({}))
+      const json = await readAdminResponseJson(res).catch(() => ({}))
       if (res.ok) {
         fetchList()
       } else {

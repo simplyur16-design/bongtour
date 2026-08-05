@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState } from 'react'
 import { INQUIRY_ADMIN_STATUSES, inquiryStatusLabel, isInquiryAdminStatus } from '@/lib/admin-inquiry'
 
@@ -43,7 +45,7 @@ export default function InquiryStatusSelect({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: next }),
           })
-          const data = (await res.json().catch(() => ({}))) as { error?: string; allowed?: string[] }
+          const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string; allowed?: string[] }
           if (!res.ok) {
             onError?.(data.error ?? '상태 변경에 실패했습니다.')
             e.target.value = value

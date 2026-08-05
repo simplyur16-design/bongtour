@@ -1,5 +1,7 @@
 "use client";
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from "react";
 
 type CouponKindTab = "all" | "public_code" | "issuance_template";
@@ -138,7 +140,7 @@ export default function CouponsAdminClient() {
   const loadTravelBatches = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/bongsim/coupons/bulk", { cache: "no-store" });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean;
         batches?: Array<{
           batch_id: string;
@@ -148,7 +150,7 @@ export default function CouponsAdminClient() {
           created_at: string;
           issuer_name: string | null;
         }>;
-      };
+      }>(res);
       if (res.ok && j.batches) setTravelBatches(j.batches);
     } catch {
       /* noop */
@@ -173,7 +175,7 @@ export default function CouponsAdminClient() {
     try {
       const q = tab === "all" ? "" : `?kind=${encodeURIComponent(tab)}`;
       const res = await fetch(`/api/admin/bongsim/coupons${q}`, { cache: "no-store" });
-      const j = (await res.json()) as { coupons?: CouponRow[]; error?: string };
+      const j = await readAdminResponseJson<{ coupons?: CouponRow[]; error?: string }>(res);
       if (!res.ok) throw new Error(j.error ?? "목록을 불러오지 못했습니다.");
       setRows(j.coupons ?? []);
     } catch (e) {
@@ -192,7 +194,7 @@ export default function CouponsAdminClient() {
     void (async () => {
       try {
         const res = await fetch("/api/admin/bongsim/coupons?kind=issuance_template", { cache: "no-store" });
-        const j = (await res.json()) as { coupons?: CouponRow[] };
+        const j = await readAdminResponseJson<{ coupons?: CouponRow[] }>(res);
         if (res.ok) setIssueTplRows(j.coupons ?? []);
       } catch {
         setIssueTplRows([]);
@@ -226,7 +228,7 @@ export default function CouponsAdminClient() {
           is_active: true,
         }),
       });
-      const j = (await res.json()) as { error?: string };
+      const j = await readAdminResponseJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(j.error ?? "생성 실패");
       setCode("");
       setDescription("");
@@ -245,7 +247,7 @@ export default function CouponsAdminClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const j = (await res.json()) as { error?: string };
+    const j = await readAdminResponseJson<{ error?: string }>(res);
     if (!res.ok) throw new Error(j.error ?? "변경 실패");
   };
 
@@ -298,7 +300,7 @@ export default function CouponsAdminClient() {
     if (!confirm("이 쿠폰을 삭제할까요? 사용자 발급 이력이 있으면 삭제되지 않을 수 있습니다.")) return;
     try {
       const res = await fetch(`/api/admin/bongsim/coupons/${encodeURIComponent(id)}`, { method: "DELETE" });
-      const j = (await res.json()) as { error?: string };
+      const j = await readAdminResponseJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(j.error ?? "삭제 실패");
       await load();
     } catch (e) {
@@ -329,7 +331,7 @@ export default function CouponsAdminClient() {
           },
         }),
       });
-      const j = (await res.json()) as { error?: string; codes?: string[] };
+      const j = await readAdminResponseJson<{ error?: string; codes?: string[] }>(res);
       if (!res.ok) throw new Error(j.error ?? "벌크 생성 실패");
       setBulkCodes(j.codes ?? []);
       await load();
@@ -365,7 +367,7 @@ export default function CouponsAdminClient() {
           notes: issueNotes.trim() || undefined,
         }),
       });
-      const j = (await res.json()) as { error?: string };
+      const j = await readAdminResponseJson<{ error?: string }>(res);
       if (!res.ok) throw new Error(j.error ?? "발급 실패");
       setIssueOpen(false);
       setIssueEmail("");
@@ -386,12 +388,12 @@ export default function CouponsAdminClient() {
     setTravelDetailLoading(true);
     try {
       const res = await fetch(`/api/admin/bongsim/coupons/bulk/${encodeURIComponent(batchId)}`, { cache: "no-store" });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean;
         batch?: TravelDetailBatch;
         items?: TravelDetailItem[];
         error?: string;
-      };
+      }>(res);
       if (!res.ok) throw new Error(j.error ?? "상세를 불러오지 못했습니다.");
       if (j.batch && j.items) setTravelDetail({ batch: j.batch, items: j.items });
     } catch (e) {
@@ -414,7 +416,7 @@ export default function CouponsAdminClient() {
           body: JSON.stringify({ item_id: itemId }),
         },
       );
-      const j = (await res.json()) as { email_sent?: boolean; error?: string };
+      const j = await readAdminResponseJson<{ email_sent?: boolean; error?: string }>(res);
       if (!res.ok) throw new Error(j.error ?? "재발송 실패");
       if (j.email_sent === false) setLoadErr(`이메일 발송 실패: ${j.error ?? ""}`);
       await openTravelDetail(travelDetailBatchId);
@@ -492,12 +494,12 @@ export default function CouponsAdminClient() {
           memo: travelMemo.trim() || undefined,
         }),
       });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         ok?: boolean;
         batch_id?: string;
         results?: Array<{ item_id: string; email: string; code: string; email_sent: boolean; error?: string }>;
         error?: string;
-      };
+      }>(res);
       if (!res.ok) throw new Error(j.error ?? "발급 실패");
       setTravelResult({
         batch_id: j.batch_id ?? "",

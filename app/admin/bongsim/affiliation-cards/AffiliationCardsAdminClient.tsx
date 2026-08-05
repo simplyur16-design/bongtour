@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -50,7 +52,7 @@ export default function AffiliationCardsAdminClient() {
     setError(null)
     try {
       const res = await fetch(`/api/admin/affiliation-cards?status=${status}`)
-      const data = (await res.json()) as { ok?: boolean; items?: Item[]; error?: string }
+      const data = await readAdminResponseJson<{ ok?: boolean; items?: Item[]; error?: string }>(res)
       if (!res.ok || !data.ok) {
         setError(data.error || '목록을 불러오지 못했습니다.')
         setItems([])
@@ -75,7 +77,7 @@ export default function AffiliationCardsAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision, adminNote: noteById[id] || null }),
       })
-      const data = (await res.json()) as { ok?: boolean; error?: string }
+      const data = await readAdminResponseJson<{ ok?: boolean; error?: string }>(res)
       if (!res.ok || !data.ok) {
         setError(data.error || '처리 실패')
         return

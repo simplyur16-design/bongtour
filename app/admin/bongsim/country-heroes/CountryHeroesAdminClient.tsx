@@ -162,7 +162,7 @@ export default function CountryHeroesAdminClient() {
     setPexelsQuery(q)
     try {
       const res = await fetch(`/api/admin/pexels/search?q=${encodeURIComponent(q)}`)
-      const data = (await res.json()) as PexelsSearchResponse
+      const data = await readAdminResponseJson<PexelsSearchResponse>(res)
       if (!res.ok || !data.ok) {
         setPexelsError('error' in data ? data.error : '검색에 실패했습니다.')
         setPexelsPhotos([])
@@ -202,7 +202,7 @@ export default function CountryHeroesAdminClient() {
           pexelsPhotoId: selected.id,
         }),
       })
-      const data = (await res.json()) as { ok?: boolean; publicUrl?: string; error?: string }
+      const data = await readAdminResponseJson<{ ok?: boolean; publicUrl?: string; error?: string }>(res)
       if (!res.ok || !data.ok) {
         setModalFooterMsg(data.error ?? `저장 실패 (${res.status})`)
         return

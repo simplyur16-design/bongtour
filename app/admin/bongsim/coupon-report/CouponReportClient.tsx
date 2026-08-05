@@ -1,5 +1,7 @@
 "use client";
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Row = {
@@ -28,12 +30,12 @@ export default function CouponReportClient() {
     try {
       const q = new URLSearchParams({ year: String(year), month: String(month) });
       const res = await fetch(`/api/admin/bongsim/coupon-report?${q.toString()}`, { cache: "no-store" });
-      const j = (await res.json()) as {
+      const j = await readAdminResponseJson<{
         rows?: Row[];
         summary?: { count: number; total_discount_krw: number; total_final_krw: number };
         error?: string;
         message?: string;
-      };
+      }>(res);
       if (!res.ok) throw new Error(
         j.message ??
           (j.error === "query_failed" ? "리포트 조회에 실패했습니다." : j.error) ??
@@ -57,7 +59,7 @@ export default function CouponReportClient() {
         credentials: "include",
       });
       if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        const j = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string };
         throw new Error(j.error ?? "다운로드 실패");
       }
       const blob = await res.blob();

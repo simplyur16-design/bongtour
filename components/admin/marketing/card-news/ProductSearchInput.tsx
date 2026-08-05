@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useEffect, useState } from 'react'
 
 export type ProductSearchItem = {
@@ -31,7 +33,7 @@ export default function ProductSearchInput({ value, onChange, disabled }: Props)
       setLoading(true)
       try {
         const res = await fetch(`/api/admin/products/search?q=${encodeURIComponent(q.trim())}&limit=10`)
-        const data = await res.json()
+        const data = await readAdminResponseJson(res)
         setItems(Array.isArray(data.items) ? data.items : [])
         setOpen(true)
       } catch {

@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -92,7 +94,7 @@ function ImageAssetsUploadPageInner() {
 
   const loadRecent = useCallback(async () => {
     const res = await fetch('/api/admin/image-assets/recent?take=40')
-    const data = await res.json()
+    const data = await readAdminResponseJson(res)
     if (data.ok && Array.isArray(data.items)) setRecent(data.items as ImageAssetApiRow[])
   }, [])
 
@@ -150,7 +152,7 @@ function ImageAssetsUploadPageInner() {
       fd.set('sort_order', '0')
       appendSourceFields(fd)
       const res = await fetch('/api/admin/image-assets/upload', { method: 'POST', body: fd })
-      const data = (await res.json()) as UploadResult
+      const data = await readAdminResponseJson<UploadResult>(res)
       setLast(data)
       if (data.ok) void loadRecent()
     } catch (err) {
@@ -187,7 +189,7 @@ function ImageAssetsUploadPageInner() {
       appendSourceFields(fd)
       fd.set('file', file)
       const res = await fetch('/api/admin/image-assets/upload', { method: 'POST', body: fd })
-      const data = (await res.json()) as UploadResult
+      const data = await readAdminResponseJson<UploadResult>(res)
       setLast(data)
       if (data.ok) void loadRecent()
     } catch (err) {

@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   PRIVATE_TRIP_HERO_COVER_HEIGHT,
@@ -25,7 +27,7 @@ export function PrivateTripHeroSlidesPanel() {
     setFolderLoading(true)
     try {
       const res = await fetch('/api/admin/private-trip-hero-folder')
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         publicUrls?: string[]
         locationNote?: string
@@ -33,7 +35,7 @@ export function PrivateTripHeroSlidesPanel() {
         storageConfigured?: boolean
         directUploadAvailable?: boolean
         error?: string
-      }
+      }>(res)
       if (!res.ok || !data.ok) {
         setMessage({ kind: 'err', text: data.error || 'Storage 목록을 불러오지 못했습니다.' })
         return

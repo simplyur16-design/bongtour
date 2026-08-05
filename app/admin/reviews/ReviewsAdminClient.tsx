@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import type { ReviewRow } from '@/lib/reviews-types'
 import { reviewTypeLabel } from '@/lib/review-type-labels'
@@ -43,7 +45,7 @@ function ReviewTextFieldsBlock({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, excerpt, body: body.trim() ? body : null }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
       await onAfterSave()
     } catch (e) {
@@ -105,7 +107,7 @@ export default function ReviewsAdminClient() {
     try {
       const q = new URLSearchParams({ status: tab, limit: '100' })
       const res = await fetch(`/api/admin/reviews?${q}`, { credentials: 'include' })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '목록을 불러오지 못했습니다.')
       setRows(data.rows ?? [])
     } catch (e) {
@@ -130,7 +132,7 @@ export default function ReviewsAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body ?? {}),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '처리 실패')
       await load()
     } catch (e) {

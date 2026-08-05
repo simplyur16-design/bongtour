@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { formatKRW } from '@/lib/price-utils'
@@ -163,7 +165,7 @@ export default function AdminBookingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setStatusError(data.error ?? '상태 변경 실패')
         return

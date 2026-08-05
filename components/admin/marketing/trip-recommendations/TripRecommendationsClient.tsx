@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import RecentSeriesSection from '@/components/admin/marketing/trip-recommendations/RecentSeriesSection'
@@ -160,12 +162,12 @@ export default function TripRecommendationsClient() {
           q.set('targetCountries', recommendationCountries.join(','))
         }
         const res = await fetch(`/api/admin/marketing/global-events/target-countries?${q}`)
-        const json = (await res.json()) as {
+        const json = await readAdminResponseJson<{
           count?: number
           countries?: string[]
           usedProductFallback?: boolean
           error?: string
-        }
+        }>(res)
         if (cancelled) return
         if (!res.ok) {
           setTargetPreview(null)
@@ -250,7 +252,7 @@ export default function TripRecommendationsClient() {
     clearRecommendationsCache()
     try {
       const res = await fetch('/api/admin/marketing/trip-recommendations', { method: 'POST' })
-      const json = (await res.json()) as TripRecommendation & { error?: string }
+      const json = (await readAdminResponseJson(res)) as TripRecommendation & { error?: string }
       if (!res.ok) throw new Error(json.error ?? '추천 생성 실패')
       persistRecommendations(json)
     } catch (err) {
@@ -301,7 +303,7 @@ export default function TripRecommendationsClient() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const json = (await res.json()) as {
+      const json = await readAdminResponseJson<{
         countries?: string[]
         collected?: number
         saved?: number
@@ -313,7 +315,7 @@ export default function TripRecommendationsClient() {
         errorDetails?: Array<{ stage: string; message: string; country?: string }>
         rawResponseSamples?: string[]
         error?: string
-      }
+      }>(res)
       if (!res.ok) throw new Error(json.error ?? '이벤트 갱신 실패')
       if (
         json.errorDetails?.some((e) => e.stage === 'no_countries') &&
@@ -569,7 +571,7 @@ function TripCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...recommendationPayload, contentTrack: track }),
       })
-      const json = (await res.json()) as { redirectTo?: string; error?: string }
+      const json = await readAdminResponseJson<{ redirectTo?: string; error?: string }>(res)
       if (!res.ok) throw new Error(json.error ?? '시리즈 생성 실패')
       if (json.redirectTo) {
         setShowTrackModal(null)
@@ -591,7 +593,7 @@ function TripCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...recommendationPayload, contentTrack: track }),
       })
-      const json = (await res.json()) as { redirectTo?: string; error?: string }
+      const json = await readAdminResponseJson<{ redirectTo?: string; error?: string }>(res)
       if (!res.ok) throw new Error(json.error ?? '블로그 글 생성 실패')
       if (json.redirectTo) {
         setShowTrackModal(null)

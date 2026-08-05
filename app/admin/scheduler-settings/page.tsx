@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import AdminPageHeader from '../components/AdminPageHeader'
@@ -129,7 +131,7 @@ export default function AdminSchedulerSettingsPage() {
     setCheckpointError(null)
     try {
       const res = await fetch('/api/admin/scheduler/checkpoint', { signal: AbortSignal.timeout(12000) })
-      const data = (await res.json().catch(() => ({}))) as SchedulerCheckpointPayload & { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as SchedulerCheckpointPayload & { error?: string }
       if (res.ok && !data.error) {
         setCheckpoint(data)
       } else {
@@ -178,7 +180,7 @@ export default function AdminSchedulerSettingsPage() {
     setHanatourListError(null)
     try {
       const res = await fetch('/api/admin/scheduler/hanatour-month-departures', { signal: AbortSignal.timeout(60000) })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         items?: HanatourMonthListItem[]
         error?: string
@@ -258,7 +260,7 @@ export default function AdminSchedulerSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dryRun, graceDays }),
       })
-      const data = await res.json().catch(() => ({}))
+      const data = await readAdminResponseJson(res).catch(() => ({}))
       if (res.ok && data?.ok) {
         setCleanupResult({
           dryRun: !!data.dryRun,
@@ -336,7 +338,7 @@ export default function AdminSchedulerSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productIds, hanatourMonth: ym }),
       })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         successCount?: number
         failedCount?: number

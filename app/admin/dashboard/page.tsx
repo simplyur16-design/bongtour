@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useMemo, Fragment, useEffect } from 'react'
 import type {
   ExtractedProduct,
@@ -120,7 +122,7 @@ export default function AdminDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawText }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '추출 실패')
       const product = data.product ?? data
       const pricing = data.pricing ?? null
@@ -230,7 +232,7 @@ export default function AdminDashboardPage() {
           ...(selectedBrandKey && { brandKey: selectedBrandKey }),
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
       setSaveResult({
         detailPath: data.detailPath ?? '/admin/products',

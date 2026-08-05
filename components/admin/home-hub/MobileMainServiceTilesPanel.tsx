@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import type { HomeHubActiveClientModel } from '@/lib/home-hub-active-client-model'
 import type { HomeHubActiveFile, MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
@@ -77,7 +79,7 @@ export function MobileMainServiceTilesPanel({ active, onSaved, onSaveError }: Pr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileMainServiceTiles: draft }),
       })
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; active?: HomeHubActiveFile }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; error?: string; active?: HomeHubActiveFile }
       if (!res.ok || !data.ok || !data.active) {
         onSaveError(data.error ?? '모바일 타일 URL 저장에 실패했습니다.')
         return

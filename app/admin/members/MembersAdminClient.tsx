@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { displayAccountStatus } from '@/lib/account-status'
@@ -65,7 +67,7 @@ export default function MembersAdminClient({ actorRole }: Props) {
       const res = await fetch(`/api/admin/members?${sp.toString()}`)
       let data: { users?: Row[]; error?: string } = {}
       try {
-        data = (await res.json()) as { users?: Row[]; error?: string }
+        data = await readAdminResponseJson<{ users?: Row[]; error?: string }>(res)
       } catch {
         data = {}
       }
@@ -105,7 +107,7 @@ export default function MembersAdminClient({ actorRole }: Props) {
       })
       let data: { error?: string } = {}
       try {
-        data = (await res.json()) as { error?: string }
+        data = await readAdminResponseJson<{ error?: string }>(res)
       } catch {
         data = {}
       }

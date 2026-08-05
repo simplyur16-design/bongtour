@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
@@ -170,7 +172,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = (await res.json()) as { ok?: boolean; errors?: string[]; error?: string; product?: { id: string } }
+      const data = await readAdminResponseJson<{ ok?: boolean; errors?: string[]; error?: string; product?: { id: string } }>(res)
       if (!res.ok || !data.ok) {
         setMsg(data.errors?.join(' ') || data.error || '저장 실패')
         return
@@ -195,7 +197,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pastedText: registrationPaste }),
       })
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         draft?: {
           trainingCategory?: string | null
@@ -209,7 +211,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
           warnings?: string[]
         }
         error?: string
-      }
+      }>(res)
       if (!res.ok || !data.ok || !data.draft) {
         setMsg(data.error ?? '등록 정보 분석 실패')
         return
@@ -247,7 +249,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pastedText: windsorPaste, originUrl }),
       })
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         draft?: {
           originalTitle?: string | null
@@ -262,7 +264,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
           parseWarning?: string | null
         }
         error?: string
-      }
+      }>(res)
       if (!res.ok || !data.ok || !data.draft) {
         setMsg(data.error ?? '분할 실패')
         return
@@ -304,7 +306,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       }),
     }).catch(() => null)
     if (!res) return
-    const data = (await res.json()) as { ok?: boolean; title?: string; error?: string }
+    const data = await readAdminResponseJson<{ ok?: boolean; title?: string; error?: string }>(res)
     if (data.ok && data.title) {
       setTitle(data.title)
       setMsg('봉투어 스타일 제목을 적용했습니다.')
@@ -328,11 +330,11 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
           promptOverride: promptOverride || undefined,
         }),
       })
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         promptsBySlot?: { slot: string; text: string }[]
         error?: string
-      }
+      }>(res)
       if (!res.ok || !data.ok || !data.promptsBySlot) {
         setMsg(data.error ?? '프롬프트 미리보기 실패')
         return
@@ -362,12 +364,12 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
           promptOverride: promptOverride || undefined,
         }),
       })
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         images?: { slot: string; imageUrl: string | null }[]
         promptsBySlot?: { slot: string; text: string }[]
         error?: string
-      }
+      }>(res)
       if (!res.ok || !data.ok) {
         setMsg(data.error ?? '이미지 생성 실패')
         return
@@ -399,7 +401,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       fd.append('file', file)
       fd.append('cardKey', 'training')
       const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
-      const data = (await res.json()) as { ok?: boolean; path?: string; error?: string }
+      const data = await readAdminResponseJson<{ ok?: boolean; path?: string; error?: string }>(res)
       if (!res.ok || !data.ok || !data.path) {
         setMsg(data.error ?? '업로드 실패')
         return
@@ -430,7 +432,7 @@ export default function TrainingProgramAdminEditor({ productId, initial }: Props
       fd.append('file', file)
       fd.append('cardKey', 'training')
       const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
-      const data = (await res.json()) as { ok?: boolean; path?: string; error?: string }
+      const data = await readAdminResponseJson<{ ok?: boolean; path?: string; error?: string }>(res)
       if (!res.ok || !data.ok || !data.path) {
         setMsg(data.error ?? '업로드 실패')
         return

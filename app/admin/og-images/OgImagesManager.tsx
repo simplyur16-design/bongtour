@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import SafeImage from '@/app/components/SafeImage'
 import {
   staticOgPreviewPathForPageKey,
@@ -91,7 +93,7 @@ export default function OgImagesManager({ actorRole }: Props) {
     setListErr('')
     try {
       const res = await fetch('/api/admin/og-images', { cache: 'no-store' })
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         items?: Partial<Record<OgPageKey, OgAssetApi | null>>
         error?: string
@@ -170,7 +172,7 @@ export default function OgImagesManager({ actorRole }: Props) {
       fd.set('file', file)
       fd.set('pageKey', pageKey)
       const res = await fetch('/api/admin/og-images', { method: 'POST', body: fd })
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; error?: string }
       if (res.status === 401 || res.status === 403) {
         window.alert('인증이 만료되었거나 권한이 없습니다.')
         return
@@ -199,7 +201,7 @@ export default function OgImagesManager({ actorRole }: Props) {
       const res = await fetch(`/api/admin/og-images/${encodeURIComponent(pageKey)}`, {
         method: 'DELETE',
       })
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; error?: string }
       if (res.status === 401 || res.status === 403) {
         window.alert('인증이 만료되었거나 권한이 없습니다.')
         return

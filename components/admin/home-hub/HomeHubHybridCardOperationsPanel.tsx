@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import SafeImage from '@/app/components/SafeImage'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { HomeHubCardImageKey } from '@/lib/home-hub-images'
@@ -86,7 +88,7 @@ export function HomeHubHybridCardOperationsPanel({
     setTrainingCandidatesError(null)
     try {
       const res = await fetch('/api/admin/home-hub-images/candidates?cardKey=training')
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         items?: HomeHubCandidateRecord[]
         error?: string
@@ -126,7 +128,7 @@ export function HomeHubHybridCardOperationsPanel({
     setPoolBusy(true)
     try {
       const res = await fetch('/api/admin/home-hub-travel-cover-pool-preview')
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
         ok?: boolean
         overseas?: string | null
         domestic?: string | null
@@ -161,7 +163,7 @@ export function HomeHubHybridCardOperationsPanel({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
-        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; active?: HomeHubActiveFile; error?: string }
+        const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; active?: HomeHubActiveFile; error?: string }
         if (!res.ok || !data.ok || !data.active) {
           onSaveError?.(data.error ?? '저장에 실패했습니다.')
           return
@@ -219,7 +221,7 @@ export function HomeHubHybridCardOperationsPanel({
         fd.append('file', f)
         fd.append('cardKey', key)
         const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd })
-        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; path?: string; error?: string }
+        const data = (await readAdminResponseJson(res).catch(() => ({}))) as { ok?: boolean; path?: string; error?: string }
         if (!res.ok || !data.ok || !data.path) {
           onSaveError?.(data.error ?? '이미지 업로드에 실패했습니다.')
           return

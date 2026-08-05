@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState } from 'react'
 import type { BongHookLearnConfig, BongPostInsight } from '@prisma/client'
 
@@ -68,7 +70,7 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
   async function reloadInsights(filter: PlatformFilter) {
     const qs = filter === 'all' ? 'limit=20' : `limit=20&platform=${filter}`
     const listRes = await fetch(`/api/admin/marketing/insights/list?${qs}`)
-    const listJson = (await listRes.json()) as { insights: BongPostInsight[] }
+    const listJson = await readAdminResponseJson<{ insights: BongPostInsight[] }>(listRes)
     setInsights(listJson.insights)
   }
 
@@ -82,7 +84,7 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
     setSyncResult(null)
     try {
       const res = await fetch('/api/admin/marketing/insights/sync', { method: 'POST' })
-      const result = (await res.json()) as SyncTickResult & { error?: string }
+      const result = (await readAdminResponseJson(res)) as SyncTickResult & { error?: string }
       if (!res.ok) throw new Error(result.error || '동기화 실패')
       setSyncResult(result)
       await reloadInsights(platformFilter)
@@ -103,7 +105,7 @@ export default function InsightsClient({ initialInsights, initialConfig, totalCo
       })
       if (res.ok) alert('설정이 저장되었습니다.')
       else {
-        const j = (await res.json()) as { error?: string }
+        const j = await readAdminResponseJson<{ error?: string }>(res)
         alert(j.error || '저장 실패')
       }
     } finally {

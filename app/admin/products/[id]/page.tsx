@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -1001,10 +1003,10 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                 const postRes = await fetch(`/api/admin/products/${encodeURIComponent(id)}/departures`, {
                   method: 'POST',
                 })
-                const report = (await postRes.json().catch(() => null)) as AdminDeparturesRescrapeResponseBody | null
+                const report = (await readAdminResponseJson(postRes).catch(() => null)) as AdminDeparturesRescrapeResponseBody | null
                 if (report && typeof report === 'object') setDepartureRescrapeReport(report)
                 const dRes = await fetch(`/api/admin/products/${id}/departures`)
-                const d = dRes.ok ? await dRes.json() : []
+                const d = dRes.ok ? await readAdminResponseJson(dRes) : []
                 setDepartures(Array.isArray(d) ? d : [])
                 if (postRes.ok || postRes.status === 422) fetchProduct()
               } finally {
@@ -1043,10 +1045,10 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                       `/api/admin/products/${encodeURIComponent(id)}/departures?${q.toString()}`,
                       { method: 'POST' }
                     )
-                    const report = (await postRes.json().catch(() => null)) as AdminDeparturesRescrapeResponseBody | null
+                    const report = (await readAdminResponseJson(postRes).catch(() => null)) as AdminDeparturesRescrapeResponseBody | null
                     if (report && typeof report === 'object') setDepartureRescrapeReport(report)
                     const dRes = await fetch(`/api/admin/products/${id}/departures`)
-                    const d = dRes.ok ? await dRes.json() : []
+                    const d = dRes.ok ? await readAdminResponseJson(dRes) : []
                     setDepartures(Array.isArray(d) ? d : [])
                     if (postRes.ok || postRes.status === 422) fetchProduct()
                   } finally {

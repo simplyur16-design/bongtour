@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
@@ -42,7 +44,7 @@ export default function ConvertToWebpPage() {
       const form = new FormData()
       form.append('file', file)
       const res = await fetch('/api/admin/suggest-image-name', { method: 'POST', body: form })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data?.error ?? '추천 실패')
       setCityName(data.city ?? '')
       setAttractionName(data.attraction ?? '')
@@ -72,7 +74,7 @@ export default function ConvertToWebpPage() {
       const url = `/api/admin/convert-to-webp${asDownload ? '?download=1' : ''}`
       const res = await fetch(url, { method: 'POST', body: form })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
+        const data = await readAdminResponseJson(res).catch(() => ({}))
         throw new Error(data?.error ?? `오류 ${res.status}`)
       }
       if (asDownload) {
@@ -95,7 +97,7 @@ export default function ConvertToWebpPage() {
           height: 0,
         })
       } else {
-        const data = await res.json()
+        const data = await readAdminResponseJson(res)
         setResult({
           filename: data.filename,
           sizeBytes: data.sizeBytes,

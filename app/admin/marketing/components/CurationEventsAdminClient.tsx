@@ -125,7 +125,7 @@ export default function CurationEventsAdminClient() {
       if (appliedSearch) q.set('search', appliedSearch)
       q.set('limit', '100')
       const res = await fetch(`/api/admin/marketing/curation-events/list?${q}`)
-      const data = await readAdminResponseJson<{ events?: unknown[]; total?: number; error?: string }>(res)
+      const data = await readAdminResponseJson<{ events?: CurationEventRow[]; total?: number; error?: string }>(res)
       if (!res.ok) throw new Error(data.error ?? '목록 조회 실패')
       setEvents(data.events ?? [])
       setTotal(data.total ?? 0)

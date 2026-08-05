@@ -207,7 +207,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
 
   async function refreshLinkedEventsForCard(cardId: string) {
     const res = await fetch(`/api/admin/monthly-curation-contents/${cardId}`, { cache: 'no-store' })
-    const json = (await res.json()) as { item?: MonthlyItem; error?: string }
+    const json = await readAdminResponseJson<{ item?: MonthlyItem; error?: string }>(res)
     if (!res.ok) throw new Error(json.error ?? '연결 이벤트를 불러오지 못했습니다.')
     setLinkedEvents(json.item?.curationEvents ?? [])
     return json.item?.curationEvents ?? []
@@ -221,7 +221,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
     const q = new URLSearchParams({ monthKey: monthKey.trim() })
     if (countryCode.trim()) q.set('countryCode', countryCode.trim())
     const res = await fetch(`/api/admin/marketing/curation-events/candidates?${q}`)
-    const json = (await res.json()) as { events?: CurationEventCandidate[]; error?: string }
+    const json = await readAdminResponseJson<{ events?: CurationEventCandidate[]; error?: string }>(res)
     if (!res.ok) throw new Error(json.error ?? '후보 이벤트를 불러오지 못했습니다.')
     setEventCandidates(json.events ?? [])
   }
@@ -268,12 +268,12 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ eventId: selectedCandidateId }),
       })
-      const json = (await res.json()) as {
+      const json = await readAdminResponseJson<{
         ok?: boolean
         movedFromOtherCard?: boolean
         previousCardId?: string | null
         error?: string
-      }
+      }>(res)
       if (!res.ok) throw new Error(json.error ?? '이벤트 연결 실패')
 
       if (json.movedFromOtherCard) {
@@ -303,7 +303,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
         `/api/admin/monthly-curation-contents/${editingMonthlyId}/link-event/${eventId}`,
         { method: 'DELETE' },
       )
-      const json = (await res.json()) as { ok?: boolean; error?: string }
+      const json = await readAdminResponseJson<{ ok?: boolean; error?: string }>(res)
       if (!res.ok) throw new Error(json.error ?? '연결 해제 실패')
       setEventLinkNotice('이벤트 연결을 해제했습니다.')
       await refreshLinkedEventsForCard(editingMonthlyId)
@@ -372,7 +372,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
           body: JSON.stringify(payload),
         }
       )
-      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      const json = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setError(json.error ?? '입력값을 다시 확인해주세요.')
         return
@@ -449,7 +449,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
           body: JSON.stringify(payload),
         }
       )
-      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      const json = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setError(json.error ?? '입력값을 다시 확인해주세요.')
         return
@@ -554,7 +554,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
         method: 'POST',
         body: fd,
       })
-      const json = (await res.json().catch(() => ({}))) as {
+      const json = (await readAdminResponseJson(res).catch(() => ({}))) as {
         error?: string
         imageUrl?: string
         imageStorageKey?: string
@@ -593,7 +593,7 @@ export default function OverseasContentAdminClient({ view = 'all' }: { view?: Ov
       fd.set('file', file)
       fd.set('title', editorialForm.title || 'editorial')
       const res = await fetch('/api/admin/editorial-contents/upload', { method: 'POST', body: fd })
-      const json = (await res.json().catch(() => ({}))) as {
+      const json = (await readAdminResponseJson(res).catch(() => ({}))) as {
         error?: string
         heroImageUrl?: string
         heroImageStorageKey?: string

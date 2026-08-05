@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
@@ -39,12 +41,12 @@ export function MobileTileStoragePickerModal({ open, tileKey, tileTitle, onClose
     try {
       const q = new URLSearchParams({ prefix, limit: '800' })
       const res = await fetch(`/api/admin/storage-image-picker?${q}`)
-      const data = (await res.json()) as {
+      const data = await readAdminResponseJson<{
         ok?: boolean
         error?: string
         items?: PickerItem[]
         truncated?: boolean
-      }
+      }>(res)
       if (res.status === 503) {
         setStorageOff(true)
         setItems([])

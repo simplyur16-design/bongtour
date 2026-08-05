@@ -4,7 +4,7 @@
  */
 // REGRESSION-FREEZE[admin-empty-json-response]: empty Response.json guard — manifest
 
-export async function readAdminResponseJson<T>(res: Response, emptyHint?: string): Promise<T> {
+export async function readAdminResponseJson<T = any>(res: Response, emptyHint?: string): Promise<T> {
   const raw = await res.text()
   if (!raw.trim()) {
     throw new Error(

@@ -1,5 +1,7 @@
 'use client'
 
+import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
@@ -33,7 +35,7 @@ function AddBrandForm({ onAdded }: { onAdded: (b: Brand) => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brandKey: brandKey.trim(), displayName: displayName.trim() }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '추가 실패')
       onAdded(data)
       setBrandKey('')
@@ -116,7 +118,7 @@ export default function AdminBrandsPage() {
           sortOrder: b.sortOrder,
         }),
       })
-      const data = await res.json()
+      const data = await readAdminResponseJson(res)
       if (!res.ok) throw new Error(data.error ?? '저장 실패')
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장 실패')
