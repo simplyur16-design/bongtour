@@ -3,6 +3,8 @@ import { adminGrantComplimentaryEsimBulk } from "@/lib/bongsim/admin/complimenta
 import { requireAdmin } from "@/lib/require-admin";
 
 export const dynamic = "force-dynamic";
+// REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 단체 일괄은 인원×발급으로 길어짐 — 빈 응답 JSON 파싱 방지용 — manifest
+export const maxDuration = 300;
 
 type Body = {
   option_api_id?: unknown;

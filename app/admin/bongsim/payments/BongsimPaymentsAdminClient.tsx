@@ -577,7 +577,9 @@ export default function BongsimPaymentsAdminClient() {
           phones_text: compBulkPhones,
         }),
       });
-      const j = (await res.json()) as {
+      // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: 빈/잘린 응답 → Unexpected end of JSON 방지 — manifest
+      const raw = await res.text();
+      let j: {
         ok?: boolean;
         requested?: number;
         succeeded?: number;
@@ -589,7 +591,17 @@ export default function BongsimPaymentsAdminClient() {
         >;
         message?: string;
         error?: string;
-      };
+      } = {};
+      if (!raw.trim()) {
+        throw new Error(
+          `서버 응답이 비었습니다 (${res.status}). 인원이 많으면 요청이 끊겼을 수 있습니다. 결제 내역에서 발급 여부를 확인한 뒤, 빠진 번호만 다시 시도하세요.`,
+        );
+      }
+      try {
+        j = JSON.parse(raw) as typeof j;
+      } catch {
+        throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
+      }
       if (!res.ok) throw new Error(j.message ?? j.error ?? "일괄 발급 실패");
       const invalid = j.invalid_phones ?? [];
       const failedRows =
@@ -793,7 +805,7 @@ export default function BongsimPaymentsAdminClient() {
           <h3 className="text-sm font-semibold text-violet-950">단체 일괄 발급</h3>
           <p className="mt-1 text-xs text-violet-900/90">
             위와 같은 상품·사유로 여러 명에게 1인 1장씩 발급합니다. 휴대폰 번호만 한 줄에 하나씩 입력하세요. (최대
-            100명)
+            100명 · 타임아웃 방지를 위해 한 번에 20명 이하 권장)
           </p>
           <label className="mt-3 block text-xs text-bt-text-muted-lavender">
             휴대폰 목록
