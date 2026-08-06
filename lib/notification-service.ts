@@ -10,6 +10,7 @@ import {
   buildAdminInquiryShortAlertLine,
   type AdminInquiryLmsBodyInput,
 } from '@/lib/admin-inquiry-lms-content'
+import { buildEsimQrDeliveredLmsText } from '@/lib/bongsim/notifications/esim-qr-lms'
 
 const MAX_RETRIES = 2
 
@@ -483,12 +484,14 @@ export async function sendBookingRequestReceivedLmsFallback(p: {
   return r
 }
 
-/** eSIM QR·설치 안내 — 알림톡 실패·미설정 시 LMS 폴백 */
+/** eSIM QR·설치 안내 LMS — iPhone/Galaxy 원클릭 URL + 주문 페이지 (알림톡과 병행 발송) */
 export async function sendEsimQrDeliveredLmsFallback(p: {
   orderId: string
   customerPhone: string
   orderNumber: string
   orderPageUrl: string
+  /** LPA:1$… — 있으면 LMS 본문에 바로 설치 URL 포함 */
+  downloadLink?: string | null
 }): Promise<SendAdminNotificationResult> {
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
@@ -510,17 +513,12 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
     return { ok: false, message: 'invalid_sender' }
   }
 
-  const text = [
-    '[Bong투어] eSIM 설치 안내',
-    '',
-    `주문번호: ${p.orderNumber.trim()}`,
-    '아래 주문 페이지에서 QR 스캔 또는 iPhone·Galaxy 바로 설치를 이용해 주세요.',
-    p.orderPageUrl.trim(),
-    '',
-    '문의: bongtour.com',
-  ]
-    .filter(Boolean)
-    .join('\n')
+  // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: LMS body via buildEsimQrDeliveredLmsText — manifest
+  const text = buildEsimQrDeliveredLmsText({
+    orderNumber: p.orderNumber,
+    orderPageUrl: p.orderPageUrl,
+    downloadLink: p.downloadLink,
+  })
 
   const r = await sendSolapiMessage(apiKey, apiSecret, from, toDigits, truncateForSms(text, 2000))
   if (!r.ok) {

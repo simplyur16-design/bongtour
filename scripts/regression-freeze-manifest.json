@@ -1703,6 +1703,53 @@
       ]
     },
     {
+      "id": "bongsim-esim-lms-quick-install",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문 포함 + 알림톡과 병행 발송",
+      "checks": [
+        {
+          "file": "lib/bongsim/notifications/esim-qr-lms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-lms-quick-install]",
+            "buildEsimQrDeliveredLmsText",
+            "iPhone 바로 설치",
+            "Galaxy·Android 바로 설치",
+            "buildAppleQuickInstallUrl",
+            "buildAndroidQuickInstallUrl"
+          ]
+        },
+        {
+          "file": "lib/notification-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-lms-quick-install]",
+            "buildEsimQrDeliveredLmsText",
+            "downloadLink"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-delivery.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-lms-quick-install]",
+            "downloadLink: payload.download_link",
+            "alim.ok || Boolean(lms.ok)"
+          ]
+        },
+        {
+          "file": "docs/ops/OPS-SOLAPI-ESIM-ALIMTALK.md",
+          "mustInclude": [
+            "병행",
+            "buildEsimQrDeliveredLmsText"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/notifications/esim-qr-lms.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-esim-android-quick-install",
       "tier": [
         "prebuild",

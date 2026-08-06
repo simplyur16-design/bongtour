@@ -127,22 +127,20 @@ export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayloa
   );
 
   if (phone) {
+    // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: AlimTalk + LMS(원클릭 URL) 병행 — manifest
     const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
       customerPhone: phone,
       orderNumber: orderLabel,
       orderPageUrl,
     });
-    if (alim.ok) {
-      phoneNotifyOk = true;
-    } else if (alim.shouldSendLmsFallback) {
-      const lms = await sendEsimQrDeliveredLmsFallback({
-        orderId,
-        customerPhone: phone,
-        orderNumber: orderLabel,
-        orderPageUrl,
-      });
-      phoneNotifyOk = Boolean(lms.ok);
-    }
+    const lms = await sendEsimQrDeliveredLmsFallback({
+      orderId,
+      customerPhone: phone,
+      orderNumber: orderLabel,
+      orderPageUrl,
+      downloadLink: payload.download_link,
+    });
+    phoneNotifyOk = alim.ok || Boolean(lms.ok);
   } else {
     console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId });
   }

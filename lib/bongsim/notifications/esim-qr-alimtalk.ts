@@ -90,7 +90,7 @@ export async function sendEsimQrDeliveredAlimTalk(
         pfId,
         templateId,
         variables,
-        /** 솔라피 자동 문자 + 앱 LMS 폴백 이중 채널 방지 — LMS는 `sendEsimQrDeliveredLmsFallback` */
+        /** 솔라피 자동 문자 방지 — LMS는 앱에서 원클릭 URL 포함해 병행 발송 (`sendEsimQrDeliveredLmsFallback`) */
         disableSms: true,
       },
     });
