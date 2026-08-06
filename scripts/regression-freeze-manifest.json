@@ -1483,6 +1483,39 @@
       ]
     },
     {
+      "id": "bongsim-admin-plans-pg-retry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 무상/오프라인 플랜 피커 — withBongsimAdminPgRetry + 한글 message (query_failed 영문 노출 금지)",
+      "checks": [
+        {
+          "file": "app/api/admin/bongsim/complimentary-esim/plans/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-plans-pg-retry]",
+            "withBongsimAdminPgRetry",
+            "bongsimAdminQueryFailurePayload"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/offline-usim/plans/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-plans-pg-retry]",
+            "withBongsimAdminPgRetry",
+            "bongsimAdminQueryFailurePayload"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/OfflineUsimPlanPicker.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-admin-plans-pg-retry]",
+            "플랜 목록 조회에 실패"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-admin-non-pg-esim-cancel",
       "tier": [
         "prebuild",

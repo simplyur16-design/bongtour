@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import {
+  bongsimAdminQueryFailurePayload,
+  withBongsimAdminPgRetry,
+} from "@/lib/bongsim/db/admin-query";
 import { queryPlanCatalog } from "@/lib/bongsim/recommend/query-plan-catalog";
 import { requireAdmin } from "@/lib/require-admin";
 
@@ -9,6 +13,7 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/admin/bongsim/complimentary-esim/plans?country=jp&days=7&codes=jp,th
  * 관리자 무상 eSIM 피커 — active eSIM-capable 상품 (공개 plans API와 동일 분류·필터).
+ * REGRESSION-FREEZE[bongsim-admin-plans-pg-retry]: admin plans heal·retry — manifest
  */
 export async function GET(req: Request) {
   const admin = await requireAdmin();
@@ -35,21 +40,29 @@ export async function GET(req: Request) {
     : [country];
   const allSelected = [...new Set(fromCodes)];
 
-  const pool = getPgPool();
-  if (!pool) return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
+  if (!getPgPool()) return NextResponse.json({ error: "db_unconfigured" }, { status: 503 });
 
   try {
-    const payload = await queryPlanCatalog({
-      pool,
-      country,
-      days,
-      allSelected,
-      catalogWhere: BONGSIM_CATALOG_ACTIVE_WHERE,
-      includeSupplyKrw: true,
-    });
+    const payload = await withBongsimAdminPgRetry((pool) =>
+      queryPlanCatalog({
+        pool,
+        country,
+        days,
+        allSelected,
+        catalogWhere: BONGSIM_CATALOG_ACTIVE_WHERE,
+        includeSupplyKrw: true,
+      }),
+    );
     return NextResponse.json(payload);
   } catch (e) {
     console.error("[admin/complimentary-esim/plans]", e);
-    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+    const { status, body } = bongsimAdminQueryFailurePayload(e);
+    return NextResponse.json(
+      {
+        ...body,
+        message: body.message.replace("주문·발급 내역", "플랜 목록"),
+      },
+      { status },
+    );
   }
 }

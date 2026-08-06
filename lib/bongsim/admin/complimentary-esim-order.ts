@@ -535,17 +535,23 @@ export async function adminGrantComplimentaryEsim(input: {
 
   let fulfillment_started = false;
   if (!input.skip_outbox_drain) {
-    try {
-      // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 무상발급 HTTP에서 USIMSA await 금지 — manifest
-      kickOrderPaidOutboxDrain(16);
-      fulfillment_started = true;
-      const { kickEsimQrNotifyDrain } = await import(
-        "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
-      );
-      kickEsimQrNotifyDrain(40);
-    } catch (e) {
-      console.warn("[adminGrantComplimentaryEsim] outbox drain", e);
-    }
+    // 관리자 목록/플랜 조회가 같은 풀을 쓰므로 kick을 약간 늦춰 경합을 줄인다.
+    fulfillment_started = true;
+    setTimeout(() => {
+      try {
+        // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 무상발급 HTTP에서 USIMSA await 금지 — manifest
+        kickOrderPaidOutboxDrain(16);
+        void import("@/lib/bongsim/fulfillment/esim-qr-notify-outbox")
+          .then(({ kickEsimQrNotifyDrain }) => {
+            kickEsimQrNotifyDrain(40);
+          })
+          .catch((e) => {
+            console.warn("[adminGrantComplimentaryEsim] notify kick", e);
+          });
+      } catch (e) {
+        console.warn("[adminGrantComplimentaryEsim] outbox drain", e);
+      }
+    }, 400);
   }
 
   return { ok: true, order: full, fulfillment_started };

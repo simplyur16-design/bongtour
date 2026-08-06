@@ -172,13 +172,25 @@ export default function OfflineUsimPlanPicker({ value, onChange, plansApiPath }:
           groups?: Partial<PlanGroups>;
           matched_days?: number;
           error?: string;
+          message?: string;
         };
         try {
           json = JSON.parse(raw) as typeof json;
         } catch {
           throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
         }
-        if (!res.ok) throw new Error(json.error ?? "플랜 조회 실패");
+        if (!res.ok) {
+          // REGRESSION-FREEZE[bongsim-admin-plans-pg-retry]: 한글 message 우선 — manifest
+          throw new Error(
+            (typeof json.message === "string" && json.message.trim()) ||
+              (json.error === "query_failed"
+                ? "플랜 목록 조회에 실패했습니다. 잠시 후 다시 시도하세요."
+                : json.error === "connection_timeout"
+                  ? "DB 연결이 지연되었습니다. 잠시 후 다시 시도하세요."
+                  : json.error) ||
+              "플랜 조회 실패",
+          );
+        }
         if (cancelled) return;
         setRawGroups({
           unlimited: json.groups?.unlimited ?? [],

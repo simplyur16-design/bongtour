@@ -7,28 +7,45 @@ import {
   type BongsimPgFailureKind,
 } from "@/lib/bongsim/db/pool";
 
-/** REGRESSION-FREEZE[bongsim-admin-payments-query]: admin DB heal·1회 재시도 — manifest */
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** REGRESSION-FREEZE[bongsim-admin-payments-query]: admin DB heal·재시도 — manifest */
 export async function withBongsimAdminPgRetry<T>(run: (pool: Pool) => Promise<T>): Promise<T> {
   // probe는 instrumentation 기동 시 1회. 요청 경로 SELECT 1 금지.
   const pool = getPgPool();
   if (!pool) {
     throw Object.assign(new Error("db_unconfigured"), { code: "db_unconfigured" });
   }
-  try {
-    return await run(pool);
-  } catch (first) {
-    await healBongsimPgPoolForCatalog(
-      first instanceof Error ? first.message : "admin-pg-retry",
-    );
-    const pool2 = getPgPool();
-    if (!pool2) throw first;
+
+  let last: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const p = getPgPool();
+    if (!p) {
+      throw Object.assign(new Error("db_unconfigured"), { code: "db_unconfigured" });
+    }
     try {
-      return await run(pool2);
-    } catch (second) {
-      await resetBongsimPgPoolAfterConnectTimeout(second);
-      throw second;
+      return await run(p);
+    } catch (err) {
+      last = err;
+      const kind = classifyBongsimPgError(err);
+      await healBongsimPgPoolForCatalog(
+        err instanceof Error ? err.message : "admin-pg-retry",
+      );
+      if (kind === "connection_timeout") {
+        await resetBongsimPgPoolAfterConnectTimeout(err);
+        await sleep(150 * (attempt + 1));
+        continue;
+      }
+      if (attempt === 0) {
+        await sleep(80);
+        continue;
+      }
+      throw err;
     }
   }
+  throw last;
 }
 
 export function bongsimAdminQueryFailurePayload(err: unknown): {

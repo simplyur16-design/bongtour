@@ -20,6 +20,14 @@ describe("bongsimAdminQueryFailurePayload", () => {
     expect(out.body.message).toMatch(/조회에 실패/);
   });
 
+  it("maps EMAXCONN-style saturation to connection_timeout", () => {
+    const out = bongsimAdminQueryFailurePayload(
+      new Error("FATAL: MaxClientsInSessionMode: max clients reached"),
+    );
+    expect(out.status).toBe(503);
+    expect(out.body.error).toBe("connection_timeout");
+  });
+
   it("maps db_unconfigured", () => {
     const out = bongsimAdminQueryFailurePayload(
       Object.assign(new Error("db_unconfigured"), { code: "db_unconfigured" }),
