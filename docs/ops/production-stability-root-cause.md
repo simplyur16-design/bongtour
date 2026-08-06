@@ -113,7 +113,7 @@ BONGSIM_PG_POOL_MAX=10
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=2
-BONGSIM_PG_POOL_MAX=5
+BONGSIM_PG_POOL_MAX=8
 BONGSIM_USIMSA_MAX_INFLIGHT=2
 BONGSIM_FULFILL_DRAIN_INTERVAL_MS=15000
 BONGTOUR_CRON_SECRET=… (web과 동일)
@@ -151,9 +151,9 @@ Supabase → Settings → Database → Connection pooling → **Pool Size = 40**
 | 소비자 | Prisma | `pg` 풀 | 합 |
 |---|---|---|---|
 | web (발급 off, 동시접속용) | 5 | 10 | 15 |
-| worker (배치+발급) | 2 | 5 | 7 |
+| worker (배치+발급) | 2 | 8 | 10 |
 | `prisma migrate deploy` | — | — | ~2 |
-| **합계** | | | **~24 / 40** |
+| **합계** | | | **~27 / 40** |
 
 배포 중 구 인스턴스 겹침 ≈ 35 근처. **web replica를 늘리기 전에** 이 합을 다시 계산할 것 (replica 2 = 거의 풀 고갈).
 

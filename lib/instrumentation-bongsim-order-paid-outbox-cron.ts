@@ -106,5 +106,15 @@ async function tickBongsimOrderPaidOutboxCron(
     });
   } catch (e) {
     console.error("[bongsim-order-paid-outbox-cron] tick error", { trigger, e });
+    try {
+      const { classifyBongsimPgError, healBongsimPgPoolForCatalog } = await import(
+        "@/lib/bongsim/db/pool",
+      );
+      if (classifyBongsimPgError(e) === "connection_timeout") {
+        await healBongsimPgPoolForCatalog("order-paid-outbox-cron-timeout");
+      }
+    } catch {
+      /* ignore */
+    }
   }
 }
