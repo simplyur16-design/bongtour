@@ -76,7 +76,7 @@ export function isBongsimPgTlsHandshakeIssue(err: unknown): boolean {
  * Supabase 세션 풀은 pool_size 15. Prisma(`connection_limit`)와 이 풀이 한 인스턴스에서
  * 15를 다 쓰면 배포 중 구 인스턴스·`prisma migrate deploy` 가 EMAXCONNSESSION 으로 죽는다.
  */
-const BONGSIM_POOL_MAX_DEFAULT = 2;
+const BONGSIM_POOL_MAX_DEFAULT = 5;
 
 export function resolveBongsimPoolMax(): number {
   const raw = process.env.BONGSIM_PG_POOL_MAX?.trim();

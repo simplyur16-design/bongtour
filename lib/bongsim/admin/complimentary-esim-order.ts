@@ -3,7 +3,7 @@ import { isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import type { BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 import { prepareCatalogCheckoutLines } from "@/lib/bongsim/data/checkout-create-order";
 import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import { classifyBongsimPgError, getPgPool, healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 
 export const COMPLIMENTARY_ESIM_CHECKOUT_CHANNEL = "admin_complimentary_esim";
@@ -100,7 +100,8 @@ export type AdminGrantComplimentaryEsimResult =
         | "validation"
         | "product_not_found"
         | "product_not_esim_capable"
-        | "db_error";
+        | "db_error"
+        | "connection_timeout";
       message: string;
     };
 
@@ -317,7 +318,29 @@ export async function adminGrantComplimentaryEsim(input: {
       ? emailRaw
       : fallbackComplimentaryEmail(buyer_phone);
 
-  const client = await pool.connect();
+  const client = await (async () => {
+    try {
+      return await pool.connect();
+    } catch (first) {
+      if (classifyBongsimPgError(first) !== "connection_timeout") throw first;
+      await healBongsimPgPoolForCatalog("complimentary-grant-connect");
+      const pool2 = getPgPool();
+      if (!pool2) throw first;
+      return await pool2.connect();
+    }
+  })().catch((e: unknown) => {
+    if (classifyBongsimPgError(e) === "connection_timeout") {
+      return null;
+    }
+    throw e;
+  });
+  if (!client) {
+    return {
+      ok: false,
+      reason: "connection_timeout",
+      message: "DB 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요.",
+    };
+  }
   let orderId: string | null = null;
   try {
     await client.query("BEGIN");
@@ -435,6 +458,13 @@ export async function adminGrantComplimentaryEsim(input: {
       /* ignore */
     }
     console.error("[adminGrantComplimentaryEsim]", e);
+    if (classifyBongsimPgError(e) === "connection_timeout") {
+      return {
+        ok: false,
+        reason: "connection_timeout",
+        message: "DB 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요.",
+      };
+    }
     return { ok: false, reason: "db_error", message: "무상 eSIM 발급 중 오류가 발생했습니다." };
   } finally {
     client.release();

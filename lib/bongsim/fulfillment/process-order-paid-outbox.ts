@@ -1,5 +1,9 @@
-import { getPgPool } from "@/lib/bongsim/db/pool";
-import { advanceFulfillmentForPaidOrder } from "@/lib/bongsim/fulfillment/process-fulfillment-job";
+import {
+  classifyBongsimPgError,
+  getPgPool,
+  healBongsimPgPoolForCatalog,
+} from "@/lib/bongsim/db/pool";
+import { advanceFulfillmentForPaidOrderReleasingDuringSubmit } from "@/lib/bongsim/fulfillment/process-fulfillment-job";
 import { deferOrTerminalOutboxAfterFailure } from "@/lib/bongsim/fulfillment/outbox-defer";
 
 type OutboxRow = {
@@ -44,9 +48,6 @@ function logOutboxProcessError(err: unknown, ctx?: { outbox_id?: string; order_i
   });
 }
 
-/**
- * Locks one pending `OrderPaid` outbox row, runs mock fulfillment advancement, marks processed after commit.
- */
 /** 결제 확정 직후 best-effort — mock 캡처와 동일하게 outbox를 비운다. */
 export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<void> {
   for (let i = 0; i < maxRounds; i += 1) {
@@ -61,10 +62,13 @@ export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<voi
       });
       continue;
     }
-    /* error / skipped_not_paid — 해당 행은 defer·terminal 처리됨, 다음 outbox 계속 */
   }
 }
 
+/**
+ * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: claim → release → USIMSA HTTP → persist
+ * (트랜잭션 안 HTTP로 pool max=2~5 고갈 → 무상발급 500 방지)
+ */
 export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutboxResult> {
   const pool = getPgPool();
   if (!pool) {
@@ -72,10 +76,10 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
     return { outcome: "error" };
   }
 
-  const client = await pool.connect();
   let picked: OutboxRow | null = null;
   let orderId: string | null = null;
 
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
@@ -134,12 +138,15 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
       };
     }
 
-    await advanceFulfillmentForPaidOrder(client, orderId);
-
-    await client.query(`UPDATE bongsim_outbox SET processed_at = now(), locked_at = now() WHERE id = $1`, [row.id]);
-
+    // HTTP는 커넥션 반환 후 수행 — 여기서는 claim만 확정
+    await client.query(
+      `UPDATE bongsim_outbox
+          SET locked_at = now(),
+              available_at = now() + interval '2 minutes'
+        WHERE id = $1`,
+      [row.id],
+    );
     await client.query("COMMIT");
-    return { outcome: "processed", outbox_id: row.id, order_id: orderId };
   } catch (err) {
     logOutboxProcessError(err, { outbox_id: picked?.id, order_id: orderId ?? undefined });
     try {
@@ -148,16 +155,68 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
       /* ignore */
     }
     if (picked) {
-      await deferOrTerminalOutboxAfterFailure(client, {
-        outbox_id: picked.id,
-        payload: picked.payload,
-        reason: "fulfillment_error",
-        order_status: null,
-        err,
-      });
+      try {
+        await deferOrTerminalOutboxAfterFailure(client, {
+          outbox_id: picked.id,
+          payload: picked.payload,
+          reason: "fulfillment_error",
+          order_status: null,
+          err,
+        });
+      } catch {
+        /* ignore */
+      }
     }
     return { outcome: "error", outbox_id: picked?.id, order_id: orderId ?? undefined };
   } finally {
     client.release();
+  }
+
+  if (!picked || !orderId) return { outcome: "error" };
+
+  try {
+    await advanceFulfillmentForPaidOrderReleasingDuringSubmit(orderId);
+
+    const c2 = await pool.connect();
+    try {
+      await c2.query(
+        `UPDATE bongsim_outbox
+            SET processed_at = now(), locked_at = now(), available_at = now()
+          WHERE id = $1 AND processed_at IS NULL`,
+        [picked.id],
+      );
+    } finally {
+      c2.release();
+    }
+    return { outcome: "processed", outbox_id: picked.id, order_id: orderId };
+  } catch (err) {
+    logOutboxProcessError(err, { outbox_id: picked.id, order_id: orderId });
+    try {
+      await healBongsimPgPoolForCatalog(
+        err instanceof Error ? err.message : "order-paid-fulfill",
+      );
+    } catch {
+      /* ignore */
+    }
+    const c3 = await getPgPool()?.connect();
+    if (c3) {
+      try {
+        await deferOrTerminalOutboxAfterFailure(c3, {
+          outbox_id: picked.id,
+          payload: picked.payload,
+          reason: "fulfillment_error",
+          order_status: null,
+          err,
+        });
+      } catch {
+        /* ignore */
+      } finally {
+        c3.release();
+      }
+    }
+    if (classifyBongsimPgError(err) === "connection_timeout") {
+      return { outcome: "error", outbox_id: picked.id, order_id: orderId };
+    }
+    return { outcome: "error", outbox_id: picked.id, order_id: orderId };
   }
 }

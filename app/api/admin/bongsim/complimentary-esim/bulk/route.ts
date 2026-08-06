@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     const status =
       result.reason === "product_not_found"
         ? 404
-        : result.reason === "db_unconfigured"
+        : result.reason === "db_unconfigured" || result.reason === "connection_timeout"
           ? 503
           : result.reason === "db_error"
             ? 500

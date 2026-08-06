@@ -114,8 +114,8 @@ async function getOrCreateActiveJob(client: PoolClient, orderId: string): Promis
  *   이미 submitted/delivered 상태면 재실행 시 no-op.
  *
  * 주의 (비동기형):
- *   USIMSA HTTP 호출이 현재 트랜잭션 내에 있어서 커넥션을 오래 잡을 수 있음.
- *   운영 스케일 발생 시 outbox runner에서 트랜잭션을 분리하는 리팩토링 고려.
+ *   OrderPaid outbox는 `advanceFulfillmentForPaidOrderReleasingDuringSubmit` 를 써서
+ *   USIMSA HTTP 중 pg 커넥션을 점유하지 않는다. (직접 client를 넘기는 경로만 트랜잭션 내 HTTP)
  */
 export async function advanceFulfillmentForPaidOrder(
   client: PoolClient,
@@ -436,5 +436,262 @@ async function advanceSyncMockSupplier(
     );
     await appendFulfillmentEvent(client, order.order_id, job.job_id, "mock_failed", { status: job.status });
     break;
+  }
+}
+
+/**
+ * OrderPaid outbox / grant drain용.
+ * USIMSA HTTP 동안 pg 풀 커넥션을 붙잡지 않아 무상발급·다른 API의 connect timeout(500)을 막는다.
+ * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: release during USIMSA HTTP — manifest
+ */
+export async function advanceFulfillmentForPaidOrderReleasingDuringSubmit(
+  orderId: string,
+): Promise<void> {
+  const { getPgPool } = await import("@/lib/bongsim/db/pool");
+  const pool = getPgPool();
+  if (!pool) throw new Error("db_unconfigured");
+
+  const supplier = getDefaultSupplierClient();
+  if (!isAsyncSupplier(supplier.id)) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await advanceFulfillmentForPaidOrder(client, orderId);
+      await client.query("COMMIT");
+    } catch (e) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* ignore */
+      }
+      throw e;
+    } finally {
+      client.release();
+    }
+    return;
+  }
+
+  type Prep = {
+    order: OrderRow;
+    job: FulfillmentJobRow;
+    lines: BongsimSupplierOrderLineInput[];
+  };
+  let prep: Prep | null = null;
+
+  {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const o = await client.query<OrderRow>(
+        `SELECT order_id, order_number, status FROM bongsim_order WHERE order_id = $1 FOR UPDATE`,
+        [orderId],
+      );
+      const order = o.rows[0];
+      if (!order || order.status !== "paid") {
+        await client.query("COMMIT");
+        return;
+      }
+      const consentsRes = await client.query<{ consents: unknown }>(
+        `SELECT consents FROM bongsim_order WHERE order_id = $1`,
+        [orderId],
+      );
+      if (isOfflineUsimOnlyOrder(consentsRes.rows[0]?.consents)) {
+        await client.query("COMMIT");
+        return;
+      }
+      const done = await client.query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n FROM bongsim_fulfillment_job WHERE order_id = $1 AND status = 'delivered'`,
+        [orderId],
+      );
+      if (Number.parseInt(done.rows[0]?.n ?? "0", 10) > 0) {
+        await client.query("COMMIT");
+        return;
+      }
+      const linesRes = await client.query<OrderLineRow>(
+        `SELECT option_api_id, quantity, snapshot, line_total_krw
+           FROM bongsim_order_line WHERE order_id = $1 ORDER BY created_at ASC`,
+        [orderId],
+      );
+      const lines: BongsimSupplierOrderLineInput[] = linesRes.rows.map((row) => ({
+        option_api_id: row.option_api_id,
+        quantity: row.quantity,
+        snapshot:
+          typeof row.snapshot === "object" && row.snapshot
+            ? (row.snapshot as Record<string, unknown>)
+            : {},
+      }));
+      const job = await getOrCreateActiveJob(client, orderId);
+      if (job.status === "delivered" || job.status === "failed") {
+        await client.query("COMMIT");
+        return;
+      }
+      if (job.status !== "queued" && job.status !== "in_progress") {
+        await client.query("COMMIT");
+        return;
+      }
+      const existing = await client.query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n FROM bongsim_fulfillment_topup WHERE job_id = $1`,
+        [job.job_id],
+      );
+      if (Number.parseInt(existing.rows[0]?.n ?? "0", 10) > 0) {
+        await client.query(
+          `UPDATE bongsim_fulfillment_job
+             SET status = 'submitted',
+                 supplier_id = COALESCE(supplier_id, $2),
+                 supplier_order_ref = COALESCE(supplier_order_ref, $3),
+                 updated_at = now()
+           WHERE job_id = $1`,
+          [job.job_id, supplier.id, order.order_number],
+        );
+        await client.query("COMMIT");
+        return;
+      }
+      await client.query(
+        `UPDATE bongsim_fulfillment_job
+           SET status = 'in_progress', supplier_id = COALESCE(supplier_id, $2), updated_at = now()
+         WHERE job_id = $1`,
+        [job.job_id, supplier.id],
+      );
+      await client.query("COMMIT");
+      prep = { order, job: { ...job, status: "in_progress" }, lines };
+    } catch (e) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* ignore */
+      }
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  if (!prep) return;
+
+  let result: BongsimSupplierSubmitResult;
+  try {
+    result = await supplier.submitPaidOrder({
+      order_id: prep.order.order_id,
+      order_number: prep.order.order_number,
+      lines: prep.lines,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE bongsim_fulfillment_job
+           SET status = 'failed',
+               supplier_id = COALESCE(supplier_id, $2),
+               supplier_order_ref = COALESCE(supplier_order_ref, $3),
+               attempt_count = attempt_count + 1,
+               last_error = $4::jsonb,
+               updated_at = now()
+         WHERE job_id = $1`,
+        [
+          prep.job.job_id,
+          supplier.id,
+          prep.order.order_number,
+          JSON.stringify({ code: "async_supplier_submit_failed", message }),
+        ],
+      );
+      await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submit_error", {
+        supplier: supplier.id,
+        message,
+      });
+      await client.query("COMMIT");
+    } catch (e2) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* ignore */
+      }
+      throw e2;
+    } finally {
+      client.release();
+    }
+    return;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    if (!result.topups || result.topups.length === 0) {
+      await client.query(
+        `UPDATE bongsim_fulfillment_job
+           SET status = 'failed',
+               supplier_id = COALESCE(supplier_id, $2),
+               supplier_order_ref = COALESCE(supplier_order_ref, $3),
+               last_error = $4::jsonb,
+               updated_at = now()
+         WHERE job_id = $1`,
+        [
+          prep.job.job_id,
+          supplier.id,
+          prep.order.order_number,
+          JSON.stringify({ code: "async_supplier_no_topups" }),
+        ],
+      );
+      await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submit_no_topups", {
+        supplier: supplier.id,
+      });
+      await client.query("COMMIT");
+      return;
+    }
+    for (const topup of result.topups) {
+      const isUsimWithIccid = topup.fulfillment_mode === "usim" && Boolean(topup.iccid);
+      const status = isUsimWithIccid ? "iccid_ready" : "issued_topup";
+      await client.query(
+        `INSERT INTO bongsim_fulfillment_topup
+           (job_id, order_id, option_api_id, supplier_id, topup_id, status, iccid)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (supplier_id, topup_id) DO NOTHING`,
+        [
+          prep.job.job_id,
+          prep.order.order_id,
+          topup.option_api_id,
+          supplier.id,
+          topup.topup_id,
+          status,
+          topup.iccid ?? null,
+        ],
+      );
+    }
+    await promoteFulfillmentJobIfReady(client, prep.job.job_id);
+    await client.query(
+      `UPDATE bongsim_fulfillment_job
+         SET status = 'submitted',
+             supplier_id = $2,
+             supplier_order_ref = $3,
+             supplier_submission_id = $4,
+             submission_response = $5::jsonb,
+             submitted_at = now(),
+             attempt_count = attempt_count + 1,
+             updated_at = now()
+       WHERE job_id = $1`,
+      [
+        prep.job.job_id,
+        supplier.id,
+        prep.order.order_number,
+        result.submission_id,
+        JSON.stringify({ topups: result.topups }),
+      ],
+    );
+    await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submitted", {
+      supplier: supplier.id,
+      submission_id: result.submission_id,
+      topup_count: result.topups.length,
+    });
+    await client.query("COMMIT");
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    throw e;
+  } finally {
+    client.release();
   }
 }

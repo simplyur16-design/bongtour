@@ -1338,6 +1338,37 @@
       ]
     },
     {
+      "id": "bongsim-fulfill-release-during-usimsa",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OrderPaid 발급 — USIMSA HTTP 중 pg 커넥션 미점유 (무상발급 connect timeout 500 방지)",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/process-fulfillment-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]",
+            "advanceFulfillmentForPaidOrderReleasingDuringSubmit"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]",
+            "advanceFulfillmentForPaidOrderReleasingDuringSubmit",
+            "available_at = now() + interval '2 minutes'"
+          ]
+        },
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "BONGSIM_POOL_MAX_DEFAULT = 5"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-complimentary-esim-grant",
       "tier": [
         "prebuild",
@@ -2142,7 +2173,7 @@
             "healBongsimPgPoolForCatalog",
             "CATALOG_HEAL_COOLDOWN_MS",
             "CATALOG_HEAL_COOLDOWN_MS = 30_000",
-            "BONGSIM_POOL_MAX_DEFAULT = 2",
+            "BONGSIM_POOL_MAX_DEFAULT = 5",
             "poolResetInFlight",
             "Promise<void>",
             "Cannot use a pool after calling end on the pool",
