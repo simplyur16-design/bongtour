@@ -3,7 +3,7 @@ import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums"
 import { recordBongsimCouponUsageAfterCapture } from "@/lib/bongsim/data/bongsim-coupon";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { runBongsimOrderPaidSideEffects } from "@/lib/bongsim/data/bongsim-order-paid-side-effects";
-import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { kickOrderPaidOutboxDrain } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 
 // REGRESSION-FREEZE[simplyur-portone-checkout-p2]: PortOne capture → OrderPaid — manifest
@@ -249,11 +249,8 @@ export async function processPortonePaymentOutcome(
       console.warn("[simplyur:portone:paid-side-effects]", err);
     }
 
-    try {
-      await drainOrderPaidOutboxBestEffort();
-    } catch (err) {
-      console.warn("[simplyur:portone:outbox-drain]", err);
-    }
+    // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 결제 요청 스레드에서 USIMSA await 금지 — manifest
+    kickOrderPaidOutboxDrain();
 
     return { ok: true, duplicate: false };
   } catch (e) {

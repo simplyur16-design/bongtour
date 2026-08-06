@@ -3,7 +3,7 @@ import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums"
 import { recordBongsimCouponUsageAfterCapture } from "@/lib/bongsim/data/bongsim-coupon";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { runBongsimOrderPaidSideEffects } from "@/lib/bongsim/data/bongsim-order-paid-side-effects";
-import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { kickOrderPaidOutboxDrain } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 
 /**
  * 웰컴페이먼츠(표준결제) 승인 완료 후 DB 반영.
@@ -272,11 +272,8 @@ export async function processWelcomepayPaymentOutcome(
       console.warn("[bongsim:welcomepay:paid-side-effects]", err);
     }
 
-    try {
-      await drainOrderPaidOutboxBestEffort();
-    } catch (err) {
-      console.warn("[bongsim:welcomepay:outbox-drain]", err);
-    }
+    // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 결제 요청 스레드에서 USIMSA await 금지 — manifest
+    kickOrderPaidOutboxDrain();
 
     return { ok: true, duplicate: false };
   } catch (e) {

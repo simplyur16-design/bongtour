@@ -84,10 +84,10 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=web
 BONGTOUR_PRISMA_CONNECTION_LIMIT=3
-BONGSIM_PG_POOL_MAX=4
+BONGSIM_PG_POOL_MAX=5
 ```
 
-(미설정 시 production은 자동 `web`, 그리고 위 두 값이 코드 기본값이다)
+(미설정 시 production은 자동 `web`. `BONGSIM_PG_POOL_MAX` 코드 기본값은 5)
 
 ### 2) worker 서비스 추가
 
@@ -99,7 +99,7 @@ BONGSIM_PG_POOL_MAX=4
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=2
-BONGSIM_PG_POOL_MAX=2
+BONGSIM_PG_POOL_MAX=5
 BONGTOUR_CRON_SECRET=… (web과 동일)
 DATABASE_URL=… (web과 동일)
 ```
@@ -112,14 +112,17 @@ web·worker·마이그레이션이 **같은 슬롯을 나눠 쓴다.** 합이 �
 `FATAL: (EMAXCONNSESSION)` 이 나고, 앱의 모든 미캐시 조회가 `db_error` 로 떨어진다.
 2026-07 장애가 정확히 이것이었다 — 기본값이 web 15 + worker 13 = 28 인데 한도가 15였다.
 
+결제·무상발급 HTTP는 OrderPaid outbox를 **kick(비블로킹)** 하고, USIMSA HTTP는 pg 커넥션을
+잡은 채로 두지 않는다. 동시 접속 시 풀 고갈을 막는 SSOT다.
+
 Supabase → Settings → Database → Connection pooling → **Pool Size = 40**.
 
 | 소비자 | Prisma | `pg` 풀 | 합 |
 |---|---|---|---|
-| web | 3 | 4 | 7 |
-| worker | 2 | 2 | 4 |
+| web | 3 | 5 | 8 |
+| worker | 2 | 5 | 7 |
 | `prisma migrate deploy` 스키마 엔진 | — | — | ~2 |
-| **합계** | | | **~13 / 40** |
+| **합계** | | | **~17 / 40** |
 
 배포 중에는 구 인스턴스가 아직 살아 있으므로 그 겹침까지 20 남짓이다.
 서비스나 replica 를 늘릴 때는 이 표를 갱신하고 Pool Size 와 대조할 것.

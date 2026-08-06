@@ -1369,6 +1369,59 @@
       ]
     },
     {
+      "id": "bongsim-order-paid-kick-nonblocking",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "결제·무상발급 HTTP는 OrderPaid drain을 await하지 않고 kick — 동시접속 시 pg/프록시 고갈 방지",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
+            "kickOrderPaidOutboxDrain",
+            "orderPaidDrainTail"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/process-welcomepay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
+            "kickOrderPaidOutboxDrain"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/process-portone-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
+            "kickOrderPaidOutboxDrain"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/process-eximbay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
+            "kickOrderPaidOutboxDrain"
+          ]
+        },
+        {
+          "file": "lib/bongsim/admin/complimentary-esim-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
+            "kickOrderPaidOutboxDrain"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
+            "CRON_EXPR = \"* * * * *\""
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-complimentary-esim-grant",
       "tier": [
         "prebuild",

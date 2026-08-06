@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import type { BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 import { prepareCatalogCheckoutLines } from "@/lib/bongsim/data/checkout-create-order";
-import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { kickOrderPaidOutboxDrain } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { classifyBongsimPgError, getPgPool, healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 
@@ -161,7 +161,8 @@ export type AdminGrantComplimentaryEsimBulkResult =
         | "validation"
         | "product_not_found"
         | "product_not_esim_capable"
-        | "db_error";
+        | "db_error"
+        | "connection_timeout";
       message: string;
       invalid_phones?: string[];
     };
@@ -253,10 +254,11 @@ export async function adminGrantComplimentaryEsimBulk(input: {
     });
   }
 
-  // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: OrderPaid await + QR kick(직렬) — 요청 중 SMS await 금지(빈 500) — manifest
+  // REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]: OrderPaid kick + QR kick(직렬) — 요청 중 SMS/USIMSA await 금지(빈 500) — manifest
   if (succeeded > 0) {
     try {
-      await drainOrderPaidOutboxBestEffort(Math.min(100, succeeded + 8));
+      // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 일괄 발급 HTTP에서 drain await 금지 — manifest
+      kickOrderPaidOutboxDrain(Math.min(100, succeeded + 8));
       const { kickEsimQrNotifyDrain } = await import(
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
       );
@@ -473,7 +475,8 @@ export async function adminGrantComplimentaryEsim(input: {
   let fulfillment_started = false;
   if (orderId && !input.skip_outbox_drain) {
     try {
-      await drainOrderPaidOutboxBestEffort(16);
+      // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 무상발급 HTTP에서 USIMSA await 금지 — manifest
+      kickOrderPaidOutboxDrain(16);
       fulfillment_started = true;
       const { kickEsimQrNotifyDrain } = await import(
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"

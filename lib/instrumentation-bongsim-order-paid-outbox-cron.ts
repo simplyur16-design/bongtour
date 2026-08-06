@@ -1,11 +1,12 @@
 /**
- * OrderPaid outbox 백업 드레인 — 2분마다 (production + DATABASE_URL).
- * PG 콜백 직후 drain이 끊긴 경우 미처리 outbox 복구.
+ * OrderPaid outbox 백업 드레인 — 1분마다 (production + DATABASE_URL).
+ * 결제·무상발급은 kick(비블로킹); cron은 끊긴 kick·프로세스 재시작 복구.
+ * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: cron backup every minute — manifest
  */
 import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { drainEsimQrNotifyOutboxBestEffort } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 
-const CRON_EXPR = "*/2 * * * *";
+const CRON_EXPR = "* * * * *";
 
 function isProductionRuntime(): boolean {
   return (
@@ -54,7 +55,7 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
       console.log(`[bongsim-order-paid-outbox-cron] registered: ${CRON_EXPR} (Asia/Seoul)`);
       setTimeout(() => {
         void tickBongsimOrderPaidOutboxCron("boot");
-      }, 45_000);
+      }, 20_000);
     })
     .catch((e) => {
       console.error("[bongsim-order-paid-outbox-cron] failed to load node-cron", e);

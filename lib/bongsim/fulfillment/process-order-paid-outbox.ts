@@ -48,7 +48,7 @@ function logOutboxProcessError(err: unknown, ctx?: { outbox_id?: string; order_i
   });
 }
 
-/** 결제 확정 직후 best-effort — mock 캡처와 동일하게 outbox를 비운다. */
+/** 결제 확정 직후 best-effort — mock 캡처·cron·스크립트용 (요청 스레드에서는 kick 사용). */
 export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<void> {
   for (let i = 0; i < maxRounds; i += 1) {
     const r = await processNextOrderPaidOutbox();
@@ -63,6 +63,21 @@ export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<voi
       continue;
     }
   }
+}
+
+/**
+ * 동시 결제·무상발급 버스트가 요청마다 await drain(USIMSA HTTP) 하면 pg 풀·프록시가 고갈된다.
+ * 프로세스 내 직렬 체인으로 백그라운드 드레인 — 요청은 즉시 반환.
+ * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: kickOrderPaidOutboxDrain — manifest
+ */
+let orderPaidDrainTail: Promise<unknown> = Promise.resolve();
+
+export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
+  orderPaidDrainTail = orderPaidDrainTail
+    .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
+    .catch((e) => {
+      console.warn("[bongsim:outbox:kick]", e);
+    });
 }
 
 /**

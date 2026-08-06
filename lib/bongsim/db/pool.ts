@@ -73,8 +73,8 @@ export function isBongsimPgTlsHandshakeIssue(err: unknown): boolean {
 }
 
 /**
- * Supabase 세션 풀은 pool_size 15. Prisma(`connection_limit`)와 이 풀이 한 인스턴스에서
- * 15를 다 쓰면 배포 중 구 인스턴스·`prisma migrate deploy` 가 EMAXCONNSESSION 으로 죽는다.
+ * Supabase 세션 풀 슬롯을 Prisma(`connection_limit`)와 나눠 쓴다.
+ * 기본 5 — 동시 카탈로그/주문 조회 여유. 상한은 docs/ops/production-stability-root-cause.md 예산표.
  */
 const BONGSIM_POOL_MAX_DEFAULT = 5;
 
