@@ -3,6 +3,7 @@
  * 15초 interval + 1분 cron 백업. web은 BONGSIM_FULFILL_OWNER=worker|fulfill 시 등록 안 함.
  * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill drain interval — manifest
  * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: cron backup — manifest
+ * REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: saturated backoff — manifest
  */
 import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { drainEsimQrNotifyOutboxBestEffort } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
@@ -14,6 +15,8 @@ const INTERVAL_MS = Math.max(
   5_000,
   Number.parseInt(process.env.BONGSIM_FULFILL_DRAIN_INTERVAL_MS ?? "15000", 10) || 15_000,
 );
+
+const SATURATED_BACKOFF_MS = 2_500;
 
 function isProductionRuntime(): boolean {
   return (
@@ -86,6 +89,12 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
     });
 }
 
+async function drainFulfillOutboxes(): Promise<{ processed: number; deferred: number }> {
+  await drainOrderPaidOutboxBestEffort(16);
+  // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: cron also drains EsimQrNotify — manifest
+  return drainEsimQrNotifyOutboxBestEffort(24);
+}
+
 async function tickBongsimOrderPaidOutboxCron(
   trigger: "cron" | "boot" | "interval",
 ): Promise<void> {
@@ -96,9 +105,7 @@ async function tickBongsimOrderPaidOutboxCron(
       console.warn("[bongsim-order-paid-outbox-cron] tick skip: DATABASE_URL");
       return;
     }
-    await drainOrderPaidOutboxBestEffort(16);
-    // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: cron also drains EsimQrNotify — manifest
-    const notify = await drainEsimQrNotifyOutboxBestEffort(24);
+    const notify = await drainFulfillOutboxes();
     console.log("[bongsim-order-paid-outbox-cron] tick done", {
       trigger,
       ms: Date.now() - started,
@@ -107,14 +114,40 @@ async function tickBongsimOrderPaidOutboxCron(
   } catch (e) {
     console.error("[bongsim-order-paid-outbox-cron] tick error", { trigger, e });
     try {
-      const { classifyBongsimPgError, healBongsimPgPoolForCatalog } = await import(
-        "@/lib/bongsim/db/pool",
-      );
-      if (classifyBongsimPgError(e) === "connection_timeout") {
+      const {
+        classifyBongsimPgError,
+        getBongsimPoolStats,
+        healBongsimPgPoolForCatalog,
+        resolveBongsimPoolMax,
+        shouldBackoffInsteadOfHealOnConnectTimeout,
+      } = await import("@/lib/bongsim/db/pool");
+      if (classifyBongsimPgError(e) !== "connection_timeout") return;
+
+      const stats = getBongsimPoolStats();
+      const saturated = shouldBackoffInsteadOfHealOnConnectTimeout(stats, resolveBongsimPoolMax());
+      if (saturated) {
+        // 슬롯 포화 시 heal은 옛 풀 end()+새 연결을 겹쳐 Supabase를 더 짓누른다.
+        console.warn("[bongsim-order-paid-outbox-cron] saturated backoff (no heal)", {
+          stats,
+          backoffMs: SATURATED_BACKOFF_MS,
+        });
+        await new Promise<void>((r) => setTimeout(r, SATURATED_BACKOFF_MS));
+      } else {
         await healBongsimPgPoolForCatalog("order-paid-outbox-cron-timeout");
       }
-    } catch {
-      /* ignore */
+
+      const notify = await drainFulfillOutboxes();
+      console.log("[bongsim-order-paid-outbox-cron] tick done", {
+        trigger,
+        ms: Date.now() - started,
+        esim_qr_notify: notify,
+        recovered: saturated ? "backoff" : "heal",
+      });
+    } catch (e2) {
+      console.error("[bongsim-order-paid-outbox-cron] tick error after recover", {
+        trigger,
+        e: e2,
+      });
     }
   }
 }

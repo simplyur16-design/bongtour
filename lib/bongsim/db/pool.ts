@@ -87,6 +87,29 @@ export function resolveBongsimPoolMax(): number {
   return BONGSIM_POOL_MAX_DEFAULT;
 }
 
+/** pg Pool connectionTimeoutMillis — 기본 8s, env `BONGSIM_PG_CONNECT_TIMEOUT_MS` (3s–30s). */
+export function resolveBongsimPoolConnectTimeoutMs(): number {
+  const raw = process.env.BONGSIM_PG_CONNECT_TIMEOUT_MS?.trim();
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 3_000 && n <= 30_000) return n;
+  }
+  return 8_000;
+}
+
+/**
+ * 풀 슬롯이 이미 꽉 찬 연결 타임아웃이면 heal(close+재생성)이 Supabase 슬롯을
+ * 더 잡아 악화시킨다 → backoff 재시도가 맞다.
+ * REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: saturated → no heal — manifest
+ */
+export function shouldBackoffInsteadOfHealOnConnectTimeout(
+  stats: { total: number; idle: number; waiting: number } | null,
+  poolMax: number = resolveBongsimPoolMax(),
+): boolean {
+  if (!stats) return false;
+  return stats.idle === 0 && stats.total >= poolMax;
+}
+
 function buildPoolConfig(): PoolConfig | null {
   let url = process.env.DATABASE_URL?.trim();
   if (!url) return null;
@@ -104,7 +127,8 @@ function buildPoolConfig(): PoolConfig | null {
     max: resolveBongsimPoolMax(),
     idleTimeoutMillis: 10_000,
     // 연결 고갈 시 무한 대기 → eSIM by-country「상품 조회 중…」무한 로딩 방지
-    connectionTimeoutMillis: 6_000,
+    // worker 발급 드레인은 배치와 슬롯 경합 시 6s가 짧아 타임아웃→heal 연타가 난다.
+    connectionTimeoutMillis: resolveBongsimPoolConnectTimeoutMs(),
     ssl: sslStrict ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
   };
 
@@ -316,16 +340,17 @@ export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): Promise<voi
   );
 }
 
-const POOL_CONNECT_BUDGET_MS = 6_000;
+const POOL_CONNECT_BUDGET_MS = () => resolveBongsimPoolConnectTimeoutMs();
 
 async function connectWithBudget(pool: Pool): Promise<import("pg").PoolClient> {
   // REGRESSION-FREEZE[bongsim-pg-tls-global]: pool.connect budget — manifest
+  const budget = POOL_CONNECT_BUDGET_MS();
   return await Promise.race([
     pool.connect(),
     new Promise<never>((_, reject) =>
       setTimeout(
         () => reject(new Error("timeout exceeded when trying to connect")),
-        POOL_CONNECT_BUDGET_MS,
+        budget,
       ),
     ),
   ]);

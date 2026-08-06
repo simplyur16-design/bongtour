@@ -114,11 +114,16 @@ BONGSIM_PG_POOL_MAX=10
 BONGTOUR_INSTRUMENTATION_ROLE=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=2
 BONGSIM_PG_POOL_MAX=8
+BONGSIM_PG_CONNECT_TIMEOUT_MS=12000
 BONGSIM_USIMSA_MAX_INFLIGHT=2
 BONGSIM_FULFILL_DRAIN_INTERVAL_MS=15000
 BONGTOUR_CRON_SECRET=… (web과 동일)
 DATABASE_URL=… (web과 동일)
 ```
+
+OrderPaid tick이 `timeout exceeded when trying to connect` 이고 풀 stats가
+`{ idle: 0, total: max }` 이면 **saturated backoff**(heal 없이 짧게 대기 후 재시도).
+슬롯이 비어 있는데도 타임아웃이면 기존대로 catalog heal.
 
 6. Replica **1** 고정
 

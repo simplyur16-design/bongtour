@@ -1491,6 +1491,41 @@
       ]
     },
     {
+      "id": "bongsim-fulfill-drain-saturated-retry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OrderPaid tick: 풀 포화(idle=0·total=max)면 heal 대신 backoff 후 재시도",
+      "checks": [
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]",
+            "shouldBackoffInsteadOfHealOnConnectTimeout"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]",
+            "saturated backoff (no heal)",
+            "shouldBackoffInsteadOfHealOnConnectTimeout"
+          ]
+        },
+        {
+          "file": "docs/ops/production-stability-root-cause.md",
+          "mustInclude": [
+            "saturated backoff",
+            "BONGSIM_PG_CONNECT_TIMEOUT_MS"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/db/pool-saturated-backoff.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-complimentary-esim-grant",
       "tier": [
         "prebuild",
