@@ -95,11 +95,12 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=web
 BONGSIM_FULFILL_OWNER=worker
-BONGTOUR_PRISMA_CONNECTION_LIMIT=3
-BONGSIM_PG_POOL_MAX=4
+BONGTOUR_PRISMA_CONNECTION_LIMIT=5
+BONGSIM_PG_POOL_MAX=10
 ```
 
-(미설정 시 production은 자동 `web`. **worker가 있으면 `BONGSIM_FULFILL_OWNER=worker` 필수.**)
+(미설정 시 production은 자동 `web`. **worker가 있으면 `BONGSIM_FULFILL_OWNER=worker` 필수.**  
+동시 접속 ~100명(조회·결제 확정) 목표: web pg 10 + Prisma 5.)
 
 ### 2) worker 서비스 (배치 + 발급 — 권장 최소 구성)
 
@@ -142,20 +143,19 @@ web·worker·(fulfill)·마이그레이션이 **같은 슬롯을 나눠 쓴다.*
 `FATAL: (EMAXCONNSESSION)` → 전면 `db_error` / `query_failed`.
 
 결제·무상발급 HTTP는 outbox INSERT만 하고, USIMSA·알림톡은 **fulfill owner** 가 큐로 처리.
-동시 발급 상한: `BONGSIM_USIMSA_MAX_INFLIGHT` (기본 2).
+동시 발급 상한: `BONGSIM_USIMSA_MAX_INFLIGHT` (기본 2).  
+**100명 동시 “발급”이 아니라 100명 동시 “접속”** — 발급은 큐에 쌓여 순차 처리되는 것이 정상이다.
 
-Supabase → Settings → Database → Connection pooling → **Pool Size = 40**.
+Supabase → Settings → Database → Connection pooling → **Pool Size = 40** (미만이면 올리지 말 것).
 
 | 소비자 | Prisma | `pg` 풀 | 합 |
 |---|---|---|---|
-| web (발급 off) | 3 | 4 | 7 |
+| web (발급 off, 동시접속용) | 5 | 10 | 15 |
 | worker (배치+발급) | 2 | 5 | 7 |
 | `prisma migrate deploy` | — | — | ~2 |
-| **합계** | | | **~16 / 40** |
+| **합계** | | | **~24 / 40** |
 
-fulfill 분리 시 worker pg를 3·fulfill pg 4 등으로 표를 다시 맞춰라.
-
-배포 중 구 인스턴스 겹침까지 여유를 둬라. replica↑ 전에 이 표부터.
+배포 중 구 인스턴스 겹침 ≈ 35 근처. **web replica를 늘리기 전에** 이 합을 다시 계산할 것 (replica 2 = 거의 풀 고갈).
 
 `DIRECT_URL` 은 풀러가 아니라 실제 직결 주소(`db.<ref>.supabase.co:5432`)여야 한다.
 풀러를 가리키면 마이그레이션이 이 15슬롯을 두고 앱과 경쟁한다.
