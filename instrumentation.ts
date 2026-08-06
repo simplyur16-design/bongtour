@@ -13,6 +13,7 @@ import { getDevAdminBypassSecret } from '@/lib/admin-secrets'
 import {
   logInstrumentationProcessRole,
   shouldRunBackgroundCrons,
+  shouldRunFulfillmentCrons,
   shouldRunWebCriticalCrons,
 } from '@/lib/instrumentation-process-role'
 import { assertProductionServerEnv } from '@/lib/server-env'
@@ -36,11 +37,16 @@ export async function register() {
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
     await bootstrapHomeHubActiveFromDb()
 
-    if (hasDb && shouldRunWebCriticalCrons()) {
+    // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill cron on owner only — manifest
+    if (hasDb && shouldRunFulfillmentCrons()) {
       const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
         '@/lib/instrumentation-bongsim-order-paid-outbox-cron'
       )
       startInstrumentationBongsimOrderPaidOutboxCron()
+    } else if (hasDb && shouldRunWebCriticalCrons()) {
+      console.log(
+        '[bongsim-order-paid-outbox-cron] skipped on web — BONGSIM_FULFILL_OWNER points off-web (worker/fulfill drains)',
+      )
     }
 
     if (hasDb && shouldRunBackgroundCrons()) {

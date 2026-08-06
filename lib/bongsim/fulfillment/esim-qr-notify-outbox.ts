@@ -5,6 +5,7 @@
 import type { PoolClient } from 'pg'
 import { getPgPool } from '@/lib/bongsim/db/pool'
 import { deferOrTerminalOutboxAfterFailure } from '@/lib/bongsim/fulfillment/outbox-defer'
+import { shouldDrainOrderPaidInThisProcess } from '@/lib/instrumentation-process-role'
 
 export const ESIM_QR_NOTIFY_TOPIC = 'EsimQrNotify'
 
@@ -353,8 +354,12 @@ export async function drainEsimQrNotifyOutboxBestEffort(maxRounds = 24): Promise
  */
 let notifyDrainTail: Promise<unknown> = Promise.resolve()
 
-/** 웹훅·일괄 발급 직후 — 요청을 막지 않고 백그라운드 순차 발송(직렬) */
+/** 웹훅·일괄 발급 직후 — fulfill owner 에서만 백그라운드 순차 발송 */
 export function kickEsimQrNotifyDrain(maxRounds = 32): void {
+  // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: notify kick no-op off owner — manifest
+  if (!shouldDrainOrderPaidInThisProcess()) {
+    return
+  }
   notifyDrainTail = notifyDrainTail
     .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
     .catch((e) => {

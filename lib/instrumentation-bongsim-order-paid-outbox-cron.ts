@@ -1,12 +1,19 @@
 /**
- * OrderPaid outbox 백업 드레인 — 1분마다 (production + DATABASE_URL).
- * 결제·무상발급은 kick(비블로킹); cron은 끊긴 kick·프로세스 재시작 복구.
- * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: cron backup every minute — manifest
+ * OrderPaid + EsimQrNotify 발급 드레인 — fulfill owner 프로세스에서만 등록.
+ * 15초 interval + 1분 cron 백업. web은 BONGSIM_FULFILL_OWNER=worker|fulfill 시 등록 안 함.
+ * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill drain interval — manifest
+ * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: cron backup — manifest
  */
 import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { drainEsimQrNotifyOutboxBestEffort } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
+import { shouldRunFulfillmentCrons } from "@/lib/instrumentation-process-role";
 
 const CRON_EXPR = "* * * * *";
+/** 결제 직후 체감 지연 완화 — cron만 쓰면 최대 60초 대기 */
+const INTERVAL_MS = Math.max(
+  5_000,
+  Number.parseInt(process.env.BONGSIM_FULFILL_DRAIN_INTERVAL_MS ?? "15000", 10) || 15_000,
+);
 
 function isProductionRuntime(): boolean {
   return (
@@ -17,13 +24,13 @@ function isProductionRuntime(): boolean {
 }
 
 export function shouldRegisterBongsimOrderPaidOutboxCron(): boolean {
-  if (process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON === "1") {
-    return false;
-  }
   if (!(process.env.DATABASE_URL ?? "").trim()) {
     return false;
   }
-  return isProductionRuntime();
+  if (!isProductionRuntime()) {
+    return false;
+  }
+  return shouldRunFulfillmentCrons();
 }
 
 export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
@@ -34,13 +41,26 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
     railwayEnv: process.env.RAILWAY_ENVIRONMENT ?? "(unset)",
     hasDb,
     productionRuntime: prod,
+    fulfill: shouldRunFulfillmentCrons(),
+    intervalMs: INTERVAL_MS,
     disabled: process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON === "1",
   });
 
   if (!shouldRegisterBongsimOrderPaidOutboxCron()) {
-    console.warn("[bongsim-order-paid-outbox-cron] register skipped (need DATABASE_URL + production runtime)");
+    console.warn(
+      "[bongsim-order-paid-outbox-cron] register skipped (need DATABASE_URL + production + fulfill owner)",
+    );
     return;
   }
+
+  let tickInFlight = false;
+  const runTick = (trigger: "cron" | "boot" | "interval") => {
+    if (tickInFlight) return;
+    tickInFlight = true;
+    void tickBongsimOrderPaidOutboxCron(trigger).finally(() => {
+      tickInFlight = false;
+    });
+  };
 
   void import("node-cron")
     .then((m) => {
@@ -48,21 +68,27 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
       cron.schedule(
         CRON_EXPR,
         () => {
-          void tickBongsimOrderPaidOutboxCron("cron");
+          runTick("cron");
         },
         { timezone: "Asia/Seoul" },
       );
       console.log(`[bongsim-order-paid-outbox-cron] registered: ${CRON_EXPR} (Asia/Seoul)`);
+      setInterval(() => {
+        runTick("interval");
+      }, INTERVAL_MS);
+      console.log(`[bongsim-order-paid-outbox-cron] interval: ${INTERVAL_MS}ms`);
       setTimeout(() => {
-        void tickBongsimOrderPaidOutboxCron("boot");
-      }, 20_000);
+        runTick("boot");
+      }, 12_000);
     })
     .catch((e) => {
       console.error("[bongsim-order-paid-outbox-cron] failed to load node-cron", e);
     });
 }
 
-async function tickBongsimOrderPaidOutboxCron(trigger: "cron" | "boot"): Promise<void> {
+async function tickBongsimOrderPaidOutboxCron(
+  trigger: "cron" | "boot" | "interval",
+): Promise<void> {
   const started = Date.now();
   console.log("[bongsim-order-paid-outbox-cron] tick start", { trigger, at: new Date().toISOString() });
   try {

@@ -5,6 +5,7 @@ import {
 } from "@/lib/bongsim/db/pool";
 import { advanceFulfillmentForPaidOrderReleasingDuringSubmit } from "@/lib/bongsim/fulfillment/process-fulfillment-job";
 import { deferOrTerminalOutboxAfterFailure } from "@/lib/bongsim/fulfillment/outbox-defer";
+import { shouldDrainOrderPaidInThisProcess } from "@/lib/instrumentation-process-role";
 
 type OutboxRow = {
   id: string;
@@ -48,7 +49,37 @@ function logOutboxProcessError(err: unknown, ctx?: { outbox_id?: string; order_i
   });
 }
 
-/** 결제 확정 직후 best-effort — mock 캡처·cron·스크립트용 (요청 스레드에서는 kick 사용). */
+/** REGRESSION-FREEZE[bongsim-usimsa-max-inflight]: 프로세스 내 동시 USIMSA 상한 — manifest */
+function resolveUsimsaMaxInflight(): number {
+  const raw = process.env.BONGSIM_USIMSA_MAX_INFLIGHT?.trim();
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 8) return n;
+  }
+  return 2;
+}
+
+let usimsaInflight = 0;
+const usimsaWaiters: Array<() => void> = [];
+
+async function withUsimsaInflightSlot<T>(fn: () => Promise<T>): Promise<T> {
+  const max = resolveUsimsaMaxInflight();
+  while (usimsaInflight >= max) {
+    await new Promise<void>((resolve) => {
+      usimsaWaiters.push(resolve);
+    });
+  }
+  usimsaInflight += 1;
+  try {
+    return await fn();
+  } finally {
+    usimsaInflight -= 1;
+    const next = usimsaWaiters.shift();
+    if (next) next();
+  }
+}
+
+/** 결제 확정 직후 best-effort — fulfill owner cron·스크립트·(소유 시) kick 용. */
 export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<void> {
   for (let i = 0; i < maxRounds; i += 1) {
     const r = await processNextOrderPaidOutbox();
@@ -66,13 +97,16 @@ export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<voi
 }
 
 /**
- * 동시 결제·무상발급 버스트가 요청마다 await drain(USIMSA HTTP) 하면 pg 풀·프록시가 고갈된다.
- * 프로세스 내 직렬 체인으로 백그라운드 드레인 — 요청은 즉시 반환.
+ * fulfill owner 에서만 백그라운드 드레인 — web(owner≠web)에서는 no-op (outbox만 남김).
  * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: kickOrderPaidOutboxDrain — manifest
+ * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: kick no-op off owner — manifest
  */
 let orderPaidDrainTail: Promise<unknown> = Promise.resolve();
 
 export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
+  if (!shouldDrainOrderPaidInThisProcess()) {
+    return;
+  }
   orderPaidDrainTail = orderPaidDrainTail
     .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
     .catch((e) => {
@@ -82,9 +116,12 @@ export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
 
 /**
  * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: claim → release → USIMSA HTTP → persist
- * (트랜잭션 안 HTTP로 pool max=2~5 고갈 → 무상발급 500 방지)
  */
 export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutboxResult> {
+  return withUsimsaInflightSlot(() => processNextOrderPaidOutboxUnlocked());
+}
+
+async function processNextOrderPaidOutboxUnlocked(): Promise<ProcessOrderPaidOutboxResult> {
   const pool = getPgPool();
   if (!pool) {
     console.error("[bongsim:outbox:process] db_unconfigured (no pool)");
@@ -153,7 +190,6 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
       };
     }
 
-    // HTTP는 커넥션 반환 후 수행 — 여기서는 claim만 확정
     await client.query(
       `UPDATE bongsim_outbox
           SET locked_at = now(),
@@ -228,9 +264,6 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
       } finally {
         c3.release();
       }
-    }
-    if (classifyBongsimPgError(err) === "connection_timeout") {
-      return { outcome: "error", outbox_id: picked.id, order_id: orderId };
     }
     return { outcome: "error", outbox_id: picked.id, order_id: orderId };
   }

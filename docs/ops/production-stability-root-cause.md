@@ -12,20 +12,30 @@
 
 ```
 [브라우저] → Railway "bongtour" (web)
-              BONGTOUR_INSTRUMENTATION_ROLE=web (기본)
+              BONGTOUR_INSTRUMENTATION_ROLE=web
+              BONGSIM_FULFILL_OWNER=worker   ← 필수(worker 있을 때)
               ├─ Next.js HTTP만
-              └─ bongsim 결제 outbox (2분, 가벼운 DB)
+              └─ OrderPaid outbox INSERT + kick no-op (발급 HTTP 안 함)
 
 Railway "bongtour-worker" (도메인 없음, replica 1)
               BONGTOUR_INSTRUMENTATION_ROLE=worker
-              ├─ node-cron 17종
-              ├─ postdeploy detail-payload 백필
-              └─ Prisma pool (별도 limit 가능)
+              ├─ OrderPaid + EsimQrNotify 드레인 (15s interval + 1분 cron)
+              ├─ USIMSA 동시 슬롯 BONGSIM_USIMSA_MAX_INFLIGHT=2
+              ├─ node-cron 배치(달력·sweep·…)
+              └─ Prisma/pg 풀 (별도 limit)
+
+(선택) Railway "bongtour-fulfill" — 발급만
+              BONGTOUR_INSTRUMENTATION_ROLE=fulfill
+              web: BONGSIM_FULFILL_OWNER=fulfill
+              worker: 배치만 (발급 owner≠worker)
 ```
 
-동일 repo·동일 Next start 이미지(`railway.json` `exec node …/next start`). **코드 배포 1회** 후 Railway에서 worker 서비스만 추가하면 됨.
+동일 repo·동일 Next start 이미지(`railway.json` `exec node …/next start`). **코드 배포 1회** 후 Railway에서 worker(또는 fulfill) 서비스만 추가하면 됨.
 
-**worker 미구축( web 단독 ):** `instrumentation.ts` 가 6공급사 **일 1회 sweep** 을 web-fallback 으로 등록한다 (`DISABLE_WEB_SUPPLIER_SWEEP_CRON=1` 로 끔). 3h calendar batch는 기본 OFF.
+**worker 미구축( web 단독 ):** `BONGSIM_FULFILL_OWNER` unset → web이 발급 drain (호환).  
+**worker 구축 후:** web에 `BONGSIM_FULFILL_OWNER=worker` 없으면 web이 계속 발급해 풀 경합이 남는다.
+
+**worker 미구축 시 배치:** `instrumentation.ts` 가 6공급사 **일 1회 sweep** 을 web-fallback 으로 등록 (`DISABLE_WEB_SUPPLIER_SWEEP_CRON=1` 로 끔). 3h calendar batch는 기본 OFF.
 
 ---
 
@@ -33,9 +43,9 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 | 모듈 | 역할 |
 |------|------|
-| `lib/instrumentation-process-role.ts` | `web` / `worker` / `all` |
-| `instrumentation.ts` | 역할별 cron 등록 |
-| `lib/prisma-connection-limit.ts` | prod 기본 connection_limit=3 (`lib/bongsim/db/pool` 4개와 합쳐 Supabase pool_size 15 미만 유지) |
+| `lib/instrumentation-process-role.ts` | `web` / `worker` / `fulfill` / `all` + `BONGSIM_FULFILL_OWNER` |
+| `instrumentation.ts` | 역할·발급 owner별 cron 등록 |
+| `lib/prisma-connection-limit.ts` | prod 기본 connection_limit=3 |
 | `lib/products-browse-cached.ts` | browse in-flight dedupe |
 | `lib/internal-loopback-origin.ts` | cron self-fetch → 127.0.0.1 |
 | `app/components/home/AirHotelProductGridClient.tsx` | 메인 browse 클라이언트 전용 |
@@ -44,11 +54,12 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 | 역할 | 등록 |
 |------|------|
-| **web** | bongsim order-paid outbox만 |
-| **worker** | season·calendar·publish·sales-policy·fit-itinerary·cache-warm·rehost·sync-bookable·detail-payload·coupon·modetour·… 전부 |
+| **web** | HTTP. 발급 cron은 `BONGSIM_FULFILL_OWNER=web`(단독)일 때만 |
+| **worker** | 배치 cron + (owner=worker 시) OrderPaid/EsimQrNotify 15s·1분 |
+| **fulfill** | 발급 드레인만 (배치 없음) |
 | **all** | 개발용 — production에서는 경고 로그 |
 
-`RAILWAY_SERVICE_NAME`에 `worker` 또는 `cron` 포함 시 worker로 추론.
+`RAILWAY_SERVICE_NAME`에 `worker`/`cron` → worker, `fulfill` → fulfill.
 
 ---
 
@@ -83,50 +94,68 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=web
+BONGSIM_FULFILL_OWNER=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=3
-BONGSIM_PG_POOL_MAX=5
+BONGSIM_PG_POOL_MAX=4
 ```
 
-(미설정 시 production은 자동 `web`. `BONGSIM_PG_POOL_MAX` 코드 기본값은 5)
+(미설정 시 production은 자동 `web`. **worker가 있으면 `BONGSIM_FULFILL_OWNER=worker` 필수.**)
 
-### 2) worker 서비스 추가
+### 2) worker 서비스 (배치 + 발급 — 권장 최소 구성)
 
 1. Railway → **New Service** → 같은 GitHub repo 연결
 2. 서비스 이름: `bongtour-worker` (이름에 worker 포함 시 역할 자동 추론)
 3. **Public networking 끔** (도메인 없음)
-4. env:
+4. Healthcheck **비움**
+5. env:
 
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=2
 BONGSIM_PG_POOL_MAX=5
+BONGSIM_USIMSA_MAX_INFLIGHT=2
+BONGSIM_FULFILL_DRAIN_INTERVAL_MS=15000
 BONGTOUR_CRON_SECRET=… (web과 동일)
 DATABASE_URL=… (web과 동일)
 ```
 
-5. Replica **1** 고정
+6. Replica **1** 고정
+
+### 2b) (선택) 발급 전용 fulfill 서비스
+
+배치와 발급을 더 나누려면 worker 대신/추가로:
+
+```env
+# 서비스명 예: bongtour-fulfill
+BONGTOUR_INSTRUMENTATION_ROLE=fulfill
+BONGTOUR_PRISMA_CONNECTION_LIMIT=1
+BONGSIM_PG_POOL_MAX=4
+BONGSIM_USIMSA_MAX_INFLIGHT=2
+```
+
+web: `BONGSIM_FULFILL_OWNER=fulfill`  
+기존 worker: 배치만 (발급 owner≠worker → worker는 OrderPaid cron 안 돎)
 
 ### 커넥션 예산 — Supabase 세션 풀 `pool_size`
 
-web·worker·마이그레이션이 **같은 슬롯을 나눠 쓴다.** 합이 한도에 닿으면
-`FATAL: (EMAXCONNSESSION)` 이 나고, 앱의 모든 미캐시 조회가 `db_error` 로 떨어진다.
-2026-07 장애가 정확히 이것이었다 — 기본값이 web 15 + worker 13 = 28 인데 한도가 15였다.
+web·worker·(fulfill)·마이그레이션이 **같은 슬롯을 나눠 쓴다.** 합이 한도에 닿으면
+`FATAL: (EMAXCONNSESSION)` → 전면 `db_error` / `query_failed`.
 
-결제·무상발급 HTTP는 OrderPaid outbox를 **kick(비블로킹)** 하고, USIMSA HTTP는 pg 커넥션을
-잡은 채로 두지 않는다. 동시 접속 시 풀 고갈을 막는 SSOT다.
+결제·무상발급 HTTP는 outbox INSERT만 하고, USIMSA·알림톡은 **fulfill owner** 가 큐로 처리.
+동시 발급 상한: `BONGSIM_USIMSA_MAX_INFLIGHT` (기본 2).
 
 Supabase → Settings → Database → Connection pooling → **Pool Size = 40**.
 
 | 소비자 | Prisma | `pg` 풀 | 합 |
 |---|---|---|---|
-| web | 3 | 5 | 8 |
-| worker | 2 | 5 | 7 |
-| `prisma migrate deploy` 스키마 엔진 | — | — | ~2 |
-| **합계** | | | **~17 / 40** |
+| web (발급 off) | 3 | 4 | 7 |
+| worker (배치+발급) | 2 | 5 | 7 |
+| `prisma migrate deploy` | — | — | ~2 |
+| **합계** | | | **~16 / 40** |
 
-배포 중에는 구 인스턴스가 아직 살아 있으므로 그 겹침까지 20 남짓이다.
-서비스나 replica 를 늘릴 때는 이 표를 갱신하고 Pool Size 와 대조할 것.
-Pool Size 는 인스턴스의 최대 직결 커넥션 수보다 낮게 유지해야 한다.
+fulfill 분리 시 worker pg를 3·fulfill pg 4 등으로 표를 다시 맞춰라.
+
+배포 중 구 인스턴스 겹침까지 여유를 둬라. replica↑ 전에 이 표부터.
 
 `DIRECT_URL` 은 풀러가 아니라 실제 직결 주소(`db.<ref>.supabase.co:5432`)여야 한다.
 풀러를 가리키면 마이그레이션이 이 15슬롯을 두고 앱과 경쟁한다.

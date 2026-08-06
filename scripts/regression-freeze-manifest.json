@@ -1422,6 +1422,75 @@
       ]
     },
     {
+      "id": "bongsim-fulfill-owner-split",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 발급 drain은 BONGSIM_FULFILL_OWNER(worker/fulfill) — web kick no-op·cron 분리",
+      "checks": [
+        {
+          "file": "lib/instrumentation-process-role.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-owner-split]",
+            "shouldRunFulfillmentCrons",
+            "resolveBongsimFulfillmentOwner",
+            "BONGSIM_FULFILL_OWNER"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-owner-split]",
+            "shouldRunFulfillmentCrons"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-owner-split]",
+            "shouldDrainOrderPaidInThisProcess"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-owner-split]",
+            "INTERVAL_MS",
+            "shouldRunFulfillmentCrons"
+          ]
+        },
+        {
+          "file": "docs/ops/production-stability-root-cause.md",
+          "mustInclude": [
+            "BONGSIM_FULFILL_OWNER=worker",
+            "BONGSIM_USIMSA_MAX_INFLIGHT"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/instrumentation-process-role.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-usimsa-max-inflight",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OrderPaid USIMSA 동시 슬롯 상한(BONGSIM_USIMSA_MAX_INFLIGHT 기본 2)",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-usimsa-max-inflight]",
+            "withUsimsaInflightSlot",
+            "BONGSIM_USIMSA_MAX_INFLIGHT"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-complimentary-esim-grant",
       "tier": [
         "prebuild",
