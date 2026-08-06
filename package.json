@@ -64,6 +64,7 @@
     "reviews:replace-csv:apply": "npx tsx scripts/replace-travel-reviews-from-csv.ts --apply",
     "verify:travel-review-seed": "npx tsx scripts/verify-travel-review-seed.ts",
     "verify:public-leaks": "npx tsx scripts/verify-public-api-leak-guards.ts",
+    "verify:solapi-esim-qr-template": "npx tsx scripts/verify-solapi-esim-qr-template.ts",
     "verify:image-keywords-by-supplier": "npx tsx scripts/verify-image-keywords-by-supplier.ts",
     "verify:image-keywords-by-supplier:ci": "npx tsx scripts/verify-image-keywords-by-supplier.ts --legacy-tolerant",
     "verify:night-market-keywords": "npx tsx scripts/verify-night-market-keywords.ts",

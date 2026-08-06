@@ -11,29 +11,41 @@
 |------|------|
 | `SOLAPI_API_KEY` / `SOLAPI_API_SECRET` / `SOLAPI_FROM_PHONE` | 기존 Solapi 자격 |
 | `SOLAPI_PFID` 또는 `SOLAPI_KAKAO_PFID` | 카카오 채널 PF ID |
-| `SOLAPI_TPL_ESIM_QR_DELIVERED` | **필수(실발송)** — 비즈센터 승인 템플릿 ID |
+| `SOLAPI_TPL_ESIM_QR_DELIVERED` | **필수(실발송)** — 아래 승인 템플릿 ID |
+
+### 승인 템플릿 SSOT
+
+- **ID:** `KA01TP260529080045939hjuDabvEjcg`
+- **이름:** `[Bong투어] eSIM 발급 완료`
+- **버튼:** `QR·설치코드 보기` → `https://bongtour.com#{installPath}`
+- **변수:** `orderNumber`, `installPath` 만 (구 `installLink`/`qrLink` **미사용**)
+
+검증: `npx tsx scripts/verify-solapi-esim-qr-template.ts`  
+(잘못된·삭제된 템플릿 ID면 알림톡 실패 → LMS 폴백. LMS는 동작해도 고객은 알림톡 버튼이 “안 열린다”고 느낄 수 있음.)
 
 ## 템플릿 변수 (솔라피·카카오 등록명과 동일해야 함)
 
 | 변수 | 내용 |
 |------|------|
 | `orderNumber` | 주문번호 (예: BS-20260522-…) |
-| `installPath` | **주문 완료 경로** (도메인 제외, 예: `/travel/esim/order/{uuid}/complete?read_key=…`) |
-| `installLink` | (선택) 절대 URL — 구 템플릿 호환용, 코드에서 함께 전송 |
-| `qrLink` | (선택) 절대 URL — 구 템플릿 호환용 |
+| `installPath` | **주문 완료 경로** (도메인 제외, 예: `/travel/esim/order/{uuid}/complete`) |
 
-승인 템플릿이 `https://bongtour.com#{installPath}` 형태이면 **`installPath`만** 치환된다. `installLink`만 등록된 템플릿이면 비즈센터 변수명을 맞출 것.
+문자/알림톡에는 LPA·설치 파일 URL을 넣지 않는다. 주문 완료 페이지에서 QR·iPhone/Galaxy 바로 설치를 연다.
 
 ## 예시 문구 (심사용 참고)
 
 ```
-[Bong투어] eSIM 설치 안내
+[Bong투어] eSIM 발급 완료
 
-주문번호 #{orderNumber}
+주문하신 eSIM이 정상 발급되었습니다.
 
-아래 링크에서 QR 코드를 스캔해 eSIM을 설치해 주세요.
-https://bongtour.com#{installPath}
+· 주문번호: #{orderNumber}
+
+아래 'QR·설치코드 보기'에서
+QR 코드와 설치 코드를 확인하실 수 있습니다.
 ```
+
+버튼: `https://bongtour.com#{installPath}`
 
 ## 기기 구분 (iPhone / Galaxy)
 
@@ -47,7 +59,7 @@ https://bongtour.com#{installPath}
 
 - 체크아웃 **휴대폰** 필드 → `bongsim_order.buyer_tel` (선물 주문은 `consents.gift.recipient_phone`)
 - 미입력 주문: 회원 `User.phone`(이메일 일치) 폴백
-- 알림톡 실패 시 **LMS**로 동일 내용 발송
+- 알림톡 실패 시 **LMS**로 주문 완료 URL 발송 (`buildBongsimOrderCompleteUrl` — apex `bongtour.com`)
 
 ## 체크아웃
 

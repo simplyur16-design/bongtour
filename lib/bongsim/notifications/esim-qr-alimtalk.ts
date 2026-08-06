@@ -28,12 +28,14 @@ export type EsimQrAlimtalkResult =
  * eSIM QR·설치 안내 카카오 알림톡.
  * 동적 QR 이미지는 불가 → 주문 페이지에서 QR 렌더 유도.
  * 템플릿: `SOLAPI_TPL_ESIM_QR_DELIVERED` (변수: orderNumber, installPath — 승인본 기준)
+ * 승인 SSOT ID: `KA01TP260529080045939hjuDabvEjcg` (`scripts/verify-solapi-esim-qr-template.ts`)
  * @see docs/ops/OPS-SOLAPI-ESIM-ALIMTALK.md
  */
 export async function sendEsimQrDeliveredAlimTalk(
   orderId: string,
   payload: EsimQrAlimtalkPayload,
 ): Promise<EsimQrAlimtalkResult> {
+  // REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]: variables orderNumber+installPath only — manifest
   const apiKey = process.env.SOLAPI_API_KEY?.trim();
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim();
   const pfId = (process.env.SOLAPI_KAKAO_PFID?.trim() || process.env.SOLAPI_PFID?.trim()) ?? "";

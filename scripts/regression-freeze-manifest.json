@@ -1579,6 +1579,65 @@
       ]
     },
     {
+      "id": "bongsim-esim-qr-alimtalk-install-path",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 알림톡 — installPath 주문완료 URL만(설치파일/LPA 미삽입) + www→apex + 승인 템플릿 SSOT",
+      "checks": [
+        {
+          "file": "lib/bongsim/notifications/esim-qr-alimtalk.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]",
+            "installPath",
+            "orderNumber"
+          ],
+          "mustNotInclude": [
+            "installLink:",
+            "qrLink:"
+          ]
+        },
+        {
+          "file": "lib/bongsim/esim-install-presentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]",
+            "publicCustomerSiteOrigin",
+            "www.bongtour.com"
+          ]
+        },
+        {
+          "file": "scripts/verify-solapi-esim-qr-template.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]",
+            "KA01TP260529080045939hjuDabvEjcg",
+            "#{installPath}"
+          ]
+        },
+        {
+          "file": "docs/ops/OPS-SOLAPI-ESIM-ALIMTALK.md",
+          "mustInclude": [
+            "KA01TP260529080045939hjuDabvEjcg",
+            "installPath"
+          ],
+          "mustNotInclude": [
+            "코드에서 함께 전송"
+          ]
+        }
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:solapi-esim-qr-template",
+          "tier": [
+            "ci"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-presentation.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-esim-multi-qty-qr",
       "tier": [
         "prebuild",

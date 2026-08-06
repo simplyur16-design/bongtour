@@ -1,12 +1,27 @@
 import { bongsimPath } from "@/lib/bongsim/constants";
 import type { BongsimOrderPublicEsimInstallV1 } from "@/lib/bongsim/contracts/order-public.v1";
 import { isBongsimOrderEsimRevoked } from "@/lib/bongsim/fulfillment/active-topup-status";
-import { absoluteUrl } from "@/lib/site-metadata";
+import { getSiteOrigin } from "@/lib/site-metadata";
 
 const APPLE_ESIM_QR_PROVISIONING_BASE =
   "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=";
 const ANDROID_ESIM_QR_PROVISIONING_BASE =
   "https://esimsetup.android.com/esim_qrcode_provisioning?carddata=";
+
+/** 알림톡 버튼 apex·LMS 본문과 맞춤 (www → apex). Kakao 템플릿도 bongtour.com#{installPath}. */
+function publicCustomerSiteOrigin(): string {
+  const origin = getSiteOrigin().replace(/\/$/, "");
+  try {
+    const u = new URL(origin);
+    if (u.hostname === "www.bongtour.com") {
+      u.hostname = "bongtour.com";
+      return u.origin;
+    }
+  } catch {
+    /* keep */
+  }
+  return origin;
+}
 
 function buildOsQuickInstallUrl(base: string, lpa: string): string | null {
   const code = lpa.trim();
@@ -25,9 +40,12 @@ export function buildAndroidQuickInstallUrl(lpa: string): string | null {
   return buildOsQuickInstallUrl(ANDROID_ESIM_QR_PROVISIONING_BASE, lpa);
 }
 
+// REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]: customer SMS/AlimTalk order URL SSOT — manifest
 export function buildBongsimOrderCompleteUrl(orderId: string): string {
   const id = orderId.trim();
-  const base = absoluteUrl(bongsimPath(`/order/${id}/complete`));
+  const path = bongsimPath(`/order/${id}/complete`);
+  const origin = publicCustomerSiteOrigin();
+  const base = `${origin}${path.startsWith("/") ? path : `/${path}`}`;
   const readKey = process.env.BONGSIM_ORDER_READ_KEY?.trim();
   if (!readKey) return base;
   try {

@@ -1,12 +1,29 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   buildAndroidQuickInstallUrl,
   buildAppleQuickInstallUrl,
+  buildBongsimOrderCompleteUrl,
   buildEsimInstallFromTopup,
   formatEsimNotifyOrderLabel,
 } from "@/lib/bongsim/esim-install-presentation";
 
 // REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]: notify label + multi install — manifest
+
+describe("buildBongsimOrderCompleteUrl", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  // REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]: www→apex for SMS/AlimTalk — manifest
+  it("rewrites www origin to apex for customer notify links", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.bongtour.com");
+    vi.stubEnv("BONGSIM_ORDER_READ_KEY", "");
+    const url = buildBongsimOrderCompleteUrl("11111111-1111-1111-1111-111111111111");
+    expect(url).toBe(
+      "https://bongtour.com/travel/esim/order/11111111-1111-1111-1111-111111111111/complete",
+    );
+  });
+});
 
 describe("buildEsimInstallFromTopup", () => {
   const issued = {
