@@ -1,5 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import {
+  getPgPool,
+  withBongsimCatalogRetry,
+} from "@/lib/bongsim/db/pool";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
 import { buildEsimInstallFromTopup } from "@/lib/bongsim/esim-install-presentation";
 import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
@@ -42,13 +45,175 @@ function parseLineSnapshot(snap: unknown): { plan_name: string; option_label: st
   };
 }
 
-export async function getOrderPublic(orderId: string, opts?: { readKey?: string | null }): Promise<GetOrderPublicResult> {
+/**
+ * REGRESSION-FREEZE[bongsim-order-public-pool-retry]: Kakao QR 버튼 → 주문완료가
+ * pool connect timeout에 한 번 걸려도 heal+재시도 (카탈로그와 동일). 환불 판정 실패로
+ * 설치 UI 전체가 죽지 않게 skipUsageCheck + soft fail.
+ */
+async function loadOrderPublicOnce(id: string): Promise<GetOrderPublicResult> {
   const pool = getPgPool();
-  if (!pool) return { ok: false, reason: "db_unconfigured" };
+  if (!pool) throw new Error("db_unconfigured");
+
+  const o = await pool.query(
+    `SELECT order_id, order_number, status, currency, grand_total_krw, buyer_email,
+            paid_at, payment_reference, paid_amount_krw, payment_provider
+     FROM bongsim_order WHERE order_id = $1 LIMIT 1`,
+    [id],
+  );
+  const row = o.rows[0] as
+    | {
+        order_id: string;
+        order_number: string;
+        status: string;
+        currency: string;
+        grand_total_krw: string;
+        buyer_email: string;
+        paid_at: Date | null;
+        payment_reference: string | null;
+        paid_amount_krw: string | null;
+        payment_provider: string | null;
+      }
+    | undefined;
+  if (!row) return { ok: false, reason: "not_found" };
+
+  const ls = await pool.query(
+    `SELECT option_api_id, quantity, snapshot, line_total_krw FROM bongsim_order_line WHERE order_id = $1 ORDER BY created_at ASC`,
+    [id],
+  );
+
+  const lines = ls.rows.map((r: { option_api_id: string; quantity: number; snapshot: unknown; line_total_krw: string }) => {
+    const sn = parseLineSnapshot(r.snapshot);
+    return {
+      option_api_id: r.option_api_id,
+      quantity: r.quantity,
+      plan_name: sn.plan_name,
+      option_label: sn.option_label,
+      line_total_krw: toInt(r.line_total_krw),
+    };
+  });
+
+  const fj = await pool.query(
+    `SELECT job_id, status, supplier_submission_id, supplier_profile_ref, supplier_iccid, delivered_at, attempt_count
+     FROM bongsim_fulfillment_job
+     WHERE order_id = $1
+     ORDER BY updated_at DESC NULLS LAST, created_at DESC
+     LIMIT 1`,
+    [id],
+  );
+  const fr = fj.rows[0] as
+    | {
+        job_id: string;
+        status: string;
+        supplier_submission_id: string | null;
+        supplier_profile_ref: string | null;
+        supplier_iccid: string | null;
+        delivered_at: Date | null;
+        attempt_count: number;
+      }
+    | undefined;
+
+  const fulfillment = fr
+    ? {
+        job_id: fr.job_id,
+        status: fr.status,
+        supplier_submission_id: null,
+        supplier_profile_ref: null,
+        supplier_iccid: null,
+        delivered_at: fr.delivered_at ? fr.delivered_at.toISOString() : null,
+        attempt_count: fr.attempt_count,
+      }
+    : null;
+
+  // REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]: all topup installs — manifest
+  const topupRows = await pool.query<{
+    topup_row_id: string;
+    qr_code_img_url: string | null;
+    download_link: string | null;
+    smdp: string | null;
+    activate_code: string | null;
+    iccid: string | null;
+  }>(
+    `SELECT topup_row_id::text AS topup_row_id, qr_code_img_url, download_link, smdp, activate_code, iccid
+       FROM bongsim_fulfillment_topup
+      WHERE order_id = $1
+        AND status NOT IN ('canceled', 'failed')
+      ORDER BY created_at ASC`,
+    [id],
+  );
+  const unitTotal = topupRows.rows.length;
+  const esim_installs = topupRows.rows.map((t, i) =>
+    buildEsimInstallFromTopup({
+      orderStatus: row.status,
+      qr_code_img_url: t.qr_code_img_url,
+      download_link: t.download_link,
+      smdp: t.smdp,
+      activate_code: t.activate_code,
+      topup_row_id: t.topup_row_id,
+      unit_index: unitTotal > 0 ? i + 1 : null,
+      unit_total: unitTotal > 0 ? unitTotal : null,
+    }),
+  );
+  const primary =
+    esim_installs.find((x) => x.ready && (x.qr_image_url || x.sm_dp_plus_address || x.activation_code)) ??
+    esim_installs[0] ??
+    buildEsimInstallFromTopup({
+      orderStatus: row.status,
+      qr_code_img_url: null,
+      download_link: null,
+      smdp: null,
+      activate_code: null,
+    });
+  const esim_install = primary;
+  const travelerVerificationIccid = pickPrimaryVerificationIccid(topupRows.rows);
+
+  let cancelEligible = false;
+  let cancelBlockReason: string | null = "취소 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  try {
+    // 공개 완료 페이지는 유심사 사용량 API를 타지 않음 — 연결 지연으로 QR 화면 전체가 죽지 않게.
+    // 실제 취소 클릭 시 API에서 usage 재검증.
+    const refundElig = await getRefundEligibility(id, { skipUsageCheck: true });
+    cancelEligible = refundElig.eligible;
+    cancelBlockReason = refundElig.eligible ? null : refundElig.message;
+  } catch (e) {
+    console.warn(
+      "[getOrderPublic] refund eligibility soft-fail",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
+  const order: BongsimOrderPublicV1 = {
+    schema: "bongsim.order_public.v1",
+    order_id: row.order_id,
+    order_number: row.order_number,
+    status: row.status,
+    currency: row.currency === "KRW" ? "KRW" : "KRW",
+    grand_total_krw: toInt(row.grand_total_krw),
+    buyer_email_masked: maskEmail(row.buyer_email),
+    paid_at: row.paid_at ? row.paid_at.toISOString() : null,
+    payment_reference: null,
+    paid_amount_krw: row.paid_amount_krw != null ? toInt(row.paid_amount_krw) : null,
+    payment_provider: null,
+    lines,
+    fulfillment,
+    esim_install,
+    esim_installs,
+    cancel_eligible: cancelEligible,
+    cancel_block_reason: cancelBlockReason,
+    requires_traveler_verification: travelerVerificationIccid !== null,
+    traveler_verification_iccid: travelerVerificationIccid,
+  };
+
+  return { ok: true, order };
+}
+
+export async function getOrderPublic(orderId: string, opts?: { readKey?: string | null }): Promise<GetOrderPublicResult> {
+  if (!getPgPool()) return { ok: false, reason: "db_unconfigured" };
 
   const id = orderId.trim();
   if (!id) return { ok: false, reason: "not_found" };
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return { ok: false, reason: "not_found" };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return { ok: false, reason: "not_found" };
+  }
 
   const gate = process.env.BONGSIM_ORDER_READ_KEY?.trim();
   if (gate) {
@@ -58,146 +223,11 @@ export async function getOrderPublic(orderId: string, opts?: { readKey?: string 
   }
 
   try {
-    const o = await pool.query(
-      `SELECT order_id, order_number, status, currency, grand_total_krw, buyer_email,
-              paid_at, payment_reference, paid_amount_krw, payment_provider
-       FROM bongsim_order WHERE order_id = $1 LIMIT 1`,
-      [id],
-    );
-    const row = o.rows[0] as
-      | {
-          order_id: string;
-          order_number: string;
-          status: string;
-          currency: string;
-          grand_total_krw: string;
-          buyer_email: string;
-          paid_at: Date | null;
-          payment_reference: string | null;
-          paid_amount_krw: string | null;
-          payment_provider: string | null;
-        }
-      | undefined;
-    if (!row) return { ok: false, reason: "not_found" };
-
-    const ls = await pool.query(
-      `SELECT option_api_id, quantity, snapshot, line_total_krw FROM bongsim_order_line WHERE order_id = $1 ORDER BY created_at ASC`,
-      [id],
-    );
-
-    const lines = ls.rows.map((r: { option_api_id: string; quantity: number; snapshot: unknown; line_total_krw: string }) => {
-      const sn = parseLineSnapshot(r.snapshot);
-      return {
-        option_api_id: r.option_api_id,
-        quantity: r.quantity,
-        plan_name: sn.plan_name,
-        option_label: sn.option_label,
-        line_total_krw: toInt(r.line_total_krw),
-      };
-    });
-
-    const fj = await pool.query(
-      `SELECT job_id, status, supplier_submission_id, supplier_profile_ref, supplier_iccid, delivered_at, attempt_count
-       FROM bongsim_fulfillment_job
-       WHERE order_id = $1
-       ORDER BY updated_at DESC NULLS LAST, created_at DESC
-       LIMIT 1`,
-      [id],
-    );
-    const fr = fj.rows[0] as
-      | {
-          job_id: string;
-          status: string;
-          supplier_submission_id: string | null;
-          supplier_profile_ref: string | null;
-          supplier_iccid: string | null;
-          delivered_at: Date | null;
-          attempt_count: number;
-        }
-      | undefined;
-
-    const fulfillment = fr
-      ? {
-          job_id: fr.job_id,
-          status: fr.status,
-          supplier_submission_id: null,
-          supplier_profile_ref: null,
-          supplier_iccid: null,
-          delivered_at: fr.delivered_at ? fr.delivered_at.toISOString() : null,
-          attempt_count: fr.attempt_count,
-        }
-      : null;
-
-    // REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]: all topup installs — manifest
-    const topupRows = await pool.query<{
-      topup_row_id: string;
-      qr_code_img_url: string | null;
-      download_link: string | null;
-      smdp: string | null;
-      activate_code: string | null;
-      iccid: string | null;
-    }>(
-      `SELECT topup_row_id::text AS topup_row_id, qr_code_img_url, download_link, smdp, activate_code, iccid
-         FROM bongsim_fulfillment_topup
-        WHERE order_id = $1
-          AND status NOT IN ('canceled', 'failed')
-        ORDER BY created_at ASC`,
-      [id],
-    );
-    const unitTotal = topupRows.rows.length;
-    const esim_installs = topupRows.rows.map((t, i) =>
-      buildEsimInstallFromTopup({
-        orderStatus: row.status,
-        qr_code_img_url: t.qr_code_img_url,
-        download_link: t.download_link,
-        smdp: t.smdp,
-        activate_code: t.activate_code,
-        topup_row_id: t.topup_row_id,
-        unit_index: unitTotal > 0 ? i + 1 : null,
-        unit_total: unitTotal > 0 ? unitTotal : null,
-      }),
-    );
-    const primary =
-      esim_installs.find((x) => x.ready && (x.qr_image_url || x.sm_dp_plus_address || x.activation_code)) ??
-      esim_installs[0] ??
-      buildEsimInstallFromTopup({
-        orderStatus: row.status,
-        qr_code_img_url: null,
-        download_link: null,
-        smdp: null,
-        activate_code: null,
-      });
-    const esim_install = primary;
-    const travelerVerificationIccid = pickPrimaryVerificationIccid(topupRows.rows);
-
-    const refundElig = await getRefundEligibility(id);
-    const cancelEligible = refundElig.eligible;
-    const cancelBlockReason = refundElig.eligible ? null : refundElig.message;
-
-    const order: BongsimOrderPublicV1 = {
-      schema: "bongsim.order_public.v1",
-      order_id: row.order_id,
-      order_number: row.order_number,
-      status: row.status,
-      currency: row.currency === "KRW" ? "KRW" : "KRW",
-      grand_total_krw: toInt(row.grand_total_krw),
-      buyer_email_masked: maskEmail(row.buyer_email),
-      paid_at: row.paid_at ? row.paid_at.toISOString() : null,
-      payment_reference: null,
-      paid_amount_krw: row.paid_amount_krw != null ? toInt(row.paid_amount_krw) : null,
-      payment_provider: null,
-      lines,
-      fulfillment,
-      esim_install,
-      esim_installs,
-      cancel_eligible: cancelEligible,
-      cancel_block_reason: cancelBlockReason,
-      requires_traveler_verification: travelerVerificationIccid !== null,
-      traveler_verification_iccid: travelerVerificationIccid,
-    };
-
-    return { ok: true, order };
-  } catch {
+    return await withBongsimCatalogRetry(() => loadOrderPublicOnce(id));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("db_unconfigured")) return { ok: false, reason: "db_unconfigured" };
+    console.error("[getOrderPublic] db_error", msg);
     return { ok: false, reason: "db_error" };
   }
 }

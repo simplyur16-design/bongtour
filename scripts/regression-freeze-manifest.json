@@ -1579,6 +1579,25 @@
       ]
     },
     {
+      "id": "bongsim-order-public-pool-retry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "카톡 QR·설치코드 보기 → 주문완료 getOrderPublic — pool timeout heal+재시도, 환불 soft-fail",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/get-order-public.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-public-pool-retry]",
+            "withBongsimCatalogRetry",
+            "skipUsageCheck: true",
+            "refund eligibility soft-fail"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-esim-qr-alimtalk-install-path",
       "tier": [
         "prebuild",

@@ -23,7 +23,9 @@ export default async function OrderCompletePage({ params, searchParams }: Props)
         <div className="min-h-full bg-slate-50">
         <main className="mx-auto max-w-lg px-4 py-10">
           <p className="text-sm text-slate-700">
-            {res.reason === "db_unconfigured" ? "DATABASE_URL이 설정되지 않았습니다." : "주문을 불러오지 못했습니다."}
+            {res.reason === "db_unconfigured"
+              ? "DATABASE_URL이 설정되지 않았습니다."
+              : "주문을 불러오지 못했습니다. 잠시 후 새로고침하거나 카톡 버튼을 다시 눌러 주세요."}
           </p>
           <Link href={bongsimPath()} className="mt-4 inline-block text-sm text-teal-800 underline">
             홈으로
