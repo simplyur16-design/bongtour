@@ -1579,6 +1579,41 @@
       ]
     },
     {
+      "id": "bongsim-order-complete-client-retry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "카톡 QR·설치코드 보기 → 주문완료 SSR db_error 시 클라이언트가 주문 API 재시도해 설치 UI 복구",
+      "checks": [
+        {
+          "file": "app/travel/esim/order/[orderId]/complete/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-complete-client-retry]",
+            "OrderCompleteClientRetry"
+          ]
+        },
+        {
+          "file": "components/bongsim/order-complete/OrderCompleteClientRetry.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-order-complete-client-retry]",
+            "/api/bongsim/orders/",
+            "OrderCompleteRealView",
+            "MAX_ATTEMPTS"
+          ]
+        },
+        {
+          "file": "components/bongsim/order-complete/EsimInstallSection.tsx",
+          "mustInclude": [
+            "iPhone에서 바로 설치",
+            "Galaxy·Android에서 바로 설치",
+            "apple_quick_install_url",
+            "android_quick_install_url"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-order-public-pool-retry",
       "tier": [
         "prebuild",
