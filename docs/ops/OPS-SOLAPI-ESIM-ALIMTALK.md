@@ -50,7 +50,7 @@ QR 코드와 설치 코드를 확인하실 수 있습니다.
 ## 기기 구분 (iPhone / Galaxy)
 
 - 알림톡은 **기기 구분 없이** 주문 완료 페이지 버튼만 보냅니다. (휴대폰 번호만으로는 OS를 알 수 없음)
-- **LMS(문자)** 는 알림톡과 **병행** 발송하며, LPA가 있으면 본문에 원클릭 설치 URL을 **둘 다** 넣습니다.
+- **LMS(문자)** 는 알림톡 **실패·미설정 시에만** 폴백하며, LPA가 있으면 본문에 원클릭 설치 URL을 **둘 다** 넣습니다.
   - iPhone: `esimsetup.apple.com/...`
   - Android: `esimsetup.android.com/...`
   - 추가로 QR·설치코드용 주문 완료 페이지 URL
@@ -61,7 +61,7 @@ QR 코드와 설치 코드를 확인하실 수 있습니다.
 
 - 체크아웃 **휴대폰** 필드 → `bongsim_order.buyer_tel` (선물 주문은 `consents.gift.recipient_phone`)
 - 미입력 주문: 회원 `User.phone`(이메일 일치) 폴백
-- LMS: `buildEsimQrDeliveredLmsText` (`lib/bongsim/notifications/esim-qr-lms.ts`) — apex `bongtour.com` 주문 URL + OS 원클릭 링크
+- LMS 폴백: `buildEsimQrDeliveredLmsText` (`lib/bongsim/notifications/esim-qr-lms.ts`) — apex `bongtour.com` 주문 URL + OS 원클릭 링크
 
 ## 체크아웃
 

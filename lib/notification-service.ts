@@ -484,7 +484,7 @@ export async function sendBookingRequestReceivedLmsFallback(p: {
   return r
 }
 
-/** eSIM QR·설치 안내 LMS — iPhone/Galaxy 원클릭 URL + 주문 페이지 (알림톡과 병행 발송) */
+/** eSIM QR·설치 안내 LMS — 알림톡 실패·미설정 시 폴백 (iPhone/Galaxy 원클릭 URL + 주문 페이지) */
 export async function sendEsimQrDeliveredLmsFallback(p: {
   orderId: string
   customerPhone: string
