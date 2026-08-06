@@ -320,30 +320,71 @@ export async function adminGrantComplimentaryEsim(input: {
       ? emailRaw
       : fallbackComplimentaryEmail(buyer_phone);
 
-  const client = await (async () => {
+  let client: import("pg").PoolClient;
+  try {
     try {
-      return await pool.connect();
+      client = await pool.connect();
     } catch (first) {
-      if (classifyBongsimPgError(first) !== "connection_timeout") throw first;
+      if (classifyBongsimPgError(first) !== "connection_timeout") {
+        console.error("[adminGrantComplimentaryEsim] connect", first);
+        return {
+          ok: false,
+          reason: "db_error",
+          message: "무상 eSIM 발급 중 오류가 발생했습니다.",
+        };
+      }
       await healBongsimPgPoolForCatalog("complimentary-grant-connect");
       const pool2 = getPgPool();
-      if (!pool2) throw first;
-      return await pool2.connect();
+      if (!pool2) {
+        return {
+          ok: false,
+          reason: "connection_timeout",
+          message: "DB 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요.",
+        };
+      }
+      try {
+        client = await pool2.connect();
+      } catch (second) {
+        console.error("[adminGrantComplimentaryEsim] connect-retry", second);
+        return {
+          ok: false,
+          reason:
+            classifyBongsimPgError(second) === "connection_timeout"
+              ? "connection_timeout"
+              : "db_error",
+          message:
+            classifyBongsimPgError(second) === "connection_timeout"
+              ? "DB 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요."
+              : "무상 eSIM 발급 중 오류가 발생했습니다.",
+        };
+      }
     }
-  })().catch((e: unknown) => {
-    if (classifyBongsimPgError(e) === "connection_timeout") {
-      return null;
-    }
-    throw e;
-  });
-  if (!client) {
+  } catch (e) {
+    console.error("[adminGrantComplimentaryEsim] connect-outer", e);
     return {
       ok: false,
-      reason: "connection_timeout",
-      message: "DB 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요.",
+      reason: classifyBongsimPgError(e) === "connection_timeout" ? "connection_timeout" : "db_error",
+      message:
+        classifyBongsimPgError(e) === "connection_timeout"
+          ? "DB 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요."
+          : "무상 eSIM 발급 중 오류가 발생했습니다.",
     };
   }
+
   let orderId: string | null = null;
+  let orderNumber = "";
+  let preparedForResponse: Array<{
+    option_api_id: string;
+    quantity: number;
+    unit_krw: number;
+    line_total: number;
+    basis_key: string;
+    snapshot: BongsimOrderV1["order"]["lines"][0]["snapshot"];
+  }> | null = null;
+  let subtotalForResponse = 0;
+  let discountForResponse = 0;
+  let idempotencyForResponse = "";
+
   try {
     await client.query("BEGIN");
 
@@ -356,6 +397,7 @@ export async function adminGrantComplimentaryEsim(input: {
       return { ok: false, reason: "validation", message: "상품 정보를 확인해 주세요." };
     }
     const prepared = linePrep.prepared;
+    preparedForResponse = prepared;
     const snap = prepared[0]!.snapshot;
     if (!isEsimCapableSimKind(snap.sim_kind)) {
       await client.query("ROLLBACK");
@@ -369,6 +411,8 @@ export async function adminGrantComplimentaryEsim(input: {
     const subtotal_krw = prepared.reduce((sum, p) => sum + p.line_total, 0);
     const discount_krw = subtotal_krw;
     const grand_total_krw = 0;
+    subtotalForResponse = subtotal_krw;
+    discountForResponse = discount_krw;
     const nowIso = new Date().toISOString();
 
     const consentsJson: Record<string, unknown> = {
@@ -386,8 +430,9 @@ export async function adminGrantComplimentaryEsim(input: {
       } satisfies ComplimentaryEsimConsentsV1,
     };
 
-    const orderNumber = makeOrderNumber();
+    orderNumber = makeOrderNumber();
     const idempotency_key = `admin_complimentary_${randomUUID()}`;
+    idempotencyForResponse = idempotency_key;
     const paymentRef = `complimentary_${orderNumber}_${Date.now()}`;
 
     const ins = await client.query<{ order_id: string }>(
@@ -472,8 +517,24 @@ export async function adminGrantComplimentaryEsim(input: {
     client.release();
   }
 
+  // COMMIT 성공 후 재조회하지 않음 — 풀 고갈·킥 레이스로 loadMinimalOrder throw → 빈 500 방지.
+  // REGRESSION-FREEZE[bongsim-complimentary-grant-no-postcommit-500]: synthesize after commit — manifest
+  if (!orderId || !preparedForResponse) {
+    return { ok: false, reason: "db_error", message: "주문 저장에 실패했습니다." };
+  }
+
+  const full = synthesizeComplimentaryGrantOrder({
+    order_id: orderId,
+    order_number: orderNumber,
+    buyer_email,
+    idempotency_key: idempotencyForResponse,
+    subtotal_krw: subtotalForResponse,
+    discount_krw: discountForResponse,
+    prepared: preparedForResponse,
+  });
+
   let fulfillment_started = false;
-  if (orderId && !input.skip_outbox_drain) {
+  if (!input.skip_outbox_drain) {
     try {
       // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 무상발급 HTTP에서 USIMSA await 금지 — manifest
       kickOrderPaidOutboxDrain(16);
@@ -481,60 +542,53 @@ export async function adminGrantComplimentaryEsim(input: {
       const { kickEsimQrNotifyDrain } = await import(
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
       );
-      // 웹훅 도착 후 쌓인 알림톡을 순차 발송 (요청은 막지 않음)
       kickEsimQrNotifyDrain(40);
     } catch (e) {
       console.warn("[adminGrantComplimentaryEsim] outbox drain", e);
     }
   }
 
-  const full = orderId ? await loadMinimalOrder(pool, orderId) : null;
-  if (!full) return { ok: false, reason: "db_error", message: "주문 조회에 실패했습니다." };
   return { ok: true, order: full, fulfillment_started };
 }
 
-async function loadMinimalOrder(
-  pool: import("pg").Pool,
-  orderId: string,
-): Promise<BongsimOrderV1["order"] | null> {
-  const o = await pool.query(
-    `SELECT order_id::text, order_number, status, checkout_channel, buyer_email, buyer_locale,
-            idempotency_key, consents, subtotal_krw::text, discount_krw::text, tax_krw::text,
-            grand_total_krw::text, created_at, updated_at
-       FROM bongsim_order WHERE order_id = $1::uuid`,
-    [orderId],
-  );
-  const order = o.rows[0];
-  if (!order) return null;
-  const ls = await pool.query(
-    `SELECT line_id::text, option_api_id, quantity, charged_unit_price_krw::text, line_total_krw::text,
-            charged_basis_key, snapshot, created_at
-       FROM bongsim_order_line WHERE order_id = $1::uuid ORDER BY created_at ASC`,
-    [orderId],
-  );
+/** COMMIT 직후 재조회가 풀 고갈로 실패해도 관리자 UI에 성공을 돌려준다. */
+function synthesizeComplimentaryGrantOrder(input: {
+  order_id: string;
+  order_number: string;
+  buyer_email: string;
+  idempotency_key: string;
+  subtotal_krw: number;
+  discount_krw: number;
+  prepared: Array<{
+    option_api_id: string;
+    quantity: number;
+    unit_krw: number;
+    line_total: number;
+    basis_key: string;
+    snapshot: BongsimOrderV1["order"]["lines"][0]["snapshot"];
+  }>;
+}): BongsimOrderV1["order"] {
+  const now = new Date().toISOString();
   return {
-    order_id: order.order_id,
-    order_number: order.order_number,
-    status: order.status,
-    created_at: new Date(order.created_at).toISOString(),
-    updated_at: new Date(order.updated_at).toISOString(),
-    checkout_channel: order.checkout_channel,
-    buyer: {
-      email: order.buyer_email,
-      locale: order.buyer_locale === "en" ? "en" : order.buyer_locale === "ko" ? "ko" : null,
-    },
+    order_id: input.order_id,
+    order_number: input.order_number,
+    status: "paid",
+    created_at: now,
+    updated_at: now,
+    checkout_channel: COMPLIMENTARY_ESIM_CHECKOUT_CHANNEL,
+    buyer: { email: input.buyer_email, locale: "ko" },
     consents: {
-      terms_version: "",
+      terms_version: "admin_complimentary_esim",
       terms_accepted: true,
       marketing: { accepted: false, version: null },
     },
-    idempotency_key: order.idempotency_key,
+    idempotency_key: input.idempotency_key,
     totals: {
       currency: "KRW",
-      subtotal_krw: Number.parseInt(order.subtotal_krw, 10),
-      discount_krw: Number.parseInt(order.discount_krw, 10),
-      tax_krw: Number.parseInt(order.tax_krw, 10),
-      grand_total_krw: Number.parseInt(order.grand_total_krw, 10),
+      subtotal_krw: input.subtotal_krw,
+      discount_krw: input.discount_krw,
+      tax_krw: 0,
+      grand_total_krw: 0,
     },
     payment: {
       payment_status: "captured",
@@ -554,14 +608,14 @@ async function loadMinimalOrder(
       delivered_at: null,
       audit: { payload_out_ref: null, payload_in_last_ref: null },
     },
-    lines: ls.rows.map((row) => ({
-      line_id: row.line_id,
-      option_api_id: row.option_api_id,
-      quantity: row.quantity,
-      charged_unit_price_krw: Number.parseInt(row.charged_unit_price_krw, 10),
-      line_total_krw: Number.parseInt(row.line_total_krw, 10),
-      charged_basis_key: row.charged_basis_key,
-      snapshot: row.snapshot as BongsimOrderV1["order"]["lines"][0]["snapshot"],
+    lines: input.prepared.map((p, idx) => ({
+      line_id: `synthetic-${idx}`,
+      option_api_id: p.option_api_id,
+      quantity: p.quantity,
+      charged_unit_price_krw: p.unit_krw,
+      line_total_krw: p.line_total,
+      charged_basis_key: p.basis_key,
+      snapshot: p.snapshot,
     })),
   };
 }

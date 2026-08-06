@@ -1452,6 +1452,37 @@
       ]
     },
     {
+      "id": "bongsim-complimentary-grant-no-postcommit-500",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "무상발급 COMMIT 후 재조회 금지·합성 응답 — loadMinimalOrder throw로 빈 500 방지",
+      "checks": [
+        {
+          "file": "lib/bongsim/admin/complimentary-esim-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-complimentary-grant-no-postcommit-500]",
+            "synthesizeComplimentaryGrantOrder",
+            "재조회하지 않음"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/complimentary-esim/grant/route.ts",
+          "mustInclude": [
+            "api/admin/bongsim/complimentary-esim/grant"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/payments/BongsimPaymentsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-complimentary-grant-no-postcommit-500]",
+            "isLikelyProxyTimeoutEmpty"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-admin-non-pg-esim-cancel",
       "tier": [
         "prebuild",

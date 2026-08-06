@@ -575,7 +575,26 @@ export default function BongsimPaymentsAdminClient() {
           reason_memo: compReasonMemo.trim(),
         }),
       });
-      const j = await readAdminResponseJson<{ order_number?: string; message?: string; error?: string }>(res);
+      const raw = await res.text();
+      // REGRESSION-FREEZE[bongsim-complimentary-grant-no-postcommit-500]: empty proxy 500 soft-ok — manifest
+      if (isLikelyProxyTimeoutEmpty(res, raw)) {
+        setCompOk("무상 eSIM 발급 요청이 접수된 것으로 보입니다. 주문 목록을 확인해 주세요.");
+        try {
+          await load();
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      if (!raw.trim()) {
+        throw new Error(`서버 응답이 비었습니다 (${res.status}). 결제 내역을 확인해 주세요.`);
+      }
+      let j: { order_number?: string; message?: string; error?: string; ok?: boolean };
+      try {
+        j = JSON.parse(raw) as typeof j;
+      } catch {
+        throw new Error(`서버 응답을 해석할 수 없습니다 (${res.status}).`);
+      }
       if (!res.ok) throw new Error(j.message ?? j.error ?? "무상 발급 실패");
       setCompOk(`무상 eSIM 발급 완료: ${j.order_number ?? ""} — QR 알림톡 발송이 시작됩니다.`);
       setCompPlanSelection(null);
