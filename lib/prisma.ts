@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { withPrismaConnectionLimit } from '@/lib/prisma-connection-limit'
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
 const debugQueryLogEnabled = process.env.DEBUG_QUERY_LOG === '1'
 
@@ -18,10 +18,15 @@ function createPrismaClient(): PrismaClient {
   return client
 }
 
+/**
+ * REGRESSION-FREEZE[prisma-client-singleton]: always cache on globalThis — Proxy get마다
+ * 새 PrismaClient 를 만들면 production 에서 Supavisor EMAXCONN(200) 으로 전체 db_error.
+ * (구코드는 NODE_ENV===production 일 때 global 미저장 → 요청마다 풀 누수)
+ */
 function getPrismaClient(): PrismaClient {
   if (globalForPrisma.prisma) return globalForPrisma.prisma
   const client = createPrismaClient()
-  if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = client
+  globalForPrisma.prisma = client
   return client
 }
 

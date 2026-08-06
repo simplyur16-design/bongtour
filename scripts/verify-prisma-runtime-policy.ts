@@ -36,6 +36,13 @@ function ensureBaseConfig() {
   if (!/from ['"]@prisma\/client['"]/.test(prismaSingleton)) {
     fail('lib/prisma.ts must import PrismaClient from @prisma/client')
   }
+  // REGRESSION-FREEZE[prisma-client-singleton]: Proxy get마다 새 클라이언트 금지 — EMAXCONN
+  if (!/globalForPrisma\.prisma\s*=\s*client/.test(prismaSingleton)) {
+    fail('lib/prisma.ts must always assign globalForPrisma.prisma = client (production singleton)')
+  }
+  if (/NODE_ENV\s*!==\s*['"]production['"]\s*\)\s*globalForPrisma\.prisma\s*=/.test(prismaSingleton)) {
+    fail('lib/prisma.ts must not skip global cache in production (connection leak → EMAXCONN)')
+  }
 }
 
 function collectFiles(dir: string, out: string[]) {

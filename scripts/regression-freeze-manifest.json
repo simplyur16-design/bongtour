@@ -1922,6 +1922,42 @@
       ]
     },
     {
+      "id": "prisma-client-singleton",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Prisma Proxy는 globalThis 싱글톤 필수 — production 미캐시 시 EMAXCONN·전체 db_error",
+      "checks": [
+        {
+          "file": "lib/prisma.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-client-singleton]",
+            "globalForPrisma.prisma = client"
+          ],
+          "mustNotInclude": [
+            "NODE_ENV !== 'production') globalForPrisma.prisma = client"
+          ]
+        },
+        {
+          "file": "scripts/verify-prisma-runtime-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-client-singleton]",
+            "must not skip global cache in production"
+          ]
+        }
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:prisma-runtime-policy",
+          "tier": [
+            "prebuild",
+            "ci"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-pg-tls-global",
       "tier": [
         "prebuild",
