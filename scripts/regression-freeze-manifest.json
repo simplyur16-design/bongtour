@@ -2627,9 +2627,13 @@
         {
           "file": "lib/season-curation-content.ts",
           "mustInclude": [
-            "season-curation-hero-slides-v3",
-            "season-curation-next-three-months-v3",
-            "SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800"
+            "season-curation-hero-slides-v4",
+            "season-curation-next-three-months-v4",
+            "SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800",
+            "build empty must not poison Data Cache",
+            "if (shouldSkipDbAtBuild()) return []",
+            "return cachedHeroSlides()",
+            "return cachedNextThreeMonthsSlides()"
           ]
         },
         {

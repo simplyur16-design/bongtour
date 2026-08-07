@@ -1,5 +1,6 @@
 /**
- * 메인 시즌 큐레이션(+1/+2/+3월 MonthlyCurationContent) — 6h 캐시.
+ * 메인 시즌 큐레이션(+1/+2/+3월 MonthlyCurationContent).
+ * REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: build empty must not poison Data Cache — manifest
  */
 import { unstable_cache } from 'next/cache'
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
@@ -19,7 +20,6 @@ export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): str
 }
 
 async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
-  if (shouldSkipDbAtBuild()) return []
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
@@ -33,15 +33,14 @@ async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]>
   return [...a, ...b, ...c]
 }
 
-/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화). v3: orphan-card keep + Oct/Nov heal 반영 */
-export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v3'
-export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v3'
+/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화). v4: build empty 미캐시 */
+export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v4'
+export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v4'
 
 const HERO_MAX_PER_MONTH = 5
 
 /** PC 히어로: +1·+2·+3월 각 최대 5건(최대 15장). */
 async function loadHeroSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
-  if (shouldSkipDbAtBuild()) return []
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
@@ -61,13 +60,13 @@ async function loadHeroSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
 /** 30분 — 발행·상품 비공개 후 홈이 반나절 비는 것 방지 (태그 무효화가 SSOT) */
 const SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800
 
-export const getCachedSeasonCurationHeroSlides = unstable_cache(
+const cachedHeroSlides = unstable_cache(
   async () => loadHeroSlidesUncached(),
   [SEASON_CURATION_HERO_CACHE_TAG],
   { revalidate: SEASON_CURATION_CACHE_REVALIDATE_SEC, tags: [SEASON_CURATION_HERO_CACHE_TAG] },
 )
 
-export const getCachedSeasonCurationNextThreeMonthsSlides = unstable_cache(
+const cachedNextThreeMonthsSlides = unstable_cache(
   async () => loadNextThreeMonthsSlidesUncached(),
   [SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG],
   {
@@ -76,8 +75,18 @@ export const getCachedSeasonCurationNextThreeMonthsSlides = unstable_cache(
   },
 )
 
-async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {
+/** build 단계 빈 배열이 Data Cache에 박히지 않도록 skip을 캐시 바깥에 둔다. */
+export async function getCachedSeasonCurationHeroSlides(): Promise<HomeSeasonPickDTO[]> {
   if (shouldSkipDbAtBuild()) return []
+  return cachedHeroSlides()
+}
+
+export async function getCachedSeasonCurationNextThreeMonthsSlides(): Promise<HomeSeasonPickDTO[]> {
+  if (shouldSkipDbAtBuild()) return []
+  return cachedNextThreeMonthsSlides()
+}
+
+async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {
   const base = getSeoulYearMonthNow()
   const m1 = shiftSeoulYearMonth(base, 1)
   const m2 = shiftSeoulYearMonth(base, 2)
@@ -101,17 +110,29 @@ async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {
   return out
 }
 
-export const getCachedSeasonLinkedProductIds = unstable_cache(
+const cachedSeasonLinkedProductIds = unstable_cache(
   async () => loadSeasonLinkedProductIdsUncached(),
-  ['season-linked-product-ids-v1'],
-  { revalidate: 21_600 },
+  ['season-linked-product-ids-v2'],
+  { revalidate: SEASON_CURATION_CACHE_REVALIDATE_SEC },
 )
+
+export async function getCachedSeasonLinkedProductIds(): Promise<string[]> {
+  if (shouldSkipDbAtBuild()) return []
+  return cachedSeasonLinkedProductIds()
+}
 
 /** 페르소나 등 — 매 요청 Prisma cycle 조회 방지 (홈 ISR과 맞춤 5분) */
 export const SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG = 'season-curation-current-cycle-v1'
 
-export const getCachedCurrentCycle = unstable_cache(
+const cachedCurrentCycle = unstable_cache(
   async (): Promise<SeasonCurationCycle> => getCurrentCycle(new Date()),
   [SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG],
   { revalidate: 300, tags: [SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG] },
 )
+
+export async function getCachedCurrentCycle(): Promise<SeasonCurationCycle> {
+  if (shouldSkipDbAtBuild()) {
+    return getCurrentCycle(new Date())
+  }
+  return cachedCurrentCycle()
+}
