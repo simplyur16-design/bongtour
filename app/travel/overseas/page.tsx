@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Header from '@/app/components/Header'
 import OverseasBrowseSlot from '@/app/components/travel/overseas/OverseasBrowseSlot'
-import OverseasHeroLoading from '@/app/components/travel/overseas/OverseasHeroLoading'
 import OverseasHeroSlot from '@/app/components/travel/overseas/OverseasHeroSlot'
 import OverseasInteractiveShell from '@/app/components/travel/overseas/OverseasInteractiveShell'
 import OverseasManagedContent from '@/app/components/travel/overseas/OverseasManagedContent'
@@ -45,13 +44,12 @@ export default async function OverseasTravelPage() {
       <Header />
       <OverseasRegionMegaNav />
       <main>
-        <Suspense fallback={<OverseasHeroLoading />}>
-          <OverseasHeroSlot
-            selectedCountrySlug={null}
-            selectedRegionSlug={null}
-            initialSearchParamsString=""
-          />
-        </Suspense>
+        {/* REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: hero blocking SSR — Suspense empty shell 금지 — manifest */}
+        <OverseasHeroSlot
+          selectedCountrySlug={null}
+          selectedRegionSlug={null}
+          initialSearchParamsString=""
+        />
 
         <OverseasBrowseSlot />
 

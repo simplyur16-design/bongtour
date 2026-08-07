@@ -1,6 +1,6 @@
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
 import { getCachedOverseasHubSeasonDestinationHeroSlides } from '@/lib/overseas-hub-season-destination-hero'
-import { getCurrentCycle } from '@/lib/season-curation'
+import { getCachedCurrentCycle } from '@/lib/season-curation-content'
 
 const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
 
@@ -10,7 +10,10 @@ type Props = {
   initialSearchParamsString?: string
 }
 
-/** 해외 허브 히어로 — 실패 시 빈 슬라이드로 폴백(페이지 전체 RSC 오류 방지) */
+/**
+ * 해외 허브 히어로 — 실패 시 빈 슬라이드로 폴백(페이지 전체 RSC 오류 방지).
+ * REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: blocking SSR (no Suspense empty shell) — manifest
+ */
 export default async function OverseasHeroSlot({
   selectedCountrySlug,
   selectedRegionSlug,
@@ -18,7 +21,7 @@ export default async function OverseasHeroSlot({
 }: Props) {
   let seasonDestinationHeroSlides: Awaited<ReturnType<typeof getCachedOverseasHubSeasonDestinationHeroSlides>> = []
   try {
-    const cycle = await getCurrentCycle(new Date())
+    const cycle = await getCachedCurrentCycle()
     if (!cycle) {
       console.warn('[OverseasHeroSlot] no active SeasonalDestinationCuration cycle — empty hero')
     }

@@ -1,10 +1,13 @@
 /**
  * 해외 허브 히어로 — 메인 `SeasonalDestinationCuration` 5도시(추천 여행지)와 동일 SSOT.
  * 메인 시즌 카드(`MonthlyCurationContent`)와 분리해 중복 노출을 막는다.
+ *
+ * REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: overseas hub build-empty 미캐시 — manifest
  */
 import 'server-only'
 
 import { unstable_cache } from 'next/cache'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { getPersonaCuratedDestinationsPayload } from '@/lib/persona-curated-destinations'
 import { type SeasonCurationCycle } from '@/lib/season-curation'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
@@ -17,6 +20,9 @@ import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
 import type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
 
 export type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
+
+/** revalidateTag / 배포 후 워밍 SSOT */
+export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v9'
 
 function seoulMonth1To12(): number {
   const ym = getSeoulYearMonthNow()
@@ -43,13 +49,14 @@ function koreanCityLabelFromSubtitle(koreanSubtitle: string): string {
 async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
   cycle: SeasonCurationCycle,
 ): Promise<OverseasHubDestinationHeroSlide[]> {
+  if (!cycle) return []
   const payload = await getPersonaCuratedDestinationsPayload(cycle)
-  const reasoning = parseCycleReasoning(cycle?.geminiResponse)
+  const reasoning = parseCycleReasoning(cycle.geminiResponse)
   const baseMonth = seasonHeroBaseMonthFromCycleStart(
-    cycle?.cycleStartDate ?? payload.cycle?.cycleStartDate ?? null,
+    cycle.cycleStartDate ?? payload.cycle?.cycleStartDate ?? null,
     seoulMonth1To12(),
   )
-  const cycleId = cycle?.id ?? payload.cycle?.id ?? 'no-cycle'
+  const cycleId = cycle.id ?? payload.cycle?.id ?? 'no-cycle'
 
   return payload.cards.map((card, idx) => {
     const destKo = koreanCityLabelFromSubtitle(card.koreanSubtitle)
@@ -85,12 +92,17 @@ async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
 export async function getCachedOverseasHubSeasonDestinationHeroSlides(
   cycle: SeasonCurationCycle,
 ): Promise<OverseasHubDestinationHeroSlide[]> {
+  if (shouldSkipDbAtBuild()) return []
+  if (!cycle?.id) return []
   try {
-    const cacheKey = ['overseas-hub-season-destination-hero', cycle?.id ?? 'no-active-cycle', 'v8-one-sentence-subline']
+    const cacheKey = [OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG, cycle.id]
     const run = unstable_cache(
       () => loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle),
       cacheKey,
-      { revalidate: 21_600 },
+      {
+        revalidate: 1_800,
+        tags: [OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG, `overseas-hub-season-${cycle.id}`],
+      },
     )
     return await run()
   } catch (e) {

@@ -2651,8 +2651,9 @@
             "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
             "getCachedSeasonCurationHeroSlides",
             "getCachedSeasonCurationNextThreeMonthsSlides",
+            "getCachedOverseasHubSeasonDestinationHeroSlides",
             "loopbackHomePages",
-            "'/m'"
+            "'/travel/overseas'"
           ]
         },
         {
@@ -2660,6 +2661,34 @@
           "mustInclude": [
             "startInstrumentationSeasonHomeWarm",
             "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-season-destination-hero.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG",
+            "if (shouldSkipDbAtBuild()) return []",
+            "if (!cycle?.id) return []"
+          ]
+        },
+        {
+          "file": "app/travel/overseas/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "OverseasHeroSlot",
+            "hero blocking SSR"
+          ],
+          "mustNotInclude": [
+            "OverseasHeroLoading",
+            "fallback={<OverseasHeroLoading"
+          ]
+        },
+        {
+          "file": "lib/persona-curated-destinations.ts",
+          "mustInclude": [
+            "v10-no-build-poison",
+            "if (!cycle?.id) return empty"
           ]
         }
       ],

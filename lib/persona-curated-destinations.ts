@@ -251,14 +251,19 @@ async function loadPersonaCuratedDestinationsUncached(
 export async function getPersonaCuratedDestinationsPayload(
   cycle: SeasonCurationCycle,
 ): Promise<PersonaCuratedDestinationsPayload> {
-  if (shouldSkipDbAtBuild()) {
-    return {
-      cycle: null,
-      cards: [],
-      tabCityCounts: { all: 0, 'with-parents': 0, 'with-kids': 0, couple: 0 },
-    }
+  const empty: PersonaCuratedDestinationsPayload = {
+    cycle: null,
+    cards: [],
+    tabCityCounts: { all: 0, 'with-parents': 0, 'with-kids': 0, couple: 0 },
   }
-  const cacheKey = ['persona-curated-destinations', cycle?.id ?? 'no-active-cycle', 'v9-country-level-title']
-  const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, { revalidate: 21_600 })
+  // build empty / no-cycle empty must not enter Data Cache (배포 직후 홈·해외 히어로 공백 재발 방지)
+  if (shouldSkipDbAtBuild()) return empty
+  if (!cycle?.id) return empty
+
+  const cacheKey = ['persona-curated-destinations', cycle.id, 'v10-no-build-poison']
+  const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, {
+    revalidate: 1_800,
+    tags: ['persona-curated-destinations-v10', `persona-curated-${cycle.id}`],
+  })
   return run()
 }
