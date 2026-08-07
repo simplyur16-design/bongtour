@@ -48,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     verification: {
       other: {
-        'naver-site-verification': '3f9184c6e176330957acec29603387d07115e54d',
+        'naver-site-verification': 'ae6ce863b7e961b590c7ca31eddd12ba245ebfaa',
         'facebook-domain-verification': 'mcg3b915poi6zo8fcl33v2gedulj5p',
       },
     },
