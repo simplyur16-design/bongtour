@@ -14,6 +14,7 @@ export const CACHE_WARM_HTTP_EXCLUDED_ROUTES = [
 
 export const CACHE_WARM_ROUTES = [
   '/',
+  '/m',
   '/air-ticketing',
   '/business',
   '/business/programs',

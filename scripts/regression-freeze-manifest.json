@@ -2644,6 +2644,23 @@
             "revalidatePath('/')",
             "revalidatePath('/m')"
           ]
+        },
+        {
+          "file": "lib/instrumentation-season-home-warm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "getCachedSeasonCurationHeroSlides",
+            "getCachedSeasonCurationNextThreeMonthsSlides",
+            "loopbackHomePages",
+            "'/m'"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "startInstrumentationSeasonHomeWarm",
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]"
+          ]
         }
       ],
       "vitestSuites": [

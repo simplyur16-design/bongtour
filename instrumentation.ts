@@ -37,6 +37,14 @@ export async function register() {
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')
     await bootstrapHomeHubActiveFromDb()
 
+    // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: post-deploy home warm — manifest
+    if (hasDb && process.env.NODE_ENV === 'production' && shouldRunWebCriticalCrons()) {
+      const { startInstrumentationSeasonHomeWarm } = await import(
+        '@/lib/instrumentation-season-home-warm'
+      )
+      startInstrumentationSeasonHomeWarm()
+    }
+
     // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill cron on owner only — manifest
     if (hasDb && shouldRunFulfillmentCrons()) {
       const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
