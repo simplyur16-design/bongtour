@@ -40,13 +40,12 @@ export async function POST(req: Request) {
   for (const tag of tags) {
     revalidateTag(tag)
   }
-  const paths = ['/', '/m', '/travel/overseas']
-  for (const path of paths) {
-    revalidatePath(path)
-  }
+  revalidatePath('/')
+  revalidatePath('/m')
+  revalidatePath('/travel/overseas')
 
   return jsonWithLeakGuard(
-    { ok: true, tags, paths },
+    { ok: true, tags, paths: ['/', '/m', '/travel/overseas'] },
     'cron-season-cache-revalidate.response',
   )
 }

@@ -2641,8 +2641,10 @@
           "mustInclude": [
             "SEASON_CURATION_HERO_CACHE_TAG",
             "SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG",
+            "OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG",
             "revalidatePath('/')",
-            "revalidatePath('/m')"
+            "revalidatePath('/m')",
+            "revalidatePath('/travel/overseas')"
           ]
         },
         {
