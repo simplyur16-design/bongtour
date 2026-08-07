@@ -33,9 +33,9 @@ async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]>
   return [...a, ...b, ...c]
 }
 
-/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화) */
-export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v2'
-export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v1'
+/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화). v3: orphan-card keep + Oct/Nov heal 반영 */
+export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v3'
+export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v3'
 
 const HERO_MAX_PER_MONTH = 5
 
@@ -58,16 +58,22 @@ async function loadHeroSlidesUncached(): Promise<HomeSeasonPickDTO[]> {
   return [...a, ...b, ...c].slice(0, HERO_MAX_PER_MONTH * 3)
 }
 
+/** 30분 — 발행·상품 비공개 후 홈이 반나절 비는 것 방지 (태그 무효화가 SSOT) */
+const SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800
+
 export const getCachedSeasonCurationHeroSlides = unstable_cache(
   async () => loadHeroSlidesUncached(),
   [SEASON_CURATION_HERO_CACHE_TAG],
-  { revalidate: 21_600, tags: [SEASON_CURATION_HERO_CACHE_TAG] },
+  { revalidate: SEASON_CURATION_CACHE_REVALIDATE_SEC, tags: [SEASON_CURATION_HERO_CACHE_TAG] },
 )
 
 export const getCachedSeasonCurationNextThreeMonthsSlides = unstable_cache(
   async () => loadNextThreeMonthsSlidesUncached(),
   [SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG],
-  { revalidate: 21_600, tags: [SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG] },
+  {
+    revalidate: SEASON_CURATION_CACHE_REVALIDATE_SEC,
+    tags: [SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG],
+  },
 )
 
 async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {

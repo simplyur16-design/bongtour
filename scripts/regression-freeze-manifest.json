@@ -2610,6 +2610,43 @@
       ]
     },
     {
+      "id": "season-curation-keep-orphan-product-cards",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "시즌 큐레이션 — linked 상품 auto_unpublished여도 카드 유지(링크만 scrub)",
+      "checks": [
+        {
+          "file": "lib/home-season-pick.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "scrub bad product link, keep card"
+          ]
+        },
+        {
+          "file": "lib/season-curation-content.ts",
+          "mustInclude": [
+            "season-curation-hero-slides-v3",
+            "season-curation-next-three-months-v3",
+            "SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800"
+          ]
+        },
+        {
+          "file": "app/api/cron/season-cache-revalidate/route.ts",
+          "mustInclude": [
+            "SEASON_CURATION_HERO_CACHE_TAG",
+            "SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG",
+            "revalidatePath('/')",
+            "revalidatePath('/m')"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/home-season-pick.test.ts"
+      ]
+    },
+    {
       "id": "railway-start-exec-next",
       "tier": [
         "prebuild"

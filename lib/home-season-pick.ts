@@ -152,10 +152,22 @@ export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: str
       rows.map((r) => r.linkedProductId ?? '')
     )
 
-    const filtered = rows.filter((r) =>
-      monthlyCurationRowPassesLinkedProductIntegrity(r, validLinkedProductIds)
-    )
-    return filtered.map((r) => monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow))
+    // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: scrub bad product link, keep card — manifest
+    // auto_unpublished 등으로 연결 상품이 빠져도 시즌 카드 자체를 숨기지 않는다 (CTA는 /travel/overseas 등 폴백).
+    return rows.map((r) => {
+      const pid = (r.linkedProductId ?? '').trim()
+      if (pid && !validLinkedProductIds.has(pid)) {
+        const rawHref = (r.linkedHref ?? '').trim()
+        const scrubHref =
+          rawHref.startsWith(`/products/${pid}`) || rawHref.includes(pid) ? null : r.linkedHref
+        return monthlyCurationRowToHomeSeasonPickDTO({
+          ...r,
+          linkedProductId: null,
+          linkedHref: scrubHref,
+        } as MonthlyRow)
+      }
+      return monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow)
+    })
   } catch {
     return []
   }
