@@ -11159,6 +11159,53 @@
       ]
     },
     {
+      "id": "simplyur-mobile-auth-hardening",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur mobile-session rate limit + Bearer/cookie accountStatus 재검증 (정지·탈퇴 차단)",
+      "checks": [
+        {
+          "file": "lib/simplyur/auth/mobile-session-rate-limit.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-auth-hardening]",
+            "SIMPLYUR_MOBILE_SESSION_RATE_MAX_IP",
+            "simplyurMobileSessionIpRateKey",
+            "simplyurMobileSessionEmailRateKey"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/auth/mobile-session/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-auth-hardening]",
+            "getRateLimitStore",
+            "simplyurMobileSessionIpRateKey",
+            "rate_limited"
+          ]
+        },
+        {
+          "file": "lib/simplyur/auth/resolve-simplyur-api-user.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-auth-hardening]",
+            "isRestrictedAccountStatus",
+            "accountStatus"
+          ]
+        },
+        {
+          "file": "lib/account-status.ts",
+          "mustInclude": [
+            "isRestrictedAccountStatus",
+            "suspended"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/auth/mobile-session-rate-limit.test.ts",
+        "lib/simplyur/auth/resolve-simplyur-api-user.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-oauth-home-bridge",
       "tier": [
         "prebuild",

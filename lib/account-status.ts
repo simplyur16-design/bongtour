@@ -19,3 +19,8 @@ export function displayAccountStatus(s: string): string {
 export function isAccountStatus(v: string): v is AccountStatus {
   return (ACCOUNT_STATUSES as readonly string[]).includes(v)
 }
+
+/** Suspended / withdrawn — block login and API access. */
+export function isRestrictedAccountStatus(status: string | null | undefined): boolean {
+  return status === 'suspended' || status === 'withdrawn'
+}

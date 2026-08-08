@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { isRestrictedAccountStatus } from '@/lib/account-status'
 import { readBearerToken } from '@/lib/simplyur/auth/mobile-access-token'
 
 describe('simplyur mobile access token helpers', () => {
+  it('marks suspended/withdrawn as restricted', () => {
+    expect(isRestrictedAccountStatus('active')).toBe(false)
+    expect(isRestrictedAccountStatus('suspended')).toBe(true)
+    expect(isRestrictedAccountStatus('withdrawn')).toBe(true)
+  })
+
   afterEach(() => {
     vi.unstubAllEnvs()
     vi.resetModules()

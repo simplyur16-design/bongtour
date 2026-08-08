@@ -5,6 +5,7 @@
 import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { isRestrictedAccountStatus } from '@/lib/account-status'
 import { prisma } from '@/lib/prisma'
 import { bootstrapRoleForNewUserEmail } from '@/lib/bootstrap-user-role'
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
@@ -57,7 +58,7 @@ function appleAudiences(): string[] {
 }
 
 async function issueForUser(user: { id: string; email: string | null; accountStatus: string }) {
-  if (user.accountStatus === 'suspended' || user.accountStatus === 'withdrawn') {
+  if (isRestrictedAccountStatus(user.accountStatus)) {
     return { ok: false as const, code: 'account_restricted' as const }
   }
   const email = (user.email ?? '').trim().toLowerCase()
@@ -172,9 +173,10 @@ export async function createSimplyurMobileSessionFromGoogleIdToken(
     const client = new OAuth2Client()
     const ticket = await client.verifyIdToken({ idToken: idToken.trim(), audience: audiences })
     const payload = ticket.getPayload()
-    const email = payload?.email?.trim().toLowerCase() ?? ''
-    const sub = payload?.sub?.trim() ?? ''
-    if (!email || !sub || payload?.email_verified === false) {
+    if (!payload) return { ok: false, code: 'oauth_invalid_token' }
+    const email = payload.email?.trim().toLowerCase() ?? ''
+    const sub = payload.sub?.trim() ?? ''
+    if (!email || !sub || payload.email_verified === false) {
       return { ok: false, code: 'oauth_invalid_token' }
     }
     return upsertOAuthUser({

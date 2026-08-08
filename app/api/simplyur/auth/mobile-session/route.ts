@@ -1,10 +1,20 @@
+import { getClientIp } from '@/lib/admin-api-security'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
+import { getRateLimitStore } from '@/lib/rate-limit-store'
 import {
   createSimplyurMobileSessionFromAppleIdentityToken,
   createSimplyurMobileSessionFromCredentials,
   createSimplyurMobileSessionFromGoogleIdToken,
   type SimplyurMobileSessionFailCode,
 } from '@/lib/simplyur/auth/mobile-session'
+import {
+  SIMPLYUR_MOBILE_SESSION_RATE_MAX_EMAIL,
+  SIMPLYUR_MOBILE_SESSION_RATE_MAX_IP,
+  SIMPLYUR_MOBILE_SESSION_RATE_WINDOW_MS,
+  simplyurMobileSessionEmailRateKey,
+  simplyurMobileSessionIpRateKey,
+} from '@/lib/simplyur/auth/mobile-session-rate-limit'
+import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +26,24 @@ const FAIL_STATUS: Record<SimplyurMobileSessionFailCode, number> = {
   account_restricted: 403,
 }
 
+function rateLimitedResponse(resetAt: number) {
+  return jsonWithLeakGuard(
+    { ok: false, code: 'rate_limited' },
+    'simplyur.auth.mobile-session.rate-limit',
+    {
+      status: 429,
+      headers: {
+        'Retry-After': String(Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))),
+      },
+    },
+  )
+}
+
 /**
  * POST /api/simplyur/auth/mobile-session
  * In-app Simplyur auth — returns Bearer JWT (no Auth.js cookie / no WebBrowser).
  * REGRESSION-FREEZE[simplyur-inapp-auth]: mobile-session route — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-auth-hardening]: IP/email rate limit — manifest
  *
  * body:
  *  { provider: 'credentials', email, password }
@@ -27,6 +51,16 @@ const FAIL_STATUS: Record<SimplyurMobileSessionFailCode, number> = {
  *  { provider: 'apple', identityToken }
  */
 export async function POST(req: Request) {
+  const ip = getClientIp(req.headers)
+  const store = getRateLimitStore()
+  const ipBucket = await store.incr(
+    simplyurMobileSessionIpRateKey(ip),
+    SIMPLYUR_MOBILE_SESSION_RATE_WINDOW_MS,
+  )
+  if (ipBucket.count > SIMPLYUR_MOBILE_SESSION_RATE_MAX_IP) {
+    return rateLimitedResponse(ipBucket.resetAt)
+  }
+
   let body: unknown
   try {
     body = await req.json()
@@ -51,6 +85,16 @@ export async function POST(req: Request) {
       typeof (body as { password?: unknown }).password === 'string'
         ? (body as { password: string }).password
         : ''
+    const normalizedEmail = normalizeCredentialsLoginEmail(email)
+    if (normalizedEmail) {
+      const emailBucket = await store.incr(
+        simplyurMobileSessionEmailRateKey(normalizedEmail),
+        SIMPLYUR_MOBILE_SESSION_RATE_WINDOW_MS,
+      )
+      if (emailBucket.count > SIMPLYUR_MOBILE_SESSION_RATE_MAX_EMAIL) {
+        return rateLimitedResponse(emailBucket.resetAt)
+      }
+    }
     result = await createSimplyurMobileSessionFromCredentials({ email, password })
   } else if (provider === 'google') {
     const idToken =
