@@ -16,7 +16,10 @@ export type SimplyurApiUser = {
   email: string
 }
 
-async function loadActiveSimplyurUserById(userId: string): Promise<SimplyurApiUser | null> {
+async function loadActiveSimplyurUserById(
+  userId: string,
+  emailFallback?: string,
+): Promise<SimplyurApiUser | null> {
   const id = userId.trim()
   if (!id) return null
   const user = await prisma.user.findUnique({
@@ -24,7 +27,8 @@ async function loadActiveSimplyurUserById(userId: string): Promise<SimplyurApiUs
     select: { id: true, email: true, accountStatus: true },
   })
   if (!user || isRestrictedAccountStatus(user.accountStatus)) return null
-  const email = (user.email ?? '').trim().toLowerCase()
+  // Apple/JWT may have email when DB column is still empty — keep mypage matchable.
+  const email = (user.email ?? emailFallback ?? '').trim().toLowerCase()
   if (!email.includes('@')) return null
   return { userId: user.id, email }
 }
@@ -46,7 +50,7 @@ export async function resolveSimplyurApiUser(req: Request): Promise<SimplyurApiU
     const claims = await verifySimplyurMobileAccessToken(bearer)
     if (claims) {
       // Re-check DB — suspended/withdrawn must not keep using a 30d Bearer.
-      return loadActiveSimplyurUserById(claims.userId)
+      return loadActiveSimplyurUserById(claims.userId, claims.email)
     }
   }
 

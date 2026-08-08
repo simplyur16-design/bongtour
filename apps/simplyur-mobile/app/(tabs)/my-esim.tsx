@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -22,10 +22,14 @@ import {
   myEsimBadgeTier,
   weekdayLabel,
 } from '@/src/lib/my-esim-view-model';
+import { subscribeSimplyurSession } from '@/src/lib/session';
 
 type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
 
-/** design_handoff_my_esim — My eSIM 4th tab */
+/**
+ * design_handoff_my_esim — My eSIM 4th tab
+ * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
+ */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
@@ -54,9 +58,16 @@ export default function MyEsimScreen() {
     setLoading(false);
   }, [locale]);
 
-  useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
+  // Tabs stay mounted under /sign-in — reload on focus + when SecureStore session is written.
+  useFocusEffect(
+    useCallback(() => {
+      void loadOrders();
+    }, [loadOrders]),
+  );
+
+  useEffect(() => subscribeSimplyurSession(() => {
+    void loadOrders();
+  }), [loadOrders]);
 
   const selectedOrder = useMemo(
     () => orders.find((o) => o.order_id === selectedOrderId) ?? null,

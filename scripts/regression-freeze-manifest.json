@@ -11159,6 +11159,41 @@
       ]
     },
     {
+      "id": "simplyur-mobile-my-esim-session-reload",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 My eSIM — 네이티브 로그인 후 탭 포커스 시 Bearer 세션 재로드 (stale 401 금지)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]",
+            "useFocusEffect",
+            "subscribeSimplyurSession",
+            "loadOrders"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/session.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]",
+            "subscribeSimplyurSession",
+            "notifySimplyurSessionListeners"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/api/my-esim.ts",
+          "mustInclude": [
+            "getSimplyurAccessToken",
+            "Authorization",
+            "Bearer"
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-mobile-auth-hardening",
       "tier": [
         "prebuild",

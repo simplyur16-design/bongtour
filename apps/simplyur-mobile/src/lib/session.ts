@@ -1,6 +1,7 @@
 /**
  * In-app Simplyur session — SecureStore Bearer (not browser cookies).
  * REGRESSION-FREEZE[simplyur-inapp-auth]: mobile SecureStore session — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: session listeners — manifest
  */
 import * as SecureStore from 'expo-secure-store';
 
@@ -14,13 +15,29 @@ export type SimplyurSession = {
   expiresAt: number;
 };
 
+type SessionListener = () => void;
+
 let memory: SimplyurSession | null = null;
+const listeners = new Set<SessionListener>();
+
+function notifySimplyurSessionListeners() {
+  for (const listener of listeners) listener();
+}
+
+/** My eSIM / checkout reload when native sign-in writes SecureStore. */
+export function subscribeSimplyurSession(listener: SessionListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 
 export async function saveSimplyurSession(session: SimplyurSession): Promise<void> {
   memory = session;
   await SecureStore.setItemAsync(TOKEN_KEY, session.accessToken);
   await SecureStore.setItemAsync(EMAIL_KEY, session.email);
   await SecureStore.setItemAsync(EXP_KEY, String(session.expiresAt));
+  notifySimplyurSessionListeners();
 }
 
 export async function clearSimplyurSession(): Promise<void> {
@@ -28,6 +45,7 @@ export async function clearSimplyurSession(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
   await SecureStore.deleteItemAsync(EMAIL_KEY);
   await SecureStore.deleteItemAsync(EXP_KEY);
+  notifySimplyurSessionListeners();
 }
 
 export async function loadSimplyurSession(): Promise<SimplyurSession | null> {

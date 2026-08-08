@@ -63,6 +63,22 @@ describe('resolveSimplyurApiUser — accountStatus gate', () => {
     })
   })
 
+  it('uses JWT email when DB email empty but account active', async () => {
+    const { resolveSimplyurApiUser } = await import('@/lib/simplyur/auth/resolve-simplyur-api-user')
+    readBearerMock.mockReturnValue('good.jwt')
+    verifyMock.mockResolvedValue({ userId: 'u4', email: 'relay@privaterelay.appleid.com' })
+    findUnique.mockResolvedValue({
+      id: 'u4',
+      email: null,
+      accountStatus: 'active',
+    })
+    const req = new Request('https://bongtour.com/api/simplyur/mypage/orders')
+    await expect(resolveSimplyurApiUser(req)).resolves.toEqual({
+      userId: 'u4',
+      email: 'relay@privaterelay.appleid.com',
+    })
+  })
+
   it('rejects withdrawn cookie session user', async () => {
     const { resolveSimplyurApiUser } = await import('@/lib/simplyur/auth/resolve-simplyur-api-user')
     authMock.mockResolvedValue({
