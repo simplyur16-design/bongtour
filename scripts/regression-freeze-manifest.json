@@ -11262,7 +11262,8 @@
           "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
-            "usageScreenOpen"
+            "usageScreenOpen",
+            "inlineEmail"
           ],
           "mustNotInclude": [
             "animationType=\"slide\"",
@@ -11272,10 +11273,36 @@
         {
           "file": "apps/simplyur-mobile/src/api/checkout.ts",
           "mustInclude": [
-            "app-pay-result"
+            "app-pay-result",
+            "status=ok",
+            "status=fail"
           ],
           "mustNotInclude": [
-            "failed=1"
+            "failed=1",
+            "checkout/complete"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.ts",
+          "mustInclude": [
+            "isOurWebsiteHost",
+            "cancel_or_fail"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "inlineEmail",
+            "signInWithEmailPassword"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "https://api.eximbay.com/"
+          ],
+          "mustNotInclude": [
+            "baseUrl: getApiBaseUrl"
           ]
         }
       ],

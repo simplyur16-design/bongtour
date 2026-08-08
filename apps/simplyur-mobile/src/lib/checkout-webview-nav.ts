@@ -2,6 +2,7 @@
  * In-app Eximbay checkout WebView — URL classification SSOT.
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: no external browser pay — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: classify external schemes — manifest
+ * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: never render bongtour website in pay WebView — manifest
  */
 
 export type SimplyurCheckoutWebViewNav =
@@ -28,12 +29,25 @@ function pathOf(url: string): string {
   }
 }
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
 function queryOf(url: string): URLSearchParams {
   try {
     return new URL(url).searchParams
   } catch {
     return new URLSearchParams()
   }
+}
+
+function isOurWebsiteHost(host: string): boolean {
+  if (!host) return false
+  return host === 'bongtour.com' || host === 'www.bongtour.com' || host.endsWith('.bongtour.com')
 }
 
 /** Classify navigation inside the in-app checkout WebView. */
@@ -45,42 +59,41 @@ export function classifySimplyurCheckoutWebViewUrl(url: string): SimplyurCheckou
     return { kind: 'external_app', url: raw }
   }
 
-  const path = pathOf(raw)
-  if (!path.startsWith('/simplyur/')) return { kind: 'continue' }
-
-  if (/\/checkout\/complete\/?$/i.test(path) || path.includes('/checkout/complete')) {
-    const q = queryOf(raw)
-    return {
-      kind: 'complete',
-      orderId: (q.get('orderId') ?? '').trim(),
-      orderNumber: (q.get('orderNumber') ?? '').trim(),
-    }
+  if (raw.startsWith('about:') || raw.startsWith('data:')) {
+    return { kind: 'continue' }
   }
 
-  // App-only sentinel — never load website checkout chrome after cancel/fail
-  if (path.includes('/app-pay-result')) {
-    const status = (queryOf(raw).get('status') ?? '').trim().toLowerCase()
-    if (status === 'fail' || status === 'cancel') return { kind: 'cancel_or_fail' }
-    if (status === 'ok' || status === 'success') {
-      const q = queryOf(raw)
+  const host = hostOf(raw)
+  const path = pathOf(raw)
+  const q = queryOf(raw)
+
+  // Our website host — NEVER render login/checkout/legal pages in the pay WebView.
+  // Only sentinel paths are recognized; everything else returns to the native form.
+  if (isOurWebsiteHost(host) || path.startsWith('/simplyur/')) {
+    if (/\/checkout\/complete\/?$/i.test(path) || path.includes('/checkout/complete')) {
       return {
         kind: 'complete',
         orderId: (q.get('orderId') ?? '').trim(),
         orderNumber: (q.get('orderNumber') ?? '').trim(),
       }
     }
-    return { kind: 'cancel_or_fail' }
-  }
 
-  // Legacy Eximbay cancel/fail resume landed on website checkout with failed=1 — intercept, do not render
-  if (path.includes('/checkout') && !path.includes('/checkout/eximbay-return')) {
-    const failed = (queryOf(raw).get('failed') ?? '').trim()
-    if (failed === '1' || failed.toLowerCase() === 'true') {
+    if (path.includes('/app-pay-result')) {
+      const status = (q.get('status') ?? '').trim().toLowerCase()
+      if (status === 'ok' || status === 'success') {
+        return {
+          kind: 'complete',
+          orderId: (q.get('orderId') ?? '').trim(),
+          orderNumber: (q.get('orderNumber') ?? '').trim(),
+        }
+      }
       return { kind: 'cancel_or_fail' }
     }
-    // Any return onto website checkout page = leave pay WebView (native form owns UX)
+
+    // Website checkout, sign-in, mypage, legal, home — all forbidden chrome
     return { kind: 'cancel_or_fail' }
   }
 
+  // Eximbay / card issuer / 3DS hosts stay in the pay WebView
   return { kind: 'continue' }
 }

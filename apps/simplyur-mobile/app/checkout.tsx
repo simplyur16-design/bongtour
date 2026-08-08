@@ -19,7 +19,7 @@ import {
 } from '@/src/api/checkout';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
 import { LOGIN_1B } from '@/src/constants/login-design';
-import { getApiBaseUrl, isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
+import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
@@ -233,7 +233,8 @@ export default function CheckoutScreen() {
             originWhitelist={['*']}
             source={{
               html: payHtml,
-              baseUrl: getApiBaseUrl().replace(/\/+$/, ''),
+              // Not bongtour.com — relative links must not open website login/checkout chrome.
+              baseUrl: 'https://api.eximbay.com/',
             }}
             style={styles.flex}
             onLoadStart={() => setPayLoading(true)}

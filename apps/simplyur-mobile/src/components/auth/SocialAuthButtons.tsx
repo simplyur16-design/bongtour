@@ -6,9 +6,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
+import { signInWithEmailPassword } from '@/src/api/auth';
 import { AppleMark, EmailMark, GoogleMark } from '@/src/components/auth/SignInButtonMarks';
 import { LOGIN_1B } from '@/src/constants/login-design';
 import { fp } from '@/src/constants/typography';
@@ -25,6 +27,11 @@ type Props = {
   onSignedIn?: () => void | Promise<void>;
   /** Where to go after success. Default My eSIM. */
   successHref?: string;
+  /**
+   * When true (My eSIM), email form expands inline — no stack push that feels like a web sheet.
+   * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: inline email — manifest
+   */
+  inlineEmail?: boolean;
 };
 
 /**
@@ -34,11 +41,15 @@ type Props = {
 export function SocialAuthButtons({
   onSignedIn,
   successHref = '/(tabs)/my-esim',
+  inlineEmail = false,
 }: Props) {
   const { t } = useI18n();
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
   const [err, setErr] = useState('');
   const [appleOk, setAppleOk] = useState(Platform.OS === 'ios');
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const googleConfigured = isGoogleNativeConfigured();
 
   useEffect(() => {
@@ -56,13 +67,8 @@ export function SocialAuthButtons({
     try {
       await signInWithAppleNative();
       await afterOk();
-    } catch (e) {
-      const code = e instanceof Error ? e.message : '';
-      setErr(
-        code === 'oauth_invalid_token' || code === 'oauth_not_configured'
-          ? t('auth.errorGeneric')
-          : t('auth.errorGeneric'),
-      );
+    } catch {
+      setErr(t('auth.errorGeneric'));
     } finally {
       setBusy(null);
     }
@@ -86,6 +92,28 @@ export function SocialAuthButtons({
     } finally {
       setBusy(null);
     }
+  }
+
+  async function onEmailSubmit() {
+    setErr('');
+    setBusy('email');
+    try {
+      await signInWithEmailPassword(email, password);
+      await afterOk();
+    } catch {
+      setErr(t('auth.invalidCredentials'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function onEmailPress() {
+    setErr('');
+    if (inlineEmail) {
+      setEmailOpen(true);
+      return;
+    }
+    router.push('/sign-in/email');
   }
 
   return (
@@ -124,15 +152,58 @@ export function SocialAuthButtons({
         )}
       </Pressable>
 
-      <Pressable
-        onPress={() => router.push('/sign-in/email')}
-        disabled={busy !== null}
-        style={[styles.btn, styles.btnEmail, busy ? styles.btnBusy : null]}
-        accessibilityRole="button"
-        accessibilityLabel={t('auth.continueEmail')}>
-        <EmailMark />
-        <Text style={styles.btnEmailText}>{t('auth.continueEmail')}</Text>
-      </Pressable>
+      {!emailOpen ? (
+        <Pressable
+          onPress={onEmailPress}
+          disabled={busy !== null}
+          style={[styles.btn, styles.btnEmail, busy ? styles.btnBusy : null]}
+          accessibilityRole="button"
+          accessibilityLabel={t('auth.continueEmail')}>
+          <EmailMark />
+          <Text style={styles.btnEmailText}>{t('auth.continueEmail')}</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.emailBox}>
+          <Text style={styles.emailTitle}>{t('auth.email')}</Text>
+          <Text style={styles.label}>{t('auth.emailLabel')}</Text>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            style={styles.input}
+            placeholderTextColor={LOGIN_1B.faint}
+          />
+          <Text style={styles.label}>{t('auth.passwordLabel')}</Text>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+            style={styles.input}
+            placeholderTextColor={LOGIN_1B.faint}
+          />
+          <Pressable
+            style={[styles.btn, styles.btnEmail, busy ? styles.btnBusy : null]}
+            disabled={busy !== null}
+            onPress={() => void onEmailSubmit()}>
+            {busy === 'email' ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnEmailText}>{t('auth.signInSubmit')}</Text>
+            )}
+          </Pressable>
+          <Pressable onPress={() => setEmailOpen(false)} hitSlop={8}>
+            <Text style={styles.backLink}>{t('auth.backToMethods')}</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/sign-in/sign-up')} hitSlop={8}>
+            <Text style={styles.backLink}>
+              {t('auth.noAccount')} {t('auth.signUpLink')}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {err ? <Text style={styles.err}>{err}</Text> : null}
     </View>
@@ -167,6 +238,33 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   btnEmailText: { color: '#fff', fontSize: 16, ...fp('600') },
+  emailBox: {
+    gap: 8,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: '#fff',
+  },
+  emailTitle: { fontSize: 16, color: LOGIN_1B.navy, ...fp('700'), marginBottom: 4 },
+  label: { fontSize: 12, color: LOGIN_1B.muted, ...fp('600') },
+  input: {
+    borderWidth: 1.5,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: LOGIN_1B.bg,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: LOGIN_1B.navy,
+  },
+  backLink: {
+    textAlign: 'center',
+    color: LOGIN_1B.coral,
+    fontSize: 13,
+    marginTop: 4,
+    ...fp('600'),
+  },
   err: {
     marginTop: 4,
     textAlign: 'center',

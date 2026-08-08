@@ -63,9 +63,9 @@ export async function createSimplyurEximbaySession(input: {
   idempotencyKey: string;
 }): Promise<EximbayV2Client> {
   const base = getApiBaseUrl().replace(/\/+$/, '');
-  // Sentinel URLs — WebView classifies + returns to native form; never show website checkout chrome.
+  // Sentinel URLs only — pay WebView must never render bongtour website login/checkout chrome.
   const failUrl = `${base}/simplyur/${input.locale}/app-pay-result?status=fail&optionApiId=${encodeURIComponent(input.optionApiId)}`;
-  const successUrl = `${base}/simplyur/${input.locale}/checkout/complete?orderId=${encodeURIComponent(input.orderId)}&orderNumber=${encodeURIComponent(input.orderNumber)}`;
+  const successUrl = `${base}/simplyur/${input.locale}/app-pay-result?status=ok&orderId=${encodeURIComponent(input.orderId)}&orderNumber=${encodeURIComponent(input.orderNumber)}`;
 
   const res = await fetch(`${base}/api/bongsim/payments/session`, {
     method: 'POST',

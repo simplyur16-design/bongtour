@@ -128,7 +128,7 @@ export default function MyEsimScreen() {
         <Text style={styles.signinIcon}>🔒</Text>
         <Text style={styles.signinTitle}>{t('myEsim.signInTitle')}</Text>
         <Text style={styles.signinBody}>{t('myEsim.signInBody')}</Text>
-        <SocialAuthButtons onSignedIn={() => loadOrders()} />
+        <SocialAuthButtons inlineEmail onSignedIn={() => loadOrders()} />
       </ScrollView>
     );
   }

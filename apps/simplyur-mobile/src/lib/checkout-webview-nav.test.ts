@@ -5,10 +5,18 @@ import {
 } from './checkout-webview-nav'
 
 describe('simplyur in-app checkout WebView nav', () => {
-  it('detects payment complete', () => {
+  it('detects payment complete (legacy website complete URL)', () => {
     expect(
       classifySimplyurCheckoutWebViewUrl(
         'https://bongtour.com/simplyur/en/checkout/complete?orderId=o1&orderNumber=N1',
+      ),
+    ).toEqual({ kind: 'complete', orderId: 'o1', orderNumber: 'N1' })
+  })
+
+  it('detects app-pay-result ok sentinel', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl(
+        'https://bongtour.com/simplyur/en/app-pay-result?status=ok&orderId=o1&orderNumber=N1',
       ),
     ).toEqual({ kind: 'complete', orderId: 'o1', orderNumber: 'N1' })
   })
@@ -34,6 +42,15 @@ describe('simplyur in-app checkout WebView nav', () => {
       classifySimplyurCheckoutWebViewUrl(
         'https://bongtour.com/simplyur/en/checkout?optionApiId=x',
       ),
+    ).toEqual({ kind: 'cancel_or_fail' })
+  })
+
+  it('blocks website sign-in / login pages inside pay WebView', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl('https://bongtour.com/simplyur/en/sign-in'),
+    ).toEqual({ kind: 'cancel_or_fail' })
+    expect(
+      classifySimplyurCheckoutWebViewUrl('https://bongtour.com/api/auth/signin'),
     ).toEqual({ kind: 'cancel_or_fail' })
   })
 
