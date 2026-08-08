@@ -260,10 +260,13 @@ export async function getPersonaCuratedDestinationsPayload(
   if (shouldSkipDbAtBuild()) return empty
   if (!cycle?.id) return empty
 
-  const cacheKey = ['persona-curated-destinations', cycle.id, 'v10-no-build-poison']
+  const cacheKey = ['persona-curated-destinations', cycle.id, 'v11-no-empty-poison']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, {
     revalidate: 1_800,
-    tags: ['persona-curated-destinations-v10', `persona-curated-${cycle.id}`],
+    tags: ['persona-curated-destinations-v11', `persona-curated-${cycle.id}`],
   })
-  return run()
+  const cached = await run()
+  if (cached.cards.length > 0) return cached
+  // Empty cache hit after deploy race — recompute once outside Data Cache.
+  return loadPersonaCuratedDestinationsUncached(cycle)
 }

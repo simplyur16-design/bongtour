@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG,
     SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG,
     OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG,
+    'persona-curated-destinations-v11',
     'persona-curated-destinations-v10',
     'season-linked-product-ids-v2',
   ]

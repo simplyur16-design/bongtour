@@ -9,6 +9,7 @@ import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { getCurrentCycle, type SeasonCurationCycle } from '@/lib/season-curation'
+import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 
 export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): string {
   const [yStr, mStr] = yearMonth.split('-')
@@ -33,9 +34,9 @@ async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]>
   return [...a, ...b, ...c]
 }
 
-/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화). v4: build empty 미캐시 */
-export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v4'
-export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v4'
+/** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화). v5: empty cache bypass + tag bust */
+export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v5'
+export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v5'
 
 const HERO_MAX_PER_MONTH = 5
 
@@ -78,12 +79,13 @@ const cachedNextThreeMonthsSlides = unstable_cache(
 /** build 단계 빈 배열이 Data Cache에 박히지 않도록 skip을 캐시 바깥에 둔다. */
 export async function getCachedSeasonCurationHeroSlides(): Promise<HomeSeasonPickDTO[]> {
   if (shouldSkipDbAtBuild()) return []
-  return cachedHeroSlides()
+  // Runtime empty poison (배포 레이스/DB blip) → uncached 재조회
+  return readCachedArrayOrBypassEmpty(cachedHeroSlides, loadHeroSlidesUncached)
 }
 
 export async function getCachedSeasonCurationNextThreeMonthsSlides(): Promise<HomeSeasonPickDTO[]> {
   if (shouldSkipDbAtBuild()) return []
-  return cachedNextThreeMonthsSlides()
+  return readCachedArrayOrBypassEmpty(cachedNextThreeMonthsSlides, loadNextThreeMonthsSlidesUncached)
 }
 
 async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {
@@ -134,5 +136,8 @@ export async function getCachedCurrentCycle(): Promise<SeasonCurationCycle> {
   if (shouldSkipDbAtBuild()) {
     return getCurrentCycle(new Date())
   }
-  return cachedCurrentCycle()
+  const cached = await cachedCurrentCycle()
+  if (cached?.id) return cached
+  // null cycle cached after deploy race — do not trust empty for the full 5m TTL
+  return getCurrentCycle(new Date())
 }

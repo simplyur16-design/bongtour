@@ -2627,13 +2627,19 @@
         {
           "file": "lib/season-curation-content.ts",
           "mustInclude": [
-            "season-curation-hero-slides-v4",
-            "season-curation-next-three-months-v4",
+            "season-curation-hero-slides-v5",
+            "season-curation-next-three-months-v5",
             "SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800",
             "build empty must not poison Data Cache",
             "if (shouldSkipDbAtBuild()) return []",
-            "return cachedHeroSlides()",
-            "return cachedNextThreeMonthsSlides()"
+            "readCachedArrayOrBypassEmpty"
+          ]
+        },
+        {
+          "file": "lib/unstable-cache-empty-bypass.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "readCachedArrayOrBypassEmpty"
           ]
         },
         {
@@ -2689,13 +2695,15 @@
         {
           "file": "lib/persona-curated-destinations.ts",
           "mustInclude": [
-            "v10-no-build-poison",
-            "if (!cycle?.id) return empty"
+            "v11-no-empty-poison",
+            "if (!cycle?.id) return empty",
+            "cached.cards.length > 0"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/home-season-pick.test.ts"
+        "lib/home-season-pick.test.ts",
+        "lib/unstable-cache-empty-bypass.test.ts"
       ]
     },
     {
@@ -13421,7 +13429,11 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
             "callEximbayPaymentsConfirmPa",
-            "processEximbayPaymentOutcome"
+            "processEximbayPaymentOutcome",
+            "consents->>'bongtour_user_id'"
+          ],
+          "mustNotInclude": [
+            "o.user_id"
           ]
         },
         {

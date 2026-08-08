@@ -18,11 +18,12 @@ import {
 } from '@/lib/season-hero-target-months'
 import { resolveSeasonCurationSubline } from '@/lib/season-curation-subline'
 import type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
+import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 
 export type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
 
-/** revalidateTag / 배포 후 워밍 SSOT */
-export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v9'
+/** revalidateTag / 배포 후 워밍 SSOT — v10: empty cache bypass + tag bust */
+export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v10'
 
 function seoulMonth1To12(): number {
   const ym = getSeoulYearMonthNow()
@@ -104,7 +105,9 @@ export async function getCachedOverseasHubSeasonDestinationHeroSlides(
         tags: [OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG, `overseas-hub-season-${cycle.id}`],
       },
     )
-    return await run()
+    return await readCachedArrayOrBypassEmpty(run, () =>
+      loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle),
+    )
   } catch (e) {
     console.error('[overseas-hub-season-destination-hero] cached load failed', e)
     return []
