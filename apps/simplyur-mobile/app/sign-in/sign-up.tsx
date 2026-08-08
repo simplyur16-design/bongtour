@@ -15,7 +15,10 @@ import { LOGIN_1B } from '@/src/constants/login-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
-/** In-app email signup — no WebBrowser. */
+/**
+ * In-app email signup — native form → /api/simplyur/auth/register (no external browser).
+ * REGRESSION-FREEZE[simplyur-email-signup]: sign-in/sign-up — manifest
+ */
 export default function SignUpEmailScreen() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();

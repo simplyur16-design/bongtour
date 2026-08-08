@@ -13205,10 +13205,16 @@
           ]
         },
         {
-          "file": "apps/simplyur-mobile/src/lib/oauth.ts",
+          "file": "apps/simplyur-mobile/app/sign-in/sign-up.tsx",
           "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-email-signup]",
+            "registerWithEmail",
+            "sign-in/sign-up"
+          ],
+          "mustNotInclude": [
             "buildEmailSignUpWebUrl",
-            "sign-up"
+            "openBrowserAsync",
+            "WebBrowser"
           ]
         }
       ],
