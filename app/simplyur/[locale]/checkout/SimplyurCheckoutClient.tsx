@@ -29,6 +29,8 @@ type FirstPurchasePreview = {
 type Props = {
   optionApiId: string;
   initialProduct?: SimplyurPublicProduct | null;
+  /** Signed-in Google/Apple/email — prefill QR delivery address */
+  initialBuyerEmail?: string;
   paymentFailed?: boolean;
   checkoutEnabled?: boolean;
   /** Dev-only Eximbay FGKey smoke */
@@ -60,6 +62,7 @@ function formatCheckoutApiError(
 export function SimplyurCheckoutClient({
   optionApiId,
   initialProduct = null,
+  initialBuyerEmail = "",
   paymentFailed = false,
   checkoutEnabled = SIMPLYUR_CHECKOUT_ENABLED,
   eximbayPrepUi = false,
@@ -68,7 +71,9 @@ export function SimplyurCheckoutClient({
   const tr = useSimplyurT();
 
   const [product] = useState<SimplyurPublicProduct | null>(initialProduct);
-  const [email, setEmail] = useState("");
+  // REGRESSION-FREEZE[simplyur-checkout-session-email-prefill]: useSession email when signed in — manifest
+  const [email, setEmail] = useState(initialBuyerEmail);
+  const emailFromAccount = Boolean(initialBuyerEmail.trim());
   const [phone, setPhone] = useState("");
   const [terms, setTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -290,7 +295,9 @@ export function SimplyurCheckoutClient({
           <label htmlFor="su-email" className="block text-sm font-medium su-text-ink">
             {tr("checkout.email")}
           </label>
-          <p className="text-xs text-[color:var(--su-ink-muted)]">{tr("checkout.emailHint")}</p>
+          <p className="text-xs text-[color:var(--su-ink-muted)]">
+            {emailFromAccount ? tr("checkout.emailFromAccountHint") : tr("checkout.emailHint")}
+          </p>
           <input
             id="su-email"
             type="email"

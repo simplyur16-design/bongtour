@@ -46,7 +46,7 @@ Press `a` (Android) or scan QR with Expo Go (iOS).
 
 | Environment | `EXPO_PUBLIC_API_BASE_URL` |
 |-------------|----------------------------|
-| Release / EAS production | `https://bongtong.com` (default when not `__DEV__`) |
+| Release / EAS production | `https://bongtour.com` (default when not `__DEV__`) |
 | iOS Simulator | `http://localhost:3000` |
 | Android Emulator | `http://10.0.2.2:3000` |
 | Physical phone | `http://<your-PC-LAN-IP>:3000` |
@@ -59,10 +59,13 @@ Press `a` (Android) or scan QR with Expo Go (iOS).
 
 ## Store release (EAS)
 
+Full checklist: [`STORE_RELEASE.md`](./STORE_RELEASE.md)
+
 ```bash
 cd apps/simplyur-mobile
-npx eas-cli login
+npx eas login
 npx eas init          # writes real projectId into app.json extra.eas
+npx eas build --platform all --profile preview      # internal APK / iOS
 npx eas build --platform all --profile production
 npx eas submit --platform ios --profile production
 npx eas submit --platform android --profile production
@@ -70,11 +73,11 @@ npx eas submit --platform android --profile production
 
 Store listing URLs (also in `app.json` → `extra`):
 
-- Privacy: https://bongtong.com/simplyur/en/legal/privacy  
-- Terms: https://bongtong.com/simplyur/en/legal/terms  
-- Support: https://bongtong.com/simplyur/en  
+- Privacy: https://bongtour.com/simplyur/en/legal/privacy  
+- Terms: https://bongtour.com/simplyur/en/legal/terms  
+- Support: https://bongtour.com/simplyur/en  
 
-Apple: enable **Sign in with Apple** capability (bundle `com.bongtong.simplyur`) before submit if the Apple button ships.
+Apple: enable **Sign in with Apple** capability (bundle `com.bongtour.simplyur`) before submit if the Apple button ships.
 
 ## Screens
 
@@ -86,7 +89,7 @@ Apple: enable **Sign in with Apple** capability (bundle `com.bongtong.simplyur`)
 
 ## App IDs
 
-- iOS / Android: `com.bongtong.simplyur`  
+- iOS / Android: `com.bongtour.simplyur`  
 - Deep link: `simplyur://` (OAuth return `simplyur://oauth-complete`)
 
 ## Sync translations

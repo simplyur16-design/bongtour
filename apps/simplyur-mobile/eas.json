@@ -15,12 +15,26 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://bongtour.com",
+        "EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED": "1"
+      }
+    },
+    "preview_simulator": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://bongtour.com",
+        "EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED": "1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://bongtong.com",
+        "EXPO_PUBLIC_API_BASE_URL": "https://bongtour.com",
         "EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED": "1"
       }
     }

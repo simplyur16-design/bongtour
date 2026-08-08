@@ -107,6 +107,7 @@
     "title": "Thanh toán",
     "email": "Email",
     "emailHint": "Mã QR sẽ được gửi đến email này",
+    "emailFromAccountHint": "Đã điền email tài khoản đăng nhập (có thể đổi) — QR gửi tới đây",
     "phone": "Điện thoại (tùy chọn)",
     "phoneHint": "Thêm mã quốc gia nếu ở ngoài Hàn Quốc",
     "terms": "Tôi đồng ý với điều khoản mua hàng",

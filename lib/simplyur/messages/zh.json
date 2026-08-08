@@ -107,6 +107,7 @@
     "title": "结账",
     "email": "邮箱",
     "emailHint": "QR 码将发送至此邮箱",
+    "emailFromAccountHint": "已填入登录账号邮箱（可修改），QR 码将发送至此",
     "phone": "电话（选填）",
     "phoneHint": "如在韩国以外请包含国家代码",
     "terms": "我同意购买条款",

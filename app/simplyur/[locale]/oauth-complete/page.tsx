@@ -23,6 +23,7 @@ export default async function SimplyurOAuthCompletePage({ params }: Props) {
     <SimplyurOAuthCompleteClient
       locale={locale}
       signedIn={signedIn}
+      accountEmail={session?.user?.email ?? null}
       signInHref={signInHref}
       myEsimHref={myEsimHref}
       labels={{

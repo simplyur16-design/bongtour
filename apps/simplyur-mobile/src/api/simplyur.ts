@@ -43,9 +43,16 @@ export async function fetchKoreaProduct(
   return json.product ?? null;
 }
 
-export function simplyurWebCheckoutUrl(locale: SimplyurLocale, optionApiId: string): string {
+export function simplyurWebCheckoutUrl(
+  locale: SimplyurLocale,
+  optionApiId: string,
+  buyerEmail?: string,
+): string {
   const base = getApiBaseUrl().replace(/\/+$/, '');
-  return `${base}/simplyur/${locale}/checkout?optionApiId=${encodeURIComponent(optionApiId)}`;
+  const q = new URLSearchParams({ optionApiId });
+  const email = (buyerEmail ?? '').trim();
+  if (email.includes('@')) q.set('buyerEmail', email.slice(0, 254));
+  return `${base}/simplyur/${locale}/checkout?${q.toString()}`;
 }
 
 /** Open web Simplyur checkout (Eximbay mobile window). Native in-app pay is a later phase. */
@@ -54,7 +61,8 @@ export async function openSimplyurWebCheckout(
   optionApiId: string,
 ): Promise<void> {
   const WebBrowser = await import('expo-web-browser');
-  const url = simplyurWebCheckoutUrl(locale, optionApiId);
+  const { loadCheckoutBuyerEmail } = await import('@/src/lib/checkout-buyer-email');
+  const url = simplyurWebCheckoutUrl(locale, optionApiId, loadCheckoutBuyerEmail());
   await WebBrowser.openBrowserAsync(url, {
     enableDefaultShareMenuItem: false,
     showTitle: true,

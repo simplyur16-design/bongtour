@@ -50,9 +50,15 @@ export default {
       }
       return session
     },
-    /** simplyur OAuth 후 /simplyur/... 유지 — callbackUrl 유실 시 baseUrl(/) 폴백 방지 */
+    /**
+     * simplyur OAuth 후 /simplyur/... 유지.
+     * callbackUrl 유실 시 Auth.js가 baseUrl(홈)로 보내 앱 WebBrowser에 봉투어 홈이 보임 —
+     * relative `/` 만은 허용하되, 잘못된 절대 URL은 simplyur oauth-complete로 보내지 않고 baseUrl 유지
+     * (국내 카카오 홈 복귀와 충돌 방지). OAuth 쿠키는 SameSite=None 으로 유실 자체를 막음.
+     */
     redirect({ url, baseUrl }) {
-      if (url.startsWith('/')) return `${baseUrl.replace(/\/$/, '')}${url}`
+      const origin = baseUrl.replace(/\/$/, '')
+      if (url.startsWith('/') && !url.startsWith('//')) return `${origin}${url}`
       try {
         if (new URL(url).origin === new URL(baseUrl).origin) return url
       } catch {

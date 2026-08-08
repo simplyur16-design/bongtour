@@ -62,7 +62,7 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 | **1b** | Japan eSIM |
 | **2** | PortOne checkout (`portone` provider): **PayPal** + **KICC overseas** (WeChat / Alipay Plus), USD charge, USIMSA fulfillment via OrderPaid outbox |
 | **2b** | Eximbay payment-window **live** (FGKey / ready / status_url → OrderPaid). Mobile UI (`ostype=M`, redirect). PortOne is not used for Simplyur checkout. Bongtour Welcomepay untouched |
-| **2c** | App store release: Buy → web Eximbay handoff (mobile UI) ✅ scaffolding; then **native in-app payment**; EAS `eas init` + store submit |
+| **2c** | App store release: Buy → web Eximbay handoff (mobile UI) ✅ scaffolding; then **native in-app payment**; EAS `eas init` + store submit — checklist [`apps/simplyur-mobile/STORE_RELEASE.md`](../apps/simplyur-mobile/STORE_RELEASE.md) (API host `bongtour.com`, bundle `com.bongtour.simplyur`) |
 | **3** | Capacitor optional; store release polish |
 | **4** | Korea tourism, tickets, experiences |
 

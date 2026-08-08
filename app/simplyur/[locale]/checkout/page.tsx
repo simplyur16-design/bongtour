@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { SimplyurCheckoutClient } from "./SimplyurCheckoutClient";
 import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
+import { resolveSimplyurCheckoutBuyerEmail } from "@/lib/simplyur/checkout/session-buyer-email";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
 import { isSimplyurEximbayPrepUiEnabled } from "@/lib/simplyur/payments/eximbay-env";
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ optionApiId?: string; failed?: string }>;
+  searchParams: Promise<{ optionApiId?: string; failed?: string; buyerEmail?: string }>;
 };
 
 export default async function SimplyurCheckoutPage({ params, searchParams }: Props) {
@@ -25,10 +27,18 @@ export default async function SimplyurCheckoutPage({ params, searchParams }: Pro
     if (loaded.ok) initialProduct = loaded.product;
   }
 
+  // REGRESSION-FREEZE[simplyur-checkout-session-email-prefill]: session email → checkout — manifest
+  const session = await auth();
+  const initialBuyerEmail = resolveSimplyurCheckoutBuyerEmail({
+    sessionEmail: session?.user?.email,
+    queryBuyerEmail: q.buyerEmail,
+  });
+
   return (
     <SimplyurCheckoutClient
       optionApiId={optionApiId}
       initialProduct={initialProduct}
+      initialBuyerEmail={initialBuyerEmail}
       paymentFailed={paymentFailed}
       checkoutEnabled={isSimplyurCheckoutEnabled()}
       eximbayPrepUi={isSimplyurEximbayPrepUiEnabled()}

@@ -2699,6 +2699,73 @@
       ]
     },
     {
+      "id": "simplyur-mobile-asset-magic",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 assets 확장자=매직바이트 (JPEG를 .png로 두면 Android AAPT 실패)",
+      "npmScripts": [
+        "tsx scripts/verify-simplyur-mobile-asset-magic.ts"
+      ],
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/constants/opening-design.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-asset-magic]",
+            "korea-1.jpg",
+            "korea-2.jpg",
+            "korea-3.jpg"
+          ],
+          "mustNotInclude": [
+            "korea-1.png",
+            "korea-2.png",
+            "korea-3.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-mobile-api-base-bongtour",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 production API/legal URL은 bongtour.com (bongtong.com 오타 금지)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/constants/simplyur.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-api-base-bongtour]",
+            "https://bongtour.com"
+          ],
+          "mustNotInclude": [
+            "bongtong.com"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/eas.json",
+          "mustInclude": [
+            "https://bongtour.com"
+          ],
+          "mustNotInclude": [
+            "bongtong.com"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app.json",
+          "mustInclude": [
+            "com.bongtour.simplyur",
+            "https://bongtour.com/simplyur/en/legal/privacy"
+          ],
+          "mustNotInclude": [
+            "bongtong.com",
+            "com.bongtong.simplyur"
+          ]
+        }
+      ]
+    },
+    {
       "id": "railway-start-exec-next",
       "tier": [
         "prebuild"
@@ -10921,6 +10988,35 @@
       ]
     },
     {
+      "id": "auth-js-oauth-cookies-samesite-none",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OAuth PKCE/state/nonce 쿠키 SameSite=None — Apple form_post·simplyur 앱 WebBrowser에서 callback 유실→봉투어 홈 폴백 방지",
+      "checks": [
+        {
+          "file": "lib/auth/auth-js-cookie-options.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-js-oauth-cookies-samesite-none]",
+            "authJsOAuthCookieOptions",
+            "sameSite: 'none'"
+          ]
+        },
+        {
+          "file": "auth.ts",
+          "mustInclude": [
+            "authJsOAuthCookieOptions",
+            "oauthCookieOptions",
+            "pkceCodeVerifier"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/auth/auth-js-cookie-options.test.ts"
+      ]
+    },
+    {
       "id": "apple-oauth-invalid-p8-no-crash",
       "tier": [
         "prebuild",
@@ -12660,6 +12756,43 @@
       ],
       "vitestSuites": [
         "lib/simplyur/payments/portone-webhook-secret.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-checkout-session-email-prefill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur checkout — 로그인 세션/앱 buyerEmail로 이메일 프리필 (재입력 강제 금지)",
+      "checks": [
+        {
+          "file": "lib/simplyur/checkout/session-buyer-email.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-session-email-prefill]",
+            "resolveSimplyurCheckoutBuyerEmail",
+            "queryBuyerEmail"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-session-email-prefill]",
+            "resolveSimplyurCheckoutBuyerEmail",
+            "initialBuyerEmail"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-session-email-prefill]",
+            "initialBuyerEmail",
+            "emailFromAccountHint"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/checkout/session-buyer-email.test.ts"
       ]
     },
     {

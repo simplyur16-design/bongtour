@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { simplyurMobileDeepLink } from '@/lib/auth/simplyur-oauth-callback'
+import { simplyurOAuthCompleteEmailQuery } from '@/lib/simplyur/checkout/session-buyer-email'
 import type { SimplyurLocale } from '@/lib/simplyur/constants'
 
 type Props = {
   locale: SimplyurLocale
   signedIn: boolean
+  accountEmail?: string | null
   labels: {
     title: string
     body: string
@@ -17,19 +19,27 @@ type Props = {
   myEsimHref: string
 }
 
+function appOAuthCompleteHref(locale: SimplyurLocale, accountEmail?: string | null): string {
+  return simplyurMobileDeepLink(
+    `oauth-complete?status=success&locale=${encodeURIComponent(locale)}${simplyurOAuthCompleteEmailQuery(accountEmail)}`,
+  )
+}
+
 /** OAuth 완료 — 앱 returnTo=app 시 simplyur://oauth-complete 로 복귀 */
 export function SimplyurOAuthCompleteClient({
   locale,
   signedIn,
+  accountEmail = null,
   labels,
   signInHref,
   myEsimHref,
 }: Props) {
+  const deepLink = useMemo(() => appOAuthCompleteHref(locale, accountEmail), [locale, accountEmail])
+
   useEffect(() => {
     if (!signedIn) return
-    const deepLink = simplyurMobileDeepLink(`oauth-complete?status=success&locale=${encodeURIComponent(locale)}`)
     window.location.replace(deepLink)
-  }, [signedIn, locale])
+  }, [signedIn, deepLink])
 
   if (!signedIn) {
     return (
@@ -51,7 +61,7 @@ export function SimplyurOAuthCompleteClient({
       <h1 className="text-xl font-semibold text-[color:var(--su-ink)]">{labels.title}</h1>
       <p className="text-sm text-[color:var(--su-ink-muted)]">{labels.body}</p>
       <a
-        href={simplyurMobileDeepLink(`oauth-complete?status=success&locale=${encodeURIComponent(locale)}`)}
+        href={deepLink}
         className="rounded-2xl bg-[color:var(--su-coral)] px-6 py-3 text-sm font-semibold text-white no-underline"
       >
         {labels.openApp}

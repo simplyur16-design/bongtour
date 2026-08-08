@@ -25,15 +25,17 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "~5.9.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "eas:build:preview": "eas build --profile preview --platform all",
-    "eas:build:production": "eas build --profile production --platform all"
+    "eas:build:preview": "npx eas-cli build --profile preview --platform all",
+    "eas:build:preview:android": "npx eas-cli build --profile preview --platform android",
+    "eas:build:preview:ios-sim": "npx eas-cli build --profile preview_simulator --platform ios",
+    "eas:build:production": "npx eas-cli build --profile production --platform all"
   },
   "private": true
 }

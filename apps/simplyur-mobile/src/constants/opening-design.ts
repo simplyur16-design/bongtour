@@ -12,7 +12,8 @@ export const OPENING_DESIGN = {
 
 /** Operator-confirmed Korea travel photos (bundled). */
 export const OPENING_PHOTOS = [
-  require('../../assets/images/korea/korea-1.png'),
-  require('../../assets/images/korea/korea-2.png'),
-  require('../../assets/images/korea/korea-3.png'),
+  // REGRESSION-FREEZE[simplyur-mobile-asset-magic]: real JPEG files must use .jpg — manifest
+  require('../../assets/images/korea/korea-1.jpg'),
+  require('../../assets/images/korea/korea-2.jpg'),
+  require('../../assets/images/korea/korea-3.jpg'),
 ] as const;

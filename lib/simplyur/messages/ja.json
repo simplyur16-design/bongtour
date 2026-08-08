@@ -107,6 +107,7 @@
     "title": "チェックアウト",
     "email": "メール",
     "emailHint": "QRコードの送信先",
+    "emailFromAccountHint": "ログイン中のアカウントのメールです（変更可）。QRはここに届きます",
     "phone": "電話（任意）",
     "phoneHint": "韓国外の場合は国番号を含めてください",
     "terms": "購入条件に同意します",

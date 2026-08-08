@@ -43,10 +43,11 @@ export function getApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/+$/, '');
   if (fromEnv) return fromEnv;
   // Release builds hit production; local Expo Go / __DEV__ defaults to localhost.
+  // REGRESSION-FREEZE[simplyur-mobile-api-base-bongtour]: production host bongtour.com — manifest
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
     return 'http://localhost:3000';
   }
-  return 'https://bongtong.com';
+  return 'https://bongtour.com';
 }
 
 export function simplyurWebLegalUrl(

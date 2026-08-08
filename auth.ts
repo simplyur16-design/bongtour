@@ -8,7 +8,11 @@ import { ensureUserBootstrapRole } from '@/lib/ensure-user-bootstrap-role'
 import authConfig from './auth.config'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { resolveOAuthStateCookieDomain } from '@/lib/oauth-state-cookie-domain'
-import { authJsCookieOptions, authJsCookiePrefix } from '@/lib/auth/auth-js-cookie-options'
+import {
+  authJsCookieOptions,
+  authJsCookiePrefix,
+  authJsOAuthCookieOptions,
+} from '@/lib/auth/auth-js-cookie-options'
 
 import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bootstrap'
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
@@ -43,6 +47,7 @@ const sessionCookieDomain = authSessionCookieDomain()
 const sessionCookieSecure = authSessionCookieSecure()
 const sessionCookiePrefix = authJsCookiePrefix()
 const sharedCookieOptions = authJsCookieOptions()
+const oauthCookieOptions = authJsOAuthCookieOptions()
 
 const googleProvider = googleOAuthProvider()
 const appleProvider = appleOAuthProvider()
@@ -56,17 +61,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: `${sessionCookiePrefix}authjs.session-token`,
             options: sharedCookieOptions,
           },
+          // Cross-site OAuth return (esp. Apple form_post) — not Lax
           pkceCodeVerifier: {
             name: `${sessionCookiePrefix}authjs.pkce.code_verifier`,
-            options: sharedCookieOptions,
+            options: oauthCookieOptions,
           },
           state: {
             name: `${sessionCookiePrefix}authjs.state`,
-            options: sharedCookieOptions,
+            options: oauthCookieOptions,
+          },
+          nonce: {
+            name: `${sessionCookiePrefix}authjs.nonce`,
+            options: oauthCookieOptions,
           },
           callbackUrl: {
             name: `${sessionCookiePrefix}authjs.callback-url`,
-            options: sharedCookieOptions,
+            options: oauthCookieOptions,
           },
         },
       }

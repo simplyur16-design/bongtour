@@ -1,16 +1,20 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { LOGIN_1B } from '@/src/constants/login-design';
+import { saveCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
 import { markWebOAuthSession } from '@/src/lib/web-oauth-session';
 
 /** simplyur://oauth-complete — WebBrowser.openAuthSessionAsync 복귀 */
 export default function OAuthCompleteScreen() {
+  const params = useLocalSearchParams<{ email?: string }>();
+
   useEffect(() => {
     markWebOAuthSession();
+    saveCheckoutBuyerEmail(typeof params.email === 'string' ? params.email : '');
     router.replace('/(tabs)/my-esim');
-  }, []);
+  }, [params.email]);
 
   return (
     <View style={styles.root}>
