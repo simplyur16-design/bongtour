@@ -37,4 +37,20 @@ describe('simplyur mobile access token helpers', () => {
       email: 'traveler@example.com',
     })
   })
+
+  it('verifies token when email claim empty but sub present', async () => {
+    vi.stubEnv('AUTH_SECRET', 'test-secret-for-simplyur-mobile-jwt-roundtrip')
+    vi.stubEnv('NEXTAUTH_SECRET', '')
+    vi.resetModules()
+    const { mintSimplyurMobileAccessToken, verifySimplyurMobileAccessToken } = await import(
+      '@/lib/simplyur/auth/mobile-access-token'
+    )
+    const { accessToken } = await mintSimplyurMobileAccessToken({
+      userId: 'user_apple',
+      email: 'apple-user-user_apple@users.simplyur.local',
+    })
+    await expect(verifySimplyurMobileAccessToken(accessToken)).resolves.toMatchObject({
+      userId: 'user_apple',
+    })
+  })
 })

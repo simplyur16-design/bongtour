@@ -11036,8 +11036,7 @@
           "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-auth]",
-            "signInWithAppleNative",
-            "signInWithGoogleNative"
+            "SocialAuthButtons"
           ],
           "mustNotInclude": [
             "openAuthSessionAsync",
@@ -11045,6 +11044,21 @@
             "useGoogleIdTokenRequest",
             "expo-auth-session",
             "WebBrowser"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "signInWithAppleNative",
+            "signInWithGoogleNative",
+            "auth.apple",
+            "auth.google",
+            "auth.continueEmail"
+          ],
+          "mustNotInclude": [
+            "openAuthSessionAsync",
+            "WebBrowser",
+            "expo-auth-session"
           ]
         }
       ]
@@ -11154,8 +11168,7 @@
           "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-auth]",
-            "signInWithAppleNative",
-            "signInWithGoogleNative"
+            "SocialAuthButtons"
           ],
           "mustNotInclude": [
             "openAuthSessionAsync",
@@ -11166,12 +11179,20 @@
           ]
         },
         {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "signInWithAppleNative",
+            "signInWithGoogleNative"
+          ]
+        },
+        {
           "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-auth]",
             "@react-native-google-signin/google-signin",
             "signInWithGoogleNative",
-            "signInWithAppleNative"
+            "signInWithAppleNative",
+            "getTokens"
           ],
           "mustNotInclude": [
             "expo-auth-session",
@@ -11291,6 +11312,16 @@
           ]
         },
         {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]",
+            "SocialAuthButtons"
+          ],
+          "mustNotInclude": [
+            "href=\"/sign-in\""
+          ]
+        },
+        {
           "file": "apps/simplyur-mobile/src/lib/session.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]",
@@ -11304,6 +11335,35 @@
             "getSimplyurAccessToken",
             "Authorization",
             "Bearer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-mobile-my-esim-social-signin",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "My eSIM 미로그인 — Apple/Google/Email 버튼을 탭에 직접 표시 (이메일만 강제 금지)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]",
+            "SocialAuthButtons"
+          ],
+          "mustNotInclude": [
+            "href=\"/sign-in\""
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]",
+            "signInWithAppleNative",
+            "signInWithGoogleNative",
+            "auth.continueEmail"
           ]
         }
       ]

@@ -58,8 +58,9 @@ export async function verifySimplyurMobileAccessToken(
     if (payload.typ !== SIMPLYUR_MOBILE_TOKEN_TYP) return null
     const userId = typeof payload.sub === 'string' ? payload.sub.trim() : ''
     const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : ''
-    if (!userId || !email.includes('@')) return null
-    return { userId, email }
+    // userId is the auth gate; email optional (Apple Hide My Email / empty DB column).
+    if (!userId) return null
+    return { userId, email: email.includes('@') ? email : '' }
   } catch {
     return null
   }

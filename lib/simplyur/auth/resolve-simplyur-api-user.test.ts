@@ -79,6 +79,22 @@ describe('resolveSimplyurApiUser — accountStatus gate', () => {
     })
   })
 
+  it('accepts Bearer with userId when both DB and JWT email empty (no email-login bounce)', async () => {
+    const { resolveSimplyurApiUser } = await import('@/lib/simplyur/auth/resolve-simplyur-api-user')
+    readBearerMock.mockReturnValue('good.jwt')
+    verifyMock.mockResolvedValue({ userId: 'u5', email: '' })
+    findUnique.mockResolvedValue({
+      id: 'u5',
+      email: null,
+      accountStatus: 'active',
+    })
+    const req = new Request('https://bongtour.com/api/simplyur/mypage/orders')
+    await expect(resolveSimplyurApiUser(req)).resolves.toEqual({
+      userId: 'u5',
+      email: '',
+    })
+  })
+
   it('rejects withdrawn cookie session user', async () => {
     const { resolveSimplyurApiUser } = await import('@/lib/simplyur/auth/resolve-simplyur-api-user')
     authMock.mockResolvedValue({

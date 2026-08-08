@@ -61,8 +61,9 @@ async function issueForUser(user: { id: string; email: string | null; accountSta
   if (isRestrictedAccountStatus(user.accountStatus)) {
     return { ok: false as const, code: 'account_restricted' as const }
   }
-  const email = (user.email ?? '').trim().toLowerCase()
-  if (!email.includes('@')) return { ok: false as const, code: 'invalid_credentials' as const }
+  // Prefer real email; Apple re-auth may omit it — still mint Bearer so My eSIM does not bounce to email login.
+  const dbEmail = (user.email ?? '').trim().toLowerCase()
+  const email = dbEmail.includes('@') ? dbEmail : `apple-user-${user.id}@users.simplyur.local`
 
   await prisma.user.update({
     where: { id: user.id },

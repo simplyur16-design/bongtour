@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchMyEsimOrders, fetchMyEsimUsage, type MyEsimOrder, type MyEsimUsage } from '@/src/api/my-esim';
+import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
@@ -29,6 +30,7 @@ type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
 /**
  * design_handoff_my_esim — My eSIM 4th tab
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
  */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
@@ -116,13 +118,18 @@ export default function MyEsimScreen() {
 
   if (view === 'signin') {
     return (
-      <CenterBlock insets={insets} icon="🔒" title={t('myEsim.signInTitle')} body={t('myEsim.signInBody')}>
-        <Link href="/sign-in" asChild>
-          <Pressable style={styles.cta}>
-            <Text style={styles.ctaText}>{t('nav.signIn')}</Text>
-          </Pressable>
-        </Link>
-      </CenterBlock>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: D.bg }}
+        contentContainerStyle={[
+          styles.signinContent,
+          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 },
+        ]}
+        keyboardShouldPersistTaps="handled">
+        <Text style={styles.signinIcon}>🔒</Text>
+        <Text style={styles.signinTitle}>{t('myEsim.signInTitle')}</Text>
+        <Text style={styles.signinBody}>{t('myEsim.signInBody')}</Text>
+        <SocialAuthButtons onSignedIn={() => loadOrders()} />
+      </ScrollView>
     );
   }
 
@@ -310,6 +317,23 @@ function CenterBlock({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  signinContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    gap: 14,
+    alignItems: 'stretch',
+  },
+  signinIcon: { fontSize: 36, textAlign: 'center', marginBottom: 4 },
+  signinTitle: { fontSize: 20, ...fp('800'), color: D.navy, textAlign: 'center' },
+  signinBody: {
+    fontSize: 13,
+    lineHeight: 20.8,
+    ...fp('400'),
+    color: D.muted,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, gap: 16 },
   iconCircle: {
     width: 64,

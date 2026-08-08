@@ -37,5 +37,11 @@ module.exports = {
   expo: {
     ...appJson.expo,
     plugins,
+    extra: {
+      ...(appJson.expo.extra ?? {}),
+      // Runtime fallback when Metro does not inline EXPO_PUBLIC_* (still set on EAS).
+      googleWebClientId: webClientId || undefined,
+      googleIosClientId: iosClientId || undefined,
+    },
   },
 };

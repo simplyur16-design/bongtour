@@ -28,9 +28,9 @@ async function loadActiveSimplyurUserById(
   })
   if (!user || isRestrictedAccountStatus(user.accountStatus)) return null
   // Apple/JWT may have email when DB column is still empty — keep mypage matchable.
+  // userId alone is enough for orders (consents.bongtour_user_id); do not force email login again.
   const email = (user.email ?? emailFallback ?? '').trim().toLowerCase()
-  if (!email.includes('@')) return null
-  return { userId: user.id, email }
+  return { userId: user.id, email: email.includes('@') ? email : '' }
 }
 
 async function loadActiveSimplyurUserByEmail(emailRaw: string): Promise<SimplyurApiUser | null> {
