@@ -1,12 +1,15 @@
 import {
   callEximbayPaymentsVerify,
   eximbayStatusUrlAckBody,
+  isEximbayPayerAuthStatus,
   parseEximbayStatusQuery,
 } from "@/lib/simplyur/payments/eximbay-verify";
+import { storeEximbayPayerAuthId } from "@/lib/simplyur/payments/eximbay-payer-auth-store";
 import { processEximbayPaymentOutcome } from "@/lib/simplyur/payments/process-eximbay-payment-outcome";
 
 // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]: status_url webhook + verify — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: verify → OrderPaid — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: PAYER_AUTH store before confirm — manifest
 
 async function extractStatusQueryString(req: Request): Promise<string> {
   const url = new URL(req.url);
@@ -72,6 +75,22 @@ async function handleStatus(req: Request): Promise<Response> {
   const parsed = parseEximbayStatusQuery(data);
   if (!parsed.orderId) {
     console.warn("[simplyur:eximbay:status] verified but no order_id in payload");
+    return new Response(eximbayStatusUrlAckBody(true), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  // Auth-only: stash payer_auth_id for mobile complete-pa (do not mark paid).
+  if (isEximbayPayerAuthStatus(parsed) && parsed.payerAuthId) {
+    const stored = await storeEximbayPayerAuthId({
+      eximbayOrderId: parsed.orderId,
+      payerAuthId: parsed.payerAuthId,
+    });
+    console.info("[simplyur:eximbay:status:payer_auth]", {
+      ok: stored.ok,
+      orderId: parsed.orderId,
+    });
     return new Response(eximbayStatusUrlAckBody(true), {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },

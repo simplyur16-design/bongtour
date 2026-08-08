@@ -21,6 +21,8 @@ export type BongsimPaymentProviderCreateInput = {
   simplyur_locale?: string;
   /** Eximbay ostype — M mobile (default), P PC */
   eximbay_ostype?: "M" | "P";
+  /** Eximbay ready transaction_type — mobile uses PAYER_AUTH */
+  eximbay_transaction_type?: "PAYMENT" | "PAYER_AUTH";
 };
 
 export type BongsimPaymentProviderCreateResult = {

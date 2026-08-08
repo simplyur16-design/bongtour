@@ -95,11 +95,13 @@ export function eximbayStatusUrlAckBody(ok: boolean, message?: string): string {
   return `rescode=XXXX&resmsg=${msg}`;
 }
 
-/** Pull order_id / transaction_id from Eximbay status_url querystring. */
+/** Pull order_id / transaction_id / payer_auth from Eximbay status_url querystring. */
 export function parseEximbayStatusQuery(data: string): {
   orderId: string | null;
   transactionId: string | null;
   rescode: string | null;
+  payerAuthId: string | null;
+  transactionType: string | null;
 } {
   const params = new URLSearchParams(data.trim().replace(/^\?/, ""));
   const orderId =
@@ -110,8 +112,32 @@ export function parseEximbayStatusQuery(data: string): {
   const transactionId =
     params.get("transaction_id")?.trim() ||
     params.get("transid")?.trim() ||
-    params.get("fgkey")?.trim() ||
     null;
   const rescode = params.get("rescode")?.trim() || null;
-  return { orderId, transactionId, rescode };
+  const payerAuthId =
+    params.get("payer_auth_id")?.trim() ||
+    params.get("payerauthid")?.trim() ||
+    params.get("payerAuthId")?.trim() ||
+    null;
+  const transactionType =
+    params.get("transaction_type")?.trim() ||
+    params.get("txntype")?.trim() ||
+    null;
+  return { orderId, transactionId, rescode, payerAuthId, transactionType };
+}
+
+/** Auth-only status — do not mark order paid yet. */
+export function isEximbayPayerAuthStatus(parsed: {
+  payerAuthId: string | null;
+  transactionType: string | null;
+  transactionId: string | null;
+  rescode: string | null;
+}): boolean {
+  if (parsed.rescode && parsed.rescode !== "0000") return false;
+  if (!parsed.payerAuthId) return false;
+  const txn = (parsed.transactionType ?? "").toUpperCase();
+  if (txn === "PAYER_AUTH") return true;
+  // Auth callback often omits txntype; full payment callbacks include transaction_id.
+  if (!txn && !parsed.transactionId) return true;
+  return false;
 }

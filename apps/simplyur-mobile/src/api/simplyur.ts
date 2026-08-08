@@ -58,8 +58,8 @@ export function simplyurWebCheckoutUrl(
 }
 
 /**
- * Open native in-app checkout screen (form + Eximbay pay WebView).
- * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: router → /checkout WebView — manifest
+ * Open native in-app checkout screen (form + PAYER_AUTH + server PAYMENT_PA).
+ * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: router → /checkout — manifest
  */
 export function openSimplyurInAppCheckout(optionApiId: string): void {
   const id = optionApiId.trim();

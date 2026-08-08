@@ -39,5 +39,6 @@ export function buildPaymentProviderCreateInput(args: {
     simplyur_portone: simplyurPortoneCreateOpts(args.req),
     simplyur_locale: args.req.simplyur_locale,
     eximbay_ostype: args.req.eximbay_ostype,
+    eximbay_transaction_type: args.req.eximbay_transaction_type,
   };
 }

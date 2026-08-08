@@ -13,12 +13,17 @@ describe('simplyur in-app checkout WebView nav', () => {
     ).toEqual({ kind: 'complete', orderId: 'o1', orderNumber: 'N1' })
   })
 
-  it('detects app-pay-result ok sentinel', () => {
+  it('detects auth_ok sentinel for PAYER_AUTH → complete-pa', () => {
     expect(
       classifySimplyurCheckoutWebViewUrl(
-        'https://bongtour.com/simplyur/en/app-pay-result?status=ok&orderId=o1&orderNumber=N1',
+        'https://bongtour.com/simplyur/en/app-pay-result?status=auth_ok&orderId=o1&orderNumber=N1&payer_auth_id=PA9',
       ),
-    ).toEqual({ kind: 'complete', orderId: 'o1', orderNumber: 'N1' })
+    ).toEqual({
+      kind: 'auth_ok',
+      orderId: 'o1',
+      orderNumber: 'N1',
+      payerAuthId: 'PA9',
+    })
   })
 
   it('detects cancel/fail resume', () => {

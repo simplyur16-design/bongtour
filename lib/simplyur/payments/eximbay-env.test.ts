@@ -83,6 +83,26 @@ describe("simplyur Eximbay ready payload", () => {
     expect(body.settings.display_type).toBe("P");
   });
 
+  // REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]
+  it("buildEximbayReadyRequestBody supports PAYER_AUTH + call_from_app", () => {
+    const body = buildEximbayReadyRequestBody({
+      mid: "1849705C64",
+      orderId: "su-order-pa",
+      amountUsdMinor: 250,
+      buyerName: "eximbay",
+      buyerEmail: "test@eximbay.com",
+      lang: "EN",
+      returnUrl: "https://bongtour.com/simplyur/en/app-pay-result?status=auth_ok",
+      statusUrl: "https://example.com/api/simplyur/webhooks/eximbay",
+      transactionType: "PAYER_AUTH",
+      callFromApp: true,
+      callFromScheme: "simplyur",
+    });
+    expect(body.payment.transaction_type).toBe("PAYER_AUTH");
+    expect(body.settings.call_from_app).toBe("Y");
+    expect(body.settings.call_from_scheme).toBe("simplyur");
+  });
+
   it("parseEximbayStatusQuery reads order_id and transaction_id", () => {
     const parsed = parseEximbayStatusQuery("rescode=0000&order_id=SU-123&transaction_id=tx9");
     expect(parsed.orderId).toBe("SU-123");

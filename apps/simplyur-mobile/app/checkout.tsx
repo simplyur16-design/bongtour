@@ -14,6 +14,7 @@ import { WebView, type WebViewNavigation } from 'react-native-webview';
 
 import {
   buildEximbayPayHtml,
+  completeSimplyurEximbayPayerAuth,
   confirmSimplyurCheckout,
   createSimplyurEximbaySession,
 } from '@/src/api/checkout';
@@ -26,11 +27,14 @@ import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
 import { classifySimplyurCheckoutWebViewUrl } from '@/src/lib/checkout-webview-nav';
 import { loadSimplyurSession } from '@/src/lib/session';
 
+type Phase = 'form' | 'auth' | 'completing';
+
 /**
- * Native checkout form → full-screen Eximbay WebView (not website page, not system browser).
+ * Native checkout → Eximbay PAYER_AUTH (issuer only) → server PAYMENT_PA → My eSIM.
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: WebView pay — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: native checkout screen — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: cancel/fail + legal stay native — manifest
+ * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: auth_ok → complete-pa — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -41,6 +45,8 @@ export default function CheckoutScreen() {
   const handledRef = useRef(false);
   const webRef = useRef<React.ElementRef<typeof WebView>>(null);
   const idemRef = useRef(`su_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`);
+  const attemptIdRef = useRef('');
+  const orderIdRef = useRef('');
 
   const [product, setProduct] = useState<PlanProduct | null>(null);
   const [email, setEmail] = useState('');
@@ -49,7 +55,7 @@ export default function CheckoutScreen() {
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const [phase, setPhase] = useState<'form' | 'pay'>('form');
+  const [phase, setPhase] = useState<Phase>('form');
   const [payHtml, setPayHtml] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const [externalBlocked, setExternalBlocked] = useState(false);
@@ -88,16 +94,38 @@ export default function CheckoutScreen() {
     setPayHtml('');
     setPayLoading(false);
     setExternalBlocked(false);
+    handledRef.current = false;
     if (message) setErr(message);
   }, []);
+
+  const runCompletePa = useCallback(
+    async (payerAuthId: string) => {
+      if (handledRef.current) return;
+      setPhase('completing');
+      setPayHtml('');
+      try {
+        await completeSimplyurEximbayPayerAuth({
+          paymentAttemptId: attemptIdRef.current,
+          orderId: orderIdRef.current,
+          payerAuthId: payerAuthId || undefined,
+          locale,
+        });
+        finishComplete();
+      } catch {
+        returnToNativeForm(t('checkout.errorGeneric'));
+      }
+    },
+    [finishComplete, locale, returnToNativeForm, t],
+  );
 
   const onNavChange = useCallback(
     (nav: WebViewNavigation) => {
       const classified = classifySimplyurCheckoutWebViewUrl(nav.url);
       if (classified.kind === 'complete') finishComplete();
+      if (classified.kind === 'auth_ok') void runCompletePa(classified.payerAuthId);
       if (classified.kind === 'cancel_or_fail') returnToNativeForm(t('checkout.errorGeneric'));
     },
-    [finishComplete, returnToNativeForm, t],
+    [finishComplete, returnToNativeForm, runCompletePa, t],
   );
 
   const onShouldStart = useCallback(
@@ -105,6 +133,10 @@ export default function CheckoutScreen() {
       const classified = classifySimplyurCheckoutWebViewUrl(req.url);
       if (classified.kind === 'complete') {
         finishComplete();
+        return false;
+      }
+      if (classified.kind === 'auth_ok') {
+        void runCompletePa(classified.payerAuthId);
         return false;
       }
       if (classified.kind === 'cancel_or_fail') {
@@ -117,7 +149,7 @@ export default function CheckoutScreen() {
       }
       return true;
     },
-    [finishComplete, returnToNativeForm, t],
+    [finishComplete, returnToNativeForm, runCompletePa, t],
   );
 
   async function onSubmit() {
@@ -140,15 +172,17 @@ export default function CheckoutScreen() {
         locale,
         idempotencyKey: idemRef.current,
       });
-      const client = await createSimplyurEximbaySession({
+      orderIdRef.current = order.order_id;
+      const session = await createSimplyurEximbaySession({
         orderId: order.order_id,
         orderNumber: order.order_number,
         locale,
         optionApiId: product.option_api_id,
         idempotencyKey: idemRef.current,
       });
-      setPayHtml(buildEximbayPayHtml(client.sdk_script_url, client.request_pay));
-      setPhase('pay');
+      attemptIdRef.current = session.payment_attempt_id;
+      setPayHtml(buildEximbayPayHtml(session.client.sdk_script_url, session.client.request_pay));
+      setPhase('auth');
       setPayLoading(true);
     } catch {
       setErr(t('checkout.errorGeneric'));
@@ -187,25 +221,33 @@ export default function CheckoutScreen() {
     );
   }
 
-  if (phase === 'pay' && payHtml) {
+  if (phase === 'completing') {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top + 40, backgroundColor: LOGIN_1B.bg }]}>
+        <ActivityIndicator color={LOGIN_1B.coral} size="large" />
+        <Text style={[styles.body, { textAlign: 'center', marginTop: 16 }]}>
+          {t('checkout.completing')}
+        </Text>
+      </View>
+    );
+  }
+
+  if (phase === 'auth' && payHtml) {
     return (
       <View style={[styles.flex, { paddingTop: insets.top, backgroundColor: LOGIN_1B.bg }]}>
         <View style={styles.toolbar}>
           <Pressable
-            onPress={() => {
-              setPhase('form');
-              setPayHtml('');
-              setExternalBlocked(false);
-            }}
+            onPress={() => returnToNativeForm()}
             hitSlop={10}
             accessibilityRole="button">
             <Text style={styles.back}>← {t('checkout.title')}</Text>
           </Pressable>
           <Text style={styles.toolbarTitle} numberOfLines={1}>
-            {t('checkout.submit')}
+            {t('checkout.authTitle')}
           </Text>
           <View style={styles.toolbarSpacer} />
         </View>
+        <Text style={styles.authHint}>{t('checkout.authHint')}</Text>
 
         {externalBlocked ? (
           <View style={styles.errorBox}>
@@ -233,7 +275,6 @@ export default function CheckoutScreen() {
             originWhitelist={['*']}
             source={{
               html: payHtml,
-              // Not bongtour.com — relative links must not open website login/checkout chrome.
               baseUrl: 'https://api.eximbay.com/',
             }}
             style={styles.flex}
@@ -254,6 +295,10 @@ export default function CheckoutScreen() {
               const classified = classifySimplyurCheckoutWebViewUrl(target);
               if (classified.kind === 'complete') {
                 finishComplete();
+                return;
+              }
+              if (classified.kind === 'auth_ok') {
+                void runCompletePa(classified.payerAuthId);
                 return;
               }
               if (classified.kind === 'cancel_or_fail') {
@@ -380,6 +425,13 @@ const styles = StyleSheet.create({
     ...fp('600'),
   },
   toolbarSpacer: { width: 72 },
+  authHint: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: LOGIN_1B.muted,
+    ...fp('400'),
+  },
   title: { fontSize: 22, color: LOGIN_1B.navy, ...fp('700') },
   body: { marginTop: 12, fontSize: 14, lineHeight: 21, color: LOGIN_1B.muted, ...fp('400') },
   linkWrap: { marginTop: 20 },

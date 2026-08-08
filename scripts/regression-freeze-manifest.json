@@ -2771,7 +2771,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "simplyur 앱 Eximbay 결제 — 네이티브 체크아웃 화면 + 인앱 WebView 결제 (웹사이트 checkout 페이지 금지)",
+      "summary": "simplyur 앱 Eximbay 결제 — 네이티브 폼 + PAYER_AUTH 인증 표면 + 서버 PAYMENT_PA (웹사이트 checkout 금지)",
       "checks": [
         {
           "file": "apps/simplyur-mobile/app/checkout.tsx",
@@ -2782,7 +2782,8 @@
             "setSupportMultipleWindows={false}",
             "buildEximbayPayHtml",
             "confirmSimplyurCheckout",
-            "phase === 'pay'"
+            "completeSimplyurEximbayPayerAuth",
+            "phase === 'auth'"
           ],
           "mustNotInclude": [
             "openBrowserAsync",
@@ -2796,8 +2797,10 @@
           "mustInclude": [
             "confirmSimplyurCheckout",
             "createSimplyurEximbaySession",
+            "completeSimplyurEximbayPayerAuth",
             "buildEximbayPayHtml",
-            "eximbay_ostype: 'M'"
+            "eximbay_ostype: 'M'",
+            "eximbay_transaction_type: 'PAYER_AUTH'"
           ]
         },
         {
@@ -11274,8 +11277,9 @@
           "file": "apps/simplyur-mobile/src/api/checkout.ts",
           "mustInclude": [
             "app-pay-result",
-            "status=ok",
-            "status=fail"
+            "status=auth_ok",
+            "status=fail",
+            "PAYER_AUTH"
           ],
           "mustNotInclude": [
             "failed=1",
@@ -11286,7 +11290,8 @@
           "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.ts",
           "mustInclude": [
             "isOurWebsiteHost",
-            "cancel_or_fail"
+            "cancel_or_fail",
+            "auth_ok"
           ]
         },
         {
@@ -13392,6 +13397,69 @@
       ],
       "vitestSuites": [
         "lib/simplyur/auth/register-email.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-eximbay-payer-auth-pa",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur Eximbay 모바일 — PAYER_AUTH ready + /v1/payments/confirm PAYMENT_PA + complete-pa",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/eximbay-confirm-pa.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
+            "/v1/payments/confirm",
+            "PAYMENT_PA",
+            "payer_auth_id"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/checkout/eximbay-complete-pa/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
+            "callEximbayPaymentsConfirmPa",
+            "processEximbayPaymentOutcome"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/providers/eximbay-payments.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
+            "PAYER_AUTH",
+            "auth_only"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/webhooks/eximbay/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
+            "storeEximbayPayerAuthId",
+            "isEximbayPayerAuthStatus"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
+            "runCompletePa",
+            "auth_ok"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/app-pay-result/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
+            "Returning to simplyur"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/eximbay-confirm-pa.test.ts",
+        "lib/simplyur/payments/eximbay-env.test.ts",
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
       ]
     },
     {

@@ -121,6 +121,12 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
     typeof o.simplyur_locale === "string" && o.simplyur_locale.trim() ? o.simplyur_locale.trim() : undefined;
   const ostypeRaw = typeof o.eximbay_ostype === "string" ? o.eximbay_ostype.trim().toUpperCase() : "";
   const eximbay_ostype = ostypeRaw === "P" || ostypeRaw === "M" ? (ostypeRaw as "P" | "M") : undefined;
+  const txnRaw =
+    typeof o.eximbay_transaction_type === "string" ? o.eximbay_transaction_type.trim().toUpperCase() : "";
+  const eximbay_transaction_type =
+    txnRaw === "PAYER_AUTH" || txnRaw === "PAYMENT"
+      ? (txnRaw as "PAYER_AUTH" | "PAYMENT")
+      : undefined;
 
   const return_urls: BongsimPaymentReturnUrlsV1 = {
     success_url: String((o.return_urls as Record<string, unknown>).success_url).trim(),
@@ -139,6 +145,7 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
       ...(simplyur_portone_method ? { simplyur_portone_method } : {}),
       ...(simplyur_locale ? { simplyur_locale } : {}),
       ...(eximbay_ostype ? { eximbay_ostype } : {}),
+      ...(eximbay_transaction_type ? { eximbay_transaction_type } : {}),
     },
   };
 }

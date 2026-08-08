@@ -12,10 +12,12 @@ import { krwOrderTotalToUsdMinor, krwOrderTotalToUsdMinorResolved } from "@/lib/
 
 export type EximbayOsType = "P" | "M";
 export type EximbayDisplayType = "P" | "R";
+/** PAYMENT = full window; PAYER_AUTH = auth only then server /v1/payments/confirm */
+export type EximbayTransactionType = "PAYMENT" | "PAYER_AUTH";
 
 export type EximbayReadyRequestBody = {
   payment: {
-    transaction_type: "PAYMENT";
+    transaction_type: EximbayTransactionType;
     order_id: string;
     currency: "USD";
     amount: string;
@@ -29,6 +31,9 @@ export type EximbayReadyRequestBody = {
     ostype: EximbayOsType;
     /** P=popup, R=redirect — mobile prefers redirect. */
     display_type: EximbayDisplayType;
+    /** App WebView — return to simplyur:// after issuer auth. */
+    call_from_app?: "Y" | "N";
+    call_from_scheme?: string;
   };
 };
 
@@ -79,11 +84,17 @@ export function buildEximbayReadyRequestBody(input: {
   statusUrl: string;
   /** Default M — mobile payment window (not PC popup). */
   ostype?: EximbayOsType;
+  /** Default PAYMENT (web). Mobile app uses PAYER_AUTH + /v1/payments/confirm. */
+  transactionType?: EximbayTransactionType;
+  callFromApp?: boolean;
+  callFromScheme?: string;
 }): EximbayReadyRequestBody {
   const settings = resolveEximbayClientSettings(input.ostype ?? "M");
+  const txn: EximbayTransactionType =
+    input.transactionType === "PAYER_AUTH" ? "PAYER_AUTH" : "PAYMENT";
   return {
     payment: {
-      transaction_type: "PAYMENT",
+      transaction_type: txn,
       order_id: input.orderId.slice(0, 50),
       currency: "USD",
       amount: formatEximbayUsdAmountFromMinor(input.amountUsdMinor),
@@ -98,7 +109,15 @@ export function buildEximbayReadyRequestBody(input: {
       return_url: input.returnUrl,
       status_url: input.statusUrl,
     },
-    settings,
+    settings: {
+      ...settings,
+      ...(input.callFromApp
+        ? {
+            call_from_app: "Y" as const,
+            call_from_scheme: (input.callFromScheme || "simplyur").slice(0, 40),
+          }
+        : {}),
+    },
   };
 }
 

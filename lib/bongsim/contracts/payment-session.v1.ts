@@ -16,6 +16,11 @@ export type BongsimPaymentSessionRequestV1 = {
    * M = mobile UI + redirect (default for Simplyur). P = PC popup.
    */
   eximbay_ostype?: "M" | "P";
+  /**
+   * Eximbay ready transaction_type.
+   * PAYMENT = full window (web). PAYER_AUTH = auth only then server confirm (mobile).
+   */
+  eximbay_transaction_type?: "PAYMENT" | "PAYER_AUTH";
 };
 
 /** Browser-safe payload only; no secrets, no webhook verification material. */
@@ -62,7 +67,7 @@ export type BongsimPaymentSessionClientV1 =
       request_pay: {
         fgkey: string;
         payment: {
-          transaction_type: "PAYMENT";
+          transaction_type: "PAYMENT" | "PAYER_AUTH";
           order_id: string;
           currency: "USD";
           amount: string;
@@ -74,11 +79,15 @@ export type BongsimPaymentSessionClientV1 =
         settings: {
           ostype: "P" | "M";
           display_type: "P" | "R";
+          call_from_app?: "Y" | "N";
+          call_from_scheme?: string;
         };
       };
       order_name: string;
       customer_email: string;
       is_test: boolean;
+      /** Present when transaction_type is PAYER_AUTH — app must call complete-pa after auth. */
+      auth_only?: boolean;
     };
 
 export type BongsimPaymentSessionResponseV1 = {
