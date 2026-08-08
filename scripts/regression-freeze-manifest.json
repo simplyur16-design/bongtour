@@ -11008,7 +11008,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "simplyur 앱 OAuth — GET oauth-start → signIn redirectTo + callback SSOT",
+      "summary": "simplyur OAuth-start API SSOT (앱은 in-app native; WebBrowser handoff 폐기)",
       "checks": [
         {
           "file": "app/api/auth/oauth-start/[provider]/route.ts",
@@ -11021,6 +11021,11 @@
         {
           "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
           "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "signInWithAppleNative",
+            "useGoogleIdTokenRequest"
+          ],
+          "mustNotInclude": [
             "openAuthSessionAsync",
             "buildOAuthStartUrl"
           ]
