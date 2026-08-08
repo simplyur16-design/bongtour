@@ -19,7 +19,7 @@ import {
 } from '@/src/api/checkout';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
 import { LOGIN_1B } from '@/src/constants/login-design';
-import { getApiBaseUrl, isSimplyurCheckoutEnabled, simplyurWebLegalUrl } from '@/src/constants/simplyur';
+import { getApiBaseUrl, isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
@@ -30,6 +30,7 @@ import { loadSimplyurSession } from '@/src/lib/session';
  * Native checkout form → full-screen Eximbay WebView (not website page, not system browser).
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: WebView pay — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: native checkout screen — manifest
+ * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: cancel/fail + legal stay native — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -82,12 +83,21 @@ export default function CheckoutScreen() {
     router.replace('/(tabs)/my-esim');
   }, []);
 
+  const returnToNativeForm = useCallback((message?: string) => {
+    setPhase('form');
+    setPayHtml('');
+    setPayLoading(false);
+    setExternalBlocked(false);
+    if (message) setErr(message);
+  }, []);
+
   const onNavChange = useCallback(
     (nav: WebViewNavigation) => {
       const classified = classifySimplyurCheckoutWebViewUrl(nav.url);
       if (classified.kind === 'complete') finishComplete();
+      if (classified.kind === 'cancel_or_fail') returnToNativeForm(t('checkout.errorGeneric'));
     },
-    [finishComplete],
+    [finishComplete, returnToNativeForm, t],
   );
 
   const onShouldStart = useCallback(
@@ -97,13 +107,17 @@ export default function CheckoutScreen() {
         finishComplete();
         return false;
       }
+      if (classified.kind === 'cancel_or_fail') {
+        returnToNativeForm(t('checkout.errorGeneric'));
+        return false;
+      }
       if (classified.kind === 'external_app') {
         setExternalBlocked(true);
         return false;
       }
       return true;
     },
-    [finishComplete],
+    [finishComplete, returnToNativeForm, t],
   );
 
   async function onSubmit() {
@@ -241,6 +255,10 @@ export default function CheckoutScreen() {
                 finishComplete();
                 return;
               }
+              if (classified.kind === 'cancel_or_fail') {
+                returnToNativeForm(t('checkout.errorGeneric'));
+                return;
+              }
               if (classified.kind === 'external_app') {
                 setExternalBlocked(true);
                 return;
@@ -315,12 +333,9 @@ export default function CheckoutScreen() {
 
           <Pressable
             onPress={() =>
-              router.push({
-                pathname: '/in-app-web',
-                params: { path: simplyurWebLegalUrl(locale, 'terms'), title: t('checkout.terms') },
-              })
+              router.push({ pathname: '/legal', params: { doc: 'terms' } })
             }>
-            <Text style={styles.legalLink}>{t('checkout.terms')}</Text>
+            <Text style={styles.legalLink}>{t('legal.termsTitle')}</Text>
           </Pressable>
 
           {err ? <Text style={styles.err}>{err}</Text> : null}

@@ -11214,6 +11214,76 @@
       ]
     },
     {
+      "id": "simplyur-native-no-website-chrome",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 — Devices/약관/usage/결제취소가 웹사이트·바텀시트 웹 UX가 아닌 네이티브 화면",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/devices.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
+            "devices.title"
+          ],
+          "mustNotInclude": [
+            "react-native-webview",
+            "WebView",
+            "/in-app-web"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/legal.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
+            "legal.termsBody"
+          ],
+          "mustNotInclude": [
+            "react-native-webview",
+            "WebView",
+            "/in-app-web"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
+            "cancel_or_fail",
+            "returnToNativeForm",
+            "pathname: '/legal'"
+          ],
+          "mustNotInclude": [
+            "simplyurWebLegalUrl",
+            "pathname: '/in-app-web'"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
+            "usageScreenOpen"
+          ],
+          "mustNotInclude": [
+            "animationType=\"slide\"",
+            "Modal"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/api/checkout.ts",
+          "mustInclude": [
+            "app-pay-result"
+          ],
+          "mustNotInclude": [
+            "failed=1"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-inapp-surface-no-external-window",
       "tier": [
         "prebuild",
@@ -11239,24 +11309,26 @@
           "file": "apps/simplyur-mobile/app/(tabs)/index.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
-            "/in-app-web"
+            "router.push('/devices')"
           ],
           "mustNotInclude": [
             "openBrowserAsync",
             "expo-web-browser",
-            "Linking.openURL"
+            "Linking.openURL",
+            "/in-app-web"
           ]
         },
         {
           "file": "apps/simplyur-mobile/app/(tabs)/guide.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
-            "/in-app-web"
+            "router.push('/devices')"
           ],
           "mustNotInclude": [
             "openBrowserAsync",
             "expo-web-browser",
-            "Linking.openURL"
+            "Linking.openURL",
+            "/in-app-web"
           ]
         },
         {

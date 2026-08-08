@@ -166,6 +166,12 @@
     "iphone": "iPhone XS以降",
     "android": "Galaxy S20+、Pixel 3+ など"
   },
+  "legal": {
+    "termsTitle": "利用規約",
+    "privacyTitle": "プライバシーポリシー",
+    "termsBody": "simplyurの韓国eSIMはBong Tour Co., Ltd.が海外訪問者向けに提供します。購入により、プランの譲渡不可、QRはメール（ログイン時はMy eSIM）で届くこと、端末・通信状況により利用が左右されること、初回アクティベーション前の未使用プランは返金ポリシーに従うことに同意します。サポート: bongtour24@naver.com / +82-31-213-2558（KST 09:00–18:00）。",
+    "privacyBody": "サービス提供のためメール、任意の電話番号、注文・決済情報、eSIM利用データを収集します。Bong Tourおよび決済・eSIMパートナーのみが履行・サポート目的で処理します。個人情報は販売しません。照会・削除は bongtour24@naver.com まで。"
+  },
   "footer": {
     "brand": "simplyur",
     "tagline": "Bong Tour Co., Ltd.のブランド。Bong Tourが運営・販売。",

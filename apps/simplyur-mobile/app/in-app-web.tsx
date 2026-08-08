@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -9,8 +9,22 @@ import { getApiBaseUrl } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
+function nativeRedirectForPath(path: string): { pathname: '/devices' } | { pathname: '/legal'; params: { doc: string } } | null {
+  const lower = path.toLowerCase();
+  if (lower.includes('devices') || lower.endsWith('/devices') || lower === 'devices') {
+    return { pathname: '/devices' };
+  }
+  if (lower.includes('privacy')) {
+    return { pathname: '/legal', params: { doc: 'privacy' } };
+  }
+  if (lower.includes('terms') || lower.includes('/legal') || lower.includes('legal/')) {
+    return { pathname: '/legal', params: { doc: 'terms' } };
+  }
+  return null;
+}
+
 /**
- * Generic in-app WebView — never opens system browser.
+ * Legacy in-app WebView (compat only). Product flows use native /devices and /legal.
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: in-app-web — manifest
  */
 export default function InAppWebScreen() {
@@ -18,15 +32,30 @@ export default function InAppWebScreen() {
   const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
+  const rawPath = String(path ?? '').trim();
+  const nativeTarget = useMemo(() => nativeRedirectForPath(rawPath), [rawPath]);
+
+  useEffect(() => {
+    if (nativeTarget) router.replace(nativeTarget);
+  }, [nativeTarget]);
 
   const uri = useMemo(() => {
+    if (nativeTarget) return '';
     const base = getApiBaseUrl().replace(/\/+$/, '');
-    const raw = String(path ?? '').trim();
-    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-    const cleaned = raw.replace(/^\/+/, '');
+    if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) return rawPath;
+    const cleaned = rawPath.replace(/^\/+/, '');
+    if (!cleaned) return '';
     if (cleaned.startsWith('simplyur/')) return `${base}/${cleaned}`;
-    return `${base}/simplyur/${locale}/${cleaned || 'devices'}`;
-  }, [path, locale]);
+    return `${base}/simplyur/${locale}/${cleaned}`;
+  }, [rawPath, locale, nativeTarget]);
+
+  if (nativeTarget || !uri) {
+    return (
+      <View style={[styles.flex, { paddingTop: insets.top, backgroundColor: LOGIN_1B.bg }]}>
+        <ActivityIndicator color={LOGIN_1B.coral} style={{ marginTop: 40 }} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top, backgroundColor: LOGIN_1B.bg }]}>

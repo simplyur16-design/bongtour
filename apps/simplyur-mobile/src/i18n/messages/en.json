@@ -438,6 +438,12 @@
     "iphone": "iPhone XS and newer (including iPhone 14/15/16 series)",
     "android": "Samsung Galaxy S20+, Google Pixel 3+, and other eSIM-capable models"
   },
+  "legal": {
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "termsBody": "simplyur Korea eSIM is operated by Bong Tour Co., Ltd. for international visitors. By purchasing you agree that the plan is non-transferable, QR delivery is by email (and in My eSIM when signed in), activation and network availability depend on your device and carrier coverage in Korea, and refunds follow our refund policy for unused plans before first activation. Support: bongtour24@naver.com / +82-31-213-2558 (KST 09:00–18:00).",
+    "privacyBody": "We collect account email, optional phone, order and payment references, and eSIM usage needed to deliver service. Data is processed by Bong Tour Co., Ltd. and payment/eSIM partners only for fulfillment and support. We do not sell personal data. Contact bongtour24@naver.com for access or deletion requests."
+  },
   "footer": {
     "brand": "simplyur",
     "tagline": "A brand of Bong Tour Co., Ltd. Operated and sold by Bong Tour.",

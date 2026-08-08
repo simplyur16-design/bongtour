@@ -69,8 +69,20 @@ function RootLayoutNav() {
             animation: 'slide_from_right',
           }}
         />
+        <Stack.Screen
+          name="devices"
+          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="legal"
+          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
+        />
+        {/* Legacy WebView route kept for freeze/compat — app flows must not open website chrome */}
         <Stack.Screen name="in-app-web" options={{ headerShown: false, presentation: 'card' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Language' }} />
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: 'card', animation: 'slide_from_right', title: 'Language' }}
+        />
       </Stack>
     </ThemeProvider>
   );

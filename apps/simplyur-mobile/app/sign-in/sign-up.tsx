@@ -92,8 +92,18 @@ export default function SignUpEmailScreen() {
       <Pressable style={styles.termsRow} onPress={() => setTerms((v) => !v)}>
         <View style={[styles.checkbox, terms ? styles.checkboxOn : null]} />
         <Text style={styles.termsText}>
-          {t('auth.signUpTermsPrefix')} {t('auth.signUpTermsLink')} {t('auth.signUpTermsAnd')}{' '}
-          {t('auth.signUpPrivacyLink')}
+          {t('auth.signUpTermsPrefix')}{' '}
+          <Text
+            style={styles.legalInline}
+            onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>
+            {t('auth.signUpTermsLink')}
+          </Text>{' '}
+          {t('auth.signUpTermsAnd')}{' '}
+          <Text
+            style={styles.legalInline}
+            onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>
+            {t('auth.signUpPrivacyLink')}
+          </Text>
         </Text>
       </Pressable>
 
@@ -153,6 +163,7 @@ const styles = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
   termsText: { flex: 1, fontSize: 12, color: LOGIN_1B.muted, lineHeight: 18, ...fp('400') },
+  legalInline: { color: LOGIN_1B.coral, ...fp('600') },
   err: { color: '#b42318', fontSize: 12, marginBottom: 10, textAlign: 'center', ...fp('400') },
   cta: {
     height: 56,

@@ -57,12 +57,29 @@ export function classifySimplyurCheckoutWebViewUrl(url: string): SimplyurCheckou
     }
   }
 
-  // Eximbay cancel/fail resume lands back on checkout with failed=1
+  // App-only sentinel — never load website checkout chrome after cancel/fail
+  if (path.includes('/app-pay-result')) {
+    const status = (queryOf(raw).get('status') ?? '').trim().toLowerCase()
+    if (status === 'fail' || status === 'cancel') return { kind: 'cancel_or_fail' }
+    if (status === 'ok' || status === 'success') {
+      const q = queryOf(raw)
+      return {
+        kind: 'complete',
+        orderId: (q.get('orderId') ?? '').trim(),
+        orderNumber: (q.get('orderNumber') ?? '').trim(),
+      }
+    }
+    return { kind: 'cancel_or_fail' }
+  }
+
+  // Legacy Eximbay cancel/fail resume landed on website checkout with failed=1 — intercept, do not render
   if (path.includes('/checkout') && !path.includes('/checkout/eximbay-return')) {
     const failed = (queryOf(raw).get('failed') ?? '').trim()
     if (failed === '1' || failed.toLowerCase() === 'true') {
       return { kind: 'cancel_or_fail' }
     }
+    // Any return onto website checkout page = leave pay WebView (native form owns UX)
+    return { kind: 'cancel_or_fail' }
   }
 
   return { kind: 'continue' }

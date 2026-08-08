@@ -166,6 +166,12 @@
     "iphone": "iPhone XS trở lên",
     "android": "Galaxy S20+, Pixel 3+…"
   },
+  "legal": {
+    "termsTitle": "Điều khoản dịch vụ",
+    "privacyTitle": "Chính sách bảo mật",
+    "termsBody": "simplyur eSIM Hàn Quốc do Bong Tour Co., Ltd. vận hành cho khách quốc tế. Khi mua, bạn đồng ý: gói không chuyển nhượng; mã QR gửi qua email (và My eSIM khi đăng nhập); kích hoạt/mạng phụ thuộc thiết bị và phủ sóng tại Hàn Quốc; hoàn tiền theo chính sách với gói chưa kích hoạt lần đầu. Hỗ trợ: bongtour24@naver.com / +82-31-213-2558 (KST 09:00–18:00).",
+    "privacyBody": "Chúng tôi thu thập email, số điện thoại tùy chọn, thông tin đơn/thanh toán và mức dùng eSIM cần thiết để cung cấp dịch vụ. Dữ liệu chỉ do Bong Tour và đối tác thanh toán/eSIM xử lý để hoàn tất đơn và hỗ trợ. Chúng tôi không bán dữ liệu cá nhân. Liên hệ bongtour24@naver.com để truy cập hoặc xóa."
+  },
   "footer": {
     "brand": "simplyur",
     "tagline": "Thương hiệu của Bong Tour Co., Ltd. Vận hành bởi Bong Tour.",

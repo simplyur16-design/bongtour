@@ -2,7 +2,6 @@ import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -31,6 +30,7 @@ type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
  * design_handoff_my_esim — My eSIM 4th tab
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
+ * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
  */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
@@ -41,7 +41,7 @@ export default function MyEsimScreen() {
   const [loadError, setLoadError] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [detailUsage, setDetailUsage] = useState<MyEsimUsage | null>(null);
-  const [usageModalOpen, setUsageModalOpen] = useState(false);
+  const [usageScreenOpen, setUsageScreenOpen] = useState(false);
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
 
@@ -152,10 +152,84 @@ export default function MyEsimScreen() {
   if (view === 'detail' && selectedOrder && summary && modalSummary) {
     const tier = myEsimBadgeTier(selectedOrder.status_key);
     const badge = MY_ESIM_BADGE[tier];
+
+    if (usageScreenOpen) {
+      return (
+        <ScrollView
+          style={[styles.root, { backgroundColor: D.bg }]}
+          contentContainerStyle={[
+            styles.detailContent,
+            { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
+          ]}>
+          <Pressable onPress={() => setUsageScreenOpen(false)} hitSlop={8} style={styles.backRow}>
+            <Text style={styles.backArrow}>←</Text>
+            <Text style={styles.backText}>{t('myEsim.backToList')}</Text>
+          </Pressable>
+          <Text style={styles.detailTitle}>{t('myEsim.usageTitle')}</Text>
+
+          {usageLoading ? <Text style={styles.muted}>{t('myEsim.loading')}</Text> : null}
+          {usageError ? <Text style={styles.errorText}>{usageError}</Text> : null}
+
+          {detailUsage ? (
+            <>
+              <View style={styles.modalUsedRow}>
+                <Text style={styles.modalUsedBig}>{modalSummary.usedDisplay}</Text>
+                <Text style={styles.modalUsedOf}>{modalSummary.usedOfLabel}</Text>
+              </View>
+              {modalSummary.sublabel ? <Text style={styles.modalSub}>{modalSummary.sublabel}</Text> : null}
+
+              {modalSummary.hasCap ? (
+                <View style={styles.capBlock}>
+                  <View style={styles.fullTrack}>
+                    <View style={[styles.fullFill, { width: `${modalSummary.usedPct}%` }]} />
+                  </View>
+                  <View style={styles.capLabels}>
+                    <Text style={styles.capLabel}>
+                      {modalSummary.usedDisplay} {t('myEsim.usedWord')}
+                    </Text>
+                    <Text style={styles.capRemain}>
+                      {modalSummary.remainingDisplay} {t('myEsim.leftWord')}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {detailUsage.history.length > 0 ? (
+                <View style={styles.chart}>
+                  {detailUsage.history.slice(-7).map((h, i, arr) => (
+                    <View key={h.date} style={styles.barCol}>
+                      <View
+                        style={[
+                          styles.bar,
+                          {
+                            height: chartBarHeight(h.usageMb, maxDaily),
+                            backgroundColor: i === arr.length - 1 ? D.coral : D.barMuted,
+                          },
+                        ]}
+                      />
+                      <Text style={styles.barLabel}>{weekdayLabel(h.date, locale)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.muted}>{t('myEsim.noDailyUsage')}</Text>
+              )}
+            </>
+          ) : null}
+        </ScrollView>
+      );
+    }
+
     return (
       <View style={[styles.root, { backgroundColor: D.bg, paddingTop: insets.top + 16 }]}>
         <ScrollView contentContainerStyle={[styles.detailContent, { paddingBottom: insets.bottom + 100 }]}>
-          <Pressable onPress={() => { setSelectedOrderId(null); setUsageModalOpen(false); }} hitSlop={8} style={styles.backRow}>
+          <Pressable
+            onPress={() => {
+              setSelectedOrderId(null);
+              setUsageScreenOpen(false);
+            }}
+            hitSlop={8}
+            style={styles.backRow}>
             <Text style={styles.backArrow}>←</Text>
             <Text style={styles.backText}>{t('myEsim.backToList')}</Text>
           </Pressable>
@@ -181,7 +255,7 @@ export default function MyEsimScreen() {
             <Text style={styles.qrHint}>{t('myEsim.qrHint')}</Text>
           </View>
 
-          <Pressable style={styles.usageCard} onPress={() => setUsageModalOpen(true)}>
+          <Pressable style={styles.usageCard} onPress={() => setUsageScreenOpen(true)}>
             <View style={styles.usageCardText}>
               <Text style={styles.usageLabel}>{t('myEsim.usageCardLabel')}</Text>
               <Text style={styles.usageValue}>{summary.usageLabel}</Text>
@@ -194,71 +268,6 @@ export default function MyEsimScreen() {
             <Text style={styles.chevron}>›</Text>
           </Pressable>
         </ScrollView>
-
-        <Modal visible={usageModalOpen} transparent animationType="slide" onRequestClose={() => setUsageModalOpen(false)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setUsageModalOpen(false)}>
-            <Pressable style={[styles.modalSheet, { paddingBottom: insets.bottom + 24 }]} onPress={(e) => e.stopPropagation()}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('myEsim.usageTitle')}</Text>
-                <Pressable style={styles.modalClose} onPress={() => setUsageModalOpen(false)}>
-                  <Text style={styles.modalCloseText}>✕</Text>
-                </Pressable>
-              </View>
-
-              {usageLoading ? <Text style={styles.muted}>{t('myEsim.loading')}</Text> : null}
-              {usageError ? <Text style={styles.errorText}>{usageError}</Text> : null}
-
-              {detailUsage ? (
-                <>
-                  <View style={styles.modalUsedRow}>
-                    <Text style={styles.modalUsedBig}>{modalSummary.usedDisplay}</Text>
-                    <Text style={styles.modalUsedOf}>{modalSummary.usedOfLabel}</Text>
-                  </View>
-                  {modalSummary.sublabel ? (
-                    <Text style={styles.modalSub}>{modalSummary.sublabel}</Text>
-                  ) : null}
-
-                  {modalSummary.hasCap ? (
-                    <View style={styles.capBlock}>
-                      <View style={styles.fullTrack}>
-                        <View style={[styles.fullFill, { width: `${modalSummary.usedPct}%` }]} />
-                      </View>
-                      <View style={styles.capLabels}>
-                        <Text style={styles.capLabel}>
-                          {modalSummary.usedDisplay} {t('myEsim.usedWord')}
-                        </Text>
-                        <Text style={styles.capRemain}>
-                          {modalSummary.remainingDisplay} {t('myEsim.leftWord')}
-                        </Text>
-                      </View>
-                    </View>
-                  ) : null}
-
-                  {detailUsage.history.length > 0 ? (
-                    <View style={styles.chart}>
-                      {detailUsage.history.slice(-7).map((h, i, arr) => (
-                        <View key={h.date} style={styles.barCol}>
-                          <View
-                            style={[
-                              styles.bar,
-                              {
-                                height: chartBarHeight(h.usageMb, maxDaily),
-                                backgroundColor: i === arr.length - 1 ? D.coral : D.barMuted,
-                              },
-                            ]}
-                          />
-                          <Text style={styles.barLabel}>{weekdayLabel(h.date, locale)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : (
-                    <Text style={styles.muted}>{t('myEsim.noDailyUsage')}</Text>
-                  )}
-                </>
-              ) : null}
-            </Pressable>
-          </Pressable>
-        </Modal>
       </View>
     );
   }
@@ -441,30 +450,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   miniFill: { height: '100%', borderRadius: 999, backgroundColor: D.coral },
-  modalOverlay: { flex: 1, backgroundColor: D.overlay, justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: D.modalRadius,
-    borderTopRightRadius: D.modalRadius,
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    gap: 18,
-  },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modalTitle: { fontSize: 16, ...fp('800'), color: D.navy },
-  modalClose: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: D.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCloseText: { fontSize: 14, color: D.muted },
   modalUsedRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   modalUsedBig: { fontSize: 28, ...fp('800'), color: D.navy },
   modalUsedOf: { fontSize: 14, ...fp('600'), color: D.faint },
-  modalSub: { fontSize: 12, ...fp('400'), color: D.faint, marginTop: -12 },
+  modalSub: { fontSize: 12, ...fp('400'), color: D.faint },
   capBlock: { gap: 8 },
   fullTrack: { height: 10, borderRadius: 999, backgroundColor: D.progressTrack, overflow: 'hidden' },
   fullFill: { height: '100%', borderRadius: 999, backgroundColor: D.coral },

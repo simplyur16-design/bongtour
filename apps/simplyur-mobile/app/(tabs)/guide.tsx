@@ -20,10 +20,11 @@ type TabKey = 'precheck' | 'iphone' | 'android';
 
 /**
  * design_handoff_guide — Install guide (Expo iOS + Android)
- * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: devices in-app WebView — manifest
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: no system browser — manifest
+ * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: devices native screen — manifest
  */
 export default function GuideScreen() {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const insets = useSafeAreaInsets();
   const guide = getSimplyurGuideMessages(locale);
   const [tab, setTab] = useState<TabKey>('precheck');
@@ -38,10 +39,7 @@ export default function GuideScreen() {
   const devicesLabel = guide.devicesLinkLabel ?? 'Compatible devices';
 
   function openDevices() {
-    router.push({
-      pathname: '/in-app-web',
-      params: { path: 'devices', title: t('hero.deviceLink') },
-    });
+    router.push('/devices');
   }
 
   function toggleFaq(index: number) {

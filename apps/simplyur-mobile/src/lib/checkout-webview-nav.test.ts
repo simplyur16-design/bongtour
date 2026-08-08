@@ -21,6 +21,22 @@ describe('simplyur in-app checkout WebView nav', () => {
     ).toEqual({ kind: 'cancel_or_fail' })
   })
 
+  it('detects app-pay-result fail sentinel (no website checkout chrome)', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl(
+        'https://bongtour.com/simplyur/en/app-pay-result?status=fail',
+      ),
+    ).toEqual({ kind: 'cancel_or_fail' })
+  })
+
+  it('treats website checkout page as cancel (stay on native form)', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl(
+        'https://bongtour.com/simplyur/en/checkout?optionApiId=x',
+      ),
+    ).toEqual({ kind: 'cancel_or_fail' })
+  })
+
   it('keeps Eximbay / card issuer https in WebView', () => {
     expect(
       classifySimplyurCheckoutWebViewUrl('https://api.eximbay.com/v1/payments/something'),
