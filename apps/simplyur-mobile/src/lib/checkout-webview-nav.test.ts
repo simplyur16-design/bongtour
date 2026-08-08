@@ -1,0 +1,36 @@
+import { describe, expect, it } from 'vitest'
+import {
+  classifySimplyurCheckoutWebViewUrl,
+  isExternalPaymentAppUrl,
+} from './checkout-webview-nav'
+
+describe('simplyur in-app checkout WebView nav', () => {
+  it('detects payment complete', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl(
+        'https://bongtour.com/simplyur/en/checkout/complete?orderId=o1&orderNumber=N1',
+      ),
+    ).toEqual({ kind: 'complete', orderId: 'o1', orderNumber: 'N1' })
+  })
+
+  it('detects cancel/fail resume', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl(
+        'https://bongtour.com/simplyur/en/checkout?optionApiId=x&failed=1',
+      ),
+    ).toEqual({ kind: 'cancel_or_fail' })
+  })
+
+  it('keeps Eximbay / card issuer https in WebView', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl('https://api.eximbay.com/v1/payments/something'),
+    ).toEqual({ kind: 'continue' })
+  })
+
+  it('hands off Alipay/WeChat-style app schemes', () => {
+    expect(isExternalPaymentAppUrl('alipays://platformapi/startapp')).toBe(true)
+    expect(
+      classifySimplyurCheckoutWebViewUrl('alipays://platformapi/startapp'),
+    ).toEqual({ kind: 'external_app', url: 'alipays://platformapi/startapp' })
+  })
+})

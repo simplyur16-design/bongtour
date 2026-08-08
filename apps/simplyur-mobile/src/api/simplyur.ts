@@ -1,3 +1,5 @@
+import { router } from 'expo-router';
+
 import { getApiBaseUrl, type SimplyurLocale } from '@/src/constants/simplyur';
 
 export type PlanProduct = {
@@ -55,16 +57,20 @@ export function simplyurWebCheckoutUrl(
   return `${base}/simplyur/${locale}/checkout?${q.toString()}`;
 }
 
-/** Open web Simplyur checkout (Eximbay mobile window). Native in-app pay is a later phase. */
+/**
+ * Open in-app Eximbay checkout WebView (not system browser).
+ * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: router → /checkout WebView — manifest
+ */
+export function openSimplyurInAppCheckout(optionApiId: string): void {
+  const id = optionApiId.trim();
+  if (!id) return;
+  router.push({ pathname: '/checkout', params: { optionApiId: id } });
+}
+
+/** @deprecated use openSimplyurInAppCheckout */
 export async function openSimplyurWebCheckout(
-  locale: SimplyurLocale,
+  _locale: SimplyurLocale,
   optionApiId: string,
 ): Promise<void> {
-  const WebBrowser = await import('expo-web-browser');
-  const { loadCheckoutBuyerEmail } = await import('@/src/lib/checkout-buyer-email');
-  const url = simplyurWebCheckoutUrl(locale, optionApiId, loadCheckoutBuyerEmail());
-  await WebBrowser.openBrowserAsync(url, {
-    enableDefaultShareMenuItem: false,
-    showTitle: true,
-  });
+  openSimplyurInAppCheckout(optionApiId);
 }

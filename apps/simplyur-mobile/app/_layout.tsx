@@ -59,7 +59,7 @@ function RootLayoutNav() {
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="oauth-complete" options={{ headerShown: false }} />
         <Stack.Screen name="product/[optionApiId]" options={{ headerShown: false, title: '' }} />
-        <Stack.Screen name="checkout" options={{ title: '' }} />
+        <Stack.Screen name="checkout" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Language' }} />
       </Stack>
     </ThemeProvider>

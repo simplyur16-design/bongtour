@@ -34,6 +34,11 @@ export default async function SimplyurSignInPage({ params, searchParams }: Props
 
   const messages = await getSimplyurMessages(locale);
 
+  const signUpHref =
+    callbackUrl?.startsWith("/")
+      ? `${simplyurPath(locale, "/sign-up")}?callbackUrl=${encodeURIComponent(callbackUrl)}`
+      : simplyurPath(locale, "/sign-up");
+
   const labels = {
     welcomeTitle: t(messages, "auth.welcomeTitle"),
     welcomeSubtitle: t(messages, "auth.welcomeSubtitle"),
@@ -48,6 +53,8 @@ export default async function SimplyurSignInPage({ params, searchParams }: Props
     domesticSignInLink: t(messages, "auth.domesticSignInLink"),
     backToMethods: t(messages, "auth.backToMethods"),
     backHome: t(messages, "auth.backHome"),
+    noAccount: t(messages, "auth.noAccount"),
+    signUpLink: t(messages, "auth.signUpLink"),
   };
 
   return (
@@ -64,6 +71,7 @@ export default async function SimplyurSignInPage({ params, searchParams }: Props
         labels={labels}
         domesticEsimHref={SIMPLYUR_DOMESTIC_ESIM_HREF}
         domesticSignInHref={SIMPLYUR_DOMESTIC_SIGNIN_HREF}
+        signUpHref={signUpHref}
       />
     </main>
   );

@@ -1,5 +1,4 @@
 import { Link } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -16,8 +15,6 @@ import { fetchMyEsimOrders, fetchMyEsimUsage, type MyEsimOrder, type MyEsimUsage
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
-import { buildWebMyEsimUrl } from '@/src/lib/oauth';
-import { hasRecentWebOAuthSession } from '@/src/lib/web-oauth-session';
 import {
   buildUsageSummaryView,
   chartBarHeight,
@@ -107,22 +104,11 @@ export default function MyEsimScreen() {
   }
 
   if (view === 'signin') {
-    const webSession = hasRecentWebOAuthSession();
     return (
       <CenterBlock insets={insets} icon="🔒" title={t('myEsim.signInTitle')} body={t('myEsim.signInBody')}>
-        {webSession ? (
-          <Pressable
-            style={styles.cta}
-            onPress={() => void WebBrowser.openBrowserAsync(buildWebMyEsimUrl(locale))}
-          >
-            <Text style={styles.ctaText}>{t('myEsim.openWeb')}</Text>
-          </Pressable>
-        ) : null}
         <Link href="/sign-in" asChild>
-          <Pressable style={[styles.cta, webSession ? styles.ctaSecondary : null]}>
-            <Text style={[styles.ctaText, webSession ? styles.ctaTextSecondary : null]}>
-              {t('nav.signIn')}
-            </Text>
+          <Pressable style={styles.cta}>
+            <Text style={styles.ctaText}>{t('nav.signIn')}</Text>
           </Pressable>
         </Link>
       </CenterBlock>

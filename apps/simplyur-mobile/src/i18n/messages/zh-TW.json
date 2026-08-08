@@ -125,7 +125,8 @@
     "notFoundBody": "此方案可能已下架。請返回並選擇其他行程天數。",
     "notFound": "找不到方案",
     "backToPlans": "返回方案列表",
-    "payInBrowserHint": "安全結帳會在瀏覽器開啟（行動付款畫面）。"
+    "payInBrowserHint": "安全結帳會在 App 內開啟（行動付款畫面）。",
+    "payInAppHint": "安全結帳會在 App 內開啟（Eximbay 行動付款）。"
   },
   "checkout": {
     "title": "結帳",
@@ -144,7 +145,8 @@
     "completeBody": "付款已確認。韓國 eSIM QR 碼將在數分鐘內寄到您的信箱。",
     "orderNumber": "訂單編號",
     "viewPlans": "瀏覽更多方案",
-    "continueInBrowser": "在瀏覽器繼續"
+    "continueInBrowser": "繼續結帳",
+    "continueInApp": "繼續結帳"
   },
   "guide": {
     "title": "安裝 eSIM",
@@ -196,9 +198,27 @@
     "backToMethods": "其他登入方式",
     "domesticEsimLink": "韓國居民請使用 Bong Tour eSIM（봉심），非 simplyur",
     "domesticSignInLink": "韓國居民請至 Bong Tour 使用 Kakao/Naver 登入",
-    "googleNotConfigured": "此伺服器尚未設定 Google 登入。",
+    "googleNotConfigured": "此建置尚未設定 Google 登入。",
     "errorGeneric": "登入失敗，請重試或使用其他方式。",
-    "backHome": "← 返回首頁"
+    "backHome": "← 返回首頁",
+    "noAccount": "還沒有帳號？",
+    "signUpLink": "建立帳號",
+    "haveAccount": "已有帳號？",
+    "signInLink": "登入",
+    "signUpTitle": "建立帳號",
+    "signUpSubtitle": "供國際旅客使用的電子郵件註冊。",
+    "confirmPasswordLabel": "確認密碼",
+    "signUpTermsPrefix": "我同意",
+    "signUpTermsLink": "服務條款",
+    "signUpTermsAnd": "與",
+    "signUpPrivacyLink": "隱私權政策",
+    "signUpSubmit": "建立帳號",
+    "signUpErrorGeneric": "無法建立帳號，請重試。",
+    "signUpErrorInvalidEmail": "請輸入有效的電子郵件。",
+    "signUpErrorWeakPassword": "密碼至少需要 8 個字元。",
+    "signUpErrorEmailTaken": "此電子郵件已註冊，請直接登入。",
+    "signUpErrorTermsRequired": "請同意服務條款與隱私權政策。",
+    "signUpErrorPasswordMismatch": "兩次輸入的密碼不一致。"
   },
   "myEsim": {
     "title": "我的 eSIM",

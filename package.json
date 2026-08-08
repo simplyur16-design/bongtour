@@ -137,7 +137,7 @@
     "verify:hanatour-atp207": "npx tsx scripts/verify-hanatour-fixture-atp207.ts",
     "verify:hanatour-e2e-db": "npx tsx scripts/run-hanatour-e2e-from-db.ts",
     "verify:hanatour-e2e-seal": "npx tsx scripts/verify-hanatour-e2e-seal.ts",
-    "verify:hanatour-e2e-airtel-same-product": "sh -c 'command -v python3 >/dev/null && exec python3 -m scripts.calendar_e2e_scraper_hanatour.test_utils_airtel_same_product || exec python -m scripts.calendar_e2e_scraper_hanatour.test_utils_airtel_same_product'",
+    "verify:hanatour-e2e-airtel-same-product": "node scripts/run-python-module.mjs scripts.calendar_e2e_scraper_hanatour.test_utils_airtel_same_product",
     "audit:hanatour-origin-url": "npx tsx scripts/run-hanatour-e2e-from-db.ts --audit-urls",
     "verify:modetour-avp603": "npx tsx scripts/verify-modetour-fixture-avp603.ts",
     "audit:modetour-lib": "npx tsx scripts/audit-modetour-lib-inventory.ts",

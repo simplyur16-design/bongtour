@@ -2766,6 +2766,64 @@
       ]
     },
     {
+      "id": "simplyur-mobile-inapp-eximbay-checkout",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 Eximbay 결제 — 외부 브라우저 금지, 인앱 WebView",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
+            "react-native-webview",
+            "classifySimplyurCheckoutWebViewUrl",
+            "setSupportMultipleWindows={false}"
+          ],
+          "mustNotInclude": [
+            "openBrowserAsync",
+            "expo-web-browser"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/api/simplyur.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
+            "openSimplyurInAppCheckout",
+            "pathname: '/checkout'"
+          ],
+          "mustNotInclude": [
+            "openBrowserAsync"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
+            "classifySimplyurCheckoutWebViewUrl",
+            "isExternalPaymentAppUrl"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/package.json",
+          "mustInclude": [
+            "react-native-webview"
+          ]
+        },
+        {
+          "file": "vitest.config.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
+            "apps/simplyur-mobile/src/**/*.test.ts"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
+      ]
+    },
+    {
       "id": "railway-start-exec-next",
       "tier": [
         "prebuild"
@@ -3697,7 +3755,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "하나투어 E2E 자유여행 동일상품 anchor·URL type=H01 가드",
+      "summary": "하나투어 E2E 자유여행 동일상품 anchor·URL type=H01 가드 + Windows-safe python npm script",
       "checks": [
         {
           "file": "scripts/calendar_e2e_scraper_hanatour/utils.py",
@@ -3721,6 +3779,23 @@
             "BANGKOK_REGISTERED",
             "AAB261260706FDB",
             "sameProductMatch"
+          ]
+        },
+        {
+          "file": "package.json",
+          "mustInclude": [
+            "run-python-module.mjs scripts.calendar_e2e_scraper_hanatour.test_utils_airtel_same_product"
+          ],
+          "mustNotInclude": [
+            "verify:hanatour-e2e-airtel-same-product\": \"sh -c"
+          ]
+        },
+        {
+          "file": "scripts/run-python-module.mjs",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-e2e-airtel-same-product]",
+            "python3",
+            "PYTHONPATH"
           ]
         }
       ]
@@ -11006,14 +11081,120 @@
         {
           "file": "auth.ts",
           "mustInclude": [
+            "REGRESSION-FREEZE[auth-js-oauth-cookies-samesite-none]",
             "authJsOAuthCookieOptions",
             "oauthCookieOptions",
-            "pkceCodeVerifier"
+            "pkceCodeVerifier",
+            "Always override OAuth cookies"
+          ],
+          "mustNotInclude": [
+            "sessionCookieDomain\n    ? {\n        cookies:"
           ]
         }
       ],
       "vitestSuites": [
         "lib/auth/auth-js-cookie-options.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-inapp-auth",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 인앱 로그인/가입 — mobile-session Bearer + native Apple/Google/email (WebBrowser auth 금지)",
+      "checks": [
+        {
+          "file": "lib/simplyur/auth/mobile-session.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "createSimplyurMobileSessionFromCredentials",
+            "createSimplyurMobileSessionFromGoogleIdToken",
+            "createSimplyurMobileSessionFromAppleIdentityToken"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/auth/mobile-session/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "/api/simplyur/auth/mobile-session"
+          ]
+        },
+        {
+          "file": "lib/simplyur/auth/resolve-simplyur-api-user.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "verifySimplyurMobileAccessToken",
+            "resolveSimplyurApiUser"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/sign-in/index.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "signInWithAppleNative",
+            "useGoogleIdTokenRequest"
+          ],
+          "mustNotInclude": [
+            "openAuthSessionAsync",
+            "buildOAuthStartUrl"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/session.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "expo-secure-store",
+            "saveSimplyurSession"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/auth/mobile-access-token.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-oauth-home-bridge",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 OAuth — callback 유실 시 bongtour 홈 대신 /simplyur/.../oauth-complete 브릿지",
+      "checks": [
+        {
+          "file": "lib/auth/simplyur-oauth-return-cookie.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-oauth-home-bridge]",
+            "SIMPLYUR_OAUTH_RETURN_COOKIE",
+            "isSafeSimplyurOAuthReturnPath",
+            "/simplyur/"
+          ]
+        },
+        {
+          "file": "app/api/auth/oauth-start/[provider]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-oauth-home-bridge]",
+            "simplyurOAuthReturnCookieSetOptions"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-oauth-home-bridge]",
+            "readSimplyurOAuthReturnPath",
+            "clearSimplyurOAuthReturnCookie"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/oauth-complete/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-oauth-home-bridge]",
+            "SIMPLYUR_OAUTH_RETURN_COOKIE"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/auth/simplyur-oauth-return-cookie.test.ts"
       ]
     },
     {
@@ -12793,6 +12974,57 @@
       ],
       "vitestSuites": [
         "lib/simplyur/checkout/session-buyer-email.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-email-signup",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 외국인 이메일 가입 — /api/simplyur/auth/register + sign-up (국내 EMAIL_SIGNUP_DISABLED 유지)",
+      "checks": [
+        {
+          "file": "lib/simplyur/auth/register-email.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-email-signup]",
+            "registerSimplyurEmailUser",
+            "signupMethod: 'email'",
+            "isValidSimplyurSignupEmail"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/auth/register/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-email-signup]",
+            "registerSimplyurEmailUser",
+            "/api/simplyur/auth/register"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/sign-up/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-email-signup]",
+            "SimplyurEmailSignUpForm"
+          ]
+        },
+        {
+          "file": "app/api/auth/register/route.ts",
+          "mustInclude": [
+            "emailSignupGoneJsonResponse",
+            "auth.register.email-signup-disabled"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/oauth.ts",
+          "mustInclude": [
+            "buildEmailSignUpWebUrl",
+            "sign-up"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/auth/register-email.test.ts"
       ]
     },
     {

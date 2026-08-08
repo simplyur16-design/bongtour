@@ -125,7 +125,8 @@
     "notFoundBody": "Gói này có thể không còn khả dụng. Quay lại và chọn số ngày khác.",
     "notFound": "Không tìm thấy gói",
     "backToPlans": "Quay lại danh sách",
-    "payInBrowserHint": "Thanh toán an toàn mở trong trình duyệt (giao diện mobile)."
+    "payInBrowserHint": "Thanh toán an toàn mở trong ứng dụng (giao diện mobile).",
+    "payInAppHint": "Thanh toán an toàn mở trong ứng dụng (Eximbay mobile)."
   },
   "checkout": {
     "title": "Thanh toán",
@@ -144,7 +145,8 @@
     "completeBody": "Thanh toán đã xác nhận. Mã QR eSIM Hàn Quốc sẽ được gửi qua email trong vài phút.",
     "orderNumber": "Mã đơn",
     "viewPlans": "Xem thêm gói",
-    "continueInBrowser": "Tiếp tục trong trình duyệt"
+    "continueInBrowser": "Tiếp tục thanh toán",
+    "continueInApp": "Tiếp tục thanh toán"
   },
   "guide": {
     "title": "Cài eSIM",
@@ -196,9 +198,27 @@
     "backToMethods": "Cách đăng nhập khác",
     "domesticEsimLink": "Cư dân Hàn Quốc? Dùng eSIM Bong Tour (bongsim) — không phải simplyur",
     "domesticSignInLink": "Cư dân Hàn Quốc? Đăng nhập Kakao/Naver tại Bong Tour",
-    "googleNotConfigured": "Đăng nhập Google chưa được cấu hình trên máy chủ này.",
+    "googleNotConfigured": "Đăng nhập Google chưa được cấu hình trên bản dựng này.",
     "errorGeneric": "Đăng nhập thất bại. Vui lòng thử lại.",
-    "backHome": "← Về trang chủ"
+    "backHome": "← Về trang chủ",
+    "noAccount": "Chưa có tài khoản?",
+    "signUpLink": "Tạo tài khoản",
+    "haveAccount": "Đã có tài khoản?",
+    "signInLink": "Đăng nhập",
+    "signUpTitle": "Tạo tài khoản",
+    "signUpSubtitle": "Đăng ký email dành cho khách quốc tế.",
+    "confirmPasswordLabel": "Xác nhận mật khẩu",
+    "signUpTermsPrefix": "Tôi đồng ý với",
+    "signUpTermsLink": "Điều khoản dịch vụ",
+    "signUpTermsAnd": "và",
+    "signUpPrivacyLink": "Chính sách bảo mật",
+    "signUpSubmit": "Tạo tài khoản",
+    "signUpErrorGeneric": "Không thể tạo tài khoản. Vui lòng thử lại.",
+    "signUpErrorInvalidEmail": "Nhập địa chỉ email hợp lệ.",
+    "signUpErrorWeakPassword": "Mật khẩu phải có ít nhất 8 ký tự.",
+    "signUpErrorEmailTaken": "Email này đã được đăng ký. Hãy đăng nhập.",
+    "signUpErrorTermsRequired": "Vui lòng chấp nhận Điều khoản và Chính sách bảo mật.",
+    "signUpErrorPasswordMismatch": "Mật khẩu không khớp."
   },
   "myEsim": {
     "title": "eSIM của tôi",

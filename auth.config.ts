@@ -52,9 +52,9 @@ export default {
     },
     /**
      * simplyur OAuth 후 /simplyur/... 유지.
-     * callbackUrl 유실 시 Auth.js가 baseUrl(홈)로 보내 앱 WebBrowser에 봉투어 홈이 보임 —
-     * relative `/` 만은 허용하되, 잘못된 절대 URL은 simplyur oauth-complete로 보내지 않고 baseUrl 유지
-     * (국내 카카오 홈 복귀와 충돌 방지). OAuth 쿠키는 SameSite=None 으로 유실 자체를 막음.
+     * callbackUrl 유실 시 Auth.js가 baseUrl(홈)로 보냄 → middleware `simplyur-oauth-return` 브릿지가
+     * /simplyur/.../oauth-complete 로 되돌림 (앱 WebBrowser에 봉투어 홈 노출 방지).
+     * REGRESSION-FREEZE[simplyur-oauth-home-bridge]: relative simplyur paths allowed — manifest
      */
     redirect({ url, baseUrl }) {
       const origin = baseUrl.replace(/\/$/, '')

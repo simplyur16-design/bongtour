@@ -125,7 +125,8 @@
     "notFoundBody": "This plan may no longer be available. Head back and pick another trip length.",
     "notFound": "Plan not found",
     "backToPlans": "Back to plans",
-    "payInBrowserHint": "Secure checkout opens in your browser (mobile payment)."
+    "payInBrowserHint": "Secure checkout opens in the app (mobile payment).",
+    "payInAppHint": "Secure checkout opens in the app (Eximbay mobile payment)."
   },
   "checkout": {
     "title": "Checkout",
@@ -144,7 +145,8 @@
     "completeBody": "Payment received. Your Korea eSIM QR code will arrive by email within a few minutes.",
     "orderNumber": "Order number",
     "viewPlans": "Browse more plans",
-    "continueInBrowser": "Continue in browser"
+    "continueInBrowser": "Continue checkout",
+    "continueInApp": "Continue checkout"
   },
   "guide": {
     "title": "How to install your eSIM",
@@ -462,17 +464,35 @@
     "appleSubtitle": "Use your Apple ID to continue.",
     "appleNotConfigured": "Apple sign-in is not configured on this server yet.",
     "email": "Sign in with email",
-    "emailSubtitle": "Enter the email and password for your existing account.",
+    "emailSubtitle": "Enter your email and password.",
     "invalidCredentials": "Email or password is incorrect, or this account is restricted.",
     "or": "or",
     "backToMethods": "Other sign-in options",
     "domesticEsimLink": "Korea resident? Use Bong Tour eSIM (bongsim) — not simplyur",
     "domesticSignInLink": "Korea resident? Sign in with Kakao or Naver on Bong Tour",
-    "googleNotConfigured": "Google sign-in is not configured on this server yet.",
+    "googleNotConfigured": "Google sign-in is not configured on this build yet.",
     "errorGeneric": "Sign-in failed. Please try again or use a different method.",
     "errorTitle": "Sign-in problem",
     "tryAgain": "Try again",
-    "backHome": "← Back to home"
+    "backHome": "← Back to home",
+    "noAccount": "New here?",
+    "signUpLink": "Create an account",
+    "haveAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "signUpTitle": "Create your account",
+    "signUpSubtitle": "Email signup for international visitors.",
+    "confirmPasswordLabel": "Confirm password",
+    "signUpTermsPrefix": "I agree to the",
+    "signUpTermsLink": "Terms of Service",
+    "signUpTermsAnd": "and",
+    "signUpPrivacyLink": "Privacy Policy",
+    "signUpSubmit": "Create account",
+    "signUpErrorGeneric": "Could not create your account. Please try again.",
+    "signUpErrorInvalidEmail": "Enter a valid email address.",
+    "signUpErrorWeakPassword": "Password must be at least 8 characters.",
+    "signUpErrorEmailTaken": "An account with this email already exists. Sign in instead.",
+    "signUpErrorTermsRequired": "Please accept the Terms and Privacy Policy.",
+    "signUpErrorPasswordMismatch": "Passwords do not match."
   },
   "myEsim": {
     "title": "My eSIM",

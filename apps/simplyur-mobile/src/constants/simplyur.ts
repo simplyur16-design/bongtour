@@ -10,8 +10,9 @@ export const DEFAULT_LOCALE: SimplyurLocale = 'en';
 export const DEFAULT_COUNTRY = 'kr' as const;
 
 /**
- * Buy → web Eximbay checkout (mobile UI).
+ * Buy → in-app Eximbay checkout WebView (mobile UI).
  * Override: EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED=0 to disable.
+ * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: in-app pay flag — manifest
  */
 export function isSimplyurCheckoutEnabled(): boolean {
   const raw = (process.env.EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED ?? '1').trim().toLowerCase();

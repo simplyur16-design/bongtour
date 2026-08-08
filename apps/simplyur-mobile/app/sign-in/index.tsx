@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -16,48 +16,65 @@ import { LOGIN_1B } from '@/src/constants/login-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import {
-  buildEmailSignInWebUrl,
-  buildOAuthStartUrl,
-  mobileOAuthRedirectUri,
-} from '@/src/lib/oauth';
-import { markWebOAuthSession } from '@/src/lib/web-oauth-session';
-
-WebBrowser.maybeCompleteAuthSession();
+  completeGoogleSignIn,
+  isAppleNativeAvailable,
+  isGoogleNativeConfigured,
+  signInWithAppleNative,
+  useGoogleIdTokenRequest,
+} from '@/src/lib/native-oauth';
 
 /**
- * design_handoff_login_1b — centered chooser: Apple · Google · Email + Skip.
+ * design_handoff_login_1b — in-app Apple · Google · Email (no WebBrowser auth).
+ * REGRESSION-FREEZE[simplyur-inapp-auth]: native chooser — manifest
  */
 export default function SignInChooserScreen() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
+  const [err, setErr] = useState('');
+  const [appleOk, setAppleOk] = useState(Platform.OS === 'ios');
+  const googleConfigured = isGoogleNativeConfigured();
+  const [googleRequest, googleResponse, googlePrompt] = useGoogleIdTokenRequest();
 
-  async function openOAuth(provider: 'google' | 'apple') {
-    setBusy(provider);
+  useEffect(() => {
+    void isAppleNativeAvailable().then(setAppleOk);
+  }, []);
+
+  useEffect(() => {
+    if (googleResponse?.type !== 'success') return;
+    const idToken = googleResponse.params.id_token;
+    setBusy('google');
+    void completeGoogleSignIn(idToken)
+      .then(() => router.replace('/(tabs)/my-esim'))
+      .catch(() => setErr(t('auth.errorGeneric')))
+      .finally(() => setBusy(null));
+  }, [googleResponse, t]);
+
+  async function onApple() {
+    setErr('');
+    setBusy('apple');
     try {
-      const redirectUri = mobileOAuthRedirectUri();
-      const authUrl = buildOAuthStartUrl(provider, locale);
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-      if (result.type === 'success' || result.type === 'dismiss') {
-        markWebOAuthSession();
-        router.replace('/(tabs)/my-esim');
-      }
+      await signInWithAppleNative();
+      router.replace('/(tabs)/my-esim');
+    } catch {
+      setErr(t('auth.errorGeneric'));
     } finally {
       setBusy(null);
     }
   }
 
-  async function openEmailSignIn() {
-    setBusy('email');
+  async function onGoogle() {
+    setErr('');
+    if (!googleConfigured || !googleRequest) {
+      setErr(t('auth.googleNotConfigured'));
+      return;
+    }
+    setBusy('google');
     try {
-      const redirectUri = mobileOAuthRedirectUri();
-      const authUrl = buildEmailSignInWebUrl(locale);
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-      if (result.type === 'success' || result.type === 'dismiss') {
-        markWebOAuthSession();
-        router.replace('/(tabs)/my-esim');
-      }
-    } finally {
+      const result = await googlePrompt();
+      if (result?.type !== 'success') setBusy(null);
+    } catch {
+      setErr(t('auth.errorGeneric'));
       setBusy(null);
     }
   }
@@ -87,23 +104,25 @@ export default function SignInChooserScreen() {
       </View>
 
       <View style={styles.buttons}>
-        <Pressable
-          onPress={() => openOAuth('apple')}
-          disabled={busy !== null}
-          style={[styles.btn, styles.btnApple, busy ? styles.btnBusy : null]}
-        >
-          {busy === 'apple' ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <AppleMark />
-              <Text style={styles.btnAppleText}>{t('auth.apple')}</Text>
-            </>
-          )}
-        </Pressable>
+        {appleOk ? (
+          <Pressable
+            onPress={() => void onApple()}
+            disabled={busy !== null}
+            style={[styles.btn, styles.btnApple, busy ? styles.btnBusy : null]}
+          >
+            {busy === 'apple' ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <AppleMark />
+                <Text style={styles.btnAppleText}>{t('auth.apple')}</Text>
+              </>
+            )}
+          </Pressable>
+        ) : null}
 
         <Pressable
-          onPress={() => openOAuth('google')}
+          onPress={() => void onGoogle()}
           disabled={busy !== null}
           style={[styles.btn, styles.btnGoogle, busy ? styles.btnBusy : null]}
         >
@@ -118,19 +137,28 @@ export default function SignInChooserScreen() {
         </Pressable>
 
         <Pressable
-          onPress={openEmailSignIn}
+          onPress={() => router.push('/sign-in/email')}
           disabled={busy !== null}
           style={[styles.btn, styles.btnEmail, busy ? styles.btnBusy : null]}
         >
-          {busy === 'email' ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <EmailMark />
-              <Text style={styles.btnEmailText}>{t('auth.continueEmail')}</Text>
-            </>
-          )}
+          <>
+            <EmailMark />
+            <Text style={styles.btnEmailText}>{t('auth.continueEmail')}</Text>
+          </>
         </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/sign-in/sign-up')}
+          disabled={busy !== null}
+          accessibilityRole="button"
+          style={styles.signupLink}
+        >
+          <Text style={styles.signupLinkText}>
+            {t('auth.noAccount')} {t('auth.signUpLink')}
+          </Text>
+        </Pressable>
+
+        {err ? <Text style={styles.err}>{err}</Text> : null}
       </View>
 
       <View style={styles.spacer} />
@@ -224,5 +252,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     ...fp('600'),
+  },
+  signupLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  signupLinkText: {
+    fontSize: 13,
+    color: LOGIN_1B.coral,
+    textAlign: 'center',
+    ...fp('600'),
+  },
+  err: {
+    marginTop: 4,
+    textAlign: 'center',
+    color: '#b42318',
+    fontSize: 12,
+    ...fp('400'),
   },
 });

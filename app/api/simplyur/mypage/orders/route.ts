@@ -1,10 +1,10 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
-import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { isActiveBongsimTopupStatus } from "@/lib/bongsim/fulfillment/active-topup-status";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { formatSimplyurPlanDisplay } from "@/lib/simplyur/plan-display";
 import { simplyurOrderStatusKey } from "@/lib/simplyur/mypage-order-status";
+import { resolveSimplyurApiUser } from "@/lib/simplyur/auth/resolve-simplyur-api-user";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +21,10 @@ type TopupRow = {
  * Foreign-traveler My eSIM — simplyur channel only, localized plan labels (no Korean DB copy).
  */
 export async function GET(req: Request) {
-  const session = await auth();
-  const email = session?.user?.email?.trim().toLowerCase() ?? "";
-  const userId = ((session?.user as { id?: string } | undefined)?.id ?? "").trim();
+  // REGRESSION-FREEZE[simplyur-inapp-auth]: Bearer or cookie — manifest
+  const user = await resolveSimplyurApiUser(req);
+  const email = user?.email ?? "";
+  const userId = user?.userId ?? "";
   if (!email && !userId) {
     return jsonWithLeakGuard({ error: "unauthorized", orders: [] }, "simplyur.mypage.orders", { status: 401 });
   }

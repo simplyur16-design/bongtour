@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fetchKoreaProduct, openSimplyurWebCheckout, type PlanProduct } from '@/src/api/simplyur';
+import { fetchKoreaProduct, openSimplyurInAppCheckout, type PlanProduct } from '@/src/api/simplyur';
 import { PRODUCT_DESIGN as D, type ProductViewState } from '@/src/constants/product-design';
 import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
@@ -70,14 +70,11 @@ export default function ProductScreen() {
     ? t('recommend.perDay').replace('{amount}', perDay)
     : null;
 
-  const onBuy = async () => {
+  const onBuy = () => {
     if (!product || openingPay) return;
     setOpeningPay(true);
-    try {
-      await openSimplyurWebCheckout(locale, product.option_api_id);
-    } finally {
-      setOpeningPay(false);
-    }
+    openSimplyurInAppCheckout(product.option_api_id);
+    setOpeningPay(false);
   };
 
   return (
@@ -131,7 +128,7 @@ export default function ProductScreen() {
                   {openingPay ? t('checkout.processing') : t('product.buyNow')}
                 </Text>
               </Pressable>
-              <Text style={styles.ctaHint}>{t('product.payInBrowserHint')}</Text>
+              <Text style={styles.ctaHint}>{t('product.payInAppHint')}</Text>
             </View>
           ) : (
             <View style={styles.ctaBlock}>

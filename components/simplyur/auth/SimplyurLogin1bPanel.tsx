@@ -24,9 +24,12 @@ type Props = {
     backToMethods: string
     backHome: string
     signInSubmit: string
+    noAccount: string
+    signUpLink: string
   }
   domesticEsimHref: string
   domesticSignInHref: string
+  signUpHref: string
 }
 
 /**
@@ -39,6 +42,7 @@ export function SimplyurLogin1bPanel({
   labels,
   domesticEsimHref,
   domesticSignInHref,
+  signUpHref,
 }: Props) {
   const [showEmail, setShowEmail] = useState(false)
 
@@ -130,6 +134,19 @@ export function SimplyurLogin1bPanel({
               invalidCredentialsLabel={labels.invalidCredentials}
               variant="login1b"
             />
+            <p
+              className="mt-4 text-center text-[12px] leading-relaxed"
+              style={{ color: SIMPLYUR_LOGIN_1B.muted }}
+            >
+              {labels.noAccount}{' '}
+              <Link
+                href={signUpHref}
+                className="font-medium underline"
+                style={{ color: SIMPLYUR_LOGIN_1B.coral }}
+              >
+                {labels.signUpLink}
+              </Link>
+            </p>
           </div>
         )}
       </div>

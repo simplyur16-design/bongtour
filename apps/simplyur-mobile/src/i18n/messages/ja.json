@@ -125,7 +125,8 @@
     "notFoundBody": "このプランは利用できない可能性があります。プラン一覧に戻り、別の日数を選んでください。",
     "notFound": "プランが見つかりません",
     "backToPlans": "プラン一覧へ",
-    "payInBrowserHint": "安全な決済はブラウザで開きます（モバイル決済画面）。"
+    "payInBrowserHint": "安全な決済はアプリ内で開きます（モバイル決済画面）。",
+    "payInAppHint": "安全な決済はアプリ内で開きます（Eximbayモバイル決済）。"
   },
   "checkout": {
     "title": "チェックアウト",
@@ -144,7 +145,8 @@
     "completeBody": "お支払いを確認しました。数分以内にQRコードをメールでお送りします。",
     "orderNumber": "注文番号",
     "viewPlans": "他のプランを見る",
-    "continueInBrowser": "ブラウザで続ける"
+    "continueInBrowser": "決済を続ける",
+    "continueInApp": "決済を続ける"
   },
   "guide": {
     "title": "eSIMのインストール",
@@ -190,15 +192,33 @@
     "appleSubtitle": "Apple IDでログインしてください。",
     "appleNotConfigured": "このサーバーではAppleログインがまだ設定されていません。",
     "email": "メールでログイン",
-    "emailSubtitle": "登録済みのメールとパスワードを入力してください。",
+    "emailSubtitle": "メールとパスワードを入力してください。",
     "invalidCredentials": "メールまたはパスワードが正しくないか、アカウントが制限されています。",
     "or": "または",
     "backToMethods": "他のログイン方法",
     "domesticEsimLink": "韓国在住の方はBong Tour eSIM（봉심）をご利用ください — simplyurではありません",
     "domesticSignInLink": "韓国在住の方はBong Tourでカカオ・ネイバーログイン",
-    "googleNotConfigured": "このサーバーではGoogleログインがまだ設定されていません。",
+    "googleNotConfigured": "このビルドではGoogleログインが未設定です。",
     "errorGeneric": "ログインに失敗しました。もう一度お試しください。",
-    "backHome": "← ホームに戻る"
+    "backHome": "← ホームに戻る",
+    "noAccount": "初めての方は",
+    "signUpLink": "アカウント作成",
+    "haveAccount": "すでにアカウントをお持ちですか？",
+    "signInLink": "サインイン",
+    "signUpTitle": "アカウント作成",
+    "signUpSubtitle": "海外のお客様向けメール登録です。",
+    "confirmPasswordLabel": "パスワード（確認）",
+    "signUpTermsPrefix": "以下に同意します：",
+    "signUpTermsLink": "利用規約",
+    "signUpTermsAnd": "および",
+    "signUpPrivacyLink": "プライバシーポリシー",
+    "signUpSubmit": "アカウントを作成",
+    "signUpErrorGeneric": "アカウントを作成できませんでした。",
+    "signUpErrorInvalidEmail": "有効なメールアドレスを入力してください。",
+    "signUpErrorWeakPassword": "パスワードは8文字以上にしてください。",
+    "signUpErrorEmailTaken": "このメールはすでに登録されています。",
+    "signUpErrorTermsRequired": "利用規約への同意が必要です。",
+    "signUpErrorPasswordMismatch": "パスワードが一致しません。"
   },
   "myEsim": {
     "title": "マイeSIM",

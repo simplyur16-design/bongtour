@@ -1,10 +1,10 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
-import { auth } from "@/auth";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseAllowanceLabel } from "@/lib/bongsim/mypage-esim-display";
 import { fetchUsimsaTopupDailyUsage } from "@/lib/bongsim/supplier/usimsa/usage-api";
 import { isUsimsaSuccess } from "@/lib/bongsim/supplier/usimsa/types";
 import { UsimsaRequestError } from "@/lib/usimsa/client";
+import { resolveSimplyurApiUser } from "@/lib/simplyur/auth/resolve-simplyur-api-user";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +13,10 @@ export const dynamic = "force-dynamic";
  * Usage for simplyur orders only — no Korean user-facing error copy.
  */
 export async function GET(req: Request) {
-  const session = await auth();
-  const email = session?.user?.email?.trim().toLowerCase() ?? "";
-  const userId = ((session?.user as { id?: string } | undefined)?.id ?? "").trim();
+  // REGRESSION-FREEZE[simplyur-inapp-auth]: Bearer or cookie — manifest
+  const user = await resolveSimplyurApiUser(req);
+  const email = user?.email ?? "";
+  const userId = user?.userId ?? "";
   if (!email && !userId) {
     return jsonWithLeakGuard({ error: "unauthorized" }, "simplyur.mypage.usage", { status: 401 });
   }

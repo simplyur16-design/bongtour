@@ -29,6 +29,16 @@ export function buildEmailSignInWebUrl(locale: SimplyurLocale): string {
   return `${base}/simplyur/${locale}/sign-in?${params.toString()}`;
 }
 
+/** 이메일 가입 — 웹 simplyur sign-up (국내 `/api/auth/register` 410과 분리) */
+export function buildEmailSignUpWebUrl(locale: SimplyurLocale): string {
+  const base = getApiBaseUrl();
+  const callbackPath = `/simplyur/${locale}/oauth-complete`;
+  const params = new URLSearchParams({
+    callbackUrl: callbackPath,
+  });
+  return `${base}/simplyur/${locale}/sign-up?${params.toString()}`;
+}
+
 /** RN fetch는 bongtour.com 세션 쿠키를 공유하지 않음 — 웹 My eSIM 브라우저 URL */
 export function buildWebMyEsimUrl(locale: SimplyurLocale): string {
   return `${getApiBaseUrl()}/simplyur/${locale}/my-esim`;

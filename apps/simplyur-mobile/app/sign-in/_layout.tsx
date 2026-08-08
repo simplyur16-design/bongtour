@@ -13,6 +13,7 @@ export default function SignInLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="email" />
+      <Stack.Screen name="sign-up" />
     </Stack>
   );
 }

@@ -125,7 +125,8 @@
     "notFoundBody": "该套餐可能已下架。请返回并选择其他行程天数。",
     "notFound": "未找到套餐",
     "backToPlans": "返回套餐列表",
-    "payInBrowserHint": "安全结账将在浏览器中打开（移动支付界面）。"
+    "payInBrowserHint": "安全结账将在应用内打开（移动支付界面）。",
+    "payInAppHint": "安全结账将在应用内打开（Eximbay 移动支付）。"
   },
   "checkout": {
     "title": "结账",
@@ -144,7 +145,8 @@
     "completeBody": "支付已确认。韩国 eSIM QR 码将在几分钟内发送到您的邮箱。",
     "orderNumber": "订单号",
     "viewPlans": "浏览更多套餐",
-    "continueInBrowser": "在浏览器中继续"
+    "continueInBrowser": "继续结账",
+    "continueInApp": "继续结账"
   },
   "guide": {
     "title": "安装 eSIM",
@@ -196,9 +198,27 @@
     "backToMethods": "其他登录方式",
     "domesticEsimLink": "韩国居民请使用 Bong Tour eSIM（봉심），非 simplyur",
     "domesticSignInLink": "韩国居民请前往 Bong Tour 使用 Kakao/Naver 登录",
-    "googleNotConfigured": "此服务器尚未配置 Google 登录。",
+    "googleNotConfigured": "此构建尚未配置 Google 登录。",
     "errorGeneric": "登录失败，请重试或使用其他方式。",
-    "backHome": "← 返回首页"
+    "backHome": "← 返回首页",
+    "noAccount": "还没有账号？",
+    "signUpLink": "创建账号",
+    "haveAccount": "已有账号？",
+    "signInLink": "登录",
+    "signUpTitle": "创建账号",
+    "signUpSubtitle": "面向国际游客的邮箱注册。",
+    "confirmPasswordLabel": "确认密码",
+    "signUpTermsPrefix": "我同意",
+    "signUpTermsLink": "服务条款",
+    "signUpTermsAnd": "和",
+    "signUpPrivacyLink": "隐私政策",
+    "signUpSubmit": "创建账号",
+    "signUpErrorGeneric": "无法创建账号，请重试。",
+    "signUpErrorInvalidEmail": "请输入有效的邮箱地址。",
+    "signUpErrorWeakPassword": "密码至少需要 8 个字符。",
+    "signUpErrorEmailTaken": "该邮箱已注册，请直接登录。",
+    "signUpErrorTermsRequired": "请同意服务条款和隐私政策。",
+    "signUpErrorPasswordMismatch": "两次输入的密码不一致。"
   },
   "myEsim": {
     "title": "我的 eSIM",

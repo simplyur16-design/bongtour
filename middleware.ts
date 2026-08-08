@@ -28,8 +28,13 @@ import {
   SIMPLYUR_SURFACE_VALUE,
 } from '@/lib/surface/simplyur-surface'
 import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
+import {
+  clearSimplyurOAuthReturnCookie,
+  readSimplyurOAuthReturnPath,
+} from '@/lib/auth/simplyur-oauth-return-cookie'
 
 // REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur surface 헤더 — manifest
+// REGRESSION-FREEZE[simplyur-oauth-home-bridge]: / → simplyur oauth-complete — manifest
 
 const BYPASS_COOKIE_MAX_AGE = 60 * 60 // 1시간
 
@@ -258,6 +263,14 @@ export async function middleware(req: NextRequest) {
   // REGRESSION-FREEZE[home-single-device-ssr]: mobile UA → /m rewrite (URL은 /) — manifest
   // consent/admin 가드 이후에만 — pending 유저가 / 에서 우회되지 않게.
   if (pathname === '/' || pathname === '/m') {
+    // simplyur app Google/Apple: Auth.js callbackUrl 유실 시 baseUrl(/)로 떨어짐 → 브릿지로 복귀
+    const simplyurOAuthReturn = readSimplyurOAuthReturnPath(req)
+    if (simplyurOAuthReturn) {
+      const bridge = NextResponse.redirect(new URL(simplyurOAuthReturn, req.url))
+      clearSimplyurOAuthReturnCookie(bridge)
+      return bridge
+    }
+
     const mobile = isMobileUserAgent(req.headers.get('user-agent'))
     let homeRes: NextResponse
     if (pathname === '/' && mobile) {

@@ -54,33 +54,37 @@ const appleProvider = appleOAuthProvider()
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  ...(sessionCookieDomain
-    ? {
-        cookies: {
-          sessionToken: {
-            name: `${sessionCookiePrefix}authjs.session-token`,
-            options: sharedCookieOptions,
-          },
-          // Cross-site OAuth return (esp. Apple form_post) — not Lax
-          pkceCodeVerifier: {
-            name: `${sessionCookiePrefix}authjs.pkce.code_verifier`,
-            options: oauthCookieOptions,
-          },
-          state: {
-            name: `${sessionCookiePrefix}authjs.state`,
-            options: oauthCookieOptions,
-          },
-          nonce: {
-            name: `${sessionCookiePrefix}authjs.nonce`,
-            options: oauthCookieOptions,
-          },
-          callbackUrl: {
-            name: `${sessionCookiePrefix}authjs.callback-url`,
-            options: oauthCookieOptions,
-          },
-        },
-      }
-    : {}),
+  // Always override OAuth cookies — do not gate on cookie domain.
+  // Gating left Apple/Google return on Auth.js defaults (Lax) → callback lost → bongtour.com/
+  // REGRESSION-FREEZE[auth-js-oauth-cookies-samesite-none]: always apply oauthCookieOptions — manifest
+  // REGRESSION-FREEZE[simplyur-oauth-home-bridge]: cookies always on — manifest
+  cookies: {
+    sessionToken: {
+      name: `${sessionCookiePrefix}authjs.session-token`,
+      options: {
+        ...sharedCookieOptions,
+        ...(sessionCookieDomain ? { domain: sessionCookieDomain } : {}),
+        secure: sessionCookieSecure || sharedCookieOptions.secure,
+      },
+    },
+    // Cross-site OAuth return (esp. Apple form_post) — not Lax
+    pkceCodeVerifier: {
+      name: `${sessionCookiePrefix}authjs.pkce.code_verifier`,
+      options: oauthCookieOptions,
+    },
+    state: {
+      name: `${sessionCookiePrefix}authjs.state`,
+      options: oauthCookieOptions,
+    },
+    nonce: {
+      name: `${sessionCookiePrefix}authjs.nonce`,
+      options: oauthCookieOptions,
+    },
+    callbackUrl: {
+      name: `${sessionCookiePrefix}authjs.callback-url`,
+      options: oauthCookieOptions,
+    },
+  },
   adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
