@@ -13433,7 +13433,7 @@
             "consents->>'bongtour_user_id'"
           ],
           "mustNotInclude": [
-            "o.user_id"
+            "o.user_id::text"
           ]
         },
         {
