@@ -3,16 +3,23 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 
-import { simplyurWebCheckoutUrl } from '@/src/api/simplyur';
+import {
+  buildEximbayPayHtml,
+  confirmSimplyurCheckout,
+  createSimplyurEximbaySession,
+} from '@/src/api/checkout';
+import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
 import { LOGIN_1B } from '@/src/constants/login-design';
-import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
+import { getApiBaseUrl, isSimplyurCheckoutEnabled, simplyurWebLegalUrl } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
@@ -20,9 +27,9 @@ import { classifySimplyurCheckoutWebViewUrl } from '@/src/lib/checkout-webview-n
 import { loadSimplyurSession } from '@/src/lib/session';
 
 /**
- * In-app Eximbay checkout — WebView only (no system browser / no external app windows).
+ * Native checkout form → full-screen Eximbay WebView (not website page, not system browser).
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: WebView pay — manifest
- * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: block external schemes — manifest
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: native checkout screen — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -32,22 +39,37 @@ export default function CheckoutScreen() {
   const id = String(optionApiId ?? '').trim();
   const handledRef = useRef(false);
   const webRef = useRef<React.ElementRef<typeof WebView>>(null);
-  const [loading, setLoading] = useState(true);
-  const [navError, setNavError] = useState(false);
+  const idemRef = useRef(`su_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`);
+
+  const [product, setProduct] = useState<PlanProduct | null>(null);
+  const [email, setEmail] = useState('');
+  const [emailLocked, setEmailLocked] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [terms, setTerms] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [phase, setPhase] = useState<'form' | 'pay'>('form');
+  const [payHtml, setPayHtml] = useState('');
+  const [payLoading, setPayLoading] = useState(false);
   const [externalBlocked, setExternalBlocked] = useState(false);
-  const [webKey, setWebKey] = useState(0);
-  const [checkoutUrl, setCheckoutUrl] = useState('');
 
   useEffect(() => {
-    if (!id) {
-      setCheckoutUrl('');
-      return;
-    }
+    if (!id) return;
     let cancelled = false;
     void (async () => {
-      const session = await loadSimplyurSession();
-      const email = session?.email || loadCheckoutBuyerEmail();
-      if (!cancelled) setCheckoutUrl(simplyurWebCheckoutUrl(locale, id, email));
+      const [p, session] = await Promise.all([
+        fetchKoreaProduct(id, locale).catch(() => null),
+        loadSimplyurSession(),
+      ]);
+      if (cancelled) return;
+      setProduct(p);
+      const fromSession = (session?.email ?? '').trim();
+      const fromCheckout = loadCheckoutBuyerEmail();
+      const picked = fromSession || fromCheckout;
+      if (picked.includes('@')) {
+        setEmail(picked);
+        setEmailLocked(Boolean(fromSession));
+      }
     })();
     return () => {
       cancelled = true;
@@ -63,9 +85,7 @@ export default function CheckoutScreen() {
   const onNavChange = useCallback(
     (nav: WebViewNavigation) => {
       const classified = classifySimplyurCheckoutWebViewUrl(nav.url);
-      if (classified.kind === 'complete') {
-        finishComplete();
-      }
+      if (classified.kind === 'complete') finishComplete();
     },
     [finishComplete],
   );
@@ -78,7 +98,6 @@ export default function CheckoutScreen() {
         return false;
       }
       if (classified.kind === 'external_app') {
-        // Stay in-app: never open Alipay/bank custom schemes or new windows.
         setExternalBlocked(true);
         return false;
       }
@@ -86,6 +105,45 @@ export default function CheckoutScreen() {
     },
     [finishComplete],
   );
+
+  async function onSubmit() {
+    if (!product || busy) return;
+    setErr('');
+    if (!email.trim().includes('@')) {
+      setErr(t('checkout.errorGeneric'));
+      return;
+    }
+    if (!terms) {
+      setErr(t('checkout.errorGeneric'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const order = await confirmSimplyurCheckout({
+        optionApiId: product.option_api_id,
+        email,
+        phone,
+        locale,
+        idempotencyKey: idemRef.current,
+      });
+      const client = await createSimplyurEximbaySession({
+        orderId: order.order_id,
+        orderNumber: order.order_number,
+        locale,
+        optionApiId: product.option_api_id,
+        idempotencyKey: idemRef.current,
+      });
+      setPayHtml(buildEximbayPayHtml(client.sdk_script_url, client.request_pay));
+      setPhase('pay');
+      setPayLoading(true);
+    } catch {
+      setErr(t('checkout.errorGeneric'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const price = product?.simplyur_display?.formatted ?? '—';
 
   if (!checkoutEnabled) {
     return (
@@ -101,7 +159,7 @@ export default function CheckoutScreen() {
     );
   }
 
-  if (!id || !checkoutUrl) {
+  if (!id) {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 16, backgroundColor: LOGIN_1B.bg }]}>
         <Text style={styles.title}>{t('checkout.title')}</Text>
@@ -115,88 +173,179 @@ export default function CheckoutScreen() {
     );
   }
 
-  return (
-    <View style={[styles.flex, { paddingTop: insets.top, backgroundColor: LOGIN_1B.bg }]}>
-      <View style={styles.toolbar}>
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button">
-          <Text style={styles.back}>← {t('product.backToPlans')}</Text>
-        </Pressable>
-        <Text style={styles.toolbarTitle} numberOfLines={1}>
-          {t('checkout.title')}
-        </Text>
-        <View style={styles.toolbarSpacer} />
-      </View>
-
-      {navError || externalBlocked ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.body}>
-            {externalBlocked ? t('checkout.stayInAppOnly') : t('checkout.errorGeneric')}
-          </Text>
+  if (phase === 'pay' && payHtml) {
+    return (
+      <View style={[styles.flex, { paddingTop: insets.top, backgroundColor: LOGIN_1B.bg }]}>
+        <View style={styles.toolbar}>
           <Pressable
             onPress={() => {
-              setNavError(false);
+              setPhase('form');
+              setPayHtml('');
               setExternalBlocked(false);
-              setLoading(true);
-              setWebKey((k) => k + 1);
-            }}>
-            <Text style={styles.link}>{t('checkout.continueInApp')}</Text>
+            }}
+            hitSlop={10}
+            accessibilityRole="button">
+            <Text style={styles.back}>← {t('checkout.title')}</Text>
           </Pressable>
+          <Text style={styles.toolbarTitle} numberOfLines={1}>
+            {t('checkout.submit')}
+          </Text>
+          <View style={styles.toolbarSpacer} />
         </View>
-      ) : null}
 
-      <View style={styles.flex}>
-        {loading ? (
-          <View style={styles.loadingOverlay} pointerEvents="none">
-            <ActivityIndicator color={LOGIN_1B.coral} size="large" />
-            <Text style={styles.loadingHint}>{t('checkout.processing')}</Text>
+        {externalBlocked ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.body}>{t('checkout.stayInAppOnly')}</Text>
+            <Pressable
+              onPress={() => {
+                setExternalBlocked(false);
+                setPayLoading(true);
+                setPayHtml((h) => h + ' ');
+              }}>
+              <Text style={styles.link}>{t('checkout.continueInApp')}</Text>
+            </Pressable>
           </View>
         ) : null}
-        <WebView
-          key={webKey}
-          ref={webRef}
-          source={{ uri: checkoutUrl }}
-          style={styles.flex}
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
-          onError={() => {
-            setLoading(false);
-            setNavError(true);
-          }}
-          onNavigationStateChange={onNavChange}
-          onShouldStartLoadWithRequest={onShouldStart}
-          setSupportMultipleWindows={false}
-          javaScriptEnabled
-          domStorageEnabled
-          sharedCookiesEnabled
-          thirdPartyCookiesEnabled
-          startInLoadingState
-          allowsBackForwardNavigationGestures
-          // Eximbay / 3DS may request a secondary window — keep https inside this WebView
-          onOpenWindow={(e) => {
-            const target = e.nativeEvent.targetUrl;
-            if (!target) return;
-            const classified = classifySimplyurCheckoutWebViewUrl(target);
-            if (classified.kind === 'complete') {
-              finishComplete();
-              return;
-            }
-            if (classified.kind === 'external_app') {
-              setExternalBlocked(true);
-              return;
-            }
-            webRef.current?.injectJavaScript(
-              `window.location.href = ${JSON.stringify(target)}; true;`,
-            );
-          }}
-        />
+
+        <View style={styles.flex}>
+          {payLoading ? (
+            <View style={styles.loadingOverlay} pointerEvents="none">
+              <ActivityIndicator color={LOGIN_1B.coral} size="large" />
+              <Text style={styles.loadingHint}>{t('checkout.processing')}</Text>
+            </View>
+          ) : null}
+          <WebView
+            ref={webRef}
+            originWhitelist={['*']}
+            source={{
+              html: payHtml,
+              baseUrl: getApiBaseUrl().replace(/\/+$/, ''),
+            }}
+            style={styles.flex}
+            onLoadStart={() => setPayLoading(true)}
+            onLoadEnd={() => setPayLoading(false)}
+            onNavigationStateChange={onNavChange}
+            onShouldStartLoadWithRequest={onShouldStart}
+            setSupportMultipleWindows={false}
+            javaScriptEnabled
+            domStorageEnabled
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
+            startInLoadingState
+            allowsBackForwardNavigationGestures
+            onOpenWindow={(e) => {
+              const target = e.nativeEvent.targetUrl;
+              if (!target) return;
+              const classified = classifySimplyurCheckoutWebViewUrl(target);
+              if (classified.kind === 'complete') {
+                finishComplete();
+                return;
+              }
+              if (classified.kind === 'external_app') {
+                setExternalBlocked(true);
+                return;
+              }
+              webRef.current?.injectJavaScript(
+                `window.location.href = ${JSON.stringify(target)}; true;`,
+              );
+            }}
+          />
+        </View>
       </View>
-    </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={[styles.flex, { backgroundColor: LOGIN_1B.bg }]}
+      contentContainerStyle={[
+        styles.formContent,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 },
+      ]}
+      keyboardShouldPersistTaps="handled">
+      <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backRow}>
+        <Text style={styles.back}>← {t('product.backToPlans')}</Text>
+      </Pressable>
+
+      <Text style={styles.title}>{t('checkout.title')}</Text>
+
+      {!product ? (
+        <ActivityIndicator color={LOGIN_1B.coral} style={{ marginTop: 24 }} />
+      ) : (
+        <>
+          <View style={styles.summary}>
+            <Text style={styles.summaryLabel}>{t('checkout.summary')}</Text>
+            <Text style={styles.summaryPrice}>{price}</Text>
+          </View>
+
+          <Text style={styles.label}>{t('checkout.email')}</Text>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            editable={!emailLocked}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            placeholder={t('checkout.emailHint')}
+            placeholderTextColor={LOGIN_1B.faint}
+            style={[styles.input, emailLocked ? styles.inputLocked : null]}
+          />
+          <Text style={styles.hint}>{t('checkout.emailHint')}</Text>
+
+          <Text style={styles.label}>{t('checkout.phone')}</Text>
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder={t('checkout.phoneHint')}
+            placeholderTextColor={LOGIN_1B.faint}
+            style={styles.input}
+          />
+
+          <Pressable
+            onPress={() => setTerms((v) => !v)}
+            style={styles.termsRow}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: terms }}>
+            <View style={[styles.checkbox, terms ? styles.checkboxOn : null]}>
+              {terms ? <Text style={styles.checkMark}>✓</Text> : null}
+            </View>
+            <Text style={styles.termsText}>{t('checkout.terms')}</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/in-app-web',
+                params: { path: simplyurWebLegalUrl(locale, 'terms'), title: t('checkout.terms') },
+              })
+            }>
+            <Text style={styles.legalLink}>{t('checkout.terms')}</Text>
+          </Pressable>
+
+          {err ? <Text style={styles.err}>{err}</Text> : null}
+
+          <Pressable
+            style={[styles.cta, busy ? { opacity: 0.7 } : null]}
+            disabled={busy}
+            onPress={() => void onSubmit()}>
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.ctaText}>{t('checkout.submit')}</Text>
+            )}
+          </Pressable>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   root: { flex: 1, paddingHorizontal: 20 },
+  formContent: { paddingHorizontal: 20, gap: 10 },
+  backRow: { marginBottom: 8 },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,6 +368,56 @@ const styles = StyleSheet.create({
   body: { marginTop: 12, fontSize: 14, lineHeight: 21, color: LOGIN_1B.muted, ...fp('400') },
   linkWrap: { marginTop: 20 },
   link: { fontSize: 15, color: LOGIN_1B.coral, ...fp('600') },
+  summary: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: '#fff',
+    gap: 6,
+  },
+  summaryLabel: { fontSize: 13, color: LOGIN_1B.muted, ...fp('400') },
+  summaryPrice: { fontSize: 28, color: LOGIN_1B.coral, ...fp('800') },
+  label: { marginTop: 10, fontSize: 13, color: LOGIN_1B.navy, ...fp('600') },
+  input: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: LOGIN_1B.navy,
+    ...fp('400'),
+  },
+  inputLocked: { backgroundColor: '#f3f0ee' },
+  hint: { fontSize: 12, color: LOGIN_1B.faint, ...fp('400') },
+  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: LOGIN_1B.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
+  checkMark: { color: '#fff', fontSize: 14, ...fp('700') },
+  termsText: { flex: 1, fontSize: 14, color: LOGIN_1B.navy, ...fp('400') },
+  legalLink: { fontSize: 13, color: LOGIN_1B.coral, ...fp('600') },
+  err: { color: '#b42318', fontSize: 13, ...fp('400') },
+  cta: {
+    marginTop: 8,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: LOGIN_1B.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: { color: '#fff', fontSize: 16, ...fp('600') },
   errorBox: { padding: 16, gap: 12 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

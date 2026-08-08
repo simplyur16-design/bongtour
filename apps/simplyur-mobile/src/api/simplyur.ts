@@ -58,7 +58,7 @@ export function simplyurWebCheckoutUrl(
 }
 
 /**
- * Open in-app Eximbay checkout WebView (not system browser).
+ * Open native in-app checkout screen (form + Eximbay pay WebView).
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: router → /checkout WebView — manifest
  */
 export function openSimplyurInAppCheckout(optionApiId: string): void {

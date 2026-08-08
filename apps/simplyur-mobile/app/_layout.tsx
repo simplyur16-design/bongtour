@@ -53,13 +53,23 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ animation: 'slide_from_right', presentation: 'card' }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="oauth-complete" options={{ headerShown: false }} />
         <Stack.Screen name="product/[optionApiId]" options={{ headerShown: false, title: '' }} />
-        <Stack.Screen name="checkout" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen
+          name="checkout"
+          options={{
+            headerShown: false,
+            title: '',
+            // Full app screen — never bottom-sheet / fade_from_bottom
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen name="in-app-web" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Language' }} />
       </Stack>
     </ThemeProvider>

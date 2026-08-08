@@ -126,7 +126,7 @@
     "notFound": "Plan not found",
     "backToPlans": "Back to plans",
     "payInBrowserHint": "Secure checkout opens in the app (mobile payment).",
-    "payInAppHint": "Secure checkout opens in the app (Eximbay mobile payment)."
+    "payInAppHint": "Checkout continues on the next app screen — no browser window."
   },
   "checkout": {
     "title": "Checkout",

@@ -2771,7 +2771,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "simplyur 앱 Eximbay 결제 — 외부 브라우저 금지, 인앱 WebView",
+      "summary": "simplyur 앱 Eximbay 결제 — 네이티브 체크아웃 화면 + 인앱 WebView 결제 (웹사이트 checkout 페이지 금지)",
       "checks": [
         {
           "file": "apps/simplyur-mobile/app/checkout.tsx",
@@ -2779,12 +2779,25 @@
             "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
             "react-native-webview",
             "classifySimplyurCheckoutWebViewUrl",
-            "setSupportMultipleWindows={false}"
+            "setSupportMultipleWindows={false}",
+            "buildEximbayPayHtml",
+            "confirmSimplyurCheckout",
+            "phase === 'pay'"
           ],
           "mustNotInclude": [
             "openBrowserAsync",
             "expo-web-browser",
-            "Linking.openURL"
+            "Linking.openURL",
+            "simplyurWebCheckoutUrl"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/api/checkout.ts",
+          "mustInclude": [
+            "confirmSimplyurCheckout",
+            "createSimplyurEximbaySession",
+            "buildEximbayPayHtml",
+            "eximbay_ostype: 'M'"
           ]
         },
         {
