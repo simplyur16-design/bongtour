@@ -146,7 +146,8 @@
     "orderNumber": "Mã đơn",
     "viewPlans": "Xem thêm gói",
     "continueInBrowser": "Tiếp tục thanh toán",
-    "continueInApp": "Tiếp tục thanh toán"
+    "continueInApp": "Tiếp tục thanh toán",
+    "stayInAppOnly": "Phương thức này cần mở ứng dụng khác. Vui lòng chọn thẻ hoặc cách thanh toán trong simplyur."
   },
   "guide": {
     "title": "Cài eSIM",

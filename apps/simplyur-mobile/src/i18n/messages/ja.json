@@ -146,7 +146,8 @@
     "orderNumber": "注文番号",
     "viewPlans": "他のプランを見る",
     "continueInBrowser": "決済を続ける",
-    "continueInApp": "決済を続ける"
+    "continueInApp": "決済を続ける",
+    "stayInAppOnly": "この支払い方法は別アプリが必要です。カードなどアプリ内の方法を選んでください。"
   },
   "guide": {
     "title": "eSIMのインストール",

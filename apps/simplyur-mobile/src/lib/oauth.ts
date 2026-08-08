@@ -1,45 +1,11 @@
-import * as Linking from 'expo-linking';
-
 import { getApiBaseUrl, type SimplyurLocale } from '@/src/constants/simplyur';
 
-export type OAuthMobileProvider = 'google' | 'apple';
+/**
+ * Legacy web URL helpers (unused by app login/checkout).
+ * App auth uses native-oauth + mobile-session; checkout uses in-app WebView.
+ */
 
-/** openAuthSessionAsync — 앱 복귀 redirectUri (simplyur://oauth-complete) */
-export function mobileOAuthRedirectUri(): string {
-  return Linking.createURL('oauth-complete');
-}
-
-/** GET /api/auth/oauth-start — locale·returnTo=app SSOT */
-export function buildOAuthStartUrl(provider: OAuthMobileProvider, locale: SimplyurLocale): string {
-  const base = getApiBaseUrl();
-  const params = new URLSearchParams({
-    locale,
-    returnTo: 'app',
-  });
-  return `${base}/api/auth/oauth-start/${provider}?${params.toString()}`;
-}
-
-/** 이메일 로그인 — 웹 simplyur sign-in → oauth-complete → 앱 딥링크 */
-export function buildEmailSignInWebUrl(locale: SimplyurLocale): string {
-  const base = getApiBaseUrl();
-  const callbackPath = `/simplyur/${locale}/oauth-complete`;
-  const params = new URLSearchParams({
-    callbackUrl: callbackPath,
-  });
-  return `${base}/simplyur/${locale}/sign-in?${params.toString()}`;
-}
-
-/** 이메일 가입 — 웹 simplyur sign-up (국내 `/api/auth/register` 410과 분리) */
-export function buildEmailSignUpWebUrl(locale: SimplyurLocale): string {
-  const base = getApiBaseUrl();
-  const callbackPath = `/simplyur/${locale}/oauth-complete`;
-  const params = new URLSearchParams({
-    callbackUrl: callbackPath,
-  });
-  return `${base}/simplyur/${locale}/sign-up?${params.toString()}`;
-}
-
-/** RN fetch는 bongtour.com 세션 쿠키를 공유하지 않음 — 웹 My eSIM 브라우저 URL */
+/** 웹 My eSIM URL (디버그/지원용). 앱 My eSIM은 Bearer API. */
 export function buildWebMyEsimUrl(locale: SimplyurLocale): string {
   return `${getApiBaseUrl()}/simplyur/${locale}/my-esim`;
 }

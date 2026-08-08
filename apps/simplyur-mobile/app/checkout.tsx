@@ -1,5 +1,4 @@
 import { Link, router, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,8 +20,9 @@ import { classifySimplyurCheckoutWebViewUrl } from '@/src/lib/checkout-webview-n
 import { loadSimplyurSession } from '@/src/lib/session';
 
 /**
- * In-app Eximbay checkout — WebView (not system browser).
+ * In-app Eximbay checkout — WebView only (no system browser / no external app windows).
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: WebView pay — manifest
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: block external schemes — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -34,6 +34,7 @@ export default function CheckoutScreen() {
   const webRef = useRef<React.ElementRef<typeof WebView>>(null);
   const [loading, setLoading] = useState(true);
   const [navError, setNavError] = useState(false);
+  const [externalBlocked, setExternalBlocked] = useState(false);
   const [webKey, setWebKey] = useState(0);
   const [checkoutUrl, setCheckoutUrl] = useState('');
 
@@ -77,7 +78,8 @@ export default function CheckoutScreen() {
         return false;
       }
       if (classified.kind === 'external_app') {
-        void Linking.openURL(classified.url).catch(() => {});
+        // Stay in-app: never open Alipay/bank custom schemes or new windows.
+        setExternalBlocked(true);
         return false;
       }
       return true;
@@ -125,12 +127,15 @@ export default function CheckoutScreen() {
         <View style={styles.toolbarSpacer} />
       </View>
 
-      {navError ? (
+      {navError || externalBlocked ? (
         <View style={styles.errorBox}>
-          <Text style={styles.body}>{t('checkout.errorGeneric')}</Text>
+          <Text style={styles.body}>
+            {externalBlocked ? t('checkout.stayInAppOnly') : t('checkout.errorGeneric')}
+          </Text>
           <Pressable
             onPress={() => {
               setNavError(false);
+              setExternalBlocked(false);
               setLoading(true);
               setWebKey((k) => k + 1);
             }}>
@@ -166,7 +171,7 @@ export default function CheckoutScreen() {
           thirdPartyCookiesEnabled
           startInLoadingState
           allowsBackForwardNavigationGestures
-          // Eximbay / 3DS may open a secondary window — fold into this WebView
+          // Eximbay / 3DS may request a secondary window — keep https inside this WebView
           onOpenWindow={(e) => {
             const target = e.nativeEvent.targetUrl;
             if (!target) return;
@@ -176,7 +181,7 @@ export default function CheckoutScreen() {
               return;
             }
             if (classified.kind === 'external_app') {
-              void Linking.openURL(classified.url).catch(() => {});
+              setExternalBlocked(true);
               return;
             }
             webRef.current?.injectJavaScript(

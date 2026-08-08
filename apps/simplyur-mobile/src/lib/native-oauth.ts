@@ -1,10 +1,10 @@
 /**
- * Native Google / Apple sign-in (no system browser login sheet for auth).
+ * Native Google / Apple sign-in — system account chooser only (no Safari / Chrome auth window).
  * REGRESSION-FREEZE[simplyur-inapp-auth]: native oauth helpers — manifest
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: GoogleSignin SDK — manifest
  */
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import {
@@ -12,7 +12,7 @@ import {
   signInWithGoogleIdToken,
 } from '@/src/api/auth';
 
-WebBrowser.maybeCompleteAuthSession();
+let googleConfigured = false;
 
 function googleWebClientId(): string {
   return (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim();
@@ -22,25 +22,32 @@ function googleIosClientId(): string {
   return (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '').trim();
 }
 
-function googleAndroidClientId(): string {
-  return (process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '').trim();
-}
-
 export function isGoogleNativeConfigured(): boolean {
-  // Web client id is enough for id_token verify on server; platform ids preferred.
-  return Boolean(googleWebClientId() || googleIosClientId() || googleAndroidClientId());
+  return Boolean(googleWebClientId() || googleIosClientId());
 }
 
-export function useGoogleIdTokenRequest() {
-  return Google.useIdTokenAuthRequest({
-    webClientId: googleWebClientId() || undefined,
-    iosClientId: googleIosClientId() || googleWebClientId() || undefined,
-    androidClientId: googleAndroidClientId() || googleWebClientId() || undefined,
+function ensureGoogleConfigured(): void {
+  if (googleConfigured) return;
+  const webClientId = googleWebClientId() || undefined;
+  const iosClientId = googleIosClientId() || undefined;
+  GoogleSignin.configure({
+    webClientId,
+    ...(iosClientId ? { iosClientId } : {}),
+    offlineAccess: false,
   });
+  googleConfigured = true;
 }
 
-export async function completeGoogleSignIn(idToken: string | undefined | null) {
-  const token = (idToken ?? '').trim();
+/** Native Google account picker → id_token → mobile-session (no system browser). */
+export async function signInWithGoogleNative() {
+  if (!isGoogleNativeConfigured()) throw new Error('oauth_not_configured');
+  ensureGoogleConfigured();
+  if (Platform.OS === 'android') {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  }
+  const result = await GoogleSignin.signIn();
+  if (result.type !== 'success') throw new Error('oauth_cancelled');
+  const token = (result.data.idToken ?? '').trim();
   if (!token) throw new Error('oauth_invalid_token');
   return signInWithGoogleIdToken(token);
 }

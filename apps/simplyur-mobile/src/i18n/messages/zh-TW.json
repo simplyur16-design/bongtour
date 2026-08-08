@@ -146,7 +146,8 @@
     "orderNumber": "訂單編號",
     "viewPlans": "瀏覽更多方案",
     "continueInBrowser": "繼續結帳",
-    "continueInApp": "繼續結帳"
+    "continueInApp": "繼續結帳",
+    "stayInAppOnly": "此付款方式需要開啟其他應用程式。請選擇可在 simplyur 內完成的信用卡等方式。"
   },
   "guide": {
     "title": "安裝 eSIM",

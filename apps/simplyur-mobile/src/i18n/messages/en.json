@@ -146,12 +146,13 @@
     "orderNumber": "Order number",
     "viewPlans": "Browse more plans",
     "continueInBrowser": "Continue checkout",
-    "continueInApp": "Continue checkout"
+    "continueInApp": "Continue checkout",
+    "stayInAppOnly": "This payment method needs another app. Please choose a card or in-app method and stay in simplyur."
   },
   "guide": {
     "title": "How to install your eSIM",
     "intro": "This guide matches the simplyur website and app flow. You can browse Korea plans today; after checkout and payment go live, your QR arrives by email (and in My eSIM when signed in).",
-    "flowPhaseNote": "Live now: Korea plans, prices, install guide, and checkout payment in the browser.",
+    "flowPhaseNote": "Live now: Korea plans, prices, install guide, and in-app checkout payment.",
     "tabs": {
       "precheck": "Before you start",
       "iphone": "iPhone",

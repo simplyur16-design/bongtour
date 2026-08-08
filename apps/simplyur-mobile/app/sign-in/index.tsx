@@ -16,16 +16,16 @@ import { LOGIN_1B } from '@/src/constants/login-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import {
-  completeGoogleSignIn,
   isAppleNativeAvailable,
   isGoogleNativeConfigured,
   signInWithAppleNative,
-  useGoogleIdTokenRequest,
+  signInWithGoogleNative,
 } from '@/src/lib/native-oauth';
 
 /**
- * design_handoff_login_1b — in-app Apple · Google · Email (no WebBrowser auth).
+ * design_handoff_login_1b — in-app Apple · Google · Email (no external auth window).
  * REGRESSION-FREEZE[simplyur-inapp-auth]: native chooser — manifest
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: native Google SDK only — manifest
  */
 export default function SignInChooserScreen() {
   const { t } = useI18n();
@@ -34,21 +34,10 @@ export default function SignInChooserScreen() {
   const [err, setErr] = useState('');
   const [appleOk, setAppleOk] = useState(Platform.OS === 'ios');
   const googleConfigured = isGoogleNativeConfigured();
-  const [googleRequest, googleResponse, googlePrompt] = useGoogleIdTokenRequest();
 
   useEffect(() => {
     void isAppleNativeAvailable().then(setAppleOk);
   }, []);
-
-  useEffect(() => {
-    if (googleResponse?.type !== 'success') return;
-    const idToken = googleResponse.params.id_token;
-    setBusy('google');
-    void completeGoogleSignIn(idToken)
-      .then(() => router.replace('/(tabs)/my-esim'))
-      .catch(() => setErr(t('auth.errorGeneric')))
-      .finally(() => setBusy(null));
-  }, [googleResponse, t]);
 
   async function onApple() {
     setErr('');
@@ -65,16 +54,17 @@ export default function SignInChooserScreen() {
 
   async function onGoogle() {
     setErr('');
-    if (!googleConfigured || !googleRequest) {
+    if (!googleConfigured) {
       setErr(t('auth.googleNotConfigured'));
       return;
     }
     setBusy('google');
     try {
-      const result = await googlePrompt();
-      if (result?.type !== 'success') setBusy(null);
+      await signInWithGoogleNative();
+      router.replace('/(tabs)/my-esim');
     } catch {
       setErr(t('auth.errorGeneric'));
+    } finally {
       setBusy(null);
     }
   }

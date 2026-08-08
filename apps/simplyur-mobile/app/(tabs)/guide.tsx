@@ -1,10 +1,9 @@
-import * as WebBrowser from 'expo-web-browser';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GUIDE_DESIGN as D } from '@/src/constants/guide-design';
-import { getApiBaseUrl } from '@/src/constants/simplyur';
 import { getSimplyurGuideMessages } from '@/src/guide/by-locale';
 import type { SimplyurGuideMockRow, SimplyurGuidePrecheckCard, SimplyurGuideStepCard } from '@/src/guide/guide-types';
 import {
@@ -19,9 +18,12 @@ import { useI18n } from '@/src/i18n/I18nContext';
 
 type TabKey = 'precheck' | 'iphone' | 'android';
 
-/** design_handoff_guide — Install guide (Expo iOS + Android) */
+/**
+ * design_handoff_guide — Install guide (Expo iOS + Android)
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: devices in-app WebView — manifest
+ */
 export default function GuideScreen() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const guide = getSimplyurGuideMessages(locale);
   const [tab, setTab] = useState<TabKey>('precheck');
@@ -35,9 +37,11 @@ export default function GuideScreen() {
   const stepCards = tab === 'iphone' ? iphoneSteps : androidSteps;
   const devicesLabel = guide.devicesLinkLabel ?? 'Compatible devices';
 
-  async function openDevices() {
-    const base = getApiBaseUrl().replace(/\/+$/, '');
-    await WebBrowser.openBrowserAsync(`${base}/simplyur/${locale}/devices`);
+  function openDevices() {
+    router.push({
+      pathname: '/in-app-web',
+      params: { path: 'devices', title: t('hero.deviceLink') },
+    });
   }
 
   function toggleFaq(index: number) {

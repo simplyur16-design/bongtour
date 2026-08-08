@@ -2783,7 +2783,8 @@
           ],
           "mustNotInclude": [
             "openBrowserAsync",
-            "expo-web-browser"
+            "expo-web-browser",
+            "Linking.openURL"
           ]
         },
         {
@@ -11023,11 +11024,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-auth]",
             "signInWithAppleNative",
-            "useGoogleIdTokenRequest"
+            "signInWithGoogleNative"
           ],
           "mustNotInclude": [
             "openAuthSessionAsync",
-            "buildOAuthStartUrl"
+            "buildOAuthStartUrl",
+            "useGoogleIdTokenRequest",
+            "expo-auth-session",
+            "WebBrowser"
           ]
         }
       ]
@@ -11138,11 +11142,28 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-inapp-auth]",
             "signInWithAppleNative",
-            "useGoogleIdTokenRequest"
+            "signInWithGoogleNative"
           ],
           "mustNotInclude": [
             "openAuthSessionAsync",
-            "buildOAuthStartUrl"
+            "buildOAuthStartUrl",
+            "useGoogleIdTokenRequest",
+            "expo-auth-session",
+            "WebBrowser"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-auth]",
+            "@react-native-google-signin/google-signin",
+            "signInWithGoogleNative",
+            "signInWithAppleNative"
+          ],
+          "mustNotInclude": [
+            "expo-auth-session",
+            "openAuthSessionAsync",
+            "WebBrowser"
           ]
         },
         {
@@ -11156,6 +11177,87 @@
       ],
       "vitestSuites": [
         "lib/simplyur/auth/mobile-access-token.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-inapp-surface-no-external-window",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 — 로그인·결제·기기안내가 시스템 브라우저/외부 창을 만들지 않음",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
+            "react-native-webview",
+            "setSupportMultipleWindows={false}",
+            "setExternalBlocked"
+          ],
+          "mustNotInclude": [
+            "Linking.openURL",
+            "openBrowserAsync",
+            "expo-web-browser"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/index.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
+            "/in-app-web"
+          ],
+          "mustNotInclude": [
+            "openBrowserAsync",
+            "expo-web-browser",
+            "Linking.openURL"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/guide.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
+            "/in-app-web"
+          ],
+          "mustNotInclude": [
+            "openBrowserAsync",
+            "expo-web-browser",
+            "Linking.openURL"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/in-app-web.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
+            "react-native-webview",
+            "setSupportMultipleWindows={false}"
+          ],
+          "mustNotInclude": [
+            "openBrowserAsync",
+            "Linking.openURL"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]",
+            "GoogleSignin"
+          ],
+          "mustNotInclude": [
+            "expo-auth-session",
+            "openAuthSessionAsync"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/package.json",
+          "mustInclude": [
+            "@react-native-google-signin/google-signin",
+            "react-native-webview"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
       ]
     },
     {

@@ -1,6 +1,7 @@
 /**
  * In-app Eximbay checkout WebView — URL classification SSOT.
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: no external browser pay — manifest
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: classify external schemes — manifest
  */
 
 export type SimplyurCheckoutWebViewNav =
@@ -11,7 +12,7 @@ export type SimplyurCheckoutWebViewNav =
 
 const HTTP_RE = /^https?:\/\//i
 
-/** Non-http(s) schemes (Alipay / WeChat / banking apps) leave the WebView. */
+/** Non-http(s) schemes (Alipay / WeChat / banking apps) — blocked (stay in-app). */
 export function isExternalPaymentAppUrl(url: string): boolean {
   const u = url.trim()
   if (!u || HTTP_RE.test(u) || u.startsWith('about:') || u.startsWith('data:')) return false

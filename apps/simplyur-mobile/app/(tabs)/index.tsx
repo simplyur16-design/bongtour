@@ -1,5 +1,4 @@
 import { Link, router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,22 +7,23 @@ import {
   HOME_WHY_ICONS,
   HOME_WHY_KEYS,
 } from '@/src/constants/home-design';
-import { getApiBaseUrl } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
-/** design_handoff_home — Home tab [03] */
+/**
+ * design_handoff_home — Home tab [03]
+ * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: devices in-app WebView — manifest
+ */
 export default function HomeScreen() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
   function onFindEsim() {
     router.push('/plans');
   }
 
-  async function openDevices() {
-    const base = getApiBaseUrl().replace(/\/+$/, '');
-    await WebBrowser.openBrowserAsync(`${base}/simplyur/${locale}/devices`);
+  function openDevices() {
+    router.push({ pathname: '/in-app-web', params: { path: 'devices', title: t('hero.deviceLink') } });
   }
 
   return (

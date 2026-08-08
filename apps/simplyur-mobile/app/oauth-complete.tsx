@@ -6,7 +6,7 @@ import { LOGIN_1B } from '@/src/constants/login-design';
 import { saveCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
 import { markWebOAuthSession } from '@/src/lib/web-oauth-session';
 
-/** simplyur://oauth-complete — WebBrowser.openAuthSessionAsync 복귀 */
+/** Legacy deep-link landing (web OAuth handoff retired; prefer native sign-in). */
 export default function OAuthCompleteScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
 

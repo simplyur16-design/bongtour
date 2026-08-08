@@ -27,7 +27,7 @@ describe('simplyur in-app checkout WebView nav', () => {
     ).toEqual({ kind: 'continue' })
   })
 
-  it('hands off Alipay/WeChat-style app schemes', () => {
+  it('classifies Alipay/WeChat-style app schemes as blocked external (no handoff)', () => {
     expect(isExternalPaymentAppUrl('alipays://platformapi/startapp')).toBe(true)
     expect(
       classifySimplyurCheckoutWebViewUrl('alipays://platformapi/startapp'),
