@@ -2,6 +2,7 @@ import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import type { BongsimCheckoutConfirmResponseV1 } from "@/lib/bongsim/contracts/checkout-confirm.v1";
 import { checkoutCreateOrderFromRequest } from "@/lib/bongsim/data/checkout-create-order";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { resolveSimplyurApiUser } from "@/lib/simplyur/auth/resolve-simplyur-api-user";
 import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { SIMPLYUR_CHECKOUT_TERMS_VERSION } from "@/lib/simplyur/checkout/channel";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
@@ -37,9 +38,14 @@ export async function POST(req: Request) {
     const raw = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
     const localeRaw = typeof raw.simplyur_locale === "string" ? raw.simplyur_locale : "en";
     const simplyurLocale: SimplyurLocale = isSimplyurLocale(localeRaw) ? localeRaw : "en";
+    // Bind logged-in buyer (cookie or mobile Bearer) onto consents.bongtour_user_id.
+    const apiUser = await resolveSimplyurApiUser(req);
+    const bodyUserId = typeof raw.bongtour_user_id === "string" ? raw.bongtour_user_id.trim() : "";
+    const bongtourUserId = apiUser?.userId || bodyUserId || undefined;
 
     const merged = {
       ...raw,
+      ...(bongtourUserId ? { bongtour_user_id: bongtourUserId } : {}),
       checkout_channel: "simplyur_web",
       buyer_locale: simplyurLocale === "en" ? "en" : "en",
       consents: {

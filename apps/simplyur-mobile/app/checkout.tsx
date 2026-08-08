@@ -83,12 +83,6 @@ export default function CheckoutScreen() {
     };
   }, [id, locale]);
 
-  const finishComplete = useCallback(() => {
-    if (handledRef.current) return;
-    handledRef.current = true;
-    router.replace('/(tabs)/my-esim');
-  }, []);
-
   const returnToNativeForm = useCallback((message?: string) => {
     setPhase('form');
     setPayHtml('');
@@ -100,7 +94,9 @@ export default function CheckoutScreen() {
 
   const runCompletePa = useCallback(
     async (payerAuthId: string) => {
+      // Lock immediately — onShouldStart + onNavigationStateChange can both fire.
       if (handledRef.current) return;
+      handledRef.current = true;
       setPhase('completing');
       setPayHtml('');
       try {
@@ -110,33 +106,32 @@ export default function CheckoutScreen() {
           payerAuthId: payerAuthId || undefined,
           locale,
         });
-        finishComplete();
+        router.replace('/(tabs)/my-esim');
       } catch {
+        handledRef.current = false;
         returnToNativeForm(t('checkout.errorGeneric'));
       }
     },
-    [finishComplete, locale, returnToNativeForm, t],
+    [locale, returnToNativeForm, t],
   );
 
   const onNavChange = useCallback(
     (nav: WebViewNavigation) => {
       const classified = classifySimplyurCheckoutWebViewUrl(nav.url);
-      if (classified.kind === 'complete') finishComplete();
-      if (classified.kind === 'auth_ok') void runCompletePa(classified.payerAuthId);
+      // Never jump to My eSIM without server PAYMENT_PA — treat legacy complete as auth finish.
+      if (classified.kind === 'auth_ok' || classified.kind === 'complete') {
+        void runCompletePa(classified.kind === 'auth_ok' ? classified.payerAuthId : '');
+      }
       if (classified.kind === 'cancel_or_fail') returnToNativeForm(t('checkout.errorGeneric'));
     },
-    [finishComplete, returnToNativeForm, runCompletePa, t],
+    [returnToNativeForm, runCompletePa, t],
   );
 
   const onShouldStart = useCallback(
     (req: { url: string }) => {
       const classified = classifySimplyurCheckoutWebViewUrl(req.url);
-      if (classified.kind === 'complete') {
-        finishComplete();
-        return false;
-      }
-      if (classified.kind === 'auth_ok') {
-        void runCompletePa(classified.payerAuthId);
+      if (classified.kind === 'auth_ok' || classified.kind === 'complete') {
+        void runCompletePa(classified.kind === 'auth_ok' ? classified.payerAuthId : '');
         return false;
       }
       if (classified.kind === 'cancel_or_fail') {
@@ -149,7 +144,7 @@ export default function CheckoutScreen() {
       }
       return true;
     },
-    [finishComplete, returnToNativeForm, runCompletePa, t],
+    [returnToNativeForm, runCompletePa, t],
   );
 
   async function onSubmit() {
@@ -293,12 +288,8 @@ export default function CheckoutScreen() {
               const target = e.nativeEvent.targetUrl;
               if (!target) return;
               const classified = classifySimplyurCheckoutWebViewUrl(target);
-              if (classified.kind === 'complete') {
-                finishComplete();
-                return;
-              }
-              if (classified.kind === 'auth_ok') {
-                void runCompletePa(classified.payerAuthId);
+              if (classified.kind === 'auth_ok' || classified.kind === 'complete') {
+                void runCompletePa(classified.kind === 'auth_ok' ? classified.payerAuthId : '');
                 return;
               }
               if (classified.kind === 'cancel_or_fail') {

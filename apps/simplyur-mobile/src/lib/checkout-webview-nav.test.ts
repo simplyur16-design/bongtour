@@ -26,6 +26,19 @@ describe('simplyur in-app checkout WebView nav', () => {
     })
   })
 
+  it('maps status=ok app-pay-result to auth_ok (never unpaid complete)', () => {
+    expect(
+      classifySimplyurCheckoutWebViewUrl(
+        'https://bongtour.com/simplyur/en/app-pay-result?status=ok&orderId=o1&orderNumber=N1',
+      ),
+    ).toEqual({
+      kind: 'auth_ok',
+      orderId: 'o1',
+      orderNumber: 'N1',
+      payerAuthId: '',
+    })
+  })
+
   it('detects cancel/fail resume', () => {
     expect(
       classifySimplyurCheckoutWebViewUrl(

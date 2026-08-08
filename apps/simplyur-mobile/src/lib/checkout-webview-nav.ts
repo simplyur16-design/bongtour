@@ -115,19 +115,13 @@ export function classifySimplyurCheckoutWebViewUrl(url: string): SimplyurCheckou
     if (path.includes('/app-pay-result')) {
       const status = (q.get('status') ?? '').trim().toLowerCase()
       const payerAuthId = (q.get('payer_auth_id') ?? q.get('payerauthid') ?? '').trim()
-      if (status === 'auth_ok' || (status === 'ok' && payerAuthId)) {
+      // Mobile PAYER_AUTH: never treat return as paid — app must call complete-pa.
+      if (status === 'auth_ok' || status === 'ok' || status === 'success' || payerAuthId) {
         return {
           kind: 'auth_ok',
           orderId: (q.get('orderId') ?? '').trim(),
           orderNumber: (q.get('orderNumber') ?? '').trim(),
           payerAuthId,
-        }
-      }
-      if (status === 'ok' || status === 'success') {
-        return {
-          kind: 'complete',
-          orderId: (q.get('orderId') ?? '').trim(),
-          orderNumber: (q.get('orderNumber') ?? '').trim(),
         }
       }
       return { kind: 'cancel_or_fail' }
