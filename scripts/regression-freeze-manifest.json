@@ -2706,7 +2706,7 @@
       ],
       "summary": "simplyur 앱 assets 확장자=매직바이트 (JPEG를 .png로 두면 Android AAPT 실패)",
       "npmScripts": [
-        "tsx scripts/verify-simplyur-mobile-asset-magic.ts"
+        "verify:simplyur-mobile-asset-magic"
       ],
       "checks": [
         {
