@@ -23,7 +23,11 @@ Backend: BONGTOUR `GET/POST /api/simplyur/*` · in-app Eximbay checkout (WebView
 | Session | SecureStore Bearer (`simplyur_access_token`) |
 | i18n | en, ja, zh, zh-TW, vi (persisted) |
 
-## Run locally
+## Verify loop (operator SSOT)
+
+**Android = emulator · iOS = personal iPhone.**  
+Day-to-day: **local native run** — not EAS cloud build / `eas update`.  
+(See `.cursor/rules/simplyur-mobile-local-devices.mdc`.)
 
 **Terminal 1 — API**
 
@@ -31,22 +35,25 @@ Backend: BONGTOUR `GET/POST /api/simplyur/*` · in-app Eximbay checkout (WebView
 npm run dev
 ```
 
-**Terminal 2 — App**
+**Terminal 2 — App (install to device)**
 
 ```bash
 cd apps/simplyur-mobile
 cp .env.example .env
-npm start
+# Android virtual device
+npx expo run:android
+# Operator iPhone (USB / same Apple team)
+npx expo run:ios --device
 ```
 
 ### API URL by device
 
 | Environment | `EXPO_PUBLIC_API_BASE_URL` |
 |-------------|----------------------------|
-| Release / EAS production | `https://bongtour.com` (default when not `__DEV__`) |
+| Live API | `https://bongtour.com` |
 | iOS Simulator | `http://localhost:3000` |
 | Android Emulator | `http://10.0.2.2:3000` |
-| Physical phone | `http://<your-PC-LAN-IP>:3000` |
+| Physical iPhone (local API) | `http://<your-PC-LAN-IP>:3000` |
 
 ## Checkout & My eSIM
 
@@ -55,18 +62,9 @@ npm start
 - My eSIM uses the same in-app Bearer session (Apple / Google / email) — QR, SM-DP+, usage, unused refund.
 - Settings: language, legal (terms/privacy/refund), mailto support, sign-out, account delete.
 
-## Store release (EAS)
+## Store release (optional / later)
 
-Full checklist: [`STORE_RELEASE.md`](./STORE_RELEASE.md)
-
-```bash
-cd apps/simplyur-mobile
-npx eas login
-npx eas build --platform all --profile preview
-npx eas build --platform all --profile production
-npx eas submit --platform ios --profile production
-npx eas submit --platform android --profile production
-```
+Not the current verify loop. Checklist only when explicitly shipping to stores: [`STORE_RELEASE.md`](./STORE_RELEASE.md).
 
 ## Screens
 
