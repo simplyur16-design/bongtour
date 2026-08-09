@@ -17,14 +17,17 @@ import { PLANS_DESIGN as D } from '@/src/constants/plans-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import {
+  SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
   collectAvailableDays,
   filterProductsByDays,
   formatPlanMessage,
   minFormattedPrice,
+  snapTripDaysToAvailable,
 } from '@/src/lib/plans-catalog';
 
 /**
  * design_handoff_plans — duration-first Find my eSIM tab
+ * REGRESSION-FREEZE[simplyur-mobile-plans-auto-select]: default day like web — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
  */
 export default function PlansScreen() {
@@ -45,16 +48,27 @@ export default function PlansScreen() {
       setPack(await fetchKoreaPlans(locale));
     } catch {
       setError('load failed');
+      setPack(null);
     } finally {
       setLoading(false);
     }
   }, [locale]);
 
   useEffect(() => {
-    load();
+    setSelectedDays(null);
+    void load();
   }, [load]);
 
   const dayOptions = useMemo(() => (pack ? collectAvailableDays(pack) : []), [pack]);
+
+  // Web recommend SSOT: auto-pick ~5 days so plans are not hidden behind an empty placeholder.
+  useEffect(() => {
+    if (!pack || dayOptions.length === 0) return;
+    if (selectedDays != null && dayOptions.includes(selectedDays)) return;
+    const days = snapTripDaysToAvailable(SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS, dayOptions);
+    if (days != null) setSelectedDays(days);
+  }, [pack, dayOptions, selectedDays]);
+
   const roamingFiltered = useMemo(
     () => (pack && selectedDays != null ? filterProductsByDays(pack.roaming.products, selectedDays) : []),
     [pack, selectedDays],
@@ -65,6 +79,7 @@ export default function PlansScreen() {
   );
   const showNoMatch =
     selectedDays != null && roamingFiltered.length === 0 && localFiltered.length === 0;
+  const showCatalogEmpty = !loading && !error && (!pack || dayOptions.length === 0);
 
   function scrollToChips() {
     scrollRef.current?.scrollTo({ y: Math.max(0, chipsY.current - 12), animated: true });
@@ -122,7 +137,9 @@ export default function PlansScreen() {
         </View>
       ) : null}
 
-      {pack ? (
+      {showCatalogEmpty ? <Placeholder>{t('recommend.noPlans')}</Placeholder> : null}
+
+      {pack && dayOptions.length > 0 ? (
         <>
           <View
             onLayout={(e) => {

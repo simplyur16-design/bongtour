@@ -13874,6 +13874,36 @@
       ]
     },
     {
+      "id": "simplyur-mobile-plans-auto-select",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 Find my eSIM — 웹과 동일하게 기본 일수(5일) 자동 선택해 플랜 카드 노출",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/lib/plans-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-plans-auto-select]",
+            "SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS = 5",
+            "snapTripDaysToAvailable"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/plans.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-plans-auto-select]",
+            "snapTripDaysToAvailable",
+            "SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS",
+            "showCatalogEmpty"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/plans-catalog.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-mobile-p2-polish",
       "tier": [
         "prebuild",
