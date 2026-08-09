@@ -7,13 +7,26 @@
     "icon": "./assets/images/icon.png",
     "scheme": "simplyur",
     "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/13ff775c-bb1f-4c06-bf1a-2fbf4ab014e5",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bongtour.simplyur",
       "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:bongtour.com",
+        "applinks:www.bongtour.com"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "UIBackgroundModes": ["remote-notification"]
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": []
@@ -27,7 +40,28 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "permissions": []
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "bongtour.com",
+              "pathPrefix": "/simplyur"
+            },
+            {
+              "scheme": "https",
+              "host": "www.bongtour.com",
+              "pathPrefix": "/simplyur"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -47,7 +81,15 @@
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-updates",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FF6B4A"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

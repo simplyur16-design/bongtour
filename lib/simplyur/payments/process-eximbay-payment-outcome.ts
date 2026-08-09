@@ -208,6 +208,11 @@ export async function processEximbayPaymentOutcome(
       console.warn("[simplyur:eximbay:paid-side-effects]", err);
     }
 
+    // REGRESSION-FREEZE[simplyur-mobile-p2-ops]: OrderPaid Expo push best-effort — manifest
+    void import("@/lib/simplyur/push/notify-simplyur-order-paid")
+      .then((m) => m.notifySimplyurOrderPaidPush(attempt.order_id))
+      .catch((err) => console.warn("[simplyur:eximbay:push]", err));
+
     // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 결제 요청 스레드에서 USIMSA await 금지 — manifest
     kickOrderPaidOutboxDrain();
 

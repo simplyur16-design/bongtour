@@ -1,6 +1,7 @@
 /**
- * Expo config — native Google Sign-In (no browser OAuth sheet).
+ * Expo config — Google Sign-In + Sentry DSN wiring.
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: google-signin plugin — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: sentry/updates plugins — manifest
  */
 const appJson = require('./app.json');
 
@@ -20,6 +21,7 @@ const webClientId = (
 ).trim();
 const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
 const iosUrlScheme = googleIosUrlSchemeFromWebClientId(iosClientId || webClientId);
+const sentryDsn = (process.env.EXPO_PUBLIC_SENTRY_DSN || '').trim();
 
 const plugins = [...(appJson.expo.plugins ?? [])];
 if (iosUrlScheme) {
@@ -32,6 +34,17 @@ if (iosUrlScheme) {
   plugins.push('@react-native-google-signin/google-signin');
 }
 
+// Source-map upload only when Sentry auth is present (avoids EAS build fail without org).
+if (process.env.SENTRY_AUTH_TOKEN?.trim()) {
+  plugins.push([
+    '@sentry/react-native/expo',
+    {
+      organization: process.env.SENTRY_ORG?.trim() || 'bongtour',
+      project: process.env.SENTRY_PROJECT?.trim() || 'simplyur-mobile',
+    },
+  ]);
+}
+
 module.exports = {
   ...appJson,
   expo: {
@@ -42,6 +55,7 @@ module.exports = {
       // Runtime fallback when Metro does not inline EXPO_PUBLIC_* (still set on EAS).
       googleWebClientId: webClientId || undefined,
       googleIosClientId: iosClientId || undefined,
+      sentryDsn: sentryDsn || undefined,
     },
   },
 };

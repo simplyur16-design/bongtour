@@ -13,6 +13,10 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { I18nProvider } from '@/src/i18n/I18nContext';
+import { checkSimplyurOtaUpdate } from '@/src/lib/ota';
+import { registerSimplyurPushTokenBestEffort } from '@/src/lib/push';
+import { initSimplyurTelemetry } from '@/src/lib/telemetry';
+import { subscribeSimplyurSession } from '@/src/lib/session';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -22,6 +26,9 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: OTA + Sentry + push bootstrap — manifest
+ */
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     Poppins_300Light,
@@ -37,8 +44,18 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
+    if (!loaded) return;
+    SplashScreen.hideAsync();
+    initSimplyurTelemetry();
+    void checkSimplyurOtaUpdate();
+    void registerSimplyurPushTokenBestEffort();
   }, [loaded]);
+
+  useEffect(() => {
+    return subscribeSimplyurSession(() => {
+      void registerSimplyurPushTokenBestEffort();
+    });
+  }, []);
 
   if (!loaded) return null;
 

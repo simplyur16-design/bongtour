@@ -13,6 +13,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       },
@@ -23,6 +24,7 @@
     },
     "preview_simulator": {
       "distribution": "internal",
+      "channel": "preview",
       "ios": {
         "simulator": true
       },
@@ -33,6 +35,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://bongtour.com",
         "EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED": "1"

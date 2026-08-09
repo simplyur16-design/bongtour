@@ -116,9 +116,33 @@ Code rejects public test credentials when `EXIMBAY_ENV=production`.
 In-app path (signed in): **Settings → Delete account** → `POST /api/simplyur/account/withdraw`  
 Also: Settings → Language / Terms / Privacy / Refund / Email support.
 
-## I. Later polish (not blocking submit)
+## I. Push / Sentry / OTA / Universal Links (ops)
 
-- Push (paid/QR/refund): needs `expo-notifications` + server device-token API  
-- Crash/analytics: Sentry DSN + funnel events  
-- OTA: `expo-updates` + `runtimeVersion` / EAS Update channel  
-- Universal Links: `associatedDomains` + `.well-known` AASA
+### Push
+1. Railway: set `EXPO_ACCESS_TOKEN` (Expo access token with push scope)  
+2. Deploy migration `SimplyurDevicePushToken` (`prisma migrate deploy`)  
+3. App (signed in) registers via `POST /api/simplyur/account/device-token`  
+4. After simplyur Eximbay OrderPaid, server best-effort pushes if token + `EXPO_ACCESS_TOKEN` exist
+
+### Sentry
+```bash
+cd apps/simplyur-mobile
+npx eas-cli secret:create --scope project --name EXPO_PUBLIC_SENTRY_DSN --value "https://…@….ingest.sentry.io/…" --type string
+# Optional source maps on EAS:
+# SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT
+```
+Rebuild after setting DSN. Empty DSN = telemetry no-op.
+
+### OTA (EAS Update)
+```bash
+cd apps/simplyur-mobile
+npx eas-cli update --channel preview --message "…"
+npx eas-cli update --channel production --message "…"
+```
+Builds use `runtimeVersion.policy=appVersion` + profile `channel` in `eas.json`.
+
+### Universal Links / App Links
+- iOS AASA: `https://bongtour.com/.well-known/apple-app-site-association` (Team ID from `AUTH_APPLE_TEAM_ID`)  
+- Android: `https://bongtour.com/.well-known/assetlinks.json`  
+- Set Railway `ANDROID_APP_LINK_SHA256_FINGERPRINTS` = Play App Signing SHA-256 (comma-separated)  
+- App ID capability: Associated Domains `applinks:bongtour.com`

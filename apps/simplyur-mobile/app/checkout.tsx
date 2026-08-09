@@ -27,6 +27,7 @@ import { useI18n } from '@/src/i18n/I18nContext';
 import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
 import { classifySimplyurCheckoutWebViewUrl } from '@/src/lib/checkout-webview-nav';
 import { loadSimplyurSession } from '@/src/lib/session';
+import { captureSimplyurError, trackSimplyurEvent } from '@/src/lib/telemetry';
 
 type Phase = 'form' | 'auth' | 'completing';
 
@@ -38,6 +39,7 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: auth_ok → complete-pa — manifest
  * REGRESSION-FREEZE[simplyur-mobile-checkout-email-editable]: session email prefill but always editable (Apple Hide My Email) — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner on checkout form — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: checkout funnel telemetry — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -110,8 +112,11 @@ export default function CheckoutScreen() {
           payerAuthId: payerAuthId || undefined,
           locale,
         });
+        trackSimplyurEvent('checkout_pa_complete', { orderId: orderIdRef.current });
         router.replace('/(tabs)/my-esim');
-      } catch {
+      } catch (e) {
+        captureSimplyurError(e, 'checkout_pa_complete');
+        trackSimplyurEvent('checkout_pa_fail', { orderId: orderIdRef.current });
         handledRef.current = false;
         returnToNativeForm(t('checkout.errorGeneric'));
       }
@@ -163,6 +168,7 @@ export default function CheckoutScreen() {
       return;
     }
     setBusy(true);
+    trackSimplyurEvent('checkout_start', { optionApiId: product.option_api_id });
     try {
       const order = await confirmSimplyurCheckout({
         optionApiId: product.option_api_id,
@@ -183,7 +189,10 @@ export default function CheckoutScreen() {
       setPayHtml(buildEximbayPayHtml(session.client.sdk_script_url, session.client.request_pay));
       setPhase('auth');
       setPayLoading(true);
-    } catch {
+      trackSimplyurEvent('checkout_webview_pay', { orderId: order.order_id });
+    } catch (e) {
+      captureSimplyurError(e, 'checkout_start');
+      trackSimplyurEvent('checkout_start_fail', { optionApiId: product.option_api_id });
       setErr(t('checkout.errorGeneric'));
     } finally {
       setBusy(false);
