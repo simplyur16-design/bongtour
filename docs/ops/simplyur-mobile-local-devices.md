@@ -15,16 +15,19 @@ Finish Android build + install on this machine first. iOS is deferred to GitHub-
 
 Desktop path `C:\Users\...\BONGTOUR\apps\simplyur-mobile\...` often exceeds Windows/ninja **260** chars.
 
-Use a short clone for native builds:
+Windows ninja **260-char** paths break builds under `Desktop\BONGTOUR\...`.
+
+**Working fix (verified 2026-08-10):** junction to a shorter path, then build:
 
 ```powershell
-git clone https://github.com/simplyur16-design/bongtour.git D:\bt
-cd D:\bt\apps\simplyur-mobile
-copy .env.example .env   # set EXPO_PUBLIC_API_BASE_URL=https://bongtour.com
-npm install
+cmd /c mklink /J C:\Users\USER\sma C:\Users\USER\Desktop\BONGTOUR\apps\simplyur-mobile
+cd C:\Users\USER\sma
 $env:GRADLE_USER_HOME='D:\gradle-home'
+$env:TEMP='D:\tmp-build'; $env:TMP='D:\tmp-build'
 npx expo run:android
 ```
+
+Alternate: short git clone (`D:\bt`) + `npm install` there.
 
 ## Do not default to
 
