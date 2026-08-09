@@ -5,6 +5,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -22,6 +23,7 @@ import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
+import { signOutGoogleNativeBestEffort } from '@/src/lib/native-oauth';
 import {
   buildUsageSummaryView,
   chartBarHeight,
@@ -29,7 +31,7 @@ import {
   myEsimBadgeTier,
   weekdayLabel,
 } from '@/src/lib/my-esim-view-model';
-import { subscribeSimplyurSession } from '@/src/lib/session';
+import { clearSimplyurSession, subscribeSimplyurSession } from '@/src/lib/session';
 
 type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
 
@@ -39,6 +41,7 @@ type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: sign-out + SM-DP/activation codes — manifest
  */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
@@ -117,6 +120,35 @@ export default function MyEsimScreen() {
       Math.max(1, ...detailUsage.history.map((h) => h.usageMb))
     : 1;
 
+  async function onSignOut() {
+    Alert.alert(t('nav.signOut'), t('myEsim.signOutConfirm'), [
+      { text: t('myEsim.close'), style: 'cancel' },
+      {
+        text: t('nav.signOut'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            await signOutGoogleNativeBestEffort();
+            await clearSimplyurSession();
+            setSelectedOrderId(null);
+            setOrders([]);
+            setUnauthorized(true);
+          })();
+        },
+      },
+    ]);
+  }
+
+  async function shareInstallValue(label: string, value: string) {
+    const v = value.trim();
+    if (!v) return;
+    try {
+      await Share.share({ message: v, title: label });
+    } catch {
+      Alert.alert(label, v);
+    }
+  }
+
   if (view === 'loading') {
     return (
       <View style={[styles.center, { backgroundColor: D.bg, paddingTop: insets.top }]}>
@@ -154,6 +186,9 @@ export default function MyEsimScreen() {
             <Text style={styles.ctaText}>{t('myEsim.emptyCta')}</Text>
           </Pressable>
         </Link>
+        <Pressable onPress={() => void onSignOut()} style={{ marginTop: 16 }} hitSlop={8}>
+          <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
+        </Pressable>
       </CenterBlock>
     );
   }
@@ -264,6 +299,40 @@ export default function MyEsimScreen() {
             <Text style={styles.qrHint}>{t('myEsim.qrHint')}</Text>
           </View>
 
+          {(selectedOrder.sm_dp_plus_address || selectedOrder.activation_code) &&
+          selectedOrder.can_show_qr ? (
+            <View style={styles.manualBox}>
+              <Text style={styles.manualTitle}>{t('myEsim.manualInstallTitle')}</Text>
+              <Text style={styles.manualBody}>{t('myEsim.manualInstallBody')}</Text>
+              {selectedOrder.sm_dp_plus_address ? (
+                <Pressable
+                  style={styles.codeRow}
+                  onPress={() =>
+                    void shareInstallValue(t('myEsim.smDpAddress'), selectedOrder.sm_dp_plus_address!)
+                  }>
+                  <Text style={styles.codeLabel}>{t('myEsim.smDpAddress')}</Text>
+                  <Text style={styles.codeValue} selectable>
+                    {selectedOrder.sm_dp_plus_address}
+                  </Text>
+                  <Text style={styles.codeShare}>{t('myEsim.shareCode')}</Text>
+                </Pressable>
+              ) : null}
+              {selectedOrder.activation_code ? (
+                <Pressable
+                  style={styles.codeRow}
+                  onPress={() =>
+                    void shareInstallValue(t('myEsim.activationCode'), selectedOrder.activation_code!)
+                  }>
+                  <Text style={styles.codeLabel}>{t('myEsim.activationCode')}</Text>
+                  <Text style={styles.codeValue} selectable>
+                    {selectedOrder.activation_code}
+                  </Text>
+                  <Text style={styles.codeShare}>{t('myEsim.shareCode')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
           <Pressable style={styles.usageCard} onPress={() => setUsageScreenOpen(true)}>
             <View style={styles.usageCardText}>
               <Text style={styles.usageLabel}>{t('myEsim.usageCardLabel')}</Text>
@@ -317,6 +386,10 @@ export default function MyEsimScreen() {
               </Pressable>
             </View>
           ) : null}
+
+          <Pressable onPress={() => void onSignOut()} style={styles.signOutDetail} hitSlop={8}>
+            <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
+          </Pressable>
         </ScrollView>
       </View>
     );
@@ -326,7 +399,12 @@ export default function MyEsimScreen() {
     <ScrollView
       style={[styles.root, { backgroundColor: D.bg }]}
       contentContainerStyle={[styles.listContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}>
-      <Text style={styles.listTitle}>{t('myEsim.title')}</Text>
+      <View style={styles.listHeader}>
+        <Text style={styles.listTitle}>{t('myEsim.title')}</Text>
+        <Pressable onPress={() => void onSignOut()} hitSlop={10}>
+          <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
+        </Pressable>
+      </View>
       {orders.map((o) => {
         const tier = myEsimBadgeTier(o.status_key);
         const badge = MY_ESIM_BADGE[tier];
@@ -423,7 +501,37 @@ const styles = StyleSheet.create({
   muted: { fontSize: 14, ...fp('400'), color: D.muted },
   errorText: { fontSize: 14, color: '#dc2626' },
   listContent: { paddingHorizontal: D.paddingH, gap: D.sectionGap },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   listTitle: { fontSize: 22, ...fp('800'), color: D.navy },
+  signOutLink: { fontSize: 13, ...fp('600'), color: D.coral, textAlign: 'center' },
+  signOutDetail: { marginTop: 8, alignItems: 'center', paddingVertical: 12 },
+  manualBox: {
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: D.panelRadius,
+    backgroundColor: '#fff',
+    padding: 16,
+    gap: 10,
+  },
+  manualTitle: { fontSize: 14, ...fp('700'), color: D.navy },
+  manualBody: { fontSize: 12, lineHeight: 18, ...fp('400'), color: D.muted },
+  codeRow: {
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+    backgroundColor: D.bg,
+  },
+  codeLabel: { fontSize: 11, ...fp('600'), color: D.faint },
+  codeValue: { fontSize: 13, ...fp('600'), color: D.navy },
+  codeShare: { fontSize: 12, ...fp('600'), color: D.coral, marginTop: 2 },
   orderCard: {
     flexDirection: 'row',
     alignItems: 'center',

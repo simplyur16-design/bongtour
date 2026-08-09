@@ -80,6 +80,17 @@ export async function signInWithGoogleNative() {
   return signInWithGoogleIdToken(token);
 }
 
+/** Best-effort Google SDK sign-out (local session clear is separate). */
+export async function signOutGoogleNativeBestEffort(): Promise<void> {
+  if (!isGoogleNativeConfigured()) return;
+  try {
+    ensureGoogleConfigured();
+    await GoogleSignin.signOut();
+  } catch {
+    // ignore — local Simplyur session is still cleared by caller
+  }
+}
+
 export async function isAppleNativeAvailable(): Promise<boolean> {
   if (Platform.OS !== 'ios') return false;
   try {

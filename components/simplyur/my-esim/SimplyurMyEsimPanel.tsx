@@ -181,6 +181,42 @@ export function SimplyurMyEsimPanel({
           </p>
         </div>
 
+        {/* REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: web manual install codes — manifest */}
+        {selectedOrder.can_show_qr &&
+        (selectedOrder.sm_dp_plus_address || selectedOrder.activation_code) ? (
+          <div
+            className="flex flex-col gap-2 border p-4"
+            style={{ borderColor: D.border, borderRadius: D.panelRadius, backgroundColor: "#fff" }}
+          >
+            <p className="text-sm font-semibold" style={{ color: D.navy }}>
+              {tr("myEsim.manualInstallTitle")}
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: D.muted }}>
+              {tr("myEsim.manualInstallBody")}
+            </p>
+            {selectedOrder.sm_dp_plus_address ? (
+              <div className="rounded-xl border px-3 py-2" style={{ borderColor: D.border }}>
+                <p className="text-[11px] font-semibold" style={{ color: D.faint }}>
+                  {tr("myEsim.smDpAddress")}
+                </p>
+                <p className="break-all text-sm font-semibold" style={{ color: D.navy }}>
+                  {selectedOrder.sm_dp_plus_address}
+                </p>
+              </div>
+            ) : null}
+            {selectedOrder.activation_code ? (
+              <div className="rounded-xl border px-3 py-2" style={{ borderColor: D.border }}>
+                <p className="text-[11px] font-semibold" style={{ color: D.faint }}>
+                  {tr("myEsim.activationCode")}
+                </p>
+                <p className="break-all text-sm font-semibold" style={{ color: D.navy }}>
+                  {selectedOrder.activation_code}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <button
           type="button"
           onClick={onOpenUsageModal}

@@ -579,6 +579,11 @@
     "refundConfirm": "Cancel this order?\n\n1) eSIM issue will be cancelled\n2) Card payment will be fully refunded\n\nOnly unused eSIMs can be cancelled.",
     "refundError": "Could not cancel this order. Try again or contact support.",
     "refundInProgress": "Refund in progress. Refresh shortly.",
-    "refundDone": "This order was cancelled and refunded."
+    "refundDone": "This order was cancelled and refunded.",
+    "signOutConfirm": "Sign out of this device? Your eSIMs stay on your account — sign in again to see them.",
+    "manualInstallTitle": "Manual install (if QR fails)",
+    "manualInstallBody": "In Settings → Cellular → Add eSIM → Enter details manually. Use SM-DP+ address and activation code below.",
+    "smDpAddress": "SM-DP+ address",
+    "shareCode": "Share / copy"
   }
 }

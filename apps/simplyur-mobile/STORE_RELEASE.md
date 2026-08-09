@@ -82,3 +82,31 @@ Then finish listing copy, screenshots, privacy questionnaire in each console and
 |-----|--------|
 | `EXPO_PUBLIC_API_BASE_URL` | `https://bongtour.com` |
 | `EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED` | `1` |
+
+## E. Google Sign-In (EAS Secrets — required for store builds)
+
+`eas.json` does not embed Google client IDs. Create project secrets once (values from Google Cloud OAuth clients; Web client ID must match server `AUTH_GOOGLE_ID`):
+
+```bash
+cd apps/simplyur-mobile
+npx eas-cli secret:create --scope project --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value "YOUR.apps.googleusercontent.com" --type string
+npx eas-cli secret:create --scope project --name EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID --value "YOUR_IOS.apps.googleusercontent.com" --type string
+```
+
+Then rebuild preview/production. Local: copy `.env.example` → `.env`.
+
+## F. Server Eximbay live (Railway / production)
+
+| Var | Required value |
+|-----|----------------|
+| `EXIMBAY_ENV` | `production` |
+| `EXIMBAY_MID` | live merchant mid (not docs `1849705C64`) |
+| `EXIMBAY_API_KEY` | live key (`live_…`, never `test_…`) |
+
+Code rejects public test credentials when `EXIMBAY_ENV=production`.
+
+## G. App Store Connect Apple ID
+
+1. App Store Connect → App → App Information → **Apple ID** (numeric)
+2. Replace `REPLACE_AFTER_APP_STORE_CONNECT` in `eas.json` → `submit.production.ios.ascAppId`
+3. `npx eas-cli submit --platform ios --profile production` (real TTY; not Cursor agent shell)
