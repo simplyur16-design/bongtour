@@ -25,25 +25,21 @@ Backend: BONGTOUR `GET/POST /api/simplyur/*` · in-app Eximbay checkout (WebView
 
 ## Verify loop (operator SSOT)
 
-**Android = emulator · iOS = personal iPhone.**  
-Day-to-day: **local native run** — not EAS cloud build / `eas update`.  
-(See `.cursor/rules/simplyur-mobile-local-devices.mdc`.)
+| Now | Later |
+|-----|--------|
+| **Android emulator on this Windows PC** | **iPhone via GitHub-synced follow-up** |
 
-**Terminal 1 — API**
+Local native run — not EAS OTA for day-to-day.  
+Docs: `docs/ops/simplyur-mobile-local-devices.md`
 
-```bash
-npm run dev
-```
-
-**Terminal 2 — App (install to device)**
+**Windows tip:** if `npx expo run:android` fails with ninja path &gt; 260 chars, build from a short clone (`D:\bt`) — see ops doc.
 
 ```bash
-cd apps/simplyur-mobile
+cd apps/simplyur-mobile   # or D:\bt\apps\simplyur-mobile
 cp .env.example .env
-# Android virtual device
-npx expo run:android
-# Operator iPhone (USB / same Apple team)
-npx expo run:ios --device
+npx expo run:android      # emulator — complete this first
+# iOS later (after GitHub sync / Mac or prior device flow):
+# npx expo run:ios --device
 ```
 
 ### API URL by device

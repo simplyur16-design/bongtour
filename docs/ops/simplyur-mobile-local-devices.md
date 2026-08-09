@@ -1,29 +1,33 @@
 # SimplyUR mobile — local device verification (operator SSOT)
 
-**Locked 2026-08-10.** Also mirrored in local Cursor rule  
-`.cursor/rules/simplyur-mobile-local-devices.mdc` (gitignored with `.cursor/`).
+**Locked 2026-08-10.** Cursor mirror: `.cursor/rules/simplyur-mobile-local-devices.mdc`.
 
-## Devices
+## Phased verify
 
-| Platform | Device |
-|----------|--------|
-| Android | Virtual device (emulator) |
-| iOS | Operator’s personal iPhone |
+| Phase | Platform | Device / host |
+|-------|----------|----------------|
+| **Now** | Android | Windows PC → **emulator** (`npx expo run:android`) |
+| **Later** | iOS | After GitHub sync → **operator iPhone** (resume prior Windows→device / Mac flow) |
 
-## Verify loop
+Finish Android build + install on this machine first. iOS is deferred to GitHub-linked follow-up.
 
-Day-to-day: **local native install**, not EAS cloud build / `eas update`.
+## Android on Windows (path length)
 
-```bash
-cd apps/simplyur-mobile
-npx expo run:android          # emulator
-npx expo run:ios --device     # personal iPhone (macOS)
+Desktop path `C:\Users\...\BONGTOUR\apps\simplyur-mobile\...` often exceeds Windows/ninja **260** chars.
+
+Use a short clone for native builds:
+
+```powershell
+git clone https://github.com/simplyur16-design/bongtour.git D:\bt
+cd D:\bt\apps\simplyur-mobile
+copy .env.example .env   # set EXPO_PUBLIC_API_BASE_URL=https://bongtour.com
+npm install
+$env:GRADLE_USER_HOME='D:\gradle-home'
+npx expo run:android
 ```
-
-API base: live `https://bongtour.com`, or Android emulator local API `http://10.0.2.2:3000`, iPhone LAN IP for local Next.
 
 ## Do not default to
 
-- `eas build` / `eas update` for routine QA
-- Blocking fixes on Expo billing credits or EAS secrets
-- Asking for `EXPO_ACCESS_TOKEN` unless push delivery is explicitly requested
+- Blocking Android on iOS/Xcode availability
+- EAS OTA / Expo Access Token for routine Android QA
+- Asking for EAS secrets unless store/push is explicitly requested
