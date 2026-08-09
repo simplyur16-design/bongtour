@@ -300,7 +300,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { q: "simplyur hiện làm được gì?", a: "Xem gói eSIM Hàn Quốc, checkout trong app, giá đa ngôn ngữ, hướng dẫn cài, và My eSIM sau đăng nhập (QR, dung lượng, hoàn tiền chưa dùng)." },
       { q: "Luồng mua", a: "Chọn gói → email bắt buộc, SĐT tùy chọn → đồng ý điều khoản → thanh toán → nhận QR qua email và My eSIM." },
       { q: "Cần đăng nhập để mua?", a: "Không. Có thể mua bằng email khách. My eSIM hỗ trợ Google / Apple / email." },
-      { q: "My eSIM", a: "Đăng nhập bằng cùng email checkout để xem đơn và QR. Chưa đăng nhập thì dùng email QR." }
+      { q: "My eSIM", a: "Đăng nhập bằng cùng email checkout để xem đơn và QR. Chưa đăng nhập thì dùng email QR." },
       { q: "QR khi nào?", a: "Sau thanh toán thành công & phát hành — thường vài phút." },
       { q: "Giá", a: "Giá catalog ×1.05, quy đổi theo ngôn ngữ (tỷ giá cập nhật ~12 giờ). Không coupon." },
       { q: "Bắt đầu gói / Incheon / roaming", a: "Thường khi kết nối mạng tại Hàn; cài tại sân bay Incheon được; gói roaming thường cần bật chuyển vùng." },
