@@ -13812,6 +13812,55 @@
       ]
     },
     {
+      "id": "simplyur-mobile-p2-polish",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 P2 — 오프라인 배너·My eSIM 주문/가이드 CTA·README 실결제 경로",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/lib/network.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p2-polish]",
+            "probeSimplyurOnline",
+            "/api/health"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/OfflineBanner.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p2-polish]",
+            "probeSimplyurOnline",
+            "network.offlineBody"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p2-polish]",
+            "order_number",
+            "openGuide",
+            "OfflineBanner"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/README.md",
+          "mustInclude": [
+            "native `/checkout`",
+            "SecureStore Bearer",
+            "account delete"
+          ],
+          "mustNotInclude": [
+            "in-app browser → `/simplyur/{locale}/checkout`"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/network.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-eximbay-live-checkout",
       "tier": [
         "prebuild",

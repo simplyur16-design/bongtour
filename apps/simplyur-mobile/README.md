@@ -3,25 +3,25 @@
 **Foreign visitors to Korea only** — dedicated Korea eSIM app (Phase 1).  
 Not for Korea residents; domestic users use **Bong Tour eSIM (bongsim)** at `/travel/esim`.
 
-Backend: BONGTOUR `GET /api/simplyur/*` · checkout pays via **web Eximbay** (mobile UI).
+Backend: BONGTOUR `GET/POST /api/simplyur/*` · in-app Eximbay checkout (WebView) · My eSIM Bearer session.
 
 ## Audience SSOT
 
 | Product | Who | Login |
 |---------|-----|-------|
 | **simplyur app** | International visitors to Korea | Google · Apple · email (in app) |
-| **simplyur web** | Same audience (supplementary) | Email / social as configured |
+| **simplyur web** | Same audience (supplementary) | Email (web); social as configured |
 | **bongsim / Bong Tour** | Korea residents | Kakao · Naver · email |
 
 ## Stack
 
 | Layer | Choice |
 |-------|--------|
-| Mobile | **React Native + Expo SDK 57** (Expo Router tabs) |
+| Mobile | **React Native + Expo SDK 57** (Expo Router) |
 | API | BONGTOUR Next.js (`/api/simplyur/…`) |
-| Pay (now) | Buy → in-app browser → `/simplyur/{locale}/checkout` → Eximbay mobile window |
-| Pay (later) | Native in-app payment (Phase 2c) |
-| i18n | en, ja, zh, zh-TW, vi |
+| Pay | Native `/checkout` → Eximbay PAYER_AUTH WebView → `complete-pa` |
+| Session | SecureStore Bearer (`simplyur_access_token`) |
+| i18n | en, ja, zh, zh-TW, vi (persisted) |
 
 ## Run locally
 
@@ -36,11 +36,8 @@ npm run dev
 ```bash
 cd apps/simplyur-mobile
 cp .env.example .env
-# Local API: set EXPO_PUBLIC_API_BASE_URL (see table)
 npm start
 ```
-
-Press `a` (Android) or scan QR with Expo Go (iOS).
 
 ### API URL by device
 
@@ -51,11 +48,12 @@ Press `a` (Android) or scan QR with Expo Go (iOS).
 | Android Emulator | `http://10.0.2.2:3000` |
 | Physical phone | `http://<your-PC-LAN-IP>:3000` |
 
-## Checkout
+## Checkout & My eSIM
 
-- `EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED=1` (default) — **Buy now** opens the web checkout URL.
-- Payment UI is Eximbay **mobile** (`ostype=M`), not PC popup.
-- My eSIM may open the **web** My eSIM page when the app has no shared session cookie.
+- `EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED=1` (default) — **Buy** opens native `/checkout` (not system browser).
+- Payment UI is Eximbay **mobile** (`ostype=M`).
+- My eSIM uses the same in-app Bearer session (Apple / Google / email) — QR, SM-DP+, usage, unused refund.
+- Settings: language, legal (terms/privacy/refund), mailto support, sign-out, account delete.
 
 ## Store release (EAS)
 
@@ -64,28 +62,20 @@ Full checklist: [`STORE_RELEASE.md`](./STORE_RELEASE.md)
 ```bash
 cd apps/simplyur-mobile
 npx eas login
-npx eas init          # writes real projectId into app.json extra.eas
-npx eas build --platform all --profile preview      # internal APK / iOS
+npx eas build --platform all --profile preview
 npx eas build --platform all --profile production
 npx eas submit --platform ios --profile production
 npx eas submit --platform android --profile production
 ```
 
-Store listing URLs (also in `app.json` → `extra`):
-
-- Privacy: https://bongtour.com/simplyur/en/legal/privacy  
-- Terms: https://bongtour.com/simplyur/en/legal/terms  
-- Support: https://bongtour.com/simplyur/en  
-
-Apple: enable **Sign in with Apple** capability (bundle `com.bongtour.simplyur`) before submit if the Apple button ships.
-
 ## Screens
 
-- **Home** — Korea eSIM hero, CTA  
+- **Home** — Korea eSIM hero, CTA, Settings  
 - **Plans** — live catalog from API  
 - **Guide** — eSIM install steps  
-- **My eSIM** — orders (web fallback when unsigned in app)  
-- **Language** — modal picker  
+- **My eSIM** — orders, QR, manual codes, refund  
+- **Checkout** — native form + Eximbay WebView  
+- **Settings / Language / Legal** — account & policies  
 
 ## App IDs
 
@@ -100,4 +90,4 @@ After editing web messages:
 cp ../../lib/simplyur/messages/*.json src/i18n/messages/
 ```
 
-(from `apps/simplyur-mobile`) — then re-apply app-only keys (`payInBrowserHint`, `continueInBrowser`) if overwritten.
+Prefer editing app messages under `src/i18n/messages/` when copy is app-only.

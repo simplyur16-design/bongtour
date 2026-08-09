@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchKoreaPlans, type CountryPack, type PlanProduct } from '@/src/api/simplyur';
+import { OfflineBanner } from '@/src/components/OfflineBanner';
 import { PLANS_DESIGN as D } from '@/src/constants/plans-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
@@ -22,7 +23,10 @@ import {
   minFormattedPrice,
 } from '@/src/lib/plans-catalog';
 
-/** design_handoff_plans — duration-first Find my eSIM tab */
+/**
+ * design_handoff_plans — duration-first Find my eSIM tab
+ * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
+ */
 export default function PlansScreen() {
   const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
@@ -89,6 +93,7 @@ export default function PlansScreen() {
       style={[styles.root, { backgroundColor: D.bg }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={D.coral} />}>
+      <OfflineBanner onOnline={() => void load()} />
       <View style={styles.header}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>

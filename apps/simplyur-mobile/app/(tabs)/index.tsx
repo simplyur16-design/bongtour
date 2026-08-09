@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OfflineBanner } from '@/src/components/OfflineBanner';
 import {
   HOME_DESIGN as D,
   HOME_WHY_ICONS,
@@ -15,6 +16,7 @@ import { useI18n } from '@/src/i18n/I18nContext';
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: no system browser — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: devices native screen — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings entry — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
  */
 export default function HomeScreen() {
   const { t } = useI18n();
@@ -35,6 +37,7 @@ export default function HomeScreen() {
         styles.content,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
       ]}>
+      <OfflineBanner />
       <View style={styles.topRow}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>

@@ -48,19 +48,24 @@
       "subtitle": "Seoul, Busan & toàn quốc"
     }
   },
+  "network": {
+    "offlineBody": "Bạn đang offline hoặc không kết nối được simplyur. Kiểm tra mạng.",
+    "retry": "Thử lại kết nối",
+    "checking": "Đang kiểm tra…"
+  },
   "why": {
-    "title": "Why simplyUR",
+    "title": "Vì sao simplyUR",
     "items": {
       "instant": {
-        "title": "Instant activation",
+        "title": "Kích hoạt nhanh",
         "body": "Không cần SIM vật lý, không cần ra cửa hàng — cài từ mã QR trong vài phút."
       },
       "support": {
-        "title": "English support",
+        "title": "Hỗ trợ tiếng Anh",
         "body": "Hỗ trợ bằng tiếng Anh dễ hiểu trước và trong chuyến đi."
       },
       "refund": {
-        "title": "Easy refunds",
+        "title": "Hoàn tiền dễ dàng",
         "body": "Đổi kế hoạch? eSIM chưa dùng được hoàn tiền dễ dàng."
       }
     }
@@ -283,6 +288,13 @@
     "settingsLink": "Cài đặt",
     "backToList": "Quay lại My eSIM",
     "orderedOn": "Đặt ngày",
+    "orderNoLabel": "Mã đơn",
+    "shareOrderNo": "Chia sẻ mã đơn",
+    "shareQr": "Chia sẻ liên kết ảnh QR",
+    "openGuide": "Mở hướng dẫn cài đặt",
+    "installTipsTitle": "Sau khi cài",
+    "installTipRoaming": "Gói roaming: bật Chuyển vùng dữ liệu cho dòng simplyur.",
+    "installTipDataLine": "Khi đến Hàn Quốc, đặt simplyur làm dữ liệu di động.",
     "qrHint": "Quét trong Cài đặt → Di động → Thêm eSIM",
     "usageCardLabel": "Dung lượng",
     "loadingUsage": "Đang tải dung lượng…",

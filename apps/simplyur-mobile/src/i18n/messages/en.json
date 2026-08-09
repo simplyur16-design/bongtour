@@ -48,6 +48,11 @@
       "subtitle": "Seoul, Busan & nationwide"
     }
   },
+  "network": {
+    "offlineBody": "You're offline or can't reach simplyur. Check your connection.",
+    "retry": "Retry connection",
+    "checking": "Checking…"
+  },
   "why": {
     "title": "Why simplyUR",
     "items": {
@@ -559,6 +564,13 @@
     "empty": "No eSIM orders yet.",
     "backToList": "Back to My eSIM",
     "orderedOn": "Ordered",
+    "orderNoLabel": "Order no.",
+    "shareOrderNo": "Share order number",
+    "shareQr": "Share QR image link",
+    "openGuide": "Open install guide",
+    "installTipsTitle": "After install",
+    "installTipRoaming": "For roaming plans, turn Data Roaming ON for the simplyur line.",
+    "installTipDataLine": "Set simplyur as your Mobile Data line when you land in Korea.",
     "qrHint": "Scan in Settings → Cellular → Add eSIM",
     "usageCardLabel": "Data usage",
     "loadingUsage": "Loading usage…",

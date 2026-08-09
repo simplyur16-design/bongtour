@@ -48,19 +48,24 @@
       "subtitle": "首尔、釜山及全国"
     }
   },
+  "network": {
+    "offlineBody": "您似乎离线或无法连接 simplyur。请检查网络。",
+    "retry": "重试连接",
+    "checking": "检查中…"
+  },
   "why": {
-    "title": "Why simplyUR",
+    "title": "为什么选择 simplyUR",
     "items": {
       "instant": {
-        "title": "Instant activation",
+        "title": "即刻开通",
         "body": "无需实体 SIM、无需到店 — 扫码数分钟即可安装。"
       },
       "support": {
-        "title": "English support",
+        "title": "英文客服",
         "body": "出行前后均可获得清晰的英文客服支持。"
       },
       "refund": {
-        "title": "Easy refunds",
+        "title": "轻松退款",
         "body": "计划有变？未使用的 eSIM 可轻松退款。"
       }
     }
@@ -283,6 +288,13 @@
     "settingsLink": "设置",
     "backToList": "返回 My eSIM",
     "orderedOn": "下单",
+    "orderNoLabel": "订单号",
+    "shareOrderNo": "分享订单号",
+    "shareQr": "分享二维码图片链接",
+    "openGuide": "打开安装指南",
+    "installTipsTitle": "安装后",
+    "installTipRoaming": "漫游套餐请为 simplyur 线路开启数据漫游。",
+    "installTipDataLine": "抵达韩国后，将 simplyur 设为移动数据线路。",
     "qrHint": "在 设置 → 蜂窝网络 → 添加 eSIM 中扫描",
     "usageCardLabel": "数据用量",
     "loadingUsage": "加载用量中…",

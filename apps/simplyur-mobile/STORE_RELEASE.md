@@ -115,3 +115,10 @@ Code rejects public test credentials when `EXIMBAY_ENV=production`.
 
 In-app path (signed in): **Settings → Delete account** → `POST /api/simplyur/account/withdraw`  
 Also: Settings → Language / Terms / Privacy / Refund / Email support.
+
+## I. Later polish (not blocking submit)
+
+- Push (paid/QR/refund): needs `expo-notifications` + server device-token API  
+- Crash/analytics: Sentry DSN + funnel events  
+- OTA: `expo-updates` + `runtimeVersion` / EAS Update channel  
+- Universal Links: `associatedDomains` + `.well-known` AASA

@@ -48,19 +48,24 @@
       "subtitle": "首爾、釜山及全國"
     }
   },
+  "network": {
+    "offlineBody": "您似乎離線或無法連線 simplyur。請檢查網路。",
+    "retry": "重試連線",
+    "checking": "檢查中…"
+  },
   "why": {
-    "title": "Why simplyUR",
+    "title": "為什麼選擇 simplyUR",
     "items": {
       "instant": {
-        "title": "Instant activation",
+        "title": "即刻開通",
         "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。"
       },
       "support": {
-        "title": "English support",
+        "title": "英文客服",
         "body": "出發前後均可獲得清晰的英文客服支援。"
       },
       "refund": {
-        "title": "Easy refunds",
+        "title": "輕鬆退款",
         "body": "計畫有變？未使用的 eSIM 可輕鬆退款。"
       }
     }
@@ -283,6 +288,13 @@
     "settingsLink": "設定",
     "backToList": "返回 My eSIM",
     "orderedOn": "下單",
+    "orderNoLabel": "訂單號",
+    "shareOrderNo": "分享訂單號",
+    "shareQr": "分享 QR 圖片連結",
+    "openGuide": "開啟安裝指南",
+    "installTipsTitle": "安裝後",
+    "installTipRoaming": "漫遊方案請為 simplyur 線路開啟數據漫遊。",
+    "installTipDataLine": "抵達韓國後，將 simplyur 設為行動數據線路。",
     "qrHint": "在 設定 → 行動服務 → 加入 eSIM 中掃描",
     "usageCardLabel": "數據用量",
     "loadingUsage": "載入用量中…",

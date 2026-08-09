@@ -19,6 +19,7 @@ import {
   createSimplyurEximbaySession,
 } from '@/src/api/checkout';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
+import { OfflineBanner } from '@/src/components/OfflineBanner';
 import { LOGIN_1B } from '@/src/constants/login-design';
 import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
@@ -36,6 +37,7 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: cancel/fail + legal stay native — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: auth_ok → complete-pa — manifest
  * REGRESSION-FREEZE[simplyur-mobile-checkout-email-editable]: session email prefill but always editable (Apple Hide My Email) — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner on checkout form — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -324,6 +326,7 @@ export default function CheckoutScreen() {
         <Text style={styles.back}>← {t('product.backToPlans')}</Text>
       </Pressable>
 
+      <OfflineBanner />
       <Text style={styles.title}>{t('checkout.title')}</Text>
 
       {!product ? (

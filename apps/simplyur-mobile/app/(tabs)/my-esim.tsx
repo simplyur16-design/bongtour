@@ -20,6 +20,7 @@ import {
   type MyEsimUsage,
 } from '@/src/api/my-esim';
 import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
+import { OfflineBanner } from '@/src/components/OfflineBanner';
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
@@ -43,6 +44,7 @@ type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: sign-out + SM-DP/activation codes — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings + load-error vs empty — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: order share + guide CTA + offline — manifest
  */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
@@ -314,6 +316,19 @@ export default function MyEsimScreen() {
             <Text style={styles.orderedOn}>
               {t('myEsim.orderedOn')} {formatOrderDate(selectedOrder.created_at, locale)}
             </Text>
+            {selectedOrder.order_number ? (
+              <Pressable
+                style={styles.orderNoRow}
+                onPress={() =>
+                  void shareInstallValue(t('myEsim.orderNoLabel'), selectedOrder.order_number)
+                }>
+                <Text style={styles.orderNoLabel}>{t('myEsim.orderNoLabel')}</Text>
+                <Text style={styles.orderNoValue} selectable>
+                  {selectedOrder.order_number}
+                </Text>
+                <Text style={styles.codeShare}>{t('myEsim.shareOrderNo')}</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.qrPanel}>
@@ -325,6 +340,16 @@ export default function MyEsimScreen() {
               </View>
             )}
             <Text style={styles.qrHint}>{t('myEsim.qrHint')}</Text>
+            {selectedOrder.can_show_qr && selectedOrder.qr_code_img_url ? (
+              <Pressable
+                onPress={() =>
+                  void shareInstallValue(t('myEsim.shareQr'), selectedOrder.qr_code_img_url!)
+                }
+                hitSlop={8}
+                style={styles.shareQrBtn}>
+                <Text style={styles.signOutLink}>{t('myEsim.shareQr')}</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           {(selectedOrder.sm_dp_plus_address || selectedOrder.activation_code) &&
@@ -360,6 +385,15 @@ export default function MyEsimScreen() {
               ) : null}
             </View>
           ) : null}
+
+          <View style={styles.tipsBox}>
+            <Text style={styles.manualTitle}>{t('myEsim.installTipsTitle')}</Text>
+            <Text style={styles.manualBody}>{t('myEsim.installTipDataLine')}</Text>
+            <Text style={styles.manualBody}>{t('myEsim.installTipRoaming')}</Text>
+            <Pressable onPress={() => router.push('/guide')} style={styles.guideCta} hitSlop={8}>
+              <Text style={styles.signOutLink}>{t('myEsim.openGuide')}</Text>
+            </Pressable>
+          </View>
 
           <Pressable style={styles.usageCard} onPress={() => setUsageScreenOpen(true)}>
             <View style={styles.usageCardText}>
@@ -427,6 +461,7 @@ export default function MyEsimScreen() {
     <ScrollView
       style={[styles.root, { backgroundColor: D.bg }]}
       contentContainerStyle={[styles.listContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}>
+      <OfflineBanner onOnline={() => void loadOrders()} />
       <View style={styles.listHeader}>
         <Text style={styles.listTitle}>{t('myEsim.title')}</Text>
         <View style={styles.listHeaderActions}>
@@ -544,6 +579,29 @@ const styles = StyleSheet.create({
   listTitle: { fontSize: 22, ...fp('800'), color: D.navy },
   settingsCorner: { alignSelf: 'flex-end', marginBottom: 8 },
   signOutLink: { fontSize: 13, ...fp('600'), color: D.coral, textAlign: 'center' },
+  orderNoRow: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+    backgroundColor: '#fff',
+    alignSelf: 'stretch',
+  },
+  orderNoLabel: { fontSize: 11, ...fp('600'), color: D.faint },
+  orderNoValue: { fontSize: 13, ...fp('600'), color: D.navy },
+  shareQrBtn: { marginTop: 8, alignItems: 'center' },
+  tipsBox: {
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: D.panelRadius,
+    backgroundColor: '#fff',
+    padding: 16,
+    gap: 8,
+  },
+  guideCta: { marginTop: 4, alignSelf: 'flex-start' },
   signOutDetail: { marginTop: 8, alignItems: 'center', paddingVertical: 12 },
   manualBox: {
     borderWidth: 1,

@@ -48,19 +48,24 @@
       "subtitle": "ソウル、釜山ほか全国"
     }
   },
+  "network": {
+    "offlineBody": "オフラインか、simplyurに接続できません。通信環境を確認してください。",
+    "retry": "再接続",
+    "checking": "確認中…"
+  },
   "why": {
-    "title": "Why simplyUR",
+    "title": "simplyURの特長",
     "items": {
       "instant": {
-        "title": "Instant activation",
+        "title": "すぐ使える",
         "body": "店舗不要・物理SIM不要 — QRコードから数分でインストール。"
       },
       "support": {
-        "title": "English support",
+        "title": "英語サポート",
         "body": "旅行前後、わかりやすい英語でサポート。"
       },
       "refund": {
-        "title": "Easy refunds",
+        "title": "かんたん返金",
         "body": "予定変更？未使用eSIMは手間なく返金可能。"
       }
     }
@@ -283,6 +288,13 @@
     "settingsLink": "設定",
     "backToList": "マイeSIMに戻る",
     "orderedOn": "注文日",
+    "orderNoLabel": "注文番号",
+    "shareOrderNo": "注文番号を共有",
+    "shareQr": "QR画像リンクを共有",
+    "openGuide": "インストールガイドを開く",
+    "installTipsTitle": "インストール後",
+    "installTipRoaming": "ローミングプランはsimplyur回線のデータローミングをONにしてください。",
+    "installTipDataLine": "韓国到着後、モバイルデータ回線をsimplyurに設定してください。",
     "qrHint": "設定 → モバイル通信 → eSIMを追加 からスキャン",
     "usageCardLabel": "データ使用量",
     "loadingUsage": "使用量を読み込み中…",
