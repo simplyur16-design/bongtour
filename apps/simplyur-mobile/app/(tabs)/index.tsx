@@ -14,6 +14,7 @@ import { useI18n } from '@/src/i18n/I18nContext';
  * design_handoff_home — Home tab [03]
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: no system browser — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: devices native screen — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings entry — manifest
  */
 export default function HomeScreen() {
   const { t } = useI18n();
@@ -34,8 +35,13 @@ export default function HomeScreen() {
         styles.content,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
       ]}>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>
+      <View style={styles.topRow}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>
+        </View>
+        <Pressable onPress={() => router.push('/settings')} hitSlop={10}>
+          <Text style={styles.settingsLink}>{t('myEsim.settingsLink')}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.hero}>
@@ -90,6 +96,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: D.paddingH, gap: D.sectionGap },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   badge: {
     alignSelf: 'flex-start',
     backgroundColor: D.navy,
@@ -98,6 +109,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   badgeText: { fontSize: 11, ...fp('700'), letterSpacing: 0.88, color: '#fff' },
+  settingsLink: { fontSize: 13, ...fp('600'), color: D.coral },
   hero: { gap: 12 },
   heroLine1: { fontSize: 34, ...fp('800'), lineHeight: 39, letterSpacing: -0.34, color: D.navy },
   heroLine2: { fontSize: 34, ...fp('800'), lineHeight: 39, letterSpacing: -0.34, color: D.coral, marginTop: -8 },

@@ -1,10 +1,19 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   DEFAULT_LOCALE,
   LOCALE_LABELS,
   SIMPLYUR_LOCALES,
   type SimplyurLocale,
 } from '@/src/constants/simplyur';
+import { loadPersistedLocale, persistLocale } from '@/src/lib/locale-store';
 import en from '@/src/i18n/messages/en.json';
 import ja from '@/src/i18n/messages/ja.json';
 import zh from '@/src/i18n/messages/zh.json';
@@ -26,6 +35,7 @@ type Ctx = {
   messages: Messages;
   setLocale: (l: SimplyurLocale) => void;
   t: (path: string) => string;
+  ready: boolean;
 };
 
 const I18nContext = createContext<Ctx | null>(null);
@@ -40,8 +50,32 @@ function lookup(messages: Messages, path: string): string {
   return typeof cur === 'string' ? cur : path;
 }
 
+/**
+ * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: locale persistence — manifest
+ */
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<SimplyurLocale>(DEFAULT_LOCALE);
+  const [locale, setLocaleState] = useState<SimplyurLocale>(DEFAULT_LOCALE);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const stored = await loadPersistedLocale();
+      if (!cancelled) {
+        setLocaleState(stored);
+        setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const setLocale = useCallback((next: SimplyurLocale) => {
+    setLocaleState(next);
+    void persistLocale(next);
+  }, []);
+
   const messages = BUNDLE[locale];
   const value = useMemo(
     () => ({
@@ -49,8 +83,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       messages,
       setLocale,
       t: (path: string) => lookup(messages, path),
+      ready,
     }),
-    [locale, messages],
+    [locale, messages, setLocale, ready],
   );
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

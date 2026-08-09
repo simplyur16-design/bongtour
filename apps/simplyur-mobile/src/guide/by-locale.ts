@@ -6,8 +6,8 @@ import { GUIDE_EN_HANDOFF } from '@/src/guide/handoff-en';
 const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = {
   ja: {
     title: "eSIMのインストール方法",
-    intro: "simplyurのWeb/アプリの実際の流れに沿ったガイドです。プラン閲覧は今すぐ可能。決済開始後はメール（およびサインイン後のMy eSIM）でQRを受け取ります。",
-    flowPhaseNote: "現在：プラン一覧・料金・インストールガイド。準備中：チェックアウト決済、My eSIM用Googleサインイン（サーバー設定中）。",
+    intro: "simplyurのWeb/アプリの実際の流れに沿ったガイドです。プラン選択・アプリ内決済・インストール・サインイン後のMy eSIMまで利用できます。",
+    flowPhaseNote: "現在利用可能：韓国プラン閲覧、アプリ内チェックアウト、インストールガイド、サインイン後のMy eSIM（QR・利用量）。",
     tabs: { precheck: "事前確認", iphone: "iPhone", android: "Android" },
     stepsTitle: "インストール手順",
     faqTitle: "よくある質問 — 韓国eSIM",
@@ -91,10 +91,10 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { title: "旅行後の削除", blocks: [{ bullets: ["設定 → 接続 → SIMマネージャー → 削除。"], note: "接続問題がある場合は削除前にサポートへ。" }] }
     ],
     commonFaq: [
-      { q: "今simplyurでできることは？", a: "韓国eSIMプラン閲覧（ローミング/現地回線）、多言語料金表示、本ガイド。Buy/Checkoutは決済・サインイン準備中のため「近日公開」表示。" },
-      { q: "購入の流れ（決済開始後）", a: "①プラン選択 ②チェックアウト（メール必須・電話任意） ③規約同意 ④決済 ⑤発行後メールでQR/手動コード。アカウント不要。" },
-      { q: "購入にサインイン必要？", a: "不要。ゲスト購入（メール）。My eSIMのみGoogleサインイン。" },
-      { q: "My eSIMとGoogleサインイン", a: "チェックアウトと同じメールのGoogleアカウントで注文表示。OAuth設定済みサーバーでのみ有効。Apple/メールリンクは未対応。未サインイン時はQRメールを使用。" },
+      { q: "今simplyurでできることは？", a: "韓国eSIMプラン閲覧、アプリ内チェックアウト、多言語料金、本ガイド、サインイン後のMy eSIM（QR・利用量・未使用キャンセル）。" },
+      { q: "購入の流れ", a: "①プラン選択 ②チェックアウト（メール必須・電話任意） ③規約同意 ④決済 ⑤発行後メールとMy eSIMでQR/手動コード。" },
+      { q: "購入にサインイン必要？", a: "不要。ゲスト購入（メール）可。My eSIMはGoogle/Apple/メールでサインイン。" },
+      { q: "My eSIMとサインイン", a: "チェックアウトと同じメールでサインインすると注文・QR・利用量を表示。未サインイン時はQRメールを使用。" },
       { q: "QRはいつ届く？", a: "決済成功・発行完了後、通常数分以内。チェックアウトメール宛。My eSIMはDelivered後に同内容。" },
       { q: "料金表示", a: "カタログ価格×1.05を各言語の通貨で表示（為替は約12時間ごとに更新）。" },
       { q: "クーポン", a: "simplyurでは利用不可。" },
@@ -118,8 +118,8 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
   },
   zh: {
     title: "如何安装 eSIM",
-    intro: "本指南与 simplyur 网站/应用的实际流程一致。现已可浏览套餐；结账上线后通过邮件（及登录后的 My eSIM）收取 QR。",
-    flowPhaseNote: "现已开放：套餐列表、价格、安装指南。即将开放：在线结账支付、My eSIM 的 Google 登录（服务器配置中）。",
+    intro: "本指南与 simplyur 网站/应用的实际流程一致。可选套餐、应用内结账、安装，以及登录后的 My eSIM。",
+    flowPhaseNote: "现已开放：韩国套餐浏览、应用内结账、安装指南、登录后的 My eSIM（二维码与用量）。",
     tabs: { precheck: "安装前", iphone: "iPhone", android: "Android" },
     stepsTitle: "安装步骤",
     faqTitle: "常见问题 — 韩国 eSIM",
@@ -170,10 +170,10 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { title: "行程后删除", blocks: [{ bullets: ["设置 → SIM 管理器 → 删除。"] }] }
     ],
     commonFaq: [
-      { q: "simplyur 现在能做什么？", a: "浏览韩国 eSIM（漫游/本地网）、多语言价格、本指南。购买/结账按钮显示「即将开放」（支付与登录配置中）。" },
-      { q: "购买流程（结账上线后）", a: "①选套餐 ②结账（邮箱必填、电话选填）③同意条款 ④支付 ⑤发行后邮件收 QR/手动码。无需账号。" },
-      { q: "购买需要登录吗？", a: "不需要。游客邮箱结账。My eSIM 才需 Google 登录。" },
-      { q: "My eSIM 与 Google 登录", a: "与结账相同邮箱的 Google 账号可查看订单。需服务器 OAuth 配置。Apple/邮件登录尚未开放。未登录请用 QR 邮件。" },
+      { q: "simplyur 现在能做什么？", a: "浏览韩国 eSIM、应用内结账、多语言价格、本指南，以及登录后的 My eSIM（二维码、用量、未使用退款）。" },
+      { q: "购买流程", a: "①选套餐 ②结账（邮箱必填、电话选填）③同意条款 ④支付 ⑤发行后邮件与 My eSIM 收 QR/手动码。" },
+      { q: "购买需要登录吗？", a: "不需要。可用游客邮箱结账。My eSIM 支持 Google / Apple / 邮箱登录。" },
+      { q: "My eSIM 与登录", a: "用结账时相同的邮箱登录即可查看订单与二维码。未登录请使用 QR 邮件。" },
       { q: "何时收到 QR？", a: "支付成功且发行完成后，通常数分钟内发至结账邮箱。My eSIM 在 Delivered 后显示。" },
       { q: "价格如何显示？", a: "目录价×1.05，按所选语言换算货币（汇率约每12小时更新）。" },
       { q: "优惠券？", a: "simplyur 不支持。" },
@@ -197,8 +197,8 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
   },
   "zh-TW": {
     title: "如何安裝 eSIM",
-    intro: "本指南符合 simplyur 網站/應用實際流程。現可瀏覽方案；結帳上線後以郵件（及登入後 My eSIM）收取 QR。",
-    flowPhaseNote: "現已開放：方案列表、價格、安裝指南。準備中：線上結帳、My eSIM Google 登入。",
+    intro: "本指南符合 simplyur 網站/應用實際流程。可選方案、應用內結帳、安裝，以及登入後的 My eSIM。",
+    flowPhaseNote: "現已開放：韓國方案瀏覽、應用內結帳、安裝指南、登入後的 My eSIM（QR 與用量）。",
     tabs: { precheck: "安裝前", iphone: "iPhone", android: "Android" },
     stepsTitle: "安裝步驟",
     faqTitle: "常見問題 — 韓國 eSIM",
@@ -234,10 +234,10 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { title: "刪除", blocks: [{ bullets: ["SIM 管理工具 → 刪除。"] }] }
     ],
     commonFaq: [
-      { q: "simplyur 現在能做什麼？", a: "瀏覽韓國 eSIM、價格、安裝指南。購買/結帳顯示「即將開放」。" },
-      { q: "購買流程（結帳上線後）", a: "選方案 → Email 必填 → 同意條款 → 付款 → 郵件收 QR。無需帳號。" },
-      { q: "購買需登入？", a: "否。My eSIM 需 Google 登入（OAuth 設定後）。" },
-      { q: "My eSIM", a: "與結帳相同 Email 的 Google 帳號。未登入請用 QR 郵件。" },
+      { q: "simplyur 現在能做什麼？", a: "瀏覽韓國 eSIM、應用內結帳、價格、安裝指南，以及登入後的 My eSIM（QR、用量、未使用退款）。" },
+      { q: "購買流程", a: "選方案 → Email 必填 → 同意條款 → 付款 → 郵件與 My eSIM 收 QR。" },
+      { q: "購買需登入？", a: "否。可用訪客 Email 結帳。My eSIM 支援 Google / Apple / 信箱登入。" },
+      { q: "My eSIM", a: "用結帳相同 Email 登入即可查看訂單與 QR。未登入請用 QR 郵件。" },
       { q: "QR 何時收到？", a: "付款成功且發行後，通常數分鐘內。" },
       { q: "價格", a: "目錄價×1.05，依語言顯示幣別（匯率約每12小時更新）。優惠券不支援。" },
       { q: "方案開始/仁川安裝/漫遊", a: "多在韓國首次連網開始；可在仁川機場 Wi‑Fi 安裝；漫遊方案常需開數據漫遊。" },
@@ -253,8 +253,8 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
   },
   vi: {
     title: "Cách cài eSIM",
-    intro: "Hướng dẫn theo đúng luồng simplyur trên web/app. Hiện xem được gói; sau khi thanh toán mở — QR qua email (và My eSIM khi đăng nhập).",
-    flowPhaseNote: "Đang có: danh sách gói Hàn Quốc, giá, hướng dẫn cài. Sắp có: thanh toán checkout, Google đăng nhập My eSIM.",
+    intro: "Hướng dẫn theo đúng luồng simplyur trên web/app. Chọn gói, thanh toán trong app, cài đặt, và My eSIM sau khi đăng nhập.",
+    flowPhaseNote: "Đang có: xem gói Hàn Quốc, checkout trong app, hướng dẫn cài, My eSIM sau đăng nhập (QR + dung lượng).",
     tabs: { precheck: "Trước khi cài", iphone: "iPhone", android: "Android" },
     stepsTitle: "Các bước cài đặt",
     faqTitle: "Câu hỏi thường gặp — eSIM Hàn Quốc",
@@ -297,10 +297,10 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { title: "Gỡ", blocks: [{ bullets: ["Quản lý SIM → Xóa."] }] }
     ],
     commonFaq: [
-      { q: "simplyur hiện làm được gì?", a: "Xem gói eSIM Hàn Quốc, giá đa ngôn ngữ, hướng dẫn cài. Nút Mua/Checkout hiển thị sắp mở." },
-      { q: "Luồng mua (khi checkout bật)", a: "Chọn gói → email bắt buộc, SĐT tùy chọn → đồng ý điều khoản → thanh toán → email QR. Không cần tài khoản." },
-      { q: "Cần đăng nhập để mua?", a: "Không. My eSIM cần Google (cùng email checkout)." },
-      { q: "My eSIM", a: "Hiển thị đơn simplyur theo email Google. OAuth phải cấu hình trên server." },
+      { q: "simplyur hiện làm được gì?", a: "Xem gói eSIM Hàn Quốc, checkout trong app, giá đa ngôn ngữ, hướng dẫn cài, và My eSIM sau đăng nhập (QR, dung lượng, hoàn tiền chưa dùng)." },
+      { q: "Luồng mua", a: "Chọn gói → email bắt buộc, SĐT tùy chọn → đồng ý điều khoản → thanh toán → nhận QR qua email và My eSIM." },
+      { q: "Cần đăng nhập để mua?", a: "Không. Có thể mua bằng email khách. My eSIM hỗ trợ Google / Apple / email." },
+      { q: "My eSIM", a: "Đăng nhập bằng cùng email checkout để xem đơn và QR. Chưa đăng nhập thì dùng email QR." }
       { q: "QR khi nào?", a: "Sau thanh toán thành công & phát hành — thường vài phút." },
       { q: "Giá", a: "Giá catalog ×1.05, quy đổi theo ngôn ngữ (tỷ giá cập nhật ~12 giờ). Không coupon." },
       { q: "Bắt đầu gói / Incheon / roaming", a: "Thường khi kết nối mạng tại Hàn; cài tại sân bay Incheon được; gói roaming thường cần bật chuyển vùng." },

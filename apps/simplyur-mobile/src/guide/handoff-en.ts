@@ -5,8 +5,11 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
   title: 'How to install your eSIM',
   intro:
     "This guide matches the Simply UR website and app flow, so the steps below are exactly what you'll see when you set up your Korea eSIM.",
-  phaseBanner: 'Live now: plan catalog & install guide. Checkout & My eSIM coming soon.',
-  flowPhaseNote: 'Live now: plan catalog & install guide. Checkout & My eSIM coming soon.',
+  // REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: live checkout/My eSIM copy — manifest
+  phaseBanner:
+    'Live now: browse Korea plans, in-app checkout, install guide, and My eSIM (QR + usage) after sign-in.',
+  flowPhaseNote:
+    'Live now: browse Korea plans, in-app checkout, install guide, and My eSIM (QR + usage) after sign-in.',
   tabs: { precheck: 'Before you start', iphone: 'iPhone', android: 'Android' },
   stepsTitle: 'Installation steps',
   faqTitle: 'FAQ — Korea eSIM',

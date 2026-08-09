@@ -110,3 +110,8 @@ Code rejects public test credentials when `EXIMBAY_ENV=production`.
 1. App Store Connect → App → App Information → **Apple ID** (numeric)
 2. Replace `REPLACE_AFTER_APP_STORE_CONNECT` in `eas.json` → `submit.production.ios.ascAppId`
 3. `npx eas-cli submit --platform ios --profile production` (real TTY; not Cursor agent shell)
+
+## H. Account deletion (App Review)
+
+In-app path (signed in): **Settings → Delete account** → `POST /api/simplyur/account/withdraw`  
+Also: Settings → Language / Terms / Privacy / Refund / Email support.

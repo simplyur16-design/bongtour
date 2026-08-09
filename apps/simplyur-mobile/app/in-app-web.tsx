@@ -17,6 +17,9 @@ function nativeRedirectForPath(path: string): { pathname: '/devices' } | { pathn
   if (lower.includes('privacy')) {
     return { pathname: '/legal', params: { doc: 'privacy' } };
   }
+  if (lower.includes('refund')) {
+    return { pathname: '/legal', params: { doc: 'refund' } };
+  }
   if (lower.includes('terms') || lower.includes('/legal') || lower.includes('legal/')) {
     return { pathname: '/legal', params: { doc: 'terms' } };
   }

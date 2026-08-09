@@ -77,6 +77,10 @@ function RootLayoutNav() {
           name="legal"
           options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
         />
+        <Stack.Screen
+          name="settings"
+          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
+        />
         {/* Legacy WebView route kept for freeze/compat — app flows must not open website chrome */}
         <Stack.Screen name="in-app-web" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen

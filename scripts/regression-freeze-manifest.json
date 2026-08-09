@@ -13748,6 +13748,70 @@
       ]
     },
     {
+      "id": "simplyur-mobile-p1-account-settings",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 P1 — 설정·언어 저장·탈퇴 API·환불정책·Guide live 카피·로드에러 분리",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/settings.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
+            "requestSimplyurAccountWithdraw",
+            "mailto:",
+            "legal.refundTitle"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/locale-store.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
+            "simplyur_locale",
+            "persistLocale"
+          ]
+        },
+        {
+          "file": "lib/simplyur/auth/withdraw-simplyur-account.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
+            "accountStatus: 'withdrawn'",
+            "withdrawnPlaceholderEmail"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/account/withdraw/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
+            "withdrawSimplyurAccount"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/guide/handoff-en.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
+            "in-app checkout",
+            "My eSIM"
+          ],
+          "mustNotInclude": [
+            "Checkout & My eSIM coming soon"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
+            "loadErrorTitle",
+            "/settings"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/auth/withdraw-simplyur-account.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-eximbay-live-checkout",
       "tier": [
         "prebuild",

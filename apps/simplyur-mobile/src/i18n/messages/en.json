@@ -362,7 +362,7 @@
     "commonFaq": [
       {
         "q": "What works on simplyur today?",
-        "a": "You can browse South Korea eSIM plans (roaming and local-network options), see prices in your language, and read this install guide. The Buy / Checkout buttons show “opening soon” while online payment and sign-in are being enabled on the server."
+        "a": "You can browse South Korea eSIM plans, pay in the app, follow this install guide, and use My eSIM after sign-in for QR codes, usage, and unused-plan refunds."
       },
       {
         "q": "How does purchase work on simplyur? (when checkout is live)",
@@ -445,8 +445,30 @@
   "legal": {
     "termsTitle": "Terms of Service",
     "privacyTitle": "Privacy Policy",
+    "refundTitle": "Refund policy",
     "termsBody": "simplyur Korea eSIM is operated by Bong Tour Co., Ltd. for international visitors. By purchasing you agree that the plan is non-transferable, QR delivery is by email (and in My eSIM when signed in), activation and network availability depend on your device and carrier coverage in Korea, and refunds follow our refund policy for unused plans before first activation. Support: bongtour24@naver.com / +82-31-213-2558 (KST 09:00–18:00).",
-    "privacyBody": "We collect account email, optional phone, order and payment references, and eSIM usage needed to deliver service. Data is processed by Bong Tour Co., Ltd. and payment/eSIM partners only for fulfillment and support. We do not sell personal data. Contact bongtour24@naver.com for access or deletion requests."
+    "privacyBody": "We collect account email, optional phone, order and payment references, and eSIM usage needed to deliver service. Data is processed by Bong Tour Co., Ltd. and payment/eSIM partners only for fulfillment and support. We do not sell personal data. Contact bongtour24@naver.com for access or deletion requests.",
+    "refundBody": "Unused eSIM (QR not activated / no data used): full refund available via Cancel unused eSIM in My eSIM, or email support. After activation or any data use: no refund. Product defect: full refund or re-issue. Requests: bongtour24@naver.com or +82-31-213-2558 (KST 09:00–18:00 Mon–Fri). Digital eSIM products cannot be exchanged except for defect re-issue of the same plan."
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "signedOutHint": "Sign in on My eSIM to manage your account.",
+    "sectionApp": "App",
+    "sectionLegal": "Legal",
+    "sectionSupport": "Support",
+    "sectionAccount": "Account",
+    "supportTitle": "Contact support",
+    "supportCta": "Email support",
+    "supportSubject": "simplyur app support",
+    "deleteTitle": "Delete account",
+    "deleteCta": "Delete account",
+    "deleteConfirm": "Delete",
+    "deleteBusy": "Deleting…",
+    "deleteBody": "This permanently closes your simplyur account and signs you out. Past order records may be kept as required by law. Active eSIMs already on your phone are not removed — delete them in Settings → Cellular if needed.",
+    "deleteHint": "Required for App Store account deletion. You can create a new account later with the same email.",
+    "deleteError": "Could not delete your account. Try again or email support.",
+    "deleteDone": "Your account was deleted. You have been signed out."
   },
   "footer": {
     "brand": "simplyur",
@@ -522,7 +544,9 @@
     "title": "My eSIM",
     "subtitle": "View your orders, QR codes, and data usage.",
     "loading": "Loading…",
-    "loadError": "Could not load your orders.",
+    "loadError": "Could not load your orders. Check your connection and try again.",
+    "loadErrorTitle": "Couldn't load orders",
+    "retry": "Try again",
     "usageError": "Could not load usage data. Please try again.",
     "signInRequired": "Please sign in to view your eSIMs.",
     "signInTitle": "Sign in to see your eSIMs",
@@ -531,6 +555,7 @@
     "emptyTitle": "No orders yet",
     "emptyBody": "When you buy a plan it'll show up here with your QR code and usage.",
     "emptyCta": "Browse plans",
+    "settingsLink": "Settings",
     "empty": "No eSIM orders yet.",
     "backToList": "Back to My eSIM",
     "orderedOn": "Ordered",

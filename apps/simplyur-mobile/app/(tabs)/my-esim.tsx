@@ -1,4 +1,4 @@
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -33,7 +33,7 @@ import {
 } from '@/src/lib/my-esim-view-model';
 import { clearSimplyurSession, subscribeSimplyurSession } from '@/src/lib/session';
 
-type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
+type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
 
 /**
  * design_handoff_my_esim — My eSIM 4th tab
@@ -42,6 +42,7 @@ type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: sign-out + SM-DP/activation codes — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings + load-error vs empty — manifest
  */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
@@ -108,10 +109,11 @@ export default function MyEsimScreen() {
   const view: ViewState = useMemo(() => {
     if (loading) return 'loading';
     if (unauthorized) return 'signin';
+    if (loadError) return 'error';
     if (selectedOrderId && selectedOrder) return 'detail';
     if (orders.length === 0) return 'empty';
     return 'list';
-  }, [loading, unauthorized, selectedOrderId, selectedOrder, orders.length]);
+  }, [loading, unauthorized, loadError, selectedOrderId, selectedOrder, orders.length]);
 
   const summary = selectedOrder ? buildUsageSummaryView(selectedOrder, detailUsage, t) : null;
   const modalSummary = selectedOrder ? buildUsageSummaryView(selectedOrder, detailUsage, t) : null;
@@ -166,11 +168,34 @@ export default function MyEsimScreen() {
           { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 },
         ]}
         keyboardShouldPersistTaps="handled">
+        <Pressable
+          onPress={() => router.push('/settings')}
+          hitSlop={10}
+          style={styles.settingsCorner}>
+          <Text style={styles.signOutLink}>{t('myEsim.settingsLink')}</Text>
+        </Pressable>
         <Text style={styles.signinIcon}>🔒</Text>
         <Text style={styles.signinTitle}>{t('myEsim.signInTitle')}</Text>
         <Text style={styles.signinBody}>{t('myEsim.signInBody')}</Text>
         <SocialAuthButtons inlineEmail onSignedIn={() => loadOrders()} />
       </ScrollView>
+    );
+  }
+
+  if (view === 'error') {
+    return (
+      <CenterBlock
+        insets={insets}
+        icon="⚠️"
+        title={t('myEsim.loadErrorTitle')}
+        body={t('myEsim.loadError')}>
+        <Pressable style={styles.cta} onPress={() => void loadOrders()}>
+          <Text style={styles.ctaText}>{t('myEsim.retry')}</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/settings')} style={{ marginTop: 16 }} hitSlop={8}>
+          <Text style={styles.signOutLink}>{t('myEsim.settingsLink')}</Text>
+        </Pressable>
+      </CenterBlock>
     );
   }
 
@@ -180,13 +205,16 @@ export default function MyEsimScreen() {
         insets={insets}
         icon="📶"
         title={t('myEsim.emptyTitle')}
-        body={loadError ? t('myEsim.loadError') : t('myEsim.emptyBody')}>
+        body={t('myEsim.emptyBody')}>
         <Link href="/plans" asChild>
           <Pressable style={styles.cta}>
             <Text style={styles.ctaText}>{t('myEsim.emptyCta')}</Text>
           </Pressable>
         </Link>
-        <Pressable onPress={() => void onSignOut()} style={{ marginTop: 16 }} hitSlop={8}>
+        <Pressable onPress={() => router.push('/settings')} style={{ marginTop: 16 }} hitSlop={8}>
+          <Text style={styles.signOutLink}>{t('myEsim.settingsLink')}</Text>
+        </Pressable>
+        <Pressable onPress={() => void onSignOut()} style={{ marginTop: 12 }} hitSlop={8}>
           <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
         </Pressable>
       </CenterBlock>
@@ -401,9 +429,14 @@ export default function MyEsimScreen() {
       contentContainerStyle={[styles.listContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}>
       <View style={styles.listHeader}>
         <Text style={styles.listTitle}>{t('myEsim.title')}</Text>
-        <Pressable onPress={() => void onSignOut()} hitSlop={10}>
-          <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
-        </Pressable>
+        <View style={styles.listHeaderActions}>
+          <Pressable onPress={() => router.push('/settings')} hitSlop={10}>
+            <Text style={styles.signOutLink}>{t('myEsim.settingsLink')}</Text>
+          </Pressable>
+          <Pressable onPress={() => void onSignOut()} hitSlop={10}>
+            <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
+          </Pressable>
+        </View>
       </View>
       {orders.map((o) => {
         const tier = myEsimBadgeTier(o.status_key);
@@ -507,7 +540,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
+  listHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   listTitle: { fontSize: 22, ...fp('800'), color: D.navy },
+  settingsCorner: { alignSelf: 'flex-end', marginBottom: 8 },
   signOutLink: { fontSize: 13, ...fp('600'), color: D.coral, textAlign: 'center' },
   signOutDetail: { marginTop: 8, alignItems: 'center', paddingVertical: 12 },
   manualBox: {
