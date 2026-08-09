@@ -132,6 +132,7 @@
     "title": "結帳",
     "email": "電子郵件",
     "emailHint": "QR 碼將寄送至此信箱",
+    "emailFromAccountHint": "已填入登入帳號信箱（可修改），QR 碼將寄送至此",
     "phone": "電話（選填）",
     "phoneHint": "如在韓國以外請包含國碼",
     "terms": "我同意購買條款",

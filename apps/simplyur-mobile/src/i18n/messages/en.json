@@ -132,6 +132,7 @@
     "title": "Checkout",
     "email": "Email",
     "emailHint": "Your QR code will be sent here",
+    "emailFromAccountHint": "Filled from your signed-in account — QR goes here (you can change it)",
     "phone": "Phone (optional)",
     "phoneHint": "Include country code if outside Korea",
     "terms": "I agree to the purchase terms",

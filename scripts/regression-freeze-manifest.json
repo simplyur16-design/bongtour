@@ -2849,6 +2849,37 @@
       ]
     },
     {
+      "id": "simplyur-mobile-checkout-email-editable",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 체크아웃 — 로그인/애플 세션 이메일은 프리필만 하고 잠그지 않음 (QR 수신 메일 수정 가능)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-checkout-email-editable]",
+            "setEmailFromAccount",
+            "emailFromAccountHint",
+            "loadSimplyurSession",
+            "editable"
+          ],
+          "mustNotInclude": [
+            "emailLocked",
+            "setEmailLocked",
+            "inputLocked"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/i18n/messages/en.json",
+          "mustInclude": [
+            "emailFromAccountHint"
+          ]
+        }
+      ]
+    },
+    {
       "id": "railway-start-exec-next",
       "tier": [
         "prebuild"

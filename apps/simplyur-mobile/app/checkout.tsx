@@ -35,6 +35,7 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: native checkout screen — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: cancel/fail + legal stay native — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: auth_ok → complete-pa — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-checkout-email-editable]: session email prefill but always editable (Apple Hide My Email) — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -50,7 +51,7 @@ export default function CheckoutScreen() {
 
   const [product, setProduct] = useState<PlanProduct | null>(null);
   const [email, setEmail] = useState('');
-  const [emailLocked, setEmailLocked] = useState(false);
+  const [emailFromAccount, setEmailFromAccount] = useState(false);
   const [phone, setPhone] = useState('');
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -75,7 +76,8 @@ export default function CheckoutScreen() {
       const picked = fromSession || fromCheckout;
       if (picked.includes('@')) {
         setEmail(picked);
-        setEmailLocked(Boolean(fromSession));
+        // Prefill from account/Apple relay — never lock; buyer may route QR to a real inbox.
+        setEmailFromAccount(Boolean(fromSession));
       }
     })();
     return () => {
@@ -337,15 +339,17 @@ export default function CheckoutScreen() {
           <TextInput
             value={email}
             onChangeText={setEmail}
-            editable={!emailLocked}
+            editable
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
             placeholder={t('checkout.emailHint')}
             placeholderTextColor={LOGIN_1B.faint}
-            style={[styles.input, emailLocked ? styles.inputLocked : null]}
+            style={styles.input}
           />
-          <Text style={styles.hint}>{t('checkout.emailHint')}</Text>
+          <Text style={styles.hint}>
+            {emailFromAccount ? t('checkout.emailFromAccountHint') : t('checkout.emailHint')}
+          </Text>
 
           <Text style={styles.label}>{t('checkout.phone')}</Text>
           <TextInput
@@ -450,7 +454,6 @@ const styles = StyleSheet.create({
     color: LOGIN_1B.navy,
     ...fp('400'),
   },
-  inputLocked: { backgroundColor: '#f3f0ee' },
   hint: { fontSize: 12, color: LOGIN_1B.faint, ...fp('400') },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   checkbox: {
