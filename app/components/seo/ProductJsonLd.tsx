@@ -1,25 +1,18 @@
-import { absoluteUrl, SITE_NAME, toAbsoluteImageUrl } from '@/lib/site-metadata'
+import {
+  buildOffersNode,
+  buildProductJsonLdData,
+  type ProductJsonLdAggregateOffer,
+  type ProductJsonLdBreadcrumbItem,
+  type ProductJsonLdItineraryItem,
+} from '@/lib/seo/product-json-ld'
+import { absoluteUrl, toAbsoluteImageUrl } from '@/lib/site-metadata'
 
-export type ProductJsonLdAggregateOffer = {
-  lowPrice: number
-  highPrice: number
-  offerCount: number
-  availability: 'InStock' | 'LimitedAvailability' | 'SoldOut' | 'OutOfStock'
-  validFrom?: string
-  priceValidUntil?: string
+export type {
+  ProductJsonLdAggregateOffer,
+  ProductJsonLdBreadcrumbItem,
+  ProductJsonLdItineraryItem,
 }
-
-export type ProductJsonLdBreadcrumbItem = {
-  position: number
-  name: string
-  item?: string
-}
-
-export type ProductJsonLdItineraryItem = {
-  dayNumber: number
-  title: string
-  city?: string | null
-}
+export { buildProductJsonLdData }
 
 type Props = {
   productId: string
@@ -31,7 +24,10 @@ type Props = {
   itinerary?: ProductJsonLdItineraryItem[] | null
 }
 
-/** 상품 상세: Product + 선택적 AggregateOffer / BreadcrumbList (Rich Snippet용) */
+/**
+ * 상품 상세: Product(+offers 필수) + 선택적 BreadcrumbList / TouristTrip.
+ * REGRESSION-FREEZE[product-jsonld-requires-offers]: omit Product when no offers — manifest
+ */
 export default function ProductJsonLd({
   productId,
   name,
@@ -43,37 +39,13 @@ export default function ProductJsonLd({
 }: Props) {
   const url = absoluteUrl(`/products/${productId}`)
   const img = toAbsoluteImageUrl(imageUrl)
-  const productData = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
+  const productData = buildProductJsonLdData({
+    productId,
     name,
     description,
-    url,
-    ...(img ? { image: [img] } : {}),
-    brand: {
-      '@type': 'Brand',
-      name: SITE_NAME,
-    },
-    ...(offers
-      ? {
-          offers: {
-            '@type': 'AggregateOffer',
-            priceCurrency: 'KRW',
-            lowPrice: offers.lowPrice,
-            highPrice: offers.highPrice,
-            offerCount: offers.offerCount,
-            availability: `https://schema.org/${offers.availability}`,
-            ...(offers.validFrom ? { validFrom: offers.validFrom } : {}),
-            ...(offers.priceValidUntil ? { priceValidUntil: offers.priceValidUntil } : {}),
-            url,
-            seller: {
-              '@type': 'TravelAgency',
-              name: SITE_NAME,
-            },
-          },
-        }
-      : {}),
-  }
+    imageUrl,
+    offers,
+  })
 
   const breadcrumbLd =
     breadcrumbItems && breadcrumbItems.length > 0
@@ -98,20 +70,7 @@ export default function ProductJsonLd({
           description,
           url,
           ...(img ? { image: [img] } : {}),
-          ...(offers
-            ? {
-                offers: {
-                  '@type': 'AggregateOffer',
-                  priceCurrency: 'KRW',
-                  lowPrice: offers.lowPrice,
-                  highPrice: offers.highPrice,
-                  offerCount: offers.offerCount,
-                  availability: `https://schema.org/${offers.availability}`,
-                  ...(offers.validFrom ? { validFrom: offers.validFrom } : {}),
-                  ...(offers.priceValidUntil ? { priceValidUntil: offers.priceValidUntil } : {}),
-                },
-              }
-            : {}),
+          ...(offers && offers.lowPrice > 0 ? { offers: buildOffersNode(offers, url) } : {}),
           itinerary: {
             '@type': 'ItemList',
             itemListElement: itinerary.map((day) => {
@@ -139,7 +98,9 @@ export default function ProductJsonLd({
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productData) }} />
+      {productData ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productData) }} />
+      ) : null}
       {breadcrumbLd ? (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       ) : null}

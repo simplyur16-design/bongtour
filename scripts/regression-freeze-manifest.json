@@ -13547,6 +13547,36 @@
       ]
     },
     {
+      "id": "product-jsonld-requires-offers",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 Product JSON-LD — offers 없으면 Product 미출력 (구글 offers|review|aggregateRating 필수)",
+      "checks": [
+        {
+          "file": "lib/seo/product-json-ld.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-jsonld-requires-offers]",
+            "buildProductJsonLdData",
+            "if (!input.offers) return null",
+            "AggregateOffer",
+            "'@type': 'Offer'"
+          ]
+        },
+        {
+          "file": "app/components/seo/ProductJsonLd.tsx",
+          "mustInclude": [
+            "buildProductJsonLdData",
+            "productData ?"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/seo/product-json-ld.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-eximbay-payer-auth-pa",
       "tier": [
         "prebuild",
