@@ -116,33 +116,29 @@ Code rejects public test credentials when `EXIMBAY_ENV=production`.
 In-app path (signed in): **Settings → Delete account** → `POST /api/simplyur/account/withdraw`  
 Also: Settings → Language / Terms / Privacy / Refund / Email support.
 
-## I. Push / Sentry / OTA / Universal Links (ops)
+## I. Day-to-day verify (operator SSOT) — not EAS
 
-### Push
-1. Railway: set `EXPO_ACCESS_TOKEN` (Expo access token with push scope)  
-2. Deploy migration `SimplyurDevicePushToken` (`prisma migrate deploy`)  
-3. App (signed in) registers via `POST /api/simplyur/account/device-token`  
-4. After simplyur Eximbay OrderPaid, server best-effort pushes if token + `EXPO_ACCESS_TOKEN` exist
+**Android emulator + operator iPhone via local native run.**  
+Do not use EAS cloud build / `eas update` for routine QA.  
+Rule: `.cursor/rules/simplyur-mobile-local-devices.mdc`
 
-### Sentry
 ```bash
 cd apps/simplyur-mobile
-npx eas-cli secret:create --scope project --name EXPO_PUBLIC_SENTRY_DSN --value "https://…@….ingest.sentry.io/…" --type string
-# Optional source maps on EAS:
-# SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT
+npx expo run:android          # virtual device
+npx expo run:ios --device     # personal iPhone
 ```
-Rebuild after setting DSN. Empty DSN = telemetry no-op.
 
-### OTA (EAS Update)
-```bash
-cd apps/simplyur-mobile
-npx eas-cli update --channel preview --message "…"
-npx eas-cli update --channel production --message "…"
-```
-Builds use `runtimeVersion.policy=appVersion` + profile `channel` in `eas.json`.
+## J. Push / Sentry / Universal Links (ops — only if needed)
+
+### Push (optional)
+Server push needs Railway `EXPO_ACCESS_TOKEN` only if enabling Expo push delivery. Skip for local verify.
+
+### Sentry (optional)
+Set `EXPO_PUBLIC_SENTRY_DSN` in local `.env` for device builds. Empty DSN = telemetry no-op. EAS env secrets are not required for the local verify loop.
 
 ### Universal Links / App Links
 - iOS AASA: `https://bongtour.com/.well-known/apple-app-site-association` (Team ID from `AUTH_APPLE_TEAM_ID`)  
 - Android: `https://bongtour.com/.well-known/assetlinks.json`  
-- Set Railway `ANDROID_APP_LINK_SHA256_FINGERPRINTS` = Play App Signing SHA-256 (comma-separated)  
+- Emulator/debug: use the debug/upload keystore SHA-256 in `ANDROID_APP_LINK_SHA256_FINGERPRINTS`  
+- Play Store later: append Play App Signing SHA-256 (comma-separated)  
 - App ID capability: Associated Domains `applinks:bongtour.com`
