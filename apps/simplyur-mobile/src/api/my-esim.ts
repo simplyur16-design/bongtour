@@ -15,6 +15,7 @@ export type MyEsimOrder = {
   activation_code: string | null;
   can_show_qr: boolean;
   can_check_usage: boolean;
+  can_request_refund?: boolean;
 };
 
 export type MyEsimUsage = {
@@ -53,4 +54,29 @@ export async function fetchMyEsimUsage(orderId: string): Promise<MyEsimUsage | n
   });
   if (!res.ok) return null;
   return (await res.json()) as MyEsimUsage;
+}
+
+/** REGRESSION-FREEZE[simplyur-eximbay-refund]: mobile cancel unused eSIM — manifest */
+export async function requestMyEsimRefund(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const url = `${getApiBaseUrl()}/api/simplyur/mypage/orders/${encodeURIComponent(orderId)}/refund`;
+  const headers = {
+    ...(await authHeaders()),
+    'Content-Type': 'application/json',
+  };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ reason: 'Customer unused eSIM cancel' }),
+    });
+    const j = (await res.json()) as { ok?: boolean; error?: string; message?: string };
+    if (!res.ok || !j.ok) {
+      return { ok: false, message: j.message || j.error || 'refund_failed' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'network_error' };
+  }
 }

@@ -28,10 +28,13 @@ type Props = {
   usageModalLoading: boolean;
   usageModalError: string | null;
   loadError?: boolean;
+  refundBusy?: boolean;
+  refundError?: string | null;
   onSelectOrder: (orderId: string) => void;
   onBackToList: () => void;
   onOpenUsageModal: () => void;
   onCloseUsageModal: () => void;
+  onRequestRefund?: () => void;
 };
 
 /** design_handoff_my_esim — My eSIM tab */
@@ -44,10 +47,13 @@ export function SimplyurMyEsimPanel({
   usageModalLoading,
   usageModalError,
   loadError = false,
+  refundBusy = false,
+  refundError = null,
   onSelectOrder,
   onBackToList,
   onOpenUsageModal,
   onCloseUsageModal,
+  onRequestRefund,
 }: Props) {
   const { locale } = useSimplyurIntl();
   const tr = useSimplyurT();
@@ -204,6 +210,48 @@ export function SimplyurMyEsimPanel({
             ›
           </span>
         </button>
+
+        {selectedOrder.status_key === "refundPending" ? (
+          <div
+            className="border p-4 text-sm"
+            style={{ borderColor: D.border, borderRadius: D.panelRadius, color: D.muted }}
+          >
+            {tr("myEsim.refundInProgress")}
+          </div>
+        ) : null}
+
+        {selectedOrder.status_key === "cancelled" ? (
+          <div
+            className="border p-4 text-sm"
+            style={{ borderColor: D.border, borderRadius: D.panelRadius, color: D.muted }}
+          >
+            {tr("myEsim.refundDone")}
+          </div>
+        ) : null}
+
+        {selectedOrder.can_request_refund && onRequestRefund ? (
+          <div
+            className="flex flex-col gap-2 border p-4"
+            style={{ borderColor: "#F5D0A9", backgroundColor: "#FFF8F0", borderRadius: D.panelRadius }}
+          >
+            <p className="text-sm font-semibold" style={{ color: D.navy }}>
+              {tr("myEsim.refundTitle")}
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: D.muted }}>
+              {tr("myEsim.refundBody")}
+            </p>
+            {refundError ? <p className="text-xs text-red-600">{refundError}</p> : null}
+            <button
+              type="button"
+              disabled={refundBusy}
+              onClick={onRequestRefund}
+              className="mt-1 h-11 w-full rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+              style={{ backgroundColor: D.coral }}
+            >
+              {refundBusy ? tr("myEsim.refundBusy") : tr("myEsim.refundCta")}
+            </button>
+          </div>
+        ) : null}
 
         {usageModalOpen ? (
           <div

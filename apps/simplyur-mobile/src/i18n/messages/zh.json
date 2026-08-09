@@ -283,6 +283,14 @@
       "failed": "失败",
       "cancelled": "已取消",
       "refundPending": "退款处理中"
-    }
+    },
+    "refundTitle": "Cancel & refund",
+    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundCta": "Cancel unused eSIM",
+    "refundBusy": "Cancelling...",
+    "refundConfirm": "Cancel this order? Only unused eSIMs can be cancelled; payment will be fully refunded.",
+    "refundError": "Could not cancel this order. Try again or contact support.",
+    "refundInProgress": "Refund in progress. Refresh shortly.",
+    "refundDone": "This order was cancelled and refunded."
   }
 }

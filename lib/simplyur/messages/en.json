@@ -41,22 +41,43 @@
   "countries": {
     "title": "South Korea eSIM",
     "subtitle": "Seoul, Busan, Jeju — nationwide data plans for your trip.",
-    "kr": { "name": "South Korea", "subtitle": "Seoul, Busan & nationwide" }
+    "kr": {
+      "name": "South Korea",
+      "subtitle": "Seoul, Busan & nationwide"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "No physical SIM, no store visit — install from your QR code in minutes." },
-      "support": { "title": "English support", "body": "Get help in plain English whenever you need it, before or during your trip." },
-      "refund": { "title": "Easy refunds", "body": "Change of plans? Unused eSIMs are refundable — no hassle." }
+      "instant": {
+        "title": "Instant activation",
+        "body": "No physical SIM, no store visit — install from your QR code in minutes."
+      },
+      "support": {
+        "title": "English support",
+        "body": "Get help in plain English whenever you need it, before or during your trip."
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "Change of plans? Unused eSIMs are refundable — no hassle."
+      }
     }
   },
   "reviews": {
     "title": "What travelers say",
     "items": [
-      { "text": "Setup took one minute at Incheon Airport. Google Maps worked great!", "author": "Maria · Korea 4 days" },
-      { "text": "Much easier than buying a SIM at the airport. QR by email was instant.", "author": "James · Seoul 7 days" },
-      { "text": "Used unlimited data in Busan and Jeju — no issues at all.", "author": "Lin · Korea 10 days" }
+      {
+        "text": "Setup took one minute at Incheon Airport. Google Maps worked great!",
+        "author": "Maria · Korea 4 days"
+      },
+      {
+        "text": "Much easier than buying a SIM at the airport. QR by email was instant.",
+        "author": "James · Seoul 7 days"
+      },
+      {
+        "text": "Used unlimited data in Busan and Jeju — no issues at all.",
+        "author": "Lin · Korea 10 days"
+      }
     ]
   },
   "recommend": {
@@ -436,7 +457,9 @@
     "legalRefund": "Refund Policy",
     "productsLink": "eSIM plans"
   },
-  "language": { "label": "Language" },
+  "language": {
+    "label": "Language"
+  },
   "auth": {
     "title": "Sign in",
     "welcomeTitle": "Welcome to Simply UR",
@@ -541,6 +564,14 @@
       "failed": "Failed",
       "cancelled": "Cancelled",
       "refundPending": "Refund pending"
-    }
+    },
+    "refundTitle": "Cancel & refund",
+    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundCta": "Cancel unused eSIM",
+    "refundBusy": "Cancelling...",
+    "refundConfirm": "Cancel this order?\n\n1) eSIM issue will be cancelled\n2) Card payment will be fully refunded\n\nOnly unused eSIMs can be cancelled.",
+    "refundError": "Could not cancel this order. Try again or contact support.",
+    "refundInProgress": "Refund in progress. Refresh shortly.",
+    "refundDone": "This order was cancelled and refunded."
   }
 }

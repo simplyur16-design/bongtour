@@ -113,6 +113,9 @@ export async function GET(req: Request) {
         locale,
       );
 
+      // REGRESSION-FREEZE[simplyur-eximbay-refund]: surface cancel CTA when paid/delivered — manifest
+      const canRequestRefund = row.status === "paid" || row.status === "delivered";
+
       return {
         order_id: row.order_id,
         order_number: row.order_number,
@@ -125,6 +128,7 @@ export async function GET(req: Request) {
         activation_code: primaryActivateCode,
         can_show_qr: canEsimActions,
         can_check_usage: canEsimActions,
+        can_request_refund: canRequestRefund,
       };
     });
 

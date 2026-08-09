@@ -41,22 +41,43 @@
   "countries": {
     "title": "韓國 eSIM",
     "subtitle": "首爾、釜山、濟州 — 全國流量方案。",
-    "kr": { "name": "韓國", "subtitle": "首爾、釜山及全國" }
+    "kr": {
+      "name": "韓國",
+      "subtitle": "首爾、釜山及全國"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。" },
-      "support": { "title": "English support", "body": "出發前後均可獲得清晰的英文客服支援。" },
-      "refund": { "title": "Easy refunds", "body": "計畫有變？未使用的 eSIM 可輕鬆退款。" }
+      "instant": {
+        "title": "Instant activation",
+        "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。"
+      },
+      "support": {
+        "title": "English support",
+        "body": "出發前後均可獲得清晰的英文客服支援。"
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "計畫有變？未使用的 eSIM 可輕鬆退款。"
+      }
     }
   },
   "reviews": {
     "title": "旅客評價",
     "items": [
-      { "text": "仁川機場一分鐘完成設定，Google 地圖很順！", "author": "Maria · 韓國 4 天" },
-      { "text": "比在機場買 SIM 方便多了。", "author": "James · 首爾 7 天" },
-      { "text": "釜山濟州無限流量，毫無問題。", "author": "Lin · 韓國 10 天" }
+      {
+        "text": "仁川機場一分鐘完成設定，Google 地圖很順！",
+        "author": "Maria · 韓國 4 天"
+      },
+      {
+        "text": "比在機場買 SIM 方便多了。",
+        "author": "James · 首爾 7 天"
+      },
+      {
+        "text": "釜山濟州無限流量，毫無問題。",
+        "author": "Lin · 韓國 10 天"
+      }
     ]
   },
   "recommend": {
@@ -158,7 +179,9 @@
     "legalRefund": "退款政策",
     "productsLink": "eSIM方案"
   },
-  "language": { "label": "語言" },
+  "language": {
+    "label": "語言"
+  },
   "auth": {
     "title": "登入",
     "welcomeTitle": "歡迎使用 Simply UR",
@@ -236,7 +259,11 @@
     "usedWord": "已用",
     "leftWord": "剩餘",
     "unlimitedResetsDaily": "無限方案 · 每日重置",
-    "badge": { "active": "使用中", "expired": "已過期", "upcoming": "待開始" },
+    "badge": {
+      "active": "使用中",
+      "expired": "已過期",
+      "upcoming": "待開始"
+    },
     "empty": "尚無 eSIM 訂單。",
     "orderDate": "下單日期",
     "orderNo": "訂單號",
@@ -257,6 +284,14 @@
       "failed": "失敗",
       "cancelled": "已取消",
       "refundPending": "退款處理中"
-    }
+    },
+    "refundTitle": "Cancel & refund",
+    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundCta": "Cancel unused eSIM",
+    "refundBusy": "Cancelling...",
+    "refundConfirm": "Cancel this order? Only unused eSIMs can be cancelled; payment will be fully refunded.",
+    "refundError": "Could not cancel this order. Try again or contact support.",
+    "refundInProgress": "Refund in progress. Refresh shortly.",
+    "refundDone": "This order was cancelled and refunded."
   }
 }

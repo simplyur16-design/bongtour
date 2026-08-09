@@ -13506,6 +13506,67 @@
       ]
     },
     {
+      "id": "simplyur-eximbay-refund",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur Eximbay — 미사용 eSIM 고객/관리자 전액 환불 (USIMSA 취소 + /v1/payments/{tx}/cancel)",
+      "checks": [
+        {
+          "file": "lib/simplyur/payments/eximbay-cancel.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund]",
+            "/v1/payments/",
+            "/cancel",
+            "refund_type"
+          ]
+        },
+        {
+          "file": "lib/simplyur/refund/process-simplyur-eximbay-refund.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund]",
+            "processSimplyurEximbayRefund",
+            "callEximbayPaymentsCancel",
+            "checkUsimsaOrderDataUsageForRefund"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/mypage/orders/[orderId]/refund/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund]",
+            "processSimplyurEximbayRefund",
+            "getSimplyurRefundEligibility"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/refund/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund]",
+            "processSimplyurEximbayRefund"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund]",
+            "requestMyEsimRefund",
+            "can_request_refund"
+          ]
+        },
+        {
+          "file": "components/simplyur/SimplyurMyEsimClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund]",
+            "/refund"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/eximbay-cancel.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-eximbay-live-checkout",
       "tier": [
         "prebuild",

@@ -558,6 +558,14 @@
       "failed": "Failed",
       "cancelled": "Cancelled",
       "refundPending": "Refund pending"
-    }
+    },
+    "refundTitle": "Cancel & refund",
+    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundCta": "Cancel unused eSIM",
+    "refundBusy": "Cancelling...",
+    "refundConfirm": "Cancel this order?\n\n1) eSIM issue will be cancelled\n2) Card payment will be fully refunded\n\nOnly unused eSIMs can be cancelled.",
+    "refundError": "Could not cancel this order. Try again or contact support.",
+    "refundInProgress": "Refund in progress. Refresh shortly.",
+    "refundDone": "This order was cancelled and refunded."
   }
 }

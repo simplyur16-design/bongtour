@@ -1,6 +1,7 @@
 import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -10,7 +11,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fetchMyEsimOrders, fetchMyEsimUsage, type MyEsimOrder, type MyEsimUsage } from '@/src/api/my-esim';
+import {
+  fetchMyEsimOrders,
+  fetchMyEsimUsage,
+  requestMyEsimRefund,
+  type MyEsimOrder,
+  type MyEsimUsage,
+} from '@/src/api/my-esim';
 import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
@@ -31,6 +38,7 @@ type ViewState = 'loading' | 'signin' | 'empty' | 'list' | 'detail';
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
+ * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
  */
 export default function MyEsimScreen() {
   const { t, locale } = useI18n();
@@ -44,6 +52,7 @@ export default function MyEsimScreen() {
   const [usageScreenOpen, setUsageScreenOpen] = useState(false);
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
+  const [refundBusy, setRefundBusy] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -267,6 +276,47 @@ export default function MyEsimScreen() {
             </View>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
+
+          {selectedOrder.status_key === 'refundPending' ? (
+            <Text style={styles.refundNote}>{t('myEsim.refundInProgress')}</Text>
+          ) : null}
+          {selectedOrder.status_key === 'cancelled' ? (
+            <Text style={styles.refundNote}>{t('myEsim.refundDone')}</Text>
+          ) : null}
+          {selectedOrder.can_request_refund ? (
+            <View style={styles.refundBox}>
+              <Text style={styles.refundTitle}>{t('myEsim.refundTitle')}</Text>
+              <Text style={styles.refundBody}>{t('myEsim.refundBody')}</Text>
+              <Pressable
+                disabled={refundBusy}
+                style={[styles.refundBtn, refundBusy ? { opacity: 0.6 } : null]}
+                onPress={() => {
+                  Alert.alert(t('myEsim.refundTitle'), t('myEsim.refundConfirm'), [
+                    { text: t('myEsim.close'), style: 'cancel' },
+                    {
+                      text: t('myEsim.refundCta'),
+                      style: 'destructive',
+                      onPress: () => {
+                        void (async () => {
+                          setRefundBusy(true);
+                          const r = await requestMyEsimRefund(selectedOrder.order_id);
+                          setRefundBusy(false);
+                          if (!r.ok) {
+                            Alert.alert(t('myEsim.refundError'), r.message);
+                            return;
+                          }
+                          await loadOrders();
+                        })();
+                      },
+                    },
+                  ]);
+                }}>
+                <Text style={styles.refundBtnText}>
+                  {refundBusy ? t('myEsim.refundBusy') : t('myEsim.refundCta')}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
         </ScrollView>
       </View>
     );
@@ -428,6 +478,27 @@ const styles = StyleSheet.create({
     color: D.navy,
   },
   qrHint: { fontSize: 12, ...fp('400'), color: D.muted, textAlign: 'center' },
+  refundBox: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#F5D0A9',
+    backgroundColor: '#FFF8F0',
+    borderRadius: D.panelRadius,
+    padding: 16,
+    gap: 8,
+  },
+  refundTitle: { fontSize: 14, ...fp('700'), color: D.navy },
+  refundBody: { fontSize: 12, ...fp('400'), color: D.faint, lineHeight: 18 },
+  refundBtn: {
+    marginTop: 4,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: D.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refundBtnText: { fontSize: 14, ...fp('700'), color: '#fff' },
+  refundNote: { marginTop: 4, fontSize: 13, ...fp('400'), color: D.faint },
   usageCard: {
     flexDirection: 'row',
     alignItems: 'center',

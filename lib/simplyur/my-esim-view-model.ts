@@ -12,6 +12,8 @@ export type MyEsimOrderRow = {
   activation_code: string | null;
   can_show_qr: boolean;
   can_check_usage: boolean;
+  /** Paid/delivered — unused check runs on cancel request */
+  can_request_refund?: boolean;
 };
 
 export type MyEsimUsageResponse = {

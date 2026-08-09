@@ -41,22 +41,43 @@
   "countries": {
     "title": "eSIM Hàn Quốc",
     "subtitle": "Seoul, Busan, Jeju — gói data toàn quốc.",
-    "kr": { "name": "Hàn Quốc", "subtitle": "Seoul, Busan & toàn quốc" }
+    "kr": {
+      "name": "Hàn Quốc",
+      "subtitle": "Seoul, Busan & toàn quốc"
+    }
   },
   "why": {
     "title": "Why simplyUR",
     "items": {
-      "instant": { "title": "Instant activation", "body": "Không cần SIM vật lý, không cần ra cửa hàng — cài từ mã QR trong vài phút." },
-      "support": { "title": "English support", "body": "Hỗ trợ bằng tiếng Anh dễ hiểu trước và trong chuyến đi." },
-      "refund": { "title": "Easy refunds", "body": "Đổi kế hoạch? eSIM chưa dùng được hoàn tiền dễ dàng." }
+      "instant": {
+        "title": "Instant activation",
+        "body": "Không cần SIM vật lý, không cần ra cửa hàng — cài từ mã QR trong vài phút."
+      },
+      "support": {
+        "title": "English support",
+        "body": "Hỗ trợ bằng tiếng Anh dễ hiểu trước và trong chuyến đi."
+      },
+      "refund": {
+        "title": "Easy refunds",
+        "body": "Đổi kế hoạch? eSIM chưa dùng được hoàn tiền dễ dàng."
+      }
     }
   },
   "reviews": {
     "title": "Đánh giá",
     "items": [
-      { "text": "Cài trong 1 phút tại Incheon. Google Maps mượt!", "author": "Maria · Hàn 4 ngày" },
-      { "text": "Dễ hơn nhiều so với mua SIM tại sân bay.", "author": "James · Seoul 7 ngày" },
-      { "text": "Data không giới hạn ở Busan, Jeju.", "author": "Lin · Hàn 10 ngày" }
+      {
+        "text": "Cài trong 1 phút tại Incheon. Google Maps mượt!",
+        "author": "Maria · Hàn 4 ngày"
+      },
+      {
+        "text": "Dễ hơn nhiều so với mua SIM tại sân bay.",
+        "author": "James · Seoul 7 ngày"
+      },
+      {
+        "text": "Data không giới hạn ở Busan, Jeju.",
+        "author": "Lin · Hàn 10 ngày"
+      }
     ]
   },
   "recommend": {
@@ -158,7 +179,9 @@
     "legalRefund": "Chính sách hoàn tiền",
     "productsLink": "Gói eSIM"
   },
-  "language": { "label": "Ngôn ngữ" },
+  "language": {
+    "label": "Ngôn ngữ"
+  },
   "auth": {
     "title": "Đăng nhập",
     "welcomeTitle": "Chào mừng đến Simply UR",
@@ -236,7 +259,11 @@
     "usedWord": "đã dùng",
     "leftWord": "còn lại",
     "unlimitedResetsDaily": "Gói không giới hạn · reset hàng ngày",
-    "badge": { "active": "Đang dùng", "expired": "Hết hạn", "upcoming": "Sắp tới" },
+    "badge": {
+      "active": "Đang dùng",
+      "expired": "Hết hạn",
+      "upcoming": "Sắp tới"
+    },
     "empty": "Chưa có đơn eSIM.",
     "orderDate": "Ngày đặt",
     "orderNo": "Mã đơn",
@@ -257,6 +284,14 @@
       "failed": "Thất bại",
       "cancelled": "Đã hủy",
       "refundPending": "Đang hoàn tiền"
-    }
+    },
+    "refundTitle": "Cancel & refund",
+    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundCta": "Cancel unused eSIM",
+    "refundBusy": "Cancelling...",
+    "refundConfirm": "Cancel this order? Only unused eSIMs can be cancelled; payment will be fully refunded.",
+    "refundError": "Could not cancel this order. Try again or contact support.",
+    "refundInProgress": "Refund in progress. Refresh shortly.",
+    "refundDone": "This order was cancelled and refunded."
   }
 }

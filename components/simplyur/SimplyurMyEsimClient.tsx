@@ -18,6 +18,8 @@ export function SimplyurMyEsimClient() {
   const [usageModalOpen, setUsageModalOpen] = useState(false);
   const [usageModalLoading, setUsageModalLoading] = useState(false);
   const [usageModalError, setUsageModalError] = useState<string | null>(null);
+  const [refundBusy, setRefundBusy] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -108,6 +110,36 @@ export function SimplyurMyEsimClient() {
     }
   }
 
+  async function onRequestRefund() {
+    if (!selectedOrderId || refundBusy) return;
+    const ok = window.confirm(tr("myEsim.refundConfirm"));
+    if (!ok) return;
+    setRefundBusy(true);
+    setRefundError(null);
+    try {
+      // REGRESSION-FREEZE[simplyur-eximbay-refund]: web My eSIM cancel — manifest
+      const res = await fetch(
+        `/api/simplyur/mypage/orders/${encodeURIComponent(selectedOrderId)}/refund`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Customer unused eSIM cancel" }),
+        },
+      );
+      const j = (await res.json()) as { ok?: boolean; error?: string; message?: string };
+      if (!res.ok || !j.ok) {
+        setRefundError(j.message || j.error || tr("myEsim.refundError"));
+        return;
+      }
+      await loadOrders();
+    } catch {
+      setRefundError(tr("myEsim.refundError"));
+    } finally {
+      setRefundBusy(false);
+    }
+  }
+
   return (
     <SimplyurMyEsimPanel
       view={view}
@@ -118,10 +150,13 @@ export function SimplyurMyEsimClient() {
       usageModalLoading={usageModalLoading}
       usageModalError={usageModalError}
       loadError={loadError}
+      refundBusy={refundBusy}
+      refundError={refundError}
       onSelectOrder={onSelectOrder}
       onBackToList={onBackToList}
       onOpenUsageModal={onOpenUsageModal}
       onCloseUsageModal={() => setUsageModalOpen(false)}
+      onRequestRefund={onRequestRefund}
     />
   );
 }
