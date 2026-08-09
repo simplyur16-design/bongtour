@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-static";
+/** Runtime env — Railway `ANDROID_APP_LINK_SHA256_FINGERPRINTS` must not bake at build. */
+export const dynamic = "force-dynamic";
 
 /**
  * Android App Links Digital Asset Links.
- * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: assetlinks — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: assetlinks force-dynamic — manifest
  */
 export async function GET() {
   const fingerprints = (

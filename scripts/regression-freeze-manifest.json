@@ -13963,6 +13963,17 @@
           ]
         },
         {
+          "file": "app/.well-known/assetlinks.json/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p2-ops]",
+            "force-dynamic",
+            "ANDROID_APP_LINK_SHA256_FINGERPRINTS"
+          ],
+          "mustNotInclude": [
+            "force-static"
+          ]
+        },
+        {
           "file": "lib/simplyur/payments/process-eximbay-payment-outcome.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-p2-ops]",
