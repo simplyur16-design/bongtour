@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
+// REGRESSION-FREEZE[business-training-programs-empty-poison]: build skip OK — hub uses connection() — manifest
 import {
   parseTrainingAudience,
   parseTrainingCategory,

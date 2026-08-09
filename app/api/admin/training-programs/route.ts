@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { createTrainingProgram, listTrainingProgramsAdmin } from '@/lib/overseas-training-admin'
+import { revalidateTrainingProgramListingCaches } from '@/lib/revalidate-training-program-caches'
 
 export async function GET() {
   const admin = await requireAdmin()
@@ -21,5 +22,7 @@ export async function POST(request: Request) {
   if (!result.ok) {
     return NextResponse.json({ ok: false, errors: result.errors }, { status: 400 })
   }
+  // REGRESSION-FREEZE[business-training-programs-empty-poison]: create busts hub listing — manifest
+  revalidateTrainingProgramListingCaches()
   return NextResponse.json({ ok: true, product: result.product })
 }

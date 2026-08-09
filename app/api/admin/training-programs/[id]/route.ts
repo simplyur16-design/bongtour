@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/require-admin'
 import { trainingProgramAdminSelect, updateTrainingProgram } from '@/lib/overseas-training-admin'
 import { prisma } from '@/lib/prisma'
 import { OVERSEAS_TRAINING_LISTING_KIND } from '@/lib/overseas-training-program-query'
+import { revalidateTrainingProgramListingCaches } from '@/lib/revalidate-training-program-caches'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -36,5 +37,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
       { status: result.errors[0] === '프로그램을 찾을 수 없습니다.' ? 404 : 400 }
     )
   }
+  // REGRESSION-FREEZE[business-training-programs-empty-poison]: patch busts hub listing — manifest
+  revalidateTrainingProgramListingCaches()
   return NextResponse.json({ ok: true, product: result.product })
 }

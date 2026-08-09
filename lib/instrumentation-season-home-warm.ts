@@ -79,7 +79,7 @@ async function revalidateSeasonHomePaths(): Promise<boolean> {
 
 async function loopbackHomePages(): Promise<void> {
   const origin = getInternalLoopbackOrigin()
-  for (const route of ['/', '/m', '/travel/overseas'] as const) {
+  for (const route of ['/', '/m', '/travel/overseas', '/business'] as const) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
     try {

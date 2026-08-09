@@ -1,10 +1,16 @@
 import Link from 'next/link'
-import { listPublishedTrainingPrograms } from '@/lib/overseas-training-program-query'
+import type { TrainingProgramPublicRow } from '@/lib/overseas-training-program-query'
 import TrainingProgramsPreviewCarousel from '@/components/training/TrainingProgramsPreviewCarousel'
 
-export default async function TrainingProgramsPreview() {
-  const programs = await listPublishedTrainingPrograms({ limit: 8 })
+type Props = {
+  programs: TrainingProgramPublicRow[]
+}
 
+/**
+ * 공공·기업 허브 「연수프로그램」 슬롯 (데이터는 page에서 connection() 후 로드).
+ * REGRESSION-FREEZE[business-training-programs-empty-poison]: preview is presentational — manifest
+ */
+export default function TrainingProgramsPreview({ programs }: Props) {
   return (
     <section className="border-b border-bt-border bg-white px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-6xl">

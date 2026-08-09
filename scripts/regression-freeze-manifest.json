@@ -2650,7 +2650,9 @@
             "OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG",
             "revalidatePath('/')",
             "revalidatePath('/m')",
-            "revalidatePath('/travel/overseas')"
+            "revalidatePath('/travel/overseas')",
+            "revalidatePath('/business')",
+            "revalidatePath('/business/programs')"
           ]
         },
         {
@@ -2664,7 +2666,8 @@
             "revalidateSeasonHomePaths",
             "season-cache-revalidate",
             "loopbackHomePages",
-            "'/travel/overseas'"
+            "'/travel/overseas'",
+            "'/business'"
           ]
         },
         {
@@ -8628,6 +8631,65 @@
       "vitestSuites": [
         "lib/build-time-db.test.ts",
         "lib/sitemap-build.test.ts"
+      ]
+    },
+    {
+      "id": "business-training-programs-empty-poison",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공공·기업 연수프로그램 — build-skip 빈 셸이 /business ISR·SWR에 고착되지 않게 connection()+revalidate",
+      "checks": [
+        {
+          "file": "app/business/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[business-training-programs-empty-poison]",
+            "await connection()",
+            "listPublishedTrainingPrograms",
+            "TrainingProgramsPreview"
+          ]
+        },
+        {
+          "file": "components/training/TrainingProgramsPreview.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[business-training-programs-empty-poison]",
+            "programs: TrainingProgramPublicRow[]",
+            "TrainingProgramsPreviewCarousel"
+          ]
+        },
+        {
+          "file": "lib/revalidate-training-program-caches.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[business-training-programs-empty-poison]",
+            "revalidatePath('/business')",
+            "revalidatePath('/business/programs')"
+          ]
+        },
+        {
+          "file": "app/api/admin/training-programs/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[business-training-programs-empty-poison]",
+            "revalidateTrainingProgramListingCaches"
+          ]
+        },
+        {
+          "file": "app/api/admin/training-programs/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[business-training-programs-empty-poison]",
+            "revalidateTrainingProgramListingCaches"
+          ]
+        },
+        {
+          "file": "lib/overseas-training-program-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[business-training-programs-empty-poison]",
+            "shouldSkipDbAtBuild"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/revalidate-training-program-caches.test.ts"
       ]
     },
     {

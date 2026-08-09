@@ -44,9 +44,12 @@ export async function POST(req: Request) {
   revalidatePath('/')
   revalidatePath('/m')
   revalidatePath('/travel/overseas')
+  // REGRESSION-FREEZE[business-training-programs-empty-poison]: deploy warm busts hub empty shell — manifest
+  revalidatePath('/business')
+  revalidatePath('/business/programs')
 
   return jsonWithLeakGuard(
-    { ok: true, tags, paths: ['/', '/m', '/travel/overseas'] },
+    { ok: true, tags, paths: ['/', '/m', '/travel/overseas', '/business', '/business/programs'] },
     'cron-season-cache-revalidate.response',
   )
 }
