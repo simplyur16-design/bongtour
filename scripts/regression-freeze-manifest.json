@@ -2660,6 +2660,9 @@
             "getCachedSeasonCurationHeroSlides",
             "getCachedSeasonCurationNextThreeMonthsSlides",
             "getCachedOverseasHubSeasonDestinationHeroSlides",
+            "revalidatePath",
+            "revalidateSeasonHomePaths",
+            "season-cache-revalidate",
             "loopbackHomePages",
             "'/travel/overseas'"
           ]
@@ -2676,8 +2679,19 @@
           "mustInclude": [
             "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
             "OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG",
+            "overseas-hub-season-destination-hero-v11",
+            "readCachedArrayOrBypassEmpty",
+            "loadOverseasHubSeasonDestinationHeroSlidesUncached",
             "if (shouldSkipDbAtBuild()) return []",
             "if (!cycle?.id) return []"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHeroSlot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "loadOverseasHubSeasonDestinationHeroSlidesUncached",
+            "recovered slides via uncached fallback"
           ]
         },
         {
@@ -13436,6 +13450,100 @@
       ],
       "vitestSuites": [
         "lib/simplyur/auth/register-email.test.ts"
+      ]
+    },
+    {
+      "id": "auth-password-reset",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "이메일/비밀번호 재설정 — VerificationToken + SMTP + Bongtour/SimplyUR web/mobile (계정 자동생성 금지·열거 방지)",
+      "checks": [
+        {
+          "file": "lib/auth/password-reset.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "password-reset:",
+            "requestPasswordReset",
+            "confirmPasswordReset",
+            "validateSimplyurSignupPassword",
+            "verificationToken"
+          ],
+          "mustNotInclude": [
+            "prisma.user.create"
+          ]
+        },
+        {
+          "file": "lib/auth/send-password-reset-mail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "SMTP_HOST",
+            "sendPasswordResetMail"
+          ]
+        },
+        {
+          "file": "app/api/auth/password-reset/request/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "requestPasswordReset",
+            "ok: true"
+          ]
+        },
+        {
+          "file": "app/api/auth/password-reset/confirm/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "confirmPasswordReset"
+          ]
+        },
+        {
+          "file": "app/auth/forgot-password/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "ForgotPasswordForm"
+          ]
+        },
+        {
+          "file": "app/auth/reset-password/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "ResetPasswordForm"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/forgot-password/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "SimplyurForgotPasswordForm"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/reset-password/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "SimplyurResetPasswordForm"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/sign-in/forgot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "requestPasswordReset",
+            "sign-in/forgot"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/sign-in/reset.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "confirmPasswordReset",
+            "sign-in/reset"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/auth/password-reset.test.ts"
       ]
     },
     {

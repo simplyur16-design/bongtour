@@ -1,5 +1,8 @@
 import OverseasHero from '@/app/components/travel/overseas/OverseasHero'
-import { getCachedOverseasHubSeasonDestinationHeroSlides } from '@/lib/overseas-hub-season-destination-hero'
+import {
+  getCachedOverseasHubSeasonDestinationHeroSlides,
+  loadOverseasHubSeasonDestinationHeroSlidesUncached,
+} from '@/lib/overseas-hub-season-destination-hero'
 import { getCachedCurrentCycle } from '@/lib/season-curation-content'
 
 const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
@@ -26,6 +29,16 @@ export default async function OverseasHeroSlot({
       console.warn('[OverseasHeroSlot] no active SeasonalDestinationCuration cycle — empty hero')
     }
     seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides(cycle)
+    // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: uncached fallback if cache still empty — manifest
+    if (seasonDestinationHeroSlides.length === 0 && cycle?.id) {
+      seasonDestinationHeroSlides = await loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle)
+      if (seasonDestinationHeroSlides.length > 0) {
+        console.warn('[OverseasHeroSlot] recovered slides via uncached fallback', {
+          count: seasonDestinationHeroSlides.length,
+          cycleId: cycle.id,
+        })
+      }
+    }
   } catch (e) {
     console.error('[OverseasHeroSlot] season hero slides failed', e)
   }

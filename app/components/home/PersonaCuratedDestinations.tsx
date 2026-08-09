@@ -16,6 +16,8 @@ export default async function PersonaCuratedDestinations() {
     console.error('[PersonaCuratedDestinations]', e)
     return null
   }
+  // Empty shell (title + no cities) looks like a broken section — hide until data recovers.
+  if (!data.cards.length) return null
   return (
     <section
       aria-labelledby="persona-curated-heading"

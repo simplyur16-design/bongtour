@@ -22,8 +22,8 @@ import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 
 export type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
 
-/** revalidateTag / 배포 후 워밍 SSOT — v10: empty cache bypass + tag bust */
-export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v10'
+/** revalidateTag / 배포 후 워밍 SSOT — v11: route revalidatePath + empty poison bust */
+export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v11'
 
 function seoulMonth1To12(): number {
   const ym = getSeoulYearMonthNow()
@@ -47,7 +47,8 @@ function koreanCityLabelFromSubtitle(koreanSubtitle: string): string {
   return ko || koreanSubtitle.trim()
 }
 
-async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
+/** SSR slot fallback when Data/Route cache still empty — do not wrap in unstable_cache */
+export async function loadOverseasHubSeasonDestinationHeroSlidesUncached(
   cycle: SeasonCurationCycle,
 ): Promise<OverseasHubDestinationHeroSlide[]> {
   if (!cycle) return []

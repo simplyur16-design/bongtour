@@ -1,12 +1,15 @@
 /**
  * 배포 직후 force-static 홈/해외허브가 build-time 빈 슬라이드로 남는 창을 줄인다.
- * unstable_cache를 런타임에 채운 뒤 `/`·`/m`·`/travel/overseas` loopback으로 ISR 재생성.
+ * Data Cache warm → cron revalidatePath(빈 HTML Full Route Cache 폐기) → loopback ISR 재생성.
  *
  * 비활성: `DISABLE_SEASON_HOME_WARM_ON_STARTUP=1`
+ * REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: warm must revalidatePath before loopback — manifest
  */
+import { getBongtourCronSecret } from '@/lib/cron-auth'
 import { getInternalLoopbackOrigin } from '@/lib/internal-loopback-origin'
 
-const STARTUP_DELAY_MS = 20_000
+/** 서버 listen 직후 짧게 대기 — 20s면 CDN이 빈 셸을 먼저 캐시한다 */
+const STARTUP_DELAY_MS = 3_000
 const HTTP_TIMEOUT_MS = 45_000
 
 async function warmSeasonDataCaches(): Promise<{
@@ -36,6 +39,41 @@ async function warmSeasonDataCaches(): Promise<{
     next3: next3.length,
     persona: persona.cards.length,
     overseasHero: overseasHero.length,
+  }
+}
+
+/**
+ * revalidatePath must run inside a Route Handler request context — not raw instrumentation.
+ * Hit the existing season-cache-revalidate cron over loopback.
+ */
+async function revalidateSeasonHomePaths(): Promise<boolean> {
+  const secret = getBongtourCronSecret()
+  if (!secret) {
+    console.warn('[season-home-warm] skip path revalidate: BONGTOUR_CRON_SECRET unset')
+    return false
+  }
+  const origin = getInternalLoopbackOrigin()
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
+  try {
+    const res = await fetch(`${origin}/api/cron/season-cache-revalidate`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'BongTourSeasonHomeWarm/1.0',
+        'content-type': 'application/json',
+        'x-bongtour-cron-secret': secret,
+      },
+      body: '{}',
+    })
+    console.log('[season-home-warm] revalidatePath via cron', { status: res.status })
+    return res.ok
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.warn('[season-home-warm] path revalidate failed', { message })
+    return false
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -77,9 +115,22 @@ async function runSeasonHomeWarmOnStartup(): Promise<void> {
 
   await new Promise((r) => setTimeout(r, STARTUP_DELAY_MS))
   try {
-    const counts = await warmSeasonDataCaches()
+    let counts = await warmSeasonDataCaches()
     console.log('[season-home-warm] data caches', counts)
+    if (counts.persona === 0 || counts.overseasHero === 0) {
+      // One retry — deploy race where cycle/products were not ready on first pass.
+      await new Promise((r) => setTimeout(r, 5_000))
+      counts = await warmSeasonDataCaches()
+      console.log('[season-home-warm] data caches retry', counts)
+    }
+    // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: revalidatePath before loopback — manifest
+    await revalidateSeasonHomePaths()
     await loopbackHomePages()
+    if (counts.overseasHero === 0) {
+      console.error(
+        '[season-home-warm] overseas hero still empty after warm — check SeasonalDestinationCuration cycle',
+      )
+    }
   } catch (e) {
     console.error('[season-home-warm] startup error', e)
   }
