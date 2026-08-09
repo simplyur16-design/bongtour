@@ -13705,6 +13705,49 @@
       ]
     },
     {
+      "id": "simplyur-mobile-p0-account-install",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 P0 — 로그아웃 + SM-DP+/activation 수동 설치 코드 (웹 패널 병행)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p0-account-install]",
+            "clearSimplyurSession",
+            "signOutGoogleNativeBestEffort",
+            "sm_dp_plus_address",
+            "activation_code",
+            "manualInstallTitle"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
+          "mustInclude": [
+            "signOutGoogleNativeBestEffort"
+          ]
+        },
+        {
+          "file": "components/simplyur/my-esim/SimplyurMyEsimPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-p0-account-install]",
+            "sm_dp_plus_address",
+            "activation_code"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/STORE_RELEASE.md",
+          "mustInclude": [
+            "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID",
+            "EXIMBAY_ENV",
+            "REPLACE_AFTER_APP_STORE_CONNECT"
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-eximbay-live-checkout",
       "tier": [
         "prebuild",
@@ -13776,7 +13819,9 @@
             "buildEximbayBasicAuthHeader",
             "resolveEximbayEnv",
             "api-test.eximbay.com",
-            "EXIMBAY_PUBLIC_TEST_MID"
+            "EXIMBAY_PUBLIC_TEST_MID",
+            "isEximbayPublicTestCredential",
+            "production never falls back to public test keys"
           ]
         },
         {

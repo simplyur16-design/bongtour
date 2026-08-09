@@ -22,6 +22,8 @@ Auth header: `Authorization: Basic base64(apiKey + ":")`.
 
 Test sample (docs only, not for production secrets): mid `1849705C64`, key `test_1849705C642C217E0B2D`.
 
+**Production guard:** when `EXIMBAY_ENV=production`, public test MID/key and any `test_` API key are rejected (`eximbay_env_incomplete`). Live MID + `live_` key required on Railway.
+
 ## Endpoints
 
 | Path | Role |

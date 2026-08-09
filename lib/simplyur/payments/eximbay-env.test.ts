@@ -143,4 +143,22 @@ describe("simplyur Eximbay ready payload", () => {
     if (prevEnv === undefined) delete process.env.EXIMBAY_ENV;
     else process.env.EXIMBAY_ENV = prevEnv;
   });
+
+  it("rejects public test credentials when EXIMBAY_ENV=production", () => {
+    const prevMid = process.env.EXIMBAY_MID;
+    const prevKey = process.env.EXIMBAY_API_KEY;
+    const prevEnv = process.env.EXIMBAY_ENV;
+    process.env.EXIMBAY_ENV = "production";
+    process.env.EXIMBAY_MID = EXIMBAY_PUBLIC_TEST_MID;
+    process.env.EXIMBAY_API_KEY = EXIMBAY_PUBLIC_TEST_API_KEY;
+    const resolved = resolveEximbayEnv();
+    expect(resolved.ok).toBe(false);
+    if (!resolved.ok) expect(resolved.reason).toBe("eximbay_env_incomplete");
+    if (prevMid === undefined) delete process.env.EXIMBAY_MID;
+    else process.env.EXIMBAY_MID = prevMid;
+    if (prevKey === undefined) delete process.env.EXIMBAY_API_KEY;
+    else process.env.EXIMBAY_API_KEY = prevKey;
+    if (prevEnv === undefined) delete process.env.EXIMBAY_ENV;
+    else process.env.EXIMBAY_ENV = prevEnv;
+  });
 });

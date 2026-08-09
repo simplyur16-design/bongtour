@@ -46,6 +46,17 @@ export function resolveEximbayEnvMode(): EximbayEnvMode {
   return raw === "production" || raw === "live" ? "production" : "test";
 }
 
+/** Docs public test credentials — never allowed when EXIMBAY_ENV=production. */
+export function isEximbayPublicTestCredential(mid: string, apiKey: string): boolean {
+  const m = mid.trim();
+  const k = apiKey.trim();
+  if (!m || !k) return false;
+  if (m === EXIMBAY_PUBLIC_TEST_MID || k === EXIMBAY_PUBLIC_TEST_API_KEY) return true;
+  // Live Eximbay keys use live_ prefix; test_ keys must never hit production API.
+  if (k.toLowerCase().startsWith("test_")) return true;
+  return false;
+}
+
 export function resolveEximbayApiOrigin(mode: EximbayEnvMode = resolveEximbayEnvMode()): string {
   return mode === "production" ? EXIMBAY_API_ORIGIN_LIVE : EXIMBAY_API_ORIGIN_TEST;
 }
@@ -72,6 +83,7 @@ export function resolveEximbayEnv(): ResolveEximbayEnvResult {
   let mode = resolveEximbayEnvMode();
 
   // 가맹 승인 전: 문서 공개 테스트 MID/Key 로 결제창 연동 가능. production 강제 시에는 실키 필수.
+  // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]: production never falls back to public test keys — manifest
   if ((!mid || !apiKey) && mode !== "production") {
     mid = mid || EXIMBAY_PUBLIC_TEST_MID;
     apiKey = apiKey || EXIMBAY_PUBLIC_TEST_API_KEY;
@@ -82,6 +94,14 @@ export function resolveEximbayEnv(): ResolveEximbayEnvResult {
   if (!mid) missing.push("EXIMBAY_MID");
   if (!apiKey) missing.push("EXIMBAY_API_KEY");
   if (missing.length) return { ok: false, reason: "eximbay_env_incomplete", missing };
+
+  if (mode === "production" && isEximbayPublicTestCredential(mid, apiKey)) {
+    return {
+      ok: false,
+      reason: "eximbay_env_incomplete",
+      missing: ["EXIMBAY_MID(live)", "EXIMBAY_API_KEY(live_)"],
+    };
+  }
 
   const apiOrigin = resolveEximbayApiOrigin(mode);
   return {
