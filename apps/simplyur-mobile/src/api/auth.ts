@@ -58,3 +58,41 @@ export async function registerWithEmail(args: {
     throw new Error(json?.code || 'register_failed');
   }
 }
+
+/** Always resolves on success-shaped response (API never enumerates emails). */
+export async function requestPasswordReset(args: {
+  email: string;
+  locale?: string;
+}): Promise<void> {
+  await fetch(`${getApiBaseUrl()}/api/auth/password-reset/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: args.email,
+      surface: 'simplyur',
+      locale: args.locale,
+      client: 'mobile',
+    }),
+  });
+}
+
+export async function confirmPasswordReset(args: {
+  email: string;
+  token: string;
+  password: string;
+}): Promise<void> {
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/password-reset/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: args.email,
+      token: args.token,
+      password: args.password,
+      surface: 'simplyur',
+    }),
+  });
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; code?: string } | null;
+  if (!res.ok || !json?.ok) {
+    throw new Error(json?.code || 'reset_failed');
+  }
+}

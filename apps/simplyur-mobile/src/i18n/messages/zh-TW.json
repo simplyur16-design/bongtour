@@ -229,7 +229,20 @@
     "signUpErrorWeakPassword": "密碼至少需要 8 個字元。",
     "signUpErrorEmailTaken": "此電子郵件已註冊，請直接登入。",
     "signUpErrorTermsRequired": "請同意服務條款與隱私權政策。",
-    "signUpErrorPasswordMismatch": "兩次輸入的密碼不一致。"
+    "signUpErrorPasswordMismatch": "兩次輸入的密碼不一致。",
+    "forgotPasswordLink": "忘記密碼？",
+    "forgotPasswordTitle": "忘記密碼",
+    "forgotPasswordSubtitle": "請輸入電子郵件。若此帳號已設定密碼，我們會寄送重設說明。",
+    "forgotPasswordSubmit": "傳送重設郵件",
+    "forgotPasswordSuccess": "若此電子郵件有已設定密碼的帳號，我們已寄送重設說明，請查看收件匣。",
+    "forgotPasswordBack": "← 返回登入",
+    "resetPasswordTitle": "重設密碼",
+    "resetPasswordSubtitle": "請設定新密碼（至少 8 個字元）。",
+    "resetPasswordSubmit": "更新密碼",
+    "resetPasswordSuccess": "密碼已更新。請使用新密碼登入。",
+    "resetPasswordInvalid": "重設連結無效或已過期，請重新申請。",
+    "resetPasswordErrorGeneric": "無法更新密碼，請重試。",
+    "newPasswordLabel": "新密碼"
   },
   "myEsim": {
     "title": "我的 eSIM",

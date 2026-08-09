@@ -229,7 +229,20 @@
     "signUpErrorWeakPassword": "密码至少需要 8 个字符。",
     "signUpErrorEmailTaken": "该邮箱已注册，请直接登录。",
     "signUpErrorTermsRequired": "请同意服务条款和隐私政策。",
-    "signUpErrorPasswordMismatch": "两次输入的密码不一致。"
+    "signUpErrorPasswordMismatch": "两次输入的密码不一致。",
+    "forgotPasswordLink": "忘记密码？",
+    "forgotPasswordTitle": "忘记密码",
+    "forgotPasswordSubtitle": "请输入邮箱。若该账号已设置密码，我们将发送重置说明。",
+    "forgotPasswordSubmit": "发送重置邮件",
+    "forgotPasswordSuccess": "若该邮箱存在已设置密码的账号，我们已发送重置说明，请查收邮件。",
+    "forgotPasswordBack": "← 返回登录",
+    "resetPasswordTitle": "重置密码",
+    "resetPasswordSubtitle": "请设置新密码（至少 8 个字符）。",
+    "resetPasswordSubmit": "更新密码",
+    "resetPasswordSuccess": "密码已更新。请使用新密码登录。",
+    "resetPasswordInvalid": "重置链接无效或已过期，请重新申请。",
+    "resetPasswordErrorGeneric": "无法更新密码，请重试。",
+    "newPasswordLabel": "新密码"
   },
   "myEsim": {
     "title": "我的 eSIM",

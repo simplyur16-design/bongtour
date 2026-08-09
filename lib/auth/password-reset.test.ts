@@ -1,0 +1,73 @@
+import { describe, expect, it } from 'vitest'
+import {
+  buildPasswordResetPath,
+  emailFromPasswordResetIdentifier,
+  generatePasswordResetToken,
+  hashPasswordResetToken,
+  isPasswordResetTokenShape,
+  isValidPasswordResetEmail,
+  normalizePasswordResetEmail,
+  passwordResetIdentifier,
+  PASSWORD_RESET_IDENTIFIER_PREFIX,
+  PASSWORD_RESET_TTL_MS,
+} from '@/lib/auth/password-reset'
+import { validateSimplyurSignupPassword } from '@/lib/simplyur/auth/register-email'
+
+describe('auth password reset helpers', () => {
+  it('builds identifier password-reset:email', () => {
+    expect(passwordResetIdentifier('a@b.co')).toBe(`${PASSWORD_RESET_IDENTIFIER_PREFIX}a@b.co`)
+    expect(emailFromPasswordResetIdentifier('password-reset:traveler@example.com')).toBe(
+      'traveler@example.com',
+    )
+    expect(emailFromPasswordResetIdentifier('email-verify:x')).toBeNull()
+  })
+
+  it('normalizes bongtour test IDs and simplyur emails', () => {
+    expect(normalizePasswordResetEmail('  Foo  ', 'bongtour')).toBe('foo@test.bongtour')
+    expect(normalizePasswordResetEmail('  Traveler@Example.COM ', 'simplyur')).toBe(
+      'traveler@example.com',
+    )
+    expect(isValidPasswordResetEmail('traveler@example.com', 'simplyur')).toBe(true)
+    expect(isValidPasswordResetEmail('noid', 'simplyur')).toBe(false)
+  })
+
+  it('generates 64-hex tokens and hashes deterministically', () => {
+    const token = generatePasswordResetToken()
+    expect(isPasswordResetTokenShape(token)).toBe(true)
+    expect(hashPasswordResetToken(token)).toHaveLength(64)
+    expect(hashPasswordResetToken(token)).toBe(hashPasswordResetToken(token))
+    expect(isPasswordResetTokenShape('short')).toBe(false)
+  })
+
+  it('builds surface-specific reset paths', () => {
+    expect(
+      buildPasswordResetPath({
+        surface: 'bongtour',
+        token: 'a'.repeat(64),
+        email: 'u@test.bongtour',
+      }),
+    ).toContain('/auth/reset-password?')
+    expect(
+      buildPasswordResetPath({
+        surface: 'simplyur',
+        locale: 'ja',
+        token: 'a'.repeat(64),
+        email: 'u@example.com',
+      }),
+    ).toContain('/simplyur/ja/reset-password?')
+    expect(
+      buildPasswordResetPath({
+        surface: 'simplyur',
+        client: 'mobile',
+        token: 'a'.repeat(64),
+        email: 'u@example.com',
+      }),
+    ).toBe(`/sign-in/reset?token=${'a'.repeat(64)}&email=${encodeURIComponent('u@example.com')}`)
+  })
+
+  it('reuses simplyur signup password rule (min 8) and ~1h TTL', () => {
+    expect(validateSimplyurSignupPassword('short')).toBe(false)
+    expect(validateSimplyurSignupPassword('longenough')).toBe(true)
+    expect(PASSWORD_RESET_TTL_MS).toBe(60 * 60 * 1000)
+  })
+})

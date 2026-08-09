@@ -229,7 +229,20 @@
     "signUpErrorWeakPassword": "パスワードは8文字以上にしてください。",
     "signUpErrorEmailTaken": "このメールはすでに登録されています。",
     "signUpErrorTermsRequired": "利用規約への同意が必要です。",
-    "signUpErrorPasswordMismatch": "パスワードが一致しません。"
+    "signUpErrorPasswordMismatch": "パスワードが一致しません。",
+    "forgotPasswordLink": "パスワードをお忘れですか？",
+    "forgotPasswordTitle": "パスワード再設定",
+    "forgotPasswordSubtitle": "メールアドレスを入力してください。パスワードが設定されているアカウントには再設定案内を送信します。",
+    "forgotPasswordSubmit": "再設定メールを送る",
+    "forgotPasswordSuccess": "パスワードが設定されているアカウントの場合、再設定案内を送信しました。受信トレイをご確認ください。",
+    "forgotPasswordBack": "← サインインに戻る",
+    "resetPasswordTitle": "新しいパスワード",
+    "resetPasswordSubtitle": "新しいパスワードを入力してください（8文字以上）。",
+    "resetPasswordSubmit": "パスワードを更新",
+    "resetPasswordSuccess": "パスワードを更新しました。新しいパスワードでサインインしてください。",
+    "resetPasswordInvalid": "再設定リンクが無効または期限切れです。もう一度リクエストしてください。",
+    "resetPasswordErrorGeneric": "パスワードを更新できませんでした。もう一度お試しください。",
+    "newPasswordLabel": "新しいパスワード"
   },
   "myEsim": {
     "title": "マイeSIM",

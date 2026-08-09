@@ -55,7 +55,12 @@ export default function SignInEmailScreen() {
         style={styles.input}
         placeholderTextColor={LOGIN_1B.faint}
       />
-      <Text style={styles.label}>{t('auth.passwordLabel')}</Text>
+      <View style={styles.passwordRow}>
+        <Text style={styles.labelTight}>{t('auth.passwordLabel')}</Text>
+        <Pressable onPress={() => router.push('/sign-in/forgot')} hitSlop={8}>
+          <Text style={styles.forgot}>{t('auth.forgotPasswordLink')}</Text>
+        </Pressable>
+      </View>
       <TextInput
         value={password}
         onChangeText={setPassword}
@@ -98,6 +103,14 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, color: LOGIN_1B.navy, ...fp('700') },
   sub: { marginTop: 8, marginBottom: 20, fontSize: 13, color: LOGIN_1B.muted, ...fp('400') },
   label: { fontSize: 12, color: LOGIN_1B.muted, marginBottom: 6, ...fp('600') },
+  labelTight: { fontSize: 12, color: LOGIN_1B.muted, ...fp('600') },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  forgot: { fontSize: 12, color: LOGIN_1B.coral, ...fp('600') },
   input: {
     borderWidth: 1.5,
     borderColor: LOGIN_1B.border,

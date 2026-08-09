@@ -510,7 +510,20 @@
     "signUpErrorWeakPassword": "Password must be at least 8 characters.",
     "signUpErrorEmailTaken": "An account with this email already exists. Sign in instead.",
     "signUpErrorTermsRequired": "Please accept the Terms and Privacy Policy.",
-    "signUpErrorPasswordMismatch": "Passwords do not match."
+    "signUpErrorPasswordMismatch": "Passwords do not match.",
+    "forgotPasswordLink": "Forgot password?",
+    "forgotPasswordTitle": "Forgot password",
+    "forgotPasswordSubtitle": "Enter your email. If a password is set for this account, we will send reset instructions.",
+    "forgotPasswordSubmit": "Send reset email",
+    "forgotPasswordSuccess": "If an account with a password exists for this email, we sent reset instructions. Check your inbox.",
+    "forgotPasswordBack": "← Back to sign in",
+    "resetPasswordTitle": "Reset password",
+    "resetPasswordSubtitle": "Choose a new password (at least 8 characters).",
+    "resetPasswordSubmit": "Update password",
+    "resetPasswordSuccess": "Your password was updated. Sign in with your new password.",
+    "resetPasswordInvalid": "This reset link is invalid or expired. Please request a new one.",
+    "resetPasswordErrorGeneric": "Could not update your password. Please try again.",
+    "newPasswordLabel": "New password"
   },
   "myEsim": {
     "title": "My eSIM",

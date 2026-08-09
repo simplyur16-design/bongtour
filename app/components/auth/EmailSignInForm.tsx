@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
 
@@ -47,9 +48,17 @@ export default function EmailSignInForm({ callbackUrl }: Props) {
         />
       </div>
       <div>
-        <label htmlFor="signin-password" className="mb-1 block text-xs font-medium text-bt-body">
-          비밀번호
-        </label>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <label htmlFor="signin-password" className="block text-xs font-medium text-bt-body">
+            비밀번호
+          </label>
+          <Link
+            href="/auth/forgot-password"
+            className="text-xs font-medium text-bt-link hover:text-bt-link-hover hover:underline"
+          >
+            비밀번호를 잊으셨나요?
+          </Link>
+        </div>
         <input
           id="signin-password"
           type="password"

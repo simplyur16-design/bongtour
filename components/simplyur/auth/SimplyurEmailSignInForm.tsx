@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
@@ -11,6 +12,8 @@ type Props = {
   invalidCredentialsLabel: string
   /** design_handoff_login_1b — peach screen form styling */
   variant?: 'default' | 'login1b'
+  forgotPasswordHref?: string
+  forgotPasswordLabel?: string
 }
 
 export function SimplyurEmailSignInForm({
@@ -18,6 +21,8 @@ export function SimplyurEmailSignInForm({
   submitLabel,
   invalidCredentialsLabel,
   variant = 'default',
+  forgotPasswordHref,
+  forgotPasswordLabel,
 }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -85,13 +90,24 @@ export function SimplyurEmailSignInForm({
         />
       </div>
       <div>
-        <label
-          htmlFor="simplyur-signin-password"
-          className={labelClass}
-          style={is1b ? { color: SIMPLYUR_LOGIN_1B.muted } : undefined}
-        >
-          Password
-        </label>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <label
+            htmlFor="simplyur-signin-password"
+            className={is1b ? 'block text-xs font-semibold' : 'block text-xs font-medium text-[color:var(--su-ink-muted)]'}
+            style={is1b ? { color: SIMPLYUR_LOGIN_1B.muted } : undefined}
+          >
+            Password
+          </label>
+          {forgotPasswordHref && forgotPasswordLabel ? (
+            <Link
+              href={forgotPasswordHref}
+              className="text-xs font-medium underline"
+              style={is1b ? { color: SIMPLYUR_LOGIN_1B.coral } : undefined}
+            >
+              {forgotPasswordLabel}
+            </Link>
+          ) : null}
+        </div>
         <input
           id="simplyur-signin-password"
           type="password"
