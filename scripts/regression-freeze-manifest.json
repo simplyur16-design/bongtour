@@ -14042,7 +14042,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur 앱 plans ScrollView — contentContainer gap 제거로 Android 스크롤 오버슛 방지",
+      "summary": "Simplyur 앱 plans ScrollView — Android 손 떼면 fling 취소로 오버슛 방지",
       "checks": [
         {
           "file": "apps/simplyur-mobile/app/(tabs)/plans.tsx",
@@ -14050,10 +14050,14 @@
             "REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]",
             "stackItem",
             "overScrollMode",
-            "nestedScrollEnabled"
+            "stopAndroidFling",
+            "onScrollEndDrag",
+            "onMomentumScrollBegin",
+            "chipSpacing"
           ],
           "mustNotInclude": [
-            "content: { paddingHorizontal: D.paddingH, gap: D.sectionGap }"
+            "content: { paddingHorizontal: D.paddingH, gap: D.sectionGap }",
+            "chipRow: { gap: 10, paddingVertical: 2 }"
           ]
         }
       ]

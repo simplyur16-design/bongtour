@@ -2,6 +2,8 @@ import { Link } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -30,7 +32,7 @@ import {
 /**
  * design_handoff_plans — duration-first Find my eSIM tab
  * REGRESSION-FREEZE[simplyur-mobile-plans-auto-select]: default day like web — manifest
- * REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]: no contentContainer gap + fast decelerate (Android overshoot) — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]: Android finger-up cancels fling — manifest
  * REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: data_hint on unlimited cards — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
  */
@@ -89,6 +91,13 @@ export default function PlansScreen() {
     scrollRef.current?.scrollTo({ y: Math.max(0, chipsY.current - 12), animated: true });
   }
 
+  /** Android ScrollView keeps flinging after finger-up; pin to the lift offset. */
+  const stopAndroidFling = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (Platform.OS !== 'android') return;
+    const y = e.nativeEvent.contentOffset.y;
+    scrollRef.current?.scrollTo({ y, animated: false });
+  }, []);
+
   if (error && !pack) {
     return (
       <View style={[styles.root, { backgroundColor: D.bg, paddingTop: insets.top + 16 }]}>
@@ -114,13 +123,14 @@ export default function PlansScreen() {
         styles.content,
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
       ]}
-      // Android: contentContainerStyle gap mis-measures scroll extent (overshoot past finger).
-      // "fast" cuts post-release fling so the list stops nearer where the finger lifts.
+      // Android: contentContainerStyle gap mis-measures scroll extent.
+      // Finger-up: cancel residual fling so the list stops where the drag ended.
       decelerationRate="fast"
       bounces={false}
       alwaysBounceVertical={false}
-      nestedScrollEnabled
       overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
+      onScrollEndDrag={stopAndroidFling}
+      onMomentumScrollBegin={stopAndroidFling}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={D.coral} />}>
       <View style={styles.stackItem}>
         <OfflineBanner onOnline={() => void load()} />
@@ -246,17 +256,26 @@ function DurationPicker({
   onChange: (d: number) => void;
   t: (k: string) => string;
 }) {
+  const chipsRef = useRef<ScrollView>(null);
+  const stopAndroidFling = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (Platform.OS !== 'android') return;
+    const x = e.nativeEvent.contentOffset.x;
+    chipsRef.current?.scrollTo({ x, animated: false });
+  }, []);
+
   return (
     <View style={styles.duration}>
       <Text style={styles.durationLabel}>{t('recommend.durationLabel')}</Text>
       <Text style={styles.durationHint}>{t('recommend.durationHint')}</Text>
       <ScrollView
+        ref={chipsRef}
         horizontal
-        nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         bounces={false}
         overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
+        onScrollEndDrag={stopAndroidFling}
+        onMomentumScrollBegin={stopAndroidFling}
         contentContainerStyle={styles.chipRow}
         keyboardShouldPersistTaps="handled">
         {options.map((d, index) => {
