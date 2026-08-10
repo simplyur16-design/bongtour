@@ -117,8 +117,8 @@
     "errorTitle": "Không tải được gói.",
     "errorBody": "Kiểm tra kết nối và thử lại.",
     "retry": "Thử lại",
-    "unlimitedHint": "Không giới hạn tiêu chuẩn · có thể có điều khoản sử dụng công bằng",
-    "fullUnlimitedHint": "Không giới hạn toàn phần (chính sách) · không hạn mức tốc độ cao theo ngày"
+    "unlimitedHint": "Không hết dung lượng · dùng hàng ngày ở tốc độ tối đa của gói",
+    "fullUnlimitedHint": "Không hạn mức GB/ngày · phù hợp xem video & dùng nhiều (có thể có fair use)"
   },
   "product": {
     "buyNow": "Mua ngay",
@@ -310,10 +310,12 @@
     "usedWord": "đã dùng",
     "leftWord": "còn lại",
     "unlimitedResetsDaily": "Gói không giới hạn · reset hàng ngày",
+    "listHintReady": "QR sẵn sàng · chạm để cài & xem dung lượng",
+    "listHintPreparing": "Đã mua · chạm để xem chi tiết",
     "badge": {
       "active": "Đang dùng",
       "expired": "Hết hạn",
-      "upcoming": "Sắp tới"
+      "upcoming": "Chưa kích hoạt"
     },
     "empty": "Chưa có đơn eSIM.",
     "orderDate": "Ngày đặt",

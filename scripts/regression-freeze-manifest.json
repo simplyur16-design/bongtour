@@ -14003,7 +14003,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Unlimited vs Full unlimited — data_hint로 카드에 차이 표시",
+      "summary": "Unlimited 1/3Mbps vs Full 5Mbps — qos_raw 라벨·data_hint",
       "checks": [
         {
           "file": "lib/simplyur/plan-display.ts",
@@ -14011,7 +14011,17 @@
             "REGRESSION-FREEZE[simplyur-plan-unlimited-hint]",
             "fullUnlimitedHint",
             "unlimitedHint",
+            "unlimitedWithSpeed",
+            "fullUnlimitedWithSpeed",
+            "formatSimplyurQosMbps",
             "dataHint"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-plan-unlimited-hint]",
+            "qos_raw"
           ]
         },
         {

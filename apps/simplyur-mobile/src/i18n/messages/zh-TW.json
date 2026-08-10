@@ -117,8 +117,8 @@
     "errorTitle": "無法載入方案。",
     "errorBody": "請檢查網路後重試。",
     "retry": "重試",
-    "unlimitedHint": "標準無限 · 可能含合理使用條款",
-    "fullUnlimitedHint": "政策型完全無限 · 無每日高速額度（仍可能適用合理使用）"
+    "unlimitedHint": "流量用不完 · 日常地圖/聊天（有最高速度）",
+    "fullUnlimitedHint": "無每日 GB 額度 · 更適合影片與重度使用（可能有合理使用）"
   },
   "product": {
     "buyNow": "立即購買",
@@ -310,10 +310,12 @@
     "usedWord": "已用",
     "leftWord": "剩餘",
     "unlimitedResetsDaily": "無限方案 · 每日重置",
+    "listHintReady": "QR 已就緒 · 點一下查看安裝與用量",
+    "listHintPreparing": "已購買 · 點一下查看詳情",
     "badge": {
       "active": "使用中",
       "expired": "已過期",
-      "upcoming": "待開始"
+      "upcoming": "未啟用"
     },
     "empty": "尚無 eSIM 訂單。",
     "orderDate": "下單日期",

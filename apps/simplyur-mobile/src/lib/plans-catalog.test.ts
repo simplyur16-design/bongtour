@@ -51,6 +51,9 @@ describe('plans-catalog auto-select', () => {
     expect(resolvePlanDataHint({ data_label: 'Unlimited', data_hint: null }, t)).toBe(
       'recommend.unlimitedHint',
     );
+    expect(
+      resolvePlanDataHint({ data_label: 'Unlimited · up to 5 Mbps', data_hint: null }, t),
+    ).toBe('recommend.unlimitedHint');
     expect(resolvePlanDataHint({ data_label: '500 MB/day', data_hint: null }, t)).toBeNull();
     expect(
       resolvePlanDataHint({ data_label: 'Unlimited', data_hint: 'from api' }, t),

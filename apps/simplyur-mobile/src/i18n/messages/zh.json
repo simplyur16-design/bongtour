@@ -117,8 +117,8 @@
     "errorTitle": "无法加载套餐。",
     "errorBody": "请检查网络后重试。",
     "retry": "重试",
-    "unlimitedHint": "标准无限 · 可能含合理使用条款",
-    "fullUnlimitedHint": "政策型完全无限 · 无每日高速额度（仍可能适用合理使用）"
+    "unlimitedHint": "用不完流量 · 日常地图/聊天（有最高速度）",
+    "fullUnlimitedHint": "无每日 GB 额度 · 更适合视频与重度使用（可能有合理使用）"
   },
   "product": {
     "buyNow": "立即购买",
@@ -310,10 +310,12 @@
     "usedWord": "已用",
     "leftWord": "剩余",
     "unlimitedResetsDaily": "无限套餐 · 每日重置",
+    "listHintReady": "二维码已就绪 · 点按查看安装与用量",
+    "listHintPreparing": "已购买 · 点按查看详情",
     "badge": {
       "active": "使用中",
       "expired": "已过期",
-      "upcoming": "待开始"
+      "upcoming": "未激活"
     },
     "empty": "暂无 eSIM 订单。",
     "orderDate": "下单日期",

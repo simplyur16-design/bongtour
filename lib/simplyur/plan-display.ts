@@ -17,9 +17,14 @@ type DisplayStrings = {
   days: (n: number) => string;
   allowance: Record<AllowanceBucketId, string>;
   fullUnlimited: string;
-  /** Short card subline — Unlimited vs Full unlimited. */
+  /** Card title when qos max speed is known. */
+  unlimitedWithSpeed: (mbps: string) => string;
+  fullUnlimitedWithSpeed: (mbps: string) => string;
+  /** Short card subline — why pick each unlimited tier. */
   unlimitedHint: string;
+  unlimitedHintWithSpeed: (mbps: string) => string;
   fullUnlimitedHint: string;
+  fullUnlimitedHintWithSpeed: (mbps: string) => string;
   fixedTotal: (label: string) => string;
 };
 
@@ -52,8 +57,15 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5 GB/day",
     },
     fullUnlimited: "Full unlimited",
-    unlimitedHint: "Standard unlimited · terms may include fair use",
-    fullUnlimitedHint: "Policy-type full unlimited · no daily high-speed quota (fair use may still apply)",
+    unlimitedWithSpeed: (mbps) => `Unlimited · up to ${mbps}`,
+    fullUnlimitedWithSpeed: (mbps) => `Full unlimited · up to ${mbps}`,
+    unlimitedHint: "Data doesn’t run out — everyday use at this plan’s max speed",
+    unlimitedHintWithSpeed: (mbps) =>
+      `Data doesn’t run out — maps, chat & browsing at up to ${mbps}`,
+    fullUnlimitedHint:
+      "No daily GB bucket — better for video, hotspot & heavy use (fair use may apply)",
+    fullUnlimitedHintWithSpeed: (mbps) =>
+      `No daily GB bucket · up to ${mbps} — better for video & heavy use (fair use may apply)`,
     fixedTotal: (label) => `${label} total`,
   },
   ja: {
@@ -68,8 +80,14 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5GB/日",
     },
     fullUnlimited: "完全無制限",
-    unlimitedHint: "標準の無制限 · 公正利用の条件がある場合があります",
-    fullUnlimitedHint: "政策型の完全無制限 · 1日の高速上限なし（公正利用は適用される場合あり）",
+    unlimitedWithSpeed: (mbps) => `無制限 · 最大${mbps}`,
+    fullUnlimitedWithSpeed: (mbps) => `完全無制限 · 最大${mbps}`,
+    unlimitedHint: "容量切れなし · 日常利用向け（プランの最大速度）",
+    unlimitedHintWithSpeed: (mbps) =>
+      `容量切れなし · 地図・SNS・ブラウズ向け（最大${mbps}）`,
+    fullUnlimitedHint: "1日のGB上限なし · 動画やヘビー利用向け（公正利用あり）",
+    fullUnlimitedHintWithSpeed: (mbps) =>
+      `1日のGB上限なし · 最大${mbps} · 動画・ヘビー利用向け（公正利用あり）`,
     fixedTotal: (label) => `合計 ${label}`,
   },
   zh: {
@@ -84,8 +102,13 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5GB/天",
     },
     fullUnlimited: "完全无限",
-    unlimitedHint: "标准无限 · 可能含合理使用条款",
-    fullUnlimitedHint: "政策型完全无限 · 无每日高速额度（仍可能适用合理使用）",
+    unlimitedWithSpeed: (mbps) => `无限 · 最高${mbps}`,
+    fullUnlimitedWithSpeed: (mbps) => `完全无限 · 最高${mbps}`,
+    unlimitedHint: "用不完流量 · 日常地图/聊天（有最高速度）",
+    unlimitedHintWithSpeed: (mbps) => `用不完流量 · 地图、聊天、浏览（最高${mbps}）`,
+    fullUnlimitedHint: "无每日 GB 额度 · 更适合视频与重度使用（可能有合理使用）",
+    fullUnlimitedHintWithSpeed: (mbps) =>
+      `无每日 GB 额度 · 最高${mbps} · 更适合视频与重度使用（可能有合理使用）`,
     fixedTotal: (label) => `共 ${label}`,
   },
   "zh-TW": {
@@ -100,8 +123,13 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5GB/天",
     },
     fullUnlimited: "完全無限",
-    unlimitedHint: "標準無限 · 可能含合理使用條款",
-    fullUnlimitedHint: "政策型完全無限 · 無每日高速額度（仍可能適用合理使用）",
+    unlimitedWithSpeed: (mbps) => `無限 · 最高${mbps}`,
+    fullUnlimitedWithSpeed: (mbps) => `完全無限 · 最高${mbps}`,
+    unlimitedHint: "流量用不完 · 日常地圖/聊天（有最高速度）",
+    unlimitedHintWithSpeed: (mbps) => `流量用不完 · 地圖、聊天、瀏覽（最高${mbps}）`,
+    fullUnlimitedHint: "無每日 GB 額度 · 更適合影片與重度使用（可能有合理使用）",
+    fullUnlimitedHintWithSpeed: (mbps) =>
+      `無每日 GB 額度 · 最高${mbps} · 更適合影片與重度使用（可能有合理使用）`,
     fixedTotal: (label) => `共 ${label}`,
   },
   vi: {
@@ -116,9 +144,15 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5 GB/ngày",
     },
     fullUnlimited: "Không giới hạn toàn phần",
-    unlimitedHint: "Không giới hạn tiêu chuẩn · có thể có điều khoản sử dụng công bằng",
+    unlimitedWithSpeed: (mbps) => `Không giới hạn · tối đa ${mbps}`,
+    fullUnlimitedWithSpeed: (mbps) => `Không giới hạn toàn phần · tối đa ${mbps}`,
+    unlimitedHint: "Không hết dung lượng · dùng hàng ngày ở tốc độ tối đa của gói",
+    unlimitedHintWithSpeed: (mbps) =>
+      `Không hết dung lượng · bản đồ, chat, duyệt web (tối đa ${mbps})`,
     fullUnlimitedHint:
-      "Không giới hạn toàn phần (chính sách) · không hạn mức tốc độ cao theo ngày (vẫn có thể áp dụng sử dụng công bằng)",
+      "Không hạn mức GB/ngày · phù hợp xem video & dùng nhiều (có thể có fair use)",
+    fullUnlimitedHintWithSpeed: (mbps) =>
+      `Không hạn mức GB/ngày · tối đa ${mbps} · phù hợp xem video & dùng nhiều (có thể có fair use)`,
     fixedTotal: (label) => `${label} tổng`,
   },
 };
@@ -155,6 +189,34 @@ function resolveDataCategory(p: ProductOption): DataCategory {
   return "daily";
 }
 
+function isFullUnlimitedLabel(allowanceLabel: string): boolean {
+  return (
+    allowanceLabel.includes("완전") || allowanceLabel.toLowerCase().includes("full")
+  );
+}
+
+/** Parse plan max speed for traveler-facing "up to X Mbps" labels. */
+export function formatSimplyurQosMbps(qosRaw: string | null | undefined): string | null {
+  const low = (qosRaw || "").trim().toLowerCase();
+  if (!low) return null;
+  const kb = low.match(/(\d+(?:\.\d+)?)\s*kbps/);
+  if (kb) {
+    const n = parseFloat(kb[1]!);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const mbps = n / 1000;
+    const rounded = mbps >= 1 ? String(Math.round(mbps)) : mbps.toFixed(2).replace(/\.?0+$/, "");
+    return `${rounded} Mbps`;
+  }
+  const mb = low.match(/(\d+(?:\.\d+)?)\s*mbps/);
+  if (mb) {
+    const n = parseFloat(mb[1]!);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const rounded = n >= 1 ? String(Math.round(n)) : n.toFixed(2).replace(/\.?0+$/, "");
+    return `${rounded} Mbps`;
+  }
+  return null;
+}
+
 export function formatSimplyurPlanDisplay(product: ProductOption, locale: SimplyurLocale) {
   const d = DISPLAY[locale] ?? DISPLAY.en;
   const days = extractDaysFromDaysRaw(product.days_raw) ?? 0;
@@ -165,11 +227,18 @@ export function formatSimplyurPlanDisplay(product: ProductOption, locale: Simply
   let dataLabel: string;
   let dataHint: string | null = null;
   if (category === "unlimited") {
-    const isFull =
-      product.allowance_label.includes("완전") ||
-      product.allowance_label.toLowerCase().includes("full");
-    dataLabel = isFull ? d.fullUnlimited : d.allowance.unlimited;
-    dataHint = isFull ? d.fullUnlimitedHint : d.unlimitedHint;
+    const isFull = isFullUnlimitedLabel(product.allowance_label);
+    const mbps = formatSimplyurQosMbps(product.qos_raw);
+    if (isFull) {
+      dataLabel = mbps ? d.fullUnlimitedWithSpeed(mbps) : d.fullUnlimited;
+      dataHint = mbps ? d.fullUnlimitedHintWithSpeed(mbps) : d.fullUnlimitedHint;
+    } else if (mbps) {
+      dataLabel = d.unlimitedWithSpeed(mbps);
+      dataHint = d.unlimitedHintWithSpeed(mbps);
+    } else {
+      dataLabel = d.allowance.unlimited;
+      dataHint = d.unlimitedHint;
+    }
   } else if (category === "daily" && bucket) {
     dataLabel = d.allowance[bucket];
   } else if (category === "fixed") {

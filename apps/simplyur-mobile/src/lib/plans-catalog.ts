@@ -55,10 +55,10 @@ export function resolvePlanDataHint(
     return t('recommend.fullUnlimitedHint');
   }
   if (
-    label === 'unlimited' ||
-    label === '無制限' ||
-    label === '无限' ||
-    label === '無限' ||
+    label.startsWith('unlimited') ||
+    label.startsWith('無制限') ||
+    label.startsWith('无限') ||
+    label.startsWith('無限') ||
     label.includes('không giới hạn')
   ) {
     return t('recommend.unlimitedHint');

@@ -18,6 +18,7 @@ import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 // REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 DB 로더 — manifest
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog uses resolveSimplyurFxRates — manifest
 // REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: statement timeout·connect timeout 분류·풀 리셋 — manifest
+// REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: SELECT qos_raw for Unlimited 1/3Mbps labels — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -107,7 +108,7 @@ export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaPr
       withBongsimStatementTimeout((client) =>
         client.query<ProductOption>(
           `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
-              allowance_label, option_label, price_block, flags
+              allowance_label, option_label, qos_raw, price_block, flags
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
        ORDER BY plan_name, days_raw,
@@ -159,7 +160,7 @@ export async function loadSimplyurKoreaProductByOptionId(
       withBongsimStatementTimeout((client) =>
         client.query<ProductOption>(
           `SELECT option_api_id, plan_name, network_family, plan_type, days_raw,
-              allowance_label, option_label, price_block, flags
+              allowance_label, option_label, qos_raw, price_block, flags
        FROM bongsim_product_option
        WHERE option_api_id = $1 AND ${BONGSIM_CATALOG_ACTIVE_WHERE}
        LIMIT 1`,

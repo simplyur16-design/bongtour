@@ -117,8 +117,8 @@
     "errorTitle": "Couldn't load plans.",
     "errorBody": "Check your connection and try again.",
     "retry": "Retry",
-    "unlimitedHint": "Standard unlimited · terms may include fair use",
-    "fullUnlimitedHint": "Policy-type full unlimited · no daily high-speed quota (fair use may still apply)"
+    "unlimitedHint": "Data doesn’t run out — everyday use at this plan’s max speed",
+    "fullUnlimitedHint": "No daily GB bucket — better for video, hotspot & heavy use (fair use may apply)"
   },
   "product": {
     "buyNow": "Buy now",
@@ -597,10 +597,12 @@
     "used": "Used",
     "unlimited": "Unlimited",
     "noDailyUsage": "No daily usage data yet.",
+    "listHintReady": "QR ready · tap for install & usage",
+    "listHintPreparing": "Purchased · tap for details",
     "badge": {
       "active": "Active",
       "expired": "Expired",
-      "upcoming": "Upcoming"
+      "upcoming": "Not activated"
     },
     "status": {
       "ordered": "Ordered",

@@ -568,7 +568,7 @@
     "badge": {
       "active": "Active",
       "expired": "Expired",
-      "upcoming": "Upcoming"
+      "upcoming": "Not activated"
     },
     "status": {
       "ordered": "Ordered",

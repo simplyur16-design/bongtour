@@ -529,11 +529,16 @@ export default function MyEsimScreen() {
       {orders.map((o) => {
         const tier = myEsimBadgeTier(o.status_key);
         const badge = MY_ESIM_BADGE[tier];
+        const hint =
+          tier === 'active' ? t('myEsim.listHintReady')
+          : o.can_show_qr ? t('myEsim.listHintReady')
+          : t('myEsim.listHintPreparing');
         return (
           <Pressable key={o.order_id} style={styles.orderCard} onPress={() => setSelectedOrderId(o.order_id)}>
             <View style={styles.orderText}>
               <Text style={styles.orderDate}>{formatOrderDate(o.created_at, locale)}</Text>
               <Text style={styles.orderPlan}>{o.plan_summary}</Text>
+              <Text style={styles.orderHint}>{hint}</Text>
             </View>
             <View style={styles.orderRight}>
               <View style={[styles.badge, { backgroundColor: badge.bg }]}>
@@ -693,6 +698,7 @@ const styles = StyleSheet.create({
   orderText: { flex: 1, gap: 4, paddingRight: 8 },
   orderDate: { fontSize: 12, ...fp('400'), color: D.faint },
   orderPlan: { fontSize: 14, ...fp('700'), color: D.navy },
+  orderHint: { marginTop: 4, fontSize: 11, lineHeight: 15, ...fp('400'), color: D.muted },
   orderRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText: { fontSize: 11, ...fp('700') },

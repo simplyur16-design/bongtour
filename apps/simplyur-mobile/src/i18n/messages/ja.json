@@ -117,8 +117,8 @@
     "errorTitle": "プランを読み込めませんでした。",
     "errorBody": "接続を確認してもう一度お試しください。",
     "retry": "再試行",
-    "unlimitedHint": "標準の無制限 · 公正利用の条件がある場合があります",
-    "fullUnlimitedHint": "政策型の完全無制限 · 1日の高速上限なし（公正利用は適用される場合あり）"
+    "unlimitedHint": "容量切れなし · 日常利用向け（プランの最大速度）",
+    "fullUnlimitedHint": "1日のGB上限なし · 動画やヘビー利用向け（公正利用あり）"
   },
   "product": {
     "buyNow": "購入する",
@@ -310,10 +310,12 @@
     "usedWord": "使用",
     "leftWord": "残り",
     "unlimitedResetsDaily": "無制限プラン · 毎日リセット",
+    "listHintReady": "QR準備完了 · タップでインストールと利用量",
+    "listHintPreparing": "購入済み · タップで詳細",
     "badge": {
       "active": "利用中",
       "expired": "期限切れ",
-      "upcoming": "開始前"
+      "upcoming": "未アクティブ"
     },
     "empty": "eSIMの注文はまだありません。",
     "orderDate": "注文日",
