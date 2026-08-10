@@ -43,7 +43,7 @@ export default function SignUpEmailScreen() {
     try {
       await registerWithEmail({ email, password, termsAccepted: true });
       await signInWithEmailPassword(email, password);
-      router.replace('/(tabs)/my-esim');
+      router.replace('/(tabs)/plans');
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
       if (code === 'email_taken') setErr(t('auth.signUpErrorEmailTaken'));

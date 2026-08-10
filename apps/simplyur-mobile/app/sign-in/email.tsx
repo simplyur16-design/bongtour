@@ -29,7 +29,8 @@ export default function SignInEmailScreen() {
     setBusy(true);
     try {
       await signInWithEmailPassword(email, password);
-      router.replace('/(tabs)/my-esim');
+      // REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: land on plans, not My eSIM flash — manifest
+      router.replace('/(tabs)/plans');
     } catch {
       setErr(t('auth.invalidCredentials'));
     } finally {

@@ -25,7 +25,7 @@ import {
 type Props = {
   /** Called after SecureStore session is written (before navigation). */
   onSignedIn?: () => void | Promise<void>;
-  /** Where to go after success. Default My eSIM. */
+  /** Where to go after success. Default Find my eSIM (plans) — avoids My eSIM list flash. */
   successHref?: string;
   /**
    * When false (inline My eSIM), skip router.replace — session subscribe reloads orders.
@@ -45,7 +45,7 @@ type Props = {
  */
 export function SocialAuthButtons({
   onSignedIn,
-  successHref = '/(tabs)/my-esim',
+  successHref = '/(tabs)/plans',
   navigateOnSuccess = true,
   inlineEmail = false,
 }: Props) {
@@ -65,7 +65,7 @@ export function SocialAuthButtons({
   async function afterOk() {
     await onSignedIn?.();
     if (navigateOnSuccess) {
-      router.replace(successHref as '/(tabs)/my-esim');
+      router.replace(successHref as '/(tabs)/plans');
     }
   }
 

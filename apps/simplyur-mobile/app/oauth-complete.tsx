@@ -13,7 +13,7 @@ export default function OAuthCompleteScreen() {
   useEffect(() => {
     markWebOAuthSession();
     saveCheckoutBuyerEmail(typeof params.email === 'string' ? params.email : '');
-    router.replace('/(tabs)/my-esim');
+    router.replace('/(tabs)/plans');
   }, [params.email]);
 
   return (

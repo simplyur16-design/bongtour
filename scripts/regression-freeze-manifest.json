@@ -11535,7 +11535,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
             "const soft = ordersRef.current.length > 0",
-            "if (!soft) setLoading(true)"
+            "stayOnSignIn"
           ]
         },
         {
@@ -13647,15 +13647,19 @@
         "prebuild",
         "ci"
       ],
-      "summary": "My eSIM 로그인 후 soft reload — 목록 깜빡임(full loading 교체) 금지",
+      "summary": "My eSIM 로그인 후 soft reload — sign-in→loading 깜빡임 금지 + 로그인 후 plans 랜딩",
       "checks": [
         {
           "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
             "const soft = ordersRef.current.length > 0",
-            "if (!soft) setLoading(true)",
+            "const stayOnSignIn = unauthorizedRef.current && !soft",
+            "pendingReloadRef",
             "navigateOnSuccess={false}"
+          ],
+          "mustNotInclude": [
+            "setUnauthorized(false);\n    const res = await fetchMyEsimOrders"
           ]
         },
         {
@@ -13663,7 +13667,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
             "navigateOnSuccess",
-            "if (navigateOnSuccess)"
+            "if (navigateOnSuccess)",
+            "'/(tabs)/plans'"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/sign-in/email.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
+            "router.replace('/(tabs)/plans')"
           ]
         }
       ]

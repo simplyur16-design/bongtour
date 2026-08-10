@@ -61,26 +61,48 @@ export default function MyEsimScreen() {
   const [usageError, setUsageError] = useState<string | null>(null);
   const [refundBusy, setRefundBusy] = useState(false);
   const ordersRef = useRef<MyEsimOrder[]>([]);
+  const unauthorizedRef = useRef(false);
   const loadSeqRef = useRef(0);
+  const inFlightRef = useRef(false);
+  const pendingReloadRef = useRef(false);
   ordersRef.current = orders;
+  unauthorizedRef.current = unauthorized;
 
-  // Soft reload: keep existing list painted when focus/session/onSignedIn overlap.
+  // Soft reload + coalesce: never flash sign-in→loading→list on login.
+  // REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: keep sign-in until fetch settles — manifest
   const loadOrders = useCallback(async () => {
-    const seq = ++loadSeqRef.current;
-    const soft = ordersRef.current.length > 0;
-    if (!soft) setLoading(true);
-    setLoadError(false);
-    setUnauthorized(false);
-    const res = await fetchMyEsimOrders(locale);
-    if (seq !== loadSeqRef.current) return;
-    if (!res.ok) {
-      if (res.unauthorized) setUnauthorized(true);
-      else setLoadError(true);
-      setOrders([]);
-    } else {
-      setOrders(res.orders);
+    if (inFlightRef.current) {
+      pendingReloadRef.current = true;
+      return;
     }
-    setLoading(false);
+    inFlightRef.current = true;
+    try {
+      do {
+        pendingReloadRef.current = false;
+        const seq = ++loadSeqRef.current;
+        const soft = ordersRef.current.length > 0;
+        // Stay on sign-in UI while the first post-login fetch runs (no blank Loading…).
+        const stayOnSignIn = unauthorizedRef.current && !soft;
+        if (!soft && !stayOnSignIn) setLoading(true);
+        setLoadError(false);
+        const res = await fetchMyEsimOrders(locale);
+        if (seq !== loadSeqRef.current) continue;
+        if (!res.ok) {
+          if (res.unauthorized) setUnauthorized(true);
+          else {
+            setUnauthorized(false);
+            setLoadError(true);
+          }
+          setOrders([]);
+        } else {
+          setUnauthorized(false);
+          setOrders(res.orders);
+        }
+        setLoading(false);
+      } while (pendingReloadRef.current);
+    } finally {
+      inFlightRef.current = false;
+    }
   }, [locale]);
 
   // Tabs stay mounted under /sign-in — reload on focus + when SecureStore session is written.
