@@ -25,8 +25,9 @@ type Props = {
 }
 
 /**
- * 상품 상세: Product(+offers 필수) + 선택적 BreadcrumbList / TouristTrip.
+ * 상품 상세: Product(+offers 필수) + 선택적 BreadcrumbList / TouristTrip(Product와 함께만).
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: omit Product when no offers — manifest
+ * REGRESSION-FREEZE[product-jsonld-requires-offers]: TouristTrip only with Product/offers — manifest
  */
 export default function ProductJsonLd({
   productId,
@@ -62,7 +63,7 @@ export default function ProductJsonLd({
       : null
 
   const touristTripLd =
-    itinerary && itinerary.length > 0
+    productData && itinerary && itinerary.length > 0
       ? {
           '@context': 'https://schema.org',
           '@type': 'TouristTrip',
@@ -70,7 +71,8 @@ export default function ProductJsonLd({
           description,
           url,
           ...(img ? { image: [img] } : {}),
-          ...(offers && offers.lowPrice > 0 ? { offers: buildOffersNode(offers, url) } : {}),
+          // Only emit with Product (valid offers) — never orphan commercial schema without offers.
+          offers: buildOffersNode(offers!, url),
           itinerary: {
             '@type': 'ItemList',
             itemListElement: itinerary.map((day) => {

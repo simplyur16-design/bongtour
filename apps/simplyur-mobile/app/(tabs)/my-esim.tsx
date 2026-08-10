@@ -38,6 +38,7 @@ type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
 
 /**
  * design_handoff_my_esim — My eSIM 4th tab
+ * REGRESSION-FREEZE[simplyur-my-esim-badge-tiers]: Ready/Preparing badges, no Upcoming — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: login leaves My eSIM before orders flash — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
@@ -277,7 +278,9 @@ export default function MyEsimScreen() {
   }
 
   if (view === 'detail' && selectedOrder && summary && modalSummary) {
-    const tier = myEsimBadgeTier(selectedOrder.status_key);
+    const tier = myEsimBadgeTier(selectedOrder.status_key, {
+      can_show_qr: selectedOrder.can_show_qr,
+    });
     const badge = MY_ESIM_BADGE[tier];
 
     if (usageScreenOpen) {
@@ -527,12 +530,12 @@ export default function MyEsimScreen() {
         </View>
       </View>
       {orders.map((o) => {
-        const tier = myEsimBadgeTier(o.status_key);
+        const tier = myEsimBadgeTier(o.status_key, { can_show_qr: o.can_show_qr });
         const badge = MY_ESIM_BADGE[tier];
         const hint =
-          tier === 'active' ? t('myEsim.listHintReady')
-          : o.can_show_qr ? t('myEsim.listHintReady')
-          : t('myEsim.listHintPreparing');
+          tier === 'active' || tier === 'ready'
+            ? t('myEsim.listHintReady')
+            : t('myEsim.listHintPreparing');
         return (
           <Pressable key={o.order_id} style={styles.orderCard} onPress={() => setSelectedOrderId(o.order_id)}>
             <View style={styles.orderText}>

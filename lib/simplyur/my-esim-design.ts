@@ -21,10 +21,13 @@ export const SIMPLYUR_MY_ESIM_DESIGN = {
   progressTrack: "#F0EEE9",
 } as const;
 
+/** REGRESSION-FREEZE[simplyur-my-esim-badge-tiers]: no Upcoming — Ready/Preparing — manifest */
 export const MY_ESIM_BADGE = {
   active: { bg: "#E4F5EC", color: "#1B8A56", labelKey: "myEsim.badge.active" },
+  ready: { bg: "#EAF1FF", color: "#2E5FD9", labelKey: "myEsim.badge.ready" },
+  preparing: { bg: "#FFF3E0", color: "#C67A1A", labelKey: "myEsim.badge.preparing" },
+  refundPending: { bg: "#F3E8FF", color: "#7A3DB8", labelKey: "myEsim.badge.refundPending" },
   expired: { bg: "#F0EEE9", color: "#98A0AB", labelKey: "myEsim.badge.expired" },
-  upcoming: { bg: "#EAF1FF", color: "#2E5FD9", labelKey: "myEsim.badge.upcoming" },
 } as const;
 
 export type MyEsimBadgeTier = keyof typeof MY_ESIM_BADGE;

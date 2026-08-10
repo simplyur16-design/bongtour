@@ -5,6 +5,11 @@ import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useI18n } from '@/src/i18n/I18nContext';
 
+/**
+ * Browse screens (product/devices/settings/legal) live under (tabs) with href:null
+ * so the tab bar stays visible. Checkout/sign-in remain outside this group.
+ * REGRESSION-FREEZE[simplyur-mobile-tabs-browse-keep]: browse keeps tab bar — manifest
+ */
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useI18n();
@@ -57,6 +62,11 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Nested browse routes — keep tab bar, hide from tab icons */}
+      <Tabs.Screen name="product/[optionApiId]" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="devices" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="settings" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="legal" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

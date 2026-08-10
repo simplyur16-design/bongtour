@@ -314,8 +314,10 @@
     "listHintPreparing": "Đã mua · chạm để xem chi tiết",
     "badge": {
       "active": "Đang dùng",
-      "expired": "Hết hạn",
-      "upcoming": "Chưa kích hoạt"
+      "ready": "Sẵn sàng cài",
+      "preparing": "Đang chuẩn bị",
+      "refundPending": "Đang hoàn tiền",
+      "expired": "Hết hạn"
     },
     "empty": "Chưa có đơn eSIM.",
     "orderDate": "Ngày đặt",

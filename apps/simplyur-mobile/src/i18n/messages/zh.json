@@ -314,8 +314,10 @@
     "listHintPreparing": "已购买 · 点按查看详情",
     "badge": {
       "active": "使用中",
-      "expired": "已过期",
-      "upcoming": "未激活"
+      "ready": "可安装",
+      "preparing": "准备中",
+      "refundPending": "退款处理中",
+      "expired": "已过期"
     },
     "empty": "暂无 eSIM 订单。",
     "orderDate": "下单日期",

@@ -75,7 +75,6 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="oauth-complete" options={{ headerShown: false }} />
-        <Stack.Screen name="product/[optionApiId]" options={{ headerShown: false, title: '' }} />
         <Stack.Screen
           name="checkout"
           options={{
@@ -85,18 +84,6 @@ function RootLayoutNav() {
             presentation: 'card',
             animation: 'slide_from_right',
           }}
-        />
-        <Stack.Screen
-          name="devices"
-          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
-        />
-        <Stack.Screen
-          name="legal"
-          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
         />
         {/* Legacy WebView route kept for freeze/compat — app flows must not open website chrome */}
         <Stack.Screen name="in-app-web" options={{ headerShown: false, presentation: 'card' }} />

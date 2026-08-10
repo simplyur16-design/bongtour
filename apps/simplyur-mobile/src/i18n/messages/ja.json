@@ -314,8 +314,10 @@
     "listHintPreparing": "購入済み · タップで詳細",
     "badge": {
       "active": "利用中",
-      "expired": "期限切れ",
-      "upcoming": "未アクティブ"
+      "ready": "インストール可",
+      "preparing": "準備中",
+      "refundPending": "返金手続き中",
+      "expired": "期限切れ"
     },
     "empty": "eSIMの注文はまだありません。",
     "orderDate": "注文日",

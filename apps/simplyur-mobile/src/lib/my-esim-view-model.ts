@@ -21,10 +21,15 @@ export type MyEsimUsageResponse = {
   history: { date: string; usageMb: number }[];
 };
 
-export function myEsimBadgeTier(statusKey: string): MyEsimBadgeTier {
+export function myEsimBadgeTier(
+  statusKey: string,
+  opts?: { can_show_qr?: boolean },
+): MyEsimBadgeTier {
   if (statusKey === 'active') return 'active';
   if (statusKey === 'cancelled' || statusKey === 'failed') return 'expired';
-  return 'upcoming';
+  if (statusKey === 'refundPending') return 'refundPending';
+  if (opts?.can_show_qr) return 'ready';
+  return 'preparing';
 }
 
 export function formatDataAmount(mb: number): string {

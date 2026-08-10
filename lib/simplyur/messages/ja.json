@@ -275,8 +275,10 @@
     "unlimitedResetsDaily": "無制限プラン · 毎日リセット",
     "badge": {
       "active": "利用中",
-      "expired": "期限切れ",
-      "upcoming": "開始前"
+      "ready": "インストール可",
+      "preparing": "準備中",
+      "refundPending": "返金手続き中",
+      "expired": "期限切れ"
     },
     "empty": "eSIMの注文はまだありません。",
     "orderDate": "注文日",

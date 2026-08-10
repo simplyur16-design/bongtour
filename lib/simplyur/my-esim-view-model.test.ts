@@ -23,7 +23,10 @@ describe("my-esim-view-model", () => {
   it("maps status to badge tier", () => {
     expect(myEsimBadgeTier("active")).toBe("active");
     expect(myEsimBadgeTier("cancelled")).toBe("expired");
-    expect(myEsimBadgeTier("paid")).toBe("upcoming");
+    expect(myEsimBadgeTier("paid")).toBe("preparing");
+    expect(myEsimBadgeTier("paid", { can_show_qr: true })).toBe("ready");
+    expect(myEsimBadgeTier("delivered", { can_show_qr: true })).toBe("ready");
+    expect(myEsimBadgeTier("refundPending")).toBe("refundPending");
   });
 
   it("formats capped usage summary", () => {

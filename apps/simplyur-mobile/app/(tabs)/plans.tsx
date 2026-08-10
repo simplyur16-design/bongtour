@@ -30,7 +30,7 @@ import {
 /**
  * design_handoff_plans — duration-first Find my eSIM tab
  * REGRESSION-FREEZE[simplyur-mobile-plans-auto-select]: default day like web — manifest
- * REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]: no contentContainer gap (Android overshoot) — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]: no contentContainer gap + fast decelerate (Android overshoot) — manifest
  * REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: data_hint on unlimited cards — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
  */
@@ -115,7 +115,10 @@ export default function PlansScreen() {
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
       ]}
       // Android: contentContainerStyle gap mis-measures scroll extent (overshoot past finger).
-      decelerationRate="normal"
+      // "fast" cuts post-release fling so the list stops nearer where the finger lifts.
+      decelerationRate="fast"
+      bounces={false}
+      alwaysBounceVertical={false}
       nestedScrollEnabled
       overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={D.coral} />}>
@@ -251,9 +254,12 @@ function DurationPicker({
         horizontal
         nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        bounces={false}
+        overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
         contentContainerStyle={styles.chipRow}
         keyboardShouldPersistTaps="handled">
-        {options.map((d) => {
+        {options.map((d, index) => {
           const selected = value === d;
           return (
             <Pressable
@@ -261,6 +267,7 @@ function DurationPicker({
               onPress={() => onChange(d)}
               style={[
                 styles.chip,
+                index < options.length - 1 ? styles.chipSpacing : null,
                 selected ? styles.chipSelected : styles.chipIdle,
               ]}>
               <Text style={[styles.chipText, selected ? styles.chipTextSelected : styles.chipTextIdle]}>
@@ -384,7 +391,8 @@ const styles = StyleSheet.create({
   duration: { gap: 10 },
   durationLabel: { fontSize: 15, ...fp('600'), color: D.navy },
   durationHint: { fontSize: 12, ...fp('400'), color: D.muted },
-  chipRow: { gap: 10, paddingVertical: 2 },
+  // No contentContainerStyle gap — Android horizontal overshoot (same as vertical list).
+  chipRow: { paddingVertical: 2 },
   chip: {
     height: D.chipHeight,
     minWidth: D.chipMinWidth,
@@ -394,6 +402,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1.5,
   },
+  chipSpacing: { marginRight: 10 },
   chipSelected: { backgroundColor: D.coral, borderColor: D.coral },
   chipIdle: { backgroundColor: 'transparent', borderColor: D.border },
   chipText: { fontSize: 14, ...fp('600') },

@@ -11340,7 +11340,7 @@
       "summary": "simplyur 앱 — Devices/약관/usage/결제취소가 웹사이트·바텀시트 웹 UX가 아닌 네이티브 화면",
       "checks": [
         {
-          "file": "apps/simplyur-mobile/app/devices.tsx",
+          "file": "apps/simplyur-mobile/app/(tabs)/devices.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
             "devices.title"
@@ -11352,7 +11352,7 @@
           ]
         },
         {
-          "file": "apps/simplyur-mobile/app/legal.tsx",
+          "file": "apps/simplyur-mobile/app/(tabs)/legal.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-native-no-website-chrome]",
             "legal.termsBody"
@@ -13686,7 +13686,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "상품 Product JSON-LD — offers 없으면 Product 미출력 (구글 offers|review|aggregateRating 필수)",
+      "summary": "상품 Product JSON-LD — offers 없으면 Product·TouristTrip 미출력 (구글 offers|review|aggregateRating)",
       "checks": [
         {
           "file": "lib/seo/product-json-ld.ts",
@@ -13702,13 +13702,74 @@
           "file": "app/components/seo/ProductJsonLd.tsx",
           "mustInclude": [
             "buildProductJsonLdData",
-            "productData ?"
+            "productData ?",
+            "productData && itinerary",
+            "REGRESSION-FREEZE[product-jsonld-requires-offers]"
           ]
         }
       ],
       "vitestSuites": [
         "lib/seo/product-json-ld.test.ts"
       ]
+    },
+    {
+      "id": "simplyur-mobile-tabs-browse-keep",
+      "tier": ["prebuild", "ci"],
+      "summary": "Simplyur 앱 — 상품/기기/설정/약관은 (tabs) 안이라 하단 탭 유지, checkout는 밖",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/_layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-tabs-browse-keep]",
+            "href: null",
+            "product/[optionApiId]",
+            "devices",
+            "settings",
+            "legal"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/_layout.tsx",
+          "mustInclude": ["name=\"checkout\""],
+          "mustNotInclude": [
+            "name=\"product/[optionApiId]\"",
+            "name=\"devices\"",
+            "name=\"settings\"",
+            "name=\"legal\""
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/devices.tsx",
+          "mustInclude": ["export default"]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-my-esim-badge-tiers",
+      "tier": ["prebuild", "ci"],
+      "summary": "My eSIM 뱃지 — Upcoming 제거, Ready/Preparing/Active/Expired",
+      "checks": [
+        {
+          "file": "lib/simplyur/my-esim-view-model.ts",
+          "mustInclude": ["can_show_qr", "return \"ready\"", "return \"preparing\"", "refundPending"],
+          "mustNotInclude": ["return \"upcoming\""]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/my-esim-view-model.ts",
+          "mustInclude": ["can_show_qr", "return 'ready'", "return 'preparing'"],
+          "mustNotInclude": ["return 'upcoming'"]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/constants/my-esim-design.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-esim-badge-tiers]",
+            "ready:",
+            "preparing:"
+          ],
+          "mustNotInclude": ["upcoming:"]
+        }
+      ],
+      "vitestSuites": ["lib/simplyur/my-esim-view-model.test.ts"]
     },
     {
       "id": "simplyur-eximbay-payer-auth-pa",
@@ -13890,7 +13951,7 @@
       "summary": "Simplyur 앱 P1 — 설정·언어 저장·탈퇴 API·환불정책·Guide live 카피·로드에러 분리",
       "checks": [
         {
-          "file": "apps/simplyur-mobile/app/settings.tsx",
+          "file": "apps/simplyur-mobile/app/(tabs)/settings.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]",
             "requestSimplyurAccountWithdraw",

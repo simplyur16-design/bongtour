@@ -601,8 +601,10 @@
     "listHintPreparing": "Purchased · tap for details",
     "badge": {
       "active": "Active",
-      "expired": "Expired",
-      "upcoming": "Not activated"
+      "ready": "Ready to install",
+      "preparing": "Preparing",
+      "refundPending": "Refund pending",
+      "expired": "Expired"
     },
     "status": {
       "ordered": "Ordered",

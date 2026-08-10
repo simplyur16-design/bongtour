@@ -110,7 +110,9 @@ export function SimplyurMyEsimPanel({
   }
 
   if (view === "detail" && selectedOrder) {
-    const tier = myEsimBadgeTier(selectedOrder.status_key);
+    const tier = myEsimBadgeTier(selectedOrder.status_key, {
+      can_show_qr: selectedOrder.can_show_qr,
+    });
     const badge = MY_ESIM_BADGE[tier];
     const summary = buildUsageSummaryView(selectedOrder, detailUsage, tr);
     const modalUsage = usageModalOpen ? detailUsage : null;
@@ -410,7 +412,7 @@ export function SimplyurMyEsimPanel({
       </h1>
       <div className="flex flex-col gap-3">
         {orders.map((o) => {
-          const tier = myEsimBadgeTier(o.status_key);
+          const tier = myEsimBadgeTier(o.status_key, { can_show_qr: o.can_show_qr });
           const badge = MY_ESIM_BADGE[tier];
           return (
             <button

@@ -275,8 +275,10 @@
     "unlimitedResetsDaily": "无限套餐 · 每日重置",
     "badge": {
       "active": "使用中",
-      "expired": "已过期",
-      "upcoming": "待开始"
+      "ready": "可安装",
+      "preparing": "准备中",
+      "refundPending": "退款处理中",
+      "expired": "已过期"
     },
     "empty": "暂无 eSIM 订单。",
     "orderDate": "下单日期",

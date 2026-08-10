@@ -275,8 +275,10 @@
     "unlimitedResetsDaily": "無限方案 · 每日重置",
     "badge": {
       "active": "使用中",
-      "expired": "已過期",
-      "upcoming": "待開始"
+      "ready": "可安裝",
+      "preparing": "準備中",
+      "refundPending": "退款處理中",
+      "expired": "已過期"
     },
     "empty": "尚無 eSIM 訂單。",
     "orderDate": "下單日期",

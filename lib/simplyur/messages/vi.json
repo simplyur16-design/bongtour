@@ -275,8 +275,10 @@
     "unlimitedResetsDaily": "Gói không giới hạn · reset hàng ngày",
     "badge": {
       "active": "Đang dùng",
-      "expired": "Hết hạn",
-      "upcoming": "Sắp tới"
+      "ready": "Sẵn sàng cài",
+      "preparing": "Đang chuẩn bị",
+      "refundPending": "Đang hoàn tiền",
+      "expired": "Hết hạn"
     },
     "empty": "Chưa có đơn eSIM.",
     "orderDate": "Ngày đặt",
