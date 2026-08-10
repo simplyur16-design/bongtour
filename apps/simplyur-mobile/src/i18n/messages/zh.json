@@ -116,7 +116,9 @@
     "noPlansForDays": "暂无 {N} 天套餐，请尝试其他天数。",
     "errorTitle": "无法加载套餐。",
     "errorBody": "请检查网络后重试。",
-    "retry": "重试"
+    "retry": "重试",
+    "unlimitedHint": "标准无限 · 可能含合理使用条款",
+    "fullUnlimitedHint": "政策型完全无限 · 无每日高速额度（仍可能适用合理使用）"
   },
   "product": {
     "buyNow": "立即购买",

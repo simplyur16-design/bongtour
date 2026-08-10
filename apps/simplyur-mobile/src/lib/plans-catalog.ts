@@ -36,6 +36,36 @@ export function filterProductsByDays(products: PlanProduct[], days: number): Pla
   return products.filter((p) => productDays(p) === days);
 }
 
+/** Prefer API data_hint; fall back from data_label until server ships hints. */
+export function resolvePlanDataHint(
+  plan: Pick<PlanProduct, 'data_label' | 'data_hint'>,
+  t: (key: string) => string,
+): string | null {
+  const fromApi = (plan.data_hint ?? '').trim();
+  if (fromApi) return fromApi;
+  const label = (plan.data_label ?? '').trim().toLowerCase();
+  if (!label) return null;
+  if (
+    label.includes('full unlimited') ||
+    label.includes('完全無制限') ||
+    label.includes('完全无限') ||
+    label.includes('完全無限') ||
+    label.includes('toàn phần')
+  ) {
+    return t('recommend.fullUnlimitedHint');
+  }
+  if (
+    label === 'unlimited' ||
+    label === '無制限' ||
+    label === '无限' ||
+    label === '無限' ||
+    label.includes('không giới hạn')
+  ) {
+    return t('recommend.unlimitedHint');
+  }
+  return null;
+}
+
 export function minFormattedPrice(products: PlanProduct[]): string | null {
   let best: PlanProduct | null = null;
   for (const p of products) {

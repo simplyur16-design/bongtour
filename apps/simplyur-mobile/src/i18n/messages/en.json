@@ -116,7 +116,9 @@
     "noPlansForDays": "No plans for {N} days right now. Try another trip length.",
     "errorTitle": "Couldn't load plans.",
     "errorBody": "Check your connection and try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "unlimitedHint": "Standard unlimited · terms may include fair use",
+    "fullUnlimitedHint": "Policy-type full unlimited · no daily high-speed quota (fair use may still apply)"
   },
   "product": {
     "buyNow": "Buy now",

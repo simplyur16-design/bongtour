@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildPasswordResetLink,
   buildPasswordResetPath,
   emailFromPasswordResetIdentifier,
   generatePasswordResetToken,
@@ -69,5 +70,28 @@ describe('auth password reset helpers', () => {
     expect(validateSimplyurSignupPassword('short')).toBe(false)
     expect(validateSimplyurSignupPassword('longenough')).toBe(true)
     expect(PASSWORD_RESET_TTL_MS).toBe(60 * 60 * 1000)
+  })
+
+  it('tags mobile HTTPS reset with returnTo=app for app bounce-back', () => {
+    const token = 'a'.repeat(64)
+    const email = 'u@example.com'
+    const web = buildPasswordResetLink({
+      surface: 'simplyur',
+      locale: 'en',
+      client: 'web',
+      token,
+      email,
+      returnToApp: true,
+    })
+    expect(web).toContain('/simplyur/en/reset-password?')
+    expect(web).toContain('returnTo=app')
+    expect(
+      buildPasswordResetLink({
+        surface: 'simplyur',
+        client: 'mobile',
+        token,
+        email,
+      }),
+    ).toBe(`simplyur://sign-in/reset?token=${token}&email=${encodeURIComponent(email)}`)
   })
 })

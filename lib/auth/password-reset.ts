@@ -86,12 +86,20 @@ export function buildPasswordResetLink(args: {
   client?: PasswordResetClient
   token: string
   email: string
+  /** Tag HTTPS reset so the web form can bounce back into the app after success. */
+  returnToApp?: boolean
 }): string {
   const path = buildPasswordResetPath(args)
   if (args.client === 'mobile' && args.surface === 'simplyur') {
     return `simplyur://${path.replace(/^\//, '')}`
   }
-  return absoluteUrl(path)
+  const url = absoluteUrl(path)
+  if (args.returnToApp) {
+    const u = new URL(url)
+    u.searchParams.set('returnTo', 'app')
+    return u.toString()
+  }
+  return url
 }
 
 export type RequestPasswordResetResult = { ok: true }
@@ -131,23 +139,24 @@ export async function requestPasswordReset(args: {
     data: { identifier, token: tokenHash, expires },
   })
 
-  // Email always uses HTTPS web URL (opens everywhere). Mobile deep-link path stays available via buildPasswordResetLink(client:'mobile').
+  // Email primary CTA is HTTPS (opens in mail clients). Mobile requests tag returnTo=app so web success can open the app.
+  const fromMobile = args.client === 'mobile' && args.surface === 'simplyur'
   const resetUrl = buildPasswordResetLink({
     surface: args.surface,
     locale: args.locale,
     client: 'web',
     token: rawToken,
     email,
+    returnToApp: fromMobile,
   })
-  const deepLink =
-    args.client === 'mobile' && args.surface === 'simplyur'
-      ? buildPasswordResetLink({
-          surface: 'simplyur',
-          client: 'mobile',
-          token: rawToken,
-          email,
-        })
-      : undefined
+  const deepLink = fromMobile
+    ? buildPasswordResetLink({
+        surface: 'simplyur',
+        client: 'mobile',
+        token: rawToken,
+        email,
+      })
+    : undefined
 
   const brand = args.surface === 'simplyur' ? 'simplyur' : 'bongtour'
   const sent = await sendPasswordResetMail({ to: email, resetUrl, deepLink, brand })

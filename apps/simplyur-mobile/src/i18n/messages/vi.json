@@ -116,7 +116,9 @@
     "noPlansForDays": "Chưa có gói {N} ngày. Thử độ dài khác.",
     "errorTitle": "Không tải được gói.",
     "errorBody": "Kiểm tra kết nối và thử lại.",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "unlimitedHint": "Không giới hạn tiêu chuẩn · có thể có điều khoản sử dụng công bằng",
+    "fullUnlimitedHint": "Không giới hạn toàn phần (chính sách) · không hạn mức tốc độ cao theo ngày"
   },
   "product": {
     "buyNow": "Mua ngay",

@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { SimplyurResetPasswordForm } from '@/components/simplyur/auth/SimplyurResetPasswordForm'
 import { SimplyurSignalPinIcon } from '@/components/simplyur/auth/SimplyurSignalPinIcon'
+import { simplyurMobileDeepLink } from '@/lib/auth/simplyur-oauth-callback'
 import { SIMPLYUR_LOGIN_1B } from '@/lib/simplyur/login-design'
 import { simplyurPath, isSimplyurLocale, type SimplyurLocale } from '@/lib/simplyur/constants'
 import { getSimplyurMessages, t } from '@/lib/simplyur/i18n'
 
 type Props = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ token?: string; email?: string }>
+  searchParams: Promise<{ token?: string; email?: string; returnTo?: string }>
 }
 
 /** REGRESSION-FREEZE[auth-password-reset]: simplyur reset-password page — manifest */
@@ -15,9 +16,11 @@ export default async function SimplyurResetPasswordPage({ params, searchParams }
   const { locale: raw } = await params
   if (!isSimplyurLocale(raw)) return null
   const locale = raw as SimplyurLocale
-  const { token = '', email = '' } = await searchParams
+  const { token = '', email = '', returnTo = '' } = await searchParams
+  const returnToApp = returnTo === 'app'
   const messages = await getSimplyurMessages(locale)
   const signInHref = simplyurPath(locale, '/sign-in')
+  const openAppHref = simplyurMobileDeepLink('sign-in/email')
 
   return (
     <main className="mx-auto w-full max-w-lg">
@@ -39,12 +42,16 @@ export default async function SimplyurResetPasswordPage({ params, searchParams }
             email={email}
             token={token}
             signInHref={signInHref}
+            returnToApp={returnToApp}
+            openAppHref={openAppHref}
             labels={{
               newPassword: t(messages, 'auth.newPasswordLabel'),
               confirmPassword: t(messages, 'auth.confirmPasswordLabel'),
               submit: t(messages, 'auth.resetPasswordSubmit'),
               success: t(messages, 'auth.resetPasswordSuccess'),
               backToSignIn: t(messages, 'auth.forgotPasswordBack'),
+              openApp: t(messages, 'auth.oauthCompleteOpenApp'),
+              continueInBrowser: t(messages, 'auth.resetPasswordContinueBrowser'),
               errorWeak: t(messages, 'auth.signUpErrorWeakPassword'),
               errorMismatch: t(messages, 'auth.signUpErrorPasswordMismatch'),
               errorInvalid: t(messages, 'auth.resetPasswordInvalid'),

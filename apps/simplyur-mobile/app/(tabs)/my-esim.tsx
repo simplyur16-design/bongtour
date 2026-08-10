@@ -1,5 +1,5 @@
 import { Link, router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -39,6 +39,7 @@ type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
 /**
  * design_handoff_my_esim — My eSIM 4th tab
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: soft reload avoids list flicker — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
@@ -59,12 +60,19 @@ export default function MyEsimScreen() {
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [refundBusy, setRefundBusy] = useState(false);
+  const ordersRef = useRef<MyEsimOrder[]>([]);
+  const loadSeqRef = useRef(0);
+  ordersRef.current = orders;
 
+  // Soft reload: keep existing list painted when focus/session/onSignedIn overlap.
   const loadOrders = useCallback(async () => {
-    setLoading(true);
+    const seq = ++loadSeqRef.current;
+    const soft = ordersRef.current.length > 0;
+    if (!soft) setLoading(true);
     setLoadError(false);
     setUnauthorized(false);
     const res = await fetchMyEsimOrders(locale);
+    if (seq !== loadSeqRef.current) return;
     if (!res.ok) {
       if (res.unauthorized) setUnauthorized(true);
       else setLoadError(true);
@@ -179,7 +187,7 @@ export default function MyEsimScreen() {
         <Text style={styles.signinIcon}>🔒</Text>
         <Text style={styles.signinTitle}>{t('myEsim.signInTitle')}</Text>
         <Text style={styles.signinBody}>{t('myEsim.signInBody')}</Text>
-        <SocialAuthButtons inlineEmail onSignedIn={() => loadOrders()} />
+        <SocialAuthButtons inlineEmail navigateOnSuccess={false} />
       </ScrollView>
     );
   }

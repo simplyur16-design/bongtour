@@ -1,3 +1,7 @@
+/**
+ * SimplyUR plan card labels (days / data / unlimited hints).
+ * REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: Unlimited vs Full unlimited data_hint — manifest
+ */
 import {
   extractDaysFromDaysRaw,
   isTrueUnlimited,
@@ -13,6 +17,9 @@ type DisplayStrings = {
   days: (n: number) => string;
   allowance: Record<AllowanceBucketId, string>;
   fullUnlimited: string;
+  /** Short card subline — Unlimited vs Full unlimited. */
+  unlimitedHint: string;
+  fullUnlimitedHint: string;
   fixedTotal: (label: string) => string;
 };
 
@@ -45,6 +52,8 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5 GB/day",
     },
     fullUnlimited: "Full unlimited",
+    unlimitedHint: "Standard unlimited · terms may include fair use",
+    fullUnlimitedHint: "Policy-type full unlimited · no daily high-speed quota (fair use may still apply)",
     fixedTotal: (label) => `${label} total`,
   },
   ja: {
@@ -59,6 +68,8 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5GB/日",
     },
     fullUnlimited: "完全無制限",
+    unlimitedHint: "標準の無制限 · 公正利用の条件がある場合があります",
+    fullUnlimitedHint: "政策型の完全無制限 · 1日の高速上限なし（公正利用は適用される場合あり）",
     fixedTotal: (label) => `合計 ${label}`,
   },
   zh: {
@@ -73,6 +84,8 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5GB/天",
     },
     fullUnlimited: "完全无限",
+    unlimitedHint: "标准无限 · 可能含合理使用条款",
+    fullUnlimitedHint: "政策型完全无限 · 无每日高速额度（仍可能适用合理使用）",
     fixedTotal: (label) => `共 ${label}`,
   },
   "zh-TW": {
@@ -87,6 +100,8 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5GB/天",
     },
     fullUnlimited: "完全無限",
+    unlimitedHint: "標準無限 · 可能含合理使用條款",
+    fullUnlimitedHint: "政策型完全無限 · 無每日高速額度（仍可能適用合理使用）",
     fixedTotal: (label) => `共 ${label}`,
   },
   vi: {
@@ -101,6 +116,9 @@ const DISPLAY: Record<SimplyurLocale, DisplayStrings> = {
       "5gb": "5 GB/ngày",
     },
     fullUnlimited: "Không giới hạn toàn phần",
+    unlimitedHint: "Không giới hạn tiêu chuẩn · có thể có điều khoản sử dụng công bằng",
+    fullUnlimitedHint:
+      "Không giới hạn toàn phần (chính sách) · không hạn mức tốc độ cao theo ngày (vẫn có thể áp dụng sử dụng công bằng)",
     fixedTotal: (label) => `${label} tổng`,
   },
 };
@@ -145,12 +163,13 @@ export function formatSimplyurPlanDisplay(product: ProductOption, locale: Simply
   const bucket = detectAllowanceBucket(product);
 
   let dataLabel: string;
+  let dataHint: string | null = null;
   if (category === "unlimited") {
-    dataLabel =
+    const isFull =
       product.allowance_label.includes("완전") ||
-      product.allowance_label.toLowerCase().includes("full")
-        ? d.fullUnlimited
-        : d.allowance.unlimited;
+      product.allowance_label.toLowerCase().includes("full");
+    dataLabel = isFull ? d.fullUnlimited : d.allowance.unlimited;
+    dataHint = isFull ? d.fullUnlimitedHint : d.unlimitedHint;
   } else if (category === "daily" && bucket) {
     dataLabel = d.allowance[bucket];
   } else if (category === "fixed") {
@@ -164,6 +183,7 @@ export function formatSimplyurPlanDisplay(product: ProductOption, locale: Simply
   return {
     daysLabel,
     dataLabel,
+    dataHint,
     summary: `${daysLabel} · ${dataLabel}`,
   };
 }

@@ -241,6 +241,7 @@
     "resetPasswordSubtitle": "请设置新密码（至少 8 个字符）。",
     "resetPasswordSubmit": "更新密码",
     "resetPasswordSuccess": "密码已更新。请使用新密码登录。",
+    "resetPasswordContinueBrowser": "在浏览器中继续",
     "resetPasswordInvalid": "重置链接无效或已过期，请重新申请。",
     "resetPasswordErrorGeneric": "无法更新密码，请重试。",
     "newPasswordLabel": "新密码"

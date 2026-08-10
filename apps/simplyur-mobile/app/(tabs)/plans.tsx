@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,12 +23,15 @@ import {
   filterProductsByDays,
   formatPlanMessage,
   minFormattedPrice,
+  resolvePlanDataHint,
   snapTripDaysToAvailable,
 } from '@/src/lib/plans-catalog';
 
 /**
  * design_handoff_plans — duration-first Find my eSIM tab
  * REGRESSION-FREEZE[simplyur-mobile-plans-auto-select]: default day like web — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]: no contentContainer gap (Android overshoot) — manifest
+ * REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: data_hint on unlimited cards — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
  */
 export default function PlansScreen() {
@@ -106,10 +110,19 @@ export default function PlansScreen() {
     <ScrollView
       ref={scrollRef}
       style={[styles.root, { backgroundColor: D.bg }]}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
+      ]}
+      // Android: contentContainerStyle gap mis-measures scroll extent (overshoot past finger).
+      decelerationRate="normal"
+      nestedScrollEnabled
+      overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={D.coral} />}>
-      <OfflineBanner onOnline={() => void load()} />
-      <View style={styles.header}>
+      <View style={styles.stackItem}>
+        <OfflineBanner onOnline={() => void load()} />
+      </View>
+      <View style={[styles.header, styles.stackItem]}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>
         </View>
@@ -117,10 +130,12 @@ export default function PlansScreen() {
         <Text style={styles.subtitle}>{t('recommend.subtitle')}</Text>
       </View>
 
-      <InfoBanner t={t} />
+      <View style={styles.stackItem}>
+        <InfoBanner t={t} />
+      </View>
 
       {loading && !pack ? (
-        <View style={styles.skeletonBlock}>
+        <View style={[styles.skeletonBlock, styles.stackItem]}>
           <Text style={styles.loadingText}>{t('recommend.loading')}</Text>
           <View style={styles.skeletonChips}>
             {[1, 2, 3, 4].map((i) => (
@@ -137,11 +152,16 @@ export default function PlansScreen() {
         </View>
       ) : null}
 
-      {showCatalogEmpty ? <Placeholder>{t('recommend.noPlans')}</Placeholder> : null}
+      {showCatalogEmpty ? (
+        <View style={styles.stackItem}>
+          <Placeholder>{t('recommend.noPlans')}</Placeholder>
+        </View>
+      ) : null}
 
       {pack && dayOptions.length > 0 ? (
         <>
           <View
+            style={styles.stackItem}
             onLayout={(e) => {
               chipsY.current = e.nativeEvent.layout.y;
             }}>
@@ -154,9 +174,11 @@ export default function PlansScreen() {
           </View>
 
           {selectedDays == null ? (
-            <Placeholder>{t('recommend.plansPlaceholder')}</Placeholder>
+            <View style={styles.stackItem}>
+              <Placeholder>{t('recommend.plansPlaceholder')}</Placeholder>
+            </View>
           ) : (
-            <View style={styles.plansArea}>
+            <View style={[styles.plansArea, styles.stackItem]}>
               <View style={styles.selectedRow}>
                 <Text style={styles.selectedText}>
                   {t('recommend.showingPlansPrefix')}
@@ -225,7 +247,12 @@ function DurationPicker({
     <View style={styles.duration}>
       <Text style={styles.durationLabel}>{t('recommend.durationLabel')}</Text>
       <Text style={styles.durationHint}>{t('recommend.durationHint')}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+      <ScrollView
+        horizontal
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipRow}
+        keyboardShouldPersistTaps="handled">
         {options.map((d) => {
           const selected = value === d;
           return (
@@ -292,10 +319,14 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
   const perDayLabel = perDay && (plan.days ?? 0) >= 2
     ? t('recommend.perDay').replace('{amount}', perDay)
     : null;
+  const hint = resolvePlanDataHint(plan, t);
   return (
     <View style={styles.card}>
       <View style={styles.planSummaryRow}>
-        <Text style={styles.dataLabel}>{plan.data_label}</Text>
+        <View style={styles.dataBlock}>
+          <Text style={styles.dataLabel}>{plan.data_label}</Text>
+          {hint ? <Text style={styles.dataHint}>{hint}</Text> : null}
+        </View>
         <View style={styles.priceBlock}>
           <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit>
             {plan.simplyur_display?.formatted ?? '—'}
@@ -314,7 +345,9 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { paddingHorizontal: D.paddingH, gap: D.sectionGap },
+  // Prefer stackItem margins over contentContainerStyle gap (Android scroll overshoot).
+  content: { paddingHorizontal: D.paddingH },
+  stackItem: { marginBottom: D.sectionGap },
   header: { gap: 10 },
   badge: {
     alignSelf: 'flex-start',
@@ -395,7 +428,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   planSummaryRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
-  dataLabel: { flex: 1, fontSize: 20, ...fp('800'), color: D.navy },
+  dataBlock: { flex: 1, gap: 6, minWidth: 0 },
+  dataLabel: { fontSize: 20, ...fp('800'), color: D.navy },
+  dataHint: { fontSize: 12, lineHeight: 17, ...fp('400'), color: D.muted },
   priceBlock: { flexShrink: 0, alignItems: 'flex-end' },
   price: { fontSize: 26, ...fp('800'), color: D.coral, textAlign: 'right' },
   perDay: { marginTop: 5, fontSize: 13, ...fp('600'), color: D.faint, textAlign: 'right' },

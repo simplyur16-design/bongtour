@@ -53,6 +53,14 @@ Verified 2026-08-10: Plans tab shows **Showing plans for 5 days** + roaming card
 - EAS OTA / Expo Access Token for routine Android QA
 - Asking for EAS secrets unless store/push is explicitly requested
 
-## iOS follow-up (GitHub)
+## iOS follow-up (GitHub) — same Expo app
 
-`main` already carries the Expo iOS project + Apple Sign-In notes. Resume on a Mac / operator iPhone after pulling this repo — do not re-run EAS as the default Windows QA path.
+Android and iOS share one Expo codebase (`apps/simplyur-mobile`). Plans scroll, unlimited hints, My eSIM soft-reload, and password-reset `returnTo=app` apply to **both** once this `main` is pulled.
+
+| Step | Action |
+|------|--------|
+| 1 | `git pull` on Mac (or sync this GitHub `main`) |
+| 2 | `cd apps/simplyur-mobile` → `npx expo run:ios` (device or simulator) |
+| 3 | Same API base as Android QA (`EXPO_PUBLIC_API_BASE_URL`); password reset deep link `simplyur://sign-in/email` |
+
+Do not re-run EAS as the default day-to-day QA path. Apple Sign-In / store signing stay on the prior iPhone/Mac flow.

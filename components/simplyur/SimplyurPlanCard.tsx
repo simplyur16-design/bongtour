@@ -36,6 +36,9 @@ export function SimplyurPlanCard({ plan, selectLabel, priceLabel, networkFamily 
         <div className="mt-2 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-base font-bold su-text-ink">{plan.data_label}</p>
+            {plan.data_hint ? (
+              <p className="mt-0.5 text-xs leading-snug text-[color:var(--su-ink-muted)]">{plan.data_hint}</p>
+            ) : null}
             <p className="mt-0.5 text-sm text-[color:var(--su-ink-muted)]">{plan.days_label}</p>
           </div>
           <div className="shrink-0 text-right">

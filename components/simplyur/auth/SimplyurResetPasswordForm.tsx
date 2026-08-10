@@ -1,19 +1,24 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SIMPLYUR_LOGIN_1B } from '@/lib/simplyur/login-design'
 
 type Props = {
   email: string
   token: string
   signInHref: string
+  /** Mobile forgot-password flow — bounce into the app after success. */
+  returnToApp?: boolean
+  openAppHref?: string
   labels: {
     newPassword: string
     confirmPassword: string
     submit: string
     success: string
     backToSignIn: string
+    openApp: string
+    continueInBrowser: string
     errorWeak: string
     errorMismatch: string
     errorInvalid: string
@@ -21,12 +26,25 @@ type Props = {
   }
 }
 
-export function SimplyurResetPasswordForm({ email, token, signInHref, labels }: Props) {
+/** REGRESSION-FREEZE[auth-password-reset]: simplyur reset form + returnTo=app — manifest */
+export function SimplyurResetPasswordForm({
+  email,
+  token,
+  signInHref,
+  returnToApp = false,
+  openAppHref = 'simplyur://sign-in/email',
+  labels,
+}: Props) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    if (!done || !returnToApp || !openAppHref) return
+    window.location.replace(openAppHref)
+  }, [done, returnToApp, openAppHref])
 
   const inputClass =
     'w-full rounded-2xl border-[1.5px] bg-white px-3.5 py-3.5 text-[15px] outline-none focus:ring-2'
@@ -88,6 +106,29 @@ export function SimplyurResetPasswordForm({ email, token, signInHref, labels }: 
   }
 
   if (done) {
+    if (returnToApp) {
+      return (
+        <div className="space-y-4 text-center">
+          <p className="text-sm leading-relaxed" style={{ color: SIMPLYUR_LOGIN_1B.muted }}>
+            {labels.success}
+          </p>
+          <a
+            href={openAppHref}
+            className="inline-flex h-14 w-full items-center justify-center rounded-2xl text-base font-semibold text-white no-underline shadow-[0_12px_26px_-12px_rgba(255,107,74,0.55)]"
+            style={{ backgroundColor: SIMPLYUR_LOGIN_1B.coral }}
+          >
+            {labels.openApp}
+          </a>
+          <Link
+            href={signInHref}
+            className="block text-sm font-medium underline"
+            style={{ color: SIMPLYUR_LOGIN_1B.muted }}
+          >
+            {labels.continueInBrowser}
+          </Link>
+        </div>
+      )
+    }
     return (
       <div className="space-y-4 text-center">
         <p className="text-sm leading-relaxed" style={{ color: SIMPLYUR_LOGIN_1B.muted }}>

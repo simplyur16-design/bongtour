@@ -29,9 +29,16 @@ export function SimplyurPlansPlanCard({ plan }: Props) {
       style={{ borderColor: D.border, borderRadius: D.cardRadius }}
     >
       <div className="flex items-start justify-between gap-4">
-        <p className="min-w-0 flex-1 text-xl font-extrabold" style={{ color: D.navy }}>
-          {plan.data_label}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xl font-extrabold" style={{ color: D.navy }}>
+            {plan.data_label}
+          </p>
+          {plan.data_hint ? (
+            <p className="mt-1.5 text-xs leading-snug" style={{ color: D.muted }}>
+              {plan.data_hint}
+            </p>
+          ) : null}
+        </div>
         <div className="shrink-0 text-right">
           <p className="text-[26px] font-extrabold leading-none" style={{ color: D.coral }}>
             {plan.simplyur_display?.formatted ?? "—"}

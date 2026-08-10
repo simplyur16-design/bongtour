@@ -11533,6 +11533,21 @@
         {
           "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
           "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
+            "const soft = ordersRef.current.length > 0",
+            "if (!soft) setLoading(true)"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
+            "navigateOnSuccess"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]",
             "SocialAuthButtons"
           ],
@@ -13584,7 +13599,25 @@
           "file": "app/simplyur/[locale]/reset-password/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[auth-password-reset]",
-            "SimplyurResetPasswordForm"
+            "SimplyurResetPasswordForm",
+            "returnToApp",
+            "simplyurMobileDeepLink"
+          ]
+        },
+        {
+          "file": "components/simplyur/auth/SimplyurResetPasswordForm.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "returnToApp",
+            "window.location.replace(openAppHref)"
+          ]
+        },
+        {
+          "file": "lib/auth/password-reset.ts",
+          "mustInclude": [
+            "returnToApp",
+            "returnTo",
+            "app"
           ]
         },
         {
@@ -13606,6 +13639,33 @@
       ],
       "vitestSuites": [
         "lib/auth/password-reset.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-mobile-my-esim-soft-reload",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "My eSIM 로그인 후 soft reload — 목록 깜빡임(full loading 교체) 금지",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
+            "const soft = ordersRef.current.length > 0",
+            "if (!soft) setLoading(true)",
+            "navigateOnSuccess={false}"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]",
+            "navigateOnSuccess",
+            "if (navigateOnSuccess)"
+          ]
+        }
       ]
     },
     {
@@ -13901,6 +13961,65 @@
       ],
       "vitestSuites": [
         "apps/simplyur-mobile/src/lib/plans-catalog.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-mobile-plans-scroll-stable",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 plans ScrollView — contentContainer gap 제거로 Android 스크롤 오버슛 방지",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/plans.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]",
+            "stackItem",
+            "overScrollMode",
+            "nestedScrollEnabled"
+          ],
+          "mustNotInclude": [
+            "content: { paddingHorizontal: D.paddingH, gap: D.sectionGap }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-plan-unlimited-hint",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Unlimited vs Full unlimited — data_hint로 카드에 차이 표시",
+      "checks": [
+        {
+          "file": "lib/simplyur/plan-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-plan-unlimited-hint]",
+            "fullUnlimitedHint",
+            "unlimitedHint",
+            "dataHint"
+          ]
+        },
+        {
+          "file": "lib/simplyur/public-product.ts",
+          "mustInclude": [
+            "data_hint",
+            "labels.dataHint"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/plans.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-plan-unlimited-hint]",
+            "data_hint",
+            "dataHint"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/plan-display.test.ts"
       ]
     },
     {

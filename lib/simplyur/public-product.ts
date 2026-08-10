@@ -13,6 +13,8 @@ export type SimplyurPublicProduct = {
   days: number | null;
   days_label: string;
   data_label: string;
+  /** Short explanation when Unlimited and Full unlimited both appear. */
+  data_hint: string | null;
   plan_summary: string;
   simplyur_display: {
     currency: string;
@@ -43,6 +45,7 @@ export function toSimplyurPublicProduct(
     days: extractDaysFromDaysRaw(product.days_raw),
     days_label: labels.daysLabel,
     data_label: labels.dataLabel,
+    data_hint: labels.dataHint,
     plan_summary: labels.summary,
     simplyur_display: intl.simplyur_display,
     simplyur_display_per_day: intl.simplyur_display_per_day,

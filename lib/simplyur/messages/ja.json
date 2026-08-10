@@ -241,6 +241,7 @@
     "resetPasswordSubtitle": "新しいパスワードを入力してください（8文字以上）。",
     "resetPasswordSubmit": "パスワードを更新",
     "resetPasswordSuccess": "パスワードを更新しました。新しいパスワードでサインインしてください。",
+    "resetPasswordContinueBrowser": "ブラウザで続ける",
     "resetPasswordInvalid": "再設定リンクが無効または期限切れです。もう一度リクエストしてください。",
     "resetPasswordErrorGeneric": "パスワードを更新できませんでした。もう一度お試しください。",
     "newPasswordLabel": "新しいパスワード"

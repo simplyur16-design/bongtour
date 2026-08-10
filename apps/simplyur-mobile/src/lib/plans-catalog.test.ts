@@ -5,6 +5,7 @@ import {
   SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
   collectAvailableDays,
   filterProductsByDays,
+  resolvePlanDataHint,
   snapTripDaysToAvailable,
 } from './plans-catalog';
 
@@ -40,5 +41,19 @@ describe('plans-catalog auto-select', () => {
     };
     expect(collectAvailableDays(pack)).toEqual([5, 7]);
     expect(filterProductsByDays(pack.roaming.products, 5)).toHaveLength(1);
+  });
+
+  it('resolves unlimited hints from data_label when API hint missing', () => {
+    const t = (k: string) => k;
+    expect(
+      resolvePlanDataHint({ data_label: 'Full unlimited', data_hint: null }, t),
+    ).toBe('recommend.fullUnlimitedHint');
+    expect(resolvePlanDataHint({ data_label: 'Unlimited', data_hint: null }, t)).toBe(
+      'recommend.unlimitedHint',
+    );
+    expect(resolvePlanDataHint({ data_label: '500 MB/day', data_hint: null }, t)).toBeNull();
+    expect(
+      resolvePlanDataHint({ data_label: 'Unlimited', data_hint: 'from api' }, t),
+    ).toBe('from api');
   });
 });

@@ -521,6 +521,7 @@
     "resetPasswordSubtitle": "Choose a new password (at least 8 characters).",
     "resetPasswordSubmit": "Update password",
     "resetPasswordSuccess": "Your password was updated. Sign in with your new password.",
+    "resetPasswordContinueBrowser": "Continue in browser",
     "resetPasswordInvalid": "This reset link is invalid or expired. Please request a new one.",
     "resetPasswordErrorGeneric": "Could not update your password. Please try again.",
     "newPasswordLabel": "New password"

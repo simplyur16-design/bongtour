@@ -7,6 +7,7 @@ export type PlanProduct = {
   days?: number | null;
   days_label: string;
   data_label: string;
+  data_hint?: string | null;
   plan_summary: string;
   network_family?: string;
   plan_type?: string | null;

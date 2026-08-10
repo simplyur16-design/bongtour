@@ -28,6 +28,11 @@ type Props = {
   /** Where to go after success. Default My eSIM. */
   successHref?: string;
   /**
+   * When false (inline My eSIM), skip router.replace — session subscribe reloads orders.
+   * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: no remount after inline sign-in — manifest
+   */
+  navigateOnSuccess?: boolean;
+  /**
    * When true (My eSIM), email form expands inline — no stack push that feels like a web sheet.
    * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: inline email — manifest
    */
@@ -41,6 +46,7 @@ type Props = {
 export function SocialAuthButtons({
   onSignedIn,
   successHref = '/(tabs)/my-esim',
+  navigateOnSuccess = true,
   inlineEmail = false,
 }: Props) {
   const { t } = useI18n();
@@ -58,7 +64,9 @@ export function SocialAuthButtons({
 
   async function afterOk() {
     await onSignedIn?.();
-    router.replace(successHref as '/(tabs)/my-esim');
+    if (navigateOnSuccess) {
+      router.replace(successHref as '/(tabs)/my-esim');
+    }
   }
 
   async function onApple() {
