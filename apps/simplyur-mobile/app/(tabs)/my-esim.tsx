@@ -32,14 +32,14 @@ import {
   myEsimBadgeTier,
   weekdayLabel,
 } from '@/src/lib/my-esim-view-model';
-import { clearSimplyurSession, subscribeSimplyurSession } from '@/src/lib/session';
+import { clearSimplyurSession, getSimplyurAccessToken, subscribeSimplyurSession } from '@/src/lib/session';
 
 type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
 
 /**
  * design_handoff_my_esim — My eSIM 4th tab
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-session-reload]: focus reload after native sign-in — manifest
- * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: soft reload avoids list flicker — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: login leaves My eSIM before orders flash — manifest
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: Apple/Google/Email on tab — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
@@ -65,12 +65,14 @@ export default function MyEsimScreen() {
   const loadSeqRef = useRef(0);
   const inFlightRef = useRef(false);
   const pendingReloadRef = useRef(false);
+  const leavingForPlansRef = useRef(false);
   ordersRef.current = orders;
   unauthorizedRef.current = unauthorized;
 
-  // Soft reload + coalesce: never flash sign-in→loading→list on login.
-  // REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: keep sign-in until fetch settles — manifest
+  // Soft reload + coalesce. Never tear down a painted list into full-screen Loading.
+  // REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: stayOnSignIn + leave to plans on login — manifest
   const loadOrders = useCallback(async () => {
+    if (leavingForPlansRef.current) return;
     if (inFlightRef.current) {
       pendingReloadRef.current = true;
       return;
@@ -79,42 +81,62 @@ export default function MyEsimScreen() {
     try {
       do {
         pendingReloadRef.current = false;
+        if (leavingForPlansRef.current) break;
         const seq = ++loadSeqRef.current;
         const soft = ordersRef.current.length > 0;
-        // Stay on sign-in UI while the first post-login fetch runs (no blank Loading…).
         const stayOnSignIn = unauthorizedRef.current && !soft;
-        if (!soft && !stayOnSignIn) setLoading(true);
+        // Only show Loading on cold first paint — never after list/sign-in.
+        if (!soft && !stayOnSignIn && ordersRef.current.length === 0 && !unauthorizedRef.current) {
+          setLoading(true);
+        }
         setLoadError(false);
         const res = await fetchMyEsimOrders(locale);
-        if (seq !== loadSeqRef.current) continue;
+        if (seq !== loadSeqRef.current || leavingForPlansRef.current) continue;
         if (!res.ok) {
-          if (res.unauthorized) setUnauthorized(true);
-          else {
+          if (res.unauthorized) {
+            setUnauthorized(true);
+            setOrders([]);
+          } else {
             setUnauthorized(false);
             setLoadError(true);
+            if (!soft) setOrders([]);
           }
-          setOrders([]);
         } else {
           setUnauthorized(false);
           setOrders(res.orders);
         }
         setLoading(false);
-      } while (pendingReloadRef.current);
+      } while (pendingReloadRef.current && !leavingForPlansRef.current);
     } finally {
       inFlightRef.current = false;
     }
   }, [locale]);
 
-  // Tabs stay mounted under /sign-in — reload on focus + when SecureStore session is written.
   useFocusEffect(
     useCallback(() => {
+      leavingForPlansRef.current = false;
       void loadOrders();
     }, [loadOrders]),
   );
 
-  useEffect(() => subscribeSimplyurSession(() => {
-    void loadOrders();
-  }), [loadOrders]);
+  // Login from this tab → leave immediately (do not paint Upcoming list flash).
+  useEffect(
+    () =>
+      subscribeSimplyurSession(() => {
+        void (async () => {
+          if (unauthorizedRef.current) {
+            const token = await getSimplyurAccessToken();
+            if (token) {
+              leavingForPlansRef.current = true;
+              router.replace('/(tabs)/plans');
+              return;
+            }
+          }
+          void loadOrders();
+        })();
+      }),
+    [loadOrders],
+  );
 
   const selectedOrder = useMemo(
     () => orders.find((o) => o.order_id === selectedOrderId) ?? null,
@@ -139,8 +161,9 @@ export default function MyEsimScreen() {
   }, [selectedOrderId, selectedOrder?.can_check_usage, fetchUsage]);
 
   const view: ViewState = useMemo(() => {
-    if (loading) return 'loading';
+    // Sign-in wins over loading so post-login never flashes Loading… over the form.
     if (unauthorized) return 'signin';
+    if (loading && orders.length === 0) return 'loading';
     if (loadError) return 'error';
     if (selectedOrderId && selectedOrder) return 'detail';
     if (orders.length === 0) return 'empty';
@@ -209,7 +232,7 @@ export default function MyEsimScreen() {
         <Text style={styles.signinIcon}>🔒</Text>
         <Text style={styles.signinTitle}>{t('myEsim.signInTitle')}</Text>
         <Text style={styles.signinBody}>{t('myEsim.signInBody')}</Text>
-        <SocialAuthButtons inlineEmail navigateOnSuccess={false} />
+        <SocialAuthButtons inlineEmail successHref="/(tabs)/plans" />
       </ScrollView>
     );
   }

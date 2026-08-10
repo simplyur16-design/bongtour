@@ -28,8 +28,8 @@ type Props = {
   /** Where to go after success. Default Find my eSIM (plans) — avoids My eSIM list flash. */
   successHref?: string;
   /**
-   * When false (inline My eSIM), skip router.replace — session subscribe reloads orders.
-   * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: no remount after inline sign-in — manifest
+   * When false, skip router.replace (rare). Default true → Find my eSIM plans.
+   * REGRESSION-FREEZE[simplyur-mobile-my-esim-soft-reload]: login lands on plans — manifest
    */
   navigateOnSuccess?: boolean;
   /**
