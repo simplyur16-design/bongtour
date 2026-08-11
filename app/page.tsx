@@ -87,7 +87,8 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
-      <Header hideMobileNav />
+      {/* REGRESSION-FREEZE[home-main-nav-chips-on-narrow]: 좁은 폭에서도 MAIN_NAV 5칩 — manifest */}
+      <Header />
       <main className="flex-1">
         <section
           className="relative overflow-x-hidden bg-gradient-to-b from-white via-bt-bg-lavender-soft to-bt-bg-lavender/80"

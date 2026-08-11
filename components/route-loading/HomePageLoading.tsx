@@ -5,7 +5,7 @@ import { PulseBlock, PulseLine, RouteLoadingShell } from '@/components/route-loa
 export default function HomePageLoading() {
   return (
     <RouteLoadingShell>
-      <Header hideMobileNav />
+      <Header />
       <main className="flex-1">
         <section className="bg-gradient-to-b from-white via-bt-bg-lavender-soft to-bt-bg-lavender/80">
           <div className={`${SITE_CONTENT_CLASS} space-y-6 py-8 lg:py-12`}>

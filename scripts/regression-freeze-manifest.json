@@ -2610,6 +2610,40 @@
       ]
     },
     {
+      "id": "home-main-nav-chips-on-narrow",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈(/·/m)은 hideMobileNav 금지 — 좁은 폭에서도 MAIN_NAV 5칩(해외·자유·eSIM·우리끼리·공공) 진입",
+      "checks": [
+        {
+          "file": "app/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-main-nav-chips-on-narrow]",
+            "<Header />"
+          ],
+          "mustNotInclude": ["hideMobileNav"]
+        },
+        {
+          "file": "app/m/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-main-nav-chips-on-narrow]",
+            "<Header />"
+          ],
+          "mustNotInclude": ["hideMobileNav"]
+        },
+        {
+          "file": "app/components/Header.tsx",
+          "mustInclude": [
+            "해외여행상품",
+            "/travel/air-hotel",
+            "/travel/esim",
+            "우리끼리",
+            "공공·기업",
+            "lg:hidden"
+          ]
+        }
+      ]
+    },
+    {
       "id": "season-curation-keep-orphan-product-cards",
       "tier": [
         "prebuild",
