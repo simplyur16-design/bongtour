@@ -463,8 +463,10 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     )
     const d3 = out.find((r) => r.day === 3)!
     const d4 = out.find((r) => r.day === 4)!
-    expect(String(d3.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
+    // 숙박-only Day3 — Manado pool 환각(Jesus/Siladen) 주입 금지. prior landmark soft-fill은 선택.
+    expect(String(d3.imageKeyword ?? '')).not.toMatch(/Christ the Redeemer/i)
     expect(String(d4.imageKeyword ?? '')).not.toMatch(/Christ the Redeemer/i)
+    expect(String(d4.imageKeyword ?? '')).toMatch(/Blessing Jesus/i)
     expect(String(d4.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
   })
 

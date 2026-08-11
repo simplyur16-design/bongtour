@@ -475,14 +475,21 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Ritsurin Garden Takamatsu Japan')
   }
   if (/마나도|Manado|토모혼|Tomohon|부나켄|Bunaken|실라덴|Siladen/i.test(rawRoute)) {
-    push('Blessing Jesus Statue Manado North Sulawesi')
-    push('Siladen Island Bunaken diving Indonesia')
-    push('Bunaken National Marine Park Indonesia')
-  }
-  if (isLodgingOnlyTourismRoute(rawRoute)) {
-    push('Tomohon Colorful Market Sulawesi Indonesia')
-    push('Blessing Jesus Statue Manado North Sulawesi')
-    push('Siladen Island Bunaken diving Indonesia')
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Manado cluster day-route evidence — AIP102 landmark bleed 금지 — manifest
+    // bare「마나도」에 Jesus·Siladen·Bunaken 전체 풀 주입 금지 — 당일 route 근거만
+    if (/축복.*예수|예수\s*상|Blessing.*Jesus|Yesus/i.test(rawRoute)) {
+      push('Blessing Jesus Statue')
+    }
+    if (/실라덴|Siladen/i.test(rawRoute)) push('Siladen Island')
+    if (/부나켄|Bunaken/i.test(rawRoute)) push('Bunaken National Marine Park')
+    if (/마카테테|Makatete/i.test(rawRoute)) push('Makatete Hill')
+    if (/토모혼|Tomohon/i.test(rawRoute)) push('Tomohon Colorful Market')
+    if (/반힝|Ban\s*Hing/i.test(rawRoute)) push('Ban Hing Kiong Temple')
+    if (/성모\s*마리아|대성당|Cathedral|Immaculate/i.test(rawRoute)) {
+      push('Manado Cathedral')
+    }
+    if (/센트럼|Centrum/i.test(rawRoute)) push('Centrum Manado Church')
+    if (/마나도\s*베이|Manado\s*Bay/i.test(rawRoute)) push('Manado Bay')
   }
   if (/마추|Machu\s*Picchu|아구아스|Aguas\s*Calientes/i.test(rawRoute)) {
     push('Machu Picchu ancient ruins mountain Peru')
@@ -2955,8 +2962,28 @@ function allowManadoClusterKw2Duplicate(kw: string, routeText?: string | null): 
   if (!/(?:마나도|Manado|토모혼|Tomohon|부나켄|Bunaken|실라덴|Siladen|술라웨시|Sulawesi)/i.test(String(routeText ?? ''))) {
     return false
   }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Manado cluster day-route evidence — AIP102 landmark bleed 금지 — manifest
+  if (!manadoHardcodedPoolHasDayRouteEvidence(kw, String(routeText ?? ''))) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /manado|tomohon|bunaken|siladen|sulawesi|blessing|jesus|mahawu|market/.test(nk)
+  return /manado|tomohon|bunaken|siladen|sulawesi|blessing|jesus|mahawu|market|makatete|hing|centrum|cathedral|bay/.test(nk)
+}
+
+/** Manado hardcoded pool — 당일 route 근거 있는 키만 (bare 마나도 → Jesus/Siladen bleed 금지) */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Manado cluster day-route evidence — AIP102 landmark bleed 금지 — manifest
+function manadoHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const rt = String(dayRoute ?? '')
+  if (!rt.trim()) return false
+  const nk = normScheduleImageKeywordKey(kw)
+  if (/blessing|jesus/.test(nk)) return /축복.*예수|예수\s*상|Blessing.*Jesus|Yesus/i.test(rt)
+  if (/siladen/.test(nk)) return /실라덴|Siladen/i.test(rt)
+  if (/bunaken/.test(nk)) return /부나켄|Bunaken/i.test(rt)
+  if (/makatete/.test(nk)) return /마카테테|Makatete/i.test(rt)
+  if (/tomohon|market/.test(nk)) return /토모혼|Tomohon/i.test(rt)
+  if (/hing|kiong/.test(nk)) return /반힝|Ban\s*Hing|Kiong/i.test(rt)
+  if (/cathedral/.test(nk)) return /성모\s*마리아|대성당|Cathedral|Immaculate/i.test(rt)
+  if (/centrum/.test(nk)) return /센트럼|Centrum/i.test(rt)
+  if (/\bbay\b/.test(nk)) return /마나도\s*베이|Manado\s*Bay/i.test(rt)
+  return false
 }
 
 function isEasternEuropeClusterRoute(routeText: string | null | undefined): boolean {
@@ -3229,6 +3256,7 @@ function pickManadoClusterKeywordForUsedSlot(
     const kw = String(raw ?? '').trim()
     if (!kw || isRejectedTripKeywordCandidate(kw)) continue
     if (!allowManadoClusterKw2Duplicate(kw, routeText)) continue
+    if (!manadoHardcodedPoolHasDayRouteEvidence(kw, String(routeText ?? ''))) continue
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || scheduleKeywordNkOverlaps(nk, excludePrimaryNk)) continue
     if (!used.has(nk)) continue
@@ -4331,7 +4359,7 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
 // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 revisit soft-dup (Phu Quoc/Sapa/NY/…) — manifest
 export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu/i.test(
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado/i.test(
     String(city ?? '').trim(),
   )
 }
