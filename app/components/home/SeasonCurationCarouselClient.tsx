@@ -130,7 +130,7 @@ export function SeasonCurationCardLink({
           hero
             ? CINEMA_HERO_FRAME_CLASS
             : mobileBriefing
-              ? 'aspect-[4/5] min-h-[min(14rem,35vh)] w-full max-h-[39vh]'
+              ? '@container/mb aspect-[4/5] min-h-[min(14rem,35vh)] w-full max-h-[39vh]'
               : compact
                 ? 'aspect-[16/11]'
                 : 'aspect-[21/9] sm:aspect-[24/9]'
@@ -174,28 +174,30 @@ export function SeasonCurationCardLink({
           aria-hidden
         />
         {mobileBriefing ? (
-          // REGRESSION-FREEZE[season-mobile-briefing-br-overlay]: 제목·CTA 사진 우측 하단 고정 — manifest
+          // REGRESSION-FREEZE[season-mobile-briefing-br-overlay]: CTA 우측 하단 고정 · 공간 부족 시 제목 숨김 — manifest
           <div className="absolute bottom-0 right-0 z-[3] flex max-w-[min(72%,15.5rem)] flex-col items-end p-3 pb-3.5 pr-3.5 text-right sm:max-w-[min(62%,17rem)] sm:p-4">
-            {slide.monthKey ? (
-              <p className="mb-0.5 text-[clamp(0.62rem,2.4vw,0.72rem)] font-semibold uppercase tracking-wider text-white/85">
-                {slide.monthKey}
-              </p>
-            ) : null}
-            {title ? (
-              <h3 className="line-clamp-3 text-[clamp(0.95rem,4.1vw,1.25rem)] font-bold leading-snug tracking-tight text-white drop-shadow">
-                {title}
-              </h3>
-            ) : null}
-            {subtitle ? (
-              <p className="mt-1 line-clamp-2 text-[clamp(0.72rem,3vw,0.88rem)] leading-snug text-white/90 drop-shadow">
-                {subtitle}
-              </p>
-            ) : excerpt ? (
-              <p className="mt-1 line-clamp-2 text-[clamp(0.72rem,3vw,0.88rem)] leading-snug text-white/90 drop-shadow">
-                {excerpt}
-              </p>
-            ) : null}
-            <span className="mt-2.5 inline-flex w-fit items-center rounded-full bg-white/95 px-[clamp(0.75rem,3.2vw,1rem)] py-[clamp(0.35rem,1.6vw,0.55rem)] text-[clamp(0.68rem,2.7vw,0.8125rem)] font-bold text-bt-text-navy shadow">
+            <div className="mb-2.5 hidden w-full flex-col items-end @[min-height:17.5rem]/mb:flex">
+              {slide.monthKey ? (
+                <p className="mb-0.5 text-[clamp(0.62rem,2.4vw,0.72rem)] font-semibold uppercase tracking-wider text-white/85">
+                  {slide.monthKey}
+                </p>
+              ) : null}
+              {title ? (
+                <h3 className="line-clamp-3 text-[clamp(0.95rem,4.1vw,1.25rem)] font-bold leading-snug tracking-tight text-white drop-shadow">
+                  {title}
+                </h3>
+              ) : null}
+              {subtitle ? (
+                <p className="mt-1 line-clamp-2 text-[clamp(0.72rem,3vw,0.88rem)] leading-snug text-white/90 drop-shadow">
+                  {subtitle}
+                </p>
+              ) : excerpt ? (
+                <p className="mt-1 line-clamp-2 text-[clamp(0.72rem,3vw,0.88rem)] leading-snug text-white/90 drop-shadow">
+                  {excerpt}
+                </p>
+              ) : null}
+            </div>
+            <span className="inline-flex w-fit items-center rounded-full bg-white/95 px-[clamp(0.75rem,3.2vw,1rem)] py-[clamp(0.35rem,1.6vw,0.55rem)] text-[clamp(0.68rem,2.7vw,0.8125rem)] font-bold text-bt-text-navy shadow">
               {cta}
             </span>
           </div>
@@ -277,15 +279,22 @@ export function SeasonCurationCardLink({
       ? 'group block w-full overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
       : 'group block overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-sm outline-none ring-bt-text-navy/0 transition hover:ring-2 hover:ring-bt-text-navy/15'
 
+  const a11yLabel = [title, cta].filter(Boolean).join(' — ') || undefined
+
   if (isExternal) {
     return (
-      <a href={href} className={cardClass} rel="noopener noreferrer">
+      <a href={href} className={cardClass} rel="noopener noreferrer" aria-label={mobileBriefing ? a11yLabel : undefined}>
         {inner}
       </a>
     )
   }
   return (
-    <Link href={href} prefetch={prefetchPropForHref(href)} className={cardClass}>
+    <Link
+      href={href}
+      prefetch={prefetchPropForHref(href)}
+      className={cardClass}
+      aria-label={mobileBriefing ? a11yLabel : undefined}
+    >
       {inner}
     </Link>
   )

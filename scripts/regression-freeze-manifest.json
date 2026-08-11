@@ -2612,7 +2612,7 @@
     {
       "id": "season-mobile-briefing-br-overlay",
       "tier": ["prebuild", "ci"],
-      "summary": "모바일 시즌 브리핑 — 제목·CTA 우측 하단 + clamp 가변 폰트(사진 가림 완화)",
+      "summary": "모바일 시즌 브리핑 — CTA 우측 하단 고정 · 카드 높이 부족 시 제목 숨김(사진+CTA만)",
       "checks": [
         {
           "file": "app/components/home/SeasonCurationCarouselClient.tsx",
@@ -2620,7 +2620,8 @@
             "REGRESSION-FREEZE[season-mobile-briefing-br-overlay]",
             "mobileBriefing",
             "absolute bottom-0 right-0",
-            "max-w-[min(72%,15.5rem)]",
+            "@container/mb",
+            "@[min-height:17.5rem]/mb:flex",
             "text-right"
           ]
         }
