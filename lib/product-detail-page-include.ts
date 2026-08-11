@@ -82,6 +82,7 @@ function buildProductDetailOptionalTourSelect() {
 export function buildProductDetailScalarsSelect() {
   return {
     id: true,
+    slug: true,
     registrationStatus: true,
     originSource: true,
     originCode: true,
