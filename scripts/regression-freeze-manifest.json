@@ -2619,8 +2619,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[season-mobile-briefing-br-overlay]",
             "mobileBriefing",
-            "items-end justify-end",
-            "text-[clamp(1.05rem,4.6vw,1.45rem)]",
+            "absolute bottom-0 right-0",
+            "max-w-[min(72%,15.5rem)]",
             "text-right"
           ]
         }

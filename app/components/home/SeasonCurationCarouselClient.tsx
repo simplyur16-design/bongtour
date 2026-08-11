@@ -168,19 +168,43 @@ export function SeasonCurationCardLink({
         <div
           className={
             mobileBriefing
-              ? 'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[48%] bg-gradient-to-tl from-black/72 via-black/20 to-transparent'
+              ? 'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[42%] bg-gradient-to-tl from-black/75 via-black/25 to-transparent'
               : 'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[55%] bg-gradient-to-t from-black/65 via-black/18 to-transparent'
           }
           aria-hidden
         />
+        {mobileBriefing ? (
+          // REGRESSION-FREEZE[season-mobile-briefing-br-overlay]: 제목·CTA 사진 우측 하단 고정 — manifest
+          <div className="absolute bottom-0 right-0 z-[3] flex max-w-[min(72%,15.5rem)] flex-col items-end p-3 pb-3.5 pr-3.5 text-right sm:max-w-[min(62%,17rem)] sm:p-4">
+            {slide.monthKey ? (
+              <p className="mb-0.5 text-[clamp(0.62rem,2.4vw,0.72rem)] font-semibold uppercase tracking-wider text-white/85">
+                {slide.monthKey}
+              </p>
+            ) : null}
+            {title ? (
+              <h3 className="line-clamp-3 text-[clamp(0.95rem,4.1vw,1.25rem)] font-bold leading-snug tracking-tight text-white drop-shadow">
+                {title}
+              </h3>
+            ) : null}
+            {subtitle ? (
+              <p className="mt-1 line-clamp-2 text-[clamp(0.72rem,3vw,0.88rem)] leading-snug text-white/90 drop-shadow">
+                {subtitle}
+              </p>
+            ) : excerpt ? (
+              <p className="mt-1 line-clamp-2 text-[clamp(0.72rem,3vw,0.88rem)] leading-snug text-white/90 drop-shadow">
+                {excerpt}
+              </p>
+            ) : null}
+            <span className="mt-2.5 inline-flex w-fit items-center rounded-full bg-white/95 px-[clamp(0.75rem,3.2vw,1rem)] py-[clamp(0.35rem,1.6vw,0.55rem)] text-[clamp(0.68rem,2.7vw,0.8125rem)] font-bold text-bt-text-navy shadow">
+              {cta}
+            </span>
+          </div>
+        ) : (
         <div
           className={`absolute inset-0 z-[3] flex flex-col ${
             hero
               ? 'items-end justify-end pb-8 pr-4 pt-0 sm:pb-12 sm:pr-6'
-              : mobileBriefing
-                ? // REGRESSION-FREEZE[season-mobile-briefing-br-overlay]: 제목·CTA 우측 하단 — manifest
-                  'items-end justify-end p-3.5 pb-4 pr-3.5 sm:p-5'
-                : compact
+              : compact
                   ? 'justify-end p-4'
                   : 'justify-end p-6 sm:p-8'
           }`}
@@ -189,28 +213,18 @@ export function SeasonCurationCardLink({
             className={
               hero
                 ? `${SITE_CONTENT_CLASS} flex w-full flex-col items-end justify-end text-right`
-                : mobileBriefing
-                  ? 'flex w-full max-w-[min(92%,18.5rem)] flex-col items-end text-right sm:max-w-[min(88%,22rem)]'
-                  : 'h-full w-full'
+                : 'h-full w-full'
             }
           >
           {slide.monthKey ? (
-            <p
-              className={`mb-1 font-semibold uppercase tracking-wider text-white/85 ${
-                mobileBriefing ? 'text-[clamp(0.65rem,2.6vw,0.75rem)]' : 'text-xs'
-              }`}
-            >
-              {slide.monthKey}
-            </p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/85">{slide.monthKey}</p>
           ) : null}
           {title ? (
             <h3
               className={`font-bold leading-tight tracking-tight text-white drop-shadow ${
                 hero
                   ? 'text-3xl sm:text-4xl lg:text-5xl'
-                  : mobileBriefing
-                    ? 'text-[clamp(1.05rem,4.6vw,1.45rem)]'
-                    : compact
+                  : compact
                       ? 'text-lg'
                       : 'text-2xl sm:text-3xl'
               }`}
@@ -223,9 +237,7 @@ export function SeasonCurationCardLink({
               className={`mt-1 text-white/90 drop-shadow ${
                 hero
                   ? 'max-w-3xl text-lg sm:text-xl'
-                  : mobileBriefing
-                    ? 'line-clamp-2 text-[clamp(0.78rem,3.3vw,0.95rem)] leading-snug'
-                    : compact
+                  : compact
                       ? 'text-sm line-clamp-2'
                       : 'text-base sm:text-lg'
               }`}
@@ -237,9 +249,7 @@ export function SeasonCurationCardLink({
               className={`mt-1 text-white/90 drop-shadow ${
                 hero
                   ? 'max-w-3xl text-base sm:text-lg line-clamp-3'
-                  : mobileBriefing
-                    ? 'line-clamp-2 text-[clamp(0.78rem,3.3vw,0.95rem)] leading-snug'
-                    : compact
+                  : compact
                       ? 'text-sm line-clamp-2'
                       : 'line-clamp-2 text-base'
               }`}
@@ -248,20 +258,15 @@ export function SeasonCurationCardLink({
             </p>
           ) : null}
           <span
-            className={`mt-3 inline-flex w-fit items-center rounded-full bg-white/95 font-bold text-bt-text-navy shadow sm:mt-4 ${
-              hero
-                ? 'px-5 py-2.5 text-base sm:text-lg'
-                : mobileBriefing
-                  ? 'px-[clamp(0.85rem,3.5vw,1.15rem)] py-[clamp(0.4rem,1.8vw,0.6rem)] text-[clamp(0.72rem,2.9vw,0.875rem)]'
-                  : compact
-                    ? 'px-5 py-2.5 text-xs'
-                    : 'px-5 py-2.5 text-sm'
+            className={`mt-5 inline-flex w-fit items-center rounded-full bg-white/95 px-5 py-2.5 font-bold text-bt-text-navy shadow ${
+              hero ? 'text-base sm:text-lg' : compact ? 'text-xs' : 'text-sm'
             }`}
           >
             {cta}
           </span>
           </div>
         </div>
+        )}
       </div>
     </>
   )
