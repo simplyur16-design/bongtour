@@ -71,4 +71,25 @@ describe('buildProductJsonLdData', () => {
     expect(offers.price).toBe(150000)
     expect(offers).not.toHaveProperty('offerCount')
   })
+
+  // REGRESSION-FREEZE[product-jsonld-canonical-url]
+  it('uses public productPath (slug) for Product.url instead of raw id', () => {
+    const data = buildProductJsonLdData({
+      productId: 'cuid-internal-id',
+      productPath: '/products/pkg-hn-0042',
+      name: 'Test trip',
+      description: 'desc',
+      imageUrl: null,
+      offers: {
+        lowPrice: 100000,
+        highPrice: 100000,
+        offerCount: 1,
+        availability: 'InStock',
+      },
+    })
+    expect(String(data?.url)).toContain('/products/pkg-hn-0042')
+    expect(String(data?.url)).not.toContain('cuid-internal-id')
+    const offers = data?.offers as Record<string, unknown>
+    expect(String(offers.url)).toContain('/products/pkg-hn-0042')
+  })
 })

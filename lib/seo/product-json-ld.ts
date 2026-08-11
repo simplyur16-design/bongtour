@@ -1,8 +1,10 @@
 /**
  * Product JSON-LD builders (no JSX) — Google Product rich results require offers.
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: no bare Product without offers — manifest
+ * REGRESSION-FREEZE[product-jsonld-canonical-url]: Product.url matches publicProductPath — manifest
  */
 import { absoluteUrl, SITE_NAME, toAbsoluteImageUrl } from '@/lib/site-metadata'
+import { publicProductPath } from '@/lib/product-public-path'
 
 export type ProductJsonLdAggregateOffer = {
   lowPrice: number
@@ -63,6 +65,8 @@ export function buildOffersNode(
 /** Build Product JSON-LD only when a valid offer exists. */
 export function buildProductJsonLdData(input: {
   productId: string
+  /** Prefer public slug path; falls back to `/products/{id}`. */
+  productPath?: string | null
   name: string
   description: string
   imageUrl: string | null | undefined
@@ -71,7 +75,10 @@ export function buildProductJsonLdData(input: {
   if (!input.offers) return null
   if (!(input.offers.lowPrice > 0) || !(input.offers.highPrice > 0)) return null
 
-  const url = absoluteUrl(`/products/${input.productId}`)
+  const path =
+    input.productPath?.trim() ||
+    publicProductPath({ id: input.productId, slug: null })
+  const url = absoluteUrl(path)
   const img = toAbsoluteImageUrl(input.imageUrl)
   return {
     '@context': 'https://schema.org',

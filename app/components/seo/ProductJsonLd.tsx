@@ -6,6 +6,7 @@ import {
   type ProductJsonLdItineraryItem,
 } from '@/lib/seo/product-json-ld'
 import { absoluteUrl, toAbsoluteImageUrl } from '@/lib/site-metadata'
+import { publicProductPath } from '@/lib/product-public-path'
 
 export type {
   ProductJsonLdAggregateOffer,
@@ -16,6 +17,8 @@ export { buildProductJsonLdData }
 
 type Props = {
   productId: string
+  /** Public canonical path (`/products/{slug|id}`). */
+  productPath?: string | null
   name: string
   description: string
   imageUrl: string | null | undefined
@@ -28,9 +31,11 @@ type Props = {
  * 상품 상세: Product(+offers 필수) + 선택적 BreadcrumbList / TouristTrip(Product와 함께만).
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: omit Product when no offers — manifest
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: TouristTrip only with Product/offers — manifest
+ * REGRESSION-FREEZE[product-jsonld-canonical-url]: Product.url = publicProductPath — manifest
  */
 export default function ProductJsonLd({
   productId,
+  productPath = null,
   name,
   description,
   imageUrl,
@@ -38,10 +43,13 @@ export default function ProductJsonLd({
   breadcrumbItems = null,
   itinerary = null,
 }: Props) {
-  const url = absoluteUrl(`/products/${productId}`)
+  const path =
+    productPath?.trim() || publicProductPath({ id: productId, slug: null })
+  const url = absoluteUrl(path)
   const img = toAbsoluteImageUrl(imageUrl)
   const productData = buildProductJsonLdData({
     productId,
+    productPath: path,
     name,
     description,
     imageUrl,

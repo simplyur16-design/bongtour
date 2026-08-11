@@ -4,28 +4,46 @@ import { COMPANY_FOOTER } from '@/lib/company-footer'
 /** 메인: Organization + WebSite + TravelAgency (홈 전용, @graph) */
 export default function SiteJsonLd() {
   const origin = absoluteUrl('/')
-  const logo = absoluteUrl('/images/bongtour-logo.webp')
+  const logoUrl = absoluteUrl('/images/bongtour-logo.webp')
   const phoneForSchema = COMPANY_FOOTER.phoneTel.replace(/^tel:/i, '').trim()
   const emailForSchema = COMPANY_FOOTER.emailHref.replace(/^mailto:/i, '').trim()
+  const orgId = `${origin.replace(/\/$/, '')}/#organization`
+  const websiteId = `${origin.replace(/\/$/, '')}/#website`
   const data = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'Organization',
+        '@id': orgId,
         name: SITE_NAME,
         url: origin,
-        logo,
+        logo: {
+          '@type': 'ImageObject',
+          url: logoUrl,
+        },
+        sameAs: ['https://bongtour.net', 'https://www.instagram.com/bongtour103/'],
       },
       {
         '@type': 'WebSite',
+        '@id': websiteId,
         name: SITE_NAME,
         url: origin,
+        publisher: { '@id': orgId },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${origin.replace(/\/$/, '')}/products?destination={search_term_string}`,
+          },
+          'query-input': 'required name=search_term_string',
+        },
       },
       {
         '@type': 'TravelAgency',
+        '@id': `${origin.replace(/\/$/, '')}/#travelagency`,
         name: COMPANY_FOOTER.legalName,
         url: origin,
-        logo,
+        logo: logoUrl,
         ...(COMPANY_FOOTER.addressLine.trim()
           ? {
               address: {
@@ -38,6 +56,7 @@ export default function SiteJsonLd() {
         ...(phoneForSchema ? { telephone: phoneForSchema } : {}),
         ...(emailForSchema ? { email: emailForSchema } : {}),
         areaServed: 'KR',
+        parentOrganization: { '@id': orgId },
       },
     ],
   }

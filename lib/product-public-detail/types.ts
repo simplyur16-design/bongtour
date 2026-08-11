@@ -18,6 +18,8 @@ export type ProductPublicDetailPayloadEnvelope = {
 export type ProductPublicDetailSeoBundle = {
   coverUrl: string
   productDescription: string
+  /** Canonical public path for JSON-LD (`/products/{slug|id}`). Optional for older payloads. */
+  productPath?: string
   offers: ProductJsonLdAggregateOffer | null
   breadcrumbItems: Array<{ position: number; name: string; item?: string }>
   itinerary: ProductJsonLdItineraryItem[] | null

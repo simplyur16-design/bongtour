@@ -487,6 +487,7 @@ export const MAIN_MINIMAL_FOOTER_LINKS = [
 
 /** 전역 푸터 — 법적·정책 링크만 (헤더 IA와 중복되는 허브 링크 제외) */
 export const FOOTER_POLICY_LINKS = [
+  { label: '여행 블로그', href: 'https://bongtour.net' },
   { label: '개인정보처리방침', href: '/privacy' },
   { label: '이용약관', href: '/terms' },
   { label: 'eSIM 환불정책', href: '/travel/esim/policy' },

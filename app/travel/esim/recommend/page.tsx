@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import RecommendPageClient from "./RecommendPageClient";
 import { loadBongsimRecommendBootstrapCached } from "@/lib/bongsim/data/load-recommend-bootstrap-cached";
 
@@ -8,6 +9,18 @@ import { loadBongsimRecommendBootstrapCached } from "@/lib/bongsim/data/load-rec
 /** 요청 params 미사용 → private no-store 금지. bootstrap cache(120s)와 맞춤. */
 export const dynamic = "force-static";
 export const revalidate = 120;
+
+export const metadata: Metadata = {
+  title: "여행지별 eSIM 추천 | Bong투어 eSIM",
+  description: "여행 국가를 고르면 일수·용량에 맞는 해외 eSIM을 추천해 드립니다.",
+  alternates: { canonical: "/travel/esim/recommend" },
+  openGraph: {
+    title: "여행지별 eSIM 추천 | Bong투어 eSIM",
+    description: "여행 국가를 고르면 일수·용량에 맞는 해외 eSIM을 추천해 드립니다.",
+    url: "/travel/esim/recommend",
+    type: "website",
+  },
+};
 
 export default async function RecommendPage() {
   const bootstrap = await loadBongsimRecommendBootstrapCached();

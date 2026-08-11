@@ -116,6 +116,7 @@ import type {
   ProductPublicDetailSeoBundle,
 } from '@/lib/product-public-detail/types'
 import { absoluteUrl, buildPublicProductDescription } from '@/lib/site-metadata'
+import { publicProductPath } from '@/lib/product-public-path'
 import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
 import {
   isProductAdultOnly2030,
@@ -913,16 +914,25 @@ export async function buildProductPublicDetailRenderModel(
         : null
   const travelScopeHref = travelProduct.travelScope === 'overseas' ? '/travel/overseas' : '/products'
 
+  const seoProductPath = publicProductPath({
+    id: travelProduct.id,
+    slug: travelProduct.slug ?? null,
+  })
   const buildSeoBundle = (offers: ProductJsonLdAggregateOffer | null): ProductPublicDetailSeoBundle => ({
     coverUrl: seoCoverUrl ?? '',
     productDescription: seoProductDescription,
+    productPath: seoProductPath,
     offers,
     breadcrumbItems: [
       { position: 1, name: '홈', item: absoluteUrl('/') },
       ...(travelScopeLabel
         ? [{ position: 2, name: travelScopeLabel, item: absoluteUrl(travelScopeHref) }]
         : []),
-      { position: travelScopeLabel ? 3 : 2, name: travelProduct.title ?? '상품' },
+      {
+        position: travelScopeLabel ? 3 : 2,
+        name: travelProduct.title ?? '상품',
+        item: absoluteUrl(seoProductPath),
+      },
     ],
     itinerary: seoItinerary.length > 0 ? seoItinerary : null,
   })

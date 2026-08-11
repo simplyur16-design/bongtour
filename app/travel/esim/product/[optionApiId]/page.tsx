@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { notFound } from "next/navigation";
@@ -8,6 +9,29 @@ import { listKycFlagProductsForPlanName } from "@/lib/bongsim/data/list-kyc-flag
 import { getKycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 
 type Props = { params: Promise<{ optionApiId: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { optionApiId } = await params;
+  const res = await getProductDetailByOptionApiId(optionApiId);
+  const canonical = `/travel/esim/product/${encodeURIComponent(optionApiId)}`;
+  if (!res.ok) {
+    return {
+      title: "eSIM 상품 | Bong투어",
+      alternates: { canonical },
+      robots: { index: false, follow: false },
+    };
+  }
+  const plan = res.detail.summary.plan_name?.trim() || "eSIM";
+  const option = res.detail.summary.option_label?.trim();
+  const title = option ? `${plan} ${option} | Bong투어 eSIM` : `${plan} | Bong투어 eSIM`;
+  const description = `${plan}${option ? ` · ${option}` : ""} — QR 설치·즉시 구매.`;
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: "website" },
+  };
+}
 
 export default async function ProductDetailV1Page({ params }: Props) {
   const { optionApiId } = await params;

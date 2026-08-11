@@ -13713,6 +13713,29 @@
       ]
     },
     {
+      "id": "product-jsonld-canonical-url",
+      "tier": ["prebuild", "ci"],
+      "summary": "상품 Product JSON-LD url은 publicProductPath(슬러그)와 일치 — raw cuid id 경로 금지",
+      "checks": [
+        {
+          "file": "lib/seo/product-json-ld.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-jsonld-canonical-url]",
+            "productPath",
+            "publicProductPath"
+          ]
+        },
+        {
+          "file": "app/components/seo/ProductJsonLd.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-jsonld-canonical-url]",
+            "productPath"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/seo/product-json-ld.test.ts"]
+    },
+    {
       "id": "simplyur-mobile-tabs-browse-keep",
       "tier": ["prebuild", "ci"],
       "summary": "Simplyur 앱 — 상품/기기/설정/약관은 (tabs) 안이라 하단 탭 유지, checkout는 밖",

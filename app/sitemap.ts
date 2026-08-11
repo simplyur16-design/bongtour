@@ -16,6 +16,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '', priority: 1 },
     { path: '/products', priority: 0.9 },
     { path: '/travel/overseas', priority: 0.85 },
+    { path: '/travel/air-hotel', priority: 0.85 },
+    { path: '/travel/overseas/private-trip', priority: 0.8 },
+    { path: '/travel/esim', priority: 0.85 },
+    { path: '/travel/esim/catalog', priority: 0.8 },
+    { path: '/travel/esim/recommend', priority: 0.8 },
+    { path: '/travel/esim/guide', priority: 0.7 },
+    { path: '/travel/esim/devices', priority: 0.7 },
+    { path: '/travel/esim/policy', priority: 0.55 },
     { path: '/air-ticketing', priority: 0.8 },
     { path: '/quote/private', priority: 0.75 },
     { path: '/inquiry', priority: 0.75 },
@@ -23,6 +31,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/charter-bus', priority: 0.7 },
     { path: '/business', priority: 0.65 },
     { path: '/business/programs', priority: 0.65 },
+    { path: '/privacy', priority: 0.4 },
+    { path: '/terms', priority: 0.4 },
   ]
 
   const staticEntries: MetadataRoute.Sitemap = staticPaths.map(({ path, priority }) => ({

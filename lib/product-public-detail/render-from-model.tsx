@@ -13,12 +13,22 @@ import { ItineraryViewLazy } from '@/components/itinerary/ItineraryViewLazy'
 import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extract'
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
+import { publicProductPath } from '@/lib/product-public-path'
 import type {
   ProductPublicDetailAirHotelRenderModel,
   ProductPublicDetailRenderModel,
 } from '@/lib/product-public-detail/types'
 import { mergeViewProductWithYbtourSlice } from '@/lib/product-public-detail/ybtour-payload-slim'
 import type { ProductDetailViewRow } from '@/lib/product-public-detail/build-render-model'
+
+function resolveSeoProductPath(
+  seo: { productPath?: string },
+  product: { id: string; slug?: string | null },
+): string {
+  const fromSeo = seo.productPath?.trim()
+  if (fromSeo) return fromSeo
+  return publicProductPath({ id: product.id, slug: product.slug ?? null })
+}
 
 export function renderProductDetailFromModel(
   model: ProductPublicDetailRenderModel,
@@ -59,6 +69,7 @@ export function renderProductDetailFromModel(
         {airModel.registrationStatus === 'registered' ? (
           <ProductJsonLd
             productId={travelProduct.id}
+            productPath={resolveSeoProductPath(seo, product)}
             name={product.title ?? ''}
             description={seo.productDescription}
             imageUrl={seo.coverUrl}
@@ -181,6 +192,7 @@ export function renderProductDetailFromModel(
       {model.registrationStatus === 'registered' ? (
         <ProductJsonLd
           productId={travelProduct.id}
+          productPath={resolveSeoProductPath(seo, viewProduct)}
           name={viewProduct.title ?? ''}
           description={seo.productDescription}
           imageUrl={seo.coverUrl}

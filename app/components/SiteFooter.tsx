@@ -158,16 +158,30 @@ export default function SiteFooter() {
 
           <nav className="mt-2 border-t-[0.5px] border-bt-bg-lavender/20 pt-2" aria-label="정책 및 약관">
             <ul className="flex flex-wrap gap-x-3 gap-y-1.5 text-[12px] leading-snug text-bt-bg-lavender/90 sm:gap-x-[14px] sm:text-[13px]">
-              {FOOTER_POLICY_LINKS.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  <Link
-                    href={item.href}
-                    className="transition hover:text-bt-brand-gold-strong hover:underline hover:underline-offset-2"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              {FOOTER_POLICY_LINKS.map((item) => {
+                const external = /^https?:\/\//i.test(item.href)
+                return (
+                  <li key={`${item.href}-${item.label}`}>
+                    {external ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="transition hover:text-bt-brand-gold-strong hover:underline hover:underline-offset-2"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className="transition hover:text-bt-brand-gold-strong hover:underline hover:underline-offset-2"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </nav>
 
