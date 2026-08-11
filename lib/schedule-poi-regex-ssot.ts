@@ -960,7 +960,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /라플린|Laughlin/i, en: "Laughlin Colorado River casino strip" },
   { re: /코닥\s*극장|Kodak\s*Theatre|TCL\s*Chinese/i, en: "TCL Chinese Theatre Hollywood" },
   { re: /니지노마츠바라|Nijinomatsubara|虹の松原/u, en: "Nijinomatsubara pine grove Saga Japan" },
-  { re: /KK\s*스타\s*라운지|KK\s*Star\s*Lounge/i, en: "Signal Hill Kota Kinabalu" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour AMP7017 KK — lounge waterfront over bare city hub — manifest
+  // waterfront/sunset finalize strip → bare Kota Kinabalu 회귀 — Signal Hill로 고정
+  { re: /KK\s*스타\s*라운지|KK\s*Star\s*Lounge|Signal\s*Hill\s*Kota\s*Kinabalu/i, en: "Signal Hill Kota Kinabalu" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all — manifest
   { re: /껌벽/i, en: "Juneau Waterfront Alaska" },
   { re: /주노|Juneau/i, en: "Juneau Alaska waterfront" },
