@@ -4,7 +4,7 @@ import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
-import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, type ChangeEvent } from 'react'
 import { buildPexelsKeyword } from '@/lib/pexels-keyword'
 import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-prompt'
 import { applyRegisterScheduleImageKeywordsForPreview } from '@/lib/register-schedule-image-keywords-preview'
@@ -12,6 +12,10 @@ import {
   finalizeRegisterScheduleImageKeywords,
   tryPersistScheduleImageKeyword,
 } from '@/lib/schedule-image-keyword-persist'
+import {
+  patchProductScheduleJsonDay,
+  preferStoredScheduleImageKeyword,
+} from '@/lib/admin-pending-schedule-local-patch'
 import { formatImageKeywordError } from '@/lib/image-keyword-error-messages'
 import AdminEmptyState from '../../components/AdminEmptyState'
 import AdminStatusBadge from '../../components/AdminStatusBadge'
@@ -659,7 +663,7 @@ export default function AdminPendingDetailPanel({
     setDay2ImageThumbError({})
   }, [detail?.id])
 
-  const scheduleDayRows: ScheduleDayImage[] = (() => {
+  const scheduleDayRows: ScheduleDayImage[] = useMemo(() => {
     if (!detail?.schedule) return []
     try {
       const parsed = JSON.parse(detail.schedule) as unknown
@@ -687,7 +691,7 @@ export default function AdminPendingDetailPanel({
             description: '',
             imageKeyword: '',
             imageKeyword2: '',
-          }
+          },
         )
       }
       const productDestHint =
@@ -718,16 +722,54 @@ export default function AdminPendingDetailPanel({
       const finalized = finalizeRegisterScheduleImageKeywords(augmented, {
         productDestination: productDestHint,
       })
+      // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: 저장 키워드 우선 · derive는 빈칸만 — manifest
       return out.map((row, idx) => ({
         ...row,
         routeText: finalized[idx]?.routeText ?? row.routeText ?? null,
-        imageKeyword: finalized[idx]?.imageKeyword ?? row.imageKeyword,
-        imageKeyword2: finalized[idx]?.imageKeyword2 ?? row.imageKeyword2,
+        imageKeyword: preferStoredScheduleImageKeyword(
+          row.imageKeyword,
+          finalized[idx]?.imageKeyword,
+        ),
+        imageKeyword2:
+          preferStoredScheduleImageKeyword(
+            row.imageKeyword2,
+            finalized[idx]?.imageKeyword2,
+          ) || null,
       }))
     } catch {
       return []
     }
-  })()
+  }, [
+    detail?.schedule,
+    detail?.duration,
+    detail?.destination,
+    detail?.primaryDestination,
+    detail?.normalizedOriginSupplier,
+    detail?.canonicalBrandKey,
+    detail?.brand?.brandKey,
+    detail?.originSource,
+    detail?.title,
+    detail?.travelScope,
+    detail?.productType,
+  ])
+
+  /** schedule-images 성공 후 전체 product GET 대신 schedule JSON만 패치 */
+  const applyScheduleDayEntryLocal = useCallback(
+    (day: number, dayEntry: Record<string, unknown> | null | undefined, fallbackPatch?: Record<string, unknown>) => {
+      if (!detail) return false
+      const patch =
+        dayEntry && typeof dayEntry === 'object'
+          ? dayEntry
+          : fallbackPatch
+      if (!patch) return false
+      const nextSchedule = patchProductScheduleJsonDay(detail.schedule, day, patch)
+      if (!nextSchedule) return false
+      setDetail({ ...detail, schedule: nextSchedule })
+      return true
+    },
+    [detail],
+  )
+
   const scheduleDayHeroCandidates = collectScheduleDayHeroPickCandidates(scheduleDayRows)
 
   const itineraryByDay = new Map<number, ItineraryDayPreview>(itineraryDayRows.map((r) => [r.day, r]))
@@ -1266,14 +1308,26 @@ export default function AdminPendingDetailPanel({
           ...(kw2 !== undefined ? { imageKeyword2: kw2 || null } : {}),
         }),
       })
-      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
+        error?: string
+        imageKeyword?: string | null
+        imageKeyword2?: string | null
+        dayEntry?: Record<string, unknown> | null
+      }
       if (!res.ok) {
         setDayImageMessage(`DAY${day} 키워드 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
       }
       setDayImageMessage(`DAY${day} imageKeyword${kw2 !== undefined ? '·imageKeyword2' : ''} 저장됨.`)
-      const refreshed = await fetchAdminProductDetail(detail.id)
-      if (refreshed) setDetail(refreshed)
+      // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: keyword 저장 후 full refetch 생략 — manifest
+      const patched = applyScheduleDayEntryLocal(day, data.dayEntry, {
+        imageKeyword: data.imageKeyword ?? kw,
+        ...(kw2 !== undefined ? { imageKeyword2: data.imageKeyword2 ?? (kw2 || null) } : {}),
+      })
+      if (!patched) {
+        const refreshed = await fetchAdminProductDetail(detail.id)
+        if (refreshed) setDetail(refreshed)
+      }
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [scheduleImageSavingKey(day, 1)]: false }))
     }
@@ -1349,7 +1403,14 @@ export default function AdminPendingDetailPanel({
             (slot === 2 ? dayImageKeyword2Draft[day] : dayImageKeywordDraft[day])?.trim() || null,
         }),
       })
-      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
+        error?: string
+        imageUrl?: string | null
+        source?: string
+        manualSelected?: boolean
+        dayEntry?: Record<string, unknown> | null
+        imageSlot?: number
+      }
       if (!res.ok) {
         setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
@@ -1360,8 +1421,33 @@ export default function AdminPendingDetailPanel({
         setDayImageThumbError((prev) => ({ ...prev, [day]: null }))
       }
       setDayImageMessage(`DAY${day} ${slot}순위 이미지 저장 완료`)
-      const refreshed = await fetchAdminProductDetail(detail.id)
-      if (refreshed) setDetail(refreshed)
+      // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: 적용 후 full product GET 생략 — manifest
+      const fallbackPatch =
+        slot === 2
+          ? {
+              imageUrl2: data.imageUrl ?? payload.imageUrl,
+              imageManualSelected: true,
+              imageSource2: {
+                source: data.source ?? payload.source,
+                photographer: payload.photographer ?? undefined,
+                originalLink: payload.originalLink ?? undefined,
+              },
+            }
+          : {
+              imageUrl: data.imageUrl ?? payload.imageUrl,
+              imageManualSelected: data.manualSelected !== false,
+              imageSelectionMode: payload.selectionMode ?? 'manual-pick',
+              imageSource: {
+                source: data.source ?? payload.source,
+                photographer: payload.photographer ?? undefined,
+                originalLink: payload.originalLink ?? undefined,
+              },
+            }
+      const patched = applyScheduleDayEntryLocal(day, data.dayEntry, fallbackPatch)
+      if (!patched) {
+        const refreshed = await fetchAdminProductDetail(detail.id)
+        if (refreshed) setDetail(refreshed)
+      }
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
     }
@@ -1515,7 +1601,10 @@ export default function AdminPendingDetailPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ day, imageSlot: slot, manualSelected: false }),
       })
-      const data = (await readAdminResponseJson(res).catch(() => ({}))) as { error?: string }
+      const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
+        error?: string
+        dayEntry?: Record<string, unknown> | null
+      }
       if (!res.ok) {
         setDayImageMessage(`DAY${day} ${slot}순위 자동 복귀 실패: ${data.error ?? `HTTP ${res.status}`}`)
         return
@@ -1523,8 +1612,16 @@ export default function AdminPendingDetailPanel({
       setDayImageMessage(
         slot === 2 ? `DAY${day} 2순위 이미지 초기화` : `DAY${day} 자동 후보 사용으로 복귀`,
       )
-      const refreshed = await fetchAdminProductDetail(detail.id)
-      if (refreshed) setDetail(refreshed)
+      // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: 자동복귀도 로컬 패치 — manifest
+      const fallbackPatch =
+        slot === 2
+          ? { imageUrl2: null, imageSource2: undefined, imageDisplayName2: undefined }
+          : { imageManualSelected: false, imageSelectionMode: null }
+      const patched = applyScheduleDayEntryLocal(day, data.dayEntry, fallbackPatch)
+      if (!patched) {
+        const refreshed = await fetchAdminProductDetail(detail.id)
+        if (refreshed) setDetail(refreshed)
+      }
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
     }
@@ -1553,7 +1650,7 @@ export default function AdminPendingDetailPanel({
         primaryRegion: primaryRegion || detail.primaryRegion || null,
         themeTags: themeTags || detail.themeTags || null,
         displayCategory: displayCategory || detail.displayCategory || null,
-        scheduleJson: detail.schedule ?? null,
+        // 일차 생성은 promptOverride만 사용 — 전체 scheduleJson 전송 생략(페이로드·파싱 비용)
         promptOverride: dayPrompt,
         /** 일차 수급: 2후보만 — 4슬롯 순차 대비 체감 단축 (API는 병렬) */
         maxSlots: 2,

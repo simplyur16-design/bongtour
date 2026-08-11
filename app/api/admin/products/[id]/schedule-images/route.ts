@@ -159,6 +159,8 @@ export async function POST(request: Request, { params }: RouteParams) {
         imageKeyword: savedRow?.imageKeyword ?? persistedKw ?? null,
         imageKeyword2: savedRow?.imageKeyword2 ?? persistedKw2 ?? null,
         imageUrl: null,
+        // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: keyword 응답으로 로컬 schedule 패치 — manifest
+        dayEntry: savedRow ?? null,
       })
     }
     let schedule: ScheduleEntry[] = []
@@ -469,6 +471,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       imageUrl: clearManualOnly ? null : persistedImageUrl || null,
       source,
       manualSelected,
+      // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: apply 응답 dayEntry로 full product GET 생략 — manifest
+      dayEntry: next.find((x) => Number(x.day) === day) ?? null,
     })
   } catch (e) {
     console.error(e)

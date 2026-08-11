@@ -2628,6 +2628,39 @@
       ]
     },
     {
+      "id": "admin-pending-photo-register-local-patch",
+      "tier": ["prebuild", "ci"],
+      "summary": "등록대기 사진수급 — keyword/apply 후 전체 product GET 생략·저장 키워드 우선·schedule 로컬 패치",
+      "checks": [
+        {
+          "file": "lib/admin-pending-schedule-local-patch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-photo-register-local-patch]",
+            "patchProductScheduleJsonDay",
+            "preferStoredScheduleImageKeyword"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-photo-register-local-patch]",
+            "applyScheduleDayEntryLocal",
+            "preferStoredScheduleImageKeyword",
+            "useMemo",
+            "keyword 저장 후 full refetch 생략"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/schedule-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-photo-register-local-patch]",
+            "dayEntry"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/admin-pending-schedule-local-patch.test.ts"]
+    },
+    {
       "id": "home-main-nav-chips-on-narrow",
       "tier": ["prebuild", "ci"],
       "summary": "홈(/·/m)은 hideMobileNav 금지 — 좁은 폭에서도 MAIN_NAV 5칩(해외·자유·eSIM·우리끼리·공공) 진입",
