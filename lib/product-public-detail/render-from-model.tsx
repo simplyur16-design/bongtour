@@ -23,11 +23,11 @@ import type { ProductDetailViewRow } from '@/lib/product-public-detail/build-ren
 
 function resolveSeoProductPath(
   seo: { productPath?: string },
-  product: { id: string; slug?: string | null },
+  product: { id: string | number; slug?: string | null },
 ): string {
   const fromSeo = seo.productPath?.trim()
   if (fromSeo) return fromSeo
-  return publicProductPath({ id: product.id, slug: product.slug ?? null })
+  return publicProductPath({ id: String(product.id), slug: product.slug ?? null })
 }
 
 export function renderProductDetailFromModel(
