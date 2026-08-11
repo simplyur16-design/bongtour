@@ -500,7 +500,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /남보타사|Nanputuo/i, en: "Nanputuo Temple" },
   { re: /(?:하문|샤먼|厦門|厦门|Xiamen).{0,20}중산로|중산로.{0,20}(?:하문|샤먼|厦門|厦门|Xiamen)/u, en: "Zhongshan Road Xiamen" },
   { re: /(?:칭다오|청도|Qingdao).{0,20}중산로|중산로.{0,20}(?:칭다오|청도|Qingdao)/u, en: "Zhongshan Road Qingdao" },
-  { re: /코타\s*키나발루|Kota\s*Kinabalu/i, en: 'Kota Kinabalu Malaysia' },
+  { re: /코타\s*키나발루|Kota\s*Kinabalu/i, en: 'Kota Kinabalu' },
   { re: /페트로나스|Petronas/i, en: 'Petronas Twin Towers Kuala Lumpur' },
   { re: /바투\s*동굴|Batu\s*Caves/i, en: 'Batu Caves Kuala Lumpur' },
   { re: /메르데카\s*광장|Merdeka\s*Square/i, en: 'Merdeka Square Kuala Lumpur' },
@@ -960,7 +960,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /라플린|Laughlin/i, en: "Laughlin Colorado River casino strip" },
   { re: /코닥\s*극장|Kodak\s*Theatre|TCL\s*Chinese/i, en: "TCL Chinese Theatre Hollywood" },
   { re: /니지노마츠바라|Nijinomatsubara|虹の松原/u, en: "Nijinomatsubara pine grove Saga Japan" },
-  { re: /KK\s*스타\s*라운지|KK\s*Star\s*Lounge/i, en: "Kota Kinabalu waterfront sunset" },
+  { re: /KK\s*스타\s*라운지|KK\s*Star\s*Lounge/i, en: "Signal Hill Kota Kinabalu" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all — manifest
   { re: /껌벽/i, en: "Juneau Waterfront Alaska" },
   { re: /주노|Juneau/i, en: "Juneau Alaska waterfront" },

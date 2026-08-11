@@ -1067,7 +1067,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   '코닥 극장': 'TCL Chinese Theatre Hollywood',
   니지노마츠바라: 'Nijinomatsubara pine grove Saga',
   // REGRESSION-FREEZE[pexels-keyword-kk-fireflies-context]: KK 스타 라운지 → Kota Kinabalu (Petronas 중복키 금지) — manifest
-  'KK 스타 라운지': 'Kota Kinabalu waterfront sunset',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour AMP7017 KK — lounge waterfront over bare city hub — manifest
+  // waterfront/sunset는 finalize trailing strip → bare Kota Kinabalu 회귀; Signal Hill로 고정
+  'KK 스타 라운지': 'Signal Hill Kota Kinabalu',
+  'KK스타라운지': 'Signal Hill Kota Kinabalu',
+  'KK Star Lounge': 'Signal Hill Kota Kinabalu',
   '오르도스 박물관': 'Ordos Museum Inner Mongolia',
   마카테테: 'Makatete Hill',
   '마카테테 힐': 'Makatete Hill',

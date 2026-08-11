@@ -9,6 +9,7 @@ import {
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isHotelLodgingImageKeyword } from '@/lib/pexels-place-name-keyword'
 
 export type RegisterScheduleRouteTextBackfillRow = {
   day: number
@@ -29,12 +30,31 @@ export function isRegisterScheduleFreeTimeOrResortLeisureText(text: string | nul
   )
 }
 
+/** 호텔·숙박명 only route — 인접일 관광(라운지·호핑) 세그먼트 병합 금지 */
+// REGRESSION-FREEZE[register-schedule-route-expression-normalize]: AMP7017 hotel-only ≠ KK lounge steal — manifest
+export function isRegisterScheduleHotelOnlyRouteText(text: string | null | undefined): boolean {
+  const t = String(text ?? '').trim()
+  if (!t) return false
+  if (isRegisterScheduleFreeTimeOrResortLeisureText(t)) return false
+  const segs = splitRouteTextPlaceSegments(t)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2)
+  if (!segs.length) return false
+  return segs.every(
+    (s) =>
+      isHotelLodgingImageKeyword(s) ||
+      /(?:호텔|Hotel|Resort|리조트|펜션|모텔|게스트하우스|판보르네오|Pan\s*Borneo)/i.test(s),
+  )
+}
+
 /** modetour·API placeholder routeText — 인접일 backfill 대상 */
 export function isRegisterSchedulePlaceholderRouteText(routeText: string | null | undefined): boolean {
   const t = String(routeText ?? '').trim()
   if (!t) return true
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·리조트일은 placeholder로 보지 않음 — manifest
   if (isRegisterScheduleFreeTimeOrResortLeisureText(t)) return false
+  // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: AMP7017 hotel-only ≠ KK lounge steal — manifest
+  if (isRegisterScheduleHotelOnlyRouteText(t)) return false
   if (isRegisterScheduleGenericTourismFillerRouteText(t)) return true
   const segs = t.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean)
   if (!segs.length) return true
@@ -210,7 +230,9 @@ export function backfillMiddleDayRouteTextFromAdjacentDays<T extends RegisterSch
     // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·리조트일에 인접 관광 route 복사 금지 — manifest
     if (
       isRegisterScheduleFreeTimeOrResortLeisureText(route) ||
-      isRegisterScheduleFreeTimeOrResortLeisureText(title)
+      isRegisterScheduleFreeTimeOrResortLeisureText(title) ||
+      isRegisterScheduleHotelOnlyRouteText(route) ||
+      isRegisterScheduleHotelOnlyRouteText(title)
     ) {
       return row
     }

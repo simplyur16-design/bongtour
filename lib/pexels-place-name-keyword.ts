@@ -784,7 +784,7 @@ export function isNonLandmarkHistoricalPrisonImageKeyword(keyword: string): bool
 export function isHotelLodgingImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
-  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인|관광\s*캠프|투어(?:리스트|ist)\s*캠프|포포인츠|포\s*포인트/u.test(raw)) {
+  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인|관광\s*캠프|투어(?:리스트|ist)\s*캠프|포포인츠|포\s*포인트|판보르네오|Pan\s*Borneo/u.test(raw)) {
     return true
   }
   const n = normalizeToPlaceName(raw).toLowerCase()

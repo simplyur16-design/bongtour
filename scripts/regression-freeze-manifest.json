@@ -7513,6 +7513,8 @@
             "normalizeRegisterScheduleRouteExpressionRows",
             "isRegisterScheduleGenericTourismFillerDescription",
             "isRegisterScheduleFreeTimeOrResortLeisureText",
+            "isRegisterScheduleHotelOnlyRouteText",
+            "AMP7017 hotel-only ≠ KK lounge steal",
             "리조트 자유일 empty route ← title"
           ]
         },
@@ -7528,11 +7530,20 @@
             "expandRegisterScheduleRoutePlaceCandidates",
             "hasCmsPlaces"
           ]
+        },
+        {
+          "file": "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-route-expression-normalize]",
+            "AMP7017 hotel-only ≠ KK lounge steal",
+            "supplierKey: 'modetour'"
+          ]
         }
       ],
       "vitestSuites": [
         "lib/register-schedule-route-text-backfill.test.ts",
-        "lib/hanatour-register-detail-collect.test.ts"
+        "lib/hanatour-register-detail-collect.test.ts",
+        "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts"
       ]
     },
     {
@@ -7992,7 +8003,8 @@
         "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
         "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
         "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
-        "lib/modetour-schedule-manado-aip102-image-keyword.test.ts"
+        "lib/modetour-schedule-manado-aip102-image-keyword.test.ts",
+        "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts"
       ]
     },
     {
@@ -8546,6 +8558,7 @@
             "이집트 스핑크스 ≠ Jungfraujoch",
             "ModeTour EMP151 Cairo Coptic churches — Day2 empty 금지",
             "ModeTour AIP102 Manado day-route POI — bare city≠Jesus/Siladen",
+            "ModeTour AMP7017 KK — lounge waterfront over bare city hub",
             "리기≠승리기념탑 — Baltic Victory Monument bleed 금지",
             "Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all",
             "Baltic·Warsaw POI — 빌라누프·체시스",
@@ -8598,6 +8611,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
             "ModeTour AIP102 Manado day-route POI — bare city≠Jesus/Siladen",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "ModeTour AMP7017 KK day-route — hopping≠hotel · lounge owns waterfront",
             "supplierKey: 'modetour'"
           ]
         },
@@ -8709,6 +8730,7 @@
         "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
         "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
         "lib/modetour-schedule-manado-aip102-image-keyword.test.ts",
+        "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts",
         "lib/register-schedule-qingdao-cap104-image-keyword.test.ts"
       ]
     },

@@ -34,6 +34,7 @@ import {
 import {
   finalizeScheduleImageKeyword,
   isAirlineCarrierImageKeyword,
+  isBareCityOrCountryKeyword,
   isHotelLodgingImageKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
   isNonLandmarkHistoricalPrisonImageKeyword,
@@ -472,6 +473,17 @@ export function collectModetourRouteOrderedSegmentKeywords(
     if (!kw) continue
     if (out.some((x) => keysEqual(x, kw))) continue
     out.push(kw)
+  }
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour AMP7017 KK — lounge waterfront over bare city hub — manifest
+  // tourism 일차: 도시 허브보다 당일 명소(라운지·호핑)를 1순위로
+  if (dayKind === 'tourism' && out.length > 1) {
+    const landmarks: string[] = []
+    const hubs: string[] = []
+    for (const kw of out) {
+      if (isBareCityOrCountryKeyword(kw) || isDestinationMapEnglishHubKeyword(kw)) hubs.push(kw)
+      else landmarks.push(kw)
+    }
+    if (landmarks.length > 0) return [...landmarks, ...hubs]
   }
   return out
 }
