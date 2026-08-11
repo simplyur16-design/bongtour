@@ -101,6 +101,7 @@ export default function PrivateQuoteFormEntry() {
       messageRequired
       messageLabel="문의 내용"
       submitButtonLabel="우리견적 문의 접수하기"
+      thankYouFrom="private"
     >
       <div className="space-y-4">
         <div>

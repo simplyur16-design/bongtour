@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useId, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import BongtourDisclosureBlock from '@/components/bongtour/BongtourDisclosureBlock'
-import InquirySuccessPanel from '@/components/bongtour/InquirySuccessPanel'
 import { SHORT_NOTICES } from '@/lib/bongtour-copy'
 import {
   compactPayloadJson,
@@ -10,10 +10,9 @@ import {
   INQUIRY_UI_META,
   type InquiryKind,
   type InquiryPageQuery,
-  type InquirySuccessKind,
 } from '@/lib/inquiry-page'
+import { buildInquiryThankYouHref } from '@/lib/inquiry-thank-you-path'
 import ConsentBlock from '@/components/auth/ConsentBlock'
-import KakaoChannelConsultLink from '@/components/bongtour/KakaoChannelConsultLink'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
 import { optionalEmailFormatError } from '@/lib/email-format'
@@ -62,6 +61,8 @@ export type InquiryFormShellProps = {
   preferredContactChannel?: 'email' | 'kakao' | 'both' | null
   successMessage?: string
   successHintMessage?: string | null
+  /** 접수 완료 URL `from` 쿼리 (우리견적 등) */
+  thankYouFrom?: 'private' | null
 }
 
 export default function InquiryFormShell({
@@ -81,9 +82,9 @@ export default function InquiryFormShell({
   privacyNoticeContent,
   privacyNoticeVersion = 'training-inquiry-v1',
   preferredContactChannel = null,
-  successMessage = '문의가 접수되었습니다. 확인 후 순차적으로 안내드리겠습니다.',
-  successHintMessage = null,
+  thankYouFrom = null,
 }: InquiryFormShellProps) {
+  const router = useRouter()
   const meta = overlayMeta ?? INQUIRY_UI_META[kind]
   const apiType = inquiryKindToApiType(kind)
 
@@ -102,9 +103,6 @@ export default function InquiryFormShell({
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [done, setDone] = useState(false)
-  /** 접수 DB 성공 후 운영자 이메일 알림이 실패한 경우 */
-  const [notificationDelayed, setNotificationDelayed] = useState(false)
 
   const baseId = useId()
   const ids = useMemo(
@@ -137,7 +135,6 @@ export default function InquiryFormShell({
   const submit = useCallback(async () => {
     setFormError(null)
     setFieldErrors({})
-    setNotificationDelayed(false)
     setSubmitting(true)
     try {
       const q = initialQuery
@@ -227,8 +224,15 @@ export default function InquiryFormShell({
         (notify.ok === false ||
           notify.channels?.email?.ok === false ||
           (notify.channels?.adminLms && !notify.channels.adminLms.skipped && notify.channels.adminLms.ok === false))
-      setNotificationDelayed(Boolean(notifyFailed))
-      setDone(true)
+      // REGRESSION-FREEZE[inquiry-thank-you-redirect]: 접수 성공 → thank-you URL — manifest
+      router.replace(
+        buildInquiryThankYouHref({
+          kind,
+          delayed: Boolean(notifyFailed),
+          contact: preferredContactChannel,
+          from: thankYouFrom,
+        }),
+      )
     } catch {
       setFormError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
     } finally {
@@ -251,37 +255,10 @@ export default function InquiryFormShell({
     privacyNoticeVersion,
     hpTrap,
     formOpenedAt,
+    router,
+    kind,
+    thankYouFrom,
   ])
-
-  if (done) {
-    const showOpenKakaoCta =
-      preferredContactChannel === 'kakao' || preferredContactChannel === 'both'
-    const kakaoGuide =
-      preferredContactChannel === 'kakao'
-        ? '문의가 접수되었습니다. 카카오톡 상담을 원하신 경우 아래 버튼을 통해 오픈카카오톡으로도 바로 상담을 이어가실 수 있습니다.'
-        : '문의가 접수되었습니다. 선택하신 답변 방법을 기준으로 순차적으로 안내드리겠습니다. 카카오톡 상담을 원하시면 아래 오픈카카오톡을 통해 추가로 상담을 이어가실 수 있습니다.'
-    return (
-      <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-        <InquirySuccessPanel type={kind as InquirySuccessKind} />
-        {notificationDelayed ? (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center">
-            <p className="text-sm font-medium text-slate-900">문의는 정상 접수되었습니다.</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-700">알림 전송이 지연될 수 있습니다.</p>
-          </div>
-        ) : (
-          <p className="mt-4 text-center text-sm text-slate-700">{successMessage}</p>
-        )}
-        {successHintMessage ? <p className="mt-2 text-center text-xs text-slate-600">{successHintMessage}</p> : null}
-        {showOpenKakaoCta ? (
-          <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-center">
-            <p className="text-xs leading-relaxed text-slate-700">{kakaoGuide}</p>
-            <KakaoChannelConsultLink className="mt-3 w-full" />
-          </div>
-        ) : null}
-        <p className="mt-6 text-center text-xs text-slate-500">{SHORT_NOTICES.inquiryForm}</p>
-      </div>
-    )
-  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
