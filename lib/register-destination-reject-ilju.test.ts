@@ -87,6 +87,66 @@ describe('register-destination-reject-ilju', () => {
     expect(isRegisterDestinationPollutionLabel('풀패키지')).toBe(true)
     expect(isRegisterDestinationPollutionLabel('2030전용')).toBe(true)
     expect(isRegisterDestinationPollutionLabel('KE')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('아일랜드 호핑')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('KK 라운지')).toBe(true)
+  })
+
+  it('KK schedule activities never become destination cities', () => {
+    const r = resolveModetourRegisterDestination({
+      title: '[기간한정특가][노쇼핑+호핑투어+시내라운지+레체] 코타키나발루 판보르네오 시티뷰 3박5일',
+      pastedBody: '',
+      travelCitiesRaw: '코타키나발루, 아일랜드 호핑, KK 라운지',
+    })
+    expect(r.primaryDestination).toBe('코타키나발루')
+    expect(r.destination).toBe('코타키나발루')
+    expect(String(r.destinationRaw ?? '')).toBe('코타키나발루')
+    expect(String(r.primaryDestination ?? '')).not.toMatch(/호핑|라운지|외\s*\d+\s*도시/)
+
+    expect(
+      finalizeRegisterDestinationFields({
+        title: '코타키나발루 3박5일',
+        destination: '코타키나발루',
+        destinationRaw: '코타키나발루, 달빛 나들이 투어, 이마고 쇼핑몰, 플로팅선셋 반딧불투어',
+        primaryDestination: '코타키나발루',
+      }).destinationRaw,
+    ).toBe('코타키나발루')
+
+    const fin = finalizeRegisterDestinationFields({
+      title: '[기간한정특가] 코타키나발루 판보르네오 3박5일',
+      destination: '코타키나발루 · 아일랜드 호핑 외 2도시',
+      destinationRaw: '코타키나발루, 아일랜드 호핑, KK 라운지',
+      primaryDestination: '코타키나발루 · 아일랜드 호핑 외 2도시',
+    })
+    expect(fin.primaryDestination).toBe('코타키나발루')
+    expect(fin.destinationRaw).toBe('코타키나발루')
+
+    expect(
+      resolveProductListDestinationLabel({
+        primaryDestination: '코타키나발루 · 아일랜드 호핑 외 2도시',
+        destinationRaw: '코타키나발루, 아일랜드 호핑, KK 라운지',
+        title: '코타키나발루 3박5일',
+        countryKey: 'malaysia',
+      }),
+    ).toBe('코타키나발루')
+
+    expect(
+      finalizeRegisterDestinationFields({
+        title: '[2030전용] 나트랑 5일 #해적호핑투어',
+        destination: '나트랑 해적 호핑',
+        destinationRaw: '나트랑 해적 호핑, 나트랑 레일웨이 카페, 판랑사막',
+        primaryDestination: '나트랑 해적 호핑',
+      }).primaryDestination,
+    ).toBe('나트랑')
+
+    expect(
+      finalizeRegisterDestinationFields({
+        title: '[초특가] [2030전용] 푸꾸옥 5일 #크레이지호핑투어',
+        destination: '크레이지 호핑',
+        destinationRaw: '크레이지 호핑, 소나시 비치바 푸꾸옥',
+        primaryDestination: '크레이지 호핑',
+        countryKey: 'vietnam',
+      }).primaryDestination,
+    ).toBe('푸꾸옥')
   })
 
   it('heal: polluted current → title / countryKey', () => {

@@ -3,6 +3,7 @@
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
+import { filterRegisterDestinationPlaceTokens } from '@/lib/register-destination-schedule-activity-noise'
 import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 
 export type HanatourRegisterDestinationResolved = {
@@ -96,10 +97,12 @@ function normalizeHanatourRouteToCityList(raw: string): string {
 
 function parseCityTokens(raw: string): string[] {
   const normalized = /[-–‑]/.test(raw) && !/,/.test(raw) ? normalizeHanatourRouteToCityList(raw) : raw
-  return normalized
-    .split(/[,，、/／·|]/)
-    .map((p) => p.replace(/\s+/g, ' ').trim())
-    .filter((p) => p.length >= 2)
+  return filterRegisterDestinationPlaceTokens(
+    normalized
+      .split(/[,，、/／·|]/)
+      .map((p) => p.replace(/\s+/g, ' ').trim())
+      .filter((p) => p.length >= 2),
+  )
 }
 
 function regionsFromHanatourTitle(title: string): string[] {

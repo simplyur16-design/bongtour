@@ -3,6 +3,7 @@
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
+import { filterRegisterDestinationPlaceTokens } from '@/lib/register-destination-schedule-activity-noise'
 
 export type YbtourRegisterDestinationResolved = {
   destination: string
@@ -45,15 +46,17 @@ export function extractYbtourVisitCitiesRawFromPaste(blob: string): string | nul
 }
 
 function parseCityTokens(raw: string): string[] {
-  return raw
-    .split(/[,，、/／·|]/)
-    .map((p) =>
-      p
-        .replace(/\(\d+\)/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim(),
-    )
-    .filter((p) => p.length >= 2 && !/^(인천|ICN|서울|한국)$/i.test(p))
+  return filterRegisterDestinationPlaceTokens(
+    raw
+      .split(/[,，、/／·|]/)
+      .map((p) =>
+        p
+          .replace(/\(\d+\)/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      )
+      .filter((p) => p.length >= 2),
+  )
 }
 
 function regionsFromYbtourTitle(title: string): string[] {

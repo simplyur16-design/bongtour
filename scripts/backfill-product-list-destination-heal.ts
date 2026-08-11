@@ -22,6 +22,10 @@ import {
   finalizeRegisterDestinationFields,
   isRegisterDestinationPollutionLabel,
 } from '@/lib/register-destination-finalize'
+import {
+  isRegisterDestinationScheduleActivityToken,
+  splitRegisterDestinationPlaceTokens,
+} from '@/lib/register-destination-schedule-activity-noise'
 
 const dryRun = process.argv.includes('--dry-run')
 const apply = process.argv.includes('--apply')
@@ -44,6 +48,14 @@ function needsHeal(fields: {
     const t = String(v ?? '').trim()
     if (!t) continue
     if (isRegisterDestinationPollutionLabel(t)) return true
+    // REGRESSION-FREEZE[register-destination-reject-ilju]: heal schedule-activity polluted labels — manifest
+    if (
+      splitRegisterDestinationPlaceTokens(t).some((tok) =>
+        isRegisterDestinationScheduleActivityToken(tok),
+      )
+    ) {
+      return true
+    }
   }
   return false
 }

@@ -4,6 +4,7 @@
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
+import { filterRegisterDestinationPlaceTokens } from '@/lib/register-destination-schedule-activity-noise'
 import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
 import {
   acceptSupplierRegisterDestinationCandidate,
@@ -116,16 +117,17 @@ export function extractLottetourTravelCitiesRawFromPaste(blob: string): string |
 }
 
 function parseCityTokens(raw: string): string[] {
-  return raw
-    .split(/[,，、/／·|]/)
-    .map((p) => p.replace(/\s+/g, ' ').trim())
-    .filter(
-      (p) =>
-        p.length >= 2 &&
-        !/^\d+$/.test(p) &&
-        !/^(인천|ICN|서울|한국)$/i.test(p) &&
-        !isSupplierRegisterDestinationUiLabel(p),
-    )
+  return filterRegisterDestinationPlaceTokens(
+    raw
+      .split(/[,，、/／·|]/)
+      .map((p) => p.replace(/\s+/g, ' ').trim())
+      .filter(
+        (p) =>
+          p.length >= 2 &&
+          !/^\d+$/.test(p) &&
+          !isSupplierRegisterDestinationUiLabel(p),
+      ),
+  )
 }
 
 function regionsFromLottetourTitle(title: string): string[] {

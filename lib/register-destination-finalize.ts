@@ -1,6 +1,6 @@
 /**
  * REGRESSION-FREEZE[register-destination-reject-ilju]: destination pollution SSOT — manifest
- * bare 「일주」·프로모·항공 안내·정책 뱃지는 목록「지역」/등록 destination에 쓰지 않음.
+ * bare 「일주」·프로모·항공 안내·정책 뱃지·일정 액티비티는 목록「지역」/등록 destination에 쓰지 않음.
  */
 import { isSupplierRegisterDestinationUiLabel } from '@/lib/supplier-register-destination-forbidden'
 import { isSupplierTitlePromoBadgeText } from '@/lib/supplier-product-title-display'
@@ -8,6 +8,12 @@ import {
   firstRegisterDestinationPlaceFromTitleHead,
   isRegisterDestinationTourStyleNoiseToken,
 } from '@/lib/register-destination-tour-style-noise'
+import {
+  isRegisterDestinationScheduleActivityToken,
+  scrubRegisterDestinationComposedPlaceLabel,
+  scrubRegisterDestinationRawPlaceList,
+  splitRegisterDestinationPlaceTokens,
+} from '@/lib/register-destination-schedule-activity-noise'
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
@@ -37,6 +43,15 @@ export function isRegisterDestinationPollutionLabel(raw: string | null | undefin
   if (t.length < 2 && !/[가-힣]/.test(t)) return true
   if (t === '미지정' || t === '—' || /^unknown$/i.test(t)) return true
   if (isRegisterDestinationTourStyleNoiseToken(t)) return true
+  // 조합 라벨은 scrubRegisterDestinationComposedPlaceLabel에서 액티비티만 제거 — 통째로 pollution 처리하지 않음
+  if (
+    !/\s·\s/.test(t) &&
+    !/외\s*\d+\s*도시/u.test(t) &&
+    !/[,，、]/.test(t) &&
+    isRegisterDestinationScheduleActivityToken(t)
+  ) {
+    return true
+  }
   if (isSupplierRegisterDestinationUiLabel(t)) return true
   if (isSupplierTitlePromoBadgeText(t)) return true
   if (CHANNEL_OR_OFFER_LABEL_RE.test(t)) return true
@@ -72,6 +87,10 @@ function isLikelyPlaceBracketInner(inner: string): boolean {
   if (/\s/.test(t) && t.length > 18) return false
   if (/ROOM|VIEW|HOTEL|UPGRADE|DELUXE|SUITE/i.test(t)) return false
   if (/^[A-Za-z0-9][A-Za-z0-9\s\-_/]*$/.test(t) && t.split(/\s+/).length >= 2) return false
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: promo brackets ≠ place — manifest
+  if (/(?:초)?특가|기간\s*한정|실시간|노쇼핑|노옵션|노팁|풀\s*패키지|온라인\s*전용|2030\s*전용/i.test(t)) {
+    return false
+  }
   return true
 }
 
@@ -97,12 +116,32 @@ function isComposedRegisterDestinationLabel(t: string): boolean {
   return /\s·\s/.test(t) || /\S\s\([^)]*\)$/.test(t)
 }
 
+function labelHasScheduleActivityPollution(raw: string): boolean {
+  const t = String(raw ?? '').trim()
+  if (!t) return false
+  if (isRegisterDestinationPollutionLabel(t) && isRegisterDestinationScheduleActivityToken(t)) {
+    return true
+  }
+  return splitRegisterDestinationPlaceTokens(t).some((tok) =>
+    isRegisterDestinationScheduleActivityToken(tok),
+  )
+}
+
 function firstCleanStoredDestination(
   ...candidates: Array<string | null | undefined>
 ): string | null {
   for (const c of candidates) {
     const t = String(c ?? '').trim()
-    if (!t || isRegisterDestinationPollutionLabel(t)) continue
+    if (!t) continue
+    // REGRESSION-FREEZE[register-destination-reject-ilju]: composed label drop schedule activities — manifest
+    if (labelHasScheduleActivityPollution(t)) {
+      const scrubbedComposed = scrubRegisterDestinationComposedPlaceLabel(t)
+      if (scrubbedComposed && !isRegisterDestinationPollutionLabel(scrubbedComposed)) {
+        return scrubbedComposed
+      }
+      continue
+    }
+    if (isRegisterDestinationPollutionLabel(t)) continue
     const head = isComposedRegisterDestinationLabel(t)
       ? t
       : firstRegisterDestinationPlaceFromTitleHead(t) || t
@@ -183,23 +222,25 @@ export function finalizeRegisterDestinationFields(input: {
   destinationRaw: string | null
   primaryDestination: string | null
 } {
-  const healed =
-    firstCleanStoredDestination(
-      input.primaryDestination,
-      input.destination,
-      input.destinationRaw,
-    ) ||
-    healRegisterDestinationLabel({
-      title: input.title,
-      countryKey: input.countryKey,
-      current: null,
-    })
+  const fromPrimaryDest = firstCleanStoredDestination(
+    input.primaryDestination,
+    input.destination,
+  )
+  const fromTitle = healRegisterDestinationLabel({
+    title: input.title,
+    countryKey: input.countryKey,
+    current: null,
+  })
+  // destinationRaw는 일정 places 덤프라 title보다 후순위 (카페·클럽 잔류 방지)
+  const fromRaw = firstCleanStoredDestination(input.destinationRaw)
+  const healed = fromPrimaryDest || fromTitle || fromRaw
 
   const dest = healed || '미지정'
   const rawCandidate = String(input.destinationRaw ?? '').trim()
+  const scrubbedRaw = scrubRegisterDestinationRawPlaceList(rawCandidate)
   const raw =
-    rawCandidate && !isRegisterDestinationPollutionLabel(rawCandidate)
-      ? rawCandidate.slice(0, 500)
+    scrubbedRaw && !isRegisterDestinationPollutionLabel(scrubbedRaw)
+      ? scrubbedRaw
       : dest === '미지정'
         ? null
         : dest

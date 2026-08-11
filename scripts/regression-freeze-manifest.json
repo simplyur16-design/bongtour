@@ -12008,7 +12008,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "등록 destination — bare 「일주」/개국 일주 금지 (메가메뉴 지역 오염)",
+      "summary": "등록 destination — bare 「일주」/개국·일정 액티비티(호핑·라운지) 금지 (메가메뉴 지역 오염)",
       "checks": [
         {
           "file": "lib/register-destination-tour-style-noise.ts",
@@ -12016,6 +12016,15 @@
             "REGRESSION-FREEZE[register-destination-reject-ilju]",
             "isRegisterDestinationTourStyleNoiseToken",
             "filterRegisterDestinationTitlePlaceTokens"
+          ]
+        },
+        {
+          "file": "lib/register-destination-schedule-activity-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "isRegisterDestinationScheduleActivityToken",
+            "호핑·라운지·자유일정 ≠ 도시",
+            "factSchedulePlacesToTravelCitiesRaw"
           ]
         },
         {
@@ -12060,14 +12069,24 @@
             "REGRESSION-FREEZE[register-destination-reject-ilju]",
             "isRegisterDestinationPollutionLabel",
             "healRegisterDestinationLabel",
-            "finalizeRegisterDestinationFields"
+            "finalizeRegisterDestinationFields",
+            "composed label drop schedule activities",
+            "promo brackets ≠ place"
           ]
         },
         {
           "file": "lib/verygoodtour-listing-title-from-paste.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-destination-reject-ilju]",
-            "healRegisterDestinationLabel"
+            "healRegisterDestinationLabel",
+            "list drops schedule activities"
+          ]
+        },
+        {
+          "file": "scripts/backfill-product-list-destination-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-destination-reject-ilju]",
+            "heal schedule-activity polluted labels"
           ]
         }
       ],

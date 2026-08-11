@@ -24,7 +24,7 @@ import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { REGISTER_AIR_HOTEL_PREVIEW_POLICY_NOTE } from '@/lib/register-air-hotel-admin-path'
 import { ensureHanatourRegisterScheduleImageKeywords, augmentHanatourParsedWithDetailCollect } from '@/lib/hanatour-register-detail-collect'
 import { resolveHanatourRegisterDestination } from '@/lib/hanatour-register-destination-from-paste'
-import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import { factSchedulePlacesToTravelCitiesRaw } from '@/lib/register-destination-schedule-activity-noise'
 import { buildHanatourFlightStructuredFromFactLegs } from '@/lib/register-facts/hanatour-register-fact-flights'
 import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
@@ -65,27 +65,6 @@ function buildDuration(nights: number | null, days: number | null): string {
   if (nights != null && days != null) return `${nights}박 ${days}일`
   if (days != null) return `${days}일`
   return ''
-}
-
-function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): string | null {
-  const out: string[] = []
-  const seen = new Set<string>()
-  for (const day of days) {
-    for (const raw of day.places) {
-      const label = String(raw ?? '')
-        .replace(/\s*\([^)]*\)\s*/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      if (label.length < 2 || label.length > 40) continue
-      if (/^(?:인천|ICN|서울|김포|공항|출발|도착)$/i.test(label)) continue
-      if (/조식|중식|석식|기내/i.test(label)) continue
-      const key = label.toLowerCase()
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push(label)
-    }
-  }
-  return out.length > 0 ? out.slice(0, 15).join(', ') : null
 }
 
 /** originUrl + 선택 붙여넣기(혜택·쿠폰 등) → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */

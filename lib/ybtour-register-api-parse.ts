@@ -15,9 +15,10 @@ import {
   ybtourScheduleBundleToRegisterSchedule,
 } from '@/lib/ybtour-register-api-detail'
 import { resolveYbtourRegisterDestination } from '@/lib/ybtour-register-destination-from-paste'
+import { factSchedulePlacesToTravelCitiesRaw } from '@/lib/register-destination-schedule-activity-noise'
 import { collectYbtourRegisterFacts } from '@/lib/register-facts/ybtour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
-import type { RegisterFactPriceRow, RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-ybtour'
@@ -80,27 +81,6 @@ export function ybtourPrefetchScheduleHasRouteCoverage(
   const maxDay = Math.max(...days.map((d) => Number(d.day)))
   const needRoute = days.filter((d) => Number(d.day) < maxDay || days.length === 1)
   return needRoute.every((d) => String(d.routeText ?? '').trim().length > 0)
-}
-
-function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): string | null {
-  const out: string[] = []
-  const seen = new Set<string>()
-  for (const day of days) {
-    for (const raw of day.places) {
-      const label = String(raw ?? '')
-        .replace(/\s*\([^)]*\)\s*/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      if (label.length < 2 || label.length > 80) continue
-      if (/^(?:인천|ICN|서울|김포|공항|출발|도착)$/i.test(label)) continue
-      if (/조식|중식|석식|기내/i.test(label)) continue
-      const key = label.toLowerCase()
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push(label)
-    }
-  }
-  return out.length > 0 ? out.slice(0, 15).join(', ') : null
 }
 
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */

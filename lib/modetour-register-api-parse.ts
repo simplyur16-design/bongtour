@@ -10,7 +10,7 @@ import { resolveModetourRegisterDestination } from '@/lib/modetour-register-dest
 import { resolveModetourRegisterProductTitle } from '@/lib/modetour-register-product-title-ssot'
 import { collectModetourRegisterFacts } from '@/lib/register-facts/modetour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
-import type { RegisterFactPriceRow, RegisterFactScheduleDay } from '@/lib/register-facts/types'
+import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
 import type { ParsedProductPrice } from '@/lib/parsed-product-types'
 import type { RegisterParsed, RegisterLlmParseOptionsCommon } from '@/lib/register-llm-schema-modetour'
@@ -27,6 +27,7 @@ import {
 import { isRegisterAirHotelListing } from '@/lib/register-admin-airtel-listing'
 import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
 import { buildModetourFlightStructuredFromFactLegs } from '@/lib/register-facts/modetour-register-fact-mappers'
+import { factSchedulePlacesToTravelCitiesRaw } from '@/lib/register-destination-schedule-activity-noise'
 
 const MODETOUR_PRICE_SLOT_SSOT_NOTE =
   '모두투어 가격표: adultPrice=성인, childExtraBedPrice=아동, childNoBedPrice=아동(무침대), infantPrice=유아. 달력은 GetOtherDepartureDates_lite SSOT.'
@@ -64,27 +65,6 @@ function buildDuration(nights: number | null, days: number | null): string {
   if (nights != null && days != null) return `${nights}박 ${days}일`
   if (days != null) return `${days}일`
   return ''
-}
-
-function factSchedulePlacesToTravelCitiesRaw(days: RegisterFactScheduleDay[]): string | null {
-  const out: string[] = []
-  const seen = new Set<string>()
-  for (const day of days) {
-    for (const raw of day.places) {
-      const label = String(raw ?? '')
-        .replace(/\s*\([^)]*\)\s*/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      if (label.length < 2 || label.length > 40) continue
-      if (/^(?:인천|ICN|서울|김포|공항|출발|도착)$/i.test(label)) continue
-      if (/조식|중식|석식|기내/i.test(label)) continue
-      const key = label.toLowerCase()
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push(label)
-    }
-  }
-  return out.length > 0 ? out.slice(0, 15).join(', ') : null
 }
 
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */

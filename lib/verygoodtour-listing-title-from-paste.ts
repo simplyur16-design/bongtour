@@ -9,6 +9,11 @@ import {
   healRegisterDestinationLabel,
   isRegisterDestinationPollutionLabel,
 } from '@/lib/register-destination-finalize'
+import {
+  isRegisterDestinationScheduleActivityToken,
+  scrubRegisterDestinationComposedPlaceLabel,
+  splitRegisterDestinationPlaceTokens,
+} from '@/lib/register-destination-schedule-activity-noise'
 
 const SKIP_LINE_RE =
   /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험|여행\s*주요)/i
@@ -177,6 +182,15 @@ export function resolveProductListDestinationLabel(input: {
   for (const c of candidates) {
     if (isSupplierRegisterDestinationUiLabel(c)) continue
     if (isRegisterDestinationPollutionLabel(c)) continue
+    // REGRESSION-FREEZE[register-destination-reject-ilju]: list drops schedule activities — manifest
+    const hasActivity = splitRegisterDestinationPlaceTokens(c).some((tok) =>
+      isRegisterDestinationScheduleActivityToken(tok),
+    )
+    if (hasActivity) {
+      const scrubbed = scrubRegisterDestinationComposedPlaceLabel(c)
+      if (scrubbed && !isRegisterDestinationPollutionLabel(scrubbed)) return scrubbed
+      continue
+    }
     const usable = extractNonPolicyDestinationFragment(c)
     if (usable && !isRegisterDestinationPollutionLabel(usable)) return usable
   }
