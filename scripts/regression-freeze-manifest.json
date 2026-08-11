@@ -2610,6 +2610,23 @@
       ]
     },
     {
+      "id": "season-mobile-briefing-br-overlay",
+      "tier": ["prebuild", "ci"],
+      "summary": "모바일 시즌 브리핑 — 제목·CTA 우측 하단 + clamp 가변 폰트(사진 가림 완화)",
+      "checks": [
+        {
+          "file": "app/components/home/SeasonCurationCarouselClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[season-mobile-briefing-br-overlay]",
+            "mobileBriefing",
+            "items-end justify-end",
+            "text-[clamp(1.05rem,4.6vw,1.45rem)]",
+            "text-right"
+          ]
+        }
+      ]
+    },
+    {
       "id": "home-main-nav-chips-on-narrow",
       "tier": ["prebuild", "ci"],
       "summary": "홈(/·/m)은 hideMobileNav 금지 — 좁은 폭에서도 MAIN_NAV 5칩(해외·자유·eSIM·우리끼리·공공) 진입",

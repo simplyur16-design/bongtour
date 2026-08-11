@@ -166,7 +166,11 @@ export function SeasonCurationCardLink({
           )}
         </div>
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[55%] bg-gradient-to-t from-black/65 via-black/18 to-transparent"
+          className={
+            mobileBriefing
+              ? 'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[48%] bg-gradient-to-tl from-black/72 via-black/20 to-transparent'
+              : 'pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[55%] bg-gradient-to-t from-black/65 via-black/18 to-transparent'
+          }
           aria-hidden
         />
         <div
@@ -174,7 +178,8 @@ export function SeasonCurationCardLink({
             hero
               ? 'items-end justify-end pb-8 pr-4 pt-0 sm:pb-12 sm:pr-6'
               : mobileBriefing
-                ? 'justify-end p-5'
+                ? // REGRESSION-FREEZE[season-mobile-briefing-br-overlay]: 제목·CTA 우측 하단 — manifest
+                  'items-end justify-end p-3.5 pb-4 pr-3.5 sm:p-5'
                 : compact
                   ? 'justify-end p-4'
                   : 'justify-end p-6 sm:p-8'
@@ -184,11 +189,19 @@ export function SeasonCurationCardLink({
             className={
               hero
                 ? `${SITE_CONTENT_CLASS} flex w-full flex-col items-end justify-end text-right`
-                : 'h-full w-full'
+                : mobileBriefing
+                  ? 'flex w-full max-w-[min(92%,18.5rem)] flex-col items-end text-right sm:max-w-[min(88%,22rem)]'
+                  : 'h-full w-full'
             }
           >
           {slide.monthKey ? (
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/85">{slide.monthKey}</p>
+            <p
+              className={`mb-1 font-semibold uppercase tracking-wider text-white/85 ${
+                mobileBriefing ? 'text-[clamp(0.65rem,2.6vw,0.75rem)]' : 'text-xs'
+              }`}
+            >
+              {slide.monthKey}
+            </p>
           ) : null}
           {title ? (
             <h3
@@ -196,7 +209,7 @@ export function SeasonCurationCardLink({
                 hero
                   ? 'text-3xl sm:text-4xl lg:text-5xl'
                   : mobileBriefing
-                    ? 'text-2xl'
+                    ? 'text-[clamp(1.05rem,4.6vw,1.45rem)]'
                     : compact
                       ? 'text-lg'
                       : 'text-2xl sm:text-3xl'
@@ -211,7 +224,7 @@ export function SeasonCurationCardLink({
                 hero
                   ? 'max-w-3xl text-lg sm:text-xl'
                   : mobileBriefing
-                    ? 'text-base line-clamp-3'
+                    ? 'line-clamp-2 text-[clamp(0.78rem,3.3vw,0.95rem)] leading-snug'
                     : compact
                       ? 'text-sm line-clamp-2'
                       : 'text-base sm:text-lg'
@@ -225,7 +238,7 @@ export function SeasonCurationCardLink({
                 hero
                   ? 'max-w-3xl text-base sm:text-lg line-clamp-3'
                   : mobileBriefing
-                    ? 'text-base line-clamp-3'
+                    ? 'line-clamp-2 text-[clamp(0.78rem,3.3vw,0.95rem)] leading-snug'
                     : compact
                       ? 'text-sm line-clamp-2'
                       : 'line-clamp-2 text-base'
@@ -235,8 +248,14 @@ export function SeasonCurationCardLink({
             </p>
           ) : null}
           <span
-            className={`mt-5 inline-flex w-fit items-center rounded-full bg-white/95 px-5 py-2.5 font-bold text-bt-text-navy shadow ${
-              hero ? 'text-base sm:text-lg' : mobileBriefing ? 'text-sm' : compact ? 'text-xs' : 'text-sm'
+            className={`mt-3 inline-flex w-fit items-center rounded-full bg-white/95 font-bold text-bt-text-navy shadow sm:mt-4 ${
+              hero
+                ? 'px-5 py-2.5 text-base sm:text-lg'
+                : mobileBriefing
+                  ? 'px-[clamp(0.85rem,3.5vw,1.15rem)] py-[clamp(0.4rem,1.8vw,0.6rem)] text-[clamp(0.72rem,2.9vw,0.875rem)]'
+                  : compact
+                    ? 'px-5 py-2.5 text-xs'
+                    : 'px-5 py-2.5 text-sm'
             }`}
           >
             {cta}
