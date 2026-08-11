@@ -91,9 +91,26 @@ function isHashtagNoiseDestination(raw: string | null | undefined): boolean {
 function shouldHealCentralAsiaCluster(p: ProductRow): boolean {
   if (p.countryTags.length > 0) return false
   const ck = (p.countryKey ?? '').trim()
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: caucasus/balkans not central-asia heal — manifest
+  if (ck === 'caucasus' || ck === 'balkans') return false
   if (ck === 'central-asia' || isCentralAsiaBrowseCountryKey(ck)) return true
   const hay = [p.title, p.primaryDestination, p.destinationRaw].filter(Boolean).join(' ')
+  if (/코카서스|카카서스|발칸/u.test(hay)) return false
   return /중앙아시아|우즈베키스탄|카자흐스탄|키르기스스탄/u.test(hay)
+}
+
+function shouldHealCaucasusBalkansCluster(p: ProductRow): boolean {
+  const ck = (p.countryKey ?? '').trim()
+  const hay = [p.title, p.primaryDestination, p.destinationRaw].filter(Boolean).join(' ')
+  const looksCaucasusBalkans =
+    ck === 'caucasus' ||
+    ck === 'balkans' ||
+    /코카서스|카카서스|발칸|조지아|아제르바이잔|아르메니아|크로아티아|슬로베니아/u.test(hay)
+  if (!looksCaucasusBalkans) return false
+  if (p.countryTags.length === 0) return true
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: caucasus/balkans not central-asia heal — manifest
+  if ((p.groupKey ?? '').trim() === 'china-circle') return true
+  return false
 }
 
 async function evaluateProduct(p: ProductRow): Promise<{
@@ -263,6 +280,75 @@ async function healCentralAsiaProduct(p: ProductRow): Promise<ProductRow> {
   return refreshed
 }
 
+async function healCaucasusBalkansProduct(p: ProductRow): Promise<ProductRow> {
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: prebuild heal caucasus/balkans tags — manifest
+  const hay = scheduleHaystack(p.schedule)
+  const ck = (p.countryKey ?? '').trim()
+  const isCaucasus =
+    ck === 'caucasus' || /코카서스|카카서스/u.test([p.title, p.primaryDestination, p.destinationRaw].filter(Boolean).join(' '))
+  const countryKey = isCaucasus ? 'caucasus' : 'balkans'
+  const groupKey = 'europe-me-africa'
+  const destFallback = isCaucasus ? '코카서스' : '발칸'
+  const dest = isHashtagNoiseDestination(p.primaryDestination) ? destFallback : (p.primaryDestination ?? destFallback)
+  const destRaw = isHashtagNoiseDestination(p.destinationRaw) ? dest : (p.destinationRaw ?? dest)
+  await prisma.product.update({
+    where: { id: p.id },
+    data: {
+      primaryDestination: dest,
+      destinationRaw: destRaw,
+      countryKey,
+      groupKey,
+      nodeKey: isCaucasus ? p.nodeKey : p.nodeKey?.trim() || 'balkan-mix',
+    },
+  })
+  await syncProductGeoTags(
+    prisma,
+    p.id,
+    {
+      countryKey,
+      cityKey: p.cityKey,
+      nodeKey: isCaucasus ? p.nodeKey : p.nodeKey?.trim() || 'balkan-mix',
+      groupKey,
+      continent: null,
+      continentKey: null,
+      country: null,
+      city: null,
+      locationMatchConfidence: null,
+      locationMatchSource: null,
+    },
+    {
+      title: p.title ?? '',
+      primaryDestination: dest,
+      destinationRaw: destRaw,
+      scheduleHaystack: hay,
+    },
+  )
+  const refreshed = await prisma.product.findUniqueOrThrow({
+    where: { id: p.id },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      travelScope: true,
+      primaryDestination: true,
+      destinationRaw: true,
+      schedule: true,
+      countryKey: true,
+      cityKey: true,
+      nodeKey: true,
+      groupKey: true,
+      countryTags: { select: { countryKey: true, nodeKey: true, isPrimary: true } },
+      cityTags: { select: { cityKey: true, isPrimary: true }, orderBy: { sortOrder: 'asc' } },
+    },
+  })
+  console.warn(
+    `[verify:mega-menu-product-alignment] healed caucasus/balkans ${refreshed.slug ?? refreshed.id}: countryTags=${refreshed.countryTags
+      .map((t) => t.countryKey)
+      .join(',')}`,
+  )
+  return refreshed
+}
+
 async function main(): Promise<void> {
   const issues: Issue[] = []
   const leafChecks: Array<{ regionId: string; subgroup: string; cityLabel: string; cityKey: string; ok: boolean }> =
@@ -312,6 +398,10 @@ async function main(): Promise<void> {
       shouldHealCentralAsiaCluster(p)
     ) {
       p = await healCentralAsiaProduct(p)
+      evaluated = await evaluateProduct(p)
+    }
+    if (shouldHealCaucasusBalkansCluster(p)) {
+      p = await healCaucasusBalkansProduct(p)
       evaluated = await evaluateProduct(p)
     }
 

@@ -171,6 +171,8 @@ async function main(): Promise<void> {
       .join(', ')
 
     const bodyText = bodyTextFromSchedule(r.schedule)
+    // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: browseHint country「아일랜드」가
+    // 그랜빌/야스/보홀 「○○ 아일랜드」오매칭 잔존값을 재주입하지 않음 — title·destination·schedule로 재추론
     const { geo: next } = await normalizeProductGeoForPrisma(prisma, {
       title: r.title ?? '',
       originSource: r.originSource ?? '',
@@ -178,8 +180,6 @@ async function main(): Promise<void> {
       destinationRaw: r.destinationRaw,
       primaryDestination: r.primaryDestination,
       bodyText,
-      browseHintCountry: r.country,
-      browseHintCity: r.city,
     })
 
     let geoChanged = false

@@ -104,10 +104,22 @@ function orderedHangulHintsFromStructuredFields(input: ProductLocationKeyMatchIn
     input.destination,
     input.title,
   ]
+  const evidence = [input.primaryDestination, input.destinationRaw, input.title, input.bodyText]
+    .map((s) => String(s ?? ''))
+    .join('\n')
   const out: string[] = []
   for (const p of ordered) {
     const s = String(p ?? '').trim()
     if (!s) continue
+    // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: poisoned browseHint「아일랜드」무시 — manifest
+    if (
+      /^아일랜드$/u.test(s) &&
+      !/ireland|dublin|더블린|아일랜드\s*공화국/i.test(evidence) &&
+      (/캐나다|보홀|두바이|아부다비|필리핀|밴쿠버|그랜빌|야스|사이판|괌|몰디브|인도네시아/i.test(evidence) ||
+        /[\uac00-\ud7a3]{2,}\s*아일랜드/.test(evidence))
+    ) {
+      continue
+    }
     for (const seg of s.split(SEG_SPLIT_DEST)) {
       const t = seg.trim()
       if (t && /[가-힣]/.test(t) && !out.includes(t)) out.push(t)

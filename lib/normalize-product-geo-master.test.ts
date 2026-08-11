@@ -162,4 +162,56 @@ describe('detectMultiCountryAutoPlan', () => {
       expect(plan.countryKeys).toHaveLength(4)
     }
   })
+
+  it('returns medium multi when primary is caucasus tree cluster', async () => {
+    const db = mockDb([
+      { countryKey: 'georgia', koreanLabel: '조지아' },
+      { countryKey: 'azerbaijan', koreanLabel: '아제르바이잔' },
+      { countryKey: 'armenia', koreanLabel: '아르메니아' },
+    ])
+    const plan = await detectMultiCountryAutoPlan(
+      db as never,
+      {
+        title: '코카서스 3국 12일',
+        primaryDestination: '코카서스',
+        destinationRaw: null,
+      },
+      'caucasus',
+    )
+    expect(plan.kind).toBe('multi')
+    if (plan.kind === 'multi') {
+      expect(plan.confidence).not.toBe('low')
+      expect(plan.countryKeys).toEqual(
+        expect.arrayContaining(['georgia', 'azerbaijan', 'armenia']),
+      )
+      expect(plan.countryKeys).toHaveLength(3)
+    }
+  })
+
+  it('returns medium multi when primary is balkans tree cluster', async () => {
+    const db = mockDb([
+      { countryKey: 'austria', koreanLabel: '오스트리아' },
+      { countryKey: 'czech', koreanLabel: '체코' },
+      { countryKey: 'hungary', koreanLabel: '헝가리' },
+      { countryKey: 'croatia', koreanLabel: '크로아티아' },
+      { countryKey: 'slovenia', koreanLabel: '슬로베니아' },
+    ])
+    const plan = await detectMultiCountryAutoPlan(
+      db as never,
+      {
+        title: '동유럽+발칸 5개국 9일',
+        primaryDestination: '발칸',
+        destinationRaw: null,
+        scheduleHaystack: '비엔나 프라하 부다페스트 자그레브 류블랴나',
+      },
+      'balkans',
+    )
+    expect(plan.kind).toBe('multi')
+    if (plan.kind === 'multi') {
+      expect(plan.confidence).not.toBe('low')
+      expect(plan.countryKeys).toEqual(
+        expect.arrayContaining(['austria', 'czech', 'hungary', 'croatia', 'slovenia']),
+      )
+    }
+  })
 })

@@ -38,7 +38,15 @@ export function termAppearsInHaystack(term: string, haystack: string): boolean {
     const re = new RegExp(
       `(^|[^\\uac00-\\ud7a3])${escapeRegExp(tl)}${KOREAN_GEO_TERM_PARTICLE_SUFFIX}([^\\uac00-\\ud7a3]|$)`,
     )
-    return re.test(low)
+    if (!re.test(low)) return false
+    // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: 「지명+아일랜드」(섬) ≠ EU 아일랜드 — manifest
+    // 그랜빌 아일랜드·야스 아일랜드·보홀 아일랜드 파티 등. 더블린/Ireland/공화국·국가목록 문맥만 허용.
+    if (tl === '아일랜드') {
+      if (/ireland|dublin|더블린|아일랜드\s*공화국/i.test(h)) return true
+      // 앞에 한글 지명이 붙은 「○○ 아일랜드」는 섬 표기
+      if (/[\uac00-\ud7a3]{2,}\s*아일랜드/.test(h)) return false
+    }
+    return true
   }
   if (/^[a-z0-9]+$/i.test(tl) && tl.length <= 4) {
     const re = new RegExp(`\\b${escapeRegExp(tl)}\\b`, 'i')

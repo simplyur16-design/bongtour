@@ -44,6 +44,17 @@ function groupKeyForMasterCountryTag(countryKey: string): string | null {
   ) {
     return 'china-circle'
   }
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: caucasus/balkans leaf masters → europe-me-africa — manifest
+  if (
+    countryKey === 'georgia' ||
+    countryKey === 'azerbaijan' ||
+    countryKey === 'armenia' ||
+    countryKey === 'croatia' ||
+    countryKey === 'slovenia' ||
+    countryKey === 'united-arab-emirates'
+  ) {
+    return 'europe-me-africa'
+  }
   return null
 }
 
@@ -69,7 +80,7 @@ function buildMultiCountryTagRows(
       ? [primary, ...keys.filter((k) => k !== primary)]
       : keys
 
-  const rows = ordered.map((countryKey, i) => {
+  const mapped = ordered.map((countryKey, i) => {
     const groupKey = groupKeyForMasterCountryTag(countryKey)
     if (!groupKey) return null
     const defaultNk = defaultNodeKeyForMasterCountryTag(countryKey)
@@ -81,13 +92,15 @@ function buildMultiCountryTagRows(
       countryKey,
       nodeKey: nodeKey ?? null,
       groupKey,
-      isPrimary: i === 0,
-      sortOrder: i,
+      isPrimary: false,
+      sortOrder: 0,
     }
   })
 
-  if (rows.some((r) => r == null)) return null
-  return rows as NonNullable<(typeof rows)[number]>[]
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: skip masters without tree groupKey — manifest
+  const rows = mapped.filter((r): r is NonNullable<(typeof mapped)[number]> => r != null)
+  if (rows.length < 2) return null
+  return rows.map((r, i) => ({ ...r, isPrimary: i === 0, sortOrder: i }))
 }
 
 type ProductCountryTagInsertRow = {

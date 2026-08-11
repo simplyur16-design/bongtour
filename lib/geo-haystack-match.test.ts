@@ -41,6 +41,47 @@ describe('geo-haystack-match', () => {
     expect(termAppearsInHaystack('아일랜드', '사이판 /아일랜드관광/마나가하')).toBe(false)
     expect(termAppearsInHaystack('아일랜드', '아일랜드 더블린')).toBe(true)
   })
+
+  // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: 지명+아일랜드(섬) ≠ EU Ireland — manifest
+  it('does not treat place-name + 아일랜드 (island) as EU Ireland', () => {
+    expect(termAppearsInHaystack('아일랜드', '밴쿠버 - 그랜빌 아일랜드 크루즈')).toBe(false)
+    expect(termAppearsInHaystack('아일랜드', '야스 아일랜드 워너 브라더스')).toBe(false)
+    expect(termAppearsInHaystack('아일랜드', '보홀 아일랜드 파티룸')).toBe(false)
+    expect(termAppearsInHaystack('아일랜드', '영국/스코틀랜드/아일랜드/웨일즈')).toBe(true)
+    expect(termAppearsInHaystack('아일랜드', '아일랜드 공화국 일주')).toBe(true)
+  })
+})
+
+describe('matchProductToOverseasNode — island 아일랜드 bleed', () => {
+  it('Canada Granville Island schedule does not become Ireland', () => {
+    const m = matchProductToOverseasNode({
+      title: '캐나다 로키 7일 #밴쿠버 직항',
+      originSource: '',
+      primaryDestination: '캐나다',
+      destinationRaw: '캐나다',
+      destination: '캐나다',
+    })
+    expect(m?.countryKey).toMatch(/canada/i)
+    const withIsland = matchProductToOverseasNode({
+      title: '캐나다 로키 7일 #밴쿠버 직항',
+      originSource: '',
+      primaryDestination: '캐나다',
+      destinationRaw: '캐나다\n밴쿠버 - 그랜빌 아일랜드 크루즈',
+    })
+    expect(withIsland?.countryKey).toMatch(/canada/i)
+    expect(withIsland?.leafKey).not.toBe('ie')
+  })
+
+  it('Bohol island party destination does not become Ireland', () => {
+    const m = matchProductToOverseasNode({
+      title: '[2030전용] 보홀 5일 #헤난알로나비치',
+      originSource: '',
+      primaryDestination: '보홀',
+      destinationRaw: '보홀 아일랜드 파티룸, 보홀 초콜릿힐',
+    })
+    expect(m?.countryKey).not.toMatch(/uk|ireland/i)
+    expect(m?.leafKey).not.toBe('ie')
+  })
 })
 
 describe('matchProductToOverseasNode guam vs nikko', () => {

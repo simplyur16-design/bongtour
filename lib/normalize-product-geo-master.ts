@@ -222,6 +222,35 @@ function collectLatinAmericaMasterCountryKeysFromPlaceHints(hay: string): string
   return out
 }
 
+/** 코카서스·발칸 클러스터 표기 → 마스터 국가 보강 (트리 countryKey는 FK 아님) */
+function collectCaucasusBalkansMasterCountryKeysFromPlaceHints(hay: string): string[] {
+  const out: string[] = []
+  const used = new Set<string>()
+  const push = (ck: string) => {
+    if (used.has(ck)) return
+    used.add(ck)
+    out.push(ck)
+  }
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: 코카서스/발칸 cluster → master country tags — manifest
+  if (/코카서스|카카서스|\bcaucasus\b/i.test(hay)) {
+    push('georgia')
+    push('azerbaijan')
+    push('armenia')
+  } else {
+    if (/조지아|\bgeorgia\b|트빌리시|\btbilisi\b/i.test(hay)) push('georgia')
+    if (/아제르바이잔|\bazerbaijan\b|바쿠|\bbaku\b/i.test(hay)) push('azerbaijan')
+    if (/아르메니아|\barmenia\b|예레반|\byerevan\b/i.test(hay)) push('armenia')
+  }
+  if (/발칸|\bbalkan/i.test(hay)) {
+    push('croatia')
+    push('slovenia')
+  } else {
+    if (/크로아티아|\bcroatia\b|두브로브니크|\bdubrovnik\b/i.test(hay)) push('croatia')
+    if (/슬로베니아|\bslovenia\b|류블랴나|\bljubljana\b/i.test(hay)) push('slovenia')
+  }
+  return out
+}
+
 export async function detectMultiCountryAutoPlan(
   db: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
   opts: {
@@ -265,6 +294,12 @@ export async function detectMultiCountryAutoPlan(
       }
     }
     for (const mk of collectLatinAmericaMasterCountryKeysFromPlaceHints(haystack)) {
+      if (!used.has(mk)) {
+        foundKeys.push(mk)
+        used.add(mk)
+      }
+    }
+    for (const mk of collectCaucasusBalkansMasterCountryKeysFromPlaceHints(haystack)) {
       if (!used.has(mk)) {
         foundKeys.push(mk)
         used.add(mk)
@@ -333,6 +368,8 @@ export async function detectMultiCountryAutoPlan(
   const primaryIsTreeClusterOnly =
     primaryMasterCountryKey === 'latin-caribbean' ||
     primaryMasterCountryKey === 'central-asia' ||
+    primaryMasterCountryKey === 'caucasus' ||
+    primaryMasterCountryKey === 'balkans' ||
     primaryMasterCountryKey === 'india-nepal-sri-bhutan' ||
     primaryMasterCountryKey === 'sea-multi'
 

@@ -387,8 +387,9 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
       }),
       C('uk', '영국', [
         L('uk', '영국 일반', { aliases: ['영국', 'london', '런던', 'UK'], supplierKeywords: ['LHR', 'LGW'] }),
-        // 「아일랜드관광」(섬 관광) 오매칭 방지 — EU 아일랜드는 ireland/Dublin/더블린만
-        L('ie', '아일랜드', { aliases: ['ireland', 'Ireland', '더블린', 'Dublin'] }),
+        // 「아일랜드관광」·「지명+아일랜드」(섬) 오매칭 방지 — EU는 ireland/Dublin/더블린 (+공화국)
+        // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: Granville/Yas/Bohol Island ≠ Ireland — manifest
+        L('ie', '아일랜드', { aliases: ['ireland', 'Ireland', '더블린', 'Dublin', '아일랜드 공화국'] }),
       ], {
         aliases: ['영국', 'britain'],
       }),

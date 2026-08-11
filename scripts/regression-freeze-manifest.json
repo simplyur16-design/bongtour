@@ -3276,7 +3276,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "사이판 아일랜드관광 — EU ireland 오매칭 방지",
+      "summary": "사이판 아일랜드관광·지명+아일랜드(섬) — EU ireland 오매칭 방지",
       "checks": [
         {
           "file": "lib/match-overseas-product.ts",
@@ -3289,7 +3289,8 @@
         {
           "file": "lib/geo-haystack-match.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[saipan-island-tour-geo-priority]"
+            "REGRESSION-FREEZE[saipan-island-tour-geo-priority]",
+            "지명+아일랜드"
           ],
           "mustNotInclude": [
             "입성|출발|도착|경유|관광)?"
@@ -12259,6 +12260,9 @@
             "prebuild heal latin-caribbean tags",
             "healCentralAsiaProduct",
             "prebuild heal central-asia tags",
+            "healCaucasusBalkansProduct",
+            "prebuild heal caucasus/balkans tags",
+            "caucasus/balkans not central-asia heal",
             "empty tags + 남미/중남미 제목 → heal"
           ]
         },
@@ -12273,7 +12277,9 @@
           "file": "lib/sync-product-country-tags.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
-            "null/latin-caribbean primary도 다국가 태그"
+            "null/latin-caribbean primary도 다국가 태그",
+            "caucasus/balkans leaf masters → europe-me-africa",
+            "skip masters without tree groupKey"
           ]
         },
         {
@@ -12281,7 +12287,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
             "title/dest countries beat schedule transit hubs",
-            "null primary + N개국 일치 → high multi tags"
+            "null primary + N개국 일치 → high multi tags",
+            "코카서스/발칸 cluster → master country tags"
           ]
         },
         {
