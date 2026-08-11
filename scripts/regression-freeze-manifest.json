@@ -7959,6 +7959,14 @@
           ]
         },
         {
+          "file": "lib/modetour-schedule-sydney-pap100-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "ModeTour PAP100 Sydney day-route — Jervis≠bare city · QVB≠Victoria BC",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
           "file": "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
@@ -8004,7 +8012,8 @@
         "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
         "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
         "lib/modetour-schedule-manado-aip102-image-keyword.test.ts",
-        "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts"
+        "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts",
+        "lib/modetour-schedule-sydney-pap100-image-keyword.test.ts"
       ]
     },
     {
@@ -8559,6 +8568,7 @@
             "ModeTour EMP151 Cairo Coptic churches — Day2 empty 금지",
             "ModeTour AIP102 Manado day-route POI — bare city≠Jesus/Siladen",
             "ModeTour AMP7017 KK — lounge waterfront over bare city hub",
+            "ModeTour PAP100 Sydney — QVB≠Victoria BC Inner Harbour",
             "리기≠승리기념탑 — Baltic Victory Monument bleed 금지",
             "Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all",
             "Baltic·Warsaw POI — 빌라누프·체시스",
@@ -8619,6 +8629,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
             "ModeTour AMP7017 KK day-route — hopping≠hotel · lounge owns waterfront",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-sydney-pap100-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "ModeTour PAP100 Sydney — QVB≠Victoria BC Inner Harbour",
             "supplierKey: 'modetour'"
           ]
         },
@@ -8731,6 +8749,7 @@
         "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
         "lib/modetour-schedule-manado-aip102-image-keyword.test.ts",
         "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts",
+        "lib/modetour-schedule-sydney-pap100-image-keyword.test.ts",
         "lib/register-schedule-qingdao-cap104-image-keyword.test.ts"
       ]
     },

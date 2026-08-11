@@ -956,9 +956,31 @@ const POI_KO_TO_EN: Record<string, string> = {
   에코포인트: 'Echo Point Blue Mountains',
   '시드니 동물원': 'Taronga Zoo Sydney',
   시드니동물원: 'Taronga Zoo Sydney',
+  '시드니 ZOO': 'Taronga Zoo Sydney',
   '세인트 메리 대성당': 'St Marys Cathedral Sydney',
   '세인트 메리스 대성당': 'St Marys Cathedral Sydney',
   '세인트 매리 대성당': 'St Marys Cathedral Sydney',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour PAP100 Sydney — QVB≠Victoria BC Inner Harbour — manifest
+  '퀸 빅토리아 빌딩': 'Queen Victoria Building Sydney',
+  퀸빅토리아빌딩: 'Queen Victoria Building Sydney',
+  달링하버: 'Darling Harbour Sydney',
+  '달링 하버': 'Darling Harbour Sydney',
+  바랑가루: 'Barangaroo Sydney',
+  저비스베이: 'Jervis Bay dolphin cruise',
+  '저비스 베이': 'Jervis Bay dolphin cruise',
+  '저비스베이 돌핀크루즈': 'Jervis Bay dolphin cruise',
+  '쿨랑가타 와이너리': 'Coolangatta Estate Winery',
+  쿨랑가타와이너리: 'Coolangatta Estate Winery',
+  '화이트 샌드 워크': 'White Sand Walk Jervis Bay',
+  '로라 빌리지': 'Laura Village Blue Mountains',
+  로라빌리지: 'Laura Village Blue Mountains',
+  'MRS 맥콰리 체어': 'Mrs Macquaries Chair Sydney',
+  '맥콰리 체어': 'Mrs Macquaries Chair Sydney',
+  '록스 거리': 'The Rocks Sydney',
+  록스거리: 'The Rocks Sydney',
+  'NSW 미술관': 'Art Gallery of New South Wales',
+  하버브릿지: 'Sydney Harbour Bridge',
+  '하버 브릿지': 'Sydney Harbour Bridge',
   '테즈메이트 호수': 'Lake Te Anau New Zealand',
   테아나우: 'Te Anau glowworm caves New Zealand',
   '파랑이티 해변': 'Piha Beach Auckland',
@@ -1400,6 +1422,13 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
 function poiKoMappingAllowed(ko: string, text: string): boolean {
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — bare 빅토리아≠Falls/Peak — manifest
   if (ko === '빅토리아' && /폭포|폴스|피크|Peak|Falls/i.test(text)) return false
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour PAP100 Sydney — QVB≠Victoria BC Inner Harbour — manifest
+  if (
+    ko === '빅토리아' &&
+    /퀸\s*빅토리아|빅토리아\s*빌딩|Queen\s*Victoria\s*Building|\bQVB\b|시드니|Sydney|달링|Darling/i.test(text)
+  ) {
+    return false
+  }
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 두짓 센트럴 파크≠NYC Central Park — manifest
   if (
     (ko === '센트럴 파크' || ko === '센트럴파크') &&

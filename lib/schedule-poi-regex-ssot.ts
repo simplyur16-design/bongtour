@@ -96,9 +96,24 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
   { re: /빅토리\s*폴스|빅토리폴스|Victoria\s*Falls/i, en: "Victoria Falls waterfall panorama" },
   { re: /빅토리아\s*폭포|Victoria\s*Falls/i, en: "Victoria Falls waterfall panorama" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour PAP100 Sydney — QVB≠Victoria BC Inner Harbour — manifest
+  { re: /퀸\s*빅토리아\s*빌딩|Queen\s*Victoria\s*Building|\bQVB\b/i, en: "Queen Victoria Building Sydney" },
+  { re: /달링\s*하버|Darling\s*Harbour/i, en: "Darling Harbour Sydney" },
+  { re: /바랑가루|Barangaroo/i, en: "Barangaroo Sydney" },
+  { re: /저비스\s*베이|Jervis\s*Bay/i, en: "Jervis Bay dolphin cruise" },
+  { re: /쿨랑가타\s*와이너리|Coolangatta\s*(?:Estate\s*)?Winery/i, en: "Coolangatta Estate Winery" },
+  { re: /화이트\s*샌드\s*워크|White\s*Sand\s*Walk/i, en: "White Sand Walk Jervis Bay" },
+  { re: /로라\s*빌리지|Laura\s*Village/i, en: "Laura Village Blue Mountains" },
+  { re: /(?:MRS\.?\s*)?맥콰리\s*체어|Mrs\.?\s*Macquarie'?s?\s*Chair/i, en: "Mrs Macquaries Chair Sydney" },
+  { re: /록스\s*거리|The\s*Rocks/i, en: "The Rocks Sydney" },
+  { re: /시드니\s*ZOO|Sydney\s*Zoo/i, en: "Taronga Zoo Sydney" },
+  { re: /하버\s*브릿지|Harbour\s*Bridge/i, en: "Sydney Harbour Bridge" },
+  { re: /NSW\s*미술관|Art\s*Gallery\s*(?:of\s*)?NSW/i, en: "Art Gallery of New South Wales" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Alaska Victoria BC Inner Harbour — 폭포/폴스/피크 제외 — manifest
+  // bare「빅토리아」— 항/이너하버 문맥 또는 세그먼트 단독만 (퀸 빅토리아 빌딩 금지)
   { re: /빅토리아\s*이너\s*하버|이너\s*하버(?!\s*홍콩)|Inner\s*Harbour\s*Victoria/i, en: "Inner Harbour Victoria" },
-  { re: /(?:^|[\s\-·|/])빅토리아(?!\s*(?:폭포|폴스|피크|Peak))(?:\s*(?:항|이너)?|\s*$|[\-·|/])/u, en: "Inner Harbour Victoria" },
+  { re: /(?:^|[\s\-·|/])빅토리아(?:\s*(?:항|이너(?:\s*하버)?))(?!\s*(?:폭포|폴스|피크|Peak))/u, en: "Inner Harbour Victoria" },
+  { re: /(?:^|[\s\-·|/])빅토리아(?!\s*(?:폭포|폴스|피크|Peak|빌딩|Building))(?=\s*$|[\-·|/])/u, en: "Inner Harbour Victoria" },
   { re: /초베(?:\s*국립공원)?|Chobe/i, en: "Chobe River Boat Safari" },
   { re: /나이바샤|Naivasha/i, en: "Lake Naivasha Kenya" },
   { re: /기린\s*센터|Giraffe\s*Centre|Giraffe\s*Center/i, en: "Giraffe Centre Nairobi" },
