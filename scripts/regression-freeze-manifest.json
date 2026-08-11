@@ -2620,7 +2620,7 @@
             "REGRESSION-FREEZE[season-mobile-briefing-br-overlay]",
             "mobileBriefing",
             "absolute bottom-0 right-0",
-            "@container/mb",
+            "@container-size/mb",
             "@[min-height:17.5rem]/mb:flex",
             "text-right"
           ]

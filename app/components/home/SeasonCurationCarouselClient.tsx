@@ -130,7 +130,7 @@ export function SeasonCurationCardLink({
           hero
             ? CINEMA_HERO_FRAME_CLASS
             : mobileBriefing
-              ? '@container/mb aspect-[4/5] min-h-[min(14rem,35vh)] w-full max-h-[39vh]'
+              ? '@container-size/mb aspect-[4/5] min-h-[min(14rem,35vh)] w-full max-h-[39vh]'
               : compact
                 ? 'aspect-[16/11]'
                 : 'aspect-[21/9] sm:aspect-[24/9]'
