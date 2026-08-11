@@ -3421,6 +3421,8 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '자이푸르',
     '아그라',
     '카이로',
+    // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour EMP151 카이 soft-dup hay — Day2 empty 금지 — manifest
+    '카이',
     '두바이',
     // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 soft-dup hay cities — manifest
     '푸꾸옥',

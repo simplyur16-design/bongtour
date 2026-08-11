@@ -7930,6 +7930,15 @@
           ]
         },
         {
+          "file": "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
+            "ModeTour EMP151 day-route evidence — Coptic≠empty",
+            "Day1/Day2 must not stay empty",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
           "file": "lib/register-schedule-au-nz-ten-day-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
@@ -7972,7 +7981,8 @@
         "lib/kyowontour-schedule-jop031-kyoto-image-keyword.test.ts",
         "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
         "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
-        "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts"
+        "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
+        "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts"
       ]
     },
     {
@@ -8524,6 +8534,7 @@
             "징기스칸 광장 ≠ Ordos 기마상",
             "Ordos 기마상 — 오르도스 문맥만",
             "이집트 스핑크스 ≠ Jungfraujoch",
+            "ModeTour EMP151 Cairo Coptic churches — Day2 empty 금지",
             "리기≠승리기념탑 — Baltic Victory Monument bleed 금지",
             "Alaska port days — 주노/케치칸 ≠ Glacier Bay catch-all",
             "Baltic·Warsaw POI — 빌라누프·체시스",
@@ -8560,6 +8571,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
+            "supplierKey: 'modetour'"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
+            "ModeTour EMP151 Cairo Coptic — Day1/Day2 empty 금지",
             "supplierKey: 'modetour'"
           ]
         },
@@ -8669,6 +8688,7 @@
         "lib/modetour-schedule-zhangjiajie-cje501-image-keyword.test.ts",
         "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
         "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts",
+        "lib/modetour-schedule-egypt-emp151-image-keyword.test.ts",
         "lib/register-schedule-qingdao-cap104-image-keyword.test.ts"
       ]
     },

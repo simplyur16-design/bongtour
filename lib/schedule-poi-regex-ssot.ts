@@ -343,6 +343,23 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
     re: /(?:기자|Giza|피라미드)[\s\S]{0,40}스핑크스|스핑크스[\s\S]{0,40}(?:기자|Giza|피라미드)|Great\s*Sphinx|(?:^|[\s\-·,/])스핑크스(?:$|[\s\-·,/])|\bSphinx\b/i,
     en: 'Great Sphinx of Giza',
   },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour EMP151 Cairo Coptic churches — Day2 empty 금지 — manifest
+  {
+    re: /행잉\s*교회|행잉처치|Hanging\s*Church/i,
+    en: 'Hanging Church',
+  },
+  {
+    re: /성조지\s*교회|Saint\s*George\s*Church/i,
+    en: 'Saint George Church',
+  },
+  {
+    re: /아기예수\s*피난\s*교회|아부\s*세르가|Abu\s*Serga/i,
+    en: 'Abu Serga Church',
+  },
+  {
+    re: /그랜드\s*뮤지엄|그랜드이집션뮤지엄|Grand\s*Egyptian\s*Museum/i,
+    en: 'Grand Egyptian Museum',
+  },
   { re: /개선문/u, en: "Arc de Triomphe Paris" },
   { re: /몽생미셸|Mont\s*Saint\s*Michel/i, en: "Mont Saint Michel abbey" },
   { re: /오르세\s*미술관|Orsay/i, en: "Musee d Orsay Paris" },
