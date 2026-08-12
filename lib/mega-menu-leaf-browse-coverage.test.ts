@@ -3,7 +3,10 @@
  */
 import { describe, expect, it } from 'vitest'
 import { countrySlugFromLabel } from '@/lib/location-url-slugs'
-import { resolveBrowseCountryParamToCountryKeySlugs } from '@/lib/browse-country-url-resolve'
+import {
+  resolveBrowseCityKeysForFilter,
+  resolveBrowseCountryParamToCountryKeySlugs,
+} from '@/lib/browse-country-url-resolve'
 import { buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import { OVERSEAS_MEGA_MENU_REGIONS } from '@/lib/travel-landing-mega-menu-data'
 
@@ -53,5 +56,40 @@ describe('mega-menu leaf browse href / country expansions', () => {
     const u = new URL(href, 'http://localhost')
     expect(u.searchParams.get('country')).toBe('middle-east')
     expect(u.searchParams.get('city')).toBe('dubai')
+  })
+
+  it('maps mega-menu city URL slugs to master ProductCityTag keys', () => {
+    expect(resolveBrowseCityKeysForFilter('okinawa')).toEqual(
+      expect.arrayContaining(['okinawa-main']),
+    )
+    expect(resolveBrowseCityKeysForFilter('abu-dhabi')).toEqual(
+      expect.arrayContaining(['abudhabi']),
+    )
+    expect(resolveBrowseCityKeysForFilter('hcm')).toEqual(expect.arrayContaining(['hochiminh']))
+    expect(resolveBrowseCityKeysForFilter('chiang-mai')).toEqual(
+      expect.arrayContaining(['chiangmai']),
+    )
+    expect(resolveBrowseCityKeysForFilter('new-york')).toEqual(expect.arrayContaining(['nyc']))
+    expect(resolveBrowseCityKeysForFilter('san-francisco')).toEqual(expect.arrayContaining(['sf']))
+    expect(resolveBrowseCityKeysForFilter('inner-mongolia')).toEqual(
+      expect.arrayContaining(['hulunbuir', 'ordos']),
+    )
+  })
+
+  it('내몽골 leaf uses country=china for china-tagged products', () => {
+    const region = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === 'china-hk-mo')
+    const group = region?.countryGroups?.find((g) => g.countryLabel === '몽골')
+    const leaf = group?.cities.find((c) => c.label === '내몽골')
+    expect(group && leaf).toBeTruthy()
+    const href = buildMegaMenuLeafHref({
+      type: 'travel',
+      regionId: 'china-hk-mo',
+      countryLabel: group!.countryLabel,
+      leaf: leaf!,
+    })
+    const u = new URL(href, 'http://localhost')
+    expect(u.searchParams.get('country')).toBe('china')
+    expect(u.searchParams.get('city')).toBe('inner-mongolia')
+    expect(u.searchParams.get('menuGroup')).toBe('mongolia')
   })
 })

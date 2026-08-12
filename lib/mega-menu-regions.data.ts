@@ -367,20 +367,25 @@ const CN: MegaMenuCountryGroupDef[] = [
   G('몽골', [
     city('울란바타르', ['울란바타르', 'ulaanbaatar', '울란바토르', '몽골']),
     city('테를지', ['테를지', 'terelj', '몽골']),
-    city('내몽골', [
+    // REGRESSION-FREEZE[mega-menu-product-alignment]: 내몽골 browse country=china — manifest
+    city(
       '내몽골',
-      '내몽고',
-      'inner mongolia',
-      'inner-mongolia',
-      'mongolia-inner',
-      '후룬베이얼',
-      'hulunbuir',
-      '오르도스',
-      'ordos',
-      '적봉',
-      '치펑',
-      'chifeng',
-    ]),
+      [
+        '내몽골',
+        '내몽고',
+        'inner mongolia',
+        'inner-mongolia',
+        'mongolia-inner',
+        '후룬베이얼',
+        'hulunbuir',
+        '오르도스',
+        'ordos',
+        '적봉',
+        '치펑',
+        'chifeng',
+      ],
+      '중국',
+    ),
   ]),
 ]
 

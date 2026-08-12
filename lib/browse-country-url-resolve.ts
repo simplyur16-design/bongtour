@@ -1185,6 +1185,79 @@ export function resolveChinaSubregionDbCityKeywords(
   return uniqueStrings(hit)
 }
 
+function normalizeBrowseCityMatchToken(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9가-힣-]+/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function browseCityTokenVariants(raw: string): string[] {
+  const n = normalizeBrowseCityMatchToken(raw)
+  if (!n) return []
+  const compact = n.replace(/-/g, '')
+  return compact && compact !== n ? [n, compact] : [n]
+}
+
+function leafBrowseCityMatchTokens(country: OverseasCountryNode, leaf: OverseasLeafNode): Set<string> {
+  const out = new Set<string>()
+  const add = (s: string | null | undefined) => {
+    for (const v of browseCityTokenVariants(s ?? '')) out.add(v)
+  }
+  add(leaf.nodeKey)
+  add(leaf.nodeLabel)
+  add(citySlugFromTermsAndLabel(leaf.nodeLabel, collectLeafTerms(country, leaf)))
+  for (const a of leaf.aliases ?? []) add(a)
+  for (const s of leaf.supplierKeywords ?? []) add(s)
+  if (typeof leaf.dbCityValue === 'string') add(leaf.dbCityValue)
+  return out
+}
+
+function countryBrowseCityMatchTokens(country: OverseasCountryNode): Set<string> {
+  const out = new Set<string>()
+  const add = (s: string | null | undefined) => {
+    for (const v of browseCityTokenVariants(s ?? '')) out.add(v)
+  }
+  add(country.countryKey)
+  add(country.countryLabel)
+  add(countrySlugFromLabel(country.countryLabel))
+  for (const a of country.aliases ?? []) add(a)
+  for (const s of country.supplierKeywords ?? []) add(s)
+  return out
+}
+
+/**
+ * 메가메뉴 URL `city`(abu-dhabi·hcm·okinawa…) → 마스터 `ProductCityTag.cityKey`(abudhabi·hochiminh·okinawa-main…).
+ * 트리 leaf/country aliases·슬러그·하이픈 유무를 모두 맞춘다.
+ */
+// REGRESSION-FREEZE[mega-menu-product-alignment]: tree leaf aliases → ProductCityTag keys — manifest
+export function resolveBrowseCityKeysFromLocationTree(cityParam: string | null | undefined): string[] {
+  const want = new Set(browseCityTokenVariants(cityParam ?? ''))
+  if (want.size === 0) return []
+  const out = new Set<string>()
+  for (const g of OVERSEAS_LOCATION_TREE_DATA) {
+    for (const co of g.countries) {
+      if ([...countryBrowseCityMatchTokens(co)].some((t) => want.has(t))) {
+        const ck = co.countryKey.trim().toLowerCase()
+        if (ck) out.add(ck)
+        for (const leaf of co.children) {
+          const nk = leaf.nodeKey.trim().toLowerCase()
+          if (nk) out.add(nk)
+        }
+      }
+      for (const leaf of co.children) {
+        if (![...leafBrowseCityMatchTokens(co, leaf)].some((t) => want.has(t))) continue
+        const nk = leaf.nodeKey.trim().toLowerCase()
+        if (nk) out.add(nk)
+      }
+    }
+  }
+  return [...out]
+}
+
 /** browse city URL → `ProductCityTag.cityKey` 후보 */
 // REGRESSION-FREEZE[japan-mega-menu-browse-cluster-keys]: expand cluster slugs for Japan leaves — manifest
 export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefined): string[] {
@@ -1194,5 +1267,7 @@ export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefi
   }
   const ct = (cityParam ?? '').trim().toLowerCase()
   if (ct && /^[a-z0-9-]+$/.test(ct)) keys.add(ct)
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: tree leaf aliases → ProductCityTag keys — manifest
+  for (const k of resolveBrowseCityKeysFromLocationTree(cityParam)) keys.add(k)
   return expandBrowseCityFilterKeys(keys)
 }

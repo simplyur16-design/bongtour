@@ -12325,7 +12325,8 @@
           "file": "lib/browse-country-url-resolve.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
-            "caucasus/middle-east cluster → master countries"
+            "caucasus/middle-east cluster → master countries",
+            "tree leaf aliases → ProductCityTag keys"
           ]
         },
         {
@@ -12346,7 +12347,8 @@
           "file": "lib/mega-menu-regions.data.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
-            "dominican terms — no bare caribbean"
+            "dominican terms — no bare caribbean",
+            "내몽골 browse country=china"
           ]
         }
       ],
