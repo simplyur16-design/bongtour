@@ -131,19 +131,21 @@ function filterOverseasHubCatalogByMenuGroup(
   if (!group) return null
 
   const regionPool = filterCatalogByMegaRegionTab(items, regionId)
+  // REGRESSION-FREEZE[overseas-hub-geo-tag-filter]: bucket 미표기 시 countryTag 폴백 — manifest
+  const pool = regionPool.length > 0 ? regionPool : items
   const cityKeys = resolveMegaMenuGroupCityKeys(regionId, mg)
   if (cityKeys.length > 0) {
-    return filterItemsByMenuGroupCityKeys(regionPool, regionId, mg)
+    return filterItemsByMenuGroupCityKeys(pool, regionId, mg)
   }
 
   const exclusive = resolveMegaMenuEuropeMenuGroupExclusiveFilter(regionId, mg)
   if (exclusive && exclusive.include.length > 0) {
-    return filterItemsByMenuGroupCountryKeys(regionPool, exclusive.include, exclusive.exclude)
+    return filterItemsByMenuGroupCountryKeys(pool, exclusive.include, exclusive.exclude)
   }
 
   const countryKeys = resolveMegaMenuGroupCountryKeySlugs(regionId, mg)
   if (countryKeys.length > 0) {
-    return filterItemsByMenuGroupCountryKeys(regionPool, countryKeys)
+    return filterItemsByMenuGroupCountryKeys(pool, countryKeys)
   }
 
   return []

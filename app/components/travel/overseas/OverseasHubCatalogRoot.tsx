@@ -135,7 +135,12 @@ export default function OverseasHubCatalogRoot({
     const run = () => {
       if (cancelled) return
       const sp = new URLSearchParams(searchParamsString)
-      const filtered = filterOverseasHubCatalogByUrl(catalogItems, sp)
+      // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: server geo items skip client re-filter — manifest
+      // 서버가 이미 ProductCountryTag/ProductCityTag WHERE로 좁힌 목록을 클라이언트 menuGroup이 다시 비우면
+      // 「선택한 조건에 맞는 상품이 없습니다」가 난다.
+      const filtered = overseasHubUrlNeedsServerGeoFetch(sp)
+        ? catalogItems
+        : filterOverseasHubCatalogByUrl(catalogItems, sp)
       const built = buildOverseasHubCatalogSectionsForUrl(filtered, sp)
       sectionsCacheRef.current.set(cacheKey, built)
       setSections(built)

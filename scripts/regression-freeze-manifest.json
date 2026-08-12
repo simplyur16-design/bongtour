@@ -3136,7 +3136,9 @@
           "mustInclude": [
             "overseasHubUrlNeedsServerGeoFetch",
             "buildOverseasHubBrowseQueryKey",
-            "fetchProductsBrowseClientJson"
+            "fetchProductsBrowseClientJson",
+            "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
+            "server geo items skip client re-filter"
           ]
         }
       ],
@@ -3192,6 +3194,7 @@
             "REGRESSION-FREEZE[overseas-hub-geo-tag-filter]",
             "REGRESSION-FREEZE[mega-menu-mid-leaf-tag-filter]",
             "hub mid accepts countryTags.nodeKey",
+            "bucket 미표기 시 countryTag 폴백",
             "productMatchesBrowseUrlGeo",
             "filterItemsByMenuGroupCityKeys",
             "resolveMegaMenuEuropeMenuGroupExclusiveFilter",

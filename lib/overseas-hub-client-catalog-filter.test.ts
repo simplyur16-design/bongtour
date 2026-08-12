@@ -31,6 +31,32 @@ describe('filterOverseasHubCatalogByUrl country slug', () => {
 })
 
 describe('filterOverseasHubCatalogByUrl menuGroup', () => {
+  it('keeps LC country leaf when overseasBucket missing (countryTag fallback)', () => {
+    const items = [
+      {
+        id: 'it',
+        title: '이탈리아 일주',
+        originSource: 'modetour',
+        countryTags: [{ countryKey: 'italy', nodeKey: 'italy' }],
+        cityTags: [],
+      },
+      {
+        id: 'th',
+        title: '방콕',
+        originSource: 'modetour',
+        countryTags: [{ countryKey: 'thailand', nodeKey: 'bangkok' }],
+        cityTags: [{ cityKey: 'bangkok' }],
+      },
+    ] as ResultItem[]
+    const out = filterOverseasHubCatalogByUrl(
+      items,
+      new URLSearchParams(
+        'scope=overseas&region=europe-me&country=italy&menuGroup=western-europe',
+      ),
+    )
+    expect(out.map((it) => it.id)).toEqual(['it'])
+  })
+
   it('narrows japan tab to hokkaido subgroup for mega menu header URL', () => {
     const items = [
       {
