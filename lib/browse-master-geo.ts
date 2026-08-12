@@ -254,14 +254,18 @@ export async function buildOverseasBrowseGeoResolution(input: {
       }
       if (cardCityKeys.length > 0) {
         const allowed = new Set(cardCityKeys)
-        cityKeys = cityKeys.filter((k) => allowed.has(k))
+        const filtered = cityKeys.filter((k) => allowed.has(k))
+        // REGRESSION-FREEZE[mega-menu-product-alignment]: UI leaf city survives incomplete card city set — manifest
+        // MegaMenuGroupCardCity/tab 목록이 메가메뉴 leaf보다 빈약하면 jakarta·cairo·dubai 등이 탈락해 0건이 된다.
+        if (filtered.length > 0) cityKeys = filtered
       }
     }
     if (mg && r) {
       const groupCityKeys = resolveMegaMenuGroupCityKeys(r, mg)
       if (groupCityKeys.length > 0) {
         const allowed = new Set(groupCityKeys)
-        cityKeys = cityKeys.filter((k) => allowed.has(k))
+        const filtered = cityKeys.filter((k) => allowed.has(k))
+        if (filtered.length > 0) cityKeys = filtered
       }
     }
     whereClauses.push(prismaWhereBrowseCityKeys(cityKeys, countryScopeForCity()))

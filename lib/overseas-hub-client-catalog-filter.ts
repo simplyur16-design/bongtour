@@ -91,9 +91,11 @@ function filterItemsByMenuGroupCityKeys(
 ): ResultItem[] {
   const keys = new Set(resolveMegaMenuGroupCityKeys(regionId, menuGroupSlug).map((k) => k.toLowerCase()))
   if (keys.size === 0) return []
-  return items.filter((it) =>
-    (it.cityTags ?? []).some((t) => keys.has((t.cityKey ?? '').trim().toLowerCase())),
-  )
+  // REGRESSION-FREEZE[overseas-hub-geo-tag-filter]: hub mid accepts countryTags.nodeKey — manifest
+  return items.filter((it) => {
+    if ((it.cityTags ?? []).some((t) => keys.has((t.cityKey ?? '').trim().toLowerCase()))) return true
+    return (it.countryTags ?? []).some((t) => keys.has((t.nodeKey ?? '').trim().toLowerCase()))
+  })
 }
 
 function filterItemsByMenuGroupCountryKeys(

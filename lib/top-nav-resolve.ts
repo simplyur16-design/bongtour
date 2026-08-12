@@ -131,6 +131,8 @@ export function buildProductsHrefCountryOnly(opts: {
   countryLabel: string
   /** 그룹 헤더와 browse country 슬러그가 다를 때 */
   headerBrowseCountryLabel?: string
+  /** menuGroup — 부모 열 라벨(코카서스 3국 등). 없으면 countryLabel */
+  menuGroupLabel?: string
   scope?: BrowseHrefScope
 }): string {
   const params = new URLSearchParams()
@@ -139,7 +141,7 @@ export function buildProductsHrefCountryOnly(opts: {
   appendBrowseScopeParam(params)
   params.set('region', opts.regionId)
   params.set('country', countrySlugFromLabel(opts.headerBrowseCountryLabel ?? opts.countryLabel))
-  appendMenuGroupParam(params, opts.countryLabel)
+  appendMenuGroupParam(params, opts.menuGroupLabel ?? opts.countryLabel)
   return `${browseBasePath(scope)}?${params.toString()}`
 }
 
@@ -160,10 +162,12 @@ export function buildMegaMenuLeafHref(opts: {
     })
   }
   if (opts.leaf.kind === 'country') {
+    // REGRESSION-FREEZE[mega-menu-product-alignment]: LC leaf country=국가, menuGroup=부모 열 — manifest
     return buildProductsHrefCountryOnly({
       type: opts.type,
       regionId: opts.regionId,
       countryLabel: opts.leaf.browseCountryLabel ?? opts.leaf.label,
+      menuGroupLabel: opts.countryLabel,
       scope: opts.scope,
     })
   }

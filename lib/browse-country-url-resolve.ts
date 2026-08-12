@@ -948,6 +948,29 @@ const COMBINED_BROWSE_COUNTRY_KEY_EXPANSIONS: Record<string, string[]> = {
   // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia → stan master countryKeys — manifest
   'central-asia': ['kazakhstan', 'kyrgyzstan', 'uzbekistan'],
   중앙아시아: ['kazakhstan', 'kyrgyzstan', 'uzbekistan'],
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: caucasus/middle-east cluster → master countries — manifest
+  caucasus: ['georgia', 'azerbaijan', 'armenia', 'caucasus'],
+  '코카서스-3국': ['georgia', 'azerbaijan', 'armenia', 'caucasus'],
+  'middle-east': [
+    'united-arab-emirates',
+    'jordan',
+    'oman',
+    'qatar',
+    'saudi-arabia',
+    'israel',
+    'turkey',
+  ],
+  중동: [
+    'united-arab-emirates',
+    'jordan',
+    'oman',
+    'qatar',
+    'saudi-arabia',
+    'israel',
+    'turkey',
+  ],
+  balkans: ['croatia', 'slovenia', 'balkans'],
+  발칸: ['croatia', 'slovenia', 'balkans'],
 }
 
 export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null | undefined): string[] {
