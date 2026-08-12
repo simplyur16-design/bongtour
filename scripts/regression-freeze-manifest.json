@@ -12028,6 +12028,7 @@
             "REGRESSION-FREEZE[register-destination-reject-ilju]",
             "isRegisterDestinationScheduleActivityToken",
             "호핑·라운지·자유일정 ≠ 도시",
+            "예약·필독 안내 ≠ 도시",
             "factSchedulePlacesToTravelCitiesRaw"
           ]
         },

@@ -149,6 +149,28 @@ describe('register-destination-reject-ilju', () => {
     ).toBe('푸꾸옥')
   })
 
+  it('Australia/Kazakhstan booking-notice days never become destination', () => {
+    const au = resolveModetourRegisterDestination({
+      title: '[유류세_고정] 시드니 일주 6일 (전일정4성)',
+      pastedBody: '',
+      travelCitiesRaw:
+        '호주 상품 예약 시 꼭 읽어주세요, 시드니, 본다이 비치, 시드니 하버크루즈, 오페라하우스, 하버브릿지, MRS 맥콰리 체어, 록스 거리, 시드니 천문대, 남부 시드니, 쿨랑가타 와이너리, 화이트 샌드 워크, 저비스베이 돌핀크루즈, 블루마운틴, 시드니 ZOO',
+    })
+    expect(String(au.primaryDestination ?? '')).not.toMatch(/꼭\s*읽어|예약\s*시/)
+    expect(String(au.destinationRaw ?? '')).not.toMatch(/꼭\s*읽어|예약\s*시|하버\s*크루즈|오페라하우스|ZOO/i)
+    expect(String(au.primaryDestination ?? '')).toMatch(/시드니|호주/)
+
+    const kz = finalizeRegisterDestinationFields({
+      title: '[2030전용] 카자흐스탄 5일 #카자흐대자연',
+      destination: '카자흐스탄 여행 전 꼭 읽어주세요!',
+      destinationRaw: '카자흐스탄 여행 전 꼭 읽어주세요!, 차른 캐니언, 알마티',
+      primaryDestination: '카자흐스탄 여행 전 꼭 읽어주세요!',
+      countryKey: 'kazakhstan',
+    })
+    expect(String(kz.primaryDestination ?? '')).not.toMatch(/꼭\s*읽어/)
+    expect(String(kz.primaryDestination ?? '')).toMatch(/카자흐|알마티/)
+  })
+
   it('heal: polluted current → title / countryKey', () => {
     expect(
       healRegisterDestinationLabel({

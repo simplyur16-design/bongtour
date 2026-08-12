@@ -26,6 +26,22 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   if (/공항|airport|유의사항|안내\s*사항|정보\s*안내|입국\s*조건|필요\s*서류|여행전\s*준비|현지\s*행사\s*안내/i.test(t)) {
     return true
   }
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: 예약·필독 안내 ≠ 도시 — manifest
+  if (
+    /꼭\s*읽어\s*주세요|예약\s*시\s*꼭\s*읽어|상품\s*예약\s*시|여행\s*전\s*꼭\s*읽어|필독\s*사항|준비\s*사항/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  // 관광 포인트·체험 라벨 — 「시드니 외 13도시」식 destination 오염 방지
+  if (
+    /(?:하버|돌핀|선셋)?\s*크루즈|cruise|오페라\s*하우스|하버\s*브릿지|천문대|와이너리|동물원|\bzoo\b|캠프\s*파이어|맥콰리\s*체어/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
   if (/카페|cafe|비치\s*클럽|beach\s*club|루프\s*탑\s*바|네일\s*아트/i.test(t)) return true
   if (/쇼핑몰|shopping\s*mall|아울렛|outlet|면세점/i.test(t)) return true
   if (/반딧불|firefl|나들이\s*투어|플로팅\s*선셋|선셋\s*투어|시티\s*투어$/i.test(t)) return true
