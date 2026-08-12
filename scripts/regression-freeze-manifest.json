@@ -2767,7 +2767,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
             "OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG",
-            "overseas-hub-season-destination-hero-v11",
+            "overseas-hub-season-destination-hero-v12",
             "readCachedArrayOrBypassEmpty",
             "loadOverseasHubSeasonDestinationHeroSlidesUncached",
             "if (shouldSkipDbAtBuild()) return []",
@@ -2778,8 +2778,10 @@
           "file": "app/components/travel/overseas/OverseasHeroSlot.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]",
+            "REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]",
             "loadOverseasHubSeasonDestinationHeroSlidesUncached",
-            "recovered slides via uncached fallback"
+            "recovered slides via uncached fallback",
+            "getCurrentCycle"
           ]
         },
         {
@@ -2806,6 +2808,64 @@
       "vitestSuites": [
         "lib/home-season-pick.test.ts",
         "lib/unstable-cache-empty-bypass.test.ts"
+      ]
+    },
+    {
+      "id": "overseas-hub-season-hero-empty-poison",
+      "tier": ["prebuild", "ci"],
+      "summary": "해외 허브 3개월 추천 히어로 — SSR/CDN 빈 셸이어도 클라이언트 API로 복구, Data Cache empty poison 방지",
+      "checks": [
+        {
+          "file": "app/api/travel/overseas/season-hero/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]",
+            "force-dynamic",
+            "loadOverseasHubSeasonDestinationHeroSlidesUncached",
+            "Cache-Control",
+            "no-store"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHero.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]",
+            "/api/travel/overseas/season-hero",
+            "normalizeOverseasHubSeasonHeroSlides",
+            "recoveredSeasonSlides",
+            "불러오는 중"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHeroSlot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]",
+            "getCurrentCycle",
+            "uncached fallback"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-season-destination-hero.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]",
+            "overseas-hub-season-destination-hero-v12"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-season-destination-hero-shared.ts",
+          "mustInclude": [
+            "normalizeOverseasHubSeasonHeroSlides"
+          ]
+        },
+        {
+          "file": "app/api/cron/season-cache-revalidate/route.ts",
+          "mustInclude": [
+            "OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG",
+            "revalidatePath('/travel/overseas')"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/overseas-hub-season-destination-hero-shared.test.ts"
       ]
     },
     {

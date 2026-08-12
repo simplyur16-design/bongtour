@@ -22,8 +22,9 @@ import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 
 export type { OverseasHubDestinationHeroSlide } from '@/lib/overseas-hub-season-destination-hero-shared'
 
-/** revalidateTag / 배포 후 워밍 SSOT — v11: route revalidatePath + empty poison bust */
-export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v11'
+/** revalidateTag / 배포 후 워밍 SSOT — v12: client recover API + empty poison bust */
+// REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]: cache tag v12 — manifest
+export const OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG = 'overseas-hub-season-destination-hero-v12'
 
 function seoulMonth1To12(): number {
   const ym = getSeoulYearMonthNow()

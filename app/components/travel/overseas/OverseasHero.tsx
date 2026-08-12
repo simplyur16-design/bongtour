@@ -25,6 +25,7 @@ import { overseasBrowseLabelFromParams } from '@/lib/overseas-mega-menu-location
 import type { OverseasLocationSuggestion } from '@/lib/overseas-mega-menu-location-suggestions'
 import {
   findSeasonDestinationSlideForBrowseCountry,
+  normalizeOverseasHubSeasonHeroSlides,
   type OverseasHubDestinationHeroSlide,
 } from '@/lib/overseas-hub-season-destination-hero-shared'
 import OverseasCountryHeroBanner from '@/components/travel/overseas/OverseasCountryHeroBanner'
@@ -171,6 +172,11 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     items: CountryBrowseHeroRow[]
   } | null>(null)
   const [countryBrowseLoading, setCountryBrowseLoading] = useState(false)
+  // REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]: client recover when SSR/CDN empty — manifest
+  const [recoveredSeasonSlides, setRecoveredSeasonSlides] = useState<
+    OverseasHubDestinationHeroSlide[] | null
+  >(null)
+  const [seasonHeroRecovering, setSeasonHeroRecovering] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => {
     const fromUrl = parseYmd(
       sanitizeDepartDate(new URLSearchParams(initialSearchParamsString).get('departDate')),
@@ -210,17 +216,17 @@ const OverseasHero: FC<OverseasHeroProps> = ({
   const isLocalDepartureMode = Boolean(localDepLabel)
   const isSpotlightMode = Boolean(countrySlug) || isLocalDepartureMode
 
+  const seasonSlideSource = recoveredSeasonSlides ?? seasonDestinationHeroSlides ?? []
+
   const seasonSlides = useMemo(
-    () =>
-      (seasonDestinationHeroSlides ?? []).filter(
-        (s) => s.headline.trim() || (s.imageUrl ?? '').trim(),
-      ),
-    [seasonDestinationHeroSlides],
+    () => seasonSlideSource.filter((s) => s.headline.trim() || (s.imageUrl ?? '').trim()),
+    [seasonSlideSource],
   )
 
   const matchedCountrySlide = useMemo(
-    () => (countrySlug ? findSeasonDestinationSlideForBrowseCountry(seasonDestinationHeroSlides, countrySlug) : null),
-    [countrySlug, seasonDestinationHeroSlides],
+    () =>
+      countrySlug ? findSeasonDestinationSlideForBrowseCountry(seasonSlideSource, countrySlug) : null,
+    [countrySlug, seasonSlideSource],
   )
 
   const countryHeroDisplayName = useMemo(
@@ -258,6 +264,34 @@ const OverseasHero: FC<OverseasHeroProps> = ({
     if (localDepLabel) return `${localDepLabel}출발 여행상품 ${n}개`
     return ''
   }, [countryBrowseData?.total, countryHeroDisplayName, countrySlug, localDepLabel])
+
+  useEffect(() => {
+    const ssrOk = (seasonDestinationHeroSlides ?? []).some(
+      (s) => s.headline.trim() || (s.imageUrl ?? '').trim(),
+    )
+    if (ssrOk || recoveredSeasonSlides) return
+    let cancelled = false
+    setSeasonHeroRecovering(true)
+    ;(async () => {
+      try {
+        const res = await fetch('/api/travel/overseas/season-hero', {
+          cache: 'no-store',
+          headers: { accept: 'application/json' },
+        })
+        if (!res.ok) return
+        const body = (await res.json()) as { slides?: unknown }
+        const slides = normalizeOverseasHubSeasonHeroSlides(body?.slides)
+        if (!cancelled && slides.length > 0) setRecoveredSeasonSlides(slides)
+      } catch {
+        // keep empty UI; SSR/CDN miss only
+      } finally {
+        if (!cancelled) setSeasonHeroRecovering(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [seasonDestinationHeroSlides, recoveredSeasonSlides])
 
   useEffect(() => {
     if (!isSpotlightMode) {
@@ -699,8 +733,17 @@ const OverseasHero: FC<OverseasHeroProps> = ({
               ) : null
             ) : !current ? (
               <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-bt-subtle">
-                <p>다가오는 3개월 추천 여행지를 준비 중입니다.</p>
-                <p className="text-xs">잠시 후 다시 확인해 주세요.</p>
+                {seasonHeroRecovering ? (
+                  <>
+                    <p>다가오는 3개월 추천 여행지를 불러오는 중…</p>
+                    <p className="text-xs">잠시만 기다려 주세요.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>다가오는 3개월 추천 여행지를 준비 중입니다.</p>
+                    <p className="text-xs">잠시 후 다시 확인해 주세요.</p>
+                  </>
+                )}
               </div>
             ) : (
               (() => {

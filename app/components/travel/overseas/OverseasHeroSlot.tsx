@@ -3,6 +3,7 @@ import {
   getCachedOverseasHubSeasonDestinationHeroSlides,
   loadOverseasHubSeasonDestinationHeroSlidesUncached,
 } from '@/lib/overseas-hub-season-destination-hero'
+import { getCurrentCycle } from '@/lib/season-curation'
 import { getCachedCurrentCycle } from '@/lib/season-curation-content'
 
 const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
@@ -16,6 +17,7 @@ type Props = {
 /**
  * 해외 허브 히어로 — 실패 시 빈 슬라이드로 폴백(페이지 전체 RSC 오류 방지).
  * REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: blocking SSR (no Suspense empty shell) — manifest
+ * REGRESSION-FREEZE[overseas-hub-season-hero-empty-poison]: uncached cycle + slides fallback — manifest
  */
 export default async function OverseasHeroSlot({
   selectedCountrySlug,
@@ -24,19 +26,25 @@ export default async function OverseasHeroSlot({
 }: Props) {
   let seasonDestinationHeroSlides: Awaited<ReturnType<typeof getCachedOverseasHubSeasonDestinationHeroSlides>> = []
   try {
-    const cycle = await getCachedCurrentCycle()
+    let cycle = await getCachedCurrentCycle()
+    // Cached null after deploy race — always re-check Prisma once.
+    if (!cycle?.id) {
+      cycle = await getCurrentCycle(new Date())
+    }
     if (!cycle) {
       console.warn('[OverseasHeroSlot] no active SeasonalDestinationCuration cycle — empty hero')
     }
-    seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides(cycle)
-    // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: uncached fallback if cache still empty — manifest
-    if (seasonDestinationHeroSlides.length === 0 && cycle?.id) {
-      seasonDestinationHeroSlides = await loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle)
-      if (seasonDestinationHeroSlides.length > 0) {
-        console.warn('[OverseasHeroSlot] recovered slides via uncached fallback', {
-          count: seasonDestinationHeroSlides.length,
-          cycleId: cycle.id,
-        })
+    if (cycle?.id) {
+      seasonDestinationHeroSlides = await getCachedOverseasHubSeasonDestinationHeroSlides(cycle)
+      // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: uncached fallback if cache still empty — manifest
+      if (seasonDestinationHeroSlides.length === 0) {
+        seasonDestinationHeroSlides = await loadOverseasHubSeasonDestinationHeroSlidesUncached(cycle)
+        if (seasonDestinationHeroSlides.length > 0) {
+          console.warn('[OverseasHeroSlot] recovered slides via uncached fallback', {
+            count: seasonDestinationHeroSlides.length,
+            cycleId: cycle.id,
+          })
+        }
       }
     }
   } catch (e) {
