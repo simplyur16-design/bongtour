@@ -601,7 +601,17 @@ const CHINA_HK_MO_MONGOLIA_TEXT = [
   'chifeng',
 ]
 
-const CHINA_HK_MO_CHINA_EXTRA_CITY_KEYS = new Set(['xian', 'xian-urumqi', 'urumqi', 'xiamen', 'fuzhou'])
+const CHINA_HK_MO_CHINA_EXTRA_CITY_KEYS = new Set([
+  'xian',
+  'xian-urumqi',
+  'urumqi',
+  'xiamen',
+  'fuzhou',
+  'zhengzhou',
+  'luoyang',
+  'kaifeng',
+  'jiaozuo',
+])
 
 const CHINA_HK_MO_CHINA_EXTRA_TEXT = [
   '서안',

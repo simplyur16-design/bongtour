@@ -92,4 +92,27 @@ describe('mega-menu leaf browse href / country expansions', () => {
     expect(u.searchParams.get('city')).toBe('inner-mongolia')
     expect(u.searchParams.get('menuGroup')).toBe('mongolia')
   })
+
+  it('화중 정주 leaf maps to zhengzhou master city key', () => {
+    expect(countrySlugFromLabel('화중')).toBe('huazhong')
+    expect(resolveBrowseCityKeysForFilter('zhengzhou')).toEqual(
+      expect.arrayContaining(['zhengzhou']),
+    )
+    expect(resolveBrowseCityKeysForFilter('정주')).toEqual(expect.arrayContaining(['zhengzhou']))
+    const region = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === 'china-hk-mo')
+    const group = region?.countryGroups?.find((g) => g.countryLabel === '화중')
+    const leaf = group?.cities.find((c) => c.label === '정주')
+    expect(group && leaf).toBeTruthy()
+    const href = buildMegaMenuLeafHref({
+      type: 'travel',
+      regionId: 'china-hk-mo',
+      countryLabel: group!.countryLabel,
+      headerBrowseCountryLabel: group!.headerBrowseCountryLabel,
+      leaf: leaf!,
+    })
+    const u = new URL(href, 'http://localhost')
+    expect(u.searchParams.get('country')).toBe('china')
+    expect(u.searchParams.get('menuGroup')).toBe('huazhong')
+    expect(u.searchParams.get('city')).toBe('zhengzhou')
+  })
 })

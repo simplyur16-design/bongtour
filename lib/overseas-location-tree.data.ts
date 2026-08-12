@@ -576,6 +576,27 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('xian-urumqi', '서안 · 우루무치', { aliases: ["xi'an", '서안', 'urumqi', '우루무치'] }),
           L('wuhan-yichang', '무한 · 은시 · 무당산', { aliases: ['wuhan', '무한', 'yichang', '은시', '무당산'] }),
           L('changbai', '백두산 · 연길 · 심양 · 장춘', { aliases: ['백두산', 'changbai', '연길', '심양', '장춘'] }),
+          // REGRESSION-FREEZE[mega-menu-product-alignment]: 하남 정주·낙양·개봉·초작 master cityKeys — manifest
+          L('zhengzhou', '정주', {
+            aliases: ['zhengzhou', '정주', '정저우', '郑州', '소림사', '소림'],
+            dbCityValue: '정주',
+            supplierKeywords: ['정주', '소림사'],
+          }),
+          L('luoyang', '낙양', {
+            aliases: ['luoyang', '낙양', '뤄양', '洛阳'],
+            dbCityValue: '낙양',
+            supplierKeywords: ['낙양'],
+          }),
+          L('kaifeng', '개봉', {
+            aliases: ['kaifeng', '개봉', '카이펑', '开封'],
+            dbCityValue: '개봉',
+            supplierKeywords: ['개봉'],
+          }),
+          L('jiaozuo', '초작', {
+            aliases: ['jiaozuo', '초작', '자오쭤', '焦作', '운대산', 'yuntaishan'],
+            dbCityValue: '초작',
+            supplierKeywords: ['초작', '운대산'],
+          }),
         ],
         { aliases: ['중국', 'china'], supplierKeywords: ['중국권'], dbCountryValues: ['중국'] }
       ),

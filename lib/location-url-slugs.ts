@@ -45,6 +45,7 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   산동: 'shandong',
   화동: 'huadong',
   화북: 'huabei',
+  화중: 'huazhong',
   동북: 'dongbei',
   화남: 'huanan',
   복건: 'fujian',

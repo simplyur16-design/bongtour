@@ -342,6 +342,13 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('서안', ['서안', "xi'an", 'xian', '중국']),
     city('장야', ['장야', 'zhangye', '张掖', '七彩', '丹霞', '다채', '쪼한', '중국']),
   ]),
+  // REGRESSION-FREEZE[mega-menu-product-alignment]: 하남 정주·낙양·개봉·초작 master cityKeys — manifest
+  GCn('화중', [
+    city('정주', ['정주', 'zhengzhou', '정저우', '소림사', '소림', '중국', '하남']),
+    city('낙양', ['낙양', 'luoyang', '뤄양', '중국', '하남']),
+    city('개봉', ['개봉', 'kaifeng', '카이펑', '중국', '하남']),
+    city('초작', ['초작', 'jiaozuo', '자오쭤', '운대산', 'yuntaishan', '중국', '하남']),
+  ]),
   GCn('동북', [
     city('대련', ['대련', 'dalian', '중국']),
     city('하얼빈', ['하얼빈', 'harbin', '중국']),
