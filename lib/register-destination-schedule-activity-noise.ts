@@ -34,12 +34,31 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   ) {
     return true
   }
+  // 간단 안내·입출국 규정·여행 팁 문구
+  if (
+    /간단\s*안내|여행을\s*위한|규정\s*안내|입\s*[·,/\-]?\s*출국|출국\s*규정|입국\s*규정|여행시\s*입|도시\s*정보\s*및\s*팁|추천\s*명소|국룰|핫플에서|유럽인\s*척/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  // 프로모·항공 코드·정책 뱃지 토큰
+  if (
+    /^(?:KE|OZ|VJ|TW|7C|LJ|BX|ZE|RS|SQ|TG|NH|JL|CX|KA)$/i.test(t) ||
+    /^(?:NO|무)(?:옵션|쇼핑|팁)$/i.test(t) ||
+    /트래블\s*페스타|연길\s*직항|ALL\s*STAY|POOL\s*VILLA|풀\s*빌라|온라인\s*전용/i.test(t)
+  ) {
+    return true
+  }
   // 관광 포인트·체험 라벨 — 「시드니 외 13도시」식 destination 오염 방지
   if (
     /(?:하버|돌핀|선셋)?\s*크루즈|cruise|오페라\s*하우스|하버\s*브릿지|천문대|와이너리|동물원|\bzoo\b|캠프\s*파이어|맥콰리\s*체어/i.test(
       t,
     )
   ) {
+    return true
+  }
+  if (/테마\s*파크|대마술|공연|박물관|증류소|야시장|당일(?:\s*투어)?$|1박\s*2일|자율\s*감상|인생\s*별밤|초원\s*(?:일출|선셋|별밤)/i.test(t)) {
     return true
   }
   if (/카페|cafe|비치\s*클럽|beach\s*club|루프\s*탑\s*바|네일\s*아트/i.test(t)) return true
@@ -56,17 +75,43 @@ export function splitRegisterDestinationPlaceTokens(raw: string): string[] {
     .replace(/\s+/g, ' ')
     .trim()
   if (!base) return []
-  return base
-    .split(/[,，、/／·|+]/)
-    .map((p) =>
-      scrubRegisterDestinationTourStyleHead(
-        p
+  const parts: string[] = []
+  let buf = ''
+  let depth = 0
+  for (const ch of base) {
+    if (ch === '(' || ch === '（') {
+      depth += 1
+      buf += ch
+      continue
+    }
+    if (ch === ')' || ch === '）') {
+      depth = Math.max(0, depth - 1)
+      buf += ch
+      continue
+    }
+    if (depth === 0 && /[,，、/／·|+]/.test(ch)) {
+      const piece = scrubRegisterDestinationTourStyleHead(
+        buf
           .replace(/\s+/g, ' ')
-          .replace(/^\(+|\)+$/g, '')
+          .replace(/\(\d+\)/g, ' ')
+          .replace(/\(\d+$/u, ' ')
           .trim(),
-      ),
-    )
-    .filter((p) => p.length >= 2 && !/^\d+$/.test(p))
+      )
+      if (piece.length >= 2 && !/^\d+$/.test(piece)) parts.push(piece)
+      buf = ''
+      continue
+    }
+    buf += ch
+  }
+  const last = scrubRegisterDestinationTourStyleHead(
+    buf
+      .replace(/\s+/g, ' ')
+      .replace(/\(\d+\)/g, ' ')
+      .replace(/\(\d+$/u, ' ')
+      .trim(),
+  )
+  if (last.length >= 2 && !/^\d+$/.test(last)) parts.push(last)
+  return parts
 }
 
 /** 도시·지명 후보만 남김 (일주·호핑·라운지 등 제거) */

@@ -171,6 +171,49 @@ describe('register-destination-reject-ilju', () => {
     expect(String(kz.primaryDestination ?? '')).toMatch(/카자흐|알마티/)
   })
 
+  it('내몽골·뉴질랜드 안내문구 / 박수표기 / 프로모 토큰 scrub', () => {
+    const mn = finalizeRegisterDestinationFields({
+      title: '[특별전세기] 내몽골/세계3대초원 5일#후룬베이얼초원',
+      destination: '즐거운 내몽골 여행을 위한 간단 안내 · 마트료시카 테마파크 외',
+      destinationRaw:
+        '즐거운 내몽골 여행을 위한 간단 안내, 마트료시카 테마파크, 후룬베이얼 초원, 만주리 러시아풍 거리',
+      primaryDestination: '즐거운 내몽골 여행을 위한 간단 안내 · 마트료시카 테마파크 외',
+      countryKey: 'china',
+    })
+    expect(String(mn.primaryDestination ?? '')).not.toMatch(/간단\s*안내|테마\s*파크|특별\s*전세기/)
+    expect(String(mn.primaryDestination ?? '')).toMatch(/내몽골|후룬베이얼/)
+
+    const nz = finalizeRegisterDestinationFields({
+      title: '뉴질랜드 남북섬 핵심일주 9일',
+      destination: '한국<->뉴질랜드 여행시 입 · 출국 규정 안내 외',
+      destinationRaw: '한국<->뉴질랜드 여행시 입, 출국 규정 안내, 퀸스타운, 밀포드 사운드',
+      primaryDestination: '한국<->뉴질랜드 여행시 입 · 출국 규정 안내 외',
+      countryKey: 'newzealand',
+    })
+    expect(String(nz.primaryDestination ?? '')).not.toMatch(/규정\s*안내|여행시\s*입/)
+    expect(String(nz.primaryDestination ?? '')).toMatch(/뉴질랜드|퀸스타운|밀포드/)
+
+    const nights = finalizeRegisterDestinationFields({
+      title: '방콕 자유여행 3박 5일',
+      destination: '방콕(3)',
+      destinationRaw: '방콕(3)',
+      primaryDestination: '방콕(3)',
+      countryKey: 'thailand',
+    })
+    expect(nights.primaryDestination).toBe('방콕')
+    expect(String(nights.destinationRaw ?? '')).toBe('방콕')
+
+    const promo = finalizeRegisterDestinationFields({
+      title: '[트래블페스타][7C] 비엔티엔/방비엥 5일',
+      destination: '트래블페스타 · 7C 외 4도시',
+      destinationRaw: '트래블페스타, 7C, 비엔티엔, 방비엥',
+      primaryDestination: '트래블페스타 · 7C 외 4도시',
+      countryKey: 'laos',
+    })
+    expect(String(promo.primaryDestination ?? '')).not.toMatch(/트래블|7C/)
+    expect(String(promo.primaryDestination ?? '')).toMatch(/비엔티엔|방비엥|라오스/)
+  })
+
   it('heal: polluted current → title / countryKey', () => {
     expect(
       healRegisterDestinationLabel({

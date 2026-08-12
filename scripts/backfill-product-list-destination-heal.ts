@@ -48,6 +48,8 @@ function needsHeal(fields: {
     const t = String(v ?? '').trim()
     if (!t) continue
     if (isRegisterDestinationPollutionLabel(t)) return true
+    // 박수 표기 `방콕(3)` / 깨진 괄호
+    if (/\(\d+\)|\(\d+$/u.test(t)) return true
     // REGRESSION-FREEZE[register-destination-reject-ilju]: heal schedule-activity polluted labels — manifest
     if (
       splitRegisterDestinationPlaceTokens(t).some((tok) =>

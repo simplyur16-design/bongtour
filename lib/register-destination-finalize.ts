@@ -62,6 +62,14 @@ export function isRegisterDestinationPollutionLabel(raw: string | null | undefin
   }
   if (PRODUCT_COPY_POLLUTION_RE.test(t)) return true
   if (/^여행\s*일정/.test(t)) return true
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: 예약·필독 안내 ≠ 도시 — manifest
+  if (
+    /꼭\s*읽어|간단\s*안내|규정\s*안내|여행을\s*위한|입\s*[·,/\-]?\s*출국|출국\s*규정|상품\s*예약\s*시|트래블\s*페스타/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
   return false
 }
 
@@ -88,7 +96,7 @@ function isLikelyPlaceBracketInner(inner: string): boolean {
   if (/ROOM|VIEW|HOTEL|UPGRADE|DELUXE|SUITE/i.test(t)) return false
   if (/^[A-Za-z0-9][A-Za-z0-9\s\-_/]*$/.test(t) && t.split(/\s+/).length >= 2) return false
   // REGRESSION-FREEZE[register-destination-reject-ilju]: promo brackets ≠ place — manifest
-  if (/(?:초)?특가|기간\s*한정|실시간|노쇼핑|노옵션|노팁|풀\s*패키지|온라인\s*전용|2030\s*전용/i.test(t)) {
+  if (/(?:초)?특가|기간\s*한정|실시간|노쇼핑|노옵션|노팁|풀\s*패키지|온라인\s*전용|2030\s*전용|특별\s*전세기|전세기|유류세/i.test(t)) {
     return false
   }
   return true
@@ -164,8 +172,9 @@ export function healRegisterDestinationLabel(input: {
   const fromCurrent = firstCleanStoredDestination(input.current)
   if (fromCurrent) return fromCurrent
 
+  // 「남북섬 핵심일주」수식어 오탐 방지 — 제목 선두(프로모 브래킷 허용) 국가+일주만
   const countryIlju = title.match(
-    /([가-힣A-Za-z]{2,16})\s*(?:완전)?일주\s*(?:\d+\s*박|\d+\s*일|#)/u,
+    /^(?:\[[^\]]*\]\s*)*([가-힣A-Za-z]{2,16})\s*(?:완전)?일주\s*(?:\d+\s*박|\d+\s*일|#)/u,
   )
   if (countryIlju?.[1]) {
     const tok = scrubPlaceToken(countryIlju[1])
@@ -231,7 +240,7 @@ export function finalizeRegisterDestinationFields(input: {
     countryKey: input.countryKey,
     current: null,
   })
-  // destinationRaw는 일정 places 덤프라 title보다 후순위 (카페·클럽 잔류 방지)
+  // destinationRaw는 일정 places 덤프라 title보다 후순위 (카페·클럽·사막 잔류 방지)
   const fromRaw = firstCleanStoredDestination(input.destinationRaw)
   const healed = fromPrimaryDest || fromTitle || fromRaw
 

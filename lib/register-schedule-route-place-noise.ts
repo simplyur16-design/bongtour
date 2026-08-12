@@ -409,6 +409,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/여행\s*전\s*필수\s*확인|필수\s*확인\s*사항|여행\s*전\s*꼭\s*읽어/u.test(t)) return true
   // REGRESSION-FREEZE[register-destination-reject-ilju]: 예약·필독 안내 ≠ 도시 — manifest
   if (/꼭\s*읽어\s*주세요|예약\s*시\s*꼭\s*읽어|상품\s*예약\s*시|필독\s*사항/u.test(t)) return true
+  if (/간단\s*안내|여행을\s*위한|규정\s*안내|입\s*[·,/\-]?\s*출국|출국\s*규정|여행시\s*입/u.test(t)) {
+    return true
+  }
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP257 Phu Quoc Crazy Hopping·free-day≠Beach Club — manifest
   // Best Western·신상 비치클럽 = 숙박/마케팅 — Sonashi 관광과 same-day twin 금지
   if (/(?:베스트웨스턴|Best\s*Western)/i.test(t) && /비치|클럽|호텔|리조트|Beach|Club/i.test(t)) return true
