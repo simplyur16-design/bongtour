@@ -8,6 +8,7 @@ import {
   firstMatchingScheduleSpotEn,
   getSchedulePoiRegexEnglishKeys,
   routeContextualNationalAssemblyEnglish,
+  routeContextualDisneyEnglish,
 } from '@/lib/schedule-poi-regex-ssot'
 
 describe('schedule-poi-regex-ssot', () => {
@@ -146,6 +147,21 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('이스탄불 - 인천')).not.toMatch(/Arles/i)
     expect(mapKoreanPoiSegment('스페인광장')).toMatch(/Seville/i)
     expect(mapKoreanPoiSegment('괌 스페인광장')).toMatch(/Guam/i)
+  })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  it('maps Hong Kong Disneyland — not Tokyo or Shanghai', () => {
+    expect(firstMatchingScheduleSpotEn('홍콩 디즈니랜드')).toMatch(/Hong Kong Disneyland/i)
+    expect(firstMatchingScheduleSpotEn('홍콩 디즈니랜드')).not.toMatch(/Tokyo|Shanghai/i)
+    expect(firstMatchingScheduleSpotEn('도쿄 디즈니랜드')).toMatch(/Tokyo Disneyland/i)
+    expect(firstMatchingScheduleSpotEn('상하이 디즈니')).toMatch(/Shanghai Disneyland/i)
+    expect(firstMatchingScheduleSpotEn('빅토리아 산정')).toMatch(/Victoria Peak/i)
+    expect(routeContextualDisneyEnglish('디즈니랜드', '홍콩 - 디즈니랜드', '홍콩')).toMatch(
+      /Hong Kong Disneyland/i,
+    )
+    expect(routeContextualDisneyEnglish('디즈니랜드', '디즈니랜드', '홍콩')).toMatch(/Hong Kong Disneyland/i)
+    expect(mapKoreanPoiSegment('홍콩 디즈니랜드')).toMatch(/Hong Kong Disneyland/i)
+    expect(mapKoreanPoiSegment('디즈니랜드')).not.toMatch(/Tokyo|Shanghai|Hong Kong/i)
   })
 
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 리기≠승리기념탑 — Baltic Victory Monument bleed 금지 — manifest

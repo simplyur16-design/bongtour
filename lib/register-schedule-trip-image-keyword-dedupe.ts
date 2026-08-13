@@ -431,8 +431,20 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('North Shore Oahu surf beach')
   }
   if (/홍콩|Hong\s*Kong|香港/i.test(rawRoute)) {
-    push('Victoria Peak Hong Kong skyline')
-    push('Avenue of Stars Hong Kong')
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+    if (/피크|Peak|산정/i.test(rawRoute) && !/디즈니|Disney/i.test(rawRoute)) {
+      push('Victoria Peak Hong Kong skyline')
+    }
+    if (/스타의\s*거리|연인|Avenue\s*of\s*Stars/i.test(rawRoute)) push('Avenue of Stars Hong Kong')
+    if (/디즈니|Disney/i.test(rawRoute) && !/(?:도쿄|Tokyo|상하이|Shanghai)/i.test(rawRoute)) {
+      push('Hong Kong Disneyland castle')
+    }
+    if (/웡타이신|Wong\s*Tai\s*Sin/i.test(rawRoute)) push('Wong Tai Sin Temple')
+    if (/소호|SoHo/i.test(rawRoute)) push('SoHo Hong Kong')
+    if (/헐리우드|할리우드|Hollywood/i.test(rawRoute)) push('Hollywood Road Hong Kong')
+    if (/타이쿤|Tai\s*Kwun/i.test(rawRoute)) push('Tai Kwun')
+    if (/피크\s*트램|Peak\s*Tram/i.test(rawRoute)) push('Peak Tram')
+    if (/에스컬레이터|Escalator|미드/i.test(rawRoute)) push('Mid-levels Escalator Hong Kong')
   }
   if (/괌|Guam|투몬|Tumon/i.test(rawRoute)) {
     push('Fort Apugan Guam hilltop view')
@@ -2547,6 +2559,7 @@ function pickUaeResortClusterKeywordForUsedSlot(
   return ''
 }
 
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
 function isHongKongHubClusterRoute(routeText: string | null | undefined): boolean {
   return /(?:홍콩|Hong\s*Kong|香港)/i.test(String(routeText ?? ''))
 }
@@ -2555,9 +2568,28 @@ function allowHongKongHubClusterKw2Duplicate(kw: string, routeText?: string | nu
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isHongKongHubClusterRoute(routeText)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /hong kong|victoria|peak|harbour|harbor|avenue|stars|soho|hollywood|blue house|dim sum|kowloon|tsim/.test(
+  return /hong kong|victoria|peak|harbour|harbor|avenue|stars|soho|hollywood|blue house|dim sum|kowloon|tsim|disney|wong tai|tram|tai kwun|escalator|mid-?level/.test(
     nk,
   )
+}
+
+/** 홍콩 hub cand — 당일 route 증거 없으면 Peak↔Disney bleed 금지 */
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+function hongKongHubKeywordHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  const nk = normScheduleImageKeywordKey(kw)
+  const rt = String(dayRoute ?? '')
+  if (/disney/.test(nk)) return /디즈니|Disney/i.test(rt)
+  if (/wong tai/.test(nk)) return /웡타이신|Wong\s*Tai\s*Sin/i.test(rt)
+  if (/peak tram|tram/.test(nk) && !/victoria peak/.test(nk)) {
+    return /피크\s*트램|Peak\s*Tram|트램/i.test(rt)
+  }
+  if (/victoria peak|peak/.test(nk)) return /피크|Peak|산정/i.test(rt)
+  if (/soho/.test(nk)) return /소호|SoHo/i.test(rt)
+  if (/hollywood/.test(nk)) return /헐리우드|할리우드|Hollywood/i.test(rt)
+  if (/tai kwun|taikwun/.test(nk)) return /타이쿤|Tai\s*Kwun/i.test(rt)
+  if (/avenue of stars|stars/.test(nk)) return /스타의\s*거리|연인|Avenue\s*of\s*Stars/i.test(rt)
+  if (/escalator|mid-?level/.test(nk)) return /에스컬레이터|Escalator|미드/i.test(rt)
+  return true
 }
 
 function pickHongKongHubClusterKeywordForUsedSlot(
@@ -2573,6 +2605,7 @@ function pickHongKongHubClusterKeywordForUsedSlot(
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
     if (!allowHongKongHubClusterKw2Duplicate(kw, evidence)) return ''
+    if (!hongKongHubKeywordHasDayRouteEvidence(kw, evidence)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -2587,6 +2620,10 @@ function pickHongKongHubClusterKeywordForUsedSlot(
     'Avenue of Stars Hong Kong',
     'SoHo Hong Kong',
     'Hollywood Road Hong Kong',
+    'Hong Kong Disneyland castle',
+    'Wong Tai Sin Temple',
+    'Peak Tram',
+    'Tai Kwun',
   ]) {
     const hit = tryPick(raw)
     if (hit) return hit
@@ -4518,6 +4555,12 @@ function shouldRejectRouteLeakKeyword2(
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
   if (!isBareCityOrCountryKeyword(secondary) && isIberiaSouthFranceClusterKeyword(secondary)) {
     if (!easternEuropeHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  if (/disney|victoria peak|peak tram|\bpeak\b|wong tai|soho|hollywood|tai kwun|taikwun|avenue of stars|escalator|mid-?level/.test(nk)) {
+    if (isHongKongHubClusterRoute(dayRt) || isHongKongHubClusterRoute(hay)) {
+      if (!hongKongHubKeywordHasDayRouteEvidence(secondary, dayRt)) return true
+    }
   }
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
   if (

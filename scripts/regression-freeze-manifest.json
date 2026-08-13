@@ -7580,7 +7580,8 @@
             "isRegisterScheduleFreeTimeOrResortLeisureText",
             "isRegisterScheduleHotelOnlyRouteText",
             "AMP7017 hotel-only ≠ KK lounge steal",
-            "리조트 자유일 empty route ← title"
+            "리조트 자유일 empty route ← title",
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai"
           ]
         },
         {
@@ -7624,7 +7625,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-route-text-single-poi-expand]",
             "expandSingleSegmentPoiRouteTextRows",
-            "영어 POI 금지"
+            "영어 POI 금지",
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai"
           ]
         }
       ],
@@ -7933,6 +7935,7 @@
             "JKP135 규슈≠Tottori Sand Dunes 갭필",
             "ALP201 방비엥≠Patuxai/That Luang",
             "Iberia·남프랑스 ESP104 day-owned POI",
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
             "ASP214 Sentosa≠Gardens by the Bay bleed",
             "Laos Blue Lagoon ≠ Maldives lagoon evidence",
             "「거리가」≠ 리가 Riga bleed",
@@ -8297,7 +8300,9 @@
           "file": "lib/register-schedule-day-owned-image-keyword.test.ts",
           "mustInclude": [
             "Iberia·남프랑스 ESP104 day-owned POI",
-            "modetour ESP104EKNL-like"
+            "modetour ESP104EKNL-like",
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
+            "modetour AHP406KEDT-like"
           ]
         },
         {
@@ -8333,6 +8338,7 @@
             "collectRouteTextSpotScanLandmarkKeywords",
             "routeTextSegmentToImageKeyword",
             "routeContextualNationalAssemblyEnglish",
+            "routeContextualDisneyEnglish",
             "description·schedule_section·본문 스캔 금지",
             "departure forward only next tourism day",
             "departure forward dep-route cluster",
@@ -8609,6 +8615,8 @@
             "SCHEDULE_CITY_KO_REGEX_RULES",
             "firstMatchingScheduleSpotEn",
             "routeContextualNationalAssemblyEnglish",
+            "routeContextualDisneyEnglish",
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
             "Fisherman's Bastion Budapest",
             "프라하·동유럽 명소",
             "크(?:룸|롬)로프",
@@ -8663,7 +8671,8 @@
             "India AWP902",
             "「거리가」≠ 리가 Riga",
             "몬세라트 수도원 Montserrat",
-            "Iberia·남프랑스 ESP104 day-owned POI"
+            "Iberia·남프랑스 ESP104 day-owned POI",
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai"
           ]
         },
         {

@@ -28,6 +28,7 @@ import {
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
   routeContextualNationalAssemblyEnglish,
+  routeContextualDisneyEnglish,
 } from '@/lib/schedule-poi-regex-ssot'
 import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
 
@@ -93,6 +94,11 @@ function englishLandmarkOnlyFromScheduleKoreanSegment(
     const kw = acceptRouteSegmentKeyword(assembly, { allowCity: false })
     if (kw) return kw
   }
+  const disney = routeContextualDisneyEnglish(t, routeText)
+  if (disney) {
+    const kw = acceptRouteSegmentKeyword(disney, { allowCity: false })
+    if (kw) return kw
+  }
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     const kw = acceptRouteSegmentKeyword(fromPoi, { allowCity: false })
@@ -119,6 +125,11 @@ export function routeTextSegmentToImageKeyword(
   const assembly = routeContextualNationalAssemblyEnglish(t, opts?.routeText)
   if (assembly) {
     const kw = acceptRouteSegmentKeyword(assembly, opts)
+    if (kw) return kw
+  }
+  const disney = routeContextualDisneyEnglish(t, opts?.routeText)
+  if (disney) {
+    const kw = acceptRouteSegmentKeyword(disney, opts)
     if (kw) return kw
   }
   const fromKo =

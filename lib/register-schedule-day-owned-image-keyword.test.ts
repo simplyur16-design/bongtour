@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 당일 routeText만 — 타 일차 landmark 금지
  * REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+ * REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
@@ -195,5 +196,37 @@ describe('ModeTour ESP104 Iberia — day-owned imageKeyword', () => {
     expect(blob(10)).toMatch(/Jeronimos|Belem|Cabo da Roca|Lisbon/i)
     expect(blob(11)).toMatch(/Nice|Massena|Avignon|Popes/i)
     expect(blob(11)).not.toMatch(/Toledo|Sagrada|Alhambra/i)
+  })
+})
+
+const AHP406_HK_DISNEY_SCHEDULE = [
+  { day: 1, routeText: '인천 - 홍콩', imageKeyword: '', imageKeyword2: null as string | null },
+  { day: 2, routeText: '홍콩 디즈니랜드', imageKeyword: '', imageKeyword2: null },
+  {
+    day: 3,
+    routeText: '헐리우드로드 - 미드레벨 에스컬레이터 - 소호거리 - 웡타이신 사원 - 빅토리아 피크트램 - 빅토리아 산정',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  { day: 4, routeText: '홍콩 - 인천', imageKeyword: '', imageKeyword2: null },
+]
+
+describe('ModeTour AHP406 Hong Kong Disney — day-owned imageKeyword', () => {
+  // REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  it('modetour AHP406KEDT-like — Disney day is HK not Tokyo/Shanghai; Peak stays on core-tour day', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(AHP406_HK_DISNEY_SCHEDULE, {
+      supplierKey: 'modetour',
+      productDestination: '홍콩',
+      productTitle: '[출발확정] 홍콩 디즈니랜드+핵심투어+반일자유 3박4일',
+    })
+    const byDay = new Map(out.map((r) => [r.day, r]))
+    const blob = (d: number) =>
+      `${String(byDay.get(d)?.imageKeyword ?? '')} | ${String(byDay.get(d)?.imageKeyword2 ?? '')}`
+
+    expect(blob(2)).toMatch(/Hong Kong Disneyland/i)
+    expect(blob(2)).not.toMatch(/Tokyo|Shanghai/i)
+    expect(blob(2)).not.toMatch(/Victoria Peak|SoHo|Wong Tai Sin/i)
+    expect(blob(3)).toMatch(/Victoria Peak|Peak Tram|SoHo|Hollywood|Wong Tai Sin|Tai Kwun|Escalator/i)
+    expect(blob(3)).not.toMatch(/Tokyo|Shanghai|Disneyland/i)
   })
 })

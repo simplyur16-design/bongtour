@@ -51,6 +51,9 @@ export function isRegisterScheduleHotelOnlyRouteText(text: string | null | undef
 export function isRegisterSchedulePlaceholderRouteText(routeText: string | null | undefined): boolean {
   const t = String(routeText ?? '').trim()
   if (!t) return true
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  // 당일 전용 테마파크·명소 단독 route는 placeholder가 아님 — 인접일 Peak 붙이기 금지
+  if (/(?:디즈니|Disney|유니버설|USJ|에버랜드|롯데월드|테마파크)/i.test(t)) return false
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·리조트일은 placeholder로 보지 않음 — manifest
   if (isRegisterScheduleFreeTimeOrResortLeisureText(t)) return false
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: AMP7017 hotel-only ≠ KK lounge steal — manifest
@@ -236,6 +239,8 @@ export function backfillMiddleDayRouteTextFromAdjacentDays<T extends RegisterSch
     ) {
       return row
     }
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+    if (/(?:디즈니|Disney|유니버설|USJ|에버랜드|롯데월드|테마파크)/i.test(route)) return row
     const segs = route ? splitRouteTextPlaceSegments(route).filter((s) => s.trim().length >= 2) : []
     if (route && segs.length >= 2 && route.length >= 4 && !isRegisterSchedulePlaceholderRouteText(route)) return row
     for (const neighbor of sorted) {

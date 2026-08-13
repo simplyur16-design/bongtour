@@ -513,6 +513,14 @@ const POI_KO_TO_EN: Record<string, string> = {
   오다이바: 'Odaiba',
   디즈니랜드: 'Tokyo Disneyland',
   도쿄디즈니랜드: 'Tokyo Disneyland',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  '홍콩 디즈니랜드': 'Hong Kong Disneyland',
+  홍콩디즈니랜드: 'Hong Kong Disneyland',
+  '홍콩 디즈니': 'Hong Kong Disneyland',
+  상하이디즈니랜드: 'Shanghai Disneyland',
+  '상하이 디즈니랜드': 'Shanghai Disneyland',
+  빅토리아산정: 'Victoria Peak',
+  '빅토리아 산정': 'Victoria Peak',
   울루와뚜: 'Uluwatu Temple',
   빠당빠당비치: 'Padang Padang Beach',
   빠당빠당: 'Padang Padang Beach',
@@ -1459,6 +1467,13 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
 }
 
 function poiKoMappingAllowed(ko: string, text: string): boolean {
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  if (ko === '디즈니랜드' || ko === '도쿄디즈니랜드') {
+    if (/홍콩|Hong\s*Kong|香港/i.test(text)) return false
+    if (/상하이|Shanghai/i.test(text)) return false
+    if (ko === '도쿄디즈니랜드') return true
+    return /도쿄|일본|오사카|Tokyo|Japan|디즈니씨/i.test(text)
+  }
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — bare 빅토리아≠Falls/Peak — manifest
   if (ko === '빅토리아' && /폭포|폴스|피크|Peak|Falls/i.test(text)) return false
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour PAP100 Sydney — QVB≠Victoria BC Inner Harbour — manifest

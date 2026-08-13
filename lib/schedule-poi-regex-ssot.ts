@@ -163,6 +163,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /오도리\s*공원|Odori\s*Park/u, en: "Odori Park" },
   { re: /도야\s*호수|Lake\s*Toya/u, en: "Lake Toya" },
   { re: /소호\s*거리|SoHo(?!\s*Hong)/iu, en: "SoHo Hong Kong" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  { re: /홍콩\s*디즈니|Hong\s*Kong\s*Disney/i, en: "Hong Kong Disneyland castle" },
+  { re: /빅토리아\s*산정/u, en: "Victoria Peak" },
   { re: /타이쿤|Tai\s*Kwun/u, en: "Tai Kwun" },
   { re: /헐리우드\s*로드|Hollywood\s*Road/u, en: "Hollywood Road Hong Kong" },
   { re: /미드[-\s]*레벨\s*에스컬레이터|Mid[-\s]*level\s*Escalator/u, en: "Mid-Levels Escalator" },
@@ -437,7 +440,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /(?:유|우)니버설\s*스튜디오\s*(?:재팬|japan)|USJ/iu, en: "Universal Studios Japan Osaka" },
   // bare 유니버설 → Japan 금지: 일본·오사카·도쿄 맥락 있을 때만 USJ
   { re: /(?:오사카|도쿄|일본|japan|osaka|tokyo|재팬).{0,32}(?:유|우)니버설|(?:유|우)니버설.{0,32}(?:오사카|도쿄|일본|재팬|japan|osaka)/iu, en: "Universal Studios Japan Osaka" },
-  { re: /도쿄\s*디즈니|디즈니(?:랜드|씨)/u, en: "Tokyo Disneyland castle" },
+  { re: /도쿄\s*디즈니|디즈니씨|(?:도쿄|일본|오사카).{0,40}디즈니랜드|디즈니랜드.{0,40}(?:도쿄|일본|오사카)/u, en: "Tokyo Disneyland castle" },
   { re: /돗토리\s*사구|Tottori\s*Sand/i, en: "Tottori Sand Dunes" },
   // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: bare 돗토리·쿠라요시 → 서일본 POI (Fuji 대체) — manifest
   { re: /돗토리|Tottori/i, en: "Tottori Sand Dunes" },
@@ -899,7 +902,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /세네끄|Senanque|S[eé]nanque/i, en: "Senanque Abbey Provence lavender" },
   // bare 라벤더 alone → Provence only with 프로방스 context (Hokkaido 라벤더 소프트는 위 규칙)
   { re: /(?:프로방스|Provence).{0,30}(?:라벤더|Lavender)|(?:라벤더|Lavender).{0,30}(?:프로방스|Provence)|\bProvence\b/i, en: "Provence lavender fields Valensole plateau" },
-  { re: /상하이\s*디즈니|Shanghai\s*Disney|디즈니랜드/i, en: "Shanghai Disneyland enchanted storybook castle" },
+  { re: /상하이\s*디즈니|Shanghai\s*Disney/i, en: "Shanghai Disneyland enchanted storybook castle" },
   { re: /우유니\s*사막|Uyuni|볼리비아\s*우유니/i, en: "Salar de Uyuni salt flats mirror Bolivia" },
   { re: /이과수\s*폭포|Iguazu|Iguassu/i, en: "Iguazu Falls Brazil Argentina waterfall panorama" },
   { re: /쿠스코|Cusco|Cuzco/i, en: "Cusco Peru Plaza de Armas colonial architecture" },
@@ -1179,6 +1182,21 @@ function firstMatchingEn(rules: ReadonlyArray<SchedulePoiRegexRule>, h: string):
 }
 
 /** routeText·본문 세그먼트 — 랜드마크/명소 우선 */
+/** 디즈니랜드 — 홍콩/상하이/도쿄는 route·dest 문맥만 (bare→Tokyo 금지) */
+// REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+export function routeContextualDisneyEnglish(
+  seg: string,
+  routeText?: string | null,
+  productDestination?: string | null,
+): string {
+  if (!/디즈니(?:랜드|씨)?|Disney(?:land|sea)?/i.test(seg)) return ''
+  const ctx = `${String(routeText ?? '')} ${String(productDestination ?? '')} ${seg}`
+  if (/상하이|Shanghai/i.test(ctx)) return 'Shanghai Disneyland castle'
+  if (/홍콩|Hong\s*Kong|香港/i.test(ctx)) return 'Hong Kong Disneyland castle'
+  if (/도쿄|일본|오사카|Tokyo|Japan|디즈니씨/i.test(ctx)) return 'Tokyo Disneyland castle'
+  return ''
+}
+
 export function routeContextualNationalAssemblyEnglish(
   seg: string,
   routeText: string | null | undefined,

@@ -21,7 +21,7 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
-import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
+import { firstMatchingScheduleSpotEn, routeContextualDisneyEnglish } from '@/lib/schedule-poi-regex-ssot'
 import {
   findMappedKoreanPoisInTextByMentionOrder,
   isDestinationHubEnglishKeyword,
@@ -373,6 +373,15 @@ function modetourRouteSegmentToImageKeyword(
   if (isModetourDomesticHubToken(seg)) return ''
   if (isModetourForeignAirportRouteSegment(seg)) return ''
   if (isNonLandmarkRouteTextSegment(seg)) return ''
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  const disney = routeContextualDisneyEnglish(seg, routeText, productDestination)
+  if (disney) {
+    const fromDisney = tryAcceptModetourRouteSegmentKeyword(disney, productDestination, {
+      trustRouteMappedPoi: true,
+    })
+    if (fromDisney) return fromDisney
+  }
 
   const assembly = modetourContextualNationalAssemblyEnglish(seg, routeText)
   if (assembly) {

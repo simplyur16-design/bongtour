@@ -104,6 +104,23 @@ describe('register schedule route expression normalize — 신규 등록', () =>
     expect(out[2]?.routeText).not.toMatch(/아푸간|돈키빌리지/)
   })
 
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  it('홍콩 디즈니랜드 당일 — 인접일 빅토리아 산정 route 복사 금지', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply([
+      { day: 1, title: '인천 - 홍콩', routeText: '인천 - 홍콩', description: '이동' },
+      { day: 2, title: '홍콩 디즈니랜드', routeText: '홍콩 디즈니랜드', description: '디즈니' },
+      {
+        day: 3,
+        title: '핵심투어',
+        routeText: '헐리우드로드 - 미드레벨 에스컬레이터 - 소호거리 - 웡타이신 사원 - 빅토리아 피크트램 - 빅토리아 산정',
+        description: '시내',
+      },
+      { day: 4, title: '홍콩 - 인천', routeText: '홍콩 - 인천', description: '귀국' },
+    ])
+    expect(out[1]?.routeText).toMatch(/디즈니/)
+    expect(out[1]?.routeText).not.toMatch(/산정|피크|Peak|소호|웡타이신/i)
+  })
+
   it('리조트 자유일 — sanitize가 routeText를 null로 비우지 않음', () => {
     expect(
       sanitizeRegisterScheduleRouteText('전일 리조트 내 부대시설 이용 및 자유시간'),
