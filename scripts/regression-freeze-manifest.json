@@ -7932,6 +7932,7 @@
             "Japan hub day-route only — tripHay 금지 (유럽 D6 Tottori bleed)",
             "JKP135 규슈≠Tottori Sand Dunes 갭필",
             "ALP201 방비엥≠Patuxai/That Luang",
+            "Iberia·남프랑스 ESP104 day-owned POI",
             "ASP214 Sentosa≠Gardens by the Bay bleed",
             "Laos Blue Lagoon ≠ Maldives lagoon evidence",
             "「거리가」≠ 리가 Riga bleed",
@@ -8290,6 +8291,13 @@
           "file": "lib/schedule-image-keyword-adjacent-poi.ts",
           "mustInclude": [
             "당일 route에서 primary와 다른 landmark만"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-day-owned-image-keyword.test.ts",
+          "mustInclude": [
+            "Iberia·남프랑스 ESP104 day-owned POI",
+            "modetour ESP104EKNL-like"
           ]
         },
         {
@@ -8654,7 +8662,8 @@
             "CAP104 Qingdao 소어산≠Zhanqiao",
             "India AWP902",
             "「거리가」≠ 리가 Riga",
-            "몬세라트 수도원 Montserrat"
+            "몬세라트 수도원 Montserrat",
+            "Iberia·남프랑스 ESP104 day-owned POI"
           ]
         },
         {

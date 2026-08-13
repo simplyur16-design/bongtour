@@ -1771,6 +1771,7 @@ function pickSouthAmericaClusterKeywordForUsedSlot(
 
 /** 동유럽·유럽 mega-pool 하드코딩 키워드 — 당일 route에 지명 증거가 있을 때만 */
 // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: easternEuropeHardcodedPool day-route evidence — manifest
+// REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
 function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
   const rt = String(dayRoute ?? '')
   if (!rt.trim()) return false
@@ -1807,12 +1808,56 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   if (/zagreb|split|diocletian|zadar|donatus/.test(nk)) {
     return /자그레브|Zagreb|스플리트|Split|자다르|Zadar|디오클레|트로기르/i.test(rt)
   }
-  if (/madrid|toledo|segovia|plaza mayor|spain/.test(nk)) {
-    return /마드리드|Madrid|바르셀로나|Barcelona|톨레도|Toledo|세고비아|Segovia/i.test(rt)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+  if (/sagrada|park guell|guell/.test(nk)) {
+    return /사그라다|Sagrada|구엘|G[uü]ell|Park\s*Guell/i.test(rt)
   }
-  if (/fatima|lisbon|porto|portugal/.test(nk)) {
-    return /파티마|Fatima|리스본|Lisbon|포르투|Porto|포르투갈|Portugal/i.test(rt)
+  if (/montserrat/.test(nk)) return /몬세라트|Montserrat/i.test(rt)
+  if (/barcelona/.test(nk)) return /바르셀로나|Barcelona|사그라다|Sagrada|몬세라트|Montserrat|구엘/i.test(rt)
+  if (/alhambra/.test(nk)) return /알함브라|Alhambra/i.test(rt)
+  if (/granada/.test(nk)) return /그라나다|Granada|알함브라|Alhambra/i.test(rt)
+  if (/giralda|seville cathedral|torre del oro|plaza de espana seville|plaza de espa/.test(nk)) {
+    return /히랄다|Giralda|세비야\s*대성당|Seville\s*Cathedral|황금의탑|Torre\s*del\s*Oro|스페인광장|Plaza\s*de\s*Espa/i.test(
+      rt,
+    )
   }
+  if (/seville/.test(nk)) return /세비야|Seville|Sevilla|히랄다|Giralda|스페인광장/i.test(rt)
+  if (/plaza mayor/.test(nk)) return /마요르|Plaza\s*Mayor/i.test(rt)
+  if (/prado/.test(nk)) return /프라도|Prado/i.test(rt)
+  if (/royal palace madrid|palacio real/.test(nk)) {
+    return /마드리드\s*왕궁|왕궁|Royal\s*Palace|Palacio\s*Real/i.test(rt)
+  }
+  if (/puerta del sol/.test(nk)) return /푸에르타|델\s*솔|Puerta\s*del\s*Sol/i.test(rt)
+  if (/toledo|santo tome/.test(nk)) return /톨레도|Toledo|산토\s*토메|Santo\s*Tom/i.test(rt)
+  if (/segovia/.test(nk)) return /세고비아|Segovia/i.test(rt)
+  if (/madrid/.test(nk)) return /마드리드|Madrid|프라도|Prado|푸에르타|왕궁/i.test(rt)
+  if (/fatima/.test(nk)) return /파티마|Fatima/i.test(rt)
+  if (/sagres|cape st vincent|sao vicente/.test(nk)) {
+    return /사그레스|Sagres|상비센테|St\.?\s*Vincent|S[aã]o\s*Vicente/i.test(rt)
+  }
+  if (/albufeira|lagos algarve/.test(nk)) {
+    return /알부페이라|Albufeira|(?<![가-힣])라고스(?![가-힣])|\bLagos\b/i.test(rt)
+  }
+  if (/benagil/.test(nk)) return /베나길|Benagil|알가르베|Algarve/i.test(rt)
+  if (/algarve/.test(nk)) {
+    return /알가르베|Algarve|베나길|Benagil|알부페이라|Albufeira|라고스|Lagos/i.test(rt)
+  }
+  if (/jeronimos|belem|cabo da roca|lisbon/.test(nk)) {
+    return /리스본|Lisbon|제로니모|Jeronimos|벨렘|Belem|까보\s*다\s*로[카까]|카보\s*다\s*로[카까]|로카곶|Cabo\s*da\s*Roca/i.test(
+      rt,
+    )
+  }
+  if (/porto|portugal/.test(nk)) return /포르투|Porto|포르투갈|Portugal|파티마|Fatima|리스본|Lisbon|알부페이라|라고스|사그레스|까보/i.test(rt)
+  if (/monaco|monte carlo/.test(nk)) {
+    return /모나코|Monaco|몬테\s*카를로|Monte\s*Carlo|그랑카지노/i.test(rt)
+  }
+  if (/avignon|popes|palais des papes|pont d avignon/.test(nk)) {
+    return /아비뇽|Avignon|교황청/i.test(rt)
+  }
+  if (/nice|massena|promenade des anglais/.test(nk)) {
+    return /니스|Nice|마세나|Massena|프롬나드|Promenade/i.test(rt)
+  }
+  if (/arles/.test(nk)) return /아를|Arles/i.test(rt)
   if (/vilnius|trakai|lithuania/.test(nk)) return /빌니우스|Vilnius|트라카이|Trakai|리투/i.test(rt)
   if (/riga|latvia|rundale|three brothers|art nouveau/.test(nk)) {
     // 「거리가」오탐 금지 — 리가는 음절 경계에서만
@@ -1833,6 +1878,24 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   return false
 }
 
+function isIberiaSouthFranceClusterKeyword(kw: string): boolean {
+  return /madrid|barcelona|toledo|segovia|sagrada|alhambra|granada|seville|giralda|plaza mayor|plaza de espa|prado|fatima|lisbon|porto|portugal|spain|nice|monaco|monte carlo|avignon|arles|massena|guell|montserrat|benagil|algarve|cabo da roca|jeronimos|belem|royal palace madrid|puerta del sol|sagres|cape st vincent|albufeira/.test(
+    normScheduleImageKeywordKey(kw),
+  )
+}
+
+/** 이베리아·남프랑스 cand만 당일 route 증거 — 체코·이탈리아 cluster tryPick은 기존 유지 */
+function iberiaSouthFranceClusterKeywordHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
+  if (!isIberiaSouthFranceClusterKeyword(kw)) return true
+  return easternEuropeHardcodedPoolHasDayRouteEvidence(kw, dayRoute)
+}
+
+/** 당일 route가 이베리아·남프랑스 landmark를 소유 — trip-unique 재방문 keep */
+function dayRouteOwnsIberiaSouthFranceKeyword(kw: string, dayRoute: string): boolean {
+  if (!isIberiaSouthFranceClusterKeyword(kw)) return false
+  return easternEuropeHardcodedPoolHasDayRouteEvidence(kw, dayRoute)
+}
+
 function pickEasternEuropeClusterKeywordForUsedSlot(
   cands: readonly string[],
   used: ReadonlySet<string>,
@@ -1848,6 +1911,8 @@ function pickEasternEuropeClusterKeywordForUsedSlot(
   const tryPick = (kw: string): string => {
     if (!kw || isRejectedTripKeywordCandidate(kw)) return ''
     if (!allowEasternEuropeClusterKw2Duplicate(kw, clusterHay)) return ''
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+    if (!iberiaSouthFranceClusterKeywordHasDayRouteEvidence(kw, evidenceHay)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || clusterSlotExcludesPrimaryKeyword(nk, excludePrimaryNk)) return ''
     if (!used.has(nk)) return kw
@@ -1869,6 +1934,21 @@ function pickEasternEuropeClusterKeywordForUsedSlot(
     'Plaza Mayor Madrid Spain',
     'Toledo Spain old town cathedral',
     'Sanctuary of Fatima Portugal',
+    'Sagrada Familia Barcelona exterior',
+    'Park Guell Barcelona',
+    'Alhambra Palace Granada',
+    'Giralda Tower Seville',
+    'Plaza de Espana Seville Spain',
+    'Royal Palace Madrid',
+    'Prado Museum Madrid',
+    'Place Massena Nice',
+    'Arles Amphitheatre Provence',
+    'Monte Carlo Casino Monaco',
+    'Benagil Cave Algarve',
+    'Cabo da Roca Portugal',
+    'Sagres fortress Portugal',
+    'Cape St Vincent Portugal',
+    'Albufeira Algarve beach Portugal',
     'Trakai Island Castle Lithuania',
     'Vilnius Old Town Lithuania',
     'Lahemaa National Park Estonia coastal forest',
@@ -3001,7 +3081,7 @@ function allowEasternEuropeClusterKw2Duplicate(kw: string, routeText?: string | 
   if (isBareCityOrCountryKeyword(kw)) return false
   if (!isEasternEuropeClusterRoute(routeText)) return false
   const nk = normScheduleImageKeywordKey(kw)
-  return /prague|castle|charles|budapest|parliament|fisher|buda|vienna|schonbrunn|hallstatt|krumlov|dubrovnik|plitvice|zagreb|split|diocletian|wawel|krakow|bratislava|ljubljana|golden|swarovski|heroes|innsbruck|salzburg|mirabell|mozart|zadar|donatus|rector|bridge|barber|vilnius|trakai|rundale|riga|tallinn|baltic|lahemaa|alexander nevsky|toompea|madrid|barcelona|toledo|segovia|gran via|plaza mayor|fatima|lisbon|porto|portugal|spain|rome|florence|venice|milan|colosseum|paris|lucerne|jungfrau|oslo|geiranger|flam|bergen|norway|sweden|finland|denmark|istanbul|cappadocia|pamukkale|turkey|hagia|three brothers|art nouveau|blackheads|taj mahal|hawa mahal|amber fort|qutub|jaipur|agra|delhi|india gate|gurudwara/.test(
+  return /prague|castle|charles|budapest|parliament|fisher|buda|vienna|schonbrunn|hallstatt|krumlov|dubrovnik|plitvice|zagreb|split|diocletian|wawel|krakow|bratislava|ljubljana|golden|swarovski|heroes|innsbruck|salzburg|mirabell|mozart|zadar|donatus|rector|bridge|barber|vilnius|trakai|rundale|riga|tallinn|baltic|lahemaa|alexander nevsky|toompea|madrid|barcelona|toledo|segovia|gran via|plaza mayor|fatima|lisbon|porto|portugal|spain|rome|florence|venice|milan|colosseum|paris|lucerne|jungfrau|oslo|geiranger|flam|bergen|norway|sweden|finland|denmark|istanbul|cappadocia|pamukkale|turkey|hagia|three brothers|art nouveau|blackheads|taj mahal|hawa mahal|amber fort|qutub|jaipur|agra|delhi|india gate|gurudwara|sagrada|alhambra|granada|seville|giralda|arles|monaco|monte carlo|avignon|massena|prado|guell|nice|benagil|algarve|cabo da roca/.test(
     nk,
   )
 }
@@ -3713,6 +3793,9 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       } else if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
         // keep — D2 Fansipan Peak 후 D3 판시판·사파 정상 일차
+      } else if (dayRouteOwnsIberiaSouthFranceKeyword(primary, String(row.routeText ?? ''))) {
+        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+        // keep — D2 Nice 후 D11 니스 route 재방문 (Belem/Seville bleed 금지)
       } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softCity
       } else {
@@ -3775,10 +3858,14 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         !routeCityKw2 &&
         (used.has(nk2) || nk2 === normScheduleImageKeywordKey(primary))
       ) {
-        secondary =
-          pickRouteOrderSecondKeyword(cands, primary, used, isMiddleDay, true, row.routeText) ||
-          pickRouteOrderSecondKeyword(cands, primary, used, isMiddleDay, multiSegRoute, row.routeText) ||
-          ''
+        if (dayRouteOwnsIberiaSouthFranceKeyword(secondary, String(row.routeText ?? ''))) {
+          // keep — 당일 Avignon/Massena 재방문
+        } else {
+          secondary =
+            pickRouteOrderSecondKeyword(cands, primary, used, isMiddleDay, true, row.routeText) ||
+            pickRouteOrderSecondKeyword(cands, primary, used, isMiddleDay, multiSegRoute, row.routeText) ||
+            ''
+        }
       }
     }
 
@@ -3809,6 +3896,9 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
           // keep — 서핑 등 allowlist soft-dup (route에 도시명 없음)
         } else if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
           // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+          // keep
+        } else if (dayRouteOwnsIberiaSouthFranceKeyword(primary, String(row.routeText ?? ''))) {
+          // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
           // keep
         } else {
           const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
@@ -4424,6 +4514,10 @@ function shouldRejectRouteLeakKeyword2(
     )
   ) {
     if (!africaSafariHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+  if (!isBareCityOrCountryKeyword(secondary) && isIberiaSouthFranceClusterKeyword(secondary)) {
+    if (!easternEuropeHardcodedPoolHasDayRouteEvidence(secondary, dayRt)) return true
   }
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
   if (

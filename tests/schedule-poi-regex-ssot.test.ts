@@ -127,6 +127,27 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('Sphinx Observatory')).toMatch(/Jungfraujoch/i)
   })
 
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+  it('maps Iberia and South France day POIs — Guam 스페인광장 stays Guam', () => {
+    expect(firstMatchingScheduleSpotEn('마세나 광장')).toMatch(/Massena|Nice/i)
+    expect(firstMatchingScheduleSpotEn('아를 구시가지')).toMatch(/Arles/i)
+    expect(firstMatchingScheduleSpotEn('알함브라궁전')).toMatch(/Alhambra/i)
+    expect(firstMatchingScheduleSpotEn('프라도미술관')).toMatch(/Prado/i)
+    expect(firstMatchingScheduleSpotEn('마드리드왕궁')).toMatch(/Royal Palace Madrid/i)
+    expect(firstMatchingScheduleSpotEn('히랄다탑')).toMatch(/Giralda/i)
+    expect(firstMatchingScheduleSpotEn('세비야 - 스페인광장 - 히랄다탑')).toMatch(/Plaza de Espana Seville|Giralda|Seville Cathedral/i)
+    expect(firstMatchingScheduleSpotEn('세비야 - 스페인광장')).not.toMatch(/Guam/i)
+    expect(firstMatchingScheduleSpotEn('괌 스페인광장')).toMatch(/Guam/i)
+    expect(firstMatchingScheduleSpotEn('구엘공원')).toMatch(/Park Guell|G[uü]ell/i)
+    expect(firstMatchingScheduleSpotEn('까보다로카')).toMatch(/Cabo da Roca/i)
+    expect(firstMatchingScheduleSpotEn('까보다로까')).toMatch(/Cabo da Roca/i)
+    expect(firstMatchingScheduleSpotEn('베나길 해변')).toMatch(/Benagil/i)
+    expect(firstMatchingScheduleSpotEn('사그레스 - 상비센테 곶')).toMatch(/Sagres|Vincent/i)
+    expect(firstMatchingScheduleSpotEn('이스탄불 - 인천')).not.toMatch(/Arles/i)
+    expect(mapKoreanPoiSegment('스페인광장')).toMatch(/Seville/i)
+    expect(mapKoreanPoiSegment('괌 스페인광장')).toMatch(/Guam/i)
+  })
+
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 리기≠승리기념탑 — Baltic Victory Monument bleed 금지 — manifest
   it('does not map Baltic Victory Monument 승리기념탑 to Mount Rigi', () => {
     expect(firstMatchingScheduleSpotEn('체시스 - 승리기념탑 - 시굴다 - 투라이다 성')).not.toMatch(/Rigi|Jungfrau|Swiss/i)

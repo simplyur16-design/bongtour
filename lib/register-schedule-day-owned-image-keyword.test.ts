@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 당일 routeText만 — 타 일차 landmark 금지
+ * REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: Iberia·남프랑스 ESP104 day-owned POI — manifest
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
@@ -47,7 +48,8 @@ describe('US east register schedule — day-owned imageKeyword', () => {
     expect(String(byDay.get(4)?.imageKeyword ?? '')).toMatch(/Niagara/i)
     expect(String(byDay.get(6)?.imageKeyword ?? '')).toMatch(/Harvard|MIT|Boston/i)
     expect(String(byDay.get(8)?.imageKeyword ?? '')).toMatch(/Central Park|Rockefeller|9\/11|Charging Bull/i)
-    expect(String(byDay.get(10)?.imageKeyword ?? '')).toMatch(/Central Park|Rockefeller|9\/11|Charging Bull/i)
+    // return hub soft-dup visit city (뉴욕) before unused landmark — freeze return hub soft-dup
+    expect(String(byDay.get(10)?.imageKeyword ?? '')).toMatch(/Central Park|Rockefeller|9\/11|Charging Bull|New York/i)
 
     const day3kw = normScheduleImageKeywordKey(String(byDay.get(3)?.imageKeyword ?? ''))
     const day4kw = normScheduleImageKeywordKey(String(byDay.get(4)?.imageKeyword ?? ''))
@@ -97,5 +99,101 @@ describe('US east register schedule — day-owned imageKeyword', () => {
     expect(String(day3?.imageKeyword2 ?? '')).toMatch(/Agrodome|Skyline|Whakarewarewa/i)
     const day4 = out.find((r) => r.day === 4)
     expect(String(day4?.imageKeyword ?? '')).toMatch(/Mission Bay/i)
+  })
+})
+
+const ESP104_IBERIA_SCHEDULE = [
+  { day: 1, routeText: null as string | null, imageKeyword: '', imageKeyword2: null as string | null },
+  {
+    day: 2,
+    routeText: '니스 - 마세나 광장 - 아비뇽 교황청',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 3,
+    routeText: '모나코 - 그랑카지노 - 모나코 성당',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 4,
+    routeText: '아를 - 아를 구시가지 - 마세나 광장',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 5,
+    routeText: '바르셀로나 - 사그라다 파밀리아 - 구엘공원 - 몬세라트 수도원',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 6,
+    routeText: '마드리드왕궁 - 프라도미술관 - 푸에르타 델 솔',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 7,
+    routeText: '톨레도 - 톨레도 대성당 - 산토 토메교회',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 8,
+    routeText: '그라나다 - 세비야 - 알함브라궁전 - 스페인광장 - 히랄다탑 - 세비야 대성당 - 황금의탑',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 9,
+    routeText: '알가르베 - 파티마 - 베나길 해변 - 파티마 대성당',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 10,
+    routeText: '리스본 - 까보다로카 - 에두아드로 7세 공원 - 제로니모스 수도원 - 벨렘탑 - 리베르다데 거리',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  {
+    day: 11,
+    routeText: '니스 - 마세나 광장 - 아비뇽 교황청',
+    imageKeyword: '',
+    imageKeyword2: null,
+  },
+  { day: 12, routeText: null, imageKeyword: '', imageKeyword2: null },
+]
+
+describe('ModeTour ESP104 Iberia — day-owned imageKeyword', () => {
+  // REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: Iberia·남프랑스 ESP104 day-owned POI — manifest
+  it('modetour ESP104EKNL-like — no Sagrada/Granada/Toledo cross-day bleed', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(ESP104_IBERIA_SCHEDULE, {
+      supplierKey: 'modetour',
+      productDestination: '니스 · 마세나 광장 외 13도시',
+      productTitle: '스페인 포르투갈 남프랑스 모나코 12일',
+    })
+    const byDay = new Map(out.map((r) => [r.day, r]))
+    const blob = (d: number) =>
+      `${String(byDay.get(d)?.imageKeyword ?? '')} | ${String(byDay.get(d)?.imageKeyword2 ?? '')}`
+
+    expect(blob(2)).toMatch(/Nice|Massena|Avignon|Popes/i)
+    expect(blob(3)).toMatch(/Monaco|Monte Carlo/i)
+    expect(blob(3)).not.toMatch(/Sagrada|Toledo|Alhambra|Granada/i)
+    expect(blob(4)).toMatch(/Arles/i)
+    expect(blob(5)).toMatch(/Sagrada|Guell|Montserrat|Barcelona/i)
+    expect(blob(6)).toMatch(/Prado|Royal Palace Madrid|Puerta del Sol/i)
+    expect(blob(6)).not.toMatch(/Plaza Mayor/i)
+    expect(blob(7)).toMatch(/Toledo|Santo Tome/i)
+    expect(blob(7)).not.toMatch(/Sagrada|Montserrat|Guell/i)
+    expect(blob(8)).toMatch(/Alhambra|Giralda|Seville Cathedral|Plaza de Espana Seville|Torre del Oro/i)
+    expect(blob(8)).not.toMatch(/Guam/i)
+    expect(blob(9)).toMatch(/Fatima|Benagil|Algarve/i)
+    expect(blob(9)).not.toMatch(/Granada|Alhambra|Sagrada|Toledo/i)
+    expect(blob(10)).toMatch(/Jeronimos|Belem|Cabo da Roca|Lisbon/i)
+    expect(blob(11)).toMatch(/Nice|Massena|Avignon|Popes/i)
+    expect(blob(11)).not.toMatch(/Toledo|Sagrada|Alhambra/i)
   })
 })
