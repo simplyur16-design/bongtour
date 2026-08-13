@@ -2,6 +2,7 @@
  * 상품목록·대표 슬라이드·일정 사진 SEO에서 제외할 운영·요금·약관·상품코드 문구.
  * 파서/스크래퍼와 무관 — 등록 helper·공개 resolve·자산 캡션 보조 판별에 공통 사용.
  * REGRESSION-FREEZE[product-image-ops-seo-contamination]: 상품코드·단체번호·객실 미니바 — manifest
+ * REGRESSION-FREEZE[product-image-seo-review-contamination]: 리뷰·여행후기·별점 — manifest
  */
 
 const COMPACT_NO_SPACE = (s: string) => s.replace(/\s/g, '')
@@ -38,10 +39,18 @@ const IMAGE_OPS_SEO_COMPACT = [
   '노랑풍선',
   '롯데관광',
   '교원이지',
+  '여행후기',
+  '고객리뷰',
+  '고객후기',
+  '상품후기',
+  '상품평점',
+  '상품평',
+  '평균별점',
+  '트립어드바이저',
 ] as const
 
 const IMAGE_OPS_SEO_RE =
-  /상품\s*코드|단체\s*번호|상품\s*번호|객실\s*내|미니바|minibar|디럭스\s*룸|슈페리어\s*룸|스탠다드\s*룸|호텔\s*소개|객실\s*전경|여행\s*기간|여행\s*일정|제세공과금|인솔자\s*동행|일정표상|인펀트|관광지\s*입장료|무료\s*(?:wifi|와이파이)|생수\s*제공|이전\s*다음|대리점|\d+\s*\/\s*\d+\s*이전|^\d+\s*일차\s*\||\b[A-Z]{2,5}\d{3,}[A-Z0-9]*\b|\b[A-Z]\d{2}[A-Z]-?\d{5,}\b/i
+  /상품\s*코드|단체\s*번호|상품\s*번호|객실\s*내|미니바|minibar|디럭스\s*룸|슈페리어\s*룸|스탠다드\s*룸|호텔\s*소개|객실\s*전경|여행\s*기간|여행\s*일정|제세공과금|인솔자\s*동행|일정표상|인펀트|관광지\s*입장료|무료\s*(?:wifi|와이파이)|생수\s*제공|이전\s*다음|대리점|\d+\s*\/\s*\d+\s*이전|^\d+\s*일차\s*\||\b[A-Z]{2,5}\d{3,}[A-Z0-9]*\b|\b[A-Z]\d{2}[A-Z]-?\d{5,}\b|여행\s*후기|고객\s*(?:리뷰|후기)|상품\s*(?:평점|후기)|평균\s*별점|실제\s*여행객|\d+\s*명(?:의)?\s*리뷰|(?<!프)리뷰|\breviews?\b|tripadvisor|트립\s*어드바이저|★{2,}|별점\s*[0-5]|솔직히|너무\s*감사|행복한\s*시간|이용하고\s*싶|다음에\s*또\s*(?:가고|오고|이용)|솔직한\s*여행이야기/i
 
 /** 부분 일치로 차단(짧은 토큰·한 줄) */
 const LISTING_SEO_CONTAMINATION_COMPACT = [
@@ -77,7 +86,21 @@ const LISTING_SEO_CONTAMINATION_COMPACT = [
 const LISTING_SEO_CONTAMINATION_RE =
   /1인실|객실\s*추가\s*요금|추가\s*요금|싱글\s*차지|예약금|취소\s*수수료|최소\s*출발|현재\s*예약|남은\s*좌석|조식\s*불|중식\s*불|석식\s*불|가이드\s*불|기사\s*팁|미포함|부가\s*요금|현지\s*지불|유류할증|티\s*업|티업|옵션\s*\d|선택\s*관광/i
 
-/** 상품코드·단체번호·객실 미니바 등 — 일정 사진 제목에도 사용 */
+const REVIEW_SECTION_CUT_RE =
+  /(?:^|\n)\s*(?:여행\s*후기|고객\s*(?:리뷰|후기)|상품\s*평점|평균\s*별점|솔직한\s*여행이야기|실제\s*여행객\s*\d+\s*명의\s*리뷰|(?:^|\n)\s*리뷰\s*(?:\(|$|\s))/im
+
+/**
+ * 대표·일정 이미지 SEO 수확 전에 본문 리뷰 블록을 잘라낸다.
+ * REGRESSION-FREEZE[product-image-seo-review-contamination]
+ */
+export function stripReviewSectionsFromImageSeoHaystack(text: string): string {
+  const raw = String(text ?? '').replace(/\r\n/g, '\n')
+  if (!raw.trim()) return ''
+  const cut = raw.search(REVIEW_SECTION_CUT_RE)
+  return (cut >= 0 ? raw.slice(0, cut) : raw).trimEnd()
+}
+
+/** 상품코드·단체번호·객실 미니바·리뷰 등 — 일정 사진 제목에도 사용 */
 export function isProductImageOpsSeoContaminated(text: string): boolean {
   const t = text.replace(/\s+/g, ' ').trim()
   if (!t) return true

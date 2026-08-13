@@ -1,5 +1,6 @@
 import { isProductHeroListingSeoContaminated } from '@/lib/product-hero-listing-seo-contamination'
 // REGRESSION-FREEZE[product-image-ops-seo-contamination]: stored hero 키워드에서 상품코드·단체번호 제거 — manifest
+// REGRESSION-FREEZE[product-image-seo-review-contamination]: stored hero 키워드에서 리뷰·후기 제거 — manifest
 
 /**
  * 상품 대표이미지·상품 카드 등 공개 화면 좌측 "검색형 감성 키워드" 한 줄.
@@ -268,6 +269,12 @@ const BROKEN_KEYWORD_PATTERNS = [
   /^상품코드/,
   /^단체번호/,
   /^상품번호/,
+  /^여행후기/,
+  /^고객리뷰/,
+  /^고객후기/,
+  /^리뷰/,
+  /^상품평점/,
+  /^평균별점/,
 ] as const
 
 function isBrokenKeyword(kw: string): boolean {

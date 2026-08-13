@@ -2,7 +2,10 @@ import {
   buildPublicProductHeroSeoKeywordOverlay,
   compactDurationLabelForProductSeo,
 } from '@/lib/public-product-hero-seo-keyword'
-import { isProductHeroListingSeoContaminated } from '@/lib/product-hero-listing-seo-contamination'
+import {
+  isProductHeroListingSeoContaminated,
+  stripReviewSectionsFromImageSeoHaystack,
+} from '@/lib/product-hero-listing-seo-contamination'
 import {
   extractHashtagLabelsFromText,
   harvestBodySectionLinesAfterHeaders,
@@ -93,7 +96,8 @@ const STRONG_THEME_RE =
   /관광|미식|일주|온천|크루즈|리조트|핵심|휴양|트레킹|트래킹|골프|야경|설원|드라이브|루트|감성|테마|특급|자유일정|자유여행|에어텔|명소|세계유산|국립공원|사원|사찰|크리스마스|벚꽃|올레|온센|알짜|일정|비치|일출|일몰|워킹|산책|스파|동물원|특식|시암|마켓|플로팅|산호섬|마사지/
 
 function hashtagHarvestHaystack(rawBody: string, title: string): string {
-  const body = (rawBody ?? '').replace(/\r\n/g, '\n')
+  // REGRESSION-FREEZE[product-image-seo-review-contamination]: 해시태그 수확에서 리뷰 블록 제외 — manifest
+  const body = stripReviewSectionsFromImageSeoHaystack((rawBody ?? '').replace(/\r\n/g, '\n'))
   const tagIdx = body.search(/해시\s*태그/i)
   const tagBlock = tagIdx >= 0 ? body.slice(tagIdx, tagIdx + 1600) : ''
   return [title, body.slice(0, 2800), tagBlock].filter(Boolean).join('\n')
@@ -188,7 +192,9 @@ export function buildRegisterPublicImageHeroSeoLineCandidate(
   if (input.summary?.trim()) blocks.push(input.summary.trim().slice(0, 420))
   if (input.includedText?.trim()) blocks.push(input.includedText.trim().slice(0, 700))
   if (input.excludedText?.trim()) blocks.push(input.excludedText.trim().slice(0, 520))
-  if (input.rawBodyText.trim()) blocks.push(input.rawBodyText.trim().slice(0, 4200))
+  if (input.rawBodyText.trim()) {
+    blocks.push(stripReviewSectionsFromImageSeoHaystack(input.rawBodyText.trim()).slice(0, 4200))
+  }
 
   const hay = blocks.join('\n')
   const lines = hay
@@ -302,7 +308,7 @@ export function buildRegisterPublicImageHeroSeoKeywords(
     out.push(s)
   }
 
-  const rawBody = input.rawBodyText.trim()
+  const rawBody = stripReviewSectionsFromImageSeoHaystack(input.rawBodyText.trim())
 
   // 1순위: 본문 `해시태그` 블록 → 상품명·본문 `#태그` (imageKeyword 와 무관)
   const bodyNl = rawBody.replace(/\r\n/g, '\n')

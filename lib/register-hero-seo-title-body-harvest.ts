@@ -1,6 +1,7 @@
 /**
  * 대표 SEO 키워드(`publicImageHeroSeoKeywordsJson`) 원료 전용.
  * imageKeyword·일정 제목과 분리 — 상품명 #태그·본문 섹션에서만 뽑는다.
+ * REGRESSION-FREEZE[product-image-seo-review-contamination]: 여행후기·리뷰 섹션에서 수확 중단 — manifest
  */
 
 const HASHTAG_RE = /#([^\s#]{2,36})/g
@@ -28,7 +29,8 @@ export function extractHashtagLabelsFromText(text: string, max = 12): string[] {
 const SECTION_START =
   /^(?:[·•\-\*＊\s]*)?(?:[\[［]?\s*\d*\s*일차\s*[\]］]?\s*)?(?:핵심\s*포인트|예약자\s*혜택|알찬\s*일정|특별\s*포함|스페셜\s*포함)/
 
-const SECTION_STOP = /^(?:포함사항|불포함|유의사항|예약|취소|미팅|항공|선택관광|현지옵션|일정\s*표|상품\s*안내)/
+const SECTION_STOP =
+  /^(?:포함사항|불포함|유의사항|예약|취소|미팅|항공|선택관광|현지옵션|일정\s*표|상품\s*안내|여행\s*후기|고객\s*(?:리뷰|후기)|상품\s*평점|평균\s*별점|리뷰)/
 
 /**
  * 본문에서 섹션 헤더 다음 줄들만 모은다(장문·운영 헤더 만나면 중단).
