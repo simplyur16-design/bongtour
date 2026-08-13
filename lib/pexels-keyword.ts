@@ -760,6 +760,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   까보다로카: 'Cabo da Roca Portugal',
   까보다로까: 'Cabo da Roca Portugal',
   '까보 다 로카': 'Cabo da Roca Portugal',
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI_KO_TO_EN unique keys (로카곶) — manifest
   로카곶: 'Cabo da Roca Portugal',
   베나길: 'Benagil Cave Algarve',
   '베나길 해변': 'Benagil Cave Algarve',
@@ -812,8 +813,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   헤갈레이라별장: 'Pena Palace Sintra',
   '헤갈레이라 별장': 'Pena Palace Sintra',
   페나궁전: 'Pena Palace Sintra',
-  로카곶: 'Cabo da Roca',
-  '까보다로까 로카곶': 'Cabo da Roca',
+  '까보다로까 로카곶': 'Cabo da Roca Portugal',
   봉헤수스두몬테: 'Bom Jesus do Monte Braga',
   '봉 헤수스 두 몬테 성당': 'Bom Jesus do Monte Braga',
   '봉 헤수스 두봉테 성당': 'Bom Jesus do Monte Braga',

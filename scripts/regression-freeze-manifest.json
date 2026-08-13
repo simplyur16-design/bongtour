@@ -8676,6 +8676,12 @@
           ]
         },
         {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "POI_KO_TO_EN unique keys"
+          ]
+        },
+        {
           "file": "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-poi-regex-ssot]",
@@ -8805,7 +8811,8 @@
           "file": "scripts/check-schedule-poi-regex-ssot-no-supplier-dup.mjs",
           "mustInclude": [
             "schedule-poi-regex-ssot",
-            "POI_RULES"
+            "POI_RULES",
+            "POI_KO_TO_EN unique keys"
           ]
         }
       ],

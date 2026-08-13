@@ -46,6 +46,43 @@ if (!ssot.includes('REGRESSION-FREEZE[schedule-poi-regex-ssot]')) {
   failures.push('schedule-poi-regex-ssot.ts missing freeze marker')
 }
 
+/** Next typecheck fails if POI_KO_TO_EN / DESTINATION_MAP repeat a key (로카곶). */
+// REGRESSION-FREEZE[schedule-poi-regex-ssot]: POI_KO_TO_EN unique keys (로카곶) — manifest
+function collectDuplicateObjectKeys(src, constName) {
+  const startRe = new RegExp(`const\\s+${constName}\\s*[:=][^{]*\\{`)
+  const m = src.match(startRe)
+  if (!m) return [`${constName} not found`]
+  const start = src.indexOf(m[0]) + m[0].length
+  let depth = 1
+  let i = start
+  while (i < src.length && depth > 0) {
+    if (src[i] === '{') depth++
+    else if (src[i] === '}') depth--
+    i++
+  }
+  const body = src.slice(start, i - 1)
+  const seen = new Map()
+  for (const raw of body.split('\n')) {
+    const line = raw.replace(/\/\/.*$/, '').trim()
+    const qm =
+      line.match(/^'([^']+)'\s*:/) ||
+      line.match(/^"([^"]+)"\s*:/) ||
+      line.match(/^([\p{L}\p{N}_]+)\s*:/u)
+    if (!qm) continue
+    const k = qm[1]
+    seen.set(k, (seen.get(k) || 0) + 1)
+  }
+  const dups = []
+  for (const [k, n] of seen) {
+    if (n > 1) dups.push(`${constName} duplicate key ${JSON.stringify(k)} x${n}`)
+  }
+  return dups
+}
+
+const pexelsKw = fs.readFileSync(path.join(ROOT, 'lib/pexels-keyword.ts'), 'utf8')
+failures.push(...collectDuplicateObjectKeys(pexelsKw, 'DESTINATION_MAP'))
+failures.push(...collectDuplicateObjectKeys(pexelsKw, 'POI_KO_TO_EN'))
+
 if (failures.length) {
   console.error('check-schedule-poi-regex-ssot-no-supplier-dup: FAILED')
   for (const f of failures) console.error(`  - ${f}`)
