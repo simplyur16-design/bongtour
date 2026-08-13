@@ -3011,6 +3011,43 @@
       ]
     },
     {
+      "id": "simplyur-mobile-vitest-tsconfig",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur-mobile tsconfig는 expo/tsconfig.base extend 없이 자립 — CI vitest(oxc) Tsconfig not found 방지",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/tsconfig.json",
+          "mustInclude": [
+            "\"strict\": true",
+            "\"jsx\": \"react-native\""
+          ],
+          "mustNotInclude": [
+            "expo/tsconfig.base",
+            "expo/tsconfig"
+          ]
+        },
+        {
+          "file": "vitest.config.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-vitest-tsconfig]",
+            "apps/simplyur-mobile/src/**/*.test.ts"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-vitest-tsconfig]"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-mobile-checkout-email-editable",
       "tier": [
         "prebuild",

@@ -1,3 +1,4 @@
+// REGRESSION-FREEZE[simplyur-mobile-vitest-tsconfig]: standalone apps/simplyur-mobile/tsconfig (no expo extend) — manifest
 import { describe, expect, it } from 'vitest'
 import {
   classifySimplyurCheckoutWebViewUrl,

@@ -10,5 +10,9 @@
     "noEmit": true,
     "paths": { "@/*": ["./*"] }
   },
-  "include": ["vitest.config.ts", "lib/**/*.test.ts"]
+  "include": [
+    "vitest.config.ts",
+    "lib/**/*.test.ts",
+    "apps/simplyur-mobile/src/**/*.test.ts"
+  ]
 }
