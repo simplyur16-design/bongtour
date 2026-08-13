@@ -2,7 +2,9 @@
  * 확장 지역 vibe 문장 — lottetour 표에 없는 중국·중앙아·미주 등.
  * lottetour와 순환 import 금지용으로 분리.
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
+ * REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
  */
+import { composeRegisterScheduleCharacteristicDescription } from '@/lib/register-schedule-description-characteristic-ssot'
 
 const GENERIC_TOURISM_MARKER = '하루 동안 여러 장면이 자연스럽게 이어지는'
 
@@ -20,7 +22,7 @@ export function pickScheduleVibeSentencesWithoutPlaceLeak(
   leakChunksFor: (label: string) => string[],
   regionalFallback: () => string | null,
 ): string {
-  const join = (sents: readonly string[]) => sents.slice(0, 2).join(' ')
+  const join = (sents: readonly string[]) => sents.slice(0, 3).join(' ')
   let desc = join(profileSentences)
   for (const h of routePlaces) {
     for (const chunk of leakChunksFor(h)) {
@@ -39,7 +41,7 @@ export function pickScheduleVibeSentencesWithoutPlaceLeak(
       break
     }
   }
-  return desc.slice(0, 320).trim()
+  return desc.slice(0, 720).trim()
 }
 
 type ExtendedRegionVibeProfile =
@@ -88,35 +90,51 @@ type ExtendedRegionVibeProfile =
   | 'philippines_islands'
   | 'africa_safari'
   | 'austria_alps'
+  | 'central_europe_city'
+  | 'singapore_city'
 
 const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, readonly string[]> = {
   china_coastal: [
     '항구 도시와 해변·광장이 이어지는, 바닷바람 리듬의 하루입니다.',
     '짧은 이동마다 시야가 열려, 도심과 해안의 대비를 함께 느끼기 좋은 구성입니다.',
+    '항구 바람과 도심 밀도가 교차하며 걷는 속도가 자연히 조절됩니다.',
+    '해안 시야가 열리는 구간이 하루의 호흡을 잡아 주는 구성입니다.',
   ],
   china_zhangjiajie: [
     '기암과 협곡이 이어지는 하루로, 풍경의 스케일이 일정 흐름을 이끕니다.',
     '이동보다 시야가 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.',
+    '기암 능선과 협곡의 깊이감이 이동보다 앞서 하루를 이끕니다.',
+    '풍경의 스케일이 커질수록 걸음의 리듬이 느려지는 일정입니다.',
   ],
   china_beijing: [
     '역사 유적과 도심 광장이 이어지는, 수도의 밀도가 돋보이는 하루입니다.',
     '걷는 리듬과 시야 확장이 번갈아 이어져 도시의 결을 천천히 쌓아 갑니다.',
+    '옛 축과 현대 거리가 교차해 하루의 밀도가 또렷합니다.',
+    '광장의 개방감과 골목의 깊이가 번갈아 이어지는 구성입니다.',
   ],
   china_city_walk: [
     '골목과 거리·광장이 이어지는, 중국 도심의 걷는 리듬이 중심인 하루입니다.',
     '짧은 체류에도 분위기 차이가 분명하게 느껴지는 구성입니다.',
+    '상점가와 골목의 소음 결이 달라 장면이 자연스럽게 갈립니다.',
+    '도보 위주로 도시의 층위를 천천히 쌓아 가는 일정입니다.',
   ],
   japan_onsen_town: [
     '온천 마을과 거리 풍경이 이어지는, 차분한 일본의 하루입니다.',
     '무거운 이동 없이 주변 분위기를 천천히 음미하며 호흡을 고르는 일정입니다.',
+    '수증기와 골목 공기가 하루의 온도를 낮춰 줍니다.',
+    '머무르는 감각이 관광 이동보다 앞서는 구성입니다.',
   ],
   japan_city_walk: [
     '신사·상점가·골목이 이어지는, 걷는 즐거움이 중심인 하루입니다.',
     '도심의 리듬에 맞춰 장면이 자연스럽게 바뀌는 알찬 구성입니다.',
+    '전통과 현대 거리가 교차해 걷는 밀도가 또렷합니다.',
+    '짧은 골목마다 분위기가 바뀌어 여정이 가볍게 쌓입니다.',
   ],
   japan_kyushu: [
     '온천·강변·항구 도시가 이어지는, 규슈의 여유로운 하루입니다.',
-    '짧은 이동마다 풍경의 결이 바뀌어 여정이 또렷하게 느껴지는 구성입니다.',
+    '규슈 온천과 항구의 결이 짧은 이동마다 바뀌어 여정이 또렷합니다.',
+    '온천 마을의 한적함과 항구의 개방감이 교차하는 하루입니다.',
+    '규슈 강변 공기와 온천 리듬이 여행의 속도를 천천히 낮춥니다.',
   ],
   thailand_bangkok: [
     '왕궁·사원·수변이 이어지는, 방콕의 밀도가 느껴지는 하루입니다.',
@@ -129,15 +147,33 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   vietnam_south: [
     '섬과 고원·야시장이 이어지는, 베트남 남부의 여유로운 하루입니다.',
     '걷는 리듬과 수변 분위기가 번갈아 이어져 감각이 또렷해지는 구성입니다.',
+    '수변의 습기와 고원의 바람이 교차하며 하루의 결이 갈립니다.',
+    '야시장의 밀도와 섬의 여백이 번갈아 이어지는 구성입니다.',
   ],
   hong_kong_city: [
     '번화가와 골목·전망이 이어지는, 도보 리듬이 중심인 하루입니다.',
-    '현대적 감각과 로컬 분위기가 자연스럽게 섞여 걷는 즐거움이 돋보입니다.',
+    '골목 도보와 전망이 자연스럽게 섞여 걷는 즐거움이 돋보입니다.',
+    '번화가 언덕길과 골목이 붙어 있어 짧은 구간에도 장면이 빠르게 바뀝니다.',
+    '도보 위주로 골목과 전망의 밀도를 함께 느끼는 구성입니다.',
   ],
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: hong_kong_disney — 란타우·테마파크 ≠ 규슈/generic — manifest
   hong_kong_disney: [
     '테마파크 하루로, 이동보다 놀이와 장면이 중심인 일정입니다.',
     '짧은 이동 없이 파크 안에서 분위기가 이어져 여정이 또렷하게 느껴지는 구성입니다.',
+    '구역마다 조명과 음악의 결이 달라 체류 밀도가 높은 하루입니다.',
+    '걷기보다 머무르며 놀이 리듬을 쌓아 가는 구성입니다.',
+  ],
+  central_europe_city: [
+    '중세 골목과 광장이 이어지는, 걷는 리듬이 중심인 하루입니다.',
+    '성·다리·구시가지가 자연스럽게 연결되어 도시의 결을 천천히 느낍니다.',
+    '광장의 개방감과 골목의 깊이가 교차해 도보 밀도가 또렷합니다.',
+    '옛 도시의 층위가 짧은 이동에도 분명하게 바뀌는 구성입니다.',
+  ],
+  singapore_city: [
+    '정원·전망·해안이 이어지는, 걷기와 시야 확장이 균형을 이루는 하루입니다.',
+    '도심 정원과 해안 전망이 하루 흐름에 맞춰 이어지는 구성입니다.',
+    '수변과 정원·거리의 결이 번갈아 나타나 도보 리듬이 또렷합니다.',
+    '해안 시야와 정원 그늘이 교차하며 여정이 가볍게 쌓입니다.',
   ],
   oceania_nz: [
     '호수·산자락·시내 거리가 이어지는, 뉴질랜드의 시야가 열리는 하루입니다.',
@@ -153,7 +189,9 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   ],
   italy_cities: [
     '광장과 성당·골목이 이어지는, 이탈리아 도시의 걷는 리듬이 중심인 하루입니다.',
-    '짧은 이동에도 도시마다 결이 달라 여정이 부드럽게 이어집니다.',
+    '광장과 골목을 걷는 리듬이 도시마다 달라 여정이 부드럽게 이어집니다.',
+    '구릉과 골목·운하의 결이 번갈아 나타나 도보 하루가 또렷합니다.',
+    '광장에 머무르는 시간과 골목을 걷는 리듬이 균형을 이룹니다.',
   ],
   philippines_islands: [
     '해변과 섬·리조트 풍경이 이어지는, 필리핀의 여유로운 하루입니다.',
@@ -177,7 +215,9 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   ],
   switzerland_alps: [
     '호수와 설봉·산악 열차 풍경이 이어지는, 알프스의 시야가 열리는 하루입니다.',
-    '이동보다 풍경이 열리는 순간이 중심이 되어 여운이 길게 남는 구성입니다.',
+    '알프스 호수와 설봉이 열리는 순간이 중심이 되어 여운이 길게 남습니다.',
+    '알프스 고도가 바뀔 때마다 산악 공기와 빛의 결이 달라지는 하루입니다.',
+    '호숫가의 고요함과 설봉 능선의 개방감이 번갈아 이어집니다.',
   ],
   spain_iberia: [
     '성당·궁전과 골목 풍경이 이어지는, 이베리아의 걷는 리듬이 중심인 하루입니다.',
@@ -205,7 +245,9 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   ],
   uae_gulf: [
     '해안 스카이라인과 전통 지구가 이어지는, 걸프의 대비가 돋보이는 하루입니다.',
-    '도심과 수변의 리듬이 번갈아 이어져 여정이 또렷하게 느껴지는 구성입니다.',
+    '걸프 도심과 수변의 리듬이 번갈아 이어져 여정이 또렷하게 느껴지는 구성입니다.',
+    '걸프 사막 가장자리의 빛과 항구 바람이 교차하며 장면이 갈립니다.',
+    '걸프 현대 거리의 밀도와 전통 골목의 여백이 하루를 나눠 줍니다.',
   ],
   micronesia_islands: [
     '해변과 리조트·섬 풍경이 이어지는, 남국의 여유로운 하루입니다.',
@@ -217,11 +259,15 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   ],
   central_asia_steppe: [
     '초원·협곡·도시 거리가 이어지는, 중앙아시아의 스케일이 돋보이는 하루입니다.',
-    '이동마다 풍경의 결이 바뀌어 여정이 분명하게 느껴지는 구성입니다.',
+    '중앙아시아 초원과 협곡의 결이 이동마다 바뀌어 여정이 분명합니다.',
+    '중앙아시아 지평선이 열리는 구간에서 하루의 호흡이 크게 넓어집니다.',
+    '중앙아시아 도시 골목과 초원 가장자리가 교차하며 장면이 갈립니다.',
   ],
   canada_rockies: [
     '국립공원과 호수·폭포가 이어지는, 캐나다 록키의 대자연이 중심인 하루입니다.',
-    '시야가 열리는 순간이 흐름을 이끌며 여운이 길게 남는 구성입니다.',
+    '록키 호수와 폭포의 시야가 열리는 순간이 흐름을 이끌며 여운이 남습니다.',
+    '국립공원 협곡과 수면의 대비가 분명해 걷는 속도가 자연히 느려집니다.',
+    '록키 대자연의 스케일이 이동보다 앞서 하루를 이끄는 구성입니다.',
   ],
   us_west_nature: [
     '국립공원과 협곡·사막 풍경이 이어지는, 미서부의 스케일이 돋보이는 하루입니다.',
@@ -230,10 +276,14 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   mediterranean_coast: [
     '해안과 마을·유적이 이어지는, 지중해 연안의 여유로운 하루입니다.',
     '바다와 골목의 대비가 시야를 넓히며 걷는 즐거움이 흐름의 중심이 됩니다.',
+    '유적의 밀도와 해안 여백이 교차하며 하루의 결이 갈립니다.',
+    '마을 골목을 걷는 리듬이 수변 전망과 자연스럽게 붙습니다.',
   ],
   croatia_adriatic: [
     '아드리아 해안과 성벽·국립공원이 이어지는, 크로아티아의 풍경이 중심인 하루입니다.',
     '이동마다 시야가 열려 바다와 돌마을의 대비가 분명하게 느껴지는 구성입니다.',
+    '성벽 골목의 밀도와 국립공원의 개방감이 번갈아 이어집니다.',
+    '해안 바람이 돌마을 걷는 리듬을 부드럽게 낮춰 줍니다.',
   ],
   balkans_city: [
     '광장과 골목·성당이 이어지는, 발칸 도시의 걷는 리듬이 중심인 하루입니다.',
@@ -245,11 +295,15 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   ],
   hokkaido_nature: [
     '온천 마을과 꽃밭·협곡이 이어지는, 홋카이도의 자연 리듬이 중심인 하루입니다.',
-    '짧은 이동마다 풍경의 결이 바뀌어 여정이 또렷하게 느껴지는 구성입니다.',
+    '홋카이도 협곡과 꽃밭의 결이 짧은 이동마다 바뀌어 여정이 또렷합니다.',
+    '온천 마을의 수증기와 협곡의 시야가 교차하며 하루의 호흡이 깊어집니다.',
+    '꽃밭·온천·협곡이 이어져 홋카이도의 자연 스케일이 돋보이는 구성입니다.',
   ],
   nordic_fjord: [
     '피오르드와 항구·구시가지가 이어지는, 북유럽의 시야가 열리는 하루입니다.',
-    '이동과 풍경의 대비가 분명해 여정의 호흡이 길게 남는 구성입니다.',
+    '북유럽 피오르드와 항구의 대비가 분명해 여정의 호흡이 길게 남습니다.',
+    '북유럽 절벽과 수면이 맞닿은 시야가 하루의 하이라이트를 만듭니다.',
+    '북유럽 구시가지 골목과 항구의 개방감이 교차하는 구성입니다.',
   ],
   egypt_nile: [
     '신전과 나일 강변·사막 풍경이 이어지는, 이집트의 스케일이 중심인 하루입니다.',
@@ -257,16 +311,22 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   ],
   india_golden: [
     '요새와 사원·광장이 이어지는, 인도 골든트라이앵글의 밀도가 돋보이는 하루입니다.',
-    '걷는 리듬과 시야 확장이 번갈아 이어져 도시의 결을 천천히 쌓아 갑니다.',
+    '골든트라이앵글 광장과 요새의 결이 걷는 리듬과 시야 확장을 이끕니다.',
+    '골든트라이앵글 사원·광장이 이어져 도시의 밀도가 천천히 쌓입니다.',
+    '골든트라이앵글의 요새와 거리가 교차하며 하루의 결이 또렷합니다.',
   ],
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: India Varanasi/Khajuraho ≠ golden reuse — manifest
   india_varanasi: [
-    '강변 사원과 골목이 이어지는, 바라나시의 신앙 리듬이 중심인 하루입니다.',
-    '수변과 골목의 대비가 분명해 여정의 결이 깊게 남는 구성입니다.',
+    '강변 사원과 골목이 이어지는, 신앙 리듬이 중심인 하루입니다.',
+    '강변과 골목의 대비가 분명해 여정의 결이 깊게 남는 구성입니다.',
+    '강변의 향과 골목의 밀도가 교차하며 하루가 느려집니다.',
+    '강변의 의식과 골목 걷는 리듬이 번갈아 이어지는 구성입니다.',
   ],
   india_khajuraho: [
-    '사원군과 조각·유적 풍경이 이어지는, 카주라호의 밀도가 돋보이는 하루입니다.',
-    '걷는 리듬과 유적 시야가 번갈아 이어져 여운이 길게 남는 구성입니다.',
+    '사원군과 조각·유적 풍경이 이어지는, 밀도가 돋보이는 하루입니다.',
+    '조각과 유적 시야가 걷는 리듬과 번갈아 이어져 여운이 길게 남습니다.',
+    '사원 조각의 디테일이 짧은 체류에도 깊게 남는 구성입니다.',
+    '유적 구역을 천천히 걸으며 조각의 밀도를 느끼는 하루입니다.',
   ],
   ordos_steppe: [
     '초원과 사막·게르 풍경이 이어지는, 내몽골 오르도스의 스케일이 중심인 하루입니다.',
@@ -486,6 +546,18 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     return 'croatia_adriatic'
   }
   if (
+    /프라하|Prague|Praha|카를\s*교|카를교|체스키|Cesky|천문\s*시계/i.test(joinedBlob)
+  ) {
+    return 'central_europe_city'
+  }
+  if (
+    /싱가포르|Singapore|가든스|Gardens\s*by|센토사|Sentosa|머라이언|Merlion/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'singapore_city'
+  }
+  if (
     /자그레브|Zagreb|류블랴나|Ljubljana|베오그라드|Belgrade|사라예보|발칸|Balkan|부다페스트|Budapest/i.test(
       joinedBlob,
     )
@@ -541,22 +613,22 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   return null
 }
 
-/** lottetour compose 전용 — 유럽 표 위임 없이 확장 프로필만 */
+/** lottetour compose 전용 — 유럽 표 위임 없이 확장 프로필 + 특성 3문장+ */
 export function composeRegisterScheduleExtendedRegionVibeDescription(
   routePlaces: readonly string[],
   joinedBlob: string,
+  day = 2,
+  maxDay = 8,
 ): string | null {
-  const profile = inferExtendedRegionVibeProfile(joinedBlob)
-  if (!profile) return null
-  const sentences = [...EXTENDED_REGION_VIBE_DESCRIPTIONS[profile]].slice(0, 2)
-  let desc = sentences.join(' ')
-  for (const h of routePlaces) {
-    const bare = h.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim()
-    if (bare.length >= 6 && desc.includes(bare)) {
-      const alt = EXTENDED_REGION_VIBE_DESCRIPTIONS[profile].filter((s) => !s.includes(bare))
-      desc = (alt.length >= 1 ? alt : sentences).slice(0, 2).join(' ')
-      break
-    }
-  }
-  return desc.slice(0, 320).trim()
+  const blob = String(joinedBlob ?? '').trim() || routePlaces.filter(Boolean).join(' - ')
+  if (!blob && !(day === 1 || (maxDay >= 2 && day === maxDay))) return null
+  const profile = blob ? inferExtendedRegionVibeProfile(blob) : null
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  return composeRegisterScheduleCharacteristicDescription({
+    day,
+    maxDay,
+    routePlaces,
+    joinedBlob: blob,
+    regionSentences: profile ? EXTENDED_REGION_VIBE_DESCRIPTIONS[profile] : null,
+  })
 }

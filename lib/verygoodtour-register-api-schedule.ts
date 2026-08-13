@@ -213,42 +213,23 @@ function verygoodtourHighlightLeakChunks(label: string): string[] {
   return [...new Set([bare, ...chunks].filter((s) => s.length >= 4))]
 }
 
-/** 분위기·흐름 2~3문장 — 장소 디테일 금지 */
+/** 분위기·흐름 3문장+ — 장소 디테일 금지 */
 export function composeVerygoodtourScheduleVibeSentences(
   day: number,
   maxDay: number,
   routePlaces: readonly string[],
   joinedBlob: string,
 ): string {
-  const profile = inferVerygoodtourScheduleVibeProfile(day, maxDay, joinedBlob)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  if (profile === 'generic_tourism') {
-    const regional = composeRegisterScheduleRegionVibeDescription({
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  return (
+    composeRegisterScheduleRegionVibeDescription({
       day,
       maxDay,
       routePlaces,
       joinedBlob,
-    })
-    if (regional) return regional
-  }
-  const sentences = [...VERYGOODTOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  let desc = sentences.join(' ')
-  for (const h of routePlaces) {
-    for (const chunk of verygoodtourHighlightLeakChunks(h)) {
-      if (desc.includes(chunk)) {
-        const regional = composeRegisterScheduleRegionVibeDescription({
-          day,
-          maxDay,
-          routePlaces,
-          joinedBlob,
-        })
-        desc =
-          regional || VERYGOODTOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism.slice(0, 2).join(' ')
-        break
-      }
-    }
-  }
-  return desc.slice(0, 320).trim()
+    }) || `${day}일차`
+  )
 }
 
 /** description — 분위기·흐름 2~3문장 (장소 나열은 routeText 전용) */

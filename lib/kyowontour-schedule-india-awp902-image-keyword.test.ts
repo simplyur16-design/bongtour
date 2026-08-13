@@ -60,7 +60,7 @@ describe('kyowontour India AWP902 route + imageKeyword + vibe', () => {
       ['서부 사원군'],
       '서부 사원군 & 동부 사원군 - 카주라호 기차역',
     )
-    expect(khaj).toMatch(/카주라호/)
+    expect(khaj).toMatch(/사원|조각|유적|카주라호/)
     expect(khaj).not.toMatch(/골든트라이앵글|마무리/)
 
     const golden = composeRegisterScheduleExtendedRegionVibeDescription(
@@ -143,7 +143,7 @@ describe('kyowontour India AWP902 route + imageKeyword + vibe', () => {
     expect(expressed[1]?.description ?? '').not.toMatch(/골든트라이앵글/)
     expect(expressed[2]?.description ?? '').toMatch(/바라나시|강변/)
     expect(expressed[2]?.description ?? '').not.toMatch(/골든트라이앵글/)
-    expect(expressed[3]?.description ?? '').toMatch(/카주라호/)
+    expect(expressed[3]?.description ?? '').toMatch(/사원|조각|유적|카주라호/)
     expect(expressed[3]?.description ?? '').not.toMatch(/마무리|골든트라이앵글/)
     expect(expressed[4]?.description ?? '').toMatch(/골든트라이앵글/)
 

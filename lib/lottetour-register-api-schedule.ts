@@ -14,11 +14,7 @@ import {
 } from '@/lib/register-schedule-description-marketing-guard'
 import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText, expandRegisterScheduleRoutePlaceCandidates } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
-import {
-  composeRegisterScheduleExtendedRegionVibeDescription,
-  isRegisterScheduleGenericTourismDescription,
-  pickScheduleVibeSentencesWithoutPlaceLeak,
-} from '@/lib/register-schedule-region-vibe-extended'
+import { composeRegisterScheduleExtendedRegionVibeDescription } from '@/lib/register-schedule-region-vibe-extended'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -605,7 +601,7 @@ export function summarizeLottetourPlanInfoForDescription(
   return (capped.length >= 24 ? capped : body).slice(0, 320).trim()
 }
 
-/** 분위기·흐름 2~3문장 (장소 디테일 금지) */
+/** 분위기·흐름 3문장+ (장소 디테일 금지) */
 export function composeLottetourScheduleVibeSentences(
   day: number,
   maxDay: number,
@@ -613,26 +609,15 @@ export function composeLottetourScheduleVibeSentences(
   joinedBlob: string,
 ): string {
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  const regionalFirst = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
-  if (regionalFirst) return regionalFirst
-
-  const profile = inferLottetourScheduleVibeProfile(day, maxDay, joinedBlob)
-  if (profile === 'generic_tourism') {
-    return [...LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism].slice(0, 2).join(' ')
-  }
-  const sentences = [...LOTTETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
-  let desc = pickScheduleVibeSentencesWithoutPlaceLeak(
-    sentences,
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  const regionalFirst = composeRegisterScheduleExtendedRegionVibeDescription(
     routePlaces,
-    lottetourHighlightLeakChunks,
-    () => composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob),
+    joinedBlob,
+    day,
+    maxDay,
   )
-  if (isRegisterScheduleGenericTourismDescription(desc)) {
-    const regional = composeRegisterScheduleExtendedRegionVibeDescription(routePlaces, joinedBlob)
-    if (regional) return regional
-  }
-  return desc
+  if (regionalFirst) return regionalFirst
+  return `${day}일차`
 }
 
 /**

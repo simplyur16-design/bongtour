@@ -15,10 +15,7 @@ import {
 } from '@/lib/register-schedule-route-place-noise'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
-import {
-  composeRegisterScheduleRegionVibeDescription,
-  pickScheduleVibeSentencesWithoutPlaceLeak,
-} from '@/lib/register-schedule-region-vibe'
+import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { sanitizeHongKongThemeParkDayRouteRows } from '@/lib/register-schedule-route-text-backfill'
 
@@ -261,31 +258,14 @@ export function composeModetourScheduleVibeDescription(
   const joinedForKind = [transport, routeBlob].filter(Boolean).join(' ')
   const joinedForRegion = routeBlob.trim() || transport.replace(/\s+/g, ' ').trim().slice(0, 240)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  const regionalFirst = composeRegisterScheduleRegionVibeDescription({
-    day: day.day,
-    maxDay,
-    routePlaces,
-    joinedBlob: joinedForRegion,
-  })
-  if (regionalFirst) return regionalFirst
-
-  const profile = inferModetourScheduleVibeProfile(day, maxDay, joinedForKind)
-  if (profile === 'generic_tourism') {
-    return [...MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism].slice(0, 2).join(' ')
-  }
-  const sentences = [...MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
-  return pickScheduleVibeSentencesWithoutPlaceLeak(
-    sentences,
-    routePlaces,
-    modetourHighlightLeakChunks,
-    () =>
-      composeRegisterScheduleRegionVibeDescription({
-        day: day.day,
-        maxDay,
-        routePlaces,
-        joinedBlob: joinedForRegion,
-      }),
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  return (
+    composeRegisterScheduleRegionVibeDescription({
+      day: day.day,
+      maxDay,
+      routePlaces,
+      joinedBlob: joinedForKind || joinedForRegion,
+    }) || `${day.day}일차`
   )
 }
 

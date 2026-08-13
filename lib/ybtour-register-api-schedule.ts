@@ -10,7 +10,7 @@ import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-k
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import { expandRegisterScheduleRoutePlaceCandidates, extractRegisterScheduleRoutePlaceLabel, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
-import { composeRegisterScheduleRegionVibeDescription, pickScheduleVibeSentencesWithoutPlaceLeak } from '@/lib/register-schedule-region-vibe'
+import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -347,7 +347,7 @@ function ybtourHighlightLeakChunks(label: string): string[] {
   return [...new Set([bare, ...chunks].filter((s) => s.length >= 4))]
 }
 
-/** 분위기·흐름 2~3문장 — 장소 디테일 금지 */
+/** 분위기·흐름 3문장+ — 장소 디테일 금지 */
 export function composeYbtourScheduleVibeSentences(
   day: number,
   maxDay: number,
@@ -355,33 +355,14 @@ export function composeYbtourScheduleVibeSentences(
   joinedBlob: string,
 ): string {
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  const regionalFirst = composeRegisterScheduleRegionVibeDescription({
-    day,
-    maxDay,
-    routePlaces,
-    joinedBlob,
-  })
-  if (regionalFirst) return regionalFirst
-
-  const profile = inferYbtourScheduleVibeProfile(day, maxDay, joinedBlob)
-  if (profile === 'generic_tourism') {
-    return (
-      [...YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism].slice(0, 2).join(' ') || `${day}일차`
-    )
-  }
-  const sentences = [...YBTOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
-  return pickScheduleVibeSentencesWithoutPlaceLeak(
-    sentences,
-    routePlaces,
-    ybtourHighlightLeakChunks,
-    () =>
-      composeRegisterScheduleRegionVibeDescription({
-        day,
-        maxDay,
-        routePlaces,
-        joinedBlob,
-      }),
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  return (
+    composeRegisterScheduleRegionVibeDescription({
+      day,
+      maxDay,
+      routePlaces,
+      joinedBlob,
+    }) || `${day}일차`
   )
 }
 

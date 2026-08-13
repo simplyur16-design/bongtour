@@ -348,7 +348,7 @@ function hanatourHighlightLeakChunks(label: string): string[] {
   return [...new Set([bare, ...chunks].filter((s) => s.length >= 4))]
 }
 
-/** API 일정 description — 장소 디테일 없이 분위기·흐름 2~3문장. REGRESSION-FREEZE[hanatour-register-detail-collect] */
+/** API 일정 description — 장소 디테일 없이 특성 3문장+. REGRESSION-FREEZE[hanatour-register-detail-collect] */
 export function composeHanatourScheduleVibeDescription(
   day: RegisterFactScheduleDay,
   maxDay: number,
@@ -358,29 +358,16 @@ export function composeHanatourScheduleVibeDescription(
   const transport = String(day.transportNote ?? '')
   const places = dedupeHanatourFactDayPlaces(day.places)
   const joined = [transport, chainBlob, ...places].filter(Boolean).join(' ')
-  const profile = inferHanatourScheduleVibeProfile(day, maxDay, joined)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  if (profile === 'generic_tourism') {
-    const regional = composeRegisterScheduleRegionVibeDescription({
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  return (
+    composeRegisterScheduleRegionVibeDescription({
       day: day.day,
       maxDay,
       routePlaces: highlights.length ? highlights : places,
       joinedBlob: joined,
-    })
-    if (regional) return regional
-  }
-  const sentences = [...HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]].slice(0, 3)
-  let desc = sentences.join(' ')
-  for (const h of highlights) {
-    for (const chunk of hanatourHighlightLeakChunks(h)) {
-      if (chunk.length >= 6 && desc.includes(chunk)) {
-        const alt = HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile].filter((s) => !s.includes(chunk))
-        desc = (alt.length >= 2 ? alt : HANATOUR_SCHEDULE_VIBE_DESCRIPTIONS[profile]).slice(0, 2).join(' ')
-        break
-      }
-    }
-  }
-  return desc.slice(0, 320).trim()
+    }) || `${day.day}일차`
+  )
 }
 
 function hanatourProdInfoCorePointRows(info: HanatourProdInfoExtended): HanatourCorePointRow[] {

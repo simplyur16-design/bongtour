@@ -1,10 +1,15 @@
 /**
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]
+ * REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]
  */
 import { describe, expect, it } from 'vitest'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 import { hanatourFactDaysToRegisterSchedule } from '@/lib/hanatour-register-api-detail'
 import { composeYbtourScheduleDescription } from '@/lib/ybtour-register-api-schedule'
+import {
+  countRegisterScheduleDescriptionSentences,
+  registerScheduleDescriptionHasAttractionNameLeak,
+} from '@/lib/register-schedule-description-characteristic-ssot'
 import {
   buildRegisterScheduleTripRouteKeywordContext,
   registerScheduleKeywordPassesTripRouteTextSsot,
@@ -52,6 +57,15 @@ describe('register schedule description vibe SSOT', () => {
     expect(days[2]?.description).toMatch(/테마파크|파크|놀이|번화가|도보/)
     expect(days[3]?.description).toMatch(/귀국|마무리|여운/)
     expect(days[3]?.description).not.toMatch(/하루 동안 여러 장면/)
+    for (const d of days) {
+      expect(countRegisterScheduleDescriptionSentences(d?.description ?? ''), `${d?.day}일차`).toBeGreaterThanOrEqual(3)
+      expect(
+        registerScheduleDescriptionHasAttractionNameLeak(d?.description ?? '', d?.routeText?.split(/\s*-\s*/) ?? []),
+        `${d?.day}일차 leak`,
+      ).toBe(false)
+    }
+    expect(days[0]?.description).not.toBe(days[1]?.description)
+    expect(days[1]?.description).not.toBe(days[2]?.description)
   })
 
   it('modetour — description은 routeText 복사 금지, vibe 2~3문장', () => {
@@ -66,7 +80,8 @@ describe('register schedule description vibe SSOT', () => {
     ])
     expect(days[0]?.routeText).toBe('피렌체 - 베네치아')
     expect(days[0]?.description).not.toBe(days[0]?.routeText)
-    expect(days[0]?.description).toMatch(/여행|일정|분위기|동선|토스카나|베네토|걷는/)
+    expect(days[0]?.description).toMatch(/여행|일정|분위기|동선|구릉|골목|운하|광장|걷는/)
+    expect(countRegisterScheduleDescriptionSentences(days[0]?.description ?? '')).toBeGreaterThanOrEqual(3)
     // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
     expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
   })
