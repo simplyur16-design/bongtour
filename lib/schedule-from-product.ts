@@ -150,7 +150,8 @@ export function getScheduleFromProduct(
     try {
       const arr = JSON.parse(product.schedule) as unknown[]
       if (Array.isArray(arr) && arr.length > 0) {
-        const maxDay = arr.reduce((m, item) => {
+        // REGRESSION-FREEZE[schedule-image-seo-title-ssot]: unknown[] reduce accumulator는 number — manifest
+        const maxDay = arr.reduce<number>((m, item) => {
           const d = Number((item as Record<string, unknown>)?.day ?? 0)
           return Number.isFinite(d) && d > 0 ? Math.max(m, d) : m
         }, 1)

@@ -7914,6 +7914,13 @@
           ]
         },
         {
+          "file": "lib/schedule-from-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
+            "reduce<number>"
+          ]
+        },
+        {
           "file": "app/api/admin/products/[id]/schedule-images/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
