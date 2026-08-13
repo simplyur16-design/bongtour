@@ -9,6 +9,7 @@ import { classifyModetourScheduleCardDayKind } from '@/lib/modetour-schedule-ima
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import {
   expandRegisterScheduleRoutePlaceCandidates,
+  isRegisterScheduleDomesticHubRouteSegment,
   isRegisterScheduleRoutePlaceNoise,
   sanitizeRegisterScheduleRouteText,
 } from '@/lib/register-schedule-route-place-noise'
@@ -19,11 +20,12 @@ import {
   pickScheduleVibeSentencesWithoutPlaceLeak,
 } from '@/lib/register-schedule-region-vibe'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
+import { sanitizeHongKongThemeParkDayRouteRows } from '@/lib/register-schedule-route-text-backfill'
 
 const MODETOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
 const MODETOUR_HIGHLIGHT_NOISE_RE =
-  /출발\s*전\s*준비|준비\s*사항|여행\s*준비\s*가이드|비즈니스\s*석|프라이빗\s*전용|변동이\s*있을\s*경우|홈페이지|이메일|알림톡|기내박|총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|출발\s*\d+\s*시간\s*전|수하물|탑승권|터미널|연결\s*수속|입국신고|사전\s*입국|온라인\s*입국|입국\s*유의|등록\s*방법|작성\s*(?:안내|요령)|패키지\s*개별\s*일정|개별\s*일정\s*불가|현지\s*미팅|미팅\s*안내|안내\s*사항|유의\s*사항|QR\s*코드|이민국\s*신청|대행으로\s*진행|모바일\s*.*입국|골든패스|익스프레스\s*탑승|선택\s*관광|\$\s*\d|(?:전신)?마사지\s*\(\s*\d+\s*분\s*\)|입국\s*조건|쇼\s*명|티파니|알카자|가이드\s*:\s*|녹색\s*셔츠|입국장\s*나와서|모두투어\s*데스크|피켓\s*앞|위치\s*:\s*|공항을\s*빠져나가|꼭\s*읽어\s*주세요|예약\s*시\s*꼭\s*읽어|상품\s*예약\s*시|여행\s*전\s*꼭\s*읽어/i
+  /출발\s*전\s*준비|준비\s*사항|여행\s*준비\s*가이드|비즈니스\s*석|프라이빗\s*전용|변동이\s*있을\s*경우|홈페이지|이메일|알림톡|기내박|총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|출발\s*\d+\s*시간\s*전|수하물|탑승권|터미널|연결\s*수속|입국신고|입국\s*신고|전자\s*입국|입국\s*안내|사전\s*입국|온라인\s*입국|입국\s*유의|등록\s*방법|작성\s*(?:안내|요령)|패키지\s*개별\s*일정|개별\s*일정\s*불가|현지\s*미팅|미팅\s*안내|안내\s*사항|유의\s*사항|QR\s*코드|이민국\s*신청|대행으로\s*진행|모바일\s*.*입국|골든패스|익스프레스\s*탑승|선택\s*관광|\$\s*\d|(?:전신)?마사지\s*\(\s*\d+\s*분\s*\)|입국\s*조건|쇼\s*명|티파니|알카자|가이드\s*:\s*|녹색\s*셔츠|입국장\s*나와서|모두투어\s*데스크|피켓\s*앞|위치\s*:\s*|공항을\s*빠져나가|꼭\s*읽어\s*주세요|예약\s*시\s*꼭\s*읽어|상품\s*예약\s*시|여행\s*전\s*꼭\s*읽어/i
 
 const MODETOUR_PLACEHOLDER_HOTEL_RE =
   /총\s*\d+\s*개의\s*예정\s*호텔|확정\s*되는대로|변동이\s*있을\s*경우|홈페이지|이메일|알림톡/i
@@ -100,7 +102,13 @@ function extractModetourEntryCityFromLabel(label: string): string | null {
 
 /** fact place 한 줄 — 준비·입국신고·미팅 안내·마케팅 카드명 제거, 입국 도시 괄호는 도시명만. */
 export function normalizeModetourFactPlaceLabel(raw: string): string | null {
-  for (const candidate of expandRegisterScheduleRoutePlaceCandidates(String(raw ?? ''))) {
+  const rawStr = String(raw ?? '').trim()
+  if (!rawStr) return null
+  // REGRESSION-FREEZE[modetour-register-api-schedule]: 전자 입국·안내 사항 place 금지 — manifest
+  if (/(?:전자\s*)?입국\s*신고|전자\s*입국|입국\s*안내|출국\s*안내|선택\s*관광|안내\s*사항/i.test(rawStr)) {
+    return null
+  }
+  for (const candidate of expandRegisterScheduleRoutePlaceCandidates(rawStr)) {
     const label = cleanModetourHighlightLabel(candidate)
     if (!label) continue
     if (isRegisterScheduleRoutePlaceNoise(label)) continue
@@ -203,6 +211,15 @@ function inferModetourScheduleVibeProfile(
     if (/싱가포르|경유|스피드\s*보트|공항/i.test(joinedBlob)) return 'return_transit'
     return 'return_calm'
   }
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: last-day 인천 hub-only → return_home — manifest
+  if (day.day === maxDay && maxDay >= 2) {
+    const hubOnly = joinedBlob.replace(/\s+/g, ' ').trim()
+    if (!hubOnly) return 'return_calm'
+    const hubParts = hubOnly.split(/\s+-\s+|\s+/).filter(Boolean)
+    if (hubParts.length > 0 && hubParts.every((p) => isRegisterScheduleDomesticHubRouteSegment(p))) {
+      return 'return_calm'
+    }
+  }
   if (kind === 'movement' && day.day === 1) return 'arrival'
   if (day.day === 1 && isModetourDay1DomesticHubToForeignDestination(joinedBlob)) return 'arrival'
   if (/스피드\s*보트|보트\s*이동|공항\s*↔|리조트\s*입장/i.test(joinedBlob)) return 'island_transfer'
@@ -237,21 +254,22 @@ export function composeModetourScheduleVibeDescription(
   maxDay: number,
   highlights: string[],
 ): string {
-  const chainBlob = highlights.join(' - ')
   const transport = stripModetourInlineHtml(String(day.transportNote ?? ''))
   const places = dedupeModetourFactDayPlaces(day.places)
   const routePlaces = highlights.length ? highlights : places
-  const joined = [transport, chainBlob, ...places].filter(Boolean).join(' ')
+  const routeBlob = routePlaces.join(' - ')
+  const joinedForKind = [transport, routeBlob].filter(Boolean).join(' ')
+  const joinedForRegion = routeBlob.trim() || transport.replace(/\s+/g, ' ').trim().slice(0, 240)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
   const regionalFirst = composeRegisterScheduleRegionVibeDescription({
     day: day.day,
     maxDay,
     routePlaces,
-    joinedBlob: joined,
+    joinedBlob: joinedForRegion,
   })
   if (regionalFirst) return regionalFirst
 
-  const profile = inferModetourScheduleVibeProfile(day, maxDay, joined)
+  const profile = inferModetourScheduleVibeProfile(day, maxDay, joinedForKind)
   if (profile === 'generic_tourism') {
     return [...MODETOUR_SCHEDULE_VIBE_DESCRIPTIONS.generic_tourism].slice(0, 2).join(' ')
   }
@@ -266,7 +284,7 @@ export function composeModetourScheduleVibeDescription(
         day: day.day,
         maxDay,
         routePlaces,
-        joinedBlob: joined,
+        joinedBlob: joinedForRegion,
       }),
   )
 }
@@ -323,7 +341,7 @@ export function modetourFactDaysToRegisterSchedule(
   opts?: ModetourFactDaysToRegisterScheduleOpts,
 ): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
-  return days.map((d) => {
+  const built = days.map((d) => {
     const places = dedupeModetourFactDayPlaces(d.places)
     const highlights = selectModetourScheduleHighlights(d.places)
     const firstTransport =
@@ -375,6 +393,7 @@ export function modetourFactDaysToRegisterSchedule(
       mealSummaryText: meals.mealSummaryText ?? null,
     }
   })
+  return sanitizeHongKongThemeParkDayRouteRows(built)
 }
 
 /** 등록 schedule[] — routeText 행정·UI 세그먼트 제거 (기수집·붙여넣기 병합 후) */
@@ -382,7 +401,7 @@ export function sanitizeModetourRegisterScheduleRouteRows<
   T extends { day: number; routeText?: string | null; title?: string | null },
 >(rows: T[]): T[] {
   const maxDay = rows.reduce((m, r) => Math.max(m, Number(r.day) || 0), 0)
-  return rows.map((row) => {
+  return sanitizeHongKongThemeParkDayRouteRows(rows).map((row) => {
     const routeText = sanitizeRegisterScheduleRouteText(row.routeText, MODETOUR_SCHEDULE_HIGHLIGHT_MAX)
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     const title = composeRegisterScheduleDayTitleFromRoute({

@@ -20,7 +20,10 @@ import {
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
+import {
+  isRegisterScheduleDomesticHubRouteSegment,
+  isRegisterScheduleRoutePlaceNoise,
+} from '@/lib/register-schedule-route-place-noise'
 import { firstMatchingScheduleSpotEn, routeContextualDisneyEnglish } from '@/lib/schedule-poi-regex-ssot'
 import {
   findMappedKoreanPoisInTextByMentionOrder,
@@ -979,7 +982,9 @@ export function classifyModetourScheduleCardDayKind(
   }
   if (day === maxDay && maxDay >= 2) {
     const hubOnly = j.replace(/\s+/g, ' ').trim()
-    if (/^(?:인천|김포|ICN|GMP|부산|PUS|대구|TAE|청주|CJJ)(?:\s*국제)?\s*공항?$/iu.test(hubOnly)) {
+    // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: last-day 인천 hub-only → return_home — manifest
+    const hubParts = hubOnly.split(/\s+-\s+|\s+/).filter(Boolean)
+    if (hubParts.length > 0 && hubParts.every((p) => isRegisterScheduleDomesticHubRouteSegment(p))) {
       return 'return_home'
     }
   }

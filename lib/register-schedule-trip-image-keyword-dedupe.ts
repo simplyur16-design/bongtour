@@ -1659,6 +1659,19 @@ export function isAirportTransferOrCityHubOnlyMiddleRoute(routeText: string | nu
   return false
 }
 
+function isHongKongThemeParkDayKeywordRow(row: { routeText?: string | null; title?: string | null }): boolean {
+  return /(?:디즈니|Disney|란타우|Lantau|테마파크)/i.test(
+    `${String(row.routeText ?? '')} ${String(row.title ?? '')}`,
+  )
+}
+
+function isHongKongIslandCoreTourImageKeyword(kw: string): boolean {
+  const nk = normScheduleImageKeywordKey(kw)
+  return /victoria peak|\bpeak\b|peak tram|\btram\b|soho|hollywood|tai kwun|escalator|mid-?level|wong tai|avenue of stars/.test(
+    nk,
+  )
+}
+
 function pickPriorTourismLandmarkForLodgingDay(
   row: RegisterScheduleTripKeywordRow,
   sorted: readonly RegisterScheduleTripKeywordRow[],
@@ -1668,6 +1681,7 @@ function pickPriorTourismLandmarkForLodgingDay(
   excludePrimaryNk = '',
 ): string {
   const day = Number(row.day)
+  const themeParkDay = isHongKongThemeParkDayKeywordRow(row)
   const prior = [...sorted].filter((r) => Number(r.day) > 0 && Number(r.day) < day).reverse()
   for (const p of prior) {
     const d = Number(p.day)
@@ -1681,6 +1695,7 @@ function pickPriorTourismLandmarkForLodgingDay(
       if (!slot || isRejectedTripKeywordCandidate(slot)) continue
       if (isBareCityOrCountryKeyword(slot)) continue
       if (isDomesticHubOrAirportImageKeyword(slot)) continue
+      if (themeParkDay && isHongKongIslandCoreTourImageKeyword(slot)) continue
       const nk = normScheduleImageKeywordKey(slot)
       if (!nk || scheduleKeywordNkOverlaps(nk, excludePrimaryNk)) continue
       if (!ignoreUsed && used.has(nk)) continue
@@ -1690,6 +1705,7 @@ function pickPriorTourismLandmarkForLodgingDay(
       if (isRejectedTripKeywordCandidate(kw)) continue
       if (isBareCityOrCountryKeyword(kw)) continue
       if (isDomesticHubOrAirportImageKeyword(kw)) continue
+      if (themeParkDay && isHongKongIslandCoreTourImageKeyword(kw)) continue
       const nk = normScheduleImageKeywordKey(kw)
       if (!nk || nk === excludePrimaryNk) continue
       if (!ignoreUsed && used.has(nk)) continue
@@ -1707,6 +1723,7 @@ function pickNextTourismLandmarkForMiddleDay(
   excludePrimaryNk = '',
 ): string {
   const day = Number(row.day)
+  const themeParkDay = isHongKongThemeParkDayKeywordRow(row)
   for (const p of sorted) {
     if (Number(p.day) <= day) continue
     const d = Number(p.day)
@@ -1720,6 +1737,7 @@ function pickNextTourismLandmarkForMiddleDay(
       if (!slot || isRejectedTripKeywordCandidate(slot)) continue
       if (isBareCityOrCountryKeyword(slot)) continue
       if (isDomesticHubOrAirportImageKeyword(slot)) continue
+      if (themeParkDay && isHongKongIslandCoreTourImageKeyword(slot)) continue
       const nk = normScheduleImageKeywordKey(slot)
       if (!nk || scheduleKeywordNkOverlaps(nk, excludePrimaryNk)) continue
       if (!ignoreUsed) continue
@@ -1729,6 +1747,7 @@ function pickNextTourismLandmarkForMiddleDay(
       if (isRejectedTripKeywordCandidate(kw)) continue
       if (isBareCityOrCountryKeyword(kw)) continue
       if (isDomesticHubOrAirportImageKeyword(kw)) continue
+      if (themeParkDay && isHongKongIslandCoreTourImageKeyword(kw)) continue
       const nk = normScheduleImageKeywordKey(kw)
       if (!nk || nk === excludePrimaryNk) continue
       if (!ignoreUsed) continue
@@ -2578,6 +2597,13 @@ function allowHongKongHubClusterKw2Duplicate(kw: string, routeText?: string | nu
 function hongKongHubKeywordHasDayRouteEvidence(kw: string, dayRoute: string): boolean {
   const nk = normScheduleImageKeywordKey(kw)
   const rt = String(dayRoute ?? '')
+  // 란타우·디즈니 당일 — Peak/소호/헐리우드 등 홍콩섬·구룡 핵심투어 키워드 금지
+  if (/(?:디즈니|Disney|란타우|Lantau|테마파크)/i.test(rt)) {
+    if (/disney/.test(nk)) return /디즈니|Disney|란타우|Lantau/i.test(rt)
+    if (/peak|tram|soho|hollywood|tai kwun|escalator|mid-?level|wong tai|avenue of stars/.test(nk)) {
+      return false
+    }
+  }
   if (/disney/.test(nk)) return /디즈니|Disney/i.test(rt)
   if (/wong tai/.test(nk)) return /웡타이신|Wong\s*Tai\s*Sin/i.test(rt)
   if (/peak tram|tram/.test(nk) && !/victoria peak/.test(nk)) {

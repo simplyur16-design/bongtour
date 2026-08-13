@@ -51,16 +51,17 @@ const ROUTE_MARKETING_EPITHET_RE =
 
 /** BongTour 해외 패키지 — routeText는 관광지 체인만. 국내 출발·귀국 허브 제외. */
 const REGISTER_SCHEDULE_DOMESTIC_HUB_KO_RE =
-  /^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u
+  /^(?:인천|김포|부산|대구|청주|김해|서울|제주|한국)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u
 
 const REGISTER_SCHEDULE_DOMESTIC_HUB_EN_RE =
-  /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|ICN|GMP|PUS|TAE|CJJ|CJU)$/i
+  /^(?:Incheon|Gimpo|Busan|Daegu|Cheongju|Gimhae|Seoul|Jeju|Korea|ICN|GMP|PUS|TAE|CJJ|CJU)$/i
 
 export function isRegisterScheduleDomesticHubRouteSegment(label: string): boolean {
   const t = String(label ?? '')
     .replace(/\s+/g, ' ')
     .trim()
   if (!t) return false
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 한국 origin hub — manifest
   if (REGISTER_SCHEDULE_DOMESTIC_HUB_KO_RE.test(t)) return true
   if (REGISTER_SCHEDULE_DOMESTIC_HUB_EN_RE.test(t)) return true
   return false

@@ -213,6 +213,36 @@ const AHP406_HK_DISNEY_SCHEDULE = [
 
 describe('ModeTour AHP406 Hong Kong Disney — day-owned imageKeyword', () => {
   // REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  it('modetour AHP406KEDT live order — D3 Lantau Disney must not take Peak Tram from D1 core tour', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '홍콩 - 헐리우드로드 - 미드레벨에스컬레이터 - 소호거리 - 타이쿤 - 빅토리아 피크트램 (편도)',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 2, routeText: '홍콩 - 구룡(九龍) - 웡타이신사원', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '란타우섬 - 홍콩 디즈니랜드 - 빅토리아 피크트램', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '홍콩',
+        productTitle: '[출발확정] 홍콩 디즈니랜드+핵심투어+반일자유 3박4일',
+      },
+    )
+    const byDay = new Map(out.map((r) => [r.day, r]))
+    expect(String(byDay.get(3)?.routeText ?? '')).toMatch(/디즈니|란타우/)
+    expect(String(byDay.get(3)?.routeText ?? '')).not.toMatch(/피크|Peak|소호|헐리우드|타이쿤/i)
+    const d3 = `${String(byDay.get(3)?.imageKeyword ?? '')} | ${String(byDay.get(3)?.imageKeyword2 ?? '')}`
+    expect(d3).toMatch(/Hong Kong Disneyland/i)
+    expect(d3).not.toMatch(/Victoria Peak|Peak Tram|SoHo|Hollywood|Tai Kwun|Escalator/i)
+    const d1 = `${String(byDay.get(1)?.imageKeyword ?? '')} | ${String(byDay.get(1)?.imageKeyword2 ?? '')}`
+    expect(d1).toMatch(/Victoria Peak|Peak Tram|SoHo|Hollywood|Tai Kwun|Escalator/i)
+    expect(d1).not.toMatch(/Disneyland/i)
+  })
+
   it('modetour AHP406KEDT-like — Disney day is HK not Tokyo/Shanghai; Peak stays on core-tour day', () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(AHP406_HK_DISNEY_SCHEDULE, {
       supplierKey: 'modetour',

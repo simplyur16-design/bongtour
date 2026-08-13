@@ -105,6 +105,45 @@ describe('register schedule route expression normalize — 신규 등록', () =>
   })
 
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+  it('란타우섬+피크트램 bleed — Peak 제거 후 디즈니 보강', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply([
+      {
+        day: 1,
+        title: '핵심투어',
+        routeText: '헐리우드로드 - 미드레벨에스컬레이터 - 소호거리 - 타이쿤 - 빅토리아 피크트램 (편도)',
+        description: '시내',
+      },
+      { day: 2, title: '구룡', routeText: '홍콩 - 구룡 - 웡타이신사원', description: '구룡' },
+      {
+        day: 3,
+        title: '란타우섬',
+        routeText: '란타우섬 - 빅토리아 피크트램',
+        description: '홍콩 디즈니랜드',
+      },
+      { day: 4, title: '귀국', routeText: '', description: '' },
+    ])
+    expect(out[2]?.routeText).toMatch(/란타우/)
+    expect(out[2]?.routeText).toMatch(/디즈니/)
+    expect(out[2]?.routeText).not.toMatch(/피크|Peak|소호|헐리우드/i)
+  })
+
+  it('란타우섬 당일 — 인접일 빅토리아 피크트램 route 복사 금지', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply([
+      {
+        day: 1,
+        title: '핵심투어',
+        routeText: '헐리우드로드 - 미드레벨에스컬레이터 - 소호거리 - 타이쿤 - 빅토리아 피크트램 (편도)',
+        description: '시내',
+      },
+      { day: 2, title: '구룡', routeText: '홍콩 - 구룡 - 웡타이신사원', description: '구룡' },
+      { day: 3, title: '란타우섬', routeText: '란타우섬', description: '란타우' },
+      { day: 4, title: '귀국', routeText: '', description: '' },
+    ])
+    expect(out[2]?.routeText).toMatch(/란타우/)
+    expect(out[2]?.routeText).not.toMatch(/피크|Peak|소호|헐리우드/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
   it('홍콩 디즈니랜드 당일 — 인접일 빅토리아 산정 route 복사 금지', () => {
     const out = prepareRegisterScheduleRowsForImageKeywordApply([
       { day: 1, title: '인천 - 홍콩', routeText: '인천 - 홍콩', description: '이동' },

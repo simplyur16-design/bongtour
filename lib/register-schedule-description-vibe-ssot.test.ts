@@ -14,6 +14,46 @@ import { isRegisterScheduleCrossContinentHallucinationKeyword, inferRegisterEffe
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 
 describe('register schedule description vibe SSOT', () => {
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: Hong Kong before japan kyushu — manifest
+  it('modetour AHP406-like — 홍콩 핵심투어≠규슈, 란타우 디즈니≠generic, 귀국≠generic', () => {
+    const days = modetourFactDaysToRegisterSchedule([
+      {
+        day: 1,
+        places: ['홍콩', '헐리우드로드', '미드레벨에스컬레이터', '소호거리', '타이쿤', '빅토리아 피크트램 (편도)'],
+        hotels: [],
+        meals: [],
+        transportNote: '한국 - 홍콩/마카오/심천 전자 입국 신고 안내',
+      },
+      {
+        day: 2,
+        places: ['홍콩', '구룡(九龍)', '웡타이신사원'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 3,
+        places: ['란타우섬', '홍콩 디즈니랜드'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+      {
+        day: 4,
+        places: ['인천'],
+        hotels: [],
+        meals: [],
+        transportNote: null,
+      },
+    ])
+    expect(days[0]?.description).not.toMatch(/규슈|온천·강변|하루 동안 여러 장면/)
+    expect(days[0]?.description).toMatch(/번화가|도보|골목|전망|도착|입국|이동/)
+    expect(days[2]?.description).not.toMatch(/하루 동안 여러 장면|규슈/)
+    expect(days[2]?.description).toMatch(/테마파크|파크|놀이|번화가|도보/)
+    expect(days[3]?.description).toMatch(/귀국|마무리|여운/)
+    expect(days[3]?.description).not.toMatch(/하루 동안 여러 장면/)
+  })
+
   it('modetour — description은 routeText 복사 금지, vibe 2~3문장', () => {
     const days = modetourFactDaysToRegisterSchedule([
       {

@@ -5239,7 +5239,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-facts-foundation]",
             "modetourScheduleItemsToFactDays",
-            "modetourFlightRoutesToFactLegs"
+            "modetourFlightRoutesToFactLegs",
+            "안내 사항·전자 입국 place 금지"
           ]
         },
         {
@@ -7430,6 +7431,7 @@
             "독일 한·영 도시 중복",
             "독일 숙박거점 캠프텐 북부 bleed 금지",
             "호텔명·교외토큰·단독 국가명",
+            "한국 origin hub",
             "국가/지역 접두·뷰레스토랑",
             "튀르키예의 수도 앙카라 → 앙카라",
             "터키 체험·이동 꼬리",
@@ -7581,7 +7583,9 @@
             "isRegisterScheduleHotelOnlyRouteText",
             "AMP7017 hotel-only ≠ KK lounge steal",
             "리조트 자유일 empty route ← title",
-            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai"
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
+            "란타우",
+            "sanitizeHongKongThemeParkDayRouteRows"
           ]
         },
         {
@@ -7700,7 +7704,9 @@
             "REGRESSION-FREEZE[register-schedule-description-vibe-ssot]",
             "composeModetourScheduleVibeDescription",
             "resort_leisure — 목적지명(몰디브) 하드코딩 금지",
-            "region vibe before generic"
+            "region vibe before generic",
+            "전자 입국·안내 사항 place 금지",
+            "last-day 인천 hub-only → return_home"
           ]
         },
         {
@@ -7757,6 +7763,9 @@
             "alaska_cruise",
             "place leak must not downgrade to generic",
             "hong_kong_city",
+            "hong_kong_disney",
+            "Hong Kong before japan kyushu",
+            "사가현",
             "vietnam_south",
             "switzerland_alps",
             "italy_cities",
@@ -7821,7 +7830,9 @@
         "lib/kyowontour-register-api-schedule.test.ts",
         "lib/kyowontour-schedule-india-awp902-image-keyword.test.ts",
         "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
-        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts"
+        "lib/modetour-schedule-uae-emp340-image-keyword.test.ts",
+        "tests/modetour-schedule-image-keyword.test.ts",
+        "lib/register-facts/modetour.test.ts"
       ]
     },
     {
@@ -8302,7 +8313,8 @@
             "Iberia·남프랑스 ESP104 day-owned POI",
             "modetour ESP104EKNL-like",
             "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
-            "modetour AHP406KEDT-like"
+            "modetour AHP406KEDT-like",
+            "D3 Lantau Disney must not take Peak Tram"
           ]
         },
         {

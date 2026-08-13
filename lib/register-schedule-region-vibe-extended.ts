@@ -68,6 +68,7 @@ type ExtendedRegionVibeProfile =
   | 'ordos_steppe'
   | 'vietnam_south'
   | 'hong_kong_city'
+  | 'hong_kong_disney'
   | 'oceania_nz'
   | 'hawaii_islands'
   | 'south_america'
@@ -132,6 +133,11 @@ const EXTENDED_REGION_VIBE_DESCRIPTIONS: Record<ExtendedRegionVibeProfile, reado
   hong_kong_city: [
     '번화가와 골목·전망이 이어지는, 도보 리듬이 중심인 하루입니다.',
     '현대적 감각과 로컬 분위기가 자연스럽게 섞여 걷는 즐거움이 돋보입니다.',
+  ],
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: hong_kong_disney — 란타우·테마파크 ≠ 규슈/generic — manifest
+  hong_kong_disney: [
+    '테마파크 하루로, 이동보다 놀이와 장면이 중심인 일정입니다.',
+    '짧은 이동 없이 파크 안에서 분위기가 이어져 여정이 또렷하게 느껴지는 구성입니다.',
   ],
   oceania_nz: [
     '호수·산자락·시내 거리가 이어지는, 뉴질랜드의 시야가 열리는 하루입니다.',
@@ -293,6 +299,20 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   ) {
     return 'central_asia_steppe'
   }
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: Hong Kong before japan kyushu — manifest
+  if (
+    /디즈니|Disney|테마파크/i.test(joinedBlob) &&
+    /홍콩|Hong\s*Kong|란타우|Lantau/i.test(joinedBlob)
+  ) {
+    return 'hong_kong_disney'
+  }
+  if (
+    /홍콩|Hong\s*Kong|란타우|Lantau|소호|SoHo|타이쿤|빅토리아\s*피크|피크트램|헐리우드\s*로드|미드레벨|웡타이신|구룡|九龍|침사추이|완차이|센트럴/i.test(
+      joinedBlob,
+    )
+  ) {
+    return 'hong_kong_city'
+  }
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: japan onsen — bare 온천 alone 금지 — manifest
   if (
     /돗토리|유후인|벳푸|kusatsu|하코네|기노사키|아타미|(?:일본|Japan).{0,16}온천|온천.{0,16}(?:유후|벳푸|하코네|기노사키|아타미|돗토리)/i.test(
@@ -309,7 +329,12 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   ) {
     return 'hokkaido_nature'
   }
-  if (/아소|야나가와|후쿠오카|벳푸|유후인|규슈|이마리|아리타|사가|Oita|Fukuoka|Kyushu/i.test(joinedBlob)) {
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: 사가현 — bare 사가/아소/Oita 오탐 금지 — manifest
+  if (
+    /야나가와|후쿠오카|벳푸|유후인|규슈|큐슈|이마리|아리타|사가현|사가시|(?:^|[^가-힣])사가(?:$|[^가-힣])|아소산|아소\s*칼데라|아소시|(?:^|[^가-힣])아소(?:$|[^가-힣])|\bOita\b|\bFukuoka\b|\bKyushu\b|\bAso\b/i.test(
+      joinedBlob,
+    )
+  ) {
     return 'japan_kyushu'
   }
   if (/교토|오사카|도쿄|도톤보리|기요미즈|아라시야마|닛코|가나자와|일본|가미코치|이누야마|나고야|다카마츠/i.test(joinedBlob)) {
@@ -321,9 +346,6 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
     )
   ) {
     return 'vietnam_south'
-  }
-  if (/홍콩|Hong\s*Kong|소호|SoHo|타이쿤|빅토리아\s*피크|침사추이|완차이|센트럴/i.test(joinedBlob)) {
-    return 'hong_kong_city'
   }
   if (/오아후|Oahu|호놀룰루|Honolulu|하와이|Hawaii|진주만|다이아몬드\s*헤드|노스쇼어|와이키키/i.test(joinedBlob)) {
     return 'hawaii_islands'

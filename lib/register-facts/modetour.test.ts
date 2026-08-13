@@ -158,6 +158,48 @@ describe('modetourScheduleItemsToFactDays', () => {
     expect(d4[0]?.dinnerText).toBeNull()
   })
 
+  it('AHP406-like — 전자 입국 안내·한국 origin ≠ place, 디즈니 란타우 유지', () => {
+    // REGRESSION-FREEZE[register-facts-foundation]: 안내 사항·전자 입국 place 금지 — manifest
+    const days = modetourScheduleItemsToFactDays([
+      {
+        first: 1,
+        placeHeader: ['인천', '홍콩'],
+        ortherActions: [
+          { itiServiceName: '안내 사항', itiPlaceName: '한국 - 홍콩/마카오/심천 전자 입국 신고 안내' },
+          { itiServiceName: '관광(핵심투어)', itiPlaceName: '헐리우드로드' },
+          { itiServiceName: '관광(핵심투어)', itiPlaceName: '미드레벨에스컬레이터' },
+          { itiServiceName: '관광(핵심투어)', itiPlaceName: '소호거리' },
+          { itiServiceName: '관광(핵심투어)', itiPlaceName: '타이쿤' },
+          { itiServiceName: '관광(핵심투어)', itiPlaceName: '빅토리아 피크트램 (편도)' },
+        ],
+      },
+      {
+        first: 2,
+        placeHeader: ['홍콩', '구룡(九龍)'],
+        ortherActions: [{ itiServiceName: '관광(핵심투어)', itiPlaceName: '웡타이신사원' }],
+      },
+      {
+        first: 3,
+        placeHeader: '란타우섬',
+        ortherActions: [{ itiServiceName: '관광(핵심투어)', itiPlaceName: '홍콩 디즈니랜드' }],
+      },
+      { first: 4, placeHeader: ['인천'] },
+    ])
+    expect(days[0]?.places.join(' ')).not.toMatch(/한국|전자\s*입국|마카오/)
+    expect(days[0]?.places).toEqual(
+      expect.arrayContaining(['홍콩', '헐리우드로드', '미드레벨에스컬레이터', '소호거리', '타이쿤']),
+    )
+    expect(days[2]?.places).toEqual(expect.arrayContaining(['란타우섬', '홍콩 디즈니랜드']))
+    const sched = modetourFactDaysToRegisterSchedule(days)
+    expect(sched[0]?.routeText ?? '').not.toMatch(/한국/)
+    expect(sched[0]?.description).not.toMatch(/규슈|온천·강변|하루 동안 여러 장면/)
+    expect(sched[2]?.routeText).toMatch(/란타우/)
+    expect(sched[2]?.routeText).toMatch(/디즈니/)
+    expect(sched[2]?.description).not.toMatch(/하루 동안 여러 장면|규슈/)
+    expect(sched[3]?.description).toMatch(/귀국|마무리|여운/)
+    expect(sched[3]?.description).not.toMatch(/하루 동안 여러 장면/)
+  })
+
   it('placeHeader — 입국신고·미팅 안내 제거, 입국 도시 괄호는 도시명만', () => {
     const days = modetourScheduleItemsToFactDays([
       {

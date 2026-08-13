@@ -191,6 +191,12 @@ describe('classifyModetourScheduleCardDayKind — 인천 귀국', () => {
       'return_home',
     )
   })
+
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: last-day 인천 hub-only → return_home — manifest
+  it('마지막 일차 인천만 → return_home', () => {
+    assert.equal(classifyModetourScheduleCardDayKind(4, 4, '인천'), 'return_home')
+    assert.equal(classifyModetourScheduleCardDayKind(4, 4, '인천 인천'), 'return_home')
+  })
 })
 
 describe('applyModetourScheduleImageKeywordsToRows — 라다크·인도 한글 routeText', () => {

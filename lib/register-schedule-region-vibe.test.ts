@@ -102,6 +102,39 @@ describe('register schedule region vibe', () => {
     expect(central).toMatch(/중앙아시아|초원|협곡|도시/)
   })
 
+  // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: Hong Kong before japan kyushu — manifest
+  it('홍콩 미드레벨에스컬레이터·란타우 — 규슈/generic 금지', () => {
+    const core = composeRegisterScheduleRegionVibeDescription({
+      day: 1,
+      maxDay: 4,
+      routePlaces: ['홍콩', '헐리우드로드', '미드레벨에스컬레이터', '소호거리', '타이쿤'],
+      joinedBlob: '홍콩 - 헐리우드로드 - 미드레벨에스컬레이터 - 소호거리 - 타이쿤 - 빅토리아 피크트램 (편도)',
+    })
+    expect(core).toBeTruthy()
+    expect(isRegisterScheduleGenericTourismDescription(core!)).toBe(false)
+    expect(core).not.toMatch(/규슈|온천·강변/)
+    expect(core).toMatch(/번화가|도보|골목|전망/)
+
+    const disney = composeRegisterScheduleRegionVibeDescription({
+      day: 3,
+      maxDay: 4,
+      routePlaces: ['란타우섬', '홍콩 디즈니랜드'],
+      joinedBlob: '란타우섬 - 홍콩 디즈니랜드',
+    })
+    expect(disney).toBeTruthy()
+    expect(isRegisterScheduleGenericTourismDescription(disney!)).toBe(false)
+    expect(disney).not.toMatch(/규슈|하루 동안 여러 장면/)
+    expect(disney).toMatch(/테마파크|파크|놀이/)
+
+    const kyushu = composeRegisterScheduleRegionVibeDescription({
+      day: 2,
+      maxDay: 4,
+      routePlaces: ['벳푸', '유후인'],
+      joinedBlob: '벳푸 - 유후인 - 후쿠오카',
+    })
+    expect(kyushu).toMatch(/규슈|온천|항구/)
+  })
+
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest
   it('홍콩·푸꾸옥·융프라우 — place leak에도 generic 금지', () => {
     const hk = composeRegisterScheduleRegionVibeDescription({

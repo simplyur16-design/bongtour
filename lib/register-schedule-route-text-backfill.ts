@@ -53,7 +53,7 @@ export function isRegisterSchedulePlaceholderRouteText(routeText: string | null 
   if (!t) return true
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
   // 당일 전용 테마파크·명소 단독 route는 placeholder가 아님 — 인접일 Peak 붙이기 금지
-  if (/(?:디즈니|Disney|유니버설|USJ|에버랜드|롯데월드|테마파크)/i.test(t)) return false
+  if (/(?:디즈니|Disney|유니버설|USJ|에버랜드|롯데월드|테마파크|란타우|Lantau)/i.test(t)) return false
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·리조트일은 placeholder로 보지 않음 — manifest
   if (isRegisterScheduleFreeTimeOrResortLeisureText(t)) return false
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: AMP7017 hotel-only ≠ KK lounge steal — manifest
@@ -240,7 +240,12 @@ export function backfillMiddleDayRouteTextFromAdjacentDays<T extends RegisterSch
       return row
     }
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
-    if (/(?:디즈니|Disney|유니버설|USJ|에버랜드|롯데월드|테마파크)/i.test(route)) return row
+    if (
+      isRegisterScheduleHongKongThemeParkDayText(route) ||
+      isRegisterScheduleHongKongThemeParkDayText(title)
+    ) {
+      return row
+    }
     const segs = route ? splitRouteTextPlaceSegments(route).filter((s) => s.trim().length >= 2) : []
     if (route && segs.length >= 2 && route.length >= 4 && !isRegisterSchedulePlaceholderRouteText(route)) return row
     for (const neighbor of sorted) {
@@ -279,12 +284,65 @@ export function backfillScheduleRouteTextFromDescriptionOrTitle<T extends Regist
   })
 }
 
+const HK_ISLAND_KOWLOON_CORE_TOUR_SEG_RE =
+  /피크\s*트램|Peak\s*Tram|빅토리아\s*피크|Victoria\s*Peak|빅토리아\s*산정|소호|SoHo|헐리우드|할리우드|Hollywood\s*Road|타이쿤|Tai\s*Kwun|에스컬레이터|Escalator|미드레벨|미드\s*레벨|웡타이신|Wong\s*Tai\s*Sin|스타의\s*거리|Avenue\s*of\s*Stars/i
+
+/** 홍콩 디즈니·란타우 당일 — 홍콩섬·구룡 핵심투어 POI를 route에 붙이지 않음 */
+export function isRegisterScheduleHongKongThemeParkDayText(text: string | null | undefined): boolean {
+  return /(?:디즈니|Disney|란타우|Lantau|테마파크)/i.test(String(text ?? ''))
+}
+
+function stripHongKongCoreTourBleedFromThemeParkRouteText(routeText: string | null | undefined): string | null {
+  const raw = String(routeText ?? '').trim()
+  if (!raw) return null
+  if (!isRegisterScheduleHongKongThemeParkDayText(raw)) {
+    return sanitizeRegisterScheduleRouteText(raw, REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX)
+  }
+  const segs = raw.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean)
+  const kept = segs.filter(
+    (s) => /디즈니|Disney|란타우|Lantau/i.test(s) || !HK_ISLAND_KOWLOON_CORE_TOUR_SEG_RE.test(s),
+  )
+  const next = kept.join(' - ')
+  return sanitizeRegisterScheduleRouteText(next, REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX) ?? (next || null)
+}
+
+/**
+ * 란타우·디즈니 일차 — 인접일 Peak/소호 bleed 제거. trip에 디즈니면 란타우 단독에 디즈니랜드 보강.
+ * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+ */
+export function sanitizeHongKongThemeParkDayRouteRows<T extends RegisterScheduleRouteTextBackfillRow>(
+  rows: T[],
+): T[] {
+  const tripHasDisney = rows.some((r) =>
+    /디즈니|Disney/i.test(`${String(r.routeText ?? '')} ${String(r.title ?? '')} ${String(r.description ?? '')}`),
+  )
+  return rows.map((row) => {
+    const hay = `${String(row.routeText ?? '')} ${String(row.title ?? '')}`
+    if (!isRegisterScheduleHongKongThemeParkDayText(hay)) return row
+    let routeText = stripHongKongCoreTourBleedFromThemeParkRouteText(
+      String(row.routeText ?? '').trim() || String(row.title ?? '').trim(),
+    )
+    if (
+      tripHasDisney &&
+      /란타우|Lantau/i.test(`${String(routeText ?? '')} ${hay}`) &&
+      !/디즈니|Disney/i.test(String(routeText ?? ''))
+    ) {
+      const withDisney = [routeText, '홍콩 디즈니랜드'].filter(Boolean).join(' - ')
+      routeText =
+        sanitizeRegisterScheduleRouteText(withDisney, REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX) ?? withDisney
+    }
+    return routeText ? { ...row, routeText } : row
+  })
+}
+
 export function prepareRegisterScheduleRowsForImageKeywordApply<T extends RegisterScheduleRouteTextBackfillRow>(
   rows: T[],
 ): T[] {
-  return normalizeRegisterScheduleRouteExpressionRows(
-    backfillMiddleDayRouteTextFromAdjacentDays(
-      backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
+  return sanitizeHongKongThemeParkDayRouteRows(
+    normalizeRegisterScheduleRouteExpressionRows(
+      backfillMiddleDayRouteTextFromAdjacentDays(
+        backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
+      ),
     ),
   )
 }

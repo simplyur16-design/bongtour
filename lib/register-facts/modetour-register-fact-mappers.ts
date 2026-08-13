@@ -10,7 +10,7 @@ import { normalizeModetourFactPlaceLabel } from '@/lib/modetour-register-api-sch
 
 export type ModetourScheduleItem = {
   first?: number
-  placeHeader?: string[]
+  placeHeader?: string[] | string
   scheduleHotel?: string | null
   ortherActions?: Array<{
     itiDays?: number
@@ -183,7 +183,12 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         transportNote: null,
       } satisfies RegisterFactScheduleDay)
 
-    for (const p of item.placeHeader ?? []) {
+    const placeHeaders = Array.isArray(item.placeHeader)
+      ? item.placeHeader
+      : item.placeHeader
+        ? [item.placeHeader]
+        : []
+    for (const p of placeHeaders) {
       const t = modetourStripHtmlFromText(String(p))
       const placeLabel = t ? normalizeModetourFactPlaceLabel(t) : null
       if (!placeLabel) continue
@@ -200,6 +205,13 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
       const svc = modetourStripHtmlFromText(String(act.itiServiceName ?? ''))
       const place = modetourStripHtmlFromText(String(act.itiPlaceName ?? ''))
       const summary = modetourStripHtmlFromText(String(act.itiSummaryDes ?? ''))
+      // REGRESSION-FREEZE[register-facts-foundation]: 안내 사항·전자 입국 place 금지 — manifest
+      if (/안내\s*사항|선택\s*관광|기타\s*설명/i.test(svc)) {
+        if (/이동|항공|국제선|국내선|보트|스피드/i.test(svc) && summary) {
+          row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
+        }
+        continue
+      }
       const mealLines = modetourExtractMealLinesFromAction(svc, place, summary)
       if (mealLines.length > 0) {
         modetourPushMealLines(row, mealLines)

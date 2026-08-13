@@ -39,6 +39,11 @@ describe('register schedule route place noise', () => {
     expect(sanitizeRegisterScheduleRouteText('인천 - 돗토리 - 미즈키시게루 로드')).toBe(
       '돗토리 - 미즈키시게루 로드',
     )
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: 한국 origin hub — manifest
+    expect(isRegisterScheduleDomesticHubRouteSegment('한국')).toBe(true)
+    expect(sanitizeRegisterScheduleRouteText('홍콩 - 한국 - 헐리우드로드 - 소호거리')).toBe(
+      '홍콩 - 헐리우드로드 - 소호거리',
+    )
   })
 
   it('blocks airport·province·optional-tour segments', () => {
