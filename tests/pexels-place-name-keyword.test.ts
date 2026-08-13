@@ -65,4 +65,12 @@ describe('finalizeScheduleImageKeyword', () => {
   it('Beijing Forbidden City view — 도시 세그먼트는 Beijing(랜드마크 아님)', () => {
     assert.equal(finalizeScheduleImageKeyword('Beijing Forbidden City view'), 'Beijing')
   })
+
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 홍콩 헐리우드로드 ≠ LA Hollywood — manifest
+  it('Hollywood Road is Hong Kong not LA', () => {
+    assert.equal(finalizeScheduleImageKeyword('Hollywood Road'), 'Hollywood Road Hong Kong')
+    assert.equal(finalizeScheduleImageKeyword('Hollywood Road Hong Kong'), 'Hollywood Road Hong Kong')
+    assert.equal(normalizeToPlaceName('Hollywood Road'), 'Hollywood Road Hong Kong')
+    assert.equal(finalizeScheduleImageKeyword('Universal Studios Hollywood'), 'Universal Studios Hollywood')
+  })
 })

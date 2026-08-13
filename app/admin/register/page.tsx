@@ -420,6 +420,7 @@ function applyRegisterPreviewPexelsKeywordRows(
       imageKeyword: '',
       imageKeyword2: null,
     })),
+    { productTitle: opts.productTitle },
   )
   try {
     const augmented = applyRegisterScheduleImageKeywordsForPreview(prepared, opts)
@@ -473,21 +474,21 @@ function buildRegisterPexelsUiRows(
     }
     const serverRows = validFromParsed.map(mapRegisterPexelsUiScheduleRow)
     let clearedRows = serverRows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null }))
-    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙) SSOT — Gemini는 post-augment 1회 */
-    if (supplierKey === 'modetour') {
-      clearedRows = sanitizeModetourRegisterScheduleRouteRows(clearedRows)
-    }
-    const rawRows = prepareHanatourRegisterPexelsRawRows(
-      prepareRegisterScheduleRowsForImageKeywordApply(clearedRows),
-      parsed,
-      preview,
-      supplierKey,
-    )
     const destHint =
       (parsed?.destination ?? '').trim() ||
       (preview?.productDraft?.primaryDestination ?? preview?.productDraft?.destinationRaw ?? '').trim() ||
       null
     const titleHint = (preview?.productDraft?.title ?? parsed?.title ?? '').trim() || null
+    /** REGRESSION-FREEZE[modetour-register-ssot-freeze]: ensureModetourRegisterScheduleImageKeywords`(규칙) SSOT — Gemini는 post-augment 1회 */
+    if (supplierKey === 'modetour') {
+      clearedRows = sanitizeModetourRegisterScheduleRouteRows(clearedRows, { productTitle: titleHint })
+    }
+    const rawRows = prepareHanatourRegisterPexelsRawRows(
+      prepareRegisterScheduleRowsForImageKeywordApply(clearedRows, { productTitle: titleHint }),
+      parsed,
+      preview,
+      supplierKey,
+    )
     const optionalTourNames = parseOptionalTourNamesFromStructuredJson(
       String(parsed?.optionalToursStructured ?? preview.productDraft?.optionalToursStructured ?? ''),
     )

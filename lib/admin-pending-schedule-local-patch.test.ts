@@ -32,4 +32,17 @@ describe('admin-pending-schedule-local-patch', () => {
     expect(preferStoredScheduleImageKeyword('', 'Colosseum')).toBe('Colosseum')
     expect(preferStoredScheduleImageKeyword(null, 'Colosseum')).toBe('Colosseum')
   })
+
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 저장 Hollywood Road ≠ LA — manifest
+  it('preferStored Hollywood Road is Hong Kong not LA', () => {
+    expect(preferStoredScheduleImageKeyword('Hollywood Road', 'Peak Tram')).toBe(
+      'Hollywood Road Hong Kong',
+    )
+    expect(preferStoredScheduleImageKeyword('Hollywood Road Hong Kong', 'Peak Tram')).toBe(
+      'Hollywood Road Hong Kong',
+    )
+    expect(preferStoredScheduleImageKeyword('Universal Studios Hollywood', 'Los Angeles')).toBe(
+      'Universal Studios Hollywood',
+    )
+  })
 })

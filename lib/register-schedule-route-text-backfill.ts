@@ -18,6 +18,10 @@ export type RegisterScheduleRouteTextBackfillRow = {
   routeText?: string | null
 }
 
+export type RegisterScheduleRouteTextBackfillOpts = {
+  productTitle?: string | null
+}
+
 const REGISTER_SCHEDULE_ROUTE_EXPRESSION_MAX = 7
 
 /** 리조트 자유·부대시설 일차 — 인접일 관광 routeText 복사 금지 */
@@ -309,13 +313,17 @@ function stripHongKongCoreTourBleedFromThemeParkRouteText(routeText: string | nu
 /**
  * 란타우·디즈니 일차 — 인접일 Peak/소호 bleed 제거. trip에 디즈니면 란타우 단독에 디즈니랜드 보강.
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
+ * REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 특성 요약에 디즈니명이 없어도 productTitle로 보강 — manifest
  */
 export function sanitizeHongKongThemeParkDayRouteRows<T extends RegisterScheduleRouteTextBackfillRow>(
   rows: T[],
+  opts?: RegisterScheduleRouteTextBackfillOpts,
 ): T[] {
-  const tripHasDisney = rows.some((r) =>
-    /디즈니|Disney/i.test(`${String(r.routeText ?? '')} ${String(r.title ?? '')} ${String(r.description ?? '')}`),
-  )
+  const tripHasDisney =
+    /디즈니|Disney/i.test(String(opts?.productTitle ?? '')) ||
+    rows.some((r) =>
+      /디즈니|Disney/i.test(`${String(r.routeText ?? '')} ${String(r.title ?? '')} ${String(r.description ?? '')}`),
+    )
   return rows.map((row) => {
     const hay = `${String(row.routeText ?? '')} ${String(row.title ?? '')}`
     if (!isRegisterScheduleHongKongThemeParkDayText(hay)) return row
@@ -337,6 +345,7 @@ export function sanitizeHongKongThemeParkDayRouteRows<T extends RegisterSchedule
 
 export function prepareRegisterScheduleRowsForImageKeywordApply<T extends RegisterScheduleRouteTextBackfillRow>(
   rows: T[],
+  opts?: RegisterScheduleRouteTextBackfillOpts,
 ): T[] {
   return sanitizeHongKongThemeParkDayRouteRows(
     normalizeRegisterScheduleRouteExpressionRows(
@@ -344,5 +353,6 @@ export function prepareRegisterScheduleRowsForImageKeywordApply<T extends Regist
         backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
       ),
     ),
+    opts,
   )
 }

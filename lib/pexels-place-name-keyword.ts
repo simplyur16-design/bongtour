@@ -66,6 +66,9 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'new york manhattan skyline': 'New York',
   'nagoya castle view': 'Nagoya Castle',
   'nha trang': 'Nha Trang',
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 홍콩 헐리우드로드 ≠ LA Hollywood — manifest
+  'hollywood road': 'Hollywood Road Hong Kong',
+  'hollywood road hong kong': 'Hollywood Road Hong Kong',
 }
 
 /** 삼단·Pexels 보조 segment (첫 segment 이후 또는 단독 제거) */
@@ -496,6 +499,9 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'harbour city hong kong': 'Harbour City Hong Kong',
   'harbour city': 'Harbour City Hong Kong',
   'soho hong kong': 'SoHo Hong Kong',
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: stripTrailingGeoTokens가 Hong Kong을 깎아 LA로 검색 — manifest
+  'hollywood road hong kong': 'Hollywood Road Hong Kong',
+  'hollywood road': 'Hollywood Road Hong Kong',
   'tai kwun': 'Tai Kwun',
   'wong tai sin temple': 'Wong Tai Sin Temple',
   'avenue of stars hong kong': 'Avenue of Stars Hong Kong',

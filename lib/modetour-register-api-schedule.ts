@@ -373,15 +373,15 @@ export function modetourFactDaysToRegisterSchedule(
       mealSummaryText: meals.mealSummaryText ?? null,
     }
   })
-  return sanitizeHongKongThemeParkDayRouteRows(built)
+  return sanitizeHongKongThemeParkDayRouteRows(built, { productTitle: opts?.productTitle })
 }
 
 /** 등록 schedule[] — routeText 행정·UI 세그먼트 제거 (기수집·붙여넣기 병합 후) */
 export function sanitizeModetourRegisterScheduleRouteRows<
   T extends { day: number; routeText?: string | null; title?: string | null },
->(rows: T[]): T[] {
+>(rows: T[], opts?: { productTitle?: string | null }): T[] {
   const maxDay = rows.reduce((m, r) => Math.max(m, Number(r.day) || 0), 0)
-  return sanitizeHongKongThemeParkDayRouteRows(rows).map((row) => {
+  return sanitizeHongKongThemeParkDayRouteRows(rows, { productTitle: opts?.productTitle }).map((row) => {
     const routeText = sanitizeRegisterScheduleRouteText(row.routeText, MODETOUR_SCHEDULE_HIGHLIGHT_MAX)
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     const title = composeRegisterScheduleDayTitleFromRoute({

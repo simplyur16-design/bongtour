@@ -18,6 +18,9 @@ const cases: Array<{ in: string; want: string }> = [
   // REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]: stripTrailingGeoTokens 전체명 보존
   { in: 'Phu Quoc', want: 'Phu Quoc' },
   { in: 'Nha Trang', want: 'Nha Trang' },
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 홍콩 헐리우드로드 ≠ LA Hollywood — manifest
+  { in: 'Hollywood Road', want: 'Hollywood Road Hong Kong' },
+  { in: 'Hollywood Road Hong Kong', want: 'Hollywood Road Hong Kong' },
 ]
 
 let failed = 0

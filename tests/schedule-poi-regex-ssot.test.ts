@@ -94,6 +94,10 @@ describe('schedule-poi-regex-ssot', () => {
     expect(mapKoreanPoiSegment('천혜의 자연 새섬')).toMatch(/Saipan Bird Island/i)
     expect(firstMatchingScheduleSpotEn('라플린')).toMatch(/Laughlin/i)
     expect(firstMatchingScheduleSpotEn('코닥극장')).toMatch(/Chinese Theatre|Hollywood/i)
+    // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 헐리우드로드 = 홍콩 ≠ LA — manifest
+    expect(firstMatchingScheduleSpotEn('헐리우드로드')).toBe('Hollywood Road Hong Kong')
+    expect(firstMatchingScheduleSpotEn('할리우드 로드')).toBe('Hollywood Road Hong Kong')
+    expect(mapKoreanPoiSegment('헐리우드로드')).toBe('Hollywood Road Hong Kong')
     expect(firstMatchingScheduleSpotEn('니지노마츠바라')).toMatch(/Nijinomatsubara/i)
     expect(firstMatchingScheduleSpotEn('비엔티엔')).toMatch(/Vientiane|That Luang/i)
   })

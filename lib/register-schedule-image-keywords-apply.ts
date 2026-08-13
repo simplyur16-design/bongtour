@@ -116,7 +116,9 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     ? rows
     : rows.map((row) => ({ ...row, imageKeyword: '', imageKeyword2: null }))
   const prepared = expandSingleSegmentPoiRouteTextRows(
-    prepareRegisterScheduleRowsForImageKeywordApply(rowsForApply),
+    prepareRegisterScheduleRowsForImageKeywordApply(rowsForApply, {
+      productTitle: opts.productTitle,
+    }),
   )
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: keyword collect on sanitized route — manifest
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: all-noise return route must not restore dirty text — manifest

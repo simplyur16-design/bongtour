@@ -694,6 +694,10 @@ const POI_KO_TO_EN: Record<string, string> = {
   '하버 시티': 'Harbour City Hong Kong',
   하버플라자: 'Harbour City Hong Kong',
   할리우드로드: 'Hollywood Road Hong Kong',
+  '할리우드 로드': 'Hollywood Road Hong Kong',
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 헐리우드로드(홍콩) ≠ LA Hollywood — manifest
+  헐리우드로드: 'Hollywood Road Hong Kong',
+  '헐리우드 로드': 'Hollywood Road Hong Kong',
   소호거리: 'SoHo Hong Kong',
   '소호 거리': 'SoHo Hong Kong',
   웡타이신: 'Wong Tai Sin Temple',

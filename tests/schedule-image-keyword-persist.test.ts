@@ -29,6 +29,12 @@ describe('persistScheduleImageKeyword', () => {
     assert.equal(persistScheduleImageKeyword('Budapest Night View'), 'Budapest')
   })
 
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: persist Hollywood Road ≠ LA — manifest
+  it('Hollywood Road persists as Hong Kong not LA', () => {
+    assert.equal(persistScheduleImageKeyword('Hollywood Road'), 'Hollywood Road Hong Kong')
+    assert.equal(persistScheduleImageKeyword('Hollywood Road Hong Kong'), 'Hollywood Road Hong Kong')
+  })
+
   it('Night Market은 tryPersist 통과', () => {
     const r = tryPersistScheduleImageKeyword('Taipei Night Market')
     assert.equal(r.ok, true)

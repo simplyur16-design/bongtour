@@ -167,7 +167,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /홍콩\s*디즈니|Hong\s*Kong\s*Disney/i, en: "Hong Kong Disneyland castle" },
   { re: /빅토리아\s*산정/u, en: "Victoria Peak" },
   { re: /타이쿤|Tai\s*Kwun/u, en: "Tai Kwun" },
-  { re: /헐리우드\s*로드|Hollywood\s*Road/u, en: "Hollywood Road Hong Kong" },
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 헐·할리우드로드 = 홍콩, LA Hollywood 금지 — manifest
+  { re: /[헐할]리우드\s*로드|Hollywood\s*Road/u, en: "Hollywood Road Hong Kong" },
   { re: /미드[-\s]*레벨\s*에스컬레이터|Mid[-\s]*level\s*Escalator/u, en: "Mid-Levels Escalator" },
   { re: /리퉁\s*애비뉴|Li\s*Yuen|L\.?\s*Yuen/i, en: "Li Yuen Street Hong Kong" },
   { re: /블루\s*하우스|Blue\s*House/u, en: "Blue House Hong Kong" },

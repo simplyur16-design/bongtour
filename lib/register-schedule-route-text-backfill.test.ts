@@ -143,6 +143,27 @@ describe('register schedule route expression normalize — 신규 등록', () =>
     expect(out[2]?.routeText).not.toMatch(/피크|Peak|소호|헐리우드/i)
   })
 
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 특성 요약에 디즈니명 없어도 상품명으로 보강 — manifest
+  it('란타우섬 only + productTitle 디즈니 — route에 홍콩 디즈니랜드 보강', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply(
+      [
+        {
+          day: 1,
+          title: '핵심투어',
+          routeText: '헐리우드로드 - 미드레벨에스컬레이터 - 소호거리 - 타이쿤 - 빅토리아 피크트램 (편도)',
+          description: '시내 골목과 전망',
+        },
+        { day: 2, title: '구룡', routeText: '홍콩 - 구룡 - 웡타이신사원', description: '구룡 사원' },
+        { day: 3, title: '란타우섬', routeText: '란타우섬', description: '테마파크 하루' },
+        { day: 4, title: '귀국', routeText: '', description: '' },
+      ],
+      { productTitle: '[출발확정] 홍콩 디즈니랜드+핵심투어+반일자유 3박4일' },
+    )
+    expect(out[2]?.routeText).toMatch(/란타우/)
+    expect(out[2]?.routeText).toMatch(/디즈니/)
+    expect(out[2]?.routeText).not.toMatch(/피크|Peak|소호|헐리우드/i)
+  })
+
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
   it('홍콩 디즈니랜드 당일 — 인접일 빅토리아 산정 route 복사 금지', () => {
     const out = prepareRegisterScheduleRowsForImageKeywordApply([

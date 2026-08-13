@@ -5,6 +5,8 @@
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
+import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 const US_EAST_SCHEDULE = [
@@ -212,6 +214,15 @@ const AHP406_HK_DISNEY_SCHEDULE = [
 ]
 
 describe('ModeTour AHP406 Hong Kong Disney — day-owned imageKeyword', () => {
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 헐리우드로드 ≠ LA Hollywood — manifest
+  it('헐리우드로드 maps to Hollywood Road Hong Kong not LA', () => {
+    expect(mapKoreanPoiSegment('헐리우드로드')).toBe('Hollywood Road Hong Kong')
+    expect(mapKoreanPoiSegment('할리우드로드')).toBe('Hollywood Road Hong Kong')
+    expect(firstMatchingScheduleSpotEn('헐리우드로드')).toBe('Hollywood Road Hong Kong')
+    expect(firstMatchingScheduleSpotEn('할리우드 로드')).toBe('Hollywood Road Hong Kong')
+    expect(firstMatchingScheduleSpotEn('Hollywood Road')).toBe('Hollywood Road Hong Kong')
+  })
+
   // REGRESSION-FREEZE[register-schedule-day-owned-image-keyword]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
   it('modetour AHP406KEDT live order — D3 Lantau Disney must not take Peak Tram from D1 core tour', () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(
@@ -239,8 +250,39 @@ describe('ModeTour AHP406 Hong Kong Disney — day-owned imageKeyword', () => {
     expect(d3).toMatch(/Hong Kong Disneyland/i)
     expect(d3).not.toMatch(/Victoria Peak|Peak Tram|SoHo|Hollywood|Tai Kwun|Escalator/i)
     const d1 = `${String(byDay.get(1)?.imageKeyword ?? '')} | ${String(byDay.get(1)?.imageKeyword2 ?? '')}`
-    expect(d1).toMatch(/Victoria Peak|Peak Tram|SoHo|Hollywood|Tai Kwun|Escalator/i)
-    expect(d1).not.toMatch(/Disneyland/i)
+    expect(d1).toMatch(/Victoria Peak|Peak Tram|SoHo|Hollywood Road Hong Kong|Tai Kwun|Escalator/i)
+    expect(d1).not.toMatch(/Disneyland|Los Angeles|Hollywood Sign/i)
+    expect(d1.replace(/Hollywood Road Hong Kong/gi, '')).not.toMatch(/Hollywood Road/i)
+  })
+
+  // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 란타우 only + 상품명 디즈니 → D3 HK Disney — manifest
+  it('modetour AHP406KEDT — Lantau-only route + productTitle 디즈니 restores HK Disneyland', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          routeText: '홍콩 - 헐리우드로드 - 미드레벨에스컬레이터 - 소호거리 - 타이쿤 - 빅토리아 피크트램 (편도)',
+          imageKeyword: 'Hollywood Road',
+          imageKeyword2: null,
+        },
+        { day: 2, routeText: '홍콩 - 구룡(九龍) - 웡타이신사원', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '란타우섬', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '홍콩',
+        productTitle: '[출발확정] 홍콩 디즈니랜드+핵심투어+반일자유 3박4일',
+      },
+    )
+    const byDay = new Map(out.map((r) => [r.day, r]))
+    expect(String(byDay.get(3)?.routeText ?? '')).toMatch(/디즈니/)
+    const d3 = `${String(byDay.get(3)?.imageKeyword ?? '')} | ${String(byDay.get(3)?.imageKeyword2 ?? '')}`
+    expect(d3).toMatch(/Hong Kong Disneyland/i)
+    expect(d3).not.toMatch(/Tokyo|Shanghai|Peak Tram|Hollywood/i)
+    const d1 = `${String(byDay.get(1)?.imageKeyword ?? '')} | ${String(byDay.get(1)?.imageKeyword2 ?? '')}`
+    expect(d1).toMatch(/Hollywood Road Hong Kong/i)
+    expect(d1).not.toMatch(/Los Angeles/i)
   })
 
   it('modetour AHP406KEDT-like — Disney day is HK not Tokyo/Shanghai; Peak stays on core-tour day', () => {

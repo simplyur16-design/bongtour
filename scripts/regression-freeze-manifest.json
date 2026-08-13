@@ -8464,7 +8464,9 @@
             "modetour ESP104EKNL-like",
             "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
             "modetour AHP406KEDT-like",
-            "D3 Lantau Disney must not take Peak Tram"
+            "D3 Lantau Disney must not take Peak Tram",
+            "Lantau-only route + productTitle 디즈니",
+            "Hollywood Road Hong Kong"
           ]
         },
         {
@@ -8652,6 +8654,70 @@
       ],
       "npmScripts": [
         "verify:pexels-place-name-keyword"
+      ]
+    },
+    {
+      "id": "pexels-hk-hollywood-road-not-la",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홍콩 헐리우드로드 Pexels ≠ LA Hollywood — Hollywood Road Hong Kong 유지, 란타우+상품명 디즈니 보강",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]",
+            "'hollywood road': 'Hollywood Road Hong Kong'",
+            "'hollywood road hong kong': 'Hollywood Road Hong Kong'"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]",
+            "헐리우드로드"
+          ]
+        },
+        {
+          "file": "scripts/verify-pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]",
+            "Hollywood Road Hong Kong"
+          ]
+        },
+        {
+          "file": "lib/admin-pending-schedule-local-patch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]",
+            "finalizeScheduleImageKeyword"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-text-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]",
+            "opts?.productTitle"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-day-owned-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]",
+            "Hollywood Road Hong Kong",
+            "Lantau-only route + productTitle 디즈니"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:pexels-place-name-keyword"
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-day-owned-image-keyword.test.ts",
+        "lib/register-schedule-route-text-backfill.test.ts",
+        "lib/admin-pending-schedule-local-patch.test.ts",
+        "tests/pexels-place-name-keyword.test.ts",
+        "tests/schedule-image-keyword-persist.test.ts"
       ]
     },
     {

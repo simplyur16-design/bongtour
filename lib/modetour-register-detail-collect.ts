@@ -114,7 +114,9 @@ export async function ensureModetourRegisterScheduleImageKeywords(
   }
   const schedule = parsed.schedule ?? []
   if (schedule.length === 0) return parsed
-  const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(schedule)
+  const routeSanitized = sanitizeModetourRegisterScheduleRouteRows(schedule, {
+    productTitle: parsed.title ?? null,
+  })
   const normalized = routeSanitized.map((row) => ({
     ...row,
     imageKeyword: String(row.imageKeyword ?? '').trim(),
