@@ -30,6 +30,7 @@ import {
   type AdminManualPrimaryHeroUploadPreset,
 } from '@/lib/admin-manual-primary-hero-upload'
 import { suggestAdminPendingSecondaryClassification } from '@/lib/admin-pending-secondary-classification-suggest'
+import { composeScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -1528,8 +1529,20 @@ export default function AdminPendingDetailPanel({
       const toSend = await resizeImageFileForUpload(file)
       const form = new FormData()
       form.append('file', toSend)
-      form.append('cityName', detail.destination ?? 'City')
-      form.append('attractionName', `DAY${day}`)
+      form.append('cityName', detail.primaryDestination || detail.destination || 'City')
+      const uploadRow = scheduleDayRows.find((r) => r.day === day)
+      // REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 사진풀 attractionName에 DAYN 금지 — manifest
+      const uploadAttraction =
+        composeScheduleImageSeoTitleKr({
+          day,
+          maxDay: Math.max(day, ...scheduleDayRows.map((r) => r.day), 1),
+          routeText: scheduleRouteTextFromRow(uploadRow ?? {}) || uploadRow?.title || null,
+          destination: detail.primaryDestination || detail.destination,
+          productTitle: detail.title,
+        }) ||
+        (detail.destination ?? '여행').trim() ||
+        '여행'
+      form.append('attractionName', uploadAttraction)
       form.append('source', 'manual-upload')
       const uploadRes = await fetch('/api/admin/photo-pool/upload', { method: 'POST', body: form })
       const upload = (await readAdminResponseJson(uploadRes).catch(() => ({}))) as {
@@ -1576,8 +1589,6 @@ export default function AdminPendingDetailPanel({
     slot: ScheduleImageSlot,
     item: ImageAssetCandidate,
   ) => {
-    const attraction =
-      [item.cityName, item.attractionName].filter((s) => (s ?? '').trim().length > 0).join(' · ') || null
     await saveDayImageSelection(day, slot, {
       imageUrl: item.imageUrl,
       source: item.source || 'library-reuse',
@@ -1585,7 +1596,7 @@ export default function AdminPendingDetailPanel({
       originalLink: item.sourceUrl ?? null,
       externalId: item.externalId ?? null,
       selectionMode: 'library-reuse',
-      imageAttractionName: attraction,
+      // REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 사진풀 city·DAY 라벨을 공개 SEO로 쓰지 않음 — manifest
     })
     closeLibraryModal()
   }

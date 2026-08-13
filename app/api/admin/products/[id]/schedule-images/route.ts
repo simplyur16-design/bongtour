@@ -12,6 +12,11 @@ import {
   persistScheduleImageKeyword,
   ScheduleImageKeywordPersistError,
 } from '@/lib/schedule-image-keyword-persist'
+import {
+  isPollutedScheduleImageSeoTitle,
+  resolveScheduleImageSeoTitleKr,
+  SCHEDULE_IMAGE_SEO_TITLE_MAX,
+} from '@/lib/schedule-image-seo-title-ssot'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -45,6 +50,7 @@ type ScheduleEntry = {
   imageRehostSearchLabel?: string | null
   imagePlaceName?: string | null
   imageCityName?: string | null
+  routeText?: string | null
   imageWidth?: number | null
   imageHeight?: number | null
   imageSource2?: {
@@ -94,7 +100,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: '유효한 day가 필요합니다.' }, { status: 400 })
     }
     const imageUrl = String(body.imageUrl ?? '').trim().slice(0, 2000)
-    const product = await prisma.product.findUnique({ where: { id }, select: { id: true, schedule: true } })
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        schedule: true,
+        title: true,
+        destination: true,
+        primaryDestination: true,
+        destinationRaw: true,
+      },
+    })
     if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     /** 일정별 Pexels/Gemini 검색어 SSOT — 이미지 URL 없이 키워드만 저장 */
@@ -185,7 +201,6 @@ export async function POST(request: Request, { params }: RouteParams) {
       const t = String(v).trim().slice(0, max)
       return t || null
     }
-    let resolvedSeoKr = trimOpt(body.imageSeoTitleKr, 400)
 
     let updated = false
     const clearManualOnly = body.manualSelected === false && !imageUrl
@@ -194,6 +209,26 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const currentRow = schedule.find((x) => Number(x.day) === day)
+    const maxDay = Math.max(day, ...schedule.map((x) => Number(x.day) || 0), 1)
+    const destHint =
+      product.primaryDestination?.trim() ||
+      product.destinationRaw?.trim() ||
+      product.destination?.trim() ||
+      null
+    const currentRoute =
+      typeof currentRow?.routeText === 'string' && currentRow.routeText.trim()
+        ? currentRow.routeText.trim()
+        : null
+    // REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 저장 시 한글 일차 명소 제목, 사진풀 DAYN·영문 키워드 금지 — manifest
+    let resolvedSeoKr = resolveScheduleImageSeoTitleKr({
+      stored: trimOpt(body.imageSeoTitleKr, 400),
+      day,
+      maxDay,
+      routeText: currentRoute,
+      destination: destHint,
+      productTitle: product.title,
+    })
+    if (resolvedSeoKr) resolvedSeoKr = resolvedSeoKr.slice(0, SCHEDULE_IMAGE_SEO_TITLE_MAX)
     const scheduleKw =
       imageSlot === 2
         ? typeof currentRow?.imageKeyword2 === 'string'
@@ -213,10 +248,6 @@ export async function POST(request: Request, { params }: RouteParams) {
       /^https?:\/\//i.test(imageUrl) &&
       tryParseObjectKeyFromPublicUrl(imageUrl) == null
     ) {
-      const prodMeta = await prisma.product.findUnique({
-        where: { id },
-        select: { primaryDestination: true, destinationRaw: true, destination: true },
-      })
       const cityFromBody =
         body.imageCityName == null ? null : String(body.imageCityName).trim().slice(0, 200) || null
       const placeFromBody =
@@ -227,10 +258,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       const cityFallback =
         cityFromBody != null
           ? cityFromBody
-          : prodMeta?.primaryDestination?.trim() ||
-            prodMeta?.destinationRaw?.trim() ||
-            prodMeta?.destination?.trim() ||
-            null
+          : destHint
       let persistedMeta: ReturnType<typeof persistScheduleImageFields>
       try {
         persistedMeta = persistScheduleImageFields({
@@ -254,7 +282,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       const cityName = cityFallback
       const searchLabel = persistedMeta.imageRehostSearchLabel
       const poolCity = (cityName ?? 'unknown').trim() || 'unknown'
-      const poolAttraction = (placeName ?? searchLabel ?? scheduleKw ?? `day_${day}`).slice(0, 80) || `day_${day}`
+      const poolAttraction =
+        (resolvedSeoKr || placeName || searchLabel || scheduleKw || `여행`).slice(0, 80) || '여행'
       originalCdnUrlForMeta = imageUrl
 
       // REGRESSION-FREEZE[pexels-primary-single-ingest]: schedule day — reuse PhotoPool by Pexels id — manifest
@@ -302,14 +331,20 @@ export async function POST(request: Request, { params }: RouteParams) {
         const asset = await findImageAssetByPublicUrl(persistedImageUrl)
         if (asset) {
           const fromAsset = (asset.seo_title_kr || asset.title_kr || '').trim()
-          if (fromAsset) resolvedSeoKr = fromAsset.slice(0, 400)
+          if (fromAsset && !isPollutedScheduleImageSeoTitle(fromAsset)) {
+            resolvedSeoKr = fromAsset.slice(0, SCHEDULE_IMAGE_SEO_TITLE_MAX)
+          }
         }
       } catch {
         /* Prisma image_assets 조회 실패 시 이미지 URL만 저장 */
       }
     }
 
-    const resolvedAttraction = trimOpt(body.imageAttractionName, 400)
+    const attractionRaw = trimOpt(body.imageAttractionName, 400)
+    const resolvedAttraction =
+      attractionRaw && !isPollutedScheduleImageSeoTitle(attractionRaw)
+        ? attractionRaw.slice(0, SCHEDULE_IMAGE_SEO_TITLE_MAX)
+        : null
     const resolvedDisplayManual = trimOpt(body.imageDisplayNameManual, 400)
     let prevImageUrl: string | null = null
     let nextImageUrl: string | null = null

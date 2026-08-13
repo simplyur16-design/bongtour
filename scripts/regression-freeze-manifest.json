@@ -7879,6 +7879,60 @@
       ]
     },
     {
+      "id": "schedule-image-seo-title-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 사진 SEO 제목 — 한글 일차 명소만 · 사진풀 DAYN·허브공항·영문 키워드 공개 캡션 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-image-seo-title-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
+            "composeScheduleImageSeoTitleKr",
+            "isPollutedScheduleImageSeoTitle",
+            "3문장 vibe·DAYN·허브공항 금지"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-thumb-caption.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
+            "isPollutedScheduleImageSeoTitle",
+            "imageSeoTitleKr"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-seo-title-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
+            "라오스(비엔티엔) · DAY5",
+            "Incheon",
+            "유니버설 스튜디오",
+            "객실내 미니바"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/schedule-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
+            "resolveScheduleImageSeoTitleKr"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
+            "composeScheduleImageSeoTitleKr"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-image-seo-title-ssot.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-day-title-ssot",
       "tier": [
         "prebuild",

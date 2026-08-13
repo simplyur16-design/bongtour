@@ -1,9 +1,11 @@
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
+import { resolveScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
 import { stripTrailingSourceTokenFromFilenameStem } from '@/lib/webp-filename'
 
 /**
  * [일정 표시 SSOT] Product.schedule 단기 표시 소스 통일.
+ * REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 공개 캡션 = imageSeoTitleKr — manifest
  *
  * 정책:
  * - 읽기 우선순위: 1) Product.schedule(JSON) → 2) Itinerary 테이블(fallback) → 3) [].
@@ -52,6 +54,9 @@ export type ScheduleDayInternalMeta = {
 type ProductLike = {
   schedule?: string | null
   itineraries?: Array<{ day: number; description: string }>
+  destination?: string | null
+  primaryDestination?: string | null
+  title?: string | null
 }
 
 function deriveDisplayNameFromFileName(fileName: string | null | undefined): string | null {
@@ -145,6 +150,15 @@ export function getScheduleFromProduct(
     try {
       const arr = JSON.parse(product.schedule) as unknown[]
       if (Array.isArray(arr) && arr.length > 0) {
+        const maxDay = arr.reduce((m, item) => {
+          const d = Number((item as Record<string, unknown>)?.day ?? 0)
+          return Number.isFinite(d) && d > 0 ? Math.max(m, d) : m
+        }, 1)
+        const destHint =
+          (typeof product.primaryDestination === 'string' && product.primaryDestination.trim()) ||
+          (typeof product.destination === 'string' && product.destination.trim()) ||
+          null
+        const productTitle = typeof product.title === 'string' ? product.title : null
         return arr.map((item) => {
           const row = item as Record<string, unknown>
           const day = Number(row?.day ?? 0)
@@ -162,7 +176,7 @@ export function getScheduleFromProduct(
             imageManualSelected,
             imageSelectionMode,
           })
-          const imageSeoTitleKr =
+          const storedSeo =
             typeof row?.imageSeoTitleKr === 'string' ? row.imageSeoTitleKr.trim() : ''
           const imageAttractionName =
             typeof row?.imageAttractionName === 'string' ? row.imageAttractionName.trim() : ''
@@ -170,9 +184,23 @@ export function getScheduleFromProduct(
             typeof row?.imageSourceFileName === 'string' ? row.imageSourceFileName.trim() : ''
           const imageDisplayNameManual =
             typeof row?.imageDisplayNameManual === 'string' ? row.imageDisplayNameManual.trim() : ''
-          /** 공개 캡션·alt: 키워드·SEO 제목 우선 — URL 파일명 인코딩(%…)은 썸네일에 쓰지 않음 */
+          const routeText =
+            typeof row?.routeText === 'string'
+              ? row.routeText
+              : typeof row?.city === 'string'
+                ? row.city
+                : null
+          // REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 공개 캡션 = 한글 SEO 제목, 영문 키워드·DAYN 금지 — manifest
+          const imageSeoTitleKr = resolveScheduleImageSeoTitleKr({
+            stored: storedSeo || null,
+            day,
+            maxDay,
+            routeText,
+            destination: destHint,
+            productTitle,
+          })
+          /** 공개 캡션·alt: SEO 제목 우선 — URL 파일명 인코딩(%…)·영문 키워드는 썸네일에 쓰지 않음 */
           const imageDisplayName = resolveScheduleThumbCaption({
-            imageKeyword: typeof row?.imageKeyword === 'string' ? row.imageKeyword : null,
             imageSeoTitleKr,
             imageAttractionName,
             imageDisplayNameManual,
@@ -186,7 +214,7 @@ export function getScheduleFromProduct(
             imageSelectionMode,
           })
           const imageDisplayName2 = resolveScheduleThumbCaption({
-            imageKeyword: typeof row?.imageKeyword2 === 'string' ? row.imageKeyword2 : null,
+            imageSeoTitleKr,
             imageDisplayNameManual:
               typeof row?.imageDisplayName2 === 'string' ? row.imageDisplayName2.trim() : null,
             derivedFromUrl: deriveDisplayNameFromImageUrl(imageUrl2),
