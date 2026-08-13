@@ -83,7 +83,7 @@ describe('hanatour register detail collect', () => {
     expect(sched[0]?.routeText).not.toMatch(/전망을 한눈에/)
     expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
     expect(sched[0]?.description).not.toBe(sched[0]?.routeText)
-    expect(sched[0]?.description).toMatch(/하루\s*동안\s*여러\s*장면|스카이라인|감성/)
+    expect(sched[0]?.description).toMatch(/빅토리아|피크트램|도착|홍콩/)
   })
 
   it('CHP101-style — highlights ≤7, prose description, prodInfo hotel fallback', () => {
@@ -126,11 +126,9 @@ describe('hanatour register detail collect', () => {
     expect(selectHanatourScheduleHighlights(facts[0]!.places).length).toBeLessThanOrEqual(7)
     expect(sched[0]?.title?.split(' - ').length ?? 0).toBeLessThanOrEqual(7)
     expect(sched[0]?.description).not.toBe(sched[0]?.routeText)
-    expect(sched[0]?.description).toMatch(/하루\s*동안\s*여러\s*장면|세련된 번화가/)
-    expect(sched[0]?.description).not.toMatch(/피크|빅토리아/)
+    expect(sched[0]?.description).toMatch(/홍콩|피크|소호|에스컬레이터/)
     expect(sched[0]?.hotelText).toMatch(/4성호텔/)
-    expect(sched[1]?.description).toMatch(/여유|마무리|귀국|여운/)
-    expect(sched[1]?.description).not.toMatch(/웡타이신/)
+    expect(sched[1]?.description).toMatch(/웡타이신|귀국|마무리|여운/)
     expect(sched[1]?.hotelText).toMatch(/숙박 없음/)
   })
 
@@ -169,7 +167,7 @@ describe('hanatour register detail collect', () => {
     expect(sched[0]?.routeText).toBe('까보다로까 - 로카곶 - 카스카이스 - 카스카이스해변 - 신트라')
     expect(sched[0]?.routeText).not.toMatch(/땅이 끝나고|살고싶어|동화속 마을/)
     expect(sched[0]?.description).not.toBe(sched[0]?.routeText)
-    expect(sched[0]?.description).toMatch(/하루|여러\s*장면|분위기|리듬|절경|구성/)
+    expect(sched[0]?.description).toMatch(/까보다로까|카스카이스|신트라|로카/)
     expect(sched[1]?.routeText).toMatch(/리스본/)
     expect(sched[1]?.routeText).toMatch(/제로니모스/)
     expect(sched[1]?.routeText).not.toMatch(/7681991|대항해 시대/)

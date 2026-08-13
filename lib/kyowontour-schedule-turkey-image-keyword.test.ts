@@ -144,10 +144,10 @@ describe('kyowontour Turkey schedule quality (ECP102)', () => {
       expect(rows[4]?.imageKeyword ?? '').toMatch(/Pamukkale/i)
       expect(rows[5]?.imageKeyword ?? '').toMatch(/Sirince|Ephesus/i)
       expect(rows[6]?.description ?? '').not.toMatch(/스카이라인|하루 동안 여러 장면/)
-      expect(rows[6]?.description ?? '').toMatch(/모스크|궁전|역사|도시/)
+      expect(rows[6]?.description ?? '').toMatch(/부르사|이스탄불/)
       expect(rows[1]?.description).not.toBe(rows[4]?.description)
       expect(rows[2]?.description).not.toMatch(/하루 동안 여러 장면/)
-      expect(rows[4]?.description ?? '').toMatch(/석회|유적|하얀/)
+      expect(rows[4]?.description ?? '').toMatch(/파묵칼레|앙카라|석회|유적/)
       expect(rows[8]?.description).toMatch(/귀국|마무리|이동 중심/)
     }
   })

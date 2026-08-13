@@ -69,7 +69,7 @@ export type YbtourScheduleImageKeywordOpts = {
 export const YBTOUR_SCHEDULE_IMAGE_KEYWORD_PROMPT_ADDENDUM =
   '- **routeText(일정요약)**: 방문지를 a–g 순서로 ` - ` 연결(한국어·괄호 영문 병기 가능).\n' +
   '- **imageKeyword / imageKeyword2**: routeText a–g 순서만. 1일차=1순위 1개(kw2 null), 2~(N-1)일차=1·2순위, N일차=(N-1)일차 routeText에서 그날 미사용 1개(kw2 null). trip-wide 재사용·본문 POI·추측 금지.\n' +
-  '- **description(일정설명)**: 1줄 routeText + 분위기·흐름 2~3문장(장소 디테일 금지).\n'
+  '- **description(일정설명)**: 공급사 문장 우선, 없으면 route 명소 2~3문장.\n'
 
 const DOMESTIC_HUB_KO_RE =
   /^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u

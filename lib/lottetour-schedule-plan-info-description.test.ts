@@ -35,7 +35,8 @@ describe('lottetour schedule plan_info description', () => {
       planInfoRaw:
         '[가든스 바이 더 베이] 2돔·슈퍼트리 관람. [버드 파라다이스] 체험. [머라이언] 외관.',
     })
-    expect(desc).not.toMatch(/가든스 바이 더 베이|슈퍼트리|버드\s*파라다이스/)
+    expect(desc).toMatch(/싱가포르|가든스/)
+    expect(desc).not.toMatch(/슈퍼트리|버드\s*파라다이스|클라우드/)
     expect(isLottetourVibeFillerDescription(desc)).toBe(true)
     expect(desc.split(/[.!?。]/).filter((s) => s.trim().length > 8).length).toBeLessThanOrEqual(3)
   })
@@ -131,7 +132,7 @@ describe('lottetour schedule plan_info description', () => {
         imageKeyword2: null,
       },
     ])
-    expect(out[0]?.description).toMatch(/바다와 모래|해안 모험|활기찬/)
+    expect(out[0]?.description).toMatch(/시드니|포트스테판/)
     expect(out[0]?.description).not.toMatch(/밀포드|피요르드|▣|모래썰매/)
     expect(out[0]?.routeText).toBe('시드니 - 포트스테판')
   })

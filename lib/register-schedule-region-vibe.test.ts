@@ -46,7 +46,7 @@ describe('register schedule region vibe', () => {
       routePlaces: ['알마티', '침블락'],
       joinedBlob: '알마티 - 침블락 - 차른캐년',
     })
-    expect(desc).toMatch(/중앙아시아|초원|협곡|스케일/)
+    expect(desc).toMatch(/알마티|침블락|초원|협곡|스케일/)
     expect(isRegisterScheduleGenericTourismDescription(desc!)).toBe(false)
   })
 
@@ -59,7 +59,7 @@ describe('register schedule region vibe', () => {
     })
     expect(desc).toBeTruthy()
     expect(isRegisterScheduleGenericTourismDescription(desc!)).toBe(false)
-    expect(desc).toMatch(/프라하|중세|광장|도시|걷는/)
+    expect(desc).toMatch(/프라하|카를교/)
   })
 
   it('크로아티아 플리트비체 — adriatic vibe (lottetour 표에 없을 때)', () => {
@@ -69,7 +69,7 @@ describe('register schedule region vibe', () => {
       routePlaces: ['플리트비체', '자다르'],
       joinedBlob: '플리트비체 국립공원 - 자다르',
     })
-    expect(desc).toMatch(/아드리아|크로아티아|국립공원|성벽|바다/)
+    expect(desc).toMatch(/플리트비체|자다르|국립공원|풍경|시야/)
     expect(isRegisterScheduleGenericTourismDescription(desc!)).toBe(false)
   })
 
@@ -81,7 +81,7 @@ describe('register schedule region vibe', () => {
       joinedBlob: '아라호바 - 델피 유적지 - 메테오라',
     })
     expect(isRegisterScheduleGenericTourismDescription(greece!)).toBe(false)
-    expect(greece).toMatch(/지중해|해안|유적|마을|골목/)
+    expect(greece).toMatch(/메테오라|유적|델피|아라호바/)
 
     const nordic = composeRegisterScheduleRegionVibeDescription({
       day: 6,
@@ -90,7 +90,7 @@ describe('register schedule region vibe', () => {
       joinedBlob: '오르후스 - 오덴세',
     })
     expect(isRegisterScheduleGenericTourismDescription(nordic!)).toBe(false)
-    expect(nordic).toMatch(/북유럽|피오르드|항구|구시가지/)
+    expect(nordic).toMatch(/오르후스|오덴세/)
 
     const central = composeRegisterScheduleRegionVibeDescription({
       day: 3,
@@ -99,7 +99,7 @@ describe('register schedule region vibe', () => {
       joinedBlob: '아프로시압 박물관 - 울루그벡 천문대 - 구르 아미르 묘소',
     })
     expect(isRegisterScheduleGenericTourismDescription(central!)).toBe(false)
-    expect(central).toMatch(/중앙아시아|초원|협곡|도시/)
+    expect(central).toMatch(/아프로시압|울루그벡|박물관|유적/)
   })
 
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: Hong Kong before japan kyushu — manifest
@@ -113,7 +113,7 @@ describe('register schedule region vibe', () => {
     expect(core).toBeTruthy()
     expect(isRegisterScheduleGenericTourismDescription(core!)).toBe(false)
     expect(core).not.toMatch(/규슈|온천·강변/)
-    expect(core).toMatch(/번화가|도보|골목|전망/)
+    expect(core).toMatch(/헐리우드|소호|피크|전망|홍콩/)
 
     const disney = composeRegisterScheduleRegionVibeDescription({
       day: 3,
@@ -124,7 +124,7 @@ describe('register schedule region vibe', () => {
     expect(disney).toBeTruthy()
     expect(isRegisterScheduleGenericTourismDescription(disney!)).toBe(false)
     expect(disney).not.toMatch(/규슈|하루 동안 여러 장면/)
-    expect(disney).toMatch(/테마파크|파크|놀이/)
+    expect(disney).toMatch(/디즈니|란타우|테마파크/)
 
     const kyushu = composeRegisterScheduleRegionVibeDescription({
       day: 2,
@@ -152,7 +152,7 @@ describe('register schedule region vibe', () => {
       routePlaces: ['푸꾸옥', '그랜드월드'],
       joinedBlob: '푸꾸옥 - 그랜드월드 나이트',
     })
-    expect(pq).toMatch(/베트남|섬|고원|야시장|수변/)
+    expect(pq).toMatch(/푸꾸옥|그랜드월드|섬/)
     expect(isRegisterScheduleGenericTourismDescription(pq!)).toBe(false)
 
     const swiss = composeRegisterScheduleRegionVibeDescription({
@@ -161,7 +161,7 @@ describe('register schedule region vibe', () => {
       routePlaces: ['융프라우', '로마 벤츠'],
       joinedBlob: '융프라우 - 로마 벤츠',
     })
-    expect(swiss).toMatch(/알프스|호수|설봉|산악/)
+    expect(swiss).toMatch(/융프라우|알프스|호수|설봉|전망/)
     expect(isRegisterScheduleGenericTourismDescription(swiss!)).toBe(false)
     expect(swiss).not.toMatch(/로마의|잉글랜드/)
   })

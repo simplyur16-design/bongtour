@@ -7696,7 +7696,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "일정요약 routeText a–g 오염 없음 · 일정설명 특성 3문장+(명소명 금지) · imageKeyword routeText SSOT만",
+      "summary": "일정요약 routeText a–g 오염 없음 · 일정설명 공급사우선·route명소 2~3문장 · imageKeyword routeText SSOT만",
       "checks": [
         {
           "file": "lib/modetour-register-api-schedule.ts",
@@ -7844,16 +7844,18 @@
         "prebuild",
         "ci"
       ],
-      "summary": "일정요약 3문장+ · 명소 특성만(명소명 금지) · 일차 변주 · generic 2문장 템플릿 금지",
+      "summary": "일정요약 공급사 문장 우선 · 없으면 route 명소 2~3문장 · 일차 변주 · generic 템플릿 금지",
       "checks": [
         {
           "file": "lib/register-schedule-description-characteristic-ssot.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]",
             "composeRegisterScheduleCharacteristicDescription",
+            "composeRegisterScheduleDaySummary",
+            "acceptSupplierScheduleDaySummary",
             "countRegisterScheduleDescriptionSentences",
             "registerScheduleDescriptionHasAttractionNameLeak",
-            "3문장+ 특성, 명소명 금지"
+            "공급사 문장 우선, 없으면 route 명소 2~3문장"
           ]
         },
         {
@@ -7867,8 +7869,9 @@
           "file": "lib/register-schedule-description-characteristic-ssot.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]",
-            "3문장 이상",
-            "명소명 없음"
+            "2~3문장",
+            "공급사 문장 우선",
+            "route 명소"
           ]
         }
       ],

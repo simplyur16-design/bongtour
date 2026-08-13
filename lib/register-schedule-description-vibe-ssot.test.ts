@@ -52,13 +52,15 @@ describe('register schedule description vibe SSOT', () => {
       },
     ])
     expect(days[0]?.description).not.toMatch(/규슈|온천·강변|하루 동안 여러 장면/)
-    expect(days[0]?.description).toMatch(/번화가|도보|골목|전망|도착|입국|이동/)
+    expect(days[0]?.description).toMatch(/홍콩|헐리우드|소호|피크트램|도착/)
     expect(days[2]?.description).not.toMatch(/하루 동안 여러 장면|규슈/)
-    expect(days[2]?.description).toMatch(/테마파크|파크|놀이|번화가|도보/)
+    expect(days[2]?.description).toMatch(/디즈니|란타우/)
     expect(days[3]?.description).toMatch(/귀국|마무리|여운/)
     expect(days[3]?.description).not.toMatch(/하루 동안 여러 장면/)
     for (const d of days) {
-      expect(countRegisterScheduleDescriptionSentences(d?.description ?? ''), `${d?.day}일차`).toBeGreaterThanOrEqual(3)
+      const n = countRegisterScheduleDescriptionSentences(d?.description ?? '')
+      expect(n, `${d?.day}일차`).toBeGreaterThanOrEqual(2)
+      expect(n, `${d?.day}일차`).toBeLessThanOrEqual(3)
       expect(
         registerScheduleDescriptionHasAttractionNameLeak(d?.description ?? '', d?.routeText?.split(/\s*-\s*/) ?? []),
         `${d?.day}일차 leak`,
@@ -68,7 +70,7 @@ describe('register schedule description vibe SSOT', () => {
     expect(days[1]?.description).not.toBe(days[2]?.description)
   })
 
-  it('modetour — description은 routeText 복사 금지, vibe 2~3문장', () => {
+  it('modetour — description은 routeText 복사 금지, 명소 2~3문장', () => {
     const days = modetourFactDaysToRegisterSchedule([
       {
         day: 2,
@@ -80,8 +82,10 @@ describe('register schedule description vibe SSOT', () => {
     ])
     expect(days[0]?.routeText).toBe('피렌체 - 베네치아')
     expect(days[0]?.description).not.toBe(days[0]?.routeText)
-    expect(days[0]?.description).toMatch(/여행|일정|분위기|동선|구릉|골목|운하|광장|걷는/)
-    expect(countRegisterScheduleDescriptionSentences(days[0]?.description ?? '')).toBeGreaterThanOrEqual(3)
+    expect(days[0]?.description).toMatch(/피렌체|베네치아/)
+    const nFlorence = countRegisterScheduleDescriptionSentences(days[0]?.description ?? '')
+    expect(nFlorence).toBeGreaterThanOrEqual(2)
+    expect(nFlorence).toBeLessThanOrEqual(3)
     // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
     expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
   })
@@ -103,9 +107,9 @@ describe('register schedule description vibe SSOT', () => {
         transportNote: null,
       },
     ])
-    expect(days[0]?.description).toMatch(/항구|해안|도심|바다/)
+    expect(days[0]?.description).toMatch(/대련|동관거리|연화산|항구|해안/)
     expect(days[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
-    expect(days[1]?.description).toMatch(/기암|협곡|풍경|시야/)
+    expect(days[1]?.description).toMatch(/장가계|천문산|원가계|기암|협곡|풍경/)
     expect(days[1]?.description).not.toBe(days[0]?.description)
   })
 
@@ -141,9 +145,9 @@ describe('register schedule description vibe SSOT', () => {
       },
     ])
     expect(sched[0]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
-    expect(sched[0]?.description).toMatch(/프라하|중세|광장|걷는|도시/)
+    expect(sched[0]?.description).toMatch(/프라하|카를교/)
     expect(sched[1]?.description).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
-    expect(sched[1]?.description).toMatch(/국립공원|록키|대자연|호수|폭포/)
+    expect(sched[1]?.description).toMatch(/밴프|보우폭포|국립공원|폭포/)
     expect(sched[0]?.description).not.toBe(sched[1]?.description)
   })
 
@@ -156,14 +160,14 @@ describe('register schedule description vibe SSOT', () => {
       joinedBlob: '프라하 성 - 카를교 - 프라하',
     })
     expect(desc).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
-    expect(desc).toMatch(/프라하|중세|광장|도시|걷는/)
+    expect(desc).toMatch(/프라하|카를교/)
   })
 
   it('체스키크롬로프 spelling — POI SSOT matches Cesky', () => {
     expect(firstMatchingScheduleSpotEn('프라하 공항 - 체스키크롬로프')).toMatch(/Cesky Krumlov/i)
   })
 
-  it('ybtour — description은 vibe만 (routeText 1줄 금지)', () => {
+  it('ybtour — description은 routeText 1줄 금지, 명소 문장', () => {
     const desc = composeYbtourScheduleDescription({
       day: 2,
       maxDay: 5,
@@ -171,7 +175,7 @@ describe('register schedule description vibe SSOT', () => {
       joinedBlob: '바르샤바 - 리가',
     })
     expect(desc).not.toMatch(/^바르샤바\s*-\s*리가/)
-    expect(desc).toMatch(/여행|일정|분위기|동선|여정|구성|시야|피오르드|하루/)
+    expect(desc).toMatch(/바르샤바|리가/)
     expect(desc).not.toMatch(/하루 동안 여러 장면이 자연스럽게/)
   })
 })

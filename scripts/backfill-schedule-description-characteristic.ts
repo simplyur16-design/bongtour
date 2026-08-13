@@ -1,6 +1,7 @@
 /**
- * 등록 상품 Product.schedule[].description + ItineraryDay.summaryTextRaw
- * — 특성 3문장+ SSOT로 재작성 (명소명 금지).
+ * 해외 패키지 Product.schedule[].description + ItineraryDay.summaryTextRaw
+ * — 공급사 문장 우선, 없으면 route 명소 2~3문장 SSOT로 재작성.
+ * FIT(air_hotel_free)는 건너뛴다. 봉투어는 국내여행을 운영하지 않는다.
  *
  *   npx tsx scripts/backfill-schedule-description-characteristic.ts
  *   npx tsx scripts/backfill-schedule-description-characteristic.ts --apply
@@ -54,6 +55,15 @@ function routePlacesOf(row: ScheduleRow, itineraryCity?: string | null, poiNames
     .filter((s) => s.length >= 2)
 }
 
+function isFitListing(p: {
+  listingKind?: string | null
+  productType?: string | null
+}): boolean {
+  if (String(p.listingKind ?? '').trim() === 'air_hotel_free') return true
+  const pt = String(p.productType ?? '')
+  return /자유여행|에어텔|air[_\s-]?hotel/i.test(pt)
+}
+
 function readFlag(name: string): boolean {
   return process.argv.includes(name)
 }
@@ -73,9 +83,16 @@ async function main() {
   })
 
   const products = await prisma.product.findMany({
+    where: {
+      OR: [{ travelScope: 'overseas' }, { travelScope: null }],
+      NOT: { listingKind: 'air_hotel_free' },
+    },
     select: {
       id: true,
       title: true,
+      travelScope: true,
+      listingKind: true,
+      productType: true,
       schedule: true,
       itineraryDays: {
         select: { id: true, day: true, city: true, summaryTextRaw: true, poiNamesRaw: true },
@@ -87,6 +104,7 @@ async function main() {
   })
 
   let scanned = 0
+  let skippedFit = 0
   let dirty = 0
   let rewrittenDays = 0
   let shortBefore = 0
@@ -95,6 +113,10 @@ async function main() {
 
   for (const p of products) {
     scanned++
+    if (isFitListing(p)) {
+      skippedFit++
+      continue
+    }
     const rows = parseSchedule(p.schedule)
     if (rows.length === 0 && p.itineraryDays.length === 0) continue
     const maxDay = Math.max(
@@ -119,7 +141,7 @@ async function main() {
         .filter(Boolean)
         .join(' ')
       const prev = String(row.description ?? iday?.summaryTextRaw ?? '').trim()
-      if (countRegisterScheduleDescriptionSentences(prev) < 3) shortBefore++
+      if (countRegisterScheduleDescriptionSentences(prev) < 2) shortBefore++
       if (/하루 동안 여러 장면이 자연스럽게/.test(prev)) genericBefore++
       if (registerScheduleDescriptionHasAttractionNameLeak(prev, places)) leakBefore++
 
@@ -129,12 +151,14 @@ async function main() {
           maxDay,
           routePlaces: places,
           joinedBlob: blob || `${day}일차`,
+          supplierText: prev,
         }) ||
         composeRegisterScheduleCharacteristicDescription({
           day,
           maxDay,
           routePlaces: places,
           joinedBlob: blob || `${day}일차`,
+          supplierText: prev,
         })
 
       if (!next || next === prev) continue
@@ -174,6 +198,7 @@ async function main() {
       {
         apply,
         scanned,
+        skippedFit,
         productsRewritten: dirty,
         daysRewritten: rewrittenDays,
         shortBefore,

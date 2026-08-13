@@ -1,5 +1,5 @@
 /**
- * 교원이지(kyowontour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(동선 1줄 + 분위기 2~3문장).
+ * 교원이지(kyowontour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(공급사 문장 우선, 없으면 route 명소 2~3문장).
  * REGRESSION-FREEZE[kyowontour-schedule-expression]: routeText·description vibe — manifest
  */
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
@@ -127,6 +127,7 @@ export function applyKyowontourScheduleExpressionToRows<T extends RegisterSchedu
       maxDay,
       routePlaces,
       joinedBlob,
+      supplierText: row.description,
     })
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     // REGRESSION-FREEZE[kyowontour-schedule-expression]: 귀국일 vibe title → 귀국 — manifest

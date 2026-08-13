@@ -43,10 +43,10 @@ describe('modetour register api schedule', () => {
     expect(days[1]?.title).toMatch(/스피드\s*보트|몰디브/)
     expect(days[1]?.description).not.toMatch(/▶|홈페이지/)
     expect(days[1]?.description).not.toBe(days[1]?.routeText)
-    expect(days[1]?.description).toMatch(/여행|일정|분위기|리조트|이동/)
+    expect(days[1]?.description).toMatch(/몰디브|리조트|일정|이동|섬|휴양/)
     expect(days[1]?.hotelText).toMatch(/조이아|출발 전 확정/)
     expect(days[2]?.description).not.toBe(days[2]?.routeText)
-    expect(days[2]?.description).toMatch(/여행|일정|분위기|리조트/)
+    expect(days[2]?.description).toMatch(/몰디브|리조트|일정|휴양|섬/)
     expect(days[2]?.routeText).toBe('몰디브')
   })
 
@@ -121,7 +121,7 @@ describe('modetour register api schedule', () => {
     expect(days[0]?.title).toBe('상해')
     expect(days[0]?.title).not.toMatch(/입국신고|미팅|개별\s*일정/)
     expect(days[0]?.description).not.toBe('상해')
-    expect(days[0]?.description).toMatch(/입국|이동|여행/)
+    expect(days[0]?.description).toMatch(/상해|도착|일정/)
     expect(days[0]?.description).not.toMatch(/입국신고|미팅/)
   })
 

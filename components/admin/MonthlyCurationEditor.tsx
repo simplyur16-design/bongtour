@@ -8,7 +8,6 @@ import {
   CURATION_PUBLISH_STATUSES,
   type AdminMonthlyCurationListItem,
 } from '@/lib/admin-curation'
-import { CURATION_SCOPES } from '@/lib/monthly-curation'
 import { CUSTOMER_INQUIRY_TYPES } from '@/lib/customer-inquiry-intake'
 
 export type EditorMode = 'create' | 'edit'
@@ -28,7 +27,7 @@ type Props = {
 
 const emptyForm = {
   yearMonth: '',
-  scope: 'domestic' as string,
+  scope: 'overseas' as string,
   destinationName: '',
   oneLineTheme: '',
   whyNowText: '',
@@ -54,8 +53,7 @@ export default function MonthlyCurationEditor({ open, mode, defaults, prefillFro
     setFieldErrors({})
     if (mode === 'create') {
       const ym = defaults?.yearMonth ?? emptyForm.yearMonth
-      const sc =
-        defaults?.scope && (defaults.scope === 'domestic' || defaults.scope === 'overseas') ? defaults.scope : 'domestic'
+      const sc = 'overseas'
       if (prefillFrom) {
         setForm({
           yearMonth: ym,
@@ -244,11 +242,7 @@ export default function MonthlyCurationEditor({ open, mode, defaults, prefillFro
                 value={form.scope}
                 onChange={(e) => set('scope', e.target.value)}
               >
-                {CURATION_SCOPES.map((s) => (
-                  <option key={s} value={s}>
-                    {s === 'domestic' ? '국내 (domestic)' : '국외 (overseas)'}
-                  </option>
-                ))}
+                <option value="overseas">해외 (overseas)</option>
               </select>
               {fieldErrors.scope && <p className="mt-0.5 text-xs text-red-600">{fieldErrors.scope}</p>}
             </div>

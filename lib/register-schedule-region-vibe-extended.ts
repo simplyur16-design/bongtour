@@ -2,7 +2,7 @@
  * 확장 지역 vibe 문장 — lottetour 표에 없는 중국·중앙아·미주 등.
  * lottetour와 순환 import 금지용으로 분리.
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
- * REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+ * REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 공급사 문장 우선, 없으면 route 명소 2~3문장 — manifest
  */
 import { composeRegisterScheduleCharacteristicDescription } from '@/lib/register-schedule-description-characteristic-ssot'
 
@@ -613,22 +613,22 @@ function inferExtendedRegionVibeProfile(joinedBlob: string): ExtendedRegionVibeP
   return null
 }
 
-/** lottetour compose 전용 — 유럽 표 위임 없이 확장 프로필 + 특성 3문장+ */
+/** lottetour compose 전용 — 공급사 문장 우선, 없으면 route 명소 2~3문장 */
 export function composeRegisterScheduleExtendedRegionVibeDescription(
   routePlaces: readonly string[],
   joinedBlob: string,
   day = 2,
   maxDay = 8,
+  supplierText?: string | null,
 ): string | null {
   const blob = String(joinedBlob ?? '').trim() || routePlaces.filter(Boolean).join(' - ')
   if (!blob && !(day === 1 || (maxDay >= 2 && day === maxDay))) return null
-  const profile = blob ? inferExtendedRegionVibeProfile(blob) : null
-  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 공급사 문장 우선, 없으면 route 명소 2~3문장 — manifest
   return composeRegisterScheduleCharacteristicDescription({
     day,
     maxDay,
     routePlaces,
     joinedBlob: blob,
-    regionSentences: profile ? EXTENDED_REGION_VIBE_DESCRIPTIONS[profile] : null,
+    supplierText,
   })
 }

@@ -85,10 +85,7 @@ export default function MonthlyCurationsPageClient() {
     return getSeoulYearMonthNow()
   }, [yearMonthFilter])
 
-  const defaultScopeForCreate = useMemo(() => {
-    if (scope === 'domestic' || scope === 'overseas') return scope
-    return 'domestic'
-  }, [scope])
+  const defaultScopeForCreate = 'overseas'
 
   const openCreate = useCallback(() => {
     setEditorMode('create')
@@ -137,7 +134,7 @@ export default function MonthlyCurationsPageClient() {
               노출 후보: <strong>published</strong> + <strong>isActive ON</strong> (둘 다 만족)
             </li>
             <li>메인 페이지는 <code className="rounded bg-white/70 px-1">getSeoulYearMonthNow()</code> 등으로 달을 정해 API를 호출합니다 — 다른 월이면 그 요청에는 안 나갑니다.</li>
-            <li>국내 섹션은 <code className="rounded bg-white/70 px-1">scope=domestic</code>, 국외는 <code className="rounded bg-white/70 px-1">scope=overseas</code> 기준입니다.</li>
+            <li>공개 기준은 <code className="rounded bg-white/70 px-1">scope=overseas</code> 입니다. 국내여행은 운영하지 않습니다.</li>
           </ul>
         </section>
 
@@ -146,7 +143,7 @@ export default function MonthlyCurationsPageClient() {
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex min-w-[140px] flex-col gap-1">
               <label htmlFor="f-scope" className="text-xs font-medium text-gray-600">
-                국내/국외
+                범위
               </label>
               <select
                 id="f-scope"
@@ -155,8 +152,7 @@ export default function MonthlyCurationsPageClient() {
                 className="rounded-md border border-gray-300 px-2 py-2 text-sm"
               >
                 <option value="">전체</option>
-                <option value="domestic">국내</option>
-                <option value="overseas">국외</option>
+                <option value="overseas">해외</option>
               </select>
             </div>
             <div className="flex min-w-[120px] flex-col gap-1">

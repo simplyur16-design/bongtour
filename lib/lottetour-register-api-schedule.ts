@@ -1,6 +1,6 @@
 /**
- * 롯데관광(lottetour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(vibe 2~3문장).
- * plan_info는 route 명소·vibe profile 근거만 (일정설명에 장소 디테일·마케팅 덤프 금지).
+ * 롯데관광(lottetour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(공급사 문장 우선, 없으면 route 명소 2~3문장).
+ * plan_info는 route 명소·profile 근거만 (일정설명에 마케팅 덤프 금지).
  * REGRESSION-FREEZE[lottetour-schedule-expression]: routeText·description vibe — manifest
  * REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
  * REGRESSION-FREEZE[lottetour-register-detail-collect]: parseLottetourScheduleDaysFromScheduleAjax — manifest
@@ -529,9 +529,17 @@ function lottetourHighlightLeakChunks(label: string): string[] {
 }
 
 /** vibe filler 감지 — plan_info 원문과 구분 */
+const LOTTETOUR_PLAN_INFO_DUMP_RE =
+  /▣|【약|4WD|모래썰매|클라우드\s*포레스트|루지|KE\d+|OZ\d+|특전|수하물|엔터테인|슈퍼트리/i
+
+const LOTTETOUR_DAY_SUMMARY_RE =
+  /둘러봅니다|중심으로 하루|이동합니다|귀국합니다|종일 일정|일정을 이어갑니다|하루를 마무리합니다|첫날 일정을/
+
 export function isLottetourVibeFillerDescription(text: string | null | undefined): boolean {
   const t = String(text ?? '').trim()
   if (!t) return true
+  if (LOTTETOUR_PLAN_INFO_DUMP_RE.test(t)) return false
+  if (LOTTETOUR_DAY_SUMMARY_RE.test(t)) return true
   return /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인 흐름과 분위기|정원·전망·해안이 이어지는 핵심 동선|테마파크 하루 자유 일정으로|홍콩의 세련된 번화가부터|스카이라인과 바다 풍경이 어우러지는|현지 도착 후 첫날, 도시의 리듬|여유로운 마무리 관광 뒤 귀국|현지를 정리하고 귀국길로|대자연의 스케일을 천천히|절벽과 바다가 맞닿은 피요르드|바다와 모래 언덕이 맞닿은|지열·온천 지대의 독특한|중세 골목과 광장이 이어지는|강변 도시들이 이어지는|호수와 산자락이 맞닿은|강변 언덕과 와인 마을이 이어지는|중세 골목과 성벽 마을이 이어지는|성곽과 호수가 이어지는 바이에른|광장과 기념비가 이어지는 수도|성벽·광장·구시가지가 이어지는 중세형|상징 랜드마크와 거리가 이어지는 수도|해안과 수도원 풍경이 이어지는|고성과 강변 풍경이 이어지는|와인 마을과 강변 도시가 이어지는|중세 성채와 구시가지가 이어지는|해변 산책로와 절벽 마을이 이어지는|모스크와 궁전·골목이 이어지는|기암과 계곡이 이어지는|석회 계단과 유적이 이어지는|마을과 유적지가 이어지는|구시가지와 해안 풍경이 이어지는|호수와 초원이 이어지는|호수와 사원·골목이 이어지는|석회 섬과 만이 이어지는/u.test(
     t,
   )
@@ -601,27 +609,29 @@ export function summarizeLottetourPlanInfoForDescription(
   return (capped.length >= 24 ? capped : body).slice(0, 320).trim()
 }
 
-/** 분위기·흐름 3문장+ (장소 디테일 금지) */
+/** 공급사 문장 우선, 없으면 route 명소 2~3문장 */
 export function composeLottetourScheduleVibeSentences(
   day: number,
   maxDay: number,
   routePlaces: readonly string[],
   joinedBlob: string,
+  supplierText?: string | null,
 ): string {
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 공급사 문장 우선, 없으면 route 명소 2~3문장 — manifest
   const regionalFirst = composeRegisterScheduleExtendedRegionVibeDescription(
     routePlaces,
     joinedBlob,
     day,
     maxDay,
+    supplierText,
   )
   if (regionalFirst) return regionalFirst
   return `${day}일차`
 }
 
 /**
- * description SSOT — 분위기·흐름 2~3문장만.
+ * description SSOT — 공급사 문장 우선, 없으면 route 명소 2~3문장.
  * plan_info는 joinedBlob(profile)·route `[명소]` 추출에만 쓰고 본문에 넣지 않음.
  * REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
  */
@@ -631,6 +641,7 @@ export function composeLottetourScheduleDescription(opts: {
   routePlaces: readonly string[]
   joinedBlob: string
   planInfoRaw?: string | null
+  supplierText?: string | null
 }): string {
   const profileBlob = [opts.joinedBlob, opts.planInfoRaw].filter(Boolean).join('\n')
   const vibe = composeLottetourScheduleVibeSentences(
@@ -638,6 +649,7 @@ export function composeLottetourScheduleDescription(opts: {
     opts.maxDay,
     opts.routePlaces,
     profileBlob,
+    opts.supplierText,
   )
   return vibe || `${opts.day}일차`
 }
@@ -702,6 +714,7 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
       routePlaces,
       joinedBlob,
       planInfoRaw: isLottetourVibeFillerDescription(existingDesc) ? null : existingDesc,
+      supplierText: existingDesc,
     })
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     const title = composeRegisterScheduleDayTitleFromRoute({

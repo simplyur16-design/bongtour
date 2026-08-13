@@ -52,7 +52,7 @@ describe('lottetour Italy / UK schedule quality', () => {
       },
     ])
     expect(expressed[1]?.description).not.toMatch(/리비에라/)
-    expect(expressed[1]?.description).toMatch(/베네토|운하|토스카나|광장/)
+    expect(expressed[1]?.description).toMatch(/로마|플로렌스|베니스/)
     expect(expressed[2]?.description).not.toMatch(/리비에라/)
   })
 
@@ -187,6 +187,6 @@ describe('lottetour Italy / UK schedule quality', () => {
     expect(out[2]?.imageKeyword).not.toMatch(/AFTERNOON|TEA/i)
     expect(out[3]?.imageKeyword).toMatch(/Bibury|Cotswold|Bath|Stonehenge/i)
     expect(out[1]?.description).not.toMatch(/특정 장소보다|전체적인 흐름/)
-    expect(out[2]?.description).toMatch(/스코틀랜드|성곽/)
+    expect(out[2]?.description).toMatch(/에딘버러|스코틀랜드|성곽/)
   })
 })

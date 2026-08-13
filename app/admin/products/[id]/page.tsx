@@ -30,7 +30,6 @@ import {
   type LocalDepartureTag,
   type SportsThemeTag,
   TRAVEL_SCOPE_LABELS,
-  TRAVEL_SCOPE_VALUES,
 } from '@/lib/product-listing-kind'
 import { isSingleDepartureAdminCheckboxDisabled } from '@/lib/single-departure-product-ssot'
 import { isProductAdultOnly2030 } from '@/lib/product-adult-only-2030'
@@ -483,7 +482,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       duration: product.duration ?? '',
       airline: product.airline ?? '',
       travelScope:
-        product.travelScope === 'domestic' || product.travelScope === 'overseas' ? product.travelScope : '',
+        product.travelScope === 'overseas' || product.travelScope === 'domestic' ? 'overseas' : '',
       listingKind: parseListingKind(product.listingKind) ?? '',
     })
     setLocalDepartureTagDraft(
@@ -1467,7 +1466,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-[11px] text-bt-subtle">
-                여행 범위 <span className="text-bt-meta">(국내/해외)</span>
+                여행 범위 <span className="text-bt-meta">(해외)</span>
                 <select
                   value={basicDraft.travelScope}
                   onChange={(e) =>
@@ -1479,11 +1478,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                   className="mt-1 w-full rounded border border-bt-border-strong bg-bt-title px-3 py-2 text-sm text-bt-inverse"
                 >
                   <option value="">미설정 · 기존 목적지/제목 기준</option>
-                  {TRAVEL_SCOPE_VALUES.map((k) => (
-                    <option key={k} value={k}>
-                      {TRAVEL_SCOPE_LABELS[k]}
-                    </option>
-                  ))}
+                  <option value="overseas">{TRAVEL_SCOPE_LABELS.overseas}</option>
                 </select>
               </label>
               <label className="block text-[11px] text-bt-subtle">

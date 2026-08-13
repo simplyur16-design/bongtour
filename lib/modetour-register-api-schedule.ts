@@ -245,11 +245,12 @@ function modetourHighlightLeakChunks(label: string): string[] {
   return [...new Set([bare, ...chunks].filter((s) => s.length >= 4))]
 }
 
-/** API 일정 description — 장소 나열 없이 분위기·흐름 2~3문장. */
+/** API 일정 description — 공급사 문장 우선, 없으면 route 명소 2~3문장. */
 export function composeModetourScheduleVibeDescription(
   day: RegisterFactScheduleDay,
   maxDay: number,
   highlights: string[],
+  supplierText?: string | null,
 ): string {
   const transport = stripModetourInlineHtml(String(day.transportNote ?? ''))
   const places = dedupeModetourFactDayPlaces(day.places)
@@ -258,13 +259,14 @@ export function composeModetourScheduleVibeDescription(
   const joinedForKind = [transport, routeBlob].filter(Boolean).join(' ')
   const joinedForRegion = routeBlob.trim() || transport.replace(/\s+/g, ' ').trim().slice(0, 240)
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 공급사 문장 우선, 없으면 route 명소 2~3문장 — manifest
   return (
     composeRegisterScheduleRegionVibeDescription({
       day: day.day,
       maxDay,
       routePlaces,
       joinedBlob: joinedForKind || joinedForRegion,
+      supplierText,
     }) || `${day.day}일차`
   )
 }

@@ -348,24 +348,26 @@ function hanatourHighlightLeakChunks(label: string): string[] {
   return [...new Set([bare, ...chunks].filter((s) => s.length >= 4))]
 }
 
-/** API 일정 description — 장소 디테일 없이 특성 3문장+. REGRESSION-FREEZE[hanatour-register-detail-collect] */
+/** API 일정 description — 공급사 문장 우선, 없으면 route 명소 2~3문장. REGRESSION-FREEZE[hanatour-register-detail-collect] */
 export function composeHanatourScheduleVibeDescription(
   day: RegisterFactScheduleDay,
   maxDay: number,
   highlights: string[],
+  supplierText?: string | null,
 ): string {
   const chainBlob = highlights.join(' - ')
   const transport = String(day.transportNote ?? '')
   const places = dedupeHanatourFactDayPlaces(day.places)
   const joined = [transport, chainBlob, ...places].filter(Boolean).join(' ')
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 공급사 문장 우선, 없으면 route 명소 2~3문장 — manifest
   return (
     composeRegisterScheduleRegionVibeDescription({
       day: day.day,
       maxDay,
       routePlaces: highlights.length ? highlights : places,
       joinedBlob: joined,
+      supplierText,
     }) || `${day.day}일차`
   )
 }

@@ -26,20 +26,20 @@ export async function generateMetadata(): Promise<Metadata> {
       default: `${SITE_NAME} | BongTour`,
       template: `%s | ${SITE_NAME}`,
     },
-    description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
+    description: '해외 여행 상품 안내와 예약·상담을 제공합니다.',
     openGraph: {
       type: 'website',
       locale: 'ko_KR',
       siteName: SITE_NAME,
       title: `${SITE_NAME} | BongTour`,
-      description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
+      description: '해외 여행 상품 안내와 예약·상담을 제공합니다.',
       url: '/',
       images: [{ url: defaultOgImagePath, alt: SITE_NAME }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${SITE_NAME} | BongTour`,
-      description: '해외·국내 여행 상품 안내와 예약·상담을 제공합니다.',
+      description: '해외 여행 상품 안내와 예약·상담을 제공합니다.',
       images: [defaultOgImagePath],
     },
     robots: {

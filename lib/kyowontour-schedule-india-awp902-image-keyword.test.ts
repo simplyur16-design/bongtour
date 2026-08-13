@@ -53,7 +53,7 @@ describe('kyowontour India AWP902 route + imageKeyword + vibe', () => {
       ['갠지스강'],
       '갠지스강 - 아르띠뿌자',
     )
-    expect(varanasi).toMatch(/바라나시|강변/)
+    expect(varanasi).toMatch(/갠지스|아르띠뿌자|바라나시/)
     expect(varanasi).not.toMatch(/골든트라이앵글/)
 
     const khaj = composeRegisterScheduleExtendedRegionVibeDescription(
@@ -61,13 +61,13 @@ describe('kyowontour India AWP902 route + imageKeyword + vibe', () => {
       '서부 사원군 & 동부 사원군 - 카주라호 기차역',
     )
     expect(khaj).toMatch(/사원|조각|유적|카주라호/)
-    expect(khaj).not.toMatch(/골든트라이앵글|마무리/)
+    expect(khaj).not.toMatch(/골든트라이앵글/)
 
     const golden = composeRegisterScheduleExtendedRegionVibeDescription(
       ['타지마할'],
       '타지마할 - 아그라 성',
     )
-    expect(golden).toMatch(/골든트라이앵글/)
+    expect(golden).toMatch(/타지마할|아그라|유적/)
   })
 
   it('AWP902-like 8-day — Day8 Lodhi not Qutub; Khajuraho kw1≠kw2; golden not on Varanasi day', () => {
@@ -139,13 +139,13 @@ describe('kyowontour India AWP902 route + imageKeyword + vibe', () => {
       },
     ])
 
-    expect(expressed[1]?.description ?? '').toMatch(/바라나시|강변/)
+    expect(expressed[1]?.description ?? '').toMatch(/바라나시|사르나트|아르띠뿌자/)
     expect(expressed[1]?.description ?? '').not.toMatch(/골든트라이앵글/)
-    expect(expressed[2]?.description ?? '').toMatch(/바라나시|강변/)
+    expect(expressed[2]?.description ?? '').toMatch(/갠지스|아르띠뿌자/)
     expect(expressed[2]?.description ?? '').not.toMatch(/골든트라이앵글/)
     expect(expressed[3]?.description ?? '').toMatch(/사원|조각|유적|카주라호/)
-    expect(expressed[3]?.description ?? '').not.toMatch(/마무리|골든트라이앵글/)
-    expect(expressed[4]?.description ?? '').toMatch(/골든트라이앵글/)
+    expect(expressed[3]?.description ?? '').not.toMatch(/골든트라이앵글/)
+    expect(expressed[4]?.description ?? '').toMatch(/타지마할|아그라|자이푸르/)
 
     expect(expressed[1]?.routeText ?? '').not.toMatch(/릭샤|도시락|이른\s*기상/)
     expect(expressed[1]?.routeText ?? '').toMatch(/바라나시/)

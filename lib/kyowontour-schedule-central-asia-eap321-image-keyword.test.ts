@@ -27,7 +27,7 @@ describe('kyowontour Central Asia EAP321 route + imageKeyword + vibe', () => {
       ['블랙캐년', '악수온천'],
       '블랙캐년 - 루나캐년 - 차른캐년 협곡 - 악수온천',
     )
-    expect(onsenDay).toMatch(/중앙아시아/)
+    expect(onsenDay).toMatch(/블랙캐년|악수온천|차른/)
     expect(onsenDay).not.toMatch(/일본/)
   })
 
@@ -81,7 +81,7 @@ describe('kyowontour Central Asia EAP321 route + imageKeyword + vibe', () => {
     ])
 
     expect(expressed[0]?.description ?? '').not.toMatch(/일본/)
-    expect(expressed[3]?.description ?? '').toMatch(/중앙아시아/)
+    expect(expressed[3]?.description ?? '').toMatch(/블랙캐년|차른|악수온천|카라콜/)
     expect(expressed[3]?.description ?? '').not.toMatch(/일본/)
     expect(expressed[0]?.routeText ?? '').not.toMatch(/특식/)
 

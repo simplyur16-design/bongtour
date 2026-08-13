@@ -736,7 +736,7 @@ function inferRegisterSupplierSwitchFromOriginUrl(
 }
 
 export default function AdminRegisterPage() {
-  /** 관리자 상품 상위 유형: 해외 패키지 / 국내 패키지 / 항공권+호텔(자유여행) — API 필드명은 기존 `travelScope` 유지 */
+  /** 관리자 상품 상위 유형: 해외 패키지 / 항공권+호텔(자유여행) — API 필드명은 기존 `travelScope` 유지 */
   const [travelScope, setTravelScope] = useState<'overseas' | 'air_hotel_free'>('overseas')
   /** 지방 출발 메가 메뉴·browse용 — LLM 비사용, 확정 시 DB `Product.localDepartureTag`만 반영 */
   const [localDepartureTag, setLocalDepartureTag] = useState<LocalDepartureTag[]>([])

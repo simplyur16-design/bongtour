@@ -1,5 +1,5 @@
 /**
- * 내일투어(naeiltour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(동선 1줄 + 분위기 2~3문장).
+ * 내일투어(naeiltour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(공급사 문장 우선, 없으면 route 명소 2~3문장).
  * REGRESSION-FREEZE[naeiltour-schedule-expression]: routeText·description vibe — manifest
  * REGRESSION-FREEZE[naeiltour-schedule-expression]: PackageDetail itinerary — manifest
  */
@@ -213,42 +213,43 @@ function naeiltourHighlightLeakChunks(label: string): string[] {
   return [...new Set([bare, ...chunks].filter((s) => s.length >= 4))]
 }
 
-/** 분위기·흐름 3문장+ — 장소 디테일 금지 */
+/** 공급사 문장 우선, 없으면 route 명소 2~3문장 */
 export function composeNaeiltourScheduleVibeSentences(
   day: number,
   maxDay: number,
   routePlaces: readonly string[],
   joinedBlob: string,
+  supplierText?: string | null,
 ): string {
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: region vibe before generic — manifest
-  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 3문장+ 특성, 명소명 금지 — manifest
+  // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 공급사 문장 우선, 없으면 route 명소 2~3문장 — manifest
   return (
     composeRegisterScheduleRegionVibeDescription({
       day,
       maxDay,
       routePlaces,
       joinedBlob,
+      supplierText,
     }) || `${day}일차`
   )
 }
 
-/** description = routeText 1줄 + 분위기 2~3문장 */
+/** description — 공급사 문장 우선, 없으면 route 명소 2~3문장 */
 export function composeNaeiltourScheduleDescription(opts: {
   day: number
   maxDay: number
   routePlaces: readonly string[]
   joinedBlob: string
+  supplierText?: string | null
 }): string {
-  const routeLine = joinNaeiltourScheduleRouteText(opts.routePlaces)
   const vibe = composeNaeiltourScheduleVibeSentences(
     opts.day,
     opts.maxDay,
     opts.routePlaces,
     opts.joinedBlob,
+    opts.supplierText,
   )
-  if (!routeLine) return vibe || `${opts.day}일차`
-  if (!vibe) return routeLine
-  return `${routeLine}\n${vibe}`.slice(0, 500).trim()
+  return vibe || `${opts.day}일차`
 }
 
 export function naeiltourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
@@ -317,6 +318,7 @@ export function applyNaeiltourScheduleExpressionToRows<T extends RegisterSchedul
       maxDay,
       routePlaces,
       joinedBlob,
+      supplierText: row.description,
     })
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     const title = composeRegisterScheduleDayTitleFromRoute({

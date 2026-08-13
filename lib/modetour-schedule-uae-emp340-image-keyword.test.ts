@@ -24,7 +24,7 @@ describe('modetour UAE EMP340 imageKeyword', () => {
       ['아부다비 왕궁', '그랜드 모스크'],
       blob,
     )
-    expect(desc).toMatch(/걸프/i)
+    expect(desc).toMatch(/아부다비|모스크|왕궁|걸프/)
     expect(desc).not.toMatch(/방콕/i)
 
     const days = modetourFactDaysToRegisterSchedule([
@@ -36,7 +36,7 @@ describe('modetour UAE EMP340 imageKeyword', () => {
         transportNote: null,
       },
     ])
-    expect(days[0]?.description).toMatch(/걸프/i)
+    expect(days[0]?.description).toMatch(/아부다비|모스크|왕궁|걸프/)
     expect(days[0]?.description).not.toMatch(/방콕/i)
   })
 

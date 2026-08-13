@@ -28,7 +28,7 @@ describe('kyowontour schedule routeText a-b-c chain', () => {
     expect(place).toBe('인천')
   })
 
-  it('applyKyowontourScheduleExpressionToRows keeps description as vibe-only (not routeText copy)', () => {
+  it('applyKyowontourScheduleExpressionToRows keeps description as 2~3문장 (not routeText copy)', () => {
     const out = applyKyowontourScheduleExpressionToRows([
       {
         day: 1,
@@ -40,6 +40,6 @@ describe('kyowontour schedule routeText a-b-c chain', () => {
     ])
     expect(out[0]?.routeText).toBe('쿤밍')
     expect(out[0]?.description).not.toBe('쿤밍')
-    expect(out[0]?.description).toMatch(/여행|일정|분위기|동선/)
+    expect(out[0]?.description).toMatch(/쿤밍|도착|일정/)
   })
 })
