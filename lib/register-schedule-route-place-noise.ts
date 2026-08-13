@@ -467,6 +467,8 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/미니바|minibar|객실\s*내|객실내|어메니티|헤어드라이어|커피포트|룸서비스|세면도구/iu.test(t)) return true
   // REGRESSION-FREEZE[product-image-seo-review-contamination]: 리뷰·여행후기 ≠ 명소 — manifest
   if (/리뷰|여행\s*후기|고객\s*(?:리뷰|후기)|평균\s*별점|상품\s*평점/iu.test(t)) return true
+  // REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]: 여행핵심정보·항공사 ≠ 명소 — manifest
+  if (/여행\s*핵심\s*정보|상품\s*핵심\s*정보|핵심\s*정보|항공\s*여정|^항공\s*사$/iu.test(t)) return true
   if (/^(?:디럭스|슈페리어|스탠다드|트윈|더블)\s*룸$/u.test(t)) return true
   if (/미식|먹거리\s*볼거리/u.test(t) && !ROUTE_POI_TAIL_HINT_RE.test(t)) return true
   if (/^\d+일차$/u.test(t)) return true

@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[product-image-ops-seo-contamination]
  * REGRESSION-FREEZE[product-image-seo-review-contamination]
+ * REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -99,6 +100,72 @@ describe('product image ops SEO contamination', () => {
     })
     expect(title).toMatch(/디즈니|홍콩/)
     expect(title).not.toMatch(/리뷰|후기/)
+  })
+
+  it('rejects 여행핵심정보 section labels and airline names in image SEO', () => {
+    expect(isProductImageOpsSeoContaminated('여행핵심정보')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('상품 핵심정보')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('여행상품 핵심정보')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('항공여정')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('항공사')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('대한항공')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('제주항공')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('진에어')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('캐세이퍼시픽')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('에미레이트항공')).toBe(true)
+    expect(isProductImageOpsSeoContaminated('이스탄불')).toBe(false)
+    expect(isProductImageOpsSeoContaminated('에미레이트 팰리스')).toBe(false)
+    expect(isProductImageOpsSeoContaminated('항공우주박물관')).toBe(false)
+    expect(isProductImageOpsSeoContaminated('서유럽 핵심 3국')).toBe(false)
+    expect(isProductImageOpsSeoContaminated('홍콩 디즈니랜드')).toBe(false)
+    expect(isPollutedScheduleImageSeoTitle('여행핵심정보')).toBe(true)
+    expect(isPollutedScheduleImageSeoTitle('대한항공')).toBe(true)
+  })
+
+  it('stored hero overlay drops 여행핵심정보 and airline tokens', () => {
+    const line = resolvePublicProductHeroSeoKeywordOverlay({
+      title: '홍콩 3일',
+      primaryDestination: '홍콩',
+      destination: '홍콩',
+      duration: '2박 3일',
+      originSource: 'hanatour',
+      storedRegisterSeoKeywordsJson: JSON.stringify(['여행핵심정보', '대한항공', '피크트램']),
+      storedRegisterSeoLine: '여행핵심정보 · 제주항공',
+    })
+    expect(line).toBeTruthy()
+    expect(line).not.toMatch(/핵심정보|대한항공|제주항공|항공사/)
+  })
+
+  it('schedule photo title skips 여행핵심정보 and airline route segments', () => {
+    const title = resolveScheduleImageSeoTitleKr({
+      stored: '여행핵심정보',
+      day: 2,
+      maxDay: 4,
+      routeText: '여행핵심정보 - 대한항공 - 홍콩 디즈니랜드',
+      destination: '홍콩',
+    })
+    expect(title).toMatch(/디즈니|홍콩/)
+    expect(title).not.toMatch(/핵심정보|대한항공/)
+  })
+
+  it('register harvest skips 여행핵심정보 and airline names', () => {
+    const kw = buildRegisterPublicImageHeroSeoKeywords({
+      rawBodyText: [
+        '여행핵심정보',
+        '대한항공',
+        '항공여정',
+        '핵심 포인트',
+        '피크트램 · 스탠리',
+      ].join('\n'),
+      title: '홍콩 3일',
+      primaryDestination: '홍콩',
+      destination: '홍콩',
+      duration: '2박 3일',
+      scheduleDayTitles: [],
+      originSourceForFallback: 'hanatour',
+    })
+    expect(kw?.join(' ') ?? '').toMatch(/피크트램|스탠리|홍콩/)
+    expect(kw?.join(' ') ?? '').not.toMatch(/핵심정보|대한항공|항공여정|항공사/)
   })
 
   it('strips review sections from image SEO haystack and harvest', () => {

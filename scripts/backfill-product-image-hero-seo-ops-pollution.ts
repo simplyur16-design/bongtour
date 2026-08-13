@@ -1,10 +1,11 @@
 /**
- * 대표 이미지 SEO(publicImageHeroSeoLine / KeywordsJson) — 상품코드·단체번호·객실 미니바·리뷰 오염 재작성.
+ * 대표 이미지 SEO(publicImageHeroSeoLine / KeywordsJson) — 상품코드·단체번호·객실 미니바·리뷰·여행핵심정보·항공사명 오염 재작성.
  *
  *   npx tsx scripts/backfill-product-image-hero-seo-ops-pollution.ts
  *   npx tsx scripts/backfill-product-image-hero-seo-ops-pollution.ts --apply
  *
  * REGRESSION-FREEZE[product-image-ops-seo-contamination]
+ * REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]
  */
 import './load-env-for-scripts'
 

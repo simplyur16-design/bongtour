@@ -20,7 +20,7 @@ import {
 const LINE_MAX = 24
 
 const SUPPLIER_NAME_BAN =
-  /하나투어|모두투어|참좋은|노랑|옐로우\s*balloon|very\s*good|vb투어|yb투어|예스투어|제주항공|진에어|티웨이|에어부산|대한항공|아시아나/i
+  /하나투어|모두투어|참좋은|노랑|옐로우\s*balloon|very\s*good|vb투어|yb투어|예스투어|제주항공|진에어|티웨이|에어부산|에어서울|대한항공|아시아나|이스타항공|에어프레미아|캐세이|케세이|에미레이트항공|에티하드항공/i
 
 const PHRASE_BAN =
   /상담|안내|대표\s*이미지|입니다|합니다|예약|문의|확인해|자세한|패키지\s*상세|포함\s*사항|유의\s*사항|www\.|https?:\/\//i
@@ -97,6 +97,7 @@ const STRONG_THEME_RE =
 
 function hashtagHarvestHaystack(rawBody: string, title: string): string {
   // REGRESSION-FREEZE[product-image-seo-review-contamination]: 해시태그 수확에서 리뷰 블록 제외 — manifest
+  // REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]: 여행핵심정보·항공사 토큰은 contamination SSOT — manifest
   const body = stripReviewSectionsFromImageSeoHaystack((rawBody ?? '').replace(/\r\n/g, '\n'))
   const tagIdx = body.search(/해시\s*태그/i)
   const tagBlock = tagIdx >= 0 ? body.slice(tagIdx, tagIdx + 1600) : ''

@@ -1,6 +1,7 @@
 import { isProductHeroListingSeoContaminated } from '@/lib/product-hero-listing-seo-contamination'
 // REGRESSION-FREEZE[product-image-ops-seo-contamination]: stored hero 키워드에서 상품코드·단체번호 제거 — manifest
 // REGRESSION-FREEZE[product-image-seo-review-contamination]: stored hero 키워드에서 리뷰·후기 제거 — manifest
+// REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]: stored hero 키워드에서 여행핵심정보·항공사명 제거 — manifest
 
 /**
  * 상품 대표이미지·상품 카드 등 공개 화면 좌측 "검색형 감성 키워드" 한 줄.
@@ -262,7 +263,20 @@ const STORED_HERO_KEYWORD_EACH_MAX = 16
 const BROKEN_KEYWORD_PATTERNS = [
   /^여행기간/,
   /^요약설명/,
+  /^요약정보/,
   /^여행일정/,
+  /^여행핵심정보/,
+  /^상품핵심정보/,
+  /^핵심정보/,
+  /^핵심포인트/,
+  /^항공여정/,
+  /^항공사/,
+  /^편명/,
+  /^상품안내/,
+  /^상품소개/,
+  /^여행도시/,
+  /^출발인원/,
+  /^상품특전/,
   /^주요방문지/,
   /^포함사항/,
   /^불포함사항/,
@@ -275,11 +289,17 @@ const BROKEN_KEYWORD_PATTERNS = [
   /^리뷰/,
   /^상품평점/,
   /^평균별점/,
+  /^대한항공/,
+  /^아시아나/,
+  /^제주항공/,
+  /^진에어/,
+  /^티웨이/,
 ] as const
 
 function isBrokenKeyword(kw: string): boolean {
   const trimmed = kw.trim()
   if (!trimmed) return true
+  if (isProductHeroListingSeoContaminated(trimmed)) return true
   return BROKEN_KEYWORD_PATTERNS.some((rx) => rx.test(trimmed))
 }
 

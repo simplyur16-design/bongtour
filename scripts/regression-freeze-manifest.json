@@ -8076,6 +8076,63 @@
       ]
     },
     {
+      "id": "product-image-seo-coreinfo-airline-contamination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "이미지 SEO — 여행핵심정보·섹션라벨·항공사명 공개 캡션 금지",
+      "checks": [
+        {
+          "file": "lib/product-hero-listing-seo-contamination.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]",
+            "isImageSeoAirlineCarrierToken",
+            "여행핵심정보",
+            "대한항공"
+          ],
+          "mustNotInclude": [
+            "'이스타'"
+          ]
+        },
+        {
+          "file": "lib/product-hero-listing-seo-contamination.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]",
+            "여행핵심정보",
+            "대한항공",
+            "이스탄불",
+            "에미레이트 팰리스"
+          ]
+        },
+        {
+          "file": "lib/public-product-hero-seo-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]",
+            "/^여행핵심정보/",
+            "/^항공사/"
+          ]
+        },
+        {
+          "file": "lib/register-hero-seo-title-body-harvest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]",
+            "여행\\s*핵심\\s*정보"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]",
+            "여행\\s*핵심\\s*정보"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-hero-listing-seo-contamination.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-day-title-ssot",
       "tier": [
         "prebuild",

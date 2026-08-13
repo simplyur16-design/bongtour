@@ -3,6 +3,7 @@
  * Pexels 영문 키워드·사진풀 city·DAY·공항·날짜 오염 금지.
  * REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 3문장 vibe·DAYN·허브공항 금지 — manifest
  * REGRESSION-FREEZE[product-image-seo-review-contamination]: 리뷰·여행후기 제목 금지 — manifest
+ * REGRESSION-FREEZE[product-image-seo-coreinfo-airline-contamination]: 여행핵심정보·항공사명 제목 금지 — manifest
  */
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
