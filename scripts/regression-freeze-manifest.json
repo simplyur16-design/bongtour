@@ -7933,6 +7933,52 @@
       ]
     },
     {
+      "id": "product-image-ops-seo-contamination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "이미지 SEO — 상품코드·단체번호·객실 미니바 등 운영 문구 공개 캡션 금지",
+      "checks": [
+        {
+          "file": "lib/product-hero-listing-seo-contamination.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-ops-seo-contamination]",
+            "isProductImageOpsSeoContaminated",
+            "상품코드",
+            "단체번호",
+            "미니바"
+          ]
+        },
+        {
+          "file": "lib/product-hero-listing-seo-contamination.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-ops-seo-contamination]",
+            "객실내 미니바",
+            "상품코드: AHP406KEDT",
+            "단체번호"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-seo-title-ssot.ts",
+          "mustInclude": [
+            "isProductImageOpsSeoContaminated"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-ops-seo-contamination]",
+            "미니바"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-hero-listing-seo-contamination.test.ts",
+        "lib/schedule-image-seo-title-ssot.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-day-title-ssot",
       "tier": [
         "prebuild",

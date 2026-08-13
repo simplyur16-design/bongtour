@@ -463,6 +463,9 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^(?:조식|중식|석식|기내|기장|승무원)/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: price·meal·marketing — manifest
   if (ROUTE_PRICE_MEAL_MARKETING_NOISE_RE.test(t)) return true
+  // REGRESSION-FREEZE[product-image-ops-seo-contamination]: 객실 미니바·룸타입 ≠ 명소 — manifest
+  if (/미니바|minibar|객실\s*내|객실내|어메니티|헤어드라이어|커피포트|룸서비스|세면도구/iu.test(t)) return true
+  if (/^(?:디럭스|슈페리어|스탠다드|트윈|더블)\s*룸$/u.test(t)) return true
   if (/미식|먹거리\s*볼거리/u.test(t) && !ROUTE_POI_TAIL_HINT_RE.test(t)) return true
   if (/^\d+일차$/u.test(t)) return true
   if (/^(?:뉴질랜드|호주|일본|중국|태국|베트남)\s*.+(?:관광|투어)$/u.test(t)) return true
