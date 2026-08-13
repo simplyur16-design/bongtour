@@ -692,6 +692,7 @@ const EUROPE_ME_EASTERN_TEXT = [
 const EUROPE_ME_WESTERN_COUNTRY_KEYS = new Set([
   'italy',
   'france',
+  'monaco',
   'switzerland',
   'uk',
   'germany',
@@ -780,6 +781,10 @@ const EUROPE_ME_WESTERN_TEXT = [
   'paris',
   '니스',
   'nice',
+  '모나코',
+  'monaco',
+  '몬테카를로',
+  'monte carlo',
   '스위스',
   'switzerland',
   '취리히',

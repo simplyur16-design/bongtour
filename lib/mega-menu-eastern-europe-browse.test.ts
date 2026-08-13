@@ -40,7 +40,7 @@ describe('mega menu — 동유럽 browse countryKey', () => {
 
   it('menuGroup western-europe resolves 서유럽 LC countries', () => {
     const keys = resolveMegaMenuGroupCountryKeySlugs('europe-me', 'western-europe')
-    for (const want of ['italy', 'france', 'switzerland', 'uk', 'germany', 'austria']) {
+    for (const want of ['italy', 'france', 'monaco', 'switzerland', 'uk', 'germany', 'austria']) {
       expect(keys).toContain(want)
     }
     expect(keys).not.toContain('poland')

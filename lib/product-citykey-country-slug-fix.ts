@@ -49,7 +49,7 @@ export function inferSpecificCityKeyFromTitle(
   if (countryKey === 'italy' && currentCityKey === 'it') {
     if (/시칠리|sicil|palermo|팔레르모/i.test(t)) candidate = 'sicily'
   } else if (countryKey === 'france' && currentCityKey === 'fr') {
-    if (/니스|nice|cannes|칸|코트다|cote\s*d|south\s*france|남프랑스/i.test(t)) candidate = 'cotedazur'
+    if (/니스|nice|cannes|칸|코트다|cote\s*d|south\s*france|남프랑스|모나코|monaco|monte\s*carlo/i.test(t)) candidate = 'cotedazur'
   } else if (countryKey === 'united-kingdom' && currentCityKey === 'uk') {
     if (/아일랜드|ireland|더블린|dublin/i.test(t)) candidate = 'ie'
   } else if (countryKey === 'ireland' && currentCityKey === 'ie') {

@@ -93,6 +93,27 @@ describe('mega-menu leaf browse href / country expansions', () => {
     expect(u.searchParams.get('menuGroup')).toBe('mongolia')
   })
 
+  it('서유럽 모나코 LC maps to monaco master country', () => {
+    expect(countrySlugFromLabel('모나코')).toBe('monaco')
+    expect(resolveBrowseCountryParamToCountryKeySlugs('monaco')).toEqual(
+      expect.arrayContaining(['monaco']),
+    )
+    const region = OVERSEAS_MEGA_MENU_REGIONS.find((r) => r.id === 'europe-me')
+    const group = region?.countryGroups?.find((g) => g.countryLabel === '서유럽')
+    const leaf = group?.cities.find((c) => c.label === '모나코')
+    expect(group && leaf).toBeTruthy()
+    const href = buildMegaMenuLeafHref({
+      type: 'travel',
+      regionId: 'europe-me',
+      countryLabel: group!.countryLabel,
+      leaf: leaf!,
+    })
+    const u = new URL(href, 'http://localhost')
+    expect(u.searchParams.get('country')).toBe('monaco')
+    expect(u.searchParams.get('menuGroup')).toBe('western-europe')
+    expect(u.searchParams.get('city')).toBeNull()
+  })
+
   it('화중 정주 leaf maps to zhengzhou master city key', () => {
     expect(countrySlugFromLabel('화중')).toBe('huazhong')
     expect(resolveBrowseCityKeysForFilter('zhengzhou')).toEqual(

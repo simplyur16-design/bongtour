@@ -58,6 +58,7 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   스페인: 'spain',
   스위스: 'switzerland',
   프랑스: 'france',
+  모나코: 'monaco',
   중국: 'china',
   '홍콩 · 마카오': 'hong-kong-macau',
   몽골: 'mongolia',

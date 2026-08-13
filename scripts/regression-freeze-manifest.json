@@ -12402,7 +12402,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
             "남미 region label → south-america leaf",
-            "하남 정주·낙양·개봉·초작 master cityKeys"
+            "하남 정주·낙양·개봉·초작 master cityKeys",
+            "모나코 master countryKey"
           ]
         },
         {
@@ -12411,7 +12412,8 @@
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
             "dominican terms — no bare caribbean",
             "내몽골 browse country=china",
-            "하남 정주·낙양·개봉·초작 master cityKeys"
+            "하남 정주·낙양·개봉·초작 master cityKeys",
+            "모나코 master countryKey"
           ]
         }
       ],

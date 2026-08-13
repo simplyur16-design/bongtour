@@ -371,10 +371,21 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
       C('france', '프랑스', [
         L('fr', '프랑스', { aliases: ['프랑스', 'france', '파리', 'paris', '니스'] }),
         L('cotedazur', '코트다쥐르', {
-          aliases: ['nice', '니스', '칸', 'cannes', 'cote dazur', '남프랑스', 'south france'],
+          aliases: ['nice', '니스', '칸', 'cannes', 'cote dazur', '남프랑스', 'south france', '모나코', 'monaco'],
         }),
       ], {
         aliases: ['프랑스', '남프랑스'],
+      }),
+      // REGRESSION-FREEZE[mega-menu-product-alignment]: 모나코 master countryKey — manifest
+      C('monaco', '모나코', [
+        L('monaco', '모나코', {
+          aliases: ['monaco', '모나코', '몬테카를로', 'monte carlo', 'montecarlo'],
+          dbCityValue: '모나코',
+          supplierKeywords: ['모나코', '몬테카를로'],
+        }),
+      ], {
+        aliases: ['모나코', 'monaco'],
+        dbCountryValues: ['모나코'],
       }),
       C('switzerland', '스위스', [L('ch', '스위스', { aliases: ['스위스', 'switzerland', '취리히', 'zurich', '인터라켄'] })], {
         aliases: ['스위스'],
