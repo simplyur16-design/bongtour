@@ -23,7 +23,7 @@ const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
 const iosUrlScheme = googleIosUrlSchemeFromWebClientId(iosClientId || webClientId);
 const sentryDsn = (process.env.EXPO_PUBLIC_SENTRY_DSN || '').trim();
 
-const plugins = [...(appJson.expo.plugins ?? [])];
+const plugins = [...(appJson.expo.plugins ?? []), 'expo-asset'];
 if (iosUrlScheme) {
   plugins.push([
     '@react-native-google-signin/google-signin',
