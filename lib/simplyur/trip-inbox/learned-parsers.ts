@@ -11,14 +11,15 @@ import {
 } from "@/lib/simplyur/trip-inbox/form-fingerprint";
 import { buildMergeKey } from "@/lib/simplyur/trip-inbox/merge-key";
 import { newTempId, parseEnDateOptionalTime, parseIsoLikeLocal, parseKoDateOptionalTime, toIsoLocal } from "@/lib/simplyur/trip-inbox/date-parse";
-import type {
-  TripFormFieldRule,
-  TripFormParser,
-  TripHotelSegmentPayload,
-  TripParsedSegment,
-  TripProvider,
-  TripSegmentPayload,
-  TripSegmentType,
+import {
+  TRIP_SEGMENT_TYPES,
+  type TripFormFieldRule,
+  type TripFormParser,
+  type TripHotelSegmentPayload,
+  type TripParsedSegment,
+  type TripProvider,
+  type TripSegmentPayload,
+  type TripSegmentType,
 } from "@/lib/simplyur/trip-inbox/types";
 
 const memoryForms = new Map<string, TripFormParser>();
@@ -261,7 +262,11 @@ export function mineFormParser(
   }
   if (pairs.length === 0) return null;
 
-  const votes: Record<TripSegmentType, number> = { flight: 0, hotel: 0, car: 0 };
+  // REGRESSION-FREEZE[simplyur-trip-inbox-forms]: votes from TRIP_SEGMENT_TYPES (experience) — manifest
+  const votes = Object.fromEntries(TRIP_SEGMENT_TYPES.map((t) => [t, 0])) as Record<
+    TripSegmentType,
+    number
+  >;
   const rules: TripFormFieldRule[] = [];
   const seen = new Set<string>();
   for (const { label, value } of pairs) {

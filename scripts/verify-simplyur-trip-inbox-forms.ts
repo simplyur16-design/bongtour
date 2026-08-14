@@ -31,6 +31,8 @@ must("lib/simplyur/trip-inbox/types.ts", [
 must("lib/simplyur/trip-inbox/learned-parsers.ts", [
   "learnFormParserFromCorrection",
   "mineFormParser",
+  "TRIP_SEGMENT_TYPES.map",
+  "experience",
 ]);
 must("lib/simplyur/trip-inbox/parse-text.ts", [
   "parseAirbnbText",

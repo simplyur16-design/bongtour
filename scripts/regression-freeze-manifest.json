@@ -7023,7 +7023,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
             "mineFormParser",
-            "learnFormParserFromCorrection"
+            "learnFormParserFromCorrection",
+            "TRIP_SEGMENT_TYPES.map",
+            "experience"
           ]
         },
         {
