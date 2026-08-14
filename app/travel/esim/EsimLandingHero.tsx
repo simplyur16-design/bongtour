@@ -4,7 +4,7 @@ import { bongsimPath } from '@/lib/bongsim/constants'
 import { ESIM_HERO_IMAGE_URL } from '@/lib/esim-hero-constants'
 import EsimLandingHeroBackground from '@/app/travel/esim/EsimLandingHeroBackground'
 
-const HERO_ALT = '여행지에 딱 맞는 eSIM — 전세계 어디서나 연결'
+const HERO_ALT = '해외 데이터, QR 한 번이면 끝 — Bong투어 eSIM'
 
 export default function EsimLandingHero() {
   const useLocalImage = ESIM_HERO_IMAGE_URL.startsWith('/')
@@ -33,13 +33,13 @@ export default function EsimLandingHero() {
             id="esim-hero-heading"
             className="text-balance text-3xl font-bold leading-tight text-[#1F1B2D] md:text-5xl"
           >
-            여행지에 딱 맞는
+            해외 데이터,
             <br />
-            <span className="text-[#D85A30]">eSIM</span>
+            <span className="text-[#D85A30]">QR 한 번</span>이면 끝
           </h1>
           <p className="mt-4 text-xl font-semibold leading-snug text-[#1F1B2D] md:text-2xl">
-            해외 여행 데이터,{' '}
-            <span className="text-[#D85A30]">이제 더 쉽게</span>
+            초보도 OK · 요금 폭탄 없이
+            <span className="text-[#D85A30]"> eSIM</span>
           </p>
 
           <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm md:text-base">

@@ -29,6 +29,8 @@ export type EsimQrAlimtalkResult =
  * 동적 QR 이미지는 불가 → 주문 페이지에서 QR 렌더 유도.
  * 템플릿: `SOLAPI_TPL_ESIM_QR_DELIVERED` (변수: orderNumber, installPath — 승인본 기준)
  * 승인 SSOT ID: `KA01TP260529080045939hjuDabvEjcg` (`scripts/verify-solapi-esim-qr-template.ts`)
+ * 운영 잠금: 승인 템플릿 본문·변수는 재승인 없이 변경하지 않음.
+ * 상세 단계·요금폭탄·QR 1회성 카피는 LMS·이메일·/travel/esim/guide SSOT에서 보강.
  * @see docs/ops/OPS-SOLAPI-ESIM-ALIMTALK.md
  */
 export async function sendEsimQrDeliveredAlimTalk(

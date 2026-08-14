@@ -165,9 +165,18 @@ export function EsimInstallSection({
       <h2 className="text-[14px] font-semibold text-slate-900">eSIM 설치</h2>
       <p className="mt-1 text-[12px] text-slate-600">
         {multi
-          ? `이 주문에는 eSIM ${readyList.length}개가 포함되어 있습니다. 각각 QR을 스캔해 설치해 주세요.`
-          : "설정 → 셀룰러 → eSIM 추가에서 아래 QR을 스캔해 주세요."}
+          ? `이 주문에는 eSIM ${readyList.length}개가 포함되어 있습니다. 각각 QR 또는 바로 설치로 진행해 주세요.`
+          : "아래 QR·바로 설치로 진행하세요. (설정 → 셀룰러/모바일 네트워크 → eSIM 추가)"}
       </p>
+
+      <div className="mt-3 space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5" role="note">
+        <p className="text-[12px] font-semibold text-amber-950">설치 전 30초 체크</p>
+        <ul className="list-disc space-y-1 pl-4 text-[11px] leading-relaxed text-amber-900/95">
+          <li>해외에서는 국내 유심 데이터 로밍 OFF · 데이터는 eSIM만 (요금 폭탄 방지)</li>
+          <li>QR·설치코드는 1회성 — 여행 끝나기 전 삭제하지 마세요</li>
+          <li>상세 단계: /travel/esim/guide (iPhone · Android)</li>
+        </ul>
+      </div>
 
       <div className="mt-4 space-y-4">
         {readyList.map((item, i) => {

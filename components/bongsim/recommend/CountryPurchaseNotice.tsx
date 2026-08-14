@@ -45,7 +45,7 @@ export function CountryPurchaseNoticeList({ compact, ...props }: Props) {
   if (notices.length === 0) return null;
 
   return (
-    <div className={compact ? "space-y-2" : "space-y-2.5"} aria-label="국가별 구매 안내">
+    <div className={compact ? "space-y-2" : "space-y-2.5"} aria-label="구매 전 꼭 확인">
       {notices.map((n) => (
         <NoticeCard key={`${n.severity}-${n.title}`} notice={n} />
       ))}

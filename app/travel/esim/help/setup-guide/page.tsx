@@ -6,7 +6,7 @@ import { bongsimPath } from '@/lib/bongsim/constants'
 export const metadata: Metadata = {
   title: 'eSIM 설치 가이드',
   description:
-    'Bong투어 eSIM을 구매하신 뒤 설치·개통 순서를 안내해요. 출국 전 국내 설치, 현지 도착 후 개통 등 상품별 기준을 확인하세요.',
+    'Bong투어 eSIM — 초보도 OK. 출국 전 설치, 요금 폭탄 방지, QR 1회성까지 한눈에 안내합니다.',
   alternates: { canonical: '/travel/esim/help/setup-guide' },
   robots: { index: true, follow: true },
 }
@@ -24,21 +24,21 @@ const QNA: QA[] = [
     badge: '출국 전',
     question: '구매한 eSIM, 미리 설치해도 될까요?',
     answer:
-      '대부분의 eSIM은 출국 전 국내에서 프로파일 설치가 가능해요. 구매 즉시 이메일로 QR코드가 발송되니, 여행 준비 중 여유롭게 설치해 두세요. 데이터 사용 시작 시점은 상품별로 다르니 상세 페이지의 사용 기준을 꼭 확인해 주세요.',
+      '대부분의 eSIM은 출국 전 국내에서 프로파일 설치가 가능해요. 결제 후 카카오 알림톡·이메일·마이페이지에서 QR·바로 설치를 받을 수 있으니, 여유 있을 때 설치해 두세요. 다만 설치 순간부터 기간이 시작되는 상품도 있으니 상세 안내를 꼭 확인하세요.',
   },
   {
     tone: 'orange',
-    badge: '국내 설치',
-    question: '국내에서 설치해도 되나요?',
+    badge: '요금 폭탄 방지',
+    question: '해외에서 국내 유심 로밍은 어떻게 하나요?',
     answer:
-      '프로파일 설치(QR 스캔)는 국내에서도 가능한 상품이 많아요. 다만 설치 직후부터 데이터 사용이 시작되는 상품은 현지 도착 후 설치를 권장해요. 상품 상세의 “사용 기준”에 설치·개통 시점이 명시되어 있으니 구매 전 확인해 주세요.',
+      '해외에서는 국내 유심의 데이터 로밍을 끄고, 모바일 데이터는 Bong투어 eSIM만 사용하세요. 유심 로밍이 켜져 있으면 국내 통신사 요금이 나갈 수 있어요. 통화·문자는 기존 유심을 그대로 두는 경우가 많습니다.',
   },
   {
     tone: 'slate',
-    badge: '현지 도착 후',
-    question: '출국 전 설치하면 안 되는 상품도 있나요?',
+    badge: 'QR 1회성',
+    question: '설치 후 eSIM을 지워도 되나요?',
     answer:
-      '일부 로컬망 상품은 현지 네트워크에 접속한 시점부터 카운팅이 시작돼요. 이 경우 국내에서 미리 설치하면 사용 기간이 줄어들 수 있으니, 공항 도착 직후 기내에서 QR을 스캔하는 것이 가장 안전해요. 상품별 안내 문구를 꼭 확인해 주세요.',
+      '여행이 완전히 끝난 뒤에만 삭제하세요. QR·설치코드는 1회성이라, 지우면 같은 코드로 다시 설치하기 어려운 경우가 많아요. 사용 중 문제가 있으면 삭제하지 말고 고객센터(09:00–18:00 KST)로 문의해 주세요.',
   },
 ]
 
@@ -71,11 +71,11 @@ export default function EsimSetupGuidePage() {
             eSIM 설치 가이드
           </p>
           <h1 className="mt-2 text-[1.4rem] font-bold leading-snug tracking-tight text-slate-900 sm:text-2xl lg:text-[1.75rem]">
-            언제 설치해야 할지, 한눈에 알려드릴게요
+            초보도 OK — 짧은 단계로 알려드릴게요
           </h1>
           <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-slate-600 sm:text-[14px]">
-            Bong투어 eSIM은 상품마다 설치·개통 기준이 조금씩 달라요. 출국 전 준비부터 현지 도착 후까지,
-            자주 묻는 세 가지 상황을 정리했어요.
+            출국 전 준비 · 요금 폭탄 방지 · QR 1회성까지, Bong투어 eSIM을 처음 쓰는 분도 따라 할 수 있게 정리했어요.
+            기기별 화면 단계는 전체 설치 가이드에서 확인하세요.
           </p>
 
           <section aria-label="설치 시점 Q&A" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
@@ -106,23 +106,29 @@ export default function EsimSetupGuidePage() {
           >
             <h2 className="text-base font-bold text-slate-900 lg:text-lg">그 외에 알아두면 좋아요</h2>
             <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-slate-700">
-              <li>설치는 QR 스캔 한 번이면 끝. 별도의 앱 설치는 필요하지 않아요.</li>
-              <li>개통 후에는 기존 유심(통화/문자용)을 그대로 두고 데이터만 eSIM으로 사용해요.</li>
-              <li>설치 중 QR 인식이 되지 않으면, 이메일의 수동 입력 정보(SM-DP+ 주소·활성화 코드)를 사용해 주세요.</li>
-              <li>여행을 마친 뒤에는 eSIM 프로파일을 삭제하셔도 되고, 남겨 두셨다가 다음 여행 때 재사용하셔도 돼요(상품별 상이).</li>
+              <li>설치는 QR 또는 바로 설치 링크면 끝. 별도 앱 설치는 필요 없어요.</li>
+              <li>개통 후에는 기존 유심(통화/문자)을 두고, 데이터만 eSIM으로 쓰는 경우가 많아요.</li>
+              <li>QR 인식이 안 되면 이메일·주문 완료 페이지의 SM-DP+·활성화 코드로 수동 설치하세요.</li>
+              <li>여행이 끝난 뒤에만 eSIM을 삭제하세요. 삭제 후 같은 QR로 재설치는 어렵습니다.</li>
             </ul>
           </section>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2">
             <Link
-              href={bongsimPath('/help/device-compatibility')}
+              href={bongsimPath('/guide')}
               className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50/70 px-5 text-[14px] font-bold text-teal-900 transition hover:bg-teal-100"
+            >
+              iPhone·Android 전체 가이드
+            </Link>
+            <Link
+              href={bongsimPath('/devices')}
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-[14px] font-bold text-slate-800 transition hover:bg-slate-50"
             >
               이용 가능 기기 확인하기
             </Link>
             <Link
               href={bongsimPath()}
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-teal-700 px-5 text-[14px] font-bold text-white shadow-md transition hover:bg-teal-800"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-teal-700 px-5 text-[14px] font-bold text-white shadow-md transition hover:bg-teal-800 sm:col-span-2"
             >
               eSIM 다시 둘러보기
             </Link>

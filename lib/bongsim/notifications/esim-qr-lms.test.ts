@@ -17,6 +17,8 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(text).toContain("esimsetup.android.com");
     expect(text).toContain("QR·설치코드 페이지");
     expect(text).toContain("/travel/esim/order/");
+    expect(text).toMatch(/요금|데이터로밍/);
+    expect(text).toMatch(/1회성/);
   });
 
   it("still includes order page when LPA is missing", () => {

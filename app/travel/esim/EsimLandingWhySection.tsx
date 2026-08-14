@@ -27,9 +27,10 @@ const WHY_ITEMS: readonly WhyItem[] = [
   {
     id: "one-click",
     icon: Zap,
-    title: "원클릭 설치",
-    body: "QR 코드와 설치 문자 한 번 클릭이면 끝",
-    hint: "iOS 17.4+ · Android 13+",
+    title: "초보도 OK, 1분 설치",
+    titleMobile: "1분 설치",
+    body: "알림톡·이메일·마이페이지의 QR 또는 바로 설치 링크만 따르면 끝. 요금 폭탄 방지 단계도 가이드에 있어요.",
+    hint: "iOS 17.4+ · Android 원클릭 지원",
     href: bongsimPath("/guide"),
     linkLabel: "설치 가이드 보기 →",
     circleClass: "bg-pink-100 text-pink-600",
@@ -221,7 +222,7 @@ export function EsimLandingWhySection() {
           왜 Bong투어 <span className="text-orange-600">eSIM</span>일까요?
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-slate-600 lg:mt-4 lg:text-lg">
-          여행 준비부터 현지 체류까지, 데이터 걱정을 덜어 드립니다.
+          짧은 단계 · 요금 폭탄 방지 · QR 1회성까지, 초보도 따라 할 수 있게 정리했어요.
         </p>
 
         {/* 모바일: 3열 × 2행 */}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  GENERAL_PURCHASE_NOTICES,
   getCountryPurchaseNotices,
   getMergedPurchaseNotices,
 } from "@/lib/bongsim/country-purchase-notices";
@@ -7,6 +8,16 @@ import {
 // REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]: 중국·HK/MO/TW 안내 SSOT — manifest
 
 describe("country-purchase-notices", () => {
+  it("always includes general Rokebi-style purchase checks", () => {
+    const jp = getCountryPurchaseNotices("jp");
+    const blob = jp.map((n) => `${n.title}\n${n.body}`).join("\n");
+    expect(GENERAL_PURCHASE_NOTICES.length).toBeGreaterThanOrEqual(4);
+    expect(blob).toMatch(/요금 폭탄/);
+    expect(blob).toMatch(/1회성/);
+    expect(blob).toMatch(/eSIM 지원 기기/);
+    expect(blob).toMatch(/설치 시점/);
+  });
+
   it("cn keeps VPN/daily and never claims unverified mainland activation policy", () => {
     const notices = getCountryPurchaseNotices("cn");
     const blob = notices.map((n) => `${n.title}\n${n.body}`).join("\n");
@@ -32,5 +43,6 @@ describe("country-purchase-notices", () => {
     const titles = merged.map((n) => n.title);
     expect(new Set(titles).size).toBe(titles.length);
     expect(titles.some((t) => t.includes("입국 전 한국에서 설치"))).toBe(true);
+    expect(titles.filter((t) => t === "요금 폭탄 방지").length).toBe(1);
   });
 });

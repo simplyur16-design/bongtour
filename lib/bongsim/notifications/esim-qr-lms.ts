@@ -25,6 +25,8 @@ export function buildEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): string {
     "[Bong투어] eSIM 설치 안내",
     "",
     `주문번호: ${orderNumber}`,
+    "",
+    "① 아래 링크로 설치 (초보 OK)",
   ];
 
   if (appleUrl) {
@@ -38,6 +40,14 @@ export function buildEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): string {
     lines.push("", "QR·설치코드 페이지", orderPageUrl);
   }
 
-  lines.push("", "문의: bongtour.com");
+  lines.push(
+    "",
+    "② 꼭 지켜주세요",
+    "- 해외: 국내유심 데이터로밍 OFF → 데이터는 eSIM만",
+    "- QR·코드는 1회성 (삭제 후 재설치 어려움)",
+    "- 상세 단계: bongtour.com/travel/esim/guide",
+    "",
+    "문의: 카카오 09:00-18:00 · bongtour.com",
+  );
   return lines.join("\n");
 }

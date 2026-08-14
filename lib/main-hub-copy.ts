@@ -499,14 +499,14 @@ export const MAIN_REGISTRATION_NOTICE =
 
 // ─── 메인 eSIM 코랄 띠 (매출 채널 전용 — 메모리 #28) ─────────────────────────
 
-export const ESIM_STRIP_TITLE = '해외여행 가신다면 eSIM이 필수예요'
+export const ESIM_STRIP_TITLE = '해외여행, QR 한 번이면 eSIM 끝'
 
-export const ESIM_STRIP_SUB = 'QR 스캔 1분 설치 · 봉투어에서 바로 구매'
+export const ESIM_STRIP_SUB = '초보 OK · 요금 폭탄 방지 안내 포함 · 봉투어에서 바로'
 
 /** 모바일 메인 eSIM 카드 — 짧은 헤드라인·부제 */
 export const ESIM_STRIP_MOBILE_TITLE = '해외여행 eSIM' as const
 
-export const ESIM_STRIP_MOBILE_SUB = '로밍보다 90% 저렴 · 1분 설치' as const
+export const ESIM_STRIP_MOBILE_SUB = 'QR 1분 설치 · 요금 폭탄 방지' as const
 
 export const ESIM_STRIP_CTA_LABEL = 'eSIM 찾기'
 

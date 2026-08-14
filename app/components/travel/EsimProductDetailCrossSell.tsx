@@ -28,8 +28,8 @@ export default function EsimProductDetailCrossSell({
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-bold fit-tx-primary">이 여행에 eSIM이 필요하세요?</p>
-        <p className="mt-0.5 text-sm text-gray-600">로밍보다 90% 저렴 · 1분 설치</p>
-        <p className="mt-0.5 hidden text-xs text-gray-500 sm:block">QR 스캔 1분 설치 · 출발 전 미리 준비</p>
+        <p className="mt-0.5 text-sm text-gray-600">초보 OK · QR 1분 설치 · 요금 폭탄 방지</p>
+        <p className="mt-0.5 hidden text-xs text-gray-500 sm:block">출발 전 미리 설치 · 알림톡·이메일로 바로 안내</p>
       </div>
       <Link
         href={href}

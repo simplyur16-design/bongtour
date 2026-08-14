@@ -128,6 +128,13 @@ export function buildTravelEsimOrderQrMailContent(
     "",
     `주문번호: ${orderNumber}`,
     "",
+    "── 초보 OK · 설치 순서 ──",
+    "1) 아래 바로 설치 링크 또는 QR로 eSIM 설치",
+    "2) 출국 전 설치 가능 여부는 상품·마이페이지 안내 확인",
+    "3) 해외: 국내 유심 데이터 로밍 OFF → 데이터는 eSIM만 (요금 폭탄 방지)",
+    "4) QR·코드는 1회성 — 여행 끝나기 전 삭제하지 마세요",
+    "상세: https://bongtour.com/travel/esim/guide",
+    "",
     "아래 주문 페이지에서 QR 코드를 스캔해 주세요. (iPhone·Galaxy 공통)",
     orderPage,
     "",
@@ -183,6 +190,16 @@ export function buildTravelEsimOrderQrMailContent(
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:24px;border:1px solid #e2e8f0;">
     <h1 style="margin:0 0 12px;font-size:18px;color:#0f172a;">eSIM 설치 안내</h1>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">주문번호 <strong>${safeOrder}</strong> 결제가 완료되었습니다.</p>
+    <div style="margin:0 0 16px;padding:14px 16px;border:1px solid #fcd34d;border-radius:12px;background:#fffbeb;">
+      <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#92400e;">초보 OK · 설치 전 꼭 읽기</p>
+      <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.65;color:#78350f;">
+        <li>아래 바로 설치 또는 QR로 eSIM 설치</li>
+        <li>출국 전/현지 설치 여부는 상품·마이페이지 안내 확인</li>
+        <li>해외: 국내 유심 데이터 로밍 OFF · 데이터는 eSIM만 (요금 폭탄 방지)</li>
+        <li>QR·코드는 1회성 — 여행 끝나기 전 삭제 금지</li>
+      </ol>
+      <p style="margin:10px 0 0;font-size:12px;line-height:1.5;color:#92400e;">상세 단계: <a href="https://bongtour.com/travel/esim/guide" style="color:#0f766e;">bongtour.com/travel/esim/guide</a></p>
+    </div>
     <p style="margin:0 0 8px;font-size:14px;color:#475569;">QR 코드 스캔</p>
     <div style="margin:0 0 16px;text-align:center;">${qrImgHtml}</div>
     ${verificationBlock.html}
