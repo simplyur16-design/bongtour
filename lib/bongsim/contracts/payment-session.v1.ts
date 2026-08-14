@@ -82,6 +82,7 @@ export type BongsimPaymentSessionClientV1 =
           call_from_app?: "Y" | "N";
           call_from_scheme?: string;
         };
+        other?: { multi_paymethod: string };
       };
       order_name: string;
       customer_email: string;

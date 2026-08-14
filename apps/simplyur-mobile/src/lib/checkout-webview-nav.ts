@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: classify external schemes — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: never render bongtour website in pay WebView — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: auth_ok → complete-pa — manifest
+ * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store is a link, not required — manifest
  */
 
 export type SimplyurCheckoutWebViewNav =
@@ -12,14 +13,52 @@ export type SimplyurCheckoutWebViewNav =
   | { kind: 'cancel_or_fail' }
   | { kind: 'continue' }
   | { kind: 'external_app'; url: string }
+  | { kind: 'optional_store_link'; url: string }
 
 const HTTP_RE = /^https?:\/\//i
 
-/** Non-http(s) schemes (Alipay / WeChat / banking apps) — blocked (stay in-app). */
+/** EXIMPay+ (Eximbay) — optional. Card / UnionPay do not need this app. */
+export const EXIMPAY_PLAY_PACKAGE = 'com.chainrefund.dmplus'
+export const EXIMPAY_IOS_APP_ID = '1501470007'
+export const EXIMPAY_PLAY_STORE_URL = `https://play.google.com/store/apps/details?id=${EXIMPAY_PLAY_PACKAGE}`
+export const EXIMPAY_APP_STORE_URL = `https://apps.apple.com/app/eximpay/id${EXIMPAY_IOS_APP_ID}`
+
+export function eximbayAppStoreUrlForOs(os: 'ios' | 'android'): string {
+  return os === 'ios' ? EXIMPAY_APP_STORE_URL : EXIMPAY_PLAY_STORE_URL
+}
+
+/**
+ * Play/App Store (or market/intent to those stores).
+ * Open as an optional link — never a required checkout step.
+ */
+export function isOptionalAppStoreUrl(url: string): boolean {
+  const raw = url.trim()
+  if (!raw) return false
+  const u = raw.toLowerCase()
+  if (u.startsWith('market://') || u.startsWith('itms-apps://') || u.startsWith('itms://')) return true
+  if (u.startsWith('intent://') && (u.includes('play.google') || u.includes('market'))) return true
+  if (u.includes(EXIMPAY_PLAY_PACKAGE) || u.includes(`id${EXIMPAY_IOS_APP_ID}`)) return true
+  if (u.includes('eximpayplus.com')) return true
+  try {
+    const host = new URL(raw).hostname.toLowerCase()
+    return host === 'play.google.com' || host === 'apps.apple.com' || host === 'itunes.apple.com'
+  } catch {
+    return false
+  }
+}
+
+export function storeUrlToOpen(tapped: string, os: 'ios' | 'android'): string {
+  const raw = tapped.trim()
+  if (HTTP_RE.test(raw)) return raw
+  return eximbayAppStoreUrlForOs(os)
+}
+
+/** Non-http(s) schemes (Alipay / WeChat / banking apps) — blocked (stay in-app). Store links are optional, not this. */
 export function isExternalPaymentAppUrl(url: string): boolean {
   const u = url.trim()
   if (!u || HTTP_RE.test(u) || u.startsWith('about:') || u.startsWith('data:')) return false
   if (u.startsWith('simplyur:')) return false
+  if (isOptionalAppStoreUrl(u)) return false
   return true
 }
 
@@ -68,6 +107,10 @@ export function isEximbayAuthHost(host: string): boolean {
 export function classifySimplyurCheckoutWebViewUrl(url: string): SimplyurCheckoutWebViewNav {
   const raw = (url ?? '').trim()
   if (!raw) return { kind: 'continue' }
+
+  if (isOptionalAppStoreUrl(raw)) {
+    return { kind: 'optional_store_link', url: raw }
+  }
 
   if (isExternalPaymentAppUrl(raw)) {
     return { kind: 'external_app', url: raw }

@@ -3169,7 +3169,6 @@
           "mustNotInclude": [
             "openBrowserAsync",
             "expo-web-browser",
-            "Linking.openURL",
             "simplyurWebCheckoutUrl"
           ]
         },
@@ -12498,7 +12497,6 @@
             "setExternalBlocked"
           ],
           "mustNotInclude": [
-            "Linking.openURL",
             "openBrowserAsync",
             "expo-web-browser"
           ]
@@ -15557,7 +15555,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-payment-prep]",
             "callEximbayPaymentsReady",
-            "/v1/payments/ready"
+            "/v1/payments/ready",
+            "P000-P002",
+            "multi_paymethod"
           ]
         },
         {
@@ -15762,6 +15762,83 @@
       ],
       "vitestSuites": [
         "lib/inquiry-thank-you-path.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-device-card-wallet",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 카드 알림은 고객 폰 SecureStore만 — PAN/CVV·서버 저장 금지",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/lib/device-card-wallet.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-device-card-wallet]",
+            "last4",
+            "looksLikeForbiddenCardSecret"
+          ],
+          "mustNotInclude": [
+            "prisma",
+            "fetch("
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/device-card-store.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-device-card-wallet]",
+            "SecureStore",
+            "simplyur_device_cards_v1",
+            "savePreferPhoneCardFill"
+          ],
+          "mustNotInclude": [
+            "fetch("
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-device-card-wallet]",
+            "saveCardOnPhone",
+            "importantForAutofill",
+            "savePreferPhoneCardFill"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/device-card-wallet.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-eximbay-app-install-optional",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "EXIMPay+ 앱은 결제 필수 아님 — 설치 희망자만 스토어 링크",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]",
+            "optional_store_link",
+            "isOptionalAppStoreUrl",
+            "EXIMPAY_PLAY_STORE_URL"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]",
+            "openOptionalEximbayStore",
+            "Linking.openURL",
+            "eximbayAppInstallLink"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
       ]
     }
   ],

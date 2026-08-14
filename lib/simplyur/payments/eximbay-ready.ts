@@ -10,6 +10,16 @@ import {
 } from "@/lib/simplyur/payments/eximbay-env";
 import { krwOrderTotalToUsdMinor, krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
 
+/** Default hosted methods: credit card + UnionPay. Not Eximbay Pay app. */
+export const SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD_DEFAULT = "P000-P002";
+
+/** PayPal (P001) + Alipay Plus (P003) — opt-in via SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD. */
+export function resolveSimplyurEximbayMultiPaymethod(): string {
+  const raw = (process.env.SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD ?? "").trim().toUpperCase();
+  if (/^P[0-9A-Z]{3}(-P[0-9A-Z]{3})*$/.test(raw)) return raw;
+  return SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD_DEFAULT;
+}
+
 export type EximbayOsType = "P" | "M";
 export type EximbayDisplayType = "P" | "R";
 /** PAYMENT = full window; PAYER_AUTH = auth only then server /v1/payments/confirm */
@@ -35,6 +45,11 @@ export type EximbayReadyRequestBody = {
     call_from_app?: "Y" | "N";
     call_from_scheme?: string;
   };
+  /**
+   * Restrict hosted methods. P000=card, P002=UnionPay.
+   * PayPal P001 / Alipay P003 stay off until explicitly enabled.
+   */
+  other?: { multi_paymethod: string };
 };
 
 export type EximbayRequestPayPayload = EximbayReadyRequestBody & { fgkey: string };
@@ -88,10 +103,13 @@ export function buildEximbayReadyRequestBody(input: {
   transactionType?: EximbayTransactionType;
   callFromApp?: boolean;
   callFromScheme?: string;
+  /** Hosted method codes, e.g. P000-P002. */
+  multiPaymethod?: string;
 }): EximbayReadyRequestBody {
   const settings = resolveEximbayClientSettings(input.ostype ?? "M");
   const txn: EximbayTransactionType =
     input.transactionType === "PAYER_AUTH" ? "PAYER_AUTH" : "PAYMENT";
+  const multi = (input.multiPaymethod ?? resolveSimplyurEximbayMultiPaymethod()).trim();
   return {
     payment: {
       transaction_type: txn,
@@ -118,6 +136,7 @@ export function buildEximbayReadyRequestBody(input: {
           }
         : {}),
     },
+    ...(multi ? { other: { multi_paymethod: multi } } : {}),
   };
 }
 

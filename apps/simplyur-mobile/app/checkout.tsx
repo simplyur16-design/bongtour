@@ -2,6 +2,8 @@ import { Link, router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,7 +27,21 @@ import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
-import { classifySimplyurCheckoutWebViewUrl } from '@/src/lib/checkout-webview-nav';
+import {
+  classifySimplyurCheckoutWebViewUrl,
+  eximbayAppStoreUrlForOs,
+  storeUrlToOpen,
+} from '@/src/lib/checkout-webview-nav';
+import {
+  formatDeviceSavedCardLabel,
+} from '@/src/lib/device-card-wallet';
+import {
+  loadDeviceSavedCards,
+  loadPreferPhoneCardFill,
+  removeDeviceSavedCard,
+  savePreferPhoneCardFill,
+  type DeviceSavedCard,
+} from '@/src/lib/device-card-store';
 import { loadSimplyurSession } from '@/src/lib/session';
 import { captureSimplyurError, trackSimplyurEvent } from '@/src/lib/telemetry';
 
@@ -40,6 +56,8 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-mobile-checkout-email-editable]: session email prefill but always editable (Apple Hide My Email) — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner on checkout form — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: checkout funnel telemetry — manifest
+ * REGRESSION-FREEZE[simplyur-device-card-wallet]: phone-only card reminder — manifest
+ * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store link only — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -64,17 +82,24 @@ export default function CheckoutScreen() {
   const [payHtml, setPayHtml] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const [externalBlocked, setExternalBlocked] = useState(false);
+  const [storeLinkHint, setStoreLinkHint] = useState(false);
+  const [savedCards, setSavedCards] = useState<DeviceSavedCard[]>([]);
+  const [saveCardOnPhone, setSaveCardOnPhone] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     void (async () => {
-      const [p, session] = await Promise.all([
+      const [p, session, cards, preferFill] = await Promise.all([
         fetchKoreaProduct(id, locale).catch(() => null),
         loadSimplyurSession(),
+        loadDeviceSavedCards().catch(() => [] as DeviceSavedCard[]),
+        loadPreferPhoneCardFill().catch(() => false),
       ]);
       if (cancelled) return;
       setProduct(p);
+      setSavedCards(cards);
+      setSaveCardOnPhone(preferFill);
       const fromSession = (session?.email ?? '').trim();
       const fromCheckout = loadCheckoutBuyerEmail();
       const picked = fromSession || fromCheckout;
@@ -94,6 +119,7 @@ export default function CheckoutScreen() {
     setPayHtml('');
     setPayLoading(false);
     setExternalBlocked(false);
+    setStoreLinkHint(false);
     handledRef.current = false;
     if (message) setErr(message);
   }, []);
@@ -124,6 +150,15 @@ export default function CheckoutScreen() {
     [locale, returnToNativeForm, t],
   );
 
+  const openOptionalEximbayStore = useCallback((tapped?: string) => {
+    const os = Platform.OS === 'ios' ? 'ios' : 'android';
+    const url = tapped ? storeUrlToOpen(tapped, os) : eximbayAppStoreUrlForOs(os);
+    setStoreLinkHint(true);
+    void Linking.openURL(url).catch(() => {
+      void Linking.openURL(eximbayAppStoreUrlForOs(os)).catch(() => undefined);
+    });
+  }, []);
+
   const onNavChange = useCallback(
     (nav: WebViewNavigation) => {
       const classified = classifySimplyurCheckoutWebViewUrl(nav.url);
@@ -147,13 +182,17 @@ export default function CheckoutScreen() {
         returnToNativeForm(t('checkout.errorGeneric'));
         return false;
       }
+      if (classified.kind === 'optional_store_link') {
+        openOptionalEximbayStore(classified.url);
+        return false;
+      }
       if (classified.kind === 'external_app') {
         setExternalBlocked(true);
         return false;
       }
       return true;
     },
-    [returnToNativeForm, runCompletePa, t],
+    [openOptionalEximbayStore, returnToNativeForm, runCompletePa, t],
   );
 
   async function onSubmit() {
@@ -170,6 +209,7 @@ export default function CheckoutScreen() {
     setBusy(true);
     trackSimplyurEvent('checkout_start', { optionApiId: product.option_api_id });
     try {
+      await savePreferPhoneCardFill(saveCardOnPhone);
       const order = await confirmSimplyurCheckout({
         optionApiId: product.option_api_id,
         email,
@@ -257,6 +297,12 @@ export default function CheckoutScreen() {
         </View>
         <Text style={styles.authHint}>{t('checkout.authHint')}</Text>
 
+        {storeLinkHint ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.body}>{t('checkout.eximbayAppOpenedHint')}</Text>
+          </View>
+        ) : null}
+
         {externalBlocked ? (
           <View style={styles.errorBox}>
             <Text style={styles.body}>{t('checkout.stayInAppOnly')}</Text>
@@ -295,6 +341,8 @@ export default function CheckoutScreen() {
             domStorageEnabled
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
+            cacheEnabled
+            importantForAutofill="yes"
             startInLoadingState
             allowsBackForwardNavigationGestures
             onOpenWindow={(e) => {
@@ -307,6 +355,10 @@ export default function CheckoutScreen() {
               }
               if (classified.kind === 'cancel_or_fail') {
                 returnToNativeForm(t('checkout.errorGeneric'));
+                return;
+              }
+              if (classified.kind === 'optional_store_link') {
+                openOptionalEximbayStore(classified.url);
                 return;
               }
               if (classified.kind === 'external_app') {
@@ -363,6 +415,39 @@ export default function CheckoutScreen() {
             {emailFromAccount ? t('checkout.emailFromAccountHint') : t('checkout.emailHint')}
           </Text>
 
+          <Text style={styles.label}>{t('checkout.saveCardTitle')}</Text>
+          {savedCards.map((card) => (
+            <View key={card.id} style={styles.savedCardRow}>
+              <Text style={styles.savedCardLabel}>{formatDeviceSavedCardLabel(card)}</Text>
+              <Pressable
+                onPress={() => {
+                  void removeDeviceSavedCard(card.id).then(() =>
+                    loadDeviceSavedCards().then(setSavedCards),
+                  );
+                }}
+                hitSlop={8}>
+                <Text style={styles.link}>{t('checkout.saveCardRemove')}</Text>
+              </Pressable>
+            </View>
+          ))}
+          <Pressable
+            onPress={() => {
+              setSaveCardOnPhone((v) => {
+                const next = !v;
+                void savePreferPhoneCardFill(next);
+                return next;
+              });
+            }}
+            style={styles.termsRow}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: saveCardOnPhone }}>
+            <View style={[styles.checkbox, saveCardOnPhone ? styles.checkboxOn : null]}>
+              {saveCardOnPhone ? <Text style={styles.checkMark}>✓</Text> : null}
+            </View>
+            <Text style={styles.termsText}>{t('checkout.saveCardToggle')}</Text>
+          </Pressable>
+          <Text style={styles.hint}>{t('checkout.saveCardHint')}</Text>
+
           <Text style={styles.label}>{t('checkout.phone')}</Text>
           <TextInput
             value={phone}
@@ -389,6 +474,11 @@ export default function CheckoutScreen() {
               router.push({ pathname: '/legal', params: { doc: 'terms' } })
             }>
             <Text style={styles.legalLink}>{t('legal.termsTitle')}</Text>
+          </Pressable>
+
+          <Text style={styles.hint}>{t('checkout.eximbayAppOptional')}</Text>
+          <Pressable onPress={() => openOptionalEximbayStore()} hitSlop={8}>
+            <Text style={styles.legalLink}>{t('checkout.eximbayAppInstallLink')}</Text>
           </Pressable>
 
           {err ? <Text style={styles.err}>{err}</Text> : null}
@@ -467,6 +557,26 @@ const styles = StyleSheet.create({
     ...fp('400'),
   },
   hint: { fontSize: 12, color: LOGIN_1B.faint, ...fp('400') },
+  savedCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingVertical: 6,
+  },
+  savedCardLabel: { flex: 1, fontSize: 14, color: LOGIN_1B.navy, ...fp('500') },
+  brandRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  brandChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: '#fff',
+  },
+  brandChipOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
+  brandChipText: { fontSize: 12, color: LOGIN_1B.navy, ...fp('600') },
+  brandChipTextOn: { color: '#fff' },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   checkbox: {
     width: 22,

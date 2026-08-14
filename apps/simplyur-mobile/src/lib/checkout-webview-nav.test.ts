@@ -1,8 +1,10 @@
 // REGRESSION-FREEZE[simplyur-mobile-vitest-tsconfig]: standalone apps/simplyur-mobile/tsconfig (no expo extend) — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: store link optional — manifest
 import { describe, expect, it } from 'vitest'
 import {
   classifySimplyurCheckoutWebViewUrl,
   isExternalPaymentAppUrl,
+  isOptionalAppStoreUrl,
 } from './checkout-webview-nav'
 
 describe('simplyur in-app checkout WebView nav', () => {
@@ -84,5 +86,21 @@ describe('simplyur in-app checkout WebView nav', () => {
     expect(
       classifySimplyurCheckoutWebViewUrl('alipays://platformapi/startapp'),
     ).toEqual({ kind: 'external_app', url: 'alipays://platformapi/startapp' })
+  })
+
+  it('treats EXIMPay+ / Play Store as an optional link, not a required checkout step', () => {
+    const play = 'https://play.google.com/store/apps/details?id=com.chainrefund.dmplus'
+    expect(isOptionalAppStoreUrl(play)).toBe(true)
+    expect(isExternalPaymentAppUrl(play)).toBe(false)
+    expect(classifySimplyurCheckoutWebViewUrl(play)).toEqual({
+      kind: 'optional_store_link',
+      url: play,
+    })
+    expect(
+      classifySimplyurCheckoutWebViewUrl('market://details?id=com.chainrefund.dmplus'),
+    ).toEqual({
+      kind: 'optional_store_link',
+      url: 'market://details?id=com.chainrefund.dmplus',
+    })
   })
 })

@@ -11,7 +11,11 @@ import {
   resolveEximbayEnv,
   resolveEximbaySdkScriptUrl,
 } from "@/lib/simplyur/payments/eximbay-env";
-import { buildEximbayReadyRequestBody, formatEximbayUsdAmountFromMinor } from "@/lib/simplyur/payments/eximbay-ready";
+import {
+  buildEximbayReadyRequestBody,
+  formatEximbayUsdAmountFromMinor,
+  resolveSimplyurEximbayMultiPaymethod,
+} from "@/lib/simplyur/payments/eximbay-ready";
 import { parseEximbayStatusQuery } from "@/lib/simplyur/payments/eximbay-verify";
 
 describe("simplyur Eximbay env / Basic Auth", () => {
@@ -65,6 +69,17 @@ describe("simplyur Eximbay ready payload", () => {
     expect(body.url.status_url).toContain("/api/simplyur/webhooks/eximbay");
     expect(body.settings.ostype).toBe("M");
     expect(body.settings.display_type).toBe("R");
+    expect(body.other?.multi_paymethod).toBe("P000-P002");
+  });
+
+  it("resolveSimplyurEximbayMultiPaymethod stays card+UnionPay unless env lists PayPal/Alipay", () => {
+    const prev = process.env.SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD;
+    delete process.env.SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD;
+    expect(resolveSimplyurEximbayMultiPaymethod()).toBe("P000-P002");
+    process.env.SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD = "P000-P002-P001-P003";
+    expect(resolveSimplyurEximbayMultiPaymethod()).toBe("P000-P002-P001-P003");
+    if (prev === undefined) delete process.env.SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD;
+    else process.env.SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD = prev;
   });
 
   it("buildEximbayReadyRequestBody uses PC popup when ostype=P", () => {

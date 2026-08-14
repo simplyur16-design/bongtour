@@ -17,6 +17,7 @@ REGRESSION-FREEZE: `simplyur-eximbay-payment-prep`
 | `EXIMBAY_API_KEY` | API key — **never** `NEXT_PUBLIC_*` |
 | `EXIMBAY_ENV` | `test` → `https://api-test.eximbay.com` / `production` → `https://api.eximbay.com` |
 | `SIMPLYUR_EXIMBAY_PREP_UI` | Optional smoke UI on checkout |
+| `SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD` | Optional. Default `P000-P002`. Add `-P001-P003` later for PayPal + Alipay. |
 
 Auth header: `Authorization: Basic base64(apiKey + ":")`.
 
@@ -38,6 +39,8 @@ Currency: **USD** (KRW order total → USD via existing Simplyur FX helpers).
 
 - SDK: `{apiOrigin}/v2/javascriptSDK.js` → `EXIMBAY.request_pay({ fgkey, payment, merchant, buyer, url })`
 - Params for `request_pay` **must match** ready body (else FGKey fails)
+- Hosted methods: default `other.multi_paymethod` = `P000-P002` (credit card + UnionPay). **Not** Eximbay Pay app. PayPal `P001` / Alipay Plus `P003` stay off until `SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD` is set (e.g. `P000-P002-P001-P003`).
+- EXIMPay+ app install is **optional**. Checkout does not require it. People who want the app get a store link (Play / App Store); payment continues with card in simplyur.
 - Smoke panel only when prep UI flag is on; live checkout remains PortOne
 
 ## Next phase (not this contract)
