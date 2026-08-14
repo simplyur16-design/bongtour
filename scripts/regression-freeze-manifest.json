@@ -6778,7 +6778,33 @@
             "TRIP_PARSE_STATUSES",
             "confirmed",
             "needs_review",
-            "failed"
+            "failed",
+            "property_name_user",
+            "property_name_dest",
+            "dest_lang"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/bilingual-hotel.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "enrichHotelBilingual",
+            "detectHotelDestLang"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/current-stay.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "pickCurrentHotelStay"
+          ]
+        },
+        {
+          "file": "components/simplyur/SimplyurCurrentHotelCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "hotelNameForUser",
+            "hotelNameForDest"
           ]
         },
         {

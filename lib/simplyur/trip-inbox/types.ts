@@ -50,7 +50,15 @@ export type TripFlightSegmentPayload = {
 export type TripHotelSegmentPayload = {
   type: "hotel";
   property_name: string | null;
+  /** Visitor / Latin (or user-locale) property name */
+  property_name_user: string | null;
+  /** Destination-local script name (KO/JA/ZH …) */
+  property_name_dest: string | null;
   address: string | null;
+  address_user: string | null;
+  address_dest: string | null;
+  /** Inferred local language at the property */
+  dest_lang: "ko" | "ja" | "zh" | "en" | null;
   phone: string | null;
   check_in_at: string | null;
   check_out_at: string | null;

@@ -1,7 +1,8 @@
 import { finalizeParsedSegment } from "@/lib/simplyur/trip-inbox/confidence";
+import { enrichHotelBilingual } from "@/lib/simplyur/trip-inbox/bilingual-hotel";
 import { newTempId, parseKoDateOptionalTime } from "@/lib/simplyur/trip-inbox/date-parse";
 import { buildMergeKey } from "@/lib/simplyur/trip-inbox/merge-key";
-import type { TripHotelSegmentPayload, TripParsedSegment } from "@/lib/simplyur/trip-inbox/types";
+import type { TripParsedSegment } from "@/lib/simplyur/trip-inbox/types";
 
 /** Rakuten Travel reservation confirmation (KO) */
 export function parseRakutenTravelText(text: string): TripParsedSegment[] {
@@ -36,10 +37,15 @@ export function parseRakutenTravelText(text: string): TripParsedSegment[] {
     ? `${outP.date}T${(outP.time ?? "10:00").padStart(5, "0")}:00`
     : null;
 
-  const payload: TripHotelSegmentPayload = {
+  const payload = enrichHotelBilingual({
     type: "hotel",
     property_name: property,
+    property_name_user: null,
+    property_name_dest: null,
     address,
+    address_user: null,
+    address_dest: null,
+    dest_lang: null,
     phone,
     check_in_at: checkInAt,
     check_out_at: checkOutAt,
@@ -51,7 +57,7 @@ export function parseRakutenTravelText(text: string): TripParsedSegment[] {
     pay_at: payAt,
     booking_ref: bookingRef,
     travelers: booker ? [booker] : [],
-  };
+  });
 
   return [
     finalizeParsedSegment({

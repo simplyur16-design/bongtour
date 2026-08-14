@@ -1,7 +1,8 @@
 import { finalizeParsedSegment } from "@/lib/simplyur/trip-inbox/confidence";
+import { enrichHotelBilingual } from "@/lib/simplyur/trip-inbox/bilingual-hotel";
 import { newTempId, parseKoDateOptionalTime } from "@/lib/simplyur/trip-inbox/date-parse";
 import { buildMergeKey } from "@/lib/simplyur/trip-inbox/merge-key";
-import type { TripHotelSegmentPayload, TripParsedSegment } from "@/lib/simplyur/trip-inbox/types";
+import type { TripParsedSegment } from "@/lib/simplyur/trip-inbox/types";
 
 function toIso(date: string, time?: string): string {
   return `${date}T${time ?? "14:00"}:00`;
@@ -52,10 +53,15 @@ export function parseAgodaText(text: string): TripParsedSegment[] {
   const checkInAt = inP ? toIso(inP.date, inP.time) : null;
   const checkOutAt = outP ? toIso(outP.date, outP.time ?? "11:00") : null;
 
-  const payload: TripHotelSegmentPayload = {
+  const payload = enrichHotelBilingual({
     type: "hotel",
     property_name: property,
+    property_name_user: null,
+    property_name_dest: null,
     address,
+    address_user: null,
+    address_dest: null,
+    dest_lang: null,
     phone: null,
     check_in_at: checkInAt,
     check_out_at: checkOutAt,
@@ -67,7 +73,7 @@ export function parseAgodaText(text: string): TripParsedSegment[] {
     pay_at: text.includes("Agoda") ? "agoda" : null,
     booking_ref: bookingRef,
     travelers: client ? [client] : [],
-  };
+  });
 
   return [
     finalizeParsedSegment({

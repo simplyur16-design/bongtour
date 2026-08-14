@@ -2,6 +2,7 @@
  * Confidence + needs_review rules after parse / correction.
  * REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: review gate — manifest
  */
+import { enrichHotelBilingual } from "@/lib/simplyur/trip-inbox/bilingual-hotel";
 import type {
   TripCarSegmentPayload,
   TripFlightSegmentPayload,
@@ -115,11 +116,14 @@ export function applySegmentCorrection(
   current: TripParsedSegment,
   patch: { payload?: Partial<TripSegmentPayload>; sort_at?: string | null },
 ): TripParsedSegment {
-  const nextPayload = {
+  let nextPayload = {
     ...current.payload,
     ...(patch.payload ?? {}),
     type: current.payload.type,
   } as TripSegmentPayload;
+  if (nextPayload.type === "hotel") {
+    nextPayload = enrichHotelBilingual(nextPayload as TripHotelSegmentPayload);
+  }
   const sortAt =
     patch.sort_at !== undefined
       ? patch.sort_at

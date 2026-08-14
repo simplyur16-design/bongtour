@@ -269,7 +269,22 @@
     "cancel": "Hủy",
     "statusConfirmed": "Đã xác nhận",
     "statusNeedsReview": "Cần xem lại",
-    "statusFailed": "Thất bại"
+    "statusFailed": "Thất bại",
+    "currentStay": "Đang lưu trú",
+    "upcomingStay": "Khách sạn tiếp theo",
+    "yourLanguage": "Ngôn ngữ của bạn",
+    "localLanguage": "Ngôn ngữ địa phương ({lang})",
+    "nameMissing": "Thêm tên khách sạn",
+    "localNameMissing": "Thêm tên tiếng địa phương",
+    "addBilingualNames": "Thêm tên bằng cả hai ngôn ngữ",
+    "checkIn": "Nhận phòng",
+    "checkOut": "Trả phòng",
+    "destLang": {
+      "ko": "Tiếng Hàn",
+      "ja": "Tiếng Nhật",
+      "zh": "Tiếng Trung",
+      "en": "Tiếng Anh"
+    }
   },
   "myEsim": {
     "title": "eSIM của tôi",

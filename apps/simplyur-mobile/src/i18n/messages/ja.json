@@ -296,7 +296,22 @@
     "cancel": "キャンセル",
     "statusConfirmed": "確認済み",
     "statusNeedsReview": "要確認",
-    "statusFailed": "失敗"
+    "statusFailed": "失敗",
+    "currentStay": "滞在中",
+    "upcomingStay": "次のホテル",
+    "yourLanguage": "あなたの言語",
+    "localLanguage": "現地語（{lang}）",
+    "nameMissing": "ホテル名を追加",
+    "localNameMissing": "現地語の名前を追加",
+    "addBilingualNames": "両言語で名前を追加",
+    "checkIn": "チェックイン",
+    "checkOut": "チェックアウト",
+    "destLang": {
+      "ko": "韓国語",
+      "ja": "日本語",
+      "zh": "中国語",
+      "en": "英語"
+    }
   },
   "myEsim": {
     "title": "マイeSIM",

@@ -296,7 +296,22 @@
     "cancel": "取消",
     "statusConfirmed": "已確認",
     "statusNeedsReview": "待核對",
-    "statusFailed": "失敗"
+    "statusFailed": "失敗",
+    "currentStay": "正在入住",
+    "upcomingStay": "下一間飯店",
+    "yourLanguage": "您的語言",
+    "localLanguage": "當地語言（{lang}）",
+    "nameMissing": "新增飯店名稱",
+    "localNameMissing": "新增當地語言名稱",
+    "addBilingualNames": "補上兩種語言名稱",
+    "checkIn": "入住",
+    "checkOut": "退房",
+    "destLang": {
+      "ko": "韓文",
+      "ja": "日文",
+      "zh": "中文",
+      "en": "英文"
+    }
   },
   "myEsim": {
     "title": "我的 eSIM",

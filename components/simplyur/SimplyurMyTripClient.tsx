@@ -1,18 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { SimplyurCurrentHotelCard } from "@/components/simplyur/SimplyurCurrentHotelCard";
 import { useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import {
   loadTripInboxSegments,
   mergeTripInboxSegments,
   saveTripInboxSegments,
 } from "@/lib/simplyur/trip-inbox/client-store";
+import { enrichHotelBilingual } from "@/lib/simplyur/trip-inbox/bilingual-hotel";
+import { pickCurrentHotelStay, pickUpcomingHotelStay } from "@/lib/simplyur/trip-inbox/current-stay";
 import type {
+  TripHotelSegmentPayload,
   TripParsedSegment,
   TripParseResult,
   TripParseStatus,
 } from "@/lib/simplyur/trip-inbox/types";
 
+function hydrateSegments(segs: TripParsedSegment[]): TripParsedSegment[] {
+  return segs.map((s) => {
+    if (s.payload.type !== "hotel") return s;
+    return { ...s, payload: enrichHotelBilingual(s.payload as TripHotelSegmentPayload) };
+  });
+}
 function statusLabel(tr: (k: string) => string, status: TripParseStatus): string {
   if (status === "confirmed") return tr("myTrip.statusConfirmed");
   if (status === "needs_review") return tr("myTrip.statusNeedsReview");
@@ -28,7 +38,8 @@ function segmentTitle(seg: TripParsedSegment): string {
     return [p.flight_no, route].filter(Boolean).join(" · ") || "Flight";
   }
   if (seg.payload.type === "hotel") {
-    return seg.payload.property_name || "Hotel";
+    const p = seg.payload;
+    return p.property_name_user || p.property_name_dest || p.property_name || "Hotel";
   }
   return seg.payload.vehicle_class || seg.payload.pickup_location || "Car";
 }
@@ -47,13 +58,21 @@ export function SimplyurMyTripClient() {
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setSegments(loadTripInboxSegments());
+    setSegments(hydrateSegments(loadTripInboxSegments()));
   }, []);
 
   const persist = useCallback((next: TripParsedSegment[]) => {
     setSegments(next);
     saveTripInboxSegments(next);
   }, []);
+
+  const stayHotel = useMemo(() => {
+    const current = pickCurrentHotelStay(segments);
+    if (current) return { seg: current, mode: "current" as const };
+    const upcoming = pickUpcomingHotelStay(segments);
+    if (upcoming) return { seg: upcoming, mode: "upcoming" as const };
+    return null;
+  }, [segments]);
 
   const onParse = useCallback(async () => {
     setBusy(true);
@@ -93,11 +112,15 @@ export function SimplyurMyTripClient() {
         arr_at: p.arr_at ?? "",
       });
     } else if (p.type === "hotel") {
+      const h = p as TripHotelSegmentPayload;
       setDraft({
-        property_name: p.property_name ?? "",
-        check_in_at: p.check_in_at ?? "",
-        check_out_at: p.check_out_at ?? "",
-        address: p.address ?? "",
+        property_name_user: h.property_name_user ?? "",
+        property_name_dest: h.property_name_dest ?? "",
+        address_user: h.address_user ?? "",
+        address_dest: h.address_dest ?? "",
+        check_in_at: h.check_in_at ?? "",
+        check_out_at: h.check_out_at ?? "",
+        dest_lang: h.dest_lang ?? "ko",
       });
     } else {
       setDraft({
@@ -158,6 +181,15 @@ export function SimplyurMyTripClient() {
         </h1>
         <p className="mt-1 text-sm text-[color:var(--su-ink-muted)]">{tr("myTrip.subtitle")}</p>
       </header>
+
+      {stayHotel ? (
+        <SimplyurCurrentHotelCard
+          segment={stayHotel.seg}
+          mode={stayHotel.mode}
+          tr={tr}
+          onFix={() => openEdit(stayHotel.seg)}
+        />
+      ) : null}
 
       <section className="mb-8 space-y-3">
         <label className="block text-sm font-medium text-[color:var(--su-ink)]" htmlFor="trip-paste">
@@ -255,7 +287,7 @@ export function SimplyurMyTripClient() {
                 {seg.issues.length > 0 ? (
                   <p className="mt-2 text-xs text-amber-900">{seg.issues.join(", ")}</p>
                 ) : null}
-                {(seg.status === "needs_review" || seg.status === "failed") && (
+                {(seg.status === "needs_review" || seg.status === "failed" || seg.type === "hotel") && (
                   <button
                     type="button"
                     className="mt-2 text-sm font-medium text-[color:var(--su-brand-ur)] underline"

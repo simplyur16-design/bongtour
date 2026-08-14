@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applySegmentCorrection, parseTripInboxText } from "@/lib/simplyur/trip-inbox";
+import {
+  applySegmentCorrection,
+  parseTripInboxText,
+  pickCurrentHotelStay,
+  pickUpcomingHotelStay,
+} from "@/lib/simplyur/trip-inbox";
 import { detectTripProvider } from "@/lib/simplyur/trip-inbox/detect-provider";
 
 // REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: parser fixtures — manifest
@@ -111,7 +116,25 @@ describe("simplyur trip-inbox", () => {
     if (r.segments[0]?.payload.type === "hotel") {
       expect(r.segments[0].payload.booking_ref).toBe("21315090849495");
       expect(r.segments[0].payload.check_in_window).toMatch(/14:00/);
+      expect(r.segments[0].payload.property_name_dest).toMatch(/그랜드|호텔/);
+      expect(r.segments[0].payload.dest_lang).toBe("ja");
     }
+  });
+
+  it("picks current hotel stay and bilingual Agoda user name", () => {
+    const r = parseTripInboxText(AGODA_FIXTURE);
+    const hotel = r.segments[0]!;
+    expect(hotel.payload.type).toBe("hotel");
+    if (hotel.payload.type === "hotel") {
+      expect(hotel.payload.property_name_user).toMatch(/VIA INN/i);
+      expect(hotel.payload.dest_lang).toBe("ja");
+    }
+    const during = Date.parse("2026-11-03T12:00:00");
+    expect(pickCurrentHotelStay(r.segments, during)?.temp_id).toBe(hotel.temp_id);
+    expect(pickCurrentHotelStay(r.segments, Date.parse("2026-10-01T12:00:00"))).toBeNull();
+    expect(pickUpcomingHotelStay(r.segments, Date.parse("2026-10-01T12:00:00"))?.temp_id).toBe(
+      hotel.temp_id,
+    );
   });
 
   it("parses Trip.com car pickup", () => {

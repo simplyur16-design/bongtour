@@ -549,7 +549,22 @@
     "cancel": "Cancel",
     "statusConfirmed": "Confirmed",
     "statusNeedsReview": "Needs review",
-    "statusFailed": "Failed"
+    "statusFailed": "Failed",
+    "currentStay": "Staying now",
+    "upcomingStay": "Next hotel",
+    "yourLanguage": "Your language",
+    "localLanguage": "Local ({lang})",
+    "nameMissing": "Add hotel name",
+    "localNameMissing": "Add local-language name",
+    "addBilingualNames": "Add names in both languages",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "destLang": {
+      "ko": "Korean",
+      "ja": "Japanese",
+      "zh": "Chinese",
+      "en": "English"
+    }
   },
   "myEsim": {
     "title": "My eSIM",

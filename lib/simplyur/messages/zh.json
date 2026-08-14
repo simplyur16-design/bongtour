@@ -269,7 +269,22 @@
     "cancel": "取消",
     "statusConfirmed": "已确认",
     "statusNeedsReview": "待核对",
-    "statusFailed": "失败"
+    "statusFailed": "失败",
+    "currentStay": "正在入住",
+    "upcomingStay": "下一间酒店",
+    "yourLanguage": "您的语言",
+    "localLanguage": "当地语言（{lang}）",
+    "nameMissing": "添加酒店名称",
+    "localNameMissing": "添加当地语言名称",
+    "addBilingualNames": "补充两种语言名称",
+    "checkIn": "入住",
+    "checkOut": "退房",
+    "destLang": {
+      "ko": "韩语",
+      "ja": "日语",
+      "zh": "中文",
+      "en": "英语"
+    }
   },
   "myEsim": {
     "title": "我的 eSIM",

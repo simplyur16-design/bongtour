@@ -29,6 +29,11 @@ import {
   mergeTripInboxSegments,
   saveTripInboxSegments,
 } from '@/src/lib/trip-inbox-store';
+import {
+  hotelDisplayNames,
+  pickCurrentHotelStay,
+  pickUpcomingHotelStay,
+} from '@/src/lib/current-hotel-stay';
 import { getSimplyurAccessToken, subscribeSimplyurSession } from '@/src/lib/session';
 
 /**
@@ -105,10 +110,13 @@ export default function MyTripScreen() {
       });
     } else if (p.type === 'hotel') {
       setDraft({
-        property_name: String(p.property_name ?? ''),
+        property_name_user: String(p.property_name_user ?? ''),
+        property_name_dest: String(p.property_name_dest ?? ''),
+        address_user: String(p.address_user ?? ''),
+        address_dest: String(p.address_dest ?? ''),
         check_in_at: String(p.check_in_at ?? ''),
         check_out_at: String(p.check_out_at ?? ''),
-        address: String(p.address ?? ''),
+        dest_lang: String(p.dest_lang ?? 'ko'),
       });
     } else {
       setDraft({
@@ -146,6 +154,14 @@ export default function MyTripScreen() {
     [segments],
   );
 
+  const stayHotel = useMemo(() => {
+    const current = pickCurrentHotelStay(segments);
+    if (current) return { seg: current, mode: 'current' as const };
+    const upcoming = pickUpcomingHotelStay(segments);
+    if (upcoming) return { seg: upcoming, mode: 'upcoming' as const };
+    return null;
+  }, [segments]);
+
   if (signedIn === false) {
     return (
       <ScrollView
@@ -172,6 +188,15 @@ export default function MyTripScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
         <Text style={styles.title}>{t('myTrip.title')}</Text>
         <Text style={styles.subtitle}>{t('myTrip.subtitle')}</Text>
+
+        {stayHotel ? (
+          <StayHotelCard
+            segment={stayHotel.seg}
+            mode={stayHotel.mode}
+            t={t}
+            onFix={() => openEdit(stayHotel.seg)}
+          />
+        ) : null}
 
         <Text style={styles.label}>{t('myTrip.pasteLabel')}</Text>
         <TextInput
@@ -225,7 +250,7 @@ export default function MyTripScreen() {
               {seg.issues.length > 0 ? (
                 <Text style={styles.issues}>{seg.issues.join(', ')}</Text>
               ) : null}
-              {(seg.status === 'needs_review' || seg.status === 'failed') && (
+              {(seg.status === 'needs_review' || seg.status === 'failed' || seg.type === 'hotel') && (
                 <Pressable onPress={() => openEdit(seg)}>
                   <Text style={styles.fix}>{t('myTrip.fix')}</Text>
                 </Pressable>
@@ -271,7 +296,9 @@ function segmentTitle(seg: TripParsedSegment): string {
     const route = [p.dep_airport || p.dep_city, p.arr_airport || p.arr_city].filter(Boolean).join(' → ');
     return [p.flight_no, route].filter(Boolean).join(' · ') || 'Flight';
   }
-  if (p.type === 'hotel') return String(p.property_name || 'Hotel');
+  if (p.type === 'hotel') {
+    return String(p.property_name_user || p.property_name_dest || p.property_name || 'Hotel');
+  }
   return String(p.vehicle_class || p.pickup_location || 'Car');
 }
 
@@ -291,10 +318,73 @@ function badgeStyle(status: TripParseStatus) {
   return styles.badgeFail;
 }
 
+function StayHotelCard({
+  segment,
+  mode,
+  t,
+  onFix,
+}: {
+  segment: TripParsedSegment;
+  mode: 'current' | 'upcoming';
+  t: (k: string) => string;
+  onFix: () => void;
+}) {
+  const names = hotelDisplayNames(segment.payload);
+  const destLabel = t(`myTrip.destLang.${names.destLang}`);
+  const fmt = (v: unknown) =>
+    typeof v === 'string' ? v.replace('T', ' ').slice(0, 16) : '—';
+  return (
+    <View style={styles.stayCard}>
+      <View style={styles.stayHead}>
+        <Text style={styles.stayBadge}>
+          {mode === 'current' ? t('myTrip.currentStay') : t('myTrip.upcomingStay')}
+        </Text>
+        <Text style={styles.stayLang}>{destLabel}</Text>
+      </View>
+      <Text style={styles.stayLabel}>{t('myTrip.yourLanguage')}</Text>
+      <Text style={styles.stayName}>{names.nameUser || t('myTrip.nameMissing')}</Text>
+      {names.addrUser ? <Text style={styles.stayAddr}>{names.addrUser}</Text> : null}
+      <View style={styles.stayLocalBox}>
+        <Text style={styles.stayLabel}>
+          {t('myTrip.localLanguage').replace('{lang}', destLabel)}
+        </Text>
+        <Text style={styles.stayNameLocal}>{names.nameDest || t('myTrip.localNameMissing')}</Text>
+        {names.addrDest ? <Text style={styles.stayAddr}>{names.addrDest}</Text> : null}
+      </View>
+      <Text style={styles.stayWhen}>
+        {t('myTrip.checkIn')}: {fmt(segment.payload.check_in_at)} · {t('myTrip.checkOut')}:{' '}
+        {fmt(segment.payload.check_out_at)}
+      </Text>
+      {(!names.nameUser || !names.nameDest) && (
+        <Pressable onPress={onFix}>
+          <Text style={styles.fix}>{t('myTrip.addBilingualNames')}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
   title: { fontSize: fp(24), fontWeight: '700', color: P.ink, marginTop: 8 },
   subtitle: { marginTop: 6, fontSize: fp(14), color: D.muted, lineHeight: 20 },
+  stayCard: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    padding: 14,
+  },
+  stayHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  stayBadge: { fontSize: fp(11), fontWeight: '700', color: D.coral, textTransform: 'uppercase' },
+  stayLang: { fontSize: fp(11), color: D.muted },
+  stayLabel: { fontSize: fp(11), color: D.muted, textTransform: 'uppercase', fontWeight: '600' },
+  stayName: { marginTop: 2, fontSize: fp(17), fontWeight: '700', color: P.ink },
+  stayNameLocal: { marginTop: 2, fontSize: fp(16), fontWeight: '600', color: P.ink },
+  stayAddr: { marginTop: 4, fontSize: fp(13), color: D.muted },
+  stayLocalBox: { marginTop: 12, backgroundColor: '#FFF8F5', borderRadius: 12, padding: 10 },
+  stayWhen: { marginTop: 10, fontSize: fp(12), color: D.muted },
   label: { marginTop: 20, marginBottom: 8, fontSize: fp(13), fontWeight: '600', color: P.ink },
   input: {
     minHeight: 140,
