@@ -1,4 +1,5 @@
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
+import { BONGSIM_CATALOG_CONSUMER_KRW_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import {
   classifyBongsimPgError,
   getPgPool,
@@ -19,6 +20,7 @@ import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog uses resolveSimplyurFxRates — manifest
 // REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: statement timeout·connect timeout 분류·풀 리셋 — manifest
 // REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: SELECT qos_raw for Unlimited 1/3Mbps labels — manifest
+// REGRESSION-FREEZE[bongsim-price-effective-from]: catalog ORDER BY effective consumer — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -112,7 +114,7 @@ export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaPr
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
        ORDER BY plan_name, days_raw,
-         (price_block->'after'->>'consumer_krw')::numeric ASC NULLS LAST`,
+         (${BONGSIM_CATALOG_CONSUMER_KRW_SQL}) ASC NULLS LAST`,
         ),
       ),
     );

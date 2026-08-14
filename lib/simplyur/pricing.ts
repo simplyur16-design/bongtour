@@ -12,11 +12,13 @@ export const SIMPLYUR_PRICE_BASIS_KEY = "after.consumer_krw.simplyur_markup_1.05
 /**
  * simplyur 청구·표시 단가(KRW): 유효 소비자가 × 1.05 (ceil).
  * effective_from 컷오버는 afterConsumerSellKrw SSOT.
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: simplyur sell cutover — manifest
  */
 export function simplyurSellPriceKrw(
   priceBlock: AfterRecommendedPriceBlockInput,
+  nowMs: number = Date.now(),
 ): number | null {
-  const consumer = afterConsumerSellKrw(priceBlock);
+  const consumer = afterConsumerSellKrw(priceBlock, nowMs);
   if (consumer == null || consumer < 0) return null;
   return Math.ceil(consumer * SIMPLYUR_MARKUP_MULTIPLIER);
 }

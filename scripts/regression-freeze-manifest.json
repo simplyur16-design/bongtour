@@ -2294,11 +2294,30 @@
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
             "effective_from"
           ]
+        },
+        {
+          "file": "lib/simplyur/pricing.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "afterConsumerSellKrw",
+            "nowMs"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "BONGSIM_CATALOG_CONSUMER_KRW_SQL"
+          ],
+          "mustNotInclude": [
+            "price_block->'after'->>'consumer_krw'"
+          ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/data/pricing-effective-from.test.ts",
-        "lib/bongsim/data/pricing-select-charged.test.ts"
+        "lib/bongsim/data/pricing-select-charged.test.ts",
+        "lib/simplyur/pricing.test.ts"
       ]
     },
     {
