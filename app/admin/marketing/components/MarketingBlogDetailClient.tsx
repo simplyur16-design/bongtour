@@ -5,6 +5,10 @@ import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import BlogMarkdownPreview from './BlogMarkdownPreview'
+import {
+  normalizeBlogShortcutAbsoluteUrl,
+  upsertBlogShortcutMarkdown,
+} from '@/lib/bong-marketing/cta-url-builder'
 
 type PostDetail = {
   id: string
@@ -55,6 +59,7 @@ export default function MarketingBlogDetailClient(props: {
   const [publishUrl, setPublishUrl] = useState('')
   const [publishNaverKey, setPublishNaverKey] = useState('')
   const [rejectReason, setRejectReason] = useState('')
+  const [customShortcutUrl, setCustomShortcutUrl] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -108,10 +113,21 @@ export default function MarketingBlogDetailClient(props: {
     if (!post?.inquiryAbsoluteUrl) return
     try {
       await navigator.clipboard.writeText(post.inquiryAbsoluteUrl)
-      setMsg('상품 CTA URL을 복사했습니다.')
+      setMsg('바로가기 URL을 복사했습니다.')
     } catch {
       setErr('복사에 실패했습니다.')
     }
+  }
+
+  const insertShortcutIntoBody = (rawUrl: string) => {
+    const url = normalizeBlogShortcutAbsoluteUrl(rawUrl)
+    if (!url) {
+      setErr('유효한 http(s) URL을 입력해 주세요.')
+      return
+    }
+    setBody((prev) => upsertBlogShortcutMarkdown(prev, url))
+    setMsg('본문에 「바로가기」 링크를 넣었습니다. 「본문 저장」을 눌러 반영하세요.')
+    setErr('')
   }
 
   const copyHashtags = async () => {
@@ -218,27 +234,67 @@ export default function MarketingBlogDetailClient(props: {
         </div>
       )}
 
-      <section className="rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-bt-title">상품 CTA URL (UTM)</h2>
+      {/* REGRESSION-FREEZE[marketing-blog-shortcut-cta]: 어드민 바로가기 URL 삽입 UI — manifest */}
+      <section className="rounded-lg border border-teal-200 bg-teal-50/40 p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-bt-title">바로가기 (웹 URL)</h2>
+        <p className="mt-1 text-xs leading-relaxed text-bt-body/80">
+          본문 하단에 <strong>「바로가기」</strong> 링크를 붙입니다. 네이버에 붙여 넣으면 클릭 시 해당 웹으로
+          이동합니다. 미리보기에서도 링크를 눌러 확인할 수 있습니다.
+        </p>
+
         {post.inquiryAbsoluteUrl ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code className="max-w-full flex-1 break-all rounded bg-bt-surface-soft px-2 py-1 text-xs">
-              {post.inquiryAbsoluteUrl}
-            </code>
-            <button
-              type="button"
-              onClick={() => void copyUtm()}
-              className="rounded-lg bg-bt-brand-blue px-3 py-1.5 text-sm text-white hover:opacity-90"
-            >
-              복사
-            </button>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs font-medium text-bt-title">연결 상품 URL (UTM 포함)</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="max-w-full flex-1 break-all rounded bg-white px-2 py-1 text-xs ring-1 ring-teal-100">
+                {post.inquiryAbsoluteUrl}
+              </code>
+              <button
+                type="button"
+                onClick={() => void copyUtm()}
+                className="rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-sm text-teal-900 hover:bg-teal-50"
+              >
+                URL 복사
+              </button>
+              <button
+                type="button"
+                onClick={() => insertShortcutIntoBody(post.inquiryAbsoluteUrl!)}
+                className="rounded-lg bg-teal-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-800"
+              >
+                본문에 바로가기 삽입
+              </button>
+            </div>
+            {post.productTitle ? (
+              <p className="text-xs text-bt-body/60">상품: {post.productTitle}</p>
+            ) : null}
           </div>
         ) : (
-          <p className="mt-2 text-sm text-bt-body/70">linkedProduct·monthKey 가 없으면 생성할 수 없습니다.</p>
+          <p className="mt-3 text-sm text-bt-body/70">
+            연결 상품이 없으면 아래에서 URL을 직접 입력해 바로가기를 넣을 수 있습니다.
+          </p>
         )}
-        {post.productTitle && (
-          <p className="mt-2 text-xs text-bt-body/60">상품: {post.productTitle}</p>
-        )}
+
+        <div className="mt-4 border-t border-teal-200/80 pt-3">
+          <label className="block text-xs font-medium text-bt-title" htmlFor="blog-custom-shortcut-url">
+            직접 URL 붙이기
+          </label>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <input
+              id="blog-custom-shortcut-url"
+              value={customShortcutUrl}
+              onChange={(e) => setCustomShortcutUrl(e.target.value)}
+              placeholder="https://bongtour.com/products/..."
+              className="min-w-[16rem] flex-1 rounded border border-bt-border-strong bg-white px-2 py-1.5 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => insertShortcutIntoBody(customShortcutUrl)}
+              className="rounded-lg bg-bt-title px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+            >
+              바로가기 삽입
+            </button>
+          </div>
+        </div>
       </section>
 
       <section className="space-y-3 rounded-lg border border-bt-border-strong bg-white p-4 shadow-sm">

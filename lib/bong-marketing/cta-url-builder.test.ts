@@ -83,12 +83,20 @@ describe('appendBlogProductCtaMarkdown', () => {
     delete process.env.NEXT_PUBLIC_SITE_URL
   })
 
-  it('appends markdown CTA block with absolute link', () => {
+  it('appends markdown CTA block with 바로가기 absolute link', () => {
     const out = appendBlogProductCtaMarkdown(
       '# 본문',
       '/products/pkg-mt-0004?utm_source=naver_blog&utm_medium=cta&utm_campaign=2026-06-pkg-mt-0004&utm_content=final_cta',
     )
-    expect(out).toContain('[**상품 보기**](https://bongtour.com/products/pkg-mt-0004')
-    expect(out).toContain('## 상품 보기')
+    expect(out).toContain('[**바로가기**](https://bongtour.com/products/pkg-mt-0004')
+    expect(out).toContain('## 바로가기')
+  })
+
+  it('replaces legacy 상품 보기 block when upserting', () => {
+    const legacy = '# 본문\n\n---\n\n## 상품 보기\n텍스트\n\n[**상품 보기**](https://bongtour.com/old)\n'
+    const out = appendBlogProductCtaMarkdown(legacy, 'https://bongtour.com/products/new')
+    expect(out).not.toContain('상품 보기')
+    expect(out.match(/바로가기/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(out).toContain('https://bongtour.com/products/new')
   })
 })

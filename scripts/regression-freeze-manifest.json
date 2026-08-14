@@ -6733,6 +6733,38 @@
       ]
     },
     {
+      "id": "marketing-blog-shortcut-cta",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "마케팅 블로그 — 본문 「바로가기」 웹 URL 링크 삽입·라벨 SSOT",
+      "checks": [
+        {
+          "file": "lib/bong-marketing/cta-url-builder.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[marketing-blog-shortcut-cta]",
+            "BLOG_SHORTCUT_LINK_LABEL",
+            "바로가기",
+            "upsertBlogShortcutMarkdown",
+            "appendBlogProductCtaMarkdown"
+          ]
+        },
+        {
+          "file": "app/admin/marketing/components/MarketingBlogDetailClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[marketing-blog-shortcut-cta]",
+            "본문에 바로가기 삽입",
+            "upsertBlogShortcutMarkdown",
+            "직접 URL 붙이기"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bong-marketing/cta-url-builder.test.ts"
+      ]
+    },
+    {
       "id": "marketing-content-track-product-gate",
       "tier": [
         "prebuild",
