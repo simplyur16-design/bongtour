@@ -1,3 +1,4 @@
+// REGRESSION-FREEZE[simplyur-android-application-id]: package is com.bongtour.simplyur not com.bongtravel — manifest
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -100,7 +101,7 @@ export function SocialAuthButtons({
         // Dev builds: include exact package + debug SHA-1 so ops can register without hunting.
         setErr(
           typeof __DEV__ !== 'undefined' && __DEV__
-            ? `${t('auth.googleAndroidShaMismatch')} (com.bongtravel.simplyur / SHA-1 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25)`
+            ? `${t('auth.googleAndroidShaMismatch')} (com.bongtour.simplyur / SHA-1 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25)`
             : t('auth.googleAndroidShaMismatch'),
         );
       } else if (code === 'oauth_cancelled') setErr('');

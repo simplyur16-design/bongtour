@@ -101,7 +101,7 @@ Native Google Sign-In needs a **Google Cloud → APIs & Services → Credentials
 
 | Field | Value |
 |-------|--------|
-| Package name | `com.bongtravel.simplyur` |
+| Package name | `com.bongtour.simplyur` |
 | Debug SHA-1 (`android/app/debug.keystore`) | `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` |
 
 Also keep a **Web** client ID (= `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` = Railway `AUTH_GOOGLE_ID`) for `id_token` audience.  
