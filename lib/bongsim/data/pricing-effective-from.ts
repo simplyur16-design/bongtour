@@ -12,11 +12,18 @@ export type PriceTriple = {
   supply_krw: number | null;
 };
 
+/** DB JSON·API·ProductOption — 숫자/문자/unknown 혼재 허용 (출력은 PriceTriple) */
+export type LoosePriceTripleInput = {
+  consumer_krw?: unknown;
+  recommended_krw?: unknown;
+  supply_krw?: unknown;
+};
+
 export type LoosePriceBlock =
   | Pick<BongsimPriceBlockV1, "before" | "after" | "effective_from">
   | {
-      before?: Partial<PriceTriple> | null;
-      after?: Partial<PriceTriple> | null;
+      before?: LoosePriceTripleInput | Partial<PriceTriple> | null;
+      after?: LoosePriceTripleInput | Partial<PriceTriple> | null;
       effective_from?: string | null;
     }
   | null
@@ -31,7 +38,7 @@ function numOrNull(v: unknown): number | null {
   return null;
 }
 
-function tripleFrom(side: Partial<PriceTriple> | null | undefined): PriceTriple {
+function tripleFrom(side: LoosePriceTripleInput | Partial<PriceTriple> | null | undefined): PriceTriple {
   return {
     consumer_krw: numOrNull(side?.consumer_krw),
     recommended_krw: numOrNull(side?.recommended_krw),

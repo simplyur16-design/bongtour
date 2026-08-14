@@ -10,14 +10,15 @@ import {
 } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
 describe("afterSupplyCostKrw", () => {
-  it("reads after.supply_krw only", () => {
+  it("reads active-side supply_krw (effective_from cutover)", () => {
     expect(
       afterSupplyCostKrw({
         after: { recommended_krw: 10000, supply_krw: 7000 },
       }),
     ).toBe(7000);
     expect(afterSupplyCostKrw({ after: { recommended_krw: 10000, supply_krw: null } })).toBeNull();
-    expect(afterSupplyCostKrw({ before: { supply_krw: 5000 } })).toBeNull();
+    // after 비어 있으면 before로 폴백 (resolveActivePriceSide)
+    expect(afterSupplyCostKrw({ before: { supply_krw: 5000 } })).toBe(5000);
   });
 
   it("does not fall back to recommended for sell price helper", () => {

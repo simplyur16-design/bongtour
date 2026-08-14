@@ -27,4 +27,15 @@ describe("pricing-effective-from", () => {
     expect(isBeforePriceEffectiveWindow(block, afterMs)).toBe(false);
     expect(resolveActivePriceSide(block, afterMs).consumer_krw).toBe(11000);
   });
+
+  it("accepts ProductOption-like unknown price fields (Railway tsc)", () => {
+    const loose = {
+      before: { recommended_krw: "9000" as unknown, consumer_krw: undefined as unknown, supply_krw: 5000 as unknown },
+      after: { recommended_krw: null as unknown, consumer_krw: "11000" as unknown, supply_krw: "6000" as unknown },
+      effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+    };
+    const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    expect(resolveActivePriceSide(loose, afterMs).consumer_krw).toBe(11000);
+    expect(resolveActivePriceSide(loose, afterMs).supply_krw).toBe(6000);
+  });
 });
