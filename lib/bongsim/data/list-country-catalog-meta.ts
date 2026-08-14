@@ -16,10 +16,13 @@ import { isTrueUnlimited, type ProductOption } from "@/lib/bongsim/recommend/pro
 /** 국가(권역) 카탈로그 — 여행자 인증 정책 */
 export type TravelerVerificationCountryPolicy = "none" | "mixed" | "required";
 
+// REGRESSION-FREEZE[bongsim-price-effective-from]: hasSellableSku hides empty/new-country tiles — manifest
 export type CountryCatalogMeta = {
   /** 로밍망 완전 무제한 SKU 존재 */
   isUnlimited: boolean;
   travelerVerification: TravelerVerificationCountryPolicy;
+  /** 지금 판매 가능한 카탈로그 SKU가 1개라도 있음 (9/1 전 신규국 숨김) */
+  hasSellableSku: boolean;
 };
 
 /** 메타 계산용 슬림 행 — price_block 없음 (카탈로그 목록 부하 금지) */
@@ -57,7 +60,7 @@ function metaFromProducts(
   if (catalogCode && !countryCatalogAllowsTravelerVerificationPolicy(catalogCode)) {
     travelerVerification = "none";
   }
-  return { isUnlimited, travelerVerification };
+  return { isUnlimited, travelerVerification, hasSellableSku: products.length > 0 };
 }
 
 /** 이미 로드된 슬림 행에서 국가·권역 메타 계산 (추가 DB 왕복 없음) */

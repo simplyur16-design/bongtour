@@ -2257,6 +2257,7 @@
             "2026-09-01T00:00:00+09:00",
             "resolveActivePriceSide",
             "isPriceBlockCatalogSellable",
+            "isScheduledNewSkuHiddenUntilCutover",
             "LoosePriceTripleInput"
           ]
         },
@@ -2273,6 +2274,7 @@
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
             "price_block->>'effective_from'",
             "BONGSIM_CATALOG_SELLABLE_NOW_WHERE",
+            "BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE",
             "after 폴백 금지"
           ]
         },
@@ -2280,7 +2282,8 @@
           "file": "lib/bongsim/catalog/active-product-sql.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
-            "BONGSIM_CATALOG_SELLABLE_NOW_WHERE"
+            "BONGSIM_CATALOG_SELLABLE_NOW_WHERE",
+            "BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE"
           ]
         },
         {
@@ -2331,13 +2334,29 @@
           "mustNotInclude": [
             "price_block->'after'->>'consumer_krw'"
           ]
+        },
+        {
+          "file": "lib/bongsim/data/list-country-catalog-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "hasSellableSku"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/recommend-destination-sections.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "hasSellableSku"
+          ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/data/pricing-effective-from.test.ts",
         "lib/bongsim/data/pricing-select-charged.test.ts",
         "lib/bongsim/ingest/merge-price-block-for-cutover.test.ts",
-        "lib/simplyur/pricing.test.ts"
+        "lib/simplyur/pricing.test.ts",
+        "lib/bongsim/recommend/recommend-destination-sections.test.ts",
+        "lib/bongsim/data/list-country-catalog-meta.test.ts"
       ]
     },
     {

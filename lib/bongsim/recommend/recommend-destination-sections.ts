@@ -1,3 +1,6 @@
+/**
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: hide region packs without sellable SKU — manifest
+ */
 import type { CountryCatalogMeta } from "@/lib/bongsim/data/list-country-catalog-meta";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
 import { applyCatalogMeta } from "@/lib/bongsim/recommend/apply-catalog-meta";
@@ -29,7 +32,9 @@ export function buildAllMultiCountryTiles(
   return USIMSA_MULTI_TAB_ORDER.map((code) => {
     const base = byCode.get(code);
     if (!base) return null;
-    const merged = applyCatalogMeta(base, catalogMeta[code]);
+    const meta = catalogMeta[code];
+    if (meta && meta.hasSellableSku === false) return null;
+    const merged = applyCatalogMeta(base, meta);
     return {
       ...merged,
       displayNameKr: regionPackGridLabel(code, merged),

@@ -4,11 +4,11 @@
  * 컷오버 전·before 없는 스케줄 SKU는 소비자가 NULL → 제외.
  * REGRESSION-FREEZE[bongsim-price-effective-from]: sellable gate on catalog — manifest
  */
-import { BONGSIM_CATALOG_SELLABLE_NOW_WHERE } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
+import { BONGSIM_CATALOG_SELLABLE_NOW_WHERE, BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 
 export const BONGSIM_CATALOG_ESIM_CAPABLE_WHERE = "sim_kind ILIKE '%esim%'";
 
-export const BONGSIM_CATALOG_ACTIVE_WHERE = `is_active = true AND ${BONGSIM_CATALOG_ESIM_CAPABLE_WHERE} AND ${BONGSIM_CATALOG_SELLABLE_NOW_WHERE}`;
+export const BONGSIM_CATALOG_ACTIVE_WHERE = `is_active = true AND ${BONGSIM_CATALOG_ESIM_CAPABLE_WHERE} AND ${BONGSIM_CATALOG_SELLABLE_NOW_WHERE} AND ${BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE}`;
 
 /** 매장 오프라인 USIM — eSIM·uSIM 겸용(active) 옵션만 */
 export const BONGSIM_CATALOG_USIM_CAPABLE_WHERE = "sim_kind ILIKE '%usim%'";

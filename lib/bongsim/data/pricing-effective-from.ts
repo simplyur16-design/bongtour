@@ -91,3 +91,15 @@ export function isPriceBlockCatalogSellable(
   const side = resolveActivePriceSide(priceBlock, nowMs);
   return side.consumer_krw != null && side.consumer_krw >= 0;
 }
+
+/**
+ * 「신규 상품」 SKU는 2026-09-01 00:00 KST 전까지 국가카드·카탈로그에서 숨김.
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: hide 신규 상품 until Sept 1 — manifest
+ */
+export function isScheduledNewSkuHiddenUntilCutover(
+  excelUpdateType: string | null | undefined,
+  nowMs: number = Date.now(),
+): boolean {
+  if ((excelUpdateType ?? "").trim() !== "신규 상품") return false;
+  return nowMs < Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+}

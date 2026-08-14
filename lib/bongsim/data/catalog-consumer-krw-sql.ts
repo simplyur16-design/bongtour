@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[bongsim-catalog-list-perf]: slim consumer extract — manifest
  * REGRESSION-FREEZE[bongsim-price-effective-from]: before/after 컷오버 — manifest
  */
+import { BONGSIM_PRICE_EFFECTIVE_FROM_20260901 } from "@/lib/bongsim/data/pricing-effective-from";
 
 /** after/before 쪽 consumer_krw 숫자 추출 */
 const SIDE_CONSUMER = (side: "'after'" | "'before'") => `CASE
@@ -47,6 +48,15 @@ END`;
  * REGRESSION-FREEZE[bongsim-price-effective-from]: catalog sellable gate — manifest
  */
 export const BONGSIM_CATALOG_SELLABLE_NOW_WHERE = `(${BONGSIM_CATALOG_CONSUMER_KRW_SQL}) IS NOT NULL`;
+
+/**
+ * 9/1 오픈 예정 「신규 상품」은 before가 새어도 컷오버 전까지 국가카드·카탈로그에서 제외.
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: hide scheduled new-country SKUs — manifest
+ */
+export const BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE = `NOT (
+  COALESCE(excel_update_type, '') = '신규 상품'
+  AND now() < '${BONGSIM_PRICE_EFFECTIVE_FROM_20260901}'::timestamptz
+)`;
 
 /** SELECT 절용 — slim price_block(after.consumer_krw만 = 이미 컷오버 반영된 값) */
 export const BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL = `jsonb_build_object(

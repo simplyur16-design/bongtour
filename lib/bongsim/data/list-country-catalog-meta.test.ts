@@ -25,6 +25,7 @@ describe("catalogMetaFromSlimRows", () => {
     );
     expect(meta.jp?.isUnlimited).toBe(true);
     expect(meta.jp?.travelerVerification).toBe("none");
+    expect(meta.jp?.hasSellableSku).toBe(true);
   });
 
   it("forces travelerVerification none for china even when flags.kyc=O", () => {
@@ -41,5 +42,10 @@ describe("catalogMetaFromSlimRows", () => {
       ["tw"],
     );
     expect(meta.tw?.travelerVerification).toBe("required");
+  });
+
+  it("marks codes with no active SKU as not sellable", () => {
+    const meta = catalogMetaFromSlimRows([], ["rg-me-6"]);
+    expect(meta["rg-me-6"]?.hasSellableSku).toBe(false);
   });
 });

@@ -3,8 +3,10 @@ import {
   BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
   isBeforePriceEffectiveWindow,
   isPriceBlockCatalogSellable,
+  isScheduledNewSkuHiddenUntilCutover,
   resolveActivePriceSide,
 } from "@/lib/bongsim/data/pricing-effective-from";
+import { BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 
 // REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 00:00 KST — manifest
 
@@ -52,5 +54,19 @@ describe("pricing-effective-from", () => {
     expect(isPriceBlockCatalogSellable(scheduled, beforeMs)).toBe(false);
     expect(resolveActivePriceSide(scheduled, afterMs).consumer_krw).toBe(12000);
     expect(isPriceBlockCatalogSellable(scheduled, afterMs)).toBe(true);
+  });
+
+  it("SQL catalog gate excludes 신규 상품 before the Sept 1 stamp", () => {
+    expect(BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE).toContain("신규 상품");
+    expect(BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE).toContain(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    expect(BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE).not.toContain("상품 확장");
+  });
+
+  it("hides excel 신규 상품 until Sept 1 00:00 KST", () => {
+    const beforeMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 1;
+    const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    expect(isScheduledNewSkuHiddenUntilCutover("신규 상품", beforeMs)).toBe(true);
+    expect(isScheduledNewSkuHiddenUntilCutover("신규 상품", afterMs)).toBe(false);
+    expect(isScheduledNewSkuHiddenUntilCutover("상품 확장", beforeMs)).toBe(false);
   });
 });
