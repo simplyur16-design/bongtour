@@ -39,7 +39,7 @@ export const BRAND = {
   palette: SIMPLYUR_PALETTE,
   /** Store listing / App Store Connect */
   privacyPolicyPath: '/simplyur/en/legal/privacy',
-  supportEmail: 'bongtravel24@naver.com',
+  supportEmail: 'bongtour24@naver.com',
 } as const;
 
 export function getApiBaseUrl(): string {
@@ -47,12 +47,12 @@ export function getApiBaseUrl(): string {
   if (fromEnv) return fromEnv;
   // Release builds hit production; local Expo / __DEV__ defaults to host loopback.
   // Android emulator cannot reach the host via localhost — use 10.0.2.2.
-  // REGRESSION-FREEZE[simplyur-mobile-api-base-bongtravel]: production host bongtravel.com — manifest
+  // REGRESSION-FREEZE[simplyur-mobile-api-base-bongtour]: production host bongtour.com — manifest
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
     if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
     return 'http://localhost:3000';
   }
-  return 'https://bongtravel.com';
+  return 'https://bongtour.com';
 }
 
 export function simplyurWebLegalUrl(

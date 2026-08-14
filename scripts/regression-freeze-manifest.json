@@ -14535,7 +14535,7 @@
           "file": "apps/simplyur-mobile/src/constants/simplyur.ts",
           "mustInclude": [
             "10.0.2.2:3000",
-            "https://bongtravel.com"
+            "https://bongtour.com"
           ]
         },
         {
