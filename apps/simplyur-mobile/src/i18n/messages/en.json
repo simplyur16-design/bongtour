@@ -515,7 +515,7 @@
     "apple": "Continue with Apple",
     "appleSubtitle": "Use your Apple ID to continue.",
     "appleNotConfigured": "Apple sign-in is not configured on this server yet.",
-    "appleUnavailable": "Sign in with Apple needs an Apple ID on this device. On Simulator: Settings → Sign in to your iPhone, then try again.",
+    "appleUnavailable": "First sign in to iCloud in the Simulator: open the Settings app → Sign in to your iPhone. Then return to Expo Go (home screen → Expo Go) and tap Continue with Apple again.",
     "email": "Sign in with email",
     "emailSubtitle": "Enter your email and password.",
     "invalidCredentials": "Email or password is incorrect, or this account is restricted.",

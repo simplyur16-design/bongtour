@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -74,13 +73,8 @@ export function SocialAuthButtons({
     setBusy('apple');
     try {
       if (!(await isAppleNativeAvailable())) {
+        // Do not auto-open Settings — that strands users in the Settings app.
         setErr(t('auth.appleUnavailable'));
-        // Simulator / fresh device: open Settings so user can Sign in to iPhone.
-        try {
-          await Linking.openSettings();
-        } catch {
-          // ignore — message already explains the path
-        }
         return;
       }
       await signInWithAppleNative();
