@@ -15811,6 +15811,51 @@
       ]
     },
     {
+      "id": "simplyur-flightradar24-live",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "FlightRadar24 실시간 항공 스캐폴드 — 토큰 없으면 호출·푸시 금지",
+      "checks": [
+        {
+          "file": "lib/simplyur/flight-radar/env.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-flightradar24-live]",
+            "FR24_API_TOKEN",
+            "not_configured"
+          ]
+        },
+        {
+          "file": "lib/simplyur/flight-radar/client.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-flightradar24-live]",
+            "live/flight-positions/full",
+            "not_configured"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/flights/live/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-flightradar24-live]",
+            "fr24_not_configured",
+            "503"
+          ]
+        },
+        {
+          "file": "docs/ops/simplyur-flightradar24-live-contract.md",
+          "mustInclude": [
+            "simplyur-flightradar24-live",
+            "FR24_API_TOKEN",
+            "fr24api.flightradar24.com"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/flight-radar/flight-radar.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-eximbay-app-install-optional",
       "tier": [
         "prebuild",
