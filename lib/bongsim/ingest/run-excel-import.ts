@@ -37,7 +37,7 @@ export type RunExcelImportResult =
 export type RunExcelImportOptions = {
   /**
    * ISO timestamptz. 기존 SKU 가격 갱신 시 before=현재가, after=엑셀, effective_from=이 값.
-   * 신규 SKU는 effective_from 없이 after만(즉시 판매).
+   * 신규 SKU도 동일하게 effective_from을 붙여 컷오버 전까지 카탈로그에서 숨김.
    * REGRESSION-FREEZE[bongsim-price-effective-from]
    */
   priceEffectiveFrom?: string | null;
@@ -53,7 +53,8 @@ const EMPTY_TRIPLE: PriceTriple = {
   supply_krw: null,
 };
 
-function mergePriceBlockForCutover(
+/** @internal exported for unit tests */
+export function mergePriceBlockForCutover(
   excelBlock: BongsimPriceBlockV1,
   prevRaw: unknown | null | undefined,
   priceEffectiveFrom: string | null | undefined,
@@ -63,9 +64,11 @@ function mergePriceBlockForCutover(
     return excelBlock;
   }
   if (prevRaw == null) {
+    // New SKU scheduled for cutover — empty before + after + effective_from (hidden until then)
     return {
       before: { ...EMPTY_TRIPLE },
       after: excelAfter,
+      effective_from: priceEffectiveFrom,
     };
   }
   const live = resolveActivePriceSide(prevRaw as BongsimPriceBlockV1);

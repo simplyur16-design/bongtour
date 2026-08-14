@@ -2256,6 +2256,7 @@
             "BONGSIM_PRICE_EFFECTIVE_FROM_20260901",
             "2026-09-01T00:00:00+09:00",
             "resolveActivePriceSide",
+            "isPriceBlockCatalogSellable",
             "LoosePriceTripleInput"
           ]
         },
@@ -2270,7 +2271,16 @@
           "file": "lib/bongsim/data/catalog-consumer-krw-sql.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
-            "price_block->>'effective_from'"
+            "price_block->>'effective_from'",
+            "BONGSIM_CATALOG_SELLABLE_NOW_WHERE",
+            "after 폴백 금지"
+          ]
+        },
+        {
+          "file": "lib/bongsim/catalog/active-product-sql.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "BONGSIM_CATALOG_SELLABLE_NOW_WHERE"
           ]
         },
         {
@@ -2278,7 +2288,16 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
             "priceEffectiveFrom",
-            "mergePriceBlockForCutover"
+            "mergePriceBlockForCutover",
+            "effective_from: priceEffectiveFrom"
+          ]
+        },
+        {
+          "file": "scripts/backfill-bongsim-scheduled-cutover-effective-from.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "BONGSIM_PRICE_EFFECTIVE_FROM_20260901",
+            "effective_from"
           ]
         },
         {
@@ -2317,6 +2336,7 @@
       "vitestSuites": [
         "lib/bongsim/data/pricing-effective-from.test.ts",
         "lib/bongsim/data/pricing-select-charged.test.ts",
+        "lib/bongsim/ingest/merge-price-block-for-cutover.test.ts",
         "lib/simplyur/pricing.test.ts"
       ]
     },
@@ -14465,10 +14485,18 @@
           ]
         },
         {
+          "file": "lib/smtp-env.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "getSmtpHost",
+            "SMTP_MAIL_HOST"
+          ]
+        },
+        {
           "file": "lib/auth/send-password-reset-mail.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[auth-password-reset]",
-            "SMTP_HOST",
+            "getSmtpHost",
             "sendPasswordResetMail"
           ]
         },
@@ -14542,11 +14570,26 @@
           ]
         },
         {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "sign-in/forgot",
+            "auth.forgotPasswordLink"
+          ]
+        },
+        {
           "file": "apps/simplyur-mobile/app/sign-in/reset.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[auth-password-reset]",
             "confirmPasswordReset",
             "sign-in/reset"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
+          "mustInclude": [
+            "oauth_android_sha_mismatch",
+            "DEVELOPER_ERROR"
           ]
         }
       ],
@@ -15187,6 +15230,46 @@
       ],
       "vitestSuites": [
         "lib/simplyur/push/upsert-device-token.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-checkout-channel-locale",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur confirm — Bearer→simplyur_app channel; buyer_locale en; UI locale in consents",
+      "checks": [
+        {
+          "file": "lib/simplyur/checkout/channel.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-channel-locale]",
+            "resolveSimplyurCheckoutChannel",
+            "simplyur_app",
+            "simplyurBuyerLocaleForOrder"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/checkout/confirm/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-channel-locale]",
+            "resolveSimplyurCheckoutChannel",
+            "simplyurBuyerLocaleForOrder"
+          ],
+          "mustNotInclude": [
+            "buyer_locale: simplyurLocale === \"en\" ? \"en\" : \"en\"",
+            "checkout_channel: \"simplyur_web\""
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/api/checkout.ts",
+          "mustInclude": [
+            "checkout_channel: 'simplyur_app'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/checkout/channel.test.ts"
       ]
     },
     {

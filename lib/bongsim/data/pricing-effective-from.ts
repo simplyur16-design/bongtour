@@ -64,6 +64,7 @@ export function isBeforePriceEffectiveWindow(
 
 /**
  * 표시·청구에 쓸 before/after 쪽.
+ * 컷오버 전·before 비어 있으면 after로 폴백하지 않음 → 9/1 신규국 즉시 판매 방지.
  * REGRESSION-FREEZE[bongsim-price-effective-from]
  */
 export function resolveActivePriceSide(
@@ -73,7 +74,20 @@ export function resolveActivePriceSide(
   const before = tripleFrom(priceBlock?.before ?? undefined);
   const after = tripleFrom(priceBlock?.after ?? undefined);
   if (isBeforePriceEffectiveWindow(priceBlock, nowMs)) {
-    return priceTripleHasAny(before) ? before : after;
+    // Scheduled new SKU: empty before + future effective_from → not sellable yet
+    return before;
   }
   return priceTripleHasAny(after) ? after : before;
+}
+
+/**
+ * 카탈로그·국가피커·체크아웃 — 지금 팔 수 있는 가격이 있는지.
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 scheduled hide — manifest
+ */
+export function isPriceBlockCatalogSellable(
+  priceBlock: LoosePriceBlock,
+  nowMs: number = Date.now(),
+): boolean {
+  const side = resolveActivePriceSide(priceBlock, nowMs);
+  return side.consumer_krw != null && side.consumer_krw >= 0;
 }

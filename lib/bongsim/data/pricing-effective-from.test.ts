@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
   isBeforePriceEffectiveWindow,
+  isPriceBlockCatalogSellable,
   resolveActivePriceSide,
 } from "@/lib/bongsim/data/pricing-effective-from";
 
@@ -37,5 +38,19 @@ describe("pricing-effective-from", () => {
     const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
     expect(resolveActivePriceSide(loose, afterMs).consumer_krw).toBe(11000);
     expect(resolveActivePriceSide(loose, afterMs).supply_krw).toBe(6000);
+  });
+
+  it("hides after-only scheduled SKUs until cutover (no after fallback)", () => {
+    const scheduled = {
+      before: { consumer_krw: null, recommended_krw: null, supply_krw: null },
+      after: { consumer_krw: 12000, recommended_krw: null, supply_krw: 7000 },
+      effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+    };
+    const beforeMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 1;
+    const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    expect(resolveActivePriceSide(scheduled, beforeMs).consumer_krw).toBeNull();
+    expect(isPriceBlockCatalogSellable(scheduled, beforeMs)).toBe(false);
+    expect(resolveActivePriceSide(scheduled, afterMs).consumer_krw).toBe(12000);
+    expect(isPriceBlockCatalogSellable(scheduled, afterMs)).toBe(true);
   });
 });

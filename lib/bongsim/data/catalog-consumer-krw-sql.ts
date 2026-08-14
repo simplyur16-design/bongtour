@@ -24,13 +24,13 @@ const SIDE_SUPPLY = (side: "'after'" | "'before'") => `CASE
 END`;
 
 /**
- * `effective_from` 이 있고 now < 그 시각이면 before, 아니면 after.
- * after가 비면 before 폴백(반대도).
+ * `effective_from` 이 있고 now < 그 시각이면 **before만** (after 폴백 금지 — 신규국 조기 노출 방지).
+ * 그 외는 after, 없으면 before.
  */
 export const BONGSIM_CATALOG_CONSUMER_KRW_SQL = `CASE
   WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
        AND now() < (price_block->>'effective_from')::timestamptz
-    THEN COALESCE(${SIDE_CONSUMER("'before'")}, ${SIDE_CONSUMER("'after'")})
+    THEN ${SIDE_CONSUMER("'before'")}
   ELSE COALESCE(${SIDE_CONSUMER("'after'")}, ${SIDE_CONSUMER("'before'")})
 END`;
 
@@ -38,9 +38,15 @@ END`;
 export const BONGSIM_CATALOG_SUPPLY_KRW_SQL = `CASE
   WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
        AND now() < (price_block->>'effective_from')::timestamptz
-    THEN COALESCE(${SIDE_SUPPLY("'before'")}, ${SIDE_SUPPLY("'after'")})
+    THEN ${SIDE_SUPPLY("'before'")}
   ELSE COALESCE(${SIDE_SUPPLY("'after'")}, ${SIDE_SUPPLY("'before'")})
 END`;
+
+/**
+ * 지금 판매 가능한 소비자가가 있는 옵션만 (9/1 컷오버 전 after-only 스케줄 SKU 제외).
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: catalog sellable gate — manifest
+ */
+export const BONGSIM_CATALOG_SELLABLE_NOW_WHERE = `(${BONGSIM_CATALOG_CONSUMER_KRW_SQL}) IS NOT NULL`;
 
 /** SELECT 절용 — slim price_block(after.consumer_krw만 = 이미 컷오버 반영된 값) */
 export const BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL = `jsonb_build_object(
