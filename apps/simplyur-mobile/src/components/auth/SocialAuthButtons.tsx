@@ -72,15 +72,24 @@ export function SocialAuthButtons({
     setErr('');
     setBusy('apple');
     try {
-      if (!(await isAppleNativeAvailable())) {
-        // Do not auto-open Settings — that strands users in the Settings app.
-        setErr(t('auth.appleUnavailable'));
-        return;
-      }
+      // Do not gate on isAvailableAsync() — Simulator often reports false even after
+      // Settings shows an Apple Account; signInAsync is the real check.
       await signInWithAppleNative();
       await afterOk();
-    } catch {
-      setErr(t('auth.errorGeneric'));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e ?? '');
+      if (
+        /not available|ERR_APPLE|authorization attempt failed|com\.apple\.AuthenticationServices/i.test(
+          msg,
+        ) ||
+        !(await isAppleNativeAvailable())
+      ) {
+        setErr(t('auth.appleUnavailable'));
+      } else if (/cancel/i.test(msg)) {
+        setErr('');
+      } else {
+        setErr(t('auth.errorGeneric'));
+      }
     } finally {
       setBusy(null);
     }
