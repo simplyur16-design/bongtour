@@ -3,7 +3,7 @@
 import { SIMPLYUR_PLANS_DESIGN as D } from "@/lib/simplyur/plans-design";
 import { useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 
-/** design_handoff_plans — checkout opening soon info banner */
+/** design_handoff_plans — live checkout info banner */
 export function SimplyurPlansInfoBanner() {
   const tr = useSimplyurT();
   return (

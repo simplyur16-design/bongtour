@@ -69,15 +69,39 @@ async function readGoogleIdToken(): Promise<string> {
   return token;
 }
 
+function mapGoogleNativeError(e: unknown): Error {
+  const msg = e instanceof Error ? e.message : String(e ?? '');
+  const code =
+    e && typeof e === 'object' && 'code' in e ? String((e as { code?: unknown }).code ?? '') : '';
+  // Android: package+SHA not registered in Google Cloud → DEVELOPER_ERROR (often code 10).
+  if (
+    /DEVELOPER_ERROR/i.test(msg) ||
+    code === '10' ||
+    /ApiException:\s*10\b/i.test(msg) ||
+    /code:\s*10\b/i.test(msg)
+  ) {
+    return new Error('oauth_android_sha_mismatch');
+  }
+  if (/SIGN_IN_CANCELLED|canceled|cancelled/i.test(msg) || code === '-1' || code === '12501') {
+    return new Error('oauth_cancelled');
+  }
+  if (e instanceof Error) return e;
+  return new Error(msg || 'oauth_failed');
+}
+
 /** Native Google account picker → id_token → mobile-session (no system browser). */
 export async function signInWithGoogleNative() {
   if (!isGoogleNativeConfigured()) throw new Error('oauth_not_configured');
   ensureGoogleConfigured();
-  if (Platform.OS === 'android') {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  try {
+    if (Platform.OS === 'android') {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    }
+    const token = await readGoogleIdToken();
+    return await signInWithGoogleIdToken(token);
+  } catch (e) {
+    throw mapGoogleNativeError(e);
   }
-  const token = await readGoogleIdToken();
-  return signInWithGoogleIdToken(token);
 }
 
 /** Best-effort Google SDK sign-out (local session clear is separate). */

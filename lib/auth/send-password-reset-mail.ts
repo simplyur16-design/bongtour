@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { getSmtpHost } from '@/lib/smtp-env'
 
 export type SendPasswordResetMailInput = {
   to: string
@@ -82,7 +83,7 @@ export function buildPasswordResetMailContent(input: SendPasswordResetMailInput)
 export async function sendPasswordResetMail(
   input: SendPasswordResetMailInput,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const host = process.env.SMTP_HOST?.trim()
+  const host = getSmtpHost()
   const portRaw = process.env.SMTP_PORT?.trim()
   const user = process.env.SMTP_USER?.trim()
   const pass = process.env.SMTP_PASS?.trim()

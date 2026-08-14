@@ -42,6 +42,7 @@ type Props = {
 /**
  * Apple · Google · Email — always on My eSIM / sign-in (no website-only email gate).
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: social buttons SSOT — manifest
+ * REGRESSION-FREEZE[auth-password-reset]: inline email forgot link — manifest
  */
 export function SocialAuthButtons({
   onSignedIn,
@@ -95,6 +96,7 @@ export function SocialAuthButtons({
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
       if (code === 'oauth_not_configured') setErr(t('auth.googleNotConfigured'));
+      else if (code === 'oauth_android_sha_mismatch') setErr(t('auth.googleAndroidShaMismatch'));
       else if (code === 'oauth_cancelled') setErr('');
       else setErr(t('auth.errorGeneric'));
     } finally {
@@ -183,7 +185,12 @@ export function SocialAuthButtons({
             style={styles.input}
             placeholderTextColor={LOGIN_1B.faint}
           />
-          <Text style={styles.label}>{t('auth.passwordLabel')}</Text>
+          <View style={styles.passwordRow}>
+            <Text style={styles.labelTight}>{t('auth.passwordLabel')}</Text>
+            <Pressable onPress={() => router.push('/sign-in/forgot')} hitSlop={8}>
+              <Text style={styles.forgot}>{t('auth.forgotPasswordLink')}</Text>
+            </Pressable>
+          </View>
           <TextInput
             value={password}
             onChangeText={setPassword}
@@ -256,6 +263,14 @@ const styles = StyleSheet.create({
   },
   emailTitle: { fontSize: 16, color: LOGIN_1B.navy, ...fp('700'), marginBottom: 4 },
   label: { fontSize: 12, color: LOGIN_1B.muted, ...fp('600') },
+  labelTight: { fontSize: 12, color: LOGIN_1B.muted, ...fp('600') },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  forgot: { fontSize: 12, color: LOGIN_1B.coral, ...fp('600') },
   input: {
     borderWidth: 1.5,
     borderColor: LOGIN_1B.border,

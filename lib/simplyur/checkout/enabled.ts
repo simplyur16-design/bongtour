@@ -5,7 +5,7 @@ function truthyEnv(v: string | undefined): boolean {
   return s === "1" || s === "true" || s === "yes";
 }
 
-/** Server-side simplyur checkout (PortOne) gate. */
+/** Server-side simplyur checkout (Eximbay) gate. */
 export function isSimplyurCheckoutEnabled(): boolean {
   return (
     truthyEnv(process.env.SIMPLYUR_CHECKOUT_ENABLED) ||

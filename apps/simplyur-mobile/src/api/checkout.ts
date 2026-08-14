@@ -50,6 +50,8 @@ export async function confirmSimplyurCheckout(input: {
       buyer_phone: input.phone.trim(),
       idempotency_key: input.idempotencyKey ?? newIdempotencyKey(),
       simplyur_locale: input.locale,
+      // Server also maps Bearer → simplyur_app; send explicitly for ops clarity.
+      checkout_channel: 'simplyur_app',
       consents: { terms_accepted: true },
     }),
   });
@@ -64,8 +66,9 @@ export async function confirmSimplyurCheckout(input: {
 }
 
 /**
- * Mobile: PAYER_AUTH session (auth window only). Server confirm via complete-pa.
+ * Mobile: confirm → Eximbay PAYER_AUTH → complete-pa.
  * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: mobile session PAYER_AUTH — manifest
+ * REGRESSION-FREEZE[simplyur-checkout-channel-locale]: checkout_channel simplyur_app — manifest
  */
 export async function createSimplyurEximbaySession(input: {
   orderId: string;

@@ -27,7 +27,7 @@ export type CountryPack = {
 };
 
 export async function fetchKoreaPlans(locale: SimplyurLocale): Promise<CountryPack | null> {
-  const url = `${getApiBaseUrl()}/api/simplyur/products/by-country?locale=${locale}`;
+  const url = `${getApiBaseUrl()}/api/simplyur/products/by-country?codes=kr&locale=${locale}&cv=2`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`API ${res.status}`);
   const json = (await res.json()) as { pack?: CountryPack };
