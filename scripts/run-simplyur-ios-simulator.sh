@@ -61,4 +61,6 @@ if [[ ! -f .env ]]; then
 fi
 
 echo "Starting Expo on iOS Simulator..."
+# Prevent Expo CLI from rewriting tsconfig.json with expo/tsconfig.base (breaks Railway freeze).
+export EXPO_NO_TYPESCRIPT_SETUP=1
 npx expo start --ios --clear
