@@ -15,6 +15,7 @@
     "support": "客服",
     "signIn": "登入",
     "myEsim": "我的 eSIM",
+    "myTrip": "我的行程",
     "signOut": "登出"
   },
   "tabs": {
@@ -245,6 +246,30 @@
     "resetPasswordInvalid": "重設連結無效或已過期，請重新申請。",
     "resetPasswordErrorGeneric": "無法更新密碼，請重試。",
     "newPasswordLabel": "新密碼"
+  },
+  "myTrip": {
+    "title": "我的行程",
+    "subtitle": "貼上機票、飯店或租車確認郵件，建立行程時間軸。",
+    "pasteLabel": "確認郵件或票據內文",
+    "pastePlaceholder": "貼上 United、Trip.com、Agoda、Rakuten Travel 或 Bongtour 電子票郵件內文…",
+    "parseCta": "加入時間軸",
+    "parsing": "解析中…",
+    "parseError": "無法解析。請貼上完整確認郵件內文。",
+    "correctError": "無法儲存修正。",
+    "connectEmail": "連結信箱（即將推出）",
+    "oauthSoon": "信箱連結尚未開放。",
+    "signInRequired": "請先登入以解析行程確認。",
+    "timeline": "時間軸",
+    "empty": "尚無行程。請在上方貼上確認郵件。",
+    "clear": "清除",
+    "reviewHint": "有 {n} 項需要核對。",
+    "fix": "修正",
+    "fixTitle": "修正此行程段",
+    "save": "儲存",
+    "cancel": "取消",
+    "statusConfirmed": "已確認",
+    "statusNeedsReview": "待核對",
+    "statusFailed": "失敗"
   },
   "myEsim": {
     "title": "我的 eSIM",

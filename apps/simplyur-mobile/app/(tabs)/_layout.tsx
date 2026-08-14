@@ -53,6 +53,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="my-trip"
+        options={{
+          headerShown: false,
+          title: t('nav.myTrip'),
+          tabBarIcon: ({ color }) => (
+            <SymbolView name={{ ios: 'airplane', android: 'flight', web: 'flight' }} tintColor={color} size={24} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="my-esim"
         options={{
           headerShown: false,

@@ -109,6 +109,10 @@ export default function SettingsScreen() {
 
       <Text style={styles.section}>{t('settings.sectionApp')}</Text>
       <Row
+        label={t('nav.myTrip')}
+        onPress={() => router.push('/(tabs)/my-trip')}
+      />
+      <Row
         label={t('language.label')}
         value={LOCALE_LABELS[locale]}
         onPress={() => router.push('/modal')}

@@ -15,6 +15,7 @@
     "support": "Support",
     "signIn": "Sign in",
     "myEsim": "My eSIM",
+    "myTrip": "My Trip",
     "signOut": "Sign out"
   },
   "tabs": {
@@ -525,6 +526,30 @@
     "resetPasswordInvalid": "This reset link is invalid or expired. Please request a new one.",
     "resetPasswordErrorGeneric": "Could not update your password. Please try again.",
     "newPasswordLabel": "New password"
+  },
+  "myTrip": {
+    "title": "My Trip",
+    "subtitle": "Paste flight, hotel, or car confirmation text to build your timeline.",
+    "pasteLabel": "Confirmation email or ticket text",
+    "pastePlaceholder": "Paste the body of a United, Trip.com, Agoda, Rakuten Travel, or Bongtour e-ticket email…",
+    "parseCta": "Add to timeline",
+    "parsing": "Parsing…",
+    "parseError": "Could not parse that text. Try pasting the full confirmation body.",
+    "correctError": "Could not save your correction.",
+    "connectEmail": "Connect email (soon)",
+    "oauthSoon": "Email inbox linking is not available yet.",
+    "signInRequired": "Please sign in to parse trip confirmations.",
+    "timeline": "Timeline",
+    "empty": "No trips yet. Paste a confirmation above.",
+    "clear": "Clear timeline",
+    "reviewHint": "{n} item(s) need a quick check.",
+    "fix": "Fix details",
+    "fixTitle": "Correct this segment",
+    "save": "Save",
+    "cancel": "Cancel",
+    "statusConfirmed": "Confirmed",
+    "statusNeedsReview": "Needs review",
+    "statusFailed": "Failed"
   },
   "myEsim": {
     "title": "My eSIM",

@@ -17,13 +17,15 @@
     "support": "Hỗ trợ",
     "signIn": "Đăng nhập",
     "myEsim": "eSIM của tôi",
-    "signOut": "Đăng xuất"
+    "signOut": "Đăng xuất",
+    "myTrip": "Chuyến đi"
   },
   "tabs": {
     "home": "Trang chủ",
     "store": "Cửa hàng",
     "guide": "Hướng dẫn",
-    "myEsim": "eSIM của tôi"
+    "myEsim": "eSIM của tôi",
+    "myTrip": "Chuyến đi"
   },
   "hero": {
     "eyebrow": "simplyur",
@@ -272,6 +274,29 @@
     "resetPasswordInvalid": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu lại.",
     "resetPasswordErrorGeneric": "Không thể cập nhật mật khẩu. Vui lòng thử lại.",
     "newPasswordLabel": "Mật khẩu mới"
+  },
+  "myTrip": {
+    "title": "Chuyến đi của tôi",
+    "subtitle": "Dán nội dung xác nhận để tạo timeline.",
+    "pasteLabel": "Nội dung xác nhận",
+    "pastePlaceholder": "Paste United, Trip.com, Agoda, Rakuten Travel, or Bongtour e-ticket text…",
+    "parseCta": "Thêm vào timeline",
+    "parsing": "Đang phân tích…",
+    "parseError": "Không phân tích được.",
+    "correctError": "Không lưu được chỉnh sửa.",
+    "signInRequired": "Vui lòng đăng nhập.",
+    "signInBody": "Đăng nhập để dán xác nhận và tạo timeline chuyến đi.",
+    "timeline": "Timeline",
+    "empty": "Chưa có chuyến đi.",
+    "clear": "Xóa timeline",
+    "reviewHint": "{n} mục cần kiểm tra.",
+    "fix": "Sửa",
+    "fixTitle": "Sửa phân đoạn",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "statusConfirmed": "Đã xác nhận",
+    "statusNeedsReview": "Cần xem lại",
+    "statusFailed": "Thất bại"
   },
   "myEsim": {
     "title": "eSIM của tôi",

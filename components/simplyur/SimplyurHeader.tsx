@@ -20,6 +20,7 @@ export function SimplyurHeader({ locale, currentPath = "", user = null }: Props)
     { key: "findPlan", href: simplyurPath(locale, "/recommend"), match: path.startsWith("recommend") || path.startsWith("product") },
     { key: "guide", href: simplyurPath(locale, "/guide"), match: path.startsWith("guide") },
     { key: "devices", href: simplyurPath(locale, "/devices"), match: path.startsWith("devices") },
+    { key: "myTrip", href: simplyurPath(locale, "/my-trip"), match: path.startsWith("my-trip") },
   ] as const;
 
   return (

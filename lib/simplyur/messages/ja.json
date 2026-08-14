@@ -15,6 +15,7 @@
     "support": "サポート",
     "signIn": "ログイン",
     "myEsim": "マイeSIM",
+    "myTrip": "マイトリップ",
     "signOut": "ログアウト"
   },
   "tabs": {
@@ -245,6 +246,30 @@
     "resetPasswordInvalid": "再設定リンクが無効または期限切れです。もう一度リクエストしてください。",
     "resetPasswordErrorGeneric": "パスワードを更新できませんでした。もう一度お試しください。",
     "newPasswordLabel": "新しいパスワード"
+  },
+  "myTrip": {
+    "title": "マイトリップ",
+    "subtitle": "航空券・ホテル・レンタカーの確認メールを貼り付けてタイムラインを作成します。",
+    "pasteLabel": "確認メール／チケット本文",
+    "pastePlaceholder": "United、Trip.com、Agoda、楽天トラベル、Bongtour eチケットの本文を貼り付け…",
+    "parseCta": "タイムラインに追加",
+    "parsing": "解析中…",
+    "parseError": "解析できませんでした。確認メール全文を貼り付けてください。",
+    "correctError": "修正を保存できませんでした。",
+    "connectEmail": "メール連携（準備中）",
+    "oauthSoon": "メール連携はまだ利用できません。",
+    "signInRequired": "確認メールを解析するにはサインインしてください。",
+    "timeline": "タイムライン",
+    "empty": "まだ行程がありません。上に確認メールを貼り付けてください。",
+    "clear": "クリア",
+    "reviewHint": "{n}件の確認が必要です。",
+    "fix": "修正する",
+    "fixTitle": "セグメントを修正",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "statusConfirmed": "確認済み",
+    "statusNeedsReview": "要確認",
+    "statusFailed": "失敗"
   },
   "myEsim": {
     "title": "マイeSIM",

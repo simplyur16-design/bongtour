@@ -17,13 +17,15 @@
     "support": "サポート",
     "signIn": "ログイン",
     "myEsim": "マイeSIM",
-    "signOut": "ログアウト"
+    "signOut": "ログアウト",
+    "myTrip": "マイトリップ"
   },
   "tabs": {
     "home": "ホーム",
     "store": "ストア",
     "guide": "ガイド",
-    "myEsim": "マイeSIM"
+    "myEsim": "マイeSIM",
+    "myTrip": "マイトリップ"
   },
   "hero": {
     "eyebrow": "simplyur",
@@ -272,6 +274,29 @@
     "resetPasswordInvalid": "再設定リンクが無効または期限切れです。もう一度リクエストしてください。",
     "resetPasswordErrorGeneric": "パスワードを更新できませんでした。もう一度お試しください。",
     "newPasswordLabel": "新しいパスワード"
+  },
+  "myTrip": {
+    "title": "マイトリップ",
+    "subtitle": "航空券・ホテル・レンタカーの確認文を貼り付けてタイムラインを作ります。",
+    "pasteLabel": "確認メール／チケット本文",
+    "pastePlaceholder": "Paste United, Trip.com, Agoda, Rakuten Travel, or Bongtour e-ticket text…",
+    "parseCta": "タイムラインに追加",
+    "parsing": "解析中…",
+    "parseError": "解析できませんでした。",
+    "correctError": "修正を保存できませんでした。",
+    "signInRequired": "サインインが必要です。",
+    "signInBody": "サインインして確認文を貼り付け、旅行タイムラインを作成します。",
+    "timeline": "タイムライン",
+    "empty": "まだ行程がありません。",
+    "clear": "クリア",
+    "reviewHint": "{n}件の確認が必要です。",
+    "fix": "修正する",
+    "fixTitle": "セグメントを修正",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "statusConfirmed": "確認済み",
+    "statusNeedsReview": "要確認",
+    "statusFailed": "失敗"
   },
   "myEsim": {
     "title": "マイeSIM",

@@ -15,6 +15,7 @@
     "support": "Hỗ trợ",
     "signIn": "Đăng nhập",
     "myEsim": "eSIM của tôi",
+    "myTrip": "Chuyến đi của tôi",
     "signOut": "Đăng xuất"
   },
   "tabs": {
@@ -245,6 +246,30 @@
     "resetPasswordInvalid": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu lại.",
     "resetPasswordErrorGeneric": "Không thể cập nhật mật khẩu. Vui lòng thử lại.",
     "newPasswordLabel": "Mật khẩu mới"
+  },
+  "myTrip": {
+    "title": "Chuyến đi của tôi",
+    "subtitle": "Dán email xác nhận chuyến bay, khách sạn hoặc thuê xe để tạo timeline.",
+    "pasteLabel": "Nội dung email / vé xác nhận",
+    "pastePlaceholder": "Dán nội dung email United, Trip.com, Agoda, Rakuten Travel hoặc e-ticket Bongtour…",
+    "parseCta": "Thêm vào timeline",
+    "parsing": "Đang phân tích…",
+    "parseError": "Không phân tích được. Hãy dán toàn bộ nội dung xác nhận.",
+    "correctError": "Không lưu được chỉnh sửa.",
+    "connectEmail": "Kết nối email (sắp có)",
+    "oauthSoon": "Liên kết hộp thư chưa khả dụng.",
+    "signInRequired": "Vui lòng đăng nhập để phân tích xác nhận chuyến đi.",
+    "timeline": "Timeline",
+    "empty": "Chưa có chuyến đi. Dán email xác nhận ở trên.",
+    "clear": "Xóa timeline",
+    "reviewHint": "{n} mục cần kiểm tra.",
+    "fix": "Sửa chi tiết",
+    "fixTitle": "Sửa phân đoạn này",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "statusConfirmed": "Đã xác nhận",
+    "statusNeedsReview": "Cần xem lại",
+    "statusFailed": "Thất bại"
   },
   "myEsim": {
     "title": "eSIM của tôi",

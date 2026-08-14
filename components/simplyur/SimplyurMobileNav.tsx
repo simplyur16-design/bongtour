@@ -13,6 +13,7 @@ const LINKS = [
   { key: "findPlan", path: "/recommend" },
   { key: "guide", path: "/guide" },
   { key: "devices", path: "/devices" },
+  { key: "myTrip", path: "/my-trip" },
 ] as const;
 
 export function SimplyurMobileNav({ locale, user: serverUser }: Props) {

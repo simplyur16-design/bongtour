@@ -6765,6 +6765,79 @@
       ]
     },
     {
+      "id": "simplyur-trip-inbox-ssot",
+      "tier": [
+        "ci"
+      ],
+      "summary": "Simplyur Trip Inbox — parse status/segment SSOT·provider parsers·correction gate·paste API",
+      "checks": [
+        {
+          "file": "lib/simplyur/trip-inbox/types.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "TRIP_PARSE_STATUSES",
+            "confirmed",
+            "needs_review",
+            "failed"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/parse-text.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "parseTripInboxText"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/confidence.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "applySegmentCorrection",
+            "resolveParseStatus"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/trips/parse/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "parseTripInboxText"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/trips/correct/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "applySegmentCorrection"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/my-trip/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "SimplyurMyTripClient"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-trip.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-ssot]",
+            "parseTripInboxText",
+            "correctTripSegment"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/_layout.tsx",
+          "mustInclude": [
+            "name=\"my-trip\"",
+            "nav.myTrip"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/trip-inbox/parse-text.test.ts"
+      ]
+    },
+    {
       "id": "marketing-content-track-product-gate",
       "tier": [
         "prebuild",
