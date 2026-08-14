@@ -25,9 +25,9 @@ Backend: BONGTOUR `GET/POST /api/simplyur/*` · in-app Eximbay checkout (WebView
 
 ## Verify loop (operator SSOT)
 
-| Now | Later |
-|-----|--------|
-| **Android emulator on this Windows PC** | **iPhone via GitHub-synced follow-up** |
+| Windows PC | This Mac |
+|------------|----------|
+| **Android emulator** | **iOS Simulator** (needs full Xcode) |
 
 Local native run — not EAS OTA for day-to-day.  
 Docs: `docs/ops/simplyur-mobile-local-devices.md`
@@ -37,16 +37,38 @@ Docs: `docs/ops/simplyur-mobile-local-devices.md`
 ```bash
 cd apps/simplyur-mobile   # or D:\bt\apps\simplyur-mobile
 cp .env.example .env
-npx expo run:android      # emulator — complete this first
-# iOS later (after GitHub sync / Mac or prior device flow):
-# npx expo run:ios --device
+npx expo run:android      # Windows — emulator
 ```
+
+### iOS Simulator (Mac only)
+
+Windows **cannot** run the Apple Simulator. On this Mac:
+
+1. Install **Xcode** from the Mac App Store (full app, not only Command Line Tools).
+2. Open Xcode once → accept license → Settings → Locations → Command Line Tools = **Xcode**.
+3. From repo root:
+
+```bash
+bash scripts/run-simplyur-ios-simulator.sh
+# or:
+cd apps/simplyur-mobile && npx expo run:ios
+```
+
+Until Xcode is installed, preview UI in a browser:
+
+```bash
+cd apps/simplyur-mobile
+npm start -- --web
+# → http://localhost:8081  (Chrome DevTools → device toolbar → iPhone)
+```
+
+Physical iPhone: install **Expo Go**, same LAN, scan QR from `npm start`.
 
 ### API URL by device
 
 | Environment | `EXPO_PUBLIC_API_BASE_URL` |
 |-------------|----------------------------|
-| Live API | `https://bongtour.com` |
+| Live API | `https://bongtong.com` |
 | iOS Simulator | `http://localhost:3000` |
 | Android Emulator | `http://10.0.2.2:3000` |
 | Physical iPhone (local API) | `http://<your-PC-LAN-IP>:3000` |
@@ -73,7 +95,7 @@ Not the current verify loop. Checklist only when explicitly shipping to stores: 
 
 ## App IDs
 
-- iOS / Android: `com.bongtour.simplyur`  
+- iOS / Android: `com.bongtong.simplyur`  
 - Deep link: `simplyur://` (OAuth return `simplyur://oauth-complete`)
 
 ## Sync translations
