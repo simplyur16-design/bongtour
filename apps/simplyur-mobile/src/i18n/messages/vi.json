@@ -243,6 +243,7 @@
     "apple": "Tiếp tục với Apple",
     "appleSubtitle": "Dùng Apple ID của bạn.",
     "appleNotConfigured": "Đăng nhập Apple chưa được cấu hình trên máy chủ này.",
+    "appleUnavailable": "Đăng nhập bằng Apple cần Apple ID trên thiết bị. Trên Simulator: Cài đặt → Đăng nhập iPhone, rồi thử lại.",
     "email": "Đăng nhập bằng email",
     "emailSubtitle": "Nhập email và mật khẩu của tài khoản hiện có.",
     "invalidCredentials": "Email hoặc mật khẩu không đúng, hoặc tài khoản bị hạn chế.",

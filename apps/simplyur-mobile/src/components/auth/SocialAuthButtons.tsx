@@ -1,8 +1,9 @@
 // REGRESSION-FREEZE[simplyur-android-application-id]: package is com.bongtour.simplyur not com.bongtravel — manifest
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -54,15 +55,12 @@ export function SocialAuthButtons({
   const { t } = useI18n();
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
   const [err, setErr] = useState('');
-  const [appleOk, setAppleOk] = useState(Platform.OS === 'ios');
+  /** Always show Apple on iOS (product SSOT). Capability may still fail until Apple ID is signed in. */
+  const showApple = Platform.OS === 'ios';
   const [emailOpen, setEmailOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const googleConfigured = isGoogleNativeConfigured();
-
-  useEffect(() => {
-    void isAppleNativeAvailable().then(setAppleOk);
-  }, []);
 
   async function afterOk() {
     await onSignedIn?.();
@@ -75,6 +73,16 @@ export function SocialAuthButtons({
     setErr('');
     setBusy('apple');
     try {
+      if (!(await isAppleNativeAvailable())) {
+        setErr(t('auth.appleUnavailable'));
+        // Simulator / fresh device: open Settings so user can Sign in to iPhone.
+        try {
+          await Linking.openSettings();
+        } catch {
+          // ignore — message already explains the path
+        }
+        return;
+      }
       await signInWithAppleNative();
       await afterOk();
     } catch {
@@ -135,7 +143,7 @@ export function SocialAuthButtons({
 
   return (
     <View style={styles.wrap}>
-      {appleOk ? (
+      {showApple ? (
         <Pressable
           onPress={() => void onApple()}
           disabled={busy !== null}

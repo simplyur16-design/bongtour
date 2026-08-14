@@ -3,7 +3,6 @@
  * REGRESSION-FREEZE[simplyur-inapp-auth]: native oauth helpers — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: GoogleSignin SDK — manifest
  */
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
@@ -12,6 +11,18 @@ import {
   signInWithAppleIdentityToken,
   signInWithGoogleIdToken,
 } from '@/src/api/auth';
+
+/** Lazy — Expo Go has no RNGoogleSignin native module; top-level import crashes the client. */
+type GoogleSigninModule = typeof import('@react-native-google-signin/google-signin').GoogleSignin;
+
+function getGoogleSignin(): GoogleSigninModule | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('@react-native-google-signin/google-signin').GoogleSignin as GoogleSigninModule;
+  } catch {
+    return null;
+  }
+}
 
 let googleConfigured = false;
 
@@ -37,11 +48,14 @@ function googleIosClientId(): string {
 
 export function isGoogleNativeConfigured(): boolean {
   // id_token (server audience) always needs the Web client ID — iOS-only is not enough on Android.
-  return Boolean(googleWebClientId());
+  // Also require the native module (absent in Expo Go).
+  return Boolean(googleWebClientId()) && Boolean(getGoogleSignin());
 }
 
-function ensureGoogleConfigured(): void {
-  if (googleConfigured) return;
+function ensureGoogleConfigured(): GoogleSigninModule {
+  const GoogleSignin = getGoogleSignin();
+  if (!GoogleSignin) throw new Error('oauth_not_configured');
+  if (googleConfigured) return GoogleSignin;
   const webClientId = googleWebClientId();
   if (!webClientId) throw new Error('oauth_not_configured');
   const iosClientId = googleIosClientId() || undefined;
@@ -52,9 +66,11 @@ function ensureGoogleConfigured(): void {
     offlineAccess: false,
   });
   googleConfigured = true;
+  return GoogleSignin;
 }
 
 async function readGoogleIdToken(): Promise<string> {
+  const GoogleSignin = ensureGoogleConfigured();
   const result = await GoogleSignin.signIn();
   if (result.type !== 'success') throw new Error('oauth_cancelled');
   let token = (result.data.idToken ?? '').trim();
@@ -94,8 +110,8 @@ function mapGoogleNativeError(e: unknown): Error {
 /** Native Google account picker → id_token → mobile-session (no system browser). */
 export async function signInWithGoogleNative() {
   if (!isGoogleNativeConfigured()) throw new Error('oauth_not_configured');
-  ensureGoogleConfigured();
   try {
+    const GoogleSignin = ensureGoogleConfigured();
     if (Platform.OS === 'android') {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     }
@@ -110,7 +126,7 @@ export async function signInWithGoogleNative() {
 export async function signOutGoogleNativeBestEffort(): Promise<void> {
   if (!isGoogleNativeConfigured()) return;
   try {
-    ensureGoogleConfigured();
+    const GoogleSignin = ensureGoogleConfigured();
     await GoogleSignin.signOut();
   } catch {
     // ignore — local Simplyur session is still cleared by caller

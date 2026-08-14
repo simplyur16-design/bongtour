@@ -243,6 +243,7 @@
     "apple": "Appleで続行",
     "appleSubtitle": "Apple IDでログインしてください。",
     "appleNotConfigured": "このサーバーではAppleログインがまだ設定されていません。",
+    "appleUnavailable": "AppleでサインインにはこのデバイスのApple IDが必要です。シミュレータでは「設定 → iPhoneにサインイン」後にもう一度お試しください。",
     "email": "メールでログイン",
     "emailSubtitle": "メールとパスワードを入力してください。",
     "invalidCredentials": "メールまたはパスワードが正しくないか、アカウントが制限されています。",

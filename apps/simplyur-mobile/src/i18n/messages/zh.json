@@ -243,6 +243,7 @@
     "apple": "使用 Apple 继续",
     "appleSubtitle": "请使用 Apple ID 登录。",
     "appleNotConfigured": "此服务器尚未配置 Apple 登录。",
+    "appleUnavailable": "使用 Apple 登录需要本机 Apple ID。模拟器请先：设置 → 登录 iPhone，然后再试。",
     "email": "使用邮箱登录",
     "emailSubtitle": "请输入已注册账号的邮箱和密码。",
     "invalidCredentials": "邮箱或密码不正确，或账号受限。",

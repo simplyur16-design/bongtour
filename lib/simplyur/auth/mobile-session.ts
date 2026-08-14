@@ -54,6 +54,9 @@ function appleAudiences(): string[] {
     process.env.APPLE_ID?.trim(),
     process.env.AUTH_APPLE_BUNDLE_ID?.trim(),
     'com.bongtour.simplyur',
+    // Expo Go runs as host.exp.Exponent — Apple JWT aud is that bundle, not ours.
+    // Without this, native Apple sign-in in Expo Go always fails token verify.
+    'host.exp.Exponent',
   ].filter((v): v is string => Boolean(v))
 }
 

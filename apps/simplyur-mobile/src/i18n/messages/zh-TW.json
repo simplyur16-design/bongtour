@@ -243,6 +243,7 @@
     "apple": "使用 Apple 繼續",
     "appleSubtitle": "請使用 Apple ID 登入。",
     "appleNotConfigured": "此伺服器尚未設定 Apple 登入。",
+    "appleUnavailable": "使用 Apple 登入需要此裝置的 Apple ID。模擬器請先：設定 → 登入 iPhone，然後再試。",
     "email": "使用電子郵件登入",
     "emailSubtitle": "請輸入已註冊帳號的電子郵件與密碼。",
     "invalidCredentials": "電子郵件或密碼不正確，或帳號受限。",
