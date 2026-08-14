@@ -9,7 +9,10 @@ export const POPPINS = {
 
 export type PoppinsWeight = '300' | '400' | '600' | '700' | '800';
 
-/** RN: use explicit fontFamily — fontWeight alone does not apply with bundled faces. */
+/** RN: use explicit fontFamily — fontWeight alone does not apply with bundled faces.
+ * Spread into styles (`...fp('700')`). Never pass a pixel number into fp() — it is not a size helper.
+ * REGRESSION-FREEZE[simplyur-my-trip-fontsize]: fp() returns fontFamily; never pass a px size — manifest
+ */
 export function fp(weight: PoppinsWeight = '400') {
   const map: Record<PoppinsWeight, string> = {
     '300': POPPINS.light,

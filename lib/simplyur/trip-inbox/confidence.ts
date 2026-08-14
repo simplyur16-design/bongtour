@@ -5,6 +5,7 @@
 import { enrichHotelBilingual } from "@/lib/simplyur/trip-inbox/bilingual-hotel";
 import type {
   TripCarSegmentPayload,
+  TripExperienceSegmentPayload,
   TripFlightSegmentPayload,
   TripHotelSegmentPayload,
   TripParsedSegment,
@@ -45,6 +46,10 @@ export function collectSegmentIssues(payload: TripSegmentPayload): string[] {
     const p = payload as TripCarSegmentPayload;
     if (!nonempty(p.pickup_at)) issues.push("payload.pickup_at");
     if (!nonempty(p.pickup_location)) issues.push("payload.pickup_location");
+  } else if (payload.type === "experience") {
+    const p = payload as TripExperienceSegmentPayload;
+    if (!nonempty(p.title)) issues.push("payload.title");
+    if (!nonempty(p.start_at)) issues.push("payload.start_at");
   }
   return issues;
 }
@@ -64,6 +69,11 @@ export function scoreSegmentConfidence(payload: TripSegmentPayload, base = 0.55)
     if (nonempty(p.property_name)) score += 0.15;
     if (nonempty(p.check_in_at)) score += 0.12;
     if (nonempty(p.check_out_at)) score += 0.1;
+    if (nonempty(p.booking_ref)) score += 0.05;
+  } else if (payload.type === "experience") {
+    const p = payload as TripExperienceSegmentPayload;
+    if (nonempty(p.title)) score += 0.18;
+    if (nonempty(p.start_at)) score += 0.15;
     if (nonempty(p.booking_ref)) score += 0.05;
   } else {
     const p = payload as TripCarSegmentPayload;
@@ -109,6 +119,8 @@ export function finalizeParsedSegment(
     merge_key: seg.merge_key,
     payload: seg.payload,
     issues,
+    source_fingerprint: seg.source_fingerprint ?? null,
+    form_id: seg.form_id ?? null,
   };
 }
 
@@ -131,7 +143,9 @@ export function applySegmentCorrection(
         ? nextPayload.dep_at
         : nextPayload.type === "hotel"
           ? nextPayload.check_in_at
-          : nextPayload.pickup_at;
+          : nextPayload.type === "experience"
+            ? nextPayload.start_at
+            : nextPayload.pickup_at;
   return finalizeParsedSegment({
     ...current,
     sort_at: sortAt,

@@ -27,6 +27,13 @@ export function buildMergeKey(payload: TripSegmentPayload): string | null {
     if (!name || !day) return null;
     return `hotel|${name}|${day}|${ref}`;
   }
+  if (payload.type === "experience") {
+    const title = norm(payload.title);
+    const day = dayKey(payload.start_at);
+    const ref = norm(payload.booking_ref);
+    if (!title || !day) return null;
+    return `experience|${title}|${day}|${ref}`;
+  }
   const loc = norm(payload.pickup_location);
   const day = dayKey(payload.pickup_at);
   const ref = norm(payload.booking_ref);

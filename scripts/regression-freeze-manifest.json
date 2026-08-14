@@ -3013,6 +3013,43 @@
       ]
     },
     {
+      "id": "simplyur-my-trip-fontsize",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "simplyur 앱 My Trip — fp()는 fontFamily이며 fontSize에 넣으면 레이아웃이 깨짐",
+      "npmScripts": [
+        "verify:simplyur-mobile-fp-fontsize"
+      ],
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/constants/typography.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-trip-fontsize]",
+            "fontFamily"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-trip.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-trip-fontsize]",
+            "fontSize: 24",
+            "...fp('700')"
+          ],
+          "mustNotInclude": [
+            "fontSize: fp("
+          ]
+        },
+        {
+          "file": "scripts/verify-simplyur-mobile-fp-fontsize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-trip-fontsize]",
+            "fontSize"
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-mobile-api-base-bongtour",
       "tier": [
         "prebuild",
@@ -3047,7 +3084,45 @@
           ],
           "mustNotInclude": [
             "bongtong.com",
-            "com.bongtong.simplyur"
+            "com.bongtong.simplyur",
+            "com.bongtravel.simplyur"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-android-application-id",
+      "tier": [
+        "prebuild"
+      ],
+      "summary": "simplyur Android applicationId is com.bongtour.simplyur (com.bongtravel 오타 금지 — 에뮬 설치/실행 실패 원인)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-android-application-id]",
+            "com.bongtour.simplyur"
+          ],
+          "mustNotInclude": [
+            "com.bongtravel.simplyur"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/STORE_RELEASE.md",
+          "mustInclude": [
+            "com.bongtour.simplyur"
+          ],
+          "mustNotInclude": [
+            "com.bongtravel.simplyur"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app.json",
+          "mustInclude": [
+            "com.bongtour.simplyur"
+          ],
+          "mustNotInclude": [
+            "com.bongtravel.simplyur"
           ]
         }
       ]
@@ -6895,6 +6970,84 @@
           "mustInclude": [
             "name=\"my-trip\"",
             "nav.myTrip"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/trip-inbox/parse-text.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-trip-inbox-forms",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur My Trip — Trip.com/Agoda/Rakuten + 전 항공사 e-ticket + Airbnb/OTA, 새 폼 즉시 파서, 고객 교정으로 파서 갱신",
+      "npmScripts": [
+        "verify:simplyur-trip-inbox-forms"
+      ],
+      "checks": [
+        {
+          "file": "lib/simplyur/trip-inbox/types.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "airbnb",
+            "airline_eticket",
+            "learned_form",
+            "TripFormParser",
+            "klook",
+            "experience"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/learned-parsers.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "mineFormParser",
+            "learnFormParserFromCorrection"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/parse-text.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "parseAirlineEticketText",
+            "parseAirbnbText",
+            "parseKlookText",
+            "sortTripSegmentsNearestNow"
+          ]
+        },
+        {
+          "file": "lib/simplyur/trip-inbox/timeline-sort.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "sortTripSegmentsNearestNow",
+            "Math.abs",
+            "dated.slice(start)",
+            "itinerary order"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/trips/parse/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "pdfBase64"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/trips/correct/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "learnFormParserFromCorrection"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-trip.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-trip-inbox-forms]",
+            "uploadCta",
+            "pickTripConfirmationFile"
           ]
         }
       ],

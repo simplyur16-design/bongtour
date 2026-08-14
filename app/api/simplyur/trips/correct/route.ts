@@ -3,6 +3,9 @@ import { resolveSimplyurApiUser } from "@/lib/simplyur/auth/resolve-simplyur-api
 import {
   applySegmentCorrection,
   isTripParseStatus,
+  learnFormParserFromCorrection,
+  upsertFormParser,
+  type TripFormParser,
   type TripParsedSegment,
   type TripSegmentPayload,
 } from "@/lib/simplyur/trip-inbox";
@@ -11,8 +14,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/simplyur/trips/correct
- * Body: { segment: TripParsedSegment, patch: { payload?, sort_at? } }
+ * Body: { segment, patch, source_text?, form_parser? }
+ * Customer correction updates the form parser for the next similar confirmation.
  * REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: correction API — manifest
+ * REGRESSION-FREEZE[simplyur-trip-inbox-forms]: learnFormParserFromCorrection — manifest
  */
 export async function POST(req: Request) {
   const user = await resolveSimplyurApiUser(req);
@@ -51,5 +56,25 @@ export async function POST(req: Request) {
     sort_at: p.sort_at,
   });
 
-  return jsonWithLeakGuard({ segment: next }, "simplyur.trips.correct");
+  const sourceText =
+    body && typeof body === "object" && typeof (body as { source_text?: unknown }).source_text === "string"
+      ? (body as { source_text: string }).source_text
+      : "";
+  const existing =
+    body && typeof body === "object" && (body as { form_parser?: unknown }).form_parser
+      ? ((body as { form_parser: TripFormParser }).form_parser)
+      : null;
+  if (existing?.form_id) upsertFormParser(existing);
+
+  let formParser: TripFormParser | null = existing;
+  if (sourceText.trim()) {
+    formParser = learnFormParserFromCorrection({
+      sourceText,
+      before: current,
+      after: next,
+      existing,
+    });
+  }
+
+  return jsonWithLeakGuard({ segment: next, form_parser: formParser }, "simplyur.trips.correct");
 }

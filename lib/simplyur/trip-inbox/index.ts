@@ -4,3 +4,7 @@ export * from "@/lib/simplyur/trip-inbox/confidence";
 export * from "@/lib/simplyur/trip-inbox/parse-text";
 export * from "@/lib/simplyur/trip-inbox/bilingual-hotel";
 export * from "@/lib/simplyur/trip-inbox/current-stay";
+export * from "@/lib/simplyur/trip-inbox/learned-parsers";
+export * from "@/lib/simplyur/trip-inbox/form-fingerprint";
+export * from "@/lib/simplyur/trip-inbox/pdf-extract";
+export * from "@/lib/simplyur/trip-inbox/timeline-sort";

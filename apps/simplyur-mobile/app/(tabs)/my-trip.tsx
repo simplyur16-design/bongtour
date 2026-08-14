@@ -30,6 +30,14 @@ import {
   saveTripInboxSegments,
 } from '@/src/lib/trip-inbox-store';
 import {
+  hydrateTripSources,
+  loadTripFormParsers,
+  recallTripSource,
+  rememberTripSource,
+  saveTripFormParser,
+} from '@/src/lib/trip-inbox-learn-store';
+import { pickTripConfirmationFile } from '@/src/lib/pick-trip-confirmation';
+import {
   hotelDisplayNames,
   pickCurrentHotelStay,
   pickUpcomingHotelStay,
@@ -40,6 +48,8 @@ import { getSimplyurAccessToken, subscribeSimplyurSession } from '@/src/lib/sess
  * My Trip — paste confirmations → timeline (Trip Inbox MVP).
  * REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: mobile my-trip native — manifest
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: native paste UI, not web chrome — manifest
+ * REGRESSION-FREEZE[simplyur-my-trip-fontsize]: fp() is fontFamily, never fontSize — manifest
+ * REGRESSION-FREEZE[simplyur-trip-inbox-forms]: upload + always-on correction — manifest
  */
 export default function MyTripScreen() {
   const { t } = useI18n();
@@ -59,6 +69,7 @@ export default function MyTripScreen() {
 
   const reload = useCallback(async () => {
     await refreshAuth();
+    await hydrateTripSources();
     setSegments(await loadTripInboxSegments());
   }, [refreshAuth]);
 
@@ -76,26 +87,45 @@ export default function MyTripScreen() {
     await saveTripInboxSegments(next);
   }, []);
 
-  const onParse = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await parseTripInboxText(paste);
-      if (!res.ok) {
-        setError(res.unauthorized ? t('myTrip.signInRequired') : t('myTrip.parseError'));
-        if (res.unauthorized) setSignedIn(false);
-        return;
+  const ingest = useCallback(
+    async (text: string, pdfBase64?: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const formParsers = await loadTripFormParsers();
+        const res = await parseTripInboxText(text, { pdfBase64, formParsers });
+        if (!res.ok) {
+          setError(res.unauthorized ? t('myTrip.signInRequired') : t('myTrip.parseError'));
+          if (res.unauthorized) setSignedIn(false);
+          return;
+        }
+        const existing = await loadTripInboxSegments();
+        const merged = mergeTripInboxSegments(existing, res.result.segments);
+        await persist(merged);
+        const source = (res.result.source_text || text).trim();
+        for (const s of res.result.segments) {
+          if (source) rememberTripSource(s.temp_id, source);
+        }
+        await saveTripFormParser(res.result.form_parser);
+        setPaste('');
+      } catch {
+        setError(t('myTrip.parseError'));
+      } finally {
+        setBusy(false);
       }
-      const existing = await loadTripInboxSegments();
-      const merged = mergeTripInboxSegments(existing, res.result.segments);
-      await persist(merged);
-      setPaste('');
-    } catch {
-      setError(t('myTrip.parseError'));
-    } finally {
-      setBusy(false);
-    }
-  }, [paste, persist, t]);
+    },
+    [persist, t],
+  );
+
+  const onParse = useCallback(async () => {
+    await ingest(paste);
+  }, [ingest, paste]);
+
+  const onUpload = useCallback(async () => {
+    const picked = await pickTripConfirmationFile();
+    if (!picked) return;
+    await ingest(picked.text ?? '', picked.pdfBase64);
+  }, [ingest]);
 
   const openEdit = useCallback((seg: TripParsedSegment) => {
     setEditing(seg);
@@ -103,20 +133,31 @@ export default function MyTripScreen() {
     if (p.type === 'flight') {
       setDraft({
         flight_no: String(p.flight_no ?? ''),
+        airline: String(p.airline ?? ''),
         dep_airport: String(p.dep_airport ?? ''),
         arr_airport: String(p.arr_airport ?? ''),
         dep_at: String(p.dep_at ?? ''),
         arr_at: String(p.arr_at ?? ''),
+        pnr: String(p.pnr ?? ''),
       });
     } else if (p.type === 'hotel') {
       setDraft({
+        property_name: String(p.property_name ?? ''),
         property_name_user: String(p.property_name_user ?? ''),
         property_name_dest: String(p.property_name_dest ?? ''),
         address_user: String(p.address_user ?? ''),
         address_dest: String(p.address_dest ?? ''),
         check_in_at: String(p.check_in_at ?? ''),
         check_out_at: String(p.check_out_at ?? ''),
+        booking_ref: String(p.booking_ref ?? ''),
         dest_lang: String(p.dest_lang ?? 'ko'),
+      });
+    } else if (p.type === 'experience') {
+      setDraft({
+        title: String(p.title ?? ''),
+        venue: String(p.venue ?? ''),
+        start_at: String(p.start_at ?? ''),
+        booking_ref: String(p.booking_ref ?? ''),
       });
     } else {
       setDraft({
@@ -134,11 +175,18 @@ export default function MyTripScreen() {
     try {
       const payload: Record<string, string | null> = {};
       for (const [k, v] of Object.entries(draft)) payload[k] = v.trim() || null;
-      const res = await correctTripSegment(editing, payload);
+      const formParsers = await loadTripFormParsers();
+      const existingParser =
+        formParsers.find((p) => p.form_id === editing.form_id || p.fingerprint === editing.source_fingerprint) ?? null;
+      const res = await correctTripSegment(editing, payload, {
+        sourceText: recallTripSource(editing.temp_id),
+        formParser: existingParser,
+      });
       if (!res.ok) {
         setError(res.unauthorized ? t('myTrip.signInRequired') : t('myTrip.correctError'));
         return;
       }
+      await saveTripFormParser(res.form_parser);
       const existing = (await loadTripInboxSegments()).filter((s) => s.temp_id !== editing.temp_id);
       await persist(mergeTripInboxSegments(existing, [res.segment]));
       setEditing(null);
@@ -218,6 +266,10 @@ export default function MyTripScreen() {
             <Text style={styles.ctaText}>{t('myTrip.parseCta')}</Text>
           )}
         </Pressable>
+        <Pressable disabled={busy} onPress={() => void onUpload()} style={styles.uploadBtn}>
+          <Text style={styles.uploadText}>{t('myTrip.uploadCta')}</Text>
+        </Pressable>
+        <Text style={styles.uploadHint}>{t('myTrip.uploadHint')}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.timelineHead}>
@@ -250,11 +302,9 @@ export default function MyTripScreen() {
               {seg.issues.length > 0 ? (
                 <Text style={styles.issues}>{seg.issues.join(', ')}</Text>
               ) : null}
-              {(seg.status === 'needs_review' || seg.status === 'failed' || seg.type === 'hotel') && (
-                <Pressable onPress={() => openEdit(seg)}>
-                  <Text style={styles.fix}>{t('myTrip.fix')}</Text>
-                </Pressable>
-              )}
+              <Pressable onPress={() => openEdit(seg)}>
+                <Text style={styles.fix}>{t('myTrip.fix')}</Text>
+              </Pressable>
             </View>
           ))
         )}
@@ -298,6 +348,9 @@ function segmentTitle(seg: TripParsedSegment): string {
   }
   if (p.type === 'hotel') {
     return String(p.property_name_user || p.property_name_dest || p.property_name || 'Hotel');
+  }
+  if (p.type === 'experience') {
+    return String(p.title || p.venue || 'Experience');
   }
   return String(p.vehicle_class || p.pickup_location || 'Car');
 }
@@ -366,8 +419,8 @@ function StayHotelCard({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  title: { fontSize: fp(24), fontWeight: '700', color: P.ink, marginTop: 8 },
-  subtitle: { marginTop: 6, fontSize: fp(14), color: D.muted, lineHeight: 20 },
+  title: { fontSize: 24, ...fp('700'), color: P.ink, marginTop: 8 },
+  subtitle: { marginTop: 6, fontSize: 14, ...fp('400'), color: D.muted, lineHeight: 20 },
   stayCard: {
     marginTop: 16,
     borderWidth: 1,
@@ -377,22 +430,23 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   stayHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  stayBadge: { fontSize: fp(11), fontWeight: '700', color: D.coral, textTransform: 'uppercase' },
-  stayLang: { fontSize: fp(11), color: D.muted },
-  stayLabel: { fontSize: fp(11), color: D.muted, textTransform: 'uppercase', fontWeight: '600' },
-  stayName: { marginTop: 2, fontSize: fp(17), fontWeight: '700', color: P.ink },
-  stayNameLocal: { marginTop: 2, fontSize: fp(16), fontWeight: '600', color: P.ink },
-  stayAddr: { marginTop: 4, fontSize: fp(13), color: D.muted },
+  stayBadge: { fontSize: 11, ...fp('700'), color: D.coral, textTransform: 'uppercase' },
+  stayLang: { fontSize: 11, ...fp('400'), color: D.muted },
+  stayLabel: { fontSize: 11, ...fp('600'), color: D.muted, textTransform: 'uppercase' },
+  stayName: { marginTop: 2, fontSize: 17, ...fp('700'), color: P.ink },
+  stayNameLocal: { marginTop: 2, fontSize: 16, ...fp('600'), color: P.ink },
+  stayAddr: { marginTop: 4, fontSize: 13, ...fp('400'), color: D.muted },
   stayLocalBox: { marginTop: 12, backgroundColor: '#FFF8F5', borderRadius: 12, padding: 10 },
-  stayWhen: { marginTop: 10, fontSize: fp(12), color: D.muted },
-  label: { marginTop: 20, marginBottom: 8, fontSize: fp(13), fontWeight: '600', color: P.ink },
+  stayWhen: { marginTop: 10, fontSize: 12, ...fp('400'), color: D.muted },
+  label: { marginTop: 20, marginBottom: 8, fontSize: 13, ...fp('600'), color: P.ink },
   input: {
     minHeight: 140,
     borderWidth: 1,
     borderColor: D.border,
     borderRadius: 12,
     padding: 12,
-    fontSize: fp(14),
+    fontSize: 14,
+    ...fp('400'),
     color: P.ink,
     backgroundColor: '#fff',
   },
@@ -405,17 +459,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaDisabled: { opacity: 0.45 },
-  ctaText: { color: '#fff', fontWeight: '700', fontSize: fp(14) },
-  error: { marginTop: 8, color: '#B42318', fontSize: fp(13) },
+  ctaText: { color: '#fff', ...fp('700'), fontSize: 14 },
+  uploadBtn: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  uploadText: { color: D.navy, ...fp('700'), fontSize: 14 },
+  uploadHint: { marginTop: 8, fontSize: 12, ...fp('400'), color: D.muted, lineHeight: 18 },
+  error: { marginTop: 8, color: '#B42318', fontSize: 13, ...fp('400') },
   timelineHead: {
     marginTop: 28,
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
   },
-  section: { fontSize: fp(18), fontWeight: '700', color: P.ink },
-  clear: { fontSize: fp(12), color: D.muted, textDecorationLine: 'underline' },
-  hint: { marginTop: 6, fontSize: fp(12), color: '#92400E' },
+  section: { fontSize: 18, ...fp('700'), color: P.ink },
+  clear: { fontSize: 12, ...fp('400'), color: D.muted, textDecorationLine: 'underline' },
+  hint: { marginTop: 6, fontSize: 12, ...fp('400'), color: '#92400E' },
   empty: {
     marginTop: 12,
     borderWidth: 1,
@@ -425,7 +490,8 @@ const styles = StyleSheet.create({
     padding: 20,
     textAlign: 'center',
     color: D.muted,
-    fontSize: fp(13),
+    fontSize: 13,
+    ...fp('400'),
   },
   card: {
     marginTop: 10,
@@ -436,17 +502,25 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   cardTop: { flexDirection: 'row', gap: 10 },
-  cardMeta: { fontSize: fp(11), color: D.muted, textTransform: 'uppercase' },
-  cardTitle: { marginTop: 2, fontSize: fp(15), fontWeight: '600', color: P.ink },
-  cardWhen: { marginTop: 2, fontSize: fp(13), color: D.muted },
-  badge: { alignSelf: 'flex-start', overflow: 'hidden', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, fontSize: fp(11), fontWeight: '600' },
+  cardMeta: { fontSize: 11, ...fp('400'), color: D.muted, textTransform: 'uppercase' },
+  cardTitle: { marginTop: 2, fontSize: 15, ...fp('600'), color: P.ink },
+  cardWhen: { marginTop: 2, fontSize: 13, ...fp('400'), color: D.muted },
+  badge: {
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    fontSize: 11,
+    ...fp('600'),
+  },
   badgeOk: { backgroundColor: '#ECFDF3', color: '#067647' },
   badgeReview: { backgroundColor: '#FFFAEB', color: '#B54708' },
   badgeFail: { backgroundColor: '#FEF3F2', color: '#B42318' },
-  issues: { marginTop: 8, fontSize: fp(11), color: '#92400E' },
-  fix: { marginTop: 8, fontSize: fp(13), fontWeight: '600', color: D.coral, textDecorationLine: 'underline' },
+  issues: { marginTop: 8, fontSize: 11, ...fp('400'), color: '#92400E' },
+  fix: { marginTop: 8, fontSize: 13, ...fp('600'), color: D.coral, textDecorationLine: 'underline' },
   secondaryLink: { marginTop: 16, alignItems: 'center' },
-  secondaryLinkText: { color: D.coral, fontWeight: '600' },
+  secondaryLinkText: { color: D.coral, ...fp('600') },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: {
     backgroundColor: '#fff',
@@ -455,18 +529,19 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: '85%',
   },
-  modalTitle: { fontSize: fp(18), fontWeight: '700', color: P.ink, marginBottom: 12 },
+  modalTitle: { fontSize: 18, ...fp('700'), color: P.ink, marginBottom: 12 },
   field: { marginBottom: 10 },
-  fieldLabel: { fontSize: fp(12), color: D.muted, marginBottom: 4 },
+  fieldLabel: { fontSize: 12, ...fp('400'), color: D.muted, marginBottom: 4 },
   fieldInput: {
     borderWidth: 1,
     borderColor: D.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: fp(14),
+    fontSize: 14,
+    ...fp('400'),
     color: P.ink,
   },
   modalActions: { marginTop: 12, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
-  cancel: { fontSize: fp(14), color: D.muted },
+  cancel: { fontSize: 14, ...fp('400'), color: D.muted },
 });

@@ -81,6 +81,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
+      "expo-document-picker",
       "expo-apple-authentication",
       "expo-updates",
       [

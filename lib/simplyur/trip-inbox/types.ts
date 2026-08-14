@@ -1,9 +1,10 @@
 /**
  * Simplyur Trip Inbox — itinerary segment SSOT (TripIt-like).
  * REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: parse status + segment types — manifest
+ * REGRESSION-FREEZE[simplyur-trip-inbox-forms]: airbnb + airline_eticket + learned_form — manifest
  */
 
-export const TRIP_SEGMENT_TYPES = ["flight", "hotel", "car"] as const;
+export const TRIP_SEGMENT_TYPES = ["flight", "hotel", "car", "experience"] as const;
 export type TripSegmentType = (typeof TRIP_SEGMENT_TYPES)[number];
 
 /** Parser / user review pipeline */
@@ -16,6 +17,13 @@ export const TRIP_PROVIDERS = [
   "agoda",
   "rakuten_travel",
   "bongtour_eticket",
+  "airbnb",
+  "booking_com",
+  "airline_eticket",
+  "generic_ota",
+  "klook",
+  "experience_ota",
+  "learned_form",
   "unknown",
 ] as const;
 export type TripProvider = (typeof TRIP_PROVIDERS)[number];
@@ -84,10 +92,22 @@ export type TripCarSegmentPayload = {
   travelers: TripTravelerName[];
 };
 
+export type TripExperienceSegmentPayload = {
+  type: "experience";
+  title: string | null;
+  venue: string | null;
+  address: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  booking_ref: string | null;
+  travelers: TripTravelerName[];
+};
+
 export type TripSegmentPayload =
   | TripFlightSegmentPayload
   | TripHotelSegmentPayload
-  | TripCarSegmentPayload;
+  | TripCarSegmentPayload
+  | TripExperienceSegmentPayload;
 
 export type TripParsedSegment = {
   /** Client/temp id before persist */
@@ -104,12 +124,39 @@ export type TripParsedSegment = {
   payload: TripSegmentPayload;
   /** Missing / invalid field paths for correction UI */
   issues: string[];
+  /** Layout fingerprint — used to reuse / update a form parser */
+  source_fingerprint?: string | null;
+  /** Learned / mined form parser id */
+  form_id?: string | null;
+};
+
+export type TripFormFieldRule = {
+  /** payload field path without `payload.` e.g. flight_no, property_name */
+  field: string;
+  /** JS regex source; capture group 1 is the value */
+  pattern: string;
+  flags?: string;
+};
+
+/** Instant parser for a confirmation layout (mined on first upload, updated from corrections). */
+export type TripFormParser = {
+  form_id: string;
+  fingerprint: string;
+  labels: string[];
+  segment_type: TripSegmentType;
+  provider: TripProvider;
+  rules: TripFormFieldRule[];
+  origin: "mined" | "correction";
 };
 
 export type TripParseResult = {
   provider: TripProvider;
   segments: TripParsedSegment[];
   warnings: string[];
+  source_fingerprint: string;
+  form_parser: TripFormParser | null;
+  /** Text actually parsed (paste or PDF extract). Client keeps this for correction → parser update. */
+  source_text?: string;
 };
 
 export type TripSegmentCorrectionPatch = {
@@ -118,7 +165,8 @@ export type TripSegmentCorrectionPatch = {
   payload: Partial<
     Omit<TripFlightSegmentPayload, "type"> &
       Omit<TripHotelSegmentPayload, "type"> &
-      Omit<TripCarSegmentPayload, "type">
+      Omit<TripCarSegmentPayload, "type"> &
+      Omit<TripExperienceSegmentPayload, "type">
   > & { type?: TripSegmentType };
 };
 

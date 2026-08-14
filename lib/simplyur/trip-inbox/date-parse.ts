@@ -81,6 +81,38 @@ export function parseCompactAirlineDateTime(raw: string): string | null {
   return `${year}-${mon}-${m[1]}T${m[4].padStart(2, "0")}:${m[5]}:00`;
 }
 
+/** "Nov 2, 2026" / "2 November 2026" / "Nov 2, 2026 after 3:00 PM" */
+export function parseEnDateOptionalTime(raw: string): { date: string; time?: string } | null {
+  const t = raw.replace(/\s+/g, " ").trim();
+  const timeM = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  let time: string | undefined;
+  if (timeM) {
+    let hh = parseInt(timeM[1], 10);
+    const mm = timeM[2];
+    const ap = timeM[3]?.toUpperCase();
+    if (ap === "PM" && hh < 12) hh += 12;
+    if (ap === "AM" && hh === 12) hh = 0;
+    time = `${String(hh).padStart(2, "0")}:${mm}`;
+  }
+  const a = t.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (a) {
+    const mon = MONTHS[a[1].toLowerCase()];
+    if (mon) return { date: `${a[3]}-${mon}-${a[2].padStart(2, "0")}`, time };
+  }
+  const b = t.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (b) {
+    const mon = MONTHS[b[2].toLowerCase()];
+    if (mon) return { date: `${b[3]}-${mon}-${b[1].padStart(2, "0")}`, time };
+  }
+  const iso = t.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return { date: `${iso[1]}-${iso[2]}-${iso[3]}`, time };
+  return null;
+}
+
+export function toIsoLocal(date: string, time?: string, fallback = "14:00"): string {
+  return `${date}T${(time ?? fallback).padStart(5, "0")}:00`;
+}
+
 /** "2026-07-29 21:00:00" */
 export function parseIsoLikeLocal(raw: string): string | null {
   const m = raw.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);

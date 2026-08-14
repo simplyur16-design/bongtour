@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: SimplyurMyTripClient — manifest
+ * REGRESSION-FREEZE[simplyur-trip-inbox-forms]: upload + learn from correction — manifest
+ */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SimplyurCurrentHotelCard } from "@/components/simplyur/SimplyurCurrentHotelCard";
 import { useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
@@ -8,9 +13,16 @@ import {
   mergeTripInboxSegments,
   saveTripInboxSegments,
 } from "@/lib/simplyur/trip-inbox/client-store";
+import {
+  loadTripFormParsers,
+  rememberTripSource,
+  recallTripSource,
+  saveTripFormParser,
+} from "@/lib/simplyur/trip-inbox/learn-client-store";
 import { enrichHotelBilingual } from "@/lib/simplyur/trip-inbox/bilingual-hotel";
 import { pickCurrentHotelStay, pickUpcomingHotelStay } from "@/lib/simplyur/trip-inbox/current-stay";
 import type {
+  TripExperienceSegmentPayload,
   TripHotelSegmentPayload,
   TripParsedSegment,
   TripParseResult,
@@ -40,6 +52,9 @@ function segmentTitle(seg: TripParsedSegment): string {
   if (seg.payload.type === "hotel") {
     const p = seg.payload;
     return p.property_name_user || p.property_name_dest || p.property_name || "Hotel";
+  }
+  if (seg.payload.type === "experience") {
+    return seg.payload.title || seg.payload.venue || "Experience";
   }
   return seg.payload.vehicle_class || seg.payload.pickup_location || "Car";
 }
@@ -74,31 +89,66 @@ export function SimplyurMyTripClient() {
     return null;
   }, [segments]);
 
+  const ingest = useCallback(
+    async (text: string, pdfBase64?: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/simplyur/trips/parse", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            pdfBase64: pdfBase64 || undefined,
+            formParsers: loadTripFormParsers(),
+          }),
+        });
+        const j = (await res.json()) as TripParseResult & { error?: string };
+        if (res.status === 401) {
+          setError(tr("myTrip.signInRequired"));
+          return;
+        }
+        if (!res.ok) throw new Error(j.error ?? "parse_failed");
+        const merged = mergeTripInboxSegments(loadTripInboxSegments(), j.segments ?? []);
+        persist(merged);
+        const source = (j.source_text || text).trim();
+        for (const s of j.segments ?? []) {
+          if (source) rememberTripSource(s.temp_id, source);
+        }
+        saveTripFormParser(j.form_parser);
+        setPaste("");
+      } catch {
+        setError(tr("myTrip.parseError"));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [persist, tr],
+  );
+
   const onParse = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/simplyur/trips/parse", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: paste }),
-      });
-      const j = (await res.json()) as TripParseResult & { error?: string };
-      if (res.status === 401) {
-        setError(tr("myTrip.signInRequired"));
+    await ingest(paste);
+  }, [ingest, paste]);
+
+  const onUploadFile = useCallback(
+    async (file: File | null) => {
+      if (!file) return;
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        if (file.size > 6_000_000) {
+          setError(tr("myTrip.parseError"));
+          return;
+        }
+        const buf = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]!);
+        await ingest("", btoa(binary));
         return;
       }
-      if (!res.ok) throw new Error(j.error ?? "parse_failed");
-      const merged = mergeTripInboxSegments(loadTripInboxSegments(), j.segments ?? []);
-      persist(merged);
-      setPaste("");
-    } catch {
-      setError(tr("myTrip.parseError"));
-    } finally {
-      setBusy(false);
-    }
-  }, [paste, persist, tr]);
+      await ingest(await file.text());
+    },
+    [ingest],
+  );
 
   const openEdit = useCallback((seg: TripParsedSegment) => {
     setEditing(seg);
@@ -106,21 +156,33 @@ export function SimplyurMyTripClient() {
     if (p.type === "flight") {
       setDraft({
         flight_no: p.flight_no ?? "",
+        airline: p.airline ?? "",
         dep_airport: p.dep_airport ?? "",
         arr_airport: p.arr_airport ?? "",
         dep_at: p.dep_at ?? "",
         arr_at: p.arr_at ?? "",
+        pnr: p.pnr ?? "",
       });
     } else if (p.type === "hotel") {
       const h = p as TripHotelSegmentPayload;
       setDraft({
+        property_name: h.property_name ?? "",
         property_name_user: h.property_name_user ?? "",
         property_name_dest: h.property_name_dest ?? "",
         address_user: h.address_user ?? "",
         address_dest: h.address_dest ?? "",
         check_in_at: h.check_in_at ?? "",
         check_out_at: h.check_out_at ?? "",
+        booking_ref: h.booking_ref ?? "",
         dest_lang: h.dest_lang ?? "ko",
+      });
+    } else if (p.type === "experience") {
+      const e = p as TripExperienceSegmentPayload;
+      setDraft({
+        title: e.title ?? "",
+        venue: e.venue ?? "",
+        start_at: e.start_at ?? "",
+        booking_ref: e.booking_ref ?? "",
       });
     } else {
       setDraft({
@@ -140,6 +202,11 @@ export function SimplyurMyTripClient() {
       for (const [k, v] of Object.entries(draft)) {
         payloadPatch[k] = v.trim() || null;
       }
+      const formParsers = loadTripFormParsers();
+      const existingParser =
+        formParsers.find(
+          (p) => p.form_id === editing.form_id || p.fingerprint === editing.source_fingerprint,
+        ) ?? null;
       const res = await fetch("/api/simplyur/trips/correct", {
         method: "POST",
         credentials: "include",
@@ -147,10 +214,17 @@ export function SimplyurMyTripClient() {
         body: JSON.stringify({
           segment: editing,
           patch: { payload: payloadPatch },
+          source_text: recallTripSource(editing.temp_id) || undefined,
+          form_parser: existingParser,
         }),
       });
-      const j = (await res.json()) as { segment?: TripParsedSegment; error?: string };
+      const j = (await res.json()) as {
+        segment?: TripParsedSegment;
+        form_parser?: TripParseResult["form_parser"];
+        error?: string;
+      };
       if (!res.ok || !j.segment) throw new Error(j.error ?? "correct_failed");
+      saveTripFormParser(j.form_parser);
       const next = mergeTripInboxSegments(
         loadTripInboxSegments().filter((s) => s.temp_id !== editing.temp_id),
         [j.segment],
@@ -212,6 +286,19 @@ export function SimplyurMyTripClient() {
           >
             {busy ? tr("myTrip.parsing") : tr("myTrip.parseCta")}
           </button>
+          <label className="cursor-pointer rounded-lg border border-[color:var(--su-brand-border)] px-4 py-2 text-sm text-[color:var(--su-ink)]">
+            {tr("myTrip.uploadCta")}
+            <input
+              type="file"
+              accept=".pdf,.txt,.eml,application/pdf,text/plain"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                e.target.value = "";
+                void onUploadFile(f);
+              }}
+            />
+          </label>
           <button
             type="button"
             className="rounded-lg border border-[color:var(--su-brand-border)] px-4 py-2 text-sm text-[color:var(--su-ink-muted)]"
@@ -225,6 +312,7 @@ export function SimplyurMyTripClient() {
             {tr("myTrip.connectEmail")}
           </button>
         </div>
+        <p className="text-xs text-[color:var(--su-ink-muted)]">{tr("myTrip.uploadHint")}</p>
         {error ? (
           <p className="text-sm text-red-700" role="alert">
             {error}
@@ -287,15 +375,13 @@ export function SimplyurMyTripClient() {
                 {seg.issues.length > 0 ? (
                   <p className="mt-2 text-xs text-amber-900">{seg.issues.join(", ")}</p>
                 ) : null}
-                {(seg.status === "needs_review" || seg.status === "failed" || seg.type === "hotel") && (
-                  <button
-                    type="button"
-                    className="mt-2 text-sm font-medium text-[color:var(--su-brand-ur)] underline"
-                    onClick={() => openEdit(seg)}
-                  >
-                    {tr("myTrip.fix")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="mt-2 text-sm font-medium text-[color:var(--su-brand-ur)] underline"
+                  onClick={() => openEdit(seg)}
+                >
+                  {tr("myTrip.fix")}
+                </button>
               </li>
             ))}
           </ol>

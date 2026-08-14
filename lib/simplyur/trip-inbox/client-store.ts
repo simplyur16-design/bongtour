@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[simplyur-trip-inbox-ssot]: local timeline store — manifest
  */
 import type { TripParsedSegment } from "@/lib/simplyur/trip-inbox/types";
+import { sortTripSegmentsNearestNow } from "@/lib/simplyur/trip-inbox/timeline-sort";
 
 const STORAGE_KEY = "simplyur.trip-inbox.v1";
 
@@ -44,9 +45,5 @@ export function mergeTripInboxSegments(
   for (const s of existing) put(s);
   for (const s of incoming) put(s);
 
-  return [...byKey.values(), ...noKey].sort((a, b) => {
-    const ta = a.sort_at ? Date.parse(a.sort_at) : Number.POSITIVE_INFINITY;
-    const tb = b.sort_at ? Date.parse(b.sort_at) : Number.POSITIVE_INFINITY;
-    return ta - tb;
-  });
+  return sortTripSegmentsNearestNow([...byKey.values(), ...noKey]);
 }
