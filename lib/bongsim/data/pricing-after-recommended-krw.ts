@@ -1,4 +1,8 @@
 import type { BongsimPriceBlockV1 } from "@/lib/bongsim/contracts/product-master.v1";
+import {
+  resolveActivePriceSide,
+  type LoosePriceBlock,
+} from "@/lib/bongsim/data/pricing-effective-from";
 
 export const AFTER_RECOMMENDED_BASIS_KEY = "after.recommended_krw" as const;
 export const AFTER_CONSUMER_BASIS_KEY = "after.consumer_krw" as const;
@@ -14,16 +18,8 @@ function numOrNull(v: unknown): number | null {
 
 /** DB JSON·API 조회 등 느슨한 `price_block` 형태도 허용 */
 export type AfterRecommendedPriceBlockInput =
-  | Pick<BongsimPriceBlockV1, "after">
-  | {
-      after?: {
-        recommended_krw?: unknown;
-        consumer_krw?: unknown;
-        supply_krw?: unknown;
-      } | null;
-    }
-  | null
-  | undefined;
+  | Pick<BongsimPriceBlockV1, "after" | "before" | "effective_from">
+  | LoosePriceBlock;
 
 /**
  * 변동 후(after) 권장판매가 — before·소비자가·공급가 폴백 없음.
@@ -36,22 +32,29 @@ export function afterRecommendedSellKrw(priceBlock: AfterRecommendedPriceBlockIn
 }
 
 /**
- * 변동 후(after) 소비자가만 — before·권장판매가·공급가 폴백 없음.
+ * 유효 소비자가 — `effective_from` 전이면 before, 아니면 after.
  * 봉심 스토어프론트 표시·정렬·체크아웃 청구 단가 SSOT.
  * REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 cutover — manifest
  */
-export function afterConsumerSellKrw(priceBlock: AfterRecommendedPriceBlockInput): number | null {
-  const v = numOrNull(priceBlock?.after?.consumer_krw);
+export function afterConsumerSellKrw(
+  priceBlock: AfterRecommendedPriceBlockInput,
+  nowMs: number = Date.now(),
+): number | null {
+  const v = resolveActivePriceSide(priceBlock, nowMs).consumer_krw;
   if (v == null || v < 0) return null;
   return Math.trunc(v);
 }
 
 /**
- * 변동 후(after) 공급가만 — before·권장판매가 폴백 없음.
+ * 유효 공급가 — effective_from 컷오버와 동일 규칙.
  * 어드민 원가 표시·마진 참고 SSOT.
  */
-export function afterSupplyCostKrw(priceBlock: AfterRecommendedPriceBlockInput): number | null {
-  const v = numOrNull(priceBlock?.after?.supply_krw);
+export function afterSupplyCostKrw(
+  priceBlock: AfterRecommendedPriceBlockInput,
+  nowMs: number = Date.now(),
+): number | null {
+  const v = resolveActivePriceSide(priceBlock, nowMs).supply_krw;
   if (v == null || v < 0) return null;
   return Math.trunc(v);
 }

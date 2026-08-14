@@ -50,6 +50,19 @@ export const MULTI_COUNTRY_PLAN_COVERAGE: Record<string, string[]> = {
   "동남아 8개국": ["my", "sg", "th", "mo", "vn", "id", "kh", "hk"],
 
   "남미10개국": ["gt", "mx", "us", "br", "ar", "ec", "uy", "cl", "co", "py", "pe"],
+  "남미 10개국": ["gt", "mx", "us", "br", "ar", "ec", "uy", "cl", "co", "py", "pe"],
+  "남미 11개국": ["gt", "mx", "us", "br", "ar", "ec", "uy", "cl", "co", "py", "pe"],
+
+  "북아프리카 4개국(경유)": ["eg", "ma", "tn", "dz", "ae", "qa", "tr"],
+  "북아프리카 4개국(경유팩)": ["eg", "ma", "tn", "dz", "ae", "qa", "tr"],
+
+  "베네룩스 3국": ["be", "nl", "lu"],
+  "북유럽 5개국": ["fi", "no", "is", "dk", "se"],
+  "중동 6개국": ["sa", "ae", "kw", "om", "qa", "bh"],
+  "중앙아시아 5개국": ["kz", "uz", "kg", "tj", "ru"],
+  "한국/일본": ["kr", "jp"],
+  "한국/중국/일본": ["kr", "cn", "jp"],
+  "프랑스/스위스/이탈리아": ["fr", "ch", "it"],
 
   "홍콩/마카오": ["hk", "mo"],
   "호주/뉴질랜드": ["au", "nz"],
@@ -67,6 +80,7 @@ const EXTRA_KO_NAME_TO_CODE: Record<string, string> = {
   튀르키예: "tr",
   사이판: "mp",
   북마리아나제도: "mp",
+  아랍에미레이트: "ae",
 };
 
 function buildKoreanNameToCode(): Record<string, string> {

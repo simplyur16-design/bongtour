@@ -9,9 +9,14 @@ import { BONGSIM_INGEST_SHEETS } from "@/lib/bongsim/ingest/excel-sheet-config";
 import { normalizeExcelRow } from "@/lib/bongsim/ingest/excel-normalize-row";
 import { hashExcelRowStable } from "@/lib/bongsim/ingest/excel-hash-row";
 import { parseIngestSheet, readWorkbookFromBuffer, sheetRowsAsRecords } from "@/lib/bongsim/ingest/excel-parse-workbook";
-import type { BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
+import type { BongsimPriceBlockV1, BongsimProductOptionV1 } from "@/lib/bongsim/contracts/product-master.v1";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { isActiveFromExcelUpdateType } from "@/lib/bongsim/ingest/excel-update-type-active";
+import {
+  priceTripleHasAny,
+  resolveActivePriceSide,
+  type PriceTriple,
+} from "@/lib/bongsim/data/pricing-effective-from";
 
 export type RunExcelImportResult =
   | {
@@ -29,8 +34,47 @@ export type RunExcelImportResult =
       message?: string;
     };
 
+export type RunExcelImportOptions = {
+  /**
+   * ISO timestamptz. 기존 SKU 가격 갱신 시 before=현재가, after=엑셀, effective_from=이 값.
+   * 신규 SKU는 effective_from 없이 after만(즉시 판매).
+   * REGRESSION-FREEZE[bongsim-price-effective-from]
+   */
+  priceEffectiveFrom?: string | null;
+};
+
 function workbookIdFromBuffer(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex").slice(0, 32);
+}
+
+const EMPTY_TRIPLE: PriceTriple = {
+  consumer_krw: null,
+  recommended_krw: null,
+  supply_krw: null,
+};
+
+function mergePriceBlockForCutover(
+  excelBlock: BongsimPriceBlockV1,
+  prevRaw: unknown | null | undefined,
+  priceEffectiveFrom: string | null | undefined,
+): BongsimPriceBlockV1 {
+  const excelAfter = excelBlock.after;
+  if (!priceEffectiveFrom) {
+    return excelBlock;
+  }
+  if (prevRaw == null) {
+    return {
+      before: { ...EMPTY_TRIPLE },
+      after: excelAfter,
+    };
+  }
+  const live = resolveActivePriceSide(prevRaw as BongsimPriceBlockV1);
+  const before = priceTripleHasAny(live) ? live : EMPTY_TRIPLE;
+  return {
+    before,
+    after: excelAfter,
+    effective_from: priceEffectiveFrom,
+  };
 }
 
 async function upsertProductOption(client: PoolClient, opt: BongsimProductOptionV1): Promise<void> {
@@ -134,7 +178,10 @@ async function insertPriceEventIfNeeded(
   return true;
 }
 
-export async function runExcelImportBuffer(buf: Buffer): Promise<RunExcelImportResult> {
+export async function runExcelImportBuffer(
+  buf: Buffer,
+  options: RunExcelImportOptions = {},
+): Promise<RunExcelImportResult> {
   const pool = getPgPool();
   if (!pool) return { ok: false, error: "db_unconfigured" };
 
@@ -147,6 +194,7 @@ export async function runExcelImportBuffer(buf: Buffer): Promise<RunExcelImportR
 
   const workbook_id = workbookIdFromBuffer(buf);
   const client = await pool.connect();
+  const priceEffectiveFrom = options.priceEffectiveFrom?.trim() || null;
 
   try {
     await client.query("BEGIN");
@@ -190,6 +238,11 @@ export async function runExcelImportBuffer(buf: Buffer): Promise<RunExcelImportR
         );
         const existed = prev.rows.length > 0;
         const oldPriceJson = existed ? JSON.stringify(prev.rows[0].price_block) : "";
+        opt.price_block = mergePriceBlockForCutover(
+          opt.price_block,
+          existed ? prev.rows[0]!.price_block : null,
+          priceEffectiveFrom,
+        );
         await upsertProductOption(client, opt);
         const wrote = await insertPriceEventIfNeeded(
           client,

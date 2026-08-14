@@ -20,6 +20,13 @@ const REGION_PACK_FLAG_ISO: Record<string, string> = {
   "rg-es-pt": "es",
   "rg-sa-11": "br",
   "rg-nafr-4": "eg",
+  "rg-benelux-3": "be",
+  "rg-nordic-5": "se",
+  "rg-me-6": "ae",
+  "rg-ca-5": "kz",
+  "rg-kr-jp": "kr",
+  "rg-kr-cn-jp": "kr",
+  "rg-fr-ch-it": "fr",
 };
 
 /** UI 국기 이미지용 ISO — 단일 국가 코드 또는 rg-* 권역 매핑 */

@@ -2242,6 +2242,65 @@
       ]
     },
     {
+      "id": "bongsim-price-effective-from",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "USIMSA 변동가 effective_from(2026-09-01 00:00 KST) — before/after 컷오버 + 단일가격열 after 승격",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/pricing-effective-from.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "BONGSIM_PRICE_EFFECTIVE_FROM_20260901",
+            "2026-09-01T00:00:00+09:00",
+            "resolveActivePriceSide"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/pricing-after-recommended-krw.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "resolveActivePriceSide"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/catalog-consumer-krw-sql.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "price_block->>'effective_from'"
+          ]
+        },
+        {
+          "file": "lib/bongsim/ingest/run-excel-import.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "priceEffectiveFrom",
+            "mergePriceBlockForCutover"
+          ]
+        },
+        {
+          "file": "lib/bongsim/ingest/excel-normalize-row.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "afterEmpty && beforeFilled"
+          ]
+        },
+        {
+          "file": "lib/bongsim/contracts/product-master.v1.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "effective_from"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/data/pricing-effective-from.test.ts",
+        "lib/bongsim/data/pricing-select-charged.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-catalog-list-perf",
       "tier": [
         "prebuild",
@@ -2611,7 +2670,10 @@
     },
     {
       "id": "season-mobile-briefing-br-overlay",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "모바일 시즌 브리핑 — CTA 우측 하단 고정 · 카드 높이 부족 시 제목 숨김(사진+CTA만)",
       "checks": [
         {
@@ -2629,7 +2691,10 @@
     },
     {
       "id": "admin-pending-photo-register-local-patch",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "등록대기 사진수급 — keyword/apply 후 전체 product GET 생략·저장 키워드 우선·schedule 로컬 패치",
       "checks": [
         {
@@ -2658,11 +2723,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/admin-pending-schedule-local-patch.test.ts"]
+      "vitestSuites": [
+        "lib/admin-pending-schedule-local-patch.test.ts"
+      ]
     },
     {
       "id": "home-main-nav-chips-on-narrow",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈(/·/m)은 hideMobileNav 금지 — 좁은 폭에서도 MAIN_NAV 5칩(해외·자유·eSIM·우리끼리·공공) 진입",
       "checks": [
         {
@@ -2671,7 +2741,9 @@
             "REGRESSION-FREEZE[home-main-nav-chips-on-narrow]",
             "<Header />"
           ],
-          "mustNotInclude": ["hideMobileNav"]
+          "mustNotInclude": [
+            "hideMobileNav"
+          ]
         },
         {
           "file": "app/m/page.tsx",
@@ -2679,7 +2751,9 @@
             "REGRESSION-FREEZE[home-main-nav-chips-on-narrow]",
             "<Header />"
           ],
-          "mustNotInclude": ["hideMobileNav"]
+          "mustNotInclude": [
+            "hideMobileNav"
+          ]
         },
         {
           "file": "app/components/Header.tsx",
@@ -2812,7 +2886,10 @@
     },
     {
       "id": "overseas-hub-season-hero-empty-poison",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "해외 허브 3개월 추천 히어로 — SSR/CDN 빈 셸이어도 클라이언트 API로 복구, Data Cache empty poison 방지",
       "checks": [
         {
@@ -14399,7 +14476,10 @@
     },
     {
       "id": "product-jsonld-canonical-url",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "상품 Product JSON-LD url은 publicProductPath(슬러그)와 일치 — raw cuid id 경로 금지",
       "checks": [
         {
@@ -14418,11 +14498,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/seo/product-json-ld.test.ts"]
+      "vitestSuites": [
+        "lib/seo/product-json-ld.test.ts"
+      ]
     },
     {
       "id": "simplyur-mobile-tabs-browse-keep",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Simplyur 앱 — 상품/기기/설정/약관은 (tabs) 안이라 하단 탭 유지, checkout는 밖",
       "checks": [
         {
@@ -14438,7 +14523,9 @@
         },
         {
           "file": "apps/simplyur-mobile/app/_layout.tsx",
-          "mustInclude": ["name=\"checkout\""],
+          "mustInclude": [
+            "name=\"checkout\""
+          ],
           "mustNotInclude": [
             "name=\"product/[optionApiId]\"",
             "name=\"devices\"",
@@ -14448,24 +14535,42 @@
         },
         {
           "file": "apps/simplyur-mobile/app/(tabs)/devices.tsx",
-          "mustInclude": ["export default"]
+          "mustInclude": [
+            "export default"
+          ]
         }
       ]
     },
     {
       "id": "simplyur-my-esim-badge-tiers",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "My eSIM 뱃지 — Upcoming 제거, Ready/Preparing/Active/Expired",
       "checks": [
         {
           "file": "lib/simplyur/my-esim-view-model.ts",
-          "mustInclude": ["can_show_qr", "return \"ready\"", "return \"preparing\"", "refundPending"],
-          "mustNotInclude": ["return \"upcoming\""]
+          "mustInclude": [
+            "can_show_qr",
+            "return \"ready\"",
+            "return \"preparing\"",
+            "refundPending"
+          ],
+          "mustNotInclude": [
+            "return \"upcoming\""
+          ]
         },
         {
           "file": "apps/simplyur-mobile/src/lib/my-esim-view-model.ts",
-          "mustInclude": ["can_show_qr", "return 'ready'", "return 'preparing'"],
-          "mustNotInclude": ["return 'upcoming'"]
+          "mustInclude": [
+            "can_show_qr",
+            "return 'ready'",
+            "return 'preparing'"
+          ],
+          "mustNotInclude": [
+            "return 'upcoming'"
+          ]
         },
         {
           "file": "apps/simplyur-mobile/src/constants/my-esim-design.ts",
@@ -14474,10 +14579,14 @@
             "ready:",
             "preparing:"
           ],
-          "mustNotInclude": ["upcoming:"]
+          "mustNotInclude": [
+            "upcoming:"
+          ]
         }
       ],
-      "vitestSuites": ["lib/simplyur/my-esim-view-model.test.ts"]
+      "vitestSuites": [
+        "lib/simplyur/my-esim-view-model.test.ts"
+      ]
     },
     {
       "id": "simplyur-eximbay-payer-auth-pa",
@@ -15179,7 +15288,10 @@
     },
     {
       "id": "inquiry-thank-you-redirect",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "문의·견적 접수 성공 후 /inquiry/thank-you 로 이동 — Google Ads 리드 전환 URL",
       "checks": [
         {
@@ -15198,7 +15310,9 @@
             "buildInquiryThankYouHref",
             "router.replace"
           ],
-          "mustNotInclude": ["setDone(true)"]
+          "mustNotInclude": [
+            "setDone(true)"
+          ]
         },
         {
           "file": "app/inquiry/thank-you/page.tsx",
@@ -15209,7 +15323,9 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/inquiry-thank-you-path.test.ts"]
+      "vitestSuites": [
+        "lib/inquiry-thank-you-path.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

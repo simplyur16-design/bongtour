@@ -19,6 +19,13 @@ export const REGION_PACK_DEFAULT_TRIP_DAYS: Record<string, number> = {
   "rg-nafr-4": 8,
   "rg-sa-11": 12,
   "rg-global-151": 10,
+  "rg-benelux-3": 7,
+  "rg-nordic-5": 8,
+  "rg-me-6": 7,
+  "rg-ca-5": 8,
+  "rg-kr-jp": 5,
+  "rg-kr-cn-jp": 6,
+  "rg-fr-ch-it": 8,
 };
 
 /** simplyur(한국 inbound) — 외국인 평균 체류 4~7일, 기본 5일 */

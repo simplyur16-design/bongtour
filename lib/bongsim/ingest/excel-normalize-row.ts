@@ -45,14 +45,23 @@ function headerCandidates(lang: ExcelSheetLanguage, key: keyof typeof BONGSIM_EX
     extra.push(BONGSIM_EXCEL_COLUMN_MAP.en.days_fix);
   }
   if (lang === "ko") {
+    if (key === "consumer_before") {
+      extra.push("소비자가\n(KRW)", "소비자가 (KRW)");
+    }
+    if (key === "recommended_before") {
+      extra.push("권장판매가\n(KRW)", "권장판매가 (KRW)");
+    }
+    if (key === "supply_before") {
+      extra.push("공급가\n(KRW)", "공급가 (KRW)");
+    }
     if (key === "consumer_after") {
-      extra.push("(변경)소비자가(KRW)", "변경 소비자가(KRW)", "변경_소비자가(KRW)");
+      extra.push("(변경)소비자가(KRW)", "변경 소비자가(KRW)", "변경_소비자가(KRW)", "소비자가\n(KRW).1");
     }
     if (key === "recommended_after") {
-      extra.push("(변경)권장판매가(KRW)", "변경 권장판매가(KRW)", "변경_권장판매가(KRW)");
+      extra.push("(변경)권장판매가(KRW)", "변경 권장판매가(KRW)", "변경_권장판매가(KRW)", "권장판매가\n(KRW).1");
     }
     if (key === "supply_after") {
-      extra.push("(변경)공급가(KRW)", "변경 공급가(KRW)", "변경_공급가(KRW)");
+      extra.push("(변경)공급가(KRW)", "변경 공급가(KRW)", "변경_공급가(KRW)", "공급가\n(KRW).1");
     }
   }
   const set = new Set<string>();
@@ -83,18 +92,29 @@ function numFromHeaders(rec: Record<string, unknown>, lang: ExcelSheetLanguage, 
 
 function buildPriceBlock(rec: Record<string, unknown>, lang: ExcelSheetLanguage): BongsimPriceBlockV1 {
   const c = (k: keyof typeof BONGSIM_EXCEL_COLUMN_MAP.ko) => numFromHeaders(rec, lang, k);
-  return {
-    before: {
-      consumer_krw: c("consumer_before"),
-      recommended_krw: c("recommended_before"),
-      supply_krw: c("supply_before"),
-    },
-    after: {
-      consumer_krw: c("consumer_after"),
-      recommended_krw: c("recommended_after"),
-      supply_krw: c("supply_after"),
-    },
+  const before = {
+    consumer_krw: c("consumer_before"),
+    recommended_krw: c("recommended_before"),
+    supply_krw: c("supply_before"),
   };
+  const after = {
+    consumer_krw: c("consumer_after"),
+    recommended_krw: c("recommended_after"),
+    supply_krw: c("supply_after"),
+  };
+  const afterEmpty =
+    after.consumer_krw == null && after.recommended_krw == null && after.supply_krw == null;
+  const beforeFilled =
+    before.consumer_krw != null || before.recommended_krw != null || before.supply_krw != null;
+  // 20260901 등 단일 가격 열 워크북: 헤더가 before 키만 매칭 → after로 승격
+  // REGRESSION-FREEZE[bongsim-price-effective-from]: single-column → after — manifest
+  if (afterEmpty && beforeFilled) {
+    return {
+      before: { consumer_krw: null, recommended_krw: null, supply_krw: null },
+      after: before,
+    };
+  }
+  return { before, after };
 }
 
 import { isChinaMainlandOnlyPlanExemptFromTravelerVerification } from "@/lib/bongsim/esim/traveler-verification-policy";

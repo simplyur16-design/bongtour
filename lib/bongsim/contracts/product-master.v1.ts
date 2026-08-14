@@ -7,7 +7,8 @@ import type {
 
 /**
  * Six-cell supplier price snapshot (엑셀 기존/변경).
- * 스토어·결제·정렬 SSOT: `after.consumer_krw` 만 — `before`·권장가 폴백 없음.
+ * 스토어·결제·정렬 SSOT: 유효 시각 이후 `after.consumer_krw`, 이전이면 `before.consumer_krw`.
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: effective_from 컷오버 — manifest
  */
 export type BongsimPriceBlockV1 = {
   before: {
@@ -20,6 +21,11 @@ export type BongsimPriceBlockV1 = {
     recommended_krw: number | null;
     supply_krw: number | null;
   };
+  /**
+   * ISO timestamptz. `now < effective_from` 이면 before, 아니면 after.
+   * 없으면 after만 사용(기존 동작).
+   */
+  effective_from?: string | null;
 };
 
 export type BongsimProductFlagsV1 = {

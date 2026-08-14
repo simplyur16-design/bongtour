@@ -1,4 +1,7 @@
 import type { CountryOption } from "@/lib/bongsim/types";
+import { bongsimFlagIsoForDestination } from "@/lib/bongsim/recommend/destination-flag-image";
+import { regionPackCarouselFlags } from "@/lib/bongsim/recommend/region-pack-carousel-flags";
+import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 
 /** @deprecated `home-data` RECOMMEND_POPULAR_CODES 사용 */
 export { RECOMMEND_POPULAR_CODES as RECOMMEND_POPULAR_COUNTRY_CODES } from "@/lib/bongsim/home-data";
@@ -32,7 +35,11 @@ export function isRecommendPopularEuropeRegion(code: string): boolean {
   return code === RECOMMEND_POPULAR_EUROPE_REGION_CODE;
 }
 
-/** GET /api/bongsim/country-heroes 맵 — 지역 패키지는 `eu` 공통 히어로 폴백 */
+/**
+ * GET /api/bongsim/country-heroes 맵.
+ * · 유럽 패키지 → `eu` / `rg-eu-33` 공통 폴백
+ * · 기타 `rg-*` → 대표 ISO · 캐러셀 커버 국가 히어로 폴백
+ */
 export function resolveBongsimCountryHeroUrl(
   code: string,
   heroMap: Record<string, string>,
@@ -40,9 +47,25 @@ export function resolveBongsimCountryHeroUrl(
   const lower = code.trim().toLowerCase();
   const direct = heroMap[lower]?.trim();
   if (direct) return direct;
+
   if (lower.startsWith("rg-eu-")) {
-    const shared = heroMap[RECOMMEND_POPULAR_EUROPE_FLAG_ISO]?.trim();
+    const shared =
+      heroMap[RECOMMEND_POPULAR_EUROPE_FLAG_ISO]?.trim() ||
+      heroMap[RECOMMEND_POPULAR_EUROPE_REGION_CODE]?.trim();
     if (shared) return shared;
   }
+
+  if (isRegionPackCode(lower)) {
+    const iso = bongsimFlagIsoForDestination(lower);
+    if (iso !== lower) {
+      const byIso = heroMap[iso]?.trim();
+      if (byIso) return byIso;
+    }
+    for (const c of regionPackCarouselFlags(lower)) {
+      const hit = heroMap[c]?.trim();
+      if (hit) return hit;
+    }
+  }
+
   return undefined;
 }

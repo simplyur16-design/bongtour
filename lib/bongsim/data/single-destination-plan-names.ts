@@ -2,7 +2,7 @@ import { COUNTRY_OPTIONS, planNameKrFromCountryCode } from "@/lib/bongsim/countr
 import { MULTI_COUNTRY_PLAN_COVERAGE } from "@/lib/bongsim/plan-coverage-map";
 import {
   isRegionPackCode,
-  planNameForRegionPackCode,
+  planNamesForRegionPackCode,
 } from "@/lib/bongsim/recommend/region-pack-plan";
 
 // REGRESSION-FREEZE[bongsim-products-by-country-cache]: 단일 목적지 SQL plan_name SSOT — manifest
@@ -14,6 +14,7 @@ const EXTRA_KO_NAME_TO_CODE: Record<string, string> = {
   튀르키예: "tr",
   사이판: "mp",
   북마리아나제도: "mp",
+  아랍에미레이트: "ae",
 };
 
 /**
@@ -25,8 +26,8 @@ export function resolveDestinationPlanNamesForSql(code: string): string[] | null
   if (!lc) return null;
 
   if (isRegionPackCode(lc)) {
-    const regionPlan = planNameForRegionPackCode(lc);
-    return regionPlan ? [regionPlan] : null;
+    const regionPlans = planNamesForRegionPackCode(lc);
+    return regionPlans.length > 0 ? regionPlans : null;
   }
 
   const names = new Set<string>();

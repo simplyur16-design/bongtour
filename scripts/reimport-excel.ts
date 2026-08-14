@@ -1,9 +1,14 @@
 import { createHash } from "node:crypto";
 import fs from "fs";
+import { config as loadDotenv } from "dotenv";
 import { closePgPool, getPgPool } from "../lib/bongsim/db/pool";
 import { runExcelImportBuffer } from "../lib/bongsim/ingest/run-excel-import";
+import { BONGSIM_PRICE_EFFECTIVE_FROM_20260901 } from "../lib/bongsim/data/pricing-effective-from";
 
-const XLSX_PATH = "C:\\Users\\USER\\Downloads\\20260316_공급가(전체).xlsx";
+loadDotenv();
+loadDotenv({ path: ".env.local", override: true });
+
+const XLSX_PATH = "C:\\Users\\USER\\Downloads\\20260901_공급가(전체).xlsx";
 
 function workbookIdFromBuffer(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex").slice(0, 32);
@@ -29,10 +34,12 @@ async function main() {
     }
   }
 
-  const result = await runExcelImportBuffer(buf);
+  const result = await runExcelImportBuffer(buf, {
+    priceEffectiveFrom: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+  });
   console.log("임포트 완료:", JSON.stringify(result, null, 2));
   await closePgPool();
-  process.exit(0);
+  process.exit(result.ok ? 0 : 1);
 }
 
 main().catch((e) => {

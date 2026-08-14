@@ -11,7 +11,12 @@ import { bongsimFlagIsoForDestination } from '@/lib/bongsim/recommend/popular-de
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
 
-const ADMIN_GROUPS: EsimCountryHeroAdminGroup[] = ['standalone', 'europe_region', 'europe_country']
+const ADMIN_GROUPS: EsimCountryHeroAdminGroup[] = [
+  'standalone',
+  'region_pack',
+  'europe_region',
+  'europe_country',
+]
 
 type PexelsSearchPhoto = {
   id: number
@@ -107,6 +112,7 @@ export default function CountryHeroesAdminClient() {
   const catalogByGroup = useMemo(() => {
     const grouped: Record<EsimCountryHeroAdminGroup, EsimCountryHeroAdminEntry[]> = {
       standalone: [],
+      region_pack: [],
       europe_region: [],
       europe_country: [],
     }
@@ -227,12 +233,12 @@ export default function CountryHeroesAdminClient() {
       <div className="mb-6 rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-slate-100">
         <h1 className="text-lg font-semibold text-white">봉심 eSIM · 국가별 추천 히어로</h1>
         <p className="mt-1 text-sm text-slate-400">
-          단독 플랜 국가와 유럽 패키지·개별국을 함께 관리합니다. Pexels에서 고른 이미지는 사진 풀(Ncloud)에 저장된 뒤{' '}
+          단독 플랜 국가와 다국가·유럽 패키지를 함께 관리합니다. Pexels에서 고른 이미지는 사진 풀(Ncloud)에 저장된 뒤{' '}
           <span className="font-mono text-slate-300">ImageAsset</span>(<span className="font-mono">recommend_hero</span>
           )로 연결되며, 사용자 퍼널은{' '}
           <span className="font-mono text-slate-300">GET /api/bongsim/country-heroes</span>로 반영됩니다. 유럽 패키지(
           <span className="font-mono text-slate-300">rg-eu-*</span>)는 전용 히어로가 없을 때{' '}
-          <span className="font-mono text-slate-300">eu</span> 공통 히어로를 사용합니다.
+          <span className="font-mono text-slate-300">eu</span> 공통 히어로를, 기타 다국가는 커버 국가 히어로로 폴백합니다.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button

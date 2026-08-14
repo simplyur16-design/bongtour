@@ -10,6 +10,7 @@ import { getRecentCountryCodes, pushRecentCountry } from "@/lib/bongsim/country-
 import { HOME_POPULAR_CODES } from "@/lib/bongsim/home-data";
 import { getCountryById } from "@/lib/bongsim/mock-data";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
+import { USIMSA_MULTI_TAB_ORDER } from "@/lib/bongsim/recommend/region-pack-plan";
 import type { CountryOption } from "@/lib/bongsim/types";
 
 function matchesQuery(
@@ -22,6 +23,12 @@ function matchesQuery(
   if (c.subtitleKr?.toLowerCase().includes(t)) return true;
   if (c.code.toLowerCase().includes(t)) return true;
   return false;
+}
+
+/** 다국가 탭 — USIMSA 노출 순 + 국기 카드 SSOT */
+function multiTabRegionItems(): CountryOption[] {
+  const byCode = new Map(REGION_PACK_OPTIONS.map((c) => [c.code, c]));
+  return USIMSA_MULTI_TAB_ORDER.map((code) => byCode.get(code)).filter(Boolean) as CountryOption[];
 }
 
 export function BongsimHomeMobile() {
@@ -75,7 +82,10 @@ export function BongsimHomeMobile() {
     return base.filter((c) => matchesQuery(c, q));
   }, [q, recentResolved.length, popularWhenFocused, popularSearchPool]);
 
-  const regionItems = useMemo(() => REGION_PACK_OPTIONS.filter((c) => matchesQuery(c, q)), [q]);
+  const regionItems = useMemo(
+    () => multiTabRegionItems().filter((c) => matchesQuery(c, q)),
+    [q],
+  );
 
   const popularEmpty =
     tab === "popular" &&

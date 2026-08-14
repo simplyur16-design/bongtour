@@ -7,7 +7,7 @@ import {
 } from "@/lib/bongsim/plan-coverage-map";
 import {
   isRegionPackCode,
-  planNameForRegionPackCode,
+  planNamesForRegionPackCode,
 } from "@/lib/bongsim/recommend/region-pack-plan";
 import { getKycLabelDistribution, type KycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 import { countryCatalogAllowsTravelerVerificationPolicy } from "@/lib/bongsim/esim/traveler-verification-policy";
@@ -72,9 +72,8 @@ export function catalogMetaFromSlimRows(
 
   for (const code of normalized) {
     if (isRegionPackCode(code)) {
-      const planName = planNameForRegionPackCode(code);
-      const regional =
-        planName != null ? allProducts.filter((p) => p.plan_name.trim() === planName) : [];
+      const planNames = new Set(planNamesForRegionPackCode(code).map((n) => n.trim()));
+      const regional = allProducts.filter((p) => planNames.has(p.plan_name.trim()));
       out[code] = metaFromProducts(regional, code);
       continue;
     }

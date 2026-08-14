@@ -5,16 +5,47 @@ import {
   afterRecommendedSellKrw,
 } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
+import { BONGSIM_PRICE_EFFECTIVE_FROM_20260901 } from "@/lib/bongsim/data/pricing-effective-from";
 
 // REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
+// REGRESSION-FREEZE[bongsim-price-effective-from]: effective_from cutover — manifest
+
+const BEFORE_MS = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 60_000;
+const AFTER_MS = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) + 60_000;
 
 describe("afterConsumerSellKrw", () => {
-  it("uses after.consumer_krw only", () => {
+  it("uses after.consumer_krw when no effective_from", () => {
     expect(
       afterConsumerSellKrw({
         before: { recommended_krw: 1000, consumer_krw: 2000 },
         after: { recommended_krw: 11700, consumer_krw: 13000 },
       }),
+    ).toBe(13000);
+  });
+
+  it("uses before.consumer_krw before effective_from", () => {
+    expect(
+      afterConsumerSellKrw(
+        {
+          before: { consumer_krw: 10000 },
+          after: { consumer_krw: 13000 },
+          effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+        },
+        BEFORE_MS,
+      ),
+    ).toBe(10000);
+  });
+
+  it("uses after.consumer_krw after effective_from", () => {
+    expect(
+      afterConsumerSellKrw(
+        {
+          before: { consumer_krw: 10000 },
+          after: { consumer_krw: 13000 },
+          effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+        },
+        AFTER_MS,
+      ),
     ).toBe(13000);
   });
 

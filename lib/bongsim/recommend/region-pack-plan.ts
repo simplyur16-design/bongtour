@@ -15,32 +15,60 @@ export const REGION_PACK_PLAN_NAME_BY_CODE: Record<string, string> = {
   "rg-gu-mp": "괌/사이판",
   "rg-sea-8": "동남아 8개국",
   "rg-as-13": "아시아 13개국",
-  "rg-nafr-4": "북아프리카 4개국(경유)",
-  "rg-sa-11": "남미10개국",
+  "rg-nafr-4": "북아프리카 4개국(경유팩)",
+  "rg-sa-11": "남미 11개국",
+  "rg-benelux-3": "베네룩스 3국",
+  "rg-nordic-5": "북유럽 5개국",
+  "rg-me-6": "중동 6개국",
+  "rg-ca-5": "중앙아시아 5개국",
+  "rg-kr-jp": "한국/일본",
+  "rg-kr-cn-jp": "한국/중국/일본",
+  "rg-fr-ch-it": "프랑스/스위스/이탈리아",
 };
 
+/** 동일 권역 탭이 커버하는 엑셀 plan_name 별칭 */
+export const REGION_PACK_PLAN_NAME_ALIASES: Record<string, string[]> = {
+  "rg-nafr-4": ["북아프리카 4개국(경유팩)", "북아프리카 4개국(경유)"],
+  "rg-sa-11": ["남미 11개국", "남미10개국", "남미 10개국"],
+};
+
+export function planNamesForRegionPackCode(code: string): string[] {
+  const lc = code.trim().toLowerCase();
+  const aliases = REGION_PACK_PLAN_NAME_ALIASES[lc];
+  if (aliases?.length) return [...aliases];
+  const primary = REGION_PACK_PLAN_NAME_BY_CODE[lc];
+  return primary ? [primary] : [];
+}
+
 export function planNameForRegionPackCode(code: string): string | undefined {
-  return REGION_PACK_PLAN_NAME_BY_CODE[code.trim().toLowerCase()];
+  return planNamesForRegionPackCode(code)[0];
 }
 
 export function isRegionPackCode(code: string): boolean {
   return code.trim().toLowerCase().startsWith("rg-");
 }
 
-/** usimsa 다국가 탭 노출 순 (스크린샷 교차검증) */
+/** usimsa 다국가 탭 노출 순 */
 export const USIMSA_MULTI_TAB_ORDER = [
   "rg-eu-42",
   "rg-eu-36",
   "rg-eu-33",
   "rg-eu-27",
   "rg-es-pt",
+  "rg-benelux-3",
+  "rg-nordic-5",
+  "rg-fr-ch-it",
   "rg-us-ca",
   "rg-na-3",
   "rg-cn-hk-mo",
   "rg-hk-mo",
+  "rg-kr-jp",
+  "rg-kr-cn-jp",
   "rg-sea-8",
   "rg-sea-3",
   "rg-as-13",
+  "rg-me-6",
+  "rg-ca-5",
   "rg-au-nz",
   "rg-gu-mp",
   "rg-global-151",

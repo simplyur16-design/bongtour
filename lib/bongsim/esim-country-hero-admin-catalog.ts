@@ -3,8 +3,17 @@ import type { BongsimStandaloneCountry } from "@/lib/bongsim/data/list-standalon
 import { MULTI_COUNTRY_PLAN_COVERAGE } from "@/lib/bongsim/plan-coverage-map";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
 import { RECOMMEND_POPULAR_EUROPE_FLAG_ISO } from "@/lib/bongsim/recommend/popular-destinations";
+import {
+  planNameForRegionPackCode,
+  regionPackGridLabel,
+  USIMSA_MULTI_TAB_ORDER,
+} from "@/lib/bongsim/recommend/region-pack-plan";
 
-export type EsimCountryHeroAdminGroup = "standalone" | "europe_region" | "europe_country";
+export type EsimCountryHeroAdminGroup =
+  | "standalone"
+  | "region_pack"
+  | "europe_region"
+  | "europe_country";
 
 export type EsimCountryHeroAdminEntry = {
   code: string;
@@ -36,6 +45,18 @@ export function buildEsimCountryHeroAdminCatalog(
   }
 
   const regionByCode = new Map(REGION_PACK_OPTIONS.map((r) => [r.code, r]));
+  for (const code of USIMSA_MULTI_TAB_ORDER) {
+    if ((ESIM_EUROPE_REGION_PACK_CODES as readonly string[]).includes(code)) continue;
+    const region = regionByCode.get(code);
+    if (!region) continue;
+    push({
+      code: region.code,
+      nameKr: regionPackGridLabel(code, region),
+      subtitleKr: region.subtitleKr,
+      group: "region_pack",
+    });
+  }
+
   for (const code of ESIM_EUROPE_REGION_PACK_CODES) {
     const region = regionByCode.get(code);
     if (!region) continue;
@@ -77,6 +98,16 @@ export function buildEsimCountryHeroAdminCatalog(
 
 export const ESIM_COUNTRY_HERO_ADMIN_GROUP_LABELS: Record<EsimCountryHeroAdminGroup, string> = {
   standalone: "단독 플랜 국가",
+  region_pack: "다국가 패키지",
   europe_region: "유럽 패키지 · 공통",
   europe_country: "유럽 개별국 (다국가 커버)",
 };
+
+/** 어드민 검색 기본어 — 권역 코드면 plan_name */
+export function esimCountryHeroDefaultSearchQuery(code: string, nameKr: string): string {
+  const lc = code.trim().toLowerCase();
+  if (lc.startsWith("rg-")) {
+    return planNameForRegionPackCode(lc) ?? nameKr;
+  }
+  return nameKr;
+}

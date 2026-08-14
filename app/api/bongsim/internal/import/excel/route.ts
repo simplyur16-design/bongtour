@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { runExcelImportBuffer } from "@/lib/bongsim/ingest/run-excel-import";
 import { getPgPool } from "@/lib/bongsim/db/pool";
@@ -28,8 +27,12 @@ export async function POST(req: Request) {
     return jsonWithLeakGuard({ error: "file_required" }, "bongsim.internal.import.excel", { status: 400 });
   }
 
+  const efRaw = fd.get("price_effective_from");
+  const priceEffectiveFrom =
+    typeof efRaw === "string" && efRaw.trim() ? efRaw.trim() : null;
+
   const buf = Buffer.from(await file.arrayBuffer());
-  const result = await runExcelImportBuffer(buf);
+  const result = await runExcelImportBuffer(buf, { priceEffectiveFrom });
 
   if (!result.ok) {
     if (result.error === "db_unconfigured") {
@@ -62,6 +65,7 @@ export async function POST(req: Request) {
       rows_skipped: result.rows_skipped,
       price_events_written: result.price_events_written,
       sheet_stats: result.sheet_stats,
+      price_effective_from: priceEffectiveFrom,
     },
     "bongsim.internal.import.excel",
   );

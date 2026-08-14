@@ -19,6 +19,13 @@ export const REGION_CATALOG: RegionOption[] = [
   { code: "rg-as-13", title: "아시아", subtitle: "13개국", icon: "🌏", isUnlimited: true, searchTerms: ["asia"] },
   { code: "rg-nafr-4", title: "북아프리카", subtitle: "4개국(경유)", icon: "🇪🇬", isUnlimited: true, searchTerms: ["africa"] },
   { code: "rg-sa-11", title: "남미", subtitle: "11개국", icon: "🇧🇷", searchTerms: ["south america", "brazil"] },
+  { code: "rg-benelux-3", title: "베네룩스", subtitle: "3국", icon: "🇧🇪", isUnlimited: true, searchTerms: ["benelux", "벨기에", "네덜란드"] },
+  { code: "rg-nordic-5", title: "북유럽", subtitle: "5개국", icon: "🇸🇪", isUnlimited: true, searchTerms: ["nordic", "북유럽"] },
+  { code: "rg-me-6", title: "중동", subtitle: "6개국", icon: "🇦🇪", isUnlimited: true, searchTerms: ["middle east", "중동"] },
+  { code: "rg-ca-5", title: "중앙아시아", subtitle: "5개국", icon: "🇰🇿", isUnlimited: true, searchTerms: ["central asia", "중앙아시아"] },
+  { code: "rg-kr-jp", title: "한국", subtitle: "일본", icon: "🇰🇷", isUnlimited: true, searchTerms: ["korea", "japan", "한국", "일본"] },
+  { code: "rg-kr-cn-jp", title: "한국", subtitle: "중국·일본", icon: "🇰🇷", isUnlimited: true, searchTerms: ["korea", "china", "japan"] },
+  { code: "rg-fr-ch-it", title: "프랑스", subtitle: "스위스·이탈리아", icon: "🇫🇷", isUnlimited: true, searchTerms: ["france", "switzerland", "italy"] },
 ];
 
 function mapRegion(r: RegionOption): CountryOption {
