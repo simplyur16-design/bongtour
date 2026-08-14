@@ -96,8 +96,14 @@ export function SocialAuthButtons({
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
       if (code === 'oauth_not_configured') setErr(t('auth.googleNotConfigured'));
-      else if (code === 'oauth_android_sha_mismatch') setErr(t('auth.googleAndroidShaMismatch'));
-      else if (code === 'oauth_cancelled') setErr('');
+      else if (code === 'oauth_android_sha_mismatch') {
+        // Dev builds: include exact package + debug SHA-1 so ops can register without hunting.
+        setErr(
+          typeof __DEV__ !== 'undefined' && __DEV__
+            ? `${t('auth.googleAndroidShaMismatch')} (com.bongtravel.simplyur / SHA-1 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25)`
+            : t('auth.googleAndroidShaMismatch'),
+        );
+      } else if (code === 'oauth_cancelled') setErr('');
       else setErr(t('auth.errorGeneric'));
     } finally {
       setBusy(null);

@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer'
-import { getSmtpHost } from '@/lib/smtp-env'
+import { getSmtpHost, smtpMissingEnvKeys } from '@/lib/smtp-env'
 
 export type SendPasswordResetMailInput = {
   to: string
@@ -93,6 +93,8 @@ export async function sendPasswordResetMail(
   const port = Number(portRaw || (secure ? 465 : 587))
 
   if (!host || !portRaw || !user || !pass || !fromName || !fromEmail) {
+    const missing = smtpMissingEnvKeys()
+    console.warn('[password-reset] smtp_not_configured', missing.join(','))
     return { ok: false, error: 'smtp_not_configured' }
   }
   if (!Number.isFinite(port) || port <= 0) {

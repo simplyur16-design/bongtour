@@ -14489,7 +14489,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[auth-password-reset]",
             "getSmtpHost",
-            "SMTP_MAIL_HOST"
+            "SMTP_MAIL_HOST",
+            "smtpMissingEnvKeys",
+            "isSmtpConfigured"
           ]
         },
         {
@@ -14497,7 +14499,43 @@
           "mustInclude": [
             "REGRESSION-FREEZE[auth-password-reset]",
             "getSmtpHost",
-            "sendPasswordResetMail"
+            "sendPasswordResetMail",
+            "smtp_not_configured",
+            "smtpMissingEnvKeys"
+          ]
+        },
+        {
+          "file": "lib/inquiry-email.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "getSmtpHost",
+            "SMTP_HOST|SMTP_MAIL_HOST"
+          ]
+        },
+        {
+          "file": "lib/booking-email.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-password-reset]",
+            "getSmtpHost",
+            "SMTP_HOST|SMTP_MAIL_HOST"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
+          "mustInclude": [
+            "googleWebClientId()",
+            "oauth_android_sha_mismatch",
+            "DEVELOPER_ERROR"
+          ],
+          "mustNotInclude": [
+            "googleWebClientId() || googleIosClientId()"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/constants/simplyur.ts",
+          "mustInclude": [
+            "10.0.2.2:3000",
+            "https://bongtravel.com"
           ]
         },
         {
@@ -14583,13 +14621,6 @@
             "REGRESSION-FREEZE[auth-password-reset]",
             "confirmPasswordReset",
             "sign-in/reset"
-          ]
-        },
-        {
-          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
-          "mustInclude": [
-            "oauth_android_sha_mismatch",
-            "DEVELOPER_ERROR"
           ]
         }
       ],

@@ -95,6 +95,18 @@ npx eas-cli secret:create --scope project --name EXPO_PUBLIC_GOOGLE_IOS_CLIENT_I
 
 Then rebuild preview/production. Local: copy `.env.example` → `.env`.
 
+### Android emulator / `expo run:android` (required or DEVELOPER_ERROR)
+
+Native Google Sign-In needs a **Google Cloud → APIs & Services → Credentials → Android OAuth client**:
+
+| Field | Value |
+|-------|--------|
+| Package name | `com.bongtravel.simplyur` |
+| Debug SHA-1 (`android/app/debug.keystore`) | `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` |
+
+Also keep a **Web** client ID (= `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` = Railway `AUTH_GOOGLE_ID`) for `id_token` audience.  
+Play Store / release builds: add the **upload/play** keystore SHA-1 as a second Android client (or extra fingerprint on the same client).
+
 ## F. Server Eximbay live (Railway / production)
 
 | Var | Required value |

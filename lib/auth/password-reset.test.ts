@@ -13,6 +13,7 @@ import {
   PASSWORD_RESET_TTL_MS,
 } from '@/lib/auth/password-reset'
 import { validateSimplyurSignupPassword } from '@/lib/simplyur/auth/register-email'
+import { getSmtpHost, isSmtpConfigured, smtpMissingEnvKeys } from '@/lib/smtp-env'
 
 describe('auth password reset helpers', () => {
   it('builds identifier password-reset:email', () => {
@@ -93,5 +94,38 @@ describe('auth password reset helpers', () => {
         email,
       }),
     ).toBe(`simplyur://sign-in/reset?token=${token}&email=${encodeURIComponent(email)}`)
+  })
+
+  it('resolves SMTP host via SMTP_MAIL_HOST alias when SMTP_HOST empty', () => {
+    const prevHost = process.env.SMTP_HOST
+    const prevAlias = process.env.SMTP_MAIL_HOST
+    delete process.env.SMTP_HOST
+    process.env.SMTP_MAIL_HOST = 'smtp.naver.com'
+    expect(getSmtpHost()).toBe('smtp.naver.com')
+    process.env.SMTP_HOST = prevHost
+    process.env.SMTP_MAIL_HOST = prevAlias
+  })
+
+  it('reports smtpMissingEnvKeys when required vars absent', () => {
+    const keys = [
+      'SMTP_HOST',
+      'SMTP_MAIL_HOST',
+      'SMTP_PORT',
+      'SMTP_USER',
+      'SMTP_PASS',
+      'SMTP_FROM_NAME',
+      'SMTP_FROM_EMAIL',
+    ] as const
+    const prev: Record<string, string | undefined> = {}
+    for (const k of keys) {
+      prev[k] = process.env[k]
+      delete process.env[k]
+    }
+    expect(isSmtpConfigured()).toBe(false)
+    expect(smtpMissingEnvKeys()).toContain('SMTP_HOST|SMTP_MAIL_HOST')
+    for (const k of keys) {
+      if (prev[k] === undefined) delete process.env[k]
+      else process.env[k] = prev[k]
+    }
   })
 })

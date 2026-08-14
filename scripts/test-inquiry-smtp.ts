@@ -15,9 +15,10 @@ import nodemailer from 'nodemailer'
 
 import './load-env-for-scripts'
 import { sendInquiryReceivedEmail } from '@/lib/inquiry-email'
+import { getSmtpHost } from '@/lib/smtp-env'
 
 function hasRealSmtp(): boolean {
-  const host = process.env.SMTP_HOST?.trim()
+  const host = getSmtpHost()
   const portRaw = process.env.SMTP_PORT?.trim()
   const user = process.env.SMTP_USER?.trim()
   const pass = process.env.SMTP_PASS?.trim()
@@ -43,7 +44,7 @@ async function applyEtherealEnv(): Promise<void> {
 }
 
 function logSmtpDiagnosticFingerprint(): void {
-  const host = process.env.SMTP_HOST?.trim() ?? ''
+  const host = getSmtpHost()
   const user = process.env.SMTP_USER?.trim() ?? ''
   const pass = process.env.SMTP_PASS?.trim() ?? ''
   const from = process.env.SMTP_FROM_EMAIL?.trim() ?? ''
@@ -54,6 +55,7 @@ function logSmtpDiagnosticFingerprint(): void {
     '[test-inquiry-smtp] smtp_fingerprint (비밀 미포함)',
     JSON.stringify({
       SMTP_HOST: host || null,
+      SMTP_MAIL_HOST_set: Boolean(process.env.SMTP_MAIL_HOST?.trim()),
       SMTP_PORT: process.env.SMTP_PORT?.trim() ?? null,
       SMTP_SECURE: process.env.SMTP_SECURE ?? null,
       resolved_port: Number.isFinite(port) ? port : null,

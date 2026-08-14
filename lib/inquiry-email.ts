@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 
 import { bookingAdminNotificationRecipient, logBookingSmtpEnvPresence } from '@/lib/booking-email'
+import { getSmtpHost } from '@/lib/smtp-env'
 import { CUSTOMER_INQUIRY_TYPES } from '@/lib/customer-inquiry-intake'
 import {
   adminBaseUrl,
@@ -147,7 +148,8 @@ export function logInquirySmtpEnvPresence(logger: typeof console.error = console
   logger(
     '[inquiry-email] smtp_env_presence',
     JSON.stringify({
-      SMTP_HOST: Boolean(process.env.SMTP_HOST?.trim()),
+      SMTP_HOST: Boolean(getSmtpHost()),
+      SMTP_MAIL_HOST: Boolean(process.env.SMTP_MAIL_HOST?.trim()),
       SMTP_PORT: Boolean(portRaw),
       SMTP_SECURE_defined: secureRaw !== undefined && secureRaw !== '',
       SMTP_USER: Boolean(process.env.SMTP_USER?.trim()),
@@ -173,7 +175,8 @@ function looksLikeEmail(s: string): boolean {
 }
 
 export async function sendInquiryReceivedEmail(input: InquiryNotifyInput): Promise<InquirySendResult> {
-  const host = process.env.SMTP_HOST?.trim()
+  // REGRESSION-FREEZE[auth-password-reset]: inquiry SMTP uses getSmtpHost alias — manifest
+  const host = getSmtpHost()
   const portRaw = process.env.SMTP_PORT?.trim()
   const user = process.env.SMTP_USER?.trim()
   const pass = process.env.SMTP_PASS?.trim()
@@ -185,7 +188,7 @@ export async function sendInquiryReceivedEmail(input: InquiryNotifyInput): Promi
   const port = Number(portRaw || (secure ? 465 : 587))
 
   const missing: string[] = []
-  if (!host) missing.push('SMTP_HOST')
+  if (!host) missing.push('SMTP_HOST|SMTP_MAIL_HOST')
   if (!portRaw) missing.push('SMTP_PORT')
   else if (!Number.isFinite(port) || port <= 0) missing.push('SMTP_PORT(유효한 양의 정수 필요)')
   if (!user) missing.push('SMTP_USER')

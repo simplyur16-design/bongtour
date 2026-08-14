@@ -36,12 +36,14 @@ function googleIosClientId(): string {
 }
 
 export function isGoogleNativeConfigured(): boolean {
-  return Boolean(googleWebClientId() || googleIosClientId());
+  // id_token (server audience) always needs the Web client ID — iOS-only is not enough on Android.
+  return Boolean(googleWebClientId());
 }
 
 function ensureGoogleConfigured(): void {
   if (googleConfigured) return;
-  const webClientId = googleWebClientId() || undefined;
+  const webClientId = googleWebClientId();
+  if (!webClientId) throw new Error('oauth_not_configured');
   const iosClientId = googleIosClientId() || undefined;
   // webClientId is required for id_token (server verifies AUTH_GOOGLE_ID / web audience).
   GoogleSignin.configure({
