@@ -83,4 +83,28 @@ describe('POST /api/cron/meta-token-refresh', () => {
     expect(body.success).toBe(false)
     expect(body.errors).toContain('token_refresh_failed')
   })
+
+  it('returns 200 operationalSkip when Meta token needs re-auth', async () => {
+    vi.mocked(runMetaTokenRefreshTick).mockResolvedValue({
+      success: false,
+      refreshedCount: 0,
+      errors: ['token_expired_reauth_required'],
+    })
+
+    const res = await POST(
+      new Request('http://localhost/api/cron/meta-token-refresh', {
+        method: 'POST',
+        headers: { 'x-bongtour-cron-secret': 'test-cron-secret' },
+      }),
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      success: boolean
+      errors: string[]
+      operationalSkip?: boolean
+    }
+    expect(body.success).toBe(true)
+    expect(body.operationalSkip).toBe(true)
+    expect(body.errors).toContain('token_expired_reauth_required')
+  })
 })

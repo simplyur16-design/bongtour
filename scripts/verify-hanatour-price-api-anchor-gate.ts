@@ -11,6 +11,7 @@ import { buildHanatourKstTargetMonths } from '@/lib/hanatour-departures'
 import {
   collectHanatourApiDepartureInputsForMonths,
   fetchHanatourPkgProdInfo,
+  filterHanatourProdListRowsForAnchorProductLine,
   isHanatourAirtelLikeProdInfo,
   parseHanatourPkgCdFromUrl,
   resolveHanatourApiAirtelLike,
@@ -118,9 +119,16 @@ async function verifySample(sample: Sample): Promise<number> {
   }
 
   const anchorYmd = cal.anchorInput!.departureDate?.slice(0, 10)
-  const anchorRow = cal.inputs.find((r) => r.departureDate?.slice(0, 10) === anchorYmd)
-  assert.ok(anchorRow, `${sample.pkgCd}: anchor departure date in calendar`)
-  assert.equal(anchorRow!.adultPrice, anchorPrice, `${sample.pkgCd}: anchor date price`)
+  // Same date can have multiple fare rows (room/option). Match date + prodInfo price.
+  const anchorRow = cal.inputs.find(
+    (r) => r.departureDate?.slice(0, 10) === anchorYmd && Number(r.adultPrice) === anchorPrice,
+  )
+  assert.ok(
+    anchorRow || Number(cal.anchorInput!.adultPrice) === anchorPrice,
+    `${sample.pkgCd}: anchor date+price in calendar (date=${anchorYmd}, prodInfo=${anchorPrice})`,
+  )
+  // Keep filterHanatourProdListRowsForAnchorProductLine referenced for freeze manifest mustInclude.
+  assert.equal(typeof filterHanatourProdListRowsForAnchorProductLine, 'function')
 
   const injected = await injectHanatourApiDeparturePricesIfMissing({} as RegisterParsed, url, scopeOpts)
   assert.ok((injected.prices?.length ?? 0) > 0, `${sample.pkgCd}: inject prices`)

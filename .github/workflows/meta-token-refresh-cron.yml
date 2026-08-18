@@ -13,10 +13,18 @@ jobs:
 
     steps:
       - name: Ping meta-token-refresh endpoint
+        env:
+          BONGTOUR_CRON_SECRET: ${{ secrets.BONGTOUR_CRON_SECRET }}
         run: |
-          response=$(curl -sf \
+          if [ -z "$BONGTOUR_CRON_SECRET" ]; then
+            echo "::error::GitHub secret BONGTOUR_CRON_SECRET is empty"
+            exit 1
+          fi
+
+          # Do not use curl -f — we need the body/status on 4xx/5xx for diagnosis.
+          response=$(curl -sS \
             -X POST \
-            -H "x-bongtour-cron-secret: ${{ secrets.BONGTOUR_CRON_SECRET }}" \
+            -H "x-bongtour-cron-secret: ${BONGTOUR_CRON_SECRET}" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
             --max-time 60 \
@@ -27,6 +35,11 @@ jobs:
 
           echo "HTTP Status: $status"
           echo "Response Body: $body"
+
+          if [ "$status" = "401" ]; then
+            echo "::error::unauthorized — GitHub BONGTOUR_CRON_SECRET must match production BONGTOUR_CRON_SECRET"
+            exit 1
+          fi
 
           if [ "$status" -ne 200 ]; then
             echo "::error::meta-token-refresh failed with status $status"
