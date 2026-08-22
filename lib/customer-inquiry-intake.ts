@@ -1,5 +1,6 @@
 import { computeLeadTimeRisk } from '@/lib/inquiry-lead-time-risk'
 import { optionalEmailFormatError } from '@/lib/email-format'
+import { parseInquiryUiLang } from '@/lib/inquiry-page'
 
 /**
  * Prisma `CustomerInquiry.inquiryType` — 공개 POST `/api/inquiries` 허용값(SSOT).
@@ -90,6 +91,12 @@ function isValidKoreanInquiryPhone(raw: string): boolean {
   return false
 }
 
+/** 블로그 영문 유입 — E.164에 가까운 해외 번호 */
+function isValidInternationalInquiryPhone(raw: string): boolean {
+  const d = raw.replace(/\D/g, '')
+  return d.length >= 8 && d.length <= 15
+}
+
 function isLikelyGmailDotTrickEmail(email: string): boolean {
   const at = email.lastIndexOf('@')
   if (at < 1) return false
@@ -139,6 +146,9 @@ export function validateCustomerInquiryBody(
     return { ok: false, error: '요청 본문이 올바른 JSON 객체가 아닙니다.', fieldErrors: {} }
   }
   const body = raw as Record<string, unknown>
+  const inquiryUiLang = parseInquiryUiLang(
+    typeof body.inquiryUiLang === 'string' ? body.inquiryUiLang : '',
+  )
   const preferredContactChannelRaw =
     typeof body.preferredContactChannel === 'string' ? body.preferredContactChannel.trim().toLowerCase() : ''
   /** UI에서 생략 시(여행·기관 문의 등): 전화 중심 운영 — 카카오 안내 노출용 기본값 */
@@ -171,8 +181,16 @@ export function validateCustomerInquiryBody(
     fieldErrors.applicantPhone = '연락처 형식을 확인해 주세요.'
   } else if (phoneR.value.replace(/\D/g, '').length < 8) {
     fieldErrors.applicantPhone = '연락처가 너무 짧습니다.'
-  } else if (productionInquiryRules && !isValidKoreanInquiryPhone(phoneR.value)) {
-    fieldErrors.applicantPhone = '휴대폰 또는 유선 전화 형식을 확인해 주세요.'
+  } else if (productionInquiryRules) {
+    const phoneOk =
+      isValidKoreanInquiryPhone(phoneR.value) ||
+      (inquiryUiLang === 'en' && isValidInternationalInquiryPhone(phoneR.value))
+    if (!phoneOk) {
+      fieldErrors.applicantPhone =
+        inquiryUiLang === 'en'
+          ? '휴대폰 또는 유선 전화 형식을 확인해 주세요. / Please enter a valid phone number.'
+          : '휴대폰 또는 유선 전화 형식을 확인해 주세요.'
+    }
   }
 
   const emailR = optionalTrimmedString(body.applicantEmail, MAX_EMAIL, 'applicantEmail')
@@ -361,14 +379,16 @@ export function validateCustomerInquiryBody(
   }
 
   if (productionInquiryRules) {
-    const nm = nameR.ok && nameR.value ? nameR.value : ''
-    const nameLettersOnlyLen = nm.replace(/\s/g, '').length
-    if (nm && isAsciiLettersAndSpacesOnly(nm) && !hasHangul(nm) && nameLettersOnlyLen >= 12) {
+    const em = emailR.ok ? emailR.value : null
+    if (em && isLikelyGmailDotTrickEmail(em)) {
       return { ok: 'silent_bot' }
     }
 
-    const em = emailR.ok ? emailR.value : null
-    if (em && isLikelyGmailDotTrickEmail(em)) {
+    // REGRESSION-FREEZE[inquiry-lang-en-bilingual]: 영문 블로그 문의는 한글 본문 봇판정 제외 — manifest
+    if (inquiryUiLang !== 'en') {
+    const nm = nameR.ok && nameR.value ? nameR.value : ''
+    const nameLettersOnlyLen = nm.replace(/\s/g, '').length
+    if (nm && isAsciiLettersAndSpacesOnly(nm) && !hasHangul(nm) && nameLettersOnlyLen >= 12) {
       return { ok: 'silent_bot' }
     }
 
@@ -390,6 +410,7 @@ export function validateCustomerInquiryBody(
         const t = payloadStringField(payloadObject, key)
         if (t.length > 0 && !hasHangul(t)) return { ok: 'silent_bot' }
       }
+    }
     }
   }
 

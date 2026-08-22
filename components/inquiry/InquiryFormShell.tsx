@@ -3,14 +3,13 @@
 import { useCallback, useId, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BongtourDisclosureBlock from '@/components/bongtour/BongtourDisclosureBlock'
-import { SHORT_NOTICES } from '@/lib/bongtour-copy'
 import {
   compactPayloadJson,
   inquiryKindToApiType,
-  INQUIRY_UI_META,
   type InquiryKind,
   type InquiryPageQuery,
 } from '@/lib/inquiry-page'
+import { inquiryFormMeta, inquiryShellCopy } from '@/lib/inquiry-form-i18n'
 import { buildInquiryThankYouHref } from '@/lib/inquiry-thank-you-path'
 import ConsentBlock from '@/components/auth/ConsentBlock'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
@@ -73,19 +72,26 @@ export default function InquiryFormShell({
   overlayMeta,
   beforeSubmit,
   messageRequired = false,
-  messageLabel = '문의 내용',
-  submitButtonLabel = '문의 접수하기',
-  applicantNameLabel = '신청자 이름',
+  messageLabel,
+  submitButtonLabel,
+  applicantNameLabel,
   applicantEmailRequired = false,
-  privacyConsentLabel = '개인정보 수집·이용 안내를 확인했습니다',
-  privacyNoticeTitle = '개인정보 수집·이용 안내',
+  privacyConsentLabel,
+  privacyNoticeTitle,
   privacyNoticeContent,
   privacyNoticeVersion = 'training-inquiry-v1',
   preferredContactChannel = null,
   thankYouFrom = null,
 }: InquiryFormShellProps) {
   const router = useRouter()
-  const meta = overlayMeta ?? INQUIRY_UI_META[kind]
+  const lang = initialQuery.uiLang ?? 'ko'
+  const copy = inquiryShellCopy(lang)
+  const meta = overlayMeta ?? inquiryFormMeta(kind, lang)
+  const resolvedNameLabel = applicantNameLabel ?? copy.name
+  const resolvedMessageLabel = messageLabel ?? copy.message
+  const resolvedSubmitLabel = submitButtonLabel ?? copy.submit
+  const resolvedPrivacyConsent = privacyConsentLabel ?? copy.privacyConsent
+  const resolvedPrivacyTitle = privacyNoticeTitle ?? copy.privacyTitle
   const apiType = inquiryKindToApiType(kind)
 
   const [applicantName, setApplicantName] = useState('')
@@ -165,15 +171,17 @@ export default function InquiryFormShell({
       if (path) body.sourcePagePath = path
       if (Object.keys(extra).length > 0) body.payloadJson = extra
       if (preferredContactChannel) body.preferredContactChannel = preferredContactChannel
+      // REGRESSION-FREEZE[inquiry-lang-en-bilingual]: 영문 블로그 유입 표시 — manifest
+      if (lang === 'en') body.inquiryUiLang = 'en'
       Object.assign(body, readUtmFromSession())
 
       if (!privacyAgreed) {
-        setFieldErrors({ privacyAgreed: '개인정보 처리에 동의해 주세요.' })
+        setFieldErrors({ privacyAgreed: copy.privacyRequired })
         setSubmitting(false)
         return
       }
       if (applicantEmailRequired && !applicantEmail.trim()) {
-        setFieldErrors({ applicantEmail: '이메일을 입력해 주세요.' })
+        setFieldErrors({ applicantEmail: copy.emailRequired })
         setSubmitting(false)
         return
       }
@@ -184,7 +192,7 @@ export default function InquiryFormShell({
         return
       }
       if (messageRequired && !message.trim()) {
-        setFieldErrors({ message: `${messageLabel}을(를) 입력해 주세요.` })
+        setFieldErrors({ message: copy.messageRequired(resolvedMessageLabel) })
         setSubmitting(false)
         return
       }
@@ -206,7 +214,7 @@ export default function InquiryFormShell({
       const data = (await res.json()) as ApiErrorJson
 
       if (!res.ok || data.ok === false) {
-        setFormError(typeof data.error === 'string' ? data.error : '문의 접수에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+        setFormError(typeof data.error === 'string' ? data.error : copy.fail)
         if (data.fieldErrors && typeof data.fieldErrors === 'object') {
           setFieldErrors(data.fieldErrors)
         }
@@ -214,7 +222,7 @@ export default function InquiryFormShell({
       }
 
       if (data.persisted === false) {
-        setFormError('접수가 완료되지 않았습니다. 3초 이상 입력 후 다시 시도해 주세요.')
+        setFormError(copy.notPersisted)
         return
       }
 
@@ -231,10 +239,11 @@ export default function InquiryFormShell({
           delayed: Boolean(notifyFailed),
           contact: preferredContactChannel,
           from: thankYouFrom,
+          lang: lang === 'en' ? 'en' : null,
         }),
       )
     } catch {
-      setFormError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
+      setFormError(copy.network)
     } finally {
       setSubmitting(false)
     }
@@ -250,7 +259,7 @@ export default function InquiryFormShell({
     preferredContactChannel,
     initialQuery,
     beforeSubmit,
-    messageLabel,
+    resolvedMessageLabel,
     messageRequired,
     privacyNoticeVersion,
     hpTrap,
@@ -258,15 +267,21 @@ export default function InquiryFormShell({
     router,
     kind,
     thankYouFrom,
+    lang,
+    copy.privacyRequired,
+    copy.emailRequired,
+    copy.fail,
+    copy.notPersisted,
+    copy.network,
   ])
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
       <header className="mb-8 border-b border-slate-200/90 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/90">문의 접수</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/90">{copy.eyebrow}</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{meta.title}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">{meta.description}</p>
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">{SHORT_NOTICES.inquiryForm}</p>
+        <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600">{meta.description}</p>
+        <p className="mt-3 text-xs leading-relaxed text-slate-500">{copy.shortNotice}</p>
       </header>
 
       <form
@@ -318,10 +333,10 @@ export default function InquiryFormShell({
           <p className="rounded-lg border border-[#EFEDF8] bg-[#EFEDF8]/80 px-4 py-3 text-sm text-[#1F1B2D]">
             {initialQuery.snapshotProductTitle ? (
               <>
-                상품 문의: <span className="font-semibold">{initialQuery.snapshotProductTitle}</span>
+                {copy.productInquiry}: <span className="font-semibold">{initialQuery.snapshotProductTitle}</span>
               </>
             ) : (
-              <span className="font-semibold">여행 상담</span>
+              <span className="font-semibold">{copy.travelConsult}</span>
             )}
             {initialQuery.snapshotCardLabel ? (
               <span className="text-[#1F1B2D]/80"> · {initialQuery.snapshotCardLabel}</span>
@@ -332,11 +347,11 @@ export default function InquiryFormShell({
           </p>
         )}
         <div className="space-y-4 rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-sm font-semibold text-slate-800">연락처·문의 내용</h2>
+          <h2 className="text-sm font-semibold text-slate-800">{copy.contactHeading}</h2>
 
           <div>
             <label htmlFor={ids.name} className="block text-sm font-medium text-slate-700">
-              {applicantNameLabel} <span className="text-rose-600">*</span>
+              {resolvedNameLabel} <span className="text-rose-600">*</span>
             </label>
             <input
               id={ids.name}
@@ -359,7 +374,7 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.phone} className="block text-sm font-medium text-slate-700">
-              연락처 <span className="text-rose-600">*</span>
+              {copy.phone} <span className="text-rose-600">*</span>
             </label>
             <input
               id={ids.phone}
@@ -368,11 +383,21 @@ export default function InquiryFormShell({
               autoComplete="tel"
               required
               value={applicantPhone}
-              onChange={(e) => setApplicantPhone(formatKoreanTelInput(e.target.value))}
+              onChange={(e) =>
+                setApplicantPhone(
+                  lang === 'en' ? e.target.value.slice(0, 40) : formatKoreanTelInput(e.target.value),
+                )
+              }
+              placeholder={lang === 'en' ? '+82 10-0000-0000 or +1 …' : undefined}
               aria-invalid={Boolean(fieldErrors.applicantPhone)}
-              aria-describedby={fieldErrors.applicantPhone ? `${ids.phone}-err` : undefined}
+              aria-describedby={fieldErrors.applicantPhone ? `${ids.phone}-err` : copy.phoneHint ? `${ids.phone}-hint` : undefined}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
+            {copy.phoneHint ? (
+              <p id={`${ids.phone}-hint`} className="mt-1 text-xs text-slate-500">
+                {copy.phoneHint}
+              </p>
+            ) : null}
             {fieldErrors.applicantPhone && (
               <p id={`${ids.phone}-err`} className="mt-1 text-xs text-rose-600" role="alert">
                 {fieldErrors.applicantPhone}
@@ -382,11 +407,11 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.email} className="block text-sm font-medium text-slate-700">
-              이메일{' '}
+              {copy.email}{' '}
               {applicantEmailRequired ? (
                 <span className="text-rose-600">*</span>
               ) : (
-                <span className="text-slate-400">(선택)</span>
+                <span className="text-slate-400">{copy.optional}</span>
               )}
             </label>
             <input
@@ -428,11 +453,11 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.message} className="block text-sm font-medium text-slate-700">
-              {messageLabel}{' '}
+              {resolvedMessageLabel}{' '}
               {messageRequired ? (
                 <span className="text-rose-600">*</span>
               ) : (
-                <span className="text-slate-400">(선택)</span>
+                <span className="text-slate-400">{copy.optional}</span>
               )}
             </label>
             <textarea
@@ -454,7 +479,7 @@ export default function InquiryFormShell({
         </div>
 
         <div className="space-y-4 rounded-xl border border-slate-200/90 bg-slate-50/80 p-5 sm:p-6">
-          <h2 className="text-sm font-semibold text-slate-800">추가 정보 (선택)</h2>
+          <h2 className="text-sm font-semibold text-slate-800">{copy.extraHeading}</h2>
           {children}
         </div>
 
@@ -464,12 +489,12 @@ export default function InquiryFormShell({
             onClick={() => setPrivacyOpen((v) => !v)}
             className="mb-3 inline-flex items-center text-xs font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
           >
-            개인정보 수집·이용 안내 보기
+            {copy.privacyToggle}
           </button>
           {privacyOpen && (
             <div className="mb-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
-              <p className="font-semibold text-slate-900">{privacyNoticeTitle}</p>
-              <div className="mt-2">{privacyNoticeContent ?? '개인정보 수집·이용 안내를 확인해 주세요.'}</div>
+              <p className="font-semibold text-slate-900">{resolvedPrivacyTitle}</p>
+              <div className="mt-2">{privacyNoticeContent ?? copy.privacyBodyFallback}</div>
             </div>
           )}
           <div className="flex gap-3">
@@ -485,10 +510,10 @@ export default function InquiryFormShell({
             />
             <div>
               <label htmlFor={ids.privacy} className="text-sm font-medium text-slate-800">
-                {privacyConsentLabel} <span className="text-rose-600">*</span>
+                {resolvedPrivacyConsent} <span className="text-rose-600">*</span>
               </label>
               <p id={ids.privacyHint} className="mt-1 text-xs leading-relaxed text-slate-500">
-                안내문 확인 후 체크해 주세요. 확인이 없으면 접수가 어렵습니다.
+                {copy.privacyHint}
               </p>
               {fieldErrors.privacyAgreed && (
                 <p className="mt-1 text-xs text-rose-600" role="alert">
@@ -503,6 +528,8 @@ export default function InquiryFormShell({
               checked={marketingConsent}
               onChange={setMarketingConsent}
               required={false}
+              label={copy.marketing}
+              openLabel={copy.marketingToggle}
             />
           </div>
         </div>
@@ -526,15 +553,18 @@ export default function InquiryFormShell({
             disabled={submitting}
             className="inline-flex w-full items-center justify-center rounded-lg border border-slate-800 bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            {submitting ? '접수 중…' : submitButtonLabel}
+            {submitting ? copy.submitting : resolvedSubmitLabel}
           </button>
           <p className="text-center text-xs text-slate-500 sm:text-left">
-            버튼은 &quot;접수&quot;이며, 확정 안내 전까지 예약·계약이 성립한 것은 아닙니다.
+            {copy.submitHint}
           </p>
         </div>
       </form>
 
       <div className="mt-10">
+        {copy.disclosureEn ? (
+          <p className="mb-3 text-sm leading-relaxed text-slate-600">{copy.disclosureEn}</p>
+        ) : null}
         <BongtourDisclosureBlock showBrandMarkHelper />
       </div>
     </div>

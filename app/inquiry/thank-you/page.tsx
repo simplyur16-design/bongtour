@@ -3,7 +3,8 @@ import Link from 'next/link'
 import Header from '@/app/components/Header'
 import InquirySuccessPanel from '@/components/bongtour/InquirySuccessPanel'
 import KakaoChannelConsultLink from '@/components/bongtour/KakaoChannelConsultLink'
-import { SHORT_NOTICES } from '@/lib/bongtour-copy'
+import { inquiryShellCopy } from '@/lib/inquiry-form-i18n'
+import { parseInquiryUiLang } from '@/lib/inquiry-page'
 import {
   INQUIRY_THANK_YOU_PATH,
   normalizeInquiryThankYouKind,
@@ -45,6 +46,8 @@ export default async function InquiryThankYouPage({ searchParams }: PageProps) {
   const delayed = firstParam(sp, 'delayed') === '1'
   const contact = firstParam(sp, 'contact')
   const fromPrivate = firstParam(sp, 'from') === 'private'
+  const lang = parseInquiryUiLang(firstParam(sp, 'lang'))
+  const copy = inquiryShellCopy(lang)
   const showOpenKakaoCta = contact === 'kakao' || contact === 'both'
   const kakaoGuide =
     contact === 'kakao'
@@ -57,15 +60,22 @@ export default async function InquiryThankYouPage({ searchParams }: PageProps) {
       <main className="mx-auto max-w-lg px-4 py-10 sm:px-6">
         <p className="mb-6 text-xs text-slate-500">
           <Link href="/" className="font-medium text-slate-600 underline-offset-2 hover:underline">
-            홈
+            {copy.breadcrumbHome}
           </Link>
           <span aria-hidden className="mx-1.5 text-slate-300">
             /
           </span>
-          요청 접수 완료
+          {copy.thankYouTitle}
         </p>
 
         <InquirySuccessPanel type={kind ?? undefined} />
+        {copy.thankYouLines ? (
+          <ul className="mx-auto mt-4 max-w-md space-y-2 text-sm leading-relaxed text-slate-600">
+            {copy.thankYouLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
 
         {fromPrivate ? (
           <p className="mt-4 text-center text-sm text-slate-700">
@@ -87,20 +97,20 @@ export default async function InquiryThankYouPage({ searchParams }: PageProps) {
           </div>
         ) : null}
 
-        <p className="mt-6 text-center text-xs text-slate-500">{SHORT_NOTICES.inquiryForm}</p>
+        <p className="mt-6 text-center text-xs text-slate-500">{copy.shortNotice}</p>
 
         <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link
             href="/"
             className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
           >
-            홈으로
+            {copy.home}
           </Link>
           <Link
-            href="/inquiry?type=travel"
+            href={lang === 'en' ? '/inquiry?type=travel&lang=en' : '/inquiry?type=travel'}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
           >
-            다른 문의하기
+            {copy.anotherInquiry}
           </Link>
         </div>
       </main>

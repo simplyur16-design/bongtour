@@ -3,11 +3,12 @@ import InquiryPageClient from '@/components/inquiry/InquiryPageClient'
 import {
   normalizeInquiryKind,
   parseInquirySearchParams,
+  parseInquiryUiLang,
   sanitizeInquiryQueryForKind,
 } from '@/lib/inquiry-page'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const metadata: Metadata = {
+const KO_METADATA: Metadata = {
   title: '여행·단체 문의',
   description:
     '해외 여행, 우리견적, 연수, 버스 등 문의를 접수합니다. 내용 확인 후 순차적으로 연락드립니다.',
@@ -23,6 +24,25 @@ export const metadata: Metadata = {
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const sp = await searchParams
+  const rawLang = typeof sp.lang === 'string' ? sp.lang : undefined
+  if (parseInquiryUiLang(rawLang) !== 'en') return KO_METADATA
+  return {
+    title: 'Travel inquiry | Bong투어',
+    description:
+      'Request a travel consultation. Submitting this form does not confirm a booking.',
+    alternates: { canonical: '/inquiry' },
+    openGraph: {
+      title: `Travel inquiry | ${SITE_NAME}`,
+      description: 'Leave dates, party size, and destination. A coordinator will contact you.',
+      url: '/inquiry',
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image' },
+  }
 }
 
 /**

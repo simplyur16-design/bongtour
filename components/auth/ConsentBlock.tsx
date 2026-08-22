@@ -30,9 +30,19 @@ type Props = {
   checked: boolean
   onChange: (next: boolean) => void
   required: boolean
+  /** 라벨 덮어쓰기 (문의 `lang=en` 한/영 병기) */
+  label?: string
+  openLabel?: string
 }
 
-export default function ConsentBlock({ type, checked, onChange, required }: Props) {
+export default function ConsentBlock({
+  type,
+  checked,
+  onChange,
+  required,
+  label,
+  openLabel,
+}: Props) {
   const [open, setOpen] = useState(false)
   const tag = required ? '[필수]' : '[선택]'
 
@@ -43,7 +53,7 @@ export default function ConsentBlock({ type, checked, onChange, required }: Prop
         onClick={() => setOpen((v) => !v)}
         className="text-xs font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
       >
-        안내 보기
+        {openLabel ?? '안내 보기'}
       </button>
       {open ? (
         <div className="mt-2 space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
@@ -68,7 +78,7 @@ export default function ConsentBlock({ type, checked, onChange, required }: Prop
           className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-600"
         />
         <span>
-          {tag} {LABEL[type]} {required ? <span className="text-rose-600">*</span> : null}
+          {tag} {label ?? LABEL[type]} {required ? <span className="text-rose-600">*</span> : null}
         </span>
       </label>
     </div>

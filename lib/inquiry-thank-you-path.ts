@@ -15,6 +15,8 @@ export type InquiryThankYouBuildInput = {
   contact?: 'email' | 'kakao' | 'both' | null
   /** 우리견적(`/quote/private`) 등 */
   from?: 'private' | string | null
+  /** 블로그 영문 유입 */
+  lang?: 'en' | string | null
 }
 
 export function normalizeInquiryThankYouKind(raw: string | null | undefined): InquiryKind | null {
@@ -31,6 +33,7 @@ export function buildInquiryThankYouHref(input: InquiryThankYouBuildInput = {}):
   if (input.delayed) p.set('delayed', '1')
   if (input.contact === 'kakao' || input.contact === 'both') p.set('contact', input.contact)
   if (input.from === 'private') p.set('from', 'private')
+  if (input.lang === 'en') p.set('lang', 'en')
   const q = p.toString()
   return q ? `${INQUIRY_THANK_YOU_PATH}?${q}` : INQUIRY_THANK_YOU_PATH
 }

@@ -11,6 +11,16 @@ import type { CustomerInquiryType } from '@/lib/customer-inquiry-intake'
 export const INQUIRY_KINDS = ['travel', 'institution', 'training', 'bus'] as const
 export type InquiryKind = (typeof INQUIRY_KINDS)[number]
 
+/** 블로그 등 외부 `?lang=en` — 한글 유지 + 영어 병기. 그 외는 한국어만. */
+export type InquiryUiLang = 'ko' | 'en'
+
+/** REGRESSION-FREEZE[inquiry-lang-en-bilingual]: 블로그 ?lang=en — manifest */
+export function parseInquiryUiLang(raw: string | null | undefined): InquiryUiLang {
+  const u = (raw ?? '').toLowerCase().trim()
+  if (u === 'en' || u.startsWith('en-')) return 'en'
+  return 'ko'
+}
+
 /** `InquirySuccessPanel`에 넘기는 kind (URL type과 동일) */
 export type InquirySuccessKind = InquiryKind
 
@@ -49,6 +59,8 @@ export type InquiryPageQuery = {
   targetYearMonth: string | null
   /** 국외연수 서비스 범위 프리셋 */
   trainingServiceScope: string | null
+  /** `?lang=en` — 폼 라벨 한/영 병기 */
+  uiLang?: InquiryUiLang
 }
 
 export function parseInquirySearchParams(
@@ -71,6 +83,7 @@ export function parseInquirySearchParams(
     snapshotCardLabel: first('snapshotCardLabel'),
     targetYearMonth: ymOk,
     trainingServiceScope: first('service'),
+    uiLang: parseInquiryUiLang(first('lang')),
   }
 }
 
@@ -132,6 +145,7 @@ export function buildInquiryHref(kind: InquiryKind, q: InquiryPageQuery): string
   } else if (safe.targetYearMonth && (kind === 'travel' || kind === 'institution' || kind === 'bus')) {
     p.set('targetYearMonth', safe.targetYearMonth)
   }
+  if (safe.uiLang === 'en') p.set('lang', 'en')
   return `/inquiry?${p.toString()}`
 }
 

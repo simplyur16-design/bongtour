@@ -15825,6 +15825,43 @@
       ]
     },
     {
+      "id": "inquiry-lang-en-bilingual",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "문의 ?lang=en — 한/영 병기, 영문 본문 silent_bot 제외, 해외 전화번호 허용",
+      "checks": [
+        {
+          "file": "lib/inquiry-page.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-bilingual]",
+            "parseInquiryUiLang",
+            "uiLang"
+          ]
+        },
+        {
+          "file": "components/inquiry/InquiryFormShell.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-bilingual]",
+            "inquiryUiLang"
+          ]
+        },
+        {
+          "file": "lib/customer-inquiry-intake.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-bilingual]",
+            "isValidInternationalInquiryPhone",
+            "inquiryUiLang !== 'en'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/inquiry-page-lang.test.ts",
+        "lib/customer-inquiry-intake-en.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-device-card-wallet",
       "tier": [
         "prebuild",

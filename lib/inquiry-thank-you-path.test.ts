@@ -19,6 +19,9 @@ describe('inquiry thank-you path', () => {
     expect(buildInquiryThankYouHref({ from: 'private', kind: 'travel' })).toBe(
       '/inquiry/thank-you?type=travel&from=private',
     )
+    expect(buildInquiryThankYouHref({ kind: 'travel', lang: 'en' })).toBe(
+      '/inquiry/thank-you?type=travel&lang=en',
+    )
   })
 
   it('normalizeInquiryThankYouKind rejects unknown', () => {
