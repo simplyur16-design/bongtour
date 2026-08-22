@@ -143,7 +143,11 @@ export default async function HomeMobileHub() {
       ) : null}
 
       {linkedItems.length > 0 ? (
-        <section aria-label="시즌 연결 상품">
+        <section aria-labelledby="season-linked-products-heading-m">
+          {/* REGRESSION-FREEZE[home-hero-lcp-and-section-titles]: 시즌 연결 상품 가시 제목 — manifest */}
+          <h2 id="season-linked-products-heading-m" className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>
+            시즌 연결 상품
+          </h2>
           <ProductResultCardsClient items={linkedItems} layout="scroll" />
         </section>
       ) : null}

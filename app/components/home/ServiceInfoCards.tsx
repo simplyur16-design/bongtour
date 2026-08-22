@@ -16,13 +16,17 @@ export default function ServiceInfoCards() {
       className="border-b border-bt-border-soft/60 bg-white py-10 sm:py-12"
     >
       <div className={`mx-auto max-w-6xl px-3 sm:px-5 ${SITE_CONTENT_CLASS}`}>
-        <h2 id="service-info-cards-heading" className="sr-only">
+        {/* REGRESSION-FREEZE[home-hero-lcp-and-section-titles]: 맞춤·기관 가시 제목 — manifest */}
+        <h2
+          id="service-info-cards-heading"
+          className="mb-6 text-center text-xl font-bold tracking-tight text-bt-text-navy sm:text-2xl"
+        >
           맞춤·기관 서비스
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           <Link
             href="/travel/overseas?scope=private-trip"
-            className="group relative flex min-h-[14rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15"
+            className="group relative flex min-h-[16rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15 sm:min-h-[18rem]"
           >
             <div className="absolute inset-0 z-0">
               <div className="absolute inset-0 z-0 [filter:brightness(0.98)_saturate(1.04)] transition group-hover:[filter:brightness(1.0)_saturate(1.08)]">
@@ -53,7 +57,7 @@ export default function ServiceInfoCards() {
 
           <Link
             href="/business"
-            className="group relative flex min-h-[14rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15"
+            className="group relative flex min-h-[16rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15 sm:min-h-[18rem]"
           >
             <div className="absolute inset-0 z-0">
               <div className="absolute inset-0 z-0 [filter:brightness(0.98)_saturate(1.04)] transition group-hover:[filter:brightness(1.0)_saturate(1.08)]">

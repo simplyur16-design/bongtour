@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Header from './components/Header'
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
@@ -107,16 +108,22 @@ export default async function Home() {
             aria-hidden
           />
           <SeasonCurationHero sectionId="season-curation-main" />
-          <SeasonProductGrid />
+          <Suspense fallback={<div className="min-h-[12rem]" aria-hidden />}>
+            <SeasonProductGrid />
+          </Suspense>
           <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
             <HomeHubCardDebugServerPanel overseasPick={overseasCover} overseasDetail={overseasDetail} />
           </div>
         </section>
-        <PersonaCuratedDestinations />
+        <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
+          <PersonaCuratedDestinations />
+        </Suspense>
         <AirHotelProductGrid />
         <ServiceInfoCards />
         <HomeTrustSection />
-        <CustomerReviewsSection />
+        <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
+          <CustomerReviewsSection />
+        </Suspense>
       </main>
     </div>
   )

@@ -2728,6 +2728,64 @@
       ]
     },
     {
+      "id": "home-hero-lcp-and-section-titles",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메인 — PC 히어로 첫 장 LCP priority · 시즌 연결/맞춤·기관 가시 제목 · 그리드 카드 matchMedia 없음",
+      "checks": [
+        {
+          "file": "app/components/home/SeasonCurationHeroClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-hero-lcp-and-section-titles]",
+            "priority={index === 0}"
+          ]
+        },
+        {
+          "file": "app/components/home/SeasonCurationCarouselClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-hero-lcp-and-section-titles]",
+            "priority={priority}"
+          ]
+        },
+        {
+          "file": "app/components/home/SeasonProductGrid.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-hero-lcp-and-section-titles]",
+            "시즌 연결 상품",
+            "season-linked-products-heading"
+          ]
+        },
+        {
+          "file": "app/components/home/HomeMobileHub.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-hero-lcp-and-section-titles]",
+            "시즌 연결 상품",
+            "HOME_MOBILE_HUB_SECTION_TITLE_CLASS"
+          ]
+        },
+        {
+          "file": "app/components/home/ServiceInfoCards.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-hero-lcp-and-section-titles]",
+            "맞춤·기관 서비스"
+          ],
+          "mustNotInclude": [
+            "sr-only"
+          ]
+        },
+        {
+          "file": "app/components/home/ProductResultCardsClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-hero-lcp-and-section-titles]",
+            "function ProductResultCardsGrid",
+            "MAIN_MENU_PRODUCT_CARD_GRID_CLASS"
+          ]
+        }
+      ]
+    },
+    {
       "id": "season-mobile-briefing-br-overlay",
       "tier": [
         "prebuild",

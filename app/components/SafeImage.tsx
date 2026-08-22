@@ -113,6 +113,7 @@ export default function SafeImage({
         width={layoutW}
         height={layoutH}
         loading={loading}
+        {...(priority ? { fetchPriority: 'high' as const } : {})}
         decoding="async"
         {...(sizesAttr ? { sizes: sizesAttr } : {})}
         className={imgClassName}

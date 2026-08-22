@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
 import HomeMobileHub from '@/app/components/home/HomeMobileHub'
@@ -66,9 +67,13 @@ export default async function HomeMobile() {
           <div className={SITE_CONTENT_CLASS}>
             <MobileDestinationSearch />
           </div>
-          <HomeMobileHub />
+          <Suspense fallback={<div className="min-h-[24rem]" aria-hidden />}>
+            <HomeMobileHub />
+          </Suspense>
           <HomeTrustSection />
-          <CustomerReviewsSection />
+          <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
+            <CustomerReviewsSection />
+          </Suspense>
         </section>
       </main>
     </div>

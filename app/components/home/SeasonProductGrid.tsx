@@ -14,11 +14,20 @@ export default async function SeasonProductGrid() {
 
   return (
     <section
-      aria-label="시즌 연결 상품"
+      aria-labelledby="season-linked-products-heading"
       className="border-b border-bt-border-soft/50 bg-white/95 py-8 sm:py-10"
     >
       <div className={`mx-auto max-w-6xl px-3 sm:px-5 ${SITE_CONTENT_CLASS}`}>
-        <ProductResultCardsClient items={items} layout="grid" />
+        {/* REGRESSION-FREEZE[home-hero-lcp-and-section-titles]: 시즌 연결 상품 가시 제목 — manifest */}
+        <h2
+          id="season-linked-products-heading"
+          className="text-center text-xl font-bold tracking-tight text-bt-text-navy sm:text-2xl"
+        >
+          시즌 연결 상품
+        </h2>
+        <div className="mt-6">
+          <ProductResultCardsClient items={items} layout="grid" />
+        </div>
       </div>
     </section>
   )

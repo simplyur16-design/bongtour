@@ -58,7 +58,8 @@ export default function SeasonCurationHeroClient({ slides, sectionId }: Props) {
             </span>
           </div>
         ) : null}
-        <SeasonCurationCardLink slide={slide} compact={false} hero />
+        {/* REGRESSION-FREEZE[home-hero-lcp-and-section-titles]: 첫 슬라이드만 LCP priority — manifest */}
+        <SeasonCurationCardLink slide={slide} compact={false} hero priority={index === 0} />
       </div>
 
       {n > 1 ? (

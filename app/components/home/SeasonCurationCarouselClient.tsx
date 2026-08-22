@@ -108,12 +108,15 @@ export function SeasonCurationCardLink({
   compact,
   hero = false,
   mobileBriefing = false,
+  priority = false,
 }: {
   slide: HomeSeasonPickDTO
   compact: boolean
   hero?: boolean
   /** 모바일 메인 브리핑 — 풀폭·세로 비율 확대 */
   mobileBriefing?: boolean
+  /** PC 히어로 첫 슬라이드 LCP — 아래접힘·이후 슬라이드는 false */
+  priority?: boolean
 }) {
   const href = (slide.ctaHref ?? '/travel/overseas').trim() || '/travel/overseas'
   const title = slide.title.trim()
@@ -140,7 +143,8 @@ export function SeasonCurationCardLink({
           {img ? (
             hero ? (
               <div className={`absolute inset-0 ${SEASON_CURATION_PHOTO_FILTER}`}>
-                <CinemaHeroImage src={img} sizes="100vw" loading="lazy" />
+                {/* REGRESSION-FREEZE[home-hero-lcp-and-section-titles]: 첫 장만 priority — manifest */}
+                <CinemaHeroImage src={img} sizes="100vw" priority={priority} loading={priority ? undefined : 'lazy'} />
               </div>
             ) : (
               <SafeImage
