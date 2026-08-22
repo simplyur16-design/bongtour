@@ -86,7 +86,9 @@ export default function InquiryFormShell({
   const router = useRouter()
   const lang = initialQuery.uiLang ?? 'ko'
   const copy = inquiryShellCopy(lang)
-  const meta = overlayMeta ?? inquiryFormMeta(kind, lang)
+  const meta = overlayMeta
+    ? { title: overlayMeta.title, description: overlayMeta.description, titleEn: null, descriptionEn: null }
+    : inquiryFormMeta(kind, lang)
   const resolvedNameLabel = applicantNameLabel ?? copy.name
   const resolvedMessageLabel = messageLabel ?? copy.message
   const resolvedSubmitLabel = submitButtonLabel ?? copy.submit
@@ -278,10 +280,27 @@ export default function InquiryFormShell({
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
       <header className="mb-8 border-b border-slate-200/90 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800/90">{copy.eyebrow}</p>
+        <p className="text-xs font-semibold tracking-wide text-emerald-800/90">{copy.eyebrow}</p>
+        {copy.eyebrowEn ? (
+          <p className="mt-0.5 text-[11px] font-medium text-slate-400">{copy.eyebrowEn}</p>
+        ) : null}
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{meta.title}</h1>
-        <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600">{meta.description}</p>
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">{copy.shortNotice}</p>
+        {meta.titleEn ? (
+          <p className="mt-1 text-sm font-medium text-slate-500">{meta.titleEn}</p>
+        ) : null}
+        {/* REGRESSION-FREEZE[inquiry-lang-en-korean-first]: 한글 안내·주의 후 영문 안내·주의 — manifest */}
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">{meta.description}</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">{copy.shortNotice}</p>
+        {meta.descriptionEn || copy.shortNoticeEn ? (
+          <div className="mt-4 space-y-2 border-t border-slate-200/80 pt-3">
+            {meta.descriptionEn ? (
+              <p className="text-xs leading-relaxed text-slate-500">{meta.descriptionEn}</p>
+            ) : null}
+            {copy.shortNoticeEn ? (
+              <p className="text-xs leading-relaxed text-slate-500">{copy.shortNoticeEn}</p>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <form
@@ -366,7 +385,7 @@ export default function InquiryFormShell({
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
             {fieldErrors.applicantName && (
-              <p id={`${ids.name}-err`} className="mt-1 text-xs text-rose-600" role="alert">
+              <p id={`${ids.name}-err`} className="mt-1 whitespace-pre-line text-xs text-rose-600" role="alert">
                 {fieldErrors.applicantName}
               </p>
             )}
@@ -394,9 +413,12 @@ export default function InquiryFormShell({
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
             {copy.phoneHint ? (
-              <p id={`${ids.phone}-hint`} className="mt-1 text-xs text-slate-500">
-                {copy.phoneHint}
-              </p>
+              <div id={`${ids.phone}-hint`} className="mt-1">
+                <p className="text-xs text-slate-500">{copy.phoneHint}</p>
+                {copy.phoneHintEn ? (
+                  <p className="mt-0.5 text-xs text-slate-400">{copy.phoneHintEn}</p>
+                ) : null}
+              </div>
             ) : null}
             {fieldErrors.applicantPhone && (
               <p id={`${ids.phone}-err`} className="mt-1 text-xs text-rose-600" role="alert">
@@ -445,7 +467,7 @@ export default function InquiryFormShell({
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
             {fieldErrors.applicantEmail && (
-              <p id={`${ids.email}-err`} className="mt-1 text-xs text-rose-600" role="alert">
+              <p id={`${ids.email}-err`} className="mt-1 whitespace-pre-line text-xs text-rose-600" role="alert">
                 {fieldErrors.applicantEmail}
               </p>
             )}
@@ -471,7 +493,7 @@ export default function InquiryFormShell({
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             />
             {fieldErrors.message && (
-              <p id={`${ids.message}-err`} className="mt-1 text-xs text-rose-600" role="alert">
+              <p id={`${ids.message}-err`} className="mt-1 whitespace-pre-line text-xs text-rose-600" role="alert">
                 {fieldErrors.message}
               </p>
             )}
@@ -515,8 +537,11 @@ export default function InquiryFormShell({
               <p id={ids.privacyHint} className="mt-1 text-xs leading-relaxed text-slate-500">
                 {copy.privacyHint}
               </p>
+              {copy.privacyHintEn ? (
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-400">{copy.privacyHintEn}</p>
+              ) : null}
               {fieldErrors.privacyAgreed && (
-                <p className="mt-1 text-xs text-rose-600" role="alert">
+                <p className="mt-1 whitespace-pre-line text-xs text-rose-600" role="alert">
                   {fieldErrors.privacyAgreed}
                 </p>
               )}
@@ -535,7 +560,7 @@ export default function InquiryFormShell({
         </div>
 
         {formError && (
-          <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
+          <p className="whitespace-pre-line rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
             {formError}
           </p>
         )}
@@ -555,17 +580,20 @@ export default function InquiryFormShell({
           >
             {submitting ? copy.submitting : resolvedSubmitLabel}
           </button>
-          <p className="text-center text-xs text-slate-500 sm:text-left">
-            {copy.submitHint}
-          </p>
+          <div className="text-center sm:text-left">
+            <p className="text-xs text-slate-500">{copy.submitHint}</p>
+            {copy.submitHintEn ? (
+              <p className="mt-0.5 text-xs text-slate-400">{copy.submitHintEn}</p>
+            ) : null}
+          </div>
         </div>
       </form>
 
       <div className="mt-10">
-        {copy.disclosureEn ? (
-          <p className="mb-3 text-sm leading-relaxed text-slate-600">{copy.disclosureEn}</p>
-        ) : null}
         <BongtourDisclosureBlock showBrandMarkHelper />
+        {copy.disclosureEn ? (
+          <p className="mt-3 text-xs leading-relaxed text-slate-500">{copy.disclosureEn}</p>
+        ) : null}
       </div>
     </div>
   )

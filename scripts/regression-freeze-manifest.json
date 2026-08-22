@@ -15862,6 +15862,52 @@
       ]
     },
     {
+      "id": "inquiry-lang-en-korean-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "문의 ?lang=en — 한글 안내·주의 후 영문, 슬래시 병기·현재선택 사족 금지",
+      "checks": [
+        {
+          "file": "lib/inquiry-form-i18n.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-korean-first]",
+            "titleEn",
+            "descriptionEn",
+            "typeHelpEn",
+            "shortNoticeEn"
+          ],
+          "mustNotInclude": [
+            "inquiryDual",
+            "현재 선택"
+          ]
+        },
+        {
+          "file": "components/inquiry/InquiryPageClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-korean-first]",
+            "typeHelpEn",
+            "InquiryKoEnNote"
+          ],
+          "mustNotInclude": [
+            "currentType"
+          ]
+        },
+        {
+          "file": "components/inquiry/InquiryFormShell.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-korean-first]",
+            "shortNoticeEn",
+            "descriptionEn"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/inquiry-page-lang.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-device-card-wallet",
       "tier": [
         "prebuild",

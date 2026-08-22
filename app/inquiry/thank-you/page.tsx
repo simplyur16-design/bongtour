@@ -69,12 +69,21 @@ export default async function InquiryThankYouPage({ searchParams }: PageProps) {
         </p>
 
         <InquirySuccessPanel type={kind ?? undefined} />
-        {copy.thankYouLines ? (
-          <ul className="mx-auto mt-4 max-w-md space-y-2 text-sm leading-relaxed text-slate-600">
-            {copy.thankYouLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+        {copy.thankYouLinesKo ? (
+          <div className="mx-auto mt-4 max-w-md space-y-3">
+            <ul className="space-y-2 text-sm leading-relaxed text-slate-600">
+              {copy.thankYouLinesKo.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {copy.thankYouLinesEn ? (
+              <ul className="space-y-2 text-xs leading-relaxed text-slate-500">
+                {copy.thankYouLinesEn.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
 
         {fromPrivate ? (
@@ -97,7 +106,12 @@ export default async function InquiryThankYouPage({ searchParams }: PageProps) {
           </div>
         ) : null}
 
-        <p className="mt-6 text-center text-xs text-slate-500">{copy.shortNotice}</p>
+        <div className="mt-6 text-center">
+          <p className="text-xs text-slate-500">{copy.shortNotice}</p>
+          {copy.shortNoticeEn ? (
+            <p className="mt-1 text-xs text-slate-400">{copy.shortNoticeEn}</p>
+          ) : null}
+        </div>
 
         <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link

@@ -42,6 +42,7 @@ export default function TravelInquiryForm({ initialQuery }: Props) {
             {copy.monthLabel} <span className="text-slate-400">{copy.optional}</span>
           </label>
           <p className="mt-0.5 text-xs text-slate-500">{copy.monthHint}</p>
+          {copy.monthHintEn ? <p className="mt-0.5 text-xs text-slate-400">{copy.monthHintEn}</p> : null}
           <input
             id={`${id}-ym`}
             name="targetYearMonth"
@@ -99,6 +100,7 @@ export default function TravelInquiryForm({ initialQuery }: Props) {
           </div>
         </div>
         <p className="text-xs text-slate-500">{copy.paxHint}</p>
+        {copy.paxHintEn ? <p className="text-xs text-slate-400">{copy.paxHintEn}</p> : null}
         <div>
           <label htmlFor={`${id}-region`} className="block text-sm font-medium text-slate-700">
             {copy.region} <span className="text-slate-400">{copy.optional}</span>

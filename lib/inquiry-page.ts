@@ -11,7 +11,7 @@ import type { CustomerInquiryType } from '@/lib/customer-inquiry-intake'
 export const INQUIRY_KINDS = ['travel', 'institution', 'training', 'bus'] as const
 export type InquiryKind = (typeof INQUIRY_KINDS)[number]
 
-/** 블로그 등 외부 `?lang=en` — 한글 유지 + 영어 병기. 그 외는 한국어만. */
+/** `?lang=en` — 한글 본문 유지, 영문은 안내·주의 다음 줄. 그 외는 한국어만. */
 export type InquiryUiLang = 'ko' | 'en'
 
 /** REGRESSION-FREEZE[inquiry-lang-en-bilingual]: 블로그 ?lang=en — manifest */
@@ -59,7 +59,7 @@ export type InquiryPageQuery = {
   targetYearMonth: string | null
   /** 국외연수 서비스 범위 프리셋 */
   trainingServiceScope: string | null
-  /** `?lang=en` — 폼 라벨 한/영 병기 */
+  /** `?lang=en` — 한글 라벨 유지, 안내·주의만 영문 보조 */
   uiLang?: InquiryUiLang
 }
 
