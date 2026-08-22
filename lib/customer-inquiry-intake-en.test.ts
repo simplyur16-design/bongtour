@@ -21,6 +21,20 @@ describe('inquiry lang=en intake', () => {
     expect(r.ok).toBe('silent_bot')
   })
 
+  it('accepts English travel consult with composed Korea +82 phone when inquiryUiLang=en', () => {
+    const r = validateCustomerInquiryBody(
+      travelBody({
+        inquiryUiLang: 'en',
+        applicantPhone: '+821012345678',
+      }),
+      { productionInquiryRules: true },
+    )
+    expect(r.ok).toBe(true)
+    if (r.ok === true) {
+      expect(r.value.applicantPhone).toBe('+821012345678')
+    }
+  })
+
   it('accepts English travel consult with international phone when inquiryUiLang=en', () => {
     const r = validateCustomerInquiryBody(
       travelBody({

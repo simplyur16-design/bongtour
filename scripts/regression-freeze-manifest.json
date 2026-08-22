@@ -15908,6 +15908,48 @@
       ]
     },
     {
+      "id": "inquiry-lang-en-field-phone",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "문의 ?lang=en — 필드명 한글 옆 영문, 연락처는 KR +82 기본 국가번호+뒷번호",
+      "checks": [
+        {
+          "file": "lib/inquiry-phone-country.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-field-phone]",
+            "INQUIRY_DEFAULT_PHONE_ISO",
+            "composeInquiryIntlPhone"
+          ]
+        },
+        {
+          "file": "lib/inquiry-form-i18n.ts",
+          "mustInclude": [
+            "nameEn",
+            "phoneEn",
+            "emailEn",
+            "messageEn",
+            "Phone#"
+          ]
+        },
+        {
+          "file": "components/inquiry/InquiryFormShell.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[inquiry-lang-en-field-phone]",
+            "composeInquiryIntlPhone",
+            "INQUIRY_PHONE_COUNTRIES",
+            "InquiryKoEnBeside"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/inquiry-phone-country.test.ts",
+        "lib/inquiry-page-lang.test.ts",
+        "lib/customer-inquiry-intake-en.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-device-card-wallet",
       "tier": [
         "prebuild",

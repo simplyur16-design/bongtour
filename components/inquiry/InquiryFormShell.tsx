@@ -12,10 +12,17 @@ import {
 import { inquiryFormMeta, inquiryShellCopy } from '@/lib/inquiry-form-i18n'
 import { buildInquiryThankYouHref } from '@/lib/inquiry-thank-you-path'
 import ConsentBlock from '@/components/auth/ConsentBlock'
+import { InquiryKoEnBeside } from '@/components/inquiry/InquiryKoEnNote'
 import type { FieldErrors } from '@/lib/customer-inquiry-intake'
 import { formatKoreanTelInput } from '@/lib/korean-tel-format'
 import { optionalEmailFormatError } from '@/lib/email-format'
 import { readUtmFromSession } from '@/lib/utm-capture'
+import {
+  composeInquiryIntlPhone,
+  INQUIRY_DEFAULT_PHONE_ISO,
+  INQUIRY_PHONE_COUNTRIES,
+  inquiryPhoneCountryByIso,
+} from '@/lib/inquiry-phone-country'
 
 type ApiErrorJson = {
   ok?: boolean
@@ -98,6 +105,8 @@ export default function InquiryFormShell({
 
   const [applicantName, setApplicantName] = useState('')
   const [applicantPhone, setApplicantPhone] = useState('')
+  const [phoneCountryIso, setPhoneCountryIso] = useState(INQUIRY_DEFAULT_PHONE_ISO)
+  const [phoneNational, setPhoneNational] = useState('')
   const [applicantEmail, setApplicantEmail] = useState('')
   const [message, setMessage] = useState('')
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
@@ -117,6 +126,7 @@ export default function InquiryFormShell({
     () => ({
       name: `${baseId}-name`,
       phone: `${baseId}-phone`,
+      phoneCountry: `${baseId}-phone-cc`,
       email: `${baseId}-email`,
       message: `${baseId}-message`,
       privacy: `${baseId}-privacy`,
@@ -152,10 +162,14 @@ export default function InquiryFormShell({
           : null
 
       const extra = compactPayloadJson(buildPayloadJson())
+      const resolvedPhone =
+        lang === 'en'
+          ? composeInquiryIntlPhone(inquiryPhoneCountryByIso(phoneCountryIso).dial, phoneNational)
+          : applicantPhone.trim()
       const body: Record<string, unknown> = {
         inquiryType: apiType,
         applicantName: applicantName.trim(),
-        applicantPhone: applicantPhone.trim(),
+        applicantPhone: resolvedPhone,
         btHpWebsite: '',
         btHpUrl: hpTrap.trim(),
         formOpenedAt,
@@ -253,6 +267,8 @@ export default function InquiryFormShell({
     applicantEmail,
     applicantName,
     applicantPhone,
+    phoneCountryIso,
+    phoneNational,
     apiType,
     buildPayloadJson,
     message,
@@ -370,7 +386,8 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.name} className="block text-sm font-medium text-slate-700">
-              {resolvedNameLabel} <span className="text-rose-600">*</span>
+              <InquiryKoEnBeside ko={resolvedNameLabel} en={copy.nameEn} />{' '}
+              <span className="text-rose-600">*</span>
             </label>
             <input
               id={ids.name}
@@ -393,25 +410,62 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.phone} className="block text-sm font-medium text-slate-700">
-              {copy.phone} <span className="text-rose-600">*</span>
+              <InquiryKoEnBeside ko={copy.phone} en={copy.phoneEn} />{' '}
+              <span className="text-rose-600">*</span>
             </label>
-            <input
-              id={ids.phone}
-              name="applicantPhone"
-              type="tel"
-              autoComplete="tel"
-              required
-              value={applicantPhone}
-              onChange={(e) =>
-                setApplicantPhone(
-                  lang === 'en' ? e.target.value.slice(0, 40) : formatKoreanTelInput(e.target.value),
-                )
-              }
-              placeholder={lang === 'en' ? '+82 10-0000-0000 or +1 …' : undefined}
-              aria-invalid={Boolean(fieldErrors.applicantPhone)}
-              aria-describedby={fieldErrors.applicantPhone ? `${ids.phone}-err` : copy.phoneHint ? `${ids.phone}-hint` : undefined}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-            />
+            {lang === 'en' ? (
+              <div className="mt-1.5 flex gap-2">
+                {/* REGRESSION-FREEZE[inquiry-lang-en-field-phone]: KR +82 기본, 국가번호+뒷번호 합성 — manifest */}
+                <select
+                  id={ids.phoneCountry}
+                  name="phoneCountryIso"
+                  value={phoneCountryIso}
+                  onChange={(e) => setPhoneCountryIso(e.target.value)}
+                  aria-label="Country code"
+                  className="w-[11.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                >
+                  {INQUIRY_PHONE_COUNTRIES.map((c) => (
+                    <option key={c.iso} value={c.iso}>
+                      +{c.dial} {c.en}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  id={ids.phone}
+                  name="phoneNational"
+                  type="tel"
+                  autoComplete="tel-national"
+                  required
+                  value={phoneNational}
+                  onChange={(e) =>
+                    setPhoneNational(
+                      phoneCountryIso === 'KR'
+                        ? formatKoreanTelInput(e.target.value)
+                        : e.target.value.replace(/[^\d\s\-()]/g, '').slice(0, 20),
+                    )
+                  }
+                  placeholder={phoneCountryIso === 'KR' ? '010-0000-0000' : 'number'}
+                  aria-invalid={Boolean(fieldErrors.applicantPhone)}
+                  aria-describedby={
+                    fieldErrors.applicantPhone ? `${ids.phone}-err` : copy.phoneHint ? `${ids.phone}-hint` : undefined
+                  }
+                  className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                />
+              </div>
+            ) : (
+              <input
+                id={ids.phone}
+                name="applicantPhone"
+                type="tel"
+                autoComplete="tel"
+                required
+                value={applicantPhone}
+                onChange={(e) => setApplicantPhone(formatKoreanTelInput(e.target.value))}
+                aria-invalid={Boolean(fieldErrors.applicantPhone)}
+                aria-describedby={fieldErrors.applicantPhone ? `${ids.phone}-err` : undefined}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              />
+            )}
             {copy.phoneHint ? (
               <div id={`${ids.phone}-hint`} className="mt-1">
                 <p className="text-xs text-slate-500">{copy.phoneHint}</p>
@@ -429,11 +483,14 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.email} className="block text-sm font-medium text-slate-700">
-              {copy.email}{' '}
+              <InquiryKoEnBeside ko={copy.email} en={copy.emailEn} />{' '}
               {applicantEmailRequired ? (
                 <span className="text-rose-600">*</span>
               ) : (
-                <span className="text-slate-400">{copy.optional}</span>
+                <span className="text-slate-400">
+                  {copy.optional}
+                  {copy.optionalEn ? <span className="ml-1 font-normal">{copy.optionalEn}</span> : null}
+                </span>
               )}
             </label>
             <input
@@ -475,11 +532,14 @@ export default function InquiryFormShell({
 
           <div>
             <label htmlFor={ids.message} className="block text-sm font-medium text-slate-700">
-              {resolvedMessageLabel}{' '}
+              <InquiryKoEnBeside ko={resolvedMessageLabel} en={copy.messageEn} />{' '}
               {messageRequired ? (
                 <span className="text-rose-600">*</span>
               ) : (
-                <span className="text-slate-400">{copy.optional}</span>
+                <span className="text-slate-400">
+                  {copy.optional}
+                  {copy.optionalEn ? <span className="ml-1 font-normal">{copy.optionalEn}</span> : null}
+                </span>
               )}
             </label>
             <textarea
@@ -488,6 +548,7 @@ export default function InquiryFormShell({
               rows={4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              placeholder={copy.messagePlaceholderEn ?? undefined}
               aria-invalid={Boolean(fieldErrors.message)}
               aria-describedby={fieldErrors.message ? `${ids.message}-err` : undefined}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"

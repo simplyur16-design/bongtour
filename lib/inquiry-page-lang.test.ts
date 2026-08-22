@@ -45,6 +45,15 @@ describe('inquiry lang=en Korean-first copy', () => {
     expect(copy).not.toHaveProperty('currentType')
   })
 
+  it('field labels keep Korean and add English beside', () => {
+    const copy = inquiryShellCopy('en')
+    expect(copy.name).toBe('신청자 이름')
+    expect(copy.nameEn).toBe('Name')
+    expect(copy.phoneEn).toBe('Phone#')
+    expect(copy.emailEn).toBe('email')
+    expect(copy.messageEn).toBe('Message')
+  })
+
   it('kind chips stay Korean-only', () => {
     expect(inquiryKindLabel('travel', 'en')).toBe('여행 상담')
     expect(inquiryKindLabel('travel', 'en')).not.toMatch(/Travel/)

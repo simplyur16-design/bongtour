@@ -1,6 +1,16 @@
 /**
  * REGRESSION-FREEZE[inquiry-lang-en-korean-first]: 한글 본문 다음 줄에만 영문 — manifest
+ * REGRESSION-FREEZE[inquiry-lang-en-field-phone]: 필드명 한글 옆 영문 — manifest
  */
+export function InquiryKoEnBeside({ ko, en }: { ko: string; en?: string | null }) {
+  return (
+    <>
+      {ko}
+      {en ? <span className="ml-1.5 font-normal text-slate-500">{en}</span> : null}
+    </>
+  )
+}
+
 export default function InquiryKoEnNote({
   ko,
   en,
