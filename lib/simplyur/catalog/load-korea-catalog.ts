@@ -1,5 +1,5 @@
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
-import { BONGSIM_CATALOG_CONSUMER_KRW_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
+import { BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import {
   classifyBongsimPgError,
   getPgPool,
@@ -114,7 +114,7 @@ export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaPr
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
        ORDER BY plan_name, days_raw,
-         (${BONGSIM_CATALOG_CONSUMER_KRW_SQL}) ASC NULLS LAST`,
+         (${BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL}) ASC NULLS LAST`,
         ),
       ),
     );

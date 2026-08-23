@@ -82,7 +82,7 @@ export function resolveActivePriceSide(
 
 /**
  * 카탈로그·국가피커·체크아웃 — 지금 팔 수 있는 가격이 있는지.
- * 권장판매가 우선, 없으면 소비자가.
+ * 공급가·권장판매가·소비자가 중 하나면 판매 가능.
  * REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 scheduled hide — manifest
  */
 export function isPriceBlockCatalogSellable(
@@ -90,7 +90,7 @@ export function isPriceBlockCatalogSellable(
   nowMs: number = Date.now(),
 ): boolean {
   const side = resolveActivePriceSide(priceBlock, nowMs);
-  const sell = side.recommended_krw ?? side.consumer_krw;
+  const sell = side.supply_krw ?? side.recommended_krw ?? side.consumer_krw;
   return sell != null && sell >= 0;
 }
 

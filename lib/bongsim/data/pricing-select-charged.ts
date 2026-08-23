@@ -8,7 +8,7 @@ import {
 
 /**
  * 봉심 웹 체크아웃 청구 단가 — 스토어프론트 표시와 동일하게 `afterConsumerSellKrw`.
- * 권장판매가 우선(slim 필드는 consumer_krw 호환). 명함 승인 할인은 confirm 시 subtotal 기준 % 차감.
+ * 봉투어 정가(공급가×5/3, slim 필드는 consumer_krw 호환). 명함 승인 할인은 confirm 시 subtotal 기준 % 차감.
  */
 export function selectChargedUnitPriceKrw(priceBlock: BongsimPriceBlockV1): {
   basis_key: string;
