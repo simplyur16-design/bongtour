@@ -7,8 +7,8 @@ import {
 // REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
 
 /**
- * 봉심 웹 체크아웃 청구 단가 — 스토어프론트 표시와 동일하게 `after.consumer_krw` 만.
- * 명함 승인 할인은 confirm 시 subtotal 기준 % 차감 (단가 자체는 소비자가).
+ * 봉심 웹 체크아웃 청구 단가 — 스토어프론트 표시와 동일하게 `afterConsumerSellKrw`.
+ * 권장판매가 우선(slim 필드는 consumer_krw 호환). 명함 승인 할인은 confirm 시 subtotal 기준 % 차감.
  */
 export function selectChargedUnitPriceKrw(priceBlock: BongsimPriceBlockV1): {
   basis_key: string;

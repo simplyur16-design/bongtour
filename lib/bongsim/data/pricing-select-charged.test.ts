@@ -14,43 +14,43 @@ const BEFORE_MS = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 60_000;
 const AFTER_MS = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) + 60_000;
 
 describe("afterConsumerSellKrw", () => {
-  it("uses after.consumer_krw when no effective_from", () => {
+  it("uses after.recommended_krw when no effective_from", () => {
     expect(
       afterConsumerSellKrw({
         before: { recommended_krw: 1000, consumer_krw: 2000 },
         after: { recommended_krw: 11700, consumer_krw: 13000 },
       }),
-    ).toBe(13000);
+    ).toBe(11700);
   });
 
-  it("uses before.consumer_krw before effective_from", () => {
+  it("uses before.recommended_krw before effective_from", () => {
     expect(
       afterConsumerSellKrw(
         {
-          before: { consumer_krw: 10000 },
-          after: { consumer_krw: 13000 },
+          before: { recommended_krw: 9000, consumer_krw: 10000 },
+          after: { recommended_krw: 11700, consumer_krw: 13000 },
           effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
         },
         BEFORE_MS,
       ),
-    ).toBe(10000);
+    ).toBe(9000);
   });
 
-  it("uses after.consumer_krw after effective_from", () => {
+  it("uses after.recommended_krw after effective_from", () => {
     expect(
       afterConsumerSellKrw(
         {
-          before: { consumer_krw: 10000 },
-          after: { consumer_krw: 13000 },
+          before: { recommended_krw: 9000, consumer_krw: 10000 },
+          after: { recommended_krw: 11700, consumer_krw: 13000 },
           effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
         },
         AFTER_MS,
       ),
-    ).toBe(13000);
+    ).toBe(11700);
   });
 
-  it("does not fall back to recommended", () => {
-    expect(afterConsumerSellKrw({ after: { recommended_krw: 11700 } })).toBeNull();
+  it("falls back to consumer_krw when recommended is missing", () => {
+    expect(afterConsumerSellKrw({ after: { consumer_krw: 13000 } })).toBe(13000);
   });
 });
 
@@ -71,21 +71,21 @@ describe("afterRecommendedSellKrw", () => {
 });
 
 describe("selectChargedUnitPriceKrw", () => {
-  it("charges after.consumer_krw (storefront base)", () => {
+  it("charges after.recommended_krw (storefront base)", () => {
     const r = selectChargedUnitPriceKrw({
       before: { recommended_krw: 14000, consumer_krw: 15000, supply_krw: 9000 },
       after: { recommended_krw: 11700, consumer_krw: 13000, supply_krw: 8000 },
     });
-    expect(r.unit_krw).toBe(13000);
+    expect(r.unit_krw).toBe(11700);
     expect(r.basis_key).toBe(AFTER_CONSUMER_BASIS_KEY);
   });
 
-  it("does not fall back to recommended when consumer missing", () => {
+  it("charges recommended when consumer is missing", () => {
     const r = selectChargedUnitPriceKrw({
       before: { recommended_krw: null, consumer_krw: null, supply_krw: null },
       after: { recommended_krw: 11700, consumer_krw: null, supply_krw: null },
     });
-    expect(r.unit_krw).toBe(0);
-    expect(r.basis_key).toBe("missing_all_price_cells");
+    expect(r.unit_krw).toBe(11700);
+    expect(r.basis_key).toBe(AFTER_CONSUMER_BASIS_KEY);
   });
 });

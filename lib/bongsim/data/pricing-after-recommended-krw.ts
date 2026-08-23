@@ -32,16 +32,18 @@ export function afterRecommendedSellKrw(priceBlock: AfterRecommendedPriceBlockIn
 }
 
 /**
- * 유효 소비자가 — `effective_from` 전이면 before, 아니면 after.
+ * 유효 판매가 — `effective_from` 전이면 before, 아니면 after.
+ * 권장판매가 우선, 없으면 소비자가. slim JSON 필드명은 호환용 `consumer_krw`.
  * 봉심 스토어프론트 표시·정렬·체크아웃 청구 단가 SSOT.
- * REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
+ * REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 권장판매가 기준 + 명함 25% — manifest
  * REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 cutover — manifest
  */
 export function afterConsumerSellKrw(
   priceBlock: AfterRecommendedPriceBlockInput,
   nowMs: number = Date.now(),
 ): number | null {
-  const v = resolveActivePriceSide(priceBlock, nowMs).consumer_krw;
+  const side = resolveActivePriceSide(priceBlock, nowMs);
+  const v = side.recommended_krw ?? side.consumer_krw;
   if (v == null || v < 0) return null;
   return Math.trunc(v);
 }

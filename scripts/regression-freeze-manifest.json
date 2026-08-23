@@ -2166,7 +2166,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "봉심 표시·청구 = after.consumer_krw + 명함 승인(affiliationVerified) 25% 할인",
+      "summary": "봉심 표시·청구 = 권장판매가(slim 필드는 consumer_krw) + 명함 승인(affiliationVerified) 25% 할인",
       "checks": [
         {
           "file": "lib/bongsim/data/pricing-select-charged.ts",
