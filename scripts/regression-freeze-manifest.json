@@ -2275,6 +2275,7 @@
             "price_block->>'effective_from'",
             "BONGSIM_CATALOG_SELLABLE_NOW_WHERE",
             "BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE",
+            "BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL",
             "after 폴백 금지"
           ]
         },
@@ -2321,18 +2322,23 @@
           "file": "lib/simplyur/pricing.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
-            "afterConsumerSellKrw",
+            "resolveActivePriceSide",
+            "simplyurSellPriceKrw",
             "nowMs"
+          ],
+          "mustNotInclude": [
+            "afterConsumerSellKrw"
           ]
         },
         {
           "file": "lib/simplyur/catalog/load-korea-catalog.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
-            "BONGSIM_CATALOG_CONSUMER_KRW_SQL"
+            "BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL"
           ],
           "mustNotInclude": [
-            "price_block->'after'->>'consumer_krw'"
+            "price_block->'after'->>'consumer_krw'",
+            "BONGSIM_CATALOG_CONSUMER_KRW_SQL"
           ]
         },
         {
