@@ -7,6 +7,7 @@ import {
 } from '@/lib/hub-main-menu-card-layout'
 import { splitHeroPlusSmall } from '@/lib/hub-gallery-rotation'
 import HubProductCardScrollRow from '@/components/products/HubProductCardScrollRow'
+import EsimProductListNativeCard from '@/app/components/travel/EsimProductListNativeCard'
 import { ProductResultCard, type ResultItem } from '@/components/products/ProductResultsList'
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   seasonalPickIds?: ReadonlySet<string> | null
   rotationSeed: number
   scopeKey: string
+  interleaveEsim?: boolean
 }
 
 /** 모바일 — 큰 카드 1(상단) + 작은 카드 2장 노출 가로 스크롤 */
@@ -24,6 +26,7 @@ export default function ProductHubGalleryGrid({
   seasonalPickIds,
   rotationSeed,
   scopeKey,
+  interleaveEsim = false,
 }: Props) {
   const { featured } = useMemo(
     () => splitHeroPlusSmall(items, rotationSeed, scopeKey),
@@ -50,6 +53,11 @@ export default function ProductHubGalleryGrid({
           ariaLabel={`${scopeKey} 상품`}
           scrollClassName={HUB_MOBILE_SMALL_CARD_ROW_CLASS}
         >
+          {interleaveEsim ? (
+            <li key="esim-native-lead" className={HUB_MOBILE_SMALL_CARD_CELL_WIDTH_CLASS}>
+              <EsimProductListNativeCard compact />
+            </li>
+          ) : null}
           {smallCards.map((item) => (
             <li key={item.id} className={HUB_MOBILE_SMALL_CARD_CELL_WIDTH_CLASS}>
               <ProductResultCard

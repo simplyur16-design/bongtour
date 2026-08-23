@@ -112,6 +112,7 @@ function renderHubSectionGallery(
   seasonalPickIds: ReadonlySet<string> | null | undefined,
   rotationSeed: number,
   scopeKey: string,
+  interleaveEsim = false,
 ) {
   return (
     <ProductHubSectionGallery
@@ -120,6 +121,7 @@ function renderHubSectionGallery(
       seasonalPickIds={seasonalPickIds}
       rotationSeed={rotationSeed}
       scopeKey={scopeKey}
+      interleaveEsim={interleaveEsim}
     />
   )
 }
@@ -657,6 +659,7 @@ function AirHotelCountryGroupedList({
                 seasonalPickIds,
                 hubGalleryRotationSeed,
                 scopeKey,
+                interleaveEsimNativeCards,
               )
             ) : (
               <ProductResultsHubScrollRow ariaLabel={`${regionLabel} 상품`}>
@@ -1010,6 +1013,7 @@ function OverseasMegaRegionSubgroupGroupedList({
   seasonalPickIds,
   hubCompareGridLayout = false,
   hubGalleryRotationSeed = 0,
+  interleaveEsimNativeCards = false,
 }: {
   regionId: string
   items: ResultItem[]
@@ -1017,6 +1021,7 @@ function OverseasMegaRegionSubgroupGroupedList({
   seasonalPickIds?: ReadonlySet<string> | null
   hubCompareGridLayout?: boolean
   hubGalleryRotationSeed?: number
+  interleaveEsimNativeCards?: boolean
 }) {
   const subgroupOrder = useMemo(() => megaMenuSubgroupLabelsInOrder(regionId), [regionId])
 
@@ -1079,6 +1084,7 @@ function OverseasMegaRegionSubgroupGroupedList({
                 seasonalPickIds,
                 hubGalleryRotationSeed,
                 subgroupGroupScopeKey(regionId, subgroupLabel),
+                interleaveEsimNativeCards,
               )
             ) : (
               <ProductResultsHubScrollRow ariaLabel={`${regionLabel ?? regionId} ${subgroupLabel} 상품`}>
@@ -1161,6 +1167,7 @@ function OverseasRegionGroupedList({
                     seasonalPickIds,
                     hubGalleryRotationSeed,
                     bucketId,
+                    interleaveEsimNativeCards,
                   )
                 ) : (
                   <ProductResultsHubScrollRow ariaLabel={`${OVERSEAS_DISPLAY_BUCKET_LABEL[bucketId]} 상품`}>
@@ -1246,6 +1253,7 @@ export default function ProductResultsList({
         seasonalPickIds={seasonalPickIds}
         hubCompareGridLayout={hubCompareGridLayout}
         hubGalleryRotationSeed={hubGalleryRotationSeed}
+        interleaveEsimNativeCards={interleaveEsimNativeCards}
       />
     )
   }
@@ -1283,6 +1291,7 @@ export default function ProductResultsList({
               seasonalPickIds,
               hubGalleryRotationSeed,
               `country:${countrySlugForFlat}`,
+              interleaveEsimNativeCards,
             )
           ) : (
             <ProductResultsHubScrollRow ariaLabel={`${heading} 상품`}>
@@ -1318,6 +1327,7 @@ export default function ProductResultsList({
       seasonalPickIds,
       hubGalleryRotationSeed,
       'hub-flat',
+      interleaveEsimNativeCards,
     )
   }
 

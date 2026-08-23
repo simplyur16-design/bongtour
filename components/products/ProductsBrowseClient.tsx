@@ -764,6 +764,10 @@ function ProductsBrowseClientCore({
               hubGalleryRotationSeed={hubGalleryRotationSeed}
               megaMenuRegionCityGroupId={megaMenuRegionCityGroupId}
               groupSportsThemeByCategory={groupSportsThemeByCategory}
+              interleaveEsimNativeCards={
+                (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
+                hubPathname === '/travel/air-hotel'
+              }
             />
             {data.total > data.limit &&
               !(

@@ -7,6 +7,8 @@ import { getHomeHubCardHybridResolutionDetail } from '@/lib/home-hub-card-hybrid
 import { getHomeHubActiveFile } from '@/lib/home-hub-resolve-images'
 import SeasonCurationHero from './components/home/SeasonCurationHero'
 import SeasonProductGrid from './components/home/SeasonProductGrid'
+import EsimCoralStrip from './components/EsimCoralStrip'
+import HomeEsimProductSection from './components/home/HomeEsimProductSection'
 import HomeTrustSection from './components/home/HomeTrustSection'
 import PersonaCuratedDestinations from './components/home/PersonaCuratedDestinations'
 import AirHotelProductGrid from './components/home/AirHotelProductGrid'
@@ -108,9 +110,11 @@ export default async function Home() {
             aria-hidden
           />
           <SeasonCurationHero sectionId="season-curation-main" />
+          <EsimCoralStrip />
           <Suspense fallback={<div className="min-h-[12rem]" aria-hidden />}>
             <SeasonProductGrid />
           </Suspense>
+          <HomeEsimProductSection />
           <div className="relative border-t border-bt-border-soft/80 bg-gradient-to-b from-bt-bg-lavender-soft/70 to-transparent pt-3 md:pt-4">
             <HomeHubCardDebugServerPanel overseasPick={overseasCover} overseasDetail={overseasDetail} />
           </div>

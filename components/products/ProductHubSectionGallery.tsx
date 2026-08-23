@@ -10,6 +10,7 @@ type Props = {
   seasonalPickIds?: ReadonlySet<string> | null
   rotationSeed: number
   scopeKey: string
+  interleaveEsim?: boolean
 }
 
 /**
@@ -23,6 +24,7 @@ export default function ProductHubSectionGallery({
   seasonalPickIds,
   rotationSeed,
   scopeKey,
+  interleaveEsim = false,
 }: Props) {
   if (items.length === 0) return null
 
@@ -34,6 +36,7 @@ export default function ProductHubSectionGallery({
           formatWon={formatWon}
           seasonalPickIds={seasonalPickIds}
           scopeKey={scopeKey}
+          interleaveEsim={interleaveEsim}
         />
       </div>
       <div className="lg:hidden">
@@ -43,6 +46,7 @@ export default function ProductHubSectionGallery({
           seasonalPickIds={seasonalPickIds}
           rotationSeed={rotationSeed}
           scopeKey={scopeKey}
+          interleaveEsim={interleaveEsim}
         />
       </div>
     </div>

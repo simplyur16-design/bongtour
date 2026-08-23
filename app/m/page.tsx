@@ -2,6 +2,8 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Header from '@/app/components/Header'
 import HomeMobileHub from '@/app/components/home/HomeMobileHub'
+import EsimCoralStrip from '@/app/components/EsimCoralStrip'
+import HomeEsimProductSection from '@/app/components/home/HomeEsimProductSection'
 import HomeTrustSection from '@/app/components/home/HomeTrustSection'
 import CustomerReviewsSection from '@/app/components/home/CustomerReviewsSection'
 import MobileDestinationSearch from '@/app/components/home/MobileDestinationSearch'
@@ -67,9 +69,11 @@ export default async function HomeMobile() {
           <div className={SITE_CONTENT_CLASS}>
             <MobileDestinationSearch />
           </div>
+          <EsimCoralStrip />
           <Suspense fallback={<div className="min-h-[24rem]" aria-hidden />}>
             <HomeMobileHub />
           </Suspense>
+          <HomeEsimProductSection />
           <HomeTrustSection />
           <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
             <CustomerReviewsSection />

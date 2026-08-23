@@ -1,11 +1,15 @@
 import { EsimLandingWhySection } from '@/app/travel/esim/EsimLandingWhySection'
+import { BongsimHomeMobile } from '@/components/bongsim/BongsimHomeMobile'
 
 /** eSIM 랜딩 — 히어로 아래 본문·푸터 (초기 JS 분할용) */
 export default function EsimLandingBelowFold() {
   return (
     <>
       <main className="mx-auto max-w-4xl px-4 pb-12 pt-10 lg:max-w-5xl lg:px-0 lg:pb-14 lg:pt-12">
-        <EsimLandingWhySection />
+        <BongsimHomeMobile />
+        <div className="mt-14 lg:mt-20">
+          <EsimLandingWhySection />
+        </div>
 
         <section className="mt-14 lg:mt-20" aria-labelledby="esim-reviews-heading">
           <h2
