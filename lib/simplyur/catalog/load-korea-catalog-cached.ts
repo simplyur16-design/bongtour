@@ -11,6 +11,7 @@ import {
 
 // REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 120s 캐시 — manifest
 // REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: DB 실패는 캐시하지 않음(throw)·locale 공유 — manifest
+// REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: korea products cache v2 after plan_name SQL — manifest
 
 const CATALOG_REVALIDATE_SEC = 120;
 
@@ -50,7 +51,7 @@ export async function loadSimplyurKoreaCatalogCached(
   locale: SimplyurLocale,
 ): Promise<SimplyurKoreaCatalogResult> {
   try {
-    const products = await unstable_cache(loadSimplyurKoreaProductsOrThrow, ["simplyur-korea-products-v1"], {
+    const products = await unstable_cache(loadSimplyurKoreaProductsOrThrow, ["simplyur-korea-products-v2"], {
       revalidate: CATALOG_REVALIDATE_SEC,
       tags: ["simplyur-catalog", "simplyur-korea-products"],
     })();

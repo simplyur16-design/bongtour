@@ -10,6 +10,9 @@ describe("resolveDestinationPlanNamesForSql", () => {
     const names = resolveDestinationPlanNamesForSql("kr");
     expect(names).toContain("대한민국");
     expect(names).toContain("한국");
+    expect(names).toContain("대한민국(3Mbps)");
+    expect(names).not.toContain("한국/일본");
+    expect(names).not.toContain("한국/중국/일본");
   });
 
   it("권역 pack — 단일 plan_name", () => {

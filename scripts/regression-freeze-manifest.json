@@ -2416,6 +2416,20 @@
             "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
             "planNamesForRegionPackCode"
           ]
+        },
+        {
+          "file": "lib/simplyur/catalog/korea-product-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
+            "koreaCatalogPlanNamesForSql"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
+            "TRIM(plan_name) = ANY($1::text[])"
+          ]
         }
       ],
       "vitestSuites": [
@@ -2423,7 +2437,8 @@
         "lib/bongsim/recommend/recommend-destination-sections.test.ts",
         "lib/bongsim/data/load-products-by-country.test.ts",
         "lib/bongsim/data/single-destination-plan-names.test.ts",
-        "lib/bongsim/data/list-standalone-countries.test.ts"
+        "lib/bongsim/data/list-standalone-countries.test.ts",
+        "lib/simplyur/catalog/korea-product-filter.test.ts"
       ]
     },
     {
@@ -13750,7 +13765,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "simplyur 카탈로그 P0 — 서버 프리로드·120s unstable_cache",
+      "summary": "simplyur 카탈로그 P0 — 서버 프리로드·120s unstable_cache·한국 plan_name SQL",
       "checks": [
         {
           "file": "lib/simplyur/catalog/load-korea-catalog-cached.ts",
@@ -13758,8 +13773,16 @@
             "REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]",
             "unstable_cache",
             "CATALOG_REVALIDATE_SEC",
-            "simplyur-korea-products-v1",
+            "simplyur-korea-products-v2",
             "buildSimplyurKoreaPack"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]",
+            "koreaCatalogPlanNamesForSql",
+            "TRIM(plan_name) = ANY($1::text[])"
           ]
         },
         {
@@ -13778,7 +13801,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/simplyur/catalog/load-korea-catalog-cached.test.ts"
+        "lib/simplyur/catalog/load-korea-catalog-cached.test.ts",
+        "lib/simplyur/catalog/korea-product-filter.test.ts"
       ]
     },
     {
@@ -14079,7 +14103,8 @@
           "file": "lib/bongsim/data/single-destination-plan-names.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-products-by-country-cache]",
-            "resolveDestinationPlanNamesForSql"
+            "resolveDestinationPlanNamesForSql",
+            "대한민국(3Mbps)"
           ]
         },
         {

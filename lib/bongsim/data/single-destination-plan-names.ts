@@ -10,6 +10,7 @@ import {
 const EXTRA_KO_NAME_TO_CODE: Record<string, string> = {
   대한민국: "kr",
   한국: "kr",
+  "대한민국(3Mbps)": "kr",
   "터키(튀르키예)": "tr",
   튀르키예: "tr",
   사이판: "mp",

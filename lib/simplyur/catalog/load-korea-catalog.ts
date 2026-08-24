@@ -9,7 +9,10 @@ import {
 } from "@/lib/bongsim/db/pool";
 import { extractDaysFromDaysRaw } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
-import { isKoreaSingleCountryProduct } from "@/lib/simplyur/catalog/korea-product-filter";
+import {
+  isKoreaSingleCountryProduct,
+  koreaCatalogPlanNamesForSql,
+} from "@/lib/simplyur/catalog/korea-product-filter";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { SimplyurFxRates } from "@/lib/simplyur/currency";
 import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
@@ -21,6 +24,7 @@ import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 // REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: statement timeout·connect timeout 분류·풀 리셋 — manifest
 // REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: SELECT qos_raw for Unlimited 1/3Mbps labels — manifest
 // REGRESSION-FREEZE[bongsim-price-effective-from]: catalog ORDER BY effective consumer — manifest
+// REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: Korea plan_name SQL so 15k+ catalog cannot empty the app list — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -105,6 +109,8 @@ export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaPr
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured" };
 
+  const koreaPlanNames = koreaCatalogPlanNamesForSql();
+
   try {
     const result = await withBongsimCatalogRetry(() =>
       withBongsimStatementTimeout((client) =>
@@ -113,8 +119,10 @@ export async function loadSimplyurKoreaActiveProducts(): Promise<SimplyurKoreaPr
               allowance_label, option_label, qos_raw, price_block, flags
        FROM bongsim_product_option
        WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
+         AND TRIM(plan_name) = ANY($1::text[])
        ORDER BY plan_name, days_raw,
          (${BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL}) ASC NULLS LAST`,
+          [koreaPlanNames],
         ),
       ),
     );
