@@ -19,6 +19,8 @@ import {
   completeSimplyurEximbayPayerAuth,
   confirmSimplyurCheckout,
   createSimplyurEximbaySession,
+  fetchSimplyurFirstPurchasePreview,
+  type SimplyurFirstPurchasePreview,
 } from '@/src/api/checkout';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
@@ -58,6 +60,7 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: checkout funnel telemetry — manifest
  * REGRESSION-FREEZE[simplyur-device-card-wallet]: phone-only card reminder — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store link only — manifest
+ * REGRESSION-FREEZE[simplyur-launch-discount-14pct]: first-purchase preview 14% — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
@@ -85,6 +88,7 @@ export default function CheckoutScreen() {
   const [storeLinkHint, setStoreLinkHint] = useState(false);
   const [savedCards, setSavedCards] = useState<DeviceSavedCard[]>([]);
   const [saveCardOnPhone, setSaveCardOnPhone] = useState(false);
+  const [firstPurchase, setFirstPurchase] = useState<SimplyurFirstPurchasePreview | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -113,6 +117,30 @@ export default function CheckoutScreen() {
       cancelled = true;
     };
   }, [id, locale]);
+
+  useEffect(() => {
+    const buyer = email.trim();
+    const optionId = product?.option_api_id?.trim() ?? '';
+    if (!buyer.includes('@') || !optionId) {
+      setFirstPurchase(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchSimplyurFirstPurchasePreview({
+      optionApiId: optionId,
+      email: buyer,
+      subtotalKrw: product?.simplyur_sell_price_krw ?? 1,
+    })
+      .then((preview) => {
+        if (!cancelled) setFirstPurchase(preview);
+      })
+      .catch(() => {
+        if (!cancelled) setFirstPurchase(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [email, product]);
 
   const returnToNativeForm = useCallback((message?: string) => {
     setPhase('form');
@@ -240,6 +268,22 @@ export default function CheckoutScreen() {
   }
 
   const price = product?.simplyur_display?.formatted ?? '—';
+  const discountedPrice = (() => {
+    if (!firstPurchase || !product?.simplyur_display || product.simplyur_display.amount <= 0) return null;
+    const listKrw = firstPurchase.subtotal_krw > 0 ? firstPurchase.subtotal_krw : product.simplyur_sell_price_krw;
+    if (!listKrw || listKrw <= 0) return null;
+    const ratio = 1 - firstPurchase.discount_krw / listKrw;
+    const displayAmt = Math.max(0, Math.round(product.simplyur_display.amount * ratio));
+    try {
+      return new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+        style: 'currency',
+        currency: product.simplyur_display.currency,
+        maximumFractionDigits: product.simplyur_display.currency === 'KRW' ? 0 : 2,
+      }).format(displayAmt);
+    } catch {
+      return null;
+    }
+  })();
 
   if (!checkoutEnabled) {
     return (
@@ -396,7 +440,20 @@ export default function CheckoutScreen() {
         <>
           <View style={styles.summary}>
             <Text style={styles.summaryLabel}>{t('checkout.summary')}</Text>
-            <Text style={styles.summaryPrice}>{price}</Text>
+            {discountedPrice ? (
+              <>
+                <Text style={styles.summaryList}>{price}</Text>
+                <Text style={styles.summaryPrice}>{discountedPrice}</Text>
+                <Text style={styles.summaryPromo}>
+                  {t('checkout.firstPurchaseBanner').replace(
+                    '{rate}',
+                    String(firstPurchase?.discount_rate_pct ?? 14),
+                  )}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.summaryPrice}>{price}</Text>
+            )}
           </View>
 
           <Text style={styles.label}>{t('checkout.email')}</Text>
@@ -543,7 +600,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   summaryLabel: { fontSize: 13, color: LOGIN_1B.muted, ...fp('400') },
+  summaryList: {
+    marginTop: 4,
+    fontSize: 16,
+    color: LOGIN_1B.muted,
+    textDecorationLine: 'line-through',
+    ...fp('400'),
+  },
   summaryPrice: { fontSize: 28, color: LOGIN_1B.coral, ...fp('800') },
+  summaryPromo: { marginTop: 4, fontSize: 13, color: LOGIN_1B.coral, ...fp('600') },
   label: { marginTop: 10, fontSize: 13, color: LOGIN_1B.navy, ...fp('600') },
   input: {
     height: 48,

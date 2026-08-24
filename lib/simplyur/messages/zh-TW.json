@@ -3,6 +3,9 @@
     "title": "simplyur | 韓國 eSIM",
     "description": "simplyur — 韓國 eSIM。即時 QR。Bong Tour 品牌。"
   },
+  "affiliate": {
+    "fromTrip": "來自 simplyurtrip"
+  },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
   },
@@ -144,7 +147,8 @@
     "completeTitle": "謝謝！",
     "completeBody": "付款已確認。韓國 eSIM QR 碼將在數分鐘內寄到您的信箱。",
     "orderNumber": "訂單編號",
-    "viewPlans": "瀏覽更多方案"
+    "viewPlans": "瀏覽更多方案",
+    "continueTrip": "繼續行程"
   },
   "guide": {
     "title": "安裝 eSIM",
@@ -353,6 +357,8 @@
     "refundDone": "This order was cancelled and refunded.",
     "manualInstallTitle": "Manual install (if QR fails)",
     "manualInstallBody": "In phone Settings → Cellular → Add eSIM → Enter details manually. Use SM-DP+ address and activation code below.",
+    "installIos": "Install on iPhone",
+    "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address"
   }
 }

@@ -3,6 +3,12 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
 import { sendTravelEsimRefundDoneMail } from "@/lib/bongsim/email/travel-esim-refund-done-mail";
 import { sendRefundDoneAlimTalk } from "@/lib/bongsim/notifications/refund-done-alimtalk";
+import { sendSimplyurRefundDoneMail } from "@/lib/simplyur/email/simplyur-refund-done-mail";
+import {
+  buildSimplyurMyEsimAbsoluteUrl,
+  simplyurLocaleFromConsents,
+  simplyurNotifyRequiresKakaoPhone,
+} from "@/lib/simplyur/notify/simplyur-qr-notify-policy";
 
 const REFUND_COMPLETED_KIND = "refund_completed";
 
@@ -71,8 +77,11 @@ export async function notifyRefundCompletedBestEffort(orderId: string): Promise<
       paid_amount_krw: string | null;
       grand_total_krw: string;
       status: string;
+      checkout_channel: string | null;
+      consents: unknown;
     }>(
-      `SELECT order_number, buyer_email, paid_amount_krw::text, grand_total_krw::text, status
+      `SELECT order_number, buyer_email, paid_amount_krw::text, grand_total_krw::text, status,
+              checkout_channel, consents
          FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
       [id],
     );
@@ -88,39 +97,54 @@ export async function notifyRefundCompletedBestEffort(orderId: string): Promise<
     const refundAmount = formatRefundAmountKrw(amountKrw);
     const orderNumber = row.order_number.trim();
 
+    const requireKakaoPhone = simplyurNotifyRequiresKakaoPhone(row.checkout_channel);
     const jobId = await resolveFulfillmentJobId(pool, id);
     if (!jobId) {
-      console.warn("[notifyRefundCompleted] no_fulfillment_job", { orderId: id });
-      return;
+      if (requireKakaoPhone) {
+        console.warn("[notifyRefundCompleted] no_fulfillment_job", { orderId: id });
+        return;
+      }
+    } else {
+      await insertRefundCompletedEvent(pool, id, jobId, {
+        orderNumber,
+        refundAmount,
+        refund_amount_krw: Math.trunc(amountKrw),
+      });
     }
 
-    await insertRefundCompletedEvent(pool, id, jobId, {
-      orderNumber,
-      refundAmount,
-      refund_amount_krw: Math.trunc(amountKrw),
-    });
+    if (requireKakaoPhone) {
+      const phone = await resolveBuyerPhoneForOrder(id);
+      if (phone) {
+        const alim = await sendRefundDoneAlimTalk(id, {
+          customerPhone: phone,
+          orderNumber,
+          refundAmount,
+        });
+        if (!alim.ok) {
+          console.warn("[notifyRefundCompleted] alimtalk_failed", { orderId: id, detail: alim.detail });
+        }
+      } else {
+        console.warn("[notifyRefundCompleted] no_phone", { orderId: id });
+      }
 
-    const phone = await resolveBuyerPhoneForOrder(id);
-    if (phone) {
-      const alim = await sendRefundDoneAlimTalk(id, {
-        customerPhone: phone,
+      const mail = await sendTravelEsimRefundDoneMail({
+        to: row.buyer_email,
         orderNumber,
         refundAmount,
       });
-      if (!alim.ok) {
-        console.warn("[notifyRefundCompleted] alimtalk_failed", { orderId: id, detail: alim.detail });
+      if (!mail.ok) {
+        console.warn("[notifyRefundCompleted] email_failed", { orderId: id, error: mail.error });
       }
     } else {
-      console.warn("[notifyRefundCompleted] no_phone", { orderId: id });
-    }
-
-    const mail = await sendTravelEsimRefundDoneMail({
-      to: row.buyer_email,
-      orderNumber,
-      refundAmount,
-    });
-    if (!mail.ok) {
-      console.warn("[notifyRefundCompleted] email_failed", { orderId: id, error: mail.error });
+      const locale = simplyurLocaleFromConsents(row.consents);
+      const mail = await sendSimplyurRefundDoneMail({
+        to: row.buyer_email,
+        orderNumber,
+        myEsimUrl: buildSimplyurMyEsimAbsoluteUrl(locale),
+      });
+      if (!mail.ok) {
+        console.warn("[notifyRefundCompleted] simplyur_email_failed", { orderId: id, error: mail.error });
+      }
     }
   } catch (e) {
     console.error("[notifyRefundCompleted]", {

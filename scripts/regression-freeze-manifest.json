@@ -15208,7 +15208,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur Eximbay — 미사용 eSIM 고객/관리자 전액 환불 (USIMSA 취소 + /v1/payments/{tx}/cancel)",
+      "summary": "Simplyur Eximbay — unused eSIM refund: Eximbay card cancel THEN USIMSA cancel",
       "checks": [
         {
           "file": "lib/simplyur/payments/eximbay-cancel.ts",
@@ -15225,7 +15225,8 @@
             "REGRESSION-FREEZE[simplyur-eximbay-refund]",
             "processSimplyurEximbayRefund",
             "callEximbayPaymentsCancel",
-            "checkUsimsaOrderDataUsageForRefund"
+            "checkUsimsaOrderDataUsageForRefund",
+            "Eximbay card cancel FIRST"
           ]
         },
         {
@@ -15260,7 +15261,113 @@
         }
       ],
       "vitestSuites": [
-        "lib/simplyur/payments/eximbay-cancel.test.ts"
+        "lib/simplyur/payments/eximbay-cancel.test.ts",
+        "lib/simplyur/notify/simplyur-qr-notify-policy.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-esim-delivery-install",
+      "tier": ["prebuild", "ci"],
+      "summary": "Simplyur paid eSIM: English mail + iOS/Android install links; skip Kakao; My eSIM surfaces install URLs",
+      "checks": [
+        {
+          "file": "lib/simplyur/notify/simplyur-qr-notify-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
+            "simplyurNotifyRequiresKakaoPhone",
+            "buildSimplyurMyEsimAbsoluteUrl"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-delivery.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
+            "sendSimplyurEsimQrMail",
+            "simplyurNotifyRequiresKakaoPhone"
+          ]
+        },
+        {
+          "file": "lib/simplyur/email/simplyur-esim-qr-mail.ts",
+          "mustInclude": [
+            "buildSimplyurEsimQrMailContent",
+            "Install on iPhone",
+            "Install on Android"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/mypage/orders/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
+            "apple_quick_install_url",
+            "android_quick_install_url",
+            "buildAppleQuickInstallUrl"
+          ]
+        },
+        {
+          "file": "components/simplyur/my-esim/SimplyurMyEsimPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
+            "apple_quick_install_url",
+            "myEsim.installIos"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
+            "Linking.openURL",
+            "apple_quick_install_url"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/notify/simplyur-qr-notify-policy.test.ts",
+        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-launch-discount-14pct",
+      "tier": ["prebuild", "ci"],
+      "summary": "Simplyur first-purchase launch 14% with 권장소비자가 + supply×1.25+PG600 floor; cheap SKUs keep list; Bongsim stays 15%",
+      "checks": [
+        {
+          "file": "lib/simplyur/pricing/launch-discount.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-launch-discount-14pct]",
+            "SIMPLYUR_LAUNCH_DISCOUNT_RATE_PCT = 14",
+            "SIMPLYUR_LAUNCH_PG_FEE_KRW = 600",
+            "SIMPLYUR_LAUNCH_MIN_MULTIPLE_ON_SUPPLY = 1.25",
+            "recommended_krw"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-launch-discount-14pct]",
+            "computeSimplyurLaunchDiscountForCheckoutLines",
+            "simplyur_launch_discount"
+          ]
+        },
+        {
+          "file": "lib/bongsim/promo/esim-first-purchase-preview.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-launch-discount-14pct]",
+            "SIMPLYUR_LAUNCH_DISCOUNT_RATE_PCT",
+            "isSimplyurCheckoutChannel"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-launch-discount-14pct]",
+            "checkout_channel: \"simplyur_web\"",
+            "option_api_id: optionApiId"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/pricing/launch-discount.test.ts",
+        "lib/bongsim/promo/esim-first-purchase-preview.test.ts"
       ]
     },
     {

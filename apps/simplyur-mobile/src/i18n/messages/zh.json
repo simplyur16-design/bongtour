@@ -149,6 +149,7 @@
     "summary": "订单摘要",
     "quantity": "数量",
     "total": "合计",
+    "firstPurchaseBanner": "首次购买自动享受 {rate}% 折扣",
     "processing": "处理中…",
     "authTitle": "卡片验证",
     "authHint": "请完成发卡行验证，完成后将自动返回 simplyur。",
@@ -405,6 +406,8 @@
     "signOutConfirm": "要退出此设备吗？eSIM 仍保留在账户中，重新登录即可查看。",
     "manualInstallTitle": "手动安装（二维码失败时）",
     "manualInstallBody": "设置 → 蜂窝网络 → 添加 eSIM → 手动输入详情。使用下方 SM-DP+ 地址与激活码。",
+    "installIos": "在 iPhone 上安装",
+    "installAndroid": "在 Android 上安装",
     "smDpAddress": "SM-DP+ 地址",
     "shareCode": "分享 / 复制"
   }

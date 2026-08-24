@@ -3,6 +3,9 @@
     "title": "simplyur | Korea eSIM for visitors",
     "description": "simplyur — Korea eSIM for international visitors. Not for Korea residents. A Bong Tour brand."
   },
+  "affiliate": {
+    "fromTrip": "from simplyurtrip"
+  },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
   },
@@ -149,7 +152,8 @@
     "completeTitle": "Thank you!",
     "completeBody": "Payment received. Your Korea eSIM QR code will arrive by email within a few minutes.",
     "orderNumber": "Order number",
-    "viewPlans": "Browse more plans"
+    "viewPlans": "Browse more plans",
+    "continueTrip": "Continue your trip"
   },
   "guide": {
     "title": "How to install your eSIM",
@@ -624,15 +628,17 @@
       "refundPending": "Refund pending"
     },
     "refundTitle": "Cancel & refund",
-    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundBody": "Cancel this unused eSIM. The card is refunded first, then the supplier profile is cancelled. Not available after the eSIM is registered or any data is used.",
     "refundCta": "Cancel unused eSIM",
     "refundBusy": "Cancelling...",
-    "refundConfirm": "Cancel this order?\n\n1) eSIM issue will be cancelled\n2) Card payment will be fully refunded\n\nOnly unused eSIMs can be cancelled.",
+    "refundConfirm": "Cancel this unused eSIM?\n\n1) Card payment is refunded first\n2) Then the supplier eSIM is cancelled\n\nOnly unused (not registered / no data used) eSIMs can be cancelled.",
     "refundError": "Could not cancel this order. Try again or contact support.",
     "refundInProgress": "Refund in progress. Refresh shortly.",
     "refundDone": "This order was cancelled and refunded.",
     "manualInstallTitle": "Manual install (if QR fails)",
     "manualInstallBody": "In phone Settings → Cellular → Add eSIM → Enter details manually. Use SM-DP+ address and activation code below.",
+    "installIos": "Install on iPhone",
+    "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address"
   }
 }

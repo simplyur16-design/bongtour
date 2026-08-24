@@ -39,6 +39,10 @@ import {
   buyerHasPriorPaidEsimOrder,
   computeEsimFirstPurchaseDiscountKrw,
 } from "@/lib/bongsim/promo/esim-first-purchase-discount";
+import {
+  SIMPLYUR_LAUNCH_DISCOUNT_RATE_PCT,
+  computeSimplyurLaunchDiscountForCheckoutLines,
+} from "@/lib/simplyur/pricing/launch-discount";
 
 /** 체크아웃 confirm 다상품 라인 상한. */
 const MAX_CHECKOUT_LINES = 10;
@@ -787,6 +791,7 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     }
 
     // REGRESSION-FREEZE[esim-first-purchase-discount-15pct]: 첫구매 15% — 직군·쿠폰 미적용 시
+    // REGRESSION-FREEZE[simplyur-launch-discount-14pct]: simplyur 14% + 권장소비자가·마진 바닥 — manifest
     let firstPurchasePromoApplied = false;
     if (!pressDiscountApplied && discount_krw === 0) {
       const hasPriorPaid = await buyerHasPriorPaidEsimOrder(client, {
@@ -794,7 +799,15 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         buyerEmail: req.buyer_email,
       });
       if (!hasPriorPaid) {
-        const firstPurchaseDiscount = computeEsimFirstPurchaseDiscountKrw(subtotal_krw);
+        const firstPurchaseDiscount = isSimplyur
+          ? computeSimplyurLaunchDiscountForCheckoutLines(
+              prepared.map((p) => ({
+                unit_krw: p.unit_krw,
+                quantity: p.quantity,
+                price_block: p.snapshot.price_block,
+              })),
+            )
+          : computeEsimFirstPurchaseDiscountKrw(subtotal_krw);
         if (firstPurchaseDiscount > 0) {
           discount_krw = firstPurchaseDiscount;
           firstPurchasePromoApplied = true;
@@ -826,7 +839,10 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
     } else if (firstPurchasePromoApplied) {
       consentsJson.first_purchase_discount = true;
       consentsJson.first_purchase_discount_krw = discount_krw;
-      consentsJson.first_purchase_discount_rate = ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT;
+      consentsJson.first_purchase_discount_rate = isSimplyur
+        ? SIMPLYUR_LAUNCH_DISCOUNT_RATE_PCT
+        : ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT;
+      if (isSimplyur) consentsJson.simplyur_launch_discount = true;
     }
     const giftJson = buildGiftConsentsJson(parseGiftFromCheckoutBody(req.consents));
     if (giftJson) consentsJson.gift = giftJson;

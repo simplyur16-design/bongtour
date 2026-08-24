@@ -3,6 +3,9 @@
     "title": "simplyur | eSIM Hàn Quốc",
     "description": "simplyur — eSIM Hàn Quốc. QR tức thì. Thương hiệu Bong Tour."
   },
+  "affiliate": {
+    "fromTrip": "từ simplyurtrip"
+  },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
   },
@@ -144,7 +147,8 @@
     "completeTitle": "Cảm ơn!",
     "completeBody": "Thanh toán đã xác nhận. Mã QR eSIM Hàn Quốc sẽ được gửi qua email trong vài phút.",
     "orderNumber": "Mã đơn",
-    "viewPlans": "Xem thêm gói"
+    "viewPlans": "Xem thêm gói",
+    "continueTrip": "Tiếp tục chuyến đi"
   },
   "guide": {
     "title": "Cài eSIM",
@@ -353,6 +357,8 @@
     "refundDone": "This order was cancelled and refunded.",
     "manualInstallTitle": "Manual install (if QR fails)",
     "manualInstallBody": "In phone Settings → Cellular → Add eSIM → Enter details manually. Use SM-DP+ address and activation code below.",
+    "installIos": "Install on iPhone",
+    "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address"
   }
 }

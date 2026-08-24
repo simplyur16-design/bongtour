@@ -82,9 +82,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // simplyur first-paint: path로 lang/surface/body 보정 (headers() 없이 ISR 유지)
+  // simplyur first-paint: path로 lang/surface만 보정 (body class는 건드리지 않음 — hydration mismatch 방지)
   // REGRESSION-FREEZE[simplyur-locale-lang-boot]: lang from /simplyur/{locale} (not always en) — manifest
-  const simplyurBoot = `(function(){try{var p=location.pathname||'/';if(p==='/simplyur'||p.indexOf('/simplyur/')===0){var d=document.documentElement;var loc=(p.split('/')[2]||'en');var allow={en:1,ja:1,zh:1,'zh-TW':1,vi:1};d.lang=allow[loc]?loc:'en';d.dataset.surface='simplyur';document.body.className='min-h-screen antialiased flex flex-col';}}catch(e){}})();`
+  const simplyurBoot = `(function(){try{var p=location.pathname||'/';if(p==='/simplyur'||p.indexOf('/simplyur/')===0){var d=document.documentElement;var loc=(p.split('/')[2]||'en');var allow={en:1,ja:1,zh:1,'zh-TW':1,vi:1};d.lang=allow[loc]?loc:'en';d.dataset.surface='simplyur';}}catch(e){}})();`
 
   return (
     <html
@@ -94,7 +94,10 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0">
+      <body
+        className="min-h-screen bg-beige antialiased font-sans flex flex-col pb-20 lg:pb-0"
+        suppressHydrationWarning
+      >
         <script dangerouslySetInnerHTML={{ __html: simplyurBoot }} />
         <ChunkLoadRecovery />
         <SessionProvider>

@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 
-/** eSIM 첫구매 자동 할인(%) — 쿠폰 코드 없이 서버 적용. bongsim·simplyur 공통. */
+/** eSIM 첫구매 자동 할인(%) — 쿠폰 코드 없이 서버 적용. bongsim 전용. simplyur는 launch 14%. */
 export const ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT = 15;
 
 // REGRESSION-FREEZE[esim-first-purchase-discount-15pct]: 첫구매 15% — manifest

@@ -149,6 +149,7 @@
     "summary": "Tóm tắt đơn hàng",
     "quantity": "Số lượng",
     "total": "Tổng",
+    "firstPurchaseBanner": "Đơn đầu tiên — giảm {rate}% tự động",
     "processing": "Đang xử lý…",
     "authTitle": "Xác thực thẻ",
     "authHint": "Xác nhận thẻ với ngân hàng phát hành. Bạn sẽ tự động quay lại simplyur.",
@@ -405,6 +406,8 @@
     "signOutConfirm": "Đăng xuất khỏi thiết bị này? eSIM vẫn thuộc tài khoản — đăng nhập lại để xem.",
     "manualInstallTitle": "Cài thủ công (nếu QR lỗi)",
     "manualInstallBody": "Cài đặt → Di động → Thêm eSIM → Nhập chi tiết thủ công. Dùng địa chỉ SM-DP+ và mã kích hoạt bên dưới.",
+    "installIos": "Cài trên iPhone",
+    "installAndroid": "Cài trên Android",
     "smDpAddress": "Địa chỉ SM-DP+",
     "shareCode": "Chia sẻ / sao chép"
   }

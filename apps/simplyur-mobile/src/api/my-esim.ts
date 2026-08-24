@@ -13,6 +13,8 @@ export type MyEsimOrder = {
   qr_code_img_url: string | null;
   sm_dp_plus_address: string | null;
   activation_code: string | null;
+  apple_quick_install_url?: string | null;
+  android_quick_install_url?: string | null;
   can_show_qr: boolean;
   can_check_usage: boolean;
   can_request_refund?: boolean;

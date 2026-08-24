@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   Share,
@@ -45,6 +46,7 @@ type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: usage is full-screen native, not bottom sheet web — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: sign-out + SM-DP/activation codes — manifest
+ * REGRESSION-FREEZE[simplyur-esim-delivery-install]: in-app one-click install URLs — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings + load-error vs empty — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: order share + guide CTA + offline — manifest
  */
@@ -396,6 +398,25 @@ export default function MyEsimScreen() {
               </View>
             )}
             <Text style={styles.qrHint}>{t('myEsim.qrHint')}</Text>
+            {selectedOrder.can_show_qr &&
+            (selectedOrder.apple_quick_install_url || selectedOrder.android_quick_install_url) ? (
+              <View style={{ width: '100%', gap: 8, marginTop: 8 }}>
+                {selectedOrder.apple_quick_install_url ? (
+                  <Pressable
+                    onPress={() => void Linking.openURL(selectedOrder.apple_quick_install_url!)}
+                    style={[styles.usageCard, { justifyContent: 'center' }]}>
+                    <Text style={[styles.usageLabel, { color: '#fff' }]}>{t('myEsim.installIos')}</Text>
+                  </Pressable>
+                ) : null}
+                {selectedOrder.android_quick_install_url ? (
+                  <Pressable
+                    onPress={() => void Linking.openURL(selectedOrder.android_quick_install_url!)}
+                    style={[styles.usageCard, { justifyContent: 'center', backgroundColor: '#12233F' }]}>
+                    <Text style={[styles.usageLabel, { color: '#fff' }]}>{t('myEsim.installAndroid')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
             {selectedOrder.can_show_qr && selectedOrder.qr_code_img_url ? (
               <Pressable
                 onPress={() =>

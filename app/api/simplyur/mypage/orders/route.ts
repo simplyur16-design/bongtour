@@ -5,6 +5,10 @@ import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants"
 import { formatSimplyurPlanDisplay } from "@/lib/simplyur/plan-display";
 import { simplyurOrderStatusKey } from "@/lib/simplyur/mypage-order-status";
 import { resolveSimplyurApiUser } from "@/lib/simplyur/auth/resolve-simplyur-api-user";
+import {
+  buildAndroidQuickInstallUrl,
+  buildAppleQuickInstallUrl,
+} from "@/lib/bongsim/esim-install-presentation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +18,7 @@ type TopupRow = {
   qr_code_img_url: string | null;
   smdp: string | null;
   activate_code: string | null;
+  download_link: string | null;
 };
 
 /**
@@ -69,7 +74,8 @@ export async function GET(req: Request) {
                'status', t.status,
                'qr_code_img_url', t.qr_code_img_url,
                'smdp', t.smdp,
-               'activate_code', t.activate_code
+               'activate_code', t.activate_code,
+               'download_link', t.download_link
              ) ORDER BY t.created_at)
              FROM bongsim_fulfillment_topup t
             WHERE t.order_id = o.order_id AND t.supplier_id = 'usimsa'
@@ -95,8 +101,13 @@ export async function GET(req: Request) {
       const primarySmdp = topups.find((t) => (t.smdp ?? "").trim().length > 0)?.smdp?.trim() ?? null;
       const primaryActivateCode =
         topups.find((t) => (t.activate_code ?? "").trim().length > 0)?.activate_code?.trim() ?? null;
+      const primaryDownload =
+        topups.find((t) => (t.download_link ?? "").trim().length > 0)?.download_link?.trim() ?? null;
       const canEsimActions =
-        row.status === "delivered" && Boolean(primaryQr || primarySmdp || primaryActivateCode);
+        row.status === "delivered" &&
+        Boolean(primaryQr || primarySmdp || primaryActivateCode || primaryDownload);
+      const appleQuickInstallUrl = primaryDownload ? buildAppleQuickInstallUrl(primaryDownload) : null;
+      const androidQuickInstallUrl = primaryDownload ? buildAndroidQuickInstallUrl(primaryDownload) : null;
 
       const plan = formatSimplyurPlanDisplay(
         {
@@ -113,7 +124,7 @@ export async function GET(req: Request) {
         locale,
       );
 
-      // REGRESSION-FREEZE[simplyur-eximbay-refund]: surface cancel CTA when paid/delivered — manifest
+      // REGRESSION-FREEZE[simplyur-esim-delivery-install]: apple/android install URLs — manifest
       const canRequestRefund = row.status === "paid" || row.status === "delivered";
 
       return {
@@ -126,6 +137,8 @@ export async function GET(req: Request) {
         qr_code_img_url: primaryQr,
         sm_dp_plus_address: primarySmdp,
         activation_code: primaryActivateCode,
+        apple_quick_install_url: appleQuickInstallUrl,
+        android_quick_install_url: androidQuickInstallUrl,
         can_show_qr: canEsimActions,
         can_check_usage: canEsimActions,
         can_request_refund: canRequestRefund,

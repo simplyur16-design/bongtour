@@ -17,7 +17,7 @@ import {
 } from "@/lib/simplyur/payments/eximbay-cancel";
 import { resolveEximbayCancelRefs } from "@/lib/simplyur/refund/resolve-eximbay-cancel-refs";
 
-// REGRESSION-FREEZE[simplyur-eximbay-refund]: unused → USIMSA cancel → Eximbay cancel — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund]: unused → Eximbay card cancel THEN USIMSA cancel — manifest
 
 export type ProcessSimplyurEximbayRefundResult =
   | { ok: true }
@@ -82,6 +82,21 @@ async function hasRefundEvent(client: PoolClient, orderId: string, direction: st
   return Boolean(r.rows[0]?.ok);
 }
 
+/** Card cancel actually approved — resume must not call Eximbay twice. */
+async function hasSuccessfulCardCancel(client: PoolClient, orderId: string): Promise<boolean> {
+  const r = await client.query<{ ok: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM bongsim_payment_provider_event
+        WHERE order_id = $1::uuid
+          AND provider = $2
+          AND payload_json->>'direction' = $3
+          AND payload_json->>'ok' = 'true'
+     ) AS ok`,
+    [orderId, SIMPLYUR_EXIMBAY_PROVIDER_ID, REFUND_EVENT.cardCancelApproved],
+  );
+  return Boolean(r.rows[0]?.ok);
+}
+
 async function getPreviousOrderStatus(
   client: PoolClient,
   orderId: string,
@@ -134,8 +149,9 @@ async function listTopups(client: PoolClient, orderId: string): Promise<Supplier
 }
 
 /**
- * SimplyUR Eximbay full refund — same order as Welcomepay path:
- * 1) refund_requested  2) USIMSA cancel  3) Eximbay /v1/payments/{tx}/cancel → refunded
+ * Simplyur Eximbay full refund — operator order:
+ * 1) refund_requested  2) Eximbay card cancel  3) USIMSA cancel → refunded
+ * Resume: if card already ok, skip Eximbay and finish USIMSA only.
  */
 export async function processSimplyurEximbayRefund(
   orderId: string,
@@ -226,7 +242,70 @@ export async function processSimplyurEximbayRefund(
 
     await client.query("COMMIT");
 
-    // Phase 2 — USIMSA
+    // Phase 2 — Eximbay card cancel FIRST (then USIMSA).
+    if (!(await hasSuccessfulCardCancel(client, id))) {
+      const refs2 = await resolveEximbayCancelRefs(client, id);
+      if (!refs2) return { ok: false, reason: "missing_payment_reference" };
+
+      const refundId = `rf_${id.replace(/-/g, "").slice(0, 12)}_${Date.now().toString(36)}`.slice(0, 30);
+      const cancelBody = buildEximbayCancelBody({
+        mid: env.env.mid,
+        transactionOrderId: refs2.eximbayOrderId,
+        amountUsd: refs2.amountUsd,
+        refundId,
+        reason: msg,
+      });
+      const pg = await callEximbayPaymentsCancel(refs2.transactionId, cancelBody);
+
+      await client.query("BEGIN");
+      const oPg = await client.query<LockedOrder>(
+        `SELECT order_id::text, status, grand_total_krw::text, payment_provider, checkout_channel
+           FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
+        [id],
+      );
+      order = oPg.rows[0];
+      if (!order || order.status !== "refund_requested") {
+        await client.query("ROLLBACK");
+        return { ok: false, reason: "invalid_status", message: order?.status ?? "missing" };
+      }
+      const paymentAttemptId = await getCapturedAttemptId(client, id);
+      await insertRefundEvent(
+        client,
+        `eximbay_refund_${refs2.transactionId}_${refundId}_${randomBytes(4).toString("hex")}`.slice(0, 120),
+        paymentAttemptId,
+        id,
+        {
+          direction: REFUND_EVENT.cardCancelApproved,
+          phase: 2,
+          requested_by: requestedBy,
+          reason: msg,
+          request: cancelBody,
+          transaction_id: refs2.transactionId,
+          ok: pg.ok,
+          rescode: pg.ok ? pg.rescode : pg.rescode,
+          resmsg: pg.ok ? pg.resmsg : pg.resmsg,
+          refund_transaction_id: pg.ok ? pg.refundTransactionId : null,
+        },
+      );
+      if (!pg.ok) {
+        const previousStatus = await getPreviousOrderStatus(client, id);
+        if (previousStatus) {
+          await client.query(
+            `UPDATE bongsim_order SET status = $2, updated_at = now() WHERE order_id = $1::uuid`,
+            [id, previousStatus],
+          );
+        }
+        await client.query("COMMIT");
+        return {
+          ok: false,
+          reason: "pg_cancel_failed",
+          message: pg.resmsg || pg.detail || pg.reason,
+        };
+      }
+      await client.query("COMMIT");
+    }
+
+    // Phase 3 — USIMSA after card cancel succeeded. Do not revert to paid if this fails.
     let supplierResults: Array<{ topup_id: string; code: string; message: string }> | null = null;
     if (!(await hasRefundEvent(client, id, REFUND_EVENT.supplierApplied))) {
       const topups = await listTopups(client, id);
@@ -251,15 +330,6 @@ export async function processSimplyurEximbayRefund(
             : e instanceof Error
               ? e.message
               : String(e);
-        await client.query("BEGIN");
-        const previousStatus = await getPreviousOrderStatus(client, id);
-        if (previousStatus) {
-          await client.query(
-            `UPDATE bongsim_order SET status = $2, updated_at = now() WHERE order_id = $1::uuid`,
-            [id, previousStatus],
-          );
-        }
-        await client.query("COMMIT");
         return { ok: false, reason: "supplier_refund_failed", message: detail };
       }
     }
@@ -293,70 +363,15 @@ export async function processSimplyurEximbayRefund(
         id,
         {
           direction: REFUND_EVENT.supplierApplied,
-          phase: 2,
+          phase: 3,
           requested_by: requestedBy,
           reason: msg,
           topups: supplierResults,
         },
       );
     }
-    await client.query("COMMIT");
-
-    // Phase 3 — Eximbay cancel
-    const refs2 = await resolveEximbayCancelRefs(client, id);
-    if (!refs2) return { ok: false, reason: "missing_payment_reference" };
-
-    const refundId = `rf_${id.replace(/-/g, "").slice(0, 12)}_${Date.now().toString(36)}`.slice(0, 30);
-    const cancelBody = buildEximbayCancelBody({
-      mid: env.env.mid,
-      transactionOrderId: refs2.eximbayOrderId,
-      amountUsd: refs2.amountUsd,
-      refundId,
-      reason: msg,
-    });
-    const pg = await callEximbayPaymentsCancel(refs2.transactionId, cancelBody);
-
-    await client.query("BEGIN");
-    const o3 = await client.query<LockedOrder>(
-      `SELECT order_id::text, status, grand_total_krw::text, payment_provider, checkout_channel
-         FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
-      [id],
-    );
-    order = o3.rows[0];
-    if (!order || order.status !== "refund_requested") {
-      await client.query("ROLLBACK");
-      return { ok: false, reason: "invalid_status", message: order?.status ?? "missing" };
-    }
 
     const paymentAttemptId = await getCapturedAttemptId(client, id);
-    await insertRefundEvent(
-      client,
-      `eximbay_refund_${refs2.transactionId}_${refundId}_${randomBytes(4).toString("hex")}`.slice(0, 120),
-      paymentAttemptId,
-      id,
-      {
-        direction: REFUND_EVENT.cardCancelApproved,
-        phase: 3,
-        requested_by: requestedBy,
-        reason: msg,
-        request: cancelBody,
-        transaction_id: refs2.transactionId,
-        ok: pg.ok,
-        rescode: pg.ok ? pg.rescode : pg.rescode,
-        resmsg: pg.ok ? pg.resmsg : pg.resmsg,
-        refund_transaction_id: pg.ok ? pg.refundTransactionId : null,
-      },
-    );
-
-    if (!pg.ok) {
-      await client.query("COMMIT");
-      return {
-        ok: false,
-        reason: "pg_cancel_failed",
-        message: pg.resmsg || pg.detail || pg.reason,
-      };
-    }
-
     await client.query(`UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`, [
       id,
     ]);

@@ -18,6 +18,7 @@ import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: Eximbay live request_pay — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: unlock UI after cancel — manifest
 // REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: Simplyur Eximbay only — manifest
+// REGRESSION-FREEZE[simplyur-launch-discount-14pct]: preview channel + option_api_id — manifest
 
 type FirstPurchasePreview = {
   eligible: true;
@@ -104,6 +105,8 @@ export function SimplyurCheckoutClient({
     const q = new URLSearchParams({
       subtotal_krw: String(subtotalKrw),
       buyer_email: buyerEmail,
+      checkout_channel: "simplyur_web",
+      option_api_id: optionApiId,
     });
     fetch(`/api/bongsim/checkout/first-purchase-preview?${q}`, { signal: ac.signal })
       .then(async (r) => r.json())
@@ -118,7 +121,7 @@ export function SimplyurCheckoutClient({
         if (!ac.signal.aborted) setFirstPurchase(null);
       });
     return () => ac.abort();
-  }, [email, subtotalKrw]);
+  }, [email, subtotalKrw, optionApiId]);
 
   const idempotencyKey = useMemo(() => crypto.randomUUID(), []);
 

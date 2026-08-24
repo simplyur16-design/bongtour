@@ -154,3 +154,48 @@ Set `EXPO_PUBLIC_SENTRY_DSN` in local `.env` for device builds. Empty DSN = tele
 - Emulator/debug: use the debug/upload keystore SHA-256 in `ANDROID_APP_LINK_SHA256_FINGERPRINTS`  
 - Play Store later: append Play App Signing SHA-256 (comma-separated)  
 - App ID capability: Associated Domains `applinks:bongtour.com`
+
+## K. Play Store listing — paste today (AAB later)
+
+Paste into Play Console → Store presence. Default locale **English (US)** (visitors, not Korea residents).
+
+**App name** (≤30): `simplyur`
+
+**Short description** (≤80):
+```
+Korea eSIM for visitors. Buy a QR, install before you fly, connect on landing.
+```
+
+**Full description**:
+```
+simplyur is Korea eSIM for international visitors — not for people who live in Korea.
+
+Buy a nationwide data plan for Seoul, Busan, Jeju and the rest of South Korea. After payment you get a QR code by email. Install it before you fly, then activate when you land. No physical SIM, no airport kiosk.
+
+• Plans by trip length
+• QR by email right after purchase
+• Install guide in English, Japanese, Chinese, and Vietnamese
+• My eSIM: QR, remaining data, install steps
+• Google sign-in
+• International cards (Eximbay)
+
+A Bong Tour brand. Support: bongtour24@naver.com
+Privacy: https://bongtour.com/simplyur/en/legal/privacy
+Terms: https://bongtour.com/simplyur/en/legal/terms
+Refunds: in-app Settings → Refund
+Delete account: Settings → Delete account
+```
+
+**What's new** (1.0.0):
+```
+First public release. Korea eSIM for visitors: buy a plan, get your QR by email, install before you fly, connect when you land.
+```
+
+**Category:** Travel & Local
+**Contact:** bongtour24@naver.com
+**Privacy policy:** https://bongtour.com/simplyur/en/legal/privacy
+**Package:** `com.bongtour.simplyur`
+
+Do **not** upload the 2026-08-08 AAB. Production AAB is `eas build --platform android --profile production` when EAS credits are available (planned 2026-09-01). Then Play Console → upload AAB → Send for review.
+
+Windows = Android only. iOS is Mac later. Do not block Play listing on iOS.

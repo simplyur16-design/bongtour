@@ -149,6 +149,7 @@
     "summary": "Order summary",
     "quantity": "Quantity",
     "total": "Total",
+    "firstPurchaseBanner": "First order — {rate}% off applied automatically",
     "processing": "Processing…",
     "authTitle": "Card authentication",
     "authHint": "Confirm your card with the issuer. You will return to simplyur automatically.",
@@ -670,16 +671,18 @@
       "refundPending": "Refund pending"
     },
     "refundTitle": "Cancel & refund",
-    "refundBody": "Cancel this unused eSIM and refund the card payment in full. QR codes will stop working. Not available after any data is used.",
+    "refundBody": "Cancel this unused eSIM. The card is refunded first, then the supplier profile is cancelled. Not available after the eSIM is registered or any data is used.",
     "refundCta": "Cancel unused eSIM",
     "refundBusy": "Cancelling...",
-    "refundConfirm": "Cancel this order?\n\n1) eSIM issue will be cancelled\n2) Card payment will be fully refunded\n\nOnly unused eSIMs can be cancelled.",
+    "refundConfirm": "Cancel this unused eSIM?\n\n1) Card payment is refunded first\n2) Then the supplier eSIM is cancelled\n\nOnly unused (not registered / no data used) eSIMs can be cancelled.",
     "refundError": "Could not cancel this order. Try again or contact support.",
     "refundInProgress": "Refund in progress. Refresh shortly.",
     "refundDone": "This order was cancelled and refunded.",
     "signOutConfirm": "Sign out of this device? Your eSIMs stay on your account — sign in again to see them.",
     "manualInstallTitle": "Manual install (if QR fails)",
     "manualInstallBody": "In Settings → Cellular → Add eSIM → Enter details manually. Use SM-DP+ address and activation code below.",
+    "installIos": "Install on iPhone",
+    "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address",
     "shareCode": "Share / copy"
   }

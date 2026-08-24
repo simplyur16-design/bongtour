@@ -149,6 +149,7 @@
     "summary": "訂單摘要",
     "quantity": "數量",
     "total": "合計",
+    "firstPurchaseBanner": "首次購買自動享 {rate}% 折扣",
     "processing": "處理中…",
     "authTitle": "卡片驗證",
     "authHint": "請完成發卡行驗證，完成後將自動返回 simplyur。",
@@ -405,6 +406,8 @@
     "signOutConfirm": "要登出此裝置嗎？eSIM 仍保留在帳號中，重新登入即可查看。",
     "manualInstallTitle": "手動安裝（QR 失敗時）",
     "manualInstallBody": "設定 → 行動服務 → 加入 eSIM → 手動輸入詳情。使用下方 SM-DP+ 位址與啟用碼。",
+    "installIos": "在 iPhone 上安裝",
+    "installAndroid": "在 Android 上安裝",
     "smDpAddress": "SM-DP+ 位址",
     "shareCode": "分享 / 複製"
   }

@@ -1,4 +1,4 @@
-﻿const path = require('path')
+const path = require('path')
 
 let withBundleAnalyzer = (config) => config
 if (process.env.ANALYZE === 'true') {
@@ -40,7 +40,7 @@ function buildContentSecurityPolicy() {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    "frame-ancestors 'self'",
+    "frame-ancestors 'self' http://localhost:3010 http://127.0.0.1:3010 https://simplyur.com https://www.simplyur.com",
     "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.paywelcome.co.kr https://*.eximbay.com",
     // globals.css @import Pretendard from jsDelivr — Chrome may enforce style-src-elem separately
     // next/font/google(Noto 등)는 fonts.googleapis.com 링크·fonts.gstatic.com 글리프를 쓸 수 있음
@@ -84,7 +84,8 @@ const nextConfig = {
   async headers() {
     const base = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
-      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      // Framing controlled by CSP frame-ancestors (allows simplyurtrip embed of /simplyur/*).
+      // Do not set X-Frame-Options: SAMEORIGIN — it blocks partner in-app checkout iframe.
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
     ]
@@ -94,6 +95,13 @@ const nextConfig = {
         value: 'max-age=63072000; includeSubDomains; preload',
       })
       base.push({ key: 'Content-Security-Policy', value: buildContentSecurityPolicy() })
+    } else {
+      // Dev: allow simplyurtrip (:3010) to iframe simplyur checkout
+      base.push({
+        key: 'Content-Security-Policy',
+        value:
+          "frame-ancestors 'self' http://localhost:3010 http://127.0.0.1:3010 https://simplyur.com https://www.simplyur.com",
+      })
     }
     return [
       {

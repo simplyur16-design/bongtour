@@ -134,3 +134,9 @@
     padding-bottom: 0;
   }
 }
+
+/* Root body keeps SSR className (hydration-safe). Strip bongtour mobile bar padding on simplyur. */
+html[data-surface="simplyur"] body {
+  padding-bottom: 0;
+  background-color: #eceef2;
+}

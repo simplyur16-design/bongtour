@@ -6,6 +6,12 @@ import {
   formatEsimNotifyOrderLabel,
 } from "@/lib/bongsim/esim-install-presentation";
 import { sendTravelEsimOrderQrMail } from "@/lib/bongsim/email/travel-esim-order-qr-mail";
+import { sendSimplyurEsimQrMail } from "@/lib/simplyur/email/simplyur-esim-qr-mail";
+import {
+  buildSimplyurMyEsimAbsoluteUrl,
+  simplyurLocaleFromConsents,
+  simplyurNotifyRequiresKakaoPhone,
+} from "@/lib/simplyur/notify/simplyur-qr-notify-policy";
 import { pickPrimaryVerificationIccid } from "@/lib/bongsim/esim/iccid-verification";
 import {
   enqueueEsimQrNotify,
@@ -112,21 +118,34 @@ async function sendEsimQrEmailBestEffort(params: {
  */
 export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayload): Promise<void> {
   const orderId = payload.order_id;
-  const orderPageUrl = buildBongsimOrderCompleteUrl(orderId);
+  const pool = getPgPool();
+  const channelRow = pool
+    ? await pool.query<{ checkout_channel: string | null; consents: unknown }>(
+        `SELECT checkout_channel, consents FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
+        [orderId],
+      )
+    : { rows: [] as Array<{ checkout_channel: string | null; consents: unknown }> };
+  const checkoutChannel = channelRow.rows[0]?.checkout_channel ?? null;
+  const simplyurLocale = simplyurLocaleFromConsents(channelRow.rows[0]?.consents);
+  const requireKakaoPhone = simplyurNotifyRequiresKakaoPhone(checkoutChannel);
+  const orderPageUrl = requireKakaoPhone
+    ? buildBongsimOrderCompleteUrl(orderId)
+    : buildSimplyurMyEsimAbsoluteUrl(simplyurLocale);
   const phone = payload.delivery_phone ?? (await resolveBuyerPhoneForOrder(orderId));
   const { smdp, activate_code, travelerVerificationIccid } = await fetchTopupManualCredentials(
     orderId,
     payload.topup_row_id,
   );
 
-  let phoneNotifyOk = !phone;
+  let phoneNotifyOk = !requireKakaoPhone || !phone;
   const orderLabel = formatEsimNotifyOrderLabel(
     payload.order_number,
     payload.unit_index,
     payload.unit_total,
   );
+  // REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur skips Kakao; email + install links — manifest
 
-  if (phone) {
+  if (requireKakaoPhone && phone) {
     const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
       customerPhone: phone,
       orderNumber: orderLabel,
@@ -145,21 +164,40 @@ export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayloa
       });
       phoneNotifyOk = Boolean(lms.ok);
     }
-  } else {
+  } else if (requireKakaoPhone) {
     console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId });
   }
 
   if (payload.delivery_email) {
-    await sendEsimQrEmailBestEffort({
-      buyerEmail: payload.delivery_email,
-      orderNumber: orderLabel,
-      orderPageUrl,
-      qrCodeUrl: payload.qr_code_url,
-      downloadLink: payload.download_link,
-      smdp,
-      activate_code,
-      travelerVerificationIccid,
-    });
+    if (!requireKakaoPhone) {
+      const send = await sendSimplyurEsimQrMail({
+        to: payload.delivery_email,
+        orderNumber: orderLabel,
+        qrCodeUrl: payload.qr_code_url,
+        downloadLink: payload.download_link,
+        smDpPlusAddress: smdp,
+        activationCode: activate_code,
+        myEsimUrl: orderPageUrl,
+      });
+      if (!send.ok) {
+        throw new Error(`[simplyur:esim-qr-mail] ${send.error} order=${orderId}`);
+      }
+    } else {
+      await sendEsimQrEmailBestEffort({
+        buyerEmail: payload.delivery_email,
+        orderNumber: orderLabel,
+        orderPageUrl,
+        qrCodeUrl: payload.qr_code_url,
+        downloadLink: payload.download_link,
+        smdp,
+        activate_code,
+        travelerVerificationIccid,
+      });
+    }
+  }
+
+  if (!requireKakaoPhone && !payload.delivery_email) {
+    throw new Error(`[simplyur:esim-qr-mail] missing_email order=${orderId}`);
   }
 
   if (!phoneNotifyOk) {

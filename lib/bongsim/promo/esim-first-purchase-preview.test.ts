@@ -21,4 +21,16 @@ describe("resolveEsimFirstPurchasePreview", () => {
   it("할인율 SSOT 15%", () => {
     expect(ESIM_FIRST_PURCHASE_DISCOUNT_RATE_PCT).toBe(15);
   });
+
+  it("simplyur 채널은 상품 없이 15%를 쓰지 않는다", async () => {
+    const r = await resolveEsimFirstPurchasePreview({
+      subtotal_krw: 20_000,
+      buyer_email: "test@example.com",
+      checkout_channel: "simplyur_web",
+    });
+    if (r.eligible) {
+      throw new Error("simplyur preview must not apply bongsim 15% without a SKU");
+    }
+    expect(["db_unconfigured", "not_applicable", "prior_purchase"]).toContain(r.reason);
+  });
 });

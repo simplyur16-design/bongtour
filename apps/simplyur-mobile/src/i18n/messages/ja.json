@@ -149,6 +149,7 @@
     "summary": "注文内容",
     "quantity": "数量",
     "total": "合計",
+    "firstPurchaseBanner": "初回購入 — {rate}%オフを自動適用",
     "processing": "処理中…",
     "authTitle": "カード認証",
     "authHint": "カード会社で認証すると、自動でsimplyurに戻ります。",
@@ -405,6 +406,8 @@
     "signOutConfirm": "この端末からサインアウトしますか？eSIMはアカウントに残ります。再度サインインすると表示されます。",
     "manualInstallTitle": "手動インストール（QRが使えない場合）",
     "manualInstallBody": "設定 → モバイル通信 → eSIMを追加 → 詳細を手動で入力。下記のSM-DP+アドレスとアクティベーションコードを使います。",
+    "installIos": "iPhoneでインストール",
+    "installAndroid": "Androidでインストール",
     "smDpAddress": "SM-DP+アドレス",
     "shareCode": "共有 / コピー"
   }

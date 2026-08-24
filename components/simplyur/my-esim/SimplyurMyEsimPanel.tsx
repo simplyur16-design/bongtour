@@ -183,6 +183,31 @@ export function SimplyurMyEsimPanel({
           </p>
         </div>
 
+        {/* REGRESSION-FREEZE[simplyur-esim-delivery-install]: web one-click install URLs — manifest */}
+        {selectedOrder.can_show_qr &&
+        (selectedOrder.apple_quick_install_url || selectedOrder.android_quick_install_url) ? (
+          <div className="flex flex-col gap-2">
+            {selectedOrder.apple_quick_install_url ? (
+              <a
+                href={selectedOrder.apple_quick_install_url}
+                className="flex h-[48px] items-center justify-center rounded-2xl text-[15px] font-semibold text-white"
+                style={{ backgroundColor: D.coral }}
+              >
+                {tr("myEsim.installIos")}
+              </a>
+            ) : null}
+            {selectedOrder.android_quick_install_url ? (
+              <a
+                href={selectedOrder.android_quick_install_url}
+                className="flex h-[48px] items-center justify-center rounded-2xl text-[15px] font-semibold"
+                style={{ backgroundColor: "#12233F", color: "#fff" }}
+              >
+                {tr("myEsim.installAndroid")}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: web manual install codes — manifest */}
         {selectedOrder.can_show_qr &&
         (selectedOrder.sm_dp_plus_address || selectedOrder.activation_code) ? (

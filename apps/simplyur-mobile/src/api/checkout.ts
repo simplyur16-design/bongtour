@@ -26,6 +26,35 @@ function newIdempotencyKey(): string {
   return `su_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
+export type SimplyurFirstPurchasePreview = {
+  eligible: true;
+  discount_rate_pct: number;
+  discount_krw: number;
+  grand_total_krw: number;
+  subtotal_krw: number;
+};
+
+/** REGRESSION-FREEZE[simplyur-launch-discount-14pct]: app preview uses simplyur_app + option — manifest */
+export async function fetchSimplyurFirstPurchasePreview(input: {
+  optionApiId: string;
+  email: string;
+  subtotalKrw: number;
+}): Promise<SimplyurFirstPurchasePreview | null> {
+  const email = input.email.trim();
+  if (!email.includes('@')) return null;
+  const base = getApiBaseUrl().replace(/\/+$/, '');
+  const q = new URLSearchParams({
+    subtotal_krw: String(Math.max(1, Math.trunc(input.subtotalKrw) || 1)),
+    buyer_email: email,
+    checkout_channel: 'simplyur_app',
+    option_api_id: input.optionApiId,
+  });
+  const res = await fetch(`${base}/api/bongsim/checkout/first-purchase-preview?${q}`);
+  const json = (await res.json().catch(() => null)) as SimplyurFirstPurchasePreview | { eligible?: boolean } | null;
+  if (json && json.eligible === true && json.discount_krw > 0) return json;
+  return null;
+}
+
 async function authHeaders(): Promise<Record<string, string>> {
   const session = await loadSimplyurSession();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

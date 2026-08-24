@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { Poppins } from "next/font/google";
 import { auth } from "@/auth";
 import { SimplyurFooter } from "@/components/simplyur/SimplyurFooter";
 import { SimplyurHeader } from "@/components/simplyur/SimplyurHeader";
 import { SimplyurTabBar } from "@/components/simplyur/SimplyurTabBar";
+import { SimplyurEmbedChrome } from "@/components/simplyur/SimplyurEmbedMode";
 import { SimplyurIntlProvider } from "@/components/simplyur/SimplyurIntlProvider";
+import { SimplyurPartnerReturnBanner } from "@/components/simplyur/SimplyurPartnerReturnBanner";
+import { SimplyurPartnerReturnCapture } from "@/components/simplyur/SimplyurPartnerReturnCapture";
 import {
   isSimplyurLocale,
   SIMPLYUR_LOCALES,
@@ -55,10 +59,27 @@ export default async function SimplyurLocaleLayout({ children, params }: LayoutP
   return (
     <SimplyurIntlProvider locale={locale} messages={messages}>
       <div className={`simplyur-theme su-app-shell min-h-screen ${simplyurFont.variable}`}>
-        <SimplyurHeader locale={locale} user={session?.user ?? null} />
-        {children}
-        <SimplyurFooter />
-        <SimplyurTabBar locale={locale} />
+        <Suspense fallback={null}>
+          <SimplyurPartnerReturnCapture />
+        </Suspense>
+        <Suspense fallback={<>{children}</>}>
+          <SimplyurEmbedChrome
+            header={
+              <>
+                <SimplyurHeader locale={locale} user={session?.user ?? null} />
+                <SimplyurPartnerReturnBanner />
+              </>
+            }
+            footer={
+              <>
+                <SimplyurFooter />
+                <SimplyurTabBar locale={locale} />
+              </>
+            }
+          >
+            {children}
+          </SimplyurEmbedChrome>
+        </Suspense>
       </div>
     </SimplyurIntlProvider>
   );

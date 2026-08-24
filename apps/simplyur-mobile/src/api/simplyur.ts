@@ -13,6 +13,7 @@ export type PlanProduct = {
   plan_type?: string | null;
   simplyur_display: { formatted: string; currency: string; amount: number } | null;
   simplyur_display_per_day?: { formatted: string; currency: string; amount: number } | null;
+  simplyur_sell_price_krw?: number | null;
 };
 
 export type CountryPack = {
