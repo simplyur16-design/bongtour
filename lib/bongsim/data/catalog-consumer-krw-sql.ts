@@ -30,17 +30,22 @@ export const BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL = `CASE
   WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
        AND now() < (price_block->>'effective_from')::timestamptz
     THEN ${SIDE_CONSUMER("'before'")}
+  WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
+    THEN ${SIDE_CONSUMER("'after'")}
   ELSE COALESCE(${SIDE_CONSUMER("'after'")}, ${SIDE_CONSUMER("'before'")})
 END`;
 
 /**
  * `effective_from` 이 있고 now < 그 시각이면 **before만** (after 폴백 금지 — 신규국 조기 노출 방지).
- * 그 외는 after, 없으면 before.
+ * 컷오버 후면 **after만** (20260316 before 폴백 금지).
+ * 스탬프 없으면 after, 없으면 before.
  */
 export const BONGSIM_CATALOG_CONSUMER_KRW_SQL = `CASE
   WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
        AND now() < (price_block->>'effective_from')::timestamptz
     THEN ${SIDE_SELL("'before'")}
+  WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
+    THEN ${SIDE_SELL("'after'")}
   ELSE COALESCE(${SIDE_SELL("'after'")}, ${SIDE_SELL("'before'")})
 END`;
 
@@ -49,6 +54,8 @@ export const BONGSIM_CATALOG_SUPPLY_KRW_SQL = `CASE
   WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
        AND now() < (price_block->>'effective_from')::timestamptz
     THEN ${SIDE_SUPPLY("'before'")}
+  WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
+    THEN ${SIDE_SUPPLY("'after'")}
   ELSE COALESCE(${SIDE_SUPPLY("'after'")}, ${SIDE_SUPPLY("'before'")})
 END`;
 

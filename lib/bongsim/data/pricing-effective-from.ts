@@ -1,7 +1,8 @@
 import type { BongsimPriceBlockV1 } from "@/lib/bongsim/contracts/product-master.v1";
 
 /**
- * 2026-09-01 00:00 KST (= 2026-08-31 15:00 UTC) — USIMSA 20260901 공급가 컷오버.
+ * 2026-09-01 00:00 KST (= 2026-08-31 23:59 KST까지 20260316 공급가).
+ * 그 시각부터 USIMSA 20260901 공급가.
  * REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 00:00 KST — manifest
  */
 export const BONGSIM_PRICE_EFFECTIVE_FROM_20260901 = "2026-09-01T00:00:00+09:00";
@@ -76,6 +77,11 @@ export function resolveActivePriceSide(
   if (isBeforePriceEffectiveWindow(priceBlock, nowMs)) {
     // Scheduled new SKU: empty before + future effective_from → not sellable yet
     return before;
+  }
+  const raw = String(priceBlock?.effective_from ?? "").trim();
+  if (raw && Number.isFinite(Date.parse(raw))) {
+    // 컷오버 후 — 20260316 before로 폴백 금지 (8/31 23:59까지 한정)
+    return after;
   }
   return priceTripleHasAny(after) ? after : before;
 }

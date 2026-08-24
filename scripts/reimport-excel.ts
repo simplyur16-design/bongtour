@@ -8,7 +8,8 @@ import { BONGSIM_PRICE_EFFECTIVE_FROM_20260901 } from "../lib/bongsim/data/prici
 loadDotenv();
 loadDotenv({ path: ".env.local", override: true });
 
-const XLSX_PATH = "C:\\Users\\USER\\Downloads\\20260901_공급가(전체).xlsx";
+/** 9/1 0시 after. 8/31 23:59까지 before는 `usimsa/20260316_공급가(전체).xlsx` + apply-20260316-before-cutover.ts */
+const XLSX_PATH = "C:\\Users\\USER\\Desktop\\usimsa\\20260901_공급가(전체).xlsx";
 
 function workbookIdFromBuffer(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex").slice(0, 32);

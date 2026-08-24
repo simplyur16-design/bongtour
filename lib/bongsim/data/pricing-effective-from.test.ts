@@ -62,6 +62,20 @@ describe("pricing-effective-from", () => {
     expect(BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE).not.toContain("상품 확장");
   });
 
+  it("does not fall back to 20260316 before after the Aug 31 23:59 cutoff", () => {
+    const retired = {
+      before: { consumer_krw: 9000, recommended_krw: 8000, supply_krw: 5000 },
+      after: { consumer_krw: null, recommended_krw: null, supply_krw: null },
+      effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+    };
+    const beforeMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 1;
+    const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    expect(resolveActivePriceSide(retired, beforeMs).supply_krw).toBe(5000);
+    expect(isPriceBlockCatalogSellable(retired, beforeMs)).toBe(true);
+    expect(resolveActivePriceSide(retired, afterMs).supply_krw).toBeNull();
+    expect(isPriceBlockCatalogSellable(retired, afterMs)).toBe(false);
+  });
+
   it("hides excel 신규 상품 until Sept 1 00:00 KST", () => {
     const beforeMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 1;
     const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);

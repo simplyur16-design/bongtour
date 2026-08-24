@@ -2276,7 +2276,8 @@
             "BONGSIM_CATALOG_SELLABLE_NOW_WHERE",
             "BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE",
             "BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL",
-            "after 폴백 금지"
+            "after 폴백 금지",
+            "20260316 before 폴백 금지"
           ]
         },
         {
