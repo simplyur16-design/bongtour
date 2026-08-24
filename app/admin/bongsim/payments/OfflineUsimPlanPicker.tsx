@@ -40,6 +40,7 @@ type Props = {
   onChange: (sel: OfflineUsimPlanSelection | null) => void;
   /** 기본: 오프라인 USIM 카탈로그. 무상 eSIM은 complimentary-esim plans API. */
   plansApiPath?: string;
+  emptyPlansHint?: string;
 };
 
 type PlanGroups = {
@@ -94,7 +95,12 @@ function DestinationButton({
   );
 }
 
-export default function OfflineUsimPlanPicker({ value, onChange, plansApiPath }: Props) {
+export default function OfflineUsimPlanPicker({
+  value,
+  onChange,
+  plansApiPath,
+  emptyPlansHint,
+}: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -461,7 +467,8 @@ export default function OfflineUsimPlanPicker({ value, onChange, plansApiPath }:
 
               {visiblePlans.length === 0 ? (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-sm text-amber-900">
-                  선택한 조건에 맞는 USIM 플랜이 없습니다. 여행지·일수를 바꿔 보세요.
+                  {emptyPlansHint ??
+                    "선택한 조건에 맞는 플랜이 없습니다. 여행지·일수를 바꿔 보세요."}
                 </p>
               ) : (
                 <ul className="grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2">

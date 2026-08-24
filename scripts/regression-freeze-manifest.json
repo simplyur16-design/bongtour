@@ -2308,7 +2308,8 @@
           "file": "lib/bongsim/ingest/excel-normalize-row.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",
-            "afterEmpty && beforeFilled"
+            "afterEmpty && beforeFilled",
+            "요청\\n(발송)"
           ]
         },
         {

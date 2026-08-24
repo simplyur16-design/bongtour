@@ -37,6 +37,8 @@ function headerCandidates(lang: ExcelSheetLanguage, key: keyof typeof BONGSIM_EX
   const extra: string[] = [];
   if (key === "request_shipment") {
     extra.push(BONGSIM_EXCEL_COLUMN_MAP.en.request_shipment_alt);
+    // 9/1 한글 시트 헤더는 줄바꿈이 들어 있음. 없으면 flags.request_shipment=— 되어 플랜이 전부 숨김.
+    extra.push("요청\n(발송)", "요청 (발송)");
   }
   if (key === "status_check") {
     extra.push(BONGSIM_EXCEL_COLUMN_MAP.en.status_check_alt);

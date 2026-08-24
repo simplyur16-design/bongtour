@@ -735,6 +735,7 @@ export default function BongsimPaymentsAdminClient() {
         </p>
         <OfflineUsimPlanPicker
           value={offlineOptionId}
+          emptyPlansHint="선택한 조건에 맞는 USIM 플랜이 없습니다. 여행지·일수를 바꿔 보세요."
           onChange={(sel) => {
             setOfflinePlanSelection(sel);
             setOfflineOptionId(sel?.option_api_id ?? "");
@@ -802,6 +803,7 @@ export default function BongsimPaymentsAdminClient() {
         <OfflineUsimPlanPicker
           value={compOptionId}
           plansApiPath="/api/admin/bongsim/complimentary-esim/plans"
+          emptyPlansHint="선택한 조건에 맞는 eSIM 플랜이 없습니다. 여행지·일수를 바꿔 보세요."
           onChange={(sel) => {
             setCompPlanSelection(sel);
             setCompOptionId(sel?.option_api_id ?? "");
