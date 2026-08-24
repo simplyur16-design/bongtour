@@ -23,6 +23,7 @@ export const REGION_PACK_DEFAULT_TRIP_DAYS: Record<string, number> = {
   "rg-nordic-5": 8,
   "rg-me-6": 7,
   "rg-ca-5": 8,
+  "rg-caucasus-3": 8,
   "rg-kr-jp": 5,
   "rg-kr-cn-jp": 6,
   "rg-fr-ch-it": 8,
@@ -49,7 +50,7 @@ const TIER_5 = new Set([
   "mp",
 ]);
 const TIER_6 = new Set(["lk", "np", "pk", "bd", "bt", "fj", "pf", "nc", "ws", "pr"]);
-const TIER_7 = new Set(["au", "nz", "mu", "sc", "mv", "mn", "kz", "uz", "ge", "az", "kr"]);
+const TIER_7 = new Set(["au", "nz", "mu", "sc", "mv", "mn", "kz", "uz", "ge", "am", "az", "kr"]);
 const TIER_8 = new Set([
   "in",
   "tr",

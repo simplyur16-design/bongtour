@@ -23,6 +23,7 @@ export const REGION_CATALOG: RegionOption[] = [
   { code: "rg-nordic-5", title: "북유럽", subtitle: "5개국", icon: "🇸🇪", isUnlimited: true, searchTerms: ["nordic", "북유럽"] },
   { code: "rg-me-6", title: "중동", subtitle: "6개국", icon: "🇦🇪", isUnlimited: true, searchTerms: ["middle east", "중동"] },
   { code: "rg-ca-5", title: "중앙아시아", subtitle: "5개국", icon: "🇰🇿", isUnlimited: true, searchTerms: ["central asia", "중앙아시아"] },
+  { code: "rg-caucasus-3", title: "코카서스", subtitle: "3국(경유)", icon: "🇬🇪", isUnlimited: true, searchTerms: ["caucasus", "코카서스", "조지아"] },
   { code: "rg-kr-jp", title: "한국", subtitle: "일본", icon: "🇰🇷", isUnlimited: true, searchTerms: ["korea", "japan", "한국", "일본"] },
   { code: "rg-kr-cn-jp", title: "한국", subtitle: "중국·일본", icon: "🇰🇷", isUnlimited: true, searchTerms: ["korea", "china", "japan"] },
   { code: "rg-fr-ch-it", title: "프랑스", subtitle: "스위스·이탈리아", icon: "🇫🇷", isUnlimited: true, searchTerms: ["france", "switzerland", "italy"] },

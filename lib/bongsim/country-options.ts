@@ -95,6 +95,7 @@ const ROWS: Row[] = [
   ["sv", "엘살바도르", "🇸🇻", "el salvador"],
   ["fo", "덴마크령 페로 제도", "🇫🇴", "faroe"],
   ["ge", "조지아", "🇬🇪", "georgia tbilisi"],
+  ["am", "아르메니아", "🇦🇲", "armenia yerevan"],
   ["gt", "과테말라", "🇬🇹", "guatemala"],
   ["hn", "온두라스", "🇭🇳", "honduras"],
   ["iq", "이라크", "🇮🇶", "iraq"],

@@ -16,6 +16,17 @@ describe("resolveDestinationPlanNamesForSql", () => {
     expect(resolveDestinationPlanNamesForSql("rg-eu-42")).toEqual(["유럽 42개국"]);
   });
 
+  it("조지아(경유팩) is in Georgia destination SQL names", () => {
+    const names = resolveDestinationPlanNamesForSql("ge");
+    expect(names).toContain("조지아");
+    expect(names).toContain("조지아(경유팩)");
+  });
+
+  it("코카서스 권역 SQL names include both excel spellings", () => {
+    const names = resolveDestinationPlanNamesForSql("rg-caucasus-3");
+    expect(names).toEqual(["코카서스 3국(경유팩)", "코카서스 3개국(경유팩)"]);
+  });
+
   it("알 수 없는 코드", () => {
     expect(resolveDestinationPlanNamesForSql("zzzzz")).toBeNull();
   });

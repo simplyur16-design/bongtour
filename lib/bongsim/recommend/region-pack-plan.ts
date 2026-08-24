@@ -21,6 +21,7 @@ export const REGION_PACK_PLAN_NAME_BY_CODE: Record<string, string> = {
   "rg-nordic-5": "북유럽 5개국",
   "rg-me-6": "중동 6개국",
   "rg-ca-5": "중앙아시아 5개국",
+  "rg-caucasus-3": "코카서스 3국(경유팩)",
   "rg-kr-jp": "한국/일본",
   "rg-kr-cn-jp": "한국/중국/일본",
   "rg-fr-ch-it": "프랑스/스위스/이탈리아",
@@ -29,6 +30,7 @@ export const REGION_PACK_PLAN_NAME_BY_CODE: Record<string, string> = {
 /** 동일 권역 탭이 커버하는 엑셀 plan_name 별칭 */
 export const REGION_PACK_PLAN_NAME_ALIASES: Record<string, string[]> = {
   "rg-nafr-4": ["북아프리카 4개국(경유팩)", "북아프리카 4개국(경유)"],
+  "rg-caucasus-3": ["코카서스 3국(경유팩)", "코카서스 3개국(경유팩)"],
   "rg-sa-11": ["남미 11개국", "남미10개국", "남미 10개국"],
 };
 
@@ -69,6 +71,7 @@ export const USIMSA_MULTI_TAB_ORDER = [
   "rg-as-13",
   "rg-me-6",
   "rg-ca-5",
+  "rg-caucasus-3",
   "rg-au-nz",
   "rg-gu-mp",
   "rg-global-151",

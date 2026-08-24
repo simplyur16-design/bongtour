@@ -55,6 +55,10 @@ export const MULTI_COUNTRY_PLAN_COVERAGE: Record<string, string[]> = {
 
   "북아프리카 4개국(경유)": ["eg", "ma", "tn", "dz", "ae", "qa", "tr"],
   "북아프리카 4개국(경유팩)": ["eg", "ma", "tn", "dz", "ae", "qa", "tr"],
+  // REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: 20260901 신규 경유팩 — manifest
+  "조지아(경유팩)": ["ge"],
+  "코카서스 3국(경유팩)": ["ge", "am", "az"],
+  "코카서스 3개국(경유팩)": ["ge", "am", "az"],
 
   "베네룩스 3국": ["be", "nl", "lu"],
   "북유럽 5개국": ["fi", "no", "is", "dk", "se"],

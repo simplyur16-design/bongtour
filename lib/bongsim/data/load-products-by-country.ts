@@ -3,7 +3,7 @@ import {
   doesPlanCoverAllSelected,
   getPlanCoveredCountries,
 } from "@/lib/bongsim/plan-coverage-map";
-import { isRegionPackCode, planNameForRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
+import { isRegionPackCode, planNamesForRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import {
   isTrueUnlimited,
   minRecommendedPrice,
@@ -70,9 +70,10 @@ export function filterProductsByCountry(
 
   if (selectedCodes.length === 1 && isRegionPackCode(selectedCodes[0]!)) {
     const regionCode = selectedCodes[0]!;
-    const planName = planNameForRegionPackCode(regionCode);
+    // REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: 권역 탭은 엑셀 plan_name 별칭 전부 매칭 — manifest
+    const planNames = new Set(planNamesForRegionPackCode(regionCode).map((n) => n.trim()));
     const regional =
-      planName != null ? allProducts.filter((p) => p.plan_name.trim() === planName) : [];
+      planNames.size > 0 ? allProducts.filter((p) => planNames.has(p.plan_name.trim())) : [];
     individual[regionCode] = packFromProducts(regional);
     return { ok: true, individual, multi: [] };
   }

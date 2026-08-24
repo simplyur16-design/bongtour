@@ -24,6 +24,7 @@ const REGION_PACK_FLAG_ISO: Record<string, string> = {
   "rg-nordic-5": "se",
   "rg-me-6": "ae",
   "rg-ca-5": "kz",
+  "rg-caucasus-3": "ge",
   "rg-kr-jp": "kr",
   "rg-kr-cn-jp": "kr",
   "rg-fr-ch-it": "fr",

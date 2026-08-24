@@ -40,4 +40,19 @@ describe("filterProductsByCountry", () => {
     if (!res.ok) return;
     expect(res.multi.some((p) => p.option_api_id === "sea")).toBe(true);
   });
+
+  it("권역 pack matches all excel plan_name aliases", () => {
+    const all = [
+      row({ option_api_id: "c1", plan_name: "코카서스 3국(경유팩)" }),
+      row({ option_api_id: "c2", plan_name: "코카서스 3개국(경유팩)" }),
+      row({ option_api_id: "jp1", plan_name: "일본" }),
+    ];
+    const res = filterProductsByCountry(all, ["rg-caucasus-3"]);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.individual["rg-caucasus-3"]?.roaming.products.map((p) => p.option_api_id).sort()).toEqual([
+      "c1",
+      "c2",
+    ]);
+  });
 });

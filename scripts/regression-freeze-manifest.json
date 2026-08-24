@@ -2368,6 +2368,65 @@
       ]
     },
     {
+      "id": "bongsim-caucasus-transit-pack",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "20260901 조지아·코카서스 경유팩은 9/1 전까지 숨기고, 빈 국가타일·권역 SKU 미매칭 금지",
+      "checks": [
+        {
+          "file": "lib/bongsim/plan-coverage-map.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
+            "조지아(경유팩)",
+            "코카서스 3국(경유팩)"
+          ]
+        },
+        {
+          "file": "lib/bongsim/country-options.ts",
+          "mustInclude": [
+            "[\"am\", \"아르메니아\""
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/region-pack-plan.ts",
+          "mustInclude": [
+            "rg-caucasus-3",
+            "코카서스 3국(경유팩)"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/recommend-destination-sections.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
+            "hasSellableSku !== true"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/list-standalone-countries.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
+            "multi.length !== 1"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-products-by-country.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-caucasus-transit-pack]",
+            "planNamesForRegionPackCode"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/plan-coverage-caucasus.test.ts",
+        "lib/bongsim/recommend/recommend-destination-sections.test.ts",
+        "lib/bongsim/data/load-products-by-country.test.ts",
+        "lib/bongsim/data/single-destination-plan-names.test.ts",
+        "lib/bongsim/data/list-standalone-countries.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-catalog-list-perf",
       "tier": [
         "prebuild",

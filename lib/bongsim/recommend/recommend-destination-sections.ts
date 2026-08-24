@@ -33,7 +33,8 @@ export function buildAllMultiCountryTiles(
     const base = byCode.get(code);
     if (!base) return null;
     const meta = catalogMeta[code];
-    if (meta && meta.hasSellableSku === false) return null;
+    // REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: 판매 SKU 없는 권역(9/1 전 신규팩) 타일 숨김 — manifest
+    if (meta?.hasSellableSku !== true) return null;
     const merged = applyCatalogMeta(base, meta);
     return {
       ...merged,

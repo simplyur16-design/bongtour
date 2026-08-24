@@ -4,9 +4,8 @@ import {
   type CountryCatalogMeta,
   type CountryCatalogMetaRow,
 } from "@/lib/bongsim/data/list-country-catalog-meta";
-import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { BONGSIM_CATALOG_ACTIVE_WHERE } from "@/lib/bongsim/catalog/active-product-sql";
-import { extractSingleCountryCode, resolveMultiCoverage } from "@/lib/bongsim/plan-coverage-map";
+import { standaloneCountriesFromPlanNames } from "@/lib/bongsim/data/list-standalone-countries";
 import {
   getPgPool,
   withBongsimStatementTimeout,
@@ -64,27 +63,6 @@ export async function loadBongsimCountryHeroMap(): Promise<Record<string, string
     heroes[code] = url;
   }
   return heroes;
-}
-
-function standaloneCountriesFromPlanNames(planNames: string[]): BongsimCountryListItem[] {
-  const codes = new Set<string>();
-  for (const raw of planNames) {
-    const pn = raw?.trim();
-    if (!pn) continue;
-    const multi = resolveMultiCoverage(pn);
-    const singleCode = extractSingleCountryCode(pn);
-    if (multi !== undefined && singleCode === null) continue;
-    if (singleCode) codes.add(singleCode.trim().toLowerCase());
-  }
-
-  const byCode = new Map(COUNTRY_OPTIONS.map((c) => [c.code.toLowerCase(), c]));
-  const countries: BongsimCountryListItem[] = [];
-  for (const code of codes) {
-    const opt = byCode.get(code);
-    if (opt) countries.push({ code: opt.code, nameKr: opt.nameKr });
-  }
-  countries.sort((a, b) => a.nameKr.localeCompare(b.nameKr, "ko"));
-  return countries;
 }
 
 export async function loadBongsimCountriesPayload(): Promise<

@@ -4,6 +4,7 @@ import { planNameForRegionPackCode } from "@/lib/bongsim/recommend/region-pack-p
 /** coverage SSOT에 없는 rg-* 폴백 */
 const CAROUSEL_OVERRIDES: Record<string, string[]> = {
   "rg-nafr-4": ["eg", "ma", "tn", "dz"],
+  "rg-caucasus-3": ["ge", "am", "az"],
 };
 
 /** 유럽·글로벌 단일 국기 제외 — 캐러셀용 ISO 목록 */

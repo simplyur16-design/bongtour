@@ -14,14 +14,15 @@ const STANDALONE_PLAN_NAME_SQL = `SELECT DISTINCT TRIM(plan_name) AS plan_name
      WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
        AND plan_name IS NOT NULL AND TRIM(plan_name) <> ''`;
 
-function standaloneCountriesFromPlanNames(planNames: string[]): BongsimStandaloneCountry[] {
+// REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: 다국가 팩으로 빈 국가 타일(am 등) 만들지 않음 — manifest
+export function standaloneCountriesFromPlanNames(planNames: string[]): BongsimStandaloneCountry[] {
   const codes = new Set<string>();
   for (const raw of planNames) {
     const pn = raw?.trim();
     if (!pn) continue;
     const multi = resolveMultiCoverage(pn);
     const singleCode = extractSingleCountryCode(pn);
-    if (multi !== undefined && singleCode === null) continue;
+    if (multi !== undefined && multi.length !== 1) continue;
     if (singleCode) codes.add(singleCode.trim().toLowerCase());
   }
 
