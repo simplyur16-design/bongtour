@@ -7,7 +7,6 @@ import {
   withBongsimCatalogRetry,
   withBongsimStatementTimeout,
 } from "@/lib/bongsim/db/pool";
-import { extractDaysFromDaysRaw } from "@/lib/bongsim/recommend/product-option";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import {
   isKoreaSingleCountryProduct,
@@ -18,6 +17,7 @@ import type { SimplyurFxRates } from "@/lib/simplyur/currency";
 import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
 import { toSimplyurPublicProduct, type SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
+import { sortKoreaPlansBestFirst } from "@/lib/simplyur/catalog/sort-korea-plans";
 
 // REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 DB 로더 — manifest
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog uses resolveSimplyurFxRates — manifest
@@ -25,6 +25,7 @@ import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 // REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: SELECT qos_raw for Unlimited 1/3Mbps labels — manifest
 // REGRESSION-FREEZE[bongsim-price-effective-from]: catalog ORDER BY effective consumer — manifest
 // REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: Korea plan_name SQL so 15k+ catalog cannot empty the app list — manifest
+// REGRESSION-FREEZE[simplyur-plans-best-capacity-first]: pack order = sortKoreaPlansBestFirst — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -57,34 +58,20 @@ function minSimplyurPrice(products: ProductOption[]): number | null {
   return min;
 }
 
-function sortProducts(products: SimplyurPublicProduct[], source: ProductOption[]): SimplyurPublicProduct[] {
-  const daysById = new Map(source.map((p) => [p.option_api_id, extractDaysFromDaysRaw(p.days_raw) ?? 9999]));
-  return [...products].sort((a, b) => {
-    const da = daysById.get(a.option_api_id) ?? 9999;
-    const db = daysById.get(b.option_api_id) ?? 9999;
-    if (da !== db) return da - db;
-    const pa = a.simplyur_display?.amount ?? 999999999;
-    const pb = b.simplyur_display?.amount ?? 999999999;
-    return pa - pb;
-  });
-}
-
 /** Locale/FX 매핑 — DB 캐시와 분리 (en 워밍이 vi/zh-TW cold miss를 살림) */
 export function buildSimplyurKoreaPack(
   products: ProductOption[],
   locale: SimplyurLocale,
   rates: SimplyurFxRates,
 ): SimplyurKoreaPack {
-  const roamingArr = products.filter((p) => (p.network_family || "").toLowerCase() === "roaming");
-  const localArr = products.filter((p) => (p.network_family || "").toLowerCase() === "local");
-  const roamingMapped = sortProducts(
-    roamingArr.map((p) => toSimplyurPublicProduct(p, locale, rates)),
-    roamingArr,
+  const roamingArr = sortKoreaPlansBestFirst(
+    products.filter((p) => (p.network_family || "").toLowerCase() === "roaming"),
   );
-  const localMapped = sortProducts(
-    localArr.map((p) => toSimplyurPublicProduct(p, locale, rates)),
-    localArr,
+  const localArr = sortKoreaPlansBestFirst(
+    products.filter((p) => (p.network_family || "").toLowerCase() === "local"),
   );
+  const roamingMapped = roamingArr.map((p) => toSimplyurPublicProduct(p, locale, rates));
+  const localMapped = localArr.map((p) => toSimplyurPublicProduct(p, locale, rates));
 
   return {
     roaming: {

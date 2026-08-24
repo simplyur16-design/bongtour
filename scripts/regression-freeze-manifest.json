@@ -15474,6 +15474,43 @@
       ]
     },
     {
+      "id": "simplyur-plans-best-capacity-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 상품목록 — 같은 일수에서 무제한·고용량이 위, 낮은 용량이 아래",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/sort-korea-plans.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-plans-best-capacity-first]",
+            "sortKoreaPlansBestFirst",
+            "cb - ca"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-plans-best-capacity-first]",
+            "sortKoreaPlansBestFirst"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/plan-display-sort.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-plans-best-capacity-first]",
+            "return rb - ra",
+            "return kb - ka"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/catalog/sort-korea-plans.test.ts",
+        "lib/bongsim/recommend/plan-display-sort.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-mobile-p2-polish",
       "tier": [
         "prebuild",

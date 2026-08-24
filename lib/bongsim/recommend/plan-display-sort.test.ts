@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { sortPlansForDisplayList } from '@/lib/bongsim/recommend/plan-display-sort'
+
+// REGRESSION-FREEZE[simplyur-plans-best-capacity-first]: 종량제 고용량 우선 — manifest
 import type { ProductOption } from '@/lib/bongsim/recommend/product-option'
 
 function fixed(
@@ -23,7 +25,7 @@ function fixed(
 }
 
 describe('plan-display-sort fixed SSOT', () => {
-  it('종량제: 용량↑, 같은 용량이면 일수↑ (7<15<30)', () => {
+  it('종량제: 용량↓(좋은 것 위), 같은 용량이면 일수↑ (7<15<30)', () => {
     const plans = [
       fixed('2GB', '30일', '2g30'),
       fixed('1GB', '30일', '1g30'),
@@ -33,11 +35,11 @@ describe('plan-display-sort fixed SSOT', () => {
     ]
     const sorted = sortPlansForDisplayList(plans, 4, 'fixed')
     expect(sorted.map((p) => p.option_api_id)).toEqual([
-      '1g7',
-      '1g30',
+      '3g30',
       '2g15',
       '2g30',
-      '3g30',
+      '1g7',
+      '1g30',
     ])
   })
 })

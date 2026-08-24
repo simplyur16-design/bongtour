@@ -1,6 +1,8 @@
 /**
  * 플랜 선택 팝업·목록 표시 정렬 SSOT.
  * pickRecommendedFromPool 과 동일: tripDays 정확 일치(또는 +1,+2… 가까운 catalog 일수) 우선 → 유형별 2차 → 가격 오름차순.
+ * 용량은 큰 것(좋은 플랜)이 위.
+ * REGRESSION-FREEZE[simplyur-plans-best-capacity-first]: 데일리·종량제 고용량 우선 — manifest
  */
 import {
   detectAllowanceBucket,
@@ -59,7 +61,7 @@ export function sortPlansForDisplayList(
     return [...plans].sort((a, b) => {
       const ka = allowanceLabelSortKey(a.allowance_label || '')
       const kb = allowanceLabelSortKey(b.allowance_label || '')
-      if (ka !== kb) return ka - kb
+      if (ka !== kb) return kb - ka
       const da = catalogDaysSortKey(a)
       const db = catalogDaysSortKey(b)
       if (da !== db) return da - db
@@ -82,7 +84,7 @@ export function sortPlansForDisplayList(
     if (planType === 'daily') {
       const ra = capacityRank(detectAllowanceBucket(a))
       const rb = capacityRank(detectAllowanceBucket(b))
-      if (ra !== rb) return ra - rb
+      if (ra !== rb) return rb - ra
       return displayPrice(a) - displayPrice(b)
     }
 
