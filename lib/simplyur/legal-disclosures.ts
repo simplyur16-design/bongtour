@@ -34,8 +34,13 @@ export const SIMPLYUR_LEGAL_ENTITY = {
 export const SIMPLYUR_FTC_BIZ_VERIFY_HREF =
   "https://www.ftc.go.kr/bizCommPop.do?wrkr_no=2558103455" as const;
 
-export type SimplyurLegalDocument = "terms" | "privacy" | "refund";
+export type SimplyurLegalDocument = "terms" | "privacy" | "refund" | "account-deletion";
 
 export function simplyurLegalPath(locale: SimplyurLocale, doc: SimplyurLegalDocument): string {
   return `/simplyur/${locale}/legal/${doc}`;
 }
+
+/** Play Console “계정 삭제 URL” — public page, no app login required. */
+// REGRESSION-FREEZE[simplyur-play-account-deletion-url]: Play 계정 삭제 공개 URL — manifest
+export const SIMPLYUR_PLAY_ACCOUNT_DELETION_URL =
+  "https://bongtour.com/simplyur/en/legal/account-deletion" as const;

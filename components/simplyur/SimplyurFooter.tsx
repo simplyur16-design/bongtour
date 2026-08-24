@@ -84,6 +84,12 @@ export function SimplyurFooter() {
           <Link href={simplyurLegalPath(locale, "refund")} className="text-[color:var(--su-brand-navy)] hover:underline">
             {tr("footer.legalRefund")}
           </Link>
+          <Link
+            href={simplyurLegalPath(locale, "account-deletion")}
+            className="text-[color:var(--su-brand-navy)] hover:underline"
+          >
+            {tr("footer.legalDeleteAccount")}
+          </Link>
           <Link href={simplyurPath(locale, "/recommend")} className="text-[color:var(--su-brand-coral)] hover:underline">
             {tr("footer.productsLink")}
           </Link>

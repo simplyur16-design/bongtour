@@ -15963,6 +15963,44 @@
       ]
     },
     {
+      "id": "simplyur-play-account-deletion-url",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Play Console 계정 삭제 URL — 앱 없이 요청 가능한 공개 페이지",
+      "checks": [
+        {
+          "file": "lib/simplyur/legal-disclosures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-play-account-deletion-url]",
+            "account-deletion",
+            "SIMPLYUR_PLAY_ACCOUNT_DELETION_URL",
+            "https://bongtour.com/simplyur/en/legal/account-deletion"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/legal/account-deletion/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-play-account-deletion-url]",
+            "SimplyurAccountDeletionEnBody",
+            "account-deletion"
+          ]
+        },
+        {
+          "file": "lib/simplyur/legal-document-en.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-play-account-deletion-url]",
+            "SimplyurAccountDeletionEnBody",
+            "Delete simplyur account"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/legal-disclosures.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-fx-daily-price",
       "tier": [
         "prebuild",

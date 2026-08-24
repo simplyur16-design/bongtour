@@ -126,6 +126,7 @@ Code rejects public test credentials when `EXIMBAY_ENV=production`.
 ## H. Account deletion (App Review)
 
 In-app path (signed in): **Settings → Delete account** → `POST /api/simplyur/account/withdraw`  
+Play Console **계정 삭제 URL** (no app login): `https://bongtour.com/simplyur/en/legal/account-deletion`  
 Also: Settings → Language / Terms / Privacy / Refund / Email support.
 
 ## I. Day-to-day verify (operator SSOT) — not EAS

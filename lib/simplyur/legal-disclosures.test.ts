@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   SIMPLYUR_FTC_BIZ_VERIFY_HREF,
   SIMPLYUR_LEGAL_ENTITY,
+  SIMPLYUR_PLAY_ACCOUNT_DELETION_URL,
   simplyurLegalPath,
 } from "@/lib/simplyur/legal-disclosures";
 
@@ -10,6 +11,13 @@ describe("simplyur legal disclosures", () => {
     expect(simplyurLegalPath("en", "terms")).toBe("/simplyur/en/legal/terms");
     expect(simplyurLegalPath("en", "privacy")).toBe("/simplyur/en/legal/privacy");
     expect(simplyurLegalPath("en", "refund")).toBe("/simplyur/en/legal/refund");
+  });
+
+  it("Play Console 계정 삭제 URL은 앱 로그인 없이 열리는 공개 경로", () => {
+    expect(simplyurLegalPath("en", "account-deletion")).toBe("/simplyur/en/legal/account-deletion");
+    expect(SIMPLYUR_PLAY_ACCOUNT_DELETION_URL).toBe(
+      "https://bongtour.com/simplyur/en/legal/account-deletion",
+    );
   });
 
   it("사업자등록번호·대표자·FTC 링크", () => {

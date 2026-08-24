@@ -182,6 +182,10 @@ export function SimplyurPrivacyEnBody({ locale }: { locale: SimplyurLocale }) {
           <a href={e.emailHref} className="underline underline-offset-2">
             {e.email}
           </a>
+          . To delete your simplyur account and related data, use{" "}
+          <Link href={simplyurLegalPath(locale, "account-deletion")} className="font-semibold underline underline-offset-2">
+            Account deletion
+          </Link>
           .
         </p>
       </section>
@@ -203,6 +207,68 @@ export function SimplyurPrivacyEnBody({ locale }: { locale: SimplyurLocale }) {
           <Link href="/privacy" className="underline underline-offset-2">
             bongtour.com Privacy Policy
           </Link>
+        </p>
+      </section>
+    </>
+  );
+}
+
+// REGRESSION-FREEZE[simplyur-play-account-deletion-url]: Play 계정 삭제 안내 본문 — manifest
+export function SimplyurAccountDeletionEnBody() {
+  const e = SIMPLYUR_LEGAL_ENTITY;
+  const mailHref = `${e.emailHref}?subject=${encodeURIComponent("Delete simplyur account")}`;
+  return (
+    <>
+      <p>
+        This page is for simplyur users who want to delete their account and associated personal data. You do not need
+        the mobile app to make this request.
+      </p>
+
+      <section className="space-y-3 pt-2">
+        <h2 className="text-lg font-bold">Request deletion by email (no app required)</h2>
+        <p>
+          Send an email from the address registered to your simplyur account to{" "}
+          <a href={mailHref} className="font-semibold underline underline-offset-2">
+            {e.email}
+          </a>{" "}
+          with the subject line <strong>Delete simplyur account</strong>. Include the registered email so we can identify
+          the account. We process email requests without undue delay and within 14 days.
+        </p>
+      </section>
+
+      <section className="space-y-3 pt-2">
+        <h2 className="text-lg font-bold">Delete in the simplyur app</h2>
+        <p>
+          If you are signed in on the simplyur app: <strong>Settings → Delete account</strong>. This withdraws the
+          account immediately.
+        </p>
+      </section>
+
+      <section className="space-y-3 pt-2">
+        <h2 className="text-lg font-bold">What is deleted</h2>
+        <ul className="ml-4 list-disc space-y-1 pl-1">
+          <li>Account login, name, email, phone, and Google / Apple / email sign-in links</li>
+          <li>Active sessions and the ability to sign in again with that account</li>
+        </ul>
+      </section>
+
+      <section className="space-y-3 pt-2">
+        <h2 className="text-lg font-bold">What may be retained</h2>
+        <p>
+          Order, payment, and tax records required by Korean e-commerce or tax law may be kept for the statutory period.
+          Activated eSIM provisioning records may be kept as needed to operate the service or meet legal obligations.
+          These records are not used to restore a deleted login.
+        </p>
+      </section>
+
+      <section className="space-y-3 pt-2">
+        <h2 className="text-lg font-bold">Contact</h2>
+        <p>
+          {e.serviceName} is operated by Bong Tour Co., Ltd. ({e.legalName}). Questions:{" "}
+          <a href={e.emailHref} className="underline underline-offset-2">
+            {e.email}
+          </a>{" "}
+          or {e.phone}.
         </p>
       </section>
     </>
