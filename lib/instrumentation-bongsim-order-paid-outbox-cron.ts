@@ -16,7 +16,10 @@ const INTERVAL_MS = Math.max(
   Number.parseInt(process.env.BONGSIM_FULFILL_DRAIN_INTERVAL_MS ?? "15000", 10) || 15_000,
 );
 
-const SATURATED_BACKOFF_MS = 2_500;
+const SATURATED_SKIP_MS = Math.max(
+  15_000,
+  Number.parseInt(process.env.BONGSIM_FULFILL_SATURATED_SKIP_MS ?? "60000", 10) || 60_000,
+);
 
 function isProductionRuntime(): boolean {
   return (
@@ -46,6 +49,7 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
     productionRuntime: prod,
     fulfill: shouldRunFulfillmentCrons(),
     intervalMs: INTERVAL_MS,
+    saturatedSkipMs: SATURATED_SKIP_MS,
     disabled: process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON === "1",
   });
 
@@ -57,12 +61,24 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
   }
 
   let tickInFlight = false;
+  let saturatedSkipUntil = 0;
   const runTick = (trigger: "cron" | "boot" | "interval") => {
     if (tickInFlight) return;
+    if (Date.now() < saturatedSkipUntil) {
+      console.warn("[bongsim-order-paid-outbox-cron] saturated skip window", {
+        trigger,
+        until: new Date(saturatedSkipUntil).toISOString(),
+      });
+      return;
+    }
     tickInFlight = true;
-    void tickBongsimOrderPaidOutboxCron(trigger).finally(() => {
-      tickInFlight = false;
-    });
+    void tickBongsimOrderPaidOutboxCron(trigger)
+      .then((skipUntil) => {
+        if (skipUntil != null) saturatedSkipUntil = skipUntil;
+      })
+      .finally(() => {
+        tickInFlight = false;
+      });
   };
 
   void import("node-cron")
@@ -97,13 +113,13 @@ async function drainFulfillOutboxes(): Promise<{ processed: number; deferred: nu
 
 async function tickBongsimOrderPaidOutboxCron(
   trigger: "cron" | "boot" | "interval",
-): Promise<void> {
+): Promise<number | null> {
   const started = Date.now();
   console.log("[bongsim-order-paid-outbox-cron] tick start", { trigger, at: new Date().toISOString() });
   try {
     if (!(process.env.DATABASE_URL ?? "").trim()) {
       console.warn("[bongsim-order-paid-outbox-cron] tick skip: DATABASE_URL");
-      return;
+      return null;
     }
     const notify = await drainFulfillOutboxes();
     console.log("[bongsim-order-paid-outbox-cron] tick done", {
@@ -111,6 +127,7 @@ async function tickBongsimOrderPaidOutboxCron(
       ms: Date.now() - started,
       esim_qr_notify: notify,
     });
+    return null;
   } catch (e) {
     console.error("[bongsim-order-paid-outbox-cron] tick error", { trigger, e });
     try {
@@ -120,34 +137,39 @@ async function tickBongsimOrderPaidOutboxCron(
         healBongsimPgPoolForCatalog,
         resolveBongsimPoolMax,
         shouldBackoffInsteadOfHealOnConnectTimeout,
+        shouldSkipImmediateDrainRetryOnSaturatedTimeout,
       } = await import("@/lib/bongsim/db/pool");
-      if (classifyBongsimPgError(e) !== "connection_timeout") return;
+      if (classifyBongsimPgError(e) !== "connection_timeout") return null;
 
       const stats = getBongsimPoolStats();
       const saturated = shouldBackoffInsteadOfHealOnConnectTimeout(stats, resolveBongsimPoolMax());
-      if (saturated) {
-        // 슬롯 포화 시 heal은 옛 풀 end()+새 연결을 겹쳐 Supabase를 더 짓누른다.
+      if (shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated)) {
+        // 슬롯 포화 시 heal·즉시 재드레인은 옛 풀 end()+새 연결을 겹쳐 Supabase를 더 짓누른다.
+        const skipUntil = Date.now() + SATURATED_SKIP_MS;
         console.warn("[bongsim-order-paid-outbox-cron] saturated backoff (no heal)", {
           stats,
-          backoffMs: SATURATED_BACKOFF_MS,
+          skipUntil: new Date(skipUntil).toISOString(),
+          skipMs: SATURATED_SKIP_MS,
         });
-        await new Promise<void>((r) => setTimeout(r, SATURATED_BACKOFF_MS));
-      } else {
-        await healBongsimPgPoolForCatalog("order-paid-outbox-cron-timeout");
+        console.warn("[bongsim-order-paid-outbox-cron] saturated skip drain (no immediate retry)");
+        return skipUntil;
       }
 
+      await healBongsimPgPoolForCatalog("order-paid-outbox-cron-timeout");
       const notify = await drainFulfillOutboxes();
       console.log("[bongsim-order-paid-outbox-cron] tick done", {
         trigger,
         ms: Date.now() - started,
         esim_qr_notify: notify,
-        recovered: saturated ? "backoff" : "heal",
+        recovered: "heal",
       });
+      return null;
     } catch (e2) {
       console.error("[bongsim-order-paid-outbox-cron] tick error after recover", {
         trigger,
         e: e2,
       });
+      return null;
     }
   }
 }

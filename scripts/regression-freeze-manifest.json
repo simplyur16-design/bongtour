@@ -1496,13 +1496,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "OrderPaid tick: 풀 포화(idle=0·total=max)면 heal 대신 backoff 후 재시도",
+      "summary": "OrderPaid tick: 풀 포화(idle=0·total=max)면 heal 없이 skip window — 같은 tick 재드레인 금지",
       "checks": [
         {
           "file": "lib/bongsim/db/pool.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]",
-            "shouldBackoffInsteadOfHealOnConnectTimeout"
+            "shouldBackoffInsteadOfHealOnConnectTimeout",
+            "shouldSkipImmediateDrainRetryOnSaturatedTimeout"
           ]
         },
         {
@@ -1510,7 +1511,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]",
             "saturated backoff (no heal)",
-            "shouldBackoffInsteadOfHealOnConnectTimeout"
+            "shouldBackoffInsteadOfHealOnConnectTimeout",
+            "shouldSkipImmediateDrainRetryOnSaturatedTimeout",
+            "saturated skip drain (no immediate retry)"
           ]
         },
         {
@@ -1522,7 +1525,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/bongsim/db/pool-saturated-backoff.test.ts"
+        "lib/bongsim/db/pool-saturated-backoff.test.ts",
+        "lib/bongsim/fulfill-saturated-skip-retry.test.ts"
       ]
     },
     {
@@ -6642,6 +6646,71 @@
       ],
       "vitestSuites": [
         "lib/hanatour-sweep.test.ts"
+      ]
+    },
+    {
+      "id": "supplier-sweep-due-last-price-observed",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일일 가격 sweep due는 lastPriceObservedAt — lastSalesPolicyCheckedAt(5분 판매정책)로 기아 금지",
+      "checks": [
+        {
+          "file": "lib/supplier-daily-sweep-due.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "lastPriceObservedAt"
+          ],
+          "mustNotInclude": [
+            "lastSalesPolicyCheckedAt"
+          ]
+        },
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "supplierDailySweepDueOr"
+          ]
+        },
+        {
+          "file": "lib/ybtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "supplierDailySweepDueOr"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "supplierDailySweepDueOr"
+          ]
+        },
+        {
+          "file": "lib/modetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "supplierDailySweepDueOr"
+          ]
+        },
+        {
+          "file": "lib/lottetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "supplierDailySweepDueOr"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]",
+            "supplierDailySweepDueOr"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-daily-sweep-due.test.ts"
       ]
     },
     {

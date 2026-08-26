@@ -110,6 +110,14 @@ export function shouldBackoffInsteadOfHealOnConnectTimeout(
   return stats.idle === 0 && stats.total >= poolMax;
 }
 
+/**
+ * 포화 connect timeout 직후 같은 tick에서 drain을 다시 치면 슬롯을 더 짓누른다.
+ * REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: saturated → no immediate retry — manifest
+ */
+export function shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated: boolean): boolean {
+  return saturated === true;
+}
+
 function buildPoolConfig(): PoolConfig | null {
   let url = process.env.DATABASE_URL?.trim();
   if (!url) return null;

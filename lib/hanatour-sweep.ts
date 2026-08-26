@@ -3,6 +3,7 @@
  * instrumentation: `lib/instrumentation-hanatour-sweep-cron.ts` (KST 05:00).
  *
  * REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest
+ * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
  */
 import type { PrismaClient } from '@prisma/client'
 
@@ -31,6 +32,11 @@ import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing
 import { resolveHanatourAdminE2eMonthsForward, departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { syncSupplierUrgentDealForProduct } from '@/lib/supplier-urgent-deal'
 import {
+  supplierDailySweepDueCutoff,
+  supplierDailySweepDueOr,
+  supplierDailySweepDueOrderBy,
+} from '@/lib/supplier-daily-sweep-due'
+import {
   upsertProductDepartures,
   type DepartureInput,
 } from '@/lib/upsert-product-departures-hanatour'
@@ -48,7 +54,6 @@ function safeRevalidateProductListingCaches(): void {
   }
 }
 
-const SWEEP_DUE_DAYS = 1
 const SWEEP_DEFAULT_LIMIT = 200
 
 export type HanatourSweepResult = {
@@ -164,14 +169,14 @@ async function findSweepProducts(
     return row ? [row] : []
   }
 
-  const cutoff = new Date(Date.now() - SWEEP_DUE_DAYS * 24 * 60 * 60 * 1000)
+  const cutoff = supplierDailySweepDueCutoff()
   const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
       originSource: 'hanatour',
-      OR: [{ lastSalesPolicyCheckedAt: null }, { lastSalesPolicyCheckedAt: { lt: cutoff } }],
+      OR: [...supplierDailySweepDueOr(cutoff)],
     },
-    orderBy: [{ lastSalesPolicyCheckedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
+    orderBy: supplierDailySweepDueOrderBy(),
     take: limit * 3,
     select,
   })

@@ -3,6 +3,7 @@
  * instrumentation: `lib/instrumentation-kyowontour-sweep-cron.ts` (KST 08:30).
  *
  * REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: AJAX→E2E·7일 재확인·stale 미래출발 정리 — manifest
+ * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
  */
 import type { PrismaClient } from '@prisma/client'
 
@@ -22,6 +23,11 @@ import {
   RULE_A_WINDOW_DAYS,
 } from '@/lib/product-sales-policy'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import {
+  supplierDailySweepDueCutoff,
+  supplierDailySweepDueOr,
+  supplierDailySweepDueOrderBy,
+} from '@/lib/supplier-daily-sweep-due'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { syncSupplierUrgentDealForProduct } from '@/lib/supplier-urgent-deal'
 import {
@@ -42,7 +48,6 @@ function safeRevalidateProductListingCaches(): void {
   }
 }
 
-const SWEEP_DUE_DAYS = 1
 const SWEEP_DEFAULT_LIMIT = 200
 
 export type KyowontourSweepResult = {
@@ -116,14 +121,14 @@ async function findSweepProducts(
     return row ? [row] : []
   }
 
-  const cutoff = new Date(Date.now() - SWEEP_DUE_DAYS * 24 * 60 * 60 * 1000)
+  const cutoff = supplierDailySweepDueCutoff()
   const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
       originSource: 'kyowontour',
-      OR: [{ lastSalesPolicyCheckedAt: null }, { lastSalesPolicyCheckedAt: { lt: cutoff } }],
+      OR: [...supplierDailySweepDueOr(cutoff)],
     },
-    orderBy: [{ lastSalesPolicyCheckedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
+    orderBy: supplierDailySweepDueOrderBy(),
     take: limit * 3,
     select,
   })

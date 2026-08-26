@@ -19,7 +19,7 @@
 
 Railway "bongtour-worker" (도메인 없음, replica 1)
               BONGTOUR_INSTRUMENTATION_ROLE=worker
-              ├─ OrderPaid + EsimQrNotify 드레인 (15s interval + 1분 cron)
+              ├─ OrderPaid + EsimQrNotify 드레인 (60s interval + 1분 cron)
               ├─ USIMSA 동시 슬롯 BONGSIM_USIMSA_MAX_INFLIGHT=2
               ├─ node-cron 배치(달력·sweep·…)
               └─ Prisma/pg 풀 (별도 limit)
@@ -55,7 +55,7 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 | 역할 | 등록 |
 |------|------|
 | **web** | HTTP. 발급 cron은 `BONGSIM_FULFILL_OWNER=web`(단독)일 때만 |
-| **worker** | 배치 cron + (owner=worker 시) OrderPaid/EsimQrNotify 15s·1분 |
+| **worker** | 배치 cron + (owner=worker 시) OrderPaid/EsimQrNotify 60s·1분 |
 | **fulfill** | 발급 드레인만 (배치 없음) |
 | **all** | 개발용 — production에서는 경고 로그 |
 
@@ -113,16 +113,17 @@ BONGSIM_PG_POOL_MAX=10
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=2
-BONGSIM_PG_POOL_MAX=8
+BONGSIM_PG_POOL_MAX=4
 BONGSIM_PG_CONNECT_TIMEOUT_MS=12000
 BONGSIM_USIMSA_MAX_INFLIGHT=2
-BONGSIM_FULFILL_DRAIN_INTERVAL_MS=15000
+BONGSIM_FULFILL_DRAIN_INTERVAL_MS=60000
+BONGSIM_FULFILL_SATURATED_SKIP_MS=60000
 BONGTOUR_CRON_SECRET=… (web과 동일)
 DATABASE_URL=… (web과 동일)
 ```
 
 OrderPaid tick이 `timeout exceeded when trying to connect` 이고 풀 stats가
-`{ idle: 0, total: max }` 이면 **saturated backoff**(heal 없이 짧게 대기 후 재시도).
+`{ idle: 0, total: max }` 이면 **saturated backoff**(heal 없이 60초 skip window — 같은 tick에서 drain 재시도 금지).
 슬롯이 비어 있는데도 타임아웃이면 기존대로 catalog heal.
 
 6. Replica **1** 고정

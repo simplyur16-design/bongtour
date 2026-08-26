@@ -3,6 +3,7 @@
  * instrumentation: `lib/instrumentation-modetour-sweep-cron.ts` (KST 04:00).
  *
  * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest
+ * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
  *
  * SD1/API 0건: E2E로 6개월 지평 재확인. 둘 다 실패 시 지평 내 출발 삭제 후 auto_unpublished(자유여행 제외).
  * 수집 성공 시 `rawMeta.modetourNextPriceRecheckYmd` = KST 오늘 + 7일.
@@ -39,6 +40,11 @@ import {
   type DepartureInput,
 } from '@/lib/upsert-product-departures-modetour'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import {
+  supplierDailySweepDueCutoff,
+  supplierDailySweepDueOr,
+  supplierDailySweepDueOrderBy,
+} from '@/lib/supplier-daily-sweep-due'
 
 function safeRevalidateProductListingCaches(): void {
   try {
@@ -53,7 +59,6 @@ function safeRevalidateProductListingCaches(): void {
   }
 }
 
-const SWEEP_DUE_DAYS = 1
 const SWEEP_DEFAULT_LIMIT = 200
 
 export type ModetourSweepResult = {
@@ -184,14 +189,14 @@ async function findSweepProducts(
       .slice(0, 1)
   }
 
-  const cutoff = new Date(Date.now() - SWEEP_DUE_DAYS * 24 * 60 * 60 * 1000)
+  const cutoff = supplierDailySweepDueCutoff()
   const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
       originSource: 'modetour',
-      OR: [{ lastSalesPolicyCheckedAt: null }, { lastSalesPolicyCheckedAt: { lt: cutoff } }],
+      OR: [...supplierDailySweepDueOr(cutoff)],
     },
-    orderBy: [{ lastSalesPolicyCheckedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
+    orderBy: supplierDailySweepDueOrderBy(),
     take: limit * 3,
     select,
   })
