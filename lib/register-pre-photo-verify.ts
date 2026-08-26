@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드·FIT 공란은 parserFixRequired — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 통과 전 사진 금지 — manifest
+ * REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]: self-heal 서버 체인 import 금지 — manifest
  */
 import {
   REGISTER_ADMIN_LANE_LABELS,
@@ -15,7 +16,7 @@ import {
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
   type RegisterPrePhotoHealRow,
-} from '@/lib/register-pre-photo-self-heal'
+} from '@/lib/register-pre-photo-guards'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirHotelListingKind, isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'

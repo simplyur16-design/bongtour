@@ -2,9 +2,12 @@
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·자유여행·테마 레인 — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 채워진 키워드도 품질 검증 — manifest
+ * REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]: verify는 self-heal 서버 체인 금지 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 import { resolveRegisterAdminLane } from '../lib/register-admin-lane'
 import { healRegisterPrePhotoSchedule } from '../lib/register-pre-photo-self-heal'
 import {
@@ -270,5 +273,11 @@ describe('register-admin-lane-pre-photo', () => {
     const stamp = readRegisterPrePhotoStampFromRawMeta(merged)
     assert.equal(stamp?.ok, true)
     assert.equal(stamp?.lane, 'package')
+  })
+
+  it('verify 모듈은 self-heal 서버 체인을 import하지 않는다', () => {
+    const src = fs.readFileSync(path.join(process.cwd(), 'lib/register-pre-photo-verify.ts'), 'utf8')
+    assert.equal(src.includes('register-pre-photo-self-heal'), false)
+    assert.ok(src.includes('register-pre-photo-guards'))
   })
 })

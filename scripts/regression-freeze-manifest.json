@@ -16896,6 +16896,42 @@
       "npmScripts": ["verify:register-pre-photo-self-heal"]
     },
     {
+      "id": "pending-pre-photo-verify-client-safe",
+      "tier": ["prebuild", "ci"],
+      "summary": "등록대기 클라이언트 검증은 self-heal 서버 체인(next/cache)을 끌어오지 않음",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]",
+            "register-pre-photo-guards"
+          ],
+          "mustNotInclude": [
+            "register-pre-photo-self-heal"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-guards.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]",
+            "isBrokenRegisterLandmarkKeyword"
+          ],
+          "mustNotInclude": [
+            "next/cache",
+            "revalidatePath"
+          ]
+        },
+        {
+          "file": "tests/register-admin-lane.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]",
+            "register-pre-photo-self-heal"
+          ]
+        }
+      ],
+      "npmScripts": ["verify:register-pre-photo-self-heal"]
+    },
+    {
       "id": "fit-itinerary-pending-backfill",
       "tier": ["prebuild", "ci"],
       "summary": "Fit 마스터 백필은 pending·registered 모두, 시간당 상한",

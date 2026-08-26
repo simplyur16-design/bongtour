@@ -8,16 +8,20 @@
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
-import {
-  isAirlineCarrierImageKeyword,
-  isHotelLodgingImageKeyword,
-  isNonLandmarkFoodOrDiningImageKeyword,
-  isNonLandmarkSpaShoppingLoungeImageKeyword,
-} from '@/lib/pexels-place-name-keyword'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import type { RegisterAdminLane } from '@/lib/register-admin-lane'
+import {
+  isBrokenRegisterLandmarkKeyword,
+  isBrokenRegisterScheduleDescription,
+  type RegisterPrePhotoHealRow,
+} from '@/lib/register-pre-photo-guards'
 
 export { REGISTER_PRE_PHOTO_INGEST_PER_GEO } from '@/lib/register-pre-photo-ingest-geo-slots'
+export {
+  isBrokenRegisterLandmarkKeyword,
+  isBrokenRegisterScheduleDescription,
+  type RegisterPrePhotoHealRow,
+} from '@/lib/register-pre-photo-guards'
 
 export const REGISTER_PRE_PHOTO_OPERATOR_SUPPLIERS = [
   'hanatour',
@@ -25,20 +29,6 @@ export const REGISTER_PRE_PHOTO_OPERATOR_SUPPLIERS = [
   'verygoodtour',
   'ybtour',
 ] as const
-
-const FILLER_DESC_RE =
-  /하루 동안 여러 장면이 자연스럽게|특정 장소보다 전체적인|명소 나열보다 분위기와 리듬/u
-const DUP_GENERIC_CLOSER_RE = /동선에 맞춰(?:\s+하루)?\s+일정을 이어갑니다/gu
-
-export type RegisterPrePhotoHealRow = {
-  day: number
-  title?: string | null
-  description?: string | null
-  routeText?: string | null
-  imageKeyword?: string | null
-  imageKeyword2?: string | null
-  imageUrl?: string | null
-}
 
 export type RegisterPrePhotoHealOpts = {
   supplierKey: string
@@ -58,37 +48,6 @@ export type RegisterPrePhotoHealResult<T extends RegisterPrePhotoHealRow> = {
   rows: T[]
   notes: RegisterPrePhotoHealNote[]
   reappliedKeywords: boolean
-}
-
-export function isBrokenRegisterLandmarkKeyword(keyword: string | null | undefined): boolean {
-  const t = String(keyword ?? '').trim()
-  if (!t) return false
-  if (isHotelLodgingImageKeyword(t)) return true
-  if (isNonLandmarkFoodOrDiningImageKeyword(t)) return true
-  if (isAirlineCarrierImageKeyword(t)) return true
-  if (isNonLandmarkSpaShoppingLoungeImageKeyword(t)) return true
-  const persist = tryPersistScheduleImageKeyword(t)
-  return !persist.ok
-}
-
-export function isBrokenRegisterScheduleDescription(
-  description: string | null | undefined,
-  routeText?: string | null,
-): boolean {
-  const t = String(description ?? '').trim()
-  if (t.length < 12) return true
-  if (FILLER_DESC_RE.test(t)) return true
-  const genericHits = t.match(DUP_GENERIC_CLOSER_RE)
-  if (genericHits && genericHits.length >= 2) return true
-  const sentences = t
-    .split(/(?<=다\.)\s+/u)
-    .map((s) => s.trim())
-    .filter(Boolean)
-  for (let i = 1; i < sentences.length; i++) {
-    if (sentences[i] === sentences[i - 1]) return true
-  }
-  void routeText
-  return false
 }
 
 function sanitizeLandmarkKeyword(raw: string | null | undefined): string {
