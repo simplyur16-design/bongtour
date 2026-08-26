@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·자유여행·테마 레인 — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
+ * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 채워진 키워드도 품질 검증 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -189,6 +190,66 @@ describe('register-admin-lane-pre-photo', () => {
     assert.ok(emptyKw.issues.includes('fit_keyword_empty'))
     assert.ok(emptyKw.issues.some((i) => i.includes('middle_keyword_empty')))
     assert.equal(emptyKw.parserFixRequired, true)
+  })
+
+  it('자유여행은 키워드가 나와도 블리드·항공·운영 플레이스홀더면 검증 실패한다', () => {
+    const hotelOk = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productType: 'air-hotel',
+      rows: [
+        { day: 1, description: '도착', imageKeyword: '' },
+        { day: 2, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 3, description: '시내 자유일정입니다.', imageKeyword: 'Chiang Kai-shek Memorial Hall' },
+        { day: 4, description: '귀국', imageKeyword: '' },
+      ],
+    })
+    assert.equal(hotelOk.ok, true)
+
+    const bleed = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productType: 'air-hotel',
+      rows: [
+        { day: 1, description: '도착', imageKeyword: '' },
+        { day: 2, description: '시내 자유일정입니다.', imageKeyword: 'Park Guell' },
+        { day: 3, description: '시내 자유일정입니다.', imageKeyword: 'Park Guell' },
+        { day: 4, description: '귀국', imageKeyword: '' },
+      ],
+    })
+    assert.equal(bleed.ok, false)
+    assert.ok(bleed.issues.some((i) => i.includes('bleed')))
+    assert.equal(bleed.parserFixRequired, true)
+
+    const operational = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productType: 'air-hotel',
+      rows: [
+        { day: 1, description: '도착', imageKeyword: '' },
+        { day: 2, description: '이동', imageKeyword: 'day_3' },
+        { day: 3, description: '시내', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 4, description: '귀국', imageKeyword: '' },
+      ],
+    })
+    assert.equal(operational.ok, false)
+    assert.ok(operational.issues.some((i) => i.includes('operational_placeholder')))
+    assert.equal(operational.parserFixRequired, true)
+
+    const airline = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productType: 'air-hotel',
+      rows: [
+        { day: 1, description: '도착', imageKeyword: '' },
+        { day: 2, description: '이동', imageKeyword: '대한항공' },
+        { day: 3, description: '시내', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 4, description: '귀국', imageKeyword: '' },
+      ],
+    })
+    assert.equal(airline.ok, false)
+    assert.ok(airline.issues.some((i) => i.includes('_airline')))
+    assert.equal(airline.parserFixRequired, true)
   })
 
   it('rawMeta 스탬프는 기존 키를 덮지 않는다', () => {

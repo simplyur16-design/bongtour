@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: pending 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 등록화면 레인으로 힐·검증 — manifest
  * REGRESSION-FREEZE[pending-approve-photos-ready]: 사진 완료 skip photosReady SSOT — manifest
+ * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 스탬프 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -96,11 +97,6 @@ export async function healPendingRegisterPrePhoto(
 
   for (const product of products) {
     try {
-      const photosReady = isRegisterPendingPhotosReady(product.bgImageUrl, product.schedule)
-      if (photosReady) {
-        skippedPhotosReady += 1
-        continue
-      }
       const rows = parseScheduleRows(product.schedule)
       if (!rows.length) {
         skippedUnchanged += 1
@@ -111,7 +107,7 @@ export async function healPendingRegisterPrePhoto(
         productType: product.productType,
         sportsThemeTag: product.sportsThemeTag,
       })
-      byLane[lane] += 1
+      const photosReady = isRegisterPendingPhotosReady(product.bgImageUrl, product.schedule)
       const supplierKey =
         normalizeSupplierOrigin(String(product.originSource ?? product.brand?.brandKey ?? '').trim()) ??
         String(product.originSource ?? '').trim()
@@ -124,53 +120,68 @@ export async function healPendingRegisterPrePhoto(
         imageKeyword2: row.imageKeyword2 != null ? String(row.imageKeyword2) : null,
         imageUrl: row.imageUrl != null ? String(row.imageUrl) : null,
       }))
-      const result = healRegisterPrePhotoSchedule(mapped, {
-        supplierKey,
-        productDestination: product.destination,
-        productTitle: product.title,
-        lane,
-      })
-      const byDay = new Map(result.rows.map((r) => [Number(r.day), r]))
+
+      let next = rows
       let imageUrlCleared = 0
-      const next = rows.map((row) => {
-        const h = byDay.get(Number(row.day))
-        if (!h) return row
-        let imageUrl = row.imageUrl
-        const rawUrl = imageUrl != null ? String(imageUrl) : ''
-        if (isObviouslyBrokenScheduleImageUrl(rawUrl)) {
-          imageUrl = null
-          imageUrlCleared += 1
-        }
-        return {
-          ...row,
-          imageKeyword: h.imageKeyword ?? '',
-          imageKeyword2: h.imageKeyword2 ?? null,
-          description: h.description ?? row.description,
-          imageUrl,
-        }
-      })
-      if (probeImageUrls) {
-        let probed = 0
-        for (const row of next) {
-          if (probed >= 8) break
-          const url = row.imageUrl != null ? String(row.imageUrl).trim() : ''
-          if (!url) continue
-          probed += 1
-          const status = await probeRegisterScheduleImageUrl(url)
-          if (status === 'broken') {
-            row.imageUrl = null
+      let healNotes: RegisterPrePhotoHealNote[] = []
+      let verifyRows = mapped
+      let scheduleChanged = false
+
+      if (photosReady) {
+        skippedPhotosReady += 1
+      } else {
+        byLane[lane] += 1
+        const result = healRegisterPrePhotoSchedule(mapped, {
+          supplierKey,
+          productDestination: product.destination,
+          productTitle: product.title,
+          lane,
+        })
+        healNotes = result.notes
+        verifyRows = result.rows.map((h) => ({
+          day: Number(h.day),
+          title: h.title,
+          description: h.description,
+          routeText: h.routeText,
+          imageKeyword: h.imageKeyword,
+          imageKeyword2: h.imageKeyword2,
+          imageUrl: h.imageUrl,
+        }))
+        const byDay = new Map(result.rows.map((r) => [Number(r.day), r]))
+        next = rows.map((row) => {
+          const h = byDay.get(Number(row.day))
+          if (!h) return row
+          let imageUrl = row.imageUrl
+          const rawUrl = imageUrl != null ? String(imageUrl) : ''
+          if (isObviouslyBrokenScheduleImageUrl(rawUrl)) {
+            imageUrl = null
             imageUrlCleared += 1
           }
+          return {
+            ...row,
+            imageKeyword: h.imageKeyword ?? '',
+            imageKeyword2: h.imageKeyword2 ?? null,
+            description: h.description ?? row.description,
+            imageUrl,
+          }
+        })
+        if (probeImageUrls) {
+          let probed = 0
+          for (const row of next) {
+            if (probed >= 8) break
+            const url = row.imageUrl != null ? String(row.imageUrl).trim() : ''
+            if (!url) continue
+            probed += 1
+            const status = await probeRegisterScheduleImageUrl(url)
+            if (status === 'broken') {
+              row.imageUrl = null
+              imageUrlCleared += 1
+            }
+          }
         }
+        scheduleChanged = JSON.stringify(next) !== String(product.schedule ?? '') || imageUrlCleared > 0
       }
-      const verifyRows = result.rows.map((h) => ({
-        day: Number(h.day),
-        title: h.title,
-        description: h.description,
-        routeText: h.routeText,
-        imageKeyword: h.imageKeyword,
-        imageKeyword2: h.imageKeyword2,
-      }))
+
       const verify = verifyRegisterPrePhoto({
         lane,
         listingKind: product.listingKind,
@@ -182,9 +193,8 @@ export async function healPendingRegisterPrePhoto(
       else verifyFailed += 1
       const nextJson = JSON.stringify(next)
       const nextRawMeta = mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify)
-      const scheduleChanged = nextJson !== String(product.schedule ?? '') || imageUrlCleared > 0
       const stampChanged = nextRawMeta !== String(product.rawMeta ?? '')
-      if (!scheduleChanged && !stampChanged && result.notes.length === 0) {
+      if (!scheduleChanged && !stampChanged && healNotes.length === 0) {
         skippedUnchanged += 1
         continue
       }
@@ -197,7 +207,7 @@ export async function healPendingRegisterPrePhoto(
           },
         })
         if (scheduleChanged && lane !== 'air_hotel_free') {
-          for (const h of result.rows) {
+          for (const h of verifyRows) {
             if (!h.description) continue
             await prisma.itineraryDay.updateMany({
               where: { productId: product.id, day: Number(h.day) },
@@ -206,9 +216,9 @@ export async function healPendingRegisterPrePhoto(
           }
         }
       }
-      if (scheduleChanged || result.notes.length > 0) healed += 1
+      if (scheduleChanged || healNotes.length > 0) healed += 1
       else if (!stampChanged) skippedUnchanged += 1
-      for (const n of result.notes.slice(0, 4)) {
+      for (const n of healNotes.slice(0, 4)) {
         if (notesSample.length < 24) notesSample.push(n)
       }
     } catch (e) {

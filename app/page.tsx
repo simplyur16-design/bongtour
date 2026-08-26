@@ -15,7 +15,8 @@ import AirHotelProductGrid from './components/home/AirHotelProductGrid'
 import ServiceInfoCards from './components/home/ServiceInfoCards'
 import CustomerReviewsSection from './components/home/CustomerReviewsSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
-import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
+import HomeDocumentH1 from '@/app/components/seo/HomeDocumentH1'
+import { buildHomePageMetadata } from '@/lib/home-page-metadata'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -33,26 +34,8 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (e) {
     console.error('[home-page] generateMetadata og image failed', e)
   }
-  return {
-    title: { absolute: HOME_PAGE_TITLE },
-    description: HOME_PAGE_DESCRIPTION,
-    alternates: { canonical: '/' },
-    openGraph: {
-      type: 'website',
-      locale: 'ko_KR',
-      siteName: SITE_NAME,
-      title: HOME_PAGE_TITLE,
-      description: HOME_PAGE_DESCRIPTION,
-      url: '/',
-      images,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: HOME_PAGE_TITLE,
-      description: HOME_PAGE_DESCRIPTION,
-      images: images.map((i) => i.url),
-    },
-  }
+  // REGRESSION-FREEZE[home-seo-travel-index]: 홈 메타 SSOT — manifest
+  return buildHomePageMetadata(images)
 }
 
 /** 메인 PC 트리 — 모바일 UA는 middleware rewrite → `app/m/page.tsx` */
@@ -109,6 +92,7 @@ export default async function Home() {
             className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,transparent_50%)]"
             aria-hidden
           />
+          <HomeDocumentH1 />
           <SeasonCurationHero sectionId="season-curation-main" />
           <EsimCoralStrip />
           <Suspense fallback={<div className="min-h-[12rem]" aria-hidden />}>

@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 레인별 검증 스탬프 — manifest
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드·FIT 공란은 parserFixRequired — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
+ * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 통과 전 사진 금지 — manifest
  */
 import {
   REGISTER_ADMIN_LANE_LABELS,
@@ -17,7 +18,12 @@ import {
 } from '@/lib/register-pre-photo-self-heal'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirHotelListingKind, isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
+import { isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  isOperationalScheduleImageKeyword,
+  tryPersistScheduleImageKeyword,
+} from '@/lib/schedule-image-keyword-persist'
 
 export const REGISTER_PRE_PHOTO_RAW_META_KEY = 'prePhoto'
 
@@ -93,6 +99,25 @@ function packageScheduleIssues(rows: readonly RegisterPrePhotoHealRow[]): Regist
   return issues
 }
 
+function pushFilledKeywordQualityIssues(
+  issues: RegisterPrePhotoVerifyIssue[],
+  day: number,
+  field: 'keyword' | 'keyword2',
+  raw: string,
+): void {
+  if (isOperationalScheduleImageKeyword(raw)) {
+    issues.push(`day${day}_${field}_operational_placeholder`)
+    return
+  }
+  if (isAirlineCarrierImageKeyword(raw)) {
+    issues.push(`day${day}_${field}_airline`)
+    return
+  }
+  if (!tryPersistScheduleImageKeyword(raw).ok) {
+    issues.push(`day${day}_${field}_not_persistable`)
+  }
+}
+
 function fitScheduleIssues(rows: readonly RegisterPrePhotoHealRow[]): RegisterPrePhotoVerifyIssue[] {
   const issues: RegisterPrePhotoVerifyIssue[] = []
   const days = rows.filter((r) => Number(r.day) > 0)
@@ -106,14 +131,33 @@ function fitScheduleIssues(rows: readonly RegisterPrePhotoHealRow[]): RegisterPr
   for (const row of days) {
     const day = Number(row.day)
     const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
     if (kw) anyKeyword = true
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
     if (slot === 'middle' && !kw) {
       issues.push(`day${day}_middle_keyword_empty`)
     }
+    if (kw) pushFilledKeywordQualityIssues(issues, day, 'keyword', kw)
+    if (kw2) pushFilledKeywordQualityIssues(issues, day, 'keyword2', kw2)
+    if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) {
+      issues.push(`day${day}_keyword_same_as_keyword2`)
+    }
   }
   if (!anyKeyword) {
     issues.push('fit_keyword_empty')
+  }
+  const seenKw = new Map<string, number>()
+  for (const row of days) {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot !== 'middle') continue
+    const key = normScheduleImageKeywordKey(String(row.imageKeyword ?? '').trim())
+    if (!key) continue
+    const prev = seenKw.get(key)
+    if (prev != null) {
+      issues.push(`day${row.day}_keyword_bleed_other_day`)
+    } else {
+      seenKw.set(key, Number(row.day))
+    }
   }
   return issues
 }
@@ -124,6 +168,10 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('middle_keyword_empty') ||
     issue.includes('keyword_bleed_other_day') ||
     issue.includes('fit_keyword_empty') ||
+    issue.includes('not_persistable') ||
+    issue.includes('_airline') ||
+    issue.includes('operational_placeholder') ||
+    issue.includes('keyword_same_as_keyword2') ||
     issue === 'schedule_empty'
   )
 }

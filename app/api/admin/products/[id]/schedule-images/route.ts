@@ -12,6 +12,11 @@ import {
   persistScheduleImageKeyword,
   ScheduleImageKeywordPersistError,
 } from '@/lib/schedule-image-keyword-persist'
+import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
+import {
+  scheduleRowsForPrePhotoVerify,
+  verifyRegisterPrePhoto,
+} from '@/lib/register-pre-photo-verify'
 import {
   isPollutedScheduleImageSeoTitle,
   resolveScheduleImageSeoTitleKr,
@@ -109,6 +114,10 @@ export async function POST(request: Request, { params }: RouteParams) {
         destination: true,
         primaryDestination: true,
         destinationRaw: true,
+        registrationStatus: true,
+        listingKind: true,
+        productType: true,
+        sportsThemeTag: true,
       },
     })
     if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -178,6 +187,30 @@ export async function POST(request: Request, { params }: RouteParams) {
         // REGRESSION-FREEZE[admin-pending-photo-register-local-patch]: keyword 응답으로 로컬 schedule 패치 — manifest
         dayEntry: savedRow ?? null,
       })
+    }
+    const pendingStatus = product.registrationStatus
+    if (imageUrl && (!pendingStatus || pendingStatus === 'pending')) {
+      // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: pending 일정 사진 전 키워드 검증 — manifest
+      const keywordVerify = verifyRegisterPrePhoto({
+        lane: resolveRegisterAdminLane({
+          listingKind: product.listingKind,
+          productType: product.productType,
+          sportsThemeTag: product.sportsThemeTag,
+        }),
+        listingKind: product.listingKind,
+        productType: product.productType,
+        sportsThemeTag: product.sportsThemeTag,
+        rows: scheduleRowsForPrePhotoVerify(product.schedule),
+      })
+      if (!keywordVerify.ok) {
+        return NextResponse.json(
+          {
+            error: '이미지 키워드 검증이 끝난 뒤 사진을 고르세요.',
+            missing: { keywordsVerified: true, issues: keywordVerify.issues },
+          },
+          { status: 400 },
+        )
+      }
     }
     let schedule: ScheduleEntry[] = []
     try {

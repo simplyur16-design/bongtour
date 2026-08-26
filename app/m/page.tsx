@@ -8,7 +8,8 @@ import HomeTrustSection from '@/app/components/home/HomeTrustSection'
 import CustomerReviewsSection from '@/app/components/home/CustomerReviewsSection'
 import MobileDestinationSearch from '@/app/components/home/MobileDestinationSearch'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
-import { HOME_PAGE_DESCRIPTION, HOME_PAGE_TITLE } from '@/lib/home-page-metadata'
+import HomeDocumentH1 from '@/app/components/seo/HomeDocumentH1'
+import { buildHomePageMetadata } from '@/lib/home-page-metadata'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
@@ -27,27 +28,8 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (e) {
     console.error('[home-mobile] generateMetadata og image failed', e)
   }
-  return {
-    title: { absolute: HOME_PAGE_TITLE },
-    description: HOME_PAGE_DESCRIPTION,
-    alternates: { canonical: '/' },
-    openGraph: {
-      type: 'website',
-      locale: 'ko_KR',
-      siteName: SITE_NAME,
-      title: HOME_PAGE_TITLE,
-      description: HOME_PAGE_DESCRIPTION,
-      url: '/',
-      images,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: HOME_PAGE_TITLE,
-      description: HOME_PAGE_DESCRIPTION,
-      images: images.map((i) => i.url),
-    },
-    robots: { index: false, follow: true },
-  }
+  // REGRESSION-FREEZE[home-seo-travel-index]: 모바일 홈도 색인 — URL은 / — manifest
+  return buildHomePageMetadata(images)
 }
 
 // REGRESSION-FREEZE[home-single-device-ssr]: mobile tree at /m — manifest
@@ -66,6 +48,7 @@ export default async function HomeMobile() {
             className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_60%_at_15%_-10%,rgba(143,122,200,0.11),transparent_50%)]"
             aria-hidden
           />
+          <HomeDocumentH1 />
           <div className={SITE_CONTENT_CLASS}>
             <MobileDestinationSearch />
           </div>

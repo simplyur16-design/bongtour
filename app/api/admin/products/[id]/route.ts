@@ -3,6 +3,11 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
+import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
+import {
+  scheduleRowsForPrePhotoVerify,
+  verifyRegisterPrePhoto,
+} from '@/lib/register-pre-photo-verify'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { adminProductJsonWithPromotionRef } from '@/lib/admin-product-reference-prices'
@@ -489,12 +494,19 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data.registrationStatus = typeof v === 'string' && allowed.includes(v as (typeof allowed)[number]) ? v : null
       if (data.registrationStatus === 'registered') {
         // REGRESSION-FREEZE[pending-approve-photos-ready]: registered 전 photosReady — manifest
+        // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: registered 전 키워드 검증 — manifest
         const [departureCount, itineraryDayCount, photoRow] = await Promise.all([
           prisma.productDeparture.count({ where: { productId: id } }),
           prisma.itineraryDay.count({ where: { productId: id } }),
           prisma.product.findUnique({
             where: { id },
-            select: { bgImageUrl: true, schedule: true },
+            select: {
+              bgImageUrl: true,
+              schedule: true,
+              listingKind: true,
+              productType: true,
+              sportsThemeTag: true,
+            },
           }),
         ])
         if (departureCount === 0 || itineraryDayCount === 0) {
@@ -523,6 +535,26 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             {
               error: '등록 확정 전 대표 이미지와 일정 일차 사진을 모두 넣어야 합니다. 등록중 상태로 두세요.',
               missing: { photosReady: true },
+            },
+            { status: 400 },
+          )
+        }
+        const keywordVerify = verifyRegisterPrePhoto({
+          lane: resolveRegisterAdminLane({
+            listingKind: photoRow?.listingKind,
+            productType: photoRow?.productType,
+            sportsThemeTag: photoRow?.sportsThemeTag,
+          }),
+          listingKind: photoRow?.listingKind,
+          productType: photoRow?.productType,
+          sportsThemeTag: photoRow?.sportsThemeTag,
+          rows: scheduleRowsForPrePhotoVerify(nextSchedule),
+        })
+        if (!keywordVerify.ok) {
+          return NextResponse.json(
+            {
+              error: '등록 확정 전 이미지 키워드 검증을 통과해야 합니다. 등록중 상태로 두세요.',
+              missing: { keywordsVerified: true, issues: keywordVerify.issues },
             },
             { status: 400 },
           )
@@ -590,6 +622,42 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // 대표 이미지 (Pexels 선택 등): primaryImage* → bgImage* (URL 비우면 메타도 null)
     if (body.primaryImageUrl !== undefined) {
       let url = String(body.primaryImageUrl).trim().slice(0, MAX_URL) || null
+      // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: pending 대표 이미지 전 키워드 검증 — manifest
+      if (url) {
+        const pendingPhotoRow = await prisma.product.findUnique({
+          where: { id },
+          select: {
+            registrationStatus: true,
+            listingKind: true,
+            productType: true,
+            sportsThemeTag: true,
+            schedule: true,
+          },
+        })
+        const pendingStatus = pendingPhotoRow?.registrationStatus
+        if (!pendingStatus || pendingStatus === 'pending') {
+          const keywordVerify = verifyRegisterPrePhoto({
+            lane: resolveRegisterAdminLane({
+              listingKind: pendingPhotoRow?.listingKind,
+              productType: pendingPhotoRow?.productType,
+              sportsThemeTag: pendingPhotoRow?.sportsThemeTag,
+            }),
+            listingKind: pendingPhotoRow?.listingKind,
+            productType: pendingPhotoRow?.productType,
+            sportsThemeTag: pendingPhotoRow?.sportsThemeTag,
+            rows: scheduleRowsForPrePhotoVerify(pendingPhotoRow?.schedule),
+          })
+          if (!keywordVerify.ok) {
+            return NextResponse.json(
+              {
+                error: '이미지 키워드 검증이 끝난 뒤 사진을 고르세요.',
+                missing: { keywordsVerified: true, issues: keywordVerify.issues },
+              },
+              { status: 400 },
+            )
+          }
+        }
+      }
       const srcLower = String(body.primaryImageSource ?? '').trim().toLowerCase()
       const isPexelsSource = srcLower === 'pexels'
 

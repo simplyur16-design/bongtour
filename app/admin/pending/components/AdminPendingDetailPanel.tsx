@@ -32,6 +32,11 @@ import {
 import { suggestAdminPendingSecondaryClassification } from '@/lib/admin-pending-secondary-classification-suggest'
 import { composeScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
+import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
+import {
+  scheduleRowsForPrePhotoVerify,
+  verifyRegisterPrePhoto,
+} from '@/lib/register-pre-photo-verify'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -99,6 +104,7 @@ type ProductDetail = {
   productType?: string | null
   travelScope?: string | null
   listingKind?: string | null
+  sportsThemeTag?: string[] | null
   hotelSummaryRaw?: string | null
   includedText?: string | null
   excludedText?: string | null
@@ -761,6 +767,38 @@ export default function AdminPendingDetailPanel({
     detail?.productType,
   ])
 
+  const keywordVerify = useMemo(
+    () =>
+      verifyRegisterPrePhoto({
+        lane: resolveRegisterAdminLane({
+          adminTravelScope: detail?.travelScope,
+          listingKind: detail?.listingKind,
+          productType: detail?.productType,
+          sportsThemeTag: detail?.sportsThemeTag,
+        }),
+        listingKind: detail?.listingKind,
+        productType: detail?.productType,
+        sportsThemeTag: detail?.sportsThemeTag,
+        rows: scheduleRowsForPrePhotoVerify(detail?.schedule),
+      }),
+    [
+      detail?.travelScope,
+      detail?.listingKind,
+      detail?.productType,
+      detail?.sportsThemeTag,
+      detail?.schedule,
+    ],
+  )
+  const keywordsVerified = keywordVerify.ok
+  const photoPickDisabled = !keywordsVerified
+
+  const blockPhotoUntilKeywordVerify = (): boolean => {
+    if (keywordsVerified) return false
+    setDayImageMessage('이미지 키워드 검증이 끝난 뒤 사진을 고르세요.')
+    setPrimaryImageMessage('이미지 키워드 검증이 끝난 뒤 사진을 고르세요.')
+    return true
+  }
+
   /** schedule-images 성공 후 전체 product GET 대신 schedule JSON만 패치 */
   const applyScheduleDayEntryLocal = useCallback(
     (day: number, dayEntry: Record<string, unknown> | null | undefined, fallbackPatch?: Record<string, unknown>) => {
@@ -784,6 +822,7 @@ export default function AdminPendingDetailPanel({
 
   const handlePexelsSearch = async () => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     // REGRESSION-FREEZE[pexels-primary-single-ingest]: use loaded itinerary — no extra itinerary fetch — manifest
     const poiNamesRaw =
       firstPoiNamesFromItinerary(itineraryDayRows) ?? (await fetchFirstPoiNamesRaw(detail.id))
@@ -824,6 +863,7 @@ export default function AdminPendingDetailPanel({
 
   const handleSetPrimaryImage = async (photo: PexelsSearchPhoto) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(photo.id)
     try {
@@ -874,6 +914,7 @@ export default function AdminPendingDetailPanel({
       console.log('[Gemini click] abort: no detail')
       return
     }
+    if (blockPhotoUntilKeywordVerify()) return
     setGeminiError(null)
     setGeminiLoading(true)
     if (geminiPromptEditMode) setGeminiPromptEditMode(false)
@@ -933,6 +974,7 @@ export default function AdminPendingDetailPanel({
 
   const handleSetPrimaryImageFromGemini = async (imageUrl: string) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(imageUrl)
     try {
@@ -963,6 +1005,7 @@ export default function AdminPendingDetailPanel({
 
   const handleLoadAssetCandidates = async () => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     setAssetsError(null)
     setAssetsCityCandidates([])
     setAssetsAttractionCandidates([])
@@ -996,6 +1039,7 @@ export default function AdminPendingDetailPanel({
     const file = e.currentTarget.files?.[0] ?? null
     e.currentTarget.value = ''
     if (!file || !detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     setPrimaryImageMessage(null)
     setPrimaryImageManualUploading(true)
     try {
@@ -1021,6 +1065,7 @@ export default function AdminPendingDetailPanel({
 
   const handleSetPrimaryImageFromAsset = async (candidate: ImageAssetCandidate) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(candidate.imageUrl)
     try {
@@ -1051,6 +1096,7 @@ export default function AdminPendingDetailPanel({
 
   const handleSetPrimaryImageFromScheduleDay = async (candidate: ScheduleDayHeroPickCandidate) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(candidate.key)
     try {
@@ -1126,8 +1172,10 @@ export default function AdminPendingDetailPanel({
     photosReady: isRegisterPendingPhotosReady(detail.bgImageUrl, detail.schedule),
   }
   // REGRESSION-FREEZE[pending-approve-photos-ready]: canApprove photosReady — manifest
+  // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드 검증 후 사진·승인 — manifest
   const photosReady = isRegisterPendingPhotosReady(detail.bgImageUrl, detail.schedule)
-  const canApprove = departureRows.length > 0 && itineraryDayRows.length > 0 && photosReady
+  const canApprove =
+    departureRows.length > 0 && itineraryDayRows.length > 0 && photosReady && keywordsVerified
 
   const handleResyncDepartures = async () => {
     if (!detail) return
@@ -1345,6 +1393,7 @@ export default function AdminPendingDetailPanel({
 
   const handleLoadDayCandidates = async (row: ScheduleDayImage, slot: ScheduleImageSlot = 1) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     const day = row.day
     const it = itineraryByDay.get(day)
     const savedKw =
@@ -1383,6 +1432,7 @@ export default function AdminPendingDetailPanel({
     }
   ) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     const sk = scheduleImageSavingKey(day, slot)
     setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
@@ -1526,6 +1576,7 @@ export default function AdminPendingDetailPanel({
 
   const handleUploadDayImage = async (day: number, slot: ScheduleImageSlot, file: File | null) => {
     if (!detail || !file) return
+    if (blockPhotoUntilKeywordVerify()) return
     const sk = scheduleImageSavingKey(day, slot)
     setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
@@ -1585,6 +1636,7 @@ export default function AdminPendingDetailPanel({
   }
 
   const openLibraryModal = async (day: number, slot: ScheduleImageSlot = 1) => {
+    if (blockPhotoUntilKeywordVerify()) return
     setLibraryModalDay(day)
     setLibraryModalSlot(slot)
     setLibraryModalOpen(true)
@@ -1649,6 +1701,7 @@ export default function AdminPendingDetailPanel({
 
   const handleGenerateDayGemini = async (row: ScheduleDayImage, slot: ScheduleImageSlot = 1) => {
     if (!detail) return
+    if (blockPhotoUntilKeywordVerify()) return
     const day = row.day
     const it = itineraryByDay.get(day)
     const savedKw =
@@ -1745,18 +1798,18 @@ export default function AdminPendingDetailPanel({
           ) : null}
           <AdminStatusBadge
             variant={
-              item.prePhotoVerified
+              keywordsVerified
                 ? 'pending_review'
-                : item.prePhotoIssues && item.prePhotoIssues.length > 0
+                : keywordVerify.issues.length > 0
                   ? 'error'
                   : 'pending'
             }
             label={
-              item.prePhotoVerified
+              keywordsVerified
                 ? '검증 완료 · 사진 등록 가능'
-                : item.prePhotoParserFixRequired
+                : keywordVerify.parserFixRequired
                   ? '파서 수정 필요 · 등록대기만'
-                  : item.prePhotoIssues && item.prePhotoIssues.length > 0
+                  : keywordVerify.issues.length > 0
                     ? '검증 실패'
                     : '등록대기'
             }
@@ -1955,6 +2008,12 @@ export default function AdminPendingDetailPanel({
           <code className="rounded bg-bt-surface-alt px-1">imageKeyword2</code> (일차 2장) · Pexels·Gemini는 위
           저장값 우선(보조)
         </p>
+        {!keywordsVerified ? (
+          <p className="mb-2 rounded border border-bt-warning bg-bt-badge-freeform px-2 py-1.5 text-xs text-bt-warning">
+            이미지 키워드 검증이 끝난 뒤 사진을 고르세요.
+            {keywordVerify.issues.length > 0 ? ` (${keywordVerify.issues.slice(0, 4).join(', ')})` : ''}
+          </p>
+        ) : null}
         {dayImageMessage && <p className="mb-2 text-xs text-bt-body">{dayImageMessage}</p>}
         {scheduleDayRows.length === 0 ? (
           <p className="text-xs text-bt-meta">일정 day 정보가 없어 이미지를 선택할 수 없습니다.</p>
@@ -2093,7 +2152,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void handleLoadDayCandidates(row, 1)}
-                        disabled={dayCandidateLoading[row.day] === true}
+                        disabled={photoPickDisabled || dayCandidateLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                         title="저장된 대표관광지 값으로 Pexels 검색(미리보기 전용)"
                       >
@@ -2102,7 +2161,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void handleGenerateDayGemini(row, 1)}
-                        disabled={dayGeminiLoading[row.day] === true}
+                        disabled={photoPickDisabled || dayGeminiLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft"
                         title="저장값(promptOverride) 기준 4슬롯 생성 · 미저장 시 자동 추천 문자열이 fallback"
                       >
@@ -2119,7 +2178,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void openLibraryModal(row.day, 1)}
-                        disabled={dayLibraryLoading[row.day] === true}
+                        disabled={photoPickDisabled || dayLibraryLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                       >
                         라이브러리 열기
@@ -2171,7 +2230,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void handleLoadDayCandidates(row, 2)}
-                        disabled={day2CandidateLoading[row.day] === true}
+                        disabled={photoPickDisabled || day2CandidateLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                       >
                         {day2CandidateLoading[row.day] ? '후보 불러오는 중…' : '후보 미리보기'}
@@ -2179,7 +2238,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void handleGenerateDayGemini(row, 2)}
-                        disabled={day2GeminiLoading[row.day] === true}
+                        disabled={photoPickDisabled || day2GeminiLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft"
                       >
                         {day2GeminiLoading[row.day] ? '생성 중… (약 15–40초)' : 'Gemini 생성 (2후보)'}
@@ -2195,7 +2254,7 @@ export default function AdminPendingDetailPanel({
                       <button
                         type="button"
                         onClick={() => void openLibraryModal(row.day, 2)}
-                        disabled={dayLibraryLoading[row.day] === true}
+                        disabled={photoPickDisabled || dayLibraryLoading[row.day] === true}
                         className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
                       >
                         라이브러리
@@ -2618,6 +2677,11 @@ export default function AdminPendingDetailPanel({
           썸네일용 — <strong className="font-medium text-bt-muted">이미 고른 일자별 사진</strong> · 자산 → Pexels 후보
           미리보기 → Gemini(보조·상품 단위) 순으로 쓰면 됩니다.
         </p>
+        {!keywordsVerified ? (
+          <p className="mb-3 rounded border border-bt-warning bg-bt-badge-freeform px-2 py-1.5 text-xs text-bt-warning">
+            이미지 키워드 검증이 끝난 뒤 사진을 고르세요.
+          </p>
+        ) : null}
         {/* 현재 대표 이미지 */}
         <div className="mb-4 rounded-lg border border-bt-border-soft bg-bt-surface-soft p-3">
           <p className="mb-2 text-xs font-medium text-bt-muted">현재 대표 이미지</p>
@@ -2665,7 +2729,7 @@ export default function AdminPendingDetailPanel({
                   <button
                     key={c.key}
                     type="button"
-                    disabled={primaryImageSavingId !== null || primaryImageManualUploading}
+                    disabled={photoPickDisabled || primaryImageSavingId !== null || primaryImageManualUploading}
                     onClick={() => void handleSetPrimaryImageFromScheduleDay(c)}
                     className={`flex flex-col items-center gap-1 rounded border p-2 disabled:opacity-50 ${
                       selected
@@ -2714,7 +2778,7 @@ export default function AdminPendingDetailPanel({
           <button
             type="button"
             onClick={handleLoadAssetCandidates}
-            disabled={pexelsLoading || geminiLoading || assetsLoading || primaryImageManualUploading}
+            disabled={photoPickDisabled || pexelsLoading || geminiLoading || assetsLoading || primaryImageManualUploading}
             className="rounded-lg border border-bt-brand-blue-strong bg-bt-surface px-3 py-2 text-sm font-medium text-bt-title hover:bg-bt-brand-blue-soft disabled:opacity-50"
           >
             {assetsLoading ? '불러오는 중…' : '도시/관광지 자산에서 가져오기'}
@@ -2722,7 +2786,7 @@ export default function AdminPendingDetailPanel({
           <button
             type="button"
             onClick={handlePexelsSearch}
-            disabled={pexelsLoading || primaryImageManualUploading}
+            disabled={photoPickDisabled || pexelsLoading || primaryImageManualUploading}
             className="rounded-lg border border-bt-brand-blue-strong bg-bt-surface px-3 py-2 text-sm font-medium text-bt-title hover:bg-bt-brand-blue-soft disabled:opacity-50"
             title="상품 메타·목적지 기준 Pexels 검색(미리보기 전용)"
           >
@@ -2731,7 +2795,7 @@ export default function AdminPendingDetailPanel({
           <button
             type="button"
             onClick={() => void handleGeminiGenerate()}
-            disabled={pexelsLoading || geminiLoading || primaryImageManualUploading}
+            disabled={photoPickDisabled || pexelsLoading || geminiLoading || primaryImageManualUploading}
             className="rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-sm font-medium text-bt-muted hover:bg-bt-surface-soft disabled:opacity-50"
             title="상품 단위 자동 프롬프트로 4슬롯 생성(보조). 일정 DAY는 위에서 저장값 기준."
           >
@@ -2782,6 +2846,7 @@ export default function AdminPendingDetailPanel({
             ) : null}
             <label
               className={`cursor-pointer rounded-lg border border-bt-border-strong bg-bt-surface px-3 py-2 text-xs font-medium text-bt-body hover:bg-bt-surface-soft ${
+                photoPickDisabled ||
                 primaryImageManualUploading ||
                 primaryImageSavingId !== null ||
                 pexelsLoading ||
@@ -2797,6 +2862,7 @@ export default function AdminPendingDetailPanel({
                 accept="image/*"
                 className="hidden"
                 disabled={
+                  photoPickDisabled ||
                   primaryImageManualUploading ||
                   primaryImageSavingId !== null ||
                   pexelsLoading ||
@@ -3154,7 +3220,13 @@ export default function AdminPendingDetailPanel({
               disabled={isRegistering || !canApprove}
               className="rounded-lg bg-bt-cta-primary px-4 py-2.5 text-sm font-medium text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover disabled:opacity-50"
             >
-              {isRegistering ? '처리 중…' : !canApprove ? '사진·수집 완료 후 승인 가능' : '승인'}
+              {isRegistering
+                ? '처리 중…'
+                : !keywordsVerified
+                  ? '키워드 검증 후 승인 가능'
+                  : !canApprove
+                    ? '사진·수집 완료 후 승인 가능'
+                    : '승인'}
             </button>
             <button
               type="button"

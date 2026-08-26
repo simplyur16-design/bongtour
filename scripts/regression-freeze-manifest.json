@@ -2810,6 +2810,68 @@
       ]
     },
     {
+      "id": "home-seo-travel-index",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈은 모바일도 색인하고 여행 키워드 메타를 쓴다",
+      "checks": [
+        {
+          "file": "lib/home-page-metadata.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-seo-travel-index]",
+            "해외여행",
+            "index: true",
+            "buildHomePageMetadata"
+          ]
+        },
+        {
+          "file": "app/m/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-seo-travel-index]",
+            "buildHomePageMetadata"
+          ],
+          "mustNotInclude": [
+            "index: false"
+          ]
+        },
+        {
+          "file": "app/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-seo-travel-index]",
+            "buildHomePageMetadata",
+            "HomeDocumentH1"
+          ]
+        },
+        {
+          "file": "app/components/seo/HomeDocumentH1.tsx",
+          "mustInclude": [
+            "sr-only",
+            "HOME_PAGE_H1"
+          ],
+          "mustNotInclude": [
+            "text-center",
+            "pt-3"
+          ]
+        },
+        {
+          "file": "lib/seo/site-json-ld.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-seo-travel-index]",
+            "TravelAgency",
+            "해외여행"
+          ]
+        },
+        {
+          "file": "tests/home-page-seo.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-seo-travel-index]",
+            "index: true",
+            "TravelAgency"
+          ]
+        }
+      ],
+      "npmScripts": ["verify:home-page-seo"]
+    },
+    {
       "id": "home-hero-lcp-and-section-titles",
       "tier": [
         "prebuild",
@@ -16786,6 +16848,52 @@
           ]
         }
       ]
+    },
+    {
+      "id": "pre-photo-keyword-verify-before-photos",
+      "tier": ["prebuild", "ci"],
+      "summary": "이미지 키워드가 나와도 검증 통과 전 사진 고르기·승인 금지",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]",
+            "pushFilledKeywordQualityIssues",
+            "operational_placeholder"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]",
+            "keywordsVerified"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]",
+            "keywordsVerified",
+            "이미지 키워드 검증이 끝난 뒤 사진을 고르세요."
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]",
+            "photosReady && p.prePhotoVerified"
+          ]
+        },
+        {
+          "file": "tests/register-admin-lane.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]",
+            "operational_placeholder",
+            "_airline"
+          ]
+        }
+      ],
+      "npmScripts": ["verify:register-pre-photo-self-heal"]
     },
     {
       "id": "fit-itinerary-pending-backfill",

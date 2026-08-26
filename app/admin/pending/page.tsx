@@ -190,7 +190,8 @@ export default function AdminPendingPage() {
 
   const imageNeededCount = list.filter((p) => !p.photosReady).length
   // REGRESSION-FREEZE[pending-approve-photos-ready]: 승인 가능 = photosReady — manifest
-  const approveReadyCount = list.filter((p) => p.photosReady).length
+  // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 승인 가능 = photosReady && 키워드 검증 — manifest
+  const approveReadyCount = list.filter((p) => p.photosReady && p.prePhotoVerified).length
 
   return (
     <div className="min-h-screen bg-bt-page p-6">
