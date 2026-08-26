@@ -9840,6 +9840,261 @@
       ]
     },
     {
+      "id": "register-pre-photo-self-heal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 사진 수급 전 — 키워드·일정 셀프힐, 사진 생성 없음",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
+            "healRegisterPrePhotoSchedule",
+            "isHotelLodgingImageKeyword"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
+            "healRegisterPrePhotoSchedule"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
+            "listing_collect_not_in_this_job"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
+            "Parador de Alcaniz"
+          ]
+        },
+        {
+          "file": "app/api/cron/register-pre-photo-self-heal/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
+            "runRegisterPrePhotoDailyJob",
+            "healPendingRegisterPrePhoto"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-admin-lane-pre-photo",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록화면 패키지·자유여행·테마 레인으로 셀프힐·검증 후 사진 수급 전 대기",
+      "checks": [
+        {
+          "file": "lib/register-admin-lane.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-lane-pre-photo]",
+            "resolveRegisterAdminLane",
+            "air_hotel_free"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-lane-pre-photo]",
+            "verifyRegisterPrePhoto",
+            "readyForOperatorPhoto"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-lane-pre-photo]",
+            "lane === 'air_hotel_free'"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-lane-pre-photo]",
+            "verifyRegisterPrePhoto",
+            "listing_collect_not_in_this_job"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-lane-pre-photo]",
+            "registerLane",
+            "prePhotoVerified"
+          ]
+        },
+        {
+          "file": "tests/register-admin-lane.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-admin-lane-pre-photo]",
+            "air_hotel_free",
+            "theme"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-pre-photo-listing-ingest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 공급사마다 패키지·자유여행 각각 나라 1개 또는 도시별 1개 — 중복 제외, 사진 전 pending",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]"
+          ],
+          "mustNotInclude": [
+            "REGISTER_PRE_PHOTO_URLS_PER_SUPPLIER_PER_DAY = 3",
+            "REGISTER_PRE_PHOTO_MAX_GEOS_PER_SUPPLIER = 1",
+            "REGISTER_PRE_PHOTO_INGEST_PER_GEO = 3"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-geo-slots.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1",
+            "REGISTER_PRE_PHOTO_INGEST_LANES",
+            "buildRegisterPrePhotoIngestGeoSlots"
+          ],
+          "mustNotInclude": [
+            "REGISTER_PRE_PHOTO_URLS_PER_SUPPLIER_PER_DAY",
+            "REGISTER_PRE_PHOTO_MAX_GEOS_PER_SUPPLIER"
+          ]
+        },
+        {
+          "file": "lib/register-listing-discover-ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "YBTOUR_LISTING_PAUSE_MS_MIN",
+            "localList",
+            "listingMenu"
+          ]
+        },
+        {
+          "file": "lib/register-listing-discover-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "HANATOUR_LISTING_PAUSE_MS_MIN"
+          ]
+        },
+        {
+          "file": "lib/register-listing-discover-modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "MODETOUR_LISTING_PAUSE_MS_MIN"
+          ]
+        },
+        {
+          "file": "lib/register-listing-discover-verygoodtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "VERYGOODTOUR_LISTING_PAUSE_MS_MIN"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "extractRegisterProductDedupeKeys",
+            "ingestUnregisteredRegisterPendingPrePhoto",
+            "ingestLane",
+            "buildRegisterPrePhotoIngestGeoSlots"
+          ],
+          "mustNotInclude": [
+            "REGISTER_PRE_PHOTO_URLS_PER_SUPPLIER_PER_DAY",
+            "REGISTER_PRE_PHOTO_MAX_GEOS_PER_SUPPLIER"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "ingestLane",
+            "travelScopeForIngestLane",
+            "lane_mismatch"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-daily-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "ingestUnregisteredRegisterPendingPrePhoto",
+            "healPendingRegisterPrePhoto"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-listing-ingest.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
+            "localList",
+            "111617319",
+            "나라만",
+            "도시별"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-pre-photo-parser-fix",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "키워드 빈칸·숙소·타일차 블리드는 등록대기만, 재채움 금지·파서/POI 수정",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
+            "parser_fix_required"
+          ],
+          "mustNotInclude": [
+            "applyRegisterScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
+            "parserFixRequired",
+            "keyword_bleed_other_day"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "parser_fix_required"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
       "id": "build-ssg-skip-db",
       "tier": [
         "prebuild",
@@ -16403,6 +16658,169 @@
       ],
       "vitestSuites": [
         "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
+      ]
+    },
+    {
+      "id": "overseas-hub-package-fit-split",
+      "tier": ["prebuild", "ci"],
+      "summary": "해외 허브는 패키지+자유여행 포함, type=travel|air-hotel 칩이 실제로 거른다",
+      "checks": [
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "parseOverseasHubTravelType",
+            "filterOverseasHubCatalogByTravelType",
+            "type=travel"
+          ]
+        },
+        {
+          "file": "lib/products-browse-db-where.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "browseType === 'travel'"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHubTravelTypeChips.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "자유여행",
+            "type', 'air-hotel'"
+          ]
+        },
+        {
+          "file": "app/travel/overseas/page.tsx",
+          "mustInclude": [
+            "해외 패키지와 자유여행"
+          ]
+        },
+        {
+          "file": "app/components/home/SeasonProductGrid.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/overseas-hub-client-catalog-filter.test.ts",
+        "lib/products-browse-db-where.test.ts"
+      ]
+    },
+    {
+      "id": "home-private-trip-href",
+      "tier": ["prebuild", "ci"],
+      "summary": "PC 홈 우리끼리 카드는 /travel/overseas/private-trip",
+      "checks": [
+        {
+          "file": "app/components/home/ServiceInfoCards.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-private-trip-href]",
+            "/travel/overseas/private-trip"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pending-approve-photos-ready",
+      "tier": ["prebuild", "ci"],
+      "summary": "커버+일정 사진 전 registered 금지 — photosReady SSOT",
+      "checks": [
+        {
+          "file": "lib/register-pending-photos-ready.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-approve-photos-ready]",
+            "isRegisterPendingPhotosReady"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-approve-photos-ready]",
+            "isRegisterPendingPhotosReady",
+            "photosReady"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-approve-photos-ready]",
+            "isRegisterPendingPhotosReady"
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-approve-photos-ready]",
+            "approveReadyCount"
+          ]
+        },
+        {
+          "file": "tests/register-pending-photos-ready.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-approve-photos-ready]",
+            "isRegisterPendingPhotosReady"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fit-pre-photo-verify-keywords",
+      "tier": ["prebuild", "ci"],
+      "summary": "자유여행 검증은 일정·키워드 공란이면 실패",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-pre-photo-verify-keywords]",
+            "fit_keyword_empty",
+            "fitScheduleIssues"
+          ]
+        },
+        {
+          "file": "tests/register-admin-lane.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-pre-photo-verify-keywords]",
+            "fit_keyword_empty",
+            "schedule_empty"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fit-itinerary-pending-backfill",
+      "tier": ["prebuild", "ci"],
+      "summary": "Fit 마스터 백필은 pending·registered 모두, 시간당 상한",
+      "checks": [
+        {
+          "file": "lib/instrumentation-fit-itinerary-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-itinerary-pending-backfill]",
+            "registrationStatus: 'pending'",
+            "BACKFILL_TAKE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fit-public-schedule-fallback",
+      "tier": ["prebuild", "ci"],
+      "summary": "공개 자유여행 상세 — Fit 마스터 없으면 product.schedule 표시",
+      "checks": [
+        {
+          "file": "lib/product-public-detail/render-from-model.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-public-schedule-fallback]",
+            "ItineraryViewLazy"
+          ]
+        },
+        {
+          "file": "components/itinerary/ItineraryView.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-public-schedule-fallback]",
+            "예시 일정이 준비되는 동안"
+          ]
+        }
       ]
     }
   ],

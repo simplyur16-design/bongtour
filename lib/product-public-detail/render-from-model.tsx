@@ -89,6 +89,7 @@ export function renderProductDetailFromModel(
           ) : null}
           <Header />
           <ItineraryViewLazy
+            // REGRESSION-FREEZE[fit-public-schedule-fallback]: Fit 마스터 없으면 schedule 표시 — manifest
             mode="example"
             master={airModel.masterArg}
             travelCoreInfo={{

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
+import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { adminProductJsonWithPromotionRef } from '@/lib/admin-product-reference-prices'
@@ -487,9 +488,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       const allowed = ['pending', 'registered', 'on_hold', 'rejected'] as const
       data.registrationStatus = typeof v === 'string' && allowed.includes(v as (typeof allowed)[number]) ? v : null
       if (data.registrationStatus === 'registered') {
-        const [departureCount, itineraryDayCount] = await Promise.all([
+        // REGRESSION-FREEZE[pending-approve-photos-ready]: registered 전 photosReady — manifest
+        const [departureCount, itineraryDayCount, photoRow] = await Promise.all([
           prisma.productDeparture.count({ where: { productId: id } }),
           prisma.itineraryDay.count({ where: { productId: id } }),
+          prisma.product.findUnique({
+            where: { id },
+            select: { bgImageUrl: true, schedule: true },
+          }),
         ])
         if (departureCount === 0 || itineraryDayCount === 0) {
           return NextResponse.json(
@@ -502,6 +508,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               },
             },
             { status: 400 }
+          )
+        }
+        const bodyCover =
+          typeof body.primaryImageUrl === 'string' ? String(body.primaryImageUrl).trim() : ''
+        const nextBg =
+          typeof data.bgImageUrl === 'string' && data.bgImageUrl.trim()
+            ? data.bgImageUrl
+            : bodyCover || photoRow?.bgImageUrl
+        const nextSchedule =
+          typeof data.schedule === 'string' ? data.schedule : photoRow?.schedule
+        if (!isRegisterPendingPhotosReady(nextBg, nextSchedule)) {
+          return NextResponse.json(
+            {
+              error: '등록 확정 전 대표 이미지와 일정 일차 사진을 모두 넣어야 합니다. 등록중 상태로 두세요.',
+              missing: { photosReady: true },
+            },
+            { status: 400 },
           )
         }
         data.autoUnpublishedAt = null

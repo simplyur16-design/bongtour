@@ -31,6 +31,7 @@ import {
 } from '@/lib/admin-manual-primary-hero-upload'
 import { suggestAdminPendingSecondaryClassification } from '@/lib/admin-pending-secondary-classification-suggest'
 import { composeScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
+import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -54,6 +55,12 @@ type PendingItem = {
   duration: string | null
   updatedAt: string
   photosReady: boolean
+  registerLane?: 'package' | 'air_hotel_free' | 'theme' | null
+  registerLaneLabel?: string | null
+  prePhotoVerified?: boolean
+  prePhotoReadyForOperator?: boolean
+  prePhotoParserFixRequired?: boolean
+  prePhotoIssues?: string[]
 }
 
 type StructuredSignalsPreview = {
@@ -1116,9 +1123,11 @@ export default function AdminPendingDetailPanel({
     destination: detail.destination,
     duration: detail.duration,
     updatedAt: detail.updatedAt,
-    photosReady: !!detail.bgImageUrl,
+    photosReady: isRegisterPendingPhotosReady(detail.bgImageUrl, detail.schedule),
   }
-  const canApprove = departureRows.length > 0 && itineraryDayRows.length > 0
+  // REGRESSION-FREEZE[pending-approve-photos-ready]: canApprove photosReady — manifest
+  const photosReady = isRegisterPendingPhotosReady(detail.bgImageUrl, detail.schedule)
+  const canApprove = departureRows.length > 0 && itineraryDayRows.length > 0 && photosReady
 
   const handleResyncDepartures = async () => {
     if (!detail) return
@@ -1730,10 +1739,31 @@ export default function AdminPendingDetailPanel({
             <span className="text-bt-subtle">원본 URL 없음</span>
           )}
         </p>
-        <p className="mt-2">
+        <p className="mt-2 flex flex-wrap items-center gap-2">
+          {item.registerLaneLabel ? (
+            <AdminStatusBadge variant="consulting" label={item.registerLaneLabel} />
+          ) : null}
           <AdminStatusBadge
-            variant={item.photosReady ? 'registered' : 'pending_image'}
-            label={item.photosReady ? '사진 완료' : '이미지 수급'}
+            variant={
+              item.prePhotoVerified
+                ? 'pending_review'
+                : item.prePhotoIssues && item.prePhotoIssues.length > 0
+                  ? 'error'
+                  : 'pending'
+            }
+            label={
+              item.prePhotoVerified
+                ? '검증 완료 · 사진 등록 가능'
+                : item.prePhotoParserFixRequired
+                  ? '파서 수정 필요 · 등록대기만'
+                  : item.prePhotoIssues && item.prePhotoIssues.length > 0
+                    ? '검증 실패'
+                    : '등록대기'
+            }
+          />
+          <AdminStatusBadge
+            variant={photosReady ? 'registered' : 'pending_image'}
+            label={photosReady ? '사진 완료' : '이미지 수급'}
           />
         </p>
       </section>
@@ -1845,7 +1875,7 @@ export default function AdminPendingDetailPanel({
             ) : null}
             {!canApprove && (
               <p className="mt-2 text-xs text-bt-danger">
-                등록 확정 전, 출발일 가격/상태(ProductDeparture)와 원문 일정표(ItineraryDay)가 먼저 수집되어야 합니다.
+                등록 확정 전 대표·일정 사진을 고르고, 출발일 가격/상태(ProductDeparture)와 원문 일정표(ItineraryDay)가 수집되어야 합니다.
               </p>
             )}
             {canApprove && (
@@ -3124,7 +3154,7 @@ export default function AdminPendingDetailPanel({
               disabled={isRegistering || !canApprove}
               className="rounded-lg bg-bt-cta-primary px-4 py-2.5 text-sm font-medium text-bt-cta-primary-fg hover:bg-bt-cta-primary-hover disabled:opacity-50"
             >
-              {isRegistering ? '처리 중…' : !canApprove ? '수집 완료 후 승인 가능' : '승인'}
+              {isRegistering ? '처리 중…' : !canApprove ? '사진·수집 완료 후 승인 가능' : '승인'}
             </button>
             <button
               type="button"

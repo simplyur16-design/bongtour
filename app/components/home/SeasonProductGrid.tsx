@@ -26,6 +26,7 @@ export default async function SeasonProductGrid() {
           시즌 연결 상품
         </h2>
         <div className="mt-6">
+          {/* REGRESSION-FREEZE[overseas-hub-package-fit-split]: 시즌 그리드 패키지/자유여행 뱃지 — manifest */}
           <ProductResultCardsClient items={items} layout="grid" />
         </div>
       </div>

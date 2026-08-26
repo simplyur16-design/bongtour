@@ -12,9 +12,18 @@ function parseBrowseTypeForWhere(raw: string | null): typeof AIR_HOTEL_BROWSE_TY
   return parseAirHotelBrowseTypeParam(raw)
 }
 
+const AIR_HOTEL_PRODUCT_TYPE_WHERE = [
+  AIR_HOTEL_PRODUCT_TYPE,
+  'airtel',
+  'air-tel',
+  'air_hotel',
+] as const
+
 /**
  * browse `findMany` — listingKind·허브 슬라이스를 DB where로 push-down.
- * 국내 허브 기본 목록은 air_hotel_free 제외. 해외 허브는 패키지·자유여행 통합 노출.
+ * 국내 허브 기본 목록은 air_hotel_free 제외.
+ * 해외 허브: type 없으면 패키지+자유여행. type=travel 패키지, type=air-hotel 자유여행.
+ * REGRESSION-FREEZE[overseas-hub-package-fit-split]: type=travel 패키지 슬라이스 — manifest
  */
 export function prismaWhereClausesForBrowseListingSlice(input: {
   scope: string | null
@@ -27,8 +36,9 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
   const clauses: Prisma.ProductWhereInput[] = [{ NOT: { listingKind: 'overseas_training' } }]
 
   const categoryFlag = input.airHotelCategory ?? input.airtelCategory ?? false
+  const browseType = parseBrowseTypeForWhere(input.typeParam)
   const wantsAirHotelHubSlice =
-    parseBrowseTypeForWhere(input.typeParam) === AIR_HOTEL_BROWSE_TYPE ||
+    browseType === AIR_HOTEL_BROWSE_TYPE ||
     categoryFlag ||
     input.listingKindParsed === AIR_HOTEL_LISTING_KIND ||
     (input.typeParam != null && isAirHotelBrowseCategoryToken(input.typeParam))
@@ -42,6 +52,18 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
         { productType: 'air-tel' },
         { productType: 'air_hotel' },
       ],
+    })
+    return clauses
+  }
+
+  if (browseType === 'travel') {
+    clauses.push({
+      NOT: {
+        OR: [
+          { listingKind: AIR_HOTEL_LISTING_KIND },
+          { productType: { in: [...AIR_HOTEL_PRODUCT_TYPE_WHERE] } },
+        ],
+      },
     })
     return clauses
   }

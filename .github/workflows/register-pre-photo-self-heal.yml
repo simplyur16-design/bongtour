@@ -1,0 +1,48 @@
+name: register-pre-photo-self-heal
+
+on:
+  schedule:
+    - cron: '30 21 * * *'
+  workflow_dispatch:
+
+jobs:
+  register-pre-photo-self-heal:
+    name: Heal pending keywords and schedules
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Ping register-pre-photo-self-heal endpoint
+        env:
+          BONGTOUR_CRON_SECRET: ${{ secrets.BONGTOUR_CRON_SECRET }}
+        run: |
+          if [ -z "$BONGTOUR_CRON_SECRET" ]; then
+            echo "::error::GitHub secret BONGTOUR_CRON_SECRET is empty"
+            exit 1
+          fi
+
+          response=$(curl -sS \
+            -X POST \
+            -H "x-bongtour-cron-secret: $BONGTOUR_CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            --max-time 120 \
+            "https://bongtour.com/api/cron/register-pre-photo-self-heal")
+
+          status=$(echo "$response" | tail -n 1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "HTTP Status: $status"
+          echo "Response Body: $body"
+
+          if [ "$status" = "401" ]; then
+            echo "::error::unauthorized — GitHub BONGTOUR_CRON_SECRET must match production BONGTOUR_CRON_SECRET"
+            exit 1
+          fi
+
+          if [ "$status" -ne 200 ]; then
+            echo "::error::register-pre-photo-self-heal failed with status $status"
+            exit 1
+          fi
+
+          echo "::notice::register-pre-photo-self-heal succeeded"

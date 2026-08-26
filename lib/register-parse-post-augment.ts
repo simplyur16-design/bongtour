@@ -4,6 +4,8 @@
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: routeText·description vibe SSOT — manifest
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview/confirm Gemini 보조 — manifest
  * REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]: preview+confirm skip wipe when middle filled — manifest
+ * REGRESSION-FREEZE[register-pre-photo-self-heal]: skip/apply 후 파라도르·중복 문장 셀프힐 — manifest
+ * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지 레인만 키워드 파이프 — manifest
  */
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import {
@@ -25,6 +27,7 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { healRegisterPrePhotoSchedule } from '@/lib/register-pre-photo-self-heal'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
   travelScope: string
@@ -114,6 +117,7 @@ async function applyPackagePostAugmentScheduleKeywords(
   const skipKeywordPipeline =
     middleFilled &&
     (opts.mode === 'preview' || (opts.mode === 'confirm' && opts.hasPersistedParsed))
+  const dest = parsed.primaryDestination ?? parsed.destination ?? null
   if (skipKeywordPipeline) {
     if (opts.logPrefix && process.env.DEV_REGISTER_PERF_LOG === '1') {
       console.info(`[${opts.logPrefix}] skip-keyword-pipeline-when-filled`, {
@@ -126,13 +130,18 @@ async function applyPackagePostAugmentScheduleKeywords(
         })),
       })
     }
+    const healedSkip = healRegisterPrePhotoSchedule(schedule, {
+      supplierKey,
+      productDestination: dest,
+      productTitle: parsed.title ?? null,
+      lane: 'package',
+    })
     return {
       ...parsed,
-      schedule: ensurePackageScheduleLastDayGateCompliance(schedule),
+      schedule: ensurePackageScheduleLastDayGateCompliance(healedSkip.rows),
     }
   }
 
-  const dest = parsed.primaryDestination ?? parsed.destination ?? null
   const allocated = applyRegisterScheduleImageKeywordsBySupplier(
     schedule.map(normalizeScheduleRouteRowForImageKeyword),
     {
@@ -170,9 +179,15 @@ async function applyPackagePostAugmentScheduleKeywords(
   })
   const deduped = enforceRegisterScheduleTripUniqueImageKeywords(stripped)
   const edged = ensureDepartureReturnVisitCityKeywords(deduped, effectiveDest)
+  const healed = healRegisterPrePhotoSchedule(edged, {
+    supplierKey,
+    productDestination: dest,
+    productTitle: parsed.title ?? null,
+    lane: 'package',
+  })
   return {
     ...parsed,
-    schedule: ensurePackageScheduleLastDayGateCompliance(edged),
+    schedule: ensurePackageScheduleLastDayGateCompliance(healed.rows),
   }
 }
 

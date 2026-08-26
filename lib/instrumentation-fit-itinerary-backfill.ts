@@ -4,12 +4,14 @@
  *
  * production + DATABASE_URL + GEMINI_API_KEY (`instrumentation.ts` 가드).
  * 비활성화: `DISABLE_INSTRUMENTATION_FIT_ITINERARY_BACKFILL_CRON=1`
+ * REGRESSION-FREEZE[fit-itinerary-pending-backfill]: pending도 Fit 마스터 백필 — manifest
  */
 import { AIR_HOTEL_LISTING_KIND, AIR_HOTEL_PRODUCT_TYPE } from '@/lib/air-hotel-product-ssot'
 import { generateFitItineraryForProduct } from '@/lib/fit-itinerary-generate-for-product'
 
 const CRON_EXPR = '0 * * * *'
 const INTER_MS = 1500
+const BACKFILL_TAKE = 20
 
 export function startInstrumentationFitItineraryBackfillCron(): void {
   if (process.env.DISABLE_INSTRUMENTATION_FIT_ITINERARY_BACKFILL_CRON === '1') {
@@ -47,17 +49,29 @@ async function runFitItineraryBackfillOnBoot(): Promise<void> {
     const { prisma } = await import('@/lib/prisma')
     const targets = await prisma.product.findMany({
       where: {
-        registrationStatus: 'registered',
         travelScope: 'overseas',
-        OR: [
-          { productType: AIR_HOTEL_PRODUCT_TYPE },
-          { productType: 'airtel' },
-          { listingKind: AIR_HOTEL_LISTING_KIND },
-        ],
         fitMaster: null,
+        AND: [
+          {
+            OR: [
+              { registrationStatus: 'registered' },
+              { registrationStatus: 'pending' },
+              { registrationStatus: '' },
+              { registrationStatus: null },
+            ],
+          },
+          {
+            OR: [
+              { productType: AIR_HOTEL_PRODUCT_TYPE },
+              { productType: 'airtel' },
+              { listingKind: AIR_HOTEL_LISTING_KIND },
+            ],
+          },
+        ],
       },
       select: { id: true, slug: true },
       orderBy: { createdAt: 'asc' },
+      take: BACKFILL_TAKE,
     })
 
     if (targets.length === 0) {

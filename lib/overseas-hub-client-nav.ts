@@ -85,6 +85,12 @@ export function navigateOverseasHubRegionClient(href: string): boolean {
   if (!shouldUseOverseasHubClientNav(href)) return false
   const url = parseHubHref(href)
   if (!url) return false
+  if (typeof window !== 'undefined') {
+    const currentType = (new URLSearchParams(window.location.search).get('type') ?? '').trim()
+    if (currentType && !(url.searchParams.get('type') ?? '').trim()) {
+      url.searchParams.set('type', currentType)
+    }
+  }
   const qs = url.searchParams.toString()
   const next = `${url.pathname}${url.search}`
   const current = `${window.location.pathname}${window.location.search}`

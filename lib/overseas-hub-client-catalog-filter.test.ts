@@ -154,3 +154,25 @@ describe('filterOverseasHubCatalogByUrl menuGroup', () => {
     expect(out.map((it) => it.id)).toEqual(['osaka'])
   })
 })
+
+describe('filterOverseasHubCatalogByUrl travel type', () => {
+  const items = [
+    { id: 'pkg', title: '오사카 패키지', listingKind: 'travel', productType: 'travel' },
+    { id: 'fit', title: '타이베이 에어텔', listingKind: 'air_hotel_free', productType: 'air-hotel' },
+  ] as ResultItem[]
+
+  it('type=travel keeps package only even without geo', () => {
+    const out = filterOverseasHubCatalogByUrl(items, new URLSearchParams('type=travel'))
+    expect(out.map((it) => it.id)).toEqual(['pkg'])
+  })
+
+  it('type=air-hotel keeps FIT only even without geo', () => {
+    const out = filterOverseasHubCatalogByUrl(items, new URLSearchParams('type=air-hotel'))
+    expect(out.map((it) => it.id)).toEqual(['fit'])
+  })
+
+  it('no type keeps package and FIT', () => {
+    const out = filterOverseasHubCatalogByUrl(items, new URLSearchParams(''))
+    expect(out.map((it) => it.id).sort()).toEqual(['fit', 'pkg'])
+  })
+})

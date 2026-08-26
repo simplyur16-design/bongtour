@@ -5,6 +5,7 @@ import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 /**
  * 우리끼리 + 공공·기업 안내 카드 (메인 PC 하단 진입).
+ * REGRESSION-FREEZE[home-private-trip-href]: /travel/overseas/private-trip — manifest
  */
 export default function ServiceInfoCards() {
   const privateImg = homeHubCardImageSrc('overseas', 'webp')
@@ -25,7 +26,7 @@ export default function ServiceInfoCards() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           <Link
-            href="/travel/overseas?scope=private-trip"
+            href="/travel/overseas/private-trip"
             className="group relative flex min-h-[16rem] flex-col overflow-hidden rounded-2xl border border-bt-border-soft/80 shadow-md transition hover:ring-2 hover:ring-bt-text-navy/15 sm:min-h-[18rem]"
           >
             <div className="absolute inset-0 z-0">

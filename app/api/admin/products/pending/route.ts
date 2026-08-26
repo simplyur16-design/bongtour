@@ -2,22 +2,21 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
-import { getScheduleFromProduct } from '@/lib/schedule-from-product'
-import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
-
-/** schedule JSON에서 이미지 미보유 여부: 항목 중 하나라도 imageUrl 없으면 true */
-function scheduleNeedsImages(schedule: string | null): boolean {
-  if (!schedule || typeof schedule !== 'string') return false
-  const rows = getScheduleFromProduct({ schedule })
-  if (rows.length === 0) return false
-  return rows.some((row) => !getFinalScheduleDayImageUrl(row))
-}
+import { resolveRegisterAdminLane, registerAdminLaneLabel } from '@/lib/register-admin-lane'
+import {
+  readRegisterPrePhotoStampFromRawMeta,
+  scheduleRowsForPrePhotoVerify,
+  verifyRegisterPrePhoto,
+} from '@/lib/register-pre-photo-verify'
+import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 
 /**
  * GET /api/admin/products/pending
  * 등록대기 리스트: registrationStatus가 'pending'이거나 null/빈 문자열인 상품만.
  * on_hold(보류), rejected(반려)는 제외.
  * photosReady: 메인 이미지 + 일정 이미지가 모두 있으면 true.
+ * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 레인·검증 배지 — manifest
+ * REGRESSION-FREEZE[pending-approve-photos-ready]: photosReady SSOT — manifest
  */
 export async function GET() {
   const admin = await requireAdmin()
@@ -45,6 +44,10 @@ export async function GET() {
         schedule: true,
         primaryRegion: true,
         displayCategory: true,
+        listingKind: true,
+        productType: true,
+        sportsThemeTag: true,
+        rawMeta: true,
       },
     })
     const rows = list.map((p) => {
@@ -52,6 +55,20 @@ export async function GET() {
         brandKey: p.brand?.brandKey ?? null,
         originSource: p.originSource,
       })
+      const lane = resolveRegisterAdminLane({
+        listingKind: p.listingKind,
+        productType: p.productType,
+        sportsThemeTag: p.sportsThemeTag,
+      })
+      const live = verifyRegisterPrePhoto({
+        lane,
+        listingKind: p.listingKind,
+        productType: p.productType,
+        sportsThemeTag: p.sportsThemeTag,
+        rows: scheduleRowsForPrePhotoVerify(p.schedule),
+      })
+      const stamp = readRegisterPrePhotoStampFromRawMeta(p.rawMeta)
+      const prePhotoVerified = live.ok
       return {
       id: p.id,
       originCode: p.originCode,
@@ -62,9 +79,16 @@ export async function GET() {
       destination: p.destination,
       duration: p.duration,
       updatedAt: p.updatedAt,
-      photosReady: !!p.bgImageUrl && !scheduleNeedsImages(p.schedule),
+      photosReady: isRegisterPendingPhotosReady(p.bgImageUrl, p.schedule),
       primaryRegion: p.primaryRegion ?? null,
       displayCategory: p.displayCategory ?? null,
+      registerLane: lane,
+      registerLaneLabel: registerAdminLaneLabel(lane),
+      prePhotoVerified,
+      prePhotoReadyForOperator: live.readyForOperatorPhoto,
+      prePhotoParserFixRequired: live.parserFixRequired,
+      prePhotoIssues: live.issues,
+      prePhotoVerifiedAt: stamp?.verifiedAt ?? null,
     }
     })
     return NextResponse.json(rows)

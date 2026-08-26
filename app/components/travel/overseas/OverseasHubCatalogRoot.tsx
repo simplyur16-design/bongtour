@@ -1,8 +1,13 @@
 'use client'
 
 import OverseasHubCatalogGallery from '@/app/components/travel/overseas/OverseasHubCatalogGallery'
+import OverseasHubTravelTypeChips from '@/app/components/travel/overseas/OverseasHubTravelTypeChips'
 import type { ResultItem } from '@/components/products/ProductResultsList'
-import { filterOverseasHubCatalogByUrl } from '@/lib/overseas-hub-client-catalog-filter'
+import {
+  filterOverseasHubCatalogByTravelType,
+  filterOverseasHubCatalogByUrl,
+  parseOverseasHubTravelType,
+} from '@/lib/overseas-hub-client-catalog-filter'
 import {
   buildOverseasHubCatalogSectionsForUrl,
   type OverseasHubCatalogSection,
@@ -136,11 +141,13 @@ export default function OverseasHubCatalogRoot({
       if (cancelled) return
       const sp = new URLSearchParams(searchParamsString)
       // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: server geo items skip client re-filter — manifest
-      // 서버가 이미 ProductCountryTag/ProductCityTag WHERE로 좁힌 목록을 클라이언트 menuGroup이 다시 비우면
-      // 「선택한 조건에 맞는 상품이 없습니다」가 난다.
-      const filtered = overseasHubUrlNeedsServerGeoFetch(sp)
+      // REGRESSION-FREEZE[overseas-hub-package-fit-split]: geo fetch 후에도 type 슬라이스 — manifest
+      const geoOrClient = overseasHubUrlNeedsServerGeoFetch(sp)
         ? catalogItems
         : filterOverseasHubCatalogByUrl(catalogItems, sp)
+      const filtered = overseasHubUrlNeedsServerGeoFetch(sp)
+        ? filterOverseasHubCatalogByTravelType(geoOrClient, parseOverseasHubTravelType(sp))
+        : geoOrClient
       const built = buildOverseasHubCatalogSectionsForUrl(filtered, sp)
       sectionsCacheRef.current.set(cacheKey, built)
       setSections(built)
@@ -195,6 +202,7 @@ export default function OverseasHubCatalogRoot({
           {sectionsBusy && sections.length === 0 ? (
             <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
           ) : null}
+          <OverseasHubTravelTypeChips />
           <OverseasHubCatalogGallery
             sections={sections}
             rotationSeed={rotationSeedRef.current}

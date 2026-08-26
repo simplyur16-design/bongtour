@@ -1,4 +1,5 @@
 'use client'
+// REGRESSION-FREEZE[fit-public-schedule-fallback]: Fit 마스터 없으면 schedule 표시 — manifest
 
 import Link from 'next/link'
 import { useState, useEffect, useRef, useMemo } from 'react'
@@ -592,7 +593,7 @@ export function ItineraryView({
         <div className="space-y-12 min-w-0">
           {mode === 'example' && (
             <div id="fit-itinerary-example" className="scroll-mt-24">
-          {!master && (
+          {!master && !(product.schedule && product.schedule.length > 0) && (
             <div>
               <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
                 예시 일정 안내
@@ -612,6 +613,14 @@ export function ItineraryView({
             </div>
           )}
 
+          {!master && product.schedule && product.schedule.length > 0 && (
+            <div className="mb-6 rounded-2xl bg-[#FAEED4]/60 border border-[#d9a81e]/30 px-6 py-5">
+              <p className="text-center text-sm md:text-base fit-tx-primary leading-relaxed">
+                예시 일정이 준비되는 동안 <strong className="fit-tx-gold">상품 일정</strong>을 안내합니다.
+              </p>
+            </div>
+          )}
+
           {master && mode === 'example' && (
             <>
               <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
@@ -628,7 +637,7 @@ export function ItineraryView({
           )}
 
           {!master ? (
-            mode === 'package' && product.schedule && product.schedule.length > 0 ? (
+            product.schedule && product.schedule.length > 0 ? (
               <div className="space-y-10">
                 {product.schedule.map((day, idx) => {
                   const lastDay =

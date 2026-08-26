@@ -24,12 +24,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: '해외여행 상품',
     description:
-      '해외 패키지 상품을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있으며, 예약·상담은 문의를 통해 안내됩니다.',
+      '해외 패키지와 자유여행(항공+호텔)을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있으며, 예약·상담은 문의를 통해 안내됩니다.',
     alternates: { canonical: '/travel/overseas' },
     openGraph: {
       title: `해외여행 | ${SITE_NAME}`,
       description:
-        '해외 패키지 상품을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있습니다.',
+        '해외 패키지와 자유여행을 지역·조건에 맞게 찾아보세요. 출발 일정과 안내는 상품별로 확인할 수 있습니다.',
       url: '/travel/overseas',
       type: 'website',
       images,

@@ -106,6 +106,10 @@ export async function register() {
           console.log(
             '[supplier-sweep-cron] web-fallback: worker 없음 — 6공급사 일 1회 API sweep을 web에 등록 (worker 추가 시 web에 DISABLE_WEB_SUPPLIER_SWEEP_CRON=1)',
           )
+          const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
+            '@/lib/instrumentation-register-pre-photo-self-heal-cron'
+          )
+          startInstrumentationRegisterPrePhotoSelfHealCron()
         }
       }
     }
@@ -129,6 +133,10 @@ export async function register() {
       startInstrumentationCouponCron()
       const { registerSupplierSweepCrons } = await import('@/lib/instrumentation-supplier-sweep-crontab')
       await registerSupplierSweepCrons()
+      const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
+        '@/lib/instrumentation-register-pre-photo-self-heal-cron'
+      )
+      startInstrumentationRegisterPrePhotoSelfHealCron()
       const { startInstrumentationMonthlyPublishCron } = await import(
         '@/lib/instrumentation-monthly-publish-cron'
       )

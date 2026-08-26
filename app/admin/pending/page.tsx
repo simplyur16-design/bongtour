@@ -27,6 +27,12 @@ type PendingItem = {
   photosReady: boolean
   primaryRegion: string | null
   displayCategory: string | null
+  registerLane?: 'package' | 'air_hotel_free' | 'theme' | null
+  registerLaneLabel?: string | null
+  prePhotoVerified?: boolean
+  prePhotoReadyForOperator?: boolean
+  prePhotoParserFixRequired?: boolean
+  prePhotoIssues?: string[]
 }
 
 /** 목록 API 실패 UX용 (401/403은 API 문구 대신 전용 안내) */
@@ -183,6 +189,8 @@ export default function AdminPendingPage() {
   }
 
   const imageNeededCount = list.filter((p) => !p.photosReady).length
+  // REGRESSION-FREEZE[pending-approve-photos-ready]: 승인 가능 = photosReady — manifest
+  const approveReadyCount = list.filter((p) => p.photosReady).length
 
   return (
     <div className="min-h-screen bg-bt-page p-6">
@@ -221,7 +229,7 @@ export default function AdminPendingPage() {
           <section className="mb-8 grid gap-4 sm:grid-cols-3">
             <AdminKpiCard label="등록대기" value={`${list.length}건`} tone={list.length === 0 ? 'muted' : 'default'} />
             <AdminKpiCard label="이미지 필요" value={`${imageNeededCount}건`} tone="muted" />
-            <AdminKpiCard label="승인 가능" value={`${list.length}건`} tone="muted" />
+            <AdminKpiCard label="승인 가능" value={`${approveReadyCount}건`} tone="muted" />
           </section>
         )}
 
@@ -361,7 +369,28 @@ export default function AdminPendingPage() {
                           {[item.primaryRegion, item.displayCategory].filter(Boolean).join(' · ')}
                         </p>
                       )}
-                      <p className="mt-1.5 flex items-center gap-2">
+                      <p className="mt-1.5 flex flex-wrap items-center gap-2">
+                        {item.registerLaneLabel ? (
+                          <AdminStatusBadge variant="consulting" label={item.registerLaneLabel} />
+                        ) : null}
+                        <AdminStatusBadge
+                          variant={
+                            item.prePhotoVerified
+                              ? 'pending_review'
+                              : item.prePhotoIssues && item.prePhotoIssues.length > 0
+                                ? 'error'
+                                : 'pending'
+                          }
+                          label={
+                            item.prePhotoVerified
+                              ? '검증 완료'
+                              : item.prePhotoParserFixRequired
+                                ? '파서 수정 필요'
+                                : item.prePhotoIssues && item.prePhotoIssues.length > 0
+                                  ? '검증 실패'
+                                  : '등록대기'
+                          }
+                        />
                         <AdminStatusBadge
                           variant={item.photosReady ? 'registered' : 'pending_image'}
                           label={item.photosReady ? '사진 완료' : '이미지 수급'}

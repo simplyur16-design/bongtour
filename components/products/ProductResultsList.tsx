@@ -28,6 +28,7 @@ import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-im
 import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
 import {
   AIR_HOTEL_REGION_SECTION_ORDER,
@@ -699,6 +700,10 @@ export function ProductResultCard({
 }) {
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
+  const laneLabel = isAirHotelProduct({ listingKind: item.listingKind, productType: item.productType })
+    ? '자유여행'
+    : '패키지'
+  // REGRESSION-FREEZE[overseas-hub-package-fit-split]: 카드 패키지/자유여행 뱃지 — manifest
 
   const preview = productDetailCardPreviewFromResultItem(item, formatWon)
 
@@ -816,6 +821,17 @@ export function ProductResultCard({
           >
             {item.title}
           </h2>
+          <span
+            className={
+              hubSquareSmall
+                ? 'mt-0.5 inline-block shrink-0 rounded-full bg-slate-100 px-1 py-px text-[8px] text-slate-600'
+                : compact
+                  ? 'mt-0.5 inline-block shrink-0 rounded-full bg-slate-100 px-1.5 py-px text-[9px] text-slate-600'
+                  : 'shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600'
+            }
+          >
+            {laneLabel}
+          </span>
           {seasonalPickBadge ? (
             <span
               className={
