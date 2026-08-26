@@ -224,9 +224,9 @@ export async function sweepDueKyowontourProducts(
           await prisma.product.update({
             where: { id: product.id },
             data: {
-              noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt ?? now,
+              noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt,
               lastFutureDepartureDate: markers.lastFutureDepartureDate,
-              priceFrom: null,
+              ...(markers.marked ? { priceFrom: null } : {}),
               lastSalesPolicyCheckedAt: now,
               rawMeta: clearKyowontourPriceRecheckFromRawMeta(product.rawMeta),
             },

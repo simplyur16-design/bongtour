@@ -369,7 +369,7 @@ export async function sweepDueModetourProducts(
             registrationStatus: 'auto_unpublished',
             autoUnpublishedReason: MODETOUR_SD1_AUTO_UNPUBLISH_REASON,
             autoUnpublishedAt: now,
-            noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt ?? now,
+            noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt,
             lastFutureDepartureDate: markers.lastFutureDepartureDate,
             lastSalesPolicyCheckedAt: now,
             rawMeta: clearModetourPriceRecheckFromRawMeta(product.rawMeta),

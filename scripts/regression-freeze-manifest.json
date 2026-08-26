@@ -6714,6 +6714,46 @@
       ]
     },
     {
+      "id": "sweep-sold-out-honor-db-future-guard",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "horizon sold-out 시 DB 미래 출발 가드 결과를 ?? now 로 덮어 마커·priceFrom 강제 금지",
+      "checks": [
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
+            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt"
+          ],
+          "mustNotInclude": [
+            "markers.noFutureDepartureConfirmedAt ?? now"
+          ]
+        },
+        {
+          "file": "lib/ybtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
+            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt"
+          ],
+          "mustNotInclude": [
+            "markers.noFutureDepartureConfirmedAt ?? now"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
+            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt"
+          ],
+          "mustNotInclude": [
+            "markers.noFutureDepartureConfirmedAt ?? now"
+          ]
+        }
+      ]
+    },
+    {
       "id": "ybtour-sweep-e2e-recheck",
       "tier": [
         "prebuild",

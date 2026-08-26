@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[hanatour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest
  * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
+ * REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]: sold-out 마커는 DB 가드 존중 — manifest
  */
 import type { PrismaClient } from '@prisma/client'
 
@@ -314,9 +315,9 @@ export async function sweepDueHanatourProducts(
           await prisma.product.update({
             where: { id: product.id },
             data: {
-              noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt ?? now,
+              noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt,
               lastFutureDepartureDate: markers.lastFutureDepartureDate,
-              priceFrom: null,
+              ...(markers.marked ? { priceFrom: null } : {}),
               lastSalesPolicyCheckedAt: now,
               rawMeta: clearHanatourPriceRecheckFromRawMeta(product.rawMeta),
             },
