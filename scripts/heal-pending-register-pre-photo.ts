@@ -6,6 +6,8 @@ const dryRun = process.argv.includes('--dry-run')
 const probe = !process.argv.includes('--no-probe')
 const ingest = process.argv.includes('--ingest')
 
+console.error('[register-pre-photo-daily] boot', { ingest, dryRun, probe, pid: process.pid })
+
 if (ingest) {
   runRegisterPrePhotoDailyJob({ dryRun, probeImageUrls: probe })
     .then((result) => {

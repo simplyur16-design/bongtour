@@ -33,6 +33,7 @@ import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing
 import { resolveHanatourAdminE2eMonthsForward, departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { syncSupplierUrgentDealForProduct } from '@/lib/supplier-urgent-deal'
 import {
+  horizonSoldOutPriceFromPatch,
   supplierDailySweepDueCutoff,
   supplierDailySweepDueOr,
   supplierDailySweepDueOrderBy,
@@ -317,7 +318,7 @@ export async function sweepDueHanatourProducts(
             data: {
               noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt,
               lastFutureDepartureDate: markers.lastFutureDepartureDate,
-              ...(markers.marked ? { priceFrom: null } : {}),
+              ...(horizonSoldOutPriceFromPatch(markers)),
               lastSalesPolicyCheckedAt: now,
               rawMeta: clearHanatourPriceRecheckFromRawMeta(product.rawMeta),
             },

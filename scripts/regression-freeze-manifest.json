@@ -6722,10 +6722,18 @@
       "summary": "horizon sold-out 시 DB 미래 출발 가드 결과를 ?? now 로 덮어 마커·priceFrom 강제 금지",
       "checks": [
         {
+          "file": "lib/supplier-daily-sweep-due.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
+            "horizonSoldOutPriceFromPatch"
+          ]
+        },
+        {
           "file": "lib/hanatour-sweep.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
-            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt"
+            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt",
+            "horizonSoldOutPriceFromPatch"
           ],
           "mustNotInclude": [
             "markers.noFutureDepartureConfirmedAt ?? now"
@@ -6735,7 +6743,8 @@
           "file": "lib/ybtour-sweep.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
-            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt"
+            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt",
+            "horizonSoldOutPriceFromPatch"
           ],
           "mustNotInclude": [
             "markers.noFutureDepartureConfirmedAt ?? now"
@@ -6745,12 +6754,17 @@
           "file": "lib/verygoodtour-sweep.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]",
-            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt"
+            "noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt",
+            "horizonSoldOutPriceFromPatch"
           ],
           "mustNotInclude": [
             "markers.noFutureDepartureConfirmedAt ?? now"
           ]
         }
+      ],
+      "vitestSuites": [
+        "lib/supplier-daily-sweep-due.test.ts",
+        "lib/verygoodtour-sweep.test.ts"
       ]
     },
     {

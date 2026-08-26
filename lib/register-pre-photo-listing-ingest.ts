@@ -135,6 +135,11 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
   }
 
   const slots = buildRegisterPrePhotoIngestGeoSlots(products)
+  console.error('[register-pre-photo-listing-ingest] start', {
+    products: products.length,
+    slots: slots.length,
+    dryRun,
+  })
 
   for (const slot of slots) {
     const supplier = asIngestSupplier(slot.supplier)

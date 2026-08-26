@@ -27,6 +27,7 @@ import {
 } from '@/lib/product-sales-policy'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import {
+  horizonSoldOutPriceFromPatch,
   supplierDailySweepDueCutoff,
   supplierDailySweepDueOr,
   supplierDailySweepDueOrderBy,
@@ -286,7 +287,7 @@ export async function sweepDueLottetourProducts(
             data: {
               noFutureDepartureConfirmedAt: markers.noFutureDepartureConfirmedAt,
               lastFutureDepartureDate: markers.lastFutureDepartureDate,
-              ...(markers.marked ? { priceFrom: null } : {}),
+              ...(horizonSoldOutPriceFromPatch(markers)),
               lastSalesPolicyCheckedAt: now,
               rawMeta: clearLottetourPriceRecheckFromRawMeta(product.rawMeta),
             },

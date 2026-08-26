@@ -20,3 +20,16 @@ export function supplierDailySweepDueOrderBy() {
     { id: 'asc' as const },
   ]
 }
+
+/**
+ * horizon sold-out 에서 priceFrom 을 비울지.
+ * `marked: false`(DB 미래 출발 가드)면 비우지 않는다.
+ * REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]: sold-out 마커는 DB 가드 존중 — manifest
+ */
+export function horizonSoldOutPriceFromPatch(markers: {
+  marked?: boolean
+  noFutureDepartureConfirmedAt: Date | null
+}): { priceFrom: null } | Record<string, never> {
+  const soldOut = markers.marked ?? markers.noFutureDepartureConfirmedAt != null
+  return soldOut ? { priceFrom: null } : {}
+}

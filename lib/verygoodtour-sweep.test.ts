@@ -72,6 +72,7 @@ describe('sweepDueVerygoodtourProducts horizonSoldOut', () => {
       warnings: ['detail_url_expired'],
     })
     vi.mocked(reconcileRuleAMarkersWithDbFutureDepartures).mockResolvedValueOnce({
+      marked: true,
       noFutureDepartureConfirmedAt: new Date('2026-06-19T00:00:00.000Z'),
       lastFutureDepartureDate: null,
     })
