@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]
+ * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 리세우·람브라스 세그먼트 — manifest
  */
 import { describe, expect, it } from 'vitest'
 import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
@@ -28,6 +29,8 @@ describe('schedule-segment-poi-oceania-japan-europe', () => {
     ['후지산', /Mount Fuji/i],
     ['콜로세움', /Colosseum/i],
     ['사그라다 파밀리아', /Sagrada Familia/i],
+    ['리세우 대극장', /Liceu/i],
+    ['람브라스 거리', /Rambla/i],
     ['스위스 알프스', /Swiss Alps/i],
     ['페트라', /Petra/i],
     ['마라케시', /Marrakech/i],

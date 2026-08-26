@@ -4187,7 +4187,9 @@
           "file": "tests/modetour-schedule-image-keyword.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-image-keyword-dual-slot]",
-            "Ba Na Hills"
+            "Ba Na Hills",
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "파라도르·L Auditori 누수 금지"
           ]
         },
         {
@@ -9608,7 +9610,10 @@
             "「거리가」≠ 리가 Riga",
             "몬세라트 수도원 Montserrat",
             "Iberia·남프랑스 ESP104 day-owned POI",
-            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai"
+            "홍콩 디즈니랜드 ≠ Tokyo/Shanghai",
+            "바르셀로나 일차 스팟",
+            "Gran Teatre del Liceu Barcelona",
+            "바르셀로나 도시허브≠Sagrada"
           ]
         },
         {
@@ -9688,7 +9693,9 @@
           "file": "lib/pexels-place-name-keyword.ts",
           "mustInclude": [
             "ATP223 Dihua Street≠bare Dihua",
-            "dihua street"
+            "dihua street",
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "parador"
           ]
         },
         {
@@ -9777,6 +9784,59 @@
         "lib/modetour-schedule-kk-amp7017-image-keyword.test.ts",
         "lib/modetour-schedule-sydney-pap100-image-keyword.test.ts",
         "lib/register-schedule-qingdao-cap104-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "modetour-barcelona-lim-recital-day-owned-poi",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 바르셀로나 리사이틀 — 일차 소유 POI, 파라도르·L'Auditori 누수 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "Gran Teatre del Liceu Barcelona",
+            "La Rambla Barcelona",
+            "바르셀로나 도시허브≠Sagrada"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "parador",
+            "정찬식"
+          ]
+        },
+        {
+          "file": "tests/modetour-schedule-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "파라도르·L Auditori 누수 금지"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "시체스·리세우·람브라스 당일 route 증거",
+            "liceu",
+            "rambla"
+          ]
+        },
+        {
+          "file": "lib/modetour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]",
+            "returnHomeNoForeignRoute"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:modetour-register-ssot-freeze"
       ]
     },
     {

@@ -2,6 +2,7 @@
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — modetour prebuild
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]
  * REGRESSION-FREEZE[modetour-register-ssot-freeze]: 북경 dual-slot·Forbidden City 차단 — manifest
+ * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 임윤찬 바르셀로나 리사이틀 일차 소유 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -735,6 +736,178 @@ describe('applyModetourScheduleImageKeywordsToRows — 북경 한글 routeText',
     assert.match(String(d2.imageKeyword2), /Venice|Grand/i)
     assert.match(String(d7.imageKeyword), /Assisi|Piazzale Michelangelo|Pompeii/i)
     assert.ok(String(d7.imageKeyword2 ?? '').trim().length >= 4)
+  })
+})
+
+describe('applyModetourScheduleImageKeywordsToRows — 바르셀로나 임윤찬 리사이틀 7일', () => {
+  it('시체스·리세우·람브라스·피카소 일차 소유 — 파라도르·L Auditori 누수 금지', () => {
+    const out = applyModetourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 1,
+          title: '1일차',
+          description: '인천에서 출발해 바르셀로나에서 도착합니다.',
+          routeText: '바르셀로나',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '2일차',
+          description: '시체스와 타라고나를 둘러봅니다.',
+          routeText: '시체스 - 타라고나 - 카탈루냐 - 시체스 해변 - Parador de Alcaniz (파라도르정찬식)',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '3일차',
+          description: '리세우 대극장',
+          routeText: '바르셀로나 - 리세우 대극장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '4일차',
+          description: '구엘공원',
+          routeText: '바르셀로나 - 구엘공원 - 사그라다 파밀리아 - 카사바뜨요 - 카사밀라 - L\'Auditori Barcelona (공연장)',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '5일차',
+          description: '람브라스 거리',
+          routeText: '바르셀로나 시내 (크리스마스 시즌) - 람브라스 거리',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 6,
+          title: '6일차',
+          description: '피카소 미술관',
+          routeText: '바르셀로나 - 몬주익 언덕 - 까탈루냐 음악당 - 피카소 미술관',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 7,
+          title: '7일차 귀국',
+          description: '체크아웃 후 인천으로 귀국합니다.',
+          routeText: '',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      { productDestination: '스페인', productTitle: '임윤찬 바르셀로나 리사이틀 관람 스페인 7일' },
+    )
+    const d2 = out.find((r) => r.day === 2)!
+    const d3 = out.find((r) => r.day === 3)!
+    const d4 = out.find((r) => r.day === 4)!
+    const d5 = out.find((r) => r.day === 5)!
+    const d6 = out.find((r) => r.day === 6)!
+    const d7 = out.find((r) => r.day === 7)!
+    assert.match(String(d2.imageKeyword), /Sitges/i)
+    assert.match(String(d2.imageKeyword2), /Tarragona|Sitges/i)
+    assert.doesNotMatch(String(d2.imageKeyword), /Parador|Alcaniz/i)
+    assert.doesNotMatch(String(d2.imageKeyword2), /Parador|Alcaniz/i)
+    assert.match(String(d3.imageKeyword), /Liceu/i)
+    assert.match(String(d4.imageKeyword), /Guell|Sagrada|Batllo|Mila|Pedrera/i)
+    assert.match(String(d4.imageKeyword2), /Guell|Sagrada|Batllo|Mila|Pedrera/i)
+    assert.notEqual(normLoose(String(d4.imageKeyword)), normLoose(String(d4.imageKeyword2)))
+    assert.match(String(d5.imageKeyword), /Rambla/i)
+    assert.match(String(d6.imageKeyword), /Montjuic|Picasso|Musica|Palau/i)
+    assert.match(String(d6.imageKeyword2), /Montjuic|Picasso|Musica|Palau/i)
+    assert.doesNotMatch(String(d6.imageKeyword), /Auditori/i)
+    assert.doesNotMatch(String(d6.imageKeyword2), /Auditori/i)
+    assert.equal(String(d7.imageKeyword ?? '').trim(), '')
+    assert.doesNotMatch(String(d7.imageKeyword ?? ''), /Palau|Auditori|Sagrada|Sitges|Parador/i)
+    assert.doesNotMatch(String(d7.imageKeyword2 ?? ''), /.+/)
+
+    const reg = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        {
+          day: 1,
+          title: '1일차',
+          description: '인천에서 출발해 바르셀로나에서 도착합니다.',
+          routeText: '바르셀로나',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '2일차',
+          description: '시체스와 타라고나를 둘러봅니다.',
+          routeText: '시체스 - 타라고나 - 카탈루냐 - 시체스 해변 - Parador de Alcaniz (파라도르정찬식)',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '3일차',
+          description: '리세우 대극장',
+          routeText: '바르셀로나 - 리세우 대극장',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 4,
+          title: '4일차',
+          description: '구엘공원',
+          routeText: "바르셀로나 - 구엘공원 - 사그라다 파밀리아 - 카사바뜨요 - 카사밀라 - L'Auditori Barcelona (공연장)",
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 5,
+          title: '5일차',
+          description: '람브라스 거리',
+          routeText: '바르셀로나 시내 (크리스마스 시즌) - 람브라스 거리',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 6,
+          title: '6일차',
+          description: '피카소 미술관',
+          routeText: '바르셀로나 - 몬주익 언덕 - 까탈루냐 음악당 - 피카소 미술관',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 7,
+          title: '7일차 귀국',
+          description: '체크아웃 후 인천으로 귀국합니다.',
+          routeText: '',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '스페인',
+        productTitle: '임윤찬 바르셀로나 리사이틀 관람 스페인 7일',
+      },
+    )
+    const r2 = reg.find((r) => r.day === 2)!
+    const r3 = reg.find((r) => r.day === 3)!
+    const r4 = reg.find((r) => r.day === 4)!
+    const r5 = reg.find((r) => r.day === 5)!
+    const r6 = reg.find((r) => r.day === 6)!
+    const r7 = reg.find((r) => r.day === 7)!
+    const blob = (row: { imageKeyword?: string | null; imageKeyword2?: string | null }) =>
+      `${String(row.imageKeyword ?? '')} | ${String(row.imageKeyword2 ?? '')}`
+    assert.match(blob(r2), /Sitges/i)
+    assert.match(blob(r2), /Tarragona/i)
+    assert.doesNotMatch(blob(r2), /Parador|Alcaniz/i)
+    assert.match(blob(r3), /Liceu/i)
+    assert.doesNotMatch(blob(r3), /Sitges|Tarragona|Parador|Auditori/i)
+    assert.match(blob(r4), /Guell|Sagrada|Batllo|Mila|Pedrera/i)
+    assert.match(String(r5.imageKeyword), /Rambla/i)
+    assert.match(blob(r6), /Montjuic|Picasso|Musica|Palau/i)
+    assert.doesNotMatch(blob(r6), /Auditori/i)
+    assert.doesNotMatch(blob(r7), /Palau|Auditori|Sagrada|Sitges|Parador/i)
   })
 })
 

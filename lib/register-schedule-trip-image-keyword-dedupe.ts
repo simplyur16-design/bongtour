@@ -1843,6 +1843,19 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   if (/sagrada|park guell|guell/.test(nk)) {
     return /사그라다|Sagrada|구엘|G[uü]ell|Park\s*Guell/i.test(rt)
   }
+  // REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 시체스·리세우·람브라스 당일 route 증거 — manifest
+  if (/sitges/.test(nk)) return /시체스|Sitges/i.test(rt)
+  if (/tarragona/.test(nk)) return /타라고나|Tarragona/i.test(rt)
+  if (/liceu/.test(nk)) return /리세우|Liceu/i.test(rt)
+  if (/rambla/.test(nk)) return /람브라스|람블라|Rambla/i.test(rt)
+  if (/montjuic/.test(nk)) return /몬주익|Montju[iï]c/i.test(rt)
+  if (/picasso/.test(nk)) return /피카소|Picasso/i.test(rt)
+  if (/palau de la musica|musica catalana/.test(nk)) {
+    return /까탈루냐\s*음악당|카탈루냐\s*음악당|Palau\s*de\s*la\s*M[uú]sica/i.test(rt)
+  }
+  if (/batllo|batll/.test(nk)) return /카사바뜨요|카사\s*바틀로|Batllo|Batll/i.test(rt)
+  if (/casa mila|pedrera/.test(nk)) return /카사밀라|카사\s*밀라|Casa\s*Mila|Pedrera/i.test(rt)
+  if (/auditori/.test(nk)) return /Auditori|오디토리/i.test(rt)
   if (/montserrat/.test(nk)) return /몬세라트|Montserrat/i.test(rt)
   if (/barcelona/.test(nk)) return /바르셀로나|Barcelona|사그라다|Sagrada|몬세라트|Montserrat|구엘/i.test(rt)
   if (/alhambra/.test(nk)) return /알함브라|Alhambra/i.test(rt)
@@ -1910,7 +1923,7 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
 }
 
 function isIberiaSouthFranceClusterKeyword(kw: string): boolean {
-  return /madrid|barcelona|toledo|segovia|sagrada|alhambra|granada|seville|giralda|plaza mayor|plaza de espa|prado|fatima|lisbon|porto|portugal|spain|nice|monaco|monte carlo|avignon|arles|massena|guell|montserrat|benagil|algarve|cabo da roca|jeronimos|belem|royal palace madrid|puerta del sol|sagres|cape st vincent|albufeira/.test(
+  return /madrid|barcelona|toledo|segovia|sagrada|alhambra|granada|seville|giralda|plaza mayor|plaza de espa|prado|fatima|lisbon|porto|portugal|spain|nice|monaco|monte carlo|avignon|arles|massena|guell|montserrat|benagil|algarve|cabo da roca|jeronimos|belem|royal palace madrid|puerta del sol|sagres|cape st vincent|albufeira|sitges|tarragona|liceu|rambla|montjuic|picasso|palau de la musica|musica catalana|batllo|casa mila|pedrera|auditori/.test(
     normScheduleImageKeywordKey(kw),
   )
 }

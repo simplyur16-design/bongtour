@@ -9,6 +9,7 @@
  * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 사해≠Shanghai — Dead Sea (요르단) — manifest
  * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 live emptyKw route POI — manifest
  * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: empty edge route must not keep other-day landmarks — manifest
+ * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 일차 스팟 — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -759,6 +760,22 @@ const POI_KO_TO_EN: Record<string, string> = {
   '황금의 탑': 'Torre del Oro Seville',
   구엘공원: 'Park Guell Barcelona',
   '구엘 공원': 'Park Guell Barcelona',
+  리세우대극장: 'Gran Teatre del Liceu Barcelona',
+  '리세우 대극장': 'Gran Teatre del Liceu Barcelona',
+  람브라스: 'La Rambla Barcelona',
+  '람브라스 거리': 'La Rambla Barcelona',
+  몬주익: 'Montjuic Barcelona',
+  '몬주익 언덕': 'Montjuic Barcelona',
+  피카소미술관: 'Picasso Museum Barcelona',
+  '피카소 미술관': 'Picasso Museum Barcelona',
+  까탈루냐음악당: 'Palau de la Musica Catalana',
+  '까탈루냐 음악당': 'Palau de la Musica Catalana',
+  카탈루냐음악당: 'Palau de la Musica Catalana',
+  시체스: 'Sitges Spain old town',
+  '시체스 해변': 'Sitges Beach Spain',
+  타라고나: 'Tarragona Roman amphitheatre',
+  카사바뜨요: 'Casa Batllo Barcelona',
+  카사밀라: 'Casa Mila Barcelona',
   '산토 토메교회': 'Santo Tome Church Toledo',
   산토토메: 'Santo Tome Church Toledo',
   까보다로카: 'Cabo da Roca Portugal',

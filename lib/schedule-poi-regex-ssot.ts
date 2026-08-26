@@ -3,6 +3,7 @@
  * 공급사별 지역 ROI 테이블 금지 — 이 파일 + lib/pexels-keyword.ts POI_KO_TO_EN 만 사용.
  * REGRESSION-FREEZE[schedule-poi-regex-ssot]: 공급사 모듈에 POI/CITY regex 중복 금지 — manifest
  * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·북유럽·발트·이탈리아·노르망디·장가계·남미 routeText — manifest
+ * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 일차 스팟 — manifest
  */
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -356,6 +357,17 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /프라도(?:\s*미술관)?|Prado\s*(?:Museum|Museo)?/i, en: "Prado Museum Madrid" },
   { re: /푸에르타\s*델\s*솔|Puerta\s*del\s*Sol/i, en: "Puerta del Sol Madrid" },
   { re: /구엘\s*공원|Park\s*G[uü]ell|Parc\s*G[uü]ell/i, en: "Park Guell Barcelona" },
+  // REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 일차 스팟 — 파라도르·L'Auditori 누수 금지 — manifest
+  { re: /리세우\s*대극장|그란\s*테아트레\s*델\s*리세우|Gran\s*Teatre\s*del\s*Liceu|\bLiceu\b/i, en: "Gran Teatre del Liceu Barcelona" },
+  { re: /람브라스|라\s*람블라|La\s*Rambla/i, en: "La Rambla Barcelona" },
+  { re: /몬주익|Montju[iï]c/i, en: "Montjuic Barcelona" },
+  { re: /피카소\s*미술관|Picasso\s*Museum|Museu\s*Picasso/i, en: "Picasso Museum Barcelona" },
+  { re: /까탈루냐\s*음악당|카탈루냐\s*음악당|Palau\s*de\s*la\s*M[uú]sica/i, en: "Palau de la Musica Catalana" },
+  { re: /시체스\s*해변|Sitges\s*Beach/i, en: "Sitges Beach Spain" },
+  { re: /시체스|Sitges/i, en: "Sitges Spain old town" },
+  { re: /타라고나|Tarragona/i, en: "Tarragona Roman amphitheatre" },
+  { re: /카사바뜨요|카사\s*바틀로|Casa\s*Batllo|Casa\s*Batll[oó]/i, en: "Casa Batllo Barcelona" },
+  { re: /카사밀라|카사\s*밀라|Casa\s*Mila|La\s*Pedrera/i, en: "Casa Mila Barcelona" },
   { re: /산토\s*토메(?:\s*교회)?|Santo\s*Tom[eé]/i, en: "Santo Tome Church Toledo" },
   { re: /까보\s*다\s*로[카까]|카보\s*다\s*로[카까]|로카곶|Cabo\s*da\s*Roca/i, en: "Cabo da Roca Portugal" },
   { re: /베나길|Benagil/i, en: "Benagil Cave Algarve" },
@@ -1069,7 +1081,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /요코하마|横浜/u, en: "Yokohama bay night" },
   { re: /(?<![가-힣])파리(?![가-힣])/u, en: "Paris city skyline" },
   { re: /(?<!(?:고대\s{0,2}))(?<![가-힣])로마(?!시대)/u, en: "Rome Colosseum view" },
-  { re: /바르셀로나/u, en: "Barcelona Sagrada Familia exterior" },
+  // REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 도시허브≠Sagrada — manifest
+  { re: /바르셀로나/u, en: "Barcelona" },
   { re: /런던/u, en: "London Thames skyline" },
   { re: /뉴욕/u, en: "New York Manhattan skyline" },
   { re: /연길/u, en: "Yanji Korean quarter winter street" },

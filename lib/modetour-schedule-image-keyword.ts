@@ -1743,8 +1743,13 @@ function allocateModetourImageKeywordsByScheduleRules<T extends ModetourSchedule
     }
 
     if (slotKind === 'return') {
+      const haystack = buildModetourDayHaystack(row)
+      // REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 귀국·해외세그먼트 없음 — Palau 등 인접 미사용 명소 bleed 금지 — manifest
+      const returnHomeNoForeignRoute =
+        classifyModetourScheduleCardDayKind(day, maxDay, haystack) === 'return_home' &&
+        countModetourForeignRouteSegments(row.routeText) === 0
       const domesticReturn =
-        day === maxDay && isDomesticOnlyRouteText(row.routeText)
+        day === maxDay && (isDomesticOnlyRouteText(row.routeText) || returnHomeNoForeignRoute)
       let primary = ''
       if (!domesticReturn) {
         primary = pickModetourReturnKeywordFromOwnRoute(row, productDestination, used)

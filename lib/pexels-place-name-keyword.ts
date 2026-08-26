@@ -736,7 +736,7 @@ const NON_LANDMARK_FOOD_PHRASE_RE =
 export function isNonLandmarkFoodOrDiningImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
-  if (/카페|식당|레스토랑|맛집|음식점|다이닝|조식|중식|석식|뷔페|라멘|이자카야/u.test(raw)) return true
+  if (/카페|식당|레스토랑|맛집|음식점|다이닝|조식|중식|석식|정찬식|뷔페|라멘|이자카야/u.test(raw)) return true
   const n = normalizeToPlaceName(raw).toLowerCase()
   if (!n) return false
   return NON_LANDMARK_FOOD_VENUE_RE.test(n) || NON_LANDMARK_FOOD_PHRASE_RE.test(n)
@@ -787,17 +787,18 @@ export function isNonLandmarkHistoricalPrisonImageKeyword(keyword: string): bool
 }
 
 /** 호텔·숙박 시설명 — Pexels 관광지 키워드로 부적합 */
+// REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 파라도르·정찬 ≠ 관광 키워드 — manifest
 export function isHotelLodgingImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
-  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인|관광\s*캠프|투어(?:리스트|ist)\s*캠프|포포인츠|포\s*포인트|판보르네오|Pan\s*Borneo/u.test(raw)) {
+  if (/호텔|숙박|리조트|펜션|모텔|게스트하우스|체크인|파라도르|관광\s*캠프|투어(?:리스트|ist)\s*캠프|포포인츠|포\s*포인트|판보르네오|Pan\s*Borneo/u.test(raw)) {
     return true
   }
   const n = normalizeToPlaceName(raw).toLowerCase()
   if (!n) return false
   /** 괌 PIC(Pacific Island Club) 등 리조트 브랜드 — Pexels 관광지명이 아님 */
   if (n === 'pic' || /\bpic\s*resort\b/i.test(n)) return true
-  return /\b(hotel|resort|hostel|inn|lodging|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist)\b/i.test(
+  return /\b(hotel|resort|hostel|inn|lodging|parador|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist)\b/i.test(
     n,
   )
 }
