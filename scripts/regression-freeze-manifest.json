@@ -9913,7 +9913,13 @@
           "file": "lib/register-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-self-heal]",
-            "healRegisterPrePhotoSchedule",
+            "healRegisterPrePhotoSchedule"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-guards.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
             "isHotelLodgingImageKeyword"
           ]
         },
@@ -16907,7 +16913,9 @@
             "register-pre-photo-guards"
           ],
           "mustNotInclude": [
-            "register-pre-photo-self-heal"
+            "register-pre-photo-self-heal",
+            "next/cache",
+            "revalidatePath"
           ]
         },
         {
@@ -16922,10 +16930,10 @@
           ]
         },
         {
-          "file": "tests/register-admin-lane.test.ts",
+          "file": "tests/pending-pre-photo-verify-client-safe.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]",
-            "register-pre-photo-self-heal"
+            "next/cache"
           ]
         }
       ],

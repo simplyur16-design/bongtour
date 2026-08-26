@@ -1,6 +1,7 @@
 /**
  * 등록대기 키워드·요약 가드 — 클라이언트에서도 import 가능 (서버 캐시 API 금지).
  * REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]: verify는 self-heal 서버 체인을 끌어오지 않음 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-self-heal]: 숙소·식사 키워드 가드 — manifest
  */
 import {
   isAirlineCarrierImageKeyword,
