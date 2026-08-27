@@ -15378,6 +15378,71 @@
       ]
     },
     {
+      "id": "bongsim-esim-hero-country-picker-landing",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 찾기 히어로·뒤로가기 = 랜딩 국가 그리드. 예전 /recommend Step1 피커로 보내지 않음",
+      "checks": [
+        {
+          "file": "lib/bongsim/constants.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]",
+            "ESIM_COUNTRY_PICKER_HASH",
+            "bongsimCountryPickerHref"
+          ]
+        },
+        {
+          "file": "app/travel/esim/EsimLandingHero.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]",
+            "bongsimCountryPickerHref()"
+          ],
+          "mustNotInclude": [
+            "bongsimPath('/recommend')",
+            "bongsimPath(\"/recommend\")"
+          ]
+        },
+        {
+          "file": "components/bongsim/BongsimHomeMobile.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]",
+            "ESIM_COUNTRY_PICKER_HASH",
+            "MoreCountriesButton"
+          ],
+          "mustNotInclude": [
+            "bongsimPath(\"/recommend\")",
+            "bongsimPath('/recommend')"
+          ]
+        },
+        {
+          "file": "app/travel/esim/recommend/RecommendPageClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]",
+            "shouldRedirectRecommendToLandingPicker",
+            "navigateToEsimCountryPicker",
+            "esimCountryPickerBackAction"
+          ],
+          "mustNotInclude": [
+            "CountrySelectStep",
+            "from \"next/navigation\"",
+            "from 'next/navigation'"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/country-picker-landing.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]",
+            "shouldRedirectRecommendToLandingPicker"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/recommend/country-picker-landing.test.ts"
+      ]
+    },
+    {
       "id": "overseas-hub-isr-cdn",
       "tier": [
         "prebuild"

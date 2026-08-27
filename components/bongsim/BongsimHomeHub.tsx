@@ -1,6 +1,6 @@
 "use client";
 
-import { bongsimPath } from '@/lib/bongsim/constants'
+import { bongsimCountryPickerHref } from '@/lib/bongsim/constants'
 import Link from "next/link";
 import { useState } from "react";
 import { BongsimHomeHero } from "@/components/bongsim/BongsimHero";
@@ -32,7 +32,7 @@ export function BongsimHomeHub() {
             <p className="text-[13px] font-semibold text-slate-800 sm:text-[14px]">여행 준비가 되셨다면</p>
             <p className="mt-1 text-[12px] leading-relaxed text-slate-600">국가 선택부터 요금 비교까지 이어지는 화면으로 이동해요.</p>
             <Link
-              href={bongsimPath("/recommend")}
+              href={bongsimCountryPickerHref()}
               className="mt-4 inline-flex min-h-11 w-full max-w-xs items-center justify-center rounded-2xl bg-teal-700 text-[14px] font-bold text-white shadow-md transition hover:bg-teal-800 sm:max-w-sm"
             >
               나에게 맞는 eSIM 찾기

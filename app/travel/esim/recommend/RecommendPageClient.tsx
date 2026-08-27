@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Header from "@/app/components/Header";
-import { CountrySelectStep } from "@/components/bongsim/recommend/CountrySelectStep";
-import { MultiTripCountrySelectStep } from "@/components/bongsim/recommend/MultiTripCountrySelectStep";
 import {
   ProductCombinationStep,
   type StoredCountryPlanSelection,
@@ -17,13 +15,13 @@ import {
 } from "@/lib/bongsim/recommend/funnel-storage";
 import { REGION_PACK_OPTIONS } from "@/lib/bongsim/region-packs";
 import { applyCatalogMeta } from "@/lib/bongsim/recommend/apply-catalog-meta";
-import {
-  buildAllMultiCountryTiles,
-  buildRecommendPopularCountries,
-} from "@/lib/bongsim/recommend/recommend-destination-sections";
 import { sortByKoreanTravelRank2025 } from "@/lib/bongsim/recommend/sort-by-korean-travel-rank";
-import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
 import { parseRecommendCountryQuery } from "@/lib/bongsim/recommend/parse-recommend-entry-query";
+import {
+  esimCountryPickerBackAction,
+  navigateToEsimCountryPicker,
+  shouldRedirectRecommendToLandingPicker,
+} from "@/lib/bongsim/recommend/country-picker-landing";
 import type { CountryCatalogMeta } from "@/lib/bongsim/data/list-country-catalog-meta";
 import type { CountryOption } from "@/lib/bongsim/types";
 
@@ -38,8 +36,6 @@ type ApiCountriesPayload = {
   countries: ApiCountryRow[];
   catalogMeta?: Record<string, CountryCatalogMeta>;
 };
-
-type Step1View = "pick" | "multi-trip";
 
 /** ISR page — no server searchParams. Client reads query without next/navigation (Suspense spin 방지). */
 function subscribeFromCheckoutQuery() {
@@ -65,18 +61,6 @@ function getCountryQuerySnapshot(): string | null {
 }
 function getCountryQueryServerSnapshot(): string | null {
   return null;
-}
-
-function stripRecommendCountryQueryFromUrl() {
-  try {
-    const url = new URL(window.location.href);
-    if (!url.searchParams.has("country")) return;
-    url.searchParams.delete("country");
-    const next = `${url.pathname}${url.search}${url.hash}`;
-    window.history.replaceState(window.history.state, "", next);
-  } catch {
-    /* ignore */
-  }
 }
 
 function mergeCountryOptionsFromApi(allowed: ApiCountryRow[]): CountryOption[] {
@@ -122,14 +106,11 @@ export default function RecommendPageClient({
     getCountryQueryServerSnapshot,
   );
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [step1View, setStep1View] = useState<Step1View>("pick");
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
-  const [dismissedCountryQuery, setDismissedCountryQuery] = useState(false);
   const [storedCompleted, setStoredCompleted] = useState<Record<string, StoredCountryPlanSelection>>({});
   /** 체크아웃 복귀(?fromCheckout=1)만 스냅샷 복원 대기 — 일반 진입은 즉시 funnelHydrated */
   const [checkoutRestoreDone, setCheckoutRestoreDone] = useState(false);
   const funnelHydrated = !fromCheckout || checkoutRestoreDone;
-  const [searchQuery, setSearchQuery] = useState("");
   const [standaloneCountries, setStandaloneCountries] = useState<CountryOption[] | null>(() => {
     if (!initialCountries?.length) return null;
     return mergeCountryOptionsFromApi(initialCountries);
@@ -149,7 +130,6 @@ export default function RecommendPageClient({
         setSelectedCodes(snap.selectedCodes);
         setStoredCompleted(snap.completed ?? {});
         setCurrentStep(2);
-        setStep1View(snap.selectedCodes.length >= 2 ? "multi-trip" : "pick");
       }
       setCheckoutRestoreDone(true);
       return;
@@ -160,7 +140,6 @@ export default function RecommendPageClient({
       setSelectedCodes([countryFromQuery]);
       setStoredCompleted({});
       setCurrentStep(2);
-      setStep1View("pick");
       clearRecommendCheckoutDispatched();
       setCheckoutRestoreDone(true);
       return;
@@ -171,17 +150,26 @@ export default function RecommendPageClient({
       setSelectedCodes([]);
       setStoredCompleted({});
       setCurrentStep(1);
-      setStep1View("pick");
       clearRecommendCheckoutDispatched();
     }
     setCheckoutRestoreDone(true);
   }, [fromCheckout, countryFromQuery]);
 
-  const entryCountry = fromCheckout || dismissedCountryQuery ? null : countryFromQuery;
+  const entryCountry = fromCheckout ? null : countryFromQuery;
   const skipPickerToProducts =
     Boolean(entryCountry) && currentStep === 1 && selectedCodes.length === 0;
   const viewCodes = skipPickerToProducts && entryCountry ? [entryCountry] : selectedCodes;
   const viewStep: 1 | 2 = currentStep === 2 || skipPickerToProducts ? 2 : 1;
+
+  // REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]: 빈 /recommend → 랜딩 피커 — manifest
+  useEffect(() => {
+    if (!funnelHydrated) return;
+    if (!shouldRedirectRecommendToLandingPicker({ fromCheckout, countryCode: countryFromQuery })) {
+      return;
+    }
+    if (viewStep === 2) return;
+    navigateToEsimCountryPicker("replace");
+  }, [funnelHydrated, fromCheckout, countryFromQuery, viewStep]);
 
   useEffect(() => {
     if (!funnelHydrated) return;
@@ -245,90 +233,18 @@ export default function RecommendPageClient({
 
   const countryChoices = useMemo(() => standaloneCountries ?? [], [standaloneCountries]);
 
-  const popularCountries = useMemo(
-    () => buildRecommendPopularCountries(countryChoices, catalogMeta),
-    [countryChoices, catalogMeta],
-  );
-
-  const allMultiCountryPacks = useMemo(
-    () => buildAllMultiCountryTiles(catalogMeta),
-    [catalogMeta],
-  );
-
-  const filteredCountries = useMemo(() => {
-    const base = !searchQuery.trim()
-      ? countryChoices
-      : countryChoices.filter(
-          (c) =>
-            c.nameKr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.code.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
-    return sortByKoreanTravelRank2025(
-      base.map((c) => applyCatalogMeta(c, catalogMeta[c.code])),
-    );
-  }, [searchQuery, countryChoices, catalogMeta]);
-
-  const goToProductStep = useCallback((codes: string[]) => {
-    clearRecommendCheckoutDispatched();
-    setStoredCompleted({});
-    setSelectedCodes(codes);
-    setCurrentStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const handlePickCountry = useCallback(
-    (code: string) => {
-      goToProductStep([code]);
-    },
-    [goToProductStep],
-  );
-
-  const handleMultiTripToggle = (code: string) => {
-    if (isRegionPackCode(code)) return;
-    clearRecommendCheckoutDispatched();
-    setSelectedCodes((prev) => {
-      if (prev.includes(code)) {
-        return prev.filter((c) => c !== code);
-      }
-      return [...prev, code];
-    });
-  };
-
-  const handleRemoveChip = (code: string) => {
-    clearRecommendCheckoutDispatched();
-    setSelectedCodes((prev) => prev.filter((c) => c !== code));
-    setStoredCompleted((prev) => {
-      const next = { ...prev };
-      delete next[code];
-      return next;
-    });
-  };
-
-  const handleMultiTripNext = () => {
-    if (selectedCodes.length < 2) return;
-    goToProductStep(selectedCodes);
-  };
-
   const handleStep2Back = () => {
     clearRecommendCheckoutDispatched();
-    setDismissedCountryQuery(true);
-    setCurrentStep(1);
-    setStep1View(selectedCodes.length >= 2 ? "multi-trip" : "pick");
-    stripRecommendCountryQueryFromUrl();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleEnterMultiTrip = () => {
-    setStep1View("multi-trip");
-    setSelectedCodes([]);
-    setSearchQuery("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleBackFromMultiTrip = () => {
-    setStep1View("pick");
-    setSelectedCodes([]);
-    setSearchQuery("");
+    clearRecommendFunnelSnapshot();
+    const action = esimCountryPickerBackAction({
+      referrer: document.referrer,
+      currentOrigin: window.location.origin,
+    });
+    if (action === "history-back") {
+      window.history.back();
+      return;
+    }
+    navigateToEsimCountryPicker("assign");
   };
 
   const resolveCountry = (code: string) => {
@@ -343,6 +259,10 @@ export default function RecommendPageClient({
   };
 
   const isSingleCountryRecommend = viewStep === 2 && viewCodes.length === 1;
+  const redirectingToLanding =
+    funnelHydrated &&
+    shouldRedirectRecommendToLandingPicker({ fromCheckout, countryCode: countryFromQuery }) &&
+    viewStep === 1;
 
   if (fromCheckout && !funnelHydrated) {
     return (
@@ -350,6 +270,17 @@ export default function RecommendPageClient({
         <Header />
         <main className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-slate-600">
           불러오는 중…
+        </main>
+      </div>
+    );
+  }
+
+  if (redirectingToLanding) {
+    return (
+      <div className="min-h-screen bg-bt-page">
+        <Header />
+        <main className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-slate-600">
+          국가를 고르는 화면으로 이동 중…
         </main>
       </div>
     );
@@ -369,47 +300,22 @@ export default function RecommendPageClient({
               : `mx-auto w-full max-w-6xl pb-20 pt-6 sm:pt-8 lg:pb-28 lg:pt-10 px-0 sm:px-6`
         }
       >
-        {viewStep === 1 ? (
-          step1View === "pick" ? (
-            <CountrySelectStep
-              onPickCountry={handlePickCountry}
-              onEnterMultiTrip={handleEnterMultiTrip}
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              standaloneCountries={standaloneCountries}
-              countriesLoadError={countriesLoadError}
-              onRetryLoadCountries={loadCountries}
-              popularCountries={popularCountries}
-              allMultiCountryPacks={allMultiCountryPacks}
-              filteredCountries={filteredCountries}
+        {viewStep === 2 ? (
+          <>
+            {countriesLoadError ? <p className="sr-only">{countriesLoadError}</p> : null}
+            {viewCodes[0] ? (
+              <p className="sr-only">{resolveCountry(viewCodes[0])?.nameKr ?? viewCodes[0]}</p>
+            ) : null}
+            <ProductCombinationStep
+              key={viewCodes.slice().sort().join(",")}
+              selectedCodes={viewCodes}
+              heroMap={heroMap}
+              initialStoredCompleted={storedCompleted}
+              onStoredCompletedChange={setStoredCompleted}
+              onBack={handleStep2Back}
             />
-          ) : (
-            <MultiTripCountrySelectStep
-              selectedCodes={selectedCodes}
-              onToggleCountry={handleMultiTripToggle}
-              onRemoveChip={handleRemoveChip}
-              onNext={handleMultiTripNext}
-              onBack={handleBackFromMultiTrip}
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              standaloneCountries={standaloneCountries}
-              countriesLoadError={countriesLoadError}
-              onRetryLoadCountries={loadCountries}
-              popularCountries={popularCountries}
-              filteredCountries={filteredCountries}
-              resolveCountry={resolveCountry}
-            />
-          )
-        ) : (
-          <ProductCombinationStep
-            key={viewCodes.slice().sort().join(",")}
-            selectedCodes={viewCodes}
-            heroMap={heroMap}
-            initialStoredCompleted={storedCompleted}
-            onStoredCompletedChange={setStoredCompleted}
-            onBack={handleStep2Back}
-          />
-        )}
+          </>
+        ) : null}
       </main>
     </div>
   );

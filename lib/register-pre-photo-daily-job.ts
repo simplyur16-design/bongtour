@@ -12,6 +12,7 @@ export async function runRegisterPrePhotoDailyJob(opts?: {
   probeImageUrls?: boolean
   healLimit?: number
   skipIngest?: boolean
+  onlySuppliers?: string[]
 }) {
   const skipIngest =
     opts?.skipIngest === true || process.env.DISABLE_REGISTER_PRE_PHOTO_LISTING_INGEST === '1'
@@ -27,7 +28,10 @@ export async function runRegisterPrePhotoDailyJob(opts?: {
         bySupplier: {},
         byLane: { package: 0, air_hotel_free: 0 },
       }
-    : await ingestUnregisteredRegisterPendingPrePhoto({ dryRun: opts?.dryRun })
+    : await ingestUnregisteredRegisterPendingPrePhoto({
+        dryRun: opts?.dryRun,
+        onlySuppliers: opts?.onlySuppliers,
+      })
   const heal = await healPendingRegisterPrePhoto({
     limit: opts?.healLimit ?? 80,
     dryRun: opts?.dryRun,

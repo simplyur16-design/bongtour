@@ -1,11 +1,11 @@
 "use client";
 
-import { BONGSIM_GIFT_CHECKOUT_FLAG_KEY, bongsimPath } from "@/lib/bongsim/constants";
-import Link from "next/link";
+import { BONGSIM_GIFT_CHECKOUT_FLAG_KEY, ESIM_COUNTRY_PICKER_HASH } from "@/lib/bongsim/constants";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GiftForeignFriendEntry } from "@/components/bongsim/GiftForeignFriendEntry";
 import { HomeDestinationGrid } from "@/components/bongsim/HomeDestinationGrid";
 import { SimplyurTeaserBanner } from "@/components/bongsim/SimplyurTeaserBanner";
+import { COUNTRY_OPTIONS } from "@/lib/bongsim/country-options";
 import { getRecentCountryCodes, pushRecentCountry } from "@/lib/bongsim/country-history";
 import { HOME_POPULAR_CODES } from "@/lib/bongsim/home-data";
 import { getCountryById } from "@/lib/bongsim/mock-data";
@@ -31,11 +31,27 @@ function multiTabRegionItems(): CountryOption[] {
   return USIMSA_MULTI_TAB_ORDER.map((code) => byCode.get(code)).filter(Boolean) as CountryOption[];
 }
 
+function MoreCountriesButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-5 flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 py-4 transition hover:border-teal-300 hover:bg-teal-50/40 lg:mt-6"
+    >
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl text-slate-400 ring-1 ring-slate-200">
+        ···
+      </span>
+      <span className="text-[12px] font-bold text-slate-600">더보기</span>
+    </button>
+  );
+}
+
 export function BongsimHomeMobile() {
   const [tab, setTab] = useState<"popular" | "multi">("popular");
   const [q, setQ] = useState("");
   const [histTick, setHistTick] = useState(0);
   const [storageReady, setStorageReady] = useState(false);
+  const [showAllCountries, setShowAllCountries] = useState(false);
 
   useEffect(() => {
     queueMicrotask(() => setStorageReady(true));
@@ -60,9 +76,14 @@ export function BongsimHomeMobile() {
     return new Set(getRecentCountryCodes(5));
   }, [histTick, storageReady]);
 
-  const popularSearchPool = useMemo(() => {
+  const popularDefaultPool = useMemo(() => {
     return HOME_POPULAR_CODES.map((code) => getCountryById(code)).filter(Boolean) as CountryOption[];
   }, []);
+
+  const extraCountries = useMemo(() => {
+    const shown = new Set(HOME_POPULAR_CODES);
+    return COUNTRY_OPTIONS.filter((c) => !shown.has(c.code) && matchesQuery(c, q));
+  }, [q]);
 
   const popularWhenFocused = useMemo(() => {
     return HOME_POPULAR_CODES.filter((code) => !recentSet.has(code))
@@ -73,14 +94,14 @@ export function BongsimHomeMobile() {
   const displayedPopular = useMemo(() => {
     let base: CountryOption[];
     if (q.trim()) {
-      base = popularSearchPool;
+      base = COUNTRY_OPTIONS;
     } else if (recentResolved.length > 0) {
       base = popularWhenFocused;
     } else {
-      base = popularSearchPool;
+      base = popularDefaultPool;
     }
     return base.filter((c) => matchesQuery(c, q));
-  }, [q, recentResolved.length, popularWhenFocused, popularSearchPool]);
+  }, [q, recentResolved.length, popularWhenFocused, popularDefaultPool]);
 
   const regionItems = useMemo(
     () => multiTabRegionItems().filter((c) => matchesQuery(c, q)),
@@ -93,7 +114,8 @@ export function BongsimHomeMobile() {
     !(q.trim() === "" && recentResolved.length > 0);
 
   return (
-    <div className="w-full pb-6">
+    <div id={ESIM_COUNTRY_PICKER_HASH} className="w-full scroll-mt-24 pb-6">
+      {/* REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]: 히어로→랜딩 피커 — manifest */}
       <section className="px-0 pt-6 lg:rounded-3xl lg:border lg:border-slate-200/90 lg:bg-white lg:p-8 lg:pt-8 lg:shadow-sm">
         <div className="lg:grid lg:grid-cols-[minmax(0,17rem)_1fr] lg:gap-10 xl:grid-cols-[minmax(0,19rem)_1fr] xl:gap-12">
           <div className="min-w-0 lg:space-y-5">
@@ -170,29 +192,23 @@ export function BongsimHomeMobile() {
                   <div className="mt-3">
                     <HomeDestinationGrid items={displayedPopular} onBeforeNavigate={recordVisit} />
                   </div>
-                  <Link
-                    href={bongsimPath("/recommend")}
-                    className="mt-5 flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 py-4 transition hover:border-teal-300 hover:bg-teal-50/40 lg:mt-6"
-                  >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl text-slate-400 ring-1 ring-slate-200">
-                      ···
-                    </span>
-                    <span className="text-[12px] font-bold text-slate-600">더보기</span>
-                  </Link>
+                  {showAllCountries && extraCountries.length > 0 ? (
+                    <div className="mt-3">
+                      <HomeDestinationGrid items={extraCountries} onBeforeNavigate={recordVisit} />
+                    </div>
+                  ) : extraCountries.length > 0 ? (
+                    <MoreCountriesButton onClick={() => setShowAllCountries(true)} />
+                  ) : null}
                 </>
               ) : (
                 <>
                   <HomeDestinationGrid items={displayedPopular} onBeforeNavigate={recordVisit} />
-                  {!q.trim() ? (
-                    <Link
-                      href={bongsimPath("/recommend")}
-                      className="mt-5 flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 py-4 transition hover:border-teal-300 hover:bg-teal-50/40 lg:mt-6"
-                    >
-                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl text-slate-400 ring-1 ring-slate-200">
-                        ···
-                      </span>
-                      <span className="text-[12px] font-bold text-slate-600">더보기</span>
-                    </Link>
+                  {!q.trim() && showAllCountries && extraCountries.length > 0 ? (
+                    <div className="mt-3">
+                      <HomeDestinationGrid items={extraCountries} onBeforeNavigate={recordVisit} />
+                    </div>
+                  ) : !q.trim() && extraCountries.length > 0 ? (
+                    <MoreCountriesButton onClick={() => setShowAllCountries(true)} />
                   ) : null}
                 </>
               )

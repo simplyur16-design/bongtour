@@ -24,6 +24,7 @@ import {
   listingUrlMatchesIngestLane,
   registerPrePhotoIngestMaxSlotsPerSupplier,
   rotateRegisterPrePhotoIngestSlots,
+  parseRegisterPrePhotoIngestOnlySuppliers,
   ybtourListingMenuForIngestLane,
   type RegisterPrePhotoIngestGeoSlot,
   type RegisterPrePhotoIngestLane,
@@ -42,6 +43,7 @@ function asIngestSupplier(s: string): IngestSupplier | null {
 
 export type IngestUnregisteredPrePhotoOpts = {
   dryRun?: boolean
+  onlySuppliers?: string[]
 }
 
 export type IngestUnregisteredPrePhotoResult = {
@@ -112,6 +114,10 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
   const dryRun = opts?.dryRun === true
   const perGeo = REGISTER_PRE_PHOTO_INGEST_PER_GEO
   const perSupplier = REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER
+  const suppliers =
+    parseRegisterPrePhotoIngestOnlySuppliers(opts?.onlySuppliers?.join(',')) ??
+    parseRegisterPrePhotoIngestOnlySuppliers(process.env.REGISTER_PRE_PHOTO_INGEST_ONLY) ??
+    [...INGEST_SUPPLIERS]
 
   const result: IngestUnregisteredPrePhotoResult = {
     scannedGeos: 0,
@@ -157,7 +163,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
   const maxListingPages = registerPrePhotoIngestMaxSlotsPerSupplier()
   const dayKey = kstTodayYmd()
   const selected: RegisterPrePhotoIngestGeoSlot[] = []
-  for (const supplier of INGEST_SUPPLIERS) {
+  for (const supplier of suppliers) {
     const mine = slots.filter((s) => s.supplier === supplier)
     selected.push(...rotateRegisterPrePhotoIngestSlots(mine, `${dayKey}::${supplier}`, maxListingPages))
   }
@@ -165,13 +171,15 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     products: products.length,
     slots: slots.length,
     selected: selected.length,
+    suppliers,
     perSupplier,
     maxListingPages,
     dryRun,
   })
 
   // 목록은 페이지 1장씩. 4장을 한 프로세스에 묶으면 Playwright가 먼저 타임아웃 난다.
-  for (const supplier of INGEST_SUPPLIERS) {
+  for (const supplier of suppliers) {
+    console.error('[register-pre-photo-listing-ingest] supplier-start', supplier)
     const mine = selected.filter((s) => s.supplier === supplier)
     for (const slot of mine) {
       if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
@@ -181,6 +189,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
       try {
         const found = await listingUrlMapForSupplier(supplier, [slot])
         urls = found.get(slotLabel) ?? []
+        console.error('[register-pre-photo-listing-ingest] discover-ok', supplier, slotLabel, urls.length)
       } catch (e) {
         result.failed += 1
         result.skippedNoListing.push(`${slotLabel}:discover_throw`)
@@ -213,6 +222,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
           if (!confirm.ok) {
             // 실패 건은 슬롯을 안 잡아, 같은 날 다음 URL을 이어서 받는다.
             result.failed += 1
+            console.error('[register-pre-photo-listing-ingest] confirm-fail', supplier, originUrl, confirm.reason)
             if (confirm.reason === 'pre_photo_verify_failed') {
               for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
                 knownKeys.add(`${k.kind}:${k.value}`)
@@ -223,6 +233,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
           result.created += 1
           result.bySupplier[supplier] = (result.bySupplier[supplier] ?? 0) + 1
           result.byLane[slot.lane] += 1
+          console.error('[register-pre-photo-listing-ingest] created', supplier, result.bySupplier[supplier], originUrl, confirm.productId)
           for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
             knownKeys.add(`${k.kind}:${k.value}`)
           }
@@ -233,6 +244,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
         }
       }
     }
+    console.error('[register-pre-photo-listing-ingest] supplier-done', supplier, result.bySupplier[supplier] ?? 0)
   }
 
   return result

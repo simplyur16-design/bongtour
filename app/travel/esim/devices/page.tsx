@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/app/components/Header";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
 import { EsimBongsimCsLinks } from "@/components/bongsim/EsimBongsimCsLinks";
 
 export const metadata: Metadata = {
@@ -118,7 +118,7 @@ export default function EsimDevicesPage() {
               확인되셨나요? 지금 바로 나에게 맞는 eSIM을 찾아보세요!
             </p>
             <Link
-              href={bongsimPath("/recommend")}
+              href={bongsimCountryPickerHref()}
               className="mt-5 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-white shadow-md transition hover:from-teal-600 hover:to-cyan-600 hover:shadow-lg active:scale-[0.99] lg:px-10 lg:py-4 lg:text-lg"
             >
               나에게 맞는 eSIM 찾기

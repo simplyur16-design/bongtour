@@ -83,6 +83,22 @@ export function isRegisterPrePhotoIngestSupplier(s: string): boolean {
   return (INGEST_SUPPLIERS as readonly string[]).includes(s)
 }
 
+/** 운영 oneshot — `modetour,verygoodtour,ybtour` 처럼 해당 공급사만. 비면 4사 전부. */
+export function parseRegisterPrePhotoIngestOnlySuppliers(
+  raw: string | null | undefined,
+): Array<(typeof INGEST_SUPPLIERS)[number]> | null {
+  if (raw == null || !String(raw).trim()) return null
+  const out: Array<(typeof INGEST_SUPPLIERS)[number]> = []
+  const seen = new Set<string>()
+  for (const part of String(raw).split(/[,\s]+/)) {
+    const n = normalizeSupplierOrigin(part.trim())
+    if (!n || !isRegisterPrePhotoIngestSupplier(n) || seen.has(n)) continue
+    seen.add(n)
+    out.push(n as (typeof INGEST_SUPPLIERS)[number])
+  }
+  return out.length ? out : null
+}
+
 export function ingestLaneFromProductRow(
   row: Pick<RegisterPrePhotoIngestProductRow, 'listingKind' | 'productType' | 'sportsThemeTag'>,
 ): RegisterPrePhotoIngestLane {

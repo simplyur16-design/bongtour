@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimCountryPickerHref } from "@/lib/bongsim/constants";
 
-/** STEP 0 — PC 홈 전용 히어로 (국가·비교 UI는 /recommend) */
+/** STEP 0 — PC 홈 전용 히어로 (국가 선택은 랜딩 `#esim-countries`) */
 export function BongsimHomeHero() {
   return (
     <section aria-labelledby="home-hero-title" className="w-full">
@@ -27,7 +27,8 @@ export function BongsimHomeHero() {
             Bong투어가 고심해서 고른 안정적인 데이터. 구매 즉시 이메일로 QR을 보내드려요. 개통 전엔 기기 호환만 꼭 확인해 주세요.
           </p>
           <Link
-            href={bongsimPath("/recommend")}
+            href={bongsimCountryPickerHref()}
+            // REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]: 히어로→랜딩 피커 — manifest
             className="mt-7 flex min-h-[3.35rem] w-full max-w-md items-center justify-center rounded-2xl bg-white text-[15px] font-bold text-teal-900 shadow-lg transition hover:bg-slate-50 sm:mt-8 lg:mt-9 lg:w-auto lg:min-w-[15rem] lg:px-10"
           >
             나에게 맞는 eSIM 찾기

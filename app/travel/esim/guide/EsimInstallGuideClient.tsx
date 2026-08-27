@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown, HelpCircle, Settings2 } from "lucide-react";
 import Header from "@/app/components/Header";
-import { bongsimPath } from "@/lib/bongsim/constants";
+import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
 import { EsimBongsimCsLinks } from "@/components/bongsim/EsimBongsimCsLinks";
 import {
   ANDROID_STEPS,
@@ -286,7 +286,7 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
         <div className="mt-12 rounded-2xl border border-teal-100 bg-gradient-to-br from-sky-50/90 to-teal-50/90 px-5 py-8 text-center text-slate-900 lg:mt-14 lg:px-8 lg:py-10">
           <p className="text-base font-semibold !text-slate-900 lg:text-lg">아직 eSIM이 없으신가요?</p>
           <Link
-            href={bongsimPath("/recommend")}
+            href={bongsimCountryPickerHref()}
             className="mt-5 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-white shadow-md transition hover:from-teal-600 hover:to-cyan-600 hover:shadow-lg active:scale-[0.99] lg:px-10 lg:py-4 lg:text-lg"
           >
             나에게 맞는 eSIM 찾기

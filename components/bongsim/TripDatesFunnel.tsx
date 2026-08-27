@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { TripRangeCalendar } from "@/components/bongsim/TripRangeCalendar";
-import { funnelTripDayCount, funnelTripNights, isFunnelReadyForDatesStep, bongsimPath } from '@/lib/bongsim/constants';
+import { funnelTripDayCount, funnelTripNights, isFunnelReadyForDatesStep, bongsimCountryPickerHref, bongsimPath } from '@/lib/bongsim/constants';
 import { compareYmd, toYmd } from "@/lib/bongsim/trip-calendar-utils";
 import { getCountryById, loadFunnel, saveFunnel } from "@/lib/bongsim/mock-data";
 import type { FunnelState } from "@/lib/bongsim/types";
@@ -107,7 +107,7 @@ function Inner() {
     return (
       <main className="mx-auto max-w-md px-4 py-12 sm:max-w-lg">
         <p className="text-[15px] font-semibold text-slate-900">먼저 여행지를 골라 주세요.</p>
-        <Link href={bongsimPath("/recommend")} className="mt-6 inline-flex min-h-11 items-center text-sm font-bold text-teal-700 underline">
+        <Link href={bongsimCountryPickerHref()} className="mt-6 inline-flex min-h-11 items-center text-sm font-bold text-teal-700 underline">
           국가 선택으로
         </Link>
       </main>
@@ -121,7 +121,7 @@ function Inner() {
       <div className="mx-auto max-w-lg lg:max-w-5xl xl:max-w-6xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href={bongsimPath("/recommend")}
+            href={bongsimCountryPickerHref()}
             className="inline-flex min-h-11 items-center text-sm font-semibold text-slate-600 hover:text-teal-800"
           >
             ← 국가 선택

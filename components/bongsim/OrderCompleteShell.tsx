@@ -1,6 +1,6 @@
 "use client";
 
-import { bongsimPath } from '@/lib/bongsim/constants'
+import { bongsimCountryPickerHref, bongsimPath } from '@/lib/bongsim/constants'
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { CheckoutCountryLine, CheckoutTripSummaryView } from "@/lib/bongsim/checkout-display";
@@ -418,7 +418,7 @@ export function OrderCompleteShell({ order, plan, countries, networkLabel, tripS
               </Link>
             </div>
             <p className="mt-5 text-center text-[12px] leading-relaxed text-slate-500 sm:text-left">
-              <Link href={bongsimPath("/recommend")} className="font-semibold text-teal-800 underline-offset-2 hover:underline">
+              <Link href={bongsimCountryPickerHref()} className="font-semibold text-teal-800 underline-offset-2 hover:underline">
                 새로 추천 받기
               </Link>
               <span className="text-slate-400"> · </span>

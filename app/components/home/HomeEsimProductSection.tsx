@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { HomeDestinationGrid } from '@/components/bongsim/HomeDestinationGrid'
-import { bongsimPath } from '@/lib/bongsim/constants'
+import { bongsimCountryPickerHref } from '@/lib/bongsim/constants'
 import { COUNTRY_OPTIONS } from '@/lib/bongsim/country-options'
 import { HOME_POPULAR_CODES } from '@/lib/bongsim/home-data'
 import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
@@ -21,7 +21,7 @@ export default function HomeEsimProductSection() {
   const items = homeEsimCountries()
   if (items.length === 0) return null
 
-  const catalogHref = bongsimPath('/recommend')
+  const catalogHref = bongsimCountryPickerHref()
 
   return (
     <section

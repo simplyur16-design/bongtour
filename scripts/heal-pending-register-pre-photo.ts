@@ -5,11 +5,15 @@ import { healPendingRegisterPrePhoto } from '../lib/register-pending-pre-photo-s
 const dryRun = process.argv.includes('--dry-run')
 const probe = !process.argv.includes('--no-probe')
 const ingest = process.argv.includes('--ingest')
+const suppliersArg = process.argv.find((a) => a.startsWith('--suppliers='))?.slice('--suppliers='.length)
+const onlySuppliers = suppliersArg
+  ? suppliersArg.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
+  : undefined
 
-console.error('[register-pre-photo-daily] boot', { ingest, dryRun, probe, pid: process.pid })
+console.error('[register-pre-photo-daily] boot', { ingest, dryRun, probe, onlySuppliers, pid: process.pid })
 
 if (ingest) {
-  runRegisterPrePhotoDailyJob({ dryRun, probeImageUrls: probe })
+  runRegisterPrePhotoDailyJob({ dryRun, probeImageUrls: probe, onlySuppliers, healLimit: 20 })
     .then((result) => {
       console.log('[register-pre-photo-daily]', result)
       process.exit(result.heal.failed + result.ingest.failed > 0 ? 1 : 0)

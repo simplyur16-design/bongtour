@@ -84,6 +84,14 @@ export function bongsimPath(sub: string = ""): string {
   return `${BONGSIM_BASE_PATH}${normalized}`;
 }
 
+/** 랜딩 국가 선택(어디로 떠나시나요?) — 예전 /recommend Step1 피커 대신 */
+// REGRESSION-FREEZE[bongsim-esim-hero-country-picker-landing]: 히어로→랜딩 피커 — manifest
+export const ESIM_COUNTRY_PICKER_HASH = "esim-countries";
+
+export function bongsimCountryPickerHref(): string {
+  return `${BONGSIM_BASE_PATH}#${ESIM_COUNTRY_PICKER_HASH}`;
+}
+
 export const FUNNEL_STORAGE_KEY = "bongsim:funnel:v1";
 
 export const ORDERS_STORAGE_KEY = "bongsim:orders:v1";

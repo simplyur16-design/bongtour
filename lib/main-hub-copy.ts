@@ -3,6 +3,7 @@
  */
 
 import { homeHubCardImageSrc } from '@/lib/home-hub-images'
+import { bongsimCountryPickerHref } from '@/lib/bongsim/constants'
 
 // ─── 메인 Compact Hero (v5: 패키지 페르소나 + CTA; eyebrow·브랜드 슬로건은 export만 유지) ─
 
@@ -510,7 +511,7 @@ export const ESIM_STRIP_MOBILE_SUB = 'QR 1분 설치 · 요금 폭탄 방지' as
 
 export const ESIM_STRIP_CTA_LABEL = 'eSIM 찾기'
 
-export const ESIM_STRIP_CTA_HREF = '/travel/esim' as const
+export const ESIM_STRIP_CTA_HREF = bongsimCountryPickerHref()
 
 // ─── 모바일 하단 sticky (메인 전용 — 메모리 #28) ─────────────────────────────
 

@@ -23,6 +23,7 @@ import {
   REGISTER_PRE_PHOTO_INGEST_LANES,
   REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN,
   buildRegisterPrePhotoIngestGeoSlots,
+  parseRegisterPrePhotoIngestOnlySuppliers,
   listingUrlMatchesIngestLane,
   rotateRegisterPrePhotoIngestSlots,
   travelScopeForIngestLane,
@@ -56,6 +57,12 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 3)
     assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_GEO, 1)
     assert.deepEqual([...REGISTER_PRE_PHOTO_INGEST_LANES], ['package', 'air_hotel_free'])
+    assert.deepEqual(parseRegisterPrePhotoIngestOnlySuppliers('modetour,verygoodtour,ybtour'), [
+      'modetour',
+      'verygoodtour',
+      'ybtour',
+    ])
+    assert.equal(parseRegisterPrePhotoIngestOnlySuppliers(''), null)
   })
 
   it('나라만 있으면 나라 1개, 패키지와 자유여행을 각각 붙인다', () => {

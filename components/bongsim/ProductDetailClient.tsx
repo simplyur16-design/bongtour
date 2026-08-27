@@ -8,7 +8,7 @@ import { DeviceCheckCard } from "@/components/bongsim/DeviceCheckCard";
 import { DeviceCompatibilityModal } from "@/components/bongsim/DeviceCompatibilityModal";
 import { ProductInfoSection } from "@/components/bongsim/ProductInfoSection";
 import { StickyPurchaseBar } from "@/components/bongsim/StickyPurchaseBar";
-import { funnelTripDayCount, funnelTripNights, bongsimPath } from '@/lib/bongsim/constants';
+import { funnelTripDayCount, funnelTripNights, bongsimCountryPickerHref, bongsimPath } from '@/lib/bongsim/constants';
 import { getEsimPlansForDuration, snapDuration } from "@/lib/bongsim/esim-detail";
 import { encodeCovPlanId, getCountryById, getPlanById, loadFunnel } from "@/lib/bongsim/mock-data";
 import type { EsimPlanOption, FunnelState, ProductPageModel } from "@/lib/bongsim/types";
@@ -114,7 +114,7 @@ export function ProductDetailClient({ model }: Props) {
 
   const selected = plans.find((p) => p.id === effectivePlanId) ?? plans[0];
   const priceKrw = selected?.priceKrw ?? 0;
-  const checkoutHref = selected ? bongsimPath(`/checkout?planId=${encodeURIComponent(selected.id)}`) : bongsimPath("/recommend");
+  const checkoutHref = selected ? bongsimPath(`/checkout?planId=${encodeURIComponent(selected.id)}`) : bongsimCountryPickerHref();
 
   const setDurationAndResetPick = (d: number) => {
     setFreeDuration(d);

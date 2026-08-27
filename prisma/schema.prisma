@@ -583,7 +583,8 @@ model User {
   @@index([referredByCode])
 }
 
-/// simplyur app Expo push tokens (OrderPaid / refund notify)
+/// simplyur app Expo push tokens (OrderPaid / refund notify).
+/// Server-only via Prisma. RLS on + anon/authenticated revoked (not PostgREST).
 model SimplyurDevicePushToken {
   id        String   @id @default(cuid())
   userId    String

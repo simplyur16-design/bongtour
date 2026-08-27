@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { bongsimPath } from '@/lib/bongsim/constants'
+import { bongsimCountryPickerHref, bongsimPath } from '@/lib/bongsim/constants'
 
 type Props = {
   variant?: "default" | "hub";
@@ -31,7 +31,7 @@ export function BongsimHeader({ variant = "default" }: Props) {
                 요금제
               </Link>
               <Link
-                href={bongsimPath("/recommend")}
+                href={bongsimCountryPickerHref()}
                 className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-teal-900"
               >
                 추천 받기
@@ -46,7 +46,7 @@ export function BongsimHeader({ variant = "default" }: Props) {
                 요금제
               </Link>
               <Link
-                href={bongsimPath("/recommend")}
+                href={bongsimCountryPickerHref()}
                 className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/80 hover:text-teal-900 sm:px-3.5 sm:py-2 sm:text-[13px]"
               >
                 시작하기
