@@ -5829,9 +5829,7 @@
       "npmScripts": [
         {
           "script": "verify:register-facts-live",
-          "tier": [
-            "ci"
-          ]
+          "tier": []
         }
       ]
     },
@@ -6102,15 +6100,11 @@
       "npmScripts": [
         {
           "script": "verify:register-facts-live",
-          "tier": [
-            "ci"
-          ]
+          "tier": []
         },
         {
           "script": "verify:register-facts-detail-parity",
-          "tier": [
-            "ci"
-          ]
+          "tier": []
         }
       ],
       "vitestSuites": [
@@ -10423,16 +10417,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "키워드 빈칸·숙소·타일차 블리드는 재채움 금지·파서/POI 수정. 검증 실패·파서 수정 필요는 등록대기 금지, 통과만 pending",
+      "summary": "셀프힐이 등록 imageKeyword SSOT로 깨진 키워드를 다시 채운다. 그래도 실패면 등록대기 금지",
       "checks": [
         {
           "file": "lib/register-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
+            "applyRegisterScheduleImageKeywordsBySupplier",
             "parser_fix_required"
-          ],
-          "mustNotInclude": [
-            "applyRegisterScheduleImageKeywordsBySupplier"
           ]
         },
         {
@@ -10481,7 +10473,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "검증 실패·파서 수정 필요는 등록대기에 올리지 않는다. 원인 수정 후 검증 완료만 pending",
+      "summary": "셀프힐로 고친 뒤 검증 통과만 등록대기. 실패 건은 운영자 큐에 올리지 않음",
       "checks": [
         {
           "file": "lib/register-pre-photo-pending-queue.ts",

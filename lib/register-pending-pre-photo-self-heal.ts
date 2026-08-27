@@ -1,6 +1,6 @@
 /**
  * 등록대기(사진 수급 전) Product.schedule 셀프힐 + 레인별 검증 — Pexels/Gemini 호출 없음.
- * 검증 통과만 pending. 실패·파서 수정 필요는 pre_photo_blocked.
+ * 힐이 등록 SSOT로 고친 뒤 검증 통과만 pending. 실패는 pre_photo_blocked.
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: pending 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 등록화면 레인으로 힐·검증 — manifest
  * REGRESSION-FREEZE[pending-approve-photos-ready]: 사진 완료 skip photosReady SSOT — manifest

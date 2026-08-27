@@ -1,15 +1,16 @@
 /**
- * 등록 사진 수급 전 — 숙소·식사 키워드는 비우고 파서/POI로 고친다. 재채움 금지.
- * 검증 실패·파서 수정 필요는 등록대기에 올리지 않는다.
+ * 등록 사진 수급 전 — 깨진 키워드를 비우고 등록 SSOT로 다시 채운다. 사진 생성 없음.
+ * 그래도 검증 실패면 등록대기에 올리지 않는다.
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: 파라도르·식사 키워드 제거, 사진 생성 없음 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·테마만 랜드마크 재적용, 자유여행은 패키지 파이프 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city — manifest
- * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드 재채움 금지, 검증 통과만 등록대기 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 셀프힐이 SSOT로 재채움, 통과만 등록대기 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import type { RegisterAdminLane } from '@/lib/register-admin-lane'
 import {
   isBrokenRegisterLandmarkKeyword,
@@ -94,7 +95,8 @@ function healDescription(row: RegisterPrePhotoHealRow, maxDay: number): string {
 
 /**
  * 사진 생성·Pexels/Gemini 호출 없음.
- * 숙소·식사 키워드만 비운다. 빈 슬롯을 다시 채우지 않는다 — 반복이면 파서/POI를 고친다.
+ * 숙소·식사 키워드를 비운 뒤 등록 imageKeyword SSOT로 다시 채운다.
+ * 그래도 깨져 있으면 parser_fix_required — 그 건은 등록대기에 올리지 않는다.
  */
 export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   rows: T[],
@@ -125,6 +127,22 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     }
   })
 
+  let reappliedKeywords = false
+  if (scheduleHasBrokenKeywords(working)) {
+    working = applyRegisterScheduleImageKeywordsBySupplier(working, {
+      supplierKey: opts.supplierKey,
+      productDestination: opts.productDestination,
+      productTitle: opts.productTitle,
+      travelScope: 'package',
+    })
+    reappliedKeywords = true
+    working = working.map((row) => ({
+      ...row,
+      imageKeyword: sanitizeLandmarkKeyword(row.imageKeyword),
+      imageKeyword2: sanitizeLandmarkKeyword(row.imageKeyword2) || null,
+    }))
+  }
+
   if (scheduleHasBrokenKeywords(working)) {
     notes.push({ day: 0, field: 'imageKeyword', reason: 'parser_fix_required' })
   }
@@ -139,7 +157,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     return { ...row, description }
   })
 
-  return { rows: working, notes, reappliedKeywords: false }
+  return { rows: working, notes, reappliedKeywords }
 }
 
 const OBVIOUS_BROKEN_URL_RE = /^(?:undefined|null|n\/a|#)$/i

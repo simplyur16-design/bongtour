@@ -1,6 +1,6 @@
 /**
- * 등록대기 큐 게이트 — 검증 통과만 pending.
- * 검증 실패·파서 수정 필요는 원인을 고친 뒤에만 올린다.
+ * 등록대기 큐 게이트 — 셀프힐 후 검증 통과만 pending.
+ * 힐이 고치지 못한 건은 올리지 않는다.
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: verify.ok 만 등록대기 — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_blocked — manifest
  */

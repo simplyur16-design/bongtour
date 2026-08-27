@@ -32,7 +32,7 @@ describe('register-pre-photo-self-heal', () => {
     assert.equal(isObviouslyBrokenScheduleImageUrl(''), false)
   })
 
-  it('시체스 일차 파라도르 키워드는 비우고 파서 수정으로 둔다', () => {
+  it('시체스 일차 파라도르 키워드는 비우고 등록 SSOT로 다시 채운다', () => {
     const out = healRegisterPrePhotoSchedule(
       [
         {
@@ -69,8 +69,44 @@ describe('register-pre-photo-self-heal', () => {
     )
     const d2 = out.rows.find((r) => r.day === 2)!
     assert.doesNotMatch(String(d2.imageKeyword ?? ''), /Parador|Alcaniz/i)
-    assert.equal(String(d2.imageKeyword ?? '').trim(), '')
-    assert.equal(out.reappliedKeywords, false)
+    assert.ok(String(d2.imageKeyword ?? '').trim().length > 0)
+    assert.equal(out.reappliedKeywords, true)
+  })
+
+  it('등록 SSOT로도 중간일 키워드가 비면 parser_fix_required', () => {
+    const out = healRegisterPrePhotoSchedule(
+      [
+        {
+          day: 1,
+          title: '1일차',
+          description: '인천에서 출발합니다.',
+          routeText: '인천',
+          imageKeyword: 'Incheon',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '2일차',
+          description: '하루 일정을 이어갑니다.',
+          routeText: '',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '3일차 귀국',
+          description: '인천으로 귀국합니다.',
+          routeText: '인천',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '스페인',
+        productTitle: '일정 없는 상품',
+      },
+    )
     assert.ok(out.notes.some((n) => n.reason === 'parser_fix_required'))
   })
 })
