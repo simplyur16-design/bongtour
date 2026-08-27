@@ -3,6 +3,7 @@
  * production + DATABASE_URL. 비활성: DISABLE_REGISTER_PRE_PHOTO_SELF_HEAL_CRON=1
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: instrumentation 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 힐 후 검증 스탬프 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: 매일 KST 06:30 ingest — manifest
  */
 export function startInstrumentationRegisterPrePhotoSelfHealCron(): void {
   if (process.env.DISABLE_REGISTER_PRE_PHOTO_SELF_HEAL_CRON === '1') {

@@ -33,6 +33,8 @@ export async function spawnListingDiscoverPython(args: {
       env: {
         ...process.env,
         PYTHONPATH: cwd,
+        PYTHONUTF8: '1',
+        PYTHONIOENCODING: 'utf-8',
       },
       windowsHide: true,
     })
@@ -63,7 +65,7 @@ export async function spawnListingDiscoverPython(args: {
       }
       reject(new Error(`listing-discover exit ${code} ${args.module} ${stderr.slice(0, 300)}`))
     })
-    child.stdin?.write(payload)
+    child.stdin?.write(Buffer.from(payload, 'utf8'))
     child.stdin?.end()
   })
 

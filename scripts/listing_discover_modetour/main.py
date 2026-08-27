@@ -174,7 +174,7 @@ async def discover_slots(slots: list[dict]) -> list[dict]:
 
 
 def main() -> None:
-    raw = sys.stdin.read()
+    raw = sys.stdin.buffer.read().decode("utf-8", errors="replace")
     payload = json.loads(raw or "{}")
     slots = payload.get("slots") if isinstance(payload, dict) else []
     if not isinstance(slots, list):

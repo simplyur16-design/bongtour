@@ -10325,7 +10325,8 @@
             "111617319",
             "나라만",
             "도시별",
-            "rotateRegisterPrePhotoIngestSlots"
+            "rotateRegisterPrePhotoIngestSlots",
+            "30 6 * * *"
           ]
         }
       ],
@@ -10346,7 +10347,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
             "spawnListingDiscoverPython",
-            "-m"
+            "-m",
+            "PYTHONUTF8",
+            "Buffer.from(payload, 'utf8')"
           ]
         },
         {
@@ -10369,7 +10372,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
             "PAUSE_MS_MIN = 2200",
-            "async_playwright"
+            "async_playwright",
+            "stdin.buffer.read()"
           ]
         },
         {
@@ -10377,7 +10381,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
             "PAUSE_MS_MIN = 2000",
-            "async_playwright"
+            "async_playwright",
+            "stdin.buffer.read()"
           ]
         },
         {
@@ -10385,7 +10390,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
             "PAUSE_MS_MIN = 1800",
-            "localList"
+            "localList",
+            "stdin.buffer.read()"
           ]
         },
         {
@@ -10393,7 +10399,17 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
             "PAUSE_MS_MIN = 2500",
-            "ProductList"
+            "ProductList",
+            "stdin.buffer.read()"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "'30 6 * * *'",
+            "Asia/Seoul",
+            "runRegisterPrePhotoDailyJob"
           ]
         }
       ],

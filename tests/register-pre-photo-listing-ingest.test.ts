@@ -4,6 +4,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   extractYbtourListingEvCds,
   buildYbtourLocalListUrl,
@@ -200,5 +201,30 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.equal(b.length, 4)
     assert.deepEqual(rotateRegisterPrePhotoIngestSlots(slots, '2026-08-27::hanatour', 8), slots)
     assert.deepEqual(rotateRegisterPrePhotoIngestSlots([], '2026-08-27', 4), [])
+  })
+
+  it('Windows cp949 stdin 이 한글 searchWord 를 깨지 않게 UTF-8 바이트로 넘긴다', () => {
+    const spawnSrc = readFileSync(new URL('../lib/register-listing-discover-spawn.ts', import.meta.url), 'utf8')
+    assert.match(spawnSrc, /PYTHONUTF8/)
+    assert.match(spawnSrc, /Buffer\.from\(payload, 'utf8'\)/)
+    for (const rel of [
+      '../scripts/listing_discover_hanatour/main.py',
+      '../scripts/listing_discover_modetour/main.py',
+      '../scripts/listing_discover_ybtour/main.py',
+      '../scripts/listing_discover_verygoodtour/main.py',
+    ]) {
+      const py = readFileSync(new URL(rel, import.meta.url), 'utf8')
+      assert.match(py, /stdin\.buffer\.read\(\)/)
+    }
+  })
+
+  it('신규등록 ingest 는 매일 KST 06:30 이다', () => {
+    const cron = readFileSync(
+      new URL('../lib/instrumentation-register-pre-photo-self-heal-cron.ts', import.meta.url),
+      'utf8',
+    )
+    assert.match(cron, /'30 6 \* \* \*'/)
+    assert.match(cron, /Asia\/Seoul/)
+    assert.match(cron, /runRegisterPrePhotoDailyJob/)
   })
 })
