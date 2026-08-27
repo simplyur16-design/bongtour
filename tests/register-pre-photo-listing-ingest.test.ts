@@ -281,6 +281,7 @@ describe('register-pre-photo-listing-ingest', () => {
     const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
     assert.match(ingestSrc, /REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER/)
     assert.match(ingestSrc, /registerPrePhotoListingUrlIsKnown/)
+    assert.match(ingestSrc, /listingUrlMapForSupplier\(supplier, \[slot\]\)/)
   })
 
   it('검증 실패·파서 수정 필요는 등록대기에 올리지 않는다', () => {

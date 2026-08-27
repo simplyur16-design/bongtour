@@ -10438,7 +10438,8 @@
             "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
             "registerPrePhotoListingUrlIsKnown",
             "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER",
-            "skippedDuplicate"
+            "skippedDuplicate",
+            "listingUrlMapForSupplier(supplier, [slot])"
           ]
         },
         {

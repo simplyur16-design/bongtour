@@ -170,76 +170,67 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     dryRun,
   })
 
-  const urlMap = new Map<string, string[]>()
-  const discoverFailed = new Set<string>()
+  // 목록은 페이지 1장씩. 4장을 한 프로세스에 묶으면 Playwright가 먼저 타임아웃 난다.
   for (const supplier of INGEST_SUPPLIERS) {
     const mine = selected.filter((s) => s.supplier === supplier)
-    if (mine.length === 0) continue
-    try {
-      const found = await listingUrlMapForSupplier(supplier, mine)
-      for (const [id, urls] of found) urlMap.set(id, urls)
-    } catch (e) {
-      result.failed += mine.length
-      for (const slot of mine) {
-        const label = ingestSlotLabel(slot)
-        discoverFailed.add(label)
-        result.skippedNoListing.push(`${label}:discover_throw`)
-      }
-      console.error('[register-pre-photo-listing-ingest] discover', supplier, e)
-    }
-  }
-
-  for (const slot of selected) {
-    const supplier = asIngestSupplier(slot.supplier)
-    if (!supplier) continue
-    if ((result.bySupplier[supplier] ?? 0) >= perSupplier) continue
-    const slotLabel = ingestSlotLabel(slot)
-    if (discoverFailed.has(slotLabel)) continue
-    result.scannedGeos += 1
-    const factSource = supplier as SupplierRegisterFactSource
-    const urls = urlMap.get(slotLabel) ?? []
-    if (!urls.length) {
-      result.skippedNoListing.push(slotLabel)
-      continue
-    }
-
-    for (const originUrl of urls) {
+    for (const slot of mine) {
       if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
-      if (registerPrePhotoListingUrlIsKnown(supplier, originUrl, knownKeys)) {
-        result.skippedDuplicate += 1
-        continue
-      }
-      if (!listingUrlMatchesIngestLane(factSource, originUrl, slot.lane)) continue
-      if (!(await discoveredListingFitsIngestLane(factSource, originUrl, slot.lane))) continue
-
+      const slotLabel = ingestSlotLabel(slot)
+      result.scannedGeos += 1
+      let urls: string[] = []
       try {
-        const confirm = await confirmRegisterPendingFromOriginUrl({
-          supplier: supplier as CanonicalOverseasSupplierKey,
-          originUrl,
-          dryRun,
-          ingestLane: slot.lane,
-        })
-        if (confirm.reason === 'lane_mismatch') continue
-        if (!confirm.ok) {
-          // 실패 건은 슬롯을 안 잡아, 같은 날 다음 URL을 이어서 받는다.
-          result.failed += 1
-          if (confirm.reason === 'pre_photo_verify_failed') {
-            for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
-              knownKeys.add(`${k.kind}:${k.value}`)
-            }
-          }
-          continue
-        }
-        result.created += 1
-        result.bySupplier[supplier] = (result.bySupplier[supplier] ?? 0) + 1
-        result.byLane[slot.lane] += 1
-        for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
-          knownKeys.add(`${k.kind}:${k.value}`)
-        }
-        await waitListingHumanPause(supplier)
+        const found = await listingUrlMapForSupplier(supplier, [slot])
+        urls = found.get(slotLabel) ?? []
       } catch (e) {
         result.failed += 1
-        console.error('[register-pre-photo-listing-ingest] confirm', supplier, originUrl, e)
+        result.skippedNoListing.push(`${slotLabel}:discover_throw`)
+        console.error('[register-pre-photo-listing-ingest] discover', supplier, slotLabel, e)
+        continue
+      }
+      if (!urls.length) {
+        result.skippedNoListing.push(slotLabel)
+        continue
+      }
+
+      const factSource = supplier as SupplierRegisterFactSource
+      for (const originUrl of urls) {
+        if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
+        if (registerPrePhotoListingUrlIsKnown(supplier, originUrl, knownKeys)) {
+          result.skippedDuplicate += 1
+          continue
+        }
+        if (!listingUrlMatchesIngestLane(factSource, originUrl, slot.lane)) continue
+        if (!(await discoveredListingFitsIngestLane(factSource, originUrl, slot.lane))) continue
+
+        try {
+          const confirm = await confirmRegisterPendingFromOriginUrl({
+            supplier: supplier as CanonicalOverseasSupplierKey,
+            originUrl,
+            dryRun,
+            ingestLane: slot.lane,
+          })
+          if (confirm.reason === 'lane_mismatch') continue
+          if (!confirm.ok) {
+            // 실패 건은 슬롯을 안 잡아, 같은 날 다음 URL을 이어서 받는다.
+            result.failed += 1
+            if (confirm.reason === 'pre_photo_verify_failed') {
+              for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+                knownKeys.add(`${k.kind}:${k.value}`)
+              }
+            }
+            continue
+          }
+          result.created += 1
+          result.bySupplier[supplier] = (result.bySupplier[supplier] ?? 0) + 1
+          result.byLane[slot.lane] += 1
+          for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+            knownKeys.add(`${k.kind}:${k.value}`)
+          }
+          await waitListingHumanPause(supplier)
+        } catch (e) {
+          result.failed += 1
+          console.error('[register-pre-photo-listing-ingest] confirm', supplier, originUrl, e)
+        }
       }
     }
   }
