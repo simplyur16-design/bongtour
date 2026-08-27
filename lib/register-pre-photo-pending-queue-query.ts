@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: 대시보드=등록대기 화면 — manifest
  */
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import { isRegisterPrePhotoPendingQueueReady } from '@/lib/register-pre-photo-pending-queue'
 import {
@@ -10,13 +11,13 @@ import {
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
 
-export const REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE = {
+export const REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE: Prisma.ProductWhereInput = {
   OR: [
     { registrationStatus: null },
     { registrationStatus: '' },
     { registrationStatus: 'pending' },
   ],
-} as const
+}
 
 export type RegisterPrePhotoPendingQueueProductRow = {
   listingKind: string | null
