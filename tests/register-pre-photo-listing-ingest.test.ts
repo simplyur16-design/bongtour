@@ -243,7 +243,7 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.equal(REGISTER_PRE_PHOTO_BLOCKED_STATUS, 'pre_photo_blocked')
     assert.equal(registrationStatusAfterPrePhotoVerify({ ok: false }), REGISTER_PRE_PHOTO_BLOCKED_STATUS)
     assert.equal(occupiesRegisterPrePhotoIngestSlot('pending'), true)
-    assert.equal(occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), true)
+    assert.equal(occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), false)
     assert.equal(occupiesRegisterPrePhotoIngestSlot('registered'), false)
 
     const slots = buildRegisterPrePhotoIngestGeoSlots([
@@ -255,7 +255,7 @@ describe('register-pre-photo-listing-ingest', () => {
         registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS,
       }),
     ])
-    assert.equal(slots.find((s) => s.lane === 'package')?.pending, 1)
+    assert.equal(slots.find((s) => s.lane === 'package')?.pending, 0)
 
     const pendingRoute = readFileSync(new URL('../app/api/admin/products/pending/route.ts', import.meta.url), 'utf8')
     assert.match(pendingRoute, /isRegisterPrePhotoPendingQueueReady/)

@@ -15,8 +15,8 @@ export function registrationStatusAfterPrePhotoVerify(verify: { ok: boolean }): 
   return isRegisterPrePhotoPendingQueueReady(verify) ? 'pending' : REGISTER_PRE_PHOTO_BLOCKED_STATUS
 }
 
-/** 등록대기·검증 실패 보류 모두 해당 geo 슬롯을 차지한다. 같은 슬롯에 실패 건을 계속 쌓지 않는다. */
+/** 등록대기만 geo 슬롯을 차지한다. 힐 실패 건은 큐에 안 올리고, 다음날 다른 상품을 받아 다시 교정한다. */
 export function occupiesRegisterPrePhotoIngestSlot(status: string | null | undefined): boolean {
   const s = String(status ?? '').trim()
-  return s === '' || s === 'pending' || s === REGISTER_PRE_PHOTO_BLOCKED_STATUS
+  return s === '' || s === 'pending'
 }

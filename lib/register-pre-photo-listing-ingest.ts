@@ -208,6 +208,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
         })
         if (confirm.reason === 'lane_mismatch') continue
         if (confirm.reason === 'pre_photo_verify_failed') {
+          // 오늘 이 슬롯 시도는 끝. 실패 건은 슬롯을 안 잡아, 다음날 다른 URL을 받는다.
           result.failed += 1
           createdThisSlot += 1
           for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {

@@ -10473,14 +10473,15 @@
         "prebuild",
         "ci"
       ],
-      "summary": "셀프힐로 고친 뒤 검증 통과만 등록대기. 실패 건은 운영자 큐에 올리지 않음",
+      "summary": "셀프힐로 고친 뒤 검증 통과만 등록대기. 실패는 큐·슬롯을 안 막고 다음 상품을 받아 재교정",
       "checks": [
         {
           "file": "lib/register-pre-photo-pending-queue.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
             "REGISTER_PRE_PHOTO_BLOCKED_STATUS = 'pre_photo_blocked'",
-            "registrationStatusAfterPrePhotoVerify"
+            "registrationStatusAfterPrePhotoVerify",
+            "return s === '' || s === 'pending'"
           ]
         },
         {
@@ -10502,7 +10503,8 @@
           "file": "lib/register-pre-photo-listing-ingest.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
-            "pre_photo_verify_failed"
+            "pre_photo_verify_failed",
+            "슬롯을 안 잡아"
           ]
         },
         {
@@ -10511,7 +10513,8 @@
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
             "pre_photo_blocked",
             "30 6 * * *",
-            "isRegisterPrePhotoPendingQueueReady"
+            "isRegisterPrePhotoPendingQueueReady",
+            "occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), false"
           ]
         }
       ],
