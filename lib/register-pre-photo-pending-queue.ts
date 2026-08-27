@@ -20,3 +20,9 @@ export function occupiesRegisterPrePhotoIngestSlot(status: string | null | undef
   const s = String(status ?? '').trim()
   return s === '' || s === 'pending'
 }
+
+/** 키워드 검증 전 사진 고르기 금지 — pending·차단 모두. */
+export function isRegisterPrePhotoKeywordPhotoGateStatus(status: string | null | undefined): boolean {
+  const s = String(status ?? '').trim()
+  return s === '' || s === 'pending' || s === REGISTER_PRE_PHOTO_BLOCKED_STATUS
+}

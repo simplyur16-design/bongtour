@@ -1808,7 +1808,7 @@ export default function AdminPendingDetailPanel({
               keywordsVerified
                 ? '검증 완료 · 사진 등록 가능'
                 : keywordVerify.parserFixRequired
-                  ? '검증 미통과 · 파서 수정 후 등록대기'
+                  ? '검증 미통과 · 등록대기에서 내림'
                   : keywordVerify.issues.length > 0
                     ? '검증 실패'
                     : '등록대기'

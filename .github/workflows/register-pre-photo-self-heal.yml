@@ -27,7 +27,7 @@ jobs:
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
             --max-time 120 \
-            "https://bongtour.com/api/cron/register-pre-photo-self-heal")
+            "https://bongtour.com/api/cron/register-pre-photo-self-heal?skipIngest=1&probe=0")
 
           status=$(echo "$response" | tail -n 1)
           body=$(echo "$response" | head -n -1)

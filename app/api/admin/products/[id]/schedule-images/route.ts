@@ -13,6 +13,7 @@ import {
   ScheduleImageKeywordPersistError,
 } from '@/lib/schedule-image-keyword-persist'
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
+import { isRegisterPrePhotoKeywordPhotoGateStatus } from '@/lib/register-pre-photo-pending-queue'
 import {
   scheduleRowsForPrePhotoVerify,
   verifyRegisterPrePhoto,
@@ -189,7 +190,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       })
     }
     const pendingStatus = product.registrationStatus
-    if (imageUrl && (!pendingStatus || pendingStatus === 'pending')) {
+    if (imageUrl && isRegisterPrePhotoKeywordPhotoGateStatus(pendingStatus)) {
       // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: pending 일정 사진 전 키워드 검증 — manifest
       const keywordVerify = verifyRegisterPrePhoto({
         lane: resolveRegisterAdminLane({

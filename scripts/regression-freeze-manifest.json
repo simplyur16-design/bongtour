@@ -10454,6 +10454,7 @@
         {
           "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
           "mustNotInclude": [
+            "파서 수정 필요",
             "등록대기만"
           ]
         },
@@ -10480,6 +10481,7 @@
           "file": "lib/register-pre-photo-pending-queue.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "isRegisterPrePhotoKeywordPhotoGateStatus",
             "REGISTER_PRE_PHOTO_BLOCKED_STATUS = 'pre_photo_blocked'",
             "registrationStatusAfterPrePhotoVerify",
             "return s === '' || s === 'pending'"
@@ -10489,8 +10491,11 @@
           "file": "lib/register-pending-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "applyRegisterPrePhotoQueueGateAfterSave",
             "pre_photo_blocked",
-            "registrationStatusAfterPrePhotoVerify"
+            "registrationStatusAfterPrePhotoVerify",
+            "orderBy: { updatedAt: 'asc' }",
+            "if (!photosReady && isObviouslyBrokenScheduleImageUrl"
           ]
         },
         {
@@ -10504,7 +10509,7 @@
           "file": "lib/register-pre-photo-listing-ingest.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
-            "pre_photo_verify_failed",
+            "if (!confirm.ok)",
             "슬롯을 안 잡아"
           ]
         },
@@ -10515,7 +10520,29 @@
             "pre_photo_blocked",
             "30 6 * * *",
             "isRegisterPrePhotoPendingQueueReady",
-            "occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), false"
+            "occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), false",
+            "isRegisterPrePhotoKeywordPhotoGateStatus"
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "검증이 끝난 상품만"
+          ],
+          "mustNotInclude": [
+            "파서 수정 필요"
+          ]
+        },
+        {
+          "file": ".github/workflows/register-pre-photo-self-heal.yml",
+          "mustInclude": [
+            "skipIngest=1"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "applyRegisterPrePhotoQueueGateAfterSave"
           ]
         }
       ],

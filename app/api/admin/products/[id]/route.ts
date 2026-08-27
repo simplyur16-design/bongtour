@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
+import { isRegisterPrePhotoKeywordPhotoGateStatus } from '@/lib/register-pre-photo-pending-queue'
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import {
   scheduleRowsForPrePhotoVerify,
@@ -490,7 +491,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
     if (body.registrationStatus !== undefined) {
       const v = body.registrationStatus
-      const allowed = ['pending', 'registered', 'on_hold', 'rejected'] as const
+      const allowed = ['pending', 'registered', 'on_hold', 'rejected', 'pre_photo_blocked'] as const
       data.registrationStatus = typeof v === 'string' && allowed.includes(v as (typeof allowed)[number]) ? v : null
       if (data.registrationStatus === 'registered') {
         // REGRESSION-FREEZE[pending-approve-photos-ready]: registered 전 photosReady — manifest
@@ -635,7 +636,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           },
         })
         const pendingStatus = pendingPhotoRow?.registrationStatus
-        if (!pendingStatus || pendingStatus === 'pending') {
+        if (isRegisterPrePhotoKeywordPhotoGateStatus(pendingStatus)) {
           const keywordVerify = verifyRegisterPrePhoto({
             lane: resolveRegisterAdminLane({
               listingKind: pendingPhotoRow?.listingKind,

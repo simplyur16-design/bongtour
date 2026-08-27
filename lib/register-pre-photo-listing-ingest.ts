@@ -1,7 +1,7 @@
 /**
  * 등록된 공급사마다 패키지·자유여행 각각 — 나라만 있으면 나라 1개, 도시가 있으면 도시별 1개.
  * 공급사별 모듈·간격 분리. 사진 생성 없음. 중복 origin 제외.
- * 검증 통과한 것만 등록대기. 실패는 슬롯만 차지하고 큐에 올리지 않음.
+ * 검증 통과한 것만 등록대기. 실패는 큐·geo 슬롯을 안 잡고, 그날 그 슬롯은 한 번만 시도한다.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city · 레인별 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: Playwright batch · rotate cap — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_verify_failed — manifest
@@ -207,18 +207,16 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
           ingestLane: slot.lane,
         })
         if (confirm.reason === 'lane_mismatch') continue
-        if (confirm.reason === 'pre_photo_verify_failed') {
+        if (!confirm.ok) {
           // 오늘 이 슬롯 시도는 끝. 실패 건은 슬롯을 안 잡아, 다음날 다른 URL을 받는다.
           result.failed += 1
           createdThisSlot += 1
-          for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
-            knownKeys.add(`${k.kind}:${k.value}`)
+          if (confirm.reason === 'pre_photo_verify_failed') {
+            for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+              knownKeys.add(`${k.kind}:${k.value}`)
+            }
           }
           break
-        }
-        if (!confirm.ok) {
-          result.failed += 1
-          continue
         }
         result.created += 1
         createdThisSlot += 1

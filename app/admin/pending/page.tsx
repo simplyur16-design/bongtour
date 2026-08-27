@@ -206,7 +206,7 @@ export default function AdminPendingPage() {
         </div>
         <AdminPageHeader
           title="등록대기"
-          subtitle="이미지 수급·2차 분류 확인 후 승인하면 상품 목록에 노출됩니다. 좌측에서 상품을 선택해 검수하세요."
+          subtitle="검증이 끝난 상품만 여기 있습니다. 사진·분류 확인 후 승인하면 목록에 노출됩니다. 검증이 안 된 건은 매일 자가힐링이 다시 고칩니다."
         />
         {registeredMessage && (
           <div className="mb-6 rounded-xl border border-bt-success bg-bt-badge-domestic p-4">
@@ -334,7 +334,7 @@ export default function AdminPendingPage() {
         ) : list.length === 0 ? (
           <AdminEmptyState
             title="등록대기 상품이 없습니다"
-            description="상품 등록에서 텍스트를 붙여넣어 먼저 상품을 추가해 보세요."
+            description="매일 공급사 목록에서 검증이 통과한 상품이 올라옵니다. 직접 등록도 가능합니다."
             actionLabel="상품 등록"
             actionHref="/admin/register"
           />
@@ -374,24 +374,7 @@ export default function AdminPendingPage() {
                         {item.registerLaneLabel ? (
                           <AdminStatusBadge variant="consulting" label={item.registerLaneLabel} />
                         ) : null}
-                        <AdminStatusBadge
-                          variant={
-                            item.prePhotoVerified
-                              ? 'pending_review'
-                              : item.prePhotoIssues && item.prePhotoIssues.length > 0
-                                ? 'error'
-                                : 'pending'
-                          }
-                          label={
-                            item.prePhotoVerified
-                              ? '검증 완료'
-                              : item.prePhotoParserFixRequired
-                                ? '파서 수정 필요'
-                                : item.prePhotoIssues && item.prePhotoIssues.length > 0
-                                  ? '검증 실패'
-                                  : '등록대기'
-                          }
-                        />
+                        <AdminStatusBadge variant="pending_review" label="검증 완료" />
                         <AdminStatusBadge
                           variant={item.photosReady ? 'registered' : 'pending_image'}
                           label={item.photosReady ? '사진 완료' : '이미지 수급'}

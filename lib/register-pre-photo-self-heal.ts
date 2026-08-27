@@ -128,7 +128,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   })
 
   let reappliedKeywords = false
-  if (scheduleHasBrokenKeywords(working)) {
+  {
     const applied = applyRegisterScheduleImageKeywordsBySupplier(
       working.map((row) => ({
         day: Number(row.day) || 0,

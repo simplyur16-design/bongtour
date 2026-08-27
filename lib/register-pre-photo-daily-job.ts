@@ -27,7 +27,7 @@ export async function runRegisterPrePhotoDailyJob(opts?: {
       }
     : await ingestUnregisteredRegisterPendingPrePhoto({ dryRun: opts?.dryRun })
   const heal = await healPendingRegisterPrePhoto({
-    limit: opts?.healLimit ?? 40,
+    limit: opts?.healLimit ?? 80,
     dryRun: opts?.dryRun,
     probeImageUrls: opts?.probeImageUrls,
   })

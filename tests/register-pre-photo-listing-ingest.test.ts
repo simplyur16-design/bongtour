@@ -32,6 +32,7 @@ import {
   isRegisterPrePhotoPendingQueueReady,
   occupiesRegisterPrePhotoIngestSlot,
   registrationStatusAfterPrePhotoVerify,
+  isRegisterPrePhotoKeywordPhotoGateStatus,
 } from '../lib/register-pre-photo-pending-queue'
 
 function row(partial: Partial<RegisterPrePhotoIngestProductRow> & { originSource: string; originUrl: string; countryKey: string }): RegisterPrePhotoIngestProductRow {
@@ -261,6 +262,9 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.match(pendingRoute, /isRegisterPrePhotoPendingQueueReady/)
     const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
     assert.match(ingestSrc, /pre_photo_verify_failed/)
+    assert.match(ingestSrc, /if \(!confirm\.ok\)/)
+    assert.equal(isRegisterPrePhotoKeywordPhotoGateStatus('pre_photo_blocked'), true)
+    assert.equal(isRegisterPrePhotoKeywordPhotoGateStatus('registered'), false)
     const panel = readFileSync(
       new URL('../app/admin/pending/components/AdminPendingDetailPanel.tsx', import.meta.url),
       'utf8',

@@ -869,8 +869,11 @@ export default function AdminProductsPage() {
                             {(!p.registrationStatus || p.registrationStatus === 'pending') && (
                               <AdminStatusBadge variant="pending" label="대기" />
                             )}
+                            {p.registrationStatus === 'pre_photo_blocked' && (
+                              <AdminStatusBadge variant="error" label="검증 차단" />
+                            )}
                             {p.registrationStatus &&
-                              !['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished'].includes(
+                              !['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished', 'pre_photo_blocked'].includes(
                                 p.registrationStatus
                               ) && (
                               <AdminStatusBadge variant="pending" label={p.registrationStatus} />

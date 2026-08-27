@@ -65,7 +65,7 @@ function parseScheduleRows(raw: string | null): Array<Record<string, unknown>> {
 export async function healPendingRegisterPrePhoto(
   opts?: HealPendingPrePhotoOpts,
 ): Promise<HealPendingPrePhotoResult> {
-  const limit = Math.min(80, Math.max(1, Math.floor(opts?.limit ?? 40)))
+  const limit = Math.min(80, Math.max(1, Math.floor(opts?.limit ?? 80)))
   const probeImageUrls = opts?.probeImageUrls === true
   const dryRun = opts?.dryRun === true
   const notesSample: RegisterPrePhotoHealNote[] = []
@@ -86,7 +86,7 @@ export async function healPendingRegisterPrePhoto(
             { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS },
           ],
         },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: { updatedAt: 'asc' },
     take: opts?.productId ? 1 : limit,
     select: {
       id: true,
@@ -146,9 +146,7 @@ export async function healPendingRegisterPrePhoto(
       let verifyRows = mapped
       let scheduleChanged = false
 
-      if (photosReady) {
-        skippedPhotosReady += 1
-      } else if (rows.length) {
+      if (rows.length) {
         byLane[lane] += 1
         const result = healRegisterPrePhotoSchedule(mapped, {
           supplierKey,
@@ -172,7 +170,7 @@ export async function healPendingRegisterPrePhoto(
           if (!h) return row
           let imageUrl = row.imageUrl
           const rawUrl = imageUrl != null ? String(imageUrl) : ''
-          if (isObviouslyBrokenScheduleImageUrl(rawUrl)) {
+          if (!photosReady && isObviouslyBrokenScheduleImageUrl(rawUrl)) {
             imageUrl = null
             imageUrlCleared += 1
           }
@@ -184,7 +182,9 @@ export async function healPendingRegisterPrePhoto(
             imageUrl,
           }
         })
-        if (probeImageUrls) {
+        if (photosReady) {
+          skippedPhotosReady += 1
+        } else if (probeImageUrls) {
           let probed = 0
           for (const row of next) {
             if (probed >= 8) break
@@ -268,4 +268,11 @@ export async function healPendingRegisterPrePhoto(
     notesSample,
     byLane,
   }
+}
+
+/** 수동·수집 confirm 저장 직후 — 검증 통과만 pending. */
+export async function applyRegisterPrePhotoQueueGateAfterSave(productId: string): Promise<void> {
+  const id = String(productId ?? '').trim()
+  if (!id) return
+  await healPendingRegisterPrePhoto({ productId: id, limit: 1, probeImageUrls: false })
 }

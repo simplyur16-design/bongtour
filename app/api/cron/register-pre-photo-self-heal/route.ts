@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const result = await runRegisterPrePhotoDailyJob({
       dryRun,
       probeImageUrls,
-      healLimit: Number.isFinite(limit) && (limit ?? 0) > 0 ? limit : 40,
+      healLimit: Number.isFinite(limit) && (limit ?? 0) > 0 ? limit : 80,
       skipIngest,
     })
     return jsonWithLeakGuard({ ok: true, ...result }, 'cron-register-pre-photo.response')

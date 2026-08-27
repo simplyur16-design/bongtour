@@ -10,6 +10,7 @@ import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-afte
 import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
+import { applyRegisterPrePhotoQueueGateAfterSave } from '@/lib/register-pending-pre-photo-self-heal'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail-patch'
@@ -1804,6 +1805,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     logParseAndRegister('ok', ctx)
     timing.mark('done')
     revalidateProductListingCaches()
+    await applyRegisterPrePhotoQueueGateAfterSave(productId)
     await revalidateProductDetailCaches(productId)
     fireFitItineraryGenerationAfterRegister(
       productId,
