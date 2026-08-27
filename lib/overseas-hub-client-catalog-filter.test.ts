@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { ResultItem } from '@/components/products/ProductResultsList'
-import { filterOverseasHubCatalogByUrl } from '@/lib/overseas-hub-client-catalog-filter'
+import {
+  filterOverseasHubCatalogByUrl,
+  shouldShowEsimNativeCardsOnBrowse,
+} from '@/lib/overseas-hub-client-catalog-filter'
 
 describe('filterOverseasHubCatalogByUrl mega region tab', () => {
   it('uses browseMegaRegionTabId without tree rematch', () => {
@@ -174,5 +177,39 @@ describe('filterOverseasHubCatalogByUrl travel type', () => {
   it('no type keeps package and FIT', () => {
     const out = filterOverseasHubCatalogByUrl(items, new URLSearchParams(''))
     expect(out.map((it) => it.id).sort()).toEqual(['fit', 'pkg'])
+  })
+})
+
+describe('shouldShowEsimNativeCardsOnBrowse', () => {
+  // REGRESSION-FREEZE[fit-listing-no-esim-card]
+  it('keeps eSIM cards on package / all overseas hub, not on FIT lists', () => {
+    expect(
+      shouldShowEsimNativeCardsOnBrowse({
+        isOverseasProductsHub: true,
+        isAirHotelHub: false,
+        travelType: 'package',
+      }),
+    ).toBe(true)
+    expect(
+      shouldShowEsimNativeCardsOnBrowse({
+        isOverseasProductsHub: true,
+        isAirHotelHub: false,
+        travelType: 'all',
+      }),
+    ).toBe(true)
+    expect(
+      shouldShowEsimNativeCardsOnBrowse({
+        isOverseasProductsHub: true,
+        isAirHotelHub: false,
+        travelType: 'free',
+      }),
+    ).toBe(false)
+    expect(
+      shouldShowEsimNativeCardsOnBrowse({
+        isOverseasProductsHub: false,
+        isAirHotelHub: true,
+        travelType: 'free',
+      }),
+    ).toBe(false)
   })
 })

@@ -46,6 +46,10 @@ import {
 } from '@/lib/products-browse-client-sidebar'
 import { readProductsBrowseClientCache } from '@/lib/products-browse-client-cache'
 import { fetchProductsBrowseClientJson } from '@/lib/products-browse-client-fetch'
+import {
+  parseOverseasHubTravelType,
+  shouldShowEsimNativeCardsOnBrowse,
+} from '@/lib/overseas-hub-client-catalog-filter'
 
 type ApiOk = {
   ok: true
@@ -764,10 +768,12 @@ function ProductsBrowseClientCore({
               hubGalleryRotationSeed={hubGalleryRotationSeed}
               megaMenuRegionCityGroupId={megaMenuRegionCityGroupId}
               groupSportsThemeByCategory={groupSportsThemeByCategory}
-              interleaveEsimNativeCards={
-                (basePath === '/travel/overseas' && defaultScope === 'overseas') ||
-                hubPathname === '/travel/air-hotel'
-              }
+              // REGRESSION-FREEZE[fit-listing-no-esim-card]: FIT listing no lead eSIM — manifest
+              interleaveEsimNativeCards={shouldShowEsimNativeCardsOnBrowse({
+                isOverseasProductsHub,
+                isAirHotelHub,
+                travelType: parseOverseasHubTravelType(searchParams),
+              })}
             />
             {data.total > data.limit &&
               !(

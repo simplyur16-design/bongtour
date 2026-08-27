@@ -16965,6 +16965,38 @@
       ]
     },
     {
+      "id": "fit-listing-no-esim-card",
+      "tier": ["prebuild", "ci"],
+      "summary": "자유여행 목록 앞에 eSIM 네이티브 카드를 넣지 않음 — 패키지·해외 전체만 유지",
+      "checks": [
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-listing-no-esim-card]",
+            "shouldShowEsimNativeCardsOnBrowse",
+            "isAirHotelHub"
+          ]
+        },
+        {
+          "file": "components/products/ProductsBrowseClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-listing-no-esim-card]",
+            "shouldShowEsimNativeCardsOnBrowse"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-listing-no-esim-card]",
+            "shouldShowEsimNativeCardsOnBrowse"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/overseas-hub-client-catalog-filter.test.ts"
+      ]
+    },
+    {
       "id": "home-private-trip-href",
       "tier": ["prebuild", "ci"],
       "summary": "PC 홈 우리끼리 카드는 /travel/overseas/private-trip",

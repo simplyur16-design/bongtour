@@ -34,6 +34,21 @@ export function parseOverseasHubTravelType(searchParams: URLSearchParams): Overs
   return 'all'
 }
 
+/**
+ * 패키지·해외 허브(전체)만 목록 앞 eSIM 네이티브 카드.
+ * 자유여행 허브(`/travel/air-hotel`)·자유여행 칩에서는 빼 상품이 먼저 보이게.
+ * REGRESSION-FREEZE[fit-listing-no-esim-card]: FIT listing no lead eSIM — manifest
+ */
+export function shouldShowEsimNativeCardsOnBrowse(input: {
+  isOverseasProductsHub: boolean
+  isAirHotelHub: boolean
+  travelType: OverseasHubTravelType
+}): boolean {
+  if (input.isAirHotelHub) return false
+  if (!input.isOverseasProductsHub) return false
+  return input.travelType !== 'free'
+}
+
 export function filterOverseasHubCatalogByTravelType(
   items: ResultItem[],
   travelType: OverseasHubTravelType,
