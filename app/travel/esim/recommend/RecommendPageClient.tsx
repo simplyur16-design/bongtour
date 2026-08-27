@@ -23,6 +23,7 @@ import {
 } from "@/lib/bongsim/recommend/recommend-destination-sections";
 import { sortByKoreanTravelRank2025 } from "@/lib/bongsim/recommend/sort-by-korean-travel-rank";
 import { isRegionPackCode } from "@/lib/bongsim/recommend/region-pack-plan";
+import { parseRecommendCountryQuery } from "@/lib/bongsim/recommend/parse-recommend-entry-query";
 import type { CountryCatalogMeta } from "@/lib/bongsim/data/list-country-catalog-meta";
 import type { CountryOption } from "@/lib/bongsim/types";
 
@@ -53,6 +54,29 @@ function getFromCheckoutQuerySnapshot(): boolean {
 }
 function getFromCheckoutQueryServerSnapshot(): boolean {
   return false;
+}
+
+function getCountryQuerySnapshot(): string | null {
+  try {
+    return parseRecommendCountryQuery(window.location.search);
+  } catch {
+    return null;
+  }
+}
+function getCountryQueryServerSnapshot(): string | null {
+  return null;
+}
+
+function stripRecommendCountryQueryFromUrl() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("country")) return;
+    url.searchParams.delete("country");
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(window.history.state, "", next);
+  } catch {
+    /* ignore */
+  }
 }
 
 function mergeCountryOptionsFromApi(allowed: ApiCountryRow[]): CountryOption[] {
@@ -91,9 +115,16 @@ export default function RecommendPageClient({
     getFromCheckoutQuerySnapshot,
     getFromCheckoutQueryServerSnapshot,
   );
+  // REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]: 홈 ?country= → 국가 피커 스킵 — manifest
+  const countryFromQuery = useSyncExternalStore(
+    subscribeFromCheckoutQuery,
+    getCountryQuerySnapshot,
+    getCountryQueryServerSnapshot,
+  );
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [step1View, setStep1View] = useState<Step1View>("pick");
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
+  const [dismissedCountryQuery, setDismissedCountryQuery] = useState(false);
   const [storedCompleted, setStoredCompleted] = useState<Record<string, StoredCountryPlanSelection>>({});
   /** 체크아웃 복귀(?fromCheckout=1)만 스냅샷 복원 대기 — 일반 진입은 즉시 funnelHydrated */
   const [checkoutRestoreDone, setCheckoutRestoreDone] = useState(false);
@@ -113,16 +144,29 @@ export default function RecommendPageClient({
 
   useEffect(() => {
     const snap = loadRecommendFunnelSnapshot();
-    if (!snap) {
+    if (fromCheckout) {
+      if (snap) {
+        setSelectedCodes(snap.selectedCodes);
+        setStoredCompleted(snap.completed ?? {});
+        setCurrentStep(2);
+        setStep1View(snap.selectedCodes.length >= 2 ? "multi-trip" : "pick");
+      }
       setCheckoutRestoreDone(true);
       return;
     }
-    if (fromCheckout) {
-      setSelectedCodes(snap.selectedCodes);
-      setStoredCompleted(snap.completed ?? {});
+
+    if (countryFromQuery) {
+      clearRecommendFunnelSnapshot();
+      setSelectedCodes([countryFromQuery]);
+      setStoredCompleted({});
       setCurrentStep(2);
-      setStep1View(snap.selectedCodes.length >= 2 ? "multi-trip" : "pick");
-    } else {
+      setStep1View("pick");
+      clearRecommendCheckoutDispatched();
+      setCheckoutRestoreDone(true);
+      return;
+    }
+
+    if (snap) {
       clearRecommendFunnelSnapshot();
       setSelectedCodes([]);
       setStoredCompleted({});
@@ -131,16 +175,22 @@ export default function RecommendPageClient({
       clearRecommendCheckoutDispatched();
     }
     setCheckoutRestoreDone(true);
-  }, [fromCheckout]);
+  }, [fromCheckout, countryFromQuery]);
+
+  const entryCountry = fromCheckout || dismissedCountryQuery ? null : countryFromQuery;
+  const skipPickerToProducts =
+    Boolean(entryCountry) && currentStep === 1 && selectedCodes.length === 0;
+  const viewCodes = skipPickerToProducts && entryCountry ? [entryCountry] : selectedCodes;
+  const viewStep: 1 | 2 = currentStep === 2 || skipPickerToProducts ? 2 : 1;
 
   useEffect(() => {
     if (!funnelHydrated) return;
     saveRecommendFunnelSnapshot({
-      step: currentStep,
-      selectedCodes,
+      step: viewStep,
+      selectedCodes: viewCodes,
       completed: storedCompleted,
     });
-  }, [currentStep, selectedCodes, storedCompleted, funnelHydrated]);
+  }, [viewStep, viewCodes, storedCompleted, funnelHydrated]);
 
   const loadCountries = useCallback(async () => {
     // 목록을 null로 비우지 않음 — null이면 「불러오는 중…」에 갇히고, 실패 시에도 재시도 UI가 안 보임
@@ -261,8 +311,10 @@ export default function RecommendPageClient({
 
   const handleStep2Back = () => {
     clearRecommendCheckoutDispatched();
+    setDismissedCountryQuery(true);
     setCurrentStep(1);
     setStep1View(selectedCodes.length >= 2 ? "multi-trip" : "pick");
+    stripRecommendCountryQueryFromUrl();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -290,7 +342,7 @@ export default function RecommendPageClient({
     return undefined;
   };
 
-  const isSingleCountryRecommend = currentStep === 2 && selectedCodes.length === 1;
+  const isSingleCountryRecommend = viewStep === 2 && viewCodes.length === 1;
 
   if (fromCheckout && !funnelHydrated) {
     return (
@@ -305,19 +357,19 @@ export default function RecommendPageClient({
 
   return (
     <div
-      className={`min-h-screen ${currentStep === 1 || isSingleCountryRecommend ? "max-lg:bg-[#f9f9f9]" : "bg-bt-page"}`}
+      className={`min-h-screen ${viewStep === 1 || isSingleCountryRecommend ? "max-lg:bg-[#f9f9f9]" : "bg-bt-page"}`}
     >
       <Header />
       <main
         className={
-          currentStep === 1
+          viewStep === 1
             ? "mx-auto w-full pb-0 pt-0 lg:max-w-5xl lg:px-6 lg:pb-28 lg:pt-10"
             : isSingleCountryRecommend
               ? "mx-auto w-full pb-0 pt-0 lg:max-w-5xl lg:px-6 lg:pb-28 lg:pt-10"
               : `mx-auto w-full max-w-6xl pb-20 pt-6 sm:pt-8 lg:pb-28 lg:pt-10 px-0 sm:px-6`
         }
       >
-        {currentStep === 1 ? (
+        {viewStep === 1 ? (
           step1View === "pick" ? (
             <CountrySelectStep
               onPickCountry={handlePickCountry}
@@ -350,8 +402,8 @@ export default function RecommendPageClient({
           )
         ) : (
           <ProductCombinationStep
-            key={selectedCodes.slice().sort().join(",")}
-            selectedCodes={selectedCodes}
+            key={viewCodes.slice().sort().join(",")}
+            selectedCodes={viewCodes}
             heroMap={heroMap}
             initialStoredCompleted={storedCompleted}
             onStoredCompletedChange={setStoredCompleted}

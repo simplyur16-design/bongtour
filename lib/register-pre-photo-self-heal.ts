@@ -3,8 +3,9 @@
  * 그래도 검증 실패면 등록대기에 올리지 않는다.
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: 파라도르·식사 키워드 제거, 사진 생성 없음 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·테마만 랜드마크 재적용, 자유여행은 패키지 파이프 금지 — manifest
- * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city — manifest
+ * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 3건 — manifest
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 셀프힐이 SSOT로 재채움, 통과만 등록대기 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: 유효 랜드마크는 덮어쓰지 않음 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
@@ -18,7 +19,7 @@ import {
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
 
-export { REGISTER_PRE_PHOTO_INGEST_PER_GEO } from '@/lib/register-pre-photo-ingest-geo-slots'
+export { REGISTER_PRE_PHOTO_INGEST_PER_GEO, REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '@/lib/register-pre-photo-ingest-geo-slots'
 export {
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
@@ -95,7 +96,8 @@ function healDescription(row: RegisterPrePhotoHealRow, maxDay: number): string {
 
 /**
  * 사진 생성·Pexels/Gemini 호출 없음.
- * 숙소·식사 키워드를 비운 뒤 등록 imageKeyword SSOT로 다시 채운다.
+ * 숙소·식사 키워드를 비운 뒤, 중간일이 비거나 깨져 있으면 등록 imageKeyword SSOT로 다시 채운다.
+ * 이미 유효한 랜드마크는 덮어쓰지 않는다.
  * 그래도 깨져 있으면 parser_fix_required — 그 건은 등록대기에 올리지 않는다.
  */
 export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
@@ -128,7 +130,8 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   })
 
   let reappliedKeywords = false
-  {
+  // REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: 깨진/빈 중간일만 SSOT 재적용 — manifest
+  if (scheduleHasBrokenKeywords(working)) {
     const applied = applyRegisterScheduleImageKeywordsBySupplier(
       working.map((row) => ({
         day: Number(row.day) || 0,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  inferHanatourListingProductKindFromOriginUrl,
   inferHanatourRegisterFactProductKind,
   inferModetourRegisterFactProductKind,
   inferRegisterFactProductKindFromOriginUrl,
@@ -32,6 +33,24 @@ describe('register-facts product kind', () => {
       notes: [registerFactProductKindNote('air_hotel_free')],
     } as SupplierRegisterFactBundle
     expect(parseRegisterFactProductKind(bundle)).toBe('air_hotel_free')
+  })
+
+  it('detects hanatour listing kind from pkgCd prefix and type=H01', () => {
+    expect(
+      inferHanatourListingProductKindFromOriginUrl(
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CMB1952607057CH',
+      ),
+    ).toBe('air_hotel_free')
+    expect(
+      inferHanatourListingProductKindFromOriginUrl(
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CHP101260701TWW',
+      ),
+    ).toBe('package')
+    expect(
+      inferHanatourListingProductKindFromOriginUrl(
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=EEP133260701KEY',
+      ),
+    ).toBeNull()
   })
 
   it('detects hanatour airtel-like prod info', () => {

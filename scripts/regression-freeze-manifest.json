@@ -10206,7 +10206,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "등록 공급사마다 패키지·자유여행 각각 나라 1개 또는 도시별 1개 — 중복 제외, 사진 전 pending",
+      "summary": "이미 있는 상품은 건너뛰고 공급사마다 하루 신규 3건 — 검색 시드는 geo, 사진 전 pending",
       "checks": [
         {
           "file": "lib/register-pre-photo-self-heal.ts",
@@ -10224,6 +10224,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
             "REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1",
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3",
             "REGISTER_PRE_PHOTO_INGEST_LANES",
             "REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN",
             "buildRegisterPrePhotoIngestGeoSlots"
@@ -10287,7 +10288,9 @@
             "ingestUnregisteredRegisterPendingPrePhoto",
             "ingestLane",
             "buildRegisterPrePhotoIngestGeoSlots",
-            "listingUrlMapForSupplier"
+            "listingUrlMapForSupplier",
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER",
+            "registerPrePhotoListingUrlIsKnown"
           ],
           "mustNotInclude": [
             "REGISTER_PRE_PHOTO_URLS_PER_SUPPLIER_PER_DAY",
@@ -10320,7 +10323,8 @@
             "나라만",
             "도시별",
             "rotateRegisterPrePhotoIngestSlots",
-            "30 6 * * *"
+            "* 22-23 * * *",
+            "공급사마다 하루 3건"
           ]
         }
       ],
@@ -10401,9 +10405,73 @@
           "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
-            "'30 6 * * *'",
+            "* 22-23 * * *",
+            "* 0-9 * * *",
             "Asia/Seoul",
-            "runRegisterPrePhotoDailyJob"
+            "runRegisterPrePhotoDailyJob",
+            "shouldRunRegisterPrePhotoIngestNightTick"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-pre-photo-ingest-three-per-supplier-night-window",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "신규등록은 이미 있는 URL을 건너뛰고 공급사마다 하루 3건. 실행은 KST 22:00–10:00 사이 날짜마다 다른 시각",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-ingest-geo-slots.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
+            "registerPrePhotoListingUrlIsKnown",
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER",
+            "skippedDuplicate"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-night-window.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
+            "REGISTER_PRE_PHOTO_INGEST_NIGHT_START_HOUR = 22",
+            "REGISTER_PRE_PHOTO_INGEST_NIGHT_END_HOUR = 10",
+            "shouldRunRegisterPrePhotoIngestNightTick"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
+            "REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_EVENING",
+            "REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_MORNING",
+            "shouldRunRegisterPrePhotoIngestNightTick"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-ingest-night-window.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
+            "KST 22:00–10:00",
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-listing-ingest.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
+            "이미 등록된 URL은 건너뛰고 공급사마다 하루 3건이다"
           ]
         }
       ],
@@ -10425,7 +10493,8 @@
             "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
             "applyRegisterScheduleImageKeywordsBySupplier",
             "parser_fix_required",
-            "const applied = applyRegisterScheduleImageKeywordsBySupplier"
+            "const applied = applyRegisterScheduleImageKeywordsBySupplier",
+            "if (scheduleHasBrokenKeywords(working))"
           ]
         },
         {
@@ -10518,7 +10587,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
             "pre_photo_blocked",
-            "30 6 * * *",
+            "* 22-23 * * *",
             "isRegisterPrePhotoPendingQueueReady",
             "occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), false",
             "isRegisterPrePhotoKeywordPhotoGateStatus"
@@ -10548,6 +10617,96 @@
       ],
       "npmScripts": [
         "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-pre-photo-dashboard-queue-origin-lane",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대시보드 등록대기=verify.ok 큐, 워커 ingest 공개 origin, 하나투어·모두투어 목록 레인",
+      "checks": [
+        {
+          "file": "app/admin/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "countLiveRegisterPrePhotoPendingQueue"
+          ],
+          "mustNotInclude": [
+            "prisma.product.count({ where: { registrationStatus: 'pending' } })"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-pending-queue-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "productRowIsLiveRegisterPendingQueue",
+            "countLiveRegisterPrePhotoPendingQueue"
+          ]
+        },
+        {
+          "file": "lib/register-ingest-api-origin.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "getRegisterIngestApiOrigin",
+            "isLoopbackHttpOrigin",
+            "https://bongtour.com"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "getRegisterIngestApiOrigin"
+          ],
+          "mustNotInclude": [
+            "getSiteOrigin()"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-lane-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "discoveredListingFitsIngestLane",
+            "fetchHanatourPkgProdInfo",
+            "fetchModetourGroupDetailInfo"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "discoveredListingFitsIngestLane"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-geo-slots.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "inferHanatourListingProductKindFromOriginUrl"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_hanatour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "listingMenu",
+            "type=H01"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_modetour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "listingMenu",
+            "자유여행"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "tests/register-pre-photo-dashboard-queue-origin-lane.test.ts",
+        "tests/register-pre-photo-listing-ingest.test.ts",
+        "lib/register-facts/product-kind.test.ts"
       ]
     },
     {
@@ -12762,6 +12921,51 @@
             "preview + middle keywords already filled skips wipe/reapply"
           ]
         }
+      ],
+      "vitestSuites": [
+        "lib/register-parse-post-augment.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-heal-keep-filled-keywords",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "셀프힐은 숙소·깨진/빈 중간일만 SSOT 재채움. 이미 유효한 랜드마크는 덮어쓰지 않는다",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]",
+            "if (scheduleHasBrokenKeywords(working))",
+            "const applied = applyRegisterScheduleImageKeywordsBySupplier"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]",
+            "healRegisterPrePhotoSchedule"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]",
+            "Tottori Sand Museum"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.test.ts",
+          "mustInclude": [
+            "preview + middle keywords already filled skips wipe/reapply",
+            "Tottori Sand Museum"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
       ],
       "vitestSuites": [
         "lib/register-parse-post-augment.test.ts"
@@ -15082,6 +15286,63 @@
             "s-maxage=120"
           ]
         }
+      ]
+    },
+    {
+      "id": "bongsim-recommend-country-unlimited-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈 국가 탭 ?country= 로 피커 스킵·무제한 플랜 우선·더보기로 종량제·데일리",
+      "checks": [
+        {
+          "file": "app/travel/esim/recommend/RecommendPageClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]",
+            "parseRecommendCountryQuery",
+            "skipPickerToProducts",
+            "getCountryQuerySnapshot"
+          ],
+          "mustNotInclude": [
+            "from \"next/navigation\"",
+            "from 'next/navigation'"
+          ]
+        },
+        {
+          "file": "components/bongsim/HomeDestinationGrid.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]",
+            "recommend?country="
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/PlanSelectPopup.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]",
+            "showOtherPlansSeeMore",
+            "setShowOtherPlanTypes(true)"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/parse-recommend-entry-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]",
+            "parseRecommendCountryQuery"
+          ]
+        },
+        {
+          "file": "lib/bongsim/recommend/plan-type-see-more.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]",
+            "shouldShowOtherPlanTypesSeeMore",
+            "visiblePlanTypeTabs"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/recommend/parse-recommend-entry-query.test.ts",
+        "lib/bongsim/recommend/plan-type-see-more.test.ts"
       ]
     },
     {

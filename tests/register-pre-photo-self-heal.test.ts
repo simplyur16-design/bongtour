@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: 파라도르·중복 문장 셀프힐 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: 유효 랜드마크 유지 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -108,5 +109,45 @@ describe('register-pre-photo-self-heal', () => {
       },
     )
     assert.ok(out.notes.some((n) => n.reason === 'parser_fix_required'))
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: 유효 랜드마크는 덮어쓰지 않음 — manifest
+  it('이미 채워진 유효 랜드마크는 덮어쓰지 않는다', () => {
+    const out = healRegisterPrePhotoSchedule(
+      [
+        {
+          day: 1,
+          title: '1일차',
+          description: '인천에서 출발합니다.',
+          routeText: '인천 - 요나고',
+          imageKeyword: 'Incheon Departure',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          title: '2일차',
+          description: '돗토리 사구 모래미술관을 둘러봅니다.',
+          routeText: '요나고 - 돗토리 사구 모래미술관',
+          imageKeyword: 'Tottori Sand Museum',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '3일차 귀국',
+          description: '인천으로 귀국합니다.',
+          routeText: '요나고 - 인천',
+          imageKeyword: 'Adachi Museum of Art',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        supplierKey: 'modetour',
+        productDestination: '돗토리',
+        productTitle: '돗토리 3일',
+      },
+    )
+    const d2 = out.rows.find((r) => r.day === 2)!
+    assert.equal(d2.imageKeyword, 'Tottori Sand Museum')
+    assert.equal(out.reappliedKeywords, false)
   })
 })

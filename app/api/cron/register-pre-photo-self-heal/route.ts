@@ -3,11 +3,11 @@ import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { runRegisterPrePhotoDailyJob } from '@/lib/register-pre-photo-daily-job'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300
+export const maxDuration = 800
 
 /**
  * POST /api/cron/register-pre-photo-self-heal
- * 미등록 목록 수집(나라 1 또는 도시별 1, 패키지·자유여행) 후 등록대기 키워드·일정 셀프힐. 사진 생성 없음.
+ * 미등록 목록 수집(이미 있는 URL 스킵, 공급사당 3건) 후 등록대기 키워드·일정 셀프힐. 사진 생성 없음.
  * Header: x-bongtour-cron-secret
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: cron 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingest then heal — manifest

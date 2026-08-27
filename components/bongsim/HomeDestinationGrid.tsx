@@ -32,6 +32,7 @@ export function HomeDestinationGrid({ items, onBeforeNavigate }: Props) {
           <li key={c.code} className="min-w-0">
             <Link
               href={bongsimPath(`/recommend?country=${encodeURIComponent(c.code)}`)}
+              // REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]: 홈 국기 → ?country= 플랜 — manifest
               onClick={() => onBeforeNavigate?.(c.code)}
               className="group flex min-h-[6.25rem] w-full flex-col items-center gap-2 rounded-2xl px-1 pb-2.5 pt-3 transition active:scale-[0.97] active:bg-slate-100"
             >

@@ -105,7 +105,7 @@
     "verify:modetour-register-title": "npx tsx scripts/verify-modetour-register-title-ssot.ts",
     "verify:modetour-register-ssot-freeze": "npx tsx scripts/verify-modetour-register-ssot-freeze.ts",
     "verify:home-page-seo": "node --import tsx --test tests/home-page-seo.test.ts",
-    "verify:register-pre-photo-self-heal": "node --import tsx --test tests/register-pre-photo-self-heal.test.ts tests/register-admin-lane.test.ts tests/register-pre-photo-listing-ingest.test.ts tests/register-pending-photos-ready.test.ts tests/pending-pre-photo-verify-client-safe.test.ts",
+    "verify:register-pre-photo-self-heal": "node --import tsx --test tests/register-pre-photo-self-heal.test.ts tests/register-admin-lane.test.ts tests/register-pre-photo-listing-ingest.test.ts tests/register-pre-photo-ingest-night-window.test.ts tests/register-pending-photos-ready.test.ts tests/pending-pre-photo-verify-client-safe.test.ts",
     "heal:pending-pre-photo": "npx tsx scripts/heal-pending-register-pre-photo.ts",
     "db:register-listing-ingest-oneshot": "npx tsx scripts/heal-pending-register-pre-photo.ts --ingest",
     "verify:schedule-image-keyword-dual-slot": "npx tsx scripts/verify-schedule-image-keyword-dual-slot.ts",

@@ -35,6 +35,11 @@ import {
 import { sortPlanGroupsForDisplay } from "@/lib/bongsim/recommend/plan-display-sort";
 import { filterPlanGroupsByTripDaysWindow } from "@/lib/bongsim/recommend/plan-display-filter";
 import {
+  otherPlanTypeCount,
+  shouldShowOtherPlanTypesSeeMore,
+  visiblePlanTypeTabs,
+} from "@/lib/bongsim/recommend/plan-type-see-more";
+import {
   fetchPlans,
   readPrefetchedPlans,
 } from "@/lib/bongsim/recommend/prefetch-plans";
@@ -541,6 +546,7 @@ export function PlanSelectPopup({
   const [authFilter, setAuthFilter] = useState<AuthFilter>("not_required");
   const [rawGroups, setRawGroups] = useState<PlanGroups>({ unlimited: [], daily: [], fixed: [] });
   const [activeTab, setActiveTab] = useState<PlanTab>("unlimited");
+  const [showOtherPlanTypes, setShowOtherPlanTypes] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [err, setErr] = useState<string | null>(null);
@@ -561,6 +567,7 @@ export function PlanSelectPopup({
       setAuthFilter("not_required");
       setRawGroups({ unlimited: [], daily: [], fixed: [] });
       setActiveTab("unlimited");
+      setShowOtherPlanTypes(false);
       setSelectedId(null);
       setQuantity(1);
       setErr(null);
@@ -621,14 +628,11 @@ export function PlanSelectPopup({
         const visibleGroups = showBinary
           ? filterGroupsByAuth(windowed, defaultAuth)
           : windowed;
-        const pin = showBinary
-          ? json.recommended_by_auth?.[defaultAuth] ?? null
-          : nextRecommended;
         const visibleTabs = ALL_PLAN_TABS.filter((t) => (visibleGroups[t]?.length ?? 0) > 0);
-        const recTab = pin?.rec_source;
-        setActiveTab(
-          recTab && visibleTabs.includes(recTab) ? recTab : (visibleTabs[0] ?? "unlimited"),
-        );
+        const unlimitedCount = visibleGroups.unlimited.length;
+        setShowOtherPlanTypes(false);
+        // REGRESSION-FREEZE[bongsim-recommend-country-unlimited-first]: 무제한 탭 우선 — manifest
+        setActiveTab(unlimitedCount > 0 ? "unlimited" : (visibleTabs[0] ?? "unlimited"));
         setSelectedId(null);
       } catch {
         if (!cancelled) {
@@ -686,6 +690,23 @@ export function PlanSelectPopup({
     [groups],
   );
 
+  const otherCount = otherPlanTypeCount({ daily: tabCounts.daily, fixed: tabCounts.fixed });
+  const shownPlanTabs = useMemo(
+    () =>
+      visiblePlanTypeTabs({
+        expanded: showOtherPlanTypes,
+        unlimitedCount: tabCounts.unlimited,
+        otherCount,
+      }),
+    [showOtherPlanTypes, tabCounts.unlimited, otherCount],
+  );
+  const showOtherPlansSeeMore = shouldShowOtherPlanTypesSeeMore({
+    expanded: showOtherPlanTypes,
+    unlimitedCount: tabCounts.unlimited,
+    otherCount,
+  });
+  const planTypesCollapsed = shownPlanTabs.length === 1 && shownPlanTabs[0] === "unlimited";
+
   const activeRecommended = useMemo(() => {
     const pin = showAuthToggle ? recommendedByAuth?.[authFilter] ?? null : recommended;
     if (!pin?.option_api_id) return null;
@@ -702,11 +723,11 @@ export function PlanSelectPopup({
 
   const gridColumns = useMemo(
     () =>
-      ALL_PLAN_TABS.map((tab) => ({
+      shownPlanTabs.map((tab) => ({
         tab,
         cards: cardsForTab(tab, groups, activeRecommended),
       })),
-    [groups, activeRecommended],
+    [groups, activeRecommended, shownPlanTabs],
   );
 
   const allVisibleProducts = useMemo(() => tabCards.map((r) => r.product), [tabCards]);
@@ -776,19 +797,24 @@ export function PlanSelectPopup({
 
   useEffect(() => {
     if (!showAuthToggle || !open || loading) return;
+    if (planTypesCollapsed) return;
     const pin = recommendedByAuth?.[authFilter] ?? null;
     const recTab = pin?.rec_source;
     if (recTab && tabCounts[recTab] > 0) {
       setActiveTab(recTab);
     }
-  }, [authFilter, showAuthToggle, recommendedByAuth, tabCounts, open, loading]);
+  }, [authFilter, showAuthToggle, recommendedByAuth, tabCounts, open, loading, planTypesCollapsed]);
 
   useEffect(() => {
     if (!open || loading) return;
+    if (planTypesCollapsed && tabCounts.unlimited > 0 && activeTab !== "unlimited") {
+      setActiveTab("unlimited");
+      return;
+    }
     if (tabCounts[activeTab] > 0) return;
-    const next = ALL_PLAN_TABS.find((t) => tabCounts[t] > 0);
+    const next = shownPlanTabs.find((t) => tabCounts[t] > 0);
     if (next) setActiveTab(next);
-  }, [open, loading, tabCounts, activeTab, authFilter]);
+  }, [open, loading, tabCounts, activeTab, authFilter, planTypesCollapsed, shownPlanTabs]);
 
   if (!open) return null;
 
@@ -879,7 +905,7 @@ export function PlanSelectPopup({
         </div>
       ) : null}
 
-      {hasAnyPlansAtAll ? (
+      {hasAnyPlansAtAll && !planTypesCollapsed ? (
         <div className="border-b border-slate-100 px-5 lg:hidden">
           <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
             {ALL_PLAN_TABS.map((tab) => {
@@ -946,8 +972,8 @@ export function PlanSelectPopup({
           </p>
         )}
 
-        {/* Mobile: single tab + vertical card list (unchanged) */}
-        <div className="space-y-3 lg:hidden">
+        {/* 무제한만 먼저(접힘) — PC도 한 열. 더보기 후 모바일 탭·PC 3열 */}
+        <div className={planTypesCollapsed ? "space-y-3" : "space-y-3 lg:hidden"}>
           {!loading && !err && hasVisiblePlans && tabCards.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-600">
               이 유형의 플랜이 없습니다.
@@ -985,10 +1011,20 @@ export function PlanSelectPopup({
                 </Fragment>
               );
             })}
+          {showOtherPlansSeeMore ? (
+            <button
+              type="button"
+              onClick={() => setShowOtherPlanTypes(true)}
+              className="flex w-full flex-col items-center justify-center gap-0.5 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 py-4 transition hover:border-teal-300 hover:bg-teal-50/40"
+            >
+              <span className="text-[14px] font-bold text-slate-700">더보기</span>
+              <span className="text-[12px] font-medium text-slate-500">종량제·데일리 플랜</span>
+            </button>
+          ) : null}
         </div>
 
         {/* PC (lg+): 3-column grid with tab headers + column emphasis */}
-        {!loading && !err && hasVisiblePlans ? (
+        {!loading && !err && hasVisiblePlans && !planTypesCollapsed ? (
           <div className="hidden lg:block">
             <div className="mb-[8px] grid grid-cols-3 gap-[8px]" role="tablist" aria-label="플랜 유형">
               {ALL_PLAN_TABS.map((tab) => {

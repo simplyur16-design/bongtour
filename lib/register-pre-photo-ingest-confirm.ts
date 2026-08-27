@@ -2,10 +2,11 @@
  * 등록 파이프(parse-and-register preview→confirm) — 사진 수급 없음.
  * confirm 직후 검증. 통과한 것만 등록대기(pending). 실패는 pre_photo_blocked.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingestLane travelScope · lane_mismatch — manifest
- * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: confirm 후 검증 게이트 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 검증 실패는 pending 아님 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: ingest origin 공개 URL — manifest
  */
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
-import { getSiteOrigin } from '@/lib/site-metadata'
+import { getRegisterIngestApiOrigin } from '@/lib/register-ingest-api-origin'
 import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
 import { resolveRegisterTravelScopeFromRequest } from '@/lib/register-admin-travel-category'
@@ -120,7 +121,7 @@ async function postRegisterJson(
     error?: string
   }
 }> {
-  const res = await fetch(`${getSiteOrigin()}${path}`, {
+  const res = await fetch(`${getRegisterIngestApiOrigin()}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

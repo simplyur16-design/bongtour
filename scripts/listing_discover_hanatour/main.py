@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """hanatour 목록 — 사람처럼 검색·대기. 전 공급사 공통 딜레이 SSOT 아님."""
 # REGRESSION-FREEZE[register-listing-discover-playwright]: hanatour listing Playwright — manifest
+# REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: listingMenu FIT/PKG — manifest
 from __future__ import annotations
 
 import asyncio
@@ -153,13 +154,20 @@ async def discover_slots(slots: list[dict]) -> list[dict]:
                 sid = str(slot.get("id") or "")
                 word = str(slot.get("searchWord") or "").strip()
                 seed = str(slot.get("seedOriginUrl") or "").strip()
+                menu = str(slot.get("listingMenu") or "PKG").upper()
                 bag: list[str] = []
                 await asyncio.sleep(_pause_s())
                 ids: list[str] = []
                 candidates = []
                 if word:
-                    candidates.append(f"https://www.hanatour.com/package?keyword={quote(word)}")
-                    candidates.append(f"{LIST}?searchWord={quote(word)}")
+                    if menu == "FIT":
+                        candidates.append(
+                            f"https://www.hanatour.com/package?keyword={quote(word + ' 자유여행')}"
+                        )
+                        candidates.append(f"{LIST}?searchWord={quote(word)}&type=H01")
+                    else:
+                        candidates.append(f"https://www.hanatour.com/package?keyword={quote(word)}")
+                        candidates.append(f"{LIST}?searchWord={quote(word)}")
                 if seed:
                     candidates.append(seed)
                 for url in candidates:

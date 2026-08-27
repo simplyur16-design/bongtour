@@ -1,12 +1,16 @@
 /**
- * 일일 수집 슬롯 — 등록된 공급사마다 패키지·자유여행 각각
- * 나라만 있으면 나라 1개, 도시가 있으면 도시별 1개.
- * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city · 레인별 — manifest
+ * 일일 수집 검색 시드 — 등록된 공급사마다 패키지·자유여행 각각
+ * 나라만 있으면 나라 1개, 도시가 있으면 도시별 1개. 이미 있는 상품은 건너뛰고 공급사당 3건.
+ * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 3건 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 공급사당 3건 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: max slots per supplier per run — manifest
  */
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
-import { inferRegisterFactProductKindFromOriginUrl } from '@/lib/register-facts/product-kind'
-import type { RegisterFactProductKind } from '@/lib/register-facts/product-kind'
+import {
+  inferHanatourListingProductKindFromOriginUrl,
+  inferRegisterFactProductKindFromOriginUrl,
+  type RegisterFactProductKind,
+} from '@/lib/register-facts/product-kind'
 import type { SupplierRegisterFactSource } from '@/lib/register-facts/types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { normalizeRegisterOriginUrl } from '@/lib/register-product-duplicate-guard'
@@ -15,8 +19,11 @@ import { occupiesRegisterPrePhotoIngestSlot } from '@/lib/register-pre-photo-pen
 export const REGISTER_PRE_PHOTO_INGEST_LANES = ['package', 'air_hotel_free'] as const
 export type RegisterPrePhotoIngestLane = (typeof REGISTER_PRE_PHOTO_INGEST_LANES)[number]
 
-/** 슬롯당 미등록 1건 — 3건 한도 아님 */
+/** 목록 검색 시드는 geo당 1페이지. 생성 한도는 공급사당 3건. */
 export const REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1
+
+/** 이미 등록된 URL은 건너뛰고, 공급사마다 하루에 신규 3건. */
+export const REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3
 
 /**
  * Playwright 목록은 공급사당 브라우저 1개.
@@ -103,7 +110,6 @@ export function ybtourListingMenuForIngestLane(lane: RegisterPrePhotoIngestLane)
   return lane === 'air_hotel_free' ? 'FIT' : 'PKG'
 }
 
-
 function searchWordForSlot(args: {
   cityKey: string | null
   destination: string | null
@@ -116,12 +122,18 @@ function searchWordForSlot(args: {
   return args.countryKey.trim()
 }
 
-/** URL로 패키지/자유여행을 가를 수 있는 공급사만 목록 단계에서 걸러낸다. */
+/** URL로 가를 수 있으면 목록 단계에서 걸러낸다. 하나투어 미상·모두투어는 API 프로브. */
+// REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: hanatour pkgCd 목록 레인 — manifest
 export function listingUrlMatchesIngestLane(
   supplier: SupplierRegisterFactSource,
   originUrl: string,
   lane: RegisterPrePhotoIngestLane,
 ): boolean {
+  if (supplier === 'hanatour') {
+    const guessed = inferHanatourListingProductKindFromOriginUrl(originUrl)
+    if (guessed == null) return true
+    return factKindMatchesIngestLane(guessed, lane)
+  }
   if (supplier !== 'ybtour' && supplier !== 'verygoodtour' && supplier !== 'kyowontour') {
     return true
   }

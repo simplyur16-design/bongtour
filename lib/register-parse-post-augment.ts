@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: routeText·description vibe SSOT — manifest
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: preview/confirm Gemini 보조 — manifest
  * REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]: preview+confirm skip wipe when middle filled — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: skip 경로 셀프힐이 유효 kw 덮어쓰기 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: skip/apply 후 파라도르·중복 문장 셀프힐 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지 레인만 키워드 파이프 — manifest
  */
@@ -111,6 +112,7 @@ async function applyPackagePostAugmentScheduleKeywords(
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: confirm skip when preview kw filled — manifest
   // REGRESSION-FREEZE[register-post-augment-keyword-skip-when-filled]: preview also skips wipe+reapply when filled — manifest
   // 중간일 primary가 이미 채워진 preview·confirm만 스킵(모두·교원·롯데 등 정상 미리보기 유지).
+  // skip 경로 셀프힐은 숙소 제거·깨진 슬롯 회복만 — 유효 랜드마크 wipe 금지.
   // 중간일이 비면 고착 금지 — wipe+규칙+Gemini로 빈 슬롯만 회복(빈 Day4를 스킵하던 회귀 교정).
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: empty middle recovers (no sticky skip) — manifest
   const middleFilled = packageScheduleMiddleDaysHavePrimaryKeywords(schedule)

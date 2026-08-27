@@ -10,6 +10,9 @@ import {
 } from '@/lib/register-pre-photo-verify'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import { isRegisterPrePhotoPendingQueueReady } from '@/lib/register-pre-photo-pending-queue'
+import {
+  REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE,
+} from '@/lib/register-pre-photo-pending-queue-query'
 
 /**
  * GET /api/admin/products/pending
@@ -21,19 +24,14 @@ import { isRegisterPrePhotoPendingQueueReady } from '@/lib/register-pre-photo-pe
  * REGRESSION-FREEZE[pending-approve-photos-ready]: photosReady SSOT — manifest
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: verify.ok 만 등록대기 — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 실패 건 큐 제외 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: DB where SSOT — manifest
  */
 export async function GET() {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   try {
     const list = await prisma.product.findMany({
-      where: {
-        OR: [
-          { registrationStatus: null },
-          { registrationStatus: '' },
-          { registrationStatus: 'pending' },
-        ],
-      },
+      where: REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE,
       orderBy: { updatedAt: 'desc' },
       select: {
         id: true,

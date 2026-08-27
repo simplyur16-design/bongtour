@@ -174,9 +174,18 @@ function isHanatourAirtelFreeTravelSaleProdCd(cd: string, nm?: string | null): b
   return /\[?자유여행\]?|에어텔/i.test(String(nm ?? ''))
 }
 
+/** 목록 URL·pkgCd로 패키지/자유여행 추정 — 확정 collect 전에 쓴다. */
+export function hanatourSaleProdCdLooksPackage(cd: string): boolean {
+  return isHanatourPackageSaleProdCd(cd)
+}
+
+export function hanatourSaleProdCdLooksAirtelExclusive(cd: string, nm?: string | null): boolean {
+  return isHanatourAirtelFreeTravelSaleProdCd(cd, nm) && !isHanatourPackageSaleProdCd(cd)
+}
+
 /** 자유여행 전용 목록 행 — PAB·에어텔 명칭 등 (PAP·CAP 등 패키지 saleProdCd는 제외) */
 function isHanatourAirtelExclusiveListRow(cd: string, nm?: string | null): boolean {
-  return isHanatourAirtelFreeTravelSaleProdCd(cd, nm) && !isHanatourPackageSaleProdCd(cd)
+  return hanatourSaleProdCdLooksAirtelExclusive(cd, nm)
 }
 
 /** getPkgProdLst — URL 상품과 동일 라인(마스터·일수·호텔)만. 패키지·다른 호텔·다른 일수 제외 */

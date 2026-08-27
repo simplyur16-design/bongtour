@@ -6,6 +6,7 @@ import {
   ADMIN_SECTION_TITLE_CLASS,
 } from '@/lib/admin-design-system'
 import { prisma } from '@/lib/prisma'
+import { countLiveRegisterPrePhotoPendingQueue } from '@/lib/register-pre-photo-pending-queue-query
 import AdminEmptyState from './components/AdminEmptyState'
 import AdminKpiCard from './components/AdminKpiCard'
 import AdminPageHeader from './components/AdminPageHeader'
@@ -28,7 +29,8 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
 
   const [pendingCount, registeredCount, bookingCount, inquiryCount, affiliationPendingCount] =
     await Promise.all([
-      prisma.product.count({ where: { registrationStatus: 'pending' } }),
+      // REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: 등록대기 KPI = verify.ok 큐 — manifest
+      countLiveRegisterPrePhotoPendingQueue(),
       prisma.product.count({ where: { registrationStatus: 'registered' } }),
       prisma.booking.count({ where: { status: { not: '취소' } } }),
       prisma.customerInquiry.count({ where: { status: { notIn: ['dropped', 'cancelled'] } } }),

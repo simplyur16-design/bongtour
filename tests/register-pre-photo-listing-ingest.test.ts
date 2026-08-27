@@ -1,7 +1,8 @@
 /**
- * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 나라만 1 · 도시별 1 · 패키지+자유여행 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 3건 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: rotate slots per supplier — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 검증 통과만 등록대기 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 등록된 URL 스킵 · 야간 창 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -18,6 +19,7 @@ import { extractVerygoodtourListingProCodes } from '../lib/register-listing-disc
 import { extractRegisterProductDedupeKeys } from '../lib/register-product-duplicate-guard'
 import {
   REGISTER_PRE_PHOTO_INGEST_PER_GEO,
+  REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER,
   REGISTER_PRE_PHOTO_INGEST_LANES,
   REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN,
   buildRegisterPrePhotoIngestGeoSlots,
@@ -50,7 +52,8 @@ function row(partial: Partial<RegisterPrePhotoIngestProductRow> & { originSource
 }
 
 describe('register-pre-photo-listing-ingest', () => {
-  it('슬롯당 1건이고 3건·공급사당 하루 3 URL이 아니다', () => {
+  it('이미 등록된 URL은 건너뛰고 공급사마다 하루 3건이다', () => {
+    assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 3)
     assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_GEO, 1)
     assert.deepEqual([...REGISTER_PRE_PHOTO_INGEST_LANES], ['package', 'air_hotel_free'])
   })
@@ -127,6 +130,41 @@ describe('register-pre-photo-listing-ingest', () => {
     const fit = slots.find((s) => s.lane === 'air_hotel_free')
     assert.equal(pkg?.pending, 1)
     assert.equal(fit?.pending, 0)
+  })
+
+  it('hanatour 목록 URL은 pkgCd·type=H01 로 패키지/자유여행을 가른다', () => {
+    assert.equal(
+      listingUrlMatchesIngestLane(
+        'hanatour',
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CMB1952607057CH',
+        'air_hotel_free',
+      ),
+      true,
+    )
+    assert.equal(
+      listingUrlMatchesIngestLane(
+        'hanatour',
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CMB1952607057CH',
+        'package',
+      ),
+      false,
+    )
+    assert.equal(
+      listingUrlMatchesIngestLane(
+        'hanatour',
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=CHP101260701TWW',
+        'package',
+      ),
+      true,
+    )
+    assert.equal(
+      listingUrlMatchesIngestLane(
+        'hanatour',
+        'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200?pkgCd=EEP133260701KEY&type=H01',
+        'air_hotel_free',
+      ),
+      true,
+    )
   })
 
   it('ybtour 자유여행 레인은 FIT 메뉴다', () => {
@@ -223,18 +261,26 @@ describe('register-pre-photo-listing-ingest', () => {
     ]) {
       const py = readFileSync(new URL(rel, import.meta.url), 'utf8')
       assert.match(py, /stdin\.buffer\.read\(\)/)
+      if (rel.includes('hanatour') || rel.includes('modetour')) {
+        assert.match(py, /listingMenu/)
+      }
     }
   })
 
-  it('신규등록 ingest 는 매일 KST 06:30 이다', () => {
+  it('신규등록 ingest 는 KST 22:00–10:00 창에서 날짜마다 다른 시각이다', () => {
     const cron = readFileSync(
       new URL('../lib/instrumentation-register-pre-photo-self-heal-cron.ts', import.meta.url),
       'utf8',
     )
-    assert.ok(cron.includes("'30 6 * * *'"))
-    assert.match(cron, /'30 6 \* \* \*'/)
+    assert.ok(cron.includes('* 22-23 * * *'))
+    assert.ok(cron.includes('* 0-9 * * *'))
+    assert.equal(cron.includes("'30 6 * * *'"), false)
     assert.match(cron, /Asia\/Seoul/)
     assert.match(cron, /runRegisterPrePhotoDailyJob/)
+    assert.match(cron, /shouldRunRegisterPrePhotoIngestNightTick/)
+    const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
+    assert.match(ingestSrc, /REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER/)
+    assert.match(ingestSrc, /registerPrePhotoListingUrlIsKnown/)
   })
 
   it('검증 실패·파서 수정 필요는 등록대기에 올리지 않는다', () => {
@@ -261,6 +307,12 @@ describe('register-pre-photo-listing-ingest', () => {
     const pendingRoute = readFileSync(new URL('../app/api/admin/products/pending/route.ts', import.meta.url), 'utf8')
     assert.match(pendingRoute, /isRegisterPrePhotoPendingQueueReady/)
     const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
+    assert.match(ingestSrc, /discoveredListingFitsIngestLane/)
+    const originSrc = readFileSync(new URL('../lib/register-ingest-api-origin.ts', import.meta.url), 'utf8')
+    assert.match(originSrc, /getRegisterIngestApiOrigin/)
+    const dash = readFileSync(new URL('../app/admin/page.tsx', import.meta.url), 'utf8')
+    assert.match(dash, /countLiveRegisterPrePhotoPendingQueue/)
+    assert.equal(dash.includes("prisma.product.count({ where: { registrationStatus: 'pending' } })"), false)
     assert.match(ingestSrc, /pre_photo_verify_failed/)
     assert.match(ingestSrc, /if \(!confirm\.ok\)/)
     assert.equal(isRegisterPrePhotoKeywordPhotoGateStatus('pre_photo_blocked'), true)

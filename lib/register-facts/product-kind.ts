@@ -2,7 +2,13 @@
  * register-facts — 패키지 vs 항공+호텔(자유여행) 구분 SSOT.
  * REGRESSION-FREEZE[register-facts-completeness]
  */
-import { isHanatourAirtelLikeProdInfo, type HanatourPkgProdInfo } from '@/lib/hanatour-api-departures'
+import {
+  hanatourSaleProdCdLooksAirtelExclusive,
+  hanatourSaleProdCdLooksPackage,
+  isHanatourAirtelLikeProdInfo,
+  parseHanatourPkgCdFromUrl,
+  type HanatourPkgProdInfo,
+} from '@/lib/hanatour-api-departures'
 import type { SupplierRegisterFactSource, SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 
 export type RegisterFactProductKind = 'package' | 'air_hotel_free'
@@ -48,9 +54,28 @@ export function inferRegisterFactProductKindFromOriginUrl(
       return /[?&]menuCode=M53/i.test(url) ? 'air_hotel_free' : 'package'
     case 'verygoodtour':
       return /[?&]MenuCode=leaveLayer/i.test(url) ? 'air_hotel_free' : 'package'
+    case 'hanatour': {
+      const guessed = inferHanatourListingProductKindFromOriginUrl(url)
+      return guessed ?? 'package'
+    }
     default:
       return 'package'
   }
+}
+
+/** 목록 URL만으로 가를 수 있으면 kind, 아니면 null(API 프로브). */
+// REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: hanatour 목록 kind — manifest
+export function inferHanatourListingProductKindFromOriginUrl(
+  originUrl: string,
+): RegisterFactProductKind | null {
+  const url = originUrl.trim()
+  if (!url) return null
+  if (/[?&]type=H01\b/i.test(url)) return 'air_hotel_free'
+  const cd = parseHanatourPkgCdFromUrl(url)
+  if (!cd) return null
+  if (hanatourSaleProdCdLooksAirtelExclusive(cd)) return 'air_hotel_free'
+  if (hanatourSaleProdCdLooksPackage(cd)) return 'package'
+  return null
 }
 
 export function inferHanatourRegisterFactProductKind(
