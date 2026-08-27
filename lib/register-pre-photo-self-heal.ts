@@ -129,18 +129,33 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
 
   let reappliedKeywords = false
   if (scheduleHasBrokenKeywords(working)) {
-    working = applyRegisterScheduleImageKeywordsBySupplier(working, {
-      supplierKey: opts.supplierKey,
-      productDestination: opts.productDestination,
-      productTitle: opts.productTitle,
-      travelScope: 'package',
-    })
+    const applied = applyRegisterScheduleImageKeywordsBySupplier(
+      working.map((row) => ({
+        day: Number(row.day) || 0,
+        title: row.title != null ? String(row.title) : undefined,
+        description: row.description != null ? String(row.description) : undefined,
+        routeText: row.routeText ?? null,
+        imageKeyword: row.imageKeyword ?? '',
+        imageKeyword2: row.imageKeyword2 ?? null,
+      })),
+      {
+        supplierKey: opts.supplierKey,
+        productDestination: opts.productDestination,
+        productTitle: opts.productTitle,
+        travelScope: 'package',
+      },
+    )
     reappliedKeywords = true
-    working = working.map((row) => ({
-      ...row,
-      imageKeyword: sanitizeLandmarkKeyword(row.imageKeyword),
-      imageKeyword2: sanitizeLandmarkKeyword(row.imageKeyword2) || null,
-    }))
+    const byDay = new Map(applied.map((r) => [Number(r.day), r]))
+    working = working.map((row) => {
+      const a = byDay.get(Number(row.day))
+      if (!a) return row
+      return {
+        ...row,
+        imageKeyword: sanitizeLandmarkKeyword(a.imageKeyword),
+        imageKeyword2: sanitizeLandmarkKeyword(a.imageKeyword2) || null,
+      }
+    })
   }
 
   if (scheduleHasBrokenKeywords(working)) {

@@ -10424,7 +10424,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
             "applyRegisterScheduleImageKeywordsBySupplier",
-            "parser_fix_required"
+            "parser_fix_required",
+            "const applied = applyRegisterScheduleImageKeywordsBySupplier"
           ]
         },
         {
