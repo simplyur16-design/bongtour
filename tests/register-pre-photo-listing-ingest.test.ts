@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 나라만 1 · 도시별 1 · 패키지+자유여행 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: rotate slots per supplier — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -16,8 +17,10 @@ import { extractRegisterProductDedupeKeys } from '../lib/register-product-duplic
 import {
   REGISTER_PRE_PHOTO_INGEST_PER_GEO,
   REGISTER_PRE_PHOTO_INGEST_LANES,
+  REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN,
   buildRegisterPrePhotoIngestGeoSlots,
   listingUrlMatchesIngestLane,
+  rotateRegisterPrePhotoIngestSlots,
   travelScopeForIngestLane,
   ybtourListingMenuForIngestLane,
   type RegisterPrePhotoIngestProductRow,
@@ -186,5 +189,16 @@ describe('register-pre-photo-listing-ingest', () => {
     const known = new Set(keys.map((k) => `${k.kind}:${k.value}`))
     const again = extractRegisterProductDedupeKeys('modetour', url)
     assert.equal(again.some((k) => known.has(`${k.kind}:${k.value}`)), true)
+  })
+
+  it('하루 공급사당 Playwright 목록 슬롯을 날짜로 돌려 자른다', () => {
+    assert.equal(REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN, 4)
+    const slots = [1, 2, 3, 4, 5, 6, 7, 8]
+    const a = rotateRegisterPrePhotoIngestSlots(slots, '2026-08-27::hanatour', 4)
+    const b = rotateRegisterPrePhotoIngestSlots(slots, '2026-08-28::hanatour', 4)
+    assert.equal(a.length, 4)
+    assert.equal(b.length, 4)
+    assert.deepEqual(rotateRegisterPrePhotoIngestSlots(slots, '2026-08-27::hanatour', 8), slots)
+    assert.deepEqual(rotateRegisterPrePhotoIngestSlots([], '2026-08-27', 4), [])
   })
 })

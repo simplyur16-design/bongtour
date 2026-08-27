@@ -1,9 +1,14 @@
 /**
- * hanatour 목록 — 등록 상세와 같은 www/gw 연결. 전 공급사 공통 딜레이 SSOT 아님.
+ * hanatour 목록 — Playwright. 전 공급사 공통 딜레이 SSOT 아님.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: hanatour list HTML — manifest
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: listing_discover_hanatour — manifest
  */
+import { spawnListingDiscoverPython } from '@/lib/register-listing-discover-spawn'
+
 export const HANATOUR_LISTING_PAUSE_MS_MIN = 2200
 export const HANATOUR_LISTING_PAUSE_MS_MAX = 4100
+export const HANATOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS = 240_000
+export const HANATOUR_LISTING_DISCOVER_MODULE = 'scripts.listing_discover_hanatour.main'
 
 const HANATOUR_TRP_DETAIL = 'https://www.hanatour.com/trp/pkg/CHPC0PKG0200M200'
 const HANATOUR_TRP_LIST = 'https://www.hanatour.com/trp/pkg/CHPC0PKG0119P200'
@@ -52,23 +57,19 @@ export async function fetchHanatourListingDetailUrls(args: {
   seedOriginUrl: string
   searchWord: string
 }): Promise<string[]> {
-  const listUrl = buildHanatourListUrl(args.searchWord)
-  await new Promise((r) => setTimeout(r, pauseMs()))
-  try {
-    const res = await fetch(listUrl, {
-      headers: {
-        accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-        'accept-language': 'ko-KR',
-        referer: args.seedOriginUrl || 'https://www.hanatour.com/',
-        'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      signal: AbortSignal.timeout(20_000),
-    })
-    if (!res.ok) return []
-    const html = await res.text()
-    return extractHanatourListingPkgCds(html).map(buildHanatourDetailUrl)
-  } catch {
-    return []
-  }
+  const map = await fetchHanatourListingDetailUrlMap([
+    { id: 'one', searchWord: args.searchWord, seedOriginUrl: args.seedOriginUrl },
+  ])
+  return map.get('one') ?? []
+}
+
+export async function fetchHanatourListingDetailUrlMap(
+  slots: Array<{ id: string; searchWord: string; seedOriginUrl: string }>,
+): Promise<Map<string, string[]>> {
+  const rows = await spawnListingDiscoverPython({
+    module: HANATOUR_LISTING_DISCOVER_MODULE,
+    slots,
+    timeoutMs: HANATOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS,
+  })
+  return new Map(rows.map((r) => [r.id, r.urls]))
 }

@@ -2,6 +2,7 @@
  * 일일 수집 슬롯 — 등록된 공급사마다 패키지·자유여행 각각
  * 나라만 있으면 나라 1개, 도시가 있으면 도시별 1개.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city · 레인별 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: max slots per supplier per run — manifest
  */
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import { inferRegisterFactProductKindFromOriginUrl } from '@/lib/register-facts/product-kind'
@@ -15,6 +16,35 @@ export type RegisterPrePhotoIngestLane = (typeof REGISTER_PRE_PHOTO_INGEST_LANES
 
 /** 슬롯당 미등록 1건 — 3건 한도 아님 */
 export const REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1
+
+/**
+ * Playwright 목록은 공급사당 브라우저 1개.
+ * 312슬롯을 하루에 다 열면 가격 스윕과 겹친다. 날짜로 돌려가며 자른다.
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: max slots per supplier per run — manifest
+ */
+export const REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN = 4
+
+export function registerPrePhotoIngestMaxSlotsPerSupplier(): number {
+  const raw = Number(process.env.REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER ?? '')
+  if (Number.isFinite(raw) && raw >= 1) return Math.min(24, Math.floor(raw))
+  return REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN
+}
+
+export function rotateRegisterPrePhotoIngestSlots<T>(
+  slots: readonly T[],
+  dayKey: string,
+  take: number,
+): T[] {
+  if (take <= 0 || slots.length === 0) return []
+  if (slots.length <= take) return [...slots]
+  let h = 2166136261
+  for (let i = 0; i < dayKey.length; i++) {
+    h ^= dayKey.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  const start = Math.abs(h) % slots.length
+  return [...slots.slice(start), ...slots.slice(0, start)].slice(0, take)
+}
 
 export type RegisterPrePhotoIngestProductRow = {
   originSource: string | null

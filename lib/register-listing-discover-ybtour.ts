@@ -1,9 +1,14 @@
 /**
- * ybtour 목록 — 등록 상세와 같은 prdt HTML 연결. 전 공급사 공통 딜레이 SSOT 아님.
+ * ybtour 목록 — Playwright localList. 전 공급사 공통 딜레이 SSOT 아님.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ybtour localList — manifest
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: listing_discover_ybtour — manifest
  */
+import { spawnListingDiscoverPython } from '@/lib/register-listing-discover-spawn'
+
 export const YBTOUR_LISTING_PAUSE_MS_MIN = 1800
 export const YBTOUR_LISTING_PAUSE_MS_MAX = 3400
+export const YBTOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS = 240_000
+export const YBTOUR_LISTING_DISCOVER_MODULE = 'scripts.listing_discover_ybtour.main'
 
 export function parseYbtourDspSidFromUrl(url: string | null | undefined): string | null {
   const m = String(url ?? '').match(/[?&]dspSid=([^&]+)/i)
@@ -55,29 +60,31 @@ export async function waitYbtourListingHumanPause(): Promise<void> {
 
 export async function fetchYbtourListingDetailUrls(args: {
   seedOriginUrl: string
-  /** 레인 강제 — 없으면 시드 URL menu */
   listingMenu?: 'PKG' | 'FIT'
 }): Promise<string[]> {
-  const dspSid = parseYbtourDspSidFromUrl(args.seedOriginUrl)
-  if (!dspSid) return []
-  const menu = args.listingMenu ?? ybtourListingMenuFromUrl(args.seedOriginUrl)
-  const listUrl = buildYbtourLocalListUrl(dspSid, menu)
-  await new Promise((r) => setTimeout(r, pauseMs()))
-  try {
-    const res = await fetch(listUrl, {
-      headers: {
-        accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-        'accept-language': 'ko-KR',
-        referer: args.seedOriginUrl,
-        'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      signal: AbortSignal.timeout(20_000),
-    })
-    if (!res.ok) return []
-    const html = await res.text()
-    return extractYbtourListingEvCds(html).map((evCd) => buildYbtourDetailUrl(evCd, dspSid, menu))
-  } catch {
-    return []
-  }
+  const map = await fetchYbtourListingDetailUrlMap([
+    {
+      id: 'one',
+      searchWord: '',
+      seedOriginUrl: args.seedOriginUrl,
+      listingMenu: args.listingMenu ?? ybtourListingMenuFromUrl(args.seedOriginUrl),
+    },
+  ])
+  return map.get('one') ?? []
+}
+
+export async function fetchYbtourListingDetailUrlMap(
+  slots: Array<{
+    id: string
+    searchWord: string
+    seedOriginUrl: string
+    listingMenu?: 'PKG' | 'FIT'
+  }>,
+): Promise<Map<string, string[]>> {
+  const rows = await spawnListingDiscoverPython({
+    module: YBTOUR_LISTING_DISCOVER_MODULE,
+    slots,
+    timeoutMs: YBTOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS,
+  })
+  return new Map(rows.map((r) => [r.id, r.urls]))
 }

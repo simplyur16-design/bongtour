@@ -10231,6 +10231,7 @@
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
             "REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1",
             "REGISTER_PRE_PHOTO_INGEST_LANES",
+            "REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN",
             "buildRegisterPrePhotoIngestGeoSlots"
           ],
           "mustNotInclude": [
@@ -10244,28 +10245,44 @@
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
             "YBTOUR_LISTING_PAUSE_MS_MIN",
             "localList",
-            "listingMenu"
+            "listingMenu",
+            "listing_discover_ybtour"
+          ],
+          "mustNotInclude": [
+            "await fetch(listUrl"
           ]
         },
         {
           "file": "lib/register-listing-discover-hanatour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
-            "HANATOUR_LISTING_PAUSE_MS_MIN"
+            "HANATOUR_LISTING_PAUSE_MS_MIN",
+            "listing_discover_hanatour"
+          ],
+          "mustNotInclude": [
+            "await fetch(listUrl"
           ]
         },
         {
           "file": "lib/register-listing-discover-modetour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
-            "MODETOUR_LISTING_PAUSE_MS_MIN"
+            "MODETOUR_LISTING_PAUSE_MS_MIN",
+            "listing_discover_modetour"
+          ],
+          "mustNotInclude": [
+            "await fetch(listUrl"
           ]
         },
         {
           "file": "lib/register-listing-discover-verygoodtour.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
-            "VERYGOODTOUR_LISTING_PAUSE_MS_MIN"
+            "VERYGOODTOUR_LISTING_PAUSE_MS_MIN",
+            "listing_discover_verygoodtour"
+          ],
+          "mustNotInclude": [
+            "await fetch(listUrl"
           ]
         },
         {
@@ -10275,7 +10292,8 @@
             "extractRegisterProductDedupeKeys",
             "ingestUnregisteredRegisterPendingPrePhoto",
             "ingestLane",
-            "buildRegisterPrePhotoIngestGeoSlots"
+            "buildRegisterPrePhotoIngestGeoSlots",
+            "listingUrlMapForSupplier"
           ],
           "mustNotInclude": [
             "REGISTER_PRE_PHOTO_URLS_PER_SUPPLIER_PER_DAY",
@@ -10306,7 +10324,76 @@
             "localList",
             "111617319",
             "나라만",
-            "도시별"
+            "도시별",
+            "rotateRegisterPrePhotoIngestSlots"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-listing-discover-playwright",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "신규등록 목록은 공급사별 Playwright — HTML fetch 금지, 하루 공급사당 슬롯 상한으로 가격스윕과 분리",
+      "checks": [
+        {
+          "file": "lib/register-listing-discover-spawn.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "spawnListingDiscoverPython",
+            "-m"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "listingUrlMapForSupplier",
+            "rotateRegisterPrePhotoIngestSlots"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-geo-slots.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN = 4"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_hanatour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "PAUSE_MS_MIN = 2200",
+            "async_playwright"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_modetour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "PAUSE_MS_MIN = 2000",
+            "async_playwright"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_ybtour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "PAUSE_MS_MIN = 1800",
+            "localList"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_verygoodtour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-playwright]",
+            "PAUSE_MS_MIN = 2500",
+            "ProductList"
           ]
         }
       ],

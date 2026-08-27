@@ -2,20 +2,25 @@
  * 등록된 공급사마다 패키지·자유여행 각각 — 나라만 있으면 나라 1개, 도시가 있으면 도시별 1개.
  * 공급사별 모듈·간격 분리. 사진 생성 없음. 중복 origin 제외.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city · 레인별 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-playwright]: Playwright batch · rotate cap — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { extractRegisterProductDedupeKeys } from '@/lib/register-product-duplicate-guard'
-import { fetchYbtourListingDetailUrls, waitYbtourListingHumanPause } from '@/lib/register-listing-discover-ybtour'
-import { fetchHanatourListingDetailUrls, waitHanatourListingHumanPause } from '@/lib/register-listing-discover-hanatour'
-import { fetchModetourListingDetailUrls, waitModetourListingHumanPause } from '@/lib/register-listing-discover-modetour'
-import { fetchVerygoodtourListingDetailUrls, waitVerygoodtourListingHumanPause } from '@/lib/register-listing-discover-verygoodtour'
+import { fetchYbtourListingDetailUrlMap, waitYbtourListingHumanPause } from '@/lib/register-listing-discover-ybtour'
+import { fetchHanatourListingDetailUrlMap, waitHanatourListingHumanPause } from '@/lib/register-listing-discover-hanatour'
+import { fetchModetourListingDetailUrlMap, waitModetourListingHumanPause } from '@/lib/register-listing-discover-modetour'
+import { fetchVerygoodtourListingDetailUrlMap, waitVerygoodtourListingHumanPause } from '@/lib/register-listing-discover-verygoodtour'
+import { kstTodayYmd } from '@/lib/calendar-ymd'
 import {
   REGISTER_PRE_PHOTO_INGEST_PER_GEO,
   buildRegisterPrePhotoIngestGeoSlots,
   isRegisterPrePhotoIngestSupplier,
   listingUrlMatchesIngestLane,
+  registerPrePhotoIngestMaxSlotsPerSupplier,
+  rotateRegisterPrePhotoIngestSlots,
   ybtourListingMenuForIngestLane,
+  type RegisterPrePhotoIngestGeoSlot,
   type RegisterPrePhotoIngestLane,
 } from '@/lib/register-pre-photo-ingest-geo-slots'
 import { confirmRegisterPendingFromOriginUrl } from '@/lib/register-pre-photo-ingest-confirm'
@@ -57,35 +62,31 @@ async function waitListingHumanPause(supplier: IngestSupplier): Promise<void> {
   }
 }
 
-async function listingUrlsForSupplier(args: {
-  supplier: IngestSupplier
-  seedOriginUrl: string
-  searchWord: string
-  lane: RegisterPrePhotoIngestLane
-}): Promise<string[]> {
-  switch (args.supplier) {
+function ingestSlotLabel(slot: RegisterPrePhotoIngestGeoSlot): string {
+  return `${slot.supplier}::${slot.lane}::${slot.countryKey}::${slot.cityKey ?? ''}`
+}
+
+async function listingUrlMapForSupplier(
+  supplier: IngestSupplier,
+  slots: RegisterPrePhotoIngestGeoSlot[],
+): Promise<Map<string, string[]>> {
+  const payload = slots.map((slot) => ({
+    id: ingestSlotLabel(slot),
+    searchWord: slot.searchWord,
+    seedOriginUrl: slot.originUrl,
+    listingMenu: ybtourListingMenuForIngestLane(slot.lane),
+  }))
+  switch (supplier) {
     case 'ybtour':
-      return fetchYbtourListingDetailUrls({
-        seedOriginUrl: args.seedOriginUrl,
-        listingMenu: ybtourListingMenuForIngestLane(args.lane),
-      })
+      return fetchYbtourListingDetailUrlMap(payload)
     case 'hanatour':
-      return fetchHanatourListingDetailUrls({
-        seedOriginUrl: args.seedOriginUrl,
-        searchWord: args.searchWord,
-      })
+      return fetchHanatourListingDetailUrlMap(payload)
     case 'modetour':
-      return fetchModetourListingDetailUrls({
-        seedOriginUrl: args.seedOriginUrl,
-        searchWord: args.searchWord,
-      })
+      return fetchModetourListingDetailUrlMap(payload)
     case 'verygoodtour':
-      return fetchVerygoodtourListingDetailUrls({
-        seedOriginUrl: args.seedOriginUrl,
-        searchWord: args.searchWord,
-      })
+      return fetchVerygoodtourListingDetailUrlMap(payload)
     default:
-      return []
+      return new Map()
   }
 }
 
@@ -135,34 +136,50 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
   }
 
   const slots = buildRegisterPrePhotoIngestGeoSlots(products)
+  const due = slots.filter((s) => asIngestSupplier(s.supplier) && s.pending < perGeo)
+  const maxPerSupplier = registerPrePhotoIngestMaxSlotsPerSupplier()
+  const dayKey = kstTodayYmd()
+  const selected: RegisterPrePhotoIngestGeoSlot[] = []
+  for (const supplier of INGEST_SUPPLIERS) {
+    const mine = due.filter((s) => s.supplier === supplier)
+    selected.push(...rotateRegisterPrePhotoIngestSlots(mine, `${dayKey}::${supplier}`, maxPerSupplier))
+  }
   console.error('[register-pre-photo-listing-ingest] start', {
     products: products.length,
     slots: slots.length,
+    due: due.length,
+    selected: selected.length,
+    maxPerSupplier,
     dryRun,
   })
 
-  for (const slot of slots) {
+  const urlMap = new Map<string, string[]>()
+  const discoverFailed = new Set<string>()
+  for (const supplier of INGEST_SUPPLIERS) {
+    const mine = selected.filter((s) => s.supplier === supplier)
+    if (mine.length === 0) continue
+    try {
+      const found = await listingUrlMapForSupplier(supplier, mine)
+      for (const [id, urls] of found) urlMap.set(id, urls)
+    } catch (e) {
+      result.failed += mine.length
+      for (const slot of mine) {
+        const label = ingestSlotLabel(slot)
+        discoverFailed.add(label)
+        result.skippedNoListing.push(`${label}:discover_throw`)
+      }
+      console.error('[register-pre-photo-listing-ingest] discover', supplier, e)
+    }
+  }
+
+  for (const slot of selected) {
     const supplier = asIngestSupplier(slot.supplier)
     if (!supplier) continue
-    if (slot.pending >= perGeo) continue
+    const slotLabel = ingestSlotLabel(slot)
+    if (discoverFailed.has(slotLabel)) continue
     result.scannedGeos += 1
-    const slotLabel = `${supplier}::${slot.lane}::${slot.countryKey}::${slot.cityKey ?? ''}`
     const factSource = supplier as SupplierRegisterFactSource
-
-    let urls: string[] = []
-    try {
-      urls = await listingUrlsForSupplier({
-        supplier,
-        seedOriginUrl: slot.originUrl,
-        searchWord: slot.searchWord,
-        lane: slot.lane,
-      })
-    } catch (e) {
-      result.failed += 1
-      result.skippedNoListing.push(`${slotLabel}:discover_throw`)
-      console.error('[register-pre-photo-listing-ingest] discover', slotLabel, e)
-      continue
-    }
+    const urls = urlMap.get(slotLabel) ?? []
     if (!urls.length) {
       result.skippedNoListing.push(slotLabel)
       continue
