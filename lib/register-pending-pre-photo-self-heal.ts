@@ -1,9 +1,12 @@
 /**
  * 등록대기(사진 수급 전) Product.schedule 셀프힐 + 레인별 검증 — Pexels/Gemini 호출 없음.
+ * 검증 통과만 pending. 실패·파서 수정 필요는 pre_photo_blocked.
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: pending 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 등록화면 레인으로 힐·검증 — manifest
  * REGRESSION-FREEZE[pending-approve-photos-ready]: 사진 완료 skip photosReady SSOT — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 스탬프 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 검증 실패는 등록대기 금지 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_blocked — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -19,11 +22,16 @@ import {
   mergeRegisterPrePhotoStampIntoRawMeta,
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
+import {
+  REGISTER_PRE_PHOTO_BLOCKED_STATUS,
+  registrationStatusAfterPrePhotoVerify,
+} from '@/lib/register-pre-photo-pending-queue'
 
 export type HealPendingPrePhotoOpts = {
   limit?: number
   probeImageUrls?: boolean
   dryRun?: boolean
+  productId?: string
 }
 
 export type HealPendingPrePhotoResult = {
@@ -31,6 +39,8 @@ export type HealPendingPrePhotoResult = {
   healed: number
   verified: number
   verifyFailed: number
+  blocked: number
+  promoted: number
   skippedPhotosReady: number
   skippedUnchanged: number
   failed: number
@@ -39,6 +49,8 @@ export type HealPendingPrePhotoResult = {
   notesSample: RegisterPrePhotoHealNote[]
   byLane: Record<RegisterAdminLane, number>
 }
+
+const GATEABLE_STATUSES = new Set(['', 'pending', REGISTER_PRE_PHOTO_BLOCKED_STATUS])
 
 function parseScheduleRows(raw: string | null): Array<Record<string, unknown>> {
   if (!raw) return []
@@ -64,15 +76,18 @@ export async function healPendingRegisterPrePhoto(
   }
 
   const products = await prisma.product.findMany({
-    where: {
-      OR: [
-        { registrationStatus: null },
-        { registrationStatus: '' },
-        { registrationStatus: 'pending' },
-      ],
-    },
+    where: opts?.productId
+      ? { id: opts.productId }
+      : {
+          OR: [
+            { registrationStatus: null },
+            { registrationStatus: '' },
+            { registrationStatus: 'pending' },
+            { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS },
+          ],
+        },
     orderBy: { updatedAt: 'desc' },
-    take: limit,
+    take: opts?.productId ? 1 : limit,
     select: {
       id: true,
       title: true,
@@ -84,6 +99,7 @@ export async function healPendingRegisterPrePhoto(
       productType: true,
       sportsThemeTag: true,
       rawMeta: true,
+      registrationStatus: true,
       brand: { select: { brandKey: true } },
     },
   })
@@ -91,17 +107,20 @@ export async function healPendingRegisterPrePhoto(
   let healed = 0
   let verified = 0
   let verifyFailed = 0
+  let blocked = 0
+  let promoted = 0
   let skippedPhotosReady = 0
   let skippedUnchanged = 0
   let failed = 0
 
   for (const product of products) {
     try {
-      const rows = parseScheduleRows(product.schedule)
-      if (!rows.length) {
+      const currentStatus = String(product.registrationStatus ?? '').trim()
+      if (currentStatus && !GATEABLE_STATUSES.has(currentStatus)) {
         skippedUnchanged += 1
         continue
       }
+      const rows = parseScheduleRows(product.schedule)
       const lane = resolveRegisterAdminLane({
         listingKind: product.listingKind,
         productType: product.productType,
@@ -129,7 +148,7 @@ export async function healPendingRegisterPrePhoto(
 
       if (photosReady) {
         skippedPhotosReady += 1
-      } else {
+      } else if (rows.length) {
         byLane[lane] += 1
         const result = healRegisterPrePhotoSchedule(mapped, {
           supplierKey,
@@ -191,10 +210,16 @@ export async function healPendingRegisterPrePhoto(
       })
       if (verify.ok) verified += 1
       else verifyFailed += 1
+      const nextStatus = registrationStatusAfterPrePhotoVerify(verify)
+      const statusChanged = currentStatus !== nextStatus
+      if (statusChanged && nextStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS) blocked += 1
+      if (statusChanged && nextStatus === 'pending' && currentStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS) {
+        promoted += 1
+      }
       const nextJson = JSON.stringify(next)
       const nextRawMeta = mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify)
       const stampChanged = nextRawMeta !== String(product.rawMeta ?? '')
-      if (!scheduleChanged && !stampChanged && healNotes.length === 0) {
+      if (!scheduleChanged && !stampChanged && !statusChanged && healNotes.length === 0) {
         skippedUnchanged += 1
         continue
       }
@@ -203,6 +228,7 @@ export async function healPendingRegisterPrePhoto(
           where: { id: product.id },
           data: {
             ...(scheduleChanged ? { schedule: nextJson } : {}),
+            ...(statusChanged ? { registrationStatus: nextStatus } : {}),
             rawMeta: nextRawMeta,
           },
         })
@@ -217,7 +243,7 @@ export async function healPendingRegisterPrePhoto(
         }
       }
       if (scheduleChanged || healNotes.length > 0) healed += 1
-      else if (!stampChanged) skippedUnchanged += 1
+      else if (!stampChanged && !statusChanged) skippedUnchanged += 1
       for (const n of healNotes.slice(0, 4)) {
         if (notesSample.length < 24) notesSample.push(n)
       }
@@ -232,6 +258,8 @@ export async function healPendingRegisterPrePhoto(
     healed,
     verified,
     verifyFailed,
+    blocked,
+    promoted,
     skippedPhotosReady,
     skippedUnchanged,
     failed,

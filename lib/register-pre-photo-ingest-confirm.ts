@@ -1,6 +1,8 @@
 /**
- * 등록 파이프(parse-and-register preview→confirm) — 사진 수급 없음, pending 저장.
+ * 등록 파이프(parse-and-register preview→confirm) — 사진 수급 없음.
+ * confirm 직후 검증. 통과한 것만 등록대기(pending). 실패는 pre_photo_blocked.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingestLane travelScope · lane_mismatch — manifest
+ * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: confirm 후 검증 게이트 — manifest
  */
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { getSiteOrigin } from '@/lib/site-metadata'
@@ -14,6 +16,7 @@ import {
   type RegisterPrePhotoIngestLane,
 } from '@/lib/register-pre-photo-ingest-geo-slots'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import { healPendingRegisterPrePhoto } from '@/lib/register-pending-pre-photo-self-heal'
 
 const REGISTER_ROUTE: Record<CanonicalOverseasSupplierKey, string | null> = {
   hanatour: '/api/travel/parse-and-register-hanatour',
@@ -94,7 +97,12 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
   if (!confirm.json.success || !confirm.json.productId) {
     return { ok: false, reason: confirm.json.error ?? 'confirm_failed' }
   }
-  return { ok: true, productId: confirm.json.productId }
+  const productId = confirm.json.productId
+  const gate = await healPendingRegisterPrePhoto({ limit: 1, productId, dryRun: false })
+  if (gate.verifyFailed > 0 || gate.verified < 1) {
+    return { ok: false, reason: 'pre_photo_verify_failed', productId }
+  }
+  return { ok: true, productId }
 }
 
 async function postRegisterJson(

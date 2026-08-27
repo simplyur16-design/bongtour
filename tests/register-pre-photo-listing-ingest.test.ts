@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 나라만 1 · 도시별 1 · 패키지+자유여행 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: rotate slots per supplier — manifest
+ * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 검증 통과만 등록대기 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -26,6 +27,12 @@ import {
   ybtourListingMenuForIngestLane,
   type RegisterPrePhotoIngestProductRow,
 } from '../lib/register-pre-photo-ingest-geo-slots'
+import {
+  REGISTER_PRE_PHOTO_BLOCKED_STATUS,
+  isRegisterPrePhotoPendingQueueReady,
+  occupiesRegisterPrePhotoIngestSlot,
+  registrationStatusAfterPrePhotoVerify,
+} from '../lib/register-pre-photo-pending-queue'
 
 function row(partial: Partial<RegisterPrePhotoIngestProductRow> & { originSource: string; originUrl: string; countryKey: string }): RegisterPrePhotoIngestProductRow {
   return {
@@ -223,8 +230,41 @@ describe('register-pre-photo-listing-ingest', () => {
       new URL('../lib/instrumentation-register-pre-photo-self-heal-cron.ts', import.meta.url),
       'utf8',
     )
+    assert.ok(cron.includes("'30 6 * * *'"))
     assert.match(cron, /'30 6 \* \* \*'/)
     assert.match(cron, /Asia\/Seoul/)
     assert.match(cron, /runRegisterPrePhotoDailyJob/)
+  })
+
+  it('검증 실패·파서 수정 필요는 등록대기에 올리지 않는다', () => {
+    assert.equal(isRegisterPrePhotoPendingQueueReady({ ok: true }), true)
+    assert.equal(isRegisterPrePhotoPendingQueueReady({ ok: false }), false)
+    assert.equal(registrationStatusAfterPrePhotoVerify({ ok: true }), 'pending')
+    assert.equal(REGISTER_PRE_PHOTO_BLOCKED_STATUS, 'pre_photo_blocked')
+    assert.equal(registrationStatusAfterPrePhotoVerify({ ok: false }), REGISTER_PRE_PHOTO_BLOCKED_STATUS)
+    assert.equal(occupiesRegisterPrePhotoIngestSlot('pending'), true)
+    assert.equal(occupiesRegisterPrePhotoIngestSlot(REGISTER_PRE_PHOTO_BLOCKED_STATUS), true)
+    assert.equal(occupiesRegisterPrePhotoIngestSlot('registered'), false)
+
+    const slots = buildRegisterPrePhotoIngestGeoSlots([
+      row({
+        originSource: 'ybtour',
+        originUrl: 'https://prdt.ybtour.co.kr/product/detailPackage?menu=PKG&dspSid=AAAB001&evCd=AVP4484-260711RS00',
+        countryKey: 'france',
+        destination: '프랑스',
+        registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS,
+      }),
+    ])
+    assert.equal(slots.find((s) => s.lane === 'package')?.pending, 1)
+
+    const pendingRoute = readFileSync(new URL('../app/api/admin/products/pending/route.ts', import.meta.url), 'utf8')
+    assert.match(pendingRoute, /isRegisterPrePhotoPendingQueueReady/)
+    const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
+    assert.match(ingestSrc, /pre_photo_verify_failed/)
+    const panel = readFileSync(
+      new URL('../app/admin/pending/components/AdminPendingDetailPanel.tsx', import.meta.url),
+      'utf8',
+    )
+    assert.equal(panel.includes('등록대기만'), false)
   })
 })

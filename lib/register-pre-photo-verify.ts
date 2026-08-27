@@ -2,7 +2,7 @@
  * 사진 수급 전 검증 — 레인별 등록화면 설정과 일정 키워드·요약이 맞는지 본다.
  * throw 없음. 사진 생성 없음.
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 레인별 검증 스탬프 — manifest
- * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드·FIT 공란은 parserFixRequired — manifest
+ * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드·FIT 공란은 parserFixRequired, 등록대기 금지 — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 통과 전 사진 금지 — manifest
  * REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]: self-heal 서버 체인 import 금지 — manifest

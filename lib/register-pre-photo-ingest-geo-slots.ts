@@ -10,6 +10,7 @@ import type { RegisterFactProductKind } from '@/lib/register-facts/product-kind'
 import type { SupplierRegisterFactSource } from '@/lib/register-facts/types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { normalizeRegisterOriginUrl } from '@/lib/register-product-duplicate-guard'
+import { occupiesRegisterPrePhotoIngestSlot } from '@/lib/register-pre-photo-pending-queue'
 
 export const REGISTER_PRE_PHOTO_INGEST_LANES = ['package', 'air_hotel_free'] as const
 export type RegisterPrePhotoIngestLane = (typeof REGISTER_PRE_PHOTO_INGEST_LANES)[number]
@@ -102,10 +103,6 @@ export function ybtourListingMenuForIngestLane(lane: RegisterPrePhotoIngestLane)
   return lane === 'air_hotel_free' ? 'FIT' : 'PKG'
 }
 
-function isPendingStatus(status: string | null | undefined): boolean {
-  const s = String(status ?? '').trim()
-  return s === '' || s === 'pending'
-}
 
 function searchWordForSlot(args: {
   cityKey: string | null
@@ -202,7 +199,7 @@ export function buildRegisterPrePhotoIngestGeoSlots(
       if (!cell.originByLane[lane]) cell.originByLane[lane] = url
     }
     if (p.destination && !cell.destination) cell.destination = p.destination
-    if (isPendingStatus(p.registrationStatus)) cell.pendingByLane[lane] += 1
+    if (occupiesRegisterPrePhotoIngestSlot(p.registrationStatus)) cell.pendingByLane[lane] += 1
   }
 
   const slots: RegisterPrePhotoIngestGeoSlot[] = []

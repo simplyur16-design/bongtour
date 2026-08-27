@@ -10423,7 +10423,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "키워드 빈칸·숙소·타일차 블리드는 등록대기만, 재채움 금지·파서/POI 수정",
+      "summary": "키워드 빈칸·숙소·타일차 블리드는 재채움 금지·파서/POI 수정. 검증 실패·파서 수정 필요는 등록대기 금지, 통과만 pending",
       "checks": [
         {
           "file": "lib/register-pre-photo-self-heal.ts",
@@ -10444,9 +10444,82 @@
           ]
         },
         {
+          "file": "lib/register-pre-photo-pending-queue.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
+            "isRegisterPrePhotoPendingQueueReady",
+            "pre_photo_blocked"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
+            "isRegisterPrePhotoPendingQueueReady"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustNotInclude": [
+            "등록대기만"
+          ]
+        },
+        {
           "file": "tests/register-pre-photo-self-heal.test.ts",
           "mustInclude": [
             "parser_fix_required"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
+      "id": "register-pre-photo-pending-verify-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "검증 실패·파서 수정 필요는 등록대기에 올리지 않는다. 원인 수정 후 검증 완료만 pending",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-pending-queue.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "REGISTER_PRE_PHOTO_BLOCKED_STATUS = 'pre_photo_blocked'",
+            "registrationStatusAfterPrePhotoVerify"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "pre_photo_blocked",
+            "registrationStatusAfterPrePhotoVerify"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "pre_photo_verify_failed"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "pre_photo_verify_failed"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-listing-ingest.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]",
+            "pre_photo_blocked",
+            "30 6 * * *",
+            "isRegisterPrePhotoPendingQueueReady"
           ]
         }
       ],

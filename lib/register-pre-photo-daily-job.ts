@@ -1,6 +1,7 @@
 /**
- * 매일: 공급사·레인별 나라 1개 또는 도시별 1개 수집 → 등록대기 셀프힐·검증. 사진 생성 없음.
+ * 매일: 공급사·레인별 나라 1개 또는 도시별 1개 수집 → 검증 통과만 등록대기, 실패는 차단 후 파서 수정.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingest then heal — manifest
+ * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 검증 통과만 pending — manifest
  */
 import { ingestUnregisteredRegisterPendingPrePhoto } from '@/lib/register-pre-photo-listing-ingest'
 import { healPendingRegisterPrePhoto } from '@/lib/register-pending-pre-photo-self-heal'

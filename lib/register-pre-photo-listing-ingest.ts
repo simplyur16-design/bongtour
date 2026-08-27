@@ -1,8 +1,10 @@
 /**
  * 등록된 공급사마다 패키지·자유여행 각각 — 나라만 있으면 나라 1개, 도시가 있으면 도시별 1개.
  * 공급사별 모듈·간격 분리. 사진 생성 없음. 중복 origin 제외.
+ * 검증 통과한 것만 등록대기. 실패는 슬롯만 차지하고 큐에 올리지 않음.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city · 레인별 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: Playwright batch · rotate cap — manifest
+ * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_verify_failed — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -205,6 +207,14 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
           ingestLane: slot.lane,
         })
         if (confirm.reason === 'lane_mismatch') continue
+        if (confirm.reason === 'pre_photo_verify_failed') {
+          result.failed += 1
+          createdThisSlot += 1
+          for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+            knownKeys.add(`${k.kind}:${k.value}`)
+          }
+          break
+        }
         if (!confirm.ok) {
           result.failed += 1
           continue

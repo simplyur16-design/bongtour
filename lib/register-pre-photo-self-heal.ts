@@ -1,9 +1,10 @@
 /**
- * 등록 사진 수급 전 — 숙소·식사 키워드는 비우고 등록대기에 둔다. 재배정은 파서/POI SSOT.
+ * 등록 사진 수급 전 — 숙소·식사 키워드는 비우고 파서/POI로 고친다. 재채움 금지.
+ * 검증 실패·파서 수정 필요는 등록대기에 올리지 않는다.
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: 파라도르·식사 키워드 제거, 사진 생성 없음 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·테마만 랜드마크 재적용, 자유여행은 패키지 파이프 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 1/country-or-city — manifest
- * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드 재채움 금지, 파서 수정 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 빈칸·블리드 재채움 금지, 검증 통과만 등록대기 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
