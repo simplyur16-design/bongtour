@@ -6594,11 +6594,42 @@
             "computeBaselineAdultPriceOnUpsert",
             "baselineAdultPrice"
           ]
+        },
+        {
+          "file": "lib/departure-price-view-model.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-urgent-deal-baseline]",
+            "kstTodayYmd",
+            "addDaysUtcYmd"
+          ],
+          "mustNotInclude": [
+            "date: '2026-06-25'"
+          ]
         }
       ],
       "vitestSuites": [
         "lib/supplier-urgent-deal.test.ts",
         "lib/departure-price-view-model.test.ts"
+      ]
+    },
+    {
+      "id": "security-checks-public-leaks-not-freeze",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Security Checks는 공개 API leak 가드만 — freeze CI 중복 실행으로 실패 메일이 두 통씩 오지 않게",
+      "checks": [
+        {
+          "file": ".github/workflows/security-checks.yml",
+          "mustInclude": [
+            "REGRESSION-FREEZE[security-checks-public-leaks-not-freeze]",
+            "verify:public-leaks"
+          ],
+          "mustNotInclude": [
+            "verify:regression-freeze:ci"
+          ]
+        }
       ]
     },
     {

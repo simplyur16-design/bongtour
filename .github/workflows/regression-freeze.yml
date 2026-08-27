@@ -6,6 +6,10 @@ on:
   push:
     branches: [main, master]
 
+concurrency:
+  group: regression-freeze-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   freeze:
     runs-on: ubuntu-latest

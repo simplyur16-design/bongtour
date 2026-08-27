@@ -5,13 +5,16 @@ on:
   push:
     branches: [ main, master ]
 
+concurrency:
+  group: security-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   public-leak-guard:
     runs-on: ubuntu-latest
     env:
       # GitHub: actions/checkout·setup-node 내부 런타임 Node 20 폐기 대비 (경고 완화)
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -26,5 +29,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Regression freeze (CI tier — 교정 회귀 얼림)
-        run: npm run verify:regression-freeze:ci
+      - name: Public API leak guards
+        # REGRESSION-FREEZE[security-checks-public-leaks-not-freeze]: leak 가드만 — freeze 중복 메일 금지 — manifest
+        run: npm run verify:public-leaks

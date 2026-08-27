@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
 import { buildDepartureViewModels } from '@/lib/departure-price-view-model'
 import type { ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
 
@@ -39,18 +40,22 @@ describe('buildDepartureViewModels', () => {
   })
 
   it('baseline 대비 인하 — 30일 창 안 출발일 isUrgentDeal', () => {
+    // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: 창은 kstToday 기준 — 고정 날짜는 지나면 CI가 매일 실패 — manifest
+    const today = kstTodayYmd()
+    const inWindow = addDaysUtcYmd(today, 7)
+    const inWindowNoDrop = addDaysUtcYmd(today, 8)
     const vms = buildDepartureViewModels(
       [
         row({
           id: '1',
-          date: '2026-06-25',
+          date: inWindow,
           adult: 900_000,
           baselineAdultPrice: 1_000_000,
           availableSeats: 5,
         }),
         row({
           id: '2',
-          date: '2026-06-26',
+          date: inWindowNoDrop,
           adult: 950_000,
           baselineAdultPrice: 950_000,
           availableSeats: 5,
@@ -58,7 +63,7 @@ describe('buildDepartureViewModels', () => {
       ],
       'modetour',
     )
-    expect(vms.find((v) => v.departureDate === '2026-06-25')?.isUrgentDeal).toBe(true)
-    expect(vms.find((v) => v.departureDate === '2026-06-26')?.isUrgentDeal).toBe(false)
+    expect(vms.find((v) => v.departureDate === inWindow)?.isUrgentDeal).toBe(true)
+    expect(vms.find((v) => v.departureDate === inWindowNoDrop)?.isUrgentDeal).toBe(false)
   })
 })
