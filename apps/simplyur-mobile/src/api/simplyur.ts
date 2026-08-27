@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { getApiBaseUrl, type SimplyurLocale } from '@/src/constants/simplyur';
+import { simplyurInAppCheckoutHref } from '@/src/lib/checkout-webview-nav';
 
 export type PlanProduct = {
   option_api_id: string;
@@ -62,11 +63,13 @@ export function simplyurWebCheckoutUrl(
 /**
  * Open native in-app checkout screen (form + PAYER_AUTH + server PAYMENT_PA).
  * REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: router → /checkout — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: query href not product params — manifest
  */
 export function openSimplyurInAppCheckout(optionApiId: string): void {
-  const id = optionApiId.trim();
-  if (!id) return;
-  router.push({ pathname: '/checkout', params: { optionApiId: id } });
+  const href = simplyurInAppCheckoutHref(optionApiId);
+  if (!href) return;
+  // /checkout?optionApiId= — root stack; do not push product/[optionApiId] params
+  router.push(href);
 }
 
 /** @deprecated use openSimplyurInAppCheckout */

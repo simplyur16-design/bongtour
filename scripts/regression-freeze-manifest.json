@@ -3367,6 +3367,7 @@
             "react-native-webview",
             "classifySimplyurCheckoutWebViewUrl",
             "setSupportMultipleWindows={false}",
+            "injectedJavaScriptBeforeContentLoaded",
             "buildEximbayPayHtml",
             "confirmSimplyurCheckout",
             "completeSimplyurEximbayPayerAuth",
@@ -3385,6 +3386,7 @@
             "createSimplyurEximbaySession",
             "completeSimplyurEximbayPayerAuth",
             "buildEximbayPayHtml",
+            "EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM",
             "eximbay_ostype: 'M'",
             "eximbay_transaction_type: 'PAYER_AUTH'"
           ]
@@ -3394,7 +3396,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
             "openSimplyurInAppCheckout",
-            "pathname: '/checkout'"
+            "/checkout?optionApiId="
           ],
           "mustNotInclude": [
             "openBrowserAsync"
@@ -3405,7 +3407,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
             "classifySimplyurCheckoutWebViewUrl",
-            "isExternalPaymentAppUrl"
+            "isExternalPaymentAppUrl",
+            "simplyurInAppCheckoutHref",
+            "EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM"
           ]
         },
         {
@@ -3419,6 +3423,68 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]",
             "apps/simplyur-mobile/src/**/*.test.ts"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-mobile-pay-window-visible",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 앱 — 상품 선택 후 네이티브 /checkout 진입 + Eximbay 결제창이 WebView 안에서 보임 (window.open 차단·오버레이 가림 금지)",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/api/simplyur.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]",
+            "simplyurInAppCheckoutHref",
+            "/checkout?optionApiId="
+          ],
+          "mustNotInclude": [
+            "pathname: '/checkout'"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]",
+            "simplyurInAppCheckoutHref",
+            "EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM",
+            "location.assign"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/api/checkout.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]",
+            "EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM",
+            "buildEximbayPayHtml"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]",
+            "injectedJavaScriptBeforeContentLoaded",
+            "EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_INJECT",
+            "firstSearchParam",
+            "setSupportMultipleWindows={false}"
+          ],
+          "mustNotInclude": [
+            "onLoadStart={() => setPayLoading(true)}"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]",
+            "simplyurInAppCheckoutHref",
+            "EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM"
           ]
         }
       ],

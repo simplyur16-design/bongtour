@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: never render bongtour website in pay WebView — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: auth_ok → complete-pa — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store is a link, not required — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: query href + same-frame window.open — manifest
  */
 
 export type SimplyurCheckoutWebViewNav =
@@ -16,6 +17,63 @@ export type SimplyurCheckoutWebViewNav =
   | { kind: 'optional_store_link'; url: string }
 
 const HTTP_RE = /^https?:\/\//i
+
+/**
+ * Buy → native `/checkout` (root stack). Query string is required: Expo Router
+ * treats `{ pathname: '/checkout', params: { optionApiId } }` from
+ * `(tabs)/product/[optionApiId]` as an update of the product screen, so the
+ * pay UI never appears.
+ * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: query href /checkout — manifest
+ */
+export function simplyurInAppCheckoutHref(optionApiId: string): string {
+  const id = optionApiId.trim()
+  if (!id) return ''
+  return `/checkout?optionApiId=${encodeURIComponent(id)}`
+}
+
+export function firstSearchParam(v: string | string[] | undefined): string {
+  if (Array.isArray(v)) return String(v[0] ?? '').trim()
+  return String(v ?? '').trim()
+}
+
+/**
+ * Eximbay `request_pay` opens the hosted UI with `window.open`.
+ * Android WebView + `setSupportMultipleWindows={false}` blocks that and
+ * never fires `onOpenWindow` — same-frame assign keeps pay in-app.
+ * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: same-frame window.open — manifest
+ */
+export const EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM = `(function(){
+  function go(href){
+    if (!href) return false;
+    var s = String(href);
+    if (!s || s === 'about:blank') return false;
+    window.location.assign(s);
+    return true;
+  }
+  window.open = function(url){
+    if (go(url)) return window;
+    var href = '';
+    var loc = {
+      assign: go,
+      replace: go,
+      toString: function(){ return href; }
+    };
+    Object.defineProperty(loc, 'href', {
+      get: function(){ return href; },
+      set: function(v){ href = String(v || ''); go(href); }
+    });
+    return {
+      closed: false,
+      close: function(){ this.closed = true; },
+      focus: function(){},
+      blur: function(){},
+      location: loc,
+      document: { write: function(){}, writeln: function(){}, close: function(){}, location: loc }
+    };
+  };
+})();`
+
+export const EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_INJECT = `${EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM}\ntrue;`
 
 /** EXIMPay+ (Eximbay) — optional. Card / UnionPay do not need this app. */
 export const EXIMPAY_PLAY_PACKAGE = 'com.chainrefund.dmplus'

@@ -31,7 +31,9 @@ import { useI18n } from '@/src/i18n/I18nContext';
 import { loadCheckoutBuyerEmail } from '@/src/lib/checkout-buyer-email';
 import {
   classifySimplyurCheckoutWebViewUrl,
+  EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_INJECT,
   eximbayAppStoreUrlForOs,
+  firstSearchParam,
   storeUrlToOpen,
 } from '@/src/lib/checkout-webview-nav';
 import {
@@ -61,13 +63,14 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-device-card-wallet]: phone-only card reminder — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store link only — manifest
  * REGRESSION-FREEZE[simplyur-launch-discount-14pct]: first-purchase preview 14% — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: same-frame pay + no overlay cover — manifest
  */
 export default function CheckoutScreen() {
-  const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
+  const { optionApiId } = useLocalSearchParams<{ optionApiId: string | string[] }>();
   const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
   const checkoutEnabled = isSimplyurCheckoutEnabled();
-  const id = String(optionApiId ?? '').trim();
+  const id = firstSearchParam(optionApiId);
   const handledRef = useRef(false);
   const webRef = useRef<React.ElementRef<typeof WebView>>(null);
   const idemRef = useRef(`su_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`);
@@ -376,10 +379,10 @@ export default function CheckoutScreen() {
               baseUrl: 'https://api.eximbay.com/',
             }}
             style={styles.flex}
-            onLoadStart={() => setPayLoading(true)}
             onLoadEnd={() => setPayLoading(false)}
             onNavigationStateChange={onNavChange}
             onShouldStartLoadWithRequest={onShouldStart}
+            injectedJavaScriptBeforeContentLoaded={EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_INJECT}
             setSupportMultipleWindows={false}
             javaScriptEnabled
             domStorageEnabled

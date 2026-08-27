@@ -1,10 +1,15 @@
 // REGRESSION-FREEZE[simplyur-mobile-vitest-tsconfig]: standalone apps/simplyur-mobile/tsconfig (no expo extend) — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: store link optional — manifest
+// REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: checkout query href + same-frame pay — manifest
 import { describe, expect, it } from 'vitest'
 import {
   classifySimplyurCheckoutWebViewUrl,
+  EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_INJECT,
+  EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM,
+  firstSearchParam,
   isExternalPaymentAppUrl,
   isOptionalAppStoreUrl,
+  simplyurInAppCheckoutHref,
 } from './checkout-webview-nav'
 
 describe('simplyur in-app checkout WebView nav', () => {
@@ -102,5 +107,36 @@ describe('simplyur in-app checkout WebView nav', () => {
       kind: 'optional_store_link',
       url: 'market://details?id=com.chainrefund.dmplus',
     })
+  })
+})
+
+describe('simplyur in-app checkout href + same-frame pay window', () => {
+  // REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]
+  it('opens root /checkout via query (not product/[optionApiId] params)', () => {
+    expect(simplyurInAppCheckoutHref(' KR-7D ')).toBe('/checkout?optionApiId=KR-7D')
+    expect(simplyurInAppCheckoutHref('a/b c')).toBe(`/checkout?optionApiId=${encodeURIComponent('a/b c')}`)
+    expect(simplyurInAppCheckoutHref('   ')).toBe('')
+    expect(simplyurInAppCheckoutHref('x')).not.toContain('/product/')
+    expect(firstSearchParam(['sku-1', 'sku-2'])).toBe('sku-1')
+    expect(firstSearchParam('sku-1')).toBe('sku-1')
+  })
+
+  it('shims window.open to same-frame assign so Eximbay UI is visible in WebView', () => {
+    expect(EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM).toContain('window.open')
+    expect(EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM).toContain('location.assign')
+    expect(EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_INJECT.trim().endsWith('true;')).toBe(true)
+
+    const hrefs: string[] = []
+    const win = {
+      location: { assign: (u: string) => hrefs.push(u) },
+      open: null as unknown as (url?: string) => unknown,
+    }
+    const install = new Function('window', `${EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM}\nreturn window.open;`)
+    win.open = install(win) as (url?: string) => unknown
+    win.open('https://api.eximbay.com/pay')
+    expect(hrefs).toEqual(['https://api.eximbay.com/pay'])
+    const popup = win.open('about:blank') as { location: { href: string } }
+    popup.location.href = 'https://secureapi.eximbay.com/auth'
+    expect(hrefs).toEqual(['https://api.eximbay.com/pay', 'https://secureapi.eximbay.com/auth'])
   })
 })

@@ -1,4 +1,5 @@
 import { getApiBaseUrl, type SimplyurLocale } from '@/src/constants/simplyur';
+import { EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM } from '@/src/lib/checkout-webview-nav';
 import { loadSimplyurSession } from '@/src/lib/session';
 
 export type CheckoutConfirmOrder = {
@@ -186,7 +187,10 @@ export async function completeSimplyurEximbayPayerAuth(input: {
   };
 }
 
-/** Auth-only Eximbay bootstrap HTML (PAYER_AUTH — not full PAYMENT window). */
+/**
+ * Auth-only Eximbay bootstrap HTML (PAYER_AUTH — not full PAYMENT window).
+ * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: same-frame window.open shim — manifest
+ */
 export function buildEximbayPayHtml(sdkScriptUrl: string, requestPay: Record<string, unknown>): string {
   const payload = JSON.stringify(requestPay);
   const src = JSON.stringify(sdkScriptUrl);
@@ -201,6 +205,7 @@ export function buildEximbayPayHtml(sdkScriptUrl: string, requestPay: Record<str
 </style>
 </head><body>
 <div id="st">Opening secure card authentication…</div>
+<script>${EXIMBAY_WEBVIEW_SAME_FRAME_OPEN_SHIM}</script>
 <script src=${src}></script>
 <script>
 (function(){
