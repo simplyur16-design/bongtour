@@ -17077,6 +17077,16 @@
             "REGRESSION-FREEZE[fit-listing-no-esim-card]",
             "shouldShowEsimNativeCardsOnBrowse"
           ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-listing-no-esim-card]",
+            "interleaveEsimNativeCards?: boolean"
+          ],
+          "mustNotInclude": [
+            "*/}"
+          ]
         }
       ],
       "vitestSuites": [

@@ -156,9 +156,10 @@ type Props = {
    * `region`만 있으면 null 유지 → 권역(버킷) 그룹 유지.
    */
   overseasFlatByCountrySlug?: string | null
-  /** 해외 패키지·전체 목록만 — 상품 카드 사이 eSIM 네이티브 카드. 자유여행 목록 앞에는 넣지 않음.
+  /**
+   * 해외 패키지·전체 목록만 — 상품 카드 사이 eSIM 네이티브 카드. 자유여행 목록 앞에는 넣지 않음.
    * REGRESSION-FREEZE[fit-listing-no-esim-card]: FIT listing no lead eSIM — manifest
-   */}
+   */
   interleaveEsimNativeCards?: boolean
   /** 해외·자유여행 허브 — PC 가로 스크롤 / 모바일 갤러리 (`ProductHubSectionGallery`) */
   hubCompareGridLayout?: boolean
