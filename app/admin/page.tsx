@@ -6,7 +6,7 @@ import {
   ADMIN_SECTION_TITLE_CLASS,
 } from '@/lib/admin-design-system'
 import { prisma } from '@/lib/prisma'
-import { countLiveRegisterPrePhotoPendingQueue } from '@/lib/register-pre-photo-pending-queue-query
+import { countLiveRegisterPrePhotoPendingQueue } from '@/lib/register-pre-photo-pending-queue-query'
 import AdminEmptyState from './components/AdminEmptyState'
 import AdminKpiCard from './components/AdminKpiCard'
 import AdminPageHeader from './components/AdminPageHeader'
