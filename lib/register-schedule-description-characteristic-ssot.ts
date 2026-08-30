@@ -305,7 +305,6 @@ function synthesizeFromRoute(opts: {
   const pois = pickRoutePois(opts.routePlaces)
   const isLast = maxDay >= 2 && day === maxDay
   const isFirst = day === 1
-  const closer = FACET_CLOSER[facets[0] ?? 'generic']
   const sentences: string[] = []
 
   if (isLast && facets[0] === 'return' && pois.length <= 1) {
@@ -335,8 +334,7 @@ function synthesizeFromRoute(opts: {
     if (island) sentences.push(`${euroRo(island)} 이동합니다.`)
     sentences.push(`${eseo(park)} 종일 일정을 보냅니다.`)
     if (sentences.length < 2) sentences.push(FACET_CLOSER.theme_park)
-    if (sentences.length < 3) sentences.push(closer)
-    return sentences.slice(0, 3).join(' ')
+    return sentences.slice(0, 2).join(' ')
   }
 
   if (pois.length >= 3) {
@@ -346,25 +344,23 @@ function synthesizeFromRoute(opts: {
     } else {
       sentences.push(`${eulReul(pois[2]!)} 이어서 방문합니다.`)
     }
-    sentences.push(closer)
     return sentences.slice(0, 3).join(' ')
   }
 
   if (pois.length === 2) {
-    sentences.push(`${eulReul(waGwa(pois[0]!, pois[1]!))} 중심으로 하루를 보냅니다.`)
-    sentences.push(closer)
-    if (sentences.length < 3) sentences.push('동선에 맞춰 일정을 이어갑니다.')
-    return sentences.slice(0, 3).join(' ')
-  }
-
-  if (pois.length === 1) {
-    sentences.push(`${eulReul(pois[0]!)} 중심으로 하루 일정을 진행합니다.`)
-    sentences.push(closer)
+    sentences.push(`${eulReul(waGwa(pois[0]!, pois[1]!))} 둘러봅니다.`)
+    sentences.push(`${eseo(pois[1]!)} 주변을 이어서 둘러봅니다.`)
     return sentences.join(' ')
   }
 
-  sentences.push(`${day}일차 일정을 진행합니다.`)
-  sentences.push(closer)
+  if (pois.length === 1) {
+    sentences.push(`${eulReul(pois[0]!)} 둘러봅니다.`)
+    sentences.push(`${eseo(pois[0]!)} 주변을 이어서 둘러봅니다.`)
+    return sentences.join(' ')
+  }
+
+  sentences.push(`${day}일차 구간을 이어서 둘러봅니다.`)
+  sentences.push(`${day}일차 동선을 천천히 이어 갑니다.`)
   return sentences.join(' ')
 }
 

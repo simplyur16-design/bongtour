@@ -68,6 +68,8 @@ export async function GET() {
           listingKind: p.listingKind,
           productType: p.productType,
           sportsThemeTag: p.sportsThemeTag,
+          productDestination: p.destination,
+          productTitle: p.title,
           rows: scheduleRowsForPrePhotoVerify(p.schedule),
         })
         if (!isRegisterPrePhotoPendingQueueReady(live)) return null

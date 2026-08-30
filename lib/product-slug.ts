@@ -14,11 +14,12 @@ const SUPPLIER_TO_SLUG: Record<string, string> = {
   verygoodtour: 'vg',
   lottetour: 'lt',
   kyowontour: 'ky',
+  naeiltour: 'nl',
   windsor: 'wn',
   overseas_training: 'bt',
 }
 
-const SLUG_PATTERN = /^(pkg|fit|otr)-(mt|hn|yb|vg|lt|ky|wn|bt)-(\d{4})$/
+const SLUG_PATTERN = /^(pkg|fit|otr)-(mt|hn|yb|vg|lt|ky|nl|wn|bt)-(\d{4})$/
 
 export type ProductSlugInput = {
   listingKind?: string | null

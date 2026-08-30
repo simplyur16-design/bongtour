@@ -82,12 +82,26 @@ function buildDuration(nights: number | null, days: number | null): string {
   return ''
 }
 
-function resolveNaeiltourRegisterDestination(title: string, paste: string): {
+/**
+ * 제목 지명 우선. paste의 「유럽 왕복항공권」은 dest가 아니다.
+ * REGRESSION-FREEZE[naeiltour-register-dest-title-not-airfare]: 이태리→이탈리아 · 항공권 dest 금지 — manifest
+ */
+export function resolveNaeiltourRegisterDestination(title: string, paste: string): {
   destination: string
   primaryDestination: string | null
   destinationRaw: string | null
 } {
-  const hay = [title, paste].filter(Boolean).join(' ')
+  const titleHit = String(title ?? '').match(
+    /이태리|이탈리아|토스카나|스페인|포르투갈|스위스|프랑스|파리|런던|괌|사이판|일본|중국|서안|하와이|푸꾸옥|다낭|호이안|보르도/,
+  )
+  if (titleHit) {
+    const dest =
+      titleHit[0] === '이태리' || titleHit[0] === '토스카나' ? '이탈리아' : titleHit[0]
+    return { destination: dest, primaryDestination: dest, destinationRaw: dest }
+  }
+  const hay = [title, String(paste ?? '').replace(/유럽\s*왕복\s*항공권?|왕복\s*항공권|비즈니스\s*항공권/g, '')]
+    .filter(Boolean)
+    .join(' ')
   const m =
     hay.match(/(?:베네룩스|유럽|동남아|일본|중국|홍콩|대만|미국|호주|괌|사이판)[^0-9]{0,12}/u) ??
     hay.match(/(?:^|[\s#])([가-힣A-Za-z]{2,16}(?:\s*[·/+]\s*[가-힣A-Za-z]{2,12})?)\s*(?:\d+\s*박|\d+\s*일)/u)
@@ -128,8 +142,9 @@ export async function parseNaeiltourRegisterFromApi(
 
   const paste = rawText.trim()
   const listingTitleRaw = bundle.title?.trim() || ''
-  const listingTitle = normalizeNaeiltourRegisterListingTitle(listingTitleRaw) || listingTitleRaw
-  const dest = resolveNaeiltourRegisterDestination(listingTitle, paste)
+  const listingTitleNorm = normalizeNaeiltourRegisterListingTitle(listingTitleRaw) || listingTitleRaw
+  const listingTitle = listingTitleNorm || listingTitleRaw
+  const dest = resolveNaeiltourRegisterDestination(listingTitleRaw || listingTitle, paste)
   const schedule = airtelListing ? [] : naeiltourFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
 

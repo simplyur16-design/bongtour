@@ -7,8 +7,11 @@
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 스탬프 — manifest
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 검증 실패는 등록대기 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_blocked — manifest
+ * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: pooler 끊김은 재시도 후 저장 — manifest
  */
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolveRegisterAdminLane, type RegisterAdminLane } from '@/lib/register-admin-lane'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
@@ -19,9 +22,11 @@ import {
   type RegisterPrePhotoHealNote,
 } from '@/lib/register-pre-photo-self-heal'
 import {
+  inferRegisterPendingDestinationFromTitle,
   mergeRegisterPrePhotoStampIntoRawMeta,
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
+import { isRegisterPrePhotoPlaceLikeDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import {
   REGISTER_PRE_PHOTO_BLOCKED_STATUS,
   registrationStatusAfterPrePhotoVerify,
@@ -65,7 +70,7 @@ function parseScheduleRows(raw: string | null): Array<Record<string, unknown>> {
 export async function healPendingRegisterPrePhoto(
   opts?: HealPendingPrePhotoOpts,
 ): Promise<HealPendingPrePhotoResult> {
-  const limit = Math.min(80, Math.max(1, Math.floor(opts?.limit ?? 80)))
+  const limit = Math.min(200, Math.max(1, Math.floor(opts?.limit ?? 80)))
   const probeImageUrls = opts?.probeImageUrls === true
   const dryRun = opts?.dryRun === true
   const notesSample: RegisterPrePhotoHealNote[] = []
@@ -140,6 +145,20 @@ export async function healPendingRegisterPrePhoto(
         imageUrl: row.imageUrl != null ? String(row.imageUrl) : null,
       }))
 
+      const destLine = String(product.destination ?? '').split(/\n/)[0]?.trim() ?? ''
+      // dest 항공권·석식·하이라이트 나열도 제목 지명으로만 채운다 (그랜드월드 ≠ 푸꾸옥)
+      // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 힐 전에 dest 추론 — manifest
+      const destNeedsInfer =
+        /^(?:미입력|미지정|미정|상품명 없음)$/i.test(destLine) ||
+        !isRegisterPrePhotoPlaceLikeDestination(destLine) ||
+        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정/i.test(
+          destLine,
+        )
+      const inferredDest = destNeedsInfer
+        ? inferRegisterPendingDestinationFromTitle(String(product.title ?? ''))
+        : ''
+      const productDestination = inferredDest || product.destination
+
       let next = rows
       let imageUrlCleared = 0
       let healNotes: RegisterPrePhotoHealNote[] = []
@@ -150,7 +169,7 @@ export async function healPendingRegisterPrePhoto(
         byLane[lane] += 1
         const result = healRegisterPrePhotoSchedule(mapped, {
           supplierKey,
-          productDestination: product.destination,
+          productDestination,
           productTitle: product.title,
           lane,
         })
@@ -198,7 +217,7 @@ export async function healPendingRegisterPrePhoto(
             }
           }
         }
-        scheduleChanged = JSON.stringify(next) !== String(product.schedule ?? '') || imageUrlCleared > 0
+        scheduleChanged = registerPendingScheduleJsonChanged(next, product.schedule) || imageUrlCleared > 0
       }
 
       const verify = verifyRegisterPrePhoto({
@@ -206,6 +225,8 @@ export async function healPendingRegisterPrePhoto(
         listingKind: product.listingKind,
         productType: product.productType,
         sportsThemeTag: product.sportsThemeTag,
+        productDestination,
+        productTitle: product.title,
         rows: verifyRows,
       })
       if (verify.ok) verified += 1
@@ -224,21 +245,31 @@ export async function healPendingRegisterPrePhoto(
         continue
       }
       if (!dryRun) {
-        await prisma.product.update({
-          where: { id: product.id },
-          data: {
-            ...(scheduleChanged ? { schedule: nextJson } : {}),
-            ...(statusChanged ? { registrationStatus: nextStatus } : {}),
-            rawMeta: nextRawMeta,
-          },
-        })
+        // REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: 수집과 겹쳐도 저장 재시도 — manifest
+        await withPrismaRetry(`heal-pending:${product.id}`, () =>
+          prisma.product.update({
+            where: { id: product.id },
+            data: {
+              ...(scheduleChanged ? { schedule: nextJson } : {}),
+              ...(statusChanged ? { registrationStatus: nextStatus } : {}),
+              ...(inferredDest ? { destination: inferredDest } : {}),
+              rawMeta: nextRawMeta,
+            },
+          }),
+        )
         if (scheduleChanged && lane !== 'air_hotel_free') {
-          for (const h of verifyRows) {
-            if (!h.description) continue
-            await prisma.itineraryDay.updateMany({
-              where: { productId: product.id, day: Number(h.day) },
-              data: { summaryTextRaw: String(h.description) },
-            })
+          try {
+            for (const h of verifyRows) {
+              if (!h.description) continue
+              await withPrismaRetry(`heal-itinerary:${product.id}:${h.day}`, () =>
+                prisma.itineraryDay.updateMany({
+                  where: { productId: product.id, day: Number(h.day) },
+                  data: { summaryTextRaw: String(h.description) },
+                }),
+              )
+            }
+          } catch (itineraryErr) {
+            console.error('[register-pre-photo-self-heal] itinerary sync skipped', product.id, itineraryErr)
           }
         }
       }
@@ -250,6 +281,9 @@ export async function healPendingRegisterPrePhoto(
     } catch (e) {
       failed += 1
       console.error('[register-pre-photo-self-heal] product failed', product.id, e)
+      if (!dryRun) {
+        await holdOffPendingQueueIfNotPublic(product.id)
+      }
     }
   }
 
@@ -270,9 +304,51 @@ export async function healPendingRegisterPrePhoto(
   }
 }
 
-/** 수동·수집 confirm 저장 직후 — 검증 통과만 pending. */
-export async function applyRegisterPrePhotoQueueGateAfterSave(productId: string): Promise<void> {
+function registerPendingScheduleJsonChanged(
+  next: Array<Record<string, unknown>>,
+  raw: string | null | undefined,
+): boolean {
+  const nextNorm = JSON.stringify(next)
+  try {
+    const prev = JSON.parse(String(raw ?? ''))
+    if (!Array.isArray(prev)) return nextNorm !== String(raw ?? '')
+    return nextNorm !== JSON.stringify(prev)
+  } catch {
+    return nextNorm !== String(raw ?? '')
+  }
+}
+
+async function holdOffPendingQueueIfNotPublic(productId: string): Promise<void> {
+  try {
+    await withPrismaRetry(`heal-hold-off:${productId}`, () =>
+      prisma.product.updateMany({
+        where: {
+          id: productId,
+          OR: [{ registrationStatus: null }, { registrationStatus: '' }, { registrationStatus: 'pending' }],
+        },
+        data: { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS },
+      }),
+    )
+  } catch (err) {
+    console.error('[register-pre-photo-self-heal] hold-off pending failed', productId, err)
+  }
+}
+
+/** 수동·수집 confirm 저장 직후 — 힐+검증 통과만 pending. 실패·예외는 등록대기에 안 남긴다. */
+export async function applyRegisterPrePhotoQueueGateAfterSave(
+  productId: string,
+): Promise<HealPendingPrePhotoResult | null> {
   const id = String(productId ?? '').trim()
-  if (!id) return
-  await healPendingRegisterPrePhoto({ productId: id, limit: 1, probeImageUrls: false })
+  if (!id) return null
+  try {
+    const result = await healPendingRegisterPrePhoto({ productId: id, limit: 1, probeImageUrls: false })
+    if (result.failed > 0 || result.scanned < 1) {
+      await holdOffPendingQueueIfNotPublic(id)
+    }
+    return result
+  } catch (err) {
+    console.error('[register-pre-photo-self-heal] gate threw', id, err)
+    await holdOffPendingQueueIfNotPublic(id)
+    return null
+  }
 }

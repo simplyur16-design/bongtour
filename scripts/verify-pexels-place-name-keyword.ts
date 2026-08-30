@@ -18,6 +18,11 @@ const cases: Array<{ in: string; want: string }> = [
   // REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]: stripTrailingGeoTokens 전체명 보존
   { in: 'Phu Quoc', want: 'Phu Quoc' },
   { in: 'Nha Trang', want: 'Nha Trang' },
+  // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang ≠ Da — manifest
+  { in: 'Da Nang', want: 'Da Nang' },
+  { in: 'danang', want: 'Da Nang' },
+  { in: 'Da Nang beach city skyline', want: 'Da Nang' },
+  { in: 'Da Nang Han River / Dragon Bridge waterfront skyline / wide angle', want: 'Da Nang' },
   // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 홍콩 헐리우드로드 ≠ LA Hollywood — manifest
   { in: 'Hollywood Road', want: 'Hollywood Road Hong Kong' },
   { in: 'Hollywood Road Hong Kong', want: 'Hollywood Road Hong Kong' },

@@ -507,6 +507,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               listingKind: true,
               productType: true,
               sportsThemeTag: true,
+              destination: true,
+              title: true,
             },
           }),
         ])
@@ -549,6 +551,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           listingKind: photoRow?.listingKind,
           productType: photoRow?.productType,
           sportsThemeTag: photoRow?.sportsThemeTag,
+          productDestination: photoRow?.destination,
+          productTitle: photoRow?.title,
           rows: scheduleRowsForPrePhotoVerify(nextSchedule),
         })
         if (!keywordVerify.ok) {
@@ -633,6 +637,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             productType: true,
             sportsThemeTag: true,
             schedule: true,
+            destination: true,
+            title: true,
           },
         })
         const pendingStatus = pendingPhotoRow?.registrationStatus
@@ -646,6 +652,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             listingKind: pendingPhotoRow?.listingKind,
             productType: pendingPhotoRow?.productType,
             sportsThemeTag: pendingPhotoRow?.sportsThemeTag,
+            productDestination: pendingPhotoRow?.destination,
+            productTitle: pendingPhotoRow?.title,
             rows: scheduleRowsForPrePhotoVerify(pendingPhotoRow?.schedule),
           })
           if (!keywordVerify.ok) {

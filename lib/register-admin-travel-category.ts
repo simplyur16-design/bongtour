@@ -32,7 +32,8 @@ function registerFactSourceFromOriginSource(originSource: string): SupplierRegis
     key === 'ybtour' ||
     key === 'verygoodtour' ||
     key === 'lottetour' ||
-    key === 'kyowontour'
+    key === 'kyowontour' ||
+    key === 'naeiltour'
   ) {
     return key
   }

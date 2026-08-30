@@ -13,12 +13,16 @@ import {
 import { augmentVerygoodtourParsedWithDetailCollect } from '@/lib/verygoodtour-register-detail-collect'
 import { injectVerygoodtourApiDeparturePricesIfMissing } from '@/lib/verygoodtour-register-api-price-inject'
 
-export async function handleParseAndRegisterVerygoodtourRequest(request: Request) {
+export async function handleParseAndRegisterVerygoodtourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runVerygoodtourRegisterFlow(request, {
       forcedBrandKey: 'verygoodtour',
     parseFn: parseForRegisterVerygoodtour,
     logPrefix: '[verygoodtour-register]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     augmentParsed: (parsed, ctx) =>
       augmentVerygoodtourScheduleExpressionParsed(parsed, ctx?.pastedBodyText, {
         travelScope: ctx?.travelScope,

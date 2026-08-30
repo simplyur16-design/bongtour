@@ -4,6 +4,10 @@
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 3건 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 공급사당 3건 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: max slots per supplier per run — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-keep-looking-until-quota]: 중복 스킵 후 할당량까지 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-human-pace]: 연타 spawn 금지 · 할당량까지 다음 geo — manifest
+ * REGRESSION-FREEZE[register-listing-discover-overseas-click]: 메가메뉴 나라·도시만 클릭 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: canonical 7사 동일 클릭·검증 — manifest
  */
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import {
@@ -15,6 +19,11 @@ import type { SupplierRegisterFactSource } from '@/lib/register-facts/types'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { normalizeRegisterOriginUrl } from '@/lib/register-product-duplicate-guard'
 import { occupiesRegisterPrePhotoIngestSlot } from '@/lib/register-pre-photo-pending-queue'
+import { megaMenuClickLabelForIngestSlot } from '@/lib/mega-menu-click-label'
+import {
+  CANONICAL_OVERSEAS_SUPPLIER_KEYS,
+  type CanonicalOverseasSupplierKey,
+} from '@/lib/overseas-supplier-canonical-keys'
 
 export const REGISTER_PRE_PHOTO_INGEST_LANES = ['package', 'air_hotel_free'] as const
 export type RegisterPrePhotoIngestLane = (typeof REGISTER_PRE_PHOTO_INGEST_LANES)[number]
@@ -26,16 +35,42 @@ export const REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1
 export const REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3
 
 /**
- * Playwright 목록은 공급사당 브라우저 1개.
- * 312슬롯을 하루에 다 열면 가격 스윕과 겹친다. 날짜로 돌려가며 자른다.
+ * Playwright 목록은 공급사당 브라우저 1세션. 가격스윕(수백 geo)과 분리.
+ * 이미 있는 URL이면 그 장에서 끝내지 않고 할당량 3을 채울 때까지 다음 geo를 본다.
  * REGRESSION-FREEZE[register-listing-discover-playwright]: max slots per supplier per run — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-keep-looking-until-quota]: 중복 스킵 후 할당량까지 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-human-pace]: 연타 spawn 금지 · 할당량까지 다음 geo — manifest
  */
-export const REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN = 4
+export const REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN = 24
 
 export function registerPrePhotoIngestMaxSlotsPerSupplier(): number {
   const raw = Number(process.env.REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER ?? '')
-  if (Number.isFinite(raw) && raw >= 1) return Math.min(24, Math.floor(raw))
+  if (Number.isFinite(raw) && raw >= 1) return Math.min(80, Math.floor(raw))
+  // 24장까지 이어서 본다. 브라우저는 geo마다 새로 띄우지 않는다.
   return REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN
+}
+
+/** 내일투어는 자유여행이 본업. FIT를 먼저 채우고 패키지는 남는 칸만. */
+// REGRESSION-FREEZE[register-pre-photo-ingest-naeiltour-fit-first]: naeiltour FIT 우선 — manifest
+export function orderRegisterPrePhotoIngestSlotsForSupplier<T>(
+  supplier: string,
+  pkg: readonly T[],
+  fit: readonly T[],
+): T[] {
+  if (supplier === 'naeiltour') return [...fit, ...pkg]
+  return interleaveRegisterPrePhotoIngestLanes(pkg, fit)
+}
+
+/** 패키지·자유여행 슬롯을 번갈아 본다. 패키지만 24장 쓰면 자유여행 메뉴를 안 누른다. */
+// REGRESSION-FREEZE[register-pre-photo-ingest-pkg-fit-theme-kind]: pkg·FIT 교차 — manifest
+export function interleaveRegisterPrePhotoIngestLanes<T>(pkg: readonly T[], fit: readonly T[]): T[] {
+  const out: T[] = []
+  const n = Math.max(pkg.length, fit.length)
+  for (let i = 0; i < n; i++) {
+    if (i < pkg.length) out.push(pkg[i] as T)
+    if (i < fit.length) out.push(fit[i] as T)
+  }
+  return out
 }
 
 export function rotateRegisterPrePhotoIngestSlots<T>(
@@ -44,14 +79,32 @@ export function rotateRegisterPrePhotoIngestSlots<T>(
   take: number,
 ): T[] {
   if (take <= 0 || slots.length === 0) return []
-  if (slots.length <= take) return [...slots]
+  const n = Math.min(take, slots.length)
   let h = 2166136261
   for (let i = 0; i < dayKey.length; i++) {
     h ^= dayKey.charCodeAt(i)
     h = Math.imul(h, 16777619)
   }
   const start = Math.abs(h) % slots.length
-  return [...slots.slice(start), ...slots.slice(0, start)].slice(0, take)
+  return [...slots.slice(start), ...slots.slice(0, start)].slice(0, n)
+}
+
+/** 목록이 전부 이미 있어도 다음 슬롯을 이어서, 공급사당 3건을 채운다. */
+export function pickUnknownListingUrlsUntilQuota(
+  slotUrlLists: readonly (readonly string[])[],
+  isKnown: (url: string) => boolean,
+  quota: number,
+): string[] {
+  if (quota <= 0) return []
+  const out: string[] = []
+  for (const urls of slotUrlLists) {
+    for (const url of urls) {
+      if (isKnown(url)) continue
+      out.push(url)
+      if (out.length >= quota) return out
+    }
+  }
+  return out
 }
 
 export type RegisterPrePhotoIngestProductRow = {
@@ -77,24 +130,45 @@ export type RegisterPrePhotoIngestGeoSlot = {
   pending: number
 }
 
-const INGEST_SUPPLIERS = ['hanatour', 'modetour', 'verygoodtour', 'ybtour'] as const
+export const REGISTER_PRE_PHOTO_INGEST_SUPPLIERS = CANONICAL_OVERSEAS_SUPPLIER_KEYS
+export type RegisterPrePhotoIngestSupplier = CanonicalOverseasSupplierKey
 
-export function isRegisterPrePhotoIngestSupplier(s: string): boolean {
-  return (INGEST_SUPPLIERS as readonly string[]).includes(s)
+export function isRegisterPrePhotoIngestSupplier(s: string): s is RegisterPrePhotoIngestSupplier {
+  return (REGISTER_PRE_PHOTO_INGEST_SUPPLIERS as readonly string[]).includes(s)
 }
 
-/** 운영 oneshot — `modetour,verygoodtour,ybtour` 처럼 해당 공급사만. 비면 4사 전부. */
+/** 시드 상세가 없어도 홈에서 해외여행을 누른다. 목록 404 주소를 만들지 않는다. */
+export function ingestSupplierBrowseHome(supplier: RegisterPrePhotoIngestSupplier): string {
+  switch (supplier) {
+    case 'hanatour':
+      return 'https://www.hanatour.com/'
+    case 'modetour':
+      return 'https://www.modetour.com/'
+    case 'verygoodtour':
+      return 'https://www.verygoodtour.com/'
+    case 'ybtour':
+      return 'https://www.ybtour.co.kr/'
+    case 'kyowontour':
+      return 'https://www.kyowontour.com/'
+    case 'lottetour':
+      return 'https://www.lottetour.com/'
+    case 'naeiltour':
+      return 'https://www.naeiltour.co.kr/'
+  }
+}
+
+/** 운영 oneshot — `modetour,verygoodtour` 처럼 해당 공급사만. 비면 canonical 전부. */
 export function parseRegisterPrePhotoIngestOnlySuppliers(
   raw: string | null | undefined,
-): Array<(typeof INGEST_SUPPLIERS)[number]> | null {
+): RegisterPrePhotoIngestSupplier[] | null {
   if (raw == null || !String(raw).trim()) return null
-  const out: Array<(typeof INGEST_SUPPLIERS)[number]> = []
+  const out: RegisterPrePhotoIngestSupplier[] = []
   const seen = new Set<string>()
   for (const part of String(raw).split(/[,\s]+/)) {
     const n = normalizeSupplierOrigin(part.trim())
     if (!n || !isRegisterPrePhotoIngestSupplier(n) || seen.has(n)) continue
     seen.add(n)
-    out.push(n as (typeof INGEST_SUPPLIERS)[number])
+    out.push(n)
   }
   return out.length ? out : null
 }
@@ -131,11 +205,12 @@ function searchWordForSlot(args: {
   destination: string | null
   countryKey: string
 }): string {
-  const dest = String(args.destination ?? '').trim()
-  if (dest) return dest
-  const city = String(args.cityKey ?? '').trim()
-  if (city) return city
-  return args.countryKey.trim()
+  const mega = megaMenuClickLabelForIngestSlot({
+    cityKey: args.cityKey,
+    countryKey: args.countryKey,
+  })
+  if (mega) return mega
+  return ''
 }
 
 /** URL로 가를 수 있으면 목록 단계에서 걸러낸다. 하나투어 미상·모두투어는 API 프로브. */
@@ -177,22 +252,22 @@ function emptyPending(): Record<RegisterPrePhotoIngestLane, number> {
 }
 
 /**
- * 공급사별 등록 geo 트리. 그 나라에 도시가 하나라도 있으면 도시 슬롯만,
- * 나라만 있으면 나라 슬롯 1개. 패키지·자유여행 레인을 각각 붙인다.
+ * 등록된 geo는 공급사 공유. 그 나라에 도시가 하나라도 있으면 도시 슬롯만,
+ * 나라만 있으면 나라 슬롯 1개. canonical 전부 같은 메가메뉴를 누른다.
+ * 시드 URL이 없는 공급사는 홈에서 시작한다.
  */
 export function buildRegisterPrePhotoIngestGeoSlots(
   rows: readonly RegisterPrePhotoIngestProductRow[],
 ): RegisterPrePhotoIngestGeoSlot[] {
   type CountryCities = { cities: Set<string>; hasCountryOnly: boolean }
-  const citiesBySupplierCountry = new Map<string, CountryCities>()
+  const citiesByCountry = new Map<string, CountryCities>()
   const cells = new Map<string, SeedCell>()
 
-  const bumpCountry = (supplier: string, country: string, city: string | null) => {
-    const k = `${supplier}::${country}`
-    let rec = citiesBySupplierCountry.get(k)
+  const bumpCountry = (country: string, city: string | null) => {
+    let rec = citiesByCountry.get(country)
     if (!rec) {
       rec = { cities: new Set(), hasCountryOnly: false }
-      citiesBySupplierCountry.set(k, rec)
+      citiesByCountry.set(country, rec)
     }
     if (city) rec.cities.add(city)
     else rec.hasCountryOnly = true
@@ -203,12 +278,13 @@ export function buildRegisterPrePhotoIngestGeoSlots(
 
   for (const p of rows) {
     const supplier = normalizeSupplierOrigin(p.originSource)
-    if (!supplier || !isRegisterPrePhotoIngestSupplier(supplier)) continue
+    if (!supplier) continue
     const country = String(p.countryKey ?? '').trim()
     if (!country) continue
     const city = String(p.cityKey ?? '').trim() || null
-    bumpCountry(supplier, country, city)
+    bumpCountry(country, city)
 
+    if (!isRegisterPrePhotoIngestSupplier(supplier)) continue
     const lane = ingestLaneFromProductRow(p)
     const url = normalizeRegisterOriginUrl(p.originUrl)
     const ck = cellKey(supplier, country, city)
@@ -231,37 +307,37 @@ export function buildRegisterPrePhotoIngestGeoSlots(
   }
 
   const slots: RegisterPrePhotoIngestGeoSlot[] = []
-  for (const [scKey, rec] of citiesBySupplierCountry.entries()) {
-    const sep = scKey.indexOf('::')
-    const supplier = scKey.slice(0, sep)
-    const country = scKey.slice(sep + 2)
-    const useCities = rec.cities.size > 0
-    const geos: Array<{ cityKey: string | null }> = useCities
-      ? [...rec.cities].sort().map((cityKey) => ({ cityKey }))
-      : rec.hasCountryOnly
-        ? [{ cityKey: null }]
-        : []
+  for (const supplier of REGISTER_PRE_PHOTO_INGEST_SUPPLIERS) {
+    for (const [country, rec] of citiesByCountry.entries()) {
+      const useCities = rec.cities.size > 0
+      const geos: Array<{ cityKey: string | null }> = useCities
+        ? [...rec.cities].sort().map((cityKey) => ({ cityKey }))
+        : rec.hasCountryOnly
+          ? [{ cityKey: null }]
+          : []
 
-    for (const { cityKey } of geos) {
-      const cell = cells.get(cellKey(supplier, country, cityKey))
-      if (!cell?.anyOriginUrl) continue
-      for (const lane of REGISTER_PRE_PHOTO_INGEST_LANES) {
-        const originUrl = cell.originByLane[lane] || cell.anyOriginUrl
-        if (!originUrl) continue
-        slots.push({
-          supplier,
-          lane,
-          countryKey: country,
+      for (const { cityKey } of geos) {
+        const cell = cells.get(cellKey(supplier, country, cityKey))
+        const searchWord = searchWordForSlot({
           cityKey,
-          originUrl,
-          destination: cell.destination,
-          searchWord: searchWordForSlot({
-            cityKey,
-            destination: cell.destination,
-            countryKey: country,
-          }),
-          pending: cell.pendingByLane[lane],
+          destination: cell?.destination ?? null,
+          countryKey: country,
         })
+        if (!searchWord) continue
+        for (const lane of REGISTER_PRE_PHOTO_INGEST_LANES) {
+          const originUrl =
+            cell?.originByLane[lane] || cell?.anyOriginUrl || ingestSupplierBrowseHome(supplier)
+          slots.push({
+            supplier,
+            lane,
+            countryKey: country,
+            cityKey,
+            originUrl,
+            destination: cell?.destination ?? null,
+            searchWord,
+            pending: cell?.pendingByLane[lane] ?? 0,
+          })
+        }
       }
     }
   }

@@ -379,7 +379,7 @@ function lottetourResolveAirtelFreeTravelImageKeywordLocal(ctx: LottetourImageKe
     { re: /로마|Roma?\b|Rome/i, en: 'Rome Colosseum historic city' },
     { re: /오사카|大阪|Osaka/i, en: 'Osaka Dotonbori city night' },
     { re: /방콕|Bangkok/i, en: 'Bangkok riverside city skyline' },
-    { re: /다낭|Da\s*Nang/i, en: 'Da Nang Han River / Dragon Bridge waterfront / wide angle' },
+    { re: /다낭|Da\s*Nang/i, en: 'Da Nang' },
     { re: /바르셀로나|Barcelona/i, en: 'Barcelona Sagrada Familia city view' },
     { re: /스톡홀름|Stockholm/i, en: 'Stockholm Gamla Stan waterfront' },
     { re: /오슬로|Oslo/i, en: 'Oslo fjord harbor city view' },

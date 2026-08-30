@@ -50,6 +50,39 @@ describe('register schedule day summary SSOT', () => {
     expect(d3).toMatch(/디즈니/)
     expect(d1).not.toBe(d2)
     expect(d2).not.toBe(d3)
+    expect(d2).not.toMatch(/하루 일정을 이어갑니다|동선에 맞춰/)
+    expect(d3).not.toMatch(/하루 일정을 이어갑니다|동선에 맞춰/)
+  })
+
+  it('중간일 합성은 템플릿 closer를 반복하지 않는다', () => {
+    const d2 = composeRegisterScheduleDaySummary({
+      day: 2,
+      maxDay: 5,
+      routePlaces: ['콜로세움', '트레비 분수'],
+      joinedBlob: '콜로세움 - 트레비 분수',
+    })
+    const d3 = composeRegisterScheduleDaySummary({
+      day: 3,
+      maxDay: 5,
+      routePlaces: ['바티칸', '시스티나 성당'],
+      joinedBlob: '바티칸 - 시스티나 성당',
+    })
+    const d4 = composeRegisterScheduleDaySummary({
+      day: 4,
+      maxDay: 5,
+      routePlaces: ['스페인 계단'],
+      joinedBlob: '스페인 계단',
+    })
+    expect(d2).toMatch(/콜로세움|트레비/)
+    expect(d3).toMatch(/바티칸|시스티나/)
+    expect(d4).toMatch(/스페인 계단/)
+    expect(d2).not.toBe(d3)
+    expect(d3).not.toBe(d4)
+    for (const desc of [d2, d3, d4]) {
+      expect(desc).not.toMatch(/하루 일정을 이어갑니다/)
+      expect(desc).not.toMatch(/동선에 맞춰/)
+      expect(desc).not.toMatch(/중심으로 하루 일정을 진행합니다/)
+    }
   })
 
   it('공급사 문장 우선 — 품질 통과 시 합성하지 않음', () => {

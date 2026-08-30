@@ -1254,6 +1254,26 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Sapporo|Jozankei/i)
   })
 
+  it('이태리 라스페치아-피렌체 중간일은 소진된 친퀘테레 대신 Florence를 쓴다', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, routeText: '이스탄불 - 로마', imageKeyword: '', imageKeyword2: null },
+        { day: 2, routeText: '로마 - 피렌체', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '로마 - 피렌체', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '로마 - 라스페치아', imageKeyword: '', imageKeyword2: null },
+        { day: 5, routeText: '라스페치아 - 로마', imageKeyword: '', imageKeyword2: null },
+        { day: 6, routeText: '라스페치아 - 피렌체', imageKeyword: '', imageKeyword2: null },
+        { day: 7, routeText: '피렌체 - 베니스', imageKeyword: '', imageKeyword2: null },
+        { day: 8, routeText: '베니스 - 밀라노', imageKeyword: '', imageKeyword2: null },
+        { day: 9, routeText: '밀라노 - 이스탄불', imageKeyword: '', imageKeyword2: null },
+        { day: 10, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'naeiltour', productTitle: '이태리', productDestination: '이탈리아' },
+    )
+    expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Cinque Terre/i)
+    expect(String(out.find((r) => r.day === 6)?.imageKeyword ?? '')).toMatch(/Florence/i)
+  })
+
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: UAE cluster day-route evidence — Greece day Dubai bleed 금지 — manifest
   it('그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지', () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(

@@ -779,6 +779,8 @@ export default function AdminPendingDetailPanel({
         listingKind: detail?.listingKind,
         productType: detail?.productType,
         sportsThemeTag: detail?.sportsThemeTag,
+        productDestination: detail?.destination,
+        productTitle: detail?.title,
         rows: scheduleRowsForPrePhotoVerify(detail?.schedule),
       }),
     [
@@ -786,6 +788,8 @@ export default function AdminPendingDetailPanel({
       detail?.listingKind,
       detail?.productType,
       detail?.sportsThemeTag,
+      detail?.destination,
+      detail?.title,
       detail?.schedule,
     ],
   )

@@ -3,6 +3,7 @@ import {
   inferHanatourListingProductKindFromOriginUrl,
   inferHanatourRegisterFactProductKind,
   inferModetourRegisterFactProductKind,
+  inferRegisterFactProductKindFromListingHaystack,
   inferRegisterFactProductKindFromOriginUrl,
   parseRegisterFactProductKind,
   registerFactProductKindNote,
@@ -11,6 +12,13 @@ import {
 import type { SupplierRegisterFactBundle } from '@/lib/register-facts/types'
 
 describe('register-facts product kind', () => {
+  it('detects 자유여행 from listing haystack for any supplier', () => {
+    expect(inferRegisterFactProductKindFromListingHaystack('[발리] 자유여행 5일 에어텔')).toBe(
+      'air_hotel_free',
+    )
+    expect(inferRegisterFactProductKindFromListingHaystack('서유럽 10일 패키지')).toBe('package')
+  })
+
   it('detects ybtour FIT from URL', () => {
     expect(
       inferRegisterFactProductKindFromOriginUrl(

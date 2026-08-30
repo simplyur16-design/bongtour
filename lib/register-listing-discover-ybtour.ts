@@ -2,12 +2,15 @@
  * ybtour 목록 — Playwright localList. 전 공급사 공통 딜레이 SSOT 아님.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ybtour localList — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: listing_discover_ybtour — manifest
+ * REGRESSION-FREEZE[register-listing-discover-no-seed-detail]: localList only — manifest
+ * REGRESSION-FREEZE[register-listing-discover-human-pace]: parent localList first · bundled Chromium — manifest
  */
 import { spawnListingDiscoverPython } from '@/lib/register-listing-discover-spawn'
 
-export const YBTOUR_LISTING_PAUSE_MS_MIN = 1800
-export const YBTOUR_LISTING_PAUSE_MS_MAX = 3400
-export const YBTOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS = 240_000
+export const YBTOUR_LISTING_PAUSE_MS_MIN = 7000
+export const YBTOUR_LISTING_PAUSE_MS_MAX = 12000
+export const YBTOUR_LISTING_PAGES_PER_BROWSER = 4
+export const YBTOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS = 400_000
 export const YBTOUR_LISTING_DISCOVER_MODULE = 'scripts.listing_discover_ybtour.main'
 
 export function parseYbtourDspSidFromUrl(url: string | null | undefined): string | null {

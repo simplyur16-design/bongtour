@@ -1653,7 +1653,8 @@ function resolveHanatourAirtelFreeTravelImageKeywordFromHaystackLocal(hay: strin
     { re: /로마|Roma?\b|Rome/i, en: 'Rome Colosseum historic city' },
     { re: /오사카|大阪|Osaka/i, en: 'Osaka Castle park city view' },
     { re: /방콕|Bangkok/i, en: 'Bangkok riverside city skyline' },
-    { re: /다낭|Da\s*Nang/i, en: 'Da Nang beach city skyline' },
+    // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 에어텔 다낭 ≠ Da — manifest
+    { re: /다낭|Da\s*Nang/i, en: 'Da Nang' },
     { re: /나트랑|Nha\s*Trang|ニャチャン/i, en: 'Nha Trang beach city skyline' },
     { re: /바르셀로나|Barcelona/i, en: 'Barcelona Sagrada Familia city view' },
     { re: /스톡홀름|Stockholm/i, en: 'Stockholm Gamla Stan waterfront' },

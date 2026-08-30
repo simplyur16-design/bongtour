@@ -29,6 +29,7 @@ import {
   firstMatchingScheduleSpotEn,
   routeContextualNationalAssemblyEnglish,
   routeContextualDisneyEnglish,
+  routeContextualPalaceMuseumEnglish,
 } from '@/lib/schedule-poi-regex-ssot'
 import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
 
@@ -99,6 +100,11 @@ function englishLandmarkOnlyFromScheduleKoreanSegment(
     const kw = acceptRouteSegmentKeyword(disney, { allowCity: false })
     if (kw) return kw
   }
+  const palace = routeContextualPalaceMuseumEnglish(t, routeText)
+  if (palace) {
+    const kw = acceptRouteSegmentKeyword(palace, { allowCity: false })
+    if (kw) return kw
+  }
   const fromPoi = mapKoreanPoiSegment(t)
   if (fromPoi) {
     const kw = acceptRouteSegmentKeyword(fromPoi, { allowCity: false })
@@ -130,6 +136,11 @@ export function routeTextSegmentToImageKeyword(
   const disney = routeContextualDisneyEnglish(t, opts?.routeText)
   if (disney) {
     const kw = acceptRouteSegmentKeyword(disney, opts)
+    if (kw) return kw
+  }
+  const palace = routeContextualPalaceMuseumEnglish(t, opts?.routeText)
+  if (palace) {
+    const kw = acceptRouteSegmentKeyword(palace, opts)
     if (kw) return kw
   }
   const fromKo =
@@ -246,7 +257,6 @@ function pickLastPreferLandmark(
     if (!kw || rejectRouteKeywordCandidate(kw)) continue
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || used.has(nk) || (ex && nk === ex)) continue
-    if (isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) continue
     return kw
   }
   return ''
@@ -380,31 +390,35 @@ export function pickSecondSegmentKeywordFromRouteText(
       break
     }
   }
-  const trySegment = (seg: string): string => {
-    const kw = routeTextSegmentToImageKeyword(seg, { allowCity: true, routeText })
+  const trySegment = (seg: string, allowCity: boolean): string => {
+    const kw = routeTextSegmentToImageKeyword(seg, { allowCity, routeText })
     if (!kw || rejectRouteKeywordCandidate(kw)) return ''
     const nk = normScheduleImageKeywordKey(kw)
     if (!nk || nk === pk || used.has(nk)) return ''
+    if (!allowCity && isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(kw))) return ''
     return kw
   }
-  if (primaryIdx >= 0) {
-    for (let i = primaryIdx + 1; i < segments.length; i++) {
-      const kw = trySegment(segments[i]!)
-      if (kw) return kw
-    }
-    const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(segments).length
-    if (tourismSegCount === 2) {
-      for (let i = 0; i < primaryIdx; i++) {
-        const kw = trySegment(segments[i]!)
+  const pickFromOrder = (allowCity: boolean): string => {
+    if (primaryIdx >= 0) {
+      for (let i = primaryIdx + 1; i < segments.length; i++) {
+        const kw = trySegment(segments[i]!, allowCity)
         if (kw) return kw
       }
+      const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(segments).length
+      if (tourismSegCount === 2) {
+        for (let i = 0; i < primaryIdx; i++) {
+          const kw = trySegment(segments[i]!, allowCity)
+          if (kw) return kw
+        }
+      }
     }
+    for (const seg of segments) {
+      const kw = trySegment(seg, allowCity)
+      if (kw) return kw
+    }
+    return ''
   }
-  for (const seg of segments) {
-    const kw = trySegment(seg)
-    if (kw) return kw
-  }
-  return ''
+  return pickFromOrder(false) || pickFromOrder(true)
 }
 
 function predictRowReservedPrimaryKeyword(

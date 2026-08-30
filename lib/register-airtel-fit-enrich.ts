@@ -1,6 +1,7 @@
 /**
  * 자유여행(air_hotel_free / productType=airtel) 등록 — preview·confirm 공통.
  * REGRESSION-FREEZE[airtel-fit-per-day-keywords]: 일차별 imageKeyword — manifest
+ * REGRESSION-FREEZE[fit-itinerary-gemini-route-keyword]: 동선·키워드는 예시 일정 — manifest
  */
 import { AIR_HOTEL_PRODUCT_TYPE, isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import type { RegisterExtractionFieldIssue } from '@/lib/register-llm-schema-ybtour'
@@ -89,6 +90,7 @@ function mergeParsedScheduleWithFitDays(
       day: row.day,
       title: String(row.title ?? '').trim() || String(prev.title ?? '').trim() || `Day ${row.day}`,
       description: String(row.description ?? '').trim() || String(prev.description ?? '').trim(),
+      routeText: row.routeText || prev.routeText,
       imageKeyword: row.imageKeyword,
       imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
     }

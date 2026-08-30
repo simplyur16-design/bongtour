@@ -12,12 +12,16 @@ import {
   finalizeYbtourItineraryDayDraftsFromSchedule,
 } from '@/lib/parse-and-register-ybtour-schedule'
 
-export async function handleParseAndRegisterYbtourRequest(request: Request) {
+export async function handleParseAndRegisterYbtourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runYbtourRegisterFlow(request, {
     forcedBrandKey: 'ybtour',
     parseFn: parseForRegisterYbtour,
     logPrefix: '[ybtour-register]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     augmentParsed: (parsed, ctx) =>
       augmentYbtourScheduleExpressionParsed(parsed, ctx?.pastedBodyText, {
         travelScope: ctx?.travelScope,

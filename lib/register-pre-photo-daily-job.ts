@@ -3,6 +3,8 @@
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingest then heal — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 검증 통과만 pending — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 공급사당 3건 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: canonical 7사 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: ingest 후 대기열 전체 힐 — manifest
  */
 import { ingestUnregisteredRegisterPendingPrePhoto } from '@/lib/register-pre-photo-listing-ingest'
 import { healPendingRegisterPrePhoto } from '@/lib/register-pending-pre-photo-self-heal'
@@ -13,6 +15,7 @@ export async function runRegisterPrePhotoDailyJob(opts?: {
   healLimit?: number
   skipIngest?: boolean
   onlySuppliers?: string[]
+  perSupplier?: number
 }) {
   const skipIngest =
     opts?.skipIngest === true || process.env.DISABLE_REGISTER_PRE_PHOTO_LISTING_INGEST === '1'
@@ -31,9 +34,10 @@ export async function runRegisterPrePhotoDailyJob(opts?: {
     : await ingestUnregisteredRegisterPendingPrePhoto({
         dryRun: opts?.dryRun,
         onlySuppliers: opts?.onlySuppliers,
+        perSupplier: opts?.perSupplier,
       })
   const heal = await healPendingRegisterPrePhoto({
-    limit: opts?.healLimit ?? 80,
+    limit: opts?.healLimit ?? 200,
     dryRun: opts?.dryRun,
     probeImageUrls: opts?.probeImageUrls,
   })

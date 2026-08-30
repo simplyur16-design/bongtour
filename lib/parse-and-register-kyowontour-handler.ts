@@ -13,12 +13,16 @@ import {
 import { augmentKyowontourParsedWithDetailCollect } from '@/lib/kyowontour-register-detail-collect'
 import { injectKyowontourApiDeparturePricesIfMissing } from '@/lib/kyowontour-register-api-price-inject'
 
-export async function handleParseAndRegisterKyowontourRequest(request: Request) {
+export async function handleParseAndRegisterKyowontourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runKyowontourRegisterFlow(request, {
     forcedBrandKey: 'kyowontour',
     parseFn: parseForRegisterKyowontour,
     logPrefix: '[parse-and-register-kyowontour]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     augmentParsed: (p, ctx) =>
       sanitizeKyowontourRegisterParsedStrings(
         augmentKyowontourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),

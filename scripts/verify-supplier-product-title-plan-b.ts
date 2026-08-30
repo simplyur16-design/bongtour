@@ -79,4 +79,20 @@ assert.equal(
   '미입력',
 )
 
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '이태리 금까기',
+    brandKey: 'naeiltour',
+  }),
+  '이태리',
+)
+assert.equal(
+  resolveSupplierVerbatimOriginalTitle({
+    parsedSupplierTitle: '이태리',
+    supplierListingTitleRaw: '이태리 금까기',
+    brandKey: 'naeiltour',
+  }),
+  '이태리 금까기',
+)
+
 console.log('verify-supplier-product-title-plan-b: ok')

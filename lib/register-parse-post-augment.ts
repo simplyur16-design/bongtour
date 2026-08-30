@@ -29,6 +29,10 @@ import {
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { healRegisterPrePhotoSchedule } from '@/lib/register-pre-photo-self-heal'
+import {
+  hasRegisterFreeDayRecommendedItinerary,
+  isRegisterPendingFreeItineraryDay,
+} from '@/lib/register-pre-photo-verify'
 
 export type ApplyRegisterPostAugmentScheduleOpts = {
   travelScope: string
@@ -93,6 +97,26 @@ export function packageScheduleMiddleDaysHavePrimaryKeywords(
   return middle.every((r) => String(r.imageKeyword ?? '').trim().length > 0)
 }
 
+/** 제목에 자유일정이 있는 패키지만 — dest 키워드만 있어도 추천일정이 없으면 confirm Gemini를 스킵하면 안 된다. */
+// REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: dest-filled free day no skip — manifest
+export function packageScheduleNeedsFreeDayRecommendedItinerary(
+  rows: readonly ScheduleRouteRow[],
+  productTitle?: string | null,
+): boolean {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return false
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  return days.some((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot !== 'middle') return false
+    return (
+      isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
+      !hasRegisterFreeDayRecommendedItinerary(row)
+    )
+  })
+}
+
 const PACKAGE_POST_AUGMENT_SUPPLIERS = new Set([
   'ybtour',
   'modetour',
@@ -116,8 +140,13 @@ async function applyPackagePostAugmentScheduleKeywords(
   // 중간일이 비면 고착 금지 — wipe+규칙+Gemini로 빈 슬롯만 회복(빈 Day4를 스킵하던 회귀 교정).
   // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: empty middle recovers (no sticky skip) — manifest
   const middleFilled = packageScheduleMiddleDaysHavePrimaryKeywords(schedule)
+  const needsRecommended = packageScheduleNeedsFreeDayRecommendedItinerary(
+    schedule,
+    parsed.title ?? null,
+  )
   const skipKeywordPipeline =
     middleFilled &&
+    !needsRecommended &&
     (opts.mode === 'preview' || (opts.mode === 'confirm' && opts.hasPersistedParsed))
   const dest = parsed.primaryDestination ?? parsed.destination ?? null
   if (skipKeywordPipeline) {
@@ -187,10 +216,27 @@ async function applyPackagePostAugmentScheduleKeywords(
     productTitle: parsed.title ?? null,
     lane: 'package',
   })
+  // 대륙 스트립 후 중간일 primary만 비고 kw2가 있으면 승격 — 경유일 공란 고착 방지
+  // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: promote kw2 after strip — manifest
+  const promotedAfterHeal = promoteEmptyMiddlePrimaryFromKeyword2(healed.rows)
   return {
     ...parsed,
-    schedule: ensurePackageScheduleLastDayGateCompliance(healed.rows),
+    schedule: ensurePackageScheduleLastDayGateCompliance(promotedAfterHeal),
   }
+}
+
+function promoteEmptyMiddlePrimaryFromKeyword2<T extends ScheduleRouteRow>(rows: T[]): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  return rows.map((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (slot !== 'middle' || kw || !kw2) return row
+    return { ...row, imageKeyword: kw2, imageKeyword2: null }
+  })
 }
 
 export async function applyRegisterPostAugmentSchedulePipeline(

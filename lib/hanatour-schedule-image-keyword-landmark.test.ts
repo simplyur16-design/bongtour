@@ -1,9 +1,14 @@
+/**
+ * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 2030 다낭 imageKeyword ≠ Da — manifest
+ */
 import { describe, expect, it } from 'vitest'
 import { applyHanatourScheduleImageKeywordsToRows } from '@/lib/hanatour-schedule-image-keyword'
+import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import {
   isLikelyTourismLandmarkKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
   isNonLandmarkSpaShoppingLoungeImageKeyword,
+  isBareCityOrCountryKeyword,
   isScheduleImageKeywordLandmarkEligible,
   isWeakOpaqueImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
@@ -21,6 +26,18 @@ describe('isNonLandmarkFoodOrDiningImageKeyword', () => {
     expect(isNonLandmarkFoodOrDiningImageKeyword('Sydney Opera House')).toBe(false)
     expect(isNonLandmarkFoodOrDiningImageKeyword('Bondi Beach')).toBe(false)
     expect(isLikelyTourismLandmarkKeyword('Blue Mountains')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Taj Mahal')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Hungarian Parliament Budapest')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('La Rambla Barcelona')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Forbidden City')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Great Wall of China')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Golden Circle Iceland')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Petra Treasury')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Wadi Rum desert')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Stonehenge Salisbury Plain')).toBe(true)
+    expect(isScheduleImageKeywordLandmarkEligible('Taj Mahal')).toBe(true)
+    expect(isScheduleImageKeywordLandmarkEligible('La Rambla Barcelona')).toBe(true)
+    expect(isScheduleImageKeywordLandmarkEligible('Forbidden City')).toBe(true)
   })
 })
 
@@ -112,8 +129,10 @@ describe('푸꾸옥 자유여행 — 스파·식당·불투명 단어 거부', (
       phuQuocOpts,
     )
 
-    expect(isScheduleImageKeywordLandmarkEligible(out[0]!.imageKeyword!)).toBe(true)
+    // 출발일은 방문 도시(Phu Quoc) 폴백 허용 — 식당 키워드는 제거
+    expect(String(out[0]!.imageKeyword ?? '')).toMatch(/Phu Quoc/i)
     expect(out[0]!.imageKeyword).not.toMatch(/restaurant/i)
+    expect(isBareCityOrCountryKeyword(out[0]!.imageKeyword!) || isScheduleImageKeywordLandmarkEligible(out[0]!.imageKeyword!)).toBe(true)
     expect(isWeakOpaqueImageKeyword('Khem')).toBe(true)
     expect(out[1]!.imageKeyword).not.toBe('Khem')
     expect(out[2]!.imageKeyword).toMatch(/Ho Quoc|Starfish|Sao Beach/i)
@@ -153,5 +172,77 @@ describe('applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded — 에�
     )
     expect(out[0]!.imageKeyword).toMatch(/Opera House|harbour/i)
     expect(isNonLandmarkFoodOrDiningImageKeyword(out[0]!.imageKeyword!)).toBe(false)
+  })
+})
+
+describe('hanatour 2030 다낭 imageKeyword', () => {
+  it('다낭 일정은 Da 조각이 아니라 Da Nang·명소', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        { day: 1, title: '다낭 도착', routeText: '인천 - 다낭', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          title: '다낭 시내',
+          routeText: '다낭 대성당 - 미케비치 - 용다리',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 3, title: '호이안', routeText: '호이안 옛도시', imageKeyword: '', imageKeyword2: null },
+        { day: 4, title: '귀국', routeText: '다낭 - 인천', imageKeyword: '', imageKeyword2: null },
+      ],
+      { productDestination: '다낭' },
+    )
+    const joined = out
+      .flatMap((r) => [r.imageKeyword, r.imageKeyword2])
+      .map((k) => String(k ?? '').trim())
+      .filter(Boolean)
+    expect(joined.some((k) => /^Da$/i.test(k))).toBe(false)
+    expect(joined.join(' ')).toMatch(/Da Nang|My Khe|Dragon Bridge|Hoi An|Cathedral/i)
+  })
+
+  it('에어텔 다낭 폴백도 Da Nang', () => {
+    const out = applyHanatourAirtelFreeTravelImageKeywordsToScheduleIfNeeded(
+      [{ day: 1, title: '', description: '', imageKeyword: '' }],
+      {
+        productType: 'air-hotel',
+        title: '[2030전용] 다낭/호이안 4일',
+        destinationRaw: '다낭',
+        primaryDestination: '다낭',
+        destination: '베트남,다낭',
+        pastedSnippet: '다낭',
+      },
+    )
+    expect(out[0]!.imageKeyword).toBe('Da Nang')
+  })
+})
+
+describe('hanatour 2030 다낭 — 작은 산토리니 ≠ 그리스', () => {
+  it('다낭 별칭 산토리니는 Santorini/Fira/Oia 금지', () => {
+    const out = applyRegisterScheduleImageKeywordsBySupplier(
+      [
+        { day: 1, title: '다낭 입국', routeText: '다낭 입국', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          title: '손짜 마리나 카페 · 다낭에서 만나는 작은 산토리니',
+          routeText: '손짜 마리나 카페 - 다낭에서 만나는 작은 산토리니 - 한시장 - 대성당',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          title: '선셋 패들보드',
+          routeText: '선셋 패들보드 - 패들보드 일출 - 루프탑 바 - BELLE MAISON PAROSAND DANANG HOTEL',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, title: '콩 카페', routeText: '콩 카페 - 롯데마트', imageKeyword: '', imageKeyword2: null },
+        { day: 5, title: '귀국', routeText: '다낭 출발 및 인천 귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      { supplierKey: 'hanatour', productDestination: '다낭 (한시장)', productTitle: '[2030전용] 다낭 5일' },
+    )
+    const joined = out.map((r) => `${r.imageKeyword} ${r.imageKeyword2}`).join(' ')
+    expect(joined).not.toMatch(/Santorini|Fira|Oia|Caldera/i)
+    expect(joined).not.toMatch(/BELLE MAISON|PAROSAND/i)
+    expect(joined).toMatch(/Da Nang|Han Market|Cathedral|Linh Ung|Son Tra/i)
   })
 })

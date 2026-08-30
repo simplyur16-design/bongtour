@@ -5,12 +5,16 @@ import { augmentModetourParsedWithDetailCollect } from '@/lib/modetour-register-
 import { parseForRegisterModetour } from '@/lib/register-parse-modetour'
 import { runModetourRegisterFlow } from '@/lib/modetour-register-flow'
 
-export async function handleParseAndRegisterModetourRequest(request: Request) {
+export async function handleParseAndRegisterModetourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runModetourRegisterFlow(request, {
       forcedBrandKey: 'modetour',
     parseFn: parseForRegisterModetour,
     logPrefix: '[modetour-register]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     patchParsedAfterAugment: async (parsed, _pastedText, ctx) => {
       if (parsed.modetourDetailCollectRan) return parsed
       return augmentModetourParsedWithDetailCollect(parsed, {

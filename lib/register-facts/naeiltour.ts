@@ -15,11 +15,15 @@ import {
   parseNaeiltourScheduleDaysFromTab1,
 } from '@/lib/naeiltour-register-api-detail'
 import { parseNaeiltourGoodCdFromUrl } from '@/lib/naeiltour-http'
-import { inferRegisterFactProductKindFromOriginUrl, registerFactProductKindNote } from '@/lib/register-facts/product-kind'
+import {
+  inferRegisterFactProductKindFromListingHaystack,
+  inferRegisterFactProductKindFromOriginUrl,
+  registerFactProductKindNote,
+} from '@/lib/register-facts/product-kind'
 
 function inferNaeiltourRegisterFactProductKind(title: string, originUrl: string): ReturnType<typeof inferRegisterFactProductKindFromOriginUrl> {
-  const hay = `${title}\n${originUrl}`
-  if (/에어텔|자유\s*여행|항공\s*\+\s*호텔|air\s*hotel/i.test(hay)) return 'air_hotel_free'
+  const fromTitle = inferRegisterFactProductKindFromListingHaystack(`${title}\n${originUrl}`)
+  if (fromTitle === 'air_hotel_free') return 'air_hotel_free'
   return inferRegisterFactProductKindFromOriginUrl('naeiltour', originUrl)
 }
 

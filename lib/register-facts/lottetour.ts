@@ -23,7 +23,10 @@ import type { RegisterFactScheduleDay, SupplierRegisterFactBundle } from '@/lib/
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import { lottetourMonthCountInclusive } from '@/lib/lottetour-price-recheck-meta'
 import { lottetourRegisterFactFlightsFromScheduleAndCalendar } from '@/lib/register-facts/lottetour-register-fact-flights'
-import { registerFactProductKindNote } from '@/lib/register-facts/product-kind'
+import {
+  inferRegisterFactProductKindFromListingHaystack,
+  registerFactProductKindNote,
+} from '@/lib/register-facts/product-kind'
 import { extractLottetourListingTitleFromHtml } from '@/lib/register-lottetour-basic'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 
@@ -188,7 +191,7 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
       `evtCd=${bundle.evtCd ?? '-'}`,
       `godId=${bundle.godId ?? '-'}`,
       `priceRows=${priceRows.length}`,
-      registerFactProductKindNote('package'),
+      registerFactProductKindNote(inferRegisterFactProductKindFromListingHaystack(listingTitle)),
     ],
   }
 }

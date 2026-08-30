@@ -10,6 +10,7 @@
  * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 live emptyKw route POI — manifest
  * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: empty edge route must not keep other-day landmarks — manifest
  * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 일차 스팟 — manifest
+ * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭·테를지 POI — Da Nang / Terelj National Park — manifest
  */
 
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
@@ -113,6 +114,7 @@ const DESTINATION_MAP: Record<string, string> = {
   호주: 'Australia',
   뉴질랜드: 'New Zealand',
   리우데자네이로: 'Rio de Janeiro',
+  리우데자네이루: 'Rio de Janeiro',
   마라케시: 'Marrakech',
   파리: 'Paris',
   스페인: 'Spain',
@@ -488,8 +490,10 @@ const POI_KO_TO_EN: Record<string, string> = {
   드래곤브릿지: 'Dragon Bridge Da Nang',
   타이페이101: 'Taipei 101 tower night',
   타이베이101: 'Taipei 101 tower night',
+  // REGRESSION-FREEZE[register-hk-gogung-not-taipei-npm]: 국립=대만, 홍콩고궁≠Taipei — 맨손 고궁박물관 금지 — manifest
   국립고궁박물관: 'National Palace Museum Taipei',
-  고궁박물관: 'National Palace Museum Taipei',
+  홍콩고궁박물관: 'Hong Kong Palace Museum',
+  '홍콩 고궁박물관': 'Hong Kong Palace Museum',
   예류지질공원: 'Yehliu Geopark',
   예류: 'Yehliu Geopark',
   지우펀: 'Jiufen old street Taiwan night',
@@ -535,12 +539,25 @@ const POI_KO_TO_EN: Record<string, string> = {
   '테렐지 국립공원': 'Terelj National Park',
   테를지국립공원: 'Terelj National Park',
   '테를지 국립공원': 'Terelj National Park',
+  테를지공원: 'Terelj National Park',
+  테렐지공원: 'Terelj National Park',
+  다낭대성당: 'Da Nang Cathedral',
+  '다낭 대성당': 'Da Nang Cathedral',
+  다낭: 'Da Nang',
+  한시장: 'Han Market Da Nang',
+  '한 시장': 'Han Market Da Nang',
+  테를지: 'Terelj National Park',
+  테렐지: 'Terelj National Park',
+  '티벳불교 사원': 'Ariyabal Temple',
+  티벳불교: 'Ariyabal Temple',
+  야리야발사원: 'Ariyabal Temple',
+  '야리야발 사원': 'Ariyabal Temple',
+  아리iya발사원: 'Ariyabal Temple',
   거북바위: 'Turtle Rock',
   '거북 바위': 'Turtle Rock',
   아리야발사원: 'Ariyabal Temple',
   '아리야발 사원': 'Ariyabal Temple',
   아리야발: 'Ariyabal Temple',
-  야리야발사원: 'Ariyabal Temple',
   자이승전망대: 'Zaisan Memorial',
   자이승승전탑: 'Zaisan Memorial',
   자이승기념탑: 'Zaisan Memorial',
@@ -878,6 +895,13 @@ const POI_KO_TO_EN: Record<string, string> = {
   '코코넛 수용소': 'Coconut Tree Prison',
   소나시야시장: 'Sonasea Night Market',
   '소나시 야시장': 'Sonasea Night Market',
+  소나씨야시장: 'Sonasea Night Market',
+  '소나씨 야시장': 'Sonasea Night Market',
+  치첸이사: 'Chichen Itza',
+  타오르미나: 'Taormina Sicily old town',
+  그단스크: 'Gdansk Old Town',
+  이집트대박물관: 'Grand Egyptian Museum',
+  '이집트 대박물관': 'Grand Egyptian Museum',
   혼똠: 'Phu Quoc Hon Thom Cable Car',
   혼똔: 'Phu Quoc Hon Thom Cable Car',
   '썬월드 혼똠': 'Phu Quoc Hon Thom Cable Car',
@@ -1068,6 +1092,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   마라케시: 'Marrakech Jemaa el-Fnaa',
   '마라케시 구시가': 'Marrakech medina Morocco',
   리우데자네이로: 'Rio de Janeiro Christ the Redeemer',
+  리우데자네이루: 'Rio de Janeiro Christ the Redeemer',
   '예수상': 'Christ the Redeemer Rio de Janeiro',
   /** REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ 남섬·섬 routeText 세그먼트 — manifest */
   '카와라우 번지': 'Kawarau Gorge Suspension Bridge',
@@ -1523,6 +1548,10 @@ function poiKoMappingAllowed(ko: string, text: string): boolean {
   if (ko === '키나발루') {
     const stripped = text.replace(/코\s*타\s*키나발루|Kota\s*Kinabalu/gi, ' ')
     if (!/키나발루|Kinabalu|국립\s*공원/i.test(stripped)) return false
+  }
+  if (ko === '산토리니') {
+    // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭 작은 산토리니 ≠ 그리스 — manifest
+    if (/다낭|베트남|Da\s*Nang|Vietnam|손짜|한시장/i.test(text)) return false
   }
   const req = POI_KO_MAPPING_CONTEXT_RE[ko]
   if (!req) return true

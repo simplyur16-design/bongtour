@@ -5,10 +5,16 @@
 import assert from 'node:assert/strict'
 import { normalizeNaeiltourRegisterListingTitle } from '@/lib/naeiltour-register-product-title'
 import { buildNaeiltourFlightStructuredFromHtml } from '@/lib/naeiltour-register-api-detail'
+import { resolveNaeiltourRegisterDestination } from '@/lib/naeiltour-register-api-parse'
 
 assert.equal(normalizeNaeiltourRegisterListingTitle('싱가폴 마리나베이샌즈 금까기'), '싱가폴 마리나베이샌즈')
 assert.equal(normalizeNaeiltourRegisterListingTitle('진짜 유럽 9일'), '유럽 9일')
 assert.equal(normalizeNaeiltourRegisterListingTitle('프랑크푸르트 진짜 금까기'), '프랑크푸르트')
+
+const destItaly = resolveNaeiltourRegisterDestination('이태리 금까기', '유럽 왕복항공권 포함')
+assert.equal(destItaly.destination, '이탈리아')
+const destSpain = resolveNaeiltourRegisterDestination('스페인 9일', '유럽 왕복항공권')
+assert.equal(destSpain.destination, '스페인')
 
 const airtelHay = `
 <div class="airline"><p class="btxt">항공사</p><p class="stxt">싱가폴항공</p></div>

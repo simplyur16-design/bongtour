@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot] — ybtour prebuild
  * REGRESSION-FREEZE[ybtour-schedule-image-keyword-distinct]
+ * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang·Hoi An ≠ Da·Hoi — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -192,9 +193,13 @@ describe('applyYbtourScheduleImageKeywordsToRows — routeText 슬롯 규칙', (
     const d2 = out.find((r) => r.day === 2)!
     const d3 = out.find((r) => r.day === 3)!
     assert.ok(d2.imageKeyword2?.trim(), `day2 kw2 empty: ${d2.imageKeyword2}`)
-    assert.equal(norm(d2.imageKeyword!), norm('Da'))
+    assert.equal(norm(d2.imageKeyword!), norm('Da Nang'))
     assert.equal(norm(d2.imageKeyword2!), norm('My Khe Beach'))
-    assert.equal(norm(d3.imageKeyword!), norm('Hoi'))
+    assert.ok(d3.imageKeyword?.trim(), `day3 kw1 empty: ${d3.imageKeyword}`)
+    assert.notEqual(norm(d3.imageKeyword!), 'da')
+    assert.notEqual(norm(d3.imageKeyword!), 'hoi')
+    assert.notEqual(norm(d3.imageKeyword!), norm('Da Nang'))
+    assert.notEqual(norm(d3.imageKeyword!), norm('My Khe Beach'))
     assert.equal(d3.imageKeyword2, null)
   })
 

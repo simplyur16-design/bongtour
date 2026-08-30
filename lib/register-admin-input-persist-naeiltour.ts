@@ -4,6 +4,8 @@
  * 공급사별 분기·캘린더 정책은 호출하는 핸들러에 둔다.
  */
 import { prisma } from '@/lib/prisma'
+// REGRESSION-FREEZE[naeiltour-register-confirm-no-interactive-tx]: snapshot create retry — manifest
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import {
   RegisterLlmParseError,
   stripRegisterInternalArtifacts,
@@ -71,18 +73,20 @@ export async function resolveOrCreateRegisterAdminInputSnapshot(params: {
   }
   const digest = computeRegisterInputDigestFromBody(params.body, params.forcedBrandKey)
   const pb = parseRegisterPastedBlocksPayload(params.body)
-  const row = await createRegisterRawSnapshotRow({
-    prisma,
-    brandKey: params.brandKey ?? params.forcedBrandKey,
-    originSource: params.originSource,
-    originUrl: params.originUrl,
-    originCodeHint: params.originCodeHint,
-    bodyText: params.text,
-    pastedBlocksJson: pb ? JSON.stringify(pb) : null,
-    inputDigest: digest,
-    travelScope: params.travelScope,
-    requestMode: params.mode,
-  })
+  const row = await withPrismaRetry('naeiltour-admin-snapshot-create', () =>
+    createRegisterRawSnapshotRow({
+      prisma,
+      brandKey: params.brandKey ?? params.forcedBrandKey,
+      originSource: params.originSource,
+      originUrl: params.originUrl,
+      originCodeHint: params.originCodeHint,
+      bodyText: params.text,
+      pastedBlocksJson: pb ? JSON.stringify(pb) : null,
+      inputDigest: digest,
+      travelScope: params.travelScope,
+      requestMode: params.mode,
+    }),
+  )
   params.timing.mark('after-raw-save')
   return row.id
 }

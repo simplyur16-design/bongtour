@@ -5,19 +5,46 @@
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·테마만 랜드마크 재적용, 자유여행은 패키지 파이프 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 3건 — manifest
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: 셀프힐이 SSOT로 재채움, 통과만 등록대기 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — FIT·환승 제외 — manifest
  * REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: 유효 랜드마크는 덮어쓰지 않음 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: apply 방문도시·kw2 승격은 힐이 지우지 않음 — manifest
+ * REGRESSION-FREEZE[register-hk-gogung-not-taipei-npm]: 나라 틀린 키워드는 비우고 SSOT 재적용 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: FIT drop + 당일 route 재채움 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: FIT 요약·같은 날 나라 혼선 — manifest
+ * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 재합성 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드는 지우고 그날 동선으로 채움 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
-import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  englishFromScheduleKoreanSegment,
+  splitRouteTextPlaceSegments,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isBareCityOrCountryKeyword, isHotelLodgingImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
+import {
+  firstMatchingScheduleCityEn,
+  firstMatchingScheduleSpotEn,
+} from '@/lib/schedule-poi-regex-ssot'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import type { RegisterAdminLane } from '@/lib/register-admin-lane'
 import {
+  hasRegisterFreeDayRecommendedItinerary,
+  isRegisterPendingFreeItineraryDay,
+  registerScheduleKeywordMatchesOwnDayRoute,
+  routeTextHasIdentifiableVisitPlace,
+} from '@/lib/register-pre-photo-verify'
+import {
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
+  tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
+import {
+  isRegisterScheduleCrossContinentHallucinationKeyword,
+  isRegisterScheduleSameDayKeywordCountryClash,
+  registerPrePhotoPlaceDestHay,
+} from '@/lib/register-schedule-cross-continent-keyword-guard'
 
 export { REGISTER_PRE_PHOTO_INGEST_PER_GEO, REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '@/lib/register-pre-photo-ingest-geo-slots'
 export {
@@ -53,33 +80,158 @@ export type RegisterPrePhotoHealResult<T extends RegisterPrePhotoHealRow> = {
   reappliedKeywords: boolean
 }
 
-function sanitizeLandmarkKeyword(raw: string | null | undefined): string {
+function sanitizeLandmarkKeyword(
+  raw: string | null | undefined,
+  allowHotelLodging = false,
+): string {
   const t = String(raw ?? '').trim()
-  if (!t || isBrokenRegisterLandmarkKeyword(t)) return ''
+  if (!t || isBrokenRegisterLandmarkKeyword(t, { allowHotelLodging })) return ''
+  if (allowHotelLodging && isHotelLodgingImageKeyword(t)) return t
   const persist = tryPersistScheduleImageKeyword(t)
   return persist.ok ? persist.value : ''
 }
 
-function scheduleHasBrokenKeywords(rows: readonly RegisterPrePhotoHealRow[]): boolean {
+function refillFitKeywordFromDayRoute(
+  row: RegisterPrePhotoHealRow,
+  destHay: string,
+  trip: readonly RegisterPrePhotoHealRow[],
+): string {
+  for (const seg of splitRouteTextPlaceSegments(row.routeText)) {
+    const en = englishFromScheduleKoreanSegment(seg) || seg
+    const persist = tryPersistScheduleImageKeyword(en)
+    if (!persist.ok) continue
+    const v = persist.value
+    if (!v || isBrokenRegisterLandmarkKeyword(v, { allowHotelLodging: true })) continue
+    if (destHay && isRegisterScheduleCrossContinentHallucinationKeyword(v, destHay, trip)) continue
+    return v
+  }
+  return ''
+}
+
+function scheduleHasBrokenKeywords(
+  rows: readonly RegisterPrePhotoHealRow[],
+  opts?: {
+    allowHotelLodging?: boolean
+    productTitle?: string | null
+    requireFreeDayRecommended?: boolean
+  },
+): boolean {
+  const allowHotelLodging = opts?.allowHotelLodging ?? false
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return false
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
   for (const row of days) {
-    if (isBrokenRegisterLandmarkKeyword(row.imageKeyword)) return true
-    if (isBrokenRegisterLandmarkKeyword(row.imageKeyword2)) return true
+    if (isBrokenRegisterLandmarkKeyword(row.imageKeyword, { allowHotelLodging })) return true
+    if (isBrokenRegisterLandmarkKeyword(row.imageKeyword2, { allowHotelLodging })) return true
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
-    if (slot === 'middle' && !String(row.imageKeyword ?? '').trim()) return true
+    if (slot === 'middle' && !String(row.imageKeyword ?? '').trim()) {
+      return true
+    }
+    if (
+      slot === 'middle' &&
+      String(row.imageKeyword ?? '').trim() &&
+      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword)
+    ) {
+      return true
+    }
+    if (
+      opts?.requireFreeDayRecommended &&
+      slot === 'middle' &&
+      isRegisterPendingFreeItineraryDay(row, { productTitle: opts.productTitle }) &&
+      !hasRegisterFreeDayRecommendedItinerary(row)
+    ) {
+      return true
+    }
     const a = String(row.imageKeyword ?? '').trim().toLowerCase()
     const b = String(row.imageKeyword2 ?? '').trim().toLowerCase()
     if (a && b && a === b) return true
   }
+  // 중간일끼리 같은 명소 반복(호텔일에 Grand World 복사)은 재적용 대상
+  const seenMiddle = new Set<string>()
+  for (const row of days) {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot !== 'middle') continue
+    const kw = String(row.imageKeyword ?? '').trim()
+    const key = kw.toLowerCase()
+    if (!key || isBareCityOrCountryKeyword(kw)) continue
+    if (seenMiddle.has(key)) return true
+    seenMiddle.add(key)
+  }
   return false
 }
 
-function healDescription(row: RegisterPrePhotoHealRow, maxDay: number): string {
+function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
+  rows: T[],
+  destHay: string,
+): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  return rows.map((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot !== 'middle' || String(row.imageKeyword ?? '').trim()) return row
+    const hay = [row.routeText, row.title].filter(Boolean).join(' ')
+    const candidates = [firstMatchingScheduleSpotEn(hay), firstMatchingScheduleCityEn(hay)].filter(
+      (v): v is string => Boolean(v && String(v).trim()),
+    )
+    for (const raw of candidates) {
+      const persist = tryPersistScheduleImageKeyword(raw)
+      if (!persist.ok || !persist.value) continue
+      if (isBrokenRegisterLandmarkKeyword(persist.value) && !isBareCityOrCountryKeyword(persist.value)) {
+        continue
+      }
+      if (destHay && isRegisterScheduleCrossContinentHallucinationKeyword(persist.value, destHay, rows)) {
+        continue
+      }
+      return { ...row, imageKeyword: persist.value }
+    }
+    return row
+  })
+}
+
+function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(rows: T[]): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  return rows.map((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot !== 'middle') return row
+    if (!routeTextHasIdentifiableVisitPlace(row.routeText)) return row
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    const keepKw = !kw || registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw)
+    const keepKw2 = !kw2 || registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw2)
+    if (keepKw && keepKw2) return row
+    let nextKw = keepKw ? kw : ''
+    let nextKw2 = keepKw2 ? kw2 || null : null
+    if (!nextKw && nextKw2) {
+      nextKw = nextKw2
+      nextKw2 = null
+    }
+    return { ...row, imageKeyword: nextKw, imageKeyword2: nextKw2 }
+  })
+}
+
+function promoteEmptyMiddlePrimaryFromKeyword2<T extends RegisterPrePhotoHealRow>(rows: T[]): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  return rows.map((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (slot !== 'middle' || kw || !kw2) return row
+    return { ...row, imageKeyword: kw2, imageKeyword2: null }
+  })
+}
+
+function healDescription(row: RegisterPrePhotoHealRow, maxDay: number, force = false): string {
   const current = String(row.description ?? '').trim()
-  if (!isBrokenRegisterScheduleDescription(current, row.routeText)) return current
+  if (!force && !isBrokenRegisterScheduleDescription(current, row.routeText)) return current
   const routePlaces = splitRouteTextPlaceSegments(row.routeText)
   try {
     return composeRegisterScheduleDaySummary({
@@ -109,13 +261,9 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   const lane: RegisterAdminLane = opts.lane ?? 'package'
   const isFit = lane === 'air_hotel_free'
 
-  if (isFit) {
-    return { rows, notes, reappliedKeywords: false }
-  }
-
   let working: T[] = rows.map((row) => {
-    const kw = sanitizeLandmarkKeyword(row.imageKeyword)
-    const kw2 = sanitizeLandmarkKeyword(row.imageKeyword2)
+    const kw = sanitizeLandmarkKeyword(row.imageKeyword, isFit)
+    const kw2 = sanitizeLandmarkKeyword(row.imageKeyword2, isFit)
     if (String(row.imageKeyword ?? '').trim() && !kw) {
       notes.push({ day: Number(row.day), field: 'imageKeyword', reason: 'lodging_or_non_landmark' })
     }
@@ -129,9 +277,84 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     }
   })
 
+  const destHay = registerPrePhotoPlaceDestHay(opts.productDestination, opts.productTitle)
+  if (destHay) {
+    working = working.map((row) => {
+      const kw = String(row.imageKeyword ?? '').trim()
+      const kw2 = String(row.imageKeyword2 ?? '').trim()
+      const dropKw = Boolean(
+        kw && isRegisterScheduleCrossContinentHallucinationKeyword(kw, destHay, working),
+      )
+      const dropKw2 = Boolean(
+        kw2 && isRegisterScheduleCrossContinentHallucinationKeyword(kw2, destHay, working),
+      )
+      if (dropKw) notes.push({ day: Number(row.day), field: 'imageKeyword', reason: 'wrong_country' })
+      if (dropKw2) notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'wrong_country' })
+      return {
+        ...row,
+        imageKeyword: dropKw ? '' : row.imageKeyword,
+        imageKeyword2: dropKw2 ? null : row.imageKeyword2,
+      }
+    })
+  }
+
+  working = working.map((row) => {
+    if (!isRegisterScheduleSameDayKeywordCountryClash(row.imageKeyword, row.imageKeyword2)) return row
+    notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'same_day_country_clash' })
+    return { ...row, imageKeyword2: null }
+  })
+
   let reappliedKeywords = false
+  if (isFit) {
+    const maxFitDay = Math.max(...working.map((r) => Number(r.day)).filter((d) => d > 0), 1)
+    const activeFit = working.filter((r) => Number(r.day) > 0).length
+    working = working.map((row) => {
+      const day = Number(row.day)
+      const slot = resolveScheduleKeywordSlotKind(day, maxFitDay, activeFit)
+      if (slot !== 'middle') return row
+      if (String(row.imageKeyword ?? '').trim()) return row
+      const filled = refillFitKeywordFromDayRoute(row, destHay, working)
+      if (!filled) return row
+      notes.push({ day, field: 'imageKeyword', reason: 'fit_route_refill' })
+      reappliedKeywords = true
+      return { ...row, imageKeyword: filled }
+    })
+    working = working.map((row) => {
+      if (!isRegisterScheduleSameDayKeywordCountryClash(row.imageKeyword, row.imageKeyword2)) return row
+      notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'same_day_country_clash' })
+      return { ...row, imageKeyword2: null }
+    })
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: FIT도 당일 route 밖 키워드 제거 — manifest
+    working = dropKeywordsNotOnOwnDayRoute(working)
+    working = refillEmptyMiddleKeywordFromRoute(working, destHay)
+    const maxFitDesc = Math.max(...working.map((r) => Number(r.day)).filter((d) => d > 0), 1)
+    const fitRepeatedCloser = tripDaysSharingTemplateCloser(working)
+    working = working.map((row) => {
+      const before = String(row.description ?? '').trim()
+      const force = fitRepeatedCloser.has(Number(row.day))
+      const description = healDescription(row, maxFitDesc, force)
+      if (description !== before) {
+        notes.push({
+          day: Number(row.day),
+          field: 'description',
+          reason: force ? 'repeated_closer_resynth' : 'filler_or_duplicate_resynth',
+        })
+      }
+      return { ...row, description }
+    })
+    if (scheduleHasBrokenKeywords(working, { allowHotelLodging: true })) {
+      notes.push({ day: 0, field: 'imageKeyword', reason: 'parser_fix_required' })
+    }
+    return { rows: working, notes, reappliedKeywords }
+  }
+
   // REGRESSION-FREEZE[register-pre-photo-heal-keep-filled-keywords]: 깨진/빈 중간일만 SSOT 재적용 — manifest
-  if (scheduleHasBrokenKeywords(working)) {
+  if (
+    scheduleHasBrokenKeywords(working, {
+      productTitle: opts.productTitle,
+      requireFreeDayRecommended: true,
+    })
+  ) {
     const applied = applyRegisterScheduleImageKeywordsBySupplier(
       working.map((row) => ({
         day: Number(row.day) || 0,
@@ -159,18 +382,60 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
         imageKeyword2: sanitizeLandmarkKeyword(a.imageKeyword2) || null,
       }
     })
+    if (destHay) {
+      working = working.map((row) => {
+        const kw = String(row.imageKeyword ?? '').trim()
+        const kw2 = String(row.imageKeyword2 ?? '').trim()
+        const dropKw = Boolean(
+          kw && isRegisterScheduleCrossContinentHallucinationKeyword(kw, destHay, working),
+        )
+        const dropKw2 = Boolean(
+          kw2 && isRegisterScheduleCrossContinentHallucinationKeyword(kw2, destHay, working),
+        )
+        if (dropKw) notes.push({ day: Number(row.day), field: 'imageKeyword', reason: 'wrong_country' })
+        if (dropKw2) notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'wrong_country' })
+        return {
+          ...row,
+          imageKeyword: dropKw ? '' : row.imageKeyword,
+          imageKeyword2: dropKw2 ? null : row.imageKeyword2,
+        }
+      })
+    }
+    working = working.map((row) => {
+      if (!isRegisterScheduleSameDayKeywordCountryClash(row.imageKeyword, row.imageKeyword2)) return row
+      notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'same_day_country_clash' })
+      return { ...row, imageKeyword2: null }
+    })
   }
 
-  if (scheduleHasBrokenKeywords(working)) {
+  // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 중간일 primary 공란·kw2 있으면 승격 — manifest
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: apply 트립 블리드를 당일 route로 되돌림 — manifest
+  working = promoteEmptyMiddlePrimaryFromKeyword2(working)
+  working = dropKeywordsNotOnOwnDayRoute(working)
+  working = refillEmptyMiddleKeywordFromRoute(working, destHay)
+
+  if (
+    scheduleHasBrokenKeywords(working, {
+      productTitle: opts.productTitle,
+      requireFreeDayRecommended: true,
+    })
+  ) {
     notes.push({ day: 0, field: 'imageKeyword', reason: 'parser_fix_required' })
   }
 
   const maxDay = Math.max(...working.map((r) => Number(r.day)).filter((d) => d > 0), 1)
+  // REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 같은 closer 일차 강제 재합성 — manifest
+  const repeatedCloserDays = tripDaysSharingTemplateCloser(working)
   working = working.map((row) => {
     const before = String(row.description ?? '').trim()
-    const description = healDescription(row, maxDay)
+    const force = repeatedCloserDays.has(Number(row.day))
+    const description = healDescription(row, maxDay, force)
     if (description !== before) {
-      notes.push({ day: Number(row.day), field: 'description', reason: 'filler_or_duplicate_resynth' })
+      notes.push({
+        day: Number(row.day),
+        field: 'description',
+        reason: force ? 'repeated_closer_resynth' : 'filler_or_duplicate_resynth',
+      })
     }
     return { ...row, description }
   })

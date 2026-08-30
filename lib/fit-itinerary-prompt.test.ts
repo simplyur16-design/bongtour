@@ -22,4 +22,23 @@ describe('buildAirtelPrompt', () => {
     expect(prompt).toContain('합계 50~90자')
     expect(prompt).not.toContain('summary(1문장 한국어)')
   })
+
+  it('동선은 예시 일정 activities, imageKeyword는 attraction 랜드마크만', () => {
+    const prompt = buildAirtelPrompt({
+      title: '파리 3박4일',
+      cityNameKo: '파리',
+      cityKey: 'paris',
+      countryCode: 'FR',
+      duration: '3박 4일',
+      totalDays: 4,
+      airline: null,
+      hotelSummaryText: null,
+      airtelHotelInfoJson: null,
+      schedule: null,
+    })
+    expect(prompt).toContain('activities가 그날 **동선**')
+    expect(prompt).toContain('attraction location의 괄호 영문 랜드마크')
+    expect(prompt).toContain('식사·쇼핑 상호명')
+    expect(prompt).not.toContain('attraction·shopping·meal location')
+  })
 })

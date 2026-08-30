@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 채워진 키워드도 품질 검증 — manifest
  * REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]: verify는 self-heal 서버 체인 금지 — manifest
+ * REGRESSION-FREEZE[register-hk-gogung-not-taipei-npm]: 홍콩 고궁 ≠ 대만 국립고궁 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -15,6 +16,9 @@ import {
   readRegisterPrePhotoStampFromRawMeta,
   verifyRegisterPrePhoto,
 } from '../lib/register-pre-photo-verify'
+import { mapKoreanPoiSegment } from '../lib/pexels-keyword'
+import { routeContextualPalaceMuseumEnglish } from '../lib/schedule-poi-regex-ssot'
+import { routeTextSegmentToImageKeyword } from '../lib/register-schedule-route-text-image-keyword-ssot'
 
 describe('register-admin-lane-pre-photo', () => {
   it('명시 자유여행은 테마 태그보다 앞선다', () => {
@@ -82,6 +86,8 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'package',
       listingKind: 'travel',
       productType: 'travel',
+      productTitle: '바르셀로나 3일',
+      productDestination: '스페인',
       rows: [
         { day: 1, description: '인천에서 출발해 바르셀로나에 도착합니다.', imageKeyword: 'Barcelona' },
         {
@@ -100,6 +106,8 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'package',
       listingKind: 'travel',
       productType: 'travel',
+      productTitle: '바르셀로나 4일',
+      productDestination: '스페인',
       rows: [
         { day: 1, description: '인천에서 출발해 바르셀로나에 도착합니다. 첫날 이동 중심으로 여행을 시작합니다.', imageKeyword: 'Barcelona' },
         { day: 2, description: '가우디 건축을 중심으로 하루를 보냅니다. 시내의 리듬에 맞춰 관람 동선을 이어갑니다.', imageKeyword: 'Park Guell' },
@@ -134,6 +142,8 @@ describe('register-admin-lane-pre-photo', () => {
       listingKind: 'travel',
       productType: 'travel',
       sportsThemeTag: ['spectator'],
+      productTitle: '바르셀로나 3일 #관람',
+      productDestination: '바르셀로나',
       rows: themeRows,
     })
     assert.equal(themeOk.ok, true)
@@ -145,6 +155,8 @@ describe('register-admin-lane-pre-photo', () => {
       listingKind: 'travel',
       productType: 'travel',
       sportsThemeTag: [],
+      productTitle: '바르셀로나 3일 #관람',
+      productDestination: '바르셀로나',
       rows: themeRows,
     })
     assert.equal(themeMissing.ok, false)
@@ -156,14 +168,18 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'air_hotel_free',
       listingKind: 'air_hotel_free',
       productType: 'air-hotel',
-      rows: [{ day: 1, description: '호텔', imageKeyword: 'Grand Hyatt Taipei' }],
+      productTitle: '대만 에어텔 3일',
+      productDestination: '타이베이',
+      rows: [{ day: 1, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' }],
     })
     assert.equal(ok.ok, true)
     const mismatch = verifyRegisterPrePhoto({
       lane: 'air_hotel_free',
       listingKind: 'travel',
       productType: 'travel',
-      rows: [{ day: 1, description: '호텔', imageKeyword: 'Grand Hyatt Taipei' }],
+      productTitle: '대만 에어텔 3일',
+      productDestination: '타이베이',
+      rows: [{ day: 1, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' }],
     })
     assert.equal(mismatch.ok, false)
   })
@@ -191,7 +207,7 @@ describe('register-admin-lane-pre-photo', () => {
     })
     assert.equal(emptyKw.ok, false)
     assert.ok(emptyKw.issues.includes('fit_keyword_empty'))
-    assert.ok(emptyKw.issues.some((i) => i.includes('middle_keyword_empty')))
+    assert.equal(emptyKw.issues.some((i) => i.includes('middle_keyword_empty')), false)
     assert.equal(emptyKw.parserFixRequired, true)
   })
 
@@ -200,11 +216,13 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'air_hotel_free',
       listingKind: 'air_hotel_free',
       productType: 'air-hotel',
+      productTitle: '대만 에어텔 4일',
+      productDestination: '타이베이',
       rows: [
-        { day: 1, description: '도착', imageKeyword: '' },
+        { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', imageKeyword: '' },
         { day: 2, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' },
-        { day: 3, description: '시내 자유일정입니다.', imageKeyword: 'Chiang Kai-shek Memorial Hall' },
-        { day: 4, description: '귀국', imageKeyword: '' },
+        { day: 3, description: '시내 자유일정입니다. 기념관을 둘러봅니다.', imageKeyword: 'Chiang Kai-shek Memorial Hall' },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', imageKeyword: '' },
       ],
     })
     assert.equal(hotelOk.ok, true)
@@ -213,11 +231,13 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'air_hotel_free',
       listingKind: 'air_hotel_free',
       productType: 'air-hotel',
+      productTitle: '대만 에어텔 4일',
+      productDestination: '타이베이',
       rows: [
-        { day: 1, description: '도착', imageKeyword: '' },
-        { day: 2, description: '시내 자유일정입니다.', imageKeyword: 'Park Guell' },
-        { day: 3, description: '시내 자유일정입니다.', imageKeyword: 'Park Guell' },
-        { day: 4, description: '귀국', imageKeyword: '' },
+        { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', imageKeyword: '' },
+        { day: 2, description: '시내 자유일정입니다. 거리를 걸어 하루를 맞춥니다.', imageKeyword: 'Park Guell' },
+        { day: 3, description: '시내 자유일정입니다. 거리를 걸어 하루를 맞춥니다.', imageKeyword: 'Park Guell' },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', imageKeyword: '' },
       ],
     })
     assert.equal(bleed.ok, false)
@@ -228,11 +248,13 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'air_hotel_free',
       listingKind: 'air_hotel_free',
       productType: 'air-hotel',
+      productTitle: '대만 에어텔 4일',
+      productDestination: '타이베이',
       rows: [
-        { day: 1, description: '도착', imageKeyword: '' },
-        { day: 2, description: '이동', imageKeyword: 'day_3' },
-        { day: 3, description: '시내', imageKeyword: 'Grand Hyatt Taipei' },
-        { day: 4, description: '귀국', imageKeyword: '' },
+        { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', imageKeyword: '' },
+        { day: 2, description: '시내를 이동하며 하루를 맞춥니다. 동선을 이어갑니다.', imageKeyword: 'day_3' },
+        { day: 3, description: '시내 자유일정입니다. 호텔 주변을 둘러봅니다.', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', imageKeyword: '' },
       ],
     })
     assert.equal(operational.ok, false)
@@ -243,11 +265,13 @@ describe('register-admin-lane-pre-photo', () => {
       lane: 'air_hotel_free',
       listingKind: 'air_hotel_free',
       productType: 'air-hotel',
+      productTitle: '대만 에어텔 4일',
+      productDestination: '타이베이',
       rows: [
-        { day: 1, description: '도착', imageKeyword: '' },
-        { day: 2, description: '이동', imageKeyword: '대한항공' },
-        { day: 3, description: '시내', imageKeyword: 'Grand Hyatt Taipei' },
-        { day: 4, description: '귀국', imageKeyword: '' },
+        { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', imageKeyword: '' },
+        { day: 2, description: '시내를 이동하며 하루를 맞춥니다. 동선을 이어갑니다.', imageKeyword: '대한항공' },
+        { day: 3, description: '시내 자유일정입니다. 호텔 주변을 둘러봅니다.', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', imageKeyword: '' },
       ],
     })
     assert.equal(airline.ok, false)
@@ -279,5 +303,45 @@ describe('register-admin-lane-pre-photo', () => {
     const src = fs.readFileSync(path.join(process.cwd(), 'lib/register-pre-photo-verify.ts'), 'utf8')
     assert.equal(src.includes('register-pre-photo-self-heal'), false)
     assert.ok(src.includes('register-pre-photo-guards'))
+  })
+
+  // REGRESSION-FREEZE[register-hk-gogung-not-taipei-npm]: 홍콩 고궁 ≠ 대만 국립고궁 — manifest
+  it('홍콩 M+ 고궁박물관은 대만 국립고궁이 아니고, 그 키워드면 검증 실패다', () => {
+    assert.equal(mapKoreanPoiSegment('국립고궁박물관'), 'National Palace Museum Taipei')
+    assert.notEqual(mapKoreanPoiSegment('고궁박물관'), 'National Palace Museum Taipei')
+    assert.equal(mapKoreanPoiSegment('홍콩고궁박물관'), 'Hong Kong Palace Museum')
+    const hkRoute = '홍콩 - 구룡성채공원 - M+ - 고궁박물관 - 침사추이 K11'
+    assert.equal(routeContextualPalaceMuseumEnglish('고궁박물관', hkRoute, '홍콩'), 'Hong Kong Palace Museum')
+    assert.equal(
+      routeContextualPalaceMuseumEnglish('국립 고궁박물관', '타이페이 - 국립 고궁박물관', '대만'),
+      'National Palace Museum Taipei',
+    )
+    assert.match(
+      routeTextSegmentToImageKeyword('고궁박물관', { allowCity: false, routeText: hkRoute }),
+      /Hong Kong Palace Museum/i,
+    )
+    const wrong = verifyRegisterPrePhoto({
+      lane: 'package',
+      listingKind: 'travel',
+      productType: 'travel',
+      productDestination: '홍콩',
+      productTitle: '홍콩/마카오 4일',
+      rows: [
+        { day: 1, description: '인천에서 출발해 홍콩에 도착합니다. 첫날 이동 중심으로 여행을 시작합니다.', imageKeyword: 'SoHo Hong Kong' },
+        {
+          day: 2,
+          description: '마카오 성바울 유적을 둘러봅니다. 거리를 걸으며 하루 일정을 이어갑니다.',
+          imageKeyword: 'Wong Tai Sin Temple',
+        },
+        {
+          day: 3,
+          description: '홍콩과 구룡성채공원을 둘러봅니다. M+와 고궁박물관을 이어서 방문합니다.',
+          imageKeyword: 'National Palace Museum',
+        },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 별도의 관광보다 이동 중심으로 여행을 마무리합니다.', imageKeyword: 'Macau' },
+      ],
+    })
+    assert.equal(wrong.ok, false)
+    assert.ok(wrong.issues.some((i) => i.includes('wrong_country')))
   })
 })

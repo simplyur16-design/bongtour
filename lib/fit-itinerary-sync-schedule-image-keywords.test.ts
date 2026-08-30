@@ -93,6 +93,8 @@ describe('syncScheduleImageKeywordsFromFitItinerary', () => {
     expect(d2.imageKeyword).toBe('Kiyomizu-dera Temple')
     expect(d1.imageUrl).toBeNull()
     expect(d2.imageUrl).toBeNull()
+    expect(String((d1 as { routeText?: string }).routeText ?? '')).toContain('도톤보리')
+    expect(String((d2 as { routeText?: string }).routeText ?? '')).toContain('청수사')
   })
 
   it('skips non-airtel products', async () => {

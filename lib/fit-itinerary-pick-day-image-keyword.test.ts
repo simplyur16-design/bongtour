@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   areFitDayImageKeywordsUniform,
   buildFitDayImageKeywordFallback,
+  buildFitDayRouteText,
   pickFitDayImageKeyword,
   pickSingleAirtelFitImageKeywordFromDays,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+// REGRESSION-FREEZE[fit-itinerary-gemini-route-keyword]: 식사·쇼핑 상호 ≠ 키워드, 동선은 activities — manifest
 
 const fallback = {
   cityNameKo: '오사카',
@@ -17,7 +19,7 @@ const fallback = {
 }
 
 describe('pickFitDayImageKeyword', () => {
-  it('picks Dotonbori from day1 attraction location (fit-yb-0002 pattern)', () => {
+  it('picks Dotonbori from day1 meal location when it is a landmark district (fit-yb-0002 pattern)', () => {
     const day: FitItineraryDayForKeyword = {
       dayNumber: 1,
       title: '도심의 불빛',
@@ -150,6 +152,112 @@ describe('pickFitDayImageKeyword', () => {
     expect(kw).not.toBe('Nha')
     expect(kw.toLowerCase()).toMatch(/long son|nha trang/i)
   })
+
+  it('does not persist meal restaurant English as imageKeyword', () => {
+    const day: FitItineraryDayForKeyword = {
+      dayNumber: 2,
+      title: '파리의 맛',
+      summary: '저녁은 여유롭게 보내 보세요. 편한 신발을 챙기면 좋아요.',
+      activities: [
+        {
+          order: 1,
+          category: 'meal',
+          title: '점심',
+          description: '카르보나라',
+          location: '르 콩투아르 (Le Comptoir du Relais)',
+        },
+        {
+          order: 2,
+          category: 'meal',
+          title: '저녁',
+          description: '',
+          location: '카르보나라 (Carbonara)',
+        },
+      ],
+    }
+    const kw = pickFitDayImageKeyword(day, {
+      cityNameKo: '파리',
+      cityKey: 'paris',
+      productTitle: '파리 에어텔',
+      primaryDestination: '파리',
+      destination: '파리',
+    })
+    expect(kw).not.toMatch(/comptoir|carbonara|relais/i)
+  })
+
+  it('prefers attraction landmark over shopping pharmacy', () => {
+    const day: FitItineraryDayForKeyword = {
+      dayNumber: 2,
+      title: '파리',
+      summary: '루브르',
+      activities: [
+        {
+          order: 1,
+          category: 'attraction',
+          title: '루브르',
+          description: '',
+          location: '루브르 박물관 (Louvre Museum)',
+        },
+        {
+          order: 2,
+          category: 'shopping',
+          title: '약국',
+          description: '',
+          location: '시티파르마 (Citypharma)',
+        },
+      ],
+    }
+    const kw = pickFitDayImageKeyword(day, {
+      cityNameKo: '파리',
+      cityKey: 'paris',
+      productTitle: '파리 에어텔',
+      primaryDestination: '파리',
+      destination: '파리',
+    })
+    expect(kw).toMatch(/louvre/i)
+    expect(kw).not.toMatch(/citypharma|pharmacy/i)
+  })
+})
+
+describe('buildFitDayRouteText', () => {
+  it('joins example-itinerary places into 동선', () => {
+    const day: FitItineraryDayForKeyword = {
+      dayNumber: 1,
+      title: '도착',
+      summary: '',
+      activities: [
+        {
+          order: 1,
+          category: 'transport',
+          title: '공항',
+          description: '',
+          location: '간사이 국제공항 (Kansai International Airport)',
+        },
+        {
+          order: 2,
+          category: 'hotel',
+          title: '체크인',
+          description: '',
+          location: '난바 호텔',
+        },
+        {
+          order: 3,
+          category: 'attraction',
+          title: '도톤보리',
+          description: '',
+          location: '도톤보리 (Dotonbori)',
+        },
+        {
+          order: 4,
+          category: 'meal',
+          title: '저녁',
+          description: '',
+          location: '도톤보리 (Dotonbori)',
+        },
+      ],
+    }
+    expect(buildFitDayRouteText(day)).toBe('간사이 국제공항 - 난바 호텔 - 도톤보리')
+  })
 })
 
 describe('pickSingleAirtelFitImageKeywordFromDays', () => {
@@ -263,10 +371,13 @@ describe('mergeScheduleWithFitKeywords', () => {
         ],
       },
     ]
-    const { dayKeywords } = mergeScheduleWithFitKeywords([], fitDays, nhaFallback)
+    const { dayKeywords, rows } = mergeScheduleWithFitKeywords([], fitDays, nhaFallback)
     expect(areFitDayImageKeywordsUniform(dayKeywords)).toBe(false)
     const values = Object.values(dayKeywords)
     expect(new Set(values.map((v) => v.toLowerCase())).size).toBe(3)
     expect(values.every((v) => v && v.length > 2 && v !== 'Nha')).toBe(true)
+    expect(rows[0]?.routeText).toContain('롱선사')
+    expect(rows[1]?.routeText).toContain('빈원더스')
+    expect(rows[2]?.routeText).toContain('포나가르')
   })
 })

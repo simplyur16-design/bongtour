@@ -15,12 +15,16 @@ import {
 import { augmentNaeiltourParsedWithDetailCollect } from '@/lib/naeiltour-register-detail-collect'
 import { injectNaeiltourApiDeparturePricesIfMissing } from '@/lib/naeiltour-register-api-price-inject'
 
-export async function handleParseAndRegisterNaeiltourRequest(request: Request) {
+export async function handleParseAndRegisterNaeiltourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runNaeiltourRegisterFlow(request, {
     forcedBrandKey: 'naeiltour',
     parseFn: parseForRegisterNaeiltour,
     logPrefix: '[naeiltour-register]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     augmentParsed: (p, ctx) =>
       sanitizeNaeiltourRegisterParsedStrings(
         augmentNaeiltourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),

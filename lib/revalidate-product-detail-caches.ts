@@ -1,5 +1,5 @@
-import { revalidatePath, revalidateTag } from 'next/cache'
 import { rebuildProductPublicDetailPayload } from '@/lib/product-public-detail/persist-payload'
+import { safeRevalidatePath, safeRevalidateProductDetailTags } from '@/lib/safe-next-cache-revalidate'
 
 export async function revalidateProductDetailCaches(productId: string, slug?: string | null) {
   try {
@@ -7,10 +7,9 @@ export async function revalidateProductDetailCaches(productId: string, slug?: st
   } catch (err) {
     console.error('[product-public-detail] rebuild on revalidate failed', productId, err)
   }
-  revalidateTag(`product-detail-${productId}`)
-  revalidateTag('product-detail')
-  revalidatePath(`/products/${productId}`)
+  safeRevalidateProductDetailTags(productId)
+  safeRevalidatePath(`/products/${productId}`, 'product-detail-cache')
   if (slug && slug !== productId) {
-    revalidatePath(`/products/${slug}`)
+    safeRevalidatePath(`/products/${slug}`, 'product-detail-cache')
   }
 }

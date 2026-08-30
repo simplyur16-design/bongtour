@@ -21,12 +21,16 @@ import {
   hanatour2030ConfirmScheduleBlockReason,
 } from '@/lib/hanatour-register-schedule-2030'
 
-export async function handleParseAndRegisterHanatourRequest(request: Request) {
+export async function handleParseAndRegisterHanatourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runHanatourRegisterFlow(request, {
     forcedBrandKey: 'hanatour',
     parseFn: parseForRegisterHanatour,
     logPrefix: '[hanatour-register]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     recoverEmptyScheduleWithFullParse: false,
     augmentParsed: augmentHanatourScheduleExpressionParsed,
     patchParsedAfterAugment: async (parsed, pastedText, ctx) => {

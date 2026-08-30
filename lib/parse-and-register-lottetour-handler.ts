@@ -15,12 +15,16 @@ import {
 import { augmentLottetourParsedWithDetailCollect } from '@/lib/lottetour-register-detail-collect'
 import { injectLottetourApiDeparturePricesIfMissing } from '@/lib/lottetour-register-api-price-inject'
 
-export async function handleParseAndRegisterLottetourRequest(request: Request) {
+export async function handleParseAndRegisterLottetourRequest(
+  request: Request,
+  opts?: { skipRequireAdmin?: boolean },
+) {
   return runLottetourRegisterFlow(request, {
     forcedBrandKey: 'lottetour',
     parseFn: parseForRegisterLottetour,
     logPrefix: '[lottetour-register]',
     savePersistedParsedOnly: true,
+    skipRequireAdmin: opts?.skipRequireAdmin === true,
     augmentParsed: (p, ctx) =>
       sanitizeLottetourRegisterParsedStrings(
         augmentLottetourScheduleExpressionParsed(p, ctx?.pastedBodyText, { travelScope: ctx?.travelScope }),

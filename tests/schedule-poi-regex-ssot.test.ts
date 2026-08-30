@@ -35,6 +35,15 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleCityEn('리마')).toMatch(/Lima/i)
     expect(firstMatchingScheduleSpotEn('링컨 기념관')).toMatch(/Lincoln Memorial/i)
     expect(firstMatchingScheduleSpotEn('부다페스트 국회의사당')).toMatch(/Hungarian Parliament/i)
+    expect(firstMatchingScheduleSpotEn('마추픽추')).toMatch(/Machu Picchu/i)
+    expect(firstMatchingScheduleSpotEn('치첸이사')).toMatch(/Chichen Itza/i)
+    expect(firstMatchingScheduleSpotEn('타오르미나')).toMatch(/Taormina/i)
+    expect(firstMatchingScheduleSpotEn('라스페치아')).toMatch(/Cinque Terre/i)
+    expect(firstMatchingScheduleSpotEn('고조')).toMatch(/Gozo/i)
+    expect(firstMatchingScheduleSpotEn('카타니아')).toMatch(/Catania|Etna/i)
+    expect(firstMatchingScheduleSpotEn('72번 국도')).toMatch(/Kahuku|Hawaii/i)
+    expect(firstMatchingScheduleSpotEn('GOLDEN CIRCLE')).toMatch(/Golden Circle/i)
+    expect(firstMatchingScheduleSpotEn('와디럼')).toMatch(/Wadi Rum/i)
     expect(firstMatchingScheduleSpotEn('시청사와 국회의사당')).toMatch(/Vienna Rathaus/i)
     expect(firstMatchingScheduleSpotEn('워싱턴 국회의사당')).toMatch(/United States Capitol/i)
     expect(
@@ -179,5 +188,11 @@ describe('schedule-poi-regex-ssot', () => {
     expect(firstMatchingScheduleSpotEn('주노 - 껌벽 등')).not.toMatch(/Glacier Bay/i)
     expect(firstMatchingScheduleSpotEn('케치칸')).toMatch(/Ketchikan/i)
     expect(firstMatchingScheduleSpotEn('빌라누프 궁전')).toMatch(/Wilanow/i)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 포르트 카이요 ≠ Cairo — manifest
+  it('maps 포르트 카이요 to Porte Cailhau not Cairo', () => {
+    expect(firstMatchingScheduleSpotEn('포르트 카이요')).toMatch(/Porte Cailhau/i)
+    expect(firstMatchingScheduleSpotEn('포르트 카이요')).not.toMatch(/Cairo/i)
   })
 })

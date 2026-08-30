@@ -11,11 +11,11 @@ import {
 } from '@/lib/assert-supplier-route-match'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import { sanitizePrismaWriteData } from '@/lib/prisma-safe-string'
-import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
+import { ensureProductSlug } from '@/lib/product-slug'
 import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
-import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
-import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
+import { finalizeRegisterConfirmAfterSave } from '@/lib/register-confirm-after-save'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail-patch'
@@ -241,6 +241,8 @@ export type ParseAndRegisterFlowOptions = {
    * 선택: 출발·가격·항공 등 기본 캘린더 신호가 true여도, 일정 표현층이 없으면 확정을 막는다.
    */
   confirmScheduleExpressionLayerOk?: (parsed: RegisterParsed, drafts: ItineraryDayInput[]) => boolean
+  /** 신규등록 ingest 워커만. HTTP 라우트는 넘기지 않는다. */
+  skipRequireAdmin?: boolean
 }
 
 type ParseRegisterLogCtx = {
@@ -494,9 +496,11 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
   try {
     stage = 'requireAdmin'
     ctx.stage = stage
-    const admin = await requireAdmin()
-    if (!admin) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    if (!flowOptions.skipRequireAdmin) {
+      const admin = await requireAdmin()
+      if (!admin) {
+        return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+      }
     }
 
     const timing = createNaeiltourRegisterTiming(currentLogPrefix)
@@ -1435,12 +1439,14 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
 
     stage = 'prismaFindProduct'
     ctx.stage = stage
-    const existing = await findExistingProductForRegister(prisma, {
-      originSource: effectiveOriginSource,
-      originCode: parsed.originCode,
-      originUrl,
-      include: { prices: { orderBy: { date: 'asc' } } },
-    })
+    const existing = await withPrismaRetry('naeiltour-find-existing', () =>
+      findExistingProductForRegister(prisma, {
+        originSource: effectiveOriginSource,
+        originCode: parsed.originCode,
+        originUrl,
+        include: { prices: { orderBy: { date: 'asc' } } },
+      }),
+    )
 
     const benefitSummaryRaw =
       [mergedPromotion.benefitTitle, mergedPromotion.savingsText].filter(Boolean).join(' · ').slice(0, 500) || null
@@ -1631,30 +1637,44 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
     stage = 'prismaConfirmWrite'
     ctx.stage = stage
     // REGRESSION-FREEZE[register-confirm-prisma-safe-surrogates]: sanitize before create/update — manifest
+    // REGRESSION-FREEZE[naeiltour-register-confirm-no-interactive-tx]: pooler 25P02 — sequential write — manifest
+    // REGRESSION-FREEZE[register-pre-photo-ingest-naeiltour-fit-first]: update 시 slug 덮어쓰기 금지 — manifest
     const safeProductData = sanitizePrismaWriteData(productData)
     if (existing) {
-      await prisma.$transaction(async (tx) => {
-        await tx.productPrice.deleteMany({ where: { productId: existing.id } })
-        await tx.itinerary.deleteMany({ where: { productId: existing.id } })
-        await tx.product.update({
+      productId = await withPrismaRetry('naeiltour-confirm-update', async () => {
+        await prisma.productPrice.deleteMany({ where: { productId: existing.id } })
+        await prisma.itinerary.deleteMany({ where: { productId: existing.id } })
+        const updateData = { ...safeProductData } as Record<string, unknown>
+        delete updateData.slug
+        await prisma.product.update({
           where: { id: existing.id },
-          data: safeProductData,
+          data: updateData,
         })
+        return existing.id
       })
-      productId = existing.id
     } else {
-      const created = await prisma.product.create({
-        data: {
-          ...safeProductData,
-          originCode: sanitizePrismaWriteData(parsed.originCode),
-        },
-      })
+      const created = await withPrismaRetry('naeiltour-confirm-create', () =>
+        prisma.product.create({
+          data: {
+            ...safeProductData,
+            originCode: sanitizePrismaWriteData(parsed.originCode),
+          },
+        }),
+      )
       productId = created.id
     }
-    await persistProductSlugAfterRegister(productId, {
-      listingKind: productData.listingKind,
-      productType: productData.productType,
-      originSource: productData.originSource,
+    await withPrismaRetry('naeiltour-confirm-slug', async () => {
+      const row = await prisma.product.findUnique({
+        where: { id: productId },
+        select: { slug: true },
+      })
+      if (row?.slug?.trim()) return row.slug.trim()
+      return ensureProductSlug(prisma, productId, {
+        listingKind: productData.listingKind,
+        productType: productData.productType,
+        originSource: productData.originSource,
+        slug: row?.slug,
+      })
     })
     timing.mark('after-pending-save')
 
@@ -1811,8 +1831,7 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
     }
     logParseAndRegister('ok', ctx)
     timing.mark('done')
-    revalidateProductListingCaches()
-    await revalidateProductDetailCaches(productId)
+    await finalizeRegisterConfirmAfterSave(productId)
     fireFitItineraryGenerationAfterRegister(
       productId,
       productData.productType,

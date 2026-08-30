@@ -7,9 +7,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import { persistProductSlugAfterRegister } from '@/lib/persist-product-slug-after-register'
 import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
-import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
-import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
-import { applyRegisterPrePhotoQueueGateAfterSave } from '@/lib/register-pending-pre-photo-self-heal'
+import { finalizeRegisterConfirmAfterSave } from '@/lib/register-confirm-after-save'
 import { fireFitItineraryGenerationAfterRegister } from '@/lib/fit-itinerary-register-hook'
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail-patch'
@@ -558,6 +556,8 @@ export type ModetourRegisterFlowOptions = {
   parseFn: typeof parseForRegisterModetour
   logPrefix: string
   savePersistedParsedOnly?: boolean
+  /** 신규등록 ingest 워커만. HTTP 라우트는 넘기지 않는다. */
+  skipRequireAdmin?: boolean
   patchParsedAfterAugment?: (
     parsed: RegisterParsed,
     pastedText: string,
@@ -585,9 +585,11 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
   try {
     stage = 'requireAdmin'
     ctx.stage = stage
-    const admin = await requireAdmin()
-    if (!admin) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    if (!flowOptions.skipRequireAdmin) {
+      const admin = await requireAdmin()
+      if (!admin) {
+        return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+      }
     }
 
     const timing = createParseRegisterTiming(currentLogPrefix)
@@ -2055,9 +2057,7 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
     assertJsonSerializable(ctx, 'confirmPayload', confirmPayload)
     logParseAndRegister('ok', ctx)
     timing.mark('done')
-    revalidateProductListingCaches()
-    await applyRegisterPrePhotoQueueGateAfterSave(productId)
-    await revalidateProductDetailCaches(productId)
+    await finalizeRegisterConfirmAfterSave(productId)
     fireFitItineraryGenerationAfterRegister(
       productId,
       productData.productType,

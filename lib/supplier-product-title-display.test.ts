@@ -8,6 +8,22 @@ import {
 } from '@/lib/supplier-product-title-display'
 
 describe('resolveSupplierVerbatimOriginalTitle', () => {
+  it('keeps hangul place-name titles of two or more syllables', () => {
+    expect(
+      resolveSupplierVerbatimOriginalTitle({
+        parsedSupplierTitle: '이태리',
+        supplierListingTitleRaw: '이태리',
+        brandKey: 'naeiltour',
+      }),
+    ).toBe('이태리')
+    expect(
+      buildSupplierProductDisplayTitle({
+        verbatimOriginal: '이태리 금까기',
+        brandKey: 'naeiltour',
+      }),
+    ).toBe('이태리')
+  })
+
   it('prefers supplierListingTitleRaw when long enough', () => {
     expect(
       resolveSupplierVerbatimOriginalTitle({

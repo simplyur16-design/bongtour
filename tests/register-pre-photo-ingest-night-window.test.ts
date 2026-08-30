@@ -1,5 +1,7 @@
 /**
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 22:00–10:00 · 공급사당 3건 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: 창 동안 할당량까지 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-night-leftover-not-quota]: leftover pending ≠ 오늘 할당량 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -8,9 +10,14 @@ import {
   REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_EVENING,
   REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_MORNING,
   REGISTER_PRE_PHOTO_INGEST_NIGHT_WINDOW_MINUTES,
+  REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL,
+  createdTonightFillsRegisterPrePhotoIngestQuota,
   minutesIntoRegisterPrePhotoIngestNightWindow,
   registerPrePhotoIngestNightTargetMinuteOffset,
+  pickNextRegisterPrePhotoIngestNightSupplier,
+  pickNextRegisterPrePhotoIngestNightSupplierAfterCooldown,
   registerPrePhotoIngestNightWindowId,
+  remainingRegisterPrePhotoIngestTonight,
   shouldRunRegisterPrePhotoIngestNightTick,
 } from '../lib/register-pre-photo-ingest-night-window'
 import { REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '../lib/register-pre-photo-ingest-geo-slots'
@@ -18,6 +25,26 @@ import { REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '../lib/register-pre-phot
 describe('register-pre-photo-ingest-night-window', () => {
   it('공급사마다 하루 신규 3건이다', () => {
     assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 3)
+    assert.equal(REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL, 12)
+  })
+
+  it('어제부터 쌓인 등록대기 12건은 오늘 밤 할당량을 채우지 않는다', () => {
+    const leftoverQueuePending = 12
+    void leftoverQueuePending
+    const createdTonight = {}
+    const at2200 = new Date('2026-08-27T13:00:00.000Z')
+    assert.equal(createdTonightFillsRegisterPrePhotoIngestQuota(createdTonight), false)
+    assert.equal(pickNextRegisterPrePhotoIngestNightSupplier(createdTonight), 'hanatour')
+    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(at2200, false), true)
+    assert.equal(
+      createdTonightFillsRegisterPrePhotoIngestQuota({
+        hanatour: 3,
+        modetour: 3,
+        ybtour: 3,
+        verygoodtour: 3,
+      }),
+      false,
+    )
   })
 
   it('KST 22:00–10:00 만 창이고 낮·10시는 쉰다', () => {
@@ -36,23 +63,20 @@ describe('register-pre-photo-ingest-night-window', () => {
     assert.equal(REGISTER_PRE_PHOTO_INGEST_NIGHT_WINDOW_MINUTES, 720)
   })
 
-  it('창 안에서는 목표 시각 이후 한 번만 돈다', () => {
+  it('창 안에서는 할당량을 채울 때까지 이어 돈다', () => {
+    const at2200 = new Date('2026-08-27T13:00:00.000Z')
+    const at0959 = new Date('2026-08-28T00:59:00.000Z')
+    const at1000 = new Date('2026-08-28T01:00:00.000Z')
+    const afternoon = new Date('2026-08-27T06:00:00.000Z')
+    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(at2200, false), true)
+    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(at2200, true), false)
+    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(at0959, false), true)
+    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(at1000, false), false)
+    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(afternoon, false), false)
     const windowId = '2026-08-27'
     const target = registerPrePhotoIngestNightTargetMinuteOffset(windowId)
     assert.ok(target >= 0 && target < REGISTER_PRE_PHOTO_INGEST_NIGHT_WINDOW_MINUTES)
     assert.equal(registerPrePhotoIngestNightTargetMinuteOffset(windowId), target)
-    const startUtc = Date.parse('2026-08-27T13:00:00.000Z')
-    const atTarget = new Date(startUtc + target * 60_000)
-    if (target > 0) {
-      assert.equal(shouldRunRegisterPrePhotoIngestNightTick(new Date(startUtc + (target - 1) * 60_000), null), false)
-    }
-    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(atTarget, null), true)
-    assert.equal(shouldRunRegisterPrePhotoIngestNightTick(atTarget, windowId), false)
-    if (target + 5 < REGISTER_PRE_PHOTO_INGEST_NIGHT_WINDOW_MINUTES) {
-      const later = new Date(startUtc + (target + 5) * 60_000)
-      assert.equal(shouldRunRegisterPrePhotoIngestNightTick(later, null), true)
-      assert.equal(shouldRunRegisterPrePhotoIngestNightTick(later, windowId), false)
-    }
   })
 
   it('instrumentation cron 은 저녁 22–23시·오전 0–9시다', () => {
@@ -65,6 +89,38 @@ describe('register-pre-photo-ingest-night-window', () => {
     assert.match(cron, /Asia\/Seoul/)
     assert.match(cron, /shouldRunRegisterPrePhotoIngestNightTick/)
     assert.match(cron, /runRegisterPrePhotoDailyJob/)
+    assert.match(cron, /pickNextRegisterPrePhotoIngestNightSupplierAfterCooldown/)
+    assert.match(cron, /createdTonightFillsRegisterPrePhotoIngestQuota/)
+    assert.match(cron, /countRegisterPrePhotoIngestCreatedTonight/)
+    assert.match(cron, /onlySuppliers/)
     assert.equal(cron.includes("'30 6 * * *'"), false)
+    assert.equal(cron.includes('ingestNightWindowRanId'), false)
+  })
+
+  it('할당량이 남은 공급사부터 이어서 받는다', () => {
+    assert.equal(pickNextRegisterPrePhotoIngestNightSupplier({}), 'hanatour')
+    assert.equal(pickNextRegisterPrePhotoIngestNightSupplier({ hanatour: 3 }), 'modetour')
+    assert.equal(
+      pickNextRegisterPrePhotoIngestNightSupplier({
+        hanatour: 3,
+        modetour: 3,
+        ybtour: 3,
+        verygoodtour: 3,
+        kyowontour: 3,
+        lottetour: 3,
+        naeiltour: 3,
+      }),
+      null,
+    )
+    assert.equal(remainingRegisterPrePhotoIngestTonight({ hanatour: 1 }, 'hanatour'), 2)
+    const now = Date.parse('2026-08-27T13:20:00.000Z')
+    assert.equal(
+      pickNextRegisterPrePhotoIngestNightSupplierAfterCooldown({}, { hanatour: now - 60_000 }, now),
+      'modetour',
+    )
+    assert.equal(
+      pickNextRegisterPrePhotoIngestNightSupplierAfterCooldown({}, { hanatour: now - 21 * 60_000 }, now),
+      'hanatour',
+    )
   })
 })

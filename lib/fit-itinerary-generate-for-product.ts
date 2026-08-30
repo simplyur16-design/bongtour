@@ -1,6 +1,7 @@
 /**
  * 단일 Product에 FitItineraryMaster + Day + Activity 생성 (Gemini v3 JSON).
  * 자유여행(air-hotel / 레거시 airtel) 전용 — 등록 hook·backfill cron SSOT.
+ * REGRESSION-FREEZE[fit-itinerary-gemini-route-keyword]: 예시 일정에서 동선·attraction 키워드 — manifest
  */
 import { randomBytes } from 'node:crypto'
 import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
@@ -113,8 +114,8 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - transportMode = "도보" / "MRT" / "택시" / "버스" / "페리" 또는 null (hotel/meal일 때 null 가능)
 - transportDuration = "10분" 등 한국어 + 숫자
 - 모든 텍스트 한국어
-- **location 필수 형식(관광·쇼핑·식사):** 한글명 (English landmark name) — 괄호 안 **영문 고유명** 필수 (예: "도톤보리 (Dotonbori)", "청수사 (Kiyomizu-dera Temple)"). transport·hotel은 공항·호텔명 한글만 가능
-- **imageKeyword(시스템 자동·일차별):** 등록 후 예시 일정 **각 일차**마다 그날 attraction·shopping·meal location의 **괄호 영문 고유명**으로 Pexels 검색어를 만든다(일차마다 다른 랜드마크). location 형식 예: 미케 비치 (My Khe Beach), 바나힐 (Ba Na Hills), 청수사 (Kiyomizu-dera Temple). 도시명·공항명만 쓰지 말 것.
+- **location 필수 형식:** attraction은 한글명 (English landmark name) — 괄호 안 **영문 랜드마크** 필수 (예: "청수사 (Kiyomizu-dera Temple)", "바나힐 (Ba Na Hills)", "미케 비치 (My Khe Beach)"). shopping·meal도 한글 (English) 형식은 유지하되 **식당·약국·면세점 상호는 랜드마크가 아님**. transport·hotel은 공항·호텔명 한글만 가능
+- **동선·imageKeyword(시스템 자동):** 예시 일정 각 일차 activities가 그날 **동선**이다. 등록 후 시스템은 그날 **attraction location의 괄호 영문 랜드마크**로 imageKeyword를 만든다(일차마다 다른 명소). 식사·쇼핑 상호명(식당·약국·면세점)은 예시 일정에 넣어도 되지만 imageKeyword로 쓰지 않는다. 도시명·공항명만 쓰지 말 것.
 - 음식점은 추천 메뉴 1~2개 포함
 - 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
 - 야경/포토존 1개 포함
@@ -415,7 +416,7 @@ export async function persistFitItineraryFromGeminiJson(
           })
         }
       }
-    })
+    }, { timeout: 30_000 })
   } catch (error) {
     console.error(`[fit-itinerary-generate] db_failed productId=${productId}`, error)
     return { success: false, reason: 'db_failed', error }

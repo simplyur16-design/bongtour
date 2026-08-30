@@ -1,5 +1,6 @@
 /**
- * Fit 예시 일정 → Product.schedule[].imageKeyword (에어텔 등록 후 동기화 전용).
+ * 자유여행 SSOT — 제미나이 예시 일정에서 일차 동선(routeText)과 imageKeyword를 뽑는다.
+ * REGRESSION-FREEZE[fit-itinerary-gemini-route-keyword]: attraction 랜드마크만 키워드, 식사·쇼핑 상호 금지 — manifest
  */
 import {
   extractEnglishPoiFromLabel,
@@ -8,7 +9,10 @@ import {
 } from '@/lib/pexels-keyword'
 import {
   isBareCityOrCountryKeyword,
+  isNonLandmarkFoodOrDiningImageKeyword,
+  isNonLandmarkSpaShoppingLoungeImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
+import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
 import { persistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import { resolveTravelSubjectEnForMedia } from '@/lib/pexels-keyword'
 
@@ -28,7 +32,10 @@ export type FitItineraryDayForKeyword = {
   activities: FitItineraryActivityForKeyword[]
 }
 
-const KEYWORD_CATEGORY_ORDER = ['attraction', 'shopping', 'meal'] as const
+/** 키워드 1순위 — 관광. hotel은 FIT 숙소일 허용. 식사·쇼핑 상호는 키워드 후보에서 걸러낸다. */
+const KEYWORD_CATEGORY_ORDER = ['attraction', 'hotel'] as const
+const ROUTE_PLACE_CATEGORIES = new Set(['transport', 'hotel', 'meal', 'attraction', 'shopping'])
+const GENERIC_FIT_ROUTE_LABEL_RE = /^(택시|버스|지하철|MRT|도보|이동|픽업|체크인|체크아웃)$/iu
 
 const CJK_IN_PAREN_RE = /[\u4e00-\u9fff\u3400-\u4dbf]/
 
@@ -85,18 +92,52 @@ function englishFromKoreanPlaceText(text: string): string | null {
   return null
 }
 
-function keywordFromActivity(act: FitItineraryActivityForKeyword): string | null {
+function acceptFitImageKeyword(kw: string, opts: { fromAttraction: boolean }): boolean {
+  const t = String(kw ?? '').trim()
+  if (!t) return false
+  if (isNonLandmarkFoodOrDiningImageKeyword(t)) return false
+  if (isNonLandmarkSpaShoppingLoungeImageKeyword(t)) return false
+  if (opts.fromAttraction) return true
+  return !isBrokenRegisterLandmarkKeyword(t, { allowHotelLodging: true })
+}
+
+function keywordFromActivity(
+  act: FitItineraryActivityForKeyword,
+  opts: { fromAttraction: boolean },
+): string | null {
   for (const field of [act.location, act.title, act.description]) {
     const phrase = extractEnglishPlacePhrase(field)
     if (!phrase) continue
     const kw = tryPersistFitImageKeyword(phrase)
-    if (kw) return kw
+    if (kw && acceptFitImageKeyword(kw, opts)) return kw
   }
   for (const field of [act.location, act.title, act.description]) {
     const kw = englishFromKoreanPlaceText(field)
-    if (kw) return kw
+    if (kw && acceptFitImageKeyword(kw, opts)) return kw
   }
   return null
+}
+
+/** 예시 일정 그날 activities → 동선. 한글 지명을 ` - ` 로 잇는다. */
+export function buildFitDayRouteText(day: FitItineraryDayForKeyword): string {
+  const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
+  const segs: string[] = []
+  const seen = new Set<string>()
+  for (const act of activities) {
+    if (!ROUTE_PLACE_CATEGORIES.has(act.category)) continue
+    const loc = String(act.location ?? '').trim()
+    const title = String(act.title ?? '').trim()
+    const raw = loc || title
+    if (!raw) continue
+    const token = raw.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim()
+    if (token.length < 2) continue
+    if (GENERIC_FIT_ROUTE_LABEL_RE.test(token)) continue
+    const key = token.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    segs.push(token)
+  }
+  return segs.join(' - ')
 }
 
 export type FitDayImageKeywordFallbackContext = {
@@ -105,6 +146,10 @@ export type FitDayImageKeywordFallbackContext = {
   productTitle: string
   primaryDestination?: string | null
   destination?: string | null
+}
+
+function isPlaceholderFitDayLabel(text: string): boolean {
+  return /^day\s*\d+$/i.test(String(text ?? '').trim())
 }
 
 function keywordFromDayMeta(day: Pick<FitItineraryDayForKeyword, 'title' | 'summary' | 'dayCityKey'>): string | null {
@@ -117,6 +162,7 @@ function keywordFromDayMeta(day: Pick<FitItineraryDayForKeyword, 'title' | 'summ
     }
   }
   for (const text of [day.title, day.summary]) {
+    if (isPlaceholderFitDayLabel(text)) continue
     const kw = englishFromKoreanPlaceText(text)
     if (kw) return kw
   }
@@ -127,16 +173,6 @@ function keywordFromDayMeta(day: Pick<FitItineraryDayForKeyword, 'title' | 'summ
       const kw = tryPersistFitImageKeyword(fromPoi)
       if (kw) return kw
     }
-  }
-  return null
-}
-
-/** attraction 우선 전 — 카테고리·transport 스킵 없이 활동 전체 스캔 */
-function keywordFromDayActivitiesAnyOrder(day: FitItineraryDayForKeyword): string | null {
-  const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
-  for (const act of activities) {
-    const kw = keywordFromActivity(act)
-    if (kw) return kw
   }
   return null
 }
@@ -173,10 +209,11 @@ function isWeakFitDayImageKeyword(kw: string): boolean {
   if (!t || t.toLowerCase() === 'travel') return true
   if (/^nha$/i.test(t)) return true
   if (/^nha\s*trang$/i.test(t)) return true
+  if (/^day\s*\d+$/i.test(t)) return true
   return isBareCityOrCountryKeyword(t)
 }
 
-/** 예시 일정 일차별 후보 키워드(활동 location·title 우선, 도시 폴백은 뒤) */
+/** 예시 일정 일차별 후보 — attraction → hotel → 일차 메타 → (랜드마크인) meal·shopping → 도시 */
 export function collectFitDayImageKeywordCandidates(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
@@ -196,12 +233,12 @@ export function collectFitDayImageKeywordCandidates(
   for (const cat of KEYWORD_CATEGORY_ORDER) {
     for (const act of activities) {
       if (act.category !== cat) continue
-      push(keywordFromActivity(act))
+      push(keywordFromActivity(act, { fromAttraction: cat === 'attraction' }))
     }
   }
   for (const act of activities) {
-    if (act.category === 'transport' || act.category === 'hotel') continue
-    push(keywordFromActivity(act))
+    if (act.category !== 'meal' && act.category !== 'shopping') continue
+    push(keywordFromActivity(act, { fromAttraction: false }))
   }
   push(keywordFromDayMeta(day))
   push(buildFitDayImageKeywordFallback(fallbackCtx, day))
@@ -232,7 +269,7 @@ export function areFitDayImageKeywordsUniform(dayKeywords: Record<number, string
   return new Set(values).size === 1
 }
 
-/** 일차 대표 Pexels 키워드 — attraction → shopping → meal, 없으면 일차 메타·상품 도시 폴백 */
+/** 일차 대표 Pexels 키워드 — attraction 랜드마크, 없으면 일차 메타·상품 도시 폴백 */
 export function pickFitDayImageKeyword(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,

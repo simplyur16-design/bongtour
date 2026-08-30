@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { resolveRegistrationStatusForRegisterConfirm } from '@/lib/register-confirm-registration-status'
+import { REGISTER_PRE_PHOTO_BLOCKED_STATUS } from '@/lib/register-pre-photo-pending-queue'
 
 describe('resolveRegistrationStatusForRegisterConfirm', () => {
-  it('geo OK + 출발·일정 있어도 신규는 pending (등록대기)', () => {
+  it('geo OK + 출발·일정 있어도 신규는 검증 전 pending이 아니다', () => {
     expect(
       resolveRegistrationStatusForRegisterConfirm({
         masterRegistrationOk: true,
@@ -11,7 +12,7 @@ describe('resolveRegistrationStatusForRegisterConfirm', () => {
         hasDeparturesToSave: true,
         hasItineraryDaysToSave: true,
       }),
-    ).toBe('pending')
+    ).toBe(REGISTER_PRE_PHOTO_BLOCKED_STATUS)
   })
 
   it('이미 registered면 재confirm 시 registered 유지', () => {
@@ -26,7 +27,7 @@ describe('resolveRegistrationStatusForRegisterConfirm', () => {
     ).toBe('registered')
   })
 
-  it('geo 실패 시 pending', () => {
+  it('geo 실패 시 검증 전 pending이 아니다', () => {
     expect(
       resolveRegistrationStatusForRegisterConfirm({
         masterRegistrationOk: false,
@@ -35,10 +36,10 @@ describe('resolveRegistrationStatusForRegisterConfirm', () => {
         hasDeparturesToSave: true,
         hasItineraryDaysToSave: true,
       }),
-    ).toBe('pending')
+    ).toBe(REGISTER_PRE_PHOTO_BLOCKED_STATUS)
   })
 
-  it('출발 없으면 pending', () => {
+  it('출발 없으면 검증 전 pending이 아니다', () => {
     expect(
       resolveRegistrationStatusForRegisterConfirm({
         masterRegistrationOk: true,
@@ -47,6 +48,6 @@ describe('resolveRegistrationStatusForRegisterConfirm', () => {
         hasDeparturesToSave: false,
         hasItineraryDaysToSave: true,
       }),
-    ).toBe('pending')
+    ).toBe(REGISTER_PRE_PHOTO_BLOCKED_STATUS)
   })
 })

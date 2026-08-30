@@ -1,7 +1,15 @@
 /**
  * 내일투어 등록 상세 — view.asp + view_process.asp(tab0/tab1) SSOT.
  * REGRESSION-FREEZE[naeiltour-register-api-detail]: tab0·tab1·잔여석·항공 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가 alert는 상세 수집 중단 — manifest
  */
+
+/** 내일투어 상세가 판매 종료·미판매 알림만 주는 페이지인지. */
+// REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가 alert — manifest
+export function naeiltourDetailHtmlLooksUnsellable(html: string | null | undefined): boolean {
+  const t = String(html ?? '')
+  return /판매가\s*되지\s*않는\s*상품|판매가\s*종료된\s*상품|존재하지\s*않는\s*상품/i.test(t)
+}
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg } from '@/lib/flight-parser-generic'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
@@ -494,6 +502,8 @@ export async function fetchNaeiltourRegisterDetailBundle(originUrl: string): Pro
     signal: AbortSignal.timeout(45_000),
   }).catch(() => null)
   if (!pageHtml) return null
+  // REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가면 tab 수집·stub 금지 — manifest
+  if (naeiltourDetailHtmlLooksUnsellable(pageHtml)) return null
 
   await pace()
   const tab0Html = await fetchNaeiltourViewTabHtml(pageHtml, 0, referer).catch(() => null)

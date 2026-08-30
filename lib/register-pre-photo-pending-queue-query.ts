@@ -24,6 +24,8 @@ export type RegisterPrePhotoPendingQueueProductRow = {
   productType: string | null
   sportsThemeTag: string[] | null
   schedule: string | null
+  destination?: string | null
+  title?: string | null
 }
 
 export function productRowIsLiveRegisterPendingQueue(
@@ -39,6 +41,8 @@ export function productRowIsLiveRegisterPendingQueue(
     listingKind: p.listingKind,
     productType: p.productType,
     sportsThemeTag: p.sportsThemeTag,
+    productDestination: p.destination,
+    productTitle: p.title,
     rows: scheduleRowsForPrePhotoVerify(p.schedule),
   })
   return isRegisterPrePhotoPendingQueueReady(live)
@@ -53,6 +57,8 @@ export async function countLiveRegisterPrePhotoPendingQueue(): Promise<number> {
       productType: true,
       sportsThemeTag: true,
       schedule: true,
+      destination: true,
+      title: true,
     },
   })
   return list.filter(productRowIsLiveRegisterPendingQueue).length

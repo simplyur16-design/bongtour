@@ -1,5 +1,6 @@
 /**
  * 자유여행 등록 미리보기 UI — Fit JSON → 일차 schedule (클라이언트 번들 전용, 서버 모듈 import 금지).
+ * REGRESSION-FREEZE[fit-itinerary-gemini-route-keyword]: 예시 일정 동선 반영 — manifest
  */
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import {
@@ -64,6 +65,7 @@ function scheduleRowsFromFitDays(
       day: row.day,
       title: String(row.title ?? '').trim() || String(prev.title ?? '').trim() || `Day ${row.day}`,
       description: String(row.description ?? '').trim() || String(prev.description ?? '').trim(),
+      routeText: row.routeText || prev.routeText,
       imageKeyword: row.imageKeyword,
       imageKeyword2: row.imageKeyword2 ?? prev.imageKeyword2,
     }

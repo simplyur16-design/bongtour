@@ -84,6 +84,33 @@ export const SPORTS_THEME_TAG_LABELS: Record<SportsThemeTag, string> = {
 
 const SPORTS_THEME_TAG_SET = new Set<string>(SPORTS_THEME_TAG_VALUES)
 
+const SPORTS_THEME_HAYSTACK: Record<SportsThemeTag, RegExp> = {
+  golf: /골프|\bgolf\b/i,
+  diving: /다이빙|스쿠버|\bdiving\b/i,
+  running: /러닝|마라톤|\brunning\b/i,
+  spectator: /직관|경기\s*관람|\bspectator\b/i,
+  trekking: /트레킹|하이킹|등산|\btrekking\b|\bhiking\b/i,
+  '2030': /2030/,
+}
+
+/** 제목·본문에 나온 테마만 태그. 메가메뉴 테마 키(golf 등)도 허용. */
+// REGRESSION-FREEZE[register-pre-photo-ingest-pkg-fit-theme-kind]: 테마는 테마 태그로 — manifest
+export function inferSportsThemeTagsFromListingHaystack(
+  haystack: string | null | undefined,
+  extraKeys?: readonly string[] | null,
+): SportsThemeTag[] {
+  const text = String(haystack ?? '')
+  const seen = new Set<SportsThemeTag>()
+  for (const key of extraKeys ?? []) {
+    const k = String(key).trim()
+    if (SPORTS_THEME_TAG_SET.has(k)) seen.add(k as SportsThemeTag)
+  }
+  for (const key of SPORTS_THEME_TAG_VALUES) {
+    if (SPORTS_THEME_HAYSTACK[key].test(text)) seen.add(key)
+  }
+  return SPORTS_THEME_TAG_VALUES.filter((k) => seen.has(k))
+}
+
 /**
  * 관리자 등록/수정 POST 본문에서만 사용. 허용값 외는 무시, 중복 제거, canonical 순서.
  */

@@ -20,6 +20,8 @@ describe('kyowontour France schedule quality', () => {
     expect(firstMatchingScheduleSpotEn('빛의 채석장')).toMatch(/Carrieres|Lumieres/i)
     expect(firstMatchingScheduleSpotEn('니스 해변')).toMatch(/Promenade|Nice/i)
     expect(firstMatchingScheduleSpotEn('교황청')).toMatch(/Avignon|Popes/i)
+    expect(firstMatchingScheduleSpotEn('포르트 카이요')).toMatch(/Porte Cailhau/i)
+    expect(firstMatchingScheduleSpotEn('포르트 카이요')).not.toMatch(/Cairo/i)
   })
 
   it('strips hotel names, VELIZY, restaurant suffix, country prefix/bare country', () => {

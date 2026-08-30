@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[modetour-schedule-image-keyword-ko-route]
  * REGRESSION-FREEZE[modetour-register-ssot-freeze]: 북경 dual-slot·Forbidden City 차단 — manifest
  * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 임윤찬 바르셀로나 리사이틀 일차 소유 — manifest
+ * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang·Hoi An ≠ Da·Hoi — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -50,8 +51,8 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
       vietnamOpts,
     )
     const d2 = out.find((r) => r.day === 2)!
-    assert.equal(d2.imageKeyword, 'Da')
-    assert.equal(d2.imageKeyword2, 'Hoi')
+    assert.equal(d2.imageKeyword, 'Da Nang')
+    assert.equal(d2.imageKeyword2, 'Hoi An')
   })
 
   it('routeText Da Nang - Hoi An, LLM 없음 → routeText 1·2순위', () => {
@@ -71,8 +72,8 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
       vietnamOpts,
     )
     const d2 = out.find((r) => r.day === 2)!
-    assert.equal(d2.imageKeyword, 'Da')
-    assert.equal(d2.imageKeyword2, 'Hoi')
+    assert.equal(d2.imageKeyword, 'Da Nang')
+    assert.equal(d2.imageKeyword2, 'Hoi An')
   })
 
   it('대구 출발 — LLM Daegu 거부, routeText 첫 영문 Da Nang', () => {
@@ -89,7 +90,7 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
       ],
       vietnamOpts,
     )
-    assert.equal(out[0]!.imageKeyword, 'Da')
+    assert.equal(out[0]!.imageKeyword, 'Da Nang')
     assert.equal(out[0]!.imageKeyword2, null)
   })
 
@@ -110,8 +111,8 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
       vietnamOpts,
     )
     const d2 = out.find((r) => r.day === 2)!
-    assert.equal(d2.imageKeyword, 'Da')
-    assert.equal(d2.imageKeyword2, 'Hoi')
+    assert.equal(d2.imageKeyword, 'Da Nang')
+    assert.equal(d2.imageKeyword2, 'Hoi An')
   })
 
   it('출발/귀국일 — 2순위 null', () => {
@@ -136,7 +137,7 @@ describe('applyModetourScheduleImageKeywordsToRows — LLM 2순위 + routeText �
       ],
       { productDestination: '다낭, 호이안' },
     )
-    assert.equal(out[0]!.imageKeyword, 'Da')
+    assert.equal(out[0]!.imageKeyword, 'Da Nang')
     assert.equal(out[0]!.imageKeyword2, null)
     assert.equal(out[1]!.imageKeyword2, null)
   })

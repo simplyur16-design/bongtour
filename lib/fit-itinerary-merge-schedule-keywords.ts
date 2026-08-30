@@ -1,7 +1,9 @@
 /**
- * Fit 일차 → Product.schedule imageKeyword 병합 (DB·Gemini 없음, 클라이언트 번들 가능).
+ * 자유여행 — 제미나이 예시 일정 일차 → 동선(routeText) + imageKeyword 병합.
+ * REGRESSION-FREEZE[fit-itinerary-gemini-route-keyword]: 동선은 예시 일정 activities — manifest
  */
 import {
+  buildFitDayRouteText,
   pickFitDayImageKeywordDistinct,
   pickSingleAirtelFitImageKeywordFromDays,
   type FitDayImageKeywordFallbackContext,
@@ -35,6 +37,7 @@ export function mergeScheduleWithFitKeywords(
     const prevKw = String(prev?.imageKeyword ?? '').trim()
     const keywordChanged =
       kw.length > 0 && prevKw.length > 0 && prevKw.toLowerCase() !== kw.toLowerCase()
+    const routeFromFit = buildFitDayRouteText(fitDay)
 
     const next: ProductScheduleJsonRow = {
       ...(prev ?? {
@@ -48,6 +51,7 @@ export function mergeScheduleWithFitKeywords(
       day: dayNum,
       title: fitDay.title?.trim() || prev?.title || null,
       description: fitDay.summary?.trim() || prev?.description || null,
+      routeText: routeFromFit || prev?.routeText || null,
       imageKeyword: kw,
     }
 
@@ -93,6 +97,7 @@ export function mergeScheduleWithSingleAirtelFitKeyword(
     const prevKw = String(prev?.imageKeyword ?? '').trim()
     const keywordChanged =
       singleKw.length > 0 && prevKw.length > 0 && prevKw.toLowerCase() !== singleKw.toLowerCase()
+    const routeFromFit = buildFitDayRouteText(fitDay)
 
     const next: ProductScheduleJsonRow = {
       ...(prev ?? {
@@ -106,6 +111,7 @@ export function mergeScheduleWithSingleAirtelFitKeyword(
       day: dayNum,
       title: fitDay.title?.trim() || prev?.title || null,
       description: fitDay.summary?.trim() || prev?.description || null,
+      routeText: routeFromFit || prev?.routeText || null,
       imageKeyword: singleKw,
       imageKeyword2: null,
     }

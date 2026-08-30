@@ -51,6 +51,15 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(normalizeToPlaceName('Nha Trang'), 'Nha Trang')
   })
 
+  // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang ≠ Da
+  it('Da Nang 도시명은 Da 로 잘리지 않음', () => {
+    assert.equal(finalizeScheduleImageKeyword('Da Nang'), 'Da Nang')
+    assert.equal(normalizeToPlaceName('Da Nang'), 'Da Nang')
+    assert.equal(finalizeScheduleImageKeyword('danang'), 'Da Nang')
+    assert.equal(finalizeScheduleImageKeyword('Da Nang beach city skyline'), 'Da Nang')
+    assert.equal(finalizeScheduleImageKeyword('Da Nang Han River / Dragon Bridge waterfront skyline / wide angle'), 'Da Nang')
+  })
+
   // REGRESSION-FREEZE[pexels-normalize-bare-multiword-city]: stripTrailingGeoTokens 전체명 보존
   it('Phu Quoc 도시명은 빈 문자열로 깎이지 않음', () => {
     assert.equal(normalizeToPlaceName('Phu Quoc'), 'Phu Quoc')

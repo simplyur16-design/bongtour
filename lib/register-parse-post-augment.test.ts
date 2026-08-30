@@ -3,7 +3,10 @@
  */
 import { describe, expect, it } from 'vitest'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
-import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
+import {
+  applyRegisterPostAugmentSchedulePipeline,
+  packageScheduleNeedsFreeDayRecommendedItinerary,
+} from '@/lib/register-parse-post-augment'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 
@@ -217,5 +220,56 @@ describe('register-parse-post-augment SSOT', () => {
     const d4 = String((after.schedule ?? []).find((r) => r.day === 4)?.imageKeyword ?? '').trim()
     expect(d4.length).toBeGreaterThan(0)
     expect(d4).toMatch(/Vinpearl|Harbourland|Nha Trang|Da Lat/i)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: dest-filled free day no skip — manifest
+  it('제목에 자유일정이 있고 dest 키워드만 있으면 추천일정이 필요해서 confirm 스킵 대상이 아니다', () => {
+    expect(
+      packageScheduleNeedsFreeDayRecommendedItinerary(
+        [
+          { day: 1, routeText: '인천', imageKeyword: 'Incheon' },
+          {
+            day: 2,
+            title: '2일차',
+            description: '2일차 일정을 진행합니다.',
+            routeText: '괌',
+            imageKeyword: 'Guam',
+          },
+          { day: 3, title: '귀국', routeText: '인천', imageKeyword: '' },
+        ],
+        '괌 4일 #1일 자유일정',
+      ),
+    ).toBe(true)
+    expect(
+      packageScheduleNeedsFreeDayRecommendedItinerary(
+        [
+          { day: 1, routeText: '인천', imageKeyword: 'Incheon' },
+          {
+            day: 2,
+            title: '2일차',
+            description: '2일차 일정을 진행합니다.',
+            routeText: '괌',
+            imageKeyword: 'Guam',
+          },
+          { day: 3, title: '귀국', routeText: '인천', imageKeyword: '' },
+        ],
+        '괌 츠바키 타워 5일',
+      ),
+    ).toBe(false)
+    expect(
+      packageScheduleNeedsFreeDayRecommendedItinerary(
+        [
+          { day: 1, routeText: '인천 - 로마', imageKeyword: 'Rome' },
+          {
+            day: 2,
+            title: '추천일정 1day',
+            routeText: '로마 - 콜로세움 - 트레비 분수',
+            imageKeyword: 'Colosseum',
+          },
+          { day: 3, title: '귀국', routeText: '인천', imageKeyword: '' },
+        ],
+        '로마 3일 #1일 자유일정',
+      ),
+    ).toBe(false)
   })
 })

@@ -1,6 +1,8 @@
 /**
  * Pexels 검색용 일정 imageKeyword SSOT — 영문 관광지/랜드마크 고유명 1개만.
  * Gemini 이미지 생성 프롬프트와 분리한다.
+ * REGRESSION-FREEZE[pexels-normalize-monument-valley]: Monument Valley — do not strip Valley — manifest
+ * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang·Hoi An 복합 도시명 유지 — manifest
  */
 
 import { detectBannedSuffix } from '@/lib/image-keyword-verify-guards'
@@ -66,6 +68,14 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'new york manhattan skyline': 'New York',
   'nagoya castle view': 'Nagoya Castle',
   'nha trang': 'Nha Trang',
+  // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang ≠ Da — manifest
+  'da nang': 'Da Nang',
+  danang: 'Da Nang',
+  'da nang han river': 'Da Nang',
+  'da nang beach': 'Da Nang',
+  'da nang beach city skyline': 'Da Nang',
+  'hoi an': 'Hoi An',
+  hoian: 'Hoi An',
   // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 홍콩 헐리우드로드 ≠ LA Hollywood — manifest
   'hollywood road': 'Hollywood Road Hong Kong',
   'hollywood road hong kong': 'Hollywood Road Hong Kong',
@@ -199,19 +209,9 @@ const TRAILING_MODIFIER_WORDS = [
   'hakone',
   'kanazawa',
   'kobe',
-  'da',
-  'nang',
-  'hoi',
-  'an',
-  'chiang',
-  'mai',
   'phuket',
   'pattaya',
   'hanoi',
-  'chi',
-  'minh',
-  'nha',
-  'trang',
   'bali',
   'jakarta',
   'cebu',
@@ -231,6 +231,8 @@ const TRAILING_MODIFIER_WORDS = [
   'milan',
   'venice',
   'florence',
+  'la spezia',
+  'laspezia',
   'munich',
   'berlin',
   'frankfurt',
@@ -254,16 +256,6 @@ const TRAILING_MODIFIER_WORDS = [
   'hawaii',
   'honolulu',
   'waikiki',
-  'los',
-  'angeles',
-  'san',
-  'francisco',
-  'las',
-  'vegas',
-  'new',
-  'york',
-  'hong',
-  'kong',
 ]
 
 /** 고유명 끝에 유지할 토큰(보조어 제거 스킵) */
@@ -446,6 +438,35 @@ export const CITY_COUNTRY_ONLY = new Set(
     'australia',
     'marrakech',
     'rio de janeiro',
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 짧은·2단어 방문도시는 힐이 지우지 않음 — manifest
+    'xian',
+    "xi'an",
+    'xi an',
+    'porto',
+    'oahu',
+    'lima',
+    'weihai',
+    'bordeaux',
+    'lisbon',
+    'lisboa',
+    'yerevan',
+    'calafate',
+    'el calafate',
+    'sopot',
+    'warsaw',
+    'tunis',
+    'abu dhabi',
+    'zermatt',
+    'la paz',
+    'cusco',
+    'cuzco',
+    'cancun',
+    'monterrey',
+    'santiago',
+    'santiago chile',
+    'honolulu',
+    'macau',
+    'macao',
   ].map((s) => s.toLowerCase()),
 )
 
@@ -728,7 +749,7 @@ export function normalizeToPlaceName(rawKeyword: string): string {
 
 /** 식당·카페·음식점 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
 const NON_LANDMARK_FOOD_VENUE_RE =
-  /\b(cafe|café|coffee\s*shop|restaurant|dining|bistro|bakery|eatery|ramen|noodle\s*shop|food\s*stall|street\s*food|hawker|brunch\s*spot|gastropub|food\s*court|kitchen|culinary|dim\s*sum|sushi\s*bar|bbq\s*restaurant|steakhouse|pizzeria|trattoria|brasserie|tea\s*house|bubble\s*tea|dessert\s*shop|ice\s*cream\s*parlor|barbecue\s*restaurant|tapas\s*bar|izakaya|yakiniku|pho\s*shop|burger\s*joint|food\s*hall|dining\s*hall)\b/i
+  /\b(cafe|café|coffee\s*shop|restaurant|dining|bistro|bakery|eatery|ramen|noodle\s*shop|food\s*stall|street\s*food|hawker|brunch\s*spot|gastropub|food\s*court|kitchen|culinary|dim\s*sum|sushi\s*bar|bbq\s*restaurant|steakhouse|pizzeria|trattoria|brasserie|tea\s*house|bubble\s*tea|dessert\s*shop|ice\s*cream\s*parlor|barbecue\s*restaurant|tapas\s*bar|izakaya|yakiniku|pho\s*shop|burger\s*joint|food\s*hall|dining\s*hall|shabu[- ]?shabu|confiserie|chocolat(?:e|erie)?|comptoir|keller|zeughauskeller|fado|cocottes)\b/i
 
 const NON_LANDMARK_FOOD_PHRASE_RE =
   /\b(laneway\s*cafes?|cafe\s*lane|ramen\s*street|food\s*street|night\s*market\s*food|local\s*food|food\s*tour|culinary\s*tour|restaurant\s*row|dining\s*district)\b/i
@@ -744,7 +765,7 @@ export function isNonLandmarkFoodOrDiningImageKeyword(keyword: string): boolean 
 
 /** 스파·라운지·마트·쇼핑 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
 const NON_LANDMARK_SPA_SHOPPING_LOUNGE_RE =
-  /\b(spa|massage|wellness\s*center|lounge|club\s*lounge|t\s*lounge|bar\s*&\s*lounge|duty\s*free|shopping\s*mall|supermarket|minimart|convenience\s*store|grocery|retail\s*mall|outlet\s*mall|designer\s*outlet|department\s*store|resort\s*restaurant|moon\s*spa|king\s*kong\s*mart|sound\s*of\s*music)\b/i
+  /\b(spa|massage|wellness\s*center|lounge|club\s*lounge|t\s*lounge|bar\s*&\s*lounge|duty\s*free|shopping\s*mall|supermarket|minimart|convenience\s*store|grocery|retail\s*mall|outlet\s*mall|designer\s*outlet|department\s*store|resort\s*restaurant|moon\s*spa|king\s*kong\s*mart|sound\s*of\s*music|pharmacy|pharmacie|apotheke|citypharma|don\s*quijote|donki|abc\s*stores?|\bstores?\b)\b/i
 
 export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
@@ -798,7 +819,7 @@ export function isHotelLodgingImageKeyword(keyword: string): boolean {
   if (!n) return false
   /** 괌 PIC(Pacific Island Club) 등 리조트 브랜드 — Pexels 관광지명이 아님 */
   if (n === 'pic' || /\bpic\s*resort\b/i.test(n)) return true
-  return /\b(hotel|resort|hostel|inn|lodging|parador|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist)\b/i.test(
+  return /\b(hotel|resort|hostel|inn|lodging|parador|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist|belle\s*maison|parosand)\b/i.test(
     n,
   )
 }
@@ -811,17 +832,32 @@ export function isBareCityOrCountryKeyword(keyword: string): boolean {
 }
 
 const LANDMARK_HINT_RE =
-  /\b(garden|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|fort|square|market|bund|lake|tower|peak|disney|studios|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina)\b/i
+  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lake|tower|peak|mount|mountains?|hills|disney|studios|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|spring|conservatory|botanical|tenmangu|jinja|dera|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route)\b/i
 
-/** 2단어 이상 또는 랜드마크 성격 단어가 포함된 고유명 */
+/** 랜드마크 성격 단어가 있는 고유명. 단어 개수만으로 식당·상점을 통과시키지 않는다. */
+// REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 2단어 ≠ 랜드마크 — manifest
+// REGRESSION-FREEZE[schedule-landmark-hint-civic-proper-nouns]: Taj Mahal·Parliament·Rambla는 힌트 랜드마크 — manifest
+// REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: Golden Circle·Petra Treasury·Wadi Rum — manifest
 export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
-  const n = normalizeToPlaceName(keyword)
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  if (isBareCityOrCountryKeyword(raw) || isHotelLodgingImageKeyword(raw)) return false
+  if (isNonLandmarkFoodOrDiningImageKeyword(raw)) return false
+  if (isNonLandmarkSpaShoppingLoungeImageKeyword(raw)) return false
+  if (isNonLandmarkHistoricalPrisonImageKeyword(raw)) return false
+  if (LANDMARK_HINT_RE.test(raw)) return true
+  const n = normalizeToPlaceName(raw)
   if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
   if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return false
-  if (n.split(/\s+/).length >= 2) return true
-  return LANDMARK_HINT_RE.test(n)
+  if (LANDMARK_HINT_RE.test(n)) return true
+  const canonKey = n.toLowerCase()
+  if (CANONICAL_BY_LOWER[canonKey] || COMPOUND_LANDMARK_PHRASES[canonKey]) return true
+  const words = n.split(/\s+/).filter(Boolean)
+  // 한 단어 고유명소(Taormina·Dotonbori). 2단어 상호는 힌트 없이 통과시키지 않는다.
+  if (words.length === 1 && words[0]!.length >= 5) return true
+  return false
 }
 
 /** 짧은 불투명 단어(Khem 등) — 랜드마크·도시명이 아니면 부적합 */

@@ -40,6 +40,16 @@ export function resolveRegisterFactProductKindFromAdminTravelScope(
   return inferred
 }
 
+const FIT_LISTING_HAYSTACK_RE = /에어텔|자유\s*여행|자유\s*\d+\s*일|항공\s*\+\s*호텔|\bair\s*hotel\b/i
+
+/** 제목·본문 힌트 — 전 공급사 공통. URL 단서가 없을 때 자유여행 판별. */
+// REGRESSION-FREEZE[register-pre-photo-ingest-pkg-fit-theme-kind]: 제목으로 패키지/자유여행 — manifest
+export function inferRegisterFactProductKindFromListingHaystack(
+  haystack: string | null | undefined,
+): RegisterFactProductKind {
+  return FIT_LISTING_HAYSTACK_RE.test(String(haystack ?? '')) ? 'air_hotel_free' : 'package'
+}
+
 /** URL·공급사 휴리스틱 — collect 단계에서 API 확인 전 1차 추정 */
 export function inferRegisterFactProductKindFromOriginUrl(
   supplier: SupplierRegisterFactSource,

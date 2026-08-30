@@ -259,6 +259,11 @@ function isRejectedTripKeywordCandidate(kw: string): boolean {
   return false
 }
 
+function isDanangVietnamSantoriniNicknameHay(hay: string): boolean {
+  // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭 ‘작은 산토리니’ ≠ 그리스 — manifest
+  return /산토리니|Santorini/i.test(hay) && /다낭|베트남|Da\s*Nang|Vietnam|손짜|한시장/i.test(hay)
+}
+
 function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): string[] {
   const out: string[] = []
   const seen = new Set<string>()
@@ -281,11 +286,11 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     out.push(t)
   }
 
-  if (/산토리니|Santorini/i.test(rawRoute) && !/피라|이아|Fira|Oia|Imerovigli|Firostefani/i.test(rawRoute)) {
+  if (!isDanangVietnamSantoriniNicknameHay(routeHay) && /산토리니|Santorini/i.test(rawRoute) && !/피라|이아|Fira|Oia|Imerovigli|Firostefani/i.test(rawRoute)) {
     push('Fira Santorini caldera')
     push('Oia Santorini blue domes')
   }
-  if (/산토리니|Santorini/i.test(rawRoute) && routeTextTourismSegmentCount(rawRoute) <= 1) {
+  if (!isDanangVietnamSantoriniNicknameHay(routeHay) && /산토리니|Santorini/i.test(rawRoute) && routeTextTourismSegmentCount(rawRoute) <= 1) {
     push('Santorini caldera blue domes')
     push('Firostefani Santorini village')
     push('Amoudi Bay Santorini fishing harbor')
@@ -293,7 +298,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
   if (/아라호바|Arachova/i.test(rawRoute)) {
     push('Delphi Greece ancient ruins')
   }
-  if (/산토리니|Santorini/i.test(rawRoute) && /이아|Oia/i.test(rawRoute)) {
+  if (!isDanangVietnamSantoriniNicknameHay(routeHay) && /산토리니|Santorini/i.test(rawRoute) && /이아|Oia/i.test(rawRoute)) {
     push('Firostefani Santorini village')
     push('Amoudi Bay Santorini fishing harbor')
   }
@@ -522,6 +527,7 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
     push('Copacabana Beach Rio de Janeiro')
   }
   if (
+    !isDanangVietnamSantoriniNicknameHay(routeHay) &&
     /산토리니|Santorini/i.test(rawRoute) &&
     /자유|free|leisure|at\s+leisure/i.test(routeHay)
   ) {
@@ -3332,6 +3338,7 @@ function allowKw2TripDuplicateKeyword(kw: string, routeText?: string | null): bo
   if (allowOceaniaAuNzClusterKw2Duplicate(kw, routeText)) return true
   if (allowChinaHubClusterKw2Duplicate(kw, routeText)) return true
   if (isBareCityOrCountryKeyword(kw)) return false
+  if (isDanangVietnamSantoriniNicknameHay(String(routeText ?? ''))) return false
   if (!/산토리니|Santorini/i.test(String(routeText ?? ''))) return false
   const nk = normScheduleImageKeywordKey(kw)
   return /santorini|oia|fira|imerovigli|firostefani|amoudi|akrotiri|caldera/.test(nk)
@@ -3423,6 +3430,7 @@ function pickManadoClusterKeywordForUsedSlot(
 
 function isSantoriniClusterRoute(routeText: string | null | undefined, rowHay?: string): boolean {
   const hay = `${String(routeText ?? '')} ${String(rowHay ?? '')}`
+  if (isDanangVietnamSantoriniNicknameHay(hay)) return false
   return /산토리니|Santorini/i.test(hay)
 }
 
@@ -3568,6 +3576,12 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^죠잔케이$|^조잔케이$/u.test(seg)) return 'Jozankei'
     // 몰디브 리조트 일차 — country-level이어도 soft-dup 허용 (빈칸·Vang Vieng bleed 방지)
     if (/^몰디브$|^Maldives$/i.test(seg)) return 'Maldives'
+    if (/^피렌체$|^Florence$|^Firenze$/i.test(seg)) return 'Florence'
+    if (/^밀라노$|^Milan$/i.test(seg)) return 'Milan'
+    if (/^괌$|^Guam$/i.test(seg)) return 'Guam'
+    if (/^다낭$|^Da\s*Nang$/i.test(seg)) return 'Da Nang'
+    if (/^푸꾸옥$|^Phu\s*Quoc$/i.test(seg)) return 'Phu Quoc'
+    if (/^서안$|^Xi'?an$/i.test(seg)) return 'Xian'
     // 코타키나발루 아일랜드 호핑 — landmark 소진 후 bare soft-dup
     if (/아일랜드\s*호핑|island\s*hopping/i.test(seg)) return 'Kota Kinabalu'
     const fromMap = mapDestination(seg)
@@ -3608,6 +3622,11 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour EMP151 카이 soft-dup hay — Day2 empty 금지 — manifest
     '카이',
     '두바이',
+    '피렌체',
+    '라스페치아',
+    '밀라노',
+    '다낭',
+    '서안',
     // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 soft-dup hay cities — manifest
     '푸꾸옥',
     '세부',
@@ -3976,6 +3995,12 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         } else if (dayRouteOwnsIberiaSouthFranceKeyword(primary, String(row.routeText ?? ''))) {
           // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Iberia·남프랑스 ESP104 day-owned POI — manifest
           // keep
+        } else if (
+          collectRouteTextOrderedLandmarkKeywords(row.routeText).some(
+            (kw) => normScheduleImageKeywordKey(kw) === pk,
+          )
+        ) {
+          // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 당일 route 명소 재방문 유지 — manifest
         } else {
           const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
           primary =
@@ -4525,7 +4550,8 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
 // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 revisit soft-dup (Phu Quoc/Sapa/NY/…) — manifest
 export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado/i.test(
+  // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 리조트 방문도시 반복 — manifest
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Bali|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey/i.test(
     String(city ?? '').trim(),
   )
 }
@@ -4888,7 +4914,9 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
       }
     }
 
-    if (!primary && !isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
+    const lodgingOnlyRoute = /(?:호텔|리조트|Hotel|Resort|숙박)/i.test(String(row.routeText ?? ''))
+      && !collectRouteTextOrderedLandmarkKeywords(row.routeText).length
+    if (!primary && !lodgingOnlyRoute && !isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
       primary =
         pickPriorTourismLandmarkForLodgingDay(row, sorted, used, processedByDay, false) ||
         pickNextTourismLandmarkForMiddleDay(row, sorted, processedByDay, false) ||

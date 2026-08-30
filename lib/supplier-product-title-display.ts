@@ -16,6 +16,13 @@ export const SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX = 90
 
 const UI_NOISE_CHARS = ['★', '※', '◎', '◆', '▶'] as const
 
+/** 한글 지명(이태리·스페인·괌 츠바키 앞 토큰)은 2글자도 상품명이다. ASCII만 4자. */
+// REGRESSION-FREEZE[supplier-product-title-plan-b]: 한글 2자+ 제목 허용 — manifest
+function isSupplierDisplayTitleLongEnough(t: string): boolean {
+  if (t.length >= 4) return true
+  return t.length >= 2 && /[가-힣]/.test(t)
+}
+
 function uniqueTitleCandidates(...parts: (string | null | undefined)[]): string[] {
   const seen = new Set<string>()
   const out: string[] = []
@@ -38,7 +45,7 @@ export function resolveSupplierVerbatimOriginalTitle(args: {
     args.parsedSupplierTitle,
   )
   for (const c of candidates) {
-    if (c.length >= 4 && !isSupplierListingTitleUnacceptable(c, args.brandKey)) return c
+    if (isSupplierDisplayTitleLongEnough(c) && !isSupplierListingTitleUnacceptable(c, args.brandKey)) return c
   }
   return '미입력'
 }
@@ -109,7 +116,7 @@ export function buildSupplierProductDisplayTitle(input: SupplierProductDisplayTi
   const candidates = uniqueTitleCandidates(
     normalizeSupplierTitleForDisplay(input.verbatimOriginal, input.brandKey),
     normalizeSupplierTitleForDisplay(input.parsedSupplierTitle ?? '', input.brandKey),
-  ).filter((t) => t.length >= 4)
+  ).filter((t) => isSupplierDisplayTitleLongEnough(t))
 
   for (const c of candidates) {
     const clipped = c.slice(0, SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX)

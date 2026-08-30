@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: 몽골 테렐지 CQP111 — POI·캠프 제외 — manifest
+ * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 테를지 단독도 Terelj National Park — manifest
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
@@ -34,6 +35,9 @@ const MONGOLIA_SCHEDULE = [
 describe('Mongolia Terelj register schedule imageKeyword', () => {
   it('maps Terelj Korean route segments to English landmarks', () => {
     expect(englishFromScheduleKoreanSegment('테렐지 국립공원')).toMatch(/Terelj National Park/i)
+    expect(englishFromScheduleKoreanSegment('테를지')).toMatch(/Terelj National Park/i)
+    expect(englishFromScheduleKoreanSegment('테를지 전경')).toMatch(/Terelj National Park/i)
+    expect(englishFromScheduleKoreanSegment('다낭')).toBe('Da Nang')
     expect(englishFromScheduleKoreanSegment('거북 바위')).toMatch(/Turtle Rock/i)
     expect(englishFromScheduleKoreanSegment('자이승전망대')).toMatch(/Zaisan Memorial/i)
   })
