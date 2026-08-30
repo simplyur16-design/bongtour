@@ -749,7 +749,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /코블렌츠|Koblenz/i, en: 'Deutsches Eck Koblenz' },
   { re: /아루샤|Arusha/i, en: 'Arusha Tanzania safari gateway' },
   { re: /칸쿤|Cancun/i, en: 'Cancun Caribbean beach' },
-  { re: /튀니스|Tunis/i, en: 'Tunis medina souk' },
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 도시-only 세그먼트 ≠ 명소 — 튀니스-아부다비는 free — manifest
+  { re: /튀니스\s*(?:메디나|수크)|Tunis\s*medina|medina\s*souk/i, en: 'Tunis medina souk' },
   { re: /헬싱키|Helsinki/i, en: 'Helsinki Cathedral Senate Square' },
   { re: /보르도\s*구시가지|Bordeaux\s*old/i, en: 'Bordeaux old town riverside' },
   { re: /성\s*안드레\s*대성당|Saint[- ]?Andre/i, en: 'Bordeaux Cathedral Saint Andre' },
@@ -757,7 +758,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /아부\s*심벨|Abu\s*Simbel/i, en: 'Abu Simbel temples' },
   { re: /콤\s*옴보|Kom\s*Ombo/i, en: 'Kom Ombo Temple' },
   { re: /에드푸|Edfu/i, en: 'Temple of Horus Edfu' },
-  { re: /룩소르|Luxor/i, en: 'Luxor Temple Karnak' },
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 룩소르 단독 구간은 도시명 — 신전·카르낙만 명소 — manifest
+  { re: /룩소르\s*(?:신전|사원)|카르낙|Karnak|Luxor\s*Temple/i, en: 'Luxor Temple Karnak' },
   { re: /아스완|Aswan/i, en: 'Aswan Nile felucca' },
   { re: /발렌시아|Valencia/i, en: 'City of Arts Valencia' },
   { re: /사라고사|Zaragoza/i, en: 'Basilica del Pilar Zaragoza' },
@@ -776,7 +778,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /까띠끌란|Katasiklian|Catiklian/i, en: 'Boracay White Beach' },
   { re: /푸카쉘|Puka\s*Shell/i, en: 'Puka Shell Beach Boracay' },
   { re: /루호산|Mount\s*Luho/i, en: 'Mount Luho Boracay' },
-  { re: /아부다비|Abu\s*Dhabi/i, en: 'Sheikh Zayed Grand Mosque' },
+  { re: /셰이크\s*자이드|Sheikh\s*Zayed(?!\s*National)/i, en: 'Sheikh Zayed Grand Mosque' },
   { re: /임동구|병마용|Terracotta/i, en: 'Terracotta Army Xi an' },
   // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 팔리구 ≠ 천계산 동일 키워드 — manifest
   { re: /팔리구|Paligou|Bali\s*Gou/i, en: 'Paligou canyon Taihang' },
@@ -1277,7 +1279,7 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /타이페이|台北/u, en: "Taipei night market street" },
   { re: /하와이|호놀룰루|Honolulu/i, en: "Honolulu Waikiki beach" },
   { re: /두바이|Dubai/i, en: "Burj Khalifa Dubai skyline" },
-  { re: /아부다비|Abu\s*Dhabi/i, en: "Sheikh Zayed Grand Mosque Abu Dhabi" },
+  { re: /아부다비|Abu\s*Dhabi/i, en: "Abu Dhabi" },
   { re: /괌|Guam/i, en: "Guam Tumon beach" },
   { re: /투몬|Tumon/i, en: "Tumon Bay Guam beach" },
   { re: /아시아\s*타이|Asia\s*Typhoon/i, en: "Asia Typhoon Waterpark Guam" },

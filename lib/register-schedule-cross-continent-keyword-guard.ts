@@ -90,6 +90,7 @@ const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bOia\b/i,
   /Caldera\s*Blue\s*Domes/i,
   /\bNice\b/i,
+  // Place Massena — Americas dest에 니스 명소 환각 차단
   /Place\s*Massena/i,
 ]
 

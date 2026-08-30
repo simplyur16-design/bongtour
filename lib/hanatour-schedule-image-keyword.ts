@@ -1048,7 +1048,15 @@ export function reconcileHanatourTripUniqueImageKeywords<T extends HanatourSched
     if (primary) {
       const nk = normKey(primary)
       if (used.has(nk)) {
-        primary = pickUnused(dayCands) || pickUnused(tripPool) || ''
+        const unusedOwn = pickUnused(dayCands)
+        if (unusedOwn) {
+          primary = unusedOwn
+        } else if (slotKind === 'return') {
+          // REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: 귀국 방문도시 soft-dup 유지 — manifest
+          // 미사용 당일 후보가 없으면 tripPool 명소 bleed·빈칸 대신 기존 키워드 유지
+        } else {
+          primary = pickUnused(tripPool) || ''
+        }
       } else {
         used.add(nk)
       }
@@ -1187,6 +1195,20 @@ function pickHanatourReturnKeywordFromOwnRoute(
   for (const kw of ownRoute) {
     const picked = tryKw(kw)
     if (picked) return picked
+  }
+  // REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: 귀국 당일 방문도시 soft-dup — manifest
+  // Dubai - Incheon 처럼 랜드마크 없는 귀국 — 허브 제외 방문도시는 used여도 유지
+  for (let i = ownRoute.length - 1; i >= 0; i--) {
+    const kw = String(ownRoute[i] ?? '').trim()
+    if (
+      !kw ||
+      isHanatourForeignAirportImageKeyword(kw) ||
+      isScheduleAirportLikeImageKeyword(kw) ||
+      isHanatourDomesticHubToken(kw)
+    ) {
+      continue
+    }
+    return kw
   }
   return ''
 }

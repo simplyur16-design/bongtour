@@ -342,6 +342,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
       }
       return { ...row, description }
     })
+    // if (scheduleHasBrokenKeywords(working)) — FIT도 깨진 키워드면 parser_fix
     if (scheduleHasBrokenKeywords(working, { allowHotelLodging: true })) {
       notes.push({ day: 0, field: 'imageKeyword', reason: 'parser_fix_required' })
     }

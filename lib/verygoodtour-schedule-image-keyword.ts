@@ -15,7 +15,7 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBlockedScheduleImageKeyword } from '@/lib/schedule-image-keyword-blocklist'
-import { finalizeScheduleImageKeyword, normalizeToPlaceName, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import { finalizeScheduleImageKeyword, normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 
 export type VerygoodScheduleImageKeywordRow = {
   day: number
@@ -172,7 +172,8 @@ function tryAcceptVerygoodLlmImageKeyword(
   if (!isVerygoodLlmImageKeywordFormatOk(candidate)) return ''
   if (VERYGOOD_NON_LANDMARK_EN_RE.test(candidate)) return ''
   if (isVerygoodDomesticHubToken(candidate)) return ''
-  if (isBareCityOrCountryKeyword(candidate)) return ''
+  // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 출발·자유일 방문도시 LLM(Warsaw) 유지 — manifest
+  // CITY_COUNTRY_ONLY는 랜드마크 판별용. 방문도시 키워드 자체를 거절하지 않는다.
   if (isBlockedScheduleImageKeyword(candidate)) return ''
   if (isVerygoodCrossContinentHallucinationKeyword(candidate, productDestination)) return ''
   try {

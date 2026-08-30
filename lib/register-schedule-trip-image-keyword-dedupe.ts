@@ -4551,7 +4551,8 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
 export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
   // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 리조트 방문도시 반복 — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Bali|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey/i.test(
+  // REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]: Bali 자유일 middle끼리 soft-dup 금지 — manifest
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey/i.test(
     String(city ?? '').trim(),
   )
 }
