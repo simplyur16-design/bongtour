@@ -101,7 +101,7 @@ export function resolveBongsimPoolMax(): number {
   return BONGSIM_POOL_MAX_DEFAULT;
 }
 
-/** 발급 outbox drain 전용 풀 상한. 카탈로그 5와 합쳐도 Supabase 예산을 넘지 않게 2. */
+/** 발급 outbox drain 전용 풀 상한. 카탈로그와 합이 `BONGSIM_PG_POOL_MAX`를 넘지 않게 나눈다. */
 const BONGSIM_OUTBOX_POOL_MAX_DEFAULT = 2;
 
 // REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: drain pool max — manifest
@@ -112,6 +112,21 @@ export function resolveBongsimOutboxPoolMax(): number {
     if (Number.isFinite(n) && n >= 1 && n <= 4) return n;
   }
   return BONGSIM_OUTBOX_POOL_MAX_DEFAULT;
+}
+
+/**
+ * 프로세스 pg 예산 = catalog + outbox. 예: web 10 → catalog 8 + outbox 2.
+ * REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: split stays inside pool max — manifest
+ */
+export function resolveBongsimCatalogPoolMax(): number {
+  const total = resolveBongsimPoolMax();
+  const outbox = Math.min(resolveBongsimOutboxPoolMax(), Math.max(1, total - 1));
+  return total - outbox;
+}
+
+export function resolveBongsimOutboxPoolMaxClamped(): number {
+  const total = resolveBongsimPoolMax();
+  return Math.min(resolveBongsimOutboxPoolMax(), Math.max(1, total - 1));
 }
 
 /** pg Pool connectionTimeoutMillis — 기본 8s, env `BONGSIM_PG_CONNECT_TIMEOUT_MS` (3s–30s). */
@@ -131,7 +146,7 @@ export function resolveBongsimPoolConnectTimeoutMs(): number {
  */
 export function shouldBackoffInsteadOfHealOnConnectTimeout(
   stats: { total: number; idle: number; waiting: number } | null,
-  poolMax: number = resolveBongsimPoolMax(),
+  poolMax: number = resolveBongsimCatalogPoolMax(),
 ): boolean {
   if (!stats) return false;
   return stats.idle === 0 && stats.total >= poolMax;
@@ -159,7 +174,7 @@ function buildPoolConfig(): PoolConfig | null {
 
   const cfg: PoolConfig & { prepareThreshold?: number } = {
     connectionString: url,
-    max: resolveBongsimPoolMax(),
+    max: resolveBongsimCatalogPoolMax(),
     idleTimeoutMillis: 10_000,
     // 연결 고갈 시 무한 대기 → eSIM by-country「상품 조회 중…」무한 로딩 방지
     // worker 발급 드레인은 배치와 슬롯 경합 시 6s가 짧아 타임아웃→heal 연타가 난다.
@@ -199,7 +214,7 @@ export function getBongsimOutboxPool(): Pool | null {
   const cfg = buildPoolConfig();
   if (!cfg) return null;
 
-  const next = new Pool({ ...cfg, max: resolveBongsimOutboxPoolMax() });
+  const next = new Pool({ ...cfg, max: resolveBongsimOutboxPoolMaxClamped() });
   setCachedOutboxPool(next);
   return next;
 }

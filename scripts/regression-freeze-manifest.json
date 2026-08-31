@@ -1514,7 +1514,8 @@
             "saturated backoff (no heal)",
             "shouldBackoffInsteadOfHealOnConnectTimeout",
             "shouldSkipImmediateDrainRetryOnSaturatedTimeout",
-            "saturated skip drain (no immediate retry)"
+            "saturated skip drain (no immediate retry)",
+            "resolveBongsimCatalogPoolMax"
           ]
         },
         {
@@ -2118,7 +2119,9 @@
             "REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]",
             "getBongsimOutboxPool",
             "getBongsimFulfillOutboxPool",
-            "resolveBongsimOutboxPoolMax"
+            "resolveBongsimOutboxPoolMax",
+            "resolveBongsimCatalogPoolMax",
+            "resolveBongsimOutboxPoolMaxClamped"
           ]
         },
         {
