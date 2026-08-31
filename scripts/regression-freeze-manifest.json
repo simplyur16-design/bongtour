@@ -3,6 +3,15 @@
   "description": "교정(버그픽스) 회귀 얼림 SSOT — 항목 추가 없이 동작 변경 시 CI/prebuild 실패",
   "npmScripts": [
     {
+      "id": "esim-fulfill-keep-catalog-pipe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "script": "verify:esim-list-detail-pipe",
+      "summary": "발송·풀 수정 후에도 목록·상세 같은 캐시, EMAXCONN≠Plan not found, 풀 합≤max"
+    },
+    {
       "id": "register-supplier-cross-import",
       "tier": [
         "prebuild",
@@ -16675,6 +16684,44 @@
       "vitestSuites": [
         "lib/simplyur/catalog/load-korea-catalog-cached.test.ts",
         "lib/bongsim/db/pool-classify.test.ts"
+      ]
+    },
+    {
+      "id": "esim-fulfill-keep-catalog-pipe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "발송·풀을 고쳐도 목록/상세 파이프와 연결 예산을 깨면 prebuild 실패",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/product-http-view-state.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-fulfill-keep-catalog-pipe]",
+            "simplyurProductHttpViewState",
+            "unavailable"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/product/[optionApiId]/SimplyurProductClient.tsx",
+          "mustInclude": [
+            "simplyurProductHttpViewState"
+          ]
+        },
+        {
+          "file": "scripts/verify-esim-list-detail-pipe.ts",
+          "mustInclude": [
+            "loadSimplyurKoreaProductByOptionIdCached",
+            "max client connections reached",
+            "BONGSIM_PG_POOL_MAX"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:esim-list-detail-pipe"
+      ],
+      "vitestSuites": [
+        "lib/simplyur/catalog/product-http-view-state.test.ts"
       ]
     },
     {

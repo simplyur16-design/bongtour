@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { simplyurProductHttpViewState } from "@/lib/simplyur/catalog/product-http-view-state";
+// REGRESSION-FREEZE[esim-fulfill-keep-catalog-pipe]: 5xx uses simplyurProductHttpViewState — manifest
 import type { SimplyurProductViewState } from "@/lib/simplyur/product-design";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { useSimplyurIntl } from "@/components/simplyur/SimplyurIntlProvider";
@@ -33,12 +35,9 @@ export function SimplyurProductClient({
     setState("loading");
     fetch(`/api/simplyur/products/${encodeURIComponent(optionApiId)}?locale=${locale}`)
       .then(async (r) => {
-        if (r.status === 404) {
-          if (!cancelled) setState("not_found");
-          return null;
-        }
-        if (!r.ok) {
-          if (!cancelled) setState("unavailable");
+        const view = simplyurProductHttpViewState(r.status);
+        if (view !== "ok") {
+          if (!cancelled) setState(view);
           return null;
         }
         return r.json() as Promise<{ product: SimplyurPublicProduct }>;

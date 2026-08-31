@@ -72,6 +72,7 @@
     "verify:simplyur-mobile-asset-magic": "npx tsx scripts/verify-simplyur-mobile-asset-magic.ts",
     "verify:simplyur-mobile-fp-fontsize": "npx tsx scripts/verify-simplyur-mobile-fp-fontsize.ts",
     "verify:simplyur-trip-inbox-forms": "npx tsx scripts/verify-simplyur-trip-inbox-forms.ts",
+    "verify:esim-list-detail-pipe": "npx tsx scripts/verify-esim-list-detail-pipe.ts",
     "verify:pexels-place-name-keyword": "npx tsx scripts/verify-pexels-place-name-keyword.ts",
     "verify:pexels-primary-single-ingest": "npx tsx scripts/verify-pexels-primary-single-ingest.ts",
     "test:pexels-place-name-keyword": "node --import tsx --test tests/pexels-place-name-keyword.test.ts",
