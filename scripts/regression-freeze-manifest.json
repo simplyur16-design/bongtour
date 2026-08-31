@@ -2435,6 +2435,13 @@
           ]
         },
         {
+          "file": "lib/bongsim/data/parse-product-json.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-price-effective-from]",
+            "effective_from"
+          ]
+        },
+        {
           "file": "lib/simplyur/pricing.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-price-effective-from]",

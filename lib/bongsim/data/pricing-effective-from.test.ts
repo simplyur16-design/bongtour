@@ -8,6 +8,9 @@ import {
   resolveActivePriceSide,
 } from "@/lib/bongsim/data/pricing-effective-from";
 import { BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
+import { parsePriceBlockJson } from "@/lib/bongsim/data/parse-product-json";
+import { afterConsumerSellKrw } from "@/lib/bongsim/data/pricing-after-recommended-krw";
+import { bongtourEsimListPriceFromSupplyKrw } from "@/lib/bongsim/data/pricing-bongtour-list";
 
 // REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 00:00 KST — manifest
 
@@ -98,5 +101,18 @@ describe("pricing-effective-from", () => {
     expect(isScheduledNewSkuHiddenUntilCutover("신규 상품", beforeMs)).toBe(true);
     expect(isScheduledNewSkuHiddenUntilCutover("신규 상품", afterMs)).toBe(false);
     expect(isScheduledNewSkuHiddenUntilCutover("상품 확장", beforeMs)).toBe(false);
+  });
+
+  it("parsePriceBlockJson keeps effective_from so detail/checkout stay on before until 00:00 KST", () => {
+    const parsed = parsePriceBlockJson({
+      before: { consumer_krw: 3900, recommended_krw: null, supply_krw: 1950 },
+      after: { consumer_krw: 4700, recommended_krw: null, supply_krw: 2350 },
+      effective_from: BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+    });
+    expect(parsed.effective_from).toBe(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    const beforeMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 1;
+    const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+    expect(afterConsumerSellKrw(parsed, beforeMs)).toBe(bongtourEsimListPriceFromSupplyKrw(1950));
+    expect(afterConsumerSellKrw(parsed, afterMs)).toBe(bongtourEsimListPriceFromSupplyKrw(2350));
   });
 });

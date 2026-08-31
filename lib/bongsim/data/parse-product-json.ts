@@ -20,6 +20,14 @@ export function parsePriceBlockJson(value: unknown): BongsimPriceBlockV1 {
   const o = value as Record<string, unknown>;
   const b = (o.before && typeof o.before === "object" ? o.before : {}) as Record<string, unknown>;
   const a = (o.after && typeof o.after === "object" ? o.after : {}) as Record<string, unknown>;
+  const rawEf = o.effective_from;
+  const effective_from =
+    typeof rawEf === "string" && rawEf.trim() !== ""
+      ? rawEf.trim()
+      : rawEf === null
+        ? null
+        : undefined;
+  // REGRESSION-FREEZE[bongsim-price-effective-from]: keep effective_from so detail/checkout honor 9/1 00:00 KST — manifest
   return {
     before: {
       consumer_krw: numOrNull(b.consumer_krw),
@@ -31,6 +39,7 @@ export function parsePriceBlockJson(value: unknown): BongsimPriceBlockV1 {
       recommended_krw: numOrNull(a.recommended_krw),
       supply_krw: numOrNull(a.supply_krw),
     },
+    ...(effective_from !== undefined ? { effective_from } : {}),
   };
 }
 
