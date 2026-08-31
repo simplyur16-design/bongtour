@@ -12,6 +12,8 @@ import {
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: pool+TLS flag on globalThis — manifest
 type GlobalWithBongsimPool = typeof globalThis & {
   __bongsimPool?: Pool;
+  /** OrderPaid·EsimQrNotify drain 전용 — 카탈로그 풀 포화와 분리 */
+  __bongsimOutboxPool?: Pool;
   /** false = 인증서 검증 완화 확정. undefined/true = strict 시도 */
   __bongsimSslRejectUnauthorized?: boolean;
 };
@@ -25,6 +27,18 @@ function setCachedPool(p: Pool | undefined): void {
     delete (globalThis as GlobalWithBongsimPool).__bongsimPool;
   } else {
     (globalThis as GlobalWithBongsimPool).__bongsimPool = p;
+  }
+}
+
+function getCachedOutboxPool(): Pool | undefined {
+  return (globalThis as GlobalWithBongsimPool).__bongsimOutboxPool;
+}
+
+function setCachedOutboxPool(p: Pool | undefined): void {
+  if (p === undefined) {
+    delete (globalThis as GlobalWithBongsimPool).__bongsimOutboxPool;
+  } else {
+    (globalThis as GlobalWithBongsimPool).__bongsimOutboxPool = p;
   }
 }
 
@@ -85,6 +99,19 @@ export function resolveBongsimPoolMax(): number {
     if (Number.isFinite(n) && n >= 1 && n <= 20) return n;
   }
   return BONGSIM_POOL_MAX_DEFAULT;
+}
+
+/** 발급 outbox drain 전용 풀 상한. 카탈로그 5와 합쳐도 Supabase 예산을 넘지 않게 2. */
+const BONGSIM_OUTBOX_POOL_MAX_DEFAULT = 2;
+
+// REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: drain pool max — manifest
+export function resolveBongsimOutboxPoolMax(): number {
+  const raw = process.env.BONGSIM_OUTBOX_POOL_MAX?.trim();
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 4) return n;
+  }
+  return BONGSIM_OUTBOX_POOL_MAX_DEFAULT;
 }
 
 /** pg Pool connectionTimeoutMillis — 기본 8s, env `BONGSIM_PG_CONNECT_TIMEOUT_MS` (3s–30s). */
@@ -160,6 +187,28 @@ export function getPgPool(): Pool | null {
   return next;
 }
 
+/**
+ * OrderPaid·EsimQrNotify drain 전용 풀.
+ * 카탈로그 풀이 포화여도 발송 큐를 집어 솔라피로 보낼 수 있게 한다.
+ * REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: getBongsimOutboxPool — manifest
+ */
+export function getBongsimOutboxPool(): Pool | null {
+  const existing = getCachedOutboxPool();
+  if (existing) return existing;
+
+  const cfg = buildPoolConfig();
+  if (!cfg) return null;
+
+  const next = new Pool({ ...cfg, max: resolveBongsimOutboxPoolMax() });
+  setCachedOutboxPool(next);
+  return next;
+}
+
+/** fulfill drain — outbox 풀 우선, 없으면 카탈로그 풀 */
+export function getBongsimFulfillOutboxPool(): Pool | null {
+  return getBongsimOutboxPool() ?? getPgPool();
+}
+
 async function rebuildPoolWithRelaxedTls(): Promise<Pool | null> {
   setSslRejectUnauthorized(false);
   await closePgPool().catch(() => {});
@@ -213,13 +262,15 @@ export async function probePgPoolTlsOrFallback(): Promise<{ ok: boolean; sslStri
 
 export async function closePgPool(): Promise<void> {
   const p = getCachedPool();
-  if (!p) return;
+  const outbox = getCachedOutboxPool();
   // 캐시에서 먼저 분리 — end() 대기 중 다른 요청이 같은 Pool을 쓰면
   // "Cannot use a pool after calling end on the pool" 가 난다.
   setCachedPool(undefined);
+  setCachedOutboxPool(undefined);
   // REGRESSION-FREEZE[bongsim-pg-tls-global]: pool.end() must not block request path — manifest
   // 체크아웃/대기 클라이언트가 있으면 end()가 풀러 압박 하에서 영구 대기 → /countries 무응답.
-  void p.end().catch(() => {});
+  if (p) void p.end().catch(() => {});
+  if (outbox) void outbox.end().catch(() => {});
 }
 
 /** 카탈로그 등 — 트랜잭션 풀러에서도 세션에 남지 않게 LOCAL + BEGIN */

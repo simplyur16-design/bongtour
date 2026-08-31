@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { terminalPendingEsimQrNotifyForOrder } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import { WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import {
   cancelUsimsaTopup,
@@ -332,6 +333,8 @@ async function persistCardCancelOutcome(
   await client.query(`UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`, [
     orderId,
   ]);
+  // REGRESSION-FREEZE[bongsim-esim-qr-notify-skip-terminal-order]: refund cancels pending QR notify — manifest
+  await terminalPendingEsimQrNotifyForOrder(client, orderId, "refunded");
 
   if (paymentAttemptId) {
     await client.query(

@@ -7,7 +7,7 @@ import {
 } from "@/lib/simplyur/notify/simplyur-qr-notify-policy";
 
 describe("simplyur notify + refund order SSOT", () => {
-  it("skips Kakao for simplyur channels and requires it for bongsim", () => {
+  it("skips Kakao for simplyur app/web (Eximbay) and requires it for Bongtour", () => {
     expect(simplyurNotifyRequiresKakaoPhone("simplyur_web")).toBe(false);
     expect(simplyurNotifyRequiresKakaoPhone("simplyur_app")).toBe(false);
     expect(simplyurNotifyRequiresKakaoPhone("bongsim_web")).toBe(true);

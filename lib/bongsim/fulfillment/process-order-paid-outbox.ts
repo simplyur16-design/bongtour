@@ -1,5 +1,6 @@
 import {
   classifyBongsimPgError,
+  getBongsimFulfillOutboxPool,
   getPgPool,
   healBongsimPgPoolForCatalog,
 } from "@/lib/bongsim/db/pool";
@@ -122,7 +123,8 @@ export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutb
 }
 
 async function processNextOrderPaidOutboxUnlocked(): Promise<ProcessOrderPaidOutboxResult> {
-  const pool = getPgPool();
+  // REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: drain uses outbox pool — manifest
+  const pool = getBongsimFulfillOutboxPool();
   if (!pool) {
     console.error("[bongsim:outbox:process] db_unconfigured (no pool)");
     return { outcome: "error" };
@@ -249,7 +251,7 @@ async function processNextOrderPaidOutboxUnlocked(): Promise<ProcessOrderPaidOut
     } catch {
       /* ignore */
     }
-    const c3 = await getPgPool()?.connect();
+    const c3 = await getBongsimFulfillOutboxPool()?.connect();
     if (c3) {
       try {
         await deferOrTerminalOutboxAfterFailure(c3, {

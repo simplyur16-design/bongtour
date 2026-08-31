@@ -4,6 +4,7 @@ import {
   ESIM_QR_NOTIFY_CLAIM_LEASE_MS,
   computeEsimQrNotifyStaggerMs,
   esimQrNotifyDedupeKey,
+  shouldSkipEsimQrNotifyForOrderStatus,
 } from '@/lib/bongsim/fulfillment/esim-qr-notify-outbox'
 
 // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: stagger helpers — manifest
@@ -25,6 +26,15 @@ describe('esim-qr-notify-outbox', () => {
 
   it('claim lease is at least 60s so concurrent kick+cron cannot double-send', () => {
     expect(ESIM_QR_NOTIFY_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(60_000)
+  })
+
+  it('skips Solapi when the order is already refunded or cancelled', () => {
+    // REGRESSION-FREEZE[bongsim-esim-qr-notify-skip-terminal-order]: skip refunded — manifest
+    expect(shouldSkipEsimQrNotifyForOrderStatus('refunded')).toBe(true)
+    expect(shouldSkipEsimQrNotifyForOrderStatus('cancelled')).toBe(true)
+    expect(shouldSkipEsimQrNotifyForOrderStatus('failed')).toBe(true)
+    expect(shouldSkipEsimQrNotifyForOrderStatus('paid')).toBe(false)
+    expect(shouldSkipEsimQrNotifyForOrderStatus('delivered')).toBe(false)
   })
 
   it('exports await drain + serialize kick chain symbol', async () => {

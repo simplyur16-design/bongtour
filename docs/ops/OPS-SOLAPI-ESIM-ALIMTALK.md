@@ -50,10 +50,11 @@ QR 코드와 설치 코드를 확인하실 수 있습니다.
 ## 기기 구분 (iPhone / Galaxy)
 
 - 알림톡은 **기기 구분 없이** 주문 완료 페이지 버튼만 보냅니다. (휴대폰 번호만으로는 OS를 알 수 없음)
-- **LMS(문자)** 는 알림톡 **실패·미설정 시에만** 폴백하며, LPA가 있으면 본문에 원클릭 설치 URL을 **둘 다** 넣습니다.
+- **LPA가 있으면** LMS에 원클릭 설치 URL을 **둘 다** 넣어 **알림톡과 같이** 발송합니다 (`esimQrNotifyMustSendOsQuickInstallLms`).
   - iPhone: `esimsetup.apple.com/...`
   - Android: `esimsetup.android.com/...`
   - 추가로 QR·설치코드용 주문 완료 페이지 URL
+- LPA가 없고 알림톡이 **실패·미설정 시에만** 주문 페이지 LMS 폴백 (`buildEsimQrDeliveredLmsText`).
 - 이메일·주문 페이지에도 동일하게 iPhone + Galaxy/Android 버튼을 노출합니다.
 - QR 스캔은 양쪽 공통입니다.
 

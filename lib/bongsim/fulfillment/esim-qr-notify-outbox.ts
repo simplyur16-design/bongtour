@@ -3,11 +3,52 @@
  * REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: EsimQrNotify outbox — manifest
  */
 import type { PoolClient } from 'pg'
-import { getPgPool } from '@/lib/bongsim/db/pool'
+import { getBongsimFulfillOutboxPool, getPgPool } from '@/lib/bongsim/db/pool'
 import { deferOrTerminalOutboxAfterFailure } from '@/lib/bongsim/fulfillment/outbox-defer'
 import { shouldDrainOrderPaidInThisProcess } from '@/lib/instrumentation-process-role'
 
 export const ESIM_QR_NOTIFY_TOPIC = 'EsimQrNotify'
+
+/** 환불·취소·실패 주문은 솔라피로 QR을 보내지 않는다 */
+export const ESIM_QR_NOTIFY_SKIP_ORDER_STATUSES = ['refunded', 'cancelled', 'failed'] as const
+
+// REGRESSION-FREEZE[bongsim-esim-qr-notify-skip-terminal-order]: skip refunded notify — manifest
+export function shouldSkipEsimQrNotifyForOrderStatus(status: string | null | undefined): boolean {
+  const s = (status ?? '').trim()
+  return (ESIM_QR_NOTIFY_SKIP_ORDER_STATUSES as readonly string[]).includes(s)
+}
+
+/** 주문 환불 시 pending EsimQrNotify 종결 — 워커가 살아나도 솔라피로 안 감 */
+export async function terminalPendingEsimQrNotifyForOrder(
+  client: PoolClient,
+  orderId: string,
+  orderStatus: string,
+): Promise<number> {
+  const oid = orderId.trim()
+  if (!oid) return 0
+  const r = await client.query<{ id: string }>(
+    `UPDATE bongsim_outbox
+        SET processed_at = now(),
+            locked_at = now(),
+            payload = payload || $3::jsonb
+      WHERE topic = $1
+        AND processed_at IS NULL
+        AND payload->>'order_id' = $2
+      RETURNING id`,
+    [
+      ESIM_QR_NOTIFY_TOPIC,
+      oid,
+      JSON.stringify({
+        _outbox_defer: {
+          reason: 'skipped_not_paid',
+          order_status: orderStatus,
+          terminal: true,
+        },
+      }),
+    ],
+  )
+  return r.rowCount ?? 0
+}
 
 /** 발송 간격(ms). Solapi/카카오 순간 제한 회피. */
 export const ESIM_QR_NOTIFY_GAP_MS = Math.max(
@@ -210,7 +251,8 @@ export type ProcessEsimQrNotifyResult =
   | { outcome: 'deferred' | 'terminal' | 'error'; order_id?: string }
 
 export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNotifyResult> {
-  const pool = getPgPool()
+  // REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: notify drain uses outbox pool — manifest
+  const pool = getBongsimFulfillOutboxPool()
   if (!pool) return { outcome: 'error' }
 
   const client = await pool.connect()
@@ -249,6 +291,21 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
       return { outcome: 'terminal', order_id: undefined }
     }
 
+    const stq = await client.query<{ status: string }>(
+      `SELECT status FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
+      [parsed.order_id],
+    )
+    if (shouldSkipEsimQrNotifyForOrderStatus(stq.rows[0]?.status)) {
+      await deferOrTerminalOutboxAfterFailure(client, {
+        outbox_id: row.id,
+        payload: row.payload,
+        reason: 'skipped_not_paid',
+        order_status: stq.rows[0]?.status ?? null,
+      })
+      await client.query('COMMIT')
+      return { outcome: 'terminal', order_id: parsed.order_id }
+    }
+
     // 발송 전 커밋 해제 — 네트워크 대기 중 행 락 유지 금지.
     // 단 available_at lease로 다른 드레인이 같은 행을 집어 이중 알림톡 내지 않게 한다.
     await client.query(
@@ -278,7 +335,7 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
     const { sendQueuedEsimQrCustomerNotify } = await import('@/lib/bongsim/fulfillment/esim-delivery')
     await sendQueuedEsimQrCustomerNotify(parsed)
 
-    const pool2 = getPgPool()
+    const pool2 = getBongsimFulfillOutboxPool()
     if (!pool2) return { outcome: 'error', order_id: parsed.order_id }
     await pool2.query(
       `UPDATE bongsim_outbox SET processed_at = now(), locked_at = now() WHERE id = $1`,
@@ -286,7 +343,7 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
     )
     return { outcome: 'processed', order_id: parsed.order_id }
   } catch (e) {
-    const pool2 = getPgPool()
+    const pool2 = getBongsimFulfillOutboxPool()
     if (!pool2) return { outcome: 'error', order_id: parsed.order_id }
     const c2 = await pool2.connect()
     try {
@@ -390,7 +447,7 @@ export async function awaitEsimQrNotifyDrain(maxRounds = 40): Promise<{
 }
 
 export async function countPendingEsimQrNotify(): Promise<number> {
-  const pool = getPgPool()
+  const pool = getBongsimFulfillOutboxPool()
   if (!pool) return 0
   const r = await pool.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n

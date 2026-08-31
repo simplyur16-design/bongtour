@@ -15,6 +15,10 @@ vi.mock("@/lib/bongsim/refund/usimsa-refund-usage", () => ({
   checkUsimsaOrderDataUsageForRefund: vi.fn(),
 }));
 
+vi.mock("@/lib/bongsim/fulfillment/esim-qr-notify-outbox", () => ({
+  terminalPendingEsimQrNotifyForOrder: vi.fn().mockResolvedValue(0),
+}));
+
 vi.mock("@/lib/bongsim/supplier/usimsa/order-api", () => ({
   cancelUsimsaTopup: vi.fn(),
   cancelUsimsaUsimTopup: vi.fn(),

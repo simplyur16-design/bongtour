@@ -44,6 +44,10 @@ vi.mock("@/lib/bongsim/refund/notify-refund-completed", () => ({
   notifyRefundCompletedBestEffort: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/bongsim/fulfillment/esim-qr-notify-outbox", () => ({
+  terminalPendingEsimQrNotifyForOrder: vi.fn().mockResolvedValue(0),
+}));
+
 import { processRefund } from "@/lib/bongsim/refund/process-refund";
 
 type OrderRow = {

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { terminalPendingEsimQrNotifyForOrder } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import {
   cancelUsimsaTopup,
   cancelUsimsaUsimTopup,
@@ -375,6 +376,7 @@ export async function processSimplyurEximbayRefund(
     await client.query(`UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`, [
       id,
     ]);
+    await terminalPendingEsimQrNotifyForOrder(client, id, "refunded");
     if (paymentAttemptId) {
       await client.query(
         `UPDATE bongsim_payment_attempt SET status = 'cancelled', updated_at = now() WHERE payment_attempt_id = $1::uuid`,

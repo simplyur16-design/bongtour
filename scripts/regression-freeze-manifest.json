@@ -2000,13 +2000,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문 + 알림톡 실패 시에만 폴백",
+      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. LPA면 항상 LMS, 없으면 알림톡 실패·미설정 시에만 폴백",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-lms-quick-install]",
             "buildEsimQrDeliveredLmsText",
+            "esimQrNotifyMustSendOsQuickInstallLms",
             "iPhone 바로 설치",
             "Galaxy·Android 바로 설치",
             "buildAppleQuickInstallUrl",
@@ -2036,12 +2037,107 @@
           "file": "docs/ops/OPS-SOLAPI-ESIM-ALIMTALK.md",
           "mustInclude": [
             "실패·미설정 시에만",
-            "buildEsimQrDeliveredLmsText"
+            "buildEsimQrDeliveredLmsText",
+            "esimQrNotifyMustSendOsQuickInstallLms"
           ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/notifications/esim-qr-lms.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-qr-os-install-lms-always",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "LPA가 있으면 알림톡 성공과 무관하게 iPhone·Android 원클릭 LMS를 반드시 발송",
+      "checks": [
+        {
+          "file": "lib/bongsim/notifications/esim-qr-lms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
+            "esimQrNotifyMustSendOsQuickInstallLms",
+            "shouldSendBongtourEsimOsQuickInstallLms",
+            "startsWith(\"LPA:\")"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-delivery.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
+            "shouldSendBongtourEsimOsQuickInstallLms",
+            "os_install_lms_failed"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/notifications/esim-qr-lms.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-qr-notify-skip-terminal-order",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "환불·취소·실패 주문은 EsimQrNotify를 솔라피로 보내지 않고 종결",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-notify-skip-terminal-order]",
+            "shouldSkipEsimQrNotifyForOrderStatus",
+            "terminalPendingEsimQrNotifyForOrder"
+          ]
+        },
+        {
+          "file": "lib/bongsim/refund/process-refund.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-qr-notify-skip-terminal-order]",
+            "terminalPendingEsimQrNotifyForOrder"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/fulfillment/esim-qr-notify-outbox.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-fulfill-outbox-own-pool",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OrderPaid·EsimQrNotify drain은 카탈로그 풀과 분리된 outbox 풀을 쓴다",
+      "checks": [
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]",
+            "getBongsimOutboxPool",
+            "getBongsimFulfillOutboxPool",
+            "resolveBongsimOutboxPoolMax"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]",
+            "getBongsimFulfillOutboxPool"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]",
+            "getBongsimFulfillOutboxPool"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/db/pool-outbox-max.test.ts"
       ]
     },
     {
@@ -18060,7 +18156,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
             "sendSimplyurEsimQrMail",
-            "simplyurNotifyRequiresKakaoPhone"
+            "simplyurNotifyRequiresKakaoPhone",
+            "shouldSendBongtourEsimOsQuickInstallLms"
           ]
         },
         {
@@ -18099,7 +18196,8 @@
       ],
       "vitestSuites": [
         "lib/simplyur/notify/simplyur-qr-notify-policy.test.ts",
-        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts"
+        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts",
+        "lib/bongsim/notifications/esim-qr-lms.test.ts"
       ]
     },
     {

@@ -12,6 +12,7 @@ import {
   parseOfflineUsimConsents,
 } from "@/lib/bongsim/admin/offline-usim-order";
 import { getPgPool } from "@/lib/bongsim/db/pool";
+import { terminalPendingEsimQrNotifyForOrder } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import { checkUsimsaOrderDataUsageForRefund } from "@/lib/bongsim/refund/usimsa-refund-usage";
 import {
   cancelUsimsaTopup,
@@ -177,6 +178,8 @@ export async function adminCancelNonPgEsimOrder(
         `UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`,
         [id],
       );
+      // REGRESSION-FREEZE[bongsim-esim-qr-notify-skip-terminal-order]: non-PG cancel cancels pending QR notify — manifest
+      await terminalPendingEsimQrNotifyForOrder(client, id, "refunded");
 
       await client.query(
         `UPDATE bongsim_payment_attempt

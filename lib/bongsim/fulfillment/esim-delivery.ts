@@ -1,4 +1,4 @@
-import { getPgPool } from "@/lib/bongsim/db/pool";
+import { getBongsimFulfillOutboxPool, getPgPool } from "@/lib/bongsim/db/pool";
 import { resolveEsimDeliveryContact } from "@/lib/bongsim/checkout/gift-order";
 import { resolveBuyerPhoneForOrder } from "@/lib/bongsim/data/resolve-buyer-phone";
 import {
@@ -21,6 +21,7 @@ import {
   type EsimQrNotifyPayload,
 } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
+import { shouldSendBongtourEsimOsQuickInstallLms } from "@/lib/bongsim/notifications/esim-qr-lms";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
 import { sendEsimQrDeliveredLmsFallback } from "@/lib/notification-service";
 
@@ -118,7 +119,7 @@ async function sendEsimQrEmailBestEffort(params: {
  */
 export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayload): Promise<void> {
   const orderId = payload.order_id;
-  const pool = getPgPool();
+  const pool = getBongsimFulfillOutboxPool() ?? getPgPool();
   const channelRow = pool
     ? await pool.query<{ checkout_channel: string | null; consents: unknown }>(
         `SELECT checkout_channel, consents FROM bongsim_order WHERE order_id = $1::uuid LIMIT 1`,
@@ -146,23 +147,44 @@ export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayloa
   // REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur skips Kakao; email + install links — manifest
 
   if (requireKakaoPhone && phone) {
-    const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
+    const lmsPayload = {
+      orderId,
       customerPhone: phone,
       orderNumber: orderLabel,
       orderPageUrl,
-    });
-    if (alim.ok) {
+      downloadLink: payload.download_link,
+    };
+    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA면 원클릭 LMS 필수 — manifest
+    if (shouldSendBongtourEsimOsQuickInstallLms(checkoutChannel, payload.download_link)) {
+      const lms = await sendEsimQrDeliveredLmsFallback(lmsPayload);
+      if (!lms.ok) {
+        throw new Error(`[bongsim:esim-qr-notify] os_install_lms_failed order=${orderId}`);
+      }
       phoneNotifyOk = true;
-    } else if (alim.shouldSendLmsFallback) {
-      // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: AlimTalk 실패 시에만 LMS(원클릭 URL) — manifest
-      const lms = await sendEsimQrDeliveredLmsFallback({
-        orderId,
+      const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
         customerPhone: phone,
         orderNumber: orderLabel,
         orderPageUrl,
-        downloadLink: payload.download_link,
       });
-      phoneNotifyOk = Boolean(lms.ok);
+      if (!alim.ok) {
+        console.warn("[bongsim:alimtalk:esim-qr] companion_failed_after_os_lms", {
+          orderId,
+          detail: alim.detail,
+        });
+      }
+    } else {
+      const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
+        customerPhone: phone,
+        orderNumber: orderLabel,
+        orderPageUrl,
+      });
+      if (alim.ok) {
+        phoneNotifyOk = true;
+      } else if (alim.shouldSendLmsFallback) {
+        // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: AlimTalk 실패 시에만 LMS — manifest
+        const lms = await sendEsimQrDeliveredLmsFallback(lmsPayload);
+        phoneNotifyOk = Boolean(lms.ok);
+      }
     }
   } else if (requireKakaoPhone) {
     console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId });
