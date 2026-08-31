@@ -75,6 +75,23 @@ export function SimplyurProductPanel({
 
         {state === "loading" ? <ProductSkeleton /> : null}
 
+        {state === "unavailable" ? (
+          <div
+            className="flex flex-col items-center gap-2.5 border border-dashed px-[22px] py-8 text-center"
+            style={{ borderColor: D.border, borderRadius: 16 }}
+          >
+            <p className="text-[15px] font-bold" style={{ color: D.navy }}>
+              {tr("recommend.errorTitle")}
+            </p>
+            <p className="max-w-[260px] text-[13px] leading-relaxed" style={{ color: D.muted }}>
+              {tr("recommend.errorBody")}
+            </p>
+            <Link href={plansHref} className="mt-1.5 text-[13px] font-semibold" style={{ color: D.coral }}>
+              {tr("recommend.retry")}
+            </Link>
+          </div>
+        ) : null}
+
         {state === "not_found" ? (
           <div
             className="flex flex-col items-center gap-2.5 border border-dashed px-[22px] py-8 text-center"

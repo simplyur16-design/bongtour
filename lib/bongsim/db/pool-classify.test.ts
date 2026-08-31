@@ -15,6 +15,13 @@ describe("classifyBongsimPgError", () => {
     expect(classifyBongsimPgError(err)).toBe("connection_timeout");
   });
 
+  // REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: live EMAXCONN text — manifest
+  it("treats live (EMAXCONN) max client connections reached as recoverable", () => {
+    expect(
+      classifyBongsimPgError(new Error("(EMAXCONN) max client connections reached, limit: 200")),
+    ).toBe("connection_timeout");
+  });
+
   it("treats Supabase session pool exhaustion as recoverable", () => {
     expect(
       classifyBongsimPgError(

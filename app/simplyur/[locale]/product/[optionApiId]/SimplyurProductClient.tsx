@@ -21,14 +21,14 @@ export function SimplyurProductClient({
 }: Props) {
   const { locale } = useSimplyurIntl();
   const serverLoaded = initialState === "loaded" && initialProduct != null;
-  const serverNotFound = initialState === "not_found";
+  const serverTerminal = initialState === "not_found" || initialState === "unavailable";
   const [product, setProduct] = useState<SimplyurPublicProduct | null>(initialProduct);
   const [state, setState] = useState<SimplyurProductViewState>(
-    serverLoaded ? "loaded" : serverNotFound ? "not_found" : "loading",
+    serverLoaded ? "loaded" : serverTerminal ? initialState : "loading",
   );
 
   useEffect(() => {
-    if (serverLoaded || serverNotFound) return;
+    if (serverLoaded || serverTerminal) return;
     let cancelled = false;
     setState("loading");
     fetch(`/api/simplyur/products/${encodeURIComponent(optionApiId)}?locale=${locale}`)
@@ -37,7 +37,10 @@ export function SimplyurProductClient({
           if (!cancelled) setState("not_found");
           return null;
         }
-        if (!r.ok) throw new Error("load failed");
+        if (!r.ok) {
+          if (!cancelled) setState("unavailable");
+          return null;
+        }
         return r.json() as Promise<{ product: SimplyurPublicProduct }>;
       })
       .then((json) => {
@@ -48,12 +51,12 @@ export function SimplyurProductClient({
         }
       })
       .catch(() => {
-        if (!cancelled) setState("not_found");
+        if (!cancelled) setState("unavailable");
       });
     return () => {
       cancelled = true;
     };
-  }, [optionApiId, locale, serverLoaded, serverNotFound]);
+  }, [optionApiId, locale, serverLoaded, serverTerminal]);
 
   return <SimplyurProductPanel state={state} product={product} checkoutEnabled={checkoutEnabled} />;
 }

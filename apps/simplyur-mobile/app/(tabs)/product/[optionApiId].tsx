@@ -14,6 +14,7 @@ import {
 } from '@/src/lib/product-title';
 
 /** design_handoff_product — Product detail [05] */
+// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: 5xx ≠ Plan not found — manifest
 export default function ProductScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
   const { t, locale } = useI18n();
@@ -41,8 +42,10 @@ export default function ProductScreen() {
           setState('not_found');
         }
       })
-      .catch(() => {
-        if (!cancelled) setState('not_found');
+      .catch((e) => {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : '';
+        setState(/API (5\d\d|429)/.test(msg) ? 'unavailable' : 'not_found');
       });
     return () => {
       cancelled = true;
@@ -90,6 +93,18 @@ export default function ProductScreen() {
       </Pressable>
 
       {state === 'loading' ? <LoadingSkeleton /> : null}
+
+      {state === 'unavailable' ? (
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundTitle}>{t('recommend.errorTitle')}</Text>
+          <Text style={styles.notFoundBody}>{t('recommend.errorBody')}</Text>
+          <Link href="/plans" asChild>
+            <Pressable hitSlop={8}>
+              <Text style={styles.notFoundLink}>{t('recommend.retry')}</Text>
+            </Pressable>
+          </Link>
+        </View>
+      ) : null}
 
       {state === 'not_found' ? (
         <View style={styles.notFound}>

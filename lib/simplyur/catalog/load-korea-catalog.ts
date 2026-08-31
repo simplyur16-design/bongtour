@@ -26,6 +26,7 @@ import { sortKoreaPlansBestFirst } from "@/lib/simplyur/catalog/sort-korea-plans
 // REGRESSION-FREEZE[bongsim-price-effective-from]: catalog ORDER BY effective consumer — manifest
 // REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: Korea plan_name SQL so 15k+ catalog cannot empty the app list — manifest
 // REGRESSION-FREEZE[simplyur-plans-best-capacity-first]: pack order = sortKoreaPlansBestFirst — manifest
+// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: list·detail share findKoreaCatalogProductByOptionId — manifest
 
 export type SimplyurKoreaPack = {
   roaming: {
@@ -133,6 +134,19 @@ export async function loadSimplyurKoreaCatalog(locale: SimplyurLocale): Promise<
     locale,
     pack: buildSimplyurKoreaPack(loaded.products, locale, rates),
   };
+}
+
+/** 목록에 나온 SKU를 상세가 다시 찾지 못할 때 쓰는 동일 키. UUID 대소문자만 달라도 매칭. */
+export function findKoreaCatalogProductByOptionId(
+  products: ProductOption[],
+  optionApiId: string,
+): ProductOption | undefined {
+  const id = optionApiId.trim();
+  if (!id) return undefined;
+  const exact = products.find((p) => p.option_api_id === id);
+  if (exact) return exact;
+  const lower = id.toLowerCase();
+  return products.find((p) => p.option_api_id.toLowerCase() === lower);
 }
 
 export async function loadSimplyurKoreaProductByOptionId(

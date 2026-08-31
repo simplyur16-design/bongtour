@@ -1,7 +1,11 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
-import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
-import { CATALOG_REVALIDATE_SEC } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
+import {
+  CATALOG_REVALIDATE_SEC,
+  loadSimplyurKoreaProductByOptionIdCached,
+} from "@/lib/simplyur/catalog/load-korea-catalog-cached";
+
+// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: API detail uses list cache — manifest
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +20,7 @@ export async function GET(req: Request, context: RouteContext) {
   const localeParam = searchParams.get("locale") ?? "en";
   const locale: SimplyurLocale = isSimplyurLocale(localeParam) ? localeParam : "en";
 
-  const loaded = await loadSimplyurKoreaProductByOptionId(optionApiId, locale);
+  const loaded = await loadSimplyurKoreaProductByOptionIdCached(optionApiId, locale);
   if (!loaded.ok) {
     if (loaded.reason === "not_found" || loaded.reason === "not_korea") {
       return jsonWithLeakGuard({ error: loaded.reason }, "simplyur.products.detail", { status: 404 });

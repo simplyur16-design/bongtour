@@ -20,4 +20,4 @@ export const SIMPLYUR_PRODUCT_DESIGN = {
   ctaShadow: "0 12px 26px -12px rgba(255,107,74,0.6)",
 } as const;
 
-export type SimplyurProductViewState = "loading" | "loaded" | "not_found";
+export type SimplyurProductViewState = "loading" | "loaded" | "not_found" | "unavailable";

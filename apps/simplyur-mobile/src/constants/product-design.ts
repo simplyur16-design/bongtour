@@ -17,4 +17,4 @@ export const PRODUCT_DESIGN = {
   sectionGap: 22,
 } as const;
 
-export type ProductViewState = 'loading' | 'loaded' | 'not_found';
+export type ProductViewState = 'loading' | 'loaded' | 'not_found' | 'unavailable';

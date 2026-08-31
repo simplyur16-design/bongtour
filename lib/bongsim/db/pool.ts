@@ -277,6 +277,7 @@ export async function closePgPool(): Promise<void> {
 export const BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS = 12_000;
 
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: classify connect timeout + pool self-heal — manifest
+// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: (EMAXCONN) max client connections reached → 503 — manifest
 
 export type BongsimPgFailureKind = "connection_timeout" | "db_error";
 
@@ -297,7 +298,8 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
       msg,
     ) ||
     // Supabase 풀러 고갈. 일시적 용량 문제라 풀 리셋 + 503 재시도 경로로 보낸다.
-    /EMAXCONNSESSION|max clients reached|too many connections|remaining connection slots|MaxClientsInSessionMode/i.test(
+    // (EMAXCONN) max client connections reached — Supabase session 200. EMAXCONNSESSION만 보면 상세가 db_error로 굳음.
+    /EMAXCONN|max clients? connections? reached|too many connections|remaining connection slots|MaxClientsInSessionMode/i.test(
       msg,
     ) ||
     // statement_timeout — 풀 고갈·락과 겹치면 카탈로그가 db_error로 굳음 → 503 재시도

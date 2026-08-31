@@ -16608,6 +16608,73 @@
       ]
     },
     {
+      "id": "simplyur-product-detail-same-catalog-pipe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 목록·상세·체크아웃은 같은 Korea 캐시. EMAXCONN을 Plan not found로 숨기지 않음",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]",
+            "loadSimplyurKoreaProductByOptionIdCached",
+            "findKoreaCatalogProductByOptionId",
+            "simplyur-korea-products-v2"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]",
+            "findKoreaCatalogProductByOptionId"
+          ]
+        },
+        {
+          "file": "app/api/simplyur/products/[optionApiId]/route.ts",
+          "mustInclude": [
+            "loadSimplyurKoreaProductByOptionIdCached"
+          ],
+          "mustNotInclude": [
+            "from \"@/lib/simplyur/catalog/load-korea-catalog\""
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/product/[optionApiId]/page.tsx",
+          "mustInclude": [
+            "loadSimplyurKoreaProductByOptionIdCached",
+            "unavailable"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/page.tsx",
+          "mustInclude": [
+            "loadSimplyurKoreaProductByOptionIdCached"
+          ]
+        },
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "max clients? connections? reached",
+            "EMAXCONN"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/get-product-detail-by-option-api-id.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]",
+            "classifyBongsimPgError",
+            "connection_timeout"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/catalog/load-korea-catalog-cached.test.ts",
+        "lib/bongsim/db/pool-classify.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-surface-layout-p2",
       "tier": [
         "prebuild",

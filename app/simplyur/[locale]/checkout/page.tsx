@@ -4,7 +4,9 @@ import { SimplyurCheckoutClient } from "./SimplyurCheckoutClient";
 import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { resolveSimplyurCheckoutBuyerEmail } from "@/lib/simplyur/checkout/session-buyer-email";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
-import { loadSimplyurKoreaProductByOptionId } from "@/lib/simplyur/catalog/load-korea-catalog";
+import { loadSimplyurKoreaProductByOptionIdCached } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
+
+// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: checkout uses list cache — manifest
 import { isSimplyurEximbayPrepUiEnabled } from "@/lib/simplyur/payments/eximbay-env";
 
 type Props = {
@@ -23,7 +25,7 @@ export default async function SimplyurCheckoutPage({ params, searchParams }: Pro
 
   let initialProduct = null;
   if (optionApiId) {
-    const loaded = await loadSimplyurKoreaProductByOptionId(optionApiId, locale);
+    const loaded = await loadSimplyurKoreaProductByOptionIdCached(optionApiId, locale);
     if (loaded.ok) initialProduct = loaded.product;
   }
 
