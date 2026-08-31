@@ -5,7 +5,7 @@
  * REGRESSION-FREEZE[bongsim-catalog-list-perf]: slim consumer extract — manifest
  * REGRESSION-FREEZE[bongsim-price-effective-from]: before/after 컷오버 — manifest
  */
-import { BONGSIM_PRICE_EFFECTIVE_FROM_20260901 } from "@/lib/bongsim/data/pricing-effective-from";
+import { resolveBongsimPriceEffectiveFrom } from "@/lib/bongsim/data/pricing-effective-from";
 
 /** after/before 쪽 숫자 추출 */
 const SIDE_NUM = (side: "'after'" | "'before'", field: "consumer_krw" | "recommended_krw" | "supply_krw") => `CASE
@@ -71,7 +71,7 @@ export const BONGSIM_CATALOG_SELLABLE_NOW_WHERE = `(${BONGSIM_CATALOG_CONSUMER_K
  */
 export const BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE = `NOT (
   COALESCE(excel_update_type, '') = '신규 상품'
-  AND now() < '${BONGSIM_PRICE_EFFECTIVE_FROM_20260901}'::timestamptz
+  AND now() < '${resolveBongsimPriceEffectiveFrom()}'::timestamptz
 )`;
 
 /** SELECT 절용 — slim price_block(after.consumer_krw만 = 이미 컷오버 반영된 값) */

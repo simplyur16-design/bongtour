@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BONGSIM_PRICE_EFFECTIVE_FROM_20260901,
+  resolveBongsimPriceEffectiveFrom,
   isBeforePriceEffectiveWindow,
   isPriceBlockCatalogSellable,
   isScheduledNewSkuHiddenUntilCutover,
@@ -20,6 +21,21 @@ describe("pricing-effective-from", () => {
   it("locks cutover at 2026-09-01 00:00 KST", () => {
     expect(BONGSIM_PRICE_EFFECTIVE_FROM_20260901).toBe("2026-09-01T00:00:00+09:00");
     expect(Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901)).toBe(Date.parse("2026-08-31T15:00:00.000Z"));
+    expect(resolveBongsimPriceEffectiveFrom()).toBe(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+  });
+
+  it("BONGSIM_PRICE_EFFECTIVE_FROM can open the Sept 1 book early", () => {
+    const prev = process.env.BONGSIM_PRICE_EFFECTIVE_FROM;
+    process.env.BONGSIM_PRICE_EFFECTIVE_FROM = "2026-08-31T00:00:00+09:00";
+    try {
+      expect(resolveBongsimPriceEffectiveFrom()).toBe("2026-08-31T00:00:00+09:00");
+      expect(isScheduledNewSkuHiddenUntilCutover("신규 상품", Date.parse("2026-08-31T12:00:00+09:00"))).toBe(
+        false,
+      );
+    } finally {
+      if (prev === undefined) delete process.env.BONGSIM_PRICE_EFFECTIVE_FROM;
+      else process.env.BONGSIM_PRICE_EFFECTIVE_FROM = prev;
+    }
   });
 
   it("uses before before cutover and after after cutover", () => {

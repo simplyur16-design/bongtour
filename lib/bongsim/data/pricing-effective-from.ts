@@ -7,6 +7,17 @@ import type { BongsimPriceBlockV1 } from "@/lib/bongsim/contracts/product-master
  */
 export const BONGSIM_PRICE_EFFECTIVE_FROM_20260901 = "2026-09-01T00:00:00+09:00";
 
+/**
+ * 운영이 9/1 책을 앞당겨 열 때 `BONGSIM_PRICE_EFFECTIVE_FROM`.
+ * 없으면 공식 2026-09-01 00:00 KST.
+ * REGRESSION-FREEZE[bongsim-price-effective-from]: env may open cutover early — manifest
+ */
+export function resolveBongsimPriceEffectiveFrom(): string {
+  const raw = process.env.BONGSIM_PRICE_EFFECTIVE_FROM?.trim();
+  if (raw && Number.isFinite(Date.parse(raw))) return raw;
+  return BONGSIM_PRICE_EFFECTIVE_FROM_20260901;
+}
+
 export type PriceTriple = {
   consumer_krw: number | null;
   recommended_krw: number | null;
@@ -109,5 +120,5 @@ export function isScheduledNewSkuHiddenUntilCutover(
   nowMs: number = Date.now(),
 ): boolean {
   if ((excelUpdateType ?? "").trim() !== "신규 상품") return false;
-  return nowMs < Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
+  return nowMs < Date.parse(resolveBongsimPriceEffectiveFrom());
 }

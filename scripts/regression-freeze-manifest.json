@@ -2371,6 +2371,7 @@
             "resolveActivePriceSide",
             "isPriceBlockCatalogSellable",
             "isScheduledNewSkuHiddenUntilCutover",
+            "resolveBongsimPriceEffectiveFrom",
             "LoosePriceTripleInput"
           ]
         },
