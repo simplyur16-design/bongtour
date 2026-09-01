@@ -27,6 +27,14 @@ describe('isRetryablePrismaError', () => {
     ).toBe(true)
   })
 
+  it('retries pooler EMAXCONN saturation', () => {
+    expect(
+      isRetryablePrismaError(
+        new Error('Error querying the database: FATAL: (EMAXCONN) max client connections reached, limit: 200'),
+      ),
+    ).toBe(true)
+  })
+
   it('does not retry unrelated errors', () => {
     expect(isRetryablePrismaError(new Error('unique constraint'))).toBe(false)
   })

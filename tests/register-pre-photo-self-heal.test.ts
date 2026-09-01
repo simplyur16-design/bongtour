@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 제목·dest·같은 날 나라·2단어 랜드마크 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 같은 closer 검증 실패·힐 재합성 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드 검증 실패·힐 — manifest
+ * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 공란·범용 모스크 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -727,5 +728,61 @@ describe('register-pre-photo-self-heal', () => {
     })
     assert.equal(mixed.ok, false)
     assert.ok(mixed.issues.some((i) => i.includes('same_day_country_clash')))
+  })
+
+  it('첫날 관광 동선이 있으면 키워드 공란·범용 모스크는 검증 실패이고 힐이 도시 고정을 채운다', () => {
+    assert.equal(isBrokenRegisterLandmarkKeyword('City Mosque'), true)
+    assert.equal(isBrokenRegisterLandmarkKeyword('Pink Mosque'), true)
+    assert.equal(isBrokenRegisterLandmarkKeyword('City Mosque Kota Kinabalu'), false)
+    assert.equal(isBrokenRegisterLandmarkKeyword('Pink Mosque Kota Kinabalu'), false)
+    assert.equal(isBrokenRegisterLandmarkKeyword('Kota Kinabalu City Mosque'), false)
+
+    const rows = [
+      {
+        day: 1,
+        title: '1일차',
+        description: '코타키나발루에 도착해 시티 모스크를 둘러봅니다. 수변 사원 주변을 이어서 봅니다.',
+        routeText: '코타키나발루 시티모스크 - 핑크모스크',
+        imageKeyword: '',
+      },
+      {
+        day: 2,
+        title: '2일차',
+        description: '키나발루 산 주변을 둘러봅니다. 산과 호수 풍경으로 하루를 이어갑니다.',
+        routeText: '키나발루산',
+        imageKeyword: 'Mount Kinabalu',
+      },
+      {
+        day: 3,
+        title: '귀국',
+        description: '체크아웃 후 인천으로 귀국합니다. 별도의 관광보다 이동 중심으로 여행을 마무리합니다.',
+        routeText: '인천',
+        imageKeyword: '',
+      },
+    ]
+    const before = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '코타키나발루 3일',
+      productDestination: '코타키나발루',
+      rows,
+    })
+    assert.ok(before.issues.includes('day1_departure_keyword_empty'))
+
+    const genericBefore = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '코타키나발루 3일',
+      productDestination: '코타키나발루',
+      rows: [{ ...rows[0]!, imageKeyword: 'City Mosque' }, rows[1]!, rows[2]!],
+    })
+    assert.ok(genericBefore.issues.includes('day1_keyword_lodging_or_non_landmark'))
+
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '코타키나발루',
+      productTitle: '코타키나발루 3일',
+    })
+    const day1 = String(out.rows.find((r) => r.day === 1)?.imageKeyword ?? '')
+    assert.match(day1, /Kota Kinabalu|Pink Mosque Kota Kinabalu|City Mosque Kota Kinabalu/i)
+    assert.doesNotMatch(day1, /^(?:City Mosque|Pink Mosque)$/i)
   })
 })

@@ -13,6 +13,7 @@
  * REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: FIT 요약·같은 날 나라 혼선 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 재합성 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드는 지우고 그날 동선으로 채움 — manifest
+ * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 관광 키워드·범용 모스크 힐 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import {
@@ -31,6 +32,7 @@ import type { RegisterAdminLane } from '@/lib/register-admin-lane'
 import {
   hasRegisterFreeDayRecommendedItinerary,
   isRegisterPendingFreeItineraryDay,
+  registerScheduleDayRequiresPrimaryImageKeyword,
   registerScheduleKeywordMatchesOwnDayRoute,
   routeTextHasIdentifiableVisitPlace,
 } from '@/lib/register-pre-photo-verify'
@@ -171,7 +173,12 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
   const activeDays = days.length
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
-    if (slot !== 'middle' || String(row.imageKeyword ?? '').trim()) return row
+    if (
+      !registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) ||
+      String(row.imageKeyword ?? '').trim()
+    ) {
+      return row
+    }
     const hay = [row.routeText, row.title].filter(Boolean).join(' ')
     const candidates = [firstMatchingScheduleSpotEn(hay), firstMatchingScheduleCityEn(hay)].filter(
       (v): v is string => Boolean(v && String(v).trim()),
@@ -224,7 +231,9 @@ function promoteEmptyMiddlePrimaryFromKeyword2<T extends RegisterPrePhotoHealRow
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
-    if (slot !== 'middle' || kw || !kw2) return row
+    if (!registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) || kw || !kw2) {
+      return row
+    }
     return { ...row, imageKeyword: kw2, imageKeyword2: null }
   })
 }
@@ -311,7 +320,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     working = working.map((row) => {
       const day = Number(row.day)
       const slot = resolveScheduleKeywordSlotKind(day, maxFitDay, activeFit)
-      if (slot !== 'middle') return row
+      if (!registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText)) return row
       if (String(row.imageKeyword ?? '').trim()) return row
       const filled = refillFitKeywordFromDayRoute(row, destHay, working)
       if (!filled) return row

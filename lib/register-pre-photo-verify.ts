@@ -13,6 +13,7 @@
  * REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — FIT·환승·이동 제외 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 반복 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 중간일 키워드는 당일 route 명소·도시만 — manifest
+ * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 출발일 관광동선이면 키워드 필수 — manifest
  */
 import {
   REGISTER_ADMIN_LANE_LABELS,
@@ -25,7 +26,10 @@ import {
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
-import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
+import {
+  resolveScheduleKeywordSlotKind,
+  type ScheduleKeywordSlotKind,
+} from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isAirHotelListingKind, isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import {
   isAirlineCarrierImageKeyword,
@@ -97,6 +101,31 @@ export function routeTextHasIdentifiableVisitPlace(routeText: string | null | un
   if (collectRouteTextOrderedLandmarkKeywords(t).length > 0) return true
   if (collectRouteTextOrderedImageKeywords(t).length > 0) return true
   if (firstMatchingScheduleCityEn(t)) return true
+  return false
+}
+
+/** 중간일 전부 + 출발일이 항공만 아니고 관광 동선이면 primary imageKeyword 필수 */
+// REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 관광인데 키워드 공란 금지 — manifest
+function registerScheduleRouteIsLodgingOnly(routeText: string | null | undefined): boolean {
+  const t = String(routeText ?? '').trim()
+  if (!t) return false
+  if (isHotelLodgingImageKeyword(t)) return true
+  const segs = splitRouteTextPlaceSegments(t)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2)
+  if (!segs.length) return false
+  return segs.every((s) => isHotelLodgingImageKeyword(s))
+}
+
+export function registerScheduleDayRequiresPrimaryImageKeyword(
+  slot: ScheduleKeywordSlotKind,
+  routeText: string | null | undefined,
+): boolean {
+  if (slot === 'middle') return true
+  if (slot === 'departure') {
+    if (registerScheduleRouteIsLodgingOnly(routeText)) return false
+    return routeTextHasIdentifiableVisitPlace(routeText)
+  }
   return false
 }
 
@@ -257,8 +286,13 @@ function packageScheduleIssues(
     ) {
       issues.push(`day${day}_free_recommended_itinerary_missing`)
     }
-    if (slot === 'middle' && !String(row.imageKeyword ?? '').trim()) {
-      issues.push(`day${day}_middle_keyword_empty`)
+    if (
+      registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) &&
+      !String(row.imageKeyword ?? '').trim()
+    ) {
+      issues.push(
+        slot === 'departure' ? `day${day}_departure_keyword_empty` : `day${day}_middle_keyword_empty`,
+      )
     }
     if (
       slot === 'middle' &&
@@ -420,7 +454,7 @@ function fitScheduleIssues(
 
 // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 마카오·남미 dest 제목 추론 — manifest
 const DEST_FROM_TITLE_RE =
-  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|토스카나|보르도|두바이|아부다비/
+  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|토스카나|보르도|두바이|아부다비|고치|나가노|도야마/
 
 /** dest 미지정·항공권 등 비장소일 때만 — 제목에 나온 지명을 dest로 쓴다. 제목은 지어내지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest

@@ -11,6 +11,7 @@ import AdminStatusBadge from '../components/AdminStatusBadge'
 import AdminPendingDetailPanel from './components/AdminPendingDetailPanel'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 
@@ -354,13 +355,15 @@ export default function AdminPendingPage() {
                           : 'border-bt-border-soft bg-bt-surface hover:border-bt-border-strong hover:bg-bt-surface-soft'
                       }`}
                     >
-                      <p className="truncate font-medium text-bt-title">{item.title}</p>
+                      <p className="truncate font-medium text-bt-title">
+                        {normalizeSupplierRegisterListingTitle(item.title) || item.title}
+                      </p>
                       <p className="mt-0.5 text-xs text-bt-meta">
                         {item.originCode} · {adminSupplierPrimaryDisplayLabel(item)}
                         {(() => {
                           const destLabel = resolveProductListDestinationLabel({
                             destination: item.destination,
-                            title: item.title,
+                            title: normalizeSupplierRegisterListingTitle(item.title) || item.title,
                           })
                           return destLabel !== '—' ? ` · ${destLabel}` : null
                         })()}

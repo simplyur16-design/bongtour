@@ -1,10 +1,11 @@
 /**
  * Expo config — Google Sign-In + Sentry DSN wiring.
+ * Must export a function that spreads `{ config }` (static app.json).
+ * Object export makes expo-doctor fail: "app.config.js is not using the values from app.json".
+ * REGRESSION-FREEZE[simplyur-eas-doctor-sdk57]: function + ...config — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: google-signin plugin — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: sentry/updates plugins — manifest
  */
-const appJson = require('./app.json');
-
 function googleIosUrlSchemeFromWebClientId(clientId) {
   const id = String(clientId ?? '').trim();
   const suffix = '.apps.googleusercontent.com';
@@ -23,39 +24,38 @@ const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
 const iosUrlScheme = googleIosUrlSchemeFromWebClientId(iosClientId || webClientId);
 const sentryDsn = (process.env.EXPO_PUBLIC_SENTRY_DSN || '').trim();
 
-const plugins = [...(appJson.expo.plugins ?? []), 'expo-asset'];
-if (iosUrlScheme) {
-  plugins.push([
-    '@react-native-google-signin/google-signin',
-    { iosUrlScheme },
-  ]);
-} else {
-  // Build still works; Google button shows "not configured" until env is present at prebuild.
-  plugins.push('@react-native-google-signin/google-signin');
-}
+module.exports = ({ config }) => {
+  const plugins = [...(config.plugins ?? []), 'expo-asset'];
+  if (iosUrlScheme) {
+    plugins.push([
+      '@react-native-google-signin/google-signin',
+      { iosUrlScheme },
+    ]);
+  } else {
+    // Build still works; Google button shows "not configured" until env is present at prebuild.
+    plugins.push('@react-native-google-signin/google-signin');
+  }
 
-// Source-map upload only when Sentry auth is present (avoids EAS build fail without org).
-if (process.env.SENTRY_AUTH_TOKEN?.trim()) {
-  plugins.push([
-    '@sentry/react-native/expo',
-    {
-      organization: process.env.SENTRY_ORG?.trim() || 'bongtour',
-      project: process.env.SENTRY_PROJECT?.trim() || 'simplyur-mobile',
-    },
-  ]);
-}
+  // Source-map upload only when Sentry auth is present (avoids EAS build fail without org).
+  if (process.env.SENTRY_AUTH_TOKEN?.trim()) {
+    plugins.push([
+      '@sentry/react-native/expo',
+      {
+        organization: process.env.SENTRY_ORG?.trim() || 'bongtour',
+        project: process.env.SENTRY_PROJECT?.trim() || 'simplyur-mobile',
+      },
+    ]);
+  }
 
-module.exports = {
-  ...appJson,
-  expo: {
-    ...appJson.expo,
+  return {
+    ...config,
     plugins,
     extra: {
-      ...(appJson.expo.extra ?? {}),
+      ...(config.extra ?? {}),
       // Runtime fallback when Metro does not inline EXPO_PUBLIC_* (still set on EAS).
       googleWebClientId: webClientId || undefined,
       googleIosClientId: iosClientId || undefined,
       sentryDsn: sentryDsn || undefined,
     },
-  },
+  };
 };

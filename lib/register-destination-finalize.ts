@@ -3,7 +3,7 @@
  * bare 「일주」·프로모·항공 안내·정책 뱃지·일정 액티비티는 목록「지역」/등록 destination에 쓰지 않음.
  */
 import { isSupplierRegisterDestinationUiLabel } from '@/lib/supplier-register-destination-forbidden'
-import { isSupplierTitlePromoBadgeText } from '@/lib/supplier-product-title-display'
+import { isSupplierTitleNotDestinationToken } from '@/lib/supplier-product-title-display'
 import {
   firstRegisterDestinationPlaceFromTitleHead,
   isRegisterDestinationTourStyleNoiseToken,
@@ -53,7 +53,7 @@ export function isRegisterDestinationPollutionLabel(raw: string | null | undefin
     return true
   }
   if (isSupplierRegisterDestinationUiLabel(t)) return true
-  if (isSupplierTitlePromoBadgeText(t)) return true
+  if (isSupplierTitleNotDestinationToken(t)) return true
   if (CHANNEL_OR_OFFER_LABEL_RE.test(t)) return true
   if (AIRLINE_CODE_ONLY_RE.test(t)) return true
   if (POLICY_COMPOUND_RE.test(t)) return true

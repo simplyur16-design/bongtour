@@ -128,6 +128,26 @@ describe('stripSupplierTitlePromoBadges', () => {
   it('removes 무옵션 hashtag', () => {
     expect(stripSupplierTitlePromoBadges('[태국] 방콕 5일 #노옵션')).toBe('[태국] 방콕 5일')
   })
+
+  it('strips sale-status, cabin-class, and season promo from homepage titles', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle('판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일'),
+    ).toBe('[비즈니스] 캐나다 10일')
+    expect(normalizeSupplierRegisterListingTitle('[잔여좌석 3석] 홍콩/마카오 3일')).toBe(
+      '홍콩/마카오 3일',
+    )
+    expect(normalizeSupplierRegisterListingTitle('[다낭] 3박5일 #단풍시즌')).toBe('[다낭] 3박5일')
+    expect(normalizeSupplierRegisterListingTitle('[비즈니스/] 캐나다 10일')).toBe('[비즈니스] 캐나다 10일')
+    expect(normalizeSupplierRegisterListingTitle('[비즈니스／] 홍콩 3일')).toBe('[비즈니스] 홍콩 3일')
+    expect(normalizeSupplierRegisterListingTitle('[비즈니스] 캐나다 10일')).toBe('[비즈니스] 캐나다 10일')
+    expect(normalizeSupplierRegisterListingTitle('판매마감 [비즈니스/클래스] 캐나다 10일')).toBe(
+      '[비즈니스] 캐나다 10일',
+    )
+    expect(buildSupplierProductDisplayTitle({
+      verbatimOriginal: '판매마감 일본 도쿄 3일 잔여좌석 2석',
+      brandKey: 'hanatour',
+    })).toBe('일본 도쿄 3일')
+  })
 })
 
 describe('stripSupplierTitleUiNoise', () => {

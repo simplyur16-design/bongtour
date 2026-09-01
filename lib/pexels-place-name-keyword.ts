@@ -3,6 +3,7 @@
  * Gemini 이미지 생성 프롬프트와 분리한다.
  * REGRESSION-FREEZE[pexels-normalize-monument-valley]: Monument Valley — do not strip Valley — manifest
  * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: Da Nang·Hoi An 복합 도시명 유지 — manifest
+ * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: City Mosque·Pink Mosque는 도시 없이 Pexels 금지 — manifest
  */
 
 import { detectBannedSuffix } from '@/lib/image-keyword-verify-guards'
@@ -79,6 +80,13 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   // REGRESSION-FREEZE[pexels-hk-hollywood-road-not-la]: 홍콩 헐리우드로드 ≠ LA Hollywood — manifest
   'hollywood road': 'Hollywood Road Hong Kong',
   'hollywood road hong kong': 'Hollywood Road Hong Kong',
+  // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 범용 모스크는 도시 고정 — manifest
+  'pink mosque kota kinabalu': 'Pink Mosque Kota Kinabalu',
+  'city mosque kota kinabalu': 'City Mosque Kota Kinabalu',
+  'kota kinabalu city mosque': 'Kota Kinabalu City Mosque',
+  'blue mosque istanbul': 'Blue Mosque Istanbul',
+  'sheikh zayed grand mosque': 'Sheikh Zayed Grand Mosque',
+  'national mosque kuala lumpur': 'National Mosque Kuala Lumpur',
 }
 
 /** 삼단·Pexels 보조 segment (첫 segment 이후 또는 단독 제거) */
@@ -474,6 +482,17 @@ function squash(s: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
+/** 아무 도시에나 있는 유형명 — 도시·고유명 없이 Pexels 검색 금지 */
+// REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: City Mosque·Pink Mosque 단독 금지 — manifest
+const GENERIC_ANY_CITY_LANDMARK_RE =
+  /^(?:(?:city|pink|blue|grand|friday|state|central|floating|national)\s+mosque|city\s+hall|old\s+town|china\s*town|night\s+market|central\s+park|(?:grand|city)\s+cathedral|city\s+(?:park|square|center|centre))$/i
+
+export function isGenericAnyCityLandmarkKeyword(keyword: string | null | undefined): boolean {
+  const raw = squash(String(keyword ?? ''))
+  if (!raw) return false
+  return GENERIC_ANY_CITY_LANDMARK_RE.test(raw.toLowerCase())
+}
+
 function canonicalLookup(s: string): string | null {
   const key = squash(s).toLowerCase()
   return CANONICAL_BY_LOWER[key] ?? null
@@ -610,6 +629,13 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'huka falls': 'Huka Falls',
   'wai-o-tapu geothermal rotorua': 'Wai-O-Tapu geothermal Rotorua',
   'redwoods whakarewarewa forest': 'Redwoods Whakarewarewa Forest',
+  // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: geo strip이 도시를 깎아 범용 모스크가 되지 않게 — manifest
+  'pink mosque kota kinabalu': 'Pink Mosque Kota Kinabalu',
+  'city mosque kota kinabalu': 'City Mosque Kota Kinabalu',
+  'kota kinabalu city mosque': 'Kota Kinabalu City Mosque',
+  'blue mosque istanbul': 'Blue Mosque Istanbul',
+  'sheikh zayed grand mosque': 'Sheikh Zayed Grand Mosque',
+  'national mosque kuala lumpur': 'National Mosque Kuala Lumpur',
 }
 
 function resolveCompoundLandmarkPhrase(s: string): string | null {
@@ -692,6 +718,8 @@ function stripTrailingGeoTokens(s: string): string {
     if (fullLower === mg || fullLower.endsWith(` ${mg}`)) {
       if (fullLower === mg) return titleCaseWords(mg)
       const prefix = fullLower.slice(0, fullLower.length - mg.length).trim()
+      // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: Pink Mosque + 도시 유지 — manifest
+      if (prefix && isGenericAnyCityLandmarkKeyword(prefix)) return titleCaseWords(fullLower)
       if (prefix.split(' ').length >= 1) return titleCaseWords(prefix)
     }
   }
@@ -702,7 +730,10 @@ function stripTrailingGeoTokens(s: string): string {
     const tail1 = trimmed[trimmed.length - 1]!.toLowerCase()
     if (multiGeo.includes(tail)) break
     if (CITY_COUNTRY_ONLY.has(tail) || CITY_COUNTRY_ONLY.has(tail1)) {
-      trimmed = trimmed.slice(0, CITY_COUNTRY_ONLY.has(tail) ? -2 : -1)
+      const next = trimmed.slice(0, CITY_COUNTRY_ONLY.has(tail) ? -2 : -1)
+      // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: City Mosque Kota Kinabalu 도시 유지 — manifest
+      if (isGenericAnyCityLandmarkKeyword(next.join(' '))) break
+      trimmed = next
       continue
     }
     break
@@ -739,6 +770,9 @@ export function normalizeToPlaceName(rawKeyword: string): string {
 
   const canonFinal = canonicalLookup(t)
   if (canonFinal) return canonFinal
+
+  // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 범용 유형명은 장소가 아님 — manifest
+  if (isGenericAnyCityLandmarkKeyword(t)) return ''
 
   if (isMeaninglessKeyword(t)) return ''
   if (/[가-힣]/.test(t)) return ''
@@ -819,7 +853,7 @@ export function isHotelLodgingImageKeyword(keyword: string): boolean {
   if (!n) return false
   /** 괌 PIC(Pacific Island Club) 등 리조트 브랜드 — Pexels 관광지명이 아님 */
   if (n === 'pic' || /\bpic\s*resort\b/i.test(n)) return true
-  return /\b(hotel|resort|hostel|inn|lodging|parador|suites|mercure|marriott|hilton|hyatt|sheraton|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist|belle\s*maison|parosand)\b/i.test(
+  return /\b(hotel|resort|hostel|inn|lodging|parador|suites|mercure|marriott|hilton|hyatt|sheraton|wyndham|chikumakan|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist|belle\s*maison|parosand)\b/i.test(
     n,
   )
 }
@@ -841,6 +875,7 @@ const LANDMARK_HINT_RE =
 export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
+  if (isGenericAnyCityLandmarkKeyword(raw)) return false
   if (isBareCityOrCountryKeyword(raw) || isHotelLodgingImageKeyword(raw)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(raw)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(raw)) return false

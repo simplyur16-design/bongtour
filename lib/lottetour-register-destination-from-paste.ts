@@ -11,7 +11,7 @@ import {
   isSupplierRegisterDestinationUiLabel,
 } from '@/lib/supplier-register-destination-forbidden'
 import {
-  isSupplierTitlePromoBadgeText,
+  isSupplierTitleNotDestinationToken,
   normalizeSupplierRegisterListingTitle,
 } from '@/lib/supplier-product-title-display'
 
@@ -45,14 +45,14 @@ export function extractLottetourTravelCitiesHintFromTitle(title: string): string
   const bracketParts: string[] = []
   for (const m of String(title ?? '').matchAll(/\[([^\]]{2,32})\]/g)) {
     const inner = m[1]?.trim() ?? ''
-    if (!inner || isSupplierTitlePromoBadgeText(inner)) continue
+    if (!inner || isSupplierTitleNotDestinationToken(inner)) continue
     // REGRESSION-FREEZE[lottetour-register-destination]: TKT/ONLY·항공코드 뱃지 목적지 금지 — manifest
     if (/^(?:TKT|ONLY|KE|OZ|TW|LJ|7C)(?:\s*[\/·,]\s*(?:TKT|ONLY|KE|OZ|TW|LJ|7C))*$/i.test(inner)) {
       continue
     }
     bracketParts.push(inner)
   }
-  let t = String(title ?? '')
+  let t = normalizeSupplierRegisterListingTitle(String(title ?? ''))
     .replace(/\[[^\]]+\]/g, ' ')
     .replace(/#[^\s]+/g, ' ')
     .replace(/[『』「」""]/g, ' ')
@@ -81,7 +81,7 @@ export function extractLottetourTravelCitiesHintFromTitle(title: string): string
           p.length <= 24 &&
           !/^\d+$/.test(p) &&
           !isTitleDurationToken(p) &&
-          !isSupplierTitlePromoBadgeText(p) &&
+          !isSupplierTitleNotDestinationToken(p) &&
           !isSupplierRegisterDestinationUiLabel(p) &&
           !/^(?:TKT|ONLY)$/i.test(p),
       ),

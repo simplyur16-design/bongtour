@@ -33,6 +33,8 @@ import { suggestAdminPendingSecondaryClassification } from '@/lib/admin-pending-
 import { composeScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
+import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import {
   scheduleRowsForPrePhotoVerify,
   verifyRegisterPrePhoto,
@@ -1775,10 +1777,20 @@ export default function AdminPendingDetailPanel({
       {/* 상품 요약 */}
       <section className="border-b border-bt-border-soft p-5">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-bt-meta">상품 요약</h3>
-        <p className="font-medium text-bt-title">{item.title}</p>
+        <p className="font-medium text-bt-title">
+          {normalizeSupplierRegisterListingTitle(item.title) || item.title}
+        </p>
         <p className="mt-1 text-sm text-bt-meta">
           {item.originCode} · {adminSupplierPrimaryDisplayLabel({ ...item, brand: detail.brand ?? null })}
-          {item.destination && ` · ${item.destination}`}
+          {(() => {
+            const destLabel = resolveProductListDestinationLabel({
+              destination: item.destination,
+              destinationRaw: detail.destinationRaw,
+              primaryDestination: detail.primaryDestination,
+              title: normalizeSupplierRegisterListingTitle(item.title) || item.title,
+            })
+            return destLabel !== '—' ? ` · ${destLabel}` : null
+          })()}
           {item.duration && ` · ${item.duration}`}
         </p>
         <p className="mt-0.5 text-xs text-bt-subtle">{formatDate(item.updatedAt)} 수정</p>

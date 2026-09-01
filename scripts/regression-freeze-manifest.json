@@ -20183,7 +20183,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]",
             "withPrismaRetry",
-            "heal-pending:"
+            "heal-pending:",
+            "heal-pending-scan"
           ]
         },
         {
@@ -20191,7 +20192,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]",
             "P1001",
-            "P1017"
+            "P1017",
+            "EMAXCONN"
           ]
         },
         {
@@ -20220,6 +20222,175 @@
       ],
       "vitestSuites": [
         "lib/prisma-retry.test.ts"
+      ]
+    },
+    {
+      "id": "supplier-title-no-sale-status-season",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈·등록대기 상품명에서 판매마감·잔여좌석·단풍시즌·비즈니스/클래스 등 판매 문구를 제거",
+      "npmScripts": [
+        "verify:supplier-product-title-plan-b"
+      ],
+      "checks": [
+        {
+          "file": "lib/supplier-product-title-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-title-no-sale-status-season]",
+            "판매마감",
+            "잔여좌석",
+            "단풍시즌",
+            "비즈니스",
+            "[비즈니스]",
+            "isSupplierTitleBusinessCabinKeep",
+            "stripHomepageForbiddenTitlePhrases"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-title-no-sale-status-season]",
+            "normalizeSupplierRegisterListingTitle",
+            "단풍시즌"
+          ]
+        },
+        {
+          "file": "scripts/verify-supplier-product-title-plan-b.ts",
+          "mustInclude": [
+            "판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일",
+            "[비즈니스/] 캐나다 10일",
+            "잔여좌석",
+            "마감임박[잔여④석]"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-title-no-sale-status-season]",
+            "normalizeSupplierRegisterListingTitle"
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "normalizeSupplierRegisterListingTitle"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "normalizeSupplierRegisterListingTitle",
+            "resolveProductListDestinationLabel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-product-title-display.test.ts",
+        "lib/supplier-register-destination-forbidden.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-eas-doctor-sdk57",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur EAS production AAB — app.config.js가 app.json config를 함수로 spread, SDK 57 doctor 핀, android app-bundle",
+      "npmScripts": [
+        "verify:simplyur-eas-doctor"
+      ],
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app.config.js",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eas-doctor-sdk57]",
+            "module.exports = ({ config })",
+            "...config"
+          ],
+          "mustNotInclude": [
+            "module.exports = {"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/package.json",
+          "mustInclude": [
+            "\"expo\": \"~57.0.18\"",
+            "\"react-native\": \"0.86.3\""
+          ],
+          "mustNotInclude": [
+            "\"expo\": \"~57.0.13\"",
+            "\"react-native\": \"0.86.2\""
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/eas.json",
+          "mustInclude": [
+            "app-bundle"
+          ]
+        },
+        {
+          "file": "scripts/verify-simplyur-eas-doctor.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eas-doctor-sdk57]",
+            "({ config })",
+            "~57.0.18"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-keyword-city-qualified-landmark",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "City Mosque·Pink Mosque 등 아무 도시 유형명은 거부하고 도시 고정명을 유지. 출발일 관광 동선이면 imageKeyword 필수",
+      "npmScripts": [
+        "verify:register-keyword-city-qualified"
+      ],
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-keyword-city-qualified-landmark]",
+            "isGenericAnyCityLandmarkKeyword",
+            "City Mosque Kota Kinabalu",
+            "Pink Mosque Kota Kinabalu"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-guards.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-keyword-city-qualified-landmark]",
+            "isGenericAnyCityLandmarkKeyword"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-keyword-city-qualified-landmark]",
+            "registerScheduleDayRequiresPrimaryImageKeyword",
+            "departure_keyword_empty"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-keyword-city-qualified-landmark]",
+            "registerScheduleDayRequiresPrimaryImageKeyword"
+          ]
+        },
+        {
+          "file": "scripts/verify-register-keyword-city-qualified.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-keyword-city-qualified-landmark]",
+            "City Mosque",
+            "Pink Mosque Kota Kinabalu",
+            "day1_departure_keyword_empty"
+          ]
+        }
       ]
     }
   ]

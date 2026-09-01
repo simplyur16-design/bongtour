@@ -7,10 +7,12 @@
  * REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 2단어 상호 ≠ 랜드마크 — manifest
  * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: SSOT 영문은 2단어여도 유지 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 일차마다 같은 템플릿 closer 금지 — manifest
+ * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: City Mosque·Pink Mosque 단독은 깨진 키워드 — manifest
  */
 import {
   isAirlineCarrierImageKeyword,
   isBareCityOrCountryKeyword,
+  isGenericAnyCityLandmarkKeyword,
   isHotelLodgingImageKeyword,
   isLikelyTourismLandmarkKeyword,
   isNonLandmarkFoodOrDiningImageKeyword,
@@ -61,6 +63,8 @@ export function isBrokenRegisterLandmarkKeyword(
 ): boolean {
   const t = String(keyword ?? '').trim()
   if (!t) return false
+  // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 아무 도시 모스크·시청은 깨짐 — manifest
+  if (isGenericAnyCityLandmarkKeyword(t)) return true
   if (!opts?.allowHotelLodging && isHotelLodgingImageKeyword(t)) return true
   if (isNonLandmarkFoodOrDiningImageKeyword(t)) return true
   if (isAirlineCarrierImageKeyword(t)) return true

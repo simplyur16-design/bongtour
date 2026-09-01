@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   assertCleanPlaceKeyword,
   finalizeScheduleImageKeyword,
+  isGenericAnyCityLandmarkKeyword,
   isScheduleImageKeywordLandmarkEligible,
   normalizeToPlaceName,
 } from '../lib/pexels-place-name-keyword'
@@ -81,5 +82,24 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(finalizeScheduleImageKeyword('Hollywood Road Hong Kong'), 'Hollywood Road Hong Kong')
     assert.equal(normalizeToPlaceName('Hollywood Road'), 'Hollywood Road Hong Kong')
     assert.equal(finalizeScheduleImageKeyword('Universal Studios Hollywood'), 'Universal Studios Hollywood')
+  })
+
+  // REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 범용 모스크는 도시 유지·단독 거부 — manifest
+  it('generic mosque names stay city-qualified for Pexels', () => {
+    assert.equal(isGenericAnyCityLandmarkKeyword('City Mosque'), true)
+    assert.equal(isGenericAnyCityLandmarkKeyword('PINK MOSQUE'), true)
+    assert.equal(isGenericAnyCityLandmarkKeyword('Blue Mosque'), true)
+    assert.equal(isGenericAnyCityLandmarkKeyword('City Mosque Kota Kinabalu'), false)
+    assert.equal(isGenericAnyCityLandmarkKeyword('Pink Mosque Kota Kinabalu'), false)
+    assert.equal(isGenericAnyCityLandmarkKeyword('Kota Kinabalu City Mosque'), false)
+    assert.equal(isGenericAnyCityLandmarkKeyword('Blue Mosque Istanbul'), false)
+    assert.equal(normalizeToPlaceName('Pink Mosque Kota Kinabalu'), 'Pink Mosque Kota Kinabalu')
+    assert.equal(normalizeToPlaceName('City Mosque Kota Kinabalu'), 'City Mosque Kota Kinabalu')
+    assert.equal(normalizeToPlaceName('Kota Kinabalu City Mosque'), 'Kota Kinabalu City Mosque')
+    assert.equal(normalizeToPlaceName('Blue Mosque Istanbul'), 'Blue Mosque Istanbul')
+    assert.equal(normalizeToPlaceName('City Mosque'), '')
+    assert.equal(normalizeToPlaceName('Pink Mosque'), '')
+    assert.equal(finalizeScheduleImageKeyword('Pink Mosque Kota Kinabalu'), 'Pink Mosque Kota Kinabalu')
+    assert.equal(finalizeScheduleImageKeyword('City Mosque Kota Kinabalu'), 'City Mosque Kota Kinabalu')
   })
 })

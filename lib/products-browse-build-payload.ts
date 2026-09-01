@@ -38,6 +38,7 @@ import { urgentDealPricePairForDisplay } from '@/lib/supplier-urgent-deal'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import {
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
@@ -680,7 +681,8 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       })(),
       id: p.id,
       slug: p.slug ?? null,
-      title: p.title,
+      // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 홈 카드 제목에서 판매마감·단풍시즌 제거 — manifest
+      title: normalizeSupplierRegisterListingTitle(p.title) || p.title,
       originSource: p.originSource,
       productType: p.productType,
       listingKind: p.listingKind ?? null,

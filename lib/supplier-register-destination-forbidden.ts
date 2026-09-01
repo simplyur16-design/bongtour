@@ -2,7 +2,7 @@
  * 등록 목적지·관리자 목록 지역 컬럼 — UI 섹션·탭 라벨 금지 (전 공급사 공통).
  * REGRESSION-FREEZE[lottetour-register-destination]: manifest
  */
-import { isSupplierTitlePromoBadgeText } from '@/lib/supplier-product-title-display'
+import { isSupplierTitleNotDestinationToken } from '@/lib/supplier-product-title-display'
 import { isRegisterDestinationTourStyleNoiseToken } from '@/lib/register-destination-tour-style-noise'
 
 const UI_LABEL_RE =
@@ -17,7 +17,7 @@ export function isSupplierRegisterDestinationUiLabel(s: string): boolean {
   if (!t) return true
   if (t.length < 2 && !/[가-힣]/.test(t)) return true
   if (UI_LABEL_RE.test(t)) return true
-  if (isSupplierTitlePromoBadgeText(t)) return true
+  if (isSupplierTitleNotDestinationToken(t)) return true
   // REGRESSION-FREEZE[register-destination-reject-ilju]: tour-style noise = UI pollution — manifest
   if (isRegisterDestinationTourStyleNoiseToken(t)) return true
   return false

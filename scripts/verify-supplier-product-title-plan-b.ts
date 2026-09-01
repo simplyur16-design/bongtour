@@ -95,4 +95,40 @@ assert.equal(
   '이태리 금까기',
 )
 
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일',
+    brandKey: 'hanatour',
+  }),
+  '[비즈니스] 캐나다 10일',
+)
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '홍콩 3일 잔여좌석 4석',
+    brandKey: 'ybtour',
+  }),
+  '홍콩 3일',
+)
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '[비즈니스/] 캐나다 10일',
+    brandKey: 'hanatour',
+  }),
+  '[비즈니스] 캐나다 10일',
+)
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '[비즈니스] 홍콩 3일',
+    brandKey: 'modetour',
+  }),
+  '[비즈니스] 홍콩 3일',
+)
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: '마감임박[잔여④석][비즈니스] 이집트 13일',
+    brandKey: 'lottetour',
+  }),
+  '[비즈니스] 이집트 13일',
+)
+
 console.log('verify-supplier-product-title-plan-b: ok')

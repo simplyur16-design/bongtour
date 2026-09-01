@@ -4,6 +4,7 @@
  */
 
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { isSupplierTitleNotDestinationToken } from '@/lib/supplier-product-title-display'
 import { isSupplierRegisterDestinationUiLabel } from '@/lib/supplier-register-destination-forbidden'
 import {
   healRegisterDestinationLabel,
@@ -149,7 +150,9 @@ export function extractVerygoodDestinationFromBracketTitle(title: string): strin
   let m: RegExpExecArray | null
   while ((m = re.exec(t)) !== null) {
     const inner = m[1]!.replace(/\s+/g, ' ').trim()
-    if (!inner || isVerygoodtourPolicyBracketDestination(inner)) continue
+    if (!inner || isVerygoodtourPolicyBracketDestination(inner) || isSupplierTitleNotDestinationToken(inner)) {
+      continue
+    }
     const parts = inner
       .split(/[/／·]/)
       .map((p) => p.trim())

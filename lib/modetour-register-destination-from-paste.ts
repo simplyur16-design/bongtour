@@ -3,6 +3,10 @@
  * 공급사 공용 모듈로 합치지 않는다.
  */
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import {
+  isSupplierTitleNotDestinationToken,
+  normalizeSupplierRegisterListingTitle,
+} from '@/lib/supplier-product-title-display'
 import { filterRegisterDestinationTitlePlaceTokens } from '@/lib/register-destination-tour-style-noise'
 import { filterRegisterDestinationPlaceTokens } from '@/lib/register-destination-schedule-activity-noise'
 import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
@@ -22,6 +26,10 @@ const REGION_TITLE_RE =
 const TITLE_PROMO_BRACKET_RE =
   /출발\s*확정|노옵션|노쇼핑|게릴라|품격|스테디|베스트|홈\s*쇼핑|HIT|오전\s*출발|저녁\s*출발|휴양형/i
 
+function isModetourTitlePromoToken(inner: string): boolean {
+  return TITLE_PROMO_BRACKET_RE.test(inner) || isSupplierTitleNotDestinationToken(inner)
+}
+
 const TITLE_DURATION_RE = /\d+\s*(?:박\s*\d+\s*)?일(?:\s|$)/i
 const TITLE_DURATION_TOKEN_RE = /^\d+\s*(?:박\s*\d+\s*)?일$/i
 
@@ -38,13 +46,14 @@ function isTitleDurationToken(s: string): boolean {
 
 /** API-only·붙여넣기 없을 때 — `[다낭]`·`홍콩/마카오` 등 제목 힌트 */
 export function extractModetourTravelCitiesHintFromTitle(title: string): string | null {
+  const cleaned = normalizeSupplierRegisterListingTitle(String(title ?? ''))
   const bracketParts: string[] = []
-  for (const m of String(title ?? '').matchAll(/\[([^\]]{2,32})\]/g)) {
+  for (const m of cleaned.matchAll(/\[([^\]]{2,32})\]/g)) {
     const inner = m[1]?.trim() ?? ''
-    if (!inner || TITLE_PROMO_BRACKET_RE.test(inner)) continue
+    if (!inner || isModetourTitlePromoToken(inner)) continue
     bracketParts.push(inner)
   }
-  let t = String(title ?? '')
+  let t = cleaned
     .replace(/\[[^\]]+\]/g, ' ')
     .replace(/#[^\s]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -60,7 +69,7 @@ export function extractModetourTravelCitiesHintFromTitle(title: string): string 
           p.length <= 20 &&
           !/^\d+$/.test(p) &&
           !isTitleDurationToken(p) &&
-          !TITLE_PROMO_BRACKET_RE.test(p),
+          !isModetourTitlePromoToken(p),
       ),
   )
   // REGRESSION-FREEZE[register-destination-reject-ilju]: drop bare 일주 tokens — manifest

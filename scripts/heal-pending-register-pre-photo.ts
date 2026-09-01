@@ -50,14 +50,30 @@ void (async () => {
       const emptyIngest = !dryRun && result.ingest.created < 1
       process.exit(result.heal.failed + result.ingest.failed > 0 || emptyIngest ? 1 : 0)
     } else {
-      const result = await healPendingRegisterPrePhoto({
-        limit: healLimit,
-        dryRun,
-        probeImageUrls: probe,
-        productId,
-      })
-      console.log('[heal-pending-register-pre-photo]', result)
-      process.exit(result.failed > 0 ? 1 : 0)
+      const maxRounds = 3
+      let lastErr: unknown
+      for (let round = 1; round <= maxRounds; round++) {
+        try {
+          const result = await healPendingRegisterPrePhoto({
+            limit: healLimit,
+            dryRun,
+            probeImageUrls: probe,
+            productId,
+          })
+          console.log('[heal-pending-register-pre-photo]', result)
+          process.exit(result.failed > 0 ? 1 : 0)
+        } catch (e) {
+          lastErr = e
+          const msg = e instanceof Error ? e.message : String(e)
+          if (!/EMAXCONN|max client connections reached/i.test(msg) || round >= maxRounds) {
+            throw e
+          }
+          const waitMs = 20000 * round
+          console.warn(`[heal-pending-register-pre-photo] EMAXCONN round=${round}/${maxRounds} waitMs=${waitMs}`)
+          await new Promise((r) => setTimeout(r, waitMs))
+        }
+      }
+      throw lastErr
     }
   } catch (e) {
     console.error(ingest ? '[register-pre-photo-daily] failed' : '[heal-pending-register-pre-photo] failed', e)

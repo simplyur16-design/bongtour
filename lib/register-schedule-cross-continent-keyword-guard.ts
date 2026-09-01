@@ -7,6 +7,10 @@
  * REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 하와이≠푸켓 · 중남미≠니스 — manifest
  */
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import {
+  hasSupplierHomepageForbiddenTitlePhrase,
+  isSupplierTitleNotDestinationToken,
+} from '@/lib/supplier-product-title-display'
 
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
   /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|장가계|Zhangjiajie|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island/i
@@ -42,6 +46,9 @@ export function isRegisterPrePhotoPlaceLikeDestination(raw: string | null | unde
   if (!dest) return false
   if (GENERIC_PRODUCT_DEST_RE.test(dest)) return false
   if (NON_PLACE_PRODUCT_DEST_RE.test(dest)) return false
+  // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·단풍시즌 dest 금지 — manifest
+  if (isSupplierTitleNotDestinationToken(dest)) return false
+  if (hasSupplierHomepageForbiddenTitlePhrase(dest)) return false
   return true
 }
 

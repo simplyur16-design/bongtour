@@ -69,12 +69,14 @@ Smoke: Home → Plans → Product → Buy (Eximbay mobile web) → My eSIM / Gui
 ## D. Production builds + submit
 
 ```bash
-npx eas build --platform all --profile production
-npx eas submit --platform ios --profile production
-npx eas submit --platform android --profile production
+npx eas build --platform android --profile production
 ```
 
-Then finish listing copy, screenshots, privacy questionnaire in each console and submit for review.
+Expo only **builds** the AAB. Do **not** `eas submit`. Download the file into `apps/simplyur-mobile/aab/` and upload it in Play Console yourself.
+
+iOS store submit is Mac + App Store Connect later (`REPLACE_AFTER_APP_STORE_CONNECT`).
+
+Then finish listing copy, screenshots, privacy questionnaire in Play Console and send for review.
 
 ## Env (already in eas.json profiles)
 
@@ -197,6 +199,14 @@ First public release. Korea eSIM for visitors: buy a plan, get your QR by email,
 **Privacy policy:** https://bongtour.com/simplyur/en/legal/privacy
 **Package:** `com.bongtour.simplyur`
 
-Do **not** upload the 2026-08-08 AAB. Production AAB is `eas build --platform android --profile production` when EAS credits are available (planned 2026-09-01). Then Play Console → upload AAB → Send for review.
+Do **not** upload the 2026-08-08 AAB. Do **not** `eas submit` — Expo is only the cloud builder. Download the production AAB and upload it yourself in Play Console.
+
+```bash
+cd apps/simplyur-mobile
+# after eas build --platform android --profile production finishes:
+# put the file in apps/simplyur-mobile/aab/  (gitignored)
+```
+
+Play Console → Testing / Production → Create release → upload that `.aab` → Send for review.
 
 Windows = Android only. iOS is Mac later. Do not block Play listing on iOS.

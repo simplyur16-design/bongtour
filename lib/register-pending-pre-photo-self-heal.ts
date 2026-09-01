@@ -9,6 +9,7 @@
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_blocked — manifest
  * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
  * REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: pooler 끊김은 재시도 후 저장 — manifest
+ * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 제목 힐 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -27,6 +28,11 @@ import {
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
 import { isRegisterPrePhotoPlaceLikeDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
+import {
+  hasSupplierHomepageForbiddenTitlePhrase,
+  normalizeSupplierRegisterListingTitle,
+} from '@/lib/supplier-product-title-display'
 import {
   REGISTER_PRE_PHOTO_BLOCKED_STATUS,
   registrationStatusAfterPrePhotoVerify,
@@ -80,7 +86,10 @@ export async function healPendingRegisterPrePhoto(
     theme: 0,
   }
 
-  const products = await prisma.product.findMany({
+  const products = await withPrismaRetry(
+    'heal-pending-scan',
+    () =>
+      prisma.product.findMany({
     where: opts?.productId
       ? { id: opts.productId }
       : {
@@ -107,7 +116,9 @@ export async function healPendingRegisterPrePhoto(
       registrationStatus: true,
       brand: { select: { brandKey: true } },
     },
-  })
+      }),
+    8,
+  )
 
   let healed = 0
   let verified = 0
@@ -146,18 +157,36 @@ export async function healPendingRegisterPrePhoto(
       }))
 
       const destLine = String(product.destination ?? '').split(/\n/)[0]?.trim() ?? ''
+      const rawTitle = String(product.title ?? '')
+      const cleanedTitle = normalizeSupplierRegisterListingTitle(rawTitle)
+      const titleChanged =
+        Boolean(cleanedTitle) &&
+        cleanedTitle !== rawTitle.trim() &&
+        !isSupplierListingTitleUnacceptable(cleanedTitle)
+      const titleForInfer = titleChanged ? cleanedTitle : rawTitle
       // dest 항공권·석식·하이라이트 나열도 제목 지명으로만 채운다 (그랜드월드 ≠ 푸꾸옥)
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 힐 전에 dest 추론 — manifest
+      // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 dest 추론 — manifest
       const destNeedsInfer =
         /^(?:미입력|미지정|미정|상품명 없음)$/i.test(destLine) ||
         !isRegisterPrePhotoPlaceLikeDestination(destLine) ||
-        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정/i.test(
+        hasSupplierHomepageForbiddenTitlePhrase(destLine) ||
+        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|잔여좌석|잔여석|단풍시즌|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정/i.test(
           destLine,
         )
       const inferredDest = destNeedsInfer
-        ? inferRegisterPendingDestinationFromTitle(String(product.title ?? ''))
+        ? inferRegisterPendingDestinationFromTitle(titleForInfer) ||
+          firstCleanTitlePlaceToken(titleForInfer)
         : ''
-      const productDestination = inferredDest || product.destination
+      const destScrubbed = destLine ? normalizeSupplierRegisterListingTitle(destLine) : ''
+      const destFromScrub =
+        destScrubbed &&
+        destScrubbed !== destLine &&
+        isRegisterPrePhotoPlaceLikeDestination(destScrubbed)
+          ? destScrubbed
+          : ''
+      const nextDestination = inferredDest || destFromScrub
+      const productDestination = nextDestination || (destNeedsInfer ? '' : product.destination)
 
       let next = rows
       let imageUrlCleared = 0
@@ -170,7 +199,7 @@ export async function healPendingRegisterPrePhoto(
         const result = healRegisterPrePhotoSchedule(mapped, {
           supplierKey,
           productDestination,
-          productTitle: product.title,
+          productTitle: titleForInfer,
           lane,
         })
         healNotes = result.notes
@@ -226,7 +255,7 @@ export async function healPendingRegisterPrePhoto(
         productType: product.productType,
         sportsThemeTag: product.sportsThemeTag,
         productDestination,
-        productTitle: product.title,
+        productTitle: titleForInfer,
         rows: verifyRows,
       })
       if (verify.ok) verified += 1
@@ -240,7 +269,14 @@ export async function healPendingRegisterPrePhoto(
       const nextJson = JSON.stringify(next)
       const nextRawMeta = mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify)
       const stampChanged = nextRawMeta !== String(product.rawMeta ?? '')
-      if (!scheduleChanged && !stampChanged && !statusChanged && healNotes.length === 0) {
+      if (
+        !scheduleChanged &&
+        !stampChanged &&
+        !statusChanged &&
+        !titleChanged &&
+        !nextDestination &&
+        healNotes.length === 0
+      ) {
         skippedUnchanged += 1
         continue
       }
@@ -252,7 +288,8 @@ export async function healPendingRegisterPrePhoto(
             data: {
               ...(scheduleChanged ? { schedule: nextJson } : {}),
               ...(statusChanged ? { registrationStatus: nextStatus } : {}),
-              ...(inferredDest ? { destination: inferredDest } : {}),
+              ...(titleChanged ? { title: cleanedTitle } : {}),
+              ...(nextDestination ? { destination: nextDestination } : {}),
               rawMeta: nextRawMeta,
             },
           }),
@@ -273,7 +310,9 @@ export async function healPendingRegisterPrePhoto(
           }
         }
       }
-      if (scheduleChanged || healNotes.length > 0) healed += 1
+      if (scheduleChanged || healNotes.length > 0 || titleChanged || Boolean(nextDestination)) {
+        healed += 1
+      }
       else if (!stampChanged && !statusChanged) skippedUnchanged += 1
       for (const n of healNotes.slice(0, 4)) {
         if (notesSample.length < 24) notesSample.push(n)
@@ -302,6 +341,21 @@ export async function healPendingRegisterPrePhoto(
     notesSample,
     byLane,
   }
+}
+
+function firstCleanTitlePlaceToken(title: string): string {
+  const t = normalizeSupplierRegisterListingTitle(title)
+    .replace(/\[비즈니스\]/g, ' ')
+    .replace(/\d+\s*(?:박\s*\d+\s*)?일/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/#[^\s#]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const part = t.split(/[/／·+,]/)[0]?.trim() ?? ''
+  if (part.length < 2 || part.length > 24) return ''
+  if (hasSupplierHomepageForbiddenTitlePhrase(part)) return ''
+  if (/^(?:미입력|미지정|미정|상품명 없음)$/i.test(part)) return ''
+  return part
 }
 
 function registerPendingScheduleJsonChanged(
