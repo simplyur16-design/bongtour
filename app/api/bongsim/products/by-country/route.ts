@@ -35,7 +35,7 @@ export async function GET(req: Request) {
   let res = await loadProductsByCountryCached(selectedCodes);
 
   // plans 와 동일 — cold miss·풀 잔상으로 jp만 되고 타국이 비는 경우 캐시 밖 1회 복구
-  if (!res.ok && res.reason !== "db_unconfigured") {
+  if (!res.ok && res.reason !== "db_unconfigured" && res.reason !== "connection_timeout") {
     console.warn("[by-country] catalog miss; healing pool and retrying once", res.reason);
     await healBongsimPgPoolForCatalog(`by-country:${res.reason}`);
     res = await loadProductsByCountryCached(selectedCodes);

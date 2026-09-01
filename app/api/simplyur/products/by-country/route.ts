@@ -40,7 +40,7 @@ export async function GET(req: Request) {
   }
 
   let catalog = await loadSimplyurKoreaCatalogCached(locale);
-  if (!catalog.ok && catalog.reason !== "db_unconfigured") {
+  if (!catalog.ok && catalog.reason !== "db_unconfigured" && catalog.reason !== "connection_timeout") {
     console.warn("[simplyur/by-country] catalog miss; healing pool and retrying once", catalog.reason);
     await healBongsimPgPoolForCatalog(`simplyur/by-country:${catalog.reason}`);
     catalog = await loadSimplyurKoreaCatalogCached(locale);

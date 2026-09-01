@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { shouldBackoffInsteadOfHealOnConnectTimeout } from "@/lib/bongsim/db/pool";
+import {
+  isBongsimPgSaturatedMaxClients,
+  shouldBackoffInsteadOfHealOnConnectTimeout,
+  shouldSkipCatalogHealBecauseSaturated,
+} from "@/lib/bongsim/db/pool";
 
 // REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: saturated → no heal — manifest
 
@@ -21,5 +25,25 @@ describe("shouldBackoffInsteadOfHealOnConnectTimeout", () => {
 
   it("heals when stats missing", () => {
     expect(shouldBackoffInsteadOfHealOnConnectTimeout(null, 8)).toBe(false);
+  });
+});
+
+describe("shouldSkipCatalogHealBecauseSaturated", () => {
+  it("skips heal on live EMAXCONN so homepage does not open more slots", () => {
+    expect(
+      isBongsimPgSaturatedMaxClients(
+        new Error("(EMAXCONN) max client connections reached, limit: 200"),
+      ),
+    ).toBe(true);
+    expect(
+      shouldSkipCatalogHealBecauseSaturated(
+        new Error("(EMAXCONN) max client connections reached, limit: 200"),
+      ),
+    ).toBe(true);
+    expect(shouldSkipCatalogHealBecauseSaturated("by-country:connection_timeout")).toBe(true);
+  });
+
+  it("does not treat ordinary SQL as saturated", () => {
+    expect(isBongsimPgSaturatedMaxClients(new Error("relation does not exist"))).toBe(false);
   });
 });

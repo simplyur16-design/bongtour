@@ -3,6 +3,7 @@ import {
   classifyBongsimPgError,
   getPgPool,
   healBongsimPgPoolForCatalog,
+  shouldSkipCatalogHealBecauseSaturated,
   withBongsimCatalogRetry,
   withBongsimStatementTimeout,
 } from "@/lib/bongsim/db/pool";
@@ -51,6 +52,7 @@ export async function getProductDetailByOptionApiId(optionApiId: string): Promis
   } catch (e) {
     const kind = classifyBongsimPgError(e);
     if (kind !== "connection_timeout") return { ok: false, reason: "db_error" };
+    if (shouldSkipCatalogHealBecauseSaturated(e)) return { ok: false, reason: "connection_timeout" };
     await healBongsimPgPoolForCatalog("bongsim-product-detail");
     try {
       return await queryProductDetail(id);

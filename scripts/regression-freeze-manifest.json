@@ -1513,7 +1513,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]",
             "shouldBackoffInsteadOfHealOnConnectTimeout",
-            "shouldSkipImmediateDrainRetryOnSaturatedTimeout"
+            "shouldSkipImmediateDrainRetryOnSaturatedTimeout",
+            "isBongsimPgSaturatedMaxClients",
+            "shouldSkipCatalogHealBecauseSaturated"
           ]
         },
         {

@@ -160,6 +160,28 @@ export function shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated: boole
   return saturated === true;
 }
 
+/**
+ * Supabase 200 한도(EMAXCONN). heal(close+새 풀)은 슬롯을 더 잡아 홈 카탈로그를 죽인다.
+ * REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: EMAXCONN → no heal — manifest
+ */
+let lastSaturatedMaxClientsAt = 0;
+const SATURATED_MAX_CLIENTS_HEAL_SKIP_MS = 60_000;
+
+export function isBongsimPgSaturatedMaxClients(err: unknown): boolean {
+  const msg = String(err instanceof Error ? err.message : err);
+  return /EMAXCONN|max clients? connections? reached|too many connections|remaining connection slots|MaxClientsInSessionMode/i.test(
+    msg,
+  );
+}
+
+export function shouldSkipCatalogHealBecauseSaturated(errOrReason?: unknown): boolean {
+  if (errOrReason != null && isBongsimPgSaturatedMaxClients(errOrReason)) {
+    lastSaturatedMaxClientsAt = Date.now();
+    return true;
+  }
+  return Date.now() - lastSaturatedMaxClientsAt < SATURATED_MAX_CLIENTS_HEAL_SKIP_MS;
+}
+
 function buildPoolConfig(): PoolConfig | null {
   let url = process.env.DATABASE_URL?.trim();
   if (!url) return null;
@@ -361,6 +383,10 @@ const HEAL_WAIT_BUDGET_MS = 2_500;
 
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: healBongsimPgPoolForCatalog coalesce — manifest
 export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void> {
+  if (shouldSkipCatalogHealBecauseSaturated(reason)) {
+    console.warn("[bongsim/db/pool] skip heal — supabase clients saturated", { reason });
+    return;
+  }
   if (poolResetInFlight) {
     await Promise.race([
       poolResetInFlight.catch(() => {}),
@@ -411,6 +437,7 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
 /** Railway 등에서 연결이 고이면 다음 요청이 새 풀을 쓰도록 1회 리셋 (호출측에서 await 권장) */
 export function resetBongsimPgPoolAfterConnectTimeout(err: unknown): Promise<void> {
   if (classifyBongsimPgError(err) !== "connection_timeout") return Promise.resolve();
+  if (shouldSkipCatalogHealBecauseSaturated(err)) return Promise.resolve();
   return healBongsimPgPoolForCatalog(
     isBongsimPgTlsHandshakeIssue(err) ? "tls_handshake" : "connection_timeout",
   );
@@ -509,6 +536,7 @@ export async function withBongsimCatalogRetry<T>(fn: () => Promise<T>): Promise<
     return await fn();
   } catch (e) {
     if (String(e instanceof Error ? e.message : e).includes("db_unconfigured")) throw e;
+    if (shouldSkipCatalogHealBecauseSaturated(e)) throw e;
     console.warn(
       "[bongsim/db/pool] catalog query failed; healing pool and retrying once",
       e instanceof Error ? e.message : e,
