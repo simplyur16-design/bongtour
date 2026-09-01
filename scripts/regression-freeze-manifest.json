@@ -16723,7 +16723,10 @@
           "mustInclude": [
             "loadSimplyurKoreaProductByOptionIdCached",
             "max client connections reached",
-            "BONGSIM_PG_POOL_MAX"
+            "BONGSIM_PG_POOL_MAX",
+            "lastGoodCountries",
+            "getProductDetailByOptionApiIdCached",
+            "GROUP BY 1, 2, 3, 4, 5"
           ]
         }
       ],

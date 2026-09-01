@@ -76,7 +76,8 @@ export async function loadBongsimCountriesPayload(): Promise<
   try {
     return await withBongsimCatalogRetry(() =>
       withBongsimStatementTimeout(async (client) => {
-        // 한 번만: DISTINCT plan_name + 전체 price_block 이중 스캔 금지
+        // 한 번만: SKU 전행이 아니라 국가 타일에 필요한 조합만. price_block JSON 이중 스캔 금지.
+        // REGRESSION-FREEZE[esim-fulfill-keep-catalog-pipe]: DISTINCT countries meta — manifest
         const { rows } = await client.query<CountryCatalogMetaRow>(
           `SELECT TRIM(plan_name) AS plan_name,
                 network_family,
@@ -84,7 +85,8 @@ export async function loadBongsimCountriesPayload(): Promise<
                 allowance_label,
                 jsonb_build_object('kyc', flags->'kyc') AS flags
          FROM bongsim_product_option
-         WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
+         WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
+         GROUP BY 1, 2, 3, 4, 5`,
         );
 
         const countries = standaloneCountriesFromPlanNames(rows.map((r) => r.plan_name));

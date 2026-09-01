@@ -100,7 +100,8 @@ BONGSIM_PG_POOL_MAX=10
 ```
 
 (미설정 시 production은 자동 `web`. **worker가 있으면 `BONGSIM_FULFILL_OWNER=worker` 필수.**  
-동시 접속 ~100명(조회·결제 확정) 목표: web pg 10 + Prisma 5.)
+동시 접속 ~1000명(조회 위주) 목표: web replica 3 × (pg 10 + Prisma 5) + 국가/상세 120s 캐시.
+한 프로세스 연결은 그대로 15. DB 천장 200을 사람 1000으로 바꾸지 않음.)
 
 ### 2) worker 서비스 (배치 + 발급 — 권장 최소 구성)
 

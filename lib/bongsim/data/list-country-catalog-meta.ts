@@ -108,7 +108,8 @@ export async function listCountryCatalogMetaByCode(
             allowance_label,
             jsonb_build_object('kyc', flags->'kyc') AS flags
      FROM bongsim_product_option
-     WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}`,
+     WHERE ${BONGSIM_CATALOG_ACTIVE_WHERE}
+     GROUP BY 1, 2, 3, 4, 5`,
   );
 
   return catalogMetaFromSlimRows(rows, normalized);

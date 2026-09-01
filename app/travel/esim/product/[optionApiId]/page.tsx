@@ -4,7 +4,7 @@ import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 import { notFound } from "next/navigation";
 import { ProductDetailV1View } from "@/components/bongsim/detail-v1/ProductDetailV1View";
-import { getProductDetailByOptionApiId } from "@/lib/bongsim/data/get-product-detail-by-option-api-id";
+import { getProductDetailByOptionApiIdCached } from "@/lib/bongsim/data/load-product-detail-cached";
 import { listKycFlagProductsForPlanName } from "@/lib/bongsim/data/list-kyc-flag-products-for-plan-name";
 import { getKycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 
@@ -12,7 +12,7 @@ type Props = { params: Promise<{ optionApiId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { optionApiId } = await params;
-  const res = await getProductDetailByOptionApiId(optionApiId);
+  const res = await getProductDetailByOptionApiIdCached(optionApiId);
   const canonical = `/travel/esim/product/${encodeURIComponent(optionApiId)}`;
   if (!res.ok) {
     return {
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductDetailV1Page({ params }: Props) {
   const { optionApiId } = await params;
-  const res = await getProductDetailByOptionApiId(optionApiId);
+  const res = await getProductDetailByOptionApiIdCached(optionApiId);
   if (!res.ok) {
     if (res.reason === "not_found") notFound();
     return (

@@ -7,9 +7,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   classifyBongsimPgError,
+  isBongsimPgSaturatedMaxClients,
   resolveBongsimCatalogPoolMax,
   resolveBongsimOutboxPoolMaxClamped,
   resolveBongsimPoolMax,
+  shouldSkipCatalogHealBecauseSaturated,
 } from "@/lib/bongsim/db/pool";
 
 const root = process.cwd();
@@ -28,6 +30,28 @@ if (
   "connection_timeout"
 ) {
   fail("live EMAXCONN text must classify as connection_timeout, not db_error");
+}
+
+if (
+  !isBongsimPgSaturatedMaxClients(new Error("(EMAXCONN) max client connections reached, limit: 200")) ||
+  !shouldSkipCatalogHealBecauseSaturated(
+    new Error("(EMAXCONN) max client connections reached, limit: 200"),
+  )
+) {
+  fail("EMAXCONN must skip catalog heal so homepage does not open more slots");
+}
+
+const countriesSrc = read("lib/bongsim/data/load-recommend-bootstrap.ts");
+if (!countriesSrc.includes("GROUP BY 1, 2, 3, 4, 5")) {
+  fail("countries catalog must DISTINCT/GROUP BY meta rows, not stream every SKU");
+}
+const countriesCached = read("lib/bongsim/data/load-bongsim-countries-cached.ts");
+if (!countriesCached.includes("lastGoodCountries")) {
+  fail("countries cache must keep last-good payload when DB misses");
+}
+const homePage = read("app/travel/esim/product/[optionApiId]/page.tsx");
+if (!homePage.includes("getProductDetailByOptionApiIdCached")) {
+  fail("homepage product page must use cached detail loader");
 }
 
 const prevTotal = process.env.BONGSIM_PG_POOL_MAX;

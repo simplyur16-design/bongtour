@@ -387,6 +387,10 @@ export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void
     console.warn("[bongsim/db/pool] skip heal — supabase clients saturated", { reason });
     return;
   }
+  if (shouldBackoffInsteadOfHealOnConnectTimeout(getBongsimPoolStats())) {
+    console.warn("[bongsim/db/pool] skip heal — local catalog pool already full", { reason });
+    return;
+  }
   if (poolResetInFlight) {
     await Promise.race([
       poolResetInFlight.catch(() => {}),
