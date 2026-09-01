@@ -2281,7 +2281,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "봉심 표시·청구 = 공급가×5/3 정가(slim 필드는 consumer_krw) + 명함 승인 25% 할인",
+      "summary": "봉심 표시·청구 = USIMSA 소비자가 + 명함 승인 25% 할인(공급가×1.25 바닥)",
       "checks": [
         {
           "file": "lib/bongsim/data/pricing-select-charged.ts",
@@ -2352,6 +2352,67 @@
       "vitestSuites": [
         "lib/bongsim/data/pricing-select-charged.test.ts",
         "lib/bongsim/data/pricing-after-recommended-krw.test.ts",
+        "lib/bongsim/data/checkout-press-discount.test.ts",
+        "lib/bongsim/press/affiliation-member-display-price.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-display-recommended-floor",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈 표시·청구 = 권장소비자가. 명함 25% 마지노선=공급가×1.25.",
+      "checks": [
+        {
+          "file": "lib/bongsim/data/pricing-bongtour-list.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-display-recommended-floor]",
+            "bongtourHomepageListKrw",
+            "bongtourAffiliationFloorNetFromSupplyKrw"
+          ],
+          "mustNotInclude": [
+            "BONGTOUR_ESIM_MAX_PUBLIC_OFF_CONSUMER",
+            "0.90"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/pricing-after-recommended-krw.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-display-recommended-floor]",
+            "bongtourHomepageListKrw"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/catalog-consumer-krw-sql.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-display-recommended-floor]",
+            "SIDE_RECOMMENDED"
+          ],
+          "mustNotInclude": [
+            "0.90",
+            "GREATEST("
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-display-recommended-floor]",
+            "affiliationFloorNetTotal",
+            "bongtourAffiliationFloorNetFromSupplyKrw"
+          ]
+        },
+        {
+          "file": "lib/bongsim/press/affiliation-member-display-price.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-display-recommended-floor]",
+            "bongtourAffiliationFloorNetFromSupplyKrw"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/data/pricing-bongtour-list.test.ts",
+        "lib/bongsim/data/pricing-select-charged.test.ts",
         "lib/bongsim/data/checkout-press-discount.test.ts",
         "lib/bongsim/press/affiliation-member-display-price.test.ts"
       ]

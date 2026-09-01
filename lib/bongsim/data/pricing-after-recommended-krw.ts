@@ -1,5 +1,5 @@
 import type { BongsimPriceBlockV1 } from "@/lib/bongsim/contracts/product-master.v1";
-import { bongtourEsimListPriceFromSupplyKrw } from "@/lib/bongsim/data/pricing-bongtour-list";
+import { bongtourHomepageListKrw } from "@/lib/bongsim/data/pricing-bongtour-list";
 import {
   resolveActivePriceSide,
   type LoosePriceBlock,
@@ -33,9 +33,10 @@ export function afterRecommendedSellKrw(priceBlock: AfterRecommendedPriceBlockIn
 }
 
 /**
- * 봉투어 홈 판매가 — 유효 공급가 × 5/3 (25% 할인 후 고객센터 10% + 수익 15%).
- * 공급가 없으면 권장판매가·소비자가. slim JSON 필드명은 호환용 `consumer_krw`.
- * REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 권장판매가 기준 + 명함 25% — manifest
+ * 봉투어 홈 표시·청구 — 권장소비자가. 명함 마지노선은 공급가×1.25.
+ * slim 필드명은 호환용 `consumer_krw`.
+ * REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 권장 표시 + 명함 25% — manifest
+ * REGRESSION-FREEZE[bongsim-display-recommended-floor]: 표시=권장소비자가 — manifest
  * REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 cutover — manifest
  */
 export function afterConsumerSellKrw(
@@ -43,11 +44,11 @@ export function afterConsumerSellKrw(
   nowMs: number = Date.now(),
 ): number | null {
   const side = resolveActivePriceSide(priceBlock, nowMs);
-  const fromSupply = side.supply_krw == null ? null : bongtourEsimListPriceFromSupplyKrw(side.supply_krw);
-  if (fromSupply != null) return fromSupply;
-  const fallback = side.recommended_krw ?? side.consumer_krw;
-  if (fallback == null || fallback < 0) return null;
-  return Math.trunc(fallback);
+  return bongtourHomepageListKrw({
+    recommended_krw: side.recommended_krw,
+    consumer_krw: side.consumer_krw,
+    supply_krw: side.supply_krw,
+  });
 }
 
 /**

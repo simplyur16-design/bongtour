@@ -80,4 +80,9 @@ describe("직군 checkout 할인 (서버 계산)", () => {
     const discount = computePressMemberDiscountKrw(20_000);
     expect(discount).toBe(5_000);
   });
+
+  it("caps 25% so remainder stays at supply × 1.25 floor", () => {
+    expect(computePressMemberDiscountKrw(4000, 4500)).toBe(0);
+    expect(computePressMemberDiscountKrw(4700, 2940)).toBe(1175);
+  });
 });

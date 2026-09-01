@@ -19,4 +19,10 @@ describe("affiliationMemberDisplayPrice", () => {
     expect(storefrontDisplayUnitKrw(13_000, true)).toBe(9_750);
     expect(storefrontDisplayUnitKrw(13_000, false)).toBe(13_000);
   });
+
+  it("does not cut below supply × 1.25", () => {
+    expect(affiliationMemberNetKrw(4700, 2350)).toBe(3525);
+    expect(affiliationMemberNetKrw(4000, 3600)).toBe(4000);
+    expect(storefrontDisplayUnitKrw(4000, true, 3600)).toBe(4000);
+  });
 });

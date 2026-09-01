@@ -4,7 +4,7 @@ import { resolveActivePriceSide } from "@/lib/bongsim/data/pricing-effective-fro
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog sell = consumer × 1.05 — manifest
 // REGRESSION-FREEZE[bongsim-price-effective-from]: simplyur uses effective consumer — manifest
 
-/** simplyur 판매가 = 유효 USIMSA 소비자가 × 5% 인상 (봉투어 5/3 정가 미적용) */
+/** simplyur 판매가 = 유효 USIMSA 소비자가 × 5% 인상 (봉투어 소비자가 표시와 별개) */
 export const SIMPLYUR_MARKUP_MULTIPLIER = 1.05;
 
 export const SIMPLYUR_PRICE_BASIS_KEY = "after.consumer_krw.simplyur_markup_1.05" as const;

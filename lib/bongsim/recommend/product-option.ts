@@ -1,7 +1,7 @@
 import { afterConsumerSellKrw } from "@/lib/bongsim/data/pricing-after-recommended-krw";
 
 /**
- * 스토어프론트·추천 API 표시·정렬 단가: price_block.after.consumer_krw 만 (before·권장가 폴백 없음).
+ * 스토어프론트·추천 API 표시·정렬 단가: `afterConsumerSellKrw` (권장소비자가).
  * `recommended_price` 필드명은 API 호환용.
  */
 export function computeRecommendedPrice(price_block: ProductOption["price_block"] | null | undefined): number | null {

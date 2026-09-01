@@ -10,7 +10,6 @@ import {
 import { BONGSIM_CATALOG_NOT_SCHEDULED_NEW_SKU_WHERE } from "@/lib/bongsim/data/catalog-consumer-krw-sql";
 import { parsePriceBlockJson } from "@/lib/bongsim/data/parse-product-json";
 import { afterConsumerSellKrw } from "@/lib/bongsim/data/pricing-after-recommended-krw";
-import { bongtourEsimListPriceFromSupplyKrw } from "@/lib/bongsim/data/pricing-bongtour-list";
 
 // REGRESSION-FREEZE[bongsim-price-effective-from]: Sept 1 00:00 KST — manifest
 
@@ -112,7 +111,7 @@ describe("pricing-effective-from", () => {
     expect(parsed.effective_from).toBe(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
     const beforeMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 1;
     const afterMs = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901);
-    expect(afterConsumerSellKrw(parsed, beforeMs)).toBe(bongtourEsimListPriceFromSupplyKrw(1950));
-    expect(afterConsumerSellKrw(parsed, afterMs)).toBe(bongtourEsimListPriceFromSupplyKrw(2350));
+    expect(afterConsumerSellKrw(parsed, beforeMs)).toBe(3900);
+    expect(afterConsumerSellKrw(parsed, afterMs)).toBe(4700);
   });
 });

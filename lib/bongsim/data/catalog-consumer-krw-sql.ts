@@ -1,9 +1,10 @@
 /**
  * 카탈로그 목록·by-country·plans — 전체 price_block JSON 대신 유효 판매가만 추출.
- * 봉투어 정가 = 공급가×5/3 (10원 올림). 없으면 권장판매가·소비자가.
+ * 봉투어 표시가 = 권장소비자가(recommended_krw). 없으면 소비자가, 그다음 공급 폴백.
  * slim 필드명은 호환용 consumer_krw.
  * REGRESSION-FREEZE[bongsim-catalog-list-perf]: slim consumer extract — manifest
  * REGRESSION-FREEZE[bongsim-price-effective-from]: before/after 컷오버 — manifest
+ * REGRESSION-FREEZE[bongsim-display-recommended-floor]: 표시=권장소비자가 — manifest
  */
 import { resolveBongsimPriceEffectiveFrom } from "@/lib/bongsim/data/pricing-effective-from";
 
@@ -23,9 +24,9 @@ const SIDE_SUPPLY = (side: "'after'" | "'before'") => SIDE_NUM(side, "supply_krw
 const SIDE_LIST_FROM_SUPPLY = (side: "'after'" | "'before'") =>
   `CEIL((${SIDE_SUPPLY(side)} * 5.0 / 3.0) / 10.0) * 10`;
 const SIDE_SELL = (side: "'after'" | "'before'") =>
-  `COALESCE(${SIDE_LIST_FROM_SUPPLY(side)}, ${SIDE_RECOMMENDED(side)}, ${SIDE_CONSUMER(side)})`;
+  `COALESCE(${SIDE_RECOMMENDED(side)}, ${SIDE_CONSUMER(side)}, ${SIDE_LIST_FROM_SUPPLY(side)})`;
 
-/** 심플리유어 — USIMSA 소비자가만 (봉투어 5/3 정가 미적용) */
+/** 심플리유어 — USIMSA 소비자가만 (봉투어 표시가·1.05 마크업과 별개) */
 export const BONGSIM_CATALOG_USIMSA_CONSUMER_KRW_SQL = `CASE
   WHEN nullif(btrim(price_block->>'effective_from'), '') IS NOT NULL
        AND now() < (price_block->>'effective_from')::timestamptz
@@ -60,7 +61,7 @@ export const BONGSIM_CATALOG_SUPPLY_KRW_SQL = `CASE
 END`;
 
 /**
- * 지금 판매 가능한 정가(공급가×5/3 또는 권장·소비자가)가 있는 옵션만 (9/1 컷오버 전 after-only 스케줄 SKU 제외).
+ * 지금 판매 가능한 표시가(소비자가·권장·공급 폴백)가 있는 옵션만 (9/1 컷오버 전 after-only 스케줄 SKU 제외).
  * REGRESSION-FREEZE[bongsim-price-effective-from]: catalog sellable gate — manifest
  */
 export const BONGSIM_CATALOG_SELLABLE_NOW_WHERE = `(${BONGSIM_CATALOG_CONSUMER_KRW_SQL}) IS NOT NULL`;

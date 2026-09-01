@@ -8,22 +8,23 @@ import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-cha
 import { BONGSIM_PRICE_EFFECTIVE_FROM_20260901 } from "@/lib/bongsim/data/pricing-effective-from";
 
 // REGRESSION-FREEZE[bongsim-charge-consumer-affiliation-25pct]: 소비자가 기준 + 명함 25% — manifest
+// REGRESSION-FREEZE[bongsim-display-recommended-floor]: 표시=권장소비자가 — manifest
 // REGRESSION-FREEZE[bongsim-price-effective-from]: effective_from cutover — manifest
 
 const BEFORE_MS = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) - 60_000;
 const AFTER_MS = Date.parse(BONGSIM_PRICE_EFFECTIVE_FROM_20260901) + 60_000;
 
 describe("afterConsumerSellKrw", () => {
-  it("uses supply × 5/3 list when no effective_from", () => {
+  it("uses 권장소비자가 as homepage list when no effective_from", () => {
     expect(
       afterConsumerSellKrw({
         before: { recommended_krw: 1000, consumer_krw: 2000, supply_krw: 3600 },
         after: { recommended_krw: 11700, consumer_krw: 13000, supply_krw: 3600 },
       }),
-    ).toBe(6000);
+    ).toBe(11700);
   });
 
-  it("uses before.supply list before effective_from", () => {
+  it("uses before.recommended before effective_from", () => {
     expect(
       afterConsumerSellKrw(
         {
@@ -33,10 +34,10 @@ describe("afterConsumerSellKrw", () => {
         },
         BEFORE_MS,
       ),
-    ).toBe(6000);
+    ).toBe(9000);
   });
 
-  it("uses after.supply list after effective_from", () => {
+  it("uses after.recommended after effective_from", () => {
     expect(
       afterConsumerSellKrw(
         {
@@ -46,12 +47,20 @@ describe("afterConsumerSellKrw", () => {
         },
         AFTER_MS,
       ),
-    ).toBe(8000);
+    ).toBe(11700);
   });
 
-  it("falls back to recommended then consumer when supply is missing", () => {
-    expect(afterConsumerSellKrw({ after: { recommended_krw: 11700 } })).toBe(11700);
+  it("falls back to consumer then supply when 권장 is missing", () => {
     expect(afterConsumerSellKrw({ after: { consumer_krw: 13000 } })).toBe(13000);
+    expect(afterConsumerSellKrw({ after: { supply_krw: 3600 } })).toBe(6000);
+  });
+
+  it("homepage is 권장소비자가 even when 소비자가 is higher", () => {
+    expect(
+      afterConsumerSellKrw({
+        after: { consumer_krw: 4700, recommended_krw: 4300, supply_krw: 2350 },
+      }),
+    ).toBe(4300);
   });
 });
 
@@ -72,12 +81,12 @@ describe("afterRecommendedSellKrw", () => {
 });
 
 describe("selectChargedUnitPriceKrw", () => {
-  it("charges supply × 5/3 list (storefront base)", () => {
+  it("charges 권장소비자가 as storefront base", () => {
     const r = selectChargedUnitPriceKrw({
       before: { recommended_krw: 14000, consumer_krw: 15000, supply_krw: 9000 },
       after: { recommended_krw: 11700, consumer_krw: 13000, supply_krw: 3600 },
     });
-    expect(r.unit_krw).toBe(6000);
+    expect(r.unit_krw).toBe(11700);
     expect(r.basis_key).toBe(AFTER_CONSUMER_BASIS_KEY);
   });
 

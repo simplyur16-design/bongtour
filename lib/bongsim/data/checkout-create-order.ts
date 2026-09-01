@@ -24,6 +24,8 @@ import {
   parseFulfillmentMode,
   type BongsimFulfillmentMode,
 } from "@/lib/bongsim/catalog/sim-fulfillment";
+import { afterSupplyCostKrw } from "@/lib/bongsim/data/pricing-after-recommended-krw";
+import { bongtourAffiliationFloorNetFromSupplyKrw } from "@/lib/bongsim/data/pricing-bongtour-list";
 import { selectChargedUnitPriceKrw } from "@/lib/bongsim/data/pricing-select-charged";
 import { isSimplyurCheckoutChannel } from "@/lib/simplyur/checkout/channel";
 import {
@@ -54,11 +56,27 @@ export {
   buyerHasPriorPaidEsimOrder,
 };
 
-/** 직군 자동 할인액(원, floor). subtotal ≤ 0 이면 0. */
-export function computePressMemberDiscountKrw(subtotal_krw: number): number {
+/**
+ * 직군 자동 할인액(원, floor). subtotal ≤ 0 이면 0.
+ * `affiliationFloorNetTotal`이 있으면 잔액이 그 값(공급가×1.25 합) 아래로 내려가지 않게 할인액을 줄임.
+ * REGRESSION-FREEZE[bongsim-display-recommended-floor]: 명함만 공급가×1.25 바닥 — manifest
+ */
+export function computePressMemberDiscountKrw(
+  subtotal_krw: number,
+  affiliationFloorNetTotal?: number | null,
+): number {
   const sub = Math.trunc(subtotal_krw);
   if (!Number.isFinite(sub) || sub <= 0) return 0;
-  return Math.floor((sub * PRESS_MEMBER_DISCOUNT_RATE_PCT) / 100);
+  const raw = Math.floor((sub * PRESS_MEMBER_DISCOUNT_RATE_PCT) / 100);
+  if (
+    affiliationFloorNetTotal == null ||
+    !Number.isFinite(affiliationFloorNetTotal) ||
+    affiliationFloorNetTotal <= 0
+  ) {
+    return raw;
+  }
+  const maxDisc = Math.max(0, sub - Math.trunc(affiliationFloorNetTotal));
+  return Math.min(raw, maxDisc);
 }
 
 /** 명함 승인(occupation) 회원이 쿠폰 필드를내면 거절 코드, 아니면 null. */
@@ -99,6 +117,7 @@ type PreparedCheckoutLine = {
   quantity: number;
   unit_krw: number;
   line_total: number;
+  affiliation_floor_net_line: number;
   basis_key: string;
   snapshot: BongsimOrderLineSnapshotV1;
 };
@@ -564,11 +583,14 @@ async function prepareCheckoutLines(
       };
     }
     const line_total = unit_krw * line.quantity;
+    const supply = simplyur ? null : afterSupplyCostKrw(opt.price_block);
+    const floorUnit = supply == null ? null : bongtourAffiliationFloorNetFromSupplyKrw(supply);
     prepared.push({
       option_api_id: line.option_api_id,
       quantity: line.quantity,
       unit_krw,
       line_total,
+      affiliation_floor_net_line: floorUnit == null ? 0 : floorUnit * line.quantity,
       basis_key,
       snapshot: buildLineSnapshot(opt, basis_key, unit_krw, { mode: fulfillmentMode }),
     });
@@ -754,7 +776,11 @@ export async function checkoutCreateOrderFromRequest(body: unknown): Promise<Che
         return { ok: false, reason: "validation", details: { coupon: pressCouponReject } };
       }
       if (occupationEligible) {
-        discount_krw = computePressMemberDiscountKrw(subtotal_krw);
+        const affiliationFloorNetTotal = prepared.reduce(
+          (sum, p) => sum + p.affiliation_floor_net_line,
+          0,
+        );
+        discount_krw = computePressMemberDiscountKrw(subtotal_krw, affiliationFloorNetTotal);
         pressDiscountApplied = true;
       }
     }
