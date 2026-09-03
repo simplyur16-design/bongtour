@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  classifyBongsimPgError,
   isBongsimPgSaturatedMaxClients,
   shouldBackoffInsteadOfHealOnConnectTimeout,
   shouldSkipCatalogHealBecauseSaturated,
@@ -45,5 +46,14 @@ describe("shouldSkipCatalogHealBecauseSaturated", () => {
 
   it("does not treat ordinary SQL as saturated", () => {
     expect(isBongsimPgSaturatedMaxClients(new Error("relation does not exist"))).toBe(false);
+  });
+
+  it("classify EMAXCONN as connection_timeout and arms heal-skip for label heals", () => {
+    expect(
+      classifyBongsimPgError(
+        new Error("FATAL: (EMAXCONN) max client connections reached, limit: 200"),
+      ),
+    ).toBe("connection_timeout");
+    expect(shouldSkipCatalogHealBecauseSaturated("order-paid-outbox-cron-timeout")).toBe(true);
   });
 });

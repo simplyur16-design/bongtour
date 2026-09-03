@@ -18,6 +18,7 @@ import { runNewUserCouponBootstrap } from '@/lib/bongsim/data/new-user-coupon-bo
 import { normalizeCredentialsLoginEmail } from '@/lib/normalize-credentials-login-email'
 import { googleOAuthProvider } from '@/lib/auth/google-oauth-provider'
 import { appleOAuthProvider } from '@/lib/auth/apple-oauth-provider'
+import { isRetryablePrismaError, withPrismaRetry } from '@/lib/prisma-retry'
 
 function authSessionCookieDomain(): string | undefined {
   try {
@@ -98,12 +99,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = normalizeCredentialsLoginEmail(credentials?.email?.toString() ?? '')
         const password = credentials?.password?.toString() ?? ''
         if (!email || !password) return null
-        const user = await prisma.user.findUnique({ where: { email } })
-        if (!user?.passwordHash) return null
-        if (user.accountStatus !== 'active') return null
-        const ok = await bcrypt.compare(password, user.passwordHash)
-        if (!ok) return null
-        return { id: user.id, email: user.email, name: user.name, image: user.image }
+        // REGRESSION-FREEZE[auth-login-emaxconn-retry]: credentials retry EMAXCONN — manifest
+        return withPrismaRetry(
+          'auth.credentials',
+          async () => {
+            const user = await prisma.user.findUnique({ where: { email } })
+            if (!user?.passwordHash) return null
+            if (user.accountStatus !== 'active') return null
+            const ok = await bcrypt.compare(password, user.passwordHash)
+            if (!ok) return null
+            return { id: user.id, email: user.email, name: user.name, image: user.image }
+          },
+          4,
+        )
       },
     }),
     ...(googleProvider ? [googleProvider] : []),
@@ -188,15 +196,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.affiliationVerified == null
 
       if (shouldRefreshRoleFromDb) {
-        const email = (user?.email as string | undefined) ?? (token.email as string | undefined)
-        await ensureUserBootstrapRole(userId, email ?? null)
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { role: true, accountStatus: true, affiliationVerified: true },
-        })
-        token.role = dbUser?.role ?? null
-        token.accountStatus = dbUser?.accountStatus ?? 'active'
-        token.affiliationVerified = Boolean(dbUser?.affiliationVerified)
+        try {
+          await withPrismaRetry(
+            'auth.jwt-role',
+            async () => {
+              const email = (user?.email as string | undefined) ?? (token.email as string | undefined)
+              await ensureUserBootstrapRole(userId, email ?? null)
+              const dbUser = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { role: true, accountStatus: true, affiliationVerified: true },
+              })
+              token.role = dbUser?.role ?? null
+              token.accountStatus = dbUser?.accountStatus ?? 'active'
+              token.affiliationVerified = Boolean(dbUser?.affiliationVerified)
+            },
+            user?.id ? 4 : 1,
+          )
+        } catch (e) {
+          if (isRetryablePrismaError(e) && token.role != null) {
+            console.warn('[auth.jwt] keep cached role — db saturated')
+          } else {
+            throw e
+          }
+        }
       }
 
       if (trigger === 'update' && session) {

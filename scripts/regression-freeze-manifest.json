@@ -20392,6 +20392,60 @@
           ]
         }
       ]
+    },
+    {
+      "id": "auth-login-emaxconn-retry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "네이버·관리자 이메일 로그인은 EMAXCONN에서 재시도하고, outbox/카탈로그 heal은 200 한도에서 새 커넥션을 열지 않는다",
+      "npmScripts": [
+        "verify:auth-login-emaxconn"
+      ],
+      "checks": [
+        {
+          "file": "auth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-login-emaxconn-retry]",
+            "withPrismaRetry",
+            "auth.credentials"
+          ]
+        },
+        {
+          "file": "app/api/auth/naver/callback/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-login-emaxconn-retry]",
+            "withPrismaRetry",
+            "auth.naver.account"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-login-emaxconn-retry]",
+            "shouldSkipCatalogHealBecauseSaturated"
+          ]
+        },
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-login-emaxconn-retry]",
+            "isBongsimPgSaturatedMaxClients(err)"
+          ]
+        },
+        {
+          "file": "scripts/verify-auth-login-emaxconn.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auth-login-emaxconn-retry]",
+            "auth.credentials"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/prisma-retry.test.ts",
+        "lib/bongsim/db/pool-saturated-backoff.test.ts"
+      ]
     }
   ]
 }

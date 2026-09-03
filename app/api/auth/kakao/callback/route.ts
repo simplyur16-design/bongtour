@@ -21,6 +21,7 @@ import { appendNaverSessionCookie, redirectAfterNaverLogin } from '@/lib/naver-a
 import { oauthCallbackServerError } from '@/lib/oauth-callback-server-error'
 import { readCookieFromRequestHeader } from '@/lib/parse-cookie-header'
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 
 export const dynamic = 'force-dynamic'
 
@@ -219,10 +220,16 @@ export async function GET(request: Request) {
     token_type: tokenJson.token_type ?? null,
   }
 
-  const linked = await prisma.account.findUnique({
-    where: { provider_providerAccountId: { provider: 'kakao', providerAccountId: kakaoId } },
-    include: { user: true },
-  })
+  // REGRESSION-FREEZE[auth-login-emaxconn-retry]: kakao user lookup retries EMAXCONN — manifest
+  const linked = await withPrismaRetry(
+    'auth.kakao.account',
+    () =>
+      prisma.account.findUnique({
+        where: { provider_providerAccountId: { provider: 'kakao', providerAccountId: kakaoId } },
+        include: { user: true },
+      }),
+    4,
+  )
 
   let userId: string
 
@@ -249,7 +256,11 @@ export async function GET(request: Request) {
     })
     userId = u.id
   } else if (emailRaw) {
-    const byEmail = await prisma.user.findUnique({ where: { email: emailRaw } })
+    const byEmail = await withPrismaRetry(
+      'auth.kakao.email',
+      () => prisma.user.findUnique({ where: { email: emailRaw } }),
+      4,
+    )
     if (byEmail) {
       if (byEmail.accountStatus === 'suspended' || byEmail.accountStatus === 'withdrawn') {
         return jsonErrorClearState(request, 403, '이용이 제한된 계정입니다.')

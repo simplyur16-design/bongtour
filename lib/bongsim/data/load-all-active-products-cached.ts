@@ -5,7 +5,11 @@ import {
   type AllActiveProductsResult,
 } from "@/lib/bongsim/data/load-all-active-products";
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
-import { healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
+import {
+  healBongsimPgPoolForCatalog,
+  isBongsimPgSaturatedMaxClients,
+  shouldSkipCatalogHealBecauseSaturated,
+} from "@/lib/bongsim/db/pool";
 
 // REGRESSION-FREEZE[bongsim-products-by-country-cache]: 전체·단일 목적지 120s cache — manifest
 
@@ -27,7 +31,10 @@ async function fetchDestinationOrThrow(
 
 function reasonFromCacheError(e: unknown): "connection_timeout" | "db_error" {
   const msg = String(e instanceof Error ? e.message : e);
-  return msg.includes("connection_timeout") ? "connection_timeout" : "db_error";
+  if (msg.includes("connection_timeout") || /EMAXCONN|max client connections reached/i.test(msg)) {
+    return "connection_timeout";
+  }
+  return "db_error";
 }
 
 /** unstable_cache 실패 후 풀 heal → 캐시 밖 1회 (국가별 cold miss 복구) */
@@ -39,7 +46,11 @@ async function retryCatalogOutsideCache(
     "[load-all-active-products-cached] cache miss; healing pool and retrying once",
     firstErr instanceof Error ? firstErr.message : firstErr,
   );
-  await healBongsimPgPoolForCatalog("active-products-cache");
+  if (isBongsimPgSaturatedMaxClients(firstErr)) {
+    shouldSkipCatalogHealBecauseSaturated(firstErr);
+    return { ok: false, reason: "connection_timeout" };
+  }
+  await healBongsimPgPoolForCatalog(firstErr);
   try {
     return await load();
   } catch (e2) {

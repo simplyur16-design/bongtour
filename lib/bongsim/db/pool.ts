@@ -319,6 +319,11 @@ export const BONGSIM_CATALOG_STATEMENT_TIMEOUT_MS = 12_000;
 export type BongsimPgFailureKind = "connection_timeout" | "db_error";
 
 export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
+  // REGRESSION-FREEZE[auth-login-emaxconn-retry]: EMAXCONN arms heal-skip window — manifest
+  if (isBongsimPgSaturatedMaxClients(err)) {
+    shouldSkipCatalogHealBecauseSaturated(err);
+    return "connection_timeout";
+  }
   const msg = String(err instanceof Error ? err.message : err);
   const code =
     typeof err === "object" && err !== null && "code" in err
@@ -382,7 +387,7 @@ const CATALOG_HEAL_COOLDOWN_MS = 30_000;
 const HEAL_WAIT_BUDGET_MS = 2_500;
 
 // REGRESSION-FREEZE[bongsim-pg-tls-global]: healBongsimPgPoolForCatalog coalesce — manifest
-export async function healBongsimPgPoolForCatalog(reason?: string): Promise<void> {
+export async function healBongsimPgPoolForCatalog(reason?: unknown): Promise<void> {
   if (shouldSkipCatalogHealBecauseSaturated(reason)) {
     console.warn("[bongsim/db/pool] skip heal — supabase clients saturated", { reason });
     return;

@@ -1,5 +1,9 @@
 import { unstable_cache } from "next/cache";
-import { healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
+import {
+  healBongsimPgPoolForCatalog,
+  isBongsimPgSaturatedMaxClients,
+  shouldSkipCatalogHealBecauseSaturated,
+} from "@/lib/bongsim/db/pool";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
@@ -39,7 +43,9 @@ function cachedKoreaProducts() {
 
 function reasonFromCacheError(e: unknown): "connection_timeout" | "db_unconfigured" | "db_error" {
   const msg = String(e instanceof Error ? e.message : e);
-  if (msg.includes("connection_timeout")) return "connection_timeout";
+  if (msg.includes("connection_timeout") || /EMAXCONN|max client connections reached/i.test(msg)) {
+    return "connection_timeout";
+  }
   if (msg.includes("db_unconfigured")) return "db_unconfigured";
   return "db_error";
 }
@@ -67,11 +73,15 @@ export async function loadSimplyurKoreaCatalogCached(
     const products = await cachedKoreaProducts();
     return await mapProductsToCatalog(products, locale);
   } catch (e) {
+    if (isBongsimPgSaturatedMaxClients(e)) {
+      shouldSkipCatalogHealBecauseSaturated(e);
+      return { ok: false, reason: "connection_timeout" };
+    }
     console.warn(
       "[loadSimplyurKoreaCatalogCached] cache miss; healing pool and retrying once",
       e instanceof Error ? e.message : e,
     );
-    await healBongsimPgPoolForCatalog("simplyur-catalog-cache");
+    await healBongsimPgPoolForCatalog(e);
     try {
       const products = await loadSimplyurKoreaProductsOrThrow();
       return await mapProductsToCatalog(products, locale);

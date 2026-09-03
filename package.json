@@ -116,6 +116,7 @@
     "verify:bongtour-product-title-r5": "npx tsx scripts/verify-bongtour-product-title-r5.ts",
     "verify:supplier-product-title-plan-b": "npx tsx scripts/verify-supplier-product-title-plan-b.ts",
     "verify:register-keyword-city-qualified": "npx tsx scripts/verify-register-keyword-city-qualified.ts",
+    "verify:auth-login-emaxconn": "npx tsx scripts/verify-auth-login-emaxconn.ts",
     "verify:calendar-price-horizon": "npx tsx scripts/verify-calendar-price-horizon.ts",
     "verify:supplier-api-public-detail-parity": "tsx scripts/verify-supplier-api-public-detail-parity.ts",
     "smoke:calendar-scrapers": "tsx scripts/smoke-calendar-scrapers-inspect.ts",
