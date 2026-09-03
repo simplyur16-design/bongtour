@@ -174,8 +174,18 @@ export function isBongsimPgSaturatedMaxClients(err: unknown): boolean {
   );
 }
 
+/** pg connect budget 초과 — 원격 한도가 차도 EMAXCONN 문구 없이 타임아웃만 난다. */
+export function isBongsimPgConnectTimeoutNoSlot(err: unknown): boolean {
+  const msg = String(err instanceof Error ? err.message : err);
+  return /timeout exceeded when trying to connect/i.test(msg);
+}
+
 export function shouldSkipCatalogHealBecauseSaturated(errOrReason?: unknown): boolean {
-  if (errOrReason != null && isBongsimPgSaturatedMaxClients(errOrReason)) {
+  // REGRESSION-FREEZE[auth-login-emaxconn-retry]: connect timeout must not heal — manifest
+  if (
+    errOrReason != null &&
+    (isBongsimPgSaturatedMaxClients(errOrReason) || isBongsimPgConnectTimeoutNoSlot(errOrReason))
+  ) {
     lastSaturatedMaxClientsAt = Date.now();
     return true;
   }
@@ -320,7 +330,7 @@ export type BongsimPgFailureKind = "connection_timeout" | "db_error";
 
 export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
   // REGRESSION-FREEZE[auth-login-emaxconn-retry]: EMAXCONN arms heal-skip window — manifest
-  if (isBongsimPgSaturatedMaxClients(err)) {
+  if (isBongsimPgSaturatedMaxClients(err) || isBongsimPgConnectTimeoutNoSlot(err)) {
     shouldSkipCatalogHealBecauseSaturated(err);
     return "connection_timeout";
   }

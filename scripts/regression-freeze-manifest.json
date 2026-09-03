@@ -20431,7 +20431,9 @@
           "file": "lib/bongsim/db/pool.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[auth-login-emaxconn-retry]",
-            "isBongsimPgSaturatedMaxClients(err)"
+            "isBongsimPgSaturatedMaxClients(err)",
+            "isBongsimPgConnectTimeoutNoSlot",
+            "timeout exceeded when trying to connect"
           ]
         },
         {

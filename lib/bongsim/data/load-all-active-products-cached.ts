@@ -7,7 +7,6 @@ import {
 import { resolveDestinationPlanNamesForSql } from "@/lib/bongsim/data/single-destination-plan-names";
 import {
   healBongsimPgPoolForCatalog,
-  isBongsimPgSaturatedMaxClients,
   shouldSkipCatalogHealBecauseSaturated,
 } from "@/lib/bongsim/db/pool";
 
@@ -46,8 +45,7 @@ async function retryCatalogOutsideCache(
     "[load-all-active-products-cached] cache miss; healing pool and retrying once",
     firstErr instanceof Error ? firstErr.message : firstErr,
   );
-  if (isBongsimPgSaturatedMaxClients(firstErr)) {
-    shouldSkipCatalogHealBecauseSaturated(firstErr);
+  if (shouldSkipCatalogHealBecauseSaturated(firstErr)) {
     return { ok: false, reason: "connection_timeout" };
   }
   await healBongsimPgPoolForCatalog(firstErr);

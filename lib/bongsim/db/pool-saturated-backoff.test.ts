@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyBongsimPgError,
+  isBongsimPgConnectTimeoutNoSlot,
   isBongsimPgSaturatedMaxClients,
   shouldBackoffInsteadOfHealOnConnectTimeout,
   shouldSkipCatalogHealBecauseSaturated,
@@ -55,5 +56,13 @@ describe("shouldSkipCatalogHealBecauseSaturated", () => {
       ),
     ).toBe("connection_timeout");
     expect(shouldSkipCatalogHealBecauseSaturated("order-paid-outbox-cron-timeout")).toBe(true);
+  });
+
+  it("skips heal on connect timeout so worker does not open more slots", () => {
+    const err = new Error("timeout exceeded when trying to connect");
+    expect(isBongsimPgConnectTimeoutNoSlot(err)).toBe(true);
+    expect(isBongsimPgSaturatedMaxClients(err)).toBe(false);
+    expect(shouldSkipCatalogHealBecauseSaturated(err)).toBe(true);
+    expect(classifyBongsimPgError(err)).toBe("connection_timeout");
   });
 });

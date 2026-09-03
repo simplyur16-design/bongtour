@@ -1,7 +1,6 @@
 import { unstable_cache } from "next/cache";
 import {
   healBongsimPgPoolForCatalog,
-  isBongsimPgSaturatedMaxClients,
   shouldSkipCatalogHealBecauseSaturated,
 } from "@/lib/bongsim/db/pool";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
@@ -73,8 +72,7 @@ export async function loadSimplyurKoreaCatalogCached(
     const products = await cachedKoreaProducts();
     return await mapProductsToCatalog(products, locale);
   } catch (e) {
-    if (isBongsimPgSaturatedMaxClients(e)) {
-      shouldSkipCatalogHealBecauseSaturated(e);
+    if (shouldSkipCatalogHealBecauseSaturated(e)) {
       return { ok: false, reason: "connection_timeout" };
     }
     console.warn(

@@ -27,10 +27,13 @@ mustInclude('app/api/auth/naver/callback/route.ts', [
 mustInclude('lib/instrumentation-bongsim-order-paid-outbox-cron.ts', [
   'REGRESSION-FREEZE[auth-login-emaxconn-retry]',
   'shouldSkipCatalogHealBecauseSaturated',
+  'connect timeout must not heal',
 ])
 mustInclude('lib/bongsim/db/pool.ts', [
   'REGRESSION-FREEZE[auth-login-emaxconn-retry]',
   'isBongsimPgSaturatedMaxClients(err)',
+  'isBongsimPgConnectTimeoutNoSlot',
+  'timeout exceeded when trying to connect',
 ])
 
 if (errors.length) {

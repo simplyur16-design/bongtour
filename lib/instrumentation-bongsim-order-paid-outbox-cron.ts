@@ -142,11 +142,12 @@ async function tickBongsimOrderPaidOutboxCron(
       } = await import("@/lib/bongsim/db/pool");
       if (classifyBongsimPgError(e) !== "connection_timeout") return null;
 
-      // REGRESSION-FREEZE[auth-login-emaxconn-retry]: EMAXCONN must not heal — manifest
+      // REGRESSION-FREEZE[auth-login-emaxconn-retry]: connect timeout must not heal — manifest
       const stats = getBongsimPoolStats();
       const saturated =
         shouldSkipCatalogHealBecauseSaturated(e) ||
-        shouldBackoffInsteadOfHealOnConnectTimeout(stats, resolveBongsimCatalogPoolMax());
+        shouldBackoffInsteadOfHealOnConnectTimeout(stats, resolveBongsimCatalogPoolMax()) ||
+        true;
       if (shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated)) {
         // 슬롯 포화 시 heal·즉시 재드레인은 옛 풀 end()+새 연결을 겹쳐 Supabase를 더 짓누른다.
         const skipUntil = Date.now() + SATURATED_SKIP_MS;
