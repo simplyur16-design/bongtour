@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[simplyur-eas-doctor-sdk57]: function + ...config — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: google-signin plugin — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: sentry/updates plugins — manifest
+ * REGRESSION-FREEZE[simplyur-play-android15-large-screen]: R8 minify + edge-to-edge plugin — manifest
  */
 function googleIosUrlSchemeFromWebClientId(clientId) {
   const id = String(clientId ?? '').trim();
@@ -46,6 +47,32 @@ module.exports = ({ config }) => {
       },
     ]);
   }
+
+  // Play: R8 + resource shrink (mapping.txt for ANR/crash) and Android 15 edge-to-edge theme.
+  plugins.push([
+    'expo-build-properties',
+    {
+      android: {
+        enableMinifyInReleaseBuilds: true,
+        enableShrinkResourcesInReleaseBuilds: true,
+        useLegacyPackaging: false,
+        extraProguardRules: [
+          '-keep class com.google.android.gms.auth.** { *; }',
+          '-keep class com.google.android.gms.common.** { *; }',
+          '-keep class io.sentry.** { *; }',
+        ].join('\n'),
+      },
+    },
+  ]);
+  plugins.push([
+    'react-native-edge-to-edge',
+    {
+      android: {
+        parentTheme: 'Default',
+        enforceNavigationBarContrast: false,
+      },
+    },
+  ]);
 
   return {
     ...config,

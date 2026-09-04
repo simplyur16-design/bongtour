@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SystemBars } from 'react-native-edge-to-edge';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SignalPinIcon } from '@/src/components/auth/SignalPinIcon';
@@ -27,6 +28,7 @@ export default function OpeningScreen() {
 
   return (
     <View style={styles.root}>
+      <SystemBars style="light" />
       <ImageBackground source={OPENING_PHOTOS[photoIndex]} style={styles.photo} resizeMode="cover">
         <View style={styles.scrim} />
         <View style={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}>

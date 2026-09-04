@@ -19558,6 +19558,58 @@
       ]
     },
     {
+      "id": "admin-pending-list-timeout",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 목록 15초 abort 금지(499). rawMeta 제외·prisma retry, photosReady는 SEO 파싱 없이 URL만",
+      "npmScripts": [
+        "verify:admin-pending-list-timeout"
+      ],
+      "checks": [
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-list-timeout]",
+            "60_000"
+          ],
+          "mustNotInclude": [
+            "controller.abort(), 15000"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-list-timeout]",
+            "withPrismaRetry",
+            "isRegisterPrePhotoPendingQueueReady"
+          ],
+          "mustNotInclude": [
+            "rawMeta: true"
+          ]
+        },
+        {
+          "file": "lib/register-pending-photos-ready.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-list-timeout]",
+            "getFinalScheduleDayImageUrl"
+          ],
+          "mustNotInclude": [
+            "getScheduleFromProduct"
+          ]
+        },
+        {
+          "file": "scripts/verify-admin-pending-list-timeout.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-list-timeout]",
+            "60_000",
+            "rawMeta"
+          ]
+        }
+      ]
+    },
+    {
       "id": "fit-pre-photo-verify-keywords",
       "tier": ["prebuild", "ci"],
       "summary": "자유여행 검증은 일정·키워드 공란이면 실패",
@@ -20336,6 +20388,54 @@
             "REGRESSION-FREEZE[simplyur-eas-doctor-sdk57]",
             "({ config })",
             "~57.0.18"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simplyur-play-android15-large-screen",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur Play Android 15 — edge-to-edge SystemBars(상태바 색 API 금지), orientation default(세로 고정 삭제), R8 minify+shrink",
+      "npmScripts": [
+        "verify:simplyur-play-android15"
+      ],
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app.json",
+          "mustInclude": [
+            "\"orientation\": \"default\"",
+            "\"edgeToEdgeEnabled\": true"
+          ],
+          "mustNotInclude": [
+            "\"orientation\": \"portrait\""
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app.config.js",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-play-android15-large-screen]",
+            "enableMinifyInReleaseBuilds: true",
+            "enableShrinkResourcesInReleaseBuilds: true",
+            "react-native-edge-to-edge"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/_layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-play-android15-large-screen]",
+            "react-native-edge-to-edge",
+            "SystemBars"
+          ]
+        },
+        {
+          "file": "scripts/verify-simplyur-play-android15.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-play-android15-large-screen]",
+            "edgeToEdgeEnabled",
+            "enableMinifyInReleaseBuilds"
           ]
         }
       ]

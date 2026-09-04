@@ -72,6 +72,8 @@
     "verify:simplyur-mobile-asset-magic": "npx tsx scripts/verify-simplyur-mobile-asset-magic.ts",
     "verify:simplyur-mobile-fp-fontsize": "npx tsx scripts/verify-simplyur-mobile-fp-fontsize.ts",
     "verify:simplyur-eas-doctor": "npx tsx scripts/verify-simplyur-eas-doctor.ts",
+    "verify:simplyur-play-android15": "npx tsx scripts/verify-simplyur-play-android15.ts",
+    "verify:admin-pending-list-timeout": "npx tsx scripts/verify-admin-pending-list-timeout.ts",
     "verify:simplyur-trip-inbox-forms": "npx tsx scripts/verify-simplyur-trip-inbox-forms.ts",
     "verify:esim-list-detail-pipe": "npx tsx scripts/verify-esim-list-detail-pipe.ts",
     "verify:pexels-place-name-keyword": "npx tsx scripts/verify-pexels-place-name-keyword.ts",

@@ -3,7 +3,7 @@
     "name": "simplyur",
     "slug": "simplyur",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "simplyur",
     "userInterfaceStyle": "light",
@@ -32,8 +32,12 @@
         "NSPrivacyAccessedAPITypes": []
       }
     },
+    "androidStatusBar": {
+      "barStyle": "dark-content"
+    },
     "android": {
       "package": "com.bongtour.simplyur",
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#F5E8EA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

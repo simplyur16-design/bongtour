@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import { requireAdmin } from '@/lib/require-admin'
 import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supplier-derivatives'
 import { resolveRegisterAdminLane, registerAdminLaneLabel } from '@/lib/register-admin-lane'
 import {
-  readRegisterPrePhotoStampFromRawMeta,
   scheduleRowsForPrePhotoVerify,
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
@@ -13,6 +13,8 @@ import { isRegisterPrePhotoPendingQueueReady } from '@/lib/register-pre-photo-pe
 import {
   REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE,
 } from '@/lib/register-pre-photo-pending-queue-query'
+
+export const maxDuration = 60
 
 /**
  * GET /api/admin/products/pending
@@ -25,12 +27,13 @@ import {
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: verify.ok 만 등록대기 — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 실패 건 큐 제외 — manifest
  * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: DB where SSOT — manifest
+ * REGRESSION-FREEZE[admin-pending-list-timeout]: rawMeta 제외·prisma retry — 15s 클라이언트 abort 금지 — manifest
  */
 export async function GET() {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   try {
-    const list = await prisma.product.findMany({
+    const list = await withPrismaRetry('admin-products-pending', () => prisma.product.findMany({
       where: REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE,
       orderBy: { updatedAt: 'desc' },
       select: {
@@ -49,9 +52,8 @@ export async function GET() {
         listingKind: true,
         productType: true,
         sportsThemeTag: true,
-        rawMeta: true,
       },
-    })
+    }))
     const rows = list
       .map((p) => {
         const supplierDeriv = computeAdminProductSupplierDerivatives({
@@ -73,7 +75,6 @@ export async function GET() {
           rows: scheduleRowsForPrePhotoVerify(p.schedule),
         })
         if (!isRegisterPrePhotoPendingQueueReady(live)) return null
-        const stamp = readRegisterPrePhotoStampFromRawMeta(p.rawMeta)
         return {
           id: p.id,
           originCode: p.originCode,
@@ -93,7 +94,6 @@ export async function GET() {
           prePhotoReadyForOperator: live.readyForOperatorPhoto,
           prePhotoParserFixRequired: live.parserFixRequired,
           prePhotoIssues: live.issues,
-          prePhotoVerifiedAt: stamp?.verifiedAt ?? null,
         }
       })
       .filter((row): row is NonNullable<typeof row> => row != null)

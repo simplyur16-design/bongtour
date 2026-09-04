@@ -60,7 +60,8 @@ export default function AdminPendingPage() {
     setLoading(true)
     setListError(null)
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    // REGRESSION-FREEZE[admin-pending-list-timeout]: 15s abort는 서버 499 — manifest
+    const timeoutId = setTimeout(() => controller.abort(), 60_000)
     try {
       const res = await fetch('/api/admin/products/pending', { signal: controller.signal })
       clearTimeout(timeoutId)

@@ -1,8 +1,10 @@
 /**
  * 등록대기 큐 조회 — DB pending이 아니라 live verify.ok.
  * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: 대시보드=등록대기 화면 — manifest
+ * REGRESSION-FREEZE[admin-pending-list-timeout]: KPI count도 prisma retry — manifest
  */
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import type { Prisma } from '@prisma/client'
 import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import { isRegisterPrePhotoPendingQueueReady } from '@/lib/register-pre-photo-pending-queue'
@@ -50,16 +52,18 @@ export function productRowIsLiveRegisterPendingQueue(
 
 /** 대시보드 KPI · 등록대기 목록과 같은 큐 길이 */
 export async function countLiveRegisterPrePhotoPendingQueue(): Promise<number> {
-  const list = await prisma.product.findMany({
-    where: REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE,
-    select: {
-      listingKind: true,
-      productType: true,
-      sportsThemeTag: true,
-      schedule: true,
-      destination: true,
-      title: true,
-    },
-  })
+  const list = await withPrismaRetry('admin-pending-queue-count', () =>
+    prisma.product.findMany({
+      where: REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE,
+      select: {
+        listingKind: true,
+        productType: true,
+        sportsThemeTag: true,
+        schedule: true,
+        destination: true,
+        title: true,
+      },
+    }),
+  )
   return list.filter(productRowIsLiveRegisterPendingQueue).length
 }

@@ -9,6 +9,7 @@ import {
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { SystemBars } from 'react-native-edge-to-edge';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -28,6 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 /**
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: OTA + Sentry + push bootstrap — manifest
+ * REGRESSION-FREEZE[simplyur-play-android15-large-screen]: SystemBars, not Window.setStatusBarColor — manifest
  */
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -36,7 +38,6 @@ export default function RootLayout() {
     Poppins_600SemiBold,
     Poppins_700Bold,
     Poppins_800ExtraBold,
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   useEffect(() => {
@@ -70,6 +71,7 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <SystemBars style="dark" />
       <Stack screenOptions={{ animation: 'slide_from_right', presentation: 'card' }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
