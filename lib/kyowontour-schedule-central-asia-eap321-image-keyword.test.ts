@@ -103,6 +103,7 @@ describe('kyowontour Central Asia EAP321 route + imageKeyword + vibe', () => {
   it('CFP114 Almaty 5-day — Kolsai/Kaindy/Shymbulak; Day1 not Charyn; no Registan', () => {
     // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 차른 캐니언·콜사이·카인디 — manifest
     // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CFP114 Kazakhstan day-route evidence — Registan≠Almaty — manifest
+    // REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]: Day3 visit order Kolsai then Kaindy — manifest
     expect(firstMatchingScheduleSpotEn('콜사이 호수')).toMatch(/Kolsai/i)
     expect(firstMatchingScheduleSpotEn('카인디 호수')).toMatch(/Kaindy/i)
     expect(firstMatchingScheduleSpotEn('침블락')).toMatch(/Shymbulak/i)

@@ -10708,6 +10708,45 @@
       ]
     },
     {
+      "id": "schedule-kolsai-lakes-landmark-hint",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Kolsai Lakes(복수)는 랜드마크 힌트. CFP114 day3 방문순은 Kolsai→Kaindy (city-to-landmark last-wins 금지)",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]",
+            "lakes?",
+            "단어 개수만으로 식당·상점을 통과시키지 않는다"
+          ]
+        },
+        {
+          "file": "lib/hanatour-schedule-image-keyword-landmark.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]",
+            "Kolsai Lakes",
+            "Kolsai Lakes Kazakhstan",
+            "Kaindy Lake"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]",
+            "toMatch(/Kolsai/i)",
+            "toMatch(/Kaindy/i)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanatour-schedule-image-keyword-landmark.test.ts",
+        "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-city-soft-dup-not-bleed",
       "tier": [
         "prebuild",
