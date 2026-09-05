@@ -547,6 +547,15 @@ function forwardRouteKeywordFromNextDay<T extends RegisterScheduleRouteTextKeywo
       if (!departureForwardKeywordCompatibleWithDepRoute(depRoute, kw)) continue
       return kw
     }
+    // 출발 route 공란 + 다음 관광일이 landmark 1개만 예약하면 D1이 비지 않게 그 landmark를 씀
+    // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: departure empty route landmark forward-fill — manifest
+    if (!depRoute) {
+      for (const kw of cands) {
+        if (!kw || rejectRouteKeywordCandidate(kw)) continue
+        if (!departureForwardKeywordCompatibleWithDepRoute(depRoute, kw)) continue
+        return kw
+      }
+    }
     // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: departure forward only next tourism day — manifest
     return ''
   }

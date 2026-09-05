@@ -9814,6 +9814,7 @@
             "routeContextualDisneyEnglish",
             "description·schedule_section·본문 스캔 금지",
             "departure forward only next tourism day",
+            "departure empty route landmark forward-fill",
             "departure forward dep-route cluster",
             "EEP138 Dresden Semper·성모≠Prague"
           ]
