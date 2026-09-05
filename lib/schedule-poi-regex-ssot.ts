@@ -363,6 +363,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /알함브라|Alhambra/i, en: "Alhambra Palace Granada" },
   { re: /그라나다|Granada/i, en: "Alhambra Palace Granada" },
   { re: /히랄다(?:\s*탑)?|Giralda/i, en: "Giralda Tower Seville" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Iberia·남프랑스 ESP104 day-owned POI — 괌 스페인광장 ≠ 세비야 — manifest
+  { re: /괌\s*스페인\s*광장|Plaza\s*de\s*Espa(?:ña|na)\s*Guam/i, en: "Plaza de Espana Guam Spanish steps" },
+  { re: /(?<!괌\s*)스페인\s*광장|Plaza\s*de\s*Espa(?:ña|na)(?!\s*Guam)|플라자\s*데\s*스페(?!\s*괌)/i, en: "Plaza de Espana Seville Spain" },
   { re: /세비야\s*대성당|Seville\s*Cathedral|Catedral\s*de\s*Sevilla/i, en: "Seville Cathedral" },
   { re: /황금의\s*탑|Torre\s*del\s*Oro/i, en: "Torre del Oro Seville" },
   { re: /마드리드\s*왕궁|Royal\s*Palace\s*(?:of\s*)?Madrid|Palacio\s*Real/i, en: "Royal Palace Madrid" },
@@ -1053,7 +1056,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /천섬|Thousand\s*Islands/i, en: "Thousand Islands St Lawrence River aerial" },
   { re: /레이크\s*조지|Lake\s*George/i, en: "Lake George New York Adirondack mountains" },
   { re: /오저블\s*케이즘|Ausable\s*Chasm/i, en: "Ausable Chasm New York gorge waterfall" },
-  { re: /마추픽추|Machu\s*Picchu|마추\s*픽추/i, en: "Machu Picchu ancient ruins mountain Peru" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot-node-test]: 마추픽chu typo variant — manifest
+  { re: /마추픽추|마추픽chu|Machu\s*Picchu|마추\s*픽추/i, en: "Machu Picchu ancient ruins mountain Peru" },
   { re: /올란타이탐보|Ollantaytambo/i, en: "Ollantaytambo Inca ruins Sacred Valley Peru" },
   { re: /사크레드|Sacred\s*Valley/i, en: "Sacred Valley Peru Urubamba river mountains" },
   { re: /마라스|Maras/i, en: "Maras salt ponds Sacred Valley Peru terraces" },

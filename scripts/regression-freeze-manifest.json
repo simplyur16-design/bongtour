@@ -10400,14 +10400,17 @@
           "file": "lib/schedule-poi-regex-ssot.ts",
           "mustInclude": [
             "라스페치아",
-            "Cinque Terre colorful cliff villages"
+            "Cinque Terre colorful cliff villages",
+            "마추픽chu",
+            "괌\\s*스페인\\s*광장"
           ]
         },
         {
           "file": "tests/schedule-poi-regex-ssot.test.ts",
           "mustInclude": [
             "라스페치아",
-            "Cinque Terre"
+            "Cinque Terre",
+            "from 'node:test'"
           ]
         },
         {
@@ -10744,6 +10747,41 @@
       "vitestSuites": [
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "schedule-poi-regex-ssot-node-test",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "tests/schedule-poi-regex-ssot.test.ts는 node:test — vitest require로 CI 깨짐 금지",
+      "checks": [
+        {
+          "file": "tests/schedule-poi-regex-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot-node-test]",
+            "from 'node:test'",
+            "from 'node:assert/strict'"
+          ]
+        },
+        {
+          "file": "scripts/verify-regression-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot-node-test]",
+            "tests/ 아래는 node:test SSOT"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-regex-ssot-node-test]",
+            "마추픽chu"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "tests/schedule-poi-regex-ssot.test.ts"
       ]
     },
     {

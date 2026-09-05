@@ -184,6 +184,7 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
 }
 
 // REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: tests/ uses node:test not vitest — manifest
+// REGRESSION-FREEZE[schedule-poi-regex-ssot-node-test]: tests/schedule-poi-regex-ssot.test.ts is node:test — manifest
 /** tests/ 아래는 node:test SSOT — vitest include가 lib|app만이라 CI에서 빈 필터로 깨진다. */
 function runFreezeTestFile(guardId: string, file: string): void {
   const rel = file.replace(/\\/g, '/')
