@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DeviceCheckCard } from "@/components/bongsim/DeviceCheckCard";
 import { DeviceCompatibilityModal } from "@/components/bongsim/DeviceCompatibilityModal";
 import { HelpSupportDetailLayout } from "@/components/bongsim/HelpSupportDetailLayout";
+import { bongsimPath } from "@/lib/bongsim/constants";
 
 export function HelpDeviceCompatibilityPageClient() {
   const [open, setOpen] = useState(false);
@@ -11,7 +12,7 @@ export function HelpDeviceCompatibilityPageClient() {
   return (
     <>
       <HelpSupportDetailLayout
-        currentPath="/help/device-compatibility"
+        currentPath={bongsimPath("/help/device-compatibility")}
         title="이용 가능 기기 다시 확인"
         intro="EID 표시 여부와 기종 예시를 다시 확인해요. 개통 전에 꼭 한 번 살펴보세요."
       >

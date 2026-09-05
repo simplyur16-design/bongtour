@@ -20011,6 +20011,131 @@
       ]
     },
     {
+      "id": "bongsim-help-nav-esim-prefix",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 도움 메뉴 — 손님 링크는 /travel/esim/help/* 이고 서비스·고객지원 페이지가 있다",
+      "checks": [
+        {
+          "file": "lib/bongsim/help-nav.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-help-nav-esim-prefix]",
+            "bongsimPath(\"/help/setup-guide\")",
+            "bongsimPath(\"/help/service-help\")",
+            "bongsimPath(\"/help/device-compatibility\")",
+            "bongsimPath(\"/help/customer-support\")"
+          ],
+          "mustNotInclude": [
+            "href: \"/help/setup-guide\""
+          ]
+        },
+        {
+          "file": "next.config.js",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-help-nav-esim-prefix]",
+            "source: '/help/:path*'",
+            "destination: '/travel/esim/help/:path*'"
+          ]
+        },
+        {
+          "file": "app/travel/esim/help/service-help/page.tsx",
+          "mustInclude": [
+            "/travel/esim/help/service-help",
+            "bongsimPath(\"/help/service-help\")"
+          ]
+        },
+        {
+          "file": "app/travel/esim/help/customer-support/page.tsx",
+          "mustInclude": [
+            "/travel/esim/help/customer-support",
+            "bongsimPath(\"/help/customer-support\")"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/help-nav.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-checkout-load-state-not-found",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 체크아웃 — DB/5xx를 Plan not found로 보여 주지 않는다",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/product-http-view-state.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]",
+            "simplyurCatalogLoadToViewState",
+            "not_korea",
+            "unavailable"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]",
+            "simplyurCatalogLoadToViewState",
+            "initialState={initialState}"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]",
+            "initialState === \"unavailable\"",
+            "recommend.errorTitle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/catalog/product-http-view-state.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-checkout-tab-clearance",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 체크아웃 — 하단 탭바 높이만큼 패딩을 둬 결제 제출이 가려지지 않게 한다",
+      "checks": [
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-checkout-tab-clearance]",
+            "--su-tab-h",
+            "CHECKOUT_MAIN_TAB_CLEARANCE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "esim-recommend-guest-checkout",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 추천 퍼널 — 카탈로그와 같이 비회원도 체크아웃으로 바로 간다",
+      "checks": [
+        {
+          "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-recommend-guest-checkout]",
+            "router.push(checkoutPath)"
+          ],
+          "mustNotInclude": [
+            "sessionStatus === \"unauthenticated\"",
+            "/auth/signin?callbackUrl="
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-mobile-offline-reload-once",
       "tier": [
         "prebuild",

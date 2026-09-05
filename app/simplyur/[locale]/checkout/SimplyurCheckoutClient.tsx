@@ -14,6 +14,7 @@ import {
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-provider-id";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
+import type { SimplyurProductViewState } from "@/lib/simplyur/product-design";
 
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: Eximbay live request_pay — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: unlock UI after cancel — manifest
@@ -27,9 +28,14 @@ type FirstPurchasePreview = {
   grand_total_krw: number;
 };
 
+const CHECKOUT_MAIN_TAB_CLEARANCE = {
+  paddingBottom: "calc(var(--su-tab-h) + 2.5rem)",
+} as const;
+
 type Props = {
   optionApiId: string;
   initialProduct?: SimplyurPublicProduct | null;
+  initialState?: SimplyurProductViewState;
   /** Signed-in Google/Apple/email — prefill QR delivery address */
   initialBuyerEmail?: string;
   paymentFailed?: boolean;
@@ -63,6 +69,7 @@ function formatCheckoutApiError(
 export function SimplyurCheckoutClient({
   optionApiId,
   initialProduct = null,
+  initialState = initialProduct ? "loaded" : "not_found",
   initialBuyerEmail = "",
   paymentFailed = false,
   checkoutEnabled = SIMPLYUR_CHECKOUT_ENABLED,
@@ -217,20 +224,22 @@ export function SimplyurCheckoutClient({
     }
   }, [product, terms, email, phone, idempotencyKey, locale, tr]);
 
-  if (!optionApiId) {
+  // REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]: unavailable ≠ Plan not found — manifest
+  if (initialState === "unavailable") {
     return (
-      <main className="mx-auto max-w-lg px-4 py-10">
-        <p className="text-sm text-[color:var(--su-ink-muted)]">{tr("product.notFound")}</p>
+      <main className="mx-auto max-w-lg px-4 py-10" style={CHECKOUT_MAIN_TAB_CLEARANCE}>
+        <p className="text-sm font-semibold su-text-ink">{tr("recommend.errorTitle")}</p>
+        <p className="mt-2 text-sm text-[color:var(--su-ink-muted)]">{tr("recommend.errorBody")}</p>
         <Link href={simplyurPath(locale, "/recommend")} className="mt-4 inline-block su-text-dan underline">
-          {tr("product.backToPlans")}
+          {tr("recommend.retry")}
         </Link>
       </main>
     );
   }
 
-  if (!product) {
+  if (!optionApiId || !product || initialState === "not_found") {
     return (
-      <main className="mx-auto max-w-lg px-4 py-10">
+      <main className="mx-auto max-w-lg px-4 py-10" style={CHECKOUT_MAIN_TAB_CLEARANCE}>
         <p className="text-sm text-[color:var(--su-ink-muted)]">{tr("product.notFound")}</p>
         <Link href={simplyurPath(locale, "/recommend")} className="mt-4 inline-block su-text-dan underline">
           {tr("product.backToPlans")}
@@ -241,7 +250,7 @@ export function SimplyurCheckoutClient({
 
   if (!checkoutEnabled) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-10 sm:px-6">
+      <main className="mx-auto max-w-lg px-4 py-10 sm:px-6" style={CHECKOUT_MAIN_TAB_CLEARANCE}>
         <h1 className="text-2xl font-bold su-text-ink">{tr("checkout.title")}</h1>
         <div className="su-card mt-6 border border-[color:var(--su-dan-muted)] bg-[color:var(--su-dan-muted)] p-5">
           <p className="font-semibold su-text-dan">{tr("product.checkoutSoon")}</p>
@@ -261,7 +270,8 @@ export function SimplyurCheckoutClient({
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 py-10 sm:px-6">
+    <main className="mx-auto max-w-lg px-4 py-10 sm:px-6" style={CHECKOUT_MAIN_TAB_CLEARANCE}>
+      {/* REGRESSION-FREEZE[simplyur-checkout-tab-clearance]: tab-h padding so submit is tappable — manifest */}
       <h1 className="text-2xl font-bold su-text-ink">{tr("checkout.title")}</h1>
 
       <section className="su-card mt-6 p-5 shadow-sm">

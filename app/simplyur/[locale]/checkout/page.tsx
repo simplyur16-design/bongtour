@@ -5,6 +5,7 @@ import { isSimplyurCheckoutEnabled } from "@/lib/simplyur/checkout/enabled";
 import { resolveSimplyurCheckoutBuyerEmail } from "@/lib/simplyur/checkout/session-buyer-email";
 import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants";
 import { loadSimplyurKoreaProductByOptionIdCached } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
+import { simplyurCatalogLoadToViewState } from "@/lib/simplyur/catalog/product-http-view-state";
 
 // REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: checkout uses list cache — manifest
 import { isSimplyurEximbayPrepUiEnabled } from "@/lib/simplyur/payments/eximbay-env";
@@ -24,10 +25,13 @@ export default async function SimplyurCheckoutPage({ params, searchParams }: Pro
   const paymentFailed = q.failed === "1";
 
   let initialProduct = null;
+  let loaded: Awaited<ReturnType<typeof loadSimplyurKoreaProductByOptionIdCached>> | null = null;
   if (optionApiId) {
-    const loaded = await loadSimplyurKoreaProductByOptionIdCached(optionApiId, locale);
+    loaded = await loadSimplyurKoreaProductByOptionIdCached(optionApiId, locale);
     if (loaded.ok) initialProduct = loaded.product;
   }
+  // REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]: pass load state — manifest
+  const initialState = simplyurCatalogLoadToViewState(optionApiId, loaded);
 
   // REGRESSION-FREEZE[simplyur-checkout-session-email-prefill]: session email → checkout — manifest
   const session = await auth();
@@ -40,6 +44,7 @@ export default async function SimplyurCheckoutPage({ params, searchParams }: Pro
     <SimplyurCheckoutClient
       optionApiId={optionApiId}
       initialProduct={initialProduct}
+      initialState={initialState}
       initialBuyerEmail={initialBuyerEmail}
       paymentFailed={paymentFailed}
       checkoutEnabled={isSimplyurCheckoutEnabled()}

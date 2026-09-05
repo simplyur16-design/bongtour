@@ -159,6 +159,12 @@ const nextConfig = {
         destination: '/business/:path*',
         permanent: true,
       },
+      // REGRESSION-FREEZE[bongsim-help-nav-esim-prefix]: bare /help/* → /travel/esim/help/*
+      {
+        source: '/help/:path*',
+        destination: '/travel/esim/help/:path*',
+        permanent: true,
+      },
     ]
   },
   images: {

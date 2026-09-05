@@ -3,7 +3,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import SafeImage from "@/app/components/SafeImage";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
 import { storefrontDisplayUnitKrw } from "@/lib/bongsim/press/affiliation-member-display-price";
 import { PRESS_MEMBER_DISCOUNT_RATE_PCT } from "@/lib/bongsim/press/press-member-discount-rate";
@@ -332,7 +331,6 @@ export function ProductCombinationStep({
   onNext,
 }: ProductCombinationStepProps) {
   const router = useRouter();
-  const { status: sessionStatus } = useSession();
   const { affiliationVerified } = useAffiliationVerified();
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -703,10 +701,7 @@ export function ProductCombinationStep({
     const checkoutPath = `${bongsimPath("/checkout")}?optionApiId=${encodeURIComponent(first.optionApiId)}&qty=${encodeURIComponent(String(first.quantity))}`;
     redirectRef.current = true;
     setCheckoutPaused(false);
-    if (sessionStatus === "unauthenticated") {
-      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(checkoutPath)}`);
-      return;
-    }
+    // REGRESSION-FREEZE[esim-recommend-guest-checkout]: same as catalog — guest may pay — manifest
     router.push(checkoutPath);
   };
 
