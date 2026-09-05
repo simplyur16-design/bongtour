@@ -88,7 +88,13 @@ export function isReturnAirportOrShoppingOnlyRouteText(routeText: string | null 
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)
   // sanitize로 비운 해외 면세·공항 귀국 — bleed 가드 유지
-  if (!segs.length) return !String(routeText ?? '').trim() ? true : false
+  // `기상 후 오클랜드 국제 공항`처럼 세그먼트는 공항 noise로 비고 raw만 남은 경우도 공항-only
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: return airport/duty-free no unused landmark bleed — manifest
+  if (!segs.length) {
+    const raw = String(routeText ?? '').trim()
+    if (!raw) return true
+    return /면세|공항|airport|해산|귀국|터미널/i.test(raw)
+  }
   // 인천·김포 only — 국내 허브 귀국은 미사용 명소(Long Son) 허용
   if (segs.every((s) => isScheduleDomesticHubToken(s))) return false
   return segs.every(

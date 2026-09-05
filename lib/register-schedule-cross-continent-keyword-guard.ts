@@ -146,11 +146,19 @@ const NZ_OFF_TRIP_KW_RE =
 const AU_OFF_TRIP_KW_RE =
   /Sydney\s*Opera|Bondi|Gold\s*Coast|Surfers\s*Paradise|Uluru|Blue\s*Mountains|Melbourne|Taronga/i
 
-function isOffTripAustraliaNewZealandKeyword(dest: string, haystacks: readonly string[]): boolean {
-  const auOnly = AU_ONLY_DEST_RE.test(dest) && !NZ_ONLY_DEST_RE.test(dest)
-  const nzOnly = NZ_ONLY_DEST_RE.test(dest) && !AU_ONLY_DEST_RE.test(dest)
-  if (auOnly && haystacks.some((h) => NZ_OFF_TRIP_KW_RE.test(h))) return true
-  if (nzOnly && haystacks.some((h) => AU_OFF_TRIP_KW_RE.test(h))) return true
+function isOffTripAustraliaNewZealandKeyword(
+  dest: string,
+  keywordHaystacks: readonly string[],
+  tripHay = '',
+): boolean {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: AU/NZ combo — dest 뉴질랜드만으로 Echo Point 비우지 않음 — manifest
+  const scope = `${dest}\n${tripHay}`
+  const auPresent = AU_ONLY_DEST_RE.test(scope)
+  const nzPresent = NZ_ONLY_DEST_RE.test(scope)
+  const auOnly = auPresent && !nzPresent
+  const nzOnly = nzPresent && !auPresent
+  if (auOnly && keywordHaystacks.some((h) => NZ_OFF_TRIP_KW_RE.test(h))) return true
+  if (nzOnly && keywordHaystacks.some((h) => AU_OFF_TRIP_KW_RE.test(h))) return true
   return false
 }
 
@@ -257,8 +265,12 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
   if (!raw) return false
   const fin = normalizeToPlaceName(raw)
   const haystacks = fin && fin !== raw ? [raw, fin] : [raw]
+  const tripHay = (scheduleRows ?? [])
+    .flatMap((r) => [r.routeText, r.title, r.description])
+    .filter(Boolean)
+    .join('\n')
   if (isOffTripKualaLumpurKeyword(dest, haystacks)) return true
-  if (isOffTripAustraliaNewZealandKeyword(dest, haystacks)) return true
+  if (isOffTripAustraliaNewZealandKeyword(dest, haystacks, tripHay)) return true
 
   if (EUROPE_PRODUCT_DEST_RE.test(dest) && !ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest) && !OCEANIA_PRODUCT_DEST_RE.test(dest)) {
     if (haystacks.some((h) => JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE.test(h))) return true

@@ -39,6 +39,7 @@ describe('isNonLandmarkFoodOrDiningImageKeyword', () => {
     expect(isLikelyTourismLandmarkKeyword('Kolsai Lakes')).toBe(true)
     expect(isLikelyTourismLandmarkKeyword('Kolsai Lakes Kazakhstan')).toBe(true)
     expect(isLikelyTourismLandmarkKeyword('Kaindy Lake')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Qingdao coastal sunrise')).toBe(true)
     expect(isScheduleImageKeywordLandmarkEligible('Taj Mahal')).toBe(true)
     expect(isScheduleImageKeywordLandmarkEligible('La Rambla Barcelona')).toBe(true)
     expect(isScheduleImageKeywordLandmarkEligible('Forbidden City')).toBe(true)

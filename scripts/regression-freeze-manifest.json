@@ -9324,6 +9324,7 @@
             "Ipan must not substring-match Saipan",
             "교토·오사카·비와호 Kansai — Fuji 갭필 금지",
             "return airport/duty-free no unused landmark bleed",
+            "기상 후 오클랜드 국제 공항",
             "domestic hub return keep unused landmark not bare city",
             "return empty route soft-dup bare city",
             "삿포→Sapporo bare soft-dup",
@@ -9446,7 +9447,8 @@
             "REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]",
             "D1≠Echo Point",
             "D4≠Blue Mountains",
-            "D10≠Hamilton"
+            "D10≠Hamilton",
+            "Echo Point Blue Mountains"
           ]
         },
         {
@@ -10730,6 +10732,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]",
             "lakes?",
+            "sunrises?|sunsets?",
             "단어 개수만으로 식당·상점을 통과시키지 않는다"
           ]
         },
@@ -10739,7 +10742,8 @@
             "REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]",
             "Kolsai Lakes",
             "Kolsai Lakes Kazakhstan",
-            "Kaindy Lake"
+            "Kaindy Lake",
+            "Qingdao coastal sunrise"
           ]
         },
         {

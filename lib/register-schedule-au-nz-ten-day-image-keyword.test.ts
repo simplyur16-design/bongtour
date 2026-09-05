@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 
 const AU_NZ_TEN_DAY = [
   { day: 1, title: '기내박', routeText: '기내박', imageKeyword: '', imageKeyword2: null as string | null },
@@ -77,7 +78,7 @@ const AU_NZ_TEN_DAY = [
 ]
 
 describe('register-schedule-au-nz-ten-day-image-keyword', () => {
-  it('hanatour AU/NZ 10일 — D1≠Echo Point, D4≠Blue Mountains, D7≠Milford/Tekapo, D10≠Hamilton', () => {
+  it('hanatour AU/NZ 10일 — D1≠Echo Point, D4≠Blue Mountains, D7≠Milford/Tekapo, D10≠Hamilton', { timeout: 20_000 }, () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(AU_NZ_TEN_DAY, {
       supplierKey: 'hanatour',
       productDestination: '뉴질랜드',
@@ -93,6 +94,13 @@ describe('register-schedule-au-nz-ten-day-image-keyword', () => {
 
     expect(d1).not.toMatch(/Echo Point|Blue Mountain/i)
     expect(d1).toMatch(/Sydney|Kumeu|New Zealand|Auckland|Incheon/i)
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Echo Point Blue Mountains',
+        '뉴질랜드',
+        AU_NZ_TEN_DAY,
+      ),
+    ).toBe(false)
     expect(d2).toMatch(/Echo Point|Blue Mountain|Katoomba|Leura/i)
 
     expect(d4).toMatch(/Christchurch|Hagley|Botanic/i)

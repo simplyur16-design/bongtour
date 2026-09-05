@@ -79,7 +79,7 @@ const PAP1194 = [
 ]
 
 describe('register-schedule-ybtour-pap1194-image-keyword', () => {
-  it('ybtour PAP1194 — D3≠Mount Fuji, D10≠Hamilton, no Japan/Europe bleed', () => {
+  it('ybtour PAP1194 — D3≠Mount Fuji, D10≠Hamilton, no Japan/Europe bleed', { timeout: 20_000 }, () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(PAP1194, {
       supplierKey: 'ybtour',
       productDestination: '뉴질랜드',

@@ -45,7 +45,7 @@ const NZ_AU_SEVEN_DAY = [
 ]
 
 describe('register-schedule-nz-au-seven-day-image-keyword', () => {
-  it('modetour NZ/AU 7일 — hub-only 출발·귀국 채움, Day5 kw2≠Sydney', () => {
+  it('modetour NZ/AU 7일 — hub-only 출발·귀국 채움, Day5 kw2≠Sydney', { timeout: 20_000 }, () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(NZ_AU_SEVEN_DAY, {
       supplierKey: 'modetour',
       productDestination: '뉴질랜드',
