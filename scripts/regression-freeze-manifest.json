@@ -19954,6 +19954,63 @@
       ]
     },
     {
+      "id": "site-chrome-hide-own-bottom-dock",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "마이페이지·연수 상세 — 사이트 전화/카톡/eSIM 하단바를 숨겨 자체 하단 독이 가려지지 않게 한다",
+      "checks": [
+        {
+          "file": "lib/mobile-sticky-bar-visibility.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]",
+            "isMypagePath",
+            "isTrainingProgramDetailPath",
+            "/business/programs/"
+          ]
+        },
+        {
+          "file": "lib/mobile-sticky-bar-visibility.test.ts",
+          "mustInclude": [
+            "/mypage/affiliation",
+            "/business/programs/otr-bt-0004",
+            "shouldHideMobileStickyBar(\"/business/programs\")"
+          ]
+        },
+        {
+          "file": "app/components/MobileStickyBar.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]",
+            "shouldHideMobileStickyBar"
+          ]
+        },
+        {
+          "file": "app/mypage/layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]",
+            "/mypage/affiliation",
+            "마이페이지 하단 메뉴",
+            "z-50"
+          ],
+          "mustNotInclude": [
+            "<aside",
+            "md:hidden"
+          ]
+        },
+        {
+          "file": "components/training/TrainingProgramDetailView.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]",
+            "z-50"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mobile-sticky-bar-visibility.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-mobile-offline-reload-once",
       "tier": [
         "prebuild",

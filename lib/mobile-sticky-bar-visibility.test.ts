@@ -24,4 +24,18 @@ describe("shouldHideMobileStickyBar", () => {
     expect(shouldHideMobileStickyBar("/simplyur")).toBe(true);
     expect(shouldHideMobileStickyBar("/simplyur/en/recommend")).toBe(true);
   });
+
+  it("hides the site bar on mypage so the own tab dock is tappable", () => {
+    expect(shouldHideMobileStickyBar("/mypage")).toBe(true);
+    expect(shouldHideMobileStickyBar("/mypage/")).toBe(true);
+    expect(shouldHideMobileStickyBar("/mypage/affiliation")).toBe(true);
+    expect(shouldHideMobileStickyBar("/mypage/esim?tab=qr")).toBe(true);
+  });
+
+  it("hides the site bar on training program detail, not the catalog", () => {
+    expect(shouldHideMobileStickyBar("/business")).toBe(false);
+    expect(shouldHideMobileStickyBar("/business/programs")).toBe(false);
+    expect(shouldHideMobileStickyBar("/business/programs/")).toBe(false);
+    expect(shouldHideMobileStickyBar("/business/programs/otr-bt-0004")).toBe(true);
+  });
 });

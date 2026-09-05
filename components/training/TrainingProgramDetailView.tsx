@@ -152,7 +152,8 @@ export default function TrainingProgramDetailView({ program }: Props) {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+      {/* REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]: 문의 독 — 사이트 하단바 숨김과 짝 — manifest */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <Link href="/business/programs" className="text-sm font-medium text-slate-600 hover:text-slate-900">
             목록으로

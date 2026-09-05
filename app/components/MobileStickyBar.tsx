@@ -16,8 +16,9 @@ import { shouldHideMobileStickyBar } from '@/lib/mobile-sticky-bar-visibility'
 const SLOT_BASE =
   'flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-1 py-2.5 text-center text-xs font-semibold leading-tight transition active:scale-[0.98] mx-1 my-1.5 min-h-[3rem]'
 
-/** 전 페이지 모바일 하단 sticky — 전화 / 카톡 / eSIM 3등분 (lg 이상 숨김). simplyur·이심 결제 퍼널 제외. */
+/** 전 페이지 모바일 하단 sticky — 전화 / 카톡 / eSIM 3등분 (lg 이상 숨김). simplyur·이심 결제·마이페이지·연수 상세 제외. */
 // REGRESSION-FREEZE[esim-mobile-web-pay-dock]: hide on /travel/esim purchase docks — manifest
+// REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]: hide on mypage + training detail — manifest
 export default function MobileStickyBar() {
   const pathname = usePathname() ?? ''
   if (shouldHideMobileStickyBar(pathname)) return null
