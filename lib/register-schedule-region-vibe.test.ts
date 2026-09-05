@@ -132,7 +132,8 @@ describe('register schedule region vibe', () => {
       routePlaces: ['벳푸', '유후인'],
       joinedBlob: '벳푸 - 유후인 - 후쿠오카',
     })
-    expect(kyushu).toMatch(/규슈|온천|항구/)
+    // REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]: 규슈는 지역 템플릿 또는 벳푸·유후인 명소 문장 — manifest
+    expect(kyushu).toMatch(/규슈|온천|항구|벳푸|유후인/)
   })
 
   // REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: place leak must not downgrade to generic — manifest

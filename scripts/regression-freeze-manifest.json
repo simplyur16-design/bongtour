@@ -8998,6 +8998,13 @@
             "route 명소",
             "중간일 합성은 템플릿 closer를 반복하지 않는다"
           ]
+        },
+        {
+          "file": "lib/register-schedule-region-vibe.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-description-characteristic-ssot]",
+            "규슈|온천|항구|벳푸|유후인"
+          ]
         }
       ],
       "vitestSuites": [
