@@ -5,7 +5,7 @@ import { isSimplyurLocale, type SimplyurLocale } from "@/lib/simplyur/constants"
 import { loadSimplyurKoreaProductByOptionIdCached } from "@/lib/simplyur/catalog/load-korea-catalog-cached";
 import { simplyurCatalogLoadToViewState } from "@/lib/simplyur/catalog/product-http-view-state";
 
-// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: web product uses list cache — manifest
+// REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: web product uses list cache; db/5xx → unavailable — manifest
 
 type Props = { params: Promise<{ locale: string; optionApiId: string }> };
 
@@ -15,7 +15,7 @@ export default async function SimplyurProductPage({ params }: Props) {
   const locale = raw as SimplyurLocale;
 
   const res = await loadSimplyurKoreaProductByOptionIdCached(optionApiId, locale);
-  // REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]: same load-state map as checkout — manifest
+  // REGRESSION-FREEZE[simplyur-checkout-load-state-not-found]: same load-state map as checkout — unavailable ≠ Plan not found
 
   return (
     <SimplyurProductClient
