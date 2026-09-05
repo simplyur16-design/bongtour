@@ -276,6 +276,12 @@ function pickMiddleDayPrimaryKeyword(
   routeOrdered: readonly string[],
   routeText?: string | null,
 ): string {
+  // REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]: 72번·카후쿠 날 파인애플 농장 primary — manifest
+  if (/파인애플\s*농장|Pineapple\s*(?:Farm|Plantation)/i.test(String(routeText ?? ''))) {
+    const pine =
+      [...routeLandmarks, ...routeOrdered].find((kw) => /Pineapple/i.test(String(kw ?? ''))) ?? ''
+    if (pine && !rejectRouteKeywordCandidate(pine)) return pine
+  }
   const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(
     splitRouteTextPlaceSegments(routeText),
   ).length
@@ -661,6 +667,14 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       if (primary && isBareCityOrCountryKeyword(primary)) primary = ''
       if (primary && !isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(primary))) {
         primary = ''
+      }
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: CAP104 Qingdao 소어산≠Zhanqiao — 귀국일 바다 일출 유지 — manifest
+      if (!primary && /일출|sunrise/i.test(routeTextForKeywords)) {
+        const sun =
+          [...routeLandmarks, ...routeOrdered].find((kw) => /sunrise/i.test(String(kw ?? ''))) ||
+          firstMatchingScheduleSpotEn(routeTextForKeywords) ||
+          ''
+        if (sun && /sunrise/i.test(sun) && !rejectRouteKeywordCandidate(sun)) primary = sun
       }
       const returnOwnTourismSegs = filterRegisterScheduleRoutePlaceSegments(
         splitRouteTextPlaceSegments(routeTextForKeywords),

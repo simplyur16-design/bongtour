@@ -9526,6 +9526,14 @@
             "D1≠North Shore",
             "추천 예시일정"
           ]
+        },
+        {
+          "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hawaii-free-day-example-itinerary]",
+            "파인애플\\s*농장",
+            "72번·카후쿠 날 파인애플 농장 primary"
+          ]
         }
       ],
       "vitestSuites": [
