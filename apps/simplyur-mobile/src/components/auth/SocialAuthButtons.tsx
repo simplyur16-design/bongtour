@@ -44,6 +44,7 @@ type Props = {
  * Apple · Google · Email — always on My eSIM / sign-in (no website-only email gate).
  * REGRESSION-FREEZE[simplyur-mobile-my-esim-social-signin]: social buttons SSOT — manifest
  * REGRESSION-FREEZE[auth-password-reset]: inline email forgot link — manifest
+ * REGRESSION-FREEZE[simplyur-google-signin-scopes]: map server oauth codes — manifest
  */
 export function SocialAuthButtons({
   onSignedIn,
@@ -108,6 +109,9 @@ export function SocialAuthButtons({
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
       if (code === 'oauth_not_configured') setErr(t('auth.googleNotConfigured'));
+      else if (code === 'oauth_invalid_token') setErr(t('auth.googleInvalidToken'));
+      else if (code === 'account_restricted') setErr(t('auth.accountRestricted'));
+      else if (code === 'rate_limited') setErr(t('auth.rateLimited'));
       else if (code === 'oauth_android_sha_mismatch') {
         // Dev builds: include exact package + debug SHA-1 so ops can register without hunting.
         setErr(

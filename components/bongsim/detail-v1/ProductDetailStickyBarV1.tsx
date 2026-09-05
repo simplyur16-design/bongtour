@@ -6,13 +6,14 @@ import { bongsimPath } from "@/lib/bongsim/constants";
 import { AffiliationMemberPrice } from "@/components/bongsim/AffiliationMemberPrice";
 import { useAffiliationVerified } from "@/lib/bongsim/press/use-affiliation-verified";
 
+// REGRESSION-FREEZE[esim-mobile-web-pay-dock]: live product CTA z-50 above leftover chrome — manifest
 export function ProductDetailStickyBarV1({ sticky }: { sticky: BongsimProductDetailStickyV1 }) {
   const { summary, cta } = sticky;
   const href = bongsimPath(`/checkout?optionApiId=${encodeURIComponent(cta.payload.option_api_id)}`);
   const { affiliationVerified } = useAffiliationVerified();
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(12px+env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 pb-[calc(12px+env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6">
       <div className="mx-auto flex max-w-lg items-center justify-between gap-3 sm:max-w-2xl lg:max-w-3xl">
         <div className="min-w-0">
           <p className="truncate text-[12px] font-semibold text-slate-900">{summary.plan_name}</p>

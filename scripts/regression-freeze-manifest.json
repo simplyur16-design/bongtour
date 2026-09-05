@@ -2995,7 +2995,10 @@
     },
     {
       "id": "home-seo-travel-index",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈은 모바일도 색인하고 여행 키워드 메타를 쓴다",
       "checks": [
         {
@@ -3053,7 +3056,9 @@
           ]
         }
       ],
-      "npmScripts": ["verify:home-page-seo"]
+      "npmScripts": [
+        "verify:home-page-seo"
+      ]
     },
     {
       "id": "home-hero-lcp-and-section-titles",
@@ -18119,7 +18124,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur 앱 — 상품/기기/설정/약관은 (tabs) 안이라 하단 탭 유지, checkout는 밖",
+      "summary": "Simplyur 앱 — 기기/설정/약관은 (tabs) 안이라 하단 탭 유지, 상품 결제는 탭 숨김·checkout는 밖",
       "checks": [
         {
           "file": "apps/simplyur-mobile/app/(tabs)/_layout.tsx",
@@ -18129,7 +18134,8 @@
             "product/[optionApiId]",
             "devices",
             "settings",
-            "legal"
+            "legal",
+            "hideTabBar"
           ]
         },
         {
@@ -18331,7 +18337,10 @@
     },
     {
       "id": "simplyur-esim-delivery-install",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Simplyur paid eSIM: English mail + iOS/Android install links; skip Kakao; My eSIM surfaces install URLs",
       "checks": [
         {
@@ -18393,7 +18402,10 @@
     },
     {
       "id": "simplyur-launch-discount-14pct",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Simplyur first-purchase launch 14% with 권장소비자가 + supply×1.25+PG600 floor; cheap SKUs keep list; Bongsim stays 15%",
       "checks": [
         {
@@ -19413,7 +19425,10 @@
     },
     {
       "id": "overseas-hub-package-fit-split",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "해외 허브는 패키지+자유여행 포함, type=travel|air-hotel 칩이 실제로 거른다",
       "checks": [
         {
@@ -19460,7 +19475,10 @@
     },
     {
       "id": "fit-listing-no-esim-card",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "자유여행 목록 앞에 eSIM 네이티브 카드를 넣지 않음 — 패키지·해외 전체만 유지",
       "checks": [
         {
@@ -19502,7 +19520,10 @@
     },
     {
       "id": "home-private-trip-href",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "PC 홈 우리끼리 카드는 /travel/overseas/private-trip",
       "checks": [
         {
@@ -19516,7 +19537,10 @@
     },
     {
       "id": "pending-approve-photos-ready",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "커버+일정 사진 전 registered 금지 — photosReady SSOT",
       "checks": [
         {
@@ -19611,7 +19635,10 @@
     },
     {
       "id": "fit-pre-photo-verify-keywords",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "자유여행 검증은 일정·키워드 공란이면 실패",
       "checks": [
         {
@@ -19634,7 +19661,10 @@
     },
     {
       "id": "pre-photo-keyword-verify-before-photos",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "이미지 키워드가 나와도 검증 통과 전 사진 고르기·승인 금지",
       "checks": [
         {
@@ -19676,11 +19706,16 @@
           ]
         }
       ],
-      "npmScripts": ["verify:register-pre-photo-self-heal"]
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
     },
     {
       "id": "pending-pre-photo-verify-client-safe",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "등록대기 클라이언트 검증은 self-heal 서버 체인(next/cache)을 끌어오지 않음",
       "checks": [
         {
@@ -19714,11 +19749,16 @@
           ]
         }
       ],
-      "npmScripts": ["verify:register-pre-photo-self-heal"]
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
     },
     {
       "id": "fit-itinerary-pending-backfill",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Fit 마스터 백필은 pending·registered 모두, 시간당 상한",
       "checks": [
         {
@@ -19733,7 +19773,10 @@
     },
     {
       "id": "fit-public-schedule-fallback",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공개 자유여행 상세 — Fit 마스터 없으면 product.schedule 표시",
       "checks": [
         {
@@ -19750,6 +19793,216 @@
             "예시 일정이 준비되는 동안"
           ]
         }
+      ]
+    },
+    {
+      "id": "esim-mobile-web-pay-dock",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "봉투어 모바일웹 — 이심 결제 퍼널에서 사이트 하단 바를 숨겨 결제하기가 가려지지 않게 한다",
+      "checks": [
+        {
+          "file": "lib/mobile-sticky-bar-visibility.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
+            "shouldHideMobileStickyBar",
+            "/travel/esim/recommend",
+            "/travel/esim/product",
+            "/travel/esim/checkout"
+          ]
+        },
+        {
+          "file": "app/components/MobileStickyBar.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
+            "shouldHideMobileStickyBar"
+          ]
+        },
+        {
+          "file": "components/bongsim/StickyPurchaseBar.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
+            "z-50"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
+            "z-50",
+            "env(safe-area-inset-bottom)"
+          ]
+        },
+        {
+          "file": "components/bongsim/detail-v1/ProductDetailStickyBarV1.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
+            "z-50",
+            "구매하기"
+          ]
+        },
+        {
+          "file": "components/admin/AdminQuickActionsMount.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
+            "shouldHideMobileStickyBar"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mobile-sticky-bar-visibility.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-mobile-offline-reload-once",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 카탈로그 — 온라인 프로브가 이미 온라인일 때 load를 다시 돌리지 않고 RefreshControl은 당겨서 새로고침만",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/lib/offline-online-transition.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-offline-reload-once]",
+            "shouldFireOnOnline",
+            "wasOffline && nowOnline"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/OfflineBanner.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-offline-reload-once]",
+            "shouldFireOnOnline",
+            "onOnlineRef"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/plans.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-offline-reload-once]",
+            "refreshing={refreshing}",
+            "load({ pull: true })",
+            "loadGen",
+            "load({ soft: true })"
+          ],
+          "mustNotInclude": [
+            "refreshing={loading}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/offline-online-transition.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-google-signin-scopes",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 Google 로그인 — openid 스코프·extra client id 폴백·이전 세션 signOut 후 id_token",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/lib/google-oauth-ids.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-google-signin-scopes]",
+            "openid",
+            "pickGoogleOAuthClientId"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/native-oauth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-google-signin-scopes]",
+            "GOOGLE_SIGNIN_SCOPES",
+            "hasPreviousSignIn",
+            "pickGoogleOAuthClientId",
+            "googleConfiguredKey",
+            "scopes:"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app.config.js",
+          "mustInclude": [
+            "googleIosUrlSchemeFromWebClientId(iosClientId)",
+            "com.reactnativegooglesignin"
+          ],
+          "mustNotInclude": [
+            "googleIosUrlSchemeFromWebClientId(iosClientId || webClientId)"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/auth/SocialAuthButtons.tsx",
+          "mustInclude": [
+            "oauth_invalid_token",
+            "account_restricted",
+            "rate_limited"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/native-oauth.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-purchase-dock-cta",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 — 상품/결제 화면은 같은 하단 고정 CTA, 상품에서는 탭바를 숨긴다",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/src/components/SimplyurDockCta.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-purchase-dock-cta]",
+            "SimplyurDockCta",
+            "SimplyurBackRow",
+            "SIMPLYUR_DOCK_CTA_HEIGHT",
+            "hintSlot"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/lib/dock-cta-layout.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-purchase-dock-cta]",
+            "simplyurDockScrollPad",
+            "simplyurScreenPadTop",
+            "SIMPLYUR_DOCK_PAD_H"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/product/[optionApiId].tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-purchase-dock-cta]",
+            "SimplyurDockCta",
+            "product.buyNow",
+            "simplyurScreenPadTop"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-purchase-dock-cta]",
+            "SimplyurDockCta",
+            "checkout.submit",
+            "simplyurScreenPadTop"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/_layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-purchase-dock-cta]",
+            "hideTabBar",
+            "display: 'none'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "apps/simplyur-mobile/src/lib/dock-cta-layout.test.ts"
       ]
     }
   ],

@@ -1,18 +1,21 @@
 import { SymbolView } from 'expo-symbols';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useI18n } from '@/src/i18n/I18nContext';
 
 /**
- * Browse screens (product/devices/settings/legal) live under (tabs) with href:null
- * so the tab bar stays visible. Checkout/sign-in remain outside this group.
- * REGRESSION-FREEZE[simplyur-mobile-tabs-browse-keep]: browse keeps tab bar — manifest
+ * Devices/settings/legal stay under (tabs) with href:null so the tab bar stays visible.
+ * Product purchase hides the tab bar so the docked CTA matches checkout.
+ * REGRESSION-FREEZE[simplyur-mobile-tabs-browse-keep]: devices/settings/legal keep tab bar — manifest
+ * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: product hides tab bar — manifest
  */
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t } = useI18n();
+  const pathname = usePathname();
+  const hideTabBar = pathname.includes('/product/');
 
   return (
     <Tabs
@@ -21,6 +24,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
         headerStyle: { backgroundColor: Colors[colorScheme ?? 'light'].background },
         headerTintColor: Colors[colorScheme ?? 'light'].text,
+        tabBarStyle: hideTabBar ? { display: 'none' } : undefined,
       }}>
       <Tabs.Screen
         name="index"

@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: google-signin plugin — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: sentry/updates plugins — manifest
  * REGRESSION-FREEZE[simplyur-play-android15-large-screen]: R8 minify + edge-to-edge plugin — manifest
+ * REGRESSION-FREEZE[simplyur-google-signin-scopes]: iOS URL scheme from iOS client only — manifest
  */
 function googleIosUrlSchemeFromWebClientId(clientId) {
   const id = String(clientId ?? '').trim();
@@ -22,7 +23,8 @@ const webClientId = (
   ''
 ).trim();
 const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
-const iosUrlScheme = googleIosUrlSchemeFromWebClientId(iosClientId || webClientId);
+// iOS URL scheme must come from the iOS OAuth client — Web client reversed-ID is the wrong scheme.
+const iosUrlScheme = googleIosUrlSchemeFromWebClientId(iosClientId);
 const sentryDsn = (process.env.EXPO_PUBLIC_SENTRY_DSN || '').trim();
 
 module.exports = ({ config }) => {
@@ -58,7 +60,9 @@ module.exports = ({ config }) => {
         useLegacyPackaging: false,
         extraProguardRules: [
           '-keep class com.google.android.gms.auth.** { *; }',
+          '-keep class com.google.android.gms.auth.api.signin.** { *; }',
           '-keep class com.google.android.gms.common.** { *; }',
+          '-keep class com.reactnativegooglesignin.** { *; }',
           '-keep class io.sentry.** { *; }',
         ].join('\n'),
       },

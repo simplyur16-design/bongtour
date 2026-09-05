@@ -4,6 +4,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchKoreaProduct, openSimplyurInAppCheckout, type PlanProduct } from '@/src/api/simplyur';
+import {
+  SimplyurBackRow,
+  SimplyurDockCta,
+  simplyurDockScrollPad,
+  simplyurScreenPadTop,
+} from '@/src/components/SimplyurDockCta';
 import { PRODUCT_DESIGN as D, type ProductViewState } from '@/src/constants/product-design';
 import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
@@ -15,6 +21,7 @@ import {
 
 /** design_handoff_product — Product detail [05] */
 // REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: 5xx ≠ Plan not found — manifest
+// REGRESSION-FREEZE[simplyur-purchase-dock-cta]: docked buy CTA — manifest
 export default function ProductScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string }>();
   const { t, locale } = useI18n();
@@ -80,17 +87,27 @@ export default function ProductScreen() {
     setOpeningPay(false);
   };
 
+  const showDock = state === 'loaded' && product != null;
+  const dockHint = showDock
+    ? checkoutEnabled
+      ? t('product.payInAppHint')
+      : t('product.checkoutSoonHint')
+    : undefined;
+
   return (
+    <View style={[styles.root, { backgroundColor: D.bg }]}>
     <ScrollView
-      style={[styles.root, { backgroundColor: D.bg }]}
+      style={styles.root}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 },
+        {
+          paddingTop: simplyurScreenPadTop(insets.top),
+          paddingBottom: showDock
+            ? simplyurDockScrollPad(insets.bottom)
+            : insets.bottom + 40,
+        },
       ]}>
-      <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backRow}>
-        <Text style={styles.backArrow}>←</Text>
-        <Text style={styles.backText}>{t('product.backToPlans')}</Text>
-      </Pressable>
+      <SimplyurBackRow label={t('product.backToPlans')} onPress={() => router.back()} />
 
       {state === 'loading' ? <LoadingSkeleton /> : null}
 
@@ -132,30 +149,29 @@ export default function ProductScreen() {
             <DetailRow label={t('recommend.duration')} value={product.days_label} bordered />
             <DetailRow label={t('recommend.data')} value={product.data_label} />
           </View>
-
-          {checkoutEnabled ? (
-            <View style={styles.ctaBlock}>
-              <Pressable
-                style={[styles.ctaEnabled, openingPay && { opacity: 0.7 }]}
-                onPress={() => void onBuy()}
-                disabled={openingPay}>
-                <Text style={styles.ctaEnabledText}>
-                  {openingPay ? t('checkout.processing') : t('product.buyNow')}
-                </Text>
-              </Pressable>
-              <Text style={styles.ctaHint}>{t('product.payInAppHint')}</Text>
-            </View>
-          ) : (
-            <View style={styles.ctaBlock}>
-              <View style={styles.ctaDisabled}>
-                <Text style={styles.ctaDisabledText}>{t('product.checkoutSoon')}</Text>
-              </View>
-              <Text style={styles.ctaHint}>{t('product.checkoutSoonHint')}</Text>
-            </View>
-          )}
         </View>
       ) : null}
     </ScrollView>
+      {showDock ? (
+        checkoutEnabled ? (
+          <SimplyurDockCta
+            label={openingPay ? t('checkout.processing') : t('product.buyNow')}
+            hint={t('product.payInAppHint')}
+            onPress={() => void onBuy()}
+            busy={openingPay}
+            bottomInset={insets.bottom}
+          />
+        ) : (
+          <SimplyurDockCta
+            label={t('product.checkoutSoon')}
+            hint={t('product.checkoutSoonHint')}
+            onPress={() => undefined}
+            disabled
+            bottomInset={insets.bottom}
+          />
+        )
+      ) : null}
+    </View>
   );
 }
 
@@ -190,9 +206,6 @@ function LoadingSkeleton() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: D.paddingH, gap: D.sectionGap },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backArrow: { fontSize: 16, color: D.coral },
-  backText: { fontSize: 13, ...fp('600'), color: D.coral },
   skeletonWrap: { gap: 16 },
   skeletonLine: { borderRadius: 8, backgroundColor: D.skeleton },
   notFound: {
@@ -238,27 +251,4 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: 1, borderBottomColor: D.divider },
   rowLabel: { fontSize: 13, ...fp('400'), color: D.muted },
   rowValue: { fontSize: 14, ...fp('700'), color: D.navy },
-  ctaBlock: { gap: 8 },
-  ctaEnabled: {
-    height: D.buttonHeight,
-    borderRadius: D.buttonRadius,
-    backgroundColor: D.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: D.coral,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 13,
-    elevation: 6,
-  },
-  ctaEnabledText: { fontSize: 16, ...fp('600'), color: '#fff' },
-  ctaDisabled: {
-    height: D.buttonHeight,
-    borderRadius: D.buttonRadius,
-    backgroundColor: D.disabledFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaDisabledText: { fontSize: 16, ...fp('600'), color: D.faint },
-  ctaHint: { fontSize: 12, lineHeight: 18, ...fp('400'), color: D.faint, textAlign: 'center' },
 });

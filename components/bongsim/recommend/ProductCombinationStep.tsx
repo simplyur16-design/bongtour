@@ -816,7 +816,8 @@ export function ProductCombinationStep({
           />
 
           {done && checkoutQueue.length > 0 ? (
-            <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[500px] border-t border-[#f0f0f6] bg-white px-4 py-3 lg:static lg:mt-6 lg:max-w-none lg:border-0 lg:px-0">
+            <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[500px] border-t border-[#f0f0f6] bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:static lg:mt-6 lg:max-w-none lg:border-0 lg:px-0 lg:pb-0 lg:pt-0">
+              {/* REGRESSION-FREEZE[esim-mobile-web-pay-dock]: purchase dock above site bar — manifest */}
               <button
                 type="button"
                 onClick={() => goToCheckout()}

@@ -1,7 +1,6 @@
 import { Link } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -35,35 +34,49 @@ import {
  * REGRESSION-FREEZE[simplyur-mobile-plans-scroll-stable]: Android finger-up cancels fling — manifest
  * REGRESSION-FREEZE[simplyur-plan-unlimited-hint]: data_hint on unlimited cards — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-offline-reload-once]: RefreshControl ≠ catalog load — manifest
  */
 export default function PlansScreen() {
-  const { t, locale } = useI18n();
+  const { t, locale, ready } = useI18n();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const chipsY = useRef(0);
+  const loadGen = useRef(0);
 
   const [pack, setPack] = useState<CountryPack | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
+  const packRef = useRef<CountryPack | null>(null);
+  packRef.current = pack;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { pull?: boolean; soft?: boolean }) => {
+    const gen = ++loadGen.current;
+    const keepPainted = Boolean(opts?.soft && packRef.current);
+    if (opts?.pull) setRefreshing(true);
+    else if (!keepPainted) setLoading(true);
     setError(null);
     try {
-      setPack(await fetchKoreaPlans(locale));
+      const next = await fetchKoreaPlans(locale);
+      if (gen !== loadGen.current) return;
+      setPack(next);
     } catch {
+      if (gen !== loadGen.current) return;
       setError('load failed');
       setPack(null);
     } finally {
+      if (gen !== loadGen.current) return;
       setLoading(false);
+      setRefreshing(false);
     }
   }, [locale]);
 
   useEffect(() => {
+    if (!ready) return;
     setSelectedDays(null);
     void load();
-  }, [load]);
+  }, [load, ready]);
 
   const dayOptions = useMemo(() => (pack ? collectAvailableDays(pack) : []), [pack]);
 
@@ -131,9 +144,15 @@ export default function PlansScreen() {
       overScrollMode={Platform.OS === 'android' ? 'never' : undefined}
       onScrollEndDrag={stopAndroidFling}
       onMomentumScrollBegin={stopAndroidFling}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={D.coral} />}>
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load({ pull: true })}
+          tintColor={D.coral}
+        />
+      }>
       <View style={styles.stackItem}>
-        <OfflineBanner onOnline={() => void load()} />
+        <OfflineBanner onOnline={() => void load({ soft: true })} />
       </View>
       <View style={[styles.header, styles.stackItem]}>
         <View style={styles.badge}>

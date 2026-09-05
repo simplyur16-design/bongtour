@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+// REGRESSION-FREEZE[esim-mobile-web-pay-dock]: z-50 so 결제하기 is above leftover chrome — manifest
+
 type Props = {
   priceKrw: number;
   priceCaption?: string;
@@ -41,7 +43,7 @@ export function StickyPurchaseBar({
   if (variant === "stacked-cta") {
     return (
       <div
-        className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center border-t border-slate-200/90 bg-gradient-to-t from-slate-100/98 via-white/95 to-white/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md supports-[backdrop-filter]:bg-white/85 ${dockClass}`}
+        className={`pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center border-t border-slate-200/90 bg-gradient-to-t from-slate-100/98 via-white/95 to-white/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md supports-[backdrop-filter]:bg-white/85 ${dockClass}`}
       >
         <div className="pointer-events-auto w-full max-w-lg sm:max-w-xl md:max-w-2xl">
           <div className="mb-2 flex items-baseline justify-between gap-2">
@@ -72,7 +74,7 @@ export function StickyPurchaseBar({
 
   return (
     <div
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom))] px-4 ${dockClass}`}
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom))] px-4 ${dockClass}`}
     >
       <div className="pointer-events-auto flex w-full max-w-lg items-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-3.5 shadow-[0_-4px_24px_rgba(15,23,42,0.12)] backdrop-blur-md sm:max-w-2xl">
         <div className="min-w-0 flex-1">

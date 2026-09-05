@@ -2,6 +2,7 @@
  * Native Google / Apple sign-in — system account chooser only (no Safari / Chrome auth window).
  * REGRESSION-FREEZE[simplyur-inapp-auth]: native oauth helpers — manifest
  * REGRESSION-FREEZE[simplyur-inapp-surface-no-external-window]: GoogleSignin SDK — manifest
+ * REGRESSION-FREEZE[simplyur-google-signin-scopes]: openid scopes + extra fallback — manifest
  */
 import Constants from 'expo-constants';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -11,6 +12,7 @@ import {
   signInWithAppleIdentityToken,
   signInWithGoogleIdToken,
 } from '@/src/api/auth';
+import { GOOGLE_SIGNIN_SCOPES, pickGoogleOAuthClientId } from '@/src/lib/google-oauth-ids';
 
 /** Lazy — Expo Go has no RNGoogleSignin native module; top-level import crashes the client. */
 type GoogleSigninModule = typeof import('@react-native-google-signin/google-signin').GoogleSignin;
@@ -24,25 +26,41 @@ function getGoogleSignin(): GoogleSigninModule | null {
   }
 }
 
-let googleConfigured = false;
+let googleConfiguredKey = '';
 
-function extraGoogleWebClientId(): string {
-  const extra = Constants.expoConfig?.extra as { googleWebClientId?: string } | undefined;
-  return (extra?.googleWebClientId ?? '').trim();
+function extraGoogleIds(): { googleWebClientId?: string; googleIosClientId?: string } {
+  const c = Constants as typeof Constants & {
+    easConfig?: { extra?: Record<string, unknown> };
+    manifest?: { extra?: Record<string, unknown> };
+    manifest2?: { extra?: { expoClient?: { extra?: Record<string, unknown> } } };
+  };
+  const merged: Record<string, unknown> = {
+    ...(c.manifest?.extra ?? {}),
+    ...(c.manifest2?.extra?.expoClient?.extra ?? {}),
+    ...(c.easConfig?.extra ?? {}),
+    ...((c.expoConfig?.extra as Record<string, unknown> | undefined) ?? {}),
+  };
+  return {
+    googleWebClientId:
+      typeof merged.googleWebClientId === 'string' ? merged.googleWebClientId : undefined,
+    googleIosClientId:
+      typeof merged.googleIosClientId === 'string' ? merged.googleIosClientId : undefined,
+  };
 }
 
 function googleWebClientId(): string {
-  return (
-    (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '').trim() ||
-    extraGoogleWebClientId()
+  const extra = extraGoogleIds();
+  return pickGoogleOAuthClientId(
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    extra.googleWebClientId,
   );
 }
 
 function googleIosClientId(): string {
-  const extra = Constants.expoConfig?.extra as { googleIosClientId?: string } | undefined;
-  return (
-    (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '').trim() ||
-    (extra?.googleIosClientId ?? '').trim()
+  const extra = extraGoogleIds();
+  return pickGoogleOAuthClientId(
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    extra.googleIosClientId,
   );
 }
 
@@ -55,22 +73,34 @@ export function isGoogleNativeConfigured(): boolean {
 function ensureGoogleConfigured(): GoogleSigninModule {
   const GoogleSignin = getGoogleSignin();
   if (!GoogleSignin) throw new Error('oauth_not_configured');
-  if (googleConfigured) return GoogleSignin;
   const webClientId = googleWebClientId();
   if (!webClientId) throw new Error('oauth_not_configured');
   const iosClientId = googleIosClientId() || undefined;
+  const configKey = `${webClientId}|${iosClientId ?? ''}`;
+  if (googleConfiguredKey === configKey) return GoogleSignin;
   // webClientId is required for id_token (server verifies AUTH_GOOGLE_ID / web audience).
+  // REGRESSION-FREEZE[simplyur-google-signin-scopes]: openid scopes + stale sign-out — manifest
   GoogleSignin.configure({
     webClientId,
     ...(iosClientId ? { iosClientId } : {}),
+    scopes: [...GOOGLE_SIGNIN_SCOPES],
     offlineAccess: false,
   });
-  googleConfigured = true;
+  googleConfiguredKey = configKey;
   return GoogleSignin;
 }
 
 async function readGoogleIdToken(): Promise<string> {
   const GoogleSignin = ensureGoogleConfigured();
+  try {
+    const hasPrev =
+      typeof GoogleSignin.hasPreviousSignIn === 'function' && GoogleSignin.hasPreviousSignIn();
+    if (hasPrev) {
+      await GoogleSignin.signOut();
+    }
+  } catch {
+    // Stale SDK session — still try a fresh account picker.
+  }
   const result = await GoogleSignin.signIn();
   if (result.type !== 'success') throw new Error('oauth_cancelled');
   let token = (result.data.idToken ?? '').trim();

@@ -24,6 +24,13 @@ import {
 } from '@/src/api/checkout';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
+import {
+  SimplyurBackRow,
+  SimplyurDockCta,
+  simplyurDockScrollPad,
+  simplyurScreenPadTop,
+} from '@/src/components/SimplyurDockCta';
+import { SIMPLYUR_DOCK_PAD_H } from '@/src/lib/dock-cta-layout';
 import { LOGIN_1B } from '@/src/constants/login-design';
 import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
@@ -64,6 +71,7 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store link only — manifest
  * REGRESSION-FREEZE[simplyur-launch-discount-14pct]: first-purchase preview 14% — manifest
  * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: same-frame pay + no overlay cover — manifest
+ * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: docked submit CTA — manifest
  */
 export default function CheckoutScreen() {
   const { optionApiId } = useLocalSearchParams<{ optionApiId: string | string[] }>();
@@ -423,16 +431,15 @@ export default function CheckoutScreen() {
   }
 
   return (
+    <View style={[styles.flex, { backgroundColor: LOGIN_1B.bg }]}>
     <ScrollView
-      style={[styles.flex, { backgroundColor: LOGIN_1B.bg }]}
+      style={styles.flex}
       contentContainerStyle={[
         styles.formContent,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 },
+        { paddingTop: simplyurScreenPadTop(insets.top), paddingBottom: simplyurDockScrollPad(insets.bottom) },
       ]}
       keyboardShouldPersistTaps="handled">
-      <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backRow}>
-        <Text style={styles.back}>← {t('product.backToPlans')}</Text>
-      </Pressable>
+      <SimplyurBackRow label={t('product.backToPlans')} onPress={() => router.back()} />
 
       <OfflineBanner />
       <Text style={styles.title}>{t('checkout.title')}</Text>
@@ -542,28 +549,25 @@ export default function CheckoutScreen() {
           </Pressable>
 
           {err ? <Text style={styles.err}>{err}</Text> : null}
-
-          <Pressable
-            style={[styles.cta, busy ? { opacity: 0.7 } : null]}
-            disabled={busy}
-            onPress={() => void onSubmit()}>
-            {busy ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.ctaText}>{t('checkout.submit')}</Text>
-            )}
-          </Pressable>
         </>
       )}
     </ScrollView>
+      {product ? (
+        <SimplyurDockCta
+          label={t('checkout.submit')}
+          onPress={() => void onSubmit()}
+          busy={busy}
+          bottomInset={insets.bottom}
+        />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   root: { flex: 1, paddingHorizontal: 20 },
-  formContent: { paddingHorizontal: 20, gap: 10 },
-  backRow: { marginBottom: 8 },
+  formContent: { paddingHorizontal: SIMPLYUR_DOCK_PAD_H, gap: 10 },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -661,15 +665,6 @@ const styles = StyleSheet.create({
   termsText: { flex: 1, fontSize: 14, color: LOGIN_1B.navy, ...fp('400') },
   legalLink: { fontSize: 13, color: LOGIN_1B.coral, ...fp('600') },
   err: { color: '#b42318', fontSize: 13, ...fp('400') },
-  cta: {
-    marginTop: 8,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: LOGIN_1B.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaText: { color: '#fff', fontSize: 16, ...fp('600') },
   errorBox: { padding: 16, gap: 12 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
