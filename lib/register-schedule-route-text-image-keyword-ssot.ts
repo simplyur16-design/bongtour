@@ -619,8 +619,10 @@ export function applyRegisterScheduleRouteTextImageKeywordsToRows<
       // REGRESSION-FREEZE[register-schedule-route-text-image-keyword-ssot]: departure own-route landmark before forward — manifest
       // 후속일 forward를 먼저 쓰면 산문·타도시 누수(AVP7297 Da Lat) / 마카오→홍콩 출발일 오배정
       {
+        // 도시 허브가 landmark 목록 앞에 있어도 당일 광장·거리 명소를 먼저 씀 (대련 D1≠연화산)
+        // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 대련·여순 CAP611 — 성해/러시아거리·연화산 일차 오매핑 금지 — manifest
         const ownLandmark =
-          pickFirstUnused(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)
+          pickFirstPreferLandmark(routeLandmarks, used) || pickFirstPreferLandmark(routeOrdered, used)
         if (
           ownLandmark &&
           isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(ownLandmark)) &&

@@ -9894,7 +9894,8 @@
         {
           "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
           "mustInclude": [
-            "departure own-route landmark before forward"
+            "departure own-route landmark before forward",
+            "대련 D1≠연화산"
           ]
         },
         {
