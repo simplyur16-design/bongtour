@@ -32,6 +32,15 @@ export const LOCALE_LABELS: Record<SimplyurLocale, string> = {
   vi: 'Tiếng Việt',
 };
 
+/** Compact home/header chip — full label stays in the language modal. */
+export const LOCALE_SHORT_LABELS: Record<SimplyurLocale, string> = {
+  en: 'EN',
+  ja: 'JA',
+  zh: '简',
+  'zh-TW': '繁',
+  vi: 'VI',
+};
+
 export const BRAND = {
   name: 'simplyur',
   audience: SIMPLYUR_AUDIENCE,

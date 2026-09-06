@@ -20179,6 +20179,46 @@
       ]
     },
     {
+      "id": "simplyur-mobile-home-language",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur 앱 홈 — 언어를 설정 안에만 두지 않고 메인에서 고른다. 표시 화폐는 기존 locale→currency",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/index.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-home-language]",
+            "HomeLanguageChip"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/components/HomeLanguageChip.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-mobile-home-language]",
+            "router.push('/modal')",
+            "LOCALE_SHORT_LABELS"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/settings.tsx",
+          "mustInclude": [
+            "language.label",
+            "router.push('/modal')"
+          ]
+        },
+        {
+          "file": "lib/simplyur/currency.ts",
+          "mustInclude": [
+            "SIMPLYUR_LOCALE_CURRENCY",
+            "en: \"USD\"",
+            "ja: \"JPY\""
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-google-signin-scopes",
       "tier": [
         "prebuild",

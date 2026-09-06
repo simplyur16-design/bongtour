@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HomeLanguageChip } from '@/src/components/HomeLanguageChip';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
 import {
   HOME_DESIGN as D,
@@ -17,6 +18,7 @@ import { useI18n } from '@/src/i18n/I18nContext';
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: devices native screen — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings entry — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner — manifest
+ * REGRESSION-FREEZE[simplyur-mobile-home-language]: language chip on home — manifest
  */
 export default function HomeScreen() {
   const { t } = useI18n();
@@ -42,9 +44,12 @@ export default function HomeScreen() {
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{t('countries.kr.name').toUpperCase()}</Text>
         </View>
-        <Pressable onPress={() => router.push('/settings')} hitSlop={10}>
-          <Text style={styles.settingsLink}>{t('myEsim.settingsLink')}</Text>
-        </Pressable>
+        <View style={styles.topActions}>
+          <HomeLanguageChip />
+          <Pressable onPress={() => router.push('/settings')} hitSlop={10}>
+            <Text style={styles.settingsLink}>{t('myEsim.settingsLink')}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.hero}>
@@ -112,6 +117,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   badgeText: { fontSize: 11, ...fp('700'), letterSpacing: 0.88, color: '#fff' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   settingsLink: { fontSize: 13, ...fp('600'), color: D.coral },
   hero: { gap: 12 },
   heroLine1: { fontSize: 34, ...fp('800'), lineHeight: 39, letterSpacing: -0.34, color: D.navy },
