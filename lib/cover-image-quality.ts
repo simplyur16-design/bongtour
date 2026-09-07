@@ -34,3 +34,18 @@ export function pickPexelsCoverIngestUrl(src: PexelsSrcLike): string {
     ''
   )
 }
+
+export type PexelsDaySlotSrcLike = {
+  large?: string
+  medium?: string
+  thumbnail?: string
+} | null | undefined
+
+/**
+ * 일정 슬롯 클릭 ingest — medium 우선(다운로드·재호스트 용량).
+ * 커버는 `pickPexelsCoverIngestUrl`.
+ * REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: day slot uses medium not large/original — manifest
+ */
+export function pickPexelsDaySlotIngestUrl(src: PexelsDaySlotSrcLike): string {
+  return src?.medium?.trim() || src?.large?.trim() || src?.thumbnail?.trim() || ''
+}

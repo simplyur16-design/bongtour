@@ -3361,6 +3361,66 @@
       ]
     },
     {
+      "id": "pending-pexels-pick-fast-persist",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 Pexels 클릭은 CDN을 즉시 저장하고 PhotoPool 재호스팅은 after() — 요청 스레드에서 ingest 실패 503으로 선택을 버리지 않음",
+      "checks": [
+        {
+          "file": "lib/pending-pexels-pick-fast-persist.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-fast-persist]",
+            "resolvePendingPexelsPersistUrl",
+            "rehostPendingScheduleSlotIfUnchanged",
+            "rehostPendingCoverIfUnchanged",
+            "needsBackgroundRehost"
+          ]
+        },
+        {
+          "file": "lib/cover-image-quality.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-fast-persist]",
+            "pickPexelsDaySlotIngestUrl",
+            "src?.medium"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/schedule-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-fast-persist]",
+            "persist CDN immediately",
+            "after(",
+            "rehostPendingScheduleSlotIfUnchanged"
+          ],
+          "mustNotInclude": [
+            "savePhotoFromUrlWithRetry",
+            "Pexels 이미지도 PhotoPool 저장에 실패했습니다"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-fast-persist]",
+            "rehostPendingCoverIfUnchanged",
+            "after("
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-fast-persist]",
+            "pickPexelsDaySlotIngestUrl",
+            "optimistic schedule URL before POST"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/pending-pexels-pick-fast-persist.test.ts"
+      ]
+    },
+    {
       "id": "home-main-nav-chips-on-narrow",
       "tier": [
         "prebuild",

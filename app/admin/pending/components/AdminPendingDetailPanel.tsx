@@ -35,6 +35,7 @@ import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-read
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import { verifyRegisterPrePhotoForStoredProduct } from '@/lib/register-pre-photo-verify'
+import { pickPexelsCoverIngestUrl, pickPexelsDaySlotIngestUrl } from '@/lib/cover-image-quality'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -865,6 +866,10 @@ export default function AdminPendingDetailPanel({
     if (blockPhotoUntilKeywordVerify()) return
     setPrimaryImageMessage(null)
     setPrimaryImageSavingId(photo.id)
+    // REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: optimistic cover URL before PATCH — manifest
+    const ingestUrl = pickPexelsCoverIngestUrl({ large: photo.large, medium: photo.medium })
+    const prevBg = detail.bgImageUrl
+    setDetail({ ...detail, bgImageUrl: ingestUrl || photo.medium || photo.large })
     try {
       const poiRaw = firstPoiNamesFromItinerary(itineraryDayRows)
       const placeGuess =
@@ -881,7 +886,7 @@ export default function AdminPendingDetailPanel({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          primaryImageUrl: photo.large || photo.medium,
+          primaryImageUrl: ingestUrl || photo.large || photo.medium,
           primaryImageSource: 'pexels',
           primaryImagePhotographer: photo.photographer,
           primaryImageSourceUrl: photo.sourceUrl,
@@ -896,9 +901,11 @@ export default function AdminPendingDetailPanel({
         setDetail({ ...detail, ...data })
         setPrimaryImageMessage('대표 이미지로 저장되었습니다.')
       } else {
+        setDetail({ ...detail, bgImageUrl: prevBg })
         setPrimaryImageMessage((data as { error?: string })?.error ?? '저장 실패')
       }
     } catch {
+      setDetail({ ...detail, bgImageUrl: prevBg })
       setPrimaryImageMessage('저장 실패')
     } finally {
       setPrimaryImageSavingId(null)
@@ -1436,6 +1443,31 @@ export default function AdminPendingDetailPanel({
     const sk = scheduleImageSavingKey(day, slot)
     setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
+    // REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: optimistic schedule URL before POST — manifest
+    const prevSchedule = detail.schedule
+    const optimisticPatch =
+      slot === 2
+        ? {
+            imageUrl2: payload.imageUrl,
+            imageManualSelected: true,
+            imageSource2: {
+              source: payload.source,
+              photographer: payload.photographer ?? undefined,
+              originalLink: payload.originalLink ?? undefined,
+            },
+          }
+        : {
+            imageUrl: payload.imageUrl,
+            imageManualSelected: true,
+            imageSelectionMode: payload.selectionMode ?? 'manual-pick',
+            imageSource: {
+              source: payload.source,
+              photographer: payload.photographer ?? undefined,
+              originalLink: payload.originalLink ?? undefined,
+            },
+          }
+    applyScheduleDayEntryLocal(day, null, optimisticPatch)
+    setDayImageMessage(`DAY${day} ${slot}순위 적용됨 · 저장 중`)
     try {
       const res = await fetch(`/api/admin/products/${detail.id}/schedule-images`, {
         method: 'POST',
@@ -1475,6 +1507,7 @@ export default function AdminPendingDetailPanel({
       if (!res.ok) {
         const issues = Array.isArray(data.missing?.issues) ? data.missing.issues.slice(0, 4) : []
         const issueHint = issues.length > 0 ? ` (${issues.join(', ')})` : ''
+        setDetail({ ...detail, schedule: prevSchedule })
         setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${data.error ?? `HTTP ${res.status}`}${issueHint}`)
         return
       }
@@ -1512,6 +1545,7 @@ export default function AdminPendingDetailPanel({
         if (refreshed) setDetail(refreshed)
       }
     } catch (e) {
+      setDetail({ ...detail, schedule: prevSchedule })
       setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${adminClientFetchErrorMessage(e)}`)
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
@@ -2302,7 +2336,7 @@ export default function AdminPendingDetailPanel({
                             type="button"
                             onClick={() =>
                               void saveDayImageSelection(row.day, 2, {
-                                imageUrl: photo.large || photo.medium,
+                                imageUrl: pickPexelsDaySlotIngestUrl(photo),
                                 source: 'pexels',
                                 photographer: photo.photographer,
                                 originalLink: photo.sourceUrl,
@@ -2385,7 +2419,7 @@ export default function AdminPendingDetailPanel({
                             type="button"
                             onClick={() =>
                               void saveDayImageSelection(row.day, 1, {
-                                imageUrl: photo.large || photo.medium,
+                                imageUrl: pickPexelsDaySlotIngestUrl(photo),
                                 source: 'pexels',
                                 photographer: photo.photographer,
                                 originalLink: photo.sourceUrl,

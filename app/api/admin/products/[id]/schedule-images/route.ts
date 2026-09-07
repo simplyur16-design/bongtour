@@ -1,12 +1,16 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { recordAssetUsage, normalizeSelectionMode } from '@/lib/asset-usage-log'
 import { findImageAssetByPublicUrl } from '@/lib/image-assets-db'
 import { getImageStorageBucket, isObjectStorageConfigured, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
-import { savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
 import { extractPexelsPhotoIdFromCdnUrl, isPexelsCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
+import {
+  rehostPendingScheduleSlotIfUnchanged,
+  resolvePendingPexelsPersistUrl,
+  type PendingScheduleSlotRehostJob,
+} from '@/lib/pending-pexels-pick-fast-persist'
 import {
   persistScheduleImageFields,
   persistScheduleImageKeyword,
@@ -70,6 +74,7 @@ type ScheduleEntry = {
  * POST /api/admin/products/[id]/schedule-images
  * 일정 day 이미지 수동 선택 저장(자동 후보보다 우선).
  * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: Pexels 클릭 저장은 큐와 같은 title·dest 검증 — manifest
+ * REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: persist CDN immediately; PhotoPool rehost after() — manifest
  */
 export async function POST(request: Request, { params }: RouteParams) {
   const admin = await requireAdmin()
@@ -270,6 +275,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     let rehostExtra: Partial<ScheduleEntry> = {}
     let rehostedSourceType: string | null = null
     let originalCdnUrlForMeta: string | null = null
+    let pendingScheduleRehost: PendingScheduleSlotRehostJob | null = null
     if (
       !clearManualOnly &&
       imageUrl &&
@@ -316,42 +322,41 @@ export async function POST(request: Request, { params }: RouteParams) {
       originalCdnUrlForMeta = imageUrl
 
       // REGRESSION-FREEZE[pexels-primary-single-ingest]: schedule day — reuse PhotoPool by Pexels id — manifest
+      // REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: persist CDN immediately; PhotoPool rehost after() — manifest
       const pexelsIdForPool =
         externalIdResolved ||
         (isPexelsCdnUrl(imageUrl) ? String(extractPexelsPhotoIdFromCdnUrl(imageUrl) ?? '') : '') ||
         null
-      const poolRec = await savePhotoFromUrlWithRetry(
-        prisma,
-        imageUrl,
-        poolCity,
-        poolAttraction,
-        source || 'manual',
-        {
-          attribution: {
-            photographer,
-            sourceUrl: originalLink,
-            sourcePhotoId: pexelsIdForPool && pexelsIdForPool !== 'null' ? pexelsIdForPool : null,
-          },
-        },
-      )
-      if (poolRec) {
-        const key = tryParseObjectKeyFromPublicUrl(poolRec.filePath)
-        persistedImageUrl = poolRec.filePath
+      const resolved = await resolvePendingPexelsPersistUrl(prisma, imageUrl, pexelsIdForPool)
+      persistedImageUrl = resolved.persistUrl
+      rehostExtra = {
+        imageRehostSearchLabel: searchLabel,
+        imagePlaceName: placeName,
+        imageCityName: cityName,
+        imageWidth: null,
+        imageHeight: null,
+      }
+      if (resolved.alreadyPooled) {
+        const key = tryParseObjectKeyFromPublicUrl(resolved.persistUrl)
         rehostedSourceType = toHeroStorageSourceTypeSegment(source)
         rehostExtra = {
+          ...rehostExtra,
           imageStoragePath: key,
           imageStorageBucket: key ? getImageStorageBucket() : null,
-          imageRehostSearchLabel: searchLabel,
-          imagePlaceName: placeName,
-          imageCityName: cityName,
-          imageWidth: null,
-          imageHeight: null,
         }
-      } else {
-        const hint = isPexelsCdnUrl(imageUrl)
-          ? 'Pexels 이미지도 PhotoPool 저장에 실패했습니다. 잠시 후 다시 시도하거나 다른 사진을 선택해 주세요.'
-          : '외부 이미지를 PhotoPool에 저장하지 못했습니다. 다른 URL을 선택하거나 잠시 후 다시 시도해 주세요.'
-        return NextResponse.json({ error: hint }, { status: 503 })
+      } else if (resolved.needsBackgroundRehost) {
+        pendingScheduleRehost = {
+          productId: id,
+          day,
+          imageSlot,
+          expectedCdnUrl: imageUrl,
+          cityName: poolCity,
+          attractionName: poolAttraction,
+          source: source || 'manual',
+          photographer,
+          sourceUrl: originalLink,
+          sourcePhotoId: pexelsIdForPool && pexelsIdForPool !== 'null' ? pexelsIdForPool : null,
+        }
       }
     }
 
@@ -501,6 +506,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       where: { id },
       data: { schedule: JSON.stringify(next) },
     })
+
+    if (pendingScheduleRehost) {
+      after(() => {
+        void rehostPendingScheduleSlotIfUnchanged(prisma, pendingScheduleRehost).catch((err) => {
+          console.error('[schedule-images] background PhotoPool rehost', id, day, err)
+        })
+      })
+    }
 
     if (clearManualOnly) {
       await recordAssetUsage({

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
@@ -41,7 +41,11 @@ import {
 import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { toHeroStorageSourceTypeSegment } from '@/lib/product-hero-image-source-type'
 import { rehostPexelsUrlsInScheduleEntries, type ScheduleEntryRecord } from '@/lib/schedule-day-image-rehost'
-import { internalizeProductCoverImageUrl } from '@/lib/travel-product-image-internalize'
+import { findPhotoPoolBySourcePhotoId } from '@/lib/photo-pool'
+import {
+  rehostPendingCoverIfUnchanged,
+  type PendingCoverRehostJob,
+} from '@/lib/pending-pexels-pick-fast-persist'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 
 type RouteParams = { params: Promise<{ id: string }> }
@@ -324,6 +328,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       highlightPointsRaw?: string | null
       highlightPoints?: string | null
     } = {}
+    // REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: persist CDN immediately; PhotoPool rehost after() — manifest
+    let pendingCoverRehost: PendingCoverRehostJob | null = null
     if (body.flightAdminJson !== undefined || body.flightManualCorrection !== undefined) {
       const current = await prisma.product.findUnique({
         where: { id },
@@ -720,26 +726,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
                   ? cityName
                   : null
 
-          try {
-            const destLine =
-              prodShort?.primaryDestination?.trim() ||
-              prodShort?.destinationRaw?.trim() ||
-              prodShort?.destination?.trim() ||
-              'unknown'
-            const pexelsRemoteUrl = url
-            url = await internalizeProductCoverImageUrl(prisma, {
-              remoteUrl: pexelsRemoteUrl,
-              destination: destLine,
-              poolAttractionLabel: 'primary_cover',
-              poolSource: 'pexels',
-              pexelsPhotoId: pid,
-              photographer: strOrNull(body.primaryImagePhotographer, 200),
-              pexelsPageUrl: strOrNull(body.primaryImageSourceUrl, MAX_URL),
-              searchKeyword: searchLabel,
-              placeName,
-              cityName,
-            })
-            // REGRESSION-FREEZE[pexels-primary-single-ingest]: PhotoPool internalize only — no second CDN rehost — manifest
+          const destLine =
+            prodShort?.primaryDestination?.trim() ||
+            prodShort?.destinationRaw?.trim() ||
+            prodShort?.destination?.trim() ||
+            'unknown'
+          const pexelsRemoteUrl = url
+          const photographer = strOrNull(body.primaryImagePhotographer, 200)
+          const pexelsPageUrl = strOrNull(body.primaryImageSourceUrl, MAX_URL)
+          const poolHit = await findPhotoPoolBySourcePhotoId(prisma, String(pid))
+          if (poolHit?.filePath) {
+            url = poolHit.filePath
             const key = tryParseObjectKeyFromPublicUrl(url)
             data.bgImageStoragePath = key
             data.bgImageStorageBucket = key ? getImageStorageBucket() : null
@@ -750,10 +747,32 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             data.bgImageCityName = cityName
             data.bgImageWidth = null
             data.bgImageHeight = null
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : 'Pexels 이미지 저장 실패'
-            console.error('[PATCH product] pexels internalize', e)
-            return NextResponse.json({ error: msg }, { status: 503 })
+          } else {
+            // REGRESSION-FREEZE[pexels-primary-single-ingest]: PhotoPool internalize only — no second CDN rehost — manifest
+            // internalizeProductCoverImageUrl runs after() via rehostPendingCoverIfUnchanged
+            data.bgImageStoragePath = null
+            data.bgImageStorageBucket = null
+            data.bgImageRehostedAt = null
+            data.bgImageSourceType = toHeroStorageSourceTypeSegment('pexels')
+            data.bgImageRehostSearchLabel = searchLabel
+            data.bgImagePlaceName = placeName
+            data.bgImageCityName = cityName
+            data.bgImageWidth = null
+            data.bgImageHeight = null
+            pendingCoverRehost = {
+              productId: id,
+              expectedCdnUrl: pexelsRemoteUrl,
+              destination: destLine,
+              poolAttractionLabel: 'primary_cover',
+              poolSource: 'pexels',
+              pexelsPhotoId: pid,
+              photographer,
+              pexelsPageUrl,
+              searchKeyword: searchLabel,
+              placeName,
+              cityName,
+              sourceTypeSegment: toHeroStorageSourceTypeSegment('pexels'),
+            }
           }
         }
         // 이미 우리 Storage URL이면 storage 메타는 PATCH에서 건드리지 않음(기존 행 유지)
@@ -765,42 +784,40 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           tryParseObjectKeyFromPublicUrl(url) == null &&
           isObjectStorageConfigured()
         ) {
-          try {
-            const prodShort = await prisma.product.findUnique({
-              where: { id },
-              select: { primaryDestination: true, destinationRaw: true, destination: true },
-            })
-            const destLine =
-              prodShort?.primaryDestination?.trim() ||
-              prodShort?.destinationRaw?.trim() ||
-              prodShort?.destination?.trim() ||
-              'unknown'
-            url = await internalizeProductCoverImageUrl(prisma, {
-              remoteUrl: url,
-              destination: destLine,
-              poolAttractionLabel: 'primary_cover',
-              poolSource: srcLower || 'manual',
-              pexelsPhotoId: null,
-              photographer: strOrNull(body.primaryImagePhotographer, 200),
-              pexelsPageUrl: strOrNull(body.primaryImageSourceUrl, MAX_URL),
-              searchKeyword: 'primary',
-              placeName: null,
-              cityName: destLine.split(',')[0]?.trim() || destLine,
-            })
-            const key = tryParseObjectKeyFromPublicUrl(url)
-            data.bgImageStoragePath = key
-            data.bgImageStorageBucket = key ? getImageStorageBucket() : null
-            data.bgImageRehostSearchLabel = null
-            data.bgImagePlaceName = null
-            data.bgImageCityName = destLine.split(',')[0]?.trim() || destLine
-            data.bgImageWidth = null
-            data.bgImageHeight = null
-            data.bgImageRehostedAt = new Date()
-            data.bgImageSourceType = toHeroStorageSourceTypeSegment(srcLower || 'manual')
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : '대표 이미지 Storage 저장 실패'
-            console.error('[PATCH product] cover internalize', e)
-            return NextResponse.json({ error: msg }, { status: 503 })
+          const prodShort = await prisma.product.findUnique({
+            where: { id },
+            select: { primaryDestination: true, destinationRaw: true, destination: true },
+          })
+          const destLine =
+            prodShort?.primaryDestination?.trim() ||
+            prodShort?.destinationRaw?.trim() ||
+            prodShort?.destination?.trim() ||
+            'unknown'
+          const cityName = destLine.split(',')[0]?.trim() || destLine
+          const photographer = strOrNull(body.primaryImagePhotographer, 200)
+          const pexelsPageUrl = strOrNull(body.primaryImageSourceUrl, MAX_URL)
+          data.bgImageStoragePath = null
+          data.bgImageStorageBucket = null
+          data.bgImageRehostSearchLabel = null
+          data.bgImagePlaceName = null
+          data.bgImageCityName = cityName
+          data.bgImageWidth = null
+          data.bgImageHeight = null
+          data.bgImageRehostedAt = null
+          data.bgImageSourceType = toHeroStorageSourceTypeSegment(srcLower || 'manual')
+          pendingCoverRehost = {
+            productId: id,
+            expectedCdnUrl: url,
+            destination: destLine,
+            poolAttractionLabel: 'primary_cover',
+            poolSource: srcLower || 'manual',
+            pexelsPhotoId: null,
+            photographer,
+            pexelsPageUrl,
+            searchKeyword: 'primary',
+            placeName: null,
+            cityName,
+            sourceTypeSegment: toHeroStorageSourceTypeSegment(srcLower || 'manual'),
           }
         }
       }
@@ -880,6 +897,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       await prisma.product.update({
         where: { id },
         data: data as Prisma.ProductUpdateInput,
+      })
+    }
+    if (pendingCoverRehost) {
+      // REGRESSION-FREEZE[pexels-primary-single-ingest]: PhotoPool internalize only — no second CDN rehost — manifest
+      after(() => {
+        void rehostPendingCoverIfUnchanged(prisma, pendingCoverRehost).catch((err) => {
+          console.error('[PATCH product] cover PhotoPool rehost after', id, err)
+        })
       })
     }
     if (
