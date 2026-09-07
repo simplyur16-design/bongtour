@@ -21147,6 +21147,51 @@
       ]
     },
     {
+      "id": "register-pre-photo-unparsed-route-fails-verify",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "동선을 못 읽으면 키워드 통과 금지. FIT 중간일 키워드 공란·패키지 중간일 빈 route는 등록대기 금지. 등록대기 문구는 힐이 고친다고 쓰지 않음",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]",
+            "if (!routeTextHasIdentifiableVisitPlace(routeText)) return false",
+            "middle_route_empty",
+            "registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText)"
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]",
+            "비거나 안 맞는 건 올리지 않습니다"
+          ],
+          "mustNotInclude": [
+            "검증이 안 된 건은 매일 자가힐링이 다시 고칩니다"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "registerScheduleKeywordMatchesOwnDayRoute('', 'Eiffel Tower')"
+          ]
+        },
+        {
+          "file": "tests/register-admin-lane.test.ts",
+          "mustInclude": [
+            "자유여행은 하루만 키워드가 있어도 중간일 공란이면 실패한다",
+            "day2_middle_keyword_empty"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
       "id": "register-pre-photo-heal-prisma-retry",
       "tier": [
         "prebuild",

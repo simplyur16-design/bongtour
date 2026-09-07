@@ -208,7 +208,8 @@ export default function AdminPendingPage() {
         </div>
         <AdminPageHeader
           title="등록대기"
-          subtitle="검증이 끝난 상품만 여기 있습니다. 사진·분류 확인 후 승인하면 목록에 노출됩니다. 검증이 안 된 건은 매일 자가힐링이 다시 고칩니다."
+          // REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]: 통과만 표시, 힐이 고친다고 쓰지 않음 — manifest
+          subtitle="검증이 끝난 상품만 여기 있습니다. 키워드·당일 동선·일정이 비거나 안 맞는 건 올리지 않습니다. 막힌 건은 매일 힐이 다시 시도하고, 그래도 실패하면 등록대기에 두지 않습니다."
         />
         {registeredMessage && (
           <div className="mb-6 rounded-xl border border-bt-success bg-bt-badge-domestic p-4">

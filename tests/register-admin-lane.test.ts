@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·자유여행·테마 레인 — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]: FIT 중간일 하루 공란 실패 — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 채워진 키워드도 품질 검증 — manifest
  * REGRESSION-FREEZE[pending-pre-photo-verify-client-safe]: verify는 self-heal 서버 체인 금지 — manifest
  * REGRESSION-FREEZE[register-hk-gogung-not-taipei-npm]: 홍콩 고궁 ≠ 대만 국립고궁 — manifest
@@ -123,12 +124,14 @@ describe('register-admin-lane-pre-photo', () => {
       {
         day: 1,
         description: '인천에서 출발해 바르셀로나에 도착합니다. 첫날 이동 중심으로 여행을 시작합니다.',
+        routeText: '바르셀로나',
         imageKeyword: 'Barcelona',
       },
       {
         day: 2,
         description:
           '가우디 건축과 리세우를 중심으로 하루를 보냅니다. 시내의 리듬에 맞춰 관람 동선을 이어갑니다.',
+        routeText: '구엘공원',
         imageKeyword: 'Park Guell',
       },
       {
@@ -207,8 +210,26 @@ describe('register-admin-lane-pre-photo', () => {
     })
     assert.equal(emptyKw.ok, false)
     assert.ok(emptyKw.issues.includes('fit_keyword_empty'))
-    assert.equal(emptyKw.issues.some((i) => i.includes('middle_keyword_empty')), false)
+    assert.ok(emptyKw.issues.some((i) => i.includes('middle_keyword_empty')))
     assert.equal(emptyKw.parserFixRequired, true)
+  })
+
+  it('자유여행은 하루만 키워드가 있어도 중간일 공란이면 실패한다', () => {
+    const oneKw = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productType: 'air-hotel',
+      productTitle: '다낭 에어텔 4일',
+      productDestination: '다낭',
+      rows: [
+        { day: 1, description: '다낭에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', routeText: '다낭', imageKeyword: 'Da Nang' },
+        { day: 2, description: '바나힐을 둘러봅니다. 케이블카를 이어서 탑니다.', routeText: '바나힐', imageKeyword: '' },
+        { day: 3, description: '호이안 구시가지를 걷습니다. 강변을 이어서 둘러봅니다.', routeText: '호이안', imageKeyword: 'Hoi An Ancient Town' },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', routeText: '인천', imageKeyword: '' },
+      ],
+    })
+    assert.equal(oneKw.ok, false)
+    assert.ok(oneKw.issues.includes('day2_middle_keyword_empty'))
   })
 
   it('자유여행은 키워드가 나와도 블리드·항공·운영 플레이스홀더면 검증 실패한다', () => {
@@ -219,10 +240,10 @@ describe('register-admin-lane-pre-photo', () => {
       productTitle: '대만 에어텔 4일',
       productDestination: '타이베이',
       rows: [
-        { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', imageKeyword: '' },
-        { day: 2, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' },
-        { day: 3, description: '시내 자유일정입니다. 기념관을 둘러봅니다.', imageKeyword: 'Chiang Kai-shek Memorial Hall' },
-        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', imageKeyword: '' },
+        { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', routeText: '', imageKeyword: '' },
+        { day: 2, description: '호텔 체크인 후 자유일정입니다. 숙소 주변을 둘러봅니다.', routeText: '그랜드하얏트 타이베이', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 3, description: '시내 자유일정입니다. 국립고궁박물관을 둘러봅니다.', routeText: '국립고궁박물관', imageKeyword: 'National Palace Museum Taipei' },
+        { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', routeText: '', imageKeyword: '' },
       ],
     })
     assert.equal(hotelOk.ok, true)

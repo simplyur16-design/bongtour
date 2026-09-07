@@ -62,6 +62,14 @@ describe('register-pre-photo-self-heal', () => {
       registerScheduleKeywordMatchesOwnDayRoute('치첸이사 - 칸쿤', 'Chichen Itza'),
       true,
     )
+    assert.equal(
+      registerScheduleKeywordMatchesOwnDayRoute('', 'Eiffel Tower'),
+      false,
+    )
+    assert.equal(
+      registerScheduleKeywordMatchesOwnDayRoute('   ', 'Osaka Castle'),
+      false,
+    )
     const easterRows = [
       {
         day: 1,

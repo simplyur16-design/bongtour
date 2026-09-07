@@ -13,6 +13,7 @@
  * REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — FIT·환승·이동 제외 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 반복 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 중간일 키워드는 당일 route 명소·도시만 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]: 동선 미식별·FIT 중간일 공란은 검증 실패 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 출발일 관광동선이면 키워드 필수 — manifest
  * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐·패널·일정사진 POST는 title·dest 포함 검증 — manifest
  */
@@ -142,7 +143,8 @@ export function registerScheduleKeywordMatchesOwnDayRoute(
 ): boolean {
   const kw = String(keyword ?? '').trim()
   if (!kw) return true
-  if (!routeTextHasIdentifiableVisitPlace(routeText)) return true
+  // REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]: 동선을 못 읽으면 키워드 통과 금지 — manifest
+  if (!routeTextHasIdentifiableVisitPlace(routeText)) return false
   if (ownRouteHasKeyword(routeText, kw)) return true
   const hay = String(routeText ?? '')
   const hits = [
@@ -289,6 +291,13 @@ function packageScheduleIssues(
       issues.push(`day${day}_free_recommended_itinerary_missing`)
     }
     if (
+      slot === 'middle' &&
+      !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
+      !String(row.routeText ?? '').trim()
+    ) {
+      issues.push(`day${day}_middle_route_empty`)
+    }
+    if (
       registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) &&
       !String(row.imageKeyword ?? '').trim()
     ) {
@@ -405,6 +414,21 @@ function fitScheduleIssues(
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
     if (
       slot === 'middle' &&
+      !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
+      !String(row.routeText ?? '').trim()
+    ) {
+      issues.push(`day${day}_middle_route_empty`)
+    }
+    if (
+      registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) &&
+      !kw
+    ) {
+      issues.push(
+        slot === 'departure' ? `day${day}_departure_keyword_empty` : `day${day}_middle_keyword_empty`,
+      )
+    }
+    if (
+      slot === 'middle' &&
       kw &&
       !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw)
     ) {
@@ -514,6 +538,8 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
   return (
     issue.includes('lodging_or_non_landmark') ||
     issue.includes('middle_keyword_empty') ||
+    issue.includes('departure_keyword_empty') ||
+    issue.includes('middle_route_empty') ||
     issue.includes('free_recommended_itinerary_missing') ||
     issue.includes('keyword_bleed_other_day') ||
     issue.includes('fit_keyword_empty') ||
