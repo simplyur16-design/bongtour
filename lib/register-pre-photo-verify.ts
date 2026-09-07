@@ -14,6 +14,7 @@
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 반복 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 중간일 키워드는 당일 route 명소·도시만 — manifest
  * REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]: 동선 미식별·FIT 중간일 공란은 검증 실패 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 유럽 상품 미주 키워드·귀국 KL 동선 실패 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 출발일 관광동선이면 키워드 필수 — manifest
  * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐·패널·일정사진 POST는 title·dest 포함 검증 — manifest
  */
@@ -521,6 +522,9 @@ function wrongCountryKeywordIssues(
   const destHay = registerPrePhotoPlaceDestHay(productDestination, productTitle)
   if (!destHay) return []
   const issues: RegisterPrePhotoVerifyIssue[] = []
+  const days = rows.filter((r) => Number(r.day) > 0)
+  const maxDay = days.length ? Math.max(...days.map((r) => Number(r.day))) : 0
+  const activeDays = days.length
   for (const row of rows) {
     const day = Number(row.day)
     if (day <= 0) continue
@@ -529,6 +533,24 @@ function wrongCountryKeywordIssues(
     }
     if (isRegisterScheduleCrossContinentHallucinationKeyword(row.imageKeyword2, destHay, rows)) {
       issues.push(`day${day}_keyword2_wrong_country`)
+    }
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+    if (slot !== 'return' && slot !== 'departure') continue
+    const route = String(row.routeText ?? '').trim()
+    if (!route) continue
+    const segs = splitRouteTextPlaceSegments(route)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2)
+    const parts = segs.length ? segs : [route]
+    const onTrip = parts.filter(
+      (s) => !isRegisterScheduleCrossContinentHallucinationKeyword(s, destHay, rows),
+    )
+    const offTrip = parts.some((s) =>
+      isRegisterScheduleCrossContinentHallucinationKeyword(s, destHay, rows),
+    )
+    // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 귀국·출발 동선이 전부 환각 허브면 실패 — manifest
+    if (offTrip && onTrip.length === 0) {
+      issues.push(`day${day}_route_wrong_country`)
     }
   }
   return issues

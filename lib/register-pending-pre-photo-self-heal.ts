@@ -9,6 +9,7 @@
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: pre_photo_blocked — manifest
  * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
  * REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: pooler 끊김은 재시도 후 저장 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
  * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 제목 힐 — manifest
  */
 import { prisma } from '@/lib/prisma'
@@ -224,6 +225,8 @@ export async function healPendingRegisterPrePhoto(
           }
           return {
             ...row,
+            // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
+            routeText: h.routeText ?? row.routeText,
             imageKeyword: h.imageKeyword ?? '',
             imageKeyword2: h.imageKeyword2 ?? null,
             description: h.description ?? row.description,

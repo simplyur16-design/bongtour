@@ -8,6 +8,7 @@ import { mapDestination, mapKoreanPoiSegment } from '@/lib/pexels-keyword'
 import {
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
+  findAllScheduleSpotMatchesInText,
   getSchedulePoiRegexEnglishKeys,
   routeContextualNationalAssemblyEnglish,
   routeContextualDisneyEnglish,
@@ -232,5 +233,20 @@ describe('schedule-poi-regex-ssot', () => {
   it('maps 포르트 카이요 to Porte Cailhau not Cairo', () => {
     assert.match(String(firstMatchingScheduleSpotEn('포르트 카이요') ?? ''), /Porte Cailhau/i)
     assert.doesNotMatch(String(firstMatchingScheduleSpotEn('포르트 카이요') ?? ''), /Cairo/i)
+  })
+
+  it('does not map LA VALLEE Village to Los Angeles', () => {
+    assert.doesNotMatch(
+      String(firstMatchingScheduleSpotEn('LA VALLE VILLAGE') ?? ''),
+      /Los Angeles|Griffith/i,
+    )
+    assert.doesNotMatch(
+      String(firstMatchingScheduleSpotEn('라 발레 빌리지 LA VALLE VILLAGE') ?? ''),
+      /Los Angeles|Griffith/i,
+    )
+    const hits = findAllScheduleSpotMatchesInText(
+      '파리 - 라 발레 빌리지 LA VALLE VILLAGE - 베르사유 궁전',
+    )
+    assert.equal(hits.filter((h) => /Los Angeles|Griffith/i.test(h.en)).length, 0)
   })
 })

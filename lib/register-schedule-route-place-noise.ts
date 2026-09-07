@@ -403,6 +403,8 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/면세(?:점|품)?(?:\s*\d+)?\s*(?:회\s*)?쇼핑|쇼핑\s*\d+\s*회/u.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: outlet·영화제목 쇼핑/옵션 노이즈 — manifest
   if (/\b(?:designer\s*)?outlet\b|아울렛|아웃렛|pandorf|파르도르프/i.test(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 라 발레 빌리지 ≠ Los Angeles — manifest
+  if (/라\s*발레\s*빌리지|LA\s*VALL[EÉ]E?\s*VILLAGE|La\s*Vall[eé]e\s*Village/i.test(t)) return true
   if (/sound\s*of\s*music|사운드\s*오브\s*뮤직|사운드오브뮤직/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: 독일·유럽 admin·교통 세그먼트 — manifest
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest

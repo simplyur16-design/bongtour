@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[schedule-segment-poi-oceania-japan-europe]: NZ·AU·일본·유럽·북유럽·발트·이탈리아·노르망디·장가계·남미 routeText — manifest
  * REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 일차 스팟 — manifest
  * REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭=Da Nang, 테를지/테렐지=Terelj — manifest
+ * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: LA VALLEE Village ≠ Los Angeles — manifest
  */
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -1348,7 +1349,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /우유니|Uyuni/i, en: "Salar de Uyuni salt flats Bolivia" },
   { re: /이과수|Iguazu/i, en: "Iguazu Falls waterfall panorama" },
   { re: /리오데자네이로|Rio\s*de\s*Janeiro/i, en: "Rio de Janeiro Christ the Redeemer view" },
-  { re: /로스엔젤레스|Los\s*Angeles|LA\b/i, en: "Los Angeles Griffith Observatory city view" },
+  // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: LA VALLEE Village ≠ Los Angeles — manifest
+  { re: /로스앤?젤레스|로스엔젤레스|Los\s*Angeles|(?<![A-Za-z])LA\b(?!\s*VALL)/i, en: "Los Angeles Griffith Observatory city view" },
   { re: /워싱턴\s*DC|Washington\s*DC/i, en: "Washington DC National Mall monuments" },
   { re: /토론토|Toronto/i, en: "Toronto CN Tower skyline" },
   { re: /몬트리올|Montreal/i, en: "Montreal Old Port waterfront" },

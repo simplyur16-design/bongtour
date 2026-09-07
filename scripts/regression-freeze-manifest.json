@@ -21192,6 +21192,67 @@
       ]
     },
     {
+      "id": "register-pre-photo-la-vallee-not-los-angeles",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "LA VALLEE Village는 Los Angeles가 아니다. 유럽 상품의 미주 키워드·귀국 KL 동선은 힐이 거르고 검증 실패",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]",
+            "LA\\b(?!\\s*VALL)"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]",
+            "라\\s*발레\\s*빌리지"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]",
+            "stripOffTripReturnHubRoute"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]",
+            "routeText: h.routeText ?? row.routeText"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]",
+            "day${day}_route_wrong_country"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "영국·프랑스 일정에 LA VALLEE·Griffith·귀국 KL은 검증 실패이고 힐이 그날 동선으로 되돌린다",
+            "Los Angeles Griffith Observatory"
+          ]
+        },
+        {
+          "file": "tests/schedule-poi-regex-ssot.test.ts",
+          "mustInclude": [
+            "does not map LA VALLEE Village to Los Angeles"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
       "id": "register-pre-photo-heal-prisma-retry",
       "tier": [
         "prebuild",

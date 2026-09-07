@@ -14,6 +14,7 @@
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 재합성 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드는 지우고 그날 동선으로 채움 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 관광 키워드·범용 모스크 힐 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 환각 키워드는 route 오탐이어도 제거 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import {
@@ -115,10 +116,12 @@ function scheduleHasBrokenKeywords(
   opts?: {
     allowHotelLodging?: boolean
     productTitle?: string | null
+    destHay?: string
     requireFreeDayRecommended?: boolean
   },
 ): boolean {
   const allowHotelLodging = opts?.allowHotelLodging ?? false
+  const destHay = String(opts?.destHay ?? '').trim()
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return false
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
@@ -126,6 +129,18 @@ function scheduleHasBrokenKeywords(
   for (const row of days) {
     if (isBrokenRegisterLandmarkKeyword(row.imageKeyword, { allowHotelLodging })) return true
     if (isBrokenRegisterLandmarkKeyword(row.imageKeyword2, { allowHotelLodging })) return true
+    if (
+      destHay &&
+      isRegisterScheduleCrossContinentHallucinationKeyword(row.imageKeyword, destHay, rows)
+    ) {
+      return true
+    }
+    if (
+      destHay &&
+      isRegisterScheduleCrossContinentHallucinationKeyword(row.imageKeyword2, destHay, rows)
+    ) {
+      return true
+    }
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot === 'middle' && !String(row.imageKeyword ?? '').trim()) {
       return true
@@ -198,7 +213,10 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
   })
 }
 
-function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(rows: T[]): T[] {
+function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
+  rows: T[],
+  destHay = '',
+): T[] {
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
@@ -206,11 +224,22 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(rows: T
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') return row
-    if (!routeTextHasIdentifiableVisitPlace(row.routeText)) return row
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
-    const keepKw = !kw || registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw)
-    const keepKw2 = !kw2 || registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw2)
+    // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 환각은 당일 route 오탐이어도 제거 — manifest
+    const hallucKw = Boolean(
+      destHay && kw && isRegisterScheduleCrossContinentHallucinationKeyword(kw, destHay, rows),
+    )
+    const hallucKw2 = Boolean(
+      destHay && kw2 && isRegisterScheduleCrossContinentHallucinationKeyword(kw2, destHay, rows),
+    )
+    if (!routeTextHasIdentifiableVisitPlace(row.routeText) && !hallucKw && !hallucKw2) return row
+    const keepKw =
+      !kw ||
+      (!hallucKw && registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw))
+    const keepKw2 =
+      !kw2 ||
+      (!hallucKw2 && registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw2))
     if (keepKw && keepKw2) return row
     let nextKw = keepKw ? kw : ''
     let nextKw2 = keepKw2 ? kw2 || null : null
@@ -219,6 +248,33 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(rows: T
       nextKw2 = null
     }
     return { ...row, imageKeyword: nextKw, imageKeyword2: nextKw2 }
+  })
+}
+
+function stripOffTripReturnHubRoute<T extends RegisterPrePhotoHealRow>(rows: T[], destHay: string): T[] {
+  if (!destHay) return rows
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  return rows.map((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot !== 'return' && slot !== 'departure') return row
+    const route = String(row.routeText ?? '').trim()
+    if (!route) return row
+    const segs = splitRouteTextPlaceSegments(route)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2)
+    const parts = segs.length ? segs : [route]
+    const onTrip = parts.filter(
+      (s) => !isRegisterScheduleCrossContinentHallucinationKeyword(s, destHay, rows),
+    )
+    if (onTrip.length > 0) return row
+    const offTrip = parts.some((s) =>
+      isRegisterScheduleCrossContinentHallucinationKeyword(s, destHay, rows),
+    )
+    if (!offTrip) return row
+    return { ...row, routeText: '' }
   })
 }
 
@@ -334,8 +390,10 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
       return { ...row, imageKeyword2: null }
     })
     // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: FIT도 당일 route 밖 키워드 제거 — manifest
-    working = dropKeywordsNotOnOwnDayRoute(working)
+    working = dropKeywordsNotOnOwnDayRoute(working, destHay)
     working = refillEmptyMiddleKeywordFromRoute(working, destHay)
+    working = dropKeywordsNotOnOwnDayRoute(working, destHay)
+    working = stripOffTripReturnHubRoute(working, destHay)
     const maxFitDesc = Math.max(...working.map((r) => Number(r.day)).filter((d) => d > 0), 1)
     const fitRepeatedCloser = tripDaysSharingTemplateCloser(working)
     working = working.map((row) => {
@@ -352,7 +410,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
       return { ...row, description }
     })
     // if (scheduleHasBrokenKeywords(working)) — FIT도 깨진 키워드면 parser_fix
-    if (scheduleHasBrokenKeywords(working, { allowHotelLodging: true })) {
+    if (scheduleHasBrokenKeywords(working, { allowHotelLodging: true, destHay })) {
       notes.push({ day: 0, field: 'imageKeyword', reason: 'parser_fix_required' })
     }
     return { rows: working, notes, reappliedKeywords }
@@ -362,6 +420,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   if (
     scheduleHasBrokenKeywords(working, {
       productTitle: opts.productTitle,
+      destHay,
       requireFreeDayRecommended: true,
     })
   ) {
@@ -421,12 +480,15 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 중간일 primary 공란·kw2 있으면 승격 — manifest
   // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: apply 트립 블리드를 당일 route로 되돌림 — manifest
   working = promoteEmptyMiddlePrimaryFromKeyword2(working)
-  working = dropKeywordsNotOnOwnDayRoute(working)
+  working = dropKeywordsNotOnOwnDayRoute(working, destHay)
   working = refillEmptyMiddleKeywordFromRoute(working, destHay)
+  working = dropKeywordsNotOnOwnDayRoute(working, destHay)
+  working = stripOffTripReturnHubRoute(working, destHay)
 
   if (
     scheduleHasBrokenKeywords(working, {
       productTitle: opts.productTitle,
+      destHay,
       requireFreeDayRecommended: true,
     })
   ) {

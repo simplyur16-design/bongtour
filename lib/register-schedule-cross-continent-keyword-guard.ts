@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 산토리니·두바이·KL·식사 dest — manifest
  * REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 같은 날 나라 혼선·AU/NZ — manifest
  * REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 하와이≠푸켓 · 중남미≠니스 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: LA VALLEE ≠ Los Angeles dest — manifest
  */
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 import {
@@ -27,7 +28,7 @@ export const EUROPE_PRODUCT_DEST_RE =
   /(?<!포르투\s)유럽|(?<!Porto\s)Europe|서유럽|동유럽|북유럽|남유럽|중동유럽|발트|Baltic|스칸디|Scandinav|지중해|Mediterranean|프랑스|France|이탈리아|Italy|스페인|Spain|독일|Germany|스위스|Switzerland|영국|Britain|UK|Ireland|(?<![가-힣])아일랜드(?:\s*(?:공화국|일주|완전일주|패키지|여행|더블린|Dublin)|(?=\s*[<(#]))|그리스|Greece|터키|Turkey|크로아티아|Croatia|체코|Czech|Austria|오스트리아|헝가리|Hungary|폴란드|Poland|네덜란드|Netherlands|벨기에|Belgium|포르투갈|Portugal|노르웨이|Norway|스웨덴|Sweden|핀란드|Finland|덴마크|Denmark|아이슬란드|Iceland|리투아니아|Lithuania|에스토니아|Estonia|라트비아|Latvia|빌니우스|Vilnius|탈린|Tallinn|(?<![가-힣])리가(?![가-힣])|\bRiga\b|프라하|Prague|파리|Paris|로마|Rome|런던|London|바르셀로나|Barcelona|보르도|Bordeaux|인터라켄|Interlaken|융프라우|Jungfrau|피렌체|Florence|베네치아|Venice|취리히|Zurich|암스테르담|Amsterdam|비엔나|Vienna|부다페스트|Budapest|바르샤바|Warsaw|헬싱키|Helsinki|스톡홀름|Stockholm|코펜하겐|Copenhagen|Oslo|오슬로|Reykjavik|베르겐|Bergen|플롬|Flam|Flåm|미주리나|Misurina|돌로미테|Dolomit|몬세라트|Montserrat|콜로세움|Colosseum|에펠|Eiffel/i
 
 export const AMERICAS_PRODUCT_DEST_RE =
-  /미국|USA|U\.S\.|(?<![가-힣])미주(?![가-힣])|미서부|미동부|미남부|미국서부|미국동부|Canada|캐나다|멕시코|Mexico|브라질|Brazil|아르헨|Argentina|칠레|Chile|페루|Peru|Colombia|콜롬비아|남미|북미|중남미|South\s*America|North\s*America|Latin\s*America|알래스카|Alaska|앵커리지|Anchorage|주노|Juneau|스캐그웨이|Skagway|케치칸|Ketchikan|글래시어\s*베이|Glacier\s*Bay|하와이|Hawaii|괌|Guam|사이판|Saipan|Los\s*Angeles|\bLA\b|뉴욕|New\s*York|샌프란|San\s*Francisco|라스베가스|Las\s*Vegas|시애틀|Seattle|밴쿠버|Vancouver|토론토|Toronto|리마|Lima|마나우스|Manaus|리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|Mexico\s*City|과달라하라|Guadalajara|Americas/i
+  /미국|USA|U\.S\.|(?<![가-힣])미주(?![가-힣])|미서부|미동부|미남부|미국서부|미국동부|Canada|캐나다|멕시코|Mexico|브라질|Brazil|아르헨|Argentina|칠레|Chile|페루|Peru|Colombia|콜롬비아|남미|북미|중남미|South\s*America|North\s*America|Latin\s*America|알래스카|Alaska|앵커리지|Anchorage|주노|Juneau|스캐그웨이|Skagway|케치칸|Ketchikan|글래시어\s*베이|Glacier\s*Bay|하와이|Hawaii|괌|Guam|사이판|Saipan|Los\s*Angeles|\bLA\b(?!\s*VALL)|뉴욕|New\s*York|샌프란|San\s*Francisco|라스베가스|Las\s*Vegas|시애틀|Seattle|밴쿠버|Vancouver|토론토|Toronto|리마|Lima|마나우스|Manaus|리우\s*데|리오\s*데|Rio\s*de\s*Janeiro|Mexico\s*City|과달라하라|Guadalajara|Americas/i
 // REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우/Rio 제거 — manifest
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 알래스카·미주 dest — Space Needle 오탐 금지 — manifest
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 미주리나≠미주 Americas — manifest
@@ -109,7 +110,7 @@ const ASIA_PACIFIC_HALLUCINATION_ON_NON_ASIA_DEST_RE =
   /\b(Phuket|Pattaya|Bangkok|Bali|Hoi\s*An|Da\s*Nang|Chiang\s*Mai|Singapore|Maldives|Nha\s*Trang)\b/i
 
 const AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE =
-  /\b(Christ\s*the\s*Redeemer|Griffith\s*Observatory|Golden\s*Gate|Statue\s*of\s*Liberty|Times\s*Square|Grand\s*Canyon|Niagara\s*Falls|Glacier\s*Bay|Alaska|Space\s*Needle|Pike\s*Place)\b/i
+  /\b(Christ\s*the\s*Redeemer|Griffith\s*Observatory|Los\s*Angeles|Hollywood\s*Sign|Golden\s*Gate|Statue\s*of\s*Liberty|Times\s*Square|Grand\s*Canyon|Niagara\s*Falls|Glacier\s*Bay|Alaska|Space\s*Needle|Pike\s*Place)\b/i
 
 // REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: Kuala Lumpur 귀국 경유 금지 — manifest
 const KL_MALAYSIA_DEST_RE = /말레이|Malaysia|쿠알라|Kuala\s*Lumpur|\bKL\b|페트로나스|Petronas|코타키나발루|Kota\s*Kinabalu/i

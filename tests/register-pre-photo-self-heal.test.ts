@@ -7,6 +7,7 @@
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 같은 closer 검증 실패·힐 재합성 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드 검증 실패·힐 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 공란·범용 모스크 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: LA VALLEE ≠ Los Angeles · 귀국 KL — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -529,6 +530,7 @@ describe('register-pre-photo-self-heal', () => {
     )
     const d3 = out.rows.find((r) => r.day === 3)!
     assert.doesNotMatch(String(d3.imageKeyword ?? ''), /Kuala Lumpur|Petronas/i)
+    assert.doesNotMatch(String(d3.routeText ?? ''), /쿠알라룸푸르|Kuala Lumpur/i)
     const live = verifyRegisterPrePhoto({
       lane: 'package',
       productDestination: '장가계',
@@ -536,6 +538,56 @@ describe('register-pre-photo-self-heal', () => {
       rows: out.rows,
     })
     assert.equal(live.ok, true)
+  })
+
+  it('영국·프랑스 일정에 LA VALLEE·Griffith·귀국 KL은 검증 실패이고 힐이 그날 동선으로 되돌린다', () => {
+    const rows = [
+      {
+        day: 1,
+        description: '인천에서 출발해 파리에서 도착합니다. 파리에서 첫날 일정을 이어갑니다.',
+        routeText: '파리',
+        imageKeyword: 'Paris',
+      },
+      {
+        day: 2,
+        description: '파리와 라 발레 빌리지를 둘러봅니다. 베르사유 궁전을 이어서 방문합니다.',
+        routeText: '파리 - 라 발레 빌리지 LA VALLE VILLAGE - 베르사유 궁전',
+        imageKeyword: 'Paris',
+        imageKeyword2: 'Los Angeles Griffith Observatory',
+      },
+      {
+        day: 3,
+        description: '체크아웃 후 인천으로 귀국합니다. 별도의 관광보다 이동 중심으로 여행을 마무리합니다.',
+        routeText: '쿠알라룸푸르',
+        imageKeyword: '',
+      },
+    ]
+    const before = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '영국 X 프랑스 2개국 9일 #몽생미셸 #코츠월드',
+      productDestination: '몽생미셸',
+      rows,
+    })
+    assert.equal(before.ok, false)
+    assert.ok(before.issues.includes('day2_keyword2_wrong_country'))
+    assert.ok(before.issues.includes('day3_route_wrong_country'))
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'verygoodtour',
+      productDestination: '몽생미셸',
+      productTitle: '영국 X 프랑스 2개국 9일 #몽생미셸 #코츠월드',
+    })
+    const d2 = out.rows.find((r) => r.day === 2)!
+    assert.doesNotMatch(String(d2.imageKeyword ?? ''), /Los Angeles|Griffith/i)
+    assert.doesNotMatch(String(d2.imageKeyword2 ?? ''), /Los Angeles|Griffith/i)
+    const d3 = out.rows.find((r) => r.day === 3)!
+    assert.doesNotMatch(String(d3.routeText ?? ''), /쿠알라룸푸르|Kuala Lumpur/i)
+    const live = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '영국 X 프랑스 2개국 9일 #몽생미셸 #코츠월드',
+      productDestination: '몽생미셸',
+      rows: out.rows,
+    })
+    assert.equal(live.issues.some((i) => i.includes('wrong_country')), false)
   })
 
   it('FIT 식사 키워드는 비운다', () => {
