@@ -1,6 +1,6 @@
 'use client'
 
-import { readAdminResponseJson } from '@/lib/admin/read-admin-response-json'
+import { readAdminResponseJson, adminClientFetchErrorMessage } from '@/lib/admin/read-admin-response-json'
 
 import SafeImage from '@/app/components/SafeImage'
 import Link from 'next/link'
@@ -32,13 +32,9 @@ import {
 import { suggestAdminPendingSecondaryClassification } from '@/lib/admin-pending-secondary-classification-suggest'
 import { composeScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
-import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
-import {
-  scheduleRowsForPrePhotoVerify,
-  verifyRegisterPrePhoto,
-} from '@/lib/register-pre-photo-verify'
+import { verifyRegisterPrePhotoForStoredProduct } from '@/lib/register-pre-photo-verify'
 
 const GEMINI_SLOT_LABEL_KR: Record<string, string> = {
   no_person_wide: '무인물 · 넓은 구도',
@@ -771,22 +767,15 @@ export default function AdminPendingDetailPanel({
 
   const keywordVerify = useMemo(
     () =>
-      verifyRegisterPrePhoto({
-        lane: resolveRegisterAdminLane({
-          adminTravelScope: detail?.travelScope,
-          listingKind: detail?.listingKind,
-          productType: detail?.productType,
-          sportsThemeTag: detail?.sportsThemeTag,
-        }),
+      verifyRegisterPrePhotoForStoredProduct({
         listingKind: detail?.listingKind,
         productType: detail?.productType,
         sportsThemeTag: detail?.sportsThemeTag,
-        productDestination: detail?.destination,
-        productTitle: detail?.title,
-        rows: scheduleRowsForPrePhotoVerify(detail?.schedule),
+        schedule: detail?.schedule,
+        destination: detail?.destination,
+        title: detail?.title,
       }),
     [
-      detail?.travelScope,
       detail?.listingKind,
       detail?.productType,
       detail?.sportsThemeTag,
@@ -1443,6 +1432,7 @@ export default function AdminPendingDetailPanel({
   ) => {
     if (!detail) return
     if (blockPhotoUntilKeywordVerify()) return
+    // REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 일정 사진 POST는 큐와 같은 title·dest 검증 — manifest
     const sk = scheduleImageSavingKey(day, slot)
     setDayImageSaving((prev) => ({ ...prev, [sk]: true }))
     setDayImageMessage(null)
@@ -1480,9 +1470,12 @@ export default function AdminPendingDetailPanel({
         manualSelected?: boolean
         dayEntry?: Record<string, unknown> | null
         imageSlot?: number
+        missing?: { issues?: string[] }
       }
       if (!res.ok) {
-        setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${data.error ?? `HTTP ${res.status}`}`)
+        const issues = Array.isArray(data.missing?.issues) ? data.missing.issues.slice(0, 4) : []
+        const issueHint = issues.length > 0 ? ` (${issues.join(', ')})` : ''
+        setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${data.error ?? `HTTP ${res.status}`}${issueHint}`)
         return
       }
       if (slot === 2) {
@@ -1518,6 +1511,8 @@ export default function AdminPendingDetailPanel({
         const refreshed = await fetchAdminProductDetail(detail.id)
         if (refreshed) setDetail(refreshed)
       }
+    } catch (e) {
+      setDayImageMessage(`DAY${day} ${slot}순위 저장 실패: ${adminClientFetchErrorMessage(e)}`)
     } finally {
       setDayImageSaving((prev) => ({ ...prev, [sk]: false }))
     }
@@ -2323,7 +2318,7 @@ export default function AdminPendingDetailPanel({
                                 src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
                                 alt=""
                                 fill
-                                className="object-cover"
+                                className="pointer-events-none object-cover"
                                 sizes="120px"
                                 loading="lazy"
                               />
@@ -2407,7 +2402,7 @@ export default function AdminPendingDetailPanel({
                                 src={adminPreviewImgSrc(photo.thumbnail) ?? photo.thumbnail}
                                 alt=""
                                 fill
-                                className="object-cover"
+                                className="pointer-events-none object-cover"
                                 sizes="120px"
                                 loading="lazy"
                               />

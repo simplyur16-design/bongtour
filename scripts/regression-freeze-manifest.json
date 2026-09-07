@@ -3224,6 +3224,50 @@
       ]
     },
     {
+      "id": "pending-pexels-pick-verify-parity",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 Pexels 후보 클릭 저장은 큐와 같은 title·destination 검증 — title 생략 시 title_placeholder로 막히지 않음",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-verify-parity]",
+            "verifyRegisterPrePhotoForStoredProduct",
+            "productTitle: p.title"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/schedule-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-verify-parity]",
+            "verifyRegisterPrePhotoForStoredProduct",
+            "title: product.title",
+            "destination: product.destination"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-pending-queue-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-verify-parity]",
+            "verifyRegisterPrePhotoForStoredProduct"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-pexels-pick-verify-parity]",
+            "verifyRegisterPrePhotoForStoredProduct"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/pending-pexels-pick-verify-parity.test.ts"
+      ]
+    },
+    {
       "id": "home-main-nav-chips-on-narrow",
       "tier": [
         "prebuild",

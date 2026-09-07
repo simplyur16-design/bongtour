@@ -4,11 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import { isRegisterPrePhotoKeywordPhotoGateStatus } from '@/lib/register-pre-photo-pending-queue'
-import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
-import {
-  scheduleRowsForPrePhotoVerify,
-  verifyRegisterPrePhoto,
-} from '@/lib/register-pre-photo-verify'
+import { verifyRegisterPrePhotoForStoredProduct } from '@/lib/register-pre-photo-verify'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { adminProductJsonWithPromotionRef } from '@/lib/admin-product-reference-prices'
@@ -542,18 +538,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             { status: 400 },
           )
         }
-        const keywordVerify = verifyRegisterPrePhoto({
-          lane: resolveRegisterAdminLane({
-            listingKind: photoRow?.listingKind,
-            productType: photoRow?.productType,
-            sportsThemeTag: photoRow?.sportsThemeTag,
-          }),
+        const keywordVerify = verifyRegisterPrePhotoForStoredProduct({
           listingKind: photoRow?.listingKind,
           productType: photoRow?.productType,
           sportsThemeTag: photoRow?.sportsThemeTag,
-          productDestination: photoRow?.destination,
-          productTitle: photoRow?.title,
-          rows: scheduleRowsForPrePhotoVerify(nextSchedule),
+          schedule: nextSchedule,
+          destination: photoRow?.destination,
+          title: photoRow?.title,
         })
         if (!keywordVerify.ok) {
           return NextResponse.json(
@@ -643,18 +634,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         })
         const pendingStatus = pendingPhotoRow?.registrationStatus
         if (isRegisterPrePhotoKeywordPhotoGateStatus(pendingStatus)) {
-          const keywordVerify = verifyRegisterPrePhoto({
-            lane: resolveRegisterAdminLane({
-              listingKind: pendingPhotoRow?.listingKind,
-              productType: pendingPhotoRow?.productType,
-              sportsThemeTag: pendingPhotoRow?.sportsThemeTag,
-            }),
+          const keywordVerify = verifyRegisterPrePhotoForStoredProduct({
             listingKind: pendingPhotoRow?.listingKind,
             productType: pendingPhotoRow?.productType,
             sportsThemeTag: pendingPhotoRow?.sportsThemeTag,
-            productDestination: pendingPhotoRow?.destination,
-            productTitle: pendingPhotoRow?.title,
-            rows: scheduleRowsForPrePhotoVerify(pendingPhotoRow?.schedule),
+            schedule: pendingPhotoRow?.schedule,
+            destination: pendingPhotoRow?.destination,
+            title: pendingPhotoRow?.title,
           })
           if (!keywordVerify.ok) {
             return NextResponse.json(

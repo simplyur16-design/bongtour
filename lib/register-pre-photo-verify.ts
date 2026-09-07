@@ -14,10 +14,12 @@
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 반복 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 중간일 키워드는 당일 route 명소·도시만 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 출발일 관광동선이면 키워드 필수 — manifest
+ * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐·패널·일정사진 POST는 title·dest 포함 검증 — manifest
  */
 import {
   REGISTER_ADMIN_LANE_LABELS,
   canonicalSportsThemeTags,
+  resolveRegisterAdminLane,
   type RegisterAdminLane,
 } from '@/lib/register-admin-lane'
 import {
@@ -550,6 +552,38 @@ export function scheduleRowsForPrePhotoVerify(schedule: string | null | undefine
   } catch {
     return []
   }
+}
+
+export type RegisterPrePhotoStoredProductFields = {
+  listingKind?: string | null
+  productType?: string | null
+  sportsThemeTag?: readonly string[] | null
+  schedule?: string | null
+  destination?: string | null
+  title?: string | null
+}
+
+/**
+ * 등록대기 큐·패널·일정 사진 POST·대표 이미지 PATCH 공통.
+ * title을 빼면 빈 제목이 title_placeholder가 되어 Pexels 클릭 저장이 전부 막힌다.
+ * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: title·dest 포함 — manifest
+ */
+export function verifyRegisterPrePhotoForStoredProduct(
+  p: RegisterPrePhotoStoredProductFields,
+): RegisterPrePhotoVerifyResult {
+  return verifyRegisterPrePhoto({
+    lane: resolveRegisterAdminLane({
+      listingKind: p.listingKind,
+      productType: p.productType,
+      sportsThemeTag: p.sportsThemeTag,
+    }),
+    listingKind: p.listingKind,
+    productType: p.productType,
+    sportsThemeTag: p.sportsThemeTag,
+    productDestination: p.destination,
+    productTitle: p.title,
+    rows: scheduleRowsForPrePhotoVerify(p.schedule),
+  })
 }
 
 export function verifyRegisterPrePhoto(args: {

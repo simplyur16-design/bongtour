@@ -12,12 +12,8 @@ import {
   persistScheduleImageKeyword,
   ScheduleImageKeywordPersistError,
 } from '@/lib/schedule-image-keyword-persist'
-import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import { isRegisterPrePhotoKeywordPhotoGateStatus } from '@/lib/register-pre-photo-pending-queue'
-import {
-  scheduleRowsForPrePhotoVerify,
-  verifyRegisterPrePhoto,
-} from '@/lib/register-pre-photo-verify'
+import { verifyRegisterPrePhotoForStoredProduct } from '@/lib/register-pre-photo-verify'
 import {
   isPollutedScheduleImageSeoTitle,
   resolveScheduleImageSeoTitleKr,
@@ -73,6 +69,7 @@ type ScheduleEntry = {
 /**
  * POST /api/admin/products/[id]/schedule-images
  * 일정 day 이미지 수동 선택 저장(자동 후보보다 우선).
+ * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: Pexels 클릭 저장은 큐와 같은 title·dest 검증 — manifest
  */
 export async function POST(request: Request, { params }: RouteParams) {
   const admin = await requireAdmin()
@@ -192,16 +189,14 @@ export async function POST(request: Request, { params }: RouteParams) {
     const pendingStatus = product.registrationStatus
     if (imageUrl && isRegisterPrePhotoKeywordPhotoGateStatus(pendingStatus)) {
       // REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: pending 일정 사진 전 키워드 검증 — manifest
-      const keywordVerify = verifyRegisterPrePhoto({
-        lane: resolveRegisterAdminLane({
-          listingKind: product.listingKind,
-          productType: product.productType,
-          sportsThemeTag: product.sportsThemeTag,
-        }),
+      // REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: title·dest 없이 검증하면 title_placeholder — manifest
+      const keywordVerify = verifyRegisterPrePhotoForStoredProduct({
         listingKind: product.listingKind,
         productType: product.productType,
         sportsThemeTag: product.sportsThemeTag,
-        rows: scheduleRowsForPrePhotoVerify(product.schedule),
+        schedule: product.schedule,
+        destination: product.destination,
+        title: product.title,
       })
       if (!keywordVerify.ok) {
         return NextResponse.json(

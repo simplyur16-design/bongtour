@@ -2,16 +2,13 @@
  * 등록대기 큐 조회 — DB pending이 아니라 live verify.ok.
  * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: 대시보드=등록대기 화면 — manifest
  * REGRESSION-FREEZE[admin-pending-list-timeout]: KPI count도 prisma retry — manifest
+ * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐 검증은 title·dest 포함 공통 헬퍼 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { withPrismaRetry } from '@/lib/prisma-retry'
 import type { Prisma } from '@prisma/client'
-import { resolveRegisterAdminLane } from '@/lib/register-admin-lane'
 import { isRegisterPrePhotoPendingQueueReady } from '@/lib/register-pre-photo-pending-queue'
-import {
-  scheduleRowsForPrePhotoVerify,
-  verifyRegisterPrePhoto,
-} from '@/lib/register-pre-photo-verify'
+import { verifyRegisterPrePhotoForStoredProduct } from '@/lib/register-pre-photo-verify'
 
 export const REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE: Prisma.ProductWhereInput = {
   OR: [
@@ -33,20 +30,8 @@ export type RegisterPrePhotoPendingQueueProductRow = {
 export function productRowIsLiveRegisterPendingQueue(
   p: RegisterPrePhotoPendingQueueProductRow,
 ): boolean {
-  const lane = resolveRegisterAdminLane({
-    listingKind: p.listingKind,
-    productType: p.productType,
-    sportsThemeTag: p.sportsThemeTag,
-  })
-  const live = verifyRegisterPrePhoto({
-    lane,
-    listingKind: p.listingKind,
-    productType: p.productType,
-    sportsThemeTag: p.sportsThemeTag,
-    productDestination: p.destination,
-    productTitle: p.title,
-    rows: scheduleRowsForPrePhotoVerify(p.schedule),
-  })
+  // REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐도 title·dest 포함 공통 검증 — manifest
+  const live = verifyRegisterPrePhotoForStoredProduct(p)
   return isRegisterPrePhotoPendingQueueReady(live)
 }
 
