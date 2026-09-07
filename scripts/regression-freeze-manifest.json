@@ -1838,6 +1838,7 @@
             "REGRESSION-FREEZE[bongsim-complimentary-esim-bulk]",
             "adminGrantComplimentaryEsimBulk",
             "parseComplimentaryEsimBulkPhones",
+            "ensureEsimQrNotifyDrainAfterEnqueue",
             "kickEsimQrNotifyDrain",
             "skip_outbox_drain: true",
             "SMS를 HTTP 응답 전에 await 하면"
