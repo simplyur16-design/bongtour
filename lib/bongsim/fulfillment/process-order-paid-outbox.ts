@@ -116,6 +116,24 @@ export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
 }
 
 /**
+ * 결제·무상 발급 직후 enqueue 뒤 호출 — owner면 kick, 아니면 이 프로세스에서 drain.
+ * worker가 죽어 OrderPaid가 하루 쌓여 SMS가 안 나가는 재발을 막는다.
+ * REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]: off-owner inline drain after enqueue — manifest
+ */
+export function ensureOrderPaidOutboxDrainAfterEnqueue(maxRounds = 16): void {
+  if (shouldDrainOrderPaidInThisProcess()) {
+    kickOrderPaidOutboxDrain(maxRounds);
+    return;
+  }
+  console.warn("[bongsim:outbox:ensure-drain] off_owner_inline", { maxRounds });
+  orderPaidDrainTail = orderPaidDrainTail
+    .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
+    .catch((e) => {
+      console.warn("[bongsim:outbox:ensure-drain]", e);
+    });
+}
+
+/**
  * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: claim → release → USIMSA HTTP → persist
  */
 export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutboxResult> {

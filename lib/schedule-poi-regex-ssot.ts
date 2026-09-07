@@ -943,7 +943,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /사그레스성|Sagres\s*Fortress/i, en: "Sagres Fortress Portugal" },
   { re: /사그레스|Sagres/i, en: "Sagres Portugal" },
   { re: /리스본|Lisbon/i, en: "Jeronimos Monastery Lisbon" },
-  { re: /포르투(?!갈)|Porto(?!\s*marin)/i, en: "Clerigos Tower Porto" },
+  // REGRESSION-FREEZE[schedule-poi-porto-europa-osaka]: 일본 포르투유럽 ≠ 포르투갈 Clerigos — manifest
+  { re: /포르투\s*유럽|Porto\s*Europ[ae]/i, en: "Porto Europa Osaka" },
+  // bare 포르투 — 포르투갈/유럽 테마파크(포르투유럽) 제외
+  { re: /포르투(?!갈)(?!\s*유럽)|Porto(?!\s*marin)(?!\s*Europ)/i, en: "Clerigos Tower Porto" },
   { re: /시청사와\s*국회의사당/u, en: "Vienna Rathaus Austrian Parliament" },
   {
     re: /(?:워싱턴|Washington\s*D\.?\s*C\.?|미국\s*동부|미\s*동부).{0,24}국회의사당|국회의사당.{0,24}(?:워싱턴|Washington)|Capitol\s*Building|US\s*Capitol/i,

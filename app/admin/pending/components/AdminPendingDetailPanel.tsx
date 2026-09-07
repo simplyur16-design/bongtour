@@ -800,8 +800,12 @@ export default function AdminPendingDetailPanel({
 
   const blockPhotoUntilKeywordVerify = (): boolean => {
     if (keywordsVerified) return false
-    setDayImageMessage('이미지 키워드 검증이 끝난 뒤 사진을 고르세요.')
-    setPrimaryImageMessage('이미지 키워드 검증이 끝난 뒤 사진을 고르세요.')
+    const issueHint =
+      keywordVerify.issues.length > 0
+        ? ` 원인: ${keywordVerify.issues.slice(0, 4).join(', ')} — 대표관광지 키워드를 저장한 뒤 다시 시도하세요.`
+        : ' 대표관광지 키워드를 저장한 뒤 다시 시도하세요.'
+    setDayImageMessage(`이미지 키워드 검증이 끝난 뒤 사진을 고르세요.${issueHint}`)
+    setPrimaryImageMessage(`이미지 키워드 검증이 끝난 뒤 사진을 고르세요.${issueHint}`)
     return true
   }
 

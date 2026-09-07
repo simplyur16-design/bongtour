@@ -105,7 +105,41 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
     });
 }
 
+async function unlockStaleFulfillOutboxes(): Promise<{ unlocked: number; agedPending: number }> {
+  const { getBongsimFulfillOutboxPool } = await import("@/lib/bongsim/db/pool");
+  const pool = getBongsimFulfillOutboxPool();
+  if (!pool) return { unlocked: 0, agedPending: 0 };
+  // REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]: stale lease unlock before drain — manifest
+  const unlocked = await pool.query(
+    `UPDATE bongsim_outbox
+        SET available_at = now(), locked_at = NULL
+      WHERE topic IN ('OrderPaid', 'EsimQrNotify')
+        AND processed_at IS NULL
+        AND (
+          (locked_at IS NOT NULL AND locked_at < now() - interval '10 minutes')
+          OR available_at > now() + interval '30 minutes'
+        )
+      RETURNING id`,
+  );
+  const aged = await pool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n
+       FROM bongsim_outbox
+      WHERE topic IN ('OrderPaid', 'EsimQrNotify')
+        AND processed_at IS NULL
+        AND available_at < now() - interval '5 minutes'`,
+  );
+  const agedPending = aged.rows[0]?.n ?? 0;
+  if (agedPending > 0) {
+    console.error("[bongsim-order-paid-outbox-cron] aged_pending_outbox", {
+      agedPending,
+      unlocked: unlocked.rowCount ?? 0,
+    });
+  }
+  return { unlocked: unlocked.rowCount ?? 0, agedPending };
+}
+
 async function drainFulfillOutboxes(): Promise<{ processed: number; deferred: number }> {
+  await unlockStaleFulfillOutboxes();
   await drainOrderPaidOutboxBestEffort(16);
   // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: cron also drains EsimQrNotify — manifest
   return drainEsimQrNotifyOutboxBestEffort(24);

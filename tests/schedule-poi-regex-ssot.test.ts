@@ -84,6 +84,15 @@ describe('schedule-poi-regex-ssot', () => {
     assert.match(String(firstMatchingScheduleSpotEn('피사') ?? ''), /Leaning Tower/i)
   })
 
+  it('maps Japanese Porto Europa theme park, not Portugal Clerigos', () => {
+    // REGRESSION-FREEZE[schedule-poi-porto-europa-osaka]: 포르투 유럽 = Osaka — manifest
+    assert.match(String(firstMatchingScheduleSpotEn('포르투 유럽') ?? ''), /Porto Europa Osaka/i)
+    assert.match(String(firstMatchingScheduleSpotEn('Porto Europa') ?? ''), /Porto Europa Osaka/i)
+    assert.match(String(mapKoreanPoiSegment('포르투 유럽') ?? ''), /Porto Europa Osaka/i)
+    assert.doesNotMatch(String(firstMatchingScheduleSpotEn('포르투 유럽') ?? ''), /Clerigos/i)
+    assert.match(String(firstMatchingScheduleSpotEn('포르투') ?? ''), /Clerigos Tower Porto/i)
+  })
+
   it('maps Zhangjiajie sub-landmarks before generic forest park', () => {
     assert.match(String(firstMatchingScheduleSpotEn('천자산') ?? ''), /Tianzi Mountain/i)
     assert.match(String(firstMatchingScheduleSpotEn('천문산') ?? ''), /Tianmen Mountain/i)

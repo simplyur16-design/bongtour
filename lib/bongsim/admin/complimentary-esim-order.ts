@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import type { BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 import { prepareCatalogCheckoutLines } from "@/lib/bongsim/data/checkout-create-order";
-import { kickOrderPaidOutboxDrain } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { ensureOrderPaidOutboxDrainAfterEnqueue } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { classifyBongsimPgError, getPgPool, healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
 
@@ -258,7 +258,8 @@ export async function adminGrantComplimentaryEsimBulk(input: {
   if (succeeded > 0) {
     try {
       // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 일괄 발급 HTTP에서 drain await 금지 — manifest
-      kickOrderPaidOutboxDrain(Math.min(100, succeeded + 8));
+      // REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]: off-owner still drains — manifest
+      ensureOrderPaidOutboxDrainAfterEnqueue(Math.min(100, succeeded + 8));
       const { kickEsimQrNotifyDrain } = await import(
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
       );
@@ -540,7 +541,8 @@ export async function adminGrantComplimentaryEsim(input: {
     setTimeout(() => {
       try {
         // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 무상발급 HTTP에서 USIMSA await 금지 — manifest
-        kickOrderPaidOutboxDrain(16);
+        // REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]: off-owner still drains — manifest
+        ensureOrderPaidOutboxDrainAfterEnqueue(16);
         void import("@/lib/bongsim/fulfillment/esim-qr-notify-outbox")
           .then(({ kickEsimQrNotifyDrain }) => {
             kickEsimQrNotifyDrain(40);
