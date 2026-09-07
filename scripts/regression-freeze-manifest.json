@@ -1398,7 +1398,10 @@
           "file": "lib/bongsim/data/process-welcomepay-payment-outcome.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
-            "kickOrderPaidOutboxDrain"
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
+          ],
+          "mustNotInclude": [
+            "await drainOrderPaidOutboxBestEffort"
           ]
         },
         {
@@ -1419,7 +1422,10 @@
           "file": "lib/bongsim/admin/complimentary-esim-order.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
-            "kickOrderPaidOutboxDrain"
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
+          ],
+          "mustNotInclude": [
+            "await drainOrderPaidOutboxBestEffort"
           ]
         },
         {
