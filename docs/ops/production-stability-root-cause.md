@@ -13,27 +13,22 @@
 ```
 [브라우저] → Railway "bongtour" (web)
               BONGTOUR_INSTRUMENTATION_ROLE=web
-              BONGSIM_FULFILL_OWNER=worker   ← 필수(worker 있을 때)
-              ├─ Next.js HTTP만
-              └─ OrderPaid outbox INSERT + kick no-op (발급 HTTP 안 함)
+              ├─ Next.js HTTP
+              ├─ eSIM SMS·발급 drain (OrderPaid + EsimQrNotify) — 워커와 무관
+              └─ OrderPaid outbox INSERT + kick drain on web
 
 Railway "bongtour-worker" (도메인 없음, replica 1)
               BONGTOUR_INSTRUMENTATION_ROLE=worker
-              ├─ OrderPaid + EsimQrNotify 드레인 (60s interval + 1분 cron)
-              ├─ USIMSA 동시 슬롯 BONGSIM_USIMSA_MAX_INFLIGHT=2
-              ├─ node-cron 배치(달력·sweep·…)
+              ├─ 가격 sweep·달력 배치만
+              ├─ 상품 목록 ingest 기본 OFF (ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST=1 로만 재개)
               └─ Prisma/pg 풀 (별도 limit)
-
-(선택) Railway "bongtour-fulfill" — 발급만
-              BONGTOUR_INSTRUMENTATION_ROLE=fulfill
-              web: BONGSIM_FULFILL_OWNER=fulfill
-              worker: 배치만 (발급 owner≠worker)
+              ※ BONGSIM_FULFILL_OWNER=worker 를 써도 web SMS drain을 끄지 않는다
 ```
 
 동일 repo·동일 Next start 이미지(`railway.json` `exec node …/next start`). **코드 배포 1회** 후 Railway에서 worker(또는 fulfill) 서비스만 추가하면 됨.
 
-**worker 미구축( web 단독 ):** `BONGSIM_FULFILL_OWNER` unset → web이 발급 drain (호환).  
-**worker 구축 후:** web에 `BONGSIM_FULFILL_OWNER=worker` 없으면 web이 계속 발급해 풀 경합이 남는다.
+**worker 미구축( web 단독 ):** web이 발급·SMS drain (기본).  
+**worker 구축 후:** 배치는 worker, **문자는 계속 web.** `BONGSIM_FULFILL_OWNER=worker` 로 web drain을 끄지 말 것.
 
 **worker 미구축 시 배치:** `instrumentation.ts` 가 6공급사 **일 1회 sweep** 을 web-fallback 으로 등록 (`DISABLE_WEB_SUPPLIER_SWEEP_CRON=1` 로 끔). 3h calendar batch는 기본 OFF.
 
@@ -54,8 +49,8 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 | 역할 | 등록 |
 |------|------|
-| **web** | HTTP. 발급 cron은 `BONGSIM_FULFILL_OWNER=web`(단독)일 때만 |
-| **worker** | 배치 cron + (owner=worker 시) OrderPaid/EsimQrNotify 60s·1분 |
+| **web** | HTTP + eSIM SMS·발급 drain |
+| **worker** | 가격·달력 배치만 (SMS 없음) |
 | **fulfill** | 발급 드레인만 (배치 없음) |
 | **all** | 개발용 — production에서는 경고 로그 |
 
@@ -94,16 +89,15 @@ Railway "bongtour-worker" (도메인 없음, replica 1)
 
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=web
-BONGSIM_FULFILL_OWNER=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=5
 BONGSIM_PG_POOL_MAX=10
 ```
 
-(미설정 시 production은 자동 `web`. **worker가 있으면 `BONGSIM_FULFILL_OWNER=worker` 필수.**  
+(미설정 시 production은 자동 `web`. **SMS는 web.** `BONGSIM_FULFILL_OWNER=worker` 로 끄지 말 것.  
 동시 접속 ~1000명(조회 위주) 목표: web replica 3 × (pg 10 + Prisma 5) + 국가/상세 120s 캐시.
 한 프로세스 연결은 그대로 15. DB 천장 200을 사람 1000으로 바꾸지 않음.)
 
-### 2) worker 서비스 (배치 + 발급 — 권장 최소 구성)
+### 2) worker 서비스 (가격 배치 — 상품 목록 ingest 기본 OFF)
 
 1. Railway → **New Service** → 같은 GitHub repo 연결
 2. 서비스 이름: `bongtour-worker` (이름에 worker 포함 시 역할 자동 추론)

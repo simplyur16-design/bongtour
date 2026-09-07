@@ -98,9 +98,10 @@ export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<voi
 }
 
 /**
- * fulfill owner 에서만 백그라운드 드레인 — web(owner≠web)에서는 no-op (outbox만 남김).
+ * fulfill owner 에서만 백그라운드 드레인 — worker는 no-op (문자는 web).
  * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: kickOrderPaidOutboxDrain — manifest
  * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: kick no-op off owner — manifest
+ * REGRESSION-FREEZE[bongsim-sms-drain-on-web]: web kick drains — manifest
  */
 let orderPaidDrainTail: Promise<unknown> = Promise.resolve();
 

@@ -260,11 +260,11 @@ export async function adminGrantComplimentaryEsimBulk(input: {
       // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 일괄 발급 HTTP에서 drain await 금지 — manifest
       // REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]: off-owner still drains — manifest
       ensureOrderPaidOutboxDrainAfterEnqueue(Math.min(100, succeeded + 8));
-      const { kickEsimQrNotifyDrain } = await import(
+      const { ensureEsimQrNotifyDrainAfterEnqueue } = await import(
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
       );
       // SMS를 HTTP 응답 전에 await 하면 프록시 타임아웃 → 빈 500 (문자는 이미 감)
-      kickEsimQrNotifyDrain(Math.min(80, succeeded * 2 + 8));
+      ensureEsimQrNotifyDrainAfterEnqueue(Math.min(80, succeeded * 2 + 8));
     } catch (e) {
       console.warn("[adminGrantComplimentaryEsimBulk] outbox/notify drain", e);
     }
@@ -544,8 +544,8 @@ export async function adminGrantComplimentaryEsim(input: {
         // REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]: off-owner still drains — manifest
         ensureOrderPaidOutboxDrainAfterEnqueue(16);
         void import("@/lib/bongsim/fulfillment/esim-qr-notify-outbox")
-          .then(({ kickEsimQrNotifyDrain }) => {
-            kickEsimQrNotifyDrain(40);
+          .then(({ ensureEsimQrNotifyDrainAfterEnqueue }) => {
+            ensureEsimQrNotifyDrainAfterEnqueue(40);
           })
           .catch((e) => {
             console.warn("[adminGrantComplimentaryEsim] notify kick", e);

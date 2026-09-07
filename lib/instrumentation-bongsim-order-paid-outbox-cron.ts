@@ -1,7 +1,8 @@
 /**
- * OrderPaid + EsimQrNotify 발급 드레인 — fulfill owner 프로세스에서만 등록.
- * 15초 interval + 1분 cron 백업. web은 BONGSIM_FULFILL_OWNER=worker|fulfill 시 등록 안 함.
+ * OrderPaid + EsimQrNotify 발급 드레인 — web에서 등록 (워커 배치와 분리).
+ * 15초 interval + 1분 cron 백업.
  * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill drain interval — manifest
+ * REGRESSION-FREEZE[bongsim-sms-drain-on-web]: SMS cron on web — manifest
  * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: cron backup — manifest
  * REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: saturated backoff — manifest
  */
@@ -168,7 +169,6 @@ async function tickBongsimOrderPaidOutboxCron(
       const {
         classifyBongsimPgError,
         getBongsimPoolStats,
-        healBongsimPgPoolForCatalog,
         resolveBongsimCatalogPoolMax,
         shouldBackoffInsteadOfHealOnConnectTimeout,
         shouldSkipCatalogHealBecauseSaturated,
@@ -180,28 +180,17 @@ async function tickBongsimOrderPaidOutboxCron(
       const stats = getBongsimPoolStats();
       const saturated =
         shouldSkipCatalogHealBecauseSaturated(e) ||
-        shouldBackoffInsteadOfHealOnConnectTimeout(stats, resolveBongsimCatalogPoolMax()) ||
-        true;
-      if (shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated)) {
-        // 슬롯 포화 시 heal·즉시 재드레인은 옛 풀 end()+새 연결을 겹쳐 Supabase를 더 짓누른다.
-        const skipUntil = Date.now() + SATURATED_SKIP_MS;
+        shouldBackoffInsteadOfHealOnConnectTimeout(stats, resolveBongsimCatalogPoolMax());
+      if (saturated) {
         console.warn("[bongsim-order-paid-outbox-cron] saturated backoff (no heal)", {
           stats,
-          skipUntil: new Date(skipUntil).toISOString(),
           skipMs: SATURATED_SKIP_MS,
         });
-        console.warn("[bongsim-order-paid-outbox-cron] saturated skip drain (no immediate retry)");
-        return skipUntil;
       }
-
-      await healBongsimPgPoolForCatalog("order-paid-outbox-cron-timeout");
-      const notify = await drainFulfillOutboxes();
-      console.log("[bongsim-order-paid-outbox-cron] tick done", {
-        trigger,
-        ms: Date.now() - started,
-        esim_qr_notify: notify,
-        recovered: "heal",
-      });
+      // REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: no same-tick retry — manifest
+      if (shouldSkipImmediateDrainRetryOnSaturatedTimeout(true)) {
+        console.warn("[bongsim-order-paid-outbox-cron] saturated skip drain (no immediate retry)");
+      }
       return null;
     } catch (e2) {
       console.error("[bongsim-order-paid-outbox-cron] tick error after recover", {

@@ -1408,14 +1408,14 @@
           "file": "lib/simplyur/payments/process-portone-payment-outcome.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
-            "kickOrderPaidOutboxDrain"
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
           ]
         },
         {
           "file": "lib/simplyur/payments/process-eximbay-payment-outcome.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]",
-            "kickOrderPaidOutboxDrain"
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
           ]
         },
         {
@@ -1468,6 +1468,13 @@
           ]
         },
         {
+          "file": "lib/simplyur/payments/process-eximbay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
+          ]
+        },
+        {
           "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-order-paid-orphan-fallback]",
@@ -1483,7 +1490,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 발급 drain은 BONGSIM_FULFILL_OWNER(worker/fulfill) — web kick no-op·cron 분리",
+      "summary": "eSIM 발급·SMS drain은 web — worker는 가격 배치만. BONGSIM_FULFILL_OWNER=worker 로 web drain을 끄지 않음",
       "checks": [
         {
           "file": "lib/instrumentation-process-role.ts",
@@ -1526,6 +1533,91 @@
       ],
       "vitestSuites": [
         "lib/instrumentation-process-role.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-sms-drain-on-web",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM SMS·발급는 web에서 drain. worker 포화와 무관. simplyur 결제도 ensure drain",
+      "checks": [
+        {
+          "file": "lib/instrumentation-process-role.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
+            "role === 'all' || role === 'web'",
+            "if (role === 'worker') return false"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-on-web]"
+          ],
+          "mustNotInclude": [
+            "skipped on web — BONGSIM_FULFILL_OWNER points off-web"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/process-eximbay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/process-portone-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
+            "ensureOrderPaidOutboxDrainAfterEnqueue"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
+            "ensureEsimQrNotifyDrainAfterEnqueue"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/instrumentation-process-role.test.ts"
+      ]
+    },
+    {
+      "id": "register-listing-ingest-opt-in",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 목록 수집 cron 기본 OFF. ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST=1 로만 재개. 가격 sweep은 유지",
+      "checks": [
+        {
+          "file": "lib/register-listing-ingest-cron-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-ingest-opt-in]",
+            "ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST",
+            "isRegisterListingIngestCronEnabled"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-ingest-opt-in]",
+            "isRegisterListingIngestCronEnabled"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "isRegisterListingIngestCronEnabled"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-listing-ingest-cron-gate.test.ts"
       ]
     },
     {

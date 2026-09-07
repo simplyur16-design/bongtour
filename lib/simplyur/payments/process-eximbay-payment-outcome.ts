@@ -3,7 +3,7 @@ import type { PaymentAttemptStatus } from "@/lib/bongsim/contracts/public-enums"
 import { recordBongsimCouponUsageAfterCapture } from "@/lib/bongsim/data/bongsim-coupon";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { runBongsimOrderPaidSideEffects } from "@/lib/bongsim/data/bongsim-order-paid-side-effects";
-import { kickOrderPaidOutboxDrain } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
+import { ensureOrderPaidOutboxDrainAfterEnqueue } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-payments";
 
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: Eximbay status_url → OrderPaid — manifest
@@ -214,7 +214,8 @@ export async function processEximbayPaymentOutcome(
       .catch((err) => console.warn("[simplyur:eximbay:push]", err));
 
     // REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: 결제 요청 스레드에서 USIMSA await 금지 — manifest
-    kickOrderPaidOutboxDrain();
+    // REGRESSION-FREEZE[bongsim-sms-drain-on-web]: web drain after simplyur pay — manifest
+    ensureOrderPaidOutboxDrainAfterEnqueue();
 
     return {
       ok: true,

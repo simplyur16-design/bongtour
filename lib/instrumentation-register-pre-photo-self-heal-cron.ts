@@ -10,6 +10,7 @@
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 22:00–10:00 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: 창 동안 할당량까지 — manifest
  */
+import { isRegisterListingIngestCronEnabled } from '@/lib/register-listing-ingest-cron-gate'
 import {
   REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_EVENING,
   REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_MORNING,
@@ -24,7 +25,11 @@ let ingestNightTickRunning = false
 const ingestNightLastAttemptAtMs: Record<string, number> = {}
 
 export function startInstrumentationRegisterPrePhotoSelfHealCron(): void {
-  if (process.env.DISABLE_REGISTER_PRE_PHOTO_SELF_HEAL_CRON === '1') {
+  // REGRESSION-FREEZE[register-listing-ingest-opt-in]: default off — manifest
+  if (!isRegisterListingIngestCronEnabled()) {
+    console.log(
+      '[register-pre-photo-self-heal-cron] skipped — listing ingest off (ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST=1 to resume)',
+    )
     return
   }
 

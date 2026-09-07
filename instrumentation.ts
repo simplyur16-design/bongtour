@@ -45,16 +45,13 @@ export async function register() {
       startInstrumentationSeasonHomeWarm()
     }
 
-    // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill cron on owner only — manifest
+    // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill cron on web — manifest
+    // REGRESSION-FREEZE[bongsim-sms-drain-on-web]: SMS drain on web, not worker — manifest
     if (hasDb && shouldRunFulfillmentCrons()) {
       const { startInstrumentationBongsimOrderPaidOutboxCron } = await import(
         '@/lib/instrumentation-bongsim-order-paid-outbox-cron'
       )
       startInstrumentationBongsimOrderPaidOutboxCron()
-    } else if (hasDb && shouldRunWebCriticalCrons()) {
-      console.log(
-        '[bongsim-order-paid-outbox-cron] skipped on web — BONGSIM_FULFILL_OWNER points off-web (worker/fulfill drains)',
-      )
     }
 
     if (hasDb && shouldRunBackgroundCrons()) {
@@ -106,6 +103,11 @@ export async function register() {
           console.log(
             '[supplier-sweep-cron] web-fallback: worker 없음 — 6공급사 일 1회 API sweep을 web에 등록 (worker 추가 시 web에 DISABLE_WEB_SUPPLIER_SWEEP_CRON=1)',
           )
+        }
+        const { isRegisterListingIngestCronEnabled } = await import(
+          '@/lib/register-listing-ingest-cron-gate'
+        )
+        if (isRegisterListingIngestCronEnabled()) {
           const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
             '@/lib/instrumentation-register-pre-photo-self-heal-cron'
           )
@@ -133,10 +135,15 @@ export async function register() {
       startInstrumentationCouponCron()
       const { registerSupplierSweepCrons } = await import('@/lib/instrumentation-supplier-sweep-crontab')
       await registerSupplierSweepCrons()
-      const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
-        '@/lib/instrumentation-register-pre-photo-self-heal-cron'
+      const { isRegisterListingIngestCronEnabled } = await import(
+        '@/lib/register-listing-ingest-cron-gate'
       )
-      startInstrumentationRegisterPrePhotoSelfHealCron()
+      if (isRegisterListingIngestCronEnabled()) {
+        const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
+          '@/lib/instrumentation-register-pre-photo-self-heal-cron'
+        )
+        startInstrumentationRegisterPrePhotoSelfHealCron()
+      }
       const { startInstrumentationMonthlyPublishCron } = await import(
         '@/lib/instrumentation-monthly-publish-cron'
       )

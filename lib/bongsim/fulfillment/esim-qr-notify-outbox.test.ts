@@ -41,5 +41,6 @@ describe('esim-qr-notify-outbox', () => {
     const mod = await import('@/lib/bongsim/fulfillment/esim-qr-notify-outbox')
     expect(typeof mod.awaitEsimQrNotifyDrain).toBe('function')
     expect(typeof mod.kickEsimQrNotifyDrain).toBe('function')
+    expect(typeof mod.ensureEsimQrNotifyDrainAfterEnqueue).toBe('function')
   })
 })

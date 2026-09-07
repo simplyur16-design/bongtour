@@ -418,8 +418,9 @@ export async function drainEsimQrNotifyOutboxBestEffort(maxRounds = 24): Promise
  */
 let notifyDrainTail: Promise<unknown> = Promise.resolve()
 
-/** 웹훅·일괄 발급 직후 — fulfill owner 에서만 백그라운드 순차 발송 */
+/** 웹훅·일괄 발급 직후 — web에서 백그라운드 순차 발송 (워커와 무관) */
 export function kickEsimQrNotifyDrain(maxRounds = 32): void {
+  // REGRESSION-FREEZE[bongsim-sms-drain-on-web]: notify kick on web — manifest
   // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: notify kick no-op off owner — manifest
   if (!shouldDrainOrderPaidInThisProcess()) {
     return
@@ -428,6 +429,19 @@ export function kickEsimQrNotifyDrain(maxRounds = 32): void {
     .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn('[bongsim:esim-qr-notify:kick]', e)
+    })
+}
+
+/** enqueue 직후 — owner면 kick, 아니면 이 프로세스에서 drain */
+export function ensureEsimQrNotifyDrainAfterEnqueue(maxRounds = 32): void {
+  if (shouldDrainOrderPaidInThisProcess()) {
+    kickEsimQrNotifyDrain(maxRounds)
+    return
+  }
+  notifyDrainTail = notifyDrainTail
+    .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
+    .catch((e) => {
+      console.warn('[bongsim:esim-qr-notify:ensure-drain]', e)
     })
 }
 

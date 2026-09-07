@@ -1,18 +1,17 @@
 /**
  * Next.js instrumentation cron 등록 역할 SSOT.
  *
- * - `web` (production 기본): HTTP 전용 — 발급(USIMSA) drain 은 기본 안 함.
- * - `worker`: 배치·스크래퍼 + (기본) eSIM OrderPaid/알림톡 발급 드레인.
+ * - `web` (production 기본): HTTP + eSIM 발급·SMS drain. 워커 포화와 무관하게 문자가 나간다.
+ * - `worker`: 가격 sweep·달력 등 배치만. OrderPaid/SMS drain 안 함.
  * - `fulfill`: 발급 전용 서비스 — OrderPaid + EsimQrNotify 만 (배치 cron 없음).
  * - `all`: 레거시 — web+worker 동시 (`BONGTOUR_INSTRUMENTATION_ROLE=all` 로만).
  *
- * 발급 소유자: `BONGSIM_FULFILL_OWNER=web|worker|fulfill`
- * - unset + role=web → web이 발급 cron (단독 배포 호환)
- * - unset + role=worker|fulfill → 그 프로세스가 발급
- * - web에 `BONGSIM_FULFILL_OWNER=worker`(또는 fulfill) 설정 시 web은 발급 cron/kick drain 안 함
+ * `BONGSIM_FULFILL_OWNER=worker` 로 web drain을 끄지 않는다. 문자는 web.
+ * 전용 fulfill 서비스만 owner=fulfill 일 때 그 프로세스가 추가 drain.
  *
- * Railway: 공개 = web, 복제 = worker 또는 fulfill(도메인 없음).
+ * Railway: 공개 = web, 복제 = worker (도메인 없음).
  * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: fulfill owner + roles — manifest
+ * REGRESSION-FREEZE[bongsim-sms-drain-on-web]: SMS·발급는 web — manifest
  */
 export type InstrumentationProcessRole = 'web' | 'worker' | 'fulfill' | 'all'
 
@@ -40,9 +39,7 @@ export function resolveInstrumentationProcessRole(): InstrumentationProcessRole 
 }
 
 /**
- * 누가 OrderPaid / EsimQrNotify 를 드레인할지.
- * web 단독이면 `web`. worker/fulfill 분리 시 Railway web Variables에
- * `BONGSIM_FULFILL_OWNER=worker` (또는 fulfill) 를 반드시 둔다.
+ * 레거시 env. SMS는 web이 항상 drain 하므로 worker 값은 web을 끄지 않는다.
  */
 export function resolveBongsimFulfillmentOwner(
   role: InstrumentationProcessRole = resolveInstrumentationProcessRole(),
@@ -66,22 +63,24 @@ export function shouldRunBackgroundCrons(
   return role === 'worker' || role === 'all'
 }
 
-/** OrderPaid + EsimQrNotify cron / in-process drain 소유 */
+/**
+ * OrderPaid + EsimQrNotify cron / in-process drain.
+ * web은 항상 (문자·발급이 워커 배치와 분리). worker는 안 함.
+ * REGRESSION-FREEZE[bongsim-sms-drain-on-web]: web always / worker never — manifest
+ */
 export function shouldRunFulfillmentCrons(
   role: InstrumentationProcessRole = resolveInstrumentationProcessRole(),
 ): boolean {
   if (process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON === '1') {
     return false
   }
-  if (role === 'all') return true
-  const owner = resolveBongsimFulfillmentOwner(role)
-  if (role === 'web') return owner === 'web'
-  if (role === 'worker') return owner === 'worker'
-  if (role === 'fulfill') return owner === 'fulfill'
+  if (role === 'all' || role === 'web') return true
+  if (role === 'worker') return false
+  if (role === 'fulfill') return resolveBongsimFulfillmentOwner(role) === 'fulfill'
   return false
 }
 
-/** 이 프로세스에서 kick → USIMSA drain 을 돌려도 되는지 (소유자만) */
+/** 이 프로세스에서 kick → USIMSA·SMS drain */
 export function shouldDrainOrderPaidInThisProcess(
   role: InstrumentationProcessRole = resolveInstrumentationProcessRole(),
 ): boolean {
@@ -110,15 +109,8 @@ export function logInstrumentationProcessRole(): void {
     )
     return
   }
-  if (
-    process.env.NODE_ENV === 'production' &&
-    role === 'web' &&
-    fulfillOwner === 'web'
-  ) {
-    console.warn(
-      '[instrumentation-role] web이 eSIM 발급 drain을 소유 중 — worker/fulfill 추가 후 BONGSIM_FULFILL_OWNER=worker 권장',
-      payload,
-    )
+  if (process.env.NODE_ENV === 'production' && role === 'web') {
+    console.log('[instrumentation-role] eSIM SMS drain on web (independent of worker)', payload)
   }
   console.log('[instrumentation-role] resolved', payload)
 }
