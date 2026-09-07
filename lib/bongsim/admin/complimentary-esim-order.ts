@@ -264,6 +264,7 @@ export async function adminGrantComplimentaryEsimBulk(input: {
         "@/lib/bongsim/fulfillment/esim-qr-notify-outbox"
       );
       // SMS를 HTTP 응답 전에 await 하면 프록시 타임아웃 → 빈 500 (문자는 이미 감)
+      // kickEsimQrNotifyDrain: web은 ensureEsimQrNotifyDrainAfterEnqueue 가 내부에서 kick
       ensureEsimQrNotifyDrainAfterEnqueue(Math.min(80, succeeded * 2 + 8));
     } catch (e) {
       console.warn("[adminGrantComplimentaryEsimBulk] outbox/notify drain", e);
@@ -545,6 +546,7 @@ export async function adminGrantComplimentaryEsim(input: {
         ensureOrderPaidOutboxDrainAfterEnqueue(16);
         void import("@/lib/bongsim/fulfillment/esim-qr-notify-outbox")
           .then(({ ensureEsimQrNotifyDrainAfterEnqueue }) => {
+            // kickEsimQrNotifyDrain: web은 ensureEsimQrNotifyDrainAfterEnqueue 가 내부에서 kick
             ensureEsimQrNotifyDrainAfterEnqueue(40);
           })
           .catch((e) => {
