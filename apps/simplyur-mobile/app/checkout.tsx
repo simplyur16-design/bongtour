@@ -241,6 +241,12 @@ export default function CheckoutScreen() {
       setErr(t('checkout.errorGeneric'));
       return;
     }
+    const phoneDigits = phone.replace(/\D/g, '');
+    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: app checkout phone required — manifest
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      setErr(t('checkout.phoneRequired'));
+      return;
+    }
     if (!terms) {
       setErr(t('checkout.errorGeneric'));
       return;

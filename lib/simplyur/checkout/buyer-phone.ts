@@ -1,4 +1,5 @@
-/** simplyur — international travelers; phone optional (email is primary). */
+/** simplyur — phone required so Solapi can text the issued eSIM. */
+// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: phone required 8–15 digits — manifest
 export function normalizeSimplyurBuyerPhone(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -8,7 +9,5 @@ export function normalizeSimplyurBuyerPhone(raw: string): string | null {
 }
 
 export function isValidSimplyurBuyerPhoneInput(raw: string): boolean {
-  const trimmed = raw.trim();
-  if (!trimmed) return true;
-  return normalizeSimplyurBuyerPhone(trimmed) != null;
+  return normalizeSimplyurBuyerPhone(raw) != null;
 }

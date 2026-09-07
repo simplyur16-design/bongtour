@@ -21,7 +21,11 @@ import {
   type EsimQrNotifyPayload,
 } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
-import { shouldSendBongtourEsimOsQuickInstallLms } from "@/lib/bongsim/notifications/esim-qr-lms";
+import {
+  buildSimplyurEsimQrDeliveredLmsText,
+  shouldSendBongtourEsimOsQuickInstallLms,
+  shouldSendSimplyurEsimIssuedLms,
+} from "@/lib/bongsim/notifications/esim-qr-lms";
 import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
 import { sendEsimQrDeliveredLmsFallback } from "@/lib/notification-service";
 
@@ -144,9 +148,27 @@ export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayloa
     payload.unit_index,
     payload.unit_total,
   );
-  // REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur skips Kakao; email + install links — manifest
+  // REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur skips Kakao; email + Solapi SMS — manifest
+  // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: simplyur phone → LMS — manifest
 
-  if (requireKakaoPhone && phone) {
+  if (shouldSendSimplyurEsimIssuedLms(checkoutChannel, phone) && phone) {
+    const lms = await sendEsimQrDeliveredLmsFallback({
+      orderId,
+      customerPhone: phone,
+      orderNumber: orderLabel,
+      orderPageUrl,
+      downloadLink: payload.download_link,
+      text: buildSimplyurEsimQrDeliveredLmsText({
+        orderNumber: orderLabel,
+        orderPageUrl,
+        downloadLink: payload.download_link,
+      }),
+    });
+    if (!lms.ok) {
+      throw new Error(`[simplyur:esim-qr-sms] failed order=${orderId}`);
+    }
+    phoneNotifyOk = true;
+  } else if (requireKakaoPhone && phone) {
     const lmsPayload = {
       orderId,
       customerPhone: phone,

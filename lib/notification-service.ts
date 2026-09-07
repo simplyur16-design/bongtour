@@ -492,6 +492,8 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
   orderPageUrl: string
   /** LPA:1$… — 있으면 LMS 본문에 바로 설치 URL 포함 */
   downloadLink?: string | null
+  /** 있으면 기본 Bong투어 본문 대신 사용 (simplyur) */
+  text?: string
 }): Promise<SendAdminNotificationResult> {
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
@@ -503,7 +505,7 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
   }
 
   const toDigits = digitsOnlyPhone(p.customerPhone)
-  if (toDigits.length < 10) {
+  if (toDigits.length < 8 || toDigits.length > 15) {
     console.error('[sendEsimQrDeliveredLmsFallback] skipped_invalid_phone', JSON.stringify({ orderId: p.orderId }))
     return { ok: false, message: 'invalid_phone' }
   }
@@ -514,7 +516,8 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
   }
 
   // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: LMS body via buildEsimQrDeliveredLmsText — manifest
-  const text = buildEsimQrDeliveredLmsText({
+  // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: optional simplyur text override — manifest
+  const text = (p.text ?? "").trim() || buildEsimQrDeliveredLmsText({
     orderNumber: p.orderNumber,
     orderPageUrl: p.orderPageUrl,
     downloadLink: p.downloadLink,

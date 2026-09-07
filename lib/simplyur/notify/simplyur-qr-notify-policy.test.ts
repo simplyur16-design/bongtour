@@ -3,6 +3,7 @@ import {
   buildSimplyurMyEsimAbsoluteUrl,
   simplyurLocaleFromConsents,
   simplyurNotifyRequiresKakaoPhone,
+  simplyurNotifyShouldSendSolapiSms,
   SIMPLYUR_REFUND_REMOTE_ORDER,
 } from "@/lib/simplyur/notify/simplyur-qr-notify-policy";
 
@@ -12,6 +13,14 @@ describe("simplyur notify + refund order SSOT", () => {
     expect(simplyurNotifyRequiresKakaoPhone("simplyur_app")).toBe(false);
     expect(simplyurNotifyRequiresKakaoPhone("bongsim_web")).toBe(true);
     expect(simplyurNotifyRequiresKakaoPhone(null)).toBe(true);
+  });
+
+  it("sends Solapi SMS for simplyur channels, not Bongtour", () => {
+    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: channel gate — manifest
+    expect(simplyurNotifyShouldSendSolapiSms("simplyur_web")).toBe(true);
+    expect(simplyurNotifyShouldSendSolapiSms("simplyur_app")).toBe(true);
+    expect(simplyurNotifyShouldSendSolapiSms("bongsim_web")).toBe(false);
+    expect(simplyurNotifyShouldSendSolapiSms(null)).toBe(false);
   });
 
   it("reads simplyur_locale from consents", () => {

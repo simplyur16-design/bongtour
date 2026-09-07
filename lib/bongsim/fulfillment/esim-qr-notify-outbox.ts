@@ -128,7 +128,10 @@ function parsePayload(raw: unknown): EsimQrNotifyPayload | null {
   }
 }
 
-export async function enqueueEsimQrNotify(input: EsimQrNotifyPayload): Promise<{ enqueued: boolean }> {
+export async function enqueueEsimQrNotify(
+  input: EsimQrNotifyPayload,
+  opts?: { forceResend?: boolean },
+): Promise<{ enqueued: boolean }> {
   const pool = getPgPool()
   if (!pool) return { enqueued: false }
 
@@ -148,6 +151,7 @@ export async function enqueueEsimQrNotify(input: EsimQrNotifyPayload): Promise<{
   }
 
   const dedupe = esimQrNotifyDedupeKey(payload.order_id, payload.topup_row_id)
+  const forceResend = Boolean(opts?.forceResend)
   const r = await pool.query<{ id: string }>(
     `WITH pending AS (
        SELECT COUNT(*)::int AS n
@@ -162,23 +166,26 @@ export async function enqueueEsimQrNotify(input: EsimQrNotifyPayload): Promise<{
      ON CONFLICT (dedupe_key) DO UPDATE SET
        payload = EXCLUDED.payload,
        available_at = CASE
+         WHEN $5::boolean THEN EXCLUDED.available_at
          WHEN bongsim_outbox.processed_at IS NULL THEN bongsim_outbox.available_at
          ELSE EXCLUDED.available_at
        END,
        processed_at = CASE
+         WHEN $5::boolean THEN NULL
          WHEN bongsim_outbox.processed_at IS NOT NULL
               AND COALESCE(bongsim_outbox.payload->'_outbox_defer'->>'terminal', 'false') = 'true'
          THEN NULL
          ELSE bongsim_outbox.processed_at
        END,
        locked_at = CASE
+         WHEN $5::boolean THEN NULL
          WHEN bongsim_outbox.processed_at IS NOT NULL
               AND COALESCE(bongsim_outbox.payload->'_outbox_defer'->>'terminal', 'false') = 'true'
          THEN NULL
          ELSE bongsim_outbox.locked_at
        END
      RETURNING id`,
-    [ESIM_QR_NOTIFY_TOPIC, JSON.stringify(payload), dedupe, ESIM_QR_NOTIFY_GAP_MS],
+    [ESIM_QR_NOTIFY_TOPIC, JSON.stringify(payload), dedupe, ESIM_QR_NOTIFY_GAP_MS, forceResend],
   )
 
   return { enqueued: Boolean(r.rows[0]?.id) }

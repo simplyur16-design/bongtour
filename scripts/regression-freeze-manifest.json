@@ -18440,7 +18440,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur paid eSIM: English mail + iOS/Android install links; skip Kakao; My eSIM surfaces install URLs",
+      "summary": "Simplyur paid eSIM: English mail + Solapi SMS + iOS/Android install links; skip Kakao; My eSIM surfaces install URLs",
       "checks": [
         {
           "file": "lib/simplyur/notify/simplyur-qr-notify-policy.ts",
@@ -18456,7 +18456,7 @@
             "REGRESSION-FREEZE[simplyur-esim-delivery-install]",
             "sendSimplyurEsimQrMail",
             "simplyurNotifyRequiresKakaoPhone",
-            "shouldSendBongtourEsimOsQuickInstallLms"
+            "shouldSendSimplyurEsimIssuedLms"
           ]
         },
         {
@@ -18497,6 +18497,75 @@
         "lib/simplyur/notify/simplyur-qr-notify-policy.test.ts",
         "lib/simplyur/email/simplyur-esim-qr-mail.test.ts",
         "lib/bongsim/notifications/esim-qr-lms.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-esim-solapi-sms",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Simplyur issued eSIM: Solapi LMS when phone present; checkout phone required; skip Kakao AlimTalk",
+      "checks": [
+        {
+          "file": "lib/simplyur/notify/simplyur-qr-notify-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "simplyurNotifyShouldSendSolapiSms"
+          ]
+        },
+        {
+          "file": "lib/bongsim/notifications/esim-qr-lms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "shouldSendSimplyurEsimIssuedLms",
+            "buildSimplyurEsimQrDeliveredLmsText",
+            "[simplyur] Your Korea eSIM is ready"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-delivery.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "shouldSendSimplyurEsimIssuedLms",
+            "buildSimplyurEsimQrDeliveredLmsText",
+            "[simplyur:esim-qr-sms]"
+          ]
+        },
+        {
+          "file": "lib/simplyur/checkout/buyer-phone.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "phone required"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/checkout-create-order.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "simplyur phone required"
+          ]
+        },
+        {
+          "file": "app/simplyur/[locale]/checkout/SimplyurCheckoutClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "normalizeSimplyurBuyerPhone",
+            "checkout.phoneRequired"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/checkout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
+            "checkout.phoneRequired"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/notify/simplyur-qr-notify-policy.test.ts",
+        "lib/bongsim/notifications/esim-qr-lms.test.ts",
+        "lib/simplyur/checkout/buyer-phone.test.ts"
       ]
     },
     {

@@ -2,7 +2,10 @@ import {
   buildAndroidQuickInstallUrl,
   buildAppleQuickInstallUrl,
 } from "@/lib/bongsim/esim-install-presentation";
-import { simplyurNotifyRequiresKakaoPhone } from "@/lib/simplyur/notify/simplyur-qr-notify-policy";
+import {
+  simplyurNotifyRequiresKakaoPhone,
+  simplyurNotifyShouldSendSolapiSms,
+} from "@/lib/simplyur/notify/simplyur-qr-notify-policy";
 
 export type EsimQrLmsTextInput = {
   orderNumber: string;
@@ -20,9 +23,8 @@ export function esimQrNotifyMustSendOsQuickInstallLms(
 }
 
 /**
- * 봉투어(웰컴페이·무상)만 솔라피 원클릭 LMS.
- * 심플리유어(엑심베이)는 메일·인앱 링크만 — 카카오/LMS 금지.
- * REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur never Solapi LMS — manifest
+ * 봉투어(웰컴페이·무상) 원클릭 LMS — Bong투어 본문.
+ * 심플리유어는 `shouldSendSimplyurEsimIssuedLms` (별도 본문).
  */
 export function shouldSendBongtourEsimOsQuickInstallLms(
   checkoutChannel: string | null | undefined,
@@ -32,6 +34,49 @@ export function shouldSendBongtourEsimOsQuickInstallLms(
     simplyurNotifyRequiresKakaoPhone(checkoutChannel) &&
     esimQrNotifyMustSendOsQuickInstallLms(downloadLink)
   );
+}
+
+/** 심플리유어 발급 eSIM — 전화번호 있으면 솔라피 LMS 필수. */
+// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: simplyur + phone → LMS — manifest
+export function shouldSendSimplyurEsimIssuedLms(
+  checkoutChannel: string | null | undefined,
+  customerPhone: string | null | undefined,
+): boolean {
+  return simplyurNotifyShouldSendSolapiSms(checkoutChannel) && Boolean((customerPhone ?? "").trim());
+}
+
+/**
+ * simplyur 발급 LMS — 설치 URL + My eSIM (Bong투어 카피 금지).
+ * REGRESSION-FREEZE[simplyur-esim-solapi-sms]: simplyur LMS body — manifest
+ */
+export function buildSimplyurEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): string {
+  const orderNumber = input.orderNumber.trim() || "—";
+  const orderPageUrl = input.orderPageUrl.trim();
+  const lpa = (input.downloadLink ?? "").trim();
+  const appleUrl = lpa ? buildAppleQuickInstallUrl(lpa) : null;
+  const androidUrl = lpa ? buildAndroidQuickInstallUrl(lpa) : null;
+
+  const lines: string[] = [
+    "[simplyur] Your Korea eSIM is ready",
+    "",
+    `Order: ${orderNumber}`,
+  ];
+
+  if (appleUrl) {
+    lines.push("", "iPhone install", appleUrl);
+  }
+  if (androidUrl) {
+    lines.push("", "Android install", androidUrl);
+  }
+  if (orderPageUrl) {
+    lines.push("", "My eSIM", orderPageUrl);
+  }
+
+  lines.push(
+    "",
+    "Install before you need data. The plan starts when the eSIM first connects in Korea.",
+  );
+  return lines.join("\n");
 }
 
 /**

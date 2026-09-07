@@ -623,11 +623,12 @@ function validateRequest(
   const simplyurCheckout = isSimplyurCheckoutChannel(
     typeof o.checkout_channel === "string" ? o.checkout_channel : undefined,
   );
-  if (!buyer_phone_raw && !simplyurCheckout) {
+  // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: simplyur phone required — manifest
+  if (!buyer_phone_raw) {
     details.buyer_phone = "required";
-  } else if (buyer_phone_raw && simplyurCheckout && !isValidSimplyurBuyerPhoneInput(buyer_phone_raw)) {
+  } else if (simplyurCheckout && !isValidSimplyurBuyerPhoneInput(buyer_phone_raw)) {
     details.buyer_phone = "invalid_phone";
-  } else if (buyer_phone_raw && !simplyurCheckout && !isValidBuyerPhoneInput(buyer_phone_raw)) {
+  } else if (!simplyurCheckout && !isValidBuyerPhoneInput(buyer_phone_raw)) {
     details.buyer_phone = "invalid_phone";
   }
   if (!idempotency_key) details.idempotency_key = "required";

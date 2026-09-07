@@ -14,6 +14,7 @@ import {
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-provider-id";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
 import type { SimplyurPublicProduct } from "@/lib/simplyur/public-product";
+import { normalizeSimplyurBuyerPhone } from "@/lib/simplyur/checkout/buyer-phone";
 import type { SimplyurProductViewState } from "@/lib/simplyur/product-design";
 
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: Eximbay live request_pay — manifest
@@ -148,6 +149,11 @@ export function SimplyurCheckoutClient({
 
   const submit = useCallback(async () => {
     if (!product || !terms || !email.trim()) return;
+    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: checkout phone required — manifest
+    if (!normalizeSimplyurBuyerPhone(phone)) {
+      setError(tr("checkout.phoneRequired"));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {

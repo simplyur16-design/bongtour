@@ -3,6 +3,8 @@ import {
   buildEsimQrDeliveredLmsText,
   esimQrNotifyMustSendOsQuickInstallLms,
   shouldSendBongtourEsimOsQuickInstallLms,
+  shouldSendSimplyurEsimIssuedLms,
+  buildSimplyurEsimQrDeliveredLmsText,
 } from "@/lib/bongsim/notifications/esim-qr-lms";
 
 // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: LMS body includes OS install URLs — manifest
@@ -33,13 +35,31 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(esimQrNotifyMustSendOsQuickInstallLms("")).toBe(false);
   });
 
-  it("sends OS-install LMS only for Bongtour channels, never Simplyur/Eximbay", () => {
+  it("sends Bongtour OS-install LMS only for Bongtour channels", () => {
     const lpa = "LPA:1$consumer.rsp.world$ABCDEF123456";
     expect(shouldSendBongtourEsimOsQuickInstallLms("web", lpa)).toBe(true);
     expect(shouldSendBongtourEsimOsQuickInstallLms("admin_complimentary_esim", lpa)).toBe(true);
     expect(shouldSendBongtourEsimOsQuickInstallLms("simplyur_app", lpa)).toBe(false);
     expect(shouldSendBongtourEsimOsQuickInstallLms("simplyur_web", lpa)).toBe(false);
     expect(shouldSendBongtourEsimOsQuickInstallLms("web", null)).toBe(false);
+  });
+
+  it("sends simplyur issued LMS when the customer phone is present", () => {
+    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: simplyur + phone → LMS — manifest
+    expect(shouldSendSimplyurEsimIssuedLms("simplyur_app", "01012345678")).toBe(true);
+    expect(shouldSendSimplyurEsimIssuedLms("simplyur_web", "821012345678")).toBe(true);
+    expect(shouldSendSimplyurEsimIssuedLms("simplyur_app", "")).toBe(false);
+    expect(shouldSendSimplyurEsimIssuedLms("web", "01012345678")).toBe(false);
+    const text = buildSimplyurEsimQrDeliveredLmsText({
+      orderNumber: "SU-1",
+      orderPageUrl: "https://bongtour.com/simplyur/en/my-esim",
+      downloadLink: lpa,
+    });
+    expect(text).toContain("[simplyur]");
+    expect(text).toContain("iPhone install");
+    expect(text).toContain("Android install");
+    expect(text).toContain("/simplyur/en/my-esim");
+    expect(text).not.toContain("[Bong투어]");
   });
 
   it("still includes order page when LPA is missing", () => {

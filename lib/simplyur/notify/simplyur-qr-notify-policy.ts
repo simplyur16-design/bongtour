@@ -7,17 +7,26 @@ import {
 } from "@/lib/simplyur/constants";
 import { getSiteOrigin } from "@/lib/site-metadata";
 
-// REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur notify = email + install links, no Kakao — manifest
+// REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur notify = email + Solapi SMS; skip Kakao — manifest
+// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: issued eSIM → Solapi LMS when phone present — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-refund]: card cancel then USIMSA — manifest
 
 /** Operator: card (Eximbay) first, then USIMSA cancel. */
 export const SIMPLYUR_REFUND_REMOTE_ORDER = ["eximbay_card_cancel", "usimsa_supplier_cancel"] as const;
 
-/** Kakao AlimTalk is Korea-resident Bongsim. simplyur travelers: email + in-app only. */
+/** Kakao AlimTalk is Korea-resident Bongsim. simplyur uses Solapi SMS, not Kakao. */
 export function simplyurNotifyRequiresKakaoPhone(
   checkoutChannel: string | null | undefined,
 ): boolean {
   return !isSimplyurCheckoutChannel(checkoutChannel);
+}
+
+/** simplyur issued eSIM: Solapi LMS (not Kakao). */
+// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: channel gate — manifest
+export function simplyurNotifyShouldSendSolapiSms(
+  checkoutChannel: string | null | undefined,
+): boolean {
+  return isSimplyurCheckoutChannel(checkoutChannel);
 }
 
 export function simplyurLocaleFromConsents(consents: unknown): SimplyurLocale {
