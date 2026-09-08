@@ -21624,6 +21624,13 @@
           "mustNotInclude": [
             "QR CODE"
           ]
+        },
+        {
+          "file": "types/qrcode.d.ts",
+          "mustInclude": [
+            "declare module \"qrcode\"",
+            "toDataURL"
+          ]
         }
       ],
       "vitestSuites": [
