@@ -29,6 +29,28 @@ function buildOsQuickInstallUrl(base: string, lpa: string): string | null {
   return `${base}${encodeURIComponent(code)}`;
 }
 
+/** GSMA LPA — download_link, or SM-DP+ + matching ID / activation code. */
+// REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]: reconstruct LPA for QR + OS install — manifest
+export function resolveEsimInstallLpa(params: {
+  download_link?: string | null;
+  smdp?: string | null;
+  activate_code?: string | null;
+}): string | null {
+  const dl = params.download_link?.trim() ?? "";
+  if (dl.startsWith("LPA:")) return dl;
+  const code = params.activate_code?.trim() ?? "";
+  if (code.startsWith("LPA:")) return code;
+  const smdp = params.smdp?.trim() ?? "";
+  if (smdp && code) return `LPA:1$${smdp}$${code}`;
+  return null;
+}
+
+export function canShowEsimInstallForOrderStatus(orderStatus: string): boolean {
+  const s = orderStatus.trim().toLowerCase();
+  if (isBongsimOrderEsimRevoked(s)) return false;
+  return s === "delivered" || s === "paid";
+}
+
 /** iPhone 「바로 설치」 — `carddata`에 LPA 전체를 URL 인코딩 */
 export function buildAppleQuickInstallUrl(lpa: string): string | null {
   return buildOsQuickInstallUrl(APPLE_ESIM_QR_PROVISIONING_BASE, lpa);
@@ -85,14 +107,15 @@ export function buildEsimInstallFromTopup(params: {
   }
 
   const qr = params.qr_code_img_url?.trim() || null;
-  const downloadLink = params.download_link?.trim() || null;
+  const lpa = resolveEsimInstallLpa({
+    download_link: params.download_link,
+    smdp: params.smdp,
+    activate_code: params.activate_code,
+  });
   const smDpPlusAddress = params.smdp?.trim() || null;
   const activationCode = params.activate_code?.trim() || null;
-  const hasQr = Boolean(qr);
-  const hasManualFields = Boolean(smDpPlusAddress || activationCode);
-  const hasDownloadLink = Boolean(downloadLink);
-  const ready =
-    params.orderStatus === "delivered" && (hasQr || hasManualFields || hasDownloadLink);
+  const hasInstallPayload = Boolean(qr || lpa || smDpPlusAddress || activationCode);
+  const ready = canShowEsimInstallForOrderStatus(params.orderStatus) && hasInstallPayload;
 
   return {
     ready,
@@ -102,8 +125,8 @@ export function buildEsimInstallFromTopup(params: {
     qr_image_url: qr,
     sm_dp_plus_address: smDpPlusAddress,
     activation_code: activationCode,
-    apple_quick_install_url: downloadLink ? buildAppleQuickInstallUrl(downloadLink) : null,
-    android_quick_install_url: downloadLink ? buildAndroidQuickInstallUrl(downloadLink) : null,
+    apple_quick_install_url: lpa ? buildAppleQuickInstallUrl(lpa) : null,
+    android_quick_install_url: lpa ? buildAndroidQuickInstallUrl(lpa) : null,
   };
 }
 

@@ -2,7 +2,6 @@ import { Link, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -21,10 +20,16 @@ import {
   type MyEsimUsage,
 } from '@/src/api/my-esim';
 import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
+import { EsimInstallQr } from '@/src/components/EsimInstallQr';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
+import {
+  buildAndroidQuickInstallUrl,
+  buildAppleQuickInstallUrl,
+  resolveEsimInstallLpa,
+} from '@/src/lib/esim-install-lpa';
 import { signOutGoogleNativeBestEffort } from '@/src/lib/native-oauth';
 import {
   buildUsageSummaryView,
@@ -47,6 +52,7 @@ type ViewState = 'loading' | 'signin' | 'error' | 'empty' | 'list' | 'detail';
  * REGRESSION-FREEZE[simplyur-eximbay-refund]: unused eSIM cancel CTA — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p0-account-install]: sign-out + SM-DP/activation codes — manifest
  * REGRESSION-FREEZE[simplyur-esim-delivery-install]: in-app one-click install URLs — manifest
+ * REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]: paid order real LPA QR + OS install — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings + load-error vs empty — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: order share + guide CTA + offline — manifest
  */
@@ -285,6 +291,22 @@ export default function MyEsimScreen() {
     });
     const badge = MY_ESIM_BADGE[tier];
 
+    const installLpa = resolveEsimInstallLpa({
+      download_link: selectedOrder.download_link,
+      sm_dp_plus_address: selectedOrder.sm_dp_plus_address,
+      activation_code: selectedOrder.activation_code,
+      apple_quick_install_url: selectedOrder.apple_quick_install_url,
+    });
+    const appleInstallUrl =
+      selectedOrder.apple_quick_install_url ||
+      (installLpa ? buildAppleQuickInstallUrl(installLpa) : null);
+    const androidInstallUrl =
+      selectedOrder.android_quick_install_url ||
+      (installLpa ? buildAndroidQuickInstallUrl(installLpa) : null);
+    const canShowInstall = Boolean(
+      selectedOrder.can_show_qr || installLpa || appleInstallUrl || androidInstallUrl,
+    );
+
     if (usageScreenOpen) {
       return (
         <ScrollView
@@ -390,29 +412,28 @@ export default function MyEsimScreen() {
           </View>
 
           <View style={styles.qrPanel}>
-            {selectedOrder.can_show_qr && selectedOrder.qr_code_img_url ? (
-              <Image source={{ uri: selectedOrder.qr_code_img_url }} style={styles.qrImage} resizeMode="contain" />
-            ) : (
-              <View style={styles.qrPlaceholder}>
-                <Text style={styles.qrPlaceholderText}>QR CODE</Text>
-              </View>
-            )}
-            <Text style={styles.qrHint}>{t('myEsim.qrHint')}</Text>
-            {selectedOrder.can_show_qr &&
-            (selectedOrder.apple_quick_install_url || selectedOrder.android_quick_install_url) ? (
-              <View style={{ width: '100%', gap: 8, marginTop: 8 }}>
-                {selectedOrder.apple_quick_install_url ? (
+            <EsimInstallQr
+              lpa={installLpa}
+              imageUrl={selectedOrder.can_show_qr ? selectedOrder.qr_code_img_url : null}
+              pendingLabel={t('myEsim.qrPending')}
+            />
+            {installLpa || selectedOrder.qr_code_img_url ? (
+              <Text style={styles.qrHint}>{t('myEsim.qrHint')}</Text>
+            ) : null}
+            {appleInstallUrl || androidInstallUrl ? (
+              <View style={styles.installBtnCol}>
+                {appleInstallUrl ? (
                   <Pressable
-                    onPress={() => void Linking.openURL(selectedOrder.apple_quick_install_url!)}
-                    style={[styles.usageCard, { justifyContent: 'center' }]}>
-                    <Text style={[styles.usageLabel, { color: '#fff' }]}>{t('myEsim.installIos')}</Text>
+                    onPress={() => void Linking.openURL(appleInstallUrl)}
+                    style={styles.installBtnIos}>
+                    <Text style={styles.installBtnText}>{t('myEsim.installIos')}</Text>
                   </Pressable>
                 ) : null}
-                {selectedOrder.android_quick_install_url ? (
+                {androidInstallUrl ? (
                   <Pressable
-                    onPress={() => void Linking.openURL(selectedOrder.android_quick_install_url!)}
-                    style={[styles.usageCard, { justifyContent: 'center', backgroundColor: '#12233F' }]}>
-                    <Text style={[styles.usageLabel, { color: '#fff' }]}>{t('myEsim.installAndroid')}</Text>
+                    onPress={() => void Linking.openURL(androidInstallUrl)}
+                    style={styles.installBtnAndroid}>
+                    <Text style={styles.installBtnText}>{t('myEsim.installAndroid')}</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -429,8 +450,7 @@ export default function MyEsimScreen() {
             ) : null}
           </View>
 
-          {(selectedOrder.sm_dp_plus_address || selectedOrder.activation_code) &&
-          selectedOrder.can_show_qr ? (
+          {(selectedOrder.sm_dp_plus_address || selectedOrder.activation_code) && canShowInstall ? (
             <View style={styles.manualBox}>
               <Text style={styles.manualTitle}>{t('myEsim.manualInstallTitle')}</Text>
               <Text style={styles.manualBody}>{t('myEsim.manualInstallBody')}</Text>
@@ -743,25 +763,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  qrImage: { width: 168, height: 168, borderRadius: 14 },
-  qrPlaceholder: {
-    width: 168,
-    height: 168,
-    borderRadius: 14,
+  qrHint: { fontSize: 12, ...fp('400'), color: D.muted, textAlign: 'center' },
+  installBtnCol: { width: '100%', gap: 8, marginTop: 4 },
+  installBtnIos: {
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: D.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  installBtnAndroid: {
+    height: 48,
+    borderRadius: 16,
     backgroundColor: D.navy,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qrPlaceholderText: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    fontSize: 12,
-    ...fp('700'),
-    color: D.navy,
-  },
-  qrHint: { fontSize: 12, ...fp('400'), color: D.muted, textAlign: 'center' },
+  installBtnText: { fontSize: 15, ...fp('600'), color: '#fff' },
   refundBox: {
     marginTop: 4,
     borderWidth: 1,

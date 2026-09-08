@@ -13,8 +13,9 @@ const LINKS = [
   { key: "findPlan", path: "/recommend" },
   { key: "guide", path: "/guide" },
   { key: "devices", path: "/devices" },
-  { key: "myTrip", path: "/my-trip" },
 ] as const;
+
+/** REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]: eSIM mobile nav has no My Trip — manifest */
 
 export function SimplyurMobileNav({ locale, user: serverUser }: Props) {
   const tr = useSimplyurT();

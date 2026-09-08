@@ -10,6 +10,7 @@ export type MyEsimOrderRow = {
   qr_code_img_url: string | null;
   sm_dp_plus_address: string | null;
   activation_code: string | null;
+  download_link?: string | null;
   apple_quick_install_url?: string | null;
   android_quick_install_url?: string | null;
   can_show_qr: boolean;

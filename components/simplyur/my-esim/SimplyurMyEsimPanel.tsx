@@ -18,6 +18,7 @@ import {
 } from "@/lib/simplyur/my-esim-view-model";
 import { simplyurPath } from "@/lib/simplyur/constants";
 import { useSimplyurIntl, useSimplyurT } from "@/components/simplyur/SimplyurIntlProvider";
+import { SimplyurLpaQrImg } from "@/components/simplyur/my-esim/SimplyurLpaQrImg";
 
 type Props = {
   view: MyEsimView;
@@ -151,6 +152,8 @@ export function SimplyurMyEsimPanel({
           </p>
         </div>
 
+        {/* REGRESSION-FREEZE[simplyur-esim-delivery-install]: web one-click install URLs — manifest */}
+        {/* REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]: real QR + OS install, no fake QR art — manifest */}
         <div
           className="flex flex-col items-center gap-3 border bg-white p-[22px]"
           style={{ borderColor: D.border, borderRadius: D.panelRadius }}
@@ -165,25 +168,20 @@ export function SimplyurMyEsimPanel({
                 unoptimized
               />
             </div>
+          ) : selectedOrder.can_show_qr && selectedOrder.download_link?.startsWith("LPA:") ? (
+            <SimplyurLpaQrImg lpa={selectedOrder.download_link} />
           ) : (
-            <div
-              className="flex h-[168px] w-[168px] items-center justify-center rounded-[14px]"
-              style={{
-                background:
-                  "repeating-linear-gradient(45deg, #12233F 0 6px, #fff 6px 12px)",
-              }}
-            >
-              <span className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold" style={{ color: D.navy }}>
-                QR CODE
-              </span>
-            </div>
+            <p className="max-w-[240px] text-center text-xs leading-relaxed" style={{ color: D.muted }}>
+              {tr("myEsim.qrPending")}
+            </p>
           )}
-          <p className="text-center text-xs" style={{ color: D.muted }}>
-            {tr("myEsim.qrHint")}
-          </p>
+          {selectedOrder.can_show_qr && (selectedOrder.qr_code_img_url || selectedOrder.download_link) ? (
+            <p className="text-center text-xs" style={{ color: D.muted }}>
+              {tr("myEsim.qrHint")}
+            </p>
+          ) : null}
         </div>
 
-        {/* REGRESSION-FREEZE[simplyur-esim-delivery-install]: web one-click install URLs — manifest */}
         {selectedOrder.can_show_qr &&
         (selectedOrder.apple_quick_install_url || selectedOrder.android_quick_install_url) ? (
           <div className="flex flex-col gap-2">

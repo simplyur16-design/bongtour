@@ -10,6 +10,7 @@ import { useI18n } from '@/src/i18n/I18nContext';
  * Product purchase hides the tab bar so the docked CTA matches checkout.
  * REGRESSION-FREEZE[simplyur-mobile-tabs-browse-keep]: devices/settings/legal keep tab bar — manifest
  * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: product hides tab bar — manifest
+ * REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]: My Trip hidden from eSIM tab bar — manifest
  */
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -59,11 +60,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="my-trip"
         options={{
+          // REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]: My Trip is not an eSIM tab — manifest
+          href: null,
           headerShown: false,
           title: t('nav.myTrip'),
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'airplane', android: 'flight', web: 'flight' }} tintColor={color} size={24} />
-          ),
         }}
       />
       <Tabs.Screen

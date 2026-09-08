@@ -309,6 +309,7 @@
     "backToList": "返回 My eSIM",
     "orderedOn": "下单",
     "qrHint": "在 设置 → 蜂窝网络 → 添加 eSIM 中扫描",
+    "qrPending": "eSIM 一发出，安装二维码就会显示在这里。",
     "usageCardLabel": "数据用量",
     "loadingUsage": "加载用量中…",
     "notStarted": "未开始",

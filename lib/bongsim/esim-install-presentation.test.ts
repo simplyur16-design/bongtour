@@ -4,7 +4,9 @@ import {
   buildAppleQuickInstallUrl,
   buildBongsimOrderCompleteUrl,
   buildEsimInstallFromTopup,
+  canShowEsimInstallForOrderStatus,
   formatEsimNotifyOrderLabel,
+  resolveEsimInstallLpa,
 } from "@/lib/bongsim/esim-install-presentation";
 
 // REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]: notify label + multi install — manifest
@@ -59,6 +61,25 @@ describe("buildEsimInstallFromTopup", () => {
     expect(r.android_quick_install_url).toBeNull();
   });
 
+  // REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]: paid + credentials is install-ready — manifest
+  it("paid + QR/LPA — 설치 가능 (not waiting on delivered)", () => {
+    const r = buildEsimInstallFromTopup({ orderStatus: "paid", ...issued });
+    expect(r.ready).toBe(true);
+    expect(r.apple_quick_install_url).toBe(buildAppleQuickInstallUrl(issued.download_link));
+    expect(r.android_quick_install_url).toBe(buildAndroidQuickInstallUrl(issued.download_link));
+  });
+
+  it("paid without credentials — not ready", () => {
+    const r = buildEsimInstallFromTopup({
+      orderStatus: "paid",
+      qr_code_img_url: null,
+      download_link: null,
+      smdp: null,
+      activate_code: null,
+    });
+    expect(r.ready).toBe(false);
+  });
+
   it("qty>1 unit label on install", () => {
     const r = buildEsimInstallFromTopup({
       orderStatus: "delivered",
@@ -69,6 +90,37 @@ describe("buildEsimInstallFromTopup", () => {
     });
     expect(r.unit_index).toBe(2);
     expect(r.unit_total).toBe(6);
+  });
+});
+
+describe("resolveEsimInstallLpa", () => {
+  it("prefers LPA download_link", () => {
+    expect(
+      resolveEsimInstallLpa({
+        download_link: "LPA:1$smdp$code",
+        smdp: "other",
+        activate_code: "x",
+      }),
+    ).toBe("LPA:1$smdp$code");
+  });
+
+  it("builds LPA from SM-DP+ and activation code", () => {
+    expect(
+      resolveEsimInstallLpa({
+        download_link: null,
+        smdp: "consumer.rsp.world",
+        activate_code: "ABCDEF123456",
+      }),
+    ).toBe("LPA:1$consumer.rsp.world$ABCDEF123456");
+  });
+});
+
+describe("canShowEsimInstallForOrderStatus", () => {
+  it("allows paid and delivered; blocks unpaid and revoked", () => {
+    expect(canShowEsimInstallForOrderStatus("paid")).toBe(true);
+    expect(canShowEsimInstallForOrderStatus("delivered")).toBe(true);
+    expect(canShowEsimInstallForOrderStatus("awaiting_payment")).toBe(false);
+    expect(canShowEsimInstallForOrderStatus("refunded")).toBe(false);
   });
 });
 

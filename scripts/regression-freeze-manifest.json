@@ -21578,6 +21578,100 @@
         "lib/prisma-retry.test.ts",
         "lib/bongsim/db/pool-saturated-backoff.test.ts"
       ]
+    },
+    {
+      "id": "simplyur-my-esim-paid-qr-install",
+      "tier": ["prebuild", "ci"],
+      "summary": "Paid simplyur eSIM shows real LPA QR + iPhone/Android one-tap; never decorative QR CODE art",
+      "checks": [
+        {
+          "file": "lib/bongsim/esim-install-presentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]",
+            "resolveEsimInstallLpa",
+            "canShowEsimInstallForOrderStatus",
+            "s === \"delivered\" || s === \"paid\""
+          ]
+        },
+        {
+          "file": "app/api/simplyur/mypage/orders/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]",
+            "resolveEsimInstallLpa",
+            "canShowEsimInstallForOrderStatus",
+            "download_link"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/my-esim.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]",
+            "EsimInstallQr",
+            "installIos",
+            "installAndroid"
+          ],
+          "mustNotInclude": [
+            "QR CODE"
+          ]
+        },
+        {
+          "file": "components/simplyur/my-esim/SimplyurMyEsimPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]",
+            "SimplyurLpaQrImg",
+            "myEsim.installIos"
+          ],
+          "mustNotInclude": [
+            "QR CODE"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-presentation.test.ts",
+        "apps/simplyur-mobile/src/lib/esim-install-lpa.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-esim-app-no-trip-tab",
+      "tier": ["prebuild"],
+      "summary": "Simply Your eSIM chrome has no My Trip tab or settings row",
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/_layout.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]",
+            "name=\"my-trip\"",
+            "href: null"
+          ]
+        },
+        {
+          "file": "apps/simplyur-mobile/app/(tabs)/settings.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]"
+          ],
+          "mustNotInclude": [
+            "nav.myTrip"
+          ]
+        },
+        {
+          "file": "components/simplyur/SimplyurHeader.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]"
+          ],
+          "mustNotInclude": [
+            "myTrip"
+          ]
+        },
+        {
+          "file": "components/simplyur/SimplyurMobileNav.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]"
+          ],
+          "mustNotInclude": [
+            "myTrip"
+          ]
+        }
+      ]
     }
   ]
 }

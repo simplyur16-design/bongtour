@@ -26,6 +26,7 @@ import {
 /**
  * Account & app settings — language, legal, support, sign-out, delete account.
  * REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: settings surface — manifest
+ * REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]: settings has no My Trip — manifest
  */
 export default function SettingsScreen() {
   const { t, locale } = useI18n();
@@ -108,10 +109,6 @@ export default function SettingsScreen() {
       )}
 
       <Text style={styles.section}>{t('settings.sectionApp')}</Text>
-      <Row
-        label={t('nav.myTrip')}
-        onPress={() => router.push('/(tabs)/my-trip')}
-      />
       <Row
         label={t('language.label')}
         value={LOCALE_LABELS[locale]}

@@ -8,6 +8,8 @@ import { resolveSimplyurApiUser } from "@/lib/simplyur/auth/resolve-simplyur-api
 import {
   buildAndroidQuickInstallUrl,
   buildAppleQuickInstallUrl,
+  canShowEsimInstallForOrderStatus,
+  resolveEsimInstallLpa,
 } from "@/lib/bongsim/esim-install-presentation";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,7 @@ type TopupRow = {
 /**
  * GET /api/simplyur/mypage/orders?locale=en
  * Foreign-traveler My eSIM — simplyur channel only, localized plan labels (no Korean DB copy).
+ * REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]: paid + LPA/QR → can_show_qr — manifest
  */
 export async function GET(req: Request) {
   // REGRESSION-FREEZE[simplyur-inapp-auth]: Bearer or cookie — manifest
@@ -103,11 +106,16 @@ export async function GET(req: Request) {
         topups.find((t) => (t.activate_code ?? "").trim().length > 0)?.activate_code?.trim() ?? null;
       const primaryDownload =
         topups.find((t) => (t.download_link ?? "").trim().length > 0)?.download_link?.trim() ?? null;
-      const canEsimActions =
-        row.status === "delivered" &&
-        Boolean(primaryQr || primarySmdp || primaryActivateCode || primaryDownload);
-      const appleQuickInstallUrl = primaryDownload ? buildAppleQuickInstallUrl(primaryDownload) : null;
-      const androidQuickInstallUrl = primaryDownload ? buildAndroidQuickInstallUrl(primaryDownload) : null;
+      const lpa = resolveEsimInstallLpa({
+        download_link: primaryDownload,
+        smdp: primarySmdp,
+        activate_code: primaryActivateCode,
+      });
+      const hasInstallPayload = Boolean(primaryQr || lpa || primarySmdp || primaryActivateCode);
+      // REGRESSION-FREEZE[simplyur-my-esim-paid-qr-install]: paid orders with LPA/QR are install-ready — manifest
+      const canEsimActions = canShowEsimInstallForOrderStatus(row.status) && hasInstallPayload;
+      const appleQuickInstallUrl = lpa ? buildAppleQuickInstallUrl(lpa) : null;
+      const androidQuickInstallUrl = lpa ? buildAndroidQuickInstallUrl(lpa) : null;
 
       const plan = formatSimplyurPlanDisplay(
         {
@@ -134,13 +142,14 @@ export async function GET(req: Request) {
         plan_summary: plan.summary,
         grand_total_krw: row.grand_total_krw,
         created_at: row.created_at.toISOString(),
-        qr_code_img_url: primaryQr,
-        sm_dp_plus_address: primarySmdp,
-        activation_code: primaryActivateCode,
-        apple_quick_install_url: appleQuickInstallUrl,
-        android_quick_install_url: androidQuickInstallUrl,
+        qr_code_img_url: canEsimActions ? primaryQr : null,
+        sm_dp_plus_address: canEsimActions ? primarySmdp : null,
+        activation_code: canEsimActions ? primaryActivateCode : null,
+        download_link: canEsimActions ? lpa : null,
+        apple_quick_install_url: canEsimActions ? appleQuickInstallUrl : null,
+        android_quick_install_url: canEsimActions ? androidQuickInstallUrl : null,
         can_show_qr: canEsimActions,
-        can_check_usage: canEsimActions,
+        can_check_usage: row.status === "delivered" && hasInstallPayload,
         can_request_refund: canRequestRefund,
       };
     });

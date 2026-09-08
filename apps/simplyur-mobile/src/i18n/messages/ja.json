@@ -357,6 +357,7 @@
     "installTipRoaming": "ローミングプランはsimplyur回線のデータローミングをONにしてください。",
     "installTipDataLine": "韓国到着後、モバイルデータ回線をsimplyurに設定してください。",
     "qrHint": "設定 → モバイル通信 → eSIMを追加 からスキャン",
+    "qrPending": "このeSIMが発行されると、ここにインストール用QRが表示されます。",
     "usageCardLabel": "データ使用量",
     "loadingUsage": "使用量を読み込み中…",
     "notStarted": "未開始",

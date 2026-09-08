@@ -357,6 +357,7 @@
     "installTipRoaming": "漫遊方案請為 simplyur 線路開啟數據漫遊。",
     "installTipDataLine": "抵達韓國後，將 simplyur 設為行動數據線路。",
     "qrHint": "在 設定 → 行動服務 → 加入 eSIM 中掃描",
+    "qrPending": "eSIM 一發出，安裝 QR 就會顯示在這裡。",
     "usageCardLabel": "數據用量",
     "loadingUsage": "載入用量中…",
     "notStarted": "未開始",

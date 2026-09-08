@@ -590,6 +590,7 @@
     "backToList": "Back to My eSIM",
     "orderedOn": "Ordered",
     "qrHint": "Scan in Settings → Cellular → Add eSIM",
+    "qrPending": "Your install QR will show here as soon as this eSIM is issued.",
     "usageCardLabel": "Data usage",
     "loadingUsage": "Loading usage…",
     "notStarted": "Not started",

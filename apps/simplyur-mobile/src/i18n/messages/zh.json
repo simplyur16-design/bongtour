@@ -357,6 +357,7 @@
     "installTipRoaming": "漫游套餐请为 simplyur 线路开启数据漫游。",
     "installTipDataLine": "抵达韩国后，将 simplyur 设为移动数据线路。",
     "qrHint": "在 设置 → 蜂窝网络 → 添加 eSIM 中扫描",
+    "qrPending": "eSIM 一发出，安装二维码就会显示在这里。",
     "usageCardLabel": "数据用量",
     "loadingUsage": "加载用量中…",
     "notStarted": "未开始",

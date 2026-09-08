@@ -11,6 +11,7 @@ import { SimplyurHeaderAuth } from "@/components/simplyur/SimplyurHeaderAuth";
 
 type Props = { locale: SimplyurLocale; currentPath?: string; user?: User | null };
 
+/** REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]: header nav has no My Trip — manifest */
 export function SimplyurHeader({ locale, currentPath = "", user = null }: Props) {
   const tr = useSimplyurT();
   const path = currentPath.replace(/^\//, "");
@@ -20,7 +21,6 @@ export function SimplyurHeader({ locale, currentPath = "", user = null }: Props)
     { key: "findPlan", href: simplyurPath(locale, "/recommend"), match: path.startsWith("recommend") || path.startsWith("product") },
     { key: "guide", href: simplyurPath(locale, "/guide"), match: path.startsWith("guide") },
     { key: "devices", href: simplyurPath(locale, "/devices"), match: path.startsWith("devices") },
-    { key: "myTrip", href: simplyurPath(locale, "/my-trip"), match: path.startsWith("my-trip") },
   ] as const;
 
   return (

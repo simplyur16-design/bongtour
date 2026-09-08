@@ -309,6 +309,7 @@
     "backToList": "Quay lại My eSIM",
     "orderedOn": "Đặt ngày",
     "qrHint": "Quét trong Cài đặt → Di động → Thêm eSIM",
+    "qrPending": "Mã QR cài đặt sẽ hiện ở đây ngay khi eSIM được cấp.",
     "usageCardLabel": "Dung lượng",
     "loadingUsage": "Đang tải dung lượng…",
     "notStarted": "Chưa bắt đầu",

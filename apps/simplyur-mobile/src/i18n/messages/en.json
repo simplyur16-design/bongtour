@@ -633,6 +633,7 @@
     "installTipRoaming": "For roaming plans, turn Data Roaming ON for the simplyur line.",
     "installTipDataLine": "Set simplyur as your Mobile Data line when you land in Korea.",
     "qrHint": "Scan in Settings → Cellular → Add eSIM",
+    "qrPending": "Your install QR will show here as soon as this eSIM is issued.",
     "usageCardLabel": "Data usage",
     "loadingUsage": "Loading usage…",
     "notStarted": "Not started",
