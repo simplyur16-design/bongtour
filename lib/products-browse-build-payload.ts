@@ -366,6 +366,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: mid/leaf geo applies take — manifest
     // REGRESSION-FREEZE[browse-preview-db-take]: small page-1 preview (home air-hotel) DB take — manifest
+    // REGRESSION-FREEZE[browse-hub-catalog-db-take]: hub full catalog도 limit take — statement timeout 방지 — manifest
     const hasGeoDbTake =
       Boolean((searchParams.get('menuGroup') ?? '').trim()) ||
       Boolean((searchParams.get('city') ?? '').trim()) ||
@@ -384,13 +385,16 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       !hasOverseasUrlGeo &&
       !hasGeoDbTake &&
       !poolNeedsDeparturesEarly
-    const applyDbTake = !isHubFullCatalog && (hasGeoDbTake || previewDbTake)
+    // hubCatalog 전량도 take 없이 가면 statement_timeout → 해외 목록 영구 로딩
+    const applyDbTake = isHubFullCatalog || hasGeoDbTake || previewDbTake
     /** geo는 limit 그대로, 미리보기는 over-fetch 후 score (urgent·updatedAt 이후 정렬 여유) */
-    const dbTake = applyDbTake
-      ? previewDbTake
-        ? Math.min(200, Math.max(limit * 4, 80))
-        : limit
-      : undefined
+    const dbTake = !applyDbTake
+      ? undefined
+      : isHubFullCatalog
+        ? limit
+        : previewDbTake
+          ? Math.min(200, Math.max(limit * 4, 80))
+          : limit
     const productRows = await prisma.product.findMany({
       where: {
         registrationStatus: 'registered',

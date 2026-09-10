@@ -15,6 +15,7 @@ import type { CatalogBucketCounts, CatalogKycByPlanName, CatalogProductListRow }
 import type { KycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
 
 // REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]: client paginated catalog — manifest
+// REGRESSION-FREEZE[esim-catalog-bootstrap-client-recover]: SSR fail → client bootstrap — manifest
 
 type BucketState = {
   items: CatalogProductListRow[];
@@ -34,6 +35,13 @@ type ApiPayload = {
   error?: string;
 };
 
+type BootstrapApiPayload = {
+  ok?: boolean;
+  bucketCounts?: CatalogBucketCounts;
+  kycByPlanName?: CatalogKycByPlanName;
+  error?: string;
+};
+
 function emptyBucketState(): BucketState {
   return { items: [], total: 0, loading: false, loadingMore: false, error: null };
 }
@@ -47,10 +55,12 @@ type Props = {
 export default function CatalogPageClient({
   initialBucketCounts,
   initialKycByPlanName,
-  bootstrapError,
+  bootstrapError: initialBootstrapError,
 }: Props) {
-  const [bucketCounts] = useState<CatalogBucketCounts | null>(initialBucketCounts);
-  const [kycByPlanName] = useState<CatalogKycByPlanName | null>(initialKycByPlanName);
+  const [bucketCounts, setBucketCounts] = useState<CatalogBucketCounts | null>(initialBucketCounts);
+  const [kycByPlanName, setKycByPlanName] = useState<CatalogKycByPlanName | null>(initialKycByPlanName);
+  const [bootstrapError, setBootstrapError] = useState(initialBootstrapError);
+  const [bootstrapRecovering, setBootstrapRecovering] = useState(false);
   const [bucketState, setBucketState] = useState<Record<CatalogBucketKey, BucketState>>(() =>
     Object.fromEntries(CATALOG_BUCKET_ORDER.map((k) => [k, emptyBucketState()])) as Record<
       CatalogBucketKey,
@@ -106,6 +116,32 @@ export default function CatalogPageClient({
     }
   }, []);
 
+  const recoverBootstrap = useCallback(async () => {
+    setBootstrapRecovering(true);
+    try {
+      const res = await fetch("/api/bongsim/catalog-bootstrap", {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+      });
+      const json = (await res.json()) as BootstrapApiPayload;
+      if (!res.ok || !json.ok || !json.bucketCounts) {
+        throw new Error(json.error ?? "bootstrap_failed");
+      }
+      setBucketCounts(json.bucketCounts);
+      setKycByPlanName(json.kycByPlanName ?? null);
+      setBootstrapError(null);
+    } catch {
+      // keep bootstrapError; user can retry
+    } finally {
+      setBootstrapRecovering(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!bootstrapError) return;
+    void recoverBootstrap();
+  }, [bootstrapError, recoverBootstrap]);
+
   useEffect(() => {
     if (bootstrapError) return;
     for (const bucket of CATALOG_BUCKET_ORDER) {
@@ -128,13 +164,24 @@ export default function CatalogPageClient({
           <main className="mx-auto max-w-3xl px-4 py-10">
             <h1 className="text-lg font-semibold text-slate-900">요금제 목록</h1>
             <p className="mt-3 text-sm text-slate-600">
-              {bootstrapError === "db_unconfigured"
-                ? "DATABASE_URL이 설정되지 않았거나 DB에 연결할 수 없습니다."
-                : bootstrapError === "connection_timeout"
-                  ? "일시적으로 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
-                  : "목록을 불러오지 못했습니다."}
+              {bootstrapRecovering
+                ? "목록을 다시 불러오는 중…"
+                : bootstrapError === "db_unconfigured"
+                  ? "DATABASE_URL이 설정되지 않았거나 DB에 연결할 수 없습니다."
+                  : bootstrapError === "connection_timeout"
+                    ? "일시적으로 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
+                    : "목록을 불러오지 못했습니다."}
             </p>
-            <Link href={bongsimPath()} className="mt-6 inline-block text-sm text-teal-800 underline">
+            {!bootstrapRecovering ? (
+              <button
+                type="button"
+                onClick={() => void recoverBootstrap()}
+                className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-900"
+              >
+                다시 시도
+              </button>
+            ) : null}
+            <Link href={bongsimPath()} className="mt-6 block text-sm text-teal-800 underline">
               홈으로
             </Link>
           </main>

@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import Header from './components/Header'
 import { HomeHubCardDebugServerPanel } from './components/home/HomeHubCardDebugServerPanel'
 import { getCachedHomeHubTravelCardCover } from '@/lib/home-page-data-cached'
@@ -21,8 +22,11 @@ import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-/** 5분 ISR — request headers 미사용 → CDN/Full Route Cache 가능. 모바일은 middleware가 `/m`으로 rewrite. */
-export const dynamic = 'force-static'
+/**
+ * build 시 shouldSkipDbAtBuild → 빈 시즌/상품 셸이 Full Route Cache에 박히면
+ * 배포 후 수 분간 리스트·히어로가 비어 보인다 (business empty-poison 동일).
+ * REGRESSION-FREEZE[home-ssg-empty-poison]: connection() — manifest
+ */
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,6 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** 메인 PC 트리 — 모바일 UA는 middleware rewrite → `app/m/page.tsx` */
 export default async function Home() {
+  // REGRESSION-FREEZE[home-ssg-empty-poison]: request-time render — manifest
+  await connection()
   // REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]: prod skips product_pool cover scan — manifest
   // REGRESSION-FREEZE[home-single-device-ssr]: desktop tree only; mobile at /m — manifest
   let overseasCover: Awaited<ReturnType<typeof getCachedHomeHubTravelCardCover>> = null

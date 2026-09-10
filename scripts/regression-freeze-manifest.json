@@ -3087,15 +3087,16 @@
         "prebuild",
         "ci"
       ],
-      "summary": "메인 — PC=/ · 모바일=/m rewrite 단일 트리 ISR (headers UA 금지)",
+      "summary": "메인 — PC=/ · 모바일=/m rewrite 단일 트리 (headers UA 금지). empty-poison 방지로 connection()",
       "checks": [
         {
           "file": "app/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[home-single-device-ssr]",
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "SeasonCurationHero",
             "revalidate = 300",
-            "force-static"
+            "await connection()"
           ],
           "mustNotInclude": [
             "await headers()",
@@ -3103,21 +3104,24 @@
             "HomeMobileHub",
             "isMobileUserAgent",
             "className=\"block lg:hidden\"",
-            "className=\"hidden lg:block\""
+            "className=\"hidden lg:block\"",
+            "force-static"
           ]
         },
         {
           "file": "app/m/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[home-single-device-ssr]",
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "HomeMobileHub",
             "revalidate = 300",
-            "force-static"
+            "await connection()"
           ],
           "mustNotInclude": [
             "await headers()",
             "from 'next/headers'",
-            "SeasonCurationHero"
+            "SeasonCurationHero",
+            "force-static"
           ]
         },
         {
@@ -12933,6 +12937,77 @@
       ]
     },
     {
+      "id": "home-ssg-empty-poison",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메인 홈 — build-skip 빈 시즌/상품 셸 Full Route Cache 고착 금지 (connection + season grid empty bypass)",
+      "checks": [
+        {
+          "file": "app/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
+            "await connection()"
+          ],
+          "mustNotInclude": [
+            "force-static"
+          ]
+        },
+        {
+          "file": "app/m/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
+            "await connection()"
+          ],
+          "mustNotInclude": [
+            "force-static"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
+            "shouldSkipDbAtBuild",
+            "readCachedArrayOrBypassEmpty",
+            "season-product-grid-pc-v2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "esim-catalog-bootstrap-client-recover",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM catalog — SSR bootstrap timeout/fail 시 클라이언트 bootstrap API로 복구 (빈 목록 고착 금지)",
+      "checks": [
+        {
+          "file": "app/travel/esim/catalog/CatalogPageClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-catalog-bootstrap-client-recover]",
+            "/api/bongsim/catalog-bootstrap",
+            "recoverBootstrap"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/catalog-bootstrap/route.ts",
+          "mustInclude": [
+            "loadCatalogPageBootstrapCached",
+            "bongsim.catalog-bootstrap"
+          ]
+        },
+        {
+          "file": "app/travel/esim/catalog/page.tsx",
+          "mustInclude": [
+            "await connection()",
+            "loadCatalogPageBootstrapCached"
+          ]
+        }
+      ]
+    },
+    {
       "id": "business-training-programs-empty-poison",
       "tier": [
         "prebuild",
@@ -18102,6 +18177,27 @@
       ],
       "vitestSuites": [
         "lib/products-browse-hub-query.test.ts"
+      ]
+    },
+    {
+      "id": "browse-hub-catalog-db-take",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "해외 허브 hubCatalog findMany — take=limit 필수 (take 없으면 statement_timeout으로 목록 영구 로딩)",
+      "checks": [
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-hub-catalog-db-take]",
+            "isHubFullCatalog",
+            "applyDbTake = isHubFullCatalog || hasGeoDbTake || previewDbTake"
+          ],
+          "mustNotInclude": [
+            "applyDbTake = !isHubFullCatalog &&"
+          ]
+        }
       ]
     },
     {

@@ -2,12 +2,14 @@
  * PC 메인 — 시즌 큐레이션 연결 상품 + 동일 도시·국가 등록 상품.
  */
 import { unstable_cache } from 'next/cache'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getCachedSeasonLinkedProductIds } from '@/lib/season-curation-content'
 import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
+import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 
 function startOfTodayKst(): Date {
@@ -146,10 +148,12 @@ async function loadSeasonProductGridUncached(): Promise<ResultItem[]> {
 }
 
 export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
+  // REGRESSION-FREEZE[home-ssg-empty-poison]: build skip outside cache + empty bypass — manifest
+  if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    ['season-product-grid-pc-v1'],
+    ['season-product-grid-pc-v2'],
     { revalidate: 21_600 },
   )
-  return run()
+  return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())
 }

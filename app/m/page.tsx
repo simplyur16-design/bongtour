@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import Header from '@/app/components/Header'
 import HomeMobileHub from '@/app/components/home/HomeMobileHub'
 import EsimCoralStrip from '@/app/components/EsimCoralStrip'
@@ -15,8 +16,10 @@ import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
-/** 모바일 홈 — URL은 middleware rewrite로 `/` 유지. request headers 미사용 ISR. */
-export const dynamic = 'force-static'
+/**
+ * 모바일 홈 — URL은 middleware rewrite로 `/` 유지.
+ * REGRESSION-FREEZE[home-ssg-empty-poison]: connection() — PC 홈과 동일 empty-poison 방지 — manifest
+ */
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,6 +37,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // REGRESSION-FREEZE[home-single-device-ssr]: mobile tree at /m — manifest
 export default async function HomeMobile() {
+  // REGRESSION-FREEZE[home-ssg-empty-poison]: request-time render — manifest
+  await connection()
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />
