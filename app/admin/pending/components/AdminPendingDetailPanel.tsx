@@ -100,6 +100,9 @@ type ProductDetail = {
   destination: string | null
   primaryDestination?: string | null
   destinationRaw?: string | null
+  /** 등록대기 키워드·국가↔일정 검증용 (GET /api/admin/products/[id]) */
+  // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: ProductDetail.countryKey — manifest
+  countryKey?: string | null
   productType?: string | null
   travelScope?: string | null
   listingKind?: string | null

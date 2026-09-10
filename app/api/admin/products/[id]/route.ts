@@ -153,6 +153,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
         destination: true,
         destinationRaw: true,
         primaryDestination: true,
+        // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: admin detail returns countryKey — manifest
+        countryKey: true,
         supplierGroupId: true,
         productType: true,
         airtelHotelInfoJson: true,
@@ -960,6 +962,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         destination: true,
         destinationRaw: true,
         primaryDestination: true,
+        // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: admin detail returns countryKey — manifest
+        countryKey: true,
         supplierGroupId: true,
         productType: true,
         airtelHotelInfoJson: true,

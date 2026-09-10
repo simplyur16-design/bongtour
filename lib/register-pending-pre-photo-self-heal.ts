@@ -315,12 +315,12 @@ export async function healPendingRegisterPrePhoto(
           })
           verifyRows = scrub.rows.map((h) => ({
             day: Number(h.day),
-            title: h.title,
-            description: h.description,
-            routeText: h.routeText,
-            imageKeyword: h.imageKeyword,
-            imageKeyword2: h.imageKeyword2,
-            imageUrl: h.imageUrl,
+            title: h.title ?? null,
+            description: h.description ?? null,
+            routeText: h.routeText ?? null,
+            imageKeyword: h.imageKeyword ?? null,
+            imageKeyword2: h.imageKeyword2 ?? null,
+            imageUrl: h.imageUrl ?? null,
           }))
           scheduleChanged = true
           healNotes.push({

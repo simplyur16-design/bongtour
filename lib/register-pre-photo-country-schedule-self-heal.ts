@@ -228,7 +228,7 @@ export async function rematerializePendingProductCountryGeo(
     null
   const geoInput = {
     title: args.title,
-    originSource: args.originSource ?? null,
+    originSource: String(args.originSource ?? ''),
     destination: placeDest || clusterNudge?.label || null,
     destinationRaw: placeDest || clusterNudge?.label || null,
     primaryDestination: placeDest || clusterNudge?.label || null,

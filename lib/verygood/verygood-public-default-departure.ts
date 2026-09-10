@@ -1,9 +1,13 @@
 /**
- * 참좋은(verygoodtour) 공개 상세 — 대표 출발 행: **KST 오늘+3일 이후** 출발일만 두고 `prices` 중
- * 성인가 최저 → 동가 시 예약가능(마감 아님) 우선 → 더 빠른 출발일 → id.
+ * 참좋은(verygoodtour) 공개 상세 — 대표 출발 행:
+ * scrape 하한(KST 오늘+3)과 공개 예약가능 하한 중 **더 늦은 날** 이후,
+ * 성인가>0·마감 아님 행 중 **성인가 최저** (동가 → 예약가능 점수 → 더 빠른 출발일 → id).
  */
+import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 import { getPriceAdult } from '@/lib/price-utils'
 import { scrapeCalendarVerygoodDepartureFloorYmd } from '@/lib/scrape-date-bounds'
+
+// REGRESSION-FREEZE[public-default-departure-nearest]: verygood 하한 이후 최저가 — manifest
 
 function verygoodReservationOpenScore(row: { status?: string }): number {
   const s = String(row.status ?? '').trim()
@@ -17,9 +21,12 @@ function publicDateKeyFromRowDate(d: string): string {
 }
 
 export function pickVerygoodPublicDefaultDepartureRow<T extends { date: string; id: string; status?: string }>(
-  rows: T[]
+  rows: T[],
+  baseDate: Date = new Date(),
 ): T | null {
-  const floor = scrapeCalendarVerygoodDepartureFloorYmd()
+  const floorPublic = getPublicBookableMinYmd(baseDate)
+  const floorVg = scrapeCalendarVerygoodDepartureFloorYmd()
+  const floor = floorVg > floorPublic ? floorVg : floorPublic
   const pool = rows.filter((r) => {
     if (getPriceAdult(r as never) <= 0) return false
     return publicDateKeyFromRowDate(r.date) >= floor

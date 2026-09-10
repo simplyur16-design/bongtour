@@ -27,6 +27,7 @@ import {
   pickBookableRowForDateKey,
   pickGloballyCheapestDepartureRowByAdultPrice,
 } from '@/lib/public-default-departure-selection'
+import { getPublicBookableMinYmd } from '@/lib/public-bookable-date'
 import {
   advisoryForDepartureRow,
   findPriceRowForDateKey,
@@ -144,7 +145,7 @@ export default function TravelProductDetail({
 
   useEffect(() => {
     if (departureUserPinned) return
-    if (initialDepartureYmd) {
+    if (initialDepartureYmd && initialDepartureYmd >= getPublicBookableMinYmd()) {
       const row = mergedPrices.find((p) => toDateKey(p.date) === initialDepartureYmd)
       if (row) {
         setSelectedDepartureRowId(row.id)

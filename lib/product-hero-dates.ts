@@ -143,6 +143,7 @@ export function resolveHeroTripDates(opts: {
 /**
  * 달력 선택 출발일을 히어로·스티키 출발/귀국 표시 SSOT로 고정.
  * facts·본문에 다른 날짜가 있어도 요약 줄은 선택한 출발일·일정 일수 기준.
+ * REGRESSION-FREEZE[public-default-departure-nearest]: calendarDep > stale factsDep — manifest
  */
 export function buildCalendarSsotHeroTripDisplays(opts: {
   selectedDate: string | null
@@ -156,29 +157,33 @@ export function buildCalendarSsotHeroTripDisplays(opts: {
   const calendarDep = cal && /^\d{4}-\d{2}-\d{2}$/.test(cal) ? cal : null
   const factsDepIso = departureIsoFromAlignedFacts(opts.departureFacts ?? null)
   const factsReturn = returnFromListFacts(opts.departureFacts ?? null)
+  // 달력 SSOT: 선택일이 있으면 facts의 등록 당시(과거) 날짜로 덮지 않는다.
+  const depForReturn = calendarDep ?? factsDepIso
   const retFromDuration =
-    (factsDepIso ?? calendarDep) && opts.packageTotalDays > 0
-      ? computeReturnDate(factsDepIso ?? calendarDep!, opts.packageTotalDays)
-      : null
+    depForReturn && opts.packageTotalDays > 0 ? computeReturnDate(depForReturn, opts.packageTotalDays) : null
+  const factsReturnOk =
+    factsReturn.iso && calendarDep
+      ? factsReturn.iso >= calendarDep
+      : Boolean(factsReturn.iso)
   const retIso =
-    factsReturn.iso ??
+    (factsReturnOk ? factsReturn.iso : null) ??
     opts.heroResolved.returnIso ??
     retFromDuration ??
     opts.computedReturnDate ??
     null
+
+  if (calendarDep) {
+    const departureDisplay = formatHeroDateKorean(calendarDep) ?? calendarDep
+    const returnDisplay =
+      opts.heroResolved.returnDisplayOverride ?? (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
+    return { departureDisplay, returnDisplay }
+  }
 
   if (factsDepIso) {
     const departureDisplay = formatHeroDateKorean(factsDepIso) ?? factsDepIso
     const returnDisplay =
       opts.heroResolved.returnDisplayOverride ??
       (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
-    return { departureDisplay, returnDisplay }
-  }
-
-  if (calendarDep) {
-    const departureDisplay = formatHeroDateKorean(calendarDep) ?? calendarDep
-    const returnDisplay =
-      opts.heroResolved.returnDisplayOverride ?? (retIso ? formatHeroDateKorean(retIso) ?? retIso : null)
     return { departureDisplay, returnDisplay }
   }
 

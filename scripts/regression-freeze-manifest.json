@@ -14570,6 +14570,21 @@
           "mustInclude": [
             "countryKey: p.countryKey"
           ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-product-country-schedule]",
+            "countryKey?: string | null",
+            "countryKey: detail?.countryKey"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-product-country-schedule]",
+            "countryKey: true"
+          ]
         }
       ],
       "vitestSuites": [
@@ -14674,6 +14689,41 @@
       ],
       "vitestSuites": [
         "lib/register-pre-photo-product-country-schedule-guard.test.ts"
+      ]
+    },
+    {
+      "id": "public-default-departure-nearest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공개 대표 출발 = 예약가능 하한 이후 성인가 최저(과거 출발 제외)",
+      "checks": [
+        {
+          "file": "lib/public-default-departure-selection.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "filterPublicBookableDepartureRows",
+            "getPublicBookableMinYmd"
+          ]
+        },
+        {
+          "file": "lib/verygood/verygood-public-default-departure.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "getPublicBookableMinYmd"
+          ]
+        },
+        {
+          "file": "lib/product-hero-dates.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "달력 SSOT"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/public-default-departure-selection.test.ts"
       ]
     },
     {
