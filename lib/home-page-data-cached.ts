@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import {
   pickHomeHubTravelCardCover,
   type HomeHubTravelCardCoverPick,
@@ -18,10 +19,17 @@ export function getCachedHomeHubTravelCardCover(
   })()
 }
 
-export function getCachedOverseasHomeReviewSections(): Promise<{
+/**
+ * build SSG에서 후기 DB(Supabase) 조회 금지 — 60s page timeout / statement timeout 방지.
+ * REGRESSION-FREEZE[build-ssg-skip-db]: home reviews skip outside cache — manifest
+ */
+export async function getCachedOverseasHomeReviewSections(): Promise<{
   packageReviews: ReviewCardModel[]
   groupReviews: ReviewCardModel[]
 }> {
+  if (shouldSkipDbAtBuild()) {
+    return { packageReviews: [], groupReviews: [] }
+  }
   return unstable_cache(() => listOverseasHomeReviewSections(), ['home-overseas-review-sections-v1'], {
     revalidate: HOME_PAGE_DATA_REVALIDATE_SEC,
   })()

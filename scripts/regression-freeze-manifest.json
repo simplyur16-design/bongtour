@@ -12892,6 +12892,35 @@
           ]
         },
         {
+          "file": "lib/home-page-data-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[build-ssg-skip-db]",
+            "shouldSkipDbAtBuild",
+            "getCachedOverseasHomeReviewSections"
+          ]
+        },
+        {
+          "file": "app/travel/esim/catalog/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[build-ssg-skip-db]",
+            "await connection()"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-catalog-page-bootstrap-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[build-ssg-skip-db]",
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/load-recommend-bootstrap-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[build-ssg-skip-db]",
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
           "file": "next.config.js",
           "mustInclude": [
             "staticGenerationMaxConcurrency"

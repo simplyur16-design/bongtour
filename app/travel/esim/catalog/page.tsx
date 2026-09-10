@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import CatalogPageClient from "./CatalogPageClient";
 import { loadCatalogPageBootstrapCached } from "@/lib/bongsim/data/load-catalog-page-bootstrap-cached";
 
 // REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]: thin SSR shell — manifest
+// REGRESSION-FREEZE[build-ssg-skip-db]: catalog connection() — build SSG bongsim pool timeout 방지 — manifest
 
 export const metadata: Metadata = {
   title: "eSIM 요금제 목록 | Bong투어 eSIM",
@@ -18,6 +20,8 @@ export const metadata: Metadata = {
 };
 
 export default async function CatalogPage() {
+  // next build SSG에서 bongsim pool connection_timeout(60s)로 빌드가 깨지지 않게 요청 시점으로 미룸
+  await connection();
   const bootstrap = await loadCatalogPageBootstrapCached();
 
   return (

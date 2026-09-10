@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { shouldSkipDbAtBuild } from "@/lib/build-time-db";
 import {
   listCatalogBucketCounts,
   listCatalogKycByPlanName,
@@ -11,6 +12,7 @@ import {
 
 // REGRESSION-FREEZE[bongsim-catalog-client-pagination-p4]: catalog bootstrap + paginated cache — manifest
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: catalog bootstrap 실패 결과 캐시 금지 — manifest
+// REGRESSION-FREEZE[build-ssg-skip-db]: catalog bootstrap skip at build — manifest
 
 export const CATALOG_LIST_REVALIDATE_SEC = 120;
 
@@ -34,6 +36,10 @@ async function fetchCatalogBootstrapOrThrow(): Promise<CatalogPageBootstrap> {
 }
 
 export async function loadCatalogPageBootstrapCached(): Promise<CatalogPageBootstrapResult> {
+  // 페이지가 connection()으로 동적화되어도 방어 — 캐시에 빈/실패 결과가 박히지 않게 바깥에서 skip
+  if (shouldSkipDbAtBuild()) {
+    return { ok: false, reason: "db_unconfigured" };
+  }
   try {
     const data = await unstable_cache(fetchCatalogBootstrapOrThrow, ["bongsim-catalog-page-bootstrap-v2"], {
       revalidate: CATALOG_LIST_REVALIDATE_SEC,

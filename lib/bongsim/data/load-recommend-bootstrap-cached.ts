@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { shouldSkipDbAtBuild } from "@/lib/build-time-db";
 import {
   loadBongsimRecommendBootstrap,
   type BongsimRecommendBootstrapResult,
@@ -7,6 +8,7 @@ import {
 export const BONGSIM_RECOMMEND_BOOTSTRAP_REVALIDATE_SEC = 120;
 
 // REGRESSION-FREEZE[bongsim-catalog-list-perf]: recommend bootstrap 실패 결과 캐시 금지 — manifest
+// REGRESSION-FREEZE[build-ssg-skip-db]: recommend bootstrap skip at build — manifest
 
 async function fetchBootstrapOrThrow(): Promise<Extract<BongsimRecommendBootstrapResult, { ok: true }>> {
   const res = await loadBongsimRecommendBootstrap();
@@ -15,6 +17,9 @@ async function fetchBootstrapOrThrow(): Promise<Extract<BongsimRecommendBootstra
 }
 
 export async function loadBongsimRecommendBootstrapCached(): Promise<BongsimRecommendBootstrapResult> {
+  if (shouldSkipDbAtBuild()) {
+    return { ok: true, data: { countries: [], catalogMeta: {}, heroMap: {} } };
+  }
   try {
     return await unstable_cache(fetchBootstrapOrThrow, ["bongsim-recommend-bootstrap-v2"], {
       revalidate: BONGSIM_RECOMMEND_BOOTSTRAP_REVALIDATE_SEC,
