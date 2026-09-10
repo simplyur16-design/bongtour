@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import Header from '@/app/components/Header'
 import OurTravelHero from '@/app/travel/overseas/private-trip/_components/OurTravelHero'
 import PrivateTripLanding from '@/app/travel/overseas/private-trip/_components/PrivateTripLanding'
@@ -6,6 +7,7 @@ import {
   getCachedPrivateTripHeroUrls,
   getCachedPrivateTripReviews,
 } from '@/lib/private-trip-page-cache'
+import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import {
   fetchPublishedOverseasEditorials,
   prioritizeEditorialsByRegionAndCountry,
@@ -44,6 +46,8 @@ const defaultMetadata: Metadata = {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  // REGRESSION-FREEZE[private-trip-ssg-build-timeout]: no editorial/OG DB at build — manifest
+  if (shouldSkipDbAtBuild()) return defaultMetadata
   try {
     const editorialAll = await fetchPublishedOverseasEditorials()
     const prioritized = prioritizeEditorialsByRegionAndCountry(editorialAll, null, null)
@@ -85,6 +89,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 300
 
 export default async function PrivateTripPage() {
+  /**
+   * next build SSG가 리뷰/히어로 Supabase에서 60s×3 타임아웃 → 전체 빌드 실패.
+   * REGRESSION-FREEZE[private-trip-ssg-build-timeout]: connection() — manifest
+   */
+  await connection()
   const [groupMeetingReviews, heroImageUrls] = await Promise.all([
     getCachedPrivateTripReviews(),
     getCachedPrivateTripHeroUrls(),

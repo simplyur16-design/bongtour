@@ -12976,6 +12976,38 @@
       ]
     },
     {
+      "id": "private-trip-ssg-build-timeout",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "우리여행 private-trip — next build SSG가 Supabase/리뷰에서 60s×3 타임아웃으로 전체 빌드 실패하지 않게 connection + build DB skip",
+      "checks": [
+        {
+          "file": "app/travel/overseas/private-trip/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[private-trip-ssg-build-timeout]",
+            "await connection()",
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
+          "file": "lib/private-trip-page-cache.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[private-trip-ssg-build-timeout]",
+            "shouldSkipDbAtBuild"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[private-trip-ssg-build-timeout]",
+            "shouldSkipDbAtBuild"
+          ]
+        }
+      ]
+    },
+    {
       "id": "esim-catalog-bootstrap-client-recover",
       "tier": [
         "prebuild",

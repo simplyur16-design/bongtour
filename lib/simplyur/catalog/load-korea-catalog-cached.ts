@@ -3,6 +3,7 @@ import {
   healBongsimPgPoolForCatalog,
   shouldSkipCatalogHealBecauseSaturated,
 } from "@/lib/bongsim/db/pool";
+import { shouldSkipDbAtBuild } from "@/lib/build-time-db";
 import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { ProductOption } from "@/lib/bongsim/recommend/product-option";
 import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
@@ -19,6 +20,7 @@ import {
 // REGRESSION-FREEZE[simplyur-catalog-pool-resilience]: DB 실패는 캐시하지 않음(throw)·locale 공유 — manifest
 // REGRESSION-FREEZE[bongsim-caucasus-transit-pack]: korea products cache v2 after plan_name SQL — manifest
 // REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: detail reads simplyur-korea-products-v2 first — manifest
+// REGRESSION-FREEZE[private-trip-ssg-build-timeout]: build skip korea catalog DB — manifest
 
 const CATALOG_REVALIDATE_SEC = 120;
 
@@ -28,6 +30,8 @@ const KOREA_PRODUCTS_CACHE_KEY = "simplyur-korea-products-v2";
 
 /** unstable_cache는 반환값만 캐시한다. 실패를 throw 해야 120초 동안 오류가 굳지 않는다. */
 async function loadSimplyurKoreaProductsOrThrow(): Promise<ProductOption[]> {
+  // next build SSG — statement timeout / pool heal 폭주 방지 (빈 목록, throw 금지)
+  if (shouldSkipDbAtBuild()) return [];
   const res = await loadSimplyurKoreaActiveProducts();
   if (!res.ok) throw new Error(`${CATALOG_FAILURE_PREFIX}${res.reason}`);
   return res.products;
