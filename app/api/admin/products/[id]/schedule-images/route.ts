@@ -121,6 +121,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         listingKind: true,
         productType: true,
         sportsThemeTag: true,
+        countryKey: true,
       },
     })
     if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -202,6 +203,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         schedule: product.schedule,
         destination: product.destination,
         title: product.title,
+        countryKey: product.countryKey,
       })
       if (!keywordVerify.ok) {
         return NextResponse.json(

@@ -20,6 +20,10 @@ import {
   inferRegisterFactProductKindFromOriginUrl,
   registerFactProductKindNote,
 } from '@/lib/register-facts/product-kind'
+import { collectNaeiltourProgramProcessDeparturesForUrl } from '@/lib/naeiltour-departures'
+import { naeiltourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
+// REGRESSION-FREEZE[naeiltour-program-process-departures]: facts priceRows — manifest
 
 function inferNaeiltourRegisterFactProductKind(title: string, originUrl: string): ReturnType<typeof inferRegisterFactProductKindFromOriginUrl> {
   const fromTitle = inferRegisterFactProductKindFromListingHaystack(`${title}\n${originUrl}`)
@@ -60,6 +64,13 @@ export async function collectNaeiltourRegisterFacts(originUrl: string): Promise<
       ? ['노쇼핑']
       : []
 
+  const fromYmd = kstTodayYmd()
+  const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+  const calRows = await collectNaeiltourProgramProcessDeparturesForUrl(url, { fromYmd, toYmd })
+  const priceRows = calRows
+    .map((r) => naeiltourCalendarRowToFactPriceRow(r))
+    .filter((r): r is NonNullable<typeof r> => r != null)
+
   return {
     supplier: 'naeiltour',
     fetchedAt: new Date().toISOString(),
@@ -74,12 +85,13 @@ export async function collectNaeiltourRegisterFacts(originUrl: string): Promise<
     shoppingPlaces,
     scheduleDays: naeiltourParsedScheduleToFactDays(parsedDays),
     flights: flightStructuredToLegs(flightStructured),
-    priceRows: [],
+    priceRows,
     notes: [
       'source=naeiltour_view_asp_tabs',
       `goodCd=${bundle.goodCd}`,
       bundle.eventSeq ? `eventSeq=${bundle.eventSeq}` : 'eventSeq=',
       `schedule_days=${parsedDays.length}`,
+      `price_rows=${priceRows.length}`,
       seats.remainingSeatsCount != null ? `remainingSeats=${seats.remainingSeatsCount}` : '',
       seats.minimumDepartureCount != null ? `minDeparture=${seats.minimumDepartureCount}` : '',
       optShop.hasOptionalTour ? 'hasOptionalTour=1' : 'hasOptionalTour=0',

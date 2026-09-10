@@ -775,6 +775,7 @@ export default function AdminPendingDetailPanel({
         schedule: detail?.schedule,
         destination: detail?.destination,
         title: detail?.title,
+        countryKey: detail?.countryKey,
       }),
     [
       detail?.listingKind,
@@ -783,6 +784,7 @@ export default function AdminPendingDetailPanel({
       detail?.destination,
       detail?.title,
       detail?.schedule,
+      detail?.countryKey,
     ],
   )
   const keywordsVerified = keywordVerify.ok

@@ -25,12 +25,14 @@ export type RegisterPrePhotoPendingQueueProductRow = {
   schedule: string | null
   destination?: string | null
   title?: string | null
+  countryKey?: string | null
 }
 
 export function productRowIsLiveRegisterPendingQueue(
   p: RegisterPrePhotoPendingQueueProductRow,
 ): boolean {
   // REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐도 title·dest 포함 공통 검증 — manifest
+  // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: countryKey 교차 — manifest
   const live = verifyRegisterPrePhotoForStoredProduct(p)
   return isRegisterPrePhotoPendingQueueReady(live)
 }
@@ -47,6 +49,7 @@ export async function countLiveRegisterPrePhotoPendingQueue(): Promise<number> {
         schedule: true,
         destination: true,
         title: true,
+        countryKey: true,
       },
     }),
   )

@@ -497,7 +497,7 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('finland', '핀란드', { aliases: ['finland', '핀란드', '헬싱키'] }),
           L('denmark', '덴마크', { aliases: ['denmark', '덴마크', '코펜하겐'] }),
           L('sweden', '스웨덴', { aliases: ['sweden', '스웨덴', '스톡홀름'] }),
-          L('baltic3', '발트 3국', { aliases: ['발트', '리투아니아', '에스토니아', '라트비아', '빌니우스', '탈린', '리가'] }),
+          L('baltic3', '발트 3국', { aliases: ['발트', '발틱', '발틱3국', '발트3국', '리투아니아', '에스토니아', '라트비아', '빌니우스', '탈린', '리가', 'baltic'] }),
           L('iceland', '아이슬란드', { aliases: ['iceland', '아이슬란드', '레이캬비크'] }),
         ],
         { aliases: ['북유럽', '발트'] }

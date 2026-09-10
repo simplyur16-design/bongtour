@@ -14500,15 +14500,180 @@
         "prebuild",
         "ci"
       ],
-      "summary": "내일투어 confirm calendar 가격 주입 stub",
+      "summary": "내일투어 confirm program_process 출발가 주입",
       "checks": [
         {
           "file": "lib/naeiltour-register-api-price-inject.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-register-api-price-inject]",
-            "injectNaeiltourApiDeparturePricesIfMissing"
+            "injectNaeiltourApiDeparturePricesIfMissing",
+            "collectNaeiltourProgramProcessDeparturesForUrl"
           ]
         }
+      ]
+    },
+    {
+      "id": "naeiltour-program-process-departures",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 program_process 월별 출발가 파서·facts",
+      "checks": [
+        {
+          "file": "lib/naeiltour-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-program-process-departures]",
+            "parseNaeiltourProgramProcessListHtml",
+            "collectNaeiltourProgramProcessDeparturesForGoodCd"
+          ]
+        },
+        {
+          "file": "lib/register-facts/naeiltour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-program-process-departures]",
+            "collectNaeiltourProgramProcessDeparturesForUrl",
+            "naeiltourCalendarRowToFactPriceRow"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-product-country-schedule-guard.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-product-country-schedule",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 countryKey≠일정 나라 검증 실패",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-product-country-schedule-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-product-country-schedule]",
+            "productCountryScheduleMismatchIssues",
+            "product_country_schedule_mismatch"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-product-country-schedule]",
+            "productCountryScheduleMismatchIssues",
+            "countryKey"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "countryKey: p.countryKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-product-country-schedule-guard.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-country-schedule-self-heal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 countryKey≠일정 → geo 재부여 셀프힐",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-country-schedule-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]",
+            "rematerializePendingProductCountryGeo",
+            "scrubPoisonedScheduleDayTitlesForCountryKey"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]",
+            "rematerializePendingProductCountryGeo",
+            "countryKey: countryKeyForVerify"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-product-country-schedule-guard.test.ts"
+      ]
+    },
+    {
+      "id": "register-geo-region-clusters",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "발틱≠poland·권역 클러스터 게이트·힐",
+      "checks": [
+        {
+          "file": "lib/register-geo-region-clusters.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-geo-region-clusters]",
+            "detectActiveRegisterGeoRegionCluster",
+            "countryKeyIncompatibleWithRegionCluster",
+            "nordic-baltic"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-product-country-schedule-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-geo-region-clusters]",
+            "countryKeyIncompatibleWithRegionCluster"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-country-schedule-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-geo-region-clusters]",
+            "regionClusterHealNudge"
+          ]
+        },
+        {
+          "file": "lib/product-master-mapping.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-geo-region-clusters]",
+            "baltic3"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-product-country-schedule-guard.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-day-title-hub-poison",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 day title 쿠알라·상세보기 독 검증·힐",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-day-title-hub-poison]",
+            "scheduleDayTitlePoisonIssues",
+            "title_hub_poison"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-day-title-hub-poison]",
+            "scrubPoisonedScheduleDayTitlesForCountryKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-product-country-schedule-guard.test.ts"
       ]
     },
     {

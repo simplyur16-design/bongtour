@@ -5,6 +5,7 @@
  */
 import type { KyowontourCalendarRow } from '@/lib/kyowontour-departures'
 import type { LottetourCalendarRow } from '@/lib/lottetour-departures'
+import type { NaeiltourCalendarRow } from '@/lib/naeiltour-departures'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import type { RegisterDepartureLike } from '@/lib/register-departure-input-to-parsed-price'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
@@ -84,5 +85,22 @@ export function lottetourCalendarRowToFactPriceRow(row: LottetourCalendarRow): R
     seatCount: row.seatCount,
     minPax: null,
     carrierName: row.carrierText,
+  }
+}
+
+/** REGRESSION-FREEZE[naeiltour-program-process-departures]: fact price mapper — manifest */
+export function naeiltourCalendarRowToFactPriceRow(row: NaeiltourCalendarRow): RegisterFactPriceRow | null {
+  if (!row.departDate || row.adultPrice <= 0) return null
+  return {
+    departureDate: row.departDate,
+    adultPrice: row.adultPrice,
+    childPrice: null,
+    infantPrice: null,
+    supplierDepartureCode: row.eventSeq,
+    statusRaw: row.statusRaw,
+    seatsStatusRaw: row.seatsStatusRaw,
+    seatCount: row.seatCount,
+    minPax: null,
+    carrierName: row.carrierName,
   }
 }

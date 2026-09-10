@@ -367,8 +367,10 @@ export async function detectMultiCountryAutoPlan(
   /** 트리 클러스터 primary(latin-caribbean 등)는 Country 마스터 FK가 아니므로 foundKeys 포함 여부를 완화 */
   const primaryIsTreeClusterOnly =
     primaryMasterCountryKey === 'latin-caribbean' ||
-    primaryMasterCountryKey === 'central-asia' ||
+    primaryMasterCountryKey === 'nordic-baltic' ||
+    primaryMasterCountryKey === 'africa' ||
     primaryMasterCountryKey === 'caucasus' ||
+    primaryMasterCountryKey === 'central-asia' ||
     primaryMasterCountryKey === 'balkans' ||
     primaryMasterCountryKey === 'india-nepal-sri-bhutan' ||
     primaryMasterCountryKey === 'sea-multi'

@@ -11,6 +11,7 @@
  * REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: pooler 끊김은 재시도 후 저장 — manifest
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
  * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 제목 힐 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -23,6 +24,11 @@ import {
   probeRegisterScheduleImageUrl,
   type RegisterPrePhotoHealNote,
 } from '@/lib/register-pre-photo-self-heal'
+import {
+  pendingNeedsCountryScheduleGeoHeal,
+  rematerializePendingProductCountryGeo,
+  scrubPoisonedScheduleDayTitlesForCountryKey,
+} from '@/lib/register-pre-photo-country-schedule-self-heal'
 import {
   inferRegisterPendingDestinationFromTitle,
   mergeRegisterPrePhotoStampIntoRawMeta,
@@ -108,6 +114,7 @@ export async function healPendingRegisterPrePhoto(
       title: true,
       destination: true,
       originSource: true,
+      countryKey: true,
       schedule: true,
       bgImageUrl: true,
       listingKind: true,
@@ -172,7 +179,7 @@ export async function healPendingRegisterPrePhoto(
         /^(?:미입력|미지정|미정|상품명 없음)$/i.test(destLine) ||
         !isRegisterPrePhotoPlaceLikeDestination(destLine) ||
         hasSupplierHomepageForbiddenTitlePhrase(destLine) ||
-        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|잔여좌석|잔여석|단풍시즌|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정/i.test(
+        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|잔여좌석|잔여석|단풍시즌|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정|비자|미팅\s*관련|예약\s*시\s*참고|선착순|특가|추석연휴|챔피언십|월드투어|●/i.test(
           destLine,
         )
       const inferredDest = destNeedsInfer
@@ -188,6 +195,14 @@ export async function healPendingRegisterPrePhoto(
           : ''
       const nextDestination = inferredDest || destFromScrub
       const productDestination = nextDestination || (destNeedsInfer ? '' : product.destination)
+      const destinationToPersist = destNeedsInfer
+        ? String(nextDestination || productDestination || '')
+        : nextDestination
+          ? String(nextDestination)
+          : null
+      const destinationChanged =
+        destinationToPersist != null &&
+        String(destinationToPersist) !== String(product.destination ?? '')
 
       let next = rows
       let imageUrlCleared = 0
@@ -252,6 +267,70 @@ export async function healPendingRegisterPrePhoto(
         scheduleChanged = registerPendingScheduleJsonChanged(next, product.schedule) || imageUrlCleared > 0
       }
 
+      let countryKeyForVerify = product.countryKey ?? null
+      let geoRematerialized = false
+      // REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
+      if (
+        pendingNeedsCountryScheduleGeoHeal({
+          countryKey: countryKeyForVerify,
+          productTitle: titleForInfer,
+          productDestination,
+          rows: verifyRows,
+        })
+      ) {
+        const remat = await rematerializePendingProductCountryGeo(prisma, {
+          productId: product.id,
+          title: titleForInfer,
+          originSource: product.originSource,
+          productDestination,
+          previousCountryKey: countryKeyForVerify,
+          rows: verifyRows,
+          dryRun,
+        })
+        countryKeyForVerify = remat.geo.countryKey
+        geoRematerialized = remat.changed || Boolean(remat.geo.countryKey)
+      }
+
+      // day title 독은 geo 여부와 무관하게 항상 스크럽
+      // REGRESSION-FREEZE[register-pre-photo-day-title-hub-poison]: 쿠알라·상세보기 scrub — manifest
+      {
+        const scrub = scrubPoisonedScheduleDayTitlesForCountryKey({
+          countryKey: countryKeyForVerify,
+          rows: verifyRows.map((r) => ({
+            day: r.day,
+            title: r.title,
+            description: r.description,
+            routeText: r.routeText,
+            imageKeyword: r.imageKeyword,
+            imageKeyword2: r.imageKeyword2,
+            imageUrl: r.imageUrl,
+          })),
+        })
+        if (scrub.scrubbedDays.length > 0) {
+          const byDay = new Map(scrub.rows.map((r) => [Number(r.day), r]))
+          next = next.map((row) => {
+            const h = byDay.get(Number(row.day))
+            if (!h) return row
+            return { ...row, title: h.title }
+          })
+          verifyRows = scrub.rows.map((h) => ({
+            day: Number(h.day),
+            title: h.title,
+            description: h.description,
+            routeText: h.routeText,
+            imageKeyword: h.imageKeyword,
+            imageKeyword2: h.imageKeyword2,
+            imageUrl: h.imageUrl,
+          }))
+          scheduleChanged = true
+          healNotes.push({
+            day: scrub.scrubbedDays[0] ?? 0,
+            field: 'title',
+            reason: 'country_schedule_day_title_poison_scrub',
+          })
+        }
+      }
+
       const verify = verifyRegisterPrePhoto({
         lane,
         listingKind: product.listingKind,
@@ -259,6 +338,7 @@ export async function healPendingRegisterPrePhoto(
         sportsThemeTag: product.sportsThemeTag,
         productDestination,
         productTitle: titleForInfer,
+        countryKey: countryKeyForVerify,
         rows: verifyRows,
       })
       if (verify.ok) verified += 1
@@ -277,7 +357,8 @@ export async function healPendingRegisterPrePhoto(
         !stampChanged &&
         !statusChanged &&
         !titleChanged &&
-        !nextDestination &&
+        !destinationChanged &&
+        !geoRematerialized &&
         healNotes.length === 0
       ) {
         skippedUnchanged += 1
@@ -292,7 +373,10 @@ export async function healPendingRegisterPrePhoto(
               ...(scheduleChanged ? { schedule: nextJson } : {}),
               ...(statusChanged ? { registrationStatus: nextStatus } : {}),
               ...(titleChanged ? { title: cleanedTitle } : {}),
-              ...(nextDestination ? { destination: nextDestination } : {}),
+              ...(destinationChanged ? { destination: destinationToPersist } : {}),
+              ...(statusChanged && nextStatus === 'pending'
+                ? { rejectReason: null, rejectedAt: null }
+                : {}),
               rawMeta: nextRawMeta,
             },
           }),
@@ -313,7 +397,13 @@ export async function healPendingRegisterPrePhoto(
           }
         }
       }
-      if (scheduleChanged || healNotes.length > 0 || titleChanged || Boolean(nextDestination)) {
+      if (
+        scheduleChanged ||
+        healNotes.length > 0 ||
+        titleChanged ||
+        destinationChanged ||
+        geoRematerialized
+      ) {
         healed += 1
       }
       else if (!stampChanged && !statusChanged) skippedUnchanged += 1

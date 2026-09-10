@@ -300,8 +300,10 @@ function resolveTreeCountryAndCity(
       iceland: { c: 'iceland', cityKey: 'iceland-mix' },
     }
     if (nk === 'baltic3') {
+      // 발틱 3국은 단일 master(lithuania)로 내리지 않음 — Product.countryKey=nordic-baltic 유지
+      // REGRESSION-FREEZE[register-geo-region-clusters]: baltic3≠lithuania 강제 — manifest
       pushReason(reasons, 'multi_city_cluster')
-      return { masterCountryKey: 'lithuania', cityKey: null }
+      return { masterCountryKey: null, cityKey: null }
     }
     const hit = nkMap[nk]
     if (hit)

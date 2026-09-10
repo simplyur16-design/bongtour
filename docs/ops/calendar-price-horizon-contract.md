@@ -20,6 +20,7 @@
 | **verygoodtour** | 07:30 sweep — HXR·0건 시 E2E | opt-in 시 HXR only | E2E |
 | **lottetour** | 07:00 sweep — HXR·0건 시 E2E | opt-in 시 HXR only | 동일 |
 | **kyowontour** | 08:30 sweep — AJAX·0건 시 E2E | opt-in 시 AJAX only | 동일 |
+| **naeiltour** | register inject — `program_process.asp` 월별 성인가 (sweep 미연결) | — | 동일 HTTP |
 
 **Python E2E 배치 직접 호출 금지.** Node `calendar-scrape-horizon` / `calendar-scrape-modetour-api`는 sweep·관리자·opt-in 3h batch 전용.
 

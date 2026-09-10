@@ -60,6 +60,8 @@ import {
   collectRouteTextOrderedImageKeywords,
   collectRouteTextOrderedLandmarkKeywords,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
+import { productCountryScheduleMismatchIssues } from '@/lib/register-pre-photo-product-country-schedule-guard'
+// REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: countryKey≠일정 나라 — manifest
 
 function ownRouteHasKeyword(routeText: string | null | undefined, keyword: string): boolean {
   const nk = normScheduleImageKeywordKey(keyword)
@@ -481,7 +483,7 @@ function fitScheduleIssues(
 
 // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 마카오·남미 dest 제목 추론 — manifest
 const DEST_FROM_TITLE_RE =
-  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|토스카나|보르도|두바이|아부다비|고치|나가노|도야마/
+  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드/
 
 /** dest 미지정·항공권 등 비장소일 때만 — 제목에 나온 지명을 dest로 쓴다. 제목은 지어내지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
@@ -492,6 +494,9 @@ export function inferRegisterPendingDestinationFromTitle(title: string): string 
   if (m[0] === '이태리' || m[0] === '토스카나') return '이탈리아'
   if (m[0] === '남미') return '중남미'
   if (m[0] === '마카오') return '마카오'
+  if (m[0] === '발틱') return '발틱'
+  if (m[0] === '원가계') return '장가계'
+  if (m[0] === '북해도') return '홋카이도'
   return m[0]
 }
 
@@ -576,8 +581,46 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('destination_placeholder') ||
     issue.includes('description_filler_or_duplicate') ||
     issue.includes('description_repeated_closer') ||
+    issue.includes('product_country_schedule_mismatch') ||
+    issue.includes('title_hub_poison') ||
+    issue.includes('title_operational_placeholder') ||
     issue === 'schedule_empty'
   )
+}
+
+/** 귀국일 쿠알라룸푸르·상세보기 등 day title 독 — 등록대기 금지 */
+export function scheduleDayTitlePoisonIssues(
+  rows: readonly RegisterPrePhotoHealRow[],
+  countryKey?: string | null,
+): RegisterPrePhotoVerifyIssue[] {
+  const ck = String(countryKey ?? '').trim()
+  const issues: RegisterPrePhotoVerifyIssue[] = []
+  const maxDay = Math.max(0, ...rows.map((r) => Number(r.day) || 0))
+  for (const row of rows) {
+    const day = Number(row.day) || 0
+    if (day <= 0) continue
+    const title = String(row.title ?? '').trim()
+    if (!title) continue
+    if (/^상세보기$/i.test(title)) {
+      issues.push(`day${day}_title_operational_placeholder`)
+      continue
+    }
+    if (/쿠알라룸푸르|kuala\s*lumpur/i.test(title) && ck !== 'malaysia') {
+      const dayBody = `${row.routeText ?? ''}\n${row.description ?? ''}`
+      if (!/쿠알라|kuala|말레이|malaysia/i.test(dayBody)) {
+        issues.push(`day${day}_title_hub_poison`)
+      }
+    }
+    if (
+      day === maxDay &&
+      /^(?:두바이|dubai)$/i.test(title) &&
+      ck !== 'united-arab-emirates' &&
+      ck !== 'dubai'
+    ) {
+      issues.push(`day${day}_title_hub_poison`)
+    }
+  }
+  return issues
 }
 
 export function scheduleRowsForPrePhotoVerify(schedule: string | null | undefined): RegisterPrePhotoHealRow[] {
@@ -609,6 +652,8 @@ export type RegisterPrePhotoStoredProductFields = {
   schedule?: string | null
   destination?: string | null
   title?: string | null
+  /** 메가메뉴 countryKey — 일정 본문과 교차 검증 */
+  countryKey?: string | null
 }
 
 /**
@@ -630,6 +675,7 @@ export function verifyRegisterPrePhotoForStoredProduct(
     sportsThemeTag: p.sportsThemeTag,
     productDestination: p.destination,
     productTitle: p.title,
+    countryKey: p.countryKey,
     rows: scheduleRowsForPrePhotoVerify(p.schedule),
   })
 }
@@ -641,6 +687,7 @@ export function verifyRegisterPrePhoto(args: {
   sportsThemeTag?: readonly string[] | null
   productDestination?: string | null
   productTitle?: string | null
+  countryKey?: string | null
   rows: readonly RegisterPrePhotoHealRow[]
 }): RegisterPrePhotoVerifyResult {
   const issues: RegisterPrePhotoVerifyIssue[] = []
@@ -661,6 +708,16 @@ export function verifyRegisterPrePhoto(args: {
   issues.push(
     ...wrongCountryKeywordIssues(args.rows, args.productDestination, args.productTitle),
   )
+  issues.push(
+    ...productCountryScheduleMismatchIssues({
+      countryKey: args.countryKey,
+      productTitle: args.productTitle,
+      productDestination: args.productDestination,
+      rows: args.rows,
+    }),
+  )
+  // REGRESSION-FREEZE[register-pre-photo-day-title-hub-poison]: 쿠알라·상세보기 day title — manifest
+  issues.push(...scheduleDayTitlePoisonIssues(args.rows, args.countryKey))
 
   if (lane === 'theme' && canonicalSportsThemeTags(args.sportsThemeTag).length === 0) {
     issues.push('theme_tag_missing')

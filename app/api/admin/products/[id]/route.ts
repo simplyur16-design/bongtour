@@ -511,6 +511,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               sportsThemeTag: true,
               destination: true,
               title: true,
+              countryKey: true,
             },
           }),
         ])
@@ -551,6 +552,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           schedule: nextSchedule,
           destination: photoRow?.destination,
           title: photoRow?.title,
+          countryKey: photoRow?.countryKey,
         })
         if (!keywordVerify.ok) {
           return NextResponse.json(
@@ -636,6 +638,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             schedule: true,
             destination: true,
             title: true,
+            countryKey: true,
           },
         })
         const pendingStatus = pendingPhotoRow?.registrationStatus
@@ -647,6 +650,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             schedule: pendingPhotoRow?.schedule,
             destination: pendingPhotoRow?.destination,
             title: pendingPhotoRow?.title,
+            countryKey: pendingPhotoRow?.countryKey,
           })
           if (!keywordVerify.ok) {
             return NextResponse.json(

@@ -52,6 +52,7 @@ export async function GET() {
         listingKind: true,
         productType: true,
         sportsThemeTag: true,
+        countryKey: true,
       },
     }))
     const rows = list
@@ -72,6 +73,7 @@ export async function GET() {
           sportsThemeTag: p.sportsThemeTag,
           productDestination: p.destination,
           productTitle: p.title,
+          countryKey: p.countryKey,
           rows: scheduleRowsForPrePhotoVerify(p.schedule),
         })
         if (!isRegisterPrePhotoPendingQueueReady(live)) return null

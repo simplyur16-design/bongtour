@@ -73,7 +73,7 @@ export type RegisterPrePhotoHealOpts = {
 
 export type RegisterPrePhotoHealNote = {
   day: number
-  field: 'imageKeyword' | 'imageKeyword2' | 'description' | 'imageUrl'
+  field: 'imageKeyword' | 'imageKeyword2' | 'description' | 'imageUrl' | 'title'
   reason: string
 }
 
