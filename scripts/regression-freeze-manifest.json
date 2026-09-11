@@ -2896,6 +2896,74 @@
       ]
     },
     {
+      "id": "prisma-read-write-split",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "prismaRead + DATABASE_URL_READ fallback; sweep due는 read, 쓰기는 primary",
+      "checks": [
+        {
+          "file": "lib/prisma.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-read-write-split]",
+            "export const prismaRead",
+            "DATABASE_URL_READ",
+            "prismaReadIsAlias"
+          ]
+        },
+        {
+          "file": "lib/prisma-connection-limit.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-read-write-split]",
+            "resolvePrismaReadConnectionLimit",
+            "BONGTOUR_PRISMA_READ_CONNECTION_LIMIT"
+          ]
+        },
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-read-write-split]",
+            "options?.prismaRead ?? defaultPrismaRead"
+          ]
+        },
+        {
+          "file": "scripts/verify-prisma-runtime-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-read-write-split]",
+            "export prismaRead"
+          ]
+        },
+        {
+          "file": "docs/ops/production-stability-root-cause.md",
+          "mustInclude": [
+            "REGRESSION-FREEZE[prisma-read-write-split]",
+            "DATABASE_URL_READ",
+            "prismaRead"
+          ]
+        },
+        {
+          "file": "docs/ops/prisma-read-replica-cutover.md",
+          "mustInclude": [
+            "DATABASE_URL_READ",
+            "Read Replica"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/prisma-connection-limit.test.ts"
+      ],
+      "npmScripts": [
+        {
+          "script": "verify:prisma-runtime-policy",
+          "tier": [
+            "prebuild",
+            "ci"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-pg-tls-global",
       "tier": [
         "prebuild",

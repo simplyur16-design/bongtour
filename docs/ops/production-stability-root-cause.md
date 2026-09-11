@@ -108,13 +108,17 @@ BONGSIM_PG_POOL_MAX=10
 ```env
 BONGTOUR_INSTRUMENTATION_ROLE=worker
 BONGTOUR_PRISMA_CONNECTION_LIMIT=2
+DISABLE_INSTRUMENTATION_PUBLISH_REMINDER_CRON=1
 BONGSIM_PG_POOL_MAX=4
 BONGSIM_PG_CONNECT_TIMEOUT_MS=12000
 BONGSIM_USIMSA_MAX_INFLIGHT=2
 BONGSIM_FULFILL_DRAIN_INTERVAL_MS=60000
 BONGSIM_FULFILL_SATURATED_SKIP_MS=60000
 BONGTOUR_CRON_SECRET=… (web과 동일)
-DATABASE_URL=… (web과 동일)
+DATABASE_URL=… (web과 동일) · primary write
+# optional Phase 2 — unset until replica exists (prismaRead aliases write)
+# DATABASE_URL_READ=… (replica transaction pooler)
+# BONGTOUR_PRISMA_READ_CONNECTION_LIMIT=2
 ```
 
 OrderPaid tick이 `timeout exceeded when trying to connect` 이고 풀 stats가
@@ -122,6 +126,21 @@ OrderPaid tick이 `timeout exceeded when trying to connect` 이고 풀 stats가
 슬롯이 비어 있는데도 타임아웃이면 기존대로 catalog heal.
 
 6. Replica **1** 고정
+
+### 2a) Prisma read/write 분리 (Phased A)
+
+<!-- REGRESSION-FREEZE[prisma-read-write-split]: ops SSOT — manifest -->
+
+**목표:** 유저(web)와 배치(worker)가 같은 primary를 쓰되, 무거운 **due 조회**는 나중에 replica로 뺄 수 있게 한다. 지금은 `DATABASE_URL_READ` 없으면 `prismaRead` ≡ `prisma`(두 번째 풀을 열지 않음).
+
+| 클라이언트 | env | 용도 |
+|---|---|---|
+| `prisma` | `DATABASE_URL` + `BONGTOUR_PRISMA_CONNECTION_LIMIT` | 모든 **쓰기** (가격 upsert·마커) |
+| `prismaRead` | `DATABASE_URL_READ` (없으면 write alias) + optional `BONGTOUR_PRISMA_READ_CONNECTION_LIMIT` | 공급사 sweep **due findMany** |
+
+**Phase 0 (운영, 추가 DB 비용 없음):** worker `CONNECTION_LIMIT=2`, `DISABLE_INSTRUMENTATION_PUBLISH_REMINDER_CRON=1`; web `CONNECTION_LIMIT=5`, `DISABLE_WEB_SUPPLIER_SWEEP_CRON=1`.
+
+**Phase 2 (필요할 때만):** 절차는 [`docs/ops/prisma-read-replica-cutover.md`](./prisma-read-replica-cutover.md). worker만 replica `DATABASE_URL_READ`를 붙이고, web은 primary만 유지.
 
 ### 2b) (선택) 발급 전용 fulfill 서비스
 

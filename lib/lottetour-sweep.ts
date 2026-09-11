@@ -7,6 +7,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 
+import { prismaRead as defaultPrismaRead } from '@/lib/prisma'
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import {
   clearLottetourPriceRecheckFromRawMeta,
@@ -199,11 +200,22 @@ async function pruneDeparturesOutsideSourceDates(
  */
 export async function sweepDueLottetourProducts(
   prisma: PrismaClient,
-  options?: { limit?: number; productId?: string | null; originCode?: string | null },
+  options?: {
+    limit?: number
+    productId?: string | null
+    originCode?: string | null
+    prismaRead?: PrismaClient
+  },
 ): Promise<LottetourSweepResult> {
   const limit = Math.max(1, Math.min(500, options?.limit ?? SWEEP_DEFAULT_LIMIT))
   const todayYmd = kstTodayYmd()
-  const products = await findSweepProducts(prisma, limit, options, todayYmd)
+  // REGRESSION-FREEZE[prisma-read-write-split]: due reads via prismaRead — manifest
+  const products = await findSweepProducts(
+    options?.prismaRead ?? defaultPrismaRead,
+    limit,
+    options,
+    todayYmd,
+  )
 
   const result: LottetourSweepResult = {
     processed: 0,

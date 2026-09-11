@@ -1,5 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
-import { resolvePrismaConnectionLimit, withPrismaConnectionLimit } from '@/lib/prisma-connection-limit'
+import {
+  resolvePrismaConnectionLimit,
+  resolvePrismaReadConnectionLimit,
+  withPrismaConnectionLimit,
+} from '@/lib/prisma-connection-limit'
 
 describe('prisma-connection-limit', () => {
   const env = process.env
@@ -7,6 +11,7 @@ describe('prisma-connection-limit', () => {
   beforeEach(() => {
     process.env = { ...env }
     delete process.env.BONGTOUR_PRISMA_CONNECTION_LIMIT
+    delete process.env.BONGTOUR_PRISMA_READ_CONNECTION_LIMIT
   })
 
   afterEach(() => {
@@ -38,5 +43,25 @@ describe('prisma-connection-limit', () => {
     expect(url).toContain('pgbouncer=true')
     expect(url).toContain('connection_limit=3')
     expect(url).not.toContain(':5432')
+  })
+
+  // REGRESSION-FREEZE[prisma-read-write-split]: read limit falls back to write limit
+  it('read connection limit falls back to write limit when unset', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.BONGTOUR_PRISMA_CONNECTION_LIMIT = '2'
+    expect(resolvePrismaReadConnectionLimit()).toBe(2)
+  })
+
+  it('read connection limit uses BONGTOUR_PRISMA_READ_CONNECTION_LIMIT when set', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.BONGTOUR_PRISMA_CONNECTION_LIMIT = '5'
+    process.env.BONGTOUR_PRISMA_READ_CONNECTION_LIMIT = '2'
+    expect(resolvePrismaReadConnectionLimit()).toBe(2)
+  })
+
+  it('withPrismaConnectionLimit accepts explicit limit override for read URL', () => {
+    process.env.NODE_ENV = 'production'
+    const url = withPrismaConnectionLimit('postgresql://u:p@host/db', { limit: 2 })
+    expect(url).toContain('connection_limit=2')
   })
 })

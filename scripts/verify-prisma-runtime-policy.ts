@@ -43,6 +43,20 @@ function ensureBaseConfig() {
   if (/NODE_ENV\s*!==\s*['"]production['"]\s*\)\s*globalForPrisma\.prisma\s*=/.test(prismaSingleton)) {
     fail('lib/prisma.ts must not skip global cache in production (connection leak → EMAXCONN)')
   }
+  // REGRESSION-FREEZE[prisma-read-write-split]: prismaRead + DATABASE_URL_READ fallback
+  if (!/export const prismaRead/.test(prismaSingleton)) {
+    fail('lib/prisma.ts must export prismaRead for sweep due-select read path')
+  }
+  if (!/DATABASE_URL_READ/.test(prismaSingleton)) {
+    fail('lib/prisma.ts must honor DATABASE_URL_READ (or alias write) for prismaRead')
+  }
+  if (!/prismaReadIsAlias/.test(prismaSingleton)) {
+    fail('lib/prisma.ts must alias prismaRead to write client when DATABASE_URL_READ unset')
+  }
+  const hanatourSweep = read('lib/hanatour-sweep.ts')
+  if (!/options\?\.prismaRead\s*\?\?\s*defaultPrismaRead/.test(hanatourSweep)) {
+    fail('lib/hanatour-sweep.ts due-select must use prismaRead (not write-only prisma)')
+  }
 }
 
 function collectFiles(dir: string, out: string[]) {
