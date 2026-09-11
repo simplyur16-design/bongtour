@@ -17,7 +17,8 @@ export type HanatourRegisterDestinationResolved = {
 }
 
 const MARKETING_DEST_RE =
-  /(?:숙박|폭포\s*뷰|폭포뷰|특급|전일정|식사\s*포함|VIP|리무진|얼리버드|빅하투|국립공원\s*#|#\d+대)/i
+  /(?:숙박|폭포\s*뷰|폭포뷰|특급|전일정|식사\s*포함|VIP|리무진|얼리버드|빅하투|국립공원\s*#|#\d+대|셔틀(?:\s*버스)?|왕복\s*\d*\s*회|회권|포함권)/i
+// REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 셔틀·회권 ≠ destination — manifest
 
 const REGION_TITLE_RE =
   /미서부|미동부|미남부|미국\s*일주|캐나다|미국|동부|서부|남부|유럽|일본|중국|동남아|호주|괌|하와이|홍콩|마카오|대만|다낭|베트남|싱가포르|태국|필리핀|북해도|오사카|도쿄|방콕/i

@@ -9,6 +9,8 @@ export const maxDuration = 800
  * POST /api/cron/register-pre-photo-self-heal
  * 미등록 목록 수집(이미 있는 URL 스킵, 공급사당 3건) 후 등록대기 키워드·일정 셀프힐. 사진 생성 없음.
  * Header: x-bongtour-cron-secret
+ * Query: suppliers=hanatour,modetour (optional), perSupplier=3 (optional), limit= heal cap,
+ *        skipIngest=1, dryRun=1, probe=0
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: cron 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingest then heal — manifest
  * healPendingRegisterPrePhoto 는 runRegisterPrePhotoDailyJob 안에서만 호출.
@@ -27,6 +29,17 @@ export async function POST(req: Request) {
   const dryRun = url.searchParams.get('dryRun') === '1'
   const probeImageUrls = url.searchParams.get('probe') !== '0'
   const skipIngest = url.searchParams.get('skipIngest') === '1'
+  const suppliersRaw = (url.searchParams.get('suppliers') ?? '').trim()
+  const onlySuppliers = suppliersRaw
+    ? suppliersRaw.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
+    : undefined
+  const perSupplierRaw = url.searchParams.get('perSupplier')
+  const perSupplierParsed =
+    perSupplierRaw != null ? Number.parseInt(perSupplierRaw, 10) : Number.NaN
+  const perSupplier =
+    Number.isFinite(perSupplierParsed) && perSupplierParsed >= 1
+      ? Math.min(10, Math.floor(perSupplierParsed))
+      : undefined
 
   try {
     const result = await runRegisterPrePhotoDailyJob({
@@ -34,6 +47,8 @@ export async function POST(req: Request) {
       probeImageUrls,
       healLimit: Number.isFinite(limit) && (limit ?? 0) > 0 ? limit : 80,
       skipIngest,
+      onlySuppliers,
+      perSupplier,
     })
     return jsonWithLeakGuard({ ok: true, ...result }, 'cron-register-pre-photo.response')
   } catch (e) {

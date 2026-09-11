@@ -16,6 +16,7 @@ import {
   healRegisterDestinationLabel,
   isRegisterDestinationPollutionLabel,
 } from '@/lib/register-destination-finalize'
+import { isRegisterDestinationScheduleActivityToken } from '@/lib/register-destination-schedule-activity-noise'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 
 describe('register-destination-reject-ilju', () => {
@@ -256,6 +257,15 @@ describe('register-destination-reject-ilju', () => {
         countryKey: 'indonesia',
       }),
     ).toBe('자카르타')
+    // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 셔틀·회권 ≠ destination — manifest
+    expect(isRegisterDestinationScheduleActivityToken('레아레아 셔틀버스 왕복 1회권')).toBe(true)
+    expect(
+      healRegisterDestinationLabel({
+        title: '오키나와 자유 4일 #TW좌석확보',
+        current: '레아레아 셔틀버스 왕복 1회권 · 레아레아 셔틀 버스 외',
+        countryKey: 'japan',
+      }),
+    ).toBe('오키나와')
     expect(
       healRegisterDestinationLabel({
         title: '북유럽&발트 7개국 12일',

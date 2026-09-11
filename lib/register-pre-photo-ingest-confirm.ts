@@ -25,6 +25,7 @@ import {
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { healPendingRegisterPrePhoto } from '@/lib/register-pending-pre-photo-self-heal'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
+import { readRegisterPrePhotoStampFromRawMeta } from '@/lib/register-pre-photo-verify'
 import { prisma } from '@/lib/prisma'
 import { handleParseAndRegisterHanatourRequest } from '@/lib/parse-and-register-hanatour-handler'
 import { handleParseAndRegisterModetourRequest } from '@/lib/parse-and-register-modetour-handler'
@@ -124,8 +125,18 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 제목 미입력 stub 저장 금지 — manifest
       const stub = await prisma.product.findUnique({
         where: { id: productId },
-        select: { title: true },
+        select: { title: true, rawMeta: true },
       })
+      // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: confirm-fail에 stamp issues — manifest
+      const stamp = readRegisterPrePhotoStampFromRawMeta(stub?.rawMeta)
+      if (stamp?.issues?.length) {
+        console.error(
+          '[register-pre-photo-ingest-confirm] verify-issues',
+          args.supplier,
+          productId,
+          stamp.issues.slice(0, 16).join(','),
+        )
+      }
       if (stub && isSupplierListingTitleUnacceptable(stub.title)) {
         await prisma.product.delete({ where: { id: productId } })
         return { ok: false, reason: 'title_placeholder_not_persisted' }

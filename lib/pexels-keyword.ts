@@ -660,6 +660,26 @@ const POI_KO_TO_EN: Record<string, string> = {
   '츄라우미 수족관': 'Churaumi Aquarium Okinawa',
   슈리성: 'Shuri Castle Okinawa',
   '우미카지 테라스': 'Umikaji Terrace Okinawa',
+  // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 당일 route KO→EN — manifest
+  '아메리칸 빌리지': 'American Village Okinawa',
+  아메리칸빌리지: 'American Village Okinawa',
+  '차탄 아메리칸 빌리지': 'American Village Okinawa',
+  '나하 국제거리': 'Kokusai Street Naha',
+  국제거리: 'Kokusai Street Naha',
+  코우리대교: 'Kouri Bridge Okinawa',
+  '코우리 오션 타워': 'Kouri Ocean Tower Okinawa',
+  '황과수 폭포': 'Huangguoshu Waterfall',
+  황과수: 'Huangguoshu Waterfall',
+  '두파당 폭포': 'Doupotang Waterfall',
+  '라평 유채꽃': 'Luoping Canola Flower Fields',
+  라평유채꽃: 'Luoping Canola Flower Fields',
+  만봉림: 'Wanfenglin Peak Forest',
+  '청암고진': 'Qingyan Ancient Town',
+  청암: 'Qingyan Ancient Town',
+  '용궁': 'Longgong Cave Guizhou',
+  마령하: 'Malinghe Canyon Guizhou',
+  '마령하 대협곡': 'Malinghe Canyon Guizhou',
+  나가사키: 'Nagasaki Japan',
   // 2030 보홀 요가·체험일 soft landmark (bare Bohol 중복 회피)
   할로망고: 'Bohol halo-halo cafe street',
   '헤난알로나비치': 'Alona Beach Bohol',
@@ -1488,6 +1508,9 @@ const POI_KO_KEYS_SORTED = Object.keys(POI_KO_TO_EN).sort((a, b) => b.length - a
 /** 목적지 고정 명소 — 동일 텍스트에 해당 지역·허브 언급 없으면 매핑 금지(지역별 POI 테이블 대신 문맥 SSOT) */
 // REGRESSION-FREEZE[pexels-keyword-kk-fireflies-context]: KK·말레이 명소 — 코타/키나발루 문맥 없으면 반딧불 등 매핑 금지 — manifest
 const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
+  // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 국제거리·용궁 오매칭 방지 — manifest
+  국제거리: /나하|오키나와|Naha|Okinawa|란타나|레아레아|츄라우미|슈리/i,
+  용궁: /용궁|마령하|귀주|Guizhou|안순|라평|황과수|청암|Guiyang|뱃놀이|대협곡|동굴/i,
   '선셋 반딧불': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|만따나니|Mantanani/i,
   '선셋 반딧불이': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|만따나니|Mantanani/i,
   '코타키나발루 시티 모스크': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia/i,

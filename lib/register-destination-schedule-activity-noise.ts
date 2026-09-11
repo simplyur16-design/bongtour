@@ -23,6 +23,10 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   if (/골프\s*(?:투어|장)?$|쇼핑\s*(?:투어|타임)|아울렛\s*쇼핑/i.test(t)) return true
   if (/^(?:시내\s*)?(?:관광|투어|체험|관람)$/u.test(t)) return true
   if (/체크\s*인|체크\s*아웃|호텔\s*이동|기내\s*식/i.test(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 셔틀·회권 혜택 ≠ 도시 — manifest
+  if (/셔틀(?:\s*버스)?|lealea|레아레아|왕복\s*\d*\s*회(?:권)?|회권|포함권|버스\s*왕복/i.test(t)) {
+    return true
+  }
   if (/공항|airport|유의사항|안내\s*사항|정보\s*안내|입국\s*조건|필요\s*서류|여행전\s*준비|현지\s*행사\s*안내/i.test(t)) {
     return true
   }

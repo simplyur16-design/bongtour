@@ -14746,6 +14746,59 @@
       ]
     },
     {
+      "id": "register-pre-photo-poi-ko-own-route-gap",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "당일 route KO POI·셔틀 dest 오염 교정 — own-route 게이트는 유지",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]",
+            "American Village Okinawa",
+            "Huangguoshu Waterfall",
+            "Longgong Cave Guizhou"
+          ]
+        },
+        {
+          "file": "lib/register-destination-schedule-activity-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]",
+            "셔틀(?:\\s*버스)?",
+            "회권"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-destination-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]",
+            "셔틀(?:\\s*버스)?"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]",
+            "verify-fail"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]",
+            "verify-issues",
+            "readRegisterPrePhotoStampFromRawMeta"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-poi-ko-own-route-gap.test.ts",
+        "lib/register-destination-reject-ilju.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-product-country-schedule",
       "tier": [
         "prebuild",
