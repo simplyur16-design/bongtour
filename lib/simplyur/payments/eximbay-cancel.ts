@@ -43,6 +43,22 @@ export type CallEximbayCancelResult =
       detail?: string;
     };
 
+/**
+ * Console already refunded / full-cancel after an existing refund.
+ * RC05: original status does not support refund (typically already refunded).
+ * RC06: full refund blocked because a refund already exists.
+ */
+// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: RC05/RC06 = card already refunded — manifest
+export function isEximbayCardAlreadyRefundedRescode(
+  rescode?: string | null,
+  resmsg?: string | null,
+): boolean {
+  const code = (rescode ?? "").trim().toUpperCase();
+  if (code === "RC05" || code === "RC06") return true;
+  const msg = (resmsg ?? "").toLowerCase();
+  return /already\s*refund|already\s*cancel/.test(msg);
+}
+
 export function buildEximbayCancelBody(input: {
   mid: string;
   transactionOrderId: string;

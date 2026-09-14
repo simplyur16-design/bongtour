@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildEximbayCancelBody,
   callEximbayPaymentsCancel,
+  isEximbayCardAlreadyRefundedRescode,
 } from "@/lib/simplyur/payments/eximbay-cancel";
 
 // REGRESSION-FREEZE[simplyur-eximbay-refund]: cancel body + API — manifest
@@ -20,6 +21,13 @@ describe("eximbay-cancel", () => {
     expect(body.payment.currency).toBe("USD");
     expect(body.payment.balance).toBe("12.50");
     expect(body.payment.order_id).toBe("SU-ORDER-1");
+  });
+
+  it("treats Eximbay RC05/RC06 as card already refunded", () => {
+    // REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: console refund RC06 — manifest
+    expect(isEximbayCardAlreadyRefundedRescode("RC06", "Not support refund")).toBe(true);
+    expect(isEximbayCardAlreadyRefundedRescode("RC05", "Not support refund")).toBe(true);
+    expect(isEximbayCardAlreadyRefundedRescode("RC01", "OrgAmt mismatch")).toBe(false);
   });
 
   it("callEximbayPaymentsCancel posts to /v1/payments/{id}/cancel", async () => {

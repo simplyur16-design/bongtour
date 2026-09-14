@@ -15,6 +15,7 @@ import { resolveEximbayEnv } from "@/lib/simplyur/payments/eximbay-env";
 import {
   buildEximbayCancelBody,
   callEximbayPaymentsCancel,
+  isEximbayCardAlreadyRefundedRescode,
 } from "@/lib/simplyur/payments/eximbay-cancel";
 import { resolveEximbayCancelRefs } from "@/lib/simplyur/refund/resolve-eximbay-cancel-refs";
 
@@ -298,6 +299,9 @@ export async function processSimplyurEximbayRefund(
         return { ok: false, reason: "invalid_status", message: order?.status ?? "missing" };
       }
       const paymentAttemptId = await getCapturedAttemptId(client, id);
+      const alreadyRefunded =
+        !pg.ok && isEximbayCardAlreadyRefundedRescode(pg.rescode, pg.resmsg);
+      const cardOk = pg.ok || alreadyRefunded;
       await insertRefundEvent(
         client,
         `eximbay_refund_${refs2.transactionId}_${refundId}_${randomBytes(4).toString("hex")}`.slice(0, 120),
@@ -310,13 +314,14 @@ export async function processSimplyurEximbayRefund(
           reason: msg,
           request: cancelBody,
           transaction_id: refs2.transactionId,
-          ok: pg.ok,
-          rescode: pg.ok ? pg.rescode : pg.rescode,
-          resmsg: pg.ok ? pg.resmsg : pg.resmsg,
+          ok: cardOk ? "true" : pg.ok,
+          rescode: pg.rescode,
+          resmsg: pg.resmsg,
           refund_transaction_id: pg.ok ? pg.refundTransactionId : null,
+          source: alreadyRefunded ? "eximbay_already_refunded" : undefined,
         },
       );
-      if (!pg.ok) {
+      if (!cardOk) {
         const previousStatus = await getPreviousOrderStatus(client, id);
         if (previousStatus) {
           await client.query(

@@ -19236,7 +19236,16 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
             "cardAlreadyCancelled",
-            "Eximbay card cancel FIRST"
+            "Eximbay card cancel FIRST",
+            "isEximbayCardAlreadyRefundedRescode"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/eximbay-cancel.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "isEximbayCardAlreadyRefundedRescode",
+            "RC06"
           ]
         },
         {
@@ -19263,6 +19272,7 @@
         }
       ],
       "vitestSuites": [
+        "lib/simplyur/payments/eximbay-cancel.test.ts",
         "lib/simplyur/payments/eximbay-env.test.ts",
         "lib/simplyur/checkout/buyer-phone.test.ts",
         "lib/bongsim/notifications/esim-qr-lms.test.ts",
