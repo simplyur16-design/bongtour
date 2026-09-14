@@ -126,6 +126,17 @@ export function parseEximbayStatusQuery(data: string): {
   return { orderId, transactionId, rescode, payerAuthId, transactionType };
 }
 
+/** Console/API refund or cancel posted to status_url — do not mark paid. */
+// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: REFUND/CANCEL → USIMSA auto-cancel — manifest
+export function isEximbayRefundOrCancelStatus(parsed: {
+  transactionType: string | null;
+  rescode: string | null;
+}): boolean {
+  if (parsed.rescode && parsed.rescode !== "0000") return false;
+  const txn = (parsed.transactionType ?? "").trim().toUpperCase();
+  return txn === "REFUND" || txn === "CANCEL" || txn === "VOID" || txn === "PARTIAL_REFUND";
+}
+
 /** Auth-only status — do not mark order paid yet. */
 export function isEximbayPayerAuthStatus(parsed: {
   payerAuthId: string | null;

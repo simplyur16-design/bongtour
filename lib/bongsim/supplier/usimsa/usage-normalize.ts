@@ -30,6 +30,7 @@ export function normalizeUsimsaDailyHistory(raw: unknown): UsimsaDailyUsageHisto
 }
 
 /** REGRESSION-FREEZE[bongsim-admin-esim-usage-check]: daily·topup 사용량·활성화 파싱 — manifest */
+/** REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: install/register blocks refund — manifest */
 export function parseUsimsaDailyUsagePayload(raw: unknown): {
   code: string;
   message: string;
@@ -56,29 +57,69 @@ export function parseUsimsaDailyUsagePayload(raw: unknown): {
   return { code, message, iccid, todayUsageMb, history };
 }
 
+const USIMSA_REGISTERED_STATUS_RE = /^(installed|registered|enabled|downloaded|activated)$/i;
+
+function firstNonEmptyTime(t: Record<string, unknown>, keys: string[]): string | null {
+  for (const k of keys) {
+    const v = t[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return null;
+}
+
+function usimsaTopupLooksRegistered(t: Record<string, unknown>): boolean {
+  if (
+    firstNonEmptyTime(t, [
+      "installTime",
+      "installedTime",
+      "installedAt",
+      "downloadTime",
+      "registerTime",
+      "registeredTime",
+      "lastEnabledTime",
+    ])
+  ) {
+    return true;
+  }
+  const status =
+    (typeof t.status === "string" ? t.status : "") ||
+    (typeof t.profileStatus === "string" ? t.profileStatus : "");
+  return USIMSA_REGISTERED_STATUS_RE.test(status.trim());
+}
+
+/** REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: installTime/register → registered — manifest */
 export function parseUsimsaTopupPayload(raw: unknown): {
   code: string;
   message: string;
   iccid: string | null;
   activeTime: string | null;
+  registered: boolean;
   topupUsageMb: number;
 } {
   if (typeof raw !== "object" || raw === null) {
-    return { code: "parse", message: "invalid_response", iccid: null, activeTime: null, topupUsageMb: 0 };
+    return {
+      code: "parse",
+      message: "invalid_response",
+      iccid: null,
+      activeTime: null,
+      registered: false,
+      topupUsageMb: 0,
+    };
   }
   const o = raw as Record<string, unknown>;
   const code = typeof o.code === "string" ? o.code : "";
   const message = typeof o.message === "string" ? o.message : "";
   const topup = o.topup;
   if (!topup || typeof topup !== "object") {
-    return { code, message, iccid: null, activeTime: null, topupUsageMb: 0 };
+    return { code, message, iccid: null, activeTime: null, registered: false, topupUsageMb: 0 };
   }
   const t = topup as Record<string, unknown>;
   const iccid = typeof t.iccid === "string" && t.iccid.trim() ? t.iccid.trim() : null;
   const activeRaw = typeof t.activeTime === "string" ? t.activeTime.trim() : "";
   const activeTime = activeRaw ? activeRaw : null;
   const topupUsageMb = pickFiniteNumber(t.usage) ?? 0;
-  return { code, message, iccid, activeTime, topupUsageMb };
+  const registered = Boolean(activeTime) || usimsaTopupLooksRegistered(t);
+  return { code, message, iccid, activeTime, registered, topupUsageMb };
 }
 
 export function combineUsimsaUsedMb(input: {

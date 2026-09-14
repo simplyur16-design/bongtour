@@ -1,6 +1,7 @@
 /**
  * 환불·미사용 확인 — 유심사 사용량 + 활성화(activeTime) 기준.
- * ICCID(발급)만으로는 환불 불가 처리하지 않되, 활성화되면 사용으로 본다.
+ * ICCID(발급)만으로는 환불 불가 처리하지 않되, 등록·활성화되면 사용으로 본다.
+ * REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: registered/used no refund — manifest
  */
 import type { PoolClient } from "pg";
 import { getPgPool } from "@/lib/bongsim/db/pool";
@@ -101,7 +102,7 @@ export async function summarizeUsimsaOrderDataUsage(
           message: "사용량 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.",
         };
       }
-      if (status.activeTime) activated = true;
+      if (status.activeTime || status.registered) activated = true;
       totalUsedMb += combineUsimsaUsedMb({
         history: daily.history,
         todayUsageMb: daily.todayUsageMb,
@@ -144,8 +145,8 @@ export async function checkUsimsaOrderDataUsageForRefund(
   if (!summary.unused) {
     const detail = summary.activated
       ? summary.totalUsedMb > 0.01
-        ? `이미 활성화·사용한 eSIM은 취소할 수 없습니다. (사용량 약 ${summary.totalUsedMb.toFixed(1)}MB)`
-        : "이미 활성화된 eSIM은 취소할 수 없습니다."
+        ? `이미 등록·활성화·사용한 eSIM은 취소할 수 없습니다. (사용량 약 ${summary.totalUsedMb.toFixed(1)}MB)`
+        : "이미 등록·활성화된 eSIM은 취소할 수 없습니다."
       : `이미 데이터를 사용한 eSIM은 취소할 수 없습니다. (사용량 약 ${summary.totalUsedMb.toFixed(1)}MB)`;
     return {
       ok: false,

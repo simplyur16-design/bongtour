@@ -16,7 +16,10 @@ import {
   formatEximbayUsdAmountFromMinor,
   resolveSimplyurEximbayMultiPaymethod,
 } from "@/lib/simplyur/payments/eximbay-ready";
-import { parseEximbayStatusQuery } from "@/lib/simplyur/payments/eximbay-verify";
+import {
+  isEximbayRefundOrCancelStatus,
+  parseEximbayStatusQuery,
+} from "@/lib/simplyur/payments/eximbay-verify";
 
 describe("simplyur Eximbay env / Basic Auth", () => {
   // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]
@@ -175,5 +178,19 @@ describe("simplyur Eximbay ready payload", () => {
     else process.env.EXIMBAY_API_KEY = prevKey;
     if (prevEnv === undefined) delete process.env.EXIMBAY_ENV;
     else process.env.EXIMBAY_ENV = prevEnv;
+  });
+
+  it("classifies Eximbay status_url REFUND/CANCEL separately from PAYMENT", () => {
+    // REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: refund txn — manifest
+    const refund = parseEximbayStatusQuery(
+      "order_id=BS-1&transaction_id=T1&rescode=0000&transaction_type=REFUND",
+    );
+    expect(isEximbayRefundOrCancelStatus(refund)).toBe(true);
+    const cancel = parseEximbayStatusQuery("ref=BS-1&txntype=CANCEL&rescode=0000");
+    expect(isEximbayRefundOrCancelStatus(cancel)).toBe(true);
+    const pay = parseEximbayStatusQuery(
+      "order_id=BS-1&transaction_id=T1&rescode=0000&transaction_type=PAYMENT",
+    );
+    expect(isEximbayRefundOrCancelStatus(pay)).toBe(false);
   });
 });

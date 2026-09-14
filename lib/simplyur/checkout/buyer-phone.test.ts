@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isSimplyurKoreaMobileForLms,
   isValidSimplyurBuyerPhoneInput,
   normalizeSimplyurBuyerPhone,
 } from "@/lib/simplyur/checkout/buyer-phone";
@@ -21,5 +22,13 @@ describe("simplyur buyer phone", () => {
   it("rejects too short or too long", () => {
     expect(normalizeSimplyurBuyerPhone("1234567")).toBeNull();
     expect(normalizeSimplyurBuyerPhone("1234567890123456")).toBeNull();
+  });
+
+  it("treats only Korea mobiles as LMS destinations", () => {
+    // REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: KR LMS only — manifest
+    expect(isSimplyurKoreaMobileForLms("010-1234-5678")).toBe(true);
+    expect(isSimplyurKoreaMobileForLms("+82 10 1234 5678")).toBe(true);
+    expect(isSimplyurKoreaMobileForLms("+1 2025551234")).toBe(false);
+    expect(isSimplyurKoreaMobileForLms("81312345678")).toBe(false);
   });
 });

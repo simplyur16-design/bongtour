@@ -2,14 +2,17 @@ import {
   callEximbayPaymentsVerify,
   eximbayStatusUrlAckBody,
   isEximbayPayerAuthStatus,
+  isEximbayRefundOrCancelStatus,
   parseEximbayStatusQuery,
 } from "@/lib/simplyur/payments/eximbay-verify";
 import { storeEximbayPayerAuthId } from "@/lib/simplyur/payments/eximbay-payer-auth-store";
 import { processEximbayPaymentOutcome } from "@/lib/simplyur/payments/process-eximbay-payment-outcome";
+import { processEximbayInboundRefund } from "@/lib/simplyur/refund/process-eximbay-inbound-refund";
 
 // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]: status_url webhook + verify — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: verify → OrderPaid — manifest
 // REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: PAYER_AUTH store before confirm — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: REFUND status → USIMSA cancel — manifest
 
 async function extractStatusQueryString(req: Request): Promise<string> {
   const url = new URL(req.url);
@@ -75,6 +78,30 @@ async function handleStatus(req: Request): Promise<Response> {
   const parsed = parseEximbayStatusQuery(data);
   if (!parsed.orderId) {
     console.warn("[simplyur:eximbay:status] verified but no order_id in payload");
+    return new Response(eximbayStatusUrlAckBody(true), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  if (isEximbayRefundOrCancelStatus(parsed)) {
+    const refunded = await processEximbayInboundRefund({
+      eximbayOrderId: parsed.orderId,
+      transactionId: parsed.transactionId,
+    });
+    if (!refunded.ok) {
+      console.warn("[simplyur:eximbay:status:refund]", {
+        reason: refunded.reason,
+        message: refunded.message,
+        orderId: parsed.orderId,
+      });
+    } else {
+      console.info("[simplyur:eximbay:status:refunded]", {
+        duplicate: refunded.duplicate,
+        order_id: refunded.order_id,
+        order_number: refunded.order_number,
+      });
+    }
     return new Response(eximbayStatusUrlAckBody(true), {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },

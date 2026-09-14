@@ -33,7 +33,23 @@ describe("parseUsimsaTopupPayload", () => {
       },
     });
     expect(p.activeTime).toBe("2026-07-25 14:48:18");
+    expect(p.registered).toBe(true);
     expect(p.topupUsageMb).toBe(0);
+  });
+
+  it("treats installTime as registered even without activeTime", () => {
+    // REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: install blocks refund — manifest
+    const p = parseUsimsaTopupPayload({
+      code: "0000",
+      message: "",
+      topup: {
+        iccid: "8985",
+        installTime: "2026-09-14 10:00:00",
+        usage: "0",
+      },
+    });
+    expect(p.activeTime).toBeNull();
+    expect(p.registered).toBe(true);
   });
 });
 

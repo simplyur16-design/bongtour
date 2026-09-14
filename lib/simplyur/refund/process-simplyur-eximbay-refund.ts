@@ -19,6 +19,12 @@ import {
 import { resolveEximbayCancelRefs } from "@/lib/simplyur/refund/resolve-eximbay-cancel-refs";
 
 // REGRESSION-FREEZE[simplyur-eximbay-refund]: unused → Eximbay card cancel THEN USIMSA cancel — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: inbound REFUND skips card API — manifest
+
+export type ProcessSimplyurEximbayRefundOptions = {
+  /** status_url already cancelled the card — skip Eximbay cancel API, still cancel USIMSA if unused. */
+  cardAlreadyCancelled?: boolean;
+};
 
 export type ProcessSimplyurEximbayRefundResult =
   | { ok: true }
@@ -158,6 +164,7 @@ export async function processSimplyurEximbayRefund(
   orderId: string,
   reason: string,
   requestedBy: RefundRequestedBy,
+  options?: ProcessSimplyurEximbayRefundOptions,
 ): Promise<ProcessSimplyurEximbayRefundResult> {
   const id = orderId.trim();
   const msg = reason.trim() || "Customer unused eSIM cancel";
@@ -204,8 +211,9 @@ export async function processSimplyurEximbayRefund(
       return { ok: false, reason: "unsupported_provider", message: order.payment_provider ?? "" };
     }
 
+    const cardAlreadyCancelled = Boolean(options?.cardAlreadyCancelled);
     const refs = await resolveEximbayCancelRefs(client, id);
-    if (!refs) {
+    if (!refs && !cardAlreadyCancelled) {
       await client.query("ROLLBACK");
       return { ok: false, reason: "missing_payment_reference" };
     }
@@ -244,6 +252,26 @@ export async function processSimplyurEximbayRefund(
     await client.query("COMMIT");
 
     // Phase 2 — Eximbay card cancel FIRST (then USIMSA).
+    if (cardAlreadyCancelled && !(await hasSuccessfulCardCancel(client, id))) {
+      await client.query("BEGIN");
+      const paymentAttemptId = await getCapturedAttemptId(client, id);
+      await insertRefundEvent(
+        client,
+        `eximbay_inbound_refund_${id}_${Date.now()}_${randomBytes(4).toString("hex")}`.slice(0, 120),
+        paymentAttemptId,
+        id,
+        {
+          direction: REFUND_EVENT.cardCancelApproved,
+          phase: 2,
+          requested_by: requestedBy,
+          reason: msg,
+          ok: "true",
+          source: "eximbay_status_url",
+        },
+      );
+      await client.query("COMMIT");
+    }
+
     if (!(await hasSuccessfulCardCancel(client, id))) {
       const refs2 = await resolveEximbayCancelRefs(client, id);
       if (!refs2) return { ok: false, reason: "missing_payment_reference" };

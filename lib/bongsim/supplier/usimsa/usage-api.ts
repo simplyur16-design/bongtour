@@ -20,6 +20,7 @@ export type UsimsaTopupStatusNormalized = {
   message: string;
   iccid: string | null;
   activeTime: string | null;
+  registered: boolean;
   topupUsageMb: number;
 };
 

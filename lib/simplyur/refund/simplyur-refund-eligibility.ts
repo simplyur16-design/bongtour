@@ -91,7 +91,7 @@ export async function getSimplyurRefundEligibility(
         return {
           eligible: false,
           code: "esim_used",
-          message: "This eSIM has already used data, so it cannot be refunded.",
+          message: usage.message || "This eSIM is already registered or used, so it cannot be refunded.",
         };
       }
       return {

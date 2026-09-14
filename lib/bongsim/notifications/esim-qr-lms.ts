@@ -2,6 +2,7 @@ import {
   buildAndroidQuickInstallUrl,
   buildAppleQuickInstallUrl,
 } from "@/lib/bongsim/esim-install-presentation";
+import { isSimplyurKoreaMobileForLms } from "@/lib/simplyur/checkout/buyer-phone";
 import {
   simplyurNotifyRequiresKakaoPhone,
   simplyurNotifyShouldSendSolapiSms,
@@ -36,13 +37,16 @@ export function shouldSendBongtourEsimOsQuickInstallLms(
   );
 }
 
-/** 심플리유어 발급 eSIM — 전화번호 있으면 솔라피 LMS 필수. */
+/** 심플리유어 발급 eSIM — 한국 휴대폰만 솔라피 LMS. 해외번호는 메일만. */
 // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: simplyur + phone → LMS — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: overseas phone skips LMS — manifest
 export function shouldSendSimplyurEsimIssuedLms(
   checkoutChannel: string | null | undefined,
   customerPhone: string | null | undefined,
 ): boolean {
-  return simplyurNotifyShouldSendSolapiSms(checkoutChannel) && Boolean((customerPhone ?? "").trim());
+  return (
+    simplyurNotifyShouldSendSolapiSms(checkoutChannel) && isSimplyurKoreaMobileForLms(customerPhone)
+  );
 }
 
 /**

@@ -50,6 +50,9 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(shouldSendSimplyurEsimIssuedLms("simplyur_web", "821012345678")).toBe(true);
     expect(shouldSendSimplyurEsimIssuedLms("simplyur_app", "")).toBe(false);
     expect(shouldSendSimplyurEsimIssuedLms("web", "01012345678")).toBe(false);
+    // REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: overseas number skips LMS — manifest
+    expect(shouldSendSimplyurEsimIssuedLms("simplyur_web", "+12025551234")).toBe(false);
+    expect(shouldSendSimplyurEsimIssuedLms("simplyur_app", "81312345678")).toBe(false);
     const text = buildSimplyurEsimQrDeliveredLmsText({
       orderNumber: "SU-1",
       orderPageUrl: "https://bongtour.com/simplyur/en/my-esim",

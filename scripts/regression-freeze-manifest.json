@@ -19209,6 +19209,67 @@
       ]
     },
     {
+      "id": "simplyur-eximbay-refund-inbound-usimsa",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Eximbay status_url REFUND/CANCEL auto-cancels USIMSA; skip card cancel if already refunded; block refund after eSIM register/use; Korea-only LMS",
+      "checks": [
+        {
+          "file": "app/api/simplyur/webhooks/eximbay/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "isEximbayRefundOrCancelStatus",
+            "processEximbayInboundRefund"
+          ]
+        },
+        {
+          "file": "lib/simplyur/refund/process-eximbay-inbound-refund.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "cardAlreadyCancelled"
+          ]
+        },
+        {
+          "file": "lib/simplyur/refund/process-simplyur-eximbay-refund.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "cardAlreadyCancelled",
+            "Eximbay card cancel FIRST"
+          ]
+        },
+        {
+          "file": "lib/simplyur/payments/eximbay-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "isEximbayRefundOrCancelStatus"
+          ]
+        },
+        {
+          "file": "lib/bongsim/refund/usimsa-refund-usage.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "registered",
+            "등록"
+          ]
+        },
+        {
+          "file": "lib/bongsim/notifications/esim-qr-lms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
+            "isSimplyurKoreaMobileForLms"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/payments/eximbay-env.test.ts",
+        "lib/simplyur/checkout/buyer-phone.test.ts",
+        "lib/bongsim/notifications/esim-qr-lms.test.ts",
+        "lib/bongsim/supplier/usimsa/usage-normalize.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-esim-delivery-install",
       "tier": [
         "prebuild",
