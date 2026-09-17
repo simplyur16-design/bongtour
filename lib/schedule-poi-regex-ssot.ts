@@ -108,6 +108,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /화이트\s*샌드\s*워크|White\s*Sand\s*Walk/i, en: "White Sand Walk Jervis Bay" },
   // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 오로라 ≠ 로라 빌리지(AU) — manifest
   { re: /오로라\s*빌리지|Aurora\s*Village/i, en: "Aurora Village Yellowknife northern lights" },
+  // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 부시파일럿 기념비 — Yellowknife own-route — manifest
+  { re: /부시\s*파일럿|Bush\s*Pilots?\s*Monument/i, en: "Bush Pilots Monument Yellowknife" },
+  { re: /워터\s*스퀘어|Waterfront?\s*Square/i, en: "Yellowknife Waterfront Square" },
   { re: /오로라\s*헌팅|오로라\s*투어|오로라\s*관측|오로라\s*보기|Northern\s*Lights(?:\s*hunting|\s*tour)?|(?<![a-z])aurora(?!\s*village)/i, en: "Northern Lights aurora sky" },
   { re: /(?<![가-힣])로라\s*빌리지|(?<![A-Za-z])Laura\s*Village/i, en: "Laura Village Blue Mountains" },
   { re: /(?:MRS\.?\s*)?맥콰리\s*체어|Mrs\.?\s*Macquarie'?s?\s*Chair/i, en: "Mrs Macquaries Chair Sydney" },

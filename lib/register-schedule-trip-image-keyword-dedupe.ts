@@ -215,6 +215,16 @@ function isCountryLevelScheduleKeyword(kw: string): boolean {
   )
 }
 
+/** 국가명으로도 잡히는 도시형 허브 — 출발일 채움에서 거부하면 day1_departure_keyword_empty */
+// REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 홍콩·싱가포르 출발일 공란 금지 — manifest
+function isCityLikeHubCountryKeyword(kw: string): boolean {
+  return /^(?:Hong\s*Kong|Singapore|Taiwan|Macau|Macao)$/i.test(String(kw ?? '').trim())
+}
+
+function rejectsCountryLevelVisitCity(kw: string): boolean {
+  return isCountryLevelScheduleKeyword(kw) && !isCityLikeHubCountryKeyword(kw)
+}
+
 /** 귀국일 — trip route 미사용 랜드마크 (bare city 제외) */
 function pickUnusedTripLandmarkForReturnFill(
   rows: readonly RegisterScheduleTripKeywordRow[],
@@ -740,7 +750,7 @@ function pickForeignVisitCityFromRouteText(
         !/[\uAC00-\uD7AF]/.test(fromMap) &&
         !isDomesticHubOrAirportImageKeyword(fromMap) &&
         !isRejectedTripKeywordCandidate(fromMap) &&
-        !isCountryLevelScheduleKeyword(fromMap)
+        !rejectsCountryLevelVisitCity(fromMap)
       ) {
         return fromMap
       }
@@ -749,7 +759,7 @@ function pickForeignVisitCityFromRouteText(
         kw &&
         !isDomesticHubOrAirportImageKeyword(kw) &&
         !isRejectedTripKeywordCandidate(kw) &&
-        !isCountryLevelScheduleKeyword(kw) &&
+        !rejectsCountryLevelVisitCity(kw) &&
         !isScheduleCityLevelSoftLandmarkKeyword(kw)
       ) {
         return kw
@@ -777,12 +787,12 @@ function pickForeignVisitCityFromRouteText(
           fromMap &&
           !isDomesticHubOrAirportImageKeyword(fromMap) &&
           !isRejectedTripKeywordCandidate(fromMap) &&
-          !isCountryLevelScheduleKeyword(fromMap)
+          !rejectsCountryLevelVisitCity(fromMap)
         ) {
           return fromMap
         }
         const en = firstMatchingScheduleCityEn(cleaned)
-        if (en && !isDomesticHubOrAirportImageKeyword(en) && !isCountryLevelScheduleKeyword(en)) {
+        if (en && !isDomesticHubOrAirportImageKeyword(en) && !rejectsCountryLevelVisitCity(en)) {
           if (/^Queenstown\b/i.test(en)) return 'Queenstown'
           if (/^Christchurch\b/i.test(en)) return 'Christchurch'
           if (/^Rotorua\b/i.test(en)) return 'Rotorua'
@@ -799,7 +809,7 @@ function pickForeignVisitCityFromRouteText(
     cityEn &&
     !isDomesticHubOrAirportImageKeyword(cityEn) &&
     !isRejectedTripKeywordCandidate(cityEn) &&
-    !isCountryLevelScheduleKeyword(cityEn)
+    !rejectsCountryLevelVisitCity(cityEn)
   ) {
     if (/^Queenstown\b/i.test(cityEn)) return 'Queenstown'
     if (/^Christchurch\b/i.test(cityEn)) return 'Christchurch'
@@ -822,7 +832,7 @@ function pickDepartureVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>
   const fromOwn = pickForeignVisitCityFromRouteText(depRow?.routeText, false)
   if (
     fromOwn &&
-    !isCountryLevelScheduleKeyword(fromOwn) &&
+    !rejectsCountryLevelVisitCity(fromOwn) &&
     !isDomesticHubOrAirportImageKeyword(fromOwn) &&
     (isBareCityOrCountryKeyword(fromOwn) ||
       (!isLikelyTourismLandmarkKeyword(fromOwn) && fromOwn.split(/\s+/).length <= 2))
@@ -837,7 +847,7 @@ function pickDepartureVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>
     const fromNext = pickForeignVisitCityFromRouteText(nextTourism.routeText, false)
     if (
       fromNext &&
-      !isCountryLevelScheduleKeyword(fromNext) &&
+      !rejectsCountryLevelVisitCity(fromNext) &&
       !isDomesticHubOrAirportImageKeyword(fromNext) &&
       (isBareCityOrCountryKeyword(fromNext) ||
         (!isLikelyTourismLandmarkKeyword(fromNext) && fromNext.split(/\s+/).length <= 2))
@@ -854,7 +864,7 @@ function pickDepartureVisitCityKeyword<T extends RegisterScheduleTripKeywordRow>
     isBareCityOrCountryKeyword(fromDest) &&
     !isDomesticHubOrAirportImageKeyword(fromDest) &&
     !isRejectedTripKeywordCandidate(fromDest) &&
-    !isCountryLevelScheduleKeyword(fromDest)
+    !rejectsCountryLevelVisitCity(fromDest)
   ) {
     return fromDest
   }

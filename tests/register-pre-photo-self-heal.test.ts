@@ -8,6 +8,7 @@
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드 검증 실패·힐 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 공란·범용 모스크 — manifest
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: LA VALLEE ≠ Los Angeles · 귀국 KL — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 가드 차단 후 힐이 verify와 맞춰 통과 — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -844,5 +845,84 @@ describe('register-pre-photo-self-heal', () => {
     const day1 = String(out.rows.find((r) => r.day === 1)?.imageKeyword ?? '')
     assert.match(day1, /Kota Kinabalu|Pink Mosque Kota Kinabalu|City Mosque Kota Kinabalu/i)
     assert.doesNotMatch(day1, /^(?:City Mosque|Pink Mosque)$/i)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 홍콩 출발일 — manifest
+  it('홍콩 출발일 공란은 힐이 Hong Kong으로 채운다', () => {
+    const rows = [
+      { day: 1, routeText: '홍콩', imageKeyword: '', imageKeyword2: null as string | null },
+      { day: 2, routeText: '홍콩', imageKeyword: 'Hong Kong', imageKeyword2: null },
+      { day: 3, routeText: '홍콩', imageKeyword: 'Hong Kong Victoria Harbour night', imageKeyword2: null },
+    ]
+    const before = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '홍콩 3일',
+      productDestination: '홍콩',
+      rows,
+    })
+    assert.ok(before.issues.includes('day1_departure_keyword_empty'))
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '홍콩',
+      productTitle: '홍콩 3일',
+    })
+    const after = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '홍콩 3일',
+      productDestination: '홍콩',
+      rows: out.rows,
+    })
+    assert.equal(after.ok, true, after.issues.join(','))
+    assert.match(String(out.rows.find((r) => r.day === 1)?.imageKeyword ?? ''), /Hong\s*Kong/i)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 부시파일럿 — manifest
+  it('부시파일럿 동선은 힐 후 검증 통과', () => {
+    const rows = [
+      {
+        day: 1,
+        routeText: '옐로나이프 공항 - 시내 호텔',
+        imageKeyword: 'Yellowknife',
+        imageKeyword2: null as string | null,
+      },
+      {
+        day: 2,
+        routeText: '오로라 빌리지',
+        imageKeyword: 'Northern Lights aurora sky',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        routeText: '부시 파일럿 기념비 - 워터 스퀘어',
+        imageKeyword: 'Bush Pilots Monument',
+        imageKeyword2: null,
+      },
+      {
+        day: 4,
+        routeText: '옐로나이프 공항',
+        imageKeyword: 'Yellowknife',
+        imageKeyword2: null,
+      },
+    ]
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'modetour',
+      productDestination: '옐로나이프',
+      productTitle: '옐로나이프 오로라',
+      lane: 'air_hotel_free',
+    })
+    const after = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productTitle: '옐로나이프 오로라',
+      productDestination: '옐로나이프',
+      rows: out.rows,
+    })
+    assert.equal(after.ok, true, after.issues.join(','))
+    assert.ok(
+      registerScheduleKeywordMatchesOwnDayRoute(
+        String(out.rows.find((r) => r.day === 3)?.routeText ?? ''),
+        String(out.rows.find((r) => r.day === 3)?.imageKeyword ?? ''),
+      ),
+    )
   })
 })

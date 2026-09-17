@@ -66,6 +66,7 @@ import {
   collectRouteTextOrderedLandmarkKeywords,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { productCountryScheduleMismatchIssues } from '@/lib/register-pre-photo-product-country-schedule-guard'
+import { allowRouteRevisitBareVisitCitySoftDup } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: countryKey≠일정 나라 — manifest
 
 function ownRouteHasKeyword(routeText: string | null | undefined, keyword: string): boolean {
@@ -126,6 +127,18 @@ function registerScheduleRouteIsLodgingOnly(routeText: string | null | undefined
     .filter((s) => s.length >= 2)
   if (!segs.length) return false
   return segs.every((s) => isHotelLodgingImageKeyword(s))
+}
+
+/** 숙소-only 중간일 — 방문도시 soft-dup은 own-route 강제 예외 */
+// REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 호텔일 soft-dup — manifest
+export function registerScheduleLodgingOnlyAllowsSoftDupVisitCity(
+  routeText: string | null | undefined,
+  keyword: string | null | undefined,
+): boolean {
+  const kw = String(keyword ?? '').trim()
+  if (!kw || !registerScheduleRouteIsLodgingOnly(routeText)) return false
+  if (!isBareCityOrCountryKeyword(kw)) return false
+  return allowRouteRevisitBareVisitCitySoftDup(kw)
 }
 
 export function registerScheduleDayRequiresPrimaryImageKeyword(
@@ -322,14 +335,16 @@ function packageScheduleIssues(
         isAuroraHuntingProductTitle(productTitle) &&
         imageKeywordMentionsAurora(row.imageKeyword)
       ) &&
-      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword)
+      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword) &&
+      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, row.imageKeyword)
     ) {
       issues.push(`day${day}_keyword_not_on_own_route`)
     }
     if (
       slot === 'middle' &&
       String(row.imageKeyword2 ?? '').trim() &&
-      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword2)
+      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword2) &&
+      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, row.imageKeyword2)
     ) {
       issues.push(`day${day}_keyword2_not_on_own_route`)
     }

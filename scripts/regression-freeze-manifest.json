@@ -21962,6 +21962,49 @@
       ]
     },
     {
+      "id": "register-pre-photo-heal-verify-align",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "가드 차단만 하지 말고 힐이 verify와 맞춰 통과시킨다 — 미파싱 route 키워드 제거·홍콩 출발일 채움",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-verify-align]",
+            "dropKeywordsNotOnOwnDayRoute",
+            "tripUnique 후 verify 게이트에 맞춰 재정렬"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-verify-align]",
+            "isCityLikeHubCountryKeyword",
+            "rejectsCountryLevelVisitCity"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-verify-align]",
+            "Bush Pilots Monument Yellowknife"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "홍콩 출발일 공란은 힐이 Hong Kong으로 채운다",
+            "부시파일럿 동선은 힐 후 검증 통과"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
       "id": "register-pre-photo-unparsed-route-fails-verify",
       "tier": [
         "prebuild",
