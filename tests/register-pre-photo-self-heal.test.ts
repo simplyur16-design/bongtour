@@ -925,4 +925,59 @@ describe('register-pre-photo-self-heal', () => {
       ),
     )
   })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 제목 프라하성 ≠ day3 카렐교 — manifest
+  it('FIT 제목 명소가 당일 route 키워드를 가로채지 않는다', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '프라하 도착',
+        routeText: '프라하 공항 - 시내 호텔',
+        imageKeyword: 'Prague',
+        imageKeyword2: null as string | null,
+        description: '프라하에 도착합니다. 첫날 이동을 맞춥니다.',
+      },
+      {
+        day: 2,
+        title: '구시가지',
+        routeText: '구시청사 천문시계 - 구시가지 광장',
+        imageKeyword: 'Prague Astronomical Clock',
+        imageKeyword2: null,
+        description: '구시가지를 둘러봅니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 3,
+        title: '왕의 발자취를 따라 걷는 프라하 성',
+        routeText: '성 비투스 대성당 - 카렐교 - 블타바 강변 레스토랑',
+        imageKeyword: '',
+        imageKeyword2: null,
+        description: '프라하 성을 둘러봅니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 4,
+        title: '귀국',
+        routeText: '프라하 공항',
+        imageKeyword: 'Prague',
+        imageKeyword2: null,
+        description: '귀국합니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'modetour',
+      productDestination: '프라하',
+      productTitle: '프라하 | 체스키크룸로프',
+      lane: 'air_hotel_free',
+    })
+    const day3 = String(out.rows.find((r) => r.day === 3)?.imageKeyword ?? '')
+    assert.match(day3, /Charles Bridge|St Vitus/i)
+    assert.doesNotMatch(day3, /^Prague Castle$/i)
+    const after = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productTitle: '프라하 | 체스키크룸로프',
+      productDestination: '프라하',
+      rows: out.rows,
+    })
+    assert.equal(after.ok, true, after.issues.join(','))
+  })
 })

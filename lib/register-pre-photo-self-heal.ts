@@ -22,12 +22,16 @@ import {
   englishFromScheduleKoreanSegment,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { isBareCityOrCountryKeyword, isHotelLodgingImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { isBareCityOrCountryKeyword, isHotelLodgingImageKeyword, isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import {
   firstMatchingScheduleCityEn,
   firstMatchingScheduleSpotEn,
 } from '@/lib/schedule-poi-regex-ssot'
+import {
+  collectRouteTextOrderedImageKeywords,
+  collectRouteTextOrderedLandmarkKeywords,
+} from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
@@ -113,13 +117,25 @@ function refillFitKeywordFromDayRoute(
   destHay: string,
   trip: readonly RegisterPrePhotoHealRow[],
 ): string {
-  for (const seg of splitRouteTextPlaceSegments(row.routeText)) {
-    const en = englishFromScheduleKoreanSegment(seg) || seg
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: FIT 채움은 당일 route만 — 제목 명소 가로채기 금지 — manifest
+  const routeHay = String(row.routeText ?? '').trim()
+  const candidates = [
+    firstMatchingScheduleSpotEn(routeHay),
+    firstMatchingScheduleCityEn(routeHay),
+    ...splitRouteTextPlaceSegments(routeHay).map(
+      (seg) => englishFromScheduleKoreanSegment(seg) || firstMatchingScheduleSpotEn(seg) || seg,
+    ),
+    softDupForeignVisitCityForMiddleRoute(routeHay),
+    softDupForeignVisitCityForMiddleRoute(destHay),
+  ].filter((v): v is string => Boolean(v && String(v).trim()))
+  for (const en of candidates) {
     const persist = tryPersistScheduleImageKeyword(en)
     if (!persist.ok) continue
     const v = persist.value
     if (!v || isBrokenRegisterLandmarkKeyword(v, { allowHotelLodging: true })) continue
     if (destHay && isRegisterScheduleCrossContinentHallucinationKeyword(v, destHay, trip)) continue
+    // 제목이 아닌 route 기준 — 채운 값이 당일 동선과 안 맞으면 스킵
+    if (routeHay && !registerScheduleKeywordMatchesOwnDayRoute(routeHay, v)) continue
     return v
   }
   return ''
@@ -208,15 +224,26 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     ) {
       return row
     }
-    const hay = [row.routeText, row.title].filter(Boolean).join(' ')
-    const fromKoSegs = splitRouteTextPlaceSegments(row.routeText)
-      .map((seg) => englishFromScheduleKoreanSegment(seg) || seg)
+    const routeHay = String(row.routeText ?? '').trim()
+    const hay = [routeHay, row.title].filter(Boolean).join(' ')
+    const fromKoSegs = splitRouteTextPlaceSegments(routeHay)
+      .map(
+        (seg) =>
+          englishFromScheduleKoreanSegment(seg) ||
+          firstMatchingScheduleSpotEn(seg) ||
+          seg,
+      )
       .filter((v) => Boolean(v && String(v).trim()))
+    // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: verify와 같은 route SSOT 후보로 채움 — manifest
     const candidates = [
-      firstMatchingScheduleSpotEn(hay),
-      firstMatchingScheduleCityEn(hay),
+      ...collectRouteTextOrderedLandmarkKeywords(routeHay),
+      ...collectRouteTextOrderedImageKeywords(routeHay),
+      firstMatchingScheduleSpotEn(routeHay),
+      firstMatchingScheduleCityEn(routeHay),
       ...fromKoSegs,
-      softDupForeignVisitCityForMiddleRoute(row.routeText),
+      softDupForeignVisitCityForMiddleRoute(routeHay),
+      softDupForeignVisitCityForMiddleRoute(destHay),
+      firstMatchingScheduleCityEn(destHay),
     ].filter((v): v is string => Boolean(v && String(v).trim()))
     for (const raw of candidates) {
       const persist = tryPersistScheduleImageKeyword(raw)
@@ -227,15 +254,22 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
       if (destHay && isRegisterScheduleCrossContinentHallucinationKeyword(persist.value, destHay, rows)) {
         continue
       }
+      if (
+        routeHay &&
+        !registerScheduleKeywordMatchesOwnDayRoute(routeHay, persist.value) &&
+        !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(routeHay, persist.value)
+      ) {
+        continue
+      }
       return { ...row, imageKeyword: persist.value }
     }
     // REGRESSION-FREEZE[register-ocean-cruise-product]: soft-dup 도시 직접 채움 — manifest
-    const softOnly = softDupForeignVisitCityForMiddleRoute(row.routeText)
+    const softOnly = softDupForeignVisitCityForMiddleRoute(routeHay)
     if (softOnly && isBareCityOrCountryKeyword(softOnly)) {
       return { ...row, imageKeyword: softOnly }
     }
     // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 숙소-only·빈 중간일은 dest soft-dup — manifest
-    if (isHotelLodgingImageKeyword(String(row.routeText ?? '')) || !String(row.routeText ?? '').trim()) {
+    if (isHotelLodgingImageKeyword(routeHay) || !routeHay) {
       const softDest =
         softDupForeignVisitCityForMiddleRoute(destHay) ||
         firstMatchingScheduleCityEn(destHay) ||
@@ -248,6 +282,7 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
         return { ...row, imageKeyword: softDest }
       }
     }
+    void hay
     return row
   })
 }
@@ -471,6 +506,20 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     if (!isRegisterScheduleSameDayKeywordCountryClash(row.imageKeyword, row.imageKeyword2)) return row
     notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'same_day_country_clash' })
     return { ...row, imageKeyword2: null }
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 식사·항공·비명소 kw2는 검증 전에 비움 — manifest
+  working = working.map((row) => {
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (!kw2) return row
+    if (
+      isBrokenRegisterLandmarkKeyword(kw2, { allowHotelLodging: isFit }) ||
+      isAirlineCarrierImageKeyword(kw2)
+    ) {
+      notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'lodging_or_non_landmark' })
+      return { ...row, imageKeyword2: null }
+    }
+    return row
   })
 
   let reappliedKeywords = false

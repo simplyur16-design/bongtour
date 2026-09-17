@@ -876,7 +876,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /쉔부른\s*궁전|쇤브룬\s*궁전|Schonbrunn/i, en: "Schonbrunn Palace Vienna" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 프라하·동유럽 명소 — manifest
   { re: /프라하\s*성|Prague\s*Castle/i, en: "Prague Castle" },
-  { re: /카를\s*교|카를교|Charles\s*Bridge/i, en: "Charles Bridge Prague" },
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 카렐교=카를교, 비투스·페트린·댄싱하우스 — manifest
+  { re: /카를\s*교|카를교|카렐\s*교|카렐교|Charles\s*Bridge/i, en: "Charles Bridge Prague" },
+  { re: /성\s*비투스|비투스\s*대성당|St\.?\s*Vitus/i, en: "St Vitus Cathedral Prague" },
+  { re: /페트린|Pet[rř][ií]n/i, en: "Petrin Tower Prague" },
+  { re: /댄싱\s*하우스|Dancing\s*House|Tan[cč][ií]c[ií]\s*d[uů]m/i, en: "Dancing House Prague" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
   { re: /스트라호프|Strahov/i, en: "Strahov Monastery Prague" },
   { re: /리에그로비|Riegrovy|Riegrovy\s*Sady/i, en: "Riegrovy Sady Prague" },
@@ -936,10 +940,15 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /부다\s*왕궁/u, en: "Buda Castle Budapest" },
   { re: /영웅\s*광장/u, en: "Heroes Square Budapest" },
   { re: /제로니모스|제로니무스|Jer[oó]nimos/i, en: "Jeronimos Monastery Lisbon" },
-  { re: /벨렘\s*탑|Bel[eé]m\s*Tower/i, en: "Belem Tower Lisbon" },
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 벨렝=벨렘, 알파마·상조르제·렐루 — manifest
+  { re: /벨렘\s*탑|벨렝\s*탑|Bel[eé]m\s*Tower/i, en: "Belem Tower Lisbon" },
+  { re: /파스테이스\s*드\s*벨렘|파스테이스\s*드\s*벨렝|Pasteis\s*de\s*Belem/i, en: "Belem Tower Lisbon" },
+  { re: /상\s*조르제\s*성|Sao\s*Jorge|São\s*Jorge/i, en: "Sao Jorge Castle Lisbon" },
+  { re: /알파마|Alfama/i, en: "Alfama Lisbon" },
+  { re: /렐루\s*서점|Lello/i, en: "Livraria Lello Porto" },
   { re: /코메르시우|Commerce\s*Square/i, en: "Commerce Square Lisbon" },
   { re: /헤갈레이라|Pena\s*Palace/i, en: "Pena Palace Sintra" },
-  { re: /까보다로까|Cabo\s*da\s*Roca|로카\s*곶/i, en: "Cabo da Roca Portugal" },
+  { re: /까보다로까|Cabo\s*da\s*Roca|로카\s*곶|호카\s*곶/i, en: "Cabo da Roca Portugal" },
   { re: /신트라|Sintra/i, en: "Pena Palace Sintra" },
   { re: /카스카이스|Cascais/i, en: "Cascais beach Portugal" },
   { re: /파티마|Fatima/i, en: "Sanctuary of Fatima Portugal" },

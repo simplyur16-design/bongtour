@@ -22005,6 +22005,43 @@
       ]
     },
     {
+      "id": "register-pre-photo-heal-blocked-refill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "blocked 중간일 공란 — FIT는 당일 route spot만 채우고 제목 명소 가로채기 금지·카렐교·벨렝 POI",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
+            "FIT 채움은 당일 route만",
+            "제목 명소 가로채기 금지",
+            "verify와 같은 route SSOT 후보로 채움"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
+            "카렐교",
+            "벨렝"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "FIT 제목 명소가 당일 route 키워드를 가로채지 않는다",
+            "카렐교"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
       "id": "register-pre-photo-unparsed-route-fails-verify",
       "tier": [
         "prebuild",
