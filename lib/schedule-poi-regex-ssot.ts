@@ -106,7 +106,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /저비스\s*베이|Jervis\s*Bay/i, en: "Jervis Bay dolphin cruise" },
   { re: /쿨랑가타\s*와이너리|Coolangatta\s*(?:Estate\s*)?Winery/i, en: "Coolangatta Estate Winery" },
   { re: /화이트\s*샌드\s*워크|White\s*Sand\s*Walk/i, en: "White Sand Walk Jervis Bay" },
-  { re: /로라\s*빌리지|Laura\s*Village/i, en: "Laura Village Blue Mountains" },
+  // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 오로라 ≠ 로라 빌리지(AU) — manifest
+  { re: /오로라\s*빌리지|Aurora\s*Village/i, en: "Aurora Village Yellowknife northern lights" },
+  { re: /오로라\s*헌팅|오로라\s*투어|오로라\s*관측|오로라\s*보기|Northern\s*Lights(?:\s*hunting|\s*tour)?|(?<![a-z])aurora(?!\s*village)/i, en: "Northern Lights aurora sky" },
+  { re: /(?<![가-힣])로라\s*빌리지|(?<![A-Za-z])Laura\s*Village/i, en: "Laura Village Blue Mountains" },
   { re: /(?:MRS\.?\s*)?맥콰리\s*체어|Mrs\.?\s*Macquarie'?s?\s*Chair/i, en: "Mrs Macquaries Chair Sydney" },
   { re: /록스\s*거리|The\s*Rocks/i, en: "The Rocks Sydney" },
   { re: /시드니\s*ZOO|Sydney\s*Zoo/i, en: "Taronga Zoo Sydney" },
@@ -505,6 +508,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /친퀘\s*테레|친퀘테레|Cinque\s*Terre|라스페치아|라\s*스페치아|La\s*Spezia/i, en: "Cinque Terre colorful cliff villages" },
   { re: /꼬모\s*호|호수\s*꼬모|Lake\s*Como|^꼬모$|Como\s*Lake/i, en: "Lake Como Bellagio waterfront" },
   { re: /나폴리|Naples|Napoli/i, en: "Naples bay Vesuvius skyline" },
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 지중해 기항 제노아·칼리아리 — manifest
+  { re: /제노아|Genoa|Genova/i, en: "Genoa Porto Antico harbor" },
+  { re: /칼리아리|Cagliari/i, en: "Cagliari Bastione sea view" },
+  { re: /치비타베키아|Civitavecchia/i, en: "Civitavecchia cruise port Rome" },
   { re: /플로렌스|피렌체|Florence|Firenze/i, en: "Florence Duomo historic center" },
   { re: /^로마$|^Rome$|^Roma$/i, en: "Colosseum Rome amphitheater" },
   { re: /옥스포드|Oxford/i, en: "Oxford University colleges spires" },

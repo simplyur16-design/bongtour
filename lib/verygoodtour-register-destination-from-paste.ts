@@ -8,6 +8,10 @@ import {
   extractNonPolicyDestinationFragment,
   isVerygoodtourPolicyBracketDestination,
 } from '@/lib/verygoodtour-listing-title-from-paste'
+import {
+  inferOceanCruiseDestinationFromTitle,
+  isOceanCruiseProductTitle,
+} from '@/lib/register-ocean-cruise-product'
 
 export type VerygoodtourRegisterDestinationResolved = {
   destination: string
@@ -18,11 +22,13 @@ export type VerygoodtourRegisterDestinationResolved = {
 const MARKETING_DEST_RE =
   /(?:숙박|폭포\s*뷰|폭포뷰|특급|전일정|식사\s*포함|VIP|리무진|버스\s*탑승|캐년\s*숙박|세도나)/i
 
+/** 미서부 등 — bare「서부」는 서부지중해를 잘라 먹으므로 금지 */
+// REGRESSION-FREEZE[register-ocean-cruise-product]: bare 서부 ≠ 서부지중해 — manifest
 const REGION_TITLE_RE =
-  /미서부|미동부|미남부|미국\s*\d+대도시|캐나다\s*\d|캐나다|미국|5대캐년|동부|서부|유럽|일본|중국|동남아/i
+  /서부지중해|동부지중해|미서부|미동부|미남부|미국\s*\d+대도시|캐나다\s*\d|캐나다|미국|5대캐년|지중해|알래스카|캐리비안|북유럽|유럽|일본|중국|동남아/i
 
 const VERYGOOD_HASH_GEO_SKIP_RE =
-  /^(?:전일(?:관광|일정)|(?:NO|노)\s*(?:쇼핑|옵션|팁)|딤섬|세트|제공|특급|출발확정|\d+\s*(?:박|일)|이스타|항공|유류)/i
+  /^(?:전일(?:관광|일정|해상)|(?:NO|노)\s*(?:쇼핑|옵션|팁)|딤섬|세트|제공|특급|출발확정|\d+\s*(?:박|일)|이스타|항공|유류|코스타|토스카나|호|MSC|Carnival|Celebrity|Norwegian|Princess|로얄|캐리비안|프린세스)/i
 
 const VERYGOOD_DOMESTIC_ROUTE_HUB_RE =
   /^(?:인천|김포|부산|대구|청주|김해|서울|제주|ICN|GMP|PUS|TAE|CJJ)(?:국제?\s*공항)?$/iu
@@ -161,7 +167,12 @@ export function resolveVerygoodtourRegisterDestination(input: {
   const llm = String(input.llmDestination ?? '').trim()
   const llmUsable = llm && !isVerygoodMarketingDestination(llm) ? llm : ''
   const fromTitle = extractDestinationFromTitle(title)
+  const fromCruise = isOceanCruiseProductTitle(title)
+    ? inferOceanCruiseDestinationFromTitle(title)
+    : ''
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 선박 크루즈 제목 dest 우선 — manifest
   const destination =
+    fromCruise ||
     bracket ||
     fromPaste ||
     fromHashOrRoutes ||
@@ -169,7 +180,7 @@ export function resolveVerygoodtourRegisterDestination(input: {
     llmUsable ||
     '미지정'
   const destinationRaw =
-    journeyRaw || bracket || fromHashOrRoutes || (llmUsable || null)
+    journeyRaw || fromCruise || bracket || fromHashOrRoutes || (llmUsable || null)
   // REGRESSION-FREEZE[register-destination-reject-ilju]: finalize pollution scrub — manifest
   return finalizeRegisterDestinationFields({
     title,

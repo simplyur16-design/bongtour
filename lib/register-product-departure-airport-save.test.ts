@@ -44,4 +44,35 @@ describe('resolveRegisterProductDepartureAirportFields', () => {
     expect(fields.departureAirportLabel).toBe('busan')
     expect(fields.localDepartureTag).toEqual(['busan'])
   })
+
+  it('falls back to title strong marker when fact flights are incheon-only', () => {
+    // REGRESSION-FREEZE[register-pending-local-departure-strong-signal]
+    const fields = resolveRegisterProductDepartureAirportFields({
+      manualLocalDepartureTags: [],
+      inferHaystack: '[부산] 후쿠오카 1일\n인천국제공항',
+      factFlights: [
+        {
+          direction: 'outbound',
+          carrier: 'KE',
+          flightNo: 'KE123',
+          departureCity: '인천',
+          departureAt: null,
+          arrivalCity: '후쿠오카',
+          arrivalAt: null,
+        },
+      ],
+    })
+    expect(fields.departureAirportLabel).toBe('busan')
+    expect(fields.localDepartureTag).toEqual(['busan'])
+  })
+
+  it('clears false busan from connect marketing when no strong marker', () => {
+    const fields = resolveRegisterProductDepartureAirportFields({
+      manualLocalDepartureTags: [],
+      inferHaystack: '스페인 클래식\n부산출발 내항기 연결 가능 (담당자 별도 문의)',
+      factFlights: [],
+    })
+    expect(fields.departureAirportLabel).toBeNull()
+    expect(fields.localDepartureTag).toEqual([])
+  })
 })

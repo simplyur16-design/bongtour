@@ -12,6 +12,7 @@
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
  * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 제목 힐 — manifest
  * REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
+ * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: pending 지방출발 재추론 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -34,6 +35,11 @@ import {
   mergeRegisterPrePhotoStampIntoRawMeta,
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
+import {
+  buildRegisterFlightInferHaystack,
+  resolveRegisterProductDepartureAirportFields,
+  scheduleRowsToInferHaystack,
+} from '@/lib/register-product-departure-airport-save'
 import { isRegisterPrePhotoPlaceLikeDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 import {
@@ -122,6 +128,10 @@ export async function healPendingRegisterPrePhoto(
       sportsThemeTag: true,
       rawMeta: true,
       registrationStatus: true,
+      localDepartureTag: true,
+      departureAirportLabel: true,
+      airline: true,
+      includedText: true,
       brand: { select: { brandKey: true } },
     },
       }),
@@ -204,6 +214,24 @@ export async function healPendingRegisterPrePhoto(
         destinationToPersist != null &&
         String(destinationToPersist) !== String(product.destination ?? '')
 
+      // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: [부산] 제목 → 지방출발 — manifest
+      const depResolved = resolveRegisterProductDepartureAirportFields({
+        manualLocalDepartureTags: [],
+        inferHaystack: buildRegisterFlightInferHaystack({
+          airline: product.airline,
+          includedText: product.includedText,
+          scheduleText: scheduleRowsToInferHaystack(mapped),
+          flightSummary: titleForInfer,
+        }),
+      })
+      const prevDepTags = Array.isArray(product.localDepartureTag)
+        ? product.localDepartureTag.map((t) => String(t))
+        : []
+      const nextDepTags = depResolved.localDepartureTag.map((t) => String(t))
+      const departureChanged =
+        JSON.stringify(prevDepTags) !== JSON.stringify(nextDepTags) ||
+        String(product.departureAirportLabel ?? '') !== String(depResolved.departureAirportLabel ?? '')
+
       let next = rows
       let imageUrlCleared = 0
       let healNotes: RegisterPrePhotoHealNote[] = []
@@ -217,6 +245,14 @@ export async function healPendingRegisterPrePhoto(
           productDestination,
           productTitle: titleForInfer,
           lane,
+          // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 힐 haystack — manifest
+          productHaystack: [
+            product.includedText,
+            String(product.rawMeta ?? '').slice(0, 24000),
+            mapped.map((r) => [r.title, r.routeText, r.description].join(' ')).join('\n'),
+          ]
+            .filter(Boolean)
+            .join('\n'),
         })
         healNotes = result.notes
         verifyRows = result.rows.map((h) => ({
@@ -241,6 +277,8 @@ export async function healPendingRegisterPrePhoto(
           return {
             ...row,
             // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
+            // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 전일해상 title scrub 저장 — manifest
+            title: h.title ?? row.title,
             routeText: h.routeText ?? row.routeText,
             imageKeyword: h.imageKeyword ?? '',
             imageKeyword2: h.imageKeyword2 ?? null,
@@ -366,6 +404,7 @@ export async function healPendingRegisterPrePhoto(
         !statusChanged &&
         !titleChanged &&
         !destinationChanged &&
+        !departureChanged &&
         !geoRematerialized &&
         healNotes.length === 0
       ) {
@@ -382,6 +421,12 @@ export async function healPendingRegisterPrePhoto(
               ...(statusChanged ? { registrationStatus: nextStatus } : {}),
               ...(titleChanged ? { title: cleanedTitle } : {}),
               ...(destinationChanged ? { destination: destinationToPersist } : {}),
+              ...(departureChanged
+                ? {
+                    localDepartureTag: nextDepTags,
+                    departureAirportLabel: depResolved.departureAirportLabel,
+                  }
+                : {}),
               ...(statusChanged && nextStatus === 'pending'
                 ? { rejectReason: null, rejectedAt: null }
                 : {}),
@@ -410,6 +455,7 @@ export async function healPendingRegisterPrePhoto(
         healNotes.length > 0 ||
         titleChanged ||
         destinationChanged ||
+        departureChanged ||
         geoRematerialized
       ) {
         healed += 1

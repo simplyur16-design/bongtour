@@ -40,6 +40,7 @@ import {
 } from '@/lib/register-schedule-route-evidence-keyword'
 import { findAllScheduleSpotMatchesInText, firstMatchingScheduleCityEn } from '@/lib/schedule-poi-regex-ssot'
 import { hasRioDeJaneiroContext } from '@/lib/schedule-rio-de-janeiro-context'
+import { isOceanCruiseAtSeaRoute } from '@/lib/register-ocean-cruise-product'
 // REGRESSION-FREEZE[schedule-rio-de-janeiro-context]: bare 리우→Sugar Loaf 금지 — manifest
 
 export type RegisterScheduleTripKeywordRow = {
@@ -604,6 +605,52 @@ function pickUnusedTripKeyword(
   return ''
 }
 
+/**
+ * Bare-city soft-dup keep is last resort — unused route/trip landmarks win first.
+ * 2nd+ middle-day bare soft-dup without a landmark is cleared (Kota Kinabalu×5 방지).
+ * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: soft-dup must not block landmarks — manifest
+ */
+function preferUnusedLandmarkOverBareSoftDup(
+  primary: string,
+  cands: readonly string[],
+  used: ReadonlySet<string>,
+  row: RegisterScheduleTripKeywordRow,
+  ctx?: {
+    day: number
+    processedByDay: Map<number, { primary: string; secondary: string }>
+    maxDay: number
+    activeDays: number
+  },
+): string {
+  if (!isBareCityOrCountryKeyword(primary)) return primary
+  const seeded = [...cands]
+  const kw2 = String(row.imageKeyword2 ?? '').trim()
+  if (kw2) seeded.unshift(kw2)
+  const landmarkCands = seeded.filter(
+    (c) => !isBareCityOrCountryKeyword(c) && !isRejectedTripKeywordCandidate(c),
+  )
+  const replacement =
+    pickUnusedTripKeyword(landmarkCands, used) ||
+    pickUnusedRoutePrimaryLandmark(row, used) ||
+    ''
+  if (replacement && normScheduleImageKeywordKey(replacement) !== normScheduleImageKeywordKey(primary)) {
+    return replacement
+  }
+  if (
+    ctx &&
+    bareVisitCityUsedAsOtherMiddlePrimary(
+      primary,
+      ctx.day,
+      ctx.processedByDay,
+      ctx.maxDay,
+      ctx.activeDays,
+    )
+  ) {
+    return ''
+  }
+  return primary
+}
+
 function isScheduleDomesticHubToken(token: string): boolean {
   const t = String(token ?? '').trim()
   if (!t) return true
@@ -657,6 +704,26 @@ function pickForeignVisitCityFromRouteText(
   const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
     .map((s) => s.trim())
     .filter((s) => s.length >= 2 && !isScheduleDomesticHubToken(s))
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 기항·승선 도시 soft (로마≠Colosseum 탈취) — manifest
+  const PORT_SOFT: Record<string, string> = {
+    로마: 'Rome',
+    Rome: 'Rome',
+    Roma: 'Rome',
+    제노아: 'Genoa',
+    Genoa: 'Genoa',
+    Genova: 'Genoa',
+    칼리아리: 'Cagliari',
+    Cagliari: 'Cagliari',
+    마르세유: 'Marseille',
+    Marseille: 'Marseille',
+    바르셀로나: 'Barcelona',
+    Barcelona: 'Barcelona',
+    나폴리: 'Naples',
+    Naples: 'Naples',
+    Napoli: 'Naples',
+    치비타베키아: 'Civitavecchia',
+    Civitavecchia: 'Civitavecchia',
+  }
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
   // 다구간(퀸스타운→오클랜드 공항)에서 공항 구문을 먼저 매칭하면 Auckland가 D7을 먹고 D10 soft-dup이 D7을 지움
   if (segs.length > 0) {
@@ -664,6 +731,8 @@ function pickForeignVisitCityFromRouteText(
     for (const seg of ordered) {
       if (isRegisterScheduleRoutePlaceNoise(seg)) continue
       if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
+      const softPort = PORT_SOFT[seg] ?? PORT_SOFT[seg.replace(/\s+/g, '')]
+      if (softPort && segs.length === 1) return softPort
       const fromMap = mapDestination(seg)
       if (
         fromMap &&
@@ -692,6 +761,7 @@ function pickForeignVisitCityFromRouteText(
         if (/^Auckland\b/i.test(kw)) return 'Auckland'
         if (/^Sydney\b/i.test(kw)) return 'Sydney'
       }
+      if (softPort) return softPort
     }
   }
   // 공항-only·단일 구간 — `기상 후 오클랜드 국제 공항` soft-dup
@@ -1658,6 +1728,8 @@ function isScheduleCityLevelSoftLandmarkKeyword(kw: string): boolean {
 export function isAirportTransferOrCityHubOnlyMiddleRoute(routeText: string | null | undefined): boolean {
   const t = String(routeText ?? '').trim()
   if (!t) return false
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 전일해상 = hub — manifest
+  if (isOceanCruiseAtSeaRoute(t)) return true
   const landmarks = collectRouteTextOrderedLandmarkKeywords(t).filter(
     (kw) => isLikelyTourismLandmarkKeyword(kw) && !isScheduleCityLevelSoftLandmarkKeyword(kw),
   )
@@ -3580,6 +3652,14 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^삿포로?$/u.test(seg)) return 'Sapporo'
     // 죠잔케이는 landmark로 잡혀도 soft-dup 허용 (D1 사용 후 D4 삿포-죠잔케이 빈칸 방지)
     if (/^죠잔케이$|^조잔케이$/u.test(seg)) return 'Jozankei'
+    // REGRESSION-FREEZE[register-ocean-cruise-product]: 지중해 기항 soft-dup — manifest
+    if (/^로마$|^Rome$|^Roma$/i.test(seg)) return 'Rome'
+    if (/^제노아$|^Genoa$|^Genova$/i.test(seg)) return 'Genoa'
+    if (/^칼리아리$|^Cagliari$/i.test(seg)) return 'Cagliari'
+    if (/^마르세유$|^Marseille$/i.test(seg)) return 'Marseille'
+    if (/^바르셀로나$|^Barcelona$/i.test(seg)) return 'Barcelona'
+    if (/^나폴리$|^Naples$|^Napoli$/i.test(seg)) return 'Naples'
+    if (/^치비타베키아$|^Civitavecchia$/i.test(seg)) return 'Civitavecchia'
     // 몰디브 리조트 일차 — country-level이어도 soft-dup 허용 (빈칸·Vang Vieng bleed 방지)
     if (/^몰디브$|^Maldives$/i.test(seg)) return 'Maldives'
     if (/^피렌체$|^Florence$|^Firenze$/i.test(seg)) return 'Florence'
@@ -3884,13 +3964,25 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       ) {
         // 방문도시 soft-dup — used여도 유지 (출발일 Dubai → 호텔 중간일). 중간일끼리 Bali 중복은 금지
         // 몰디브·삿포 등 route 재등장은 soft-dup 허용
+        // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: soft-dup keep prefers landmarks — manifest
+        primary = preferUnusedLandmarkOverBareSoftDup(primary, cands, used, row, {
+          day,
+          processedByDay,
+          maxDay,
+          activeDays,
+        })
       } else if (
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
         // 서핑-only route는 softCity 없음 — allowlist bare soft-dup은 enforce에서 비우지 않음
         isBareCityOrCountryKeyword(primary) &&
         allowRouteRevisitBareVisitCitySoftDup(primary)
       ) {
-        // keep
+        primary = preferUnusedLandmarkOverBareSoftDup(primary, cands, used, row, {
+          day,
+          processedByDay,
+          maxDay,
+          activeDays,
+        })
       } else if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
         // keep — D2 Fansipan Peak 후 D3 판시판·사파 정상 일차
@@ -3988,13 +4080,24 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       if (used.has(pk)) {
         const softCity = softDupForeignVisitCityForMiddleRoute(row.routeText)
         if (softCity && normScheduleImageKeywordKey(softCity) === pk) {
-          // keep visit-city soft-dup
+          // keep visit-city soft-dup — but unused landmarks win first
+          primary = preferUnusedLandmarkOverBareSoftDup(primary, cands, used, row, {
+            day,
+            processedByDay,
+            maxDay,
+            activeDays,
+          })
         } else if (
           // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
           isBareCityOrCountryKeyword(primary) &&
           allowRouteRevisitBareVisitCitySoftDup(primary)
         ) {
-          // keep — 서핑 등 allowlist soft-dup (route에 도시명 없음)
+          primary = preferUnusedLandmarkOverBareSoftDup(primary, cands, used, row, {
+            day,
+            processedByDay,
+            maxDay,
+            activeDays,
+          })
         } else if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
           // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
           // keep

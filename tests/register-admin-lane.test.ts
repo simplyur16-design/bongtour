@@ -130,7 +130,7 @@ describe('register-admin-lane-pre-photo', () => {
       {
         day: 2,
         description:
-          '가우디 건축과 리세우를 중심으로 하루를 보냅니다. 시내의 리듬에 맞춰 관람 동선을 이어갑니다.',
+          '구엘공원과 가우디 건축, 리세우를 중심으로 하루를 보냅니다. 시내의 리듬에 맞춰 관람 동선을 이어갑니다.',
         routeText: '구엘공원',
         imageKeyword: 'Park Guell',
       },
@@ -241,7 +241,7 @@ describe('register-admin-lane-pre-photo', () => {
       productDestination: '타이베이',
       rows: [
         { day: 1, description: '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.', routeText: '', imageKeyword: '' },
-        { day: 2, description: '호텔 체크인 후 자유일정입니다. 숙소 주변을 둘러봅니다.', routeText: '그랜드하얏트 타이베이', imageKeyword: 'Grand Hyatt Taipei' },
+        { day: 2, description: '그랜드하얏트 타이베이에 체크인 후 자유일정입니다. 숙소 주변을 둘러봅니다.', routeText: '그랜드하얏트 타이베이', imageKeyword: 'Grand Hyatt Taipei' },
         { day: 3, description: '시내 자유일정입니다. 국립고궁박물관을 둘러봅니다.', routeText: '국립고궁박물관', imageKeyword: 'National Palace Museum Taipei' },
         { day: 4, description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.', routeText: '', imageKeyword: '' },
       ],

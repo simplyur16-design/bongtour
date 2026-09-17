@@ -15,6 +15,7 @@
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 밖 키워드는 지우고 그날 동선으로 채움 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 관광 키워드·범용 모스크 힐 — manifest
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 환각 키워드는 route 오탐이어도 제거 — manifest
+ * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: keep-filled 후에도 trip dedupe — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import {
@@ -29,6 +30,16 @@ import {
 } from '@/lib/schedule-poi-regex-ssot'
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import {
+  ensureDepartureReturnVisitCityKeywords,
+  softDupForeignVisitCityForMiddleRoute,
+} from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { ensureAuroraPrimaryImageKeyword } from '@/lib/register-aurora-primary-image-keyword'
+import {
+  scrubOceanCruiseAtSeaScheduleRow,
+} from '@/lib/register-ocean-cruise-at-sea-description'
+import { isOceanCruiseAtSeaRoute } from '@/lib/register-ocean-cruise-product'
 import type { RegisterAdminLane } from '@/lib/register-admin-lane'
 import {
   hasRegisterFreeDayRecommendedItinerary,
@@ -69,6 +80,8 @@ export type RegisterPrePhotoHealOpts = {
   productTitle?: string | null
   /** 등록화면 레인. 자유여행은 패키지 POI·요약 재작성 금지. 기본 패키지. */
   lane?: RegisterAdminLane
+  /** 전일해상 선상 액티비티 추출용 — included/rawMeta/일정 본문 */
+  productHaystack?: string | null
 }
 
 export type RegisterPrePhotoHealNote = {
@@ -195,9 +208,11 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
       return row
     }
     const hay = [row.routeText, row.title].filter(Boolean).join(' ')
-    const candidates = [firstMatchingScheduleSpotEn(hay), firstMatchingScheduleCityEn(hay)].filter(
-      (v): v is string => Boolean(v && String(v).trim()),
-    )
+    const candidates = [
+      firstMatchingScheduleSpotEn(hay),
+      firstMatchingScheduleCityEn(hay),
+      softDupForeignVisitCityForMiddleRoute(row.routeText),
+    ].filter((v): v is string => Boolean(v && String(v).trim()))
     for (const raw of candidates) {
       const persist = tryPersistScheduleImageKeyword(raw)
       if (!persist.ok || !persist.value) continue
@@ -208,6 +223,11 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
         continue
       }
       return { ...row, imageKeyword: persist.value }
+    }
+    // REGRESSION-FREEZE[register-ocean-cruise-product]: soft-dup 도시 직접 채움 — manifest
+    const softOnly = softDupForeignVisitCityForMiddleRoute(row.routeText)
+    if (softOnly && isBareCityOrCountryKeyword(softOnly)) {
+      return { ...row, imageKeyword: softOnly }
     }
     return row
   })
@@ -294,12 +314,30 @@ function promoteEmptyMiddlePrimaryFromKeyword2<T extends RegisterPrePhotoHealRow
   })
 }
 
-function healDescription(row: RegisterPrePhotoHealRow, maxDay: number, force = false): string {
+function healDescription(
+  row: RegisterPrePhotoHealRow,
+  maxDay: number,
+  force = false,
+  productHaystack?: string | null,
+): string {
   const current = String(row.description ?? '').trim()
+  // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 힐 전일해상 선상 요약 — manifest
+  if (isOceanCruiseAtSeaRoute(row.routeText) || isOceanCruiseAtSeaRoute(row.title)) {
+    const scrubbed = scrubOceanCruiseAtSeaScheduleRow(
+      {
+        title: row.title,
+        routeText: row.routeText,
+        description: current,
+      },
+      productHaystack,
+    )
+    return String(scrubbed.description ?? current)
+  }
   if (!force && !isBrokenRegisterScheduleDescription(current, row.routeText)) return current
   const routePlaces = splitRouteTextPlaceSegments(row.routeText)
+  let next = current
   try {
-    return composeRegisterScheduleDaySummary({
+    next = composeRegisterScheduleDaySummary({
       day: Number(row.day) || 1,
       maxDay,
       routePlaces,
@@ -307,8 +345,16 @@ function healDescription(row: RegisterPrePhotoHealRow, maxDay: number, force = f
       supplierText: null,
     })
   } catch {
-    return current
+    next = current
   }
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 귀국·기항 요약에 route 지명 강제 — manifest
+  if (isBrokenRegisterScheduleDescription(next, row.routeText)) {
+    const lead = routePlaces.map((p) => p.trim()).find((p) => p.length >= 2)
+    if (lead && !next.includes(lead)) {
+      next = `${lead}에서 일정을 마무리한 뒤 귀국 이동으로 이어갑니다.`
+    }
+  }
+  return next
 }
 
 /**
@@ -340,6 +386,23 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
       imageKeyword: kw,
       imageKeyword2: kw2 || null,
     }
+  })
+
+  // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: route scrub + 선상 description — manifest
+  working = working.map((row) => {
+    const beforeRoute = String(row.routeText ?? '')
+    const beforeDesc = String(row.description ?? '')
+    const next = scrubOceanCruiseAtSeaScheduleRow(row, opts.productHaystack) as T
+    if (String(next.routeText ?? '') !== beforeRoute || String(next.title ?? '') !== String(row.title ?? '')) {
+      notes.push({ day: Number(row.day), field: 'title', reason: 'ocean_cruise_at_sea_route_scrub' })
+    }
+    if (
+      isOceanCruiseAtSeaRoute(next.routeText) &&
+      String(next.description ?? '') !== beforeDesc
+    ) {
+      notes.push({ day: Number(row.day), field: 'description', reason: 'ocean_cruise_at_sea_description' })
+    }
+    return next
   })
 
   const destHay = registerPrePhotoPlaceDestHay(opts.productDestination, opts.productTitle)
@@ -394,12 +457,14 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     working = refillEmptyMiddleKeywordFromRoute(working, destHay)
     working = dropKeywordsNotOnOwnDayRoute(working, destHay)
     working = stripOffTripReturnHubRoute(working, destHay)
+    // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: FIT도 오로라 primary 1회 — manifest
+    working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
     const maxFitDesc = Math.max(...working.map((r) => Number(r.day)).filter((d) => d > 0), 1)
     const fitRepeatedCloser = tripDaysSharingTemplateCloser(working)
     working = working.map((row) => {
       const before = String(row.description ?? '').trim()
       const force = fitRepeatedCloser.has(Number(row.day))
-      const description = healDescription(row, maxFitDesc, force)
+      const description = healDescription(row, maxFitDesc, force, opts.productHaystack)
       if (description !== before) {
         notes.push({
           day: Number(row.day),
@@ -484,6 +549,33 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   working = refillEmptyMiddleKeywordFromRoute(working, destHay)
   working = dropKeywordsNotOnOwnDayRoute(working, destHay)
   working = stripOffTripReturnHubRoute(working, destHay)
+  // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: keep-filled 후에도 trip dedupe — manifest
+  working = enforceRegisterScheduleTripUniqueImageKeywords(
+    working.map((row) => ({
+      ...row,
+      day: Number(row.day) || 0,
+      imageKeyword: String(row.imageKeyword ?? '').trim(),
+      imageKeyword2: row.imageKeyword2 ?? null,
+    })),
+  ) as T[]
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 힐도 출발·귀국 방문도시 soft 채움 — manifest
+  working = ensureDepartureReturnVisitCityKeywords(
+    working,
+    opts.productDestination,
+  ) as T[]
+  // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 힐 경로 오로라 primary — manifest
+  working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
+  working = enforceRegisterScheduleTripUniqueImageKeywords(working) as T[]
+  working = ensureDepartureReturnVisitCityKeywords(
+    working,
+    opts.productDestination,
+  ) as T[]
+  working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
+
+  // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 키워드 파이프 후 전일해상 재고정 — manifest
+  working = working.map(
+    (row) => scrubOceanCruiseAtSeaScheduleRow(row, opts.productHaystack) as T,
+  )
 
   if (
     scheduleHasBrokenKeywords(working, {
@@ -501,7 +593,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   working = working.map((row) => {
     const before = String(row.description ?? '').trim()
     const force = repeatedCloserDays.has(Number(row.day))
-    const description = healDescription(row, maxDay, force)
+    const description = healDescription(row, maxDay, force, opts.productHaystack)
     if (description !== before) {
       notes.push({
         day: Number(row.day),

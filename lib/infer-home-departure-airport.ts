@@ -2,6 +2,8 @@
  * 출국·귀국 항공 텍스트에서 국내 출발/도착 공항 SSOT.
  * 인천(ICN)은 기본(라벨 없음). 김포·지방·제주는 카드·히어로 표기용.
  * REGRESSION-FREEZE[infer-home-departure-airport]
+ * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: [부산]·부산출발 제목 인식 — manifest
+ * REGRESSION-FREEZE[register-pending-local-departure-strong-signal]: 내항기 연결·공항세·도착 오탐 금지 — manifest
  */
 import type { RegisterFactFlightLeg } from '@/lib/register-facts/types'
 import {
@@ -21,20 +23,37 @@ export const HOME_DEPARTURE_AIRPORT_DISPLAY: Record<HomeDepartureAirportLabel, s
 
 const INCHEON_RE =
   /(?:인천(?:국제)?\s*공항|인천공항|\bICN\b)/iu
-const GIMPO_RE = /(?:김포(?:국제)?\s*공항|김포공항|\bGMP\b|^김포$)/iu
-const BUSAN_RE = /(?:부산(?:국제)?\s*공항|김해(?:국제)?\s*공항|부산공항|김해공항|\bPUS\b|^부산$|^김해$)/iu
-const DAEGU_RE = /(?:대구(?:국제)?\s*공항|대구공항|\bTAE\b|^대구$)/iu
-const CHEONGJU_RE = /(?:청주(?:국제)?\s*공항|청주공항|\bCJJ\b|^청주$)/iu
-const JEJU_RE = /(?:제주(?:국제)?\s*공항|제주공항|\bCJU\b|^제주$)/iu
+const GIMPO_RE = /(?:김포(?:국제)?\s*공항(?!세)|김포공항(?!세)|\bGMP\b|^김포$)/iu
+
+/** 「부산출발 내항기 연결 가능」·「김해공항세」는 지방출발 SKU가 아님 */
+const WEAK_REGIONAL_CONNECT_RE =
+  /(?:부산|대구|청주|제주|김해|지방)\s*출발\s*(?:내항기|연결)|내항기\s*연결\s*가능|지방\s*출발\s*연결\s*가능/iu
+
+/** 상품이 그 공항에서 출발한다는 강한 신호만 */
+const STRONG_BUSAN_RE =
+  /(?:\[\s*부산\s*\]|출발확정\s*부산|부산\s*출발(?!\s*(?:내항|연결))|김해\s*출발(?!\s*(?:내항|연결))|부산(?:국제)?\s*공항(?!세)|김해(?:국제)?\s*공항(?!세)|\bPUS\b|^부산$|^김해$)/iu
+const STRONG_DAEGU_RE =
+  /(?:\[\s*대구\s*\]|출발확정\s*대구|대구\s*출발(?!\s*(?:내항|연결))|대구(?:국제)?\s*공항(?!세)|\bTAE\b|^대구$)/iu
+const STRONG_CHEONGJU_RE =
+  /(?:\[\s*청주\s*\]|출발확정\s*청주|청주\s*출발(?!\s*(?:내항|연결))|청주(?:국제)?\s*공항(?!세)|\bCJJ\b|^청주$)/iu
+/** 제주 목적지 도착(제주공항 도착)은 제외 — 제주출발·[제주]·항공 leg만 */
+const STRONG_JEJU_RE =
+  /(?:\[\s*제주\s*\]|출발확정\s*제주|제주\s*출발(?!\s*(?:내항|연결))|제주(?:국제)?\s*공항(?!세)\s*출발|\bCJU\b|^제주$)/iu
+
+function stripWeakRegionalConnectMarketing(raw: string): string {
+  return String(raw ?? '').replace(WEAK_REGIONAL_CONNECT_RE, ' ')
+}
 
 function labelFromHaystack(hay: string): HomeDepartureAirportLabel | null {
-  const t = hay.trim()
-  if (!t || INCHEON_RE.test(t)) return null
+  const t = stripWeakRegionalConnectMarketing(hay).trim()
+  if (!t) return null
+  // 강한 지방출발 표시는 같은 줄에 인천이 있어도 우선 (제목 [부산] + 본문 인천 혼재)
+  if (STRONG_BUSAN_RE.test(t)) return 'busan'
+  if (STRONG_DAEGU_RE.test(t)) return 'daegu'
+  if (STRONG_CHEONGJU_RE.test(t)) return 'cheongju'
+  if (STRONG_JEJU_RE.test(t)) return 'jeju'
+  if (INCHEON_RE.test(t)) return null
   if (GIMPO_RE.test(t)) return null
-  if (BUSAN_RE.test(t)) return 'busan'
-  if (DAEGU_RE.test(t)) return 'daegu'
-  if (CHEONGJU_RE.test(t)) return 'cheongju'
-  if (JEJU_RE.test(t)) return 'jeju'
   return null
 }
 

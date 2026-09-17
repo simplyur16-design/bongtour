@@ -395,6 +395,8 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
     .trim()
   if (!t || t.length > 96) return true
   if (t.length < 2 && !/^[\uAC00-\uD7AF]{1,2}$/u.test(t)) return true
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: CMS 잘림「발도르...」route 노이즈 — manifest
+  if (/\.\.\.|…/.test(t)) return true
   if (isRegisterScheduleAirlineRouteSegment(t)) return true
   if (ROUTE_PLACE_NOISE_START_RE.test(t)) return true
   if (ROUTE_ADMIN_GUIDANCE_RE.test(t)) return true

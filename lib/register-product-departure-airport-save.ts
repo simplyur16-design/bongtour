@@ -1,6 +1,7 @@
 /**
  * 등록 confirm — 출발 공항·지방출발 태그 저장 SSOT.
  * REGRESSION-FREEZE[product-departure-airport-label]
+ * REGRESSION-FREEZE[register-pending-local-departure-strong-signal]: facts ICN이어도 제목 강한 신호 폴백 — manifest
  */
 import {
   LOCAL_DEPARTURE_TAG_VALUES,
@@ -79,11 +80,17 @@ export function resolveRegisterProductDepartureAirportFields(args: {
     ? inferDepartureAirportFromRegisterFactFlights(args.factFlights)
     : null
   const fromHaystack = inferDepartureAirportFromHaystack(args.inferHaystack)
-  const inferred = fromFacts ?? fromHaystack
+  // 항공 leg에 지방 라벨이 없으면 제목·본문 강한 신호로 폴백 (ICN-only facts가 [부산] 제목을 가리지 않음)
+  // REGRESSION-FREEZE[register-pending-local-departure-strong-signal]
+  const airportLabel = fromFacts?.airportLabel ?? fromHaystack.airportLabel
+  const inferredTags =
+    fromFacts?.airportLabel != null
+      ? fromFacts.localDepartureTags
+      : fromHaystack.localDepartureTags
 
   return {
-    localDepartureTag: manual.length > 0 ? manual : inferred.localDepartureTags,
-    departureAirportLabel: inferred.airportLabel,
+    localDepartureTag: manual.length > 0 ? manual : inferredTags,
+    departureAirportLabel: airportLabel,
   }
 }
 

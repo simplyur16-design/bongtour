@@ -46,6 +46,8 @@ describe('sale-status title must not become destination', () => {
     expect(isRegisterPrePhotoPlaceLikeDestination('[비즈니스]')).toBe(false)
     expect(isRegisterPrePhotoPlaceLikeDestination('단풍시즌')).toBe(false)
     expect(isRegisterPrePhotoPlaceLikeDestination('잔여좌석')).toBe(false)
+    expect(isRegisterPrePhotoPlaceLikeDestination('옐로팡딜')).toBe(false)
+    expect(isRegisterPrePhotoPlaceLikeDestination('전 일정 특급 호텔')).toBe(false)
     expect(extractHanatourTravelCitiesHintFromTitle('판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일')).toMatch(
       /캐나다/,
     )

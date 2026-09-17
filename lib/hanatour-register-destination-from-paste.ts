@@ -21,7 +21,7 @@ const MARKETING_DEST_RE =
 // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 셔틀·회권 ≠ destination — manifest
 
 const REGION_TITLE_RE =
-  /미서부|미동부|미남부|미국\s*일주|캐나다|미국|동부|서부|남부|유럽|일본|중국|동남아|호주|괌|하와이|홍콩|마카오|대만|다낭|베트남|싱가포르|태국|필리핀|북해도|오사카|도쿄|방콕/i
+  /미동부|미서부|미남부|미국\s*일주|캐나다|미국|(?<![가-힣])동부(?![가-힣])|(?<![가-힣])서부(?![가-힣])|(?<![가-힣])남부(?![가-힣])|유럽|일본|중국|동남아|호주|괌|하와이|홍콩|마카오|대만|다낭|베트남|싱가포르|태국|필리핀|북해도|오사카|도쿄|방콕/i
 
 const TITLE_DURATION_RE = /\d+\s*(?:박\s*\d+\s*)?일(?:\s|$)/i
 const TITLE_DURATION_TOKEN_RE = /^\d+\s*(?:박\s*\d+\s*)?일$/i

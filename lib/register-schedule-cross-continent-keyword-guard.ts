@@ -12,6 +12,7 @@ import {
   hasSupplierHomepageForbiddenTitlePhrase,
   isSupplierTitleNotDestinationToken,
 } from '@/lib/supplier-product-title-display'
+import { isTruncatedCardinalRegionDestination } from '@/lib/register-ocean-cruise-product'
 
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
   /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|장가계|Zhangjiajie|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island/i
@@ -41,13 +42,15 @@ const GENERIC_PRODUCT_DEST_RE = /^(?:미지정|미정|기타|해외|overseas|unk
 
 /** 식사·항공권·객실·비자 — 대륙 dest hay에 쓰지 않는다. */
 const NON_PLACE_PRODUCT_DEST_RE =
-  /석식|중식|조식|현지식|항공권|왕복항공|왕복\s*항공|객실|호텔\s*객실|료칸\s*객실|전자비자|\bESTA\b|유류세|미입력|여행일정|중국식|프리미|원하는|슈페리어룸|트윈룸/i
+  /석식|중식|조식|현지식|항공권|왕복항공|왕복\s*항공|객실|호텔\s*객실|료칸\s*객실|전자비자|\bESTA\b|유류세|미입력|여행일정|중국식|프리미|원하는|슈페리어룸|트윈룸|옐로팡딜|팡딜|전\s*일정|특급\s*호텔|월드체인|·\s*자유\s*·/i
 
 export function isRegisterPrePhotoPlaceLikeDestination(raw: string | null | undefined): boolean {
   const dest = String(raw ?? '').trim()
   if (!dest) return false
   if (GENERIC_PRODUCT_DEST_RE.test(dest)) return false
   if (NON_PLACE_PRODUCT_DEST_RE.test(dest)) return false
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: bare 서부/동부 dest 금지 — manifest
+  if (isTruncatedCardinalRegionDestination(dest)) return false
   // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·단풍시즌 dest 금지 — manifest
   if (isSupplierTitleNotDestinationToken(dest)) return false
   if (hasSupplierHomepageForbiddenTitlePhrase(dest)) return false

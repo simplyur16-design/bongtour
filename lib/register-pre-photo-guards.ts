@@ -8,6 +8,7 @@
  * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: SSOT 영문은 2단어여도 유지 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 일차마다 같은 템플릿 closer 금지 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: City Mosque·Pink Mosque 단독은 깨진 키워드 — manifest
+ * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: route 명소 없는 요약은 깨짐 — manifest
  */
 import {
   isAirlineCarrierImageKeyword,
@@ -22,6 +23,10 @@ import {
 import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import { getSchedulePoiRegexEnglishKeys } from '@/lib/schedule-poi-regex-ssot'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
+import { registerScheduleDescriptionMentionsRoutePoi } from '@/lib/register-schedule-description-characteristic-ssot'
+import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isOceanCruiseAtSeaRoute } from '@/lib/register-ocean-cruise-product'
+import { isValidOceanCruiseAtSeaDescription } from '@/lib/register-ocean-cruise-at-sea-description'
 
 function isScheduleSsotEnglishKeyword(v: string): boolean {
   const nk = normalizeSemanticPoiKey(v)
@@ -91,6 +96,10 @@ export function isBrokenRegisterScheduleDescription(
 ): boolean {
   const t = String(description ?? '').trim()
   if (t.length < 12) return true
+  // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 전일해상은 선상 요약 전용 — manifest
+  if (isOceanCruiseAtSeaRoute(routeText)) {
+    return !isValidOceanCruiseAtSeaDescription(t)
+  }
   if (FILLER_DESC_RE.test(t)) return true
   const genericHits = t.match(DUP_GENERIC_CLOSER_RE)
   if (genericHits && genericHits.length >= 2) return true
@@ -101,7 +110,16 @@ export function isBrokenRegisterScheduleDescription(
   for (let i = 1; i < sentences.length; i++) {
     if (sentences[i] === sentences[i - 1]) return true
   }
-  void routeText
+  // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: non-hub route must appear in summary — manifest
+  const places = splitRouteTextPlaceSegments(routeText)
+  const nonHub = places.filter(
+    (p) =>
+      !/^(?:인천|김포|부산|청주|대구|제주|ICN|GMP|PUS|TAE|CJJ|CJU)(?:\s|$)/i.test(p.trim()) &&
+      !/공항$|귀국|출국/i.test(p.trim()),
+  )
+  if (nonHub.length > 0 && !registerScheduleDescriptionMentionsRoutePoi(t, places)) {
+    return true
+  }
   return false
 }
 

@@ -46,6 +46,11 @@ import {
   isRegisterScheduleSameDayKeywordCountryClash,
   registerPrePhotoPlaceDestHay,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { isOceanCruiseAtSeaRoute, inferOceanCruiseDestinationFromTitle } from '@/lib/register-ocean-cruise-product'
+import {
+  imageKeywordMentionsAurora,
+  isAuroraHuntingProductTitle,
+} from '@/lib/register-aurora-primary-image-keyword'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 import {
   normScheduleImageKeywordKey,
@@ -127,6 +132,8 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
   slot: ScheduleKeywordSlotKind,
   routeText: string | null | undefined,
 ): boolean {
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 전일해상은 랜드마크 키워드 비강제 — manifest
+  if (isOceanCruiseAtSeaRoute(routeText)) return false
   if (slot === 'middle') return true
   if (slot === 'departure') {
     if (registerScheduleRouteIsLodgingOnly(routeText)) return false
@@ -311,6 +318,10 @@ function packageScheduleIssues(
     if (
       slot === 'middle' &&
       String(row.imageKeyword ?? '').trim() &&
+      !(
+        isAuroraHuntingProductTitle(productTitle) &&
+        imageKeywordMentionsAurora(row.imageKeyword)
+      ) &&
       !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword)
     ) {
       issues.push(`day${day}_keyword_not_on_own_route`)
@@ -332,6 +343,7 @@ function packageScheduleIssues(
   for (const day of tripDaysSharingTemplateCloser(days)) {
     issues.push(`day${day}_description_repeated_closer`)
   }
+  // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: trip-wide kw+kw2 bleed — manifest
   const seenKw = new Map<string, number>()
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(
@@ -340,18 +352,35 @@ function packageScheduleIssues(
       activeDays,
     )
     if (slot !== 'middle') continue
-    const key = normScheduleImageKeywordKey(String(row.imageKeyword ?? '').trim())
-    if (!key) continue
-    const prev = seenKw.get(key)
-    if (prev != null) {
-      // 리조트·시내 자유일 — 같은 방문도시 반복은 랜드마크 블리드가 아님
-      // 당일 route에 같은 명소가 있으면 반복도 블리드가 아님
-      const ownHas = ownRouteHasKeyword(row.routeText, String(row.imageKeyword ?? ''))
-      if (!isBareCityOrCountryKeyword(String(row.imageKeyword ?? '')) && !ownHas) {
-        issues.push(`day${row.day}_keyword_bleed_other_day`)
+    for (const [field, raw] of [
+      ['keyword', String(row.imageKeyword ?? '').trim()],
+      ['keyword2', String(row.imageKeyword2 ?? '').trim()],
+    ] as const) {
+      if (!raw) continue
+      pushFilledKeywordQualityIssues(issues, Number(row.day), field, raw)
+      const key = normScheduleImageKeywordKey(raw)
+      if (!key) continue
+      const prev = seenKw.get(key)
+      if (prev != null) {
+        // 리조트·시내 자유일 — 방문도시 반복은 랜드마크 블리드가 아님
+        // 당일 route에 같은 명소가 있으면 반복도 블리드가 아님
+        // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 방문도시 반복은 랜드마크 블리드가 아님 — manifest
+        const ownHas = ownRouteHasKeyword(row.routeText, raw)
+        if (!isBareCityOrCountryKeyword(raw) && !ownHas) {
+          issues.push(
+            field === 'keyword2'
+              ? `day${row.day}_keyword2_bleed_other_day`
+              : `day${row.day}_keyword_bleed_other_day`,
+          )
+        }
+      } else {
+        seenKw.set(key, Number(row.day))
       }
-    } else {
-      seenKw.set(key, Number(row.day))
+    }
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+    if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) {
+      issues.push(`day${row.day}_keyword_same_as_keyword2`)
     }
   }
   for (const row of days) {
@@ -433,6 +462,10 @@ function fitScheduleIssues(
     if (
       slot === 'middle' &&
       kw &&
+      !(
+        isAuroraHuntingProductTitle(productTitle) &&
+        imageKeywordMentionsAurora(kw)
+      ) &&
       !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw)
     ) {
       issues.push(`day${day}_keyword_not_on_own_route`)
@@ -457,20 +490,31 @@ function fitScheduleIssues(
   if (!anyKeyword) {
     issues.push('fit_keyword_empty')
   }
+  // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: FIT trip-wide kw+kw2 bleed — manifest
   const seenKw = new Map<string, number>()
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') continue
-    const key = normScheduleImageKeywordKey(String(row.imageKeyword ?? '').trim())
-    if (!key) continue
-    const prev = seenKw.get(key)
-    if (prev != null) {
-      const ownHas = ownRouteHasKeyword(row.routeText, String(row.imageKeyword ?? ''))
-      if (!isBareCityOrCountryKeyword(String(row.imageKeyword ?? '')) && !ownHas) {
-        issues.push(`day${row.day}_keyword_bleed_other_day`)
+    for (const [field, raw] of [
+      ['keyword', String(row.imageKeyword ?? '').trim()],
+      ['keyword2', String(row.imageKeyword2 ?? '').trim()],
+    ] as const) {
+      if (!raw) continue
+      const key = normScheduleImageKeywordKey(raw)
+      if (!key) continue
+      const prev = seenKw.get(key)
+      if (prev != null) {
+        const ownHas = ownRouteHasKeyword(row.routeText, raw)
+        if (!isBareCityOrCountryKeyword(raw) && !ownHas) {
+          issues.push(
+            field === 'keyword2'
+              ? `day${row.day}_keyword2_bleed_other_day`
+              : `day${row.day}_keyword_bleed_other_day`,
+          )
+        }
+      } else {
+        seenKw.set(key, Number(row.day))
       }
-    } else {
-      seenKw.set(key, Number(row.day))
     }
   }
   for (const row of days) {
@@ -483,11 +527,14 @@ function fitScheduleIssues(
 
 // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 마카오·남미 dest 제목 추론 — manifest
 const DEST_FROM_TITLE_RE =
-  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드/
+  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드/
 
 /** dest 미지정·항공권 등 비장소일 때만 — 제목에 나온 지명을 dest로 쓴다. 제목은 지어내지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
 export function inferRegisterPendingDestinationFromTitle(title: string): string {
+  // REGRESSION-FREEZE[register-ocean-cruise-product]: 선박 크루즈 제목 dest — manifest
+  const cruiseDest = inferOceanCruiseDestinationFromTitle(title)
+  if (cruiseDest) return cruiseDest
   const m = String(title ?? '').match(DEST_FROM_TITLE_RE)
   if (!m) return ''
   if (m[0] === '동경') return '도쿄'
@@ -513,7 +560,8 @@ function productIdentityIssues(
     issues.push('destination_placeholder')
   } else if (!dest && isSupplierListingTitleUnacceptable(title)) {
     issues.push('destination_placeholder')
-  } else if (dest && !isRegisterPrePhotoPlaceLikeDestination(dest) && isSupplierListingTitleUnacceptable(title)) {
+  } else if (dest && !isRegisterPrePhotoPlaceLikeDestination(dest)) {
+    // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: promo dest fails even with ok title — manifest
     issues.push('destination_placeholder')
   }
   return issues
@@ -569,6 +617,7 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('middle_route_empty') ||
     issue.includes('free_recommended_itinerary_missing') ||
     issue.includes('keyword_bleed_other_day') ||
+    issue.includes('keyword2_bleed_other_day') ||
     issue.includes('fit_keyword_empty') ||
     issue.includes('not_persistable') ||
     issue.includes('_airline') ||
@@ -584,6 +633,7 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('product_country_schedule_mismatch') ||
     issue.includes('title_hub_poison') ||
     issue.includes('title_operational_placeholder') ||
+    issue === 'aurora_primary_keyword_missing' ||
     issue === 'schedule_empty'
   )
 }
@@ -704,6 +754,17 @@ export function verifyRegisterPrePhoto(args: {
       issues.push('package_listingKind_is_fit')
     }
     issues.push(...packageScheduleIssues(args.rows, args.productTitle))
+  }
+  // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 패키지·FIT 공통 오로라 primary — manifest
+  {
+    const days = args.rows.filter((r) => Number(r.day) > 0)
+    if (
+      isAuroraHuntingProductTitle(args.productTitle) &&
+      days.length > 0 &&
+      !days.some((r) => imageKeywordMentionsAurora(r.imageKeyword))
+    ) {
+      issues.push('aurora_primary_keyword_missing')
+    }
   }
   issues.push(
     ...wrongCountryKeywordIssues(args.rows, args.productDestination, args.productTitle),

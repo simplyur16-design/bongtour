@@ -359,6 +359,12 @@ export const CITY_COUNTRY_ONLY = new Set(
     'london',
     'rome',
     'barcelona',
+    // REGRESSION-FREEZE[register-ocean-cruise-product]: 지중해 기항 bare soft-dup — manifest
+    'genoa',
+    'cagliari',
+    'civitavecchia',
+    'marseille',
+    'naples',
     'amsterdam',
     'dubai',
     'nairobi',

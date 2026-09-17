@@ -36,6 +36,7 @@ import {
 import { mapDestination } from '@/lib/pexels-keyword'
 import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 import { applyHawaiiFreeDayRecommendedExampleItineraries } from '@/lib/register-schedule-hawaii-free-day-example-itinerary'
+import { ensureAuroraPrimaryImageKeyword } from '@/lib/register-aurora-primary-image-keyword'
 
 function pickRouteDistinctSecondaryKeyword(
   primary: string,
@@ -234,11 +235,16 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   }
   // reconcile 후 귀국·출발 빈 슬롯 재보충 (중간일 gap-fill이 마지막 고유 랜드마크를 선점한 경우)
   const withReturnRefill = ensureDepartureReturnVisitCityKeywords(finalDeduped, dest)
+  // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 오로라 상품 primary 1회 — manifest
+  const withAuroraPrimary = ensureAuroraPrimaryImageKeyword(
+    withReturnRefill,
+    opts.productTitle ?? null,
+  ) as T[]
   // 귀국 슬롯이 중간일 랜드마크와 fuzzy 중복이면 방문도시 soft-dup으로 교체
-  const maxDayFinal = Math.max(...withReturnRefill.map((r) => Number(r.day)).filter((d) => d > 0), 0)
-  const activeDaysFinal = withReturnRefill.filter((r) => Number(r.day) > 0).length
+  const maxDayFinal = Math.max(...withAuroraPrimary.map((r) => Number(r.day)).filter((d) => d > 0), 0)
+  const activeDaysFinal = withAuroraPrimary.filter((r) => Number(r.day) > 0).length
   const pickTripVisitCitySoftDup = (): string => {
-    for (const row of [...withReturnRefill].sort((a, b) => Number(b.day) - Number(a.day))) {
+    for (const row of [...withAuroraPrimary].sort((a, b) => Number(b.day) - Number(a.day))) {
       if (Number(row.day) >= maxDayFinal) continue
       for (const seg of String(row.routeText ?? '')
         .split(/\s+-\s+/)
@@ -269,7 +275,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     return ''
   }
   const middleUsedNk = new Set<string>()
-  for (const row of withReturnRefill) {
+  for (const row of withAuroraPrimary) {
     const d = Number(row.day)
     if (d <= 1 || d >= maxDayFinal) continue
     for (const slot of [row.imageKeyword, row.imageKeyword2]) {
@@ -277,7 +283,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       if (nk) middleUsedNk.add(nk)
     }
   }
-  const returnDeduped = withReturnRefill.map((row) => {
+  const returnDeduped = withAuroraPrimary.map((row) => {
     const d = Number(row.day)
     if (d !== maxDayFinal || maxDayFinal < 2) return row
     let kw = String(row.imageKeyword ?? '').trim()
