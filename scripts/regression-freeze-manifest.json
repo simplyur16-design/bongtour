@@ -11299,7 +11299,7 @@
           "file": "lib/register-schedule-route-place-noise.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-ocean-cruise-product]",
-            "\\\\.\\\\.\\\\.|…"
+            "\\.\\.\\.|…"
           ]
         },
         {
@@ -11400,8 +11400,8 @@
           "file": "lib/schedule-poi-regex-ssot.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-aurora-primary-image-keyword]",
-            "오로라\\\\s*빌리지",
-            "로라\\\\s*빌리지"
+            "오로라\\s*빌리지",
+            "로라\\s*빌리지"
           ]
         }
       ],
