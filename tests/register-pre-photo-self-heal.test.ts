@@ -26,7 +26,9 @@ import {
   verifyRegisterPrePhoto,
 } from '../lib/register-pre-photo-verify'
 import {
+  inferRegisterEffectiveProductDestination,
   isRegisterScheduleCrossContinentHallucinationKeyword,
+  isRegisterPrePhotoPlaceLikeDestination,
   isRegisterScheduleSameDayKeywordCountryClash,
   registerPrePhotoPlaceDestHay,
 } from '../lib/register-schedule-cross-continent-keyword-guard'
@@ -979,5 +981,215 @@ describe('register-pre-photo-self-heal', () => {
       rows: out.rows,
     })
     assert.equal(after.ok, true, after.issues.join(','))
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: bare 발리·오로라·Hana≠ANA — manifest
+  it('발리 동선만 있는 중간일은 SEA 명소로 채운다', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '도착',
+        routeText: '발리',
+        imageKeyword: 'Bali',
+        imageKeyword2: null as string | null,
+        description: '발리에 도착합니다. 첫날을 맞춥니다.',
+      },
+      {
+        day: 2,
+        title: '자유',
+        routeText: '발리',
+        imageKeyword: '',
+        imageKeyword2: null,
+        description: '발리에서 하루를 보냅니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 3,
+        title: '자유',
+        routeText: '발리',
+        imageKeyword: '',
+        imageKeyword2: null,
+        description: '발리 해변을 즐깁니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 4,
+        title: '귀국',
+        routeText: '발리',
+        imageKeyword: 'Bali',
+        imageKeyword2: null,
+        description: '귀국합니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '발리',
+      productTitle: '발리 우리만',
+      lane: 'package',
+    })
+    const d2 = String(out.rows.find((r) => r.day === 2)?.imageKeyword ?? '')
+    const d3 = String(out.rows.find((r) => r.day === 3)?.imageKeyword ?? '')
+    assert.ok(d2.length > 0, 'day2 filled')
+    assert.ok(d3.length > 0, 'day3 filled')
+    assert.notEqual(d2.toLowerCase(), d3.toLowerCase())
+    assert.match(`${d2} ${d3}`, /Bali|Tanah|Tegalalang|Garuda|Seminyak|Penida/i)
+  })
+
+  it('오로라 상품은 힐 후에도 primary 오로라를 유지한다', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '출발',
+        routeText: '코펜하겐',
+        imageKeyword: 'Copenhagen',
+        imageKeyword2: null as string | null,
+        description: '코펜하겐으로 이동합니다. 첫날을 맞춥니다.',
+      },
+      {
+        day: 2,
+        title: '레이캬비크',
+        routeText: '레이캬비크',
+        imageKeyword: 'Reykjavik',
+        imageKeyword2: null,
+        description: '레이캬비크를 둘러봅니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 3,
+        title: '골든서클',
+        routeText: '골든서클 - 게이시르',
+        imageKeyword: 'Golden Circle Iceland',
+        imageKeyword2: null,
+        description: '골든서클을 갑니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 4,
+        title: '귀국',
+        routeText: '레이캬비크 - 코펜하겐',
+        imageKeyword: 'Copenhagen',
+        imageKeyword2: null,
+        description: '귀국합니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '아이슬란드',
+      productTitle: 'Aurora Prestige 아이슬란드 일주',
+      lane: 'package',
+    })
+    const after = verifyRegisterPrePhoto({
+      lane: 'package',
+      listingKind: 'package',
+      productTitle: 'Aurora Prestige 아이슬란드 일주',
+      productDestination: '아이슬란드',
+      rows: out.rows,
+    })
+    assert.ok(
+      out.rows.some((r) => /aurora|northern\s*lights/i.test(String(r.imageKeyword ?? ''))),
+      'aurora primary present',
+    )
+    assert.ok(!after.issues.includes('aurora_primary_keyword_missing'), after.issues.join(','))
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 카이≠카이세키·빈 route dest soft — manifest
+  it('카이세키 일정은 Cairo soft-dup을 만들지 않는다', async () => {
+    const { softDupForeignVisitCityForMiddleRoute } = await import(
+      '../lib/register-schedule-trip-image-keyword-dedupe'
+    )
+    assert.notEqual(softDupForeignVisitCityForMiddleRoute('츠카사로얄CC#조/석식-카이세키,양식'), 'Cairo')
+    assert.equal(softDupForeignVisitCityForMiddleRoute('카이로 시내'), 'Cairo')
+  })
+
+  it('중간일 route가 비면 dest soft-dup으로 채운다', () => {
+    const rows = [
+      {
+        day: 1,
+        title: '도착',
+        routeText: '괌',
+        imageKeyword: 'Guam',
+        imageKeyword2: null as string | null,
+        description: '괌에 도착합니다. 첫날을 맞춥니다.',
+      },
+      {
+        day: 2,
+        title: '자유',
+        routeText: '',
+        imageKeyword: '',
+        imageKeyword2: null,
+        description: '리조트에서 쉽니다. 동선에 맞춰 하루 일정을 이어갑니다.',
+      },
+      {
+        day: 3,
+        title: '귀국',
+        routeText: '괌 공항',
+        imageKeyword: 'Guam',
+        imageKeyword2: null,
+        description: '귀국합니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '괌',
+      productTitle: '괌 PIC 워터파크',
+      lane: 'package',
+    })
+    const d2 = out.rows.find((r) => r.day === 2)
+    assert.ok(String(d2?.routeText ?? '').trim(), 'day2 route filled')
+    assert.ok(String(d2?.imageKeyword ?? '').trim(), 'day2 keyword filled')
+    const after = verifyRegisterPrePhoto({
+      lane: 'package',
+      listingKind: 'package',
+      productTitle: '괌 PIC 워터파크',
+      productDestination: '괌',
+      rows: out.rows,
+    })
+    assert.ok(!after.issues.some((i) => i.includes('middle_route_empty')), after.issues.join(','))
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: 달랏 에펠탑≠Europe · 제목 dest — manifest
+  it('나트랑/달랏 — 일정 에펠탑이 Europe으로 뒤집히지 않고 Nha Trang 유지', () => {
+    const title = '[쇼핑엔티] 나트랑/달랏 5일 #구름위의 힐링여행'
+    const dest = '베트남 온라인 사전 입국신고 안내 · 베트남 여행 전 준비 안내 외'
+    const rows = [
+      {
+        day: 1,
+        routeText: '나트랑 - Swandor',
+        title: '도착',
+        description: '나트랑에 도착합니다.',
+        imageKeyword: 'Nha Trang',
+        imageKeyword2: null as string | null,
+      },
+      {
+        day: 3,
+        routeText: '달랏의 지붕 랑비엔 고원 - 달랏 에펠탑',
+        title: '달랏',
+        description: '랑비엔 고원을 SUV로 둘러봅니다.',
+        imageKeyword: 'Da Lat Vietnam Highland',
+        imageKeyword2: 'Eiffel Tower',
+      },
+      {
+        day: 5,
+        routeText: '나트랑',
+        title: '귀국',
+        description: '나트랑에서 출국합니다.',
+        imageKeyword: 'Nha Trang',
+        imageKeyword2: null,
+      },
+    ]
+    const destHay = registerPrePhotoPlaceDestHay(dest, title)
+    assert.equal(isRegisterPrePhotoPlaceLikeDestination(dest), false)
+    const eff = inferRegisterEffectiveProductDestination(destHay, rows)
+    assert.ok(!/Europe/i.test(eff), `effective dest should stay Asia, got ${eff}`)
+    assert.equal(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Nha Trang', destHay, rows),
+      false,
+    )
+    assert.equal(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Eiffel Tower', destHay, rows),
+      true,
+    )
+    assert.equal(inferRegisterPendingDestinationFromTitle(title), '나트랑')
+    assert.equal(inferRegisterPendingDestinationFromTitle('프리미엄 연태 3일 #힐튼'), '연태')
+    assert.equal(
+      inferRegisterPendingDestinationFromTitle('그리스 + 튀르키예 11일'),
+      '그리스',
+    )
   })
 })

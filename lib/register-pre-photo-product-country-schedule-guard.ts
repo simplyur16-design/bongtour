@@ -23,7 +23,7 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
   philippines:
     /필리핀|philippines|보라카이|boracay|세부|cebu|칼리보|마닐라|보홀|bohol/i,
   china:
-    /중국|china|장가계|태항|제남|보천|서안|내몽골|오르도스|청도|qingdao|베이징|상해|상하이|항주|구이린|황산|대련/i,
+    /중국|china|장가계|태항|제남|보천|서안|내몽골|오르도스|청도|qingdao|베이징|상해|상하이|항주|구이린|황산|대련|연태|yantai|위해|weihai/i,
   canada:
     /캐나다|canada|나이아가라|niagara|토론토|toronto|퀘벡|quebec|몬트리올|montreal|밴쿠버|vancouver/i,
   'united-states':
@@ -89,7 +89,7 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
 const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: 'vietnam', re: /베트남|다낭|호이안|푸꾸옥|바나힐|나트랑|da\s*nang|hoi\s*an|phu\s*quoc/i },
   { key: 'philippines', re: /필리핀|보라카이|세부|보홀|boracay|cebu/i },
-  { key: 'china', re: /장가계|태항|제남|보천|서안|내몽골|오르도스|청도|베이징|상해/i },
+  { key: 'china', re: /장가계|태항|제남|보천|서안|내몽골|오르도스|청도|베이징|상해|연태|yantai|위해/i },
   { key: 'canada', re: /캐나다|나이아가라|토론토|퀘벡|몬트리올/i },
   { key: 'united-states', re: /미동부|뉴욕|워싱턴|하와이|센트럴\s*파크|백악관/i },
   { key: 'lithuania', re: /빌니우스|트라카이|리투아니아/i },
@@ -98,7 +98,8 @@ const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: 'czech', re: /프라하|체스키|체코/i },
   { key: 'austria', re: /비엔나|잘츠|할슈타트|쇤브룬|오스트리아/i },
   { key: 'hungary', re: /부다페스트|헝가리/i },
-  { key: 'turkey', re: /이스탄불|카파도키아|파묵칼레|에페소|튀르키예|터키/i },
+  { key: 'turkey', re: /이스탄불|카파도키아|파묵칼레|에페소|안탈리아|튀르키예|튀르키|터키|istanbul|cappadocia|pamukkale/i },
+  { key: 'greece', re: /그리스|greece|아테네|athens|산토리니|미코노스|메테오라|meteora|에게/i },
   { key: 'italy', re: /로마|베니스|피렌체|시칠리아|이탈리아|이태리|콜로세움/i },
   { key: 'spain', re: /마드리드|바르셀로나|세비야|그라나다|스페인/i },
   { key: 'portugal', re: /리스본|파티마|포르투갈/i },

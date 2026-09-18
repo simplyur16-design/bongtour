@@ -66,7 +66,7 @@ import {
   collectRouteTextOrderedLandmarkKeywords,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { productCountryScheduleMismatchIssues } from '@/lib/register-pre-photo-product-country-schedule-guard'
-import { allowRouteRevisitBareVisitCitySoftDup } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { allowRouteRevisitBareVisitCitySoftDup, softDupForeignVisitCityForMiddleRoute } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: countryKey≠일정 나라 — manifest
 
 function ownRouteHasKeyword(routeText: string | null | undefined, keyword: string): boolean {
@@ -113,6 +113,9 @@ export function routeTextHasIdentifiableVisitPlace(routeText: string | null | un
   if (collectRouteTextOrderedLandmarkKeywords(t).length > 0) return true
   if (collectRouteTextOrderedImageKeywords(t).length > 0) return true
   if (firstMatchingScheduleCityEn(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: soft-dup 방문도시도 동선 식별 — manifest
+  const soft = softDupForeignVisitCityForMiddleRoute(t)
+  if (soft && isBareCityOrCountryKeyword(soft)) return true
   return false
 }
 
@@ -177,6 +180,13 @@ export function registerScheduleKeywordMatchesOwnDayRoute(
   ]
   for (const hit of hits) {
     if (hit && routeKeywordNormOverlaps(kw, hit)) return true
+  }
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: bare 방문도시 동선(발리)은 같은 도시 명소 키워드 허용 — manifest
+  const softCity = softDupForeignVisitCityForMiddleRoute(hay)
+  if (softCity && isBareCityOrCountryKeyword(softCity)) {
+    const softNk = normScheduleImageKeywordKey(softCity)
+    const kwNk = normScheduleImageKeywordKey(kw)
+    if (softNk && kwNk && (kwNk.includes(softNk) || softNk.includes(kwNk))) return true
   }
   return false
 }
@@ -541,8 +551,9 @@ function fitScheduleIssues(
 }
 
 // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 마카오·남미 dest 제목 추론 — manifest
+// REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: 연태·나트랑·그리스·튀르키예 제목 dest — manifest
 const DEST_FROM_TITLE_RE =
-  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드/
+  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|나트랑|달랏|연태|하와이|파리|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|세부|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|시드니|코카서스|튀니지|서안|호이안|바나|위해|미서부|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드|그리스|튀르키예|터키|에게/
 
 /** dest 미지정·항공권 등 비장소일 때만 — 제목에 나온 지명을 dest로 쓴다. 제목은 지어내지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
@@ -559,6 +570,9 @@ export function inferRegisterPendingDestinationFromTitle(title: string): string 
   if (m[0] === '발틱') return '발틱'
   if (m[0] === '원가계') return '장가계'
   if (m[0] === '북해도') return '홋카이도'
+  if (m[0] === '터키' || m[0] === '튀르키예') return '터키'
+  if (m[0] === '에게') return '그리스'
+  if (m[0] === '달랏') return '나트랑'
   return m[0]
 }
 

@@ -185,15 +185,22 @@ export async function healPendingRegisterPrePhoto(
       // dest 항공권·석식·하이라이트 나열도 제목 지명으로만 채운다 (그랜드월드 ≠ 푸꾸옥)
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 힐 전에 dest 추론 — manifest
       // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 dest 추론 — manifest
+      // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: 입국안내 dest·제목↔dest 나라 충돌 추론 — manifest
+      const titleInferredDest = inferRegisterPendingDestinationFromTitle(titleForInfer)
       const destNeedsInfer =
         /^(?:미입력|미지정|미정|상품명 없음)$/i.test(destLine) ||
         !isRegisterPrePhotoPlaceLikeDestination(destLine) ||
         hasSupplierHomepageForbiddenTitlePhrase(destLine) ||
-        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|잔여좌석|잔여석|단풍시즌|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정|비자|미팅\s*관련|예약\s*시\s*참고|선착순|특가|추석연휴|챔피언십|월드투어|●|셔틀(?:\s*버스)?|레아레아|왕복\s*\d*\s*회|회권|포함권/i.test(
+        /왕복\s*항공|항공권|비즈니스|대기예약|판매마감|잔여좌석|잔여석|단풍시즌|왜 이제 왔을까|SNS맛집|완전일주|HIGH&|그랜드월드|호국사\s*외|한시장|로망!|여행일정|비자|미팅\s*관련|예약\s*시\s*참고|선착순|특가|추석연휴|챔피언십|월드투어|●|셔틀(?:\s*버스)?|레아레아|왕복\s*\d*\s*회|회권|포함권|입국신고|여행\s*전\s*준비\s*안내|사전\s*입국|안내\s*외/i.test(
           destLine,
-        )
+        ) ||
+        (Boolean(titleInferredDest) &&
+          /라트비아|리투아니아|에스토니아|latvia|lithuania|estonia|nordic|발틱|일본|japan|^튀르키(?!예)/i.test(
+            destLine,
+          ) &&
+          /연태|나트랑|달랏|그리스|튀르키|터키|중국|베트남/i.test(titleForInfer))
       const inferredDest = destNeedsInfer
-        ? inferRegisterPendingDestinationFromTitle(titleForInfer) ||
+        ? titleInferredDest ||
           firstCleanTitlePlaceToken(titleForInfer)
         : ''
       const destScrubbed = destLine ? normalizeSupplierRegisterListingTitle(destLine) : ''

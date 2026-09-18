@@ -103,3 +103,13 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(finalizeScheduleImageKeyword('City Mosque Kota Kinabalu'), 'City Mosque Kota Kinabalu')
   })
 })
+
+describe('isAirlineCarrierImageKeyword', () => {
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: Hana ≠ ANA — manifest
+  it('Road to Hana는 ANA 항공사로 보지 않는다', async () => {
+    const { isAirlineCarrierImageKeyword } = await import('../lib/pexels-place-name-keyword')
+    assert.equal(isAirlineCarrierImageKeyword('Road To Hana Maui'), false)
+    assert.equal(isAirlineCarrierImageKeyword('Road to Hana Maui Hawaii coast'), false)
+    assert.equal(isAirlineCarrierImageKeyword('ANA'), true)
+  })
+})

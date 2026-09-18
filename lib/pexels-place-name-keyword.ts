@@ -481,6 +481,25 @@ export const CITY_COUNTRY_ONLY = new Set(
     'honolulu',
     'macau',
     'macao',
+    'easter island',
+    'aomori',
+    'akita',
+    'hirosaki',
+    'yantai',
+    'kaohsiung',
+    'kenting',
+    'tainan',
+    'lijiang',
+    'konya',
+    'sao paulo',
+    'addis ababa',
+    'ulaanbaatar',
+    'kumamoto',
+    'kochi',
+    'toyama',
+    'chiba',
+    'london',
+    'paris',
   ].map((s) => s.toLowerCase()),
 )
 
@@ -817,8 +836,9 @@ export function isNonLandmarkSpaShoppingLoungeImageKeyword(keyword: string): boo
 }
 
 /** 항공사·캐리어 브랜드 — Pexels 일정 imageKeyword(랜드마크 전용)에 부적합 */
+// REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: ANA는 \bana\b — Hana(로드투하나) 오탐 금지 — manifest
 const AIRLINE_CARRIER_RE =
-  /\b(?:airlines?|airways|air\s*line|항공(?:사)?)\b|air\s*premia|singapore\s+airlines|korean\s+air|asiana\s+air|jeju\s+air|t\s*way|eastar\s+jet|air\s+canada|westjet|vietjet|vietnam\s+airlines|eva\s+air|china\s+airlines|china\s+eastern|china\s+southern|united\s+airlines|delta\s+air|american\s+airlines|british\s+airways|lufthansa|emirates|qatar\s+airways|turkish\s+airlines|air\s+france|klm|jal|ana\b|peach\s+aviation|spring\s+airlines|hainan\s+airlines|malaysia\s+airlines|garuda\s+indonesia|philippine\s+airlines|scoot\b|jetstar|airasia|finnair|sas\b|swiss\s+air|iberia|alitalia|ryanair|easyjet|zipair|air\s+seoul|air\s+busan/i
+  /\b(?:airlines?|airways|air\s*line|항공(?:사)?)\b|air\s*premia|singapore\s+airlines|korean\s+air|asiana\s+air|jeju\s+air|t\s*way|eastar\s+jet|air\s+canada|westjet|vietjet|vietnam\s+airlines|eva\s+air|china\s+airlines|china\s+eastern|china\s+southern|united\s+airlines|delta\s+air|american\s+airlines|british\s+airways|lufthansa|emirates|qatar\s+airways|turkish\s+airlines|air\s+france|klm|\bjal\b|\bana\b|peach\s+aviation|spring\s+airlines|hainan\s+airlines|malaysia\s+airlines|garuda\s+indonesia|philippine\s+airlines|scoot\b|jetstar|airasia|finnair|\bsas\b|swiss\s+air|iberia|alitalia|ryanair|easyjet|zipair|air\s+seoul|air\s+busan/i
 
 export function isAirlineCarrierImageKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()

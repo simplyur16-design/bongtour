@@ -3680,7 +3680,19 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^서안$|^Xi'?an$/i.test(seg)) return 'Xian'
     // 코타키나발루 아일랜드 호핑 — landmark 소진 후 bare soft-dup
     if (/아일랜드\s*호핑|island\s*hopping/i.test(seg)) return 'Kota Kinabalu'
-    const fromMap = mapDestination(seg)
+    const fromMapRaw = mapDestination(seg)
+    const fromMap =
+      fromMapRaw && isBareCityOrCountryKeyword(fromMapRaw) && /[A-Za-z]/.test(fromMapRaw)
+        ? fromMapRaw
+        : /^쿠마모토$/u.test(seg)
+          ? 'Kumamoto'
+          : /^치바$/u.test(seg)
+            ? 'Chiba'
+            : /^고치$/u.test(seg)
+              ? 'Kochi'
+              : /^도야마$/u.test(seg)
+                ? 'Toyama'
+                : ''
     if (
       fromMap &&
       isBareCityOrCountryKeyword(fromMap) &&
@@ -3716,6 +3728,7 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '아그라',
     '카이로',
     // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour EMP151 카이 soft-dup hay — Day2 empty 금지 — manifest
+    // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 카이≠카이세키 — Cairo 오탐 금지 — manifest
     '카이',
     '두바이',
     '피렌체',
@@ -3739,9 +3752,37 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '하노이',
     '가라쓰',
     '가라츠',
+    '쿠마모토',
+    '고치',
+    '도야마',
+    '치바',
+    '런던',
+    '파리',
+    '연태',
+    '이집트',
   ]) {
-    if (!hay.includes(ko)) continue
-    const m = mapDestination(ko) || (/^삿포로?$/u.test(ko) ? 'Sapporo' : '')
+    // 짧은 토큰은 includes 오탐(카이⊂카이세키) — 단어 경계만
+    if (ko === '카이') {
+      if (/카이세키/u.test(hay)) continue
+      if (!/(?:^|[^\uAC00-\uD7AF])카이(?:로)?(?:$|[^\uAC00-\uD7AF])/u.test(hay)) continue
+    } else if (!hay.includes(ko)) {
+      continue
+    }
+    let m = mapDestination(ko)
+    // mapDestination이 한글 echo만 주면 bare 영문 soft로 대체
+    if (m && (!isBareCityOrCountryKeyword(m) || !/[A-Za-z]/.test(m))) m = ''
+    if (!m) {
+      m =
+        (/^삿포로?$/u.test(ko) ? 'Sapporo' : '') ||
+        (/^쿠마모토$/u.test(ko) ? 'Kumamoto' : '') ||
+        (/^고치$/u.test(ko) ? 'Kochi' : '') ||
+        (/^도야마$/u.test(ko) ? 'Toyama' : '') ||
+        (/^치바$/u.test(ko) ? 'Chiba' : '') ||
+        (/^런던$/u.test(ko) ? 'London' : '') ||
+        (/^파리$/u.test(ko) ? 'Paris' : '') ||
+        (/^연태$/u.test(ko) ? 'Yantai' : '') ||
+        (/^이집트$/u.test(ko) ? 'Cairo' : '')
+    }
     if (
       m &&
       isBareCityOrCountryKeyword(m) &&
@@ -4671,7 +4712,7 @@ export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
   // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 리조트 방문도시 반복 — manifest
   // REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]: Bali 자유일 middle끼리 soft-dup 금지 — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey/i.test(
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris/i.test(
     String(city ?? '').trim(),
   )
 }

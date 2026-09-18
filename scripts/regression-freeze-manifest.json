@@ -21490,6 +21490,57 @@
       "vitestSuites": [
         "apps/simplyur-mobile/src/lib/dock-cta-layout.test.ts"
       ]
+    },
+    {
+      "id": "register-pre-photo-heal-blocked-geo-dest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "blocked 잔여 geo — 달랏 에펠≠Europe·나트랑/연태/그리스 제목 dest·mismatch dest 폐기",
+      "checks": [
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]",
+            "나트랑|Nha\\s*Trang|달랏|Da\\s*Lat",
+            "유럽(?!\\s*마을)",
+            "입국신고"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]",
+            "나트랑|달랏|연태",
+            "그리스|튀르키예"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-country-schedule-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]",
+            "mismatch dest",
+            "turkey/greece/china hint 강제"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]",
+            "입국신고"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "나트랑/달랏 — 일정 에펠탑이 Europe으로 뒤집히지 않고 Nha Trang 유지"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
     }
   ],
   "vitestSuites": [
@@ -22010,7 +22061,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "blocked 중간일 공란 — FIT는 당일 route spot만 채우고 제목 명소 가로채기 금지·카렐교·벨렝 POI",
+      "summary": "blocked 중간일 공란 — FIT는 당일 route spot만 채우고 제목 명소 가로채기 금지·카렐교·벨렘 POI·발리 팩·오로라 drop 예외·Hana≠ANA·빈 route·카이≠카이세키",
       "checks": [
         {
           "file": "lib/register-pre-photo-self-heal.ts",
@@ -22018,7 +22069,11 @@
             "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
             "FIT 채움은 당일 route만",
             "제목 명소 가로채기 금지",
-            "verify와 같은 route SSOT 후보로 채움"
+            "verify와 같은 route SSOT 후보로 채움",
+            "bare 발리 동선은 SEA 명소 팩으로 채움",
+            "오로라 primary는 own-route drop 예외",
+            "깨진 kw2 최종 비움",
+            "빈 middle route는 dest soft-dup으로 채움"
           ]
         },
         {
@@ -22026,14 +22081,43 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
             "카렐교",
-            "벨렝"
+            "벨렘",
+            "울란바토르",
+            "가오슝·컨딩·타이난·리장",
+            "데린구유"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
+            "Hana(로드투하나) 오탐 금지",
+            "\\bana\\b"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
+            "bare 방문도시 동선(발리)은 같은 도시 명소 키워드 허용"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]",
+            "카이≠카이세키 — Cairo 오탐 금지"
           ]
         },
         {
           "file": "tests/register-pre-photo-self-heal.test.ts",
           "mustInclude": [
             "FIT 제목 명소가 당일 route 키워드를 가로채지 않는다",
-            "카렐교"
+            "카렐교",
+            "발리 동선만 있는 중간일은 SEA 명소로 채운다",
+            "오로라 상품은 힐 후에도 primary 오로라를 유지한다",
+            "카이세키 일정은 Cairo soft-dup을 만들지 않는다",
+            "중간일 route가 비면 dest soft-dup으로 채운다"
           ]
         }
       ],

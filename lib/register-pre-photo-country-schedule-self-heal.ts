@@ -207,8 +207,16 @@ export async function rematerializePendingProductCountryGeo(
   },
 ): Promise<RematerializePendingCountryGeoResult> {
   const dest = String(args.productDestination ?? '').trim()
-  // 이전 힐이 심은 권역 넛지 dest 는 버려 제목·본문으로 재해석
-  const destPoisoned = isPoisonedRegionClusterDestination(dest)
+  // 이전 힐이 심은 권역 넛지 dest·countryKey↔일정 불일치 dest 는 버려 제목·본문으로 재해석
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: mismatch dest(라트비아≠연태) 폐기 — manifest
+  const destMismatchPoison =
+    productCountryScheduleMismatchIssues({
+      countryKey: args.previousCountryKey,
+      productTitle: args.title,
+      productDestination: dest,
+      rows: args.rows,
+    }).length > 0
+  const destPoisoned = isPoisonedRegionClusterDestination(dest) || destMismatchPoison
   const placeDest =
     !destPoisoned && dest && isRegisterPrePhotoPlaceLikeDestination(dest) ? dest : null
   const haystack = buildCountryScheduleSelfHealHaystack({
@@ -275,6 +283,38 @@ export async function rematerializePendingProductCountryGeo(
       locationMatchConfidence: 'high',
     }
   }
+  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: resolve가 japan 고착 시 turkey/greece/china hint 강제 — manifest
+  if (
+    productCountryScheduleMismatchIssues({
+      countryKey: String(geo.countryKey ?? ''),
+      productTitle: args.title,
+      productDestination: placeDest,
+      rows: args.rows,
+    }).length > 0
+  ) {
+    const preferKey =
+      hintKeys.find((k) =>
+        k === 'turkey' ||
+        k === 'greece' ||
+        k === 'china' ||
+        k === 'vietnam' ||
+        k === 'italy' ||
+        k === 'spain' ||
+        k === 'france',
+      ) ?? hintKeys[0]
+    const preferLabel = preferKey ? COUNTRY_KEY_HEAL_LABEL[preferKey] : null
+    if (preferKey && preferLabel) {
+      geo = {
+        ...geo,
+        countryKey: preferKey,
+        country: preferLabel,
+        city: null,
+        cityKey: null,
+        locationMatchSource: 'register-country-schedule-heal-hint',
+        locationMatchConfidence: 'high',
+      }
+    }
+  }
   const previousCountryKey = String(args.previousCountryKey ?? '').trim() || null
   const nextCk = String(geo.countryKey ?? '').trim() || null
   const changed = nextCk !== previousCountryKey
@@ -293,11 +333,23 @@ export async function rematerializePendingProductCountryGeo(
         city: geo.city,
         locationMatchConfidence: geo.locationMatchConfidence,
         locationMatchSource: geo.locationMatchSource,
-        ...(placeDest || hintLabel
+        ...(placeDest || hintLabel || (changed && COUNTRY_KEY_HEAL_LABEL[nextCk ?? ''])
           ? {
-              destination: placeDest || hintLabel,
-              destinationRaw: placeDest || hintLabel,
-              primaryDestination: placeDest || hintLabel,
+              destination:
+                placeDest ||
+                hintLabel ||
+                COUNTRY_KEY_HEAL_LABEL[nextCk ?? ''] ||
+                null,
+              destinationRaw:
+                placeDest ||
+                hintLabel ||
+                COUNTRY_KEY_HEAL_LABEL[nextCk ?? ''] ||
+                null,
+              primaryDestination:
+                placeDest ||
+                hintLabel ||
+                COUNTRY_KEY_HEAL_LABEL[nextCk ?? ''] ||
+                null,
             }
           : {}),
       },
