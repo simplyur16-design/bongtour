@@ -274,10 +274,11 @@ VERYGOOD_MODAL_DOM_BUNDLE_JS = r"""
   if (y && mo) {
     for (const td of left.querySelectorAll('td.jq_cl_day')) {
       const raw = (td.innerText || '').replace(/\s+/g, ' ').trim();
-      const mm = raw.match(/^(\d{1,2})(?:\s+(\d+)\s*만원~?)?$/);
+      // REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]: 좌측 만원 콤마(1,899 만원~) — TS 파서와 동일
+      const mm = raw.match(/^(\d{1,2})(?:\s+([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*만원~?)?$/);
       if (!mm) continue;
       const day = parseInt(mm[1], 10);
-      const man = mm[2] ? parseInt(mm[2], 10) : 0;
+      const man = mm[2] ? parseInt(String(mm[2]).replace(/,/g, ''), 10) : 0;
       const iso = y + '-' + mo + '-' + String(day).padStart(2, '0');
       leftCells.push({ date: iso, approxPrice: man > 0 ? man * 10000 : 0, raw });
     }

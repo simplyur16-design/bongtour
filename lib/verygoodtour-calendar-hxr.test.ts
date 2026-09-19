@@ -28,6 +28,24 @@ describe('parseVerygoodCalendarLeftCells', () => {
     expect(cells[0]).toMatchObject({ date: '2026-06-21', approxPrice: 950_000 })
     expect(cells[1]).toMatchObject({ date: '2026-06-22', approxPrice: 0 })
   })
+
+  // REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]: 좌측 만원 콤마(1,899 만원~) — manifest
+  it('parses jq_cl_day cells with comma-separated man-won (UPP670-style)', () => {
+    const html = `
+      <div class="dep_left_wrap">
+        <span class="date_txt">2026.12</span>
+        <table><tr>
+          <td class="jq_cl_day">4 1,899 만원~</td>
+          <td class="jq_cl_day">5</td>
+          <td class="jq_cl_day">12 2,099 만원~</td>
+        </tr></table>
+      </div>`
+    const cells = parseVerygoodCalendarLeftCells(html, { y: '2026', mo: '12' })
+    expect(cells).toHaveLength(3)
+    expect(cells[0]).toMatchObject({ date: '2026-12-04', approxPrice: 18_990_000 })
+    expect(cells[1]).toMatchObject({ date: '2026-12-05', approxPrice: 0 })
+    expect(cells[2]).toMatchObject({ date: '2026-12-12', approxPrice: 20_990_000 })
+  })
 })
 
 describe('parseVerygoodCalendarRightRows', () => {

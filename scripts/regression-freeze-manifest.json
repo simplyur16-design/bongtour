@@ -7600,7 +7600,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "verygoodtour ProductCalendarSearch·모달 dep_left/dep_right HXR 파서",
+      "summary": "verygoodtour ProductCalendarSearch·모달 dep_left/dep_right HXR 파서 — 좌측 만원 콤마 허용",
       "checks": [
         {
           "file": "lib/verygoodtour-calendar-hxr.ts",
@@ -7609,7 +7609,24 @@
             "parseVerygoodModalDomHtml",
             "parseVerygoodCalendarRightRows",
             "dep_right_wrap",
-            "jq_cl_detailViewBtn"
+            "jq_cl_detailViewBtn",
+            "좌측 만원 콤마",
+            "(?:,[0-9]{3})*"
+          ]
+        },
+        {
+          "file": "scripts/calendar_e2e_scraper_verygoodtour/calendar_price_scraper.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]",
+            "좌측 만원 콤마",
+            "(?:,[0-9]{3})*"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-calendar-hxr.test.ts",
+          "mustInclude": [
+            "comma-separated man-won (UPP670-style)",
+            "18_990_000"
           ]
         }
       ],

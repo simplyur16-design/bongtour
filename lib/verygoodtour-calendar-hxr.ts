@@ -54,7 +54,11 @@ function parseYearMonthFromHtml(html: string): { y: string; mo: string } | null 
   return { y, mo }
 }
 
-/** 좌측 달력 td.jq_cl_day — E2E leftCells 계약 */
+/**
+ * 좌측 달력 td.jq_cl_day — E2E leftCells 계약.
+ * 만원 표기: `21 95만원~` · `4 1,899 만원~`(천단위 콤마) 모두 허용.
+ */
+// REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]: 좌측 만원 콤마(1,899 만원~) — manifest
 export function parseVerygoodCalendarLeftCells(
   html: string,
   ym: { y: string; mo: string },
@@ -65,10 +69,10 @@ export function parseVerygoodCalendarLeftCells(
   let m: RegExpExecArray | null
   while ((m = tdRe.exec(leftHtml)) != null) {
     const raw = stripTags(m[1]!)
-    const mm = raw.match(/^(\d{1,2})(?:\s+(\d+)\s*만원~?)?$/)
+    const mm = raw.match(/^(\d{1,2})(?:\s+([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*만원~?)?$/)
     if (!mm) continue
     const day = Number(mm[1])
-    const man = mm[2] ? Number(mm[2]) : 0
+    const man = mm[2] ? Number(String(mm[2]).replace(/,/g, '')) : 0
     cells.push({
       date: `${ym.y}-${ym.mo}-${String(day).padStart(2, '0')}`,
       approxPrice: man > 0 ? man * 10_000 : 0,
