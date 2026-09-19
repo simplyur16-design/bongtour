@@ -657,6 +657,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /미케\s*비치|My\s*Khe/i, en: 'Da Nang My Khe Beach sunset' },
   { re: /드래곤\s*브릿지|Dragon\s*Bridge/i, en: 'Da Nang Dragon Bridge night' },
   { re: /페리토모레노|Perito\s*Moreno/i, en: 'Perito Moreno Glacier' },
+  // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 엘아테네오 서점 ≠ Athens — manifest
+  { re: /엘\s*아테네오|El\s*Ateneo|Ateneo\s*Grand\s*Splendid/i, en: 'El Ateneo Grand Splendid Buenos Aires' },
+  // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 칼라파테 도시 ≠ Perito only — manifest
+  { re: /(?:엘\s*)?칼라파테|El\s*Calafate|\bCalafate\b/i, en: 'El Calafate Patagonia Argentina' },
   { re: /오르도스\s*(?:대)?초원|Ordos\s*(?:grassland|steppe)/i, en: 'Ordos grassland prairie Inner Mongolia' },
   { re: /어얼둬쓰\s*문화원|오르도스\s*문화원/i, en: 'Ordos cultural center Inner Mongolia' },
   { re: /징기스칸릉|Genghis\s*Khan\s*Mausoleum/i, en: 'Genghis Khan Mausoleum Ordos' },
@@ -732,7 +736,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /시드니를\s*상징하는\s*(?:활기찬\s*)?해변|시드니\s*해변/i, en: 'Bondi Beach' },
   { re: /샴엘세이크|Sharm\s*el[- ]?Sheikh/i, en: 'Sharm el Sheikh Red Sea' },
   { re: /아카바|Aqaba/i, en: 'Aqaba Red Sea Jordan' },
-  { re: /칼라파테|Calafate|페리토\s*모레노|Perito\s*Moreno/i, en: 'Perito Moreno Glacier' },
+  { re: /페리토\s*모레노|Perito\s*Moreno/i, en: 'Perito Moreno Glacier' },
   { re: /레이캬비크|Reykjavik|Reykjavík/i, en: 'Reykjavik colorful harbor houses' },
   { re: /글래스고|Glasgow/i, en: 'Glasgow Cathedral George Square' },
   { re: /카르타고|Carthage/i, en: 'Carthage ruins Tunisia' },

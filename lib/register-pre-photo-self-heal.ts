@@ -425,6 +425,25 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
   return []
 }
 
+function priorMiddleDayRouteHay<T extends RegisterPrePhotoHealRow>(
+  rows: readonly T[],
+  day: number,
+): string {
+  let best = ''
+  let bestDay = 0
+  for (const r of rows) {
+    const d = Number(r.day) || 0
+    if (d <= 0 || d >= day) continue
+    const route = String(r.routeText ?? '').trim()
+    if (!route || isHotelLodgingImageKeyword(route)) continue
+    if (d >= bestDay) {
+      bestDay = d
+      best = route
+    }
+  }
+  return best
+}
+
 function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
   rows: T[],
   destHay: string,
@@ -448,6 +467,7 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     }
     const routeHay = String(row.routeText ?? '').trim()
     const hay = [routeHay, row.title].filter(Boolean).join(' ')
+    const priorHay = priorMiddleDayRouteHay(rows, Number(row.day) || 0)
     const fromKoSegs = splitRouteTextPlaceSegments(routeHay)
       .map(
         (seg) =>
@@ -465,6 +485,8 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
       ...fromKoSegs,
       ...bareVisitCityLandmarkPack(routeHay),
       softDupForeignVisitCityForMiddleRoute(routeHay),
+      // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 숙소-only는 직전 방문도시 soft-dup — manifest
+      softDupForeignVisitCityForMiddleRoute(priorHay),
       softDupForeignVisitCityForMiddleRoute(destHay),
       firstMatchingScheduleCityEn(destHay),
     ].filter((v): v is string => Boolean(v && String(v).trim()))
@@ -485,7 +507,16 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
         continue
       }
       const key = persist.value.trim().toLowerCase()
-      if (key && used.has(key) && !allowRouteRevisitBareVisitCitySoftDup(persist.value)) {
+      // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 당일 route 명소는 used여도 재허용(페리토 연속일) — manifest
+      if (
+        key &&
+        used.has(key) &&
+        !allowRouteRevisitBareVisitCitySoftDup(persist.value) &&
+        !(
+          routeHay &&
+          registerScheduleKeywordMatchesOwnDayRoute(routeHay, persist.value)
+        )
+      ) {
         continue
       }
       if (key) used.add(key)
@@ -515,6 +546,7 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 숙소-only·빈 중간일은 dest soft-dup — manifest
     if (isHotelLodgingImageKeyword(routeHay) || !routeHay) {
       const softDest =
+        softDupForeignVisitCityForMiddleRoute(priorHay) ||
         softDupForeignVisitCityForMiddleRoute(destHay) ||
         firstMatchingScheduleCityEn(destHay) ||
         ''
@@ -529,6 +561,7 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: activity-only(패들보드 등)는 dest soft-dup — manifest
     {
       const softDest =
+        softDupForeignVisitCityForMiddleRoute(priorHay) ||
         softDupForeignVisitCityForMiddleRoute(destHay) ||
         firstMatchingScheduleCityEn(destHay) ||
         ''
@@ -611,13 +644,15 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
       nextKw = nextKw2
       nextKw2 = null
     }
-    // 숙소-only 중간일 — bleed 제거 후 방문도시 soft-dup으로 채움
+    // 숙소-only 중간일 — bleed 제거 후 직전 방문도시·dest soft-dup으로 채움
+    // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: lodging bleed→prior city — manifest
     if (
       !nextKw &&
-      isHotelLodgingImageKeyword(String(row.routeText ?? '')) &&
-      destHay
+      isHotelLodgingImageKeyword(String(row.routeText ?? ''))
     ) {
+      const priorHay = priorMiddleDayRouteHay(rows, Number(row.day) || 0)
       const soft =
+        softDupForeignVisitCityForMiddleRoute(priorHay) ||
         softDupForeignVisitCityForMiddleRoute(destHay) ||
         firstMatchingScheduleCityEn(destHay) ||
         ''

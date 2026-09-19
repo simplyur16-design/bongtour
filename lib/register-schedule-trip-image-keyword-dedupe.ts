@@ -3677,6 +3677,8 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^괌$|^Guam$/i.test(seg)) return 'Guam'
     if (/^다낭$|^Da\s*Nang$/i.test(seg)) return 'Da Nang'
     if (/^푸꾸옥$|^Phu\s*Quoc$/i.test(seg)) return 'Phu Quoc'
+    // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 칼라파테≠Perito soft-dup — manifest
+    if (/^(?:엘\s*)?칼라파테$|^El\s*Calafate$|^Calafate$/i.test(seg)) return 'Calafate'
     if (/^서안$|^Xi'?an$/i.test(seg)) return 'Xian'
     // 코타키나발루 아일랜드 호핑 — landmark 소진 후 bare soft-dup
     if (/아일랜드\s*호핑|island\s*hopping/i.test(seg)) return 'Kota Kinabalu'
@@ -3727,6 +3729,9 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '자이푸르',
     '아그라',
     '카이로',
+    // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 칼라파테 soft-dup — manifest
+    '칼라파테',
+    '엘 칼라파테',
     // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour EMP151 카이 soft-dup hay — Day2 empty 금지 — manifest
     // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 카이≠카이세키 — Cairo 오탐 금지 — manifest
     '카이',
@@ -3761,10 +3766,21 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '연태',
     '이집트',
   ]) {
-    // 짧은 토큰은 includes 오탐(카이⊂카이세키) — 단어 경계만
+    // 짧은 토큰은 includes 오탐(카이⊂카이세키·아테네⊂엘아테네오) — 단어 경계만
+    // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 엘아테네오≠Athens·짧은 KO 경계 — manifest
     if (ko === '카이') {
       if (/카이세키/u.test(hay)) continue
       if (!/(?:^|[^\uAC00-\uD7AF])카이(?:로)?(?:$|[^\uAC00-\uD7AF])/u.test(hay)) continue
+    } else if (ko === '아테네') {
+      if (/아테네오|엘\s*아테네|Ateneo/i.test(hay)) continue
+      if (!/(?:^|[^\uAC00-\uD7AF])아테네(?:$|[^\uAC00-\uD7AF])/u.test(hay)) continue
+    } else if (ko.length <= 2) {
+      // 2글자 이하 — 로마⊂로마네스크·니스⊂테니스 등 includes 오탐 방지
+      if (
+        !new RegExp(`(?:^|[^\\uAC00-\\uD7AF])${ko}(?:$|[^\\uAC00-\\uD7AF])`, 'u').test(hay)
+      ) {
+        continue
+      }
     } else if (!hay.includes(ko)) {
       continue
     }
@@ -3781,7 +3797,8 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
         (/^런던$/u.test(ko) ? 'London' : '') ||
         (/^파리$/u.test(ko) ? 'Paris' : '') ||
         (/^연태$/u.test(ko) ? 'Yantai' : '') ||
-        (/^이집트$/u.test(ko) ? 'Cairo' : '')
+        (/^이집트$/u.test(ko) ? 'Cairo' : '') ||
+        (/칼라파테$/u.test(ko) ? 'Calafate' : '')
     }
     if (
       m &&

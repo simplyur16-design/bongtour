@@ -11,6 +11,7 @@ import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
 import {
   hasSupplierHomepageForbiddenTitlePhrase,
   isSupplierTitleNotDestinationToken,
+  stripSupplierTitleUiNoise,
 } from '@/lib/supplier-product-title-display'
 import { isTruncatedCardinalRegionDestination } from '@/lib/register-ocean-cruise-product'
 
@@ -42,12 +43,14 @@ export const MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE =
 
 const GENERIC_PRODUCT_DEST_RE = /^(?:미지정|미정|기타|해외|overseas|unknown)$/i
 
-/** 식사·항공권·객실·비자 — 대륙 dest hay에 쓰지 않는다. */
+/** 식사·항공권·객실·비자·프로모 — 대륙 dest hay에 쓰지 않는다. */
+// REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: UPGRADE·실시간항공·폭포뷰 dest 비장소 — manifest
 const NON_PLACE_PRODUCT_DEST_RE =
-  /석식|중식|조식|현지식|항공권|왕복항공|왕복\s*항공|객실|호텔\s*객실|료칸\s*객실|전자비자|\bESTA\b|유류세|미입력|여행일정|중국식|프리미|원하는|슈페리어룸|트윈룸|옐로팡딜|팡딜|전\s*일정|특급\s*호텔|월드체인|·\s*자유\s*·|입국신고|여행\s*전\s*준비\s*안내|사전\s*입국|안내\s*외/i
+  /석식|중식|조식|현지식|항공권|왕복항공|왕복\s*항공|객실|호텔\s*객실|료칸\s*객실|전자비자|\bESTA\b|유류세|미입력|여행일정|중국식|프리미|원하는|슈페리어룸|트윈룸|옐로팡딜|팡딜|전\s*일정|특급\s*호텔|월드체인|·\s*자유\s*·|입국신고|여행\s*전\s*준비\s*안내|사전\s*입국|안내\s*외|\bUPGRADE\b|최다모객|모객상품|실시간\s*항공|폭포뷰|뷰\s*UP|퍼펙트\s*일주/i
 
 export function isRegisterPrePhotoPlaceLikeDestination(raw: string | null | undefined): boolean {
-  const dest = String(raw ?? '').trim()
+  // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: ●○ 장식 제거 후 place 판정 — manifest
+  const dest = stripSupplierTitleUiNoise(String(raw ?? '').trim())
   if (!dest) return false
   if (GENERIC_PRODUCT_DEST_RE.test(dest)) return false
   if (NON_PLACE_PRODUCT_DEST_RE.test(dest)) return false
@@ -106,6 +109,10 @@ const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bNice\b/i,
   // Place Massena — Americas dest에 니스 명소 환각 차단
   /Place\s*Massena/i,
+  // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 남미 일정 Athens(엘아테네오 오탐) 금지 — manifest
+  /\bAthens\b/i,
+  /\bAcropolis\b/i,
+  /\bParthenon\b/i,
 ]
 
 const JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE =

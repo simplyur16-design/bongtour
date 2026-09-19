@@ -15,7 +15,8 @@ export const SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION = 'plan-b-v3-2026-09-
 /** Product.title·메타 상한 — bongtour-product-title-tone HARD_MAX 와 동일 */
 export const SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX = 90
 
-const UI_NOISE_CHARS = ['★', '※', '◎', '◆', '▶'] as const
+// REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: ●○ dest·제목 장식 제거 — manifest
+const UI_NOISE_CHARS = ['★', '※', '◎', '◆', '▶', '●', '○'] as const
 
 /** 한글 지명(이태리·스페인·괌 츠바키 앞 토큰)은 2글자도 상품명이다. ASCII만 4자. */
 // REGRESSION-FREEZE[supplier-product-title-plan-b]: 한글 2자+ 제목 허용 — manifest

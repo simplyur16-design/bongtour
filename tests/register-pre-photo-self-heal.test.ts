@@ -1192,4 +1192,110 @@ describe('register-pre-photo-self-heal', () => {
       '그리스',
     )
   })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: UPGRADE dest·엘아테네오·칼라파테 — manifest
+  it('남미 일정 — UPGRADE dest는 비장소이고 엘아테네오≠Athens·칼라파테 soft-dup', async () => {
+    assert.equal(isRegisterPrePhotoPlaceLikeDestination('UPGRADE · 최다모객상품'), false)
+    assert.equal(
+      isRegisterPrePhotoPlaceLikeDestination(
+        '다낭 (베트남 온라인 사전 입국신고 안내 · 베트남 여행 전 준비 안내)',
+      ),
+      false,
+    )
+    assert.equal(isRegisterPrePhotoPlaceLikeDestination('실시간항공 · 폭포뷰UP'), false)
+    assert.equal(isRegisterPrePhotoPlaceLikeDestination('● ● 미동부캐나다'), true)
+    assert.equal(
+      inferRegisterPendingDestinationFromTitle('● ● [실시간항공/폭포뷰UP] 미동부캐나다 10일'),
+      '미동부',
+    )
+    const { softDupForeignVisitCityForMiddleRoute } = await import(
+      '../lib/register-schedule-trip-image-keyword-dedupe'
+    )
+    assert.notEqual(
+      softDupForeignVisitCityForMiddleRoute('부에노스 아이레스 - 엘아테네오 서점 - 5월 광장'),
+      'Athens',
+    )
+    assert.equal(
+      softDupForeignVisitCityForMiddleRoute('엘 칼라파테 - 페리토모레노 빙하트레킹'),
+      'Calafate',
+    )
+    const title = '○ 4구간 비즈니스 ○ 남미일주+파타고니아 17일'
+    assert.equal(inferRegisterPendingDestinationFromTitle(title), '중남미')
+    const rows = [
+      {
+        day: 9,
+        title: '부에노스',
+        routeText: '부에노스 아이레스 - 엘아테네오 서점 - 5월 광장',
+        imageKeyword: 'Athens',
+        imageKeyword2: null as string | null,
+        description: '부에노스 아이레스를 둘러봅니다. 서점과 광장을 이어갑니다.',
+      },
+      {
+        day: 10,
+        title: '이동',
+        routeText: '부에노스 아이레스 - 엘 칼라파테',
+        imageKeyword: 'Perito Moreno Glacier',
+        imageKeyword2: null,
+        description: '엘 칼라파테로 이동합니다. 이동 중심으로 이어갑니다.',
+      },
+      {
+        day: 11,
+        title: '빙하',
+        routeText: '엘 칼라파테 - 페리토모레노 빙하트레킹',
+        imageKeyword: '',
+        imageKeyword2: null,
+        description: '페리토모레노 빙하를 트레킹합니다. 빙하 일정을 이어갑니다.',
+      },
+      {
+        day: 12,
+        title: '호텔',
+        routeText: '엘 칼라파테 시내 호텔',
+        imageKeyword: 'Buenos Aires',
+        imageKeyword2: null,
+        description: '엘 칼라파테 호텔에서 휴식합니다. 숙소 중심으로 보냅니다.',
+      },
+      {
+        day: 13,
+        title: '귀국준비',
+        routeText: '엘 칼라파테 - 부에노스 아이레스',
+        imageKeyword: 'Buenos Aires',
+        imageKeyword2: null,
+        description: '부에노스 아이레스로 돌아갑니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '중남미',
+      productTitle: title,
+      lane: 'package',
+    })
+    const d9 = out.rows.find((r) => r.day === 9)
+    const d11 = out.rows.find((r) => r.day === 11)
+    const d12 = out.rows.find((r) => r.day === 12)
+    assert.ok(!/Athens/i.test(String(d9?.imageKeyword ?? '')), String(d9?.imageKeyword))
+    assert.ok(String(d11?.imageKeyword ?? '').trim(), 'day11 keyword filled')
+    assert.ok(
+      !/Buenos\s*Aires/i.test(String(d12?.imageKeyword ?? '')),
+      `lodging day should not keep BA bleed: ${d12?.imageKeyword}`,
+    )
+    assert.ok(String(d12?.imageKeyword ?? '').trim(), 'lodging day soft-dup filled')
+    const after = verifyRegisterPrePhoto({
+      lane: 'package',
+      listingKind: 'package',
+      productTitle: title,
+      productDestination: '중남미',
+      countryKey: 'latin-caribbean',
+      rows: out.rows,
+    })
+    assert.ok(
+      !after.issues.some(
+        (i) =>
+          i.includes('middle_keyword_empty') ||
+          i.includes('wrong_country') ||
+          i.includes('not_on_own_route') ||
+          i.includes('bleed_other_day'),
+      ),
+      after.issues.join(','),
+    )
+  })
 })
