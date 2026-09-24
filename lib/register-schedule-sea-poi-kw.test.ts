@@ -51,6 +51,29 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(String(out.find((r) => r.day === 4)?.imageKeyword ?? '')).toMatch(/Chocolate Hills/i)
   })
 
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 보홀 발리카삭·버진아일랜드≠Bali bleed — manifest
+  it('maps Bohol Balicasag / Virgin Island Korean route (not Bali)', () => {
+    const out = applyHanatourScheduleImageKeywordsToRows(
+      [
+        {
+          day: 3,
+          title: '호핑',
+          description: '',
+          routeText: '발리카삭 섬 - 버진 아일랜드 - 오아시스 리조트 레스토랑',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+      ],
+      {
+        productDestination: '보홀',
+        productTitle: '보홀 5일 #버진아일랜드 #돌핀왓칭',
+      },
+    )
+    const kw = String(out[0]?.imageKeyword ?? '')
+    expect(kw).not.toMatch(/\bbali\b/i)
+    expect(kw).toMatch(/Balicasag|Virgin Island/i)
+  })
+
   it('AAP218 Bangkok day4 — Bang Luang not NYC Central Park (Dusit)', () => {
     // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AAP218 방루앙·두짓≠NYC Central Park — manifest
     const out = applyHanatourScheduleImageKeywordsToRows(

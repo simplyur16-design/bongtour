@@ -1381,6 +1381,11 @@ const POI_KO_TO_EN: Record<string, string> = {
   '노스젠 밤부브릿지': 'Bamboo Bridge Bohol',
   알로나비치: 'Alona Beach Bohol',
   '알로나 비치': 'Alona Beach Bohol',
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 보홀 발리카삭·버진아일랜드≠Bali bleed — manifest
+  발리카삭: 'Balicasag Island Bohol',
+  '발리카삭 섬': 'Balicasag Island Bohol',
+  '버진 아일랜드': 'Virgin Island Bohol',
+  버진아일랜드: 'Virgin Island Bohol',
   올랑고섬: 'Olango Island Cebu',
   올랑고: 'Olango Island Cebu',
   막탄: 'Mactan Island Cebu',
