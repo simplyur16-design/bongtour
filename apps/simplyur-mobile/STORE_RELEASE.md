@@ -158,46 +158,44 @@ Set `EXPO_PUBLIC_SENTRY_DSN` in local `.env` for device builds. Empty DSN = tele
 - Play Store later: append Play App Signing SHA-256 (comma-separated)  
 - App ID capability: Associated Domains `applinks:bongtour.com`
 
-## K. Play Store listing — paste today (AAB later)
+## K. Store listing ASO (Play + App Store) — paste from SSOT
 
-Paste into Play Console → Store presence. Default locale **English (US)** (visitors, not Korea residents).
+**SSOT:** [`store-listing/aso/listing.json`](./store-listing/aso/listing.json) · guide [`store-listing/aso/ASO.md`](./store-listing/aso/ASO.md)  
+**Verify:** `npm run verify:simplyur-aso-listing` (repo root)
 
-**App name** (≤30): `simplyur`
+Home-screen label stays **`simplyur`**. Store title is **`simplyur: Korea eSIM`** (and localized equivalents).
 
-**Short description** (≤80):
-```
-Korea eSIM for visitors. Buy a QR, install before you fly, connect on landing.
-```
+### Play Console — English (US) default
 
-**Full description**:
-```
-simplyur is Korea eSIM for international visitors — not for people who live in Korea.
+Paste `locales.en-US` from `listing.json`:
 
-Buy a nationwide data plan for Seoul, Busan, Jeju and the rest of South Korea. After payment you get a QR code by email. Install it before you fly, then activate when you land. No physical SIM, no airport kiosk.
+| Field | Value |
+|-------|--------|
+| App name (≤30) | `simplyur: Korea eSIM` |
+| Short description (≤80) | see `playShort` |
+| Full description | see `description` |
+| What's new | see `whatsNew` |
 
-• Plans by trip length
-• QR by email right after purchase
-• Install guide in English, Japanese, Chinese, and Vietnamese
-• My eSIM: QR, remaining data, install steps
-• Google sign-in
-• International cards (Eximbay)
+Then add **ja-JP / zh-CN / zh-TW / vi-VN** from the same file.
 
-A Bong Tour brand. Support: bongtour24@naver.com
-Privacy: https://bongtour.com/simplyur/en/legal/privacy
-Terms: https://bongtour.com/simplyur/en/legal/terms
-Refunds: in-app Settings → Refund
-Delete account: Settings → Delete account
-```
-
-**What's new** (1.0.0):
-```
-First public release. Korea eSIM for visitors: buy a plan, get your QR by email, install before you fly, connect when you land.
-```
-
-**Category:** Travel & Local
-**Contact:** bongtour24@naver.com
-**Privacy policy:** https://bongtour.com/simplyur/en/legal/privacy
+**Category:** Travel & Local  
+**Contact:** `bongtour24@naver.com`  
+**Privacy:** `https://bongtour.com/simplyur/en/legal/privacy`  
+**Graphics:** `store-listing/play-icon-512.png`, `store-listing/play-feature-1024x500.png`  
 **Package:** `com.bongtour.simplyur`
+
+### App Store Connect — English (U.S.) primary
+
+| Field | Value |
+|-------|--------|
+| Name (≤30) | `title` |
+| Subtitle (≤30) | `iosSubtitle` |
+| Keywords (≤100) | `iosKeywords` (commas, **no spaces**) |
+| Promotional Text (≤170) | `iosPromo` |
+| Description | `description` |
+| What's New | `whatsNew` |
+
+Add ja / zh-Hans / zh-Hant / vi the same way.
 
 Do **not** upload the 2026-08-08 AAB. Do **not** `eas submit` — Expo is only the cloud builder. Download the production AAB and upload it yourself in Play Console.
 

@@ -80,9 +80,11 @@ Physical iPhone: install **Expo Go**, same LAN, scan QR from `npm start`.
 - My eSIM uses the same in-app Bearer session (Apple / Google / email) — QR, SM-DP+, usage, unused refund.
 - Settings: language, legal (terms/privacy/refund), mailto support, sign-out, account delete.
 
-## Store release (optional / later)
+## Store release (ASO)
 
-Not the current verify loop. Checklist only when explicitly shipping to stores: [`STORE_RELEASE.md`](./STORE_RELEASE.md).
+Listing copy SSOT (en / ja / zh / zh-TW / vi): [`store-listing/aso/listing.json`](./store-listing/aso/listing.json)  
+Operator paste guide: [`store-listing/aso/ASO.md`](./store-listing/aso/ASO.md) · checklist [`STORE_RELEASE.md`](./STORE_RELEASE.md)  
+Verify: `npm run verify:simplyur-aso-listing` from repo root.
 
 ## Screens
 

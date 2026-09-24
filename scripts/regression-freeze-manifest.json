@@ -3816,6 +3816,41 @@
       ]
     },
     {
+      "id": "simplyur-aso-listing",
+      "tier": ["prebuild", "ci"],
+      "summary": "simplyur Play/App Store ASO listing.json — title/subtitle/keywords/short char limits + visitor locales",
+      "npmScripts": ["verify:simplyur-aso-listing"],
+      "checks": [
+        {
+          "file": "apps/simplyur-mobile/store-listing/aso/listing.json",
+          "mustInclude": [
+            "simplyur: Korea eSIM",
+            "com.bongtour.simplyur",
+            "en-US",
+            "ja",
+            "zh-CN",
+            "zh-TW",
+            "vi"
+          ],
+          "mustNotInclude": ["bongtong.com"]
+        },
+        {
+          "file": "apps/simplyur-mobile/src/constants/simplyur.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-aso-listing]",
+            "store-listing/aso/listing.json"
+          ]
+        },
+        {
+          "file": "scripts/verify-simplyur-aso-listing.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-aso-listing]",
+            "listing.json"
+          ]
+        }
+      ]
+    },
+    {
       "id": "simplyur-android-application-id",
       "tier": [
         "prebuild"

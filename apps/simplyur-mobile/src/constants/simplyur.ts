@@ -46,7 +46,8 @@ export const BRAND = {
   audience: SIMPLYUR_AUDIENCE,
   parent: 'Bong Tour Co., Ltd.',
   palette: SIMPLYUR_PALETTE,
-  /** Store listing / App Store Connect */
+  /** Store listing / App Store Connect — ASO SSOT: apps/simplyur-mobile/store-listing/aso/listing.json */
+  // REGRESSION-FREEZE[simplyur-aso-listing]: store listing char limits + locale SSOT — manifest
   privacyPolicyPath: '/simplyur/en/legal/privacy',
   supportEmail: 'bongtour24@naver.com',
 } as const;

@@ -7,6 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "simplyur",
     "userInterfaceStyle": "light",
+    "description": "Korea eSIM for international visitors. Buy a QR, install before you fly, connect on landing.",
     "runtimeVersion": {
       "policy": "appVersion"
     },
