@@ -1,0 +1,12 @@
+// Local AAB helper — set RN path + compileSdk before AGP evaluates worklets.
+gradle.beforeProject { project ->
+  if (project == project.rootProject) {
+    if (!project.extensions.extraProperties.has("compileSdkVersion")) {
+      project.extensions.extraProperties.set("compileSdkVersion", 36)
+    }
+  }
+  if (project.name == "app") {
+    def rn = new File(project.rootDir, "../node_modules/react-native")
+    project.extensions.extraProperties.set("REACT_NATIVE_NODE_MODULES_DIR", rn.absolutePath)
+  }
+}
