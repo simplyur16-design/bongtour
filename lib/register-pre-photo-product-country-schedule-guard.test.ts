@@ -56,6 +56,33 @@ describe('productCountryScheduleMismatchIssues', () => {
     expect(issues).toContain('product_country_schedule_mismatch')
   })
 
+  // REGRESSION-FREEZE[register-pending-deep-geo-kw]: 다낭≠greece·옐로나이프≠china — manifest
+  it('flags greece countryKey when title and schedule are Da Nang', () => {
+    const issues = productCountryScheduleMismatchIssues({
+      countryKey: 'greece',
+      productTitle: '다낭 5일 #호이안',
+      productDestination: '다낭',
+      rows: [
+        { day: 1, routeText: '다낭 입국', imageKeyword: 'Da Nang', imageKeyword2: null, description: '다낭', title: '다낭' },
+        { day: 2, routeText: '호이안', imageKeyword: 'Hoi An', imageKeyword2: null, description: '호이안', title: '호이안' },
+      ],
+    })
+    expect(issues).toContain('product_country_schedule_mismatch')
+  })
+
+  it('does not flag canada when schedule is Yellowknife aurora', () => {
+    const issues = productCountryScheduleMismatchIssues({
+      countryKey: 'canada',
+      productTitle: '옐로나이프 오로라',
+      productDestination: '옐로나이프',
+      rows: [
+        { day: 1, routeText: '옐로나이프 공항 - 시내 호텔', imageKeyword: 'Yellowknife', imageKeyword2: null, description: '옐로나이프', title: null },
+        { day: 2, routeText: '오로라 빌리지', imageKeyword: 'Northern Lights', imageKeyword2: null, description: '오로라', title: null },
+      ],
+    })
+    expect(issues).not.toContain('product_country_schedule_mismatch')
+  })
+
   it('blocks malaysia even when imageKeyword hallucinates Kota Kinabalu', () => {
     const issues = productCountryScheduleMismatchIssues({
       countryKey: 'malaysia',

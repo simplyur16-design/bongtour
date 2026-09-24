@@ -370,6 +370,12 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
     [
       C('france', '프랑스', [
         L('fr', '프랑스', { aliases: ['프랑스', 'france', '파리', 'paris', '니스'] }),
+        // REGRESSION-FREEZE[mega-menu-product-alignment]: 보르도 city leaf — manifest
+        L('bordeaux', '보르도', {
+          aliases: ['보르도', 'bordeaux', '생테밀리옹', 'saint emilion', '생떼밀리옹'],
+          dbCityValue: '보르도',
+          supplierKeywords: ['보르도', 'bordeaux', '생테밀리옹'],
+        }),
         L('cotedazur', '코트다쥐르', {
           aliases: ['nice', '니스', '칸', 'cannes', 'cote dazur', '남프랑스', 'south france', '모나코', 'monaco'],
         }),
@@ -410,7 +416,26 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
       ], {
         aliases: ['네덜란드', '벨기에'],
       }),
-      C('germany', '독일', [L('de', '독일', { aliases: ['독일', 'germany', '베를린', '뮌헨'] })], { aliases: ['독일'] }),
+      // REGRESSION-FREEZE[mega-menu-product-alignment]: 독일 leaf — 프랑크푸르트·뉘른베르크 alias — manifest
+      C(
+        'germany',
+        '독일',
+        [
+          L('de', '독일', {
+            aliases: [
+              '독일',
+              'germany',
+              '베를린',
+              '뮌헨',
+              '프랑크푸르트',
+              'frankfurt',
+              '뉘른베르크',
+              'nuremberg',
+            ],
+          }),
+        ],
+        { aliases: ['독일'] },
+      ),
       C('austria', '오스트리아', [L('at', '오스트리아', { aliases: ['austria', '비엔나', '잘츠부르크'] })], {
         aliases: ['오스트리아'],
       }),

@@ -86,7 +86,7 @@ const EU: MegaMenuCountryGroupDef[] = [
     '서유럽',
     [
       LC('이탈리아', ['이탈리아', 'italy', '로마', '밀라노', '베네치아']),
-      LC('프랑스', ['프랑스', 'france', '파리', '니스']),
+      LC('프랑스', ['프랑스', 'france', '파리', '니스', '보르도', 'bordeaux']),
       // REGRESSION-FREEZE[mega-menu-product-alignment]: 모나코 master countryKey — manifest
       LC('모나코', ['모나코', 'monaco', '몬테카를로', 'monte carlo']),
       LC('스위스', ['스위스', 'switzerland', '취리히', '인터라켄']),

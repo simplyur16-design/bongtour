@@ -15117,6 +15117,37 @@
       ]
     },
     {
+      "id": "register-pending-deep-geo-kw",
+      "tier": ["prebuild", "ci"],
+      "summary": "등록대기 심층 — 에게=turkey/greece·옐로나이프=canada·같은 날 kw==kw2 비움",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-product-country-schedule-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-deep-geo-kw]",
+            "옐로나이프",
+            "에게"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-country-schedule-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-deep-geo-kw]",
+            "제목·dest 증거가 있는 hint 우선",
+            "k === 'vietnam'"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-deep-geo-kw]",
+            "같은 날 kw==kw2 비움"
+          ]
+        }
+      ],
+      "npmScripts": ["verify:register-pre-photo-self-heal"]
+    },
+    {
       "id": "register-pre-photo-country-schedule-self-heal",
       "tier": [
         "prebuild",
@@ -17251,6 +17282,24 @@
             "REGRESSION-FREEZE[mega-menu-product-alignment]",
             "megaMenuPlacementForCityKey",
             "buildRegisterMegaMenuGeoSummary"
+          ]
+        },
+        {
+          "file": "lib/overseas-location-tree.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-product-alignment]",
+            "보르도 city leaf",
+            "L('bordeaux'",
+            "독일 leaf — 프랑크푸르트·뉘른베르크 alias",
+            "프랑크푸르트",
+            "뉘른베르크"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "보르도",
+            "bordeaux"
           ]
         },
         {

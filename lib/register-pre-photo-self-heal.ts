@@ -20,6 +20,7 @@
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import {
   englishFromScheduleKoreanSegment,
+  normScheduleImageKeywordKey,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBareCityOrCountryKeyword, isHotelLodgingImageKeyword, isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
@@ -1023,6 +1024,15 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     }
     if (!nextKw && nextKw2) {
       nextKw = nextKw2
+      nextKw2 = null
+    }
+    // REGRESSION-FREEZE[register-pending-deep-geo-kw]: 같은 날 kw==kw2 비움 — manifest
+    if (
+      nextKw &&
+      nextKw2 &&
+      normScheduleImageKeywordKey(nextKw) === normScheduleImageKeywordKey(nextKw2)
+    ) {
+      notes.push({ day: Number(row.day), field: 'imageKeyword2', reason: 'same_as_keyword' })
       nextKw2 = null
     }
     return { ...row, imageKeyword: nextKw, imageKeyword2: nextKw2 }

@@ -7,6 +7,7 @@
 import type { Prisma } from '@prisma/client'
 import type { RegisterPrePhotoHealRow } from '@/lib/register-pre-photo-guards'
 import {
+  PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE,
   productCountryScheduleMismatchIssues,
   registerPrePhotoScheduleCountryHaystack,
   strongOtherCountryKeysFromHay,
@@ -292,16 +293,24 @@ export async function rematerializePendingProductCountryGeo(
       rows: args.rows,
     }).length > 0
   ) {
+    // REGRESSION-FREEZE[register-pending-deep-geo-kw]: 제목·dest 증거가 있는 hint 우선(다낭≠작은산토리니 greece) — manifest
+    const titleDestHay = `${args.title}\n${placeDest ?? ''}`
     const preferKey =
+      hintKeys.find((k) => {
+        const re = PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE[k]
+        return Boolean(re?.test(titleDestHay))
+      }) ??
       hintKeys.find((k) =>
+        k === 'vietnam' ||
+        k === 'canada' ||
         k === 'turkey' ||
         k === 'greece' ||
         k === 'china' ||
-        k === 'vietnam' ||
         k === 'italy' ||
         k === 'spain' ||
         k === 'france',
-      ) ?? hintKeys[0]
+      ) ??
+      hintKeys[0]
     const preferLabel = preferKey ? COUNTRY_KEY_HEAL_LABEL[preferKey] : null
     if (preferKey && preferLabel) {
       geo = {
