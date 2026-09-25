@@ -1,0 +1,1 @@
+﻿south,travel,sim,data,plan,visitor,tourist,seoul,busan,jeju,wifi,roaming,prepaid,install,activate

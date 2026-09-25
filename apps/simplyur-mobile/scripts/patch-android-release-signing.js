@@ -13,7 +13,16 @@ if (!gradlePath || !ksPropsPath) {
 
 const ks = ksPropsPath.replace(/\\/g, "/");
 let t = fs.readFileSync(gradlePath, "utf8");
-t = t.replace(/versionCode\s+\d+/, "versionCode 11");
+// Play rejects reused versionCode — bump every upload (was stuck at 11).
+const versionCode = Number(process.env.SIMPLYUR_VERSION_CODE || "12");
+if (!Number.isFinite(versionCode) || versionCode < 1) {
+  console.error("invalid SIMPLYUR_VERSION_CODE");
+  process.exit(1);
+}
+t = t.replace(/versionCode\s+\d+/, `versionCode ${versionCode}`);
+if (/versionName\s+"[^"]+"/.test(t)) {
+  t = t.replace(/versionName\s+"[^"]+"/, 'versionName "1.0.0"');
+}
 
 if (!t.includes("REACT_NATIVE_NODE_MODULES_DIR")) {
   t = t.replace(

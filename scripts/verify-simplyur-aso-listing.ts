@@ -51,10 +51,13 @@ function fail(msg: string): never {
   process.exit(1)
 }
 
-function assertMax(label: string, value: string, max: number) {
+function assertMax(label: string, value: string, max: number, softWarnUnder?: number) {
   const n = len(value)
   if (n > max) fail(`${label} length ${n} > ${max}: ${JSON.stringify(value.slice(0, 48))}`)
   if (!String(value).trim()) fail(`${label} is empty`)
+  if (softWarnUnder != null && n > softWarnUnder) {
+    console.warn(`[simplyur-aso] WARN ${label} length ${n} > preferred ${softWarnUnder}`)
+  }
 }
 
 function assertIosKeywords(locale: string, keywords: string, title: string, subtitle: string) {
@@ -97,9 +100,9 @@ function main() {
     assertMax(`${key}.iosSubtitle`, loc.iosSubtitle, L.iosSubtitle)
     assertMax(`${key}.iosKeywords`, loc.iosKeywords, L.iosKeywords)
     assertMax(`${key}.iosPromo`, loc.iosPromo, L.iosPromo)
-    assertMax(`${key}.playShort`, loc.playShort, L.playShort)
-    assertMax(`${key}.description`, loc.description, L.description)
-    assertMax(`${key}.whatsNew`, loc.whatsNew, Math.min(L.playWhatsNew, L.iosWhatsNew))
+    assertMax(`${key}.playShort`, loc.playShort, L.playShort, 70)
+    assertMax(`${key}.description`, loc.description, L.description, 1200)
+    assertMax(`${key}.whatsNew`, loc.whatsNew, Math.min(L.playWhatsNew, L.iosWhatsNew), 120)
     if (!/korea|한국|韓國|hàn quốc|esim/i.test(loc.title)) {
       fail(`${key}.title must include Korea/eSIM intent`)
     }

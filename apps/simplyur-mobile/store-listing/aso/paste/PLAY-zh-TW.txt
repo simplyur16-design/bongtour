@@ -1,0 +1,42 @@
+﻿PLAY zh-TW — paste EACH block separately (do not paste this whole file into one field)
+
+App name
+simplyur: 韓國eSIM
+
+Short description
+赴韓旅客韓國eSIM。郵件收碼，出發前安裝，落地連線。
+
+Full description
+simplyur 是赴韓國際旅客的韓國 eSIM（不適用韓國居民）。
+
+購買全國流量方案。付款後郵件收 QR。出發前安裝，落地後啟用。無需實體卡。
+
+• 依停留天數選方案
+• 付款後即時 QR 郵件
+• 繁中 / 英 / 日 / 越指南
+• My eSIM：QR 與剩餘流量
+• Google / Apple 登入
+• 國際卡付款（Eximbay）
+
+Bong Tour · bongtour24@naver.com
+https://bongtour.com/simplyur/zh-TW/legal/privacy
+
+What's new
+simplyur 1.0.0 — 首個正式上線版本。面向赴韓旅客的韓國eSIM，不面向韓國常住居民。
+
+購買首爾、釜山、濟州及韓國全國方案。付款後以電子郵件寄送QR。出發前安裝，落地後啟用。不需實體SIM，也不需機場櫃檯。
+
+依行程天數選方案。指南支援英文、日文、中文、越南文。My eSIM可查看QR、剩餘流量與安裝步驟。支援Google登入與Eximbay付款。
+
+已支援 Android 15/16。客服：bongtour24@naver.com
+
+Category: Travel & Local
+Email: bongtour24@naver.com
+Privacy: https://bongtour.com/simplyur/en/legal/privacy
+
+Screenshot captions:
+1. 赴韓旅客韓國eSIM
+2. 付款後郵件收QR
+3. 出發前安裝
+4. 落地即可啟用
+5. 繁中英日越指南

@@ -21,6 +21,10 @@ $env:JAVA_TOOL_OPTIONS = '--enable-native-access=ALL-UNNAMED'
 $env:PATH = "C:\Program Files\nodejs;$Jdk\bin;$env:PATH"
 $env:EXPO_PUBLIC_API_BASE_URL = 'https://bongtour.com'
 $env:EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED = '1'
+# Play Console rejects reused versionCode (11 already used).
+$env:SIMPLYUR_VERSION_CODE = '12'
+$OutAab = 'C:\Users\USER\Desktop\BONGTOUR\simplyur-1.0.0-12-local.aab'
+$OutAabCopy = 'C:\Users\USER\Desktop\BONGTOUR\apps\simplyur-mobile\aab\simplyur-1.0.0-12-local.aab'
 
 New-Item -ItemType Directory -Path $Dst -Force | Out-Null
 & robocopy $Src $Dst /E /XD node_modules android\app\.cxx android\app\build android\build android\.gradle .expo dist .git aab /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null

@@ -5,6 +5,23 @@
 
 Home-screen icon label stays **`simplyur`**. Store titles carry the Korea eSIM keyword.
 
+## Paste-ready packs (use these)
+
+**Desktop (open this):** `C:\Users\USER\Desktop\simplyur-store-paste\`  
+**Repo:** [`paste/`](./paste/)
+
+| File | Where to paste |
+|------|----------------|
+| `PLAY-en-US.txt` … | Google Play Console → Store listing (per language) |
+| `IOS-en-US.txt` … | App Store Connect → App Information / Version (per locale) |
+| `fields-en-US/01-title.txt` … | Single field — open → Ctrl+A → Ctrl+C |
+
+Regenerate after editing `listing.json`:
+
+```bash
+npx tsx scripts/generate-simplyur-aso-paste.ts
+```
+
 ## Limits (2026)
 
 | Field | iOS | Play |

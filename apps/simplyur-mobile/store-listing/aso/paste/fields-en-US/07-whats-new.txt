@@ -1,0 +1,7 @@
+﻿simplyur 1.0.0 — first public production release. Korea eSIM for international visitors, not for residents of Korea.
+
+Buy nationwide data for Seoul, Busan, Jeju, and the rest of South Korea. Pay, get a QR by email, install before you fly, activate on landing. No physical SIM, no airport kiosk.
+
+Plans by trip length. Guides in English, Japanese, Chinese, Vietnamese. My eSIM: QR, remaining data, install steps. Google sign-in and Eximbay cards.
+
+Android 15/16 ready. Support: bongtour24@naver.com

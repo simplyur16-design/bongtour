@@ -1,0 +1,47 @@
+﻿IOS ja — paste EACH block separately (do not paste this whole file into one field)
+
+Name
+simplyur: 韓国eSIM
+
+Subtitle
+出発前にQRを設定
+
+Keywords
+訪韓,データ通信,旅行,ソウル,釜山,済州,観光,プリペイド,空港,ローミング,sim,wifi,インストール,全国,到着,回線,海外旅行,インバウンド,データプラン,観光客
+
+Promotional Text
+訪韓向け韓国eSIM。QRをメールで受け取り、出発前に設定、到着ですぐ接続。
+
+Description
+simplyurは訪韓海外旅行者向けの韓国eSIMです（韓国在住者は対象外）。
+
+全国データプランを購入。決済後QRをメールで受信。出発前にインストール、到着後に有効化。物理SIM不要。
+
+• 滞在日数に合わせたプラン
+• 購入直後のQRメール
+• 日・英・中・越ガイド
+• My eSIM（QR・残データ）
+• Google / Appleサインイン
+• 海外カード決済（Eximbay）
+
+Bong Tour · bongtour24@naver.com
+https://bongtour.com/simplyur/ja/legal/privacy
+
+What's New
+simplyur 1.0.0 — 初の正式公開版。韓国在住者向けではなく、訪韓旅行者向けの韓国eSIMです。
+
+ソウル・釜山・済州など韓国全国のデータプランを購入。決済後、QRをメールでお送りします。出発前にインストールし、到着後に有効化。物理SIMも空港カウンターも不要です。
+
+滞在日数で選べるプラン。案内は英語・日本語・中国語・ベトナム語。My eSIMでQR・残データ・手順を確認。GoogleログインとEximbay決済。
+
+Android 15/16対応。サポート: bongtour24@naver.com
+
+Category: Travel / Lifestyle
+Privacy: https://bongtour.com/simplyur/en/legal/privacy
+
+Screenshot captions:
+1. 訪韓者向け韓国eSIM
+2. 購入後すぐQRメール
+3. 出発前にインストール
+4. 到着したら有効化
+5. 日・英・中・越ガイド

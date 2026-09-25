@@ -1,0 +1,47 @@
+﻿IOS zh-Hans — paste EACH block separately (do not paste this whole file into one field)
+
+Name
+simplyur: 韩国eSIM
+
+Subtitle
+出发前安装二维码
+
+Keywords
+赴韩,流量,旅游,首尔,釜山,济州,游客,预付,机场,漫游,sim,wifi,安装,激活,全国,上网,出境游,数据套餐,旅行者,落地
+
+Promotional Text
+赴韩游客韩国eSIM。邮件收码，出发前安装，落地连网。
+
+Description
+simplyur 是赴韩国际游客的韩国 eSIM（不面向韩国居民）。
+
+购买全国流量套餐。付款后邮件收二维码。出发前安装，落地后激活。无需实体卡。
+
+• 按出行天数选套餐
+• 付款后即时二维码邮件
+• 中 / 英 / 日 / 越指南
+• My eSIM：二维码与剩余流量
+• Google / Apple 登录
+• 国际卡支付（Eximbay）
+
+Bong Tour · bongtour24@naver.com
+https://bongtour.com/simplyur/zh/legal/privacy
+
+What's New
+simplyur 1.0.0 — 首个正式上线版本。面向赴韩旅客的韩国eSIM，不面向韩国常住居民。
+
+购买首尔、釜山、济州及韩国全国流量套餐。付款后邮箱发送QR。出发前安装，落地后启用。无需实体SIM，也无需机场柜台。
+
+按行程天数选套餐。指南支持英语、日语、中文、越南语。My eSIM可查看QR、剩余流量和安装步骤。支持Google登录与Eximbay支付。
+
+已适配 Android 15/16。支持：bongtour24@naver.com
+
+Category: Travel / Lifestyle
+Privacy: https://bongtour.com/simplyur/en/legal/privacy
+
+Screenshot captions:
+1. 赴韩游客韩国eSIM
+2. 付款后邮件收码
+3. 出发前安装
+4. 落地即可激活
+5. 中英日越指南

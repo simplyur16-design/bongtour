@@ -1,0 +1,47 @@
+﻿IOS vi — paste EACH block separately (do not paste this whole file into one field)
+
+Name
+simplyur: eSIM Han Quoc
+
+Subtitle
+Cai QR truoc khi bay
+
+Keywords
+dulich,data,seoul,busan,jeju,khach,traphi,sanbay,roaming,sim,wifi,caidat,kichhoat
+
+Promotional Text
+eSIM Han Quoc cho khach. Nhan QR email, cai truoc bay, online khi ha canh.
+
+Description
+simplyur la eSIM Han Quoc cho khách quoc te den Han — khong danh cho cu dan Han.
+
+Mua goi data toan quoc. Nhan QR qua email sau thanh toan. Cai truoc khi bay, kich hoat khi ha canh. Khong can SIM vat ly.
+
+• Goi theo so ngay luu tru
+• QR email ngay sau mua
+• Huong dan EN / JA / ZH / VI
+• My eSIM: QR, data con lai
+• Dang nhap Google / Apple
+• The quoc te (Eximbay)
+
+Bong Tour · bongtour24@naver.com
+https://bongtour.com/simplyur/vi/legal/privacy
+
+What's New
+simplyur 1.0.0 — bản phát hành chính thức đầu tiên. eSIM Hàn Quốc cho khách quốc tế, không dành cho người cư trú tại Hàn Quốc.
+
+Mua data toàn quốc (Seoul, Busan, Jeju và các nơi khác). Thanh toán xong nhận QR qua email. Cài trước khi bay, kích hoạt khi hạ cánh. Không cần SIM vật lý hay quầy sân bay.
+
+Gói theo số ngày. Hướng dẫn tiếng Anh, Nhật, Trung, Việt. My eSIM: QR, dung lượng còn lại, các bước cài. Đăng nhập Google và thẻ Eximbay.
+
+Sẵn sàng Android 15/16. Hỗ trợ: bongtour24@naver.com
+
+Category: Travel / Lifestyle
+Privacy: https://bongtour.com/simplyur/en/legal/privacy
+
+Screenshot captions:
+1. eSIM Han cho khach
+2. Mua goi — QR email
+3. Cai truoc khi bay
+4. Kich hoat khi ha canh
+5. Huong dan EN·JA·ZH·VI
