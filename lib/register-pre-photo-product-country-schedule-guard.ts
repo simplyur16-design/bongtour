@@ -114,6 +114,8 @@ const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: 'australia', re: /시드니|호주|멜버른|골드코스트/i },
   { key: 'mongolia', re: /몽골|울란바토르|테렐지/i },
   { key: 'india', re: /타지마할|델리|바라나시|아그라|(?<!네시)인도(?!네시아)/i },
+  // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: 국내 제주도 countryKey=korea — manifest
+  { key: 'korea', re: /제주도|(?<![가-힣])제주(?![가-힣])|jeju|대한민국|국내여행/i },
 ]
 
 export function registerPrePhotoScheduleCountryHaystack(
@@ -174,7 +176,6 @@ export function productCountryScheduleMismatchIssues(args: {
   rows: readonly RegisterPrePhotoHealRow[]
 }): string[] {
   const ck = String(args.countryKey ?? '').trim()
-  if (!ck) return []
   const destForHay = isPoisonedRegionClusterDestination(args.productDestination)
     ? ''
     : args.productDestination
@@ -184,6 +185,16 @@ export function productCountryScheduleMismatchIssues(args: {
     args.rows,
   )
   if (!hay.trim()) return []
+  // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: empty countryKey fails verify — manifest
+  // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: countryKey 공란 ≠ 검수완료 — manifest
+  // DB/큐 경로만: countryKey 인자를 넘긴 경우(null·'')에 공란 실패. 일정-only 단위테스트(undefined)는 스킵.
+  if (args.countryKey !== undefined && !ck) {
+    if (strongOtherCountryKeysFromHay(hay, null).length > 0) {
+      return ['product_country_key_missing']
+    }
+    return []
+  }
+  if (!ck) return []
   const bodyHay = registerPrePhotoScheduleBodyHaystack(args.rows)
   const othersInFull = strongOtherCountryKeysFromHay(hay, ck)
   const othersInBody = strongOtherCountryKeysFromHay(bodyHay, ck)

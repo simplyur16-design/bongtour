@@ -917,6 +917,7 @@ describe('register-pre-photo-self-heal', () => {
       listingKind: 'air_hotel_free',
       productTitle: '옐로나이프 오로라',
       productDestination: '옐로나이프',
+      countryKey: 'canada',
       rows: out.rows,
     })
     assert.equal(after.ok, true, after.issues.join(','))
@@ -978,6 +979,7 @@ describe('register-pre-photo-self-heal', () => {
       listingKind: 'air_hotel_free',
       productTitle: '프라하 | 체스키크룸로프',
       productDestination: '프라하',
+      countryKey: 'czech',
       rows: out.rows,
     })
     assert.equal(after.ok, true, after.issues.join(','))

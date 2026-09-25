@@ -15114,7 +15114,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-product-country-schedule]",
             "productCountryScheduleMismatchIssues",
-            "product_country_schedule_mismatch"
+            "product_country_schedule_mismatch",
+            "product_country_key_missing",
+            "empty countryKey fails verify"
           ]
         },
         {

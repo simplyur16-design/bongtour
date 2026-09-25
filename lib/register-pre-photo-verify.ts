@@ -663,6 +663,7 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('description_filler_or_duplicate') ||
     issue.includes('description_repeated_closer') ||
     issue.includes('product_country_schedule_mismatch') ||
+    issue.includes('product_country_key_missing') ||
     issue.includes('title_hub_poison') ||
     issue.includes('title_operational_placeholder') ||
     issue === 'aurora_primary_keyword_missing' ||
@@ -801,6 +802,7 @@ export function verifyRegisterPrePhoto(args: {
   issues.push(
     ...wrongCountryKeywordIssues(args.rows, args.productDestination, args.productTitle),
   )
+  // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: countryKey·kw·출발 검수 본체 — manifest
   issues.push(
     ...productCountryScheduleMismatchIssues({
       countryKey: args.countryKey,

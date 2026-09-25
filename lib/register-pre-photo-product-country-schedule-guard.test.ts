@@ -423,6 +423,42 @@ describe('scrubPoisonedScheduleDayTitlesForCountryKey', () => {
       }),
     ).toBe(true)
   })
+
+  it('fails verify when countryKey is empty but schedule has strong country hints', () => {
+    const issues = productCountryScheduleMismatchIssues({
+      countryKey: null,
+      productTitle: '제주도 3일 미식투어',
+      productDestination: '제주',
+      rows: [
+        {
+          day: 1,
+          title: '제주',
+          routeText: '김포 - 제주',
+          description: null,
+          imageKeyword: null,
+          imageKeyword2: null,
+        },
+      ],
+    })
+    // jeju may or may not be in strongOther — china/vietnam fixtures are clearer
+    const chinaIssues = productCountryScheduleMismatchIssues({
+      countryKey: '',
+      productTitle: '보천+태항대협곡 5일',
+      productDestination: '제남',
+      rows: [
+        {
+          day: 1,
+          title: '제남',
+          routeText: '제남 - 황하',
+          description: null,
+          imageKeyword: null,
+          imageKeyword2: null,
+        },
+      ],
+    })
+    expect(chinaIssues).toContain('product_country_key_missing')
+    void issues
+  })
 })
 
 describe('verifyRegisterPrePhoto countryKey gate', () => {

@@ -187,6 +187,7 @@ const COUNTRY_KEY_HEAL_LABEL: Readonly<Record<string, string>> = {
   singapore: '싱가포르',
   iceland: '아이슬란드',
   greece: '그리스',
+  korea: '대한민국',
   'united-kingdom': '영국',
   'united-arab-emirates': '아랍에미리트',
 }
