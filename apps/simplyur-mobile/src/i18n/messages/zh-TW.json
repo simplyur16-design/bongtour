@@ -401,10 +401,10 @@
       "refundPending": "退款處理中"
     },
     "refundTitle": "取消並退款",
-    "refundBody": "取消此未使用的 eSIM 並全額退還刷卡款項。QR 碼將失效。產生任何流量後不可取消。",
+    "refundBody": "取消此未使用的 eSIM。先取消供應商端設定檔，再全額退還刷卡款項。QR 碼將失效。產生任何流量後不可取消。",
     "refundCta": "取消未使用的 eSIM",
     "refundBusy": "取消中…",
-    "refundConfirm": "確定取消此訂單？僅未使用的 eSIM 可取消，款項將全額退還。",
+    "refundConfirm": "確定取消此未使用的 eSIM？\n\n1) 先取消供應商端 eSIM\n2) 再退還刷卡款項\n\n僅未使用（未註冊／未產生流量）的 eSIM 可取消。",
     "refundError": "無法取消訂單。請重試或聯絡客服。",
     "refundInProgress": "退款處理中，請稍後重新整理。",
     "refundDone": "此訂單已取消並退款。",

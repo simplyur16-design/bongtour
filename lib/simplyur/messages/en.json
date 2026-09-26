@@ -631,10 +631,10 @@
       "refundPending": "Refund pending"
     },
     "refundTitle": "Cancel & refund",
-    "refundBody": "Cancel this unused eSIM. The card is refunded first, then the supplier profile is cancelled. Not available after the eSIM is registered or any data is used.",
+    "refundBody": "Cancel this unused eSIM. The supplier profile is cancelled first, then the card payment is refunded. Not available after the eSIM is registered or any data is used.",
     "refundCta": "Cancel unused eSIM",
     "refundBusy": "Cancelling...",
-    "refundConfirm": "Cancel this unused eSIM?\n\n1) Card payment is refunded first\n2) Then the supplier eSIM is cancelled\n\nOnly unused (not registered / no data used) eSIMs can be cancelled.",
+    "refundConfirm": "Cancel this unused eSIM?\n\n1) The supplier eSIM is cancelled first\n2) Then the card payment is refunded\n\nOnly unused (not registered / no data used) eSIMs can be cancelled.",
     "refundError": "Could not cancel this order. Try again or contact support.",
     "refundInProgress": "Refund in progress. Refresh shortly.",
     "refundDone": "This order was cancelled and refunded.",

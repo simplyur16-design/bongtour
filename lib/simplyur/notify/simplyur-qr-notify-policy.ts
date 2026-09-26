@@ -9,10 +9,10 @@ import { getSiteOrigin } from "@/lib/site-metadata";
 
 // REGRESSION-FREEZE[simplyur-esim-delivery-install]: simplyur notify = email + Solapi SMS; skip Kakao — manifest
 // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: issued eSIM → Solapi LMS when phone present — manifest
-// REGRESSION-FREEZE[simplyur-eximbay-refund]: card cancel then USIMSA — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund]: USIMSA cancel then Eximbay card cancel — manifest
 
-/** Operator: card (Eximbay) first, then USIMSA cancel. */
-export const SIMPLYUR_REFUND_REMOTE_ORDER = ["eximbay_card_cancel", "usimsa_supplier_cancel"] as const;
+/** Operator: USIMSA cancel first, then card (Eximbay) — same as Welcomepay. */
+export const SIMPLYUR_REFUND_REMOTE_ORDER = ["usimsa_supplier_cancel", "eximbay_card_cancel"] as const;
 
 /** Kakao AlimTalk is Korea-resident Bongsim. simplyur uses Solapi SMS, not Kakao. */
 export function simplyurNotifyRequiresKakaoPhone(

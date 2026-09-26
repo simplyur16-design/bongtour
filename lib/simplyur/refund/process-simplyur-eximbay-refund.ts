@@ -19,8 +19,8 @@ import {
 } from "@/lib/simplyur/payments/eximbay-cancel";
 import { resolveEximbayCancelRefs } from "@/lib/simplyur/refund/resolve-eximbay-cancel-refs";
 
-// REGRESSION-FREEZE[simplyur-eximbay-refund]: unused → Eximbay card cancel THEN USIMSA cancel — manifest
-// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: inbound REFUND skips card API — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund]: unused → USIMSA cancel THEN Eximbay card cancel — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]: inbound REFUND skips card API — still USIMSA first if needed — manifest
 
 export type ProcessSimplyurEximbayRefundOptions = {
   /** status_url already cancelled the card — skip Eximbay cancel API, still cancel USIMSA if unused. */
@@ -156,10 +156,45 @@ async function listTopups(client: PoolClient, orderId: string): Promise<Supplier
   return rows.rows;
 }
 
+async function callUsimsaCancelTopups(
+  topups: SupplierCancelRow[],
+): Promise<
+  | { ok: true; results: Array<{ topup_id: string; code: string; message: string }> }
+  | { ok: false; message: string }
+> {
+  const results: Array<{ topup_id: string; code: string; message: string }> = [];
+  try {
+    for (const row of topups) {
+      const res =
+        row.fulfillment_mode === "usim"
+          ? await cancelUsimsaUsimTopup(row.topup_id)
+          : await cancelUsimsaTopup(row.topup_id);
+      results.push({
+        topup_id: row.topup_id,
+        code: String(res?.code ?? ""),
+        message: String(res?.message ?? ""),
+      });
+    }
+    return { ok: true, results };
+  } catch (e) {
+    const detail =
+      e instanceof UsimsaCancelError
+        ? `Supplier cancel rejected (${e.code})`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    return { ok: false, message: detail };
+  }
+}
+
 /**
- * Simplyur Eximbay full refund — operator order:
- * 1) refund_requested  2) Eximbay card cancel  3) USIMSA cancel → refunded
- * Resume: if card already ok, skip Eximbay and finish USIMSA only.
+ * Simplyur Eximbay full refund — same operator order as Welcomepay:
+ * 1) refund_requested (+ live USIMSA unused check)
+ * 2) USIMSA cancel
+ * 3) Eximbay card cancel → refunded
+ *
+ * Resume: if USIMSA already applied, skip to card; if card already ok, finish to refunded.
+ * Inbound: cardAlreadyCancelled skips Eximbay API after USIMSA.
  */
 export async function processSimplyurEximbayRefund(
   orderId: string,
@@ -175,8 +210,10 @@ export async function processSimplyurEximbayRefund(
   const env = resolveEximbayEnv();
   if (!env.ok) return { ok: false, reason: "eximbay_env_incomplete", message: env.missing.join(",") };
 
+  const cardAlreadyCancelled = Boolean(options?.cardAlreadyCancelled);
   const client = await pool.connect();
   try {
+    // --- Phase 1: accept + live usage check ---
     await client.query("BEGIN");
 
     const o1 = await client.query<LockedOrder>(
@@ -212,7 +249,6 @@ export async function processSimplyurEximbayRefund(
       return { ok: false, reason: "unsupported_provider", message: order.payment_provider ?? "" };
     }
 
-    const cardAlreadyCancelled = Boolean(options?.cardAlreadyCancelled);
     const refs = await resolveEximbayCancelRefs(client, id);
     if (!refs && !cardAlreadyCancelled) {
       await client.query("ROLLBACK");
@@ -220,6 +256,7 @@ export async function processSimplyurEximbayRefund(
     }
 
     if (!resuming) {
+      // Live USIMSA usage/register check at cancel time (not cached).
       const usage = await checkUsimsaOrderDataUsageForRefund(id, client);
       if (!usage.ok) {
         await client.query("ROLLBACK");
@@ -252,7 +289,66 @@ export async function processSimplyurEximbayRefund(
 
     await client.query("COMMIT");
 
-    // Phase 2 — Eximbay card cancel FIRST (then USIMSA).
+    // --- Phase 2: USIMSA cancel FIRST (before card) ---
+    let supplierResults: Array<{ topup_id: string; code: string; message: string }> | null = null;
+    if (!(await hasRefundEvent(client, id, REFUND_EVENT.supplierApplied))) {
+      const topups = await listTopups(client, id);
+      const usimsa = await callUsimsaCancelTopups(topups);
+      if (!usimsa.ok) {
+        await client.query("BEGIN");
+        const previousStatus = await getPreviousOrderStatus(client, id);
+        if (previousStatus) {
+          await client.query(
+            `UPDATE bongsim_order SET status = $2, updated_at = now() WHERE order_id = $1::uuid`,
+            [id, previousStatus],
+          );
+        }
+        await client.query("COMMIT");
+        console.error("[processSimplyurEximbayRefund:phase2]", { orderId: id, message: usimsa.message });
+        return { ok: false, reason: "supplier_refund_failed", message: usimsa.message };
+      }
+      supplierResults = usimsa.results;
+    }
+
+    await client.query("BEGIN");
+    const o2 = await client.query<LockedOrder>(
+      `SELECT order_id::text, status, grand_total_krw::text, payment_provider, checkout_channel
+         FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
+      [id],
+    );
+    order = o2.rows[0];
+    if (!order || order.status !== "refund_requested") {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "invalid_status", message: order?.status ?? "missing" };
+    }
+
+    if (supplierResults && !(await hasRefundEvent(client, id, REFUND_EVENT.supplierApplied))) {
+      for (const row of supplierResults) {
+        await client.query(
+          `UPDATE bongsim_fulfillment_topup
+              SET status = 'canceled', canceled_at = COALESCE(canceled_at, now()), updated_at = now()
+            WHERE topup_id = $1`,
+          [row.topup_id],
+        );
+      }
+      const paymentAttemptId = await getCapturedAttemptId(client, id);
+      await insertRefundEvent(
+        client,
+        `eximbay_refund_supplier_${id}_${Date.now()}_${randomBytes(4).toString("hex")}`,
+        paymentAttemptId,
+        id,
+        {
+          direction: REFUND_EVENT.supplierApplied,
+          phase: 2,
+          requested_by: requestedBy,
+          reason: msg,
+          topups: supplierResults,
+        },
+      );
+    }
+    await client.query("COMMIT");
+
+    // --- Phase 3: Eximbay card cancel AFTER USIMSA ---
     if (cardAlreadyCancelled && !(await hasSuccessfulCardCancel(client, id))) {
       await client.query("BEGIN");
       const paymentAttemptId = await getCapturedAttemptId(client, id);
@@ -263,7 +359,7 @@ export async function processSimplyurEximbayRefund(
         id,
         {
           direction: REFUND_EVENT.cardCancelApproved,
-          phase: 2,
+          phase: 3,
           requested_by: requestedBy,
           reason: msg,
           ok: "true",
@@ -309,12 +405,12 @@ export async function processSimplyurEximbayRefund(
         id,
         {
           direction: REFUND_EVENT.cardCancelApproved,
-          phase: 2,
+          phase: 3,
           requested_by: requestedBy,
           reason: msg,
           request: cancelBody,
           transaction_id: refs2.transactionId,
-          ok: cardOk ? "true" : pg.ok,
+          ok: cardOk ? "true" : "false",
           rescode: pg.rescode,
           resmsg: pg.resmsg,
           refund_transaction_id: pg.ok ? pg.refundTransactionId : null,
@@ -322,101 +418,58 @@ export async function processSimplyurEximbayRefund(
         },
       );
       if (!cardOk) {
-        const previousStatus = await getPreviousOrderStatus(client, id);
-        if (previousStatus) {
-          await client.query(
-            `UPDATE bongsim_order SET status = $2, updated_at = now() WHERE order_id = $1::uuid`,
-            [id, previousStatus],
-          );
-        }
+        // USIMSA already cancelled — keep refund_requested for PG retry (do not revert to paid).
         await client.query("COMMIT");
+        console.error("[processSimplyurEximbayRefund:phase3] PG failed; order remains refund_requested", {
+          orderId: id,
+          message: pg.resmsg || pg.detail || pg.reason,
+        });
         return {
           ok: false,
           reason: "pg_cancel_failed",
           message: pg.resmsg || pg.detail || pg.reason,
         };
       }
-      await client.query("COMMIT");
-    }
 
-    // Phase 3 — USIMSA after card cancel succeeded. Do not revert to paid if this fails.
-    let supplierResults: Array<{ topup_id: string; code: string; message: string }> | null = null;
-    if (!(await hasRefundEvent(client, id, REFUND_EVENT.supplierApplied))) {
-      const topups = await listTopups(client, id);
-      const results: Array<{ topup_id: string; code: string; message: string }> = [];
-      try {
-        for (const row of topups) {
-          const res =
-            row.fulfillment_mode === "usim"
-              ? await cancelUsimsaUsimTopup(row.topup_id)
-              : await cancelUsimsaTopup(row.topup_id);
-          results.push({
-            topup_id: row.topup_id,
-            code: String(res?.code ?? ""),
-            message: String(res?.message ?? ""),
-          });
-        }
-        supplierResults = results;
-      } catch (e) {
-        const detail =
-          e instanceof UsimsaCancelError
-            ? `Supplier cancel rejected (${e.code})`
-            : e instanceof Error
-              ? e.message
-              : String(e);
-        return { ok: false, reason: "supplier_refund_failed", message: detail };
-      }
-    }
-
-    await client.query("BEGIN");
-    const o2 = await client.query<LockedOrder>(
-      `SELECT order_id::text, status, grand_total_krw::text, payment_provider, checkout_channel
-         FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
-      [id],
-    );
-    order = o2.rows[0];
-    if (!order || order.status !== "refund_requested") {
-      await client.query("ROLLBACK");
-      return { ok: false, reason: "invalid_status", message: order?.status ?? "missing" };
-    }
-
-    if (supplierResults && !(await hasRefundEvent(client, id, REFUND_EVENT.supplierApplied))) {
-      for (const row of supplierResults) {
+      await client.query(`UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`, [
+        id,
+      ]);
+      await terminalPendingEsimQrNotifyForOrder(client, id, "refunded");
+      if (paymentAttemptId) {
         await client.query(
-          `UPDATE bongsim_fulfillment_topup
-              SET status = 'canceled', canceled_at = COALESCE(canceled_at, now()), updated_at = now()
-            WHERE topup_id = $1`,
-          [row.topup_id],
+          `UPDATE bongsim_payment_attempt SET status = 'cancelled', updated_at = now() WHERE payment_attempt_id = $1::uuid`,
+          [paymentAttemptId],
         );
       }
-      const paymentAttemptId = await getCapturedAttemptId(client, id);
-      await insertRefundEvent(
-        client,
-        `eximbay_refund_supplier_${id}_${Date.now()}_${randomBytes(4).toString("hex")}`,
-        paymentAttemptId,
-        id,
-        {
-          direction: REFUND_EVENT.supplierApplied,
-          phase: 3,
-          requested_by: requestedBy,
-          reason: msg,
-          topups: supplierResults,
-        },
+      await client.query("COMMIT");
+    } else {
+      // Card already approved (inbound or prior success) — finish to refunded.
+      await client.query("BEGIN");
+      const oFin = await client.query<LockedOrder>(
+        `SELECT order_id::text, status, grand_total_krw::text, payment_provider, checkout_channel
+           FROM bongsim_order WHERE order_id = $1::uuid FOR UPDATE`,
+        [id],
       );
+      order = oFin.rows[0];
+      if (!order || (order.status !== "refund_requested" && order.status !== "refunded")) {
+        await client.query("ROLLBACK");
+        return { ok: false, reason: "invalid_status", message: order?.status ?? "missing" };
+      }
+      if (order.status !== "refunded") {
+        const paymentAttemptId = await getCapturedAttemptId(client, id);
+        await client.query(`UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`, [
+          id,
+        ]);
+        await terminalPendingEsimQrNotifyForOrder(client, id, "refunded");
+        if (paymentAttemptId) {
+          await client.query(
+            `UPDATE bongsim_payment_attempt SET status = 'cancelled', updated_at = now() WHERE payment_attempt_id = $1::uuid`,
+            [paymentAttemptId],
+          );
+        }
+      }
+      await client.query("COMMIT");
     }
-
-    const paymentAttemptId = await getCapturedAttemptId(client, id);
-    await client.query(`UPDATE bongsim_order SET status = 'refunded', updated_at = now() WHERE order_id = $1::uuid`, [
-      id,
-    ]);
-    await terminalPendingEsimQrNotifyForOrder(client, id, "refunded");
-    if (paymentAttemptId) {
-      await client.query(
-        `UPDATE bongsim_payment_attempt SET status = 'cancelled', updated_at = now() WHERE payment_attempt_id = $1::uuid`,
-        [paymentAttemptId],
-      );
-    }
-    await client.query("COMMIT");
 
     await notifyRefundCompletedBestEffort(id);
     return { ok: true };

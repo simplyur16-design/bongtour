@@ -401,10 +401,10 @@
       "refundPending": "Đang hoàn tiền"
     },
     "refundTitle": "Hủy & hoàn tiền",
-    "refundBody": "Hủy eSIM chưa dùng và hoàn tiền thẻ đầy đủ. Mã QR sẽ hết hiệu lực. Không khả dụng sau khi đã dùng data.",
+    "refundBody": "Hủy eSIM chưa dùng. Hủy hồ sơ nhà cung cấp trước, rồi hoàn tiền thẻ đầy đủ. Mã QR sẽ hết hiệu lực. Không khả dụng sau khi đã dùng data.",
     "refundCta": "Hủy eSIM chưa dùng",
     "refundBusy": "Đang hủy…",
-    "refundConfirm": "Hủy đơn này? Chỉ eSIM chưa dùng mới được hủy; thanh toán sẽ được hoàn đầy đủ.",
+    "refundConfirm": "Hủy eSIM chưa dùng này?\n\n1) Hủy eSIM phía nhà cung cấp trước\n2) Sau đó hoàn tiền thẻ\n\nChỉ eSIM chưa dùng (chưa đăng ký / chưa dùng data) mới được hủy.",
     "refundError": "Không thể hủy đơn. Thử lại hoặc liên hệ hỗ trợ.",
     "refundInProgress": "Đang hoàn tiền. Hãy làm mới sau giây lát.",
     "refundDone": "Đơn này đã được hủy và hoàn tiền.",

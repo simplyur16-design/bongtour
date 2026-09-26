@@ -19505,7 +19505,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur Eximbay — unused eSIM refund: Eximbay card cancel THEN USIMSA cancel",
+      "summary": "Simplyur Eximbay — unused eSIM refund: USIMSA cancel THEN Eximbay card cancel (Welcomepay order)",
       "checks": [
         {
           "file": "lib/simplyur/payments/eximbay-cancel.ts",
@@ -19523,7 +19523,7 @@
             "processSimplyurEximbayRefund",
             "callEximbayPaymentsCancel",
             "checkUsimsaOrderDataUsageForRefund",
-            "Eximbay card cancel FIRST"
+            "USIMSA cancel THEN Eximbay card cancel"
           ]
         },
         {
@@ -19590,7 +19590,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-refund-inbound-usimsa]",
             "cardAlreadyCancelled",
-            "Eximbay card cancel FIRST",
+            "USIMSA first if needed",
             "isEximbayCardAlreadyRefundedRescode"
           ]
         },

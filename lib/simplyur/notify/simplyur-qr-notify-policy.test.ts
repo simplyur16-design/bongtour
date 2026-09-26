@@ -34,7 +34,7 @@ describe("simplyur notify + refund order SSOT", () => {
     expect(buildSimplyurMyEsimAbsoluteUrl("ja")).toMatch(/\/simplyur\/ja\/my-esim$/);
   });
 
-  it("refunds card (Eximbay) before USIMSA cancel", () => {
-    expect(SIMPLYUR_REFUND_REMOTE_ORDER).toEqual(["eximbay_card_cancel", "usimsa_supplier_cancel"]);
+  it("cancels USIMSA before Eximbay card refund", () => {
+    expect(SIMPLYUR_REFUND_REMOTE_ORDER).toEqual(["usimsa_supplier_cancel", "eximbay_card_cancel"]);
   });
 });

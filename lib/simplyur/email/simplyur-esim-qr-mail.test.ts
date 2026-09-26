@@ -32,15 +32,20 @@ describe("simplyur eSIM delivery mail", () => {
 });
 
 describe("simplyur refund done mail", () => {
-  it("states card cancel then supplier cancel", () => {
+  it("states supplier cancel then card cancel", () => {
     const mail = buildSimplyurRefundDoneMailContent({
       to: "traveler@example.com",
       orderNumber: "BS-1",
       myEsimUrl: "https://bongtour.com/simplyur/en/my-esim",
     });
-    expect(mail.html).toContain("Card payment reversed");
     expect(mail.html).toContain("Supplier eSIM profile cancelled");
+    expect(mail.html).toContain("Card payment reversed");
+    expect(mail.text).toContain("supplier eSIM profile was cancelled");
     expect(mail.text).toContain("card payment was reversed");
+    const supplierIdx = mail.text.indexOf("supplier eSIM");
+    const cardIdx = mail.text.indexOf("card payment");
+    expect(supplierIdx).toBeGreaterThanOrEqual(0);
+    expect(cardIdx).toBeGreaterThan(supplierIdx);
     expect(mail.html).not.toContain("카카오");
   });
 });

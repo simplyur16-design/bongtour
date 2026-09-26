@@ -26,8 +26,8 @@ export function buildSimplyurRefundDoneMailContent(input: SimplyurRefundDoneMail
     "Your unused eSIM order was cancelled.",
     "",
     `Order: ${orderNumber}`,
-    "1) The card payment was reversed.",
-    "2) The supplier eSIM profile was cancelled.",
+    "1) The supplier eSIM profile was cancelled.",
+    "2) The card payment was reversed.",
     "",
     myEsim ? `My eSIM: ${myEsim}` : "",
     "The refund may take a few days to show on your card statement.",
@@ -44,8 +44,8 @@ export function buildSimplyurRefundDoneMailContent(input: SimplyurRefundDoneMail
     <h1 style="margin:0 0 12px;font-size:20px;color:#12233F;">Refund complete</h1>
     <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#5c6578;">Order <strong>${safeOrder}</strong> was cancelled because the eSIM was unused (not registered / no data used).</p>
     <ol style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.6;color:#12233F;">
-      <li>Card payment reversed with Eximbay</li>
       <li>Supplier eSIM profile cancelled</li>
+      <li>Card payment reversed with Eximbay</li>
     </ol>
     ${safeMyEsim ? `<p style="margin:0 0 12px;font-size:13px;color:#5c6578;"><a href="${safeMyEsim}" style="color:#e86a58;">Open My eSIM</a></p>` : ""}
     <p style="margin:0;font-size:12px;color:#8a93a3;">The refund may take a few days to appear on your card statement.</p>
