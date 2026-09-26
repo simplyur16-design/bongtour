@@ -1,3 +1,6 @@
+/**
+ * REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]: upsert uses naeiltour module — manifest
+ */
 import { revalidatePath } from 'next/cache'
 import type { PrismaClient } from '@prisma/client'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
@@ -30,6 +33,7 @@ import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
+import * as updDeparturesNaeiltour from '@/lib/upsert-product-departures-naeiltour'
 import { upsertKyowontourDepartures } from '@/lib/kyowontour-departures'
 import {
   buildLottetourEvtDetailUrl,
@@ -63,6 +67,7 @@ function upsertDeparturesModuleForProduct(p: {
   if (fromBrand === 'verygoodtour') return updDeparturesVerygoodtour
   if (fromBrand === 'ybtour') return updDeparturesYbtour
   if (fromBrand === 'hanatour') return updDeparturesHanatour
+  if (fromBrand === 'naeiltour') return updDeparturesNaeiltour
   if (fromBrand === 'kyowontour') {
     return {
       upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {
@@ -82,6 +87,7 @@ function upsertDeparturesModuleForProduct(p: {
   if (norm === 'modetour') return updDeparturesModetour
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
+  if (norm === 'naeiltour') return updDeparturesNaeiltour
   if (norm === 'kyowontour') {
     return {
       upsertProductDepartures: async (prisma: PrismaClient, productId: string, departures: DepartureInput[]) => {

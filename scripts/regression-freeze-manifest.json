@@ -3817,9 +3817,14 @@
     },
     {
       "id": "simplyur-aso-listing",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "simplyur Play/App Store ASO listing.json — title/subtitle/keywords/short char limits + visitor locales",
-      "npmScripts": ["verify:simplyur-aso-listing"],
+      "npmScripts": [
+        "verify:simplyur-aso-listing"
+      ],
       "checks": [
         {
           "file": "apps/simplyur-mobile/store-listing/aso/listing.json",
@@ -3832,7 +3837,9 @@
             "zh-TW",
             "vi"
           ],
-          "mustNotInclude": ["bongtong.com"]
+          "mustNotInclude": [
+            "bongtong.com"
+          ]
         },
         {
           "file": "apps/simplyur-mobile/src/constants/simplyur.ts",
@@ -15049,6 +15056,46 @@
       ]
     },
     {
+      "id": "naeiltour-admin-rescrape-program-process",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 관리자 재스크랩 — program_process HTTP only, hanatour E2E 금지",
+      "checks": [
+        {
+          "file": "lib/admin-departure-rescrape.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]",
+            "calendarE2eSiteFromOrigin",
+            "naeiltour\\.co\\.kr",
+            "collectNaeiltourProgramProcessDeparturesForUrl",
+            "naeiltour-program-process"
+          ]
+        },
+        {
+          "file": "lib/admin-execute-departures-rescrape.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]",
+            "updDeparturesNaeiltour",
+            "fromBrand === 'naeiltour'",
+            "norm === 'naeiltour'"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-admin-rescrape-program-process.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]",
+            "calendarE2eSiteFromOrigin",
+            "2AZZ4532"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-admin-rescrape-program-process.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-poi-ko-own-route-gap",
       "tier": [
         "prebuild",
@@ -15155,7 +15202,10 @@
     },
     {
       "id": "register-pending-deep-geo-kw",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "등록대기 심층 — 에게=turkey/greece·옐로나이프=canada·같은 날 kw==kw2 비움",
       "checks": [
         {
@@ -15182,7 +15232,9 @@
           ]
         }
       ],
-      "npmScripts": ["verify:register-pre-photo-self-heal"]
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
     },
     {
       "id": "register-pre-photo-country-schedule-self-heal",
@@ -22734,7 +22786,10 @@
     },
     {
       "id": "simplyur-my-esim-paid-qr-install",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Paid simplyur eSIM shows real LPA QR + iPhone/Android one-tap; never decorative QR CODE art",
       "checks": [
         {
@@ -22793,7 +22848,9 @@
     },
     {
       "id": "simplyur-esim-app-no-trip-tab",
-      "tier": ["prebuild"],
+      "tier": [
+        "prebuild"
+      ],
       "summary": "Simply Your eSIM chrome has no My Trip tab or settings row",
       "checks": [
         {

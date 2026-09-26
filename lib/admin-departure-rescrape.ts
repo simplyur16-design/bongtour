@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[ybtour-admin-rescrape-api-first]: ybtour papi by-goods API 우선 — manifest
  * REGRESSION-FREEZE[lottetour-evtcd-alphanumeric-carrier]: godId 실패 시 evtCd 합성 출발일 — manifest
  * REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]: differentDepartDate는 6자 masterCode — manifest
+ * REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]: naeiltour≠hanatour E2E — manifest
  */
 import { execFile } from 'child_process'
 import fs from 'fs'
@@ -37,6 +38,12 @@ import {
   type LottetourEvtListCollectionHints,
 } from '@/lib/lottetour-departures'
 import { lottetourBuildEvtCdSyntheticDepartureInputs } from '@/lib/lottetour-synthetic-departure'
+import {
+  collectNaeiltourProgramProcessDeparturesForGoodCd,
+  collectNaeiltourProgramProcessDeparturesForUrl,
+} from '@/lib/naeiltour-departures'
+import { parseNaeiltourGoodCdFromUrl, NAEILTOUR_BASE } from '@/lib/naeiltour-http'
+import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 
 const execFileAsync = promisify(execFile)
 const HANATOUR_BASE = process.env.HANATOUR_BASE_URL ?? 'https://www.hanatour.com'
@@ -44,7 +51,14 @@ const MODETOUR_BASE = process.env.MODETOUR_BASE_URL ?? 'https://www.modetour.com
 const VERYGOODTOUR_BASE = process.env.VERYGOODTOUR_BASE_URL ?? 'https://www.verygoodtour.com'
 const LOTTETOUR_BASE = process.env.LOTTETOUR_BASE_URL ?? 'https://www.lottetour.com'
 
-export type DepartureRescrapeSite = 'hanatour' | 'modetour' | 'verygoodtour' | 'ybtour' | 'kyowontour' | 'lottetour'
+export type DepartureRescrapeSite =
+  | 'hanatour'
+  | 'modetour'
+  | 'verygoodtour'
+  | 'ybtour'
+  | 'kyowontour'
+  | 'lottetour'
+  | 'naeiltour'
 
 export type DepartureRescrapeResult = {
   mode: 'live-rescrape' | 'fallback-rebuild'
@@ -59,6 +73,7 @@ export type DepartureRescrapeResult = {
     | 'kyowontour-differentDepartDate'
     | 'lottetour-evtListAjax-html'
     | 'lottetour-synthetic-evtCd'
+    | 'naeiltour-program-process'
   inputs: DepartureInput[]
   attemptedLive: boolean
   liveError?: string | null
@@ -105,12 +120,27 @@ function deriveFillMeta(inputs: DepartureInput[]): { filledFields: string[]; mis
 }
 
 /**
- * Python calendar E2E / ?쇱씠釉??대뙌??遺꾧린?? `normalizeSupplierOrigin`怨??숈씪 SSOT濡?留욎텣??
- * ?????녿뒗 異쒖쿂???섎굹?ъ뼱 寃쎈줈(湲곗〈 toSite 湲곕낯媛?濡??대갚.
+ * Python calendar E2E / 라이브 어댑터 분기 — `normalizeSupplierOrigin`과 동일 SSOT.
+ * 없는 출처는 하나투어 경로(기존 toSite 기본값)로 낙하.
+ * REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]: URL·origin naeiltour → program_process — manifest
  */
-function calendarE2eSiteFromOrigin(originSource: string): DepartureRescrapeSite {
+export function calendarE2eSiteFromOrigin(
+  originSource: string,
+  originUrl?: string | null,
+): DepartureRescrapeSite {
+  const url = String(originUrl ?? '').trim()
+  if (/naeiltour\.co\.kr/i.test(url)) return 'naeiltour'
   const n = normalizeSupplierOrigin(originSource)
-  if (n === 'modetour' || n === 'verygoodtour' || n === 'ybtour' || n === 'kyowontour' || n === 'lottetour') return n
+  if (
+    n === 'modetour' ||
+    n === 'verygoodtour' ||
+    n === 'ybtour' ||
+    n === 'kyowontour' ||
+    n === 'lottetour' ||
+    n === 'naeiltour'
+  ) {
+    return n
+  }
   return 'hanatour'
 }
 
@@ -136,6 +166,12 @@ export function buildDetailUrl(originSource: string, originCode: string): string
   }
   if (normalizeSupplierOrigin(originSource) === 'lottetour') {
     const base = LOTTETOUR_BASE.replace(/\/$/, '')
+    return `${base}/`
+  }
+  if (normalizeSupplierOrigin(originSource) === 'naeiltour') {
+    const base = NAEILTOUR_BASE.replace(/\/$/, '')
+    const c = (originCode ?? '').trim()
+    if (c) return `${base}/sub/view.asp?good_cd=${encodeURIComponent(c)}`
     return `${base}/`
   }
   if (src.includes('?몃옉?띿꽑') || src.includes('ybtour') || src.includes('yellowballoon') || src === 'yellow') {
@@ -686,11 +722,20 @@ export async function collectDepartureInputsForAdminRescrape(
     ])
   )
 
-  const site = calendarE2eSiteFromOrigin(product.originSource)
+  const site = calendarE2eSiteFromOrigin(product.originSource, product.originUrl)
   const detailUrlForTrace = product.originUrl?.trim() || buildDetailUrl(product.originSource, product.originCode)
   const detailUrlSummary = (() => {
     if (site === 'hanatour') return summarizeHanatourDetailUrlForLog(detailUrlForTrace)
     if (site === 'ybtour') return summarizeYbtourDetailUrlForLog(detailUrlForTrace)
+    if (site === 'naeiltour') {
+      try {
+        const u = new URL(detailUrlForTrace)
+        const good = u.searchParams.get('good_cd') ?? u.searchParams.get('goodCd')
+        return `host=${u.host} good_cd=${good ? good.slice(0, 24) : '(none)'}`
+      } catch {
+        return 'naeiltour_detail_url_invalid'
+      }
+    }
     try {
       const u = new URL(detailUrlForTrace)
       return `host=${u.host} path_len=${u.pathname.length}`
@@ -1024,7 +1069,7 @@ export async function collectDepartureInputsForAdminRescrape(
   if (site === 'modetour') {
     attemptedLive = true
     try {
-      // 紐⑤몢?ъ뼱 罹섎┛??UX(珥덇린 2媛쒖썡 + ?곗륫 ?대룞) 湲곗??쇰줈 ?곗꽑 4媛쒖썡 踰붿쐞瑜??섏쭛?쒕떎.
+      // 모두투어 캘린더 UX(초기 2개월 + 이후 이동) 기준으로 우선 4개월 범위를 수집한다.
       const parsed = await collectModetourDepartureInputs(product.originUrl, {
         monthsForward: SCRAPE_DEFAULT_MONTHS_FORWARD,
       })
@@ -1048,6 +1093,93 @@ export async function collectDepartureInputsForAdminRescrape(
       liveError = 'modetour-adapter returned 0 rows'
     } catch (e) {
       liveError = e instanceof Error ? e.message : 'modetour-adapter execution failed'
+    }
+  }
+
+  // REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]: program_process HTTP only — manifest
+  if (site === 'naeiltour') {
+    attemptedLive = true
+    const fromYmd = kstTodayYmd()
+    const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
+    try {
+      let rows = await collectNaeiltourProgramProcessDeparturesForUrl(detailUrlForTrace, {
+        fromYmd,
+        toYmd,
+      })
+      if (rows.length === 0) {
+        const goodCd =
+          parseNaeiltourGoodCdFromUrl(detailUrlForTrace) || String(product.originCode ?? '').trim()
+        if (goodCd) {
+          rows = await collectNaeiltourProgramProcessDeparturesForGoodCd(goodCd, {
+            fromYmd,
+            toYmd,
+            refererUrl: detailUrlForTrace,
+          })
+        }
+      }
+      const inputs: DepartureInput[] = rows.map((r) => ({
+        departureDate: r.departDate,
+        adultPrice: r.adultPrice,
+        statusRaw: r.statusRaw ?? undefined,
+        seatsStatusRaw: r.seatsStatusRaw ?? undefined,
+        seatCount: r.seatCount ?? undefined,
+        carrierName: r.carrierName ?? undefined,
+        supplierDepartureCodeCandidate: r.eventSeq ?? undefined,
+      }))
+      const filtered = filterDepartureInputsOnOrAfterCalendarToday(inputs)
+      if (filtered.length > 0) {
+        const fillMeta = deriveFillMeta(filtered)
+        return {
+          mode: 'live-rescrape',
+          source: 'naeiltour-program-process',
+          inputs: filtered,
+          attemptedLive,
+          liveError: null,
+          filledFields: fillMeta.filledFields,
+          missingFields: fillMeta.missingFields,
+          mappingStatus: 'per-date-confirmed',
+          notes: [
+            `naeiltour program_process: ${filtered.length} rows (${fromYmd}…${toYmd})`,
+          ],
+          site,
+          detailUrl: detailUrlForTrace,
+          detailUrlSummary,
+          collectorStatus: 'program_process',
+        }
+      }
+      const fillMeta = deriveFillMeta([])
+      return {
+        mode: 'live-rescrape',
+        source: 'naeiltour-program-process',
+        inputs: [],
+        attemptedLive,
+        liveError: 'naeiltour: program_process 출발·가격 0건',
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: ['naeiltour program_process returned 0 rows'],
+        site,
+        detailUrl: detailUrlForTrace,
+        detailUrlSummary,
+        collectorStatus: 'program_process_empty',
+      }
+    } catch (e) {
+      const fillMeta = deriveFillMeta([])
+      return {
+        mode: 'live-rescrape',
+        source: 'naeiltour-program-process',
+        inputs: [],
+        attemptedLive,
+        liveError: e instanceof Error ? e.message : 'naeiltour program_process failed',
+        filledFields: fillMeta.filledFields,
+        missingFields: fillMeta.missingFields,
+        mappingStatus: 'detail-candidate-found-but-unmapped',
+        notes: [],
+        site,
+        detailUrl: detailUrlForTrace,
+        detailUrlSummary,
+        collectorStatus: 'program_process_error',
+      }
     }
   }
 
