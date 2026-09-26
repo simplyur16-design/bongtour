@@ -5,11 +5,11 @@ import {
   normalizeSimplyurBuyerPhone,
 } from "@/lib/simplyur/checkout/buyer-phone";
 
-// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: phone required 8–15 digits — manifest
+// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: phone optional 8–15 digits — manifest
 describe("simplyur buyer phone", () => {
-  it("requires a number (empty is invalid)", () => {
-    expect(isValidSimplyurBuyerPhoneInput("")).toBe(false);
-    expect(isValidSimplyurBuyerPhoneInput("   ")).toBe(false);
+  it("allows an empty number", () => {
+    expect(isValidSimplyurBuyerPhoneInput("")).toBe(true);
+    expect(isValidSimplyurBuyerPhoneInput("   ")).toBe(true);
     expect(normalizeSimplyurBuyerPhone("")).toBeNull();
   });
 

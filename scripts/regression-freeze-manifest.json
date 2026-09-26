@@ -19704,7 +19704,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur issued eSIM: Solapi LMS when phone present; checkout phone required; skip Kakao AlimTalk",
+      "summary": "Simplyur issued eSIM: Solapi LMS when a Korea mobile is present; checkout phone optional; skip Kakao AlimTalk",
       "checks": [
         {
           "file": "lib/simplyur/notify/simplyur-qr-notify-policy.ts",
@@ -19735,14 +19735,14 @@
           "file": "lib/simplyur/checkout/buyer-phone.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
-            "phone required"
+            "phone optional"
           ]
         },
         {
           "file": "lib/bongsim/data/checkout-create-order.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-esim-solapi-sms]",
-            "simplyur phone required"
+            "simplyur phone optional"
           ]
         },
         {

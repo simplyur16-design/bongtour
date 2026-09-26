@@ -1,5 +1,5 @@
-/** simplyur — phone required so Solapi can text the issued eSIM. */
-// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: phone required 8–15 digits — manifest
+/** simplyur — phone optional. Email carries the QR. Solapi LMS only if a Korea mobile is given. */
+// REGRESSION-FREEZE[simplyur-esim-solapi-sms]: phone optional 8–15 digits — manifest
 export function normalizeSimplyurBuyerPhone(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -9,7 +9,9 @@ export function normalizeSimplyurBuyerPhone(raw: string): string | null {
 }
 
 export function isValidSimplyurBuyerPhoneInput(raw: string): boolean {
-  return normalizeSimplyurBuyerPhone(raw) != null;
+  const trimmed = raw.trim();
+  if (!trimmed) return true;
+  return normalizeSimplyurBuyerPhone(trimmed) != null;
 }
 
 /**

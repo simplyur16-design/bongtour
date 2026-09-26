@@ -149,8 +149,8 @@ export function SimplyurCheckoutClient({
 
   const submit = useCallback(async () => {
     if (!product || !terms || !email.trim()) return;
-    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: checkout phone required — manifest
-    if (!normalizeSimplyurBuyerPhone(phone)) {
+    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: checkout phone optional — manifest
+    if (phone.trim() && !normalizeSimplyurBuyerPhone(phone)) {
       setError(tr("checkout.phoneRequired"));
       return;
     }

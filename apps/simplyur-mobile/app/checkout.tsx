@@ -242,8 +242,8 @@ export default function CheckoutScreen() {
       return;
     }
     const phoneDigits = phone.replace(/\D/g, '');
-    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: app checkout phone required — manifest
-    if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+    // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: app checkout phone optional — manifest
+    if (phone.trim() && (phoneDigits.length < 8 || phoneDigits.length > 15)) {
       setErr(t('checkout.phoneRequired'));
       return;
     }
