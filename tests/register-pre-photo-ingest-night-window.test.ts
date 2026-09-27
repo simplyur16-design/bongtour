@@ -93,6 +93,10 @@ describe('register-pre-photo-ingest-night-window', () => {
     assert.match(cron, /createdTonightFillsRegisterPrePhotoIngestQuota/)
     assert.match(cron, /countRegisterPrePhotoIngestCreatedTonight/)
     assert.match(cron, /onlySuppliers/)
+    // REGRESSION-FREEZE[register-pre-photo-heal-cron-always]: ingest off여도 heal-only — manifest
+    assert.match(cron, /REGISTER_PRE_PHOTO_HEAL_ONLY_CRON/)
+    assert.match(cron, /skipIngest:\s*true/)
+    assert.match(cron, /isRegisterPrePhotoHealOnlyCronEnabled/)
     assert.equal(cron.includes("'30 6 * * *'"), false)
     assert.equal(cron.includes('ingestNightWindowRanId'), false)
   })

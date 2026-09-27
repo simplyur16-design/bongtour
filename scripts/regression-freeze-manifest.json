@@ -1592,32 +1592,79 @@
         "prebuild",
         "ci"
       ],
-      "summary": "상품 목록 수집 cron 기본 OFF. ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST=1 로만 재개. 가격 sweep은 유지",
+      "summary": "상품 목록 수집 cron 기본 OFF. ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST=1 로만 재개. 대기열 힐 cron은 ingest와 분리",
       "checks": [
         {
           "file": "lib/register-listing-ingest-cron-gate.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-ingest-opt-in]",
             "ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST",
-            "isRegisterListingIngestCronEnabled"
+            "isRegisterListingIngestCronEnabled",
+            "isRegisterPrePhotoHealOnlyCronEnabled"
           ]
         },
         {
           "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-ingest-opt-in]",
-            "isRegisterListingIngestCronEnabled"
+            "isRegisterListingIngestCronEnabled",
+            "REGRESSION-FREEZE[register-pre-photo-heal-cron-always]",
+            "REGISTER_PRE_PHOTO_HEAL_ONLY_CRON",
+            "skipIngest: true"
           ]
         },
         {
           "file": "instrumentation.ts",
           "mustInclude": [
-            "isRegisterListingIngestCronEnabled"
+            "isRegisterPrePhotoHealOnlyCronEnabled",
+            "startInstrumentationRegisterPrePhotoSelfHealCron"
           ]
         }
       ],
       "vitestSuites": [
         "lib/register-listing-ingest-cron-gate.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-heal-cron-always",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 셀프힐 cron은 listing ingest OFF여도 동작 (skipIngest). 수집만 opt-in",
+      "checks": [
+        {
+          "file": "lib/register-listing-ingest-cron-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-cron-always]",
+            "isRegisterPrePhotoHealOnlyCronEnabled",
+            "DISABLE_REGISTER_PRE_PHOTO_SELF_HEAL_CRON"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-cron-always]",
+            "tickRegisterPrePhotoHealOnlyCron",
+            "skipIngest: true",
+            "healLimit: 200"
+          ]
+        },
+        {
+          "file": ".github/workflows/register-pre-photo-self-heal.yml",
+          "mustInclude": [
+            "skipIngest=1",
+            "limit=200",
+            "--max-time 700"
+          ]
+        },
+        {
+          "file": "app/api/cron/register-pre-photo-self-heal/route.ts",
+          "mustInclude": [
+            "healLimit",
+            "Math.min(200"
+          ]
+        }
       ]
     },
     {
@@ -11531,6 +11578,47 @@
       ],
       "vitestSuites": [
         "lib/hanatour-schedule-image-keyword-landmark.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-bare-city-middle-repeat",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "중간일 imageKeyword 맨도시 반복 금지 — 명소 키워드 필수(출발·귀국 soft-dup은 예외)",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
+            "pushMiddleDayTripKeywordDupIssue",
+            "keyword_bare_city_repeat_other_day",
+            "isBareCityOrCountryKeyword"
+          ]
+        },
+        {
+          "file": "tests/register-pre-photo-self-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
+            "keyword_bare_city_repeat_other_day",
+            "Banzai Cliff Saipan"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
+            "middle끼리 맨도시 soft-dup 재주입 금지",
+            "bareVisitCityUsedAsOtherMiddlePrimary"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
       ]
     },
     {

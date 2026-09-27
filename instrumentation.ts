@@ -104,10 +104,10 @@ export async function register() {
             '[supplier-sweep-cron] web-fallback: worker 없음 — 6공급사 일 1회 API sweep을 web에 등록 (worker 추가 시 web에 DISABLE_WEB_SUPPLIER_SWEEP_CRON=1)',
           )
         }
-        const { isRegisterListingIngestCronEnabled } = await import(
+        const { isRegisterPrePhotoHealOnlyCronEnabled } = await import(
           '@/lib/register-listing-ingest-cron-gate'
         )
-        if (isRegisterListingIngestCronEnabled()) {
+        if (isRegisterPrePhotoHealOnlyCronEnabled()) {
           const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
             '@/lib/instrumentation-register-pre-photo-self-heal-cron'
           )
@@ -135,10 +135,11 @@ export async function register() {
       startInstrumentationCouponCron()
       const { registerSupplierSweepCrons } = await import('@/lib/instrumentation-supplier-sweep-crontab')
       await registerSupplierSweepCrons()
-      const { isRegisterListingIngestCronEnabled } = await import(
+      // REGRESSION-FREEZE[register-pre-photo-heal-cron-always]: ingest off여도 heal-only — manifest
+      const { isRegisterPrePhotoHealOnlyCronEnabled } = await import(
         '@/lib/register-listing-ingest-cron-gate'
       )
-      if (isRegisterListingIngestCronEnabled()) {
+      if (isRegisterPrePhotoHealOnlyCronEnabled()) {
         const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
           '@/lib/instrumentation-register-pre-photo-self-heal-cron'
         )

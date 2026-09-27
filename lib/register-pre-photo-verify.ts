@@ -9,7 +9,8 @@
  * REGRESSION-FREEZE[register-hk-gogung-not-taipei-npm]: 홍콩에 대만 국립고궁이면 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: dest hay·FIT 랜드마크 — manifest
  * REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 제목·dest·FIT 요약·같은 날 나라 — manifest
- * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 방문도시 반복 ≠ 랜드마크 블리드 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 방문도시 soft-dup ≠ 랜드마크 블리드 분류 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 중간일 맨도시 반복 금지·명소 키워드 — manifest
  * REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — FIT·환승·이동 제외 — manifest
  * REGRESSION-FREEZE[register-schedule-description-no-repeated-closer]: 트립 템플릿 closer 반복 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 중간일 키워드는 당일 route 명소·도시만 — manifest
@@ -369,6 +370,7 @@ function packageScheduleIssues(
     issues.push(`day${day}_description_repeated_closer`)
   }
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: trip-wide kw+kw2 bleed — manifest
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare city 반복 금지 — manifest
   const seenKw = new Map<string, number>()
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(
@@ -383,24 +385,7 @@ function packageScheduleIssues(
     ] as const) {
       if (!raw) continue
       pushFilledKeywordQualityIssues(issues, Number(row.day), field, raw)
-      const key = normScheduleImageKeywordKey(raw)
-      if (!key) continue
-      const prev = seenKw.get(key)
-      if (prev != null) {
-        // 리조트·시내 자유일 — 방문도시 반복은 랜드마크 블리드가 아님
-        // 당일 route에 같은 명소가 있으면 반복도 블리드가 아님
-        // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 방문도시 반복은 랜드마크 블리드가 아님 — manifest
-        const ownHas = ownRouteHasKeyword(row.routeText, raw)
-        if (!isBareCityOrCountryKeyword(raw) && !ownHas) {
-          issues.push(
-            field === 'keyword2'
-              ? `day${row.day}_keyword2_bleed_other_day`
-              : `day${row.day}_keyword_bleed_other_day`,
-          )
-        }
-      } else {
-        seenKw.set(key, Number(row.day))
-      }
+      pushMiddleDayTripKeywordDupIssue(issues, seenKw, Number(row.day), field, raw, row.routeText)
     }
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
@@ -414,6 +399,47 @@ function packageScheduleIssues(
     }
   }
   return issues
+}
+
+/**
+ * 중간일 trip-wide 키워드 중복.
+ * - 명소 블리드: 당일 route에 없으면 fail
+ * - 맨도시/국가: 중간일끼리 반복 금지(명소 키워드를 넣어야 함). 출발·귀국 soft-dup은 middle 루프 밖.
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 도시 반복 금지 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 맨도시 반복 ≠ keyword_bleed 분류 — manifest
+ */
+function pushMiddleDayTripKeywordDupIssue(
+  issues: RegisterPrePhotoVerifyIssue[],
+  seenKw: Map<string, number>,
+  day: number,
+  field: 'keyword' | 'keyword2',
+  raw: string,
+  routeText: string | null | undefined,
+): void {
+  const key = normScheduleImageKeywordKey(raw)
+  if (!key) return
+  const prev = seenKw.get(key)
+  if (prev == null) {
+    seenKw.set(key, day)
+    return
+  }
+  // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 방문도시 반복은 랜드마크 블리드가 아님 — manifest
+  if (isBareCityOrCountryKeyword(raw)) {
+    issues.push(
+      field === 'keyword2'
+        ? `day${day}_keyword2_bare_city_repeat_other_day`
+        : `day${day}_keyword_bare_city_repeat_other_day`,
+    )
+    return
+  }
+  const ownHas = ownRouteHasKeyword(routeText, raw)
+  if (!ownHas) {
+    issues.push(
+      field === 'keyword2'
+        ? `day${day}_keyword2_bleed_other_day`
+        : `day${day}_keyword_bleed_other_day`,
+    )
+  }
 }
 
 function pushFilledKeywordQualityIssues(
@@ -516,6 +542,7 @@ function fitScheduleIssues(
     issues.push('fit_keyword_empty')
   }
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: FIT trip-wide kw+kw2 bleed — manifest
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: FIT middle bare city 반복 금지 — manifest
   const seenKw = new Map<string, number>()
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
@@ -525,21 +552,7 @@ function fitScheduleIssues(
       ['keyword2', String(row.imageKeyword2 ?? '').trim()],
     ] as const) {
       if (!raw) continue
-      const key = normScheduleImageKeywordKey(raw)
-      if (!key) continue
-      const prev = seenKw.get(key)
-      if (prev != null) {
-        const ownHas = ownRouteHasKeyword(row.routeText, raw)
-        if (!isBareCityOrCountryKeyword(raw) && !ownHas) {
-          issues.push(
-            field === 'keyword2'
-              ? `day${row.day}_keyword2_bleed_other_day`
-              : `day${row.day}_keyword_bleed_other_day`,
-          )
-        }
-      } else {
-        seenKw.set(key, Number(row.day))
-      }
+      pushMiddleDayTripKeywordDupIssue(issues, seenKw, Number(row.day), field, raw, row.routeText)
     }
   }
   for (const row of days) {
@@ -650,6 +663,8 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('free_recommended_itinerary_missing') ||
     issue.includes('keyword_bleed_other_day') ||
     issue.includes('keyword2_bleed_other_day') ||
+    issue.includes('keyword_bare_city_repeat_other_day') ||
+    issue.includes('keyword2_bare_city_repeat_other_day') ||
     issue.includes('fit_keyword_empty') ||
     issue.includes('not_persistable') ||
     issue.includes('_airline') ||

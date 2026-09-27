@@ -670,7 +670,8 @@ describe('register-pre-photo-self-heal', () => {
     assert.equal(inferRegisterPendingDestinationFromTitle('보르도'), '보르도')
     assert.equal(inferRegisterPendingDestinationFromTitle('푸꾸옥 5일 #모벤픽'), '푸꾸옥')
     assert.equal(inferRegisterPendingDestinationFromTitle('미입력'), '')
-    const live = verifyRegisterPrePhoto({
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 중간일 맨도시 반복 fail — manifest
+    const cityRepeat = verifyRegisterPrePhoto({
       lane: 'package',
       productTitle: '사이판 골프 5일',
       productDestination: '사이판',
@@ -681,7 +682,41 @@ describe('register-pre-photo-self-heal', () => {
         { day: 4, description: '귀국합니다. 이동 중심으로 마무리합니다.', imageKeyword: '', routeText: '사이판' },
       ],
     })
-    assert.equal(live.issues.some((i) => i.includes('keyword_bleed_other_day')), false)
+    assert.equal(cityRepeat.issues.some((i) => i.includes('keyword_bleed_other_day')), false)
+    assert.ok(cityRepeat.issues.some((i) => i.includes('keyword_bare_city_repeat_other_day')))
+    const landmarkDays = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '사이판 골프 5일',
+      productDestination: '사이판',
+      rows: [
+        {
+          day: 1,
+          description: '사이판에 도착합니다. 첫날 이동을 맞춥니다.',
+          imageKeyword: 'Saipan',
+          routeText: '사이판',
+        },
+        {
+          day: 2,
+          description: '만자이 절벽을 봅니다. 리조트에서 하루를 보냅니다.',
+          imageKeyword: 'Banzai Cliff Saipan',
+          routeText: '만자이 절벽 - 사이판',
+        },
+        {
+          day: 3,
+          description: '라오라오만에서 라운드를 이어갑니다. 리조트에서 하루를 보냅니다.',
+          imageKeyword: 'Laolao Bay Saipan',
+          routeText: '라오라오만 - 사이판',
+        },
+        {
+          day: 4,
+          description: '귀국합니다. 이동 중심으로 마무리합니다.',
+          imageKeyword: '',
+          routeText: '사이판',
+        },
+      ],
+    })
+    assert.equal(landmarkDays.issues.some((i) => i.includes('bare_city_repeat')), false)
+    assert.equal(landmarkDays.issues.some((i) => i.includes('keyword_bleed_other_day')), false)
     assert.equal(isLikelyTourismLandmarkKeyword('Golden Circle Iceland'), true)
     assert.equal(isLikelyTourismLandmarkKeyword('Petra Treasury'), true)
     assert.equal(isLikelyTourismLandmarkKeyword('Wadi Rum desert'), true)

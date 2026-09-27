@@ -13,6 +13,7 @@ export const maxDuration = 800
  *        skipIngest=1, dryRun=1, probe=0
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: cron 사진 생성 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: ingest then heal — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-cron-always]: default healLimit 200 / skipIngest 지원 — manifest
  * healPendingRegisterPrePhoto 는 runRegisterPrePhotoDailyJob 안에서만 호출.
  */
 export async function POST(req: Request) {
@@ -42,10 +43,12 @@ export async function POST(req: Request) {
       : undefined
 
   try {
+    const healLimit =
+      Number.isFinite(limit) && (limit ?? 0) > 0 ? Math.min(200, Math.floor(limit as number)) : 200
     const result = await runRegisterPrePhotoDailyJob({
       dryRun,
       probeImageUrls,
-      healLimit: Number.isFinite(limit) && (limit ?? 0) > 0 ? limit : 80,
+      healLimit,
       skipIngest,
       onlySuppliers,
       perSupplier,

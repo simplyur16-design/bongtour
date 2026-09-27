@@ -2,14 +2,17 @@ name: register-pre-photo-self-heal
 
 on:
   schedule:
-    - cron: '30 21 * * *'
+    # UTC — KST 06:15 / 14:15 / 22:15 (서버 heal-only cron과 맞춤)
+    - cron: '15 21 * * *'
+    - cron: '15 5 * * *'
+    - cron: '15 13 * * *'
   workflow_dispatch:
 
 jobs:
   register-pre-photo-self-heal:
     name: Heal pending keywords and schedules
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Ping register-pre-photo-self-heal endpoint
@@ -26,8 +29,8 @@ jobs:
             -H "x-bongtour-cron-secret: $BONGTOUR_CRON_SECRET" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
-            --max-time 120 \
-            "https://bongtour.com/api/cron/register-pre-photo-self-heal?skipIngest=1&probe=0")
+            --max-time 700 \
+            "https://bongtour.com/api/cron/register-pre-photo-self-heal?skipIngest=1&probe=0&limit=200")
 
           status=$(echo "$response" | tail -n 1)
           body=$(echo "$response" | head -n -1)
