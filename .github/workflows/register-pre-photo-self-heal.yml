@@ -12,7 +12,7 @@ jobs:
   register-pre-photo-self-heal:
     name: Heal pending keywords and schedules
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
 
     steps:
       - name: Ping register-pre-photo-self-heal endpoint
@@ -24,12 +24,13 @@ jobs:
             exit 1
           fi
 
+          # 동기 힐은 Railway 프록시 ~5분 502. 엔드포인트는 202 ACK 후 백그라운드 실행.
           response=$(curl -sS \
             -X POST \
             -H "x-bongtour-cron-secret: $BONGTOUR_CRON_SECRET" \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
-            --max-time 700 \
+            --max-time 60 \
             "https://bongtour.com/api/cron/register-pre-photo-self-heal?skipIngest=1&probe=0&limit=200")
 
           status=$(echo "$response" | tail -n 1)
@@ -43,9 +44,10 @@ jobs:
             exit 1
           fi
 
-          if [ "$status" -ne 200 ]; then
+          # 200(sync) 또는 202(async ACK) 모두 성공
+          if [ "$status" != "200" ] && [ "$status" != "202" ]; then
             echo "::error::register-pre-photo-self-heal failed with status $status"
             exit 1
           fi
 
-          echo "::notice::register-pre-photo-self-heal succeeded"
+          echo "::notice::register-pre-photo-self-heal accepted (HTTP $status)"

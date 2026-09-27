@@ -1655,14 +1655,17 @@
           "mustInclude": [
             "skipIngest=1",
             "limit=200",
-            "--max-time 700"
+            "--max-time 60",
+            "202"
           ]
         },
         {
           "file": "app/api/cron/register-pre-photo-self-heal/route.ts",
           "mustInclude": [
             "healLimit",
-            "Math.min(200"
+            "Math.min(200",
+            "status: 202",
+            "started: true"
           ]
         }
       ]
