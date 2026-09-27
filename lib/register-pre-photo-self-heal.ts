@@ -519,7 +519,7 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
       }
       const key = persist.value.trim().toLowerCase()
       // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used 맨도시는 재주입 금지 — manifest
-      // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 당일 route 명소(비맨도시)는 used여도 재허용 — manifest
+      // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 당일 route 명소는 used여도 재허용 — 비맨도시만 — manifest
       if (key && used.has(key)) {
         const isBare = isBareCityOrCountryKeyword(persist.value)
         const ownLandmark =

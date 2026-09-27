@@ -1308,32 +1308,34 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
             !isRejectedTripKeywordCandidate(k) &&
             !shouldRejectRouteLeakKeyword2(k, current.routeText),
         )
-        if (landmarkCands.length === 0) {
-          const cityNk = normScheduleImageKeywordKey(dayCity)
-          let alreadyOnOtherMiddle = false
-          for (const r of sorted) {
-            const d = Number(r.day)
-            if (d === day) continue
-            if (resolveScheduleKeywordSlotKind(d, maxDay, activeDays) !== 'middle') continue
-            const other = out.get(d) ?? r
-            if (normScheduleImageKeywordKey(String(other.imageKeyword ?? '').trim()) === cityNk) {
-              alreadyOnOtherMiddle = true
-              break
-            }
+        const cityNk = normScheduleImageKeywordKey(dayCity)
+        let alreadyOnOtherMiddle = false
+        for (const r of sorted) {
+          const d = Number(r.day)
+          if (d === day) continue
+          if (resolveScheduleKeywordSlotKind(d, maxDay, activeDays) !== 'middle') continue
+          const other = out.get(d) ?? r
+          if (normScheduleImageKeywordKey(String(other.imageKeyword ?? '').trim()) === cityNk) {
+            alreadyOnOtherMiddle = true
+            break
           }
-          // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: revisit soft-dup after tripReserved clear — manifest
-          if (!alreadyOnOtherMiddle || allowRouteRevisitBareVisitCitySoftDup(dayCity)) {
+        }
+        if (landmarkCands.length === 0) {
+          // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle끼리 맨도시 soft-dup 재주입 금지 — manifest
+          if (!alreadyOnOtherMiddle) {
             primary = dayCity
           }
-        } else if (allowRouteRevisitBareVisitCitySoftDup(dayCity)) {
-          // landmark 후보가 있어도 전부 used면 빈칸보다 방문도시 soft-dup
-          const cityNk = normScheduleImageKeywordKey(dayCity)
+        } else {
+          // landmark 후보 우선 — 전부 used면 맨도시는 다른 중간일에 없을 때만
           const unusedLandmark = landmarkCands.find((k) => {
             const nk = normScheduleImageKeywordKey(k)
             return nk && !middleUsed.has(nk) && !tripReserved.has(nk)
           })
-          primary = unusedLandmark || dayCity
-          void cityNk
+          if (unusedLandmark) {
+            primary = unusedLandmark
+          } else if (!alreadyOnOtherMiddle) {
+            primary = dayCity
+          }
         }
       }
     }
@@ -4026,13 +4028,12 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         !(
           isMiddleDay &&
           isBareCityOrCountryKeyword(primary) &&
-          bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays) &&
-          !allowRouteRevisitBareVisitCitySoftDup(softCity)
+          bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays)
         )
       ) {
-        // 방문도시 soft-dup — used여도 유지 (출발일 Dubai → 호텔 중간일). 중간일끼리 Bali 중복은 금지
-        // 몰디브·삿포 등 route 재등장은 soft-dup 허용
+        // 방문도시 soft-dup — used여도 유지 (출발일 Dubai → 호텔 중간일). 중간일끼리 중복은 preferUnused에서 비움
         // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: soft-dup keep prefers landmarks — manifest
+        // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare 반복 → landmark/빈칸 — manifest
         primary = preferUnusedLandmarkOverBareSoftDup(primary, cands, used, row, {
           day,
           processedByDay,
@@ -4041,7 +4042,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         })
       } else if (
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
-        // 서핑-only route는 softCity 없음 — allowlist bare soft-dup은 enforce에서 비우지 않음
+        // 서핑-only route는 softCity 없음 — preferUnused가 2nd+ middle bare를 비움
         isBareCityOrCountryKeyword(primary) &&
         allowRouteRevisitBareVisitCitySoftDup(primary)
       ) {
@@ -4074,8 +4075,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
                 (isMiddleDay &&
                 softCity &&
                 isBareCityOrCountryKeyword(softCity) &&
-                bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays) &&
-                !allowRouteRevisitBareVisitCitySoftDup(softCity)
+                bareVisitCityUsedAsOtherMiddlePrimary(softCity, day, processedByDay, maxDay, activeDays)
                   ? ''
                   : softCity) ||
                 ''
@@ -4090,8 +4090,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         !(
           isMiddleDay &&
           isBareCityOrCountryKeyword(softCityEmpty) &&
-          bareVisitCityUsedAsOtherMiddlePrimary(softCityEmpty, day, processedByDay, maxDay, activeDays) &&
-          !allowRouteRevisitBareVisitCitySoftDup(softCityEmpty)
+          bareVisitCityUsedAsOtherMiddlePrimary(softCityEmpty, day, processedByDay, maxDay, activeDays)
         )
       primary =
         pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
@@ -4479,13 +4478,12 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       secondary = ''
     }
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
-    // 중간일끼리 bare 방문도시(Bali) soft-dup 금지 — 출발일 Dubai→호텔일은 허용
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 중간일끼리 bare 방문도시 soft-dup 금지 — manifest
     if (
       isMiddleDay &&
       primary &&
       isBareCityOrCountryKeyword(primary) &&
-      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays) &&
-      !allowRouteRevisitBareVisitCitySoftDup(primary)
+      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays)
     ) {
       primary = ''
     }
@@ -4547,10 +4545,12 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
         primary = pickReplacementPrimaryTripKeyword(row, cands, used)
       }
       // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: keep edge-revisit bare soft-dup when no alt — manifest
+      // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle에서는 맨도시 재사용 금지 — manifest
       if (
         !primary &&
         isBareCityOrCountryKeyword(prevPrimary) &&
-        allowRouteRevisitBareVisitCitySoftDup(prevPrimary)
+        allowRouteRevisitBareVisitCitySoftDup(prevPrimary) &&
+        resolveScheduleKeywordSlotKind(day, maxDay, activeDays) !== 'middle'
       ) {
         primary = prevPrimary
       }
@@ -4575,9 +4575,8 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
             maxDay,
             activeDays,
           )
-        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
-        // route에 다시 나온 삿포/죠잔케이/몰디브/로토루아는 중간일 soft-dup 허용
-        if (!blocked || allowRouteRevisitBareVisitCitySoftDup(soft)) {
+        // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare soft-dup 재주입 금지 — manifest
+        if (!blocked) {
           primary = soft
         }
       }
@@ -4599,10 +4598,9 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
         ),
         maxDay,
         activeDays,
-      ) &&
-      // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
-      !allowRouteRevisitBareVisitCitySoftDup(primary)
+      )
     ) {
+      // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: reconcile도 middle bare 반복 금지 — manifest
       primary = ''
     }
     if (secondary) {
@@ -5119,11 +5117,9 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
           maxDay,
           activeDays,
         )
-        // 삿포·죠잔케이·몰디브 등 route에 다시 나온 방문지는 중간일 soft-dup 허용
-        if (
-          !blocked ||
-          allowRouteRevisitBareVisitCitySoftDup(city)
-        ) {
+        // 삿포·죠잔케이·몰디브 등 — 첫 중간일만 soft-dup, 반복 금지
+        // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare soft-dup 재주입 금지 — manifest
+        if (!blocked) {
           primary = city
         }
       }
@@ -5147,7 +5143,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
           maxDay,
           activeDays,
         )
-        if (!blocked || allowRouteRevisitBareVisitCitySoftDup(fromDest)) {
+        if (!blocked) {
+          // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: dest soft-dup도 middle 반복 금지 — manifest
           primary = fromDest
         }
       }
