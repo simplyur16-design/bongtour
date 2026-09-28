@@ -276,15 +276,26 @@ export async function healPendingRegisterPrePhoto(
             .join('\n'),
         })
         healNotes = result.notes
-        verifyRows = result.rows.map((h) => ({
-          day: Number(h.day),
-          title: h.title,
-          description: h.description,
-          routeText: h.routeText,
-          imageKeyword: h.imageKeyword,
-          imageKeyword2: h.imageKeyword2,
-          imageUrl: h.imageUrl,
-        }))
+        const mappedByDay = new Map(mapped.map((r) => [Number(r.day), r]))
+        verifyRows = result.rows.map((h) => {
+          const prev = mappedByDay.get(Number(h.day))
+          return {
+            day: Number(h.day),
+            title: h.title,
+            description: h.description,
+            routeText: h.routeText,
+            imageKeyword: h.imageKeyword,
+            imageKeyword2: h.imageKeyword2,
+            imageUrl: h.imageUrl,
+            hotelText: prev?.hotelText ?? null,
+            breakfastText: prev?.breakfastText ?? null,
+            lunchText: prev?.lunchText ?? null,
+            dinnerText: prev?.dinnerText ?? null,
+            mealSummaryText: prev?.mealSummaryText ?? null,
+            meals: prev?.meals ?? null,
+            accommodation: prev?.accommodation ?? null,
+          }
+        })
         const byDay = new Map(result.rows.map((r) => [Number(r.day), r]))
         next = rows.map((row) => {
           const h = byDay.get(Number(row.day))
@@ -372,15 +383,25 @@ export async function healPendingRegisterPrePhoto(
             if (!h) return row
             return { ...row, title: h.title }
           })
-          verifyRows = scrub.rows.map((h) => ({
-            day: Number(h.day),
-            title: h.title ?? null,
-            description: h.description ?? null,
-            routeText: h.routeText ?? null,
-            imageKeyword: h.imageKeyword ?? null,
-            imageKeyword2: h.imageKeyword2 ?? null,
-            imageUrl: h.imageUrl ?? null,
-          }))
+          verifyRows = scrub.rows.map((h) => {
+            const prev = verifyRows.find((r) => Number(r.day) === Number(h.day))
+            return {
+              day: Number(h.day),
+              title: h.title ?? null,
+              description: h.description ?? null,
+              routeText: h.routeText ?? null,
+              imageKeyword: h.imageKeyword ?? null,
+              imageKeyword2: h.imageKeyword2 ?? null,
+              imageUrl: h.imageUrl ?? null,
+              hotelText: prev?.hotelText ?? null,
+              breakfastText: prev?.breakfastText ?? null,
+              lunchText: prev?.lunchText ?? null,
+              dinnerText: prev?.dinnerText ?? null,
+              mealSummaryText: prev?.mealSummaryText ?? null,
+              meals: prev?.meals ?? null,
+              accommodation: prev?.accommodation ?? null,
+            }
+          })
           scheduleChanged = true
           healNotes.push({
             day: scrub.scrubbedDays[0] ?? 0,

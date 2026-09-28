@@ -927,7 +927,8 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
     stage = 'buildRegisterDrafts'
     ctx.stage = stage
     parsed = stripBodyDerivedMeetingFromRegisterParsed(parsed)
-    const schedule = parsed.schedule ?? []
+    // hotelSummary 적용 시 재할당 — REGRESSION-FREEZE[register-schedule-hotel-from-summary]
+    let schedule = parsed.schedule ?? []
     const enrichedCalendarPrices = enrichHanatourParsedPricesFromProductPriceTable(
       parsed.prices ?? [],
       parsed.productPriceTable,

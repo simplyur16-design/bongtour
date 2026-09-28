@@ -15168,6 +15168,14 @@
             "applyHotelSummaryRawToScheduleDays",
             "parseDayHotelPlansFromSupplierText"
           ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hotel-from-summary]",
+            "let schedule = parsed.schedule",
+            "applyHotelSummaryRawToScheduleDays(schedule, hotelSummaryPreview)"
+          ]
         }
       ],
       "vitestSuites": [
@@ -15293,7 +15301,8 @@
             "breakfastText: row.breakfastText",
             "lunchText: row.lunchText",
             "dinnerText: row.dinnerText",
-            "mealSummaryText: row.mealSummaryText"
+            "mealSummaryText: row.mealSummaryText",
+            "hotelText: prev?.hotelText"
           ]
         }
       ]
