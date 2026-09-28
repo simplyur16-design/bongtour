@@ -9,6 +9,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { bootstrapGeminiEnvFilesWhenKeyMissing } from '@/lib/gemini-env-bootstrap.server'
+import { withPrismaConnectionLimit } from '../lib/prisma-connection-limit'
 
 function parseLine(line: string): { key: string; val: string } | null {
   const trimmed = line.trim()
@@ -41,6 +42,14 @@ export function loadEnvForScripts(): void {
     }
   }
   bootstrapGeminiEnvFilesWhenKeyMissing()
+  // REGRESSION-FREEZE[scripts-load-env-prisma-pooler]: session→transaction + pgbouncer — manifest
+  applyPrismaPoolerUrlToProcessEnv()
+}
+
+/** bare PrismaClient 스크립트가 prepared statement(26000) 안 나게 DATABASE_URL 정규화. */
+function applyPrismaPoolerUrlToProcessEnv(): void {
+  const next = withPrismaConnectionLimit(process.env.DATABASE_URL)
+  if (next) process.env.DATABASE_URL = next
 }
 
 loadEnvForScripts()

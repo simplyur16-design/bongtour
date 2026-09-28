@@ -52,12 +52,24 @@ function nextEmptyMealSlot(out: ParsedScheduleMealFields): MealSlotKey | null {
  * 슬롯 접두가 없는 항목은 빈 칸에 순서대로 채우되, 석식이 이미 있으면 남은 1건은 중식 칸 우선.
  */
 export function parseFactMealsListToScheduleFields(meals: string[]): ParsedScheduleMealFields {
+  const cleaned = (meals ?? []).map((m) => String(m ?? '').trim()).filter(Boolean)
+  if (cleaned.length === 0) return {}
+
+  // REGRESSION-FREEZE[register-schedule-meal-parse]: 결합 문자열(조식·중식·석식) 우선 — manifest
+  const joined = cleaned.join(' / ')
+  const labelHits = joined.match(/조식|중식|석식|아침|점심|저녁/g)?.length ?? 0
+  if ((cleaned.length === 1 && labelHits >= 1) || labelHits >= 2) {
+    const fromText = parseScheduleMealFieldsFromText(cleaned.length === 1 ? cleaned[0]! : joined)
+    if (fromText.breakfastText || fromText.lunchText || fromText.dinnerText || fromText.mealSummaryText) {
+      return fromText
+    }
+  }
+
   const out: ParsedScheduleMealFields = {}
   const unattributed: string[] = []
 
-  for (const raw of meals) {
-    const t = String(raw ?? '').trim()
-    if (!t || isEmptyMealHotelField(t)) continue
+  for (const t of cleaned) {
+    if (isEmptyMealHotelField(t)) continue
     const slot = mealSlotKeyFromLabel(t)
     if (slot) {
       assignMealField(out, slot, stripMealTypeLabelPrefix(t))
@@ -80,12 +92,8 @@ export function parseFactMealsListToScheduleFields(meals: string[]): ParsedSched
     assignMealField(out, slot, content)
   }
 
-  if (meals.length > 0) {
-    out.mealSummaryText = meals
-      .map((m) => String(m ?? '').trim())
-      .filter(Boolean)
-      .join(' / ')
-      .slice(0, 500)
+  if (cleaned.length > 0) {
+    out.mealSummaryText = cleaned.join(' / ').slice(0, 500)
   }
   return out
 }

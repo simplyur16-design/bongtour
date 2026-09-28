@@ -8,6 +8,7 @@ import {
   dedupeVerygoodtourScheduleRoutePlaces,
   joinVerygoodtourScheduleRouteText,
 } from '@/lib/verygoodtour-register-api-schedule'
+import { parseScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 
 type ParsedScheduleItem = RegisterScheduleDay & { flightReturnHead: string | null }
 
@@ -48,6 +49,16 @@ function parseVerygoodScheduleItemBlock(day: number, block: string): ParsedSched
     stripVerygoodScheduleInnerHtml(
       block.match(/<h4>\s*호텔\s*<\/h4>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? '',
     ) || null
+  // REGRESSION-FREEZE[verygoodtour-register-schedule-collect]: scheduleItem 식사 h4 — manifest
+  const mealBlob =
+    stripVerygoodScheduleInnerHtml(
+      block.match(/<h4>\s*식사\s*<\/h4>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? '',
+    ) ||
+    stripVerygoodScheduleInnerHtml(
+      block.match(/<h4>\s*식사\s*<\/h4>[\s\S]*?<div[^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? '',
+    ) ||
+    ''
+  const mealFields = mealBlob ? parseScheduleMealFieldsFromText(mealBlob) : {}
 
   const routeSeed = [
     ...locRaw.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean),
@@ -65,6 +76,10 @@ function parseVerygoodScheduleItemBlock(day: number, block: string): ParsedSched
     routeText,
     dateText: dateText || null,
     hotelText,
+    breakfastText: mealFields.breakfastText ?? null,
+    lunchText: mealFields.lunchText ?? null,
+    dinnerText: mealFields.dinnerText ?? null,
+    mealSummaryText: mealFields.mealSummaryText ?? (mealBlob || null),
     imageKeyword: '',
     imageKeyword2: null,
     flightReturnHead,

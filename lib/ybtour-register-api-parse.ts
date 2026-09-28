@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[ybtour-register-api-parse]: collectYbtourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: API-only register parse — manifest
  * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: ensureYbtourRegisterScheduleImageKeywords — manifest
+ * REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]: facts legs → flightStructured in api-parse — manifest
  */
 import {
   parseYbtourEvCdFromUrl,
@@ -33,6 +34,9 @@ import {
 } from '@/lib/ybtour-register-api-schedule'
 import { extractYbtourVerbatimListingTitle } from '@/lib/register-ybtour-basic'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
+import { applyRegisterCollectedFlightStructured } from '@/lib/register-detail-collect-flight-apply'
+import { buildYbtourFlightStructuredFromFactLegs } from '@/lib/register-facts/ybtour-register-fact-flights'
+import { resolveYbtourCarrierNameForUrl } from '@/lib/ybtour-register-api-detail'
 
 export const YBTOUR_PRICE_SLOT_SSOT_NOTE =
   '노랑풍선 가격(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가, childNoBedPrice=null, infantPrice=유아. 쿠폰·총액·잔여석·출발일변경·적립·무이자 등은 슬롯에 넣지 않습니다.'
@@ -208,6 +212,20 @@ export async function parseYbtourRegisterFromApi(
 
   parsed = finalizeYbtourRegisterParsedPricing(parsed)
   parsed = finalizeYbtourRegisterParsedShopping(parsed)
+
+  // REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]: prefetch/api-parse → flightStructured — manifest
+  // detailCollectAlreadySatisfied면 augment가 스킵되므로 facts legs로 항공을 여기서 확정한다.
+  let carrierHint = outbound?.carrier ?? inbound?.carrier ?? null
+  if (!carrierHint?.trim()) {
+    carrierHint = await resolveYbtourCarrierNameForUrl(originUrl)
+  }
+  parsed = applyRegisterCollectedFlightStructured(
+    parsed,
+    buildYbtourFlightStructuredFromFactLegs(bundle.flights, { airlineName: carrierHint }),
+  )
+  if (!String(parsed.airlineName ?? '').trim() && carrierHint) {
+    parsed = { ...parsed, airlineName: carrierHint }
+  }
 
   if ((parsed.schedule?.length ?? 0) > 0 && !airHotelListing) {
     const scheduleWithRoute = applyYbtourScheduleExpressionToRows(parsed.schedule ?? [])

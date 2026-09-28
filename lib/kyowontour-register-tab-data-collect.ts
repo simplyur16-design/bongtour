@@ -97,10 +97,17 @@ function needsKyowontourHighlightCollect(parsed: RegisterParsed): boolean {
 
 function needsCoreTabCollect(parsed: RegisterParsed): boolean {
   // REGRESSION-FREEZE[kyowontour-register-highlight-corepoints]: highlight empty → still fetch core tab — manifest
+  // REGRESSION-FREEZE[kyowontour-register-single-room-when-ie-filled]: single missing → still fetch core — manifest
+  const needSingle =
+    parsed.hasSingleRoomSurcharge !== true &&
+    parsed.singleRoomSurchargeAmount == null &&
+    !String(parsed.singleRoomSurchargeRaw ?? '').trim() &&
+    /(싱글|1인실|1인\s*객실|써차지|독실)/i.test(String(parsed.excludedText ?? ''))
   return (
     needsKyowontourIncludedExcludedCollect(parsed) ||
     needsKyowontourMustKnowCollect(parsed) ||
-    needsKyowontourHighlightCollect(parsed)
+    needsKyowontourHighlightCollect(parsed) ||
+    needSingle
   )
 }
 
@@ -165,35 +172,41 @@ function applyKyowontourCoreTabToParsed(
     if ((needIncl && core.includedItems.length > 0) || (needExcl && core.excludedItems.length > 0)) {
       summaryParts.push(`포함 ${core.includedItems.length}·불포함 ${core.excludedItems.length}`)
     }
-    if (core.singleRoomSurchargeRaw) {
-      next = {
-        ...next,
-        hasSingleRoomSurcharge: true,
-        singleRoomSurchargeRaw: core.singleRoomSurchargeRaw,
-        singleRoomSurchargeDisplayText: core.singleRoomSurchargeRaw,
-        ...(core.singleRoomSurchargeAmount != null
-          ? {
-              singleRoomSurchargeAmount: core.singleRoomSurchargeAmount,
-              singleRoomSurchargeCurrency: 'KRW' as const,
-            }
-          : {}),
-      }
+  }
+  // REGRESSION-FREEZE[kyowontour-register-single-room-when-ie-filled]: fees even when IE already filled — manifest
+  const needSingle =
+    next.hasSingleRoomSurcharge !== true &&
+    next.singleRoomSurchargeAmount == null &&
+    !String(next.singleRoomSurchargeRaw ?? '').trim()
+  if (needSingle && core.singleRoomSurchargeRaw) {
+    next = {
+      ...next,
+      hasSingleRoomSurcharge: true,
+      singleRoomSurchargeRaw: core.singleRoomSurchargeRaw,
+      singleRoomSurchargeDisplayText: core.singleRoomSurchargeRaw,
+      ...(core.singleRoomSurchargeAmount != null
+        ? {
+            singleRoomSurchargeAmount: core.singleRoomSurchargeAmount,
+            singleRoomSurchargeCurrency: 'KRW' as const,
+          }
+        : {}),
     }
-    if (core.mandatoryLocalFee != null) {
-      next = {
-        ...next,
-        mandatoryLocalFee: core.mandatoryLocalFee,
-        mandatoryCurrency: core.mandatoryCurrency ?? next.mandatoryCurrency,
-      }
+    summaryParts.push('1인실 써차지')
+  }
+  if (core.mandatoryLocalFee != null && next.mandatoryLocalFee == null) {
+    next = {
+      ...next,
+      mandatoryLocalFee: core.mandatoryLocalFee,
+      mandatoryCurrency: core.mandatoryCurrency ?? next.mandatoryCurrency,
     }
-    if (core.visaNoteRaw && needExcl && !core.excludedItems.some((x) => /비자/i.test(x))) {
-      const excl = [...(next.excludedItems ?? []), core.visaNoteRaw]
-      next = {
-        ...next,
-        excludedItems: excl,
-        excludedText: excl.join('\n'),
-        excludedRaw: excl.join('\n'),
-      }
+  }
+  if (core.visaNoteRaw && needExcl && !core.excludedItems.some((x) => /비자/i.test(x))) {
+    const excl = [...(next.excludedItems ?? []), core.visaNoteRaw]
+    next = {
+      ...next,
+      excludedItems: excl,
+      excludedText: excl.join('\n'),
+      excludedRaw: excl.join('\n'),
     }
   }
 

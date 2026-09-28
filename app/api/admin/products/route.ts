@@ -17,10 +17,7 @@ import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
-import * as updItinHanatour from '@/lib/upsert-itinerary-days-hanatour'
-import * as updItinModetour from '@/lib/upsert-itinerary-days-modetour'
-import * as updItinVerygoodtour from '@/lib/upsert-itinerary-days-verygoodtour'
-import * as updItinYbtour from '@/lib/upsert-itinerary-days-ybtour'
+import { upsertItineraryModuleForProduct } from '@/lib/register-itinerary-days-upsert-module'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 
@@ -39,22 +36,6 @@ function upsertDeparturesModuleForProduct(p: {
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
   return updDeparturesHanatour
-}
-
-function upsertItineraryModuleForProduct(p: {
-  originSource: string | null
-  brand: { brandKey: string } | null
-}) {
-  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
-  const norm = normalizeSupplierOrigin(p.originSource)
-  if (fromBrand === 'modetour') return updItinModetour
-  if (fromBrand === 'verygoodtour') return updItinVerygoodtour
-  if (fromBrand === 'ybtour') return updItinYbtour
-  if (fromBrand === 'hanatour') return updItinHanatour
-  if (norm === 'modetour') return updItinModetour
-  if (norm === 'verygoodtour') return updItinVerygoodtour
-  if (norm === 'ybtour') return updItinYbtour
-  return updItinHanatour
 }
 
 /**
@@ -164,13 +145,17 @@ export async function POST(request: Request) {
 
     const brandKey = typeof body.brandKey === 'string' ? body.brandKey.trim() || null : null
     let originSource = body.organizerName?.trim() || '대시보드'
+    // REGRESSION-FREEZE[product-brand-ensure]: brandKey 있으면 Brand upsert 후 brandId — manifest
+    const { ensureBrandRow } = await import('@/lib/ensure-product-brand')
+    const { normalizeBrandKeyToCanonicalSupplierKey } = await import(
+      '@/lib/overseas-supplier-canonical-keys'
+    )
     let brandId: string | null = null
     if (brandKey) {
-      const brand = await prisma.brand.findUnique({ where: { brandKey } })
-      if (brand) {
-        originSource = brand.displayName
-        brandId = brand.id
-      }
+      const key = normalizeBrandKeyToCanonicalSupplierKey(brandKey) ?? brandKey
+      const brand = await ensureBrandRow(prisma, key)
+      brandId = brand.id
+      originSource = brand.displayName
     }
 
     const dailyPrices = body.dailyPrices ?? []

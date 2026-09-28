@@ -55,8 +55,10 @@ export function DayChipPicker({
           recommendedDay={recommendedDay}
         />
       </div>
+      {/* REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]: 오늘 시작 혼동 금지 — manifest */}
       <p className="mt-2 text-[13px] text-[#999]">
-        판매 중인 요금제 일수만 표시됩니다 · 1일=24시 (활성화 시점부터, 상품별 상이)
+        판매 중인 요금제 일수만 표시됩니다 · N일=개통(활성화) 후 N×24시간 · 오늘부터 쓰는 일정이 아닙니다
+        (상품별 상이)
       </p>
     </div>
   );

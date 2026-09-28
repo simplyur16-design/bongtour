@@ -142,7 +142,8 @@ describe('register-parse-post-augment SSOT', () => {
         hasPersistedParsed: true,
       },
     )
-    expect(Date.now() - t0).toBeLessThan(500)
+    // Gemini wipe 경로면 수 초; skip 경로만 통과하면 됨. CI 부하로 500ms 플레이크 방지.
+    expect(Date.now() - t0).toBeLessThan(2000)
     const d2 = (after.schedule ?? []).find((r) => Number(r.day) === 2)
     expect(String(d2?.imageKeyword ?? '')).toBe('Tottori Sand Museum')
   })

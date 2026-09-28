@@ -381,19 +381,28 @@ function hanatourProdInfoCorePointRows(info: HanatourProdInfoExtended): Hanatour
 function extractHanatourHotelSummaryFromProdInfo(info: HanatourProdInfoExtended): string | null {
   for (const row of hanatourProdInfoCorePointRows(info)) {
     const body = stripHanatourHtmlText(String(row.corePntCont ?? ''))
-    const m = body.match(/([가-힣]{2,14}\s*\d\s*성\s*호텔)/i)
-      ?? body.match(/([가-힣][가-힣A-Za-z0-9+\s]{1,24}(?:\d\s*성\s*)?호텔)/i)
+    const m =
+      body.match(/([가-힣]{2,14}\s*\d\s*성\s*호텔)/i) ??
+      body.match(/([가-힣][가-힣A-Za-z0-9+\s]{1,24}(?:\d\s*성\s*)?호텔)/i) ??
+      body.match(/((?:테렐지|몽골|초원)?\s*게르(?:\s*체험)?)/i) ??
+      body.match(/([가-힣A-Za-z0-9+\s]{2,28}리조트)/i)
     if (m?.[1]) return m[1].replace(/\s+/g, ' ').trim()
   }
   const title = String(info.saleProdNm ?? '')
   const hashParts = [...title.matchAll(/#([^#]+)/g)]
     .map((m) => m[1]?.trim())
-    .filter((x) => x && /호텔|리조트|숙박/i.test(x))
+    .filter((x) => x && /호텔|리조트|숙박|게르/i.test(x))
   if (hashParts.length > 0) return hashParts[0]!.slice(0, 120)
+  // REGRESSION-FREEZE[hanatour-register-detail-collect]: prodInfo 호텔 폴백 도시 확대 — manifest
   const smpl = String(info.smplSchdCont ?? '').trim()
-  if (smpl && /홍콩|마카오|오사카|도쿄|방콕|다낭/.test(smpl)) {
-    const city = smpl.match(/^([가-힣A-Za-z]+)/)?.[1]
-    if (city) return `${city} 예정 호텔(동급 가능)`
+  if (smpl) {
+    const city = smpl.match(
+      /^([가-힣A-Za-z]+)|(?:울란바토르|테렐지|고르히|방콕|파타야|다낭|나트랑|세부|보홀|오사카|도쿄|홍콩|마카오|싱가포르|타이베이)/u,
+    )?.[0]
+    if (city && city.length >= 2) {
+      if (/게르|테렐지|고르히|울란바토르/i.test(title + smpl)) return `${city} 게르/예정 숙소`
+      return `${city} 예정 호텔(동급 가능)`
+    }
   }
   return null
 }
@@ -876,7 +885,7 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
         continue
       }
       const labels = hanatourItnrPlaceLabels(main)
-      if (cat.includes('숙박') || cat.includes('호텔')) {
+      if (cat.includes('숙박') || cat.includes('호텔') || cat.includes('숙소') || /게르|캠프|리조트/.test(cat)) {
         for (const label of labels) fact.hotels.push(label)
         continue
       }

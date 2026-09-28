@@ -129,6 +129,16 @@ export function needsYbtourMustKnowCollect(parsed: RegisterParsed): boolean {
   return (parsed.mustKnowItems?.length ?? 0) === 0 && !parsed.mustKnowRaw?.trim()
 }
 
+/** IE가 이미 있어도 1인실 구조값이 비면 notice 수수료를 채워야 함 */
+// REGRESSION-FREEZE[ybtour-register-single-room-when-ie-filled]: needsYbtourSingleRoomCollect — manifest
+export function needsYbtourSingleRoomCollect(parsed: RegisterParsed): boolean {
+  if (parsed.hasSingleRoomSurcharge === true) return false
+  if (parsed.singleRoomSurchargeAmount != null) return false
+  if (String(parsed.singleRoomSurchargeRaw ?? '').trim()) return false
+  const excl = String(parsed.excludedText ?? '')
+  return /(싱글|1인실|1인\s*객실|써차지|독실)/i.test(excl)
+}
+
 /** API·붙여넣기 schedule — routeText 슬롯 규칙만. Gemini는 post-augment 1회.
  * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: rules-only ensure — manifest
@@ -250,6 +260,8 @@ export async function augmentYbtourParsedWithDetailCollect(
     !String(parsedWithIdentity.highlightPointsRaw ?? '').trim() &&
     !String(parsedWithIdentity.highlightPoints ?? '').trim()
 
+  // REGRESSION-FREEZE[ybtour-register-single-room-when-ie-filled]: early-exit includes needSingle — manifest
+  const needSingle = needsYbtourSingleRoomCollect(parsedWithIdentity)
   if (
     !needSchedule &&
     !needInclExcl &&
@@ -258,7 +270,8 @@ export async function augmentYbtourParsedWithDetailCollect(
     !needFlight &&
     !needOpt &&
     !needShop &&
-    !needHighlight
+    !needHighlight &&
+    !needSingle
   ) {
     return await ensureYbtourRegisterScheduleImageKeywords(parsedWithIdentity, { travelScope: ctx?.travelScope })
   }
@@ -321,6 +334,9 @@ export async function augmentYbtourParsedWithDetailCollect(
     if ((needIncl && includedItems.length > 0) || (needExcl && excludedItems.length > 0)) {
       summaryParts.push(`포함 ${includedItems.length}·불포함 ${excludedItems.length}`)
     }
+  }
+  // REGRESSION-FREEZE[ybtour-register-single-room-when-ie-filled]: fees even when IE already filled — manifest
+  if (notice && needsYbtourSingleRoomCollect(next)) {
     const fees = extractYbtourFeesFromNotice(notice)
     if (fees.singleRoomSurchargeRaw || fees.singleRoomSurchargeAmount != null) {
       next = {
@@ -335,6 +351,7 @@ export async function augmentYbtourParsedWithDetailCollect(
             }
           : {}),
       }
+      summaryParts.push('1인실 써차지')
     }
   }
 

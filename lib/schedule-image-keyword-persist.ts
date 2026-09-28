@@ -133,6 +133,13 @@ export type ProductScheduleJsonRow = ScheduleImageFieldsInput & {
   routeText?: string | null
   imageUrl?: string | null
   imageUrl2?: string | null
+  /** 일차 숙소·식사 — 등록 확정 JSON에 유지 (ItineraryDay와 공개상세 coalesce) */
+  hotelText?: string | null
+  breakfastText?: string | null
+  lunchText?: string | null
+  dinnerText?: string | null
+  mealSummaryText?: string | null
+  meals?: string | null
 }
 
 type ProductScheduleFinalizeInput = ScheduleImageFieldsInput & {
@@ -147,6 +154,7 @@ type ProductScheduleFinalizeInput = ScheduleImageFieldsInput & {
 /**
  * Product.schedule JSON — 등록 확정·동기화 공통.
  * `finalizeRegisterScheduleImageKeywords` 적용 후 imageKeyword·imageKeyword2 포함.
+ * REGRESSION-FREEZE[register-schedule-json-keep-hotel-meal]: hotel·식사 필드 유지 — manifest
  */
 export function buildProductScheduleJsonForDb(
   schedule: ProductScheduleJsonRow[],
@@ -165,7 +173,8 @@ export function buildProductScheduleJsonForDb(
   const finalized = finalizeRegisterScheduleImageKeywords(inputs)
   return JSON.stringify(
     finalized.map((row, i) => {
-      const extra = mapExtra?.(schedule[i]!) ?? {}
+      const src = schedule[i]!
+      const extra = mapExtra?.(src) ?? {}
       return {
         day: row.day,
         title: row.title,
@@ -175,6 +184,13 @@ export function buildProductScheduleJsonForDb(
         imageKeyword2: row.imageKeyword2 ?? null,
         imageUrl: inputs[i]!.imageUrl,
         imageUrl2: inputs[i]!.imageUrl2,
+        // REGRESSION-FREEZE[register-schedule-json-keep-hotel-meal]: 확정 JSON에 호텔·식사 — manifest
+        hotelText: src.hotelText ?? null,
+        breakfastText: src.breakfastText ?? null,
+        lunchText: src.lunchText ?? null,
+        dinnerText: src.dinnerText ?? null,
+        mealSummaryText: src.mealSummaryText ?? null,
+        meals: src.meals ?? null,
         ...extra,
       }
     }),

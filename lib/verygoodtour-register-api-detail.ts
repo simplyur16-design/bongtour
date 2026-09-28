@@ -67,6 +67,43 @@ function normalizeVerygoodFlightNo(raw: string | null | undefined): string | nul
   return m ? `${m[1]!.toUpperCase()}${m[2]!}` : null
 }
 
+function normalizeVerygoodClock(raw: string | null | undefined): string | null {
+  const m = String(raw ?? '').trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!m) return null
+  return `${String(Number(m[1])).padStart(2, '0')}:${m[2]}`
+}
+
+/**
+ * PackageDetail 일정 본문: `15:00 TW245 인천국제공항 출발` — hero inout에 편명이 없을 때 시각 매칭.
+ * REGRESSION-FREEZE[verygoodtour-register-schedule-flight-no]: 일정 시각↔편명 — manifest
+ */
+export function enrichVerygoodFlightNosFromScheduleText(
+  outbound: FlightStructured['outbound'],
+  inbound: FlightStructured['inbound'],
+  text: string,
+): { outbound: FlightStructured['outbound']; inbound: FlightStructured['inbound'] } {
+  const byTime = new Map<string, string>()
+  const re = /(\d{1,2}:\d{2})\s+([A-Z]{2})\s*(\d{2,4})\s+[^\n<]{0,48}?출발/gi
+  for (const m of String(text ?? '').matchAll(re)) {
+    const clock = normalizeVerygoodClock(m[1])
+    const fn = normalizeVerygoodFlightNo(`${m[2]}${m[3]}`)
+    if (clock && fn && !byTime.has(clock)) byTime.set(clock, fn)
+  }
+  const nextOut = { ...outbound }
+  const nextIn = { ...inbound }
+  const outClock = normalizeVerygoodClock(nextOut.departureTime)
+  if (outClock && !String(nextOut.flightNo || '').trim()) {
+    const fn = byTime.get(outClock)
+    if (fn) nextOut.flightNo = fn
+  }
+  const inClock = normalizeVerygoodClock(nextIn.departureTime)
+  if (inClock && !String(nextIn.flightNo || '').trim()) {
+    const fn = byTime.get(inClock)
+    if (fn) nextIn.flightNo = fn
+  }
+  return { outbound: nextOut, inbound: nextIn }
+}
+
 function extractVerygoodHeroFlightFromDetailText(text: string): {
   outbound: FlightStructured['outbound']
   inbound: FlightStructured['inbound']
@@ -170,6 +207,9 @@ export function buildVerygoodFlightStructuredFromDetailHtml(html: string): Fligh
 
   outbound = enrichLegFromInoutBlock(outbound, depText, 'outbound')
   inbound = enrichLegFromInoutBlock(inbound, entText, 'inbound')
+
+  // REGRESSION-FREEZE[verygoodtour-register-schedule-flight-no]: hero에 편명 없으면 일정 본문 시각 매칭 — manifest
+  ;({ outbound, inbound } = enrichVerygoodFlightNosFromScheduleText(outbound, inbound, plainText))
 
   const airlineName = parsed.airlineName?.trim() || facts.carrierName?.trim() || null
   const hasCore =

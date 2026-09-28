@@ -17,6 +17,7 @@ import path from 'path'
 
 import type { ProductDeparture } from '@prisma/client'
 import { PrismaClient } from '@prisma/client'
+import { withPrismaConnectionLimit } from '../lib/prisma-connection-limit'
 
 import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
 import { collectHanatourApiOnlyForDateRange } from '@/lib/hanatour-price-collect'
@@ -232,8 +233,9 @@ async function main() {
     process.exit(1)
   }
 
+  // REGRESSION-FREEZE[scripts-load-env-prisma-pooler]: DIRECT_URL에도 pgbouncer — manifest
   const prisma = new PrismaClient({
-    datasourceUrl: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    datasourceUrl: withPrismaConnectionLimit(process.env.DIRECT_URL || process.env.DATABASE_URL),
   })
 
   const fromYmd = kstTodayYmd()

@@ -508,7 +508,9 @@ describe('register-schedule-sea-poi-kw', () => {
     expect(d2).toMatch(/Sonashi/i)
     expect(d2).toMatch(/Crazy|Hopping/i)
     expect(d2).not.toMatch(/Beach Club|Tropical Beach/i)
-    expect(String(by(3).imageKeyword ?? '')).toMatch(/Phu Quoc/i)
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: D1 Phu Quoc 후 자유일 맨도시 반복 금지 — manifest
+    const d3 = String(by(3).imageKeyword ?? '').trim()
+    expect(d3).not.toMatch(/^Phu\s*Quoc$/i)
     expect(String(by(3).imageKeyword2 ?? '')).not.toMatch(/Beach Club|Tropical|Sonashi/i)
     expect(String(by(4).imageKeyword ?? '')).toMatch(/Peak/i)
     expect(String(by(5).imageKeyword ?? '')).toMatch(/Phu Quoc/i)

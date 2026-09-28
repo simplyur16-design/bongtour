@@ -427,22 +427,9 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         if (isCurrentEdge) {
           // keep
         } else {
-          const middleRt = String(row.routeText ?? '')
-          // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: route revisit bare soft-dup vs edge — manifest
-          // 푸꾸옥/뉴욕 등 D1 edge 사용 후 같은 도시 재방문 중간일이 빈칸 되지 않게
-          const routeSoft = softDupForeignVisitCityForMiddleRoute(middleRt)
-          const allowMiddleHotel =
-            isAirportTransferOrCityHubOnlyMiddleRoute(middleRt) ||
-            /(?:호텔|Hotel|체크인|숙박|Resort|휴식|팔라조|Palazzo|베르사체|Versace|메리어트|Marriott|힐튼|Hilton|Hyatt)/i.test(
-              middleRt,
-            )
-          if (routeSoft && normScheduleImageKeywordKey(routeSoft) === nk && allowRouteRevisitBareVisitCitySoftDup(kw)) {
-            // keep — allowlist 도시만 route 재방문 soft-dup (Osaka D2 금지)
-          } else if (allowRouteRevisitBareVisitCitySoftDup(kw)) {
-            // keep — 2030 액티비티일 productDestination soft (서핑→Okinawa 등)
-          } else if (allowMiddleHotel) {
-            // keep SEQP01 hotel soft-dup
-          } else if (kw2 && normScheduleImageKeywordKey(kw2) !== nk) {
+          // edge에서 이미 쓴 맨도시 — 중간일은 kw2 명소 또는 비움
+          // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge↔middle bare 반복 비움 — manifest
+          if (kw2 && normScheduleImageKeywordKey(kw2) !== nk) {
             kw = kw2
             kw2 = ''
           } else {
@@ -450,18 +437,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
           }
         }
       } else if (isBareCityOrCountryKeyword(kw)) {
-        // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
-        // route에 재등장한 방문도시(삿포/몰디브 등)는 중간일 soft-dup 유지 — Osaka D2 관광일 환각 soft-dup만 금지
-        // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: activity-only middle → productDestination soft — manifest
-        const routeSoft = softDupForeignVisitCityForMiddleRoute(row.routeText)
-        if (
-          routeSoft &&
-          normScheduleImageKeywordKey(routeSoft) === nk &&
-          allowRouteRevisitBareVisitCitySoftDup(kw)
-        ) {
-          // keep — allowlist 도시만 (Osaka D2 관광일 soft-dup 금지)
-        } else if (allowRouteRevisitBareVisitCitySoftDup(kw)) {
-          // keep — 서핑 등 액티비티-only route에 도시명 없어도 allowlist soft-dup 유지
+        // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle끼리 맨도시 반복 비움 — manifest
+        if (kw2 && normScheduleImageKeywordKey(kw2) !== nk && !used.has(normScheduleImageKeywordKey(kw2))) {
+          kw = kw2
+          kw2 = ''
         } else {
           kw = ''
         }

@@ -107,6 +107,7 @@ import {
 } from '@/lib/meeting-operator-ssot'
 import { nullIfEmptyTrim, normalizeStringList } from '@/lib/null-normalize'
 import { mergeDayHotelPlansForRegister } from '@/lib/day-hotel-plans-hanatour'
+import { applyHotelSummaryRawToScheduleDays } from '@/lib/register-schedule-hotel-from-summary'
 import { normalizePromotionMarketingCopy } from '@/lib/promotion-copy-normalize'
 import { addDaysIso, extractIsoDate, inferHeroReturnDayOffset } from '@/lib/hero-date-utils'
 import { departurePreviewRowToKeyFacts, resolveHeroTripDates } from '@/lib/product-hero-dates'
@@ -1432,6 +1433,24 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       logParseAndRegister('ok', ctx)
       timing.mark('done')
       return NextResponse.json(previewPayload)
+    }
+
+    // REGRESSION-FREEZE[register-schedule-hotel-from-summary]: 확정 전 hotelSummary·dayHotelPlans → schedule — manifest
+    const hotelSummaryPreview = [
+      nullIfEmptyTrim(parsed.hotelInfoRaw),
+      parsed.dayHotelPlans?.length
+        ? parsed.dayHotelPlans
+            .map((p) => {
+              const body = p.hotels?.length ? p.hotels.join('\n') : p.raw?.trim() || ''
+              return [p.label, body].filter(Boolean).join('\n')
+            })
+            .join('\n\n')
+        : null,
+    ]
+      .filter((x): x is string => typeof x === 'string' && x.length > 0)
+      .join('\n')
+    if (hotelSummaryPreview) {
+      schedule = applyHotelSummaryRawToScheduleDays(schedule, hotelSummaryPreview)
     }
 
     const scheduleJson = buildScheduleJson(schedule)

@@ -2,6 +2,7 @@
  * 내일투어 등록 상세 — view.asp + view_process.asp(tab0/tab1) SSOT.
  * REGRESSION-FREEZE[naeiltour-register-api-detail]: tab0·tab1·잔여석·항공 — manifest
  * REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가 alert는 상세 수집 중단 — manifest
+ * REGRESSION-FREEZE[naeiltour-schedule-hotel-meal-extract]: stay 호텔·조식 본문 추출 — manifest
  */
 
 /** 내일투어 상세가 판매 종료·미판매 알림만 주는 페이지인지. */
@@ -91,6 +92,66 @@ export function extractNaeiltourIncludedExcludedFromTab0(html: string | null): {
   return {
     includedItems: bulletsFromBlockHtml(extractIncluExcluBlock(html, '포함사항')).slice(0, 32),
     excludedItems: bulletsFromBlockHtml(extractIncluExcluBlock(html, '불포함사항')).slice(0, 32),
+  }
+}
+
+/** 1인실·가이드/기사 경비·비자 — 포함/불포함 불릿에서 추출
+ * REGRESSION-FREEZE[naeiltour-fee-extract]: 1인실·가이드비 불릿 — manifest
+ */
+export type NaeiltourFeeExtract = {
+  singleRoomSurchargeRaw: string | null
+  singleRoomSurchargeAmount: number | null
+  guideTipRaw: string | null
+  mandatoryLocalFee: number | null
+  mandatoryCurrency: string | null
+  visaNoteRaw: string | null
+}
+
+export function extractNaeiltourFeesFromBullets(
+  includedItems: readonly string[],
+  excludedItems: readonly string[],
+): NaeiltourFeeExtract {
+  const lines = [...excludedItems, ...includedItems]
+  let singleRoomSurchargeRaw: string | null = null
+  let singleRoomSurchargeAmount: number | null = null
+  let guideTipRaw: string | null = null
+  let mandatoryLocalFee: number | null = null
+  let mandatoryCurrency: string | null = null
+  let visaNoteRaw: string | null = null
+
+  for (const line of lines) {
+    const t = String(line ?? '').trim()
+    if (!t) continue
+    if (!singleRoomSurchargeRaw && /(싱글|1인\s*객실|싱글룸|써차지|룸\s*차지|객실\s*추가)/i.test(t)) {
+      singleRoomSurchargeRaw = t
+      const m = t.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*원/)
+      if (m) singleRoomSurchargeAmount = Number(m[1]!.replace(/,/g, ''))
+    }
+    if (
+      !guideTipRaw &&
+      /(가이드\s*경비|기사\s*경비|인솔자\s*경비|매너팁|가이드\s*\/\s*기사|현지\s*필수\s*경비)/i.test(t)
+    ) {
+      guideTipRaw = t
+      const usd = t.match(/(?:USD|\$)\s*([0-9]+(?:\.[0-9]+)?)/i) ?? t.match(/([0-9]+)\s*(?:USD|달러)/i)
+      const krw = t.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*원/)
+      if (usd?.[1]) {
+        mandatoryLocalFee = Number(usd[1])
+        mandatoryCurrency = 'USD'
+      } else if (krw?.[1]) {
+        mandatoryLocalFee = Number(krw[1].replace(/,/g, ''))
+        mandatoryCurrency = 'KRW'
+      }
+    }
+    if (!visaNoteRaw && /(비자|출국세|E-비자)/i.test(t)) visaNoteRaw = t
+  }
+
+  return {
+    singleRoomSurchargeRaw,
+    singleRoomSurchargeAmount,
+    guideTipRaw,
+    mandatoryLocalFee,
+    mandatoryCurrency,
+    visaNoteRaw,
   }
 }
 
@@ -421,15 +482,36 @@ export function buildNaeiltourFlightStructuredFromHtml(
 }
 
 function extractMealsFromBlock(block: string): string[] {
-  const m = block.match(/\[(조식|중식|석식)[^\]]*\][^\n]*/g)
-  return m?.map((x) => stripNaeiltourHtmlText(x)) ?? []
+  const bracket = block.match(/\[(조식|중식|석식)[^\]]*\][^\n]*/g)
+  if (bracket?.length) {
+    return bracket.map((x) => stripNaeiltourHtmlText(x)).filter(Boolean)
+  }
+  // REGRESSION-FREEZE[naeiltour-schedule-hotel-meal-extract]: 조식 뷔페 등 본문 식사 — manifest
+  const plain = stripNaeiltourHtmlText(block)
+  const out: string[] = []
+  for (const m of plain.matchAll(/(?:조식|중식|석식)[^\n|]{0,60}/g)) {
+    const t = String(m[0] ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (t.length >= 2 && !out.includes(t)) out.push(t)
+  }
+  return out.slice(0, 6)
 }
 
 function extractHotelFromBlock(block: string): string | null {
   const stay = block.match(/<div class="stay">([\s\S]*?)<\/div>/i)?.[1]
   if (!stay) return null
-  const t = stripNaeiltourHtmlText(stay).replace(/^숙박\s*/, '').trim()
-  return t || null
+  let t = stripNaeiltourHtmlText(stay).replace(/^숙박\s*/, '').trim()
+  if (!t) return null
+  // REGRESSION-FREEZE[naeiltour-schedule-hotel-meal-extract]: stay 호텔명 축약 — manifest
+  t = t
+    .replace(/^\[(?:저녁|심야|오전|오후)[^\]]*\]\s*/i, '')
+    .replace(/\s*[-–—]\s*.+$/, '')
+    .replace(/\s*(?:체크인|투숙).*$/u, '')
+    .replace(/\s*&\s*.+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return t || stripNaeiltourHtmlText(stay).replace(/^숙박\s*/, '').trim() || null
 }
 
 function extractEnglishLandmarksFromBlock(block: string): string[] {

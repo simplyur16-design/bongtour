@@ -3014,6 +3014,70 @@
       ]
     },
     {
+      "id": "scripts-load-env-prisma-pooler",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "tsx 스크립트 load-env — session pooler→6543 + pgbouncer (prepared statement 26000 방지)",
+      "checks": [
+        {
+          "file": "scripts/load-env-for-scripts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[scripts-load-env-prisma-pooler]",
+            "withPrismaConnectionLimit",
+            "applyPrismaPoolerUrlToProcessEnv"
+          ]
+        },
+        {
+          "file": "scripts/verify-supplier-api-public-detail-parity.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[scripts-load-env-prisma-pooler]",
+            "withPrismaConnectionLimit"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/prisma-connection-limit.test.ts"
+      ]
+    },
+    {
+      "id": "product-brand-ensure",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Brand 테이블 upsert + Product.brandId — originSource/brandKey SSOT",
+      "checks": [
+        {
+          "file": "lib/ensure-product-brand.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-brand-ensure]",
+            "ensureBrandRow",
+            "ensureBrandIdForKey",
+            "resolveBrandKeyForOriginSource"
+          ]
+        },
+        {
+          "file": "app/api/travel/parse-and-upsert/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-brand-ensure]",
+            "ensureBrandIdForKey"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-brand-ensure]",
+            "ensureBrandRow"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ensure-product-brand.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-pg-tls-global",
       "tier": [
         "prebuild",
@@ -7119,6 +7183,35 @@
       "vitestSuites": [
         "lib/ybtour-api-departures.test.ts",
         "lib/ybtour-price-collect.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-register-collect-url-prefer-evcd",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ybtour remat/패리티 수집 — evCd 유지, 편명 비면 goodsCd seed 폴백",
+      "checks": [
+        {
+          "file": "lib/ybtour-api-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-collect-url-prefer-evcd]",
+            "resolveYbtourRegisterCollectUrl",
+            "parseYbtourEvCdFromUrl(trimmed)"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-collect-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-collect-url-prefer-evcd]",
+            "parseYbtourRegisterCollectWithSeedFallback",
+            "resolveYbtourGoodsCdOnlyCollectUrl"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-register-collect-url.test.ts"
       ]
     },
     {
@@ -15061,6 +15154,57 @@
       ]
     },
     {
+      "id": "register-schedule-hotel-from-summary",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "hotelSummaryRaw(N일차 예정호텔) → schedule.hotelText 폴백 스탬프",
+      "checks": [
+        {
+          "file": "lib/register-schedule-hotel-from-summary.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hotel-from-summary]",
+            "applyHotelSummaryRawToScheduleDays",
+            "parseDayHotelPlansFromSupplierText"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-hotel-from-summary.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-json-keep-hotel-meal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 확정 Product.schedule JSON이 hotelText·식사 필드를 버리지 않음",
+      "checks": [
+        {
+          "file": "lib/build-register-product-schedule-json.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-json-keep-hotel-meal]",
+            "hotelText: day.hotelText",
+            "breakfastText: day.breakfastText",
+            "mealSummaryText: day.mealSummaryText"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-keyword-persist.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-json-keep-hotel-meal]",
+            "hotelText: src.hotelText",
+            "breakfastText: src.breakfastText"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/build-register-product-schedule-json.test.ts"
+      ]
+    },
+    {
       "id": "naeiltour-register-api-detail",
       "tier": [
         "prebuild",
@@ -15080,6 +15224,107 @@
             "extractNaeiltourAirlineFromHtml"
           ]
         }
+      ]
+    },
+    {
+      "id": "naeiltour-schedule-hotel-meal-extract",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 stay 호텔명 축약·본문 조식/중식/석식 추출 (bracket 없어도)",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-schedule-hotel-meal-extract]",
+            "extractMealsFromBlock",
+            "extractHotelFromBlock",
+            "조식|중식|석식"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-schedule-hotel-meal-extract.test.ts"
+      ]
+    },
+    {
+      "id": "naeiltour-fee-extract",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 포함/불포함 불릿에서 1인실·가이드비·비자 추출",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-fee-extract]",
+            "extractNaeiltourFeesFromBullets",
+            "singleRoomSurchargeAmount",
+            "mandatoryLocalFee"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-parse.ts",
+          "mustInclude": [
+            "applyNaeiltourFeesToParsed",
+            "extractNaeiltourFeesFromBullets"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-schedule-hotel-meal-extract.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-heal-keep-hotel-meal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "pending 셀프힐이 hotelText·breakfast/lunch/dinner·meals를 버리지 않음",
+      "checks": [
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]",
+            "hotelText: row.hotelText",
+            "breakfastText: row.breakfastText",
+            "lunchText: row.lunchText",
+            "dinnerText: row.dinnerText",
+            "mealSummaryText: row.mealSummaryText"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-itinerary-days-supplier-module",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "ItineraryDay upsert는 naeiltour·lottetour·kyowontour 전용 모듈 라우팅 (hanatour 기본 금지)",
+      "checks": [
+        {
+          "file": "lib/register-itinerary-days-upsert-module.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-itinerary-days-supplier-module]",
+            "updItinNaeiltour",
+            "updItinLottetour",
+            "updItinKyowontour",
+            "key === 'naeiltour'"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/itinerary-days/route.ts",
+          "mustInclude": [
+            "upsertItineraryModuleForProduct"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-itinerary-days-upsert-module.test.ts"
       ]
     },
     {
@@ -15555,6 +15800,26 @@
       ]
     },
     {
+      "id": "verygoodtour-register-schedule-flight-no",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 — 일정 본문 시각(15:00 TW245 출발)으로 flightStructured 편명 보강",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-schedule-flight-no]",
+            "enrichVerygoodFlightNosFromScheduleText"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-register-schedule-flight-no.test.ts"
+      ]
+    },
+    {
       "id": "verygoodtour-register-schedule-collect",
       "tier": [
         "prebuild",
@@ -15564,6 +15829,15 @@
       "checks": [
         {
           "file": "lib/verygoodtour-register-schedule-item-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-register-schedule-collect]",
+            "parseVerygoodScheduleRowsFromDetailHtml",
+            "<h4>\\s*식사",
+            "parseScheduleMealFieldsFromText"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-schedule-meal-extract.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[verygoodtour-register-schedule-collect]",
             "parseVerygoodScheduleRowsFromDetailHtml"
@@ -18385,6 +18659,53 @@
       ],
       "vitestSuites": [
         "lib/bongsim/recommend/trip-day-chip-layout.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-duration-activation-copy",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 일수칩 — 오늘 시작 달력 금지, 개통 후 N×24시간 표기",
+      "checks": [
+        {
+          "file": "lib/bongsim/recommend/duration-from-days.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]",
+            "formatEsimTripDaysDurationLabel",
+            "formatEsimTripDaysPlanPickTitle",
+            "scheduleKind: \"duration_days\"",
+            "개통 후"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]",
+            "formatScheduleSummary",
+            "formatEsimTripDaysDurationLabel",
+            "scheduleKind"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/DayChipPicker.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]",
+            "오늘부터 쓰는 일정이 아닙니다",
+            "N×24시간"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/PlanSelectPopup.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]",
+            "formatEsimTripDaysPlanPickTitle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/recommend/duration-from-days.test.ts"
       ]
     },
     {
@@ -22980,6 +23301,84 @@
           ]
         }
       ]
+    },
+    {
+      "id": "ybtour-register-flight-from-fact-legs",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour: scheduleDetailTm fact legs → flightStructured (prefetch/api-parse, augment skip 대비)",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]",
+            "buildYbtourFlightStructuredFromFactLegs",
+            "applyRegisterCollectedFlightStructured"
+          ]
+        },
+        {
+          "file": "lib/register-facts/ybtour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]",
+            "TM legs + calendar carrier"
+          ]
+        },
+        {
+          "file": "lib/register-facts/ybtour-register-fact-flights.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]",
+            "buildYbtourFlightStructuredFromFactLegs"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-facts/ybtour-register-fact-flights.test.ts"]
+    },
+    {
+      "id": "ybtour-register-single-room-when-ie-filled",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour: IE already filled라도 notice 1인실 수수료 structuredSignals 스탬프",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-register-single-room-when-ie-filled]",
+            "needsYbtourSingleRoomCollect",
+            "fees even when IE already filled"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-single-room-when-ie-filled.test.ts"]
+    },
+    {
+      "id": "kyowontour-register-single-room-when-ie-filled",
+      "tier": ["prebuild", "ci"],
+      "summary": "kyowontour: IE already filled라도 core tab 1인실 수수료 스탬프",
+      "checks": [
+        {
+          "file": "lib/kyowontour-register-tab-data-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[kyowontour-register-single-room-when-ie-filled]",
+            "fees even when IE already filled",
+            "single missing → still fetch core"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-single-room-when-ie-filled.test.ts"]
+    },
+    {
+      "id": "lottetour-register-single-room-when-ie-filled",
+      "tier": ["prebuild", "ci"],
+      "summary": "lottetour: IE already filled라도 basicAjax 1인실 수수료 스탬프",
+      "checks": [
+        {
+          "file": "lib/lottetour-register-detail-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[lottetour-register-single-room-when-ie-filled]",
+            "fees even when IE already filled",
+            "early-exit needSingle"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-single-room-when-ie-filled.test.ts"]
     }
   ]
 }

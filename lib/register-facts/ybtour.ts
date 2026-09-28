@@ -96,32 +96,46 @@ export function preferYbtourFactScheduleDaysWithTmRoute(
   })
 }
 
+function combineDateTime(date: string | null | undefined, time: string | null | undefined): string | null {
+  const d = String(date ?? '').trim()
+  const t = String(time ?? '').trim()
+  if (!d) return null
+  if (!t) return d
+  // display HM → HH:MM for ISO-ish combine
+  const hm = t.length === 4 && !t.includes(':') ? `${t.slice(0, 2)}:${t.slice(2)}` : t
+  return `${d}T${hm.slice(0, 5)}`
+}
+
 function ybtourFlightStructuredToFactLegs(
   scheduleDetailTm: Parameters<typeof buildYbtourFlightStructuredFromTm>[0],
+  airlineName?: string | null,
 ): RegisterFactFlightLeg[] {
-  const structured = buildYbtourFlightStructuredFromTm(scheduleDetailTm)
+  const structured = buildYbtourFlightStructuredFromTm(scheduleDetailTm, {
+    airlineName: airlineName ?? null,
+  })
   if (!structured) return []
   const legs: RegisterFactFlightLeg[] = []
+  const carrier = structured.airlineName ?? airlineName ?? null
   if (structured.outbound) {
     legs.push({
       direction: 'outbound',
-      carrier: structured.airlineName ?? null,
+      carrier,
       flightNo: structured.outbound.flightNo ?? null,
       departureCity: structured.outbound.departureAirport ?? null,
-      departureAt: structured.outbound.departureDate ?? null,
+      departureAt: combineDateTime(structured.outbound.departureDate, structured.outbound.departureTime),
       arrivalCity: structured.outbound.arrivalAirport ?? null,
-      arrivalAt: structured.outbound.arrivalDate ?? null,
+      arrivalAt: combineDateTime(structured.outbound.arrivalDate, structured.outbound.arrivalTime),
     })
   }
   if (structured.inbound) {
     legs.push({
       direction: 'inbound',
-      carrier: structured.airlineName ?? null,
+      carrier,
       flightNo: structured.inbound.flightNo ?? null,
       departureCity: structured.inbound.departureAirport ?? null,
-      departureAt: structured.inbound.departureDate ?? null,
+      departureAt: combineDateTime(structured.inbound.departureDate, structured.inbound.departureTime),
       arrivalCity: structured.inbound.arrivalAirport ?? null,
-      arrivalAt: structured.inbound.arrivalDate ?? null,
+      arrivalAt: combineDateTime(structured.inbound.arrivalDate, structured.inbound.arrivalTime),
     })
   }
   return legs
@@ -164,11 +178,18 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
     )
     .filter((row): row is NonNullable<typeof row> => row != null)
 
-  const flightsFromNotice = ybtourFlightStructuredToFactLegs(detailBundle?.schedule?.scheduleDetailTm ?? [])
   const firstCalCarrier = apiHit.inputs.map((x) => x.carrierName?.trim()).find(Boolean) ?? null
+  // REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]: TM legs + calendar carrier — manifest
+  const flightsFromNotice = ybtourFlightStructuredToFactLegs(
+    detailBundle?.schedule?.scheduleDetailTm ?? [],
+    firstCalCarrier,
+  )
   const flights =
     flightsFromNotice.length > 0
-      ? flightsFromNotice
+      ? flightsFromNotice.map((f) => ({
+          ...f,
+          carrier: f.carrier?.trim() || firstCalCarrier,
+        }))
       : firstCalCarrier
         ? [
             {

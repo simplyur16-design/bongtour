@@ -13,6 +13,7 @@
  * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 제목 힐 — manifest
  * REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
  * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: pending 지방출발 재추론 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]: 힐이 hotelText·식사 필드를 버리지 않음 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -166,6 +167,8 @@ export async function healPendingRegisterPrePhoto(
         normalizeSupplierOrigin(String(product.originSource ?? product.brand?.brandKey ?? '').trim()) ??
         String(product.originSource ?? '').trim()
       const mapped = rows.map((row) => ({
+        // REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]: hotel·식사 필드 유지 — manifest
+        ...row,
         day: Number(row.day) || 0,
         title: row.title != null ? String(row.title) : null,
         description: row.description != null ? String(row.description) : null,
@@ -173,6 +176,13 @@ export async function healPendingRegisterPrePhoto(
         imageKeyword: row.imageKeyword != null ? String(row.imageKeyword) : null,
         imageKeyword2: row.imageKeyword2 != null ? String(row.imageKeyword2) : null,
         imageUrl: row.imageUrl != null ? String(row.imageUrl) : null,
+        hotelText: row.hotelText != null ? String(row.hotelText) : null,
+        breakfastText: row.breakfastText != null ? String(row.breakfastText) : null,
+        lunchText: row.lunchText != null ? String(row.lunchText) : null,
+        dinnerText: row.dinnerText != null ? String(row.dinnerText) : null,
+        mealSummaryText: row.mealSummaryText != null ? String(row.mealSummaryText) : null,
+        meals: row.meals != null ? String(row.meals) : null,
+        accommodation: row.accommodation != null ? String(row.accommodation) : null,
       }))
 
       const destLine = String(product.destination ?? '').split(/\n/)[0]?.trim() ?? ''

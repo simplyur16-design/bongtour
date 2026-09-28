@@ -11,6 +11,7 @@
  *
  * DATABASE_URL 없음(CI): DB 실측 구간 스킵 — `sectionSyntheticFmcAndKeys` 등 정적 검증만 수행.
  */
+import './load-env-for-scripts'
 import assert from 'node:assert/strict'
 import type { PrismaClient } from '@prisma/client'
 import {

@@ -9,6 +9,7 @@ import { collectNaeiltourRegisterFacts, parseNaeiltourGoodCdFromUrlExport } from
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import {
   buildNaeiltourFlightStructuredFromHtml,
+  extractNaeiltourFeesFromBullets,
   extractNaeiltourIncludedExcludedFromTab0,
   extractNaeiltourOptionalShoppingFromTab0,
   extractNaeiltourSeatsFromPage,
@@ -80,6 +81,52 @@ function buildDuration(nights: number | null, days: number | null): string {
   if (nights != null && days != null) return `${nights}박 ${days}일`
   if (days != null) return `${days}일`
   return ''
+}
+
+function applyNaeiltourFeesToParsed(parsed: RegisterParsed): RegisterParsed {
+  const included = parsed.includedItems ?? []
+  const excluded = [...(parsed.excludedItems ?? [])]
+  const fees = extractNaeiltourFeesFromBullets(included, excluded)
+  let next = { ...parsed }
+  if (fees.singleRoomSurchargeRaw || fees.singleRoomSurchargeAmount != null) {
+    next = {
+      ...next,
+      hasSingleRoomSurcharge: true,
+      singleRoomSurchargeRaw: fees.singleRoomSurchargeRaw ?? next.singleRoomSurchargeRaw,
+      singleRoomSurchargeDisplayText:
+        fees.singleRoomSurchargeRaw ?? next.singleRoomSurchargeDisplayText,
+      ...(fees.singleRoomSurchargeAmount != null
+        ? {
+            singleRoomSurchargeAmount: fees.singleRoomSurchargeAmount,
+            singleRoomSurchargeCurrency: 'KRW' as const,
+          }
+        : {}),
+    }
+    if (fees.singleRoomSurchargeRaw && !excluded.some((x) => /싱글|1인\s*객실|써차지/i.test(x))) {
+      excluded.push(fees.singleRoomSurchargeRaw)
+    }
+  }
+  if (fees.mandatoryLocalFee != null || fees.guideTipRaw) {
+    next = {
+      ...next,
+      mandatoryLocalFee: fees.mandatoryLocalFee ?? next.mandatoryLocalFee,
+      mandatoryCurrency: fees.mandatoryCurrency ?? next.mandatoryCurrency,
+    }
+    if (fees.guideTipRaw && !excluded.some((x) => /가이드|기사|매너팁/i.test(x))) {
+      excluded.push(fees.guideTipRaw)
+    }
+  }
+  if (fees.visaNoteRaw && !excluded.some((x) => /비자/i.test(x))) {
+    excluded.push(fees.visaNoteRaw)
+  }
+  if (excluded.length !== (parsed.excludedItems?.length ?? 0)) {
+    next = {
+      ...next,
+      excludedItems: excluded,
+      excludedText: excluded.join('\n'),
+    }
+  }
+  return next
 }
 
 /**
@@ -209,6 +256,7 @@ export async function parseNaeiltourRegisterFromApi(
   parsed = applyRegisterCollectedFlightStructured(parsed, flightStructured)
   parsed = finalizeNaeiltourRegisterParsedPricing(parsed)
   parsed = finalizeNaeiltourRegisterParsedShopping(parsed)
+  parsed = applyNaeiltourFeesToParsed(parsed)
   if (!airtelListing) {
     const scheduleAfterExpression = applyNaeiltourScheduleExpressionToRows(parsed.schedule ?? [])
     parsed = { ...parsed, schedule: scheduleAfterExpression }
@@ -253,6 +301,7 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
   if (needsRegisterExcludedCollect(next) && excludedItems.length) {
     next = { ...next, excludedItems, excludedText: excludedItems.join('\n') }
   }
+  next = applyNaeiltourFeesToParsed(next)
 
   const optShop = extractNaeiltourOptionalShoppingFromTab0(detail.tab0Html)
   if (needsRegisterOptionalCollect(next) && !ctx?.pastedBlocks?.optionalTour?.trim()) {
@@ -288,27 +337,47 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
 
   const parsedDays = skipPackageSchedule ? [] : parseNaeiltourScheduleDaysFromTab1(detail.tab1Html)
   const englishByDay = naeiltourScheduleEnglishLandmarksByDay(parsedDays)
-  if (!skipPackageSchedule && (next.schedule?.length ?? 0) === 0 && parsedDays.length > 0) {
-    const sched = naeiltourFactDaysToRegisterSchedule(
+  if (!skipPackageSchedule && parsedDays.length > 0) {
+    const fresh = naeiltourFactDaysToRegisterSchedule(
       parsedDays.map(({ englishRouteLandmarks: _e, dateIso: _d, ...rest }) => rest),
     )
-    next = {
-      ...next,
-      schedule: applyRegisterScheduleImageKeywordsBySupplier(
-        applyNaeiltourScheduleExpressionToRows(sched),
-        {
-          supplierKey: 'naeiltour',
-          productDestination: next.primaryDestination ?? next.destination,
-          productTitle: next.title,
-          naeiltourEnglishLandmarksByDay: englishByDay,
-        },
-      ),
+    const existing = next.schedule ?? []
+    if (existing.length === 0) {
+      next = {
+        ...next,
+        schedule: applyRegisterScheduleImageKeywordsBySupplier(
+          applyNaeiltourScheduleExpressionToRows(fresh),
+          {
+            supplierKey: 'naeiltour',
+            productDestination: next.primaryDestination ?? next.destination,
+            productTitle: next.title,
+            naeiltourEnglishLandmarksByDay: englishByDay,
+          },
+        ),
+      }
+    } else {
+      // REGRESSION-FREEZE[naeiltour-schedule-hotel-meal-extract]: augment가 hotel·식사 병합 — manifest
+      const byDay = new Map(fresh.map((d) => [Number(d.day), d]))
+      const merged = existing.map((row) => {
+        const f = byDay.get(Number(row.day) || 0)
+        if (!f) return row
+        return {
+          ...row,
+          hotelText: f.hotelText ?? row.hotelText ?? null,
+          breakfastText: f.breakfastText ?? row.breakfastText ?? null,
+          lunchText: f.lunchText ?? row.lunchText ?? null,
+          dinnerText: f.dinnerText ?? row.dinnerText ?? null,
+          mealSummaryText: f.mealSummaryText ?? row.mealSummaryText ?? null,
+        }
+      })
+      next = { ...next, schedule: merged }
     }
   }
 
   const fs = buildNaeiltourFlightStructuredFromHtml(detail.pageHtml, detail.tab0Html, detail.tab1Html)
   next = applyRegisterCollectedFlightStructured(next, fs)
   next = finalizeNaeiltourRegisterParsedShopping(next)
+  next = applyNaeiltourFeesToParsed(next)
 
   return {
     ...next,

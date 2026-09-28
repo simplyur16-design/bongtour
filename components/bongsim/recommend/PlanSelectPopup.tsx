@@ -12,6 +12,8 @@ import {
 } from "react";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { DayUsageSummary } from "@/components/bongsim/recommend/DayUsageSummary";
+import { formatEsimTripDaysPlanPickTitle } from "@/lib/bongsim/recommend/duration-from-days";
+// REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]: 플랜 헤더 개통 후 시간 — manifest
 import { KycPlanSelectNotice } from "@/components/bongsim/recommend/KycPlanSelectNotice";
 import { PlanCoverageCountriesPanel } from "@/components/bongsim/recommend/PlanCoverageCountriesPanel";
 import { RecommendModalShell } from "@/components/bongsim/recommend/RecommendModalShell";
@@ -830,7 +832,7 @@ export function PlanSelectPopup({
           </p>
         ) : null}
         <h2 className="mt-1 text-[1.05rem] font-bold leading-snug text-slate-900 lg:text-xl">
-          {tripDaysFloored}일 동안 사용할 플랜을 골라주세요
+          {formatEsimTripDaysPlanPickTitle(tripDaysFloored)}
         </h2>
         {/* 국가 구매 안내는 국가 패널·다국가 상단에만 — 플랜 선택 영역 중복 금지 */}
         {/* REGRESSION-FREEZE[bongsim-cn-purchase-notices-user-facing]: 플랜 팝업에 구매 안내 카드 금지 — manifest */}

@@ -11,10 +11,7 @@ import * as updDeparturesHanatour from '@/lib/upsert-product-departures-hanatour
 import * as updDeparturesModetour from '@/lib/upsert-product-departures-modetour'
 import * as updDeparturesVerygoodtour from '@/lib/upsert-product-departures-verygoodtour'
 import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
-import * as updItinHanatour from '@/lib/upsert-itinerary-days-hanatour'
-import * as updItinModetour from '@/lib/upsert-itinerary-days-modetour'
-import * as updItinVerygoodtour from '@/lib/upsert-itinerary-days-verygoodtour'
-import * as updItinYbtour from '@/lib/upsert-itinerary-days-ybtour'
+import { upsertItineraryModuleForProduct } from '@/lib/register-itinerary-days-upsert-module'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { normalizeOriginSource } from '@/lib/supplier-origin'
@@ -38,22 +35,6 @@ function upsertDeparturesModuleForProduct(p: {
   if (norm === 'verygoodtour') return updDeparturesVerygoodtour
   if (norm === 'ybtour') return updDeparturesYbtour
   return updDeparturesHanatour
-}
-
-function upsertItineraryModuleForProduct(p: {
-  originSource: string | null
-  brand: { brandKey: string } | null
-}) {
-  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
-  const norm = normalizeSupplierOrigin(p.originSource)
-  if (fromBrand === 'modetour') return updItinModetour
-  if (fromBrand === 'verygoodtour') return updItinVerygoodtour
-  if (fromBrand === 'ybtour') return updItinYbtour
-  if (fromBrand === 'hanatour') return updItinHanatour
-  if (norm === 'modetour') return updItinModetour
-  if (norm === 'verygoodtour') return updItinVerygoodtour
-  if (norm === 'ybtour') return updItinYbtour
-  return updItinHanatour
 }
 // [일정 정책] Product.schedule = 렌더용; 레거시 Itinerary = 호환 보조; ItineraryDay = 원문 정본. docs/itinerary-policy.md
 
@@ -79,13 +60,9 @@ export async function POST(request: Request) {
         : brandKey || '직접입력'
     const originSourceCoerced = normalizeParseRequestOriginSource(rawOriginFromBody, brandKey)
     let originSource = normalizeOriginSource(originSourceCoerced, brandKey)
-    let brandId: string | null = null
-    if (brandKey) {
-      const brand = await prisma.brand.findUnique({ where: { brandKey } })
-      if (brand) {
-        brandId = brand.id
-      }
-    }
+    // REGRESSION-FREEZE[product-brand-ensure]: brandKey 있으면 Brand upsert 후 brandId — manifest
+    const { ensureBrandIdForKey } = await import('@/lib/ensure-product-brand')
+    let brandId: string | null = await ensureBrandIdForKey(prisma, brandKey)
     const parsedBody = body.parsed as ParsedProductForDB | undefined
 
     let parsed: ParsedProductForDB
@@ -114,6 +91,13 @@ export async function POST(request: Request) {
     }
 
     const effectiveOriginSource = normalizeOriginSource(parsed.originSource?.trim() || '직접입력', brandKey)
+    if (brandId == null) {
+      const { resolveBrandKeyForOriginSource } = await import('@/lib/ensure-product-brand')
+      brandId = await ensureBrandIdForKey(
+        prisma,
+        resolveBrandKeyForOriginSource(effectiveOriginSource) ?? brandKey,
+      )
+    }
     const existing = await prisma.product.findUnique({
       where: {
         originSource_originCode: {

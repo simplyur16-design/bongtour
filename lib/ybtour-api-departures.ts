@@ -397,6 +397,26 @@ export type YbtourRegisterUrlResolved = {
   referer: string
 }
 
+/**
+ * remat·라이브 패리티 수집 URL.
+ * URL에 evCd가 있으면 유지(편명·시즌 바인딩). goodsCd-only일 때만 seed용 goodsCd URL.
+ * REGRESSION-FREEZE[ybtour-register-collect-url-prefer-evcd]: evCd 유지 — manifest
+ */
+export function resolveYbtourRegisterCollectUrl(
+  originUrl: string,
+  originCode?: string | null,
+): string {
+  const trimmed = String(originUrl ?? '').trim()
+  if (!trimmed) return trimmed
+  if (parseYbtourEvCdFromUrl(trimmed)) return trimmed
+  const goodsCd =
+    resolveYbtourGoodsCdForApi(trimmed, originCode) ||
+    parseYbtourBaseSeriesFromEvCdShape(originCode) ||
+    parseYbtourBaseSeriesFromEvCdShape(parseYbtourEvCdFromUrl(trimmed))
+  if (!goodsCd) return trimmed
+  return `https://prdt.ybtour.co.kr/product/detailPackage?goodsCd=${encodeURIComponent(goodsCd)}`
+}
+
 /** 등록·register-facts — URL evCd 또는 goodsCd(+available-date seed) → papi evCd. */
 export async function resolveYbtourEvCdForRegisterUrl(
   detailUrl: string,

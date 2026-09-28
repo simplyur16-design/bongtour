@@ -38,7 +38,11 @@ import {
   type ProductOption,
 } from "@/lib/bongsim/recommend/product-option";
 import type { CountryDateRange } from "@/lib/bongsim/recommend/country-date-ranges";
-import { dateRangeFromTripDays } from "@/lib/bongsim/recommend/duration-from-days";
+import {
+  dateRangeFromTripDays,
+  formatEsimTripDaysDurationLabel,
+} from "@/lib/bongsim/recommend/duration-from-days";
+// REGRESSION-FREEZE[bongsim-esim-duration-activation-copy]: 일수칩 요약에 오늘~달력 금지 — manifest
 import { collectTripDaysFromCountryPack } from "@/lib/bongsim/recommend/available-trip-days";
 import {
   pickDefaultTripDaysForDestination,
@@ -99,6 +103,25 @@ function formatShortRange(start: Date, end: Date): string {
   const sm = `${start.getMonth() + 1}/${start.getDate()}`;
   const em = `${end.getMonth() + 1}/${end.getDate()}`;
   return `${sm}~${em}`;
+}
+
+/** 일수칩(duration_days)은 개통 후 시간, 다국가 달력만 M/D~M/D */
+function formatScheduleSummary(range: {
+  start: Date;
+  end: Date;
+  scheduleKind?: "calendar" | "duration_days";
+  tripDays?: number;
+}): string {
+  if (range.scheduleKind === "duration_days") {
+    const days =
+      range.tripDays ??
+      Math.max(
+        1,
+        Math.round((range.end.getTime() - range.start.getTime()) / 86400000) + 1,
+      );
+    return formatEsimTripDaysDurationLabel(days);
+  }
+  return formatShortRange(range.start, range.end);
 }
 
 function allowanceLabelForSummary(p: ProductOption): string {
@@ -453,9 +476,17 @@ export function ProductCombinationStep({
     kycDistribution?: KycLabelDistribution,
   ) => {
     const range = countryDateRanges.find((r) => r.code === code);
+    const planCtx = openPlanByCode[code];
     const summaryParts: string[] = [];
     summaryParts.push(networkFamilyLabelKr(product.network_family));
-    if (range) summaryParts.push(formatShortRange(range.start, range.end));
+    if (range) {
+      summaryParts.push(
+        formatScheduleSummary({
+          ...range,
+          tripDays: planCtx?.tripDays,
+        }),
+      );
+    }
     summaryParts.push(`${allowanceLabelForSummary(product)} ×${quantity}`);
     const summaryLine = summaryParts.join(" · ");
     setCompleted((prev) => ({ ...prev, [code]: { product, quantity, kycDistribution } }));
@@ -551,8 +582,8 @@ export function ProductCombinationStep({
       delete next[singleCode];
       return next;
     });
-    const { start, end, tripDays } = dateRangeFromTripDays(days);
-    setCountryDateRanges([{ code: singleCode, start, end }]);
+    const { start, end, tripDays, scheduleKind } = dateRangeFromTripDays(days);
+    setCountryDateRanges([{ code: singleCode, start, end, scheduleKind }]);
     setOpenPlanByCode({ [singleCode]: { tripDays, start, end } });
     // by-country 대기 없이 plans 선조회 — REGRESSION-FREEZE[bongsim-catalog-list-perf]
     prefetchPlans(singleCode, tripDays, [singleCode]);
@@ -768,7 +799,14 @@ export function ProductCombinationStep({
       const summaryParts: string[] = [];
       summaryParts.push(formatPlanOptionLabel(selection.product));
       summaryParts.push(networkFamilyLabelKr(selection.product.network_family));
-      if (range) summaryParts.push(formatShortRange(range.start, range.end));
+      if (range) {
+        summaryParts.push(
+          formatScheduleSummary({
+            ...range,
+            tripDays: planCtx?.tripDays,
+          }),
+        );
+      }
       summaryParts.push(`${allowanceLabelForSummary(selection.product)} ×${selection.quantity}`);
       summaryLine = summaryParts.join(" · ");
     }
@@ -881,7 +919,14 @@ export function ProductCombinationStep({
             const summaryParts: string[] = [];
             summaryParts.push(formatPlanOptionLabel(selection.product));
             summaryParts.push(networkFamilyLabelKr(selection.product.network_family));
-            if (range) summaryParts.push(formatShortRange(range.start, range.end));
+            if (range) {
+              summaryParts.push(
+                formatScheduleSummary({
+                  ...range,
+                  tripDays: planCtx?.tripDays,
+                }),
+              );
+            }
             summaryParts.push(`${allowanceLabelForSummary(selection.product)} ×${selection.quantity}`);
             summaryLine = summaryParts.join(" · ");
           }
@@ -1238,7 +1283,7 @@ export function ProductCombinationStep({
           setTripResume({ start: payload.start, end: payload.end });
           setCountryDateRanges((prev) => [
             ...prev.filter((r) => r.code !== code),
-            { code, start: payload.start, end: payload.end },
+            { code, start: payload.start, end: payload.end, scheduleKind: "calendar" },
           ]);
           setOpenPlanByCode((prev) => ({
             ...prev,

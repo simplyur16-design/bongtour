@@ -61,6 +61,7 @@ export function DayUsageSummary({ tripDays, product, priceKrw, className }: Prop
       aria-live="polite"
     >
       <span className="font-bold">{tripDays}일</span>
+      <span className="text-[#767676]"> · 개통 후 {Math.max(1, Math.floor(tripDays)) * 24}시간</span>
       {data ? (
         <>
           <span className="mx-1.5 text-[#ccc]">·</span>

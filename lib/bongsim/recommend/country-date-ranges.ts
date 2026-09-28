@@ -1,4 +1,12 @@
-export type CountryDateRange = { code: string; start: Date; end: Date };
+/** calendar=다국가 달력, duration_days=일수칩(개통 후 N×24h — UI에 오늘~ 달력 금지) */
+export type TripScheduleKind = "calendar" | "duration_days";
+
+export type CountryDateRange = {
+  code: string;
+  start: Date;
+  end: Date;
+  scheduleKind?: TripScheduleKind;
+};
 
 export function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());

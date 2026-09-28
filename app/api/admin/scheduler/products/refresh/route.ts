@@ -1,28 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import * as updItinHanatour from '@/lib/upsert-itinerary-days-hanatour'
-import * as updItinModetour from '@/lib/upsert-itinerary-days-modetour'
-import * as updItinVerygoodtour from '@/lib/upsert-itinerary-days-verygoodtour'
-import * as updItinYbtour from '@/lib/upsert-itinerary-days-ybtour'
-import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
-import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
-
-function upsertItineraryModuleForProduct(p: {
-  originSource: string | null
-  brand: { brandKey: string } | null
-}) {
-  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
-  const norm = normalizeSupplierOrigin(p.originSource)
-  if (fromBrand === 'modetour') return updItinModetour
-  if (fromBrand === 'verygoodtour') return updItinVerygoodtour
-  if (fromBrand === 'ybtour') return updItinYbtour
-  if (fromBrand === 'hanatour') return updItinHanatour
-  if (norm === 'modetour') return updItinModetour
-  if (norm === 'verygoodtour') return updItinVerygoodtour
-  if (norm === 'ybtour') return updItinYbtour
-  return updItinHanatour
-}
+import { upsertItineraryModuleForProduct } from '@/lib/register-itinerary-days-upsert-module'
 
 /**
  * POST /api/admin/scheduler/products/refresh

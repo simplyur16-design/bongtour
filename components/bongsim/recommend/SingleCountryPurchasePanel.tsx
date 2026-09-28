@@ -8,7 +8,6 @@ import { PlanSelectPopup } from "@/components/bongsim/recommend/PlanSelectPopup"
 import { TravelerVerificationProductBadge } from "@/components/bongsim/esim/TravelerVerificationProductBadge";
 import { UsimsaRegionPackMetaRows } from "@/components/bongsim/recommend/UsimsaRegionPackMetaRows";
 import { EsimFreeDataBenefitLine } from "@/components/bongsim/recommend/EsimFreeDataBenefitLine";
-import { dateRangeFromTripDays } from "@/lib/bongsim/recommend/duration-from-days";
 import {
   getKycLabelDistribution,
   shouldShowBadge,

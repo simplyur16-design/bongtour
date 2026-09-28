@@ -180,6 +180,12 @@ export async function augmentLottetourParsedWithDetailCollect(
   const needOpt = needsLottetourOptionalCollectInternal(parsed, ctx)
   const needShop =
     !Boolean(ctx?.pastedBlocks?.shopping?.trim()) && !hasStructuredShopping(parsed)
+  // REGRESSION-FREEZE[lottetour-register-single-room-when-ie-filled]: early-exit needSingle — manifest
+  const needSingle =
+    parsed.hasSingleRoomSurcharge !== true &&
+    parsed.singleRoomSurchargeAmount == null &&
+    !String(parsed.singleRoomSurchargeRaw ?? '').trim() &&
+    /(싱글|1인실|1인\s*객실|써차지|독실)/i.test(String(parsed.excludedText ?? ''))
 
   if (
     !needSchedule &&
@@ -189,7 +195,8 @@ export async function augmentLottetourParsedWithDetailCollect(
     !needFlight &&
     !needMeeting &&
     !needOpt &&
-    !needShop
+    !needShop &&
+    !needSingle
   ) {
     return parsed
   }
@@ -252,36 +259,64 @@ export async function augmentLottetourParsedWithDetailCollect(
       }
     }
     if (needExcl && excludedItems.length > 0) {
-      const fees = extractLottetourFeesFromExcluded(excludedItems)
       const exclWithFees = [...excludedItems]
-      if (fees.singleRoomSurchargeRaw && !exclWithFees.some((x) => /싱글|써차지/i.test(x))) {
-        exclWithFees.push(fees.singleRoomSurchargeRaw)
-      }
       next = {
         ...next,
         excludedItems: exclWithFees,
         excludedText: exclWithFees.join('\n'),
         excludedRaw: exclWithFees.join('\n'),
       }
-      if (fees.singleRoomSurchargeRaw || fees.singleRoomSurchargeAmount != null) {
+    }
+    if ((needIncl && includedItems.length > 0) || (needExcl && excludedItems.length > 0)) {
+      summaryParts.push(`포함 ${includedItems.length}·불포함 ${excludedItems.length}`)
+    }
+  }
+  // REGRESSION-FREEZE[lottetour-register-single-room-when-ie-filled]: fees even when IE already filled — manifest
+  const needSingleFeeStamp =
+    next.hasSingleRoomSurcharge !== true &&
+    next.singleRoomSurchargeAmount == null &&
+    !String(next.singleRoomSurchargeRaw ?? '').trim()
+  if (needSingleFeeStamp && basicAjaxHtml) {
+    const { excludedItems } = extractLottetourIncludedExcludedFromBasicAjax(basicAjaxHtml)
+    const feeSource =
+      excludedItems.length > 0
+        ? excludedItems
+        : String(next.excludedText ?? '')
+            .split(/\n+/)
+            .map((x) => x.trim())
+            .filter(Boolean)
+    const fees = extractLottetourFeesFromExcluded(feeSource)
+    if (fees.singleRoomSurchargeRaw || fees.singleRoomSurchargeAmount != null) {
+      const excl = [...(next.excludedItems ?? feeSource)]
+      if (fees.singleRoomSurchargeRaw && !excl.some((x) => /싱글|써차지|1인\s*객실/i.test(x))) {
+        excl.push(fees.singleRoomSurchargeRaw)
         next = {
           ...next,
-          hasSingleRoomSurcharge: true,
-          singleRoomSurchargeRaw: fees.singleRoomSurchargeRaw,
-          singleRoomSurchargeDisplayText: fees.singleRoomSurchargeRaw,
-          ...(fees.singleRoomSurchargeAmount != null
-            ? {
-                singleRoomSurchargeAmount: fees.singleRoomSurchargeAmount,
-                singleRoomSurchargeCurrency: 'KRW' as const,
-              }
-            : {}),
+          excludedItems: excl,
+          excludedText: excl.join('\n'),
+          excludedRaw: excl.join('\n'),
         }
       }
+      next = {
+        ...next,
+        hasSingleRoomSurcharge: true,
+        singleRoomSurchargeRaw: fees.singleRoomSurchargeRaw,
+        singleRoomSurchargeDisplayText: fees.singleRoomSurchargeRaw,
+        ...(fees.singleRoomSurchargeAmount != null
+          ? {
+              singleRoomSurchargeAmount: fees.singleRoomSurchargeAmount,
+              singleRoomSurchargeCurrency: 'KRW' as const,
+            }
+          : {}),
+      }
+      summaryParts.push('1인실 써차지')
     }
+  }
+  {
     const inclN = next.includedItems?.length ?? 0
     const exclN = next.excludedItems?.length ?? 0
     if (inclN > 0 || exclN > 0) {
-      summaryParts.push(`포함 ${inclN}·불포함 ${exclN}`)
+      // already summarized above when freshly collected; keep structured sync
     }
     if (next.detailBodyStructured) {
       const ie = next.detailBodyStructured.includedExcludedStructured

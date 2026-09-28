@@ -1,28 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import * as updItinHanatour from '@/lib/upsert-itinerary-days-hanatour'
-import * as updItinModetour from '@/lib/upsert-itinerary-days-modetour'
-import * as updItinVerygoodtour from '@/lib/upsert-itinerary-days-verygoodtour'
-import * as updItinYbtour from '@/lib/upsert-itinerary-days-ybtour'
-import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
-import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
-
-function upsertItineraryModuleForProduct(p: {
-  originSource: string | null
-  brand: { brandKey: string } | null
-}) {
-  const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(p.brand?.brandKey ?? null)
-  const norm = normalizeSupplierOrigin(p.originSource)
-  if (fromBrand === 'modetour') return updItinModetour
-  if (fromBrand === 'verygoodtour') return updItinVerygoodtour
-  if (fromBrand === 'ybtour') return updItinYbtour
-  if (fromBrand === 'hanatour') return updItinHanatour
-  if (norm === 'modetour') return updItinModetour
-  if (norm === 'verygoodtour') return updItinVerygoodtour
-  if (norm === 'ybtour') return updItinYbtour
-  return updItinHanatour
-}
+import { upsertItineraryModuleForProduct } from '@/lib/register-itinerary-days-upsert-module'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -76,6 +55,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 /**
  * POST /api/admin/products/[id]/itinerary-days — Product.schedule 기반 ItineraryDay 재적재. 인증: 관리자.
  * GET=조회, POST=재수집/적재 실행.
+ * REGRESSION-FREEZE[register-itinerary-days-supplier-module]: 공급사별 upsert 모듈 — manifest
  */
 export async function POST(_request: Request, { params }: RouteParams) {
   const admin = await requireAdmin()
@@ -100,10 +80,10 @@ export async function POST(_request: Request, { params }: RouteParams) {
     if (!product.schedule) {
       return NextResponse.json({ ok: false, error: 'schedule 데이터가 없습니다.' }, { status: 404 })
     }
-    let arr: Array<{ day?: number; title?: string; description?: string; imageKeyword?: string }> = []
+    let arr: Array<Record<string, unknown>> = []
     try {
       const parsed = JSON.parse(product.schedule) as unknown
-      arr = Array.isArray(parsed) ? (parsed as Array<{ day?: number; title?: string; description?: string; imageKeyword?: string }>) : []
+      arr = Array.isArray(parsed) ? (parsed as Array<Record<string, unknown>>) : []
     } catch {
       return NextResponse.json({ ok: false, error: 'schedule JSON 파싱 실패' }, { status: 400 })
     }
@@ -111,7 +91,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
       originSource: product.originSource,
       brand: product.brand,
     })
-    const dayInputs = itinMod.registerScheduleToDayInputs(arr)
+    const dayInputs = itinMod.registerScheduleToDayInputs(arr as never)
     if (dayInputs.length === 0) {
       return NextResponse.json({ ok: false, error: '재수집할 일정표 데이터가 없습니다.' }, { status: 404 })
     }
