@@ -85,6 +85,10 @@ function ownRouteHasKeyword(routeText: string | null | undefined, keyword: strin
 const GENERIC_ROUTE_KW_TOKEN_RE =
   /^(?:national|museum|temple|palace|bridge|castle|island|beach|mountain|cathedral|church|square|garden|street|market|swiss|alps|park|tower|falls|city|town|hotel|resort|airport)$/i
 
+/** 단독으로는 도시·명소 귀속을 확정하지 못하는 토큰 (V&A≠Inner Harbour Victoria) */
+// REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+const AMBIGUOUS_ROUTE_KW_TOKEN_RE = /^(?:victoria|harbour|harbor|royal|central)$/i
+
 function significantRouteKeywordTokens(raw: string): string[] {
   return String(raw ?? '')
     .toLowerCase()
@@ -100,9 +104,16 @@ function routeKeywordNormOverlaps(keyword: string, hit: string): boolean {
   if (nk.length >= 4 && nh.includes(nk)) return true
   if (nh.length >= 4 && nk.includes(nh)) return true
   const kwTok = new Set(significantRouteKeywordTokens(keyword))
+  let shared = 0
+  let sharedDistinct = 0
   for (const t of significantRouteKeywordTokens(hit)) {
-    if (kwTok.has(t)) return true
+    if (!kwTok.has(t)) continue
+    shared++
+    if (!AMBIGUOUS_ROUTE_KW_TOKEN_RE.test(t)) sharedDistinct++
   }
+  if (sharedDistinct >= 1) return true
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+  if (shared >= 2) return true
   return false
 }
 
@@ -143,6 +154,22 @@ export function registerScheduleLodgingOnlyAllowsSoftDupVisitCity(
   if (!kw || !registerScheduleRouteIsLodgingOnly(routeText)) return false
   if (!isBareCityOrCountryKeyword(kw)) return false
   return allowRouteRevisitBareVisitCitySoftDup(kw)
+}
+
+/**
+ * 숙소-only 중간일 — 상품 dest와 맞는 명소 키워드는 own-route 예외.
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 숙소일 dest 명소 허용 — manifest
+ */
+export function registerScheduleLodgingAllowsDestLandmark(
+  routeText: string | null | undefined,
+  keyword: string | null | undefined,
+  destHay: string | null | undefined,
+): boolean {
+  const kw = String(keyword ?? '').trim()
+  const dest = String(destHay ?? '').trim()
+  if (!kw || !dest || !registerScheduleRouteIsLodgingOnly(routeText)) return false
+  if (isBareCityOrCountryKeyword(kw)) return false
+  return registerScheduleKeywordMatchesOwnDayRoute(dest, kw)
 }
 
 export function registerScheduleDayRequiresPrimaryImageKeyword(
@@ -197,9 +224,27 @@ export function registerScheduleKeywordMatchesOwnDayRoute(
     for (const { en } of SCHEDULE_SPOT_KO_REGEX_RULES) {
       const enNk = normScheduleImageKeywordKey(en)
       if (!softNk || !enNk.includes(softNk)) continue
-      if (routeKeywordNormOverlaps(kw, en)) return true
+      // 도시 귀속 명소: 키워드가 그 명소와 충분히 겹치거나(도시명 포함), soft 도시 토큰을 빼도 2토큰 이상 일치
+      if (kwNk.includes(softNk) && routeKeywordNormOverlaps(kw, en)) return true
       const stripped = enNk.replace(softNk, '').replace(/\s+/g, ' ').trim()
-      if (stripped.length >= 4 && routeKeywordNormOverlaps(kw, stripped)) return true
+      if (stripped.length < 4) continue
+      const kwTok = significantRouteKeywordTokens(kw)
+      const hitTok = significantRouteKeywordTokens(stripped)
+      let shared = 0
+      for (const t of kwTok) {
+        if (hitTok.includes(t)) shared++
+      }
+      // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+      // 단일 모호 토큰(Victoria)만으로 타 도시 명소 귀속 금지
+      if (shared >= 2) return true
+      if (
+        shared === 1 &&
+        kwTok.length === 1 &&
+        hitTok.includes(kwTok[0]!) &&
+        kwTok[0]!.length >= 6
+      ) {
+        return true
+      }
     }
   }
   return false
@@ -312,8 +357,10 @@ function parseRawMetaObject(rawMeta: string | null | undefined): Record<string, 
 function packageScheduleIssues(
   rows: readonly RegisterPrePhotoHealRow[],
   productTitle?: string | null,
+  productDestination?: string | null,
 ): RegisterPrePhotoVerifyIssue[] {
   const issues: RegisterPrePhotoVerifyIssue[] = []
+  const destHay = registerPrePhotoPlaceDestHay(productDestination, productTitle)
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) {
     issues.push('schedule_empty')
@@ -360,7 +407,8 @@ function packageScheduleIssues(
         imageKeywordMentionsAurora(row.imageKeyword)
       ) &&
       !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword) &&
-      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, row.imageKeyword)
+      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, row.imageKeyword) &&
+      !registerScheduleLodgingAllowsDestLandmark(row.routeText, row.imageKeyword, destHay)
     ) {
       issues.push(`day${day}_keyword_not_on_own_route`)
     }
@@ -368,7 +416,8 @@ function packageScheduleIssues(
       slot === 'middle' &&
       String(row.imageKeyword2 ?? '').trim() &&
       !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, row.imageKeyword2) &&
-      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, row.imageKeyword2)
+      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, row.imageKeyword2) &&
+      !registerScheduleLodgingAllowsDestLandmark(row.routeText, row.imageKeyword2, destHay)
     ) {
       issues.push(`day${day}_keyword2_not_on_own_route`)
     }
@@ -842,7 +891,7 @@ export function verifyRegisterPrePhoto(args: {
     if (isAirHotelListingKind(args.listingKind) || isAirHotelProductType(args.productType)) {
       issues.push('package_listingKind_is_fit')
     }
-    issues.push(...packageScheduleIssues(args.rows, args.productTitle))
+    issues.push(...packageScheduleIssues(args.rows, args.productTitle, args.productDestination))
   }
   // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 패키지·FIT 공통 오로라 primary — manifest
   {

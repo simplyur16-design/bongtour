@@ -56,6 +56,7 @@ import {
   isRegisterPendingFreeItineraryDay,
   registerScheduleDayRequiresPrimaryImageKeyword,
   registerScheduleKeywordMatchesOwnDayRoute,
+  registerScheduleLodgingAllowsDestLandmark,
   registerScheduleLodgingOnlyAllowsSoftDupVisitCity,
 } from '@/lib/register-pre-photo-verify'
 import {
@@ -390,6 +391,16 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Moalboal Sardine Run Cebu',
     ]
   }
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 상해 bare → 명소 팩 — manifest
+  if (/상해|상하이|Shanghai|외탄|豫园| bund/i.test(hay)) {
+    return [
+      'Shanghai Bund skyline',
+      'Yu Garden Shanghai',
+      'Oriental Pearl Tower Shanghai',
+      'Nanjing Road Shanghai',
+      'Zhujiajiao Water Town Canal Bridge',
+    ]
+  }
   if (/홍콩|Hong\s*Kong|빅토리아\s*피크|Victoria\s*Peak|리펄스|스탠리|Repulse|Stanley/i.test(hay)) {
     return [
       'Victoria Peak Hong Kong',
@@ -506,6 +517,24 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Marble Mountains Da Nang',
     ]
   }
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 서안·괌 bare → 명소 팩 — manifest
+  if (/서안|시안|Xian|Xi['’]?an|병마용|Terracotta/i.test(hay)) {
+    return [
+      'Terracotta Army Xi an',
+      'Muslim Quarter Xian',
+      'Giant Wild Goose Pagoda Xian',
+      'Xian City Wall',
+    ]
+  }
+  if (/괌|Guam|투몬|Tumon/i.test(hay)) {
+    return [
+      'Tumon Bay Guam beach',
+      'Two Lovers Point Guam',
+      'Fort Apugan Guam hilltop view',
+      'Asia Typhoon Waterpark Guam',
+      'Plaza de Espana Guam Spanish steps',
+    ]
+  }
   // day3 초원인데 day2 사막 키워드 bleed — soft-dup 사막 반복 허용은 사막 route만
   if (/오르도스\s*(?:대)?초원|초원\s*액티비티|꼬마열차|문화원|징기스칸릉/i.test(hay)) {
     return [
@@ -563,9 +592,11 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     }
     const routeHay = String(row.routeText ?? '').trim()
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 맨도시보다 명소 팩 우선 — manifest
-    const landmarkPack = bareVisitCityLandmarkPack(routeHay)
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 출발·귀국은 pack으로 bare soft-dup 덮지 않음 — manifest
+    const preferPack = slot === 'middle'
+    const landmarkPack = preferPack ? bareVisitCityLandmarkPack(routeHay) : []
     const curKw = String(row.imageKeyword ?? '').trim()
-    if (curKw && !(landmarkPack.length > 0 && isBareCityOrCountryKeyword(curKw))) {
+    if (curKw && !(preferPack && landmarkPack.length > 0 && isBareCityOrCountryKeyword(curKw))) {
       return row
     }
     const hay = [routeHay, row.title].filter(Boolean).join(' ')
@@ -582,6 +613,8 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     const candidates = [
       ...collectRouteTextOrderedLandmarkKeywords(routeHay),
       ...collectRouteTextOrderedImageKeywords(routeHay),
+      ...(preferPack ? [] : [firstMatchingScheduleCityEn(routeHay)]),
+      ...(preferPack ? [] : [softDupForeignVisitCityForMiddleRoute(routeHay)]),
       firstMatchingScheduleSpotEn(routeHay),
       ...landmarkPack,
       ...fromKoSegs,
@@ -730,19 +763,20 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     let kw2 = String(row.imageKeyword2 ?? '').trim()
     const route = String(row.routeText ?? '').trim()
     const lodgingOnly = isHotelLodgingImageKeyword(route)
-    // 숙소-only — 타일 명소 kw2 금지(모벤픽 날에 Sonasea 등)
-    if (lodgingOnly && kw2) kw2 = ''
     const keepPrimary =
       !kw ||
       registerScheduleKeywordMatchesOwnDayRoute(route, kw) ||
       registerScheduleLodgingOnlyAllowsSoftDupVisitCity(route, kw) ||
+      registerScheduleLodgingAllowsDestLandmark(route, kw, destHay) ||
       (isAuroraHuntingProductTitle(productTitle) && imageKeywordMentionsAurora(kw))
     if (!keepPrimary) kw = ''
+    // 숙소-only — 타일 명소 kw2 금지. dest 명소는 primary/kw2 모두 허용.
     const keepKw2 =
       !kw2 ||
       (!lodgingOnly &&
         (registerScheduleKeywordMatchesOwnDayRoute(route, kw2) ||
-          registerScheduleLodgingOnlyAllowsSoftDupVisitCity(route, kw2)))
+          registerScheduleLodgingOnlyAllowsSoftDupVisitCity(route, kw2))) ||
+      registerScheduleLodgingAllowsDestLandmark(route, kw2, destHay)
     if (!keepKw2) kw2 = ''
     if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) {
       kw2 = ''
@@ -926,6 +960,7 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
       !kw ||
       auroraKw ||
       keepViaDest ||
+      registerScheduleLodgingAllowsDestLandmark(row.routeText, kw, destHay) ||
       (!desertOnGrass &&
         !hallucKw &&
         (registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw) ||
@@ -933,6 +968,7 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
     const keepKw2 =
       !kw2 ||
       keepViaDest2 ||
+      registerScheduleLodgingAllowsDestLandmark(row.routeText, kw2, destHay) ||
       (!hallucKw2 &&
         !(
           /초원/u.test(String(row.routeText ?? '')) &&

@@ -1231,6 +1231,13 @@ const POI_KO_TO_EN: Record<string, string> = {
   시애틀: 'Space Needle Seattle',
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
   // bare「빅토리아」캐나다 항구 — 빅토리아폭포·빅토리폴스 아프리카 문맥에서는 SPOT regex 우선
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+  '빅토리아 & 앨버트': 'Victoria and Albert Museum London',
+  '빅토리아 앤드 앨버트': 'Victoria and Albert Museum London',
+  '빅토리아앤드앨버트': 'Victoria and Albert Museum London',
+  '빅토리아 앨버트': 'Victoria and Albert Museum London',
+  'V&A 박물관': 'Victoria and Albert Museum London',
+  'V&A박물관': 'Victoria and Albert Museum London',
   빅토리아항: 'Inner Harbour Victoria',
   '빅토리아 이너하버': 'Inner Harbour Victoria',
   /** Alaska cruise Victoria BC — bare「빅토리아」(폭포/폴스 없을 때). Falls는 schedule-poi-regex-ssot */
@@ -1560,6 +1567,13 @@ function poiKoMappingAllowed(ko: string, text: string): boolean {
   if (
     ko === '빅토리아' &&
     /퀸\s*빅토리아|빅토리아\s*빌딩|Queen\s*Victoria\s*Building|\bQVB\b|시드니|Sydney|달링|Darling/i.test(text)
+  ) {
+    return false
+  }
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+  if (
+    ko === '빅토리아' &&
+    /앨버트|Albert|V\s*&\s*A|박물관|Museum|런던|London|켄싱턴|Kensington/i.test(text)
   ) {
     return false
   }

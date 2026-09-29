@@ -10798,6 +10798,7 @@
             "단독 빙하 ≠ Glacier Bay Alaska",
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
             "Alaska Victoria BC Inner Harbour — 폭포/폴스/피크 제외",
+            "런던 V&A ≠ Victoria BC Inner Harbour",
             "Terelj National Park",
             "단독「역사 박물관」≠ Istanbul",
             "후룬베이얼 역사 박물관 ≠ Istanbul",
@@ -11722,7 +11723,10 @@
             "pack 있으면 맨도시 soft 주입 금지",
             "방콕·보홀·세부 bare → 명소 팩",
             "빈 route 중간일은 dest 명소 유지",
-            "prior 무관하면 dest pack"
+            "prior 무관하면 dest pack",
+            "출발·귀국은 pack으로 bare soft-dup 덮지 않음",
+            "서안·괌 bare → 명소 팩",
+            "상해 bare → 명소 팩"
           ]
         },
         {
@@ -11738,7 +11742,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
             "soft 비어도 city SSOT·도시 귀속 명소 허용",
-            "SCHEDULE_SPOT_KO_REGEX_RULES"
+            "SCHEDULE_SPOT_KO_REGEX_RULES",
+            "숙소일 dest 명소 허용",
+            "registerScheduleLodgingAllowsDestLandmark"
           ]
         }
       ],

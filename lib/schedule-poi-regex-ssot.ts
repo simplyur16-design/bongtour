@@ -118,11 +118,16 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /시드니\s*ZOO|Sydney\s*Zoo/i, en: "Taronga Zoo Sydney" },
   { re: /하버\s*브릿지|Harbour\s*Bridge/i, en: "Sydney Harbour Bridge" },
   { re: /NSW\s*미술관|Art\s*Gallery\s*(?:of\s*)?NSW/i, en: "Art Gallery of New South Wales" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+  {
+    re: /빅토리아\s*(?:&\s*|앤드\s*|and\s*)?앨버트|V\s*&\s*A\s*(?:박물관|Museum)|Victoria\s*(?:and|&)\s*Albert/i,
+    en: "Victoria and Albert Museum London",
+  },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Alaska Victoria BC Inner Harbour — 폭포/폴스/피크 제외 — manifest
   // bare「빅토리아」— 항/이너하버 문맥 또는 세그먼트 단독만 (퀸 빅토리아 빌딩 금지)
   { re: /빅토리아\s*이너\s*하버|이너\s*하버(?!\s*홍콩)|Inner\s*Harbour\s*Victoria/i, en: "Inner Harbour Victoria" },
-  { re: /(?:^|[\s\-·|/])빅토리아(?:\s*(?:항|이너(?:\s*하버)?))(?!\s*(?:폭포|폴스|피크|Peak))/u, en: "Inner Harbour Victoria" },
-  { re: /(?:^|[\s\-·|/])빅토리아(?!\s*(?:폭포|폴스|피크|Peak|빌딩|Building))(?=\s*$|[\-·|/])/u, en: "Inner Harbour Victoria" },
+  { re: /(?:^|[\s\-·|/])빅토리아(?:\s*(?:항|이너(?:\s*하버)?))(?!\s*(?:폭포|폴스|피크|Peak|앨버트|Albert))/u, en: "Inner Harbour Victoria" },
+  { re: /(?:^|[\s\-·|/])빅토리아(?!\s*(?:폭포|폴스|피크|Peak|빌딩|Building|앨버트|Albert|&))(?=\s*$|[\-·|/])/u, en: "Inner Harbour Victoria" },
   { re: /초베(?:\s*국립공원)?|Chobe/i, en: "Chobe River Boat Safari" },
   { re: /나이바샤|Naivasha/i, en: "Lake Naivasha Kenya" },
   { re: /기린\s*센터|Giraffe\s*Centre|Giraffe\s*Center/i, en: "Giraffe Centre Nairobi" },
