@@ -140,6 +140,8 @@ OrderPaid tick이 `timeout exceeded when trying to connect` 이고 풀 stats가
 
 **Phase 0 (운영, 추가 DB 비용 없음):** worker `CONNECTION_LIMIT=2`, `DISABLE_INSTRUMENTATION_PUBLISH_REMINDER_CRON=1`; web `CONNECTION_LIMIT=5`, `DISABLE_WEB_SUPPLIER_SWEEP_CRON=1`.
 
+**Worker lean (풀 보호):** 공급사 일1회 sweep + `price-freshness`만 상시. fit-backfill·rehost·insight·curation·coupon·detail-payload·monthly/season 등은 `DISABLE_INSTRUMENTATION_*=1`. web `BONGSIM_FULFILL_OWNER=web` (SMS는 web).
+
 **Phase 2 (필요할 때만):** 절차는 [`docs/ops/prisma-read-replica-cutover.md`](./prisma-read-replica-cutover.md). worker만 replica `DATABASE_URL_READ`를 붙이고, web은 primary만 유지.
 
 ### 2b) (선택) 발급 전용 fulfill 서비스
