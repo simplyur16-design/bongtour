@@ -670,6 +670,46 @@ describe('register-pre-photo-self-heal', () => {
     assert.equal(inferRegisterPendingDestinationFromTitle('보르도'), '보르도')
     assert.equal(inferRegisterPendingDestinationFromTitle('푸꾸옥 5일 #모벤픽'), '푸꾸옥')
     assert.equal(inferRegisterPendingDestinationFromTitle('미입력'), '')
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 보르도 맨도시 중간일 → 명소 팩 — manifest
+    const bordeauxHeal = healRegisterPrePhotoSchedule(
+      [
+        { day: 1, routeText: '파리 - 보르도', imageKeyword: 'Paris', imageKeyword2: null as string | null },
+        { day: 2, routeText: '보르도', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '보르도', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '보르도', imageKeyword: '', imageKeyword2: null },
+        { day: 5, routeText: '보르도 - 파리', imageKeyword: 'Paris', imageKeyword2: null },
+        { day: 6, routeText: '', imageKeyword: 'Paris', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'naeiltour',
+        productDestination: '보르도',
+        productTitle: '보르도',
+        lane: 'package',
+      },
+    )
+    const bordeauxMiddles = bordeauxHeal.rows
+      .filter((r) => Number(r.day) >= 2 && Number(r.day) <= 4)
+      .map((r) => String(r.imageKeyword ?? '').trim())
+    assert.ok(
+      bordeauxMiddles.every((k) => k && !/^Bordeaux$/i.test(k)),
+      `bordeaux middle should be landmarks: ${bordeauxMiddles.join('|')}`,
+    )
+    assert.ok(
+      bordeauxMiddles.some((k) => /Bourse|Theatre|Cloche|Cailhau|Emilion/i.test(k)),
+      bordeauxMiddles.join('|'),
+    )
+    const bordeauxVerify = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '보르도',
+      productDestination: '보르도',
+      rows: bordeauxHeal.rows,
+    })
+    assert.equal(
+      bordeauxVerify.issues.some((i) => i.includes('keyword_not_on_own_route')),
+      false,
+      bordeauxVerify.issues.join(','),
+    )
+
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 중간일 맨도시 반복 fail — manifest
     const cityRepeat = verifyRegisterPrePhoto({
       lane: 'package',

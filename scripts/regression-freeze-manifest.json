@@ -11708,13 +11708,46 @@
             "middle끼리 맨도시 soft-dup 재주입 금지",
             "bareVisitCityUsedAsOtherMiddlePrimary"
           ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
+            "보르도 맨도시 중간일 → 명소 팩",
+            "맨도시-only route도 pack 명소 허용",
+            "edge bare seed before middle",
+            "Place de la Bourse Bordeaux",
+            "맨도시보다 명소 팩 우선",
+            "pack 있으면 맨도시 후보 스킵",
+            "pack 있으면 맨도시 soft 주입 금지",
+            "방콕·보홀·세부 bare → 명소 팩",
+            "빈 route 중간일은 dest 명소 유지",
+            "prior 무관하면 dest pack"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
+            "보르도 bare 동선 식별",
+            "en: \"Bordeaux\""
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
+            "soft 비어도 city SSOT·도시 귀속 명소 허용",
+            "SCHEDULE_SPOT_KO_REGEX_RULES"
+          ]
         }
       ],
       "npmScripts": [
         "verify:register-pre-photo-self-heal"
       ],
       "vitestSuites": [
-        "lib/register-schedule-trip-image-keyword-dedupe.test.ts"
+        "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
+        "tests/register-pre-photo-self-heal.test.ts"
       ]
     },
     {
@@ -22285,346 +22318,6 @@
       "npmScripts": [
         "verify:register-pre-photo-self-heal"
       ]
-    }
-  ],
-  "vitestSuites": [
-    {
-      "id": "vitest-regression-core",
-      "tier": [
-        "ci"
-      ],
-      "summary": "핵심 vitest 회귀(제목·키워드·가드) — devDep 필요, prebuild/Docker 제외",
-      "files": [
-        "lib/modetour-listing-title-from-paste.test.ts",
-        "lib/modetour-register-product-title-ssot.test.ts",
-        "tests/register-schedule-image-keyword-guard.test.ts",
-        "tests/image-keyword-verify-guards.test.ts",
-        "tests/modetour-schedule-image-keyword.test.ts",
-        "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
-        "lib/geo-haystack-match.test.ts",
-        "lib/japan-mega-menu-browse-city-keys.test.ts",
-        "lib/hanatour-origin-code-from-paste.test.ts",
-        "lib/calendar-price-horizon.test.ts",
-        "lib/modetour-price-collect.test.ts",
-        "lib/modetour-origin-code-resolve.test.ts",
-        "lib/modetour-air-hotel-api-collect.test.ts",
-        "lib/modetour-price-recheck-meta.test.ts",
-        "lib/modetour-sd1-policy.test.ts",
-        "lib/single-departure-product-ssot.test.ts",
-        "lib/register-facts/modetour.test.ts",
-        "lib/register-facts/completeness.test.ts",
-        "lib/register-admin-travel-category.test.ts",
-        "lib/infer-home-departure-airport.test.ts",
-        "lib/infer-supplier-from-origin-url.test.ts",
-        "lib/register-product-departure-airport-save.test.ts",
-        "lib/modetour-sweep.test.ts",
-        "lib/hanatour-sweep.test.ts",
-        "lib/ybtour-sweep.test.ts",
-        "lib/lottetour-sweep.test.ts",
-        "lib/product-image-source-attribution.test.ts",
-        "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
-        "lib/supplier-product-title-display.test.ts",
-        "lib/supplier-listing-title-unacceptable.test.ts",
-        "lib/product-public-seo-title.test.ts",
-        "lib/hanatour-schedule-image-keyword-landmark.test.ts",
-        "lib/hanatour-schedule-card-day-kind.test.ts",
-        "lib/register-schedule-image-keywords-preview.test.ts",
-        "lib/ybtour-schedule-image-keyword.test.ts",
-        "lib/schedule-image-keyword-dual-slot-contract.test.ts",
-        "tests/hanatour-schedule-image-keyword-prebuild.test.ts",
-        "tests/ybtour-schedule-image-keyword.test.ts",
-        "tests/lottetour-schedule-image-keyword-turkey.test.ts",
-        "lib/lottetour-schedule-image-keyword-nhatrang.test.ts",
-        "tests/verygoodtour-schedule-image-keyword.test.ts",
-        "tests/kyowontour-schedule-image-keyword.test.ts"
-      ]
-    },
-    {
-      "id": "product-detail-payload-slim-persist",
-      "tier": [
-        "ci"
-      ],
-      "summary": "상품 상세 slim persist 가드 vitest",
-      "files": [
-        "lib/product-public-detail/get-or-build-model.test.ts",
-        "lib/product-detail-page-cache.test.ts",
-        "lib/product-detail-payload-hit.test.ts"
-      ]
-    },
-    {
-      "id": "welcomepay-esim-payment",
-      "tier": [
-        "ci"
-      ],
-      "summary": "웰컴페이 eSIM 결제 vitest — URL·해시·charset·콜백",
-      "files": [
-        "lib/bongsim/welcomepay-env.test.ts",
-        "lib/bongsim/welcomepay-payment-methods.test.ts",
-        "lib/bongsim/welcomepay-easy-pay.test.ts",
-        "lib/bongsim/welcomepay-checkout-options.test.ts",
-        "lib/bongsim/checkout/reset-after-pg-overlay.test.ts",
-        "lib/bongsim/welcomepay-mobile-signature.test.ts",
-        "lib/bongsim/welcomepay-mobile-hash-key.test.ts",
-        "lib/bongsim/welcomepay-mobile-checkout.test.ts",
-        "lib/bongsim/welcomepay-callback-parse.test.ts",
-        "lib/bongsim/welcomepay-vbank-noti.test.ts",
-        "lib/bongsim/welcomepay-pg-text-decode.test.ts",
-        "lib/bongsim/checkout/welcomepay-pg-auth-fail-message.test.ts"
-      ]
-    },
-    {
-      "id": "browse-mega-menu-geo",
-      "tier": [
-        "ci"
-      ],
-      "summary": "동유럽 menuGroup countryKey·세부 아일랜드 geo 매칭 vitest",
-      "files": [
-        "lib/mega-menu-eastern-europe-browse.test.ts",
-        "lib/match-overseas-product-cebu-island.test.ts"
-      ]
-    },
-    {
-      "id": "oceania-mega-menu-three-tier",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "오세아니아 메가메뉴 — 괌·사이판·호주/뉴질랜드 LC-only, 도시 하위메뉴 없음",
-      "files": [
-        "tests/mega-menu-oceania-tab.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-traveler-verification-hk-mo-tw",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "여행자 인증 — 홍콩·마카오·대만만 (중국 본토 제외)",
-      "files": [
-        "lib/bongsim/esim/traveler-verification-policy.test.ts",
-        "lib/bongsim/esim/kyc-required.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-admin-payments-query",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "관리자 결제·발급 조회 failure payload",
-      "files": [
-        "lib/bongsim/db/admin-query.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-simplyur-payment-channel-gate",
-      "tier": [
-        "ci"
-      ],
-      "summary": "봉투어/심플리유어 결제 채널×PG 게이트 vitest",
-      "files": [
-        "lib/bongsim/payments/checkout-provider-channel-gate.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-admin-payments-pagination",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "관리자 eSIM 결제 목록 페이지네이션 clamp",
-      "files": [
-        "lib/bongsim/admin/clamp-admin-list-page.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-admin-esim-usage-check",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "관리자 eSIM 미사용 확인 — epsilon·활성화 파싱",
-      "files": [
-        "lib/bongsim/refund/usimsa-usage-threshold.test.ts",
-        "lib/bongsim/supplier/usimsa/usage-normalize.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-offline-usim-order",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "매장 오프라인 USIM 주문 consents·결제 확인",
-      "files": [
-        "lib/bongsim/admin/offline-usim-order.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-offline-usim-plan-picker",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "매장 오프라인 USIM 3단계 피커 — destination toggle + catalog WHERE",
-      "files": [
-        "lib/bongsim/admin/offline-usim-plan-picker.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-complimentary-esim-grant",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "관리자 무상 eSIM — consents·사유 파싱·checkout channel",
-      "files": [
-        "lib/bongsim/admin/complimentary-esim-order.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-admin-non-pg-esim-cancel",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "무상·오프라인 eSIM — 관리자 유심사 취소(비 PG)",
-      "files": [
-        "lib/bongsim/admin/admin-cancel-non-pg-esim-order.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-complimentary-esim-bulk",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "관리자 무상 eSIM 단체 — 휴대폰 파싱·중복 제거·상한",
-      "files": [
-        "lib/bongsim/admin/complimentary-esim-order.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-discount-report-complimentary",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "할인 리포트 — 무상 eSIM 합산·공급 원가 helper",
-      "files": [
-        "lib/bongsim/admin/bongsim-discount-report.test.ts"
-      ]
-    },
-    {
-      "id": "bongsim-usim-fulfillment",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "봉심 물리 USIM — sim-fulfillment SSOT + 어드민 수동 활성화",
-      "files": [
-        "lib/bongsim/catalog/sim-fulfillment.test.ts"
-      ]
-    },
-    {
-      "id": "og-image-seasonal",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "홈 OG 시즌 — KST 월별 pageKey·정적 fallback 경로",
-      "files": [
-        "lib/og-image-seasonal.test.ts"
-      ]
-    },
-    {
-      "id": "sign-in-audience-split",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "로그인 수단 분리 — 국내 웹 카카오·네이버·이메일 / simplyur 외국인 웹 이메일 / simplyur 외국인 앱 Google·Apple·이메일",
-      "files": [
-        "lib/auth/sign-in-method-catalog.test.ts",
-        "lib/simplyur/constants.test.ts"
-      ]
-    },
-    {
-      "id": "oauth-mobile-get-start-vitest",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "oauth-start callbackUrl gate — google·apple only",
-      "files": [
-        "lib/auth/oauth-mobile-start.test.ts"
-      ]
-    },
-    {
-      "id": "auth-debug-ssot-vitest",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "auth-debug — AUTH_DEBUG gate, security warn always",
-      "files": [
-        "lib/auth/auth-debug.test.ts"
-      ]
-    },
-    {
-      "id": "simplyur-oauth-callback-ssot-vitest",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "simplyur OAuth callback path·locale·returnTo SSOT",
-      "files": [
-        "lib/auth/simplyur-oauth-callback.test.ts"
-      ]
-    },
-    {
-      "id": "apple-oauth-invalid-p8-no-crash-vitest",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "불완전 .p8 — appleOAuthProvider null·isAppleOAuthConfigured false",
-      "files": [
-        "lib/auth/apple-oauth-provider.test.ts"
-      ]
-    },
-    {
-      "id": "simplyur-foreign-audience-ssot",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "simplyur 외국인 방문객 전용 Korea eSIM — 내국인은 bongsim",
-      "files": [
-        "lib/simplyur/constants.test.ts"
-      ]
-    },
-    {
-      "id": "naeiltour-register-confirm-no-interactive-tx",
-      "tier": [
-        "ci"
-      ],
-      "summary": "내일투어 confirm 25P02·pooler 재시도",
-      "files": [
-        "lib/prisma-retry.test.ts"
-      ]
-    },
-    {
-      "id": "register-pre-photo-ingest-pkg-fit-theme-kind",
-      "tier": [
-        "ci"
-      ],
-      "summary": "패키지/자유여행 팩트 구분 · 테마 태그",
-      "files": [
-        "lib/register-facts/product-kind.test.ts",
-        "lib/product-listing-kind.test.ts"
-      ]
     },
     {
       "id": "register-pre-photo-naeiltour-unsellable-no-stub",
@@ -23050,7 +22743,12 @@
             "비즈니스",
             "[비즈니스]",
             "isSupplierTitleBusinessCabinKeep",
-            "stripHomepageForbiddenTitlePhrases"
+            "stripHomepageForbiddenTitlePhrases",
+            "stripSupplierTitleLeadingSalePromo",
+            "선착순",
+            "유류세",
+            "유류세인상",
+            "본문 출발확정·판매마감"
           ]
         },
         {
@@ -23068,6 +22766,15 @@
             "[비즈니스/] 캐나다 10일",
             "잔여좌석",
             "마감임박[잔여④석]"
+          ]
+        },
+        {
+          "file": "lib/supplier-product-title-display.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-title-no-sale-status-season]",
+            "선착순 2석 1329",
+            "■추석연휴 / 출발확정■",
+            "유류세 ZERO"
           ]
         },
         {
@@ -23410,7 +23117,10 @@
     },
     {
       "id": "ybtour-register-flight-from-fact-legs",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour: scheduleDetailTm fact legs → flightStructured (prefetch/api-parse, augment skip 대비)",
       "checks": [
         {
@@ -23436,11 +23146,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/register-facts/ybtour-register-fact-flights.test.ts"]
+      "vitestSuites": [
+        "lib/register-facts/ybtour-register-fact-flights.test.ts"
+      ]
     },
     {
       "id": "ybtour-register-single-room-when-ie-filled",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour: IE already filled라도 notice 1인실 수수료 structuredSignals 스탬프",
       "checks": [
         {
@@ -23452,11 +23167,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/register-single-room-when-ie-filled.test.ts"]
+      "vitestSuites": [
+        "lib/register-single-room-when-ie-filled.test.ts"
+      ]
     },
     {
       "id": "kyowontour-register-single-room-when-ie-filled",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "kyowontour: IE already filled라도 core tab 1인실 수수료 스탬프",
       "checks": [
         {
@@ -23468,11 +23188,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/register-single-room-when-ie-filled.test.ts"]
+      "vitestSuites": [
+        "lib/register-single-room-when-ie-filled.test.ts"
+      ]
     },
     {
       "id": "lottetour-register-single-room-when-ie-filled",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "lottetour: IE already filled라도 basicAjax 1인실 수수료 스탬프",
       "checks": [
         {
@@ -23484,7 +23209,349 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/register-single-room-when-ie-filled.test.ts"]
+      "vitestSuites": [
+        "lib/register-single-room-when-ie-filled.test.ts"
+      ]
+    }
+  ],
+  "vitestSuites": [
+    {
+      "id": "vitest-regression-core",
+      "tier": [
+        "ci"
+      ],
+      "summary": "핵심 vitest 회귀(제목·키워드·가드) — devDep 필요, prebuild/Docker 제외",
+      "files": [
+        "lib/modetour-listing-title-from-paste.test.ts",
+        "lib/modetour-register-product-title-ssot.test.ts",
+        "tests/register-schedule-image-keyword-guard.test.ts",
+        "tests/image-keyword-verify-guards.test.ts",
+        "tests/modetour-schedule-image-keyword.test.ts",
+        "lib/fit-itinerary-sync-schedule-image-keywords.test.ts",
+        "lib/geo-haystack-match.test.ts",
+        "lib/japan-mega-menu-browse-city-keys.test.ts",
+        "lib/hanatour-origin-code-from-paste.test.ts",
+        "lib/calendar-price-horizon.test.ts",
+        "lib/modetour-price-collect.test.ts",
+        "lib/modetour-origin-code-resolve.test.ts",
+        "lib/modetour-air-hotel-api-collect.test.ts",
+        "lib/modetour-price-recheck-meta.test.ts",
+        "lib/modetour-sd1-policy.test.ts",
+        "lib/single-departure-product-ssot.test.ts",
+        "lib/register-facts/modetour.test.ts",
+        "lib/register-facts/completeness.test.ts",
+        "lib/register-admin-travel-category.test.ts",
+        "lib/infer-home-departure-airport.test.ts",
+        "lib/infer-supplier-from-origin-url.test.ts",
+        "lib/register-product-departure-airport-save.test.ts",
+        "lib/modetour-sweep.test.ts",
+        "lib/hanatour-sweep.test.ts",
+        "lib/ybtour-sweep.test.ts",
+        "lib/lottetour-sweep.test.ts",
+        "lib/product-image-source-attribution.test.ts",
+        "lib/register-public-image-hero-seo-hanatour-airtel.test.ts",
+        "lib/supplier-product-title-display.test.ts",
+        "lib/supplier-listing-title-unacceptable.test.ts",
+        "lib/product-public-seo-title.test.ts",
+        "lib/hanatour-schedule-image-keyword-landmark.test.ts",
+        "lib/hanatour-schedule-card-day-kind.test.ts",
+        "lib/register-schedule-image-keywords-preview.test.ts",
+        "lib/ybtour-schedule-image-keyword.test.ts",
+        "lib/schedule-image-keyword-dual-slot-contract.test.ts",
+        "tests/hanatour-schedule-image-keyword-prebuild.test.ts",
+        "tests/ybtour-schedule-image-keyword.test.ts",
+        "tests/lottetour-schedule-image-keyword-turkey.test.ts",
+        "lib/lottetour-schedule-image-keyword-nhatrang.test.ts",
+        "tests/verygoodtour-schedule-image-keyword.test.ts",
+        "tests/kyowontour-schedule-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "product-detail-payload-slim-persist",
+      "tier": [
+        "ci"
+      ],
+      "summary": "상품 상세 slim persist 가드 vitest",
+      "files": [
+        "lib/product-public-detail/get-or-build-model.test.ts",
+        "lib/product-detail-page-cache.test.ts",
+        "lib/product-detail-payload-hit.test.ts"
+      ]
+    },
+    {
+      "id": "welcomepay-esim-payment",
+      "tier": [
+        "ci"
+      ],
+      "summary": "웰컴페이 eSIM 결제 vitest — URL·해시·charset·콜백",
+      "files": [
+        "lib/bongsim/welcomepay-env.test.ts",
+        "lib/bongsim/welcomepay-payment-methods.test.ts",
+        "lib/bongsim/welcomepay-easy-pay.test.ts",
+        "lib/bongsim/welcomepay-checkout-options.test.ts",
+        "lib/bongsim/checkout/reset-after-pg-overlay.test.ts",
+        "lib/bongsim/welcomepay-mobile-signature.test.ts",
+        "lib/bongsim/welcomepay-mobile-hash-key.test.ts",
+        "lib/bongsim/welcomepay-mobile-checkout.test.ts",
+        "lib/bongsim/welcomepay-callback-parse.test.ts",
+        "lib/bongsim/welcomepay-vbank-noti.test.ts",
+        "lib/bongsim/welcomepay-pg-text-decode.test.ts",
+        "lib/bongsim/checkout/welcomepay-pg-auth-fail-message.test.ts"
+      ]
+    },
+    {
+      "id": "browse-mega-menu-geo",
+      "tier": [
+        "ci"
+      ],
+      "summary": "동유럽 menuGroup countryKey·세부 아일랜드 geo 매칭 vitest",
+      "files": [
+        "lib/mega-menu-eastern-europe-browse.test.ts",
+        "lib/match-overseas-product-cebu-island.test.ts"
+      ]
+    },
+    {
+      "id": "oceania-mega-menu-three-tier",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "오세아니아 메가메뉴 — 괌·사이판·호주/뉴질랜드 LC-only, 도시 하위메뉴 없음",
+      "files": [
+        "tests/mega-menu-oceania-tab.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-traveler-verification-hk-mo-tw",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "여행자 인증 — 홍콩·마카오·대만만 (중국 본토 제외)",
+      "files": [
+        "lib/bongsim/esim/traveler-verification-policy.test.ts",
+        "lib/bongsim/esim/kyc-required.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-admin-payments-query",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 결제·발급 조회 failure payload",
+      "files": [
+        "lib/bongsim/db/admin-query.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-simplyur-payment-channel-gate",
+      "tier": [
+        "ci"
+      ],
+      "summary": "봉투어/심플리유어 결제 채널×PG 게이트 vitest",
+      "files": [
+        "lib/bongsim/payments/checkout-provider-channel-gate.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-admin-payments-pagination",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 eSIM 결제 목록 페이지네이션 clamp",
+      "files": [
+        "lib/bongsim/admin/clamp-admin-list-page.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-admin-esim-usage-check",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 eSIM 미사용 확인 — epsilon·활성화 파싱",
+      "files": [
+        "lib/bongsim/refund/usimsa-usage-threshold.test.ts",
+        "lib/bongsim/supplier/usimsa/usage-normalize.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-offline-usim-order",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "매장 오프라인 USIM 주문 consents·결제 확인",
+      "files": [
+        "lib/bongsim/admin/offline-usim-order.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-offline-usim-plan-picker",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "매장 오프라인 USIM 3단계 피커 — destination toggle + catalog WHERE",
+      "files": [
+        "lib/bongsim/admin/offline-usim-plan-picker.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-complimentary-esim-grant",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 무상 eSIM — consents·사유 파싱·checkout channel",
+      "files": [
+        "lib/bongsim/admin/complimentary-esim-order.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-admin-non-pg-esim-cancel",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "무상·오프라인 eSIM — 관리자 유심사 취소(비 PG)",
+      "files": [
+        "lib/bongsim/admin/admin-cancel-non-pg-esim-order.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-complimentary-esim-bulk",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 무상 eSIM 단체 — 휴대폰 파싱·중복 제거·상한",
+      "files": [
+        "lib/bongsim/admin/complimentary-esim-order.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-discount-report-complimentary",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "할인 리포트 — 무상 eSIM 합산·공급 원가 helper",
+      "files": [
+        "lib/bongsim/admin/bongsim-discount-report.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-usim-fulfillment",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "봉심 물리 USIM — sim-fulfillment SSOT + 어드민 수동 활성화",
+      "files": [
+        "lib/bongsim/catalog/sim-fulfillment.test.ts"
+      ]
+    },
+    {
+      "id": "og-image-seasonal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈 OG 시즌 — KST 월별 pageKey·정적 fallback 경로",
+      "files": [
+        "lib/og-image-seasonal.test.ts"
+      ]
+    },
+    {
+      "id": "sign-in-audience-split",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "로그인 수단 분리 — 국내 웹 카카오·네이버·이메일 / simplyur 외국인 웹 이메일 / simplyur 외국인 앱 Google·Apple·이메일",
+      "files": [
+        "lib/auth/sign-in-method-catalog.test.ts",
+        "lib/simplyur/constants.test.ts"
+      ]
+    },
+    {
+      "id": "oauth-mobile-get-start-vitest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "oauth-start callbackUrl gate — google·apple only",
+      "files": [
+        "lib/auth/oauth-mobile-start.test.ts"
+      ]
+    },
+    {
+      "id": "auth-debug-ssot-vitest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "auth-debug — AUTH_DEBUG gate, security warn always",
+      "files": [
+        "lib/auth/auth-debug.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-oauth-callback-ssot-vitest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur OAuth callback path·locale·returnTo SSOT",
+      "files": [
+        "lib/auth/simplyur-oauth-callback.test.ts"
+      ]
+    },
+    {
+      "id": "apple-oauth-invalid-p8-no-crash-vitest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "불완전 .p8 — appleOAuthProvider null·isAppleOAuthConfigured false",
+      "files": [
+        "lib/auth/apple-oauth-provider.test.ts"
+      ]
+    },
+    {
+      "id": "simplyur-foreign-audience-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "simplyur 외국인 방문객 전용 Korea eSIM — 내국인은 bongsim",
+      "files": [
+        "lib/simplyur/constants.test.ts"
+      ]
+    },
+    {
+      "id": "naeiltour-register-confirm-no-interactive-tx",
+      "tier": [
+        "ci"
+      ],
+      "summary": "내일투어 confirm 25P02·pooler 재시도",
+      "files": [
+        "lib/prisma-retry.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-ingest-pkg-fit-theme-kind",
+      "tier": [
+        "ci"
+      ],
+      "summary": "패키지/자유여행 팩트 구분 · 테마 태그",
+      "files": [
+        "lib/register-facts/product-kind.test.ts",
+        "lib/product-listing-kind.test.ts"
+      ]
     }
   ]
 }

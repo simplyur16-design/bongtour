@@ -1384,6 +1384,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /나고야|名古屋/u, en: "Nagoya castle view" },
   { re: /요코하마|横浜/u, en: "Yokohama bay night" },
   { re: /(?<![가-힣])파리(?![가-힣])/u, en: "Paris city skyline" },
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 보르도 bare 동선 식별 — manifest
+  { re: /보르도|Bordeaux/i, en: "Bordeaux" },
   { re: /(?<!(?:고대\s{0,2}))(?<![가-힣])로마(?!시대)/u, en: "Rome Colosseum view" },
   // REGRESSION-FREEZE[modetour-barcelona-lim-recital-day-owned-poi]: 바르셀로나 도시허브≠Sagrada — manifest
   { re: /바르셀로나/u, en: "Barcelona" },

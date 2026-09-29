@@ -10,13 +10,14 @@
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 import { normalizeNaeiltourRegisterListingTitle } from '@/lib/naeiltour-register-product-title'
 
-export const SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION = 'plan-b-v3-2026-09-01'
+export const SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION = 'plan-b-v4-2026-09-29'
 
 /** Product.title·메타 상한 — bongtour-product-title-tone HARD_MAX 와 동일 */
 export const SUPPLIER_PRODUCT_DISPLAY_TITLE_MAX = 90
 
 // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: ●○ dest·제목 장식 제거 — manifest
-const UI_NOISE_CHARS = ['★', '※', '◎', '◆', '▶', '●', '○'] as const
+// REGRESSION-FREEZE[supplier-title-no-sale-status-season]: ■◀ 장식·가격 선두 제거 — manifest
+const UI_NOISE_CHARS = ['★', '※', '◎', '◆', '▶', '◀', '◁', '●', '○', '■'] as const
 
 /** 한글 지명(이태리·스페인·괌 츠바키 앞 토큰)은 2글자도 상품명이다. ASCII만 4자. */
 // REGRESSION-FREEZE[supplier-product-title-plan-b]: 한글 2자+ 제목 허용 — manifest
@@ -52,14 +53,77 @@ export function resolveSupplierVerbatimOriginalTitle(args: {
   return '미입력'
 }
 
-/** 공백·NBSP·UI 장식(★※▶)만 정리 */
+/**
+ * 선두 가격·선착순·유류세 ZERO·■연휴/확정■ 등 판매 문구 제거.
+ * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 선착순·만원·유류세 ZERO·■확정■ — manifest
+ * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: NO 유류세인상 ≠ [인상] 잔재 — manifest
+ */
+export function stripSupplierTitleLeadingSalePromo(s: string): string {
+  let t = String(s ?? '').trim()
+  // ■추석연휴 / 출발확정■ · ■ _마지막 출발■
+  t = t.replace(/■\s*[^■\n]{0,48}\s*■/g, ' ')
+  // 선착순 2석 1329 -> 1299만원 …
+  t = t.replace(
+    /^(?:선착\s*순(?:\s*\d+\s*석)?(?:\s*특가)?\s*)?(?:\d{2,5}\s*(?:->|→|>|＞)\s*)?\d{2,5}\s*만\s*원\s*/i,
+    '',
+  )
+  t = t.replace(/^선착\s*순(?:\s*\d+\s*석)?(?:\s*특가)?\s*/i, '')
+  t = t.replace(/^\d+\s*명\s*부터\s*출발\s*[\/·．.／]?\s*/i, '')
+  // 추석연휴특가 · 연휴특가 · 특가
+  t = t.replace(/^(?:추석\s*|설\s*)?연휴\s*특가\s*/i, '')
+  t = t.replace(/^(?:선착\s*순\s*)?특가\s*/i, '')
+  t = t.replace(/^유류\s*세\s*(?:ZERO|제로|0)\s*/i, '')
+  t = t.replace(/^(?:NO\s*)?유류\s*(?:세|할증(?:료)?)(?:\s*(?:고정|인상|인하))?\s*/i, '')
+  // 1석 예약시, 독실료 할인 가능
+  t = t.replace(/^\d+\s*석\s*예약\s*시[,，]?\s*독실료\s*할인\s*(?:가능)?\s*/i, '')
+  t = t.replace(/^독실료\s*할인\s*(?:가능)?\s*/i, '')
+  // 선두 판매마감·출발확정 (대괄호 없음)
+  t = t.replace(/^(?:판매\s*(?:마감|완료|종료)|출발\s*확정)\s*/i, '')
+  t = t.replace(/^\*+\s*(?:출발\s*확정)\s*/i, '')
+  return t.replace(/\s+/g, ' ').trim()
+}
+
+/** 공백·NBSP·UI 장식(★※▶■◀)만 정리 */
 export function stripSupplierTitleUiNoise(s: string): string {
   let t = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
   t = t.replace(/[\u00a0\u3000]+/g, ' ')
+  t = stripSupplierTitleLeadingSalePromo(t)
   for (const ch of UI_NOISE_CHARS) {
     t = t.split(ch).join('')
   }
   return t.replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * [NO 유류세+브리즈번 시티투어] · [노팁/노옵션/노쇼핑+장가계 직항] — 판매토큰만 걷고 지명·투어는 남김.
+ * REGRESSION-FREEZE[supplier-title-no-sale-status-season]: mixed promo bracket scrub — manifest
+ */
+function scrubMixedPromoBadgeInner(inner: string): string {
+  const parts = String(inner ?? '')
+    .split(/[+\/·|,]/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  const keep: string[] = []
+  for (const part of parts) {
+    let t = part
+    t = t.replace(/(?:NO\s*)?유류\s*(?:세|할증(?:료)?)(?:\s*(?:고정|인상|인하))?/gi, ' ')
+    t = t.replace(/유류\s*세\s*(?:ZERO|제로|0)/gi, ' ')
+    t = t.replace(/노\s*(?:팁|옵션|쇼핑)/gi, ' ')
+    t = t.replace(/무\s*(?:팁|옵션|쇼핑)/gi, ' ')
+    t = t.replace(/선착\s*순(?:\s*\d+\s*석)?/gi, ' ')
+    // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 초특가→초 잔재 금지 — manifest
+    t = t.replace(/(?:초\s*)?특가/gi, ' ')
+    t = t.replace(/출발\s*확정/gi, ' ')
+    t = t.replace(/매진\s*임박|긴급\s*모객|홈\s*쇼핑/gi, ' ')
+    t = t.replace(/판매\s*(?:마감|완료|종료)/gi, ' ')
+    t = t.replace(/한정\s*(?:특가)?/gi, ' ')
+    t = t.replace(/\s+/g, ' ').trim()
+    if (!t || isPromoOnlyBadgeText(t)) continue
+    // 스크럽 잔재(초·특 등 1~2글자) 폐기
+    if (t.length <= 2 && part.replace(/\s/g, '').length > t.replace(/\s/g, '').length) continue
+    keep.push(t)
+  }
+  return keep.join('+')
 }
 
 /** `[출발확정]`·`[오전출발]`·`[매진임박]`·`[best]` 등 마케팅/상태 대괄호 — [지역]·[항공사]는 제외 */
@@ -117,9 +181,11 @@ function isPromoOnlyBadgeText(raw: string): boolean {
   let compact = spaced.replace(/\s/g, '')
   compact = compact.replace(/^노팁/, '')
   if (!compact) return true
-  if (/^(?:무(?:쇼핑|옵션)|노(?:쇼핑|옵션|팁)|직항|출발확정|매진임박|긴급모객|판매마감|판매완료|잔여좌석|잔여석|단풍시즌|벚꽃시즌|눈꽃시즌|클래스|nooption|noshopping|best|hit|new|hot|tkt|only)$/i.test(compact)) {
+  if (/^(?:무(?:쇼핑|옵션)|노(?:쇼핑|옵션|팁)|(?:no\s*)?(?:option|shopping)|직항|출발확정|매진임박|긴급모객|판매마감|판매완료|잔여좌석|잔여석|단풍시즌|벚꽃시즌|눈꽃시즌|클래스|초|한정|nooption|noshopping|best|hit|new|hot|tkt|only)$/i.test(compact)) {
     return true
   }
+  if (/^no\s*(?:옵션|쇼핑|팁)$/i.test(spaced)) return true
+  if (/^NO\s*(?:옵션|쇼핑|팁)$/i.test(spaced)) return true
   if (/^tkt\s*[\/·．.／]\s*only$/i.test(spaced)) return true
   if (/^[\/·．.／]+클래스$/i.test(spaced)) return true
   if (SUPPLIER_TITLE_PROMO_BADGE_INNER.test(spaced)) return true
@@ -151,13 +217,46 @@ function foldBusinessCabinKeepBrackets(s: string): string {
 
 /** 무쇼핑·무옵션·직항 등 마케팅 배지만 제거 — [지역]·[항공사]·일반 #태그는 유지. `[비즈니스]`는 유지. */
 export function stripSupplierTitlePromoBadges(s: string): string {
-  let t = foldBusinessCabinKeepBrackets(s)
-  t = t.replace(/\[\s*([^\]]*?)\s*\]/g, (m, inner: string) => (isPromoOnlyBadgeText(inner) ? ' ' : m))
-  t = t.replace(/【\s*([^】]*?)\s*】/g, (m, inner: string) => (isPromoOnlyBadgeText(inner) ? ' ' : m))
+  let t = foldBusinessCabinKeepBrackets(stripSupplierTitleLeadingSalePromo(s))
+  const scrubBracket = (_m: string, inner: string) => {
+    if (isPromoOnlyBadgeText(inner)) return ' '
+    const scrubbed = scrubMixedPromoBadgeInner(inner)
+    if (!scrubbed) return ' '
+    if (scrubbed !== inner.trim()) {
+      if (isPromoOnlyBadgeText(scrubbed)) return ' '
+      return `[${scrubbed}]`
+    }
+    return _m
+  }
+  t = t.replace(/\[\s*([^\]]*?)\s*\]/g, scrubBracket)
+  t = t.replace(/【\s*([^】]*?)\s*】/g, (m, inner: string) => {
+    if (isPromoOnlyBadgeText(inner)) return ' '
+    const scrubbed = scrubMixedPromoBadgeInner(inner)
+    if (!scrubbed) return ' '
+    if (scrubbed !== inner.trim()) {
+      if (isPromoOnlyBadgeText(scrubbed)) return ' '
+      return `[${scrubbed}]`
+    }
+    return m
+  })
   t = t.replace(/#[^\s#]+/g, (m) => (isPromoOnlyBadgeText(m.slice(1)) ? ' ' : m))
   t = stripHomepageForbiddenTitlePhrases(t)
   t = t.replace(/\[\s*[\/·．.／]*\s*클래스\s*\]/gi, ' ')
   t = t.replace(/\[\s*\]/g, ' ')
+  // 선두에 남은 "추석연휴 / 출발확정" · 오후출발 등 (■ 제거 후)
+  t = t.replace(/^(?:추석\s*연휴|설\s*연휴|연휴\s*좌석)\s*[\/·]?\s*(?:출발\s*확정)?\s*/i, '')
+  t = t.replace(/^(?:출발\s*확정)\s*[\/·]?\s*/i, '')
+  t = t.replace(/^(?:마지막\s*출발|_?\s*마지막\s*출발)\s*/i, '')
+  t = t.replace(/^(?:오전|오후|저녁)\s*출발\s*/i, '')
+  t = t.replace(/^(?:선착\s*순\s*)?특가\s*/i, '')
+  // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 본문 출발확정·판매마감 — manifest
+  t = t.replace(/(?<=[\s\/·,，\*])출발\s*확정(?=[\s\/·,，\[]|$)/gi, ' ')
+  t = t.replace(/(?<=[\s\/·,，])판매\s*(?:마감|완료|종료)(?=[\s\/·,，『「]|$)/gi, ' ')
+  // 해시태그·슬래시 안 저녁출발·N인이상출발확정
+  t = t.replace(/#\s*\d+\s*인\s*이상\s*출발\s*확정/gi, ' ')
+  t = t.replace(/(?<=[\/·])(?:오전|오후|저녁)\s*출발(?=[\/·]|$)/gi, '')
+  t = t.replace(/(?<=[\/·])(?:오전|오후|저녁)\s*출발(?=\s)/gi, '')
+  t = t.replace(/\/{2,}/g, '/')
   return t.replace(/\s+/g, ' ').trim()
 }
 

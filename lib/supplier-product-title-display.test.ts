@@ -129,6 +129,48 @@ describe('stripSupplierTitlePromoBadges', () => {
     expect(stripSupplierTitlePromoBadges('[태국] 방콕 5일 #노옵션')).toBe('[태국] 방콕 5일')
   })
 
+  // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: verygoodtour 선착순·만원·■확정■·유류세 — manifest
+  it('strips verygoodtour leading seat/price and ■holiday■ promo noise', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '선착순 2석 1329 -> 1299만원 세계 3대 폭포 중 두 곳을 갑니다 / 아프리카 빅토리아 폭포&남미 12일',
+      ),
+    ).toBe('세계 3대 폭포 중 두 곳을 갑니다 / 아프리카 빅토리아 폭포&남미 12일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '■추석연휴 / 출발확정■[NO 유류세+브리즈번 시티투어] 시드니+골드코스트 6일',
+      ),
+    ).toBe('[브리즈번 시티투어] 시드니+골드코스트 6일')
+    expect(
+      normalizeSupplierRegisterListingTitle('유류세 ZERO◀ [시드니 타워 전망대+사막투어] 시드니 6일'),
+    ).toBe('[시드니 타워 전망대+사막투어] 시드니 6일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '선착순 2석 특가 [노팁/노옵션/노쇼핑+장가계 직항] 원가계/천문산/천자산+보봉호+대협곡 6일',
+      ),
+    ).toContain('장가계 직항')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '선착순 2석 특가 [노팁/노옵션/노쇼핑+장가계 직항] 원가계/천문산/천자산+보봉호+대협곡 6일',
+      ),
+    ).not.toMatch(/선착\s*순|노팁|노옵션|노쇼핑/)
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '추석연휴특가[터키항공직항]튀르키예 일주 10일 #괴베클리테페',
+      ),
+    ).toBe('[터키항공직항]튀르키예 일주 10일 #괴베클리테페')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '1석 예약시, 독실료 할인 가능◀ [시드니 타워 전망대+사막투어] 시드니 6일',
+      ),
+    ).toBe('[시드니 타워 전망대+사막투어] 시드니 6일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '●특가● ■오후출발 [인천출발/노팁+노쇼핑][리무진차량] 상해 4일',
+      ),
+    ).toBe('[인천출발][리무진차량] 상해 4일')
+  })
+
   it('strips sale-status, cabin-class, and season promo from homepage titles', () => {
     expect(
       normalizeSupplierRegisterListingTitle('판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일'),
@@ -147,6 +189,42 @@ describe('stripSupplierTitlePromoBadges', () => {
       verbatimOriginal: '판매마감 일본 도쿄 3일 잔여좌석 2석',
       brandKey: 'hanatour',
     })).toBe('일본 도쿄 3일')
+  })
+
+  // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: NO 유류세인상 ≠ [인상] · 본문 출발확정 — manifest
+  it('strips NO 유류세인상 without leaving 인상 residue and mid-title 출발확정', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[NO 유류세인상][특별전세기/후룬베이얼]내몽골/세계3대초원 5일',
+      ),
+    ).toBe('[특별전세기+후룬베이얼]내몽골/세계3대초원 5일')
+    expect(
+      normalizeSupplierRegisterListingTitle('쿠알라룸푸르/말라카/겐팅 출발확정 3박 5일'),
+    ).toBe('쿠알라룸푸르/말라카/겐팅 3박 5일')
+    expect(
+      normalizeSupplierRegisterListingTitle("출발확정『실크로드의 종착지』튀르키예 완전일주 9일"),
+    ).toBe("『실크로드의 종착지』튀르키예 완전일주 9일")
+    expect(
+      normalizeSupplierRegisterListingTitle('[초특가] [2030전용] 푸꾸옥 5일 #사오비치'),
+    ).toBe('[2030전용] 푸꾸옥 5일 #사오비치')
+    expect(
+      normalizeSupplierRegisterListingTitle('[한정특가][2030전용] 동유럽 3국 7일'),
+    ).toBe('[2030전용] 동유럽 3국 7일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '***출발확정[KE][NO옵션] 나트랑,달랏 5일',
+      ),
+    ).toBe('[KE] 나트랑,달랏 5일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '미서부8일 # LA 다져스직관 # 4인이상출발확정',
+      ),
+    ).toBe('미서부8일 # LA 다져스직관')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[풀패키지] 홍콩+마카오 2박4일 대한항공/저녁출발/익청빌딩',
+      ),
+    ).toBe('[풀패키지] 홍콩+마카오 2박4일 대한항공/익청빌딩')
   })
 })
 

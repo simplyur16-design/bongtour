@@ -57,7 +57,7 @@ import {
   normScheduleImageKeywordKey,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
-import { firstMatchingScheduleCityEn } from '@/lib/schedule-poi-regex-ssot'
+import { firstMatchingScheduleCityEn, SCHEDULE_SPOT_KO_REGEX_RULES } from '@/lib/schedule-poi-regex-ssot'
 import {
   isOperationalScheduleImageKeyword,
   tryPersistScheduleImageKeyword,
@@ -183,11 +183,24 @@ export function registerScheduleKeywordMatchesOwnDayRoute(
     if (hit && routeKeywordNormOverlaps(kw, hit)) return true
   }
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: bare 방문도시 동선(발리)은 같은 도시 명소 키워드 허용 — manifest
-  const softCity = softDupForeignVisitCityForMiddleRoute(hay)
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: soft 비어도 city SSOT·도시 귀속 명소 허용 — manifest
+  const softCity =
+    softDupForeignVisitCityForMiddleRoute(hay) ||
+    (() => {
+      const c = firstMatchingScheduleCityEn(hay)
+      return c && isBareCityOrCountryKeyword(c) ? c : ''
+    })()
   if (softCity && isBareCityOrCountryKeyword(softCity)) {
     const softNk = normScheduleImageKeywordKey(softCity)
     const kwNk = normScheduleImageKeywordKey(kw)
     if (softNk && kwNk && (kwNk.includes(softNk) || softNk.includes(kwNk))) return true
+    for (const { en } of SCHEDULE_SPOT_KO_REGEX_RULES) {
+      const enNk = normScheduleImageKeywordKey(en)
+      if (!softNk || !enNk.includes(softNk)) continue
+      if (routeKeywordNormOverlaps(kw, en)) return true
+      const stripped = enNk.replace(softNk, '').replace(/\s+/g, ' ').trim()
+      if (stripped.length >= 4 && routeKeywordNormOverlaps(kw, stripped)) return true
+    }
   }
   return false
 }
@@ -372,6 +385,8 @@ function packageScheduleIssues(
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: trip-wide kw+kw2 bleed — manifest
   // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare city 반복 금지 — manifest
   const seenKw = new Map<string, number>()
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge bare seed before middle — manifest
+  seedBareCityKeywordsFromEdgeDays(seenKw, days, maxDay, activeDays)
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(
       Number(row.day),
@@ -408,6 +423,30 @@ function packageScheduleIssues(
  * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 도시 반복 금지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 맨도시 반복 ≠ keyword_bleed 분류 — manifest
  */
+/**
+ * 출발·귀국에 이미 쓴 맨도시를 seen에 넣어 중간일 반복을 잡는다.
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge bare seed before middle — manifest
+ */
+function seedBareCityKeywordsFromEdgeDays(
+  seenKw: Map<string, number>,
+  days: ReadonlyArray<{ day?: number | null; imageKeyword?: string | null; imageKeyword2?: string | null }>,
+  maxDay: number,
+  activeDays: number,
+): void {
+  for (const row of days) {
+    const day = Number(row.day)
+    if (!(day > 0)) continue
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
+    if (slot === 'middle') continue
+    for (const raw of [row.imageKeyword, row.imageKeyword2]) {
+      const t = String(raw ?? '').trim()
+      if (!t || !isBareCityOrCountryKeyword(t)) continue
+      const key = normScheduleImageKeywordKey(t)
+      if (key && !seenKw.has(key)) seenKw.set(key, day)
+    }
+  }
+}
+
 function pushMiddleDayTripKeywordDupIssue(
   issues: RegisterPrePhotoVerifyIssue[],
   seenKw: Map<string, number>,
@@ -544,6 +583,8 @@ function fitScheduleIssues(
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: FIT trip-wide kw+kw2 bleed — manifest
   // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: FIT middle bare city 반복 금지 — manifest
   const seenKw = new Map<string, number>()
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge bare seed before middle — manifest
+  seedBareCityKeywordsFromEdgeDays(seenKw, days, maxDay, activeDays)
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') continue

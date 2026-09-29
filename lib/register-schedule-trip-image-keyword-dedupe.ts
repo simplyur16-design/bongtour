@@ -3671,6 +3671,8 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^마르세유$|^Marseille$/i.test(seg)) return 'Marseille'
     if (/^바르셀로나$|^Barcelona$/i.test(seg)) return 'Barcelona'
     if (/^나폴리$|^Naples$|^Napoli$/i.test(seg)) return 'Naples'
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 보르도 bare soft-dup — manifest
+    if (/^보르도$|^Bordeaux$/i.test(seg)) return 'Bordeaux'
     if (/^치비타베키아$|^Civitavecchia$/i.test(seg)) return 'Civitavecchia'
     // 몰디브 리조트 일차 — country-level이어도 soft-dup 허용 (빈칸·Vang Vieng bleed 방지)
     if (/^몰디브$|^Maldives$/i.test(seg)) return 'Maldives'
