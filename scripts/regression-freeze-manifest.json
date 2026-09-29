@@ -13343,10 +13343,28 @@
           "file": "app/admin/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "AdminDashboardHomeClient"
+          ],
+          "mustNotInclude": [
+            "prisma.product.count({ where: { registrationStatus: 'pending' } })",
+            "countLiveRegisterPrePhotoPendingQueue()"
+          ]
+        },
+        {
+          "file": "lib/admin/dashboard-kpi.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
             "countLiveRegisterPrePhotoPendingQueue"
           ],
           "mustNotInclude": [
             "prisma.product.count({ where: { registrationStatus: 'pending' } })"
+          ]
+        },
+        {
+          "file": "app/api/admin/dashboard-kpi/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]",
+            "getCachedAdminDashboardKpi"
           ]
         },
         {
@@ -17613,6 +17631,13 @@
           "file": "app/admin/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
+            "AdminDashboardHomeClient"
+          ]
+        },
+        {
+          "file": "app/admin/components/AdminDashboardHomeClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-mobile-ops-b-register]",
             "data-admin-mobile-dashboard-actions",
             "/admin/inquiries",
             "/admin/register"
@@ -18075,8 +18100,22 @@
           "file": "app/admin/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
+            "AdminDashboardHomeClient"
+          ]
+        },
+        {
+          "file": "app/admin/components/AdminDashboardHomeClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
             "소속 명함 승인",
             "/admin/bongsim/affiliation-cards",
+            "affiliationPendingCount"
+          ]
+        },
+        {
+          "file": "app/admin/components/AdminDashboardKpiSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-affiliation-card-ocr]",
             "affiliationPendingCount"
           ]
         },
@@ -21417,6 +21456,64 @@
           "mustInclude": [
             "REGRESSION-FREEZE[pending-approve-photos-ready]",
             "isRegisterPendingPhotosReady"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admin-dashboard-kpi-shell-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "/admin 셸 즉시 렌더 — KPI는 /api/admin/dashboard-kpi + live queue SSOT + 45s TTL (SSR DB await 금지)",
+      "npmScripts": [
+        "verify:admin-dashboard-kpi-shell"
+      ],
+      "checks": [
+        {
+          "file": "app/admin/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-dashboard-kpi-shell-first]",
+            "AdminDashboardHomeClient"
+          ],
+          "mustNotInclude": [
+            "countLiveRegisterPrePhotoPendingQueue()",
+            "prisma.product.count"
+          ]
+        },
+        {
+          "file": "lib/admin/dashboard-kpi.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-dashboard-kpi-shell-first]",
+            "countLiveRegisterPrePhotoPendingQueue",
+            "revalidate: 45"
+          ],
+          "mustNotInclude": [
+            "prisma.product.count({ where: { registrationStatus: 'pending' } })"
+          ]
+        },
+        {
+          "file": "app/api/admin/dashboard-kpi/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-dashboard-kpi-shell-first]",
+            "getCachedAdminDashboardKpi"
+          ]
+        },
+        {
+          "file": "app/admin/components/AdminDashboardKpiSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-dashboard-kpi-shell-first]",
+            "/api/admin/dashboard-kpi",
+            "KPI_TIMEOUT_MS"
+          ]
+        },
+        {
+          "file": "scripts/verify-admin-dashboard-kpi-shell.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-dashboard-kpi-shell-first]",
+            "AdminDashboardHomeClient",
+            "revalidate: 45"
           ]
         }
       ]
