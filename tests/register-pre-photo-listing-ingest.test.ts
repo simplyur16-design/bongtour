@@ -660,6 +660,8 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.match(healPendingSrc, /withPrismaRetry/)
     assert.match(healPendingSrc, /heal-pending:/)
     const dailyJobSrc = readFileSync(new URL('../lib/register-pre-photo-daily-job.ts', import.meta.url), 'utf8')
+    // REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: healLimit ?? 200 — manifest
+    assert.ok(dailyJobSrc.includes('healLimit ?? 200'))
     assert.match(dailyJobSrc, /healLimit \?\? 200/)
     const afterSave = readFileSync(new URL('../lib/register-confirm-after-save.ts', import.meta.url), 'utf8')
     assert.match(afterSave, /applyRegisterPrePhotoQueueGateAfterSave/)
