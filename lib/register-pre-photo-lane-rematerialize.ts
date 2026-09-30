@@ -202,12 +202,23 @@ async function rematerializePackageLane(
   const supplierKey = normalizeSupplierOrigin(String(product.originSource ?? '')) || 'etc'
   const dest = product.primaryDestination ?? product.destination
   const mapped = scheduleRowsForPrePhotoVerify(product.schedule)
-  const allocated = applyRegisterScheduleImageKeywordsBySupplier(mapped, {
-    supplierKey,
-    productDestination: dest,
-    productTitle: product.title,
-    travelScope: 'package',
-  })
+  // title/description: ApplyRow는 null 불가 — HealRow null을 undefined로 정규화
+  const allocated = applyRegisterScheduleImageKeywordsBySupplier(
+    mapped.map((row) => ({
+      day: Number(row.day) || 0,
+      title: row.title != null ? String(row.title) : undefined,
+      description: row.description != null ? String(row.description) : undefined,
+      routeText: row.routeText ?? null,
+      imageKeyword: row.imageKeyword ?? '',
+      imageKeyword2: row.imageKeyword2 ?? null,
+    })),
+    {
+      supplierKey,
+      productDestination: dest,
+      productTitle: product.title,
+      travelScope: 'package',
+    },
+  )
   // REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: 패키지 자유일정 추천일정+빈칸 Gemini — manifest
   const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(allocated, {
     supplierKey,
