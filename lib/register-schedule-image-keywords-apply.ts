@@ -18,7 +18,11 @@ import { applyAirtelRouteTextImageKeywordsToSchedule } from '@/lib/register-airt
 import { applyNaeiltourScheduleImageKeywordsToRows, type NaeiltourScheduleImageKeywordRow } from '@/lib/naeiltour-schedule-image-keyword'
 import { sanitizeRegisterScheduleImageKeywordsFromRouteEvidence } from '@/lib/register-schedule-route-evidence-keyword'
 import { applyRegisterScheduleRouteTextKeywordsWithSupplierFallback } from '@/lib/register-schedule-image-keywords-route-supplier-merge'
-import { expandSingleSegmentPoiRouteTextRows, prepareRegisterScheduleRowsForImageKeywordApply } from '@/lib/register-schedule-route-text-backfill'
+import {
+  expandSingleSegmentPoiRouteTextRows,
+  isRegisterScheduleFreeTimeOrResortLeisureText,
+  prepareRegisterScheduleRowsForImageKeywordApply,
+} from '@/lib/register-schedule-route-text-backfill'
 import {
   inferRegisterEffectiveProductDestination,
   isRegisterScheduleCrossContinentHallucinationKeyword,
@@ -148,6 +152,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         /(?:공항|Airport)/i.test(raw) &&
         !/(?:시내|명소|관광|크루즈|공원|사원|박물관)/i.test(raw)
       ) {
+        return { ...row, routeText: raw }
+      }
+      // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 sanitize null≠blank→dest Cairo — manifest
+      if (isRegisterScheduleFreeTimeOrResortLeisureText(raw)) {
         return { ...row, routeText: raw }
       }
       // 면세·해외공항만 — 원문 복원하지 않음(미사용 명소 bleed 방지)

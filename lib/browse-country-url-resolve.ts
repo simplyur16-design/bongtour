@@ -263,6 +263,9 @@ const DB_KR_LABEL_TO_MASTER_COUNTRY_KEY: Record<string, string> = {
   네팔: 'nepal',
   스리랑카: 'srilanka',
   부탄: 'bhutan',
+  // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 영국 → united-kingdom master tag — manifest
+  영국: 'united-kingdom',
+  중국: 'china',
 }
 
 function inferDbCountriesFromTreeLabel(country: OverseasCountryNode): string[] {
@@ -653,7 +656,20 @@ const CHINA_MEGA_BROWSE_ROWS: { label: string; countries: string[]; keywords: st
   {
     label: '귀주 · 안순',
     countries: ['중국'],
-    keywords: ['귀양', 'guiyang', '안순', 'anshun', '귀주'],
+    // REGRESSION-FREEZE[mega-menu-guizhou-china]: 귀주성·라평 browse keywords — manifest
+    keywords: [
+      '귀양',
+      'guiyang',
+      '안순',
+      'anshun',
+      '귀주',
+      '귀주성',
+      'guizhou',
+      '라평',
+      'luoping',
+      '황과수',
+      'huangguoshu',
+    ],
   },
   {
     label: '하이난',
@@ -1020,6 +1036,12 @@ const COMBINED_BROWSE_COUNTRY_KEY_EXPANSIONS: Record<string, string[]> = {
   ],
   balkans: ['croatia', 'slovenia', 'balkans'],
   발칸: ['croatia', 'slovenia', 'balkans'],
+  // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: tree `uk` ↔ ProductCountryTag `united-kingdom` — manifest
+  uk: ['uk', 'united-kingdom'],
+  영국: ['uk', 'united-kingdom'],
+  // REGRESSION-FREEZE[mega-menu-guizhou-china]: tree `china-major` ↔ master `china` 태그 — manifest
+  'china-major': ['china-major', 'china'],
+  중국: ['china', 'china-major'],
 }
 
 export function resolveBrowseCountryParamToCountryKeySlugs(param: string | null | undefined): string[] {

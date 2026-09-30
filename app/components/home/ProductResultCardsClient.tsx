@@ -6,9 +6,10 @@ import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArro
 import { MAIN_MENU_PRODUCT_CARD_GRID_CLASS } from '@/lib/hub-main-menu-card-layout'
 import { MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS } from '@/lib/mobile-hub-scroll-layout'
 
+// REGRESSION-FREEZE[home-card-price-from-tilde]: 최저가 표기는 원 뒤 ~ (가격부터) — manifest
 function formatWon(n: number | null): string {
-  if (n == null || !Number.isFinite(n)) return '상담 문의'
-  return `${new Intl.NumberFormat('ko-KR').format(Math.trunc(n))}원`
+  if (n == null || !Number.isFinite(n)) return '문의'
+  return `${new Intl.NumberFormat('ko-KR').format(Math.trunc(n))}원~`
 }
 
 type Layout = 'grid' | 'scroll'

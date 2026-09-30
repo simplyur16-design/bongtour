@@ -10,7 +10,10 @@ import {
   type ProductBrowseIncludedRow,
 } from '@/lib/product-browse-full-include'
 import { minBrowseBookableAdultPrice } from '@/lib/browse-product-seat-bookable'
-import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
+import {
+  computeEffectivePricePerPersonKrwFromRow,
+  fetchProductPriceAdultMinByProductIds,
+} from '@/lib/product-price-per-person'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { aggregateAirlineFacets, aggregateBrandFacets } from '@/lib/products-browse-facets'
 import {
@@ -629,21 +632,38 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       }
     >()
 
-    const mappedItems = metaRows.map(({ p: pRaw, effectivePricePerPerson, coverUrl, firstScheduleName }) => {
+    // REGRESSION-FREEZE[browse-price-product-price-fallback]: 출발행·priceFrom 없을 때 ProductPrice 폴백 — manifest
+    const provisionalCardPriceById = new Map<string, number | null>()
+    const needProductPriceFallbackIds: string[] = []
+    for (const { p: pRaw, effectivePricePerPerson } of metaRows) {
+      const departures = sliceDepartureByProductId.get(pRaw.id) ?? []
+      const seatAwareMin = isHubFullCatalog ? null : minBrowseBookableAdultPrice(departures)
+      const cardPriceKrw =
+        seatAwareMin ??
+        (isHubFullCatalog && pRaw.minBookableAdultPrice != null ? pRaw.minBookableAdultPrice : null) ??
+        computeEffectivePricePerPersonKrwFromRow(
+          { ...pRaw, departures },
+          { seatAware: !isHubFullCatalog },
+        ) ??
+        effectivePricePerPerson
+      provisionalCardPriceById.set(pRaw.id, cardPriceKrw)
+      if (cardPriceKrw == null || cardPriceKrw <= 0) needProductPriceFallbackIds.push(pRaw.id)
+    }
+    const productPriceMinById = isHubFullCatalog
+      ? new Map<string, number>()
+      : await fetchProductPriceAdultMinByProductIds(needProductPriceFallbackIds)
+
+    const mappedItems = metaRows.map(({ p: pRaw, coverUrl, firstScheduleName }) => {
       const departures = sliceDepartureByProductId.get(pRaw.id) ?? []
       const p: ProductBrowseIncludedRow = {
         ...(pRaw as ProductBrowseIncludedRow),
         departures,
       }
-      const seatAwareMin = isHubFullCatalog ? null : minBrowseBookableAdultPrice(departures)
-      const cardPriceKrw =
-        seatAwareMin ??
-        (isHubFullCatalog && p.minBookableAdultPrice != null ? p.minBookableAdultPrice : null) ??
-        computeEffectivePricePerPersonKrwFromRow(
-          { ...p, departures },
-          { seatAware: !isHubFullCatalog },
-        ) ??
-        effectivePricePerPerson
+      const provisional = provisionalCardPriceById.get(pRaw.id)
+      const resolvedCardPriceKrw =
+        provisional != null && provisional > 0
+          ? provisional
+          : productPriceMinById.get(pRaw.id) ?? null
       const seoAssetHint = lookupCaptionFromMap(captionMap, coverUrl)
       const coverImageSeoKeyword = resolvePublicProductHeroSeoKeywordOverlay({
         storedRegisterSeoKeywordsJson: p.publicImageHeroSeoKeywordsJson,
@@ -711,7 +731,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       bgImageUrl: p.bgImageUrl,
       coverImageUrl: coverUrl,
       priceFrom: p.priceFrom,
-      effectivePricePerPersonKrw: cardPriceKrw,
+      effectivePricePerPersonKrw: resolvedCardPriceKrw,
       earliestDeparture:
         p.nextBookableDepartureAt?.toISOString() ??
         p.departures[0]?.departureDate?.toISOString() ??

@@ -641,7 +641,8 @@ const CHINA_HK_MO_HUANGSHAN_TEXT = ['황산', 'huangshan', '운곡케이블카',
 /** 장야 七彩丹霞 — 황산(黄山)과 별도 목적지 */
 const CHINA_HK_MO_ZHANGYE_CITY_KEYS = new Set(['zhangye', 'danxia'])
 
-const CHINA_HK_MO_ZHANGYE_TEXT = ['장야', 'zhangye', '张掖', '七彩', '丹霞', '다채', '쪼한']
+// REGRESSION-FREEZE[mega-menu-guizhou-china]: bare `다채`/`七彩`/`丹霞` 귀주성 오탐 금지 — manifest
+const CHINA_HK_MO_ZHANGYE_TEXT = ['장야', 'zhangye', '张掖', '七彩丹霞', '다채단하', '칠채단하', '칠채단샤', '쪼한']
 
 const EUROPE_ME_CAUCASUS_CITY_KEYS = new Set([
   'caucasus',

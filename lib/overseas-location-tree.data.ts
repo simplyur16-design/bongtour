@@ -403,7 +403,11 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
         aliases: ['이탈리아', '시칠리아'],
       }),
       C('uk', '영국', [
-        L('uk', '영국 일반', { aliases: ['영국', 'london', '런던', 'UK'], supplierKeywords: ['LHR', 'LGW'] }),
+        // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 영국일주 dest-only — manifest
+        L('uk', '영국 일반', {
+          aliases: ['영국', '영국일주', 'london', '런던', 'UK', '잉글랜드', '스코틀랜드', '웨일즈', 'edinburgh', '에딘버러'],
+          supplierKeywords: ['LHR', 'LGW'],
+        }),
         // 「아일랜드관광」·「지명+아일랜드」(섬) 오매칭 방지 — EU는 ireland/Dublin/더블린 (+공화국)
         // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: Granville/Yas/Bohol Island ≠ Ireland — manifest
         L('ie', '아일랜드', { aliases: ['ireland', 'Ireland', '더블린', 'Dublin', '아일랜드 공화국'] }),
@@ -591,12 +595,28 @@ export const OVERSEAS_LOCATION_TREE_DATA: OverseasRegionGroupNode[] = [
           L('shanghai', '상해', { aliases: ['shanghai', '상해', '上海'] }),
           L('beijing-tianjin', '북경 · 천진', { aliases: ['beijing', '북경', '베이징', 'tianjin', '천진'] }),
           L('sichuan', '사천 · 성도 · 구채구', { aliases: ['chengdu', '성도', '구채구', 'jiuzhaigou', '티벳', 'tibet', '충칭', 'chongqing', '중경'] }),
-          L('guizhou', '귀주 · 안순', { aliases: ['guiyang', '귀양', '안순'] }),
+          // REGRESSION-FREEZE[mega-menu-guizhou-china]: 귀주성·라평·황과수 → china-major/guizhou — manifest
+          L('guizhou', '귀주 · 안순', {
+            aliases: [
+              'guiyang',
+              '귀양',
+              '안순',
+              'anshun',
+              '귀주',
+              '귀주성',
+              'guizhou',
+              '라평',
+              'luoping',
+              '황과수',
+              'huangguoshu',
+            ],
+          }),
           L('yunnan', '곤명 · 여강', { aliases: ['kunming', '곤명', 'lijiang', '여강', '리장'] }),
           L('guilin', '계림', { aliases: ['guilin', '계림', '양삭'] }),
           L('huangshan', '황산', { aliases: ['huangshan', '황산', '운곡', '태평'] }),
           L('zhangye', '장야 · 七彩丹霞', {
-            aliases: ['zhangye', '장야', '张掖', '七彩', '丹霞', '다채', '쪼한'],
+            // REGRESSION-FREEZE[mega-menu-guizhou-china]: bare `다채`는 귀주성 공연명과 충돌 — manifest
+            aliases: ['zhangye', '장야', '张掖', '七彩丹霞', '다채단하', '칠채단하', '칠채단샤', '쪼한'],
           }),
           L('hangzhou', '항주', { aliases: ['hangzhou', '항주', '杭州'], supplierKeywords: ['항주'] }),
           L('hefei', '합비', { aliases: ['hefei', '합비'], supplierKeywords: ['합비'] }),

@@ -14,8 +14,10 @@
  * REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
  * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: pending 지방출발 재추론 — manifest
  * REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]: 힐이 hotelText·식사 필드를 버리지 않음 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: FIT는 Fit master→schedule 동기화 후 heal — manifest
  */
 import { prisma } from '@/lib/prisma'
+import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { withPrismaRetry } from '@/lib/prisma-retry'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolveRegisterAdminLane, type RegisterAdminLane } from '@/lib/register-admin-lane'
@@ -156,13 +158,25 @@ export async function healPendingRegisterPrePhoto(
         skippedUnchanged += 1
         continue
       }
-      const rows = parseScheduleRows(product.schedule)
       const lane = resolveRegisterAdminLane({
         listingKind: product.listingKind,
         productType: product.productType,
         sportsThemeTag: product.sportsThemeTag,
       })
-      const photosReady = isRegisterPendingPhotosReady(product.bgImageUrl, product.schedule)
+      // REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: FIT 추천일정 master → schedule — manifest
+      let scheduleRaw = product.schedule
+      if (lane === 'air_hotel_free') {
+        const synced = await syncScheduleImageKeywordsFromFitMasterDb(product.id)
+        if (synced.updated) {
+          const reloaded = await prisma.product.findUnique({
+            where: { id: product.id },
+            select: { schedule: true },
+          })
+          scheduleRaw = reloaded?.schedule ?? scheduleRaw
+        }
+      }
+      const rows = parseScheduleRows(scheduleRaw)
+      const photosReady = isRegisterPendingPhotosReady(product.bgImageUrl, scheduleRaw)
       const supplierKey =
         normalizeSupplierOrigin(String(product.originSource ?? product.brand?.brandKey ?? '').trim()) ??
         String(product.originSource ?? '').trim()
@@ -334,7 +348,7 @@ export async function healPendingRegisterPrePhoto(
             }
           }
         }
-        scheduleChanged = registerPendingScheduleJsonChanged(next, product.schedule) || imageUrlCleared > 0
+        scheduleChanged = registerPendingScheduleJsonChanged(next, scheduleRaw) || imageUrlCleared > 0
       }
 
       let countryKeyForVerify = product.countryKey ?? null

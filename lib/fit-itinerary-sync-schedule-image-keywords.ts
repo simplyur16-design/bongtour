@@ -1,6 +1,7 @@
 /**
  * Fit 예시 일정 — 일차별 imageKeyword 동기화.
  * REGRESSION-FREEZE[airtel-fit-per-day-keywords]: 단일 키워드 전일차 강제 금지 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: Fit master → schedule 동선·키워드 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import {
@@ -48,6 +49,62 @@ function parseScheduleRows(raw: string | null): ProductScheduleJsonRow[] {
 }
 
 export { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+
+/** DB FitItineraryMaster.days(+activities) → 키워드 병합용 일차 배열 */
+export async function loadFitItineraryDaysForKeywordFromDb(
+  productId: string,
+): Promise<FitItineraryDayForKeyword[]> {
+  const master = await prisma.fitItineraryMaster.findUnique({
+    where: { productId },
+    select: {
+      days: {
+        orderBy: { dayNumber: 'asc' },
+        select: {
+          dayNumber: true,
+          title: true,
+          summary: true,
+          dayCityKey: true,
+          activities: {
+            orderBy: { order: 'asc' },
+            select: {
+              order: true,
+              category: true,
+              title: true,
+              description: true,
+              location: true,
+            },
+          },
+        },
+      },
+    },
+  })
+  if (!master?.days.length) return []
+  return master.days.map((d) => ({
+    dayNumber: d.dayNumber,
+    title: d.title,
+    summary: d.summary ?? '',
+    dayCityKey: d.dayCityKey ?? undefined,
+    activities: d.activities.map((a) => ({
+      order: a.order,
+      category: a.category,
+      title: a.title,
+      description: a.description ?? '',
+      location: a.location ?? '',
+    })),
+  }))
+}
+
+/** Fit master가 있으면 schedule에 추천일정 동선·imageKeyword를 다시 붙인다. */
+export async function syncScheduleImageKeywordsFromFitMasterDb(
+  productId: string,
+): Promise<SyncFitScheduleKeywordsResult & { hadMaster: boolean }> {
+  const fitDays = await loadFitItineraryDaysForKeywordFromDb(productId)
+  if (!fitDays.length) {
+    return { updated: false, dayKeywords: {}, hadMaster: false }
+  }
+  const result = await syncScheduleImageKeywordsFromFitItinerary(productId, fitDays)
+  return { ...result, hadMaster: true }
+}
 
 export async function syncScheduleImageKeywordsFromFitItinerary(
   productId: string,

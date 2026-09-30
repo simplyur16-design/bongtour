@@ -710,6 +710,134 @@ describe('register-pre-photo-self-heal', () => {
       bordeauxVerify.issues.join(','),
     )
 
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 상해 bare → 명소 팩 — manifest
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge bare도 middle soft-dup 금지 — manifest
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: ownRouteHasKeyword strict for landmark dup — manifest
+    const shanghaiHeal = healRegisterPrePhotoSchedule(
+      [
+        { day: 1, routeText: '', imageKeyword: 'Shanghai', imageKeyword2: null as string | null },
+        {
+          day: 2,
+          routeText: 'Shanghai',
+          imageKeyword: 'Oriental Pearl Tower',
+          imageKeyword2: 'Zhujiajiao Water Town Canal Bridge',
+        },
+        { day: 3, routeText: 'Shanghai', imageKeyword: 'Shanghai', imageKeyword2: null },
+        { day: 4, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '상해',
+        productTitle: '상해 3일',
+        lane: 'package',
+      },
+    )
+    const shKw = shanghaiHeal.rows.map((r) => String(r.imageKeyword ?? '').trim())
+    assert.equal(shKw[0], 'Shanghai')
+    assert.ok(shKw[1] && !/^Shanghai$/i.test(shKw[1]!), shKw.join('|'))
+    assert.ok(shKw[2] && !/^Shanghai$/i.test(shKw[2]!), `day3 must not bare-repeat: ${shKw.join('|')}`)
+    assert.notEqual(
+      shKw[1]!.toLowerCase(),
+      shKw[2]!.toLowerCase(),
+      `day2/day3 landmark dup bleed: ${shKw.join('|')}`,
+    )
+    const shanghaiVerify = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '상해 3일',
+      productDestination: '상해',
+      rows: shanghaiHeal.rows,
+    })
+    assert.equal(
+      shanghaiVerify.issues.some((i) => i.includes('bare_city_repeat')),
+      false,
+      shanghaiVerify.issues.join(','),
+    )
+    assert.equal(
+      shanghaiVerify.issues.some((i) => i.includes('keyword_bleed_other_day')),
+      false,
+      shanghaiVerify.issues.join(','),
+    )
+
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 보홀·세부·오슬로 명소 route SSOT — manifest
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: Victoria Peak ≠ London lodging dest — manifest
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 식별불가 중간일 키워드 비강제 — manifest
+    const boholHeal = healRegisterPrePhotoSchedule(
+      [
+        { day: 1, routeText: '보홀', imageKeyword: 'Bohol', imageKeyword2: null as string | null },
+        { day: 2, routeText: '보홀 - 로복강', imageKeyword: '', imageKeyword2: null },
+        { day: 3, routeText: '초콜릿 힐 - 안경원숭이 - 로복강', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '보홀', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '보홀',
+        productTitle: '보홀 4일',
+        lane: 'package',
+      },
+    )
+    const boholMids = boholHeal.rows
+      .filter((r) => Number(r.day) >= 2 && Number(r.day) <= 3)
+      .map((r) => String(r.imageKeyword ?? '').trim())
+    assert.ok(
+      boholMids.every((k) => k && !/^Bohol$/i.test(k)),
+      `bohol middles: ${boholMids.join('|')}`,
+    )
+    assert.ok(
+      boholMids.some((k) => /Loboc|Chocolate|Tarsier/i.test(k)),
+      boholMids.join('|'),
+    )
+
+    const londonLodging = healRegisterPrePhotoSchedule(
+      [
+        { day: 1, routeText: '런던', imageKeyword: 'London', imageKeyword2: null as string | null },
+        {
+          day: 2,
+          routeText: '성급 시내 호텔',
+          imageKeyword: 'Victoria Peak',
+          imageKeyword2: null,
+        },
+        {
+          day: 3,
+          routeText: '캠든 타운 - 애비 로드',
+          imageKeyword: '',
+          imageKeyword2: null,
+        },
+        { day: 4, routeText: '', imageKeyword: '', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'hanatour',
+        productDestination: '영국 런던',
+        productTitle: '런던 4일',
+        lane: 'package',
+      },
+    )
+    const londonD2 = String(londonLodging.rows.find((r) => r.day === 2)?.imageKeyword ?? '')
+    const londonD3 = String(londonLodging.rows.find((r) => r.day === 3)?.imageKeyword ?? '')
+    assert.doesNotMatch(londonD2, /Victoria\s*Peak/i)
+    assert.ok(londonD2.length > 2, `london lodging day2: ${londonD2}`)
+    assert.match(londonD3, /Camden|Abbey/i)
+
+    const checkoutNoise = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      productTitle: '하와이 6일',
+      productDestination: '하와이',
+      rows: [
+        { day: 1, routeText: '호놀룰루', imageKeyword: 'Hawaii' },
+        { day: 2, routeText: '호놀룰루', imageKeyword: 'Hawaii Waikiki Beach' },
+        {
+          day: 3,
+          routeText: '▶ 체크 아웃 시 그동안 호텔 내에서 사용하신 금액 확인 후 결제하시면',
+          imageKeyword: '',
+        },
+        { day: 4, routeText: '', imageKeyword: 'Hawaii' },
+      ],
+    })
+    assert.equal(
+      checkoutNoise.issues.some((i) => i.includes('middle_keyword_empty')),
+      false,
+      checkoutNoise.issues.join(','),
+    )
+
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 중간일 맨도시 반복 fail — manifest
     const cityRepeat = verifyRegisterPrePhoto({
       lane: 'package',

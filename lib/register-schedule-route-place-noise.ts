@@ -707,9 +707,10 @@ export function sanitizeRegisterScheduleRouteText(
   // REGRESSION-FREEZE[register-schedule-route-place-noise]: theme-garden country list strip — manifest
   const raw = String(routeText ?? '').trim()
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 리조트 자유일 empty route ← title — manifest
-  // 리조트·자유시간 라벨은 place 체인이 아니어도 유지 (sanitize가 null로 비우면 live gate hard fail)
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유 휴양 sanitize≠Cairo dest — manifest
+  // 리조트·자유시간·자유휴양 라벨은 place 체인이 아니어도 유지 (sanitize→빈 route→dest Cairo 오염 금지)
   if (
-    /자유\s*시간|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크/i.test(
+    /자유\s*시간|자유\s*일정|자유\s*휴양|리조트\s*자유|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크|숙박\s*없음(?:\s*\(귀국\))?/i.test(
       raw,
     )
   ) {

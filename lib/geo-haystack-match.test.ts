@@ -96,3 +96,56 @@ describe('matchProductToOverseasNode guam vs nikko', () => {
     expect(m?.leafKey).toBe('guam')
   })
 })
+
+describe('mega-menu compound geo haystack — 영국일주·유후인', () => {
+  // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 붙여쓰기 ≠ 그외 — manifest
+  it('matches 영국 inside 영국일주', () => {
+    expect(termAppearsInHaystack('영국', '영국일주 9일')).toBe(true)
+    expect(termAppearsInHaystack('영국일주', '영국일주 9일')).toBe(true)
+  })
+
+  it('matches 유후인 inside hotel compound names', () => {
+    expect(termAppearsInHaystack('유후인', '유후인노모리 료칸')).toBe(true)
+    expect(termAppearsInHaystack('유후인', '유후인카이카테이 1박')).toBe(true)
+  })
+
+  it('영국일주 dest-only product matches UK leaf · not other', async () => {
+    const { resolveOverseasDisplayBucketForBrowse } = await import('@/lib/overseas-display-buckets')
+    const m = matchProductToOverseasNode({
+      title: '[ 영국일주 9일] #템즈강크루즈 #스톤헨지',
+      originSource: 'modetour',
+      primaryDestination: '영국일주 9일',
+      destination: '영국일주 9일',
+    })
+    expect(m?.countryKey).toBe('uk')
+    expect(m?.leafKey).toBe('uk')
+    expect(
+      resolveOverseasDisplayBucketForBrowse(
+        { title: '[ 영국일주 9일]', primaryDestination: '영국일주 9일', destination: '영국일주 9일' },
+        m,
+      ),
+    ).toBe('europe_me_af')
+  })
+
+  it('유후인 상호 붙여쓰기 matches beppu-yufuin · japan bucket', async () => {
+    const { resolveOverseasDisplayBucketForBrowse } = await import('@/lib/overseas-display-buckets')
+    const m = matchProductToOverseasNode({
+      title: '유후인노모리 료칸',
+      originSource: 'naeiltour',
+      primaryDestination: '유후인카이카테이 1박',
+      destination: '유후인카이카테이 1박',
+    })
+    expect(m?.groupKey).toBe('japan')
+    expect(m?.leafKey).toBe('beppu-yufuin')
+    expect(
+      resolveOverseasDisplayBucketForBrowse(
+        {
+          title: '유후인노모리 료칸',
+          primaryDestination: '유후인카이카테이 1박',
+          destination: '유후인카이카테이 1박',
+        },
+        m,
+      ),
+    ).toBe('japan')
+  })
+})

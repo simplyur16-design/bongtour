@@ -108,6 +108,60 @@ describe('deriveProductLocationKeyFieldsForPrisma — 인도네시아', () => {
   })
 })
 
+describe('resolveOverseasDisplayBucketForBrowse — 귀주성(중국)', () => {
+  // REGRESSION-FREEZE[mega-menu-guizhou-china]: 귀주성 → china_hk_mo · 그외 금지 — manifest
+  it('귀주성/라평 제목은 china-major/guizhou leaf · 중국 버킷', async () => {
+    const { matchProductToOverseasNode } = await import('@/lib/match-overseas-product')
+    const m = matchProductToOverseasNode({
+      title: '귀주성/라평 5일 #유채꽃#핵심일정#준5성호텔#리무진#용궁(뱃놀이)',
+      originSource: 'hanatour',
+      primaryDestination: '중국',
+    })
+    expect(m?.groupKey).toBe('china-circle')
+    expect(m?.countryKey).toBe('china-major')
+    expect(m?.leafKey).toBe('guizhou')
+    expect(mapMatchToOverseasDisplayBucket(m)).toBe('china_hk_mo')
+    expect(
+      resolveOverseasDisplayBucketForBrowse(
+        {
+          title: '귀주성/라평 5일 #유채꽃',
+          originSource: 'hanatour',
+          primaryDestination: '중국',
+        },
+        m,
+      ),
+    ).toBe('china_hk_mo')
+  })
+
+  it('match 실패해도 귀주성 haystack이면 china_hk_mo', () => {
+    expect(
+      resolveOverseasDisplayBucketForBrowse(
+        {
+          title: '귀주성 황과수 5일',
+          originSource: 'hanatour',
+          primaryDestination: '미지정',
+        },
+        null,
+      ),
+    ).toBe('china_hk_mo')
+  })
+
+  it('countryKey china (master) match도 china_hk_mo', () => {
+    expect(
+      mapMatchToOverseasDisplayBucket({
+        scope: 'leaf',
+        groupKey: 'china-circle',
+        countryKey: 'china',
+        leafKey: 'guizhou',
+        groupLabel: '',
+        countryLabel: '중국',
+        leafLabel: '귀주',
+        matchedTerm: '귀주성',
+      }),
+    ).toBe('china_hk_mo')
+  })
+})
+
 describe('deriveProductLocationKeyFieldsForPrisma — 남미 경유 허브', () => {
   // REGRESSION-FREEZE[mega-menu-product-alignment]
   it('structured Argentina/Chile dest beats LA transit in schedule body', () => {

@@ -462,6 +462,279 @@
       ]
     },
     {
+      "id": "home-card-price-from-tilde",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈·갤러리 카드 최저가는 원 뒤에 ~ (가격부터) · 없으면 문의",
+      "checks": [
+        {
+          "file": "app/components/home/ProductResultCardsClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-card-price-from-tilde]",
+            "}원~`",
+            "return '문의'"
+          ],
+          "mustNotInclude": [
+            "상담 문의"
+          ]
+        },
+        {
+          "file": "app/components/gallery/AgentCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-card-price-from-tilde]",
+            "}원~`",
+            "return '문의'"
+          ],
+          "mustNotInclude": [
+            "참고가 {priceStr}~"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "browse-price-product-price-fallback",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "목록 최저가 — ProductDeparture 없을 때 ProductPrice.adult 최저 폴백 (문의 오표기 방지)",
+      "checks": [
+        {
+          "file": "lib/product-price-per-person.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-price-product-price-fallback]",
+            "computeProductPriceAdultMin",
+            "fetchProductPriceAdultMinByProductIds",
+            "prices?: Array<{ adult: number | null }>"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[browse-price-product-price-fallback]",
+            "fetchProductPriceAdultMinByProductIds",
+            "needProductPriceFallbackIds"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-price-per-person.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-guizhou-china",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 귀주성 — china-major/guizhou leaf·화남 메가메뉴·china_hk_mo 버킷(그외 금지)",
+      "checks": [
+        {
+          "file": "lib/overseas-location-tree.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-guizhou-china]",
+            "L('guizhou'",
+            "귀주성",
+            "라평",
+            "황과수"
+          ],
+          "mustNotInclude": [
+            "aliases: ['zhangye', '장야', '张掖', '七彩', '丹霞', '다채', '쪼한']"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-guizhou-china]",
+            "city('귀주'",
+            "귀주성",
+            "guizhou",
+            "다채단하"
+          ],
+          "mustNotInclude": [
+            "city('장야', ['장야', 'zhangye', '张掖', '七彩', '丹霞', '다채', '쪼한', '중국'])"
+          ]
+        },
+        {
+          "file": "lib/overseas-mega-region-city-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-guizhou-china]",
+            "다채단하"
+          ],
+          "mustNotInclude": [
+            "const CHINA_HK_MO_ZHANGYE_TEXT = ['장야', 'zhangye', '张掖', '七彩', '丹霞', '다채', '쪼한']"
+          ]
+        },
+        {
+          "file": "lib/overseas-display-buckets.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-guizhou-china]",
+            "RE_GUIZHOU_CHINA_TRAVEL",
+            "ck === 'china'"
+          ]
+        },
+        {
+          "file": "lib/browse-country-url-resolve.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-guizhou-china]",
+            "귀주성",
+            "huangguoshu",
+            "china-major"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-location-key-match-us-west.test.ts",
+        "lib/mega-menu-city-group-coherence.test.ts",
+        "lib/mega-menu-compound-geo-haystack.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-compound-geo-haystack",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "영국일주·유후인 붙여쓰기 haystack + browse uk↔united-kingdom — 그외 금지",
+      "checks": [
+        {
+          "file": "lib/geo-haystack-match.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-compound-geo-haystack]",
+            "일주",
+            "유후인노모리"
+          ]
+        },
+        {
+          "file": "lib/browse-country-url-resolve.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-compound-geo-haystack]",
+            "united-kingdom"
+          ]
+        },
+        {
+          "file": "lib/overseas-display-buckets.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-compound-geo-haystack]",
+            "RE_UK_EUROPE_TRAVEL",
+            "RE_YUFUIN_JAPAN_TRAVEL"
+          ]
+        },
+        {
+          "file": "lib/overseas-location-tree.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-compound-geo-haystack]",
+            "영국일주"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/geo-haystack-match.test.ts",
+        "lib/mega-menu-compound-geo-haystack.test.ts"
+      ]
+    },
+    {
+      "id": "seasonal-pick-badge-one-per-keyword",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "이달의 추천 배지 — 시즌 키워드당 대표 1건만 (권역 필터 시 전 상품 배지 금지)",
+      "checks": [
+        {
+          "file": "lib/product-sort.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[seasonal-pick-badge-one-per-keyword]",
+            "SEASONAL_PICK_BADGE_PER_KEYWORD",
+            "badgeCountByPick"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-sort.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-pkg-middle-kw-fill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "패키지 중간일 kw 공란 — 호텔 title 관광 route 블리드 제거·KO POI 매핑·공항 bare soft-dup·자유휴양≠Cairo dest·Gemini hay 허용",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-text-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "stripTourismRouteBleedFromHotelTitleDays"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "황산 풍경구",
+            "바르지아",
+            "엘승타사르하이",
+            "용문석굴",
+            "핸더슨 웨이브",
+            "residual14 Greece/Iceland/Nepal",
+            "요쿨살롱",
+            "보우다나트"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "strip",
+            "yogyakarta",
+            "pokhara",
+            "ranch"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "싱가포르 city-hub soft-dup",
+            "Singapore|Bangkok|Samarkand",
+            "residual14 revisit bare",
+            "Santorini|Pokhara|Kathmandu"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "isAirportOrOutboundMovementRoute",
+            "자유휴양 ownCity=bare만"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "자유 휴양"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keyword-gemini-fill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]",
+            "route 없어도 title/desc hay면 Gemini 대상"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-route-text-backfill.test.ts",
+        "lib/register-pre-photo-poi-ko-own-route-gap.test.ts",
+        "lib/register-pre-photo-pkg-middle-kw-fill.test.ts"
+      ]
+    },
+    {
       "id": "modetour-title-no-inline-extract",
       "tier": [
         "prebuild",
@@ -4668,6 +4941,54 @@
         "lib/fit-itinerary-pick-day-image-keyword.test.ts",
         "lib/fit-itinerary-prompt.test.ts",
         "lib/fit-itinerary-sync-schedule-image-keywords.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-lane-rematerialize",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "키워드 remat — FIT는 Fit master→schedule, 패키지는 규칙+자유일정/빈칸 Gemini+heal",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-lane-rematerialize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]",
+            "syncScheduleImageKeywordsFromFitMasterDb",
+            "generateFitItineraryForProduct",
+            "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
+            "rematerializeRegisterPrePhotoByLane"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-sync-schedule-image-keywords.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]",
+            "loadFitItineraryDaysForKeywordFromDb",
+            "syncScheduleImageKeywordsFromFitMasterDb"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]",
+            "syncScheduleImageKeywordsFromFitMasterDb"
+          ]
+        },
+        {
+          "file": "scripts/_tmp_remat_kw_round2.ts",
+          "mustInclude": [
+            "rematerializeRegisterPrePhotoByLane",
+            "registerPrePhotoIssuesNeedLaneRematerialize"
+          ],
+          "mustNotInclude": [
+            "healRegisterPrePhotoSchedule(mapped"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-lane-rematerialize.test.ts"
       ]
     },
     {
@@ -10799,6 +11120,8 @@
             "Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence",
             "Alaska Victoria BC Inner Harbour — 폭포/폴스/피크 제외",
             "런던 V&A ≠ Victoria BC Inner Harbour",
+            "런던 캠든·애비로드·셜록",
+            "보홀·세부·오슬로 명소 route SSOT",
             "Terelj National Park",
             "단독「역사 박물관」≠ Istanbul",
             "후룬베이얼 역사 박물관 ≠ Istanbul",
@@ -11699,7 +12022,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
             "keyword_bare_city_repeat_other_day",
-            "Banzai Cliff Saipan"
+            "Banzai Cliff Saipan",
+            "상해 bare → 명소 팩",
+            "edge bare도 middle soft-dup 금지"
           ]
         },
         {
@@ -11707,7 +12032,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
             "middle끼리 맨도시 soft-dup 재주입 금지",
-            "bareVisitCityUsedAsOtherMiddlePrimary"
+            "bareVisitCityUsedAsOtherMiddlePrimary",
+            "middle bare kw2는 반복(used)일 때만 제거",
+            "edge bare도 middle soft-dup 금지"
           ]
         },
         {
@@ -11716,17 +12043,25 @@
             "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
             "보르도 맨도시 중간일 → 명소 팩",
             "맨도시-only route도 pack 명소 허용",
+            "pack도 verify own-route 통과 필수",
             "edge bare seed before middle",
             "Place de la Bourse Bordeaux",
             "맨도시보다 명소 팩 우선",
             "pack 있으면 맨도시 후보 스킵",
             "pack 있으면 맨도시 soft 주입 금지",
             "방콕·보홀·세부 bare → 명소 팩",
+            "보홀·세부·오슬로 명소 route SSOT",
+            "런던 캠든·애비로드·셜록",
+            "Victoria Peak ≠ London lodging dest",
+            "식별불가 중간일 키워드 비강제",
             "빈 route 중간일은 dest 명소 유지",
             "prior 무관하면 dest pack",
             "출발·귀국은 pack으로 bare soft-dup 덮지 않음",
             "서안·괌 bare → 명소 팩",
-            "상해 bare → 명소 팩"
+            "상해 bare → 명소 팩",
+            "하노이·푸켓·나고야·치앙마이·보라카이·하와이·시드니·타이베이 bare → 명소 팩",
+            "ownRouteHasKeyword strict for landmark dup",
+            "middle bare kw2는 반복(used)일 때만 제거"
           ]
         },
         {
@@ -11734,7 +12069,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]",
             "보르도 bare 동선 식별",
-            "en: \"Bordeaux\""
+            "en: \"Bordeaux\"",
+            "런던 캠든·애비로드·셜록",
+            "보홀·세부·오슬로 명소 route SSOT"
           ]
         },
         {
@@ -11744,7 +12081,11 @@
             "soft 비어도 city SSOT·도시 귀속 명소 허용",
             "SCHEDULE_SPOT_KO_REGEX_RULES",
             "숙소일 dest 명소 허용",
-            "registerScheduleLodgingAllowsDestLandmark"
+            "registerScheduleLodgingAllowsDestLandmark",
+            "ownRouteHasKeyword strict for landmark dup",
+            "Victoria Peak ≠ London lodging dest",
+            "식별불가 중간일 키워드 비강제",
+            "FIT도 숙소일 dest 명소 허용"
           ]
         }
       ],

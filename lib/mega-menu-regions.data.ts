@@ -90,7 +90,8 @@ const EU: MegaMenuCountryGroupDef[] = [
       // REGRESSION-FREEZE[mega-menu-product-alignment]: 모나코 master countryKey — manifest
       LC('모나코', ['모나코', 'monaco', '몬테카를로', 'monte carlo']),
       LC('스위스', ['스위스', 'switzerland', '취리히', '인터라켄']),
-      LC('영국', ['영국', 'UK', '런던', 'london']),
+      // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 영국일주 mega terms — manifest
+      LC('영국', ['영국', '영국일주', 'UK', '런던', 'london', '잉글랜드', '스코틀랜드']),
       LC('독일', ['독일', 'germany', '베를린', '뮌헨']),
       LC('네덜란드', ['네덜란드', 'netherlands', '암스테르담']),
       LC('벨기에', ['벨기에', 'belgium', '브뤼셀']),
@@ -342,7 +343,8 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('천진', ['천진', 'tianjin', '중국']),
     city('대동', ['대동', 'datong', '중국']),
     city('서안', ['서안', "xi'an", 'xian', '중국']),
-    city('장야', ['장야', 'zhangye', '张掖', '七彩', '丹霞', '다채', '쪼한', '중국']),
+    // REGRESSION-FREEZE[mega-menu-guizhou-china]: bare `다채`/`七彩`/`丹霞`는 귀주성 공연명·일반어와 충돌 — manifest
+    city('장야', ['장야', 'zhangye', '张掖', '七彩丹霞', '다채단하', '칠채단하', '칠채단샤', '쪼한', '중국']),
   ]),
   // REGRESSION-FREEZE[mega-menu-product-alignment]: 하남 정주·낙양·개봉·초작 master cityKeys — manifest
   GCn('화중', [
@@ -370,6 +372,21 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('중경', ['중경', 'chongqing', '충칭', '중국']),
     city('곤명', ['곤명', 'kunming', '중국']),
     city('여강', ['여강', 'lijiang', '리장', '중국']),
+    // REGRESSION-FREEZE[mega-menu-guizhou-china]: 귀주성(하나투어) 화남·중국 — manifest
+    city('귀주', [
+      '귀주',
+      '귀주성',
+      '귀양',
+      'guiyang',
+      'guizhou',
+      '안순',
+      'anshun',
+      '라평',
+      'luoping',
+      '황과수',
+      'huangguoshu',
+      '중국',
+    ]),
   ]),
   G('홍콩', [LC('홍콩', ['홍콩', 'hong kong', 'HKG'])]),
   G('마카오', [LC('마카오', ['마카오', 'macau', 'macao'])]),

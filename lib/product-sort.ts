@@ -2,7 +2,7 @@ import { toSeoulYmd } from '@/lib/public-bookable-date'
 
 // TODO: 고객 데이터 쌓이면 bongsim_order에서 최근 30일 주문 수 기준 인기순으로 전환
 
-/** 월별 추천 여행지(문자열 포함 매칭용) — 상단 고정 3개 순서 */
+/** 월별 추천 여행지(문자열 포함 매칭용) — 상단 정렬 우선순위 */
 export const SEASONAL_PICKS: Record<string, string[]> = {
   '1': ['일본', '괌', '사이판'],
   '2': ['일본', '괌', '베트남'],
@@ -17,6 +17,12 @@ export const SEASONAL_PICKS: Record<string, string[]> = {
   '11': ['일본', '베트남', '태국'],
   '12': ['괌', '사이판', '베트남'],
 }
+
+/**
+ * `이달의 추천` 배지 — 시즌 키워드당 대표 1건만 (권역 필터 시 전 상품 배지 방지).
+ * REGRESSION-FREEZE[seasonal-pick-badge-one-per-keyword]: manifest
+ */
+export const SEASONAL_PICK_BADGE_PER_KEYWORD = 1
 
 export type SeasonSortableProduct = {
   id: string
@@ -63,6 +69,8 @@ export type SortProductsBySeasonResult<T extends SeasonSortableProduct> = {
 /**
  * - 이번 달 시즌 키워드에 맞는 상품을 상단에(키워드 배열 순서)
  * - 나머지는 YYYYMMDD 숫자 시드 기반 해시로 일 단위 셔플
+ * - 배지(`seasonalPickIds`)는 키워드당 대표 1건만 — 「일본」권역에서 전 상품 배지 금지
+ * REGRESSION-FREEZE[seasonal-pick-badge-one-per-keyword]: manifest
  */
 export function sortProductsBySeason<T extends SeasonSortableProduct>(
   products: readonly T[],
@@ -72,11 +80,9 @@ export function sortProductsBySeason<T extends SeasonSortableProduct>(
   const m = Math.min(12, Math.max(1, Math.floor(currentMonth)))
   const picks = SEASONAL_PICKS[String(m)] ?? SEASONAL_PICKS['1']!
   const seed = yyyymmddNumber(options?.dateSeed ?? new Date())
-  const seasonalPickIds = new Set<string>()
 
   const decorated = products.map((item) => {
     const pickIdx = bestPickIndex(picks, matchHaystack(item))
-    if (pickIdx !== null) seasonalPickIds.add(item.id)
     const orderKey = dailyOrderKey(seed, item.id)
     return { item, pickIdx, orderKey }
   })
@@ -90,6 +96,17 @@ export function sortProductsBySeason<T extends SeasonSortableProduct>(
     }
     return a.orderKey - b.orderKey
   })
+
+  // REGRESSION-FREEZE[seasonal-pick-badge-one-per-keyword]: 키워드당 배지 1건 — manifest
+  const seasonalPickIds = new Set<string>()
+  const badgeCountByPick = new Map<number, number>()
+  for (const row of decorated) {
+    if (row.pickIdx === null) continue
+    const n = badgeCountByPick.get(row.pickIdx) ?? 0
+    if (n >= SEASONAL_PICK_BADGE_PER_KEYWORD) continue
+    badgeCountByPick.set(row.pickIdx, n + 1)
+    seasonalPickIds.add(row.item.id)
+  }
 
   return {
     items: decorated.map((x) => x.item),

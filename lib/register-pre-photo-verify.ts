@@ -70,7 +70,9 @@ import { productCountryScheduleMismatchIssues } from '@/lib/register-pre-photo-p
 import { allowRouteRevisitBareVisitCitySoftDup, softDupForeignVisitCityForMiddleRoute } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 // REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: countryKey≠일정 나라 — manifest
 
-function ownRouteHasKeyword(routeText: string | null | undefined, keyword: string): boolean {
+/** verify bleed·heal align이 같은 엄격 기준 사용 — 도시 soft 귀속 명소는 여기 없음 */
+// REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: ownRouteHasKeyword strict for landmark dup — manifest
+export function ownRouteHasKeyword(routeText: string | null | undefined, keyword: string): boolean {
   const nk = normScheduleImageKeywordKey(keyword)
   if (!nk) return false
   for (const kw of [
@@ -178,7 +180,16 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
 ): boolean {
   // REGRESSION-FREEZE[register-ocean-cruise-product]: 전일해상은 랜드마크 키워드 비강제 — manifest
   if (isOceanCruiseAtSeaRoute(routeText)) return false
-  if (slot === 'middle') return true
+  if (slot === 'middle') {
+    const t = String(routeText ?? '').trim()
+    // 빈 동선·숙소일은 채움 대상. 체크아웃 안내문처럼 식별 불가 잡음은 키워드 비강제.
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 식별불가 중간일 키워드 비강제 — manifest
+    if (!t) return true
+    if (/체크\s*아웃|check[\s-]*out|결제하시면/i.test(t)) return false
+    if (registerScheduleRouteIsLodgingOnly(routeText)) return true
+    if (!routeTextHasIdentifiableVisitPlace(routeText)) return false
+    return true
+  }
   if (slot === 'departure') {
     if (registerScheduleRouteIsLodgingOnly(routeText)) return false
     return routeTextHasIdentifiableVisitPlace(routeText)
@@ -235,13 +246,15 @@ export function registerScheduleKeywordMatchesOwnDayRoute(
         if (hitTok.includes(t)) shared++
       }
       // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
+      // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: Victoria Peak ≠ London lodging dest — manifest
       // 단일 모호 토큰(Victoria)만으로 타 도시 명소 귀속 금지
       if (shared >= 2) return true
       if (
         shared === 1 &&
         kwTok.length === 1 &&
         hitTok.includes(kwTok[0]!) &&
-        kwTok[0]!.length >= 6
+        kwTok[0]!.length >= 6 &&
+        !AMBIGUOUS_ROUTE_KW_TOKEN_RE.test(kwTok[0]!)
       ) {
         return true
       }
@@ -552,6 +565,7 @@ function pushFilledKeywordQualityIssues(
 function fitScheduleIssues(
   rows: readonly RegisterPrePhotoHealRow[],
   productTitle?: string | null,
+  productDestination?: string | null,
 ): RegisterPrePhotoVerifyIssue[] {
   const issues: RegisterPrePhotoVerifyIssue[] = []
   const days = rows.filter((r) => Number(r.day) > 0)
@@ -561,6 +575,7 @@ function fitScheduleIssues(
   }
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
+  const destHay = registerPrePhotoPlaceDestHay(productDestination, productTitle)
   let anyKeyword = false
   for (const row of days) {
     const day = Number(row.day)
@@ -605,14 +620,19 @@ function fitScheduleIssues(
         isAuroraHuntingProductTitle(productTitle) &&
         imageKeywordMentionsAurora(kw)
       ) &&
-      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw)
+      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw) &&
+      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, kw) &&
+      !registerScheduleLodgingAllowsDestLandmark(row.routeText, kw, destHay)
     ) {
+      // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: FIT도 숙소일 dest 명소 허용 — manifest
       issues.push(`day${day}_keyword_not_on_own_route`)
     }
     if (
       slot === 'middle' &&
       kw2 &&
-      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw2)
+      !registerScheduleKeywordMatchesOwnDayRoute(row.routeText, kw2) &&
+      !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(row.routeText, kw2) &&
+      !registerScheduleLodgingAllowsDestLandmark(row.routeText, kw2, destHay)
     ) {
       issues.push(`day${day}_keyword2_not_on_own_route`)
     }
@@ -886,7 +906,7 @@ export function verifyRegisterPrePhoto(args: {
     if (!isAirHotelListingKind(args.listingKind) && !isAirHotelProductType(args.productType)) {
       issues.push('fit_listingKind_mismatch')
     }
-    issues.push(...fitScheduleIssues(args.rows, args.productTitle))
+    issues.push(...fitScheduleIssues(args.rows, args.productTitle, args.productDestination))
   } else {
     if (isAirHotelListingKind(args.listingKind) || isAirHotelProductType(args.productType)) {
       issues.push('package_listingKind_is_fit')

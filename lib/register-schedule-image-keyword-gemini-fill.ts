@@ -198,12 +198,19 @@ export function scheduleDaysMissingImageKeywordAfterRules(
     if (isRegisterPendingFreeItineraryDay(row, { productTitle })) continue
     if (isRegisterScheduleFreeLeisureDay(hay)) continue
     const routeText = String(row.routeText ?? '').trim()
-    if (!routeText) continue
     /** 출발·귀국 인천-only 등 — 규칙이 의도적으로 비운 슬롯. Gemini가 타일 관광명으로 채우면 SSOT 붕괴 */
     // REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: domestic-hub-only·movement·return — Gemini skip
-    if (isScheduleDomesticHubOnlyRouteText(routeText, isModetourDomesticHubToken)) continue
+    if (routeText && isScheduleDomesticHubOnlyRouteText(routeText, isModetourDomesticHubToken)) continue
     const dayKind = classifyModetourScheduleCardDayKind(day, maxDay, hay)
     if (dayKind === 'movement' || dayKind === 'return_home') continue
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: route 없어도 title/desc hay면 Gemini 대상 — manifest
+    if (!routeText) {
+      const title = String(row.title ?? '').trim()
+      const desc = String(row.description ?? '').trim()
+      if (!title && !desc) continue
+      // 호텔-only title은 도시 soft-dup·heal 경로 — Gemini 환각 방지
+      if (/호텔|리조트|호캉스|Hotel|Resort/i.test(title) && !/\s[-–—→]\s/u.test(title)) continue
+    }
     out.push(day)
   }
   return out

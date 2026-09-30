@@ -13,6 +13,7 @@
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
 import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments, isRegisterScheduleFreeLeisureDay } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import { isRegisterScheduleFreeTimeOrResortLeisureText } from '@/lib/register-schedule-route-text-backfill'
 import { filterRegisterScheduleRoutePlaceSegments, isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import {
   collectRouteTextOrderedImageKeywords,
@@ -3623,6 +3624,15 @@ function shouldRejectMiddleDayKeyword2(
   primary: string,
   used: ReadonlySet<string>,
 ): boolean {
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare kw2는 반복(used)일 때만 제거 — manifest
+  // 무조건 제거하면 Da Nang+Hoi An dual-slot이 비고 verify(keyword2_bare_city_repeat)와도 어긋남
+  if (isBareCityOrCountryKeyword(secondary)) {
+    const nk = normScheduleImageKeywordKey(secondary)
+    if (!nk) return true
+    if (nk === normScheduleImageKeywordKey(primary)) return true
+    if (used.has(nk)) return true
+    return false
+  }
   if (isAllowableRouteOrderSecondKeyword2(secondary, row, primary, used)) return false
   const routeCtx = isLodgingOnlyTourismRoute(row.routeText)
     ? lodgingClusterRouteContext(row.routeText)
@@ -3660,8 +3670,10 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
   for (const seg of segs) {
     if (isRegisterScheduleRoutePlaceNoise(seg)) continue
     if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 「인터라켄 이동」→Interlaken — manifest
+    const segForCity = seg.replace(/\s*이동(?:\s*[\(（][^)）]*[\)）])?(?:\s.*)?$/u, '').trim() || seg
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
-    if (/^삿포로?$/u.test(seg)) return 'Sapporo'
+    if (/^삿포로?$/u.test(segForCity) || /^삿포로?$/u.test(seg)) return 'Sapporo'
     // 죠잔케이는 landmark로 잡혀도 soft-dup 허용 (D1 사용 후 D4 삿포-죠잔케이 빈칸 방지)
     if (/^죠잔케이$|^조잔케이$/u.test(seg)) return 'Jozankei'
     // REGRESSION-FREEZE[register-ocean-cruise-product]: 지중해 기항 soft-dup — manifest
@@ -3676,33 +3688,37 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^치비타베키아$|^Civitavecchia$/i.test(seg)) return 'Civitavecchia'
     // 몰디브 리조트 일차 — country-level이어도 soft-dup 허용 (빈칸·Vang Vieng bleed 방지)
     if (/^몰디브$|^Maldives$/i.test(seg)) return 'Maldives'
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 싱가포르 city-hub soft-dup — manifest
+    if (/^싱가포르$|^Singapore$/i.test(segForCity) || /^싱가포르$|^Singapore$/i.test(seg)) return 'Singapore'
     if (/^피렌체$|^Florence$|^Firenze$/i.test(seg)) return 'Florence'
     if (/^밀라노$|^Milan$/i.test(seg)) return 'Milan'
     if (/^괌$|^Guam$/i.test(seg)) return 'Guam'
     if (/^다낭$|^Da\s*Nang$/i.test(seg)) return 'Da Nang'
     if (/^푸꾸옥$|^Phu\s*Quoc$/i.test(seg)) return 'Phu Quoc'
     // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 칼라파테≠Perito soft-dup — manifest
-    if (/^(?:엘\s*)?칼라파테$|^El\s*Calafate$|^Calafate$/i.test(seg)) return 'Calafate'
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 깔라파테/칼라파테 soft-dup — manifest
+    if (/^(?:엘\s*)?[깔칼]라파테$|^El\s*Calafate$|^Calafate$/i.test(seg)) return 'Calafate'
     if (/^서안$|^Xi'?an$/i.test(seg)) return 'Xian'
     // 코타키나발루 아일랜드 호핑 — landmark 소진 후 bare soft-dup
     if (/아일랜드\s*호핑|island\s*hopping/i.test(seg)) return 'Kota Kinabalu'
-    const fromMapRaw = mapDestination(seg)
+    const fromMapRaw = mapDestination(segForCity) || mapDestination(seg)
     const fromMap =
       fromMapRaw && isBareCityOrCountryKeyword(fromMapRaw) && /[A-Za-z]/.test(fromMapRaw)
         ? fromMapRaw
-        : /^쿠마모토$/u.test(seg)
+        : /^쿠마모토$/u.test(segForCity)
           ? 'Kumamoto'
-          : /^치바$/u.test(seg)
+          : /^치바$/u.test(segForCity)
             ? 'Chiba'
-            : /^고치$/u.test(seg)
+            : /^고치$/u.test(segForCity)
               ? 'Kochi'
-              : /^도야마$/u.test(seg)
+              : /^도야마$/u.test(segForCity)
                 ? 'Toyama'
                 : ''
     if (
       fromMap &&
       isBareCityOrCountryKeyword(fromMap) &&
-      !isCountryLevelScheduleKeyword(fromMap) &&
+      // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Singapore hub soft-dup — manifest
+      !rejectsCountryLevelVisitCity(fromMap) &&
       !isDomesticHubOrAirportImageKeyword(fromMap) &&
       !isRejectedTripKeywordCandidate(fromMap)
     ) {
@@ -3736,6 +3752,8 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 칼라파테 soft-dup — manifest
     '칼라파테',
     '엘 칼라파테',
+    '깔라파테',
+    '엘 깔라파테',
     // REGRESSION-FREEZE[schedule-poi-regex-ssot]: ModeTour EMP151 카이 soft-dup hay — Day2 empty 금지 — manifest
     // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 카이≠카이세키 — Cairo 오탐 금지 — manifest
     '카이',
@@ -3769,6 +3787,45 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     '파리',
     '연태',
     '이집트',
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 후르가다 자유휴양 soft-dup — segs noise-filter 비어도 hay — manifest
+    '후르가다',
+    '후루가다',
+    '인터라켄',
+    '루가노',
+    '아스코나',
+    '로카르노',
+    '취리히',
+    '함마메트',
+    '캔디',
+    '누와라엘리야',
+    '벤토타',
+    '콜롬보',
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Bangkok/Samarkand/Lucerne/LA soft-dup hay — manifest
+    '방콕',
+    '사마르칸트',
+    '루체른',
+    '족자카르타',
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: residual14 soft-dup hay — manifest
+    '포카라',
+    '카트만두',
+    '나가르코트',
+    '대리',
+    '곤명',
+    '산토리니',
+    '첸나이',
+    '마드라스',
+    '마두라이',
+    '델리',
+    '뉴델리',
+    '루르드',
+    '팜플로나',
+    '부르고스',
+    '레온',
+    '퀘백',
+    '프레즈노',
+    '바스토',
+    '우수아이아',
+    '포르토',
   ]) {
     // 짧은 토큰은 includes 오탐(카이⊂카이세키·아테네⊂엘아테네오) — 단어 경계만
     // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 엘아테네오≠Athens·짧은 KO 경계 — manifest
@@ -3802,23 +3859,68 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
         (/^파리$/u.test(ko) ? 'Paris' : '') ||
         (/^연태$/u.test(ko) ? 'Yantai' : '') ||
         (/^이집트$/u.test(ko) ? 'Cairo' : '') ||
-        (/칼라파테$/u.test(ko) ? 'Calafate' : '')
+        (/^(?:후르가다|후루가다)$/u.test(ko) ? 'Hurghada' : '') ||
+        (/^인터라켄$/u.test(ko) ? 'Interlaken' : '') ||
+        (/^루가노$/u.test(ko) ? 'Lugano' : '') ||
+        (/^아스코나$/u.test(ko) ? 'Ascona' : '') ||
+        (/^로카르노$/u.test(ko) ? 'Locarno' : '') ||
+        (/^취리히$/u.test(ko) ? 'Zurich' : '') ||
+        (/^함마메트$/u.test(ko) ? 'Hammamet' : '') ||
+        (/^캔디$/u.test(ko) ? 'Kandy' : '') ||
+        (/^누와라엘리야$/u.test(ko) ? 'Nuwara Eliya' : '') ||
+        (/^벤토타$/u.test(ko) ? 'Bentota' : '') ||
+        (/^콜롬보$/u.test(ko) ? 'Colombo' : '') ||
+        (/^방콕$/u.test(ko) ? 'Bangkok' : '') ||
+        (/^사마르칸트$/u.test(ko) ? 'Samarkand' : '') ||
+        (/^루체른$/u.test(ko) ? 'Lucerne' : '') ||
+        (/^족자카르타$/u.test(ko) ? 'Yogyakarta' : '') ||
+        (/^포카라$/u.test(ko) ? 'Pokhara' : '') ||
+        (/^카트만두$/u.test(ko) ? 'Kathmandu' : '') ||
+        (/^나가르코트$/u.test(ko) ? 'Nagarkot' : '') ||
+        (/^대리$/u.test(ko) ? 'Dali' : '') ||
+        (/^곤명$/u.test(ko) ? 'Kunming' : '') ||
+        (/^산토리니$/u.test(ko) ? 'Santorini' : '') ||
+        (/^(?:첸나이|마드라스)$/u.test(ko) ? 'Chennai' : '') ||
+        (/^마두라이$/u.test(ko) ? 'Madurai' : '') ||
+        (/^(?:델리|뉴델리)$/u.test(ko) ? 'Delhi' : '') ||
+        (/^루르드$/u.test(ko) ? 'Lourdes' : '') ||
+        (/^팜플로나$/u.test(ko) ? 'Pamplona' : '') ||
+        (/^부르고스$/u.test(ko) ? 'Burgos' : '') ||
+        (/^레온$/u.test(ko) ? 'Leon' : '') ||
+        (/^퀘백$/u.test(ko) ? 'Quebec' : '') ||
+        (/^프레즈노$/u.test(ko) ? 'Fresno' : '') ||
+        (/^바스토$/u.test(ko) ? 'Barstow' : '') ||
+        (/^우수아이아$/u.test(ko) ? 'Ushuaia' : '') ||
+        (/^포르토$/u.test(ko) ? 'Porto' : '') ||
+        (/[깔칼]라파테$/u.test(ko) ? 'Calafate' : '')
     }
     if (
       m &&
       isBareCityOrCountryKeyword(m) &&
-      !isCountryLevelScheduleKeyword(m) &&
+      !rejectsCountryLevelVisitCity(m) &&
       !isDomesticHubOrAirportImageKeyword(m) &&
       !isRejectedTripKeywordCandidate(m)
     ) {
       return m
     }
   }
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 단일세그먼트 noise-filter 비어도 mapDestination 도시 — manifest
+  const mappedFull = mapDestination(hay)
+  if (
+    mappedFull &&
+    isBareCityOrCountryKeyword(mappedFull) &&
+    !rejectsCountryLevelVisitCity(mappedFull) &&
+    !isDomesticHubOrAirportImageKeyword(mappedFull) &&
+    !isRejectedTripKeywordCandidate(mappedFull) &&
+    /[A-Za-z]/.test(mappedFull)
+  ) {
+    return mappedFull
+  }
   const city = pickForeignVisitCityFromRouteText(routeText, false)
   if (
     city &&
     isBareCityOrCountryKeyword(city) &&
-    !isCountryLevelScheduleKeyword(city) &&
+    !rejectsCountryLevelVisitCity(city) &&
     !isDomesticHubOrAirportImageKeyword(city)
   ) {
     return city
@@ -4481,13 +4583,33 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     }
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 중간일끼리 bare 방문도시 soft-dup 금지 — manifest
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: allow-list bare는 당일 route/title·자유휴양일 middle revisit — manifest
     if (
       isMiddleDay &&
       primary &&
       isBareCityOrCountryKeyword(primary) &&
-      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays)
+      bareVisitCityUsedAsOtherMiddlePrimary(primary, day, processedByDay, maxDay, activeDays) &&
+      !(
+        allowRouteRevisitBareVisitCitySoftDup(primary) &&
+        (isRegisterScheduleFreeTimeOrResortLeisureText(row.routeText) ||
+          isRegisterScheduleFreeTimeOrResortLeisureText(row.title) ||
+          registerScheduleKeywordPassesRouteEvidence(primary, {
+            routeText: [row.routeText, row.title].filter(Boolean).join(' '),
+          }))
+      )
     ) {
       primary = ''
+    }
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare kw2는 반복(used)일 때만 제거 — manifest
+    if (
+      isMiddleDay &&
+      secondary &&
+      isBareCityOrCountryKeyword(secondary) &&
+      (normScheduleImageKeywordKey(secondary) === normScheduleImageKeywordKey(primary) ||
+        used.has(normScheduleImageKeywordKey(secondary)) ||
+        bareVisitCityUsedAsOtherMiddlePrimary(secondary, day, processedByDay, maxDay, activeDays))
+    ) {
+      secondary = ''
     }
 
     if (primary) used.add(normScheduleImageKeywordKey(primary))
@@ -4611,6 +4733,15 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
         secondary = pickReplacementSecondaryTripKeyword(row, primary, cands, used, multiSegRoute)
       }
     }
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare kw2는 반복(used)일 때만 제거 — manifest
+    if (
+      secondary &&
+      isBareCityOrCountryKeyword(secondary) &&
+      (used.has(normScheduleImageKeywordKey(secondary)) ||
+        normScheduleImageKeywordKey(secondary) === normScheduleImageKeywordKey(primary))
+    ) {
+      secondary = ''
+    }
 
     if (primary) used.add(normScheduleImageKeywordKey(primary))
     if (secondary) used.add(normScheduleImageKeywordKey(secondary))
@@ -4703,7 +4834,12 @@ export function allowFansipanRouteRevisitSoftDup(kw: string, routeText?: string 
   return /판시판|사파\s*정상|Fansipan/i.test(String(routeText ?? ''))
 }
 
-/** bare 방문도시가 다른 중간일 primary로 이미 쓰였는지 — Bali 자유일 middle끼리 soft-dup 금지 */
+/**
+ * bare 방문도시가 이미 쓰였는지 — middle soft-dup 금지.
+ * verify `seedBareCityKeywordsFromEdgeDays`와 정렬: 출발·귀국 edge bare도 middle 반복을 막는다.
+ * (예전엔 middle끼리만 봐서 D1 Shanghai → D3 Shanghai soft-dup이 되살아남)
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge bare도 middle soft-dup 금지 — manifest
+ */
 function bareVisitCityUsedAsOtherMiddlePrimary(
   kw: string,
   day: number,
@@ -4714,10 +4850,21 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
   if (!isBareCityOrCountryKeyword(kw)) return false
   const nk = normScheduleImageKeywordKey(kw)
   if (!nk) return false
+  // 귀국·출발 edge 자신은 soft-dup 허용 — middle일 끼리만 차단
+  if (resolveScheduleKeywordSlotKind(day, maxDay, activeDays) !== 'middle') return false
   for (const [d, slot] of processedByDay) {
     if (Number(d) === day) continue
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 출발·귀국 bare는 middle 중복으로 치지 않음 — manifest
     if (resolveScheduleKeywordSlotKind(Number(d), maxDay, activeDays) !== 'middle') continue
     if (normScheduleImageKeywordKey(slot.primary) === nk) return true
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge/prior bare kw2도 seed — manifest
+    if (
+      slot.secondary &&
+      isBareCityOrCountryKeyword(slot.secondary) &&
+      normScheduleImageKeywordKey(slot.secondary) === nk
+    ) {
+      return true
+    }
   }
   return false
 }
@@ -4729,7 +4876,10 @@ export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
   // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 리조트 방문도시 반복 — manifest
   // REGRESSION-FREEZE[suppliers-schedule-route-noise-and-keyword-dedupe]: Bali 자유일 middle끼리 soft-dup 금지 — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris/i.test(
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: SF 공항 이동일 bare soft-dup — manifest
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Singapore/Bangkok/Samarkand/Jaipur/LA/Lucerne revisit — manifest
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: residual14 revisit bare — manifest
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris|San\s*Francisco|Hurghada|Lugano|Ascona|Locarno|Hammamet|Kandy|Nuwara\s*Eliya|Bentota|Colombo|Tashkent|Seattle|Singapore|Bangkok|Samarkand|Jaipur|Los\s*Angeles|Lucerne|Yogyakarta|Udaipur|Jodhpur|Luoyang|Kaifeng|Zhengzhou|Santorini|Pokhara|Kathmandu|Nagarkot|Dali|Kunming|Chennai|Madurai|Mysore|Fresno|Barstow|Quebec|Baltimore|Leon|Arzua|Lourdes|Pamplona|Burgos|Ushuaia|Delhi/i.test(
     String(city ?? '').trim(),
   )
 }

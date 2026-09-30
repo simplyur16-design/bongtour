@@ -60,7 +60,14 @@ export function mapMatchToOverseasDisplayBucket(
       const ck = match.countryKey
       if (!ck) return 'china_hk_mo'
       if (ck === 'hk-mo-sz') return 'china_hk_mo'
-      if (ck === 'china-major' || ck === 'inner-mongolia' || ck === 'china-trekking' || ck === 'mongolia')
+      // REGRESSION-FREEZE[mega-menu-guizhou-china]: master countryKey `china`도 중국 버킷 — manifest
+      if (
+        ck === 'china' ||
+        ck === 'china-major' ||
+        ck === 'inner-mongolia' ||
+        ck === 'china-trekking' ||
+        ck === 'mongolia'
+      )
         return 'china_hk_mo'
       // REGRESSION-FREEZE[mega-menu-product-alignment]: central-asia display → europe_me_af — manifest
       if (ck === 'central-asia') return 'europe_me_af'
@@ -205,6 +212,31 @@ const RE_US_WEST_TRAVEL = new RegExp(
   'i',
 )
 
+/** 귀주성·라평·황과수 — 트리 토큰 누락 시 `other`(그외) 보정 */
+// REGRESSION-FREEZE[mega-menu-guizhou-china]: 귀주성 haystack → china_hk_mo — manifest
+const RE_GUIZHOU_CHINA_TRAVEL = new RegExp(
+  ['귀주성', '귀주', '귀양', 'guiyang', 'guizhou', '안순', 'anshun', '라평', 'luoping', '황과수', 'huangguoshu'].join(
+    '|',
+  ),
+  'i',
+)
+
+/** 영국일주·런던 — dest 붙여쓰기 매칭 실패 시 `other` 보정 */
+// REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 영국일주 → europe_me_af — manifest
+const RE_UK_EUROPE_TRAVEL = new RegExp(
+  ['영국일주', '영국\\s*완전\\s*일주', 'london', '런던', '에딘버러', 'edinburgh', '스톤헨지', 'stonehenge', '\\bUK\\b'].join(
+    '|',
+  ),
+  'i',
+)
+
+/** 유후인·벳부 — 상호 붙여쓰기(유후인노모리) 매칭 실패 시 `other` 보정 */
+// REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 유후인 → japan — manifest
+const RE_YUFUIN_JAPAN_TRAVEL = new RegExp(
+  ['유후인', 'yufuin', '벳부', '벳푸', 'beppu', '규슈', '큐슈', 'kyushu'].join('|'),
+  'i',
+)
+
 /** 시코쿠·마츠야마 등 — 자유여행·호텔명만 있을 때 `other`(그외) 보정 */
 const RE_JAPAN_SHIKOKU_TRAVEL = new RegExp(
   [
@@ -247,6 +279,15 @@ export function resolveOverseasDisplayBucketForBrowse(
     return 'americas'
   }
   if (base === 'other' && RE_JAPAN_SHIKOKU_TRAVEL.test(h)) {
+    return 'japan'
+  }
+  if (base === 'other' && RE_GUIZHOU_CHINA_TRAVEL.test(h)) {
+    return 'china_hk_mo'
+  }
+  if (base === 'other' && RE_UK_EUROPE_TRAVEL.test(h)) {
+    return 'europe_me_af'
+  }
+  if (base === 'other' && RE_YUFUIN_JAPAN_TRAVEL.test(h)) {
     return 'japan'
   }
   if (base !== 'americas') return base

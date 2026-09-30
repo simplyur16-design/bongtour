@@ -14,9 +14,10 @@ function formatDate(iso: string | null): string {
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}`
 }
 
+// REGRESSION-FREEZE[home-card-price-from-tilde]: 최저가 표기는 원 뒤 ~ (가격부터) — manifest
 function formatPrice(krw: number | null): string {
-  if (krw == null || krw <= 0) return '—'
-  return `${Math.trunc(krw).toLocaleString('ko-KR')}원`
+  if (krw == null || krw <= 0) return '문의'
+  return `${Math.trunc(krw).toLocaleString('ko-KR')}원~`
 }
 
 /** 메인·갤러리 공통 비율. 웹/모바일 동일 비율 반응형 */
@@ -128,9 +129,14 @@ export default function AgentCard({
                 {hasPrice ? (
                   <>
                     {' '}
-                    · <span className="font-semibold text-bt-price">참고가 {priceStr}~</span>
+                    · <span className="font-semibold text-bt-price">참고가 {priceStr}</span>
                   </>
-                ) : null}
+                ) : (
+                  <>
+                    {' '}
+                    · <span className="font-semibold text-bt-muted">{priceStr}</span>
+                  </>
+                )}
               </>
             ) : (
               <>

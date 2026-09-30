@@ -15,6 +15,13 @@ describe('register-pre-photo-poi-ko-own-route-gap', () => {
     expect(mapKoreanPoiSegment('용궁')).toMatch(/Longgong/i)
     expect(mapKoreanPoiSegment('마령하 대협곡')).toMatch(/Malinghe/i)
     expect(mapKoreanPoiSegment('청암고진')).toMatch(/Qingyan/i)
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 패키지 중간일 미매핑 KO — manifest
+    expect(mapKoreanPoiSegment('황산 풍경구')).toMatch(/Huangshan/i)
+    expect(mapKoreanPoiSegment('쓰구냥산')).toMatch(/Siguniang/i)
+    expect(mapKoreanPoiSegment('엘승타사르하이')).toMatch(/Elsen\s*Tasarkhai/i)
+    expect(mapKoreanPoiSegment('바르지아')).toMatch(/Vardzia/i)
+    expect(mapKoreanPoiSegment('보르조미')).toMatch(/Borjomi/i)
+    expect(mapKoreanPoiSegment('루가노')).toMatch(/Lugano.*(?:Lake|promenade)|Lugano Lake/i)
   })
 
   it('own-route verify accepts EN keywords derived from those KO routes', () => {

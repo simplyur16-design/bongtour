@@ -186,4 +186,35 @@ describe('register schedule route expression normalize — 신규 등록', () =>
       sanitizeRegisterScheduleRouteText('전일 리조트 내 부대시설 이용 및 자유시간'),
     ).toMatch(/리조트|자유시간/)
   })
+
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 후르가다 자유 휴양 sanitize 유지 — manifest
+  it('후르가다 홍해 리조트 자유 휴양 — sanitize가 dest Cairo로 비우지 않음', () => {
+    const kept = sanitizeRegisterScheduleRouteText('후르가다 홍해 리조트 자유 휴양')
+    expect(kept).toMatch(/후르가다/)
+    expect(kept).toMatch(/자유\s*휴양/)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: hotel title ≠ tourism route steal — manifest
+  it('호텔 title + 타일 관광 route 블리드 — route를 title로 복원', () => {
+    const out = prepareRegisterScheduleRowsForImageKeywordApply([
+      { day: 1, title: '인천 - 두바이', routeText: '인천 - 두바이', description: '이동' },
+      {
+        day: 2,
+        title: '바스타키아 - 아브라 - 두바이 왕궁',
+        routeText: '바스타키아 - 아브라 - 두바이 왕궁 - 셰이크 모하메드 궁전',
+        description: '시내',
+      },
+      {
+        day: 3,
+        title: '월드체인 5성급 호텔',
+        routeText: '바스타키아 - 아브라 - 두바이 왕궁 - 셰이크 모하메드 궁전',
+        description: '호캉스',
+      },
+      { day: 4, title: '숙박 없음(귀국)', routeText: '', description: '귀국' },
+    ])
+    expect(out[2]?.title).toMatch(/호텔/)
+    expect(out[2]?.routeText).toMatch(/호텔/)
+    expect(out[2]?.routeText).not.toMatch(/바스타키아|왕궁|모하메드/)
+    expect(out[1]?.routeText).toMatch(/바스타키아/)
+  })
 })

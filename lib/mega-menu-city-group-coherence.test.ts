@@ -22,4 +22,12 @@ describe('mega-menu-city-group-coherence', () => {
     const out = filterCityKeysToCoherentMegaMenuGroup('osaka', ['osaka', 'sapporo', 'fukuoka'])
     expect(out).toEqual(['osaka', 'sapporo', 'fukuoka'])
   })
+
+  // REGRESSION-FREEZE[mega-menu-guizhou-china]: 화남·중국 탭 placement — manifest
+  it('guizhou cityKey places under china-hk-mo / huanan', () => {
+    resetMegaMenuCityPlacementCache()
+    const p = megaMenuPlacementForCityKey('guizhou')
+    expect(p?.regionId).toBe('china-hk-mo')
+    expect(p?.menuGroupSlug).toBe('huanan')
+  })
 })

@@ -412,6 +412,44 @@ export const CITY_COUNTRY_ONLY = new Set(
     'aswan',
     'giza',
     'hurghada',
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 스위스 호수도시 bare — manifest
+    'interlaken',
+    'lugano',
+    'ascona',
+    'locarno',
+    'lucerne',
+    'zurich',
+    'hammamet',
+    'kandy',
+    'nuwara eliya',
+    'bentota',
+    'colombo',
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Yogya/Henan/India bare soft-dup — manifest
+    'yogyakarta',
+    'luoyang',
+    'kaifeng',
+    'zhengzhou',
+    'udaipur',
+    'jodhpur',
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: residual14 bare cities — manifest
+    'pokhara',
+    'kathmandu',
+    'nagarkot',
+    'dali',
+    'kunming',
+    'chennai',
+    'madurai',
+    'mysore',
+    'fresno',
+    'barstow',
+    'quebec',
+    'baltimore',
+    'leon',
+    'arzua',
+    'lourdes',
+    'pamplona',
+    'burgos',
+    'ushuaia',
     'new york',
     'washington dc',
     'washington',
@@ -893,8 +931,9 @@ export function isBareCityOrCountryKeyword(keyword: string): boolean {
 
 // REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]: lakes? — Kolsai Lakes is landmark, CFP114 visit order — manifest
 // REGRESSION-FREEZE[schedule-poi-regex-ssot]: sunrise — Qingdao coastal sunrise return-day landmark — manifest
+// REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Las Vegas Strip·Kualoa Ranch ≠ broken 2-word — manifest
 const LANDMARK_HINT_RE =
-  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|spring|conservatory|botanical|tenmangu|jinja|dera|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?)\b/i
+  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|spring|conservatory|botanical|tenmangu|jinja|dera|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|strip|ranch|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?)\b/i
 
 /** 랜드마크 성격 단어가 있는 고유명. 단어 개수만으로 식당·상점을 통과시키지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 2단어 ≠ 랜드마크 — manifest

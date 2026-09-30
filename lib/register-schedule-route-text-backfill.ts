@@ -29,7 +29,8 @@ export function isRegisterScheduleFreeTimeOrResortLeisureText(text: string | nul
   const t = String(text ?? '').trim()
   if (!t) return false
   // REGRESSION-FREEZE[register-schedule-route-expression-normalize]: 자유시간·자유일정·리조트일 인접 관광 route 복사 금지 — manifest
-  return /자유\s*시간|자유\s*일정|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크|숙박\s*없음(?:\s*\(귀국\))?/i.test(
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 리조트 자유 휴양 — manifest
+  return /자유\s*시간|자유\s*일정|자유\s*휴양|리조트\s*자유|리조트\s*(?:내\s*)?부대|전일\s*리조트|호텔\s*(?:내\s*)?자유|체크\s*아웃|레이트\s*체크|숙박\s*없음(?:\s*\(귀국\))?/i.test(
     t,
   )
 }
@@ -343,14 +344,61 @@ export function sanitizeHongKongThemeParkDayRouteRows<T extends RegisterSchedule
   })
 }
 
+/**
+ * 호텔·호캉스 title 인데 route에 타일 관광 명소가 붙어 있으면(블리드) route를 title로 되돌린다.
+ * REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: hotel title ≠ tourism route steal — manifest
+ */
+export function stripTourismRouteBleedFromHotelTitleDays<T extends RegisterScheduleRouteTextBackfillRow>(
+  rows: T[],
+): T[] {
+  return rows.map((row) => {
+    const title = String(row.title ?? '').trim()
+    if (!title) return row
+    if (
+      !isHotelLodgingImageKeyword(title) &&
+      !isRegisterScheduleHotelOnlyRouteText(title)
+    ) {
+      return row
+    }
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 융프라우 등정+숙박 title≠hotel bleed — manifest
+    // 「등정·관광 … 및 숙박」혼합 title은 호텔-only가 아님 — 관광 route를 title로 덮지 않음
+    if (
+      /(?:등정|관광|탐방|투어|유람|국립\s*공원|사원|유적|박물관|폭포|시장|해변|케이블|호수|구시가지|전망대)/u.test(
+        title,
+      )
+    ) {
+      return row
+    }
+    // 관광 동선이 title에 같이 적힌 경우(「호텔 - 시내관광」)는 유지
+    if (/\s[-–—→]\s/u.test(title) && !isRegisterScheduleHotelOnlyRouteText(title)) return row
+    const route = String(row.routeText ?? '').trim()
+    if (!route || route === title) return row
+    if (isRegisterScheduleHotelOnlyRouteText(route) || isHotelLodgingImageKeyword(route)) return row
+    // 관광 세그먼트가 있으면 호텔일 route 블리드로 보고 title로 복원
+    const segs = splitRouteTextPlaceSegments(route)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2)
+    const tourismish = segs.some(
+      (s) =>
+        !isHotelLodgingImageKeyword(s) &&
+        !isRegisterScheduleRoutePlaceNoise(s) &&
+        s.length >= 2,
+    )
+    if (!tourismish) return row
+    return { ...row, routeText: title.slice(0, 500) }
+  })
+}
+
 export function prepareRegisterScheduleRowsForImageKeywordApply<T extends RegisterScheduleRouteTextBackfillRow>(
   rows: T[],
   opts?: RegisterScheduleRouteTextBackfillOpts,
 ): T[] {
   return sanitizeHongKongThemeParkDayRouteRows(
     normalizeRegisterScheduleRouteExpressionRows(
-      backfillMiddleDayRouteTextFromAdjacentDays(
-        backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
+      stripTourismRouteBleedFromHotelTitleDays(
+        backfillMiddleDayRouteTextFromAdjacentDays(
+          backfillScheduleRouteTextFromDescriptionOrTitle(backfillEmptyScheduleRouteTextFromTitle(rows)),
+        ),
       ),
     ),
     opts,
