@@ -4958,7 +4958,11 @@
             "syncScheduleImageKeywordsFromFitMasterDb",
             "generateFitItineraryForProduct",
             "fillRegisterScheduleImageKeywordsWithGeminiIfNeeded",
-            "rematerializeRegisterPrePhotoByLane"
+            "rematerializeRegisterPrePhotoByLane",
+            "registerPrePhotoIssuesNeedLaneRematerialize"
+          ],
+          "mustNotInclude": [
+            "healRegisterPrePhotoSchedule(mapped"
           ]
         },
         {
@@ -4974,16 +4978,6 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]",
             "syncScheduleImageKeywordsFromFitMasterDb"
-          ]
-        },
-        {
-          "file": "scripts/_tmp_remat_kw_round2.ts",
-          "mustInclude": [
-            "rematerializeRegisterPrePhotoByLane",
-            "registerPrePhotoIssuesNeedLaneRematerialize"
-          ],
-          "mustNotInclude": [
-            "healRegisterPrePhotoSchedule(mapped"
           ]
         }
       ],
