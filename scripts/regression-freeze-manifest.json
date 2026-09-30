@@ -4986,6 +4986,25 @@
       ]
     },
     {
+      "id": "regression-freeze-npm-script-dedupe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "freeze 한 실행에서 동일 npm script는 한 번만 — nested self-heal 47회 등으로 Railway build 폭주 금지",
+      "checks": [
+        {
+          "file": "scripts/verify-regression-freeze.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[regression-freeze-npm-script-dedupe]",
+            "createNpmScriptRunner",
+            "skip duplicate npm run",
+            "runNpmOnce"
+          ]
+        }
+      ]
+    },
+    {
       "id": "product-image-source-attribution",
       "tier": [
         "prebuild",

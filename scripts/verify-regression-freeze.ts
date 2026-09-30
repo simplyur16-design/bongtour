@@ -101,6 +101,24 @@ function runNpmScript(script: string, label: string): void {
   execSync(`npm run ${script}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
 }
 
+/**
+ * 동일 `npm run <script>`는 한 freeze 실행에서 한 번만.
+ * staticGuards nested에 verify:register-pre-photo-self-heal 등이 수십 번 붙어
+ * Railway prebuild가 20분+로 늘어나는 것을 막는다.
+ * REGRESSION-FREEZE[regression-freeze-npm-script-dedupe]: 동일 script 중복 실행 금지 — manifest
+ */
+function createNpmScriptRunner(): (script: string, label: string) => void {
+  const ran = new Set<string>()
+  return (script: string, label: string) => {
+    if (ran.has(script)) {
+      console.log(`[regression-freeze] ⊘ skip duplicate npm run ${script} (${label})`)
+      return
+    }
+    ran.add(script)
+    runNpmScript(script, label)
+  }
+}
+
 function databaseUrlConfigured(): boolean {
   const raw = (process.env.DATABASE_URL ?? '').trim()
   if (!raw) return false
@@ -129,7 +147,12 @@ function guardNpmScriptsForTier(
   return out
 }
 
-function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]): void {
+function runStaticGuards(
+  manifest: Manifest,
+  runTier: Tier,
+  failures: string[],
+  runNpmOnce: (script: string, label: string) => void,
+): void {
   const guards = manifest.staticGuards.filter((g) => tierMatch(g.tier, runTier))
   for (const guard of guards) {
     for (const check of guard.checks ?? []) {
@@ -159,7 +182,7 @@ function runStaticGuards(manifest: Manifest, runTier: Tier, failures: string[]):
         continue
       }
       try {
-        runNpmScript(nested.script, `${guard.id} → npm run ${nested.script}`)
+        runNpmOnce(nested.script, `${guard.id} → npm run ${nested.script}`)
       } catch {
         console.error(`\n[FAIL] regression-freeze nested npm: ${guard.id} (${nested.script})`)
         process.exit(1)
@@ -307,11 +330,12 @@ function main() {
   }
 
   const failures: string[] = []
+  const runNpmOnce = createNpmScriptRunner()
 
   console.log(`[regression-freeze] manifest=${manifest.version} tier=${runTier}`)
 
   verifyRegressionFreezeMarkers(manifest, failures)
-  runStaticGuards(manifest, runTier, failures)
+  runStaticGuards(manifest, runTier, failures, runNpmOnce)
 
   if (failures.length) {
     console.error('\n[FAIL] regression-freeze static/markers')
@@ -328,7 +352,7 @@ function main() {
       continue
     }
     try {
-      runNpmScript(entry.script, `${entry.id}: ${entry.summary}`)
+      runNpmOnce(entry.script, `${entry.id}: ${entry.summary}`)
     } catch {
       console.error(`\n[FAIL] regression-freeze npm script: ${entry.id} (${entry.script})`)
       process.exit(1)
