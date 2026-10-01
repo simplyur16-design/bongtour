@@ -1,4 +1,8 @@
 import {
+  USIMSA_CX_CONTACT_URL,
+  USIMSA_CX_KAKAO_CHAT_URL,
+} from "@/lib/bongsim/constants";
+import {
   buildAndroidQuickInstallUrl,
   buildAppleQuickInstallUrl,
 } from "@/lib/bongsim/esim-install-presentation";
@@ -121,7 +125,10 @@ export function buildEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): string {
     "- QR·코드는 1회성 (삭제 후 재설치 어려움)",
     "- 상세 단계: bongtour.com/travel/esim/guide",
     "",
-    "문의: 카카오 09:00-18:00 · bongtour.com",
+    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: 구매 발송 고객센터=유심사 CX URL — manifest
+    "고객센터",
+    `카카오: ${USIMSA_CX_KAKAO_CHAT_URL}`,
+    USIMSA_CX_CONTACT_URL,
   );
   return lines.join("\n");
 }

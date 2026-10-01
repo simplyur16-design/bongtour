@@ -25,6 +25,12 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(text).toContain("/travel/esim/order/");
     expect(text).toMatch(/요금|데이터로밍/);
     expect(text).toMatch(/1회성/);
+    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: LMS 고객센터=유심사 CX URL — manifest
+    expect(text).toContain("고객센터");
+    expect(text).toContain("https://pf.kakao.com/_fqTkK/chat");
+    expect(text).toContain("https://www.usimsa.com/board/contact-channel/");
+    expect(text).not.toContain("유심사");
+    expect(text).not.toMatch(/문의: 카카오 09:00-18:00 · bongtour\.com/);
   });
 
   it("requires OS-install LMS whenever LPA is present", () => {

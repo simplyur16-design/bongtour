@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ChevronDown, HelpCircle, Settings2 } from "lucide-react";
 import Header from "@/app/components/Header";
 import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
-import { EsimBongsimCsLinks } from "@/components/bongsim/EsimBongsimCsLinks";
+import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 import {
   ANDROID_STEPS,
   COMMON_FAQ,
@@ -124,7 +124,7 @@ function GuideBlockContent({ block, imageMap }: { block: GuideBlock; imageMap: E
       {block.note ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm !text-amber-900 lg:text-base">
           <p>{block.note}</p>
-          {block.showBongsimCs ? <EsimBongsimCsLinks /> : null}
+          {block.showBongsimCs ? <EsimMypageUsimsaCsLinks className="mt-3" /> : null}
         </div>
       ) : null}
       {block.image ? (
@@ -202,7 +202,7 @@ function GuideFaqSection({
               {open ? (
                 <div className="border-t border-slate-100 px-4 py-3 lg:px-5 lg:py-4">
                   <p className="text-sm leading-relaxed !text-slate-900 lg:text-base">{a}</p>
-                  {showBongsimCs ? <EsimBongsimCsLinks /> : null}
+                  {showBongsimCs ? <EsimMypageUsimsaCsLinks className="mt-3" /> : null}
                 </div>
               ) : null}
             </div>
@@ -294,10 +294,10 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
           <div className="mt-6 text-center">
             <p className="text-sm font-medium text-slate-600">문제가 있으신가요?</p>
             <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-500 lg:text-sm">
-              봉투어 고객센터 (09:00-18:00 KST)로 문의해 주세요.
+              설치·사용 문의는 24시간 고객센터로 연결됩니다.
             </p>
             <div className="mt-4 flex justify-center">
-              <EsimBongsimCsLinks
+              <EsimMypageUsimsaCsLinks
                 kakaoLabel="카카오톡 문의하기"
                 showHeading={false}
                 className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"

@@ -280,13 +280,13 @@ export default function MyEsimOrdersClient() {
         aria-labelledby="esim-mypage-usimsa-cs-heading"
       >
         <h2 id="esim-mypage-usimsa-cs-heading" className="text-base font-bold text-slate-900">
-          고객지원센터
+          고객센터
         </h2>
         <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-          eSIM 설치·사용 중 문제가 있으면 아래 고객지원(24시간)을 이용해 주세요. 일반 문의는 봉투어
-          고객센터(09:00-18:00 KST)를 이용해 주세요.
+          eSIM 설치·사용 중 문제가 있으면 아래 고객센터를 이용해 주세요. 구매·결제 등 일반 문의는
+          봉투어 고객센터(09:00-18:00 KST)를 이용해 주세요.
         </p>
-        <EsimMypageUsimsaCsLinks className="mt-4" />
+        <EsimMypageUsimsaCsLinks className="mt-4" showHeading={false} />
       </section>
 
       {qrModal ? (

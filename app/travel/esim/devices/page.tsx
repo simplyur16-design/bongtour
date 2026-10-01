@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/app/components/Header";
 import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
-import { EsimBongsimCsLinks } from "@/components/bongsim/EsimBongsimCsLinks";
+import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 
 export const metadata: Metadata = {
   title: "eSIM 지원 기기 확인 | Bong투어 eSIM",
@@ -133,10 +133,10 @@ export default function EsimDevicesPage() {
               문제가 있으신가요?
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600 lg:text-base">
-              봉투어 고객센터 (09:00-18:00 KST)로 문의해 주세요.
+              설치·사용 문의는 24시간 고객센터로 연결됩니다.
             </p>
             <div className="mt-4 flex justify-center">
-              <EsimBongsimCsLinks
+              <EsimMypageUsimsaCsLinks
                 kakaoLabel="카카오톡 문의하기"
                 showHeading={false}
                 className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"

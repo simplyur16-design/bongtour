@@ -2521,6 +2521,123 @@
       ]
     },
     {
+      "id": "bongsim-esim-purchase-notify-usimsa-cs",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 구매 발송(LMS·QR메일) 고객센터 링크는 유심사 CX — 봉투어 카카오/bongtour.com 문의 금지",
+      "checks": [
+        {
+          "file": "lib/bongsim/notifications/esim-qr-lms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "USIMSA_CX_CONTACT_URL",
+            "고객센터"
+          ],
+          "mustNotInclude": [
+            "문의: 카카오 09:00-18:00 · bongtour.com",
+            "유심사 고객센터"
+          ]
+        },
+        {
+          "file": "lib/bongsim/email/travel-esim-order-qr-mail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "USIMSA_CX_CONTACT_URL",
+            "── 고객센터 ──"
+          ],
+          "mustNotInclude": [
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "봉투어 고객센터",
+            "유심사 고객센터"
+          ]
+        },
+        {
+          "file": "lib/simplyur/email/simplyur-esim-qr-mail.ts",
+          "mustInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "USIMSA_CX_CONTACT_URL",
+            "Customer support"
+          ],
+          "mustNotInclude": [
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "유심사"
+          ]
+        },
+        {
+          "file": "lib/bongsim/constants.ts",
+          "mustInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "https://pf.kakao.com/_fqTkK/chat",
+            "USIMSA_CX_CONTACT_URL",
+            "https://www.usimsa.com/board/contact-channel/"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/notifications/esim-qr-lms.test.ts",
+        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-web-install-usimsa-cs",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 홈·가이드·기기 설치 문의 UI는 유심사 CX — 봉투어 카카오 링크 금지",
+      "checks": [
+        {
+          "file": "app/travel/esim/EsimLandingWhySection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-web-install-usimsa-cs]",
+            "USIMSA_CX_KAKAO_CHAT_URL"
+          ],
+          "mustNotInclude": [
+            "BONGSIM_KAKAO_CHANNEL_URL"
+          ]
+        },
+        {
+          "file": "app/travel/esim/guide/EsimInstallGuideClient.tsx",
+          "mustInclude": [
+            "EsimMypageUsimsaCsLinks"
+          ],
+          "mustNotInclude": [
+            "EsimBongsimCsLinks"
+          ]
+        },
+        {
+          "file": "app/travel/esim/devices/page.tsx",
+          "mustInclude": [
+            "EsimMypageUsimsaCsLinks"
+          ],
+          "mustNotInclude": [
+            "EsimBongsimCsLinks"
+          ]
+        },
+        {
+          "file": "components/bongsim/EsimMypageUsimsaCsLinks.tsx",
+          "mustInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "USIMSA_CX_CONTACT_URL"
+          ]
+        },
+        {
+          "file": "components/bongsim/esim/EsimVerificationGuideContent.tsx",
+          "mustInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "BONGSIM_KAKAO_CHANNEL_URL"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-esim-qr-os-install-lms-always",
       "tier": [
         "prebuild",
