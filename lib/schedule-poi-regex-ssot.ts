@@ -36,7 +36,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /천문산|Tianmen\s*Mountain|天門山/u, en: 'Tianmen Mountain' },
   { re: /백장협|Baizhang(?:xia)?|Baizhang\s*Gorge/i, en: 'Baizhang Gorge' },
   { re: /백룡\s*(?:엘리베이터|엘리베|승강기)?|Bailong\s*Elevator|百龍/i, en: 'Bailong Elevator' },
-  { re: /유리\s*교|Glass\s*Bridge|玻璃桥/i, en: 'Zhangjiajie Glass Bridge' },
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 유리대교(대+교)도 Glass Bridge — manifest
+  { re: /유리\s*(?:대)?교|Glass\s*Bridge|玻璃桥/i, en: 'Zhangjiajie Glass Bridge' },
+  { re: /무릉선경|Wulingyuan|武陵源/i, en: 'Wulingyuan Zhangjiajie' },
   { re: /보봉탑|원가계|어필봉|Avatar\s*Hallelujah|아바타/i, en: 'Avatar Hallelujah Mountain' },
   { re: /십리\s*화랑|十里画廊|Ten\s*Mile\s*Gallery|Shili\s*Gallery/i, en: 'Ten Mile Gallery' },
   { re: /보봉호|宝峰湖|Baofeng\s*Lake/i, en: 'Baofeng Lake' },
@@ -158,6 +160,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /후라노\s*와인|Furano\s*Wine/i, en: "Furano Wine House" },
   { re: /팜\s*(?:도|토)미타|Farm\s*Tomita/i, en: "Farm Tomita Furano" },
   { re: /시키사이노오카|Shikisai/i, en: "Shikisai-no-Oka Biei" },
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 흰수염·우에노팜 Hokkaido POI — manifest
+  { re: /흰수염\s*폭포|White\s*Beard\s*Falls|Shirahige/i, en: 'White Beard Falls Biei' },
+  { re: /우에노\s*팜|Ueno\s*Farm/i, en: 'Ueno Farm Hokkaido' },
   { re: /(?:청의\s*호수|아오이케|Blue\s*Pond)/i, en: "Blue Pond Biei" },
   { re: /은하폭포|Ginga\s*Falls/i, en: "Ginga Falls Sounkyo" },
   { re: /유성폭포|Ryusei\s*Falls/i, en: "Ryusei Falls Sounkyo" },
@@ -1327,6 +1332,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /세인트\s*메?리(?:스)?\s*대성당|St\s*Mary/i, en: "St Marys Cathedral Sydney" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Palace/Bird Island는 SPOT — trip SSOT·gap-fill spot scan — manifest
   { re: /팔레스\s*오브\s*파인\s*아트|Palace\s*of\s*Fine\s*Arts/i, en: "Palace of Fine Arts San Francisco" },
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 잔세스칸스·괴베클리·마블마운틴 — manifest
+  { re: /잔세스\s*칸스|잔세\s*스칸스|Zaanse\s*Schans/i, en: 'Zaanse Schans Netherlands' },
+  { re: /괴베클리\s*테페|Gobekli\s*Tepe|Göbekli/i, en: 'Gobekli Tepe Sanliurfa' },
+  { re: /마블\s*마운틴|Marble\s*Mountain|오행산/i, en: 'Marble Mountains Da Nang' },
+  { re: /딜리\s*하트|델리\s*하트|Dilli\s*Haat|Delhi\s*Haat/i, en: 'Dilli Haat Delhi' },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Saipan PIC·북섬 POI — bare Saipan 반복 금지 — manifest
   { re: /천혜의\s*자연\s*새섬|Bird\s*Island/i, en: "Saipan Bird Island" },
   { re: /PACIFIC\s*ISLANDS\s*CLUB|PIC\s*SAIPAN|사이판\s*PIC|Pacific\s*Islands\s*Club/i, en: "Pacific Islands Club Saipan" },

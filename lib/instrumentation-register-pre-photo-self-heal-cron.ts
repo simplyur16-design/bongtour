@@ -10,6 +10,7 @@
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 22:00–10:00 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: 창 동안 할당량까지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-night-leftover-not-quota]: leftover pending ≠ 오늘 할당량 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: night ingest heal 상한·probe off — manifest
  * production + DATABASE_URL. 비활성: DISABLE_REGISTER_PRE_PHOTO_SELF_HEAL_CRON=1
  */
 import {
@@ -79,14 +80,22 @@ async function tickRegisterPrePhotoHealOnlyCron(): Promise<void> {
     console.warn('[register-pre-photo-heal-only-cron] skip: DATABASE_URL')
     return
   }
+  // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: ingest 중 heal-only 스킵 — manifest
+  if (ingestNightTickRunning) {
+    console.log('[register-pre-photo-heal-only-cron] skip: ingest night tick running')
+    return
+  }
   if (healOnlyTickRunning) return
   healOnlyTickRunning = true
   try {
     const { runRegisterPrePhotoDailyJob } = await import('@/lib/register-pre-photo-daily-job')
+    const { registerPrePhotoHealOnlyOpts } = await import('@/lib/register-pre-photo-ingest-db-budget')
+    const budget = registerPrePhotoHealOnlyOpts()
+    // REGRESSION-FREEZE[register-pre-photo-heal-cron-always]: skipIngest: true 리터럴 유지 — manifest
     const result = await runRegisterPrePhotoDailyJob({
       skipIngest: true,
-      probeImageUrls: true,
-      healLimit: 200,
+      probeImageUrls: budget.probeImageUrls,
+      healLimit: budget.healLimit,
     })
     console.log('[register-pre-photo-heal-only-cron]', result)
   } catch (e) {
@@ -119,13 +128,22 @@ async function tickRegisterPrePhotoIngestNightCron(): Promise<void> {
   )
   if (!nextSupplier) return
 
+  // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: heal-only 와 동시 실행 금지 — manifest
+  if (healOnlyTickRunning) {
+    console.log('[register-pre-photo-self-heal-cron] skip ingest: heal-only tick running')
+    return
+  }
   ingestNightTickRunning = true
   ingestNightLastAttemptAtMs[nextSupplier] = now.getTime()
   try {
     const { runRegisterPrePhotoDailyJob } = await import('@/lib/register-pre-photo-daily-job')
+    const { registerPrePhotoIngestNightHealOpts } = await import(
+      '@/lib/register-pre-photo-ingest-db-budget'
+    )
     const remaining = remainingRegisterPrePhotoIngestTonight(createdTonight, nextSupplier)
+    const budget = registerPrePhotoIngestNightHealOpts()
     const result = await runRegisterPrePhotoDailyJob({
-      probeImageUrls: true,
+      ...budget,
       onlySuppliers: [nextSupplier],
       perSupplier: remaining,
     })

@@ -35,6 +35,120 @@ export const REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1
 export const REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3
 
 /**
+ * 하나투어·모두투어 — 지방출발(부산/대구/청주) 검색 시드를 앞에 두고 밤마다 최소 1건 확보.
+ * REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 하나·모두 지방출발 최소 1건 — manifest
+ */
+export const REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SUPPLIERS = ['hanatour', 'modetour'] as const
+export const REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SEARCH_WORDS = [
+  '부산출발',
+  '대구출발',
+  '청주출발',
+] as const
+export const REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_COUNTRY_KEY = '_local_departure'
+
+export function supplierRequiresLocalDepartureIngestReserve(supplier: string): boolean {
+  return (REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SUPPLIERS as readonly string[]).includes(supplier)
+}
+
+export function isRegisterPrePhotoLocalDepartureIngestSlot(
+  slot: Pick<RegisterPrePhotoIngestGeoSlot, 'countryKey' | 'searchWord'>,
+): boolean {
+  if (slot.countryKey === REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_COUNTRY_KEY) return true
+  return (REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SEARCH_WORDS as readonly string[]).includes(
+    String(slot.searchWord ?? '').trim(),
+  )
+}
+
+export function buildRegisterPrePhotoLocalDepartureIngestSlots(
+  supplier: RegisterPrePhotoIngestSupplier,
+): RegisterPrePhotoIngestGeoSlot[] {
+  if (!supplierRequiresLocalDepartureIngestReserve(supplier)) return []
+  return REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SEARCH_WORDS.map((searchWord) => ({
+    supplier,
+    lane: 'package' as const,
+    countryKey: REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_COUNTRY_KEY,
+    cityKey: null,
+    originUrl: ingestSupplierBrowseHome(supplier),
+    destination: null,
+    searchWord,
+    pending: 0,
+  }))
+}
+
+/** 지방출발 검색 슬롯을 공급사 목록 앞에 붙인다. */
+export function prependLocalDepartureIngestSlots(
+  supplier: string,
+  ordered: readonly RegisterPrePhotoIngestGeoSlot[],
+): RegisterPrePhotoIngestGeoSlot[] {
+  if (!isRegisterPrePhotoIngestSupplier(supplier)) return [...ordered]
+  const local = buildRegisterPrePhotoLocalDepartureIngestSlots(supplier)
+  if (!local.length) return [...ordered]
+  return [...local, ...ordered]
+}
+
+/**
+ * 홈 테마여행(골프·러닝·트레킹 등) 분류에 맞춰 등록대기 시드.
+ * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 검색 시드 → sportsThemeTag — manifest
+ */
+export const REGISTER_PRE_PHOTO_INGEST_THEME_COUNTRY_KEY = '_sports_theme'
+
+/** 메가메뉴 테마 라벨과 같은 검색어 — `SPORTS_THEME_TAG_LABELS` 와 정합 */
+export const REGISTER_PRE_PHOTO_INGEST_THEME_SEARCHES = [
+  { key: 'golf', searchWord: '골프' },
+  { key: 'running', searchWord: '러닝' },
+  { key: 'trekking', searchWord: '트레킹' },
+  { key: 'diving', searchWord: '다이빙' },
+] as const
+
+export type RegisterPrePhotoIngestThemeKey =
+  (typeof REGISTER_PRE_PHOTO_INGEST_THEME_SEARCHES)[number]['key']
+
+export function isRegisterPrePhotoThemeIngestSlot(
+  slot: Pick<RegisterPrePhotoIngestGeoSlot, 'countryKey'>,
+): boolean {
+  return slot.countryKey === REGISTER_PRE_PHOTO_INGEST_THEME_COUNTRY_KEY
+}
+
+export function sportsThemeKeyFromIngestSlot(
+  slot: Pick<RegisterPrePhotoIngestGeoSlot, 'countryKey' | 'cityKey' | 'searchWord'>,
+): RegisterPrePhotoIngestThemeKey | null {
+  if (!isRegisterPrePhotoThemeIngestSlot(slot)) return null
+  const city = String(slot.cityKey ?? '').trim()
+  if ((REGISTER_PRE_PHOTO_INGEST_THEME_SEARCHES as readonly { key: string }[]).some((t) => t.key === city)) {
+    return city as RegisterPrePhotoIngestThemeKey
+  }
+  const word = String(slot.searchWord ?? '').trim()
+  const hit = REGISTER_PRE_PHOTO_INGEST_THEME_SEARCHES.find((t) => t.searchWord === word)
+  return hit?.key ?? null
+}
+
+export function buildRegisterPrePhotoThemeIngestSlots(
+  supplier: RegisterPrePhotoIngestSupplier,
+): RegisterPrePhotoIngestGeoSlot[] {
+  return REGISTER_PRE_PHOTO_INGEST_THEME_SEARCHES.map(({ key, searchWord }) => ({
+    supplier,
+    lane: 'package' as const,
+    countryKey: REGISTER_PRE_PHOTO_INGEST_THEME_COUNTRY_KEY,
+    cityKey: key,
+    originUrl: ingestSupplierBrowseHome(supplier),
+    destination: null,
+    searchWord,
+    pending: 0,
+  }))
+}
+
+/** 지방출발 다음·일반 geo 앞에 테마 검색 슬롯을 둔다. */
+export function prependHomepageCategoryIngestSlots(
+  supplier: string,
+  ordered: readonly RegisterPrePhotoIngestGeoSlot[],
+): RegisterPrePhotoIngestGeoSlot[] {
+  if (!isRegisterPrePhotoIngestSupplier(supplier)) return [...ordered]
+  const local = buildRegisterPrePhotoLocalDepartureIngestSlots(supplier)
+  const theme = buildRegisterPrePhotoThemeIngestSlots(supplier)
+  return [...local, ...theme, ...ordered]
+}
+
+/**
  * Playwright 목록은 공급사당 브라우저 1세션. 가격스윕(수백 geo)과 분리.
  * 이미 있는 URL이면 그 장에서 끝내지 않고 할당량 3을 채울 때까지 다음 geo를 본다.
  * REGRESSION-FREEZE[register-listing-discover-playwright]: max slots per supplier per run — manifest

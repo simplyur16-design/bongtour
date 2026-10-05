@@ -20,7 +20,16 @@ describe('prisma-connection-limit', () => {
 
   it('defaults to 3 in production — Prisma + pg pool must stay under Supabase pool_size 15', () => {
     process.env.NODE_ENV = 'production'
+    delete process.env.BONGTOUR_INSTRUMENTATION_ROLE
+    delete process.env.RAILWAY_SERVICE_NAME
     expect(resolvePrismaConnectionLimit()).toBe(3)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: worker Prisma 2 — manifest
+  it('defaults to 2 on worker so web/eSIM keep Supabase headroom', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.RAILWAY_SERVICE_NAME = 'bongtour-worker'
+    expect(resolvePrismaConnectionLimit()).toBe(2)
   })
 
   it('defaults to 1 outside production', () => {

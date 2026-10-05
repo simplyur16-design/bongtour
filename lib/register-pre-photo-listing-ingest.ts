@@ -18,6 +18,9 @@
  * REGRESSION-FREEZE[register-pre-photo-ingest-night-leftover-not-quota]: leftover pending ≠ 오늘 할당량 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-no-option-no-shopping]: 패키지 노옵션·노쇼핑 우선 — manifest
  * REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: origin_unsellable 은 같은 밤 재시도 금지 — manifest
+ * REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
+ * REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 하나·모두 지방출발 최소 1건 — manifest
+ * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마여행 분류 시드 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -67,11 +70,14 @@ import {
   interleaveRegisterPrePhotoIngestLanes,
   isRegisterPrePhotoIngestSupplier,
   listingUrlMatchesIngestLane,
+  prependHomepageCategoryIngestSlots,
   registerPrePhotoIngestMaxSlotsPerSupplier,
   rotateRegisterPrePhotoIngestSlots,
   pickUnknownListingUrlsUntilQuota,
   parseRegisterPrePhotoIngestOnlySuppliers,
   orderRegisterPrePhotoIngestSlotsForSupplier,
+  sportsThemeKeyFromIngestSlot,
+  supplierRequiresLocalDepartureIngestReserve,
   ybtourListingMenuForIngestLane,
   type RegisterPrePhotoIngestGeoSlot,
   type RegisterPrePhotoIngestLane,
@@ -265,10 +271,13 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     // 패키지·자유여행을 교차한다. 패키지만 앞에 두면 자유여행 메뉴를 안 누른다.
     const pkg = mine.filter((s) => s.lane === 'package')
     const fit = mine.filter((s) => s.lane === 'air_hotel_free')
-    const ordered = orderRegisterPrePhotoIngestSlotsForSupplier(
+    const ordered = prependHomepageCategoryIngestSlots(
       supplier,
-      rotateRegisterPrePhotoIngestSlots(pkg, `${dayKey}::${supplier}::package`, pkg.length),
-      rotateRegisterPrePhotoIngestSlots(fit, `${dayKey}::${supplier}::air_hotel_free`, fit.length),
+      orderRegisterPrePhotoIngestSlotsForSupplier(
+        supplier,
+        rotateRegisterPrePhotoIngestSlots(pkg, `${dayKey}::${supplier}::package`, pkg.length),
+        rotateRegisterPrePhotoIngestSlots(fit, `${dayKey}::${supplier}::air_hotel_free`, fit.length),
+      ),
     )
     selected.push(...ordered.slice(0, take))
   }
@@ -290,6 +299,9 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     const mine = selected.filter((s) => s.supplier === supplier)
     let consecutiveDiscoverThrow = 0
     const sessionSize = listingPagesPerBrowser(supplier)
+    // REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 하나·모두 지방출발 1건 확보 — manifest
+    const reserveLocalDep = supplierRequiresLocalDepartureIngestReserve(supplier)
+    let localDepCreated = 0
     for (let i = 0; i < mine.length; ) {
       if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
       const sessionSlots = mine.slice(i, i + sessionSize)
@@ -336,14 +348,26 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
           if (!(await discoveredListingFitsIngestLane(factSource, originUrl, slot.lane))) continue
 
           try {
+            const themeKey = sportsThemeKeyFromIngestSlot(slot)
             const confirm = await confirmRegisterPendingFromOriginUrl({
               supplier: supplier as CanonicalOverseasSupplierKey,
               originUrl,
               dryRun,
               ingestLane: slot.lane,
-              themeHintKeys: [slot.countryKey, slot.cityKey ?? ''],
+              // 테마 시드만 힌트. geo countryKey 를 넣으면 sportsThemeTag 가 안 잡힌다.
+              themeHintKeys: themeKey ? [themeKey] : undefined,
             })
             if (confirm.reason === 'lane_mismatch') continue
+            // REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명 스킵 — manifest
+            if (!confirm.ok && confirm.reason === 'duplicate_title') {
+              result.skippedDuplicate += 1
+              console.error('[register-pre-photo-listing-ingest] duplicate-title', supplier, originUrl)
+              for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+                knownKeys.add(`${k.kind}:${k.value}`)
+              }
+              await waitListingHumanPause(supplier)
+              continue
+            }
             if (!confirm.ok) {
               result.failed += 1
               console.error('[register-pre-photo-listing-ingest] confirm-fail', supplier, originUrl, confirm.reason)
@@ -360,6 +384,39 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
               await waitListingHumanPause(supplier)
               continue
             }
+
+            let isLocalDep = false
+            if (confirm.productId) {
+              const saved = await prisma.product.findUnique({
+                where: { id: confirm.productId },
+                select: { localDepartureTag: true },
+              })
+              isLocalDep = (saved?.localDepartureTag ?? []).length > 0
+            }
+            // 마지막 칸인데 아직 지방출발이 없으면 비지방출발은 버리고 계속 찾는다.
+            if (
+              reserveLocalDep &&
+              !isLocalDep &&
+              localDepCreated === 0 &&
+              (result.bySupplier[supplier] ?? 0) + 1 >= perSupplier
+            ) {
+              console.error(
+                '[register-pre-photo-listing-ingest] local-dep-reserve-skip',
+                supplier,
+                originUrl,
+                confirm.productId,
+              )
+              if (confirm.productId && !dryRun) {
+                await prisma.product.delete({ where: { id: confirm.productId } }).catch(() => undefined)
+              }
+              for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+                knownKeys.add(`${k.kind}:${k.value}`)
+              }
+              await waitListingHumanPause(supplier)
+              continue
+            }
+            if (isLocalDep) localDepCreated += 1
+
             result.created += 1
             result.bySupplier[supplier] = (result.bySupplier[supplier] ?? 0) + 1
             result.byLane[slot.lane] += 1
@@ -377,7 +434,12 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
       }
       await waitListingHumanPause(supplier)
     }
-    console.error('[register-pre-photo-listing-ingest] supplier-done', supplier, result.bySupplier[supplier] ?? 0)
+    console.error(
+      '[register-pre-photo-listing-ingest] supplier-done',
+      supplier,
+      result.bySupplier[supplier] ?? 0,
+      reserveLocalDep ? `localDep=${localDepCreated}` : '',
+    )
   }
 
   return result

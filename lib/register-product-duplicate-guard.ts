@@ -1,6 +1,7 @@
 /**
  * 공급사별 동일 상품 중복 등록 방지 — originCode 외 URL·공급사 dedupe 키 조회 SSOT.
  * REGRESSION-FREEZE[register-product-duplicate-guard]
+ * REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
  */
 import type { Prisma, PrismaClient } from '@prisma/client'
 
@@ -9,6 +10,7 @@ import { extractLottetourMasterIdsFromBlob } from '@/lib/lottetour-paste-determi
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { parseVerygoodProCodeFromUrl } from '@/lib/register-facts'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { parseYbtourEvCdFromUrl } from '@/lib/ybtour-api-departures'
 
 /** parse-and-register confirm fingerprint 와 동일 — trailing slash·길이 상한 */
@@ -89,6 +91,81 @@ export function originSourcesForCanonicalSupplier(originSource: string): string[
  */
 export function shouldWarnRegisterOriginUrlDuplicate(registrationStatus: string | null | undefined): boolean {
   return (registrationStatus ?? 'pending') !== 'rejected'
+}
+
+/**
+ * 등록대기 수집 — 같은 공급사·같은 상품명(항공사·편명만 다른 코드 상품) 재수집 금지용 키.
+ * REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
+ */
+export function normalizeRegisterIngestSameTitleKey(raw: string | null | undefined): string {
+  let t = normalizeSupplierRegisterListingTitle(String(raw ?? ''))
+  if (!t || t === '미입력') return ''
+  // [KE]·[OZ123]·대한항공 등 항공사 표기만 다른 동일 상품명
+  t = t.replace(
+    /[\[【(]\s*(?:KE|OZ|LJ|TW|7C|ZE|BX|RS|RJ|SQ|TG|VN|VJ|MU|CZ|CA|NH|JL|UA|DL|AA|EK|QR|EY)\s*\d{0,4}\s*[\]】)]/gi,
+    ' ',
+  )
+  t = t.replace(
+    /\b(?:KE|OZ|LJ|TW|7C|ZE|BX|RS|RJ)\s*\d{2,4}\b/gi,
+    ' ',
+  )
+  t = t.replace(
+    /대한\s*항공|아시아나(?:\s*항공)?|제주\s*항공|티\s*웨이(?:항공)?|진\s*에어|에어\s*부산|에어\s*서울|이스타(?:\s*항공)?|에티하드|에미레이트|카타르\s*항공|베트남\s*항공|비엣젯/gi,
+    ' ',
+  )
+  return t.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+/** rejected·auto_unpublished 는 같은 제목 재수집 허용 */
+export function registrationStatusBlocksSameTitleIngest(
+  registrationStatus: string | null | undefined,
+): boolean {
+  const s = String(registrationStatus ?? 'pending').trim()
+  if (!s || s === 'rejected' || s === 'auto_unpublished') return false
+  return true
+}
+
+export async function findExistingProductBySameTitleForRegister(
+  prisma: PrismaClient,
+  args: {
+    originSource: string
+    title: string | null | undefined
+    excludeProductId?: string | null
+  },
+): Promise<RegisterExistingProductRow | null> {
+  const titleKey = normalizeRegisterIngestSameTitleKey(args.title)
+  if (!titleKey) return null
+  const sources = originSourcesForCanonicalSupplier(args.originSource)
+  if (!sources.length) return null
+
+  const rows = await prisma.product.findMany({
+    where: {
+      originSource: { in: sources },
+      ...(args.excludeProductId
+        ? { id: { not: args.excludeProductId } }
+        : {}),
+      OR: [
+        { registrationStatus: null },
+        { registrationStatus: { notIn: ['rejected', 'auto_unpublished'] } },
+      ],
+    },
+    select: {
+      id: true,
+      originSource: true,
+      originCode: true,
+      originUrl: true,
+      registrationStatus: true,
+      title: true,
+      updatedAt: true,
+    },
+    orderBy: { updatedAt: 'desc' },
+  })
+
+  for (const row of rows) {
+    if (!registrationStatusBlocksSameTitleIngest(row.registrationStatus)) continue
+    if (normalizeRegisterIngestSameTitleKey(row.title) === titleKey) return row
+  }
+  return null
 }
 
 export type RegisterExistingProductRow = {

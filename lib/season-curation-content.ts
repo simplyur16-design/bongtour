@@ -120,7 +120,10 @@ const cachedSeasonLinkedProductIds = unstable_cache(
 
 export async function getCachedSeasonLinkedProductIds(): Promise<string[]> {
   if (shouldSkipDbAtBuild()) return []
-  return cachedSeasonLinkedProductIds()
+  // REGRESSION-FREEZE[home-ssg-empty-poison]: season linked ids empty bypass — manifest
+  return readCachedArrayOrBypassEmpty(cachedSeasonLinkedProductIds, () =>
+    loadSeasonLinkedProductIdsUncached(),
+  )
 }
 
 /** 페르소나 등 — 매 요청 Prisma cycle 조회 방지 (홈 ISR과 맞춤 5분) */

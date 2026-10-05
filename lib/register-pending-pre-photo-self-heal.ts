@@ -15,12 +15,22 @@
  * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: pending 지방출발 재추론 — manifest
  * REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]: 힐이 hotelText·식사 필드를 버리지 않음 — manifest
  * REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: FIT는 Fit master→schedule 동기화 후 heal — manifest
+ * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 제목 골프·러닝 → sportsThemeTag 힐 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { withPrismaRetry } from '@/lib/prisma-retry'
+import {
+  REGISTER_PRE_PHOTO_HEAL_ITINERARY_DAY_CAP,
+  yieldRegisterPrePhotoHealBudget,
+} from '@/lib/register-pre-photo-ingest-db-budget'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
-import { resolveRegisterAdminLane, type RegisterAdminLane } from '@/lib/register-admin-lane'
+import {
+  canonicalSportsThemeTags,
+  resolveRegisterAdminLane,
+  type RegisterAdminLane,
+} from '@/lib/register-admin-lane'
+import { inferSportsThemeTagsFromListingHaystack } from '@/lib/product-listing-kind'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import {
   healRegisterPrePhotoSchedule,
@@ -267,6 +277,12 @@ export async function healPendingRegisterPrePhoto(
         JSON.stringify(prevDepTags) !== JSON.stringify(nextDepTags) ||
         String(product.departureAirportLabel ?? '') !== String(depResolved.departureAirportLabel ?? '')
 
+      // REGRESSION-FREEZE[register-ingest-theme-category-slots]: 제목 골프·러닝 → sportsThemeTag — manifest
+      const prevThemeTags = canonicalSportsThemeTags(product.sportsThemeTag)
+      const inferredThemeTags = inferSportsThemeTagsFromListingHaystack(titleForInfer)
+      const nextThemeTags = canonicalSportsThemeTags([...prevThemeTags, ...inferredThemeTags])
+      const themeChanged = JSON.stringify(prevThemeTags) !== JSON.stringify(nextThemeTags)
+
       let next = rows
       let imageUrlCleared = 0
       let healNotes: RegisterPrePhotoHealNote[] = []
@@ -280,6 +296,7 @@ export async function healPendingRegisterPrePhoto(
           productDestination,
           productTitle: titleForInfer,
           lane,
+          countryKey: product.countryKey,
           // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 힐 haystack — manifest
           productHaystack: [
             product.includedText,
@@ -324,7 +341,8 @@ export async function healPendingRegisterPrePhoto(
             ...row,
             // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
             // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 전일해상 title scrub 저장 — manifest
-            title: h.title ?? row.title,
+            // null title = hub poison scrub — ?? 로 복원하지 않음
+            title: h.title !== undefined ? h.title : row.title,
             routeText: h.routeText ?? row.routeText,
             imageKeyword: h.imageKeyword ?? '',
             imageKeyword2: h.imageKeyword2 ?? null,
@@ -461,6 +479,7 @@ export async function healPendingRegisterPrePhoto(
         !titleChanged &&
         !destinationChanged &&
         !departureChanged &&
+        !themeChanged &&
         !geoRematerialized &&
         healNotes.length === 0
       ) {
@@ -483,6 +502,7 @@ export async function healPendingRegisterPrePhoto(
                     departureAirportLabel: depResolved.departureAirportLabel,
                   }
                 : {}),
+              ...(themeChanged ? { sportsThemeTag: nextThemeTags } : {}),
               ...(statusChanged && nextStatus === 'pending'
                 ? { rejectReason: null, rejectedAt: null }
                 : {}),
@@ -492,8 +512,12 @@ export async function healPendingRegisterPrePhoto(
         )
         if (scheduleChanged && lane !== 'air_hotel_free') {
           try {
+            // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: itinerary sync 일 수 상한 — manifest
+            let itinerarySynced = 0
             for (const h of verifyRows) {
               if (!h.description) continue
+              if (itinerarySynced >= REGISTER_PRE_PHOTO_HEAL_ITINERARY_DAY_CAP) break
+              itinerarySynced += 1
               await withPrismaRetry(`heal-itinerary:${product.id}:${h.day}`, () =>
                 prisma.itineraryDay.updateMany({
                   where: { productId: product.id, day: Number(h.day) },
@@ -505,6 +529,8 @@ export async function healPendingRegisterPrePhoto(
             console.error('[register-pre-photo-self-heal] itinerary sync skipped', product.id, itineraryErr)
           }
         }
+        // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: 상품 간 yield — manifest
+        await yieldRegisterPrePhotoHealBudget()
       }
       if (
         scheduleChanged ||

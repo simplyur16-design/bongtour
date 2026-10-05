@@ -11,6 +11,8 @@
  * REGRESSION-FREEZE[register-pre-photo-ingest-pkg-fit-theme-kind]: 팩트 kind·테마 태그 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-naeiltour-fit-first]: 내일투어 자유여행 우선 저장 — manifest
  * REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가·팩트없음은 confirm 안 함 — manifest
+ * REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
+ * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 시드 → sportsThemeTag — manifest
  */
 import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
@@ -26,6 +28,7 @@ import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canon
 import { healPendingRegisterPrePhoto } from '@/lib/register-pending-pre-photo-self-heal'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 import { readRegisterPrePhotoStampFromRawMeta } from '@/lib/register-pre-photo-verify'
+import { findExistingProductBySameTitleForRegister } from '@/lib/register-product-duplicate-guard'
 import { prisma } from '@/lib/prisma'
 import { handleParseAndRegisterHanatourRequest } from '@/lib/parse-and-register-hanatour-handler'
 import { handleParseAndRegisterModetourRequest } from '@/lib/parse-and-register-modetour-handler'
@@ -89,6 +92,23 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
       args.themeHintKeys,
     )
 
+    // REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
+    if (bundle?.title) {
+      const sameTitle = await findExistingProductBySameTitleForRegister(prisma, {
+        originSource: args.supplier,
+        title: bundle.title,
+      })
+      if (sameTitle) {
+        console.error(
+          '[register-pre-photo-ingest-confirm] duplicate-title',
+          args.supplier,
+          sameTitle.originCode,
+          originUrl,
+        )
+        return { ok: false, reason: 'duplicate_title' }
+      }
+    }
+
     if (args.dryRun) {
       return { ok: Boolean(bundle), reason: bundle ? 'dry_run' : 'facts_missing_dry_run' }
     }
@@ -120,6 +140,29 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
       return { ok: false, reason: confirm.json.error ?? 'confirm_failed' }
     }
     productId = confirm.json.productId
+    const created = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { title: true, originCode: true },
+    })
+    // REGRESSION-FREEZE[register-ingest-same-title-dedupe]: confirm 후 저장 제목으로 재확인 — manifest
+    if (created?.title) {
+      const sameTitleAfter = await findExistingProductBySameTitleForRegister(prisma, {
+        originSource: args.supplier,
+        title: created.title,
+        excludeProductId: productId,
+      })
+      if (sameTitleAfter) {
+        console.error(
+          '[register-pre-photo-ingest-confirm] duplicate-title-after-confirm',
+          args.supplier,
+          sameTitleAfter.originCode,
+          created.originCode,
+          originUrl,
+        )
+        await prisma.product.delete({ where: { id: productId } })
+        return { ok: false, reason: 'duplicate_title' }
+      }
+    }
     const gate = await healPendingRegisterPrePhoto({ limit: 1, productId, dryRun: false })
     if (gate.verifyFailed > 0 || gate.verified < 1) {
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 제목 미입력 stub 저장 금지 — manifest

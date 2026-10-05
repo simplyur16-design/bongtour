@@ -13,6 +13,15 @@ import {
 
 const BUILD_SAFE_DEFAULT = 1
 const PRODUCTION_DEFAULT = 3
+/** worker 배치는 web(eSIM·홈)보다 낮게 — Supabase session/transaction 여유 확보 */
+const PRODUCTION_WORKER_DEFAULT = 2
+
+function isWorkerInstrumentationRole(): boolean {
+  const explicit = process.env.BONGTOUR_INSTRUMENTATION_ROLE?.trim().toLowerCase()
+  if (explicit === 'worker' || explicit === 'cron') return true
+  const serviceName = (process.env.RAILWAY_SERVICE_NAME ?? '').trim().toLowerCase()
+  return serviceName.includes('worker') || serviceName.includes('cron')
+}
 
 export function resolvePrismaConnectionLimit(): number {
   if (shouldSkipDbAtBuild()) return 1
@@ -21,7 +30,11 @@ export function resolvePrismaConnectionLimit(): number {
     const n = parseInt(raw, 10)
     if (Number.isFinite(n) && n >= 1 && n <= 20) return n
   }
-  if (process.env.NODE_ENV === 'production') return PRODUCTION_DEFAULT
+  if (process.env.NODE_ENV === 'production') {
+    // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: worker Prisma 2 — manifest
+    if (isWorkerInstrumentationRole()) return PRODUCTION_WORKER_DEFAULT
+    return PRODUCTION_DEFAULT
+  }
   return BUILD_SAFE_DEFAULT
 }
 

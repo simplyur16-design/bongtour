@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   extractRegisterProductDedupeKeys,
   groupProductsByRegisterDedupeKey,
+  normalizeRegisterIngestSameTitleKey,
   normalizeRegisterOriginUrl,
   pickDuplicateProductKeeper,
+  registrationStatusBlocksSameTitleIngest,
   shouldWarnRegisterOriginUrlDuplicate,
 } from '@/lib/register-product-duplicate-guard'
 
@@ -99,5 +101,32 @@ describe('pickDuplicateProductKeeper', () => {
       },
     ])
     expect(keeper.id).toBe('registered')
+  })
+})
+
+// REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
+describe('normalizeRegisterIngestSameTitleKey', () => {
+  it('collapses airline badge / IATA variants to the same key', () => {
+    const a = normalizeRegisterIngestSameTitleKey('[KE] 오사카 3일 #미식여행')
+    const b = normalizeRegisterIngestSameTitleKey('[OZ] 오사카 3일 #미식여행')
+    const c = normalizeRegisterIngestSameTitleKey('대한항공 오사카 3일 #미식여행')
+    expect(a).toBeTruthy()
+    expect(a).toBe(b)
+    expect(a).toBe(c)
+  })
+
+  it('returns empty for placeholder titles', () => {
+    expect(normalizeRegisterIngestSameTitleKey('미입력')).toBe('')
+    expect(normalizeRegisterIngestSameTitleKey('')).toBe('')
+  })
+})
+
+describe('registrationStatusBlocksSameTitleIngest', () => {
+  it('allows re-ingest after reject / auto_unpublished only', () => {
+    expect(registrationStatusBlocksSameTitleIngest('pending')).toBe(true)
+    expect(registrationStatusBlocksSameTitleIngest('registered')).toBe(true)
+    expect(registrationStatusBlocksSameTitleIngest(null)).toBe(true)
+    expect(registrationStatusBlocksSameTitleIngest('rejected')).toBe(false)
+    expect(registrationStatusBlocksSameTitleIngest('auto_unpublished')).toBe(false)
   })
 })
