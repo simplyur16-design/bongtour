@@ -2,7 +2,7 @@
  * OTA 발행 HTML → PDF (Playwright Chromium).
  * REGRESSION-FREEZE[admin-ota-issued-pdf]: HTML→PDF 발행 — manifest
  */
-import { chromium, type Browser } from 'playwright'
+import type { Browser } from 'playwright'
 
 export type OtaIssuedPdfScope = 'both' | 'ko' | 'en'
 
@@ -21,6 +21,9 @@ export function buildOtaIssuedPdfFileName(args: {
 export async function renderOtaIssuedHtmlToPdf(html: string): Promise<Buffer> {
   const raw = String(html || '').trim()
   if (!raw) throw new Error('PDF로 변환할 HTML이 없습니다.')
+
+  // 동적 import — Next webpack이 playwright를 번들하지 않도록 (serverExternalPackages)
+  const { chromium } = await import('playwright')
 
   let browser: Browser | null = null
   try {

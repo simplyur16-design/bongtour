@@ -24104,7 +24104,21 @@
             "REGRESSION-FREEZE[admin-ota-issued-pdf]",
             "renderOtaIssuedHtmlToPdf",
             "buildOtaIssuedPdfFileName",
-            "page.pdf"
+            "page.pdf",
+            "await import('playwright')"
+          ]
+        },
+        {
+          "file": "next.config.js",
+          "mustInclude": [
+            "playwright",
+            "playwright-core"
+          ]
+        },
+        {
+          "file": "package.json",
+          "mustInclude": [
+            "\"playwright\": \"^1.61.1\""
           ]
         },
         {

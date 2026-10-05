@@ -64,6 +64,8 @@ const nextConfig = {
   serverExternalPackages: [
     '@prisma/client',
     'prisma',
+    'playwright',
+    'playwright-core',
   ],
   experimental: {
     /** Railway/Nixpacks next build peak RSS 완화 (Next 15+) */
