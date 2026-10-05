@@ -23955,6 +23955,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
             "bongtour-company-invoice-logo-server"
+          ],
+          "mustNotInclude": [
+            "persistAdminOtaIssuedDocument"
           ]
         },
         {
@@ -23993,20 +23996,19 @@
         },
         {
           "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-issued-archive]",
-            "persistAdminOtaIssuedDocument",
-            "draft.propertyName"
-          ],
           "mustNotInclude": [
-            "draft.propertyOrService"
+            "persistAdminOtaIssuedDocument",
+            "REGRESSION-FREEZE[admin-ota-issued-archive]"
           ]
         },
         {
           "file": "app/api/admin/invoices/issued/route.ts",
           "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-issued-archive]",
+            "persistAdminOtaIssuedDocument",
             "listAdminOtaIssuedDocuments",
-            "requireAdmin"
+            "requireAdmin",
+            "export async function POST"
           ]
         },
         {
