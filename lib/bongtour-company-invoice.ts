@@ -363,6 +363,29 @@ function parseLabeledLine(text: string, labels: RegExp[]): string | null {
   return null
 }
 
+function parseAllLabeledLines(text: string, labels: RegExp[]): string[] {
+  const out: string[] = []
+  for (const label of labels) {
+    const re = new RegExp(`${label.source}\\s*[:：]\\s*([^\\n]+)`, `g${label.flags.includes('i') ? 'i' : ''}`)
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text))) {
+      const v = cleanLine(m[1])
+      if (v && !out.includes(v)) out.push(v)
+    }
+  }
+  return out
+}
+
+function pickKoEnFromLabeled(text: string, labels: RegExp[]): { ko: string | null; en: string | null } {
+  const values = parseAllLabeledLines(text, labels)
+  const ko = values.find((v) => /[\uAC00-\uD7A3]/.test(v)) || null
+  const en =
+    values.find((v) => !/[\uAC00-\uD7A3]/.test(v) && /[A-Za-z]/.test(v)) ||
+    values.find((v) => v !== ko) ||
+    null
+  return { ko: ko || null, en: en || null }
+}
+
 function parseAmenityList(raw: string | null): string[] {
   if (!raw) return []
   return [
@@ -381,10 +404,20 @@ function parseAmenityList(raw: string | null): string[] {
 }
 
 function parseAmenities(text: string): { ko: string[]; en: string[]; merged: string[] } {
-  const koRaw = parseLabeledLine(text, [/객실\s*(?:편의\s*)?시설/, /편의\s*시설/])
-  const enRaw = parseLabeledLine(text, [/Room\s*(?:amenities|facilities)/i, /Amenities/i])
-  const ko = parseAmenityList(koRaw)
-  const en = parseAmenityList(enRaw)
+  const labeled = parseAllLabeledLines(text, [
+    /객실\s*(?:편의\s*)?시설/,
+    /편의\s*시설/,
+    /Room\s*(?:amenities|facilities)/i,
+    /Amenities/i,
+  ])
+  const koLists = labeled
+    .filter((v) => /[\uAC00-\uD7A3]/.test(v))
+    .flatMap((v) => parseAmenityList(v))
+  const enLists = labeled
+    .filter((v) => !/[\uAC00-\uD7A3]/.test(v) && /[A-Za-z]/.test(v))
+    .flatMap((v) => parseAmenityList(v))
+  const ko = [...new Set(koLists)].slice(0, 16)
+  const en = [...new Set(enLists)].slice(0, 16)
   const merged = en.length ? en : ko
   if (!merged.length) {
     const singles: string[] = []
@@ -492,10 +525,12 @@ function parseBedType(text: string): { ko: string | null; en: string | null; mer
 }
 
 function parseRoomType(text: string): { ko: string | null; en: string | null; merged: string | null } {
+  const fromLabels = pickKoEnFromLabeled(text, [/객실\s*(?:타입|유형|종류)/, /Room\s*(?:Type|Category)/i])
   const ko =
+    fromLabels.ko ||
     parseLabeledLine(text, [/객실\s*(?:타입|유형|종류)/]) ||
     cleanLine(text.match(/Room\s*Type\s*[:：]\s*[^\n]*객실\s*타입\s*[:：]\s*([^\n]+)/i)?.[1])
-  const en = parseLabeledLine(text, [/Room\s*(?:Type|Category)/i])
+  const en = fromLabels.en || parseLabeledLine(text, [/Room\s*(?:Type|Category)/i])
   if (ko || en) {
     const fromKo = splitBilingualValue(ko)
     const fromEn = splitBilingualValue(en)
@@ -531,22 +566,68 @@ function parseNightsCount(
   return n != null && Number.isFinite(n) && n > 0 && n < 120 ? n : null
 }
 
+/** 한글+영문 바우처 PDF OCR 본문을 한 세트로 합침 (업로드 다건용) */
+export function joinOtaVoucherUploadTexts(parts: Array<string | null | undefined>): string {
+  return parts
+    .map((p) => String(p ?? '').trim())
+    .filter(Boolean)
+    .join('\n\n--- OTA voucher source ---\n\n')
+}
+
+function uniqueIds(ids: Array<string | null | undefined>): string[] {
+  const out: string[] = []
+  for (const raw of ids) {
+    const id = cleanLine(raw)
+    if (!id) continue
+    if (!out.some((x) => x.toUpperCase() === id.toUpperCase())) out.push(id)
+  }
+  return out
+}
+
+/**
+ * Booking ID 우선. 한/영 세트 업로드 시 KO가 예약번호를 Booking ID로 찍어도
+ * EN의 별도 Booking ID(비자용)를 고른다.
+ */
+function resolveBookingRefs(text: string): {
+  bookingRef: string | null
+  hotelConfirmationRef: string | null
+} {
+  const bookingIds = uniqueIds(
+    [...text.matchAll(/Booking\s*ID\s*[:：]\s*(?:예약\s*번호\s*[:：]\s*)?([A-Z0-9-]{5,})/gi)].map(
+      (m) => m[1],
+    ),
+  )
+  const reservationNos = uniqueIds(
+    [
+      ...text.matchAll(/예약\s*번호\s*[:：]\s*([A-Z0-9-]{5,})/g),
+      ...text.matchAll(/Confirmation(?:\s*(?:No\.?|Number|ID))?\s*[:：]?\s*([A-Z0-9-]{5,})/gi),
+      ...text.matchAll(/Order\s*(?:ID|No\.?|Number)\s*[:：]?\s*([A-Z0-9-]{6,})/gi),
+      ...text.matchAll(/확인\s*번호\s*[:：]?\s*([A-Z0-9-]{6,})/g),
+      ...text.matchAll(/트립닷컴\s*예약번호\s*([A-Z0-9-]{5,})/gi),
+    ].map((m) => m[1]),
+  )
+
+  const bookingOnly = bookingIds.filter(
+    (id) => !reservationNos.some((r) => r.toUpperCase() === id.toUpperCase()),
+  )
+  const bookingRef =
+    bookingOnly.sort((a, b) => a.length - b.length)[0] ||
+    bookingIds.sort((a, b) => a.length - b.length)[0] ||
+    reservationNos[0] ||
+    null
+
+  const hotelConfirmationRef =
+    reservationNos.find((id) => id.toUpperCase() !== bookingRef?.toUpperCase()) ||
+    bookingIds.find((id) => id.toUpperCase() !== bookingRef?.toUpperCase()) ||
+    null
+
+  return { bookingRef, hotelConfirmationRef }
+}
+
 /** Trip.com / Agoda 영수증·바우처 본문에서 숙박·금액·포함사항 추출 */
 export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount {
   const provider = detectProvider(text)
-  // Booking ID 라벨 최우선 (비자/체크인 바우처 SSOT). 예약 번호는 보조.
-  const bookingIdExplicit =
-    cleanLine(
-      text.match(/Booking\s*ID\s*[:：]\s*(?:예약\s*번호\s*[:：]\s*)?([A-Z0-9-]{5,})/i)?.[1],
-    ) || null
-  const bookingRefAlt =
-    cleanLine(text.match(/예약\s*번호\s*[:：]\s*([A-Z0-9-]{5,})/)?.[1]) ||
-    cleanLine(text.match(/Confirmation(?:\s*(?:No\.?|Number|ID))?\s*[:：]?\s*([A-Z0-9-]{5,})/i)?.[1]) ||
-    cleanLine(text.match(/Order\s*(?:ID|No\.?|Number)\s*[:：]?\s*([A-Z0-9-]{6,})/i)?.[1]) ||
-    cleanLine(text.match(/확인\s*번호\s*[:：]?\s*([A-Z0-9-]{6,})/)?.[1]) ||
-    cleanLine(text.match(/트립닷컴\s*예약번호\s*([A-Z0-9-]{5,})/i)?.[1]) ||
-    null
-  const bookingRef = bookingIdExplicit || bookingRefAlt
+  const { bookingRef, hotelConfirmationRef } = resolveBookingRefs(text)
 
   const guestName =
     cleanLine(text.match(/고객명\s*[:：]\s*([^\n]+)/)?.[1]) ||
@@ -564,27 +645,28 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
     null
   const names = splitPropertyNames(propertyRaw)
 
-  const addressKo = parseLabeledLine(text, [/주소/])
-  const addressEn = parseLabeledLine(text, [/Address/i])
+  const addressPair = pickKoEnFromLabeled(text, [/주소/, /Address/i])
+  const addressKo = addressPair.ko || parseLabeledLine(text, [/주소/])
+  const addressEn = addressPair.en || parseLabeledLine(text, [/Address/i])
   const address = addressKo || addressEn
 
   const phone =
     cleanLine(text.match(/(?:전화|Tel|Phone|연락처)\s*[:：]?\s*([+\d][\d\-\s()]{6,})/i)?.[1]) || null
 
-  const checkInKo = parseLabeledLine(text, [/체크인/])
-  const checkInEn = parseLabeledLine(text, [/Check[- ]?in/i, /Arrival/i])
-  const checkOutKo = parseLabeledLine(text, [/체크아웃/])
-  const checkOutEn = parseLabeledLine(text, [/Check[- ]?out/i, /Departure/i])
-  const checkIn =
+  const checkInPair = pickKoEnFromLabeled(text, [/체크인/, /Check[- ]?in/i, /Arrival/i])
+  const checkOutPair = pickKoEnFromLabeled(text, [/체크아웃/, /Check[- ]?out/i, /Departure/i])
+  const checkInKo =
+    checkInPair.ko ||
     cleanLine(text.match(/Arrival\s*[:：]\s*[^\n]*체크인\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    checkInKo ||
-    checkInEn ||
     null
-  const checkOut =
+  const checkInEn = checkInPair.en || null
+  const checkOutKo =
+    checkOutPair.ko ||
     cleanLine(text.match(/Departure\s*[:：]\s*[^\n]*체크아웃\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    checkOutKo ||
-    checkOutEn ||
     null
+  const checkOutEn = checkOutPair.en || null
+  const checkIn = checkInKo || checkInEn
+  const checkOut = checkOutKo || checkOutEn
 
   const room = parseRoomType(text)
   const roomsRaw = Number(text.match(/객실\s*수\s*[:：]?\s*(\d+)/)?.[1] ?? NaN)
@@ -649,10 +731,7 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
   return {
     provider,
     bookingRef: bookingRef ? bookingRef.trim() : null,
-    hotelConfirmationRef:
-      bookingRefAlt && bookingIdExplicit && bookingRefAlt !== bookingIdExplicit
-        ? bookingRefAlt
-        : null,
+    hotelConfirmationRef,
     guestName,
     propertyOrService: names.propertyOrService,
     propertyNameKo: names.propertyNameKo,

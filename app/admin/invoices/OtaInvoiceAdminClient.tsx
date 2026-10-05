@@ -41,7 +41,7 @@ function todaySeoulYmd(): string {
 export default function OtaInvoiceAdminClient() {
   const [documentKind, setDocumentKind] = useState<OtaAdminDocumentKind>('voucher')
   const [text, setText] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [guestName, setGuestName] = useState('')
   const [propertyNameKo, setPropertyNameKo] = useState('')
   const [propertyNameEn, setPropertyNameEn] = useState('')
@@ -106,7 +106,7 @@ export default function OtaInvoiceAdminClient() {
       if (sourceAmountKrw.trim()) form.set('sourceAmountKrw', sourceAmountKrw.trim())
       if (amountUsd.trim()) form.set('amountUsd', amountUsd.trim())
       if (nightRateUsd.trim()) form.set('nightRateUsd', nightRateUsd.trim())
-      if (file) form.set('file', file)
+      for (const f of files) form.append('file', f)
       const res = await fetch('/api/admin/invoices/from-ota-receipt', { method: 'POST', body: form })
       const json = (await res.json()) as ApiOk & {
         ok: boolean
@@ -144,7 +144,7 @@ export default function OtaInvoiceAdminClient() {
   }, [
     documentKind,
     text,
-    file,
+    files,
     guestName,
     propertyNameKo,
     propertyNameEn,
@@ -181,7 +181,7 @@ export default function OtaInvoiceAdminClient() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <AdminPageHeader
         title="OTA → 회사 인보이스 / 체크인 바우처"
-        subtitle="OTA PDF·본문에서 Booking ID·숙소(한/영)·조식·편의시설·취소정책까지 가져와 한글/영문 바우처를 만듭니다. 회사 로고·세금/서비스요금 포함 고지가 들어갑니다."
+        subtitle="OTA 한글·영문 바우처 PDF를 한 세트로 올리면 Booking ID·숙소(한/영)·조식·편의시설·취소정책을 합쳐 한글/영문 회사 바우처를 만듭니다. 회사 로고·세금/서비스요금 포함 고지가 들어갑니다."
       />
 
       <section className={`${ADMIN_CARD_CLASS} space-y-4 p-5`}>
@@ -216,16 +216,24 @@ export default function OtaInvoiceAdminClient() {
           />
         </label>
         <label className="block text-sm font-medium text-zinc-800">
-          또는 PDF/TXT 업로드
+          한글 + 영문 바우처 PDF/TXT (한 세트 업로드)
           <input
             type="file"
+            multiple
             accept=".pdf,.txt,application/pdf,text/plain"
             className="mt-1 block w-full text-sm"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
           />
           <span className="mt-1 block text-xs font-normal text-zinc-500">
-            텍스트 PDF만 자동 추출됩니다. 스캔본이면 본문 붙여넣기가 필요합니다.
+            체크인 바우처(한글)와 English check-in voucher를 함께 선택하세요. 스캔 PDF는 OCR로 읽습니다.
           </span>
+          {files.length > 0 ? (
+            <ul className="mt-2 list-inside list-disc text-xs font-normal text-zinc-600">
+              {files.map((f) => (
+                <li key={`${f.name}-${f.size}-${f.lastModified}`}>{f.name}</li>
+              ))}
+            </ul>
+          ) : null}
         </label>
 
         <div className="grid gap-3 sm:grid-cols-2">

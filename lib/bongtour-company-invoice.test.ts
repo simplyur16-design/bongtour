@@ -7,6 +7,7 @@ import {
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
+  joinOtaVoucherUploadTexts,
   parseOtaReceiptForInvoice,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
@@ -341,5 +342,81 @@ Nights : 5박`
     expect(p.inclusionsText).toMatch(/부가가치세/)
     expect(p.cancellationPolicy).toMatch(/취소 수수료/)
     expect(p.amenities).toEqual(expect.arrayContaining(['칫솔', '치약']))
+  })
+
+  // REGRESSION-FREEZE[admin-ota-receipt-invoice]: 한글+영문 바우처 한 세트 병합 — manifest
+  it('merges Korean+English voucher OCR set into one bilingual draft with visa Booking ID', () => {
+    const ko = `Booking ID : 1400829634320451
+예약 번호 : 1400829634320451
+고객명 : JEONG SEOYOUNG
+숙소명 : 머큐어 아이콘 싱가포르 시티 센터 / Mercure ICON Singapore City Centre
+주소 : 싱가포르 8 Club Street, #01-03, 069472
+체크인 : 2026년 10월 13일 15:00 이후
+체크아웃 : 2026년 10월 18일 11:00 이전
+객실 타입 : 클래식 트윈룸
+침대 타입 : 싱글 침대 2개
+조식 : 불포함
+객실 편의시설 : 칫솔, 치약, 바디워시, 샴푸
+포함사항 : 서비스 요금 88,633원, 부가가치세 87,746원
+취소 정책 : 체크인하지 않으실 경우, 취소 수수료가 청구됩니다.
+결제 방법 : 온라인 사전 결제 (Prepay Online)
+세금 및 봉사료 포함
+총 결제 금액 : KRW 1,062,752
+Nights : 5박`
+    const en = `Booking ID : 2610130768
+예약 번호 : 1400829634320451
+고객명 : SEOYOUNG JEONG
+숙소명 : Mercure ICON Singapore City Centre
+Address : 8 Club Street, #01-03, 069472, Singapore
+체크인 : Oct 13, 2026 Tue After 3:00 PM
+체크아웃 : Oct 18, 2026 Sun Before 11:00 AM
+Room Type : Classic Twin Room
+침대 타입 : 2 single beds
+Breakfast : not included (No meals included)
+객실 편의시설 : Toothbrushes, Toothpaste, Body wash, Shampoo
+취소 정책 : You'll be charged the cancellation fee if you don't check in.
+결제 방법 : Prepay Online
+세금 및 봉사료 포함
+총 결제 금액 : KRW 1,062,752
+Nights : 5박`
+    const merged = joinOtaVoucherUploadTexts([ko, en])
+    const p = parseOtaReceiptForInvoice(merged)
+    expect(p.bookingRef).toBe('2610130768')
+    expect(p.hotelConfirmationRef).toBe('1400829634320451')
+    expect(p.propertyNameKo).toMatch(/머큐어/)
+    expect(p.propertyNameEn).toMatch(/Mercure/i)
+    expect(p.roomTypeKo).toMatch(/클래식|트윈/)
+    expect(p.roomTypeEn).toMatch(/Classic Twin/i)
+    expect(p.checkInKo).toMatch(/2026년 10월 13일/)
+    expect(p.checkInEn).toMatch(/Oct 13/)
+    expect(p.breakfastTextKo).toMatch(/불포함/)
+    expect(p.breakfastTextEn).toMatch(/not included/i)
+    expect(p.amenitiesKo).toEqual(expect.arrayContaining(['칫솔']))
+    expect(p.amenitiesEn).toEqual(expect.arrayContaining(['Toothbrushes']))
+    expect(p.inclusionsTextKo).toMatch(/부가가치세/)
+    expect(p.exclusionsTextKo).toBeNull()
+    expect(p.paymentMethod).toBe('CASH')
+
+    const draft = buildOtaCompanyCheckInVoucherDraft({
+      parsed: p,
+      amountUsd: 786,
+      nightRateUsd: 157.2,
+      rateDate: '2026-10-05',
+      effectiveRateDate: '2026-10-03',
+      usdKrwRate: 1350,
+      amountKrw: usdAmountToKrw(786, 1350),
+      logoUrl: 'https://bongtour.com/images/bongtour-logo.webp',
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    const html = renderOtaCompanyCheckInVoucherBilingualHtml(draft)
+    expect(html).toContain('봉투어 체크인 바우처')
+    expect(html).toContain('Check-in Voucher')
+    expect(html).toContain('page-break')
+    expect(html).toContain('2610130768')
+    expect(html).toContain('클래식')
+    expect(html).toContain('Classic Twin')
+    expect(html).toContain('CASH')
+    expect(html).toContain(BONGTOUR_INVOICE_COMPANY.email)
+    expect(html).not.toContain('Prepay Online')
   })
 })

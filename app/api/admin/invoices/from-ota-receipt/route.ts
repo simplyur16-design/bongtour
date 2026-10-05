@@ -6,6 +6,7 @@ import {
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
   parseOtaReceiptForInvoice,
+  joinOtaVoucherUploadTexts,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
@@ -30,10 +31,43 @@ function readPositiveNumber(raw: unknown): number | null {
   return n
 }
 
+async function extractTextFromUploadedFile(
+  file: File,
+): Promise<{ text: string; hint: 'ok' | 'pdf_empty' | 'image' | 'unsupported'; error?: string }> {
+  if (file.size > MAX_BYTES) {
+    return { text: '', hint: 'unsupported', error: '파일은 8MB 이하여야 합니다.' }
+  }
+  const buf = new Uint8Array(await file.arrayBuffer())
+  const name = (file.name || '').toLowerCase()
+  const mime = (file.type || '').toLowerCase()
+  if (name.endsWith('.pdf') || mime.includes('pdf')) {
+    try {
+      const extracted = extractPdfText(buf)
+      if (extracted.trim()) return { text: extracted, hint: 'ok' }
+      const ocr = await extractOtaVoucherPdfTextViaGemini(buf)
+      if (ocr.ok && ocr.text.trim()) return { text: ocr.text, hint: 'ok' }
+      return { text: '', hint: 'pdf_empty' }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return { text: '', hint: 'unsupported', error: `PDF 텍스트 추출 실패: ${msg}` }
+    }
+  }
+  if (name.endsWith('.txt') || mime.includes('text')) {
+    return { text: new TextDecoder().decode(buf), hint: 'ok' }
+  }
+  if (isImageFile(name, mime)) return { text: '', hint: 'image' }
+  return {
+    text: '',
+    hint: 'unsupported',
+    error: 'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).',
+  }
+}
+
 /**
  * POST /api/admin/invoices/from-ota-receipt
  * Trip.com / Agoda PDF·본문 → 숙박정보 추출 + 봉투어 인보이스/체크인 바우처
  * 금액(1박·총액)은 입력값이 최종. 서비스요금·세금은 포함 문구로 명시.
+ * 한글+영문 바우처 PDF는 한 세트로 여러 파일 업로드 가능.
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 export async function POST(request: Request) {
@@ -57,59 +91,44 @@ export async function POST(request: Request) {
   let nightRateUsd: number | null = null
   let rateDate: string | null = null
   let fileHint: 'none' | 'pdf_empty' | 'image' | 'ok' = 'none'
+  let uploadedFileCount = 0
 
   const contentType = request.headers.get('content-type') || ''
   try {
     if (contentType.includes('multipart/form-data')) {
       const form = await request.formData()
       const pasted = typeof form.get('text') === 'string' ? String(form.get('text')) : ''
-      text = pasted
-      const file = form.get('file')
-      if (file instanceof File && file.size > 0) {
-        if (file.size > MAX_BYTES) {
-          return NextResponse.json({ ok: false, error: '파일은 8MB 이하여야 합니다.' }, { status: 400 })
+      const uploadParts: string[] = []
+      const files = [
+        ...form.getAll('file'),
+        ...form.getAll('files'),
+      ].filter((f): f is File => f instanceof File && f.size > 0)
+      uploadedFileCount = files.length
+      for (const file of files) {
+        const extracted = await extractTextFromUploadedFile(file)
+        if (extracted.error) {
+          return NextResponse.json({ ok: false, error: extracted.error }, { status: 400 })
         }
-        const buf = new Uint8Array(await file.arrayBuffer())
-        const name = (file.name || '').toLowerCase()
-        const mime = (file.type || '').toLowerCase()
-        if (name.endsWith('.pdf') || mime.includes('pdf')) {
-          try {
-            const extracted = extractPdfText(buf)
-            if (extracted.trim()) {
-              text = [text, extracted].filter(Boolean).join('\n\n')
-              fileHint = 'ok'
-            } else {
-              const ocr = await extractOtaVoucherPdfTextViaGemini(buf)
-              if (ocr.ok && ocr.text.trim()) {
-                text = [text, ocr.text].filter(Boolean).join('\n\n')
-                fileHint = 'ok'
-              } else {
-                fileHint = 'pdf_empty'
-              }
-            }
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e)
-            return NextResponse.json(
-              { ok: false, error: `PDF 텍스트 추출 실패: ${msg}` },
-              { status: 400 },
-            )
-          }
-        } else if (name.endsWith('.txt') || mime.includes('text')) {
-          text = [text, new TextDecoder().decode(buf)].filter(Boolean).join('\n\n')
+        if (extracted.hint === 'ok' && extracted.text.trim()) {
+          uploadParts.push(extracted.text)
           fileHint = 'ok'
-        } else if (isImageFile(name, mime)) {
+        } else if (extracted.hint === 'pdf_empty' && fileHint !== 'ok') {
+          fileHint = 'pdf_empty'
+        } else if (extracted.hint === 'image' && fileHint !== 'ok') {
           fileHint = 'image'
-        } else {
+        } else if (extracted.hint === 'unsupported') {
           return NextResponse.json(
             {
               ok: false,
               error:
+                extracted.error ||
                 'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).',
             },
             { status: 400 },
           )
         }
       }
+      text = joinOtaVoucherUploadTexts([pasted, ...uploadParts])
       documentKind = form.get('documentKind') === 'voucher' ? 'voucher' : 'invoice'
       guestNameOverride =
         typeof form.get('guestName') === 'string' ? String(form.get('guestName')).trim() || null : null
@@ -184,7 +203,9 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            'PDF에서 텍스트/OCR을 읽지 못했습니다. 바우처 본문을 붙여넣거나 GEMINI_API_KEY를 확인하세요.',
+            uploadedFileCount > 1
+              ? '업로드한 한글/영문 PDF에서 텍스트/OCR을 읽지 못했습니다. 본문 붙여넣기 또는 GEMINI_API_KEY를 확인하세요.'
+              : 'PDF에서 텍스트/OCR을 읽지 못했습니다. 바우처 본문을 붙여넣거나 GEMINI_API_KEY를 확인하세요.',
         },
         { status: 400 },
       )
@@ -194,7 +215,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            'OTA 바우처 PDF/본문을 넣어 예약·숙소 정보를 가져오세요. (금액은 USD로 별도 표기)',
+            'OTA 바우처 PDF/본문을 넣어 예약·숙소 정보를 가져오세요. 한글+영문 바우처는 한 세트로 함께 업로드하세요.',
         },
         { status: 400 },
       )
