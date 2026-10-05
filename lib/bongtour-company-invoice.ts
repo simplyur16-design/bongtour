@@ -1,6 +1,7 @@
 /**
  * 봉투어 회사 인보이스·체크인 바우처 — OTA(Trip.com/Agoda) 영수증 기반 발행 SSOT.
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스(+이익) — manifest
+ * 입력 금액 = 최종 합계(이익 가산 없음).
+ * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 
 export const BONGTOUR_INVOICE_COMPANY = {
@@ -180,26 +181,25 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
   }
 }
 
-export function computeInvoiceProfitKrw(args: {
+/** @deprecated 이익 가산 폐지 — 항상 0. 호환용으로 남김. */
+export function computeInvoiceProfitKrw(_args: {
   sourceAmountKrw: number
   mode: OtaInvoiceProfitMode
   percent: number
   fixedKrw: number
 }): number {
-  const base = Math.max(0, Math.round(args.sourceAmountKrw))
-  if (args.mode === 'fixed') {
-    return Math.max(0, Math.round(args.fixedKrw))
-  }
-  const pct = Math.max(0, Math.min(500, Number(args.percent) || 0))
-  return Math.round((base * pct) / 100)
+  return 0
 }
 
 export function buildOtaCompanyInvoiceDraft(args: {
   parsed: OtaReceiptParsedAmount
   sourceAmountKrw: number
-  profitMode: OtaInvoiceProfitMode
-  profitPercent: number
-  profitFixedKrw: number
+  /** @deprecated 무시됨 — 입력 금액이 최종 합계 */
+  profitMode?: OtaInvoiceProfitMode
+  /** @deprecated 무시됨 */
+  profitPercent?: number
+  /** @deprecated 무시됨 */
+  profitFixedKrw?: number
   guestNameOverride?: string | null
   note?: string
   now?: Date
@@ -209,12 +209,6 @@ export function buildOtaCompanyInvoiceDraft(args: {
 }): OtaCompanyInvoiceDraft {
   const now = args.now ?? new Date()
   const source = Math.max(0, Math.round(args.sourceAmountKrw))
-  const profitKrw = computeInvoiceProfitKrw({
-    sourceAmountKrw: source,
-    mode: args.profitMode,
-    percent: args.profitPercent,
-    fixedKrw: args.profitFixedKrw,
-  })
   const ymd = now.toISOString().slice(0, 10).replace(/-/g, '')
   const rand = Math.floor(Math.random() * 9000 + 1000)
   const serviceParts = [
@@ -245,11 +239,11 @@ export function buildOtaCompanyInvoiceDraft(args: {
     rateDate: args.rateDate ?? null,
     usdKrwRate:
       args.usdKrwRate != null && Number.isFinite(args.usdKrwRate) ? Number(args.usdKrwRate) : null,
-    profitMode: args.profitMode,
-    profitPercent: args.profitPercent,
-    profitFixedKrw: args.profitFixedKrw,
-    profitKrw,
-    totalKrw: source + profitKrw,
+    profitMode: 'percent',
+    profitPercent: 0,
+    profitFixedKrw: 0,
+    profitKrw: 0,
+    totalKrw: source,
     company: BONGTOUR_INVOICE_COMPANY,
     note: String(args.note ?? '').trim(),
   }
@@ -309,13 +303,9 @@ export function renderOtaCompanyInvoiceHtml(draft: OtaCompanyInvoiceDraft): stri
   const c = draft.company
   const guest = draft.guestName || '고객'
   const issued = new Date(draft.issuedAtIso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
-  const profitLabel =
-    draft.profitMode === 'percent'
-      ? `회사 이익 (${draft.profitPercent}%)`
-      : `회사 이익 (고정)`
   const fxLine =
     draft.sourceAmountUsd != null && draft.usdKrwRate != null && draft.rateDate
-      ? `<p class="muted">공급가 ${formatUsd(draft.sourceAmountUsd)} · 환율 ${draft.rateDate} 기준 1 USD = ${draft.usdKrwRate.toLocaleString('ko-KR')} KRW</p>`
+      ? `<p class="muted">${formatUsd(draft.sourceAmountUsd)} · 환율 ${draft.rateDate} 기준 1 USD = ${draft.usdKrwRate.toLocaleString('ko-KR')} KRW</p>`
       : ''
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -345,8 +335,7 @@ export function renderOtaCompanyInvoiceHtml(draft: OtaCompanyInvoiceDraft): stri
   <table>
     <thead><tr><th>내역</th><th class="num">금액</th></tr></thead>
     <tbody>
-      <tr><td>${escapeHtml(draft.serviceDescription)} (공급가)</td><td class="num">${formatKrw(draft.sourceAmountKrw)}</td></tr>
-      <tr><td>${profitLabel}</td><td class="num">${formatKrw(draft.profitKrw)}</td></tr>
+      <tr><td>${escapeHtml(draft.serviceDescription)}</td><td class="num">${formatKrw(draft.sourceAmountKrw)}</td></tr>
       <tr class="total"><td>합계</td><td class="num">${formatKrw(draft.totalKrw)}</td></tr>
     </tbody>
   </table>

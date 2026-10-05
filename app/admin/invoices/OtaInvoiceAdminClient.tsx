@@ -39,9 +39,6 @@ export default function OtaInvoiceAdminClient() {
   const [documentKind, setDocumentKind] = useState<OtaAdminDocumentKind>('invoice')
   const [text, setText] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [profitMode, setProfitMode] = useState<'percent' | 'fixed'>('percent')
-  const [profitPercent, setProfitPercent] = useState(15)
-  const [profitFixedKrw, setProfitFixedKrw] = useState(50000)
   const [guestName, setGuestName] = useState('')
   const [propertyName, setPropertyName] = useState('')
   const [roomType, setRoomType] = useState('')
@@ -67,9 +64,6 @@ export default function OtaInvoiceAdminClient() {
       const form = new FormData()
       form.set('documentKind', documentKind)
       form.set('text', text)
-      form.set('profitMode', profitMode)
-      form.set('profitPercent', String(profitPercent))
-      form.set('profitFixedKrw', String(profitFixedKrw))
       form.set('rateDate', rateDate || todaySeoulYmd())
       if (guestName.trim()) form.set('guestName', guestName.trim())
       if (propertyName.trim()) form.set('propertyName', propertyName.trim())
@@ -117,9 +111,6 @@ export default function OtaInvoiceAdminClient() {
     documentKind,
     text,
     file,
-    profitMode,
-    profitPercent,
-    profitFixedKrw,
     guestName,
     propertyName,
     roomType,
@@ -151,7 +142,7 @@ export default function OtaInvoiceAdminClient() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <AdminPageHeader
         title="OTA → 회사 인보이스 / 체크인 바우처"
-        subtitle="Trip.com·Agoda 영수증·바우처를 봉투어 양식으로 바꿉니다. 달러 금액은 입력일 환율로 원화 환산합니다."
+        subtitle="Trip.com·Agoda 영수증·바우처를 봉투어 양식으로 바꿉니다. 입력한 금액이 최종 합계이며, 달러는 입력일 환율로 원화 환산합니다."
       />
 
       <section className={`${ADMIN_CARD_CLASS} space-y-4 p-5`}>
@@ -177,12 +168,12 @@ export default function OtaInvoiceAdminClient() {
         </div>
 
         <label className="block text-sm font-medium text-zinc-800">
-          영수증/바우처 붙여넣기
+          영수증/바우처 붙여넣기 (선택)
           <textarea
             className="mt-1 w-full min-h-[160px] rounded-md border border-zinc-300 px-3 py-2 text-sm"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Agoda / Trip.com 확인서·체크인 바우처 본문을 붙여넣으세요"
+            placeholder="Agoda / Trip.com 확인서·체크인 바우처 본문을 붙여넣으세요. 없어도 USD·숙소 정보만으로 생성 가능합니다."
           />
         </label>
         <label className="block text-sm font-medium text-zinc-800">
@@ -193,16 +184,19 @@ export default function OtaInvoiceAdminClient() {
             className="mt-1 block w-full text-sm"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
+          <span className="mt-1 block text-xs font-normal text-zinc-500">
+            스캔·이미지 PDF는 텍스트를 못 읽을 수 있습니다. 그때는 아래 금액·숙소 정보를 직접 입력하세요. PNG/JPG는 지원하지 않습니다.
+          </span>
         </label>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-medium text-zinc-800">
-            금액 (USD)
+            최종 금액 (USD)
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               value={amountUsd}
               onChange={(e) => setAmountUsd(e.target.value)}
-              placeholder={isVoucher ? '필수 · 예: 128.50' : '선택 · 입력 시 환율 환산'}
+              placeholder={isVoucher ? '필수 · 예: 128.50' : '선택 · 입력 시 환율 환산 = 합계'}
               required={isVoucher}
             />
           </label>
@@ -217,52 +211,15 @@ export default function OtaInvoiceAdminClient() {
           </label>
 
           {!isVoucher ? (
-            <>
-              <label className="text-sm font-medium text-zinc-800">
-                이익 방식
-                <select
-                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                  value={profitMode}
-                  onChange={(e) => setProfitMode(e.target.value === 'fixed' ? 'fixed' : 'percent')}
-                >
-                  <option value="percent">공급가 대비 %</option>
-                  <option value="fixed">고정 금액(원)</option>
-                </select>
-              </label>
-              {profitMode === 'percent' ? (
-                <label className="text-sm font-medium text-zinc-800">
-                  이익 %
-                  <input
-                    type="number"
-                    min={0}
-                    max={500}
-                    className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                    value={profitPercent}
-                    onChange={(e) => setProfitPercent(Number(e.target.value))}
-                  />
-                </label>
-              ) : (
-                <label className="text-sm font-medium text-zinc-800">
-                  이익 고정(원)
-                  <input
-                    type="number"
-                    min={0}
-                    className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                    value={profitFixedKrw}
-                    onChange={(e) => setProfitFixedKrw(Number(e.target.value))}
-                  />
-                </label>
-              )}
-              <label className="text-sm font-medium text-zinc-800">
-                공급가 수동(원, USD 미입력 시)
-                <input
-                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                  value={sourceAmountKrw}
-                  onChange={(e) => setSourceAmountKrw(e.target.value)}
-                  placeholder="자동 파싱 실패 시"
-                />
-              </label>
-            </>
+            <label className="text-sm font-medium text-zinc-800 sm:col-span-2">
+              최종 금액 수동(원, USD 미입력 시)
+              <input
+                className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                value={sourceAmountKrw}
+                onChange={(e) => setSourceAmountKrw(e.target.value)}
+                placeholder="입력한 금액이 인보이스 합계입니다"
+              />
+            </label>
           ) : null}
 
           <label className="text-sm font-medium text-zinc-800">
@@ -364,13 +321,10 @@ export default function OtaInvoiceAdminClient() {
           <p>번호: {invoiceDraft.invoiceNumber}</p>
           {invoiceDraft.sourceAmountUsd != null ? (
             <p>
-              공급가 USD: {invoiceDraft.sourceAmountUsd} →{' '}
+              USD {invoiceDraft.sourceAmountUsd} →{' '}
               {invoiceDraft.sourceAmountKrw.toLocaleString('ko-KR')}원
             </p>
-          ) : (
-            <p>공급가: {invoiceDraft.sourceAmountKrw.toLocaleString('ko-KR')}원</p>
-          )}
-          <p>회사 이익: {invoiceDraft.profitKrw.toLocaleString('ko-KR')}원</p>
+          ) : null}
           <p className="text-base font-semibold">
             합계: {invoiceDraft.totalKrw.toLocaleString('ko-KR')}원
           </p>

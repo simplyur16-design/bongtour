@@ -34,9 +34,9 @@ Agoda Booking Confirmation
     expect(p.nights).toBe(2)
   })
 
-  it('adds percent profit on top of source amount', () => {
+  it('uses entered amount as final total (no profit markup)', () => {
     expect(computeInvoiceProfitKrw({ sourceAmountKrw: 100000, mode: 'percent', percent: 15, fixedKrw: 0 })).toBe(
-      15000,
+      0,
     )
     const draft = buildOtaCompanyInvoiceDraft({
       parsed: {
@@ -58,8 +58,8 @@ Agoda Booking Confirmation
       profitFixedKrw: 0,
       now: new Date('2026-10-05T00:00:00.000Z'),
     })
-    expect(draft.profitKrw).toBe(10000)
-    expect(draft.totalKrw).toBe(110000)
+    expect(draft.profitKrw).toBe(0)
+    expect(draft.totalKrw).toBe(100000)
   })
 
   // REGRESSION-FREEZE[admin-ota-receipt-invoice]: 체크인 바우처 + USD 입력일 환율 — manifest

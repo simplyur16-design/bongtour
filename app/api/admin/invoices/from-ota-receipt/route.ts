@@ -8,7 +8,6 @@ import {
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
   type OtaAdminDocumentKind,
-  type OtaInvoiceProfitMode,
 } from '@/lib/bongtour-company-invoice'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
 
@@ -16,11 +15,16 @@ export const runtime = 'nodejs'
 
 const MAX_BYTES = 8 * 1024 * 1024
 
+function isImageFile(name: string, type: string): boolean {
+  if (type.startsWith('image/')) return true
+  return /\.(png|jpe?g|webp|gif|heic|bmp)$/i.test(name)
+}
+
 /**
  * POST /api/admin/invoices/from-ota-receipt
- * Trip.com / Agoda 영수증·체크인 바우처 → 회사 인보이스(+이익) 또는 체크인 바우처
- * USD 금액은 입력일(rateDate) 환율로 KRW 환산
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스(+이익) — manifest
+ * Trip.com / Agoda 영수증·체크인 바우처 → 회사 인보이스 또는 체크인 바우처
+ * 입력 금액 = 최종 합계(이익 가산 없음). USD는 입력일(rateDate) 환율로 KRW 환산
+ * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -30,9 +34,6 @@ export async function POST(request: Request) {
 
   let text = ''
   let documentKind: OtaAdminDocumentKind = 'invoice'
-  let profitMode: OtaInvoiceProfitMode = 'percent'
-  let profitPercent = 15
-  let profitFixedKrw = 0
   let guestNameOverride: string | null = null
   let propertyOverride: string | null = null
   let roomTypeOverride: string | null = null
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
   let sourceAmountOverride: number | null = null
   let amountUsd: number | null = null
   let rateDate: string | null = null
+  let fileHint: 'none' | 'pdf_empty' | 'image' | 'ok' = 'none'
 
   const contentType = request.headers.get('content-type') || ''
   try {
@@ -56,10 +58,16 @@ export async function POST(request: Request) {
         }
         const buf = new Uint8Array(await file.arrayBuffer())
         const name = (file.name || '').toLowerCase()
-        if (name.endsWith('.pdf') || (file.type || '').includes('pdf')) {
+        const mime = (file.type || '').toLowerCase()
+        if (name.endsWith('.pdf') || mime.includes('pdf')) {
           try {
             const extracted = extractPdfText(buf)
-            text = [text, extracted].filter(Boolean).join('\n\n')
+            if (extracted.trim()) {
+              text = [text, extracted].filter(Boolean).join('\n\n')
+              fileHint = 'ok'
+            } else {
+              fileHint = 'pdf_empty'
+            }
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
             return NextResponse.json(
@@ -67,19 +75,23 @@ export async function POST(request: Request) {
               { status: 400 },
             )
           }
-        } else if (name.endsWith('.txt') || (file.type || '').includes('text')) {
+        } else if (name.endsWith('.txt') || mime.includes('text')) {
           text = [text, new TextDecoder().decode(buf)].filter(Boolean).join('\n\n')
+          fileHint = 'ok'
+        } else if (isImageFile(name, mime)) {
+          fileHint = 'image'
         } else {
           return NextResponse.json(
-            { ok: false, error: 'PDF 또는 텍스트 파일만 지원합니다. (이미지 OCR은 추후)' },
+            {
+              ok: false,
+              error:
+                'PDF·TXT만 자동 읽습니다. 이미지면 본문 붙여넣기 또는 USD/원화 금액을 직접 입력하세요.',
+            },
             { status: 400 },
           )
         }
       }
       documentKind = form.get('documentKind') === 'voucher' ? 'voucher' : 'invoice'
-      profitMode = form.get('profitMode') === 'fixed' ? 'fixed' : 'percent'
-      profitPercent = Number(form.get('profitPercent') ?? 15)
-      profitFixedKrw = Number(form.get('profitFixedKrw') ?? 0)
       guestNameOverride =
         typeof form.get('guestName') === 'string' ? String(form.get('guestName')).trim() || null : null
       propertyOverride =
@@ -111,9 +123,6 @@ export async function POST(request: Request) {
       const body = (await request.json()) as Record<string, unknown>
       text = String(body.text ?? '')
       documentKind = body.documentKind === 'voucher' ? 'voucher' : 'invoice'
-      profitMode = body.profitMode === 'fixed' ? 'fixed' : 'percent'
-      profitPercent = Number(body.profitPercent ?? 15)
-      profitFixedKrw = Number(body.profitFixedKrw ?? 0)
       guestNameOverride =
         typeof body.guestName === 'string' ? body.guestName.trim() || null : null
       propertyOverride =
@@ -136,9 +145,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: '요청 본문을 읽지 못했습니다.' }, { status: 400 })
   }
 
-  if (!text.trim()) {
+  const hasManualAmount =
+    (amountUsd != null && amountUsd > 0) ||
+    (documentKind === 'invoice' && sourceAmountOverride != null && sourceAmountOverride > 0)
+
+  if (!text.trim() && !hasManualAmount) {
+    if (fileHint === 'image') {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            '이미지 파일은 자동 읽기를 지원하지 않습니다. 바우처 본문을 붙여넣거나 USD 금액을 직접 입력하세요.',
+        },
+        { status: 400 },
+      )
+    }
+    if (fileHint === 'pdf_empty') {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'PDF에서 텍스트를 읽지 못했습니다(스캔/이미지 PDF일 수 있음). 본문을 붙여넣거나 USD 금액을 직접 입력하세요.',
+        },
+        { status: 400 },
+      )
+    }
     return NextResponse.json(
-      { ok: false, error: '영수증/바우처 텍스트 또는 PDF가 필요합니다.' },
+      {
+        ok: false,
+        error:
+          '영수증/바우처 텍스트·PDF를 넣거나, USD(또는 원화) 금액을 직접 입력하세요.',
+      },
       { status: 400 },
     )
   }
@@ -206,9 +243,6 @@ export async function POST(request: Request) {
   const draft = buildOtaCompanyInvoiceDraft({
     parsed,
     sourceAmountKrw,
-    profitMode,
-    profitPercent: Number.isFinite(profitPercent) ? profitPercent : 15,
-    profitFixedKrw: Number.isFinite(profitFixedKrw) ? profitFixedKrw : 0,
     guestNameOverride,
     note,
     sourceAmountUsd,
