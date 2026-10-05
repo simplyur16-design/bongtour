@@ -28,6 +28,34 @@ type ApiOk = {
   html: string
   htmlKo?: string
   htmlEn?: string
+  saved?: {
+    id: string
+    documentNumber: string
+    fileCount: number
+    storageWarnings: string[]
+  } | null
+  saveError?: string | null
+}
+
+type IssuedListItem = {
+  id: string
+  documentKind: string
+  documentNumber: string
+  provider: string | null
+  bookingRef: string | null
+  guestName: string | null
+  propertyName: string | null
+  amountUsd: number | null
+  amountKrw: number | null
+  rateDate: string | null
+  createdAt: string
+  files: Array<{
+    id: string
+    role: string
+    fileName: string
+    mimeType: string
+    byteSize: number
+  }>
 }
 
 function todaySeoulYmd(): string {
@@ -64,6 +92,65 @@ export default function OtaInvoiceAdminClient() {
   const [html, setHtml] = useState<string | null>(null)
   const [htmlKo, setHtmlKo] = useState<string | null>(null)
   const [htmlEn, setHtmlEn] = useState<string | null>(null)
+  const [savedInfo, setSavedInfo] = useState<ApiOk['saved']>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [history, setHistory] = useState<IssuedListItem[]>([])
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [historyBusy, setHistoryBusy] = useState(false)
+
+  const reloadHistory = useCallback(async () => {
+    setHistoryBusy(true)
+    setHistoryError(null)
+    try {
+      const res = await fetch('/api/admin/invoices/issued?kind=all')
+      const json = (await res.json()) as { ok: boolean; items?: IssuedListItem[]; error?: string }
+      if (!json.ok) throw new Error(json.error || '발행 목록을 불러오지 못했습니다.')
+      setHistory(json.items ?? [])
+    } catch (e) {
+      setHistoryError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setHistoryBusy(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void reloadHistory()
+  }, [reloadHistory])
+
+  const openSaved = useCallback(async (id: string) => {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/invoices/issued/${id}`)
+      const json = (await res.json()) as {
+        ok: boolean
+        error?: string
+        item?: {
+          documentKind: OtaAdminDocumentKind
+          documentNumber: string
+          issuedHtml: string
+          htmlKo: string | null
+          htmlEn: string | null
+          files?: IssuedListItem['files']
+        }
+      }
+      if (!json.ok || !json.item) throw new Error(json.error || '문서를 열 수 없습니다.')
+      setHtml(json.item.issuedHtml)
+      setHtmlKo(json.item.htmlKo)
+      setHtmlEn(json.item.htmlEn)
+      setDocumentKind(json.item.documentKind)
+      setSavedInfo({
+        id,
+        documentNumber: json.item.documentNumber,
+        fileCount: json.item.files?.filter((f) => f.role === 'ota_original').length ?? 0,
+        storageWarnings: [],
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }, [])
 
   const applyParsedToForm = useCallback((p: OtaReceiptParsedAmount) => {
     if (p.guestName) setGuestName((prev) => prev.trim() || p.guestName || '')
@@ -150,6 +237,9 @@ export default function OtaInvoiceAdminClient() {
       setHtml(json.html)
       setHtmlKo(json.htmlKo ?? (json.documentKind === 'voucher' ? json.html : null))
       setHtmlEn(json.htmlEn ?? null)
+      setSavedInfo(json.saved ?? null)
+      setSaveError(json.saveError ?? null)
+      if (json.saved?.id) void reloadHistory()
       if ('sourceAmountKrw' in json.draft && !sourceAmountKrw.trim() && json.draft.sourceAmountKrw) {
         setSourceAmountKrw(String(json.draft.sourceAmountKrw))
       }
@@ -164,6 +254,8 @@ export default function OtaInvoiceAdminClient() {
       setHtml(null)
       setHtmlKo(null)
       setHtmlEn(null)
+      setSavedInfo(null)
+      setSaveError(null)
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
@@ -181,6 +273,7 @@ export default function OtaInvoiceAdminClient() {
     nightRateUsd,
     rateDate,
     applyParsedToForm,
+    reloadHistory,
   ])
 
   const printDoc = useCallback((which: 'both' | 'ko' | 'en' = 'both') => {
@@ -205,8 +298,23 @@ export default function OtaInvoiceAdminClient() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <AdminPageHeader
         title="OTA → 회사 인보이스 / 체크인 바우처"
-        subtitle="OTA 한글·영문 바우처 PDF를 한 세트로 올리면 Booking ID·숙소(한/영)·조식·편의시설·취소정책을 합쳐 한글/영문 회사 바우처를 만듭니다. 회사 로고·세금/서비스요금 포함 고지가 들어갑니다."
+        subtitle="OTA 한글·영문 바우처 PDF를 한 세트로 올리면 Booking ID·숙소(한/영)·조식·편의시설·취소정책을 합쳐 한글/영문 회사 바우처를 만듭니다. 발행 시 회사 문서와 OTA 원본이 함께 보관됩니다."
       />
+
+      {savedInfo?.id ? (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          보관됨 · {savedInfo.documentNumber || savedInfo.id}
+          {savedInfo.fileCount > 0 ? ` · OTA 원본 ${savedInfo.fileCount}개` : ''}
+          {savedInfo.storageWarnings?.length
+            ? ` · 경고: ${savedInfo.storageWarnings.join(', ')}`
+            : ''}
+        </p>
+      ) : null}
+      {saveError ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          문서는 생성됐지만 보관 실패: {saveError}
+        </p>
+      ) : null}
 
       <section className={`${ADMIN_CARD_CLASS} space-y-4 p-5`}>
         <div className="flex flex-wrap gap-2">
@@ -507,6 +615,66 @@ export default function OtaInvoiceAdminClient() {
           ) : null}
         </section>
       ) : null}
+
+      <section className={`${ADMIN_CARD_CLASS} space-y-3 p-5 text-sm`}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-semibold text-zinc-900">발행 보관 목록</h2>
+          <button
+            type="button"
+            disabled={historyBusy}
+            onClick={() => void reloadHistory()}
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+          >
+            {historyBusy ? '불러오는 중…' : '새로고침'}
+          </button>
+        </div>
+        {historyError ? <p className="text-sm text-red-600">{historyError}</p> : null}
+        {!history.length && !historyBusy ? (
+          <p className="text-zinc-500">아직 보관된 발행 문서가 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-100">
+            {history.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="font-medium text-zinc-900">
+                    {row.documentKind === 'voucher' ? '바우처' : '인보이스'} · {row.documentNumber}
+                  </p>
+                  <p className="text-xs text-zinc-600">
+                    {new Date(row.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
+                    {row.bookingRef ? ` · Booking ${row.bookingRef}` : ''}
+                  </p>
+                  <p className="truncate text-xs text-zinc-600">
+                    {[row.guestName, row.propertyName].filter(Boolean).join(' · ') || '—'}
+                  </p>
+                  {row.files.length ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {row.files.map((f) => (
+                        <a
+                          key={f.id}
+                          className="text-xs text-sky-700 underline"
+                          href={`/api/admin/invoices/issued/${row.id}/files/${f.id}`}
+                        >
+                          {f.role === 'issued_html' ? '발행 HTML' : f.fileName}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void openSaved(row.id)}
+                  className="shrink-0 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium"
+                >
+                  미리보기
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }

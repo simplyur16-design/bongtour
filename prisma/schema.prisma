@@ -1693,6 +1693,52 @@ model BongsimAffiliationCardRequest {
   @@map("bongsim_affiliation_card_request")
 }
 
+/// 관리자 OTA→회사 인보이스/체크인 바우처 발행 보관 (HTML + OTA 원본 파일)
+/// REGRESSION-FREEZE[admin-ota-issued-archive]: OTA 발행 문서 보관 — manifest
+model AdminOtaIssuedDocument {
+  id             String   @id @default(cuid())
+  documentKind   String
+  documentNumber String
+  provider       String?
+  bookingRef     String?
+  guestName      String?
+  propertyName   String?
+  amountUsd      Float?
+  amountKrw      Int?
+  rateDate       String?
+  usdKrwRate     Float?
+  parsedJson     String   @db.Text
+  draftJson      String   @db.Text
+  issuedHtml     String   @db.Text
+  htmlKo         String?  @db.Text
+  htmlEn         String?  @db.Text
+  sourceText     String?  @db.Text
+  note           String?  @db.Text
+  issuedByUserId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  files          AdminOtaIssuedDocumentFile[]
+
+  @@index([documentKind, createdAt])
+  @@index([bookingRef])
+  @@index([documentNumber])
+}
+
+model AdminOtaIssuedDocumentFile {
+  id            String                @id @default(cuid())
+  documentId    String
+  document      AdminOtaIssuedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role          String
+  fileName      String
+  mimeType      String
+  byteSize      Int
+  storageBucket String
+  storagePath   String
+  createdAt     DateTime              @default(now())
+
+  @@index([documentId])
+}
+
 /// 메인 시즌 추천 도시 사이클(매달 KST 1일 기준) — Gemini가 primary 5 + fallback 10 cityKey 제안, PR-D3 검증 후 저장
 model SeasonalDestinationCuration {
   id              String   @id @default(cuid())

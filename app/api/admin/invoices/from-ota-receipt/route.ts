@@ -15,6 +15,10 @@ import {
 } from '@/lib/bongtour-company-invoice'
 import { loadBongtourLogoDataUrl } from '@/lib/bongtour-company-invoice-logo-server'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
+import {
+  persistAdminOtaIssuedDocument,
+  type OtaIssuedOriginalUpload,
+} from '@/lib/admin-ota-issued-document-archive'
 
 export const runtime = 'nodejs'
 
@@ -32,16 +36,17 @@ function readPositiveNumber(raw: unknown): number | null {
   return n
 }
 
-async function extractTextFromUploadedFile(
-  file: File,
+async function extractTextFromBuffer(
+  buf: Uint8Array,
+  name: string,
+  mime: string,
 ): Promise<{ text: string; hint: 'ok' | 'pdf_empty' | 'image' | 'unsupported'; error?: string }> {
-  if (file.size > MAX_BYTES) {
+  if (buf.byteLength > MAX_BYTES) {
     return { text: '', hint: 'unsupported', error: '파일은 8MB 이하여야 합니다.' }
   }
-  const buf = new Uint8Array(await file.arrayBuffer())
-  const name = (file.name || '').toLowerCase()
-  const mime = (file.type || '').toLowerCase()
-  if (name.endsWith('.pdf') || mime.includes('pdf')) {
+  const lowerName = (name || '').toLowerCase()
+  const lowerMime = (mime || '').toLowerCase()
+  if (lowerName.endsWith('.pdf') || lowerMime.includes('pdf')) {
     try {
       const extracted = extractPdfText(buf)
       if (extracted.trim()) return { text: extracted, hint: 'ok' }
@@ -53,10 +58,10 @@ async function extractTextFromUploadedFile(
       return { text: '', hint: 'unsupported', error: `PDF 텍스트 추출 실패: ${msg}` }
     }
   }
-  if (name.endsWith('.txt') || mime.includes('text')) {
+  if (lowerName.endsWith('.txt') || lowerMime.includes('text')) {
     return { text: new TextDecoder().decode(buf), hint: 'ok' }
   }
-  if (isImageFile(name, mime)) return { text: '', hint: 'image' }
+  if (isImageFile(lowerName, lowerMime)) return { text: '', hint: 'image' }
   return {
     text: '',
     hint: 'unsupported',
@@ -69,7 +74,9 @@ async function extractTextFromUploadedFile(
  * Trip.com / Agoda PDF·본문 → 숙박정보 추출 + 봉투어 인보이스/체크인 바우처
  * 금액(1박·총액)은 입력값이 최종. 서비스요금·세금은 포함 문구로 명시.
  * 한글+영문 바우처 PDF는 한 세트로 여러 파일 업로드 가능.
+ * 발행 성공 시 HTML·OTA 원본을 DB/스토리지에 자동 보관.
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
+ * REGRESSION-FREEZE[admin-ota-issued-archive]: OTA 발행 문서 보관 — manifest
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -93,6 +100,7 @@ export async function POST(request: Request) {
   let rateDate: string | null = null
   let fileHint: 'none' | 'pdf_empty' | 'image' | 'ok' = 'none'
   let uploadedFileCount = 0
+  const originals: OtaIssuedOriginalUpload[] = []
 
   const contentType = request.headers.get('content-type') || ''
   try {
@@ -106,7 +114,13 @@ export async function POST(request: Request) {
       ].filter((f): f is File => f instanceof File && f.size > 0)
       uploadedFileCount = files.length
       for (const file of files) {
-        const extracted = await extractTextFromUploadedFile(file)
+        const body = Buffer.from(await file.arrayBuffer())
+        originals.push({
+          fileName: file.name || `upload-${originals.length + 1}.bin`,
+          mimeType: file.type || 'application/octet-stream',
+          body,
+        })
+        const extracted = await extractTextFromBuffer(body, file.name || '', file.type || '')
         if (extracted.error) {
           return NextResponse.json({ ok: false, error: extracted.error }, { status: 400 })
         }
@@ -226,9 +240,51 @@ export async function POST(request: Request) {
   const parsed = parseOtaReceiptForInvoice(text)
   const fx = await resolveUsdKrwRateForDate(rateDate || seoulYmd())
   const logoUrl = loadBongtourLogoDataUrl()
+  const issuedByUserId = admin.user?.id ?? null
+
+  async function saveIssued(args: {
+    documentKind: OtaAdminDocumentKind
+    documentNumber: string
+    draft: unknown
+    issuedHtml: string
+    htmlKo?: string | null
+    htmlEn?: string | null
+    amountUsd: number | null
+    amountKrw: number | null
+    guestName: string | null
+    propertyName: string | null
+  }) {
+    try {
+      const saved = await persistAdminOtaIssuedDocument({
+        documentKind: args.documentKind,
+        documentNumber: args.documentNumber,
+        provider: parsed.provider,
+        bookingRef: parsed.bookingRef,
+        guestName: args.guestName,
+        propertyName: args.propertyName,
+        amountUsd: args.amountUsd,
+        amountKrw: args.amountKrw,
+        rateDate: fx.rateDate,
+        usdKrwRate: fx.usdKrw,
+        parsed,
+        draft: args.draft,
+        issuedHtml: args.issuedHtml,
+        htmlKo: args.htmlKo,
+        htmlEn: args.htmlEn,
+        sourceText: text,
+        note,
+        issuedByUserId,
+        originals,
+      })
+      return { saved, saveError: null as string | null }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('[admin-ota-issued-archive] persist failed', msg)
+      return { saved: null, saveError: msg }
+    }
+  }
 
   if (documentKind === 'voucher') {
-    // 1박 금액 × 박수 우선. 총액 직접 입력은 1박이 없을 때만.
     const fromNight = computeVoucherTotalUsdFromNightRate(nightRateUsd, parsed.nights)
     const fromParsedNight = computeVoucherTotalUsdFromNightRate(
       parsed.nightRateUsd,
@@ -296,6 +352,19 @@ export async function POST(request: Request) {
     const htmlKo = renderOtaCompanyCheckInVoucherHtml(draft, 'ko')
     const htmlEn = renderOtaCompanyCheckInVoucherHtml(draft, 'en')
     const html = renderOtaCompanyCheckInVoucherBilingualHtml(draft)
+    const { saved, saveError } = await saveIssued({
+      documentKind: 'voucher',
+      documentNumber: draft.voucherNumber,
+      draft,
+      issuedHtml: html,
+      htmlKo,
+      htmlEn,
+      amountUsd: totalUsd,
+      amountKrw,
+      guestName: draft.guestName,
+      propertyName:
+        draft.propertyNameKo || draft.propertyNameEn || draft.propertyOrService || null,
+    })
     return NextResponse.json({
       ok: true,
       documentKind: 'voucher',
@@ -305,6 +374,8 @@ export async function POST(request: Request) {
       html,
       htmlKo,
       htmlEn,
+      saved,
+      saveError,
     })
   }
 
@@ -337,6 +408,17 @@ export async function POST(request: Request) {
     rateDate: sourceAmountUsd != null ? fx.rateDate : null,
     usdKrwRate: sourceAmountUsd != null ? fx.usdKrw : null,
   })
+  const html = renderOtaCompanyInvoiceHtml(draft)
+  const { saved, saveError } = await saveIssued({
+    documentKind: 'invoice',
+    documentNumber: draft.invoiceNumber,
+    draft,
+    issuedHtml: html,
+    amountUsd: sourceAmountUsd,
+    amountKrw: draft.totalKrw,
+    guestName: draft.guestName,
+    propertyName: draft.propertyOrService,
+  })
 
   return NextResponse.json({
     ok: true,
@@ -344,6 +426,8 @@ export async function POST(request: Request) {
     parsed,
     fx,
     draft,
-    html: renderOtaCompanyInvoiceHtml(draft),
+    html,
+    saved,
+    saveError,
   })
 }

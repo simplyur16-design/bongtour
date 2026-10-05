@@ -23972,6 +23972,50 @@
       "vitestSuites": [
         "lib/bongtour-company-invoice.test.ts"
       ]
+    },
+    {
+      "id": "admin-ota-issued-archive",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OTA 발행 인보이스/바우처 + 원본 PDF를 DB/Ncloud에 자동 보관",
+      "checks": [
+        {
+          "file": "lib/admin-ota-issued-document-archive.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-issued-archive]",
+            "persistAdminOtaIssuedDocument",
+            "uploadStorageObjectRaw",
+            "admin-ota-docs/"
+          ]
+        },
+        {
+          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-issued-archive]",
+            "persistAdminOtaIssuedDocument"
+          ]
+        },
+        {
+          "file": "app/api/admin/invoices/issued/route.ts",
+          "mustInclude": [
+            "listAdminOtaIssuedDocuments",
+            "requireAdmin"
+          ]
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "mustInclude": [
+            "model AdminOtaIssuedDocument",
+            "model AdminOtaIssuedDocumentFile",
+            "REGRESSION-FREEZE[admin-ota-issued-archive]"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/admin-ota-issued-document-archive.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
@@ -24322,6 +24366,16 @@
       "files": [
         "lib/bongtour-company-invoice.test.ts",
         "lib/bongtour-usd-krw-rate.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-issued-archive",
+      "tier": [
+        "ci"
+      ],
+      "summary": "OTA 발행 문서+원본 보관 키/sanitize",
+      "files": [
+        "lib/admin-ota-issued-document-archive.test.ts"
       ]
     }
   ]
