@@ -23939,7 +23939,9 @@
             "readFileSync",
             "class=\"brand\"",
             "BongTour Check-in Voucher",
-            "봉투어 체크인 바우처"
+            "봉투어 체크인 바우처",
+            "세금(부가가치세 등)이 포함",
+            "including VAT)."
           ]
         },
         {
@@ -24022,6 +24024,127 @@
       ],
       "vitestSuites": [
         "lib/admin-ota-issued-document-archive.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-voucher-note-en",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "바우처 비고 한→영 번역 + Booking ID에 OTA(Trip.com/Agoda)명 표기",
+      "checks": [
+        {
+          "file": "lib/bongtour-company-invoice.ts",
+          "mustInclude": [
+            "otaProviderDisplayName",
+            "resolveOtaVoucherNotePair",
+            "noteEn",
+            "OTA (예약처)"
+          ]
+        },
+        {
+          "file": "lib/bongtour-ota-voucher-note-translate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-voucher-note-en]",
+            "translateOtaVoucherNoteToEn"
+          ]
+        },
+        {
+          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
+          "mustInclude": [
+            "translateOtaVoucherNoteToEn",
+            "otaVoucherNoteNeedsEnglishTranslation",
+            "noteEnOverride"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-foreign-tax-note",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "해외 호텔 바우처 — 현지세·봉사료 포함, 국내 부가세 환급·세금계산서 불가 고지",
+      "checks": [
+        {
+          "file": "lib/bongtour-company-invoice.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-foreign-tax-note]",
+            "현지 세금",
+            "국내 부가가치세 환급·세금계산서",
+            "local taxes as charged by the property/OTA",
+            "Korean VAT refund and tax invoice"
+          ],
+          "mustNotInclude": [
+            "세금(부가가치세 등)이 포함",
+            "applicable taxes (including VAT)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-issued-pdf",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OTA 발행본은 HTML window.print 대신 Playwright PDF 저장·보관",
+      "checks": [
+        {
+          "file": "lib/bongtour-ota-issued-html-to-pdf.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-issued-pdf]",
+            "renderOtaIssuedHtmlToPdf",
+            "buildOtaIssuedPdfFileName",
+            "page.pdf"
+          ]
+        },
+        {
+          "file": "app/api/admin/invoices/issued/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-issued-pdf]",
+            "renderOtaIssuedHtmlToPdf",
+            "pdfBase64",
+            "issuedPdf"
+          ]
+        },
+        {
+          "file": "lib/admin-ota-issued-document-archive.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-issued-pdf]",
+            "issued_pdf",
+            "issuedPdf"
+          ]
+        },
+        {
+          "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
+          "mustInclude": [
+            "archiveAndDownloadPdf",
+            "PDF 저장·보관",
+            "pdfBase64"
+          ],
+          "mustNotInclude": [
+            "window.print",
+            "w.print()"
+          ]
+        },
+        {
+          "file": "nixpacks.toml",
+          "mustInclude": [
+            "npx playwright install chromium"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-ota-issued-html-to-pdf.test.ts"
       ]
     }
   ],
@@ -24383,6 +24506,36 @@
       "summary": "OTA 발행 문서+원본 보관 키/sanitize",
       "files": [
         "lib/admin-ota-issued-document-archive.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-voucher-note-en",
+      "tier": [
+        "ci"
+      ],
+      "summary": "비고 한→영·OTA 예약처 표기 단위 테스트",
+      "files": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-foreign-tax-note",
+      "tier": [
+        "ci"
+      ],
+      "summary": "해외숙박 현지세 포함·국내부가세 불가 고지",
+      "files": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-issued-pdf",
+      "tier": [
+        "ci"
+      ],
+      "summary": "발행 PDF 파일명 scope 단위 테스트",
+      "files": [
+        "lib/bongtour-ota-issued-html-to-pdf.test.ts"
       ]
     }
   ]

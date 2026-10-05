@@ -9,10 +9,13 @@ import {
   computeInvoiceProfitKrw,
   computeVoucherTotalUsdFromNightRate,
   joinOtaVoucherUploadTexts,
+  otaProviderDisplayName,
+  otaVoucherNoteNeedsEnglishTranslation,
   parseOtaReceiptForInvoice,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
+  resolveOtaVoucherNotePair,
 } from '@/lib/bongtour-company-invoice'
 import {
   parseFrankfurterUsdKrw,
@@ -475,5 +478,59 @@ Nights : 5박`
     expect(htmlEn).not.toContain('머큐어')
     expect(htmlEn).not.toContain('Property (local name)')
     expect(htmlEn).toMatch(/data:image\/|bongtour-logo/)
+  })
+
+  // REGRESSION-FREEZE[admin-ota-foreign-tax-note]: 해외숙박 현지세·국내부가세 불가 — manifest
+  it('states foreign local tax included and no Korean VAT refund/invoice', () => {
+    expect(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE).toMatch(/현지 세금/)
+    expect(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE).toMatch(/국내 부가가치세 환급·세금계산서/)
+    expect(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE).not.toMatch(/세금\(부가가치세 등\)/)
+    expect(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN).toMatch(/local taxes as charged by the property\/OTA/)
+    expect(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN).toMatch(/Korean VAT refund and tax invoice/)
+    expect(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN).not.toMatch(/including VAT\)\./)
+  })
+
+  // REGRESSION-FREEZE[admin-ota-voucher-note-en]: 비고 한→영 + OTA명 — manifest
+  it('puts OTA provider next to Booking ID and translates note for EN voucher', () => {
+    expect(otaProviderDisplayName('trip_com')).toBe('Trip.com')
+    expect(otaProviderDisplayName('agoda')).toBe('Agoda')
+    expect(otaVoucherNoteNeedsEnglishTranslation('레이트 체크인 요청')).toBe(true)
+    expect(otaVoucherNoteNeedsEnglishTranslation('Late check-in')).toBe(false)
+    expect(resolveOtaVoucherNotePair({ note: 'Late check-in' }).noteEn).toBe('Late check-in')
+    expect(resolveOtaVoucherNotePair({ note: '레이트 체크인' }).noteEn).toBeNull()
+    expect(
+      resolveOtaVoucherNotePair({
+        note: '레이트 체크인',
+        noteEnOverride: 'Late check-in requested',
+      }).noteEn,
+    ).toBe('Late check-in requested')
+
+    const draft = buildOtaCompanyCheckInVoucherDraft({
+      parsed: emptyParsed({
+        provider: 'trip_com',
+        bookingRef: '2610130768',
+        nights: 2,
+      }),
+      amountUsd: 200,
+      nightRateUsd: 100,
+      rateDate: '2026-10-05',
+      effectiveRateDate: '2026-10-05',
+      usdKrwRate: 1350,
+      amountKrw: usdAmountToKrw(200, 1350),
+      note: '레이트 체크인 요청',
+      noteEnOverride: 'Late check-in requested',
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(draft.note).toBe('레이트 체크인 요청')
+    expect(draft.noteEn).toBe('Late check-in requested')
+    const htmlKo = renderOtaCompanyCheckInVoucherHtml(draft, 'ko')
+    const htmlEn = renderOtaCompanyCheckInVoucherHtml(draft, 'en')
+    expect(htmlKo).toContain('OTA (예약처)')
+    expect(htmlKo).toContain('Trip.com')
+    expect(htmlKo).toContain('레이트 체크인 요청')
+    expect(htmlEn).toContain('OTA')
+    expect(htmlEn).toContain('Trip.com')
+    expect(htmlEn).toContain('Late check-in requested')
+    expect(htmlEn).not.toContain('레이트 체크인 요청')
   })
 })

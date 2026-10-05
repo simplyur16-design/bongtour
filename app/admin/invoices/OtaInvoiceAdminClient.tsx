@@ -35,6 +35,7 @@ type ApiOk = {
   html: string
   htmlKo?: string
   htmlEn?: string
+  warning?: string
 }
 
 type IssuedListItem = {
@@ -256,6 +257,7 @@ export default function OtaInvoiceAdminClient() {
       setHtmlEn(json.htmlEn ?? null)
       setSavedInfo(null)
       setSaveError(null)
+      if (json.warning) setError(json.warning)
       if ('sourceAmountKrw' in json.draft && !sourceAmountKrw.trim() && json.draft.sourceAmountKrw) {
         setSourceAmountKrw(String(json.draft.sourceAmountKrw))
       }
@@ -291,74 +293,75 @@ export default function OtaInvoiceAdminClient() {
     applyParsedToForm,
   ])
 
-  const archiveOnPrint = useCallback(async (): Promise<boolean> => {
-    if (!draft || !html || !parsed) {
-      setSaveError('미리보기를 먼저 생성하세요.')
-      return false
-    }
-    if (savedInfo?.id) return true
-    try {
-      const form = new FormData()
-      form.set('documentKind', documentKind)
-      form.set('draftJson', JSON.stringify(draft))
-      form.set('parsedJson', JSON.stringify(parsed))
-      form.set('issuedHtml', html)
-      if (htmlKo) form.set('htmlKo', htmlKo)
-      if (htmlEn) form.set('htmlEn', htmlEn)
-      if (text.trim()) form.set('sourceText', text)
-      if (note.trim()) form.set('note', note.trim())
-      for (const f of files) form.append('file', f)
-      const res = await fetch('/api/admin/invoices/issued', { method: 'POST', body: form })
-      const json = await readJsonResponse<{
-        ok: boolean
-        error?: string
-        saved?: SavedInfo
-      }>(res)
-      if (!json.ok || !json.saved) {
-        throw new Error(json.error || '보관 실패')
-      }
-      setSavedInfo(json.saved)
-      setSaveError(null)
-      void reloadHistory()
-      return true
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : String(e))
-      return false
-    }
-  }, [
-    draft,
-    html,
-    htmlKo,
-    htmlEn,
-    parsed,
-    savedInfo?.id,
-    documentKind,
-    text,
-    note,
-    files,
-    reloadHistory,
-  ])
-
-  const printDoc = useCallback(
+  const archiveAndDownloadPdf = useCallback(
     async (which: 'both' | 'ko' | 'en' = 'both') => {
       const doc =
         which === 'ko' ? htmlKo || html : which === 'en' ? htmlEn || html : html
-      if (!doc) return
+      if (!doc || !draft || !html || !parsed) {
+        setSaveError('미리보기를 먼저 생성하세요.')
+        return
+      }
       setBusy(true)
       try {
-        const ok = await archiveOnPrint()
-        if (!ok) return
-        const w = window.open('', '_blank', 'noopener,noreferrer,width=800,height=900')
-        if (!w) return
-        w.document.write(doc)
-        w.document.close()
-        w.focus()
-        w.print()
+        const form = new FormData()
+        form.set('documentKind', documentKind)
+        form.set('draftJson', JSON.stringify(draft))
+        form.set('parsedJson', JSON.stringify(parsed))
+        form.set('issuedHtml', html)
+        form.set('pdfScope', which)
+        form.set('persist', savedInfo?.id ? '0' : '1')
+        if (htmlKo) form.set('htmlKo', htmlKo)
+        if (htmlEn) form.set('htmlEn', htmlEn)
+        if (text.trim()) form.set('sourceText', text)
+        if (note.trim()) form.set('note', note.trim())
+        if (!savedInfo?.id) {
+          for (const f of files) form.append('file', f)
+        }
+        const res = await fetch('/api/admin/invoices/issued', { method: 'POST', body: form })
+        const json = await readJsonResponse<{
+          ok: boolean
+          error?: string
+          saved?: SavedInfo | null
+          pdfBase64?: string
+          pdfFileName?: string
+        }>(res)
+        if (!json.ok || !json.pdfBase64 || !json.pdfFileName) {
+          throw new Error(json.error || 'PDF 생성 실패')
+        }
+        if (json.saved?.id) {
+          setSavedInfo(json.saved)
+          void reloadHistory()
+        }
+        setSaveError(null)
+        const bin = Uint8Array.from(atob(json.pdfBase64), (c) => c.charCodeAt(0))
+        const blob = new Blob([bin], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = json.pdfFileName
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : String(e))
       } finally {
         setBusy(false)
       }
     },
-    [html, htmlKo, htmlEn, archiveOnPrint],
+    [
+      draft,
+      html,
+      htmlKo,
+      htmlEn,
+      parsed,
+      savedInfo?.id,
+      documentKind,
+      text,
+      note,
+      files,
+      reloadHistory,
+    ],
   )
 
   const isVoucher = documentKind === 'voucher'
@@ -371,12 +374,12 @@ export default function OtaInvoiceAdminClient() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <AdminPageHeader
         title="OTA → 회사 인보이스 / 체크인 바우처"
-        subtitle="OTA 한글·영문 바우처 PDF를 한 세트로 올리면 Booking ID·숙소(한/영)·조식·편의시설·취소정책을 합쳐 한글/영문 회사 바우처를 만듭니다. 인쇄하기를 누르면 회사 문서와 OTA 원본이 함께 보관됩니다."
+        subtitle="OTA 한글·영문 바우처 PDF를 한 세트로 올리면 Booking ID·숙소(한/영)·조식·편의시설·취소정책을 합쳐 한글/영문 회사 바우처를 만듭니다. PDF 저장·보관 시 회사 발행 PDF와 OTA 원본이 함께 저장됩니다."
       />
 
       {savedInfo?.id ? (
         <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          인쇄·보관됨 · {savedInfo.documentNumber || savedInfo.id}
+          PDF 보관됨 · {savedInfo.documentNumber || savedInfo.id}
           {savedInfo.fileCount > 0 ? ` · OTA 원본 ${savedInfo.fileCount}개` : ''}
           {savedInfo.storageWarnings?.length
             ? ` · 경고: ${savedInfo.storageWarnings.join(', ')}`
@@ -385,7 +388,7 @@ export default function OtaInvoiceAdminClient() {
       ) : null}
       {saveError ? (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          보관 실패(인쇄 중단): {saveError}
+          PDF 저장 실패: {saveError}
         </p>
       ) : null}
 
@@ -549,11 +552,12 @@ export default function OtaInvoiceAdminClient() {
           </label>
         </div>
         <label className="block text-sm font-medium text-zinc-800">
-          비고
+          비고 (한글 입력 시 영문 바우처 Notes로 자동 번역)
           <input
             className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            placeholder="예: 레이트 체크인 요청 / 조식 추가 문의"
           />
         </label>
 
@@ -569,28 +573,28 @@ export default function OtaInvoiceAdminClient() {
           <button
             type="button"
             disabled={busy || !html}
-            onClick={() => void printDoc('both')}
+            onClick={() => void archiveAndDownloadPdf('both')}
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-40"
           >
-            인쇄·보관 (한+영)
+            PDF 저장·보관 (한+영)
           </button>
           {isVoucher ? (
             <>
               <button
                 type="button"
                 disabled={busy || (!htmlKo && !html)}
-                onClick={() => void printDoc('ko')}
+                onClick={() => void archiveAndDownloadPdf('ko')}
                 className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-40"
               >
-                한글만 인쇄·보관
+                한글 PDF 저장·보관
               </button>
               <button
                 type="button"
                 disabled={busy || !htmlEn}
-                onClick={() => void printDoc('en')}
+                onClick={() => void archiveAndDownloadPdf('en')}
                 className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-40"
               >
-                영문만 인쇄·보관
+                영문 PDF 저장·보관
               </button>
             </>
           ) : null}
@@ -601,8 +605,17 @@ export default function OtaInvoiceAdminClient() {
       {parsed ? (
         <section className={`${ADMIN_CARD_CLASS} space-y-2 p-5 text-sm`}>
           <h2 className="font-semibold text-zinc-900">PDF/본문 추출 결과</h2>
-          <p className="font-semibold">Booking ID: {parsed.bookingRef || '— (필수 · 없으면 생성 불가)'}</p>
-          <p>공급원: {parsed.provider}</p>
+          <p className="font-semibold">
+            Booking ID (OTA 예약번호): {parsed.bookingRef || '— (필수 · 없으면 생성 불가)'}
+          </p>
+          <p>
+            OTA 예약처:{' '}
+            {parsed.provider === 'agoda'
+              ? 'Agoda'
+              : parsed.provider === 'trip_com'
+                ? 'Trip.com'
+                : '미확인 (원문에 Agoda/Trip.com 표기 확인)'}
+          </p>
           <p>
             숙소: {parsed.propertyNameKo || '—'} / {parsed.propertyNameEn || '—'}
           </p>
@@ -730,7 +743,11 @@ export default function OtaInvoiceAdminClient() {
                           className="text-xs text-sky-700 underline"
                           href={`/api/admin/invoices/issued/${row.id}/files/${f.id}`}
                         >
-                          {f.role === 'issued_html' ? '발행 HTML' : f.fileName}
+                          {f.role === 'issued_pdf'
+                            ? '발행 PDF'
+                            : f.role === 'issued_html'
+                              ? '발행 HTML'
+                              : f.fileName}
                         </a>
                       ))}
                     </div>

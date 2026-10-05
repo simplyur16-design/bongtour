@@ -10,6 +10,7 @@ nixPkgs = ["nodejs", "python3", "python3Packages.virtualenv", "curl"]
 [phases.install]
 cmds = [
   "npm install",
+  "npx playwright install chromium",
   "virtualenv .venv",
   "bash -c 'set -e; for attempt in 1 2 3 4 5; do .venv/bin/pip install --retries 10 --timeout 120 -U pip wheel && exit 0; echo \"[pip bootstrap] attempt ${attempt} failed (PyPI flake), retrying...\"; sleep $((attempt * 15)); done; exit 1'",
   "bash -c 'set -e; for attempt in 1 2 3 4 5; do .venv/bin/pip install --retries 10 --timeout 120 -r scripts/calendar_e2e_scraper_requirements.txt && exit 0; echo \"[pip] attempt ${attempt} failed (PyPI flake), retrying...\"; sleep $((attempt * 15)); done; exit 1'",

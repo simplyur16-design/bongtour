@@ -1,8 +1,10 @@
 /**
  * 봉투어 회사 인보이스·체크인 바우처 — OTA(Trip.com/Agoda) 영수증 기반 발행 SSOT.
  * PDF/본문에서 예약·숙소(한/영)·조식·세금포함·편의시설을 추출하고,
- * 입력 금액(1박·총액) = 최종 합계(이익 가산 없음). 서비스요금·세금은 포함 문구로 명시.
+ * 입력 금액(1박·총액) = 최종 합계(이익 가산 없음). 현지 세금·봉사료 포함 고지(국내 부가세 환급·세금계산서 불가).
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
+ * REGRESSION-FREEZE[admin-ota-voucher-note-en]: 비고 한→영·OTA명 — manifest
+ * REGRESSION-FREEZE[admin-ota-foreign-tax-note]: 해외숙박 현지세·국내부가세 불가 고지 — manifest
  */
 
 import { COMPANY_FOOTER } from '@/lib/company-footer'
@@ -28,9 +30,12 @@ export const BONGTOUR_INVOICE_COMPANY = {
 /** 호텔 제시용 회사 바우처 결제 표기 — 고객→회사 납입 완료(선결제) */
 export const BONGTOUR_VOUCHER_PAYMENT_METHOD = 'CASH (Prepaid)' as const
 
-/** 금액에 항상 붙이는 포함 고지 (이익율 재계산 대신 포함 명시) */
+/** 금액에 항상 붙이는 포함 고지 — 해외 숙박 현지세·봉사료 포함(국내 부가세 환급·세금계산서 불가) */
 export const BONGTOUR_TAX_SERVICE_INCLUDED_NOTE =
-  '본 금액에는 서비스요금 및 세금(부가가치세 등)이 포함되어 있습니다.'
+  '본 금액에는 숙소·OTA 기준의 서비스요금 및 현지 세금이 포함되어 있습니다. 해외 숙박으로 국내 부가가치세 환급·세금계산서 발급 대상이 아닙니다.'
+
+export const BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN =
+  'This amount includes service charges and local taxes as charged by the property/OTA. As an overseas hotel stay, Korean VAT refund and tax invoice issuance are not available.'
 
 export type OtaInvoiceProvider = 'trip_com' | 'agoda' | 'unknown'
 
@@ -183,11 +188,11 @@ export type OtaCompanyCheckInVoucherDraft = {
   amountKrw: number
   logoUrl: string
   company: typeof BONGTOUR_INVOICE_COMPANY
+  /** 한글 바우처 비고 (관리자 입력) */
   note: string
+  /** 영문 바우처 Notes — 한글 입력이면 서버에서 번역 */
+  noteEn: string | null
 }
-
-export const BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN =
-  'This amount includes service charges and applicable taxes (including VAT).'
 
 export const BONGTOUR_LOGO_PATH = '/images/bongtour-logo.png'
 export const BONGTOUR_LOGO_WEBP_PATH = '/images/bongtour-logo.webp'
@@ -212,6 +217,37 @@ function detectProvider(text: string): OtaInvoiceProvider {
     return 'trip_com'
   }
   return 'unknown'
+}
+
+/**
+ * Booking ID는 OTA(Trip.com/Agoda 등) 전용 예약번호.
+ * 바우처에 플랫폼명을 함께 표기해 호텔/비자 확인 시 출처를 명확히 한다.
+ */
+export function otaProviderDisplayName(provider: OtaInvoiceProvider): string | null {
+  if (provider === 'agoda') return 'Agoda'
+  if (provider === 'trip_com') return 'Trip.com'
+  return null
+}
+
+/** 비고에 한글이 있으면 영문 바우처용 번역이 필요하다. */
+export function otaVoucherNoteNeedsEnglishTranslation(note: string | null | undefined): boolean {
+  return hasHangul(String(note || '').trim())
+}
+
+/**
+ * 비고 KO/EN 쌍. noteEnOverride가 있으면 그대로 쓰고,
+ * 한글이 없으면 note 자체를 영문으로 쓴다.
+ */
+export function resolveOtaVoucherNotePair(args: {
+  note?: string | null
+  noteEnOverride?: string | null
+}): { note: string; noteEn: string | null } {
+  const note = String(args.note ?? '').trim()
+  const override = cleanLine(args.noteEnOverride)
+  if (!note) return { note: '', noteEn: null }
+  if (override) return { note, noteEn: override }
+  if (!hasHangul(note)) return { note, noteEn: note }
+  return { note, noteEn: null }
 }
 
 function parseMoneyToken(raw: string): number | null {
@@ -991,6 +1027,8 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
   checkInOverride?: string | null
   checkOutOverride?: string | null
   note?: string
+  /** 영문 Notes — 한글 비고를 서버에서 번역한 값 */
+  noteEnOverride?: string | null
   now?: Date
   logoUrl?: string | null
 }): OtaCompanyCheckInVoucherDraft {
@@ -1121,7 +1159,7 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
     amountKrw: Math.max(0, Math.round(args.amountKrw)),
     logoUrl: args.logoUrl?.trim() || resolveBongtourLogoUrl(),
     company: BONGTOUR_INVOICE_COMPANY,
-    note: String(args.note ?? '').trim(),
+    ...resolveOtaVoucherNotePair({ note: args.note, noteEnOverride: args.noteEnOverride }),
   }
 }
 
@@ -1216,7 +1254,11 @@ export function renderOtaCompanyInvoiceHtml(draft: OtaCompanyInvoiceDraft): stri
   <div class="muted">${c.brandName} · ${draft.invoiceNumber}</div>
   <div class="muted">발행일시 ${issued}</div>
   <p style="margin-top:20px"><strong>청구 대상</strong> ${escapeHtml(guest)}</p>
-  <p class="muted">Booking ID ${escapeHtml(draft.bookingRef || '—')} · 공급원 ${draft.provider}</p>
+  <p class="muted">Booking ID ${escapeHtml(draft.bookingRef || '—')}${
+    otaProviderDisplayName(draft.provider)
+      ? ` · OTA ${escapeHtml(otaProviderDisplayName(draft.provider)!)}`
+      : ''
+  }</p>
   ${fxLine}
   <table>
     <thead><tr><th>내역</th><th class="num">금액</th></tr></thead>
@@ -1303,12 +1345,17 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     draft.taxServiceText && (isKo || isEnglishy(draft.taxServiceText))
       ? draft.taxServiceText
       : null
+  const providerLabel = otaProviderDisplayName(draft.provider)
+  const noteText = isKo
+    ? draft.note || null
+    : draft.noteEn || (draft.note && !hasHangul(draft.note) ? draft.note : null)
   const L = isKo
     ? {
         // 로고가 워드마크이므로 제목은 문서 종류만 (브랜드명 반복 금지)
         title: '체크인 바우처',
         issued: `발행 ${issued}`,
         booking: 'Booking ID (예약번호)',
+        otaSource: 'OTA (예약처)',
         guest: '투숙객',
         hotel: '숙소',
         hotelAlt: '숙소 (영문)',
@@ -1343,6 +1390,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         title: 'Check-in Voucher',
         issued: `Issued ${issued}`,
         booking: 'Booking ID',
+        otaSource: 'OTA',
         guest: 'Guest',
         hotel: 'Property',
         hotelAlt: 'Property (English)',
@@ -1383,6 +1431,10 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     </div>
   </div>
   <div class="booking">${escapeHtml(L.booking)}: ${escapeHtml(draft.bookingRef || '—')}${
+    providerLabel
+      ? `<div class="muted" style="margin-top:6px;font-weight:500">${escapeHtml(L.otaSource)}: ${escapeHtml(providerLabel)}</div>`
+      : ''
+  }${
     draft.hotelConfirmationRef
       ? `<div class="muted" style="margin-top:6px;font-weight:500">${
           isKo ? '호텔 확인번호' : 'Hotel confirmation'
@@ -1426,7 +1478,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     }
     <div class="muted" style="margin-top:8px">${escapeHtml(L.present)}</div>
   </div>
-  ${draft.note ? `<p style="margin-top:16px"><strong>${escapeHtml(L.note)}</strong> ${escapeHtml(draft.note)}</p>` : ''}
+  ${noteText ? `<p style="margin-top:16px"><strong>${escapeHtml(L.note)}</strong> ${escapeHtml(noteText)}</p>` : ''}
   <div class="footer">${L.footer}</div>`
 }
 

@@ -5,6 +5,11 @@ import {
   persistAdminOtaIssuedDocument,
   type OtaIssuedOriginalUpload,
 } from '@/lib/admin-ota-issued-document-archive'
+import {
+  buildOtaIssuedPdfFileName,
+  renderOtaIssuedHtmlToPdf,
+  type OtaIssuedPdfScope,
+} from '@/lib/bongtour-ota-issued-html-to-pdf'
 import type {
   OtaAdminDocumentKind,
   OtaCompanyCheckInVoucherDraft,
@@ -14,6 +19,8 @@ import type {
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+/** Playwright PDF 변환 여유 */
+export const maxDuration = 120
 
 const MAX_BYTES = 8 * 1024 * 1024
 
@@ -26,6 +33,12 @@ function readJsonField<T>(raw: FormDataEntryValue | null, label: string): T {
   } catch {
     throw new Error(`${label} JSON을 읽지 못했습니다.`)
   }
+}
+
+function parsePdfScope(raw: FormDataEntryValue | null): OtaIssuedPdfScope {
+  const v = typeof raw === 'string' ? raw.trim() : ''
+  if (v === 'ko' || v === 'en' || v === 'both') return v
+  return 'both'
 }
 
 /** GET /api/admin/invoices/issued?kind=voucher|invoice|all&bookingRef= */
@@ -82,9 +95,10 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST /api/admin/invoices/issued — 인쇄(발행) 시에만 보관.
- * FormData: draftJson, parsedJson, issuedHtml, htmlKo?, htmlEn?, sourceText?, note?, file[]
+ * POST /api/admin/invoices/issued — PDF 저장·보관.
+ * FormData: draftJson, parsedJson, issuedHtml, htmlKo?, htmlEn?, pdfScope?, persist?, sourceText?, note?, file[]
  * REGRESSION-FREEZE[admin-ota-issued-archive]: OTA 발행 문서 보관 — manifest
+ * REGRESSION-FREEZE[admin-ota-issued-pdf]: HTML→PDF 후 다운로드·보관 — manifest
  */
 export async function POST(request: Request) {
   const admin = await requireAdmin()
@@ -112,12 +126,13 @@ export async function POST(request: Request) {
     const sourceText =
       typeof form.get('sourceText') === 'string' ? String(form.get('sourceText')) : ''
     const note = typeof form.get('note') === 'string' ? String(form.get('note')).trim() : ''
+    const pdfScope = parsePdfScope(form.get('pdfScope'))
+    const shouldPersist = form.get('persist') !== '0'
 
     const originals: OtaIssuedOriginalUpload[] = []
-    const files = [
-      ...form.getAll('file'),
-      ...form.getAll('files'),
-    ].filter((f): f is File => f instanceof File && f.size > 0)
+    const files = [...form.getAll('file'), ...form.getAll('files')].filter(
+      (f): f is File => f instanceof File && f.size > 0,
+    )
     for (const file of files) {
       if (file.size > MAX_BYTES) {
         return NextResponse.json(
@@ -166,29 +181,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: '문서 번호가 없습니다.' }, { status: 400 })
     }
 
-    const saved = await persistAdminOtaIssuedDocument({
-      documentKind,
-      documentNumber,
-      provider: parsed.provider ?? null,
-      bookingRef: parsed.bookingRef ?? null,
-      guestName,
-      propertyName,
-      amountUsd,
-      amountKrw,
-      rateDate,
-      usdKrwRate,
-      parsed,
-      draft,
-      issuedHtml,
-      htmlKo,
-      htmlEn,
-      sourceText,
-      note,
-      issuedByUserId: admin.user?.id ?? null,
-      originals,
-    })
+    const pdfHtml =
+      pdfScope === 'ko'
+        ? htmlKo || issuedHtml
+        : pdfScope === 'en'
+          ? htmlEn || issuedHtml
+          : issuedHtml
+    const issuedPdf = await renderOtaIssuedHtmlToPdf(pdfHtml)
+    const pdfFileName = buildOtaIssuedPdfFileName({ documentNumber, scope: pdfScope })
 
-    return NextResponse.json({ ok: true, saved })
+    let saved: Awaited<ReturnType<typeof persistAdminOtaIssuedDocument>> | null = null
+    if (shouldPersist) {
+      saved = await persistAdminOtaIssuedDocument({
+        documentKind,
+        documentNumber,
+        provider: parsed.provider ?? null,
+        bookingRef: parsed.bookingRef ?? null,
+        guestName,
+        propertyName,
+        amountUsd,
+        amountKrw,
+        rateDate,
+        usdKrwRate,
+        parsed,
+        draft,
+        issuedHtml,
+        htmlKo,
+        htmlEn,
+        issuedPdf,
+        issuedPdfFileName: pdfFileName,
+        sourceText,
+        note,
+        issuedByUserId: admin.user?.id ?? null,
+        originals,
+      })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      saved,
+      pdfBase64: issuedPdf.toString('base64'),
+      pdfFileName,
+      pdfScope,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[admin-ota-issued-archive] save failed', msg)

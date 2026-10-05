@@ -8,12 +8,15 @@ import {
   parseOtaReceiptForInvoice,
   joinOtaVoucherUploadTexts,
   computeVoucherTotalUsdFromNightRate,
+  otaProviderDisplayName,
+  otaVoucherNoteNeedsEnglishTranslation,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
   type OtaAdminDocumentKind,
 } from '@/lib/bongtour-company-invoice'
 import { loadBongtourLogoDataUrl } from '@/lib/bongtour-company-invoice-logo-server'
+import { translateOtaVoucherNoteToEn } from '@/lib/bongtour-ota-voucher-note-translate'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
 
 export const runtime = 'nodejs'
@@ -276,6 +279,17 @@ export async function POST(request: Request) {
         : null)
 
     const amountKrw = usdAmountToKrw(totalUsd, fx.usdKrw)
+    let noteEnOverride: string | null = null
+    let noteTranslateWarning: string | null = null
+    if (note && otaVoucherNoteNeedsEnglishTranslation(note)) {
+      try {
+        noteEnOverride = await translateOtaVoucherNoteToEn(note)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        noteTranslateWarning = `비고 영문 번역 실패: ${msg}`
+        console.error('[from-ota-receipt] note translate failed', msg)
+      }
+    }
     const draft = buildOtaCompanyCheckInVoucherDraft({
       parsed,
       amountUsd: totalUsd,
@@ -293,6 +307,7 @@ export async function POST(request: Request) {
       checkInOverride,
       checkOutOverride,
       note,
+      noteEnOverride,
       logoUrl,
     })
     const htmlKo = renderOtaCompanyCheckInVoucherHtml(draft, 'ko')
@@ -307,6 +322,8 @@ export async function POST(request: Request) {
       html,
       htmlKo,
       htmlEn,
+      ...(noteTranslateWarning ? { warning: noteTranslateWarning } : {}),
+      otaProvider: otaProviderDisplayName(parsed.provider),
     })
   }
 

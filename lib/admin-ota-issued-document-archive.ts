@@ -1,7 +1,8 @@
 /**
  * 관리자 OTA→회사 인보이스/체크인 바우처 발행 보관.
- * HTML·파싱 JSON은 DB, OTA 원본 PDF/TXT는 Ncloud Object Storage.
+ * 발행 PDF·파싱 JSON은 DB/스토리지, OTA 원본 PDF/TXT는 Ncloud Object Storage.
  * REGRESSION-FREEZE[admin-ota-issued-archive]: OTA 발행 문서 보관 — manifest
+ * REGRESSION-FREEZE[admin-ota-issued-pdf]: 발행본은 PDF로 보관 — manifest
  */
 import { randomUUID } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
@@ -35,6 +36,9 @@ export type PersistAdminOtaIssuedDocumentArgs = {
   issuedHtml: string
   htmlKo?: string | null
   htmlEn?: string | null
+  /** 회사 발행 PDF (HTML→PDF). 있으면 스토리지에 issued.pdf로 보관 */
+  issuedPdf?: Buffer | null
+  issuedPdfFileName?: string | null
   sourceText: string
   note: string
   issuedByUserId: string | null
@@ -120,7 +124,33 @@ export async function persistAdminOtaIssuedDocument(
     }
   }
 
-  if (isObjectStorageConfigured() && args.issuedHtml.trim()) {
+  if (isObjectStorageConfigured() && args.issuedPdf && args.issuedPdf.byteLength > 0) {
+    const pdfName = sanitizeOtaUploadFileName(args.issuedPdfFileName || 'issued.pdf')
+    const pdfPath = `admin-ota-docs/${ym}/${id}/${pdfName.endsWith('.pdf') ? pdfName : `${pdfName}.pdf`}`
+    try {
+      await uploadStorageObjectRaw({
+        objectKey: pdfPath,
+        body: args.issuedPdf,
+        contentType: 'application/pdf',
+      })
+      fileRows.push({
+        role: 'issued_pdf',
+        fileName: pdfName.endsWith('.pdf') ? pdfName : `${pdfName}.pdf`,
+        mimeType: 'application/pdf',
+        byteSize: args.issuedPdf.byteLength,
+        storageBucket: bucket,
+        storagePath: pdfPath,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      storageWarnings.push(`issued_pdf_upload_failed:${msg}`)
+    }
+  } else if (args.issuedPdf && args.issuedPdf.byteLength > 0 && !isObjectStorageConfigured()) {
+    storageWarnings.push('object_storage_not_configured_for_issued_pdf')
+  }
+
+  // HTML은 DB(issuedHtml)에 보관. 스토리지 주 발행본은 PDF.
+  if (isObjectStorageConfigured() && args.issuedHtml.trim() && !args.issuedPdf?.byteLength) {
     const htmlPath = `admin-ota-docs/${ym}/${id}/issued.html`
     try {
       await uploadStorageObjectRaw({

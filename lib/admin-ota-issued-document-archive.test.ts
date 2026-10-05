@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[admin-ota-issued-archive]: OTA 발행 문서 보관 — manifest
+ * REGRESSION-FREEZE[admin-ota-issued-pdf]: 발행 PDF 키 — manifest
  */
 import { describe, expect, it } from 'vitest'
 import {
