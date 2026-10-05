@@ -23916,6 +23916,59 @@
       "vitestSuites": [
         "lib/register-single-room-when-ie-filled.test.ts"
       ]
+    },
+    {
+      "id": "admin-ota-receipt-invoice",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OTA 바우처 공유 lib는 client-safe(node:fs 금지) — 로고 data URL은 서버 전용 모듈",
+      "checks": [
+        {
+          "file": "lib/bongtour-company-invoice.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
+            "resolveBongtourLogoUrl"
+          ],
+          "mustNotInclude": [
+            "node:fs",
+            "node:path",
+            "loadBongtourLogoDataUrl",
+            "readFileSync"
+          ]
+        },
+        {
+          "file": "lib/bongtour-company-invoice-logo-server.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
+            "loadBongtourLogoDataUrl",
+            "node:fs"
+          ]
+        },
+        {
+          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
+            "bongtour-company-invoice-logo-server"
+          ]
+        },
+        {
+          "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
+            "@/lib/bongtour-company-invoice"
+          ],
+          "mustNotInclude": [
+            "bongtour-company-invoice-logo-server",
+            "node:fs",
+            "loadBongtourLogoDataUrl"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

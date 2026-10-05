@@ -5,8 +5,6 @@
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { enrichHotelBilingual } from '@/lib/simplyur/trip-inbox/bilingual-hotel'
 import type { TripHotelSegmentPayload } from '@/lib/simplyur/trip-inbox/types'
@@ -200,26 +198,6 @@ export function resolveBongtourLogoUrl(baseUrl?: string | null): string {
     '',
   )
   return `${base}${BONGTOUR_LOGO_PATH}`
-}
-
-/** 인쇄·미리보기용 — 네트워크 깨짐 방지로 PNG를 data URL로 임베드 */
-export function loadBongtourLogoDataUrl(): string {
-  try {
-    const candidates = [
-      join(process.cwd(), 'public', 'images', 'bongtour-logo.png'),
-      join(process.cwd(), 'public', 'images', 'bongtour-logo.webp'),
-    ]
-    for (const p of candidates) {
-      if (!existsSync(p)) continue
-      const buf = readFileSync(p)
-      if (!buf.length) continue
-      const mime = p.toLowerCase().endsWith('.png') ? 'image/png' : 'image/webp'
-      return `data:${mime};base64,${buf.toString('base64')}`
-    }
-  } catch {
-    /* fall through */
-  }
-  return resolveBongtourLogoUrl()
 }
 
 function detectProvider(text: string): OtaInvoiceProvider {
@@ -1141,7 +1119,7 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
     effectiveRateDate: args.effectiveRateDate,
     usdKrwRate: Number(args.usdKrwRate),
     amountKrw: Math.max(0, Math.round(args.amountKrw)),
-    logoUrl: args.logoUrl?.trim() || loadBongtourLogoDataUrl(),
+    logoUrl: args.logoUrl?.trim() || resolveBongtourLogoUrl(),
     company: BONGTOUR_INVOICE_COMPANY,
     note: String(args.note ?? '').trim(),
   }

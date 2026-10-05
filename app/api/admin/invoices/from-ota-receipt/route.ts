@@ -8,12 +8,12 @@ import {
   parseOtaReceiptForInvoice,
   joinOtaVoucherUploadTexts,
   computeVoucherTotalUsdFromNightRate,
-  loadBongtourLogoDataUrl,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
   type OtaAdminDocumentKind,
 } from '@/lib/bongtour-company-invoice'
+import { loadBongtourLogoDataUrl } from '@/lib/bongtour-company-invoice-logo-server'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
 
 export const runtime = 'nodejs'

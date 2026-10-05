@@ -1,4 +1,5 @@
 'use client'
+// REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 바우처 클라 — company-invoice만 import(로고 서버 모듈 금지) — manifest
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
