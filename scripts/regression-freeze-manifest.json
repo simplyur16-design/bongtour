@@ -23929,7 +23929,8 @@
           "file": "lib/bongtour-company-invoice.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "resolveBongtourLogoUrl"
+            "resolveBongtourLogoUrl",
+            "CASH (Prepaid)"
           ],
           "mustNotInclude": [
             "node:fs",

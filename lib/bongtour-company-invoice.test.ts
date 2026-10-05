@@ -71,7 +71,7 @@ function emptyParsed(
     cancellationPolicyKo: null,
     cancellationPolicyEn: null,
     specialRequests: null,
-    paymentMethod: 'CASH',
+    paymentMethod: 'CASH (Prepaid)',
     sourceAmountKrw: null,
     nightRateUsd: null,
     totalUsd: null,
@@ -164,7 +164,7 @@ Address : 주소 : 2-6-17 Akasaka, Minato-ku
     expect(htmlEn).toContain('Check-in Voucher')
     expect(htmlEn).toContain('1761671537')
     expect(htmlEn).toContain(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN)
-    expect(htmlEn).toContain('CASH')
+    expect(htmlEn).toContain('CASH (Prepaid)')
     expect(htmlEn).toContain('E-commerce sales report')
     expect(htmlEn).toContain(BONGTOUR_INVOICE_COMPANY.mailOrderNoEn)
     expect(htmlEn).toContain(BONGTOUR_INVOICE_COMPANY.consultHoursEn)
@@ -310,13 +310,13 @@ Nights : 5박`
     expect(html).toContain('1400829634320451')
     expect(html).toContain('bongtour-logo')
     expect(html).toContain('Mercure ICON')
-    expect(html).toContain('CASH')
+    expect(html).toContain('CASH (Prepaid)')
     expect(html).toContain('E-commerce sales report')
     expect(html).toContain(BONGTOUR_INVOICE_COMPANY.mailOrderNoEn)
     expect(html).toContain(BONGTOUR_INVOICE_COMPANY.consultHoursEn)
     expect(html).toContain(BONGTOUR_INVOICE_COMPANY.email)
     expect(html).not.toMatch(/Mail-order 2024-수원영통/)
-    expect(draft.paymentMethod).toBe('CASH')
+    expect(draft.paymentMethod).toBe('CASH (Prepaid)')
     expect(draft.exclusionsTextKo).toBeNull()
     expect(draft.exclusionsTextEn).toBeNull()
   })
@@ -438,7 +438,7 @@ Nights : 5박`
     expect(p.amenitiesEn).toEqual(expect.arrayContaining(['Toothbrushes']))
     expect(p.inclusionsTextKo).toMatch(/부가가치세/)
     expect(p.exclusionsTextKo).toBeNull()
-    expect(p.paymentMethod).toBe('CASH')
+    expect(p.paymentMethod).toBe('CASH (Prepaid)')
 
     const draft = buildOtaCompanyCheckInVoucherDraft({
       parsed: p,
@@ -463,7 +463,7 @@ Nights : 5박`
     expect(html).toContain('2610130768')
     expect(html).toContain('클래식')
     expect(html).toContain('Classic Twin')
-    expect(html).toContain('CASH')
+    expect(html).toContain('CASH (Prepaid)')
     expect(html).toContain(BONGTOUR_INVOICE_COMPANY.email)
     expect(html).not.toContain('Prepay Online')
     // EN page must not leak Korean amenities / inclusions / local name

@@ -25,8 +25,8 @@ export const BONGTOUR_INVOICE_COMPANY = {
   address: '',
 } as const
 
-/** 호텔 제시용 회사 바우처 결제 표기 (고객→회사 결제 완료) */
-export const BONGTOUR_VOUCHER_PAYMENT_METHOD = 'CASH' as const
+/** 호텔 제시용 회사 바우처 결제 표기 — 고객→회사 납입 완료(선결제) */
+export const BONGTOUR_VOUCHER_PAYMENT_METHOD = 'CASH (Prepaid)' as const
 
 /** 금액에 항상 붙이는 포함 고지 (이익율 재계산 대신 포함 명시) */
 export const BONGTOUR_TAX_SERVICE_INCLUDED_NOTE =
@@ -170,7 +170,7 @@ export type OtaCompanyCheckInVoucherDraft = {
   cancellationPolicyKo: string | null
   cancellationPolicyEn: string | null
   specialRequests: string | null
-  /** 항상 CASH (호텔 제시용) */
+  /** 항상 CASH (Prepaid) — 납입 완료 선결제 (호텔 제시용) */
   paymentMethod: typeof BONGTOUR_VOUCHER_PAYMENT_METHOD
   /** 표기 1박 금액(USD) */
   nightRateUsd: number | null
