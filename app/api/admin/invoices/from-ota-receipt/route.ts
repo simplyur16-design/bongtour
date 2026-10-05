@@ -7,6 +7,7 @@ import {
   buildOtaCompanyInvoiceDraft,
   parseOtaReceiptForInvoice,
   joinOtaVoucherUploadTexts,
+  computeVoucherTotalUsdFromNightRate,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
@@ -235,31 +236,24 @@ export async function POST(request: Request) {
   )
 
   if (documentKind === 'voucher') {
-    let totalUsd = amountUsd
-    if ((totalUsd == null || totalUsd <= 0) && parsed.totalUsd != null) totalUsd = parsed.totalUsd
-    if (
-      (totalUsd == null || totalUsd <= 0) &&
-      nightRateUsd != null &&
-      parsed.nights != null &&
-      parsed.nights > 0
-    ) {
-      totalUsd = Math.round(nightRateUsd * parsed.nights * 100) / 100
-    }
-    if (
-      (totalUsd == null || totalUsd <= 0) &&
-      parsed.nightRateUsd != null &&
-      parsed.nights != null &&
-      parsed.nights > 0
-    ) {
-      totalUsd = Math.round(parsed.nightRateUsd * parsed.nights * 100) / 100
-    }
+    // 1박 금액 × 박수 우선. 총액 직접 입력은 1박이 없을 때만.
+    const fromNight = computeVoucherTotalUsdFromNightRate(nightRateUsd, parsed.nights)
+    const fromParsedNight = computeVoucherTotalUsdFromNightRate(
+      parsed.nightRateUsd,
+      parsed.nights,
+    )
+    let totalUsd =
+      fromNight ??
+      (amountUsd != null && amountUsd > 0 ? amountUsd : null) ??
+      parsed.totalUsd ??
+      fromParsedNight
 
     if (totalUsd == null || totalUsd <= 0) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            '체크인 바우처는 총액 USD(또는 1박 USD×박수)가 필요합니다. PDF에서 숙박정보는 추출하되 판매 금액은 입력하세요.',
+            '1박 USD를 입력하세요. PDF에서 확인한 박수로 총액(1박×박수)을 계산합니다. 또는 총액 USD를 직접 입력하세요.',
           parsed,
           fx,
         },

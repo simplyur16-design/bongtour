@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
 import { ADMIN_CARD_CLASS } from '@/lib/admin-design-system'
 import type {
@@ -9,7 +9,7 @@ import type {
   OtaCompanyInvoiceDraft,
   OtaReceiptParsedAmount,
 } from '@/lib/bongtour-company-invoice'
-import { breakfastLabel } from '@/lib/bongtour-company-invoice'
+import { breakfastLabel, computeVoucherTotalUsdFromNightRate } from '@/lib/bongtour-company-invoice'
 
 type FxInfo = {
   rateDate: string
@@ -71,16 +71,41 @@ export default function OtaInvoiceAdminClient() {
     if (!p.propertyNameKo && !p.propertyNameEn && p.propertyOrService) {
       setPropertyNameEn((prev) => prev.trim() || p.propertyOrService || '')
     }
-    if (p.roomType) setRoomType((prev) => prev.trim() || p.roomType || '')
-    if (p.checkIn) setCheckIn((prev) => prev.trim() || p.checkIn || '')
-    if (p.checkOut) setCheckOut((prev) => prev.trim() || p.checkOut || '')
+    // 객실·체크인/아웃은 PDF 원문(한/영) 그대로 — 폼에는 표시만, 덮어쓰지 않음
+    const roomShow = [p.roomTypeKo, p.roomTypeEn].filter(Boolean).join(' / ') || p.roomType
+    if (roomShow) setRoomType((prev) => prev.trim() || roomShow)
+    const checkInShow = [p.checkInKo, p.checkInEn].filter(Boolean).join(' / ') || p.checkIn
+    if (checkInShow) setCheckIn((prev) => prev.trim() || checkInShow)
+    const checkOutShow = [p.checkOutKo, p.checkOutEn].filter(Boolean).join(' / ') || p.checkOut
+    if (checkOutShow) setCheckOut((prev) => prev.trim() || checkOutShow)
     if (p.nightRateUsd != null) {
       setNightRateUsd((prev) => prev.trim() || String(p.nightRateUsd))
     }
+    const autoTotal = computeVoucherTotalUsdFromNightRate(
+      p.nightRateUsd,
+      p.nights,
+    )
     if (p.totalUsd != null) {
       setAmountUsd((prev) => prev.trim() || String(p.totalUsd))
+    } else if (autoTotal != null) {
+      setAmountUsd((prev) => prev.trim() || String(autoTotal))
     }
   }, [])
+
+  const parsedNights = parsed?.nights ?? null
+  const nightRateNum = useMemo(() => {
+    const n = Number(String(nightRateUsd).replace(/,/g, '').trim())
+    return Number.isFinite(n) && n > 0 ? n : null
+  }, [nightRateUsd])
+  const autoTotalFromNight = useMemo(
+    () => computeVoucherTotalUsdFromNightRate(nightRateNum, parsedNights),
+    [nightRateNum, parsedNights],
+  )
+
+  useEffect(() => {
+    if (autoTotalFromNight == null) return
+    setAmountUsd(String(autoTotalFromNight))
+  }, [autoTotalFromNight])
 
   const submit = useCallback(async () => {
     setBusy(true)
@@ -99,9 +124,7 @@ export default function OtaInvoiceAdminClient() {
           [propertyNameKo.trim(), propertyNameEn.trim()].filter(Boolean).join(' / '),
         )
       }
-      if (roomType.trim()) form.set('roomType', roomType.trim())
-      if (checkIn.trim()) form.set('checkIn', checkIn.trim())
-      if (checkOut.trim()) form.set('checkOut', checkOut.trim())
+      // 객실·체크인/아웃은 PDF 추출값 그대로 사용 (폼 덮어쓰기 없음)
       if (note.trim()) form.set('note', note.trim())
       if (sourceAmountKrw.trim()) form.set('sourceAmountKrw', sourceAmountKrw.trim())
       if (amountUsd.trim()) form.set('amountUsd', amountUsd.trim())
@@ -129,8 +152,11 @@ export default function OtaInvoiceAdminClient() {
       if ('sourceAmountKrw' in json.draft && !sourceAmountKrw.trim() && json.draft.sourceAmountKrw) {
         setSourceAmountKrw(String(json.draft.sourceAmountKrw))
       }
-      if ('nightRateUsd' in json.draft && json.draft.nightRateUsd != null && !nightRateUsd.trim()) {
+      if ('nightRateUsd' in json.draft && json.draft.nightRateUsd != null) {
         setNightRateUsd(String(json.draft.nightRateUsd))
+      }
+      if ('amountUsd' in json.draft && json.draft.amountUsd != null) {
+        setAmountUsd(String(json.draft.amountUsd))
       }
     } catch (e) {
       setDraft(null)
@@ -148,9 +174,6 @@ export default function OtaInvoiceAdminClient() {
     guestName,
     propertyNameKo,
     propertyNameEn,
-    roomType,
-    checkIn,
-    checkOut,
     note,
     sourceAmountKrw,
     amountUsd,
@@ -243,8 +266,13 @@ export default function OtaInvoiceAdminClient() {
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               value={nightRateUsd}
               onChange={(e) => setNightRateUsd(e.target.value)}
-              placeholder="예: 64.25"
+              placeholder="예: 157.20"
             />
+            <span className="mt-1 block text-xs font-normal text-zinc-500">
+              {parsedNights != null
+                ? `PDF 숙박 ${parsedNights}박 × 1박 = 총액 자동`
+                : 'PDF에서 박수 확인 후 총액 자동 계산'}
+            </span>
           </label>
           <label className="text-sm font-medium text-zinc-800">
             총 금액 (USD)
@@ -252,7 +280,14 @@ export default function OtaInvoiceAdminClient() {
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               value={amountUsd}
               onChange={(e) => setAmountUsd(e.target.value)}
-              placeholder={isVoucher ? '필수 · 예: 128.50' : '선택 · 입력 시 환율 환산 = 합계'}
+              placeholder={
+                autoTotalFromNight != null
+                  ? `자동 ${autoTotalFromNight}`
+                  : isVoucher
+                    ? '1박×박수 자동'
+                    : '선택 · 입력 시 환율 환산 = 합계'
+              }
+              readOnly={isVoucher && autoTotalFromNight != null}
             />
           </label>
           <label className="text-sm font-medium text-zinc-800 sm:col-span-2">
@@ -304,27 +339,30 @@ export default function OtaInvoiceAdminClient() {
             />
           </label>
           <label className="text-sm font-medium text-zinc-800">
-            객실 타입
+            객실 타입 (PDF 원문)
             <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
               value={roomType}
-              onChange={(e) => setRoomType(e.target.value)}
+              readOnly
+              placeholder="한글/영문 PDF에서 그대로"
             />
           </label>
           <label className="text-sm font-medium text-zinc-800">
-            체크인
+            체크인 (PDF 원문)
             <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
               value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
+              readOnly
+              placeholder="한글/영문 PDF에서 그대로"
             />
           </label>
           <label className="text-sm font-medium text-zinc-800">
-            체크아웃
+            체크아웃 (PDF 원문)
             <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
               value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
+              readOnly
+              placeholder="한글/영문 PDF에서 그대로"
             />
           </label>
         </div>

@@ -991,6 +991,16 @@ export function formatUsd(n: number): string {
   return `USD ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+/** 1박 USD × 박수 → 총액 (바우처 금액 입력 SSOT) */
+export function computeVoucherTotalUsdFromNightRate(
+  nightRateUsd: number | null | undefined,
+  nights: number | null | undefined,
+): number | null {
+  if (nightRateUsd == null || !Number.isFinite(nightRateUsd) || nightRateUsd <= 0) return null
+  if (nights == null || !Number.isFinite(nights) || nights <= 0) return null
+  return Math.round(nightRateUsd * nights * 100) / 100
+}
+
 export function breakfastLabel(
   status: OtaBreakfastStatus,
   text: string | null,

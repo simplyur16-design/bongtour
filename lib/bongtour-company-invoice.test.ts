@@ -7,6 +7,7 @@ import {
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
+  computeVoucherTotalUsdFromNightRate,
   joinOtaVoucherUploadTexts,
   parseOtaReceiptForInvoice,
   renderOtaCompanyCheckInVoucherBilingualHtml,
@@ -342,6 +343,46 @@ Nights : 5박`
     expect(p.inclusionsText).toMatch(/부가가치세/)
     expect(p.cancellationPolicy).toMatch(/취소 수수료/)
     expect(p.amenities).toEqual(expect.arrayContaining(['칫솔', '치약']))
+  })
+
+  // REGRESSION-FREEZE[admin-ota-receipt-invoice]: 1박×박수=총액 — manifest
+  it('computes voucher total from night rate × nights', () => {
+    expect(computeVoucherTotalUsdFromNightRate(157.2, 5)).toBe(786)
+    expect(computeVoucherTotalUsdFromNightRate(64.25, 2)).toBe(128.5)
+    expect(computeVoucherTotalUsdFromNightRate(null, 5)).toBeNull()
+    expect(computeVoucherTotalUsdFromNightRate(100, 0)).toBeNull()
+
+    const draft = buildOtaCompanyCheckInVoucherDraft({
+      parsed: emptyParsed({
+        provider: 'trip_com',
+        bookingRef: '2610130768',
+        nights: 5,
+        roomTypeKo: '클래식 트윈룸',
+        roomTypeEn: 'Classic Twin Room',
+        checkInKo: '2026년 10월 13일 15:00 이후',
+        checkInEn: 'Oct 13, 2026 Tue After 3:00 PM',
+        checkOutKo: '2026년 10월 18일 11:00 이전',
+        checkOutEn: 'Oct 18, 2026 Sun Before 11:00 AM',
+      }),
+      amountUsd: computeVoucherTotalUsdFromNightRate(157.2, 5)!,
+      nightRateUsd: 157.2,
+      rateDate: '2026-10-05',
+      effectiveRateDate: '2026-10-03',
+      usdKrwRate: 1350,
+      amountKrw: usdAmountToKrw(786, 1350),
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(draft.amountUsd).toBe(786)
+    expect(draft.nightRateUsd).toBe(157.2)
+    expect(draft.roomTypeKo).toBe('클래식 트윈룸')
+    expect(draft.roomTypeEn).toBe('Classic Twin Room')
+    expect(draft.checkInKo).toMatch(/2026년 10월 13일/)
+    expect(draft.checkInEn).toMatch(/Oct 13/)
+    const html = renderOtaCompanyCheckInVoucherBilingualHtml(draft)
+    expect(html).toContain('클래식 트윈룸')
+    expect(html).toContain('Classic Twin Room')
+    expect(html).toContain('2026년 10월 13일')
+    expect(html).toContain('Oct 13, 2026')
   })
 
   // REGRESSION-FREEZE[admin-ota-receipt-invoice]: 한글+영문 바우처 한 세트 병합 — manifest
