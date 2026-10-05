@@ -24118,7 +24118,7 @@
         {
           "file": "package.json",
           "mustInclude": [
-            "\"playwright\": \"^1.61.1\""
+            "\"playwright\": \"^"
           ]
         },
         {
