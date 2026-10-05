@@ -8,10 +8,10 @@ import {
   parseOtaReceiptForInvoice,
   joinOtaVoucherUploadTexts,
   computeVoucherTotalUsdFromNightRate,
+  loadBongtourLogoDataUrl,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
-  resolveBongtourLogoUrl,
   type OtaAdminDocumentKind,
 } from '@/lib/bongtour-company-invoice'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
@@ -225,15 +225,7 @@ export async function POST(request: Request) {
 
   const parsed = parseOtaReceiptForInvoice(text)
   const fx = await resolveUsdKrwRateForDate(rateDate || seoulYmd())
-  const logoUrl = resolveBongtourLogoUrl(
-    (() => {
-      try {
-        return new URL(request.url).origin
-      } catch {
-        return null
-      }
-    })(),
-  )
+  const logoUrl = loadBongtourLogoDataUrl()
 
   if (documentKind === 'voucher') {
     // 1박 금액 × 박수 우선. 총액 직접 입력은 1박이 없을 때만.

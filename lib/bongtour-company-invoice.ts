@@ -5,6 +5,8 @@
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { enrichHotelBilingual } from '@/lib/simplyur/trip-inbox/bilingual-hotel'
 import type { TripHotelSegmentPayload } from '@/lib/simplyur/trip-inbox/types'
@@ -189,7 +191,8 @@ export type OtaCompanyCheckInVoucherDraft = {
 export const BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN =
   'This amount includes service charges and applicable taxes (including VAT).'
 
-export const BONGTOUR_LOGO_PATH = '/images/bongtour-logo.webp'
+export const BONGTOUR_LOGO_PATH = '/images/bongtour-logo.png'
+export const BONGTOUR_LOGO_WEBP_PATH = '/images/bongtour-logo.webp'
 
 export function resolveBongtourLogoUrl(baseUrl?: string | null): string {
   const base = (baseUrl || process.env.NEXT_PUBLIC_SITE_URL || 'https://bongtour.com').replace(
@@ -197,6 +200,26 @@ export function resolveBongtourLogoUrl(baseUrl?: string | null): string {
     '',
   )
   return `${base}${BONGTOUR_LOGO_PATH}`
+}
+
+/** 인쇄·미리보기용 — 네트워크 깨짐 방지로 PNG를 data URL로 임베드 */
+export function loadBongtourLogoDataUrl(): string {
+  try {
+    const candidates = [
+      join(process.cwd(), 'public', 'images', 'bongtour-logo.png'),
+      join(process.cwd(), 'public', 'images', 'bongtour-logo.webp'),
+    ]
+    for (const p of candidates) {
+      if (!existsSync(p)) continue
+      const buf = readFileSync(p)
+      if (!buf.length) continue
+      const mime = p.toLowerCase().endsWith('.png') ? 'image/png' : 'image/webp'
+      return `data:${mime};base64,${buf.toString('base64')}`
+    }
+  } catch {
+    /* fall through */
+  }
+  return resolveBongtourLogoUrl()
 }
 
 function detectProvider(text: string): OtaInvoiceProvider {
@@ -251,12 +274,97 @@ function nightsFromDates(checkIn: string | null, checkOut: string | null): numbe
   return diff > 0 && diff < 120 ? diff : null
 }
 
+function hasHangul(s: string | null | undefined): boolean {
+  return !!s && /[\uAC00-\uD7A3]/.test(s)
+}
+
+function isEnglishy(s: string | null | undefined): boolean {
+  if (!s) return false
+  if (hasHangul(s)) return false
+  return /[A-Za-z]/.test(s)
+}
+
+function formatKoDateLineToEn(raw: string | null): string | null {
+  if (!raw) return null
+  const m = raw.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일(.*)$/)
+  if (!m) return null
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
+  const mon = months[Number(m[2]) - 1]
+  if (!mon) return null
+  const rest = cleanLine(m[4]?.replace(/이후|이전/g, (s) => (s === '이후' ? 'After' : 'Before')))
+  return cleanLine(`${mon} ${Number(m[3])}, ${m[1]}${rest ? ` ${rest}` : ''}`)
+}
+
+/** 로케일별 값 — EN 페이지에는 한글 폴백 금지 (날짜만 영문 변환 허용) */
+function pickLocaleField(
+  locale: OtaVoucherLocale,
+  ko: string | null | undefined,
+  en: string | null | undefined,
+  opts?: { allowDateConvert?: boolean },
+): string | null {
+  if (locale === 'ko') return cleanLine(ko) || (isEnglishy(en) ? cleanLine(en) : null)
+  if (isEnglishy(en)) return cleanLine(en)
+  if (opts?.allowDateConvert) return formatKoDateLineToEn(ko ?? null)
+  return null
+}
+
+function pickLocaleList(
+  locale: OtaVoucherLocale,
+  ko: string[] | undefined,
+  en: string[] | undefined,
+): string[] {
+  if (locale === 'ko') {
+    const k = (ko ?? []).filter(Boolean)
+    if (k.length) return k
+    return (en ?? []).filter((x) => isEnglishy(x))
+  }
+  return (en ?? []).filter((x) => isEnglishy(x))
+}
+
+/** 한글 세금/서비스 포함사항을 영문 표기로 */
+function translateTaxInclusionToEn(ko: string | null): string | null {
+  if (!ko || !/서비스|부가가치세|세금|봉사료/.test(ko)) return null
+  return ko
+    .replace(/서비스\s*요금/g, 'Service charge')
+    .replace(/부가가치세/g, 'VAT')
+    .replace(/봉사료/g, 'service fee')
+    .replace(/세금/g, 'Tax')
+    .replace(/(\d[\d,]*)\s*원/g, 'KRW $1')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function splitPropertyNames(raw: string | null): {
   propertyOrService: string | null
   propertyNameKo: string | null
   propertyNameEn: string | null
 } {
   if (!raw) return { propertyOrService: null, propertyNameKo: null, propertyNameEn: null }
+  // "한글 / English" 직접 분리 우선
+  const slash = raw.split(/\s*\/\s*/)
+  if (slash.length >= 2) {
+    const a = cleanLine(slash[0])
+    const b = cleanLine(slash.slice(1).join(' / '))
+    if (hasHangul(a) && isEnglishy(b)) {
+      return { propertyOrService: cleanLine(raw), propertyNameKo: a, propertyNameEn: b }
+    }
+    if (isEnglishy(a) && hasHangul(b)) {
+      return { propertyOrService: cleanLine(raw), propertyNameKo: b, propertyNameEn: a }
+    }
+  }
   const stub: TripHotelSegmentPayload = {
     type: 'hotel',
     property_name: raw,
@@ -283,8 +391,8 @@ function splitPropertyNames(raw: string | null): {
   const ko = cleanLine(enriched.property_name_dest)
   return {
     propertyOrService: cleanLine(raw),
-    propertyNameKo: ko,
-    propertyNameEn: en,
+    propertyNameKo: hasHangul(ko) ? ko : hasHangul(raw) ? cleanLine(raw) : null,
+    propertyNameEn: isEnglishy(en) ? en : isEnglishy(raw) ? cleanLine(raw) : null,
   }
 }
 
@@ -410,31 +518,46 @@ function parseAmenities(text: string): { ko: string[]; en: string[]; merged: str
     /Room\s*(?:amenities|facilities)/i,
     /Amenities/i,
   ])
-  const koLists = labeled
-    .filter((v) => /[\uAC00-\uD7A3]/.test(v))
-    .flatMap((v) => parseAmenityList(v))
-  const enLists = labeled
-    .filter((v) => !/[\uAC00-\uD7A3]/.test(v) && /[A-Za-z]/.test(v))
-    .flatMap((v) => parseAmenityList(v))
-  const ko = [...new Set(koLists)].slice(0, 16)
-  const en = [...new Set(enLists)].slice(0, 16)
-  const merged = en.length ? en : ko
-  if (!merged.length) {
-    const singles: string[] = []
+  const ko = [
+    ...new Set(
+      labeled.filter((v) => hasHangul(v)).flatMap((v) => parseAmenityList(v)),
+    ),
+  ].slice(0, 16)
+  const en = [
+    ...new Set(
+      labeled.filter((v) => isEnglishy(v)).flatMap((v) => parseAmenityList(v)),
+    ),
+  ].slice(0, 16)
+  // 언어 교차 폴백 금지 — 없으면 빈 배열
+  if (!ko.length && !en.length) {
+    const singlesKo: string[] = []
+    const singlesEn: string[] = []
     for (const re of [
       /무료\s*(?:Wi-?Fi|와이파이)/gi,
-      /수영장|Pool/gi,
-      /주차(?:장)?|Parking/gi,
-      /피트니스|Gym|Fitness/gi,
-      /스파|Spa/gi,
+      /수영장/gi,
+      /Pool/gi,
+      /주차(?:장)?/gi,
+      /Parking/gi,
+      /피트니스/gi,
+      /Gym|Fitness/gi,
+      /스파/gi,
+      /Spa/gi,
     ]) {
       const m = text.match(re)
-      if (m) singles.push(m[0].replace(/\s+/g, ' ').trim())
+      if (!m) continue
+      for (const hit of m) {
+        const t = hit.replace(/\s+/g, ' ').trim()
+        if (hasHangul(t)) singlesKo.push(t)
+        else if (isEnglishy(t)) singlesEn.push(t)
+      }
     }
-    const fallback = [...new Set(singles)].slice(0, 12)
-    return { ko: fallback, en: fallback, merged: fallback }
+    return {
+      ko: [...new Set(singlesKo)].slice(0, 12),
+      en: [...new Set(singlesEn)].slice(0, 12),
+      merged: [...new Set([...singlesEn, ...singlesKo])].slice(0, 12),
+    }
   }
-  return { ko: ko.length ? ko : en, en: en.length ? en : ko, merged }
+  return { ko, en, merged: en.length ? en : ko }
 }
 
 function isBreakfastExclusionNoise(raw: string | null): boolean {
@@ -443,27 +566,27 @@ function isBreakfastExclusionNoise(raw: string | null): boolean {
 }
 
 function parseInclusions(text: string): { ko: string | null; en: string | null; merged: string | null } {
-  const ko = parseLabeledLine(text, [/포함\s*(?:사항|내용)/])
-  const en = parseLabeledLine(text, [/Inclusions?/i, /What(?:'s| is)\s*included/i])
-  // 조식 포함 문장·편의시설 나열은 포함사항으로 쓰지 않음
+  const pair = pickKoEnFromLabeled(text, [/포함\s*(?:사항|내용)/, /Inclusions?/i, /What(?:'s| is)\s*included/i])
   const cleanInc = (v: string | null) => {
     if (!v) return null
-    if (/편의시설|amenities|toothbrush|칫솔|조식|breakfast/i.test(v) && !/세금|부가가치세|서비스|VAT|tax|service/i.test(v)) {
+    if (
+      /편의시설|amenities|toothbrush|칫솔|조식|breakfast/i.test(v) &&
+      !/세금|부가가치세|서비스|VAT|tax|service/i.test(v)
+    ) {
       return null
     }
     return v
   }
-  const koC = cleanInc(ko)
-  const enC = cleanInc(en)
+  const koC = cleanInc(pair.ko || (hasHangul(pair.en) ? pair.en : null))
+  let enC = cleanInc(isEnglishy(pair.en) ? pair.en : null)
+  if (!enC && koC) enC = translateTaxInclusionToEn(koC)
   return { ko: koC, en: enC, merged: koC || enC }
 }
 
 function parseExclusions(text: string): { ko: string | null; en: string | null; merged: string | null } {
-  // "Not included" alone matches breakfast lines — 명시 라벨만
-  const ko = parseLabeledLine(text, [/불포함\s*(?:사항|내용)/])
-  const en = parseLabeledLine(text, [/Exclusions?/i])
-  const koC = isBreakfastExclusionNoise(ko) ? null : ko
-  const enC = isBreakfastExclusionNoise(en) ? null : en
+  const pair = pickKoEnFromLabeled(text, [/불포함\s*(?:사항|내용)/, /Exclusions?/i])
+  const koC = isBreakfastExclusionNoise(pair.ko) ? null : pair.ko
+  const enC = isBreakfastExclusionNoise(pair.en) || hasHangul(pair.en) ? null : pair.en
   return { ko: koC, en: enC, merged: koC || enC }
 }
 
@@ -472,18 +595,22 @@ function parseCancellationPolicy(text: string): {
   en: string | null
   merged: string | null
 } {
-  const ko = cleanLine(
-    text.match(/(?:취소\s*(?:정책|규정|수수료))\s*[:：]\s*([^\n]+)/)?.[1],
-  )?.slice(0, 900) ?? null
-  const en = cleanLine(
-    text.match(/(?:Cancellation\s*(?:Policy|policy)|Refund\s*policy)\s*[:：]\s*([^\n]+)/i)?.[1],
-  )?.slice(0, 900) ?? null
-  if (ko || en) return { ko, en, merged: ko || en }
-  const block = text.match(
-    /(?:Free\s*cancellation|Non[- ]?refundable|무료\s*취소|환불\s*불가)[^\n]{0,200}/i,
-  )?.[0]
-  const merged = cleanLine(block)?.slice(0, 900) ?? null
-  return { ko: merged, en: merged, merged }
+  const pair = pickKoEnFromLabeled(text, [
+    /취소\s*(?:정책|규정|수수료)/,
+    /Cancellation\s*(?:Policy|policy)/i,
+    /Refund\s*policy/i,
+  ])
+  let ko = pair.ko
+  let en = isEnglishy(pair.en) ? pair.en : null
+  if (!ko && !en) {
+    const block = text.match(
+      /(?:Free\s*cancellation|Non[- ]?refundable|You'll be charged|무료\s*취소|환불\s*불가|체크인하지)[^\n]{0,200}/i,
+    )?.[0]
+    const merged = cleanLine(block)?.slice(0, 900) ?? null
+    if (hasHangul(merged)) ko = merged
+    else if (isEnglishy(merged)) en = merged
+  }
+  return { ko: ko?.slice(0, 900) ?? null, en: en?.slice(0, 900) ?? null, merged: ko || en }
 }
 
 function parseSpecialRequests(text: string): string | null {
@@ -636,14 +763,22 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
     cleanLine(text.match(/투숙객\s*[:：]\s*([^\n]+)/)?.[1]) ||
     null
 
-  const propertyRaw =
-    cleanLine(text.match(/Property\s*[:：]\s*[^\n]*숙소명\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/숙소명\s*[:：]\s*([^\n]+)/)?.[1]) ||
-    cleanLine(text.match(/Property\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/Hotel\s*(?:name)?\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/상품명\s*[:：]\s*([^\n]+)/)?.[1]) ||
-    null
-  const names = splitPropertyNames(propertyRaw)
+  const propertyLines = parseAllLabeledLines(text, [/숙소명/, /Property/i, /Hotel\s*(?:name)?/i, /상품명/])
+  let propertyNameKo: string | null = null
+  let propertyNameEn: string | null = null
+  let propertyOrService: string | null = null
+  for (const line of propertyLines) {
+    const names = splitPropertyNames(line)
+    propertyOrService = propertyOrService || names.propertyOrService
+    if (!propertyNameKo && names.propertyNameKo) propertyNameKo = names.propertyNameKo
+    if (!propertyNameEn && names.propertyNameEn) propertyNameEn = names.propertyNameEn
+    if (hasHangul(line) && !propertyNameKo) propertyNameKo = cleanLine(line)
+    if (isEnglishy(line) && !propertyNameEn) propertyNameEn = cleanLine(line)
+  }
+  if (!propertyOrService && (propertyNameKo || propertyNameEn)) {
+    propertyOrService = [propertyNameKo, propertyNameEn].filter(Boolean).join(' / ')
+  }
+  const names = { propertyOrService, propertyNameKo, propertyNameEn }
 
   const addressPair = pickKoEnFromLabeled(text, [/주소/, /Address/i])
   const addressKo = addressPair.ko || parseLabeledLine(text, [/주소/])
@@ -761,21 +896,21 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
     breakfastStatus: breakfast.status,
     breakfastText: breakfast.text,
     breakfastTextKo: breakfast.textKo,
-    breakfastTextEn: breakfast.textEn,
+    breakfastTextEn: isEnglishy(breakfast.textEn) ? breakfast.textEn : null,
     taxServiceText: tax.text,
     taxServiceIncluded: tax.included,
     amenities: amenities.merged,
     amenitiesKo: amenities.ko,
     amenitiesEn: amenities.en,
     inclusionsText: inclusions.merged,
-    inclusionsTextKo: inclusions.ko || inclusions.merged,
-    inclusionsTextEn: inclusions.en || inclusions.merged,
+    inclusionsTextKo: inclusions.ko,
+    inclusionsTextEn: inclusions.en,
     exclusionsText: exclusions.merged,
-    exclusionsTextKo: exclusions.ko || exclusions.merged,
-    exclusionsTextEn: exclusions.en || exclusions.merged,
+    exclusionsTextKo: exclusions.ko,
+    exclusionsTextEn: exclusions.en,
     cancellationPolicy: cancellation.merged,
-    cancellationPolicyKo: cancellation.ko || cancellation.merged,
-    cancellationPolicyEn: cancellation.en || cancellation.merged,
+    cancellationPolicyKo: cancellation.ko,
+    cancellationPolicyEn: isEnglishy(cancellation.en) ? cancellation.en : null,
     specialRequests,
     paymentMethod: BONGTOUR_VOUCHER_PAYMENT_METHOD,
     sourceAmountKrw,
@@ -922,52 +1057,81 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
     propertyName,
     propertyNameKo,
     propertyNameEn,
-    addressKo: args.parsed.addressKo || args.parsed.address,
-    addressEn: args.parsed.addressEn || args.parsed.address,
+    addressKo: hasHangul(args.parsed.addressKo)
+      ? args.parsed.addressKo
+      : hasHangul(args.parsed.address)
+        ? args.parsed.address
+        : null,
+    addressEn: isEnglishy(args.parsed.addressEn)
+      ? args.parsed.addressEn
+      : isEnglishy(args.parsed.address)
+        ? args.parsed.address
+        : null,
     phone: args.parsed.phone,
-    roomTypeKo:
-      cleanLine(args.roomTypeOverride) ||
-      args.parsed.roomTypeKo ||
-      args.parsed.roomType,
-    roomTypeEn: args.parsed.roomTypeEn || args.parsed.roomType,
-    bedTypeKo: args.parsed.bedTypeKo || args.parsed.bedType,
-    bedTypeEn: args.parsed.bedTypeEn || args.parsed.bedType,
+    roomTypeKo: hasHangul(args.parsed.roomTypeKo)
+      ? args.parsed.roomTypeKo
+      : hasHangul(args.parsed.roomType)
+        ? args.parsed.roomType
+        : null,
+    roomTypeEn: isEnglishy(args.parsed.roomTypeEn)
+      ? args.parsed.roomTypeEn
+      : isEnglishy(args.parsed.roomType)
+        ? args.parsed.roomType
+        : null,
+    bedTypeKo: hasHangul(args.parsed.bedTypeKo)
+      ? args.parsed.bedTypeKo
+      : hasHangul(args.parsed.bedType)
+        ? args.parsed.bedType
+        : null,
+    bedTypeEn: isEnglishy(args.parsed.bedTypeEn)
+      ? args.parsed.bedTypeEn
+      : isEnglishy(args.parsed.bedType)
+        ? args.parsed.bedType
+        : null,
     rooms: args.parsed.rooms,
     guestsAdults: args.parsed.guestsAdults,
     guestsChildren: args.parsed.guestsChildren,
-    checkInKo:
-      cleanLine(args.checkInOverride) ||
-      args.parsed.checkInKo ||
-      args.parsed.checkIn,
-    checkInEn: args.parsed.checkInEn || args.parsed.checkIn,
-    checkOutKo:
-      cleanLine(args.checkOutOverride) ||
-      args.parsed.checkOutKo ||
-      args.parsed.checkOut,
-    checkOutEn: args.parsed.checkOutEn || args.parsed.checkOut,
+    checkInKo: hasHangul(args.parsed.checkInKo)
+      ? args.parsed.checkInKo
+      : hasHangul(args.parsed.checkIn)
+        ? args.parsed.checkIn
+        : null,
+    checkInEn: isEnglishy(args.parsed.checkInEn)
+      ? args.parsed.checkInEn
+      : isEnglishy(args.parsed.checkIn)
+        ? args.parsed.checkIn
+        : null,
+    checkOutKo: hasHangul(args.parsed.checkOutKo)
+      ? args.parsed.checkOutKo
+      : hasHangul(args.parsed.checkOut)
+        ? args.parsed.checkOut
+        : null,
+    checkOutEn: isEnglishy(args.parsed.checkOutEn)
+      ? args.parsed.checkOutEn
+      : isEnglishy(args.parsed.checkOut)
+        ? args.parsed.checkOut
+        : null,
     checkInTime: args.parsed.checkInTime,
     checkOutTime: args.parsed.checkOutTime,
     nights,
     breakfastStatus: args.parsed.breakfastStatus,
-    breakfastTextKo: args.parsed.breakfastTextKo || args.parsed.breakfastText,
-    breakfastTextEn: args.parsed.breakfastTextEn || args.parsed.breakfastText,
+    breakfastTextKo: args.parsed.breakfastTextKo,
+    breakfastTextEn: isEnglishy(args.parsed.breakfastTextEn) ? args.parsed.breakfastTextEn : null,
     taxServiceText: args.parsed.taxServiceText,
     taxServiceIncludedNote: BONGTOUR_TAX_SERVICE_INCLUDED_NOTE,
     taxServiceIncludedNoteEn: BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN,
-    amenitiesKo: args.parsed.amenitiesKo?.length
-      ? args.parsed.amenitiesKo
-      : args.parsed.amenities,
-    amenitiesEn: args.parsed.amenitiesEn?.length
-      ? args.parsed.amenitiesEn
-      : args.parsed.amenities,
-    inclusionsTextKo: args.parsed.inclusionsTextKo || args.parsed.inclusionsText,
-    inclusionsTextEn: args.parsed.inclusionsTextEn || args.parsed.inclusionsText,
-    exclusionsTextKo: args.parsed.exclusionsTextKo || args.parsed.exclusionsText,
-    exclusionsTextEn: args.parsed.exclusionsTextEn || args.parsed.exclusionsText,
-    cancellationPolicyKo:
-      args.parsed.cancellationPolicyKo || args.parsed.cancellationPolicy,
-    cancellationPolicyEn:
-      args.parsed.cancellationPolicyEn || args.parsed.cancellationPolicy,
+    amenitiesKo: args.parsed.amenitiesKo ?? [],
+    amenitiesEn: (args.parsed.amenitiesEn ?? []).filter((a) => isEnglishy(a)),
+    inclusionsTextKo: args.parsed.inclusionsTextKo,
+    inclusionsTextEn: isEnglishy(args.parsed.inclusionsTextEn)
+      ? args.parsed.inclusionsTextEn
+      : translateTaxInclusionToEn(args.parsed.inclusionsTextKo),
+    exclusionsTextKo: args.parsed.exclusionsTextKo,
+    exclusionsTextEn: isEnglishy(args.parsed.exclusionsTextEn) ? args.parsed.exclusionsTextEn : null,
+    cancellationPolicyKo: args.parsed.cancellationPolicyKo,
+    cancellationPolicyEn: isEnglishy(args.parsed.cancellationPolicyEn)
+      ? args.parsed.cancellationPolicyEn
+      : null,
     specialRequests: args.parsed.specialRequests,
     paymentMethod: BONGTOUR_VOUCHER_PAYMENT_METHOD,
     nightRateUsd,
@@ -977,7 +1141,7 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
     effectiveRateDate: args.effectiveRateDate,
     usdKrwRate: Number(args.usdKrwRate),
     amountKrw: Math.max(0, Math.round(args.amountKrw)),
-    logoUrl: args.logoUrl?.trim() || resolveBongtourLogoUrl(),
+    logoUrl: args.logoUrl?.trim() || loadBongtourLogoDataUrl(),
     company: BONGTOUR_INVOICE_COMPANY,
     note: String(args.note ?? '').trim(),
   }
@@ -1006,7 +1170,9 @@ export function breakfastLabel(
   text: string | null,
   locale: OtaVoucherLocale = 'ko',
 ): string {
-  if (text) return text
+  const usable =
+    text && (locale === 'ko' ? true : isEnglishy(text)) ? text : null
+  if (usable) return usable
   if (locale === 'en') {
     if (status === 'included') return 'Breakfast included'
     if (status === 'not_included') return 'Breakfast not included'
@@ -1117,40 +1283,38 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         draft.rooms != null ? `Rooms ${draft.rooms}` : null,
       ]
   const hotelPrimary = isKo
-    ? draft.propertyNameKo || draft.propertyNameEn || draft.propertyName
-    : draft.propertyNameEn || draft.propertyNameKo || draft.propertyName
+    ? pickLocaleField('ko', draft.propertyNameKo, draft.propertyNameEn) ||
+      draft.propertyName
+    : pickLocaleField('en', draft.propertyNameKo, draft.propertyNameEn) ||
+      (isEnglishy(draft.propertyName) ? draft.propertyName : null) ||
+      '—'
+  // EN 바우처에는 한글 local name 행을 넣지 않음
   const hotelSecondary = isKo
-    ? draft.propertyNameEn && draft.propertyNameEn !== hotelPrimary
+    ? isEnglishy(draft.propertyNameEn) && draft.propertyNameEn !== hotelPrimary
       ? draft.propertyNameEn
       : null
-    : draft.propertyNameKo && draft.propertyNameKo !== hotelPrimary
-      ? draft.propertyNameKo
-      : null
-  const address = isKo
-    ? draft.addressKo || draft.addressEn
-    : draft.addressEn || draft.addressKo
-  const roomType = isKo
-    ? draft.roomTypeKo || draft.roomTypeEn
-    : draft.roomTypeEn || draft.roomTypeKo
-  const bedType = isKo
-    ? draft.bedTypeKo || draft.bedTypeEn
-    : draft.bedTypeEn || draft.bedTypeKo
-  const checkIn = isKo
-    ? draft.checkInKo || draft.checkInEn
-    : draft.checkInEn || draft.checkInKo
-  const checkOut = isKo
-    ? draft.checkOutKo || draft.checkOutEn
-    : draft.checkOutEn || draft.checkOutKo
-  const breakfastText = isKo ? draft.breakfastTextKo : draft.breakfastTextEn
+    : null
+  const address = pickLocaleField(locale, draft.addressKo, draft.addressEn)
+  const roomType = pickLocaleField(locale, draft.roomTypeKo, draft.roomTypeEn)
+  const bedType = pickLocaleField(locale, draft.bedTypeKo, draft.bedTypeEn)
+  const checkIn = pickLocaleField(locale, draft.checkInKo, draft.checkInEn, {
+    allowDateConvert: true,
+  })
+  const checkOut = pickLocaleField(locale, draft.checkOutKo, draft.checkOutEn, {
+    allowDateConvert: true,
+  })
+  const breakfastText = pickLocaleField(locale, draft.breakfastTextKo, draft.breakfastTextEn)
   const breakfast = breakfastLabel(draft.breakfastStatus, breakfastText, locale)
-  const amenitiesList = isKo ? draft.amenitiesKo : draft.amenitiesEn
+  const amenitiesList = pickLocaleList(locale, draft.amenitiesKo, draft.amenitiesEn)
   const amenities =
     amenitiesList.length > 0 ? escapeHtml(amenitiesList.join(isKo ? ' · ' : ', ')) : '—'
-  const inclusionsText = isKo ? draft.inclusionsTextKo : draft.inclusionsTextEn
-  const exclusionsText = isKo ? draft.exclusionsTextKo : draft.exclusionsTextEn
-  const cancellationPolicy = isKo
-    ? draft.cancellationPolicyKo
-    : draft.cancellationPolicyEn
+  const inclusionsText = pickLocaleField(locale, draft.inclusionsTextKo, draft.inclusionsTextEn)
+  const exclusionsText = pickLocaleField(locale, draft.exclusionsTextKo, draft.exclusionsTextEn)
+  const cancellationPolicy = pickLocaleField(
+    locale,
+    draft.cancellationPolicyKo,
+    draft.cancellationPolicyEn,
+  )
   const nightLine =
     draft.nightRateUsd != null
       ? `${formatUsd(draft.nightRateUsd)}${
@@ -1158,6 +1322,10 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         }`
       : '—'
   const taxNote = isKo ? draft.taxServiceIncludedNote : draft.taxServiceIncludedNoteEn
+  const taxSource =
+    draft.taxServiceText && (isKo || isEnglishy(draft.taxServiceText))
+      ? draft.taxServiceText
+      : null
   const L = isKo
     ? {
         title: `${c.legalName} 체크인 바우처`,
@@ -1198,7 +1366,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         booking: 'Booking ID',
         guest: 'Guest',
         hotel: 'Property',
-        hotelAlt: 'Property (local name)',
+        hotelAlt: 'Property (English)',
         address: 'Address',
         phone: 'Phone',
         room: 'Room type',
@@ -1260,7 +1428,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     ${inclusionsText ? rowHtml(L.inclusions, escapeHtml(inclusionsText)) : ''}
     ${exclusionsText ? rowHtml(L.exclusions, escapeHtml(exclusionsText)) : ''}
     ${rowHtml(L.payment, escapeHtml(draft.paymentMethod))}
-    ${draft.specialRequests ? rowHtml(L.special, escapeHtml(draft.specialRequests)) : ''}
+    ${draft.specialRequests && (isKo || !hasHangul(draft.specialRequests)) ? rowHtml(L.special, escapeHtml(draft.specialRequests)) : ''}
   </div>
   ${
     cancellationPolicy
@@ -1274,8 +1442,8 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     <div style="margin-top:8px;font-size:18px;font-weight:700">${formatKrw(draft.amountKrw)}</div>
     <div class="muted" style="margin-top:10px">${escapeHtml(taxNote)}</div>
     ${
-      draft.taxServiceText
-        ? `<div class="muted" style="margin-top:4px">${isKo ? '원문' : 'Source'}: ${escapeHtml(draft.taxServiceText)}</div>`
+      taxSource
+        ? `<div class="muted" style="margin-top:4px">${isKo ? '원문' : 'Source'}: ${escapeHtml(taxSource)}</div>`
         : ''
     }
     <div class="muted" style="margin-top:8px">${escapeHtml(L.present)}</div>
