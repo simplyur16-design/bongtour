@@ -5,8 +5,10 @@ import {
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
   parseOtaReceiptForInvoice,
+  renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
+  resolveBongtourLogoUrl,
   type OtaAdminDocumentKind,
 } from '@/lib/bongtour-company-invoice'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
@@ -20,10 +22,17 @@ function isImageFile(name: string, type: string): boolean {
   return /\.(png|jpe?g|webp|gif|heic|bmp)$/i.test(name)
 }
 
+function readPositiveNumber(raw: unknown): number | null {
+  if (typeof raw !== 'string' && typeof raw !== 'number') return null
+  const n = Number(String(raw).replace(/,/g, '').trim())
+  if (!Number.isFinite(n) || n <= 0) return null
+  return n
+}
+
 /**
  * POST /api/admin/invoices/from-ota-receipt
- * Trip.com / Agoda 영수증·체크인 바우처 → 회사 인보이스 또는 체크인 바우처
- * 입력 금액 = 최종 합계(이익 가산 없음). USD는 입력일(rateDate) 환율로 KRW 환산
+ * Trip.com / Agoda PDF·본문 → 숙박정보 추출 + 봉투어 인보이스/체크인 바우처
+ * 금액(1박·총액)은 입력값이 최종. 서비스요금·세금은 포함 문구로 명시.
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 export async function POST(request: Request) {
@@ -36,12 +45,15 @@ export async function POST(request: Request) {
   let documentKind: OtaAdminDocumentKind = 'invoice'
   let guestNameOverride: string | null = null
   let propertyOverride: string | null = null
+  let propertyNameKoOverride: string | null = null
+  let propertyNameEnOverride: string | null = null
   let roomTypeOverride: string | null = null
   let checkInOverride: string | null = null
   let checkOutOverride: string | null = null
   let note = ''
   let sourceAmountOverride: number | null = null
   let amountUsd: number | null = null
+  let nightRateUsd: number | null = null
   let rateDate: string | null = null
   let fileHint: 'none' | 'pdf_empty' | 'image' | 'ok' = 'none'
 
@@ -85,7 +97,7 @@ export async function POST(request: Request) {
             {
               ok: false,
               error:
-                'PDF·TXT만 자동 읽습니다. 이미지면 본문 붙여넣기 또는 USD/원화 금액을 직접 입력하세요.',
+                'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).',
             },
             { status: 400 },
           )
@@ -98,6 +110,14 @@ export async function POST(request: Request) {
         typeof form.get('propertyName') === 'string'
           ? String(form.get('propertyName')).trim() || null
           : null
+      propertyNameKoOverride =
+        typeof form.get('propertyNameKo') === 'string'
+          ? String(form.get('propertyNameKo')).trim() || null
+          : null
+      propertyNameEnOverride =
+        typeof form.get('propertyNameEn') === 'string'
+          ? String(form.get('propertyNameEn')).trim() || null
+          : null
       roomTypeOverride =
         typeof form.get('roomType') === 'string' ? String(form.get('roomType')).trim() || null : null
       checkInOverride =
@@ -105,16 +125,9 @@ export async function POST(request: Request) {
       checkOutOverride =
         typeof form.get('checkOut') === 'string' ? String(form.get('checkOut')).trim() || null : null
       note = typeof form.get('note') === 'string' ? String(form.get('note')).trim() : ''
-      const overrideRaw = form.get('sourceAmountKrw')
-      if (typeof overrideRaw === 'string' && overrideRaw.trim()) {
-        const n = Number(overrideRaw.replace(/,/g, ''))
-        if (Number.isFinite(n) && n > 0) sourceAmountOverride = Math.round(n)
-      }
-      const usdRaw = form.get('amountUsd')
-      if (typeof usdRaw === 'string' && usdRaw.trim()) {
-        const n = Number(usdRaw.replace(/,/g, ''))
-        if (Number.isFinite(n) && n > 0) amountUsd = n
-      }
+      sourceAmountOverride = readPositiveNumber(form.get('sourceAmountKrw'))
+      amountUsd = readPositiveNumber(form.get('amountUsd'))
+      nightRateUsd = readPositiveNumber(form.get('nightRateUsd'))
       rateDate =
         typeof form.get('rateDate') === 'string' && String(form.get('rateDate')).trim()
           ? String(form.get('rateDate')).trim()
@@ -127,18 +140,17 @@ export async function POST(request: Request) {
         typeof body.guestName === 'string' ? body.guestName.trim() || null : null
       propertyOverride =
         typeof body.propertyName === 'string' ? body.propertyName.trim() || null : null
+      propertyNameKoOverride =
+        typeof body.propertyNameKo === 'string' ? body.propertyNameKo.trim() || null : null
+      propertyNameEnOverride =
+        typeof body.propertyNameEn === 'string' ? body.propertyNameEn.trim() || null : null
       roomTypeOverride = typeof body.roomType === 'string' ? body.roomType.trim() || null : null
       checkInOverride = typeof body.checkIn === 'string' ? body.checkIn.trim() || null : null
       checkOutOverride = typeof body.checkOut === 'string' ? body.checkOut.trim() || null : null
       note = typeof body.note === 'string' ? body.note.trim() : ''
-      if (body.sourceAmountKrw != null) {
-        const n = Number(body.sourceAmountKrw)
-        if (Number.isFinite(n) && n > 0) sourceAmountOverride = Math.round(n)
-      }
-      if (body.amountUsd != null) {
-        const n = Number(body.amountUsd)
-        if (Number.isFinite(n) && n > 0) amountUsd = n
-      }
+      sourceAmountOverride = readPositiveNumber(body.sourceAmountKrw)
+      amountUsd = readPositiveNumber(body.amountUsd)
+      nightRateUsd = readPositiveNumber(body.nightRateUsd)
       rateDate = typeof body.rateDate === 'string' && body.rateDate.trim() ? body.rateDate.trim() : null
     }
   } catch {
@@ -149,13 +161,13 @@ export async function POST(request: Request) {
     (amountUsd != null && amountUsd > 0) ||
     (documentKind === 'invoice' && sourceAmountOverride != null && sourceAmountOverride > 0)
 
-  if (!text.trim() && !hasManualAmount) {
+  if (!text.trim()) {
     if (fileHint === 'image') {
       return NextResponse.json(
         {
           ok: false,
           error:
-            '이미지 파일은 자동 읽기를 지원하지 않습니다. 바우처 본문을 붙여넣거나 USD 금액을 직접 입력하세요.',
+            '이미지 파일은 자동 읽기를 지원하지 않습니다. 바우처 본문(예약번호·숙소·조식 등)을 붙여넣으세요.',
         },
         { status: 400 },
       )
@@ -165,58 +177,120 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            'PDF에서 텍스트를 읽지 못했습니다(스캔/이미지 PDF일 수 있음). 본문을 붙여넣거나 USD 금액을 직접 입력하세요.',
+            'PDF에서 텍스트를 읽지 못했습니다(스캔/이미지 PDF). 바우처 본문을 붙여넣어야 예약·숙소·조식을 가져올 수 있습니다.',
         },
         { status: 400 },
       )
     }
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          '영수증/바우처 텍스트·PDF를 넣거나, USD(또는 원화) 금액을 직접 입력하세요.',
-      },
-      { status: 400 },
-    )
+    if (!hasManualAmount) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'OTA 바우처 PDF/본문을 넣어 예약·숙소 정보를 가져오세요. (금액은 USD로 별도 표기)',
+        },
+        { status: 400 },
+      )
+    }
   }
 
   const parsed = parseOtaReceiptForInvoice(text)
   const fx = await resolveUsdKrwRateForDate(rateDate || seoulYmd())
+  const logoUrl = resolveBongtourLogoUrl(
+    (() => {
+      try {
+        return new URL(request.url).origin
+      } catch {
+        return null
+      }
+    })(),
+  )
 
   if (documentKind === 'voucher') {
-    if (amountUsd == null || amountUsd <= 0) {
+    let totalUsd = amountUsd
+    if ((totalUsd == null || totalUsd <= 0) && parsed.totalUsd != null) totalUsd = parsed.totalUsd
+    if (
+      (totalUsd == null || totalUsd <= 0) &&
+      nightRateUsd != null &&
+      parsed.nights != null &&
+      parsed.nights > 0
+    ) {
+      totalUsd = Math.round(nightRateUsd * parsed.nights * 100) / 100
+    }
+    if (
+      (totalUsd == null || totalUsd <= 0) &&
+      parsed.nightRateUsd != null &&
+      parsed.nights != null &&
+      parsed.nights > 0
+    ) {
+      totalUsd = Math.round(parsed.nightRateUsd * parsed.nights * 100) / 100
+    }
+
+    if (totalUsd == null || totalUsd <= 0) {
       return NextResponse.json(
         {
           ok: false,
-          error: '체크인 바우처는 amountUsd(달러)를 입력하세요. 입력일 환율로 원화 환산됩니다.',
+          error:
+            '체크인 바우처는 총액 USD(또는 1박 USD×박수)가 필요합니다. PDF에서 숙박정보는 추출하되 판매 금액은 입력하세요.',
           parsed,
           fx,
         },
         { status: 422 },
       )
     }
-    const amountKrw = usdAmountToKrw(amountUsd, fx.usdKrw)
+
+    if (!parsed.bookingRef) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Booking ID(예약번호)를 원문에서 찾지 못했습니다. 바우처 본문에 Booking ID가 보이게 붙여넣거나 PDF를 다시 확인하세요.',
+          parsed,
+          fx,
+        },
+        { status: 422 },
+      )
+    }
+
+    const resolvedNight =
+      nightRateUsd ??
+      parsed.nightRateUsd ??
+      (parsed.nights && parsed.nights > 0
+        ? Math.round((totalUsd / parsed.nights) * 100) / 100
+        : null)
+
+    const amountKrw = usdAmountToKrw(totalUsd, fx.usdKrw)
     const draft = buildOtaCompanyCheckInVoucherDraft({
       parsed,
-      amountUsd,
+      amountUsd: totalUsd,
+      nightRateUsd: resolvedNight,
       rateDate: fx.rateDate,
       effectiveRateDate: fx.effectiveDate,
       usdKrwRate: fx.usdKrw,
       amountKrw,
+      nightRateKrw: resolvedNight != null ? usdAmountToKrw(resolvedNight, fx.usdKrw) : null,
       guestNameOverride,
       propertyOverride,
+      propertyNameKoOverride,
+      propertyNameEnOverride,
       roomTypeOverride,
       checkInOverride,
       checkOutOverride,
       note,
+      logoUrl,
     })
+    const htmlKo = renderOtaCompanyCheckInVoucherHtml(draft, 'ko')
+    const htmlEn = renderOtaCompanyCheckInVoucherHtml(draft, 'en')
+    const html = renderOtaCompanyCheckInVoucherBilingualHtml(draft)
     return NextResponse.json({
       ok: true,
       documentKind: 'voucher',
       parsed,
       fx,
       draft,
-      html: renderOtaCompanyCheckInVoucherHtml(draft),
+      html,
+      htmlKo,
+      htmlEn,
     })
   }
 
@@ -232,7 +306,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         error:
-          '금액을 찾지 못했습니다. amountUsd(달러, 입력일 환율 적용) 또는 sourceAmountKrw를 입력하세요.',
+          '금액을 찾지 못했습니다. amountUsd(달러) 또는 sourceAmountKrw를 입력하세요.',
         parsed,
         fx,
       },
