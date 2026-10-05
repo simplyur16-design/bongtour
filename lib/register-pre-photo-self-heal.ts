@@ -2108,12 +2108,16 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   })
 
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 같은 날 kw==kw2 최종 비움 — manifest
-  // refill·align·aurora 이후 재주입된 동일 kw2 제거 + trip unique 1회
-  working = scrubSameDayDuplicateImageKeyword2(working)
-  working = enforceRegisterScheduleTripUniqueImageKeywords(working) as T[]
+  // refill·align·aurora 이후 재주입된 동일 kw2만 제거 — 최종 trip-unique enforce는
+  // 출발·귀국 soft-dup(홍콩·장가계)을 비워 day1_departure_keyword_empty 회귀를 만드므로 쓰지 않음.
   working = scrubSameDayDuplicateImageKeyword2(working)
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 앙코르≠하노이 cross-country scrub — manifest
   working = scrubCrossCountrySeaKeywordsOffTrip(working)
+  working = scrubAirlineTransitHubKeywordsOffTrip(working)
+  // scrub이 출발·귀국을 비우면 soft-dup 재채움 (홍콩 day1 / 장가계 귀국 KL 제거 후)
+  working = ensureDepartureReturnVisitCityKeywords(working, opts.productDestination) as T[]
+  working = scrubCrossCountrySeaKeywordsOffTrip(working)
+  working = scrubSameDayDuplicateImageKeyword2(working)
 
   return { rows: working, notes, reappliedKeywords }
 }
