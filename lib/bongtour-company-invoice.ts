@@ -14,10 +14,15 @@ export const BONGTOUR_INVOICE_COMPANY = {
   businessRegistrationNo: '255-81-03455',
   tourismRegistrationNo: '2024-0033',
   mailOrderNo: '2024-수원영통-1596',
+  mailOrderNoEn: '2024-Suwon Yeongtong-1596',
   phone: '031-213-2558',
   consultHours: '평일 08:00–19:00',
+  consultHoursEn: 'Weekdays 08:00–19:00',
   address: '',
 } as const
+
+/** 호텔 제시용 회사 바우처 결제 표기 (고객→회사 결제 완료) */
+export const BONGTOUR_VOUCHER_PAYMENT_METHOD = 'CASH' as const
 
 /** 금액에 항상 붙이는 포함 고지 (이익율 재계산 대신 포함 명시) */
 export const BONGTOUR_TAX_SERVICE_INCLUDED_NOTE =
@@ -43,26 +48,46 @@ export type OtaReceiptParsedAmount = {
   propertyNameKo: string | null
   propertyNameEn: string | null
   address: string | null
+  addressKo: string | null
+  addressEn: string | null
   phone: string | null
   checkIn: string | null
   checkOut: string | null
+  checkInKo: string | null
+  checkInEn: string | null
+  checkOutKo: string | null
+  checkOutEn: string | null
   checkInTime: string | null
   checkOutTime: string | null
   roomType: string | null
+  roomTypeKo: string | null
+  roomTypeEn: string | null
   bedType: string | null
+  bedTypeKo: string | null
+  bedTypeEn: string | null
   rooms: number | null
   guestsAdults: number | null
   guestsChildren: number | null
   nights: number | null
   breakfastStatus: OtaBreakfastStatus
   breakfastText: string | null
+  breakfastTextKo: string | null
+  breakfastTextEn: string | null
   /** 원문에서 읽은 세금·봉사료 포함 문구 */
   taxServiceText: string | null
   taxServiceIncluded: boolean | null
   amenities: string[]
+  amenitiesKo: string[]
+  amenitiesEn: string[]
   inclusionsText: string | null
+  inclusionsTextKo: string | null
+  inclusionsTextEn: string | null
   exclusionsText: string | null
+  exclusionsTextKo: string | null
+  exclusionsTextEn: string | null
   cancellationPolicy: string | null
+  cancellationPolicyKo: string | null
+  cancellationPolicyEn: string | null
   specialRequests: string | null
   paymentMethod: string | null
   /** 영수증에서 읽은 공급가(원). 파싱 실패 시 null */
@@ -109,29 +134,40 @@ export type OtaCompanyCheckInVoucherDraft = {
   propertyName: string
   propertyNameKo: string | null
   propertyNameEn: string | null
-  address: string | null
+  addressKo: string | null
+  addressEn: string | null
   phone: string | null
-  roomType: string | null
-  bedType: string | null
+  roomTypeKo: string | null
+  roomTypeEn: string | null
+  bedTypeKo: string | null
+  bedTypeEn: string | null
   rooms: number | null
   guestsAdults: number | null
   guestsChildren: number | null
-  checkIn: string | null
-  checkOut: string | null
+  checkInKo: string | null
+  checkInEn: string | null
+  checkOutKo: string | null
+  checkOutEn: string | null
   checkInTime: string | null
   checkOutTime: string | null
   nights: number | null
   breakfastStatus: OtaBreakfastStatus
-  breakfastText: string | null
+  breakfastTextKo: string | null
+  breakfastTextEn: string | null
   taxServiceText: string | null
   taxServiceIncludedNote: string
   taxServiceIncludedNoteEn: string
-  amenities: string[]
-  inclusionsText: string | null
-  exclusionsText: string | null
-  cancellationPolicy: string | null
+  amenitiesKo: string[]
+  amenitiesEn: string[]
+  inclusionsTextKo: string | null
+  inclusionsTextEn: string | null
+  exclusionsTextKo: string | null
+  exclusionsTextEn: string | null
+  cancellationPolicyKo: string | null
+  cancellationPolicyEn: string | null
   specialRequests: string | null
-  paymentMethod: string | null
+  /** 항상 CASH (호텔 제시용) */
+  paymentMethod: typeof BONGTOUR_VOUCHER_PAYMENT_METHOD
   /** 표기 1박 금액(USD) */
   nightRateUsd: number | null
   nightRateKrw: number | null
@@ -248,34 +284,45 @@ function splitPropertyNames(raw: string | null): {
   }
 }
 
-function parseBreakfast(text: string): { status: OtaBreakfastStatus; text: string | null } {
-  const line =
-    cleanLine(text.match(/(?:조식|아침\s*식사|Breakfast)\s*[:：]?\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/(?:식사\s*(?:포함|조건)|Meal\s*(?:plan|inclusion))\s*[:：]?\s*([^\n]+)/i)?.[1])
+function parseBreakfast(text: string): {
+  status: OtaBreakfastStatus
+  text: string | null
+  textKo: string | null
+  textEn: string | null
+} {
+  const lineKo = parseLabeledLine(text, [/조식/, /아침\s*식사/])
+  const lineEn = parseLabeledLine(text, [/Breakfast/i])
+  const line = lineKo || lineEn
 
-  const blob = `${line ?? ''} ${text}`
+  const blob = `${lineKo ?? ''} ${lineEn ?? ''} ${text}`
+  let status: OtaBreakfastStatus = 'unknown'
   if (
-    /조식\s*(?:불포함|없음|미포함)|breakfast\s*(?:not\s*included|excluded)|room\s*only|숙박만/i.test(
+    /조식\s*(?:불포함|없음|미포함)|breakfast\s*(?:not\s*included|excluded)|room\s*only|숙박만|no\s*meals?/i.test(
       blob,
     )
   ) {
-    return { status: 'not_included', text: line || '조식 불포함' }
-  }
-  if (
+    status = 'not_included'
+  } else if (
     /조식\s*포함|무료\s*조식|breakfast\s*(?:included|inclusive)|free\s*breakfast|조식\s*제공/i.test(blob)
   ) {
-    return { status: 'included', text: line || '조식 포함' }
+    status = 'included'
+  } else if (line) {
+    if (/불포함|없음|not\s*included|room\s*only|no\s*meals?/i.test(line)) status = 'not_included'
+    else if (/포함|included|free|제공/i.test(line)) status = 'included'
   }
-  if (line) {
-    if (/불포함|없음|not\s*included|room\s*only/i.test(line)) {
-      return { status: 'not_included', text: line }
-    }
-    if (/포함|included|free|제공/i.test(line)) {
-      return { status: 'included', text: line }
-    }
-    return { status: 'unknown', text: line }
-  }
-  return { status: 'unknown', text: null }
+
+  const textKo =
+    lineKo ||
+    (status === 'included' ? '조식 포함' : status === 'not_included' ? '조식 불포함' : null)
+  const textEn =
+    lineEn ||
+    (status === 'included'
+      ? 'Breakfast included'
+      : status === 'not_included'
+        ? 'Breakfast not included'
+        : null)
+
+  return { status, text: textKo || textEn, textKo, textEn }
 }
 
 function parseTaxService(text: string): { included: boolean | null; text: string | null } {
@@ -303,12 +350,39 @@ function parseTaxService(text: string): { included: boolean | null; text: string
   return { included: null, text: null }
 }
 
-function parseAmenities(text: string): string[] {
-  const block =
-    text.match(
-      /(?:객실\s*(?:편의\s*)?시설|Room\s*(?:amenities|facilities)|Amenities|편의\s*시설)\s*[:：]?\s*([^\n]+)/i,
-    )?.[1] || null
-  if (!block) {
+function parseLabeledLine(text: string, labels: RegExp[]): string | null {
+  for (const label of labels) {
+    const re = new RegExp(`${label.source}\\s*[:：]\\s*([^\\n]+)`, label.flags.includes('i') ? 'i' : undefined)
+    const v = cleanLine(text.match(re)?.[1])
+    if (v) return v
+  }
+  return null
+}
+
+function parseAmenityList(raw: string | null): string[] {
+  if (!raw) return []
+  return [
+    ...new Set(
+      raw
+        .split(/[,，·•|/｜]+/)
+        .map((s) => s.replace(/^[\-\d.)\s]+/, '').trim())
+        .filter(
+          (s) =>
+            s.length >= 2 &&
+            s.length <= 60 &&
+            !/포함사항|불포함|취소|결제|세금|부가가치세|서비스\s*요금|편의시설\s*:/i.test(s),
+        ),
+    ),
+  ].slice(0, 16)
+}
+
+function parseAmenities(text: string): { ko: string[]; en: string[]; merged: string[] } {
+  const koRaw = parseLabeledLine(text, [/객실\s*(?:편의\s*)?시설/, /편의\s*시설/])
+  const enRaw = parseLabeledLine(text, [/Room\s*(?:amenities|facilities)/i, /Amenities/i])
+  const ko = parseAmenityList(koRaw)
+  const en = parseAmenityList(enRaw)
+  const merged = en.length ? en : ko
+  if (!merged.length) {
     const singles: string[] = []
     for (const re of [
       /무료\s*(?:Wi-?Fi|와이파이)/gi,
@@ -320,78 +394,114 @@ function parseAmenities(text: string): string[] {
       const m = text.match(re)
       if (m) singles.push(m[0].replace(/\s+/g, ' ').trim())
     }
-    return [...new Set(singles)].slice(0, 12)
+    const fallback = [...new Set(singles)].slice(0, 12)
+    return { ko: fallback, en: fallback, merged: fallback }
   }
-  const parts = block
-    .split(/[,，·•|/｜]+/)
-    .map((s) => s.replace(/^[\-\d.)\s]+/, '').trim())
-    .filter(
-      (s) =>
-        s.length >= 2 &&
-        s.length <= 60 &&
-        !/포함사항|취소|결제|세금|부가가치세|서비스\s*요금/i.test(s),
-    )
-  return [...new Set(parts)].slice(0, 16)
+  return { ko: ko.length ? ko : en, en: en.length ? en : ko, merged }
 }
 
-function parseInclusions(text: string): string | null {
-  return (
-    cleanLine(
-      text.match(
-        /(?:포함\s*(?:사항|내용)|Inclusions?|What(?:'s| is)\s*included)\s*[:：]?\s*([^\n]+)/i,
-      )?.[1],
-    ) || null
-  )
+function isBreakfastExclusionNoise(raw: string | null): boolean {
+  if (!raw) return true
+  return /meal|breakfast|조식|아침|not\s*included|불포함|편의시설|amenities|toothbrush|칫솔/i.test(raw)
 }
 
-function parseExclusions(text: string): string | null {
-  return (
-    cleanLine(
-      text.match(
-        /(?:불포함\s*(?:사항|내용)|Exclusions?|Not\s*included)\s*[:：]?\s*([^\n]+)/i,
-      )?.[1],
-    ) || null
-  )
+function parseInclusions(text: string): { ko: string | null; en: string | null; merged: string | null } {
+  const ko = parseLabeledLine(text, [/포함\s*(?:사항|내용)/])
+  const en = parseLabeledLine(text, [/Inclusions?/i, /What(?:'s| is)\s*included/i])
+  // 조식 포함 문장·편의시설 나열은 포함사항으로 쓰지 않음
+  const cleanInc = (v: string | null) => {
+    if (!v) return null
+    if (/편의시설|amenities|toothbrush|칫솔|조식|breakfast/i.test(v) && !/세금|부가가치세|서비스|VAT|tax|service/i.test(v)) {
+      return null
+    }
+    return v
+  }
+  const koC = cleanInc(ko)
+  const enC = cleanInc(en)
+  return { ko: koC, en: enC, merged: koC || enC }
 }
 
-function parseCancellationPolicy(text: string): string | null {
-  const line = cleanLine(
-    text.match(
-      /(?:취소\s*(?:정책|규정|수수료)|Cancellation\s*(?:Policy|policy)|환불\s*(?:정책|규정))\s*[:：]\s*([^\n]+)/i,
-    )?.[1],
-  )
-  if (line) return line.slice(0, 900)
+function parseExclusions(text: string): { ko: string | null; en: string | null; merged: string | null } {
+  // "Not included" alone matches breakfast lines — 명시 라벨만
+  const ko = parseLabeledLine(text, [/불포함\s*(?:사항|내용)/])
+  const en = parseLabeledLine(text, [/Exclusions?/i])
+  const koC = isBreakfastExclusionNoise(ko) ? null : ko
+  const enC = isBreakfastExclusionNoise(en) ? null : en
+  return { ko: koC, en: enC, merged: koC || enC }
+}
+
+function parseCancellationPolicy(text: string): {
+  ko: string | null
+  en: string | null
+  merged: string | null
+} {
+  const ko = cleanLine(
+    text.match(/(?:취소\s*(?:정책|규정|수수료))\s*[:：]\s*([^\n]+)/)?.[1],
+  )?.slice(0, 900) ?? null
+  const en = cleanLine(
+    text.match(/(?:Cancellation\s*(?:Policy|policy)|Refund\s*policy)\s*[:：]\s*([^\n]+)/i)?.[1],
+  )?.slice(0, 900) ?? null
+  if (ko || en) return { ko, en, merged: ko || en }
   const block = text.match(
     /(?:Free\s*cancellation|Non[- ]?refundable|무료\s*취소|환불\s*불가)[^\n]{0,200}/i,
   )?.[0]
-  return cleanLine(block)?.slice(0, 900) ?? null
+  const merged = cleanLine(block)?.slice(0, 900) ?? null
+  return { ko: merged, en: merged, merged }
 }
 
 function parseSpecialRequests(text: string): string | null {
   return (
     cleanLine(
       text.match(
-        /(?:특별\s*(?:요청|요구)|Special\s*requests?|Requests?)\s*[:：]?\s*([^\n]+)/i,
+        /(?:특별\s*(?:요청|요구)|Special\s*requests?)\s*[:：]?\s*([^\n]+)/i,
       )?.[1],
     ) || null
   )
 }
 
-function parseBedType(text: string): string | null {
-  return (
-    cleanLine(text.match(/(?:침대\s*(?:타입|종류)|Bed\s*(?:type|Type))\s*[:：]?\s*([^\n]+)/i)?.[1]) ||
-    null
-  )
+function splitBilingualValue(raw: string | null): { ko: string | null; en: string | null } {
+  if (!raw) return { ko: null, en: null }
+  if (raw.includes('/')) {
+    const parts = raw.split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean)
+    const ko = parts.find((p) => /[\uAC00-\uD7A3]/.test(p)) || null
+    const en = parts.find((p) => /[A-Za-z]/.test(p) && !/[\uAC00-\uD7A3]/.test(p)) || null
+    if (ko || en) return { ko: ko ?? null, en: en ?? (ko ? null : raw) }
+  }
+  if (/[\uAC00-\uD7A3]/.test(raw) && !/[A-Za-z]{3,}/.test(raw)) return { ko: raw, en: null }
+  if (/[A-Za-z]/.test(raw) && !/[\uAC00-\uD7A3]/.test(raw)) return { ko: null, en: raw }
+  return { ko: raw, en: raw }
 }
 
-function parsePaymentMethod(text: string): string | null {
-  return (
-    cleanLine(
-      text.match(
-        /(?:결제\s*(?:방법|수단)|Payment\s*(?:method|Method)|Pay(?:ment)?\s*at)\s*[:：]?\s*([^\n]+)/i,
-      )?.[1],
-    ) || null
-  )
+function parseBedType(text: string): { ko: string | null; en: string | null; merged: string | null } {
+  const ko = parseLabeledLine(text, [/침대\s*(?:타입|종류)/])
+  const en = parseLabeledLine(text, [/Bed\s*(?:type|Type)/i])
+  if (ko || en) {
+    const fromKo = splitBilingualValue(ko)
+    const fromEn = splitBilingualValue(en)
+    return {
+      ko: fromKo.ko || ko,
+      en: fromEn.en || en || fromKo.en,
+      merged: ko || en,
+    }
+  }
+  return { ko: null, en: null, merged: null }
+}
+
+function parseRoomType(text: string): { ko: string | null; en: string | null; merged: string | null } {
+  const ko =
+    parseLabeledLine(text, [/객실\s*(?:타입|유형|종류)/]) ||
+    cleanLine(text.match(/Room\s*Type\s*[:：]\s*[^\n]*객실\s*타입\s*[:：]\s*([^\n]+)/i)?.[1])
+  const en = parseLabeledLine(text, [/Room\s*(?:Type|Category)/i])
+  if (ko || en) {
+    const fromKo = splitBilingualValue(ko)
+    const fromEn = splitBilingualValue(en)
+    return {
+      ko: fromKo.ko || (ko && /[\uAC00-\uD7A3]/.test(ko) ? ko : null),
+      en: fromEn.en || en || fromKo.en || (ko && !/[\uAC00-\uD7A3]/.test(ko) ? ko : null),
+      merged: ko || en,
+    }
+  }
+  return { ko: null, en: null, merged: null }
 }
 
 function parseClockHint(raw: string | null): string | null {
@@ -450,32 +560,29 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
     null
   const names = splitPropertyNames(propertyRaw)
 
-  const address =
-    cleanLine(text.match(/Address\s*[:：]\s*[^\n]*주소\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/주소\s*[:：]\s*([^\n]+)/)?.[1]) ||
-    cleanLine(text.match(/Address\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    null
+  const addressKo = parseLabeledLine(text, [/주소/])
+  const addressEn = parseLabeledLine(text, [/Address/i])
+  const address = addressKo || addressEn
 
   const phone =
     cleanLine(text.match(/(?:전화|Tel|Phone|연락처)\s*[:：]?\s*([+\d][\d\-\s()]{6,})/i)?.[1]) || null
 
+  const checkInKo = parseLabeledLine(text, [/체크인/])
+  const checkInEn = parseLabeledLine(text, [/Check[- ]?in/i, /Arrival/i])
+  const checkOutKo = parseLabeledLine(text, [/체크아웃/])
+  const checkOutEn = parseLabeledLine(text, [/Check[- ]?out/i, /Departure/i])
   const checkIn =
     cleanLine(text.match(/Arrival\s*[:：]\s*[^\n]*체크인\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/체크인\s*[:：]\s*([^\n]+)/)?.[1]) ||
-    cleanLine(text.match(/(?:Check[- ]?in)\s*[:：]\s*([^\n]+)/i)?.[1]) ||
+    checkInKo ||
+    checkInEn ||
     null
   const checkOut =
     cleanLine(text.match(/Departure\s*[:：]\s*[^\n]*체크아웃\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/체크아웃\s*[:：]\s*([^\n]+)/)?.[1]) ||
-    cleanLine(text.match(/(?:Check[- ]?out)\s*[:：]\s*([^\n]+)/i)?.[1]) ||
+    checkOutKo ||
+    checkOutEn ||
     null
 
-  const roomType =
-    cleanLine(text.match(/객실\s*(?:타입|유형|종류)?\s*[:：]\s*([^\n]+)/)?.[1]) ||
-    cleanLine(text.match(/Room\s*Type\s*[:：]\s*[^\n]*객실\s*타입\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    cleanLine(text.match(/Room\s*(?:Type|Category)?\s*[:：]\s*([^\n]+)/i)?.[1]) ||
-    null
-
+  const room = parseRoomType(text)
   const roomsRaw = Number(text.match(/객실\s*수\s*[:：]?\s*(\d+)/)?.[1] ?? NaN)
   const adultsRaw = Number(text.match(/성인\s*수\s*[:：]?\s*(\d+)/)?.[1] ?? NaN)
   const childrenRaw = Number(text.match(/아동\s*수\s*[:：]?\s*(\d+)/)?.[1] ?? NaN)
@@ -485,12 +592,11 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
   const breakfast = parseBreakfast(text)
   const tax = parseTaxService(text)
   const amenities = parseAmenities(text)
-  const inclusionsText = parseInclusions(text)
-  const exclusionsText = parseExclusions(text)
-  const cancellationPolicy = parseCancellationPolicy(text)
+  const inclusions = parseInclusions(text)
+  const exclusions = parseExclusions(text)
+  const cancellation = parseCancellationPolicy(text)
   const specialRequests = parseSpecialRequests(text)
-  const bedType = parseBedType(text)
-  const paymentMethod = parsePaymentMethod(text)
+  const bed = parseBedType(text)
 
   const amountPatterns: RegExp[] = [
     /(?:총\s*(?:결제\s*)?금액|결제\s*금액|합계|총액|Total\s*(?:Amount|Price|Due)?|Grand\s*Total|Amount\s*Paid)\s*[:：]?\s*(?:KRW|₩|￦)?\s*([\d,]+)\s*(?:원|KRW)?/gi,
@@ -548,27 +654,47 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
     propertyNameKo: names.propertyNameKo,
     propertyNameEn: names.propertyNameEn,
     address,
+    addressKo: addressKo || address,
+    addressEn: addressEn || address,
     phone,
     checkIn,
     checkOut,
+    checkInKo: checkInKo || checkIn,
+    checkInEn: checkInEn || checkIn,
+    checkOutKo: checkOutKo || checkOut,
+    checkOutEn: checkOutEn || checkOut,
     checkInTime: parseClockHint(checkIn),
     checkOutTime: parseClockHint(checkOut),
-    roomType,
-    bedType,
+    roomType: room.merged,
+    roomTypeKo: room.ko || room.merged,
+    roomTypeEn: room.en || room.merged,
+    bedType: bed.merged,
+    bedTypeKo: bed.ko || bed.merged,
+    bedTypeEn: bed.en || bed.merged,
     rooms: Number.isFinite(roomsRaw) && roomsRaw > 0 ? roomsRaw : null,
     guestsAdults: Number.isFinite(adultsRaw) && adultsRaw > 0 ? adultsRaw : null,
     guestsChildren: Number.isFinite(childrenRaw) && childrenRaw >= 0 ? childrenRaw : null,
     nights,
     breakfastStatus: breakfast.status,
     breakfastText: breakfast.text,
+    breakfastTextKo: breakfast.textKo,
+    breakfastTextEn: breakfast.textEn,
     taxServiceText: tax.text,
     taxServiceIncluded: tax.included,
-    amenities,
-    inclusionsText,
-    exclusionsText,
-    cancellationPolicy,
+    amenities: amenities.merged,
+    amenitiesKo: amenities.ko,
+    amenitiesEn: amenities.en,
+    inclusionsText: inclusions.merged,
+    inclusionsTextKo: inclusions.ko || inclusions.merged,
+    inclusionsTextEn: inclusions.en || inclusions.merged,
+    exclusionsText: exclusions.merged,
+    exclusionsTextKo: exclusions.ko || exclusions.merged,
+    exclusionsTextEn: exclusions.en || exclusions.merged,
+    cancellationPolicy: cancellation.merged,
+    cancellationPolicyKo: cancellation.ko || cancellation.merged,
+    cancellationPolicyEn: cancellation.en || cancellation.merged,
     specialRequests,
-    paymentMethod,
+    paymentMethod: BONGTOUR_VOUCHER_PAYMENT_METHOD,
     sourceAmountKrw,
     nightRateUsd,
     totalUsd,
@@ -713,29 +839,54 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
     propertyName,
     propertyNameKo,
     propertyNameEn,
-    address: args.parsed.address,
+    addressKo: args.parsed.addressKo || args.parsed.address,
+    addressEn: args.parsed.addressEn || args.parsed.address,
     phone: args.parsed.phone,
-    roomType: (args.roomTypeOverride ?? args.parsed.roomType)?.trim() || null,
-    bedType: args.parsed.bedType,
+    roomTypeKo:
+      cleanLine(args.roomTypeOverride) ||
+      args.parsed.roomTypeKo ||
+      args.parsed.roomType,
+    roomTypeEn: args.parsed.roomTypeEn || args.parsed.roomType,
+    bedTypeKo: args.parsed.bedTypeKo || args.parsed.bedType,
+    bedTypeEn: args.parsed.bedTypeEn || args.parsed.bedType,
     rooms: args.parsed.rooms,
     guestsAdults: args.parsed.guestsAdults,
     guestsChildren: args.parsed.guestsChildren,
-    checkIn: (args.checkInOverride ?? args.parsed.checkIn)?.trim() || null,
-    checkOut: (args.checkOutOverride ?? args.parsed.checkOut)?.trim() || null,
+    checkInKo:
+      cleanLine(args.checkInOverride) ||
+      args.parsed.checkInKo ||
+      args.parsed.checkIn,
+    checkInEn: args.parsed.checkInEn || args.parsed.checkIn,
+    checkOutKo:
+      cleanLine(args.checkOutOverride) ||
+      args.parsed.checkOutKo ||
+      args.parsed.checkOut,
+    checkOutEn: args.parsed.checkOutEn || args.parsed.checkOut,
     checkInTime: args.parsed.checkInTime,
     checkOutTime: args.parsed.checkOutTime,
     nights,
     breakfastStatus: args.parsed.breakfastStatus,
-    breakfastText: args.parsed.breakfastText,
+    breakfastTextKo: args.parsed.breakfastTextKo || args.parsed.breakfastText,
+    breakfastTextEn: args.parsed.breakfastTextEn || args.parsed.breakfastText,
     taxServiceText: args.parsed.taxServiceText,
     taxServiceIncludedNote: BONGTOUR_TAX_SERVICE_INCLUDED_NOTE,
     taxServiceIncludedNoteEn: BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN,
-    amenities: args.parsed.amenities,
-    inclusionsText: args.parsed.inclusionsText,
-    exclusionsText: args.parsed.exclusionsText,
-    cancellationPolicy: args.parsed.cancellationPolicy,
+    amenitiesKo: args.parsed.amenitiesKo?.length
+      ? args.parsed.amenitiesKo
+      : args.parsed.amenities,
+    amenitiesEn: args.parsed.amenitiesEn?.length
+      ? args.parsed.amenitiesEn
+      : args.parsed.amenities,
+    inclusionsTextKo: args.parsed.inclusionsTextKo || args.parsed.inclusionsText,
+    inclusionsTextEn: args.parsed.inclusionsTextEn || args.parsed.inclusionsText,
+    exclusionsTextKo: args.parsed.exclusionsTextKo || args.parsed.exclusionsText,
+    exclusionsTextEn: args.parsed.exclusionsTextEn || args.parsed.exclusionsText,
+    cancellationPolicyKo:
+      args.parsed.cancellationPolicyKo || args.parsed.cancellationPolicy,
+    cancellationPolicyEn:
+      args.parsed.cancellationPolicyEn || args.parsed.cancellationPolicy,
     specialRequests: args.parsed.specialRequests,
-    paymentMethod: args.parsed.paymentMethod,
+    paymentMethod: BONGTOUR_VOUCHER_PAYMENT_METHOD,
     nightRateUsd,
     nightRateKrw,
     amountUsd,
@@ -882,9 +1033,31 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     : draft.propertyNameKo && draft.propertyNameKo !== hotelPrimary
       ? draft.propertyNameKo
       : null
-  const breakfast = breakfastLabel(draft.breakfastStatus, draft.breakfastText, locale)
+  const address = isKo
+    ? draft.addressKo || draft.addressEn
+    : draft.addressEn || draft.addressKo
+  const roomType = isKo
+    ? draft.roomTypeKo || draft.roomTypeEn
+    : draft.roomTypeEn || draft.roomTypeKo
+  const bedType = isKo
+    ? draft.bedTypeKo || draft.bedTypeEn
+    : draft.bedTypeEn || draft.bedTypeKo
+  const checkIn = isKo
+    ? draft.checkInKo || draft.checkInEn
+    : draft.checkInEn || draft.checkInKo
+  const checkOut = isKo
+    ? draft.checkOutKo || draft.checkOutEn
+    : draft.checkOutEn || draft.checkOutKo
+  const breakfastText = isKo ? draft.breakfastTextKo : draft.breakfastTextEn
+  const breakfast = breakfastLabel(draft.breakfastStatus, breakfastText, locale)
+  const amenitiesList = isKo ? draft.amenitiesKo : draft.amenitiesEn
   const amenities =
-    draft.amenities.length > 0 ? escapeHtml(draft.amenities.join(isKo ? ' · ' : ', ')) : '—'
+    amenitiesList.length > 0 ? escapeHtml(amenitiesList.join(isKo ? ' · ' : ', ')) : '—'
+  const inclusionsText = isKo ? draft.inclusionsTextKo : draft.inclusionsTextEn
+  const exclusionsText = isKo ? draft.exclusionsTextKo : draft.exclusionsTextEn
+  const cancellationPolicy = isKo
+    ? draft.cancellationPolicyKo
+    : draft.cancellationPolicyEn
   const nightLine =
     draft.nightRateUsd != null
       ? `${formatUsd(draft.nightRateUsd)}${
@@ -957,7 +1130,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         } · 1 USD = ${draft.usdKrwRate.toLocaleString('en-US')} KRW`,
         present: `This voucher confirms a ${c.brandName} reservation. Please present it at the hotel front desk.`,
         note: 'Notes',
-        footer: `Business Reg. ${c.businessRegistrationNo} · Tourism ${c.tourismRegistrationNo} · Mail-order ${c.mailOrderNo}<br/>Contact ${c.phone} (${c.consultHours})`,
+        footer: `Business Reg. ${c.businessRegistrationNo} · Tourism ${c.tourismRegistrationNo} · Mail-order ${c.mailOrderNoEn}<br/>Contact ${c.phone} (${c.consultHoursEn})`,
       }
 
   return `
@@ -980,24 +1153,24 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
     ${rowHtml(L.guest, escapeHtml(guest))}
     ${rowHtml(L.hotel, escapeHtml(hotelPrimary))}
     ${hotelSecondary ? rowHtml(L.hotelAlt, escapeHtml(hotelSecondary)) : ''}
-    ${draft.address ? rowHtml(L.address, escapeHtml(draft.address)) : ''}
+    ${address ? rowHtml(L.address, escapeHtml(address)) : ''}
     ${draft.phone ? rowHtml(L.phone, escapeHtml(draft.phone)) : ''}
-    ${rowHtml(L.room, escapeHtml(draft.roomType || '—'))}
-    ${draft.bedType ? rowHtml(L.bed, escapeHtml(draft.bedType)) : ''}
-    ${rowHtml(L.checkIn, escapeHtml(draft.checkIn || '—'))}
-    ${rowHtml(L.checkOut, escapeHtml(draft.checkOut || '—'))}
+    ${rowHtml(L.room, escapeHtml(roomType || '—'))}
+    ${bedType ? rowHtml(L.bed, escapeHtml(bedType)) : ''}
+    ${rowHtml(L.checkIn, escapeHtml(checkIn || '—'))}
+    ${rowHtml(L.checkOut, escapeHtml(checkOut || '—'))}
     ${rowHtml(L.stay, escapeHtml(nightsLabel))}
     ${guestsParts.filter(Boolean).length ? rowHtml(L.guests, escapeHtml(guestsParts.filter(Boolean).join(isKo ? ' · ' : ', '))) : ''}
     ${rowHtml(L.breakfast, escapeHtml(breakfast))}
     ${rowHtml(L.amenities, amenities)}
-    ${draft.inclusionsText ? rowHtml(L.inclusions, escapeHtml(draft.inclusionsText)) : ''}
-    ${draft.exclusionsText ? rowHtml(L.exclusions, escapeHtml(draft.exclusionsText)) : ''}
-    ${draft.paymentMethod ? rowHtml(L.payment, escapeHtml(draft.paymentMethod)) : ''}
+    ${inclusionsText ? rowHtml(L.inclusions, escapeHtml(inclusionsText)) : ''}
+    ${exclusionsText ? rowHtml(L.exclusions, escapeHtml(exclusionsText)) : ''}
+    ${rowHtml(L.payment, escapeHtml(draft.paymentMethod))}
     ${draft.specialRequests ? rowHtml(L.special, escapeHtml(draft.specialRequests)) : ''}
   </div>
   ${
-    draft.cancellationPolicy
-      ? `<div class="policy"><strong>${escapeHtml(L.cancel)}</strong><br/>${escapeHtml(draft.cancellationPolicy)}</div>`
+    cancellationPolicy
+      ? `<div class="policy"><strong>${escapeHtml(L.cancel)}</strong><br/>${escapeHtml(cancellationPolicy)}</div>`
       : ''
   }
   <div class="amount">

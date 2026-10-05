@@ -436,8 +436,9 @@ export default function OtaInvoiceAdminClient() {
           <p>
             숙소: {voucherDraft.propertyNameKo || '—'} / {voucherDraft.propertyNameEn || '—'}
           </p>
-          <p>조식: {breakfastLabel(voucherDraft.breakfastStatus, voucherDraft.breakfastText)}</p>
-          <p>취소정책: {voucherDraft.cancellationPolicy || '—'}</p>
+          <p>조식: {breakfastLabel(voucherDraft.breakfastStatus, voucherDraft.breakfastTextKo)}</p>
+          <p>취소정책: {voucherDraft.cancellationPolicyKo || voucherDraft.cancellationPolicyEn || '—'}</p>
+          <p>결제: {voucherDraft.paymentMethod}</p>
           {voucherDraft.nightRateUsd != null ? (
             <p>
               1박: {voucherDraft.nightRateUsd} USD

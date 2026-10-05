@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BONGTOUR_INVOICE_COMPANY,
   BONGTOUR_TAX_SERVICE_INCLUDED_NOTE,
   BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN,
+  BONGTOUR_VOUCHER_PAYMENT_METHOD,
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
@@ -27,27 +29,47 @@ function emptyParsed(
     propertyNameKo: null,
     propertyNameEn: null,
     address: null,
+    addressKo: null,
+    addressEn: null,
     phone: null,
     checkIn: null,
     checkOut: null,
+    checkInKo: null,
+    checkInEn: null,
+    checkOutKo: null,
+    checkOutEn: null,
     checkInTime: null,
     checkOutTime: null,
     roomType: null,
+    roomTypeKo: null,
+    roomTypeEn: null,
     bedType: null,
+    bedTypeKo: null,
+    bedTypeEn: null,
     rooms: null,
     guestsAdults: null,
     guestsChildren: null,
     nights: null,
     breakfastStatus: 'unknown',
     breakfastText: null,
+    breakfastTextKo: null,
+    breakfastTextEn: null,
     taxServiceText: null,
     taxServiceIncluded: null,
     amenities: [],
+    amenitiesKo: [],
+    amenitiesEn: [],
     inclusionsText: null,
+    inclusionsTextKo: null,
+    inclusionsTextEn: null,
     exclusionsText: null,
+    exclusionsTextKo: null,
+    exclusionsTextEn: null,
     cancellationPolicy: null,
+    cancellationPolicyKo: null,
+    cancellationPolicyEn: null,
     specialRequests: null,
-    paymentMethod: null,
+    paymentMethod: 'CASH',
     sourceAmountKrw: null,
     nightRateUsd: null,
     totalUsd: null,
@@ -141,8 +163,14 @@ Address : 주소 : 2-6-17 Akasaka, Minato-ku
     expect(htmlEn).toContain('1761671537')
     expect(htmlEn).toContain(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN)
     expect(htmlEn).toContain('Cancellation policy')
+    expect(htmlEn).toContain('CASH')
+    expect(htmlEn).toContain(BONGTOUR_INVOICE_COMPANY.mailOrderNoEn)
+    expect(htmlEn).toContain(BONGTOUR_INVOICE_COMPANY.consultHoursEn)
+    expect(htmlEn).not.toContain('수원영통')
+    expect(htmlEn).not.toContain('평일')
     expect(htmlBoth).toContain('page-break')
     expect(htmlBoth).toContain('Check-in Voucher')
+    expect(draft.paymentMethod).toBe(BONGTOUR_VOUCHER_PAYMENT_METHOD)
   })
 
   it('uses entered amount as final total (no profit markup) and states tax/service included', () => {
@@ -196,7 +224,11 @@ Address : 주소 : 2-6-17 Akasaka, Minato-ku
         nights: 2,
         breakfastStatus: 'not_included',
         breakfastText: '조식 불포함',
+        breakfastTextKo: '조식 불포함',
+        breakfastTextEn: 'Breakfast not included',
         cancellationPolicy: 'Non-refundable',
+        cancellationPolicyKo: '환불 불가',
+        cancellationPolicyEn: 'Non-refundable',
         currencyHint: 'USD',
       }),
       amountUsd: 128.5,
@@ -270,6 +302,13 @@ Nights : 5박`
     expect(html).toContain('1400829634320451')
     expect(html).toContain('bongtour-logo.webp')
     expect(html).toContain('Mercure ICON')
+    expect(html).toContain('CASH')
+    expect(html).toContain(BONGTOUR_INVOICE_COMPANY.mailOrderNoEn)
+    expect(html).toContain(BONGTOUR_INVOICE_COMPANY.consultHoursEn)
+    expect(html).not.toMatch(/Mail-order 2024-수원영통/)
+    expect(draft.paymentMethod).toBe('CASH')
+    expect(draft.exclusionsTextKo).toBeNull()
+    expect(draft.exclusionsTextEn).toBeNull()
   })
 
   it('parses Korean OCR labels with bilingual hotel and tax breakdown', () => {
