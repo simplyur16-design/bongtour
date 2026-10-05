@@ -1169,8 +1169,7 @@ const VOUCHER_CSS = `
   body{font-family:system-ui,-apple-system,sans-serif;color:#111;margin:40px;max-width:720px}
   .header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
   .logo{height:48px;width:auto;object-fit:contain}
-  .brand{letter-spacing:0.04em;font-size:13px;color:#444;text-transform:uppercase}
-  h1{font-size:24px;margin:6px 0 4px}
+  h1{font-size:24px;margin:0 0 4px}
   .muted{color:#555;font-size:13px}
   .booking{margin-top:12px;padding:12px 14px;border:2px solid #111;font-size:15px;font-weight:700;letter-spacing:0.02em}
   .box{border:1px solid #222;padding:20px;margin-top:16px}
@@ -1306,7 +1305,8 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
       : null
   const L = isKo
     ? {
-        title: `${c.legalName} 체크인 바우처`,
+        // 로고가 워드마크이므로 제목은 문서 종류만 (브랜드명 반복 금지)
+        title: '체크인 바우처',
         issued: `발행 ${issued}`,
         booking: 'Booking ID (예약번호)',
         guest: '투숙객',
@@ -1339,7 +1339,8 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         footer: `사업자등록 ${c.businessRegistrationNo} · 관광사업자 ${c.tourismRegistrationNo}호 · 통신판매업 ${c.mailOrderNo}<br/>상담 ${c.phone} (${c.consultHours}) · ${c.email}`,
       }
     : {
-        title: `${c.brandName} Check-in Voucher`,
+        // Logo is the wordmark — title is document type only (no brand repeat)
+        title: 'Check-in Voucher',
         issued: `Issued ${issued}`,
         booking: 'Booking ID',
         guest: 'Guest',
@@ -1377,7 +1378,6 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
   <div class="header">
     <img class="logo" src="${escapeHtml(draft.logoUrl)}" alt="${escapeHtml(c.brandName)}" />
     <div>
-      <div class="brand">${escapeHtml(c.brandName)}</div>
       <h1>${escapeHtml(L.title)}</h1>
       <div class="muted">${escapeHtml(draft.voucherNumber)} · ${escapeHtml(L.issued)}</div>
     </div>

@@ -23935,7 +23935,10 @@
             "node:fs",
             "node:path",
             "loadBongtourLogoDataUrl",
-            "readFileSync"
+            "readFileSync",
+            "class=\"brand\"",
+            "BongTour Check-in Voucher",
+            "봉투어 체크인 바우처"
           ]
         },
         {

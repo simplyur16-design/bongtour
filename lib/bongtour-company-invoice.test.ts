@@ -453,8 +453,12 @@ Nights : 5박`
     })
     const html = renderOtaCompanyCheckInVoucherBilingualHtml(draft)
     const htmlEn = renderOtaCompanyCheckInVoucherHtml(draft, 'en')
-    expect(html).toContain('봉투어 체크인 바우처')
+    // 로고 워드마크 + 문서 종류만 — 브랜드명 헤더 반복 없음
+    expect(html).toContain('체크인 바우처')
     expect(html).toContain('Check-in Voucher')
+    expect(html).not.toMatch(/class="brand"/)
+    expect(htmlEn).not.toMatch(/<h1>BongTour Check-in Voucher<\/h1>/)
+    expect(html).not.toMatch(/<h1>봉투어 체크인 바우처<\/h1>/)
     expect(html).toContain('page-break')
     expect(html).toContain('2610130768')
     expect(html).toContain('클래식')
