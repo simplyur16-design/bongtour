@@ -5,17 +5,21 @@
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 
+import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { enrichHotelBilingual } from '@/lib/simplyur/trip-inbox/bilingual-hotel'
 import type { TripHotelSegmentPayload } from '@/lib/simplyur/trip-inbox/types'
 
 export const BONGTOUR_INVOICE_COMPANY = {
   legalName: '봉투어',
   brandName: 'BongTour',
-  businessRegistrationNo: '255-81-03455',
+  businessRegistrationNo: COMPANY_FOOTER.bizRegNo,
+  /** 관광사업자등록 — site SSOT `LEGAL_ENTITY.tourismRegNo` */
   tourismRegistrationNo: '2024-0033',
+  /** 통신판매업 신고번호 (메일주문 ≠ 이메일) */
   mailOrderNo: '2024-수원영통-1596',
   mailOrderNoEn: '2024-Suwon Yeongtong-1596',
-  phone: '031-213-2558',
+  phone: COMPANY_FOOTER.phoneDisplay,
+  email: COMPANY_FOOTER.emailDisplay,
   consultHours: '평일 08:00–19:00',
   consultHoursEn: 'Weekdays 08:00–19:00',
   address: '',
@@ -993,7 +997,7 @@ export function renderOtaCompanyInvoiceHtml(draft: OtaCompanyInvoiceDraft): stri
   ${draft.note ? `<p style="margin-top:16px"><strong>비고</strong> ${escapeHtml(draft.note)}</p>` : ''}
   <div class="footer">
     사업자등록 ${c.businessRegistrationNo} · 관광사업자 ${c.tourismRegistrationNo}호 · 통신판매업 ${c.mailOrderNo}<br/>
-    상담 ${c.phone} (${c.consultHours})
+    상담 ${c.phone} (${c.consultHours}) · ${c.email}
   </div>
 </body>
 </html>`
@@ -1097,7 +1101,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         } · 1 USD = ${draft.usdKrwRate.toLocaleString('ko-KR')} KRW`,
         present: `본 바우처는 ${c.legalName} 예약 확인용입니다. 호텔 프론트에 제시해 주세요.`,
         note: '비고',
-        footer: `사업자등록 ${c.businessRegistrationNo} · 관광사업자 ${c.tourismRegistrationNo}호 · 통신판매업 ${c.mailOrderNo}<br/>상담 ${c.phone} (${c.consultHours})`,
+        footer: `사업자등록 ${c.businessRegistrationNo} · 관광사업자 ${c.tourismRegistrationNo}호 · 통신판매업 ${c.mailOrderNo}<br/>상담 ${c.phone} (${c.consultHours}) · ${c.email}`,
       }
     : {
         title: `${c.brandName} Check-in Voucher`,
@@ -1130,7 +1134,8 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         } · 1 USD = ${draft.usdKrwRate.toLocaleString('en-US')} KRW`,
         present: `This voucher confirms a ${c.brandName} reservation. Please present it at the hotel front desk.`,
         note: 'Notes',
-        footer: `Business Reg. ${c.businessRegistrationNo} · Tourism ${c.tourismRegistrationNo} · Mail-order ${c.mailOrderNoEn}<br/>Contact ${c.phone} (${c.consultHoursEn})`,
+        // Mail-order sales report = 통신판매업 (not email). Email goes on Contact line.
+        footer: `Business Reg. ${c.businessRegistrationNo} · Tourism business ${c.tourismRegistrationNo} · E-commerce sales report ${c.mailOrderNoEn}<br/>Contact ${c.phone} (${c.consultHoursEn}) · ${c.email}`,
       }
 
   return `
