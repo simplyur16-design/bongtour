@@ -21,6 +21,7 @@ function emptyParsed(
   return {
     provider: 'unknown',
     bookingRef: null,
+    hotelConfirmationRef: null,
     guestName: null,
     propertyOrService: null,
     propertyNameKo: null,
@@ -216,5 +217,84 @@ Address : 주소 : 2-6-17 Akasaka, Minato-ku
     expect(html).toContain('조식 불포함')
     expect(html).toContain('998877')
     expect(html).toContain(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE)
+  })
+
+  // REGRESSION-FREEZE[admin-ota-receipt-invoice]: 실바우처 OCR 라벨 파싱 — manifest
+  it('parses Gemini OCR labels from Mercure/Trip-style English voucher', () => {
+    const text = `Booking ID : 2610130768
+예약 번호 : 1400829634320451
+고객명 : SEOYOUNG JEONG
+숙소명 : Mercure ICON Singapore City Centre
+Property : Mercure ICON Singapore City Centre
+주소 : 8 Club Street, #01-03, 069472, Singapore
+전화 : +65-67680008
+체크인 : Oct 13, 2026 Tue After 3:00 PM
+체크아웃 : Oct 18, 2026 Sun Before 11:00 AM
+객실 타입 : Classic Twin Room
+침대 타입 : 2 single beds
+객실 수 : 1
+성인 수 : 2
+조식 : 불포함
+Breakfast : not included (No meals included)
+객실 편의시설 : Toothbrushes, Toothpaste, Body wash, Shampoo, Conditioner, Soap, Shower cap, Private bathroom, Private toilet, Hair dryer, Shower, Bath towels, Hot water (24 hours), Slippers
+취소 정책 : You'll be charged the cancellation fee if you don't check in.
+결제 방법 : Prepay Online
+세금 및 봉사료 포함
+총 결제 금액 : KRW 1,062,752
+Nights : 5박`
+    const p = parseOtaReceiptForInvoice(text)
+    expect(p.bookingRef).toBe('2610130768')
+    expect(p.hotelConfirmationRef).toBe('1400829634320451')
+    expect(p.provider).toBe('trip_com')
+    expect(p.nights).toBe(5)
+    expect(p.breakfastStatus).toBe('not_included')
+    expect(p.cancellationPolicy).toMatch(/cancellation fee/i)
+    expect(p.amenities).toContain('Toothbrushes')
+    expect(p.amenities.join(' ')).not.toMatch(/취소|결제|부가가치세/)
+    expect(p.sourceAmountKrw).toBe(1062752)
+    expect(p.propertyNameEn).toMatch(/Mercure ICON/i)
+
+    const draft = buildOtaCompanyCheckInVoucherDraft({
+      parsed: p,
+      amountUsd: 786,
+      nightRateUsd: 157.2,
+      rateDate: '2026-10-05',
+      effectiveRateDate: '2026-10-03',
+      usdKrwRate: 1350,
+      amountKrw: usdAmountToKrw(786, 1350),
+      logoUrl: 'https://bongtour.com/images/bongtour-logo.webp',
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    const html = renderOtaCompanyCheckInVoucherBilingualHtml(draft)
+    expect(html).toContain('2610130768')
+    expect(html).toContain('1400829634320451')
+    expect(html).toContain('bongtour-logo.webp')
+    expect(html).toContain('Mercure ICON')
+  })
+
+  it('parses Korean OCR labels with bilingual hotel and tax breakdown', () => {
+    const text = `Booking ID : 1400829634320451
+예약 번호 : 1400829634320451
+고객명 : JEONG SEOYOUNG
+숙소명 : 머큐어 아이콘 싱가포르 시티 센터 / Mercure ICON Singapore City Centre
+체크인 : 2026년 10월 13일 15:00 이후
+체크아웃 : 2026년 10월 18일 11:00 이전
+객실 타입 : 클래식 트윈룸
+조식 : 불포함
+객실 편의시설 : 칫솔, 치약, 바디워시, 샴푸
+포함사항 : 서비스 요금 88,633원, 부가가치세 87,746원
+취소 정책 : 체크인하지 않으실 경우, 취소 수수료가 청구됩니다.
+결제 방법 : 온라인 사전 결제 (Prepay Online)
+세금 및 봉사료 포함
+총 결제 금액 : KRW 1,062,752
+Nights : 5박`
+    const p = parseOtaReceiptForInvoice(text)
+    expect(p.bookingRef).toBe('1400829634320451')
+    expect(p.hotelConfirmationRef).toBeNull()
+    expect(p.propertyNameKo).toMatch(/머큐어/)
+    expect(p.propertyNameEn).toMatch(/Mercure/i)
+    expect(p.inclusionsText).toMatch(/부가가치세/)
+    expect(p.cancellationPolicy).toMatch(/취소 수수료/)
+    expect(p.amenities).toEqual(expect.arrayContaining(['칫솔', '치약']))
   })
 })

@@ -35,6 +35,8 @@ export type OtaReceiptParsedAmount = {
   provider: OtaInvoiceProvider
   /** Booking ID / 예약번호 (바우처 핵심) */
   bookingRef: string | null
+  /** Booking ID와 다른 호텔/보조 확인번호 */
+  hotelConfirmationRef: string | null
   guestName: string | null
   /** 원문 숙소명 (한/영 혼합 가능) */
   propertyOrService: string | null
@@ -102,6 +104,7 @@ export type OtaCompanyCheckInVoucherDraft = {
   provider: OtaInvoiceProvider
   /** Booking ID — 바우처에 정확히 표기 */
   bookingRef: string | null
+  hotelConfirmationRef: string | null
   guestName: string | null
   propertyName: string
   propertyNameKo: string | null
@@ -159,7 +162,14 @@ export function resolveBongtourLogoUrl(baseUrl?: string | null): string {
 function detectProvider(text: string): OtaInvoiceProvider {
   const lower = text.toLowerCase()
   if (lower.includes('agoda') || text.includes('아고다')) return 'agoda'
-  if (lower.includes('trip.com') || lower.includes('ctrip') || text.includes('트립닷컴')) return 'trip_com'
+  if (
+    lower.includes('trip.com') ||
+    lower.includes('ctrip') ||
+    text.includes('트립닷컴') ||
+    /prepay\s*online/i.test(text)
+  ) {
+    return 'trip_com'
+  }
   return 'unknown'
 }
 
@@ -296,7 +306,7 @@ function parseTaxService(text: string): { included: boolean | null; text: string
 function parseAmenities(text: string): string[] {
   const block =
     text.match(
-      /(?:객실\s*(?:편의\s*)?시설|Room\s*(?:amenities|facilities)|Amenities|편의\s*시설)\s*[:：]?\s*([\s\S]{0,500}?)(?=\n\s*(?:체크인|체크아웃|예약|총|결제|세금|비고|Note|Cancellation|취소)|$)/i,
+      /(?:객실\s*(?:편의\s*)?시설|Room\s*(?:amenities|facilities)|Amenities|편의\s*시설)\s*[:：]?\s*([^\n]+)/i,
     )?.[1] || null
   if (!block) {
     const singles: string[] = []
@@ -313,9 +323,14 @@ function parseAmenities(text: string): string[] {
     return [...new Set(singles)].slice(0, 12)
   }
   const parts = block
-    .split(/[,，·•|/｜\n]+/)
+    .split(/[,，·•|/｜]+/)
     .map((s) => s.replace(/^[\-\d.)\s]+/, '').trim())
-    .filter((s) => s.length >= 2 && s.length <= 60)
+    .filter(
+      (s) =>
+        s.length >= 2 &&
+        s.length <= 60 &&
+        !/포함사항|취소|결제|세금|부가가치세|서비스\s*요금/i.test(s),
+    )
   return [...new Set(parts)].slice(0, 16)
 }
 
@@ -340,23 +355,16 @@ function parseExclusions(text: string): string | null {
 }
 
 function parseCancellationPolicy(text: string): string | null {
-  const block = text.match(
-    /(?:취소\s*(?:정책|규정|수수료)|Cancellation\s*(?:Policy|policy)|환불\s*(?:정책|규정)|Free\s*cancellation|Non[- ]?refundable)[^\n]*[:：]?\s*([\s\S]{0,800}?)(?=\n\s*(?:중요|Important|게스트|Guest|고객|비고|Note|총\s*금액|Total|예약\s*번호|Booking)|$)/i,
+  const line = cleanLine(
+    text.match(
+      /(?:취소\s*(?:정책|규정|수수료)|Cancellation\s*(?:Policy|policy)|환불\s*(?:정책|규정))\s*[:：]\s*([^\n]+)/i,
+    )?.[1],
   )
-  if (block) {
-    const head = cleanLine(block[0].split('\n')[0] ?? '')
-    const body = cleanLine(block[1]?.replace(/\s+/g, ' '))
-    if (head && body && !body.startsWith(head)) return `${head} ${body}`.slice(0, 900)
-    return (body || head || null)?.slice(0, 900) ?? null
-  }
-  if (/Non[- ]?refundable|환불\s*불가|취소\s*불가/i.test(text)) {
-    return 'Non-refundable / 환불 불가'
-  }
-  if (/Free\s*cancellation|무료\s*취소/i.test(text)) {
-    return cleanLine(text.match(/(Free\s*cancellation[^\n]*|무료\s*취소[^\n]*)/i)?.[1]) ||
-      'Free cancellation / 무료 취소'
-  }
-  return null
+  if (line) return line.slice(0, 900)
+  const block = text.match(
+    /(?:Free\s*cancellation|Non[- ]?refundable|무료\s*취소|환불\s*불가)[^\n]{0,200}/i,
+  )?.[0]
+  return cleanLine(block)?.slice(0, 900) ?? null
 }
 
 function parseSpecialRequests(text: string): string | null {
@@ -412,16 +420,19 @@ function parseNightsCount(
 /** Trip.com / Agoda 영수증·바우처 본문에서 숙박·금액·포함사항 추출 */
 export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount {
   const provider = detectProvider(text)
-  // Booking ID 우선 (Agoda bilingual "Booking ID : 예약 번호 : 123")
-  const bookingRef =
-    text.match(/Booking\s*ID\s*[:：]?\s*[^\n]*?\n?\s*예약\s*번호\s*[:：]?\s*([A-Z0-9-]{5,})/i)?.[1] ||
-    text.match(/Booking\s*(?:ID|No\.?|Number)\s*[:：]?\s*([A-Z0-9-]{5,})/i)?.[1] ||
-    text.match(/예약\s*번호\s*[:：]?\s*([A-Z0-9-]{5,})/)?.[1] ||
-    text.match(/Confirmation(?:\s*(?:No\.?|Number|ID))?\s*[:：]?\s*([A-Z0-9-]{5,})/i)?.[1] ||
-    text.match(/Order\s*(?:ID|No\.?|Number)\s*[:：]?\s*([A-Z0-9-]{6,})/i)?.[1] ||
-    text.match(/확인\s*번호\s*[:：]?\s*([A-Z0-9-]{6,})/)?.[1] ||
-    text.match(/트립닷컴\s*예약번호\s*([A-Z0-9-]{5,})/i)?.[1] ||
+  // Booking ID 라벨 최우선 (비자/체크인 바우처 SSOT). 예약 번호는 보조.
+  const bookingIdExplicit =
+    cleanLine(
+      text.match(/Booking\s*ID\s*[:：]\s*(?:예약\s*번호\s*[:：]\s*)?([A-Z0-9-]{5,})/i)?.[1],
+    ) || null
+  const bookingRefAlt =
+    cleanLine(text.match(/예약\s*번호\s*[:：]\s*([A-Z0-9-]{5,})/)?.[1]) ||
+    cleanLine(text.match(/Confirmation(?:\s*(?:No\.?|Number|ID))?\s*[:：]?\s*([A-Z0-9-]{5,})/i)?.[1]) ||
+    cleanLine(text.match(/Order\s*(?:ID|No\.?|Number)\s*[:：]?\s*([A-Z0-9-]{6,})/i)?.[1]) ||
+    cleanLine(text.match(/확인\s*번호\s*[:：]?\s*([A-Z0-9-]{6,})/)?.[1]) ||
+    cleanLine(text.match(/트립닷컴\s*예약번호\s*([A-Z0-9-]{5,})/i)?.[1]) ||
     null
+  const bookingRef = bookingIdExplicit || bookingRefAlt
 
   const guestName =
     cleanLine(text.match(/고객명\s*[:：]\s*([^\n]+)/)?.[1]) ||
@@ -528,6 +539,10 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
   return {
     provider,
     bookingRef: bookingRef ? bookingRef.trim() : null,
+    hotelConfirmationRef:
+      bookingRefAlt && bookingIdExplicit && bookingRefAlt !== bookingIdExplicit
+        ? bookingRefAlt
+        : null,
     guestName,
     propertyOrService: names.propertyOrService,
     propertyNameKo: names.propertyNameKo,
@@ -693,6 +708,7 @@ export function buildOtaCompanyCheckInVoucherDraft(args: {
     issuedAtIso: now.toISOString(),
     provider: args.parsed.provider,
     bookingRef: args.parsed.bookingRef,
+    hotelConfirmationRef: args.parsed.hotelConfirmationRef,
     guestName: (args.guestNameOverride ?? args.parsed.guestName)?.trim() || null,
     propertyName,
     propertyNameKo,
@@ -953,7 +969,13 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
       <div class="muted">${escapeHtml(draft.voucherNumber)} · ${escapeHtml(L.issued)}</div>
     </div>
   </div>
-  <div class="booking">${escapeHtml(L.booking)}: ${escapeHtml(draft.bookingRef || '—')}</div>
+  <div class="booking">${escapeHtml(L.booking)}: ${escapeHtml(draft.bookingRef || '—')}${
+    draft.hotelConfirmationRef
+      ? `<div class="muted" style="margin-top:6px;font-weight:500">${
+          isKo ? '호텔 확인번호' : 'Hotel confirmation'
+        }: ${escapeHtml(draft.hotelConfirmationRef)}</div>`
+      : ''
+  }</div>
   <div class="box">
     ${rowHtml(L.guest, escapeHtml(guest))}
     ${rowHtml(L.hotel, escapeHtml(hotelPrimary))}

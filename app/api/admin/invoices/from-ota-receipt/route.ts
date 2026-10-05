@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { extractPdfText } from '@/lib/simplyur/trip-inbox/pdf-extract'
+import { extractOtaVoucherPdfTextViaGemini } from '@/lib/bongtour-ota-voucher-pdf-ocr'
 import {
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
@@ -78,7 +79,13 @@ export async function POST(request: Request) {
               text = [text, extracted].filter(Boolean).join('\n\n')
               fileHint = 'ok'
             } else {
-              fileHint = 'pdf_empty'
+              const ocr = await extractOtaVoucherPdfTextViaGemini(buf)
+              if (ocr.ok && ocr.text.trim()) {
+                text = [text, ocr.text].filter(Boolean).join('\n\n')
+                fileHint = 'ok'
+              } else {
+                fileHint = 'pdf_empty'
+              }
             }
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e)
@@ -177,7 +184,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            'PDF에서 텍스트를 읽지 못했습니다(스캔/이미지 PDF). 바우처 본문을 붙여넣어야 예약·숙소·조식을 가져올 수 있습니다.',
+            'PDF에서 텍스트/OCR을 읽지 못했습니다. 바우처 본문을 붙여넣거나 GEMINI_API_KEY를 확인하세요.',
         },
         { status: 400 },
       )

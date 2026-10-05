@@ -172,6 +172,9 @@ tmp-*.bin
 # scripts 임시 스크래치
 scripts/.tmp-*
 scripts/_tmp-*
+scripts/_tmp_*
+scripts/data/_tmp_*
+scripts/_archive/
 
 # ops 운영 진단·일회성 스크래치 (실수 커밋 방지)
 ops/_tmp*
@@ -184,3 +187,6 @@ prisma-gen-runtime/
 
 # scripts/data resync 로그 (재실행 가능 아카이브)
 scripts/data/resync-mega-menu-geo-*.json
+
+tmp-ota-voucher-test/
+scripts/tmp-*.ts
