@@ -758,6 +758,61 @@ describe('register-pre-photo-self-heal', () => {
       shanghaiVerify.issues.join(','),
     )
 
+    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+    const saipanAllBare = healRegisterPrePhotoSchedule(
+      [
+        { day: 1, routeText: '', imageKeyword: 'Saipan', imageKeyword2: null as string | null },
+        { day: 2, routeText: '사이판', imageKeyword: 'Saipan', imageKeyword2: null },
+        { day: 3, routeText: '사이판', imageKeyword: 'Saipan', imageKeyword2: null },
+        { day: 4, routeText: '사이판', imageKeyword: 'Saipan', imageKeyword2: null },
+        { day: 5, routeText: '사이판', imageKeyword: 'Saipan', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'naeiltour',
+        productDestination: '사이판',
+        productTitle: '사이판 골프 5일',
+        lane: 'package',
+        countryKey: 'saipan',
+      },
+    )
+    const saipanMids = saipanAllBare.rows
+      .filter((r) => Number(r.day) >= 2 && Number(r.day) <= 4)
+      .map((r) => String(r.imageKeyword ?? '').trim())
+    assert.ok(
+      saipanMids.every((k) => k && !/^Saipan$/i.test(k)),
+      `saipan middles must not bare-repeat: ${saipanMids.join('|')}`,
+    )
+    const saipanVerify = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '사이판 골프 5일',
+      productDestination: '사이판',
+      rows: saipanAllBare.rows,
+    })
+    assert.equal(
+      saipanVerify.issues.some((i) => i.includes('bare_city_repeat')),
+      false,
+      saipanVerify.issues.join(','),
+    )
+
+    const zaanseHeal = healRegisterPrePhotoSchedule(
+      [
+        { day: 1, routeText: '프랑크푸르트', imageKeyword: 'Romerberg Square', imageKeyword2: null as string | null },
+        { day: 2, routeText: '브뤼헤', imageKeyword: 'Bruges Canals', imageKeyword2: null },
+        { day: 3, routeText: '암스테르담 - 잔세스칸스', imageKeyword: '', imageKeyword2: null },
+        { day: 4, routeText: '쾰른', imageKeyword: 'Cologne Cathedral', imageKeyword2: null },
+        { day: 5, routeText: '', imageKeyword: 'Amsterdam', imageKeyword2: null },
+      ],
+      {
+        supplierKey: 'naeiltour',
+        productDestination: '독일',
+        productTitle: '베네룩스 독일 5일',
+        lane: 'package',
+        countryKey: 'germany',
+      },
+    )
+    const zaanseKw = String(zaanseHeal.rows.find((r) => r.day === 3)?.imageKeyword ?? '')
+    assert.ok(/Zaanse|Amsterdam Canal|Rijksmuseum|Anne Frank|Vondelpark/i.test(zaanseKw), zaanseKw)
+
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 보홀·세부·오슬로 명소 route SSOT — manifest
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: Victoria Peak ≠ London lodging dest — manifest
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 식별불가 중간일 키워드 비강제 — manifest

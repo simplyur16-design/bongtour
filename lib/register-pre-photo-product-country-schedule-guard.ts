@@ -88,7 +88,8 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
 
 /** 일정·제목에서 “강한” 나라 후보 (browse countryKey와 교차 검증). */
 const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
-  { key: 'vietnam', re: /베트남|다낭|호이안|푸꾸옥|바나힐|나트랑|da\s*nang|hoi\s*an|phu\s*quoc/i },
+  { key: 'vietnam', re: /베트남|다낭|호이안|푸꾸옥|바나힐|나트랑|하노이|하롱|da\s*nang|hoi\s*an|phu\s*quoc|hanoi|halong/i },
+  { key: 'cambodia', re: /캄보디아|앙코르|씨엠립|시엠립|cambodia|angkor|siem\s*reap/i },
   { key: 'philippines', re: /필리핀|보라카이|세부|보홀|boracay|cebu/i },
   { key: 'china', re: /장가계|태항|제남|보천|서안|내몽골|오르도스|청도|베이징|상해|연태|yantai|위해/i },
   { key: 'canada', re: /캐나다|나이아가라|토론토|퀘벡|몬트리올|옐로나이프|yellowknife/i },

@@ -16,8 +16,10 @@
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 관광 키워드·범용 모스크 힐 — manifest
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 환각 키워드는 route 오탐이어도 제거 — manifest
  * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: keep-filled 후에도 trip dedupe — manifest
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
+import { scrubPoisonedScheduleDayTitlesForCountryKey } from '@/lib/register-pre-photo-country-schedule-self-heal'
 import {
   englishFromScheduleKoreanSegment,
   normScheduleImageKeywordKey,
@@ -39,11 +41,15 @@ import {
   isRegisterScheduleFreeTimeOrResortLeisureText,
   isRegisterScheduleHotelOnlyRouteText,
 } from '@/lib/register-schedule-route-text-backfill'
-import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import {
   ensureDepartureReturnVisitCityKeywords,
+  scrubAirlineTransitHubKeywordsOffTrip,
+  scrubCrossCountrySeaKeywordsOffTrip,
+  scrubSameDayDuplicateImageKeyword2,
+  shouldRejectAirlineTransitHubKeywordForTrip,
   softDupForeignVisitCityForMiddleRoute,
   allowRouteRevisitBareVisitCitySoftDup,
+  enforceRegisterScheduleTripUniqueImageKeywords,
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import {
   ensureAuroraPrimaryImageKeyword,
@@ -98,6 +104,8 @@ export type RegisterPrePhotoHealOpts = {
   lane?: RegisterAdminLane
   /** 전일해상 선상 액티비티 추출용 — included/rawMeta/일정 본문 */
   productHaystack?: string | null
+  /** day-title hub poison scrub (두바이 귀국 등) */
+  countryKey?: string | null
 }
 
 export type RegisterPrePhotoHealNote = {
@@ -259,23 +267,26 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
   const soft = softDupForeignVisitCityForMiddleRoute(routeHay)
   const hay = String(routeHay ?? '')
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: bare 발리 동선은 SEA 명소 팩으로 채움 — manifest
-  if (/^Bali$/i.test(String(soft ?? '')) || /^발리$/u.test(hay.trim())) {
+  if (/^Bali$/i.test(String(soft ?? '')) || /^발리$/u.test(hay.trim()) || /발리|Bali/i.test(hay)) {
     return [
-      'Garuda Wisnu Kencana statue Bali',
-      'Tegalalang Rice Terrace Bali',
-      'Tanah Lot Temple Bali sunset',
-      'Seminyak Beach Bali',
-      'Nusa Penida Kelingking Beach Bali',
+      // city-first — persist 후 own-route 유지
+      'Bali Garuda Wisnu Kencana statue',
+      'Bali Tegalalang Rice Terrace',
+      'Bali Tanah Lot Temple sunset',
+      'Bali Seminyak Beach',
+      'Bali Nusa Penida Kelingking Beach',
     ]
   }
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 푸꾸옥 숙소일 landmark pack — manifest
   if (/푸꾸옥|Phu\s*Quoc|그랜드월드|Grand\s*World|소나씨|Sonasea|혼똔|Hon\s*Thom|모벤픽|Movenpick/i.test(hay)) {
     return [
-      'Grand World Phu Quoc',
-      'Hon Thom Cable Car Phu Quoc',
-      'Sao Beach Phu Quoc',
-      'Dinh Cau Temple Phu Quoc',
+      // city-first — 숙소(모벤픽)일 dest own-route; Grand World는 관광일 후순위(숙소 bleed 방지)
+      'Phu Quoc Sao Beach',
       'Phu Quoc Night Market',
+      'Phu Quoc Dinh Cau Temple',
+      'Phu Quoc Vinpearl Safari',
+      'Phu Quoc Hon Thom Cable Car',
+      'Phu Quoc Grand World',
     ]
   }
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 이스터섬·파타고니아·도호쿠 팩 — manifest
@@ -548,6 +559,16 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Fishermans Wharf San Francisco',
     ]
   }
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+  if (/샌프란시스코|San\s*Francisco|금문교|피어\s*39|피셔맨/i.test(hay)) {
+    return [
+      'San Francisco Golden Gate Bridge',
+      'San Francisco Pier 39',
+      'San Francisco Fishermans Wharf',
+      'San Francisco Lombard Street',
+      'San Francisco Alcatraz Island',
+    ]
+  }
   if (/스피어|벨라지오|프리몬트|Sphere|Bellagio|Fremont/i.test(hay)) {
     return [
       'MSG Sphere Las Vegas',
@@ -693,6 +714,207 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Xiangshawan Desert Ordos Inner Mongolia',
     ]
   }
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+  if (/사이판|Saipan/i.test(hay)) {
+    return [
+      'Managaha Island Saipan',
+      'Saipan Bird Island',
+      'Suicide Cliff Saipan',
+      'Korean Peace Memorial Saipan',
+      'Micro Beach Saipan',
+      'Banzai Cliff Saipan',
+    ]
+  }
+  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 Hurghada ≠ Cairo dest — manifest
+  if (/후르가다|Hurghada|홍해\s*리조트/i.test(hay)) {
+    return [
+      'Hurghada Red Sea coral reef',
+      'Hurghada marina Egypt',
+      'Giftun Island Hurghada',
+      'Hurghada old town Egypt',
+    ]
+  }
+  if (/코타\s*키나발루|Kota\s*Kinabalu|\bKK\b/i.test(hay)) {
+    return [
+      'Kota Kinabalu Tunku Abdul Rahman Marine Park',
+      'Kota Kinabalu Signal Hill Observatory',
+      'Kota Kinabalu Gaya Street Sunday Market',
+      'Kota Kinabalu Filipino Market',
+      'Kota Kinabalu Manukan Island',
+    ]
+  }
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+  {
+    const hasDubai = /두바이|Dubai/i.test(hay)
+    const hasAbu = /아부\s*다비|Abu\s*Dhabi/i.test(hay)
+    const dubaiPack = [
+      'Dubai Burj Khalifa',
+      'Dubai Marina skyline',
+      'Dubai Palm Jumeirah',
+      'Dubai Frame architecture',
+      'Dubai Burj Al Arab',
+      'Dubai Miracle Garden',
+      'Dubai Creek abra boats',
+      'Dubai JBR Beach',
+      'Dubai Museum Al Fahidi',
+    ]
+    const abuPack = [
+      'Abu Dhabi Sheikh Zayed Grand Mosque',
+      'Abu Dhabi Louvre Museum',
+      'Abu Dhabi Ferrari World',
+      'Abu Dhabi Emirates Palace',
+      'Abu Dhabi Yas Marina Circuit',
+    ]
+    if (hasDubai && hasAbu) return [...dubaiPack, ...abuPack]
+    if (hasAbu) return abuPack
+    if (hasDubai) return dubaiPack
+  }
+  if (/뉴욕|New\s*York|\bNYC\b/i.test(hay)) {
+    return [
+      // city-first — persist 후 own-route 유지
+      'New York Times Square',
+      'New York Statue of Liberty',
+      'New York Empire State Building',
+      'New York Brooklyn Bridge',
+      'New York One World Trade Center',
+      'New York Grand Central Terminal',
+    ]
+  }
+  if (/이스탄불|Istanbul/i.test(hay)) {
+    return [
+      'Blue Mosque Istanbul',
+      'Hagia Sophia Istanbul',
+      'Grand Bazaar Istanbul',
+      'Bosphorus Bridge Istanbul',
+      'Galata Tower Istanbul',
+      'Topkapi Palace Istanbul',
+    ]
+  }
+  if (/바르셀로나|Barcelona/i.test(hay)) {
+    return [
+      'Sagrada Familia Barcelona',
+      'Park Guell Barcelona',
+      'Casa Batllo Barcelona',
+      'La Rambla Barcelona',
+      'Barceloneta Beach Barcelona',
+    ]
+  }
+  if (/아테네|Athens/i.test(hay)) {
+    return [
+      'Acropolis Athens Parthenon',
+      'Plaka Athens old town',
+      'Temple of Olympian Zeus Athens',
+      'Changing of the Guard Athens',
+      'Mount Lycabettus Athens',
+    ]
+  }
+  if (/암스테르담|Amsterdam|잔세스/i.test(hay)) {
+    return [
+      'Zaanse Schans Netherlands',
+      'Amsterdam Canal Ring',
+      'Rijksmuseum Amsterdam',
+      'Anne Frank House Amsterdam',
+      'Vondelpark Amsterdam',
+    ]
+  }
+  if (/케이프\s*타운|Cape\s*Town|테이블\s*마운틴/i.test(hay)) {
+    return [
+      'Cape Town Table Mountain South Africa',
+      'Cape Town V&A Waterfront',
+      'Cape of Good Hope South Africa',
+      'Cape Town Bo-Kaap colorful houses',
+      'Cape Town Robben Island',
+    ]
+  }
+  if (/암만|Amman|사해|Dead\s*Sea/i.test(hay)) {
+    return [
+      'Amman Citadel Jordan',
+      'Dead Sea Jordan coastline',
+      'Amman Roman Theatre',
+      'Rainbow Street Amman',
+      'Jerash Roman ruins Jordan',
+    ]
+  }
+  if (/델리|Delhi|딜리/i.test(hay)) {
+    return [
+      'Dilli Haat Delhi',
+      'India Gate Delhi',
+      'Qutub Minar Delhi',
+      'Red Fort Delhi',
+      'Humayun Tomb Delhi',
+      'Lotus Temple Delhi',
+    ]
+  }
+  if (/코펜하겐|Copenhagen/i.test(hay)) {
+    return [
+      'Nyhavn Copenhagen harbor',
+      'Little Mermaid Copenhagen',
+      'Tivoli Gardens Copenhagen',
+      'Christiansborg Palace Copenhagen',
+    ]
+  }
+  if (/헬싱키|Helsinki/i.test(hay)) {
+    return [
+      'Helsinki Cathedral Senate Square',
+      'Suomenlinna Sea Fortress Helsinki',
+      'Helsinki Market Square harbor',
+      'Temppeliaukio Rock Church Helsinki',
+    ]
+  }
+  if (/다낭|Da\s*Nang|호이안|Hoi\s*An/i.test(hay)) {
+    return [
+      'Marble Mountains Da Nang',
+      'Hoi An Ancient Town lanterns',
+      'Da Nang My Khe Beach sunset',
+      'Da Nang Dragon Bridge night',
+      'Golden Bridge Da Nang',
+      'Linh Ung Pagoda Da Nang',
+    ]
+  }
+  if (/장가계|Zhangjiajie|천문산|천자산|보봉/i.test(hay)) {
+    return [
+      'Zhangjiajie Glass Bridge',
+      'Wulingyuan Zhangjiajie',
+      'Tianmen Mountain',
+      'Tianzi Mountain',
+      'Baofeng Lake',
+      'Avatar Hallelujah Mountain',
+    ]
+  }
+  if (/삿포|Sapporo|비에이|Biei|오타루|Otaru/i.test(hay)) {
+    return [
+      'White Beard Falls Biei',
+      'Ueno Farm Hokkaido',
+      'Otaru Canal',
+      'Odori Park Sapporo',
+      'Sapporo Clock Tower',
+      'Shiroi Koibito Park',
+    ]
+  }
+  if (/레이캬비크|Reykjavik|아이슬란드|Iceland/i.test(hay)) {
+    return [
+      'Reykjavik Hallgrimskirkja',
+      'Reykjavik Colorful Harbor Houses',
+      'Harpa Concert Hall Reykjavik',
+      'Perlan Reykjavik dome',
+    ]
+  }
+  if (/포즈|Foz|이구아수|Iguazu|이과수/i.test(hay)) {
+    return [
+      'Iguazu Falls Brazil walkways',
+      'Iguazu Brazilian Side Devil Throat',
+      'Iguazu Falls Argentina boardwalk',
+    ]
+  }
+  if (/리마|Lima|상파울|Sao\s*Paulo|빅토리아\s*폴스|Victoria\s*Falls/i.test(hay)) {
+    return [
+      'Lima Miraflores boardwalk Peru',
+      'Lima Plaza Mayor colonial',
+      'Sao Paulo Paulista Avenue',
+      'Victoria Falls Waterfall Panorama',
+      'Victoria Falls Livingstone Zambia',
+    ]
+  }
   return []
 }
 
@@ -762,6 +984,16 @@ function refillHotelTitleMiddleBareCityAfterUnique<T extends RegisterPrePhotoHea
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+  const usedBare = new Set<string>()
+  for (const row of rows) {
+    for (const raw of [row.imageKeyword, row.imageKeyword2]) {
+      const t = String(raw ?? '').trim()
+      if (!t || !isBareCityOrCountryKeyword(t)) continue
+      const nk = normScheduleImageKeywordKey(t)
+      if (nk) usedBare.add(nk)
+    }
+  }
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') return row
@@ -778,6 +1010,9 @@ function refillHotelTitleMiddleBareCityAfterUnique<T extends RegisterPrePhotoHea
       ''
     if (!soft || !isBareCityOrCountryKeyword(soft)) return row
     if (!allowRouteRevisitBareVisitCitySoftDup(soft)) return row
+    const softNk = normScheduleImageKeywordKey(soft)
+    if (softNk && usedBare.has(softNk)) return row
+    if (softNk) usedBare.add(softNk)
     return { ...row, imageKeyword: soft }
   })
 }
@@ -789,12 +1024,26 @@ function refillFreeLeisureMiddleBareCityAfterUnique<T extends RegisterPrePhotoHe
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+  // verify middle bare uniqueness와 맞춤 — align이 비운 뒤 used bare를 다시 넣지 않음
+  // 자유휴양 방문도시(Hurghada 등)는 다른 middle에 없을 때만 재주입. edge(출발·귀국) bare는
+  // verify도 edge→middle 반복을 막으므로 usedBare에 edge를 포함한다.
+  const usedBare = new Set<string>()
+  for (const row of rows) {
+    for (const raw of [row.imageKeyword, row.imageKeyword2]) {
+      const t = String(raw ?? '').trim()
+      if (!t || !isBareCityOrCountryKeyword(t)) continue
+      const nk = normScheduleImageKeywordKey(t)
+      if (nk) usedBare.add(nk)
+    }
+  }
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') return row
     if (String(row.imageKeyword ?? '').trim()) return row
     const route = String(row.routeText ?? '').trim()
     const title = String(row.title ?? '').trim()
+    // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 bare dest(Cairo)→당일 도시(Hurghada) — manifest
     const soft =
       softDupForeignVisitCityForMiddleRoute(route) ||
       softDupForeignVisitCityForMiddleRoute(title) ||
@@ -803,13 +1052,17 @@ function refillFreeLeisureMiddleBareCityAfterUnique<T extends RegisterPrePhotoHe
       ''
     if (!soft || !isBareCityOrCountryKeyword(soft)) return row
     if (!allowRouteRevisitBareVisitCitySoftDup(soft)) return row
+    const softNk = normScheduleImageKeywordKey(soft)
     const free =
       isRegisterScheduleFreeTimeOrResortLeisureText(route) ||
       isRegisterScheduleFreeTimeOrResortLeisureText(title)
+    // verify: edge·다른 middle에 같은 맨도시가 있으면 재주입 금지 → landmark pack이 채움
+    if (softNk && usedBare.has(softNk)) return row
     const onOwn =
       registerScheduleKeywordMatchesOwnDayRoute(route, soft) ||
       registerScheduleKeywordMatchesOwnDayRoute(title, soft)
     if (!free && !onOwn) return row
+    if (softNk) usedBare.add(softNk)
     return { ...row, imageKeyword: soft }
   })
 }
@@ -927,10 +1180,15 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
           const p = tryPersistScheduleImageKeyword(raw)
           return p.ok && p.value && normScheduleImageKeywordKey(p.value) === normScheduleImageKeywordKey(persist.value)
         })
+      const bareOnlyRoutePack =
+        packHit &&
+        landmarkPack.length > 0 &&
+        collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1
       if (
         !onRoute &&
         !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(routeHay, persist.value) &&
-        !(lodging && packHit && onDest)
+        !(lodging && packHit && onDest) &&
+        !bareOnlyRoutePack
       ) {
         continue
       }
@@ -1198,7 +1456,6 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       packFromRoute.length > 0 && collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1
     // 빈 route + dest pack 도 lodging과 동일하게 pack 허용
     const emptyRouteDestPack = !routeHay && packFromDest.length > 0
-    void bareOnlyRoute
     const cands = [
       ...collectRouteTextOrderedLandmarkKeywords(routeHay),
       ...collectRouteTextOrderedImageKeywords(routeHay),
@@ -1217,10 +1474,12 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
         Boolean(destHay) && registerScheduleKeywordMatchesOwnDayRoute(destHay, persist.value)
       // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: pack도 verify own-route 통과 필수 — manifest
       // Victoria Peak(도시 토큰 소실)처럼 persist 후 onRoute 실패면 주입 금지. 숙소/빈 route만 dest 귀속 허용.
+      // 맨도시-only route + city pack: soft 도시 토큰이 키워드에 있으면 허용
       if (
         !onRoute &&
         !(lodging && packPersistKeys.has(nk) && onDest) &&
-        !(emptyRouteDestPack && packPersistKeys.has(nk) && onDest)
+        !(emptyRouteDestPack && packPersistKeys.has(nk) && onDest) &&
+        !(bareOnlyRoute && packPersistKeys.has(nk))
       ) {
         continue
       }
@@ -1228,7 +1487,9 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       return { ...row, imageKeyword: persist.value }
     }
     if (lodging) {
+      // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 bare dest(Cairo)→당일 도시(Hurghada) — manifest
       const soft =
+        softDupForeignVisitCityForMiddleRoute(routeHay) ||
         softDupForeignVisitCityForMiddleRoute(priorHay) ||
         softDupForeignVisitCityForMiddleRoute(destHay) ||
         firstMatchingScheduleCityEn(destHay) ||
@@ -1371,6 +1632,7 @@ function stripOffTripReturnHubRoute<T extends RegisterPrePhotoHealRow>(rows: T[]
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
+  const tripHayAll = rows.map((r) => String(r.routeText ?? '')).join('\n')
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'return' && slot !== 'departure') return row
@@ -1380,6 +1642,20 @@ function stripOffTripReturnHubRoute<T extends RegisterPrePhotoHealRow>(rows: T[]
       .map((s) => s.trim())
       .filter((s) => s.length >= 2)
     const parts = segs.length ? segs : [route]
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 경유 허브(이스탄불·두바이) ≠ 이탈리아·시칠리아 귀국 soft-dup — manifest
+    // 귀국 route가 「두바이」만이면 own-route 검사가 이탈리아 soft-dup을 전부 비움 → route 비워 soft-dup 허용
+    const onlyTransitHub =
+      parts.length > 0 &&
+      parts.every((s) => {
+        const en = firstMatchingScheduleCityEn(s) || s
+        return (
+          shouldRejectAirlineTransitHubKeywordForTrip(en, `${tripHayAll}\n${destHay}`) ||
+          shouldRejectAirlineTransitHubKeywordForTrip(s, `${tripHayAll}\n${destHay}`)
+        )
+      })
+    if (onlyTransitHub) {
+      return { ...row, routeText: '' }
+    }
     const onTrip = parts.filter(
       (s) => !isRegisterScheduleCrossContinentHallucinationKeyword(s, destHay, rows),
     )
@@ -1720,12 +1996,29 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   ) as T[]
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: tripUnique 후 오로라 재고정·깨진 kw2 최종 비움 — manifest
   working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
-  working = working.map((row) => {
+  {
+    const edgeDays = working.filter((r) => Number(r.day) > 0)
+    const edgeMax = Math.max(...edgeDays.map((r) => Number(r.day)), 1)
+    const edgeActive = edgeDays.length
+    const tripHayForEdge = working.map((r) => String(r.routeText ?? '')).join('\n')
+    working = working.map((row) => {
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
     let nextKw = kw
     let nextKw2: string | null = kw2 || null
-    if (kw && isBrokenRegisterLandmarkKeyword(kw) && !imageKeywordMentionsAurora(kw)) {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), edgeMax, edgeActive)
+    // 출발·귀국 soft-dup bare 도시( Milan / Catania )는 lodging clear로 비우지 않음
+    const edgeBareSoftDup =
+      (slot === 'departure' || slot === 'return') &&
+      Boolean(kw) &&
+      isBareCityOrCountryKeyword(kw) &&
+      !shouldRejectAirlineTransitHubKeywordForTrip(kw, tripHayForEdge)
+    if (
+      kw &&
+      isBrokenRegisterLandmarkKeyword(kw) &&
+      !imageKeywordMentionsAurora(kw) &&
+      !edgeBareSoftDup
+    ) {
       notes.push({ day: Number(row.day), field: 'imageKeyword', reason: 'lodging_or_non_landmark' })
       nextKw = ''
     }
@@ -1748,6 +2041,15 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     }
     return { ...row, imageKeyword: nextKw, imageKeyword2: nextKw2 }
   })
+  }
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 경유 허브(이스탄불·두바이) ≠ 이탈리아·시칠리아 귀국 soft-dup — manifest
+  // lodging clear가 귀국 bare soft-dup을 비운 뒤 재채움 + 중간일 경유 허브 kw2 제거
+  working = scrubAirlineTransitHubKeywordsOffTrip(working)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 앙코르≠하노이 cross-country scrub — manifest
+  working = scrubCrossCountrySeaKeywordsOffTrip(working)
+  working = stripOffTripReturnHubRoute(working, destHay)
+  working = ensureDepartureReturnVisitCityKeywords(working, opts.productDestination) as T[]
+  working = scrubCrossCountrySeaKeywordsOffTrip(working)
   working = refillEmptyMiddleRouteFromDest(working, destHay)
   working = refillEmptyMiddleKeywordFromRoute(working, destHay)
   working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
@@ -1763,6 +2065,20 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   working = working.map(
     (row) => scrubOceanCruiseAtSeaScheduleRow(row, opts.productHaystack) as T,
   )
+
+  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+  {
+    const scrub = scrubPoisonedScheduleDayTitlesForCountryKey({
+      countryKey: opts.countryKey,
+      rows: working,
+    })
+    if (scrub.scrubbedDays.length) {
+      working = scrub.rows as T[]
+      for (const d of scrub.scrubbedDays) {
+        notes.push({ day: d, field: 'title', reason: 'hub_poison_scrub' })
+      }
+    }
+  }
 
   if (
     scheduleHasBrokenKeywords(working, {
@@ -1790,6 +2106,14 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     }
     return { ...row, description }
   })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 같은 날 kw==kw2 최종 비움 — manifest
+  // refill·align·aurora 이후 재주입된 동일 kw2 제거 + trip unique 1회
+  working = scrubSameDayDuplicateImageKeyword2(working)
+  working = enforceRegisterScheduleTripUniqueImageKeywords(working) as T[]
+  working = scrubSameDayDuplicateImageKeyword2(working)
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 앙코르≠하노이 cross-country scrub — manifest
+  working = scrubCrossCountrySeaKeywordsOffTrip(working)
 
   return { rows: working, notes, reappliedKeywords }
 }

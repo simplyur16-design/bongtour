@@ -1920,7 +1920,8 @@
             "REGRESSION-FREEZE[register-pre-photo-heal-cron-always]",
             "tickRegisterPrePhotoHealOnlyCron",
             "skipIngest: true",
-            "healLimit: 200"
+            "registerPrePhotoHealOnlyOpts",
+            "healLimit: budget.healLimit"
           ]
         },
         {
@@ -9491,6 +9492,7 @@
       "vitestSuites": [
         "lib/register-schedule-route-evidence-keyword.test.ts",
         "lib/register-schedule-trip-image-keyword-dedupe.test.ts",
+        "lib/register-schedule-angkor-hanoi-guard.test.ts",
         "lib/lottetour-schedule-germany-image-keyword.test.ts"
       ]
     },
@@ -10276,6 +10278,14 @@
             "oceaniaAuNzHardcodedPool day-route evidence",
             "hub departure soft-dup visit city not next primary",
             "return hub soft-dup visit city before unused landmark",
+            "경유 허브(이스탄불·두바이) ≠ 이탈리아·시칠리아 귀국 soft-dup",
+            "shouldRejectAirlineTransitHubKeywordForTrip",
+            "isRegisterScheduleAirlineTransitHubKeyword",
+            "scrubAirlineTransitHubKeywordsOffTrip",
+            "scrubCrossCountrySeaKeywordsOffTrip",
+            "앙코르≠하노이 cross-country scrub",
+            "scrubSameDayDuplicateImageKeyword2",
+            "같은 날 kw==kw2 최종 비움",
             "airport-transfer middle no trip landmark bleed",
             "departure forward dep-route cluster",
             "isScheduleCityLevelSoftLandmarkKeyword",
@@ -10347,6 +10357,10 @@
             "return empty route — prior tourism bare city soft-dup",
             "장가계 귀국 empty route — soft-dup Zhangjiajie",
             "홋카이도 중간일 삿포",
+            "이탈리아 중간일 kw2 Istanbul 제거 + 귀국 빈칸 재채움",
+            "시칠리아 귀국 route「두바이」만 — route 비우고 soft-dup 채움",
+            "같은 날 imageKeyword == imageKeyword2 이면 kw2 비움",
+            "scrubSameDayDuplicateImageKeyword2 — 정규화 동일 키도 제거",
             "그리스 중간일 — trip에 아부다비 있어도 Dubai keyword bleed 금지",
             "이집트 기자 스핑크스 — Jungfraujoch bleed 금지",
             "발트 승리기념탑 — Mount Rigi Swiss bleed 금지",
@@ -12154,7 +12168,8 @@
             "keyword_bare_city_repeat_other_day",
             "Banzai Cliff Saipan",
             "상해 bare → 명소 팩",
-            "edge bare도 middle soft-dup 금지"
+            "edge bare도 middle soft-dup 금지",
+            "used bare reinject 금지·허브 팩"
           ]
         },
         {
@@ -12191,7 +12206,8 @@
             "상해 bare → 명소 팩",
             "하노이·푸켓·나고야·치앙마이·보라카이·하와이·시드니·타이베이 bare → 명소 팩",
             "ownRouteHasKeyword strict for landmark dup",
-            "middle bare kw2는 반복(used)일 때만 제거"
+            "middle bare kw2는 반복(used)일 때만 제거",
+            "used bare reinject 금지·허브 팩"
           ]
         },
         {
@@ -12201,7 +12217,9 @@
             "보르도 bare 동선 식별",
             "en: \"Bordeaux\"",
             "런던 캠든·애비로드·셜록",
-            "보홀·세부·오슬로 명소 route SSOT"
+            "보홀·세부·오슬로 명소 route SSOT",
+            "유리대교(대+교)도 Glass Bridge",
+            "잔세스칸스·괴베클리·마블마운틴"
           ]
         },
         {
@@ -14032,13 +14050,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "메인 홈 — build-skip 빈 시즌/상품 셸 Full Route Cache 고착 금지 (connection + season grid empty bypass)",
+      "summary": "메인 홈 — build-skip 빈 시즌/상품/후기 셸 Full Route Cache 고착 금지 (connection + empty bypass, 리뷰 섹션 유지)",
       "checks": [
         {
           "file": "app/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
-            "await connection()"
+            "await connection()",
+            "CustomerReviewsSection"
           ],
           "mustNotInclude": [
             "force-static"
@@ -14048,7 +14067,8 @@
           "file": "app/m/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
-            "await connection()"
+            "await connection()",
+            "CustomerReviewsSection"
           ],
           "mustNotInclude": [
             "force-static"
@@ -14062,7 +14082,38 @@
             "readCachedArrayOrBypassEmpty",
             "season-product-grid-pc-v2"
           ]
+        },
+        {
+          "file": "lib/home-page-data-cached.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
+            "getCachedOverseasHomeReviewSections",
+            "readCachedSectionsOrBypassAllEmpty",
+            "packageReviews",
+            "groupReviews"
+          ],
+          "mustNotInclude": [
+            "CustomerReviewsSection"
+          ]
+        },
+        {
+          "file": "lib/season-curation-content.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
+            "getCachedSeasonLinkedProductIds",
+            "readCachedArrayOrBypassEmpty"
+          ]
+        },
+        {
+          "file": "lib/unstable-cache-empty-bypass.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-ssg-empty-poison]",
+            "readCachedSectionsOrBypassAllEmpty"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/unstable-cache-empty-bypass.test.ts"
       ]
     },
     {
@@ -22841,6 +22892,135 @@
       ]
     },
     {
+      "id": "register-ingest-same-title-dedupe",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 수집 — 같은 공급사·같은 상품명(항공사만 다른 코드) 재수집 금지",
+      "checks": [
+        {
+          "file": "lib/register-product-duplicate-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-same-title-dedupe]",
+            "normalizeRegisterIngestSameTitleKey",
+            "findExistingProductBySameTitleForRegister",
+            "registrationStatusBlocksSameTitleIngest"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-same-title-dedupe]",
+            "duplicate_title",
+            "findExistingProductBySameTitleForRegister"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-same-title-dedupe]",
+            "duplicate_title",
+            "skippedDuplicate"
+          ]
+        },
+        {
+          "file": "lib/register-product-duplicate-guard.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-same-title-dedupe]",
+            "normalizeRegisterIngestSameTitleKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-product-duplicate-guard.test.ts"
+      ]
+    },
+    {
+      "id": "register-ingest-local-departure-reserve",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어·모두투어 등록대기 — 지방출발 검색 시드 + 밤마다 최소 1건",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-ingest-geo-slots.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-reserve]",
+            "buildRegisterPrePhotoLocalDepartureIngestSlots",
+            "supplierRequiresLocalDepartureIngestReserve",
+            "부산출발"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-reserve]",
+            "local-dep-reserve-skip",
+            "prependHomepageCategoryIngestSlots"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-homepage-category-slots.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-reserve]",
+            "부산출발"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-ingest-homepage-category-slots.test.ts"
+      ]
+    },
+    {
+      "id": "register-ingest-theme-category-slots",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 수집 — 홈 테마여행(골프·러닝 등) 검색 시드와 sportsThemeTag 정합",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-ingest-geo-slots.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
+            "buildRegisterPrePhotoThemeIngestSlots",
+            "sportsThemeKeyFromIngestSlot",
+            "골프"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
+            "themeHintKeys",
+            "sportsThemeKeyFromIngestSlot"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
+            "inferSportsThemeTagsFromListingHaystack",
+            "sportsThemeTag"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
+            "inferSportsThemeTagsFromListingHaystack",
+            "sportsThemeTag"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-ingest-homepage-category-slots.test.ts",
+        "lib/product-listing-kind.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-description-no-repeated-closer",
       "tier": [
         "prebuild",
@@ -23197,6 +23377,53 @@
       ],
       "vitestSuites": [
         "lib/prisma-retry.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-ingest-db-budget",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "야간 listing ingest·대량 heal이 Supabase 풀을 잠식해 eSIM·홈이 느려지지 않도록 heal 상한·probe off·worker Prisma 2·동시 틱 배제",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-ingest-db-budget.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]",
+            "REGISTER_PRE_PHOTO_INGEST_NIGHT_HEAL_LIMIT",
+            "registerPrePhotoIngestNightHealOpts",
+            "probeImageUrls: false"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]",
+            "registerPrePhotoIngestNightHealOpts",
+            "registerPrePhotoHealOnlyOpts",
+            "ingest night tick running"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]",
+            "REGISTER_PRE_PHOTO_HEAL_ITINERARY_DAY_CAP",
+            "yieldRegisterPrePhotoHealBudget"
+          ]
+        },
+        {
+          "file": "lib/prisma-connection-limit.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]",
+            "PRODUCTION_WORKER_DEFAULT"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-ingest-db-budget.test.ts",
+        "lib/prisma-connection-limit.test.ts"
       ]
     },
     {

@@ -421,6 +421,34 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
     }
   }
 
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 앙코르≠하노이 cross-country scrub — manifest
+  // 캄보디아(앙코르·씨엠립) only — 하노이·하롱·다낭 등 베트남 키워드 bleed 차단
+  {
+    const tripHayLocal = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const cambodiaTrip =
+      /앙코르|Angkor|씨엠립|시엠립|Siem\s*Reap|캄보디아|Cambodia|톤레|Tonle|프놈펜|Phnom/i.test(dest) ||
+      /앙코르|Angkor|씨엠립|시엠립|Siem\s*Reap|캄보디아|Cambodia|톤레|Tonle|프놈펜|Phnom/i.test(tripHayLocal)
+    const vietnamTrip =
+      /하노이|Hanoi|하롱|Halong|다\s*낭|Da\s*Nang|호이\s*안|Hoi\s*An|푸꾸옥|Phu\s*Quoc|나트랑|Nha\s*Trang|호치민|베트남|Vietnam|사파|Sapa/i.test(
+        tripHayLocal,
+      ) ||
+      /하노이|Hanoi|하롱|Halong|다\s*낭|Da\s*Nang|베트남|Vietnam/i.test(dest)
+    if (
+      cambodiaTrip &&
+      !vietnamTrip &&
+      haystacks.some((h) =>
+        /하노이|Hanoi|호안끼엠|Hoan\s*Kiem|하롱|Halong|다\s*낭|Da\s*Nang|호이\s*안|Hoi\s*An|푸꾸옥|Phu\s*Quoc|나트랑|Nha\s*Trang|호치민|Vietnam|베트남|Train\s*Street|Temple\s*of\s*Literature/i.test(
+          h,
+        ),
+      )
+    ) {
+      return true
+    }
+  }
+
   // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: 돗토리·시마네·규슈·간사이 일정 Mount Fuji 환각 — manifest
   if (ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest) || /일본|Japan/i.test(dest)) {
     const tripHay = (scheduleRows ?? [])

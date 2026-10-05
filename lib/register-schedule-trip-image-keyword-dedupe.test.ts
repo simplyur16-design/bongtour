@@ -9,6 +9,8 @@ import {
   ensureDepartureReturnVisitCityKeywords,
   fillRegisterScheduleMiddleDayImageKeywordGaps,
   sanitizeRegisterScheduleImageKeywordsOnDomesticHubOnlyDays,
+  scrubCrossCountrySeaKeywordsOffTrip,
+  scrubSameDayDuplicateImageKeyword2,
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { MODETOUR_BA_NA_HILLS_REGRESSION_ROWS } from '@/lib/schedule-image-keyword-dual-slot-contract'
@@ -592,6 +594,76 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
       expect(String(row.imageKeyword ?? '').length).toBeGreaterThanOrEqual(4)
       expect(String(row.imageKeyword2 ?? '').length).toBeGreaterThanOrEqual(4)
     }
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 앙코르≠하노이 cross-country scrub — manifest
+  it('캄보디아-only 앙코르 — 귀국 soft-dup이 하노이가 아니라 씨엠립', () => {
+    const rows = [
+      { day: 1, routeText: '인천 - 씨엠립', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '씨엠립 - 앙코르와트 - 바이욘',
+        imageKeyword: 'Angkor Wat Cambodia temple sunrise',
+        imageKeyword2: 'Bayon temple Angkor Cambodia stone faces',
+      },
+      {
+        day: 3,
+        routeText: '씨엠립 - 타프롬 - 톤레삽',
+        imageKeyword: 'Ta Prohm temple Angkor Cambodia jungle roots',
+        imageKeyword2: 'Tonle Sap lake floating village Cambodia',
+      },
+      { day: 4, routeText: '씨엠립 - 인천', imageKeyword: '', imageKeyword2: null },
+    ]
+    const out = ensureDepartureReturnVisitCityKeywords(rows)
+    const ret = out.find((r) => r.day === 4)!
+    expect(String(ret.imageKeyword ?? '')).toMatch(/Siem\s*Reap|Angkor|Phnom/i)
+    expect(String(ret.imageKeyword ?? '')).not.toMatch(/Hanoi|하노이/i)
+    for (const row of out) {
+      const blob = `${row.imageKeyword ?? ''} ${row.imageKeyword2 ?? ''}`
+      expect(blob).not.toMatch(/Hanoi|하노이|Halong|하롱|Da\s*Nang|다낭/i)
+    }
+  })
+
+  it('캄보디아-only에 심어진 하노이 kw는 scrubCrossCountrySeaKeywordsOffTrip이 제거', () => {
+    const rows = [
+      { day: 1, routeText: '인천 - 씨엠립', imageKeyword: 'Siem Reap', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '앙코르와트',
+        imageKeyword: 'Hanoi Old Quarter',
+        imageKeyword2: 'Angkor Wat Cambodia temple sunrise',
+      },
+      { day: 3, routeText: '씨엠립 - 인천', imageKeyword: 'Hanoi', imageKeyword2: null },
+    ]
+    const out = scrubCrossCountrySeaKeywordsOffTrip(rows)
+    expect(String(out.find((r) => r.day === 2)!.imageKeyword ?? '')).toMatch(/Angkor/i)
+    expect(String(out.find((r) => r.day === 2)!.imageKeyword ?? '')).not.toMatch(/Hanoi/i)
+    expect(String(out.find((r) => r.day === 3)!.imageKeyword ?? '')).not.toMatch(/Hanoi/i)
+  })
+
+  it('베트남 공항 환승 멘트만 있어도 앙코르 귀국 Hanoi는 scrub', () => {
+    const rows = [
+      {
+        day: 1,
+        routeText: '노다현 호스트 - 베트남 공항 환승방법 - 씨엠립 입국 수속 절차',
+        imageKeyword: 'Angkor Wat Cambodia Temple',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        routeText: '앙코르왓 - 바이욘 사원',
+        imageKeyword: 'Bayon Temple Angkor Cambodia Stone Faces',
+        imageKeyword2: null,
+      },
+      {
+        day: 5,
+        routeText: '앙코르와트 국제 하프 마라톤 출발 및 인천 귀국',
+        imageKeyword: 'Hanoi',
+        imageKeyword2: null,
+      },
+    ]
+    const out = scrubCrossCountrySeaKeywordsOffTrip(rows)
+    expect(String(out.find((r) => r.day === 5)!.imageKeyword ?? '')).not.toMatch(/Hanoi/i)
   })
 
   it('싱가포르 일정 — tripHay SEA라도 당일 route에 없는 Phu Quoc/Nha Trang 미주입', () => {
@@ -1675,5 +1747,170 @@ describe('enforceRegisterScheduleTripUniqueImageKeywords', () => {
     const blob = out.map((r) => `${r.imageKeyword ?? ''} ${r.imageKeyword2 ?? ''}`).join(' | ')
     expect(blob).not.toMatch(/Vang Vieng|Patuxai|Pha That Luang/i)
     expect(blob).toMatch(/Maldives|Joy Island|overwater|lagoon/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 경유 허브(이스탄불·두바이) ≠ 이탈리아·시칠리아 귀국 soft-dup — manifest
+  it('이탈리아 경유 이스탄불 — 귀국일 Istanbul soft-dup 금지', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '이스탄불 - 로마',
+          title: '이스탄불 · 로마',
+          imageKeyword: 'Colosseum Rome Amphitheater',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '로마 - 피렌체',
+          imageKeyword: 'Florence Duomo Historic Center',
+          imageKeyword2: null,
+        },
+        {
+          day: 9,
+          routeText: '밀라노 - 이스탄불',
+          title: '밀라노 · 이스탄불',
+          imageKeyword: 'Milan Cathedral Duomo Square',
+          imageKeyword2: null,
+        },
+        { day: 10, routeText: '', title: '귀국', imageKeyword: 'Istanbul', imageKeyword2: null },
+      ],
+      '이탈리아',
+    )
+    const last = out.find((r) => r.day === 10)
+    expect(String(last?.imageKeyword ?? '')).not.toMatch(/Istanbul|Blue Mosque/i)
+    expect(String(last?.imageKeyword ?? '')).toMatch(/Milan|Rome|Florence|Venice|Colosseum|Duomo/i)
+  })
+
+  it('시칠리아·몰타 경유 두바이 — 출발·귀국 Dubai 반복 금지', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        { day: 1, routeText: '', imageKeyword: 'Dubai', imageKeyword2: null },
+        {
+          day: 2,
+          routeText: '두바이 - 카타니아 - 타오르미나',
+          imageKeyword: 'Catania Mount Etna',
+          imageKeyword2: null,
+        },
+        {
+          day: 7,
+          routeText: '슬리에마 - 발레타 - 임디나',
+          imageKeyword: 'Valletta Malta Fort',
+          imageKeyword2: null,
+        },
+        { day: 10, routeText: '두바이', title: '귀국', imageKeyword: 'Dubai', imageKeyword2: null },
+      ],
+      '이탈리아',
+    )
+    const d1 = String(out.find((r) => r.day === 1)?.imageKeyword ?? '')
+    const d10 = String(out.find((r) => r.day === 10)?.imageKeyword ?? '')
+    expect(d10).not.toMatch(/^Dubai$/i)
+    expect(d10).toMatch(/Catania|Valletta|Palermo|Malta|Etna|Taormina|Sicily/i)
+    // 출발·귀국이 둘 다 bare Dubai 이면 안 됨
+    expect(d1 === 'Dubai' && d10 === 'Dubai').toBe(false)
+  })
+
+  it('시칠리아 귀국 route「두바이」만 — route 비우고 soft-dup 채움', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        { day: 1, routeText: '', imageKeyword: '', imageKeyword2: null },
+        {
+          day: 2,
+          routeText: '두바이 - 카타니아 - 타오르미나',
+          imageKeyword: 'Catania Mount Etna',
+          imageKeyword2: null,
+        },
+        {
+          day: 7,
+          routeText: '슬리에마 - 발레타',
+          imageKeyword: 'Valletta Malta Fort',
+          imageKeyword2: null,
+        },
+        { day: 10, routeText: '두바이', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '이탈리아',
+    )
+    const d10 = out.find((r) => r.day === 10)
+    expect(String(d10?.imageKeyword ?? '').trim()).toBeTruthy()
+    expect(String(d10?.imageKeyword ?? '')).not.toMatch(/Dubai|두바이/i)
+    const d1 = String(out.find((r) => r.day === 1)?.imageKeyword ?? '')
+    // 출발도 경유 허브가 아닌 시칠리아 방문도시로 채움
+    expect(d1.trim()).toBeTruthy()
+    expect(d1).not.toMatch(/Dubai|두바이/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 같은 날 kw==kw2 최종 비움 — manifest
+  it('같은 날 imageKeyword == imageKeyword2 이면 kw2 비움', () => {
+    const out = enforceRegisterScheduleTripUniqueImageKeywords([
+      {
+        day: 1,
+        routeText: '샌프란시스코',
+        imageKeyword: 'Palace of Fine Arts',
+        imageKeyword2: null,
+      },
+      {
+        day: 2,
+        routeText: '요세미티',
+        imageKeyword: 'Yosemite Valley',
+        imageKeyword2: 'Half Dome',
+      },
+      {
+        day: 9,
+        routeText: '샌프란시스코 - 팰리스 오브 파인 아츠',
+        imageKeyword: 'Palace of Fine Arts',
+        imageKeyword2: 'Palace of Fine Arts',
+      },
+    ])
+    const d9 = out.find((r) => r.day === 9)
+    expect(String(d9?.imageKeyword2 ?? '').trim()).toBe('')
+    // primary는 trip-unique로 교체될 수 있으나 kw2와 동일하면 안 됨
+    const kw = String(d9?.imageKeyword ?? '').trim()
+    const kw2 = String(d9?.imageKeyword2 ?? '').trim()
+    expect(kw && kw2 && kw.toLowerCase() === kw2.toLowerCase()).toBeFalsy()
+  })
+
+  it('scrubSameDayDuplicateImageKeyword2 — 정규화 동일 키도 제거', () => {
+    const out = scrubSameDayDuplicateImageKeyword2([
+      { day: 2, imageKeyword: 'Fuzhou', imageKeyword2: 'Fuzhou' },
+      {
+        day: 3,
+        imageKeyword: 'Mount Rigi Switzerland Cogwheel Railway',
+        imageKeyword2: 'Mount Rigi Switzerland Cogwheel Railway',
+      },
+    ])
+    expect(out[0].imageKeyword2).toBeNull()
+    expect(out[1].imageKeyword2).toBeNull()
+  })
+
+  it('이탈리아 중간일 kw2 Istanbul 제거 + 귀국 빈칸 재채움', () => {
+    const out = ensureDepartureReturnVisitCityKeywords(
+      [
+        {
+          day: 1,
+          routeText: '이스탄불 - 로마',
+          imageKeyword: 'Colosseum Rome Amphitheater',
+          imageKeyword2: null,
+        },
+        {
+          day: 2,
+          routeText: '로마 - 피렌체',
+          imageKeyword: 'Florence Duomo Historic Center',
+          imageKeyword2: null,
+        },
+        {
+          day: 9,
+          routeText: '밀라노 - 이스탄불',
+          imageKeyword: 'Milan Cathedral Duomo Square',
+          imageKeyword2: 'Istanbul',
+        },
+        { day: 10, routeText: '', title: '귀국', imageKeyword: '', imageKeyword2: null },
+      ],
+      '이탈리아',
+    )
+    const d9 = out.find((r) => r.day === 9)
+    expect(String(d9?.imageKeyword2 ?? '')).not.toMatch(/Istanbul/i)
+    const last = out.find((r) => r.day === 10)
+    expect(String(last?.imageKeyword ?? '').trim()).toBeTruthy()
+    expect(String(last?.imageKeyword ?? '')).not.toMatch(/Istanbul|Blue Mosque/i)
   })
 })

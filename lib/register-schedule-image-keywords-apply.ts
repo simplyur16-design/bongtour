@@ -28,7 +28,7 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSegment } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup, allowFansipanRouteRevisitSoftDup, departureKeepsMultiTourismKeyword2 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, scrubSameDayDuplicateImageKeyword2, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup, allowFansipanRouteRevisitSoftDup, departureKeepsMultiTourismKeyword2 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import {
@@ -410,7 +410,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       routeText: sanitizeRegisterScheduleRouteText(rawRoute ?? row.routeText),
     }
   })
-  if (!isPackageListing) return finalSanitized
+  if (!isPackageListing) {
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 같은 날 kw==kw2 최종 비움 — manifest
+    return scrubSameDayDuplicateImageKeyword2(finalSanitized)
+  }
 
   // 최종 strip·refill이 landmark를 재주입할 수 있으므로 출력 직전 exact trip-unique를 한 번 더 고정.
   // 중복 landmark는 당일/여행 방문도시 soft-dup으로 교체한다(빈칸·타일 명소 유입보다 우선).
@@ -418,7 +421,8 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
   // bare 방문도시 soft-dup은 출발·귀국↔호텔/공항이동 중간일만 — Osaka D2 관광일 soft-dup 금지
   const used = new Map<string, number>()
-  return finalSanitized.map((row) => {
+  return scrubSameDayDuplicateImageKeyword2(
+    finalSanitized.map((row) => {
     const day = Number(row.day)
     let kw = String(row.imageKeyword ?? '').trim()
     let kw2 = String(row.imageKeyword2 ?? '').trim()
@@ -512,10 +516,15 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
     }
     const finalNk2 = normScheduleImageKeywordKey(kw2)
     if (finalNk2) used.set(finalNk2, day)
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 같은 날 kw==kw2 최종 비움 — manifest
+    if (kw && kw2 && normScheduleImageKeywordKey(kw) === normScheduleImageKeywordKey(kw2)) {
+      kw2 = ''
+    }
     return {
       ...row,
       imageKeyword: kw,
       imageKeyword2: kw2 || null,
     }
-  })
+  }),
+  )
 }
