@@ -363,7 +363,7 @@ export async function POST(request: Request) {
       amountKrw,
       guestName: draft.guestName,
       propertyName:
-        draft.propertyNameKo || draft.propertyNameEn || draft.propertyOrService || null,
+        draft.propertyNameKo || draft.propertyNameEn || draft.propertyName || null,
     })
     return NextResponse.json({
       ok: true,
@@ -417,7 +417,7 @@ export async function POST(request: Request) {
     amountUsd: sourceAmountUsd,
     amountKrw: draft.totalKrw,
     guestName: draft.guestName,
-    propertyName: draft.propertyOrService,
+    propertyName: draft.serviceDescription || parsed.propertyOrService || null,
   })
 
   return NextResponse.json({

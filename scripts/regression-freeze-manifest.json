@@ -23994,7 +23994,11 @@
           "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-issued-archive]",
-            "persistAdminOtaIssuedDocument"
+            "persistAdminOtaIssuedDocument",
+            "draft.propertyName"
+          ],
+          "mustNotInclude": [
+            "draft.propertyOrService"
           ]
         },
         {
