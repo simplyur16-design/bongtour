@@ -151,7 +151,7 @@ export default function OtaInvoiceAdminClient() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <AdminPageHeader
         title="OTA → 회사 인보이스 / 체크인 바우처"
-        description="Trip.com·Agoda 영수증·바우처를 봉투어 양식으로 바꿉니다. 달러 금액은 입력일 환율로 원화 환산합니다."
+        subtitle="Trip.com·Agoda 영수증·바우처를 봉투어 양식으로 바꿉니다. 달러 금액은 입력일 환율로 원화 환산합니다."
       />
 
       <section className={`${ADMIN_CARD_CLASS} space-y-4 p-5`}>
