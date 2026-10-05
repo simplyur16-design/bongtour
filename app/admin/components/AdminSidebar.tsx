@@ -114,7 +114,7 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/inquiries', label: '문의 접수', icon: Inbox },
   { type: 'link', href: '/admin/reviews', label: '회원 여행 후기', icon: Star },
   { type: 'link', href: '/admin/bookings', label: '상담·예약', icon: MessageCircle },
-  { type: 'link', href: '/admin/invoices', label: 'OTA 인보이스', icon: FileText },
+  { type: 'link', href: '/admin/invoices', label: 'OTA 인보이스/바우처', icon: FileText },
   { type: 'link', href: '/admin/scheduler-settings', label: '스케줄러·보안', icon: Settings },
 ]
 

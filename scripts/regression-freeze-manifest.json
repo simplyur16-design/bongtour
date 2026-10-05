@@ -24256,6 +24256,17 @@
         "lib/register-facts/product-kind.test.ts",
         "lib/product-listing-kind.test.ts"
       ]
+    },
+    {
+      "id": "admin-ota-receipt-invoice",
+      "tier": [
+        "ci"
+      ],
+      "summary": "Trip.com/Agoda 영수증·체크인바우처 → 봉투어 문서(+USD 입력일 환율)",
+      "files": [
+        "lib/bongtour-company-invoice.test.ts",
+        "lib/bongtour-usd-krw-rate.ts"
+      ]
     }
   ]
 }
