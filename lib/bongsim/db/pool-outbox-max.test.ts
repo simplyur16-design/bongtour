@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   resolveBongsimCatalogPoolMax,
+  resolveBongsimOutboxDatabaseUrl,
   resolveBongsimOutboxPoolMax,
   resolveBongsimOutboxPoolMaxClamped,
   resolveBongsimPoolMax,
 } from "@/lib/bongsim/db/pool";
 
 // REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: outbox pool max — manifest
+// REGRESSION-FREEZE[bongsim-outbox-direct-url]: DIRECT_URL preferred — manifest
 
 describe("resolveBongsimOutboxPoolMax", () => {
   const prev = process.env.BONGSIM_OUTBOX_POOL_MAX;
@@ -26,6 +28,33 @@ describe("resolveBongsimOutboxPoolMax", () => {
     expect(resolveBongsimOutboxPoolMax()).toBe(3);
     process.env.BONGSIM_OUTBOX_POOL_MAX = "99";
     expect(resolveBongsimOutboxPoolMax()).toBe(2);
+  });
+});
+
+describe("resolveBongsimOutboxDatabaseUrl", () => {
+  const prevDedicated = process.env.BONGSIM_OUTBOX_DATABASE_URL;
+  const prevDirect = process.env.DIRECT_URL;
+  const prevDb = process.env.DATABASE_URL;
+
+  afterEach(() => {
+    if (prevDedicated === undefined) delete process.env.BONGSIM_OUTBOX_DATABASE_URL;
+    else process.env.BONGSIM_OUTBOX_DATABASE_URL = prevDedicated;
+    if (prevDirect === undefined) delete process.env.DIRECT_URL;
+    else process.env.DIRECT_URL = prevDirect;
+    if (prevDb === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = prevDb;
+  });
+
+  it("prefers dedicated → DIRECT → DATABASE_URL", () => {
+    // REGRESSION-FREEZE[bongsim-outbox-direct-url]: prefer DIRECT over pooler — manifest
+    process.env.BONGSIM_OUTBOX_DATABASE_URL = "postgres://outbox";
+    process.env.DIRECT_URL = "postgres://direct";
+    process.env.DATABASE_URL = "postgres://pooler";
+    expect(resolveBongsimOutboxDatabaseUrl()).toBe("postgres://outbox");
+    delete process.env.BONGSIM_OUTBOX_DATABASE_URL;
+    expect(resolveBongsimOutboxDatabaseUrl()).toBe("postgres://direct");
+    delete process.env.DIRECT_URL;
+    expect(resolveBongsimOutboxDatabaseUrl()).toBe("postgres://pooler");
   });
 });
 

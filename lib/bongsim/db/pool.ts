@@ -235,18 +235,63 @@ export function getPgPool(): Pool | null {
 }
 
 /**
+ * 발급·SMS outbox 전용 URL — pooler 포화와 무관하게 DIRECT를 우선한다.
+ * REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: outbox prefers DIRECT_URL — manifest
+ * REGRESSION-FREEZE[bongsim-outbox-direct-url]: resolveBongsimOutboxDatabaseUrl — manifest
+ */
+export function resolveBongsimOutboxDatabaseUrl(): string | null {
+  const preferred =
+    process.env.BONGSIM_OUTBOX_DATABASE_URL?.trim() ||
+    process.env.DIRECT_URL?.trim() ||
+    process.env.DATABASE_URL?.trim() ||
+    "";
+  return preferred || null;
+}
+
+function buildOutboxPoolConfig(): PoolConfig | null {
+  let url = resolveBongsimOutboxDatabaseUrl();
+  if (!url) return null;
+
+  url = url.replace(/[?&]sslmode=[^&]*/gi, "").replace(/\?$/, "");
+
+  // DIRECT/session 은 transaction pooler로 바꾸지 않는다 — 카탈로그 pooler 포화가 SMS를 죽이던 재발 차단.
+  const usingDedicated =
+    Boolean(process.env.BONGSIM_OUTBOX_DATABASE_URL?.trim()) ||
+    Boolean(process.env.DIRECT_URL?.trim());
+  if (!usingDedicated) {
+    url = rewriteSupabaseSessionPoolerToTransaction(url);
+  }
+
+  const useTxnPooler = isTransactionPoolerUrl(url);
+  const sslStrict = getSslRejectUnauthorized();
+
+  const cfg: PoolConfig & { prepareThreshold?: number } = {
+    connectionString: url,
+    max: resolveBongsimOutboxPoolMaxClamped(),
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: resolveBongsimPoolConnectTimeoutMs(),
+    ssl: sslStrict ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+  };
+  if (useTxnPooler) {
+    cfg.prepareThreshold = 0;
+  }
+  return cfg;
+}
+
+/**
  * OrderPaid·EsimQrNotify drain 전용 풀.
- * 카탈로그 풀이 포화여도 발송 큐를 집어 솔라피로 보낼 수 있게 한다.
+ * DIRECT_URL 우선 — 카탈로그 transaction pooler 포화여도 솔라피까지 보낸다.
  * REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: getBongsimOutboxPool — manifest
+ * REGRESSION-FREEZE[bongsim-outbox-direct-url]: outbox pool uses DIRECT — manifest
  */
 export function getBongsimOutboxPool(): Pool | null {
   const existing = getCachedOutboxPool();
   if (existing) return existing;
 
-  const cfg = buildPoolConfig();
+  const cfg = buildOutboxPoolConfig();
   if (!cfg) return null;
 
-  const next = new Pool({ ...cfg, max: resolveBongsimOutboxPoolMaxClamped() });
+  const next = new Pool(cfg);
   setCachedOutboxPool(next);
   return next;
 }

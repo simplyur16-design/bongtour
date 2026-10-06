@@ -2758,7 +2758,9 @@
             "getBongsimFulfillOutboxPool",
             "resolveBongsimOutboxPoolMax",
             "resolveBongsimCatalogPoolMax",
-            "resolveBongsimOutboxPoolMaxClamped"
+            "resolveBongsimOutboxPoolMaxClamped",
+            "resolveBongsimOutboxDatabaseUrl",
+            "REGRESSION-FREEZE[bongsim-outbox-direct-url]"
           ]
         },
         {
@@ -2773,6 +2775,32 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]",
             "getBongsimFulfillOutboxPool"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/db/pool-outbox-max.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-outbox-direct-url",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "EsimQrNotify·OrderPaid outbox 풀은 DIRECT_URL 우선 — transaction pooler 포화로 SMS가 죽지 않게",
+      "checks": [
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-outbox-direct-url]",
+            "resolveBongsimOutboxDatabaseUrl",
+            "buildOutboxPoolConfig",
+            "DIRECT_URL",
+            "BONGSIM_OUTBOX_DATABASE_URL"
+          ],
+          "mustNotInclude": [
+            "const cfg = buildPoolConfig();\n  if (!cfg) return null;\n\n  const next = new Pool({ ...cfg, max: resolveBongsimOutboxPoolMaxClamped() });"
           ]
         }
       ],
