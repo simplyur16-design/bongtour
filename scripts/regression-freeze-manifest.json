@@ -23930,7 +23930,12 @@
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
             "resolveBongtourLogoUrl",
-            "CASH (Prepaid)"
+            "CASH (Prepaid)",
+            "resolveLockedOtaAmountFromParsed",
+            "normalizeOtaCompanyInvoiceFees",
+            "parseOtaPaymentDateYmd",
+            "otaStayKrw",
+            "hotelReservationFeeKrw"
           ],
           "mustNotInclude": [
             "node:fs",
@@ -23956,7 +23961,10 @@
           "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "bongtour-company-invoice-logo-server"
+            "bongtour-company-invoice-logo-server",
+            "resolveLockedOtaAmountFromParsed",
+            "ota_amount_required",
+            "paymentDate"
           ],
           "mustNotInclude": [
             "persistAdminOtaIssuedDocument"
@@ -23966,7 +23974,10 @@
           "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "@/lib/bongtour-company-invoice"
+            "@/lib/bongtour-company-invoice",
+            "hotelReservationFeeKrw",
+            "visaApplied",
+            "결제당일"
           ],
           "mustNotInclude": [
             "bongtour-company-invoice-logo-server",
@@ -24506,7 +24517,7 @@
       "tier": [
         "ci"
       ],
-      "summary": "Trip.com/Agoda 영수증·체크인바우처 → 봉투어 문서(입력금액=합계, USD 입력일 환율)",
+      "summary": "Trip.com/Agoda 영수증·체크인바우처 → 봉투어 문서(OTA금액하드잠금·결제당일환율·인보이스수수료)",
       "files": [
         "lib/bongtour-company-invoice.test.ts",
         "lib/bongtour-usd-krw-rate.ts"

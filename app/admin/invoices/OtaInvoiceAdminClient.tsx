@@ -1,7 +1,7 @@
 'use client'
 // REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 바우처 클라 — company-invoice만 import(로고 서버 모듈 금지) — manifest
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
 import { ADMIN_CARD_CLASS } from '@/lib/admin-design-system'
 import type {
@@ -91,10 +91,16 @@ export default function OtaInvoiceAdminClient() {
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
   const [note, setNote] = useState('')
-  const [sourceAmountKrw, setSourceAmountKrw] = useState('')
   const [amountUsd, setAmountUsd] = useState('')
   const [nightRateUsd, setNightRateUsd] = useState('')
+  const [sourceAmountKrw, setSourceAmountKrw] = useState('')
   const [rateDate, setRateDate] = useState(todaySeoulYmd)
+  const [hotelReservationFeeKrw, setHotelReservationFeeKrw] = useState('')
+  const [airTicketingFeeKrw, setAirTicketingFeeKrw] = useState('')
+  const [travelInsuranceKrw, setTravelInsuranceKrw] = useState('')
+  const [visaApplied, setVisaApplied] = useState(false)
+  const [visaFeeKrw, setVisaFeeKrw] = useState('')
+  const [visaAgencyFeeKrw, setVisaAgencyFeeKrw] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState<OtaCompanyInvoiceDraft | OtaCompanyCheckInVoucherDraft | null>(
@@ -177,41 +183,21 @@ export default function OtaInvoiceAdminClient() {
     if (!p.propertyNameKo && !p.propertyNameEn && p.propertyOrService) {
       setPropertyNameEn((prev) => prev.trim() || p.propertyOrService || '')
     }
-    // 객실·체크인/아웃은 PDF 원문(한/영) 그대로 — 폼에는 표시만, 덮어쓰지 않음
     const roomShow = [p.roomTypeKo, p.roomTypeEn].filter(Boolean).join(' / ') || p.roomType
     if (roomShow) setRoomType((prev) => prev.trim() || roomShow)
     const checkInShow = [p.checkInKo, p.checkInEn].filter(Boolean).join(' / ') || p.checkIn
     if (checkInShow) setCheckIn((prev) => prev.trim() || checkInShow)
     const checkOutShow = [p.checkOutKo, p.checkOutEn].filter(Boolean).join(' / ') || p.checkOut
     if (checkOutShow) setCheckOut((prev) => prev.trim() || checkOutShow)
-    if (p.nightRateUsd != null) {
-      setNightRateUsd((prev) => prev.trim() || String(p.nightRateUsd))
-    }
-    const autoTotal = computeVoucherTotalUsdFromNightRate(
-      p.nightRateUsd,
-      p.nights,
-    )
-    if (p.totalUsd != null) {
-      setAmountUsd((prev) => prev.trim() || String(p.totalUsd))
-    } else if (autoTotal != null) {
-      setAmountUsd((prev) => prev.trim() || String(autoTotal))
-    }
+    if (p.nightRateUsd != null) setNightRateUsd(String(p.nightRateUsd))
+    const autoTotal = computeVoucherTotalUsdFromNightRate(p.nightRateUsd, p.nights)
+    if (p.totalUsd != null) setAmountUsd(String(p.totalUsd))
+    else if (autoTotal != null) setAmountUsd(String(autoTotal))
+    if (p.sourceAmountKrw != null) setSourceAmountKrw(String(p.sourceAmountKrw))
+    if (p.paymentDate) setRateDate(p.paymentDate)
   }, [])
 
   const parsedNights = parsed?.nights ?? null
-  const nightRateNum = useMemo(() => {
-    const n = Number(String(nightRateUsd).replace(/,/g, '').trim())
-    return Number.isFinite(n) && n > 0 ? n : null
-  }, [nightRateUsd])
-  const autoTotalFromNight = useMemo(
-    () => computeVoucherTotalUsdFromNightRate(nightRateNum, parsedNights),
-    [nightRateNum, parsedNights],
-  )
-
-  useEffect(() => {
-    if (autoTotalFromNight == null) return
-    setAmountUsd(String(autoTotalFromNight))
-  }, [autoTotalFromNight])
 
   const submit = useCallback(async () => {
     setBusy(true)
@@ -230,11 +216,19 @@ export default function OtaInvoiceAdminClient() {
           [propertyNameKo.trim(), propertyNameEn.trim()].filter(Boolean).join(' / '),
         )
       }
-      // 객실·체크인/아웃은 PDF 추출값 그대로 사용 (폼 덮어쓰기 없음)
       if (note.trim()) form.set('note', note.trim())
-      if (sourceAmountKrw.trim()) form.set('sourceAmountKrw', sourceAmountKrw.trim())
-      if (amountUsd.trim()) form.set('amountUsd', amountUsd.trim())
-      if (nightRateUsd.trim()) form.set('nightRateUsd', nightRateUsd.trim())
+      if (documentKind === 'invoice') {
+        if (hotelReservationFeeKrw.trim()) {
+          form.set('hotelReservationFeeKrw', hotelReservationFeeKrw.trim())
+        }
+        if (airTicketingFeeKrw.trim()) form.set('airTicketingFeeKrw', airTicketingFeeKrw.trim())
+        if (travelInsuranceKrw.trim()) form.set('travelInsuranceKrw', travelInsuranceKrw.trim())
+        form.set('visaApplied', visaApplied ? '1' : '0')
+        if (visaApplied && visaFeeKrw.trim()) form.set('visaFeeKrw', visaFeeKrw.trim())
+        if (visaApplied && visaAgencyFeeKrw.trim()) {
+          form.set('visaAgencyFeeKrw', visaAgencyFeeKrw.trim())
+        }
+      }
       for (const f of files) form.append('file', f)
       const res = await fetch('/api/admin/invoices/from-ota-receipt', { method: 'POST', body: form })
       const json = await readJsonResponse<ApiOk & {
@@ -242,6 +236,7 @@ export default function OtaInvoiceAdminClient() {
         error?: string
         parsed?: OtaReceiptParsedAmount
         fx?: FxInfo
+        paymentDateFromOta?: boolean
       }>(res)
       if (json.fx) setFx(json.fx)
       if (json.parsed) {
@@ -258,7 +253,9 @@ export default function OtaInvoiceAdminClient() {
       setSavedInfo(null)
       setSaveError(null)
       if (json.warning) setError(json.warning)
-      if ('sourceAmountKrw' in json.draft && !sourceAmountKrw.trim() && json.draft.sourceAmountKrw) {
+      if ('otaStayKrw' in json.draft && json.draft.otaStayKrw != null) {
+        setSourceAmountKrw(String(json.draft.otaStayKrw))
+      } else if ('sourceAmountKrw' in json.draft && json.draft.sourceAmountKrw) {
         setSourceAmountKrw(String(json.draft.sourceAmountKrw))
       }
       if ('nightRateUsd' in json.draft && json.draft.nightRateUsd != null) {
@@ -266,6 +263,9 @@ export default function OtaInvoiceAdminClient() {
       }
       if ('amountUsd' in json.draft && json.draft.amountUsd != null) {
         setAmountUsd(String(json.draft.amountUsd))
+      }
+      if ('sourceAmountUsd' in json.draft && json.draft.sourceAmountUsd != null) {
+        setAmountUsd(String(json.draft.sourceAmountUsd))
       }
     } catch (e) {
       setDraft(null)
@@ -286,10 +286,13 @@ export default function OtaInvoiceAdminClient() {
     propertyNameKo,
     propertyNameEn,
     note,
-    sourceAmountKrw,
-    amountUsd,
-    nightRateUsd,
     rateDate,
+    hotelReservationFeeKrw,
+    airTicketingFeeKrw,
+    travelInsuranceKrw,
+    visaApplied,
+    visaFeeKrw,
+    visaAgencyFeeKrw,
     applyParsedToForm,
   ])
 
@@ -446,55 +449,112 @@ export default function OtaInvoiceAdminClient() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-medium text-zinc-800">
-            1박 금액 (USD)
+            1박 금액 (USD · OTA 전용)
             <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
               value={nightRateUsd}
-              onChange={(e) => setNightRateUsd(e.target.value)}
-              placeholder="예: 157.20"
+              readOnly
+              placeholder="PDF에서 자동"
             />
-            <span className="mt-1 block text-xs font-normal text-zinc-500">
-              {parsedNights != null
-                ? `PDF 숙박 ${parsedNights}박 × 1박 = 총액 자동`
-                : 'PDF에서 박수 확인 후 총액 자동 계산'}
-            </span>
           </label>
           <label className="text-sm font-medium text-zinc-800">
-            총 금액 (USD)
+            총 금액 (USD · OTA 전용)
             <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
               value={amountUsd}
-              onChange={(e) => setAmountUsd(e.target.value)}
-              placeholder={
-                autoTotalFromNight != null
-                  ? `자동 ${autoTotalFromNight}`
-                  : isVoucher
-                    ? '1박×박수 자동'
-                    : '선택 · 입력 시 환율 환산 = 합계'
-              }
-              readOnly={isVoucher && autoTotalFromNight != null}
+              readOnly
+              placeholder="PDF에서 자동"
             />
           </label>
           <label className="text-sm font-medium text-zinc-800 sm:col-span-2">
-            환율 적용일 (입력일)
+            OTA 숙박비 (원 · 파싱/결제당일 환율)
+            <input
+              className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
+              value={sourceAmountKrw}
+              readOnly
+              placeholder="생성 후 표시"
+            />
+            <span className="mt-1 block text-xs font-normal text-zinc-500">
+              금액은 OTA 원문만 사용합니다. 수동 수정 불가.
+              {parsedNights != null ? ` · 숙박 ${parsedNights}박` : ''}
+            </span>
+          </label>
+          <label className="text-sm font-medium text-zinc-800 sm:col-span-2">
+            결제당일 (환율 적용일)
             <input
               type="date"
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               value={rateDate}
               onChange={(e) => setRateDate(e.target.value)}
+              readOnly={Boolean(parsed?.paymentDate)}
             />
+            <span className="mt-1 block text-xs font-normal text-zinc-500">
+              {parsed?.paymentDate
+                ? `OTA 결제일 ${parsed.paymentDate} 환율로 USD→KRW 환산합니다.`
+                : 'OTA에서 결제일을 못 읽으면 여기서 지정합니다. USD 금액은 이 날짜 환율로 환산됩니다.'}
+            </span>
           </label>
 
           {!isVoucher ? (
-            <label className="text-sm font-medium text-zinc-800 sm:col-span-2">
-              최종 금액 수동(원, USD 미입력 시)
-              <input
-                className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                value={sourceAmountKrw}
-                onChange={(e) => setSourceAmountKrw(e.target.value)}
-                placeholder="입력한 금액이 인보이스 합계입니다"
-              />
-            </label>
+            <>
+              <label className="text-sm font-medium text-zinc-800">
+                호텔예약수수료 (원)
+                <input
+                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  value={hotelReservationFeeKrw}
+                  onChange={(e) => setHotelReservationFeeKrw(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label className="text-sm font-medium text-zinc-800">
+                항공발권수수료 (원)
+                <input
+                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  value={airTicketingFeeKrw}
+                  onChange={(e) => setAirTicketingFeeKrw(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label className="text-sm font-medium text-zinc-800 sm:col-span-2">
+                여행자보험 (원)
+                <input
+                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  value={travelInsuranceKrw}
+                  onChange={(e) => setTravelInsuranceKrw(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={visaApplied}
+                  onChange={(e) => setVisaApplied(e.target.checked)}
+                />
+                비자 신청 포함
+              </label>
+              {visaApplied ? (
+                <>
+                  <label className="text-sm font-medium text-zinc-800">
+                    비자신청비 (원)
+                    <input
+                      className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                      value={visaFeeKrw}
+                      onChange={(e) => setVisaFeeKrw(e.target.value)}
+                      placeholder="0"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-zinc-800">
+                    비자대행수수료 (원)
+                    <input
+                      className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                      value={visaAgencyFeeKrw}
+                      onChange={(e) => setVisaAgencyFeeKrw(e.target.value)}
+                      placeholder="0"
+                    />
+                  </label>
+                </>
+              ) : null}
+            </>
           ) : null}
 
           <label className="text-sm font-medium text-zinc-800">
@@ -637,9 +697,10 @@ export default function OtaInvoiceAdminClient() {
           <p>결제: {parsed.paymentMethod || '—'}</p>
           {fx ? (
             <p>
-              환율: {fx.rateDate}
+              결제당일 환율: {fx.rateDate}
               {fx.effectiveDate !== fx.rateDate ? ` (고시 ${fx.effectiveDate})` : ''} · 1 USD ={' '}
               {fx.usdKrw.toLocaleString('ko-KR')} KRW ({fx.source})
+              {parsed.paymentDate ? ' · OTA 결제일' : ' · 관리자 지정일'}
             </p>
           ) : null}
         </section>
@@ -649,11 +710,25 @@ export default function OtaInvoiceAdminClient() {
         <section className={`${ADMIN_CARD_CLASS} space-y-2 p-5 text-sm`}>
           <h2 className="font-semibold text-zinc-900">인보이스 요약</h2>
           <p>번호: {invoiceDraft.invoiceNumber}</p>
-          {invoiceDraft.sourceAmountUsd != null ? (
-            <p>
-              USD {invoiceDraft.sourceAmountUsd} →{' '}
-              {invoiceDraft.sourceAmountKrw.toLocaleString('ko-KR')}원
-            </p>
+          <p>
+            OTA 숙박비:{' '}
+            {(invoiceDraft.otaStayKrw ?? invoiceDraft.sourceAmountKrw).toLocaleString('ko-KR')}원
+            {invoiceDraft.sourceAmountUsd != null ? ` (USD ${invoiceDraft.sourceAmountUsd})` : ''}
+          </p>
+          {invoiceDraft.hotelReservationFeeKrw > 0 ? (
+            <p>호텔예약수수료: {invoiceDraft.hotelReservationFeeKrw.toLocaleString('ko-KR')}원</p>
+          ) : null}
+          {invoiceDraft.airTicketingFeeKrw > 0 ? (
+            <p>항공발권수수료: {invoiceDraft.airTicketingFeeKrw.toLocaleString('ko-KR')}원</p>
+          ) : null}
+          {invoiceDraft.travelInsuranceKrw > 0 ? (
+            <p>여행자보험: {invoiceDraft.travelInsuranceKrw.toLocaleString('ko-KR')}원</p>
+          ) : null}
+          {invoiceDraft.visaApplied ? (
+            <>
+              <p>비자신청비: {invoiceDraft.visaFeeKrw.toLocaleString('ko-KR')}원</p>
+              <p>비자대행수수료: {invoiceDraft.visaAgencyFeeKrw.toLocaleString('ko-KR')}원</p>
+            </>
           ) : null}
           <p className="text-base font-semibold">
             합계: {invoiceDraft.totalKrw.toLocaleString('ko-KR')}원
@@ -690,6 +765,7 @@ export default function OtaInvoiceAdminClient() {
           ) : null}
           <p>
             총액: {voucherDraft.amountUsd} USD → {voucherDraft.amountKrw.toLocaleString('ko-KR')}원
+            {` · 결제당일 환율 ${voucherDraft.rateDate}`}
           </p>
           <p className="text-xs text-zinc-600">{voucherDraft.taxServiceIncludedNote}</p>
           {html ? (

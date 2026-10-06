@@ -16,6 +16,9 @@ import {
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
   resolveOtaVoucherNotePair,
+  resolveLockedOtaAmountFromParsed,
+  parseOtaPaymentDateYmd,
+  normalizeOtaCompanyInvoiceFees,
 } from '@/lib/bongtour-company-invoice'
 import {
   parseFrankfurterUsdKrw,
@@ -75,6 +78,7 @@ function emptyParsed(
     cancellationPolicyEn: null,
     specialRequests: null,
     paymentMethod: 'CASH (Prepaid)',
+    paymentDate: null,
     sourceAmountKrw: null,
     nightRateUsd: null,
     totalUsd: null,
@@ -184,7 +188,7 @@ Address : 주소 : 2-6-17 Akasaka, Minato-ku
     expect(draft.paymentMethod).toBe(BONGTOUR_VOUCHER_PAYMENT_METHOD)
   })
 
-  it('uses entered amount as final total (no profit markup) and states tax/service included', () => {
+  it('uses OTA stay amount + separate company fees; visa off forces visa fees to 0', () => {
     expect(computeInvoiceProfitKrw({ sourceAmountKrw: 100000, mode: 'percent', percent: 15, fixedKrw: 0 })).toBe(
       0,
     )
@@ -202,16 +206,95 @@ Address : 주소 : 2-6-17 Akasaka, Minato-ku
       profitMode: 'percent',
       profitPercent: 10,
       profitFixedKrw: 0,
+      fees: {
+        hotelReservationFeeKrw: 20000,
+        airTicketingFeeKrw: 30000,
+        travelInsuranceKrw: 15000,
+        visaApplied: false,
+        visaFeeKrw: 99999,
+        visaAgencyFeeKrw: 88888,
+      },
       now: new Date('2026-10-05T00:00:00.000Z'),
     })
     expect(draft.profitKrw).toBe(0)
-    expect(draft.totalKrw).toBe(100000)
+    expect(draft.otaStayKrw).toBe(100000)
+    expect(draft.sourceAmountKrw).toBe(100000)
+    expect(draft.hotelReservationFeeKrw).toBe(20000)
+    expect(draft.airTicketingFeeKrw).toBe(30000)
+    expect(draft.travelInsuranceKrw).toBe(15000)
+    expect(draft.visaApplied).toBe(false)
+    expect(draft.visaFeeKrw).toBe(0)
+    expect(draft.visaAgencyFeeKrw).toBe(0)
+    expect(draft.totalKrw).toBe(165000)
     expect(draft.taxServiceIncludedNote).toBe(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE)
-    expect(renderOtaCompanyInvoiceHtml(draft)).toContain(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE)
+    const html = renderOtaCompanyInvoiceHtml(draft)
+    expect(html).toContain(BONGTOUR_TAX_SERVICE_INCLUDED_NOTE)
+    expect(html).toContain('OTA 숙박비')
+    expect(html).toContain('호텔예약수수료')
+    expect(html).toContain('항공발권수수료')
+    expect(html).toContain('여행자보험')
+    expect(html).not.toContain('비자신청비')
+    expect(html).not.toContain('비자대행수수료')
+  })
+
+  // REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 금액 하드잠금·결제당일 — manifest
+  it('locks OTA amounts from parsed text and prefers payment-day YMD', () => {
+    expect(parseOtaPaymentDateYmd('결제일 : 2026년 9월 12일')).toBe('2026-09-12')
+    expect(parseOtaPaymentDateYmd('Payment Date: Oct 3, 2026')).toBe('2026-10-03')
+    const lockedUsd = resolveLockedOtaAmountFromParsed(
+      emptyParsed({ totalUsd: 192.75, nightRateUsd: 64.25, nights: 3 }),
+    )
+    expect(lockedUsd?.source).toBe('totalUsd')
+    expect(lockedUsd?.totalUsd).toBe(192.75)
+    const lockedNight = resolveLockedOtaAmountFromParsed(
+      emptyParsed({ nightRateUsd: 157.2, nights: 5 }),
+    )
+    expect(lockedNight?.source).toBe('nightRateTimesNights')
+    expect(lockedNight?.totalUsd).toBe(786)
+    const lockedKrw = resolveLockedOtaAmountFromParsed(emptyParsed({ sourceAmountKrw: 450000 }))
+    expect(lockedKrw?.source).toBe('sourceAmountKrw')
+    expect(lockedKrw?.amountKrwDirect).toBe(450000)
+    expect(resolveLockedOtaAmountFromParsed(emptyParsed())).toBeNull()
+    expect(normalizeOtaCompanyInvoiceFees({ visaApplied: true, visaFeeKrw: 50000 }).visaFeeKrw).toBe(
+      50000,
+    )
+  })
+
+  it('invoice with visaApplied adds visa fee lines; voucher draft has no fee fields', () => {
+    const inv = buildOtaCompanyInvoiceDraft({
+      parsed: emptyParsed({ bookingRef: 'V1', sourceAmountKrw: 200000 }),
+      sourceAmountKrw: 200000,
+      fees: {
+        hotelReservationFeeKrw: 10000,
+        visaApplied: true,
+        visaFeeKrw: 80000,
+        visaAgencyFeeKrw: 20000,
+      },
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(inv.totalKrw).toBe(310000)
+    const invHtml = renderOtaCompanyInvoiceHtml(inv)
+    expect(invHtml).toContain('비자신청비')
+    expect(invHtml).toContain('비자대행수수료')
+
+    const voucher = buildOtaCompanyCheckInVoucherDraft({
+      parsed: emptyParsed({ bookingRef: 'V1', nights: 2 }),
+      amountUsd: 100,
+      rateDate: '2026-09-12',
+      effectiveRateDate: '2026-09-12',
+      usdKrwRate: 1350,
+      amountKrw: 135000,
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(voucher).not.toHaveProperty('hotelReservationFeeKrw')
+    const vHtml = renderOtaCompanyCheckInVoucherHtml(voucher, 'ko')
+    expect(vHtml).toContain('결제당일 환율')
+    expect(vHtml).not.toContain('호텔예약수수료')
+    expect(vHtml).not.toContain('항공발권수수료')
   })
 
   // REGRESSION-FREEZE[admin-ota-receipt-invoice]: 체크인 바우처 + USD 입력일 환율 — manifest
-  it('builds company check-in voucher from USD using input-date FX', () => {
+  it('builds company check-in voucher from USD using payment-day FX', () => {
     const rate = 1350
     expect(usdAmountToKrw(100, rate)).toBe(135000)
     const frank = parseFrankfurterUsdKrw({

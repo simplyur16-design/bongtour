@@ -13,6 +13,7 @@ Read ALL pages of this PDF carefully. Output ONLY plain text in Korean+English l
 Critical:
 - Booking ID : MUST be the primary Booking ID printed on the voucher (for visa/check-in). Do not swap with hotel confirmation.
 - If a separate hotel confirmation / 예약 번호 differs, put it on 예약 번호 : line.
+- 결제일 : MUST be the payment/booked/transaction date (YYYY-MM-DD) used for FX conversion.
 
 Required lines when present (use exact labels):
 Booking ID : <id>
@@ -40,6 +41,7 @@ Breakfast : <included/not included/detail>
 취소 정책 : <cancellation policy only, one paragraph>
 특별 요청 : <...>
 결제 방법 : <...>
+결제일 : YYYY-MM-DD (payment / booked / transaction date — required for FX)
 세금 및 봉사료 포함 or 세금 별도 (pick one line if stated)
 1박 : USD <amount> (if shown)
 총 결제 금액 : USD <amount> or KRW <amount>

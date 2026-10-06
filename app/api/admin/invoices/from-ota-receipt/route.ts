@@ -7,13 +7,15 @@ import {
   buildOtaCompanyInvoiceDraft,
   parseOtaReceiptForInvoice,
   joinOtaVoucherUploadTexts,
-  computeVoucherTotalUsdFromNightRate,
+  normalizeOtaCompanyInvoiceFees,
   otaProviderDisplayName,
   otaVoucherNoteNeedsEnglishTranslation,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
+  resolveLockedOtaAmountFromParsed,
   type OtaAdminDocumentKind,
+  type OtaCompanyInvoiceFees,
 } from '@/lib/bongtour-company-invoice'
 import { loadBongtourLogoDataUrl } from '@/lib/bongtour-company-invoice-logo-server'
 import { translateOtaVoucherNoteToEn } from '@/lib/bongtour-ota-voucher-note-translate'
@@ -28,11 +30,42 @@ function isImageFile(name: string, type: string): boolean {
   return /\.(png|jpe?g|webp|gif|heic|bmp)$/i.test(name)
 }
 
-function readPositiveNumber(raw: unknown): number | null {
-  if (typeof raw !== 'string' && typeof raw !== 'number') return null
+function readNonNegNumber(raw: unknown): number {
+  if (typeof raw !== 'string' && typeof raw !== 'number') return 0
   const n = Number(String(raw).replace(/,/g, '').trim())
-  if (!Number.isFinite(n) || n <= 0) return null
-  return n
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return Math.round(n)
+}
+
+function readBool(raw: unknown): boolean {
+  if (typeof raw === 'boolean') return raw
+  if (typeof raw === 'string') {
+    const v = raw.trim().toLowerCase()
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+  }
+  return false
+}
+
+function readFeesFromForm(form: FormData): Partial<OtaCompanyInvoiceFees> {
+  return {
+    hotelReservationFeeKrw: readNonNegNumber(form.get('hotelReservationFeeKrw')),
+    airTicketingFeeKrw: readNonNegNumber(form.get('airTicketingFeeKrw')),
+    travelInsuranceKrw: readNonNegNumber(form.get('travelInsuranceKrw')),
+    visaApplied: readBool(form.get('visaApplied')),
+    visaFeeKrw: readNonNegNumber(form.get('visaFeeKrw')),
+    visaAgencyFeeKrw: readNonNegNumber(form.get('visaAgencyFeeKrw')),
+  }
+}
+
+function readFeesFromBody(body: Record<string, unknown>): Partial<OtaCompanyInvoiceFees> {
+  return {
+    hotelReservationFeeKrw: readNonNegNumber(body.hotelReservationFeeKrw),
+    airTicketingFeeKrw: readNonNegNumber(body.airTicketingFeeKrw),
+    travelInsuranceKrw: readNonNegNumber(body.travelInsuranceKrw),
+    visaApplied: readBool(body.visaApplied),
+    visaFeeKrw: readNonNegNumber(body.visaFeeKrw),
+    visaAgencyFeeKrw: readNonNegNumber(body.visaAgencyFeeKrw),
+  }
 }
 
 async function extractTextFromBuffer(
@@ -71,7 +104,7 @@ async function extractTextFromBuffer(
 /**
  * POST /api/admin/invoices/from-ota-receipt
  * Trip.com / Agoda PDF·본문 → 숙박정보 추출 + 봉투어 인보이스/체크인 바우처
- * 금액(1박·총액)은 입력값이 최종. 서비스요금·세금은 포함 문구로 명시.
+ * OTA 금액은 파싱값만(하드잠금). 인보이스만 회사 수수료 라인 가산.
  * 한글+영문 바우처 PDF는 한 세트로 여러 파일 업로드 가능.
  * 보관은 인쇄(POST /api/admin/invoices/issued) 시에만 수행.
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
@@ -92,10 +125,8 @@ export async function POST(request: Request) {
   let checkInOverride: string | null = null
   let checkOutOverride: string | null = null
   let note = ''
-  let sourceAmountOverride: number | null = null
-  let amountUsd: number | null = null
-  let nightRateUsd: number | null = null
   let rateDate: string | null = null
+  let feesInput: Partial<OtaCompanyInvoiceFees> = {}
   let fileHint: 'none' | 'pdf_empty' | 'image' | 'ok' = 'none'
   let uploadedFileCount = 0
 
@@ -158,13 +189,12 @@ export async function POST(request: Request) {
       checkOutOverride =
         typeof form.get('checkOut') === 'string' ? String(form.get('checkOut')).trim() || null : null
       note = typeof form.get('note') === 'string' ? String(form.get('note')).trim() : ''
-      sourceAmountOverride = readPositiveNumber(form.get('sourceAmountKrw'))
-      amountUsd = readPositiveNumber(form.get('amountUsd'))
-      nightRateUsd = readPositiveNumber(form.get('nightRateUsd'))
       rateDate =
         typeof form.get('rateDate') === 'string' && String(form.get('rateDate')).trim()
           ? String(form.get('rateDate')).trim()
           : null
+      feesInput = readFeesFromForm(form)
+      // amountUsd / nightRateUsd / sourceAmountKrw 클라이언트 값은 무시(하드잠금)
     } else {
       const body = (await request.json()) as Record<string, unknown>
       text = String(body.text ?? '')
@@ -181,18 +211,12 @@ export async function POST(request: Request) {
       checkInOverride = typeof body.checkIn === 'string' ? body.checkIn.trim() || null : null
       checkOutOverride = typeof body.checkOut === 'string' ? body.checkOut.trim() || null : null
       note = typeof body.note === 'string' ? body.note.trim() : ''
-      sourceAmountOverride = readPositiveNumber(body.sourceAmountKrw)
-      amountUsd = readPositiveNumber(body.amountUsd)
-      nightRateUsd = readPositiveNumber(body.nightRateUsd)
       rateDate = typeof body.rateDate === 'string' && body.rateDate.trim() ? body.rateDate.trim() : null
+      feesInput = readFeesFromBody(body)
     }
   } catch {
     return NextResponse.json({ ok: false, error: '요청 본문을 읽지 못했습니다.' }, { status: 400 })
   }
-
-  const hasManualAmount =
-    (amountUsd != null && amountUsd > 0) ||
-    (documentKind === 'invoice' && sourceAmountOverride != null && sourceAmountOverride > 0)
 
   if (!text.trim()) {
     if (fileHint === 'image') {
@@ -217,44 +241,55 @@ export async function POST(request: Request) {
         { status: 400 },
       )
     }
-    if (!hasManualAmount) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            'OTA 바우처 PDF/본문을 넣어 예약·숙소 정보를 가져오세요. 한글+영문 바우처는 한 세트로 함께 업로드하세요.',
-        },
-        { status: 400 },
-      )
-    }
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'OTA 바우처 PDF/본문을 넣어 예약·숙소·금액을 가져오세요. 한글+영문 바우처는 한 세트로 함께 업로드하세요.',
+      },
+      { status: 400 },
+    )
   }
 
   const parsed = parseOtaReceiptForInvoice(text)
-  const fx = await resolveUsdKrwRateForDate(rateDate || seoulYmd())
+  const locked = resolveLockedOtaAmountFromParsed(parsed)
+  if (!locked) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'OTA 결제 금액을 원문에서 찾지 못했습니다. 총액(USD/KRW) 또는 1박·박수가 보이게 PDF/본문을 다시 올리세요. 수동 금액 입력은 불가합니다.',
+        code: 'ota_amount_required',
+        parsed,
+      },
+      { status: 400 },
+    )
+  }
+
+  // USD→KRW: OTA 결제당일 환율 우선. 못 읽으면 관리자 결제일 폴백.
+  const fxDate = parsed.paymentDate || rateDate || seoulYmd()
+  const fx = await resolveUsdKrwRateForDate(fxDate)
   const logoUrl = loadBongtourLogoDataUrl()
 
   if (documentKind === 'voucher') {
-    const fromNight = computeVoucherTotalUsdFromNightRate(nightRateUsd, parsed.nights)
-    const fromParsedNight = computeVoucherTotalUsdFromNightRate(
-      parsed.nightRateUsd,
-      parsed.nights,
-    )
-    let totalUsd =
-      fromNight ??
-      (amountUsd != null && amountUsd > 0 ? amountUsd : null) ??
-      parsed.totalUsd ??
-      fromParsedNight
-
-    if (totalUsd == null || totalUsd <= 0) {
+    let totalUsd = locked.totalUsd
+    let amountKrw: number
+    if (totalUsd != null && totalUsd > 0) {
+      amountKrw = usdAmountToKrw(totalUsd, fx.usdKrw)
+    } else if (locked.amountKrwDirect != null && locked.amountKrwDirect > 0) {
+      amountKrw = locked.amountKrwDirect
+      totalUsd = Math.round((amountKrw / fx.usdKrw) * 100) / 100
+    } else {
       return NextResponse.json(
         {
           ok: false,
           error:
-            '1박 USD를 입력하세요. PDF에서 확인한 박수로 총액(1박×박수)을 계산합니다. 또는 총액 USD를 직접 입력하세요.',
+            'OTA 결제 금액을 원문에서 찾지 못했습니다. 총액(USD/KRW) 또는 1박·박수가 보이게 PDF/본문을 다시 올리세요.',
+          code: 'ota_amount_required',
           parsed,
           fx,
         },
-        { status: 422 },
+        { status: 400 },
       )
     }
 
@@ -272,13 +307,11 @@ export async function POST(request: Request) {
     }
 
     const resolvedNight =
-      nightRateUsd ??
-      parsed.nightRateUsd ??
+      locked.nightRateUsd ??
       (parsed.nights && parsed.nights > 0
         ? Math.round((totalUsd / parsed.nights) * 100) / 100
         : null)
 
-    const amountKrw = usdAmountToKrw(totalUsd, fx.usdKrw)
     let noteEnOverride: string | null = null
     let noteTranslateWarning: string | null = null
     if (note && otaVoucherNoteNeedsEnglishTranslation(note)) {
@@ -317,7 +350,10 @@ export async function POST(request: Request) {
       ok: true,
       documentKind: 'voucher',
       parsed,
+      lockedAmount: locked,
       fx,
+      paymentDateUsed: fxDate,
+      paymentDateFromOta: Boolean(parsed.paymentDate),
       draft,
       html,
       htmlKo,
@@ -327,23 +363,25 @@ export async function POST(request: Request) {
     })
   }
 
-  let sourceAmountKrw = sourceAmountOverride ?? parsed.sourceAmountKrw
-  let sourceAmountUsd: number | null = null
-  if (amountUsd != null && amountUsd > 0) {
-    sourceAmountUsd = amountUsd
-    sourceAmountKrw = usdAmountToKrw(amountUsd, fx.usdKrw)
-  }
-
-  if (sourceAmountKrw == null || sourceAmountKrw <= 0) {
+  const fees = normalizeOtaCompanyInvoiceFees(feesInput)
+  let sourceAmountUsd: number | null = locked.totalUsd
+  let sourceAmountKrw: number
+  if (locked.totalUsd != null && locked.totalUsd > 0) {
+    sourceAmountKrw = usdAmountToKrw(locked.totalUsd, fx.usdKrw)
+  } else if (locked.amountKrwDirect != null && locked.amountKrwDirect > 0) {
+    sourceAmountKrw = locked.amountKrwDirect
+    sourceAmountUsd = null
+  } else {
     return NextResponse.json(
       {
         ok: false,
         error:
-          '금액을 찾지 못했습니다. amountUsd(달러) 또는 sourceAmountKrw를 입력하세요.',
+          'OTA 결제 금액을 원문에서 찾지 못했습니다. 총액(USD/KRW) 또는 1박·박수가 보이게 PDF/본문을 다시 올리세요.',
+        code: 'ota_amount_required',
         parsed,
         fx,
       },
-      { status: 422 },
+      { status: 400 },
     )
   }
 
@@ -355,6 +393,7 @@ export async function POST(request: Request) {
     sourceAmountUsd,
     rateDate: sourceAmountUsd != null ? fx.rateDate : null,
     usdKrwRate: sourceAmountUsd != null ? fx.usdKrw : null,
+    fees,
   })
   const html = renderOtaCompanyInvoiceHtml(draft)
 
@@ -362,7 +401,10 @@ export async function POST(request: Request) {
     ok: true,
     documentKind: 'invoice',
     parsed,
+    lockedAmount: locked,
     fx,
+    paymentDateUsed: fxDate,
+    paymentDateFromOta: Boolean(parsed.paymentDate),
     draft,
     html,
   })

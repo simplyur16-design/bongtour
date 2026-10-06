@@ -1,5 +1,5 @@
 /**
- * 관리자 OTA 인보이스/바우처용 USD→KRW (입력일 환율).
+ * 관리자 OTA 인보이스/바우처용 USD→KRW (결제당일 환율 우선).
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 

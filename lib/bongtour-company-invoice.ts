@@ -1,7 +1,8 @@
 /**
  * 봉투어 회사 인보이스·체크인 바우처 — OTA(Trip.com/Agoda) 영수증 기반 발행 SSOT.
  * PDF/본문에서 예약·숙소(한/영)·조식·세금포함·편의시설을 추출하고,
- * 입력 금액(1박·총액) = 최종 합계(이익 가산 없음). 현지 세금·봉사료 포함 고지(국내 부가세 환급·세금계산서 불가).
+ * OTA 실결제 금액은 파싱값만 사용(수동 덮어쓰기 금지). 인보이스만 회사 수수료 라인 가산.
+ * 현지 세금·봉사료 포함 고지(국내 부가세 환급·세금계산서 불가).
  * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  * REGRESSION-FREEZE[admin-ota-voucher-note-en]: 비고 한→영·OTA명 — manifest
  * REGRESSION-FREEZE[admin-ota-foreign-tax-note]: 해외숙박 현지세·국내부가세 불가 고지 — manifest
@@ -99,6 +100,8 @@ export type OtaReceiptParsedAmount = {
   cancellationPolicyEn: string | null
   specialRequests: string | null
   paymentMethod: string | null
+  /** OTA 결제당일 YYYY-MM-DD — USD→KRW 환율일 */
+  paymentDate: string | null
   /** 영수증에서 읽은 공급가(원). 파싱 실패 시 null */
   sourceAmountKrw: number | null
   /** 원문 1박 요금(USD) — 있으면 */
@@ -109,6 +112,16 @@ export type OtaReceiptParsedAmount = {
   rawAmountMatches: string[]
 }
 
+/** 회사 인보이스 전용 수수료(원). 바우처에는 넣지 않음. */
+export type OtaCompanyInvoiceFees = {
+  hotelReservationFeeKrw: number
+  airTicketingFeeKrw: number
+  travelInsuranceKrw: number
+  visaApplied: boolean
+  visaFeeKrw: number
+  visaAgencyFeeKrw: number
+}
+
 export type OtaCompanyInvoiceDraft = {
   invoiceNumber: string
   issuedAtIso: string
@@ -116,18 +129,37 @@ export type OtaCompanyInvoiceDraft = {
   bookingRef: string | null
   guestName: string | null
   serviceDescription: string
+  /** OTA 숙박 실결제(원) — 하드잠금 */
+  otaStayKrw: number
+  /** @deprecated otaStayKrw와 동일(보관 호환) */
   sourceAmountKrw: number
   sourceAmountUsd: number | null
   rateDate: string | null
   usdKrwRate: number | null
+  hotelReservationFeeKrw: number
+  airTicketingFeeKrw: number
+  travelInsuranceKrw: number
+  visaApplied: boolean
+  visaFeeKrw: number
+  visaAgencyFeeKrw: number
   profitMode: OtaInvoiceProfitMode
   profitPercent: number
   profitFixedKrw: number
   profitKrw: number
+  /** OTA 숙박 + 회사 수수료 합계 */
   totalKrw: number
   taxServiceIncludedNote: string
   company: typeof BONGTOUR_INVOICE_COMPANY
   note: string
+}
+
+/** OTA PDF/본문에서만 잠근 금액 (클라이언트 덮어쓰기 금지) */
+export type LockedOtaAmount = {
+  totalUsd: number | null
+  nightRateUsd: number | null
+  /** OTA가 KRW만 표기한 경우 */
+  amountKrwDirect: number | null
+  source: 'totalUsd' | 'nightRateTimesNights' | 'sourceAmountKrw'
 }
 
 export type OtaVoucherLocale = 'ko' | 'en'
@@ -264,6 +296,82 @@ function parseUsdToken(raw: string): number | null {
   const n = Number(cleaned)
   if (!Number.isFinite(n) || n <= 0) return null
   return Math.round(n * 100) / 100
+}
+
+const MONTH_NAME_TO_NUM: Record<string, string> = {
+  jan: '01',
+  january: '01',
+  feb: '02',
+  february: '02',
+  mar: '03',
+  march: '03',
+  apr: '04',
+  april: '04',
+  may: '05',
+  jun: '06',
+  june: '06',
+  jul: '07',
+  july: '07',
+  aug: '08',
+  august: '08',
+  sep: '09',
+  sept: '09',
+  september: '09',
+  oct: '10',
+  october: '10',
+  nov: '11',
+  november: '11',
+  dec: '12',
+  december: '12',
+}
+
+/** 자유 형식 날짜 → YYYY-MM-DD (실패 시 null) */
+export function coerceOtaDateToYmd(raw: string | null | undefined): string | null {
+  const s = String(raw || '').trim()
+  if (!s) return null
+  const iso = s.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/)
+  if (iso) {
+    const y = iso[1]
+    const m = iso[2].padStart(2, '0')
+    const d = iso[3].padStart(2, '0')
+    if (Number(m) >= 1 && Number(m) <= 12 && Number(d) >= 1 && Number(d) <= 31) return `${y}-${m}-${d}`
+  }
+  const ko = s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/)
+  if (ko) {
+    const y = ko[1]
+    const m = ko[2].padStart(2, '0')
+    const d = ko[3].padStart(2, '0')
+    if (Number(m) >= 1 && Number(m) <= 12 && Number(d) >= 1 && Number(d) <= 31) return `${y}-${m}-${d}`
+  }
+  const en = s.match(
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})(?:,)?\s+(\d{4})\b/i,
+  )
+  if (en) {
+    const m = MONTH_NAME_TO_NUM[en[1].toLowerCase()]
+    const d = en[2].padStart(2, '0')
+    const y = en[3]
+    if (m && Number(d) >= 1 && Number(d) <= 31) return `${y}-${m}-${d}`
+  }
+  return null
+}
+
+/**
+ * OTA 본문에서 결제당일(YYYY-MM-DD) 추출 — USD→KRW 환율일 SSOT.
+ * REGRESSION-FREEZE[admin-ota-receipt-invoice]: 결제당일 환율 — manifest
+ */
+export function parseOtaPaymentDateYmd(text: string): string | null {
+  const labeled = [
+    ...text.matchAll(
+      /(?:결제일(?:시)?|결제\s*일시|Payment\s*Date|Paid\s*(?:on|date)|Transaction\s*Date|Booked\s*(?:on|date)|Booking\s*Date|예약일(?:시)?)\s*[:：]?\s*([^\n]+)/gi,
+    ),
+  ]
+  for (const m of labeled) {
+    const ymd = coerceOtaDateToYmd(m[1])
+    if (ymd) return ymd
+  }
+  const ocrLine = text.match(/결제일\s*[:：]\s*(\d{4}-\d{2}-\d{2})/)
+  if (ocrLine?.[1]) return ocrLine[1]
+  return null
 }
 
 function cleanLine(s: string | null | undefined): string | null {
@@ -877,6 +985,8 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
       ? 'USD'
       : null
 
+  const paymentDate = parseOtaPaymentDateYmd(text)
+
   return {
     provider,
     bookingRef: bookingRef ? bookingRef.trim() : null,
@@ -927,6 +1037,7 @@ export function parseOtaReceiptForInvoice(text: string): OtaReceiptParsedAmount 
     cancellationPolicyEn: isEnglishy(cancellation.en) ? cancellation.en : null,
     specialRequests,
     paymentMethod: BONGTOUR_VOUCHER_PAYMENT_METHOD,
+    paymentDate,
     sourceAmountKrw,
     nightRateUsd,
     totalUsd,
@@ -947,8 +1058,9 @@ export function computeInvoiceProfitKrw(_args: {
 
 export function buildOtaCompanyInvoiceDraft(args: {
   parsed: OtaReceiptParsedAmount
+  /** OTA 숙박 실결제(원) — 하드잠금 */
   sourceAmountKrw: number
-  /** @deprecated 무시됨 — 입력 금액이 최종 합계 */
+  /** @deprecated 무시됨 — 이익 가산 없음 */
   profitMode?: OtaInvoiceProfitMode
   /** @deprecated 무시됨 */
   profitPercent?: number
@@ -960,9 +1072,12 @@ export function buildOtaCompanyInvoiceDraft(args: {
   sourceAmountUsd?: number | null
   rateDate?: string | null
   usdKrwRate?: number | null
+  fees?: Partial<OtaCompanyInvoiceFees> | null
 }): OtaCompanyInvoiceDraft {
   const now = args.now ?? new Date()
-  const source = Math.max(0, Math.round(args.sourceAmountKrw))
+  const otaStayKrw = Math.max(0, Math.round(args.sourceAmountKrw))
+  const fees = normalizeOtaCompanyInvoiceFees(args.fees)
+  const feeSum = sumOtaCompanyInvoiceFees(fees)
   const ymd = now.toISOString().slice(0, 10).replace(/-/g, '')
   const rand = Math.floor(Math.random() * 9000 + 1000)
   const hotel =
@@ -991,7 +1106,8 @@ export function buildOtaCompanyInvoiceDraft(args: {
     bookingRef: args.parsed.bookingRef,
     guestName: (args.guestNameOverride ?? args.parsed.guestName)?.trim() || null,
     serviceDescription: serviceParts.join(' · ') || '여행 서비스',
-    sourceAmountKrw: source,
+    otaStayKrw,
+    sourceAmountKrw: otaStayKrw,
     sourceAmountUsd:
       args.sourceAmountUsd != null && Number.isFinite(args.sourceAmountUsd)
         ? Math.round(Number(args.sourceAmountUsd) * 100) / 100
@@ -999,11 +1115,12 @@ export function buildOtaCompanyInvoiceDraft(args: {
     rateDate: args.rateDate ?? null,
     usdKrwRate:
       args.usdKrwRate != null && Number.isFinite(args.usdKrwRate) ? Number(args.usdKrwRate) : null,
+    ...fees,
     profitMode: 'percent',
     profitPercent: 0,
     profitFixedKrw: 0,
     profitKrw: 0,
-    totalKrw: source,
+    totalKrw: otaStayKrw + feeSum,
     taxServiceIncludedNote: BONGTOUR_TAX_SERVICE_INCLUDED_NOTE,
     company: BONGTOUR_INVOICE_COMPANY,
     note: String(args.note ?? '').trim(),
@@ -1171,7 +1288,7 @@ export function formatUsd(n: number): string {
   return `USD ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-/** 1박 USD × 박수 → 총액 (바우처 금액 입력 SSOT) */
+/** 1박 USD × 박수 → 총액 */
 export function computeVoucherTotalUsdFromNightRate(
   nightRateUsd: number | null | undefined,
   nights: number | null | undefined,
@@ -1179,6 +1296,81 @@ export function computeVoucherTotalUsdFromNightRate(
   if (nightRateUsd == null || !Number.isFinite(nightRateUsd) || nightRateUsd <= 0) return null
   if (nights == null || !Number.isFinite(nights) || nights <= 0) return null
   return Math.round(nightRateUsd * nights * 100) / 100
+}
+
+/**
+ * OTA 파싱 금액만 잠금 — 우선순위: totalUsd → night×nights → sourceAmountKrw.
+ * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 금액 하드잠금 — manifest
+ */
+export function resolveLockedOtaAmountFromParsed(
+  parsed: OtaReceiptParsedAmount,
+): LockedOtaAmount | null {
+  if (parsed.totalUsd != null && Number.isFinite(parsed.totalUsd) && parsed.totalUsd > 0) {
+    const totalUsd = Math.round(parsed.totalUsd * 100) / 100
+    const nightRateUsd =
+      parsed.nightRateUsd != null && parsed.nightRateUsd > 0
+        ? Math.round(parsed.nightRateUsd * 100) / 100
+        : parsed.nights != null && parsed.nights > 0
+          ? Math.round((totalUsd / parsed.nights) * 100) / 100
+          : null
+    return { totalUsd, nightRateUsd, amountKrwDirect: null, source: 'totalUsd' }
+  }
+  const fromNight = computeVoucherTotalUsdFromNightRate(parsed.nightRateUsd, parsed.nights)
+  if (fromNight != null) {
+    return {
+      totalUsd: fromNight,
+      nightRateUsd: Math.round(Number(parsed.nightRateUsd) * 100) / 100,
+      amountKrwDirect: null,
+      source: 'nightRateTimesNights',
+    }
+  }
+  if (
+    parsed.sourceAmountKrw != null &&
+    Number.isFinite(parsed.sourceAmountKrw) &&
+    parsed.sourceAmountKrw > 0
+  ) {
+    return {
+      totalUsd: null,
+      nightRateUsd:
+        parsed.nightRateUsd != null && parsed.nightRateUsd > 0
+          ? Math.round(parsed.nightRateUsd * 100) / 100
+          : null,
+      amountKrwDirect: Math.round(parsed.sourceAmountKrw),
+      source: 'sourceAmountKrw',
+    }
+  }
+  return null
+}
+
+function nonNegKrw(n: unknown): number {
+  const v = Number(n)
+  if (!Number.isFinite(v) || v <= 0) return 0
+  return Math.round(v)
+}
+
+/** 인보이스 수수료 정규화 — visaApplied=false면 비자 금액 0 */
+export function normalizeOtaCompanyInvoiceFees(
+  fees?: Partial<OtaCompanyInvoiceFees> | null,
+): OtaCompanyInvoiceFees {
+  const visaApplied = Boolean(fees?.visaApplied)
+  return {
+    hotelReservationFeeKrw: nonNegKrw(fees?.hotelReservationFeeKrw),
+    airTicketingFeeKrw: nonNegKrw(fees?.airTicketingFeeKrw),
+    travelInsuranceKrw: nonNegKrw(fees?.travelInsuranceKrw),
+    visaApplied,
+    visaFeeKrw: visaApplied ? nonNegKrw(fees?.visaFeeKrw) : 0,
+    visaAgencyFeeKrw: visaApplied ? nonNegKrw(fees?.visaAgencyFeeKrw) : 0,
+  }
+}
+
+export function sumOtaCompanyInvoiceFees(fees: OtaCompanyInvoiceFees): number {
+  return (
+    fees.hotelReservationFeeKrw +
+    fees.airTicketingFeeKrw +
+    fees.travelInsuranceKrw +
+    fees.visaFeeKrw +
+    fees.visaAgencyFeeKrw
+  )
 }
 
 export function breakfastLabel(
@@ -1227,10 +1419,23 @@ export function renderOtaCompanyInvoiceHtml(draft: OtaCompanyInvoiceDraft): stri
   const c = draft.company
   const guest = draft.guestName || '고객'
   const issued = new Date(draft.issuedAtIso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+  const otaStay = draft.otaStayKrw ?? draft.sourceAmountKrw
   const fxLine =
     draft.sourceAmountUsd != null && draft.usdKrwRate != null && draft.rateDate
       ? `<p class="muted">${formatUsd(draft.sourceAmountUsd)} · 환율 ${draft.rateDate} 기준 1 USD = ${draft.usdKrwRate.toLocaleString('ko-KR')} KRW</p>`
       : ''
+  const feeRows: Array<[string, number]> = [
+    ['호텔예약수수료', draft.hotelReservationFeeKrw ?? 0],
+    ['항공발권수수료', draft.airTicketingFeeKrw ?? 0],
+    ['여행자보험', draft.travelInsuranceKrw ?? 0],
+  ]
+  if (draft.visaApplied) {
+    feeRows.push(['비자신청비', draft.visaFeeKrw ?? 0], ['비자대행수수료', draft.visaAgencyFeeKrw ?? 0])
+  }
+  const feeHtml = feeRows
+    .filter(([, n]) => n > 0)
+    .map(([label, n]) => `<tr><td>${escapeHtml(label)}</td><td class="num">${formatKrw(n)}</td></tr>`)
+    .join('')
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1263,7 +1468,8 @@ export function renderOtaCompanyInvoiceHtml(draft: OtaCompanyInvoiceDraft): stri
   <table>
     <thead><tr><th>내역</th><th class="num">금액</th></tr></thead>
     <tbody>
-      <tr><td>${escapeHtml(draft.serviceDescription)}</td><td class="num">${formatKrw(draft.sourceAmountKrw)}</td></tr>
+      <tr><td>OTA 숙박비 · ${escapeHtml(draft.serviceDescription)}</td><td class="num">${formatKrw(otaStay)}</td></tr>
+      ${feeHtml}
       <tr class="total"><td>합계</td><td class="num">${formatKrw(draft.totalKrw)}</td></tr>
     </tbody>
   </table>
@@ -1376,7 +1582,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         cancel: '취소정책',
         night: '1박 금액',
         total: '총 금액',
-        fx: `환율일 ${draft.rateDate}${
+        fx: `결제당일 환율 ${draft.rateDate}${
           draft.effectiveRateDate !== draft.rateDate
             ? ` (고시 ${draft.effectiveRateDate})`
             : ''
@@ -1411,7 +1617,7 @@ function renderVoucherBody(draft: OtaCompanyCheckInVoucherDraft, locale: OtaVouc
         cancel: 'Cancellation policy',
         night: 'Per night',
         total: 'Total amount',
-        fx: `FX date ${draft.rateDate}${
+        fx: `Payment-day FX ${draft.rateDate}${
           draft.effectiveRateDate !== draft.rateDate
             ? ` (published ${draft.effectiveRateDate})`
             : ''
