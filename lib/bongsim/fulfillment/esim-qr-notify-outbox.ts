@@ -3,7 +3,12 @@
  * REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: EsimQrNotify outbox — manifest
  */
 import type { PoolClient } from 'pg'
-import { getBongsimFulfillOutboxPool, getPgPool } from '@/lib/bongsim/db/pool'
+import {
+  getBongsimFulfillOutboxPool,
+  getPgPool,
+  isBongsimPgConnectTimeoutNoSlot,
+  isBongsimPgSaturatedMaxClients,
+} from '@/lib/bongsim/db/pool'
 import { deferOrTerminalOutboxAfterFailure } from '@/lib/bongsim/fulfillment/outbox-defer'
 import { shouldDrainOrderPaidInThisProcess } from '@/lib/instrumentation-process-role'
 
@@ -422,6 +427,7 @@ let notifyDrainTail: Promise<unknown> = Promise.resolve()
 export function kickEsimQrNotifyDrain(maxRounds = 32): void {
   // REGRESSION-FREEZE[bongsim-sms-drain-on-web]: notify kick on web — manifest
   // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: notify kick no-op off owner — manifest
+  // REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: kick ignores cron DISABLE — manifest
   if (!shouldDrainOrderPaidInThisProcess()) {
     return
   }
@@ -429,11 +435,35 @@ export function kickEsimQrNotifyDrain(maxRounds = 32): void {
     .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn('[bongsim:esim-qr-notify:kick]', e)
+      // connect timeout 등으로 kick이 죽어도 재시도 — cron DISABLE 여부와 무관
+      if (isBongsimPgConnectTimeoutNoSlot(e) || isBongsimPgSaturatedMaxClients(e)) {
+        scheduleEsimQrNotifyDrainRetry(maxRounds)
+      }
     })
+}
+
+const NOTIFY_DRAIN_RETRY_MS = Math.max(
+  5_000,
+  Number.parseInt(process.env.BONGSIM_ESIM_QR_NOTIFY_RETRY_MS ?? '20000', 10) || 20_000,
+)
+let notifyRetryTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleEsimQrNotifyDrainRetry(maxRounds: number): void {
+  // REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: scheduleEsimQrNotifyDrainRetry — manifest
+  if (notifyRetryTimer) return
+  notifyRetryTimer = setTimeout(() => {
+    notifyRetryTimer = null
+    console.warn('[bongsim:esim-qr-notify:retry-after-connect-timeout]', { maxRounds })
+    kickEsimQrNotifyDrain(maxRounds)
+  }, NOTIFY_DRAIN_RETRY_MS)
+  if (typeof notifyRetryTimer === 'object' && notifyRetryTimer && 'unref' in notifyRetryTimer) {
+    notifyRetryTimer.unref()
+  }
 }
 
 /** enqueue 직후 — owner면 kick, 아니면 이 프로세스에서 drain */
 export function ensureEsimQrNotifyDrainAfterEnqueue(maxRounds = 32): void {
+  // REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: ensure uses kick path — manifest
   if (shouldDrainOrderPaidInThisProcess()) {
     kickEsimQrNotifyDrain(maxRounds)
     return
@@ -442,6 +472,9 @@ export function ensureEsimQrNotifyDrainAfterEnqueue(maxRounds = 32): void {
     .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn('[bongsim:esim-qr-notify:ensure-drain]', e)
+      if (isBongsimPgConnectTimeoutNoSlot(e) || isBongsimPgSaturatedMaxClients(e)) {
+        scheduleEsimQrNotifyDrainRetry(maxRounds)
+      }
     })
 }
 

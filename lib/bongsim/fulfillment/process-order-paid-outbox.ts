@@ -3,6 +3,8 @@ import {
   getBongsimFulfillOutboxPool,
   getPgPool,
   healBongsimPgPoolForCatalog,
+  isBongsimPgConnectTimeoutNoSlot,
+  isBongsimPgSaturatedMaxClients,
 } from "@/lib/bongsim/db/pool";
 import { advanceFulfillmentForPaidOrderReleasingDuringSubmit } from "@/lib/bongsim/fulfillment/process-fulfillment-job";
 import { deferOrTerminalOutboxAfterFailure } from "@/lib/bongsim/fulfillment/outbox-defer";
@@ -102,8 +104,32 @@ export async function drainOrderPaidOutboxBestEffort(maxRounds = 8): Promise<voi
  * REGRESSION-FREEZE[bongsim-order-paid-kick-nonblocking]: kickOrderPaidOutboxDrain — manifest
  * REGRESSION-FREEZE[bongsim-fulfill-owner-split]: kick no-op off owner — manifest
  * REGRESSION-FREEZE[bongsim-sms-drain-on-web]: web kick drains — manifest
+ * REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: connect timeout → retry — manifest
  */
 let orderPaidDrainTail: Promise<unknown> = Promise.resolve();
+
+const ORDER_PAID_DRAIN_RETRY_MS = Math.max(
+  5_000,
+  Number.parseInt(process.env.BONGSIM_ORDER_PAID_DRAIN_RETRY_MS ?? "20000", 10) || 20_000,
+);
+let orderPaidRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleOrderPaidDrainRetry(maxRounds: number): void {
+  // REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: scheduleOrderPaidDrainRetry — manifest
+  if (orderPaidRetryTimer) return;
+  orderPaidRetryTimer = setTimeout(() => {
+    orderPaidRetryTimer = null;
+    console.warn("[bongsim:outbox:retry-after-connect-timeout]", { maxRounds });
+    kickOrderPaidOutboxDrain(maxRounds);
+  }, ORDER_PAID_DRAIN_RETRY_MS);
+  if (typeof orderPaidRetryTimer === "object" && orderPaidRetryTimer && "unref" in orderPaidRetryTimer) {
+    orderPaidRetryTimer.unref();
+  }
+}
+
+function shouldRetryOrderPaidDrainAfterPg(err: unknown): boolean {
+  return isBongsimPgConnectTimeoutNoSlot(err) || isBongsimPgSaturatedMaxClients(err);
+}
 
 export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
   if (!shouldDrainOrderPaidInThisProcess()) {
@@ -113,6 +139,10 @@ export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
     .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn("[bongsim:outbox:kick]", e);
+      // connect timeout으로 kick이 죽어도 재시도 — cron DISABLE과 무관
+      if (shouldRetryOrderPaidDrainAfterPg(e)) {
+        scheduleOrderPaidDrainRetry(maxRounds);
+      }
     });
 }
 
@@ -131,6 +161,9 @@ export function ensureOrderPaidOutboxDrainAfterEnqueue(maxRounds = 16): void {
     .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn("[bongsim:outbox:ensure-drain]", e);
+      if (shouldRetryOrderPaidDrainAfterPg(e)) {
+        scheduleOrderPaidDrainRetry(maxRounds);
+      }
     });
 }
 

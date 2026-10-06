@@ -1814,13 +1814,14 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM SMS·발급는 web에서 drain. worker 포화와 무관. simplyur 결제도 ensure drain",
+      "summary": "eSIM SMS·발급는 web에서 drain. worker 포화와 무관. simplyur 결제도 ensure drain. DISABLE cron이 kick을 끄면 안 됨",
       "checks": [
         {
           "file": "lib/instrumentation-process-role.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
-            "role === 'all' || role === 'web'",
+            "REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]",
+            "kick/ensure drain 은 끄면 안 된다",
             "if (role === 'worker') return false"
           ]
         },
@@ -1851,7 +1852,52 @@
           "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-sms-drain-on-web]",
-            "ensureEsimQrNotifyDrainAfterEnqueue"
+            "REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]",
+            "ensureEsimQrNotifyDrainAfterEnqueue",
+            "scheduleEsimQrNotifyDrainRetry"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/instrumentation-process-role.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-sms-drain-ignore-cron-disable",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON=1 이어도 web kick/ensure SMS drain은 살아 있어야 함",
+      "checks": [
+        {
+          "file": "lib/instrumentation-process-role.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]",
+            "shouldDrainOrderPaidInThisProcess",
+            "kick/ensure drain 은 끄면 안 된다"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-process-role.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]",
+            "DISABLE cron flag must not kill web SMS kick"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]",
+            "scheduleEsimQrNotifyDrainRetry"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]",
+            "scheduleOrderPaidDrainRetry",
+            "retry-after-connect-timeout"
           ]
         }
       ],

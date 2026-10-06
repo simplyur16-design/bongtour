@@ -66,7 +66,11 @@ export function shouldRunBackgroundCrons(
 /**
  * OrderPaid + EsimQrNotify cron / in-process drain.
  * web은 항상 (문자·발급이 워커 배치와 분리). worker는 안 함.
+ *
+ * `DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON=1` 은 **cron 등록만** 끈다.
+ * kick/ensure drain 은 끄면 안 된다 — 끄면 문자가 Solapi까지 안 간다.
  * REGRESSION-FREEZE[bongsim-sms-drain-on-web]: web always / worker never — manifest
+ * REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: kick≠cron disable — manifest
  */
 export function shouldRunFulfillmentCrons(
   role: InstrumentationProcessRole = resolveInstrumentationProcessRole(),
@@ -74,17 +78,17 @@ export function shouldRunFulfillmentCrons(
   if (process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON === '1') {
     return false
   }
+  return shouldDrainOrderPaidInThisProcess(role)
+}
+
+/** 이 프로세스에서 kick → USIMSA·SMS drain (cron disable과 무관) */
+export function shouldDrainOrderPaidInThisProcess(
+  role: InstrumentationProcessRole = resolveInstrumentationProcessRole(),
+): boolean {
   if (role === 'all' || role === 'web') return true
   if (role === 'worker') return false
   if (role === 'fulfill') return resolveBongsimFulfillmentOwner(role) === 'fulfill'
   return false
-}
-
-/** 이 프로세스에서 kick → USIMSA·SMS drain */
-export function shouldDrainOrderPaidInThisProcess(
-  role: InstrumentationProcessRole = resolveInstrumentationProcessRole(),
-): boolean {
-  return shouldRunFulfillmentCrons(role)
 }
 
 let roleLogged = false

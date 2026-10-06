@@ -72,4 +72,14 @@ describe('instrumentation-process-role', () => {
     expect(shouldRunFulfillmentCrons('worker')).toBe(false)
     expect(shouldRunFulfillmentCrons('web')).toBe(false)
   })
+
+  it('DISABLE cron flag must not kill web SMS kick/ensure drain', () => {
+    // REGRESSION-FREEZE[bongsim-sms-drain-ignore-cron-disable]: kick survives DISABLE — manifest
+    process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON = '1'
+    process.env.NODE_ENV = 'production'
+    process.env.RAILWAY_SERVICE_NAME = 'bongtour'
+    expect(shouldRunFulfillmentCrons('web')).toBe(false)
+    expect(shouldDrainOrderPaidInThisProcess('web')).toBe(true)
+    expect(shouldDrainOrderPaidInThisProcess('worker')).toBe(false)
+  })
 })
