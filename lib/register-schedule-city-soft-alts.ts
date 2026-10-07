@@ -250,11 +250,12 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /푸꾸옥|Phu\s*Quoc|그랜드월드|Grand\s*World|혼똔|Hon\s*Thom|모벤픽/i,
+    cityRe: /푸꾸옥|Phu\s*Quoc|그랜드월드|Grand\s*World|혼똔|Hon\s*Thom|모벤픽|쯔엉동|Duong\s*Dong|후추\s*농장/i,
     alts: [
       'Phu Quoc Grand World',
       'Phu Quoc Sao Beach',
-      'Phu Quoc Night Market',
+      'Duong Dong Night Market Phu Quoc',
+      'Phu Quoc Pepper Farm',
       'Phu Quoc Vinpearl Safari',
       'Phu Quoc Hon Thom Cable Car',
       'Phu Quoc Dinh Cau Temple',
@@ -627,8 +628,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Cimiez Gardens Nice',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed) — manifest
   {
-    cityRe: /방콕|Bangkok|아이콘시암|Icon\s*Siam|시암\s*파라곤|Siam\s*Paragon|조드페어|Jodd|야시장/i,
+    cityRe: /방콕|Bangkok|아이콘시암|Icon\s*Siam|시암\s*파라곤|Siam\s*Paragon|조드페어|Jodd\s*Fairs|짜뚜짝|Chatuchak|아시아티크|Asiatique|왓\s*아룬|Wat\s*Arun/i,
     alts: [
       'Icon Siam Bangkok riverside',
       'Siam Paragon Bangkok mall',

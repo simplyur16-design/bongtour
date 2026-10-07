@@ -15932,7 +15932,8 @@
             "Blue Mountain≠Sydney trigger",
             "Istanbul≠Ankara/Cappadocia/Pamukkale bleed",
             "Da Nang≠Hoi An soft-alt bleed",
-            "Lisbon≠Porto soft-alt bleed"
+            "Lisbon≠Porto soft-alt bleed",
+            "Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed)"
           ]
         },
         {
@@ -15970,7 +15971,8 @@
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "Istanbul usedKeyword on Mykonos day does not unlock Anitkabir",
             "Laura Village usedKeyword on Yellowknife day does not unlock Bondi",
-            "Lisbon day soft-alt pack does not unlock Porto Ribeira"
+            "Lisbon day soft-alt pack does not unlock Porto Ribeira",
+            "Phu Quoc Duong Dong night market does not unlock Bangkok soft-alts"
           ]
         },
         {

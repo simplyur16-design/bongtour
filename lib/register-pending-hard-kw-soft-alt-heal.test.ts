@@ -62,6 +62,21 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(String(next ?? '')).not.toMatch(/Bondi|Sydney Opera|Harbour Bridge|Taronga/i)
   })
 
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed) — manifest
+  it('Phu Quoc Duong Dong night market does not unlock Bangkok soft-alts', () => {
+    const used = new Set([
+      normScheduleImageKeywordKey('Phu Quoc Grand World'),
+      normScheduleImageKeywordKey('Phu Quoc Hon Thom Cable Car'),
+      normScheduleImageKeywordKey('Phu Quoc Dinh Cau Temple'),
+    ])
+    const next = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
+      routeText: '후추농장 - 쯔엉동 야시장',
+      usedKeyword: 'Duong Dong Night Market Phu Quoc',
+    })
+    expect(String(next ?? '')).not.toMatch(/Bangkok|Chatuchak|Asiatique|Icon Siam|Wat Arun/i)
+    expect(String(next ?? '')).toMatch(/Duong Dong|Pepper|Sao Beach|Vinpearl|Safari/i)
+  })
+
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Lisbon≠Porto soft-alt bleed — manifest
   it('Lisbon day soft-alt pack does not unlock Porto Ribeira', () => {
     const lisbon = collectRegisterScheduleCitySoftAltKeywords('리스본 벨렝')
