@@ -16007,7 +16007,10 @@
             "Okayama Korakuen Garden",
             "Las Vegas Strip neon night",
             "Eiffel Tower Paris",
-            "Montepulciano Tuscany hill town"
+            "Montepulciano Tuscany hill town",
+            "HK soft-alt must pass landmark guard",
+            "Man Mo Temple Hong Kong",
+            "soft-alt pick skips lodging/non-landmark"
           ]
         },
         {
@@ -16030,7 +16033,8 @@
           "file": "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
-            "Dubai bare day soft-alt pack yields unused landmarks"
+            "Dubai bare day soft-alt pack yields unused landmarks",
+            "Hong Kong soft-alt pack has no lodging/non-landmark strings"
           ]
         }
       ],

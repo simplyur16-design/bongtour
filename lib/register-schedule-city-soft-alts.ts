@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]: pending hard KW 반복 → unused soft-alt — manifest
  */
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string[] }> = [
@@ -639,6 +640,7 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Jim Thompson House Bangkok',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: HK soft-alt must pass landmark guard — manifest
   {
     cityRe: /홍콩|Hong\s*Kong|침사추이|Tsim\s*Sha\s*Tsui|스타의\s*거리|Avenue\s*of\s*Stars/i,
     alts: [
@@ -646,10 +648,12 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Victoria Harbour Hong Kong night',
       'Tsim Sha Tsui waterfront promenade',
       'Hong Kong Peak Tram Victoria Peak',
-      'Symphony of Lights Hong Kong',
-      'Star Ferry Hong Kong harbour',
       'Temple Street Night Market Hong Kong',
-      'Ngong Ping 360 cable car',
+      'Man Mo Temple Hong Kong',
+      'Wong Tai Sin Temple Hong Kong',
+      'Nan Lian Garden Hong Kong',
+      'Repulse Bay Beach Hong Kong',
+      'Hong Kong Clock Tower Tsim Sha Tsui',
     ],
   },
   {
@@ -1088,6 +1092,7 @@ export function collectRegisterScheduleCitySoftAltKeywordsForUsedKeyword(
 /** trip used에 없는 soft-alt 1개 — pending hard KW heal SSOT */
 // REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]: unused soft-alt pick — manifest
 // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: day-route hay only — manifest
+// REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: soft-alt pick skips lodging/non-landmark — manifest
 export function pickUnusedRegisterScheduleCitySoftAltKeyword(
   used: ReadonlySet<string>,
   opts: {
@@ -1119,6 +1124,8 @@ export function pickUnusedRegisterScheduleCitySoftAltKeyword(
     const nk = normScheduleImageKeywordKey(candidate)
     if (!nk || used.has(nk)) continue
     if (isBareCityOrCountryKeyword(candidate)) continue
+    // soft-alt가 lodging/non-landmark면 verify를 깨뜨리므로 스킵 (Ngong Ping cable car 등)
+    if (isBrokenRegisterLandmarkKeyword(candidate)) continue
     return candidate
   }
   // landmark 소진 후 bare city soft-dup (미사용만)

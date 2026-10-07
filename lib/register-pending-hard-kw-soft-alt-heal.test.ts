@@ -3,6 +3,7 @@ import {
   pickUnusedRegisterScheduleCitySoftAltKeyword,
   collectRegisterScheduleCitySoftAltKeywords,
 } from '@/lib/register-schedule-city-soft-alts'
+import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
 import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
@@ -72,6 +73,16 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
       usedKeyword: 'Belem Tower Lisbon',
     })
     expect(String(next ?? '')).not.toMatch(/Porto Ribeira|Clerigos|Sao Bento|Dom Luis/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: HK soft-alt must pass landmark guard — manifest
+  it('Hong Kong soft-alt pack has no lodging/non-landmark strings', () => {
+    const alts = collectRegisterScheduleCitySoftAltKeywords('홍콩 침사추이')
+    expect(alts.length).toBeGreaterThanOrEqual(4)
+    for (const a of alts) {
+      expect(isBrokenRegisterLandmarkKeyword(a), a).toBe(false)
+    }
+    expect(alts.some((a) => /Ngong Ping|Symphony of Lights|Star Ferry/i.test(a))).toBe(false)
   })
 
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Dubai bare day soft-alt pack — manifest
