@@ -285,11 +285,14 @@ function pickMiddleDayPrimaryKeyword(
   const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(
     splitRouteTextPlaceSegments(routeText),
   ).length
-  const lead = String(routeLandmarks[0] ?? routeOrdered[0] ?? '').trim()
-  const cityToLandmarkPair =
-    tourismSegCount === 2 &&
-    lead.length > 0 &&
-    !isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(lead))
+  const leadRaw = String(routeLandmarks[0] ?? routeOrdered[0] ?? '').trim()
+  const leadFin = leadRaw ? finalizeRouteSegmentKeyword(leadRaw) : ''
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hoi An Ancient Town lead ≠ My Khe last soft-alt — manifest
+  // finalize가 Ancient Town을 Hoi An bare로 줄여도 raw landmark hint면 city→landmark last-pick 금지
+  const leadIsLandmark =
+    (leadRaw && isLikelyTourismLandmarkKeyword(leadRaw)) ||
+    (leadFin && isLikelyTourismLandmarkKeyword(leadFin))
+  const cityToLandmarkPair = tourismSegCount === 2 && leadRaw.length > 0 && !leadIsLandmark
   if (cityToLandmarkPair) {
     return (
       pickLastPreferLandmark(routeLandmarks, new Set()) ||

@@ -786,7 +786,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /세인트\s*줄리앙|St\.?\s*Julian/i, en: "St Julian's Malta harbour" },
   { re: /발레타|Valletta/i, en: 'Valletta Malta fort' },
   { re: /임디나|Mdina/i, en: 'Mdina Malta silent city' },
-  { re: /미코노스|Mykonos/i, en: 'Mykonos windmills' },
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: 풍차≠미코노스 bare — 다일 windmills 반복 금지 — manifest
+  { re: /미코노스\s*(?:풍차|윈드밀)|Mykonos\s*windmills?/i, en: 'Mykonos windmills' },
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: 리틀베니스·코라 ≠ Italy Venice / Africa waterfront — manifest
+  { re: /리틀\s*베니스|Little\s*Venice|아레프칸드라|Alefkandra|미코노스\s*시내|Mykonos\s*Chora/i, en: 'Mykonos Chora white houses' },
+  { re: /파라다이스\s*(?:비치|해변)|Paradise\s*Beach/i, en: 'Paradise Beach Mykonos' },
+  { re: /델로스|Delos/i, en: 'Delos Island Greece' },
+  // bare 미코노스 → CITY(Mykonos). SPOT에 두면 전 일차 windmills 반복.
   { re: /이스터섬|Easter\s*Island/i, en: 'Easter Island' },
   { re: /라노\s*라라쿠|Rano\s*Raraku/i, en: 'Rano Raraku Easter Island' },
   { re: /아후\s*통가리키|Tongariki/i, en: 'Ahu Tongariki Moai Easter Island' },
@@ -1369,6 +1375,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
   { re: /부르사|Bursa/i, en: "Bursa Grand Mosque Turkey" },
   { re: /이스탄불|Istanbul|İstanbul/i, en: "Blue Mosque Istanbul" },
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: 그리스 허브 bare city — manifest
+  { re: /아테네|Athens/i, en: 'Athens' },
+  { re: /미코노스|Mykonos/i, en: 'Mykonos' },
+  { re: /(?<!다낭.{0,48})산토리니|(?<!Da\s*Nang.{0,48})Santorini/iu, en: 'Santorini' },
   { re: /앙카라|Ankara/i, en: "Anitkabir Ankara" },
   { re: /안탈리아|Antalya/i, en: "Antalya Old Town" },
   { re: /아이발릭|Ayvalik|Ayvalık/i, en: "Ayvalik Aegean coast Turkey" },

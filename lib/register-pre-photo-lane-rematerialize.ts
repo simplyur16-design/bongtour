@@ -86,7 +86,7 @@ async function persistHealedSchedule(
         : row.imageKeyword2,
       description: u.description ?? row.description,
       routeText: u.routeText ?? row.routeText,
-      title: u.title ?? row.title,
+      title: u.title !== undefined ? u.title : row.title,
     }
   })
   // FIT sync가 새 일차를 넣었는데 원 schedule에 없으면 병합
@@ -231,6 +231,7 @@ async function rematerializePackageLane(
     productDestination: dest,
     productTitle: product.title,
     lane: 'package',
+    countryKey: product.countryKey,
     productHaystack: [product.includedText, String(product.rawMeta ?? '').slice(0, 8000)]
       .filter(Boolean)
       .join('\n'),

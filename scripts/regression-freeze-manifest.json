@@ -15794,7 +15794,9 @@
           "file": "lib/naeiltour-schedule-image-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[naeiltour-schedule-image-keyword]",
-            "applyNaeiltourScheduleImageKeywordsToRows"
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "applyNaeiltourScheduleImageKeywordsToRows",
+            "pickUnusedMykonosPoolKeyword"
           ]
         },
         {
@@ -15803,7 +15805,235 @@
             "supplier === 'naeiltour'",
             "applyNaeiltourScheduleImageKeywordsToRows"
           ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "Mykonos Chora white houses"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "pickUnusedMykonosClusterKeyword"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-mykonos-kw-no-repeat.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "2EZZ8308"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-mykonos-kw-no-repeat.test.ts"
+      ]
+    },
+    {
+      "id": "naeiltour-mykonos-kw-no-repeat",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 2EZZ8308 — Mykonos windmills 중간일 반복 금지, bare Mykonos·대체 명소 풀",
+      "checks": [
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "Mykonos Chora white houses",
+            "Paradise Beach Mykonos"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "Mykonos windmills",
+            "Mykonos Chora white houses",
+            "en: 'Mykonos'"
+          ],
+          "mustNotInclude": [
+            "{ re: /미코노스|Mykonos/i, en: 'Mykonos windmills' }"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-schedule-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "pickUnusedMykonosPoolKeyword"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]",
+            "pickUnusedMykonosClusterKeyword",
+            "MYKONOS_UNUSED_CLUSTER_POOL"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-mykonos-kw-no-repeat.test.ts"
+      ]
+    },
+    {
+      "id": "register-pending-hard-kw-soft-alt-heal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 hard imageKeyword 반복 — city soft-alt unused pick으로 자가힐 통과",
+      "checks": [
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]",
+            "pickUnusedRegisterScheduleCitySoftAltKeyword",
+            "Reykjavik Colorful Harbor Houses",
+            "Phu Quoc Grand World"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]",
+            "pickUnusedRegisterScheduleCitySoftAltKeyword"
+          ]
+        },
+        {
+          "file": "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]",
+            "Bondi Beach"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pending-hard-kw-soft-alt-heal.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-city-soft-alt-day-route",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "city soft-alt는 당일 route 증거만 — Istanbul/Laura usedKeyword로 Anitkabir·Bondi bleed 금지",
+      "checks": [
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "usedKeyword≠day-route pack unlock",
+            "Blue Mountain≠Sydney trigger",
+            "Istanbul≠Ankara/Cappadocia/Pamukkale bleed",
+            "Da Nang≠Hoi An soft-alt bleed"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "오로라 빌리지≠Laura Village substring"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Hoi An Ancient Town ≠ bare"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Hoi An Ancient Town lead ≠ My Khe last soft-alt"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Turkey/AU landmark day-route evidence",
+            "prior soft-alt ≠ current-day bleed"
+          ]
+        },
+        {
+          "file": "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Istanbul usedKeyword on Mykonos day does not unlock Anitkabir",
+            "Laura Village usedKeyword on Yellowknife day does not unlock Bondi"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-mykonos-kw-no-repeat.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Anitkabir|Cappadocia|Pamukkale"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
+        "lib/naeiltour-mykonos-kw-no-repeat.test.ts"
+      ]
+    },
+    {
+      "id": "register-schedule-city-soft-alt-empty-middle",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "empty-middle soft-alt packs + bare Dubai day UAE evidence — post-enforce strip 금지",
+      "checks": [
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
+            "Dubai Marina skyline",
+            "Helsinki Senate Square Finland",
+            "Merlion Park Singapore",
+            "Iguazu Falls Argentina",
+            "Ritsurin Garden Takamatsu",
+            "제노아|제노바",
+            "Okayama Korakuen Garden",
+            "Las Vegas Strip neon night",
+            "Eiffel Tower Paris",
+            "Montepulciano Tuscany hill town"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
+            "activity-only middle → dest soft-alt"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
+            "bare 두바이 일차 Dubai soft-alt 허용",
+            "day-owned soft-alt ≠ cluster evidence strip",
+            "Africa waterfront ≠ Zurich Lake Waterfront"
+          ]
+        },
+        {
+          "file": "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
+            "Dubai bare day soft-alt pack yields unused landmarks"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pending-hard-kw-soft-alt-heal.test.ts"
       ]
     },
     {

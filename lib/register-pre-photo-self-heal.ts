@@ -81,6 +81,7 @@ import {
   isRegisterScheduleSameDayKeywordCountryClash,
   registerPrePhotoPlaceDestHay,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
 
 export { REGISTER_PRE_PHOTO_INGEST_PER_GEO, REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '@/lib/register-pre-photo-ingest-geo-slots'
 export {
@@ -266,6 +267,21 @@ function refillEmptyMiddleRouteFromDest<T extends RegisterPrePhotoHealRow>(
 function bareVisitCityLandmarkPack(routeHay: string): string[] {
   const soft = softDupForeignVisitCityForMiddleRoute(routeHay)
   const hay = String(routeHay ?? '')
+  // REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]: soft-alt pack → heal refill — manifest
+  const softAlts = collectRegisterScheduleCitySoftAltKeywords(hay).filter(
+    (k) => !isBareCityOrCountryKeyword(k),
+  )
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: 미코노스 bare 중간일 — windmills 재주입 대신 pool — manifest
+  if (/미코노스|Mykonos/i.test(hay) || /^Mykonos$/i.test(String(soft ?? ''))) {
+    return [
+      'Mykonos windmills',
+      'Mykonos Chora white houses',
+      'Paradise Beach Mykonos',
+      'Delos Island Greece',
+      ...softAlts,
+    ]
+  }
+  if (softAlts.length) return softAlts
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: bare 발리 동선은 SEA 명소 팩으로 채움 — manifest
   if (/^Bali$/i.test(String(soft ?? '')) || /^발리$/u.test(hay.trim()) || /발리|Bali/i.test(hay)) {
     return [
@@ -1077,8 +1093,13 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
   const activeDays = days.length
   const used = new Set(
     rows
-      .map((r) => String(r.imageKeyword ?? '').trim().toLowerCase())
-      .filter(Boolean),
+      .flatMap((r) => [String(r.imageKeyword ?? '').trim(), String(r.imageKeyword2 ?? '').trim()])
+      .filter(Boolean)
+      .flatMap((k) => {
+        const low = k.toLowerCase()
+        const nk = normScheduleImageKeywordKey(k)
+        return nk ? [low, nk] : [low]
+      }),
   )
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
@@ -1436,11 +1457,19 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     const packFromPrior = bareVisitCityLandmarkPack(priorHay)
     const packFromDest = bareVisitCityLandmarkPack(destHay)
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: prior 무관하면 dest pack — manifest
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
+    // 패들보드 등 route 명소 0이면 prior(출발일) pack보다 dest pack 우선 — prior 공항·허브로 막히지 않게
+    const activityOnlyDestPack =
+      packFromRoute.length === 0 &&
+      collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1 &&
+      packFromDest.length > 0
     const pack = packFromRoute.length
       ? packFromRoute
-      : packFromPrior.length
-        ? packFromPrior
-        : packFromDest
+      : activityOnlyDestPack
+        ? packFromDest
+        : packFromPrior.length
+          ? packFromPrior
+          : packFromDest
     const packPersistKeys = new Set(
       pack
         .map((k) => {
@@ -1456,6 +1485,7 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       packFromRoute.length > 0 && collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1
     // 빈 route + dest pack 도 lodging과 동일하게 pack 허용
     const emptyRouteDestPack = !routeHay && packFromDest.length > 0
+    // 패들보드·버거 등 route 명소 0 + dest pack 있으면 dest soft-alt로 채움
     const cands = [
       ...collectRouteTextOrderedLandmarkKeywords(routeHay),
       ...collectRouteTextOrderedImageKeywords(routeHay),
@@ -1479,14 +1509,15 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
         !onRoute &&
         !(lodging && packPersistKeys.has(nk) && onDest) &&
         !(emptyRouteDestPack && packPersistKeys.has(nk) && onDest) &&
-        !(bareOnlyRoute && packPersistKeys.has(nk))
+        !(bareOnlyRoute && packPersistKeys.has(nk)) &&
+        !(activityOnlyDestPack && packPersistKeys.has(nk) && onDest)
       ) {
         continue
       }
       used.add(nk)
       return { ...row, imageKeyword: persist.value }
     }
-    if (lodging) {
+    if (lodging || activityOnlyDestPack) {
       // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 bare dest(Cairo)→당일 도시(Hurghada) — manifest
       const soft =
         softDupForeignVisitCityForMiddleRoute(routeHay) ||
@@ -1546,24 +1577,28 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
       !/사막|인컨타라|Xiangshawan/i.test(String(row.routeText ?? '')) &&
       /Desert|사막|Xiangshawan/i.test(kw)
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 빈 route 중간일은 dest 명소 유지 — manifest
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
     const emptyRoute = !String(row.routeText ?? '').trim()
-    const destPackPersistKeys = emptyRoute
-      ? new Set(
-          bareVisitCityLandmarkPack(destHay)
-            .map((raw) => {
-              const p = tryPersistScheduleImageKeyword(raw)
-              return p.ok && p.value ? normScheduleImageKeywordKey(p.value) : ''
-            })
-            .filter(Boolean),
-        )
-      : null
+    const routeLandmarkCount = collectRouteTextOrderedLandmarkKeywords(row.routeText).length
+    const activityOnlyNoLandmark = !emptyRoute && routeLandmarkCount < 1 && Boolean(String(destHay ?? '').trim())
+    const destPackPersistKeys =
+      emptyRoute || activityOnlyNoLandmark
+        ? new Set(
+            bareVisitCityLandmarkPack(destHay)
+              .map((raw) => {
+                const p = tryPersistScheduleImageKeyword(raw)
+                return p.ok && p.value ? normScheduleImageKeywordKey(p.value) : ''
+              })
+              .filter(Boolean),
+          )
+        : null
     const keepViaDest =
-      emptyRoute &&
+      (emptyRoute || activityOnlyNoLandmark) &&
       Boolean(kw) &&
       (registerScheduleKeywordMatchesOwnDayRoute(destHay, kw) ||
         Boolean(destPackPersistKeys?.has(normScheduleImageKeywordKey(kw))))
     const keepViaDest2 =
-      emptyRoute &&
+      (emptyRoute || activityOnlyNoLandmark) &&
       Boolean(kw2) &&
       (registerScheduleKeywordMatchesOwnDayRoute(destHay, kw2) ||
         Boolean(destPackPersistKeys?.has(normScheduleImageKeywordKey(kw2))))

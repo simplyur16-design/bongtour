@@ -54,6 +54,11 @@ const NAEILTOUR_ROUTE_CITY_EN: Readonly<Record<string, string>> = {
   다낭: 'Da Nang',
   하노이: 'Hanoi',
   호치민: 'Ho Chi Minh City',
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: route hub cities — manifest
+  아테네: 'Athens',
+  미코노스: 'Mykonos',
+  산토리니: 'Santorini',
+  이스탄불: 'Istanbul',
 }
 
 function normKey(s: string): string {
@@ -134,6 +139,26 @@ function collectEnglishCandidates(row: NaeiltourScheduleImageKeywordRow): string
   return out.slice(0, 7)
 }
 
+/** 미코노스 다일 — windmills 1회 후 Little Venice·Paradise·Delos·bare */
+// REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: unused Mykonos pool — manifest
+const NAEILTOUR_MYKONOS_UNUSED_POOL = [
+  'Mykonos windmills',
+  'Mykonos Chora white houses',
+  'Paradise Beach Mykonos',
+  'Delos Island Greece',
+  'Mykonos',
+] as const
+
+function pickUnusedMykonosPoolKeyword(used: ReadonlySet<string>, routeText: string | null | undefined): string {
+  if (!/미코노스|Mykonos/i.test(String(routeText ?? ''))) return ''
+  for (const c of NAEILTOUR_MYKONOS_UNUSED_POOL) {
+    const t = finalizeKw(c)
+    const k = normKey(t)
+    if (k && !used.has(k)) return t
+  }
+  return ''
+}
+
 function firstUnused(candidates: readonly string[], used: ReadonlySet<string>): string {
   for (const c of candidates) {
     const k = normKey(c)
@@ -195,10 +220,13 @@ export function applyNaeiltourScheduleImageKeywordsToRows<T extends NaeiltourSch
     if (slot === 'departure') {
       primary = firstUnused(candidates, tripUsed)
       if (!primary) primary = departureFallback(enriched, opts?.productDestination)
+      if (!primary) primary = pickUnusedMykonosPoolKeyword(tripUsed, enriched.routeText)
     } else if (slot === 'middle') {
       primary = firstUnused(candidates, tripUsed)
+      if (!primary) primary = pickUnusedMykonosPoolKeyword(tripUsed, enriched.routeText)
       if (primary) tripUsed.add(normKey(primary))
       secondary = secondUnused(candidates, tripUsed, primary)
+      // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: Mykonos pool은 primary만 — kw2 소진 금지 — manifest
     } else {
       const prev = sorted.find((r) => Number(r.day) === day - 1)
       const prevEn =

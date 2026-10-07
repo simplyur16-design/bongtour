@@ -36,9 +36,12 @@ export function ensureAuroraPrimaryImageKeyword<T extends KwRow>(
   if (!rows.length || !isAuroraHuntingProductTitle(productTitle)) return rows
 
   const scrubLaura = (row: T): T => {
+    const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
-    if (!/Laura\s*Village/i.test(kw2)) return row
-    return { ...row, imageKeyword2: null }
+    let next = row
+    if (/Laura\s*Village/i.test(kw2)) next = { ...next, imageKeyword2: null }
+    if (/Laura\s*Village/i.test(kw)) next = { ...next, imageKeyword: '' }
+    return next
   }
 
   if (rows.some((r) => imageKeywordMentionsAurora(r.imageKeyword))) {

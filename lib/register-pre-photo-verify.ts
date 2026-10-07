@@ -187,7 +187,18 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
     if (!t) return true
     if (/체크\s*아웃|check[\s-]*out|결제하시면/i.test(t)) return false
     if (registerScheduleRouteIsLodgingOnly(routeText)) return true
-    if (!routeTextHasIdentifiableVisitPlace(routeText)) return false
+    if (!routeTextHasIdentifiableVisitPlace(routeText)) {
+      // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
+      // 패들보드·스파·버거 등 명소 0 route도 dest pack으로 채움
+      if (
+        /패들보드|paddle|서핑|\bsurf\b|스파|\bSPA\b|네일|마사지|일일\s*케어|토탈\s*케어|인앤아웃|In-?N-?Out|버거|워터파크|Waterpark|호텔조식|체크아웃|check[\s-]*out|전일\s*자유|자유시간/i.test(
+          t,
+        )
+      ) {
+        return true
+      }
+      return false
+    }
     return true
   }
   if (slot === 'departure') {

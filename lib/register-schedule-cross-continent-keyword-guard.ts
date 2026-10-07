@@ -87,7 +87,8 @@ const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bBarcelona\b/i,
   /Sagrada\s*Familia/i,
   /\bAmsterdam\b/i,
-  /\bVenice\b/i,
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: Little Venice Mykonos ≠ Italy Venice — manifest
+  /(?<!Little\s)\bVenice\b/i,
   /Brandenburg/i,
   /\bMunich\b/i,
   /Arc\s*de\s*Triomphe/i,
@@ -177,7 +178,8 @@ function isOffTripAustraliaNewZealandKeyword(
 }
 
 const KEYWORD_COUNTRY_FAMILY: ReadonlyArray<{ id: string; re: RegExp }> = [
-  { id: 'italy', re: /Colosseum|Rome|Venice|Vatican|Florence|Milan|Pantheon|Trevi|Doge|Rialto|Uffizi|Duomo|Spanish\s*Steps/i },
+  // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: Little Venice Mykonos ≠ Italy Venice — manifest
+  { id: 'italy', re: /Colosseum|Rome|(?<!Little\s)Venice|Vatican|Florence|Milan|Pantheon|Trevi|Doge|Rialto|Uffizi|Duomo|Spanish\s*Steps/i },
   { id: 'switzerland', re: /Jungfrau|Interlaken|Matterhorn|Lucerne|Zermatt|Chapel\s*Bridge|Rigi|Chillon|Titlis|Kapell/i },
   { id: 'france', re: /Louvre|Eiffel|Versailles|Paris|Sacr[eé]|Orsay|Montmartre/i },
   { id: 'spain', re: /Sagrada|Park\s*Guell|Alhambra|Seville|Barcelona|Prado|Toledo|Montserrat/i },

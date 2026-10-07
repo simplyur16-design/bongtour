@@ -923,9 +923,15 @@ export function isHotelLodgingImageKeyword(keyword: string): boolean {
 }
 
 /** 단순 도시·국가명만인 키워드(관광 일차 Pexels 1·2순위에 쓰이면 안 됨) */
+// REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hoi An Ancient Town ≠ bare (normalize strip 방지) — manifest
 export function isBareCityOrCountryKeyword(keyword: string): boolean {
+  const raw = String(keyword ?? '').trim()
+  if (!raw) return false
+  // normalize 전에 landmark hint — "Hoi An Ancient Town"이 Hoi An으로 줄어 bare 오판 금지
+  if (LANDMARK_HINT_RE.test(raw)) return false
   const n = normalizeToPlaceName(keyword)
   if (!n) return false
+  if (LANDMARK_HINT_RE.test(n)) return false
   return CITY_COUNTRY_ONLY.has(n.toLowerCase())
 }
 

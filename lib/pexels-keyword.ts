@@ -1766,6 +1766,14 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
 }
 
 function poiKoMappingAllowed(ko: string, text: string): boolean {
+  // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: 오로라≠로라 — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 오로라 빌리지≠Laura Village substring — manifest
+  if (ko === '로라 빌리지' || ko === '로라빌리지') {
+    if (/오로라/i.test(text)) return false
+    if (!(/(?<![가-힣])로라\s*빌리지|(?<![가-힣])로라빌리지/u.test(text) || /Laura\s*Village/i.test(text))) {
+      return false
+    }
+  }
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 홍콩 디즈니랜드 ≠ Tokyo/Shanghai — manifest
   if (ko === '디즈니랜드' || ko === '도쿄디즈니랜드') {
     if (/홍콩|Hong\s*Kong|香港/i.test(text)) return false
