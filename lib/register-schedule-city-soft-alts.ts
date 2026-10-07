@@ -792,14 +792,26 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Boudhanath Stupa Kathmandu',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Lisbon≠Porto soft-alt bleed — manifest
   {
-    cityRe: /벨렝|Belem|파스테이스|Pasteis|리스본|Lisbon|포르투|Porto/i,
+    cityRe: /벨렝|Belem|파스테이스|Pasteis|리스본|Lisbon|제로니모스|Jeronimos|코메르시우|Commerce\s*Square/i,
     alts: [
       'Belem Tower Lisbon',
       'Pasteis de Belem bakery Lisbon',
       'Jerónimos Monastery Lisbon',
       'Lisbon Tram 28 Alfama',
+      'Commerce Square Lisbon',
+      'Lisbon Alfama district viewpoint',
+    ],
+  },
+  {
+    cityRe: /포르투(?!\s*안티코)|(?<!Porto\s)Porto(?!\s*Antico)|클레리구스|Clerigos|상\s*벤투|Sao\s*Bento|리버라|Ribeira/i,
+    alts: [
       'Porto Ribeira Douro river',
+      'Clerigos Tower Porto',
+      'Porto Cathedral Se do Porto',
+      'Sao Bento Station Porto azulejos',
+      'Dom Luis I Bridge Porto',
     ],
   },
   {

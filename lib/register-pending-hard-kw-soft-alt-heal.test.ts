@@ -61,6 +61,19 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(String(next ?? '')).not.toMatch(/Bondi|Sydney Opera|Harbour Bridge|Taronga/i)
   })
 
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Lisbon≠Porto soft-alt bleed — manifest
+  it('Lisbon day soft-alt pack does not unlock Porto Ribeira', () => {
+    const lisbon = collectRegisterScheduleCitySoftAltKeywords('리스본 벨렝')
+    expect(lisbon.some((a) => /Porto Ribeira|Clerigos Tower Porto|Dom Luis/i.test(a))).toBe(false)
+    expect(lisbon.some((a) => /Belem|Jeronimos|Commerce|Tram|Alfama/i.test(a))).toBe(true)
+    const used = new Set(lisbon.map((a) => normScheduleImageKeywordKey(a)))
+    const next = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
+      routeText: '벨렝 - 제로니모스 - 코메르시우 광장 - 리스본',
+      usedKeyword: 'Belem Tower Lisbon',
+    })
+    expect(String(next ?? '')).not.toMatch(/Porto Ribeira|Clerigos|Sao Bento|Dom Luis/i)
+  })
+
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Dubai bare day soft-alt pack — manifest
   it('Dubai bare day soft-alt pack yields unused landmarks', () => {
     const alts = collectRegisterScheduleCitySoftAltKeywords('두바이')

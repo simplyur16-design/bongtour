@@ -15931,7 +15931,8 @@
             "usedKeyword≠day-route pack unlock",
             "Blue Mountain≠Sydney trigger",
             "Istanbul≠Ankara/Cappadocia/Pamukkale bleed",
-            "Da Nang≠Hoi An soft-alt bleed"
+            "Da Nang≠Hoi An soft-alt bleed",
+            "Lisbon≠Porto soft-alt bleed"
           ]
         },
         {
@@ -15968,7 +15969,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "Istanbul usedKeyword on Mykonos day does not unlock Anitkabir",
-            "Laura Village usedKeyword on Yellowknife day does not unlock Bondi"
+            "Laura Village usedKeyword on Yellowknife day does not unlock Bondi",
+            "Lisbon day soft-alt pack does not unlock Porto Ribeira"
           ]
         },
         {
