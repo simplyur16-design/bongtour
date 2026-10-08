@@ -24697,9 +24697,14 @@
             "formatAirVoucherPassengerNames",
             "extractAirVoucherPassengerNamesFromText",
             "extractAirVoucherNoticesFromText",
+            "normalizeAirVoucherNotices",
             "noticesKo",
             "noticesEn",
+            "depTerminal",
+            "arrTerminal",
+            "출발 터미널",
             "주의사항 · 참고사항",
+            "교차 폴백 금지",
             "parseAdminAirlineEticketText",
             "renderOtaCompanyAirVoucherHtml",
             "항공권 바우처"
@@ -24712,9 +24717,12 @@
             "extractAirlineEticketPdfTextViaGemini",
             "isUsableExtractedPdfText",
             "Passenger Name",
+            "Dep Terminal",
+            "Arr Terminal",
             "Notices (KO)",
             "Notices (EN)",
-            "주의사항"
+            "NEVER include Trip.com",
+            "NEVER prepend or embed the passenger name"
           ]
         },
         {
@@ -24743,9 +24751,11 @@
             "formatAirVoucherPassengerNames",
             "extractAirVoucherPassengerNamesFromText",
             "extractAirVoucherNoticesFromText",
+            "normalizeAirVoucherNotices",
             "name is on the next OCR line",
             "real OCR sample shape",
             "renders e-ticket notices and remarks",
+            "strips passenger-name prefixes and Trip.com noise",
             "no OTA / Trip.com / Agoda"
           ]
         }

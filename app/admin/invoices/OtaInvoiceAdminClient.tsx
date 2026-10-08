@@ -863,7 +863,10 @@ export default function OtaInvoiceAdminClient() {
             여정:{' '}
             {airVoucherDraft.flights.length
               ? airVoucherDraft.flights
-                  .map((f) => `${f.flightNo} ${f.depAirport || '?'}→${f.arrAirport || '?'}`)
+                  .map(
+                    (f) =>
+                      `${f.flightNo} ${f.depAirport || '?'}${f.depTerminal ? `(터미널 ${f.depTerminal})` : ''}→${f.arrAirport || '?'}${f.arrTerminal ? `(터미널 ${f.arrTerminal})` : ''}`,
+                  )
                   .join(' · ')
               : '—'}
           </p>

@@ -123,24 +123,34 @@ Flight : <airline code + number, e.g. KE123 or OZ701>
 Airline : <airline name>
 From : <IATA>
 To : <IATA>
+Dep Terminal : <departure terminal exactly as printed, e.g. 1, 2, T1, International — REQUIRED when shown on the ticket>
+Arr Terminal : <arrival terminal exactly as printed — REQUIRED when shown>
+Terminal : <if only one terminal is printed without dep/arr distinction, put it here too>
 Departure : <date time as printed>
 Arrival : <date time as printed>
 Cabin : <class if shown>
 Status : <OK/confirmed if shown>
 
-Notices / remarks (CRITICAL — copy fully, do not summarize or omit):
-If the ticket has 주의사항, 참고사항, Important Notice, Remarks, Conditions, baggage notes, check-in deadlines, or any fine-print passenger notices, output them as multi-line blocks EXACTLY as printed:
+Terminals are critical — never omit Terminal / 터미널 / Terminal No from the e-ticket when present.
+
+Notices / remarks (CRITICAL — clean, language-separated):
+If the ticket has 주의사항, 참고사항, Important Notice, Remarks, baggage notes, check-in deadlines, output them as bullet lines:
 
 Notices (KO) :
-<full Korean notice/참고/주의 text, keep line breaks; include every bullet>
+- <Korean-only bullets. Do NOT put passenger names in these lines.>
+- <Include 주의사항 and 참고사항. Keep meaning; rewrite "NAME, NAME은 …" templates into subject-free bullets like "유효한 신분증을 제시해야 합니다.">
 
 Notices (EN) :
-<full English notice/remarks text, keep line breaks; include every bullet>
+- <English-only bullets. Do NOT put passenger names in these lines.>
+- <Rewrite "NAME, NAME must …" templates into subject-free bullets like "Passengers must present the valid ID used to purchase the ticket.">
 
-If only one language exists, fill that Notices block and omit the empty one.
-If 주의사항 and 참고사항 are separate sections in Korean, concatenate both under Notices (KO) with a blank line between, preserving headings.
+Strict rules for Notices:
+- Notices (KO) must contain Korean only. Notices (EN) must contain English only. Never duplicate the same mixed blob in both.
+- NEVER include Trip.com / 트립닷컴 / Agoda / Booking.com names, logos, or liability sentences.
+- NEVER prepend or embed the passenger name list inside Notices — names belong only under Passenger Name.
+- Prefer airline/carrier notice text over OTA booking confirmation fine print.
 
-Copy every passenger name exactly as printed (including slash form KIM/MINSU). Do not invent hotel/OTA fields. Do not mention Trip.com or Agoda unless literally printed on the ticket.`
+Copy every passenger name exactly as printed under Passenger Name only (including slash form KIM/MINSU).`
 
 /**
  * 항공사 e-ticket 스캔 PDF → 승객·PNR·편명 텍스트.

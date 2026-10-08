@@ -13,6 +13,7 @@ import {
   extractAirVoucherNoticesFromText,
   extractAirVoucherPassengerNamesFromText,
   formatAirVoucherPassengerNames,
+  normalizeAirVoucherNotices,
   joinOtaVoucherUploadTexts,
   otaProviderDisplayName,
   otaVoucherNoteNeedsEnglishTranslation,
@@ -656,6 +657,8 @@ describe('admin-ota-air-voucher', () => {
             airline: 'KOREAN AIR',
             depAirport: 'ICN',
             arrAirport: 'NRT',
+            depTerminal: '2',
+            arrTerminal: '1',
             depAt: null,
             arrAt: null,
             cabinClass: null,
@@ -695,6 +698,8 @@ describe('admin-ota-air-voucher', () => {
             airline: 'ASIANA AIRLINES',
             depAirport: 'ICN',
             arrAirport: 'NRT',
+            depTerminal: '2',
+            arrTerminal: null,
             depAt: '2026-07-29T07:35:00',
             arrAt: '2026-07-29T09:50:00',
             cabinClass: 'Y',
@@ -708,6 +713,8 @@ describe('admin-ota-air-voucher', () => {
     })
     expect(draft.guestName).toBe(eight.join(', '))
     const html = renderOtaCompanyAirVoucherBilingualHtml(draft)
+    expect(html).toContain('출발 터미널: 2')
+    expect(html).toContain('Dep. terminal: 2')
     const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
     expect(html).toContain('항공권 바우처')
     expect(html).toContain('Flight Voucher')
@@ -776,6 +783,8 @@ Flight : OZ701
 Airline : ASIANA AIRLINES
 From : ICN
 To : NRT
+Dep Terminal : 2
+Arr Terminal : 1
 Departure : 29JUL2026 07:35
 Arrival : 29JUL2026 09:50
 Cabin : Y
@@ -787,6 +796,8 @@ Status : OK
     expect(parsed.ticketNumber).toBe('1801234567890')
     expect(parsed.flights.some((f) => f.flightNo === 'OZ701')).toBe(true)
     expect(parsed.flights.find((f) => f.flightNo === 'OZ701')?.depAirport).toBe('ICN')
+    expect(parsed.flights.find((f) => f.flightNo === 'OZ701')?.depTerminal).toBe('2')
+    expect(parsed.flights.find((f) => f.flightNo === 'OZ701')?.arrTerminal).toBe('1')
   })
 
   it('parses spaced passenger name and dashed e-ticket from real OCR sample shape', () => {
@@ -798,6 +809,8 @@ Flight : KE077
 Airline : Korean Air
 From : ICN
 To : YYZ
+Dep Terminal : 2
+Arr Terminal : 1
 Departure : 10:20 AM, November 1, 2026
 Arrival : 9:20 AM, November 1, 2026
 Cabin : Economy L / Economy
@@ -805,6 +818,7 @@ Flight : KE6709
 Airline : Korean Air / Air Canada AC410
 From : YYZ
 To : YUL
+Dep Terminal : 1
 Departure : 12:00 PM, November 1, 2026
 Arrival : 1:25 PM, November 1, 2026
 Cabin : Economy
@@ -814,10 +828,14 @@ Cabin : Economy
     expect(parsed.pnr).toBe('2H2YH2')
     expect(parsed.ticketNumber).toBe('1807588790111')
     expect(parsed.flights.map((f) => f.flightNo)).toEqual(['KE077', 'KE6709'])
+    expect(parsed.flights[0]?.depTerminal).toBe('2')
+    expect(parsed.flights[0]?.arrTerminal).toBe('1')
     const html = renderOtaCompanyAirVoucherBilingualHtml(
       buildOtaCompanyAirVoucherDraft({ parsed, now: new Date('2026-10-05T00:00:00.000Z') }),
     )
     expect(html).toContain('JEONG SEOYEONG')
+    expect(html).toContain('출발 터미널: 2')
+    expect(html).toContain('도착 터미널: 1')
     expect(html).not.toContain('Trip.com')
     expect(html).not.toContain('Agoda')
     expect(html).not.toContain('OTA (예약처)')
@@ -831,6 +849,8 @@ Flight : KE2005
 Airline : Korean Air
 From : ICN
 To : HKG
+Dep Terminal : 2
+Arr Terminal : 1
 Departure : 1:35 PM, January 14, 2027
 Arrival : 4:50 PM, January 14, 2027
 Cabin : Economy T
@@ -858,9 +878,43 @@ Remarks
     const htmlEn = renderOtaCompanyAirVoucherHtml(draft, 'en')
     expect(htmlKo).toContain('주의사항 · 참고사항')
     expect(htmlKo).toContain('출발 60분 전 탑승수속 마감')
+    expect(htmlKo).not.toContain('Check-in closes')
     expect(htmlEn).toContain('Notices · Remarks')
     expect(htmlEn).toContain('Check-in closes 60 minutes before departure')
+    expect(htmlEn).not.toContain('출발 60분')
     expect(htmlKo).not.toContain('OTA (예약처)')
+  })
+
+  it('strips passenger-name prefixes and Trip.com noise from mixed notices', () => {
+    const messy = `
+KWEON YOUNG LEE, CHOI WONHO, YI CHAE CHONG, KIM DONGKEUN, PARK SAGYUN, LEE MIKYOUNG, LEE JIA, LEE JEONGWOO, 은 반드시 항공권 구매 시 사용한 유효한 신분증을 제시해야 합니다. 탑승권 (보딩패스) 또는 여정표를 제시해야 할 수 있으므로 사전에 준비해주세요., 의 탑승을 거부할 권리가 있습니다. 탑승객이 항공사 규정 및 정책을 준수하지 않아 탑승이 불가한 경우, 트립닷컴은 이에 대한 책임을 지지 않습니다., must provide the valid ID used to purchase their ticket. Their boarding pass or itinerary may also be required., are unable to board a plane due to not complying with airline policies, regulations.
+`
+    const cleaned = normalizeAirVoucherNotices({ mixed: messy })
+    expect(cleaned.noticesKo).toMatch(/신분증|보딩패스|여정표/)
+    expect(cleaned.noticesKo).not.toMatch(/KWEON|CHOI|트립닷컴|Trip/i)
+    expect(cleaned.noticesEn).toMatch(/boarding pass|valid ID|unable to board/i)
+    expect(cleaned.noticesEn).not.toMatch(/KWEON|트립닷컴|Trip\.?com/i)
+    expect(cleaned.noticesKo).not.toEqual(cleaned.noticesEn)
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed: {
+        passengers: ['LEE JEONGWOO'],
+        pnr: 'ZQJGHT',
+        ticketNumber: null,
+        bookingRef: 'ZQJGHT',
+        flights: [],
+        noticesKo: cleaned.noticesKo,
+        noticesEn: cleaned.noticesEn,
+      },
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
+    const htmlEn = renderOtaCompanyAirVoucherHtml(draft, 'en')
+    expect(htmlKo).toMatch(/신분증|보딩패스|여정표/)
+    expect(htmlKo).not.toContain('must provide')
+    expect(htmlEn).toMatch(/boarding pass|valid ID|unable to board/i)
+    expect(htmlEn).not.toMatch(/신분증|보딩패스/)
+    expect(htmlKo).not.toContain('트립닷컴')
+    expect(htmlEn).not.toContain('Trip.com')
   })
 
   it('keeps all 8 passengers from multi-pax KE e-ticket OCR (모임1 shape)', () => {
@@ -883,6 +937,8 @@ Flight : KE2005
 Airline : Korean Air
 From : ICN
 To : HKG
+Dep Terminal : 2
+Arr Terminal : 1
 Departure : 1:35 PM, January 14, 2027
 Arrival : 4:50 PM, January 14, 2027
 Cabin : Economy T
@@ -890,6 +946,8 @@ Flight : KE2006
 Airline : Korean Air
 From : HKG
 To : ICN
+Dep Terminal : 1
+Arr Terminal : 2
 Departure : 6:10 PM, January 17, 2027
 Arrival : 10:45 PM, January 17, 2027
 Cabin : Economy L

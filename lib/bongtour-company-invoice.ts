@@ -243,6 +243,10 @@ export type OtaAirVoucherFlightSegment = {
   airline: string | null
   depAirport: string | null
   arrAirport: string | null
+  /** 출발 터미널 (예: 1, 2, T1, International) */
+  depTerminal: string | null
+  /** 도착 터미널 */
+  arrTerminal: string | null
   depAt: string | null
   arrAt: string | null
   cabinClass: string | null
@@ -1938,6 +1942,8 @@ function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFligh
     airline: p.airline || p.operated_by || null,
     depAirport: p.dep_airport || null,
     arrAirport: p.arr_airport || null,
+    depTerminal: p.dep_terminal || null,
+    arrTerminal: p.arr_terminal || null,
     depAt: p.dep_at || null,
     arrAt: p.arr_at || null,
     cabinClass: p.cabin_class || null,
@@ -1949,6 +1955,113 @@ function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFligh
  * 항공사 e-ticket / 여정표 본문 → 승객·PNR·편명.
  * REGRESSION-FREEZE[admin-ota-air-voucher]: parseAdminAirlineEticketText — manifest
  */
+const AIR_NOTICE_OTA_NOISE =
+  /Trip\.?\s*com|트립닷컴|Agoda|Booking\.com|Expedia|호텔스컴바인/i
+
+function isAirNoticePassengerNameBlob(chunk: string): boolean {
+  const t = chunk.replace(/^[-•·]\s*/, '').trim()
+  if (!t) return true
+  // 실제 안내 문장이면 이름 비율이 높아도 유지
+  if (hasHangul(t) && /해야|합니다|됩니다|거부|제시|준비|준수|불가|수속|수하물/.test(t)) {
+    return false
+  }
+  if (/\b(must|should|may|required|unable|boarding|itinerary|complying|policies)\b/i.test(t)) {
+    return false
+  }
+  const nameTokens = t.match(/\b[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3}\b/g) || []
+  const letters = t.replace(/[^A-Za-z가-힣]/g, '')
+  if (nameTokens.length >= 3 && nameTokens.join('').length >= letters.length * 0.7) return true
+  if (/^(?:[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3})(?:\s*,\s*[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3}){2,},?\s*$/.test(t)) {
+    return true
+  }
+  return false
+}
+
+/** 문장 앞 승객명 나열 제거: "A, B, C은/must …" → "…" */
+function stripAirNoticeLeadingNames(chunk: string): string {
+  let t = chunk.trim()
+  // ALL-CAPS 로마자 이름 나열 + 선택적 조사
+  t = t.replace(
+    /^(?:[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3})(?:\s*,\s*[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3})+,?\s*(?:은|는|이|가)?\s*/u,
+    '',
+  )
+  t = t.replace(/^(?:must|should|may|are|is|have|has)\b[\s,]*/i, (m, offset, whole) => {
+    // only strip if we already removed names (sentence still has content after)
+    return whole.length > m.length + 10 ? '' : m
+  })
+  // "must provide..." when names were left attached without particle
+  t = t.replace(
+    /^(?:[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3})(?:\s*,\s*[A-Z]{2,}(?:\s+[A-Z]{2,}){0,3})+,?\s*(?=(?:must|should|may|are|is)\b)/i,
+    '',
+  )
+  t = t.replace(/^(?:은|는|이|가)\s+/, '')
+  t = t.replace(/^,\s*/, '')
+  t = t.replace(/^의\s+/, '')
+  return t.trim()
+}
+
+function splitAirNoticeUnits(raw: string): string[] {
+  return String(raw ?? '')
+    .replace(/\r\n/g, '\n')
+    .split(/\n+|(?<=[.。!?])\s+|(?<=[다요])\s*,\s*(?=[A-Za-z가-힣])/)
+    .map((s) => s.replace(/^[-•·]\s*/, '').trim())
+    .filter(Boolean)
+}
+
+/**
+ * 주의사항 KO/EN 분리·OTA문구·승객명 나열 제거.
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: normalizeAirVoucherNotices — manifest
+ */
+export function normalizeAirVoucherNotices(args: {
+  noticesKo?: string | null
+  noticesEn?: string | null
+  mixed?: string | null
+}): { noticesKo: string | null; noticesEn: string | null } {
+  const koOut: string[] = []
+  const enOut: string[] = []
+  const seenKo = new Set<string>()
+  const seenEn = new Set<string>()
+
+  const push = (lang: 'ko' | 'en', chunk: string) => {
+    let t = stripAirNoticeLeadingNames(chunk)
+    if (!t || AIR_NOTICE_OTA_NOISE.test(t)) return
+    if (isAirNoticePassengerNameBlob(t)) return
+    // 짧은 연결 잔여물
+    if (/^(?:의|을|를|must|are|is)\b/i.test(t) && t.length < 40) return
+    if (t.length < 8) return
+    const key = t.toLowerCase().replace(/\s+/g, ' ')
+    if (lang === 'ko') {
+      if (!hasHangul(t)) return
+      if (seenKo.has(key)) return
+      seenKo.add(key)
+      koOut.push(t.startsWith('-') ? t : `- ${t}`)
+    } else {
+      if (hasHangul(t)) return
+      if (!/[A-Za-z]{3,}/.test(t)) return
+      if (seenEn.has(key)) return
+      seenEn.add(key)
+      enOut.push(t.startsWith('-') ? t : `- ${t}`)
+    }
+  }
+
+  for (const unit of [
+    ...splitAirNoticeUnits(args.noticesKo || ''),
+    ...splitAirNoticeUnits(args.mixed || ''),
+  ]) {
+    if (hasHangul(unit)) push('ko', unit)
+    else push('en', unit)
+  }
+  for (const unit of splitAirNoticeUnits(args.noticesEn || '')) {
+    if (hasHangul(unit)) push('ko', unit)
+    else push('en', unit)
+  }
+
+  return {
+    noticesKo: koOut.length ? koOut.join('\n') : null,
+    noticesEn: enOut.length ? enOut.join('\n') : null,
+  }
+}
+
 /**
  * OCR/본문에서 주의사항·참고사항 블록 추출 (다국어 라벨).
  * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherNoticesFromText — manifest
@@ -1977,25 +2090,23 @@ export function extractAirVoucherNoticesFromText(text: string): {
     return body || null
   }
 
-  const noticesKo =
+  let noticesKo =
     takeBlock(/Notices?\s*\(\s*KO\s*\)\s*[:：]?\s*/i) ||
     takeBlock(/(?:주의\s*사항|참고\s*사항)\s*[:：]?\s*/) ||
     null
-  const noticesEn =
+  let noticesEn =
     takeBlock(/Notices?\s*\(\s*EN\s*\)\s*[:：]?\s*/i) ||
     takeBlock(/(?:Important\s+Notices?|Remarks?|Conditions?(?:\s+of\s+Carriage)?)\s*[:：]?\s*/i) ||
     null
 
-  // 한글 원문에 주의+참고가 따로 있으면 합침
   if (!noticesKo) {
     const juui = takeBlock(/주의\s*사항\s*[:：]?\s*/)
     const chamgo = takeBlock(/참고\s*사항\s*[:：]?\s*/)
     const parts = [juui, chamgo].filter(Boolean) as string[]
-    if (parts.length) {
-      return { noticesKo: parts.join('\n\n'), noticesEn }
-    }
+    if (parts.length) noticesKo = parts.join('\n\n')
   }
-  return { noticesKo, noticesEn }
+
+  return normalizeAirVoucherNotices({ noticesKo, noticesEn })
 }
 
 /** Gemini 항공 OCR `Flight :` 블록 → 세그먼트 (OTA Booking ID 불필요). */
@@ -2013,6 +2124,18 @@ function parseAirOcrFlightBlocks(raw: string): OtaAirVoucherFlightSegment[] {
     const airline = block.match(/Airline\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
     const depAirport = block.match(/From\s*:\s*([A-Z]{3})\b/i)?.[1]?.toUpperCase() || null
     const arrAirport = block.match(/To\s*:\s*([A-Z]{3})\b/i)?.[1]?.toUpperCase() || null
+    const depTerminal =
+      block.match(/Dep(?:arture)?\s*Terminal\s*:\s*([^\n]+)/i)?.[1]?.trim() ||
+      block.match(/Terminal\s*\(Dep(?:arture)?\)\s*:\s*([^\n]+)/i)?.[1]?.trim() ||
+      block.match(/출발\s*터미널\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ||
+      null
+    const arrTerminal =
+      block.match(/Arr(?:ival)?\s*Terminal\s*:\s*([^\n]+)/i)?.[1]?.trim() ||
+      block.match(/Terminal\s*\(Arr(?:ival)?\)\s*:\s*([^\n]+)/i)?.[1]?.trim() ||
+      block.match(/도착\s*터미널\s*[:：]\s*([^\n]+)/i)?.[1]?.trim() ||
+      null
+    // single "Terminal :" near From/To — treat as departure when only one
+    const singleTerminal = block.match(/Terminal(?:\s*No)?\s*[:：]\s*([A-Z0-9][^\n]*)/i)?.[1]?.trim() || null
     const depAt = block.match(/Departure\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
     const arrAt = block.match(/Arrival\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
     const cabinClass = block.match(/Cabin\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
@@ -2025,6 +2148,8 @@ function parseAirOcrFlightBlocks(raw: string): OtaAirVoucherFlightSegment[] {
       airline,
       depAirport,
       arrAirport,
+      depTerminal: depTerminal || singleTerminal,
+      arrTerminal,
       depAt,
       arrAt,
       cabinClass,
@@ -2199,8 +2324,10 @@ export function buildOtaCompanyAirVoucherDraft(args: {
     ticketNumber: args.parsed.ticketNumber,
     bookingRef: args.parsed.bookingRef || args.parsed.pnr,
     flights: args.parsed.flights,
-    noticesKo: args.parsed.noticesKo?.replace(/\r\n/g, '\n').trim() || null,
-    noticesEn: args.parsed.noticesEn?.replace(/\r\n/g, '\n').trim() || null,
+    ...normalizeAirVoucherNotices({
+      noticesKo: args.parsed.noticesKo,
+      noticesEn: args.parsed.noticesEn,
+    }),
     logoUrl: args.logoUrl?.trim() || resolveBongtourLogoUrl(),
     company: BONGTOUR_INVOICE_COMPANY,
     ...resolveOtaVoucherNotePair({ note: args.note, noteEnOverride: args.noteEnOverride }),
@@ -2238,9 +2365,8 @@ function renderAirVoucherBody(
   const noteText = isKo
     ? draft.note || null
     : draft.noteEn || (draft.note && !hasHangul(draft.note) ? draft.note : null)
-  const noticesText = isKo
-    ? draft.noticesKo || draft.noticesEn || null
-    : draft.noticesEn || draft.noticesKo || null
+  // 한글 페이지는 noticesKo만, 영문 페이지는 noticesEn만 — 교차 폴백 금지(동일 덩어리 중복 방지)
+  const noticesText = isKo ? draft.noticesKo : draft.noticesEn
   const L = isKo
     ? {
         title: '항공권 바우처',
@@ -2255,6 +2381,8 @@ function renderAirVoucherBody(
         footer: `사업자등록 ${c.businessRegistrationNo} · 관광사업자 ${c.tourismRegistrationNo}호 · 통신판매업 ${c.mailOrderNo}<br/>상담 ${c.phone} (${c.consultHours}) · ${c.email}`,
         dep: '출발',
         arr: '도착',
+        depTerminal: '출발 터미널',
+        arrTerminal: '도착 터미널',
         airline: '항공사',
         cabin: '좌석',
         status: '상태',
@@ -2272,6 +2400,8 @@ function renderAirVoucherBody(
         footer: `Business Reg. ${c.businessRegistrationNo} · Tourism business ${c.tourismRegistrationNo} · E-commerce sales report ${c.mailOrderNoEn}<br/>Contact ${c.phone} (${c.consultHoursEn}) · ${c.email}`,
         dep: 'Departure',
         arr: 'Arrival',
+        depTerminal: 'Dep. terminal',
+        arrTerminal: 'Arr. terminal',
         airline: 'Airline',
         cabin: 'Cabin',
         status: 'Status',
@@ -2283,6 +2413,12 @@ function renderAirVoucherBody(
           .map((f, i) => {
             const route = [f.depAirport || '—', f.arrAirport || '—'].join(' → ')
             const when = `${formatAirFlightWhen(f.depAt, locale)} → ${formatAirFlightWhen(f.arrAt, locale)}`
+            const terminals = [
+              f.depTerminal ? `${L.depTerminal}: ${f.depTerminal}` : null,
+              f.arrTerminal ? `${L.arrTerminal}: ${f.arrTerminal}` : null,
+            ]
+              .filter(Boolean)
+              .join(isKo ? ' · ' : ' · ')
             const meta = [
               f.airline ? `${L.airline}: ${f.airline}` : null,
               f.cabinClass ? `${L.cabin}: ${f.cabinClass}` : null,
@@ -2294,6 +2430,7 @@ function renderAirVoucherBody(
     <div class="muted" style="font-weight:700;margin-bottom:8px">${isKo ? `${i + 1}편` : `Flight ${i + 1}`} · ${escapeHtml(f.flightNo)}</div>
     ${rowHtml(L.dep + ' / ' + L.arr, escapeHtml(route))}
     ${rowHtml(isKo ? '일시' : 'Schedule', escapeHtml(when))}
+    ${terminals ? rowHtml(isKo ? '터미널' : 'Terminal', escapeHtml(terminals)) : ''}
     ${meta ? rowHtml(isKo ? '기타' : 'Details', escapeHtml(meta)) : ''}
   </div>`
           })
