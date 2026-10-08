@@ -82,7 +82,24 @@ export default function AffiliationCardsAdminClient() {
         setError(data.error || '처리 실패')
         return
       }
-      await load()
+      // REGRESSION-FREEZE[admin-affiliation-list-lean]: approve/reject — no full list reload — manifest
+      // eSIM affiliationVerified write는 review API 그대로; UI만 낙관적 갱신.
+      setItems((prev) => {
+        if (status === 'pending' || status === 'all') {
+          if (status === 'pending') return prev.filter((x) => x.id !== id)
+          return prev.map((x) =>
+            x.id === id
+              ? {
+                  ...x,
+                  status: decision === 'approve' ? 'approved' : 'rejected',
+                  userAffiliationVerified:
+                    decision === 'approve' ? true : x.userAffiliationVerified,
+                }
+              : x,
+          )
+        }
+        return prev.filter((x) => x.id !== id)
+      })
     } finally {
       setBusyId(null)
     }
@@ -196,6 +213,8 @@ export default function AffiliationCardsAdminClient() {
               <img
                 src={it.imageUrl}
                 alt="명함"
+                loading="lazy"
+                decoding="async"
                 className="mx-auto max-h-[42vh] w-full object-contain md:max-h-64"
               />
               <span className="block py-1 text-center text-[11px] text-slate-500">탭하면 확대</span>

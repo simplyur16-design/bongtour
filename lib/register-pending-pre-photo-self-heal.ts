@@ -488,6 +488,8 @@ export async function healPendingRegisterPrePhoto(
       }
       if (!dryRun) {
         // REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: 수집과 겹쳐도 저장 재시도 — manifest
+        // REGRESSION-FREEZE[admin-pending-queue-flags]: heal persist queue+photos flags — manifest
+        const scheduleForFlags = scheduleChanged ? nextJson : String(product.schedule ?? '')
         await withPrismaRetry(`heal-pending:${product.id}`, () =>
           prisma.product.update({
             where: { id: product.id },
@@ -507,6 +509,8 @@ export async function healPendingRegisterPrePhoto(
                 ? { rejectReason: null, rejectedAt: null }
                 : {}),
               rawMeta: nextRawMeta,
+              registerPrePhotoQueueReady: verify.ok && nextStatus === 'pending',
+              registerPhotosReady: isRegisterPendingPhotosReady(product.bgImageUrl, scheduleForFlags),
             },
           }),
         )
@@ -611,7 +615,10 @@ async function holdOffPendingQueueIfNotPublic(productId: string): Promise<void> 
           id: productId,
           OR: [{ registrationStatus: null }, { registrationStatus: '' }, { registrationStatus: 'pending' }],
         },
-        data: { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS },
+        data: {
+          registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS,
+          registerPrePhotoQueueReady: false,
+        },
       }),
     )
   } catch (err) {

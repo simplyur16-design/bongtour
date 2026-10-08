@@ -904,6 +904,19 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         where: { id },
         data: data as Prisma.ProductUpdateInput,
       })
+      // REGRESSION-FREEZE[admin-pending-queue-flags]: PATCH schedule/status/bg → queue flags — manifest
+      if (
+        data.schedule !== undefined ||
+        data.registrationStatus !== undefined ||
+        data.bgImageUrl !== undefined ||
+        data.title !== undefined ||
+        data.destination !== undefined
+      ) {
+        const { refreshRegisterPrePhotoQueueFlagsForProductId } = await import(
+          '@/lib/register-pre-photo-queue-flags'
+        )
+        await refreshRegisterPrePhotoQueueFlagsForProductId(id)
+      }
     }
     if (pendingCoverRehost) {
       // REGRESSION-FREEZE[pexels-primary-single-ingest]: PhotoPool internalize only — no second CDN rehost — manifest

@@ -34,8 +34,14 @@ if (!route.includes('withPrismaRetry')) {
 if (/rawMeta:\s*true/.test(route)) {
   errors.push('pending list must not select rawMeta');
 }
-if (!route.includes('isRegisterPrePhotoPendingQueueReady')) {
-  errors.push('pending route must keep live verify.ok gate');
+if (!route.includes('REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE')) {
+  errors.push('pending route must use queue flag where (no schedule scan)');
+}
+if (/schedule:\s*true/.test(route)) {
+  errors.push('pending list must not select schedule JSON');
+}
+if (!route.includes('REGRESSION-FREEZE[admin-pending-queue-flags]')) {
+  errors.push('pending route missing admin-pending-queue-flags marker');
 }
 
 if (!photos.includes('REGRESSION-FREEZE[admin-pending-list-timeout]')) {

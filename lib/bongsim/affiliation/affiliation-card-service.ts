@@ -50,10 +50,28 @@ export async function listAffiliationCardRequests(params?: {
   take?: number
 }) {
   const status = params?.status && params.status !== 'all' ? params.status : undefined
+  // REGRESSION-FREEZE[admin-affiliation-list-lean]: list omits ocrRawJson — manifest
+  // eSIM affiliationVerified 승인 게이트·OCR submit 경로는 변경하지 않음 (목록 페이로드만).
   return prisma.bongsimAffiliationCardRequest.findMany({
     where: status ? { status } : undefined,
     orderBy: { createdAt: 'desc' },
     take: Math.min(Math.max(params?.take ?? 50, 1), 200),
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      imageUrl: true,
+      ocrName: true,
+      ocrCompany: true,
+      ocrEmail: true,
+      ocrPhone: true,
+      ocrPosition: true,
+      adminNote: true,
+      reviewedBy: true,
+      reviewedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   })
 }
 

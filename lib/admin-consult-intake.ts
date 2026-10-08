@@ -41,10 +41,23 @@ export async function fetchConsultIntakesForAdmin(isSuper: boolean): Promise<{
   inquiries: ConsultIntakeInquiry[]
   items: ConsultIntakeItem[]
 }> {
+  // REGRESSION-FREEZE[admin-bookings-list-lean]: intake bookings take+lean — manifest
   const [bookingsRaw, inquiriesRaw] = await Promise.all([
     prisma.booking.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { product: { select: { title: true } } },
+      take: 200,
+      select: {
+        id: true,
+        bookingNumber: true,
+        createdAt: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        status: true,
+        selectedDate: true,
+        requestNotes: true,
+        product: { select: { title: true } },
+      },
     }),
     prisma.customerInquiry.findMany({
       orderBy: { createdAt: 'desc' },
@@ -79,7 +92,7 @@ export async function fetchConsultIntakesForAdmin(isSuper: boolean): Promise<{
       id: b.id,
       accessionNumber: b.bookingNumber,
       createdAt: b.createdAt.toISOString(),
-      productTitle: b.productTitle,
+      productTitle: b.product?.title ?? '',
       customerName: b.customerName,
       status: b.status,
       selectedDate: b.selectedDate.toISOString(),

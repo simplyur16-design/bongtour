@@ -34,7 +34,6 @@ type ProductRow = {
   duration: string | null
   airline: string | null
   mandatoryLocalFee: number | null
-  schedule: string | null
   registrationStatus: string | null
   updatedAt: string
   hasError: boolean

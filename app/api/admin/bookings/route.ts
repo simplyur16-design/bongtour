@@ -1,32 +1,30 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
-import { maskEmail, maskPhone } from '@/lib/pii'
 import { fetchConsultIntakesForAdmin } from '@/lib/admin-consult-intake'
 
 /**
  * GET /api/admin/bookings — 패키지 예약 + CustomerInquiry(여행 상담) 통합 목록.
- * `bookings` 키는 기존 상세 패널용 전체 Booking 행(마스킹 적용).
+ * `bookings` 키는 목록 KPI용 lean rows (상세는 개별 API).
  */
 export async function GET() {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   try {
     const isSuper = admin.user.role === 'SUPER_ADMIN'
+    // REGRESSION-FREEZE[admin-bookings-list-lean]: single intake query — no second full booking findMany — manifest
     const { bookings: intakeBookings, inquiries, items } = await fetchConsultIntakesForAdmin(isSuper)
 
-    const bookings = await prisma.booking.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        product: {
-          select: { id: true, title: true, originCode: true },
-        },
-      },
-    })
-    const rows = bookings.map((b) => ({
-      ...b,
-      customerPhone: isSuper ? b.customerPhone : maskPhone(b.customerPhone),
-      customerEmail: b.customerEmail ? (isSuper ? b.customerEmail : maskEmail(b.customerEmail)) : null,
+    // 목록 KPI(상담중/예약확정)용 lean rows — 상세는 /api/admin/bookings/[id]
+    const rows = intakeBookings.map((b) => ({
+      id: b.id,
+      bookingNumber: b.accessionNumber,
+      createdAt: b.createdAt,
+      customerName: b.customerName,
+      status: b.status,
+      selectedDate: b.selectedDate,
+      product: { title: b.productTitle },
+      customerPhone: null as string | null,
+      customerEmail: null as string | null,
     }))
 
     return NextResponse.json({

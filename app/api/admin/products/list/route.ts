@@ -276,7 +276,7 @@ export async function GET(req: NextRequest) {
       duration: p.duration,
       airline: p.airline,
       mandatoryLocalFee: p.mandatoryLocalFee,
-      schedule: p.schedule,
+      // REGRESSION-FREEZE[admin-products-list-no-schedule]: scheduleDays only — omit schedule JSON — manifest
       registrationStatus: p.registrationStatus,
       updatedAt: p.updatedAt,
       hasError: errorProductIds.has(p.id),

@@ -137,6 +137,11 @@ export async function rehostPendingScheduleSlotIfUnchanged(
     where: { id: job.productId },
     data: { schedule: JSON.stringify(next) },
   })
+  // REGRESSION-FREEZE[admin-pending-queue-flags]: schedule image pick → photosReady — manifest
+  const { refreshRegisterPrePhotoQueueFlagsForProductId } = await import(
+    '@/lib/register-pre-photo-queue-flags'
+  )
+  await refreshRegisterPrePhotoQueueFlagsForProductId(job.productId)
   return true
 }
 
@@ -201,5 +206,10 @@ export async function rehostPendingCoverIfUnchanged(
       bgImageCityName: job.cityName,
     },
   })
+  // REGRESSION-FREEZE[admin-pending-queue-flags]: cover pick → photosReady — manifest
+  const { refreshRegisterPrePhotoQueueFlagsForProductId } = await import(
+    '@/lib/register-pre-photo-queue-flags'
+  )
+  await refreshRegisterPrePhotoQueueFlagsForProductId(job.productId)
   return true
 }

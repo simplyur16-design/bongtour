@@ -13820,7 +13820,11 @@
           "file": "app/api/admin/products/pending/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-parser-fix]",
-            "isRegisterPrePhotoPendingQueueReady"
+            "REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE",
+            "REGRESSION-FREEZE[admin-pending-queue-flags]"
+          ],
+          "mustNotInclude": [
+            "schedule: true"
           ]
         },
         {
@@ -22363,6 +22367,7 @@
           "file": "app/api/admin/products/pending/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[pending-approve-photos-ready]",
+            "registerPhotosReady",
             "isRegisterPendingPhotosReady"
           ]
         },
@@ -22466,10 +22471,12 @@
           "mustInclude": [
             "REGRESSION-FREEZE[admin-pending-list-timeout]",
             "withPrismaRetry",
-            "isRegisterPrePhotoPendingQueueReady"
+            "REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE",
+            "REGRESSION-FREEZE[admin-pending-queue-flags]"
           ],
           "mustNotInclude": [
-            "rawMeta: true"
+            "rawMeta: true",
+            "schedule: true"
           ]
         },
         {
@@ -24531,6 +24538,128 @@
       ],
       "vitestSuites": [
         "lib/bongtour-ota-issued-html-to-pdf.test.ts"
+      ]
+    },
+    {
+      "id": "admin-pending-queue-flags",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 KPI/목록은 registerPrePhotoQueueReady 플래그 — schedule 전수 스캔 금지 (eSIM 비개입)",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-pending-queue-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-queue-flags]",
+            "REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE",
+            "registerPrePhotoQueueReady: true"
+          ],
+          "mustNotInclude": [
+            "list.filter(productRowIsLiveRegisterPendingQueue)"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-queue-flags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-queue-flags]",
+            "computeRegisterPrePhotoQueueFlags",
+            "refreshRegisterPrePhotoQueueFlagsForProductId"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-pending-queue-flags]",
+            "REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE",
+            "registerPhotosReady"
+          ],
+          "mustNotInclude": [
+            "schedule: true"
+          ]
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "mustInclude": [
+            "registerPrePhotoQueueReady",
+            "registerPhotosReady"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/admin-pending-queue-flags.test.ts"
+      ]
+    },
+    {
+      "id": "admin-affiliation-list-lean",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "명함 목록은 ocrRawJson 제외·승인 후 full reload 금지 — affiliationVerified 게이트 불변",
+      "checks": [
+        {
+          "file": "lib/bongsim/affiliation/affiliation-card-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-affiliation-list-lean]",
+            "list omits ocrRawJson"
+          ],
+          "mustNotInclude": [
+            "ocrRawJson: true"
+          ]
+        },
+        {
+          "file": "app/admin/bongsim/affiliation-cards/AffiliationCardsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-affiliation-list-lean]",
+            "no full list reload",
+            "loading=\"lazy\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admin-bookings-list-lean",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "여행 예약 목록 단일 intake 쿼리 — 이중 booking findMany 금지 (봉심 payments 비개입)",
+      "checks": [
+        {
+          "file": "app/api/admin/bookings/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-bookings-list-lean]",
+            "fetchConsultIntakesForAdmin"
+          ],
+          "mustNotInclude": [
+            "prisma.booking.findMany"
+          ]
+        },
+        {
+          "file": "lib/admin-consult-intake.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-bookings-list-lean]",
+            "take: 200"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admin-products-list-no-schedule",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "여행 상품 목록 JSON에 schedule 원문 미포함 — scheduleDays만",
+      "checks": [
+        {
+          "file": "app/api/admin/products/list/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-products-list-no-schedule]",
+            "scheduleDays: countScheduleDays"
+          ]
+        }
       ]
     }
   ],

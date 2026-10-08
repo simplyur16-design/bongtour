@@ -643,7 +643,9 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.equal(slots.find((s) => s.supplier === 'ybtour' && s.lane === 'package')?.pending, 0)
 
     const pendingRoute = readFileSync(new URL('../app/api/admin/products/pending/route.ts', import.meta.url), 'utf8')
-    assert.match(pendingRoute, /isRegisterPrePhotoPendingQueueReady/)
+    // REGRESSION-FREEZE[admin-pending-queue-flags]: pending list uses denormalized flag where — manifest
+    assert.match(pendingRoute, /REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE/)
+    assert.equal(pendingRoute.includes('schedule: true'), false)
     const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
     assert.match(ingestSrc, /discoveredListingFitsIngestLane/)
     const originSrc = readFileSync(new URL('../lib/register-ingest-api-origin.ts', import.meta.url), 'utf8')
