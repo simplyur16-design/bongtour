@@ -81,7 +81,10 @@ import {
   isRegisterScheduleSameDayKeywordCountryClash,
   registerPrePhotoPlaceDestHay,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
-import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
+import {
+  collectRegisterScheduleCitySoftAltKeywords,
+  pickUnusedRegisterScheduleCitySoftAltKeyword,
+} from '@/lib/register-schedule-city-soft-alts'
 
 export { REGISTER_PRE_PHOTO_INGEST_PER_GEO, REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '@/lib/register-pre-photo-ingest-geo-slots'
 export {
@@ -1486,10 +1489,27 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     // 빈 route + dest pack 도 lodging과 동일하게 pack 허용
     const emptyRouteDestPack = !routeHay && packFromDest.length > 0
     // 패들보드·버거 등 route 명소 0 + dest pack 있으면 dest soft-alt로 채움
+    // 자유시간·공항이동처럼 당일 도시 증거가 없으면 dest hay로 soft-alt unlock (HK airtel D3)
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: free-time empty middle → dest soft-alt — manifest
+    const dayCityEvidence =
+      Boolean(softDupForeignVisitCityForMiddleRoute(routeHay)) ||
+      Boolean(firstMatchingScheduleCityEn(routeHay)) ||
+      collectRouteTextOrderedLandmarkKeywords(routeHay).length > 0
+    const softPickHay =
+      !dayCityEvidence && destHay
+        ? [routeHay, destHay].filter(Boolean).join('\n')
+        : routeHay
+    const softPick = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
+      routeText: softPickHay,
+      title: row.title,
+      description: row.description,
+      usedKeyword: String(row.imageKeyword2 ?? '').trim() || undefined,
+    })
     const cands = [
       ...collectRouteTextOrderedLandmarkKeywords(routeHay),
       ...collectRouteTextOrderedImageKeywords(routeHay),
       ...pack,
+      softPick,
       firstMatchingScheduleSpotEn(routeHay),
     ].filter((v): v is string => Boolean(v && String(v).trim()))
     for (const raw of cands) {
@@ -1505,12 +1525,16 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: pack도 verify own-route 통과 필수 — manifest
       // Victoria Peak(도시 토큰 소실)처럼 persist 후 onRoute 실패면 주입 금지. 숙소/빈 route만 dest 귀속 허용.
       // 맨도시-only route + city pack: soft 도시 토큰이 키워드에 있으면 허용
+      // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty — day soft-alt pick refill — manifest
+      const softAltPickHit =
+        Boolean(softPick) && normScheduleImageKeywordKey(softPick) === nk && Boolean(routeHay)
       if (
         !onRoute &&
         !(lodging && packPersistKeys.has(nk) && onDest) &&
         !(emptyRouteDestPack && packPersistKeys.has(nk) && onDest) &&
         !(bareOnlyRoute && packPersistKeys.has(nk)) &&
-        !(activityOnlyDestPack && packPersistKeys.has(nk) && onDest)
+        !(activityOnlyDestPack && packPersistKeys.has(nk) && onDest) &&
+        !softAltPickHit
       ) {
         continue
       }
@@ -1708,6 +1732,11 @@ function promoteEmptyMiddlePrimaryFromKeyword2<T extends RegisterPrePhotoHealRow
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
+  const usedPrimary = new Set<string>()
+  for (const r of days) {
+    const pk = normScheduleImageKeywordKey(String(r.imageKeyword ?? '').trim())
+    if (pk) usedPrimary.add(pk)
+  }
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     const kw = String(row.imageKeyword ?? '').trim()
@@ -1715,6 +1744,10 @@ function promoteEmptyMiddlePrimaryFromKeyword2<T extends RegisterPrePhotoHealRow
     if (!registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) || kw || !kw2) {
       return row
     }
+    const skNk = normScheduleImageKeywordKey(kw2)
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty kw1 — used kw2 clear for refill — manifest
+    if (skNk && usedPrimary.has(skNk)) return { ...row, imageKeyword2: null }
+    if (skNk) usedPrimary.add(skNk)
     return { ...row, imageKeyword: kw2, imageKeyword2: null }
   })
 }

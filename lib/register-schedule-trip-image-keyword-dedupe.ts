@@ -5126,6 +5126,12 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       secondary = ''
     }
 
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty primary — orphan kw2 promote before used bookkeeping — manifest
+    if (isMiddleDay && !primary && secondary) {
+      primary = secondary
+      secondary = ''
+    }
+
     if (primary) used.add(normScheduleImageKeywordKey(primary))
     if (primary) usedPrimary.add(normScheduleImageKeywordKey(primary))
     if (secondary) used.add(normScheduleImageKeywordKey(secondary))
@@ -5172,9 +5178,24 @@ function forceTripUniqueImageKeywordsWithCitySoftAlts<T extends RegisterSchedule
     }
 
     primary = replaceIfUsed(primary)
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: forceTripUnique empty primary → soft-alt — manifest
+    if (!primary && !edge) {
+      const soft = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
+        routeText: row.routeText,
+        title: row.title,
+        description: row.description,
+        usedKeyword: secondary || undefined,
+      })
+      if (soft && !used.has(normScheduleImageKeywordKey(soft))) primary = soft
+    }
     if (primary) used.add(normScheduleImageKeywordKey(primary))
     secondary = replaceIfUsed(secondary)
     if (secondary && normScheduleImageKeywordKey(secondary) === normScheduleImageKeywordKey(primary)) {
+      secondary = ''
+    }
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: forceTripUnique orphan kw2 → promote — manifest
+    if (!primary && secondary) {
+      primary = secondary
       secondary = ''
     }
     if (secondary) used.add(normScheduleImageKeywordKey(secondary))
@@ -5735,11 +5756,21 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
           pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
           ''
       } else {
+      // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty — day soft-alt pack refill — manifest
+      const softAltGap = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
+        routeText: row.routeText,
+        title: row.title,
+        description: row.description,
+      })
       let candidate =
         pickRouteOwnedPrimaryLandmark(row, usedPrimary) ||
         pickGapFillKeyword(daySpots, '', row, acceptKw, false, used) ||
         (routeTextTourismSegmentCount(row.routeText) < 1
           ? pickGapFillKeyword(tripSpots, '', row, acceptKw, false, used)
+          : '') ||
+        (softAltGap && acceptKw(softAltGap, row) ? softAltGap : '') ||
+        (softAltGap && registerScheduleKeywordPassesRouteEvidence(softAltGap, row)
+          ? softAltGap
           : '') ||
         pickGuamResortClusterKeywordForUsedSlot(cands, used, tripHay, '') ||
         pickSoutheastAsiaResortClusterKeywordForUsedSlot(cands, used, tripHay, '', row.routeText) ||
@@ -5766,6 +5797,8 @@ export function fillRegisterScheduleMiddleDayImageKeywordGaps<T extends Register
         (routeTextTourismSegmentCount(row.routeText) < 1
           ? pickTripSpotGapFillFallback(tripSpots, usedPrimary, '')
           : '') ||
+        // day-route soft-alt: acceptKw가 trip SSOT로 막아도 당일 city pack이면 허용
+        softAltGap ||
         ''
       if (candidate) primary = candidate
       }

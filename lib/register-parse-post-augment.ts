@@ -230,11 +230,20 @@ function promoteEmptyMiddlePrimaryFromKeyword2<T extends ScheduleRouteRow>(rows:
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
+  const usedPrimary = new Set<string>()
+  for (const r of days) {
+    const pk = normScheduleImageKeywordKey(String(r.imageKeyword ?? '').trim())
+    if (pk) usedPrimary.add(pk)
+  }
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
     if (slot !== 'middle' || kw || !kw2) return row
+    const skNk = normScheduleImageKeywordKey(kw2)
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty kw1 — used kw2 clear for refill — manifest
+    if (skNk && usedPrimary.has(skNk)) return { ...row, imageKeyword2: null }
+    if (skNk) usedPrimary.add(skNk)
     return { ...row, imageKeyword: kw2, imageKeyword2: null }
   })
 }

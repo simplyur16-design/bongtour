@@ -355,7 +355,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Istanbul≠Ankara/Cappadocia/Pamukkale bleed — manifest
   {
-    cityRe: /이스탄불|Istanbul|성소피아|하기아|Hagia|블루\s*모스크|Blue\s*Mosque|토프카프|Topkapi|갈라타|Galata|그랜드\s*바자|Grand\s*Bazaar/i,
+    // 성 소피아·톱카프(공급사 표기)도 당일 hay에 잡히게 — 성소피아/토프카프만이면 empty-middle soft-alt 0
+    cityRe:
+      /이스탄불|Istanbul|성\s*소피아|성소피아|하기아|Hagia|블루\s*모스크|Blue\s*Mosque|토프카프|톱카프|톱카피|Topkapi|갈라타|Galata|그랜드\s*바자|Grand\s*Bazaar|돌마바흐체|Dolmabahce/i,
     alts: [
       'Hagia Sophia Istanbul',
       'Blue Mosque Istanbul',
@@ -658,17 +660,59 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Hong Kong Clock Tower Tsim Sha Tsui',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 발리카삭(보홀)≠Bali soft-alt bleed — manifest
   {
-    cityRe: /발리|Bali|빠당빠당|Padang\s*Padang|울루와뚜|Uluwatu|세미냑|Seminyak|누사두아|Nusa\s*Dua|쿠타|Kuta/i,
+    cityRe:
+      /발리(?!카삭)|(?<!Balica)Bali\b|빠당빠당|Padang\s*Padang|울루와뚜|Uluwatu|세미냑|Seminyak|누사두아|Nusa\s*Dua|쿠타|꾸따|Kuta|우붓|Ubud|원숭이\s*숲|Monkey\s*Forest/i,
     alts: [
       'Padang Padang Beach Bali',
       'Bali Uluwatu Temple cliff',
       'Seminyak Beach Club Bali',
       'Tanah Lot Temple Bali sunset',
       'Ubud Rice Terraces Bali',
+      'Ubud Monkey Forest Bali',
       'Bali Garuda Wisnu Kencana',
       'Nusa Dua Beach Bali',
       'Kuta Beach Bali sunset',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Bohol Loboc soft-alt pack — manifest
+  {
+    cityRe: /보홀|Bohol|로복|Loboc|초콜릿\s*힐|Chocolate\s*Hills|발리카삭|Balicasag|팡라오|Panglao/i,
+    alts: [
+      'Bohol Loboc River Cruise',
+      'Bohol Chocolate Hills',
+      'Bohol Man Made Forest',
+      'Bohol Tarsier Sanctuary',
+      'Panglao Beach Bohol',
+      'Balicasag Island Bohol',
+      'Blood Compact Shrine Bohol',
+      'Baclayon Church Bohol',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Manado Bunaken soft-alt pack — manifest
+  {
+    cityRe: /마나도|Manado|부나켄|Bunaken/i,
+    alts: [
+      'Bunaken National Marine Park',
+      'Manado Bunaken National Marine Park',
+      'Manado Harbor Sulawesi',
+      'Bunaken Island dive reef',
+      'Manado City Boulevard',
+      'Likupang Beach Manado',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Shenzhen day ≠ HK dest soft-alt only — manifest
+  {
+    cityRe: /선전|深圳|Shenzhen|화창베이|Huaqiangbei|난터우|Nantou|선전베이|Shenzhen\s*Bay|푸티엔|Futian/i,
+    alts: [
+      'Shenzhen Bay Park',
+      'Huaqiangbei Electronics Market Shenzhen',
+      'Nantou Ancient Town Shenzhen',
+      'Window of the World Shenzhen',
+      'Splendid China Folk Village Shenzhen',
+      'Lianhuashan Park Shenzhen',
+      'Futian CBD Shenzhen skyline',
     ],
   },
   {

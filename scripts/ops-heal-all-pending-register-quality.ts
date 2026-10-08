@@ -91,8 +91,40 @@ async function main() {
   const raw = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim()
   if (!raw) throw new Error('no db')
   const url = raw.replace(/[?&]sslmode=[^&]*/gi, '').replace(/\?&/, '?').replace(/[?&]$/, '')
-  const c = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } })
+  let c = new Client({
+    connectionString: url,
+    ssl: { rejectUnauthorized: false },
+    keepAlive: true,
+    connectionTimeoutMillis: 60_000,
+  })
   await c.connect()
+  c.on('error', (err) => {
+    console.warn('[pg] client error (will reconnect on next write)', err.message)
+  })
+  async function ensureClient(): Promise<Client> {
+    try {
+      await c.query('SELECT 1')
+      return c
+    } catch {
+      try {
+        c.end().catch(() => {})
+      } catch {
+        /* ignore */
+      }
+      c = new Client({
+        connectionString: url,
+        ssl: { rejectUnauthorized: false },
+        keepAlive: true,
+        connectionTimeoutMillis: 60_000,
+      })
+      await c.connect()
+      c.on('error', (err) => {
+        console.warn('[pg] client error (will reconnect on next write)', err.message)
+      })
+      console.warn('[pg] reconnected')
+      return c
+    }
+  }
 
   const summary = {
     mode: registeredMode ? 'registered' : 'pending',
@@ -172,6 +204,7 @@ async function main() {
           productTitle: row.title,
           lane: 'package',
         })
+        // enforce 후 orphan kw2→primary 승격은 enforce SSOT(forceTripUnique)에서 처리
         const nextDays = enforceRegisterScheduleTripUniqueImageKeywords(healed.rows as any) as DayRow[]
         const byDay = new Map(nextDays.map((d) => [Number(d.day), d]))
         const merged = days.map((d) => {
@@ -197,7 +230,8 @@ async function main() {
           summary.productsWithEmptyAfter += 1
         }
         if (!dryRun) {
-          await c.query(`UPDATE "Product" SET schedule = $1::text, "updatedAt" = now() WHERE id = $2`, [
+          const db = await ensureClient()
+          await db.query(`UPDATE "Product" SET schedule = $1::text, "updatedAt" = now() WHERE id = $2`, [
             JSON.stringify(merged),
             row.id,
           ])

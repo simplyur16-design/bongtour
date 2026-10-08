@@ -83,7 +83,9 @@ function promoteMiddleDayEmptyPrimaryFromKeyword2<T extends RegisterScheduleImag
     const sk = String(row.imageKeyword2 ?? '').trim()
     if (slot !== 'middle' || pk || !sk) return row
     const skNk = normScheduleImageKeywordKey(sk)
-    if (skNk && usedPrimary.has(skNk)) return row
+    // trip-wide에 이미 primary로 쓰인 kw2를 middle에 남기면 empty kw1+orphan kw2가 된다 → 비우고 gap-fill/soft-alt가 채움
+    // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty kw1 — used kw2 clear for refill — manifest
+    if (skNk && usedPrimary.has(skNk)) return { ...row, imageKeyword2: null }
     if (skNk) usedPrimary.add(skNk)
     return { ...row, imageKeyword: sk, imageKeyword2: null }
   })

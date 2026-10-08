@@ -15933,7 +15933,8 @@
             "Istanbul≠Ankara/Cappadocia/Pamukkale bleed",
             "Da Nang≠Hoi An soft-alt bleed",
             "Lisbon≠Porto soft-alt bleed",
-            "Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed)"
+            "Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed)",
+            "발리카삭(보홀)≠Bali soft-alt bleed"
           ]
         },
         {
@@ -15972,7 +15973,8 @@
             "Istanbul usedKeyword on Mykonos day does not unlock Anitkabir",
             "Laura Village usedKeyword on Yellowknife day does not unlock Bondi",
             "Lisbon day soft-alt pack does not unlock Porto Ribeira",
-            "Phu Quoc Duong Dong night market does not unlock Bangkok soft-alts"
+            "Phu Quoc Duong Dong night market does not unlock Bangkok soft-alts",
+            "Balicasag Bohol title does not unlock Bali soft-alts"
           ]
         },
         {
@@ -16012,14 +16014,19 @@
             "Montepulciano Tuscany hill town",
             "HK soft-alt must pass landmark guard",
             "Man Mo Temple Hong Kong",
-            "soft-alt pick skips lodging/non-landmark"
+            "soft-alt pick skips lodging/non-landmark",
+            "Bohol Loboc soft-alt pack",
+            "Manado Bunaken soft-alt pack",
+            "Shenzhen day ≠ HK dest soft-alt only"
           ]
         },
         {
           "file": "lib/register-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
-            "activity-only middle → dest soft-alt"
+            "activity-only middle → dest soft-alt",
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
+            "free-time empty middle → dest soft-alt"
           ]
         },
         {
@@ -16036,7 +16043,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]",
             "Dubai bare day soft-alt pack yields unused landmarks",
-            "Hong Kong soft-alt pack has no lodging/non-landmark strings"
+            "Hong Kong soft-alt pack has no lodging/non-landmark strings",
+            "Istanbul Topkapi spelling and Bohol Manado Shenzhen packs fill empty-middle"
           ]
         }
       ],
@@ -17242,7 +17250,32 @@
           "file": "lib/register-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
-            "promoteEmptyMiddlePrimaryFromKeyword2"
+            "promoteEmptyMiddlePrimaryFromKeyword2",
+            "used kw2 clear for refill",
+            "day soft-alt pick refill"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keywords-apply.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
+            "used kw2 clear for refill"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
+            "day soft-alt pack refill",
+            "forceTripUnique orphan kw2 → promote",
+            "forceTripUnique empty primary → soft-alt"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
+            "used kw2 clear for refill"
           ]
         },
         {
@@ -17283,13 +17316,29 @@
             "마카오 실속",
             "남미 퍼펙트 일주 4개국"
           ]
+        },
+        {
+          "file": "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
+            "empty middle with trip-used kw2 clears and soft-alt refill fills primary",
+            "자유 시간 및 공항 이동 middle requires primary and dest soft-alt fills"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
+            "자유 시간|공항 이동 requires primary"
+          ]
         }
       ],
       "npmScripts": [
         "verify:register-pre-photo-self-heal"
       ],
       "vitestSuites": [
-        "lib/register-pre-photo-visit-city-keyword.test.ts"
+        "lib/register-pre-photo-visit-city-keyword.test.ts",
+        "lib/register-pending-hard-kw-soft-alt-heal.test.ts"
       ]
     },
     {

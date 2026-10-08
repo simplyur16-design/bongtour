@@ -160,4 +160,124 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(alts.length).toBeGreaterThanOrEqual(3)
     expect(alts.some((a) => /Grand\s*World|Sao\s*Beach|Safari/i.test(a))).toBe(true)
   })
+
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 발리카삭(보홀)≠Bali soft-alt bleed — manifest
+  it('Balicasag Bohol title does not unlock Bali soft-alts', () => {
+    const alts = collectRegisterScheduleCitySoftAltKeywords('보홀 6일 발리카삭 로복강')
+    expect(alts.some((a) => /Padang Padang|Uluwatu|Seminyak|Tanah Lot/i.test(a))).toBe(false)
+    expect(alts.some((a) => /Bohol|Loboc|Chocolate Hills|Balicasag Island Bohol/i.test(a))).toBe(true)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Istanbul Topkapi spelling + Bohol/Manado/Shenzhen packs — manifest
+  it('Istanbul Topkapi spelling and Bohol Manado Shenzhen packs fill empty-middle', () => {
+    const istanbul = collectRegisterScheduleCitySoftAltKeywords('성 소피아 성당 - 톱카프 궁전')
+    expect(istanbul.some((a) => /Hagia Sophia|Topkapi|Blue Mosque|Galata/i.test(a))).toBe(true)
+    expect(collectRegisterScheduleCitySoftAltKeywords('보홀 - 로복강').length).toBeGreaterThanOrEqual(4)
+    expect(collectRegisterScheduleCitySoftAltKeywords('마나도 - 부나켄 국립공원').length).toBeGreaterThanOrEqual(3)
+    expect(collectRegisterScheduleCitySoftAltKeywords('화창베이 - 선전베이공원 - 난터우').length).toBeGreaterThanOrEqual(
+      3,
+    )
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty kw1 — used kw2 clear for refill — manifest
+  // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 자유 시간|공항 이동 requires primary — manifest
+  it('자유 시간 및 공항 이동 middle requires primary and dest soft-alt fills', async () => {
+    const { registerScheduleDayRequiresPrimaryImageKeyword } = await import(
+      '@/lib/register-pre-photo-verify'
+    )
+    const { resolveScheduleKeywordSlotKind } = await import('@/lib/schedule-image-keyword-adjacent-poi')
+    const { healRegisterPrePhotoSchedule } = await import('@/lib/register-pre-photo-self-heal')
+    expect(registerScheduleDayRequiresPrimaryImageKeyword('middle', '자유 시간 및 공항 이동')).toBe(true)
+    const rows = [
+      { day: 1, routeText: '인천 - 홍콩', imageKeyword: 'Avenue of Stars Hong Kong', imageKeyword2: null },
+      { day: 2, routeText: '빅토리아 피크', imageKeyword: 'Victoria Peak', imageKeyword2: null },
+      { day: 3, routeText: '자유 시간 및 공항 이동', imageKeyword: '', imageKeyword2: null },
+      { day: 4, routeText: '홍콩 - 인천', imageKeyword: 'Hong Kong', imageKeyword2: null },
+    ]
+    expect(resolveScheduleKeywordSlotKind(3, 4, 4)).toBe('middle')
+    const healed = healRegisterPrePhotoSchedule(rows as any, {
+      supplierKey: 'modetour',
+      productDestination: '홍콩',
+      productTitle: '[홍콩에어텔] 알렉산드라 호텔',
+      lane: 'air_hotel_free',
+    })
+    const d3 = healed.rows.find((r) => Number(r.day) === 3)
+    expect(String(d3?.imageKeyword ?? '').trim()).toBeTruthy()
+    expect(String(d3?.imageKeyword ?? '')).toMatch(/Hong Kong|Harbour|Temple|Peak|Ferry|Market|Promenade/i)
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: forceTripUnique orphan kw2 → promote — manifest
+  it('forceTripUnique promotes orphan kw2 when primary cleared as used', () => {
+    const rows = [
+      { day: 1, routeText: '인천 - 마드리드', imageKeyword: 'Madrid', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '프라도 미술관',
+        imageKeyword: 'Prado Museum Madrid',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        routeText: '마드리드 아토차 역 - 세비야 스페인 광장',
+        // enforce 회귀 패턴: primary 비움 + 미사용 kw2 orphan
+        imageKeyword: '',
+        imageKeyword2: 'Retiro Park Madrid',
+      },
+      { day: 4, routeText: '마드리드 - 인천', imageKeyword: 'Madrid', imageKeyword2: null },
+    ]
+    const out = enforceRegisterScheduleTripUniqueImageKeywords(rows as any)
+    const d3 = out.find((r) => Number(r.day) === 3)
+    expect(String(d3?.imageKeyword ?? '').trim()).toBeTruthy()
+    expect(normScheduleImageKeywordKey(String(d3?.imageKeyword ?? ''))).toBe(
+      normScheduleImageKeywordKey('Retiro Park Madrid'),
+    )
+  })
+
+  it(
+    'empty middle with trip-used kw2 clears and soft-alt refill fills primary',
+    { timeout: 30_000 },
+    async () => {
+    const { applyRegisterScheduleImageKeywordsBySupplier } = await import(
+      '@/lib/register-schedule-image-keywords-apply'
+    )
+    const { healRegisterPrePhotoSchedule } = await import('@/lib/register-pre-photo-self-heal')
+    const rows = [
+      { day: 1, routeText: '인천 - 마드리드', imageKeyword: '', imageKeyword2: null },
+      {
+        day: 2,
+        routeText: '마드리드 - 프라도 미술관 - 왕궁',
+        imageKeyword: 'Prado Museum Madrid',
+        imageKeyword2: null,
+      },
+      {
+        day: 3,
+        routeText: '마드리드 시내 자유',
+        imageKeyword: '',
+        imageKeyword2: 'Prado Museum Madrid',
+      },
+      { day: 4, routeText: '마드리드 - 인천', imageKeyword: '', imageKeyword2: null },
+    ]
+    const applied = applyRegisterScheduleImageKeywordsBySupplier(rows as any, {
+      supplierKey: 'hanatour',
+      productDestination: '스페인',
+      productTitle: '마드리드 자유일정',
+    })
+    const enforced = enforceRegisterScheduleTripUniqueImageKeywords(applied as any)
+    const healed = healRegisterPrePhotoSchedule(enforced as any, {
+      supplierKey: 'hanatour',
+      productDestination: '스페인',
+      productTitle: '마드리드 자유일정',
+      lane: 'package',
+    })
+    const d3 = healed.rows.find((r) => Number(r.day) === 3)
+    const d3kw = String(d3?.imageKeyword ?? '').trim()
+    expect(d3kw).toBeTruthy()
+    expect(normScheduleImageKeywordKey(d3kw)).not.toBe(
+      normScheduleImageKeywordKey('Prado Museum Madrid'),
+    )
+    // kw2 may soft-alt refill; must not re-park the trip-used Prado as orphan secondary
+    expect(normScheduleImageKeywordKey(String(d3?.imageKeyword2 ?? ''))).not.toBe(
+      normScheduleImageKeywordKey('Prado Museum Madrid'),
+    )
+  })
 })

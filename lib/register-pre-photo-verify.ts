@@ -191,7 +191,9 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
       // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
       // 패들보드·스파·버거 등 명소 0 route도 dest pack으로 채움
       if (
-        /패들보드|paddle|서핑|\bsurf\b|스파|\bSPA\b|네일|마사지|일일\s*케어|토탈\s*케어|인앤아웃|In-?N-?Out|버거|워터파크|Waterpark|호텔조식|체크아웃|check[\s-]*out|전일\s*자유|자유시간/i.test(
+        // 자유 시간(공백) · 공항 이동 middle도 dest soft-alt 채움 대상
+        // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 자유 시간|공항 이동 requires primary — manifest
+        /패들보드|paddle|서핑|\bsurf\b|스파|\bSPA\b|네일|마사지|일일\s*케어|토탈\s*케어|인앤아웃|In-?N-?Out|버거|워터파크|Waterpark|호텔조식|체크아웃|check[\s-]*out|전일\s*자유|자유\s*시간|자유시간|공항\s*이동/i.test(
           t,
         )
       ) {

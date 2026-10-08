@@ -1,6 +1,8 @@
 /**
- * 등록대기 imageKeyword 품질 리포트 (읽기 전용).
+ * 등록대기/등록완료 imageKeyword 품질 리포트 (읽기 전용).
+ * imageKeyword SSOT = English proper names (Hangul slots = defect).
  *   npx tsx scripts/ops-report-pending-image-keyword-quality.ts
+ *   npx tsx scripts/ops-report-pending-image-keyword-quality.ts --registered
  */
 import Module from 'node:module'
 import { register } from 'node:module'
@@ -113,6 +115,8 @@ function analyze(days: DayRow[]) {
 }
 
 async function main() {
+  const registeredMode = process.argv.includes('--registered')
+  const status = registeredMode ? 'registered' : 'pending'
   const raw = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim()
   if (!raw) throw new Error('no db')
   const url = raw.replace(/[?&]sslmode=[^&]*/gi, '').replace(/\?&/, '?').replace(/[?&]$/, '')
@@ -128,9 +132,10 @@ async function main() {
     }>(
       `SELECT id::text, "originSource" AS s, "originCode" AS code, title, schedule
          FROM "Product"
-        WHERE COALESCE("registrationStatus",'pending') = 'pending'
+        WHERE COALESCE("registrationStatus",'pending') = $1
           AND schedule IS NOT NULL AND schedule <> '' AND schedule <> '[]'
         ORDER BY "updatedAt" DESC`,
+      [status],
     )
 
     const bySupplier = new Map<string, number>()
@@ -212,15 +217,18 @@ async function main() {
     console.log(
       JSON.stringify(
         {
-          pendingWithSchedule: rows.length,
+          mode: status,
+          withSchedule: rows.length,
           bySupplier: Object.fromEntries([...bySupplier.entries()].sort((a, b) => b[1] - a[1])),
           quality: {
+            // imageKeyword must be English — Hangul in kw/kw2 is a defect
             hardRepeatProducts: hardProducts,
             emptyMiddleProducts,
-            koreanKwProducts: koreanProducts,
+            hangulKwProducts: koreanProducts,
             landmarkHeavyOkProducts: landmarkOkProducts,
             hardRepeatRate: `${hardProducts}/${rows.length}`,
             emptyMiddleRate: `${emptyMiddleProducts}/${rows.length}`,
+            hangulKwRate: `${koreanProducts}/${rows.length}`,
           },
           spotlight_2EZZ8308: mykonos,
           hardSamples,
