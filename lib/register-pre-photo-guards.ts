@@ -178,9 +178,10 @@ export function isBrokenRegisterFitScheduleDescription(
   if (descriptionHasDuplicateOrFillerProse(t)) return true
   const places = splitRouteTextPlaceSegments(routeText)
   const sightseeing = places.filter((p) => !isRegisterScheduleTransitHubPlace(p))
-  // 호텔·공항·역만 있는 귀국/이동일 — Gemini 이동 요약이면 통과
+  // 호텔·공항·역만 / route 빈 이동·체크인일 — 길이 하한(12) + filler 가드만.
+  // Gemini 장문(≥40)을 강제하면 에어텔 체크인·귀국 요약이 description_filler로 오탐한다.
   if (sightseeing.length === 0) {
-    return t.length < 40
+    return false
   }
   if (registerScheduleDescriptionMentionsRoutePoi(t, sightseeing)) return false
   // 공항 단지 명소(쥬얼 창이)가 hub로 잘못 빠진 경우 대비 — 전체 places 재시도

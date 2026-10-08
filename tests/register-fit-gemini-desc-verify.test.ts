@@ -35,6 +35,27 @@ describe('register-fit-gemini-desc-verify', () => {
     )
   })
 
+  it('짧은 호텔 체크인·도착·귀국 요약도 FIT description 통과', () => {
+    assert.equal(
+      isBrokenRegisterFitScheduleDescription('호텔 체크인 후 자유일정입니다.', ''),
+      false,
+    )
+    assert.equal(
+      isBrokenRegisterFitScheduleDescription(
+        '타이베이에 도착해 체크인합니다. 첫날 이동을 맞춥니다.',
+        '',
+      ),
+      false,
+    )
+    assert.equal(
+      isBrokenRegisterFitScheduleDescription(
+        '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.',
+        '',
+      ),
+      false,
+    )
+  })
+
   it('싱가포르 FIT day6 Jewel Changi 검증 통과', () => {
     const rows = [
       {
