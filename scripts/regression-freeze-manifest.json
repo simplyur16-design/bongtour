@@ -16037,10 +16037,11 @@
             "Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed)",
             "발리카삭(보홀)≠Bali soft-alt bleed",
             "bare 사파리/Safari≠Serengeti (Vinpearl Safari Phu Quoc)",
-            "사파리≠파리 substring",
+            "사파리·마이파리≠Paris soft-alt",
             "Vinpearl Safari → Phu Quoc pack (≠Serengeti)",
             "세부일정≠Cebu (Okinawa bleed)",
-            "Okinawa soft-alt pack (≠Cebu)"
+            "Okinawa soft-alt pack (≠Cebu)",
+            "마이파리→Miyako pack (≠Paris)"
           ]
         },
         {
@@ -16057,7 +16058,8 @@
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "Asia dest에 Serengeti 금지",
             "푸꾸옥 dest도 Asia",
-            "오키나와·일본≠Cebu/Boracay keyword"
+            "오키나와·일본≠Cebu/Boracay keyword",
+            "사파리·마이파리≠Europe dest (파리 Hangul bound)"
           ]
         },
         {
@@ -16080,7 +16082,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "세부일정≠philippines evidence",
-            "사파리≠파리 country evidence"
+            "사파리·마이파리≠파리 country evidence"
           ]
         },
         {
@@ -16117,7 +16119,7 @@
           "file": "lib/register-pre-photo-verify.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
-            "title 세부일정≠dest 세부 · 사파리≠파리"
+            "title 세부일정≠dest 세부 · 사파리·마이파리≠파리"
           ]
         },
         {
@@ -16130,7 +16132,8 @@
             "Phu Quoc Duong Dong night market does not unlock Bangkok soft-alts",
             "Balicasag Bohol title does not unlock Bali soft-alts",
             "Phu Quoc Vinpearl Safari does not unlock Serengeti or Paris soft-alts",
-            "Okinawa 세부일정 does not unlock Cebu soft-alts"
+            "Okinawa 세부일정 does not unlock Cebu soft-alts",
+            "Miyako 마이파리 does not unlock Paris soft-alts"
           ]
         },
         {

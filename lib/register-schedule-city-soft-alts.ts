@@ -612,8 +612,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리≠파리 substring — manifest
-    cityRe: /(?<!사)파리|Paris|루브르|Louvre|샹젤리제|Champs|콩코르드|Concorde|튈르리|Tuileries/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리·마이파리≠Paris soft-alt — manifest
+    cityRe: /(?<![가-힣])파리(?![가-힣])|Paris|루브르|Louvre|샹젤리제|Champs|콩코르드|Concorde|튈르리|Tuileries/iu,
     alts: [
       'Eiffel Tower Paris',
       'Louvre Museum Paris pyramid',
@@ -963,6 +963,19 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Naha Kokusai Dori street',
       'Kouri Bridge Okinawa',
       'Manzamo Cape Okinawa',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 마이파리→Miyako pack (≠Paris) — manifest
+  {
+    cityRe:
+      /미야코|Miyako|마이파리|마에하마|Maehama|이라부|Irabu|요나하|Yonaha|해중공원|히가시헨나|Higashi.?Henna/i,
+    alts: [
+      'Miyakojima Tropical Fruit Garden',
+      'Yonaha Maehama Beach Miyakojima',
+      'Irabu Bridge Miyakojima',
+      'Miyakojima Haejung Park',
+      'Higashi-Hennazaki Cape Miyakojima',
+      'Miyakojima beach',
     ],
   },
   {

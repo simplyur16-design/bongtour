@@ -4,6 +4,8 @@ import {
   collectRegisterScheduleCitySoftAltKeywords,
 } from '@/lib/register-schedule-city-soft-alts'
 import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
+import { EUROPE_PRODUCT_DEST_RE } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import { inferRegisterPendingDestinationFromTitle } from '@/lib/register-pre-photo-verify'
 import { enforceRegisterScheduleTripUniqueImageKeywords } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
@@ -104,6 +106,22 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(oki.some((a) => /Cebu|Moalboal/i.test(a))).toBe(false)
     const cebuOk = collectRegisterScheduleCitySoftAltKeywords('세부 모알보알')
     expect(cebuOk.some((a) => /Cebu|Moalboal/i.test(a))).toBe(true)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리·마이파리≠Paris soft-alt — manifest
+  it('Miyako 마이파리 does not unlock Paris soft-alts', () => {
+    for (const hay of ['마이파리', '마이파리 열대과수원', '사파리', '빈펄 사파리']) {
+      const alts = collectRegisterScheduleCitySoftAltKeywords(hay)
+      expect(alts.some((a) => /Eiffel|Louvre|Champs|Notre\s*Dame|Arc\s*de\s*Triomphe/i.test(a)), hay).toBe(
+        false,
+      )
+      expect(EUROPE_PRODUCT_DEST_RE.test(hay), `Europe flip:${hay}`).toBe(false)
+    }
+    const miyako = collectRegisterScheduleCitySoftAltKeywords('마이파리 열대과수원')
+    expect(miyako.some((a) => /Miyakojima|Maehama|Irabu|Fruit/i.test(a))).toBe(true)
+    const paris = collectRegisterScheduleCitySoftAltKeywords('파리 루브르')
+    expect(paris.some((a) => /Eiffel|Louvre/i.test(a))).toBe(true)
+    expect(inferRegisterPendingDestinationFromTitle('미야코지마 마이파리 자유여행')).not.toBe('파리')
   })
 
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Lisbon≠Porto soft-alt bleed — manifest
