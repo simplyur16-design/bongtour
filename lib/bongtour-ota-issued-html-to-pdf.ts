@@ -36,6 +36,7 @@ export async function renderOtaIssuedHtmlToPdf(html: string): Promise<Buffer> {
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
+      preferCSSPageSize: true,
       margin: { top: '12mm', right: '12mm', bottom: '12mm', left: '12mm' },
     })
     return Buffer.from(pdf)

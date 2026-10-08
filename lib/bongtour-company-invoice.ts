@@ -1474,24 +1474,31 @@ function rowHtml(k: string, v: string): string {
 }
 
 const VOUCHER_CSS = `
+  @page{size:A4;margin:12mm}
   body{font-family:system-ui,-apple-system,sans-serif;color:#111;margin:40px;max-width:720px}
-  .header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:8px;break-inside:avoid;page-break-inside:avoid}
   .logo{height:48px;width:auto;object-fit:contain}
   .airline-logo{height:28px;width:auto;max-width:96px;object-fit:contain;vertical-align:middle}
-  .flight-head{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:8px}
+  .flight-head{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:8px;break-inside:avoid;page-break-inside:avoid}
   h1{font-size:24px;margin:0 0 4px}
   .muted{color:#555;font-size:13px}
-  .booking{margin-top:12px;padding:12px 14px;border:2px solid #111;font-size:15px;font-weight:700;letter-spacing:0.02em}
-  .box{border:1px solid #222;padding:20px;margin-top:16px}
-  .row{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #eee}
+  .booking{margin-top:12px;padding:12px 14px;border:2px solid #111;font-size:15px;font-weight:700;letter-spacing:0.02em;break-inside:avoid;page-break-inside:avoid}
+  .box{border:1px solid #222;padding:20px;margin-top:16px;break-inside:avoid;page-break-inside:avoid}
+  .row{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #eee;break-inside:avoid;page-break-inside:avoid}
   .row:last-child{border-bottom:0}
   .k{color:#555;font-size:12px;min-width:140px}
   .v{font-weight:600;text-align:right;flex:1;white-space:pre-wrap}
-  .amount{margin-top:20px;padding:16px;background:#f6f6f6}
-  .policy{margin-top:16px;padding:14px;border:1px solid #ddd;font-size:13px;line-height:1.5}
-  .footer{margin-top:28px;font-size:12px;color:#666;line-height:1.5}
+  .amount{margin-top:20px;padding:16px;background:#f6f6f6;break-inside:avoid;page-break-inside:avoid}
+  .policy{margin-top:16px;padding:14px;border:1px solid #ddd;font-size:13px;line-height:1.5;break-inside:avoid;page-break-inside:avoid}
+  .footer{margin-top:28px;font-size:12px;color:#666;line-height:1.5;break-inside:avoid;page-break-inside:avoid}
+  .voucher-page{break-after:page;page-break-after:always}
+  .voucher-page:last-child{break-after:auto;page-break-after:auto}
   .page-break{page-break-before:always;break-before:page;margin-top:48px;padding-top:24px;border-top:1px dashed #ccc}
-  @media print{body{margin:16px}.page-break{border-top:0;margin-top:0;padding-top:0}}
+  @media print{
+    body{margin:0;max-width:none}
+    .page-break{border-top:0;margin-top:0;padding-top:0}
+    .box{orphans:3;widows:3}
+  }
 `
 
 /** 인쇄용 HTML (관리자 미리보기·window.print) */
@@ -1798,9 +1805,8 @@ export function renderOtaCompanyCheckInVoucherBilingualHtml(
 <style>${VOUCHER_CSS}</style>
 </head>
 <body>
-${renderVoucherBody(draft, 'ko')}
-<div class="page-break"></div>
-${renderVoucherBody(draft, 'en')}
+<div class="voucher-page">${renderVoucherBody(draft, 'ko')}</div>
+<div class="voucher-page">${renderVoucherBody(draft, 'en')}</div>
 </body>
 </html>`
 }
@@ -2841,9 +2847,8 @@ export function renderOtaCompanyAirVoucherBilingualHtml(
 <style>${VOUCHER_CSS}</style>
 </head>
 <body>
-${renderAirVoucherBody(draft, 'ko')}
-<div class="page-break"></div>
-${renderAirVoucherBody(draft, 'en')}
+<div class="voucher-page">${renderAirVoucherBody(draft, 'ko')}</div>
+<div class="voucher-page">${renderAirVoucherBody(draft, 'en')}</div>
 </body>
 </html>`
 }

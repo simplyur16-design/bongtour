@@ -24711,6 +24711,8 @@
             "extractAirAirlineIataCode",
             "resolveAirAirlineLogoSrc",
             "airline-logo",
+            "voucher-page",
+            "break-inside:avoid",
             "parseAdminAirlineEticketText",
             "renderOtaCompanyAirVoucherHtml",
             "항공권 바우처"
@@ -24804,6 +24806,7 @@
             "renderOtaIssuedHtmlToPdf",
             "buildOtaIssuedPdfFileName",
             "page.pdf",
+            "preferCSSPageSize",
             "await import('playwright')"
           ]
         },
