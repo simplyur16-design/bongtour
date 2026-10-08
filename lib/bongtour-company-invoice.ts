@@ -1813,6 +1813,9 @@ function pushAirPassengerCandidate(
   let n = String(raw ?? '').replace(/\s+/g, ' ').trim()
   if (!n) return
   if (isAirPassengerMetaLine(n)) return
+  // OCR label bleed: "Name : LEE/..." or ": LEE/..."
+  n = n.replace(/^(?:Passenger\s+)?Names?\s*[:：]?\s*/i, '').trim()
+  n = n.replace(/^[:：]\s*/, '').trim()
   // strip trailing titles: KIM/MINSU MR → KIM/MINSU (keep slash form)
   n = n.replace(/\s+(?:MR|MRS|MS|MISS|MSTR|DR)\.?$/i, '').trim()
   // strip leading titles: MR KIM/MINSU
@@ -1869,7 +1872,7 @@ export function extractAirVoucherPassengerNamesFromText(text: string): string[] 
 
   const labelBlocks = [
     ...raw.matchAll(
-      /(?:Passenger(?:\s*Name)?s?|Travell?ers?(?:\s*Name)?s?|승객\s*(?:성명|명)?|탑승객(?:\s*명)?|여객(?:\s*명)?)\s*[:：]?\s*([^\n]+)/gi,
+      /(?:Passenger\s+Names?|Passengers?|Travell?ers?(?:\s+Names?)?|승객\s*(?:성명|명)?|탑승객(?:\s*명)?|여객(?:\s*명)?)\s*[:：]?\s*([^\n]+)/gi,
     ),
   ]
   for (const m of labelBlocks) {
@@ -1880,7 +1883,7 @@ export function extractAirVoucherPassengerNamesFromText(text: string): string[] 
 
   // Label on its own line → name(s) on following lines (common OCR)
   for (const m of raw.matchAll(
-    /(?:Passenger(?:\s*Name)?s?|Travell?ers?(?:\s*Name)?s?|승객\s*(?:성명|명)?|탑승객(?:\s*명)?)\s*[:：]?\s*(?:\r?\n)+([A-Za-z가-힣][^\n]*(?:\r?\n[A-Za-z가-힣/][^\n]*){0,12})/gi,
+    /(?:Passenger\s+Names?|Passengers?|Travell?ers?(?:\s+Names?)?|승객\s*(?:성명|명)?|탑승객(?:\s*명)?)\s*[:：]?\s*(?:\r?\n)+([A-Za-z가-힣][^\n]*(?:\r?\n[A-Za-z가-힣/][^\n]*){0,12})/gi,
   )) {
     for (const line of String(m[1] || '').split(/\r?\n/)) {
       const t = line.trim()
@@ -1894,7 +1897,7 @@ export function extractAirVoucherPassengerNamesFromText(text: string): string[] 
 
   // Glued OCR: Passenger NameKIM/MINSU (no newline crossing)
   for (const m of raw.matchAll(
-    /Passenger(?:\s*Name)?s?[ \t]*([A-Z]{2,}(?:[ \t]*\/[ \t]*[A-Z][A-Z ]*)+(?:[ \t]*,[ \t]*[A-Z]{2,}(?:[ \t]*\/[ \t]*[A-Z][A-Z ]*)+)*)/gi,
+    /Passenger\s+Names?[ \t]*([A-Z]{2,}(?:[ \t]*\/[ \t]*[A-Z][A-Z ]*)+(?:[ \t]*,[ \t]*[A-Z]{2,}(?:[ \t]*\/[ \t]*[A-Z][A-Z ]*)+)*)/gi,
   )) {
     for (const part of splitAirPassengerBlob(m[1] || '')) {
       pushAirPassengerCandidate(out, seen, part)
@@ -1939,15 +1942,60 @@ function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFligh
  * 항공사 e-ticket / 여정표 본문 → 승객·PNR·편명.
  * REGRESSION-FREEZE[admin-ota-air-voucher]: parseAdminAirlineEticketText — manifest
  */
+/** Gemini 항공 OCR `Flight :` 블록 → 세그먼트 (OTA Booking ID 불필요). */
+function parseAirOcrFlightBlocks(raw: string): OtaAirVoucherFlightSegment[] {
+  const blocks = raw.split(/(?=^Flight\s*:)/im).filter((b) => /^Flight\s*:/im.test(b))
+  const out: OtaAirVoucherFlightSegment[] = []
+  const seen = new Set<string>()
+  for (const block of blocks) {
+    const flightRaw =
+      block.match(/Flight\s*:\s*([A-Z0-9]{2}\s*-?\s*\d{2,4})/i)?.[1] ||
+      block.match(/Flight\s*:\s*([A-Z0-9]+)/i)?.[1] ||
+      ''
+    const flightNo = flightRaw.replace(/\s|-/g, '').toUpperCase()
+    if (!flightNo || flightNo.length < 3) continue
+    const airline = block.match(/Airline\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
+    const depAirport = block.match(/From\s*:\s*([A-Z]{3})\b/i)?.[1]?.toUpperCase() || null
+    const arrAirport = block.match(/To\s*:\s*([A-Z]{3})\b/i)?.[1]?.toUpperCase() || null
+    const depAt = block.match(/Departure\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
+    const arrAt = block.match(/Arrival\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
+    const cabinClass = block.match(/Cabin\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
+    const status = block.match(/Status\s*:\s*([^\n]+)/i)?.[1]?.trim() || null
+    const key = `${flightNo}|${depAirport}|${arrAirport}|${depAt}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      flightNo,
+      airline,
+      depAirport,
+      arrAirport,
+      depAt,
+      arrAt,
+      cabinClass,
+      status,
+    })
+  }
+  return out
+}
+
 export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketParsed {
   const raw = String(text ?? '')
+  // 승객명은 OCR/라벨 추출을 우선 — trip-inbox travelers의 "Name : …" 오염 방지
+  // REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText prefer — manifest
+  // OTA Booking ID / Trip.com·Agoda 로고·명칭은 항공권 바우처 조건이 아님
+  const passengers: string[] = [...extractAirVoucherPassengerNamesFromText(raw)]
+  const passengerSeen = new Set(passengers.map((p) => p.toUpperCase()))
+
+  const ocrFlights = parseAirOcrFlightBlocks(raw)
   const bong = parseBongtourEticketText(raw)
   const airline = parseAirlineEticketText(raw)
   const segments = [...bong, ...airline].filter((s) => s.type === 'flight')
   const seenFlight = new Set<string>()
-  const flights: OtaAirVoucherFlightSegment[] = []
-  const passengerSeen = new Set<string>()
-  const passengers: string[] = []
+  const flights: OtaAirVoucherFlightSegment[] = [...ocrFlights]
+  for (const f of ocrFlights) {
+    seenFlight.add(`${f.flightNo}|${f.depAirport}|${f.arrAirport}`)
+  }
+
   let pnr: string | null = null
   let ticketNumber: string | null = null
   let bookingRef: string | null = null
@@ -1959,30 +2007,27 @@ export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketPar
     if (!bookingRef && (payload.booking_ref || payload.pnr)) {
       bookingRef = payload.booking_ref || payload.pnr
     }
-    for (const name of payload.travelers ?? []) {
-      const t = String(name ?? '').trim()
-      if (!t) continue
-      const key = t.toUpperCase()
-      if (passengerSeen.has(key)) continue
-      passengerSeen.add(key)
-      passengers.push(t)
+    // travelers는 extractAirVoucherPassengerNamesFromText가 비었을 때만 보조
+    if (passengers.length === 0) {
+      for (const name of payload.travelers ?? []) {
+        const cleaned: string[] = []
+        const seen = new Set<string>()
+        pushAirPassengerCandidate(cleaned, seen, String(name ?? ''))
+        for (const t of cleaned) {
+          const key = t.toUpperCase()
+          if (passengerSeen.has(key)) continue
+          passengerSeen.add(key)
+          passengers.push(t)
+        }
+      }
     }
-    const key = `${payload.flight_no}|${payload.dep_at}|${payload.dep_airport}|${payload.arr_airport}`
-    if (seenFlight.has(key)) continue
-    seenFlight.add(key)
+    const dedupe = `${payload.flight_no}|${payload.dep_airport}|${payload.arr_airport}`
+    if (ocrFlights.length > 0) continue
+    if (seenFlight.has(dedupe)) continue
+    seenFlight.add(dedupe)
     flights.push(flightPayloadToSegment(payload))
   }
 
-  // 파서가 편·travelers를 못 잡아도 OCR 승객명 줄은 살린다
-  // REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText fallback — manifest
-  if (passengers.length === 0) {
-    for (const n of extractAirVoucherPassengerNamesFromText(raw)) {
-      const key = n.toUpperCase()
-      if (passengerSeen.has(key)) continue
-      passengerSeen.add(key)
-      passengers.push(n)
-    }
-  }
   if (!pnr) {
     pnr =
       raw.match(/Booking Reference\s*[:\s]*([A-Z0-9]{5,8})/i)?.[1] ||
@@ -1992,10 +2037,14 @@ export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketPar
   }
   if (!ticketNumber) {
     ticketNumber =
-      raw.match(/e-?Ticket(?:\s+number)?\s*[:\s]*([\d\s]{10,18})/i)?.[1]?.replace(/\s+/g, '') ||
-      raw.match(/항공권\s*번호\s*[:：]\s*([\d\s]{10,18})/i)?.[1]?.replace(/\s+/g, '') ||
+      raw
+        .match(/e-?Ticket(?:\s+number)?\s*[:\s]*([\d\s-]{10,22})/i)?.[1]
+        ?.replace(/[\s-]+/g, '') ||
+      raw.match(/Ticket Number\s*[:\s]*([\d\s-]{10,22})/i)?.[1]?.replace(/[\s-]+/g, '') ||
+      raw.match(/항공권\s*번호\s*[:：]\s*([\d\s-]{10,22})/i)?.[1]?.replace(/[\s-]+/g, '') ||
       null
   }
+  // bookingRef = 항공사 PNR만 (OTA 예약번호 아님)
   if (!bookingRef) bookingRef = pnr
 
   return { passengers, pnr, ticketNumber, bookingRef, flights }

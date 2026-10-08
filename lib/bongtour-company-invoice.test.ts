@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isUsableExtractedPdfText } from '@/lib/bongtour-ota-voucher-pdf-ocr'
 import {
   BONGTOUR_INVOICE_COMPANY,
   BONGTOUR_TAX_SERVICE_INCLUDED_NOTE,
@@ -751,5 +752,69 @@ KIM, MIN SU MR
 `),
     ).toEqual(['KIM/MIN SU'])
     expect(extractAirVoucherPassengerNamesFromText('KIM, MIN SU MR\n')).toEqual(['KIM/MIN SU'])
+  })
+
+  it('rejects scan-PDF control-character extract as unusable', () => {
+    expect(isUsableExtractedPdfText('\u0014\u0015\u0016\u0017')).toBe(false)
+    expect(isUsableExtractedPdfText('Passenger Name KIM/MINSU Booking Reference ABCDE1 Flight OZ701')).toBe(
+      true,
+    )
+  })
+
+  it('parses airline OCR label block from Gemini air prompt', () => {
+    const ocr = `
+Passenger Name : LEE/JUNGWOO, KIM/MINSU
+Booking Reference : ABC123
+PNR : ABC123
+eTicket number : 1801234567890
+Flight : OZ701
+Airline : ASIANA AIRLINES
+From : ICN
+To : NRT
+Departure : 29JUL2026 07:35
+Arrival : 29JUL2026 09:50
+Cabin : Y
+Status : OK
+`
+    const parsed = parseAdminAirlineEticketText(ocr)
+    expect(parsed.passengers).toEqual(['LEE/JUNGWOO', 'KIM/MINSU'])
+    expect(parsed.pnr).toBe('ABC123')
+    expect(parsed.ticketNumber).toBe('1801234567890')
+    expect(parsed.flights.some((f) => f.flightNo === 'OZ701')).toBe(true)
+    expect(parsed.flights.find((f) => f.flightNo === 'OZ701')?.depAirport).toBe('ICN')
+  })
+
+  it('parses spaced passenger name and dashed e-ticket from real OCR sample shape', () => {
+    const ocr = `
+Passenger Name : JEONG SEOYEONG
+Booking Reference : 2H2YH2
+eTicket number : 180-7588790111
+Flight : KE077
+Airline : Korean Air
+From : ICN
+To : YYZ
+Departure : 10:20 AM, November 1, 2026
+Arrival : 9:20 AM, November 1, 2026
+Cabin : Economy L / Economy
+Flight : KE6709
+Airline : Korean Air / Air Canada AC410
+From : YYZ
+To : YUL
+Departure : 12:00 PM, November 1, 2026
+Arrival : 1:25 PM, November 1, 2026
+Cabin : Economy
+`
+    const parsed = parseAdminAirlineEticketText(ocr)
+    expect(parsed.passengers).toEqual(['JEONG SEOYEONG'])
+    expect(parsed.pnr).toBe('2H2YH2')
+    expect(parsed.ticketNumber).toBe('1807588790111')
+    expect(parsed.flights.map((f) => f.flightNo)).toEqual(['KE077', 'KE6709'])
+    const html = renderOtaCompanyAirVoucherBilingualHtml(
+      buildOtaCompanyAirVoucherDraft({ parsed, now: new Date('2026-10-05T00:00:00.000Z') }),
+    )
+    expect(html).toContain('JEONG SEOYEONG')
+    expect(html).not.toContain('Trip.com')
+    expect(html).not.toContain('Agoda')
+    expect(html).not.toContain('OTA (예약처)')
   })
 })

@@ -24702,12 +24702,23 @@
           ]
         },
         {
+          "file": "lib/bongtour-ota-voucher-pdf-ocr.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-air-voucher]",
+            "extractAirlineEticketPdfTextViaGemini",
+            "isUsableExtractedPdfText",
+            "Passenger Name"
+          ]
+        },
+        {
           "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-air-voucher]",
             "air_voucher",
             "buildOtaCompanyAirVoucherDraft",
-            "parseAdminAirlineEticketText"
+            "parseAdminAirlineEticketText",
+            "extractAirlineEticketPdfTextViaGemini",
+            "isUsableExtractedPdfText"
           ]
         },
         {
@@ -24725,6 +24736,7 @@
             "formatAirVoucherPassengerNames",
             "extractAirVoucherPassengerNamesFromText",
             "name is on the next OCR line",
+            "real OCR sample shape",
             "no OTA / Trip.com / Agoda"
           ]
         }

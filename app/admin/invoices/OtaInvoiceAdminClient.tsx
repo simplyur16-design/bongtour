@@ -404,7 +404,7 @@ export default function OtaInvoiceAdminClient() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <AdminPageHeader
         title="OTA → 회사 인보이스 / 체크인·항공권 바우처"
-        subtitle="체크인 바우처는 OTA 한글·영문 PDF로 Booking ID·숙소·조식을 만듭니다. 항공권 바우처는 항공사 e-ticket을 올리며, 승객 이름은 체크인 바우처와 동일한 이름 칸을 쓰고 OTA(Trip.com/Agoda)명은 넣지 않습니다."
+        subtitle="체크인 바우처는 OTA Booking ID·숙소·조식이 필요합니다. 항공권 바우처는 항공사 e-ticket(승객·PNR·편명)만 쓰며 OTA 예약번호·OTA 로고/명칭은 필요 없습니다."
       />
 
       {savedInfo?.id ? (
@@ -479,7 +479,7 @@ export default function OtaInvoiceAdminClient() {
           />
           <span className="mt-1 block text-xs font-normal text-zinc-500">
             {isAirVoucher
-              ? '항공사 e-ticket PDF를 올리세요. 스캔본은 OCR로 읽습니다. OTA(Trip.com/Agoda)명은 항공권 바우처에 넣지 않습니다.'
+              ? '항공사 e-ticket PDF를 올리세요. 스캔본은 항공 OCR로 읽습니다. OTA 예약번호·Trip.com/Agoda 로고는 쓰지 않습니다.'
               : '체크인 바우처(한글)와 English check-in voucher를 함께 선택하세요. 스캔 PDF는 OCR로 읽습니다.'}
           </span>
           {files.length > 0 ? (
@@ -619,7 +619,7 @@ export default function OtaInvoiceAdminClient() {
             />
             {isAirVoucher ? (
               <span className="mt-1 block text-xs font-normal text-zinc-500">
-                1명이면 1명, 여러 명이면 쉼표로 모두 표시. OTA 예약처 이름은 넣지 않습니다.
+                1명이면 1명, 여러 명이면 쉼표로 모두 표시. OTA 예약번호·예약처 로고/명칭은 조건이 아닙니다.
               </span>
             ) : null}
           </label>
@@ -867,7 +867,9 @@ export default function OtaInvoiceAdminClient() {
                   .join(' · ')
               : '—'}
           </p>
-          <p className="text-xs text-zinc-600">OTA(Trip.com/Agoda) 예약처 표기 없음</p>
+          <p className="text-xs text-zinc-600">
+            OTA 예약번호·OTA 로고/명칭 없음 · 항공사 PNR·편명만 표시
+          </p>
           {html ? (
             <iframe
               title="air-voucher-preview-bilingual"
@@ -911,7 +913,11 @@ export default function OtaInvoiceAdminClient() {
                   </p>
                   <p className="text-xs text-zinc-600">
                     {new Date(row.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
-                    {row.bookingRef ? ` · Booking ${row.bookingRef}` : ''}
+                    {row.bookingRef
+                      ? row.documentKind === 'air_voucher'
+                        ? ` · PNR ${row.bookingRef}`
+                        : ` · Booking ${row.bookingRef}`
+                      : ''}
                   </p>
                   <p className="truncate text-xs text-zinc-600">
                     {[row.guestName, row.propertyName].filter(Boolean).join(' · ') || '—'}

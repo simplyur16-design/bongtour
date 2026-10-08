@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { extractPdfText } from '@/lib/simplyur/trip-inbox/pdf-extract'
-import { extractOtaVoucherPdfTextViaGemini } from '@/lib/bongtour-ota-voucher-pdf-ocr'
+import {
+  extractAirlineEticketPdfTextViaGemini,
+  extractOtaVoucherPdfTextViaGemini,
+  isUsableExtractedPdfText,
+} from '@/lib/bongtour-ota-voucher-pdf-ocr'
 import {
   airlineEticketParsedToOtaReceiptStub,
   buildOtaCompanyAirVoucherDraft,
@@ -78,6 +82,7 @@ async function extractTextFromBuffer(
   buf: Uint8Array,
   name: string,
   mime: string,
+  documentKind: OtaAdminDocumentKind,
 ): Promise<{ text: string; hint: 'ok' | 'pdf_empty' | 'image' | 'unsupported'; error?: string }> {
   if (buf.byteLength > MAX_BYTES) {
     return { text: '', hint: 'unsupported', error: '파일은 8MB 이하여야 합니다.' }
@@ -87,8 +92,12 @@ async function extractTextFromBuffer(
   if (lowerName.endsWith('.pdf') || lowerMime.includes('pdf')) {
     try {
       const extracted = extractPdfText(buf)
-      if (extracted.trim()) return { text: extracted, hint: 'ok' }
-      const ocr = await extractOtaVoucherPdfTextViaGemini(buf)
+      // REGRESSION-FREEZE[admin-ota-air-voucher]: 스캔 PDF 제어문자만 있으면 OCR — manifest
+      if (isUsableExtractedPdfText(extracted)) return { text: extracted, hint: 'ok' }
+      const ocr =
+        documentKind === 'air_voucher'
+          ? await extractAirlineEticketPdfTextViaGemini(buf)
+          : await extractOtaVoucherPdfTextViaGemini(buf)
       if (ocr.ok && ocr.text.trim()) return { text: ocr.text, hint: 'ok' }
       return { text: '', hint: 'pdf_empty' }
     } catch (e) {
@@ -103,7 +112,10 @@ async function extractTextFromBuffer(
   return {
     text: '',
     hint: 'unsupported',
-    error: 'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).',
+    error:
+      documentKind === 'air_voucher'
+        ? 'PDF·TXT만 자동 읽습니다. 이미지면 e-ticket 본문(승객명·편명·PNR)을 붙여넣으세요.'
+        : 'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).',
   }
 }
 
@@ -140,6 +152,7 @@ export async function POST(request: Request) {
   try {
     if (contentType.includes('multipart/form-data')) {
       const form = await request.formData()
+      documentKind = parseOtaAdminDocumentKind(form.get('documentKind'))
       const pasted = typeof form.get('text') === 'string' ? String(form.get('text')) : ''
       const uploadParts: string[] = []
       const files = [
@@ -149,7 +162,12 @@ export async function POST(request: Request) {
       uploadedFileCount = files.length
       for (const file of files) {
         const body = Buffer.from(await file.arrayBuffer())
-        const extracted = await extractTextFromBuffer(body, file.name || '', file.type || '')
+        const extracted = await extractTextFromBuffer(
+          body,
+          file.name || '',
+          file.type || '',
+          documentKind,
+        )
         if (extracted.error) {
           return NextResponse.json({ ok: false, error: extracted.error }, { status: 400 })
         }
@@ -166,14 +184,15 @@ export async function POST(request: Request) {
               ok: false,
               error:
                 extracted.error ||
-                'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).',
+                (documentKind === 'air_voucher'
+                  ? 'PDF·TXT만 자동 읽습니다. 이미지면 e-ticket 본문(승객명·편명·PNR)을 붙여넣으세요.'
+                  : 'PDF·TXT만 자동 읽습니다. 이미지면 바우처 본문을 붙여넣으세요(예약·숙소·조식 추출용).'),
             },
             { status: 400 },
           )
         }
       }
       text = joinOtaVoucherUploadTexts([pasted, ...uploadParts])
-      documentKind = parseOtaAdminDocumentKind(form.get('documentKind'))
       guestNameOverride =
         typeof form.get('guestName') === 'string' ? String(form.get('guestName')).trim() || null : null
       propertyOverride =
@@ -261,15 +280,16 @@ export async function POST(request: Request) {
     )
   }
 
-  // REGRESSION-FREEZE[admin-ota-air-voucher]: air_voucher는 OTA 금액 잠금 없이 e-ticket 파싱 — manifest
+  // REGRESSION-FREEZE[admin-ota-air-voucher]: air_voucher는 OTA 금액·Booking ID·OTA 로고 없이 e-ticket만 — manifest
   if (documentKind === 'air_voucher') {
     const airParsed = parseAdminAirlineEticketText(text)
+    // OTA 예약번호(Booking ID) / OTA 로고·명칭은 요구하지 않음. 승객명만 필수.
     if (!airParsed.passengers.length && !guestNameOverride) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            '승객명을 e-ticket에서 찾지 못했습니다. Passenger Name을 붙여넣거나 투숙객/승객 이름 칸에 입력하세요.',
+            '승객명을 e-ticket에서 찾지 못했습니다. Passenger Name을 붙여넣거나 승객 이름 칸에 입력하세요. (OTA 예약번호는 필요 없습니다)',
           airParsed,
         },
         { status: 422 },
