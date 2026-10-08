@@ -24758,7 +24758,8 @@
             "name is on the next OCR line",
             "real OCR sample shape",
             "renders e-ticket notices and remarks",
-            "strips passenger-name prefixes and Trip.com noise",
+            "rewrites Trip.com/트립닷컴 to 봉투어",
+            "keeps notice text out of passenger row",
             "no OTA / Trip.com / Agoda"
           ]
         }
