@@ -858,7 +858,20 @@ export default function OtaInvoiceAdminClient() {
           {airVoucherDraft.ticketNumber ? (
             <p>항공권 번호: {airVoucherDraft.ticketNumber}</p>
           ) : null}
-          <p>승객: {airVoucherDraft.guestName || '—'}</p>
+          <p className="whitespace-pre-wrap">
+            승객:{' '}
+            {airVoucherDraft.guestName
+              ? airVoucherDraft.guestName
+                  .split(/\s*,\s*/)
+                  .map((n) => n.trim())
+                  .filter(Boolean)
+                  .map((n, i) => {
+                    const t = airVoucherDraft.ticketNumbers?.[i]
+                    return t ? `${n} · ${t}` : n
+                  })
+                  .join('\n')
+              : '—'}
+          </p>
           <p>
             여정:{' '}
             {airVoucherDraft.flights.length

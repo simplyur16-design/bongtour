@@ -12,8 +12,12 @@ import {
   computeVoucherTotalUsdFromNightRate,
   extractAirVoucherNoticesFromText,
   extractAirVoucherPassengerNamesFromText,
+  formatAirAirlineDisplayName,
   formatAirVoucherPassengerNames,
+  formatAirVoucherPassengerNamesHtml,
   normalizeAirVoucherNotices,
+  rewriteAirNoticeOtaBrandToBongtour,
+  splitAirVoucherPassengerDisplayNames,
   joinOtaVoucherUploadTexts,
   otaProviderDisplayName,
   otaVoucherNoteNeedsEnglishTranslation,
@@ -648,6 +652,7 @@ describe('admin-ota-air-voucher', () => {
     const draft = buildOtaCompanyAirVoucherDraft({
       parsed: {
         passengers: ['ETICKET/ONLY'],
+        ticketNumbers: ['1801234567890'],
         pnr: 'ABC123',
         ticketNumber: '1801234567890',
         bookingRef: 'ABC123',
@@ -686,11 +691,22 @@ describe('admin-ota-air-voucher', () => {
       'HAN/G',
       'YOON/H',
     ]
+    const tickets = [
+      '1801111111111',
+      '1801111111112',
+      '1801111111113',
+      '1801111111114',
+      '1801111111115',
+      '1801111111116',
+      '1801111111117',
+      '1801111111118',
+    ]
     const draft = buildOtaCompanyAirVoucherDraft({
       parsed: {
         passengers: eight,
+        ticketNumbers: tickets,
         pnr: 'PNR888',
-        ticketNumber: '1809999888877',
+        ticketNumber: tickets[0],
         bookingRef: 'PNR888',
         flights: [
           {
@@ -713,12 +729,21 @@ describe('admin-ota-air-voucher', () => {
     })
     expect(draft.guestName).toBe(eight.join(', '))
     const html = renderOtaCompanyAirVoucherBilingualHtml(draft)
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
     expect(html).toContain('출발 터미널: 2')
     expect(html).toContain('Dep. terminal: 2')
-    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
     expect(html).toContain('항공권 바우처')
     expect(html).toContain('Flight Voucher')
-    expect(html).toContain('KIM/A, KIM/B, LEE/C, PARK/D, CHOI/E, JUNG/F, HAN/G, YOON/H')
+    expect(htmlKo).toContain('KIM/A · 1801111111111')
+    expect(htmlKo).toContain('YOON/H · 1801111111118')
+    expect(htmlKo).not.toContain('반드시 항공권')
+    expect(htmlKo).not.toContain('트립닷컴')
+    expect(htmlKo).toContain('아시아나항공')
+    expect(htmlKo).not.toContain('ASIANA AIRLINES')
+    expect(formatAirVoucherPassengerNamesHtml(draft.guestName, draft.ticketNumbers, 'ko')).toContain(
+      '<br/>',
+    )
+    expect(formatAirAirlineDisplayName('Korean Air', 'KE2005', 'ko')).toBe('대한항공')
     expect(html).toContain('OZ701')
     expect(html).toContain('PNR888')
     expect(html).not.toContain('OTA (예약처)')
@@ -885,21 +910,27 @@ Remarks
     expect(htmlKo).not.toContain('OTA (예약처)')
   })
 
-  it('strips passenger-name prefixes and Trip.com noise from mixed notices', () => {
+  it('rewrites Trip.com/트립닷컴 to 봉투어 and pairs each passenger with e-ticket', () => {
+    expect(rewriteAirNoticeOtaBrandToBongtour('트립닷컴은 책임을 지지 않습니다.', 'ko')).toContain(
+      '봉투어',
+    )
+    expect(rewriteAirNoticeOtaBrandToBongtour('Trip.com is not liable.', 'en')).toContain('BongTour')
     const messy = `
-KWEON YOUNG LEE, CHOI WONHO, YI CHAE CHONG, KIM DONGKEUN, PARK SAGYUN, LEE MIKYOUNG, LEE JIA, LEE JEONGWOO, 은 반드시 항공권 구매 시 사용한 유효한 신분증을 제시해야 합니다. 탑승권 (보딩패스) 또는 여정표를 제시해야 할 수 있으므로 사전에 준비해주세요., 의 탑승을 거부할 권리가 있습니다. 탑승객이 항공사 규정 및 정책을 준수하지 않아 탑승이 불가한 경우, 트립닷컴은 이에 대한 책임을 지지 않습니다., must provide the valid ID used to purchase their ticket. Their boarding pass or itinerary may also be required., are unable to board a plane due to not complying with airline policies, regulations.
+KWEON YOUNG LEE, CHOI WONHO, YI CHAE CHONG, KIM DONGKEUN, PARK SAGYUN, LEE MIKYOUNG, LEE JIA, LEE JEONGWOO, 은 반드시 항공권 구매 시 사용한 유효한 신분증을 제시해야 합니다. 탑승권 (보딩패스) 또는 여정표를 제시해야 할 수 있으므로 사전에 준비해주세요., 의 탑승을 거부할 권리가 있습니다. 탑승객이 항공사 규정 및 정책을 준수하지 않아 탑승이 불가한 경우, 트립닷컴은 이에 대한 책임을 지지 않습니다., must provide the valid ID used to purchase their ticket. Their boarding pass or itinerary may also be required., are unable to board a plane due to not complying with airline policies, regulations. Trip.com is not liable.
 `
     const cleaned = normalizeAirVoucherNotices({ mixed: messy })
-    expect(cleaned.noticesKo).toMatch(/신분증|보딩패스|여정표/)
-    expect(cleaned.noticesKo).not.toMatch(/KWEON|CHOI|트립닷컴|Trip/i)
-    expect(cleaned.noticesEn).toMatch(/boarding pass|valid ID|unable to board/i)
+    expect(cleaned.noticesKo).toMatch(/신분증|보딩패스|여정표|봉투어/)
+    expect(cleaned.noticesKo).toMatch(/봉투어/)
+    expect(cleaned.noticesKo).not.toMatch(/KWEON|CHOI|트립닷컴|Trip\.?com/i)
+    expect(cleaned.noticesEn).toMatch(/boarding pass|valid ID|unable to board|BongTour/i)
     expect(cleaned.noticesEn).not.toMatch(/KWEON|트립닷컴|Trip\.?com/i)
     expect(cleaned.noticesKo).not.toEqual(cleaned.noticesEn)
     const draft = buildOtaCompanyAirVoucherDraft({
       parsed: {
         passengers: ['LEE JEONGWOO'],
+        ticketNumbers: ['1804819706852'],
         pnr: 'ZQJGHT',
-        ticketNumber: null,
+        ticketNumber: '1804819706852',
         bookingRef: 'ZQJGHT',
         flights: [],
         noticesKo: cleaned.noticesKo,
@@ -909,15 +940,17 @@ KWEON YOUNG LEE, CHOI WONHO, YI CHAE CHONG, KIM DONGKEUN, PARK SAGYUN, LEE MIKYO
     })
     const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
     const htmlEn = renderOtaCompanyAirVoucherHtml(draft, 'en')
-    expect(htmlKo).toMatch(/신분증|보딩패스|여정표/)
-    expect(htmlKo).not.toContain('must provide')
-    expect(htmlEn).toMatch(/boarding pass|valid ID|unable to board/i)
-    expect(htmlEn).not.toMatch(/신분증|보딩패스/)
+    expect(htmlKo).toMatch(/신분증|보딩패스|여정표|봉투어/)
+    expect(htmlKo).toContain('LEE JEONGWOO · 1804819706852')
+    // 주의문은 노티스에만, 승객란에는 이름·티켓만
+    expect(htmlKo).toMatch(/승객<\/div><div class="v">LEE JEONGWOO · 1804819706852<\/div>/)
     expect(htmlKo).not.toContain('트립닷컴')
+    expect(htmlEn).toMatch(/boarding pass|valid ID|unable to board|BongTour/i)
+    expect(htmlEn).not.toMatch(/신분증|보딩패스/)
     expect(htmlEn).not.toContain('Trip.com')
   })
 
-  it('keeps all 8 passengers from multi-pax KE e-ticket OCR (모임1 shape)', () => {
+  it('keeps all 8 passengers and 8 e-ticket numbers from multi-pax KE OCR (모임1 shape)', () => {
     const eight = [
       'YOUNG LEE KWEON',
       'WONHO CHOI',
@@ -928,11 +961,21 @@ KWEON YOUNG LEE, CHOI WONHO, YI CHAE CHONG, KIM DONGKEUN, PARK SAGYUN, LEE MIKYO
       'JIA LEE',
       'JEONGWOO LEE',
     ]
+    const tickets = [
+      '1804819706853',
+      '1804819706854',
+      '1804819706855',
+      '1804819706856',
+      '1804819706857',
+      '1804819706858',
+      '1804819706859',
+      '1804819706852',
+    ]
     const ocr = `
 Passenger Name : ${eight.join(', ')}
 Booking Reference : ZQJGHT
 PNR : ZQJGHT
-eTicket number : 180-4819706853, 180-4819706854
+eTicket number : ${tickets.map((t) => t.replace(/(\d{3})(\d{10})/, '$1-$2')).join(', ')}
 Flight : KE2005
 Airline : Korean Air
 From : ICN
@@ -954,12 +997,94 @@ Cabin : Economy L
 `
     const parsed = parseAdminAirlineEticketText(ocr)
     expect(parsed.passengers).toEqual(eight)
+    expect(parsed.ticketNumbers).toEqual(tickets)
     expect(formatAirVoucherPassengerNames(parsed.passengers)).toBe(eight.join(', '))
     const draft = buildOtaCompanyAirVoucherDraft({
       parsed,
       now: new Date('2026-10-05T00:00:00.000Z'),
     })
     expect(draft.guestName).toBe(eight.join(', '))
+    expect(draft.ticketNumbers).toEqual(tickets)
     expect(draft.flights.map((f) => f.flightNo)).toEqual(['KE2005', 'KE2006'])
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
+    expect(htmlKo).toContain('YOUNG LEE KWEON · 1804819706853')
+    expect(htmlKo).toContain('JEONGWOO LEE · 1804819706852')
+    expect(htmlKo).toContain('대한항공')
+    expect(htmlKo).not.toContain('Korean Air')
+    // 승객란에 주의사항이 붙지 않음 (노티스 전용)
+    expect(htmlKo).not.toMatch(/승객[\s\S]*반드시 항공권 구매/)
+  })
+
+  it('keeps notice text out of passenger row — names and tickets only', () => {
+    const polluted = `KWEON YOUNG LEE, CHOI WONHO, YI CHAE CHONG, KIM DONGKEUN, PARK SAGYUN, LEE MIKYOUNG, LEE JIA, LEE JEONGWOO, 은 반드시 항공권 구매 시 사용한 유효한 신분증을 제시해야 합니다. 탑승권 (보딩패스) 또는 여정표를 제시해야 할 수 있으므로 사전에 준비해주세요., 의 탑승을 거부할 권리가 있습니다. 탑승객이 항공사 규정 및 정책을 준수하지 않아 탑승이 불가한 경우, 트립닷컴은 이에 대한 책임을 지지 않습니다., must provide the valid ID used to purchase their ticket.`
+    const names = splitAirVoucherPassengerDisplayNames(polluted)
+    expect(names).toEqual([
+      'KWEON YOUNG LEE',
+      'CHOI WONHO',
+      'YI CHAE CHONG',
+      'KIM DONGKEUN',
+      'PARK SAGYUN',
+      'LEE MIKYOUNG',
+      'LEE JIA',
+      'LEE JEONGWOO',
+    ])
+    const html = formatAirVoucherPassengerNamesHtml(polluted, [
+      '1804819706853',
+      '1804819706854',
+      '1804819706855',
+      '1804819706856',
+      '1804819706857',
+      '1804819706858',
+      '1804819706859',
+      '1804819706852',
+    ])
+    expect(html).toContain('KWEON YOUNG LEE · 1804819706853')
+    expect(html).toContain('LEE JEONGWOO · 1804819706852')
+    expect(html).not.toContain('신분증')
+    expect(html).not.toContain('트립닷컴')
+    expect(html).not.toContain('must provide')
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed: {
+        passengers: names,
+        ticketNumbers: [
+          '1804819706853',
+          '1804819706854',
+          '1804819706855',
+          '1804819706856',
+          '1804819706857',
+          '1804819706858',
+          '1804819706859',
+          '1804819706852',
+        ],
+        pnr: 'ZQJGHT',
+        ticketNumber: '1804819706853',
+        bookingRef: 'ZQJGHT',
+        flights: [
+          {
+            flightNo: 'KE2005',
+            airline: 'Korean Air',
+            depAirport: 'ICN',
+            arrAirport: 'HKG',
+            depTerminal: '2',
+            arrTerminal: '1',
+            depAt: null,
+            arrAt: null,
+            cabinClass: null,
+            status: null,
+          },
+        ],
+        noticesKo: '- 유효한 신분증을 제시해야 합니다.\n- 봉투어는 이에 대한 책임을 지지 않습니다.',
+        noticesEn: '- Passengers must present valid ID.\n- BongTour is not liable.',
+      },
+      guestNameOverride: polluted,
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(draft.guestName).toBe(names.join(', '))
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
+    expect(htmlKo).toContain('KWEON YOUNG LEE · 1804819706853')
+    expect(htmlKo).toContain('주의사항 · 참고사항')
+    expect(htmlKo).toContain('유효한 신분증')
+    // 승객 박스에 주의문 전체 덤프 없음
+    expect(htmlKo).not.toMatch(/승객<\/div><div class="v">[^<]*반드시/)
   })
 })

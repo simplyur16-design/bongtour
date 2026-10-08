@@ -24702,9 +24702,12 @@
             "noticesEn",
             "depTerminal",
             "arrTerminal",
+            "ticketNumbers",
             "출발 터미널",
             "주의사항 · 참고사항",
             "교차 폴백 금지",
+            "isLikelyAirPassengerNameToken",
+            "rewriteAirNoticeOtaBrandToBongtour",
             "parseAdminAirlineEticketText",
             "renderOtaCompanyAirVoucherHtml",
             "항공권 바우처"
@@ -24721,8 +24724,8 @@
             "Arr Terminal",
             "Notices (KO)",
             "Notices (EN)",
-            "NEVER include Trip.com",
-            "NEVER prepend or embed the passenger name"
+            "Replace any Trip.com",
+            "SAME order as Passenger Name"
           ]
         },
         {

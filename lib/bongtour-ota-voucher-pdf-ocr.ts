@@ -112,11 +112,13 @@ const AIR_ETICKET_PROMPT = `You are extracting an airline e-ticket / passenger i
 Read ALL pages carefully (Korean and English versions if both present). Output ONLY plain text with stable labels so a regex parser can read it. No markdown.
 
 Required lines when present (use these exact English labels):
-Passenger Name : <LAST/FIRST or names comma-separated, keep passport order>
+Passenger Name : <names comma-separated in passport order — one list>
 Booking Reference : <airline PNR>
 PNR : <airline PNR if shown separately>
-eTicket number : <digits>
-Ticket Number : <digits>
+eTicket number : <ALL ticket numbers comma-separated in the SAME order as Passenger Name — each passenger usually has their own number, never drop any>
+Ticket Number : <same as eTicket number list if printed that way>
+
+Critical: if there are 8 passengers there are usually 8 e-ticket numbers — list every one, comma-separated, same order as names.
 
 For each flight segment, output a block like:
 Flight : <airline code + number, e.g. KE123 or OZ701>
@@ -146,9 +148,9 @@ Notices (EN) :
 
 Strict rules for Notices:
 - Notices (KO) must contain Korean only. Notices (EN) must contain English only. Never duplicate the same mixed blob in both.
-- NEVER include Trip.com / 트립닷컴 / Agoda / Booking.com names, logos, or liability sentences.
+- Replace any Trip.com / 트립닷컴 / Agoda brand in notice text with 봉투어 (KO) or BongTour (EN). Keep the sentence meaning.
 - NEVER prepend or embed the passenger name list inside Notices — names belong only under Passenger Name.
-- Prefer airline/carrier notice text over OTA booking confirmation fine print.
+- Prefer airline/carrier notice text; if OTA fine print remains, rewrite brand to 봉투어/BongTour as above.
 
 Copy every passenger name exactly as printed under Passenger Name only (including slash form KIM/MINSU).`
 

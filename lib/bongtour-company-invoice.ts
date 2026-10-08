@@ -255,8 +255,11 @@ export type OtaAirVoucherFlightSegment = {
 
 export type OtaAirlineEticketParsed = {
   passengers: string[]
-  pnr: string | null
+  /** 승객 순서와 동일 인덱스의 e-ticket 번호 (승객마다 다를 수 있음) */
+  ticketNumbers: string[]
+  /** 첫 항공권 번호(하위호환·요약) */
   ticketNumber: string | null
+  pnr: string | null
   bookingRef: string | null
   flights: OtaAirVoucherFlightSegment[]
   /** e-ticket 주의사항·참고사항 (한글) — OTA와 무관 */
@@ -272,6 +275,9 @@ export type OtaCompanyAirVoucherDraft = {
   issuedAtIso: string
   guestName: string | null
   pnr: string | null
+  /** 승객별 e-ticket 번호 (표시는 이름 옆 한 줄) */
+  ticketNumbers: string[]
+  /** 요약용 첫 번호(하위호환) */
   ticketNumber: string | null
   /** 항공사 PNR / booking reference */
   bookingRef: string | null
@@ -1806,6 +1812,227 @@ export function formatAirVoucherPassengerNames(travelers: readonly string[]): st
     .join(', ')
 }
 
+/** 승객명으로 쓸 수 있는 토큰인지 — 주의사항 문장 혼입 차단. */
+export function isLikelyAirPassengerNameToken(raw: string): boolean {
+  let n = String(raw ?? '').replace(/\s+/g, ' ').trim()
+  if (!n || n.length < 2) return false
+  if (isAirPassengerMetaLine(n)) return false
+  if (AIR_PAX_TITLE.test(n) || AIR_PAX_NOISE.test(n)) return false
+  if (/^\d+$/.test(n)) return false
+  // 주의사항·정책 문장 (한글/영문)
+  if (
+    /반드시|제시해야|탑승권|보딩패스|여정표|거부할\s*권리|책임을\s*지지|준수하지|탑승이\s*불가|트립닷컴|항공권\s*구매|사전에\s*준비|신분증/.test(
+      n,
+    )
+  ) {
+    return false
+  }
+  if (
+    /\b(must|should|may|required|unable|boarding\s*pass|itinerary|complying|policies|regulations|liable|Trip\.?\s*com)\b/i.test(
+      n,
+    )
+  ) {
+    return false
+  }
+  // 조사·잔여 조각
+  if (/^(?:은|는|이|가|의|을|를)\s/.test(n)) return false
+  if (n.length > 80) return false
+  // 로마자 여권명 또는 짧은 한글 이름
+  if (/^[A-Za-z]{2,}(?:[\s/]+[A-Za-z]{2,}){0,4}$/.test(n)) return true
+  if (/^[가-힣]{2,8}(?:\s+[가-힣]{2,8})?$/.test(n)) return true
+  if (/^[A-Za-z]{2,}\/[A-Za-z][A-Za-z\s]*$/.test(n)) return true
+  return false
+}
+
+/**
+ * guestName → 표시용 이름만 (주의사항 문장 제거, 한 줄에 한 명).
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: splitAirVoucherPassengerDisplayNames clean — manifest
+ */
+export function splitAirVoucherPassengerDisplayNames(guestName: string | null | undefined): string[] {
+  let raw = String(guestName ?? '').trim()
+  if (!raw) return []
+  // 이름 나열 뒤 주의사항이 붙은 경우 절단
+  raw = raw.replace(
+    /,?\s*(?:은|는)\s*반드시[\s\S]*$/u,
+    '',
+  )
+  raw = raw.replace(/,?\s*must\s+provide[\s\S]*$/i, '')
+  raw = raw.replace(/,?\s*(?:트립닷컴|Trip\.?\s*com)[\s\S]*$/i, '')
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const part of raw.split(/\s*,\s*/)) {
+    const n = part.trim()
+    if (!isLikelyAirPassengerNameToken(n)) continue
+    const key = n.toUpperCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(n)
+  }
+  return out
+}
+
+/**
+ * 바우처 HTML용 — 승객란은 한 줄에 이름 + e-ticket 번호만.
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: formatAirVoucherPassengerNamesHtml name+ticket only — manifest
+ */
+export function formatAirVoucherPassengerNamesHtml(
+  guestName: string | null | undefined,
+  ticketNumbers?: readonly string[] | null,
+  _locale: OtaVoucherLocale = 'ko',
+): string {
+  const names = splitAirVoucherPassengerDisplayNames(guestName)
+  // 주의사항이 섞인 guestName은 걸러냄 — 원문 전체를 승객란에 다시 넣지 않음
+  if (!names.length) return ''
+  const tickets = ticketNumbers ?? []
+  return names
+    .map((n, i) => {
+      const t = String(tickets[i] ?? '').replace(/[\s-]+/g, '').trim()
+      // 승객란: 이름 · e-ticket번호 만 (주의사항·라벨 없음)
+      if (!t) return escapeHtml(n)
+      return `${escapeHtml(n)} · ${escapeHtml(t)}`
+    })
+    .join('<br/>')
+}
+
+/** OCR/본문에서 승객 순서대로 e-ticket 번호 목록. */
+export function extractAirTicketNumbersFromText(text: string): string[] {
+  const raw = String(text ?? '')
+  const line =
+    raw.match(/e-?Ticket(?:\s+number)?s?\s*[:：]?\s*([^\n]+)/i)?.[1] ||
+    raw.match(/Ticket Numbers?\s*[:：]?\s*([^\n]+)/i)?.[1] ||
+    raw.match(/항공권\s*번호\s*[:：]?\s*([^\n]+)/i)?.[1] ||
+    ''
+  const fromLine = [...line.matchAll(/(\d{3}[\s-]?\d{10}|\d{13})/g)].map((m) =>
+    m[1].replace(/[\s-]+/g, ''),
+  )
+  if (fromLine.length) return fromLine
+  // 본문 전체에서 13자리권 나열 (중복 제거·순서 유지)
+  const all = [...raw.matchAll(/\b(\d{3}[\s-]?\d{10}|\d{13})\b/g)].map((m) =>
+    m[1].replace(/[\s-]+/g, ''),
+  )
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const t of all) {
+    if (seen.has(t)) continue
+    seen.add(t)
+    out.push(t)
+  }
+  return out
+}
+
+const AIR_AIRLINE_BY_CODE: Record<string, { ko: string; en: string }> = {
+  KE: { ko: '대한항공', en: 'Korean Air' },
+  OZ: { ko: '아시아나항공', en: 'Asiana Airlines' },
+  LJ: { ko: '진에어', en: 'Jin Air' },
+  TW: { ko: '티웨이항공', en: 'T\'way Air' },
+  '7C': { ko: '제주항공', en: 'Jeju Air' },
+  ZE: { ko: '이스타항공', en: 'Eastar Jet' },
+  RS: { ko: '에어서울', en: 'Air Seoul' },
+  BX: { ko: '에어부산', en: 'Air Busan' },
+  RF: { ko: '에어로케이', en: 'Aero K' },
+  UA: { ko: '유나이티드항공', en: 'United Airlines' },
+  AA: { ko: '아메리칸항공', en: 'American Airlines' },
+  DL: { ko: '델타항공', en: 'Delta Air Lines' },
+  AC: { ko: '에어캐나다', en: 'Air Canada' },
+  NH: { ko: '전일본공수(ANA)', en: 'ANA' },
+  JL: { ko: '일본항공', en: 'Japan Airlines' },
+  SQ: { ko: '싱가포르항공', en: 'Singapore Airlines' },
+  CX: { ko: '캐세이퍼시픽', en: 'Cathay Pacific' },
+  TG: { ko: '타이항공', en: 'Thai Airways' },
+  VN: { ko: '베트남항공', en: 'Vietnam Airlines' },
+  PR: { ko: '필리핀항공', en: 'Philippine Airlines' },
+  CI: { ko: '중화항공', en: 'China Airlines' },
+  BR: { ko: '에바항공', en: 'EVA Air' },
+  MU: { ko: '중국동방항공', en: 'China Eastern' },
+  CA: { ko: '중국국제항공', en: 'Air China' },
+  CZ: { ko: '중국남방항공', en: 'China Southern' },
+  QF: { ko: '콴타스', en: 'Qantas' },
+  EK: { ko: '에미레이트항공', en: 'Emirates' },
+  QR: { ko: '카타르항공', en: 'Qatar Airways' },
+  LH: { ko: '루프트한자', en: 'Lufthansa' },
+  BA: { ko: '영국항공', en: 'British Airways' },
+  AF: { ko: '에어프랑스', en: 'Air France' },
+  KL: { ko: 'KLM네덜란드항공', en: 'KLM' },
+}
+
+const AIR_AIRLINE_EN_TO_KO: Array<{ re: RegExp; ko: string; en: string }> = [
+  { re: /KOREAN\s*AIR/i, ko: '대한항공', en: 'Korean Air' },
+  { re: /ASIANA/i, ko: '아시아나항공', en: 'Asiana Airlines' },
+  { re: /JIN\s*AIR/i, ko: '진에어', en: 'Jin Air' },
+  { re: /T['’]?WAY/i, ko: '티웨이항공', en: "T'way Air" },
+  { re: /JEJU\s*AIR/i, ko: '제주항공', en: 'Jeju Air' },
+  { re: /EASTAR/i, ko: '이스타항공', en: 'Eastar Jet' },
+  { re: /AIR\s*SEOUL/i, ko: '에어서울', en: 'Air Seoul' },
+  { re: /AIR\s*BUSAN/i, ko: '에어부산', en: 'Air Busan' },
+  { re: /UNITED/i, ko: '유나이티드항공', en: 'United Airlines' },
+  { re: /AMERICAN\s*AIR/i, ko: '아메리칸항공', en: 'American Airlines' },
+  { re: /DELTA/i, ko: '델타항공', en: 'Delta Air Lines' },
+  { re: /AIR\s*CANADA/i, ko: '에어캐나다', en: 'Air Canada' },
+  { re: /\bANA\b|ALL\s*NIPPON/i, ko: '전일본공수(ANA)', en: 'ANA' },
+  { re: /JAPAN\s*AIRLINES|\bJAL\b/i, ko: '일본항공', en: 'Japan Airlines' },
+  { re: /SINGAPORE\s*AIR/i, ko: '싱가포르항공', en: 'Singapore Airlines' },
+  { re: /CATHAY/i, ko: '캐세이퍼시픽', en: 'Cathay Pacific' },
+  { re: /THAI\s*AIR/i, ko: '타이항공', en: 'Thai Airways' },
+  { re: /VIETNAM\s*AIR/i, ko: '베트남항공', en: 'Vietnam Airlines' },
+  { re: /PHILIPPINE\s*AIR/i, ko: '필리핀항공', en: 'Philippine Airlines' },
+  { re: /CHINA\s*AIRLINES/i, ko: '중화항공', en: 'China Airlines' },
+  { re: /EVA\s*AIR/i, ko: '에바항공', en: 'EVA Air' },
+  { re: /CHINA\s*EASTERN/i, ko: '중국동방항공', en: 'China Eastern' },
+  { re: /AIR\s*CHINA/i, ko: '중국국제항공', en: 'Air China' },
+  { re: /CHINA\s*SOUTHERN/i, ko: '중국남방항공', en: 'China Southern' },
+  { re: /EMIRATES/i, ko: '에미레이트항공', en: 'Emirates' },
+  { re: /QATAR/i, ko: '카타르항공', en: 'Qatar Airways' },
+  { re: /LUFTHANSA/i, ko: '루프트한자', en: 'Lufthansa' },
+  { re: /BRITISH\s*AIR/i, ko: '영국항공', en: 'British Airways' },
+  { re: /AIR\s*FRANCE/i, ko: '에어프랑스', en: 'Air France' },
+  { re: /\bKLM\b/i, ko: 'KLM네덜란드항공', en: 'KLM' },
+  { re: /REPUBLIC\s*AIRWAYS/i, ko: '리퍼블릭항공', en: 'Republic Airways' },
+]
+
+/**
+ * 항공사 표시명 — 한글 바우처는 한글명, 영문은 영문명.
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: formatAirAirlineDisplayName — manifest
+ */
+export function formatAirAirlineDisplayName(
+  airline: string | null | undefined,
+  flightNo: string | null | undefined,
+  locale: OtaVoucherLocale,
+): string | null {
+  const raw = String(airline ?? '').trim()
+  const code = String(flightNo ?? '')
+    .trim()
+    .toUpperCase()
+    .match(/^([A-Z]{2}|[A-Z]\d|\d[A-Z])/)?.[1]
+
+  const pick = (pair: { ko: string; en: string }) => (locale === 'ko' ? pair.ko : pair.en)
+
+  // 코드셰어 "Korean Air / Air Canada AC410" → 구간별 변환
+  if (raw.includes('/') || raw.includes('·')) {
+    const parts = raw.split(/\s*[/·]\s*/).map((p) => p.trim()).filter(Boolean)
+    if (parts.length >= 2) {
+      const mapped = parts.map((part) => {
+        const stripped = part.replace(/\b[A-Z0-9]{2}\d{2,4}\b/g, '').replace(/\([^)]*\)/g, '').trim()
+        for (const row of AIR_AIRLINE_EN_TO_KO) {
+          if (row.re.test(part) || row.re.test(stripped)) return pick(row)
+        }
+        const subCode = part.match(/\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\d{2,4}\b/)?.[1]
+        if (subCode && AIR_AIRLINE_BY_CODE[subCode]) return pick(AIR_AIRLINE_BY_CODE[subCode])
+        return locale === 'ko' ? stripped || part : part
+      })
+      return mapped.join(locale === 'ko' ? ' / ' : ' / ')
+    }
+  }
+
+  if (raw) {
+    for (const row of AIR_AIRLINE_EN_TO_KO) {
+      if (row.re.test(raw)) return pick(row)
+    }
+    if (locale === 'ko' && hasHangul(raw)) return raw
+  }
+  if (code && AIR_AIRLINE_BY_CODE[code]) return pick(AIR_AIRLINE_BY_CODE[code])
+  return raw || null
+}
+
 const AIR_PAX_TITLE = /^(?:MR|MRS|MS|MISS|MSTR|MISTER|DR)\.?$/i
 const AIR_PAX_NOISE =
   /^(?:PASSENGER|NAME|NAMES|TRAVELER|TRAVELLER|BOOKING|REFERENCE|TICKET|FLIGHT|AIRLINE|PNR|ITINERARY|CONFIRMATION|NUMBER|FROM|TO|DATE|CLASS|STATUS|OK|ECONOMY|BUSINESS|FIRST)$/i
@@ -1831,12 +2058,10 @@ function pushAirPassengerCandidate(
   n = n.replace(/\s+(?:MR|MRS|MS|MISS|MSTR|DR)\.?$/i, '').trim()
   // strip leading titles: MR KIM/MINSU
   n = n.replace(/^(?:MR|MRS|MS|MISS|MSTR|DR)\.?\s+/i, '').trim()
-  if (n.length < 2) return
-  if (AIR_PAX_TITLE.test(n) || AIR_PAX_NOISE.test(n)) return
-  if (/^\d+$/.test(n)) return
   // Normalize single "LAST, FIRST" → LAST/FIRST (as-is otherwise)
   const lastFirst = n.match(/^([A-Za-z]{2,})\s*,\s*([A-Za-z][A-Za-z]*(?:\s+[A-Za-z]+)*)$/)
   if (lastFirst) n = `${lastFirst[1]}/${lastFirst[2]}`
+  if (!isLikelyAirPassengerNameToken(n)) return
   const key = n.toUpperCase()
   if (seen.has(key)) return
   seen.add(key)
@@ -1887,7 +2112,11 @@ export function extractAirVoucherPassengerNamesFromText(text: string): string[] 
     ),
   ]
   for (const m of labelBlocks) {
-    for (const part of splitAirPassengerBlob(m[1] || '')) {
+    // 같은 줄에 주의사항이 이어지면 이름 구간만 사용
+    let blob = String(m[1] || '')
+    blob = blob.replace(/,?\s*(?:은|는)\s*반드시[\s\S]*$/u, '')
+    blob = blob.replace(/,?\s*must\s+provide[\s\S]*$/i, '')
+    for (const part of splitAirPassengerBlob(blob)) {
       pushAirPassengerCandidate(out, seen, part)
     }
   }
@@ -1955,8 +2184,23 @@ function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFligh
  * 항공사 e-ticket / 여정표 본문 → 승객·PNR·편명.
  * REGRESSION-FREEZE[admin-ota-air-voucher]: parseAdminAirlineEticketText — manifest
  */
-const AIR_NOTICE_OTA_NOISE =
-  /Trip\.?\s*com|트립닷컴|Agoda|Booking\.com|Expedia|호텔스컴바인/i
+/**
+ * 노티스 속 OTA 브랜드 → 봉투어로 치환 (삭제하지 않음).
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: rewriteAirNoticeOtaBrandToBongtour — manifest
+ */
+export function rewriteAirNoticeOtaBrandToBongtour(text: string, locale: 'ko' | 'en' = 'ko'): string {
+  const brand = locale === 'ko' ? BONGTOUR_INVOICE_COMPANY.legalName : BONGTOUR_INVOICE_COMPANY.brandName
+  let t = String(text ?? '')
+    .replace(/트립\s*\.?\s*닷컴|트립닷컴/gi, brand)
+    .replace(/Trip\s*\.?\s*com/gi, brand)
+    .replace(/\bTripcom\b/gi, brand)
+    .replace(/\bAgoda\b/gi, brand)
+    .replace(/아고다/gi, brand)
+    .replace(/Booking\.com/gi, brand)
+  // 트립닷컴은 → 봉투어은 보정
+  if (locale === 'ko') t = t.replace(new RegExp(`${brand}은`, 'g'), `${brand}는`)
+  return t
+}
 
 function isAirNoticePassengerNameBlob(chunk: string): boolean {
   const t = chunk.replace(/^[-•·]\s*/, '').trim()
@@ -2024,7 +2268,8 @@ export function normalizeAirVoucherNotices(args: {
 
   const push = (lang: 'ko' | 'en', chunk: string) => {
     let t = stripAirNoticeLeadingNames(chunk)
-    if (!t || AIR_NOTICE_OTA_NOISE.test(t)) return
+    if (!t) return
+    t = rewriteAirNoticeOtaBrandToBongtour(t, lang)
     if (isAirNoticePassengerNameBlob(t)) return
     // 짧은 연결 잔여물
     if (/^(?:의|을|를|must|are|is)\b/i.test(t) && t.length < 40) return
@@ -2216,8 +2461,10 @@ export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketPar
       raw.match(/예약\s*번호\s*[:：]\s*([A-Z0-9]{5,8})/i)?.[1] ||
       null
   }
+  const ticketNumbers = extractAirTicketNumbersFromText(raw)
   if (!ticketNumber) {
     ticketNumber =
+      ticketNumbers[0] ||
       raw
         .match(/e-?Ticket(?:\s+number)?\s*[:\s]*([\d\s-]{10,22})/i)?.[1]
         ?.replace(/[\s-]+/g, '') ||
@@ -2225,11 +2472,21 @@ export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketPar
       raw.match(/항공권\s*번호\s*[:：]\s*([\d\s-]{10,22})/i)?.[1]?.replace(/[\s-]+/g, '') ||
       null
   }
+  if (ticketNumber && ticketNumbers.length === 0) ticketNumbers.push(ticketNumber)
   // bookingRef = 항공사 PNR만 (OTA 예약번호 아님)
   if (!bookingRef) bookingRef = pnr
 
   const { noticesKo, noticesEn } = extractAirVoucherNoticesFromText(raw)
-  return { passengers, pnr, ticketNumber, bookingRef, flights, noticesKo, noticesEn }
+  return {
+    passengers,
+    ticketNumbers,
+    pnr,
+    ticketNumber: ticketNumbers[0] || ticketNumber,
+    bookingRef,
+    flights,
+    noticesKo,
+    noticesEn,
+  }
 }
 
 /**
@@ -2313,15 +2570,22 @@ export function buildOtaCompanyAirVoucherDraft(args: {
   const ymd = now.toISOString().slice(0, 10).replace(/-/g, '')
   const rand = Math.floor(Math.random() * 9000 + 1000)
   const fromEticket = formatAirVoucherPassengerNames(args.parsed.passengers)
-  const guestName =
-    cleanLine(args.guestNameOverride) || (fromEticket ? fromEticket : null)
+  // 승객란 = 이름만 (주의사항 문장 혼입 제거). 노티스는 noticesKo/En 전용.
+  const cleanedOverride = formatAirVoucherPassengerNames(
+    splitAirVoucherPassengerDisplayNames(args.guestNameOverride),
+  )
+  const guestName = cleanedOverride || (fromEticket ? fromEticket : null)
+  const ticketNumbers = (args.parsed.ticketNumbers ?? [])
+    .map((t) => String(t ?? '').replace(/[\s-]+/g, '').trim())
+    .filter(Boolean)
   return {
     documentKind: 'air_voucher',
     voucherNumber: `BT-AIR-${ymd}-${rand}`,
     issuedAtIso: now.toISOString(),
     guestName,
     pnr: args.parsed.pnr,
-    ticketNumber: args.parsed.ticketNumber,
+    ticketNumbers,
+    ticketNumber: ticketNumbers[0] || args.parsed.ticketNumber,
     bookingRef: args.parsed.bookingRef || args.parsed.pnr,
     flights: args.parsed.flights,
     ...normalizeAirVoucherNotices({
@@ -2358,7 +2622,9 @@ function renderAirVoucherBody(
 ): string {
   const c = draft.company
   const isKo = locale === 'ko'
-  const guest = draft.guestName || (isKo ? '승객' : 'PASSENGER')
+  const guestHtml = draft.guestName
+    ? formatAirVoucherPassengerNamesHtml(draft.guestName, draft.ticketNumbers, locale)
+    : escapeHtml(isKo ? '승객' : 'PASSENGER')
   const issued = new Date(draft.issuedAtIso).toLocaleString(isKo ? 'ko-KR' : 'en-US', {
     timeZone: 'Asia/Seoul',
   })
@@ -2419,8 +2685,9 @@ function renderAirVoucherBody(
             ]
               .filter(Boolean)
               .join(isKo ? ' · ' : ' · ')
+            const airlineName = formatAirAirlineDisplayName(f.airline, f.flightNo, locale)
             const meta = [
-              f.airline ? `${L.airline}: ${f.airline}` : null,
+              airlineName ? `${L.airline}: ${airlineName}` : null,
               f.cabinClass ? `${L.cabin}: ${f.cabinClass}` : null,
               f.status ? `${L.status}: ${f.status}` : null,
             ]
@@ -2445,13 +2712,9 @@ function renderAirVoucherBody(
       <div class="muted">${escapeHtml(draft.voucherNumber)} · ${escapeHtml(L.issued)}</div>
     </div>
   </div>
-  <div class="booking">${escapeHtml(L.pnr)}: ${escapeHtml(draft.bookingRef || draft.pnr || '—')}${
-    draft.ticketNumber
-      ? `<div class="muted" style="margin-top:6px;font-weight:500">${escapeHtml(L.ticket)}: ${escapeHtml(draft.ticketNumber)}</div>`
-      : ''
-  }</div>
+  <div class="booking">${escapeHtml(L.pnr)}: ${escapeHtml(draft.bookingRef || draft.pnr || '—')}</div>
   <div class="box">
-    ${rowHtml(L.guest, escapeHtml(guest))}
+    ${rowHtml(L.guest, guestHtml)}
   </div>
   <div class="muted" style="margin-top:16px;font-weight:700">${escapeHtml(L.flights)}</div>
   ${flightRows}
