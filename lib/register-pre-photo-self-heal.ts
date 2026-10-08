@@ -73,6 +73,7 @@ import {
 import {
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
+  isBrokenRegisterFitScheduleDescription,
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
@@ -1757,8 +1758,12 @@ function healDescription(
   maxDay: number,
   force = false,
   productHaystack?: string | null,
+  opts?: { fit?: boolean },
 ): string {
   const current = String(row.description ?? '').trim()
+  const descBroken = opts?.fit
+    ? isBrokenRegisterFitScheduleDescription
+    : isBrokenRegisterScheduleDescription
   // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 힐 전일해상 선상 요약 — manifest
   if (isOceanCruiseAtSeaRoute(row.routeText) || isOceanCruiseAtSeaRoute(row.title)) {
     const scrubbed = scrubOceanCruiseAtSeaScheduleRow(
@@ -1771,7 +1776,8 @@ function healDescription(
     )
     return String(scrubbed.description ?? current)
   }
-  if (!force && !isBrokenRegisterScheduleDescription(current, row.routeText)) return current
+  // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: FIT Gemini 요약 유지 — manifest
+  if (!force && !descBroken(current, row.routeText)) return current
   const routePlaces = splitRouteTextPlaceSegments(row.routeText)
   let next = current
   try {
@@ -1786,7 +1792,7 @@ function healDescription(
     next = current
   }
   // REGRESSION-FREEZE[register-ocean-cruise-product]: 귀국·기항 요약에 route 지명 강제 — manifest
-  if (isBrokenRegisterScheduleDescription(next, row.routeText)) {
+  if (descBroken(next, row.routeText)) {
     const lead = routePlaces.map((p) => p.trim()).find((p) => p.length >= 2)
     if (lead && !next.includes(lead)) {
       next = `${lead}에서 일정을 마무리한 뒤 귀국 이동으로 이어갑니다.`
@@ -1929,7 +1935,7 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     working = working.map((row) => {
       const before = String(row.description ?? '').trim()
       const force = fitRepeatedCloser.has(Number(row.day))
-      const description = healDescription(row, maxFitDesc, force, opts.productHaystack)
+      const description = healDescription(row, maxFitDesc, force, opts.productHaystack, { fit: true })
       if (description !== before) {
         notes.push({
           day: Number(row.day),

@@ -91,6 +91,8 @@ function stripPlaceParens(label: string): string {
 function isHubPlace(label: string): boolean {
   const t = stripPlaceParens(label)
   if (!t) return true
+  // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: Jewel Changi≠hub — mentionsRoutePoi — manifest
+  if (/쥬얼\s*창이|Jewel\s*Changi|창이\s*쥬얼|Changi\s*Jewel/i.test(t)) return false
   return HUB_PLACE_RE.test(t)
 }
 

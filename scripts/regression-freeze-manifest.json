@@ -5082,6 +5082,50 @@
       ]
     },
     {
+      "id": "register-fit-gemini-desc-verify",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "FIT Gemini 요약 — Jewel Changi·귀국일 description_filler 오탐 금지",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-guards.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-desc-verify]",
+            "isBrokenRegisterFitScheduleDescription",
+            "isRegisterScheduleTransitHubPlace",
+            "Jewel Changi"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-desc-verify]",
+            "isBrokenRegisterFitScheduleDescription"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-desc-verify]",
+            "replace(/œ/gi, 'oe')"
+          ]
+        },
+        {
+          "file": "tests/register-fit-gemini-desc-verify.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-desc-verify]",
+            "day6_description_filler_or_duplicate",
+            "Jewel Changi"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "test:register-fit-gemini-desc-verify"
+      ]
+    },
+    {
       "id": "register-fit-gemini-landmark-verify",
       "tier": [
         "prebuild",

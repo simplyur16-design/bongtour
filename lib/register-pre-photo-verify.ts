@@ -28,6 +28,7 @@ import {
 import {
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
+  isBrokenRegisterFitScheduleDescription,
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
@@ -651,7 +652,8 @@ function fitScheduleIssues(
     }
     if (
       !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
-      isBrokenRegisterScheduleDescription(row.description, row.routeText)
+      // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: FIT Gemini 요약 — package filler 가드와 분리 — manifest
+      isBrokenRegisterFitScheduleDescription(row.description, row.routeText)
     ) {
       issues.push(`day${day}_description_filler_or_duplicate`)
     }

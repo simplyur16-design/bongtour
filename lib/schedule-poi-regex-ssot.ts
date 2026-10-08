@@ -1252,6 +1252,18 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /피카딜리\s*서커스|Piccadilly\s*Circus/i, en: 'Piccadilly Circus' },
   { re: /스카이\s*가든|Sky\s*Garden/i, en: 'Sky Garden' },
   { re: /코벤트\s*가든|Covent\s*Garden/i, en: 'Covent Garden' },
+  // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: FIT Gemini own-route KO↔EN — manifest
+  {
+    re: /사크레?\s*쾨르|사크레쿠르|Sacre[-\s]?C[oeœ]ur|Sacré-?[Cc]œur|Sacr[eé]\s*Coeur|몽마르트르?\s*성심/i,
+    en: 'Sacre Coeur Montmartre',
+  },
+  { re: /몽마르뜨|Montmartre/i, en: 'Montmartre' },
+  { re: /베르사유\s*궁전|Palace\s*of\s*Versailles|Versailles\s*Palace|Ch[aâ]teau\s*de\s*Versailles/i, en: 'Palace of Versailles' },
+  { re: /개선문|Arc\s*de\s*Triomphe/i, en: 'Arc de Triomphe' },
+  { re: /샹젤리제|Champs[-\s]?[EÉ]lys[eé]es/i, en: 'Champs Elysees' },
+  { re: /긴린\s*코(?:\s*호수)?|Kinrin\s*(?:Lake|Ko)|金鱗湖/i, en: 'Kinrin Lake' },
+  { re: /유후인(?:\s*온천(?:마을)?)?|Yufuin(?:\s*Onsen)?/i, en: 'Yufuin Onsen' },
+  { re: /쥬얼\s*창이|Jewel\s*Changi|Changi\s*Jewel/i, en: 'Jewel Changi' },
   { re: /로벤\s*섬|Robben\s*Island/i, en: "Robben Island Cape Town Table Bay view" },
   { re: /미라보라벤더|Valensole|라벤더\s*밭|Lavender\s*field/i, en: "Valensole lavender plateau Provence" },
   { re: /고대\s*극장|Orange|오랑주|Th[eé]atre/i, en: "Orange ancient Roman theatre Provence" },

@@ -93,16 +93,41 @@ export function isBrokenRegisterLandmarkKeyword(
   return false
 }
 
-export function isBrokenRegisterScheduleDescription(
-  description: string | null | undefined,
-  routeText?: string | null,
-): boolean {
-  const t = String(description ?? '').trim()
-  if (t.length < 12) return true
-  // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 전일해상은 선상 요약 전용 — manifest
-  if (isOceanCruiseAtSeaRoute(routeText)) {
-    return !isValidOceanCruiseAtSeaDescription(t)
+/**
+ * 국내 출국 허브·순수 공항/호텔 이동 세그먼트.
+ * 쥬얼 창이 등 공항 내 관광 명소는 false (FIT Gemini 요약이 그 이름을 쓰면 통과해야 함).
+ * REGRESSION-FREEZE[register-fit-gemini-desc-verify]: Jewel Changi≠hub — manifest
+ */
+export function isRegisterScheduleTransitHubPlace(label: string): boolean {
+  const t = String(label ?? '')
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return true
+  // 공항 단지 안 명소·테마 시설 — hub 취급 금지
+  if (
+    /쥬얼\s*창이|Jewel\s*Changi|창이\s*쥬얼|히스로\s*터미널\s*[0-9]|Changi\s*Jewel|실내\s*폭포|HSBC\s*Rain\s*Vortex/i.test(
+      t,
+    )
+  ) {
+    return false
   }
+  if (/^(?:인천|김포|부산|청주|대구|제주|ICN|GMP|PUS|TAE|CJJ|CJU)(?:\s|$)/i.test(t)) return true
+  if (/귀국|출국/i.test(t)) return true
+  // 숙소·식당만 (관광 POI 없음)
+  if (
+    /(?:호텔|리조트|숙소|게스트하우스|체크인|체크아웃|인근|근처)/i.test(t) &&
+    !/(?:궁전|사원|박물관|타워|정원|공원|시장|성\b|호수|폭포|온천마을|스튜디오|성당|대성당)/i.test(t)
+  ) {
+    return true
+  }
+  if (/(?:레스토랑|식당|카페|차찬teng|차찬\s*teng)$/i.test(t)) return true
+  if (/공항$|국제공항$|\bAirport\b/i.test(t)) return true
+  if (/중앙역$|역$|기차역|열차/i.test(t) && !/(?:박물관|광장|사원)/i.test(t)) return true
+  return false
+}
+
+function descriptionHasDuplicateOrFillerProse(t: string): boolean {
   if (FILLER_DESC_RE.test(t)) return true
   const genericHits = t.match(DUP_GENERIC_CLOSER_RE)
   if (genericHits && genericHits.length >= 2) return true
@@ -113,17 +138,54 @@ export function isBrokenRegisterScheduleDescription(
   for (let i = 1; i < sentences.length; i++) {
     if (sentences[i] === sentences[i - 1]) return true
   }
+  return false
+}
+
+export function isBrokenRegisterScheduleDescription(
+  description: string | null | undefined,
+  routeText?: string | null,
+): boolean {
+  const t = String(description ?? '').trim()
+  if (t.length < 12) return true
+  // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 전일해상은 선상 요약 전용 — manifest
+  if (isOceanCruiseAtSeaRoute(routeText)) {
+    return !isValidOceanCruiseAtSeaDescription(t)
+  }
+  if (descriptionHasDuplicateOrFillerProse(t)) return true
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: non-hub route must appear in summary — manifest
+  // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: Jewel Changi 등 공항명소 non-hub — manifest
   const places = splitRouteTextPlaceSegments(routeText)
-  const nonHub = places.filter(
-    (p) =>
-      !/^(?:인천|김포|부산|청주|대구|제주|ICN|GMP|PUS|TAE|CJJ|CJU)(?:\s|$)/i.test(p.trim()) &&
-      !/공항$|귀국|출국/i.test(p.trim()),
-  )
-  if (nonHub.length > 0 && !registerScheduleDescriptionMentionsRoutePoi(t, places)) {
+  const sightseeing = places.filter((p) => !isRegisterScheduleTransitHubPlace(p))
+  if (sightseeing.length > 0 && !registerScheduleDescriptionMentionsRoutePoi(t, sightseeing)) {
     return true
   }
   return false
+}
+
+/**
+ * FIT Gemini 추천일정 요약 — 귀국·공항·호텔만 있는 날은 이동 문장을 허용.
+ * REGRESSION-FREEZE[register-fit-gemini-desc-verify]: FIT return/airport desc — manifest
+ */
+export function isBrokenRegisterFitScheduleDescription(
+  description: string | null | undefined,
+  routeText?: string | null,
+): boolean {
+  const t = String(description ?? '').trim()
+  if (t.length < 12) return true
+  if (isOceanCruiseAtSeaRoute(routeText)) {
+    return !isValidOceanCruiseAtSeaDescription(t)
+  }
+  if (descriptionHasDuplicateOrFillerProse(t)) return true
+  const places = splitRouteTextPlaceSegments(routeText)
+  const sightseeing = places.filter((p) => !isRegisterScheduleTransitHubPlace(p))
+  // 호텔·공항·역만 있는 귀국/이동일 — Gemini 이동 요약이면 통과
+  if (sightseeing.length === 0) {
+    return t.length < 40
+  }
+  if (registerScheduleDescriptionMentionsRoutePoi(t, sightseeing)) return false
+  // 공항 단지 명소(쥬얼 창이)가 hub로 잘못 빠진 경우 대비 — 전체 places 재시도
+  if (registerScheduleDescriptionMentionsRoutePoi(t, places)) return false
+  return true
 }
 
 export function tripDaysSharingTemplateCloser(

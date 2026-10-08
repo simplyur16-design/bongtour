@@ -114,6 +114,7 @@
     "verify:home-page-seo": "node --import tsx --test tests/home-page-seo.test.ts",
     "verify:register-pre-photo-self-heal": "node --import tsx --test tests/register-pre-photo-self-heal.test.ts tests/register-admin-lane.test.ts tests/register-pre-photo-listing-ingest.test.ts tests/register-pre-photo-ingest-night-window.test.ts tests/register-pending-photos-ready.test.ts tests/pending-pre-photo-verify-client-safe.test.ts",
     "test:register-fit-gemini-landmark-verify": "node --import tsx --test tests/register-fit-gemini-landmark-verify.test.ts",
+    "test:register-fit-gemini-desc-verify": "node --import tsx --test tests/register-fit-gemini-desc-verify.test.ts",
     "heal:pending-pre-photo": "npx tsx scripts/heal-pending-register-pre-photo.ts",
     "db:register-listing-ingest-oneshot": "npx tsx scripts/heal-pending-register-pre-photo.ts --ingest",
     "verify:schedule-image-keyword-dual-slot": "npx tsx scripts/verify-schedule-image-keyword-dual-slot.ts",

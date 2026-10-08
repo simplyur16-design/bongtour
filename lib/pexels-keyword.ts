@@ -1875,8 +1875,13 @@ function mediaSafe(s: string | null | undefined): string | null {
 
 /** 일정 이미지·중복 제거용: 동일 명소 판별 */
 export function normalizeSemanticPoiKey(s: string): string {
+  // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: Sacré-Cœur≡Sacre Coeur — manifest
   return s
     .trim()
+    .replace(/œ/gi, 'oe')
+    .replace(/æ/gi, 'ae')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
