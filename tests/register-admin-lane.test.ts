@@ -1,5 +1,6 @@
 /**
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지·자유여행·테마 레인 — manifest
+ * REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT heal ≠ 패키지 soft-alt pack — manifest
  * REGRESSION-FREEZE[fit-pre-photo-verify-keywords]: FIT 키워드 공란이면 검증 실패 — manifest
  * REGRESSION-FREEZE[register-pre-photo-unparsed-route-fails-verify]: FIT 중간일 하루 공란 실패 — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 채워진 키워드도 품질 검증 — manifest
@@ -80,6 +81,93 @@ describe('register-admin-lane-pre-photo', () => {
     )
     assert.equal(out.reappliedKeywords, false)
     assert.equal(out.rows[0]?.imageKeyword, 'Grand Hyatt Taipei')
+  })
+
+  // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT bare≠Dragon Bridge soft-alt — manifest
+  it('자유여행 힐은 맨도시 키워드를 패키지 soft-alt 명소로 덮지 않는다', () => {
+    const fitRows = [
+      {
+        day: 1,
+        description: '다낭에 도착해 체크인합니다. 첫날 이동을 맞춥니다.',
+        routeText: '인천 - 다낭',
+        imageKeyword: 'Incheon',
+      },
+      {
+        day: 2,
+        description: '시내 자유일정입니다. 호텔 주변을 둘러봅니다.',
+        routeText: '다낭',
+        imageKeyword: 'Da Nang',
+      },
+      {
+        day: 3,
+        description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.',
+        routeText: '인천',
+        imageKeyword: '',
+      },
+    ]
+    const fitHeal = healRegisterPrePhotoSchedule(fitRows, {
+      supplierKey: 'ybtour',
+      lane: 'air_hotel_free',
+      productDestination: '다낭',
+      productTitle: '다낭 에어텔 3일',
+    })
+    const fitD2 = String(fitHeal.rows.find((r) => r.day === 2)?.imageKeyword ?? '')
+    // collectRouteTextOrderedLandmarkKeywords('다낭')이 soft-alt 팩을 내도 FIT heal은 쓰지 않음
+    assert.doesNotMatch(fitD2, /Dragon Bridge|Marble Mountains|Ba Na Hills|Golden Bridge|My Khe/i)
+    // bare 유지·공란(edge soft-dup 중복)은 허용 — soft-alt 명소 발명만 금지
+    if (fitD2.trim()) assert.match(fitD2, /^Da\s*Nang$/i)
+
+    const pkgHeal = healRegisterPrePhotoSchedule(
+      [
+        ...fitRows.slice(0, 1),
+        { ...fitRows[1]!, imageKeyword: '' },
+        fitRows[2]!,
+      ],
+      {
+        supplierKey: 'ybtour',
+        lane: 'package',
+        productDestination: '다낭',
+        productTitle: '다낭 3일',
+      },
+    )
+    const pkgD2 = String(pkgHeal.rows.find((r) => r.day === 2)?.imageKeyword ?? '')
+    // 패키지 빈 중간일 — soft-alt 명소 채움 허용
+    assert.match(pkgD2, /Dragon Bridge|Marble Mountains|Ba Na|Da\s*Nang/i)
+  })
+
+  it('자유여행 검증은 패키지 자유일정 제목으로 중간일 공란 route를 통과시키지 않는다', () => {
+    const v = verifyRegisterPrePhoto({
+      lane: 'air_hotel_free',
+      listingKind: 'air_hotel_free',
+      productType: 'air-hotel',
+      productTitle: '다낭 에어텔 자유일정 3일',
+      productDestination: '다낭',
+      rows: [
+        {
+          day: 1,
+          title: '도착',
+          description: '다낭에 도착해 체크인합니다. 첫날 이동을 맞춥니다.',
+          routeText: '다낭',
+          imageKeyword: 'Da Nang',
+        },
+        {
+          day: 2,
+          title: '자유일정',
+          description: '시내 자유일정입니다. 호텔 주변을 둘러봅니다.',
+          routeText: '',
+          imageKeyword: 'Da Nang',
+        },
+        {
+          day: 3,
+          title: '귀국',
+          description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.',
+          routeText: '인천',
+          imageKeyword: '',
+        },
+      ],
+    })
+    assert.equal(v.ok, false)
+    assert.ok(v.issues.includes('day2_middle_route_empty'))
   })
 
   it('패키지 검증은 파라도르 키워드를 거부하고, 테마는 태그가 있어야 한다', () => {

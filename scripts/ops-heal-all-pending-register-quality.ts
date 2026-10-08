@@ -1,6 +1,7 @@
 /**
  * 등록대기(또는 --registered) 전수: imageKeyword 재적용+trip dedupe+heal 후 DB 저장.
  * 같은제목 pending 중복은 keeper 1건만 남기고 나머지 rejected.
+ * REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 패키지 apply 금지 — manifest
  *
  *   npx tsx scripts/ops-heal-all-pending-register-quality.ts
  *   npx tsx scripts/ops-heal-all-pending-register-quality.ts --dry-run
@@ -21,6 +22,7 @@ import {
   allowRouteRevisitBareVisitCitySoftDup,
 } from '../lib/register-schedule-trip-image-keyword-dedupe'
 import { healRegisterPrePhotoSchedule } from '../lib/register-pre-photo-self-heal'
+import { resolveRegisterAdminLane } from '../lib/register-admin-lane'
 import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-keyword-fallback'
 import { isBareCityOrCountryKeyword } from '../lib/pexels-place-name-keyword'
 import { resolveScheduleKeywordSlotKind } from '../lib/schedule-image-keyword-adjacent-poi'
@@ -150,17 +152,21 @@ async function main() {
       title: string
       destination: string | null
       schedule: string
+      listing_kind: string | null
+      product_type: string | null
       created_at: Date
     }>(
       registeredMode
         ? `SELECT id::text AS id, "originSource" AS origin_source, "originCode" AS origin_code,
-                  title, destination, schedule, "createdAt" AS created_at
+                  title, destination, schedule, "listingKind" AS listing_kind,
+                  "productType" AS product_type, "createdAt" AS created_at
              FROM "Product"
             WHERE COALESCE("registrationStatus",'pending') = 'registered'
               AND schedule IS NOT NULL AND schedule <> '' AND schedule <> '[]'
             ORDER BY "updatedAt" DESC`
         : `SELECT id::text AS id, "originSource" AS origin_source, "originCode" AS origin_code,
-                  title, destination, schedule, "createdAt" AS created_at
+                  title, destination, schedule, "listingKind" AS listing_kind,
+                  "productType" AS product_type, "createdAt" AS created_at
              FROM "Product"
             WHERE COALESCE("registrationStatus",'pending') = 'pending'
               AND schedule IS NOT NULL AND schedule <> '' AND schedule <> '[]'
@@ -191,21 +197,38 @@ async function main() {
       }
 
       try {
-        const cleared = days.map((d) => ({ ...d, imageKeyword: '', imageKeyword2: null }))
-        const applied = applyRegisterScheduleImageKeywordsBySupplier(cleared as any, {
-          supplierKey: row.origin_source,
-          productDestination: row.destination,
-          productTitle: row.title,
-        }) as DayRow[]
-        const enforced = enforceRegisterScheduleTripUniqueImageKeywords(applied as any) as DayRow[]
-        const healed = healRegisterPrePhotoSchedule(enforced as any, {
-          supplierKey: row.origin_source,
-          productDestination: row.destination,
-          productTitle: row.title,
-          lane: 'package',
+        // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT ≠ package clear+apply — manifest
+        const lane = resolveRegisterAdminLane({
+          listingKind: row.listing_kind,
+          productType: row.product_type,
         })
-        // enforce 후 orphan kw2→primary 승격은 enforce SSOT(forceTripUnique)에서 처리
-        const nextDays = enforceRegisterScheduleTripUniqueImageKeywords(healed.rows as any) as DayRow[]
+        let nextDays: DayRow[]
+        if (lane === 'air_hotel_free') {
+          const healed = healRegisterPrePhotoSchedule(days as any, {
+            supplierKey: row.origin_source,
+            productDestination: row.destination,
+            productTitle: row.title,
+            lane: 'air_hotel_free',
+          })
+          nextDays = healed.rows as DayRow[]
+        } else {
+          const cleared = days.map((d) => ({ ...d, imageKeyword: '', imageKeyword2: null }))
+          const applied = applyRegisterScheduleImageKeywordsBySupplier(cleared as any, {
+            supplierKey: row.origin_source,
+            productDestination: row.destination,
+            productTitle: row.title,
+            travelScope: 'package',
+          }) as DayRow[]
+          const enforced = enforceRegisterScheduleTripUniqueImageKeywords(applied as any) as DayRow[]
+          const healed = healRegisterPrePhotoSchedule(enforced as any, {
+            supplierKey: row.origin_source,
+            productDestination: row.destination,
+            productTitle: row.title,
+            lane: 'package',
+          })
+          // enforce 후 orphan kw2→primary 승격은 enforce SSOT(forceTripUnique)에서 처리
+          nextDays = enforceRegisterScheduleTripUniqueImageKeywords(healed.rows as any) as DayRow[]
+        }
         const byDay = new Map(nextDays.map((d) => [Number(d.day), d]))
         const merged = days.map((d) => {
           const h = byDay.get(Number(d.day))

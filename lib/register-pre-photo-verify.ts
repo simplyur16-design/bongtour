@@ -18,6 +18,7 @@
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 유럽 상품 미주 키워드·귀국 KL 동선 실패 — manifest
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 출발일 관광동선이면 키워드 필수 — manifest
  * REGRESSION-FREEZE[pending-pexels-pick-verify-parity]: 큐·패널·일정사진 POST는 title·dest 포함 검증 — manifest
+ * REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT verify는 패키지 자유일정 skip 금지 — manifest
  */
 import {
   REGISTER_ADMIN_LANE_LABELS,
@@ -612,11 +613,8 @@ function fitScheduleIssues(
       issues.push(`day${day}_keyword_same_as_keyword2`)
     }
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
-    if (
-      slot === 'middle' &&
-      !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
-      !String(row.routeText ?? '').trim()
-    ) {
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 패키지 자유일정 skip 안 씀 — manifest
+    if (slot === 'middle' && !String(row.routeText ?? '').trim()) {
       issues.push(`day${day}_middle_route_empty`)
     }
     if (
@@ -651,7 +649,6 @@ function fitScheduleIssues(
       issues.push(`day${day}_keyword2_not_on_own_route`)
     }
     if (
-      !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
       // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: FIT Gemini 요약 — package filler 가드와 분리 — manifest
       isBrokenRegisterFitScheduleDescription(row.description, row.routeText)
     ) {
@@ -665,10 +662,8 @@ function fitScheduleIssues(
     issues.push('fit_keyword_empty')
   }
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: FIT trip-wide kw+kw2 bleed — manifest
-  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: FIT middle bare city 반복 금지 — manifest
+  // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT 맨도시 soft-dup 허용(패키지 landmark pack 강제 금지) — manifest
   const seenKw = new Map<string, number>()
-  // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: edge bare seed before middle — manifest
-  seedBareCityKeywordsFromEdgeDays(seenKw, days, maxDay, activeDays)
   for (const row of days) {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') continue
@@ -677,6 +672,12 @@ function fitScheduleIssues(
       ['keyword2', String(row.imageKeyword2 ?? '').trim()],
     ] as const) {
       if (!raw) continue
+      // FIT: 맨도시 반복은 soft-dup(숙소·자유일정) — landmark bleed만 잡음
+      if (isBareCityOrCountryKeyword(raw)) {
+        const key = normScheduleImageKeywordKey(raw)
+        if (key && !seenKw.has(key)) seenKw.set(key, Number(row.day))
+        continue
+      }
       pushMiddleDayTripKeywordDupIssue(issues, seenKw, Number(row.day), field, raw, row.routeText)
     }
   }

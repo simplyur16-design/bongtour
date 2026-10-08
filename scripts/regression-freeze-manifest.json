@@ -12541,6 +12541,53 @@
       ]
     },
     {
+      "id": "register-fit-heal-no-package-soft-alt",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "FIT heal/verify/ops — 패키지 soft-alt landmark pack·clear+apply 금지",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]",
+            "allowSoftAltLandmarkPacks",
+            "fitNoSoftAltPack",
+            "FIT 빈 middle — 맨도시 soft-dup"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]",
+            "FIT는 패키지 자유일정 skip 안 씀",
+            "FIT 맨도시 soft-dup 허용"
+          ]
+        },
+        {
+          "file": "scripts/ops-heal-all-pending-register-quality.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]",
+            "lane === 'air_hotel_free'",
+            "resolveRegisterAdminLane"
+          ]
+        },
+        {
+          "file": "tests/register-admin-lane.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]",
+            "맨도시 키워드를 패키지 soft-alt 명소로 덮지 않는다",
+            "Dragon Bridge",
+            "day2_middle_route_empty"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "verify:register-pre-photo-self-heal"
+      ]
+    },
+    {
       "id": "register-pre-photo-listing-ingest",
       "tier": [
         "prebuild",

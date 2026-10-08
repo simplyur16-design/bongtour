@@ -17,6 +17,7 @@
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 환각 키워드는 route 오탐이어도 제거 — manifest
  * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: keep-filled 후에도 trip dedupe — manifest
  * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
+ * REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT heal은 패키지 soft-alt·landmark pack 금지 — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
 import { scrubPoisonedScheduleDayTitlesForCountryKey } from '@/lib/register-pre-photo-country-schedule-self-heal'
@@ -1092,10 +1093,18 @@ function refillFreeLeisureMiddleBareCityAfterUnique<T extends RegisterPrePhotoHe
   })
 }
 
+type SoftAltLandmarkPackOpts = {
+  /** 패키지 전용. FIT는 false — city soft-alt·landmark pack으로 bare를 덮지 않음. */
+  allowSoftAltLandmarkPacks?: boolean
+}
+
 function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
   rows: T[],
   destHay: string,
+  opts?: SoftAltLandmarkPackOpts,
 ): T[] {
+  // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 soft-alt pack 금지 — manifest
+  const allowSoftAltLandmarkPacks = opts?.allowSoftAltLandmarkPacks !== false
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
@@ -1120,7 +1129,8 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     const titleHay = String(row.title ?? '').trim()
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 맨도시보다 명소 팩 우선 — manifest
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 출발·귀국은 pack으로 bare soft-dup 덮지 않음 — manifest
-    const preferPack = slot === 'middle'
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT middle은 pack 비활성 — manifest
+    const preferPack = allowSoftAltLandmarkPacks && slot === 'middle'
     const landmarkPack = preferPack ? bareVisitCityLandmarkPack(routeHay) : []
     const curKw = String(row.imageKeyword ?? '').trim()
     const freeLeisureEarly =
@@ -1163,21 +1173,30 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
     }
     const hay = [routeHay, row.title].filter(Boolean).join(' ')
     const priorHay = priorMiddleDayRouteHay(rows, Number(row.day) || 0)
-    const fromKoSegs = splitRouteTextPlaceSegments(routeHay)
-      .map(
-        (seg) =>
-          englishFromScheduleKoreanSegment(seg) ||
-          firstMatchingScheduleSpotEn(seg) ||
-          seg,
-      )
-      .filter((v) => Boolean(v && String(v).trim()))
+    const fromKoSegs = allowSoftAltLandmarkPacks
+      ? splitRouteTextPlaceSegments(routeHay)
+          .map(
+            (seg) =>
+              englishFromScheduleKoreanSegment(seg) ||
+              firstMatchingScheduleSpotEn(seg) ||
+              seg,
+          )
+          .filter((v) => Boolean(v && String(v).trim()))
+      : // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT — soft-alt landmark 확장 금지 — manifest
+        splitRouteTextPlaceSegments(routeHay)
+          .map((seg) => firstMatchingScheduleCityEn(seg) || softDupForeignVisitCityForMiddleRoute(seg) || '')
+          .filter((v) => Boolean(v && String(v).trim()))
     // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: verify와 같은 route SSOT 후보로 채움 — manifest
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: collectRouteTextOrderedLandmarkKeywords('다낭')=soft-alt 팩 — FIT 제외 — manifest
+    const routeLandmarks = allowSoftAltLandmarkPacks
+      ? collectRouteTextOrderedLandmarkKeywords(routeHay)
+      : []
     const candidates = [
-      ...collectRouteTextOrderedLandmarkKeywords(routeHay),
+      ...routeLandmarks,
       ...collectRouteTextOrderedImageKeywords(routeHay),
       ...(preferPack ? [] : [firstMatchingScheduleCityEn(routeHay)]),
       ...(preferPack ? [] : [softDupForeignVisitCityForMiddleRoute(routeHay)]),
-      firstMatchingScheduleSpotEn(routeHay),
+      ...(allowSoftAltLandmarkPacks ? [firstMatchingScheduleSpotEn(routeHay)] : []),
       ...landmarkPack,
       ...fromKoSegs,
       ...(landmarkPack.length ? [] : [firstMatchingScheduleCityEn(routeHay)]),
@@ -1266,8 +1285,9 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
         return { ...row, imageKeyword: softOnly }
       }
     }
-    // softOnly가 used로 막히면 같은 도시 명소 팩
-    if (softOnly && isBareCityOrCountryKeyword(softOnly)) {
+    // softOnly가 used로 막히면 같은 도시 명소 팩 (패키지 only)
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 이 pack 재주입 금지 — manifest
+    if (allowSoftAltLandmarkPacks && softOnly && isBareCityOrCountryKeyword(softOnly)) {
       for (const raw of bareVisitCityLandmarkPack(routeHay)) {
         const persist = tryPersistScheduleImageKeyword(raw)
         if (!persist.ok || !persist.value) continue
@@ -1362,7 +1382,10 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
   rows: T[],
   destHay: string,
   productTitle?: string | null,
+  opts?: SoftAltLandmarkPackOpts,
 ): T[] {
+  // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT align refill도 soft-alt 금지 — manifest
+  const allowSoftAltLandmarkPacks = opts?.allowSoftAltLandmarkPacks !== false
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
@@ -1431,9 +1454,15 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       if (!key) continue
       const prev = seen.get(key)
       if (prev != null) {
+        // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT 맨도시 soft-dup 유지 — 패키지 soft-alt로 안 덮음 — manifest
         if (isBareCityOrCountryKeyword(raw)) {
-          if (field === 'kw') kw = ''
-          else kw2 = ''
+          if (
+            allowSoftAltLandmarkPacks ||
+            !registerScheduleKeywordMatchesOwnDayRoute(route, raw)
+          ) {
+            if (field === 'kw') kw = ''
+            else kw2 = ''
+          }
         } else if (!ownRouteHasKeyword(route, raw)) {
           // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: ownRouteHasKeyword strict for landmark dup — manifest
           // 도시 soft 귀속(상해→동방명주)으로 bleed 명소를 유지하면 verify keyword_bleed
@@ -1462,9 +1491,10 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     if (!registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText)) return row
     const routeHay = String(row.routeText ?? '').trim()
     const priorHay = priorMiddleDayRouteHay(out, day)
-    const packFromRoute = bareVisitCityLandmarkPack(routeHay)
-    const packFromPrior = bareVisitCityLandmarkPack(priorHay)
-    const packFromDest = bareVisitCityLandmarkPack(destHay)
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 pack·softPick 비움 — manifest
+    const packFromRoute = allowSoftAltLandmarkPacks ? bareVisitCityLandmarkPack(routeHay) : []
+    const packFromPrior = allowSoftAltLandmarkPacks ? bareVisitCityLandmarkPack(priorHay) : []
+    const packFromDest = allowSoftAltLandmarkPacks ? bareVisitCityLandmarkPack(destHay) : []
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: prior 무관하면 dest pack — manifest
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
     // 패들보드 등 route 명소 0이면 prior(출발일) pack보다 dest pack 우선 — prior 공항·허브로 막히지 않게
@@ -1502,21 +1532,27 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       Boolean(firstMatchingScheduleCityEn(routeHay)) ||
       collectRouteTextOrderedLandmarkKeywords(routeHay).length > 0
     const softPickHay =
-      !dayCityEvidence && destHay
+      allowSoftAltLandmarkPacks && !dayCityEvidence && destHay
         ? [routeHay, destHay].filter(Boolean).join('\n')
         : routeHay
-    const softPick = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
-      routeText: softPickHay,
-      title: row.title,
-      description: row.description,
-      usedKeyword: String(row.imageKeyword2 ?? '').trim() || undefined,
-    })
+    const softPick = allowSoftAltLandmarkPacks
+      ? pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
+          routeText: softPickHay,
+          title: row.title,
+          description: row.description,
+          usedKeyword: String(row.imageKeyword2 ?? '').trim() || undefined,
+        })
+      : ''
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT align — route landmark soft-alt 확장 금지 — manifest
+    const alignRouteLandmarks = allowSoftAltLandmarkPacks
+      ? collectRouteTextOrderedLandmarkKeywords(routeHay)
+      : []
     const cands = [
-      ...collectRouteTextOrderedLandmarkKeywords(routeHay),
+      ...alignRouteLandmarks,
       ...collectRouteTextOrderedImageKeywords(routeHay),
       ...pack,
       softPick,
-      firstMatchingScheduleSpotEn(routeHay),
+      ...(allowSoftAltLandmarkPacks ? [firstMatchingScheduleSpotEn(routeHay)] : []),
     ].filter((v): v is string => Boolean(v && String(v).trim()))
     for (const raw of cands) {
       const persist = tryPersistScheduleImageKeyword(raw)
@@ -1533,7 +1569,10 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       // 맨도시-only route + city pack: soft 도시 토큰이 키워드에 있으면 허용
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty — day soft-alt pick refill — manifest
       const softAltPickHit =
-        Boolean(softPick) && normScheduleImageKeywordKey(softPick) === nk && Boolean(routeHay)
+        allowSoftAltLandmarkPacks &&
+        Boolean(softPick) &&
+        normScheduleImageKeywordKey(softPick) === nk &&
+        Boolean(routeHay)
       if (
         !onRoute &&
         !(lodging && packPersistKeys.has(nk) && onDest) &&
@@ -1546,6 +1585,23 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       }
       used.add(nk)
       return { ...row, imageKeyword: persist.value }
+    }
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT 빈 middle — 맨도시 soft-dup(edge used OK) — manifest
+    if (!allowSoftAltLandmarkPacks) {
+      const soft =
+        softDupForeignVisitCityForMiddleRoute(routeHay) ||
+        firstMatchingScheduleCityEn(routeHay) ||
+        softDupForeignVisitCityForMiddleRoute(destHay) ||
+        firstMatchingScheduleCityEn(destHay) ||
+        ''
+      if (soft && isBareCityOrCountryKeyword(soft)) {
+        const nk = normScheduleImageKeywordKey(soft)
+        if (nk) {
+          used.add(nk)
+          return { ...row, imageKeyword: soft }
+        }
+      }
+      return row
     }
     if (lodging || activityOnlyDestPack) {
       // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 자유휴양 bare dest(Cairo)→당일 도시(Hurghada) — manifest
@@ -1571,7 +1627,10 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
   rows: T[],
   destHay = '',
   productTitle?: string | null,
+  opts?: SoftAltLandmarkPackOpts,
 ): T[] {
+  // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT drop — dest soft-alt pack keep 금지 — manifest
+  const allowSoftAltLandmarkPacks = opts?.allowSoftAltLandmarkPacks !== false
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
@@ -1609,10 +1668,17 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 빈 route 중간일은 dest 명소 유지 — manifest
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
     const emptyRoute = !String(row.routeText ?? '').trim()
-    const routeLandmarkCount = collectRouteTextOrderedLandmarkKeywords(row.routeText).length
-    const activityOnlyNoLandmark = !emptyRoute && routeLandmarkCount < 1 && Boolean(String(destHay ?? '').trim())
+    // FIT: soft-alt 확장 landmark 개수로 activity-only를 판정하지 않음 (다낭→Dragon Bridge 팩)
+    const routeLandmarkCount = allowSoftAltLandmarkPacks
+      ? collectRouteTextOrderedLandmarkKeywords(row.routeText).length
+      : 0
+    const activityOnlyNoLandmark =
+      allowSoftAltLandmarkPacks &&
+      !emptyRoute &&
+      routeLandmarkCount < 1 &&
+      Boolean(String(destHay ?? '').trim())
     const destPackPersistKeys =
-      emptyRoute || activityOnlyNoLandmark
+      allowSoftAltLandmarkPacks && (emptyRoute || activityOnlyNoLandmark)
         ? new Set(
             bareVisitCityLandmarkPack(destHay)
               .map((raw) => {
@@ -1916,25 +1982,32 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
       return { ...row, imageKeyword2: null }
     })
     // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: FIT도 당일 route 밖 키워드 제거 — manifest
-    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle)
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT refill/align — soft-alt pack off — manifest
+    const fitNoSoftAltPack = { allowSoftAltLandmarkPacks: false } as const
+    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle, fitNoSoftAltPack)
     working = refillEmptyMiddleRouteFromDest(working, destHay)
-    working = refillEmptyMiddleKeywordFromRoute(working, destHay)
-    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle)
+    working = refillEmptyMiddleKeywordFromRoute(working, destHay, fitNoSoftAltPack)
+    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle, fitNoSoftAltPack)
     working = stripOffTripReturnHubRoute(working, destHay)
     // REGRESSION-FREEZE[register-aurora-primary-image-keyword]: FIT도 오로라 primary 1회 — manifest
     working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
     // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: FIT도 출발일·own-route 재정렬 — manifest
-    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle)
+    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle, fitNoSoftAltPack)
     working = promoteEmptyMiddlePrimaryFromKeyword2(working)
     working = refillEmptyMiddleRouteFromDest(working, destHay)
-    working = refillEmptyMiddleKeywordFromRoute(working, destHay)
-    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle)
+    working = refillEmptyMiddleKeywordFromRoute(working, destHay, fitNoSoftAltPack)
+    working = dropKeywordsNotOnOwnDayRoute(working, destHay, opts.productTitle, fitNoSoftAltPack)
     working = ensureDepartureReturnVisitCityKeywords(
       working,
       opts.productDestination,
     ) as T[]
     working = ensureAuroraPrimaryImageKeyword(working, opts.productTitle) as T[]
-    working = alignMiddleKeywordsToVerifyGate(working, destHay, opts.productTitle)
+    working = alignMiddleKeywordsToVerifyGate(
+      working,
+      destHay,
+      opts.productTitle,
+      fitNoSoftAltPack,
+    )
     const maxFitDesc = Math.max(...working.map((r) => Number(r.day)).filter((d) => d > 0), 1)
     const fitRepeatedCloser = tripDaysSharingTemplateCloser(working)
     working = working.map((row) => {
