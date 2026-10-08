@@ -1795,6 +1795,133 @@ export function formatAirVoucherPassengerNames(travelers: readonly string[]): st
     .join(', ')
 }
 
+const AIR_PAX_TITLE = /^(?:MR|MRS|MS|MISS|MSTR|MISTER|DR)\.?$/i
+const AIR_PAX_NOISE =
+  /^(?:PASSENGER|NAME|NAMES|TRAVELER|TRAVELLER|BOOKING|REFERENCE|TICKET|FLIGHT|AIRLINE|PNR|ITINERARY|CONFIRMATION|NUMBER|FROM|TO|DATE|CLASS|STATUS|OK|ECONOMY|BUSINESS|FIRST)$/i
+
+function isAirPassengerMetaLine(line: string): boolean {
+  return /^(?:Booking|Ticket|Flight|e-?Ticket|PNR|Confirmation|Itinerary|예약|항공|편명|발권|Airline|From|To|Date|Class|Status)\b/i.test(
+    line.trim(),
+  )
+}
+
+function pushAirPassengerCandidate(
+  out: string[],
+  seen: Set<string>,
+  raw: string,
+): void {
+  let n = String(raw ?? '').replace(/\s+/g, ' ').trim()
+  if (!n) return
+  if (isAirPassengerMetaLine(n)) return
+  // strip trailing titles: KIM/MINSU MR → KIM/MINSU (keep slash form)
+  n = n.replace(/\s+(?:MR|MRS|MS|MISS|MSTR|DR)\.?$/i, '').trim()
+  // strip leading titles: MR KIM/MINSU
+  n = n.replace(/^(?:MR|MRS|MS|MISS|MSTR|DR)\.?\s+/i, '').trim()
+  if (n.length < 2) return
+  if (AIR_PAX_TITLE.test(n) || AIR_PAX_NOISE.test(n)) return
+  if (/^\d+$/.test(n)) return
+  // Normalize single "LAST, FIRST" → LAST/FIRST (as-is otherwise)
+  const lastFirst = n.match(/^([A-Za-z]{2,})\s*,\s*([A-Za-z][A-Za-z]*(?:\s+[A-Za-z]+)*)$/)
+  if (lastFirst) n = `${lastFirst[1]}/${lastFirst[2]}`
+  const key = n.toUpperCase()
+  if (seen.has(key)) return
+  seen.add(key)
+  out.push(n)
+}
+
+function splitAirPassengerBlob(blob: string): string[] {
+  const raw = String(blob ?? '').trim()
+  if (!raw) return []
+  // One passenger as LAST, FIRST [TITLE] — do not split on the comma
+  if (
+    !raw.includes('\n') &&
+    /^[A-Za-z가-힣]{2,}\s*,\s*[A-Za-z가-힣][A-Za-z가-힣\s]*?(?:\s+(?:MR|MRS|MS|MISS|MSTR|DR)\.?)?$/i.test(
+      raw,
+    )
+  ) {
+    return [raw]
+  }
+  const parts: string[] = []
+  // Prefer comma / semicolon / " and " lists; also numbered "1. NAME"
+  for (const chunk of raw.split(/(?:\s*[,;]\s*|\s+and\s+|\n+|\s*\d+\.\s*)/i)) {
+    const c = chunk.trim()
+    if (!c) continue
+    if (isAirPassengerMetaLine(c)) continue
+    // two slash-names glued with spaces: KIM/A LEE/B
+    const slashNames = c.match(/[A-Za-z]{2,}\/[A-Za-z][A-Za-z ]*/g)
+    if (slashNames && slashNames.length >= 2 && !c.includes(',')) {
+      for (const s of slashNames) parts.push(s.trim())
+      continue
+    }
+    parts.push(c)
+  }
+  return parts
+}
+
+/**
+ * e-ticket OCR/본문에서 승객명 후보 추출 (라벨 다음 줄·호칭·한글 라벨·LAST/FIRST).
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText — manifest
+ */
+export function extractAirVoucherPassengerNamesFromText(text: string): string[] {
+  const raw = String(text ?? '')
+  const out: string[] = []
+  const seen = new Set<string>()
+
+  const labelBlocks = [
+    ...raw.matchAll(
+      /(?:Passenger(?:\s*Name)?s?|Travell?ers?(?:\s*Name)?s?|승객\s*(?:성명|명)?|탑승객(?:\s*명)?|여객(?:\s*명)?)\s*[:：]?\s*([^\n]+)/gi,
+    ),
+  ]
+  for (const m of labelBlocks) {
+    for (const part of splitAirPassengerBlob(m[1] || '')) {
+      pushAirPassengerCandidate(out, seen, part)
+    }
+  }
+
+  // Label on its own line → name(s) on following lines (common OCR)
+  for (const m of raw.matchAll(
+    /(?:Passenger(?:\s*Name)?s?|Travell?ers?(?:\s*Name)?s?|승객\s*(?:성명|명)?|탑승객(?:\s*명)?)\s*[:：]?\s*(?:\r?\n)+([A-Za-z가-힣][^\n]*(?:\r?\n[A-Za-z가-힣/][^\n]*){0,12})/gi,
+  )) {
+    for (const line of String(m[1] || '').split(/\r?\n/)) {
+      const t = line.trim()
+      if (!t) continue
+      if (isAirPassengerMetaLine(t)) break
+      for (const part of splitAirPassengerBlob(t)) {
+        pushAirPassengerCandidate(out, seen, part)
+      }
+    }
+  }
+
+  // Glued OCR: Passenger NameKIM/MINSU (no newline crossing)
+  for (const m of raw.matchAll(
+    /Passenger(?:\s*Name)?s?[ \t]*([A-Z]{2,}(?:[ \t]*\/[ \t]*[A-Z][A-Z ]*)+(?:[ \t]*,[ \t]*[A-Z]{2,}(?:[ \t]*\/[ \t]*[A-Z][A-Z ]*)+)*)/gi,
+  )) {
+    for (const part of splitAirPassengerBlob(m[1] || '')) {
+      pushAirPassengerCandidate(out, seen, part)
+    }
+  }
+
+  // Standalone LAST/FIRST lines (IATA passport style)
+  if (out.length === 0) {
+    for (const m of raw.matchAll(/(?:^|\n)\s*([A-Z]{2,}\/[A-Z][A-Z]*(?:\s+[A-Z]+)*)\s*(?:\n|$)/g)) {
+      pushAirPassengerCandidate(out, seen, m[1] || '')
+    }
+  }
+
+  // LAST, FIRST (MR)
+  if (out.length === 0) {
+    for (const m of raw.matchAll(
+      /(?:^|\n)\s*([A-Z]{2,})\s*,\s*([A-Z][A-Z\s]+?)(?:\s+(?:MR|MRS|MS|MISS|MSTR|DR)\.?)?\s*(?:\n|$)/g,
+    )) {
+      const last = (m[1] || '').trim()
+      const first = (m[2] || '').trim().replace(/\s+/g, ' ')
+      if (last && first) pushAirPassengerCandidate(out, seen, `${last}/${first}`)
+    }
+  }
+
+  return out
+}
+
 function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFlightSegment {
   return {
     flightNo: String(p.flight_no ?? '').trim() || '—',
@@ -1846,16 +1973,14 @@ export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketPar
     flights.push(flightPayloadToSegment(payload))
   }
 
-  // 파서가 편을 못 잡아도 Passenger Name 줄은 살린다
+  // 파서가 편·travelers를 못 잡아도 OCR 승객명 줄은 살린다
+  // REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText fallback — manifest
   if (passengers.length === 0) {
-    const paxLine =
-      raw.match(/Passenger(?:\s+Name)?\s*[:：]?\s*([A-Z][A-Z/\s,]+)/i)?.[1] ||
-      raw.match(/승객\s*성명\s*[:：]\s*([^\n]+)/)?.[1]
-    if (paxLine) {
-      for (const part of paxLine.split(/,/)) {
-        const n = part.trim()
-        if (n.length >= 2) passengers.push(n)
-      }
+    for (const n of extractAirVoucherPassengerNamesFromText(raw)) {
+      const key = n.toUpperCase()
+      if (passengerSeen.has(key)) continue
+      passengerSeen.add(key)
+      passengers.push(n)
     }
   }
   if (!pnr) {

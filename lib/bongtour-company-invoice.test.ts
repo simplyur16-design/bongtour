@@ -9,6 +9,7 @@ import {
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
   computeVoucherTotalUsdFromNightRate,
+  extractAirVoucherPassengerNamesFromText,
   formatAirVoucherPassengerNames,
   joinOtaVoucherUploadTexts,
   otaProviderDisplayName,
@@ -722,5 +723,33 @@ KE 123 ICN NRT 01JAN26 10:00
 `)
     expect(parsed.passengers.length).toBeGreaterThanOrEqual(1)
     expect(formatAirVoucherPassengerNames(parsed.passengers)).toMatch(/KIM/)
+  })
+
+  it('extracts passengers when name is on the next OCR line', () => {
+    const names = extractAirVoucherPassengerNamesFromText(`
+Passenger Name
+KIM/MINSU MR
+LEE/JIYOON MS
+Booking Reference ABCDE1
+`)
+    expect(names).toEqual(['KIM/MINSU', 'LEE/JIYOON'])
+    const parsed = parseAdminAirlineEticketText(`
+Passenger Name
+PARK/JUNHO
+PNR: ZZ9999
+OZ 701 ICN NRT 29JUL26 07:35
+`)
+    expect(parsed.passengers).toContain('PARK/JUNHO')
+  })
+
+  it('extracts Korean label and LAST, FIRST title forms', () => {
+    expect(extractAirVoucherPassengerNamesFromText('승객 성명: 홍길동')).toEqual(['홍길동'])
+    expect(
+      extractAirVoucherPassengerNamesFromText(`
+Traveler Name
+KIM, MIN SU MR
+`),
+    ).toEqual(['KIM/MIN SU'])
+    expect(extractAirVoucherPassengerNamesFromText('KIM, MIN SU MR\n')).toEqual(['KIM/MIN SU'])
   })
 })

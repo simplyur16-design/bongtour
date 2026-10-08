@@ -24695,6 +24695,7 @@
             "air_voucher",
             "buildOtaCompanyAirVoucherDraft",
             "formatAirVoucherPassengerNames",
+            "extractAirVoucherPassengerNamesFromText",
             "parseAdminAirlineEticketText",
             "renderOtaCompanyAirVoucherHtml",
             "항공권 바우처"
@@ -24722,6 +24723,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[admin-ota-air-voucher]",
             "formatAirVoucherPassengerNames",
+            "extractAirVoucherPassengerNamesFromText",
+            "name is on the next OCR line",
             "no OTA / Trip.com / Agoda"
           ]
         }
