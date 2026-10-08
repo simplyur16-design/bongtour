@@ -695,7 +695,11 @@ export default function OtaInvoiceAdminClient() {
             className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {busy
-              ? '생성 중…'
+              ? files.length > 0
+                ? isAirVoucher
+                  ? '스캔 PDF OCR 중… (1~3분)'
+                  : 'PDF 읽는 중… (1~2분)'
+                : '생성 중…'
               : isAirVoucher
                 ? '항공권 바우처 생성'
                 : isVoucher

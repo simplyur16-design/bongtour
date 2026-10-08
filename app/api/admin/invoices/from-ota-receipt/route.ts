@@ -32,6 +32,8 @@ import { translateOtaVoucherNoteToEn } from '@/lib/bongtour-ota-voucher-note-tra
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
 
 export const runtime = 'nodejs'
+/** 스캔 e-ticket Gemini OCR(모델 폴백 포함)이 길 수 있음 */
+export const maxDuration = 300
 
 const MAX_BYTES = 8 * 1024 * 1024
 
