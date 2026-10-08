@@ -817,4 +817,46 @@ Cabin : Economy
     expect(html).not.toContain('Agoda')
     expect(html).not.toContain('OTA (예약처)')
   })
+
+  it('keeps all 8 passengers from multi-pax KE e-ticket OCR (모임1 shape)', () => {
+    const eight = [
+      'YOUNG LEE KWEON',
+      'WONHO CHOI',
+      'CHAE CHONG YI',
+      'DONGKEUN KIM',
+      'SAGYUN PARK',
+      'MIKYOUNG LEE',
+      'JIA LEE',
+      'JEONGWOO LEE',
+    ]
+    const ocr = `
+Passenger Name : ${eight.join(', ')}
+Booking Reference : ZQJGHT
+PNR : ZQJGHT
+eTicket number : 180-4819706853, 180-4819706854
+Flight : KE2005
+Airline : Korean Air
+From : ICN
+To : HKG
+Departure : 1:35 PM, January 14, 2027
+Arrival : 4:50 PM, January 14, 2027
+Cabin : Economy T
+Flight : KE2006
+Airline : Korean Air
+From : HKG
+To : ICN
+Departure : 6:10 PM, January 17, 2027
+Arrival : 10:45 PM, January 17, 2027
+Cabin : Economy L
+`
+    const parsed = parseAdminAirlineEticketText(ocr)
+    expect(parsed.passengers).toEqual(eight)
+    expect(formatAirVoucherPassengerNames(parsed.passengers)).toBe(eight.join(', '))
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed,
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(draft.guestName).toBe(eight.join(', '))
+    expect(draft.flights.map((f) => f.flightNo)).toEqual(['KE2005', 'KE2006'])
+  })
 })
