@@ -21,8 +21,9 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
     /말레이|malaysia|코타키나발루|쿠알라|랑카위|페낭|kota\s*kinabalu|kuala\s*lumpur|langkawi|penang|겐팅|말라카|브루나이|brunei/i,
   vietnam:
     /베트남|vietnam|다낭|da\s*nang|호이안|hoi\s*an|푸꾸옥|phu\s*quoc|나트랑|nha\s*trang|바나힐|ba\s*na|호치민|하노이|하롱/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠philippines evidence — manifest
   philippines:
-    /필리핀|philippines|보라카이|boracay|세부|cebu|칼리보|마닐라|보홀|bohol/i,
+    /필리핀|philippines|보라카이|boracay|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|cebu|칼리보|마닐라|보홀|bohol/iu,
   china:
     /중국|china|장가계|태항|제남|보천|서안|내몽골|오르도스|청도|qingdao|베이징|상해|상하이|항주|구이린|황산|대련|연태|yantai|위해|weihai/i,
   canada:
@@ -53,7 +54,8 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
   australia: /호주|australia|시드니|sydney|멜버른|골드코스트|브리즈번/i,
   'new-zealand': /뉴질랜드|new\s*zealand|오클랜드|퀸즈타운/i,
   // 니스: 비즈니스 부분일치 금지
-  france: /프랑스|france|파리|paris|(?<![가-힣])니스(?![가-힣])|프로방스|마르세유|몽생미셸|보르도|bordeaux/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리≠파리 country evidence — manifest
+  france: /프랑스|france|(?<!사)파리|paris|(?<![가-힣])니스(?![가-힣])|프로방스|마르세유|몽생미셸|보르도|bordeaux/i,
   germany: /독일|germany|프랑크푸르트|뮌헨|베를린|쾰른|하이델베르크/i,
   switzerland: /스위스|switzerland|인터라켄|루체른|취리히|체르마트|융프라우/i,
   'united-kingdom': /영국|britain|\buk\b|런던|london|에딘버러|스톤헨지/i,
@@ -82,7 +84,8 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
   'nordic-baltic':
     /발틱|발트|북유럽|리투아니아|라트비아|에스토니아|빌니우스|리가|탈린|nordic|baltic|스칸디|아이슬란드|노르웨이|스웨덴|덴마크|핀란드|레이캬비크|오슬로|스톡홀름|코펜하겐|헬싱키/i,
   'latin-caribbean': /중남미|남미|마추픽추|우유니|리우|칸쿤|모아이|latin|caribbean/i,
-  africa: /아프리카|africa|케냐|탄자니아|세렝게티|케이프타운|사파리/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 사파리≠africa (Vinpearl Safari) — manifest
+  africa: /아프리카|africa|케냐|탄자니아|세렝게티|케이프타운|케냐\s*사파리|탄자니아\s*사파리/i,
   caucasus: /코카서스|카카서스|조지아|아제르|아르메니아|트빌리시|바쿠|예레반/i,
 }
 
@@ -90,7 +93,11 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
 const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: 'vietnam', re: /베트남|다낭|호이안|푸꾸옥|바나힐|나트랑|하노이|하롱|da\s*nang|hoi\s*an|phu\s*quoc|hanoi|halong/i },
   { key: 'cambodia', re: /캄보디아|앙코르|씨엠립|시엠립|cambodia|angkor|siem\s*reap/i },
-  { key: 'philippines', re: /필리핀|보라카이|세부|보홀|boracay|cebu/i },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠philippines hint — manifest
+  {
+    key: 'philippines',
+    re: /필리핀|보라카이|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|보홀|boracay|cebu/iu,
+  },
   { key: 'china', re: /장가계|태항|제남|보천|서안|내몽골|오르도스|청도|베이징|상해|연태|yantai|위해/i },
   { key: 'canada', re: /캐나다|나이아가라|토론토|퀘벡|몬트리올|옐로나이프|yellowknife/i },
   { key: 'united-states', re: /미동부|뉴욕|워싱턴|하와이|센트럴\s*파크|백악관/i },
@@ -107,7 +114,8 @@ const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: 'portugal', re: /리스본|파티마|포르투갈/i },
   { key: 'japan', re: /오사카|도쿄|후쿠오카|유후인|오키나와|교토|일본|홋카이도|북해도|삿포로/i },
   { key: 'malaysia', re: /코타키나발루|쿠알라룸푸르|랑카위|말레이시아/i },
-  { key: 'france', re: /파리|프로방스|(?<![가-힣])니스(?![가-힣])|마르세유|프랑스/i },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리≠파리 country hint — manifest
+  { key: 'france', re: /(?<!사)파리|프로방스|(?<![가-힣])니스(?![가-힣])|마르세유|프랑스/i },
   { key: 'switzerland', re: /인터라켄|루체른|취리히|체르마트|스위스/i },
   { key: 'germany', re: /프랑크푸르트|뮌헨|독일|쾰른/i },
   { key: 'egypt', re: /이집트|카이로(?!우)|룩소르|피라미드/i },

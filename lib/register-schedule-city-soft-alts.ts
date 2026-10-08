@@ -6,6 +6,7 @@
  */
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
+import { CEBU_KO_PLACE_CITY_RE } from '@/lib/register-schedule-cebu-place-token'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string[] }> = [
@@ -228,8 +229,11 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Amman Citadel Jordan',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 사파리/Safari≠Serengeti (Vinpearl Safari Phu Quoc) — manifest
+  // bare 사파리·Safari 금지 — 푸꾸옥 빈펄 사파리·사막 사파리 등이 세렝게티 팩을 열면 안 됨
   {
-    cityRe: /세렝게티|Serengeti|응고롱고로|Ngorongoro|사파리|Safari|나이로비|Nairobi/i,
+    cityRe:
+      /세렝게티|Serengeti|응고롱고로|Ngorongoro|나이로비|Nairobi|마사이\s*마라|Masai\s*Mara|암보셀리|Amboseli|마니아라|Manyara|타란기레|Tarangire|케냐\s*사파리|탄자니아\s*사파리/i,
     alts: [
       'Serengeti Savanna Wildlife',
       'Ngorongoro Crater Wildlife',
@@ -249,8 +253,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Universal Studios Hollywood',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Vinpearl Safari → Phu Quoc pack (≠Serengeti) — manifest
   {
-    cityRe: /푸꾸옥|Phu\s*Quoc|그랜드월드|Grand\s*World|혼똔|Hon\s*Thom|모벤픽|쯔엉동|Duong\s*Dong|후추\s*농장/i,
+    cityRe:
+      /푸꾸옥|Phu\s*Quoc|그랜드월드|Grand\s*World|혼똔|Hon\s*Thom|모벤픽|쯔엉동|Duong\s*Dong|후추\s*농장|빈펄\s*사파리|Vinpearl\s*Safari/i,
     alts: [
       'Phu Quoc Grand World',
       'Phu Quoc Sao Beach',
@@ -606,7 +612,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /파리|Paris|루브르|Louvre|샹젤리제|Champs|콩코르드|Concorde|튈르리|Tuileries/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리≠파리 substring — manifest
+    cityRe: /(?<!사)파리|Paris|루브르|Louvre|샹젤리제|Champs|콩코르드|Concorde|튈르리|Tuileries/i,
     alts: [
       'Eiffel Tower Paris',
       'Louvre Museum Paris pyramid',
@@ -930,14 +937,32 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Arab Street Singapore mosque',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠Cebu (Okinawa bleed) — manifest
   {
-    cityRe: /까띠끌란|Katiklan|세부|Cebu|모알보알|Moalboal/i,
+    cityRe: new RegExp(
+      String.raw`까띠끌란|Katiklan|${CEBU_KO_PLACE_CITY_RE.source}|Cebu|모알보알|Moalboal`,
+      'iu',
+    ),
     alts: [
       'Cebu Moalboal sardine run',
       'Kawasan Falls Cebu',
       'Cebu Temple of Leah',
       'Magellan Cross Cebu',
       'Oslob whale shark Cebu',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Okinawa soft-alt pack (≠Cebu) — manifest
+  {
+    cityRe:
+      /오키나와|Okinawa|츄라우미|Churaumi|나하|Naha|슈리성|Shuri|아메리칸\s*빌리지|American\s*Village|만좌모|코우리|Kouri|미하마|미국촌/i,
+    alts: [
+      'Okinawa Churaumi Aquarium',
+      'American Village Okinawa',
+      'Shuri Castle Okinawa',
+      'Okinawa Beach Coast',
+      'Naha Kokusai Dori street',
+      'Kouri Bridge Okinawa',
+      'Manzamo Cape Okinawa',
     ],
   },
   {

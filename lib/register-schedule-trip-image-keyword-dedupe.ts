@@ -1418,7 +1418,13 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
           else if (/괌|Guam/i.test(tripHay)) softCity = 'Guam'
           // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 Bohol return soft-dup — manifest
           else if (/보홀|Bohol|알로나|Alona|초콜릿힐|밤부브릿지/i.test(tripHay)) softCity = 'Bohol'
-          else if (/세부|Cebu|막탄|Mactan/i.test(tripHay)) softCity = 'Cebu'
+          // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠Cebu softCity — manifest
+          else if (
+            /(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|Cebu|막탄|Mactan/iu.test(
+              tripHay,
+            )
+          )
+            softCity = 'Cebu'
           else if (/푸꾸옥|Phu\s*Quoc/i.test(tripHay)) softCity = 'Phu Quoc'
           else if (/타슈켄트|사마르칸트|알마티|비슈케크|우즈베|카자흐|키르기스/i.test(tripHay)) {
             softCity = /비슈케크/i.test(tripHay)

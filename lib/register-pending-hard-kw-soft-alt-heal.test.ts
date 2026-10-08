@@ -77,6 +77,35 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(String(next ?? '')).toMatch(/Duong Dong|Pepper|Sao Beach|Vinpearl|Safari/i)
   })
 
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 사파리/Safari≠Serengeti (Vinpearl Safari Phu Quoc) — manifest
+  it('Phu Quoc Vinpearl Safari does not unlock Serengeti or Paris soft-alts', () => {
+    const alts = collectRegisterScheduleCitySoftAltKeywords('빈펄 사파리 - 그랜드월드')
+    expect(alts.some((a) => /Serengeti|Ngorongoro|Masai\s*Mara|Amboseli|Manyara/i.test(a))).toBe(
+      false,
+    )
+    expect(alts.some((a) => /Eiffel|Louvre|Champs|Notre\s*Dame/i.test(a))).toBe(false)
+    expect(alts.some((a) => /Vinpearl\s*Safari|Grand\s*World|Sao\s*Beach/i.test(a))).toBe(true)
+    const next = pickUnusedRegisterScheduleCitySoftAltKeyword(new Set(), {
+      routeText: '빈펄 사파리 - 그랜드월드',
+      title: '푸꾸옥 4일',
+    })
+    expect(String(next ?? '')).not.toMatch(/Serengeti|Ngorongoro|Eiffel|Louvre/i)
+    expect(String(next ?? '')).toMatch(/Phu\s*Quoc|Vinpearl|Grand\s*World|Sao\s*Beach/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠Cebu (Okinawa bleed) — manifest
+  it('Okinawa 세부일정 does not unlock Cebu soft-alts', () => {
+    for (const hay of ['세부일정', '세부 일정', '세부안내', '오키나와 세부일정', '츄라우미 수족관 세부안내']) {
+      const alts = collectRegisterScheduleCitySoftAltKeywords(hay)
+      expect(alts.some((a) => /Cebu|Moalboal|Kawasan|Oslob|Magellan/i.test(a)), hay).toBe(false)
+    }
+    const oki = collectRegisterScheduleCitySoftAltKeywords('오키나와 츄라우미')
+    expect(oki.some((a) => /Churaumi|American\s*Village|Shuri|Okinawa/i.test(a))).toBe(true)
+    expect(oki.some((a) => /Cebu|Moalboal/i.test(a))).toBe(false)
+    const cebuOk = collectRegisterScheduleCitySoftAltKeywords('세부 모알보알')
+    expect(cebuOk.some((a) => /Cebu|Moalboal/i.test(a))).toBe(true)
+  })
+
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Lisbon≠Porto soft-alt bleed — manifest
   it('Lisbon day soft-alt pack does not unlock Porto Ribeira', () => {
     const lisbon = collectRegisterScheduleCitySoftAltKeywords('리스본 벨렝')

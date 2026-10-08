@@ -16,8 +16,9 @@ import {
 import { isTruncatedCardinalRegionDestination } from '@/lib/register-ocean-cruise-product'
 
 // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: 나트랑·달랏≠유럽마을/에펠 대륙 뒤집기 — manifest
+// REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 푸꾸옥 dest도 Asia — Serengeti 환각 차단 — manifest
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
-  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|장가계|Zhangjiajie|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|나트랑|Nha\s*Trang|달랏|Da\s*Lat|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island|연태|Yantai/i
+  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|푸꾸옥|Phu\s*Quoc|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|장가계|Zhangjiajie|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|나트랑|Nha\s*Trang|달랏|Da\s*Lat|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island|연태|Yantai/i
 
 /** 호주·뉴질랜드 — ASIA_PACIFIC에 안 묶여도 Mount Fuji 등 환각 차단용 */
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
@@ -72,6 +73,10 @@ export function registerPrePhotoPlaceDestHay(
   const place = isRegisterPrePhotoPlaceLikeDestination(dest) ? dest : ''
   return `${title} ${place}`.trim()
 }
+
+// REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Asia dest에 Serengeti·Masai Mara 금지 — manifest
+const AFRICA_SAFARI_HALLUCINATION_ON_NON_AFRICA_RE =
+  /\bSerengeti\b|\bNgorongoro\b|Masai\s*Mara|\bAmboseli\b|\bKilimanjaro\b|Lake\s*Manyara|\bTarangire\b|\bNairobi\b(?!\s*Airport)/i
 
 const CROSS_CONTINENT_HALLUCINATION_KW_RES: ReadonlyArray<RegExp> = [
   /\bParis\b/i,
@@ -374,6 +379,8 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
   if (!ASIA_PACIFIC_PRODUCT_DEST_RE.test(dest)) return false
   if (CROSS_CONTINENT_HALLUCINATION_KW_RES.some((re) => haystacks.some((h) => re.test(h)))) return true
   if (haystacks.some((h) => AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE.test(h))) return true
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Asia dest에 Serengeti 금지 (Vinpearl Safari≠Africa) — manifest
+  if (haystacks.some((h) => AFRICA_SAFARI_HALLUCINATION_ON_NON_AFRICA_RE.test(h))) return true
   // REGRESSION-FREEZE[lottetour-singapore-register-quality]: 싱가포르 일정에 USJ 금지 — manifest
   {
     const tripHay = (scheduleRows ?? [])
@@ -407,6 +414,37 @@ export function isRegisterScheduleCrossContinentHallucinationKeyword(
       return true
     }
   }
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 오키나와·일본≠Cebu/Boracay keyword — manifest
+  {
+    const tripHayLocal = (scheduleRows ?? [])
+      .flatMap((r) => [r.routeText, r.title, r.description])
+      .filter(Boolean)
+      .join('\n')
+    const japanTrip =
+      /오키나와|Okinawa|일본|Japan|나하|Naha|츄라우미|슈리|도쿄|Tokyo|오사카|Osaka|후쿠오카|Fukuoka|홋카이도|Hokkaido/i.test(
+        dest,
+      ) ||
+      /오키나와|Okinawa|나하|Naha|츄라우미|슈리|일본|Japan/i.test(tripHayLocal)
+    const philippinesTrip =
+      /필리핀|Philippines|보라카이|Boracay|보홀|Bohol|\bCebu\b|모알보알|Moalboal|오슬롭|Oslob|막탄|Mactan/i.test(
+        dest,
+      ) ||
+      /필리핀|Philippines|보라카이|Boracay|보홀|Bohol|\bCebu\b|모알보알|Moalboal|오슬롭|Oslob|막탄|Mactan/i.test(
+        tripHayLocal,
+      )
+    if (
+      japanTrip &&
+      !philippinesTrip &&
+      haystacks.some((h) =>
+        /\bCebu\b|Moalboal|Kawasan|Oslob|Magellan\s*Cross|Temple\s*of\s*Leah|Sirao|Boracay|Bohol\b|Chocolate\s*Hills/i.test(
+          h,
+        ),
+      )
+    ) {
+      return true
+    }
+  }
+
   // 푸꾸옥 상품 — 나트랑·발리·앙코르 등 동남아 타목적지 환각 차단
   if (/푸꾸옥|Phu\s*Quoc|푸꾹옥/i.test(dest) || (scheduleRows ?? []).some((r) => /푸꾸옥|Phu\s*Quoc/i.test(String(r.routeText ?? '')))) {
     const tripIsPhuQuocOnly =

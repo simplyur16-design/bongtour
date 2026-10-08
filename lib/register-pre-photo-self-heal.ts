@@ -26,6 +26,7 @@ import {
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isBareCityOrCountryKeyword, isHotelLodgingImageKeyword, isAirlineCarrierImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { hayHasCebuPlaceToken } from '@/lib/register-schedule-cebu-place-token'
 import { tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import {
   firstMatchingScheduleCityEn,
@@ -434,7 +435,11 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Bohol Alona Beach Panglao',
     ]
   }
-  if (/세부|Cebu|가와산|모알보알|오슬롭|고래상어|Magellan|정어리/i.test(hay)) {
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠Cebu heal pack — manifest
+  if (
+    hayHasCebuPlaceToken(hay) ||
+    /가와산|모알보알|오슬롭|고래상어|Magellan|정어리/i.test(hay)
+  ) {
     return [
       'Cebu Oslob Whale Shark',
       'Cebu Moalboal Sardine Run',

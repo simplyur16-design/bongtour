@@ -16035,7 +16035,52 @@
             "Da Nang≠Hoi An soft-alt bleed",
             "Lisbon≠Porto soft-alt bleed",
             "Bangkok≠bare 야시장 (Phu Quoc Duong Dong bleed)",
-            "발리카삭(보홀)≠Bali soft-alt bleed"
+            "발리카삭(보홀)≠Bali soft-alt bleed",
+            "bare 사파리/Safari≠Serengeti (Vinpearl Safari Phu Quoc)",
+            "사파리≠파리 substring",
+            "Vinpearl Safari → Phu Quoc pack (≠Serengeti)",
+            "세부일정≠Cebu (Okinawa bleed)",
+            "Okinawa soft-alt pack (≠Cebu)"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-cebu-place-token.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "세부일정≠Cebu (Okinawa bleed)",
+            "세부일정≠Cebu cityRe"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Asia dest에 Serengeti 금지",
+            "푸꾸옥 dest도 Asia",
+            "오키나와·일본≠Cebu/Boracay keyword"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "빈펄 사파리 → Phu Quoc Vinpearl (≠Serengeti)",
+            "세부일정≠Cebu POI"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "세부일정≠Cebu heal pack"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-product-country-schedule-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "세부일정≠philippines evidence",
+            "사파리≠파리 country evidence"
           ]
         },
         {
@@ -16064,7 +16109,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "Turkey/AU landmark day-route evidence",
-            "prior soft-alt ≠ current-day bleed"
+            "prior soft-alt ≠ current-day bleed",
+            "세부일정≠Cebu softCity"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "title 세부일정≠dest 세부 · 사파리≠파리"
           ]
         },
         {
@@ -16075,7 +16128,9 @@
             "Laura Village usedKeyword on Yellowknife day does not unlock Bondi",
             "Lisbon day soft-alt pack does not unlock Porto Ribeira",
             "Phu Quoc Duong Dong night market does not unlock Bangkok soft-alts",
-            "Balicasag Bohol title does not unlock Bali soft-alts"
+            "Balicasag Bohol title does not unlock Bali soft-alts",
+            "Phu Quoc Vinpearl Safari does not unlock Serengeti or Paris soft-alts",
+            "Okinawa 세부일정 does not unlock Cebu soft-alts"
           ]
         },
         {

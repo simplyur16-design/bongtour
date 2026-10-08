@@ -1000,6 +1000,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /더\s*피크\s*푸꾸옥|The\s*Peak\s*Phu\s*Quoc/i, en: "The Peak Phu Quoc Viewpoint" },
   { re: /호국사|Ho\s*Quoc/i, en: "Ho Quoc Pagoda Phu Quoc" },
   { re: /후추\s*농장|Pepper\s*Farm/i, en: "Phu Quoc Pepper Farm" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 빈펄 사파리 → Phu Quoc Vinpearl (≠Serengeti) — manifest
+  { re: /빈펄\s*사파리|Vinpearl\s*Safari/i, en: "Phu Quoc Vinpearl Safari" },
   { re: /푸꾸옥|Phu\s*Quoc|푸꾹옥/i, en: "Phu Quoc" },
   { re: /두브로브니크|Dubrovnik/i, en: "Dubrovnik Old Town walls Croatia" },
   { re: /플리트비체|Plitvice/i, en: "Plitvice Lakes National Park Croatia" },
@@ -1468,7 +1470,11 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /(?:^|[\s\-·,/])서안(?:$|[\s\-·,/])|시안|\bXian\b|Xi['’]?an/i, en: "Xian" },
   { re: /하노이/u, en: "Hanoi Old Quarter" },
   { re: /호치민(?:시)?(?!\s*생가)|호찌민(?!\s*생가)|Ho\s*Chi\s*Minh\s*City/iu, en: "Ben Thanh Market Ho Chi Minh" },
-  { re: /세부/u, en: "Cebu tropical beach" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠Cebu POI — manifest
+  {
+    re: /(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])/u,
+    en: 'Cebu tropical beach',
+  },
   { re: /보라카이/u, en: "Boracay white beach" },
   { re: /발리/u, en: "Bali rice terrace view" },
   { re: /시드니|悉尼/u, en: "Sydney Opera House harbour" },
