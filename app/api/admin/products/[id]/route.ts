@@ -910,7 +910,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         data.registrationStatus !== undefined ||
         data.bgImageUrl !== undefined ||
         data.title !== undefined ||
-        data.destination !== undefined
+        data.destinationRaw !== undefined
       ) {
         const { refreshRegisterPrePhotoQueueFlagsForProductId } = await import(
           '@/lib/register-pre-photo-queue-flags'
