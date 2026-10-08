@@ -5082,6 +5082,59 @@
       ]
     },
     {
+      "id": "register-fit-gemini-landmark-verify",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "FIT Gemini 추천일정 Big Ben·London Studio Tour 키워드는 broken/own-route 리젝 금지",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-landmark-verify]",
+            "famousLandmarkPriorityHit",
+            "studios?",
+            "Warner Bros Studio Tour London"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-landmark-verify]",
+            "Warner Bros Studio Tour London",
+            "해리\\s*포터"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-description-characteristic-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-landmark-verify]",
+            "ROUTE_DESC_POI_SYNONYM_GROUPS",
+            "해리포터"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-guards.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-landmark-verify]"
+          ]
+        },
+        {
+          "file": "tests/register-fit-gemini-landmark-verify.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-fit-gemini-landmark-verify]",
+            "영국 해리포터 FIT 일정은 Gemini 키워드 그대로 검증 통과",
+            "Big Ben",
+            "Warner Bros. Studio Tour"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "test:register-fit-gemini-landmark-verify"
+      ]
+    },
+    {
       "id": "fit-itinerary-gemini-route-keyword",
       "tier": [
         "prebuild",

@@ -9,6 +9,7 @@
 import { detectBannedSuffix } from '@/lib/image-keyword-verify-guards'
 import { extractPrimaryEnglishPlaceName } from '@/lib/english-schedule-place-extract'
 import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
+import { FAMOUS_LANDMARKS_PRIORITY } from '@/lib/famous-landmarks-priority'
 
 const DAY_TRAVEL_RE = /^day\s*\d+\s*travel$/i
 const MEANINGLESS_RE =
@@ -34,6 +35,13 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'monument valley utah': 'Monument Valley',
   'monument valley arizona': 'Monument Valley',
   'warner bros movie world': 'Warner Bros Movie World',
+  // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: London Leavesden ≠ Gold Coast Movie World — manifest
+  'warner bros studio tour': 'Warner Bros Studio Tour London',
+  'warner bros. studio tour': 'Warner Bros Studio Tour London',
+  'warner bros studio tour london': 'Warner Bros Studio Tour London',
+  'harry potter studio tour': 'Warner Bros Studio Tour London',
+  'harry potter studio tour london': 'Warner Bros Studio Tour London',
+  'big ben': 'Big Ben',
   'tokyo disneyland castle': 'Tokyo Disneyland',
   'tokyo disneyland': 'Tokyo Disneyland',
   'hong kong disneyland': 'Hong Kong Disneyland',
@@ -309,6 +317,8 @@ export const CITY_COUNTRY_ONLY = new Set(
     'nagoya',
     'hiroshima',
     'okinawa',
+    'naha',
+    'beppu',
     'hakone',
     'kanazawa',
     'kobe',
@@ -594,6 +604,11 @@ const COMPOUND_LANDMARK_PHRASES: Record<string, string> = {
   'universal studios japan': 'Universal Studios Japan',
   'universal studios': 'Universal Studios',
   'warner bros movie world': 'Warner Bros Movie World',
+  // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: London Studio Tour compound — manifest
+  'warner bros studio tour': 'Warner Bros Studio Tour London',
+  'warner bros studio tour london': 'Warner Bros Studio Tour London',
+  'harry potter studio tour': 'Warner Bros Studio Tour London',
+  'big ben': 'Big Ben',
   'tokyo disneyland': 'Tokyo Disneyland',
   'hong kong disneyland': 'Hong Kong Disneyland',
   'shanghai disneyland': 'Shanghai Disneyland',
@@ -938,13 +953,28 @@ export function isBareCityOrCountryKeyword(keyword: string): boolean {
 // REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]: lakes? — Kolsai Lakes is landmark, CFP114 visit order — manifest
 // REGRESSION-FREEZE[schedule-poi-regex-ssot]: sunrise — Qingdao coastal sunrise return-day landmark — manifest
 // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Las Vegas Strip·Kualoa Ranch ≠ broken 2-word — manifest
+// REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: studio(singular)·Big Ben FAMOUS — FIT Gemini kw — manifest
 const LANDMARK_HINT_RE =
-  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|spring|conservatory|botanical|tenmangu|jinja|dera|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|strip|ranch|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?)\b/i
+  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios?|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|spring|conservatory|botanical|tenmangu|jinja|dera|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|strip|ranch|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?|rocks?|walls?|residenz|rathaus|cable\s*car|seine|changi)\b/i
+
+function famousLandmarkPriorityHit(name: string): boolean {
+  const t = String(name ?? '').trim()
+  if (!t) return false
+  if ((FAMOUS_LANDMARKS_PRIORITY[t] ?? 0) > 0) return true
+  const noThe = t.replace(/^The\s+/i, '')
+  if ((FAMOUS_LANDMARKS_PRIORITY[noThe] ?? 0) > 0) return true
+  const lower = t.toLowerCase()
+  for (const [k, score] of Object.entries(FAMOUS_LANDMARKS_PRIORITY)) {
+    if (score > 0 && k.toLowerCase() === lower) return true
+  }
+  return false
+}
 
 /** 랜드마크 성격 단어가 있는 고유명. 단어 개수만으로 식당·상점을 통과시키지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-verify-identity-country-landmark]: 2단어 ≠ 랜드마크 — manifest
 // REGRESSION-FREEZE[schedule-landmark-hint-civic-proper-nouns]: Taj Mahal·Parliament·Rambla는 힌트 랜드마크 — manifest
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: Golden Circle·Petra Treasury·Wadi Rum — manifest
+// REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: FAMOUS Big Ben·Studio Tour — manifest
 export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   const raw = String(keyword ?? '').trim()
   if (!raw) return false
@@ -953,12 +983,14 @@ export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   if (isNonLandmarkFoodOrDiningImageKeyword(raw)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(raw)) return false
   if (isNonLandmarkHistoricalPrisonImageKeyword(raw)) return false
+  if (famousLandmarkPriorityHit(raw)) return true
   if (LANDMARK_HINT_RE.test(raw)) return true
   const n = normalizeToPlaceName(raw)
   if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
   if (isNonLandmarkSpaShoppingLoungeImageKeyword(n)) return false
   if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return false
+  if (famousLandmarkPriorityHit(n)) return true
   if (LANDMARK_HINT_RE.test(n)) return true
   const canonKey = n.toLowerCase()
   if (CANONICAL_BY_LOWER[canonKey] || COMPOUND_LANDMARK_PHRASES[canonKey]) return true

@@ -196,6 +196,35 @@ export function inferScheduleDescFacets(day: number, maxDay: number, blob: strin
   return uniq.slice(0, 3)
 }
 
+/** route 세그먼트 ↔ 본문 동의어 (FIT Gemini 요약이 다른 한글명을 쓸 때) */
+// REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: 해리포터↔워너브라더스 본문 매칭 — manifest
+const ROUTE_DESC_POI_SYNONYM_GROUPS: readonly (readonly string[])[] = [
+  ['워너 브라더스', '워너브라더스', '해리포터', '해리 포터', '스튜디오 투어', 'warner bros', 'harry potter', 'leavesden'],
+  ['빅 벤', '빅벤', 'big ben', 'elizabeth tower'],
+  ['런던 아이', 'london eye'],
+  ['타워 브리지', 'tower bridge'],
+  ['피카딜리', 'piccadilly'],
+]
+
+function routePlaceMentionsInDesc(place: string, desc: string): boolean {
+  for (const chunk of placeChunks(place)) {
+    if (chunk.length >= 2 && desc.includes(chunk)) return true
+  }
+  // 한글 3자+ 토큰 (스튜디오·박물관 등) — Gemini 본문이 다른 고유명을 써도 공통 명소 어간 매칭
+  const hangulTok = String(place).match(/[가-힣]{3,}/gu) ?? []
+  for (const h of hangulTok) {
+    if (desc.includes(h)) return true
+  }
+  const placeL = place.toLowerCase()
+  const descL = desc.toLowerCase()
+  for (const group of ROUTE_DESC_POI_SYNONYM_GROUPS) {
+    const inPlace = group.some((g) => placeL.includes(g.toLowerCase()) || place.includes(g))
+    if (!inPlace) continue
+    if (group.some((g) => descL.includes(g.toLowerCase()) || desc.includes(g))) return true
+  }
+  return false
+}
+
 export function registerScheduleDescriptionMentionsRoutePoi(
   desc: string,
   routePlaces: readonly string[],
@@ -204,9 +233,7 @@ export function registerScheduleDescriptionMentionsRoutePoi(
   if (!t) return false
   for (const p of routePlaces) {
     if (isHubPlace(p)) continue
-    for (const chunk of placeChunks(p)) {
-      if (chunk.length >= 2 && t.includes(chunk)) return true
-    }
+    if (routePlaceMentionsInDesc(p, t)) return true
   }
   return false
 }

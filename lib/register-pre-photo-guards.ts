@@ -62,6 +62,7 @@ export type BrokenRegisterLandmarkOpts = {
   allowHotelLodging?: boolean
 }
 
+// REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: Big Ben·Studio Tour ≠ lodging_or_non_landmark — manifest
 export function isBrokenRegisterLandmarkKeyword(
   keyword: string | null | undefined,
   opts?: BrokenRegisterLandmarkOpts,
@@ -82,9 +83,11 @@ export function isBrokenRegisterLandmarkKeyword(
   const v = persist.value
   if (!v) return false
   if (v.length < 3) return true
-  if (isWeakOpaqueImageKeyword(v)) return true
-  if (opts?.allowHotelLodging && isHotelLodgingImageKeyword(v)) return false
+  // bare city before weak-opaque — Naha/Beppu 등 짧은 도시명이 opaque로 오탐되면 FIT Gemini 키워드가 리젝됨
+  // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: bare city before weak-opaque — manifest
   if (isBareCityOrCountryKeyword(v)) return false
+  if (opts?.allowHotelLodging && isHotelLodgingImageKeyword(v)) return false
+  if (isWeakOpaqueImageKeyword(v)) return true
   if (isScheduleSsotEnglishKeyword(v) || isScheduleSsotEnglishKeyword(t)) return false
   if (v.split(/\s+/).filter(Boolean).length >= 2 && !isLikelyTourismLandmarkKeyword(v)) return true
   return false

@@ -1241,6 +1241,17 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /몰디브\s*리조트|Maldives\s*resort|체크아웃\s*준비/i, en: "Maldives overwater bungalow resort" },
   { re: /코르코바도|Corcovado/i, en: "Corcovado Christ the Redeemer Rio de Janeiro" },
   { re: /웨스트민스터|베스(?:트)?민스터|Westminster(?:\s*Abbey)?/i, en: "Westminster Abbey London Gothic facade" },
+  // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: London Harry Potter Studio ≠ Gold Coast Movie World — manifest
+  {
+    re: /해리\s*포터(?:\s*스튜디오)?|워너\s*브라더스\s*스튜디오(?:\s*투어)?(?:\s*런던)?|Warner\s*Bros\.?\s*Studio\s*Tour(?:\s*London)?|Leavesden/i,
+    en: 'Warner Bros Studio Tour London',
+  },
+  { re: /빅\s*벤|Big\s*Ben|Elizabeth\s*Tower/i, en: 'Big Ben' },
+  { re: /런던\s*아이|London\s*Eye/i, en: 'London Eye' },
+  { re: /타워\s*브리지|Tower\s*Bridge/i, en: 'Tower Bridge' },
+  { re: /피카딜리\s*서커스|Piccadilly\s*Circus/i, en: 'Piccadilly Circus' },
+  { re: /스카이\s*가든|Sky\s*Garden/i, en: 'Sky Garden' },
+  { re: /코벤트\s*가든|Covent\s*Garden/i, en: 'Covent Garden' },
   { re: /로벤\s*섬|Robben\s*Island/i, en: "Robben Island Cape Town Table Bay view" },
   { re: /미라보라벤더|Valensole|라벤더\s*밭|Lavender\s*field/i, en: "Valensole lavender plateau Provence" },
   { re: /고대\s*극장|Orange|오랑주|Th[eé]atre/i, en: "Orange ancient Roman theatre Provence" },

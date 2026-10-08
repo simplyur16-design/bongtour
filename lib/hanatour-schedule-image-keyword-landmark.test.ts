@@ -35,6 +35,9 @@ describe('isNonLandmarkFoodOrDiningImageKeyword', () => {
     expect(isLikelyTourismLandmarkKeyword('Petra Treasury')).toBe(true)
     expect(isLikelyTourismLandmarkKeyword('Wadi Rum desert')).toBe(true)
     expect(isLikelyTourismLandmarkKeyword('Stonehenge Salisbury Plain')).toBe(true)
+    // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: Big Ben·London Studio Tour — manifest
+    expect(isLikelyTourismLandmarkKeyword('Big Ben')).toBe(true)
+    expect(isLikelyTourismLandmarkKeyword('Warner Bros. Studio Tour')).toBe(true)
     // REGRESSION-FREEZE[schedule-kolsai-lakes-landmark-hint]: Lakes plural is landmark — manifest
     expect(isLikelyTourismLandmarkKeyword('Kolsai Lakes')).toBe(true)
     expect(isLikelyTourismLandmarkKeyword('Kolsai Lakes Kazakhstan')).toBe(true)
