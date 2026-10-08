@@ -19,7 +19,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /다낭|Da\s*Nang|미케|My\s*Khe|베트남|Vietnam/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 미케≠Da Nang soft-alt — manifest
+    cityRe: /다낭|Da\s*Nang|미케\s*비치|My\s*Khe|베트남|Vietnam/i,
     alts: [
       'Da Nang Dragon Bridge',
       'Marble Mountains Da Nang',
@@ -91,8 +92,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Mykonos',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 로마시대≠Rome soft-alt — manifest
   {
-    cityRe: /로마|Rome|\bRoma\b/i,
+    cityRe: /(?<!(?:고대\s{0,2}))(?<![가-힣])로마(?!시대)|Rome|\bRoma\b/iu,
     alts: [
       'Colosseum Rome amphitheater',
       'Trevi Fountain Rome',
@@ -152,7 +154,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /칸쿤|Cancun|치첸|Chichen|툴룸|Tulum|Isla\s*Mujeres/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 치첸≠Cancun soft-alt — manifest
+    cityRe: /칸쿤|Cancun|치첸\s*이트사|Chichen\s*Itza|툴룸|Tulum|Isla\s*Mujeres/i,
     alts: [
       'Cancun Caribbean Beach',
       'Chichen Itza Mexico',
@@ -188,8 +191,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Laura Village Blue Mountains',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 샹그릴라 호텔·여강≠Lijiang soft-alt — manifest
   {
-    cityRe: /여강|리장|Lijiang|샹그릴라|Shangri/i,
+    cityRe:
+      /리장|Lijiang|여강\s*고성|옥룡설산|Jade\s*Dragon|흑룡담|Black\s*Dragon|호약협|Tiger\s*Leaping|샹그릴라\s*(?:현|시|마을)|Shangri[\s-]*La\s*(?:County|Town|Yunnan)/i,
     alts: [
       'Lijiang Old Town Yunnan',
       'Jade Dragon Snow Mountain',
@@ -277,8 +282,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Municipal Theatre Sao Paulo',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 아디스≠Addis soft-alt — manifest
   {
-    cityRe: /아디스|Addis\s*Ababa|에티오피아|Ethiopia/i,
+    cityRe: /아디스\s*아바바|Addis\s*Ababa|에티오피아|Ethiopia|메스케л|Meskel|엔토토|Entoto/i,
     alts: [
       'Addis Ababa Ethiopia skyline',
       'Holy Trinity Cathedral Addis Ababa',
@@ -421,8 +427,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Malbork Castle Poland',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 온천·료칸≠Kyushu soft-alt — manifest
   {
-    cityRe: /쿠로가와|Kurokawa|온천|료칸|구마모토|Kumamoto|규슈|Kyushu/i,
+    cityRe: /쿠로가와|Kurokawa|구마모토|Kumamoto|타카치호|Takachiho|벳푸|Beppu|아소|Mount\s*Aso|규슈|Kyushu/i,
     alts: [
       'Kurokawa Onsen Village',
       'Kumamoto Castle Japan',
@@ -440,8 +447,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'El Calafate Patagonia town',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 리우 카페≠Rio soft-alt — manifest
   {
-    cityRe: /리우|Rio\s*de\s*Janeiro|코르코바도|Christ\s*the\s*Redeemer|코파카바나|Copacabana/i,
+    cityRe:
+      /리우\s*데\s*자네이루|리오\s*데\s*자네이루|Rio\s*de\s*Janeiro|코르코바도|Christ\s*the\s*Redeemer|코파카바나|Copacabana|이파네마|Ipanema/i,
     alts: [
       'Christ the Redeemer Rio de Janeiro',
       'Sugarloaf Mountain Rio de Janeiro',
@@ -518,8 +527,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Normandy countryside France',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 순례≠Camino soft-alt — manifest
   {
-    cityRe: /산티아고|Santiago\s*de\s*Compostela|콤포스텔라|순례|Camino|포르토마리|Portomarin|사리아|Sarria/i,
+    cityRe:
+      /산티아고\s*데\s*콤포스텔라|Santiago\s*de\s*Compostela|콤포스텔라|카미노|Camino\s*de\s*Santiago|포르토마리|Portomarin|사리아|Sarria/i,
     alts: [
       'Santiago de Compostela Cathedral',
       'Camino de Santiago pilgrimage path',
@@ -595,7 +606,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /라스베가스|라스베이거스|Las\s*Vegas|인앤아웃|In-?N-?Out|그랜드\s*캐년|Grand\s*Canyon|앤텔로프|Antelope|벨라지오|Bellagio|F1/i,
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare F1≠Vegas soft-alt — manifest
+    cityRe: /라스베가스|라스베이거스|Las\s*Vegas|인앤아웃|In-?N-?Out|그랜드\s*캐년|Grand\s*Canyon|앤텔로프|Antelope|벨라지오|Bellagio|라스베가스\s*F1|Las\s*Vegas\s*Grand\s*Prix/i,
     alts: [
       'Las Vegas Strip neon night',
       'Grand Canyon South Rim',
@@ -627,8 +639,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Musee d Orsay Paris',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 니스한·베니스≠Nice soft-alt — manifest
   {
-    cityRe: /니스|Nice|프롬나드|Promenade\s*des\s*Anglais|벨포|Belfort/i,
+    cityRe:
+      /니스\s*해변|니스\s*구시가|(?:^|[\s\-·,/])니스(?:$|[\s\-·,/])|\bNice\b|프롬나드|Promenade\s*des\s*Anglais/i,
     alts: [
       'Promenade Des Anglais Nice Beach',
       'Nice Old Town Cours Saleya',
@@ -764,8 +778,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Bayon Temple Angkor Thom',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 나일≠Egypt soft-alt — manifest
   {
-    cityRe: /룩소르|Luxor|아부\s*심벨|Abu\s*Simbel|카이로|Cairo|나일|Nile/i,
+    cityRe: /룩소르|Luxor|아부\s*심벨|Abu\s*Simbel|카이로|Cairo|나일\s*강|Nile\s*River|\bNile\b/i,
     alts: [
       'Abu Simbel temples Egypt',
       'Luxor Temple night Egypt',
@@ -785,8 +800,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Tokushima Castle ruins park',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 꽃시계≠NYC soft-alt — manifest
   {
-    cityRe: /뉴욕|New\s*York|센트럴파크|Central\s*Park|나이아가라|Niagara|꽃시계/i,
+    cityRe: /뉴욕|New\s*York|센트럴파크|Central\s*Park|나이아가라|Niagara\s*Falls|타임스\s*스퀘어|Times\s*Square/i,
     alts: [
       'Central Park New York',
       'Times Square New York night',
@@ -798,8 +814,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'High Line park New York',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 로키≠Vancouver/Banff soft-alt — manifest
   {
-    cityRe: /밴쿠버|Vancouver|로키|Rockies|밴프|Banff|레이크\s*루이스/i,
+    cityRe:
+      /밴쿠버|Vancouver|로키\s*산맥|Canadian\s*Rockies|\bRockies\b|밴프|Banff|레이크\s*루이스|Lake\s*Louise/i,
     alts: [
       'Vancouver Canada Harbor Mountains',
       'Stanley Park Vancouver seawall',
@@ -809,8 +827,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Moraine Lake Banff Canada',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 와이너리≠Tuscany soft-alt — manifest
   {
-    cityRe: /토스카나|Tuscany|몬테풀차노|Montepulciano|오르비에토|Orvieto|와이너리/i,
+    cityRe: /토스카나|Tuscany|몬테풀차노|Montepulciano|오르비에토|Orvieto|키안티|Chianti|시에나|Siena/i,
     alts: [
       'Montepulciano Tuscany hill town',
       'Orvieto Cathedral Duomo Italy',
@@ -819,8 +838,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Chianti wine region Tuscany',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 워터파크·PIC≠Saipan soft-alt — manifest
   {
-    cityRe: /사이판|Saipan|워터파크|Waterpark|PIC/i,
+    cityRe: /사이판|Saipan|마나가하|Managaha|가라판|Garapan|수어사이드\s*클리프|Suicide\s*Cliff/i,
     alts: [
       'Saipan beach lagoon turquoise',
       'Saipan Managaha Island',
@@ -829,8 +849,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Garapan Saipan downtown',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare Rainbow≠Taichung soft-alt — manifest
   {
-    cityRe: /타이중|Taichung|일월담|Sun\s*Moon|아리산|Alishan|무지개마을|Rainbow/i,
+    cityRe: /타이중|Taichung|일월담|Sun\s*Moon|아리산|Alishan|무지개마을|Rainbow\s*Village/i,
     alts: [
       'Sun Moon Lake Taiwan',
       'Alishan Forest Railway Taiwan',
@@ -927,8 +948,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Brunei Bay waterfront',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 쥬얼·잠잠≠Singapore soft-alt — manifest
   {
-    cityRe: /하지\s*레인|Haji\s*Lane|잠잠|아이온\s*오차드|Ion\s*Orchard|쥬얼|Jewel\s*Changi/i,
+    cityRe:
+      /하지\s*레인|Haji\s*Lane|아이온\s*오차드|Ion\s*Orchard|쥬얼\s*창이|Jewel\s*Changi|오차드\s*로드|Orchard\s*Road|아랍\s*스트리트|Arab\s*Street/i,
     alts: [
       'Haji Lane Singapore street art',
       'ION Orchard Singapore mall',
@@ -1035,8 +1058,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Helix Bridge Marina Bay Singapore',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 캔디 가게≠Kandy soft-alt — manifest
   {
-    cityRe: /누와라\s*엘리야|Nuwara\s*Eliya|캔디|Kandy|콜롬보|Colombo|벤토타|Bentota|스리랑카|Sri\s*Lanka/i,
+    cityRe:
+      /누와라\s*엘리야|Nuwara\s*Eliya|캔디\s*(?:시내|사원)|치아\s*사원|Temple\s*of\s*the\s*Tooth|\bKandy\b|콜롬보|Colombo|벤토타|Bentota|스리랑카|Sri\s*Lanka|시기리야|Sigiriya/iu,
     alts: [
       'Nuwara Eliya tea plantations Sri Lanka',
       'Temple of the Tooth Kandy',
@@ -1055,8 +1080,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Santa Lucia Hill Santiago',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 모아이 기념품≠Easter Island soft-alt — manifest
   {
-    cityRe: /이스터\s*섬|Easter\s*Island|라파누이|Rapa\s*Nui|모아이|Moai/i,
+    cityRe: /이스터\s*섬|Easter\s*Island|라파누이|Rapa\s*Nui|아후\s*통가리키|Ahu\s*Tongariki|라노\s*라라쿠|Rano\s*Raraku/i,
     alts: [
       'Easter Island Moai statues',
       'Rapa Nui Ahu Tongariki',

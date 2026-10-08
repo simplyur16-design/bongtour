@@ -108,6 +108,51 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(cebuOk.some((a) => /Cebu|Moalboal/i.test(a))).toBe(true)
   })
 
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: marketing prose≠wrong soft-alt packs — manifest
+  it('marketing prose does not unlock unrelated soft-alt packs', () => {
+    const cases: Array<{ hay: string; deny: RegExp }> = [
+      { hay: '로마시대 유적', deny: /Colosseum|Trevi|Pantheon/i },
+      { hay: '호텔 온천 이용', deny: /Kurokawa|Kumamoto|Takachiho|Beppu/i },
+      { hay: '료칸 조식', deny: /Kurokawa|Kumamoto|Beppu/i },
+      { hay: '순례길 안내', deny: /Santiago|Camino|Portomarin/i },
+      { hay: '니스한 날씨', deny: /Promenade|Nice Old Town|Negresco/i },
+      { hay: '와이너리 투어', deny: /Montepulciano|Orvieto|Chianti|Tuscany/i },
+      { hay: '워터파크 이용권', deny: /Saipan|Managaha|Garapan/i },
+      { hay: 'PIC 리조트', deny: /Saipan|Managaha/i },
+      { hay: '꽃시계 포토존', deny: /Central Park|Times Square|Niagara/i },
+      { hay: '로키', deny: /Vancouver|Banff|Lake Louise/i },
+      { hay: '쥬얼 장식', deny: /Haji Lane|ION Orchard|Jewel Changi/i },
+      { hay: '잠잠', deny: /Haji Lane|Jewel Changi|Orchard/i },
+      { hay: '캔디 가게', deny: /Kandy|Nuwara|Colombo|Bentota/i },
+      { hay: '미케', deny: /Da Nang|Dragon Bridge|Marble Mountains/i },
+      { hay: '리우 카페', deny: /Redeemer|Copacabana|Ipanema|Sugarloaf/i },
+      { hay: '샹그릴라 호텔', deny: /Lijiang|Jade Dragon|Tiger Leaping/i },
+      { hay: 'Rainbow bridge', deny: /Sun Moon|Alishan|Rainbow Village|Taichung/i },
+      { hay: 'F1 경기', deny: /Las Vegas|Grand Canyon|Bellagio/i },
+      { hay: '모아이 기념품', deny: /Easter Island|Rapa Nui|Tongariki/i },
+      { hay: '아디스', deny: /Addis Ababa|Meskel|Entoto/i },
+      { hay: '치첸', deny: /Cancun|Chichen|Tulum/i },
+      { hay: '나일', deny: /Abu Simbel|Luxor|Cairo|Giza/i },
+    ]
+    for (const { hay, deny } of cases) {
+      const alts = collectRegisterScheduleCitySoftAltKeywords(hay)
+      expect(alts.some((a) => deny.test(a)), hay).toBe(false)
+    }
+    // still unlock on real place evidence
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('로마 콜로세움').some((a) => /Colosseum/i.test(a)),
+    ).toBe(true)
+    expect(collectRegisterScheduleCitySoftAltKeywords('니스 해변').some((a) => /Nice|Promenade/i.test(a))).toBe(
+      true,
+    )
+    expect(collectRegisterScheduleCitySoftAltKeywords('사이판').some((a) => /Saipan/i.test(a))).toBe(true)
+    expect(collectRegisterScheduleCitySoftAltKeywords('쿠로가와').some((a) => /Kurokawa/i.test(a))).toBe(true)
+    expect(collectRegisterScheduleCitySoftAltKeywords('리장').some((a) => /Lijiang/i.test(a))).toBe(true)
+    expect(collectRegisterScheduleCitySoftAltKeywords('아디스 아바바').some((a) => /Addis/i.test(a))).toBe(
+      true,
+    )
+  })
+
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리·마이파리≠Paris soft-alt — manifest
   it('Miyako 마이파리 does not unlock Paris soft-alts', () => {
     for (const hay of ['마이파리', '마이파리 열대과수원', '사파리', '빈펄 사파리']) {

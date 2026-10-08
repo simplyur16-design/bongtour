@@ -16041,7 +16041,15 @@
             "Vinpearl Safari → Phu Quoc pack (≠Serengeti)",
             "세부일정≠Cebu (Okinawa bleed)",
             "Okinawa soft-alt pack (≠Cebu)",
-            "마이파리→Miyako pack (≠Paris)"
+            "마이파리→Miyako pack (≠Paris)",
+            "로마시대≠Rome soft-alt",
+            "bare 온천·료칸≠Kyushu soft-alt",
+            "bare 순례≠Camino soft-alt",
+            "니스한·베니스≠Nice soft-alt",
+            "bare 워터파크·PIC≠Saipan soft-alt",
+            "bare 와이너리≠Tuscany soft-alt",
+            "bare 꽃시계≠NYC soft-alt",
+            "marketing prose≠wrong soft-alt packs"
           ]
         },
         {
@@ -16133,7 +16141,8 @@
             "Balicasag Bohol title does not unlock Bali soft-alts",
             "Phu Quoc Vinpearl Safari does not unlock Serengeti or Paris soft-alts",
             "Okinawa 세부일정 does not unlock Cebu soft-alts",
-            "Miyako 마이파리 does not unlock Paris soft-alts"
+            "Miyako 마이파리 does not unlock Paris soft-alts",
+            "marketing prose does not unlock unrelated soft-alt packs"
           ]
         },
         {
