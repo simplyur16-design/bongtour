@@ -10,11 +10,14 @@ import {
   renderOtaIssuedHtmlToPdf,
   type OtaIssuedPdfScope,
 } from '@/lib/bongtour-ota-issued-html-to-pdf'
-import type {
-  OtaAdminDocumentKind,
-  OtaCompanyCheckInVoucherDraft,
-  OtaCompanyInvoiceDraft,
-  OtaReceiptParsedAmount,
+import {
+  isOtaCompanyAirVoucherDraft,
+  parseOtaAdminDocumentKind,
+  type OtaAdminDocumentKind,
+  type OtaCompanyAirVoucherDraft,
+  type OtaCompanyCheckInVoucherDraft,
+  type OtaCompanyInvoiceDraft,
+  type OtaReceiptParsedAmount,
 } from '@/lib/bongtour-company-invoice'
 
 export const dynamic = 'force-dynamic'
@@ -52,7 +55,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const kindRaw = (searchParams.get('kind') || 'all').trim()
     const kind =
-      kindRaw === 'invoice' || kindRaw === 'voucher' || kindRaw === 'all'
+      kindRaw === 'invoice' ||
+      kindRaw === 'voucher' ||
+      kindRaw === 'air_voucher' ||
+      kindRaw === 'all'
         ? (kindRaw as OtaAdminDocumentKind | 'all')
         : 'all'
     const bookingRef = searchParams.get('bookingRef')
@@ -108,12 +114,12 @@ export async function POST(request: Request) {
 
   try {
     const form = await request.formData()
-    const documentKind: OtaAdminDocumentKind =
-      form.get('documentKind') === 'invoice' ? 'invoice' : 'voucher'
-    const draft = readJsonField<OtaCompanyInvoiceDraft | OtaCompanyCheckInVoucherDraft>(
-      form.get('draftJson'),
-      'draftJson',
+    const documentKind: OtaAdminDocumentKind = parseOtaAdminDocumentKind(
+      form.get('documentKind'),
     )
+    const draft = readJsonField<
+      OtaCompanyInvoiceDraft | OtaCompanyCheckInVoucherDraft | OtaCompanyAirVoucherDraft
+    >(form.get('draftJson'), 'draftJson')
     const parsed = readJsonField<OtaReceiptParsedAmount>(form.get('parsedJson'), 'parsedJson')
     const issuedHtml = typeof form.get('issuedHtml') === 'string' ? String(form.get('issuedHtml')) : ''
     if (!issuedHtml.trim()) {
@@ -155,7 +161,19 @@ export async function POST(request: Request) {
     let rateDate: string | null = null
     let usdKrwRate: number | null = null
 
-    if (documentKind === 'voucher' && 'voucherNumber' in draft) {
+    if (documentKind === 'air_voucher' && isOtaCompanyAirVoucherDraft(draft)) {
+      documentNumber = draft.voucherNumber
+      guestName = draft.guestName
+      propertyName = draft.flights[0]?.airline || draft.flights[0]?.flightNo || '항공권'
+      amountUsd = null
+      amountKrw = null
+      rateDate = null
+      usdKrwRate = null
+    } else if (
+      documentKind === 'voucher' &&
+      'voucherNumber' in draft &&
+      !isOtaCompanyAirVoucherDraft(draft)
+    ) {
       const v = draft as OtaCompanyCheckInVoucherDraft
       documentNumber = v.voucherNumber
       guestName = v.guestName
@@ -164,7 +182,7 @@ export async function POST(request: Request) {
       amountKrw = v.amountKrw
       rateDate = v.rateDate
       usdKrwRate = v.usdKrwRate
-    } else if ('invoiceNumber' in draft) {
+    } else if (documentKind === 'invoice' && 'invoiceNumber' in draft) {
       const inv = draft as OtaCompanyInvoiceDraft
       documentNumber = inv.invoiceNumber
       guestName = inv.guestName

@@ -3,13 +3,19 @@ import { requireAdmin } from '@/lib/require-admin'
 import { extractPdfText } from '@/lib/simplyur/trip-inbox/pdf-extract'
 import { extractOtaVoucherPdfTextViaGemini } from '@/lib/bongtour-ota-voucher-pdf-ocr'
 import {
+  airlineEticketParsedToOtaReceiptStub,
+  buildOtaCompanyAirVoucherDraft,
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
+  parseAdminAirlineEticketText,
+  parseOtaAdminDocumentKind,
   parseOtaReceiptForInvoice,
   joinOtaVoucherUploadTexts,
   normalizeOtaCompanyInvoiceFees,
   otaProviderDisplayName,
   otaVoucherNoteNeedsEnglishTranslation,
+  renderOtaCompanyAirVoucherBilingualHtml,
+  renderOtaCompanyAirVoucherHtml,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
@@ -167,7 +173,7 @@ export async function POST(request: Request) {
         }
       }
       text = joinOtaVoucherUploadTexts([pasted, ...uploadParts])
-      documentKind = form.get('documentKind') === 'voucher' ? 'voucher' : 'invoice'
+      documentKind = parseOtaAdminDocumentKind(form.get('documentKind'))
       guestNameOverride =
         typeof form.get('guestName') === 'string' ? String(form.get('guestName')).trim() || null : null
       propertyOverride =
@@ -198,7 +204,7 @@ export async function POST(request: Request) {
     } else {
       const body = (await request.json()) as Record<string, unknown>
       text = String(body.text ?? '')
-      documentKind = body.documentKind === 'voucher' ? 'voucher' : 'invoice'
+      documentKind = parseOtaAdminDocumentKind(body.documentKind)
       guestNameOverride =
         typeof body.guestName === 'string' ? body.guestName.trim() || null : null
       propertyOverride =
@@ -224,7 +230,9 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            '이미지 파일은 자동 읽기를 지원하지 않습니다. 바우처 본문(예약번호·숙소·조식 등)을 붙여넣으세요.',
+            documentKind === 'air_voucher'
+              ? '이미지 파일은 자동 읽기를 지원하지 않습니다. e-ticket 본문(승객명·편명·PNR)을 붙여넣으세요.'
+              : '이미지 파일은 자동 읽기를 지원하지 않습니다. 바우처 본문(예약번호·숙소·조식 등)을 붙여넣으세요.',
         },
         { status: 400 },
       )
@@ -245,10 +253,63 @@ export async function POST(request: Request) {
       {
         ok: false,
         error:
-          'OTA 바우처 PDF/본문을 넣어 예약·숙소·금액을 가져오세요. 한글+영문 바우처는 한 세트로 함께 업로드하세요.',
+          documentKind === 'air_voucher'
+            ? '항공사 e-ticket PDF/본문을 올려 승객·편명·PNR을 가져오세요.'
+            : 'OTA 바우처 PDF/본문을 넣어 예약·숙소·금액을 가져오세요. 한글+영문 바우처는 한 세트로 함께 업로드하세요.',
       },
       { status: 400 },
     )
+  }
+
+  // REGRESSION-FREEZE[admin-ota-air-voucher]: air_voucher는 OTA 금액 잠금 없이 e-ticket 파싱 — manifest
+  if (documentKind === 'air_voucher') {
+    const airParsed = parseAdminAirlineEticketText(text)
+    if (!airParsed.passengers.length && !guestNameOverride) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            '승객명을 e-ticket에서 찾지 못했습니다. Passenger Name을 붙여넣거나 투숙객/승객 이름 칸에 입력하세요.',
+          airParsed,
+        },
+        { status: 422 },
+      )
+    }
+    let noteEnOverride: string | null = null
+    let noteTranslateWarning: string | null = null
+    if (note && otaVoucherNoteNeedsEnglishTranslation(note)) {
+      try {
+        noteEnOverride = await translateOtaVoucherNoteToEn(note)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        noteTranslateWarning = `비고 영문 번역 실패: ${msg}`
+        console.error('[from-ota-receipt] air note translate failed', msg)
+      }
+    }
+    const logoUrl = loadBongtourLogoDataUrl()
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed: airParsed,
+      guestNameOverride,
+      note,
+      noteEnOverride,
+      logoUrl,
+    })
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
+    const htmlEn = renderOtaCompanyAirVoucherHtml(draft, 'en')
+    const html = renderOtaCompanyAirVoucherBilingualHtml(draft)
+    const parsed = airlineEticketParsedToOtaReceiptStub(airParsed)
+    if (draft.guestName) parsed.guestName = draft.guestName
+    return NextResponse.json({
+      ok: true,
+      documentKind: 'air_voucher',
+      parsed,
+      airParsed,
+      draft,
+      html,
+      htmlKo,
+      htmlEn,
+      ...(noteTranslateWarning ? { warning: noteTranslateWarning } : {}),
+    })
   }
 
   const parsed = parseOtaReceiptForInvoice(text)

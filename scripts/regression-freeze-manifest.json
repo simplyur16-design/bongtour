@@ -24681,6 +24681,56 @@
       ]
     },
     {
+      "id": "admin-ota-air-voucher",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 항공권 바우처 — e-ticket 파싱·승객명 원문·OTA명 금지",
+      "checks": [
+        {
+          "file": "lib/bongtour-company-invoice.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-air-voucher]",
+            "air_voucher",
+            "buildOtaCompanyAirVoucherDraft",
+            "formatAirVoucherPassengerNames",
+            "parseAdminAirlineEticketText",
+            "renderOtaCompanyAirVoucherHtml",
+            "항공권 바우처"
+          ]
+        },
+        {
+          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-air-voucher]",
+            "air_voucher",
+            "buildOtaCompanyAirVoucherDraft",
+            "parseAdminAirlineEticketText"
+          ]
+        },
+        {
+          "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
+          "mustInclude": [
+            "air_voucher",
+            "항공권 바우처",
+            "isOtaCompanyAirVoucherDraft"
+          ]
+        },
+        {
+          "file": "lib/bongtour-company-invoice.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-air-voucher]",
+            "formatAirVoucherPassengerNames",
+            "no OTA / Trip.com / Agoda"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
+    },
+    {
       "id": "admin-ota-issued-pdf",
       "tier": [
         "prebuild",
@@ -25240,6 +25290,16 @@
         "ci"
       ],
       "summary": "비고 한→영·OTA 예약처 표기 단위 테스트",
+      "files": [
+        "lib/bongtour-company-invoice.test.ts"
+      ]
+    },
+    {
+      "id": "admin-ota-air-voucher",
+      "tier": [
+        "ci"
+      ],
+      "summary": "항공권 바우처 — 승객명 1/8·OTA명 금지",
       "files": [
         "lib/bongtour-company-invoice.test.ts"
       ]

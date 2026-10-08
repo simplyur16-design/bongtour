@@ -4,14 +4,19 @@ import {
   BONGTOUR_TAX_SERVICE_INCLUDED_NOTE,
   BONGTOUR_TAX_SERVICE_INCLUDED_NOTE_EN,
   BONGTOUR_VOUCHER_PAYMENT_METHOD,
+  buildOtaCompanyAirVoucherDraft,
   buildOtaCompanyCheckInVoucherDraft,
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
   computeVoucherTotalUsdFromNightRate,
+  formatAirVoucherPassengerNames,
   joinOtaVoucherUploadTexts,
   otaProviderDisplayName,
   otaVoucherNoteNeedsEnglishTranslation,
+  parseAdminAirlineEticketText,
   parseOtaReceiptForInvoice,
+  renderOtaCompanyAirVoucherBilingualHtml,
+  renderOtaCompanyAirVoucherHtml,
   renderOtaCompanyCheckInVoucherBilingualHtml,
   renderOtaCompanyCheckInVoucherHtml,
   renderOtaCompanyInvoiceHtml,
@@ -615,5 +620,107 @@ Nights : 5박`
     expect(htmlEn).toContain('Trip.com')
     expect(htmlEn).toContain('Late check-in requested')
     expect(htmlEn).not.toContain('레이트 체크인 요청')
+  })
+})
+
+// REGRESSION-FREEZE[admin-ota-air-voucher]: 항공권 바우처 — 승객명·OTA 금지 — manifest
+describe('admin-ota-air-voucher', () => {
+  it('formatAirVoucherPassengerNames keeps 1 and 8 names as-is', () => {
+    expect(formatAirVoucherPassengerNames(['KIM/MINSU'])).toBe('KIM/MINSU')
+    const eight = [
+      'KIM/A',
+      'KIM/B',
+      'LEE/C',
+      'PARK/D',
+      'CHOI/E',
+      'JUNG/F',
+      'HAN/G',
+      'YOON/H',
+    ]
+    expect(formatAirVoucherPassengerNames(eight)).toBe(eight.join(', '))
+  })
+
+  it('guestNameOverride from hotel voucher wins over e-ticket passengers', () => {
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed: {
+        passengers: ['ETICKET/ONLY'],
+        pnr: 'ABC123',
+        ticketNumber: '1801234567890',
+        bookingRef: 'ABC123',
+        flights: [
+          {
+            flightNo: 'KE123',
+            airline: 'KOREAN AIR',
+            depAirport: 'ICN',
+            arrAirport: 'NRT',
+            depAt: null,
+            arrAt: null,
+            cabinClass: null,
+            status: null,
+          },
+        ],
+      },
+      guestNameOverride: 'KIM/MINSU, LEE/JIYOON',
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(draft.documentKind).toBe('air_voucher')
+    expect(draft.guestName).toBe('KIM/MINSU, LEE/JIYOON')
+  })
+
+  it('air voucher HTML has passengers and no OTA / Trip.com / Agoda label', () => {
+    const eight = [
+      'KIM/A',
+      'KIM/B',
+      'LEE/C',
+      'PARK/D',
+      'CHOI/E',
+      'JUNG/F',
+      'HAN/G',
+      'YOON/H',
+    ]
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed: {
+        passengers: eight,
+        pnr: 'PNR888',
+        ticketNumber: '1809999888877',
+        bookingRef: 'PNR888',
+        flights: [
+          {
+            flightNo: 'OZ701',
+            airline: 'ASIANA AIRLINES',
+            depAirport: 'ICN',
+            arrAirport: 'NRT',
+            depAt: '2026-07-29T07:35:00',
+            arrAt: '2026-07-29T09:50:00',
+            cabinClass: 'Y',
+            status: 'OK',
+          },
+        ],
+      },
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    expect(draft.guestName).toBe(eight.join(', '))
+    const html = renderOtaCompanyAirVoucherBilingualHtml(draft)
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
+    expect(html).toContain('항공권 바우처')
+    expect(html).toContain('Flight Voucher')
+    expect(html).toContain('KIM/A, KIM/B, LEE/C, PARK/D, CHOI/E, JUNG/F, HAN/G, YOON/H')
+    expect(html).toContain('OZ701')
+    expect(html).toContain('PNR888')
+    expect(html).not.toContain('OTA (예약처)')
+    expect(html).not.toContain('Trip.com')
+    expect(html).not.toContain('Agoda')
+    expect(htmlKo).not.toMatch(/\bOTA\b/)
+  })
+
+  it('parseAdminAirlineEticketText reads passenger line', () => {
+    const parsed = parseAdminAirlineEticketText(`
+Passenger Name KIM/MINSU, LEE/JIYOON
+Booking Reference ABCDE1
+eTicket number: 1801234567890
+KE 123 ICN NRT 01JAN26 10:00
+`)
+    expect(parsed.passengers.length).toBeGreaterThanOrEqual(1)
+    expect(formatAirVoucherPassengerNames(parsed.passengers)).toMatch(/KIM/)
   })
 })
