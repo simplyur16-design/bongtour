@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: city soft-alt trip SSOT — manifest
  * REGRESSION-FREEZE[lottetour-schedule-expression]: 베를린 단독일 Brandenburg 중복 시 alt — manifest
  * REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]: pending hard KW 반복 → unused soft-alt — manifest
+ * REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: marketing prose≠wrong soft-alt packs — manifest
  */
 import { finalizeScheduleImageKeyword, isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
