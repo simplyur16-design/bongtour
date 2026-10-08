@@ -271,9 +271,9 @@ export default function OtaInvoiceAdminClient() {
       setSavedInfo(null)
       setSaveError(null)
       if (json.warning) setError(json.warning)
-      if (isOtaCompanyAirVoucherDraft(json.draft) && json.draft.guestName) {
-        const airGuest = json.draft.guestName
-        setGuestName((prev) => prev.trim() || airGuest || '')
+      // 항공권: 이번 생성 결과로 승객명을 항상 교체(이전 잔여 keep 금지)
+      if (isOtaCompanyAirVoucherDraft(json.draft)) {
+        setGuestName(json.draft.guestName || '')
       }
       if ('otaStayKrw' in json.draft && json.draft.otaStayKrw != null) {
         setSourceAmountKrw(String(json.draft.otaStayKrw))
@@ -475,7 +475,18 @@ export default function OtaInvoiceAdminClient() {
             multiple
             accept=".pdf,.txt,application/pdf,text/plain"
             className="mt-1 block w-full text-sm"
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            onChange={(e) => {
+              setFiles(Array.from(e.target.files ?? []))
+              // REGRESSION-FREEZE[admin-ota-air-voucher]: 새 파일 선택 시 이전 승객·미리보기 잔여 제거 — manifest
+              setGuestName('')
+              setDraft(null)
+              setHtml(null)
+              setHtmlKo(null)
+              setHtmlEn(null)
+              setParsed(null)
+              setSavedInfo(null)
+              setError(null)
+            }}
           />
           <span className="mt-1 block text-xs font-normal text-zinc-500">
             {isAirVoucher

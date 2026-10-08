@@ -24742,9 +24742,12 @@
         {
           "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
           "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-air-voucher]",
             "air_voucher",
             "항공권 바우처",
-            "isOtaCompanyAirVoucherDraft"
+            "isOtaCompanyAirVoucherDraft",
+            "새 파일 선택 시 이전 승객·미리보기 잔여 제거",
+            "setGuestName(json.draft.guestName || '')"
           ]
         },
         {
