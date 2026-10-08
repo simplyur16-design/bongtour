@@ -10,6 +10,7 @@ import {
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
   computeVoucherTotalUsdFromNightRate,
+  extractAirAirlineIataCode,
   extractAirVoucherNoticesFromText,
   extractAirVoucherPassengerNamesFromText,
   formatAirAirlineDisplayName,
@@ -746,10 +747,18 @@ describe('admin-ota-air-voucher', () => {
     expect(formatAirAirlineDisplayName('Korean Air', 'KE2005', 'ko')).toBe('대한항공')
     expect(html).toContain('OZ701')
     expect(html).toContain('PNR888')
+    expect(html).toContain('airline-logo')
+    expect(html).toContain('/images/airlines/OZ.png')
     expect(html).not.toContain('OTA (예약처)')
     expect(html).not.toContain('Trip.com')
     expect(html).not.toContain('Agoda')
     expect(htmlKo).not.toMatch(/\bOTA\b/)
+  })
+
+  it('extractAirAirlineIataCode reads KE / 7C style codes', () => {
+    expect(extractAirAirlineIataCode('KE2005')).toBe('KE')
+    expect(extractAirAirlineIataCode('7C5203')).toBe('7C')
+    expect(extractAirAirlineIataCode(null, 'Air Canada AC410')).toBe('AC')
   })
 
   it('parseAdminAirlineEticketText reads passenger line', () => {

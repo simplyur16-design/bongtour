@@ -27,7 +27,10 @@ import {
   type OtaAdminDocumentKind,
   type OtaCompanyInvoiceFees,
 } from '@/lib/bongtour-company-invoice'
-import { loadBongtourLogoDataUrl } from '@/lib/bongtour-company-invoice-logo-server'
+import {
+  loadAirAirlineLogoDataUrlsForFlights,
+  loadBongtourLogoDataUrl,
+} from '@/lib/bongtour-company-invoice-logo-server'
 import { translateOtaVoucherNoteToEn } from '@/lib/bongtour-ota-voucher-note-translate'
 import { resolveUsdKrwRateForDate, seoulYmd, usdAmountToKrw } from '@/lib/bongtour-usd-krw-rate'
 
@@ -309,12 +312,14 @@ export async function POST(request: Request) {
       }
     }
     const logoUrl = loadBongtourLogoDataUrl()
+    const airlineLogoUrls = loadAirAirlineLogoDataUrlsForFlights(airParsed.flights)
     const draft = buildOtaCompanyAirVoucherDraft({
       parsed: airParsed,
       guestNameOverride,
       note,
       noteEnOverride,
       logoUrl,
+      airlineLogoUrls,
     })
     const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
     const htmlEn = renderOtaCompanyAirVoucherHtml(draft, 'en')

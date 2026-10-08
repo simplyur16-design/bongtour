@@ -286,6 +286,8 @@ export type OtaCompanyAirVoucherDraft = {
   noticesKo: string | null
   noticesEn: string | null
   logoUrl: string
+  /** IATA → 로고 src (서버는 data URL, 클라이언트 폴백은 /images/airlines/{code}.png) */
+  airlineLogoUrls?: Record<string, string>
   company: typeof BONGTOUR_INVOICE_COMPANY
   note: string
   noteEn: string | null
@@ -1475,6 +1477,8 @@ const VOUCHER_CSS = `
   body{font-family:system-ui,-apple-system,sans-serif;color:#111;margin:40px;max-width:720px}
   .header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
   .logo{height:48px;width:auto;object-fit:contain}
+  .airline-logo{height:28px;width:auto;max-width:96px;object-fit:contain;vertical-align:middle}
+  .flight-head{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:8px}
   h1{font-size:24px;margin:0 0 4px}
   .muted{color:#555;font-size:13px}
   .booking{margin-top:12px;padding:12px 14px;border:2px solid #111;font-size:15px;font-weight:700;letter-spacing:0.02em}
@@ -1989,6 +1993,68 @@ const AIR_AIRLINE_EN_TO_KO: Array<{ re: RegExp; ko: string; en: string }> = [
   { re: /REPUBLIC\s*AIRWAYS/i, ko: '리퍼블릭항공', en: 'Republic Airways' },
 ]
 
+export const AIR_AIRLINE_LOGO_PUBLIC_DIR = '/images/airlines'
+
+/**
+ * 편명·항공사 문자열에서 IATA 항공사 코드 추출 (KE2005 → KE, 7C5203 → 7C).
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirAirlineIataCode — manifest
+ */
+export function extractAirAirlineIataCode(
+  flightNo: string | null | undefined,
+  airline?: string | null,
+): string | null {
+  const fromFlight = String(flightNo ?? '')
+    .trim()
+    .toUpperCase()
+    .match(/^([A-Z]{2}|[A-Z]\d|\d[A-Z])\d/)?.[1]
+  if (fromFlight) return fromFlight
+  const fromAirline = String(airline ?? '')
+    .trim()
+    .toUpperCase()
+    .match(/\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\d{2,4}\b/)?.[1]
+  if (fromAirline) return fromAirline
+  const bare = String(flightNo ?? airline ?? '')
+    .trim()
+    .toUpperCase()
+    .match(/^([A-Z]{2}|[A-Z]\d|\d[A-Z])$/)?.[1]
+  return bare || null
+}
+
+export function collectAirAirlineIataCodesFromFlights(
+  flights: ReadonlyArray<{ flightNo: string; airline: string | null }>,
+): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const f of flights) {
+    const code = extractAirAirlineIataCode(f.flightNo, f.airline)
+    if (!code || seen.has(code)) continue
+    seen.add(code)
+    out.push(code)
+  }
+  return out
+}
+
+/** 공개 경로 폴백 (미리보기). PDF·발행은 airlineLogoUrls data URL 권장. */
+export function resolveAirAirlineLogoPublicPath(code: string | null | undefined): string | null {
+  const c = String(code ?? '').trim().toUpperCase()
+  if (!/^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])$/.test(c)) return null
+  return `${AIR_AIRLINE_LOGO_PUBLIC_DIR}/${c}.png`
+}
+
+/**
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: resolveAirAirlineLogoSrc — manifest
+ */
+export function resolveAirAirlineLogoSrc(
+  code: string | null | undefined,
+  airlineLogoUrls?: Record<string, string> | null,
+): string | null {
+  const c = String(code ?? '').trim().toUpperCase()
+  if (!c) return null
+  const embedded = airlineLogoUrls?.[c]?.trim()
+  if (embedded) return embedded
+  return resolveAirAirlineLogoPublicPath(c)
+}
+
 /**
  * 항공사 표시명 — 한글 바우처는 한글명, 영문은 영문명.
  * REGRESSION-FREEZE[admin-ota-air-voucher]: formatAirAirlineDisplayName — manifest
@@ -1999,10 +2065,7 @@ export function formatAirAirlineDisplayName(
   locale: OtaVoucherLocale,
 ): string | null {
   const raw = String(airline ?? '').trim()
-  const code = String(flightNo ?? '')
-    .trim()
-    .toUpperCase()
-    .match(/^([A-Z]{2}|[A-Z]\d|\d[A-Z])/)?.[1]
+  const code = extractAirAirlineIataCode(flightNo, airline)
 
   const pick = (pair: { ko: string; en: string }) => (locale === 'ko' ? pair.ko : pair.en)
 
@@ -2565,6 +2628,7 @@ export function buildOtaCompanyAirVoucherDraft(args: {
   noteEnOverride?: string | null
   now?: Date
   logoUrl?: string | null
+  airlineLogoUrls?: Record<string, string> | null
 }): OtaCompanyAirVoucherDraft {
   const now = args.now ?? new Date()
   const ymd = now.toISOString().slice(0, 10).replace(/-/g, '')
@@ -2578,6 +2642,12 @@ export function buildOtaCompanyAirVoucherDraft(args: {
   const ticketNumbers = (args.parsed.ticketNumbers ?? [])
     .map((t) => String(t ?? '').replace(/[\s-]+/g, '').trim())
     .filter(Boolean)
+  const airlineLogoUrls: Record<string, string> = { ...(args.airlineLogoUrls ?? {}) }
+  for (const code of collectAirAirlineIataCodesFromFlights(args.parsed.flights)) {
+    if (airlineLogoUrls[code]) continue
+    const pub = resolveAirAirlineLogoPublicPath(code)
+    if (pub) airlineLogoUrls[code] = pub
+  }
   return {
     documentKind: 'air_voucher',
     voucherNumber: `BT-AIR-${ymd}-${rand}`,
@@ -2593,6 +2663,7 @@ export function buildOtaCompanyAirVoucherDraft(args: {
       noticesEn: args.parsed.noticesEn,
     }),
     logoUrl: args.logoUrl?.trim() || resolveBongtourLogoUrl(),
+    airlineLogoUrls,
     company: BONGTOUR_INVOICE_COMPANY,
     ...resolveOtaVoucherNotePair({ note: args.note, noteEnOverride: args.noteEnOverride }),
   }
@@ -2686,15 +2757,26 @@ function renderAirVoucherBody(
               .filter(Boolean)
               .join(isKo ? ' · ' : ' · ')
             const airlineName = formatAirAirlineDisplayName(f.airline, f.flightNo, locale)
+            const iata = extractAirAirlineIataCode(f.flightNo, f.airline)
+            const logoSrc = resolveAirAirlineLogoSrc(iata, draft.airlineLogoUrls)
+            const logoImg = logoSrc
+              ? `<img class="airline-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(airlineName || iata || '')}" />`
+              : ''
+            const headLabel = [
+              isKo ? `${i + 1}편` : `Flight ${i + 1}`,
+              f.flightNo,
+              airlineName,
+            ]
+              .filter(Boolean)
+              .join(' · ')
             const meta = [
-              airlineName ? `${L.airline}: ${airlineName}` : null,
               f.cabinClass ? `${L.cabin}: ${f.cabinClass}` : null,
               f.status ? `${L.status}: ${f.status}` : null,
             ]
               .filter(Boolean)
               .join(isKo ? ' · ' : ' · ')
             return `<div class="box" style="margin-top:12px">
-    <div class="muted" style="font-weight:700;margin-bottom:8px">${isKo ? `${i + 1}편` : `Flight ${i + 1}`} · ${escapeHtml(f.flightNo)}</div>
+    <div class="flight-head muted">${logoImg}<span>${escapeHtml(headLabel)}</span></div>
     ${rowHtml(L.dep + ' / ' + L.arr, escapeHtml(route))}
     ${rowHtml(isKo ? '일시' : 'Schedule', escapeHtml(when))}
     ${terminals ? rowHtml(isKo ? '터미널' : 'Terminal', escapeHtml(terminals)) : ''}

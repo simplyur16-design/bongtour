@@ -5,7 +5,10 @@
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { resolveBongtourLogoUrl } from '@/lib/bongtour-company-invoice'
+import {
+  collectAirAirlineIataCodesFromFlights,
+  resolveBongtourLogoUrl,
+} from '@/lib/bongtour-company-invoice'
 
 /** 인쇄·미리보기용 — 네트워크 깨짐 방지로 PNG를 data URL로 임베드 */
 export function loadBongtourLogoDataUrl(): string {
@@ -25,4 +28,39 @@ export function loadBongtourLogoDataUrl(): string {
     /* fall through */
   }
   return resolveBongtourLogoUrl()
+}
+
+/**
+ * IATA 항공사 로고 → data URL (PDF setContent 시 상대경로 깨짐 방지).
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: loadAirAirlineLogoDataUrlMap — manifest
+ */
+export function loadAirAirlineLogoDataUrl(code: string): string | null {
+  const c = String(code ?? '').trim().toUpperCase()
+  if (!/^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])$/.test(c)) return null
+  try {
+    const p = join(process.cwd(), 'public', 'images', 'airlines', `${c}.png`)
+    if (!existsSync(p)) return null
+    const buf = readFileSync(p)
+    if (!buf.length) return null
+    return `data:image/png;base64,${buf.toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+export function loadAirAirlineLogoDataUrlMap(codes: readonly string[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const raw of codes) {
+    const c = String(raw ?? '').trim().toUpperCase()
+    if (!c || out[c]) continue
+    const data = loadAirAirlineLogoDataUrl(c)
+    if (data) out[c] = data
+  }
+  return out
+}
+
+export function loadAirAirlineLogoDataUrlsForFlights(
+  flights: ReadonlyArray<{ flightNo: string; airline: string | null }>,
+): Record<string, string> {
+  return loadAirAirlineLogoDataUrlMap(collectAirAirlineIataCodesFromFlights(flights))
 }

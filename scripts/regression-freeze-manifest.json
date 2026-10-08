@@ -24708,9 +24708,23 @@
             "교차 폴백 금지",
             "isLikelyAirPassengerNameToken",
             "rewriteAirNoticeOtaBrandToBongtour",
+            "extractAirAirlineIataCode",
+            "resolveAirAirlineLogoSrc",
+            "airline-logo",
             "parseAdminAirlineEticketText",
             "renderOtaCompanyAirVoucherHtml",
             "항공권 바우처"
+          ]
+        },
+        {
+          "file": "lib/bongtour-company-invoice-logo-server.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-ota-air-voucher]",
+            "loadAirAirlineLogoDataUrlMap",
+            "loadAirAirlineLogoDataUrlsForFlights",
+            "public",
+            "images",
+            "airlines"
           ]
         },
         {
@@ -24736,7 +24750,8 @@
             "buildOtaCompanyAirVoucherDraft",
             "parseAdminAirlineEticketText",
             "extractAirlineEticketPdfTextViaGemini",
-            "isUsableExtractedPdfText"
+            "isUsableExtractedPdfText",
+            "loadAirAirlineLogoDataUrlsForFlights"
           ]
         },
         {
@@ -24763,7 +24778,10 @@
             "renders e-ticket notices and remarks",
             "rewrites Trip.com/트립닷컴 to 봉투어",
             "keeps notice text out of passenger row",
-            "no OTA / Trip.com / Agoda"
+            "no OTA / Trip.com / Agoda",
+            "airline-logo",
+            "/images/airlines/OZ.png",
+            "extractAirAirlineIataCode"
           ]
         }
       ],
