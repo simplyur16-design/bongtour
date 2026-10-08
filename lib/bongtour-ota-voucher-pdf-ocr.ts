@@ -128,6 +128,18 @@ Arrival : <date time as printed>
 Cabin : <class if shown>
 Status : <OK/confirmed if shown>
 
+Notices / remarks (CRITICAL — copy fully, do not summarize or omit):
+If the ticket has 주의사항, 참고사항, Important Notice, Remarks, Conditions, baggage notes, check-in deadlines, or any fine-print passenger notices, output them as multi-line blocks EXACTLY as printed:
+
+Notices (KO) :
+<full Korean notice/참고/주의 text, keep line breaks; include every bullet>
+
+Notices (EN) :
+<full English notice/remarks text, keep line breaks; include every bullet>
+
+If only one language exists, fill that Notices block and omit the empty one.
+If 주의사항 and 참고사항 are separate sections in Korean, concatenate both under Notices (KO) with a blank line between, preserving headings.
+
 Copy every passenger name exactly as printed (including slash form KIM/MINSU). Do not invent hotel/OTA fields. Do not mention Trip.com or Agoda unless literally printed on the ticket.`
 
 /**

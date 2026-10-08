@@ -255,6 +255,10 @@ export type OtaAirlineEticketParsed = {
   ticketNumber: string | null
   bookingRef: string | null
   flights: OtaAirVoucherFlightSegment[]
+  /** e-ticket 주의사항·참고사항 (한글) — OTA와 무관 */
+  noticesKo: string | null
+  /** e-ticket notices / remarks (영문) */
+  noticesEn: string | null
 }
 
 /** 항공권 바우처 — OTA(Trip.com/Agoda) 예약처 표기 없음 */
@@ -268,6 +272,9 @@ export type OtaCompanyAirVoucherDraft = {
   /** 항공사 PNR / booking reference */
   bookingRef: string | null
   flights: OtaAirVoucherFlightSegment[]
+  /** e-ticket 주의·참고사항 (원문) */
+  noticesKo: string | null
+  noticesEn: string | null
   logoUrl: string
   company: typeof BONGTOUR_INVOICE_COMPANY
   note: string
@@ -1942,6 +1949,55 @@ function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFligh
  * 항공사 e-ticket / 여정표 본문 → 승객·PNR·편명.
  * REGRESSION-FREEZE[admin-ota-air-voucher]: parseAdminAirlineEticketText — manifest
  */
+/**
+ * OCR/본문에서 주의사항·참고사항 블록 추출 (다국어 라벨).
+ * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherNoticesFromText — manifest
+ */
+export function extractAirVoucherNoticesFromText(text: string): {
+  noticesKo: string | null
+  noticesEn: string | null
+} {
+  const raw = String(text ?? '').replace(/\r\n/g, '\n')
+  const stop =
+    /^(?:Passenger\s+Name|Passengers?|Travell?ers?|Booking\s+Reference|PNR|e-?Ticket|Ticket\s+Number|Flight\s*:|Airline\s*:|From\s*:|To\s*:|Departure\s*:|Arrival\s*:|Cabin\s*:|Status\s*:|Notices?\s*\()/i
+
+  function takeBlock(labelRe: RegExp): string | null {
+    const m = raw.match(labelRe)
+    if (!m || m.index == null) return null
+    const after = raw.slice(m.index + m[0].length)
+    const lines: string[] = []
+    for (const line of after.split('\n')) {
+      const t = line.trimEnd()
+      if (stop.test(t.trim()) && lines.length > 0) break
+      if (stop.test(t.trim()) && lines.length === 0 && !t.trim()) continue
+      if (stop.test(t.trim()) && lines.length === 0) break
+      lines.push(t)
+    }
+    const body = lines.join('\n').replace(/^\n+/, '').replace(/\n+$/, '').trim()
+    return body || null
+  }
+
+  const noticesKo =
+    takeBlock(/Notices?\s*\(\s*KO\s*\)\s*[:：]?\s*/i) ||
+    takeBlock(/(?:주의\s*사항|참고\s*사항)\s*[:：]?\s*/) ||
+    null
+  const noticesEn =
+    takeBlock(/Notices?\s*\(\s*EN\s*\)\s*[:：]?\s*/i) ||
+    takeBlock(/(?:Important\s+Notices?|Remarks?|Conditions?(?:\s+of\s+Carriage)?)\s*[:：]?\s*/i) ||
+    null
+
+  // 한글 원문에 주의+참고가 따로 있으면 합침
+  if (!noticesKo) {
+    const juui = takeBlock(/주의\s*사항\s*[:：]?\s*/)
+    const chamgo = takeBlock(/참고\s*사항\s*[:：]?\s*/)
+    const parts = [juui, chamgo].filter(Boolean) as string[]
+    if (parts.length) {
+      return { noticesKo: parts.join('\n\n'), noticesEn }
+    }
+  }
+  return { noticesKo, noticesEn }
+}
+
 /** Gemini 항공 OCR `Flight :` 블록 → 세그먼트 (OTA Booking ID 불필요). */
 function parseAirOcrFlightBlocks(raw: string): OtaAirVoucherFlightSegment[] {
   const blocks = raw.split(/(?=^Flight\s*:)/im).filter((b) => /^Flight\s*:/im.test(b))
@@ -2047,7 +2103,8 @@ export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketPar
   // bookingRef = 항공사 PNR만 (OTA 예약번호 아님)
   if (!bookingRef) bookingRef = pnr
 
-  return { passengers, pnr, ticketNumber, bookingRef, flights }
+  const { noticesKo, noticesEn } = extractAirVoucherNoticesFromText(raw)
+  return { passengers, pnr, ticketNumber, bookingRef, flights, noticesKo, noticesEn }
 }
 
 /**
@@ -2142,6 +2199,8 @@ export function buildOtaCompanyAirVoucherDraft(args: {
     ticketNumber: args.parsed.ticketNumber,
     bookingRef: args.parsed.bookingRef || args.parsed.pnr,
     flights: args.parsed.flights,
+    noticesKo: args.parsed.noticesKo?.replace(/\r\n/g, '\n').trim() || null,
+    noticesEn: args.parsed.noticesEn?.replace(/\r\n/g, '\n').trim() || null,
     logoUrl: args.logoUrl?.trim() || resolveBongtourLogoUrl(),
     company: BONGTOUR_INVOICE_COMPANY,
     ...resolveOtaVoucherNotePair({ note: args.note, noteEnOverride: args.noteEnOverride }),
@@ -2179,6 +2238,9 @@ function renderAirVoucherBody(
   const noteText = isKo
     ? draft.note || null
     : draft.noteEn || (draft.note && !hasHangul(draft.note) ? draft.note : null)
+  const noticesText = isKo
+    ? draft.noticesKo || draft.noticesEn || null
+    : draft.noticesEn || draft.noticesKo || null
   const L = isKo
     ? {
         title: '항공권 바우처',
@@ -2187,6 +2249,7 @@ function renderAirVoucherBody(
         ticket: '항공권 번호',
         guest: '승객',
         flights: '항공 여정',
+        notices: '주의사항 · 참고사항',
         present: `본 바우처는 ${c.legalName} 항공 예약 확인용입니다.`,
         note: '비고',
         footer: `사업자등록 ${c.businessRegistrationNo} · 관광사업자 ${c.tourismRegistrationNo}호 · 통신판매업 ${c.mailOrderNo}<br/>상담 ${c.phone} (${c.consultHours}) · ${c.email}`,
@@ -2203,6 +2266,7 @@ function renderAirVoucherBody(
         ticket: 'E-ticket number',
         guest: 'Passenger(s)',
         flights: 'Itinerary',
+        notices: 'Notices · Remarks',
         present: `This voucher confirms a ${c.brandName} flight reservation.`,
         note: 'Notes',
         footer: `Business Reg. ${c.businessRegistrationNo} · Tourism business ${c.tourismRegistrationNo} · E-commerce sales report ${c.mailOrderNoEn}<br/>Contact ${c.phone} (${c.consultHoursEn}) · ${c.email}`,
@@ -2254,6 +2318,14 @@ function renderAirVoucherBody(
   </div>
   <div class="muted" style="margin-top:16px;font-weight:700">${escapeHtml(L.flights)}</div>
   ${flightRows}
+  ${
+    noticesText
+      ? `<div class="box" style="margin-top:16px">
+    <div class="muted" style="font-weight:700;margin-bottom:8px">${escapeHtml(L.notices)}</div>
+    <div style="white-space:pre-wrap;font-size:12px;line-height:1.45">${escapeHtml(noticesText)}</div>
+  </div>`
+      : ''
+  }
   <div class="muted" style="margin-top:16px">${escapeHtml(L.present)}</div>
   ${noteText ? `<p style="margin-top:16px"><strong>${escapeHtml(L.note)}</strong> ${escapeHtml(noteText)}</p>` : ''}
   <div class="footer">${L.footer}</div>`

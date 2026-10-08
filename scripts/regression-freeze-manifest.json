@@ -24696,6 +24696,10 @@
             "buildOtaCompanyAirVoucherDraft",
             "formatAirVoucherPassengerNames",
             "extractAirVoucherPassengerNamesFromText",
+            "extractAirVoucherNoticesFromText",
+            "noticesKo",
+            "noticesEn",
+            "주의사항 · 참고사항",
             "parseAdminAirlineEticketText",
             "renderOtaCompanyAirVoucherHtml",
             "항공권 바우처"
@@ -24707,7 +24711,10 @@
             "REGRESSION-FREEZE[admin-ota-air-voucher]",
             "extractAirlineEticketPdfTextViaGemini",
             "isUsableExtractedPdfText",
-            "Passenger Name"
+            "Passenger Name",
+            "Notices (KO)",
+            "Notices (EN)",
+            "주의사항"
           ]
         },
         {
@@ -24735,8 +24742,10 @@
             "REGRESSION-FREEZE[admin-ota-air-voucher]",
             "formatAirVoucherPassengerNames",
             "extractAirVoucherPassengerNamesFromText",
+            "extractAirVoucherNoticesFromText",
             "name is on the next OCR line",
             "real OCR sample shape",
+            "renders e-ticket notices and remarks",
             "no OTA / Trip.com / Agoda"
           ]
         }

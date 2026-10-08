@@ -867,8 +867,19 @@ export default function OtaInvoiceAdminClient() {
                   .join(' · ')
               : '—'}
           </p>
+          {airVoucherDraft.noticesKo || airVoucherDraft.noticesEn ? (
+            <p className="whitespace-pre-wrap text-xs text-zinc-700">
+              주의·참고:{' '}
+              {(airVoucherDraft.noticesKo || airVoucherDraft.noticesEn || '').slice(0, 240)}
+              {(airVoucherDraft.noticesKo || airVoucherDraft.noticesEn || '').length > 240
+                ? '…'
+                : ''}
+            </p>
+          ) : (
+            <p className="text-xs text-zinc-500">주의사항·참고사항: e-ticket 원문에 있으면 바우처에 포함</p>
+          )}
           <p className="text-xs text-zinc-600">
-            OTA 예약번호·OTA 로고/명칭 없음 · 항공사 PNR·편명만 표시
+            OTA 예약번호·OTA 로고/명칭 없음 · 항공사 PNR·편명·주의/참고사항 표시
           </p>
           {html ? (
             <iframe

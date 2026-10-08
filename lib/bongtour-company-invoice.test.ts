@@ -10,6 +10,7 @@ import {
   buildOtaCompanyInvoiceDraft,
   computeInvoiceProfitKrw,
   computeVoucherTotalUsdFromNightRate,
+  extractAirVoucherNoticesFromText,
   extractAirVoucherPassengerNamesFromText,
   formatAirVoucherPassengerNames,
   joinOtaVoucherUploadTexts,
@@ -661,6 +662,8 @@ describe('admin-ota-air-voucher', () => {
             status: null,
           },
         ],
+        noticesKo: null,
+        noticesEn: null,
       },
       guestNameOverride: 'KIM/MINSU, LEE/JIYOON',
       now: new Date('2026-10-05T00:00:00.000Z'),
@@ -698,6 +701,8 @@ describe('admin-ota-air-voucher', () => {
             status: 'OK',
           },
         ],
+        noticesKo: null,
+        noticesEn: null,
       },
       now: new Date('2026-10-05T00:00:00.000Z'),
     })
@@ -816,6 +821,46 @@ Cabin : Economy
     expect(html).not.toContain('Trip.com')
     expect(html).not.toContain('Agoda')
     expect(html).not.toContain('OTA (예약처)')
+  })
+
+  it('renders e-ticket notices and remarks on air voucher HTML', () => {
+    const ocr = `
+Passenger Name : JEONGWOO LEE
+Booking Reference : ZQJGHT
+Flight : KE2005
+Airline : Korean Air
+From : ICN
+To : HKG
+Departure : 1:35 PM, January 14, 2027
+Arrival : 4:50 PM, January 14, 2027
+Cabin : Economy T
+Notices (KO) :
+주의사항
+- 출발 60분 전 탑승수속 마감
+참고사항
+- 수하물 1인 23kg
+Notices (EN) :
+Important Notice
+- Check-in closes 60 minutes before departure
+Remarks
+- Baggage allowance 23kg per passenger
+`
+    const parsed = parseAdminAirlineEticketText(ocr)
+    expect(parsed.noticesKo).toMatch(/출발 60분/)
+    expect(parsed.noticesKo).toMatch(/수하물/)
+    expect(parsed.noticesEn).toMatch(/Check-in closes/)
+    expect(extractAirVoucherNoticesFromText(ocr).noticesEn).toMatch(/Baggage allowance/)
+    const draft = buildOtaCompanyAirVoucherDraft({
+      parsed,
+      now: new Date('2026-10-05T00:00:00.000Z'),
+    })
+    const htmlKo = renderOtaCompanyAirVoucherHtml(draft, 'ko')
+    const htmlEn = renderOtaCompanyAirVoucherHtml(draft, 'en')
+    expect(htmlKo).toContain('주의사항 · 참고사항')
+    expect(htmlKo).toContain('출발 60분 전 탑승수속 마감')
+    expect(htmlEn).toContain('Notices · Remarks')
+    expect(htmlEn).toContain('Check-in closes 60 minutes before departure')
+    expect(htmlKo).not.toContain('OTA (예약처)')
   })
 
   it('keeps all 8 passengers from multi-pax KE e-ticket OCR (모임1 shape)', () => {
