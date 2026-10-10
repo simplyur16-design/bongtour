@@ -129,7 +129,7 @@ const JAPAN_HALLUCINATION_ON_NON_JAPAN_DEST_RE =
 const ASIA_PACIFIC_HALLUCINATION_ON_NON_ASIA_DEST_RE =
   /\b(Phuket|Pattaya|Bangkok|Bali|Hoi\s*An|Da\s*Nang|Chiang\s*Mai|Singapore|Maldives|Nha\s*Trang)\b/i
 
-// REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 에티오피아≠상파울로 — manifest
+// REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 에티오피아≠상파울로 — Sao Paulo Americas hallucination — manifest
 const AMERICAS_HALLUCINATION_ON_NON_AMERICAS_RE =
   /\b(Christ\s*the\s*Redeemer|Griffith\s*Observatory|Los\s*Angeles|Hollywood\s*Sign|Golden\s*Gate|Statue\s*of\s*Liberty|Times\s*Square|Grand\s*Canyon|Niagara\s*Falls|Glacier\s*Bay|Alaska|Space\s*Needle|Pike\s*Place|Sao\s*Paulo|São\s*Paulo|Paulista|Ibirapuera|\bMASP\b|Rio\s*de\s*Janeiro|Buenos\s*Aires|Iguazu|Machu\s*Picchu|Miraflores|Plaza\s*Mayor)\b|상파울로|상\s*파울로/i
 
