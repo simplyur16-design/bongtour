@@ -517,6 +517,72 @@ describe('register-pre-photo-self-heal', () => {
     assert.match(String(d2.imageKeyword ?? ''), /El Gouna|Red Sea desert safari/i)
   })
 
+  // REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 에티오피아≠상파울로 — manifest
+  it('에티오피아 일정에 상파울로 키워드는 검증 실패이고 힐이 아디스 동선으로 되돌린다', () => {
+    assert.equal(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Sao Paulo Cathedral',
+        '에티오피아',
+        [{ routeText: '아디스아바바 - 메스케л 광장', title: '', description: '' }],
+      ),
+      true,
+    )
+    assert.equal(
+      isRegisterScheduleCrossContinentHallucinationKeyword(
+        'Sao Paulo Paulista Avenue',
+        '에티오피아 아디스아바바',
+        [{ routeText: '엔토토 산', title: '에티오피아', description: '' }],
+      ),
+      true,
+    )
+    const rows = [
+      {
+        day: 1,
+        routeText: '아디스아바바',
+        imageKeyword: 'Sao Paulo Cathedral',
+        description: '아디스아바바에 도착합니다. 첫날 이동을 맞춥니다.',
+      },
+      {
+        day: 2,
+        routeText: '아디스아바바 - 메스케르 광장 - 엔토토',
+        imageKeyword: 'Sao Paulo Paulista Avenue',
+        imageKeyword2: 'Paulista Avenue Sao Paulo',
+        description: '아디스 시내와 엔토토를 둘러봅니다. 에티오피아 일정을 이어갑니다.',
+      },
+      {
+        day: 3,
+        routeText: '아디스아바바',
+        imageKeyword: '',
+        description: '인천으로 귀국합니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const before = verifyRegisterPrePhoto({
+      lane: 'package',
+      productDestination: '에티오피아',
+      productTitle: '에티오피아 아디스아바바 5일',
+      rows,
+    })
+    assert.equal(before.ok, false)
+    const out = healRegisterPrePhotoSchedule(rows, {
+      supplierKey: 'hanatour',
+      productDestination: '에티오피아',
+      productTitle: '에티오피아 아디스아바바 5일',
+    })
+    for (const r of out.rows) {
+      assert.doesNotMatch(String(r.imageKeyword ?? ''), /Sao\s*Paulo|Paulista|상파울/i)
+      assert.doesNotMatch(String(r.imageKeyword2 ?? ''), /Sao\s*Paulo|Paulista|상파울/i)
+    }
+    const d2 = out.rows.find((r) => r.day === 2)!
+    assert.match(String(d2.imageKeyword ?? ''), /Addis|Meskel|Entoto|Trinity|National Museum/i)
+    const live = verifyRegisterPrePhoto({
+      lane: 'package',
+      productDestination: '에티오피아',
+      productTitle: '에티오피아 아디스아바바 5일',
+      rows: out.rows,
+    })
+    assert.equal(live.ok, true)
+  })
+
   it('장가계 귀국일 쿠알라룸푸르는 제거해도 검증이 통과한다', () => {
     const out = healRegisterPrePhotoSchedule(
       [

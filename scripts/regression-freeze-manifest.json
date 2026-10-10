@@ -11787,6 +11787,9 @@
             "Santorini",
             "Kuala Lumpur",
             "Place Massena",
+            "Sao Paulo",
+            "에티오피아≠상파울로",
+            "tripHayHasAmericasVisit",
             "ASIA_PACIFIC_HALLUCINATION_ON_NON_ASIA_DEST_RE"
           ]
         },
@@ -11802,7 +11805,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]",
             "refillFitKeywordFromDayRoute",
-            "allowHotelLodging"
+            "allowHotelLodging",
+            "에티오피아≠상파울로",
+            "Addis Ababa Ethiopia skyline"
           ]
         },
         {
@@ -11831,7 +11836,9 @@
             "Great Sphinx of",
             "Carbonara",
             "Phuket",
-            "Place Massena Nice"
+            "Place Massena Nice",
+            "에티오피아 일정에 상파울로",
+            "Sao Paulo Cathedral"
           ]
         }
       ],

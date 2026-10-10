@@ -932,13 +932,23 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Iguazu Falls Argentina boardwalk',
     ]
   }
-  if (/리마|Lima|상파울|Sao\s*Paulo|빅토리아\s*폴스|Victoria\s*Falls/i.test(hay)) {
+  // REGRESSION-FREEZE[register-pre-photo-verify-heal-off-trip-keyword]: 에티오피아≠상파울로 — Lima/Sao Paulo/Victoria Falls 팩 분리 — manifest
+  if (/리마|Lima/i.test(hay) && !/빅토리아\s*폴스|Victoria\s*Falls|상파울|Sao\s*Paulo/i.test(hay)) {
+    return ['Lima Miraflores boardwalk Peru', 'Lima Plaza Mayor colonial']
+  }
+  if (/상파울|Sao\s*Paulo|São\s*Paulo/i.test(hay)) {
+    return ['Sao Paulo Paulista Avenue', 'Sao Paulo Cathedral', 'Ibirapuera Park Sao Paulo']
+  }
+  if (/빅토리아\s*폴스|Victoria\s*Falls/i.test(hay)) {
+    return ['Victoria Falls Waterfall Panorama', 'Victoria Falls Livingstone Zambia']
+  }
+  if (/아디스|Addis\s*Ababa|에티오피아|Ethiopia|메스케л|Meskel|엔토토|Entoto/i.test(hay)) {
     return [
-      'Lima Miraflores boardwalk Peru',
-      'Lima Plaza Mayor colonial',
-      'Sao Paulo Paulista Avenue',
-      'Victoria Falls Waterfall Panorama',
-      'Victoria Falls Livingstone Zambia',
+      'Addis Ababa Ethiopia skyline',
+      'Holy Trinity Cathedral Addis Ababa',
+      'National Museum Addis Ababa',
+      'Entoto Mountain Addis Ababa',
+      'Meskel Square Addis Ababa',
     ]
   }
   return []
