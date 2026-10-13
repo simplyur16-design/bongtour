@@ -320,12 +320,12 @@ export async function healPendingRegisterPrePhoto(
           const prev = mappedByDay.get(Number(h.day))
           return {
             day: Number(h.day),
-            title: h.title,
-            description: h.description,
-            routeText: h.routeText,
-            imageKeyword: h.imageKeyword,
-            imageKeyword2: h.imageKeyword2,
-            imageUrl: h.imageUrl,
+            title: h.title ?? null,
+            description: h.description ?? null,
+            routeText: h.routeText ?? null,
+            imageKeyword: h.imageKeyword ?? null,
+            imageKeyword2: h.imageKeyword2 ?? null,
+            imageUrl: h.imageUrl ?? null,
             hotelText: prev?.hotelText ?? null,
             breakfastText: prev?.breakfastText ?? null,
             lunchText: prev?.lunchText ?? null,
@@ -386,16 +386,17 @@ export async function healPendingRegisterPrePhoto(
         healed: ReturnType<typeof healRegisterPrePhotoSchedule>['rows'],
       ) => {
         const mealByDay = new Map(verifyRows.map((r) => [Number(r.day), r]))
+        // REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]: heal row → verifyRows null coalesce — manifest
         verifyRows = healed.map((h) => {
           const prev = mealByDay.get(Number(h.day))
           return {
             day: Number(h.day),
-            title: h.title,
-            description: h.description,
-            routeText: h.routeText,
-            imageKeyword: h.imageKeyword,
-            imageKeyword2: h.imageKeyword2,
-            imageUrl: h.imageUrl,
+            title: h.title ?? null,
+            description: h.description ?? null,
+            routeText: h.routeText ?? null,
+            imageKeyword: h.imageKeyword ?? null,
+            imageKeyword2: h.imageKeyword2 ?? null,
+            imageUrl: h.imageUrl ?? null,
             hotelText: prev?.hotelText ?? null,
             breakfastText: prev?.breakfastText ?? null,
             lunchText: prev?.lunchText ?? null,
