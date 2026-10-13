@@ -12599,7 +12599,17 @@
             "isRegisterPendingFreeItineraryDay",
             "hasRegisterFreeDayRecommendedItinerary",
             "isRegisterScheduleMovementOrTransitDay",
-            "제목 자유일정만 추천일정"
+            "제목 자유일정만 추천일정",
+            "bare dest soft-alt ≠ owned landmark",
+            "includeCitySoftAlt: false"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-text-image-keyword-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]",
+            "bare dest soft-alt ≠ owned landmark",
+            "includeCitySoftAlt"
           ]
         },
         {
@@ -12627,6 +12637,14 @@
             "packageScheduleNeedsFreeDayRecommendedItinerary",
             "dest-filled free day no skip",
             "promote kw2 after strip"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]",
+            "괌 4일 #1일 자유일정",
+            "dest 키워드만 있으면 추천일정이 필요해서 confirm 스킵 대상이 아니다"
           ]
         },
         {
@@ -12977,9 +12995,15 @@
           "file": "scripts/listing_discover_modetour/main.py",
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-playwright]",
-            "PAUSE_MS_MIN = 11000",
-            "async_playwright",
+            "REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]",
+            "PAUSE_MS_MIN = 18000",
+            "B2C_PAUSE_MS_MIN = 14000",
+            "SearchProductMaster",
             "stdin.buffer.read()"
+          ],
+          "mustNotInclude": [
+            "async_playwright",
+            "chromium.launch(headless=True, args=launch_args)"
           ]
         },
         {
@@ -16446,12 +16470,12 @@
             "Brisbane·Gold Coast bare→soft",
             "Crete bare day→Knossos soft",
             "Awaji·Kobe soft-alt",
+            "bare 하버랜드≠Kobe (빈펄 하버랜드)",
             "Bangkok golf Artitaya soft",
             "Patagonia·Puerto Natales soft",
             "Baekdu·Changbai soft",
             "Guam mall·beach soft",
             "Toyama departure soft",
-            "향사완 Hangul → Xiangshawan own-route",
             "Enshi canyon soft",
             "bare 워터파크·PIC≠Saipan soft-alt",
             "bare 와이너리≠Tuscany soft-alt",
@@ -16482,7 +16506,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "빈펄 사파리 → Phu Quoc Vinpearl (≠Serengeti)",
-            "세부일정≠Cebu POI"
+            "세부일정≠Cebu POI",
+            "향사완 Hangul → Xiangshawan own-route"
           ]
         },
         {
@@ -16554,6 +16579,7 @@
             "bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미)",
             "Crete bare day→Knossos soft",
             "Awaji·Kobe soft-alt",
+            "bare 하버랜드≠Kobe (빈펄 하버랜드)",
             "Bangkok golf Artitaya soft",
             "Kunming·Changsha·Zhengzhou·Guangzhou bare→soft",
             "Patagonia·Puerto Natales soft",

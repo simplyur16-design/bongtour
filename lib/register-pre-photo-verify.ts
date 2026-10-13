@@ -393,8 +393,17 @@ export function isRegisterPendingFreeItineraryDay(
 ): boolean {
   if (isRegisterScheduleMovementOrTransitDay(row)) return false
   if (!productOrDayTitleHasFreeItineraryLabel(opts?.productTitle, row.title)) return false
-  if (collectRouteTextOrderedLandmarkKeywords(row.routeText).length > 0) return false
-  if (collectRouteTextOrderedLandmarkKeywords(row.description).length > 0) return false
+  // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: bare dest soft-alt ≠ owned landmark — manifest
+  if (
+    collectRouteTextOrderedLandmarkKeywords(row.routeText, { includeCitySoftAlt: false }).length > 0
+  ) {
+    return false
+  }
+  if (
+    collectRouteTextOrderedLandmarkKeywords(row.description, { includeCitySoftAlt: false }).length > 0
+  ) {
+    return false
+  }
   const tourismSegs = splitRouteTextPlaceSegments(row.routeText)
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)
@@ -405,7 +414,12 @@ export function isRegisterPendingFreeItineraryDay(
 /** 제목에 추천일정(반나절·1day)이 있고 동선에 관광 스팟이 있으면 제미나이 추천일정이 들어간 것이다. */
 export function hasRegisterFreeDayRecommendedItinerary(row: RegisterPrePhotoHealRow): boolean {
   if (!/추천일정/.test(String(row.title ?? ''))) return false
-  if (collectRouteTextOrderedLandmarkKeywords(row.routeText).length > 0) return true
+  // soft-alt 확장만으로는 추천일정이 채워진 것이 아님
+  if (
+    collectRouteTextOrderedLandmarkKeywords(row.routeText, { includeCitySoftAlt: false }).length > 0
+  ) {
+    return true
+  }
   const segs = splitRouteTextPlaceSegments(row.routeText)
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)

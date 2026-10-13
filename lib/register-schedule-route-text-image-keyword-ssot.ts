@@ -206,11 +206,18 @@ export function collectRouteTextSpotScanLandmarkKeywords(routeText: string | nul
 }
 
 /** routeText — 명소·랜드마크 세그먼트 + 전체 regex 스캔(세그먼트 순서 우선) + 도시 soft-alt */
-export function collectRouteTextOrderedLandmarkKeywords(routeText: string | null | undefined): string[] {
+export function collectRouteTextOrderedLandmarkKeywords(
+  routeText: string | null | undefined,
+  opts?: { includeCitySoftAlt?: boolean },
+): string[] {
   const fromSegments = collectRouteTextKeywords(routeText, { allowCity: false })
   const fromScan = collectRouteTextSpotScanLandmarkKeywords(routeText)
   // REGRESSION-FREEZE[register-schedule-forbidden-city-route-evidence]: city soft-alt trip SSOT — manifest
-  const fromSoft = collectRegisterScheduleCitySoftAltKeywords(String(routeText ?? ''))
+  // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: bare dest soft-alt ≠ owned landmark — manifest
+  const fromSoft =
+    opts?.includeCitySoftAlt === false
+      ? []
+      : collectRegisterScheduleCitySoftAltKeywords(String(routeText ?? ''))
   const out: string[] = []
   const seen = new Set<string>()
   for (const kw of [...fromSegments, ...fromScan, ...fromSoft]) {

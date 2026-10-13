@@ -159,6 +159,15 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(
       collectRegisterScheduleCitySoftAltKeywords('아와지 하나사지키').some((a) => /Hanasajiki|Awaji/i.test(a)),
     ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 하버랜드≠Kobe (빈펄 하버랜드) — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('달랏 - 나트랑 - 빈펄 하버랜드').some((a) =>
+        /Awaji|Hanasajiki|Kobe|Himeji/i.test(a),
+      ),
+    ).toBe(false)
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('고베 하버랜드').some((a) => /Kobe Harborland|Harborland/i.test(a)),
+    ).toBe(true)
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok golf Artitaya soft — manifest
     expect(
       collectRegisterScheduleCitySoftAltKeywords('방콕 아티타야 골프').some((a) => /Artitaya|golf/i.test(a)),

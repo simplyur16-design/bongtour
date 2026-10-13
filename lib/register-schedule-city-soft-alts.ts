@@ -301,8 +301,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Awaji·Kobe soft-alt — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 하버랜드≠Kobe (빈펄 하버랜드) — manifest
   {
-    cityRe: /아와지|Awaji|하나사지키|Hanasajiki|고베|Kobe|누노비키|Nunobiki|하버랜드|Harborland|히메지|Himeji/i,
+    cityRe:
+      /아와지|Awaji|하나사지키|Hanasajiki|고베|Kobe|누노비키|Nunobiki|히메지|Himeji|(?:고베|Kobe).{0,24}(?:하버랜드|Harborland)|(?:하버랜드|Harborland).{0,24}(?:고베|Kobe)/i,
     alts: [
       'Awaji Hanasajiki flower fields',
       'Awaji Yumebutai garden',

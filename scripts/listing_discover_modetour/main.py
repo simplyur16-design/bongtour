@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """modetour 목록 — 사람처럼 검색·대기. 전 공급사 공통 딜레이 SSOT 아님."""
-# REGRESSION-FREEZE[register-listing-discover-playwright]: modetour listing Playwright — manifest
+# REGRESSION-FREEZE[register-listing-discover-playwright]: modetour listing B2C (SearchProductMaster) · 사람 간격 — manifest
 # REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: listingMenu FIT/PKG — manifest
 # REGRESSION-FREEZE[register-listing-discover-no-seed-detail]: search list only — no /package/{id} seed — manifest
 # REGRESSION-FREEZE[register-listing-discover-human-pace]: B2C 사람 간격 · 설치 Chrome 채널 금지 — manifest
