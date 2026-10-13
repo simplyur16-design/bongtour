@@ -23933,7 +23933,10 @@
             "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
             "isRegisterIngestDomesticKoreaProduct",
             "REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON",
-            "domestic_korea_rejected"
+            "domestic_korea_rejected",
+            "대청도≠중국 청도",
+            "화천·충북·백령·대청도 당일",
+            "countryKey korea 차단"
           ]
         },
         {
@@ -23942,7 +23945,8 @@
             "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
             "isRegisterIngestDomesticKoreaProduct",
             "REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON",
-            "schedule_facts_empty"
+            "schedule_facts_empty",
+            "countryKey"
           ]
         },
         {
@@ -23958,7 +23962,10 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
             "rejects clear domestic packages",
-            "keeps overseas even with 제주항공 or 부산출발"
+            "keeps overseas even with 제주항공 or 부산출발",
+            "대청도≠중국 청도",
+            "화천·충북·백령·대청도 당일",
+            "countryKey korea 차단"
           ]
         }
       ],

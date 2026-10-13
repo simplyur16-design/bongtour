@@ -97,8 +97,8 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
       args.themeHintKeys,
     )
 
-    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 팩트 제목으로 차단 — manifest
-    if (isRegisterIngestDomesticKoreaProduct(bundle?.title ?? text)) {
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 팩트 제목·본문으로 차단 — manifest
+    if (isRegisterIngestDomesticKoreaProduct([bundle?.title, text].filter(Boolean).join('\n'))) {
       console.error(
         '[register-pre-photo-ingest-confirm]',
         REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON,
@@ -173,10 +173,13 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
     productId = confirm.json.productId
     const created = await prisma.product.findUnique({
       where: { id: productId },
-      select: { title: true, originCode: true, destination: true },
+      select: { title: true, originCode: true, destination: true, countryKey: true },
     })
-    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: confirm 후 저장 제목·목적지 재확인 — manifest
-    if (created && isRegisterIngestDomesticKoreaProduct(created.title, created.destination)) {
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: confirm 후 제목·목적지·countryKey 재확인 — manifest
+    if (
+      created &&
+      isRegisterIngestDomesticKoreaProduct(created.title, created.destination, created.countryKey)
+    ) {
       console.error(
         '[register-pre-photo-ingest-confirm]',
         REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON,

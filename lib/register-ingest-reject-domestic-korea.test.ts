@@ -22,6 +22,33 @@ describe('register-ingest-reject-domestic-korea', () => {
     ).toBe(true)
     expect(isRegisterIngestDomesticKoreaProduct('충북 제천 골프 2일 #36홀 #세레니티CC')).toBe(true)
     expect(isRegisterIngestDomesticKoreaProduct('강원 원주 골프 2일 #동강시스타CC')).toBe(true)
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 화천·충북·백령·대청도 당일 — manifest
+    expect(
+      isRegisterIngestDomesticKoreaProduct(
+        '[부산출발] 강원/화천 1일 #DMZ평화의길 #파로호보트 #평화의댐 #거례리수목공원',
+        '강원',
+      ),
+    ).toBe(true)
+    expect(
+      isRegisterIngestDomesticKoreaProduct(
+        '[연합상품] 옥천/청주/보은 2일 #충북웰니스 #수생식물학습원 #법주사 #청남대',
+        '수생식물학습원 · 부소담악 외',
+      ),
+    ).toBe(true)
+    expect(
+      isRegisterIngestDomesticKoreaProduct(
+        '[연합상품]청주/대전 당일 #대청호 #청남대 #계족산황톳길 #명상정원',
+      ),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 대청도≠중국 청도 — manifest
+    expect(
+      isRegisterIngestDomesticKoreaProduct(
+        '[연합상품][인천항] 백령도,대청도 3일 #두무진유람선 #국가지질명소탐방',
+        '백령도',
+      ),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: countryKey korea 차단 — manifest
+    expect(isRegisterIngestDomesticKoreaProduct('아무 제목', null, 'korea')).toBe(true)
   })
 
   it('keeps overseas even with 제주항공 or 부산출발', () => {
