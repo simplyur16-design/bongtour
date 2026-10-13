@@ -16812,7 +16812,9 @@
             "lunchText: row.lunchText",
             "dinnerText: row.dinnerText",
             "mealSummaryText: row.mealSummaryText",
-            "hotelText: prev?.hotelText"
+            "hotelText: prev?.hotelText",
+            "heal row → verifyRows null coalesce",
+            "title: h.title ?? null"
           ]
         }
       ]
