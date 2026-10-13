@@ -592,6 +592,8 @@ function isModetourWeakBaselineTitleText(text: string): boolean {
   if (isModetourHotelGradeDurationOnlyTitleText(t)) return true
   if (isModetourVisaPolicyNoticeTitleText(t)) return true
   if (/패키지\s*[>›|]|상품\s*상세/i.test(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-product-title-day-leak]: 사이트 브랜드 ≠ listing — manifest
+  if (/^여행은\s*모두투어$|^모두투어$|^MODE\s*TOUR$/i.test(t)) return true
   if (/^[A-Z]{2,5}\d{3,12}[A-Z0-9]{0,10}\s*[>›|]/i.test(t)) return true
   if (/^\d{4}-\d{2}-\d{2}\s+[A-Za-z0-9][A-Za-z0-9\-]{4,}$/.test(t)) return true
   if (/^\d{4}[./-]\d{2}[./-]\d{2}\s+[A-Za-z0-9][A-Za-z0-9\-]{4,}$/.test(t)) return true
@@ -729,12 +731,28 @@ function extractBaselineFromDetailHtml(html: string | null, productNo: string | 
   const docTitleRaw = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
   if (docTitleRaw?.trim()) {
     const dt = normalizeBaselineRaw(stripTags(docTitleRaw))
-    if (dt && !isModetourDocumentTitleLikelyContaminated(docTitleRaw)) {
+    const docContaminated =
+      Boolean(dt) &&
+      (isModetourDocumentTitleLikelyContaminated(docTitleRaw) ||
+        isModetourDocumentTitleLikelyContaminated(dt))
+    if (dt && !docContaminated) {
       candidates.push({ source: 'document.title', raw: dt })
     } else if (dt) {
-      console.info(
-        `[MODETOUR_BASELINE_REJECTED] source=document.title reason=likely_breadcrumb_or_contaminated raw=${JSON.stringify(dt.slice(0, 200))}`
+      // REGRESSION-FREEZE[register-pre-photo-product-title-day-leak]: breadcrumb document.title → clean 후 채택 — manifest
+      const cleanedDoc = normalizeSupplierRegisterListingTitle(
+        cleanModetourBaselineTitleSource(dt, productNo),
       )
+      if (
+        cleanedDoc &&
+        !isModetourWeakBaselineTitleText(cleanedDoc) &&
+        modetourBaselineTitleHasProductSignals(cleanedDoc)
+      ) {
+        candidates.push({ source: 'document.title', raw: cleanedDoc })
+      } else {
+        console.info(
+          `[MODETOUR_BASELINE_REJECTED] source=document.title reason=likely_breadcrumb_or_contaminated raw=${JSON.stringify(dt.slice(0, 200))} cleaned=${JSON.stringify(cleanedDoc.slice(0, 200))}`,
+        )
+      }
     }
   }
 

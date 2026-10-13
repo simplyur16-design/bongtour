@@ -1,16 +1,19 @@
 /**
- * modetour 목록 — Playwright. 전 공급사 공통 딜레이 SSOT 아님.
+ * modetour 목록 — B2C API(SearchThemeAndLocalKey→SearchProductMaster) + human pace.
  * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: modetour search HTML — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: listing_discover_modetour — manifest
  * REGRESSION-FREEZE[register-listing-discover-no-seed-detail]: search list only — manifest
  * REGRESSION-FREEZE[register-listing-discover-human-pace]: bundled Chromium · 공급사 자체 간격 — manifest
  * REGRESSION-FREEZE[register-listing-discover-human-search-not-404]: 홈 검색함 · /search 404 금지 — manifest
+ * REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]: computedProductCode → /package/{code} — manifest
  */
 import { spawnListingDiscoverPython } from '@/lib/register-listing-discover-spawn'
 
-export const MODETOUR_LISTING_PAUSE_MS_MIN = 11000
-export const MODETOUR_LISTING_PAUSE_MS_MAX = 17000
-export const MODETOUR_LISTING_PAGES_PER_BROWSER = 2
+/** 사람 리듬 — 슬롯·세션 간격. 공통 스크래퍼 SSOT 아님. */
+export const MODETOUR_LISTING_PAUSE_MS_MIN = 18000
+export const MODETOUR_LISTING_PAUSE_MS_MAX = 28000
+/** 세션당 1슬롯 — B2C 연타·confirm 연타 완화 */
+export const MODETOUR_LISTING_PAGES_PER_BROWSER = 1
 export const MODETOUR_LISTING_PLAYWRIGHT_TIMEOUT_MS = 400_000
 export const MODETOUR_LISTING_DISCOVER_MODULE = 'scripts.listing_discover_modetour.main'
 
@@ -18,10 +21,21 @@ export function buildModetourDetailUrl(productNo: string): string {
   return `https://www.modetour.com/package/${encodeURIComponent(productNo)}`
 }
 
-/** 마케팅 문장 대신 도시·나라 한 토막. */
+const MODETOUR_HOME_SEARCH_WORDS = new Set([
+  '부산출발',
+  '대구출발',
+  '청주출발',
+  '골프',
+  '러닝',
+  '트레킹',
+  '다이빙',
+])
+
+/** 마케팅 문장 대신 도시·나라 한 토막. 지방출발·테마 키워드는 그대로. */
 // REGRESSION-FREEZE[register-listing-discover-human-search-not-404]: 짧은 검색어 — manifest
 export function modetourListingSearchWord(raw: string): string {
   let s = String(raw ?? '').trim()
+  if (MODETOUR_HOME_SEARCH_WORDS.has(s)) return s
   s = s.replace(/\([^)]*\)/g, ' ')
   for (const sep of ['·', ',', '/', '|', ' 외']) {
     if (s.includes(sep)) s = (s.split(sep)[0] ?? s).trim()
@@ -30,7 +44,7 @@ export function modetourListingSearchWord(raw: string): string {
   return (s.split(' ')[0] ?? '').slice(0, 12)
 }
 
-/** 상품 검색은 홈 검색함만. /search?keyword= 404 주소 없음. */
+/** 홈 검색함 진입점. 결과 SPA는 /package/overseas?keyword= … (/search 는 404). */
 export function buildModetourSearchUrl(_searchWord: string): string {
   return 'https://www.modetour.com/'
 }

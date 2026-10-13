@@ -30,6 +30,7 @@ import {
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
   isBrokenRegisterFitScheduleDescription,
+  isRegisterScheduleTransitHubPlace,
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
@@ -42,6 +43,8 @@ import {
   isAirlineCarrierImageKeyword,
   isBareCityOrCountryKeyword,
   isHotelLodgingImageKeyword,
+  isNonLandmarkFoodOrDiningImageKeyword,
+  isNonLandmarkSpaShoppingLoungeImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
 import {
   isRegisterPrePhotoPlaceLikeDestination,
@@ -148,21 +151,60 @@ function registerScheduleRouteIsLodgingOnly(routeText: string | null | undefined
   return segs.every((s) => isHotelLodgingImageKeyword(s))
 }
 
-/** 숙소-only 중간일 — 방문도시 soft-dup은 own-route 강제 예외 */
+/** 숙소·스파·식사·쇼핑 only 중간일 — 방문도시 soft-dup은 own-route 강제 예외 */
 // REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 호텔일 soft-dup — manifest
+// REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 스파·식사·쇼핑 only bare soft-dup — manifest
 export function registerScheduleLodgingOnlyAllowsSoftDupVisitCity(
   routeText: string | null | undefined,
   keyword: string | null | undefined,
 ): boolean {
   const kw = String(keyword ?? '').trim()
-  if (!kw || !registerScheduleRouteIsLodgingOnly(routeText)) return false
-  if (!isBareCityOrCountryKeyword(kw)) return false
-  return allowRouteRevisitBareVisitCitySoftDup(kw)
+  if (!kw || !isBareCityOrCountryKeyword(kw)) return false
+  if (!allowRouteRevisitBareVisitCitySoftDup(kw)) return false
+  if (registerScheduleRouteIsLodgingOnly(routeText)) return true
+  if (registerScheduleRouteIsSpaDiningShoppingOnly(routeText)) return true
+  return registerScheduleRouteIsLeisureActivityOnly(routeText)
+}
+
+/** 쇼핑·베이커리·공항 허브가 landmark 수집에 잡혀도 관광 POI로 보지 않음 */
+function routeLandmarkIsSpaDiningShoppingNoise(kw: string): boolean {
+  const s = String(kw ?? '').trim()
+  if (!s) return true
+  return (
+    isHotelLodgingImageKeyword(s) ||
+    isRegisterScheduleTransitHubPlace(s) ||
+    isNonLandmarkSpaShoppingLoungeImageKeyword(s) ||
+    isNonLandmarkFoodOrDiningImageKeyword(s) ||
+    /스파|\bSPA\b|마사지|네일|레스토랑|식당|씨푸드|seafood|베이커리|bakery|아울렛|outlet|면세|쇼핑|stores?|Dress\s*for\s*Less|Ross\s*Dress|ABC\s*Stores?|Leonard'?s|Inouye|Airport|핀놀루|Finolhu|타베마스|Tabemas|빅씨|Big\s*C|슈퍼센터|슈퍼마켓|렛츠|릴렉스|Relax|솜분/i.test(
+      s,
+    )
+  )
+}
+
+/** 스파·식사·쇼핑·공항면세만 — 관광 POI 없는 날 (FIT bare soft-dup 허용) */
+function registerScheduleRouteIsSpaDiningShoppingOnly(
+  routeText: string | null | undefined,
+): boolean {
+  const t = String(routeText ?? '').trim()
+  if (!t) return false
+  const landmarks = collectRouteTextOrderedLandmarkKeywords(t)
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Ross·ABC·공항 landmark 노이즈 ≠ 관광일 — manifest
+  if (landmarks.length > 0 && !landmarks.every(routeLandmarkIsSpaDiningShoppingNoise)) return false
+  const segs = splitRouteTextPlaceSegments(t)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2)
+  if (!segs.length) {
+    return /스파|\bSPA\b|마사지|네일|레스토랑|식당|씨푸드|seafood|베이커리|bakery|아울렛|outlet|면세|쇼핑|stores?|Dress\s*for\s*Less/i.test(
+      t,
+    )
+  }
+  return segs.every(routeLandmarkIsSpaDiningShoppingNoise)
 }
 
 /**
- * 숙소-only 중간일 — 상품 dest와 맞는 명소 키워드는 own-route 예외.
+ * 숙소·액티비티(패들·스파·쇼핑) only 중간일 — 상품 dest와 맞는 명소 키워드는 own-route 예외.
  * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 숙소일 dest 명소 허용 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 패들·네일 등 activity-only dest 명소 — manifest
  */
 export function registerScheduleLodgingAllowsDestLandmark(
   routeText: string | null | undefined,
@@ -171,9 +213,27 @@ export function registerScheduleLodgingAllowsDestLandmark(
 ): boolean {
   const kw = String(keyword ?? '').trim()
   const dest = String(destHay ?? '').trim()
-  if (!kw || !dest || !registerScheduleRouteIsLodgingOnly(routeText)) return false
+  if (!kw || !dest) return false
   if (isBareCityOrCountryKeyword(kw)) return false
+  const lodgingOrActivity =
+    registerScheduleRouteIsLodgingOnly(routeText) ||
+    registerScheduleRouteIsSpaDiningShoppingOnly(routeText) ||
+    registerScheduleRouteIsLeisureActivityOnly(routeText)
+  if (!lodgingOrActivity) return false
   return registerScheduleKeywordMatchesOwnDayRoute(dest, kw)
+}
+
+/** 패들보드·네일·케어 등 관광 POI 없는 레저 액티비티 날 */
+function registerScheduleRouteIsLeisureActivityOnly(
+  routeText: string | null | undefined,
+): boolean {
+  const t = String(routeText ?? '').trim()
+  if (!t) return false
+  if (collectRouteTextOrderedLandmarkKeywords(t).length > 0) return false
+  if (routeTextHasIdentifiableVisitPlace(t)) return false
+  return /패들보드|paddle|서핑|\bsurf\b|네일|마사지|일일\s*케어|토탈\s*케어|랜턴|루프탑|비치바|밍글링|물놀이|안전\s*수칙|안전수칙/i.test(
+    t,
+  )
 }
 
 export function registerScheduleDayRequiresPrimaryImageKeyword(
@@ -694,7 +754,8 @@ function fitScheduleIssues(
 // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: 미동부 제목 dest — manifest
 const DEST_FROM_TITLE_RE =
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: title 세부일정≠dest 세부 · 사파리·마이파리≠파리 — manifest
-  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|나트랑|달랏|연태|하와이|(?<![가-힣])파리(?![가-힣])|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|미동부|미서부|캐나다|시드니|코카서스|튀니지|서안|호이안|바나|위해|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드|그리스|튀르키예|터키|에게/u
+  // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 심천·인도 제목 dest — manifest
+  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|나트랑|달랏|연태|하와이|(?<![가-힣])파리(?![가-힣])|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|미동부|미서부|캐나다|시드니|코카서스|튀니지|서안|호이안|바나|위해|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드|그리스|튀르키예|터키|에게|심천|선전|深圳|(?<![가-힣])인도(?!네시아)/u
 
 /** dest 미지정·항공권 등 비장소일 때만 — 제목에 나온 지명을 dest로 쓴다. 제목은 지어내지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
@@ -716,6 +777,9 @@ export function inferRegisterPendingDestinationFromTitle(title: string): string 
   if (m[0] === '달랏') return '나트랑'
   if (m[0] === '미동부') return '미동부'
   if (m[0] === '미서부') return '미서부'
+  // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 선전/深圳 → 심천 — manifest
+  if (m[0] === '선전' || m[0] === '深圳') return '심천'
+  if (m[0] === '인도') return '인도'
   return m[0]
 }
 
@@ -808,6 +872,7 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('product_country_key_missing') ||
     issue.includes('title_hub_poison') ||
     issue.includes('title_operational_placeholder') ||
+    issue.includes('terms_clause') ||
     issue === 'aurora_primary_keyword_missing' ||
     issue === 'schedule_empty'
   )
@@ -829,6 +894,24 @@ export function scheduleDayTitlePoisonIssues(
     if (/^상세보기$/i.test(title)) {
       issues.push(`day${day}_title_operational_placeholder`)
       continue
+    }
+    // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: day title·route 위약금·상세보기 금지 — manifest
+    if (/위약금|특약에\s*따라|^상세보기$/i.test(title) || /소요\s*시간/.test(title)) {
+      issues.push(`day${day}_title_terms_clause`)
+    }
+    const route = String(row.routeText ?? '').trim()
+    if (
+      /위약금|특약에\s*따라|^상세보기$/i.test(route) ||
+      /(?:^|\s-\s)상세보기(?:\s-|$)/i.test(route) ||
+      /소요\s*시간/.test(route)
+    ) {
+      issues.push(`day${day}_route_terms_clause`)
+    }
+    const desc = String(row.description ?? '')
+    if (
+      /위약금|특약에\s*따라\s*위약금|상세보기에서\s*(?:도착|첫날)|소요\s*시간\s*[:：]/.test(desc)
+    ) {
+      issues.push(`day${day}_description_terms_clause`)
     }
     if (/쿠알라룸푸르|kuala\s*lumpur/i.test(title) && ck !== 'malaysia') {
       const dayBody = `${row.routeText ?? ''}\n${row.description ?? ''}`

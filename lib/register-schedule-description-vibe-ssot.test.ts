@@ -15,7 +15,11 @@ import {
   registerScheduleKeywordPassesTripRouteTextSsot,
   sanitizeRegisterScheduleImageKeywordsFromRouteEvidence,
 } from '@/lib/register-schedule-route-evidence-keyword'
-import { isRegisterScheduleCrossContinentHallucinationKeyword, inferRegisterEffectiveProductDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
+import {
+  isRegisterScheduleCrossContinentHallucinationKeyword,
+  inferRegisterEffectiveProductDestination,
+  MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE,
+} from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 
 describe('register schedule description vibe SSOT', () => {
@@ -230,6 +234,36 @@ describe('register schedule imageKeyword trip routeText SSOT', () => {
         rows,
       ),
     ).toBe(true)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 가나자와≠Ghana Africa dest — manifest
+  it('가나자와 도쿄 일정 — Mount Fuji·Tokyo ≠ Ghana Africa 오탐', () => {
+    const destHay =
+      '3일차 | 도쿄 · 가나자와 · 신주쿠 도청 전망대 · 오다이바 해변공원 · 레인보우브릿지 도쿄 (부산)'
+    const rows = [
+      { day: 1, routeText: '인천 - 도쿄', title: '출국' },
+      {
+        day: 2,
+        routeText: '후지산오합목 - 가마쿠라 - 도쿄',
+        title: '후지·가마쿠라',
+      },
+      {
+        day: 3,
+        routeText: '도쿄 - 가나자와 - 신주쿠 도청 전망대 - 오다이바',
+        title: '도쿄 · 가나자와',
+      },
+      { day: 4, routeText: '도쿄 - 인천', title: '귀국' },
+    ]
+    expect(
+      isRegisterScheduleCrossContinentHallucinationKeyword('Mount Fuji', destHay, rows),
+    ).toBe(false)
+    expect(isRegisterScheduleCrossContinentHallucinationKeyword('Tokyo', destHay, rows)).toBe(
+      false,
+    )
+    expect(
+      MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test('가나자와'),
+    ).toBe(false)
+    expect(MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE.test('가나')).toBe(true)
   })
 
   // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 교토·오사카 Kansai Fuji 환각 — manifest

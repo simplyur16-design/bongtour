@@ -10,7 +10,8 @@ const CITY_PATTERNS = [
   /세부|마닐라|보라카이|필리핀/i,
   /싱가포르|말레이시아|쿠알라룸푸르/i,
   /괌|사이판|하와이/i,
-  /상해|상하이|베이징|북경|홍콩|마카오|중국/i,
+  /상해|상하이|베이징|북경|홍콩|마카오|심천|선전|중국/i,
+  /인도(?!네시아)|델리|아그라|자이푸르/i,
   /유럽|파리|로마|런던|이탈리아|스페인|영국|프랑스/i,
   /호주|시드니|멜버른|뉴질랜드/i,
   /두바이|아랍에미리트|UAE/i,
@@ -42,6 +43,8 @@ export function extractDestinationFromTitle(title: string): string {
       if (/상해|상하이/.test(word)) return '상하이'
       if (/베이징|북경/.test(word)) return '베이징'
       if (/홍콩/.test(word)) return '홍콩'
+      if (/심천|선전/.test(word)) return '심천'
+      if (/인도|델리|아그라|자이푸르/.test(word)) return '인도'
       if (/파리/.test(word)) return '파리'
       if (/제주|국내/.test(word)) return '제주'
       return word.replace(/\s+/g, ' ').trim().slice(0, 30)

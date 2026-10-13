@@ -16,4 +16,15 @@ describe('isSupplierListingTitleUnacceptable', () => {
     expect(isSupplierListingTitleUnacceptable('미지정')).toBe(true)
     expect(isSupplierListingTitleUnacceptable('미입력')).toBe(true)
   })
+
+  // REGRESSION-FREEZE[register-pre-photo-product-title-day-leak]: 일차|·호텔 줄 ≠ listing — manifest
+  it('rejects schedule day-title leaked as product title', () => {
+    expect(
+      isSupplierListingTitleUnacceptable(
+        '3일차 | 도쿄 · 가나자와 · 신주쿠 도청 전망대 · 오다이바 | 호텔: 총 1개의 예정 호텔이',
+      ),
+    ).toBe(true)
+    expect(isSupplierListingTitleUnacceptable('1일차 | 인천 - 도쿄')).toBe(true)
+    expect(isSupplierListingTitleUnacceptable('[관동] 도쿄·후지산 3박4일 #노쇼핑')).toBe(false)
+  })
 })

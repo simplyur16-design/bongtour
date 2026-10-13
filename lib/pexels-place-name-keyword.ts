@@ -63,6 +63,13 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'summer palace': 'Summer Palace',
   'tiananmen square': 'Tiananmen Square',
   'great wall of china': 'Great Wall of China',
+  // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: India Gate·Chandni·Citywalk landmark — manifest
+  'india gate': 'India Gate',
+  'india gate delhi': 'India Gate',
+  'chandni chowk': 'Chandni Chowk',
+  'chandni chowk delhi': 'Chandni Chowk',
+  'select citywalk': 'Select Citywalk Delhi',
+  'select citywalk delhi': 'Select Citywalk Delhi',
   '798 art district': '798 Art District',
   'shanghai skyline night': 'The Bund',
   'shanghai skyline': 'The Bund',
@@ -353,6 +360,9 @@ export const CITY_COUNTRY_ONLY = new Set(
     'amman',
     'taipei',
     'sapa',
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 씨엠립·성도 bare soft-dup — manifest
+    'siem reap',
+    'chengdu',
     'new york',
     'kota kinabalu',
     'hong kong',
@@ -369,6 +379,17 @@ export const CITY_COUNTRY_ONLY = new Set(
     'london',
     'rome',
     'barcelona',
+    // REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]: 이탈리아 방문도시 bare soft-dup — manifest
+    'milan',
+    'milano',
+    'florence',
+    'firenze',
+    'venice',
+    'venezia',
+    'catania',
+    'palermo',
+    'valletta',
+    'sicily',
     // REGRESSION-FREEZE[register-ocean-cruise-product]: 지중해 기항 bare soft-dup — manifest
     'genoa',
     'cagliari',
@@ -843,6 +864,8 @@ export function normalizeToPlaceName(rawKeyword: string): string {
   if (canonSeg) return canonSeg
 
   t = stripTrailingModifiers(t)
+  // REGRESSION-FREEZE[pexels-normalize-strip-mid-aerial]: 중간 Aerial 보조어 제거 — manifest
+  t = squash(t.replace(/\b(?:aerial(?:\s+views?)?)\b/gi, ' '))
   t = stripTrailingGeoTokens(t)
   t = titleCaseWords(t)
 
@@ -932,6 +955,17 @@ export function isHotelLodgingImageKeyword(keyword: string): boolean {
   if (!n) return false
   /** 괌 PIC(Pacific Island Club) 등 리조트 브랜드 — Pexels 관광지명이 아님 */
   if (n === 'pic' || /\bpic\s*resort\b/i.test(n)) return true
+  // REGRESSION-FREEZE[register-pre-photo-hotel-brand-lodging]: Dusit·Henann·Ecolodge 등 브랜드 숙소 — manifest
+  // REGRESSION-FREEZE[register-pre-photo-hotel-brand-lodging]: Hotel Nikko ≠ 닛코 도쇼구 — manifest
+  if (
+    /\b(dusit(?:\s*thani)?|henann(?:\s*tawala)?|anantara|centara|outtrigger|outrigger|conrad|westin|renaissance|pullman|movenpick|mövenpick|jumeirah|atlantis|one\s*and\s*only|ecolodge|eco[- ]?lodge)\b/i.test(
+      n,
+    )
+  ) {
+    return true
+  }
+  // Hotel Nikko / Nikko Resort — 지명「닛코·Nikko Toshogu」는 제외
+  if (/\b(?:hotel\s+nikko|nikko\s+(?:hotel|resort|princess|style))\b/i.test(n)) return true
   return /\b(hotel|resort|hostel|inn|lodging|parador|suites|mercure|marriott|hilton|hyatt|sheraton|wyndham|chikumakan|intercontinental|novotel|ibis|radisson|sofitel|fairmont|pan\s*pacific|mandarin\s*oriental|shangri-la|ritz|four\s*seasons|four\s*points|crowne\s*plaza|holiday\s*inn|best\s*western|motel|tourist\s*camp|tour\s*camp|mirage\s*tourist|belle\s*maison|parosand)\b/i.test(
     n,
   )
@@ -955,7 +989,9 @@ export function isBareCityOrCountryKeyword(keyword: string): boolean {
 // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Las Vegas Strip·Kualoa Ranch ≠ broken 2-word — manifest
 // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: studio(singular)·Big Ben FAMOUS — FIT Gemini kw — manifest
 const LANDMARK_HINT_RE =
-  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios?|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|spring|conservatory|botanical|tenmangu|jinja|dera|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|strip|ranch|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?|rocks?|walls?|residenz|rathaus|cable\s*car|seine|changi)\b/i
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: alley·library·channel·grassland·springs·cross·toshogu — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: golf·fairway·flower fields landmark hint — manifest
+  /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios?|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|springs?|conservatory|botanical|tenmangu|jinja|dera|jingu|toshogu|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|library|libraries|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|strip|ranch|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?|rocks?|walls?|residenz|rathaus|cable\s*car|seine|changi|stephens|wildlife|alley|kuanzhai|grassland|channel|beagle|cross|camino|magellan|miraflores|larcomar|ocean|boardwalk|whale|shark|oslob|hall|tumski|centennial|ostrow|ostr[oó]w|harbor|harbour|aquarium|icewine|factory|abbey|wachau|vineyard|vineyards|melk|golf|fairway|flower\s*fields?)\b/i
 
 function famousLandmarkPriorityHit(name: string): boolean {
   const t = String(name ?? '').trim()

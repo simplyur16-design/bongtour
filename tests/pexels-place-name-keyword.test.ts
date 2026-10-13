@@ -67,6 +67,18 @@ describe('finalizeScheduleImageKeyword', () => {
     assert.equal(finalizeScheduleImageKeyword('Phu Quoc'), 'Phu Quoc')
   })
 
+  // REGRESSION-FREEZE[pexels-normalize-strip-mid-aerial]: 중간 Aerial 보조어 제거 — manifest
+  it('중간 Aerial 토큰은 제거되어 persist 가드를 통과', () => {
+    assert.equal(
+      finalizeScheduleImageKeyword('Maldives Beach Resort Aerial Turquoise'),
+      'Maldives Beach Resort Turquoise',
+    )
+    assert.doesNotMatch(
+      finalizeScheduleImageKeyword('Maldives Beach Resort Aerial Turquoise'),
+      /\baerial\b/i,
+    )
+  })
+
   it('Forbidden City — City 보조어 제거로 Forbidden 단독이 되지 않음', () => {
     assert.equal(finalizeScheduleImageKeyword('Forbidden City'), 'Forbidden City')
     assert.equal(isScheduleImageKeywordLandmarkEligible('Forbidden City'), true)

@@ -5,6 +5,7 @@
 # REGRESSION-FREEZE[register-listing-discover-human-pace]: bundled Chromium · 공급사 자체 간격 — manifest
 # REGRESSION-FREEZE[register-listing-discover-human-search-not-404]: 홈 검색함만 — manifest
 # REGRESSION-FREEZE[register-listing-discover-overseas-click]: 홈→해외여행→메가메뉴 지명 클릭 — manifest
+# REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발·테마 홈 검색함 — manifest
 from __future__ import annotations
 
 import asyncio
@@ -26,6 +27,10 @@ UA = (
 )
 PRO_RE = re.compile(r"(?:[?&]ProCode=|\"(?:ProCode|proCode)\"\s*:\s*\")([A-Za-z0-9-]+)", re.I)
 PRO_OK = re.compile(r"^[A-Z]{2,4}\d{3,5}-[A-Z0-9]+$|^[A-Z]{2,4}\d{4,}", re.I)
+LOCAL_DEP_WORDS = frozenset({"부산출발", "대구출발", "청주출발"})
+THEME_SEARCH_WORDS = frozenset({"골프", "러닝", "트레킹", "다이빙"})
+HOME_SEARCH_WORDS = LOCAL_DEP_WORDS | THEME_SEARCH_WORDS
+HOME = "https://www.verygoodtour.com/"
 
 
 def _pause_s() -> float:
@@ -214,7 +219,34 @@ async def _hover_overseas(page) -> bool:
     return False
 
 
-async def _browse_overseas(page, word: str, bag: list[str]) -> list[str]:
+async def _fill_home_search(page, word: str) -> bool:
+    # REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 홈 검색함 — manifest
+    for sel in (
+        'input[type="search"]',
+        'input[placeholder*="검색"]',
+        'input[placeholder*="어디"]',
+        'input[aria-label*="검색"]',
+        'input[class*="search" i]',
+        '[role="search"] input',
+        'header input[type="text"]',
+        'input[type="text"]',
+    ):
+        loc = page.locator(sel).first
+        try:
+            if await loc.count() == 0:
+                continue
+            await loc.click(timeout=2500, force=True)
+            await loc.fill("")
+            await loc.fill(word)
+            await page.wait_for_timeout(350)
+            await loc.press("Enter")
+            return True
+        except Exception:
+            continue
+    return False
+
+
+async def _browse_home_search(page, word: str, bag: list[str]) -> list[str]:
     tasks: list[asyncio.Task] = []
 
     def on_resp(r):  # type: ignore[no-untyped-def]
@@ -222,7 +254,42 @@ async def _browse_overseas(page, word: str, bag: list[str]) -> list[str]:
 
     try:
         page.on("response", on_resp)
-        await page.goto("https://www.verygoodtour.com/", wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.wait_for_timeout(SETTLE_MS)
+        if not await _fill_home_search(page, word):
+            print(f"[listing-discover-verygoodtour] no search box {word}", file=sys.stderr)
+            return []
+        await page.wait_for_timeout(SETTLE_MS + 2000)
+        try:
+            await page.mouse.wheel(0, 1400)
+            await page.wait_for_timeout(800)
+        except Exception:
+            pass
+        if tasks:
+            await asyncio.wait(tasks, timeout=8)
+        return await _snapshot(page, bag)
+    except Exception as e:
+        print(f"[listing-discover-verygoodtour] home search fail {e}", file=sys.stderr)
+        return []
+    finally:
+        try:
+            page.remove_listener("response", on_resp)
+        except Exception:
+            pass
+
+
+async def _browse_overseas(page, word: str, bag: list[str]) -> list[str]:
+    if (word or "").strip() in HOME_SEARCH_WORDS:
+        return await _browse_home_search(page, word, bag)
+
+    tasks: list[asyncio.Task] = []
+
+    def on_resp(r):  # type: ignore[no-untyped-def]
+        tasks.append(asyncio.create_task(_capture(r, bag)))
+
+    try:
+        page.on("response", on_resp)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
         await page.wait_for_timeout(SETTLE_MS)
         if not await _hover_overseas(page):
             print("[listing-discover-verygoodtour] no 해외여행 menu", file=sys.stderr)
@@ -251,6 +318,7 @@ async def _browse_overseas(page, word: str, bag: list[str]) -> list[str]:
             clicked = await _click_label(page, word)
         if not clicked:
             print(f"[listing-discover-verygoodtour] no click {word}", file=sys.stderr)
+            return []
         await page.wait_for_timeout(SETTLE_MS + 1600)
         try:
             await page.mouse.wheel(0, 1600)

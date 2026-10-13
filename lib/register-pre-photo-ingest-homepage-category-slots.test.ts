@@ -12,16 +12,21 @@ import {
 } from '@/lib/register-pre-photo-ingest-geo-slots'
 
 describe('homepage category ingest slots', () => {
-  it('reserves local-departure search seeds for hanatour and modetour only', () => {
+  it('reserves local-departure search seeds for every canonical supplier', () => {
     expect(supplierRequiresLocalDepartureIngestReserve('hanatour')).toBe(true)
     expect(supplierRequiresLocalDepartureIngestReserve('modetour')).toBe(true)
-    expect(supplierRequiresLocalDepartureIngestReserve('ybtour')).toBe(false)
+    expect(supplierRequiresLocalDepartureIngestReserve('ybtour')).toBe(true)
+    expect(supplierRequiresLocalDepartureIngestReserve('verygoodtour')).toBe(true)
     expect(buildRegisterPrePhotoLocalDepartureIngestSlots('hanatour').map((s) => s.searchWord)).toEqual([
       '부산출발',
       '대구출발',
       '청주출발',
     ])
-    expect(buildRegisterPrePhotoLocalDepartureIngestSlots('ybtour')).toEqual([])
+    expect(buildRegisterPrePhotoLocalDepartureIngestSlots('ybtour').map((s) => s.searchWord)).toEqual([
+      '부산출발',
+      '대구출발',
+      '청주출발',
+    ])
   })
 
   it('builds theme search seeds matching homepage sports themes', () => {
@@ -47,5 +52,22 @@ describe('homepage category ingest slots', () => {
     expect(ordered[0]?.searchWord).toBe('부산출발')
     expect(ordered.some((s) => s.searchWord === '골프')).toBe(true)
     expect(ordered.at(-1)?.searchWord).toBe('오사카')
+  })
+
+  it('marks local-departure slots by countryKey and searchWord', () => {
+    const slots = buildRegisterPrePhotoLocalDepartureIngestSlots('modetour')
+    expect(slots.every((s) => s.countryKey === '_local_departure')).toBe(true)
+    expect(slots.map((s) => s.searchWord)).toContain('대구출발')
+  })
+
+  // REGRESSION-FREEZE[register-ingest-local-departure-slot-label]: 부산/대구/청주 label 충돌 금지 — manifest
+  it('keeps distinct ingest labels for each local-departure searchWord', () => {
+    const slots = buildRegisterPrePhotoLocalDepartureIngestSlots('kyowontour')
+    const labels = slots.map(
+      (s) => `${s.supplier}::${s.lane}::${s.countryKey}::${s.cityKey ?? ''}::${String(s.searchWord ?? '').trim()}`,
+    )
+    expect(new Set(labels).size).toBe(labels.length)
+    expect(labels.some((l) => l.endsWith('::부산출발'))).toBe(true)
+    expect(labels.some((l) => l.endsWith('::대구출발'))).toBe(true)
   })
 })

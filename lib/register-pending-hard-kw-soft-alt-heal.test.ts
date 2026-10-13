@@ -116,6 +116,9 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
       { hay: '료칸 조식', deny: /Kurokawa|Kumamoto|Beppu/i },
       { hay: '순례길 안내', deny: /Santiago|Camino|Portomarin/i },
       { hay: '니스한 날씨', deny: /Promenade|Nice Old Town|Negresco/i },
+      // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미) — manifest
+      { hay: '마이아미 해상 프롬나드', deny: /Promenade\s*Des\s*Anglais|Nice Old Town|Negresco/i },
+      { hay: '해상 프롬나드', deny: /Promenade\s*Des\s*Anglais|Nice Old Town|Negresco/i },
       { hay: '와이너리 투어', deny: /Montepulciano|Orvieto|Chianti|Tuscany/i },
       { hay: '워터파크 이용권', deny: /Saipan|Managaha|Garapan/i },
       { hay: 'PIC 리조트', deny: /Saipan|Managaha/i },
@@ -143,6 +146,44 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
       collectRegisterScheduleCitySoftAltKeywords('로마 콜로세움').some((a) => /Colosseum/i.test(a)),
     ).toBe(true)
     expect(collectRegisterScheduleCitySoftAltKeywords('니스 해변').some((a) => /Nice|Promenade/i.test(a))).toBe(
+      true,
+    )
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('프롬나드 데 장글래').some((a) => /Nice|Promenade/i.test(a)),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Crete bare day→Knossos soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('크레타 CRETE').some((a) => /Knossos|Crete/i.test(a))).toBe(
+      true,
+    )
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Awaji·Kobe soft-alt — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('아와지 하나사지키').some((a) => /Hanasajiki|Awaji/i.test(a)),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok golf Artitaya soft — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('방콕 아티타야 골프').some((a) => /Artitaya|golf/i.test(a)),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Kunming·Changsha·Zhengzhou·Guangzhou bare→soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('곤명').some((a) => /Kunming|Stone Forest/i.test(a))).toBe(
+      true,
+    )
+    expect(collectRegisterScheduleCitySoftAltKeywords('브리즈번').some((a) => /Brisbane|Story Bridge/i.test(a))).toBe(
+      true,
+    )
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Patagonia·Puerto Natales soft — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('푸에르토 나탈레스').some((a) =>
+        /Torres del Paine|Puerto Natales/i.test(a),
+      ),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Baekdu·Changbai soft — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('백두산 장춘').some((a) => /Changbai|Heaven Lake/i.test(a)),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Guam mall·beach soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('괌 투몬').some((a) => /Guam|Tumon/i.test(a))).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Toyama departure soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('토야마').some((a) => /Toyama|Tateyama/i.test(a))).toBe(
       true,
     )
     expect(collectRegisterScheduleCitySoftAltKeywords('사이판').some((a) => /Saipan/i.test(a))).toBe(true)

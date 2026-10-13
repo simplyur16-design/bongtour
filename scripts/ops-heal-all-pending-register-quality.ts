@@ -22,6 +22,7 @@ import {
   allowRouteRevisitBareVisitCitySoftDup,
 } from '../lib/register-schedule-trip-image-keyword-dedupe'
 import { healRegisterPrePhotoSchedule } from '../lib/register-pre-photo-self-heal'
+import { verifyRegisterPrePhoto } from '../lib/register-pre-photo-verify'
 import { resolveRegisterAdminLane } from '../lib/register-admin-lane'
 import { normScheduleImageKeywordKey } from '../lib/register-schedule-llm-image-keyword-fallback'
 import { isBareCityOrCountryKeyword } from '../lib/pexels-place-name-keyword'
@@ -237,9 +238,10 @@ async function main() {
             ...d,
             imageKeyword: h.imageKeyword ?? '',
             imageKeyword2: h.imageKeyword2 ?? null,
-            routeText: h.routeText ?? d.routeText,
-            title: h.title ?? d.title,
-            description: h.description ?? d.description,
+            // null/'' 는 의도적 비움 — ?? 로 오염 route/title 복원 금지
+            routeText: h.routeText !== undefined ? h.routeText : d.routeText,
+            title: h.title !== undefined ? h.title : d.title,
+            description: h.description !== undefined ? h.description : d.description,
           }
         })
         const after = countHardKwRepeats(merged)
@@ -251,6 +253,32 @@ async function main() {
         if (emptyAfter > 0) {
           summary.emptyMiddleAfter += emptyAfter
           summary.productsWithEmptyAfter += 1
+        }
+        // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: verify 통과본만 DB 저장 — manifest
+        const verifyAfter = verifyRegisterPrePhoto({
+          lane,
+          listingKind: row.listing_kind,
+          productType: row.product_type,
+          productDestination: row.destination,
+          productTitle: row.title,
+          rows: merged.map((d) => ({
+            day: Number(d.day) || 0,
+            title: d.title ?? null,
+            description: d.description ?? null,
+            routeText: d.routeText ?? null,
+            imageKeyword: d.imageKeyword ?? null,
+            imageKeyword2: d.imageKeyword2 ?? null,
+          })),
+        })
+        if (!verifyAfter.ok) {
+          summary.healFailed += 1
+          console.warn(
+            JSON.stringify({
+              skip_verify_fail: row.origin_code,
+              issues: verifyAfter.issues.slice(0, 8),
+            }),
+          )
+          continue
         }
         if (!dryRun) {
           const db = await ensureClient()

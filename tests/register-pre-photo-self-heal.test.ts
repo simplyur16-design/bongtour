@@ -9,14 +9,17 @@
  * REGRESSION-FREEZE[register-keyword-city-qualified-landmark]: 첫날 공란·범용 모스크 — manifest
  * REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: LA VALLEE ≠ Los Angeles · 귀국 KL — manifest
  * REGRESSION-FREEZE[register-pre-photo-heal-verify-align]: 가드 차단 후 힐이 verify와 맞춰 통과 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-self-heal]: verify-fail retry clear — manifest
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  clearRegisterPrePhotoKeywordsForVerifyIssues,
   healRegisterPrePhotoSchedule,
   isBrokenRegisterLandmarkKeyword,
   isBrokenRegisterScheduleDescription,
   isObviouslyBrokenScheduleImageUrl,
+  registerPrePhotoVerifyIssuesAreHealRetryable,
 } from '../lib/register-pre-photo-self-heal'
 import {
   inferRegisterPendingDestinationFromTitle,
@@ -1623,5 +1626,94 @@ describe('register-pre-photo-self-heal', () => {
       ),
       after.issues.join(','),
     )
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-self-heal]: verify-fail retry clear — manifest
+  it('verify 실패 lodging·own_route 키워드는 비운 뒤 재힐하면 통과한다', () => {
+    assert.equal(
+      registerPrePhotoVerifyIssuesAreHealRetryable([
+        'day2_keyword_lodging_or_non_landmark',
+        'day3_keyword_not_on_own_route',
+      ]),
+      true,
+    )
+    const poisoned = [
+      {
+        day: 1,
+        title: '출발',
+        routeText: '인천 - 로마',
+        imageKeyword: 'Rome Colosseum',
+        imageKeyword2: null as string | null,
+        description: '로마로 이동합니다. 이동 중심으로 보냅니다.',
+      },
+      {
+        day: 2,
+        title: '로마',
+        routeText: '콜로세움 - 포로 로마노',
+        imageKeyword: 'Hotel Roma Centro',
+        imageKeyword2: null,
+        description: '콜로세움과 포로 로마노를 중심으로 하루를 보냅니다.',
+      },
+      {
+        day: 3,
+        title: '바티칸',
+        routeText: '바티칸 - 성 베드로 대성당',
+        imageKeyword: 'Eiffel Tower',
+        imageKeyword2: null,
+        description: '바티칸과 성 베드로 대성당을 중심으로 하루를 보냅니다.',
+      },
+      {
+        day: 4,
+        title: '귀국',
+        routeText: '로마 - 인천',
+        imageKeyword: 'Rome',
+        imageKeyword2: null,
+        description: '인천으로 귀국합니다. 이동 중심으로 마무리합니다.',
+      },
+    ]
+    const before = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '로마 4일',
+      productDestination: '로마',
+      countryKey: 'italy',
+      rows: poisoned,
+    })
+    assert.ok(
+      before.issues.some(
+        (i) => i.includes('lodging_or_non_landmark') || i.includes('not_on_own_route'),
+      ),
+      before.issues.join(','),
+    )
+    let rows = poisoned
+    for (let round = 0; round < 4; round += 1) {
+      const v = verifyRegisterPrePhoto({
+        lane: 'package',
+        productTitle: '로마 4일',
+        productDestination: '로마',
+        countryKey: 'italy',
+        rows,
+      })
+      if (v.ok) break
+      const cleared = clearRegisterPrePhotoKeywordsForVerifyIssues(rows, v.issues)
+      assert.ok(cleared.clearedDays.length > 0, `round ${round} should clear days`)
+      const healed = healRegisterPrePhotoSchedule(cleared.rows, {
+        supplierKey: 'hanatour',
+        productDestination: '로마',
+        productTitle: '로마 4일',
+        lane: 'package',
+        countryKey: 'italy',
+      })
+      rows = healed.rows
+    }
+    const after = verifyRegisterPrePhoto({
+      lane: 'package',
+      productTitle: '로마 4일',
+      productDestination: '로마',
+      countryKey: 'italy',
+      rows,
+    })
+    assert.equal(after.ok, true, after.issues.join(','))
+    assert.doesNotMatch(String(rows.find((r) => r.day === 2)?.imageKeyword ?? ''), /Hotel/i)
+    assert.doesNotMatch(String(rows.find((r) => r.day === 3)?.imageKeyword ?? ''), /Eiffel/i)
   })
 })

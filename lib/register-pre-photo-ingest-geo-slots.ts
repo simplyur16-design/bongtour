@@ -35,10 +35,10 @@ export const REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1
 export const REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3
 
 /**
- * 하나투어·모두투어 — 지방출발(부산/대구/청주) 검색 시드를 앞에 두고 밤마다 최소 1건 확보.
- * REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 하나·모두 지방출발 최소 1건 — manifest
+ * canonical 전 공급사 — 지방출발(부산/대구/청주) 검색 시드를 앞에 두고 밤마다 최소 1건 확보.
+ * REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 전 공급사 지방출발 최소 1건 — manifest
  */
-export const REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SUPPLIERS = ['hanatour', 'modetour'] as const
+export const REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SUPPLIERS = CANONICAL_OVERSEAS_SUPPLIER_KEYS
 export const REGISTER_PRE_PHOTO_INGEST_LOCAL_DEP_SEARCH_WORDS = [
   '부산출발',
   '대구출발',

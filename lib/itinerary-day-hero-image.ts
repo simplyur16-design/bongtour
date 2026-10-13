@@ -39,6 +39,10 @@ import {
   isLikelyTourismLandmarkKeyword,
   normalizeToPlaceName,
 } from '@/lib/pexels-place-name-keyword'
+import {
+  isMongoliaTurtleRockPexelsKeyword,
+  mongoliaTurtleRockPexelsRelevanceDelta,
+} from '@/lib/register-schedule-mongolia-turtle-rock-pexels'
 
 function routeTextSegmentsForHero(routeText: string): string[] {
   return routeText
@@ -383,15 +387,30 @@ export function buildPexelsQueriesForPlace(
 // --- 5. 후보 수집 ---
 
 export async function fetchPexelsCandidates(queries: PexelsQuerySet, limit: number): Promise<PexelsHeroCandidateMeta[]> {
-  const cap = Math.min(Math.max(limit, 5), 15)
+  const turtleRockMode = [queries.primaryQuery, ...queries.secondaryQueries].some((q) =>
+    isMongoliaTurtleRockPexelsKeyword(q),
+  )
+  // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: 거북이바위는 후보를 더 모아 바위컷 확보 — manifest
+  const cap = turtleRockMode
+    ? Math.min(Math.max(limit, 12), 18)
+    : Math.min(Math.max(limit, 5), 15)
   const byId = new Map<number, PexelsHeroCandidateMeta>()
-  const perQ = Math.min(8, Math.max(5, Math.ceil(cap / 2)))
+  const perQ = turtleRockMode
+    ? Math.min(15, Math.max(10, Math.ceil(cap / 2)))
+    : Math.min(8, Math.max(5, Math.ceil(cap / 2)))
   const ordered = [queries.primaryQuery, ...queries.secondaryQueries].filter(Boolean)
   for (const q of ordered) {
     if (byId.size >= cap) break
     const batch = await searchPexelsHeroCandidates(q, perQ, q)
     for (const c of batch) {
-      if (!byId.has(c.pexelsId)) byId.set(c.pexelsId, c)
+      if (byId.has(c.pexelsId)) continue
+      if (turtleRockMode) {
+        const hay = `${c.altText ?? ''} ${c.originalLink}`
+        const rel = mongoliaTurtleRockPexelsRelevanceDelta(hay)
+        // 동물·타국·아르항가이 등은 슬롯을 채우지 않음 (진짜 바위컷이 들어오게)
+        if (rel.hardReject) continue
+      }
+      byId.set(c.pexelsId, c)
       if (byId.size >= cap) break
     }
   }
@@ -427,7 +446,17 @@ export function evaluatePexelsCandidates(
       bits.push('메타크기없음')
     }
     if (isPexelsFallbackUrl(c.imageUrl)) score -= 1000
-    const usable = score >= MIN_USABLE_SCORE && !isPexelsFallbackUrl(c.imageUrl)
+    // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: 동물·지오오매칭 거절 + 바위형성 가산 — manifest
+    let hardReject = false
+    if (isMongoliaTurtleRockPexelsKeyword(c.queryUsed)) {
+      const hay = `${c.altText ?? ''} ${c.originalLink}`
+      const rel = mongoliaTurtleRockPexelsRelevanceDelta(hay)
+      score += rel.delta
+      bits.push(...rel.bits)
+      hardReject = rel.hardReject
+    }
+    const usable =
+      !hardReject && score >= MIN_USABLE_SCORE && !isPexelsFallbackUrl(c.imageUrl)
     return { candidate: c, score, usable, reason: bits.join(', ') }
   })
 }

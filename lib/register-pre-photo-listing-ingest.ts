@@ -20,7 +20,9 @@
  * REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: origin_unsellable 은 같은 밤 재시도 금지 — manifest
  * REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
  * REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 하나·모두 지방출발 최소 1건 — manifest
+ * REGRESSION-FREEZE[register-ingest-local-departure-slot-label]: 지방출발 searchWord Map 키 — manifest
  * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마여행 분류 시드 — manifest
+ * REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 confirm 스킵 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -70,6 +72,7 @@ import {
   interleaveRegisterPrePhotoIngestLanes,
   isRegisterPrePhotoIngestSupplier,
   listingUrlMatchesIngestLane,
+  isRegisterPrePhotoLocalDepartureIngestSlot,
   prependHomepageCategoryIngestSlots,
   registerPrePhotoIngestMaxSlotsPerSupplier,
   rotateRegisterPrePhotoIngestSlots,
@@ -176,7 +179,9 @@ function listingPagesPerBrowser(supplier: IngestSupplier): number {
 }
 
 function ingestSlotLabel(slot: RegisterPrePhotoIngestGeoSlot): string {
-  return `${slot.supplier}::${slot.lane}::${slot.countryKey}::${slot.cityKey ?? ''}`
+  // REGRESSION-FREEZE[register-ingest-local-departure-slot-label]: 부산/대구/청주 동일 countryKey Map 덮어쓰기 금지 — manifest
+  const word = String(slot.searchWord ?? '').trim()
+  return `${slot.supplier}::${slot.lane}::${slot.countryKey}::${slot.cityKey ?? ''}::${word}`
 }
 
 async function listingUrlMapForSupplier(
@@ -212,9 +217,10 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
 ): Promise<IngestUnregisteredPrePhotoResult> {
   const dryRun = opts?.dryRun === true
   const perGeo = REGISTER_PRE_PHOTO_INGEST_PER_GEO
+  // 운영 CLI `--per-supplier=N` 은 max slots 까지. 기본(야간)은 공급사당 3건 유지.
   const perSupplier =
     Number.isFinite(opts?.perSupplier) && (opts?.perSupplier ?? 0) >= 1
-      ? Math.min(3, Math.floor(opts!.perSupplier as number))
+      ? Math.min(registerPrePhotoIngestMaxSlotsPerSupplier(), Math.floor(opts!.perSupplier as number))
       : REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER
   const suppliers =
     parseRegisterPrePhotoIngestOnlySuppliers(opts?.onlySuppliers?.join(',')) ??
@@ -233,6 +239,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     byLane: { package: 0, air_hotel_free: 0 },
   }
 
+  console.error('[register-pre-photo-listing-ingest] loading-known-products')
   const products = await prisma.product.findMany({
     where: {
       originSource: { in: [...REGISTER_PRE_PHOTO_INGEST_SUPPLIERS, 'yellowballoon'] },
@@ -250,6 +257,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
       sportsThemeTag: true,
     },
   })
+  console.error('[register-pre-photo-listing-ingest] known-products', products.length)
 
   const knownKeys = new Set<string>()
   for (const p of products) {
@@ -302,10 +310,20 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     // REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 하나·모두 지방출발 1건 확보 — manifest
     const reserveLocalDep = supplierRequiresLocalDepartureIngestReserve(supplier)
     let localDepCreated = 0
+    let localDepSlotsLeft = mine.filter((s) => isRegisterPrePhotoLocalDepartureIngestSlot(s)).length
     for (let i = 0; i < mine.length; ) {
       if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
-      const sessionSlots = mine.slice(i, i + sessionSize)
+      const sessionSlots = mine.slice(i, i + Math.max(1, sessionSize))
+      if (!sessionSlots.length) break
       i += sessionSlots.length
+      console.error(
+        '[register-pre-photo-listing-ingest] session',
+        supplier,
+        'i',
+        i,
+        'created',
+        result.bySupplier[supplier] ?? 0,
+      )
       await waitListingHumanPause(supplier)
       let found = new Map<string, string[]>()
       try {
@@ -325,11 +343,13 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
       for (const slot of sessionSlots) {
         if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
         const slotLabel = ingestSlotLabel(slot)
+        const isLocalDepSlot = isRegisterPrePhotoLocalDepartureIngestSlot(slot)
         result.scannedGeos += 1
         const urls = found.get(slotLabel) ?? []
         console.error('[register-pre-photo-listing-ingest] discover-ok', supplier, slotLabel, urls.length)
         if (!urls.length) {
           result.skippedNoListing.push(slotLabel)
+          if (isLocalDepSlot) localDepSlotsLeft = Math.max(0, localDepSlotsLeft - 1)
           continue
         }
 
@@ -339,6 +359,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
         result.skippedDuplicate += urls.length - unknownUrls.length
         if (!unknownUrls.length) {
           console.error('[register-pre-photo-listing-ingest] all-known', supplier, slotLabel, urls.length)
+          if (isLocalDepSlot) localDepSlotsLeft = Math.max(0, localDepSlotsLeft - 1)
           continue
         }
         console.error('[register-pre-photo-listing-ingest] unknown', supplier, unknownUrls.length, unknownUrls[0])
@@ -368,6 +389,31 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
               await waitListingHumanPause(supplier)
               continue
             }
+            // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 스킵 — manifest
+            if (!confirm.ok && confirm.reason === 'domestic_korea_rejected') {
+              console.error(
+                '[register-pre-photo-listing-ingest] domestic_korea_rejected',
+                supplier,
+                originUrl,
+              )
+              for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+                knownKeys.add(`${k.kind}:${k.value}`)
+              }
+              await waitListingHumanPause(supplier)
+              continue
+            }
+            if (!confirm.ok && confirm.reason === 'schedule_facts_empty') {
+              console.error(
+                '[register-pre-photo-listing-ingest] schedule_facts_empty',
+                supplier,
+                originUrl,
+              )
+              for (const k of extractRegisterProductDedupeKeys(supplier, originUrl)) {
+                knownKeys.add(`${k.kind}:${k.value}`)
+              }
+              await waitListingHumanPause(supplier)
+              continue
+            }
             if (!confirm.ok) {
               result.failed += 1
               console.error('[register-pre-photo-listing-ingest] confirm-fail', supplier, originUrl, confirm.reason)
@@ -387,18 +433,56 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
 
             let isLocalDep = false
             if (confirm.productId) {
+              // B2C 지방출발 필터(PUS/TAE/CJJ)로 뽑은 슬롯인데 제목 신호가 약하면 태그 보강
+              // REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발 슬롯 태그 보강 — manifest
+              if (isLocalDepSlot && !dryRun) {
+                const word = String(slot.searchWord ?? '').trim()
+                const tag =
+                  word === '부산출발'
+                    ? 'busan'
+                    : word === '대구출발'
+                      ? 'daegu'
+                      : word === '청주출발'
+                        ? 'cheongju'
+                        : null
+                if (tag) {
+                  const cur = await prisma.product.findUnique({
+                    where: { id: confirm.productId },
+                    select: { localDepartureTag: true, title: true, rawTitle: true },
+                  })
+                  const tags = Array.isArray(cur?.localDepartureTag)
+                    ? cur!.localDepartureTag.map(String)
+                    : []
+                  if (!tags.includes(tag)) {
+                    const nextTags = [...tags, tag]
+                    const titlePatch: { title?: string; rawTitle?: string } = {}
+                    const marker =
+                      tag === 'busan' ? '부산출발' : tag === 'daegu' ? '대구출발' : '청주출발'
+                    for (const field of ['title', 'rawTitle'] as const) {
+                      const v = String(cur?.[field] ?? '')
+                      if (v && !v.includes(marker)) titlePatch[field] = `[${marker}] ${v}`
+                    }
+                    await prisma.product.update({
+                      where: { id: confirm.productId },
+                      data: { localDepartureTag: nextTags, ...titlePatch },
+                    })
+                  }
+                }
+              }
               const saved = await prisma.product.findUnique({
                 where: { id: confirm.productId },
                 select: { localDepartureTag: true },
               })
               isLocalDep = (saved?.localDepartureTag ?? []).length > 0
             }
-            // 마지막 칸인데 아직 지방출발이 없으면 비지방출발은 버리고 계속 찾는다.
+            // 지방출발 슬롯을 아직 다 보기 전이면 비지방출발 생성은 보류. 마지막 칸도 동일.
+            const stillHuntingLocal =
+              reserveLocalDep && localDepCreated === 0 && (localDepSlotsLeft > 0 || isLocalDepSlot)
             if (
               reserveLocalDep &&
               !isLocalDep &&
               localDepCreated === 0 &&
-              (result.bySupplier[supplier] ?? 0) + 1 >= perSupplier
+              (stillHuntingLocal || (result.bySupplier[supplier] ?? 0) + 1 >= perSupplier)
             ) {
               console.error(
                 '[register-pre-photo-listing-ingest] local-dep-reserve-skip',
@@ -431,6 +515,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
             await waitListingHumanPause(supplier)
           }
         }
+        if (isLocalDepSlot) localDepSlotsLeft = Math.max(0, localDepSlotsLeft - 1)
       }
       await waitListingHumanPause(supplier)
     }

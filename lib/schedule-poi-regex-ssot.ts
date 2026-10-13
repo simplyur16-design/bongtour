@@ -75,6 +75,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /(?<!다낭.{0,48})산토리니|(?<!Da\s*Nang.{0,48})Santorini/iu, en: "Santorini caldera blue domes" },
   { re: /아크로티리|Akrotiri/i, en: "Akrotiri archaeological site Santorini" },
   { re: /아무디|Amoudi/i, en: "Amoudi Bay Santorini fishing harbor" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Crete bare day→Knossos soft — manifest
+  { re: /크노소스|Knossos/i, en: "Knossos Palace Crete" },
+  { re: /하니아|Chania/i, en: "Chania Old Harbour Crete" },
+  { re: /(?:^|[\s\-·,/])크레타(?:$|[\s\-·,/])|(?:^|[\s\-·,/])CRETE(?:$|[\s\-·,/])|\bCrete\b/i, en: "Knossos Palace Crete" },
   { re: /아크로(?:폴리스|폴)|Acropolis/i, en: "Acropolis Athens Parthenon" },
   { re: /아라호바|Arachova/i, en: "Arachova Greece mountain village" },
   { re: /모나스티라키|Monastiraki/i, en: "Monastiraki Athens flea market" },
@@ -93,6 +97,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /아티스트\s*하우스|Artist'?s?\s*House/i, en: "Artist House Bangkok canal" },
   { re: /짜뚜짝(?:\s*주말)?\s*시장|Chatuchak/i, en: "Chatuchak Weekend Market Bangkok" },
   { re: /딸랏\s*노이|Talad\s*Noi/i, en: "Talad Noi Bangkok alley" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok golf Artitaya soft — manifest
+  { re: /아티타야|Artitaya/i, en: "Artitaya Golf Club Bangkok fairway" },
   { re: /니모섬|Nemo\s*Island/i, en: "Koh Nang Yuan snorkeling Thailand" },
   { re: /하쿠토\s*신사|Hakuto/i, en: "Hakuto Shrine Tottori" },
   { re: /유시엔|Yuushien|유후인/i, en: "Yuushien Garden Shimane" },
@@ -218,6 +224,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /메블라나|메블라냐|Mevlana/i, en: 'Mevlana Museum Konya' },
   { re: /콘야|Konya/i, en: 'Konya Turkey' },
   { re: /아피온|Afyon/i, en: 'Afyonkarahisar Turkey' },
+  // REGRESSION-FREEZE[schedule-poi-turkey-rose-valley-balat]: 로즈밸리≠괴레메 중복 — manifest
+  { re: /로즈\s*밸리|로즈\s*벨리|Rose\s*Valley/i, en: "Rose Valley Cappadocia" },
   { re: /괴레메|Goreme|Göreme/i, en: "Goreme Cappadocia Fairy Chimneys" },
   { re: /우치히사르|Uchisar/i, en: "Uchisar Castle Cappadocia" },
   { re: /데브란트|Devrent/i, en: "Devrent Valley Cappadocia" },
@@ -239,9 +247,12 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
     en: "Istanbul Archaeological Museum",
   },
   { re: /톱카프|Topkapi|Topkapı/i, en: "Topkapi Palace Istanbul" },
-  { re: /발랏|Balat/i, en: "Balat Istanbul" },
+  // REGRESSION-FREEZE[schedule-poi-turkey-rose-valley-balat]: 발랏·피에르로티·참르자 — manifest
+  { re: /발랏|Balat/i, en: "Balat colorful houses Istanbul" },
   { re: /보스포러스|Bosphorus|Bosporus/i, en: "Bosphorus Strait Istanbul" },
-  { re: /피엘로티|Pierre\s*Loti/i, en: "Pierre Loti Hill Istanbul" },
+  { re: /피에르\s*로티|피엘로티|Pierre\s*Loti/i, en: "Pierre Loti Hill Istanbul" },
+  { re: /참르자|Çamlıca|Camlica/i, en: "Camlica Hill Istanbul" },
+  { re: /쿠즈군주크|Kuzguncuk/i, en: "Kuzguncuk Istanbul" },
   { re: /포나가(?:\s*참)?(?:\s*사원)?|포나가르|Po Nagar|Cham Towers/i, en: "Po Nagar Cham Towers" },
   { re: /달랏\s*꽃\s*정원|Dalat Flower|Da Lat Flower/i, en: "Da Lat Flower Garden Vietnam" },
   { re: /달랏|Da Lat|Dalat/i, en: "Da Lat Vietnam highland city" },
@@ -275,6 +286,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /하치만보리|八幡堀/i, en: "Hachimanbori canal Omihachiman" },
   { re: /하치만야마|八幡山/i, en: "Hachimanayama ropeway Omihachiman" },
   { re: /신사이바시|心斎橋|Shinsaibashi/i, en: "Shinsaibashi Osaka" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Awaji·Kobe soft-alt — manifest
+  { re: /하나사지키|Hanasajiki/i, en: "Awaji Hanasajiki flower fields" },
+  { re: /아와지\s*유메부타이|Yumebutai/i, en: "Awaji Yumebutai garden" },
+  { re: /아메무라|Amerikamura|アメリカ村/i, en: "Amerikamura Osaka" },
+  { re: /마이아미\s*해상\s*프롬나드|해상\s*프롬나드/i, en: "Osaka Bay waterfront promenade" },
   { re: /후시미\s*이나리|Fushimi\s*Inari/i, en: "Fushimi Inari shrine Kyoto" },
   { re: /도칼레|도게(?:의)?\s*궁|Doge'?s?\s*Palace|Palazzo\s*Ducale/i, en: "Doge's Palace Venice" },
   { re: /룬달레|Rundale/i, en: "Rundale Palace Latvia Baroque gardens" },
@@ -707,9 +723,12 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /파묵칼레|Pamukkale/i, en: 'Pamukkale Travertine Terraces' },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: India AWP902 — Lodhi/Bahai/Akshardham·짧은 landmark — manifest
   { re: /타지\s*마할|Taj\s*Mahal/i, en: 'Taj Mahal' },
-  { re: /아그라\s*성|Agra\s*Fort/i, en: 'Agra Fort' },
+  { re: /아그라\s*성|아그라\s*요새|Agra\s*Fort/i, en: 'Agra Fort' },
   { re: /하와\s*마할|Hawa\s*Mahal/i, en: 'Hawa Mahal' },
-  { re: /암베르\s*성|Amber\s*Fort/i, en: 'Amber Fort' },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 암베르 요새·다메크·찬드니 — manifest
+  { re: /암베르\s*(?:성|요새)|Amber\s*Fort/i, en: 'Amber Fort' },
+  { re: /오르차\s*(?:성|요새)?|Orchha(?:\s*Fort)?/i, en: 'Orchha Fort' },
+  { re: /셀렉트\s*시티워크|Select\s*CITYWALK|Select\s*Citywalk/i, en: 'Select Citywalk Delhi' },
   { re: /나하르가르\s*성|Nahargarh\s*Fort/i, en: 'Nahargarh Fort' },
   { re: /잔타르\s*만타르|Jantar\s*Mantar/i, en: 'Jantar Mantar' },
   { re: /꾸뜹\s*미나르|쿠트브|Qutub\s*Minar|Qutb\s*Minar/i, en: 'Qutub Minar' },
@@ -719,9 +738,14 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /악차르담|Akshardham/i, en: 'Akshardham Temple' },
   { re: /카주라호|Khajuraho|서부\s*사원군|동부\s*사원군/i, en: 'Khajuraho Temples' },
   { re: /갠지스\s*강|갠지스강|Ganges|Ganga\s*River/i, en: 'Ganges River' },
+  { re: /다메크\s*스투파|Dhamek\s*Stupa|Dhamekh/i, en: 'Dhamek Stupa Sarnath' },
   { re: /사르나트|Sarnath/i, en: 'Sarnath' },
+  { re: /찬드니\s*초크|Chandni\s*Chowk/i, en: 'Chandni Chowk Delhi' },
   { re: /아르띠\s*뿌자|아르티\s*푸자|Ganga\s*Aarti/i, en: 'Ganga Aarti' },
   { re: /후마윤\s*무덤|Humayun/i, en: 'Humayun Tomb' },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 인디라 간디 공항일 → India Gate — manifest
+  { re: /인디라\s*간디(?:\s*국제)?\s*공항|Indira\s*Gandhi(?:\s*International)?\s*Airport/i, en: 'India Gate' },
+  { re: /인디라\s*간디(?!\s*국제공항)/i, en: 'India Gate' },
   { re: /구르드와라\s*방글라\s*사힙|Gurudwara\s*Bangla\s*Sahib/i, en: 'Gurudwara Bangla Sahib' },
   { re: /시칸드라\s*성|Sikandra/i, en: 'Sikandra' },
   { re: /아바네리\s*찬드|Abaneri|Chand\s*Baori/i, en: 'Chand Baori' },
@@ -746,7 +770,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /코헴|Cochem/i, en: 'Cochem Castle Moselle' },
   { re: /트리어|Trier/i, en: 'Trier Porta Nigra' },
   { re: /브뤼헤|브뤼주|Bruges/i, en: 'Bruges canals old town' },
-  { re: /열트산|Turtle\s*Rock/i, en: 'Turtle Rock Terelj' },
+  // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: Pexels 실측 검색어 — manifest
+  { re: /열트산|거북이?\s*바위|Turtle\s*Rock|Melkhii\s*Khad/i, en: 'Terelj Mongolia Rocky Hills' },
   { re: /아리야\s*사원|아리야발|Aryabal/i, en: 'Aryabal Temple Terelj' },
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 울란바토르·칭기스칸광장·생노민 — manifest
   { re: /울란바토르|Ulaanbaatar|Ulan\s*Bator/i, en: 'Ulaanbaatar' },
@@ -760,6 +785,14 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /스윈던|Swindon/i, en: 'Stonehenge Salisbury Plain' },
   { re: /72번\s*국도|Kamehameha\s*Highway/i, en: 'Kahuku Hawaii coast' },
   { re: /시드니를\s*상징하는\s*(?:활기찬\s*)?해변|시드니\s*해변/i, en: 'Bondi Beach' },
+  // REGRESSION-FREEZE[register-pre-photo-port-stephens-aoshima-ssot]: Port Stephens·아오시마 키워드 — manifest
+  { re: /포트\s*스티븐스|Port\s*Stephens/i, en: 'Port Stephens' },
+  { re: /오크\s*베일|Oakvale/i, en: 'Oakvale Wildlife Park' },
+  { re: /아오시마(?:\s*진자|\s*신사)?|Aoshima(?:\s*Shrine)?/i, en: 'Aoshima Shrine Miyazaki' },
+  { re: /우도\s*신궁|Udo\s*Jingu|Udo\s*Shrine/i, en: 'Udo Jingu Miyazaki' },
+  // REGRESSION-FREEZE[register-pre-photo-port-stephens-aoshima-ssot]: 사파 Silver Waterfall — manifest
+  { re: /Silver\s*Waterfall|은빛\s*폭포|Heaven\s*Gate|천문관/i, en: 'Silver Waterfall Sapa' },
+  { re: /사파\s*(?:타운|시내)|Sapa\s*Town/i, en: 'Sapa Vietnam' },
   { re: /샴엘세이크|Sharm\s*el[- ]?Sheikh/i, en: 'Sharm el Sheikh Red Sea' },
   { re: /아카바|Aqaba/i, en: 'Aqaba Red Sea Jordan' },
   { re: /페리토\s*모레노|Perito\s*Moreno/i, en: 'Perito Moreno Glacier' },
@@ -928,6 +961,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /연지담|Maobitou|貓鼻頭/i, en: 'Maobitou Kenting Taiwan coast' },
   { re: /용호탑|Dragon\s*and\s*Tiger\s*Pagoda|龍虎塔/i, en: 'Dragon Tiger Pagoda Kaohsiung' },
   { re: /육합\s*야시장|Liuhe\s*Night\s*Market|六合/i, en: 'Liuhe Night Market Kaohsiung' },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 치진·웨이우잉 ≠ Armster Battery — manifest
+  { re: /치진섬|치진\s*해안|치진해안거리|Cijin\s*Island|Cijin/i, en: 'Cijin Island Kaohsiung coast' },
+  { re: /웨이우잉|Weiwuying|벽화마을/i, en: 'Weiwuying mural village Kaohsiung' },
+  { re: /Seat\s*of\s*Armster|Armster\s*Battery/i, en: 'Cijin Island Kaohsiung coast' },
   { re: /컨딩|Kenting|墾丁/i, en: 'Kenting National Park Taiwan coast' },
   { re: /가오슝|Kaohsiung|高雄/i, en: 'Kaohsiung Harbor Taiwan' },
   { re: /안평\s*고보|Anping\s*Fort|安平古堡/i, en: 'Anping Fort Tainan Taiwan' },
@@ -1023,6 +1060,22 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /댄싱\s*하우스|Dancing\s*House|Tan[cč][ií]c[ií]\s*d[uů]m/i, en: "Dancing House Prague" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: EEP138 Dresden Semper·성모≠Prague — manifest
   { re: /스트라호프|Strahov/i, en: "Strahov Monastery Prague" },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 순례·파타고니아·세부 명소 SSOT — manifest
+  { re: /마젤란\s*십자가|Magellan(?:'?s)?\s*Cross/i, en: 'Magellan Cross Cebu' },
+  { re: /비글\s*해협|Beagle\s*Channel/i, en: 'Ushuaia Beagle Channel' },
+  { re: /우수아이아|Ushuaia/i, en: 'Ushuaia Beagle Channel' },
+  { re: /타공\s*초원|Tagong\s*Grassland/i, en: 'Tagong Grassland Sichuan' },
+  { re: /아르수아|Arz[uú]a|Camino\s*de\s*Santiago|산티아고\s*순례/i, en: 'Camino de Santiago Arzua' },
+  { re: /오페드로우스|O\s*Pedrouzo|페드로우소/i, en: 'Camino de Santiago O Pedrouzo' },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Baltimore Inner Harbor — manifest
+  { re: /아이스와인\s*공장|Icewine|Ice\s*wine/i, en: 'Niagara Icewine factory Ontario' },
+  { re: /볼티모어\s*이너\s*하버|Inner\s*Harbor|Baltimore\s*Harbor/i, en: 'Baltimore Inner Harbor' },
+  { re: /볼티모어|Baltimore/i, en: 'Baltimore Inner Harbor' },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 브로츠와프 시장·대성당섬 — manifest
+  { re: /황금소|Golden\s*Goose|Podwale/i, en: 'Wroclaw Market Square' },
+  { re: /브로츠와프|Wroc[łl]aw/i, en: 'Wroclaw Market Square' },
+  { re: /오스트루프|Ostr[oó]w\s*Tumski|Cathedral\s*Island/i, en: 'Wroclaw Cathedral Island' },
+
   { re: /리에그로비|Riegrovy|Riegrovy\s*Sady/i, en: "Riegrovy Sady Prague" },
   { re: /하벨\s*시장|Havel\s*Market/i, en: "Havel Market Prague" },
   { re: /라트란|Latr[aá]n/i, en: "Latran Street Cesky Krumlov" },
@@ -1044,6 +1097,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /세인트\s*도나트|Saint\s*Donatus/i, en: "Church of St Donatus Zadar Croatia" },
   { re: /렉터\s*궁전|Rector\s*Palace/i, en: "Rector Palace Dubrovnik" },
   { re: /할슈타트|Hallstatt/i, en: "Hallstatt lake village Austria" },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 멜크 수도원·바하우 ≠ empty middle — manifest
+  { re: /멜크\s*수도원|Melk\s*Abbey|Stift\s*Melk/i, en: 'Melk Abbey Austria monastery' },
+  { re: /바하우|Wachau/i, en: 'Wachau Valley Austria vineyards' },
+  { re: /멜크|Melk(?!\s*hii)/i, en: 'Melk Abbey Austria monastery' },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 독일 일주 명소 — manifest
   { re: /노이슈반슈타인|Neuschwanstein/i, en: "Neuschwanstein Castle Bavaria" },
   { re: /헤렌킴제|Herrenchiemsee/i, en: "Herrenchiemsee Palace Bavaria" },
@@ -1189,7 +1246,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /하르자트\s*이맘|Hazrati\s*Imam|Khast\s*Imam/i, en: 'Hazrati Imam Complex' },
   { re: /황만금\s*박물관|State\s*Museum\s*of\s*History/i, en: 'State Museum of History' },
   { re: /아미르\s*티무르\s*광장|Amir\s*Timur\s*Square/i, en: 'Amir Timur Square' },
-  { re: /레기스탄|Registan/i, en: 'Registan Square' },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Registan ↔ Samarkand soft-city — manifest
+  { re: /레기스탄|Registan/i, en: 'Registan Square Samarkand' },
   { re: /아프로시압|Afrosiyab/i, en: 'Afrosiyab' },
   { re: /울루그벡|Ulugbek|Ulugh\s*Beg/i, en: 'Ulugh Beg Observatory' },
   { re: /구르\s*아미르|Gur[-\s]*e?\s*Amir/i, en: 'Gur-e Amir' },
@@ -1207,8 +1265,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /콜사이|Kolsai|Kolsay/i, en: 'Kolsai Lakes' },
   { re: /카인디|Kaindy/i, en: 'Kaindy Lake' },
   { re: /악수\s*온천|Aksu\s*(?:Hot\s*)?Spring/i, en: 'Aksu Hot Springs' },
-  { re: /촐폰\s*아타|Cholpon[-\s]*Ata/i, en: 'Cholpon Ata' },
-  { re: /이식쿨|Issyk[-\s]*Kul/i, en: 'Issyk Kul Lake' },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Cholpon Ata → Issyk-Kul 사진 검색 — manifest
+  { re: /촐폰\s*아타|Cholpon[-\s]*Ata/i, en: 'Cholpon Ata Issyk Kul lake Kyrgyzstan' },
+  { re: /이식쿨|Issyk[-\s]*Kul/i, en: 'Issyk Kul Lake Kyrgyzstan' },
   { re: /알라아르차|Ala[-\s]*Archa/i, en: 'Ala Archa National Park' },
   { re: /알라투\s*광장|Ala[-\s]*Too\s*Square/i, en: 'Ala Too Square' },
   { re: /타임스퀘어|Times\s*Square/i, en: "Times Square Broadway New York night" },
@@ -1302,7 +1361,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /테[를]?[르]?지\s*국립\s*공원|Terelj\s*National\s*Park/i, en: "Terelj National Park" },
   // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 테를지·테렐지 단독도 국립공원 — manifest
   { re: /테[를렐]지(?!\s*미라지)/u, en: "Terelj National Park" },
-  { re: /거북\s*바위|Turtle\s*Rock/i, en: "Turtle Rock" },
+  // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: Pexels 실측 검색어 — manifest
+  { re: /거북이?\s*바위|Turtle\s*Rock|Melkhii\s*Khad/i, en: "Terelj Mongolia Rocky Hills" },
   { re: /아ri?ya발\s*사원|아리{1,2}ya?발\s*사원|아리iya발|야리야발|Ariyabal/i, en: "Ariyabal Temple" },
   { re: /(?:자이승|Zaisan)/i, en: "Zaisan Memorial" },
   { re: /수흐?바타르|Sukhbaatar/i, en: "Sukhbaatar Square" },
@@ -1395,6 +1455,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /투라이다|Turaida/i, en: "Turaida Castle Latvia" },
   { re: /쿠트마니스|Gutmanis|Gūtmaņi/i, en: "Gutmanis Cave Sigulda Latvia" },
   { re: /카드리오르그|Kadriorg/i, en: "Kadriorg Palace Tallinn Estonia" },
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 투 러버스·사랑의 절벽 — FIT Guam remat — manifest
+  { re: /투\s*러버스\s*포인트|Two\s*Lovers\s*Point|사랑의\s*절벽/i, en: "Two Lovers Point Guam" },
 ] as const
 
 export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
@@ -1416,13 +1478,16 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /스페이스 니들|Space Needle/i, en: "Space Needle Seattle" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 단독 빙하 ≠ Glacier Bay Alaska (노르웨이 피요르드) — manifest
   { re: /알래스카|Alaska/i, en: "Glacier Bay Alaska cruise" },
-  { re: /인컨타라|Xiangshawan|响沙湾/i, en: "Xiangshawan Desert Ordos Inner Mongolia" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 향사완 Hangul → Xiangshawan own-route — manifest
+  { re: /향사완|인컨타라|Xiangshawan|响沙湾/i, en: "Xiangshawan Desert Ordos Inner Mongolia" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Ordos 기마상 — 오르도스 문맥만 (단독 칭기즈≠Ordos) — manifest
   { re: /오르도스|Ordos/i, en: "Genghis Khan Statue Ordos" },
   { re: /타슈켄트|타쉬켄트|Tashkent|타슈켄/i, en: 'Tashkent' },
   { re: /비쉬켁|비슈케크|Bishkek/i, en: 'Bishkek' },
   { re: /사마르칸트|Samarkand/i, en: 'Samarkand' },
-  { re: /부하라|Bukhara/i, en: "Bukhara old city Uzbekistan" },
+  // 부카라(델리 식당) ≠ 부하라(우즈벡) — 우즈벡·사마르칸트 문맥 또는 Latin Bukhara만
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 부카라 식당 ≠ Bukhara Uzbekistan — manifest
+  { re: /(?:우즈베키스탄|우즈벡|사마르칸트|Samarkand).{0,40}부하라|부하라.{0,40}(?:우즈베키스탄|우즈벡|사마르칸트)|\bBukhara\b/i, en: "Bukhara old city Uzbekistan" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 북경 도시허브=Beijing (자금성 POI는 SPOT) — manifest
   { re: /북경|베이징|北京/u, en: 'Beijing' },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: India 도시허브 — 자이푸르≠Hawa Mahal 과매핑 금지 — manifest
@@ -1446,7 +1511,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /시기라\s*오공\s*온센/u, en: "Shigira Ogon Onsen Miyakojima" },
   { re: /교토|京都/u, en: "Kyoto temple street" },
   { re: /후쿠오카|福岡/u, en: "Fukuoka city night" },
-  { re: /삿포로|札幌/u, en: "Sapporo snow city street" },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 삿포 typo → Sapporo — manifest
+  { re: /삿포로|삿포(?!로)|札幌/u, en: "Sapporo snow city street" },
   { re: /나고야|名古屋/u, en: "Nagoya castle view" },
   { re: /요코하마|横浜/u, en: "Yokohama bay night" },
   { re: /(?<![가-힣])파리(?![가-힣])/u, en: "Paris city skyline" },
@@ -1512,7 +1578,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /밴프|Banff/i, en: "Banff townsite Rocky Mountains" },
   { re: /피렌체|Florence|Firenze/i, en: "Florence Duomo historic center" },
   { re: /베니스|Venice|Venezia/i, en: "Venice Grand Canal gondolas" },
-  { re: /밀라노|Milan|Milano/i, en: "Milan Cathedral Duomo square" },
+  // REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]: 말펜사 공항 ≠ 두오모 — manifest
+  { re: /밀라노(?!\s*말펜사)|(?<!Malpensa\s)\bMilan\b(?!\s*Malpensa)|\bMilano\b(?!\s*Malpensa)/i, en: "Milan Cathedral Duomo square" },
   { re: /빌니우스|Vilnius/i, en: "Vilnius Old Town Lithuania" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 「거리가」≠ 리가 Riga — manifest
   { re: /(?<![가-힣])리가(?![가-힣])|\bRiga\b/i, en: "Riga Latvia Art Nouveau street" },
@@ -1571,6 +1638,13 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /뉴질랜드|New\s*Zealand/i, en: "New Zealand Milford Sound landscape" },
   { re: /호주|Australia/i, en: "Australia Sydney Opera House harbour" },
   { re: /리우\s*데\s*자네이[로루]|Rio\s*de\s*Janeiro/i, en: "Rio de Janeiro Christ the Redeemer view" },
+  { re: /버드\s*파크|Bird\s*Park|Parque\s*Das\s*Aves|파르케\s*다스\s*아베스/i, en: "Parque das Aves Iguazu bird park" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Enshi canyon soft — manifest
+  { re: /은시\s*대협곡|Enshi\s*Grand\s*Canyon/i, en: "Enshi Grand Canyon" },
+  { re: /청강\s*화랑|Qingjiang\s*Gallery/i, en: "Qingjiang River Gallery Enshi" },
+  { re: /구향\s*동굴|Jiuxiang/i, en: "Jiuxiang Cave Kunming" },
+  { re: /대소\s*석림|Stone\s*Forest\s*Kunming/i, en: "Stone Forest Kunming" },
+  { re: /황룡\s*동굴|Huanglong\s*Cave/i, en: "Huanglong Cave Zhangjiajie" },
   { re: /마라케시|Marrakech/i, en: "Marrakech medina Morocco" },
   { re: /하코네|Hakone/i, en: "Hakone hot spring Mount Fuji view" },
   { re: /닛코|Nikko/i, en: "Nikko Toshogu Shrine" },

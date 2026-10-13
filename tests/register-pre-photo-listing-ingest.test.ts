@@ -456,9 +456,9 @@ describe('register-pre-photo-listing-ingest', () => {
     const ingestSrc = readFileSync(new URL('../lib/register-pre-photo-listing-ingest.ts', import.meta.url), 'utf8')
     assert.match(ingestSrc, /REGRESSION-FREEZE\[register-listing-discover-human-pace\]/)
     assert.match(ingestSrc, /listingUrlMapForSupplier\(supplier, sessionSlots\)/)
+    // Playwright 공급사 — bundled Chromium. modetour는 B2C 목록 SSOT(별도 아래).
     for (const rel of [
       '../scripts/listing_discover_hanatour/main.py',
-      '../scripts/listing_discover_modetour/main.py',
       '../scripts/listing_discover_ybtour/main.py',
       '../scripts/listing_discover_verygoodtour/main.py',
       '../scripts/listing_discover_kyowontour/main.py',
@@ -479,8 +479,16 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.match(yb, /PAUSE_MS_MIN = 7000/)
     assert.match(yb, /parent localList first/)
     assert.match(yb, /goodsCd/)
+    // REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]: modetour 목록 = B2C — manifest
     const md = readFileSync(new URL('../scripts/listing_discover_modetour/main.py', import.meta.url), 'utf8')
-    assert.match(md, /PAUSE_MS_MIN = 11000/)
+    assert.match(md, /REGRESSION-FREEZE\[register-listing-discover-human-pace\]/)
+    assert.match(md, /REGRESSION-FREEZE\[register-listing-discover-modetour-b2c-search\]/)
+    assert.match(md, /PAUSE_MS_MIN = 18000/)
+    assert.match(md, /B2C_PAUSE_MS_MIN = 14000/)
+    assert.match(md, /SearchThemeAndLocalKey/)
+    assert.match(md, /SearchProductMaster/)
+    assert.equal(md.includes('channel="chrome"'), false)
+    assert.equal(md.includes('chromium.launch(headless=True, args=launch_args)'), false)
     const vg = readFileSync(new URL('../scripts/listing_discover_verygoodtour/main.py', import.meta.url), 'utf8')
     assert.match(vg, /PAUSE_MS_MIN = 9000/)
     const kw = readFileSync(new URL('../scripts/listing_discover_kyowontour/main.py', import.meta.url), 'utf8')

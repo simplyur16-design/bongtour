@@ -3,6 +3,7 @@
  * 항공 일정·공항·편명·출발/도착 서술은 보존한다(패턴은 약관·취소 규정 본문 위주).
  *
  * 각 공급사 schedule/초안 파이프에서만 import — 비즈니스 규칙 병합용이 아님.
+ * REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 ≠ day 지명 — manifest
  */
 
 /** 한글에서는 \\b 경계가 거의 동작하지 않아 약관 절 제거가 누락된다 — \\b 없이 구간 매칭 */
@@ -15,6 +16,13 @@ const INLINE_CLAUSE_RE: RegExp[] = [
   /예약금\s*\d{1,3}(?:,\d{3})*\s*원[^。.\n]{0,120}[。.]?/gi,
   /계약금\s*환불[^。.\n]{0,120}[。.]?/gi,
   /취소\s*위약금[^。.\n]{0,160}[。.]?/gi,
+  // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 특약·위약금 별도적용 — manifest
+  /특약에\s*따라\s*위약금이\s*별도\s*적용[^。.\n]{0,80}[。.]?/gi,
+  /위약금이\s*별도\s*적용[^。.\n]{0,80}[。.]?/gi,
+  /위약금\s*조항[^。.\n]{0,120}[。.]?/gi,
+  /위약금[^。.\n]{0,80}[。.]?/gi,
+  /상세보기에서[^。.\n]{0,60}[。.]?/gi,
+  /상세보기[^。.\n]{0,40}[。.]?/gi,
   /기간에\s*따른\s*환불규정[^。.\n]{0,120}[。.]?/gi,
   /‘기간에\s*따른\s*취소환불규정’[^。.\n]{0,80}[。.]?/gi,
   /취소환불규정[^。.\n]{0,40}[。.]?/gi,
@@ -25,6 +33,28 @@ const INLINE_CLAUSE_RE: RegExp[] = [
   /배상하여야\s*합니다[^。.\n]{0,20}[。.]?/gi,
 ]
 
+/**
+ * day title·routeText 한 칸이 약관·위약금 절인지 (지명으로 쓰면 안 됨).
+ * REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 ≠ day 지명 — manifest
+ */
+export function isRegisterScheduleTermsOrPenaltyClause(text: string | null | undefined): boolean {
+  const t = String(text ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return false
+  if (/위약금/.test(t)) return true
+  if (/특약에\s*따라/.test(t) && /(?:위약|적용|취소|환불)/.test(t)) return true
+  if (/위약금\s*조항|취소\s*위약|취소수수료\s*규정|환불규정|표준약관|특별약관/.test(t) && t.length <= 80) {
+    return true
+  }
+  // UI 라벨이 day title/route에 박힌 경우
+  if (/^상세보기$/i.test(t)) return true
+  // 비행·이동 소요시간 라벨이 지명처럼 남은 경우
+  if (/소요\s*시간\s*[:：]/.test(t)) return true
+  if (/^소요\s*시간/.test(t)) return true
+  return false
+}
+
 function dropWholeLine(line: string): boolean {
   const t = line.trim()
   if (!t) return false
@@ -34,6 +64,8 @@ function dropWholeLine(line: string): boolean {
   if (/^(약관|취소수수료|특별약관|예약금|계약금|환불규정)\s*(\/|｜|\|)?\s*(취소수수료|약관|더\s*보기|보기)?\s*$/i.test(t))
     return true
   if (/약관\s*\/\s*취소수수료/.test(t) && t.length < 80) return true
+  // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금 한 줄 전체 drop — manifest
+  if (isRegisterScheduleTermsOrPenaltyClause(t)) return true
   if (/국외여행\s*표준약관\s*제\s*\d+\s*조/.test(t)) return true
   if (/여행\s*취소\s*시\s*국외여행\s*표준약관/.test(t)) return true
   if (/취소수수료\s*규정|예약금\s*규정|■\s*취소|■\s*예약금|▣\s*예약/.test(t)) return true
@@ -92,6 +124,7 @@ export function stripCounselingTermsFromScheduleText(s: string): string {
 type ScheduleRowLike = {
   title?: string
   description?: string
+  routeText?: string | null
   mealSummaryText?: string | null
   breakfastText?: string | null
   lunchText?: string | null
@@ -100,8 +133,12 @@ type ScheduleRowLike = {
 
 /** schedule 행 단위(공급사 스키마 공통 필드) */
 export function stripCounselingTermsFromScheduleRow<T extends ScheduleRowLike>(row: T): T {
-  const title = stripCounselingTermsFromScheduleText(String(row.title ?? ''))
+  let title = stripCounselingTermsFromScheduleText(String(row.title ?? ''))
+  if (isRegisterScheduleTermsOrPenaltyClause(title)) title = ''
   const description = stripCounselingTermsFromScheduleText(String(row.description ?? ''))
+  let routeText =
+    row.routeText != null ? stripCounselingTermsFromScheduleText(String(row.routeText)) : row.routeText
+  if (routeText != null && isRegisterScheduleTermsOrPenaltyClause(routeText)) routeText = ''
   const mealSummaryText =
     row.mealSummaryText != null ? stripCounselingTermsFromScheduleText(String(row.mealSummaryText)) || null : null
   const breakfastText =
@@ -112,6 +149,7 @@ export function stripCounselingTermsFromScheduleRow<T extends ScheduleRowLike>(r
     ...row,
     title,
     description,
+    ...(row.routeText !== undefined ? { routeText } : {}),
     mealSummaryText,
     breakfastText,
     lunchText,

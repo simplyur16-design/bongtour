@@ -125,7 +125,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /밀라노|Milan|Milano/i,
+    // REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]: 말펜사 공항 ≠ Duomo soft-alt — manifest
+    cityRe: /밀라노(?!\s*말펜사)|(?<!Malpensa\s)\bMilan\b(?!\s*Malpensa)|\bMilano\b(?!\s*Malpensa)/i,
     alts: [
       'Milan Cathedral Duomo square',
       'Galleria Vittorio Emanuele Milan',
@@ -223,6 +224,159 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Glass Bridge Zhangjiajie',
       'Yuanjiajie Peak Forest',
       'Golden Whip Stream Zhangjiajie',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Kunming·Changsha·Zhengzhou·Guangzhou bare→soft — manifest
+  // bare 석림 금지 — 은시「대포석림」등이 Kunming pack으로 새지 않게
+  {
+    cityRe:
+      /곤명|쿤밍|Kunming|해경공원|Haigeng|대소\s*석림|(?:곤명|쿤밍|Kunming).{0,24}석림|석림.{0,24}(?:곤명|쿤밍|Kunming)|Stone\s*Forest(?:\s*Kunming)?/i,
+    alts: [
+      'Stone Forest Kunming',
+      'Haigeng Park Kunming',
+      'Green Lake Park Kunming',
+      'Yuantong Temple Kunming',
+      'Dianchi Lake Kunming',
+    ],
+  },
+  {
+    cityRe: /장사|Changsha|천심각|Furong/i,
+    alts: [
+      'Orange Island Changsha',
+      'Yuelu Mountain Changsha',
+      'IFS Changsha skyline',
+      'Changsha window of the world',
+    ],
+  },
+  {
+    cityRe: /정주|Zhengzhou|개봉|Kaifeng|소림|Shaolin/i,
+    alts: [
+      'Shaolin Temple Zhengzhou',
+      'Erqi Memorial Tower Zhengzhou',
+      'Yellow River Scenic Area Zhengzhou',
+      'Kaifeng Fu Zhengzhou',
+    ],
+  },
+  {
+    cityRe: /광저우|Guangzhou|주강\s*야경|Canton\s*Tower/i,
+    alts: [
+      'Canton Tower Guangzhou',
+      'Pearl River Guangzhou night',
+      'Chimelong Paradise Guangzhou',
+      'Chen Clan Ancestral Hall Guangzhou',
+      'Guangzhou Opera House',
+    ],
+  },
+  {
+    cityRe: /계림|Guilin|양삭|Yangshuo|이강|Li\s*River|여의봉/i,
+    alts: [
+      'Li River Guilin cruise',
+      'Elephant Trunk Hill Guilin',
+      'Yangshuo countryside Guilin',
+      'Reed Flute Cave Guilin',
+      'Longji Rice Terraces Guilin',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Brisbane·Gold Coast bare→soft — manifest
+  {
+    cityRe: /브리즈번|Brisbane|골드\s*코스트|Gold\s*Coast|서퍼스|Surfers|탕갈루마|Tangalooma/i,
+    alts: [
+      'Brisbane Story Bridge',
+      'South Bank Brisbane parklands',
+      'Surfers Paradise Gold Coast',
+      'Tangalooma Island Resort Brisbane',
+      'Lone Pine Koala Sanctuary Brisbane',
+      'Theme parks Gold Coast',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Crete bare day→Knossos soft — manifest
+  {
+    cityRe: /크레타|Crete|크노소스|Knossos|하니아|Chania|헤라클리온|Heraklion/i,
+    alts: [
+      'Knossos Palace Crete',
+      'Chania Old Harbour Crete',
+      'Heraklion Archaeological Museum',
+      'Elafonissi Beach Crete',
+      'Spinalonga Island Crete',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Awaji·Kobe soft-alt — manifest
+  {
+    cityRe: /아와지|Awaji|하나사지키|Hanasajiki|고베|Kobe|누노비키|Nunobiki|하버랜드|Harborland|히메지|Himeji/i,
+    alts: [
+      'Awaji Hanasajiki flower fields',
+      'Awaji Yumebutai garden',
+      'Kobe Nunobiki Herb Gardens',
+      'Kobe Harborland waterfront',
+      'Himeji Castle',
+      'Kobe Port Tower',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok golf Artitaya soft — manifest
+  {
+    cityRe: /아티타야|Artitaya|(?:방콕|Bangkok).{0,48}골프|골프.{0,48}(?:방콕|Bangkok)/i,
+    alts: [
+      'Artitaya Golf Club Bangkok fairway',
+      'Bangkok golf course green',
+      'Ayutthaya golf resort fairway',
+      'Icon Siam Bangkok riverside',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Patagonia·Puerto Natales soft — manifest
+  {
+    cityRe:
+      /푸에르토\s*나탈레스|Puerto\s*Natales|토레스\s*델\s*파이네|Torres\s*del\s*Paine|파타고니아|Patagonia|칼라파테|Calafate|페리토\s*모레노|Perito\s*Moreno/i,
+    alts: [
+      'Torres del Paine National Park',
+      'Puerto Natales waterfront Chile',
+      'Grey Glacier Torres del Paine',
+      'Perito Moreno Glacier Patagonia',
+      'El Calafate Patagonia lake',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Baekdu·Changbai soft — manifest
+  {
+    cityRe: /백두산|장백산|Changbai|천지|장춘|Changchun|연길|Yanji/i,
+    alts: [
+      'Changbai Mountain Heaven Lake',
+      'Changbai Hot Springs',
+      'Changbai Mountain waterfall',
+      'Changchun sculpture park',
+      'Yanji cityscape China',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Enshi canyon soft — manifest
+  {
+    cityRe: /은시|Enshi|대협곡|청강\s*화랑|Qingjiang|토사가족/i,
+    alts: [
+      'Enshi Grand Canyon',
+      'Qingjiang River Enshi canyon',
+      'Enshi Grand Canyon boardwalk',
+      'Enshi countryside terrace',
+      'Enshi canyon viewpoint',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Guam mall·beach soft — manifest
+  {
+    cityRe: /괌|Guam|투몬|Tumon|마이크로네시아|Micronesia\s*Mall|두짓타니|Dusit\s*Thani/i,
+    alts: [
+      'Tumon Bay Guam beach',
+      'Two Lovers Point Guam',
+      'Micronesia Mall Guam',
+      'Plaza de Espana Guam Spanish steps',
+      'Fort Soledad Guam viewpoint',
+      'Fish Eye Marine Park Guam',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Toyama departure soft — manifest
+  {
+    cityRe: /토야마|Toyama|다테야마|Tateyama|구로베|Kurobe|알펜루트|Alpine\s*Route/i,
+    alts: [
+      'Toyama Castle Park',
+      'Kansui Park Toyama',
+      'Tateyama Kurobe Alpine Route',
+      'Toyama Glass Art Museum',
+      'Kurobe Dam Toyama',
     ],
   },
   {
@@ -418,6 +572,24 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Warsaw Old Town Square',
       'Warsaw Royal Castle',
       'Palace of Culture Warsaw',
+    ],
+  },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Baltimore Inner Harbor soft-alt — manifest
+  {
+    cityRe: /볼티모어|Baltimore|아이스와인/i,
+    alts: [
+      'Baltimore Inner Harbor',
+      'Baltimore National Aquarium',
+      'Fort McHenry Baltimore',
+    ],
+  },
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 브로츠와프 ≠ Wawel Krakow — manifest
+  {
+    cityRe: /브로츠와프|Wroc[łl]aw|황금소|Golden\s*Goose|Podwale/i,
+    alts: [
+      'Wroclaw Market Square',
+      'Wroclaw Cathedral Island',
+      'Wroclaw Centennial Hall Poland',
     ],
   },
   {
@@ -641,9 +813,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 니스한·베니스≠Nice soft-alt — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미) — manifest
   {
     cityRe:
-      /니스\s*해변|니스\s*구시가|(?:^|[\s\-·,/])니스(?:$|[\s\-·,/])|\bNice\b|프롬나드|Promenade\s*des\s*Anglais/i,
+      /니스\s*해변|니스\s*구시가|(?:^|[\s\-·,/])니스(?:$|[\s\-·,/])|\bNice\b|프롬나드\s*데\s*장글래|Promenade\s*des\s*Anglais/i,
     alts: [
       'Promenade Des Anglais Nice Beach',
       'Nice Old Town Cours Saleya',
@@ -1135,8 +1308,10 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /비엔나|Vienna|Wien|쉔부른|Schonbrunn/i,
+    cityRe: /비엔나|Vienna|Wien|쉔부른|Schonbrunn|멜크|Melk|바하우|Wachau/i,
     alts: [
+      'Melk Abbey Austria monastery',
+      'Wachau Valley Austria vineyards',
       'Schonbrunn Palace Vienna gardens',
       'St Stephens Cathedral Vienna',
       'Belvedere Palace Vienna',

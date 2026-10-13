@@ -6,6 +6,8 @@
 # REGRESSION-FREEZE[register-listing-discover-human-pace]: 홈 검색함 · bundled Chromium — manifest
 # REGRESSION-FREEZE[register-hanatour-listing-package-first]: 해외여행 클릭 · 짧은 검색어 · 시드 pkgCd 제외 — manifest
 # REGRESSION-FREEZE[register-listing-discover-overseas-click]: 홈→해외여행→메가메뉴 지명 클릭 — manifest
+# REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발은 홈 검색함 — manifest
+# REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 검색어도 홈 검색함 — manifest
 # REGRESSION-FREEZE[register-pre-photo-ingest-no-option-no-shopping]: 노옵션·노쇼핑 우선 — manifest
 from __future__ import annotations
 
@@ -31,6 +33,10 @@ HOME = "https://www.hanatour.com/"
 PKG_RE = re.compile(r"(?:[?&]pkgCd=|\"(?:saleProdCd|pkgCd)\"\s*:\s*\")([A-Za-z0-9]+)", re.I)
 PKG_OK = re.compile(r"^[A-Z]{2,4}\d{3}[A-Z0-9]{6,}$|^[A-Z0-9]{10,}$", re.I)
 SEED_PKG_RE = re.compile(r"[?&]pkgCd=([A-Za-z0-9]+)", re.I)
+# 메가메뉴 지명이 아님 — 홈 검색함으로만 찾는다.
+LOCAL_DEP_WORDS = frozenset({"부산출발", "대구출발", "청주출발"})
+THEME_SEARCH_WORDS = frozenset({"골프", "러닝", "트레킹", "다이빙"})
+HOME_SEARCH_WORDS = LOCAL_DEP_WORDS | THEME_SEARCH_WORDS
 
 
 def _pause_s() -> float:
@@ -177,7 +183,97 @@ async def _hover_overseas(page) -> bool:
     return False
 
 
+def _is_home_search_word(word: str) -> bool:
+    return (word or "").strip() in HOME_SEARCH_WORDS
+
+
+async def _fill_home_search(page, word: str) -> bool:
+    """홈 검색함 — 지방출발·테마 전용. 메가메뉴 클릭 경로와 분리."""
+    # REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 홈 검색함 — manifest
+    # REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 홈 검색함 — manifest
+    selectors = (
+        'input[type="search"]',
+        'input[name*="search" i]',
+        'input[id*="search" i]',
+        'input[placeholder*="검색"]',
+        'input[placeholder*="어디"]',
+        'input[aria-label*="검색"]',
+        'input[class*="search" i]',
+        '[role="search"] input',
+        'header input[type="text"]',
+    )
+    for sel in selectors:
+        loc = page.locator(sel).first
+        try:
+            if await loc.count() == 0:
+                continue
+            await loc.click(timeout=2500, force=True)
+            await loc.fill("")
+            await loc.fill(word)
+            await page.wait_for_timeout(400)
+            await loc.press("Enter")
+            return True
+        except Exception:
+            continue
+    # 역할·라벨 폴백
+    for role_name in ("검색", "통합검색", "Search"):
+        try:
+            box = page.get_by_role("searchbox", name=re.compile(role_name, re.I)).first
+            if await box.count() == 0:
+                box = page.get_by_placeholder(re.compile(role_name, re.I)).first
+            if await box.count() == 0:
+                continue
+            await box.click(timeout=2500, force=True)
+            await box.fill(word)
+            await page.wait_for_timeout(400)
+            await box.press("Enter")
+            return True
+        except Exception:
+            continue
+    return False
+
+
+async def _browse_home_search(page, word: str, bag: list[str]) -> list[str]:
+    """지방출발·테마 키워드 — 랜딩 상품과 섞지 않는다."""
+    tasks: list[asyncio.Task] = []
+
+    def on_resp(r):  # type: ignore[no-untyped-def]
+        tasks.append(asyncio.create_task(_capture(r, bag)))
+
+    try:
+        if page.is_closed():
+            return []
+        page.on("response", on_resp)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.wait_for_timeout(SETTLE_MS)
+        if not await _fill_home_search(page, word):
+            print(f"[listing-discover-hanatour] no search box {word}", file=sys.stderr)
+            return []
+        await page.wait_for_timeout(SETTLE_MS + 2000)
+        try:
+            await page.mouse.wheel(0, 1200)
+            await page.wait_for_timeout(800)
+        except Exception:
+            pass
+        if tasks:
+            await asyncio.wait(tasks, timeout=8)
+        return await _snapshot(page, bag)
+    except Exception as e:
+        print(f"[listing-discover-hanatour] home search fail {e}", file=sys.stderr)
+        return []
+    finally:
+        try:
+            page.remove_listener("response", on_resp)
+        except Exception:
+            pass
+
+
 async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> list[str]:
+    # REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발 → 홈 검색 — manifest
+    # REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 → 홈 검색 — manifest
+    if _is_home_search_word(word):
+        return await _browse_home_search(page, word, bag)
+
     tasks: list[asyncio.Task] = []
 
     def on_resp(r):  # type: ignore[no-untyped-def]
@@ -220,6 +316,8 @@ async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> list[s
             clicked = await _click_label(page, word)
         if not clicked:
             print(f"[listing-discover-hanatour] no click {word}", file=sys.stderr)
+            # 클릭 실패 시 랜딩만 넘기면 지방·테마·geo 슬롯이 전부 같은 URL로 오염된다.
+            return []
         await page.wait_for_timeout(SETTLE_MS + 1600)
         try:
             await page.mouse.wheel(0, 900)

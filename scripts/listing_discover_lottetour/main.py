@@ -4,6 +4,7 @@
 # REGRESSION-FREEZE[register-listing-discover-overseas-click]: 홈→해외여행→메가메뉴 지명 클릭 — manifest
 # REGRESSION-FREEZE[register-listing-discover-human-pace]: bundled Chromium · 공급사 자체 간격 — manifest
 # REGRESSION-FREEZE[register-listing-discover-no-seed-detail]: page hrefs only — no invented evtDetail — manifest
+# REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발·테마 홈 검색함 — manifest
 from __future__ import annotations
 
 import asyncio
@@ -23,6 +24,9 @@ UA = (
     "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
 HOME = "https://www.lottetour.com/"
+LOCAL_DEP_WORDS = frozenset({"부산출발", "대구출발", "청주출발"})
+THEME_SEARCH_WORDS = frozenset({"골프", "러닝", "트레킹", "다이빙"})
+HOME_SEARCH_WORDS = LOCAL_DEP_WORDS | THEME_SEARCH_WORDS
 HREF_RE = re.compile(
     r"https?://(?:www\.)?lottetour\.com/(?:evtDetail|evtList)/[^\s\"'<>#]+",
     re.I,
@@ -193,7 +197,71 @@ async def _hover_overseas(page) -> bool:
     return False
 
 
+async def _fill_home_search(page, word: str) -> bool:
+    # REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 홈 검색함 — manifest
+    for sel in (
+        'input[type="search"]',
+        'input[placeholder*="검색"]',
+        'input[placeholder*="어디"]',
+        'input[aria-label*="검색"]',
+        'input[class*="search" i]',
+        '[role="search"] input',
+        'header input[type="text"]',
+        'input[type="text"]',
+    ):
+        loc = page.locator(sel).first
+        try:
+            if await loc.count() == 0:
+                continue
+            await loc.click(timeout=2500, force=True)
+            await loc.fill("")
+            await loc.fill(word)
+            await page.wait_for_timeout(350)
+            await loc.press("Enter")
+            return True
+        except Exception:
+            continue
+    return False
+
+
+async def _browse_home_search(page, word: str, bag: list[str]) -> list[str]:
+    tasks: list[asyncio.Task] = []
+
+    def on_resp(r):  # type: ignore[no-untyped-def]
+        tasks.append(asyncio.create_task(_capture(r, bag)))
+
+    try:
+        if page.is_closed():
+            return []
+        page.on("response", on_resp)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.wait_for_timeout(SETTLE_MS)
+        if not await _fill_home_search(page, word):
+            print(f"[listing-discover-lottetour] no search box {word}", file=sys.stderr)
+            return []
+        await page.wait_for_timeout(SETTLE_MS + 1800)
+        try:
+            await page.mouse.wheel(0, 900)
+            await page.wait_for_timeout(800)
+        except Exception:
+            pass
+        if tasks:
+            await asyncio.wait(tasks, timeout=8)
+        return (await _snapshot(page, bag))[:24]
+    except Exception as e:
+        print(f"[listing-discover-lottetour] home search fail {e}", file=sys.stderr)
+        return []
+    finally:
+        try:
+            page.remove_listener("response", on_resp)
+        except Exception:
+            pass
+
+
 async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> list[str]:
+    if (word or "").strip() in HOME_SEARCH_WORDS:
+        return await _browse_home_search(page, word, bag)
+
     tasks: list[asyncio.Task] = []
 
     def on_resp(r):  # type: ignore[no-untyped-def]
@@ -236,6 +304,7 @@ async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> list[s
             clicked = await _click_label(page, word)
         if not clicked:
             print(f"[listing-discover-lottetour] no click {word}", file=sys.stderr)
+            return []
         await page.wait_for_timeout(SETTLE_MS + 1600)
         try:
             await page.mouse.wheel(0, 900)

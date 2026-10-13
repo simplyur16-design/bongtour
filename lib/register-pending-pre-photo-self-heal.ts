@@ -1,7 +1,8 @@
 /**
  * 등록대기(사진 수급 전) Product.schedule 셀프힐 + 레인별 검증 — Pexels/Gemini 호출 없음.
- * 힐이 등록 SSOT로 고친 뒤 검증 통과만 pending. 실패는 pre_photo_blocked.
+ * 힐이 등록 SSOT로 고친 뒤 검증 통과만 pending. 실패는 재힐 루프 후 pre_photo_blocked.
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: pending 사진 생성 금지 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-self-heal]: verify-fail retry clear — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 등록화면 레인으로 힐·검증 — manifest
  * REGRESSION-FREEZE[pending-approve-photos-ready]: 사진 완료 skip photosReady SSOT — manifest
  * REGRESSION-FREEZE[pre-photo-keyword-verify-before-photos]: 키워드가 나와도 검증 스탬프 — manifest
@@ -33,9 +34,11 @@ import {
 import { inferSportsThemeTagsFromListingHaystack } from '@/lib/product-listing-kind'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import {
+  clearRegisterPrePhotoKeywordsForVerifyIssues,
   healRegisterPrePhotoSchedule,
   isObviouslyBrokenScheduleImageUrl,
   probeRegisterScheduleImageUrl,
+  registerPrePhotoVerifyIssuesAreHealRetryable,
   type RegisterPrePhotoHealNote,
 } from '@/lib/register-pre-photo-self-heal'
 import {
@@ -88,7 +91,10 @@ export type HealPendingPrePhotoResult = {
   byLane: Record<RegisterAdminLane, number>
 }
 
-const GATEABLE_STATUSES = new Set(['', 'pending', REGISTER_PRE_PHOTO_BLOCKED_STATUS])
+/** pending·차단·등록완료 모두 일정 scrub. registered는 상태 강등 금지. */
+const GATEABLE_STATUSES = new Set(['', 'pending', REGISTER_PRE_PHOTO_BLOCKED_STATUS, 'registered'])
+/** 검증 실패 시 키워드 비움→재힐→재검증 최대 횟수 */
+const VERIFY_FAIL_HEAL_RETRY_MAX = 4
 
 function parseScheduleRows(raw: string | null): Array<Record<string, unknown>> {
   if (!raw) return []
@@ -103,7 +109,7 @@ function parseScheduleRows(raw: string | null): Array<Record<string, unknown>> {
 export async function healPendingRegisterPrePhoto(
   opts?: HealPendingPrePhotoOpts,
 ): Promise<HealPendingPrePhotoResult> {
-  const limit = Math.min(200, Math.max(1, Math.floor(opts?.limit ?? 80)))
+  const limit = Math.min(500, Math.max(1, Math.floor(opts?.limit ?? 80)))
   const probeImageUrls = opts?.probeImageUrls === true
   const dryRun = opts?.dryRun === true
   const notesSample: RegisterPrePhotoHealNote[] = []
@@ -113,6 +119,7 @@ export async function healPendingRegisterPrePhoto(
     theme: 0,
   }
 
+  // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: registered도 일정 scrub — manifest
   const products = await withPrismaRetry(
     'heal-pending-scan',
     () =>
@@ -125,6 +132,7 @@ export async function healPendingRegisterPrePhoto(
             { registrationStatus: '' },
             { registrationStatus: 'pending' },
             { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS },
+            { registrationStatus: 'registered' },
           ],
         },
     orderBy: { updatedAt: 'asc' },
@@ -342,11 +350,13 @@ export async function healPendingRegisterPrePhoto(
             // REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]: 힐이 고친 routeText 도 저장 — manifest
             // REGRESSION-FREEZE[register-ocean-cruise-at-sea-description]: 전일해상 title scrub 저장 — manifest
             // null title = hub poison scrub — ?? 로 복원하지 않음
+            // null/'' route·title은 의도적 비움 — ?? 로 오염값 복원 금지
+            // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: heal persist no resurrect — manifest
             title: h.title !== undefined ? h.title : row.title,
-            routeText: h.routeText ?? row.routeText,
+            routeText: h.routeText !== undefined ? h.routeText : row.routeText,
             imageKeyword: h.imageKeyword ?? '',
             imageKeyword2: h.imageKeyword2 ?? null,
-            description: h.description ?? row.description,
+            description: h.description !== undefined ? h.description : row.description,
             imageUrl,
           }
         })
@@ -371,31 +381,49 @@ export async function healPendingRegisterPrePhoto(
 
       let countryKeyForVerify = product.countryKey ?? null
       let geoRematerialized = false
-      // REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
-      if (
-        pendingNeedsCountryScheduleGeoHeal({
-          countryKey: countryKeyForVerify,
-          productTitle: titleForInfer,
-          productDestination,
-          rows: verifyRows,
+
+      const applyHealRowsOntoSchedule = (
+        healed: ReturnType<typeof healRegisterPrePhotoSchedule>['rows'],
+      ) => {
+        const mealByDay = new Map(verifyRows.map((r) => [Number(r.day), r]))
+        verifyRows = healed.map((h) => {
+          const prev = mealByDay.get(Number(h.day))
+          return {
+            day: Number(h.day),
+            title: h.title,
+            description: h.description,
+            routeText: h.routeText,
+            imageKeyword: h.imageKeyword,
+            imageKeyword2: h.imageKeyword2,
+            imageUrl: h.imageUrl,
+            hotelText: prev?.hotelText ?? null,
+            breakfastText: prev?.breakfastText ?? null,
+            lunchText: prev?.lunchText ?? null,
+            dinnerText: prev?.dinnerText ?? null,
+            mealSummaryText: prev?.mealSummaryText ?? null,
+            meals: prev?.meals ?? null,
+            accommodation: prev?.accommodation ?? null,
+          }
         })
-      ) {
-        const remat = await rematerializePendingProductCountryGeo(prisma, {
-          productId: product.id,
-          title: titleForInfer,
-          originSource: product.originSource,
-          productDestination,
-          previousCountryKey: countryKeyForVerify,
-          rows: verifyRows,
-          dryRun,
+        const byDay = new Map(healed.map((r) => [Number(r.day), r]))
+        next = next.map((row) => {
+          const h = byDay.get(Number(row.day))
+          if (!h) return row
+          return {
+            ...row,
+            // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: heal persist no resurrect — manifest
+            title: h.title !== undefined ? h.title : row.title,
+            routeText: h.routeText !== undefined ? h.routeText : row.routeText,
+            imageKeyword: h.imageKeyword ?? '',
+            imageKeyword2: h.imageKeyword2 ?? null,
+            description: h.description !== undefined ? h.description : row.description,
+          }
         })
-        countryKeyForVerify = remat.geo.countryKey
-        geoRematerialized = remat.changed || Boolean(remat.geo.countryKey)
+        scheduleChanged = true
       }
 
-      // day title 독은 geo 여부와 무관하게 항상 스크럽
-      // REGRESSION-FREEZE[register-pre-photo-day-title-hub-poison]: 쿠알라·상세보기 scrub — manifest
-      {
+      const scrubDayTitlePoison = () => {
+        // REGRESSION-FREEZE[register-pre-photo-day-title-hub-poison]: 쿠알라·상세보기 scrub — manifest
         const scrub = scrubPoisonedScheduleDayTitlesForCountryKey({
           countryKey: countryKeyForVerify,
           rows: verifyRows.map((r) => ({
@@ -408,42 +436,69 @@ export async function healPendingRegisterPrePhoto(
             imageUrl: r.imageUrl,
           })),
         })
-        if (scrub.scrubbedDays.length > 0) {
-          const byDay = new Map(scrub.rows.map((r) => [Number(r.day), r]))
-          next = next.map((row) => {
-            const h = byDay.get(Number(row.day))
-            if (!h) return row
-            return { ...row, title: h.title }
-          })
-          verifyRows = scrub.rows.map((h) => {
-            const prev = verifyRows.find((r) => Number(r.day) === Number(h.day))
-            return {
-              day: Number(h.day),
-              title: h.title ?? null,
-              description: h.description ?? null,
-              routeText: h.routeText ?? null,
-              imageKeyword: h.imageKeyword ?? null,
-              imageKeyword2: h.imageKeyword2 ?? null,
-              imageUrl: h.imageUrl ?? null,
-              hotelText: prev?.hotelText ?? null,
-              breakfastText: prev?.breakfastText ?? null,
-              lunchText: prev?.lunchText ?? null,
-              dinnerText: prev?.dinnerText ?? null,
-              mealSummaryText: prev?.mealSummaryText ?? null,
-              meals: prev?.meals ?? null,
-              accommodation: prev?.accommodation ?? null,
-            }
-          })
-          scheduleChanged = true
-          healNotes.push({
-            day: scrub.scrubbedDays[0] ?? 0,
-            field: 'title',
-            reason: 'country_schedule_day_title_poison_scrub',
-          })
-        }
+        if (scrub.scrubbedDays.length === 0) return
+        const byDay = new Map(scrub.rows.map((r) => [Number(r.day), r]))
+        next = next.map((row) => {
+          const h = byDay.get(Number(row.day))
+          if (!h) return row
+          return { ...row, title: h.title }
+        })
+        verifyRows = scrub.rows.map((h) => {
+          const prev = verifyRows.find((r) => Number(r.day) === Number(h.day))
+          return {
+            day: Number(h.day),
+            title: h.title ?? null,
+            description: h.description ?? null,
+            routeText: h.routeText ?? null,
+            imageKeyword: h.imageKeyword ?? null,
+            imageKeyword2: h.imageKeyword2 ?? null,
+            imageUrl: h.imageUrl ?? null,
+            hotelText: prev?.hotelText ?? null,
+            breakfastText: prev?.breakfastText ?? null,
+            lunchText: prev?.lunchText ?? null,
+            dinnerText: prev?.dinnerText ?? null,
+            mealSummaryText: prev?.mealSummaryText ?? null,
+            meals: prev?.meals ?? null,
+            accommodation: prev?.accommodation ?? null,
+          }
+        })
+        scheduleChanged = true
+        healNotes.push({
+          day: scrub.scrubbedDays[0] ?? 0,
+          field: 'title',
+          reason: 'country_schedule_day_title_poison_scrub',
+        })
       }
 
-      const verify = verifyRegisterPrePhoto({
+      const maybeRematerializeCountryGeo = async () => {
+        // REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
+        if (
+          !pendingNeedsCountryScheduleGeoHeal({
+            countryKey: countryKeyForVerify,
+            productTitle: titleForInfer,
+            productDestination,
+            rows: verifyRows,
+          })
+        ) {
+          return
+        }
+        const remat = await rematerializePendingProductCountryGeo(prisma, {
+          productId: product.id,
+          title: titleForInfer,
+          originSource: product.originSource,
+          productDestination,
+          previousCountryKey: countryKeyForVerify,
+          rows: verifyRows,
+          dryRun,
+        })
+        countryKeyForVerify = remat.geo.countryKey
+        geoRematerialized = remat.changed || Boolean(remat.geo.countryKey) || geoRematerialized
+      }
+
+      await maybeRematerializeCountryGeo()
+      scrubDayTitlePoison()
+
+      let verify = verifyRegisterPrePhoto({
         lane,
         listingKind: product.listingKind,
         productType: product.productType,
@@ -453,6 +508,66 @@ export async function healPendingRegisterPrePhoto(
         countryKey: countryKeyForVerify,
         rows: verifyRows,
       })
+
+      // REGRESSION-FREEZE[register-pre-photo-self-heal]: verify-fail retry clear — manifest
+      // lodging / own_route / wrong_country 등은 비움→재힐→재검증으로 pending까지 끌어올린다.
+      for (
+        let retry = 0;
+        !verify.ok &&
+        retry < VERIFY_FAIL_HEAL_RETRY_MAX &&
+        registerPrePhotoVerifyIssuesAreHealRetryable(verify.issues) &&
+        verifyRows.length > 0;
+        retry += 1
+      ) {
+        const cleared = clearRegisterPrePhotoKeywordsForVerifyIssues(verifyRows, verify.issues)
+        if (cleared.clearedDays.length > 0) {
+          verifyRows = cleared.rows
+          const clearByDay = new Map(cleared.rows.map((r) => [Number(r.day), r]))
+          next = next.map((row) => {
+            const h = clearByDay.get(Number(row.day))
+            if (!h) return row
+            return {
+              ...row,
+              imageKeyword: h.imageKeyword ?? '',
+              imageKeyword2: h.imageKeyword2 ?? null,
+            }
+          })
+          scheduleChanged = true
+        }
+        await maybeRematerializeCountryGeo()
+        const retryHeal = healRegisterPrePhotoSchedule(verifyRows, {
+          supplierKey,
+          productDestination,
+          productTitle: titleForInfer,
+          lane,
+          countryKey: countryKeyForVerify,
+          productHaystack: [
+            product.includedText,
+            String(product.rawMeta ?? '').slice(0, 24000),
+            verifyRows.map((r) => [r.title, r.routeText, r.description].join(' ')).join('\n'),
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        })
+        healNotes = [...healNotes, ...retryHeal.notes, {
+          day: cleared.clearedDays[0] ?? 0,
+          field: 'imageKeyword',
+          reason: `verify_fail_retry_${retry + 1}`,
+        }]
+        applyHealRowsOntoSchedule(retryHeal.rows)
+        scrubDayTitlePoison()
+        verify = verifyRegisterPrePhoto({
+          lane,
+          listingKind: product.listingKind,
+          productType: product.productType,
+          sportsThemeTag: product.sportsThemeTag,
+          productDestination,
+          productTitle: titleForInfer,
+          countryKey: countryKeyForVerify,
+          rows: verifyRows,
+        })
+      }
+
       if (verify.ok) verified += 1
       else {
         verifyFailed += 1
@@ -463,7 +578,11 @@ export async function healPendingRegisterPrePhoto(
           verify.issues.slice(0, 16).join(','),
         )
       }
-      const nextStatus = registrationStatusAfterPrePhotoVerify(verify)
+      // registered는 라이브 상품 — 검증 실패해도 pre_photo_blocked로 강등하지 않음 (일정만 scrub)
+      const nextStatus =
+        currentStatus === 'registered'
+          ? 'registered'
+          : registrationStatusAfterPrePhotoVerify(verify)
       const statusChanged = currentStatus !== nextStatus
       if (statusChanged && nextStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS) blocked += 1
       if (statusChanged && nextStatus === 'pending' && currentStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS) {

@@ -35,7 +35,16 @@ export async function discoveredListingFitsIngestLane(
     return factKindMatchesIngestLane(inferHanatourRegisterFactProductKind(info, originUrl), lane)
   }
   if (supplier === 'modetour') {
-    const detail = await fetchModetourGroupDetailInfo(originUrl)
+    // REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]: 상품코드 URL은 productNo로 해석 — manifest
+    let detailUrl = originUrl
+    const pathCode = originUrl.match(/\/package\/([A-Za-z0-9]+)(?:[/?#]|$)/i)?.[1] ?? ''
+    if (pathCode && !/^\d{6,12}$/.test(pathCode)) {
+      const { resolveModetourDetailByOriginCode } = await import('@/lib/modetour-origin-code-resolve')
+      const resolved = await resolveModetourDetailByOriginCode(pathCode, { storedOriginUrl: originUrl })
+      if (!resolved.detailUrl || !resolved.productNo) return false
+      detailUrl = resolved.detailUrl
+    }
+    const detail = await fetchModetourGroupDetailInfo(detailUrl)
     if (!detail) return false
     return factKindMatchesIngestLane(inferModetourRegisterFactProductKind(detail), lane)
   }

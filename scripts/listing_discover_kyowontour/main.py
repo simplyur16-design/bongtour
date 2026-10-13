@@ -15,6 +15,7 @@
 # REGRESSION-FREEZE[register-listing-discover-kyowontour-popup-x]: 팝업은 ×만 닫기 — manifest
 # REGRESSION-FREEZE[register-listing-discover-kyowontour-expanded-card-click]: 열린 카드 달력·상세만 — manifest
 # REGRESSION-FREEZE[register-pre-photo-ingest-no-option-no-shopping]: 노옵션·노쇼핑 우선 — manifest
+# REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발·테마 홈 검색함 — manifest
 from __future__ import annotations
 
 import asyncio
@@ -36,6 +37,9 @@ UA = (
 )
 DETAIL = "https://www.kyowontour.com/goods/goodsEventDetail"
 HOME = "https://www.kyowontour.com/"
+LOCAL_DEP_WORDS = frozenset({"부산출발", "대구출발", "청주출발"})
+THEME_SEARCH_WORDS = frozenset({"골프", "러닝", "트레킹", "다이빙"})
+HOME_SEARCH_WORDS = LOCAL_DEP_WORDS | THEME_SEARCH_WORDS
 TOUR_RE = re.compile(r"(?:[?&]tourCode=|\"(?:tourCode|TourCode)\"\s*:\s*\")([A-Za-z0-9]+)", re.I)
 TOUR_OK = re.compile(r"^[A-Za-z0-9]{8,}$")
 SEED_RE = re.compile(r"[?&]tourCode=([A-Za-z0-9]+)", re.I)
@@ -909,7 +913,83 @@ async def _hover_overseas(page) -> bool:
     return False
 
 
+async def _fill_home_search(page, word: str) -> bool:
+    # REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 홈 검색함 — manifest
+    for sel in (
+        'input[type="search"]',
+        'input[placeholder*="검색"]',
+        'input[placeholder*="어디"]',
+        'input[aria-label*="검색"]',
+        'input[class*="search" i]',
+        '[role="search"] input',
+        'header input[type="text"]',
+        'input[type="text"]',
+    ):
+        loc = page.locator(sel).first
+        try:
+            if await loc.count() == 0:
+                continue
+            await loc.click(timeout=2500, force=True)
+            await loc.fill("")
+            await loc.fill(word)
+            await page.wait_for_timeout(350)
+            await loc.press("Enter")
+            return True
+        except Exception:
+            continue
+    return False
+
+
+async def _browse_home_search(page, word: str, bag: list[str]) -> list[str]:
+    """지방출발·테마 — 홈 검색 결과에서 tourCode 수집 (달력 경로와 분리)."""
+    tasks: list[asyncio.Task] = []
+
+    def on_resp(r):  # type: ignore[no-untyped-def]
+        tasks.append(asyncio.create_task(_capture(r, bag)))
+
+    try:
+        if page.is_closed():
+            return []
+        page.on("response", on_resp)
+        await _close_stale_detail_pages(page)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.wait_for_timeout(SETTLE_MS)
+        await _dismiss_home_overlay(page)
+        if not await _fill_home_search(page, word):
+            print(f"[listing-discover-kyowontour] no search box {word}", file=sys.stderr)
+            return []
+        await page.wait_for_timeout(SETTLE_MS + 2000)
+        try:
+            await page.mouse.wheel(0, 900)
+            await page.wait_for_timeout(800)
+        except Exception:
+            pass
+        if tasks:
+            await asyncio.wait(tasks, timeout=8)
+        codes = await _snapshot(page, bag)
+        hrefs = [f"{DETAIL}?tourCode={c}" for c in codes[:24]]
+        print(f"[listing-discover-kyowontour] home-search word={word} urls={len(hrefs)}", file=sys.stderr)
+        return hrefs
+    except Exception as e:
+        print(f"[listing-discover-kyowontour] home search fail {e}", file=sys.stderr)
+        return []
+    finally:
+        try:
+            page.remove_listener("response", on_resp)
+        except Exception:
+            pass
+
+
 async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> list[str]:
+    # 지방출발·테마 홈검색 실패 시 메가메뉴(stem) — 빈 할당량으로 공급사 포기 금지
+    if (word or "").strip() in HOME_SEARCH_WORDS:
+        urls = await _browse_home_search(page, word, bag)
+        if urls:
+            return urls
+        print(f"[listing-discover-kyowontour] home search empty → mega menu {word}", file=sys.stderr)
+        stem = (word or "").replace("출발", "").strip()
+        word = stem or word
+
     tasks: list[asyncio.Task] = []
 
     def on_resp(r):  # type: ignore[no-untyped-def]

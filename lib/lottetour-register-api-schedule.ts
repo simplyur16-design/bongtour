@@ -4,9 +4,11 @@
  * REGRESSION-FREEZE[lottetour-schedule-expression]: routeText·description vibe — manifest
  * REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
  * REGRESSION-FREEZE[lottetour-register-detail-collect]: parseLottetourScheduleDaysFromScheduleAjax — manifest
+ * REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 ≠ day 지명 — manifest
  */
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
+import { stripCounselingTermsFromScheduleRow } from '@/lib/itinerary-counseling-terms-strip'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import {
   isRegisterSchedulePlanInfoMarketingLine,
@@ -453,7 +455,7 @@ function inferLottetourScheduleVibeProfile(day: number, maxDay: number, joinedBl
   }
   // REGRESSION-FREEZE[lottetour-schedule-expression]: 프랑스 일주 vibe 분화 — manifest
   if (
-    /(?:^|[\s\-·,/])니스(?:$|[\s\-·,/])|\bNice\b|모나코|Monaco|에즈|Eze|프롬나드|Promenade|(?:프랑스\s*)?리비에라|French\s*Riviera/i.test(
+    /(?:^|[\s\-·,/])니스(?:$|[\s\-·,/])|\bNice\b|모나코|Monaco|에즈|Eze|프롬나드\s*데\s*장글래|Promenade\s*des\s*Anglais|(?:프랑스\s*)?리비에라|French\s*Riviera/i.test(
       joinedBlob,
     )
   ) {
@@ -699,14 +701,18 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
   return rows.map((row) => {
     const day = Number(row.day)
     if (day <= 0) return row
-    const fromRoute = row.routeText ? dedupeLottetourScheduleRoutePlaces(row.routeText.split(/\s*-\s*/)) : []
-    const existingDesc = String(row.description ?? '').trim()
+    // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금 title/route 선제거 — manifest
+    const cleaned = stripCounselingTermsFromScheduleRow(row)
+    const fromRoute = cleaned.routeText
+      ? dedupeLottetourScheduleRoutePlaces(String(cleaned.routeText).split(/\s*-\s*/))
+      : []
+    const existingDesc = String(cleaned.description ?? '').trim()
     // 산문 plan_info 덤프를 route로 쪼개지 않음 — [명소]·기존 route만
     const fromBrackets = extractLottetourBracketPlacesFromText(existingDesc)
     const routePlaces = dedupeLottetourScheduleRoutePlaces([...fromRoute, ...fromBrackets])
     // join 내부 sanitize — 전부 noise면 null (dirty row.routeText 되살리기 금지)
     const routeText = joinLottetourScheduleRouteText(routePlaces)
-    const joinedBlob = [row.title, existingDesc, routeText].filter(Boolean).join('\n')
+    const joinedBlob = [cleaned.title, existingDesc, routeText].filter(Boolean).join('\n')
     // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: description은 vibe 2~3문장 (plan_info는 route·profile 근거) — manifest
     const description = composeLottetourScheduleDescription({
       day,
@@ -721,7 +727,7 @@ export function applyLottetourScheduleExpressionToRows<T extends RegisterSchedul
       day,
       maxDay,
       routeText,
-      fallbacks: [row.title],
+      fallbacks: [cleaned.title],
       returnTitle: '귀국',
     })
     return { ...row, routeText, description, title }

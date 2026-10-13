@@ -18,9 +18,16 @@
  * REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: keep-filled 후에도 trip dedupe — manifest
  * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: used bare reinject 금지·허브 팩 — manifest
  * REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT heal은 패키지 soft-alt·landmark pack 금지 — manifest
+ * REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 scrub — manifest
  */
 import { composeRegisterScheduleDaySummary } from '@/lib/register-schedule-description-characteristic-ssot'
+import {
+  isRegisterScheduleTermsOrPenaltyClause,
+  stripCounselingTermsFromScheduleText,
+} from '@/lib/itinerary-counseling-terms-strip'
+import { qualifyMongoliaTurtleRockPexelsKeyword } from '@/lib/register-schedule-mongolia-turtle-rock-pexels'
 import { scrubPoisonedScheduleDayTitlesForCountryKey } from '@/lib/register-pre-photo-country-schedule-self-heal'
+import { sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import {
   englishFromScheduleKoreanSegment,
   normScheduleImageKeywordKey,
@@ -71,6 +78,7 @@ import {
   registerScheduleKeywordMatchesOwnDayRoute,
   registerScheduleLodgingAllowsDestLandmark,
   registerScheduleLodgingOnlyAllowsSoftDupVisitCity,
+  routeTextHasIdentifiableVisitPlace,
 } from '@/lib/register-pre-photo-verify'
 import {
   isBrokenRegisterLandmarkKeyword,
@@ -131,7 +139,15 @@ function sanitizeLandmarkKeyword(
   raw: string | null | undefined,
   allowHotelLodging = false,
 ): string {
-  const t = String(raw ?? '').trim()
+  let t = String(raw ?? '').trim()
+  // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: Pexels 실측 검색어 — manifest
+  t = qualifyMongoliaTurtleRockPexelsKeyword(t)
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: DAY N·FERRY 등 운영 라벨 ≠ 명소 — manifest
+  if (/^(?:DAY\s*\d+|D\d+|FERRY|TRANSFER|OPTIONAL|FREE\s*DAY)$/i.test(t)) return ''
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 잘린 Camino de → 거부(재채움) — manifest
+  if (/^(?:Camino\s+de|Plaza\s+de|Calle\s+de|Rue\s+de|Via\s+de)$/i.test(t)) return ''
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Armster Battery OCR 환각 → 거부 — manifest
+  if (/Armster\s*Battery|Seat\s*of\s*Armster/i.test(t)) return ''
   if (!t || isBrokenRegisterLandmarkKeyword(t, { allowHotelLodging })) return ''
   if (allowHotelLodging && isHotelLodgingImageKeyword(t)) return t
   const persist = tryPersistScheduleImageKeyword(t)
@@ -258,8 +274,15 @@ function refillEmptyMiddleRouteFromDest<T extends RegisterPrePhotoHealRow>(
       (isRegisterScheduleFreeTimeOrResortLeisureText(titleHay)
         ? firstMatchingScheduleCityEn(titleHay) || ''
         : '')
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 빈 middle — 직전 방문도시 route 승계 — manifest
+    const priorHay = priorMiddleDayRouteHay(rows, Number(row.day) || 0)
+    const fromPrior =
+      softDupForeignVisitCityForMiddleRoute(priorHay) ||
+      firstMatchingScheduleCityEn(priorHay) ||
+      ''
     const fill =
       (fromTitle && isBareCityOrCountryKeyword(fromTitle) ? fromTitle : '') ||
+      (fromPrior && isBareCityOrCountryKeyword(fromPrior) ? fromPrior : '') ||
       (softDest && isBareCityOrCountryKeyword(softDest) ? softDest : '')
     if (!fill) return row
     // 자유휴양 title은 원문 유지(도시 증거) — bare dest만 넣으면 이후 own-route가 dest로 오염
@@ -907,14 +930,30 @@ function bareVisitCityLandmarkPack(routeHay: string): string[] {
       'Avatar Hallelujah Mountain',
     ]
   }
-  if (/삿포|Sapporo|비에이|Biei|오타루|Otaru/i.test(hay)) {
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 비에이≠삿포·죠잔케이 pack 분리 — manifest
+  if (/비에이|Biei|후라노|Furano|쉬키사이|Shikisai/i.test(hay)) {
     return [
       'White Beard Falls Biei',
+      'Shikisai-no-oka Biei',
       'Ueno Farm Hokkaido',
-      'Otaru Canal',
+      'Patchwork Road Biei',
+    ]
+  }
+  if (/죠잔케이|Jozankei|定山渓/i.test(hay)) {
+    return [
+      'Jozankei Onsen Sapporo',
+      'Jozankei',
       'Odori Park Sapporo',
       'Sapporo Clock Tower',
+    ]
+  }
+  if (/삿포|Sapporo|오타루|Otaru/i.test(hay)) {
+    return [
+      'Odori Park Sapporo',
+      'Sapporo Clock Tower',
+      'Otaru Canal',
       'Shiroi Koibito Park',
+      'Jozankei Onsen Sapporo',
     ]
   }
   if (/레이캬비크|Reykjavik|아이슬란드|Iceland/i.test(hay)) {
@@ -1239,10 +1278,16 @@ function refillEmptyMiddleKeywordFromRoute<T extends RegisterPrePhotoHealRow>(
           const p = tryPersistScheduleImageKeyword(raw)
           return p.ok && p.value && normScheduleImageKeywordKey(p.value) === normScheduleImageKeywordKey(persist.value)
         })
+      // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: bare route pack도 soft city 귀속 필수 — manifest
+      const softForPack = softDupForeignVisitCityForMiddleRoute(routeHay)
       const bareOnlyRoutePack =
         packHit &&
         landmarkPack.length > 0 &&
-        collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1
+        collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1 &&
+        Boolean(softForPack) &&
+        isBareCityOrCountryKeyword(softForPack) &&
+        (normScheduleImageKeywordKey(persist.value).includes(normScheduleImageKeywordKey(softForPack)) ||
+          registerScheduleKeywordMatchesOwnDayRoute(routeHay, persist.value))
       if (
         !onRoute &&
         !registerScheduleLodgingOnlyAllowsSoftDupVisitCity(routeHay, persist.value) &&
@@ -1508,9 +1553,11 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: prior 무관하면 dest pack — manifest
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
     // 패들보드 등 route 명소 0이면 prior(출발일) pack보다 dest pack 우선 — prior 공항·허브로 막히지 않게
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 방문도시 식별 시 dest pack 우선 금지 — manifest
     const activityOnlyDestPack =
       packFromRoute.length === 0 &&
       collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1 &&
+      !routeTextHasIdentifiableVisitPlace(routeHay) &&
       packFromDest.length > 0
     const pack = packFromRoute.length
       ? packFromRoute
@@ -1553,16 +1600,14 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
           usedKeyword: String(row.imageKeyword2 ?? '').trim() || undefined,
         })
       : ''
-    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT align — route landmark soft-alt 확장 금지 — manifest
-    const alignRouteLandmarks = allowSoftAltLandmarkPacks
-      ? collectRouteTextOrderedLandmarkKeywords(routeHay)
-      : []
+    // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 dest soft-alt pack만 금지 — 당일 route 명소는 채움 — manifest
+    const alignRouteLandmarks = collectRouteTextOrderedLandmarkKeywords(routeHay)
     const cands = [
       ...alignRouteLandmarks,
       ...collectRouteTextOrderedImageKeywords(routeHay),
       ...pack,
       softPick,
-      ...(allowSoftAltLandmarkPacks ? [firstMatchingScheduleSpotEn(routeHay)] : []),
+      firstMatchingScheduleSpotEn(routeHay),
     ].filter((v): v is string => Boolean(v && String(v).trim()))
     for (const raw of cands) {
       const persist = tryPersistScheduleImageKeyword(raw)
@@ -1578,11 +1623,13 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
       // Victoria Peak(도시 토큰 소실)처럼 persist 후 onRoute 실패면 주입 금지. 숙소/빈 route만 dest 귀속 허용.
       // 맨도시-only route + city pack: soft 도시 토큰이 키워드에 있으면 허용
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty — day soft-alt pick refill — manifest
+      // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: softPick도 onRoute 필수 (Wawel≠Wroclaw) — manifest
       const softAltPickHit =
         allowSoftAltLandmarkPacks &&
         Boolean(softPick) &&
         normScheduleImageKeywordKey(softPick) === nk &&
-        Boolean(routeHay)
+        Boolean(routeHay) &&
+        onRoute
       if (
         !onRoute &&
         !(lodging && packPersistKeys.has(nk) && onDest) &&
@@ -1598,6 +1645,43 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     }
     // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT 빈 middle — 맨도시 soft-dup(edge used OK) — manifest
     if (!allowSoftAltLandmarkPacks) {
+      // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: FIT 스파·쇼핑일 — bare 반복 시 dest 명소 soft-alt — manifest
+      const fitSpaShopOnly =
+        Boolean(destHay) &&
+        collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1 &&
+        /스파|\bSPA\b|마사지|네일|쇼핑|stores?|슈퍼|아울렛|outlet|씨푸드|seafood|베이커리|bakery|면세|Dress\s*for\s*Less|Big\s*C|렛츠\s*릴렉스|솜분|\bMall\b|몰|마트|\bDFS\b|Galleria|마이크로네시아/i.test(
+          routeHay,
+        )
+      // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: free-time empty middle → dest soft-alt — manifest
+      const fitFreeTimeOrAirportMove =
+        Boolean(destHay) &&
+        collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1 &&
+        /자유\s*시간|공항\s*이동|자유\s*일정|free\s*time/i.test(routeHay)
+      // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Patagonia·Puerto Natales soft — manifest
+      // 호텔·버스 터미널만 있는 FIT 이동일 — dest soft-alt로 middle 공란 해소
+      const fitHotelBusTransferOnly =
+        Boolean(destHay) &&
+        collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1 &&
+        /호텔|Hotel|버스\s*터미널|bus\s*terminal|체크인|Check[\s-]*in/i.test(routeHay) &&
+        !/박물관|미술관|국립공원|폭포|해변|사원|궁전|시장/i.test(routeHay)
+      if (fitSpaShopOnly || fitFreeTimeOrAirportMove || fitHotelBusTransferOnly) {
+        for (const cand of collectRegisterScheduleCitySoftAltKeywords(destHay)) {
+          const persist = tryPersistScheduleImageKeyword(cand)
+          if (!persist.ok || !persist.value) continue
+          if (isBareCityOrCountryKeyword(persist.value)) continue
+          if (isBrokenRegisterLandmarkKeyword(persist.value, { allowHotelLodging: true })) continue
+          const nk = normScheduleImageKeywordKey(persist.value)
+          if (!nk || used.has(nk)) continue
+          if (
+            fitSpaShopOnly &&
+            !registerScheduleLodgingAllowsDestLandmark(routeHay, persist.value, destHay)
+          ) {
+            continue
+          }
+          used.add(nk)
+          return { ...row, imageKeyword: persist.value }
+        }
+      }
       const soft =
         softDupForeignVisitCityForMiddleRoute(routeHay) ||
         firstMatchingScheduleCityEn(routeHay) ||
@@ -1606,7 +1690,7 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
         ''
       if (soft && isBareCityOrCountryKeyword(soft)) {
         const nk = normScheduleImageKeywordKey(soft)
-        if (nk) {
+        if (nk && !used.has(nk)) {
           used.add(nk)
           return { ...row, imageKeyword: soft }
         }
@@ -1682,10 +1766,13 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
     const routeLandmarkCount = allowSoftAltLandmarkPacks
       ? collectRouteTextOrderedLandmarkKeywords(row.routeText).length
       : 0
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 방문도시 식별되면 dest pack bleed 금지 — manifest
+    // 「삿포-죠잔케이」처럼 landmark 0이어도 soft city(Sapporo)가 있으면 Biei 폭포 dest pack 유지 금지
     const activityOnlyNoLandmark =
       allowSoftAltLandmarkPacks &&
       !emptyRoute &&
       routeLandmarkCount < 1 &&
+      !routeTextHasIdentifiableVisitPlace(row.routeText) &&
       Boolean(String(destHay ?? '').trim())
     const destPackPersistKeys =
       allowSoftAltLandmarkPacks && (emptyRoute || activityOnlyNoLandmark)
@@ -1738,6 +1825,32 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
     if (!nextKw && nextKw2) {
       nextKw = nextKw2
       nextKw2 = null
+    }
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: off-route drop 직후 당일 route 명소로 즉시 채움 — manifest
+    if (!nextKw && String(row.routeText ?? '').trim()) {
+      const usedTrip = new Set(
+        rows
+          .filter((r) => Number(r.day) !== Number(row.day))
+          .flatMap((r) => [String(r.imageKeyword ?? '').trim(), String(r.imageKeyword2 ?? '').trim()])
+          .filter(Boolean)
+          .map((k) => normScheduleImageKeywordKey(k))
+          .filter(Boolean),
+      )
+      for (const cand of [
+        ...collectRouteTextOrderedLandmarkKeywords(row.routeText),
+        ...collectRouteTextOrderedImageKeywords(row.routeText),
+        ...bareVisitCityLandmarkPack(String(row.routeText ?? '')),
+      ]) {
+        const persist = tryPersistScheduleImageKeyword(cand)
+        if (!persist.ok || !persist.value) continue
+        if (isBrokenRegisterLandmarkKeyword(persist.value)) continue
+        if (isBareCityOrCountryKeyword(persist.value)) continue
+        const nk = normScheduleImageKeywordKey(persist.value)
+        if (!nk || usedTrip.has(nk)) continue
+        if (!registerScheduleKeywordMatchesOwnDayRoute(row.routeText, persist.value)) continue
+        nextKw = persist.value
+        break
+      }
     }
     // 숙소-only 중간일 — bleed 제거 후 직전 방문도시·dest soft-dup으로 채움
     // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: lodging bleed→prior city — manifest
@@ -1910,6 +2023,45 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
       ...row,
       imageKeyword: kw,
       imageKeyword2: kw2 || null,
+    }
+  })
+
+  // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약·소요시간·상세보기 scrub — manifest
+  // 전 route sanitize 금지 — 호텔·숙소 동선까지 비워 dayN_middle_route_empty 회귀
+  const ROUTE_TERMS_DIRTY_RE =
+    /위약금|특약에\s*따라|상세보기|소요\s*시간|(?:준)?특급\/|취소수수료|표준약관|특별약관|환불규정/u
+  working = working.map((row) => {
+    let title = stripCounselingTermsFromScheduleText(String(row.title ?? ''))
+    title = title
+      .replace(/\s*[·•|/]\s*소요\s*시간(?:\s*[:：]\s*약?\s*\d+\s*시간(?:\s*\d+\s*분)?)?/gi, '')
+      .replace(/소요\s*시간(?:\s*[:：]\s*약?\s*\d+\s*시간(?:\s*\d+\s*분)?)?/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+    if (isRegisterScheduleTermsOrPenaltyClause(title)) title = ''
+    let routeText = String(row.routeText ?? '').trim()
+    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: DAY N route 라벨 scrub — manifest
+    if (/^(?:DAY\s*\d+|D\d+)$/i.test(routeText)) routeText = ''
+    if (ROUTE_TERMS_DIRTY_RE.test(routeText) || isRegisterScheduleTermsOrPenaltyClause(routeText)) {
+      routeText = sanitizeRegisterScheduleRouteText(routeText) ?? ''
+      if (isRegisterScheduleTermsOrPenaltyClause(routeText) || ROUTE_TERMS_DIRTY_RE.test(routeText)) {
+        routeText = ''
+      }
+    }
+    let description = stripCounselingTermsFromScheduleText(String(row.description ?? ''))
+    // 상세보기·위약금·소요시간이 문장에 남으면 이후 healDescription이 재합성하도록 비움
+    if (/위약금|상세보기|특약에\s*따라|소요\s*시간/.test(description)) description = ''
+    if (
+      title !== String(row.title ?? '').trim() ||
+      routeText !== String(row.routeText ?? '').trim() ||
+      description !== String(row.description ?? '').trim()
+    ) {
+      notes.push({ day: Number(row.day), field: 'title', reason: 'terms_penalty_clause_scrub' })
+    }
+    return {
+      ...row,
+      title: title || null,
+      routeText: routeText || null,
+      description,
     }
   })
 
@@ -2282,6 +2434,62 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   working = scrubSameDayDuplicateImageKeyword2(working)
 
   return { rows: working, notes, reappliedKeywords }
+}
+
+/**
+ * 검증 실패 이슈에 적힌 일차 키워드를 비워 재힐 입력으로 쓴다.
+ * REGRESSION-FREEZE[register-pre-photo-self-heal]: verify-fail retry clear — manifest
+ */
+export function clearRegisterPrePhotoKeywordsForVerifyIssues<T extends RegisterPrePhotoHealRow>(
+  rows: T[],
+  issues: readonly string[],
+): { rows: T[]; clearedDays: number[] } {
+  const clearKw = new Set<number>()
+  const clearKw2 = new Set<number>()
+  for (const issue of issues) {
+    const m2 = /^day(\d+)_keyword2_/.exec(issue)
+    if (m2) {
+      clearKw2.add(Number(m2[1]))
+      continue
+    }
+    const m1 = /^day(\d+)_keyword_/.exec(issue)
+    if (m1) {
+      clearKw.add(Number(m1[1]))
+      continue
+    }
+    const empty = /^day(\d+)_(?:middle_keyword_empty|departure_keyword_empty|fit_keyword_empty)/.exec(
+      issue,
+    )
+    if (empty) clearKw.add(Number(empty[1]))
+  }
+  const clearedDays = [...new Set([...clearKw, ...clearKw2])].filter((d) => d > 0)
+  if (!clearedDays.length) return { rows, clearedDays }
+  const next = rows.map((row) => {
+    const day = Number(row.day) || 0
+    let imageKeyword = row.imageKeyword
+    let imageKeyword2 = row.imageKeyword2
+    if (clearKw.has(day)) imageKeyword = ''
+    if (clearKw2.has(day)) imageKeyword2 = null
+    return { ...row, imageKeyword, imageKeyword2 }
+  })
+  return { rows: next, clearedDays }
+}
+
+/** 재힐로 손볼 수 있는 검증 실패인지 */
+export function registerPrePhotoVerifyIssuesAreHealRetryable(issues: readonly string[]): boolean {
+  if (!issues.length) return false
+  return issues.some(
+    (i) =>
+      /day\d+_keyword2?_/.test(i) ||
+      /day\d+_(?:middle_keyword_empty|departure_keyword_empty|fit_keyword_empty)/.test(i) ||
+      i.includes('product_country_schedule_mismatch') ||
+      i.includes('product_country_key_missing') ||
+      i.includes('description_') ||
+      i.includes('title_hub_poison') ||
+      i.includes('title_operational') ||
+      i.includes('terms_clause') ||
+      i.includes('aurora_primary'),
+  )
 }
 
 const OBVIOUS_BROKEN_URL_RE = /^(?:undefined|null|n\/a|#)$/i

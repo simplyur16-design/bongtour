@@ -18,8 +18,9 @@ import { isTruncatedCardinalRegionDestination } from '@/lib/register-ocean-cruis
 
 // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: 나트랑·달랏≠유럽마을/에펠 대륙 뒤집기 — manifest
 // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 푸꾸옥 dest도 Asia — Serengeti 환각 차단 — manifest
+// REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 아시아나항공 ≠ Asia dest — manifest
 export const ASIA_PACIFIC_PRODUCT_DEST_RE =
-  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아|Asia|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|푸꾸옥|Phu\s*Quoc|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|장가계|Zhangjiajie|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|나트랑|Nha\s*Trang|달랏|Da\s*Lat|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island|연태|Yantai/i
+  /인도|India|일본|Japan|오키나와|Okinawa|미야코|Miyako|동남아|규슈|큐슈|Kyushu|아시아(?!나)|(?<!Asi)Asia(?![a-zA-Z])|태국|Thailand|방콕|Bangkok|파타야|Pattaya|베트남|Vietnam|푸꾸옥|Phu\s*Quoc|싱가포르|Singapore|홍콩|Hong\s*Kong|대만|Taiwan|중국|China|장가계|Zhangjiajie|내몽골|Inner\s*Mongolia|후룬베이얼|Hulunbuir|만주리|Manzhouli|필리핀|Philippines|말레이|Malaysia|인도네시아|Indonesia|캄보디아|Cambodia|라오스|Laos|미얀마|Myanmar|네팔|Nepal|스리랑카|Sri\s*Lanka|몰디브|Maldives|괌|Guam|사이판|Saipan|하와이|Hawaii|다낭|Da\s*Nang|나트랑|Nha\s*Trang|달랏|Da\s*Lat|오사카|Osaka|도쿄|Tokyo|상해|Shanghai|북경|Beijing|코타키나발루|Kota\s*Kinabalu|보르네오|Borneo|조이\s*아일랜드|Joy\s*Island|연태|Yantai/i
 
 /** 호주·뉴질랜드 — ASIA_PACIFIC에 안 묶여도 Mount Fuji 등 환각 차단용 */
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: Oceania dest Japan/Europe hallucination — manifest
@@ -41,15 +42,21 @@ export const AMERICAS_PRODUCT_DEST_RE =
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 미주리나≠미주 Americas — manifest
 // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: MILANO≠LA Americas — manifest
 
+// REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: 가나자와≠Ghana Africa dest — manifest
 export const MIDDLE_EAST_AFRICA_PRODUCT_DEST_RE =
-  /중동|Middle\s*East|두바이|Dubai|아부다비|Abu\s*Dhabi|이집트|Egypt|카이로|Cairo|룩소르|Luxor|모로코|Morocco|케냐|Kenya|남아|South\s*Africa|아프리카|Africa|탄자니아|Tanzania|에티오피아|Ethiopia|요르단|Jordan|이스라엘|Israel|카타르|Qatar|오만|Oman|튀니지|Tunisia|나미비아|Namibia|보츠와나|Botswana|Zimbabwe|잠비아|Zambia|우간다|Uganda|르완다|Rwanda|Senegal|세네갈|가나|Ghana|나이지리아|Nigeria|UAE|아랍에미리트/i
+  /중동|Middle\s*East|두바이|Dubai|아부다비|Abu\s*Dhabi|이집트|Egypt|카이로|Cairo|룩소르|Luxor|모로코|Morocco|케냐|Kenya|남아|South\s*Africa|아프리카|Africa|탄자니아|Tanzania|에티오피아|Ethiopia|요르단|Jordan|이스라엘|Israel|카타르|Qatar|오만|Oman|튀니지|Tunisia|나미비아|Namibia|보츠와나|Botswana|Zimbabwe|잠비아|Zambia|우간다|Uganda|르완다|Rwanda|Senegal|세네갈|(?<![가-힣])가나(?![가-힣])|\bGhana\b|나이지리아|Nigeria|UAE|아랍에미리트/i
 
 const GENERIC_PRODUCT_DEST_RE = /^(?:미지정|미정|기타|해외|overseas|unknown)$/i
 
 /** 식사·항공권·객실·비자·프로모 — 대륙 dest hay에 쓰지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: UPGRADE·실시간항공·폭포뷰 dest 비장소 — manifest
 const NON_PLACE_PRODUCT_DEST_RE =
-  /석식|중식|조식|현지식|항공권|왕복항공|왕복\s*항공|객실|호텔\s*객실|료칸\s*객실|전자비자|\bESTA\b|유류세|미입력|여행일정|중국식|프리미|원하는|슈페리어룸|트윈룸|옐로팡딜|팡딜|전\s*일정|특급\s*호텔|월드체인|·\s*자유\s*·|입국신고|여행\s*전\s*준비\s*안내|사전\s*입국|안내\s*외|\bUPGRADE\b|최다모객|모객상품|실시간\s*항공|폭포뷰|뷰\s*UP|퍼펙트\s*일주/i
+  /석식|중식|조식|현지식|항공권|왕복항공|왕복\s*항공|객실|호텔\s*객실|료칸\s*객실|전자비자|\bESTA\b|유류세|미입력|여행일정|중국식|프리미|원하는|슈페리어룸|트윈룸|옐로팡딜|팡딜|전\s*일정|특급\s*호텔|월드체인|·\s*자유\s*·|입국신고|여행\s*전\s*준비\s*안내|사전\s*입국|안내\s*외|\bUPGRADE\b|최다모객|모객상품|실시간\s*항공|폭포뷰|뷰\s*UP|퍼펙트\s*일주|프라이빗|PRIVATE/i
+
+/** 연도·연휴 뱃지만 — 지명 아님 (예: 2027년) */
+// REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 연도·프라이빗 dest 거부 — manifest
+const YEAR_OR_HOLIDAY_ONLY_DEST_RE =
+  /^(?:\d{4}\s*년(?:\s*[+]?\s*(?:설날|추석|연휴|골든위크|GW))?|설날\s*연휴|추석\s*연휴)$/u
 
 export function isRegisterPrePhotoPlaceLikeDestination(raw: string | null | undefined): boolean {
   // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: ●○ 장식 제거 후 place 판정 — manifest
@@ -57,6 +64,8 @@ export function isRegisterPrePhotoPlaceLikeDestination(raw: string | null | unde
   if (!dest) return false
   if (GENERIC_PRODUCT_DEST_RE.test(dest)) return false
   if (NON_PLACE_PRODUCT_DEST_RE.test(dest)) return false
+  // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 2027년·프라이빗 ≠ place — manifest
+  if (YEAR_OR_HOLIDAY_ONLY_DEST_RE.test(dest)) return false
   // REGRESSION-FREEZE[register-ocean-cruise-product]: bare 서부/동부 dest 금지 — manifest
   if (isTruncatedCardinalRegionDestination(dest)) return false
   // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·단풍시즌 dest 금지 — manifest

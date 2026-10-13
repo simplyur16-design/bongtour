@@ -4,6 +4,11 @@
  */
 
 import { mapDestination } from '@/lib/pexels-keyword'
+import {
+  isMongoliaTurtleRockPexelsKeyword,
+  MONGOLIA_TURTLE_ROCK_PEXELS_SECONDARIES,
+  qualifyMongoliaTurtleRockPexelsKeyword,
+} from '@/lib/register-schedule-mongolia-turtle-rock-pexels'
 
 /** 도시(영문) → 국가/지역(영문). Pexels에서 지명 정밀도 보강용 */
 const CITY_TO_COUNTRY_EN: Record<string, string> = {
@@ -135,9 +140,13 @@ export function buildHeroPexelsQuerySet(opts: {
   /** true일 때만 도시·국가를 검색어에 붙인다. 기본은 장소명(stem)만. */
   attachCityCountry?: boolean
 }): PexelsQuerySet {
-  const base = opts.stem.trim()
+  // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: Pexels 실측 검색어 — manifest
+  let base = qualifyMongoliaTurtleRockPexelsKeyword(opts.stem.trim())
+  const turtleRockSecondaries = isMongoliaTurtleRockPexelsKeyword(opts.stem)
+    ? [...MONGOLIA_TURTLE_ROCK_PEXELS_SECONDARIES]
+    : []
   if (!opts.attachCityCountry) {
-    return { primaryQuery: base, secondaryQueries: [] }
+    return { primaryQuery: base, secondaryQueries: turtleRockSecondaries.filter((q) => q !== base) }
   }
   const destRaw = (opts.destination ?? '').trim()
   const cityRaw = (opts.city ?? '').trim()
@@ -189,6 +198,7 @@ export function buildHeroPexelsQuerySet(opts: {
     if (countryEn) pushQ(uniqTokens([base, destEn, countryEn]).join(' '))
   }
 
+  for (const q of turtleRockSecondaries) pushQ(q)
   const dedup = secondaries.filter((q) => q !== primaryQuery)
 
   return {

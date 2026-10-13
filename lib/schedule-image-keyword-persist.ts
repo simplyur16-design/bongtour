@@ -3,6 +3,7 @@
  * 등록 파이프라인은 `finalizeScheduleImageKeyword` 직접 사용.
  */
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { qualifyMongoliaTurtleRockPexelsKeyword } from '@/lib/register-schedule-mongolia-turtle-rock-pexels'
 
 /** process-images 추적용 — Pexels 장소명 가드 대상 아님 */
 const OPERATIONAL_SCHEDULE_KEY_RE = /^(?:day_\d+|premade_\d+)$/i
@@ -61,7 +62,9 @@ export function persistScheduleImageKeyword(
   if (OPERATIONAL_SCHEDULE_KEY_RE.test(trimmed)) return trimmed
   if (DAY_N_TRAVEL_RE.test(trimmed)) return ''
   try {
-    return finalizeScheduleImageKeyword(trimmed).slice(0, maxLen)
+    // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: persist 시 거북이바위 실측 키워드 — manifest
+    const qualified = qualifyMongoliaTurtleRockPexelsKeyword(trimmed) || trimmed
+    return finalizeScheduleImageKeyword(qualified).slice(0, maxLen)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     throw new ScheduleImageKeywordPersistError(msg)

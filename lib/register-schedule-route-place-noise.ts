@@ -430,6 +430,12 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
   if (/^지프\s*차$|^지프차$|^파묵칼레\s*카트$/u.test(t)) return true
   if (/^카라반들의\s*숙소$/u.test(t)) return true
   if (/롯데관광\s*유일/u.test(t)) return true
+  // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 ≠ 지명 — manifest
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 위약금·특약·호텔등급·소요시간·상세보기 — manifest
+  if (/위약금|특약에\s*따라|취소수수료|환불규정|표준약관|특별약관|위약금\s*조항/u.test(t)) return true
+  if (/^(?:준)?특급\/?$/u.test(t)) return true
+  if (/소요\s*시간\s*[:：]/u.test(t)) return true
+  if (/^상세보기$/u.test(t)) return true
   // 일정 산문 덤프(돌로미티 「낭만과 비극을…」) — 지명 세그먼트 아님
   if (
     t.length >= 18 &&

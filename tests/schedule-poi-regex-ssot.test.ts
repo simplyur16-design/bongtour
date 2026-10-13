@@ -229,6 +229,29 @@ describe('schedule-poi-regex-ssot', () => {
     assert.match(String(firstMatchingScheduleSpotEn('빌라누프 궁전') ?? ''), /Wilanow/i)
   })
 
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 암베르 요새·다메크·찬드니 — manifest
+  it('maps India Amber Fort / Dhamek / Chandni Chowk Hangul aliases', () => {
+    assert.match(String(firstMatchingScheduleSpotEn('암베르 요새') ?? ''), /Amber Fort/i)
+    assert.match(String(firstMatchingScheduleSpotEn('다메크 스투파') ?? ''), /Dhamek|Sarnath/i)
+    assert.match(String(firstMatchingScheduleSpotEn('찬드니 초크') ?? ''), /Chandni Chowk/i)
+    assert.match(String(firstMatchingScheduleSpotEn('오르차 성') ?? ''), /Orchha Fort/i)
+    assert.match(String(firstMatchingScheduleSpotEn('셀렉트 시티워크') ?? ''), /Select Citywalk/i)
+  })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 부카라 식당 ≠ Bukhara Uzbekistan — manifest
+  it('does not map Delhi restaurant 부카라 to Bukhara Uzbekistan', () => {
+    assert.doesNotMatch(String(firstMatchingScheduleCityEn('부카라 레스토랑') ?? ''), /Bukhara/i)
+    assert.doesNotMatch(String(firstMatchingScheduleSpotEn('부카라') ?? ''), /Bukhara/i)
+    assert.match(String(firstMatchingScheduleCityEn('부하라 우즈베키스탄') ?? ''), /Bukhara/i)
+    assert.match(String(firstMatchingScheduleCityEn('Bukhara old town') ?? ''), /Bukhara/i)
+  })
+
+  // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 투 러버스·사랑의 절벽 — FIT Guam remat — manifest
+  it('maps Guam Two Lovers Point Hangul aliases', () => {
+    assert.match(String(firstMatchingScheduleSpotEn('투 러버스 포인트') ?? ''), /Two Lovers Point/i)
+    assert.match(String(firstMatchingScheduleSpotEn('사랑의 절벽') ?? ''), /Two Lovers Point/i)
+  })
+
   // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 포르트 카이요 ≠ Cairo — manifest
   it('maps 포르트 카이요 to Porte Cailhau not Cairo', () => {
     assert.match(String(firstMatchingScheduleSpotEn('포르트 카이요') ?? ''), /Porte Cailhau/i)

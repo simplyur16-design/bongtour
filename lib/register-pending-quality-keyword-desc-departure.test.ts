@@ -53,6 +53,11 @@ describe('register-pending-quality-keyword-desc-departure', () => {
   it('rejects promo destinations even when title is place-like', () => {
     expect(isRegisterPrePhotoPlaceLikeDestination('옐로팡딜')).toBe(false)
     expect(isRegisterPrePhotoPlaceLikeDestination('전 일정 특급 호텔')).toBe(false)
+    // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 연도·프라이빗 dest — manifest
+    expect(isRegisterPrePhotoPlaceLikeDestination('◐프라이빗')).toBe(false)
+    expect(isRegisterPrePhotoPlaceLikeDestination('2027년')).toBe(false)
+    expect(isRegisterPrePhotoPlaceLikeDestination('심천')).toBe(true)
+    expect(isRegisterPrePhotoPlaceLikeDestination('인도')).toBe(true)
     const v = verifyRegisterPrePhoto({
       lane: 'package',
       productTitle: '[옐로팡딜]푸꾸옥 패키지 3박5일',

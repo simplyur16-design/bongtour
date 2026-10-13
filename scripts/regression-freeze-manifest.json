@@ -9704,7 +9704,8 @@
             "L&aelig;rdal HTML entity → æ",
             "북경 교원 — VIP리무진·인력거·쇼·도시락 route 금지",
             "India AWP902 — 릭샤",
-            "특식·기차역·공항 route noise"
+            "특식·기차역·공항 route noise",
+            "위약금·특약·호텔등급·소요시간"
           ]
         },
         {
@@ -9717,7 +9718,8 @@
             "가이드 미팅",
             "Hamilton Gardens multi-country theme list",
             "DESIGNER OUTLET",
-            "Vienna - Linz"
+            "Vienna - Linz",
+            "특약에 따라 위약금이 별도 적용"
           ]
         },
         {
@@ -9925,7 +9927,9 @@
             "조이아일랜드·아일랜드호핑 ≠ EU Ireland",
             "(?<![가-힣])리가(?![가-힣])",
             "미주리나≠미주 Americas",
-            "MILANO≠LA Americas"
+            "MILANO≠LA Americas",
+            "가나자와≠Ghana Africa dest",
+            "(?<![가-힣])가나(?![가-힣])"
           ]
         }
       ],
@@ -11122,6 +11126,34 @@
       ]
     },
     {
+      "id": "pexels-normalize-strip-mid-aerial",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "normalizeToPlaceName — 중간 Aerial 보조어 제거 (Maldives Beach Resort Aerial Turquoise)",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-normalize-strip-mid-aerial]",
+            "aerial(?:\\s+views?)?"
+          ]
+        },
+        {
+          "file": "tests/pexels-place-name-keyword.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-normalize-strip-mid-aerial]",
+            "Maldives Beach Resort Aerial Turquoise",
+            "Maldives Beach Resort Turquoise"
+          ]
+        }
+      ],
+      "npmScripts": [
+        "test:pexels-place-name-keyword"
+      ]
+    },
+    {
       "id": "pexels-normalize-da-nang-not-da",
       "tier": [
         "prebuild",
@@ -11294,12 +11326,88 @@
       ]
     },
     {
+      "id": "register-schedule-mongolia-turtle-rock-terelj",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "몽골 거북이바위 — Pexels 실측 Terelj Mongolia Rocky Hills + 바위컷 점수(동물·아르항가이·타국 거절)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-mongolia-turtle-rock-pexels.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "Terelj Mongolia Rocky Hills",
+            "qualifyMongoliaTurtleRockPexelsKeyword",
+            "isAnimalTurtlePexelsHit",
+            "isOffTripInnerMongoliaPexelsHit",
+            "mongoliaTurtleRockPexelsRelevanceDelta",
+            "isWrongGeoForMongoliaTurtleRockPexelsHit",
+            "Melkhii Khad Terelj"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "Terelj Mongolia Rocky Hills",
+            "거북이?\\s*바위"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "거북이바위",
+            "Terelj Mongolia Rocky Hills"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "qualifyMongoliaTurtleRockPexelsKeyword"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-keyword-persist.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "qualifyMongoliaTurtleRockPexelsKeyword"
+          ]
+        },
+        {
+          "file": "lib/itinerary-day-hero-image.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "mongoliaTurtleRockPexelsRelevanceDelta",
+            "hardReject",
+            "turtleRockMode"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-mongolia-turtle-rock-pexels.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]",
+            "Terelj Mongolia Rocky Hills",
+            "거북이바위",
+            "31694814",
+            "arkhangai"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-mongolia-turtle-rock-pexels.test.ts",
+        "lib/register-schedule-mongolia-image-keyword.test.ts"
+      ]
+    },
+    {
       "id": "register-schedule-mongolia-image-keyword",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "몽골 테렐지 4일 — Terelj·Turtle Rock·Zaisan POI, 관광캠프 제외",
+      "summary": "몽골 테렐지 4일 — Terelj·Rocky Hills·Zaisan POI, 관광캠프 제외",
       "npmScripts": [
         "verify:mongolia-cqp111-image-keyword-live"
       ],
@@ -11315,7 +11423,7 @@
           "file": "lib/schedule-poi-regex-ssot.ts",
           "mustInclude": [
             "Terelj National Park",
-            "Turtle Rock",
+            "Terelj Mongolia Rocky Hills",
             "Genghis Khan Statue"
           ]
         },
@@ -11334,7 +11442,8 @@
             "pickMongoliaTerelClusterKeywordForUsedSlot",
             "내몽골·후룬 ≠ 몽골(테렐지/울란바토르)",
             "후룬베이얼만 → Ordos·울란바토르 금지",
-            "마지막 관광일 미사용 명소만"
+            "마지막 관광일 미사용 명소만",
+            "Terelj Mongolia Rocky Hills"
           ]
         },
         {
@@ -11426,6 +11535,10 @@
             "Managaha Island Saipan",
             "Saipan PIC·북섬 POI — bare Saipan 반복 금지",
             "Ipan must not substring-match Saipan",
+            "암베르 요새·다메크·찬드니",
+            "투 러버스·사랑의 절벽",
+            "부카라 식당 ≠ Bukhara Uzbekistan",
+            "인디라 간디 공항일 → India Gate",
             "Porto Europa Osaka",
             "REGRESSION-FREEZE[schedule-poi-porto-europa-osaka]",
             "Laughlin Colorado River casino strip",
@@ -11748,14 +11861,29 @@
           "file": "lib/register-pending-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-self-heal]",
-            "listing_collect_not_in_this_job"
+            "listing_collect_not_in_this_job",
+            "VERIFY_FAIL_HEAL_RETRY_MAX",
+            "clearRegisterPrePhotoKeywordsForVerifyIssues",
+            "verify_fail_retry_",
+            "heal persist no resurrect"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-self-heal]",
+            "clearRegisterPrePhotoKeywordsForVerifyIssues",
+            "registerPrePhotoVerifyIssuesAreHealRetryable",
+            "verify-fail retry clear"
           ]
         },
         {
           "file": "tests/register-pre-photo-self-heal.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-self-heal]",
-            "Parador de Alcaniz"
+            "Parador de Alcaniz",
+            "verify-fail retry clear",
+            "clearRegisterPrePhotoKeywordsForVerifyIssues"
           ]
         },
         {
@@ -11969,6 +12097,39 @@
       "vitestSuites": [
         "lib/hanatour-schedule-image-keyword-landmark.test.ts",
         "lib/kyowontour-schedule-central-asia-eap321-image-keyword.test.ts"
+      ]
+    },
+    {
+      "id": "schedule-poi-turkey-rose-valley-balat",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "튀르키예 로즈밸리·발랏·피에르로티·참르자 — day3/day8 middle empty 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-turkey-rose-valley-balat]",
+            "Rose Valley Cappadocia",
+            "Balat colorful houses Istanbul",
+            "피에르\\s*로티",
+            "Camlica Hill Istanbul",
+            "Kuzguncuk Istanbul"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-turkey-rose-valley-balat.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-poi-turkey-rose-valley-balat]",
+            "Rose Valley Cappadocia",
+            "Pierre Loti Hill",
+            "2030 Turkey 9-day"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-poi-turkey-rose-valley-balat.test.ts"
       ]
     },
     {
@@ -12727,6 +12888,49 @@
       ]
     },
     {
+      "id": "register-listing-discover-ybtour-btn-search",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "노랑풍선 홈 검색은 btn-search 패널을 연 뒤 keyword input 에 입력한다",
+      "checks": [
+        {
+          "file": "scripts/listing_discover_ybtour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-ybtour-btn-search]",
+            "_open_home_search_panel",
+            "button.btn-search",
+            "home search empty → mega menu",
+            "랜딩 HTML 의 evCd/goodsCd 는 홈 프로모 잡음"
+          ],
+          "mustNotInclude": [
+            "_merge(landing_ids, after_ids)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-listing-discover-spawn-drain-stderr",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "목록 discover spawn은 stderr를 항상 drain하고 버퍼·로그 상한으로 파이프 데드락을 막는다",
+      "checks": [
+        {
+          "file": "lib/register-listing-discover-spawn.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-spawn-drain-stderr]",
+            "stdio: ['pipe', 'pipe', 'pipe']",
+            "[listing-discover-spawn] start",
+            "[listing-discover-spawn] close",
+            "stderr.length < 8000"
+          ]
+        }
+      ]
+    },
+    {
       "id": "register-listing-discover-playwright",
       "tier": [
         "prebuild",
@@ -13172,6 +13376,70 @@
             "REGRESSION-FREEZE[register-listing-discover-modetour-festa-dismiss]",
             "_dismiss_home_overlay",
             "오늘하루 보지 않기"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-listing-discover-naeiltour-search-list-in",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 목록은 search_list_in.asp XHR·cp949·Tour/view.asp (랜딩 셸 good_cd 금지)",
+      "checks": [
+        {
+          "file": "scripts/listing_discover_naeiltour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-naeiltour-search-list-in]",
+            "SEARCH_LIST_IN",
+            "search_list_in.asp",
+            "_fetch_search_list_in",
+            "_euc_kr_form",
+            "_decode_html",
+            "Tour/view.asp",
+            "encoding=\"euc-kr\""
+          ],
+          "mustNotInclude": [
+            "tour/search_list.asp?keyword="
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-listing-discover-modetour-b2c-search",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모두투어 목록은 B2C SearchThemeAndLocalKey→SearchProductMaster→computedProductCode",
+      "checks": [
+        {
+          "file": "scripts/listing_discover_modetour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]",
+            "SearchThemeAndLocalKey",
+            "SearchProductMaster",
+            "computedProductCode",
+            "_b2c_codes_for_word",
+            "B2C_PAUSE_MS_MIN",
+            "URLS_PER_SLOT",
+            "_resolve_package_code_to_product_no"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-lane-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]",
+            "resolveModetourDetailByOriginCode"
+          ]
+        },
+        {
+          "file": "lib/register-listing-discover-modetour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]",
+            "listing_discover_modetour",
+            "MODETOUR_LISTING_PAGES_PER_BROWSER = 1"
           ]
         }
       ]
@@ -13835,7 +14103,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "목록 수집은 사람처럼 한 브라우저 세션·공급사별 간격. 설치된 Chrome 채널 금지. 빈 목록으로 포기하지 않고 할당량까지 다음 geo",
+      "summary": "목록 수집은 사람처럼 한 세션·공급사별 간격(Playwright bundled Chromium / modetour B2C). 설치된 Chrome 채널 금지. 빈 목록으로 포기하지 않고 할당량까지 다음 geo",
       "checks": [
         {
           "file": "scripts/heal-pending-register-pre-photo.ts",
@@ -13890,11 +14158,14 @@
           "file": "scripts/listing_discover_modetour/main.py",
           "mustInclude": [
             "REGRESSION-FREEZE[register-listing-discover-human-pace]",
-            "PAUSE_MS_MIN = 11000",
-            "chromium.launch(headless=True, args=launch_args)"
+            "REGRESSION-FREEZE[register-listing-discover-modetour-b2c-search]",
+            "PAUSE_MS_MIN = 18000",
+            "B2C_PAUSE_MS_MIN = 14000",
+            "SearchProductMaster"
           ],
           "mustNotInclude": [
-            "channel=\"chrome\""
+            "channel=\"chrome\"",
+            "chromium.launch(headless=True, args=launch_args)"
           ]
         },
         {
@@ -15588,6 +15859,76 @@
       ]
     },
     {
+      "id": "register-schedule-terms-penalty-not-place",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 day title/route/description에 위약금·특약 절이 지명처럼 들어가면 안 됨 — strip·noise·verify·heal",
+      "checks": [
+        {
+          "file": "lib/itinerary-counseling-terms-strip.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "isRegisterScheduleTermsOrPenaltyClause",
+            "특약에\\s*따라\\s*위약금이\\s*별도\\s*적용",
+            "위약금\\s*조항"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "위약금|특약에\\s*따라"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "terms_penalty_clause_scrub"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "title_terms_clause",
+            "route_terms_clause"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "stripCounselingTermsFromScheduleRow"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "heal persist no resurrect",
+            "registered도 일정 scrub",
+            "registrationStatus: 'registered'"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-terms-penalty-not-place.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]",
+            "특약에 따라 위약금이 별도 적용",
+            "terms_penalty_clause_scrub",
+            "상세보기"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-schedule-terms-penalty-not-place.test.ts",
+        "lib/register-schedule-route-place-noise.test.ts"
+      ]
+    },
+    {
       "id": "lottetour-schedule-expression",
       "tier": [
         "prebuild",
@@ -16100,6 +16441,18 @@
             "bare 온천·료칸≠Kyushu soft-alt",
             "bare 순례≠Camino soft-alt",
             "니스한·베니스≠Nice soft-alt",
+            "bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미)",
+            "Kunming·Changsha·Zhengzhou·Guangzhou bare→soft",
+            "Brisbane·Gold Coast bare→soft",
+            "Crete bare day→Knossos soft",
+            "Awaji·Kobe soft-alt",
+            "Bangkok golf Artitaya soft",
+            "Patagonia·Puerto Natales soft",
+            "Baekdu·Changbai soft",
+            "Guam mall·beach soft",
+            "Toyama departure soft",
+            "향사완 Hangul → Xiangshawan own-route",
+            "Enshi canyon soft",
             "bare 워터파크·PIC≠Saipan soft-alt",
             "bare 와이너리≠Tuscany soft-alt",
             "bare 꽃시계≠NYC soft-alt",
@@ -16174,7 +16527,8 @@
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "Turkey/AU landmark day-route evidence",
             "prior soft-alt ≠ current-day bleed",
-            "세부일정≠Cebu softCity"
+            "세부일정≠Cebu softCity",
+            "bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미)"
           ]
         },
         {
@@ -16196,7 +16550,16 @@
             "Phu Quoc Vinpearl Safari does not unlock Serengeti or Paris soft-alts",
             "Okinawa 세부일정 does not unlock Cebu soft-alts",
             "Miyako 마이파리 does not unlock Paris soft-alts",
-            "marketing prose does not unlock unrelated soft-alt packs"
+            "marketing prose does not unlock unrelated soft-alt packs",
+            "bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미)",
+            "Crete bare day→Knossos soft",
+            "Awaji·Kobe soft-alt",
+            "Bangkok golf Artitaya soft",
+            "Kunming·Changsha·Zhengzhou·Guangzhou bare→soft",
+            "Patagonia·Puerto Natales soft",
+            "Baekdu·Changbai soft",
+            "Guam mall·beach soft",
+            "Toyama departure soft"
           ]
         },
         {
@@ -17474,7 +17837,8 @@
             "REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]",
             "promoteEmptyMiddlePrimaryFromKeyword2",
             "used kw2 clear for refill",
-            "day soft-alt pick refill"
+            "day soft-alt pick refill",
+            "free-time empty middle → dest soft-alt"
           ]
         },
         {
@@ -23434,6 +23798,56 @@
       ]
     },
     {
+      "id": "register-pre-photo-product-title-day-leak",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 일차 title·호텔 줄이 상품명으로 누수되면 title_placeholder",
+      "checks": [
+        {
+          "file": "lib/supplier-listing-title-unacceptable.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-product-title-day-leak]",
+            "SCHEDULE_DAY_TITLE_AS_PRODUCT_RE",
+            "SCHEDULE_HOTEL_MEAL_LEAK_IN_TITLE_RE"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-listing-title-unacceptable.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-dest-year-promo-not-place",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "2027년·프라이빗 dest 비장소 + 심천·인도 제목 dest 추론",
+      "checks": [
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]",
+            "YEAR_OR_HOLIDAY_ONLY_DEST_RE",
+            "프라이빗"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]",
+            "심천|선전",
+            "인도(?!네시아)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pending-quality-keyword-desc-departure.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-naeiltour-unsellable-no-stub",
       "tier": [
         "prebuild",
@@ -23475,6 +23889,53 @@
       ],
       "vitestSuites": [
         "lib/naeiltour-register-api-detail-unsellable.test.ts"
+      ]
+    },
+    {
+      "id": "register-ingest-reject-domestic-korea",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "해외 등록대기 인입 — 국내여행·국내골프·당일 수집 금지",
+      "checks": [
+        {
+          "file": "lib/register-ingest-reject-domestic-korea.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
+            "isRegisterIngestDomesticKoreaProduct",
+            "REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON",
+            "domestic_korea_rejected"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
+            "isRegisterIngestDomesticKoreaProduct",
+            "REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON",
+            "schedule_facts_empty"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
+            "domestic_korea_rejected",
+            "schedule_facts_empty"
+          ]
+        },
+        {
+          "file": "lib/register-ingest-reject-domestic-korea.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-reject-domestic-korea]",
+            "rejects clear domestic packages",
+            "keeps overseas even with 제주항공 or 부산출발"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-ingest-reject-domestic-korea.test.ts"
       ]
     },
     {
@@ -23528,7 +23989,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "하나투어·모두투어 등록대기 — 지방출발 검색 시드 + 밤마다 최소 1건",
+      "summary": "canonical 전 공급사 등록대기 — 지방출발 검색 시드 + 밤마다 최소 1건",
       "checks": [
         {
           "file": "lib/register-pre-photo-ingest-geo-slots.ts",
@@ -23551,6 +24012,54 @@
           "file": "lib/register-pre-photo-ingest-homepage-category-slots.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-ingest-local-departure-reserve]",
+            "부산출발"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_hanatour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-reserve]",
+            "LOCAL_DEP_WORDS",
+            "_browse_home_search",
+            "부산출발"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_modetour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-reserve]",
+            "LOCAL_DEP_WORDS",
+            "_browse_local_departure_menu",
+            "지방출발",
+            "부산출발"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-ingest-homepage-category-slots.test.ts"
+      ]
+    },
+    {
+      "id": "register-ingest-local-departure-slot-label",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "지방출발 슬롯 ingest label에 searchWord 포함 — 부산/대구/청주 Map 덮어쓰기 금지",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-slot-label]",
+            "searchWord",
+            "ingestSlotLabel"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-homepage-category-slots.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-local-departure-slot-label]",
+            "distinct ingest labels",
             "부산출발"
           ]
         }
@@ -23598,6 +24107,24 @@
             "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
             "inferSportsThemeTagsFromListingHaystack",
             "sportsThemeTag"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_hanatour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
+            "THEME_SEARCH_WORDS",
+            "골프",
+            "_browse_home_search"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_modetour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-theme-category-slots]",
+            "THEME_SEARCH_WORDS",
+            "골프",
+            "_browse_home_search"
           ]
         }
       ],
@@ -23657,26 +24184,161 @@
       ]
     },
     {
+      "id": "register-pre-photo-milan-malpensa-not-duomo",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "밀라노 말펜사 공항 동선에 Duomo·Galleria soft-alt 금지 + Milan bare city",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]",
+            "밀라노(?!\\s*말펜사)"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]",
+            "밀라노(?!\\s*말펜사)"
+          ]
+        },
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]",
+            "'milan'",
+            "'florence'",
+            "'venice'"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]",
+            "Malpensa",
+            "Galleria",
+            "isBareCityOrCountryKeyword('Milan')"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-hotel-brand-lodging",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Dusit·Henann·ecolodge 등 호텔 브랜드는 lodging — FIT만 allowHotel",
+      "checks": [
+        {
+          "file": "lib/pexels-place-name-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-hotel-brand-lodging]",
+            "dusit(?:\\s*thani)?",
+            "henann(?:\\s*tawala)?",
+            "ecolodge"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-hotel-brand-lodging]",
+            "Dusit Thani",
+            "Henann Tawala"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-port-stephens-aoshima-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Port Stephens·아오시마·사파 Silver Waterfall SSOT — 2단어 broken 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-port-stephens-aoshima-ssot]",
+            "Port Stephens",
+            "Aoshima Shrine Miyazaki",
+            "Silver Waterfall Sapa"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-port-stephens-aoshima-ssot]",
+            "Port Stephens",
+            "아오시마",
+            "Silver Waterfall"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-keyword-own-route",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "중간일 이미지키워드는 당일 route 명소·도시와 맞아야 한다. 이스터섬≠리우, 루체른≠융프라우",
+      "summary": "중간일 이미지키워드는 당일 route 명소·도시와 맞아야 한다. 이스터섬≠리우, 루체른≠융프라우, 삿포≠비에이",
       "checks": [
         {
           "file": "lib/register-pre-photo-verify.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-keyword-own-route]",
             "registerScheduleKeywordMatchesOwnDayRoute",
-            "keyword_not_on_own_route"
+            "keyword_not_on_own_route",
+            "스파·식사·쇼핑 only bare soft-dup"
           ]
         },
         {
           "file": "lib/register-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-keyword-own-route]",
-            "dropKeywordsNotOnOwnDayRoute"
+            "dropKeywordsNotOnOwnDayRoute",
+            "비에이≠삿포·죠잔케이 pack 분리",
+            "방문도시 식별되면 dest pack bleed 금지",
+            "DAY N·FERRY"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-trip-image-keyword-dedupe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-keyword-own-route]",
+            "DAY N·FERRY 운영 라벨"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts",
+          "mustInclude": [
+            "Sapporo/Jozankei day drops Biei",
+            "White Beard Falls Biei",
+            "Return day drops FERRY",
+            "Asiana airline title is not Asia dest",
+            "Wroclaw route rejects Wawel",
+            "Melk Abbey / Wachau fill Austria middle day route"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-cross-continent-keyword-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-keyword-own-route]",
+            "아시아나항공 ≠ Asia dest"
           ]
         },
         {
@@ -23690,6 +24352,9 @@
       ],
       "npmScripts": [
         "verify:register-pre-photo-self-heal"
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-milan-malpensa-hotel-ssot.test.ts"
       ]
     },
     {
@@ -23883,7 +24548,7 @@
           "file": "lib/register-pending-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-la-vallee-not-los-angeles]",
-            "routeText: h.routeText ?? row.routeText"
+            "routeText: h.routeText !== undefined ? h.routeText : row.routeText"
           ]
         },
         {

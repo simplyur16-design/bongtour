@@ -33,7 +33,7 @@ import {
   isScheduleDomesticHubOnlyRouteText,
   resolveScheduleKeywordSlotKind,
 } from '@/lib/schedule-image-keyword-adjacent-poi'
-import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword, isLikelyTourismLandmarkKeyword, isNonLandmarkRouteTextSegment, finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
+import { isAirlineCarrierImageKeyword, isBareCityOrCountryKeyword, isHotelLodgingImageKeyword, isLikelyTourismLandmarkKeyword, isNonLandmarkRouteTextSegment, finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { mapDestination } from '@/lib/pexels-keyword'
 import { pickUnusedRegisterScheduleCitySoftAltKeyword, collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
 import {
@@ -268,12 +268,21 @@ export function isReturnAirportOrShoppingOnlyRouteText(routeText: string | null 
   }
   // 인천·김포 only — 국내 허브 귀국은 미사용 명소(Long Son) 허용
   if (segs.every((s) => isScheduleDomesticHubToken(s))) return false
-  return segs.every(
-    (s) =>
-      isRegisterScheduleRoutePlaceNoise(s) ||
-      isScheduleAirportRouteSegmentText(s) ||
-      /면세|공항|airport|해산|귀국|터미널/i.test(s),
-  )
+  // REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]: 호텔조식·카페+말펜사 = 공항귀국 — manifest
+  const airportLike = (s: string) =>
+    isRegisterScheduleRoutePlaceNoise(s) ||
+    isScheduleAirportRouteSegmentText(s) ||
+    isHotelLodgingImageKeyword(s) ||
+    /면세|공항|airport|해산|귀국|터미널|말펜사|Malpensa|호텔\s*조식|조식\s*및\s*카페|카페|breakfast/i.test(
+      s,
+    )
+  if (segs.every(airportLike)) return true
+  // 세그먼트 일부만 파싱돼도 raw에 공항·말펜사·면세가 있으면 공항귀국으로 본다
+  const raw = String(routeText ?? '')
+  if (/말펜사|Malpensa|공항|airport|면세/i.test(raw) && segs.every((s) => airportLike(s) || /카페|조식|호텔|cafe|breakfast/i.test(s))) {
+    return true
+  }
+  return false
 }
 
 function findNextTourismRowForDepartureFill<T extends RegisterScheduleTripKeywordRow>(
@@ -435,6 +444,8 @@ function isRejectedTripKeywordCandidate(kw: string): boolean {
   if (isBlockedScheduleImageKeyword(t)) return true
   if (isScheduleAirportLikeImageKeyword(t)) return true
   if (isAirlineCarrierImageKeyword(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: DAY N·FERRY 운영 라벨 ≠ 귀국 soft-dup — manifest
+  if (/^(?:DAY\s*\d+|D\d+|FERRY|TRANSFER|OPTIONAL|FREE\s*DAY)$/i.test(t)) return true
   // REGRESSION-FREEZE[register-schedule-cross-continent-europe-asia-guard]: bare continent keyword 금지 — manifest
   if (/^(?:Europe|Asia|Africa|Americas?|Oceania|유럽|아시아|아프리카|중남미|북미|오세아니아)$/i.test(t)) {
     return true
@@ -571,7 +582,8 @@ function collectTripKeywordCandidates(row: RegisterScheduleTripKeywordRow): stri
   ) {
     push('Ariyabal Temple')
     push('Terelj National Park')
-    push('Turtle Rock Terelj')
+    // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: Pexels 실측 검색어 — manifest
+    push('Terelj Mongolia Rocky Hills')
     push('Genghis Khan Statue Complex')
     push('Zaisan Memorial Ulaanbaatar')
     push('Sukhbaatar Square Ulaanbaatar')
@@ -1467,15 +1479,17 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
                   ? 'Palermo'
                   : 'Catania')
           } else if (/이탈리아|이태리|\bItaly\b|로마|\bRome\b|피렌체|Florence|베니스|Venice|밀라노|Milan/i.test(tripHay)) {
+            // REGRESSION-FREEZE[register-pre-photo-milan-malpensa-not-duomo]: 공항귀국은 bare Milan — Duomo bleed 금지 — manifest
             softCity =
-              pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) ||
-              (/밀라노|Milan/i.test(tripHay)
+              /말펜사|Malpensa|밀라노|Milan/i.test(tripHay)
                 ? 'Milan'
                 : /베니스|Venice/i.test(tripHay)
                   ? 'Venice'
                   : /피렌체|Florence/i.test(tripHay)
                     ? 'Florence'
-                    : 'Rome')
+                    : /로마|\bRome\b/i.test(tripHay)
+                      ? 'Rome'
+                      : pickUnusedTripLandmarkForReturnFill(sorted, usedForEdge) || 'Rome'
           } else if (
             /두바이|아부다비|Dubai|Abu\s*Dhabi/i.test(tripHay) &&
             !shouldRejectAirlineTransitHubKeywordForTrip('Dubai', tripHay)
@@ -1534,6 +1548,8 @@ export function ensureDepartureReturnVisitCityKeywords<T extends RegisterSchedul
         if (softCity && shouldRejectAirlineTransitHubKeywordForTrip(softCity, tripHayAll)) {
           softCity = ''
         }
+        // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 귀국 soft-dup도 broken 라벨 금지 — manifest
+        if (softCity && isRejectedTripKeywordCandidate(softCity)) softCity = ''
         if (softCity) {
           out.set(day, { ...row, imageKeyword: softCity, imageKeyword2: null })
           continue
@@ -2371,8 +2387,9 @@ function easternEuropeHardcodedPoolHasDayRouteEvidence(kw: string, dayRoute: str
   if (/avignon|popes|palais des papes|pont d avignon/.test(nk)) {
     return /아비뇽|Avignon|교황청/i.test(rt)
   }
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미) — manifest
   if (/nice|massena|promenade des anglais/.test(nk)) {
-    return /니스|Nice|마세나|Massena|프롬나드|Promenade/i.test(rt)
+    return /니스|Nice|마세나|Massena|프롬나드\s*데\s*장글래|Promenade\s*des\s*Anglais/i.test(rt)
   }
   if (/arles/.test(nk)) return /아를|Arles/i.test(rt)
   if (/vilnius|trakai|lithuania/.test(nk)) return /빌니우스|Vilnius|트라카이|Trakai|리투/i.test(rt)
@@ -3746,7 +3763,8 @@ function pickMongoliaTerelClusterKeywordForUsedSlot(
   if (!isMongoliaTerelClusterRoute(tripHay)) return ''
   for (const kw of [
     'Gandantegchinlen Monastery Ulaanbaatar',
-    'Turtle Rock Terelj',
+    // REGRESSION-FREEZE[register-schedule-mongolia-turtle-rock-terelj]: Pexels 실측 검색어 — manifest
+    'Terelj Mongolia Rocky Hills',
     'Genghis Khan Statue Complex',
     'Ariyabal Temple',
     'Terelj National Park',
@@ -5476,6 +5494,7 @@ function bareVisitCityUsedAsOtherMiddlePrimary(
 /** route 재등장 리조트·허브 도시 — 중간일끼리 soft-dup 허용 (빈칸·bleed 방지) */
 // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 삿포→Sapporo bare soft-dup — manifest
 // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: 2030 revisit soft-dup (Phu Quoc/Sapa/NY/…) — manifest
+// REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: Hawaii bare soft-dup — manifest
 export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: APP221 Cebu middle soft-dup — manifest
   // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: 리조트 방문도시 반복 — manifest
@@ -5483,7 +5502,7 @@ export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: SF 공항 이동일 bare soft-dup — manifest
   // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Singapore/Bangkok/Samarkand/Jaipur/LA/Lucerne revisit — manifest
   // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: residual14 revisit bare — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris|San\s*Francisco|Hurghada|Lugano|Ascona|Locarno|Hammamet|Kandy|Nuwara\s*Eliya|Bentota|Colombo|Tashkent|Seattle|Singapore|Bangkok|Samarkand|Jaipur|Los\s*Angeles|Lucerne|Yogyakarta|Udaipur|Jodhpur|Luoyang|Kaifeng|Zhengzhou|Santorini|Pokhara|Kathmandu|Nagarkot|Dali|Kunming|Chennai|Madurai|Mysore|Fresno|Barstow|Quebec|Baltimore|Leon|Arzua|Lourdes|Pamplona|Burgos|Ushuaia|Delhi/i.test(
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Hawaii|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris|San\s*Francisco|Hurghada|Lugano|Ascona|Locarno|Hammamet|Kandy|Nuwara\s*Eliya|Bentota|Colombo|Tashkent|Seattle|Singapore|Bangkok|Samarkand|Jaipur|Los\s*Angeles|Lucerne|Yogyakarta|Udaipur|Jodhpur|Luoyang|Kaifeng|Zhengzhou|Santorini|Pokhara|Kathmandu|Nagarkot|Dali|Kunming|Chennai|Madurai|Mysore|Fresno|Barstow|Quebec|Baltimore|Leon|Arzua|Lourdes|Pamplona|Burgos|Ushuaia|Delhi|Wroclaw|Chengdu|Lima/i.test(
     String(city ?? '').trim(),
   )
 }

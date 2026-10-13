@@ -42,6 +42,7 @@ type PexelsApiPhoto = {
   photographer?: string
   photographer_url?: string
   url?: string
+  alt?: string
 }
 
 /** 일차 히어로용: 한 쿼리에서 여러 장(메타 포함). 실패 시 빈 배열 */
@@ -53,6 +54,8 @@ export type PexelsHeroCandidateMeta = {
   height: number
   originalLink: string
   queryUsed: string
+  /** Pexels alt — 동물 거북이 등 오매칭 거절용 */
+  altText?: string
 }
 
 /**
@@ -86,6 +89,7 @@ export async function searchPexelsHeroCandidates(
         height: typeof p.height === 'number' ? p.height : 0,
         originalLink: p.url?.trim() || 'https://www.pexels.com',
         queryUsed,
+        altText: typeof p.alt === 'string' ? p.alt : undefined,
       })
     }
     return out

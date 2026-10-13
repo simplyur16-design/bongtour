@@ -13,6 +13,7 @@
  * REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가·팩트없음은 confirm 안 함 — manifest
  * REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
  * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 시드 → sportsThemeTag — manifest
+ * REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 수집 금지 — manifest
  */
 import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
@@ -29,6 +30,10 @@ import { healPendingRegisterPrePhoto } from '@/lib/register-pending-pre-photo-se
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 import { readRegisterPrePhotoStampFromRawMeta } from '@/lib/register-pre-photo-verify'
 import { findExistingProductBySameTitleForRegister } from '@/lib/register-product-duplicate-guard'
+import {
+  isRegisterIngestDomesticKoreaProduct,
+  REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON,
+} from '@/lib/register-ingest-reject-domestic-korea'
 import { prisma } from '@/lib/prisma'
 import { handleParseAndRegisterHanatourRequest } from '@/lib/parse-and-register-hanatour-handler'
 import { handleParseAndRegisterModetourRequest } from '@/lib/parse-and-register-modetour-handler'
@@ -92,6 +97,32 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
       args.themeHintKeys,
     )
 
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 팩트 제목으로 차단 — manifest
+    if (isRegisterIngestDomesticKoreaProduct(bundle?.title ?? text)) {
+      console.error(
+        '[register-pre-photo-ingest-confirm]',
+        REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON,
+        args.supplier,
+        originUrl,
+        String(bundle?.title ?? '').slice(0, 80),
+      )
+      return { ok: false, reason: REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON }
+    }
+    // 패키지인데 공급사 일정 팩트가 비면 blocked stub을 만들지 않음 (ybtour PAPI scheduleDetail 공란 등)
+    if (
+      travelScope !== 'air_hotel_free' &&
+      bundle &&
+      (!Array.isArray(bundle.scheduleDays) || bundle.scheduleDays.length < 1)
+    ) {
+      console.error(
+        '[register-pre-photo-ingest-confirm] schedule_facts_empty',
+        args.supplier,
+        originUrl,
+        String(bundle.title ?? '').slice(0, 80),
+      )
+      return { ok: false, reason: 'schedule_facts_empty' }
+    }
+
     // REGRESSION-FREEZE[register-ingest-same-title-dedupe]: 같은 상품명(항공사만 다른 코드) 수집 금지 — manifest
     if (bundle?.title) {
       const sameTitle = await findExistingProductBySameTitleForRegister(prisma, {
@@ -142,8 +173,21 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
     productId = confirm.json.productId
     const created = await prisma.product.findUnique({
       where: { id: productId },
-      select: { title: true, originCode: true },
+      select: { title: true, originCode: true, destination: true },
     })
+    // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: confirm 후 저장 제목·목적지 재확인 — manifest
+    if (created && isRegisterIngestDomesticKoreaProduct(created.title, created.destination)) {
+      console.error(
+        '[register-pre-photo-ingest-confirm]',
+        REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON,
+        'after-confirm',
+        args.supplier,
+        created.originCode,
+        originUrl,
+      )
+      await prisma.product.delete({ where: { id: productId } })
+      return { ok: false, reason: REGISTER_INGEST_DOMESTIC_KOREA_REJECT_REASON }
+    }
     // REGRESSION-FREEZE[register-ingest-same-title-dedupe]: confirm 후 저장 제목으로 재확인 — manifest
     if (created?.title) {
       const sameTitleAfter = await findExistingProductBySameTitleForRegister(prisma, {

@@ -336,4 +336,19 @@ describe('register schedule route place noise', () => {
     expect(sanitizeRegisterScheduleRouteText('몽생미셸 뷰 레스토랑 - VELIZY')).toBe('몽생미셸')
     expect(sanitizeRegisterScheduleRouteText('이탈리아 - 사보나')).toBe('사보나')
   })
+
+  // REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 ≠ 지명 — manifest
+  // REGRESSION-FREEZE[register-schedule-route-place-noise]: 위약금·특약·호텔등급·소요시간 — manifest
+  it('strips penalty clause and hotel-grade / duration labels from route', () => {
+    expect(isRegisterScheduleRoutePlaceNoise('특약에 따라 위약금이 별도 적용')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('위약금조항')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('상세보기')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('준특급/')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('특급/')).toBe(true)
+    expect(isRegisterScheduleRoutePlaceNoise('소요시간 : 약 1시간')).toBe(true)
+    expect(sanitizeRegisterScheduleRouteText('특약에 따라 위약금이 별도 적용')).toBeNull()
+    const rio = sanitizeRegisterScheduleRouteText('리우데자네이루 - 준특급/ - 브라질') ?? ''
+    expect(rio).toMatch(/리우/)
+    expect(rio).not.toMatch(/준특급|특급/)
+  })
 })

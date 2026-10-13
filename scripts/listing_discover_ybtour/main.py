@@ -4,6 +4,8 @@
 # REGRESSION-FREEZE[register-listing-discover-no-seed-detail]: localList only — no detailPackage fallback — manifest
 # REGRESSION-FREEZE[register-listing-discover-human-pace]: parent localList first · bundled Chromium — manifest
 # REGRESSION-FREEZE[register-listing-discover-overseas-click]: 홈→해외여행 클릭 후 localList 보완 — manifest
+# REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 지방출발·테마 홈 검색함 — manifest
+# REGRESSION-FREEZE[register-listing-discover-ybtour-btn-search]: btn-search 패널 후 keyword — manifest
 from __future__ import annotations
 
 import asyncio
@@ -26,6 +28,10 @@ UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 )
+LOCAL_DEP_WORDS = frozenset({"부산출발", "대구출발", "청주출발"})
+THEME_SEARCH_WORDS = frozenset({"골프", "러닝", "트레킹", "다이빙"})
+HOME_SEARCH_WORDS = LOCAL_DEP_WORDS | THEME_SEARCH_WORDS
+HOME = "https://www.ybtour.co.kr/"
 EV_RE = re.compile(r"(?:[?&]evCd=|\"(?:evCd|evcd|eventCd)\"\s*:\s*\")([A-Za-z0-9-]+)", re.I)
 EV_OK = re.compile(r"^[A-Z0-9]+-\d{6}", re.I)
 GOODS_RE = re.compile(r"(?:[?&]goodsCd=|\"(?:goodsCd|goodscd)\"\s*:\s*\")([A-Za-z0-9]+)", re.I)
@@ -249,7 +255,60 @@ async def _hover_overseas(page) -> bool:
     return False
 
 
-async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> tuple[list[str], list[str]]:
+async def _open_home_search_panel(page) -> bool:
+    """노랑풍선 홈은 검색 input 이 숨김 — btn-search 로 패널을 연다."""
+    for sel in (
+        "button.btn-search",
+        ".search-wrap button.btn-search",
+        "button[data-tag-event='searchBar']",
+        ".btn-search",
+        "button:has-text('검색')",
+    ):
+        loc = page.locator(sel).first
+        try:
+            if await loc.count() == 0:
+                continue
+            await loc.click(timeout=3000, force=True)
+            await page.wait_for_timeout(900)
+            return True
+        except Exception:
+            continue
+    return False
+
+
+async def _fill_home_search(page, word: str) -> bool:
+    # REGRESSION-FREEZE[register-ingest-local-departure-reserve]: 홈 검색함 — manifest
+    await _open_home_search_panel(page)
+    for sel in (
+        'input[type="search"]',
+        'input[name="keyword"]',
+        'input#keyword',
+        'input[placeholder*="검색"]',
+        'input[placeholder*="어디"]',
+        'input[placeholder*="여행"]',
+        'input[aria-label*="검색"]',
+        'input[class*="search" i]',
+        '[role="search"] input',
+        ".search-wrap input",
+        "header input[type='text']",
+        "input[type='text']",
+    ):
+        loc = page.locator(sel).first
+        try:
+            if await loc.count() == 0:
+                continue
+            await loc.click(timeout=2500, force=True)
+            await loc.fill("")
+            await loc.fill(word)
+            await page.wait_for_timeout(350)
+            await loc.press("Enter")
+            return True
+        except Exception:
+            continue
+    return False
+
+
+async def _browse_home_search(page, word: str, bag: list[str]) -> tuple[list[str], list[str]]:
     tasks: list[asyncio.Task] = []
 
     def on_resp(r):  # type: ignore[no-untyped-def]
@@ -257,12 +316,53 @@ async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> tuple[
 
     try:
         page.on("response", on_resp)
-        await page.goto("https://www.ybtour.co.kr/", wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+        await page.wait_for_timeout(SETTLE_MS)
+        if not await _fill_home_search(page, word):
+            print(f"[listing-discover-ybtour] no search box {word}", file=sys.stderr)
+            return [], []
+        await page.wait_for_timeout(SETTLE_MS + 1800)
+        try:
+            await page.mouse.wheel(0, 1200)
+            await page.wait_for_timeout(800)
+        except Exception:
+            pass
+        if tasks:
+            await asyncio.wait(tasks, timeout=8)
+        return await _snapshot(page, bag)
+    except Exception as e:
+        print(f"[listing-discover-ybtour] home search fail {e}", file=sys.stderr)
+        return [], []
+    finally:
+        try:
+            page.remove_listener("response", on_resp)
+        except Exception:
+            pass
+
+
+async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> tuple[list[str], list[str]]:
+    # 지방출발·테마는 홈 검색 우선, 실패 시 메가메뉴(도시 stem)
+    if (word or "").strip() in HOME_SEARCH_WORDS:
+        ids, goods = await _browse_home_search(page, word, bag)
+        if ids or goods:
+            return ids, goods
+        print(f"[listing-discover-ybtour] home search empty → mega menu {word}", file=sys.stderr)
+        stem = (word or "").replace("출발", "").strip()
+        word = stem or word
+
+    tasks: list[asyncio.Task] = []
+
+    def on_resp(r):  # type: ignore[no-untyped-def]
+        tasks.append(asyncio.create_task(_capture(r, bag)))
+
+    try:
+        page.on("response", on_resp)
+        await page.goto(HOME, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
         await page.wait_for_timeout(SETTLE_MS)
         if not await _hover_overseas(page):
             print("[listing-discover-ybtour] no 해외여행 menu", file=sys.stderr)
             return [], []
-        landing_ids, landing_goods = await _snapshot(page, bag)
+        # 랜딩 HTML 의 evCd/goodsCd 는 홈 프로모 잡음 — 클릭 이후 스냅샷만 사용
         if menu == "FIT":
             await _click_label(page, "자유여행")
             await page.wait_for_timeout(700)
@@ -290,6 +390,7 @@ async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> tuple[
             clicked = await _click_label(page, word)
         if not clicked:
             print(f"[listing-discover-ybtour] no click {word}", file=sys.stderr)
+            return [], []
         await page.wait_for_timeout(SETTLE_MS + 1400)
         try:
             await page.mouse.wheel(0, 1200)
@@ -298,8 +399,7 @@ async def _browse_overseas(page, word: str, bag: list[str], menu: str) -> tuple[
             pass
         if tasks:
             await asyncio.wait(tasks, timeout=6)
-        after_ids, after_goods = await _snapshot(page, bag)
-        return _merge(landing_ids, after_ids), _merge(landing_goods, after_goods)
+        return await _snapshot(page, bag)
     except Exception as e:
         print(f"[listing-discover-ybtour] browse fail {e}", file=sys.stderr)
         return [], []

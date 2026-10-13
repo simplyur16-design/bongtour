@@ -123,6 +123,12 @@ export function isRegisterScheduleTransitHubPlace(label: string): boolean {
   }
   if (/(?:레스토랑|식당|카페|차찬teng|차찬\s*teng)$/i.test(t)) return true
   if (/공항$|국제공항$|\bAirport\b/i.test(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 공항 면세·기내 = hub (귀국 요약) — manifest
+  if (/공항\s*면세|면세점|기내|\bin\s*-?\s*flight\b|항공\s*기내/i.test(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 토롯코·협곡열차 ≠ hub (관광 열차) — manifest
+  if (/토롯코|토로코|Torokko|협곡\s*열차|구로베.*열차|Kurobe.*(?:Train|Railway)|단풍\s*만끽/i.test(t)) {
+    return false
+  }
   if (/중앙역$|역$|기차역|열차/i.test(t) && !/(?:박물관|광장|사원)/i.test(t)) return true
   return false
 }
