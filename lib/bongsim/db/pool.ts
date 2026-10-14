@@ -23,6 +23,14 @@ export function ensureBongsimPgDnsIpv4First(): void {
 }
 
 /**
+ * pg net.connect에 family:4 — dns 결과순서만으로는 AAAA를 잡는 경우가 있어 SMS drain이 죽는다.
+ * REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: pool family 4 — manifest
+ */
+function withBongsimPgIpv4Family(cfg: PoolConfig): PoolConfig {
+  return { ...cfg, family: 4 } as PoolConfig;
+}
+
+/**
  * Next.js instrumentation·라우트 번들이 모듈 인스턴스를 따로 가져도
  * 풀·TLS 완화 플래그는 프로세스 전역으로 공유해야 한다.
  * (모듈 `let` 이면 probe가 완화해도 라우트 쪽은 strict로 풀을 다시 만들어 카탈로그가 전부 db_error)
@@ -265,7 +273,7 @@ function buildPoolConfig(): PoolConfig | null {
     cfg.prepareThreshold = 0;
   }
 
-  return cfg;
+  return withBongsimPgIpv4Family(cfg);
 }
 
 export function getPgPool(): Pool | null {
@@ -322,7 +330,7 @@ function buildOutboxPoolConfig(): PoolConfig | null {
   if (useTxnPooler) {
     cfg.prepareThreshold = 0;
   }
-  return cfg;
+  return withBongsimPgIpv4Family(cfg);
 }
 
 /**

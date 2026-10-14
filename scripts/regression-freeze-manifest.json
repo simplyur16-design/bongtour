@@ -2797,7 +2797,15 @@
             "ensureBongsimPgDnsIpv4First",
             "isBongsimPgNetworkUnreachable",
             "isBongsimPgDrainRetryableConnectError",
+            "withBongsimPgIpv4Family",
+            "family: 4",
             "ipv4first"
+          ]
+        },
+        {
+          "file": "railway.json",
+          "mustInclude": [
+            "--dns-result-order=ipv4first"
           ]
         },
         {
@@ -2805,6 +2813,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]",
             "ensureBongsimPgDnsIpv4First"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
+            "isBongsimPgNetworkUnreachable",
+            "shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated)"
           ]
         },
         {
@@ -2855,6 +2871,14 @@
             "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
             "scheduleOrderPaidDrainRetry",
             "kickOrderPaidOutboxDrain"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-bongsim-order-paid-outbox-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
+            "isBongsimPgNetworkUnreachable",
+            "retry next tick (no skip)"
           ]
         }
       ]

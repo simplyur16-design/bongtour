@@ -169,11 +169,19 @@ async function tickBongsimOrderPaidOutboxCron(
       const {
         classifyBongsimPgError,
         getBongsimPoolStats,
+        isBongsimPgNetworkUnreachable,
         resolveBongsimCatalogPoolMax,
         shouldBackoffInsteadOfHealOnConnectTimeout,
         shouldSkipCatalogHealBecauseSaturated,
         shouldSkipImmediateDrainRetryOnSaturatedTimeout,
       } = await import("@/lib/bongsim/db/pool");
+      // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: ENETUNREACH는 saturated skip 금지 — manifest
+      if (isBongsimPgNetworkUnreachable(e)) {
+        console.warn("[bongsim-order-paid-outbox-cron] network unreachable — retry next tick (no skip)", {
+          trigger,
+        });
+        return null;
+      }
       if (classifyBongsimPgError(e) !== "connection_timeout") return null;
 
       // REGRESSION-FREEZE[auth-login-emaxconn-retry]: connect timeout must not heal — manifest
@@ -188,8 +196,9 @@ async function tickBongsimOrderPaidOutboxCron(
         });
       }
       // REGRESSION-FREEZE[bongsim-fulfill-drain-saturated-retry]: no same-tick retry — manifest
-      if (shouldSkipImmediateDrainRetryOnSaturatedTimeout(true)) {
+      if (shouldSkipImmediateDrainRetryOnSaturatedTimeout(saturated)) {
         console.warn("[bongsim-order-paid-outbox-cron] saturated skip drain (no immediate retry)");
+        return Date.now() + SATURATED_SKIP_MS;
       }
       return null;
     } catch (e2) {
