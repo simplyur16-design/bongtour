@@ -4,7 +4,7 @@
   },
   "deploy": {
     "preDeployCommand": "/bin/sh scripts/predeploy-db.sh",
-    "startCommand": "exec node --dns-result-order=ipv4first ./node_modules/next/dist/bin/next start -p ${PORT:-3000}",
+    "startCommand": "NODE_OPTIONS='--dns-result-order=ipv4first' exec node ./node_modules/next/dist/bin/next start -p ${PORT:-3000}",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
