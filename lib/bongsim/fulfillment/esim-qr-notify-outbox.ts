@@ -6,8 +6,6 @@ import type { PoolClient } from 'pg'
 import {
   getBongsimFulfillOutboxPool,
   getPgPool,
-  isBongsimPgConnectTimeoutNoSlot,
-  isBongsimPgSaturatedMaxClients,
 } from '@/lib/bongsim/db/pool'
 import { deferOrTerminalOutboxAfterFailure } from '@/lib/bongsim/fulfillment/outbox-defer'
 import { shouldDrainOrderPaidInThisProcess } from '@/lib/instrumentation-process-role'
@@ -435,10 +433,9 @@ export function kickEsimQrNotifyDrain(maxRounds = 32): void {
     .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn('[bongsim:esim-qr-notify:kick]', e)
-      // connect timeout 등으로 kick이 죽어도 재시도 — cron DISABLE 여부와 무관
-      if (isBongsimPgConnectTimeoutNoSlot(e) || isBongsimPgSaturatedMaxClients(e)) {
-        scheduleEsimQrNotifyDrainRetry(maxRounds)
-      }
+      // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: 어떤 오류든 kick 재시도 — 문자 누락 금지 — manifest
+      // REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: ENETUNREACH 포함 — manifest
+      scheduleEsimQrNotifyDrainRetry(maxRounds)
     })
 }
 
@@ -472,9 +469,8 @@ export function ensureEsimQrNotifyDrainAfterEnqueue(maxRounds = 32): void {
     .then(() => drainEsimQrNotifyOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn('[bongsim:esim-qr-notify:ensure-drain]', e)
-      if (isBongsimPgConnectTimeoutNoSlot(e) || isBongsimPgSaturatedMaxClients(e)) {
-        scheduleEsimQrNotifyDrainRetry(maxRounds)
-      }
+      // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: ensure도 무조건 재시도 — manifest
+      scheduleEsimQrNotifyDrainRetry(maxRounds)
     })
 }
 

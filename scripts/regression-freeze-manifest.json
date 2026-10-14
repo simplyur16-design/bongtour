@@ -2783,6 +2783,83 @@
       ]
     },
     {
+      "id": "bongsim-pg-dns-ipv4-first",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "PG DNS ipv4first + kick 오류 시 무조건 재시도 — SMS drain 사망 방지",
+      "checks": [
+        {
+          "file": "lib/bongsim/db/pool.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]",
+            "ensureBongsimPgDnsIpv4First",
+            "isBongsimPgNetworkUnreachable",
+            "isBongsimPgDrainRetryableConnectError",
+            "ipv4first"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]",
+            "ensureBongsimPgDnsIpv4First"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
+            "scheduleEsimQrNotifyDrainRetry"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
+            "scheduleOrderPaidDrainRetry"
+          ]
+        },
+        {
+          "file": "lib/bongsim/db/pool-dns-ipv4-first.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]",
+            "ENETUNREACH"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/db/pool-dns-ipv4-first.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-sms-never-drop-on-kick-error",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "OrderPaid·EsimQrNotify kick 오류 시 무조건 재시도 — 문자 누락 금지",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
+            "scheduleEsimQrNotifyDrainRetry",
+            "kickEsimQrNotifyDrain"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/process-order-paid-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
+            "scheduleOrderPaidDrainRetry",
+            "kickOrderPaidOutboxDrain"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-outbox-direct-url",
       "tier": [
         "prebuild",

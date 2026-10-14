@@ -1,8 +1,26 @@
-﻿import { Pool, type PoolConfig } from "pg";
+﻿import dns from "node:dns";
+import { Pool, type PoolConfig } from "pg";
 import {
   isTransactionPoolerUrl,
   rewriteSupabaseSessionPoolerToTransaction,
 } from "@/lib/supabase-pooler-url";
+
+/**
+ * Railway 등 IPv6-only AAAA가 잡히면 ENETUNREACH로 outbox·SMS drain이 전면 사망한다.
+ * REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: dns ipv4first — manifest
+ */
+let _dnsIpv4FirstApplied = false;
+export function ensureBongsimPgDnsIpv4First(): void {
+  if (_dnsIpv4FirstApplied) return;
+  _dnsIpv4FirstApplied = true;
+  try {
+    if (typeof dns.setDefaultResultOrder === "function") {
+      dns.setDefaultResultOrder("ipv4first");
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 /**
  * Next.js instrumentation·라우트 번들이 모듈 인스턴스를 따로 가져도
@@ -180,6 +198,33 @@ export function isBongsimPgConnectTimeoutNoSlot(err: unknown): boolean {
   return /timeout exceeded when trying to connect/i.test(msg);
 }
 
+/**
+ * IPv6 ENETUNREACH 등 — drain kick이 죽어도 재시도해야 SMS가 나간다.
+ * REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: ENETUNREACH retryable — manifest
+ */
+export function isBongsimPgNetworkUnreachable(err: unknown): boolean {
+  const msg = String(err instanceof Error ? err.message : err);
+  const code =
+    typeof err === "object" && err !== null && "code" in err
+      ? String((err as { code?: string }).code ?? "")
+      : "";
+  return (
+    code === "ENETUNREACH" ||
+    code === "EHOSTUNREACH" ||
+    code === "EAI_AGAIN" ||
+    /ENETUNREACH|EHOSTUNREACH|EAI_AGAIN/i.test(msg)
+  );
+}
+
+/** connect timeout·EMAXCONN·ENETUNREACH — outbox kick 재시도 대상 */
+export function isBongsimPgDrainRetryableConnectError(err: unknown): boolean {
+  return (
+    isBongsimPgConnectTimeoutNoSlot(err) ||
+    isBongsimPgSaturatedMaxClients(err) ||
+    isBongsimPgNetworkUnreachable(err)
+  );
+}
+
 export function shouldSkipCatalogHealBecauseSaturated(errOrReason?: unknown): boolean {
   // REGRESSION-FREEZE[auth-login-emaxconn-retry]: connect timeout must not heal — manifest
   if (
@@ -193,6 +238,7 @@ export function shouldSkipCatalogHealBecauseSaturated(errOrReason?: unknown): bo
 }
 
 function buildPoolConfig(): PoolConfig | null {
+  ensureBongsimPgDnsIpv4First();
   let url = process.env.DATABASE_URL?.trim();
   if (!url) return null;
 
@@ -249,6 +295,7 @@ export function resolveBongsimOutboxDatabaseUrl(): string | null {
 }
 
 function buildOutboxPoolConfig(): PoolConfig | null {
+  ensureBongsimPgDnsIpv4First();
   let url = resolveBongsimOutboxDatabaseUrl();
   if (!url) return null;
 
@@ -379,13 +426,17 @@ export function classifyBongsimPgError(err: unknown): BongsimPgFailureKind {
     shouldSkipCatalogHealBecauseSaturated(err);
     return "connection_timeout";
   }
+  // REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: ENETUNREACH도 connection_timeout 분류 — cron 재시도 — manifest
+  if (isBongsimPgNetworkUnreachable(err)) {
+    return "connection_timeout";
+  }
   const msg = String(err instanceof Error ? err.message : err);
   const code =
     typeof err === "object" && err !== null && "code" in err
       ? String((err as { code?: string }).code ?? "")
       : "";
   if (
-    /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED|ECONNRESET/i.test(
+    /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ETIMEDOUT|ECONNREFUSED|ECONNRESET|ENETUNREACH|EHOSTUNREACH/i.test(
       msg,
     ) ||
     // heal이 pool.end() 한 뒤 동시 요청이 옛 풀을 집는 경우 — 새 풀로 재시도

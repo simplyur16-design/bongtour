@@ -30,8 +30,12 @@ export async function register() {
     const hasDb = Boolean(dbUrl)
 
     if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
+      // REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: boot ipv4first before pool — manifest
       // REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: boot-time TLS probe only — manifest
-      const { probePgPoolTlsOrFallback } = await import('@/lib/bongsim/db/pool')
+      const { ensureBongsimPgDnsIpv4First, probePgPoolTlsOrFallback } = await import(
+        '@/lib/bongsim/db/pool'
+      )
+      ensureBongsimPgDnsIpv4First()
       await probePgPoolTlsOrFallback()
     }
     const { bootstrapHomeHubActiveFromDb } = await import('@/lib/home-hub-active-bootstrap')

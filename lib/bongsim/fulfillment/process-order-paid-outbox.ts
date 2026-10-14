@@ -1,10 +1,6 @@
 import {
-  classifyBongsimPgError,
   getBongsimFulfillOutboxPool,
-  getPgPool,
   healBongsimPgPoolForCatalog,
-  isBongsimPgConnectTimeoutNoSlot,
-  isBongsimPgSaturatedMaxClients,
 } from "@/lib/bongsim/db/pool";
 import { advanceFulfillmentForPaidOrderReleasingDuringSubmit } from "@/lib/bongsim/fulfillment/process-fulfillment-job";
 import { deferOrTerminalOutboxAfterFailure } from "@/lib/bongsim/fulfillment/outbox-defer";
@@ -127,10 +123,6 @@ function scheduleOrderPaidDrainRetry(maxRounds: number): void {
   }
 }
 
-function shouldRetryOrderPaidDrainAfterPg(err: unknown): boolean {
-  return isBongsimPgConnectTimeoutNoSlot(err) || isBongsimPgSaturatedMaxClients(err);
-}
-
 export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
   if (!shouldDrainOrderPaidInThisProcess()) {
     return;
@@ -139,10 +131,9 @@ export function kickOrderPaidOutboxDrain(maxRounds = 16): void {
     .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn("[bongsim:outbox:kick]", e);
-      // connect timeout으로 kick이 죽어도 재시도 — cron DISABLE과 무관
-      if (shouldRetryOrderPaidDrainAfterPg(e)) {
-        scheduleOrderPaidDrainRetry(maxRounds);
-      }
+      // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: 어떤 오류든 OrderPaid kick 재시도 — manifest
+      // REGRESSION-FREEZE[bongsim-pg-dns-ipv4-first]: ENETUNREACH 포함 — manifest
+      scheduleOrderPaidDrainRetry(maxRounds);
     });
 }
 
@@ -161,9 +152,8 @@ export function ensureOrderPaidOutboxDrainAfterEnqueue(maxRounds = 16): void {
     .then(() => drainOrderPaidOutboxBestEffort(maxRounds))
     .catch((e) => {
       console.warn("[bongsim:outbox:ensure-drain]", e);
-      if (shouldRetryOrderPaidDrainAfterPg(e)) {
-        scheduleOrderPaidDrainRetry(maxRounds);
-      }
+      // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: ensure도 무조건 재시도 — manifest
+      scheduleOrderPaidDrainRetry(maxRounds);
     });
 }
 
