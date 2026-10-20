@@ -181,6 +181,15 @@ export type ParsedProductRawMeta = {
   pricePromotion?: {
     merged?: PublicPricePromotionView
   }
+  /** 플랫 2D 일정 동선 지도 */
+  itineraryRouteMap?: {
+    url?: string
+    source?: string
+    promptVersion?: string
+    generatedAt?: string
+    countryKo?: string
+    countryEn?: string
+  }
 }
 
 export function normalizeMustKnowItems(items: MustKnowItem[] | null | undefined): MustKnowItem[] {

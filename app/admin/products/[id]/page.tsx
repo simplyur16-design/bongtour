@@ -342,6 +342,8 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
   const [imageReviewMessage, setImageReviewMessage] = useState<string | null>(null)
   const [primaryImageUploading, setPrimaryImageUploading] = useState(false)
   const [heroReselectBusy, setHeroReselectBusy] = useState(false)
+  const [routeMapBusy, setRouteMapBusy] = useState(false)
+  const [routeMapMessage, setRouteMapMessage] = useState<string | null>(null)
   const [primaryImageMessage, setPrimaryImageMessage] = useState<string | null>(null)
   const [heroMetaDraft, setHeroMetaDraft] = useState({
     source: 'photopool',
@@ -758,6 +760,39 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
       setPrimaryImageMessage(e instanceof Error ? e.message : '요청 실패')
     } finally {
       setHeroReselectBusy(false)
+    }
+  }
+
+  const runItineraryRouteMapGenerate = async (force = false) => {
+    if (!id) return
+    setRouteMapBusy(true)
+    setRouteMapMessage(null)
+    try {
+      const res = await fetch(`/api/admin/products/${id}/itinerary-route-map`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force }),
+      })
+      const j = (await res.json().catch(() => null)) as {
+        ok?: boolean
+        error?: string
+        skipped?: boolean
+        meta?: { url?: string }
+      } | null
+      if (!res.ok || !j?.ok) {
+        setRouteMapMessage(j?.error ?? '동선 지도 생성 실패')
+        return
+      }
+      const dRes = await fetch(`/api/admin/products/${id}`)
+      const refreshed = (await dRes.json().catch(() => null)) as Product | null
+      if (dRes.ok && refreshed) setProduct(refreshed)
+      setRouteMapMessage(
+        j.skipped ? '이미 저장된 동선 지도가 있어 건너뛰었어요.' : '일정 동선 지도를 생성·저장했어요.',
+      )
+    } catch (e) {
+      setRouteMapMessage(e instanceof Error ? e.message : '요청 실패')
+    } finally {
+      setRouteMapBusy(false)
     }
   }
 
@@ -2422,7 +2457,50 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
               </button>
               <p className="mt-1 text-[10px] text-bt-muted">
                 기존 이미지 보강 API(`/api/travel/process-images`)를 호출합니다. 수십 초~1분 걸릴 수 있습니다.
+                성공 시 일정 동선 플랫 지도도 없으면 자동 생성합니다.
               </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={routeMapBusy || !id}
+                  onClick={() => void runItineraryRouteMapGenerate(false)}
+                  className="rounded border border-bt-border-strong bg-bt-surface px-3 py-2 text-xs font-medium text-bt-body hover:bg-bt-surface-soft disabled:opacity-50"
+                >
+                  {routeMapBusy ? '동선 지도 생성 중…' : '일정 동선 지도 생성'}
+                </button>
+                <button
+                  type="button"
+                  disabled={routeMapBusy || !id}
+                  onClick={() => void runItineraryRouteMapGenerate(true)}
+                  className="rounded border border-bt-border-strong bg-bt-surface px-3 py-2 text-xs font-medium text-bt-muted hover:bg-bt-surface-soft disabled:opacity-50"
+                >
+                  강제 재생성
+                </button>
+              </div>
+              {routeMapMessage ? (
+                <p
+                  className={`mt-1 text-[10px] ${
+                    routeMapMessage.includes('실패') ? 'text-bt-danger' : 'text-bt-badge-domestic-text'
+                  }`}
+                >
+                  {routeMapMessage}
+                </p>
+              ) : null}
+              {(() => {
+                try {
+                  const raw = product.rawMeta ? (JSON.parse(product.rawMeta) as { itineraryRouteMap?: { url?: string } }) : null
+                  const url = raw?.itineraryRouteMap?.url?.trim()
+                  if (!url) return null
+                  return (
+                    <div className="mt-3 overflow-hidden rounded-lg border border-bt-border-strong bg-bt-surface">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="일정 동선 지도" className="mx-auto max-h-72 w-auto object-contain" />
+                    </div>
+                  )
+                } catch {
+                  return null
+                }
+              })()}
             </div>
           ) : null}
 

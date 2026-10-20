@@ -148,4 +148,6 @@ export type TravelProduct = {
   sportsThemeTag?: string[]
   /** 2030 성인 전용 — 아동·유아 스텝퍼/요금 비노출 */
   adultOnly2030?: boolean
+  /** 플랫 2D 일정 동선 지도 (rawMeta.itineraryRouteMap.url) */
+  itineraryRouteMapUrl?: string | null
 }

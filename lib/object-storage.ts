@@ -484,3 +484,12 @@ export function buildHomeHubCandidateObjectKey(candidateId: string): string {
   const safe = candidateId.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 120)
   return `home-hub/candidates/${safe}.webp`
 }
+
+/** 상품 일정 동선 플랫 지도 (Gemini flat_itinerary_map). */
+export function buildItineraryRouteMapObjectKey(productId: string, now = new Date()): string {
+  const y = String(now.getUTCFullYear())
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0')
+  const safeId = productId.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'product'
+  const ts = Date.now().toString(36)
+  return `itinerary-route-maps/${y}/${m}/${safeId}__${ts}.webp`
+}

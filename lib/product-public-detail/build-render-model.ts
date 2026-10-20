@@ -735,8 +735,14 @@ export async function buildProductPublicDetailRenderModel(
     })
   )
 
+  const itineraryRouteMapUrl =
+    typeof rawParsed?.itineraryRouteMap?.url === 'string' && rawParsed.itineraryRouteMap.url.trim()
+      ? rawParsed.itineraryRouteMap.url.trim()
+      : null
+
   const viewProduct: TravelProduct = {
     ...productForDetail,
+    itineraryRouteMapUrl,
     includedText: finalIncludedText,
     excludedText: finalExcludedText,
     airline: (() => {

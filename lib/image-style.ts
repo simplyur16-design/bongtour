@@ -57,3 +57,14 @@ export const ITINERARY_DAY_HERO_REGENERATE_PROMPT_EN =
 /** 관리자 4슬롯 Gemini 생성 전용 — 슬롯별 구도·인물은 프롬프트 본문에서 지시, 여기서는 공통 톤만. */
 export const IMAGEN_ADMIN_TRAVEL_RECORD_SUFFIX =
   'Realistic travel snapshot as from a phone or travel diary, documentary tone. Natural daylight, moderate saturation, no extreme contrast, no fake golden-hour glow. No text, logos, or watermarks. Not a tourism poster or brochure illustration.'
+
+/**
+ * 일정 동선 플랫 2D 인포그래픽 지도 전용.
+ * 실사 접미사와 충돌하므로 generateImageWithGemini stylePreset=`flat_itinerary_map`에서만 사용.
+ */
+export const IMAGEN_FLAT_ITINERARY_MAP_STYLE_SUFFIX =
+  'Flat 2D vector infographic illustration only (Gemini). Soft pastel mint/green landmass with dark outline, very light blue or white solid background. ' +
+  'Blue horizontal pill/capsule day markers with white text (never map pins). Rounded Korean gothic labels with exact Hangul spelling. ' +
+  'SHORT nearly-straight dark green dashed route segments between nearby hubs only — never giant semicircle ocean arcs. ' +
+  'Small white transit capsules sitting on the line. ' +
+  'No photorealism, no 3D, no mountains, no rivers, no photographic textures, no collage, no extra watermark.'

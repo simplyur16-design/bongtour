@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import type { TravelProduct, ScheduleDay } from '@/app/components/travel/TravelProductDetail'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
@@ -160,6 +161,26 @@ export function ItineraryViewPackageMain({
       />
 
       <ItineraryExtraInfoBoxes product={extraProduct} section="top" />
+
+      {product.itineraryRouteMapUrl?.trim() ? (
+        <section className="space-y-3">
+          <h2 className="border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
+            여행 동선
+          </h2>
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-[#DAD4EE] bg-[#F7FAFC]">
+            <Image
+              src={product.itineraryRouteMapUrl.trim()}
+              alt={`${product.destination || '여행'} 일정 동선 지도`}
+              fill
+              className="object-contain"
+              sizes="(max-width: 768px) 100vw, 720px"
+            />
+          </div>
+          <p className="text-center text-xs text-[#888780]">
+            일정·이동시간은 참고용이며 현지 사정에 따라 달라질 수 있어요.
+          </p>
+        </section>
+      ) : null}
 
       {totalDays > 0 ? (
         <div className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3">

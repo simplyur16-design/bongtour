@@ -2681,6 +2681,34 @@ export default function AdminPendingDetailPanel({
           썸네일용 — <strong className="font-medium text-bt-muted">이미 고른 일자별 사진</strong> · 자산 → Pexels 후보
           미리보기 → Gemini(보조·상품 단위) 순으로 쓰면 됩니다.
         </p>
+        {productId ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded border border-bt-border-strong bg-bt-surface px-3 py-1.5 text-xs font-medium text-bt-body hover:bg-bt-surface-soft"
+              onClick={() => {
+                void (async () => {
+                  const res = await fetch(`/api/admin/products/${productId}/itinerary-route-map`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force: false }),
+                  })
+                  const j = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; skipped?: boolean } | null
+                  if (!res.ok || !j?.ok) {
+                    window.alert(j?.error ?? '동선 지도 생성 실패')
+                    return
+                  }
+                  window.alert(j.skipped ? '이미 저장된 동선 지도가 있어요.' : '일정 동선 지도를 생성·저장했어요.')
+                  const refreshed = await fetchAdminProductDetail(productId)
+                  if (refreshed) setDetail(refreshed)
+                })()
+              }}
+            >
+              일정 동선 지도 생성
+            </button>
+            <span className="text-[10px] text-bt-meta">플랫 2D 인포그래픽 · rawMeta.itineraryRouteMap</span>
+          </div>
+        ) : null}
         {!keywordsVerified ? (
           <p className="mb-3 rounded border border-bt-warning bg-bt-badge-freeform px-2 py-1.5 text-xs text-bt-warning">
             이미지 키워드 검증이 끝난 뒤 사진을 고르세요.

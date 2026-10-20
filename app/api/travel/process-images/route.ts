@@ -944,10 +944,31 @@ export async function POST(req: Request) {
     console.log(`${LOG_PREFIX} 최종 DB 업데이트 성공`)
     console.log(`[STEP 4] 최종 업데이트 완료`)
 
+    let itineraryRouteMap: { url?: string; skipped?: boolean; error?: string } | undefined
+    try {
+      const { generateAndPersistItineraryRouteMap } = await import(
+        '@/lib/itinerary-route-map-generate'
+      )
+      const mapResult = await generateAndPersistItineraryRouteMap(prisma, product.id as string, {
+        force: false,
+      })
+      if (mapResult.ok) {
+        itineraryRouteMap = { url: mapResult.meta.url, skipped: mapResult.skipped === true }
+      } else {
+        itineraryRouteMap = { error: mapResult.error }
+        console.warn(`${LOG_PREFIX} itinerary-route-map:`, mapResult.error)
+      }
+    } catch (mapErr) {
+      const msg = mapErr instanceof Error ? mapErr.message : String(mapErr)
+      itineraryRouteMap = { error: msg }
+      console.warn(`${LOG_PREFIX} itinerary-route-map exception:`, msg)
+    }
+
     const response: Record<string, unknown> = {
       success: true,
       cacheHit: cacheHitCount,
       newFetch: newFetchCount,
+      itineraryRouteMap,
     }
     if (debugMode) {
       response.processImagesTrace = {
