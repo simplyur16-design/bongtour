@@ -23,6 +23,22 @@ const SEASON_MODEL = process.env.GEMINI_SEASON_CURATION_MODEL?.trim() || getMode
 /** 활성 시즌 큐레이션 사이클 — `getCurrentCycle` 반환 타입 SSOT */
 export type SeasonCurationCycle = SeasonalDestinationCuration | null
 
+function asDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value)
+}
+
+/** `unstable_cache` JSON 직렬화 후 Date → string 복원 */
+export function rehydrateSeasonCurationCycle(cycle: SeasonCurationCycle): SeasonCurationCycle {
+  if (!cycle) return null
+  return {
+    ...cycle,
+    cycleStartDate: asDate(cycle.cycleStartDate as Date | string),
+    cycleEndDate: asDate(cycle.cycleEndDate as Date | string),
+    createdAt: asDate(cycle.createdAt as Date | string),
+    updatedAt: asDate(cycle.updatedAt as Date | string),
+  }
+}
+
 export type CityDistributionRow = {
   count: number
   koreanLabel: string

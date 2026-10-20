@@ -2,6 +2,7 @@
  * TravelProductDetail 공유 타입 — 컴포넌트 본문과 분리(동적 ItineraryView 청크 순환 참조 방지).
  */
 import type { DayHotelPlan } from '@/lib/day-hotel-plans-hanatour'
+import type { PublicRouteMapView } from '@/lib/bongtour-route-map-public'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
 import type { FlightStructuredBody, PublicPricePromotionView, ShoppingStopRow } from '@/lib/public-product-extras'
@@ -148,4 +149,6 @@ export type TravelProduct = {
   sportsThemeTag?: string[]
   /** 2030 성인 전용 — 아동·유아 스텝퍼/요금 비노출 */
   adultOnly2030?: boolean
+  /** 등록 시 저장된 동선지도(공개 DTO) — rawMeta 미노출 */
+  routeMap?: PublicRouteMapView | null
 }

@@ -6141,6 +6141,52 @@
       ]
     },
     {
+      "id": "product-detail-departure-url-no-searchparams",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 상세 깜빡임 — 출발일 딥링크 useSearchParams 금지·pulse 스켈레톤 오버레이 금지",
+      "checks": [
+        {
+          "file": "lib/use-product-departure-url-param.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-detail-departure-url-no-searchparams]",
+            "parseProductDepartureYmdFromSearch"
+          ],
+          "mustNotInclude": [
+            "from 'next/navigation'",
+            "from \"next/navigation\""
+          ]
+        },
+        {
+          "file": "components/products/ProductDetailTransitionShell.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-detail-departure-url-no-searchparams]"
+          ],
+          "mustNotInclude": [
+            "showSkeleton",
+            "ProductDetailPageSkeleton",
+            "ProductDetailInstantFromCard",
+            "showCardOverlay"
+          ]
+        },
+        {
+          "file": "app/products/[idOrSlug]/page.tsx",
+          "mustInclude": [
+            "ProductDetailPageSkeleton"
+          ],
+          "mustNotInclude": [
+            "Suspense fallback={null}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/use-product-departure-url-param.test.ts",
+        "lib/product-detail-flicker-guard.test.ts"
+      ]
+    },
+    {
       "id": "product-detail-payload-slim-persist",
       "tier": [
         "prebuild",
@@ -12002,6 +12048,38 @@
       ]
     },
     {
+      "id": "register-pre-photo-no-invent-without-route",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "빈 middle route에 dest·prior로 키워드·요약·route 날조 금지 — 미수집은 비운 채 검증 실패",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]",
+            "stripInventedContentOnEmptyRoutes",
+            "restoreEmptyEdgeRouteFromDest"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]",
+            "keyword_without_route"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-no-invent-without-route.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]",
+            "does not invent keyword"
+          ]
+        }
+      ]
+    },
+    {
       "id": "register-pre-photo-verify-heal-off-trip-keyword",
       "tier": [
         "prebuild",
@@ -12640,7 +12718,7 @@
             "런던 캠든·애비로드·셜록",
             "Victoria Peak ≠ London lodging dest",
             "식별불가 중간일 키워드 비강제",
-            "빈 route 중간일은 dest 명소 유지",
+            "빈 route 키워드 유지·dest 귀속 금지",
             "prior 무관하면 dest pack",
             "출발·귀국은 pack으로 bare soft-dup 덮지 않음",
             "서안·괌 bare → 명소 팩",
@@ -24555,7 +24633,7 @@
             "bare 발리 동선은 SEA 명소 팩으로 채움",
             "오로라 primary는 own-route drop 예외",
             "깨진 kw2 최종 비움",
-            "빈 middle route는 dest soft-dup으로 채움"
+            "빈 route에 dest pack 키워드 날조 금지"
           ]
         },
         {
@@ -24599,7 +24677,7 @@
             "발리 동선만 있는 중간일은 SEA 명소로 채운다",
             "오로라 상품은 힐 후에도 primary 오로라를 유지한다",
             "카이세키 일정은 Cairo soft-dup을 만들지 않는다",
-            "중간일 route가 비면 dest soft-dup으로 채운다"
+            "중간일 route가 비면 dest soft-dup으로 채우지 않는다"
           ]
         }
       ],
@@ -25793,6 +25871,569 @@
           ]
         }
       ]
+    },
+    {
+      "id": "optional-tour-name-display-normalize",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "옵션관광명 — #[선택]·담당자추천·가격꼬리만 제거(나라명·고유명 유지)",
+      "checks": [
+        {
+          "file": "lib/modetour-optional-tour-name.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[optional-tour-name-display-normalize]",
+            "MODETOUR_OPTIONAL_TOUR_BRACKET_PREFIX",
+            "MODETOUR_OPTIONAL_TOUR_PROMO_PREFIX",
+            "MODETOUR_OPTIONAL_TOUR_SELECT_PAREN_TAIL"
+          ],
+          "mustNotInclude": [
+            "OPTIONAL_TOUR_COUNTRY_PREFIX_TOKENS",
+            "stripOptionalTourCountry"
+          ]
+        },
+        {
+          "file": "lib/optional-tour-row-gate-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[optional-tour-name-display-normalize]",
+            "소요시간.+(미선택\\s*시|미참여\\s*시).*(가이드\\s*동행|미동행)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ybtour-optional-fee-us-dollar",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "노랑풍선 옵션 붙여넣기 — 비용US$30·비용CAD $85 앵커로 관광명 추출",
+      "checks": [
+        {
+          "file": "lib/register-ybtour-options.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-optional-fee-us-dollar]",
+            "YBTOUR_DOLLAR_CCY",
+            "비용CAD"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hanatour-optional-location-label-ban",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "하나투어 옵션 — 나라+도시 지역칸(태국파타야 등)을 관광명으로 쓰지 않음",
+      "checks": [
+        {
+          "file": "lib/optional-tour-row-gate-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-optional-location-label-ban]",
+            "isHanatourOptionalLocationLabelOnly",
+            "HANATOUR_OPTIONAL_LOCATION_LABEL_ONLY"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mega-menu-kurokawa-monogram-city",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "쿠로가와→구마모토(일본) · 신라모노그램/바나힐→다낭(베트남) — 그외/기타 금지",
+      "checks": [
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]",
+            "쿠로가와",
+            "신라모노그램",
+            "바나힐"
+          ]
+        },
+        {
+          "file": "lib/overseas-display-buckets.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]",
+            "RE_DANANG_VIETNAM_TRAVEL",
+            "쿠로가와"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mega-menu-misc6-geo",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "옌타이·태항산·브루나이·쏙쏙도쿄 메가 geo + dest 잔여석 scrub — 그외/기타/잔여석 금지",
+      "checks": [
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-misc6-geo]",
+            "옌타이",
+            "taihang",
+            "브루나이"
+          ]
+        },
+        {
+          "file": "lib/geo-haystack-match.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-misc6-geo]",
+            "gluePrefixRe"
+          ]
+        },
+        {
+          "file": "lib/register-destination-schedule-activity-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-misc6-geo]",
+            "scrubRegisterDestinationSeatSaleNoise"
+          ]
+        },
+        {
+          "file": "lib/register-destination-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-misc6-geo]",
+            "잔여"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-pre-photo-dest-fuel-silsok-not-place",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "유류·실속·프로모·IATA 코드 ≠ 등록 목적지 — 제목·countryKey로 재추론",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]",
+            "빈 dest도 placeholder",
+            "코타·씨엠립·앙코르 정규화"
+          ]
+        },
+        {
+          "file": "lib/register-destination-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]",
+            "IATA ≠ dest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-pre-photo-pexels-keyword-must-hit",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 키워드는 Pexels 실장소 사진 hit 필수 — 0건 금지",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-pexels-keyword-hit.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]"
+          ]
+        },
+        {
+          "file": "lib/pexels-keyword-place-photo-hit.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]",
+            "Pexels 0건 키워드"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pexels-kurayoshi-not-generic-white-wall",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "쿠라요시 키워드 — 흰 벽 generic Pexels 금지",
+      "checks": [
+        {
+          "file": "lib/pexels-kurayoshi-not-generic-white-wall.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-kurayoshi-not-generic-white-wall]"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-kurayoshi-not-generic-white-wall]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bongtour-ocean-warm-design-l0",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Ocean Warm L0 — tokens 미연결·display/route SSOT·/dev는 MobileStickyBar만 제외(푸터 유지)",
+      "checks": [
+        {
+          "file": "app/styles/bongtour-ocean-warm.tokens.css",
+          "mustInclude": [
+            "--bt-ow-brand: #2f8fc7",
+            "--bt-ow-sand: #f7f1e3",
+            "DO NOT @import"
+          ]
+        },
+        {
+          "file": "app/styles/bongtour-product-surface.tokens.css",
+          "mustInclude": [
+            "bongtour-ocean-warm.tokens.css",
+            "--bt-ps-brand: var(--bt-ow-brand)",
+            "DO NOT @import"
+          ]
+        },
+        {
+          "file": "lib/bongtour-product-display-title-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-product-display-title-ssot]",
+            "composeBongtourHeroDisplayTitle"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-chain-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-chain-ssot]",
+            "buildBongtourRouteMapChain"
+          ]
+        },
+        {
+          "file": "lib/dev-design-preview-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]",
+            "NODE_ENV !== 'development'"
+          ]
+        },
+        {
+          "file": "app/globals.css",
+          "mustNotInclude": [
+            "bongtour-ocean-warm.tokens.css",
+            "bongtour-product-surface.tokens.css"
+          ]
+        },
+        {
+          "file": "app/components/BongtourRootShell.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]",
+            "pathname.startsWith('/dev/')"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-display-title-ssot.test.ts",
+        "lib/bongtour-route-map-chain-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "bongtour-route-map-gemini-v1",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "동선지도 Gemini flash-image 등록시저장·도시동선캡션(대형버스지도라벨금지)·원문교통추론·Lucide",
+      "checks": [
+        {
+          "file": "lib/bongtour-route-map-gemini-validate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "validateBongtourRouteMapGeminiDraft",
+            "city_invent_or_delete",
+            "geographic"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-gemini-prompt.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "buildBongtourRouteMapGeminiPrompt",
+            "skeleton=",
+            "domestic_flight"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-gemini-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "parseBongtourRouteMapGeminiText"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-gemini-fallback.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "buildBongtourRouteMapGeminiFallback"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-transport-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "inferBongtourRouteMapTransport",
+            "domestic_flight",
+            "대형버스"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-image.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "generateBongtourRouteMapImage",
+            "buildBongtourRouteMapCitiesCaption",
+            "generateImageWithGemini",
+            "stylePreset: 'route_map'",
+            "route-map-turkiye-baseline.jpg",
+            "compositeBongtourRouteMapRoutePins",
+            "BLANK tour-brochure political MAP",
+            "ZERO pins"
+          ],
+          "mustNotInclude": [
+            "leaflet",
+            "nominatim",
+            "renderBongtourRouteMapOnBasemap",
+            "arcgisonline",
+            "cartocdn"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-svg-render.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "renderBongtourRouteMapSvgPng",
+            "buildBongtourRouteMapSvg",
+            "compositeBongtourRouteMapRoutePins",
+            "isFlightMode",
+            "resolveBongtourRouteMapLandRings",
+            "#c5d6b4",
+            "L ${b.x} ${b.y}",
+            "Q ${mx} ${my} ${b.x} ${b.y}"
+          ],
+          "mustNotInclude": [
+            "leaflet",
+            "nominatim"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-city-coords.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "resolveBongtourRouteMapCityCoord",
+            "부다페스트"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-land-silhouettes.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "resolveBongtourRouteMapLandRings",
+            "RING_TR",
+            "RING_CENTRAL_EUROPE",
+            "RING_CZ",
+            "RING_AT",
+            "RING_HU"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-pin-colors.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "bongtourRouteMapPinColor"
+          ]
+        },
+        {
+          "file": "lib/bongtour-benefit-icon-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "BONGTOUR_BENEFIT_ICON_KEYS",
+            "direct_flight",
+            "domestic_flight",
+            "inferBongtourBenefitIconKeys"
+          ]
+        },
+        {
+          "file": "app/components/detail/BongtourBenefitIcon.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "bt-benefit",
+            "Plane",
+            "PlaneTakeoff"
+          ],
+          "mustNotInclude": [
+            "✈️",
+            "🏨"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-source-text.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "collectBongtourRouteMapSourceText"
+          ]
+        },
+        {
+          "file": "lib/image-style.ts",
+          "mustInclude": [
+            "IMAGEN_ROUTE_MAP_STYLE_SUFFIX",
+            "not OpenStreetMap",
+            "Premium editorial",
+            "EXACTLY ONCE",
+            "STRAIGHT lines",
+            "CURVED arcs"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-gemini-sample.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "BONGTOUR_ROUTE_MAP_GEMINI_SAMPLE_DANANG",
+            "geographic"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-gemini-generate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "generateBongtourRouteMapGemini",
+            "responseMimeType"
+          ]
+        },
+        {
+          "file": "scripts/try-bongtour-route-map-gemini.ts",
+          "mustInclude": [
+            "loadDevProductSurfaceLiveMock",
+            "callGemini: true"
+          ]
+        },
+        {
+          "file": "docs/design/bongtour-route-map-gemini-v1.md",
+          "mustInclude": [
+            "validateBongtourRouteMapGeminiDraft",
+            "buildBongtourRouteMapChain",
+            "국내선 이동",
+            "generateBongtourRouteMapImage",
+            "Gemini가 지도를 그림",
+            "route-map-turkiye-baseline.jpg",
+            "benefit-icons-row.jpg"
+          ],
+          "mustNotInclude": [
+            "Leaflet(OSM)",
+            "Nominatim 지오코드"
+          ]
+        },
+        {
+          "file": "app/dev/product-surface-preview/page.tsx",
+          "mustInclude": [
+            "loadDevProductSurfaceLiveMock",
+            "mapImageUrl",
+            "등록 시 저장된 동선지도",
+            "supplierLabelKo",
+            "MapPin",
+            "ScheduleDayHotelMealCard"
+          ],
+          "mustNotInclude": [
+            "RouteMapGeoClient",
+            "leaflet"
+          ]
+        },
+        {
+          "file": "app/api/dev/product-surface-route-map/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "ensureBongtourRouteMapPersisted",
+            "readBongtourRouteMapPersisted",
+            "not_persisted_at_register"
+          ],
+          "mustNotInclude": [
+            "leaflet",
+            "nominatim"
+          ]
+        },
+        {
+          "file": "app/components/detail/ScheduleDayHotelMealCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "Building2",
+            "UtensilsCrossed"
+          ],
+          "mustNotInclude": [
+            "🏨",
+            "🍽",
+            "📍"
+          ]
+        },
+        {
+          "file": "lib/dev-product-surface-live-mock.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "loadDevProductSurfaceLiveMock",
+            "collectBongtourRouteMapSourceText",
+            "keepScheduleDescription",
+            "benefitIcons",
+            "inferBongtourBenefitIconKeys",
+            "readBongtourRouteMapPersisted",
+            "mapImageUrl"
+          ],
+          "mustNotInclude": [
+            "geocodeBongtourRouteMapCities",
+            "leaflet"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-persist-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongtour-route-map-gemini-v1]",
+            "ensureBongtourRouteMapPersisted",
+            "BONGTOUR_ROUTE_MAP_RAW_META_KEY",
+            "bongtourRouteMapV1"
+          ],
+          "mustNotInclude": [
+            "leaflet",
+            "nominatim"
+          ]
+        },
+        {
+          "file": "lib/register-confirm-after-save.ts",
+          "mustInclude": [
+            "ensureBongtourRouteMapPersisted"
+          ]
+        },
+        {
+          "file": "lib/bongtour-route-map-chain-ssot.ts",
+          "mustInclude": [
+            "숙박\\s*없음",
+            "귀국",
+            "BONGTOUR_ROUTE_MAP_MAX_CITIES",
+            "normalizeBongtourRouteMapCityLabel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-route-map-gemini.test.ts",
+        "lib/bongtour-route-map-transport-ssot.test.ts",
+        "lib/bongtour-route-map-image.test.ts",
+        "lib/bongtour-benefit-icon-ssot.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
@@ -26193,6 +26834,78 @@
       "summary": "발행 PDF 파일명 scope 단위 테스트",
       "files": [
         "lib/bongtour-ota-issued-html-to-pdf.test.ts"
+      ]
+    },
+    {
+      "id": "optional-tour-name-display-normalize",
+      "tier": [
+        "ci"
+      ],
+      "summary": "옵션관광명 표시 정규화·하나투어 메타행 게이트",
+      "files": [
+        "lib/modetour-optional-tour-name.test.ts",
+        "lib/optional-tour-row-gate-hanatour-name.test.ts"
+      ]
+    },
+    {
+      "id": "ybtour-optional-fee-us-dollar",
+      "tier": [
+        "ci"
+      ],
+      "summary": "노랑풍선 옵션 비용US$ 앵커 파싱",
+      "files": [
+        "lib/register-ybtour-options-us-fee.test.ts"
+      ]
+    },
+    {
+      "id": "hanatour-optional-location-label-ban",
+      "tier": [
+        "ci"
+      ],
+      "summary": "하나투어 옵션 나라+도시 라벨 금지",
+      "files": [
+        "lib/optional-tour-row-gate-hanatour-name.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-kurokawa-monogram-city",
+      "tier": [
+        "ci"
+      ],
+      "summary": "쿠로가와·신라모노그램 메가메뉴 도시 정합",
+      "files": [
+        "lib/mega-menu-kurokawa-monogram-city.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-misc6-geo",
+      "tier": [
+        "ci"
+      ],
+      "summary": "옌타이·태항·브루나이·쏙쏙도쿄·잔여석 dest·옵션 소요시간 조각",
+      "files": [
+        "lib/mega-menu-misc6-geo.test.ts"
+      ]
+    },
+    {
+      "id": "register-pre-photo-no-invent-without-route",
+      "tier": [
+        "ci"
+      ],
+      "summary": "빈 middle route 날조 금지",
+      "files": [
+        "lib/register-pre-photo-no-invent-without-route.test.ts"
+      ]
+    },
+    {
+      "id": "product-detail-departure-url-no-searchparams",
+      "tier": [
+        "ci"
+      ],
+      "summary": "상품 상세 출발일 딥링크 useSearchParams 금지·스켈레톤 오버레이 깜빡임 방지",
+      "files": [
+        "lib/use-product-departure-url-param.test.ts",
+        "lib/product-detail-flicker-guard.test.ts"
       ]
     }
   ]

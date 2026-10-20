@@ -1,0 +1,51 @@
+/**
+ * Product surface v1 tokens — aliases Ocean Warm brand axis.
+ *
+ * DO NOT @import from app/globals.css until operator Explicit approve.
+ * Preview: /dev/product-surface-preview
+ *
+ * Brand locked to Ocean Warm (--bt-ow-*), not a separate cyan (#01A8FE).
+ * @see docs/design/bongtour-product-surface-v1.md
+ * @see app/styles/bongtour-ocean-warm.tokens.css
+ */
+
+@import "./bongtour-ocean-warm.tokens.css";
+
+:root,
+.bt-product-surface {
+  --bt-ps-font: var(--bt-ow-font);
+  --bt-ps-ink: var(--bt-ow-ink);
+  --bt-ps-ink-title: var(--bt-ow-ink-title);
+  --bt-ps-muted: var(--bt-ow-muted);
+  --bt-ps-meta: var(--bt-ow-meta);
+
+  --bt-ps-brand: var(--bt-ow-brand);
+  --bt-ps-brand-soft: var(--bt-ow-brand-soft);
+  --bt-ps-brand-deep: var(--bt-ow-brand-deep);
+  --bt-ps-brand-hover: var(--bt-ow-brand-hover);
+
+  --bt-ps-navy: #16223a;
+  --bt-ps-sand-bg: var(--bt-ow-sand);
+  --bt-ps-sand-fg: var(--bt-ow-sand-fg);
+  --bt-ps-benefit-bg: var(--bt-ow-benefit-bg);
+  --bt-ps-benefit-fg: var(--bt-ow-benefit-fg);
+  --bt-ps-section-gold: var(--bt-ow-section-gold);
+
+  --bt-ps-surface: var(--bt-ow-surface);
+  --bt-ps-page: var(--bt-ow-page);
+  --bt-ps-card: #f8fafc;
+  --bt-ps-border: var(--bt-ow-border);
+
+  --bt-ps-price: var(--bt-ow-price);
+  --bt-ps-warm: var(--bt-ow-warm);
+  --bt-ps-warm-ink: var(--bt-ow-warm-ink);
+
+  --bt-ps-radius-card: var(--bt-ow-radius-card);
+  --bt-ps-radius-chip: var(--bt-ow-radius-chip);
+  --bt-ps-radius-pill: var(--bt-ow-radius-pill);
+  --bt-ps-sticky-h: var(--bt-ow-sticky-h);
+
+  --bt-ps-tracking-display: var(--bt-ow-tracking-display);
+  --bt-ps-ease-out: var(--bt-ow-ease-out);
+  --bt-ps-dur: var(--bt-ow-dur);
+}

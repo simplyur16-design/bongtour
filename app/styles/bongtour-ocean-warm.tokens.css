@@ -1,0 +1,70 @@
+/**
+ * Ocean Warm Editorial — brand axis tokens (draft-local).
+ *
+ * DO NOT @import from app/globals.css (sitewide) until Explicit full-brand cutover.
+ * Home live: scoped under `.bt-ocean-warm` via home/ocean-warm CSS + HOME_OCEAN_WARM flag.
+ * Preview: /dev/* mock routes.
+ *
+ * @see docs/design/bongtour-home-rebrand-plan-v1.md §4
+ * @see docs/design/bongtour-product-surface-v1.md §1
+ */
+
+:root,
+.bt-ocean-warm {
+  /* Brand primary — one fixed blue (CTA · link · price · active tab) */
+  --bt-ow-brand: #2f8fc7;
+  --bt-ow-brand-deep: #0e7cc0;
+  --bt-ow-brand-soft: #e8f4fc;
+  --bt-ow-brand-hover: #1f78ad;
+
+  /* Warm secondary — logo / counsel CTA / season accent (not Kakao yellow) */
+  --bt-ow-warm: #e8b923;
+  --bt-ow-warm-strong: #d9a81e;
+  --bt-ow-warm-ink: #132033;
+
+  /* Neutrals — sand replaces lavender page shell */
+  --bt-ow-page: #fafaf7;
+  --bt-ow-surface: #ffffff;
+  --bt-ow-sand: #f7f1e3;
+  --bt-ow-sand-soft: #faf6ee;
+  --bt-ow-sand-fg: #8a6d2f;
+  --bt-ow-ink: #1a1a1a;
+  --bt-ow-ink-title: #132033;
+  --bt-ow-muted: #64748b;
+  --bt-ow-meta: #94a3b8;
+  --bt-ow-border: #e2e8f0;
+  --bt-ow-border-strong: #cbd5e1;
+
+  /* Channel / function isolation */
+  --bt-ow-esim: #d85a30;
+  --bt-ow-esim-soft: rgba(216, 90, 48, 0.12);
+  --bt-ow-kakao: #fee500;
+  --bt-ow-kakao-ink: #191919;
+  --bt-ow-success: #15803d;
+  --bt-ow-calendar-ok: #0f766e;
+  --bt-ow-danger: #b91c1c;
+
+  /* Price = brand (teal no longer acts as third brand) */
+  --bt-ow-price: var(--bt-ow-brand-deep);
+
+  /* Type */
+  --bt-ow-font: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  --bt-ow-tracking-display: -0.02em;
+
+  /* Radii / sticky */
+  --bt-ow-radius-card: 16px;
+  --bt-ow-radius-chip: 8px;
+  --bt-ow-radius-pill: 999px;
+  --bt-ow-sticky-h: 68px;
+
+  /* USP section gold numbers */
+  --bt-ow-section-gold: #b8860b;
+
+  /* Benefit chips */
+  --bt-ow-benefit-bg: #eff6ff;
+  --bt-ow-benefit-fg: #1d4ed8;
+
+  /* Motion */
+  --bt-ow-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --bt-ow-dur: 420ms;
+}

@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import { getPublishedOverseasMonthlyCurationsForMonth } from '@/lib/home-season-pick'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
-import { getCurrentCycle, type SeasonCurationCycle } from '@/lib/season-curation'
+import { getCurrentCycle, rehydrateSeasonCurationCycle, type SeasonCurationCycle } from '@/lib/season-curation'
 import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 
 export function shiftSeoulYearMonth(yearMonth: string, deltaMonths: number): string {
@@ -140,7 +140,7 @@ export async function getCachedCurrentCycle(): Promise<SeasonCurationCycle> {
     return getCurrentCycle(new Date())
   }
   const cached = await cachedCurrentCycle()
-  if (cached?.id) return cached
+  if (cached?.id) return rehydrateSeasonCurationCycle(cached)
   // null cycle cached after deploy race — do not trust empty for the full 5m TTL
   return getCurrentCycle(new Date())
 }

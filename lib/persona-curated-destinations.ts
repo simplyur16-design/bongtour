@@ -34,6 +34,15 @@ export type PersonaCityCard = {
   couple: boolean
 }
 
+function toCycleIsoString(value: Date | string): string {
+  if (value instanceof Date) return value.toISOString()
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`[persona-curated-destinations] invalid cycle date: ${String(value)}`)
+  }
+  return d.toISOString()
+}
+
 export type PersonaCuratedDestinationsPayload = {
   cycle: {
     id: string
@@ -126,8 +135,9 @@ async function loadPersonaCuratedDestinationsUncached(
   const cycleMeta = cycle
     ? {
         id: cycle.id,
-        cycleStartDate: cycle.cycleStartDate.toISOString(),
-        cycleEndDate: cycle.cycleEndDate.toISOString(),
+        // unstable_cache 경유 시 Date가 string일 수 있음
+        cycleStartDate: toCycleIsoString(cycle.cycleStartDate),
+        cycleEndDate: toCycleIsoString(cycle.cycleEndDate),
         cityKeys: [...cycle.cityKeys],
         fallbackKeys: [...cycle.fallbackKeys],
       }

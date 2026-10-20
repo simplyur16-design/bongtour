@@ -8,6 +8,7 @@ import HomeEsimProductSection from '@/app/components/home/HomeEsimProductSection
 import HomeTrustSection from '@/app/components/home/HomeTrustSection'
 import CustomerReviewsSection from '@/app/components/home/CustomerReviewsSection'
 import MobileDestinationSearch from '@/app/components/home/MobileDestinationSearch'
+import HomeOceanWarmShell from '@/app/components/home/ocean-warm/HomeOceanWarmShell'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import HomeDocumentH1 from '@/app/components/seo/HomeDocumentH1'
 import { buildHomePageMetadata } from '@/lib/home-page-metadata'
@@ -15,6 +16,7 @@ import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
+import { isHomeOceanWarmEnabled } from '@/lib/home-ocean-warm-flag'
 
 /**
  * 모바일 홈 — URL은 middleware rewrite로 `/` 유지.
@@ -39,6 +41,35 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HomeMobile() {
   // REGRESSION-FREEZE[home-ssg-empty-poison]: request-time render — manifest
   await connection()
+  const oceanWarm = isHomeOceanWarmEnabled()
+
+  if (oceanWarm) {
+    return (
+      <HomeOceanWarmShell>
+        <SiteJsonLd />
+        {/* REGRESSION-FREEZE[home-main-nav-chips-on-narrow]: 좁은 폭에서도 MAIN_NAV 5칩 — manifest */}
+        <Header />
+        <main className="flex-1">
+          <section className="ow-live-shell" aria-label="Bong투어 메인 소개 및 서비스 허브">
+            <HomeDocumentH1 />
+            <div className={SITE_CONTENT_CLASS}>
+              <MobileDestinationSearch />
+            </div>
+            <EsimCoralStrip />
+            <Suspense fallback={<div className="min-h-[24rem]" aria-hidden />}>
+              <HomeMobileHub />
+            </Suspense>
+            <HomeEsimProductSection />
+            <HomeTrustSection />
+            <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
+              <CustomerReviewsSection />
+            </Suspense>
+          </section>
+        </main>
+      </HomeOceanWarmShell>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-bt-page">
       <SiteJsonLd />

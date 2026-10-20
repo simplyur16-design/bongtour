@@ -1,0 +1,80 @@
+/**
+ * Ocean Warm 홈 라이브 스코프 — globals :root 미변경.
+ * 홈 루트 `.bt-ocean-warm` 아래에서만 적용.
+ */
+@import "../../../styles/bongtour-ocean-warm.tokens.css";
+
+.bt-ocean-warm.ow-home-live {
+  background: var(--bt-ow-page);
+  color: var(--bt-ow-ink);
+  font-family: var(--bt-ow-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-shell {
+  position: relative;
+  overflow-x: hidden;
+  background: var(--bt-ow-page);
+}
+
+/* lavender 셸 제거 — sand/white만 */
+.bt-ocean-warm.ow-home-live .ow-live-shell-lavender {
+  display: none;
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-section-title {
+  color: var(--bt-ow-ink-title);
+  letter-spacing: -0.025em;
+  font-weight: 800;
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-section-body {
+  color: var(--bt-ow-muted);
+  line-height: 1.65;
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-cta-primary {
+  background: var(--bt-ow-brand);
+  color: #fff;
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-cta-warm {
+  background: var(--bt-ow-warm);
+  color: var(--bt-ow-warm-ink);
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-price {
+  color: var(--bt-ow-price);
+}
+
+/* 섹션 면: lavender soft → sand/white */
+.bt-ocean-warm.ow-home-live .ow-live-air {
+  background: var(--bt-ow-sand-soft);
+  border-color: var(--bt-ow-border);
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-service {
+  background: var(--bt-ow-surface);
+  border-color: var(--bt-ow-border);
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-why {
+  background: var(--bt-ow-surface);
+  border-bottom: 1px solid var(--bt-ow-border);
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-why-num {
+  color: var(--bt-ow-section-gold);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-dest-wrap {
+  background: var(--bt-ow-page);
+  border-bottom: 1px solid var(--bt-ow-border);
+}
+
+.bt-ocean-warm.ow-home-live .ow-live-season {
+  background: var(--bt-ow-surface);
+  border-color: var(--bt-ow-border);
+}

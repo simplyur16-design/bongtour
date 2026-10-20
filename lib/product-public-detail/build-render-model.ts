@@ -1,5 +1,7 @@
 import type { Prisma, ProductDeparture } from '@prisma/client'
 import { isDepartureSoldOut } from '@/lib/departure-seat-availability'
+import { buildPublicRouteMapView } from '@/lib/bongtour-route-map-public'
+import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
@@ -735,8 +737,11 @@ export async function buildProductPublicDetailRenderModel(
     })
   )
 
+  const routeMap = buildPublicRouteMapView(travelProduct.rawMeta ?? null)
+
   const viewProduct: TravelProduct = {
     ...productForDetail,
+    routeMap,
     includedText: finalIncludedText,
     excludedText: finalExcludedText,
     airline: (() => {
@@ -758,7 +763,7 @@ export async function buildProductPublicDetailRenderModel(
             : raw
     })(),
     destination: travelProduct.destination ?? '',
-    title: travelProduct.title ?? '',
+    title: decodePublicHtmlEntities(travelProduct.title ?? ''),
     duration:
       verygoodtourPublicRowFactsOnly && verygoodPublicDurationFromRepRow
         ? verygoodPublicDurationFromRepRow
@@ -784,8 +789,12 @@ export async function buildProductPublicDetailRenderModel(
     pricePromotionView: pricePromoView,
     benefitSummary:
       normalizePromotionMarketingCopy(travelProduct.benefitSummary) ?? travelProduct.benefitSummary ?? null,
-    highlightPoints: travelProduct.highlightPoints ?? null,
-    highlightPointsRaw: travelProduct.highlightPointsRaw ?? null,
+    highlightPoints: travelProduct.highlightPoints
+      ? decodePublicHtmlEntities(travelProduct.highlightPoints)
+      : null,
+    highlightPointsRaw: travelProduct.highlightPointsRaw
+      ? decodePublicHtmlEntities(travelProduct.highlightPointsRaw)
+      : null,
     promotionLabelsRaw:
       normalizePromotionMarketingCopy(travelProduct.promotionLabelsRaw) ??
       travelProduct.promotionLabelsRaw ??

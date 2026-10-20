@@ -1,14 +1,15 @@
 import { CircleCheck } from 'lucide-react'
+import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 
 function resolveHighlightDisplayText(
   highlightPoints: string | null | undefined,
   highlightPointsRaw: string | null | undefined
 ): string | null {
   if (typeof highlightPoints === 'string' && highlightPoints.trim()) {
-    return highlightPoints.replace(/\r/g, '\n')
+    return decodePublicHtmlEntities(highlightPoints.replace(/\r/g, '\n'))
   }
   if (typeof highlightPointsRaw === 'string' && highlightPointsRaw.trim()) {
-    return highlightPointsRaw.replace(/\r/g, '\n')
+    return decodePublicHtmlEntities(highlightPointsRaw.replace(/\r/g, '\n'))
   }
   return null
 }

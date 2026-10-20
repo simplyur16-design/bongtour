@@ -57,3 +57,16 @@ export const ITINERARY_DAY_HERO_REGENERATE_PROMPT_EN =
 /** 관리자 4슬롯 Gemini 생성 전용 — 슬롯별 구도·인물은 프롬프트 본문에서 지시, 여기서는 공통 톤만. */
 export const IMAGEN_ADMIN_TRAVEL_RECORD_SUFFIX =
   'Realistic travel snapshot as from a phone or travel diary, documentary tone. Natural daylight, moderate saturation, no extreme contrast, no fake golden-hour glow. No text, logos, or watermarks. Not a tourism poster or brochure illustration.'
+
+/**
+ * 동선지도 스타일 접미사 — OSM/Leaflet/실시간 타일맵 금지.
+ * 터키 베이스라인 플랫 인포그래픽: 국토 실루엣 + (코드) 캡슐·동선.
+ * 버스=STRAIGHT lines, 항공=CURVED arcs.
+ */
+export const IMAGEN_ROUTE_MAP_STYLE_SUFFIX =
+  'Premium editorial blank political MAP background like the attached Turkiye sample — recognizable country silhouettes, ' +
+  'soft sage-green land, warm ivory canvas. NOT a photo, NOT satellite, not OpenStreetMap / Google Maps / street tiles. ' +
+  'Countries must look like a real atlas blank map (contiguous, not random blobs or islands). ' +
+  'CRITICAL: ZERO pins, ZERO digits/numbers, ZERO labels, ZERO route lines — empty landmass only (pins composited later). ' +
+  'Each digit will be added EXACTLY ONCE by code. Land routes use STRAIGHT lines; flight routes use CURVED arcs. ' +
+  'No 직항/대형버스 text. No emoji, no UI chrome, no watermarks.'

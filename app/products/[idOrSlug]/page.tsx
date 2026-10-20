@@ -21,6 +21,7 @@ import { loadProductForMetadataCached } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 import { ProductDetailPageContent } from '@/app/products/[idOrSlug]/product-detail-page-content'
+import ProductDetailPageSkeleton from '@/components/products/ProductDetailPageSkeleton'
 import ProductDetailTransitionShell from '@/components/products/ProductDetailTransitionShell'
 
 // `headers()` UA 분기로 라우트가 dynamic — `revalidate` ISR은 적용되지 않음.
@@ -111,7 +112,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <ProductDetailTransitionShell idOrSlug={idOrSlug} userAgent={userAgent}>
-      <Suspense fallback={null}>
+      {/* null fallback = 본문 통째로 사라졌다 생김(깜빡임). 스켈레톤으로 높이 유지 */}
+      <Suspense fallback={<ProductDetailPageSkeleton />}>
         <ProductDetailPageContent idOrSlug={idOrSlug} />
       </Suspense>
     </ProductDetailTransitionShell>

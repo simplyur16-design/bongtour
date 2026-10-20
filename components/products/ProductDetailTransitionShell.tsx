@@ -1,15 +1,10 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, type ReactNode } from 'react'
 import {
-  clearProductDetailCardPreviewFor,
+  clearProductDetailCardPreview,
   productIdFromDetailPathSegment,
-  readProductDetailCardPreview,
-  type ProductDetailCardPreview,
 } from '@/lib/product-detail-card-preview'
-import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
-import ProductDetailInstantFromCard from '@/components/products/ProductDetailInstantFromCard'
-import ProductDetailPageSkeleton from '@/components/products/ProductDetailPageSkeleton'
 import {
   ProductDetailTransitionProvider,
   useProductDetailTransition,
@@ -17,15 +12,12 @@ import {
 
 function ProductDetailTransitionShellInner({
   idOrSlug,
-  isMobileUa,
   children,
 }: {
   idOrSlug: string
-  isMobileUa: boolean
   children: ReactNode
 }) {
   const productId = productIdFromDetailPathSegment(idOrSlug)
-  const [preview, setPreview] = useState<ProductDetailCardPreview | null>(null)
   const { serverReady } = useProductDetailTransition()
 
   useLayoutEffect(() => {
@@ -35,58 +27,32 @@ function ProductDetailTransitionShellInner({
     }
   }, [idOrSlug])
 
-  useLayoutEffect(() => {
-    setPreview(readProductDetailCardPreview(productId))
-  }, [productId])
-
-  const showCardOverlay = Boolean(preview) && !serverReady
-
+  // REGRESSION-FREEZE[product-detail-departure-url-no-searchparams]: InstantFromCard 오버레이 금지 — 히어로·카드 깜빡임
+  // 목록 카드 UI ≠ 상세 히어로/가격 카드 → 덮었다 걷히면 사진·카드가 통째로 교체되어 보임.
   useEffect(() => {
-    if (serverReady && preview) {
-      clearProductDetailCardPreviewFor(preview)
-      setPreview(null)
-    }
-  }, [serverReady, preview])
-
-  const showSkeleton = !serverReady && !showCardOverlay
+    if (serverReady) clearProductDetailCardPreview(productId)
+  }, [serverReady, productId])
 
   return (
-    <>
-      {showCardOverlay && preview ? (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-bt-page overscroll-none">
-          <ProductDetailInstantFromCard preview={preview} isMobile={isMobileUa} />
-        </div>
-      ) : null}
-      <div className="relative min-h-[72vh]">
-        {showSkeleton ? (
-          <div className="pointer-events-none absolute inset-0 z-[5]">
-            <ProductDetailPageSkeleton />
-          </div>
-        ) : null}
-        {/* hidden 제거 — 서버 HTML 즉시 노출, 스켈레톤은 hydration 전 보조 */}
-        <div className="relative z-[1]">{children}</div>
-      </div>
-    </>
+    <div className="relative min-h-[72vh]">
+      <div className="relative z-[1]">{children}</div>
+    </div>
   )
 }
 
-/** 목록 카드 preview(고정 오버레이) → 서버 본문 1회 교체 */
+/** 상세 진입 스크롤·로딩 플래그. 카드 preview 오버레이는 쓰지 않음(히어로 깜빡임). */
 export default function ProductDetailTransitionShell({
   idOrSlug,
-  userAgent,
+  userAgent: _userAgent,
   children,
 }: {
   idOrSlug: string
   userAgent: string | null
   children: ReactNode
 }) {
-  const isMobileUa = isMobileUserAgent(userAgent)
-
   return (
     <ProductDetailTransitionProvider>
-      <ProductDetailTransitionShellInner idOrSlug={idOrSlug} isMobileUa={isMobileUa}>
-        {children}
-      </ProductDetailTransitionShellInner>
+      <ProductDetailTransitionShellInner idOrSlug={idOrSlug}>{children}</ProductDetailTransitionShellInner>
     </ProductDetailTransitionProvider>
   )
 }

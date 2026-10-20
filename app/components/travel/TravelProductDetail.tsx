@@ -109,7 +109,11 @@ export default function TravelProductDetail({
   const router = useRouter()
   const initialDepartureYmd = useProductDepartureYmdFromUrl()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
-  const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
+  /** 첫 페인트부터 기본 출발일 — null→채움 useEffect 가 히어로 카드 날짜·가격을 깜빡이게 함 */
+  const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(() => {
+    const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
+    return row?.id ?? null
+  })
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
   const [bookingOpen, setBookingOpen] = useState(false)
   const [departurePickerOpen, setDeparturePickerOpen] = useState(false)
@@ -117,7 +121,10 @@ export default function TravelProductDetail({
   const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)
   const [departureCollectOpen, setDepartureCollectOpen] = useState(false)
   /** Last calendar-picked YYYY-MM-DD — keep pinned date through remounts */
-  const [calendarDateKey, setCalendarDateKey] = useState<string | null>(null)
+  const [calendarDateKey, setCalendarDateKey] = useState<string | null>(() => {
+    const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
+    return row ? toDateKey(row.date) : null
+  })
 
   const mergedPrices = useMemo(() => {
     const by = new Map<string, ProductPriceRow>()
@@ -130,18 +137,20 @@ export default function TravelProductDetail({
     return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))
   }, [product.prices, pricePatches])
 
+  const defaultDepartureRow = useMemo(
+    () => pickGloballyCheapestDepartureRowByAdultPrice(mergedPrices),
+    [mergedPrices]
+  )
+
   useEffect(() => {
     setDepartureUserPinned(false)
     setPricePatches([])
     setOnDemandNotice(null)
     setDepartureCollectOpen(false)
-    setCalendarDateKey(null)
+    const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
+    setSelectedDepartureRowId(row?.id ?? null)
+    setCalendarDateKey(row ? toDateKey(row.date) : null)
   }, [String(product.id)])
-
-  const defaultDepartureRow = useMemo(
-    () => pickGloballyCheapestDepartureRowByAdultPrice(mergedPrices),
-    [mergedPrices]
-  )
 
   useEffect(() => {
     if (departureUserPinned) return
@@ -155,10 +164,14 @@ export default function TravelProductDetail({
     }
     if (!defaultDepartureRow) {
       setSelectedDepartureRowId(null)
+      setCalendarDateKey(null)
       return
     }
-    setSelectedDepartureRowId(defaultDepartureRow.id)
-    setCalendarDateKey(toDateKey(defaultDepartureRow.date))
+    setSelectedDepartureRowId((prev) => (prev === defaultDepartureRow.id ? prev : defaultDepartureRow.id))
+    setCalendarDateKey((prev) => {
+      const next = toDateKey(defaultDepartureRow.date)
+      return prev === next ? prev : next
+    })
   }, [departureUserPinned, defaultDepartureRow?.id, initialDepartureYmd, mergedPrices])
 
   useEffect(() => {

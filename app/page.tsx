@@ -15,12 +15,15 @@ import PersonaCuratedDestinations from './components/home/PersonaCuratedDestinat
 import AirHotelProductGrid from './components/home/AirHotelProductGrid'
 import ServiceInfoCards from './components/home/ServiceInfoCards'
 import CustomerReviewsSection from './components/home/CustomerReviewsSection'
+import HomeOceanWarmShell from './components/home/ocean-warm/HomeOceanWarmShell'
+import HomeWhyBongtourSection from './components/home/ocean-warm/HomeWhyBongtourSection'
 import SiteJsonLd from '@/app/components/seo/SiteJsonLd'
 import HomeDocumentH1 from '@/app/components/seo/HomeDocumentH1'
 import { buildHomePageMetadata } from '@/lib/home-page-metadata'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { getSeasonalDefaultOgImagePath } from '@/lib/og-image-seasonal'
 import { SITE_NAME } from '@/lib/site-metadata'
+import { isHomeOceanWarmEnabled } from '@/lib/home-ocean-warm-flag'
 
 /**
  * build 시 shouldSkipDbAtBuild → 빈 시즌/상품 셸이 Full Route Cache에 박히면
@@ -42,12 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildHomePageMetadata(images)
 }
 
-/** 메인 PC 트리 — 모바일 UA는 middleware rewrite → `app/m/page.tsx` */
-export default async function Home() {
-  // REGRESSION-FREEZE[home-ssg-empty-poison]: request-time render — manifest
-  await connection()
-  // REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]: prod skips product_pool cover scan — manifest
-  // REGRESSION-FREEZE[home-single-device-ssr]: desktop tree only; mobile at /m — manifest
+async function loadOverseasDebug() {
   let overseasCover: Awaited<ReturnType<typeof getCachedHomeHubTravelCardCover>> = null
   let overseasDetail: ReturnType<typeof getHomeHubCardHybridResolutionDetail> =
     getHomeHubCardHybridResolutionDetail('overseas', {
@@ -74,6 +72,54 @@ export default async function Home() {
     } catch (e) {
       console.error('[Home] overseas hub detail', e)
     }
+  }
+
+  return { overseasCover, overseasDetail }
+}
+
+/** 메인 PC 트리 — 모바일 UA는 middleware rewrite → `app/m/page.tsx` */
+export default async function Home() {
+  // REGRESSION-FREEZE[home-ssg-empty-poison]: request-time render — manifest
+  await connection()
+  // REGRESSION-FREEZE[home-cold-skip-hub-cover-pool]: prod skips product_pool cover scan — manifest
+  // REGRESSION-FREEZE[home-single-device-ssr]: desktop tree only; mobile at /m — manifest
+  const { overseasCover, overseasDetail } = await loadOverseasDebug()
+  const oceanWarm = isHomeOceanWarmEnabled()
+
+  if (oceanWarm) {
+    return (
+      <HomeOceanWarmShell>
+        <SiteJsonLd />
+        {/* REGRESSION-FREEZE[home-main-nav-chips-on-narrow]: 좁은 폭에서도 MAIN_NAV 5칩 — manifest */}
+        <Header />
+        <main className="flex-1">
+          <section className="ow-live-shell" aria-label="Bong투어 메인 소개 및 서비스 허브">
+            <HomeDocumentH1 />
+            <SeasonCurationHero sectionId="season-curation-main" />
+            <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
+              <PersonaCuratedDestinations oceanWarm />
+            </Suspense>
+            <Suspense fallback={<div className="min-h-[12rem]" aria-hidden />}>
+              <SeasonProductGrid oceanWarm />
+            </Suspense>
+            <HomeWhyBongtourSection />
+            <EsimCoralStrip />
+            <HomeEsimProductSection />
+            <AirHotelProductGrid oceanWarm />
+            <ServiceInfoCards oceanWarm />
+            <HomeTrustSection />
+            <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
+              <CustomerReviewsSection />
+            </Suspense>
+            {process.env.NODE_ENV !== 'production' ? (
+              <div className="relative border-t border-bt-border-soft/80 pt-3 md:pt-4">
+                <HomeHubCardDebugServerPanel overseasPick={overseasCover} overseasDetail={overseasDetail} />
+              </div>
+            ) : null}
+          </section>
+        </main>
+      </HomeOceanWarmShell>
+    )
   }
 
   return (

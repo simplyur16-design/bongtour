@@ -252,14 +252,20 @@ function applyFlightManualCorrectionForPublicOrigin(
 function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: Props) {
   const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
-  const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(null)
+  const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(() => {
+    const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
+    return row?.id ?? null
+  })
   const [pax, setPax] = useState({ adult: 1, childBed: 0, childNoBed: 0, infant: 0 })
   const [bookingOpen, setBookingOpen] = useState(false)
   const [departurePickerOpen, setDeparturePickerOpen] = useState(false)
   const [pricePatches, setPricePatches] = useState<ProductPriceRow[]>([])
   const [onDemandNotice, setOnDemandNotice] = useState<string | null>(null)
   const [departureCollectOpen, setDepartureCollectOpen] = useState(false)
-  const [calendarDateKey, setCalendarDateKey] = useState<string | null>(null)
+  const [calendarDateKey, setCalendarDateKey] = useState<string | null>(() => {
+    const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
+    return row ? toDateKey(row.date) : null
+  })
 
   const mergedPrices = useMemo(() => {
     const by = new Map<string, ProductPriceRow>()
@@ -277,7 +283,9 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
     setPricePatches([])
     setOnDemandNotice(null)
     setDepartureCollectOpen(false)
-    setCalendarDateKey(null)
+    const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
+    setSelectedDepartureRowId(row?.id ?? null)
+    setCalendarDateKey(row ? toDateKey(row.date) : null)
   }, [String(product.id)])
 
   const defaultDepartureRow = useMemo(
@@ -291,7 +299,7 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
       setSelectedDepartureRowId(null)
       return
     }
-    setSelectedDepartureRowId(defaultDepartureRow.id)
+    setSelectedDepartureRowId((prev) => (prev === defaultDepartureRow.id ? prev : defaultDepartureRow.id))
   }, [departureUserPinned, defaultDepartureRow?.id])
 
   useEffect(() => {

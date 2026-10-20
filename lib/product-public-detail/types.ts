@@ -5,7 +5,8 @@ import type { mapFitMasterForItinerary } from '@/lib/product-public-detail/build
 import type { PublicPersistedFlightStructuredDto } from '@/lib/public-flight-structured-sanitize'
 
 /** DB `Product.publicDetailPayloadJson` envelope — bump when shape changes */
-export const PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION = 2
+/** v3: viewProduct.routeMap (동선지도 공개 DTO) */
+export const PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION = 3
 
 export type ProductPublicDetailPayloadEnvelope = {
   version: typeof PRODUCT_PUBLIC_DETAIL_PAYLOAD_VERSION

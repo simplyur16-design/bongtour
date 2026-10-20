@@ -21,6 +21,17 @@ export default function BongtourRootShell({ children }: { children: ReactNode })
     return <div className="flex-1 flex flex-col">{children}</div>
   }
 
+  // REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: /dev 목업 — MobileStickyBar만 제외(푸터 유지) — manifest
+  if (pathname.startsWith('/dev/')) {
+    return (
+      <>
+        <BongtourPretendardStyles />
+        <div className="flex-1 flex flex-col min-h-0">{children}</div>
+        <ConditionalSiteFooter />
+      </>
+    )
+  }
+
   return (
     <>
       <AntiCopyProtectionGate />
