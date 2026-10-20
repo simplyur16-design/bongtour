@@ -5,7 +5,14 @@ import { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
 export { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
-const client = createClient(process.env.PEXELS_API_KEY!)
+// REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: lazy client — vitest without key — manifest
+let _pexelsClient: ReturnType<typeof createClient> | null = null
+function getPexelsClient(): ReturnType<typeof createClient> {
+  const key = process.env.PEXELS_API_KEY?.trim()
+  if (!key) throw new Error('PEXELS_API_KEY missing')
+  if (!_pexelsClient) _pexelsClient = createClient(key)
+  return _pexelsClient
+}
 
 /** 검색 실패 시 null 대신 럭셔리 파노라마 fallback 반환. 빈 칸/깨진 이미지 금지 */
 function withFallback(url: string | null): string {
@@ -62,6 +69,51 @@ export type PexelsHeroCandidateMeta = {
  * 일차 히어로 전용: 검색어는 `buildHeroPexelsQuerySet`에서 이미 장소·도시·국가로 조합함.
  * `travel landscape photorealistic` 접미사는 오히려 무관한 스톡을 끌어와 넣지 않는다.
  */
+
+/**
+ * 등록 일정 imageKeyword — Pexels에 실제 사진이 1장 이상 있는지 (fallback URL 금지).
+ * REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: 0건이면 false — manifest
+ */
+// REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: place-photo samples not mere count — manifest
+export async function pexelsKeywordHasPhotos(keyword: string): Promise<boolean> {
+  const {
+    resolvePexelsImageKeywordForSearch,
+    evaluatePexelsKeywordPlacePhotoSamples,
+    imageKeywordHasPlaceIdentity,
+  } = await import('@/lib/pexels-keyword-place-photo-hit')
+  const query = resolvePexelsImageKeywordForSearch(keyword)
+  if (!query) return false
+  if (!imageKeywordHasPlaceIdentity(query)) return false
+  if (!process.env.PEXELS_API_KEY?.trim()) return false
+  try {
+    const result = await getPexelsClient().photos.search({
+      query,
+      per_page: 5,
+      orientation: 'landscape',
+    })
+    if (!('photos' in result) || !Array.isArray(result.photos) || result.photos.length < 1) {
+      return evaluatePexelsKeywordPlacePhotoSamples(query, []).ok
+    }
+    const samples = (result.photos as PexelsApiPhoto[])
+      .map((p) => {
+        const url = pickPexelsCoverIngestUrl(p.src)
+        if (!url || isPexelsFallbackUrl(url)) return null
+        return { alt: p.alt ?? '', url: p.url ?? url }
+      })
+      .filter((x): x is { alt: string; url: string } => Boolean(x))
+    return evaluatePexelsKeywordPlacePhotoSamples(query, samples).ok
+  } catch (err) {
+    const msg = String(err ?? '')
+    // 연타·쿼터 — miss로 비우면 정상 장소 키워드가 통째로 증발함
+    if (/too many requests|429|rate\s*limit/i.test(msg)) {
+      console.warn('[pexelsKeywordHasPhotos] rate-limited — keep keyword', query.slice(0, 80))
+      return true
+    }
+    console.error('[pexelsKeywordHasPhotos]', query.slice(0, 80), err)
+    return false
+  }
+}
+
 export async function searchPexelsHeroCandidates(
   keyword: string,
   perPage: number,
@@ -70,7 +122,7 @@ export async function searchPexelsHeroCandidates(
   const query = keyword.trim()
   const take = Math.min(Math.max(perPage, 1), 15)
   try {
-    const result = await client.photos.search({
+    const result = await getPexelsClient().photos.search({
       query,
       per_page: take,
       orientation: 'landscape',
@@ -115,7 +167,7 @@ function photoToObject(photo: PexelsApiPhoto): PexelsPhotoObject {
 export async function fetchPexelsPhotoObject(keyword: string): Promise<PexelsPhotoObject> {
   const query = withPexelsRealisticQuery(keyword)
   try {
-    const result = await client.photos.search({
+    const result = await getPexelsClient().photos.search({
       query: query.trim(),
       per_page: 1,
       orientation: 'landscape',
@@ -140,7 +192,7 @@ export async function fetchPexelsFirstUnusedPhoto(
 ): Promise<PexelsPhotoObject> {
   const query = withPexelsRealisticQuery(baseKeyword.trim())
   try {
-    const result = await client.photos.search({
+    const result = await getPexelsClient().photos.search({
       query: query.trim(),
       per_page: 15,
       orientation: 'landscape',
@@ -160,7 +212,7 @@ export async function fetchPexelsFirstUnusedPhoto(
 
 export async function fetchPexelsImage(keyword: string): Promise<string> {
   try {
-    const response = await client.photos.search({
+    const response = await getPexelsClient().photos.search({
       query: keyword,
       per_page: 1,
       orientation: 'landscape',
@@ -179,7 +231,7 @@ export async function fetchPexelsImage(keyword: string): Promise<string> {
 /** 가로형(landscape) 고화질 1장. 실패 시 럭셔리 fallback 반환 (null 없음) */
 export async function getPexelsImage(keyword: string): Promise<string> {
   try {
-    const result = await client.photos.search({
+    const result = await getPexelsClient().photos.search({
       query: keyword,
       per_page: 1,
       orientation: 'landscape',
