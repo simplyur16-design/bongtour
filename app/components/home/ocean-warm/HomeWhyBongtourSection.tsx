@@ -44,7 +44,7 @@ export default function HomeWhyBongtourSection() {
                 {item.n}
               </span>
               <div>
-                <strong className="block text-base font-bold text-[var(--bt-ow-ink-title)]">
+                <strong className="ow-live-why-title">
                   {item.t}
                 </strong>
                 <p className="ow-live-section-body mt-1.5 text-sm leading-relaxed">{item.b}</p>

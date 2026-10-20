@@ -69,6 +69,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* text-base = Tailwind colors.base(흰 surface)와 충돌 — 제목은 CSS로 고정 */
+.bt-ocean-warm.ow-home-live .ow-live-why-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--bt-ow-ink-title);
+}
+
 .bt-ocean-warm.ow-home-live .ow-live-dest-wrap {
   background: var(--bt-ow-page);
   border-bottom: 1px solid var(--bt-ow-border);
