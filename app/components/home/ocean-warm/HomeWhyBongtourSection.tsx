@@ -3,27 +3,27 @@ import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 const ITEMS = [
   {
     n: '01',
-    t: '공급사 일정·요금 기준',
-    b: '하나투어·모두투어·노랑풍선·참좋은여행 등 등록 상품의 일정·포함 문구를 기준으로 보여 줍니다.',
+    t: '대한민국 대표 여행사 상품을 한곳에서 비교',
+    b: '하나투어, 모두투어, 노랑풍선, 참좋은여행 등 검증된 국내 대표 여행사들의 상품을 한눈에 모아 보여드립니다. 복잡한 검색 없이 핵심 일정과 포함 내역을 기준으로 고객님께 가장 적합한 여행을 효율적으로 찾아드립니다.',
   },
   {
     n: '02',
-    t: '짧은 제목으로 먼저 고르기',
-    b: '카드·히어로는 장소와 일수 위주로, 긴 공급사 상품명은 상세에서 확인합니다.',
+    t: '직관적이고 군더더기 없는 스마트한 탐색',
+    b: "복잡하고 긴 공급사 상품명에 피로감을 느끼지 않으시도록, 여행의 핵심인 '목적지'와 '일정'을 직관적인 카드 형태로 먼저 제시합니다. 고객님이 원하는 여행의 본질에 빠르게 다가갈 수 있는 사용자 중심의 인터페이스를 제공합니다.",
   },
   {
     n: '03',
-    t: '포함·불포함을 숨기지 않기',
-    b: '상세에서 포함·불포함·예약 전 고지를 같은 화면에서 확인합니다.',
+    t: "숨김없이 투명한 '원페이지' 상세 정보",
+    b: '여행의 만족은 투명함에서 시작됩니다. 상품의 포함 및 불포함 내역, 예약 전 필수 고지사항 등 놓치기 쉬운 중요 정보들을 페이지 이동 없이 단일 화면에서 명확하게 제공하여 안전하고 신뢰할 수 있는 선택을 돕습니다.',
   },
   {
     n: '04',
-    t: '상담·예약으로 이어짐',
-    b: '선택 출발일 기준으로 상담·예약 요청을 남길 수 있습니다.',
+    t: '내 일정에 맞춘 다이렉트 맞춤 상담',
+    b: '고객님이 원하시는 정확한 출발일을 기준으로 빠르고 간편하게 상담 및 예약 요청을 남기실 수 있습니다. 복잡한 절차를 생략하고, 고객의 일정에 맞춘 최적의 여행 솔루션을 신속하게 안내해 드립니다.',
   },
 ] as const
 
-/** 홈 USP 요약 — docs/design/copy/home-section-bodies.ko.md `why_bongtour` */
+/** 홈 USP — docs/design/copy/home-section-bodies.ko.md `why_bongtour` */
 export default function HomeWhyBongtourSection() {
   return (
     <section
@@ -47,7 +47,7 @@ export default function HomeWhyBongtourSection() {
                 <strong className="block text-base font-bold text-[var(--bt-ow-ink-title)]">
                   {item.t}
                 </strong>
-                <p className="ow-live-section-body mt-1.5 text-sm">{item.b}</p>
+                <p className="ow-live-section-body mt-1.5 text-sm leading-relaxed">{item.b}</p>
               </div>
             </li>
           ))}
