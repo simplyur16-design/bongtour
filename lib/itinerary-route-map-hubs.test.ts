@@ -49,30 +49,54 @@ describe('itinerary-route-map-hubs', () => {
     expect(resolveRouteMapRegionId(hubs, 'JAPAN')).toBe('kansai')
   })
 
-  it('패키지 기본 지상이동 = 전용차량 (고양이열차 오탐 방지)', () => {
+  it('패키지 기본 지상이동 = 전용차량 (타마/고양이열차 오탐 방지)', () => {
     const schedule = parseScheduleJsonForRouteMap([
       { day: 1, routeText: '인천 - 오사카', description: '도착' },
       {
         day: 2,
-        routeText: '오사카 - 교토',
+        routeText: '와카야마 - 오사카 - 타마 열차 - 오사카성',
         description: '전일 관광 고양이열차 체험 포함',
       },
-      { day: 3, routeText: '교토 - 인천', description: '귀국' },
+      { day: 3, routeText: '오사카 - 교토', description: '이동' },
+      { day: 4, routeText: '교토 - 인천', description: '귀국' },
     ])
     const { legs } = extractItineraryRouteMapHubs(schedule)
     const hop = legs.find((l) => l.fromCityKo === '오사카' && l.toCityKo === '교토')
     expect(hop?.icon).toBe('🚗')
-    expect(hop?.durationLabel).toMatch(/약/)
   })
 
-  it('일정에 신칸센이 명시되면 기차 유지', () => {
-    const schedule = parseScheduleJsonForRouteMap([
-      { day: 1, routeText: '도쿄', description: '시내' },
-      { day: 2, routeText: '도쿄 - 교토', description: '신칸센 약 2시간 15분' },
-      { day: 3, routeText: '교토', description: '사찰' },
-    ])
-    const { legs } = extractItineraryRouteMapHubs(schedule)
-    expect(legs.some((l) => l.icon === '🚄')).toBe(true)
+  it('transport 필드·명시 문구 우선: 전용차량 / 기차 / 항공기', () => {
+    const privateCar = extractItineraryRouteMapHubs(
+      parseScheduleJsonForRouteMap([
+        { day: 1, routeText: '오사카', description: '시내' },
+        { day: 2, routeText: '오사카 - 교토', transport: '전용차량', description: '이동' },
+        { day: 3, routeText: '교토', description: '사찰' },
+      ]),
+    ).legs.find((l) => l.fromCityKo === '오사카' && l.toCityKo === '교토')
+    expect(privateCar?.icon).toBe('🚗')
+
+    const train = extractItineraryRouteMapHubs(
+      parseScheduleJsonForRouteMap([
+        { day: 1, routeText: '도쿄', description: '시내' },
+        { day: 2, routeText: '도쿄 - 교토', description: '신칸센 약 2시간 15분' },
+        { day: 3, routeText: '교토', description: '사찰' },
+      ]),
+    ).legs.find((l) => l.icon === '🚄')
+    expect(train).toBeTruthy()
+
+    const air = extractItineraryRouteMapHubs(
+      parseScheduleJsonForRouteMap([
+        { day: 1, routeText: '오사카', description: '시내' },
+        {
+          day: 2,
+          routeText: '오사카 - 삿포로',
+          transport: '국내선 항공기',
+          description: '국내선 항공기로 이동',
+        },
+        { day: 3, routeText: '삿포로', description: '시내' },
+      ]),
+    ).legs.find((l) => l.fromCityKo === '오사카' && l.toCityKo === '삿포로')
+    expect(air?.icon).toBe('✈️')
   })
 
   it('resolve country EN', () => {

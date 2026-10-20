@@ -56,7 +56,7 @@ export function shortCityLabel(cityKo: string): string {
 function transitPlain(leg: ItineraryRouteMapLeg): string {
   const mode =
     leg.icon === '✈️'
-      ? '항공'
+      ? '항공기'
       : leg.icon === '⛴️'
         ? '페리'
         : leg.icon === '🚗'
