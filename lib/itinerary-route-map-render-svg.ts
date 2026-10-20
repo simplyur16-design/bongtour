@@ -163,15 +163,19 @@ function mergeHubMarkers(
   return out
 }
 
-/** 마커끼리 겹치면 라벨을 위/아래로 살짝 밀어 읽히게 */
-function labelOffsets(markers: Array<{ x: number; y: number }>): number[] {
-  const dy = markers.map(() => 22)
+/** 일차 배지 높이 + 마커끼리 거리 반영해 도시명 Y 오프셋 */
+function labelOffsets(markers: Array<{ x: number; y: number; dayLabel: string }>): number[] {
+  const dy = markers.map((m) => {
+    // 일차 배지 반지름과 동일 식 — 배지 하단 + 여유
+    const dayR = Math.max(11, [...m.dayLabel].length * 3.8 + 8)
+    return 18 + dayR + 10
+  })
   for (let i = 0; i < markers.length; i++) {
     for (let j = i + 1; j < markers.length; j++) {
       const d = Math.hypot(markers[j]!.x - markers[i]!.x, markers[j]!.y - markers[i]!.y)
       if (d < 70) {
-        dy[i] = 18
-        dy[j] = 36
+        dy[i] = Math.min(dy[i]!, 20)
+        dy[j] = Math.max(dy[j]!, 40)
       }
     }
   }
@@ -224,7 +228,8 @@ export function buildItineraryRouteMapSvg(input: {
     )
   }
 
-  // 도시 권역 — 옅은 타원 + 큰 구역명 (핀과 별개로 “여기가 오사카/교토” 인식)
+  // 도시 권역 — 옅은 타원. 방문 거점과 이름이 같으면 구역명 텍스트는 생략
+  // (핀 아래 도시명과 중첩 방지). 미방문(나라/고베 등)만 큰 구역명 표기.
   for (const area of asset.areaLabels ?? []) {
     const rxDeg = area.rx ?? 0.16
     const ryDeg = area.ry ?? 0.11
@@ -236,21 +241,37 @@ export function buildItineraryRouteMapSvg(input: {
     const visited =
       cityKoSet.has(area.ko) ||
       [...cityKoSet].some((v) => area.ko.includes(v) || v.includes(area.ko))
-    const fillOp = visited ? 0.22 : 0.1
-    const textOp = visited ? 0.55 : 0.38
+    const fillOp = visited ? 0.2 : 0.1
     parts.push(
       `<ellipse cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" rx="${rxPx.toFixed(1)}" ry="${ryPx.toFixed(1)}" fill="${C.route}" opacity="${fillOp}"/>`,
-      `<text x="${c.x.toFixed(1)}" y="${(c.y + 6).toFixed(1)}" text-anchor="middle" font-family="${C.font}" font-size="${visited ? 28 : 22}" font-weight="700" letter-spacing="0.14em" fill="${C.ink}" opacity="${textOp}">${esc(area.ko)}</text>`,
     )
+    if (!visited) {
+      parts.push(
+        `<text x="${c.x.toFixed(1)}" y="${(c.y + 6).toFixed(1)}" text-anchor="middle" font-family="${C.font}" font-size="22" font-weight="700" letter-spacing="0.14em" fill="${C.ink}" opacity="0.4">${esc(area.ko)}</text>`,
+      )
+    }
   }
 
-  // 보조 지명 — 작고 옅게 (바다·호수·반도). 권역명과 겹치면 스킵
+  // 보조 지명 — 작고 옅게 (바다·호수·반도). 권역명·거점 근처면 스킵/밀어냄
   const areaKo = new Set((asset.areaLabels ?? []).map((a) => a.ko))
   const labels = [...(asset.featureLabels ?? [])]
   if (asset.seaLabel) labels.push({ ...asset.seaLabel, kind: 'sea' as const })
   for (const lab of labels) {
     if (areaKo.has(lab.ko)) continue
-    const { x, y } = projectLonLat(lab.lon, lab.lat, bbox, W, H, PAD)
+    // 거점 도시명과 동일·포함이면 중복 표기 금지 (예: 오사카 / 오사카만은 유지)
+    if (cityKoSet.has(lab.ko)) continue
+    let { x, y } = projectLonLat(lab.lon, lab.lat, bbox, W, H, PAD)
+    // 거점 핀·도시명과 너무 가까우면 바다/호수 라벨을 바깥으로 밀어 중첩 완화
+    for (const m of markers) {
+      const dx = x - m.x
+      const dy = y - m.y
+      const dist = Math.hypot(dx, dy)
+      if (dist < 56 && dist > 0.1) {
+        const push = (56 - dist) / dist
+        x += dx * push
+        y += dy * push
+      }
+    }
     const fs = lab.kind === 'sea' ? 15 : 13
     parts.push(
       `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-family="${C.font}" font-size="${fs}" font-weight="500" letter-spacing="0.08em" fill="${C.inkSoft}" opacity="0.72">${esc(lab.ko)}</text>`,
@@ -316,8 +337,8 @@ export function buildItineraryRouteMapSvg(input: {
       `<text x="0" y="${-18 + dayFs * 0.35}" text-anchor="middle" font-family="${C.font}" font-size="${dayFs}" font-weight="700" fill="#FFFFFF">${esc(m.dayLabel)}</text>`,
     )
 
-    // 도시명
-    parts.push(haloText(0, offsetY + 8, m.cityKo, { size: 18, weight: 700, fill: C.ink }))
+    // 도시명 (offsetY에 배지 높이 반영됨)
+    parts.push(haloText(0, offsetY, m.cityKo, { size: 18, weight: 700, fill: C.ink }))
     parts.push(`</g>`)
   }
 
