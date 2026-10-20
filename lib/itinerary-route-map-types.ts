@@ -39,4 +39,7 @@ export type ItineraryRouteMapScheduleDay = {
   description?: string | null
   routeText?: string | null
   city?: string | null
+  /** 일정 교통 필드(있으면 이동수단 추론 우선) */
+  transport?: string | null
+  transportNote?: string | null
 }
