@@ -54,7 +54,10 @@ export type ResultItem = {
   id: string
   /** 공개 URL slug — 있으면 canonical `/products/{slug}` */
   slug?: string | null
+  /** 카드 본제목 — 공개 짧은 제목(heroShort) 우선 */
   title: string
+  /** 짧은 제목 보조 한 줄 (국가·도시) — REGRESSION-FREEZE[public-card-hero-short-title] */
+  heroSubtitle?: string | null
   originSource: string
   productType: string | null
   /** 항공권+호텔(자유여행) 등 — 에어텔 UI 게이트용 */
@@ -847,8 +850,10 @@ export function ProductResultCard({
             </span>
           ) : null}
         </div>
-        {!compact && !hubSquareSmall && item.primaryDestination ? (
-          <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>
+        {!compact && !hubSquareSmall && (item.heroSubtitle || item.primaryDestination) ? (
+          <p className="mt-1 text-xs text-slate-600">
+            {item.heroSubtitle?.trim() || item.primaryDestination}
+          </p>
         ) : null}
         {!compact && !hubSquareSmall && item.departureAirportLabelDisplay ? (
           <p className="mt-0.5 text-xs font-medium text-teal-700">{item.departureAirportLabelDisplay}</p>

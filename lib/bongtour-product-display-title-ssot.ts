@@ -236,3 +236,75 @@ export function composeBongtourHeroDisplayTitle(
 
   return { heroShortTitle, heroSubtitle, placeKind, dayToken }
 }
+
+function splitPlaceTokens(...parts: (string | null | undefined)[]): string[] {
+  const out: string[] = []
+  for (const raw of parts) {
+    const s = String(raw ?? '').trim()
+    if (!s || s === '—') continue
+    for (const piece of s.split(/[·/,|]+|\s{2,}/)) {
+      const t = cleanToken(piece)
+      if (t) out.push(t)
+    }
+  }
+  return uniqPreserve(out)
+}
+
+export type PublicBrowseCardTitleInput = {
+  /** Plan B / DB 원문 제목 — 폴백·haystack */
+  title: string
+  duration?: string | null
+  primaryDestination?: string | null
+  destination?: string | null
+  destinationRaw?: string | null
+  primaryRegion?: string | null
+  countryRowLabel?: string | null
+}
+
+export type PublicBrowseCardTitleResult = {
+  /** 카드 h2 — short 우선, 실패 시 Plan B 정리 제목 */
+  cardTitle: string
+  heroSubtitle: string | null
+  usedHeroShort: boolean
+}
+
+/**
+ * 홈·browse 카드 공개 제목 — DB Product.title 덮어쓰지 않음.
+ * REGRESSION-FREEZE[public-card-hero-short-title]: 카드는 heroShort · 원문은 폴백 — manifest
+ */
+export function resolvePublicBrowseCardTitle(
+  input: PublicBrowseCardTitleInput,
+  fallbackTitle: string,
+): PublicBrowseCardTitleResult {
+  const cities = splitPlaceTokens(
+    input.primaryDestination,
+    input.destination,
+    input.destinationRaw,
+  )
+  const countryLabel = cleanToken(String(input.countryRowLabel || ''))
+  const regionLabel = cleanToken(String(input.primaryRegion || ''))
+  const multiCountry =
+    Boolean(regionLabel) &&
+    (/유럽|미주|중동|아프리카|중남미|남미|동남아|서남아|일주/.test(regionLabel) ||
+      cities.length >= 3)
+
+  const composed = composeBongtourHeroDisplayTitle({
+    duration: input.duration,
+    countryLabel: countryLabel || null,
+    cities,
+    regionLabel: regionLabel || null,
+    haystack: [input.title, input.primaryDestination, input.destination].filter(Boolean).join(' '),
+    multiCountry,
+  })
+
+  if (composed.heroShortTitle) {
+    return {
+      cardTitle: composed.heroShortTitle,
+      heroSubtitle: composed.heroSubtitle,
+      usedHeroShort: true,
+    }
+  }
+
+  const fb = String(fallbackTitle || input.title || '').trim() || '여행'
+  return { cardTitle: fb, heroSubtitle: null, usedHeroShort: false }
+}

@@ -5,13 +5,25 @@ import { useMobileReviewRotation } from '@/app/components/travel/reviews/useMobi
 import { useMemo } from 'react'
 import type { ReviewCardModel } from '@/lib/reviews-types'
 
-type Props = { reviews: ReviewCardModel[] }
+type Props = { reviews: ReviewCardModel[]; oceanWarm?: boolean }
 
-export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
+export function HomeReviewGridCard({
+  review: r,
+  oceanWarm = false,
+}: {
+  review: ReviewCardModel
+  oceanWarm?: boolean
+}) {
   const dest = [r.destination_city, r.destination_country].filter(Boolean).join(' · ')
 
   return (
-    <article className="flex h-full flex-col rounded-xl border border-bt-border-soft/50 bg-white p-4 shadow-sm">
+    <article
+      className={
+        oceanWarm
+          ? 'flex h-full flex-col rounded-[var(--bt-ow-radius-card)] border border-[var(--bt-ow-border)] bg-[var(--bt-ow-surface)] p-4 shadow-sm'
+          : 'flex h-full flex-col rounded-xl border border-bt-border-soft/50 bg-white p-4 shadow-sm'
+      }
+    >
       {r.thumbnail_url ? (
         <div className="relative mb-3 aspect-[2/1] w-full overflow-hidden rounded-lg bg-slate-100">
           <SafeImage
@@ -25,21 +37,62 @@ export function HomeReviewGridCard({ review: r }: { review: ReviewCardModel }) {
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         {r.rating_label ? (
-          <p className="inline-flex items-baseline gap-1 text-sm font-bold text-[#d9a81e]" aria-label={`평점 ${r.rating_label}`}>
+          <p
+            className={
+              oceanWarm
+                ? 'inline-flex items-baseline gap-1 text-sm font-bold text-[var(--bt-ow-section-gold)]'
+                : 'inline-flex items-baseline gap-1 text-sm font-bold text-[#d9a81e]'
+            }
+            aria-label={`평점 ${r.rating_label}`}
+          >
             <span>{r.rating_label}</span>
-            <span className="text-[10px] font-medium text-bt-text-muted-lavender">/ 5.0</span>
+            <span
+              className={
+                oceanWarm
+                  ? 'text-[10px] font-medium text-[var(--bt-ow-meta)]'
+                  : 'text-[10px] font-medium text-bt-text-muted-lavender'
+              }
+            >
+              / 5.0
+            </span>
           </p>
         ) : null}
       </div>
-      <h3 className="mt-1 line-clamp-2 text-sm font-bold text-bt-text-navy">{r.title}</h3>
-      {dest ? <p className="mt-0.5 text-xs text-teal-800">{dest}</p> : null}
-      <p className="mt-2 line-clamp-4 flex-1 text-xs leading-relaxed text-slate-700">{r.excerpt}</p>
+      {dest ? (
+        <p
+          className={
+            oceanWarm
+              ? 'mt-1 text-xs font-semibold text-[var(--bt-ow-brand-deep)]'
+              : 'mt-0.5 text-xs text-teal-800'
+          }
+        >
+          {dest}
+        </p>
+      ) : null}
+      <h3
+        className={
+          oceanWarm
+            ? 'mt-1 line-clamp-2 text-sm font-bold text-[var(--bt-ow-ink-title)]'
+            : 'mt-1 line-clamp-2 text-sm font-bold text-bt-text-navy'
+        }
+      >
+        {r.title}
+      </h3>
+      <p
+        className={
+          oceanWarm
+            ? 'mt-2 line-clamp-4 flex-1 text-xs leading-relaxed text-[var(--bt-ow-ink)]'
+            : 'mt-2 line-clamp-4 flex-1 text-xs leading-relaxed text-slate-700'
+        }
+      >
+        {r.excerpt}
+      </p>
     </article>
   )
 }
 
 /** 메인·모임여행 후기 — 서버에서 최대 9건 샘플, 모바일 8건·10분 로테이션, md+ 전달 건수 그리드 */
-export default function HomeReviewsGridClient({ reviews }: Props) {
+export default function HomeReviewsGridClient({ reviews, oceanWarm = false }: Props) {
   const safe = useMemo(() => reviews.filter((r) => r.id && r.title && r.excerpt), [reviews])
   const { mobileReviews } = useMobileReviewRotation(safe)
 
@@ -49,7 +102,7 @@ export default function HomeReviewsGridClient({ reviews }: Props) {
     <ul className={className} role="list">
       {list.map((r) => (
         <li key={r.id} className="min-h-0">
-          <HomeReviewGridCard review={r} />
+          <HomeReviewGridCard review={r} oceanWarm={oceanWarm} />
         </li>
       ))}
     </ul>

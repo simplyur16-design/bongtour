@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   composeBongtourHeroDisplayTitle,
   composeHeroDayToken,
+  resolvePublicBrowseCardTitle,
 } from '@/lib/bongtour-product-display-title-ssot'
 
 // REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
@@ -79,5 +80,51 @@ describe('composeBongtourHeroDisplayTitle', () => {
     })
     expect(r.heroShortTitle).toBe('다낭 4일')
     expect(r.heroSubtitle).not.toMatch(/프리미엄/)
+  })
+})
+
+// REGRESSION-FREEZE[public-card-hero-short-title]: 카드 제목 배선 — manifest
+describe('resolvePublicBrowseCardTitle', () => {
+  it('긴 해시태그 원문 대신 목적지+일수 카드 제목', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title:
+          'NO유류 차액! 출발가능 이탈리아 일주 11일 [낯설어 아름답다] #대한항공 #4성급호텔 #남부3DAYS',
+        duration: '9박 11일',
+        primaryDestination: '로마 · 피렌체 · 베네치아',
+        primaryRegion: '유럽',
+      },
+      'NO유류 차액! 출발가능 이탈리아 일주 11일 [낯설어 아름답다]',
+    )
+    expect(r.usedHeroShort).toBe(true)
+    expect(r.cardTitle).toMatch(/일$/)
+    expect(r.cardTitle.length).toBeLessThan(40)
+    expect(r.cardTitle).not.toMatch(/#대한항공|NO유류/)
+  })
+
+  it('브랜드 도시 방콕 — 짧은 카드 제목', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '방콕/파타야 3박 5일 #첫여행추천 #5성호텔',
+        duration: '3박 5일',
+        primaryDestination: '방콕 · 파타야',
+      },
+      '방콕/파타야 3박 5일 #첫여행추천 #5성호텔',
+    )
+    expect(r.cardTitle).toBe('방콕 5일')
+    expect(r.usedHeroShort).toBe(true)
+  })
+
+  it('일수 없으면 Plan B 폴백', () => {
+    const fb = '태국 자유여행 특가 모음'
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: fb,
+        primaryDestination: '방콕',
+      },
+      fb,
+    )
+    expect(r.usedHeroShort).toBe(false)
+    expect(r.cardTitle).toBe(fb)
   })
 })

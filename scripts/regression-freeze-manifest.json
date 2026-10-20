@@ -26147,6 +26147,47 @@
       ]
     },
     {
+      "id": "public-card-hero-short-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈·browse 카드 — heroShort 목적지+일수 제목 (Plan B 원문 DB 미덮어쓰기)",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-display-title-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "resolvePublicBrowseCardTitle"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "resolvePublicBrowseCardTitle"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "resolvePublicBrowseCardTitle"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "heroSubtitle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
       "id": "bongtour-route-map-gemini-v1",
       "tier": [
         "prebuild",

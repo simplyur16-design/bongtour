@@ -42,6 +42,7 @@ import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
+import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
 import {
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
@@ -706,7 +707,35 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       id: p.id,
       slug: p.slug ?? null,
       // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 홈 카드 제목에서 판매마감·단풍시즌 제거 — manifest
-      title: normalizeSupplierRegisterListingTitle(p.title) || p.title,
+      // REGRESSION-FREEZE[public-card-hero-short-title]: browse 카드 heroShort — manifest
+      ...(() => {
+        const planB = normalizeSupplierRegisterListingTitle(p.title) || p.title
+        const destLabel = resolveProductListDestinationLabel({
+          primaryDestination: p.primaryDestination,
+          destination: p.destination,
+          destinationRaw: p.destinationRaw,
+          primaryRegion: p.primaryRegion,
+          title: p.title,
+          countryKey: p.countryKey,
+        })
+        const primaryDestination = destLabel !== '—' ? destLabel : p.primaryDestination
+        const card = resolvePublicBrowseCardTitle(
+          {
+            title: p.title,
+            duration: p.duration,
+            primaryDestination,
+            destination: p.destination,
+            destinationRaw: p.destinationRaw,
+            primaryRegion: p.primaryRegion,
+          },
+          planB,
+        )
+        return {
+          title: card.cardTitle,
+          heroSubtitle: card.heroSubtitle,
+          primaryDestination,
+        }
+      })(),
       originSource: p.originSource,
       productType: p.productType,
       listingKind: p.listingKind ?? null,
@@ -715,17 +744,6 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         includedText: p.includedText,
         excludedText: p.excludedText,
       }),
-      primaryDestination: (() => {
-        const label = resolveProductListDestinationLabel({
-          primaryDestination: p.primaryDestination,
-          destination: p.destination,
-          destinationRaw: p.destinationRaw,
-          primaryRegion: p.primaryRegion,
-          title: p.title,
-          countryKey: p.countryKey,
-        })
-        return label !== '—' ? label : p.primaryDestination
-      })(),
       primaryRegion: p.primaryRegion,
       duration: p.duration,
       bgImageUrl: p.bgImageUrl,
