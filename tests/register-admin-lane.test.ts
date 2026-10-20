@@ -224,7 +224,8 @@ describe('register-admin-lane-pre-photo', () => {
       },
       {
         day: 3,
-        description: '체크아웃 후 인천으로 귀국합니다. 별도의 관광보다 이동 중심으로 여행을 마무리합니다.',
+        description: '체크아웃 후 인천으로 귀국합니다. 이동 중심으로 마무리합니다.',
+        routeText: '인천',
         imageKeyword: '',
       },
     ]
@@ -261,7 +262,15 @@ describe('register-admin-lane-pre-photo', () => {
       productType: 'air-hotel',
       productTitle: '대만 에어텔 3일',
       productDestination: '타이베이',
-      rows: [{ day: 1, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' }],
+      // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 키워드에는 route 필요 — manifest
+      rows: [
+        {
+          day: 1,
+          description: '그랜드하얏트 타이베이에 체크인 후 자유일정입니다. 숙소 주변을 둘러봅니다.',
+          routeText: '그랜드하얏트 타이베이',
+          imageKeyword: 'Grand Hyatt Taipei',
+        },
+      ],
     })
     assert.equal(ok.ok, true)
     const mismatch = verifyRegisterPrePhoto({
@@ -270,7 +279,14 @@ describe('register-admin-lane-pre-photo', () => {
       productType: 'travel',
       productTitle: '대만 에어텔 3일',
       productDestination: '타이베이',
-      rows: [{ day: 1, description: '호텔 체크인 후 자유일정입니다.', imageKeyword: 'Grand Hyatt Taipei' }],
+      rows: [
+        {
+          day: 1,
+          description: '그랜드하얏트 타이베이에 체크인 후 자유일정입니다. 숙소 주변을 둘러봅니다.',
+          routeText: '그랜드하얏트 타이베이',
+          imageKeyword: 'Grand Hyatt Taipei',
+        },
+      ],
     })
     assert.equal(mismatch.ok, false)
   })
