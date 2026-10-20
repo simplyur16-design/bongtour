@@ -49,6 +49,32 @@ describe('itinerary-route-map-hubs', () => {
     expect(resolveRouteMapRegionId(hubs, 'JAPAN')).toBe('kansai')
   })
 
+  it('패키지 기본 지상이동 = 전용차량 (고양이열차 오탐 방지)', () => {
+    const schedule = parseScheduleJsonForRouteMap([
+      { day: 1, routeText: '인천 - 오사카', description: '도착' },
+      {
+        day: 2,
+        routeText: '오사카 - 교토',
+        description: '전일 관광 고양이열차 체험 포함',
+      },
+      { day: 3, routeText: '교토 - 인천', description: '귀국' },
+    ])
+    const { legs } = extractItineraryRouteMapHubs(schedule)
+    const hop = legs.find((l) => l.fromCityKo === '오사카' && l.toCityKo === '교토')
+    expect(hop?.icon).toBe('🚗')
+    expect(hop?.durationLabel).toMatch(/약/)
+  })
+
+  it('일정에 신칸센이 명시되면 기차 유지', () => {
+    const schedule = parseScheduleJsonForRouteMap([
+      { day: 1, routeText: '도쿄', description: '시내' },
+      { day: 2, routeText: '도쿄 - 교토', description: '신칸센 약 2시간 15분' },
+      { day: 3, routeText: '교토', description: '사찰' },
+    ])
+    const { legs } = extractItineraryRouteMapHubs(schedule)
+    expect(legs.some((l) => l.icon === '🚄')).toBe(true)
+  })
+
   it('resolve country EN', () => {
     expect(resolveItineraryRouteMapCountry({ country: '일본' }).countryEn).toBe('JAPAN')
     expect(resolveItineraryRouteMapCountry({ destination: '베트남/다낭' }).countryEn).toBe(

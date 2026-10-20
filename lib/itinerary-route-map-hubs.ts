@@ -310,6 +310,15 @@ function isShortHopCityPair(aEn: string, bEn: string): boolean {
   )
 }
 
+/** 관광 어트랙션명에 섞인 ‘열차’ 등 — 교통수단 추론에서 제외 */
+function scrubTransportNoise(hay: string): string {
+  return hay
+    .replace(/고양이\s*열차/gi, ' ')
+    .replace(/관광\s*열차/gi, ' ')
+    .replace(/슬로프\s*열차/gi, ' ')
+    .replace(/케이블\s*카/gi, ' ')
+}
+
 function inferLeg(
   from: ItineraryRouteMapHub,
   to: ItineraryRouteMapHub,
@@ -317,11 +326,13 @@ function inferLeg(
 ): ItineraryRouteMapLeg {
   const fromLast = from.days[from.days.length - 1]!
   const toFirst = to.days[0]!
-  const hay = [dayHaystacks.get(fromLast), dayHaystacks.get(toFirst)].filter(Boolean).join('\n')
+  const hayRaw = [dayHaystacks.get(fromLast), dayHaystacks.get(toFirst)].filter(Boolean).join('\n')
+  const hay = scrubTransportNoise(hayRaw)
   const durationFromText = extractDurationLabel(hay)
 
   const shortHop = isShortHopCityPair(from.cityEn, to.cityEn)
-  let icon = shortHop ? '🚌' : '🚄'
+  // 봉투어 패키지 기본 지상 이동 = 전용차량 (기차/버스 추정 금지)
+  let icon = '🚗'
   let durationLabel = durationFromText || (shortHop ? '약 1시간' : '약 2시간')
   let lineStyle: ItineraryRouteMapLineStyle = 'dashed_green'
 
@@ -331,23 +342,23 @@ function inferLeg(
   } else if (/페리|ferry|배편|크루즈/i.test(hay)) {
     icon = '⛴️'
     durationLabel = durationFromText || '약 1시간'
-  } else if (/버스|bus|고속버스/i.test(hay)) {
+  } else if (/전용\s*차량|전용\s*차|전세\s*버스|전세\s*차량|전용\s*버스|프라이빗|charter/i.test(hay)) {
+    icon = '🚗'
+    durationLabel = durationFromText || (shortHop ? '약 1시간' : '약 2시간')
+  } else if (/고속버스|시외버스/i.test(hay)) {
     icon = '🚌'
     durationLabel = durationFromText || (shortHop ? '약 45분' : '약 1시간 30분')
+  } else if (/(?:^|[^가-힣])버스(?:[^가-힣]|$)|coach|\bbus\b/i.test(hay)) {
+    // 일정문의 ‘버스’도 패키지에서는 전용/전세로 본다
+    icon = '🚗'
+    durationLabel = durationFromText || (shortHop ? '약 1시간' : '약 1시간 30분')
   } else if (/지하철|전철|metro|subway|MRT/i.test(hay)) {
     icon = '🚇'
     durationLabel = durationFromText || '약 30분'
     lineStyle = 'solid_blue'
-  } else if (/신칸센|新幹線|고속철|KTX|기차|열차|train|rail/i.test(hay)) {
+  } else if (/신칸센|新幹線|고속철|KTX|(?:^|[^가-힣])(?:기차|열차)(?:로|편|이용|탑승)?|(?:\btrain\b|\brail\b)/i.test(hay)) {
     icon = '🚄'
     durationLabel = durationFromText || (shortHop ? '약 30분' : '약 2시간')
-  } else if (from.cityEn === to.cityEn) {
-    icon = '🚇'
-    durationLabel = durationFromText || '약 30분'
-    lineStyle = 'solid_blue'
-  } else if (shortHop && !durationFromText) {
-    icon = '🚌'
-    durationLabel = '약 1시간'
   }
 
   return {

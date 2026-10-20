@@ -59,13 +59,15 @@ function transitPlain(leg: ItineraryRouteMapLeg): string {
       ? '항공'
       : leg.icon === '⛴️'
         ? '페리'
-        : leg.icon === '🚌'
-          ? '버스'
-          : leg.icon === '🚇'
-            ? '전철'
-            : leg.icon === '🚄'
-              ? '기차'
-              : '이동'
+        : leg.icon === '🚗'
+          ? '전용차량'
+          : leg.icon === '🚌'
+            ? '버스'
+            : leg.icon === '🚇'
+              ? '전철'
+              : leg.icon === '🚄'
+                ? '기차'
+                : '이동'
   const dur = leg.durationLabel.replace(/^약\s*/, '약 ')
   return `${mode} ${dur}`
 }
