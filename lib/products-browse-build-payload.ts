@@ -908,7 +908,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         mapMs: Math.round(map - score),
         rowCount,
         finalCount,
-        cacheKey: `products-browse-v19|${queryKey}`,
+        cacheKey: `products-browse-v20|${queryKey}`,
       }
       browsePerfLastPhases = phases // PERF-LOG: 측정 후 제거
       console.log('[browse-perf]', JSON.stringify({ cacheHit: false, ...phases })) // PERF-LOG: 측정 후 제거

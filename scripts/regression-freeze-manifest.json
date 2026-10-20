@@ -14784,7 +14784,7 @@
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "shouldSkipDbAtBuild",
             "readCachedArrayOrBypassEmpty",
-            "season-product-grid-pc-v2"
+            "season-product-grid-pc-v3"
           ]
         },
         {
