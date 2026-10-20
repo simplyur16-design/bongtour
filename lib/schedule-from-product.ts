@@ -1,7 +1,17 @@
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
+import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import { resolveScheduleImageSeoTitleKr } from '@/lib/schedule-image-seo-title-ssot'
 import { stripTrailingSourceTokenFromFilenameStem } from '@/lib/webp-filename'
+
+function decodeScheduleText(value: string): string {
+  return decodePublicHtmlEntities(value)
+}
+
+function decodeScheduleTextOpt(value: string | null | undefined): string | null | undefined {
+  if (value == null) return value
+  return decodePublicHtmlEntities(value)
+}
 
 /**
  * [일정 표시 SSOT] Product.schedule 단기 표시 소스 통일.
@@ -19,6 +29,8 @@ export type ScheduleDayDisplay = {
   day: number
   description: string
   title?: string
+  /** 일정 동선 요약 — 동선지도 chain / 키워드 SSOT (공개 카드 캡션과 별개) */
+  routeText?: string | null
   imageKeyword?: string
   imageKeyword2?: string
   imageUrl?: string | null
@@ -163,7 +175,9 @@ export function getScheduleFromProduct(
         return arr.map((item) => {
           const row = item as Record<string, unknown>
           const day = Number(row?.day ?? 0)
-          const description = typeof row?.description === 'string' ? row.description : String(row?.description ?? '')
+          const description = decodeScheduleText(
+            typeof row?.description === 'string' ? row.description : String(row?.description ?? ''),
+          )
           const rawImageUrl = row?.imageUrl != null ? (row.imageUrl as string | null) : null
           const imageManualSelected = row?.imageManualSelected === true
           const imageSelectionMode = typeof row?.imageSelectionMode === 'string' ? row.imageSelectionMode : null
@@ -185,12 +199,13 @@ export function getScheduleFromProduct(
             typeof row?.imageSourceFileName === 'string' ? row.imageSourceFileName.trim() : ''
           const imageDisplayNameManual =
             typeof row?.imageDisplayNameManual === 'string' ? row.imageDisplayNameManual.trim() : ''
-          const routeText =
+          const routeTextRaw =
             typeof row?.routeText === 'string'
               ? row.routeText
               : typeof row?.city === 'string'
                 ? row.city
                 : null
+          const routeText = routeTextRaw != null ? decodeScheduleText(routeTextRaw) : null
           // REGRESSION-FREEZE[schedule-image-seo-title-ssot]: 공개 캡션 = 한글 SEO 제목, 영문 키워드·DAYN 금지 — manifest
           const imageSeoTitleKr = resolveScheduleImageSeoTitleKr({
             stored: storedSeo || null,
@@ -223,7 +238,9 @@ export function getScheduleFromProduct(
           const base: ScheduleDayDisplay = {
             day,
             description,
-            title: typeof row?.title === 'string' ? row.title : undefined,
+            title:
+              typeof row?.title === 'string' ? decodeScheduleText(row.title) : undefined,
+            routeText,
             imageKeyword: typeof row?.imageKeyword === 'string' ? row.imageKeyword : undefined,
             imageKeyword2: typeof row?.imageKeyword2 === 'string' ? row.imageKeyword2 : undefined,
             imageUrl,
@@ -234,12 +251,12 @@ export function getScheduleFromProduct(
             imageSource: resolveScheduleRowImageSource(row, 'imageSource'),
             imagePhotographer2: resolveScheduleRowImagePhotographer(row, 'imagePhotographer2', 'imageSource2'),
             imageSource2: resolveScheduleRowImageSource(row, 'imageSource2'),
-            hotelText: optionalScheduleMealCol(row, 'hotelText'),
-            breakfastText: optionalScheduleMealCol(row, 'breakfastText'),
-            lunchText: optionalScheduleMealCol(row, 'lunchText'),
-            dinnerText: optionalScheduleMealCol(row, 'dinnerText'),
-            mealSummaryText: optionalScheduleMealCol(row, 'mealSummaryText'),
-            meals: optionalScheduleMealCol(row, 'meals'),
+            hotelText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'hotelText')) ?? undefined,
+            breakfastText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'breakfastText')) ?? undefined,
+            lunchText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'lunchText')) ?? undefined,
+            dinnerText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'dinnerText')) ?? undefined,
+            mealSummaryText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'mealSummaryText')) ?? undefined,
+            meals: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'meals')) ?? undefined,
           }
           if (options?.includeInternalMeta === true) {
             const imageStoragePath =
@@ -279,7 +296,7 @@ export function getScheduleFromProduct(
   if (product.itineraries?.length) {
     return product.itineraries.map((i) => ({
       day: i.day,
-      description: i.description ?? '',
+      description: decodeScheduleText(i.description ?? ''),
       imageUrl: null as string | null,
     }))
   }

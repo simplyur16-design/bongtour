@@ -250,11 +250,13 @@ export async function loadDevProductSurfaceLiveMock(opts?: {
         const mergedEdges = gen.draft.edges.map((e) => {
           const d = det.edges.find((x) => x.from === e.from)
           if (d && d.mode !== 'transfer' && e.mode === 'transfer') return d
-          if (d && d.mode !== 'transfer' && d.inferredFromSchedule !== false) {
-            // keep deterministic when source had coach/private_car
-            if (d.mode === 'coach' || d.mode === 'private_car' || d.mode === 'domestic_flight') {
-              return d
-            }
+          // 결정론 fallback edge에는 inferredFromSchedule이 없음 — coach/국내선 등 육상 mode면 유지
+          if (
+            d &&
+            d.mode !== 'transfer' &&
+            (d.mode === 'coach' || d.mode === 'private_car' || d.mode === 'domestic_flight')
+          ) {
+            return d
           }
           return e
         })
