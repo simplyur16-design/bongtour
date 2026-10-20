@@ -1042,6 +1042,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           console.error('[PATCH product] cover PhotoPool rehost after', id, err)
         })
       })
+      if (data.registrationStatus === 'registered') {
+        const { scheduleItineraryRouteMapGeneration } = await import(
+          '@/lib/itinerary-route-map-ensure'
+        )
+        scheduleItineraryRouteMapGeneration(id)
+      }
     }
     if (
       body.firstPriceRow &&

@@ -171,18 +171,48 @@ export function formatItineraryRouteMapDayLabel(days: number[]): string {
   return sorted.join(',')
 }
 
+/** 긴 일정 문구 안에서 알려진 도시명만 뽑는다 (마케팅 카피 거부) */
+function matchKnownCityEnInText(text: string): string | null {
+  const t = String(text ?? '').trim()
+  if (!t) return null
+  // 정확 일치 우선
+  if (CITY_KO_TO_EN[t]) return CITY_KO_TO_EN[t]!
+  // 긴 키부터 부분일치 (교토 > 토)
+  const keys = Object.keys(CITY_KO_TO_EN).sort((a, b) => b.length - a.length)
+  for (const k of keys) {
+    if (k.length >= 2 && t.includes(k)) return CITY_KO_TO_EN[k]!
+  }
+  // 영문 토큰
+  const lower = t.toLowerCase()
+  for (const [en, ko] of Object.entries(CITY_EN_TO_KO)) {
+    if (lower.includes(en.toLowerCase()) && CITY_KO_TO_EN[ko]) return CITY_KO_TO_EN[ko]!
+  }
+  // 아라시야마/사가 → 교토 권역
+  if (/아라시야마|嵐山|\bsaga\b/i.test(t) && /교토|kyoto|쿄토/i.test(t + ' 교토')) {
+    return 'Kyoto'
+  }
+  if (/아라시야마|嵐山/i.test(t)) return 'Kyoto'
+  return null
+}
+
 function koreanLabelForCity(cityEn: string, routeText: string | null | undefined): string {
+  // 지도 라벨은 항상 짧은 정식 도시명 (일정 카피 금지)
+  if (CITY_EN_TO_KO[cityEn]) return CITY_EN_TO_KO[cityEn]!
+  const fromText = matchKnownCityEnInText(String(routeText ?? ''))
+  if (fromText && CITY_EN_TO_KO[fromText]) return CITY_EN_TO_KO[fromText]!
   const segs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
     .map((s) => s.trim())
     .filter((s) => s.length >= 2 && !isDomesticDepartureHub(s))
   for (const seg of segs) {
-    if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
-    const mapped = mapDestination(seg)
-    if (mapped && normCityKey(mapped) === normCityKey(cityEn) && /[\uAC00-\uD7AF]/.test(seg)) {
-      return seg.replace(/\s*(?:국제\s*)?공항.*$/u, '').trim() || cityEn
+    const hit = matchKnownCityEnInText(seg)
+    if (hit && normCityKey(hit) === normCityKey(cityEn) && CITY_EN_TO_KO[hit]) {
+      return CITY_EN_TO_KO[hit]!
     }
   }
-  return CITY_EN_TO_KO[cityEn] ?? cityEn
+  // 최후: 한글 2~4자만 허용, 그 외는 영문 도시
+  const raw = String(cityEn ?? '').trim()
+  if (/^[\uAC00-\uD7AF]{2,4}$/u.test(raw)) return raw
+  return raw
 }
 
 function cityEnFromDay(day: ItineraryRouteMapScheduleDay): string {
@@ -194,6 +224,8 @@ function cityEnFromDay(day: ItineraryRouteMapScheduleDay): string {
   const ordered = segs.length > 1 ? [...segs].reverse() : segs
   for (const seg of ordered) {
     if (segs.length > 1 && isScheduleAirportRouteSegmentText(seg)) continue
+    const known = matchKnownCityEnInText(seg)
+    if (known) return known
     const koHit = CITY_KO_TO_EN[seg]
     if (koHit) return koHit
     const mapped = mapDestination(seg)
@@ -201,22 +233,43 @@ function cityEnFromDay(day: ItineraryRouteMapScheduleDay): string {
       mapped &&
       isBareCityOrCountryKeyword(mapped) &&
       !isDomesticDepartureHub(mapped) &&
-      !/[\uAC00-\uD7AF]/.test(mapped)
+      !/[\uAC00-\uD7AF]/.test(mapped) &&
+      // Saga 등 소지역/오매핑 거부 — 알려진 도시 사전 또는 정식 도시만
+      (CITY_EN_TO_KO[mapped] || Object.values(CITY_KO_TO_EN).some((en) => normCityKey(en) === normCityKey(mapped)))
     ) {
       return mapped
     }
   }
 
+  const hay = [day.routeText, day.description, day.city].filter(Boolean).join(' ')
+  const fromHay = matchKnownCityEnInText(hay)
+  if (fromHay) return fromHay
+
   const fromSoft = softDupForeignVisitCityForMiddleRoute(day.routeText)
-  if (fromSoft && isBareCityOrCountryKeyword(fromSoft) && !isDomesticDepartureHub(fromSoft)) {
+  if (
+    fromSoft &&
+    isBareCityOrCountryKeyword(fromSoft) &&
+    !isDomesticDepartureHub(fromSoft) &&
+    (CITY_EN_TO_KO[fromSoft] ||
+      Object.values(CITY_KO_TO_EN).some((en) => normCityKey(en) === normCityKey(fromSoft)))
+  ) {
     return fromSoft
   }
 
   const cityField = String(day.city ?? '').trim()
   if (cityField) {
+    const known = matchKnownCityEnInText(cityField)
+    if (known) return known
     if (CITY_KO_TO_EN[cityField]) return CITY_KO_TO_EN[cityField]!
     const mapped = mapDestination(cityField)
-    if (mapped && isBareCityOrCountryKeyword(mapped) && !isDomesticDepartureHub(mapped)) return mapped
+    if (
+      mapped &&
+      isBareCityOrCountryKeyword(mapped) &&
+      !isDomesticDepartureHub(mapped) &&
+      CITY_EN_TO_KO[mapped]
+    ) {
+      return mapped
+    }
   }
 
   return ''

@@ -10,8 +10,8 @@ import {
   extractItineraryRouteMapHubs,
   parseScheduleJsonForRouteMap,
 } from '../lib/itinerary-route-map-hubs'
-import { buildItineraryRouteMapPrompt } from '../lib/itinerary-route-map-prompt'
 import { getItineraryRouteMapFromRawMeta } from '../lib/itinerary-route-map-raw-meta'
+import { resolveRouteMapRegionId } from '../lib/itinerary-route-map-geo'
 
 type Bucket = {
   id: string
@@ -111,16 +111,8 @@ async function main() {
       continue
     }
 
-    const prompt = buildItineraryRouteMapPrompt({ countryKo, countryEn, hubs, legs })
-    const missingCity = hubs.find((h) => !prompt.includes(h.cityKo))
-    if (!prompt.includes('Flat 2D') || missingCity) {
-      blocked.push({
-        ...base,
-        reason: missingCity ? `프롬프트 도시누락:${missingCity.cityKo}` : '프롬프트 형식오류',
-      })
-      continue
-    }
-    ready.push({ ...base, reason: '생성 가능(미생성)' })
+    const regionId = resolveRouteMapRegionId(hubs, countryEn)
+    ready.push({ ...base, reason: `생성 가능(미생성)·${regionId}` })
   }
 
   console.log(

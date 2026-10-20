@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const gateMock = vi.fn()
 const listingMock = vi.fn()
 const detailMock = vi.fn()
+const scheduleRouteMapMock = vi.fn()
 
 vi.mock('@/lib/register-pending-pre-photo-self-heal', () => ({
   applyRegisterPrePhotoQueueGateAfterSave: (...args: unknown[]) => gateMock(...args),
@@ -16,6 +17,10 @@ vi.mock('@/lib/revalidate-product-detail-caches', () => ({
   revalidateProductDetailCaches: (...args: unknown[]) => detailMock(...args),
 }))
 
+vi.mock('@/lib/itinerary-route-map-ensure', () => ({
+  scheduleItineraryRouteMapGeneration: (...args: unknown[]) => scheduleRouteMapMock(...args),
+}))
+
 import { finalizeRegisterConfirmAfterSave } from '@/lib/register-confirm-after-save'
 
 describe('finalizeRegisterConfirmAfterSave', () => {
@@ -23,6 +28,7 @@ describe('finalizeRegisterConfirmAfterSave', () => {
     gateMock.mockReset()
     listingMock.mockReset()
     detailMock.mockReset()
+    scheduleRouteMapMock.mockReset()
     gateMock.mockResolvedValue({ verified: 1, verifyFailed: 0, failed: 0, scanned: 1 })
     listingMock.mockImplementation(() => undefined)
     detailMock.mockResolvedValue(undefined)
@@ -42,6 +48,7 @@ describe('finalizeRegisterConfirmAfterSave', () => {
     })
     await finalizeRegisterConfirmAfterSave('prod-1')
     expect(order).toEqual(['gate', 'listing', 'detail'])
+    expect(scheduleRouteMapMock).toHaveBeenCalledWith('prod-1')
   })
 
   it('캐시 invariant가 터져도 confirm을 깨지 않는다', async () => {

@@ -11,6 +11,10 @@
 import './load-env'
 import { prisma } from '../lib/prisma'
 import { generateAndPersistItineraryRouteMap } from '../lib/itinerary-route-map-generate'
+import {
+  extractItineraryRouteMapHubs,
+  parseScheduleJsonForRouteMap,
+} from '../lib/itinerary-route-map-hubs'
 import { getItineraryRouteMapFromRawMeta } from '../lib/itinerary-route-map-raw-meta'
 
 function argFlag(name: string): boolean {
@@ -26,7 +30,7 @@ function argValue(name: string): string | null {
 async function main() {
   const apply = argFlag('--apply')
   const force = argFlag('--force')
-  const limit = Math.max(1, Number(argValue('--limit') ?? '50') || 50)
+  const limit = Math.max(1, Number(argValue('--limit') ?? '250') || 250)
   const statusFilter = argValue('--status') // registered | pending | all
 
   const statusOr =
@@ -41,38 +45,58 @@ async function main() {
             { registrationStatus: '' },
           ]
 
-  const rows = await prisma.product.findMany({
-    where: {
-      OR: statusOr,
-      schedule: { not: null },
-    },
-    select: {
-      id: true,
-      title: true,
-      registrationStatus: true,
-      rawMeta: true,
-      schedule: true,
-    },
-    orderBy: { updatedAt: 'desc' },
-    take: limit * 3,
-  })
+  // ready 후보를 충분히 긁기 위해 페이지네이션
+  const pageSize = 200
+  const ready: Array<{
+    id: string
+    title: string | null
+    registrationStatus: string | null
+  }> = []
+  let cursor: string | undefined
 
-  const targets = rows
-    .filter((r) => {
-      if (force) return true
-      return !getItineraryRouteMapFromRawMeta(r.rawMeta)?.url
+  while (ready.length < limit) {
+    const rows = await prisma.product.findMany({
+      where: {
+        OR: statusOr,
+        schedule: { not: null },
+      },
+      select: {
+        id: true,
+        title: true,
+        registrationStatus: true,
+        rawMeta: true,
+        schedule: true,
+      },
+      orderBy: { id: 'asc' },
+      take: pageSize,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     })
-    .slice(0, limit)
+    if (rows.length === 0) break
+    cursor = rows[rows.length - 1]!.id
+
+    for (const r of rows) {
+      if (!force && getItineraryRouteMapFromRawMeta(r.rawMeta)?.url) continue
+      const { hubs } = extractItineraryRouteMapHubs(parseScheduleJsonForRouteMap(r.schedule))
+      if (hubs.length < 2) continue
+      ready.push({
+        id: r.id,
+        title: r.title,
+        registrationStatus: r.registrationStatus,
+      })
+      if (ready.length >= limit) break
+    }
+    if (rows.length < pageSize) break
+  }
 
   console.log(
-    `[itinerary-route-map] candidates=${targets.length} apply=${apply} force=${force} status=${statusFilter ?? 'all'}`,
+    `[itinerary-route-map] ready=${ready.length} apply=${apply} force=${force} status=${statusFilter ?? 'all'}`,
   )
 
   let ok = 0
   let skip = 0
   let fail = 0
 
-  for (const row of targets) {
+  for (const row of ready) {
     const label = `${row.id} (${row.registrationStatus ?? 'null'}) ${String(row.title ?? '').slice(0, 40)}`
     if (!apply) {
       console.log(`[dry-run] ${label}`)

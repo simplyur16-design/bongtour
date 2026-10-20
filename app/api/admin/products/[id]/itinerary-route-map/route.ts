@@ -8,7 +8,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 /**
  * GET — 저장된 일정 동선 지도 메타.
- * POST — Imagen flat 2D 지도 생성·저장 (body.force=true 시 재생성).
+ * POST — 코드 SVG 여정지도 생성·저장 (body.force=true 시 재생성).
  */
 export async function GET(_req: Request, ctx: Ctx) {
   const admin = await requireAdmin()

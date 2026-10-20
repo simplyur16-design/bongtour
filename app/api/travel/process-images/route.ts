@@ -122,6 +122,27 @@ function replyWithFilledCount(filled: number, extra: Record<string, unknown>, ta
   )
 }
 
+/** process-images 성공 경로 공통 — 여정지도 자동 생성(실패해도 이미지 성공은 유지) */
+async function runItineraryRouteMapAfterImages(productId: string): Promise<{
+  url?: string
+  skipped?: boolean
+  error?: string
+}> {
+  try {
+    const { ensureItineraryRouteMapForProduct } = await import('@/lib/itinerary-route-map-ensure')
+    const mapResult = await ensureItineraryRouteMapForProduct(prisma, productId, { force: false })
+    if (mapResult.ok) {
+      return { url: mapResult.meta.url, skipped: mapResult.skipped === true }
+    }
+    console.warn(`${LOG_PREFIX} itinerary-route-map:`, mapResult.error)
+    return { error: mapResult.error }
+  } catch (mapErr) {
+    const msg = mapErr instanceof Error ? mapErr.message : String(mapErr)
+    console.warn(`${LOG_PREFIX} itinerary-route-map exception:`, msg)
+    return { error: msg }
+  }
+}
+
 /** schedule JSON 한 항목 — imageKeyword는 검색에 쓴 대표 명소/구문(캐시 키·추적용) */
 type ScheduleEntry = {
   day: number
@@ -639,6 +660,7 @@ export async function POST(req: Request) {
           schedule: scheduleStr,
         }),
       })
+      const itineraryRouteMap = await runItineraryRouteMapAfterImages(product.id as string)
       return replyWithFilledCount(
         countNewlyFilledPhotoSlots({
           beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
@@ -647,7 +669,7 @@ export async function POST(req: Request) {
           afterCover: mainUrl,
           coverCounts: true,
         }),
-        { source: 'pool', cacheHit: 5, newFetch: 0 },
+        { source: 'pool', cacheHit: 5, newFetch: 0, itineraryRouteMap },
         'travel.process-images.pool',
       )
     }
@@ -717,6 +739,7 @@ export async function POST(req: Request) {
           schedule: scheduleStrPre,
         }),
       })
+      const itineraryRouteMap = await runItineraryRouteMapAfterImages(product.id as string)
       return replyWithFilledCount(
         countNewlyFilledPhotoSlots({
           beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
@@ -725,7 +748,7 @@ export async function POST(req: Request) {
           afterCover: mainSealed.url,
           coverCounts: true,
         }),
-        { source: 'pre-made', cacheHit: 5, newFetch: 0 },
+        { source: 'pre-made', cacheHit: 5, newFetch: 0, itineraryRouteMap },
         'travel.process-images.premade',
       )
     }
@@ -1694,25 +1717,7 @@ export async function POST(req: Request) {
       afterCover: preserveHero ? (typeof product.bgImageUrl === 'string' ? product.bgImageUrl : null) : bgPhoto.url,
       coverCounts: !preserveHero,
     })
-    let itineraryRouteMap: { url?: string; skipped?: boolean; error?: string } | undefined
-    try {
-      const { generateAndPersistItineraryRouteMap } = await import(
-        '@/lib/itinerary-route-map-generate'
-      )
-      const mapResult = await generateAndPersistItineraryRouteMap(prisma, product.id as string, {
-        force: false,
-      })
-      if (mapResult.ok) {
-        itineraryRouteMap = { url: mapResult.meta.url, skipped: mapResult.skipped === true }
-      } else {
-        itineraryRouteMap = { error: mapResult.error }
-        console.warn(`${LOG_PREFIX} itinerary-route-map:`, mapResult.error)
-      }
-    } catch (mapErr) {
-      const msg = mapErr instanceof Error ? mapErr.message : String(mapErr)
-      itineraryRouteMap = { error: msg }
-      console.warn(`${LOG_PREFIX} itinerary-route-map exception:`, msg)
-    }
+    const itineraryRouteMap = await runItineraryRouteMapAfterImages(product.id as string)
 
     const response: Record<string, unknown> = {
       cacheHit: cacheHitCount,
