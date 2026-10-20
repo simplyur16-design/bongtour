@@ -486,12 +486,22 @@ function packageScheduleIssues(
     ) {
       issues.push(`day${day}_free_recommended_itinerary_missing`)
     }
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 route=일정 미수집 — 키워드 금지 — manifest
+    // middle: 빈 route 자체 실패 / departure·return: 키워드가 있을 때만 route_empty(날조)
     if (
-      slot === 'middle' &&
       !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
       !String(row.routeText ?? '').trim()
     ) {
-      issues.push(`day${day}_middle_route_empty`)
+      const hasKw =
+        Boolean(String(row.imageKeyword ?? '').trim()) ||
+        Boolean(String(row.imageKeyword2 ?? '').trim())
+      if (slot === 'middle') {
+        issues.push(`day${day}_middle_route_empty`)
+        if (hasKw) issues.push(`day${day}_keyword_without_route`)
+      } else if (hasKw) {
+        issues.push(`day${day}_route_empty`)
+        issues.push(`day${day}_keyword_without_route`)
+      }
     }
     if (
       registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) &&
@@ -523,8 +533,10 @@ function packageScheduleIssues(
     ) {
       issues.push(`day${day}_keyword2_not_on_own_route`)
     }
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 route면 desc 검사 생략(route_empty만) — manifest
     if (
       !isRegisterPendingFreeItineraryDay(row, { productTitle }) &&
+      String(row.routeText ?? '').trim() &&
       isBrokenRegisterScheduleDescription(row.description, row.routeText)
     ) {
       issues.push(`day${day}_description_filler_or_duplicate`)
@@ -688,8 +700,12 @@ function fitScheduleIssues(
     }
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)
     // REGRESSION-FREEZE[register-fit-heal-no-package-soft-alt]: FIT는 패키지 자유일정 skip 안 씀 — manifest
-    if (slot === 'middle' && !String(row.routeText ?? '').trim()) {
-      issues.push(`day${day}_middle_route_empty`)
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 route에 키워드 금지 — manifest
+    // FIT 출발·귀국 빈 route(키워드 없음)는 허용 — 호텔·자유일정 middle만 엄격
+    if (!String(row.routeText ?? '').trim()) {
+      if (kw || kw2) issues.push(`day${day}_keyword_without_route`)
+      if (slot === 'middle') issues.push(`day${day}_middle_route_empty`)
+      else if (kw || kw2) issues.push(`day${day}_route_empty`)
     }
     if (
       registerScheduleDayRequiresPrimaryImageKeyword(slot, row.routeText) &&
@@ -769,7 +785,8 @@ function fitScheduleIssues(
 const DEST_FROM_TITLE_RE =
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: title 세부일정≠dest 세부 · 사파리·마이파리≠파리 — manifest
   // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 심천·인도 제목 dest — manifest
-  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|나트랑|달랏|연태|하와이|(?<![가-힣])파리(?![가-힣])|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|미동부|미서부|캐나다|시드니|코카서스|튀니지|서안|호이안|바나|위해|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드|그리스|튀르키예|터키|에게|심천|선전|深圳|(?<![가-힣])인도(?!네시아)/u
+  // REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]: 백두산·뉴욕·코타·시엠립 제목 dest — manifest
+  /울란바토르|몽골|도쿄|동경|오사카|다낭|푸꾸옥|나트랑|달랏|연태|하와이|(?<![가-힣])파리(?![가-힣])|런던|후쿠오카|오키나와|사이판|발리|홍콩|마카오|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|보라카이|이집트|영국|스위스|이태리|이탈리아|스페인|포르투갈|폴란드|괌|중남미|(?<![가-힣])남미|미동부|미서부|캐나다|시드니|코카서스|튀니지|서안|호이안|바나|위해|서부지중해|동부지중해|지중해|알래스카|캐리비안|토스카나|보르도|두바이|아부다비|고치|나가노|도야마|발틱|장가계|원가계|프랑스|북해도|홋카이도|아이슬란드|그리스|튀르키예|터키|에게|심천|선전|深圳|(?<![가-힣])인도(?!네시아)|백두산|뉴욕|코타키나발루|(?<![가-힣])코타(?!르)|시엠립|씨엠립|앙코르|아프리카/u
 
 /** dest 미지정·항공권 등 비장소일 때만 — 제목에 나온 지명을 dest로 쓴다. 제목은 지어내지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-city-soft-dup-not-bleed]: dest 미지정은 제목에서만 추론 — manifest
@@ -794,6 +811,9 @@ export function inferRegisterPendingDestinationFromTitle(title: string): string 
   // REGRESSION-FREEZE[register-pre-photo-dest-year-promo-not-place]: 선전/深圳 → 심천 — manifest
   if (m[0] === '선전' || m[0] === '深圳') return '심천'
   if (m[0] === '인도') return '인도'
+  // REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]: 코타·씨엠립·앙코르 정규화 — manifest
+  if (m[0] === '코타' || m[0] === '코타키나발루') return '코타키나발루'
+  if (m[0] === '씨엠립' || m[0] === '앙코르') return '시엠립'
   return m[0]
 }
 
@@ -808,9 +828,10 @@ function productIdentityIssues(
   const destLine = dest.split(/\n/)[0]?.trim() ?? ''
   if (/^(?:미입력|미지정|미정|상품명 없음)$/i.test(destLine)) {
     issues.push('destination_placeholder')
-  } else if (!dest && isSupplierListingTitleUnacceptable(title)) {
+  } else if (!destLine) {
+    // REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]: 빈 dest도 placeholder — manifest
     issues.push('destination_placeholder')
-  } else if (dest && !isRegisterPrePhotoPlaceLikeDestination(dest)) {
+  } else if (!isRegisterPrePhotoPlaceLikeDestination(dest)) {
     // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: promo dest fails even with ok title — manifest
     issues.push('destination_placeholder')
   }
@@ -865,6 +886,11 @@ export function isRegisterPrePhotoParserFixIssue(issue: string): boolean {
     issue.includes('middle_keyword_empty') ||
     issue.includes('departure_keyword_empty') ||
     issue.includes('middle_route_empty') ||
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: route_empty·keyword_without_route — manifest
+    issue.includes('route_empty') ||
+    issue.includes('keyword_without_route') ||
+    // REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: Pexels 0건 키워드 — manifest
+    issue.includes('keyword_pexels_miss') ||
     issue.includes('free_recommended_itinerary_missing') ||
     issue.includes('keyword_bleed_other_day') ||
     issue.includes('keyword2_bleed_other_day') ||

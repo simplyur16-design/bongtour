@@ -30,18 +30,25 @@ export function normalizeYbtourOptionalPasteSection(section: string): string {
   return out.join('\n')
 }
 
+// REGRESSION-FREEZE[ybtour-optional-fee-us-dollar]: 비용US$30·비용CAD $85 / 비용+CAD $85 앵커 — manifest
+/** ISO 통화코드(US/CAD/AUD…) + `$` 금액 — 노랑풍선 북미·동남아 웹본문 */
+const YBTOUR_DOLLAR_CCY = '(?:US|CAD|AUD|NZD|HKD|SGD|TWD|JPY|CNY|KRW|THB|VND|EUR|GBP)'
+
 function collectYbtourFeeAnchors(lines: string[]): YbFeeAnchor[] {
   const raw: YbFeeAnchor[] = []
+  const inlineRe = new RegExp(`^비용\\s*(?:${YBTOUR_DOLLAR_CCY}\\s*)?\\$\\s*(\\d+)`, 'i')
+  const nextLineRe = new RegExp(`^(?:${YBTOUR_DOLLAR_CCY}\\s*)?\\$\\s*(\\d+)`, 'i')
   for (let i = 0; i < lines.length; i++) {
     const L = lines[i]!
-    const inline = L.match(/^비용\s*\$\s*(\d+)/i)
+    // `비용$30` · `비용 US$30` · `비용US$30` · `비용CAD $85/인`
+    const inline = L.match(inlineRe)
     if (inline) {
       raw.push({ feeLineIdx: i, priceText: `$${inline[1]}`, currency: '$' })
       continue
     }
     if (/^비용$/i.test(L)) {
       const n = lines[i + 1] ?? ''
-      const m = n.match(/^\$\s*(\d+)/i)
+      const m = n.match(nextLineRe)
       if (m) raw.push({ feeLineIdx: i, priceText: `$${m[1]}`, currency: '$' })
     }
   }
@@ -260,7 +267,10 @@ function ybtourTitleForAnchor(lines: string[], anchorIdx: number): string {
   while (j >= 0 && /^더보기$/i.test(lines[j]!)) j--
   if (j < 0) return '옵션'
   const cand = lines[j]!.replace(/\s+/g, ' ').trim()
-  if (!cand || /^비용$/i.test(cand) || /^비용\s*\$/i.test(cand)) return '옵션'
+  if (!cand || /^비용$/i.test(cand)) return '옵션'
+  if (new RegExp(`^비용\\s*(?:${YBTOUR_DOLLAR_CCY}\\s*)?\\$`, 'i').test(cand)) return '옵션'
+  if (new RegExp(`^(?:${YBTOUR_DOLLAR_CCY}\\s*)?\\$\\s*\\d+`, 'i').test(cand)) return '옵션'
+  if (new RegExp(`^${YBTOUR_DOLLAR_CCY}$`, 'i').test(cand)) return '옵션'
   return cand.slice(0, 200)
 }
 

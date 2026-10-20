@@ -2,7 +2,7 @@
  * 공개 상품 짧은 제목(A) · 보조(B) SSOT — product-surface v1.
  * Product.title 저장·R-5 marketing compose와 분리. confirm 경로 미연결.
  *
- * REGRESSION-FREEZE[bongtour-product-display-title-ssot]: heroShortTitle 계약 — manifest
+ * REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
  */
 
 import { getProductTotalDays } from '@/lib/package-rules'

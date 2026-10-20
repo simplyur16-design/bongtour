@@ -1426,7 +1426,8 @@ describe('register-pre-photo-self-heal', () => {
     assert.equal(softDupForeignVisitCityForMiddleRoute('카이로 시내'), 'Cairo')
   })
 
-  it('중간일 route가 비면 dest soft-dup으로 채운다', () => {
+  // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 middle에 dest soft-dup 날조 금지 — manifest
+  it('중간일 route가 비면 dest soft-dup으로 채우지 않는다', () => {
     const rows = [
       {
         day: 1,
@@ -1438,9 +1439,9 @@ describe('register-pre-photo-self-heal', () => {
       },
       {
         day: 2,
-        title: '자유',
+        title: '일정',
         routeText: '',
-        imageKeyword: '',
+        imageKeyword: 'Guam',
         imageKeyword2: null,
         description: '리조트에서 쉽니다. 동선에 맞춰 하루 일정을 이어갑니다.',
       },
@@ -1460,8 +1461,8 @@ describe('register-pre-photo-self-heal', () => {
       lane: 'package',
     })
     const d2 = out.rows.find((r) => r.day === 2)
-    assert.ok(String(d2?.routeText ?? '').trim(), 'day2 route filled')
-    assert.ok(String(d2?.imageKeyword ?? '').trim(), 'day2 keyword filled')
+    assert.equal(String(d2?.routeText ?? '').trim(), '', 'day2 route stays empty')
+    assert.equal(String(d2?.imageKeyword ?? '').trim(), '', 'day2 keyword stripped')
     const after = verifyRegisterPrePhoto({
       lane: 'package',
       listingKind: 'package',
@@ -1469,7 +1470,7 @@ describe('register-pre-photo-self-heal', () => {
       productDestination: '괌',
       rows: out.rows,
     })
-    assert.ok(!after.issues.some((i) => i.includes('middle_route_empty')), after.issues.join(','))
+    assert.ok(after.issues.some((i) => i.includes('middle_route_empty')), after.issues.join(','))
   })
 
   // REGRESSION-FREEZE[register-pre-photo-heal-blocked-geo-dest]: 달랏 에펠탑≠Europe · 제목 dest — manifest

@@ -5,7 +5,7 @@ import {
   normalizeBongtourRouteMapCityLabel,
 } from '@/lib/bongtour-route-map-chain-ssot'
 
-// REGRESSION-FREEZE[bongtour-route-map-chain-ssot]: buildBongtourRouteMapChain — manifest
+// REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: buildBongtourRouteMapChain — manifest
 
 describe('buildBongtourRouteMapChain', () => {
   it('일정 route 순서·허브 제외·중복 제거', () => {

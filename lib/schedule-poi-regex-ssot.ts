@@ -508,7 +508,9 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /돗토리\s*사구|Tottori\s*Sand/i, en: "Tottori Sand Dunes" },
   // REGRESSION-FREEZE[lottetour-schedule-plan-info-description]: bare 돗토리·쿠라요시 → 서일본 POI (Fuji 대체) — manifest
   { re: /돗토리|Tottori/i, en: "Tottori Sand Dunes" },
-  { re: /쿠라요시|Kurayoshi/i, en: "Kurayoshi white-walled storehouses" },
+  // REGRESSION-FREEZE[pexels-kurayoshi-not-generic-white-wall]:
+  // 「white-walled storehouses」는 Pexels가 미국 목재가게·일반 창고를 줌 — Tottori 지명 고정 — manifest
+  { re: /쿠라요시|Kurayoshi|白壁土蔵|시라카베\s*도조|백벽\s*토장/i, en: "Kurayoshi Shirakabe Tottori Japan" },
   { re: /코난\s*박물관|고쇼\s*아오야마|Gosho\s*Aoyama|Manga\s*Factory/i, en: "Gosho Aoyama Manga Factory" },
   { re: /20\s*세기\s*배|나싯코\s*관|20segi/i, en: "Tottori Nashi Pear Museum" },
   { re: /아다치\s*미술관|Adachi\s*Museum/i, en: "Adachi Museum of Art" },
@@ -1551,6 +1553,9 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /하와이|호놀룰루|Honolulu/i, en: "Honolulu Waikiki beach" },
   { re: /두바이|Dubai/i, en: "Burj Khalifa Dubai skyline" },
   { re: /아부다비|Abu\s*Dhabi/i, en: "Abu Dhabi" },
+  // REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: 도하·하마드 공항 한글 → 영문 장소 — manifest
+  { re: /도하|Doha/i, en: "Doha" },
+  { re: /하마드|Hamad\s*International/i, en: "Hamad International Airport Doha" },
   { re: /괌|Guam/i, en: "Guam Tumon beach" },
   { re: /투몬|Tumon/i, en: "Tumon Bay Guam beach" },
   { re: /아시아\s*타이|Asia\s*Typhoon/i, en: "Asia Typhoon Waterpark Guam" },

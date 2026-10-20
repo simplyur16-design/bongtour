@@ -1,0 +1,642 @@
+@import "../../styles/bongtour-product-surface.tokens.css";
+@import "../../components/detail/bongtour-benefit-icon.css";
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+.ps-root {
+  font-family: var(--bt-ps-font);
+  color: var(--bt-ps-ink);
+  background: var(--bt-ps-page);
+  min-height: 100vh;
+  padding-bottom: 32px;
+  max-width: 480px;
+  margin: 0 auto;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-color: var(--bt-ps-brand) var(--bt-ps-card);
+}
+
+@media (max-width: 899px) {
+  .ps-root {
+    padding-bottom: calc(var(--bt-ps-sticky-h) + 20px);
+  }
+}
+
+/* 갤러리·히어로는 sticky 금지 — 본문과 함께 스크롤 아웃 */
+
+.ps-root ::selection {
+  background: var(--bt-ps-brand-soft);
+  color: var(--bt-ps-ink-title);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.ps-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 6px;
+  font-size: 0.875rem;
+}
+.ps-top a {
+  color: var(--bt-ps-brand-deep);
+  font-weight: 650;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+.ps-top a:hover {
+  text-decoration: underline;
+}
+.ps-draft {
+  color: var(--bt-ps-meta);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.ps-hero-gallery {
+  padding: 0 16px;
+  animation: ps-in var(--bt-ps-dur) var(--bt-ps-ease-out) both;
+}
+@keyframes ps-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+.ps-hero-main {
+  height: 240px;
+  border-radius: var(--bt-ps-radius-card);
+  /* 베트남 사원·호수 — 다낭/중부 톤 (몰디브·발리 금지) */
+  background:
+    linear-gradient(160deg, rgba(14, 124, 192, 0.12), rgba(26, 26, 26, 0.08)),
+    url(https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg?auto=compress&cs=tinysrgb&w=1000)
+      center/cover;
+  box-shadow: 0 14px 36px rgba(22, 34, 58, 0.16);
+}
+.ps-thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ps-thumbs span {
+  flex: 1;
+  height: 56px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--bt-ps-border);
+  box-shadow: 0 4px 12px rgba(22, 34, 58, 0.06);
+}
+.ps-thumbs span:nth-child(1) {
+  background-image: url(https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg?auto=compress&cs=tinysrgb&w=400);
+}
+.ps-thumbs span:nth-child(2) {
+  background-image: url(https://images.pexels.com/photos/1659437/pexels-photo-1659437.jpeg?auto=compress&cs=tinysrgb&w=400);
+}
+.ps-thumbs span:nth-child(3) {
+  background-image: url(https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg?auto=compress&cs=tinysrgb&w=400);
+}
+
+.ps-head {
+  padding: 20px 16px 8px;
+}
+.ps-head h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: var(--bt-ps-tracking-display);
+  color: var(--bt-ps-ink-title);
+}
+.ps-sub {
+  margin: 6px 0 0;
+  color: var(--bt-ps-muted);
+  font-size: 0.92rem;
+}
+.ps-code {
+  margin: 8px 0 0;
+  color: var(--bt-ps-meta);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.ps-chip-sand,
+.ps-chip-benefit,
+.ps-chip-brand {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: var(--bt-ps-radius-pill);
+  letter-spacing: -0.01em;
+}
+.ps-chip-sand {
+  background: var(--bt-ps-sand-bg);
+  color: var(--bt-ps-sand-fg);
+}
+.ps-chip-benefit {
+  background: var(--bt-ps-benefit-bg);
+  color: var(--bt-ps-benefit-fg);
+}
+.ps-chip-brand {
+  background: var(--bt-ps-brand-soft);
+  color: var(--bt-ps-brand-deep);
+}
+
+.ps-price-card {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--bt-ps-radius-card);
+  background: var(--bt-ps-surface);
+  border: 1px solid var(--bt-ps-border);
+  box-shadow: 0 8px 22px rgba(22, 34, 58, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ps-price-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--bt-ps-muted);
+}
+.ps-price {
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: var(--bt-ps-price);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+.ps-linkish {
+  color: var(--bt-ps-brand-deep);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: default;
+}
+
+/* —— CSS radio tabs (no client JS / no hydration) —— */
+.ps-tab-system {
+  margin-top: 8px;
+}
+.ps-tab-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.ps-tabs {
+  display: flex;
+  gap: 0;
+  margin: 8px 16px 0;
+  border-bottom: 1px solid var(--bt-ps-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ps-tabs::-webkit-scrollbar {
+  display: none;
+}
+.ps-tab {
+  flex: 1;
+  min-width: 4.2rem;
+  text-align: center;
+  padding: 13px 6px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: var(--bt-ps-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  letter-spacing: -0.01em;
+  transition: color 160ms var(--bt-ps-ease-out);
+}
+.ps-tab:hover {
+  color: var(--bt-ps-ink-title);
+}
+.ps-tab:focus-visible,
+.ps-btn-ghost:focus-visible,
+.ps-btn-primary:focus-visible,
+.ps-top a:focus-visible,
+.ps-fold summary:focus-visible {
+  outline: 2px solid var(--bt-ps-warm);
+  outline-offset: 2px;
+}
+
+#ps-tab-info:checked ~ .ps-tabs label[for="ps-tab-info"],
+#ps-tab-schedule:checked ~ .ps-tabs label[for="ps-tab-schedule"],
+#ps-tab-map:checked ~ .ps-tabs label[for="ps-tab-map"],
+#ps-tab-notice:checked ~ .ps-tabs label[for="ps-tab-notice"] {
+  color: var(--bt-ps-brand-deep);
+  border-bottom-color: var(--bt-ps-brand);
+}
+
+.ps-panels {
+  padding: 16px 16px 28px;
+}
+.ps-panel {
+  display: none;
+  animation: ps-panel 280ms var(--bt-ps-ease-out);
+}
+@keyframes ps-panel {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+#ps-tab-info:checked ~ .ps-panels .ps-panel-info,
+#ps-tab-schedule:checked ~ .ps-panels .ps-panel-schedule,
+#ps-tab-map:checked ~ .ps-panels .ps-panel-map,
+#ps-tab-notice:checked ~ .ps-panels .ps-panel-notice {
+  display: block;
+}
+
+.ps-block {
+  margin-bottom: 22px;
+}
+.ps-block h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--bt-ps-ink-title);
+}
+.ps-block ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--bt-ps-muted);
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+.ps-block li + li {
+  margin-top: 6px;
+}
+
+.ps-usp ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.ps-usp li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+}
+.ps-num {
+  color: var(--bt-ps-section-gold);
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.ps-usp p {
+  margin: 4px 0 0;
+  color: var(--bt-ps-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.ps-fold {
+  border-top: 1px solid var(--bt-ps-border);
+  padding-top: 12px;
+}
+.ps-fold summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--bt-ps-ink-title);
+}
+.ps-orig {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: var(--bt-ps-muted);
+  line-height: 1.5;
+}
+
+.ps-days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ps-days li {
+  padding: 12px 14px;
+  background: var(--bt-ps-surface);
+  border-radius: 12px;
+  border: 1px solid var(--bt-ps-border);
+  box-shadow: 0 6px 16px rgba(22, 34, 58, 0.04);
+}
+.ps-days strong {
+  letter-spacing: -0.015em;
+  display: block;
+  margin: 0;
+}
+.ps-days p {
+  margin: 4px 0 0;
+  color: var(--bt-ps-muted);
+  font-size: 0.9rem;
+}
+.ps-day-route {
+  margin: 4px 0 0;
+  color: var(--bt-ps-muted);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.ps-ico-well {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bt-ps-brand-deep) 10%, transparent);
+  color: var(--bt-ps-brand-deep);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bt-ps-brand-deep) 22%, transparent);
+}
+.ps-ico {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+.ps-day-body {
+  margin: 8px 0 0;
+  color: var(--bt-ps-ink);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+.ps-day-hotel-meal {
+  margin-top: 10px;
+}
+
+.ps-map-gemini-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain; /* cover면 동선지도가 잘려 깨져 보임 */
+  border-radius: var(--bt-ps-radius-card);
+  border: 1px solid var(--bt-ps-border);
+  background: var(--bt-ps-card);
+}
+.ps-map-loading {
+  display: grid;
+  gap: 8px;
+  place-items: center;
+  min-height: 240px;
+  padding: 24px 16px;
+  border-radius: var(--bt-ps-radius-card);
+  border: 1px dashed var(--bt-ps-border);
+  background: color-mix(in srgb, var(--bt-ps-card) 80%, #f7f4ee);
+  text-align: center;
+  color: var(--bt-ps-ink);
+  font-weight: 650;
+}
+.ps-map-retry {
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bt-ps-border);
+  background: var(--bt-ps-surface);
+  font-weight: 700;
+  cursor: pointer;
+}
+.ps-benefit-row {
+  margin: 14px 0 4px;
+}
+.ps-supplier-badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bt-ps-brand) 16%, transparent);
+  color: var(--bt-ps-brand-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.ps-benefit-text {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--bt-ps-muted);
+  font-weight: 600;
+}
+.ps-map-legend {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--bt-ps-muted);
+}
+.ps-map-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ps-map-legend-path {
+  font-size: 0.85rem;
+  color: var(--bt-ps-ink);
+  font-weight: 600;
+}
+.ps-map-pin {
+  background: transparent !important;
+  border: none !important;
+}
+.ps-map-pin-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--bt-ps-brand-deep);
+  box-shadow: 0 2px 6px rgba(14, 124, 192, 0.35);
+}
+.ps-map-pin-inner span {
+  transform: rotate(45deg);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ps-map-edge-label {
+  background: transparent !important;
+  border: none !important;
+}
+.ps-map-edge-label span {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--bt-ps-brand);
+  color: var(--bt-ps-brand-deep);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(22, 34, 58, 0.12);
+}
+
+.ps-map {
+  padding: 4px 0 12px;
+}
+.ps-map-story {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--bt-ps-ink-title);
+  letter-spacing: var(--bt-ps-tracking-display);
+  line-height: 1.45;
+}
+/* 지도 아래 동선 — 한 줄 말줄임 대신 두 줄로 분리 */
+.ps-map-story-2line {
+  margin: 12px 0 0;
+  display: grid;
+  gap: 4px;
+}
+.ps-map-story-2line p {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--bt-ps-ink-title);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.ps-map-note {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  color: var(--bt-ps-meta);
+}
+.ps-map svg {
+  width: 100%;
+  height: auto;
+  background: var(--bt-ps-surface);
+  border-radius: var(--bt-ps-radius-card);
+  border: 1px solid var(--bt-ps-border);
+  box-shadow: 0 8px 22px rgba(22, 34, 58, 0.05);
+}
+
+/* 상세 sticky(가격·상담·예약) = 모바일 기본. PC는 상단 요약·푸터로 충분 */
+.ps-sticky {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .ps-sticky {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: min(480px, 100%);
+    height: var(--bt-ps-sticky-h);
+    display: grid;
+    grid-template-columns: 1.15fr 0.9fr 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--bt-ps-border);
+    box-shadow: 0 -12px 32px rgba(22, 34, 58, 0.1);
+    box-sizing: border-box;
+  }
+}
+.ps-sticky-price span {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--bt-ps-muted);
+}
+.ps-sticky-price strong {
+  color: var(--bt-ps-price);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+.ps-btn-ghost,
+.ps-btn-primary {
+  height: 44px;
+  border-radius: var(--bt-ps-radius-chip);
+  font-weight: 800;
+  font-size: 0.9rem;
+  display: grid;
+  place-items: center;
+  letter-spacing: -0.01em;
+}
+.ps-btn-ghost {
+  background: var(--bt-ps-warm);
+  color: var(--bt-ps-warm-ink);
+}
+.ps-btn-primary {
+  background: var(--bt-ps-brand);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(47, 143, 199, 0.28);
+}
+
+@media (min-width: 900px) {
+  .ps-root {
+    max-width: 1040px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+    gap: 12px 40px;
+    padding: 32px 40px 110px;
+    align-items: start;
+  }
+  .ps-top,
+  .ps-tab-system,
+  .ps-sticky {
+    grid-column: 1 / -1;
+  }
+  .ps-hero-gallery {
+    grid-column: 1;
+    padding: 0;
+    /* sticky 제거: 사진이 글을 따라다니며 가리지 않음 */
+    position: static;
+  }
+  .ps-head {
+    grid-column: 2;
+    padding-top: 0;
+  }
+  .ps-hero-main {
+    height: 400px;
+  }
+  .ps-tabs {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .ps-panels {
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 72ch;
+  }
+  .ps-root {
+    padding-bottom: 48px;
+  }
+}

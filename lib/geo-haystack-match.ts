@@ -49,12 +49,27 @@ export function termAppearsInHaystack(term: string, haystack: string): boolean {
     )
     let hit = re.test(low)
     // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 「유후인노모리」「유후인카이카테이」지명+상호 붙여쓰기 — manifest
-    // 3글자 이상 지명만 — 짧은 토큰(카이·나라)·아일랜드+관광 접두 오탐 금지
-    if (!hit && [...t].length >= 3 && tl !== '아일랜드') {
-      const glueRe = new RegExp(
+    // REGRESSION-FREEZE[mega-menu-misc6-geo]: 「쏙쏙도쿄」등 접두 붙여쓰기 — manifest
+    // 접미 glue: 3글자+ / 접두 glue: 2글자+(나라·카이 등 일상어 제외)
+    const hangulLen = [...t].length
+    if (!hit && hangulLen >= 3 && tl !== '아일랜드') {
+      const glueSuffixRe = new RegExp(
         `(^|[^\\uac00-\\ud7a3])${escapeRegExp(tl)}[\\uac00-\\ud7a3]{1,12}([^\\uac00-\\ud7a3]|$)`,
       )
-      hit = glueRe.test(low)
+      hit = glueSuffixRe.test(low)
+    }
+    if (
+      !hit &&
+      hangulLen >= 2 &&
+      tl !== '아일랜드' &&
+      tl !== '나라' &&
+      tl !== '카이' &&
+      tl !== '고베'
+    ) {
+      const gluePrefixRe = new RegExp(
+        `(^|[^\\uac00-\\ud7a3])[\\uac00-\\ud7a3]{2,12}${escapeRegExp(tl)}([^\\uac00-\\ud7a3]|$)`,
+      )
+      hit = gluePrefixRe.test(low)
     }
     if (!hit) return false
     // REGRESSION-FREEZE[saipan-island-tour-geo-priority]: 「지명+아일랜드」(섬) ≠ EU 아일랜드 — manifest

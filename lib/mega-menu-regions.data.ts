@@ -193,7 +193,18 @@ const EU: MegaMenuCountryGroupDef[] = [
 
 const SEA: MegaMenuCountryGroupDef[] = [
   G('베트남', [
-    city('다낭', ['다낭', 'danang', '베트남']),
+    // REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]: 신라모노그램·바나힐 → 다낭 — manifest
+    city('다낭', [
+      '다낭',
+      'danang',
+      'da nang',
+      '베트남',
+      '신라모노그램',
+      'shinra monogram',
+      '바나힐',
+      'ba na hills',
+      'banahill',
+    ]),
     city('나트랑', ['나트랑', 'nha trang', '베트남']),
     city('호치민', ['호치민', 'hcm', 'saigon', '베트남']),
     city('하노이', ['하노이', 'hanoi', '베트남']),
@@ -249,6 +260,8 @@ const SEA: MegaMenuCountryGroupDef[] = [
     city('랑카위', ['랑카위', 'langkawi', '말레이시아']),
     city('페낭', ['페낭', 'penang', '말레이시아']),
   ]),
+  // REGRESSION-FREEZE[mega-menu-misc6-geo]: 브루나이 leaf — 중분류「기타」금지 — manifest
+  G('브루나이', [LC('브루나이', ['브루나이', 'brunei', '반다르스리브가완', 'bandar seri begawan'])]),
   G('캄보디아', [
     city('씨엠립', ['씨엠립', 'siem reap', '앙코르', '캄보디아']),
     city('프놈펜', ['프놈펜', 'phnom penh', '캄보디아']),
@@ -313,7 +326,17 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('벳부', ['벳부', 'beppu', '일본', '규슈']),
     city('유후인', ['유후인', 'yufuin', '일본', '규슈']),
     city('가고시마', ['가고시마', 'kagoshima', '일본', '규슈']),
-    city('구마모토', ['구마모토', 'kumamoto', '일본', '규슈']),
+    // REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]: 쿠로가와 온천 → 구마모토 — manifest
+    city('구마모토', [
+      '구마모토',
+      'kumamoto',
+      '일본',
+      '규슈',
+      '쿠로가와',
+      '쿠로카와',
+      'kurokawa',
+      'kurokawa onsen',
+    ]),
     city('미야자키', ['미야자키', 'miyazaki', '일본', '규슈']),
   ]),
   GJp('오키나와', [
@@ -328,7 +351,8 @@ const CN: MegaMenuCountryGroupDef[] = [
   GCn('산동', [
     city('청도', ['청도', 'qingdao', '중국']),
     city('위해', ['위해', 'weihai', '중국']),
-    city('연태', ['연태', 'yantai', '중국']),
+    // REGRESSION-FREEZE[mega-menu-misc6-geo]: 옌타이=연태 — manifest
+    city('연태', ['연태', 'yantai', '옌타이', '중국']),
   ]),
   GCn('화동', [
     city('상해', ['상해', 'shanghai', '중국']),
@@ -336,7 +360,8 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('항주', ['항주', 'hangzhou', '중국', '杭州']),
     city('남경', ['남경', 'nanjing', '중국', '南京']),
     city('황산', ['황산', 'huangshan', '운곡', '태평', '중국']),
-    city('태항산', ['태항산', 'taishan', '泰山', '중국']),
+    // REGRESSION-FREEZE[mega-menu-misc6-geo]: 태항산 cityKey=taihang (taishan=태산 아님) — manifest
+    city('태항산', ['태항산', 'taihang', '태항대협곡', '태항', '보천', '천계산', '팔리구', '중국']),
   ]),
   GCn('화북', [
     city('북경', ['북경', 'beijing', '중국']),

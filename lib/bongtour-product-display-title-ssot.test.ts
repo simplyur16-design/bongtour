@@ -4,7 +4,7 @@ import {
   composeHeroDayToken,
 } from '@/lib/bongtour-product-display-title-ssot'
 
-// REGRESSION-FREEZE[bongtour-product-display-title-ssot]: heroShortTitle 계약 — manifest
+// REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
 
 describe('composeHeroDayToken', () => {
   it('N박 M일 → M일', () => {

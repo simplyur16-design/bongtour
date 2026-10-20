@@ -69,7 +69,29 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   if (/쇼핑몰|shopping\s*mall|아울렛|outlet|면세점/i.test(t)) return true
   if (/반딧불|firefl|나들이\s*투어|플로팅\s*선셋|선셋\s*투어|시티\s*투어$/i.test(t)) return true
   if (/(?:체험|관람|시음)\s*투어$|(?:달빛|야경|야간)\s*투어$/u.test(t)) return true
+  // REGRESSION-FREEZE[mega-menu-misc6-geo]: 잔여석·캐빈만인 토큰 ≠ 도시 — manifest
+  if (/^(?:잔여\s*(?:좌석|[0-9①-⑳]+\s*석|석)|남은\s*좌석|좌석\s*(?:마감|부족))$/i.test(t)) return true
+  if (/^(?:비즈니스|이코노미)(?:\s*[·,/]\s*클래스|\s*클래스)?$/i.test(t)) return true
+  if (/^(?:NO|무|노)\s*(?:옵션|쇼핑|팁)(?:\s*[&＆]\s*(?:NO|무|노)?(?:옵션|쇼핑|팁))*$/i.test(t)) return true
+  if (/^\d+\s*팀$/u.test(t)) return true
   return false
+}
+
+/** 조합 dest에서 잔여석·캐빈·NO옵션 판매문구만 걷어낸다 */
+// REGRESSION-FREEZE[mega-menu-misc6-geo]: dest 잔여석 scrub — manifest
+export function scrubRegisterDestinationSeatSaleNoise(raw: string): string {
+  let t = String(raw ?? '')
+  t = t.replace(/잔여\s*(?:좌석|[0-9①-⑳]+\s*석|석)/gi, ' ')
+  t = t.replace(/남은\s*좌석|좌석\s*(?:마감|부족)/gi, ' ')
+  t = t.replace(/비즈니스\s*[·,/／]\s*클래스/gi, ' ')
+  t = t.replace(/(?:NO|무|노)\s*(?:옵션|쇼핑|팁)(?:\s*[&＆]\s*(?:NO|무|노)?(?:옵션|쇼핑|팁))*/gi, ' ')
+  t = t.replace(/\d+\s*팀/g, ' ')
+  t = t.replace(/대한항공|아시아나항공|아시아나|진에어|티웨이|에어서울/gi, ' ')
+  t = t.replace(/\(\s*[·,/\s]*\)/g, ' ')
+  t = t.replace(/[（(]\s*[）)]/g, ' ')
+  t = t.replace(/\s*[·,/／]\s*(?=[·,/／)]|$)/g, ' ')
+  t = t.replace(/^[·,/／\s(（]+|[·,/／\s)）]+$/g, '')
+  return t.replace(/\s+/g, ' ').trim()
 }
 
 export function splitRegisterDestinationPlaceTokens(raw: string): string[] {
@@ -143,11 +165,13 @@ export function filterRegisterDestinationPlaceTokens(tokens: readonly string[]):
  * 액티비티만 남으면 null.
  */
 export function scrubRegisterDestinationComposedPlaceLabel(raw: string | null | undefined): string | null {
-  const t = String(raw ?? '')
-    .replace(/\s+/g, ' ')
-    .trim()
-  if (!t) return null
-  const places = filterRegisterDestinationPlaceTokens(splitRegisterDestinationPlaceTokens(t))
+  let cleaned = scrubRegisterDestinationSeatSaleNoise(String(raw ?? '').replace(/\s+/g, ' ').trim())
+  if (!cleaned) return null
+  // `도쿄 (잔여5석 · 치바)` → 괄호 안 지명도 토큰으로
+  cleaned = cleaned.replace(/[（(]([^）)]*)[）)]/g, ' · $1 · ')
+  cleaned = scrubRegisterDestinationSeatSaleNoise(cleaned)
+  if (!cleaned) return null
+  const places = filterRegisterDestinationPlaceTokens(splitRegisterDestinationPlaceTokens(cleaned))
   if (places.length === 0) return null
   if (places.length <= 3) return places.join(' · ').slice(0, 96)
   return `${places.slice(0, 2).join(' · ')} 외 ${places.length - 2}도시`.slice(0, 96)

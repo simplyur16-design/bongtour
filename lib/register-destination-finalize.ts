@@ -12,6 +12,7 @@ import {
   isRegisterDestinationScheduleActivityToken,
   scrubRegisterDestinationComposedPlaceLabel,
   scrubRegisterDestinationRawPlaceList,
+  scrubRegisterDestinationSeatSaleNoise,
   splitRegisterDestinationPlaceTokens,
 } from '@/lib/register-destination-schedule-activity-noise'
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
@@ -30,8 +31,9 @@ const POLICY_COMPOUND_RE =
 const CHANNEL_OR_OFFER_LABEL_RE =
   /^(?:온라인\s*전용|풀\s*패키지|자유\s*여행|2030\s*전용|홈\s*쇼핑|롯데\s*원티비|SK\s*스토아|NS\s*홈쇼핑|공영\s*홈쇼핑|현대\s*홈쇼핑|명문대\s*학부형.*|학부형\s*가이드.*)$/iu
 
+// REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]: EK 등 IATA ≠ dest — manifest
 const AIRLINE_CODE_ONLY_RE =
-  /^(?:KE|OZ|VJ|TW|7C|LJ|BX|ZE|RS|SQ|TG|NH|JL|CX|KA|하와이안|젯스타|진에어|티웨이|에어서울|대한항공|아시아나|핀에어)$/i
+  /^(?:하와이안|젯스타|진에어|티웨이|에어서울|대한항공|아시아나|핀에어|[A-Z0-9]{2})$/i
 
 /** True if label must never be stored/shown as product destination / list 지역. */
 export function isRegisterDestinationPollutionLabel(raw: string | null | undefined): boolean {
@@ -54,8 +56,15 @@ export function isRegisterDestinationPollutionLabel(raw: string | null | undefin
   }
   if (isSupplierRegisterDestinationUiLabel(t)) return true
   if (isSupplierTitleNotDestinationToken(t)) return true
+  // REGRESSION-FREEZE[mega-menu-misc6-geo]: 잔여석만으로 된 dest — manifest
+  if (/잔여/i.test(t)) {
+    const afterSeat = scrubRegisterDestinationSeatSaleNoise(t)
+    if (!afterSeat || isSupplierTitleNotDestinationToken(afterSeat)) return true
+  }
   if (CHANNEL_OR_OFFER_LABEL_RE.test(t)) return true
   if (AIRLINE_CODE_ONLY_RE.test(t)) return true
+  // REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]: 『행운의 주문 프로모 ≠ dest — manifest
+  if (/^『|^」|행운의\s*주문|하쿠나마타타/i.test(t)) return true
   if (POLICY_COMPOUND_RE.test(t)) return true
   if (AIRLINE_POLLUTION_RE.test(t) && (t.length >= 18 || /클래스|승무원|이코노미|에어프레미아|에어프리미아/i.test(t))) {
     return true
@@ -78,6 +87,13 @@ function scrubPlaceToken(raw: string): string | null {
     .replace(/\s+/g, ' ')
     .trim()
   if (!t) return null
+  // REGRESSION-FREEZE[mega-menu-misc6-geo]: dest 잔여석 scrub — manifest
+  if (/잔여|비즈니스\s*[·,/／]\s*클래스|(?:NO|무|노)\s*(?:옵션|쇼핑)/i.test(t)) {
+    const composed = scrubRegisterDestinationComposedPlaceLabel(t)
+    if (composed && !isRegisterDestinationPollutionLabel(composed)) return composed.slice(0, 96)
+    t = scrubRegisterDestinationSeatSaleNoise(t)
+    if (!t) return null
+  }
   t = t.replace(/\d+\s*(?:박|일)\s*$/u, '').trim()
   // 지명에 바로 붙은 괄호만 별칭으로 보고 제거한다.
   // 앞에 공백이 있으면 공급사 조합 라벨(`미동부 (뉴욕 · 나이아가라)`)이라 살린다.

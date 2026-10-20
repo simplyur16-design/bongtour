@@ -66,14 +66,33 @@ function normalizeKey(s: string): string {
   return s.replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
+// REGRESSION-FREEZE[optional-tour-name-display-normalize]: 소요시간·미선택시·가이드동행 메타행 금지 — manifest
 const BAN_NAME_REGEX: RegExp[] = [
   /마일리지|포인트|적립/i,
   /본\s*상품은|진행되며|조인|합류|동일항공|타\s*항공|현지에서\s*조인/i,
   /미참여\s*시|선택관광\s*미참여\s*시/i,
+  // 표 메타가 관광명 칸으로 붙은 하나투어 복붙 (예: 소요시간 1시간 미선택시 가이드동행 미동행)
+  /소요시간.+(미선택\s*시|미참여\s*시).*(가이드\s*동행|미동행)/i,
+  /^\s*[-–—]?\s*소요시간\s*[:：]/i,
+  /^(▶\s*)?미\s*참여\s*자$/i,
   /진행\s*가능합니다|상황에\s*따라|달라질\s*수\s*있습니다/i,
   // 브랜드 마일리지 안내 줄: 이 파일은 하나투어 표기를 앞에 둔다(의미 동일, 공급사 전용 파일 가시성).
   /하나투어\s*마일리지|모두투어\s*마일리지|노랑풍선\s*마일리지|참좋은여행\s*마일리지/i,
 ]
+
+/**
+ * 하나투어 옵션표 지역칸이 관광명으로 섞인 경우 (예: 태국파타야, 체코프라하).
+ * `베트남 전통마사지`처럼 공백·행위어가 있는 실명은 통과.
+ */
+// REGRESSION-FREEZE[hanatour-optional-location-label-ban]: 나라+도시 라벨만 옵션명 금지 — manifest
+const HANATOUR_OPTIONAL_LOCATION_LABEL_ONLY =
+  /^(태국|베트남|중국|일본|대만|홍콩|마카오|싱가포르|말레이시아|인도네시아|필리핀|캄보디아|라오스|미얀마|인도|몽골|미국|캐나다|호주|뉴질랜드|괌|사이판|하와이|튀르키예|터키|이집트|스페인|포르투갈|이탈리아|프랑스|독일|영국|스위스|오스트리아|체코|헝가리|폴란드|그리스|크로아티아|슬로베니아)(파타야|방콕|치앙마이|푸켓|끄라비|호이안|하노이|하롱베이|다낭|나트랑|달랏|푸꾸옥|호치민|시엠립|프놈펜|발리|자카르타|세부|보홀|마닐라|타이페이|가오슝|오사카|도쿄|교토|후쿠오카|삿포로|오키나와|상하이|베이징|북경|청도|장가계|황산|계림|리장|곤명|소주|항주|서안|프라하|빈|부다페스트|잘츠부르크|잘츠카머구트|비엔나|로마|파리|런던|바르셀로나|마드리드|리스본|이스탄불|카파도키아|두바이|시드니|멜버른|골드코스트|밴쿠버|토론토|뉴욕)$/i
+
+export function isHanatourOptionalLocationLabelOnly(name: string): boolean {
+  const t = name.replace(/\s+/g, ' ').trim()
+  if (!t || /\s/.test(t)) return false
+  return HANATOUR_OPTIONAL_LOCATION_LABEL_ONLY.test(t)
+}
 
 const SENTENCE_END_REGEX =
   /(입니다|됩니다|합니다|하며|수\s*있습니다|가능합니다|확인\s*바랍니다|안내\s*드립니다)\s*\.?$/
@@ -101,6 +120,7 @@ export function isBannedOptionalTourName(name: string): boolean {
   const key = normalizeKey(t)
   if (HEADER_EXACT.has(key)) return true
   if (normalizeKey(t) === '문의') return true
+  if (isHanatourOptionalLocationLabelOnly(t)) return true
   if (optionalTourNameLooksLikeFusedTableHeaders(t)) return true
   if (t.length > 90) return true
   if (t.length > 42 && countSpaces(t) >= 4) return true

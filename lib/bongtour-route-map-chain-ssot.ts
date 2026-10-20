@@ -1,7 +1,7 @@
 /**
  * 동선지도 탭용 도시 체인 SSOT — 지리적 좌표 없이 순서 라벨만.
  * 등록 상품이면 id/slug 무관하게 동일 규칙으로 추출 (상품 특화 분기 없음).
- * REGRESSION-FREEZE[bongtour-route-map-chain-ssot]: buildBongtourRouteMapChain — manifest
+ * REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: buildBongtourRouteMapChain — manifest
  */
 
 export const BONGTOUR_ROUTE_MAP_CHAIN_VERSION = 'v1-2026-10-15'

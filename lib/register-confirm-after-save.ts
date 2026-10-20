@@ -7,6 +7,7 @@
 import { applyRegisterPrePhotoQueueGateAfterSave } from '@/lib/register-pending-pre-photo-self-heal'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
+import { ensureBongtourRouteMapPersisted } from '@/lib/bongtour-route-map-persist-ssot'
 
 export async function finalizeRegisterConfirmAfterSave(productId: string): Promise<void> {
   const id = String(productId ?? '').trim()
@@ -16,6 +17,10 @@ export async function finalizeRegisterConfirmAfterSave(productId: string): Promi
   } catch (err) {
     console.error('[register-confirm-after-save] verify-gate failed', id, err)
   }
+  // 동선지도: 등록 시 Gemini로 그려 rawMeta에 저장 (조회 클릭 생성 금지)
+  void ensureBongtourRouteMapPersisted(id).catch((err) => {
+    console.warn('[register-confirm-after-save] route-map persist skip', id, err)
+  })
   try {
     revalidateProductListingCaches()
     await revalidateProductDetailCaches(id)

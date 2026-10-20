@@ -26108,14 +26108,14 @@
         {
           "file": "lib/bongtour-product-display-title-ssot.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[bongtour-product-display-title-ssot]",
+            "REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]",
             "composeBongtourHeroDisplayTitle"
           ]
         },
         {
           "file": "lib/bongtour-route-map-chain-ssot.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[bongtour-route-map-chain-ssot]",
+            "REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]",
             "buildBongtourRouteMapChain"
           ]
         },

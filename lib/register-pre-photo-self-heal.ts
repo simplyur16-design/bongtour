@@ -252,44 +252,24 @@ function scheduleHasBrokenKeywords(
 
 function refillEmptyMiddleRouteFromDest<T extends RegisterPrePhotoHealRow>(
   rows: T[],
-  destHay: string,
+  _destHay: string,
 ): T[] {
-  const softDest =
-    softDupForeignVisitCityForMiddleRoute(destHay) ||
-    firstMatchingScheduleCityEn(destHay) ||
-    ''
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
   const activeDays = days.length
-  // REGRESSION-FREEZE[register-pre-photo-heal-blocked-refill]: 빈 middle route는 dest soft-dup으로 채움 — manifest
-  // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: 빈 route+자유휴양 title은 당일 도시(후르가다)≠dest Cairo — manifest
+  // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]:
+  // 일정표 미수집(빈 route)에 dest·prior로 route/키워드/요약을 날조하지 않음 — manifest
+  // 공급사 title에 자유휴양 문구가 있을 때만 그 원문을 route로 승격한다.
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot !== 'middle') return row
     if (String(row.routeText ?? '').trim()) return row
     const titleHay = String(row.title ?? '').trim()
-    const fromTitle =
-      softDupForeignVisitCityForMiddleRoute(titleHay) ||
-      (isRegisterScheduleFreeTimeOrResortLeisureText(titleHay)
-        ? firstMatchingScheduleCityEn(titleHay) || ''
-        : '')
-    // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 빈 middle — 직전 방문도시 route 승계 — manifest
-    const priorHay = priorMiddleDayRouteHay(rows, Number(row.day) || 0)
-    const fromPrior =
-      softDupForeignVisitCityForMiddleRoute(priorHay) ||
-      firstMatchingScheduleCityEn(priorHay) ||
-      ''
-    const fill =
-      (fromTitle && isBareCityOrCountryKeyword(fromTitle) ? fromTitle : '') ||
-      (fromPrior && isBareCityOrCountryKeyword(fromPrior) ? fromPrior : '') ||
-      (softDest && isBareCityOrCountryKeyword(softDest) ? softDest : '')
-    if (!fill) return row
-    // 자유휴양 title은 원문 유지(도시 증거) — bare dest만 넣으면 이후 own-route가 dest로 오염
-    if (fromTitle && isRegisterScheduleFreeTimeOrResortLeisureText(titleHay)) {
+    if (titleHay && isRegisterScheduleFreeTimeOrResortLeisureText(titleHay)) {
       return { ...row, routeText: titleHay.slice(0, 500) }
     }
-    return { ...row, routeText: fill }
+    return row
   })
 }
 
@@ -1579,8 +1559,8 @@ function alignMiddleKeywordsToVerifyGate<T extends RegisterPrePhotoHealRow>(
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 맨도시-only route도 pack 명소 허용 — manifest
     const bareOnlyRoute =
       packFromRoute.length > 0 && collectRouteTextOrderedLandmarkKeywords(routeHay).length < 1
-    // 빈 route + dest pack 도 lodging과 동일하게 pack 허용
-    const emptyRouteDestPack = !routeHay && packFromDest.length > 0
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 route에 dest pack 키워드 날조 금지 — manifest
+    const emptyRouteDestPack = false
     // 패들보드·버거 등 route 명소 0 + dest pack 있으면 dest soft-alt로 채움
     // 자유시간·공항이동처럼 당일 도시 증거가 없으면 dest hay로 soft-alt unlock (HK airtel D3)
     // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: free-time empty middle → dest soft-alt — manifest
@@ -1759,7 +1739,7 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
       /초원/u.test(String(row.routeText ?? '')) &&
       !/사막|인컨타라|Xiangshawan/i.test(String(row.routeText ?? '')) &&
       /Desert|사막|Xiangshawan/i.test(kw)
-    // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 빈 route 중간일은 dest 명소 유지 — manifest
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 route 키워드 유지·dest 귀속 금지 — manifest
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
     const emptyRoute = !String(row.routeText ?? '').trim()
     // FIT: soft-alt 확장 landmark 개수로 activity-only를 판정하지 않음 (다낭→Dragon Bridge 팩)
@@ -1775,7 +1755,7 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
       !routeTextHasIdentifiableVisitPlace(row.routeText) &&
       Boolean(String(destHay ?? '').trim())
     const destPackPersistKeys =
-      allowSoftAltLandmarkPacks && (emptyRoute || activityOnlyNoLandmark)
+      allowSoftAltLandmarkPacks && activityOnlyNoLandmark
         ? new Set(
             bareVisitCityLandmarkPack(destHay)
               .map((raw) => {
@@ -1785,13 +1765,21 @@ function dropKeywordsNotOnOwnDayRoute<T extends RegisterPrePhotoHealRow>(
               .filter(Boolean),
           )
         : null
+    // 빈 route = 일정 미수집 — dest로 키워드를 붙이지 않고 비운다
+    if (emptyRoute) {
+      return {
+        ...row,
+        imageKeyword: '',
+        imageKeyword2: null,
+      }
+    }
     const keepViaDest =
-      (emptyRoute || activityOnlyNoLandmark) &&
+      activityOnlyNoLandmark &&
       Boolean(kw) &&
       (registerScheduleKeywordMatchesOwnDayRoute(destHay, kw) ||
         Boolean(destPackPersistKeys?.has(normScheduleImageKeywordKey(kw))))
     const keepViaDest2 =
-      (emptyRoute || activityOnlyNoLandmark) &&
+      activityOnlyNoLandmark &&
       Boolean(kw2) &&
       (registerScheduleKeywordMatchesOwnDayRoute(destHay, kw2) ||
         Boolean(destPackPersistKeys?.has(normScheduleImageKeywordKey(kw2))))
@@ -1972,6 +1960,11 @@ function healDescription(
   }
   // REGRESSION-FREEZE[register-fit-gemini-desc-verify]: FIT Gemini 요약 유지 — manifest
   if (!force && !descBroken(current, row.routeText)) return current
+  // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: 빈 route면 요약 합성 금지 — manifest
+  const routeHay = String(row.routeText ?? '').trim()
+  if (!routeHay) {
+    return descBroken(current, row.routeText) ? '' : current
+  }
   const routePlaces = splitRouteTextPlaceSegments(row.routeText)
   let next = current
   try {
@@ -2189,6 +2182,8 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
     if (scheduleHasBrokenKeywords(working, { allowHotelLodging: true, destHay })) {
       notes.push({ day: 0, field: 'imageKeyword', reason: 'parser_fix_required' })
     }
+    // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: FIT도 빈 route 날조 제거 — manifest
+    working = stripInventedContentOnEmptyRoutes(working, notes)
     return { rows: working, notes, reappliedKeywords }
   }
 
@@ -2433,7 +2428,82 @@ export function healRegisterPrePhotoSchedule<T extends RegisterPrePhotoHealRow>(
   working = scrubCrossCountrySeaKeywordsOffTrip(working)
   working = scrubSameDayDuplicateImageKeyword2(working)
 
+  // scrub이 귀국·출발 route를 비우면 dest 방문도시로 route만 복구 (명소 날조 아님)
+  // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]: edge route restore after scrub — manifest
+  working = restoreEmptyEdgeRouteFromDest(working, destHay)
+  working = ensureDepartureReturnVisitCityKeywords(working, opts.productDestination) as T[]
+  // route 복구 후 filler 요약이면 재합성 (장가계 귀국 KL scrub 등)
+  working = working.map((row) => {
+    const before = String(row.description ?? '').trim()
+    const description = healDescription(row, maxDay, false, opts.productHaystack)
+    if (description !== before) {
+      notes.push({ day: Number(row.day), field: 'description', reason: 'edge_route_restore_resynth' })
+    }
+    return { ...row, description }
+  })
+
+  // REGRESSION-FREEZE[register-pre-photo-no-invent-without-route]:
+  // 최종 패스 — 빈 middle route에 키워드·합성 요약이 남아 있으면 전부 제거 (일정 미수집) — manifest
+  working = stripInventedContentOnEmptyRoutes(working, notes)
+
   return { rows: working, notes, reappliedKeywords }
+}
+
+/** 출발·귀국만 — cross-country scrub 후 빈 route를 dest 도시로 복구 (중간일 날조 금지와 별개) */
+function restoreEmptyEdgeRouteFromDest<T extends RegisterPrePhotoHealRow>(
+  rows: T[],
+  destHay: string,
+): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const activeDays = days.length
+  const fill =
+    softDupForeignVisitCityForMiddleRoute(destHay) ||
+    firstMatchingScheduleCityEn(destHay) ||
+    String(destHay ?? '')
+      .split(/[·,，、/\n]/u)[0]
+      ?.replace(/\s+/g, ' ')
+      .trim() ||
+    ''
+  if (!fill) return rows
+  return rows.map((row) => {
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    if (slot === 'middle') return row
+    if (String(row.routeText ?? '').trim()) return row
+    return { ...row, routeText: fill.slice(0, 500) }
+  })
+}
+
+function stripInventedContentOnEmptyRoutes<T extends RegisterPrePhotoHealRow>(
+  rows: T[],
+  notes: RegisterPrePhotoHealNote[],
+): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  const maxDay = days.length ? Math.max(...days.map((r) => Number(r.day))) : 0
+  const activeDays = days.length
+  return rows.map((row) => {
+    if (Number(row.day) <= 0) return row
+    if (String(row.routeText ?? '').trim()) return row
+    const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
+    // 출발·귀국은 restoreEmptyEdgeRouteFromDest / ensureDepartureReturn 이 담당 — middle만 미수집 처리
+    if (slot !== 'middle') return row
+    // 자유휴양 title만 있는 날은 route 승격 대상 — 여기선 route가 비어 있으므로 수집 실패로 본다
+    const hadKw = Boolean(String(row.imageKeyword ?? '').trim() || String(row.imageKeyword2 ?? '').trim())
+    const hadDesc = Boolean(String(row.description ?? '').trim())
+    if (hadKw) {
+      notes.push({ day: Number(row.day), field: 'imageKeyword', reason: 'no_invent_without_route' })
+    }
+    if (hadDesc) {
+      notes.push({ day: Number(row.day), field: 'description', reason: 'no_invent_without_route' })
+    }
+    return {
+      ...row,
+      imageKeyword: '',
+      imageKeyword2: null,
+      description: '',
+    }
+  })
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   type MatchProductToOverseasNodeResult,
   type OverseasProductMatchInput,
 } from '@/lib/match-overseas-product'
+import { megaMenuPlacementForCityKey } from '@/lib/mega-menu-city-group-coherence'
 
 /** 여행상품 해외 허브 UI 권역 키 (상품 1건당 정확히 1개) */
 export type OverseasDisplayBucketId =
@@ -230,10 +231,42 @@ const RE_UK_EUROPE_TRAVEL = new RegExp(
   'i',
 )
 
-/** 유후인·벳부 — 상호 붙여쓰기(유후인노모리) 매칭 실패 시 `other` 보정 */
+/** 유후인·벳부·쿠로가와 — 상호 붙여쓰기·온천지명 매칭 실패 시 `other` 보정 */
 // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 유후인 → japan — manifest
+// REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]: 쿠로가와 → japan — manifest
 const RE_YUFUIN_JAPAN_TRAVEL = new RegExp(
-  ['유후인', 'yufuin', '벳부', '벳푸', 'beppu', '규슈', '큐슈', 'kyushu'].join('|'),
+  [
+    '유후인',
+    'yufuin',
+    '벳부',
+    '벳푸',
+    'beppu',
+    '쿠로가와',
+    '쿠로카와',
+    'kurokawa',
+    '구마모토',
+    'kumamoto',
+    '규슈',
+    '큐슈',
+    'kyushu',
+  ].join('|'),
+  'i',
+)
+
+/** 신라모노그램·바나힐 — 호텔/POI만 있을 때 `other`(그외) → 동남아 */
+// REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]: 신라모노그램 → sea_taiwan — manifest
+const RE_DANANG_VIETNAM_TRAVEL = new RegExp(
+  [
+    '신라모노그램',
+    '모노그램',
+    'shinra\\s*monogram',
+    '바나힐',
+    'ba\\s*na\\s*hills?',
+    'banahill',
+    '다낭',
+    'danang',
+    'da\\s*nang',
+  ].join('|'),
   'i',
 )
 
@@ -256,6 +289,30 @@ const RE_JAPAN_SHIKOKU_TRAVEL = new RegExp(
   'i',
 )
 
+/** cityKey 메가메뉴 placement → 화면 버킷 (트리 match 실패해도 그외로 떨어지지 않게) */
+// REGRESSION-FREEZE[mega-menu-kurokawa-monogram-city]: cityKey placement → bucket — manifest
+function overseasDisplayBucketFromCityKey(cityKey: string | null | undefined): OverseasDisplayBucketId | null {
+  const placement = megaMenuPlacementForCityKey(cityKey)
+  if (!placement) return null
+  switch (placement.regionId) {
+    case 'japan':
+      return 'japan'
+    case 'southeast-asia':
+      return 'sea_taiwan'
+    case 'china-hk-mo':
+      return 'china_hk_mo'
+    case 'oceania':
+      return 'oceania'
+    case 'americas':
+    case 'south-america':
+      return 'americas'
+    case 'europe-me':
+      return 'europe_me_af'
+    default:
+      return null
+  }
+}
+
 /**
  * `/api/products/browse` 전용: 트리 매칭 후 **상품 문자열**로 미주 오분류를 덮어쓴다.
  */
@@ -268,6 +325,13 @@ export function resolveOverseasDisplayBucketForBrowse(
   /** 괌·사이판 — 유럽·미주 등 트리 오매칭 시에도 oceania SSOT */
   if (RE_GUAM_SAIPAN_TRAVEL.test(h) && match?.countryKey !== 'hawaii') {
     return 'oceania'
+  }
+  if (base === 'other') {
+    const fromCity =
+      overseasDisplayBucketFromCityKey(product.cityKey) ||
+      (product.cityTags ?? []).map((t) => overseasDisplayBucketFromCityKey(t.cityKey)).find(Boolean) ||
+      null
+    if (fromCity) base = fromCity
   }
   if (base === 'other' && RE_INDONESIA_SEA_TRAVEL.test(h)) {
     return 'sea_taiwan'
@@ -289,6 +353,9 @@ export function resolveOverseasDisplayBucketForBrowse(
   }
   if (base === 'other' && RE_YUFUIN_JAPAN_TRAVEL.test(h)) {
     return 'japan'
+  }
+  if (base === 'other' && RE_DANANG_VIETNAM_TRAVEL.test(h)) {
+    return 'sea_taiwan'
   }
   if (base !== 'americas') return base
 
