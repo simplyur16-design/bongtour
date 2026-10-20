@@ -2706,7 +2706,9 @@ export default function AdminPendingDetailPanel({
             >
               일정 동선 지도 생성
             </button>
-            <span className="text-[10px] text-bt-meta">플랫 2D 인포그래픽 · rawMeta.itineraryRouteMap</span>
+            <span className="text-[10px] text-bt-meta">
+              등록 confirm·process-images 시 자동 생성 · 수동은 재생성용 · 지명 한글
+            </span>
           </div>
         ) : null}
         {!keywordsVerified ? (

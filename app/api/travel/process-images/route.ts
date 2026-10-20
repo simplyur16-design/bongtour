@@ -49,6 +49,27 @@ import { resolveProductBgImageFieldsFromPhoto } from '@/lib/product-image-source
 const SCHEDULE_PHOTOS = 4
 const LOG_PREFIX = '[DEBUG]'
 
+/** process-images 성공 경로 공통 — 여정지도 자동 생성(실패해도 이미지 성공은 유지) */
+async function runItineraryRouteMapAfterImages(productId: string): Promise<{
+  url?: string
+  skipped?: boolean
+  error?: string
+}> {
+  try {
+    const { ensureItineraryRouteMapForProduct } = await import('@/lib/itinerary-route-map-ensure')
+    const mapResult = await ensureItineraryRouteMapForProduct(prisma, productId, { force: false })
+    if (mapResult.ok) {
+      return { url: mapResult.meta.url, skipped: mapResult.skipped === true }
+    }
+    console.warn(`${LOG_PREFIX} itinerary-route-map:`, mapResult.error)
+    return { error: mapResult.error }
+  } catch (mapErr) {
+    const msg = mapErr instanceof Error ? mapErr.message : String(mapErr)
+    console.warn(`${LOG_PREFIX} itinerary-route-map exception:`, msg)
+    return { error: msg }
+  }
+}
+
 /** schedule JSON 한 항목 — imageKeyword는 검색에 쓴 대표 명소/구문(캐시 키·추적용) */
 type ScheduleEntry = {
   day: number
@@ -452,7 +473,11 @@ export async function POST(req: Request) {
           schedule: scheduleStr,
         },
       })
-      return jsonWithLeakGuard({ success: true, source: 'pool', cacheHit: 5, newFetch: 0 }, 'travel.process-images.pool')
+      const itineraryRouteMap = await runItineraryRouteMapAfterImages(product.id as string)
+      return jsonWithLeakGuard(
+        { success: true, source: 'pool', cacheHit: 5, newFetch: 0, itineraryRouteMap },
+        'travel.process-images.pool',
+      )
     }
 
     const poolBySlot = new Map<number, PoolPhotoRecord>()
@@ -520,12 +545,14 @@ export async function POST(req: Request) {
           schedule: scheduleStrPre,
         },
       })
+      const itineraryRouteMap = await runItineraryRouteMapAfterImages(product.id as string)
       return jsonWithLeakGuard(
         {
           success: true,
           source: 'pre-made',
           cacheHit: 5,
           newFetch: 0,
+          itineraryRouteMap,
         },
         'travel.process-images.premade',
       )
@@ -944,25 +971,7 @@ export async function POST(req: Request) {
     console.log(`${LOG_PREFIX} 최종 DB 업데이트 성공`)
     console.log(`[STEP 4] 최종 업데이트 완료`)
 
-    let itineraryRouteMap: { url?: string; skipped?: boolean; error?: string } | undefined
-    try {
-      const { generateAndPersistItineraryRouteMap } = await import(
-        '@/lib/itinerary-route-map-generate'
-      )
-      const mapResult = await generateAndPersistItineraryRouteMap(prisma, product.id as string, {
-        force: false,
-      })
-      if (mapResult.ok) {
-        itineraryRouteMap = { url: mapResult.meta.url, skipped: mapResult.skipped === true }
-      } else {
-        itineraryRouteMap = { error: mapResult.error }
-        console.warn(`${LOG_PREFIX} itinerary-route-map:`, mapResult.error)
-      }
-    } catch (mapErr) {
-      const msg = mapErr instanceof Error ? mapErr.message : String(mapErr)
-      itineraryRouteMap = { error: msg }
-      console.warn(`${LOG_PREFIX} itinerary-route-map exception:`, msg)
-    }
+    const itineraryRouteMap = await runItineraryRouteMapAfterImages(product.id as string)
 
     const response: Record<string, unknown> = {
       success: true,

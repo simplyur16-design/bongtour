@@ -895,6 +895,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         where: { id },
         data: data as Prisma.ProductUpdateInput,
       })
+      if (data.registrationStatus === 'registered') {
+        const { scheduleItineraryRouteMapGeneration } = await import(
+          '@/lib/itinerary-route-map-ensure'
+        )
+        scheduleItineraryRouteMapGeneration(id)
+      }
     }
     if (
       body.firstPriceRow &&

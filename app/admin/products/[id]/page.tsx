@@ -2457,7 +2457,7 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
               </button>
               <p className="mt-1 text-[10px] text-bt-muted">
                 기존 이미지 보강 API(`/api/travel/process-images`)를 호출합니다. 수십 초~1분 걸릴 수 있습니다.
-                성공 시 일정 동선 플랫 지도도 없으면 자동 생성합니다.
+                여정지도는 등록 confirm·이미지 처리 시 자동 생성되고, 아래 버튼은 수동/강제 재생성용입니다. 베이스맵 지명은 한글만.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button

@@ -4,8 +4,9 @@ import {
   formatItineraryRouteMapDayLabel,
   parseScheduleJsonForRouteMap,
 } from '@/lib/itinerary-route-map-hubs'
-import { buildItineraryRouteMapPrompt } from '@/lib/itinerary-route-map-prompt'
 import { resolveItineraryRouteMapCountry } from '@/lib/itinerary-route-map-country'
+import { resolveRouteMapRegionId } from '@/lib/itinerary-route-map-geo'
+import { buildItineraryRouteMapSvg } from '@/lib/itinerary-route-map-render-svg'
 
 describe('itinerary-route-map-hubs', () => {
   it('formatDayLabel — 연속/비연속', () => {
@@ -15,7 +16,7 @@ describe('itinerary-route-map-hubs', () => {
     expect(formatItineraryRouteMapDayLabel([1, 3, 5])).toBe('1,3,5')
   })
 
-  it('일본 도쿄→하코네→교토→오사카 거점 묶음', () => {
+  it('일본 도쿄→하코네→교토→오사카 거점 묶음 + SVG', () => {
     const schedule = parseScheduleJsonForRouteMap([
       { day: 1, routeText: '인천 - 도쿄', description: '도착' },
       { day: 2, routeText: '도쿄 - 아사쿠사', description: '시내' },
@@ -32,15 +33,20 @@ describe('itinerary-route-map-hubs', () => {
     )
     expect(hubs.find((h) => h.cityKo === '도쿄')?.dayLabel).toMatch(/1/)
     expect(legs.length).toBeGreaterThanOrEqual(3)
-    const prompt = buildItineraryRouteMapPrompt({
-      countryKo: '일본',
-      countryEn: 'JAPAN',
-      hubs,
-      legs,
-    })
-    expect(prompt).toContain('JAPAN')
-    expect(prompt).toContain('도쿄')
-    expect(prompt).toContain('Flat 2D')
+    const svg = buildItineraryRouteMapSvg({ hubs, legs, countryEn: 'JAPAN' })
+    expect(svg).toContain('<svg')
+    expect(svg).toContain('#E4DDD0')
+    expect(svg.length).toBeGreaterThan(500)
+  })
+
+  it('오사카·교토 → kansai 권역', () => {
+    const schedule = parseScheduleJsonForRouteMap([
+      { day: 1, routeText: '인천 - 오사카', description: '도착' },
+      { day: 2, routeText: '오사카 - 교토', description: '전철 약 30분' },
+      { day: 3, routeText: '교토 - 인천', description: '귀국' },
+    ])
+    const { hubs } = extractItineraryRouteMapHubs(schedule)
+    expect(resolveRouteMapRegionId(hubs, 'JAPAN')).toBe('kansai')
   })
 
   it('resolve country EN', () => {

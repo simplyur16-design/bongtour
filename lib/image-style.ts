@@ -63,8 +63,7 @@ export const IMAGEN_ADMIN_TRAVEL_RECORD_SUFFIX =
  * 실사 접미사와 충돌하므로 generateImageWithGemini stylePreset=`flat_itinerary_map`에서만 사용.
  */
 export const IMAGEN_FLAT_ITINERARY_MAP_STYLE_SUFFIX =
-  'Flat 2D vector infographic illustration only (Gemini). Soft pastel mint/green landmass with dark outline, very light blue or white solid background. ' +
-  'Blue horizontal pill/capsule day markers with white text (never map pins). Rounded Korean gothic labels with exact Hangul spelling. ' +
-  'SHORT nearly-straight dark green dashed route segments between nearby hubs only — never giant semicircle ocean arcs. ' +
-  'Small white transit capsules sitting on the line. ' +
-  'No photorealism, no 3D, no mountains, no rivers, no photographic textures, no collage, no extra watermark.'
+  'Flat 2D vector base map only (Gemini). Clear three-tone geography: sage-green LAND (#A8C686) with dark coastline; medium sky-blue SEA (#6EB6E8); deep teal LAKES (#2F8F8A) never the same blue as the sea. ' +
+  'Any on-map text MUST be Hangul only — e.g. 오사카만, 비와호. FORBIDDEN: English, Latin letters, romaji, JAPAN, VIETNAM, Osaka Bay, Lake Biwa. ' +
+  'No pins, capsules, day numbers, route lines, dashed paths, arrows, icons, or logos. ' +
+  'No photorealism, no 3D, no mountains, no photographic textures, no collage.'

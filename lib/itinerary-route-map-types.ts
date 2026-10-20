@@ -1,8 +1,9 @@
 /** Product.rawMeta.itineraryRouteMap — 플랫 2D 일정 동선 지도 SSOT */
 
 export const ITINERARY_ROUTE_MAP_RAW_META_KEY = 'itineraryRouteMap' as const
-export const ITINERARY_ROUTE_MAP_PROMPT_VERSION = 'v1' as const
-export const ITINERARY_ROUTE_MAP_SOURCE = 'gemini_flat_2d' as const
+/** v4: 코드 SVG 벡터 (Gemini 베이스 제거) */
+export const ITINERARY_ROUTE_MAP_PROMPT_VERSION = 'v4' as const
+export const ITINERARY_ROUTE_MAP_SOURCE = 'svg_vector_2d' as const
 
 export type ItineraryRouteMapLineStyle = 'dashed_green' | 'solid_blue'
 

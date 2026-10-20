@@ -1,22 +1,24 @@
 /**
- * 일정 동선 플랫 2D 지도 생성 → 스토리지 업로드 → Product.rawMeta.itineraryRouteMap 저장.
+ * 일정 동선 플랫 지도 — 코드 SVG 렌더 → 스토리지 → Product.rawMeta 저장.
  */
 
 import type { PrismaClient } from '@prisma/client'
-import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { convertToWebp } from '@/lib/image-to-webp'
 import { resolveItineraryRouteMapCountry } from '@/lib/itinerary-route-map-country'
 import {
   extractItineraryRouteMapHubs,
   parseScheduleJsonForRouteMap,
 } from '@/lib/itinerary-route-map-hubs'
-import { buildItineraryRouteMapPrompt } from '@/lib/itinerary-route-map-prompt'
+import { renderItineraryRouteMapPng } from '@/lib/itinerary-route-map-render-svg'
 import {
   buildItineraryRouteMapMeta,
   getItineraryRouteMapFromRawMeta,
   mergeItineraryRouteMapIntoRawMeta,
 } from '@/lib/itinerary-route-map-raw-meta'
-import type { ItineraryRouteMapMeta } from '@/lib/itinerary-route-map-types'
+import {
+  ITINERARY_ROUTE_MAP_PROMPT_VERSION,
+  type ItineraryRouteMapMeta,
+} from '@/lib/itinerary-route-map-types'
 import {
   buildItineraryRouteMapObjectKey,
   isObjectStorageConfigured,
@@ -59,7 +61,7 @@ export async function generateAndPersistItineraryRouteMap(
   if (!product) return { ok: false, error: '상품을 찾을 수 없습니다.' }
 
   const existing = getItineraryRouteMapFromRawMeta(product.rawMeta)
-  if (existing?.url && !force) {
+  if (existing?.url && !force && existing.promptVersion === ITINERARY_ROUTE_MAP_PROMPT_VERSION) {
     return {
       ok: true,
       meta: existing,
@@ -89,18 +91,8 @@ export async function generateAndPersistItineraryRouteMap(
     title: product.title,
   })
 
-  const promptUsed = buildItineraryRouteMapPrompt({ countryKo, countryEn, hubs, legs })
-  const buffer = await generateImageWithGemini({
-    prompt: promptUsed,
-    aspectRatio: '4:3',
-    stylePreset: 'flat_itinerary_map',
-    strictErrors: false,
-  })
-  if (!buffer) {
-    return { ok: false, error: 'Gemini 지도 생성에 실패했습니다.', hubsFound: hubs.length }
-  }
-
-  const webp = await convertToWebp(buffer, { maxWidth: 1600, quality: 88 })
+  const png = await renderItineraryRouteMapPng({ hubs, legs, countryEn })
+  const webp = await convertToWebp(png, { maxWidth: 1600, quality: 88 })
   const objectKey = buildItineraryRouteMapObjectKey(product.id)
   const { publicUrl } = await uploadStorageObject({
     objectKey,
@@ -130,5 +122,5 @@ export async function generateAndPersistItineraryRouteMap(
     )
   }
 
-  return { ok: true, meta, promptUsed }
+  return { ok: true, meta, promptUsed: 'svg_vector_2d' }
 }
