@@ -164,4 +164,6 @@ export type TravelProduct = {
   adultOnly2030?: boolean
   /** 등록 시 저장된 동선지도(공개 DTO) — rawMeta 미노출 */
   routeMap?: PublicRouteMapView | null
+  /** 키 없는 SVG 일정 동선 지도 (rawMeta.itineraryRouteMap.url) */
+  itineraryRouteMapUrl?: string | null
 }

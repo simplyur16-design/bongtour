@@ -818,6 +818,10 @@ export async function buildProductPublicDetailRenderModel(
   )
 
   const routeMap = buildPublicRouteMapView(travelProduct.rawMeta ?? null)
+  const itineraryRouteMapUrl =
+    typeof rawParsed?.itineraryRouteMap?.url === 'string' && rawParsed.itineraryRouteMap.url.trim()
+      ? rawParsed.itineraryRouteMap.url.trim()
+      : null
 
   // REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 코드 = 가장 가까운 판매 중 같은 상품 출발 회차 코드(표시 전용)
   const heroOriginCodeDisplay = resolveHeroDepartureCodeForDisplay({
@@ -836,6 +840,7 @@ export async function buildProductPublicDetailRenderModel(
     ...productForDetail,
     heroOriginCodeDisplay,
     routeMap,
+    itineraryRouteMapUrl,
     includedText: finalIncludedText,
     excludedText: finalExcludedText,
     airline: (() => {

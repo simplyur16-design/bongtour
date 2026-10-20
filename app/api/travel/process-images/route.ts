@@ -1694,12 +1694,33 @@ export async function POST(req: Request) {
       afterCover: preserveHero ? (typeof product.bgImageUrl === 'string' ? product.bgImageUrl : null) : bgPhoto.url,
       coverCounts: !preserveHero,
     })
+    let itineraryRouteMap: { url?: string; skipped?: boolean; error?: string } | undefined
+    try {
+      const { generateAndPersistItineraryRouteMap } = await import(
+        '@/lib/itinerary-route-map-generate'
+      )
+      const mapResult = await generateAndPersistItineraryRouteMap(prisma, product.id as string, {
+        force: false,
+      })
+      if (mapResult.ok) {
+        itineraryRouteMap = { url: mapResult.meta.url, skipped: mapResult.skipped === true }
+      } else {
+        itineraryRouteMap = { error: mapResult.error }
+        console.warn(`${LOG_PREFIX} itinerary-route-map:`, mapResult.error)
+      }
+    } catch (mapErr) {
+      const msg = mapErr instanceof Error ? mapErr.message : String(mapErr)
+      itineraryRouteMap = { error: msg }
+      console.warn(`${LOG_PREFIX} itinerary-route-map exception:`, msg)
+    }
+
     const response: Record<string, unknown> = {
       cacheHit: cacheHitCount,
       newFetch: newFetchCount,
       ...(strictAutofill
         ? { exceptions: strictExceptions.map((e) => ({ productId: e.productId, day: e.day, kind: e.kind, sight: e.sight, query: e.query, reason: e.reason, detail: e.detail })) }
         : {}),
+      itineraryRouteMap,
     }
     if (debugMode) {
       response.processImagesTrace = {
