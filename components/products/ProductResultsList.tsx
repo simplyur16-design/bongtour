@@ -808,44 +808,53 @@ export function ProductResultCard({
         {!compact && !hubSquareSmall ? (
           <p className="text-[11px] font-medium text-slate-500">{formatOriginSourceForDisplay(item.originSource)}</p>
         ) : null}
-        <div className={compact || hubSquareSmall ? 'mt-0.5' : 'mt-1 flex flex-wrap items-center gap-2'}>
+        <div
+          className={
+            // REGRESSION-FREEZE[product-card-title-badge-stack]: 제목 전폭 → 배지 다음 줄 — manifest
+            compact || hubSquareSmall
+              ? 'mt-0.5 flex flex-col gap-1'
+              : 'mt-1 flex flex-col gap-1.5'
+          }
+        >
           <h2
             className={
               hubSquareSmall
-                ? 'line-clamp-2 min-w-0 text-[9px] font-semibold leading-tight text-slate-900 group-hover:text-teal-800'
+                ? 'line-clamp-2 w-full min-w-0 text-[9px] font-semibold leading-tight text-slate-900 group-hover:text-teal-800'
                 : compact
-                ? 'line-clamp-2 min-w-0 text-[11px] font-semibold leading-snug text-slate-900 group-hover:text-teal-800'
-                : hero
-                  ? 'line-clamp-2 flex-1 min-w-0 text-sm font-bold leading-snug text-slate-900 group-hover:text-teal-800'
-                  : featured
-                    ? 'line-clamp-2 flex-1 min-w-0 text-[15px] font-bold leading-snug text-slate-900 group-hover:text-teal-800'
-                    : 'line-clamp-2 flex-1 min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800'
+                  ? 'line-clamp-2 w-full min-w-0 text-[11px] font-semibold leading-snug text-slate-900 group-hover:text-teal-800'
+                  : hero
+                    ? 'line-clamp-2 w-full min-w-0 text-sm font-bold leading-snug text-slate-900 group-hover:text-teal-800'
+                    : featured
+                      ? 'line-clamp-2 w-full min-w-0 text-[15px] font-bold leading-snug text-slate-900 group-hover:text-teal-800'
+                      : 'line-clamp-2 w-full min-w-0 text-sm font-semibold text-slate-900 group-hover:text-teal-800'
             }
           >
             {item.title}
           </h2>
-          <span
-            className={
-              hubSquareSmall
-                ? 'mt-0.5 inline-block shrink-0 rounded-full bg-slate-100 px-1 py-px text-[8px] text-slate-600'
-                : compact
-                  ? 'mt-0.5 inline-block shrink-0 rounded-full bg-slate-100 px-1.5 py-px text-[9px] text-slate-600'
-                  : 'shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600'
-            }
-          >
-            {laneLabel}
-          </span>
-          {seasonalPickBadge ? (
+          <div className="flex flex-wrap items-center gap-1.5">
             <span
               className={
-                compact
-                  ? 'mt-0.5 inline-block shrink-0 rounded-full bg-teal-100 px-1.5 py-px text-[9px] text-teal-700'
-                  : 'shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-xs text-teal-700'
+                hubSquareSmall
+                  ? 'inline-block shrink-0 rounded-full bg-slate-100 px-1 py-px text-[8px] text-slate-600'
+                  : compact
+                    ? 'inline-block shrink-0 rounded-full bg-slate-100 px-1.5 py-px text-[9px] text-slate-600'
+                    : 'shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600'
               }
             >
-              {compact ? '추천' : '이달의 추천'}
+              {laneLabel}
             </span>
-          ) : null}
+            {seasonalPickBadge ? (
+              <span
+                className={
+                  compact
+                    ? 'inline-block shrink-0 rounded-full bg-teal-100 px-1.5 py-px text-[9px] text-teal-700'
+                    : 'shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-xs text-teal-700'
+                }
+              >
+                {compact ? '추천' : '이달의 추천'}
+              </span>
+            ) : null}
+          </div>
         </div>
         {!compact && !hubSquareSmall && item.primaryDestination ? (
           <p className="mt-1 text-xs text-slate-600">{item.primaryDestination}</p>

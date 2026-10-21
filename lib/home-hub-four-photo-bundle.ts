@@ -9,7 +9,8 @@ import { listPrivateTripHeroStoragePublicUrls } from '@/lib/private-trip-hero-su
 
 export type HubFourPhotoBundle = Record<HubFourCardKey, string | null>
 
-const CANDIDATE_TAKE = 72
+/** 홈 허브 타일 — cold path Prisma 스캔 축소 (커버만 찾으면 조기 return) */
+const CANDIDATE_TAKE = 24
 
 async function pickOverseasPackageCoverUrl(): Promise<string | null> {
   const rows = await prisma.product.findMany({
@@ -27,7 +28,7 @@ async function pickOverseasPackageCoverUrl(): Promise<string | null> {
       itineraries: {
         select: { day: true, description: true },
         orderBy: { day: 'asc' },
-        take: 24,
+        take: 8,
       },
     },
   })
@@ -56,7 +57,7 @@ async function pickAirHotelCoverUrl(): Promise<string | null> {
       itineraries: {
         select: { day: true, description: true },
         orderBy: { day: 'asc' },
-        take: 24,
+        take: 8,
       },
     },
   })

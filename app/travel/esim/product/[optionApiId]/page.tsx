@@ -64,7 +64,7 @@ export default async function ProductDetailV1Page({ params }: Props) {
   return (
     <div className="min-h-screen bg-bt-page">
       <Header />
-      <div className="min-h-full bg-slate-50 pb-28">
+      <div className="min-h-full bg-slate-50 pb-8">
       <main className="mx-auto max-w-lg px-4 pt-3 sm:max-w-2xl sm:px-6 sm:pt-4 lg:max-w-3xl lg:px-8 lg:pt-6">
         <nav className="text-[12px] text-slate-500 lg:text-[13px]">
           <Link href={bongsimPath()} className="hover:text-teal-800">

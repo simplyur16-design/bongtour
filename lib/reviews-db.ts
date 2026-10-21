@@ -196,7 +196,8 @@ export async function listOverseasHomeReviewSections(): Promise<{
   packageReviews: ReviewCardModel[]
   groupReviews: ReviewCardModel[]
 }> {
-  const pool = await listOverseasPublishedReviewCardsWithOrder(80)
+  // 홈은 패키지 12장만 쓰므로 풀 80→36 — cold Supabase 부하 완화
+  const pool = await listOverseasPublishedReviewCardsWithOrder(36)
   const packages: ReviewCardWithOrder[] = []
   const groups: ReviewCardWithOrder[] = []
   for (const row of pool) {
