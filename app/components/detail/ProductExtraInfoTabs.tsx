@@ -33,6 +33,7 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import PasteBlocksReaderView from '@/app/components/detail/PasteBlocksReaderView'
 import { parseOptionalPasteForPublicDisplay } from '@/lib/paste-block-display'
+import { scrubPublicHotelNameList } from '@/lib/public-hotel-display-ssot'
 
 type TabId = 'local' | 'included' | 'shopping' | 'hotel'
 
@@ -367,8 +368,10 @@ export default function ProductExtraInfoTabs({
             {dayHotelPlans.length > 0 ? (
               <div className="space-y-3">
                 {dayHotelPlans.map((p) => {
-                  const lines =
-                    p.hotels?.length ? p.hotels : p.raw?.trim() ? [p.raw.trim()] : []
+                  // REGRESSION-FREEZE[public-hotel-display-scrub]: 호텔정보 탭 scrub — manifest
+                  const lines = scrubPublicHotelNameList(
+                    p.hotels?.length ? p.hotels : p.raw?.trim() ? [p.raw.trim()] : [],
+                  )
                   return (
                     <article
                       key={`${p.dayIndex}-${p.label}`}

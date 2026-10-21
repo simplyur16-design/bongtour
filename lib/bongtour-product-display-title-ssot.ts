@@ -281,6 +281,31 @@ function splitPlaceTokens(...parts: (string | null | undefined)[]): string[] {
   return uniqPreserve(out)
 }
 
+/**
+ * 국내 출발 허브·「X출발」라벨 — 해외 상품 short 제목 place로 쓰지 않음.
+ * REGRESSION-FREEZE[public-card-no-kr-departure-place]: 부산·대구 등 출발지≠목적지 — manifest
+ */
+export function isKrHomeDeparturePlaceLabel(s: string): boolean {
+  const t = sanitizePlaceLabel(s)
+  if (!t) return false
+  if (/^(?:부산|대구|청주|김해|김포|인천|서울|제주)(?:공항)?$/u.test(t)) return true
+  if (/^(?:부산|대구|청주|김해|제주|인천)\s*출발$/u.test(t)) return true
+  return false
+}
+
+function stripKrDepartureMarkersFromTitle(title: string): string {
+  return String(title || '')
+    .replace(/\[\s*(?:부산|대구|청주|제주|김해|인천)\s*\]/gu, ' ')
+    .replace(/(?:부산|대구|청주|김해|제주|인천)\s*출발/gu, ' ')
+    .replace(/#[^\s#]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function filterKrDeparturePlaceTokens(cities: readonly string[]): string[] {
+  return cities.filter((c) => !isKrHomeDeparturePlaceLabel(c))
+}
+
 export type PublicBrowseCardTitleInput = {
   /** Plan B / DB 원문 제목 — 폴백·haystack */
   title: string
@@ -307,11 +332,15 @@ export function resolvePublicBrowseCardTitle(
   input: PublicBrowseCardTitleInput,
   fallbackTitle: string,
 ): PublicBrowseCardTitleResult {
-  const cities = splitPlaceTokens(
-    input.primaryDestination,
-    input.destination,
-    input.destinationRaw,
+  // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 출발 허브 도시 제거 — manifest
+  let cities = filterKrDeparturePlaceTokens(
+    splitPlaceTokens(input.primaryDestination, input.destination, input.destinationRaw),
   )
+  if (cities.length === 0) {
+    cities = filterKrDeparturePlaceTokens(
+      splitPlaceTokens(stripKrDepartureMarkersFromTitle(input.title)),
+    )
+  }
   const countryLabel = cleanToken(String(input.countryRowLabel || ''))
   const regionLabel = cleanToken(String(input.primaryRegion || ''))
   const multiCountry =
@@ -322,14 +351,22 @@ export function resolvePublicBrowseCardTitle(
   const duration =
     String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
   const regionClean = sanitizePlaceLabel(regionLabel)
-  const countryClean = sanitizePlaceLabel(countryLabel)
+  let countryClean = sanitizePlaceLabel(countryLabel)
+  if (countryClean && isKrHomeDeparturePlaceLabel(countryClean)) countryClean = ''
 
   const composed = composeBongtourHeroDisplayTitle({
     duration,
     countryLabel: countryClean || null,
     cities,
     regionLabel: regionClean || null,
-    haystack: [input.title, input.primaryDestination, input.destination].filter(Boolean).join(' '),
+    haystack: [
+      stripKrDepartureMarkersFromTitle(input.title),
+      ...cities,
+      input.primaryDestination,
+      input.destination,
+    ]
+      .filter(Boolean)
+      .join(' '),
     multiCountry,
   })
 

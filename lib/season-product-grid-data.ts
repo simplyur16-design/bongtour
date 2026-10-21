@@ -53,6 +53,7 @@ function toResultItem(p: {
     scheduleDays: scheduleRows,
   })
   // REGRESSION-FREEZE[public-card-hero-short-title]: 시즌 홈 카드 — 짧은 제목 — manifest
+  // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 시즌 카드 출발허브≠place — manifest
   const planB = normalizeSupplierRegisterListingTitle(p.title) || p.title
   const card = resolvePublicBrowseCardTitle(
     {
@@ -166,8 +167,8 @@ export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
   if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    // v5: place paren sanitize + duration-from-title
-    ['season-product-grid-pc-v5'],
+    // v6: strip KR departure hub from short title place
+    ['season-product-grid-pc-v6'],
     { revalidate: 21_600 },
   )
   return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())

@@ -2,7 +2,13 @@
  * 상세 일정 카드 — 호텔/식사 표시용 (원문 기반, 추론 금지).
  *
  * 운영 E2E 체크 항목: `lib/register-flow/hotel-meal-e2e-checklist.ts` 참고.
+ * 공개 호텔 한 줄 scrub: `lib/public-hotel-display-ssot.ts`
  */
+
+import {
+  scrubPublicHotelDisplayLine,
+  scrubPublicHotelNameList,
+} from '@/lib/public-hotel-display-ssot'
 
 export type HotelMealLabels = {
   hotelBlockTitle: string
@@ -53,14 +59,13 @@ export type FormatHotelDisplayParams = {
  * 순서: hotelNames(2+ → 외 n, 1 → 단일) → hotelSummaryText → dayHotelText → null
  */
 export function formatHotelDisplay(params: FormatHotelDisplayParams): string | null {
-  const names = (params.hotelNames ?? [])
-    .map((x) => String(x).trim())
-    .filter((x) => x.length > 0)
+  // REGRESSION-FREEZE[public-hotel-display-scrub]: 공개 호텔명 scrub — manifest
+  const names = scrubPublicHotelNameList(params.hotelNames)
   if (names.length >= 2) return `${names[0]} 외 ${names.length - 1}`
   if (names.length === 1) return names[0]!
-  const summary = trimOrNull(params.hotelSummaryText)
+  const summary = scrubPublicHotelDisplayLine(params.hotelSummaryText)
   if (summary) return summary
-  return trimOrNull(params.dayHotelText)
+  return scrubPublicHotelDisplayLine(params.dayHotelText)
 }
 
 export type FormatMealDisplayParams = {
@@ -115,7 +120,8 @@ export function formatScheduleDayHotelLine(params: {
   isLastScheduleRow?: boolean
   dayDescription?: string | null
 }): string | null {
-  const day = trimOrNull(params.dayHotelText)
+  // REGRESSION-FREEZE[public-hotel-display-scrub]: day 호텔 scrub — manifest
+  const day = scrubPublicHotelDisplayLine(params.dayHotelText)
   if (day) return day
   if (
     params.isLastScheduleRow &&

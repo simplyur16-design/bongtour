@@ -14784,7 +14784,7 @@
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "shouldSkipDbAtBuild",
             "readCachedArrayOrBypassEmpty",
-            "season-product-grid-pc-v5"
+            "season-product-grid-pc-v6"
           ]
         },
         {
@@ -26253,6 +26253,69 @@
       ],
       "vitestSuites": [
         "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-card-no-kr-departure-place",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공개 short 제목 — 부산·대구·청주 등 국내출발 허브를 목적지로 쓰지 않음",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-display-title-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
+            "isKrHomeDeparturePlaceLabel",
+            "filterKrDeparturePlaceTokens"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
+            "season-product-grid-pc-v6"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-hotel-display-scrub",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공개 호텔 한 줄 — 부산 예정호텔·호텔소개·슬래시 갤러리 나열 scrub",
+      "checks": [
+        {
+          "file": "lib/public-hotel-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hotel-display-scrub]",
+            "scrubPublicHotelDisplayLine",
+            "KR_DEPARTURE_SCHEDULED_HOTEL_RE"
+          ]
+        },
+        {
+          "file": "lib/hotel-meal-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hotel-display-scrub]",
+            "scrubPublicHotelDisplayLine"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductExtraInfoTabs.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hotel-display-scrub]",
+            "scrubPublicHotelNameList"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/public-hotel-display-ssot.test.ts"
       ]
     },
     {

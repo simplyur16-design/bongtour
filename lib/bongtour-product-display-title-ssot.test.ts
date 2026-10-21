@@ -186,3 +186,32 @@ describe('resolvePublicDetailHeroTitles', () => {
     expect(r.heroTitle).not.toEqual(r.listingTitle)
   })
 })
+
+// REGRESSION-FREEZE[public-card-no-kr-departure-place]: 출발지≠목적지 — manifest
+describe('resolvePublicBrowseCardTitle KR departure place', () => {
+  it('부산 · 마츠야마 dest → 마츠야마 N박 M일 (부산 금지)', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '마츠야마/오즈/우치코 역사 도고 온천가 2박 3일',
+        duration: '2박 3일',
+        primaryDestination: '부산 · 마츠야마',
+      },
+      '마츠야마/오즈/우치코 역사 도고 온천가 2박 3일',
+    )
+    expect(r.usedHeroShort).toBe(true)
+    expect(r.cardTitle).toBe('마츠야마 2박 3일')
+    expect(r.cardTitle).not.toMatch(/부산/)
+  })
+
+  it('[부산출발] 도쿄 — 도쿄 short', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '[부산출발] 핵심쏙쏙도쿄 2박3일',
+        duration: '2박 3일',
+        primaryDestination: '도쿄',
+      },
+      '[부산출발] 핵심쏙쏙도쿄 2박3일',
+    )
+    expect(r.cardTitle).toBe('도쿄 2박 3일')
+  })
+})
