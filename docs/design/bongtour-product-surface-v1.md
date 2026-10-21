@@ -166,7 +166,7 @@
 
 **일수토큰**
 
-1. `duration`의 `N박 M일` → 공개는 **`M일`** (인더월드형) 또는 상세에 `N박M일` 병기  
+1. `duration`의 `N박 M일` → 공개 카드도 **`N박 M일`** (숙박·일정 함께 읽히게)  
 2. 없으면 원제목/`getProductTotalDays`  
 3. 일수 없으면 short title 실패 → UI는 기존 `title` 폴백  
 

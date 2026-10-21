@@ -166,8 +166,8 @@ export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
   if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    // v3: public-card-hero-short-title — bust stale long Plan B titles in cache
-    ['season-product-grid-pc-v3'],
+    // v4: hero day token N박 M일 — bust prior M일-only short titles
+    ['season-product-grid-pc-v4'],
     { revalidate: 21_600 },
   )
   return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())

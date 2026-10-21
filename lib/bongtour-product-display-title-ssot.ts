@@ -124,17 +124,22 @@ function uniqPreserve(list: readonly string[]): string[] {
   return out
 }
 
-/** duration `N박 M일` → 공개 `M일` */
+/** duration `N박 M일` → 공개도 `N박 M일` (카드에서 숙박·일수 함께 읽히게) */
 export function composeHeroDayToken(
   duration?: string | null,
   totalDays?: number | null
 ): string | null {
   const d = String(duration || '').trim()
   const m = d.match(/(\d+)\s*박\s*(\d+)\s*일/)
-  if (m) return `${m[2]}일`
+  if (m) return `${m[1]}박 ${m[2]}일`
   const onlyDay = d.match(/(?<!\d)(\d+)\s*일(?!\d)/)
-  if (onlyDay) return `${onlyDay[1]}일`
+  if (onlyDay) {
+    const days = Number(onlyDay[1])
+    if (days > 1) return `${days - 1}박 ${days}일`
+    return `${days}일`
+  }
   const n = getProductTotalDays({ duration: duration ?? null }, totalDays ?? null)
+  if (n > 1) return `${n - 1}박 ${n}일`
   if (n > 0) return `${n}일`
   return null
 }

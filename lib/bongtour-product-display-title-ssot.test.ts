@@ -8,12 +8,12 @@ import {
 // REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
 
 describe('composeHeroDayToken', () => {
-  it('N박 M일 → M일', () => {
-    expect(composeHeroDayToken('3박 4일')).toBe('4일')
-    expect(composeHeroDayToken('7박8일')).toBe('8일')
+  it('N박 M일 → N박 M일', () => {
+    expect(composeHeroDayToken('3박 4일')).toBe('3박 4일')
+    expect(composeHeroDayToken('7박8일')).toBe('7박 8일')
   })
-  it('totalDays 폴백', () => {
-    expect(composeHeroDayToken(null, 5)).toBe('5일')
+  it('totalDays 폴백 → (n-1)박 n일', () => {
+    expect(composeHeroDayToken(null, 5)).toBe('4박 5일')
   })
 })
 
@@ -24,7 +24,7 @@ describe('composeBongtourHeroDisplayTitle', () => {
       countryLabel: '베트남',
       cities: ['다낭', '호이안'],
     })
-    expect(r.heroShortTitle).toBe('다낭 5일')
+    expect(r.heroShortTitle).toBe('다낭 4박 5일')
     expect(r.heroSubtitle).toBe('베트남')
     expect(r.placeKind).toBe('city')
   })
@@ -35,7 +35,7 @@ describe('composeBongtourHeroDisplayTitle', () => {
       countryLabel: '일본',
       cities: ['가나자와', '다카야마'],
     })
-    expect(r.heroShortTitle).toBe('일본 3일')
+    expect(r.heroShortTitle).toBe('일본 2박 3일')
     expect(r.heroSubtitle).toBe('가나자와 · 다카야마')
     expect(r.placeKind).toBe('country')
   })
@@ -48,7 +48,7 @@ describe('composeBongtourHeroDisplayTitle', () => {
       cities: ['프라하', '부다페스트', '빈'],
       countryLabel: null,
     })
-    expect(r.heroShortTitle).toBe('동유럽 10일')
+    expect(r.heroShortTitle).toBe('동유럽 8박 10일')
     expect(r.placeKind).toBe('region')
   })
 
@@ -59,7 +59,7 @@ describe('composeBongtourHeroDisplayTitle', () => {
       haystack: '아이슬란드 오로라 버스투어',
       cities: ['레이캬비크'],
     })
-    expect(r.heroShortTitle).toBe('아이슬란드 오로라 7일')
+    expect(r.heroShortTitle).toBe('아이슬란드 오로라 6박 7일')
     expect(r.placeKind).toBe('theme')
   })
 
@@ -78,14 +78,14 @@ describe('composeBongtourHeroDisplayTitle', () => {
       countryLabel: '프리미엄 베트남',
       cities: ['다낭'],
     })
-    expect(r.heroShortTitle).toBe('다낭 4일')
+    expect(r.heroShortTitle).toBe('다낭 3박 4일')
     expect(r.heroSubtitle).not.toMatch(/프리미엄/)
   })
 })
 
 // REGRESSION-FREEZE[public-card-hero-short-title]: 카드 제목 배선 — manifest
 describe('resolvePublicBrowseCardTitle', () => {
-  it('긴 해시태그 원문 대신 목적지+일수 카드 제목', () => {
+  it('긴 해시태그 원문 대신 목적지+N박M일 카드 제목', () => {
     const r = resolvePublicBrowseCardTitle(
       {
         title:
@@ -97,7 +97,7 @@ describe('resolvePublicBrowseCardTitle', () => {
       'NO유류 차액! 출발가능 이탈리아 일주 11일 [낯설어 아름답다]',
     )
     expect(r.usedHeroShort).toBe(true)
-    expect(r.cardTitle).toMatch(/일$/)
+    expect(r.cardTitle).toMatch(/\d+박\s*\d+일$/)
     expect(r.cardTitle.length).toBeLessThan(40)
     expect(r.cardTitle).not.toMatch(/#대한항공|NO유류/)
   })
@@ -111,7 +111,7 @@ describe('resolvePublicBrowseCardTitle', () => {
       },
       '방콕/파타야 3박 5일 #첫여행추천 #5성호텔',
     )
-    expect(r.cardTitle).toBe('방콕 5일')
+    expect(r.cardTitle).toBe('방콕 3박 5일')
     expect(r.usedHeroShort).toBe(true)
   })
 
