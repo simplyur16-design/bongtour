@@ -107,7 +107,7 @@ export default async function HomeMobileHub() {
                             src={t.bgSrc!}
                             alt=""
                             fill
-                            sizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 25vw"
+                            sizes="(max-width:768px) 50vw, (max-width:1024px) 50vw, 25vw"
                             quality={index === 0 ? 80 : 75}
                             className="object-cover object-center"
                             priority={index === 0}
