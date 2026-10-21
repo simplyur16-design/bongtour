@@ -87,3 +87,8 @@
   background: var(--bt-ow-surface);
   border-color: var(--bt-ow-border);
 }
+
+.bt-ocean-warm.ow-home-live .ow-live-reviews {
+  background: var(--bt-ow-sand-soft);
+  border-color: var(--bt-ow-border);
+}

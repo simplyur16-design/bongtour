@@ -14784,7 +14784,7 @@
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "shouldSkipDbAtBuild",
             "readCachedArrayOrBypassEmpty",
-            "season-product-grid-pc-v2"
+            "season-product-grid-pc-v5"
           ]
         },
         {
@@ -23457,7 +23457,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "봉투어 모바일웹 — 이심 결제 퍼널에서 사이트 하단 바를 숨겨 결제하기가 가려지지 않게 한다",
+      "summary": "봉투어 모바일웹 eSIM — 사이트 하단바 숨김 + 결제/구매 CTA는 본문 흐름(뷰포트 fixed 독 금지)",
       "checks": [
         {
           "file": "lib/mobile-sticky-bar-visibility.ts",
@@ -23487,16 +23487,22 @@
           "file": "components/bongsim/recommend/ProductCombinationStep.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
-            "z-50",
-            "env(safe-area-inset-bottom)"
+            "결제하기",
+            "mt-6 px-4"
+          ],
+          "mustNotInclude": [
+            "fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[500px]"
           ]
         },
         {
           "file": "components/bongsim/detail-v1/ProductDetailStickyBarV1.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[esim-mobile-web-pay-dock]",
-            "z-50",
-            "구매하기"
+            "구매하기",
+            "mt-6 border-t"
+          ],
+          "mustNotInclude": [
+            "fixed inset-x-0 bottom-0 z-50"
           ]
         },
         {
@@ -23509,6 +23515,27 @@
       ],
       "vitestSuites": [
         "lib/mobile-sticky-bar-visibility.test.ts"
+      ]
+    },
+    {
+      "id": "product-card-title-badge-stack",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 카드 — 제목 전폭 다음 줄에 패키지/이달의추천 배지(겹침·글자깨짐 방지)",
+      "checks": [
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-card-title-badge-stack]",
+            "flex flex-col gap-1.5",
+            "이달의 추천"
+          ],
+          "mustNotInclude": [
+            "flex flex-wrap items-center gap-2"
+          ]
+        }
       ]
     },
     {
@@ -26144,6 +26171,99 @@
       "vitestSuites": [
         "lib/bongtour-product-display-title-ssot.test.ts",
         "lib/bongtour-route-map-chain-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-card-hero-short-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홈·browse 카드 — heroShort 목적지+일수 제목 (Plan B 원문 DB 미덮어쓰기)",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-display-title-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "resolvePublicBrowseCardTitle",
+            "sanitizePlaceLabel",
+            "durationHintFromTitle"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "resolvePublicBrowseCardTitle"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "resolvePublicBrowseCardTitle"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-hero-short-title]",
+            "heroSubtitle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-hero-airline-iata-ko",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품상세 히어로 제목·항공 줄 — 단독 IATA(TW 등)를 한글 항공사명으로 표시",
+      "checks": [
+        {
+          "file": "lib/airline-iata-public-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "expandAirlineIataCodesInPublicTitle",
+            "formatPublicAirlineDisplay",
+            "티웨이항공"
+          ]
+        },
+        {
+          "file": "app/components/detail/product-detail-visual.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "expandAirlineIataCodesInPublicTitle"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "formatPublicAirlineDisplay"
+          ]
+        },
+        {
+          "file": "app/components/detail/TravelCoreInfoSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "formatPublicAirlineDisplay"
+          ]
+        },
+        {
+          "file": "lib/product-meta-chips.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "formatPublicAirlineDisplay"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/airline-iata-public-display-ssot.test.ts"
       ]
     },
     {

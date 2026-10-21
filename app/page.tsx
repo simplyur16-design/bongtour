@@ -109,7 +109,7 @@ export default async function Home() {
             <ServiceInfoCards oceanWarm />
             <HomeTrustSection />
             <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
-              <CustomerReviewsSection />
+              <CustomerReviewsSection oceanWarm />
             </Suspense>
             {process.env.NODE_ENV !== 'production' ? (
               <div className="relative border-t border-bt-border-soft/80 pt-3 md:pt-4">

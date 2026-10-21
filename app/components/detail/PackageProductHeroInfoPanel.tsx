@@ -15,6 +15,7 @@ import {
   COMPARE_PRICE_ROW_HINT,
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
+import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
 
 export type PackageProductHeroInfoPanelProps = {
   showTitle?: boolean
@@ -84,6 +85,8 @@ export default function PackageProductHeroInfoPanel({
 
   const showPriceBlock =
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
+  // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 히어로 항공 줄 IATA→한글 — manifest
+  const airlineDisplay = formatPublicAirlineDisplay(airline)
 
   return (
     <>
@@ -100,10 +103,10 @@ export default function PackageProductHeroInfoPanel({
         <span className="font-medium text-bt-title">{destination}</span>
         <span className="text-bt-disabled">·</span>
         <span>{durationLabel}</span>
-        {airline?.trim() ? (
+        {airlineDisplay ? (
           <>
             <span className="text-bt-disabled">·</span>
-            <span className="text-bt-muted">{airline.trim()}</span>
+            <span className="text-bt-muted">{airlineDisplay}</span>
           </>
         ) : null}
         {departureAirportLabelDisplay?.trim() ? (

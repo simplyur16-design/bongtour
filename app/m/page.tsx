@@ -62,7 +62,7 @@ export default async function HomeMobile() {
             <HomeEsimProductSection />
             <HomeTrustSection />
             <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
-              <CustomerReviewsSection />
+              <CustomerReviewsSection oceanWarm />
             </Suspense>
           </section>
         </main>

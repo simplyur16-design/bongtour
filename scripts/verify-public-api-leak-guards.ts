@@ -35,6 +35,8 @@ function collectRouteFiles(dir: string): string[] {
 function isExcludedFromLeakGuardScan(rel: string): boolean {
   if (rel.includes('/api/admin/')) return true
   if (rel.includes('/api/auth/')) return true
+  /** 로컬/dev 전용 — NODE_ENV!==development 에서 404 */
+  if (rel.includes('/api/dev/')) return true
   /** 로그인 세션(`auth()`)으로 보호 — assertNoInternalMetaLeak 대상 아님 */
   if (rel.includes('/api/mypage/')) return true
   /** 공개 읽기 전용 마스터 데이터 */

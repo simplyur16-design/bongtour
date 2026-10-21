@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { FLIGHT_FINAL_CONFIRM_HINT, formatDirectedFlightRow } from '@/lib/flight-user-display'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { normalizeFlightLabelForPublicDisplay } from '@/lib/text-encoding-guard'
+import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 import { ProductMetaChips } from '@/app/components/detail/product-detail-visual'
 import { resolveMeetingBlockForPublic } from '@/lib/meeting-line-dedupe'
@@ -64,7 +65,8 @@ export default function TravelCoreInfoSection({
   flightExposurePolicy = null,
 }: Props) {
   const rawAirlineLine = (facts?.airline?.trim() || productAirline?.trim() || '').trim() || null
-  const airlineLine = normalizeFlightLabelForPublicDisplay(rawAirlineLine)
+  // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 여행요약 항공사 줄 IATA→한글 — manifest
+  const airlineLine = formatPublicAirlineDisplay(normalizeFlightLabelForPublicDisplay(rawAirlineLine))
   const ob = facts?.outbound
   const ib = facts?.inbound
   const outRow = formatDirectedFlightRow('가는편', ob)

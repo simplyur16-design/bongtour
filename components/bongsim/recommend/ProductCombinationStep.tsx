@@ -813,7 +813,7 @@ export function ProductCombinationStep({
 
     return (
       <BongsimRecommendAppShell singleCountry>
-        <div className={`bt-bongsim-readable ${done && checkoutQueue.length > 0 ? "pb-24 lg:pb-8" : "pb-8"} lg:pb-12`}>
+        <div className="bt-bongsim-readable pb-8 lg:pb-12">
           <div className="border-b border-[#f0f0f6] px-4 py-3 lg:px-0">
             <button
               type="button"
@@ -849,8 +849,8 @@ export function ProductCombinationStep({
           />
 
           {done && checkoutQueue.length > 0 ? (
-            <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[500px] border-t border-[#f0f0f6] bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:static lg:mt-6 lg:max-w-none lg:border-0 lg:px-0 lg:pb-0 lg:pt-0">
-              {/* REGRESSION-FREEZE[esim-mobile-web-pay-dock]: purchase dock above site bar — manifest */}
+            <div className="mt-6 px-4 lg:px-0">
+              {/* REGRESSION-FREEZE[esim-mobile-web-pay-dock]: 결제하기는 본문 흐름(고정 하단 독 금지) — manifest */}
               <button
                 type="button"
                 onClick={() => goToCheckout()}

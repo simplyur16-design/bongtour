@@ -10,6 +10,8 @@ import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCL
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
+import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 
 function startOfTodayKst(): Date {
@@ -50,9 +52,21 @@ function toResultItem(p: {
     bgImageUrl: p.bgImageUrl,
     scheduleDays: scheduleRows,
   })
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 시즌 홈 카드 — 짧은 제목 — manifest
+  const planB = normalizeSupplierRegisterListingTitle(p.title) || p.title
+  const card = resolvePublicBrowseCardTitle(
+    {
+      title: p.title,
+      duration: p.duration,
+      primaryDestination: p.primaryDestination,
+      primaryRegion: p.primaryRegion,
+    },
+    planB,
+  )
   return {
     id: p.id,
-    title: p.title,
+    title: card.cardTitle,
+    heroSubtitle: card.heroSubtitle,
     originSource: p.originSource,
     productType: p.productType,
     listingKind: p.listingKind ?? null,
@@ -152,7 +166,8 @@ export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
   if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    ['season-product-grid-pc-v2'],
+    // v5: place paren sanitize + duration-from-title
+    ['season-product-grid-pc-v5'],
     { revalidate: 21_600 },
   )
   return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())
