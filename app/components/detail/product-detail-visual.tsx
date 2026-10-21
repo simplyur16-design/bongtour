@@ -1,6 +1,7 @@
 'use client'
 
 import { COMPARE_PRICE_ROW_HINT } from '@/lib/promotion-copy-normalize'
+import { expandAirlineIataCodesInPublicTitle } from '@/lib/airline-iata-public-display-ssot'
 import { Ticket, ShoppingBag, Clock3, Plane, Route, Building2 } from 'lucide-react'
 import type { ProductMetaChip, ProductMetaChipKind } from '@/lib/product-meta-chips'
 
@@ -222,7 +223,8 @@ export function productHeroTitleLinesForDisplay(
   title: string,
   maxLines: number = PRODUCT_HERO_TITLE_MAX_LINES
 ): string[] {
-  const lines = splitProductHeroTitleLines(compactProductHeroDisplayTitle(title))
+  const expanded = expandAirlineIataCodesInPublicTitle(title)
+  const lines = splitProductHeroTitleLines(compactProductHeroDisplayTitle(expanded))
   if (lines.length <= maxLines) return lines
   return lines.slice(0, maxLines)
 }
@@ -237,7 +239,8 @@ type TitleProps = {
 
 /** 상품명: `[]` 구간 줄 단위 + 보조 강조색 */
 export function ProductDetailTitle({ title, className, style, tone = 'light' }: TitleProps) {
-  const lines = splitProductHeroTitleLines(title)
+  // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 히어로 제목 IATA→한글 — manifest
+  const lines = splitProductHeroTitleLines(expandAirlineIataCodesInPublicTitle(title))
   const tagCls = tone === 'dark' ? 'font-extrabold text-teal-200' : 'font-extrabold text-bt-card-accent-strong'
   const defaultCls =
     tone === 'dark'

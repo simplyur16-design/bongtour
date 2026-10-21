@@ -26217,6 +26217,42 @@
       ]
     },
     {
+      "id": "public-hero-airline-iata-ko",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품상세 히어로 제목·항공 줄 — 단독 IATA(TW 등)를 한글 항공사명으로 표시",
+      "checks": [
+        {
+          "file": "lib/airline-iata-public-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "expandAirlineIataCodesInPublicTitle",
+            "formatPublicAirlineDisplay",
+            "티웨이항공"
+          ]
+        },
+        {
+          "file": "app/components/detail/product-detail-visual.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "expandAirlineIataCodesInPublicTitle"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "formatPublicAirlineDisplay"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/airline-iata-public-display-ssot.test.ts"
+      ]
+    },
+    {
       "id": "bongtour-route-map-gemini-v1",
       "tier": [
         "prebuild",
