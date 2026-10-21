@@ -1,4 +1,5 @@
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
+import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
 import { buildPublicProductBadges, inferFreeTimeFromSchedule, type ProductBadgeInput } from '@/lib/product-detail-badges'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { inferFlightRoutingMeta, productHasFlightMetaContext } from '@/lib/flight-routing-meta'
@@ -134,7 +135,9 @@ export function buildProductMetaChips(
     { kind: 'shopping', value: shoppingValue(product, headerBadges) },
     { kind: 'freeTime', value: freeTimeValue(product, headerBadges) },
   ]
-  const airline = product.airline?.trim()
+  const airlineRaw = product.airline?.trim()
+  // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 메타칩 항공 IATA→한글 — manifest
+  const airline = formatPublicAirlineDisplay(airlineRaw) ?? airlineRaw
   const { routing, hasFlightCtx } = flightRoutingChipArgs(
     product,
     options?.departureFactsOverride,

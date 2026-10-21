@@ -26246,6 +26246,20 @@
             "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
             "formatPublicAirlineDisplay"
           ]
+        },
+        {
+          "file": "app/components/detail/TravelCoreInfoSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "formatPublicAirlineDisplay"
+          ]
+        },
+        {
+          "file": "lib/product-meta-chips.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
+            "formatPublicAirlineDisplay"
+          ]
         }
       ],
       "vitestSuites": [
