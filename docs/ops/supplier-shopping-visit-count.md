@@ -1,5 +1,7 @@
 # 공급사별 쇼핑 방문 횟수 (shoppingVisitCount) SSOT
 
+사실 필드·없음/정보없음·등록 write: [supplier-shopping-fact-contract.md](./supplier-shopping-fact-contract.md) · `lib/supplier-product-fact-ssot.ts`.
+
 **운영·LLM 프롬프트·교정 시 반드시 구분.**
 
 | 공급사 | shoppingVisitCount 출처 | shoppingStops[] 행 |

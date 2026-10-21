@@ -194,13 +194,15 @@ export function resolveProductListDestinationLabel(input: {
     if (hasActivity) {
       const scrubbed = scrubRegisterDestinationComposedPlaceLabel(c)
       if (scrubbed && !isRegisterDestinationPollutionLabel(scrubbed)) {
-        return scrubKrDepartureFromPlaceLabel(scrubbed) || scrubbed
+        const dest = scrubKrDepartureFromPlaceLabel(scrubbed)
+        if (dest) return dest
       }
       continue
     }
     const usable = extractNonPolicyDestinationFragment(c)
     if (usable && !isRegisterDestinationPollutionLabel(usable)) {
-      return scrubKrDepartureFromPlaceLabel(usable) || usable
+      const dest = scrubKrDepartureFromPlaceLabel(usable)
+      if (dest) return dest
     }
   }
   const healed = healRegisterDestinationLabel({

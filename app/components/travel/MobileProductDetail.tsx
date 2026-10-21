@@ -32,6 +32,7 @@ import {
 } from '@/lib/booking-departure-ssot'
 import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
 import { buildCalendarSsotHeroTripDisplays, resolveHeroTripDates } from '@/lib/product-hero-dates'
@@ -574,17 +575,11 @@ export default function MobileProductDetail({
     [selectedDate, packageTotalDays, heroResolved, computedReturnDate, calendarAlignedDepartureFacts]
   )
 
-  const travelCitiesLine = useMemo(() => {
-    const raw = [product.primaryDestination, product.destination]
-      .filter((x): x is string => Boolean(x?.trim()))
-      .join(',')
-    const parts = raw
-      .split(/[,，]/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-    const uniq = [...new Set(parts)]
-    return uniq.length ? uniq.join(', ') : (product.destination?.trim() || '—')
-  }, [product.primaryDestination, product.destination])
+  const travelCitiesLine = useMemo(
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub — manifest
+    () => formatPublicDestinationDisplayLabel(product.primaryDestination, product.destination),
+    [product.primaryDestination, product.destination],
+  )
 
   const reservationDisplayLine = useMemo(() => {
     const base = departureConditionLine?.trim() || ''
@@ -646,6 +641,7 @@ export default function MobileProductDetail({
           title: product.title,
           originCode: product.originCode,
           destination: product.destination,
+          primaryDestination: product.primaryDestination ?? null,
           durationLabel: product.duration ?? '',
           airline: product.airline,
           heroDepartureDisplay,

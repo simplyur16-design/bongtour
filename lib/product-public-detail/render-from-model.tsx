@@ -14,6 +14,7 @@ import { formatDepartureConditionForProduct } from '@/lib/minimum-departure-extr
 import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
 import { publicProductPath } from '@/lib/product-public-path'
+import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import type {
   ProductPublicDetailAirHotelRenderModel,
   ProductPublicDetailRenderModel,
@@ -42,17 +43,11 @@ export function renderProductDetailFromModel(
     const product = airModel.viewProduct
     const airtelDefaultDate = airModel.priceInfo.departureDateFrom
     const airtelDefaultFacts = product.departureKeyFactsByDate?.[airtelDefaultDate] ?? null
-    const airtelTravelCitiesLine = (() => {
-      const raw = [product.primaryDestination, product.destination]
-        .filter((x): x is string => Boolean(x?.trim()))
-        .join(',')
-      const parts = raw
-        .split(/[,，]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-      const uniq = [...new Set(parts)]
-      return uniq.length ? uniq.join(', ') : product.destination?.trim() || '—'
-    })()
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: airtel travelCities scrub — manifest
+    const airtelTravelCitiesLine = formatPublicDestinationDisplayLabel(
+      product.primaryDestination,
+      product.destination,
+    )
     const airtelMeetingDefault = (() => {
       const merged = [product.meetingInfoRaw, product.meetingPlaceRaw]
         .filter((x): x is string => Boolean(x?.trim()))

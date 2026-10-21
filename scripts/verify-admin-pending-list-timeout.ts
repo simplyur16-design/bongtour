@@ -43,6 +43,15 @@ if (/schedule:\s*true/.test(route)) {
 if (!route.includes('REGRESSION-FREEZE[admin-pending-queue-flags]')) {
   errors.push('pending route missing admin-pending-queue-flags marker');
 }
+if (!route.includes('REGRESSION-FREEZE[pending-compare-gap-priority]')) {
+  errors.push('pending route missing pending-compare-gap-priority marker');
+}
+if (!route.includes('REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY')) {
+  errors.push('pending route must use REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY (gap-first)');
+}
+if (/orderBy:\s*\{\s*updatedAt:\s*'desc'\s*\}/.test(route)) {
+  errors.push('pending route must not orderBy updatedAt alone (gap priority required)');
+}
 
 if (!photos.includes('REGRESSION-FREEZE[admin-pending-list-timeout]')) {
   errors.push('photos-ready missing list-timeout freeze marker');

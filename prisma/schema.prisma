@@ -108,6 +108,9 @@ model Product {
   registerPrePhotoQueueReady Boolean             @default(false)
   /// 커버+일정 일차 이미지 완결 캐시 (isRegisterPendingPhotosReady)
   registerPhotosReady      Boolean               @default(false)
+  /// 비슷한 일정 비교 모자란 공급사 수집분 — 등록대기 목록에서 우선 정렬
+  /// REGRESSION-FREEZE[pending-compare-gap-priority]: compare-gap stamp — manifest
+  registerCompareClusterGapPriority Boolean      @default(false)
   rejectReason             String? // 반려 시 사유 (최대 200자, 운영 메모 성격)
   rejectedAt               DateTime? // 반려 처리 시각
   /// 공급사 가격 동기화(ProductPrice/ProductDeparture)가 마지막으로 관측된 시각
@@ -282,6 +285,8 @@ model Product {
   @@index([calendarBatchRetired, updatedAt])
   @@index([registrationStatus, travelScope, updatedAt(sort: Desc)])
   @@index([registrationStatus, lastPriceObservedAt])
+  /// REGRESSION-FREEZE[pending-compare-gap-priority]: pending list gap-first index — manifest
+  @@index([registerPrePhotoQueueReady, registerCompareClusterGapPriority, updatedAt(sort: Desc)])
   @@index([continentKey])
   @@index([cityKey])
   @@index([lastSalesPolicyCheckedAt])

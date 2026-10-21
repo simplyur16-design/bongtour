@@ -34,6 +34,8 @@ type PendingItem = {
   prePhotoReadyForOperator?: boolean
   prePhotoParserFixRequired?: boolean
   prePhotoIssues?: string[]
+  /** 비교 모자란 공급사 수집 — 목록 상단 우선 */
+  compareClusterGapPriority?: boolean
 }
 
 /** 목록 API 실패 UX용 (401/403은 API 문구 대신 전용 안내) */
@@ -376,10 +378,26 @@ export default function AdminPendingPage() {
                         </p>
                       )}
                       <p className="mt-1.5 flex flex-wrap items-center gap-2">
+                        {item.compareClusterGapPriority ? (
+                          <AdminStatusBadge variant="consulting" label="비교 모자람 우선" />
+                        ) : null}
                         {item.registerLaneLabel ? (
                           <AdminStatusBadge variant="consulting" label={item.registerLaneLabel} />
                         ) : null}
-                        <AdminStatusBadge variant="pending_review" label="검증 완료" />
+                        <AdminStatusBadge
+                          variant={
+                            item.prePhotoVerified === false
+                              ? 'error'
+                              : item.prePhotoVerified === true
+                                ? 'pending_review'
+                                : 'pending_review'
+                          }
+                          label={
+                            item.prePhotoVerified === false
+                              ? '검증 미통과'
+                              : '검증 완료'
+                          }
+                        />
                         <AdminStatusBadge
                           variant={item.photosReady ? 'registered' : 'pending_image'}
                           label={item.photosReady ? '사진 완료' : '이미지 수급'}
@@ -407,6 +425,23 @@ export default function AdminPendingPage() {
                 onHold={handleHold}
                 onReject={handleReject}
                 onClearSelection={() => setSelectedId(null)}
+                onQueueGateChanged={(change) => {
+                  // REGRESSION-FREEZE[pending-open-self-heal-verify]: 힐 후 검증 뱃지 정합(강등·목록 제거 없음) — manifest
+                  setList((prev) =>
+                    prev.map((p) =>
+                      p.id === change.productId
+                        ? {
+                            ...p,
+                            photosReady: change.photosReady,
+                            prePhotoVerified: change.verified,
+                            prePhotoReadyForOperator: change.verified,
+                            prePhotoParserFixRequired: false,
+                            prePhotoIssues: change.issues,
+                          }
+                        : p,
+                    ),
+                  )
+                }}
                 isRegistering={registeringId !== null}
                 isHolding={holdingId !== null}
                 isRejecting={rejectingId !== null}

@@ -7,6 +7,7 @@ import { resolveRegisterAdminLane, registerAdminLaneLabel } from '@/lib/register
 import {
   REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
 } from '@/lib/register-pre-photo-pending-queue-query'
+import { REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY } from '@/lib/register-compare-cluster-gap-priority'
 
 export const maxDuration = 30
 
@@ -15,6 +16,7 @@ export const maxDuration = 30
  * 등록대기 리스트: pending status + registerPrePhotoQueueReady 플래그 (schedule 전수 verify 없음).
  * on_hold(보류), rejected(반려), pre_photo_blocked·플래그 false는 제외.
  * photosReady: registerPhotosReady 캐시.
+ * 비교 모자란 공급사 수집분(registerCompareClusterGapPriority)을 앞에 둔다.
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 레인·검증 배지 — manifest
  * REGRESSION-FREEZE[pending-approve-photos-ready]: photosReady SSOT — manifest
  * REGRESSION-FREEZE[register-pre-photo-parser-fix]: verify.ok 만 등록대기 — manifest
@@ -22,6 +24,7 @@ export const maxDuration = 30
  * REGRESSION-FREEZE[register-pre-photo-dashboard-queue-origin-lane]: DB where SSOT — manifest
  * REGRESSION-FREEZE[admin-pending-list-timeout]: rawMeta 제외·prisma retry — 15s 클라이언트 abort 금지 — manifest
  * REGRESSION-FREEZE[admin-pending-queue-flags]: list uses flag, no schedule — manifest
+ * REGRESSION-FREEZE[pending-compare-gap-priority]: gap-first orderBy — manifest
  */
 export async function GET() {
   const admin = await requireAdmin()
@@ -30,7 +33,8 @@ export async function GET() {
     const list = await withPrismaRetry('admin-products-pending', () =>
       prisma.product.findMany({
         where: REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
-        orderBy: { updatedAt: 'desc' },
+        // REGRESSION-FREEZE[pending-compare-gap-priority]: gap priority then updatedAt — manifest
+        orderBy: [...REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY],
         select: {
           id: true,
           originCode: true,
@@ -47,6 +51,7 @@ export async function GET() {
           sportsThemeTag: true,
           countryKey: true,
           registerPhotosReady: true,
+          registerCompareClusterGapPriority: true,
         },
       }),
     )
@@ -72,6 +77,7 @@ export async function GET() {
         updatedAt: p.updatedAt,
         // REGRESSION-FREEZE[pending-approve-photos-ready]: registerPhotosReady cache (= isRegisterPendingPhotosReady) — manifest
         photosReady: Boolean(p.registerPhotosReady),
+        compareClusterGapPriority: Boolean(p.registerCompareClusterGapPriority),
         primaryRegion: p.primaryRegion ?? null,
         displayCategory: p.displayCategory ?? null,
         countryKey: p.countryKey,

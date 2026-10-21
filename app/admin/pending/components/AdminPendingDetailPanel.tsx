@@ -154,6 +154,16 @@ type ImageAssetCandidate = {
   usedIn?: string[]
 }
 
+export type PendingQueueGateChange = {
+  productId: string
+  queueReady: boolean
+  verified: boolean
+  ranHeal: boolean
+  issues: string[]
+  photosReady: boolean
+  registrationStatus: string | null
+}
+
 type Props = {
   productId: string | null
   listItem: PendingItem | null
@@ -161,6 +171,8 @@ type Props = {
   onHold: (id: string) => void
   onReject: (id: string, reason?: string) => void
   onClearSelection?: () => void
+  /** 상세 오픈 셀프힐 후 큐 잔류·검증 결과 */
+  onQueueGateChanged?: (change: PendingQueueGateChange) => void
   isRegistering: boolean
   isHolding: boolean
   isRejecting: boolean
@@ -435,6 +447,7 @@ export default function AdminPendingDetailPanel({
   onHold,
   onReject,
   onClearSelection,
+  onQueueGateChanged,
   isRegistering,
   isHolding,
   isRejecting,
@@ -442,6 +455,11 @@ export default function AdminPendingDetailPanel({
   const [detail, setDetail] = useState<ProductDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
+  /** REGRESSION-FREEZE[pending-open-self-heal-verify]: 상세 오픈 셀프힐 — manifest */
+  const [openHealRunning, setOpenHealRunning] = useState(false)
+  const [openHealNote, setOpenHealNote] = useState<string | null>(null)
+  const [openHealRetryNonce, setOpenHealRetryNonce] = useState(0)
+  const openHealAttemptedRef = useRef<string | null>(null)
   const [classificationSaving, setClassificationSaving] = useState(false)
   const [classificationMessage, setClassificationMessage] = useState<string | null>(null)
   const [primaryRegion, setPrimaryRegion] = useState('')
@@ -542,6 +560,10 @@ export default function AdminPendingDetailPanel({
   }, [productId])
 
   useEffect(() => {
+    openHealAttemptedRef.current = null
+    setOpenHealRunning(false)
+    setOpenHealNote(null)
+    setOpenHealRetryNonce(0)
     if (!productId) {
       setDetail(null)
       setDetailError(null)
@@ -791,7 +813,93 @@ export default function AdminPendingDetailPanel({
     ],
   )
   const keywordsVerified = keywordVerify.ok
-  const photoPickDisabled = !keywordsVerified
+  const photoPickDisabled = !keywordsVerified || openHealRunning
+
+  // REGRESSION-FREEZE[pending-open-self-heal-verify]: 검증 실패면 셀프힐→재검증 — manifest
+  useEffect(() => {
+    if (!detail?.id || detailLoading || openHealRunning) return
+    if (openHealAttemptedRef.current === detail.id) return
+    const status = String(detail.registrationStatus ?? '').trim()
+    if (status && status !== 'pending' && status !== 'pre_photo_blocked') {
+      openHealAttemptedRef.current = detail.id
+      return
+    }
+    if (keywordsVerified) {
+      openHealAttemptedRef.current = detail.id
+      return
+    }
+
+    openHealAttemptedRef.current = detail.id
+    const id = detail.id
+    setOpenHealRunning(true)
+    setOpenHealNote('검증 미통과 — 셀프힐·일정 재구성으로 통과까지 교정 중…')
+    void (async () => {
+      try {
+        const res = await fetch(`/api/admin/products/${id}/pre-photo-heal`, {
+          method: 'POST',
+          cache: 'no-store',
+        })
+        const data = (await readAdminResponseJson(res).catch(() => ({}))) as {
+          ok?: boolean
+          verified?: boolean
+          queueReady?: boolean
+          ranHeal?: boolean
+          ranRematerialize?: boolean
+          issues?: string[]
+          photosReady?: boolean
+          registrationStatus?: string | null
+          error?: string
+        }
+        if (!res.ok) {
+          setOpenHealNote(data.error ?? '셀프힐 요청에 실패했습니다.')
+          onQueueGateChanged?.({
+            productId: id,
+            queueReady: false,
+            verified: false,
+            ranHeal: false,
+            issues: [data.error ?? `HTTP ${res.status}`],
+            photosReady: false,
+            registrationStatus: detail.registrationStatus,
+          })
+          return
+        }
+        const refreshed = await fetchAdminProductDetail(id)
+        if (refreshed) setDetail(refreshed)
+        if (data.verified) {
+          setOpenHealNote('셀프힐 완료 · 검증 통과 — 사진 등록 가능')
+        } else {
+          const issueHint =
+            Array.isArray(data.issues) && data.issues.length > 0
+              ? data.issues.slice(0, 6).join(', ')
+              : '원인 미상'
+          setOpenHealNote(
+            `셀프힐·재구성을 돌렸지만 아직 미통과입니다. 키워드를 고친 뒤 다시 셀프힐하세요. (${issueHint})`,
+          )
+        }
+        onQueueGateChanged?.({
+          productId: id,
+          queueReady: data.queueReady === true,
+          verified: data.verified === true,
+          ranHeal: data.ranHeal === true,
+          issues: Array.isArray(data.issues) ? data.issues.map(String) : [],
+          photosReady: data.photosReady === true,
+          registrationStatus: data.registrationStatus ?? null,
+        })
+      } catch (e) {
+        setOpenHealNote(e instanceof Error ? e.message : '셀프힐 네트워크 오류')
+      } finally {
+        setOpenHealRunning(false)
+      }
+    })()
+  }, [
+    detail?.id,
+    detail?.registrationStatus,
+    detailLoading,
+    keywordsVerified,
+    openHealRunning,
+    openHealRetryNonce,
+    onQueueGateChanged,
+  ])
 
   const blockPhotoUntilKeywordVerify = (): boolean => {
     if (keywordsVerified) return false
@@ -1852,19 +1960,21 @@ export default function AdminPendingDetailPanel({
           ) : null}
           <AdminStatusBadge
             variant={
-              keywordsVerified
-                ? 'pending_review'
-                : keywordVerify.issues.length > 0
-                  ? 'error'
-                  : 'pending'
+              openHealRunning
+                ? 'pending'
+                : keywordsVerified
+                  ? 'pending_review'
+                  : keywordVerify.issues.length > 0
+                    ? 'error'
+                    : 'pending'
             }
             label={
-              keywordsVerified
-                ? '검증 완료 · 사진 등록 가능'
-                : keywordVerify.parserFixRequired
-                  ? '검증 미통과 · 등록대기에서 내림'
+              openHealRunning
+                ? '셀프힐·재검증 중'
+                : keywordsVerified
+                  ? '검증 완료 · 사진 등록 가능'
                   : keywordVerify.issues.length > 0
-                    ? '검증 실패'
+                    ? '검증 미통과 · 셀프힐 대상'
                     : '등록대기'
             }
           />
@@ -1872,7 +1982,30 @@ export default function AdminPendingDetailPanel({
             variant={photosReady ? 'registered' : 'pending_image'}
             label={photosReady ? '사진 완료' : '이미지 수급'}
           />
+          {!keywordsVerified && !openHealRunning && detail?.id ? (
+            <button
+              type="button"
+              className="rounded border border-bt-border-strong bg-bt-surface px-2 py-1 text-xs font-medium text-bt-title hover:bg-bt-surface-soft"
+              onClick={() => {
+                openHealAttemptedRef.current = null
+                setOpenHealNote(null)
+                setOpenHealRetryNonce((n) => n + 1)
+              }}
+            >
+              셀프힐 다시
+            </button>
+          ) : null}
         </p>
+        {openHealNote ? (
+          <p
+            className={`mt-2 text-xs ${
+              keywordsVerified ? 'text-green-700' : openHealRunning ? 'text-bt-meta' : 'text-amber-800'
+            }`}
+            role="status"
+          >
+            {openHealNote}
+          </p>
+        ) : null}
       </section>
 
       <section className="border-b border-bt-border-soft p-5">

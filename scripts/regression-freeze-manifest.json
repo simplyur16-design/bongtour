@@ -26282,7 +26282,7 @@
           "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
-            "scrubKrDepartureFromPlaceLabel",
+            "formatPublicDestinationDisplayLabel",
             "destinationDisplay"
           ]
         },
@@ -26291,7 +26291,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
             "scrubKrDepartureFromPlaceLabel",
+            "formatPublicDestinationDisplayLabel",
             "seoOverlayScrubbed"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
+            "scrubKrDepartureFromPlaceLabel"
           ]
         }
       ],
@@ -26323,6 +26331,13 @@
           ]
         },
         {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-hotel-display-scrub]",
+            "scrubPublicHotelDisplayLine"
+          ]
+        },
+        {
           "file": "app/components/detail/ProductExtraInfoTabs.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[public-hotel-display-scrub]",
@@ -26332,6 +26347,222 @@
       ],
       "vitestSuites": [
         "lib/public-hotel-display-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "supplier-product-fact-ssot",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "쇼핑·옵션·숙박·식사·항공사 사실 필드 — 없음≠정보없음, 등록 스칼라 동기화, 비교표 derive SSOT",
+      "checks": [
+        {
+          "file": "lib/supplier-product-fact-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "deriveShoppingFact",
+            "deriveOptionalFact",
+            "deriveAirlineFact",
+            "formatCompareMealSlotsLabel",
+            "extractHotelStarGrade",
+            "포함",
+            "불포함",
+            "formatVerygoodtourHotelLabelFromTextBlobs",
+            "NO\\s*옵션",
+            "resolveOptionalToursStructuredForProductWrite",
+            "buildRegisterProductFactWrite",
+            "shoppingScalarsFromRegisterParsed"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-tab-data-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "hasOptionalTour: false",
+            "goodsEvtTab_7: 선택관광·쇼핑 0건"
+          ]
+        },
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "deriveAirlineFact",
+            "airlineLabel"
+          ]
+        },
+        {
+          "file": "app/dev/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "항공사",
+            "airlineLabel"
+          ]
+        },
+        {
+          "file": "docs/ops/supplier-airline-fact-contract.md",
+          "mustInclude": [
+            "deriveAirlineFact",
+            "formatPublicAirlineDisplay"
+          ]
+        },
+        {
+          "file": "docs/ops/supplier-optional-fact-contract.md",
+          "mustInclude": [
+            "air_hotel_free",
+            "optionalToursStructured"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "buildRegisterProductFactWrite"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "buildRegisterProductFactWrite"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "buildRegisterProductFactWrite"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "buildRegisterProductFactWrite"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-product-fact-ssot]",
+            "shoppingVisitCountTotal"
+          ]
+        },
+        {
+          "file": "docs/ops/supplier-shopping-fact-contract.md",
+          "mustInclude": [
+            "없음 ≠ 정보 없음",
+            "buildRegisterProductFactWrite"
+          ]
+        },
+        {
+          "file": "docs/ops/supplier-optional-fact-contract.md",
+          "mustInclude": [
+            "hasOptionalTours",
+            "deriveOptionalFact"
+          ]
+        },
+        {
+          "file": "docs/ops/supplier-hotel-fact-contract.md",
+          "mustInclude": [
+            "hotelSummaryText",
+            "scrubPublicHotelDisplayLine",
+            "혹은 동급(추후안내)"
+          ]
+        },
+        {
+          "file": "docs/ops/supplier-meal-fact-contract.md",
+          "mustInclude": [
+            "register-schedule-meal-parse",
+            "deriveHotelMealFact",
+            "포함",
+            "불포함"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-product-fact-ssot.test.ts",
+        "lib/verygoodtour-hotel-info-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "verygoodtour-hotel-info-display",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "참좋은여행 호텔/관광지·[호텔설명] → 준특급 공지 축약·예정호텔 동급(추후안내)",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-hotel-info-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hotel-info-display]",
+            "formatVerygoodtourHotelCompareLabel",
+            "parseVerygoodtourHotelInfoListHtml",
+            "extractVerygoodtourAddHotelInfoText",
+            "혹은 동급(추후안내)",
+            "출발일 1~2일전 공지"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-hotel-info-ssot.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-hotel-info-display]",
+            "준특급 출발일 1~2일전 공지",
+            "혹은 동급(추후안내)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/verygoodtour-hotel-info-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-consumption-naeiltour",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "naeiltour 공개 소비·일차호텔·가격행 — hanatour 폴백 금지, 등록 day-hotel 동일 축",
+      "checks": [
+        {
+          "file": "lib/public-consumption-naeiltour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-consumption-naeiltour]",
+            "day-hotel-plans-naeiltour",
+            "resolveShoppingConsumption",
+            "resolveOptionalToursConsumption",
+            "resolveHotelConsumption"
+          ]
+        },
+        {
+          "file": "lib/day-hotel-plans-naeiltour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-consumption-naeiltour]",
+            "resolveDayHotelPlansForPublic",
+            "mergeDayHotelPlansForRegister"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-consumption-naeiltour]",
+            "public-consumption-naeiltour",
+            "day-hotel-plans-naeiltour",
+            "product-departure-to-price-rows-naeiltour",
+            "flight-manual-correction-naeiltour",
+            "case 'naeiltour'"
+          ]
+        },
+        {
+          "file": "app/admin/products/[id]/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-consumption-naeiltour]",
+            "publicConsumptionNaeiltour",
+            "case 'naeiltour'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/public-consumption-naeiltour.test.ts"
       ]
     },
     {
@@ -26671,6 +26902,235 @@
         "lib/bongtour-route-map-transport-ssot.test.ts",
         "lib/bongtour-route-map-image.test.ts",
         "lib/bongtour-benefit-icon-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "compare-cluster-supplier-gap-ingest",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "비슷한 일정 비교 — 모자란 canonical 공급사만 place searchWord로 목록 수집 → 등록대기",
+      "checks": [
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
+            "missingCanonicalSuppliersFromOrigins",
+            "resolveCompareClusterGapIngestTargets",
+            "missingSuppliers",
+            "등록대기로만"
+          ]
+        },
+        {
+          "file": "lib/compare-cluster-supplier-gap-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
+            "forced searchWord = place",
+            "confirmRegisterPendingFromOriginUrl",
+            "searchWord: place",
+            "ingestCompareClusterSupplierGaps"
+          ]
+        },
+        {
+          "file": "app/dev/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "없는 공급사",
+            "등록대기 수집",
+            "enqueueCompareClusterGapIngestAction",
+            "missingSuppliers"
+          ]
+        },
+        {
+          "file": "app/dev/similar-itinerary-compare/actions.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
+            "ingestCompareClusterSupplierGaps"
+          ]
+        },
+        {
+          "file": "scripts/data/tmp-ingest-compare-cluster-gaps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
+            "ingestCompareClusterSupplierGaps",
+            "--presets",
+            "--apply"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/compare-cluster-supplier-gap-ingest.test.ts"
+      ]
+    },
+    {
+      "id": "pending-open-self-heal-verify",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 상세 오픈 — 라이브 검증 실패 시 셀프힐·레인 remat으로 검증 통과(강등 금지)",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-pending-open-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-open-self-heal-verify]",
+            "healPendingRegisterPrePhoto",
+            "rematerializeRegisterPrePhotoByLane",
+            "ensurePendingNotBlocked",
+            "healAndGatePendingProductForOperator",
+            "강등이 아니라 통과"
+          ],
+          "mustNotInclude": [
+            "registrationStatusAfterPrePhotoVerify"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/pre-photo-heal/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-open-self-heal-verify]",
+            "healAndGatePendingProductForOperator"
+          ]
+        },
+        {
+          "file": "app/admin/pending/components/AdminPendingDetailPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-open-self-heal-verify]",
+            "/pre-photo-heal",
+            "onQueueGateChanged",
+            "셀프힐·일정 재구성으로 통과까지",
+            "셀프힐 다시"
+          ],
+          "mustNotInclude": [
+            "등록대기에서 내림"
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-open-self-heal-verify]",
+            "onQueueGateChanged",
+            "강등·목록 제거 없음"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-pending-open-heal.test.ts"
+      ]
+    },
+    {
+      "id": "pending-compare-gap-priority",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 목록 — 비교 모자란 공급사 수집분(registerCompareClusterGapPriority) 우선 정렬",
+      "checks": [
+        {
+          "file": "lib/register-compare-cluster-gap-priority.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-compare-gap-priority]",
+            "REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY",
+            "markProductCompareClusterGapPriority",
+            "registerCompareClusterGapPriority: 'desc'"
+          ]
+        },
+        {
+          "file": "lib/compare-cluster-supplier-gap-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-compare-gap-priority]",
+            "markProductCompareClusterGapPriority"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/pending/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-compare-gap-priority]",
+            "REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY",
+            "compareClusterGapPriority"
+          ],
+          "mustNotInclude": [
+            "orderBy: { updatedAt: 'desc' }"
+          ]
+        },
+        {
+          "file": "app/admin/pending/page.tsx",
+          "mustInclude": [
+            "compareClusterGapPriority",
+            "비교 모자람 우선"
+          ]
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pending-compare-gap-priority]",
+            "registerCompareClusterGapPriority"
+          ]
+        },
+        {
+          "file": "scripts/verify-admin-pending-list-timeout.ts",
+          "mustInclude": [
+            "pending-compare-gap-priority",
+            "REGISTER_PRE_PHOTO_PENDING_LIST_ORDER_BY"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-compare-cluster-gap-priority.test.ts"
+      ]
+    },
+    {
+      "id": "similar-itinerary-compare-entry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "비슷한 일정 사실 비교 — 상품 상세 CTA·href SSOT·추천 문구 금지",
+      "checks": [
+        {
+          "file": "lib/similar-itinerary-compare-href.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
+            "SIMILAR_ITINERARY_COMPARE_PATH",
+            "/dev/similar-itinerary-compare",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "같은 일정, 공급사별 사실 비교",
+            "buildSimilarItineraryCompareHrefFromProduct"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "buildSimilarItineraryCompareHrefFromProduct"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "buildSimilarItineraryCompareHrefFromProduct"
+          ]
+        },
+        {
+          "file": "app/dev/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "buildSimilarItineraryCompareHref",
+            "SIMILAR_ITINERARY_COMPARE_PATH",
+            "추천/우위 표시 없음"
+          ]
+        },
+        {
+          "file": "app/dev/ocean-warm-home/OceanWarmTopNav.tsx",
+          "mustInclude": [
+            "/dev/similar-itinerary-compare",
+            "사실 비교"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/similar-itinerary-compare-href.test.ts"
       ]
     }
   ],

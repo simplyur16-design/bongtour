@@ -21,6 +21,16 @@ const FIXTURE = `
 <div class="scheduleListEnd"></div>
 `
 
+const MEAL_IN_HOTEL_FIXTURE = `
+<div id="product-day-1" class="scheduleItem">
+  <p class="info date">1일차</p>
+  <div class="info location"><div class="inner">오사카</div></div>
+  <h4>호텔</h4><p>조식 호텔식</p>
+  <h4>식사</h4><p></p>
+</div>
+<div class="scheduleListEnd"></div>
+`
+
 describe('verygoodtour scheduleItem meal extract', () => {
   it('parses hotel and meal fields from h4 blocks', () => {
     const rows = parseVerygoodScheduleRowsFromDetailHtml(FIXTURE)
@@ -28,5 +38,11 @@ describe('verygoodtour scheduleItem meal extract', () => {
     expect(rows[0]?.hotelText).toMatch(/다낭/)
     expect(rows[0]?.breakfastText || rows[0]?.mealSummaryText).toBeTruthy()
     expect(rows[1]?.dinnerText || rows[1]?.mealSummaryText).toBeTruthy()
+  })
+
+  it('호텔 h4에 식사만 있으면 hotelText null·식사로 승격', () => {
+    const rows = parseVerygoodScheduleRowsFromDetailHtml(MEAL_IN_HOTEL_FIXTURE)
+    expect(rows[0]?.hotelText).toBeNull()
+    expect(rows[0]?.breakfastText || rows[0]?.mealSummaryText).toMatch(/조식|호텔식/)
   })
 })

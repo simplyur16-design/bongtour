@@ -7,6 +7,7 @@ import PackageProductHeroInfoPanel, {
 import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
 import {
   resolvePublicDetailHeroTitles,
+  formatPublicDestinationDisplayLabel,
   scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
 
@@ -58,12 +59,16 @@ export default function PackageProductHeroSection({
   })
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: SEO 칩·dest 출발허브 제거 — manifest
   const seoOverlayScrubbed = heroImageSeoKeywordOverlay
-    ? scrubKrDepartureFromPlaceLabel(heroImageSeoKeywordOverlay) || heroImageSeoKeywordOverlay
+    ? (() => {
+        const s = scrubKrDepartureFromPlaceLabel(heroImageSeoKeywordOverlay)
+        return s || null
+      })()
     : null
   const infoPanelWithCta: PackageProductHeroInfoPanelProps = {
     ...infoPanel,
     title: heroTitles.listingTitle,
-    destination: scrubKrDepartureFromPlaceLabel(infoPanel.destination) || infoPanel.destination,
+    destination: formatPublicDestinationDisplayLabel(infoPanel.destination),
+    primaryDestination: primaryDestination ?? infoPanel.primaryDestination ?? null,
     onChangeDepartureDate,
     showChangeDepartureCta,
     modetourStickyLocalPayLine,

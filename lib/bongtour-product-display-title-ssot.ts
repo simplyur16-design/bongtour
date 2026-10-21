@@ -290,23 +290,47 @@ export function isKrHomeDeparturePlaceLabel(s: string): boolean {
   if (!t) return false
   if (/^(?:부산|대구|청주|김해|김포|인천|서울|제주)(?:공항)?$/u.test(t)) return true
   if (/^(?:부산|대구|청주|김해|제주|인천)\s*출발$/u.test(t)) return true
+  // 「인천출발」「청주출발」단독 토큰
+  if (/출발$/u.test(t) && /(?:부산|대구|청주|김해|김포|인천|제주)/u.test(t) && t.length <= 8) {
+    return true
+  }
   return false
 }
 
 function stripKrDepartureMarkersFromTitle(title: string): string {
   return String(title || '')
-    .replace(/\[\s*(?:부산|대구|청주|제주|김해|인천)\s*\]/gu, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
     .replace(/(?:부산|대구|청주|김해|제주|인천)\s*출발/gu, ' ')
     .replace(/#[^\s#]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-function filterKrDeparturePlaceTokens(cities: readonly string[]): string[] {
-  return cities.filter((c) => !isKrHomeDeparturePlaceLabel(c))
+/** 목적지 라벨로 쓰기엔 부적합한 마케팅·조건·출발시각 토큰 */
+function isNonPlaceMarketingToken(s: string): boolean {
+  const t = sanitizePlaceLabel(s)
+  if (!t) return true
+  if (
+    /최소화|포함|리무진|노쇼핑|노옵션|특가|긴급|모집|마감|확정|대기|할인|혜택|자유일정|핵심쏙쏙/u.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  // 「밤출발」「새벽출발」등 — 도시명 아님
+  if (/^(?:밤|새벽|오전|오후|저녁|아침)?출발$/u.test(t)) return true
+  return false
 }
 
-/** 공개 목적지 라벨에서 국내출발 허브 토큰 제거 (`부산 · 마츠야마` → `마츠야마`) */
+function filterKrDeparturePlaceTokens(cities: readonly string[]): string[] {
+  return cities.filter((c) => !isKrHomeDeparturePlaceLabel(c) && !isNonPlaceMarketingToken(c))
+}
+
+/**
+ * 공개 목적지 라벨에서 국내출발 허브 토큰 제거 (`부산 · 마츠야마` → `마츠야마`).
+ * 전부 출발 허브·마케팅이면 빈 문자열 (원문 유지 금지 — UI에서 `|| destination` 폴백 금지).
+ * REGRESSION-FREEZE[public-card-no-kr-departure-place]: dest scrub 빈결과 — manifest
+ */
 export function scrubKrDepartureFromPlaceLabel(label: string | null | undefined): string {
   const raw = String(label ?? '').trim()
   if (!raw || raw === '—') return raw
@@ -315,8 +339,30 @@ export function scrubKrDepartureFromPlaceLabel(label: string | null | undefined)
     .map((p) => sanitizePlaceLabel(p))
     .filter(Boolean)
   const kept = filterKrDeparturePlaceTokens(parts)
-  if (kept.length === 0) return raw
+  if (kept.length === 0) return ''
   return kept.join(' · ')
+}
+
+/**
+ * 히어로 메타·travelCities 공개 한 줄. scrub 후 비면 `—`.
+ * REGRESSION-FREEZE[public-card-no-kr-departure-place]: 공개 dest 메타 — manifest
+ */
+export function formatPublicDestinationDisplayLabel(
+  ...labels: Array<string | null | undefined>
+): string {
+  const kept: string[] = []
+  const seen = new Set<string>()
+  for (const label of labels) {
+    const scrubbed = scrubKrDepartureFromPlaceLabel(label)
+    if (!scrubbed) continue
+    for (const part of scrubbed.split(/\s*·\s*/)) {
+      const t = part.trim()
+      if (!t || seen.has(t)) continue
+      seen.add(t)
+      kept.push(t)
+    }
+  }
+  return kept.length ? kept.join(' · ') : '—'
 }
 
 export type PublicBrowseCardTitleInput = {

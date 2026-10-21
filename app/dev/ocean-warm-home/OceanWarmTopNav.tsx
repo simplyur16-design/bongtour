@@ -31,6 +31,12 @@ export default function OceanWarmTopNav() {
           <a className="ow-nav-ghost" href="/dev/product-surface-preview">
             상품 상세
           </a>
+          <a
+            className="ow-nav-ghost"
+            href="/dev/similar-itinerary-compare?place=상해&duration=3박%204일"
+          >
+            사실 비교
+          </a>
           <a className="ow-nav-cta" href="/inquiry?type=travel">
             상담
           </a>

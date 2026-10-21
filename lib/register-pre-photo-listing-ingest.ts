@@ -140,7 +140,8 @@ export function registerPrePhotoListingUrlIsKnown(
   return false
 }
 
-async function waitListingHumanPause(supplier: IngestSupplier): Promise<void> {
+/** 비교 갭 수집 등 타깃 경로에서도 공급사별 사람 페이스 대기를 재사용 */
+export async function waitListingHumanPause(supplier: IngestSupplier): Promise<void> {
   switch (supplier) {
     case 'ybtour':
       return waitYbtourListingHumanPause()
@@ -178,13 +179,14 @@ function listingPagesPerBrowser(supplier: IngestSupplier): number {
   }
 }
 
-function ingestSlotLabel(slot: RegisterPrePhotoIngestGeoSlot): string {
+export function ingestSlotLabel(slot: RegisterPrePhotoIngestGeoSlot): string {
   // REGRESSION-FREEZE[register-ingest-local-departure-slot-label]: 부산/대구/청주 동일 countryKey Map 덮어쓰기 금지 — manifest
   const word = String(slot.searchWord ?? '').trim()
   return `${slot.supplier}::${slot.lane}::${slot.countryKey}::${slot.cityKey ?? ''}::${word}`
 }
 
-async function listingUrlMapForSupplier(
+/** 공급사별 listing discover — 야간 ingest·비교 갭 강제 searchWord 경로 공용 */
+export async function listingUrlMapForSupplier(
   supplier: IngestSupplier,
   slots: RegisterPrePhotoIngestGeoSlot[],
 ): Promise<Map<string, string[]>> {

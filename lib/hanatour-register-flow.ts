@@ -36,6 +36,7 @@ import {
 } from '@/lib/register-llm-schema-hanatour'
 import { applyHanatourOriginCodeFromPaste } from '@/lib/hanatour-origin-code-from-paste'
 import { registerFlightCollectLooksComplete } from '@/lib/register-detail-collect-flight-apply'
+import { buildRegisterProductFactWrite, resolveOptionalToursStructuredForProductWrite } from '@/lib/supplier-product-fact-ssot'
 
 /** hanatour/ybtour/잔여 공용 save 게이트: 달력 행만이 아니라 표·항공 구조화·일정 초안을 함께 본다. */
 function registerPersistedHasCalendarDraftSignals(
@@ -351,8 +352,15 @@ function mergeRawMetaWithStructuredSignals(
     shoppingNoticeRaw: parsed.shoppingNoticeRaw ?? null,
     shoppingStops: parsed.shoppingStops ?? null,
     shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
-    hasShopping: parsed.hasShopping ?? false,
-    shoppingVisitCount: parsed.shoppingVisitCount ?? null,
+    // REGRESSION-FREEZE[supplier-product-fact-ssot]: rawMeta 쇼핑 사실 = Product 컬럼 — manifest
+    ...(() => {
+      const f = buildRegisterProductFactWrite(parsed)
+      return {
+        hasShopping: f.structuredSignalsFacts.hasShopping,
+        shoppingVisitCount: f.structuredSignalsFacts.shoppingVisitCount,
+        hasOptionalTour: f.structuredSignalsFacts.hasOptionalTour,
+      }
+    })(),
     hasFreeTime: parsed.hasFreeTime ?? false,
     freeTimeSummaryText: parsed.freeTimeSummaryText ?? null,
     freeTimeRawMentions: parsed.freeTimeRawMentions ?? [],
@@ -376,7 +384,7 @@ function mergeRawMetaWithStructuredSignals(
     hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
     hotelNames: normalizeStringList(parsed.hotelNames),
     dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-    hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+    hotelSummaryText: buildRegisterProductFactWrite(parsed).hotelSummaryText,
     hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
     hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
     singleRoomSurchargeAmount: parsed.singleRoomSurchargeAmount ?? null,
@@ -1214,7 +1222,10 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
           excludedText: parsed.excludedText ?? null,
         }
       ),
-      optionalToursStructured: parsed.optionalToursStructured ?? null,
+      optionalToursStructured: resolveOptionalToursStructuredForProductWrite({
+        optionalToursStructured: parsed.optionalToursStructured ?? null,
+        optionalToursStructuredCanonical: parsed.detailBodyStructured?.optionalToursStructured ?? null,
+      }),
       optionalToursLlmSupplementJson: parsed.optionalToursLlmSupplementJson ?? null,
       optionalTourSummaryText: parsed.optionalTourSummaryText ?? null,
       hasOptionalTour: parsed.hasOptionalTour ?? null,
@@ -1235,7 +1246,8 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
             })()
           : null,
       shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
-      shoppingVisitCount: parsed.shoppingVisitCount ?? null,
+      // REGRESSION-FREEZE[supplier-product-fact-ssot]: 미리보기 draft = Product write — manifest
+      shoppingVisitCount: buildRegisterProductFactWrite(parsed).shoppingVisitCountTotal,
       heroDepartureDate,
       heroDepartureDateSource,
       heroReturnDate,
@@ -1259,7 +1271,7 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
       hotelNames: normalizeStringList(parsed.hotelNames),
       dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: buildRegisterProductFactWrite(parsed).hotelSummaryText,
       hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
       hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
       minimumDepartureCount: parsed.minimumDepartureCount ?? null,
@@ -1593,13 +1605,25 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       airline: parsed.airline ?? null,
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      // REGRESSION-FREEZE[supplier-product-fact-ssot]: 등록 파이프 fact write — manifest
+      ...(() => {
+        const f = buildRegisterProductFactWrite(parsed)
+        return {
+          hotelSummaryText: f.hotelSummaryText,
+          hasOptionalTours: f.hasOptionalTours,
+          shoppingCount: f.shoppingCount,
+          shoppingVisitCountTotal: f.shoppingVisitCountTotal,
+        }
+      })(),
       airportTransferType: airportTransferTypeForListingKind(registerListingMeta.listingKind, {
         airportTransferType: parsed.airportTransferType ?? null,
         includedText: parsed.includedText ?? null,
         excludedText: parsed.excludedText ?? null,
       }),
-      optionalToursStructured: parsed.optionalToursStructured ?? null,
+      optionalToursStructured: resolveOptionalToursStructuredForProductWrite({
+        optionalToursStructured: parsed.optionalToursStructured ?? null,
+        optionalToursStructuredCanonical: parsed.detailBodyStructured?.optionalToursStructured ?? null,
+      }),
       isFuelIncluded: parsed.isFuelIncluded !== false,
       isGuideFeeIncluded: parsed.isGuideFeeIncluded === true,
       mandatoryLocalFee: parsed.mandatoryLocalFee ?? null,
@@ -1616,9 +1640,6 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
-      hasOptionalTours: parsed.hasOptionalTour ?? null,
-      shoppingCount: parsed.shoppingVisitCount ?? null,
-      shoppingVisitCountTotal: parsed.shoppingVisitCount ?? null,
       shoppingItems:
         parsed.shoppingStops && typeof parsed.shoppingStops === 'string'
           ? (() => {

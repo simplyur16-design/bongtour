@@ -1,7 +1,9 @@
 /**
  * 내일투어(naeiltour) 경로용 — 일차별 예정호텔(1일차 예정호텔 …) 구조. 상세 호텔정보 탭 SSOT.
  * DB 필드명은 Prisma와 무관하게 rawMeta.structuredSignals + 서버 병합으로 전달.
+ * 등록 `mergeDayHotelPlansForRegister` ↔ 공개 `resolveDayHotelPlansForPublic` 동일 축.
  */
+// REGRESSION-FREEZE[public-consumption-naeiltour]: 등록·공개 day-hotel 동일 모듈 — manifest
 
 export const NAEILTOUR_HOTEL_UNDECIDED_PLACEHOLDER =
   '현재 숙박시설은 미정입니다. 출발 전 안내됩니다.'

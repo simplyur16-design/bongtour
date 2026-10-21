@@ -16,7 +16,12 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
-import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
+import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
+import {
+  buildSimilarItineraryCompareHrefFromProduct,
+  SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
+} from '@/lib/similar-itinerary-compare-href'
+import Link from 'next/link'
 
 export type PackageProductHeroInfoPanelProps = {
   showTitle?: boolean
@@ -24,6 +29,8 @@ export type PackageProductHeroInfoPanelProps = {
   title: string
   originCode: string
   destination: string
+  /** 비교 place 토큰용 — destination과 함께 전달 */
+  primaryDestination?: string | null
   durationLabel: string
   airline?: string | null
   heroDepartureDisplay: string | null
@@ -56,6 +63,7 @@ export default function PackageProductHeroInfoPanel({
   title,
   originCode,
   destination,
+  primaryDestination = null,
   durationLabel,
   airline,
   heroDepartureDisplay,
@@ -89,7 +97,18 @@ export default function PackageProductHeroInfoPanel({
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 히어로 항공 줄 IATA→한글 — manifest
   const airlineDisplay = formatPublicAirlineDisplay(airline)
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
-  const destinationDisplay = scrubKrDepartureFromPlaceLabel(destination) || destination
+  const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: 히어로 가격 아래 사실 비교 CTA — manifest
+  const similarCompareHref =
+    process.env.NODE_ENV === 'development'
+      ? buildSimilarItineraryCompareHrefFromProduct({
+          primaryDestination,
+          destination,
+          duration: durationLabel || _duration,
+          title,
+          totalDays: _masterTotalDays,
+        })
+      : null
 
   return (
     <>
@@ -214,6 +233,15 @@ export default function PackageProductHeroInfoPanel({
             </p>
           ) : null}
         </>
+      ) : null}
+
+      {similarCompareHref ? (
+        <Link
+          href={similarCompareHref}
+          className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+        >
+          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
+        </Link>
       ) : null}
     </>
   )

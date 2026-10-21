@@ -33,6 +33,7 @@ import {
 } from '@/lib/booking-departure-ssot'
 import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { buildYbtourTripDateDisplaysForSelectedRow } from '@/lib/ybtour/ybtour-selected-row-trip-display'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
@@ -668,17 +669,11 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
     [selectedDate, calendarAlignedDepartureFacts, product.duration]
   )
 
-  const travelCitiesLine = useMemo(() => {
-    const raw = [product.primaryDestination, product.destination]
-      .filter((x): x is string => Boolean(x?.trim()))
-      .join(',')
-    const parts = raw
-      .split(/[,，]/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-    const uniq = [...new Set(parts)]
-    return uniq.length ? uniq.join(', ') : (product.destination?.trim() || '—')
-  }, [product.primaryDestination, product.destination])
+  const travelCitiesLine = useMemo(
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub — manifest
+    () => formatPublicDestinationDisplayLabel(product.primaryDestination, product.destination),
+    [product.primaryDestination, product.destination],
+  )
 
   const reservationDisplayLine = useMemo(() => {
     const base = departureConditionLine?.trim() || ''

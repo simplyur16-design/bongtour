@@ -7,6 +7,7 @@ import {
   resolvePublicDetailHeroTitles,
   sanitizePlaceLabel,
   scrubKrDepartureFromPlaceLabel,
+  formatPublicDestinationDisplayLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
 
 // REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
@@ -219,5 +220,26 @@ describe('resolvePublicBrowseCardTitle KR departure place', () => {
   it('dest 라벨 부산 · 마츠야마 → 마츠야마', () => {
     expect(scrubKrDepartureFromPlaceLabel('부산 · 마츠야마')).toBe('마츠야마')
     expect(scrubKrDepartureFromPlaceLabel('마츠야마')).toBe('마츠야마')
+  })
+
+  it('인천출발·청주출발만이면 빈 문자열 (원문 폴백 금지)', () => {
+    expect(scrubKrDepartureFromPlaceLabel('인천출발')).toBe('')
+    expect(scrubKrDepartureFromPlaceLabel('청주출발 · 동선최소화')).toBe('')
+    expect(formatPublicDestinationDisplayLabel('인천출발')).toBe('—')
+    expect(formatPublicDestinationDisplayLabel('부산 · 마츠야마')).toBe('마츠야마')
+    expect(scrubKrDepartureFromPlaceLabel('밤출발 · 나이아가라')).toBe('나이아가라')
+  })
+
+  it('[청주출발+동선최소화] 제목 → 울란바토르 short', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '[청주출발+동선최소화]몽골 울란바토르 3박5일 #노쇼핑노옵션',
+        duration: '3박 5일',
+        primaryDestination: '청주출발 · 동선최소화',
+      },
+      '[청주출발+동선최소화]몽골 울란바토르 3박5일',
+    )
+    expect(r.cardTitle).toMatch(/울란바토르|몽골/)
+    expect(r.cardTitle).not.toMatch(/청주|동선최소화/)
   })
 })

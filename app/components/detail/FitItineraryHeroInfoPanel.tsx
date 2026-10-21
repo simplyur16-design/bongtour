@@ -15,7 +15,7 @@ import {
   COMPARE_PRICE_ROW_HINT,
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
-import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
+import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 
 export type FitItineraryHeroInfoPanelProps = {
   showTitle?: boolean
@@ -83,7 +83,7 @@ export default function FitItineraryHeroInfoPanel({
   const showPriceBlock =
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
-  const destinationDisplay = scrubKrDepartureFromPlaceLabel(destination) || destination
+  const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
 
   return (
     <>

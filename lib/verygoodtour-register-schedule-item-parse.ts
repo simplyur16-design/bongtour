@@ -45,12 +45,13 @@ function parseVerygoodScheduleItemBlock(day: number, block: string): ParsedSched
   const touringHeads = heads.filter(
     (h) => !/체크사항|미팅|출발\s*전|연락처|1644/i.test(h) && !/\[[A-Z]{2}\s*\d+\]/i.test(h),
   )
-  const hotelText =
+  const hotelRaw =
     stripVerygoodScheduleInnerHtml(
       block.match(/<h4>\s*호텔\s*<\/h4>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? '',
     ) || null
   // REGRESSION-FREEZE[verygoodtour-register-schedule-collect]: scheduleItem 식사 h4 — manifest
-  const mealBlob =
+  // 일부 상품은 호텔 h4 칸에 「조식 호텔식」만 넣고 식사 h4가 비어 있음 → 식사로 승격
+  const mealFromH4 =
     stripVerygoodScheduleInnerHtml(
       block.match(/<h4>\s*식사\s*<\/h4>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? '',
     ) ||
@@ -58,6 +59,12 @@ function parseVerygoodScheduleItemBlock(day: number, block: string): ParsedSched
       block.match(/<h4>\s*식사\s*<\/h4>[\s\S]*?<div[^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? '',
     ) ||
     ''
+  const hotelLooksLikeMeal =
+    !!hotelRaw &&
+    /^(?:조식|중식|석식|아침|점심|저녁)/u.test(hotelRaw) &&
+    !/(Hotel|Resort|메리어트|노보텔|힐튼|하얏트|쉐라톤|리조트)/i.test(hotelRaw)
+  const hotelText = hotelLooksLikeMeal ? null : hotelRaw
+  const mealBlob = mealFromH4 || (hotelLooksLikeMeal ? hotelRaw! : '')
   const mealFields = mealBlob ? parseScheduleMealFieldsFromText(mealBlob) : {}
 
   const routeSeed = [

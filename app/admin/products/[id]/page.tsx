@@ -14,6 +14,9 @@ import * as publicConsumptionHanatour from '@/lib/public-consumption-hanatour'
 import * as publicConsumptionModetour from '@/lib/public-consumption-modetour'
 import * as publicConsumptionVerygoodtour from '@/lib/public-consumption-verygoodtour'
 import * as publicConsumptionYbtour from '@/lib/public-consumption-ybtour'
+import * as publicConsumptionKyowontour from '@/lib/public-consumption-kyowontour'
+import * as publicConsumptionLottetour from '@/lib/public-consumption-lottetour'
+import * as publicConsumptionNaeiltour from '@/lib/public-consumption-naeiltour'
 import { resolvePublicConsumptionModuleKey } from '@/lib/resolve-public-consumption-module-key'
 import type { AdminDeparturesRescrapeResponseBody } from '@/app/api/admin/products/[id]/departures/route'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
@@ -140,26 +143,29 @@ function parseStructuredSignalsView(
       | null
       | undefined
     const optionalLegacy = product?.optionalToursStructured ?? null
-    const optionalConsumption =
-      consumptionKey === 'modetour'
-        ? publicConsumptionModetour.resolveOptionalToursConsumption({
-            canonical: optionalCanonical,
-            legacyOptionalToursStructured: optionalLegacy,
-          })
-        : consumptionKey === 'verygoodtour'
-          ? publicConsumptionVerygoodtour.resolveOptionalToursConsumption({
-              canonical: optionalCanonical,
-              legacyOptionalToursStructured: optionalLegacy,
-            })
-          : consumptionKey === 'ybtour'
-            ? publicConsumptionYbtour.resolveOptionalToursConsumption({
-                canonical: optionalCanonical,
-                legacyOptionalToursStructured: optionalLegacy,
-              })
-            : publicConsumptionHanatour.resolveOptionalToursConsumption({
-                canonical: optionalCanonical,
-                legacyOptionalToursStructured: optionalLegacy,
-              })
+    const optionalInput = {
+      canonical: optionalCanonical,
+      legacyOptionalToursStructured: optionalLegacy,
+    }
+    // REGRESSION-FREEZE[public-consumption-naeiltour]: 관리자 가시화 = 공개 모듈 스위치 — manifest
+    const optionalConsumption = (() => {
+      switch (consumptionKey) {
+        case 'modetour':
+          return publicConsumptionModetour.resolveOptionalToursConsumption(optionalInput)
+        case 'verygoodtour':
+          return publicConsumptionVerygoodtour.resolveOptionalToursConsumption(optionalInput)
+        case 'ybtour':
+          return publicConsumptionYbtour.resolveOptionalToursConsumption(optionalInput)
+        case 'kyowontour':
+          return publicConsumptionKyowontour.resolveOptionalToursConsumption(optionalInput)
+        case 'lottetour':
+          return publicConsumptionLottetour.resolveOptionalToursConsumption(optionalInput)
+        case 'naeiltour':
+          return publicConsumptionNaeiltour.resolveOptionalToursConsumption(optionalInput)
+        default:
+          return publicConsumptionHanatour.resolveOptionalToursConsumption(optionalInput)
+      }
+    })()
     const shoppingCanonical = s.shoppingStructured as
       | {
           rows?: Array<{
@@ -174,30 +180,29 @@ function parseStructuredSignalsView(
       | undefined
     const shoppingLegacyDb = parseShoppingStopsJson(product?.shoppingShopOptions ?? null)
     const shoppingLegacyMeta = parseShoppingStopsJson(String(s.shoppingStops ?? '') || null)
-    const shoppingConsumption =
-      consumptionKey === 'modetour'
-        ? publicConsumptionModetour.resolveShoppingConsumption({
-            canonical: shoppingCanonical,
-            legacyDbRows: shoppingLegacyDb,
-            legacyMetaRows: shoppingLegacyMeta,
-          })
-        : consumptionKey === 'verygoodtour'
-          ? publicConsumptionVerygoodtour.resolveShoppingConsumption({
-              canonical: shoppingCanonical,
-              legacyDbRows: shoppingLegacyDb,
-              legacyMetaRows: shoppingLegacyMeta,
-            })
-          : consumptionKey === 'ybtour'
-            ? publicConsumptionYbtour.resolveShoppingConsumption({
-                canonical: shoppingCanonical,
-                legacyDbRows: shoppingLegacyDb,
-                legacyMetaRows: shoppingLegacyMeta,
-              })
-            : publicConsumptionHanatour.resolveShoppingConsumption({
-                canonical: shoppingCanonical,
-                legacyDbRows: shoppingLegacyDb,
-                legacyMetaRows: shoppingLegacyMeta,
-              })
+    const shoppingInput = {
+      canonical: shoppingCanonical,
+      legacyDbRows: shoppingLegacyDb,
+      legacyMetaRows: shoppingLegacyMeta,
+    }
+    const shoppingConsumption = (() => {
+      switch (consumptionKey) {
+        case 'modetour':
+          return publicConsumptionModetour.resolveShoppingConsumption(shoppingInput)
+        case 'verygoodtour':
+          return publicConsumptionVerygoodtour.resolveShoppingConsumption(shoppingInput)
+        case 'ybtour':
+          return publicConsumptionYbtour.resolveShoppingConsumption(shoppingInput)
+        case 'kyowontour':
+          return publicConsumptionKyowontour.resolveShoppingConsumption(shoppingInput)
+        case 'lottetour':
+          return publicConsumptionLottetour.resolveShoppingConsumption(shoppingInput)
+        case 'naeiltour':
+          return publicConsumptionNaeiltour.resolveShoppingConsumption(shoppingInput)
+        default:
+          return publicConsumptionHanatour.resolveShoppingConsumption(shoppingInput)
+      }
+    })()
     const hotelCanonical = s.hotelStructured as
       | {
           rows?: Array<{
@@ -216,30 +221,29 @@ function parseStructuredSignalsView(
     const hotelLegacyNarrative = Boolean(
       String(s.hotelInfoRaw ?? '').trim() || String(product?.hotelSummaryRaw ?? '').trim()
     )
-    const hotelConsumption =
-      consumptionKey === 'modetour'
-        ? publicConsumptionModetour.resolveHotelConsumption({
-            canonical: hotelCanonical,
-            legacyStructuredPlans: hotelLegacyPlans,
-            hasLegacyNarrativeFallback: hotelLegacyNarrative,
-          })
-        : consumptionKey === 'verygoodtour'
-          ? publicConsumptionVerygoodtour.resolveHotelConsumption({
-              canonical: hotelCanonical,
-              legacyStructuredPlans: hotelLegacyPlans,
-              hasLegacyNarrativeFallback: hotelLegacyNarrative,
-            })
-          : consumptionKey === 'ybtour'
-            ? publicConsumptionYbtour.resolveHotelConsumption({
-                canonical: hotelCanonical,
-                legacyStructuredPlans: hotelLegacyPlans,
-                hasLegacyNarrativeFallback: hotelLegacyNarrative,
-              })
-            : publicConsumptionHanatour.resolveHotelConsumption({
-                canonical: hotelCanonical,
-                legacyStructuredPlans: hotelLegacyPlans,
-                hasLegacyNarrativeFallback: hotelLegacyNarrative,
-              })
+    const hotelInput = {
+      canonical: hotelCanonical,
+      legacyStructuredPlans: hotelLegacyPlans,
+      hasLegacyNarrativeFallback: hotelLegacyNarrative,
+    }
+    const hotelConsumption = (() => {
+      switch (consumptionKey) {
+        case 'modetour':
+          return publicConsumptionModetour.resolveHotelConsumption(hotelInput)
+        case 'verygoodtour':
+          return publicConsumptionVerygoodtour.resolveHotelConsumption(hotelInput)
+        case 'ybtour':
+          return publicConsumptionYbtour.resolveHotelConsumption(hotelInput)
+        case 'kyowontour':
+          return publicConsumptionKyowontour.resolveHotelConsumption(hotelInput)
+        case 'lottetour':
+          return publicConsumptionLottetour.resolveHotelConsumption(hotelInput)
+        case 'naeiltour':
+          return publicConsumptionNaeiltour.resolveHotelConsumption(hotelInput)
+        default:
+          return publicConsumptionHanatour.resolveHotelConsumption(hotelInput)
+      }
+    })()
 
     return {
       review,

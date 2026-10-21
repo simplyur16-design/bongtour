@@ -33,6 +33,7 @@ import {
 } from '@/lib/bongtour-product-title-register-bridge'
 import { findExistingProductForRegister } from '@/lib/register-product-duplicate-guard'
 import { requireAdmin } from '@/lib/require-admin'
+import { buildRegisterProductFactWrite, resolveOptionalToursStructuredForProductWrite } from '@/lib/supplier-product-fact-ssot'
 import {
   stripRegisterInternalArtifacts,
   type RegisterExtractionFieldIssue,
@@ -352,8 +353,15 @@ function mergeRawMetaWithStructuredSignals(
     shoppingNoticeRaw: parsed.shoppingNoticeRaw ?? null,
     shoppingStops: parsed.shoppingStops ?? null,
     shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
-    hasShopping: parsed.hasShopping ?? false,
-    shoppingVisitCount: parsed.shoppingVisitCount ?? null,
+    // REGRESSION-FREEZE[supplier-product-fact-ssot]: rawMeta 쇼핑 사실 = Product 컬럼 — manifest
+    ...(() => {
+      const f = buildRegisterProductFactWrite(parsed)
+      return {
+        hasShopping: f.structuredSignalsFacts.hasShopping,
+        shoppingVisitCount: f.structuredSignalsFacts.shoppingVisitCount,
+        hasOptionalTour: f.structuredSignalsFacts.hasOptionalTour,
+      }
+    })(),
     hasFreeTime: parsed.hasFreeTime ?? false,
     freeTimeSummaryText: parsed.freeTimeSummaryText ?? null,
     freeTimeRawMentions: parsed.freeTimeRawMentions ?? [],
@@ -377,7 +385,7 @@ function mergeRawMetaWithStructuredSignals(
     hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
     hotelNames: normalizeStringList(parsed.hotelNames),
     dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-    hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+    hotelSummaryText: buildRegisterProductFactWrite(parsed).hotelSummaryText,
     hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
     hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
     singleRoomSurchargeAmount: parsed.singleRoomSurchargeAmount ?? null,
@@ -1179,7 +1187,10 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
           excludedText: parsed.excludedText ?? null,
         }
       ),
-      optionalToursStructured: parsed.optionalToursStructured ?? null,
+      optionalToursStructured: resolveOptionalToursStructuredForProductWrite({
+        optionalToursStructured: parsed.optionalToursStructured ?? null,
+        optionalToursStructuredCanonical: parsed.detailBodyStructured?.optionalToursStructured ?? null,
+      }),
       optionalToursLlmSupplementJson: parsed.optionalToursLlmSupplementJson ?? null,
       optionalTourSummaryText: parsed.optionalTourSummaryText ?? null,
       hasOptionalTour: parsed.hasOptionalTour ?? null,
@@ -1200,7 +1211,7 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
             })()
           : null,
       shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
-      shoppingVisitCount: parsed.shoppingVisitCount ?? null,
+      shoppingVisitCount: buildRegisterProductFactWrite(parsed).shoppingVisitCountTotal,
       heroDepartureDate,
       heroDepartureDateSource,
       heroReturnDate,
@@ -1224,7 +1235,7 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       hotelInfoRaw: nullIfEmptyTrim(parsed.hotelInfoRaw),
       hotelNames: normalizeStringList(parsed.hotelNames),
       dayHotelPlans: parsed.dayHotelPlans?.length ? parsed.dayHotelPlans : null,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: buildRegisterProductFactWrite(parsed).hotelSummaryText,
       hotelStatusText: nullIfEmptyTrim(parsed.hotelStatusText),
       hotelNoticeRaw: nullIfEmptyTrim(parsed.hotelNoticeRaw),
       minimumDepartureCount: parsed.minimumDepartureCount ?? null,
@@ -1528,13 +1539,16 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       airline: parsed.airline ?? null,
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,
-      hotelSummaryText: nullIfEmptyTrim(parsed.hotelSummaryText),
+      hotelSummaryText: buildRegisterProductFactWrite(parsed).hotelSummaryText,
       airportTransferType: airportTransferTypeForListingKind(registerListingMeta.listingKind, {
         airportTransferType: parsed.airportTransferType ?? null,
         includedText: parsed.includedText ?? null,
         excludedText: parsed.excludedText ?? null,
       }),
-      optionalToursStructured: parsed.optionalToursStructured ?? null,
+      optionalToursStructured: resolveOptionalToursStructuredForProductWrite({
+        optionalToursStructured: parsed.optionalToursStructured ?? null,
+        optionalToursStructuredCanonical: parsed.detailBodyStructured?.optionalToursStructured ?? null,
+      }),
       isFuelIncluded: parsed.isFuelIncluded !== false,
       isGuideFeeIncluded: parsed.isGuideFeeIncluded === true,
       mandatoryLocalFee: parsed.mandatoryLocalFee ?? null,
@@ -1551,9 +1565,15 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       promotionLabelsRaw,
       reservationNoticeRaw,
       optionalTourSummaryRaw: parsed.optionalTourSummaryText ?? null,
-      hasOptionalTours: parsed.hasOptionalTour ?? null,
-      shoppingCount: parsed.shoppingVisitCount ?? null,
-      shoppingVisitCountTotal: parsed.shoppingVisitCount ?? null,
+      // REGRESSION-FREEZE[supplier-product-fact-ssot]: 등록 파이프 fact write — manifest
+      ...(() => {
+        const f = buildRegisterProductFactWrite(parsed)
+        return {
+          hasOptionalTours: f.hasOptionalTours,
+          shoppingCount: f.shoppingCount,
+          shoppingVisitCountTotal: f.shoppingVisitCountTotal,
+        }
+      })(),
       shoppingItems:
         parsed.shoppingStops && typeof parsed.shoppingStops === 'string'
           ? (() => {

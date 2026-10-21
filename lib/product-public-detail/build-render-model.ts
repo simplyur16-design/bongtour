@@ -2,6 +2,8 @@ import type { Prisma, ProductDeparture } from '@prisma/client'
 import { isDepartureSoldOut } from '@/lib/departure-seat-availability'
 import { buildPublicRouteMapView } from '@/lib/bongtour-route-map-public'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
+import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
+import { scrubPublicHotelDisplayLine, scrubPublicHotelNameList } from '@/lib/public-hotel-display-ssot'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
@@ -16,6 +18,7 @@ import * as priceRowsVerygoodtour from '@/lib/product-departure-to-price-rows-ve
 import * as priceRowsYbtour from '@/lib/product-departure-to-price-rows-ybtour'
 import * as priceRowsKyowontour from '@/lib/product-departure-to-price-rows-kyowontour'
 import * as priceRowsLottetour from '@/lib/product-departure-to-price-rows-lottetour'
+import * as priceRowsNaeiltour from '@/lib/product-departure-to-price-rows-naeiltour'
 import {
   extractProductPriceTableByLabels,
   mergeProductPriceTableWithLabelExtract,
@@ -40,6 +43,7 @@ import * as publicConsumptionVerygoodtour from '@/lib/public-consumption-verygoo
 import * as publicConsumptionYbtour from '@/lib/public-consumption-ybtour'
 import * as publicConsumptionKyowontour from '@/lib/public-consumption-kyowontour'
 import * as publicConsumptionLottetour from '@/lib/public-consumption-lottetour'
+import * as publicConsumptionNaeiltour from '@/lib/public-consumption-naeiltour'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import {
   buildModetourDirectedDisplayFromFlightStructured,
@@ -64,12 +68,14 @@ import * as flightManualVerygoodtour from '@/lib/flight-manual-correction-verygo
 import * as flightManualYbtour from '@/lib/flight-manual-correction-ybtour'
 import * as flightManualKyowontour from '@/lib/flight-manual-correction-kyowontour'
 import * as flightManualLottetour from '@/lib/flight-manual-correction-lottetour'
+import * as flightManualNaeiltour from '@/lib/flight-manual-correction-naeiltour'
 import * as dayHotelHanatour from '@/lib/day-hotel-plans-hanatour'
 import * as dayHotelModetour from '@/lib/day-hotel-plans-modetour'
 import * as dayHotelVerygoodtour from '@/lib/day-hotel-plans-verygoodtour'
 import * as dayHotelYbtour from '@/lib/day-hotel-plans-ybtour'
 import * as dayHotelKyowontour from '@/lib/day-hotel-plans-kyowontour'
 import * as dayHotelLottetour from '@/lib/day-hotel-plans-lottetour'
+import * as dayHotelNaeiltour from '@/lib/day-hotel-plans-naeiltour'
 import { normalizePromotionMarketingCopy, normalizePricePromotionViewCopy } from '@/lib/promotion-copy-normalize'
 import { isOnOrAfterPublicBookableMinDate, toDepartureDateYmd } from '@/lib/public-bookable-date'
 import { enrichPriceRowsWithProductRemainingSeats } from '@/lib/departure-seat-availability'
@@ -223,6 +229,7 @@ export async function buildProductPublicDetailRenderModel(
     travelProduct.brand?.brandKey,
     travelProduct.originSource
   )
+  // REGRESSION-FREEZE[public-consumption-naeiltour]: 공개 모듈 스위치에 naeiltour — manifest
   const publicFlightManualModule = (() => {
     switch (publicConsumptionModuleKey) {
       case 'modetour':
@@ -235,6 +242,8 @@ export async function buildProductPublicDetailRenderModel(
         return flightManualKyowontour
       case 'lottetour':
         return flightManualLottetour
+      case 'naeiltour':
+        return flightManualNaeiltour
       default:
         return flightManualHanatour
     }
@@ -252,6 +261,8 @@ export async function buildProductPublicDetailRenderModel(
         return dayHotelKyowontour
       case 'lottetour':
         return dayHotelLottetour
+      case 'naeiltour':
+        return dayHotelNaeiltour
       default:
         return dayHotelHanatour
     }
@@ -269,6 +280,8 @@ export async function buildProductPublicDetailRenderModel(
         return priceRowsKyowontour
       case 'lottetour':
         return priceRowsLottetour
+      case 'naeiltour':
+        return priceRowsNaeiltour
       default:
         return priceRowsHanatour
     }
@@ -305,7 +318,11 @@ export async function buildProductPublicDetailRenderModel(
           return {
             ...s,
             city: iday?.city?.trim() || null,
-            hotelText: coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
+            // REGRESSION-FREEZE[public-hotel-display-scrub]: schedule hotelText scrub — manifest
+            hotelText:
+              scrubPublicHotelDisplayLine(
+                coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
+              ) ?? null,
             breakfastText: coalesceItineraryOrScheduleText(iday?.breakfastText, s.breakfastText),
             lunchText: coalesceItineraryOrScheduleText(iday?.lunchText, s.lunchText),
             dinnerText: coalesceItineraryOrScheduleText(iday?.dinnerText, s.dinnerText),
@@ -427,6 +444,8 @@ export async function buildProductPublicDetailRenderModel(
         return publicConsumptionKyowontour.resolveShoppingConsumption(input)
       case 'lottetour':
         return publicConsumptionLottetour.resolveShoppingConsumption(input)
+      case 'naeiltour':
+        return publicConsumptionNaeiltour.resolveShoppingConsumption(input)
       default:
         return publicConsumptionHanatour.resolveShoppingConsumption(input)
     }
@@ -447,6 +466,8 @@ export async function buildProductPublicDetailRenderModel(
         return publicConsumptionKyowontour.resolveOptionalToursConsumption(input)
       case 'lottetour':
         return publicConsumptionLottetour.resolveOptionalToursConsumption(input)
+      case 'naeiltour':
+        return publicConsumptionNaeiltour.resolveOptionalToursConsumption(input)
       default:
         return publicConsumptionHanatour.resolveOptionalToursConsumption(input)
     }
@@ -469,6 +490,8 @@ export async function buildProductPublicDetailRenderModel(
         return publicConsumptionKyowontour.resolveHotelConsumption(input)
       case 'lottetour':
         return publicConsumptionLottetour.resolveHotelConsumption(input)
+      case 'naeiltour':
+        return publicConsumptionNaeiltour.resolveHotelConsumption(input)
       default:
         return publicConsumptionHanatour.resolveHotelConsumption(input)
     }
@@ -762,7 +785,8 @@ export async function buildProductPublicDetailRenderModel(
             ? sanitizeLottetourPublicProductAirlineLine(raw) ?? raw
             : raw
     })(),
-    destination: travelProduct.destination ?? '',
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: payload dest scrub — manifest
+    destination: scrubKrDepartureFromPlaceLabel(travelProduct.destination) || '',
     title: decodePublicHtmlEntities(travelProduct.title ?? ''),
     duration:
       verygoodtourPublicRowFactsOnly && verygoodPublicDurationFromRepRow
@@ -780,11 +804,14 @@ export async function buildProductPublicDetailRenderModel(
     optionalTourDisplayNoticeFinal: structured?.optionalTourDisplayNoticeFinal ?? null,
     optionalToursPasteRaw: optionalToursPasteRawPublic,
     shoppingPasteRaw: shoppingPasteRawPublic,
-    shoppingVisitCountTotal: structured?.shoppingVisitCount ?? travelProduct.shoppingVisitCountTotal ?? null,
+    // REGRESSION-FREEZE[supplier-product-fact-ssot]: 공개 쇼핑횟수 = Product 스칼라 우선 — manifest
+    shoppingVisitCountTotal:
+      travelProduct.shoppingVisitCountTotal ?? structured?.shoppingVisitCount ?? null,
     shoppingNoticeRaw: structured?.shoppingNoticeRaw ?? travelProduct.shoppingCustomsNoticeRaw ?? null,
     shoppingStopsStructured: shoppingConsumption.value.length > 0 ? shoppingConsumption.value : null,
     freeTimeSummaryText: structured?.freeTimeSummaryText ?? null,
     hasFreeTime: structured?.hasFreeTime ?? null,
+    // REGRESSION-FREEZE[supplier-product-fact-ssot]: 공개 옵션 유무 = Product 스칼라 — manifest
     hasOptionalTours: travelProduct.hasOptionalTours ?? null,
     pricePromotionView: pricePromoView,
     benefitSummary:
@@ -810,8 +837,12 @@ export async function buildProductPublicDetailRenderModel(
         ? sanitizeFlightStructuredBodyForPublic(verygoodFlightStructuredForPublic ?? flightStructured)
         : null,
     hotelSummaryRaw: travelProduct.hotelSummaryRaw ?? null,
-    hotelSummaryText: travelProduct.hotelSummaryText ?? structured?.hotelSummaryText ?? null,
-    hotelNames: structured?.hotelNames ?? null,
+    // REGRESSION-FREEZE[public-hotel-display-scrub]: payload 호텔 scrub — manifest
+    hotelSummaryText: (() => {
+      const raw = travelProduct.hotelSummaryText ?? structured?.hotelSummaryText ?? null
+      return scrubPublicHotelDisplayLine(raw) ?? null
+    })(),
+    hotelNames: scrubPublicHotelNameList(structured?.hotelNames ?? null),
     dayHotelPlans: (() => {
       const plans = publicDayHotelModule.resolveDayHotelPlansForPublic(
         hotelConsumption.value,
@@ -819,7 +850,12 @@ export async function buildProductPublicDetailRenderModel(
         null,
         schedule
       )
-      return plans.length > 0 ? plans : null
+      if (plans.length === 0) return null
+      return plans.map((p) => ({
+        ...p,
+        hotels: scrubPublicHotelNameList(p.hotels ?? []),
+        raw: scrubPublicHotelDisplayLine(p.raw) ?? undefined,
+      }))
     })(),
     hotelInfoRaw: structured?.hotelInfoRaw ?? null,
     hotelStatusText: structured?.hotelStatusText ?? null,
@@ -865,7 +901,8 @@ export async function buildProductPublicDetailRenderModel(
     applyFlightManualCorrectionOverlay: publicFlightManualModule.flightManualCorrectionHasActiveFinal(
       flightManualCorrection
     ),
-    primaryDestination: travelProduct.primaryDestination ?? null,
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: payload primaryDestination scrub — manifest
+    primaryDestination: scrubKrDepartureFromPlaceLabel(travelProduct.primaryDestination) || null,
     listingKind: travelProduct.listingKind ?? null,
     departureAirportLabelDisplay: homeDepartureAirportDisplayText(travelProduct.departureAirportLabel),
     sportsThemeTag: Array.isArray(travelProduct.sportsThemeTag) ? travelProduct.sportsThemeTag : [],
