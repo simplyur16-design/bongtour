@@ -14784,7 +14784,7 @@
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "shouldSkipDbAtBuild",
             "readCachedArrayOrBypassEmpty",
-            "season-product-grid-pc-v4"
+            "season-product-grid-pc-v5"
           ]
         },
         {
@@ -26185,7 +26185,9 @@
           "file": "lib/bongtour-product-display-title-ssot.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-hero-short-title]",
-            "resolvePublicBrowseCardTitle"
+            "resolvePublicBrowseCardTitle",
+            "sanitizePlaceLabel",
+            "durationHintFromTitle"
           ]
         },
         {

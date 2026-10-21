@@ -112,11 +112,36 @@ function cleanToken(s: string): string {
   return t.replace(/\s{2,}/g, ' ').trim()
 }
 
+/** 짧은 제목용 장소 — 괄호 조각·반쪽 ( 제거 (예: 규슈 (후쿠오카 → 규슈) */
+export function sanitizePlaceLabel(s: string): string {
+  let t = cleanToken(s)
+  if (!t) return ''
+  // 완결된 괄호 구간 통째 제거: 규슈 (후쿠오카·벳푸) → 규슈
+  t = t.replace(/[（(][^）)]*[）)]/g, ' ')
+  // 닫히지 않은 여는 괄호 이후 버림
+  t = t.replace(/[（(][^）)]*$/g, ' ')
+  t = t.replace(/[）)]+/g, ' ')
+  t = t.replace(/\s{2,}/g, ' ').trim()
+  // 쉼표·슬래시 나열이면 앞 토큰만 (동남아, 싱가포르 → 동남아는 split에서 처리; 잔여 방어)
+  if (/[,，、]/.test(t)) t = (t.split(/[,，、]/)[0] ?? t).trim()
+  return t
+}
+
+/** DB duration 없을 때 원제목에서 N박 M일 / M일 추출 */
+export function durationHintFromTitle(title: string): string | null {
+  const hay = String(title || '')
+  const nm = hay.match(/(\d+)\s*박\s*(\d+)\s*일/)
+  if (nm) return `${nm[1]}박 ${nm[2]}일`
+  const only = hay.match(/(?<!\d)(\d+)\s*일(?!\d)/)
+  if (only) return `${only[1]}일`
+  return null
+}
+
 function uniqPreserve(list: readonly string[]): string[] {
   const out: string[] = []
   const seen = new Set<string>()
   for (const raw of list) {
-    const s = cleanToken(String(raw || ''))
+    const s = sanitizePlaceLabel(String(raw || ''))
     if (!s || seen.has(s)) continue
     seen.add(s)
     out.push(s)
@@ -207,17 +232,18 @@ export function composeBongtourHeroDisplayTitle(
     place = brandCity || cities[0]!
     placeKind = 'city'
   } else if (hay) {
-    const raw = hay.slice(0, 12).replace(/[^\p{L}\p{N}\s]/gu, '').trim()
+    const raw = sanitizePlaceLabel(hay.slice(0, 16).replace(/[^\p{L}\p{N}\s]/gu, ' '))
     place = raw || '여행'
     placeKind = 'fallback'
   }
 
+  place = place ? sanitizePlaceLabel(place) : null
   if (!place || !dayToken) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
 
-  const heroShortTitle = cleanToken(`${place} ${dayToken}`)
-  if ([...heroShortTitle].length < 4) {
+  const shortFinal = cleanToken(`${place} ${dayToken}`)
+  if ([...shortFinal].length < 4 || /[（(）)]/.test(shortFinal)) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
 
@@ -239,7 +265,7 @@ export function composeBongtourHeroDisplayTitle(
     if (cities.length) heroSubtitle = cities.slice(0, 2).join(' · ')
   }
 
-  return { heroShortTitle, heroSubtitle, placeKind, dayToken }
+  return { heroShortTitle: shortFinal, heroSubtitle, placeKind, dayToken }
 }
 
 function splitPlaceTokens(...parts: (string | null | undefined)[]): string[] {
@@ -247,8 +273,8 @@ function splitPlaceTokens(...parts: (string | null | undefined)[]): string[] {
   for (const raw of parts) {
     const s = String(raw ?? '').trim()
     if (!s || s === '—') continue
-    for (const piece of s.split(/[·/,|]+|\s{2,}/)) {
-      const t = cleanToken(piece)
+    for (const piece of s.split(/[·/,|，、]+|\s{2,}/)) {
+      const t = sanitizePlaceLabel(piece)
       if (t) out.push(t)
     }
   }
@@ -293,11 +319,16 @@ export function resolvePublicBrowseCardTitle(
     (/유럽|미주|중동|아프리카|중남미|남미|동남아|서남아|일주/.test(regionLabel) ||
       cities.length >= 3)
 
+  const duration =
+    String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
+  const regionClean = sanitizePlaceLabel(regionLabel)
+  const countryClean = sanitizePlaceLabel(countryLabel)
+
   const composed = composeBongtourHeroDisplayTitle({
-    duration: input.duration,
-    countryLabel: countryLabel || null,
+    duration,
+    countryLabel: countryClean || null,
     cities,
-    regionLabel: regionLabel || null,
+    regionLabel: regionClean || null,
     haystack: [input.title, input.primaryDestination, input.destination].filter(Boolean).join(' '),
     multiCountry,
   })
@@ -310,6 +341,8 @@ export function resolvePublicBrowseCardTitle(
     }
   }
 
-  const fb = String(fallbackTitle || input.title || '').trim() || '여행'
+  // short 실패 시에도 해시태그·반쪽 괄호는 카드에 안 남김
+  const fbRaw = String(fallbackTitle || input.title || '').trim() || '여행'
+  const fb = sanitizePlaceLabel(fbRaw.replace(/#[^\s#]+/g, ' ')).replace(/\s{2,}/g, ' ').trim() || '여행'
   return { cardTitle: fb, heroSubtitle: null, usedHeroShort: false }
 }

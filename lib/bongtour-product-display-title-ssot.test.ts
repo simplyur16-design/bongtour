@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   composeBongtourHeroDisplayTitle,
   composeHeroDayToken,
+  durationHintFromTitle,
   resolvePublicBrowseCardTitle,
+  sanitizePlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
 
 // REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
@@ -83,6 +85,17 @@ describe('composeBongtourHeroDisplayTitle', () => {
   })
 })
 
+describe('sanitizePlaceLabel / durationHintFromTitle', () => {
+  it('반쪽 괄호·괄호 안 도시 목록 제거', () => {
+    expect(sanitizePlaceLabel('규슈 (후쿠오카')).toBe('규슈')
+    expect(sanitizePlaceLabel('규슈 (후쿠오카, 벳푸, 유후인, 히타)')).toBe('규슈')
+  })
+  it('원제목에서 일수 힌트', () => {
+    expect(durationHintFromTitle('뉴질랜드 남/북섬 9일 #온천')).toBe('9일')
+    expect(durationHintFromTitle('이탈리아 일주 11일')).toBe('11일')
+  })
+})
+
 // REGRESSION-FREEZE[public-card-hero-short-title]: 카드 제목 배선 — manifest
 describe('resolvePublicBrowseCardTitle', () => {
   it('긴 해시태그 원문 대신 목적지+N박M일 카드 제목', () => {
@@ -126,5 +139,32 @@ describe('resolvePublicBrowseCardTitle', () => {
     )
     expect(r.usedHeroShort).toBe(false)
     expect(r.cardTitle).toBe(fb)
+  })
+
+  it('목적지 괄호 조각 → 규슈 N박 M일 (반쪽 괄호 금지)', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '규슈 4일 #온천의 진수 #완벽한 동선',
+        duration: '3박 4일',
+        primaryDestination: '규슈 (후쿠오카, 벳푸, 유후인, 히타)',
+      },
+      '규슈 4일 #온천의 진수',
+    )
+    expect(r.usedHeroShort).toBe(true)
+    expect(r.cardTitle).toBe('규슈 3박 4일')
+    expect(r.cardTitle).not.toMatch(/[（(）)]/)
+  })
+
+  it('duration 비어도 제목 일수로 short', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '뉴질랜드 남/북섬 9일 #자연그대로 #온천 #밀포드사운드',
+        primaryRegion: '뉴질랜드',
+      },
+      '뉴질랜드 남/북섬 9일 #자연그대로 #온천 #밀포드사운드',
+    )
+    expect(r.usedHeroShort).toBe(true)
+    expect(r.cardTitle).toMatch(/^뉴질랜드 \d+박 9일$/)
+    expect(r.cardTitle).not.toMatch(/#/)
   })
 })

@@ -166,8 +166,8 @@ export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
   if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    // v4: hero day token N박 M일 — bust prior M일-only short titles
-    ['season-product-grid-pc-v4'],
+    // v5: place paren sanitize + duration-from-title
+    ['season-product-grid-pc-v5'],
     { revalidate: 21_600 },
   )
   return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())
