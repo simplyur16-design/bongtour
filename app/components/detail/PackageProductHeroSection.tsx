@@ -5,7 +5,10 @@ import PackageProductHeroInfoPanel, {
   type PackageProductHeroInfoPanelProps,
 } from '@/app/components/detail/PackageProductHeroInfoPanel'
 import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
-import { resolvePublicDetailHeroTitles } from '@/lib/bongtour-product-display-title-ssot'
+import {
+  resolvePublicDetailHeroTitles,
+  scrubKrDepartureFromPlaceLabel,
+} from '@/lib/bongtour-product-display-title-ssot'
 
 type CarouselProps = {
   heroUrl: string | null
@@ -53,9 +56,14 @@ export default function PackageProductHeroSection({
     destination: destination ?? null,
     primaryRegion: null,
   })
+  // REGRESSION-FREEZE[public-card-no-kr-departure-place]: SEO 칩·dest 출발허브 제거 — manifest
+  const seoOverlayScrubbed = heroImageSeoKeywordOverlay
+    ? scrubKrDepartureFromPlaceLabel(heroImageSeoKeywordOverlay) || heroImageSeoKeywordOverlay
+    : null
   const infoPanelWithCta: PackageProductHeroInfoPanelProps = {
     ...infoPanel,
     title: heroTitles.listingTitle,
+    destination: scrubKrDepartureFromPlaceLabel(infoPanel.destination) || infoPanel.destination,
     onChangeDepartureDate,
     showChangeDepartureCta,
     modetourStickyLocalPayLine,
@@ -95,10 +103,10 @@ export default function PackageProductHeroSection({
           aria-hidden
         />
 
-        {heroImageSeoKeywordOverlay ? (
+        {seoOverlayScrubbed ? (
           <div className="absolute left-3 top-3 z-[35] lg:left-4">
             <span className="inline-flex items-center gap-1 rounded-md border border-white/25 bg-white/15 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
-              {heroImageSeoKeywordOverlay}
+              {seoOverlayScrubbed}
             </span>
           </div>
         ) : null}

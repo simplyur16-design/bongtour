@@ -306,6 +306,19 @@ function filterKrDeparturePlaceTokens(cities: readonly string[]): string[] {
   return cities.filter((c) => !isKrHomeDeparturePlaceLabel(c))
 }
 
+/** 공개 목적지 라벨에서 국내출발 허브 토큰 제거 (`부산 · 마츠야마` → `마츠야마`) */
+export function scrubKrDepartureFromPlaceLabel(label: string | null | undefined): string {
+  const raw = String(label ?? '').trim()
+  if (!raw || raw === '—') return raw
+  const parts = raw
+    .split(/[·/,|，、]+/)
+    .map((p) => sanitizePlaceLabel(p))
+    .filter(Boolean)
+  const kept = filterKrDeparturePlaceTokens(parts)
+  if (kept.length === 0) return raw
+  return kept.join(' · ')
+}
+
 export type PublicBrowseCardTitleInput = {
   /** Plan B / DB 원문 제목 — 폴백·haystack */
   title: string

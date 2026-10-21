@@ -15,6 +15,7 @@ import {
   scrubRegisterDestinationComposedPlaceLabel,
   splitRegisterDestinationPlaceTokens,
 } from '@/lib/register-destination-schedule-activity-noise'
+import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
 
 const SKIP_LINE_RE =
   /^(상품(?:코드|번호)|담당자|문의|예약|인쇄|공유|https?:|▼|▶|■|※\s*유의|포함사항|불포함|여행\s*일정|상품\s*개요|HOME|고위험|여행\s*주요)/i
@@ -174,6 +175,7 @@ export function resolveProductListDestinationLabel(input: {
   countryKey?: string | null
 }): string {
   // REGRESSION-FREEZE[register-destination-reject-ilju]: list column uses heal SSOT — manifest
+  // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 목록 dest에서 출발허브 제거 — manifest
   const candidates = [
     input.primaryDestination,
     input.destination,
@@ -191,11 +193,15 @@ export function resolveProductListDestinationLabel(input: {
     )
     if (hasActivity) {
       const scrubbed = scrubRegisterDestinationComposedPlaceLabel(c)
-      if (scrubbed && !isRegisterDestinationPollutionLabel(scrubbed)) return scrubbed
+      if (scrubbed && !isRegisterDestinationPollutionLabel(scrubbed)) {
+        return scrubKrDepartureFromPlaceLabel(scrubbed) || scrubbed
+      }
       continue
     }
     const usable = extractNonPolicyDestinationFragment(c)
-    if (usable && !isRegisterDestinationPollutionLabel(usable)) return usable
+    if (usable && !isRegisterDestinationPollutionLabel(usable)) {
+      return scrubKrDepartureFromPlaceLabel(usable) || usable
+    }
   }
   const healed = healRegisterDestinationLabel({
     title: input.title,

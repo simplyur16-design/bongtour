@@ -6,6 +6,7 @@ import {
   resolvePublicBrowseCardTitle,
   resolvePublicDetailHeroTitles,
   sanitizePlaceLabel,
+  scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
 
 // REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
@@ -213,5 +214,10 @@ describe('resolvePublicBrowseCardTitle KR departure place', () => {
       '[부산출발] 핵심쏙쏙도쿄 2박3일',
     )
     expect(r.cardTitle).toBe('도쿄 2박 3일')
+  })
+
+  it('dest 라벨 부산 · 마츠야마 → 마츠야마', () => {
+    expect(scrubKrDepartureFromPlaceLabel('부산 · 마츠야마')).toBe('마츠야마')
+    expect(scrubKrDepartureFromPlaceLabel('마츠야마')).toBe('마츠야마')
   })
 })

@@ -16,6 +16,7 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
+import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
 
 export type PackageProductHeroInfoPanelProps = {
   showTitle?: boolean
@@ -87,6 +88,8 @@ export default function PackageProductHeroInfoPanel({
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 히어로 항공 줄 IATA→한글 — manifest
   const airlineDisplay = formatPublicAirlineDisplay(airline)
+  // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
+  const destinationDisplay = scrubKrDepartureFromPlaceLabel(destination) || destination
 
   return (
     <>
@@ -100,7 +103,7 @@ export default function PackageProductHeroInfoPanel({
       <p className="bt-wrap mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-relaxed text-bt-body">
         <span className="bt-code-wrap font-mono text-xs font-semibold text-bt-meta">{originCode}</span>
         <span className="text-bt-disabled">·</span>
-        <span className="font-medium text-bt-title">{destination}</span>
+        <span className="font-medium text-bt-title">{destinationDisplay}</span>
         <span className="text-bt-disabled">·</span>
         <span>{durationLabel}</span>
         {airlineDisplay ? (
