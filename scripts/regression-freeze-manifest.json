@@ -26217,6 +26217,45 @@
       ]
     },
     {
+      "id": "public-detail-hero-short-listing",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품상세 히어로 — short(N박M일) 오버레이 + 옆 정보카드에 Plan B 원 상품명 (패키지·자유여행)",
+      "checks": [
+        {
+          "file": "lib/bongtour-product-display-title-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-short-listing]",
+            "resolvePublicDetailHeroTitles",
+            "listingTitle"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-short-listing]",
+            "resolvePublicDetailHeroTitles",
+            "listingTitle",
+            "showTitle"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-short-listing]",
+            "resolvePublicDetailHeroTitles",
+            "listingTitle",
+            "showTitle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
       "id": "public-hero-airline-iata-ko",
       "tier": [
         "prebuild",

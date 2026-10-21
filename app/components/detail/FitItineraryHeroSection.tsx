@@ -5,6 +5,7 @@ import FitItineraryHeroInfoPanel, {
   type FitItineraryHeroInfoPanelProps,
 } from '@/app/components/detail/FitItineraryHeroInfoPanel'
 import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
+import { resolvePublicDetailHeroTitles } from '@/lib/bongtour-product-display-title-ssot'
 
 type CarouselProps = {
   heroUrl: string | null
@@ -50,8 +51,16 @@ export default function FitItineraryHeroSection({
   airtelRegionLine,
   onScrollToExampleItinerary,
 }: Props) {
+  // REGRESSION-FREEZE[public-detail-hero-short-listing]: 히어로 short · 옆 원 상품명 — manifest
+  const heroTitles = resolvePublicDetailHeroTitles({
+    title: productTitle,
+    duration: infoPanel.duration || infoPanel.durationLabel,
+    primaryDestination: primaryDestination ?? null,
+    destination: destination ?? null,
+  })
   const infoPanelWithCta: FitItineraryHeroInfoPanelProps = {
     ...infoPanel,
+    title: heroTitles.listingTitle,
     onChangeDepartureDate,
     showChangeDepartureCta,
     modetourStickyLocalPayLine,
@@ -66,7 +75,7 @@ export default function FitItineraryHeroSection({
           <ProductHeroCarousel
             heroUrl={heroUrl}
             daySlides={daySlides}
-            productTitle={productTitle}
+            productTitle={heroTitles.heroTitle}
             heroImageSourceType={heroImageSourceType ?? null}
             heroImagePhotographer={heroImagePhotographer ?? null}
             heroImageIsGenerated={heroImageIsGenerated ?? null}
@@ -122,10 +131,18 @@ export default function FitItineraryHeroSection({
               </div>
 
               <ProductHeroTitleLines
-                title={productTitle}
+                title={heroTitles.heroTitle}
                 className="max-w-xl text-2xl font-bold leading-[1.35] tracking-[0.02em] sm:text-3xl lg:text-4xl lg:leading-[1.35]"
                 style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
               />
+              {heroTitles.heroSubtitle ? (
+                <p
+                  className="mt-2 max-w-xl text-sm font-medium text-white/90 sm:text-base"
+                  style={{ textShadow: '0 2px 10px rgba(31,27,45,0.55)' }}
+                >
+                  {heroTitles.heroSubtitle}
+                </p>
+              ) : null}
 
               {onScrollToExampleItinerary ? (
                 <button
@@ -144,7 +161,7 @@ export default function FitItineraryHeroSection({
         </div>
 
         <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[min(760px,calc(100vh-96px))] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
-          <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle={false} />
+          <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle />
         </aside>
       </div>
 

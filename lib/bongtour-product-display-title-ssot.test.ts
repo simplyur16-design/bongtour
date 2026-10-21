@@ -4,6 +4,7 @@ import {
   composeHeroDayToken,
   durationHintFromTitle,
   resolvePublicBrowseCardTitle,
+  resolvePublicDetailHeroTitles,
   sanitizePlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
 
@@ -166,5 +167,22 @@ describe('resolvePublicBrowseCardTitle', () => {
     expect(r.usedHeroShort).toBe(true)
     expect(r.cardTitle).toMatch(/^뉴질랜드 \d+박 9일$/)
     expect(r.cardTitle).not.toMatch(/#/)
+  })
+})
+
+// REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 — manifest
+describe('resolvePublicDetailHeroTitles', () => {
+  it('자유여행 — 히어로 short, 옆 카드는 원 상품명', () => {
+    const listing =
+      '방콕 자유여행 방콕 수쿰윗 편도 픽업 포함 3박 5일 #시내호텔'
+    const r = resolvePublicDetailHeroTitles({
+      title: listing,
+      duration: '3박 5일',
+      primaryDestination: '방콕',
+    })
+    expect(r.usedHeroShort).toBe(true)
+    expect(r.heroTitle).toBe('방콕 3박 5일')
+    expect(r.listingTitle).toBe(listing)
+    expect(r.heroTitle).not.toEqual(r.listingTitle)
   })
 })

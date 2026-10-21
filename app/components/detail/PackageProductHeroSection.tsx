@@ -5,6 +5,7 @@ import PackageProductHeroInfoPanel, {
   type PackageProductHeroInfoPanelProps,
 } from '@/app/components/detail/PackageProductHeroInfoPanel'
 import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
+import { resolvePublicDetailHeroTitles } from '@/lib/bongtour-product-display-title-ssot'
 
 type CarouselProps = {
   heroUrl: string | null
@@ -44,8 +45,17 @@ export default function PackageProductHeroSection({
   showChangeDepartureCta,
   modetourStickyLocalPayLine,
 }: Props) {
+  // REGRESSION-FREEZE[public-detail-hero-short-listing]: 히어로 short · 옆 원 상품명 — manifest
+  const heroTitles = resolvePublicDetailHeroTitles({
+    title: productTitle,
+    duration: infoPanel.duration || infoPanel.durationLabel,
+    primaryDestination: primaryDestination ?? null,
+    destination: destination ?? null,
+    primaryRegion: null,
+  })
   const infoPanelWithCta: PackageProductHeroInfoPanelProps = {
     ...infoPanel,
+    title: heroTitles.listingTitle,
     onChangeDepartureDate,
     showChangeDepartureCta,
     modetourStickyLocalPayLine,
@@ -60,7 +70,7 @@ export default function PackageProductHeroSection({
           <ProductHeroCarousel
             heroUrl={heroUrl}
             daySlides={daySlides}
-            productTitle={productTitle}
+            productTitle={heroTitles.heroTitle}
             heroImageSourceType={heroImageSourceType ?? null}
             heroImagePhotographer={heroImagePhotographer ?? null}
             heroImageIsGenerated={heroImageIsGenerated ?? null}
@@ -93,15 +103,27 @@ export default function PackageProductHeroSection({
           </div>
         ) : null}
 
-        <div className="absolute bottom-16 left-8 z-[20] hidden max-w-xl pr-8 lg:block lg:bottom-24 lg:left-16">
-          <ProductHeroTitleLines
-            title={productTitle}
-            style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
-          />
+        <div className="absolute inset-x-0 bottom-0 z-[25] pointer-events-none lg:bottom-16 lg:left-8 lg:right-auto lg:inset-x-auto lg:pb-0">
+          <div className="mx-auto w-full max-w-7xl px-6 pb-14 pr-6 text-white lg:mx-0 lg:max-w-xl lg:px-0 lg:pb-0 lg:pr-8 lg:pl-8 xl:pl-16">
+            <div className="max-w-xl pointer-events-auto">
+              <ProductHeroTitleLines
+                title={heroTitles.heroTitle}
+                style={{ textShadow: '0 2px 12px rgba(31,27,45,0.6)' }}
+              />
+              {heroTitles.heroSubtitle ? (
+                <p
+                  className="mt-2 text-sm font-medium text-white/90 sm:text-base"
+                  style={{ textShadow: '0 2px 10px rgba(31,27,45,0.55)' }}
+                >
+                  {heroTitles.heroSubtitle}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[min(760px,calc(100vh-96px))] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
-          <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle={false} />
+          <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle />
         </aside>
       </div>
 

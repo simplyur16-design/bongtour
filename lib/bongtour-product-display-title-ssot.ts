@@ -346,3 +346,32 @@ export function resolvePublicBrowseCardTitle(
   const fb = sanitizePlaceLabel(fbRaw.replace(/#[^\s#]+/g, ' ')).replace(/\s{2,}/g, ' ').trim() || '여행'
   return { cardTitle: fb, heroSubtitle: null, usedHeroShort: false }
 }
+
+export type PublicDetailHeroTitlesResult = {
+  /** 히어로 오버레이 — short 우선 */
+  heroTitle: string
+  /** 히어로 옆(정보 카드) — Plan B·원 상품명 */
+  listingTitle: string
+  heroSubtitle: string | null
+  usedHeroShort: boolean
+}
+
+/**
+ * 상품 상세 히어로 — 짧은 제목(오버레이) + 원 상품명(옆 정보 카드).
+ * REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 분리 — manifest
+ */
+export function resolvePublicDetailHeroTitles(
+  input: PublicBrowseCardTitleInput,
+): PublicDetailHeroTitlesResult {
+  const listingTitle =
+    String(input.title || '').trim() ||
+    String(input.primaryDestination || '').trim() ||
+    '여행'
+  const card = resolvePublicBrowseCardTitle(input, listingTitle)
+  return {
+    heroTitle: card.cardTitle,
+    listingTitle,
+    heroSubtitle: card.heroSubtitle,
+    usedHeroShort: card.usedHeroShort,
+  }
+}
