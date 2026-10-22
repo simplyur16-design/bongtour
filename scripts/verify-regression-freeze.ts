@@ -128,6 +128,12 @@ function databaseUrlConfigured(): boolean {
   return true
 }
 
+/**
+ * nested npmScripts tier — 문자열·객체 모두 기본 `ci`.
+ * Railway prebuild에 dual-slot·self-heal·live verify가 문자열로 붙어 빌드가 폭주하던 구멍 차단.
+ * prebuild에 넣을 때만 `{ script, tier: ["prebuild"] }` 명시.
+ * REGRESSION-FREEZE[regression-freeze-prebuild-npm-tier]: nested string 기본 ci — manifest
+ */
 function guardNpmScriptsForTier(
   guard: { npmScripts?: Array<string | { script: string; tier?: Tier[]; requiresDatabase?: boolean }> },
   runTier: Tier,
@@ -135,7 +141,8 @@ function guardNpmScriptsForTier(
   const out: Array<{ script: string; requiresDatabase?: boolean }> = []
   for (const entry of guard.npmScripts ?? []) {
     if (typeof entry === 'string') {
-      out.push({ script: entry })
+      // REGRESSION-FREEZE[regression-freeze-prebuild-npm-tier]: nested string 기본 ci — manifest
+      if (tierMatch(['ci'], runTier)) out.push({ script: entry })
       continue
     }
     const script = entry?.script?.trim()

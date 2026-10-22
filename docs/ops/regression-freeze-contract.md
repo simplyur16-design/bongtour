@@ -35,6 +35,7 @@
    - `prebuild` — `npm run build` 전 자동 (빠른 결정론만; `npm ci --omit=dev` 환경)
    - `ci` — PR/push GitHub Actions (vitest·DB·dotenv 등 devDep 필요 항목)
    - Docker/Railway prebuild에는 **vitest·DB 스크립트를 넣지 않는다** (devDependency 미설치)
+   - **REGRESSION-FREEZE[regression-freeze-prebuild-npm-tier]: nested npmScripts 문자열은 기본 ci** — Railway에 suite/live(dual-slot·self-heal·mongolia 등)가 붙지 않게 한다. prebuild에 npm을 넣을 때만 `{ "script": "…", "tier": ["prebuild"] }` 명시. 무거운 top-level `npmScripts`도 `tier: ["ci"]`만.
 
 ## 실행
 
