@@ -198,17 +198,35 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii cruise port islands soft — manifest
     expect(
       collectRegisterScheduleCitySoftAltKeywords('마우이섬 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
-        /Maui|Hana|Wailea|Haleakala|Lahaina/i.test(a),
+        /Maui|Hana|Wailea|Haleakala|Makena|Kapalua/i.test(a),
       ),
     ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Jiuzhaigou·Chengdu soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('구채구 - 오채지').some((a) => /Jiuzhaigou/i.test(a))).toBe(
+      true,
+    )
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Ayutthaya golf day soft — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('아유타야G.C - 왕노이CC').some((a) => /Ayutthaya|Wang Noi|golf/i.test(a)),
+    ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Iguazu 이구아수 spelling — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('이구아수 국립공원').some((a) => /Iguazu/i.test(a))).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Guilin 상비산·첩채산 day soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('상비산 - 첩채산').some((a) => /Guilin|Yangshuo|Li River/i.test(a))).toBe(
+      true,
+    )
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Phuket Karon·Kata soft — manifest
+    expect(collectRegisterScheduleCitySoftAltKeywords('카론&카타').some((a) => /Phuket|Karon|Kata|Patong/i.test(a))).toBe(
+      true,
+    )
     expect(
       collectRegisterScheduleCitySoftAltKeywords('힐로 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
-        /Hilo|Volcano|Rainbow Falls|Akaka/i.test(a),
+        /Hilo|Volcano|Rainbow Falls|Akaka|Coconut Island/i.test(a),
       ),
     ).toBe(true)
     expect(
       collectRegisterScheduleCitySoftAltKeywords('코나 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
-        /Kona|Honaunau|Kealakekua/i.test(a),
+        /Kona|Kealakekua|Magic Sands|Hulihee/i.test(a),
       ),
     ).toBe(true)
     expect(

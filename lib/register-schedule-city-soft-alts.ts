@@ -268,7 +268,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /계림|Guilin|양삭|Yangshuo|이강|Li\s*River|여의봉/i,
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Guilin 상비산·첩채산 day soft — manifest
+    cityRe: /계림|Guilin|양삭|Yangshuo|이강|Li\s*River|여의봉|상비산|첩채산|세외도원|복파산|정양가|루이봉/i,
     alts: [
       'Li River Guilin cruise',
       'Elephant Trunk Hill Guilin',
@@ -320,8 +321,118 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     alts: [
       'Artitaya Golf Club Bangkok fairway',
       'Bangkok golf course green',
-      'Ayutthaya golf resort fairway',
-      'Icon Siam Bangkok riverside',
+      'Ayutthaya golf course fairway',
+      'Wang Noi golf course Thailand',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Ayutthaya golf day soft — manifest
+  {
+    cityRe: /아유타야|Ayutthaya|왕노이|방사이|노턴랑싯|Wang\s*Noi/i,
+    alts: [
+      'Ayutthaya Historical Park temples',
+      'Ayutthaya golf course fairway',
+      'Wang Noi golf course Thailand',
+      'Ayutthaya river temple ruins',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Jiuzhaigou·Chengdu soft — manifest
+  {
+    cityRe: /구채구|Jiuzhaigou|황룡|Huanglong|성도|청두|Chengdu|낙산|Leshan|송판|Songpan|금리|무후사/i,
+    alts: [
+      'Jiuzhaigou Valley National Park',
+      'Five Flower Lake Jiuzhaigou',
+      'Nuorilang Waterfall Jiuzhaigou',
+      'Long Lake Jiuzhaigou',
+      'Huanglong National Park China',
+      'Huanglong Temple Sichuan',
+      'Songpan Ancient Town Sichuan',
+      'Wuhou Shrine Chengdu',
+      'Wenshu Monastery Chengdu',
+      'Kuanzhai Alley Chengdu',
+      'Leshan Buddha cliff China',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Tianjin soft — manifest
+  {
+    cityRe: /톈진|천진|Tianjin|서개|시카이|Xikai|해방교|빈장다오/i,
+    alts: [
+      'Xikai Cathedral Tianjin',
+      'Tianjin Ancient Culture Street',
+      'Liberation Bridge Tianjin',
+      'Tianjin Century Clock',
+      'Garden of Serenity Tianjin',
+      'Dagu Fort Tianjin',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Chiang Mai Doi Inthanon soft — manifest
+  {
+    cityRe: /치앙마이|Chiang\s*Mai|도이인타논|Doi\s*Inthanon|먼쨈|Mae\s*Ya|님만/i,
+    alts: [
+      'Doi Inthanon National Park',
+      'Mae Ya Waterfall Chiang Mai',
+      'Chiang Mai Old City wall',
+      'Nimmanhaemin Chiang Mai street',
+      'Ping River Chiang Mai bridge',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Ronda·Bled·Postojna soft — manifest
+  {
+    cityRe: /론다|Ronda|누에보\s*다리|Puente\s*Nuevo/i,
+    alts: [
+      'Ronda Puente Nuevo bridge Spain',
+      'Ronda gorge white town',
+      'Ronda old town Spain cliffs',
+    ],
+  },
+  {
+    cityRe: /블레드|Bled|포스토이나|Postojna|로비니|Rovinj|로크룸|Lokrum|스르지|Srd/i,
+    alts: [
+      'Bled Castle Slovenia lake',
+      'Postojna Cave Slovenia',
+      'Rovinj old town harbor Croatia',
+      'Lokrum Island Dubrovnik',
+      'Dubrovnik city walls Croatia',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Dandong·Ji'an soft — manifest
+  {
+    cityRe: /단동|Dandong|압록강|집안|Ji\s*['’]?an|장군총|광개토|환도산성/i,
+    alts: [
+      'Dandong Yalu River broken bridge',
+      'Ji an General Tomb Goguryeo',
+      'Yalu River park Dandong',
+      'Goguryeo capital ruins Ji an',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Tunisia Kairouan·Bardo soft — manifest
+  {
+    cityRe: /튀니지|Tunisia|카이로안|Kairouan|바르도|Bardo|그레이트\s*모스크/i,
+    alts: [
+      'Great Mosque of Kairouan Tunisia',
+      'Bardo Museum Tunis',
+      'Carthage ruins Tunisia',
+      'Amphitheatre of El Jem Tunisia',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Itoshima·Ureshino soft — manifest
+  {
+    cityRe: /이토시마|Itoshima|우레시노|Ureshino|토토로\s*숲/i,
+    alts: [
+      'Itoshima beach Fukuoka',
+      'Ureshino onsen Saga',
+      'Totoro forest Itoshima',
+      'Keya no Oto Fukuoka coast',
+    ],
+  },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Phuket Karon·Kata soft — manifest
+  {
+    cityRe: /푸켓|Phuket|카론|Karon|카타|Kata|파통|Patong|프킷/i,
+    alts: [
+      'Patong Beach Phuket',
+      'Karon Beach Phuket',
+      'Kata Beach Phuket',
+      'Phi Phi Islands Phuket',
+      'Promthep Cape Phuket viewpoint',
     ],
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Patagonia·Puerto Natales soft — manifest
@@ -338,7 +449,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Baekdu·Changbai soft — manifest
   {
-    cityRe: /백두산|장백산|Changbai|천지|장춘|Changchun|연길|Yanji/i,
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Yanji 윤동주·해란강 soft — manifest
+    cityRe: /백두산|장백산|Changbai|천지|장춘|Changchun|연길|Yanji|윤동주|해란강|일송정|용두레/i,
     alts: [
       'Changbai Mountain Heaven Lake',
       'Changbai Hot Springs',
@@ -736,7 +848,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /이과수|Iguazu|Igua[cç]u|포스\s*두\s*이과수|Foz\s*do/i,
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Iguazu 이구아수 spelling — manifest
+    cityRe: /이과수|이구아수|Iguazu|Igua[cç]u|포스\s*두\s*이과수|Foz\s*do/i,
     alts: [
       'Iguazu Falls Argentina',
       'Iguazu Falls waterfall panorama',
@@ -1323,6 +1436,7 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii cruise port islands soft — manifest
   // 기항지 도시만 있고 공연관람·부대시설 잡음일 때 island별 명소 (하와이 단독 트리거 금지 — 섬 교차 bleed)
+  // alts는 isBrokenRegisterLandmarkKeyword=false 만 (sunrise/Front Street/coffee farm/Bayfront 제외)
   {
     cityRe: /호놀룰루|Honolulu|오아후|Oahu|와이키키|Waikiki/i,
     alts: [
@@ -1337,11 +1451,13 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
   {
     cityRe: /마우이(?:섬)?|\bMaui\b/i,
     alts: [
-      'Road to Hana Maui Hawaii',
+      'Road to Hana Maui Hawaii coast',
       'Maui Wailea Beach Hawaii',
-      'Haleakala Crater Maui sunrise',
-      'Lahaina Maui Front Street',
-      'Molokini Crater Maui snorkeling',
+      'Haleakala National Park Maui',
+      'Black Sand Beach Maui',
+      'Makena Beach Maui Hawaii',
+      'Twin Falls Maui Hawaii',
+      'Kapalua Bay Maui',
     ],
   },
   {
@@ -1350,18 +1466,16 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Hilo Hawaii Rainbow Falls',
       'Hawaii Volcanoes National Park Hilo',
       'Akaka Falls Hilo Hawaii',
-      'Hilo Bayfront Hawaii',
-      'Liliuokalani Gardens Hilo',
+      'Coconut Island Hilo Hawaii',
     ],
   },
   {
     cityRe: /(?<![가-힣])코나(?![가-힣])|\bKona\b|Kailua[\s-]?Kona/i,
     alts: [
       'Kona Hawaii coastline lava rock',
-      'Puuhonua o Honaunau Kona Hawaii',
-      'Kona coffee farm Hawaii',
       'Kealakekua Bay Kona Hawaii',
-      'Kailua Kona Pier Hawaii',
+      'Magic Sands Beach Kona Hawaii',
+      'Hulihee Palace Kona Hawaii',
     ],
   },
   {

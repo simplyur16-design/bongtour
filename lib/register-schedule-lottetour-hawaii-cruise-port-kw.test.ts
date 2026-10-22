@@ -91,8 +91,8 @@ describe('lottetour Hawaii cruise port soft-alt keywords', () => {
       expect(kw(d), `day${d}`).toBeTruthy()
     }
 
-    expect(kw(2)).toMatch(/Maui|Hana|Wailea|Haleakala|Lahaina|Molokini/i)
-    expect(kw(3)).toMatch(/Maui|Hana|Wailea|Haleakala|Lahaina|Molokini/i)
+    expect(kw(2)).toMatch(/Maui|Hana|Wailea|Haleakala|Makena|Kapalua|Twin Falls|Black Sand/i)
+    expect(kw(3)).toMatch(/Maui|Hana|Wailea|Haleakala|Makena|Kapalua|Twin Falls|Black Sand/i)
     expect(kw(2)).not.toEqual(kw(3))
 
     expect(kw(4)).toMatch(/Hilo|Volcano|Rainbow|Akaka|Liliuokalani/i)
