@@ -20,6 +20,11 @@ vi.mock('@/lib/travel-product-image-internalize', () => ({
   internalizeProductCoverImageUrl: vi.fn(),
 }))
 
+// CI에 DB 없음 — queue flag refresh는 실제 prisma를 쓰지 않게 격리
+vi.mock('@/lib/register-pre-photo-queue-flags', () => ({
+  refreshRegisterPrePhotoQueueFlagsForProductId: vi.fn(async () => undefined),
+}))
+
 import { findPhotoPoolBySourcePhotoId, savePhotoFromUrlWithRetry } from '@/lib/photo-pool'
 import { isObjectStorageConfigured, tryParseObjectKeyFromPublicUrl } from '@/lib/object-storage'
 import { pickPexelsDaySlotIngestUrl } from '@/lib/cover-image-quality'
