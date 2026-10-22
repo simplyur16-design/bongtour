@@ -548,6 +548,12 @@ export const CITY_COUNTRY_ONLY = new Set(
     'santiago',
     'santiago chile',
     'honolulu',
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island bare city hubs — manifest
+    'maui',
+    'hilo',
+    'kona',
+    'kauai',
+    'oahu',
     'macau',
     'macao',
     'easter island',

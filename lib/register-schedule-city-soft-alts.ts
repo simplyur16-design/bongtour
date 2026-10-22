@@ -1449,7 +1449,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   {
-    cityRe: /마우이(?:섬)?|\bMaui\b/i,
+    // 마우이 토큰 없이도 와일레아·마케나·카팔루아 일차에서 팩 잠금 (HHK day4–5)
+    cityRe:
+      /마우이(?:섬)?|\bMaui\b|와일레아|와이레아|Wailea|마케나|Makena|카팔루아|Kapalua|몰로키니|Molokini|할레아칼라|Haleakala|로드\s*투\s*하나|Road\s*to\s*Hana|라\s*페루즈|La\s*Perouse/i,
     alts: [
       'Road to Hana Maui Hawaii coast',
       'Maui Wailea Beach Hawaii',

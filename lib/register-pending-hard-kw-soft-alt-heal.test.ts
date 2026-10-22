@@ -201,6 +201,17 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
         /Maui|Hana|Wailea|Haleakala|Makena|Kapalua/i.test(a),
       ),
     ).toBe(true)
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Maui Hangul POI (와일레아·마케나) own-route — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords(
+        '마케나 비치 - 몰로키니 분화구 - 와일레아 비치 패스',
+      ).some((a) => /Makena|Wailea|Maui/i.test(a)),
+    ).toBe(true)
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords(
+        '라 페루즈 베이 - 숍스 앳 와일레아 - 카팔루아 코스탈 트레일',
+      ).some((a) => /Kapalua|Wailea|Maui/i.test(a)),
+    ).toBe(true)
     // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Jiuzhaigou·Chengdu soft — manifest
     expect(collectRegisterScheduleCitySoftAltKeywords('구채구 - 오채지').some((a) => /Jiuzhaigou/i.test(a))).toBe(
       true,

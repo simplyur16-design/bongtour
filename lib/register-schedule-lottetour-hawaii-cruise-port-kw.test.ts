@@ -4,6 +4,8 @@
  */
 import { describe, expect, it } from 'vitest'
 import { applyLottetourScheduleImageKeywordsToRows } from '@/lib/lottetour-schedule-image-keyword'
+import { registerScheduleKeywordMatchesOwnDayRoute } from '@/lib/register-pre-photo-verify'
+import { firstMatchingScheduleCityEn, firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 
 const F05H_CRUISE_PORT_ROWS = [
   {
@@ -104,5 +106,33 @@ describe('lottetour Hawaii cruise port soft-alt keywords', () => {
     expect(kw(4)).not.toMatch(/Maui|Kauai|Waikiki/i)
     expect(kw(5)).not.toMatch(/Maui|Hilo|Kauai|Waikiki/i)
     expect(kw(6)).not.toMatch(/Maui|Hilo|Kona|Waikiki/i)
+  })
+
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Maui Hangul POI (와일레아·마케나) own-route — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island bare city hubs — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island token≠cross-island own-route — manifest
+  it('Maui Hangul day routes own-route Maui landmarks; reject Oahu bleed', () => {
+    expect(firstMatchingScheduleCityEn('마우이섬 - 공연관람')).toBe('Maui')
+    expect(firstMatchingScheduleSpotEn('마케나 비치')).toMatch(/Makena/i)
+    expect(firstMatchingScheduleSpotEn('와일레아 비치')).toMatch(/Wailea/i)
+
+    const makenaRoute = '마케나 비치 - 몰로키니 분화구 - 와일레아 비치 패스'
+    expect(registerScheduleKeywordMatchesOwnDayRoute(makenaRoute, 'Makena Beach Maui Hawaii')).toBe(true)
+    expect(registerScheduleKeywordMatchesOwnDayRoute(makenaRoute, 'Maui Wailea Beach Hawaii')).toBe(true)
+    expect(
+      registerScheduleKeywordMatchesOwnDayRoute(makenaRoute, 'Diamond Head Honolulu crater view'),
+    ).toBe(false)
+    expect(
+      registerScheduleKeywordMatchesOwnDayRoute(makenaRoute, 'Hanauma Bay Oahu snorkeling'),
+    ).toBe(false)
+
+    const amenityMaui = '마우이섬 - 공연관람(무료) 및 다양한 부대시설'
+    expect(
+      registerScheduleKeywordMatchesOwnDayRoute(amenityMaui, 'Haleakala National Park Maui'),
+    ).toBe(true)
+    // Maui 토큰 포함 키워드는 own-route 통과 — Front Street 품질은 broken 가드가 담당
+    expect(
+      registerScheduleKeywordMatchesOwnDayRoute(amenityMaui, 'Lahaina Maui Front Street'),
+    ).toBe(true)
   })
 })

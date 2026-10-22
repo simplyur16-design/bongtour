@@ -1232,7 +1232,13 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /하나우마|Hanauma/i, en: "Hanauma Bay Oahu snorkeling" },
   { re: /파인애플\s*농장|Pineapple\s*(?:Farm|Plantation)/i, en: "Pineapple Farm Hawaii" },
   { re: /로드\s*투\s*하나|Road\s*to\s*Hana/i, en: "Road to Hana Maui Hawaii coast" },
-  { re: /와이레아|Wailea/i, en: "Maui Wailea Beach Hawaii" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Maui Hangul POI (와일레아·마케나) own-route — manifest
+  { re: /와일레아|와이레아|Wailea/i, en: "Maui Wailea Beach Hawaii" },
+  { re: /마케나|Makena/i, en: "Makena Beach Maui Hawaii" },
+  { re: /몰로키니|Molokini/i, en: "Molokini Crater Maui Hawaii" },
+  { re: /카팔루아|Kapalua/i, en: "Kapalua Bay Maui" },
+  { re: /라\s*페루즈|La\s*Perouse/i, en: "La Perouse Bay Maui Hawaii" },
+  { re: /할레아칼라|Haleakala/i, en: "Haleakala National Park Maui" },
   { re: /폴리네시안|Polynesian\s*Cultural/i, en: "Polynesian Cultural Center Oahu Hawaii" },
   { re: /워싱턴\s*국립\s*미술관|National\s*Gallery/i, en: "National Gallery of Art Washington DC" },
   { re: /스카이론|Skylon/i, en: "Skylon Tower Niagara Falls observation deck" },
@@ -1550,7 +1556,14 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /홍콩|香港/u, en: "Hong Kong Victoria Harbour night" },
   { re: /마카오|澳門/u, en: "Macau Senado square" },
   { re: /타이페이|台北/u, en: "Taipei night market street" },
-  { re: /하와이|호놀룰루|Honolulu/i, en: "Honolulu Waikiki beach" },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island bare city hubs — manifest
+  // 섬별 soft-alt·own-route — 하와이/호놀룰루 캐치올보다 먼저
+  { re: /마우이(?:섬)?|\bMaui\b/i, en: 'Maui' },
+  { re: /힐로|\bHilo\b/i, en: 'Hilo' },
+  { re: /(?<![가-힣])코나(?![가-힣])|\bKona\b|Kailua[\s-]?Kona/i, en: 'Kona' },
+  { re: /카우아이(?:섬)?|\bKauai\b/i, en: 'Kauai' },
+  { re: /오아후|\bOahu\b/i, en: 'Oahu' },
+  { re: /하와이|\bHawaii\b|호놀룰루|Honolulu/i, en: "Honolulu Waikiki beach" },
   { re: /두바이|Dubai/i, en: "Burj Khalifa Dubai skyline" },
   { re: /아부다비|Abu\s*Dhabi/i, en: "Abu Dhabi" },
   // REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: 도하·하마드 공항 한글 → 영문 장소 — manifest

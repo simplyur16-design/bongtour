@@ -90,11 +90,13 @@ export function ownRouteHasKeyword(routeText: string | null | undefined, keyword
 }
 
 const GENERIC_ROUTE_KW_TOKEN_RE =
-  /^(?:national|museum|temple|palace|bridge|castle|island|beach|mountain|cathedral|church|square|garden|street|market|swiss|alps|park|tower|falls|city|town|hotel|resort|airport)$/i
+  /^(?:national|museum|temple|palace|bridge|castle|island|beach|mountain|cathedral|church|square|garden|street|market|swiss|alps|park|tower|falls|city|town|hotel|resort|airport|hawaii|crater|bay|coast|coastal|memorial|national)$/i
 
 /** 단독으로는 도시·명소 귀속을 확정하지 못하는 토큰 (V&A≠Inner Harbour Victoria) */
 // REGRESSION-FREEZE[schedule-poi-regex-ssot]: 런던 V&A ≠ Victoria BC Inner Harbour — manifest
-const AMBIGUOUS_ROUTE_KW_TOKEN_RE = /^(?:victoria|harbour|harbor|royal|central)$/i
+// REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island token≠cross-island own-route — manifest
+// crater/bay — Molokini Crater ≠ Diamond Head; Hanauma Bay ≠ Maui Wailea Beach
+const AMBIGUOUS_ROUTE_KW_TOKEN_RE = /^(?:victoria|harbour|harbor|royal|central|hawaii|crater|bay)$/i
 
 function significantRouteKeywordTokens(raw: string): string[] {
   return String(raw ?? '')
@@ -275,8 +277,10 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
 /**
  * 중간일 키워드가 당일 동선(route)의 명소·도시와 맞는지.
  * 이스터섬 날의 Rio, 루체른–베른 날의 Jungfrau 는 false.
+ * Hawaii 공통 토큰만으로 섬 교차(마우이←오아후) 금지.
  */
 // REGRESSION-FREEZE[register-pre-photo-keyword-own-route]: 당일 route 일치 — manifest
+// REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island token≠cross-island own-route — manifest
 export function registerScheduleKeywordMatchesOwnDayRoute(
   routeText: string | null | undefined,
   keyword: string | null | undefined,

@@ -16657,6 +16657,9 @@
             "Guam mall·beach soft",
             "Toyama departure soft",
             "Hawaii cruise port islands soft",
+            "Maui Hangul POI (와일레아·마케나) own-route",
+            "Hawaii island bare city hubs",
+            "Hawaii island token≠cross-island own-route",
             "Iguazu 이구아수 spelling",
             "Ayutthaya golf day soft",
             "Jiuzhaigou·Chengdu soft",
@@ -16681,6 +16684,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "Hawaii cruise port islands soft",
+            "Maui Hangul POI (와일레아·마케나) own-route",
+            "Hawaii island bare city hubs",
+            "Hawaii island token≠cross-island own-route",
             "F05H261017KE005",
             "마우이섬",
             "applyLottetourScheduleImageKeywordsToRows"
@@ -16710,7 +16716,9 @@
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
             "빈펄 사파리 → Phu Quoc Vinpearl (≠Serengeti)",
             "세부일정≠Cebu POI",
-            "향사완 Hangul → Xiangshawan own-route"
+            "향사완 Hangul → Xiangshawan own-route",
+            "Maui Hangul POI (와일레아·마케나) own-route",
+            "Hawaii island bare city hubs"
           ]
         },
         {
@@ -16739,7 +16747,8 @@
           "file": "lib/pexels-place-name-keyword.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
-            "Hoi An Ancient Town ≠ bare"
+            "Hoi An Ancient Town ≠ bare",
+            "Hawaii island bare city hubs"
           ]
         },
         {
@@ -16756,20 +16765,23 @@
             "Turkey/AU landmark day-route evidence",
             "prior soft-alt ≠ current-day bleed",
             "세부일정≠Cebu softCity",
-            "bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미)"
+            "bare 프롬나드·해상프롬나드≠Nice (오사카 마이아미)",
+            "Hawaii island bare soft-dup"
           ]
         },
         {
           "file": "lib/register-pre-photo-verify.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
-            "title 세부일정≠dest 세부 · 사파리·마이파리≠파리"
+            "title 세부일정≠dest 세부 · 사파리·마이파리≠파리",
+            "Hawaii island token≠cross-island own-route"
           ]
         },
         {
           "file": "lib/register-pending-hard-kw-soft-alt-heal.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Maui Hangul POI (와일레아·마케나) own-route",
             "Istanbul usedKeyword on Mykonos day does not unlock Anitkabir",
             "Laura Village usedKeyword on Yellowknife day does not unlock Bondi",
             "Lisbon day soft-alt pack does not unlock Porto Ribeira",

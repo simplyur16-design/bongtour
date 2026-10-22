@@ -4159,6 +4159,15 @@ export function softDupForeignVisitCityForMiddleRoute(routeText: string | null |
     if (/^피렌체$|^Florence$|^Firenze$/i.test(seg)) return 'Florence'
     if (/^밀라노$|^Milan$/i.test(seg)) return 'Milan'
     if (/^괌$|^Guam$/i.test(seg)) return 'Guam'
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island bare soft-dup — manifest
+    if (/^마우이(?:섬)?$|^Maui$/i.test(segForCity) || /^마우이(?:섬)?$|^Maui$/i.test(seg)) return 'Maui'
+    if (/^힐로$|^Hilo$/i.test(seg)) return 'Hilo'
+    if (/^코나$|^Kona$|^Kailua[\s-]?Kona$/i.test(seg)) return 'Kona'
+    if (/^카우아이(?:섬)?$|^Kauai$/i.test(segForCity) || /^카우아이(?:섬)?$|^Kauai$/i.test(seg)) {
+      return 'Kauai'
+    }
+    if (/^오아후$|^Oahu$/i.test(seg)) return 'Oahu'
+    if (/^호놀룰루$|^Honolulu$/i.test(seg)) return 'Honolulu'
     if (/^다낭$|^Da\s*Nang$/i.test(seg)) return 'Da Nang'
     if (/^푸꾸옥$|^Phu\s*Quoc$/i.test(seg)) return 'Phu Quoc'
     // REGRESSION-FREEZE[naeiltour-mykonos-kw-no-repeat]: 미코노스 bare soft-dup — windmills 재주입 금지 — manifest
