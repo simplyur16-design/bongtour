@@ -1321,6 +1321,59 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Prater Ferris Wheel Vienna',
     ],
   },
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii cruise port islands soft — manifest
+  // 기항지 도시만 있고 공연관람·부대시설 잡음일 때 island별 명소 (하와이 단독 트리거 금지 — 섬 교차 bleed)
+  {
+    cityRe: /호놀룰루|Honolulu|오아후|Oahu|와이키키|Waikiki/i,
+    alts: [
+      'Honolulu Waikiki Beach',
+      'Diamond Head Honolulu crater view',
+      'Pearl Harbor USS Arizona Memorial Hawaii',
+      'Hanauma Bay Oahu snorkeling',
+      'North Shore Oahu Surf Beach',
+      'Iolani Palace Honolulu',
+    ],
+  },
+  {
+    cityRe: /마우이(?:섬)?|\bMaui\b/i,
+    alts: [
+      'Road to Hana Maui Hawaii',
+      'Maui Wailea Beach Hawaii',
+      'Haleakala Crater Maui sunrise',
+      'Lahaina Maui Front Street',
+      'Molokini Crater Maui snorkeling',
+    ],
+  },
+  {
+    cityRe: /힐로|\bHilo\b/i,
+    alts: [
+      'Hilo Hawaii Rainbow Falls',
+      'Hawaii Volcanoes National Park Hilo',
+      'Akaka Falls Hilo Hawaii',
+      'Hilo Bayfront Hawaii',
+      'Liliuokalani Gardens Hilo',
+    ],
+  },
+  {
+    cityRe: /(?<![가-힣])코나(?![가-힣])|\bKona\b|Kailua[\s-]?Kona/i,
+    alts: [
+      'Kona Hawaii coastline lava rock',
+      'Puuhonua o Honaunau Kona Hawaii',
+      'Kona coffee farm Hawaii',
+      'Kealakekua Bay Kona Hawaii',
+      'Kailua Kona Pier Hawaii',
+    ],
+  },
+  {
+    cityRe: /카우아이(?:섬)?|\bKauai\b/i,
+    alts: [
+      'Wailua Falls Kauai',
+      'Na Pali Coast Kauai cliffs',
+      'Waimea Canyon Kauai',
+      'Poipu Beach Kauai',
+      'Hanalei Bay Kauai',
+    ],
+  },
 ]
 
 /** route/title hay에 도시가 있으면 soft-alt 영문 키워드 목록 */

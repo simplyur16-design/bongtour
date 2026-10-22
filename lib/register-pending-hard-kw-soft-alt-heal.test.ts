@@ -195,6 +195,32 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     expect(collectRegisterScheduleCitySoftAltKeywords('토야마').some((a) => /Toyama|Tateyama/i.test(a))).toBe(
       true,
     )
+    // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii cruise port islands soft — manifest
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('마우이섬 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
+        /Maui|Hana|Wailea|Haleakala|Lahaina/i.test(a),
+      ),
+    ).toBe(true)
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('힐로 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
+        /Hilo|Volcano|Rainbow Falls|Akaka/i.test(a),
+      ),
+    ).toBe(true)
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('코나 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
+        /Kona|Honaunau|Kealakekua/i.test(a),
+      ),
+    ).toBe(true)
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('카우아이섬 - 공연관람(무료) 및 다양한 부대시설').some((a) =>
+        /Kauai|Wailua|Na Pali|Waimea|Poipu|Hanalei/i.test(a),
+      ),
+    ).toBe(true)
+    expect(
+      collectRegisterScheduleCitySoftAltKeywords('하와이 골프 크루즈').some((a) =>
+        /Maui|Hilo|Kona|Kauai|Waikiki|Diamond Head/i.test(a),
+      ),
+    ).toBe(false)
     expect(collectRegisterScheduleCitySoftAltKeywords('사이판').some((a) => /Saipan/i.test(a))).toBe(true)
     expect(collectRegisterScheduleCitySoftAltKeywords('쿠로가와').some((a) => /Kurokawa/i.test(a))).toBe(true)
     expect(collectRegisterScheduleCitySoftAltKeywords('리장').some((a) => /Lijiang/i.test(a))).toBe(true)

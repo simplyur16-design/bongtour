@@ -16656,11 +16656,22 @@
             "Baekdu·Changbai soft",
             "Guam mall·beach soft",
             "Toyama departure soft",
+            "Hawaii cruise port islands soft",
             "Enshi canyon soft",
             "bare 워터파크·PIC≠Saipan soft-alt",
             "bare 와이너리≠Tuscany soft-alt",
             "bare 꽃시계≠NYC soft-alt",
             "marketing prose≠wrong soft-alt packs"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-lottetour-hawaii-cruise-port-kw.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]",
+            "Hawaii cruise port islands soft",
+            "F05H261017KE005",
+            "마우이섬",
+            "applyLottetourScheduleImageKeywordsToRows"
           ]
         },
         {
