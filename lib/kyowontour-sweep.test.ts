@@ -13,6 +13,12 @@ import {
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import { sweepDueKyowontourProducts } from '@/lib/kyowontour-sweep'
 
+// REGRESSION-FREEZE[kyowontour-sweep-e2e-recheck]: CI는 실 DB prismaRead 금지 — manifest
+vi.mock('@/lib/prisma', () => ({
+  prisma: {},
+  prismaRead: {},
+}))
+
 vi.mock('@/lib/kyowontour-price-collect', () => ({
   collectKyowontourPriceInputsWithE2eFallback: vi.fn(),
 }))
@@ -94,7 +100,7 @@ describe('sweepDueKyowontourProducts horizonSoldOut', () => {
       productDeparture: { deleteMany },
     } as unknown as PrismaClient
 
-    const result = await sweepDueKyowontourProducts(prisma, { productId })
+    const result = await sweepDueKyowontourProducts(prisma, { productId, prismaRead: prisma })
     expect(result.horizonSoldOut).toBe(1)
     expect(result.pruned).toBe(3)
     expect(deleteMany).toHaveBeenCalled()
