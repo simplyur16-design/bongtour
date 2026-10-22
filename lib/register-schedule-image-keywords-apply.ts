@@ -423,6 +423,7 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
   // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
   // bare 방문도시 soft-dup은 출발·귀국↔호텔/공항이동 중간일만 — Osaka D2 관광일 soft-dup 금지
   const used = new Map<string, number>()
+  const usedPrimary = new Set<string>()
   return scrubSameDayDuplicateImageKeyword2(
     finalSanitized.map((row) => {
     const day = Number(row.day)
@@ -461,8 +462,20 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       } else if (allowFansipanRouteRevisitSoftDup(kw, row.routeText)) {
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
         // keep — final trip-unique must not replace Fansipan with bare Sapa
-      } else if (registerScheduleDayRouteOwnsPrimaryKeyword(row, kw)) {
+      } else if (
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: day-owned POI — kw2 bleed ≠ city soft-alt — manifest
+        registerScheduleDayRouteOwnsPrimaryKeyword(row, kw) &&
+        !usedPrimary.has(nk)
+      ) {
+        const softCityOwned = softDupForeignVisitCityForMiddleRoute(row.routeText)
+        if (
+          softCityOwned &&
+          normScheduleImageKeywordKey(softCityOwned) !== nk &&
+          !scheduleImageKeywordsSemanticallyOverlap(softCityOwned, kw)
+        ) {
+          kw = softCityOwned
+        }
+        // else keep route landmark
       } else if (
         kw2 &&
         normScheduleImageKeywordKey(kw2) !== nk &&
@@ -479,7 +492,10 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       }
     }
     const finalNk = normScheduleImageKeywordKey(kw)
-    if (finalNk) used.set(finalNk, day)
+    if (finalNk) {
+      used.set(finalNk, day)
+      usedPrimary.add(finalNk)
+    }
     const nk2 = normScheduleImageKeywordKey(kw2)
     if (nk2 && (used.has(nk2) || nk2 === finalNk)) {
       kw2 = ''
