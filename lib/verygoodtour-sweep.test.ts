@@ -10,6 +10,12 @@ import { collectVerygoodtourPriceInputsWithE2eFallback } from '@/lib/verygoodtou
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
 import { sweepDueVerygoodtourProducts } from '@/lib/verygoodtour-sweep'
 
+// REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]: CI는 실 DB prismaRead 금지 — manifest
+vi.mock('@/lib/prisma', () => ({
+  prisma: {},
+  prismaRead: {},
+}))
+
 vi.mock('@/lib/verygoodtour-price-collect', () => ({
   collectVerygoodtourPriceInputsWithE2eFallback: vi.fn(),
 }))
@@ -93,7 +99,11 @@ describe('sweepDueVerygoodtourProducts horizonSoldOut', () => {
       productDeparture: { deleteMany },
     } as unknown as PrismaClient
 
-    const result = await sweepDueVerygoodtourProducts(prisma, { productId, limit: 1 })
+    const result = await sweepDueVerygoodtourProducts(prisma, {
+      productId,
+      limit: 1,
+      prismaRead: prisma,
+    })
 
     expect(result.horizonSoldOut).toBe(1)
     expect(result.pruned).toBe(5)
