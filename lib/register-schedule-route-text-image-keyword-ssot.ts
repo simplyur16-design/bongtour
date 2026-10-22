@@ -289,9 +289,8 @@ function pickMiddleDayPrimaryKeyword(
       [...routeLandmarks, ...routeOrdered].find((kw) => /Pineapple/i.test(String(kw ?? ''))) ?? ''
     if (pine && !rejectRouteKeywordCandidate(pine)) return pine
   }
-  const tourismSegCount = filterRegisterScheduleRoutePlaceSegments(
-    splitRouteTextPlaceSegments(routeText),
-  ).length
+  const tourismSegs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
+  const tourismSegCount = tourismSegs.length
   const leadRaw = String(routeLandmarks[0] ?? routeOrdered[0] ?? '').trim()
   const leadFin = leadRaw ? finalizeRouteSegmentKeyword(leadRaw) : ''
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hoi An Ancient Town lead ≠ My Khe last soft-alt — manifest
@@ -301,10 +300,25 @@ function pickMiddleDayPrimaryKeyword(
     (leadFin && isLikelyTourismLandmarkKeyword(leadFin))
   const cityToLandmarkPair = tourismSegCount === 2 && leadRaw.length > 0 && !leadIsLandmark
   if (cityToLandmarkPair) {
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: city+landmark pair — segment landmark not city soft-alt pack tail — manifest
+    const segmentLandmarks = collectRouteTextOrderedLandmarkKeywords(routeText, {
+      includeCitySoftAlt: false,
+    })
+    const lastSeg = tourismSegs[tourismSegs.length - 1]
+    const lastSegKw = lastSeg
+      ? routeTextSegmentToImageKeyword(lastSeg, { allowCity: false, routeText })
+      : ''
+    if (
+      lastSegKw &&
+      !rejectRouteKeywordCandidate(lastSegKw) &&
+      isLikelyTourismLandmarkKeyword(finalizeRouteSegmentKeyword(lastSegKw))
+    ) {
+      return lastSegKw
+    }
     return (
-      pickLastPreferLandmark(routeLandmarks, new Set()) ||
+      pickLastPreferLandmark(segmentLandmarks, new Set()) ||
       pickLastPreferLandmark(routeOrdered, new Set()) ||
-      pickFirstPreferLandmark(routeLandmarks, new Set())
+      pickFirstPreferLandmark(segmentLandmarks, new Set())
     )
   }
   if (routeLandmarks.length >= 3) {
@@ -321,7 +335,6 @@ function pickMiddleDayPrimaryKeyword(
       }
     }
   }
-  const tourismSegs = filterRegisterScheduleRoutePlaceSegments(splitRouteTextPlaceSegments(routeText))
   if (tourismSegs.length >= 3) {
     const firstKw = routeTextSegmentToImageKeyword(tourismSegs[0]!, { allowCity: true, routeText })
     const lastKw = routeTextSegmentToImageKeyword(tourismSegs[tourismSegs.length - 1]!, {

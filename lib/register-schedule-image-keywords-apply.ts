@@ -28,7 +28,7 @@ import {
   isRegisterScheduleCrossContinentHallucinationKeyword,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { sanitizeRegisterScheduleRouteText, isRegisterScheduleDomesticHubRouteSegment } from '@/lib/register-schedule-route-place-noise'
-import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, scrubSameDayDuplicateImageKeyword2, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup, allowFansipanRouteRevisitSoftDup, departureKeepsMultiTourismKeyword2 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
+import { enforceRegisterScheduleTripUniqueImageKeywords, applyDomesticHubOnlyDepartureReturnAdjacentKeywords, fillRegisterScheduleMiddleDayImageKeywordGaps, ensureDepartureReturnVisitCityKeywords, reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill, scrubSameDayDuplicateImageKeyword2, isAirlineOnlyMovementRouteText, isAirportTransferOrCityHubOnlyMiddleRoute, softDupForeignVisitCityForMiddleRoute, allowRouteRevisitBareVisitCitySoftDup, allowFansipanRouteRevisitSoftDup, departureKeepsMultiTourismKeyword2, registerScheduleDayRouteOwnsPrimaryKeyword } from '@/lib/register-schedule-trip-image-keyword-dedupe'
 import { resolveScheduleKeywordSlotKind, isScheduleDomesticHubOnlyRouteText } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
 import {
@@ -461,6 +461,8 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
       } else if (allowFansipanRouteRevisitSoftDup(kw, row.routeText)) {
         // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
         // keep — final trip-unique must not replace Fansipan with bare Sapa
+      } else if (registerScheduleDayRouteOwnsPrimaryKeyword(row, kw)) {
+        // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: day-owned POI — kw2 bleed ≠ city soft-alt — manifest
       } else if (
         kw2 &&
         normScheduleImageKeywordKey(kw2) !== nk &&

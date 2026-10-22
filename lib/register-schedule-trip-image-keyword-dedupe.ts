@@ -13,7 +13,12 @@
  * REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 경유 허브(이스탄불·두바이) ≠ 이탈리아·시칠리아 귀국 soft-dup — manifest
  * 중간·관광 일 dedupe — 당일 route 후보만. 출발·귀국(인천 only)은 공급사 adjacent-poi SSOT 유지.
  */
-import { normScheduleImageKeywordKey, splitRouteTextPlaceSegments, isRegisterScheduleFreeLeisureDay } from '@/lib/register-schedule-llm-image-keyword-fallback'
+import {
+  normScheduleImageKeywordKey,
+  splitRouteTextPlaceSegments,
+  isRegisterScheduleFreeLeisureDay,
+  scheduleImageKeywordsSemanticallyOverlap,
+} from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { isRegisterScheduleFreeTimeOrResortLeisureText } from '@/lib/register-schedule-route-text-backfill'
 import { filterRegisterScheduleRoutePlaceSegments, isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import {
@@ -760,6 +765,26 @@ function pickUnusedRoutePrimaryLandmark(
     return kw
   }
   return ''
+}
+
+/** 당일 routeText가 primary를 소유 — trip `used`는 타일차 kw2·gap-fill bleed일 수 있음 */
+// REGRESSION-FREEZE[register-schedule-sea-poi-kw]: day-owned POI — kw2 bleed ≠ city soft-alt — manifest
+export function registerScheduleDayRouteOwnsPrimaryKeyword(
+  row: RegisterScheduleTripKeywordRow,
+  primary: string,
+): boolean {
+  const kw = String(primary ?? '').trim()
+  if (!kw) return false
+  for (const routeKw of collectRouteTextOrderedLandmarkKeywords(row.routeText, {
+    includeCitySoftAlt: false,
+  })) {
+    if (isRejectedTripKeywordCandidate(routeKw)) continue
+    const rk = normScheduleImageKeywordKey(routeKw)
+    const pk = normScheduleImageKeywordKey(kw)
+    if (rk && pk && rk === pk) return true
+    if (scheduleImageKeywordsSemanticallyOverlap(routeKw, kw)) return true
+  }
+  return false
 }
 
 /** 당일 route에 명시된 랜드마크 — 타일차 primary 중복만 회피(kw2로 이미 쓴 것은 당일 route 우선) */
@@ -4621,6 +4646,8 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
       if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
         // keep — city soft-alt must not replace route-owned Fansipan revisit (D2→D3)
+      } else if (registerScheduleDayRouteOwnsPrimaryKeyword(row, primary)) {
+        // keep — duplicate only from other-day kw2 / secondary (APP232 Chocolate Hills, APP221 Sardine)
       } else {
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
       // Queenstown→Auckland 공항일: D6 Queenstown Lake soft-dup과 겹쳐도 Milford로 바꾸지 않음
@@ -5205,6 +5232,7 @@ function forceTripUniqueImageKeywordsWithCitySoftAlts<T extends RegisterSchedule
       if (!used.has(nk)) return t
       // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
       if (allowFansipanRouteRevisitSoftDup(t, row.routeText)) return t
+      if (registerScheduleDayRouteOwnsPrimaryKeyword(row, t)) return t
       // edge bare soft-dup 허용 (출발·귀국 같은 도시)
       if (edge && isBareCityOrCountryKeyword(t)) return t
       const alt = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
@@ -5301,6 +5329,8 @@ export function reconcileRegisterScheduleTripUniqueImageKeywordsAfterGapFill<
       // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
       if (allowFansipanRouteRevisitSoftDup(prevPrimary, row.routeText)) {
         // keep Fansipan Peak when day route has 판시판·사파 정상
+      } else if (registerScheduleDayRouteOwnsPrimaryKeyword(row, prevPrimary)) {
+        primary = prevPrimary
       } else if (isAirportTransferOrCityHubOnlyMiddleRoute(row.routeText)) {
         primary = softDupForeignVisitCityForMiddleRoute(row.routeText)
       } else {
