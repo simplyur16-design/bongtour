@@ -60,4 +60,18 @@ describe('parseFactMealsListToScheduleFields', () => {
     expect(m.lunchText).toBe('현지식')
     expect(m.dinnerText).toBe('리조트식')
   })
+
+  // REGRESSION-FREEZE[register-schedule-meal-parse]: listMealPlace per-item 중식+석식 — manifest
+  it('keeps lunch when each item has a slot label (modetour listMealPlace)', () => {
+    const m = parseFactMealsListToScheduleFields(['중식 기내식', '석식 딤섬특식(딘타이펑)'])
+    expect(m.lunchText).toBe('기내식')
+    expect(m.dinnerText).toBe('딤섬특식(딘타이펑)')
+    expect(m.breakfastText).toBeUndefined()
+  })
+
+  it('parses joined slash mid+dinner without dropping lunch', () => {
+    const m = parseScheduleMealFieldsFromText('중식 기내식 / 석식 딤섬특식(딘타이펑)')
+    expect(m.lunchText).toBe('기내식')
+    expect(m.dinnerText).toBe('딤섬특식(딘타이펑)')
+  })
 })

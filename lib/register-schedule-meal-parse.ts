@@ -56,9 +56,12 @@ export function parseFactMealsListToScheduleFields(meals: string[]): ParsedSched
   if (cleaned.length === 0) return {}
 
   // REGRESSION-FREEZE[register-schedule-meal-parse]: 결합 문자열(조식·중식·석식) 우선 — manifest
+  // 단, 항목마다 슬롯 라벨이 있으면 join(`/`) 경로가 `중식 기내식 / 석식 …` 중식을 놓치므로 per-item 우선.
   const joined = cleaned.join(' / ')
   const labelHits = joined.match(/조식|중식|석식|아침|점심|저녁/g)?.length ?? 0
-  if ((cleaned.length === 1 && labelHits >= 1) || labelHits >= 2) {
+  const labeledItemCount = cleaned.filter((t) => mealSlotKeyFromLabel(t) != null).length
+  const preferPerItemSlots = cleaned.length >= 2 && labeledItemCount >= 2
+  if (!preferPerItemSlots && ((cleaned.length === 1 && labelHits >= 1) || labelHits >= 2)) {
     const fromText = parseScheduleMealFieldsFromText(cleaned.length === 1 ? cleaned[0]! : joined)
     if (fromText.breakfastText || fromText.lunchText || fromText.dinnerText || fromText.mealSummaryText) {
       return fromText
@@ -183,8 +186,10 @@ export function parseScheduleMealFieldsFromText(raw: string | null | undefined):
   }
   if (!out.lunchText) {
     const lp =
-      folded.match(/(?:중식|점심)\s*[-:：–—]\s*([^\n/|｜,，]+?)(?=\s*(?:[,，]|[/|／·｜]|\n|$|석식|저녁))/i) ||
-      folded.match(/\[?\s*(?:중식|점심)\s*\]?\s*[:：]?\s*([^\n[/\[]+?)(?=\s*(?:\n|$|\[?\s*(?:석식|저녁)))/i)
+      folded.match(/(?:중식|점심)\s*[-:：–—]?\s*([^\n/|｜,，]+?)(?=\s*(?:[,，]|[/|／·｜]|\n|$|석식|저녁))/i) ||
+      folded.match(
+        /\[?\s*(?:중식|점심)\s*\]?\s*[:：]?\s*([^\n[/\[]+?)(?=\s*(?:[,，]|[/|／·｜]|\n|$|\[?\s*(?:석식|저녁)))/i,
+      )
     assignMealField(out, 'lunchText', lp?.[1])
   }
   if (!out.dinnerText) {
