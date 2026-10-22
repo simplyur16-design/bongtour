@@ -4618,6 +4618,10 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
 
     if (primary && used.has(normScheduleImageKeywordKey(primary))) {
       const pk = normScheduleImageKeywordKey(primary)
+      // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+      if (allowFansipanRouteRevisitSoftDup(primary, row.routeText)) {
+        // keep — city soft-alt must not replace route-owned Fansipan revisit (D2→D3)
+      } else {
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
       // Queenstown→Auckland 공항일: D6 Queenstown Lake soft-dup과 겹쳐도 Milford로 바꾸지 않음
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
@@ -4699,6 +4703,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         }
       }
       } // softAltFirst else
+      } // Fansipan revisit keep
     }
     if (!primary) {
       const landmarkCands = cands.filter((c) => !isBareCityOrCountryKeyword(c))
@@ -5198,6 +5203,8 @@ function forceTripUniqueImageKeywordsWithCitySoftAlts<T extends RegisterSchedule
       const nk = normScheduleImageKeywordKey(t)
       if (!nk) return ''
       if (!used.has(nk)) return t
+      // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan route revisit soft-dup — manifest
+      if (allowFansipanRouteRevisitSoftDup(t, row.routeText)) return t
       // edge bare soft-dup 허용 (출발·귀국 같은 도시)
       if (edge && isBareCityOrCountryKeyword(t)) return t
       const alt = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {

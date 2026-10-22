@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: 관광 일차 imageKeyword + imageKeyword2(1≠2).
  * REGRESSION-FREEZE[hanatour-register-kk-live-gate]: return_home·free-day example keyword — manifest
  * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: CMS underscore route segment — manifest
+ * REGRESSION-FREEZE[register-schedule-sea-poi-kw]: route bare city→landmark upsert — manifest
  * 공급사별 모듈은 이 파일의 2순위·dedupe 후 reconcile 헬퍼를 공유한다 — 한 공급사만 고치지 말 것.
  */
 import { extractPlaceNameKeyword } from '@/lib/pexels-place-name-keyword'
@@ -50,6 +51,23 @@ export function scheduleImageKeywordsSemanticallyOverlap(a: string, b: string): 
   if (ka.length >= 4 && (kb.startsWith(`${ka} `) || kb.startsWith(`${ka}/`))) return true
   if (kb.length >= 4 && (ka.startsWith(`${kb} `) || ka.startsWith(`${kb}/`))) return true
   return false
+}
+
+/** routeText 방문 순서 — 의미 중복 시 bare city를 뒤쪽 landmark로 승격(2030 보홀 ICM+초콜릿힐 등). */
+export function upsertRouteOrderedImageKeyword(
+  out: string[],
+  raw: string,
+  isBareCityKeyword: (kw: string) => boolean,
+): void {
+  const kw = String(raw ?? '').trim()
+  if (!kw) return
+  for (let i = 0; i < out.length; i++) {
+    const prev = out[i]!
+    if (!scheduleImageKeywordsSemanticallyOverlap(prev, kw)) continue
+    if (isBareCityKeyword(prev) && !isBareCityKeyword(kw)) out[i] = kw
+    return
+  }
+  out.push(kw)
 }
 
 /** 이동 순서 후보 목록에서 1순위와 다른 첫 번째 2순위 */

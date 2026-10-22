@@ -21,7 +21,8 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
   },
   {
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: bare 미케≠Da Nang soft-alt — manifest
-    cityRe: /다낭|Da\s*Nang|미케\s*비치|My\s*Khe|베트남|Vietnam/i,
+  // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: AVP205 Fansipan≠베트남→Da Nang soft-alt — manifest
+    cityRe: /다낭|Da\s*Nang|미케\s*비치|My\s*Khe/i,
     alts: [
       'Da Nang Dragon Bridge',
       'Marble Mountains Da Nang',

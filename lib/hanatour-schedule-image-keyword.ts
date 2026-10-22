@@ -21,6 +21,7 @@ import {
   scheduleImageKeywordsSemanticallyOverlap,
   shouldReconcileScheduleImageKeyword2,
   splitRouteTextPlaceSegments,
+  upsertRouteOrderedImageKeyword,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import {
   findAllScheduleSpotMatchesInText,
@@ -1110,8 +1111,8 @@ function collectHanatourRouteOrderedSegmentKeywords(
     if (isRegisterScheduleRoutePlaceNoise(seg) || isNonLandmarkRouteTextSegment(seg)) continue
     const en = hanatourRouteSegmentToImageKeyword(seg, productDestination)
     if (!en || isHanatourDomesticHubToken(en)) continue
-    if (out.some((x) => keysEqual(x, en))) continue
-    out.push(en)
+    // REGRESSION-FREEZE[register-schedule-sea-poi-kw]: landmark wins over bare city same route — manifest
+    upsertRouteOrderedImageKeyword(out, en, isHanatourBareCityKeyword)
   }
   return out
 }
