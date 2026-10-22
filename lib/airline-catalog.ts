@@ -19,7 +19,12 @@ export const AIRLINE_CATALOG: AirlineCatalogEntry[] = [
   { code: 'eastar', label: '이스타항공', matchTokens: ['이스타', 'eastar', 'ze'] },
   { code: 'jeju-air', label: '제주항공', matchTokens: ['제주항공', 'jeju air', '7c'] },
   { code: 'jin-air', label: '진에어', matchTokens: ['진에어', 'jin air', 'lj'] },
-  { code: 'tway', label: '티웨이항공', matchTokens: ['티웨이', 'tway', 'tw'] },
+  // REGRESSION-FREEZE[airline-tway-to-trinity]: catalog label Trinity — manifest
+  {
+    code: 'tway',
+    label: '트리니티항공',
+    matchTokens: ['트리니티', 'trinity', '티웨이', 'tway', "t'way", 'tw'],
+  },
 ]
 
 const EXTRA = { code: 'other', label: '기타', matchTokens: [] as string[] }

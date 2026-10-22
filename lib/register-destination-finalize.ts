@@ -33,7 +33,7 @@ const CHANNEL_OR_OFFER_LABEL_RE =
 
 // REGRESSION-FREEZE[register-pre-photo-dest-fuel-silsok-not-place]: EK 등 IATA ≠ dest — manifest
 const AIRLINE_CODE_ONLY_RE =
-  /^(?:하와이안|젯스타|진에어|티웨이|에어서울|대한항공|아시아나|핀에어|[A-Z0-9]{2})$/i
+  /^(?:하와이안|젯스타|진에어|트리니티|티웨이|에어서울|대한항공|아시아나|핀에어|[A-Z0-9]{2})$/i
 
 /** True if label must never be stored/shown as product destination / list 지역. */
 export function isRegisterDestinationPollutionLabel(raw: string | null | undefined): boolean {

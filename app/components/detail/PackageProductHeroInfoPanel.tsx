@@ -99,16 +99,13 @@ export default function PackageProductHeroInfoPanel({
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
   // REGRESSION-FREEZE[similar-itinerary-compare-entry]: 히어로 가격 아래 사실 비교 CTA — manifest
-  const similarCompareHref =
-    process.env.NODE_ENV === 'development'
-      ? buildSimilarItineraryCompareHrefFromProduct({
-          primaryDestination,
-          destination,
-          duration: durationLabel || _duration,
-          title,
-          totalDays: _masterTotalDays,
-        })
-      : null
+  const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
+    primaryDestination,
+    destination,
+    duration: durationLabel || _duration,
+    title,
+    totalDays: _masterTotalDays,
+  })
 
   return (
     <>

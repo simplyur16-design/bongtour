@@ -26391,7 +26391,7 @@
           ]
         },
         {
-          "file": "app/dev/similar-itinerary-compare/page.tsx",
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
           "mustInclude": [
             "항공사",
             "airlineLabel"
@@ -26579,7 +26579,7 @@
             "REGRESSION-FREEZE[public-hero-airline-iata-ko]",
             "expandAirlineIataCodesInPublicTitle",
             "formatPublicAirlineDisplay",
-            "티웨이항공"
+            "트리니티항공"
           ]
         },
         {
@@ -26613,6 +26613,45 @@
       ],
       "vitestSuites": [
         "lib/airline-iata-public-display-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "airline-tway-to-trinity",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "티웨이→트리니티 리브랜딩 — 공개 TW/구브랜드 표시·카탈로그·미팅터미널 SSOT",
+      "checks": [
+        {
+          "file": "lib/airline-iata-public-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-tway-to-trinity]",
+            "TW: '트리니티항공'",
+            "canonicalizePublicAirlineKo",
+            "티웨이항공: '트리니티항공'"
+          ]
+        },
+        {
+          "file": "lib/airline-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-tway-to-trinity]",
+            "label: '트리니티항공'",
+            "트리니티"
+          ]
+        },
+        {
+          "file": "lib/meeting-terminal-rules.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-tway-to-trinity]",
+            "트리니티항공",
+            "티웨이: '트리니티항공'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/airline-iata-public-display-ssot.test.ts",
+        "lib/supplier-product-fact-ssot.test.ts"
       ]
     },
     {
@@ -26933,7 +26972,7 @@
           ]
         },
         {
-          "file": "app/dev/similar-itinerary-compare/page.tsx",
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
           "mustInclude": [
             "없는 공급사",
             "등록대기 수집",
@@ -26942,7 +26981,7 @@
           ]
         },
         {
-          "file": "app/dev/similar-itinerary-compare/actions.ts",
+          "file": "app/travel/similar-itinerary-compare/actions.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
             "ingestCompareClusterSupplierGaps"
@@ -27091,7 +27130,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
             "SIMILAR_ITINERARY_COMPARE_PATH",
-            "/dev/similar-itinerary-compare",
+            "/travel/similar-itinerary-compare",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
             "같은 일정, 공급사별 사실 비교",
             "buildSimilarItineraryCompareHrefFromProduct"
@@ -27114,17 +27153,18 @@
           ]
         },
         {
-          "file": "app/dev/similar-itinerary-compare/page.tsx",
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
           "mustInclude": [
             "buildSimilarItineraryCompareHref",
             "SIMILAR_ITINERARY_COMPARE_PATH",
-            "추천/우위 표시 없음"
+            "추천/우위 표시 없음",
+            "REGRESSION-FREEZE[similar-itinerary-compare-entry]"
           ]
         },
         {
           "file": "app/dev/ocean-warm-home/OceanWarmTopNav.tsx",
           "mustInclude": [
-            "/dev/similar-itinerary-compare",
+            "/travel/similar-itinerary-compare",
             "사실 비교"
           ]
         }

@@ -216,7 +216,7 @@ function extractBaselineFromDetail(detailHtml: string, originUrl: string): Yello
   const titleHtml = detailHtml.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i)?.[1] ?? detailHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? ''
   const titleLayers = buildDepartureTitleLayers(stripTags(titleHtml))
   const text = stripTags(detailHtml)
-  const carrierName = clean(text.match(/(대한항공|아시아나항공|제주항공|진에어|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1]) || null
+  const carrierName = clean(text.match(/(대한항공|아시아나항공|제주항공|진에어|트리니티항공|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1]) || null
   const nd = parseNightsDays(text)
   let originCode: string | null = null
   let supplierGroupId: string | null = null
@@ -241,7 +241,7 @@ function extractPopupRowsFromHtml(html: string, baseline: YellowBalloonBaseline)
     const depDate = parseDateYmd(rowTextRaw)
     const times = [...rowTextRaw.matchAll(/(\d{1,2}):(\d{2})/g)].map((m) => `${String(Number(m[1])).padStart(2, '0')}:${m[2]}`)
     const nd = parseNightsDays(rowTextRaw)
-    const carrier = clean(rowTextRaw.match(/(대한항공|아시아나항공|제주항공|진에어|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1]) || baseline.carrierName
+    const carrier = clean(rowTextRaw.match(/(대한항공|아시아나항공|제주항공|진에어|트리니티항공|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1]) || baseline.carrierName
     const status = clean(rowTextRaw.match(/(출발확정|예약가능|예약\s*가능|대기예약|대기|마감)/)?.[1]) || null
     const seats = clean(rowTextRaw.match(/(잔여\s*\d+\s*석|좌석\s*\d+|대기예약|마감)/)?.[1]) || null
     const price = parsePrice(rowTextRaw)

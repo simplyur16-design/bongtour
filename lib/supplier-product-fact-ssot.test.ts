@@ -157,7 +157,7 @@ describe('deriveAirlineFact', () => {
         structuredSignals: { airlineName: '대한항공' },
       }),
     })
-    expect(f.airlineLabel).toBe('티웨이항공')
+    expect(f.airlineLabel).toBe('트리니티항공')
     expect(f.source).toBe('departure_carrier')
   })
 

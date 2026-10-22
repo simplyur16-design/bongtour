@@ -201,7 +201,7 @@ type ModetourBaselineExtraction = {
 }
 
 const MODETOUR_KNOWN_CARRIERS =
-  '대한항공|아시아나항공|제주항공|진에어|티웨이항공|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|에어로케이|하이에어'
+  '대한항공|아시아나항공|제주항공|진에어|트리니티항공|티웨이항공|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|에어로케이|하이에어'
 
 function extractModetourBaselineCarrier(detailHtml: string | null, detailText: string): string | null {
   const block =
@@ -1006,7 +1006,7 @@ export async function collectModetourProductCore(
     benefitSummary: text.match(/(혜택|프로모션)[\s\S]{0,180}/i)?.[1]?.trim() ?? null,
     airline:
       carrierFromDetail ??
-      text.match(/(대한항공|아시아나항공|제주항공|진에어|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1] ??
+      text.match(/(대한항공|아시아나항공|제주항공|진에어|트리니티항공|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1] ??
       null,
     duration: nd.tripNights != null && nd.tripDays != null ? `${nd.tripNights}박 ${nd.tripDays}일` : null,
     tripNights: nd.tripNights,
@@ -1016,7 +1016,7 @@ export async function collectModetourProductCore(
       buildDepartureTerminalInfo(
         inferDepartureAirportCodeFromKoreanDetailText(text),
         carrierFromDetail ??
-          text.match(/(대한항공|아시아나항공|제주항공|진에어|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1] ??
+          text.match(/(대한항공|아시아나항공|제주항공|진에어|트리니티항공|티웨이항공|에어부산|에어서울|이스타항공)/)?.[1] ??
           null
       ) ?? null,
     guideTypeRaw: text.match(/(현지\s*가이드|인솔자)[^\n]{0,100}/i)?.[0]?.trim() ?? null,

@@ -86,7 +86,7 @@ export function scrubRegisterDestinationSeatSaleNoise(raw: string): string {
   t = t.replace(/비즈니스\s*[·,/／]\s*클래스/gi, ' ')
   t = t.replace(/(?:NO|무|노)\s*(?:옵션|쇼핑|팁)(?:\s*[&＆]\s*(?:NO|무|노)?(?:옵션|쇼핑|팁))*/gi, ' ')
   t = t.replace(/\d+\s*팀/g, ' ')
-  t = t.replace(/대한항공|아시아나항공|아시아나|진에어|티웨이|에어서울/gi, ' ')
+  t = t.replace(/대한항공|아시아나항공|아시아나|진에어|트리니티|티웨이|에어서울/gi, ' ')
   t = t.replace(/\(\s*[·,/\s]*\)/g, ' ')
   t = t.replace(/[（(]\s*[）)]/g, ' ')
   t = t.replace(/\s*[·,/／]\s*(?=[·,/／)]|$)/g, ' ')

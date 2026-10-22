@@ -33,7 +33,7 @@ export default function OceanWarmTopNav() {
           </a>
           <a
             className="ow-nav-ghost"
-            href="/dev/similar-itinerary-compare?place=상해&duration=3박%204일"
+            href="/travel/similar-itinerary-compare?place=상해&duration=3박%204일"
           >
             사실 비교
           </a>

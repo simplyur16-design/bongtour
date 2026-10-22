@@ -123,7 +123,7 @@ function extractSharedMeta(detailHtml: string): {
     ''
   const titleLayers = buildDepartureTitleLayers(repairUtf8MisreadAsLatin1(stripTags(rawTitle)))
   const carrier = text.match(
-    /(에미레이트항공|에미레이트|튀르키예항공|터키항공|카타르항공|카타르|에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|루프트한자|에어캐나다|델타항공|유나이티드항공|핀에어|ANA|전일본공수)/
+    /(에미레이트항공|에미레이트|튀르키예항공|터키항공|카타르항공|카타르|에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|트리니티항공|티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|루프트한자|에어캐나다|델타항공|유나이티드항공|핀에어|ANA|전일본공수)/
   )?.[1]
   const minPaxMatch = text.match(/최소\s*출발\s*인원\s*[:：]?\s*(\d+)\s*명/)
   const minPax = minPaxMatch?.[1] ? Number(minPaxMatch[1]) : null

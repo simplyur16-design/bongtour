@@ -9,6 +9,7 @@ import fs from 'fs'
 import path from 'path'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
+import { canonicalizePublicAirlineKo } from '@/lib/airline-iata-public-display-ssot'
 import { buildCommonMatchingTrace, buildDepartureTitleLayers, type DepartureTitleLayers } from '@/lib/departure-option-kyowontour'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
@@ -287,7 +288,7 @@ function dayAirToRow(
   const tc = String(
     item.tourCode ?? item.goodsCode ?? item.pkgCode ?? item.TOUR_CD ?? tourCodeFallback ?? ''
   ).trim()
-  const airline = String(
+  const airlineRaw = String(
     item.preferredAirlineNm ??
       item.airline ??
       item.korAirline ??
@@ -296,6 +297,8 @@ function dayAirToRow(
       item.AIRLINE ??
       ''
   ).trim()
+  // REGRESSION-FREEZE[airline-tway-to-trinity]: kyowon carrier canonical — manifest
+  const airline = canonicalizePublicAirlineKo(airlineRaw)
   const adultPriceFromCalendar = parsePrice(
     item.adultPrice ?? item.price ?? item.salePrice ?? item.ADULT_PRICE ?? item.adtAmt
   )

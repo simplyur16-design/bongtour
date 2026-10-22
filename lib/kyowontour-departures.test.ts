@@ -54,7 +54,7 @@ describe('parseKyowontourCalendarDayAirRow', () => {
     )
     expect(row?.departDate).toBe('2026-07-01')
     expect(row?.adultPriceFromCalendar).toBe(1299000)
-    expect(row?.airline).toBe('티웨이항공')
+    expect(row?.airline).toBe('트리니티항공')
     expect(row?.status).toBe('available')
   })
 })

@@ -177,7 +177,7 @@ function tryParseLottetourKoreaDepartArriveCompact(lines: string[]): LottetourFl
 export function extractLottetourAirlineFromLines(lines: string[]): string | null {
   const blob = lines.join('\n')
   const m =
-    blob.match(/(대한항공|아시아나항공|아시아나|제주항공|진에어|티웨이항공|티웨이|에어부산|이스타항공|이스타)/) ??
+    blob.match(/(대한항공|아시아나항공|아시아나|제주항공|진에어|트리니티항공|트리니티|티웨이항공|티웨이|에어부산|이스타항공|이스타)/) ??
     blob.match(/([가-힣A-Za-z·\s]{2,20}항공)/)
   return m?.[1]?.replace(/\s+/g, ' ').trim() ?? null
 }

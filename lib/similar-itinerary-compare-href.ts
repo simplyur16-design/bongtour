@@ -1,5 +1,5 @@
 /**
- * 비슷한 일정 사실 비교 — 진입 href SSOT (상품 상세 CTA · draft 홈).
+ * 비슷한 일정 사실 비교 — 진입 href SSOT (상품 상세 CTA · 공개 travel 경로).
  * place/duration 추출은 loadSimilarItineraryCompare 매칭과 동일해야 함.
  * REGRESSION-FREEZE[similar-itinerary-compare-entry]: 사실 비교 CTA href — manifest
  */
@@ -10,8 +10,8 @@ import {
   scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
 
-/** draft-local soft launch — prod는 assertDevDesignPreviewAllowed 로 404 */
-export const SIMILAR_ITINERARY_COMPARE_PATH = '/dev/similar-itinerary-compare'
+/** 공개 경로 — 상품 상세 CTA·프리셋 진입 */
+export const SIMILAR_ITINERARY_COMPARE_PATH = '/travel/similar-itinerary-compare'
 
 export const SIMILAR_ITINERARY_COMPARE_CTA_LABEL = '같은 일정, 공급사별 사실 비교'
 

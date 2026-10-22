@@ -273,7 +273,7 @@ export function extractModetourTransportHeadline(lines: string[]): string | null
 const MODETOUR_AIRLINE_LOOSE_PATTERNS: Array<{ re: RegExp; name: string }> = [
   { re: /아시아나(?:항공)?(?:\s+OZ|\bOZ[-\s]?\d)/i, name: '아시아나항공' },
   { re: /대한항공(?:\s+KE|\bKE[-\s]?\d)/i, name: '대한항공' },
-  { re: /티웨이(?:항공)?(?:\s+TW|\bTW[-\s]?\d)/i, name: '티웨이항공' },
+  { re: /(?:트리니티|티웨이)(?:항공)?(?:\s+TW|\bTW[-\s]?\d)/i, name: '트리니티항공' },
   { re: /에어(?:부산|프레미아)|에어부산(?:\s+BX|\bBX[-\s]?\d)?/i, name: '에어부산' },
   { re: /이스타(?:항공)?(?:\s+ZE|\bZE[-\s]?\d)?/i, name: '이스타항공' },
   { re: /에어서울(?:\s+RS|\bRS[-\s]?\d)?/i, name: '에어서울' },
@@ -288,7 +288,7 @@ const MODETOUR_AIRLINE_LOOSE_PATTERNS: Array<{ re: RegExp; name: string }> = [
   { re: /중국국제항공|\bCA\d/i, name: '중국국제항공' },
   { re: /아시아나(?:항공)?/i, name: '아시아나항공' },
   { re: /대한항공/i, name: '대한항공' },
-  { re: /티웨이(?:항공)?/i, name: '티웨이항공' },
+  { re: /(?:트리니티|티웨이)(?:항공)?/i, name: '트리니티항공' },
   { re: /제주항공/i, name: '제주항공' },
   { re: /진에어/i, name: '진에어' },
   { re: /에어부산/i, name: '에어부산' },
