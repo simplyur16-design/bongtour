@@ -42,9 +42,9 @@ const SAMPLES: Sample[] = [
     pkgCd: 'PAB101260920JQ1',
     label: '자유여행 시드니 6일 파라독스',
     adminTravelScope: 'air_hotel_free',
-    // 공급사 재가격 시 깨지므로 절대 금액 고정 금지 — >0 + 달력/형제 상품 정합만 본다.
+    // 공급사 재가격·재고 축소 시 깨지므로 절대 금액/다출발 고정 금지 — Sep 캘린더 존재(>=1) + 형제 정합만 본다.
     expectAnchorPrice: 0,
-    minSepDepartures: 3,
+    minSepDepartures: 1,
   },
   {
     pkgCd: 'CQP1112608017CB',
